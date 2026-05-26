@@ -1,0 +1,230 @@
+import { copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import esbuild from "esbuild";
+
+const CRC32_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let j = 0; j < 8; j++) {
+      c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    }
+    table[i] = c >>> 0;
+  }
+  return table;
+})();
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const dist = path.join(root, "dist");
+const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
+const matchLines = [
+  "https://x.com/*",
+  "https://twitter.com/*",
+  "https://mobile.twitter.com/*",
+  "https://pro.x.com/*",
+  "https://tweetdeck.twitter.com/*"
+];
+
+await rm(dist, { force: true, recursive: true });
+await mkdir(dist, { recursive: true });
+
+await esbuild.build({
+  entryPoints: [path.join(root, "src/entrypoints/userscript.ts")],
+  outfile: path.join(dist, "aviary.user.js"),
+  bundle: true,
+  format: "iife",
+  globalName: "Aviary",
+  target: "es2022",
+  platform: "browser",
+  minify: false,
+  legalComments: "inline",
+  banner: {
+    js: userscriptBanner(pkg.version)
+  }
+});
+
+for (const target of ["extension-chrome", "extension-firefox"]) {
+  const targetDir = path.join(dist, target);
+  await mkdir(targetDir, { recursive: true });
+
+  await esbuild.build({
+    entryPoints: [path.join(root, "src/entrypoints/extension-content.ts")],
+    outfile: path.join(targetDir, "content.js"),
+    bundle: true,
+    format: "iife",
+    target: "es2022",
+    platform: "browser",
+    minify: false,
+    legalComments: "inline"
+  });
+
+  await esbuild.build({
+    entryPoints: [path.join(root, "src/entrypoints/extension-background.ts")],
+    outfile: path.join(targetDir, "background.js"),
+    bundle: true,
+    format: "esm",
+    target: "es2022",
+    platform: "browser",
+    minify: false,
+    legalComments: "inline"
+  });
+
+  const manifestName = target === "extension-chrome" ? "manifest.chrome.json" : "manifest.firefox.json";
+  const manifest = JSON.parse(await readFile(path.join(root, "src/extension", manifestName), "utf8"));
+  manifest.version = pkg.version;
+  await writeFile(path.join(targetDir, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+await copyFile(path.join(root, "README.md"), path.join(dist, "README.md"));
+
+for (const target of ["extension-chrome", "extension-firefox"]) {
+  const targetDir = path.join(dist, target);
+  const zipPath = path.join(dist, `${target}-v${pkg.version}.zip`);
+  await packDirectoryAsStoreZip(targetDir, zipPath);
+}
+
+async function packDirectoryAsStoreZip(directory, outputPath) {
+  const entries = [];
+  for await (const filePath of walk(directory)) {
+    const relative = path.relative(directory, filePath).replace(/\\/g, "/");
+    const data = await readFile(filePath);
+    entries.push({ filename: relative, data: new Uint8Array(data) });
+  }
+  const archive = buildStoreZip(entries);
+  await writeFile(outputPath, archive);
+}
+
+async function* walk(directory) {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const next = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      yield* walk(next);
+    } else if ((await stat(next)).isFile()) {
+      yield next;
+    }
+  }
+}
+
+function crc32(data) {
+  let c = 0xffffffff;
+  for (let i = 0; i < data.length; i++) {
+    c = (CRC32_TABLE[(c ^ data[i]) & 0xff] ^ (c >>> 8)) >>> 0;
+  }
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+function buildStoreZip(entries) {
+  const encoder = new TextEncoder();
+  const localBlocks = [];
+  const centralBlocks = [];
+  let offset = 0;
+
+  for (const entry of entries) {
+    const nameBytes = encoder.encode(entry.filename);
+    const crc = crc32(entry.data);
+    const size = entry.data.length;
+    const date = new Date();
+    const dosDate = ((Math.max(date.getUTCFullYear() - 1980, 0) & 0x7f) << 9)
+      | (((date.getUTCMonth() + 1) & 0x0f) << 5)
+      | (date.getUTCDate() & 0x1f);
+    const dosTime = ((date.getUTCHours() & 0x1f) << 11)
+      | ((date.getUTCMinutes() & 0x3f) << 5)
+      | (Math.floor(date.getUTCSeconds() / 2) & 0x1f);
+
+    const localHeader = new ArrayBuffer(30 + nameBytes.length);
+    const lhView = new DataView(localHeader);
+    lhView.setUint32(0, 0x04034b50, true);
+    lhView.setUint16(4, 20, true);
+    lhView.setUint16(6, 0, true);
+    lhView.setUint16(8, 0, true);
+    lhView.setUint16(10, dosTime, true);
+    lhView.setUint16(12, dosDate, true);
+    lhView.setUint32(14, crc, true);
+    lhView.setUint32(18, size, true);
+    lhView.setUint32(22, size, true);
+    lhView.setUint16(26, nameBytes.length, true);
+    lhView.setUint16(28, 0, true);
+    const localHeaderBytes = new Uint8Array(localHeader);
+    localHeaderBytes.set(nameBytes, 30);
+    localBlocks.push(localHeaderBytes);
+    localBlocks.push(entry.data);
+
+    const centralHeader = new ArrayBuffer(46 + nameBytes.length);
+    const chView = new DataView(centralHeader);
+    chView.setUint32(0, 0x02014b50, true);
+    chView.setUint16(4, 20, true);
+    chView.setUint16(6, 20, true);
+    chView.setUint16(8, 0, true);
+    chView.setUint16(10, 0, true);
+    chView.setUint16(12, dosTime, true);
+    chView.setUint16(14, dosDate, true);
+    chView.setUint32(16, crc, true);
+    chView.setUint32(20, size, true);
+    chView.setUint32(24, size, true);
+    chView.setUint16(28, nameBytes.length, true);
+    chView.setUint16(30, 0, true);
+    chView.setUint16(32, 0, true);
+    chView.setUint16(34, 0, true);
+    chView.setUint16(36, 0, true);
+    chView.setUint32(38, 0, true);
+    chView.setUint32(42, offset, true);
+    const centralBytes = new Uint8Array(centralHeader);
+    centralBytes.set(nameBytes, 46);
+    centralBlocks.push(centralBytes);
+
+    offset += localHeaderBytes.length + entry.data.length;
+  }
+
+  const centralStart = offset;
+  let centralSize = 0;
+  for (const block of centralBlocks) centralSize += block.length;
+
+  const endRecord = new Uint8Array(22);
+  const erView = new DataView(endRecord.buffer);
+  erView.setUint32(0, 0x06054b50, true);
+  erView.setUint16(4, 0, true);
+  erView.setUint16(6, 0, true);
+  erView.setUint16(8, entries.length, true);
+  erView.setUint16(10, entries.length, true);
+  erView.setUint32(12, centralSize, true);
+  erView.setUint32(16, centralStart, true);
+  erView.setUint16(20, 0, true);
+
+  const total = offset + centralSize + endRecord.length;
+  const output = new Uint8Array(total);
+  let cursor = 0;
+  for (const block of localBlocks) {
+    output.set(block, cursor);
+    cursor += block.length;
+  }
+  for (const block of centralBlocks) {
+    output.set(block, cursor);
+    cursor += block.length;
+  }
+  output.set(endRecord, cursor);
+  return output;
+}
+
+function userscriptBanner(version) {
+  const matches = matchLines.map((value) => `// @match        ${value}`).join("\n");
+  return `// ==UserScript==
+// @name         Aviary for X
+// @namespace    https://github.com/aviary-x
+// @version      ${version}
+// @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
+// @author       Aviary contributors
+${matches}
+// @run-at       document-start
+// @inject-into  content
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @grant        GM_deleteValue
+// @grant        GM_download
+// @connect      pbs.twimg.com
+// @connect      video.twimg.com
+// @updateURL    https://raw.githubusercontent.com/aviary-x/aviary/main/dist/aviary.user.js
+// @downloadURL  https://raw.githubusercontent.com/aviary-x/aviary/main/dist/aviary.user.js
+// ==/UserScript==
+`;
+}

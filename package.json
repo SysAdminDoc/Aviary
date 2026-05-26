@@ -1,0 +1,23 @@
+{
+  "name": "aviary-x-enhancer",
+  "version": "1.4.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-first X/Twitter enhancer delivered as a readable userscript and MV3 extension.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "preflight": "node tools/preflight.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node tests/smoke/aviary.smoke.mjs",
+    "verify": "npm run typecheck && npm run test && npm run build && npm run preflight"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.5",
+    "typescript": "5.9.3"
+  }
+}

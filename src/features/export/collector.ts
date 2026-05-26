@@ -1,0 +1,199 @@
+import { extractTweet } from "../media/extract";
+import { tweetIdFromHref } from "../media/urls";
+import type {
+  ExportArticleSummary,
+  ExportMedia,
+  ExportPoll,
+  ExportProfileAbout,
+  ExportQuoteSummary,
+  ExportRecord
+} from "./types";
+
+export function collectExportRecords(root: ParentNode, surface: string): ExportRecord[] {
+  const articles = root instanceof Element && root.matches('article[data-testid="tweet"]')
+    ? [root]
+    : Array.from(root.querySelectorAll<Element>('article[data-testid="tweet"]'));
+
+  const seen = new Set<string>();
+  const records: ExportRecord[] = [];
+  const now = new Date().toISOString();
+
+  for (const article of articles) {
+    const tweet = extractTweet(article);
+    const key = `${tweet.tweetId ?? "noid"}:${tweet.handle ?? "noh"}:${(tweet.text || "").slice(0, 60)}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+
+    const media: ExportMedia[] = [];
+    for (const item of tweet.media) {
+      if (item.kind === "video" && item.video?.preferred) {
+        const entry: ExportMedia = {
+          kind: "video",
+          url: item.video.preferred.url,
+          type: item.video.preferred.type
+        };
+        if (item.video.preferred.width !== null) entry.width = item.video.preferred.width;
+        if (item.video.preferred.height !== null) entry.height = item.video.preferred.height;
+        if (item.video.preferred.bitrate !== null) entry.bitrate = item.video.preferred.bitrate;
+        media.push(entry);
+      } else if (item.image) {
+        const entry: ExportMedia = {
+          kind: item.kind === "thumbnail" ? "thumbnail" : "photo",
+          url: item.image.url,
+          type: item.image.format
+        };
+        if (item.source instanceof HTMLImageElement && item.source.alt) {
+          entry.altText = item.source.alt;
+        }
+        media.push(entry);
+      }
+    }
+
+    const displayName = readDisplayName(article);
+    const permalink = readPermalink(article, tweet.handle, tweet.tweetId);
+    const poll = readPoll(article);
+    const quote = readQuote(article);
+    const articleSummary = readArticle(article);
+    const birdwatch = readBirdwatch(article);
+
+    const record: ExportRecord = {
+      tweetId: tweet.tweetId,
+      handle: tweet.handle,
+      displayName,
+      text: tweet.text,
+      capturedAt: now,
+      surface,
+      media,
+      permalink
+    };
+    if (poll) record.poll = poll;
+    if (quote) record.quote = quote;
+    if (articleSummary) record.article = articleSummary;
+    if (birdwatch) record.birdwatch = birdwatch;
+    records.push(record);
+  }
+
+  return records;
+}
+
+export function collectProfileAbout(root: ParentNode): ExportProfileAbout | null {
+  const main = root.querySelector('[data-testid="primaryColumn"]');
+  if (!main) return null;
+  const handleNode = main.querySelector('[data-testid="UserName"] span');
+  const handleText = handleNode?.textContent?.trim() ?? "";
+  const handle = handleText.replace(/^@/, "");
+  if (!handle) return null;
+
+  const displayName = readFirstText(main.querySelector('[data-testid="UserName"]'));
+  const bio = readFirstText(main.querySelector('[data-testid="UserDescription"]'));
+  const location = readFirstText(main.querySelector('[data-testid="UserLocation"]'));
+  const urlLink = main.querySelector<HTMLAnchorElement>('[data-testid="UserUrl"]');
+  const joined = readFirstText(main.querySelector('[data-testid="UserJoinDate"]'));
+  const followingCount = readFirstText(main.querySelector('a[href$="/following"]'));
+  const followerCount = readFirstText(main.querySelector('a[href$="/verified_followers"], a[href$="/followers"]'));
+
+  return {
+    handle,
+    displayName,
+    bio,
+    location,
+    url: urlLink?.href ?? urlLink?.getAttribute("href") ?? null,
+    joined,
+    followingCount,
+    followerCount
+  };
+}
+
+function readPoll(article: Element): ExportPoll | null {
+  const bars = Array.from(article.querySelectorAll('[data-testid$="-progress-bar"], [data-testid="cardPoll"] li'));
+  if (bars.length === 0) {
+    return null;
+  }
+  const choices: ExportPoll["choices"] = [];
+  for (const bar of bars) {
+    const label = readFirstText(bar);
+    if (!label) continue;
+    const percentMatch = /([0-9]+(?:\.[0-9]+)?)\s*%/.exec(bar.textContent ?? "");
+    const choice: ExportPoll["choices"][number] = { label };
+    if (percentMatch) {
+      choice.percent = Number(percentMatch[1]);
+      choice.voteShare = `${percentMatch[1]}%`;
+    }
+    choices.push(choice);
+  }
+  if (choices.length === 0) {
+    return null;
+  }
+  const totals = article.querySelector('[data-testid="cardPoll"] span');
+  const totalText = totals?.textContent?.trim() ?? "";
+  const poll: ExportPoll = { choices };
+  if (totalText.length > 0) {
+    poll.totalVotes = totalText;
+  }
+  return poll;
+}
+
+function readQuote(article: Element): ExportQuoteSummary | null {
+  const quote = article.querySelector('[data-testid="quoteTweet"], [aria-labelledby="quoted"]');
+  if (!quote) {
+    return null;
+  }
+  const handleLink = quote.querySelector<HTMLAnchorElement>('a[href^="/"]');
+  const handle = handleLink ? /\/([A-Za-z0-9_]{1,15})/.exec(handleLink.getAttribute("href") ?? "")?.[1] ?? null : null;
+  const text = quote.querySelector('[data-testid="tweetText"]')?.textContent?.trim() ?? "";
+  return { handle, text };
+}
+
+function readArticle(article: Element): ExportArticleSummary | null {
+  const card = article.querySelector('[data-testid="card.wrapper"], [data-testid="article"]');
+  if (!card) {
+    return null;
+  }
+  const titleNode = card.querySelector('[data-testid="card.layoutLarge.detail"] span, [data-testid="article-title"], h2');
+  const link = card.querySelector<HTMLAnchorElement>('a[href]');
+  return {
+    title: titleNode?.textContent?.trim() ?? null,
+    url: link?.href ?? link?.getAttribute("href") ?? null
+  };
+}
+
+function readBirdwatch(article: Element): string | undefined {
+  const pivot = article.querySelector('[data-testid="birdwatch-pivot"]');
+  if (!pivot) return undefined;
+  return pivot.textContent?.trim() || undefined;
+}
+
+function readFirstText(node: Element | null | undefined): string | null {
+  if (!node) return null;
+  const text = node.textContent?.trim() ?? "";
+  return text.length > 0 ? text : null;
+}
+
+function readDisplayName(article: Element): string | null {
+  const userName = article.querySelector('[data-testid="User-Name"]');
+  if (!userName) {
+    return null;
+  }
+  const spans = Array.from(userName.querySelectorAll("span"));
+  for (const span of spans) {
+    const text = span.textContent?.trim() ?? "";
+    if (text.length > 0 && !text.startsWith("@") && !text.startsWith("·")) {
+      return text;
+    }
+  }
+  return null;
+}
+
+function readPermalink(article: Element, handle: string | null, tweetId: string | null): string | null {
+  if (handle && tweetId) {
+    return `https://x.com/${handle}/status/${tweetId}`;
+  }
+  const link = article.querySelector<HTMLAnchorElement>('a[href*="/status/"]');
+  const href = link?.getAttribute("href") ?? null;
+  if (href && tweetIdFromHref(href)) {
+    return new URL(href, "https://x.com").toString();
+  }
+  return null;
+}

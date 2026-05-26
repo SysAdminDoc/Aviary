@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Aviary for X",
+  "description": "Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.",
+  "version": "0.0.0",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "aviary@example.local",
+      "strict_min_version": "121.0"
+    }
+  },
+  "action": {
+    "default_title": "Aviary"
+  },
+  "permissions": ["storage"],
+  "optional_permissions": ["downloads"],
+  "host_permissions": [
+    "https://x.com/*",
+    "https://twitter.com/*",
+    "https://mobile.twitter.com/*",
+    "https://pro.x.com/*",
+    "https://tweetdeck.twitter.com/*"
+  ],
+  "optional_host_permissions": [
+    "https://pbs.twimg.com/*",
+    "https://video.twimg.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*",
+        "https://mobile.twitter.com/*",
+        "https://pro.x.com/*",
+        "https://tweetdeck.twitter.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}
