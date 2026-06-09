@@ -6,3 +6,11 @@ coverage/
 *.bak
 .env
 .env.*
+
+# Markdown files local-only (except README)
+*.md
+!README.md
+
+# Markdown files local-only (except README)
+*.md
+!README.md
