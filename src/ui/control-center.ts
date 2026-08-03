@@ -7,6 +7,7 @@ import type {
   SensitiveMode
 } from "../platform/settings";
 import { FILTER_MEDIA_KEYS, FILTER_SURFACES, isThemeId } from "../platform/settings";
+import type { RetentionPolicy } from "../features/export/jobs";
 
 const SENSITIVE_OPTIONS: Array<[SensitiveMode, string]> = [
   ["default", "Default (X choice)"],
@@ -75,6 +76,8 @@ export interface ControlCenterOptions {
   importSettings?: (payload: string) => Promise<{ applied: boolean; warnings: string[]; errors: string[] }>;
   getAuditSize?: () => number;
   clearAuditLog?: () => Promise<void>;
+  getRetentionPolicy?: () => RetentionPolicy;
+  saveRetentionPolicy?: (policy: RetentionPolicy) => Promise<void>;
   getUserNotes?: () => Record<string, string>;
   setUserNote?: (handle: string, note: string) => Promise<void>;
   clearUserNotes?: () => Promise<void>;
@@ -1234,6 +1237,46 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       }
     }
 
+    if (options.getRetentionPolicy && options.saveRetentionPolicy) {
+      const policy = options.getRetentionPolicy();
+      rows.push(
+        integerInputRow(
+          "Maximum export jobs",
+          "Keep the newest jobs. Use 0 for unlimited.",
+          policy.maxJobs,
+          async (value) => {
+            await options.saveRetentionPolicy!({ ...options.getRetentionPolicy!(), maxJobs: value });
+            render();
+            setStatus("Export job retention saved");
+          }
+        )
+      );
+      rows.push(
+        integerInputRow(
+          "Maximum records per job",
+          "Keep the newest records in each job. Use 0 for unlimited.",
+          policy.maxRecordsPerJob,
+          async (value) => {
+            await options.saveRetentionPolicy!({ ...options.getRetentionPolicy!(), maxRecordsPerJob: value });
+            render();
+            setStatus("Record retention saved");
+          }
+        )
+      );
+      rows.push(
+        integerInputRow(
+          "Maximum export age (days)",
+          "Remove older jobs at boot. Use 0 to disable age-based cleanup.",
+          policy.maxAgeDays,
+          async (value) => {
+            await options.saveRetentionPolicy!({ ...options.getRetentionPolicy!(), maxAgeDays: value });
+            render();
+            setStatus("Age-based retention saved");
+          }
+        )
+      );
+    }
+
     return rows;
   };
 
@@ -1576,6 +1619,36 @@ function textInputRow(
   apply.type = "button";
   apply.addEventListener("click", () => {
     void onChange(input.value.trim());
+  });
+
+  row.append(input, apply);
+  return row;
+}
+
+function integerInputRow(
+  label: string,
+  description: string,
+  value: number,
+  onChange: (value: number) => Promise<void>
+): HTMLElement {
+  const row = el("div", "av-row av-row-stack");
+  const copy = el("span", "av-row-copy");
+  copy.append(el("span", "av-row-label", label), el("span", "av-row-description", description));
+  row.append(copy);
+
+  const input = document.createElement("input");
+  input.type = "number";
+  input.min = "0";
+  input.step = "1";
+  input.className = "av-text-input";
+  input.value = String(value);
+  input.setAttribute("aria-label", label);
+
+  const apply = el("button", "av-button av-button-secondary", "Save") as HTMLButtonElement;
+  apply.type = "button";
+  apply.addEventListener("click", () => {
+    const parsed = Number.parseInt(input.value, 10);
+    void onChange(Number.isFinite(parsed) ? parsed : 0);
   });
 
   row.append(input, apply);

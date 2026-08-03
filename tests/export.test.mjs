@@ -145,6 +145,77 @@ test("CheckpointStore round-trips jobs and dedupes records", async () => {
   assert.equal(reloaded.records("job-1").length, 2, "checkpoint persisted across reloads");
 });
 
+test("CheckpointStore applies configurable retention at boot and append time", async () => {
+  const {
+    CheckpointStore,
+    RETENTION_KEYS,
+    saveRetentionPolicy
+  } = await importBundledModule("src/features/export/jobs.ts");
+  const store = new Map();
+  const storage = {
+    async get(key, fallback) {
+      return store.has(key) ? store.get(key) : fallback;
+    },
+    async set(key, value) {
+      store.set(key, JSON.parse(JSON.stringify(value)));
+    },
+    async remove(key) {
+      store.delete(key);
+    }
+  };
+
+  await saveRetentionPolicy(storage, { maxJobs: 2, maxRecordsPerJob: 2, maxAgeDays: 0 });
+  const checkpoints = new CheckpointStore(storage);
+  await checkpoints.start("job-1", "home", ["json"], false);
+  await checkpoints.append("job-1", [
+    { tweetId: "1", handle: "a", displayName: "A", text: "one", capturedAt: "2026-05-19T00:00:00Z", surface: "home", media: [], permalink: null },
+    { tweetId: "2", handle: "a", displayName: "A", text: "two", capturedAt: "2026-05-19T00:01:00Z", surface: "home", media: [], permalink: null },
+    { tweetId: "3", handle: "a", displayName: "A", text: "three", capturedAt: "2026-05-19T00:02:00Z", surface: "home", media: [], permalink: null }
+  ]);
+  await checkpoints.start("job-2", "home", ["json"], false);
+  await checkpoints.start("job-3", "home", ["json"], false);
+
+  assert.deepEqual(checkpoints.list().map((job) => job.jobId), ["job-2", "job-3"]);
+  assert.equal(checkpoints.records("job-1").length, 0);
+  assert.equal(checkpoints.records("job-3").length, 0);
+  assert.equal(store.get(RETENTION_KEYS.maxJobs), 2);
+  assert.equal(store.get(RETENTION_KEYS.maxRecordsPerJob), 2);
+});
+
+test("CheckpointStore removes jobs older than the configured age at boot", async () => {
+  const { CheckpointStore, saveRetentionPolicy } = await importBundledModule("src/features/export/jobs.ts");
+  const store = new Map();
+  const storage = {
+    async get(key, fallback) {
+      return store.has(key) ? store.get(key) : fallback;
+    },
+    async set(key, value) {
+      store.set(key, JSON.parse(JSON.stringify(value)));
+    },
+    async remove(key) {
+      store.delete(key);
+    }
+  };
+  await saveRetentionPolicy(storage, { maxJobs: 0, maxRecordsPerJob: 0, maxAgeDays: 30 });
+  await storage.set("aviary.export.checkpoints.v1", {
+    jobs: {
+      old: { jobId: "old", startedAt: "2020-01-01T00:00:00Z", surface: "home", recordCount: 1, done: true, formats: ["json"], preserveRawPayloads: false },
+      fresh: { jobId: "fresh", startedAt: new Date().toISOString(), surface: "home", recordCount: 0, done: false, formats: ["json"], preserveRawPayloads: false }
+    },
+    records: {
+      old: [{ tweetId: "old", handle: "a", displayName: "A", text: "old", capturedAt: "2020-01-01T00:00:00Z", surface: "home", media: [], permalink: null }],
+      fresh: []
+    }
+  });
+
+  const checkpoints = new CheckpointStore(storage);
+  const sweep = await checkpoints.load();
+  assert.equal(sweep.removedJobs, 1);
+  assert.equal(checkpoints.list().length, 1);
+  assert.equal(checkpoints.list()[0].jobId, "fresh");
+  assert.equal(checkpoints.records("old").length, 0);
+});
+
 test("selectSupportedFormats filters unsupported values and never returns empty", async () => {
   const { selectSupportedFormats } = await importBundledModule(
     "src/features/export/export-feature.ts"

@@ -8,6 +8,13 @@ import {
   getDiscoveredQueries,
   runExportOfVisibleTweets
 } from "../export/export-feature";
+import {
+  DEFAULT_RETENTION_POLICY,
+  loadRetentionPolicy,
+  normalizeRetentionPolicy,
+  saveRetentionPolicy,
+  type RetentionPolicy
+} from "../export/jobs";
 import { renderForExternalTarget } from "../export/external-targets";
 import { buildWarcArchive } from "../export/warc";
 import { addUriToAria2, removeAria2Download, tellActiveAria2 } from "../integrations/aria2";
@@ -34,6 +41,7 @@ let controlCenter: ControlCenterHandle | undefined;
 const searchIndex = new LocalSearchIndex();
 let cleanupQueue: CleanupQueue | undefined;
 let semanticIndex: SemanticIndex | undefined;
+let retentionPolicy: RetentionPolicy | undefined;
 
 export const controlCenterFeature: FeatureModule = {
   id: "core.controlCenter",
@@ -50,6 +58,7 @@ export const controlCenterFeature: FeatureModule = {
       semanticIndex = new SemanticIndex(ctx.storage);
       await semanticIndex.load();
     }
+    retentionPolicy = await loadRetentionPolicy(ctx.storage);
     controlCenter = mountControlCenter({
       settings: ctx.settings,
       diagnostics: () => ctx.diagnostics.snapshot(),
@@ -120,6 +129,22 @@ export const controlCenterFeature: FeatureModule = {
       },
       async clearAuditLog() {
         await ctx.auditLog.clear();
+      },
+      getRetentionPolicy() {
+        return retentionPolicy ?? DEFAULT_RETENTION_POLICY;
+      },
+      async saveRetentionPolicy(next) {
+        const normalized = await saveRetentionPolicy(ctx.storage, normalizeRetentionPolicy(next));
+        retentionPolicy = normalized;
+        const sweep = await getCheckpointStore()?.sweep(normalized);
+        if (sweep && (sweep.removedJobs > 0 || sweep.removedRecords > 0)) {
+          void ctx.auditLog.record("export.complete", {
+            kind: "checkpoint-retention",
+            removedJobs: sweep.removedJobs,
+            removedRecords: sweep.removedRecords
+          });
+        }
+        ctx.requestApply();
       },
       getUserNotes() {
         return getUserNotes();
@@ -471,6 +496,7 @@ export const controlCenterFeature: FeatureModule = {
     controlCenter = undefined;
     cleanupQueue = undefined;
     semanticIndex = undefined;
+    retentionPolicy = undefined;
     ctx.diagnostics.info("Control Center destroyed");
   }
 };

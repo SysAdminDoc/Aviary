@@ -19,7 +19,10 @@ export const exportFeature: FeatureModule = {
 
   async init(ctx) {
     checkpointStore = new CheckpointStore(ctx.storage);
-    await checkpointStore.load();
+    const retention = await checkpointStore.load();
+    if (retention.removedJobs > 0 || retention.removedRecords > 0) {
+      ctx.diagnostics.info("Checkpoint retention sweep", { ...retention });
+    }
     if (ctx.settings.export.autoDiscoverQueryIds) {
       try {
         queryRegistry = await discoverQueryIds(ctx.storage);
