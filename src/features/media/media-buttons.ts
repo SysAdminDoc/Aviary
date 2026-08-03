@@ -3,6 +3,7 @@ import { Aria2History } from "../integrations/aria2";
 import { createDownloader, type Downloader } from "./downloader";
 import { extractTweet, type ExtractedMedia, type ExtractedTweet } from "./extract";
 import { MediaHistory } from "./history";
+import { rememberLastDownload } from "./last-download";
 import { DownloadQueue } from "./queue";
 import { renderFilename } from "./template";
 
@@ -267,6 +268,11 @@ async function handleDownload(
       return;
     }
     queue.mark(job.id, "completed");
+    await rememberLastDownload(ctx.storage, {
+      url: target.url,
+      filename,
+      kind: media.kind
+    });
     if (ctx.settings.media.downloadHistory) {
       await history.record(dedupeKey);
     }

@@ -18,7 +18,7 @@ import {
 import { renderForExternalTarget } from "../export/external-targets";
 import { buildWarcArchive } from "../export/warc";
 import { addUriToAria2, removeAria2Download, tellActiveAria2 } from "../integrations/aria2";
-import { crosspost, readComposerText } from "../integrations/crosspost";
+import { crosspost, readComposerText, type CrosspostRequest } from "../integrations/crosspost";
 import { SemanticIndex } from "../integrations/semantic-search";
 import { recentIntegrationErrors } from "./integration-errors";
 import { importOfficialArchive } from "../library/archive-import";
@@ -30,6 +30,7 @@ import { buildMarkdownReport } from "../library/reports";
 import { captureSnapshotFromDom, getSnapshotStore } from "../library/snapshots-feature";
 import { clearUserNotes, getUserNotes, setUserNote } from "../library/user-notes";
 import { getMediaHistory, getMediaQueue } from "../media/media-buttons";
+import { getLastDownload } from "../media/last-download";
 import type { FeatureModule } from "../registry";
 import {
   buildSettingsExport,
@@ -282,11 +283,22 @@ export const controlCenterFeature: FeatureModule = {
         if (!text) {
           return { ok: false, error: "Composer is empty" };
         }
-        const result = await crosspost(ctx.settings.integrations, {
+        const request: CrosspostRequest = {
           text,
           target,
           asThread: options.asThread
-        });
+        };
+        if (ctx.settings.integrations.crosspost.attachLastDownload) {
+          const lastDownload = await getLastDownload(ctx.storage);
+          if (lastDownload) {
+            request.attachment = {
+              url: lastDownload.url,
+              filename: lastDownload.filename,
+              kind: lastDownload.kind
+            };
+          }
+        }
+        const result = await crosspost(ctx.settings.integrations, request);
         void ctx.auditLog.record(result.ok ? "export.complete" : "export.start", {
           kind: "crosspost",
           target,

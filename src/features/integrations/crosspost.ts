@@ -6,6 +6,13 @@ export interface CrosspostRequest {
   text: string;
   target: CrosspostTarget;
   asThread?: boolean;
+  attachment?: CrosspostAttachment;
+}
+
+export interface CrosspostAttachment {
+  url: string;
+  filename: string;
+  kind?: "photo" | "video" | "thumbnail";
 }
 
 export interface CrosspostResult {
@@ -37,14 +44,15 @@ export async function crosspost(
     return { ok: false, target: request.target, error: "Empty post body" };
   }
   if (request.target === "bluesky") {
-    return postToBluesky(integrations.bluesky, segments);
+    return postToBluesky(integrations.bluesky, segments, request.attachment);
   }
-  return postToMastodon(integrations.mastodon, segments);
+  return postToMastodon(integrations.mastodon, segments, request.attachment);
 }
 
 async function postToBluesky(
   config: IntegrationSettings["bluesky"],
-  segments: readonly string[]
+  segments: readonly string[],
+  attachment?: CrosspostAttachment
 ): Promise<CrosspostResult> {
   if (!config.enabled) return { ok: false, target: "bluesky", error: "Bluesky integration disabled" };
   if (!config.service || !config.handle || !config.appPassword) {
@@ -58,6 +66,9 @@ async function postToBluesky(
     if (!session || typeof session.accessJwt !== "string" || typeof session.did !== "string") {
       return { ok: false, target: "bluesky", error: "Bluesky session response was malformed" };
     }
+    const uploadedBlob = attachment
+      ? await uploadBlueskyImage(config.service, session.accessJwt, attachment)
+      : null;
     let rootRef: { uri: string; cid: string } | null = null;
     let parentRef: { uri: string; cid: string } | null = null;
     let firstUri: string | null = null;
@@ -71,6 +82,12 @@ async function postToBluesky(
         record.reply = {
           root: rootRef,
           parent: parentRef
+        };
+      }
+      if (uploadedBlob && !rootRef) {
+        record.embed = {
+          $type: "app.bsky.embed.images",
+          images: [{ alt: "", image: uploadedBlob }]
         };
       }
       const response = await callBluesky(
@@ -108,13 +125,15 @@ async function postToBluesky(
 
 async function postToMastodon(
   config: IntegrationSettings["mastodon"],
-  segments: readonly string[]
+  segments: readonly string[],
+  attachment?: CrosspostAttachment
 ): Promise<CrosspostResult> {
   if (!config.enabled) return { ok: false, target: "mastodon", error: "Mastodon integration disabled" };
   if (!config.instance || !config.token) {
     return { ok: false, target: "mastodon", error: "Mastodon credentials missing" };
   }
   try {
+    const mediaId = attachment ? await uploadMastodonMedia(config.instance, config.token, attachment) : null;
     let inReplyTo: string | null = null;
     let firstUrl: string | null = null;
     for (const segment of segments) {
@@ -123,6 +142,7 @@ async function postToMastodon(
         visibility: config.visibility
       };
       if (inReplyTo) body.in_reply_to_id = inReplyTo;
+      if (mediaId && !inReplyTo) body.media_ids = [mediaId];
       const response = await fetch(`${config.instance}/api/v1/statuses`, {
         method: "POST",
         headers: {
@@ -149,6 +169,95 @@ async function postToMastodon(
   } catch (error) {
     return { ok: false, target: "mastodon", error: String((error as Error)?.message ?? error) };
   }
+}
+
+async function uploadBlueskyImage(
+  service: string,
+  accessJwt: string,
+  attachment: CrosspostAttachment
+): Promise<Record<string, unknown>> {
+  const media = await fetchAttachment(attachment);
+  if (!media.contentType.startsWith("image/")) {
+    throw new Error("Bluesky crosspost attachments must be images");
+  }
+  const response = await fetch(`${service}/xrpc/com.atproto.repo.uploadBlob`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${accessJwt}`,
+      "content-type": media.contentType
+    },
+    body: media.blob
+  });
+  if (!response.ok) {
+    throw new Error(`Bluesky media upload HTTP ${response.status}`);
+  }
+  const payload = (await response.json()) as { blob?: unknown };
+  if (!isRecord(payload.blob)) {
+    throw new Error("Bluesky media response was malformed");
+  }
+  return payload.blob;
+}
+
+async function uploadMastodonMedia(
+  instance: string,
+  token: string,
+  attachment: CrosspostAttachment
+): Promise<string> {
+  const media = await fetchAttachment(attachment);
+  const form = new FormData();
+  form.append("file", media.blob, safeFilename(attachment.filename));
+  const response = await fetch(`${instance}/api/v1/media`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${token}` },
+    body: form
+  });
+  if (!response.ok) {
+    throw new Error(`Mastodon media upload HTTP ${response.status}`);
+  }
+  const payload = (await response.json()) as { id?: unknown };
+  if (typeof payload.id !== "string" || payload.id.length === 0) {
+    throw new Error("Mastodon media response missing id");
+  }
+  return payload.id;
+}
+
+async function fetchAttachment(
+  attachment: CrosspostAttachment
+): Promise<{ blob: Blob; contentType: string }> {
+  const response = await fetch(attachment.url);
+  if (!response.ok) {
+    throw new Error(`Media attachment HTTP ${response.status}`);
+  }
+  const contentType = normalizeContentType(response.headers.get("content-type")) ?? inferContentType(attachment);
+  const bytes = await response.arrayBuffer();
+  if (bytes.byteLength === 0) {
+    throw new Error("Media attachment was empty");
+  }
+  return { blob: new Blob([bytes], { type: contentType }), contentType };
+}
+
+function normalizeContentType(value: string | null): string | null {
+  const type = value?.split(";", 1)[0]?.trim().toLowerCase();
+  return type && /^[a-z0-9.+-]+\/[a-z0-9.+-]+$/.test(type) ? type : null;
+}
+
+function inferContentType(attachment: CrosspostAttachment): string {
+  const filename = attachment.filename.toLowerCase();
+  if (filename.endsWith(".png")) return "image/png";
+  if (filename.endsWith(".gif")) return "image/gif";
+  if (filename.endsWith(".webp")) return "image/webp";
+  if (filename.endsWith(".mp4")) return "video/mp4";
+  if (filename.endsWith(".webm")) return "video/webm";
+  return "image/jpeg";
+}
+
+function safeFilename(value: string): string {
+  const cleaned = value.replace(/[\\/\u0000-\u001f]/g, "_").trim();
+  return cleaned.slice(0, 160) || "aviary-media";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 async function callBluesky(

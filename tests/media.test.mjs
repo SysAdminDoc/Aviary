@@ -128,6 +128,36 @@ test("MediaHistory records, dedupes, persists, and clears", async () => {
   assert.ok(store.get(MEDIA_HISTORY_KEY));
 });
 
+test("last download hint persists only valid media source metadata", async () => {
+  const { getLastDownload, rememberLastDownload, LAST_DOWNLOAD_KEY } = await importBundledModule(
+    "src/features/media/last-download.ts"
+  );
+  const store = new Map();
+  const storage = {
+    async get(key, fallback) {
+      return store.has(key) ? store.get(key) : fallback;
+    },
+    async set(key, value) {
+      store.set(key, JSON.parse(JSON.stringify(value)));
+    },
+    async remove(key) {
+      store.delete(key);
+    }
+  };
+
+  await rememberLastDownload(storage, { url: "javascript:alert(1)", filename: "bad.jpg", kind: "photo" });
+  assert.equal(await getLastDownload(storage), null);
+  await rememberLastDownload(storage, {
+    url: "https://pbs.twimg.com/media/abc.jpg?name=orig",
+    filename: "post.jpg",
+    kind: "photo"
+  });
+  const saved = await getLastDownload(storage);
+  assert.equal(saved?.url, "https://pbs.twimg.com/media/abc.jpg?name=orig");
+  assert.equal(saved?.filename, "post.jpg");
+  assert.ok(store.has(LAST_DOWNLOAD_KEY));
+});
+
 test("DownloadQueue tracks status transitions and snapshots", async () => {
   const { DownloadQueue } = await importBundledModule("src/features/media/queue.ts");
   const queue = new DownloadQueue();

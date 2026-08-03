@@ -167,6 +167,104 @@ test("crosspost asThread chains in_reply_to_id for Mastodon", async () => {
   }
 });
 
+test("crosspost uploads the last image to Bluesky and embeds it on the first post", async () => {
+  const { crosspost } = await importBundledModule("src/features/integrations/crosspost.ts");
+  const original = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, init) => {
+    calls.push({ url, init });
+    if (typeof url === "string" && url.includes("source.jpg")) {
+      return new Response(new Uint8Array([1, 2, 3]), {
+        status: 200,
+        headers: { "content-type": "image/jpeg" }
+      });
+    }
+    if (typeof url === "string" && url.includes("uploadBlob")) {
+      assert.equal(init.headers.authorization, "Bearer jwt");
+      assert.ok(init.body instanceof Blob);
+      return new Response(JSON.stringify({ blob: { $type: "blob", ref: { $link: "cid-image" }, mimeType: "image/jpeg", size: 3 } }), {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      });
+    }
+    if (typeof url === "string" && url.includes("createSession")) {
+      return new Response(JSON.stringify({ accessJwt: "jwt", did: "did:plc:1" }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ uri: "at://did:plc:1/app.bsky.feed.post/post1", cid: "cid1" }), { status: 200 });
+  };
+
+  try {
+    const result = await crosspost(
+      {
+        aria2: { enabled: false, endpoint: "", secret: "", minBytes: 1_000_000 },
+        bluesky: { enabled: true, service: "https://bsky.social", handle: "you.bsky.social", appPassword: "abc" },
+        mastodon: { enabled: false, instance: "", token: "", visibility: "public" },
+        ai: { enabled: false, provider: "anthropic", endpoint: "", apiKey: "", model: "" },
+        semanticSearch: { enabled: false, endpoint: "", apiKey: "", model: "", autoIndex: false },
+        crosspost: { attachLastDownload: true }
+      },
+      {
+        text: "With an image",
+        target: "bluesky",
+        attachment: { url: "https://cdn.test/source.jpg", filename: "source.jpg", kind: "photo" }
+      }
+    );
+    assert.equal(result.ok, true);
+    const recordCall = calls.find((entry) => typeof entry.url === "string" && entry.url.includes("createRecord"));
+    const record = JSON.parse(recordCall.init.body).record;
+    assert.equal(record.embed.$type, "app.bsky.embed.images");
+    assert.equal(record.embed.images[0].image.ref.$link, "cid-image");
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test("crosspost uploads the last media to Mastodon and attaches it to the first status", async () => {
+  const { crosspost } = await importBundledModule("src/features/integrations/crosspost.ts");
+  const original = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, init) => {
+    calls.push({ url, init });
+    if (typeof url === "string" && url.includes("source.png")) {
+      return new Response(new Uint8Array([4, 5]), {
+        status: 200,
+        headers: { "content-type": "image/png" }
+      });
+    }
+    if (typeof url === "string" && url.endsWith("/api/v1/media")) {
+      assert.equal(init.headers.authorization, "Bearer token");
+      assert.ok(init.body instanceof FormData);
+      assert.equal(init.body.get("file").name, "source.png");
+      return new Response(JSON.stringify({ id: "media-1" }), { status: 200 });
+    }
+    const body = JSON.parse(init.body);
+    assert.deepEqual(body.media_ids, ["media-1"]);
+    return new Response(JSON.stringify({ id: "status-1", url: "https://mastodon.social/@you/1" }), { status: 200 });
+  };
+
+  try {
+    const result = await crosspost(
+      {
+        aria2: { enabled: false, endpoint: "", secret: "", minBytes: 1_000_000 },
+        bluesky: { enabled: false, service: "", handle: "", appPassword: "" },
+        mastodon: { enabled: true, instance: "https://mastodon.social", token: "token", visibility: "public" },
+        ai: { enabled: false, provider: "anthropic", endpoint: "", apiKey: "", model: "" },
+        semanticSearch: { enabled: false, endpoint: "", apiKey: "", model: "", autoIndex: false },
+        crosspost: { attachLastDownload: true }
+      },
+      {
+        text: "With an image",
+        target: "mastodon",
+        attachment: { url: "https://cdn.test/source.png", filename: "source.png", kind: "photo" }
+      }
+    );
+    assert.equal(result.ok, true);
+    assert.equal(result.url, "https://mastodon.social/@you/1");
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
 test("recentIntegrationErrors surfaces failed audit entries newest-first", async () => {
   const { recentIntegrationErrors } = await importBundledModule(
     "src/features/core/integration-errors.ts"
@@ -208,6 +306,15 @@ test("semanticSearch settings carry the new autoIndex flag", async () => {
     integrations: { semanticSearch: { autoIndex: true, endpoint: "https://example.com" } }
   });
   assert.equal(enabled.integrations.semanticSearch.autoIndex, true);
+});
+
+test("crosspost attachment preference defaults off and normalizes safely", async () => {
+  const { DEFAULT_SETTINGS, normalizeSettings } = await importBundledModule(
+    "src/platform/settings.ts"
+  );
+  assert.equal(DEFAULT_SETTINGS.integrations.crosspost.attachLastDownload, false);
+  assert.equal(normalizeSettings({ integrations: { crosspost: { attachLastDownload: true } } }).integrations.crosspost.attachLastDownload, true);
+  assert.equal(normalizeSettings({ integrations: { crosspost: { attachLastDownload: "yes" } } }).integrations.crosspost.attachLastDownload, false);
 });
 
 test("export-feature triggers autoIndexExport when integration is enabled", async () => {

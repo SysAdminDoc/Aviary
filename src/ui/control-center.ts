@@ -681,6 +681,18 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       )
     );
 
+    rows.push(
+      toggleRow(
+        "Attach last download",
+        "Upload the last successful Aviary media download with the first post in an explicit crosspost.",
+        integrations.crosspost.attachLastDownload,
+        async (checked) => {
+          integrations.crosspost.attachLastDownload = checked;
+          await save(checked ? "Crosspost attachment on" : "Crosspost attachment off");
+        }
+      )
+    );
+
     if (options.crosspost) {
       const threadRow = el("div", "av-row");
       const copy = el("span", "av-row-copy");

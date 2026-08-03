@@ -66,6 +66,9 @@ export interface IntegrationSettings {
     model: string;
     autoIndex: boolean;
   };
+  crosspost: {
+    attachLastDownload: boolean;
+  };
 }
 
 const AI_PROVIDERS: IntegrationSettings["ai"]["provider"][] = [
@@ -228,7 +231,8 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     bluesky: { enabled: false, service: "https://bsky.social", handle: "", appPassword: "" },
     mastodon: { enabled: false, instance: "", token: "", visibility: "public" },
     ai: { enabled: false, provider: "anthropic", endpoint: "", apiKey: "", model: "" },
-    semanticSearch: { enabled: false, endpoint: "", apiKey: "", model: "", autoIndex: false }
+    semanticSearch: { enabled: false, endpoint: "", apiKey: "", model: "", autoIndex: false },
+    crosspost: { attachLastDownload: false }
   }
 };
 
@@ -252,6 +256,7 @@ export function normalizeSettings(input: unknown): AviarySettings {
   const integrationsMastodon = asRecord(integrations.mastodon);
   const integrationsAi = asRecord(integrations.ai);
   const integrationsSemantic = asRecord(integrations.semanticSearch);
+  const integrationsCrosspost = asRecord(integrations.crosspost);
 
   return {
     appearance: {
@@ -407,6 +412,12 @@ export function normalizeSettings(input: unknown): AviarySettings {
         autoIndex: booleanValue(
           integrationsSemantic.autoIndex,
           DEFAULT_SETTINGS.integrations.semanticSearch.autoIndex
+        )
+      },
+      crosspost: {
+        attachLastDownload: booleanValue(
+          integrationsCrosspost.attachLastDownload,
+          DEFAULT_SETTINGS.integrations.crosspost.attachLastDownload
         )
       }
     }
