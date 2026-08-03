@@ -74,8 +74,8 @@ export const filterEngineFeature: FeatureModule = {
 };
 
 function applyRootClasses(ctx: FeatureContext): void {
-  const active = ctx.settings.filter.enabled && surfaceMatches(ctx);
-  document.documentElement.classList.toggle("av-filter-enabled", active);
+  // The class represents the master switch. Predicate processing remains route-scoped below.
+  document.documentElement.classList.toggle("av-filter-enabled", ctx.settings.filter.enabled);
 }
 
 function surfaceMatches(ctx: FeatureContext): boolean {

@@ -1,0 +1,48 @@
+name: Playwright smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/smoke.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "src/**"
+      - "tests/smoke/**"
+      - "tools/build.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Chromium and Linux dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Run isolated smoke test
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" npm run smoke

@@ -338,6 +338,18 @@ test("smoke spec scaffold ships with explicit setup instructions", async () => {
   assert.equal(pkg.scripts.smoke, "node tests/smoke/aviary.smoke.mjs");
 });
 
+test("Playwright smoke workflow caches browsers and stays separate from verify", async () => {
+  const workflow = await readFile(path.join(root, ".github/workflows/smoke.yml"), "utf8");
+  assert.match(workflow, /actions\/cache@v4/);
+  assert.match(workflow, /ms-playwright/);
+  assert.match(workflow, /playwright install --with-deps chromium/);
+  assert.match(workflow, /npm run smoke/);
+  assert.doesNotMatch(workflow, /npm run verify/);
+  const smoke = await readFile(path.join(root, "tests/smoke/aviary.smoke.mjs"), "utf8");
+  assert.doesNotMatch(smoke, /MouseEvent|HTMLButtonElement/);
+  assert.match(smoke, /rm\(userDataDir/);
+});
+
 async function importBundledModule(relativePath) {
   const temp = await mkdtemp(path.join(tmpdir(), "aviary-v14-"));
   const outfile = path.join(temp, "module.mjs");
