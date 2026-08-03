@@ -1,6 +1,8 @@
 # Aviary
 
-Aviary is a local-first X/Twitter enhancer planned as a readable userscript first and a Manifest V3 extension second. The project is at v1.4.0: foundation primitives, fixture-backed selector checks, theme + control-center, layout declutter, the reversible filter engine, one-click media (image + video + GIF + thumbnail) with sensitive + layout controls, the export core (DOM collector + checkpointed jobs + JSON/CSV/HTML/Markdown formatters + STORE-only ZIP + passive GraphQL query-ID discovery + Copy-diagnostics), the AuditLog ring buffer, profile About scraping, JSON settings import/export, per-handle account notes, `t.co` unshortening, a composer snippet editor, MV3 store-ready ZIP archives, and a `tools/preflight.mjs` gate that enforces the privacy + supply-chain contract on every build. XLSX, local search, bookmark tags/folders/reminders, active GraphQL capture, composer snippet insertion, and Playwright smoke remain on the roadmap.
+![Version](https://img.shields.io/badge/version-1.5.0-2f81f7)
+
+Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.5.0: foundation primitives, fixture-backed selector checks, theme + control-center, layout declutter, reversible filtering, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
 
 ## Current Status
 
@@ -143,6 +145,7 @@ The build also produces `dist/extension-chrome-v<version>.zip` and `dist/extensi
 - **Batch profile-media download** — "Download all visible media" in the Media section walks every rendered tweet and pipes photos / videos / GIFs / thumbnails through the existing queue with the configured concurrency cap and dedup history.
 - **Local AI command menu** — each tweet's action row gets an AI button. Choose Translate / Summarize / Explain / Fact-check prompt and Aviary builds a prompt and copies it to your clipboard. No network calls; no API keys involved.
 - **Passive GraphQL capture (opt-in)** — when "Preserve raw payloads" is on, Aviary records GraphQL response bodies under 1.5 MB into the CheckpointStore as a `capture-<operation>` job, scrubbing `ct0` and Bearer tokens on the way in. Toggle off and the wrapper uninstalls.
+- **Checkpoint retention (opt-in)** — cap jobs, records per job, or job age through the Export section. Zero disables each limit; the sweep runs at boot and after new jobs are created.
 
 ## Integrations (every one is opt-in)
 
@@ -150,22 +153,23 @@ The Control Center "Integrations" section gates each integration behind a per-fe
 
 - **Aria2 handoff** — when configured and the request exceeds the minimum-bytes threshold, `Downloader` posts an `aria2.addUri` JSON-RPC call to your self-hosted Aria2 daemon (with optional `token:` secret). Falls through to GM_download / extension SW / anchor otherwise. The Integrations panel also lists in-flight transfers and lets you cancel one with a click.
 - **Bluesky / Mastodon crosspost** — sends the current composer text to your Bluesky AT-protocol account or your Mastodon instance. Two explicit Control Center actions; never auto-cross. Toggle "Crosspost as thread" to chunk on blank lines — Bluesky gets `reply.root/parent` refs, Mastodon chains `in_reply_to_id`.
+- **Crosspost media (opt-in)** — the "Attach last download" toggle uploads the last successful Aviary media source to Bluesky or Mastodon and attaches it to the first post only. The source URL and filename stay local until that explicit action.
 - **AI provider runner** — when enabled, the per-tweet AI command menu POSTs the prompt to your configured provider (Anthropic Messages, OpenAI Chat Completions, or any OpenAI-compatible endpoint) and copies the response to your clipboard. With no key, the menu still works as a local prompt builder.
 - **Semantic search** — embeds captured records via your provider's embeddings endpoint, persists them locally, and ranks queries by cosine similarity. Embeddings only fire when you click "Rebuild semantic index" or type into the semantic search box. Flip "Auto-embed every export" if you'd rather have the index stay warm after each export run.
 
-The Integrations panel also surfaces a "Recent integration errors" readout that distills failed audit-log entries — handy when a Bluesky token expires or your Aria2 daemon stops listening.
+The Integrations panel also surfaces a "Recent integration errors" readout that distills failed audit-log entries — handy when a Bluesky token expires or your Aria2 daemon stops listening. Aria2 history stores completed/queued gids locally and prevents the same media URL from being requeued across browser sessions.
 
 ## Roadmap
 
-The working plan is in [ROADMAP.md](ROADMAP.md). The next batch is v1.5+: authenticated-fixture pickups for F032 / F033, Playwright CI workflow (browser binaries cached per-run), Bluesky / Mastodon image uploads for crosspost, CheckpointStore retention policies, and an Aria2 completed-history cache.
+The working plan is in [ROADMAP.md](ROADMAP.md). v1.5.0 closes the local retention/history, crosspost-upload, and CI-smoke batch. F032/F033 remain blocked until authenticated `_decoded/` captures are available.
 
-`npm run smoke` runs the optional Playwright spec at `tests/smoke/aviary.smoke.mjs`. Install the runner first:
+`npm run smoke` runs the Playwright spec at `tests/smoke/aviary.smoke.mjs`. The CI workflow caches Chromium and runs it inside an isolated Xvfb display. For local use, install the pinned runner and browser:
 
 ```bash
-npm install --save-dev playwright@1.49.x
+npm ci
 npx playwright install chromium
 npm run build
 npm run smoke
 ```
 
-Without `playwright` installed the script exits with a setup message, so it stays safe to wire into local automation.
+Without the Chromium binary the script exits with Playwright's setup message; it always uses a fresh temporary profile and cleans it up after the run.
