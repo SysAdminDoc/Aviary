@@ -1,4 +1,5 @@
 import type { FeatureContext, FeatureModule } from "../registry";
+import { Aria2History } from "../integrations/aria2";
 import { createDownloader, type Downloader } from "./downloader";
 import { extractTweet, type ExtractedMedia, type ExtractedTweet } from "./extract";
 import { MediaHistory } from "./history";
@@ -11,6 +12,7 @@ const PROCESSED_ATTR = "data-av-media-processed";
 
 let downloader: Downloader | undefined;
 let history: MediaHistory | undefined;
+let aria2History: Aria2History | undefined;
 let queue: DownloadQueue | undefined;
 
 export const mediaButtonsFeature: FeatureModule = {
@@ -21,7 +23,15 @@ export const mediaButtonsFeature: FeatureModule = {
 
   async init(ctx) {
     ensureMediaStyle();
-    downloader = createDownloader({ integrations: ctx.settings.integrations });
+    aria2History = new Aria2History(ctx.storage);
+    await aria2History.load();
+    if (ctx.settings.integrations.aria2.endpoint) {
+      await aria2History.reconcile({
+        endpoint: ctx.settings.integrations.aria2.endpoint,
+        secret: ctx.settings.integrations.aria2.secret
+      });
+    }
+    downloader = createDownloader({ integrations: ctx.settings.integrations, aria2History });
     queue = new DownloadQueue();
     history = new MediaHistory(ctx.storage);
     try {
@@ -62,6 +72,7 @@ export const mediaButtonsFeature: FeatureModule = {
     }
     downloader = undefined;
     history = undefined;
+    aria2History = undefined;
     queue?.clear();
     queue = undefined;
     ctx.diagnostics.info("Media buttons destroyed");
@@ -242,7 +253,19 @@ async function handleDownload(
   button.disabled = true;
 
   try {
-    await downloader({ url: target.url, filename });
+    const result = await downloader({ url: target.url, filename });
+    if (result.deduplicated) {
+      queue.mark(job.id, "duplicate");
+      button.textContent = "Queued";
+      button.classList.remove("is-active");
+      button.classList.add("is-duplicate");
+      ctx.diagnostics.info("Media skipped — already queued in Aria2 history", { url: target.url });
+      void ctx.auditLog.record("media.download.duplicate", {
+        dedupeKey,
+        source: "aria2-history"
+      });
+      return;
+    }
     queue.mark(job.id, "completed");
     if (ctx.settings.media.downloadHistory) {
       await history.record(dedupeKey);

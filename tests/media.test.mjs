@@ -150,6 +150,98 @@ test("DownloadQueue tracks status transitions and snapshots", async () => {
   assert.ok(snapshot.recent.some((job) => job.error === "network"));
 });
 
+test("Aria2 history persists queued gids and reconciles completed or failed work", async () => {
+  const { Aria2History, ARIA2_HISTORY_KEY } = await importBundledModule(
+    "src/features/integrations/aria2.ts"
+  );
+  const store = new Map([
+    [ARIA2_HISTORY_KEY, {
+      entries: [
+        { gid: "done", url: "https://cdn.test/done.mp4", filename: "done.mp4", status: "queued", queuedAt: "2026-05-19T00:00:00Z" },
+        { gid: "gone", url: "https://cdn.test/gone.mp4", filename: "gone.mp4", status: "queued", queuedAt: "2026-05-19T00:00:00Z" }
+      ]
+    }]
+  ]);
+  const storage = {
+    async get(key, fallback) {
+      return store.has(key) ? store.get(key) : fallback;
+    },
+    async set(key, value) {
+      store.set(key, JSON.parse(JSON.stringify(value)));
+    },
+    async remove(key) {
+      store.delete(key);
+    }
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, init) => {
+    const body = JSON.parse(init.body);
+    if (body.params[0] === "done") {
+      return new Response(JSON.stringify({ result: { status: "complete" } }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ error: { message: "gid not found" } }), { status: 200 });
+  };
+
+  try {
+    const history = new Aria2History(storage);
+    await history.load();
+    const result = await history.reconcile({ endpoint: "http://aria.test", secret: "" });
+    assert.deepEqual(result, { completed: 1, removed: 1 });
+    assert.equal(history.hasUrl("https://cdn.test/done.mp4"), true);
+    assert.equal(history.hasUrl("https://cdn.test/gone.mp4"), false);
+    assert.equal(history.snapshot().entries[0].status, "complete");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Aria2 downloader history prevents the same URL from requeueing", async () => {
+  const { Aria2History } = await importBundledModule("src/features/integrations/aria2.ts");
+  const { createDownloader } = await importBundledModule("src/features/media/downloader.ts");
+  const store = new Map();
+  const storage = {
+    async get(key, fallback) {
+      return store.has(key) ? store.get(key) : fallback;
+    },
+    async set(key, value) {
+      store.set(key, JSON.parse(JSON.stringify(value)));
+    },
+    async remove(key) {
+      store.delete(key);
+    }
+  };
+  const history = new Aria2History(storage);
+  await history.load();
+  const originalFetch = globalThis.fetch;
+  let addCalls = 0;
+  globalThis.fetch = async (_url, init) => {
+    const body = JSON.parse(init.body);
+    if (body.method === "aria2.addUri") {
+      addCalls += 1;
+      return new Response(JSON.stringify({ result: "gid-1" }), { status: 200 });
+    }
+    return new Response("{}", { status: 200 });
+  };
+
+  try {
+    const integrations = {
+      aria2: { enabled: true, endpoint: "http://aria.test", secret: "", minBytes: 1 },
+      bluesky: { enabled: false, service: "", handle: "", appPassword: "" },
+      mastodon: { enabled: false, instance: "", token: "", visibility: "public" },
+      ai: { enabled: false, provider: "anthropic", endpoint: "", apiKey: "", model: "" },
+      semanticSearch: { enabled: false, endpoint: "", apiKey: "", model: "", autoIndex: false }
+    };
+    const downloader = createDownloader({ integrations, aria2History: history });
+    const first = await downloader({ url: "https://cdn.test/one.mp4", filename: "one.mp4", estimatedBytes: 10 });
+    const second = await downloader({ url: "https://cdn.test/one.mp4", filename: "one-again.mp4", estimatedBytes: 10 });
+    assert.deepEqual(first, { ok: true, via: "aria2", gid: "gid-1" });
+    assert.deepEqual(second, { ok: true, via: "aria2", deduplicated: true });
+    assert.equal(addCalls, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 async function importBundledModule(relativePath) {
   const temp = await mkdtemp(path.join(tmpdir(), "aviary-media-"));
   const outfile = path.join(temp, "module.mjs");

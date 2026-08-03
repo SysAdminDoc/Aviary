@@ -1,5 +1,9 @@
 import type { IntegrationSettings } from "../../platform/settings";
-import { addUriToAria2, shouldHandoffToAria2 } from "../integrations/aria2";
+import {
+  addUriToAria2,
+  Aria2History,
+  shouldHandoffToAria2
+} from "../integrations/aria2";
 
 export interface DownloadRequest {
   url: string;
@@ -10,10 +14,13 @@ export interface DownloadRequest {
 export interface DownloaderResult {
   ok: true;
   via: "gm" | "extension" | "anchor" | "aria2";
+  gid?: string;
+  deduplicated?: boolean;
 }
 
 export interface DownloaderOptions {
   integrations?: IntegrationSettings;
+  aria2History?: Aria2History;
 }
 
 export type Downloader = (request: DownloadRequest) => Promise<DownloaderResult>;
@@ -34,13 +41,23 @@ export function createDownloader(options: DownloaderOptions = {}): Downloader {
   return async (request: DownloadRequest) => {
     if (options.integrations) {
       const aria = options.integrations.aria2;
+      if (options.aria2History?.hasUrl(request.url)) {
+        return { ok: true, via: "aria2", deduplicated: true };
+      }
       if (shouldHandoffToAria2(aria, request.estimatedBytes ?? null)) {
         const result = await addUriToAria2(
           { endpoint: aria.endpoint, secret: aria.secret },
           { url: request.url, filename: request.filename }
         );
         if (result.ok) {
-          return { ok: true, via: "aria2" };
+          if (result.gid && options.aria2History) {
+            await options.aria2History.rememberQueued({
+              gid: result.gid,
+              url: request.url,
+              filename: request.filename
+            });
+          }
+          return { ok: true, via: "aria2", ...(result.gid ? { gid: result.gid } : {}) };
         }
       }
     }
