@@ -166,6 +166,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
   const overlay = el("div", "av-overlay");
   overlay.setAttribute("aria-hidden", "true");
+  // Closed at mount: keep it out of the tab order before the first toggle too.
+  overlay.toggleAttribute("inert", true);
 
   const panel = el("section", "av-panel");
   panel.id = "av-control-panel";
@@ -201,6 +203,9 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     launcher.setAttribute("aria-expanded", String(open));
     overlay.classList.toggle("is-open", open);
     overlay.setAttribute("aria-hidden", String(!open));
+    // opacity:0 hides the panel visually but leaves every control in the tab order, so a
+    // keyboard user would tab through ~137 invisible fields inside an aria-hidden container.
+    overlay.toggleAttribute("inert", !open);
     if (open) {
       // Repaint anything that went stale while the panel was closed.
       if (dirtyWhileBusy) {
@@ -254,6 +259,15 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           options.settings.appearance.denseMode = checked;
           await save("Density updated");
         }),
+        toggleRow(
+          "Hide engagement counts",
+          "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.",
+          options.settings.appearance.hideCounts,
+          async (checked) => {
+            options.settings.appearance.hideCounts = checked;
+            await save(checked ? "Engagement counts hidden" : "Engagement counts shown");
+          }
+        ),
         toggleRow("High contrast", "Use stronger borders and text contrast.", options.settings.accessibility.highContrast, async (checked) => {
           options.settings.accessibility.highContrast = checked;
           await save("Contrast preference saved");
@@ -469,23 +483,40 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       input.className = "av-text-input";
       const results = el("div", "av-search-results");
       results.setAttribute("role", "list");
+      results.setAttribute("aria-live", "polite");
       const runSearch = (): void => {
-        const hits = options.searchArchive!(input.value.trim());
+        const query = input.value.trim();
         results.replaceChildren();
+        if (query.length === 0) {
+          results.append(
+            el("div", "av-row-description", "Type to search the records captured by export runs.")
+          );
+          return;
+        }
+        const hits = options.searchArchive!(query);
         if (hits.length === 0) {
-          const empty = el("div", "av-row-description", "No matches yet.");
-          results.append(empty);
+          results.append(el("div", "av-row-description", `No captured records match “${query}”.`));
           return;
         }
         for (const hit of hits.slice(0, 10)) {
           const item = el("div", "av-search-hit");
+          item.setAttribute("role", "listitem");
           const head = el("span", "av-row-label", `@${hit.handle ?? "anon"} · ${hit.tweetId ?? "—"}`);
           const body = el("span", "av-row-description", hit.text.slice(0, 140));
           item.append(head, body);
           results.append(item);
         }
       };
-      input.addEventListener("input", runSearch);
+      // Searching a large imported archive walks every record; running that per keystroke
+      // froze the panel while typing.
+      let searchTimer: ReturnType<typeof setTimeout> | undefined;
+      input.addEventListener("input", () => {
+        if (searchTimer !== undefined) {
+          clearTimeout(searchTimer);
+        }
+        searchTimer = setTimeout(runSearch, 180);
+      });
+      runSearch();
       row.append(copy, input, results);
       rows.push(row);
     }
@@ -2122,14 +2153,19 @@ input:focus-visible {
   padding: 72px 18px 72px;
   opacity: 0;
   pointer-events: none;
+  /* Belt and braces with [inert]: keeps the closed panel out of the tab order even where
+     inert is unsupported. Delayed so the fade-out still runs. */
+  visibility: hidden;
   transform: translateY(8px);
-  transition: opacity 160ms ease, transform 160ms ease;
+  transition: opacity 160ms ease, transform 160ms ease, visibility 0s linear 160ms;
 }
 
 .av-overlay.is-open {
   opacity: 1;
   pointer-events: none;
+  visibility: visible;
   transform: translateY(0);
+  transition: opacity 160ms ease, transform 160ms ease, visibility 0s;
 }
 
 .av-panel {

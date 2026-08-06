@@ -27,7 +27,12 @@ export const themeFeature: FeatureModule = {
     for (const theme of ["dim", "lightsOut", "graphite", "plum", "midnight"]) {
       document.documentElement.classList.remove(`av-theme-${theme}`);
     }
-    document.documentElement.classList.remove("av-dense", "av-high-contrast", "av-reduce-motion");
+    document.documentElement.classList.remove(
+      "av-dense",
+      "av-hide-counts",
+      "av-high-contrast",
+      "av-reduce-motion"
+    );
     delete document.documentElement.dataset.avTheme;
     document.documentElement.style.colorScheme = "";
     ctx.diagnostics.info("Theme foundation destroyed");
@@ -44,6 +49,7 @@ export function applyTheme(settings: AviarySettings): void {
 
   root.dataset.avTheme = theme;
   root.classList.toggle("av-dense", settings.appearance.denseMode);
+  root.classList.toggle("av-hide-counts", settings.appearance.hideCounts);
   root.classList.toggle("av-high-contrast", settings.accessibility.highContrast);
   root.classList.toggle("av-reduce-motion", shouldReduceMotion(settings));
   root.style.colorScheme = "dark";
@@ -144,6 +150,16 @@ html[data-av-theme] [aria-label="Timeline: Trending now"] {
 html.av-dense article[data-testid="tweet"] {
   padding-top: 8px;
   padding-bottom: 8px;
+}
+
+/* Engagement counts inside the action bar only — the buttons themselves stay operable and
+   keep their aria-labels, which carry the number for screen readers. */
+html.av-hide-counts article[data-testid="tweet"] [data-testid="reply"] [data-testid="app-text-transition-container"],
+html.av-hide-counts article[data-testid="tweet"] [data-testid="retweet"] [data-testid="app-text-transition-container"],
+html.av-hide-counts article[data-testid="tweet"] [data-testid="unretweet"] [data-testid="app-text-transition-container"],
+html.av-hide-counts article[data-testid="tweet"] [data-testid="like"] [data-testid="app-text-transition-container"],
+html.av-hide-counts article[data-testid="tweet"] [data-testid="unlike"] [data-testid="app-text-transition-container"] {
+  display: none !important;
 }
 
 html.av-high-contrast {

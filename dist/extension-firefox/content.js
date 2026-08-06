@@ -23,7 +23,12 @@
       for (const theme of ["dim", "lightsOut", "graphite", "plum", "midnight"]) {
         document.documentElement.classList.remove(`av-theme-${theme}`);
       }
-      document.documentElement.classList.remove("av-dense", "av-high-contrast", "av-reduce-motion");
+      document.documentElement.classList.remove(
+        "av-dense",
+        "av-hide-counts",
+        "av-high-contrast",
+        "av-reduce-motion"
+      );
       delete document.documentElement.dataset.avTheme;
       document.documentElement.style.colorScheme = "";
       ctx.diagnostics.info("Theme foundation destroyed");
@@ -37,6 +42,7 @@
     }
     root.dataset.avTheme = theme;
     root.classList.toggle("av-dense", settings.appearance.denseMode);
+    root.classList.toggle("av-hide-counts", settings.appearance.hideCounts);
     root.classList.toggle("av-high-contrast", settings.accessibility.highContrast);
     root.classList.toggle("av-reduce-motion", shouldReduceMotion(settings));
     root.style.colorScheme = "dark";
@@ -132,6 +138,16 @@ html[data-av-theme] [aria-label="Timeline: Trending now"] {
 html.av-dense article[data-testid="tweet"] {
   padding-top: 8px;
   padding-bottom: 8px;
+}
+
+/* Engagement counts inside the action bar only \u2014 the buttons themselves stay operable and
+   keep their aria-labels, which carry the number for screen readers. */
+html.av-hide-counts article[data-testid="tweet"] [data-testid="reply"] [data-testid="app-text-transition-container"],
+html.av-hide-counts article[data-testid="tweet"] [data-testid="retweet"] [data-testid="app-text-transition-container"],
+html.av-hide-counts article[data-testid="tweet"] [data-testid="unretweet"] [data-testid="app-text-transition-container"],
+html.av-hide-counts article[data-testid="tweet"] [data-testid="like"] [data-testid="app-text-transition-container"],
+html.av-hide-counts article[data-testid="tweet"] [data-testid="unlike"] [data-testid="app-text-transition-container"] {
+  display: none !important;
 }
 
 html.av-high-contrast {
@@ -662,6 +678,7 @@ html.av-reduce-motion *::after {
     launcher.setAttribute("aria-controls", "av-control-panel");
     const overlay = el("div", "av-overlay");
     overlay.setAttribute("aria-hidden", "true");
+    overlay.toggleAttribute("inert", true);
     const panel = el("section", "av-panel");
     panel.id = "av-control-panel";
     panel.setAttribute("role", "dialog");
@@ -690,6 +707,7 @@ html.av-reduce-motion *::after {
       launcher.setAttribute("aria-expanded", String(open));
       overlay.classList.toggle("is-open", open);
       overlay.setAttribute("aria-hidden", String(!open));
+      overlay.toggleAttribute("inert", !open);
       if (open) {
         if (dirtyWhileBusy) {
           dirtyWhileBusy = false;
@@ -733,6 +751,15 @@ html.av-reduce-motion *::after {
             options.settings.appearance.denseMode = checked;
             await save("Density updated");
           }),
+          toggleRow(
+            "Hide engagement counts",
+            "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.",
+            options.settings.appearance.hideCounts,
+            async (checked) => {
+              options.settings.appearance.hideCounts = checked;
+              await save(checked ? "Engagement counts hidden" : "Engagement counts shown");
+            }
+          ),
           toggleRow("High contrast", "Use stronger borders and text contrast.", options.settings.accessibility.highContrast, async (checked) => {
             options.settings.accessibility.highContrast = checked;
             await save("Contrast preference saved");
@@ -928,23 +955,38 @@ html.av-reduce-motion *::after {
         input.className = "av-text-input";
         const results = el("div", "av-search-results");
         results.setAttribute("role", "list");
+        results.setAttribute("aria-live", "polite");
         const runSearch = () => {
-          const hits = options.searchArchive(input.value.trim());
+          const query = input.value.trim();
           results.replaceChildren();
+          if (query.length === 0) {
+            results.append(
+              el("div", "av-row-description", "Type to search the records captured by export runs.")
+            );
+            return;
+          }
+          const hits = options.searchArchive(query);
           if (hits.length === 0) {
-            const empty = el("div", "av-row-description", "No matches yet.");
-            results.append(empty);
+            results.append(el("div", "av-row-description", `No captured records match \u201C${query}\u201D.`));
             return;
           }
           for (const hit of hits.slice(0, 10)) {
             const item = el("div", "av-search-hit");
+            item.setAttribute("role", "listitem");
             const head = el("span", "av-row-label", `@${hit.handle ?? "anon"} \xB7 ${hit.tweetId ?? "\u2014"}`);
             const body2 = el("span", "av-row-description", hit.text.slice(0, 140));
             item.append(head, body2);
             results.append(item);
           }
         };
-        input.addEventListener("input", runSearch);
+        let searchTimer;
+        input.addEventListener("input", () => {
+          if (searchTimer !== void 0) {
+            clearTimeout(searchTimer);
+          }
+          searchTimer = setTimeout(runSearch, 180);
+        });
+        runSearch();
         row.append(copy, input, results);
         rows.push(row);
       }
@@ -2380,14 +2422,19 @@ input:focus-visible {
   padding: 72px 18px 72px;
   opacity: 0;
   pointer-events: none;
+  /* Belt and braces with [inert]: keeps the closed panel out of the tab order even where
+     inert is unsupported. Delayed so the fade-out still runs. */
+  visibility: hidden;
   transform: translateY(8px);
-  transition: opacity 160ms ease, transform 160ms ease;
+  transition: opacity 160ms ease, transform 160ms ease, visibility 0s linear 160ms;
 }
 
 .av-overlay.is-open {
   opacity: 1;
   pointer-events: none;
+  visibility: visible;
   transform: translateY(0);
+  transition: opacity 160ms ease, transform 160ms ease, visibility 0s;
 }
 
 .av-panel {
@@ -2684,7 +2731,9 @@ input[type="checkbox"] {
       label: "Quiet Reader",
       description: "Hide promoted modules, dim premium posts, strip t.co, dense + dim theme.",
       overrides: {
-        appearance: { theme: "dim", denseMode: true, hideBorders: true, hideCounts: true },
+        // hideBorders is intentionally absent: nothing implements it yet, and a preset that
+        // reports a change it cannot deliver is worse than one that leaves the value alone.
+        appearance: { theme: "dim", denseMode: true, hideCounts: true },
         layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
         filter: { enabled: true, premiumRule: "dim" },
         links: { expandTco: true, cleanShareButtons: true }
@@ -2709,10 +2758,10 @@ input[type="checkbox"] {
     {
       id: "creator",
       label: "Creator",
-      description: "Writer mode, composer snippets enabled, share-button cleanup, layout grid.",
+      description: "Composer snippets, share-button cleanup, sidebar and trends hidden.",
       overrides: {
         appearance: { theme: "midnight" },
-        layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true, writerMode: true },
+        layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
         media: { layout: "grid" },
         links: { cleanShareButtons: true, expandTco: true }
       }
@@ -2742,8 +2791,7 @@ input[type="checkbox"] {
         layout: {
           hideRightSidebar: false,
           hideTrends: false,
-          hideGrok: true,
-          writerMode: false
+          hideGrok: true
         },
         filter: { enabled: false, premiumRule: "off" }
       }
@@ -2753,7 +2801,7 @@ input[type="checkbox"] {
       label: "Minimal",
       description: "Maximum declutter, hide counts, hide trends, hide promoted, big text safe zones.",
       overrides: {
-        appearance: { theme: "lightsOut", denseMode: false, hideBorders: true, hideCounts: true },
+        appearance: { theme: "lightsOut", denseMode: false, hideCounts: true },
         layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
         filter: { enabled: true, premiumRule: "hide" },
         accessibility: { reduceMotion: "always" }
@@ -7200,12 +7248,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         },
         searchArchive(query) {
           if (query.length === 0) return [];
-          const hits = searchIndex.search(query, { limit: 20 });
-          if (hits.length === 0) {
+          const storedRecordCount = countStoredRecords(getCheckpointStore());
+          if (searchIndex.size() !== storedRecordCount) {
             rebuildSearchIndex();
-            return searchIndex.search(query, { limit: 20 }).map(formatHit);
           }
-          return hits.map(formatHit);
+          return searchIndex.search(query, { limit: 20 }).map(formatHit);
         },
         listPresets() {
           return listPresets().map((preset) => ({
@@ -7514,6 +7561,14 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   function inferProfileHandle(path) {
     const match = /^\/([A-Za-z0-9_]{1,15})(?:\/(?:followers|following|verified_followers))?/.exec(path);
     return match?.[1]?.toLowerCase() ?? null;
+  }
+  function countStoredRecords(store3) {
+    if (!store3) return 0;
+    let total = 0;
+    for (const job of store3.list()) {
+      total += store3.records(job.jobId).length;
+    }
+    return total;
   }
   function rebuildSearchIndex() {
     const store3 = getCheckpointStore();

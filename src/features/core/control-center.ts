@@ -252,12 +252,13 @@ export const controlCenterFeature: FeatureModule = {
       },
       searchArchive(query) {
         if (query.length === 0) return [];
-        const hits = searchIndex.search(query, { limit: 20 });
-        if (hits.length === 0) {
+        // A miss used to rebuild the whole index, so every keystroke that matched nothing
+        // re-tokenized every captured record. Rebuild only when the index is actually stale.
+        const storedRecordCount = countStoredRecords(getCheckpointStore());
+        if (searchIndex.size() !== storedRecordCount) {
           rebuildSearchIndex();
-          return searchIndex.search(query, { limit: 20 }).map(formatHit);
         }
-        return hits.map(formatHit);
+        return searchIndex.search(query, { limit: 20 }).map(formatHit);
       },
       listPresets() {
         return listPresets().map((preset) => ({
@@ -581,6 +582,15 @@ function reportFilename(): string {
 function inferProfileHandle(path: string): string | null {
   const match = /^\/([A-Za-z0-9_]{1,15})(?:\/(?:followers|following|verified_followers))?/.exec(path);
   return match?.[1]?.toLowerCase() ?? null;
+}
+
+function countStoredRecords(store: ReturnType<typeof getCheckpointStore>): number {
+  if (!store) return 0;
+  let total = 0;
+  for (const job of store.list()) {
+    total += store.records(job.jobId).length;
+  }
+  return total;
 }
 
 function rebuildSearchIndex(): void {

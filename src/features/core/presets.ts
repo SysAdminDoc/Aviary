@@ -37,7 +37,9 @@ export const PRESETS: PresetDefinition[] = [
     label: "Quiet Reader",
     description: "Hide promoted modules, dim premium posts, strip t.co, dense + dim theme.",
     overrides: {
-      appearance: { theme: "dim", denseMode: true, hideBorders: true, hideCounts: true },
+      // hideBorders is intentionally absent: nothing implements it yet, and a preset that
+      // reports a change it cannot deliver is worse than one that leaves the value alone.
+      appearance: { theme: "dim", denseMode: true, hideCounts: true },
       layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
       filter: { enabled: true, premiumRule: "dim" },
       links: { expandTco: true, cleanShareButtons: true }
@@ -62,10 +64,10 @@ export const PRESETS: PresetDefinition[] = [
   {
     id: "creator",
     label: "Creator",
-    description: "Writer mode, composer snippets enabled, share-button cleanup, layout grid.",
+    description: "Composer snippets, share-button cleanup, sidebar and trends hidden.",
     overrides: {
       appearance: { theme: "midnight" },
-      layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true, writerMode: true },
+      layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
       media: { layout: "grid" },
       links: { cleanShareButtons: true, expandTco: true }
     }
@@ -95,8 +97,7 @@ export const PRESETS: PresetDefinition[] = [
       layout: {
         hideRightSidebar: false,
         hideTrends: false,
-        hideGrok: true,
-        writerMode: false
+        hideGrok: true
       },
       filter: { enabled: false, premiumRule: "off" }
     }
@@ -106,7 +107,7 @@ export const PRESETS: PresetDefinition[] = [
     label: "Minimal",
     description: "Maximum declutter, hide counts, hide trends, hide promoted, big text safe zones.",
     overrides: {
-      appearance: { theme: "lightsOut", denseMode: false, hideBorders: true, hideCounts: true },
+      appearance: { theme: "lightsOut", denseMode: false, hideCounts: true },
       layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
       filter: { enabled: true, premiumRule: "hide" },
       accessibility: { reduceMotion: "always" }
