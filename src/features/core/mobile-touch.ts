@@ -47,21 +47,12 @@ function ensureMobileStyle(): void {
   (document.head ?? document.documentElement).append(style);
 }
 
+// The Control Center lives in a shadow root, so its touch and viewport rules ship with its
+// own stylesheet (src/ui/control-center.ts). Only page DOM can be styled from here.
 const MOBILE_CSS = `
-html.av-touch .av-row {
-  min-height: 56px;
-}
-
-html.av-mobile .av-launcher {
-  right: 12px;
-  bottom: 12px;
-  min-width: 92px;
-  min-height: 48px;
-}
-
-html.av-mobile .av-panel {
-  width: min(420px, calc(100vw - 16px));
-  max-height: min(85vh, calc(100vh - 64px));
+html.av-touch [${"data-av-hide-button"}] {
+  min-height: 40px;
+  padding: 6px 12px;
 }
 
 html.av-touch [${"data-av-media-button"}] {

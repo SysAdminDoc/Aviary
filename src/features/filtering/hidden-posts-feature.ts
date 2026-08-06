@@ -342,6 +342,11 @@ async function hidePost(
 
 function showToast(message: string, ctx: FeatureContext): void {
   const shadow = ensureToastHost();
+  const toastHost = document.getElementById(TOAST_HOST_ID);
+  if (toastHost) {
+    // The page-level motion class cannot cross into this shadow tree.
+    toastHost.dataset.avMotion = reduceMotion(ctx) ? "reduce" : "full";
+  }
   const card = shadow.querySelector(".av-toast");
   const text = shadow.querySelector(".av-toast-text");
   const undo = shadow.querySelector(".av-toast-undo");
@@ -367,6 +372,12 @@ function showToast(message: string, ctx: FeatureContext): void {
 
   card.classList.add("is-open");
   scheduleToastDismiss(card, TOAST_TIMEOUT_MS);
+}
+
+function reduceMotion(ctx: FeatureContext): boolean {
+  if (ctx.settings.accessibility.reduceMotion === "always") return true;
+  if (ctx.settings.accessibility.reduceMotion === "never") return false;
+  return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 }
 
 function scheduleToastDismiss(card: HTMLElement, delay: number): void {
@@ -440,15 +451,17 @@ html.av-hide-posts-enabled [${HIDDEN_ATTR}="1"] {
   min-height: 24px;
   margin-right: 4px;
   padding: 2px 8px;
-  border: 1px solid color-mix(in srgb, var(--av-muted, rgb(113, 118, 123)) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--av-muted, rgb(132, 139, 145)) 55%, transparent);
   border-radius: 6px;
   background: transparent;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   cursor: pointer;
   font: 700 11px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  opacity: 0.4;
+  /* Resting state stays legible on its own: at 0.4 the label measured 1.56:1, which is
+     invisible in practice and unreachable on touch, where there is no hover to reveal it. */
+  opacity: 0.75;
   transition: opacity 120ms ease, color 120ms ease, border-color 120ms ease;
 }
 
@@ -456,6 +469,18 @@ article[data-testid="tweet"]:hover .av-hide-button,
 article[data-testid="tweet"]:focus-within .av-hide-button,
 .av-hide-button:focus-visible {
   opacity: 1;
+}
+
+/* No hover to reveal on touch, so the control is always at full strength. */
+@media (hover: none) {
+  .av-hide-button {
+    opacity: 1;
+  }
+}
+
+.av-hide-button:focus-visible {
+  outline: 2px solid var(--av-accent, rgb(29, 155, 240));
+  outline-offset: 2px;
 }
 
 .av-hide-button:hover {
@@ -469,6 +494,8 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
 }
 `;
 
+/* Custom properties inherit through the shadow boundary, so the toast tracks the active
+   theme instead of pinning the dim palette into every theme. */
 const TOAST_CSS = `
 .av-toast {
   position: fixed;
@@ -480,10 +507,10 @@ const TOAST_CSS = `
   gap: 12px;
   max-width: 320px;
   padding: 10px 12px;
-  border: 1px solid rgb(66, 73, 80);
+  border: 1px solid var(--av-border, rgb(47, 51, 54));
   border-radius: 10px;
-  background: rgb(21, 24, 28);
-  color: rgb(231, 233, 234);
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 97%, black);
+  color: var(--av-text, rgb(239, 243, 244));
   font: 500 13px/1.35 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   opacity: 0;
@@ -504,18 +531,43 @@ const TOAST_CSS = `
 
 .av-toast-undo {
   flex: 0 0 auto;
-  padding: 4px 10px;
-  border: 1px solid rgb(29, 155, 240);
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--av-accent, rgb(29, 155, 240));
   border-radius: 6px;
   background: transparent;
-  color: rgb(120, 190, 250);
+  color: var(--av-accent, rgb(29, 155, 240));
   cursor: pointer;
   font: 700 12px/1.1 inherit;
 }
 
+.av-toast-undo:focus-visible {
+  outline: 2px solid var(--av-accent, rgb(29, 155, 240));
+  outline-offset: 2px;
+}
+
 .av-toast-undo[disabled] {
-  border-color: rgb(66, 73, 80);
-  color: rgb(113, 118, 123);
+  border-color: var(--av-border, rgb(47, 51, 54));
+  color: var(--av-muted, rgb(132, 139, 145));
   cursor: default;
+}
+
+@media (pointer: coarse) {
+  .av-toast-undo {
+    min-height: 44px;
+    padding: 8px 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .av-toast {
+    transition: none;
+    transform: none;
+  }
+}
+
+:host([data-av-motion="reduce"]) .av-toast {
+  transition: none;
+  transform: none;
 }
 `;

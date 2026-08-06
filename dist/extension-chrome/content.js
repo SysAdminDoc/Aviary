@@ -62,7 +62,9 @@
     --av-surface-raised: rgb(22, 24, 28);
     --av-border: rgb(47, 51, 54);
     --av-text: rgb(239, 243, 244);
-    --av-muted: rgb(113, 118, 123);
+    /* X's own secondary grey measures 3.96:1 on the panel row \u2014 below AA for the 12px
+       descriptions and status line it carries. Lifted to the nearest value that clears 4.5. */
+    --av-muted: rgb(132, 139, 145);
     --av-accent: rgb(29, 155, 240);
   `,
     lightsOut: `
@@ -709,6 +711,7 @@ html.av-reduce-motion *::after {
       status.textContent = message;
     };
     const render = () => {
+      host.dataset.avMotion = prefersReducedMotion(options.settings) ? "reduce" : "full";
       body.replaceChildren(
         section("Presets", presetRows()),
         section("Appearance", [
@@ -733,7 +736,20 @@ html.av-reduce-motion *::after {
           toggleRow("High contrast", "Use stronger borders and text contrast.", options.settings.accessibility.highContrast, async (checked) => {
             options.settings.accessibility.highContrast = checked;
             await save("Contrast preference saved");
-          })
+          }),
+          selectRow(
+            "Reduced motion",
+            options.settings.accessibility.reduceMotion,
+            [
+              ["system", "Follow system setting"],
+              ["always", "Always reduce"],
+              ["never", "Never reduce"]
+            ],
+            async (value) => {
+              options.settings.accessibility.reduceMotion = coerceReduceMotion(value);
+              await save("Motion preference saved");
+            }
+          )
         ]),
         section("Layout", [
           toggleRow("Hide right sidebar", "Reduce trends, recommendations, and footer noise.", options.settings.layout.hideRightSidebar, async (checked) => {
@@ -1018,7 +1034,7 @@ html.av-reduce-motion *::after {
         )
       );
       rows.push(
-        textInputRow(
+        secretInputRow(
           "Aria2 RPC secret",
           "Optional shared secret for token: auth.",
           integrations.aria2.secret,
@@ -1120,7 +1136,7 @@ html.av-reduce-motion *::after {
         )
       );
       rows.push(
-        textInputRow(
+        secretInputRow(
           "Bluesky app password",
           "App password from your account settings \u2014 never your main password.",
           integrations.bluesky.appPassword,
@@ -1153,7 +1169,7 @@ html.av-reduce-motion *::after {
         )
       );
       rows.push(
-        textInputRow(
+        secretInputRow(
           "Mastodon access token",
           "Bearer token with write:statuses scope.",
           integrations.mastodon.token,
@@ -1253,7 +1269,7 @@ html.av-reduce-motion *::after {
         )
       );
       rows.push(
-        textInputRow(
+        secretInputRow(
           "AI API key",
           "Stored locally only. Aviary never sends this except as the auth header to your provider.",
           integrations.ai.apiKey,
@@ -1297,7 +1313,7 @@ html.av-reduce-motion *::after {
         )
       );
       rows.push(
-        textInputRow(
+        secretInputRow(
           "Embedding API key",
           "Stored locally; used only as the Authorization header.",
           integrations.semanticSearch.apiKey,
@@ -2083,6 +2099,11 @@ html.av-reduce-motion *::after {
       }
     };
   }
+  function prefersReducedMotion(settings) {
+    if (settings.accessibility.reduceMotion === "always") return true;
+    if (settings.accessibility.reduceMotion === "never") return false;
+    return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  }
   function section(title, rows) {
     const node = el("section", "av-section");
     node.append(el("h3", "av-section-title", title), ...rows);
@@ -2141,6 +2162,39 @@ html.av-reduce-motion *::after {
       void onChange(input.value.trim());
     });
     row.append(input, apply);
+    return row;
+  }
+  function secretInputRow(label, description, value, onChange) {
+    const row = el("div", "av-row av-row-stack");
+    const copy = el("span", "av-row-copy");
+    copy.append(el("span", "av-row-label", label), el("span", "av-row-description", description));
+    row.append(copy);
+    const input = document.createElement("input");
+    input.type = "password";
+    input.className = "av-text-input";
+    input.value = value;
+    input.spellcheck = false;
+    input.autocomplete = "off";
+    input.setAttribute("aria-label", label);
+    const controls = el("div", "av-inline-controls");
+    const reveal2 = el("button", "av-button av-button-secondary", "Show");
+    reveal2.type = "button";
+    reveal2.setAttribute("aria-label", `Show ${label}`);
+    reveal2.setAttribute("aria-pressed", "false");
+    reveal2.addEventListener("click", () => {
+      const masked = input.type === "password";
+      input.type = masked ? "text" : "password";
+      reveal2.textContent = masked ? "Hide" : "Show";
+      reveal2.setAttribute("aria-pressed", String(masked));
+      reveal2.setAttribute("aria-label", `${masked ? "Hide" : "Show"} ${label}`);
+    });
+    const apply = el("button", "av-button av-button-secondary", "Save");
+    apply.type = "button";
+    apply.addEventListener("click", () => {
+      void onChange(input.value.trim());
+    });
+    controls.append(reveal2, apply);
+    row.append(input, controls);
     return row;
   }
   function integerInputRow(label, description, value, onChange) {
@@ -2231,6 +2285,9 @@ html.av-reduce-motion *::after {
     row.append(group);
     return row;
   }
+  function coerceReduceMotion(value) {
+    return value === "always" || value === "never" ? value : "system";
+  }
   function coerceFilterAction(value) {
     return value === "hide" || value === "dim" ? value : "off";
   }
@@ -2275,7 +2332,12 @@ html.av-reduce-motion *::after {
   min-height: 42px;
   border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 70%, transparent);
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(29, 155, 240, 0.22), rgba(29, 155, 240, 0.12));
+  /* Follows the active theme's accent \u2014 this was pinned to X blue in every theme. */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 22%, transparent),
+    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, transparent)
+  );
   color: var(--av-text, rgb(239, 243, 244));
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.42);
   cursor: pointer;
@@ -2326,6 +2388,13 @@ input:focus-visible {
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
   box-shadow: 0 22px 70px rgba(0, 0, 0, 0.58);
   pointer-events: auto;
+}
+
+/* The panel takes focus when it opens; the UA default paints a hard white halo around the
+   whole dialog. Keep the indicator, make it read as a highlighted edge instead. */
+.av-panel:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 70%, transparent);
+  outline-offset: -2px;
 }
 
 .av-panel-header {
@@ -2393,7 +2462,9 @@ input:focus-visible {
   gap: 16px;
   min-height: 48px;
   padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 82%, transparent);
+  /* The border token alone sits near 1.4:1 against the row fill, which reads as no border at
+     all across ~100 rows. Lifted toward the text token so grouping is actually visible. */
+  border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)), var(--av-text, rgb(239, 243, 244)) 18%);
   border-radius: 10px;
   background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 62%, transparent);
 }
@@ -2486,6 +2557,15 @@ input:focus-visible {
   gap: 3px;
 }
 
+.av-inline-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.av-inline-controls .av-button {
+  flex: 1 1 auto;
+}
+
 .av-row-label {
   color: var(--av-text, rgb(239, 243, 244));
   font-size: 13px;
@@ -2519,11 +2599,70 @@ input[type="checkbox"] {
   line-height: 1.3;
 }
 
+/* Touch and viewport rules must live in this stylesheet: a sheet in document.head cannot
+   reach into the shadow root, so the page-level av-touch / av-mobile classes never styled
+   these controls. Media queries evaluate against the viewport and do work here. */
+@media (pointer: coarse) {
+  .av-row {
+    min-height: 56px;
+  }
+
+  .av-button,
+  .av-select {
+    min-height: 44px;
+  }
+
+  .av-chip {
+    min-height: 44px;
+  }
+
+  .av-text-input {
+    height: 44px;
+  }
+
+  input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
+  }
+
+  .av-chip input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 760px) {
+  .av-launcher {
+    right: 12px;
+    bottom: 12px;
+    min-width: 92px;
+    min-height: 48px;
+  }
+
+  .av-overlay {
+    padding: 16px 8px 84px;
+  }
+
+  .av-panel {
+    width: min(420px, calc(100vw - 16px));
+    max-height: min(85vh, calc(100vh - 64px));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .av-launcher,
   .av-overlay {
     transition: none;
   }
+}
+
+/* The reduceMotion setting can force reduction with no OS preference set, and a page-level
+   class cannot cross into this shadow tree \u2014 the host carries the state instead. */
+:host([data-av-motion="reduce"]) .av-launcher,
+:host([data-av-motion="reduce"]) .av-launcher:hover,
+:host([data-av-motion="reduce"]) .av-overlay {
+  transition: none;
+  transform: none;
 }
 `;
 
@@ -4423,6 +4562,10 @@ ${record.text}${mediaList}`;
   }
   function showToast(message, ctx) {
     const shadow = ensureToastHost();
+    const toastHost = document.getElementById(TOAST_HOST_ID);
+    if (toastHost) {
+      toastHost.dataset.avMotion = reduceMotion(ctx) ? "reduce" : "full";
+    }
     const card = shadow.querySelector(".av-toast");
     const text = shadow.querySelector(".av-toast-text");
     const undo = shadow.querySelector(".av-toast-undo");
@@ -4444,6 +4587,11 @@ ${record.text}${mediaList}`;
     };
     card.classList.add("is-open");
     scheduleToastDismiss(card, TOAST_TIMEOUT_MS);
+  }
+  function reduceMotion(ctx) {
+    if (ctx.settings.accessibility.reduceMotion === "always") return true;
+    if (ctx.settings.accessibility.reduceMotion === "never") return false;
+    return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
   }
   function scheduleToastDismiss(card, delay2) {
     if (toastTimer !== void 0) {
@@ -4506,15 +4654,17 @@ html.av-hide-posts-enabled [${HIDDEN_ATTR}="1"] {
   min-height: 24px;
   margin-right: 4px;
   padding: 2px 8px;
-  border: 1px solid color-mix(in srgb, var(--av-muted, rgb(113, 118, 123)) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--av-muted, rgb(132, 139, 145)) 55%, transparent);
   border-radius: 6px;
   background: transparent;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   cursor: pointer;
   font: 700 11px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  opacity: 0.4;
+  /* Resting state stays legible on its own: at 0.4 the label measured 1.56:1, which is
+     invisible in practice and unreachable on touch, where there is no hover to reveal it. */
+  opacity: 0.75;
   transition: opacity 120ms ease, color 120ms ease, border-color 120ms ease;
 }
 
@@ -4522,6 +4672,18 @@ article[data-testid="tweet"]:hover .av-hide-button,
 article[data-testid="tweet"]:focus-within .av-hide-button,
 .av-hide-button:focus-visible {
   opacity: 1;
+}
+
+/* No hover to reveal on touch, so the control is always at full strength. */
+@media (hover: none) {
+  .av-hide-button {
+    opacity: 1;
+  }
+}
+
+.av-hide-button:focus-visible {
+  outline: 2px solid var(--av-accent, rgb(29, 155, 240));
+  outline-offset: 2px;
 }
 
 .av-hide-button:hover {
@@ -4545,10 +4707,10 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   gap: 12px;
   max-width: 320px;
   padding: 10px 12px;
-  border: 1px solid rgb(66, 73, 80);
+  border: 1px solid var(--av-border, rgb(47, 51, 54));
   border-radius: 10px;
-  background: rgb(21, 24, 28);
-  color: rgb(231, 233, 234);
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 97%, black);
+  color: var(--av-text, rgb(239, 243, 244));
   font: 500 13px/1.35 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   opacity: 0;
@@ -4569,19 +4731,44 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
 
 .av-toast-undo {
   flex: 0 0 auto;
-  padding: 4px 10px;
-  border: 1px solid rgb(29, 155, 240);
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--av-accent, rgb(29, 155, 240));
   border-radius: 6px;
   background: transparent;
-  color: rgb(120, 190, 250);
+  color: var(--av-accent, rgb(29, 155, 240));
   cursor: pointer;
   font: 700 12px/1.1 inherit;
 }
 
+.av-toast-undo:focus-visible {
+  outline: 2px solid var(--av-accent, rgb(29, 155, 240));
+  outline-offset: 2px;
+}
+
 .av-toast-undo[disabled] {
-  border-color: rgb(66, 73, 80);
-  color: rgb(113, 118, 123);
+  border-color: var(--av-border, rgb(47, 51, 54));
+  color: var(--av-muted, rgb(132, 139, 145));
   cursor: default;
+}
+
+@media (pointer: coarse) {
+  .av-toast-undo {
+    min-height: 44px;
+    padding: 8px 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .av-toast {
+    transition: none;
+    transform: none;
+  }
+}
+
+:host([data-av-motion="reduce"]) .av-toast {
+  transition: none;
+  transform: none;
 }
 `;
 
@@ -8506,20 +8693,9 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
     (document.head ?? document.documentElement).append(style);
   }
   var MOBILE_CSS = `
-html.av-touch .av-row {
-  min-height: 56px;
-}
-
-html.av-mobile .av-launcher {
-  right: 12px;
-  bottom: 12px;
-  min-width: 92px;
-  min-height: 48px;
-}
-
-html.av-mobile .av-panel {
-  width: min(420px, calc(100vw - 16px));
-  max-height: min(85vh, calc(100vh - 64px));
+html.av-touch [${"data-av-hide-button"}] {
+  min-height: 40px;
+  padding: 6px 12px;
 }
 
 html.av-touch [${"data-av-media-button"}] {

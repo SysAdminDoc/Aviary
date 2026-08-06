@@ -4,6 +4,7 @@ import type {
   FilterMediaKey,
   FilterSurface,
   MediaLayout,
+  ReduceMotionMode,
   SensitiveMode
 } from "../platform/settings";
 import { FILTER_MEDIA_KEYS, FILTER_SURFACES, isThemeId } from "../platform/settings";
@@ -230,6 +231,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   };
 
   const render = (): void => {
+    // Mirrored onto the host because shadow content cannot see the page-level motion class.
+    host.dataset.avMotion = prefersReducedMotion(options.settings) ? "reduce" : "full";
     body.replaceChildren(
       section("Presets", presetRows()),
       section("Appearance", [
@@ -254,7 +257,20 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         toggleRow("High contrast", "Use stronger borders and text contrast.", options.settings.accessibility.highContrast, async (checked) => {
           options.settings.accessibility.highContrast = checked;
           await save("Contrast preference saved");
-        })
+        }),
+        selectRow(
+          "Reduced motion",
+          options.settings.accessibility.reduceMotion,
+          [
+            ["system", "Follow system setting"],
+            ["always", "Always reduce"],
+            ["never", "Never reduce"]
+          ],
+          async (value) => {
+            options.settings.accessibility.reduceMotion = coerceReduceMotion(value);
+            await save("Motion preference saved");
+          }
+        )
       ]),
       section("Layout", [
         toggleRow("Hide right sidebar", "Reduce trends, recommendations, and footer noise.", options.settings.layout.hideRightSidebar, async (checked) => {
@@ -567,7 +583,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       )
     );
     rows.push(
-      textInputRow(
+      secretInputRow(
         "Aria2 RPC secret",
         "Optional shared secret for token: auth.",
         integrations.aria2.secret,
@@ -672,7 +688,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       )
     );
     rows.push(
-      textInputRow(
+      secretInputRow(
         "Bluesky app password",
         "App password from your account settings — never your main password.",
         integrations.bluesky.appPassword,
@@ -707,7 +723,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       )
     );
     rows.push(
-      textInputRow(
+      secretInputRow(
         "Mastodon access token",
         "Bearer token with write:statuses scope.",
         integrations.mastodon.token,
@@ -816,7 +832,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       )
     );
     rows.push(
-      textInputRow(
+      secretInputRow(
         "AI API key",
         "Stored locally only. Aviary never sends this except as the auth header to your provider.",
         integrations.ai.apiKey,
@@ -862,7 +878,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       )
     );
     rows.push(
-      textInputRow(
+      secretInputRow(
         "Embedding API key",
         "Stored locally; used only as the Authorization header.",
         integrations.semanticSearch.apiKey,
@@ -1731,6 +1747,12 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   };
 }
 
+function prefersReducedMotion(settings: AviarySettings): boolean {
+  if (settings.accessibility.reduceMotion === "always") return true;
+  if (settings.accessibility.reduceMotion === "never") return false;
+  return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
+
 function section(title: string, rows: HTMLElement[]): HTMLElement {
   const node = el("section", "av-section");
   node.append(el("h3", "av-section-title", title), ...rows);
@@ -1815,6 +1837,54 @@ function textInputRow(
   });
 
   row.append(input, apply);
+  return row;
+}
+
+/**
+ * Credentials get a masked field: the panel opens over a page the user may well be
+ * screen-sharing, and these values are API keys and app passwords. Reveal is explicit.
+ */
+function secretInputRow(
+  label: string,
+  description: string,
+  value: string,
+  onChange: (value: string) => Promise<void>
+): HTMLElement {
+  const row = el("div", "av-row av-row-stack");
+  const copy = el("span", "av-row-copy");
+  copy.append(el("span", "av-row-label", label), el("span", "av-row-description", description));
+  row.append(copy);
+
+  const input = document.createElement("input");
+  input.type = "password";
+  input.className = "av-text-input";
+  input.value = value;
+  input.spellcheck = false;
+  input.autocomplete = "off";
+  input.setAttribute("aria-label", label);
+
+  const controls = el("div", "av-inline-controls");
+
+  const reveal = el("button", "av-button av-button-secondary", "Show") as HTMLButtonElement;
+  reveal.type = "button";
+  reveal.setAttribute("aria-label", `Show ${label}`);
+  reveal.setAttribute("aria-pressed", "false");
+  reveal.addEventListener("click", () => {
+    const masked = input.type === "password";
+    input.type = masked ? "text" : "password";
+    reveal.textContent = masked ? "Hide" : "Show";
+    reveal.setAttribute("aria-pressed", String(masked));
+    reveal.setAttribute("aria-label", `${masked ? "Hide" : "Show"} ${label}`);
+  });
+
+  const apply = el("button", "av-button av-button-secondary", "Save") as HTMLButtonElement;
+  apply.type = "button";
+  apply.addEventListener("click", () => {
+    void onChange(input.value.trim());
+  });
+
+  controls.append(reveal, apply);
+  row.append(input, controls);
   return row;
 }
 
@@ -1943,6 +2013,10 @@ function surfaceRow(
   return row;
 }
 
+function coerceReduceMotion(value: string): ReduceMotionMode {
+  return value === "always" || value === "never" ? value : "system";
+}
+
 function coerceFilterAction(value: string): FilterAction {
   return value === "hide" || value === "dim" ? value : "off";
 }
@@ -1996,7 +2070,12 @@ const CONTROL_CENTER_CSS = `
   min-height: 42px;
   border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 70%, transparent);
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(29, 155, 240, 0.22), rgba(29, 155, 240, 0.12));
+  /* Follows the active theme's accent — this was pinned to X blue in every theme. */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 22%, transparent),
+    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, transparent)
+  );
   color: var(--av-text, rgb(239, 243, 244));
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.42);
   cursor: pointer;
@@ -2047,6 +2126,13 @@ input:focus-visible {
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
   box-shadow: 0 22px 70px rgba(0, 0, 0, 0.58);
   pointer-events: auto;
+}
+
+/* The panel takes focus when it opens; the UA default paints a hard white halo around the
+   whole dialog. Keep the indicator, make it read as a highlighted edge instead. */
+.av-panel:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 70%, transparent);
+  outline-offset: -2px;
 }
 
 .av-panel-header {
@@ -2114,7 +2200,9 @@ input:focus-visible {
   gap: 16px;
   min-height: 48px;
   padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 82%, transparent);
+  /* The border token alone sits near 1.4:1 against the row fill, which reads as no border at
+     all across ~100 rows. Lifted toward the text token so grouping is actually visible. */
+  border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)), var(--av-text, rgb(239, 243, 244)) 18%);
   border-radius: 10px;
   background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 62%, transparent);
 }
@@ -2207,6 +2295,15 @@ input:focus-visible {
   gap: 3px;
 }
 
+.av-inline-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.av-inline-controls .av-button {
+  flex: 1 1 auto;
+}
+
 .av-row-label {
   color: var(--av-text, rgb(239, 243, 244));
   font-size: 13px;
@@ -2240,10 +2337,69 @@ input[type="checkbox"] {
   line-height: 1.3;
 }
 
+/* Touch and viewport rules must live in this stylesheet: a sheet in document.head cannot
+   reach into the shadow root, so the page-level av-touch / av-mobile classes never styled
+   these controls. Media queries evaluate against the viewport and do work here. */
+@media (pointer: coarse) {
+  .av-row {
+    min-height: 56px;
+  }
+
+  .av-button,
+  .av-select {
+    min-height: 44px;
+  }
+
+  .av-chip {
+    min-height: 44px;
+  }
+
+  .av-text-input {
+    height: 44px;
+  }
+
+  input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
+  }
+
+  .av-chip input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 760px) {
+  .av-launcher {
+    right: 12px;
+    bottom: 12px;
+    min-width: 92px;
+    min-height: 48px;
+  }
+
+  .av-overlay {
+    padding: 16px 8px 84px;
+  }
+
+  .av-panel {
+    width: min(420px, calc(100vw - 16px));
+    max-height: min(85vh, calc(100vh - 64px));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .av-launcher,
   .av-overlay {
     transition: none;
   }
+}
+
+/* The reduceMotion setting can force reduction with no OS preference set, and a page-level
+   class cannot cross into this shadow tree — the host carries the state instead. */
+:host([data-av-motion="reduce"]) .av-launcher,
+:host([data-av-motion="reduce"]) .av-launcher:hover,
+:host([data-av-motion="reduce"]) .av-overlay {
+  transition: none;
+  transform: none;
 }
 `;
