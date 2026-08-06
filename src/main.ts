@@ -74,7 +74,6 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   registry.register(themeFeature);
   registry.register(i18nFeature);
   registry.register(selectorHealthFeature);
-  registry.register(controlCenterFeature);
   registry.register(layoutDeclutterFeature);
   registry.register(filterEngineFeature);
   registry.register(hiddenPostsFeature);
@@ -88,6 +87,9 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   registry.register(composerSnippetsFeature);
   registry.register(networkCaptureFeature);
   registry.register(aiCommandMenuFeature);
+  // Registered last so its first paint reads stores that are already loaded — features
+  // initialize in registration order, and the panel reports their counts.
+  registry.register(controlCenterFeature);
 
   const context: FeatureContext = {
     route: readRoute(),

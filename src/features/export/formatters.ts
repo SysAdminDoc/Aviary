@@ -65,23 +65,49 @@ function csvArtifact(records: ExportRecord[]): ExportArtifact {
   };
 }
 
+/**
+ * Post text is attacker-controlled and spreadsheets execute any cell that opens with a
+ * formula sigil, so `=HYPERLINK(...)` in a post would run when the export is opened.
+ * Prefixing with an apostrophe keeps the text intact and forces a literal cell.
+ */
+function neutralizeFormula(value: string): string {
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+}
+
 function csvCell(value: string): string {
   if (value === undefined || value === null) {
     return "";
   }
-  const needsQuotes = /[,"\r\n]/.test(value);
-  const escaped = value.replace(/"/g, '""');
+  const safe = neutralizeFormula(value);
+  const needsQuotes = /[,"\r\n]/.test(safe);
+  const escaped = safe.replace(/"/g, '""');
   return needsQuotes ? `"${escaped}"` : escaped;
+}
+
+/** Exported HTML is opened from disk, where a javascript: href would run same-origin as the file. */
+function safeHref(value: string): string {
+  try {
+    const parsed = new URL(value, "https://x.com");
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.toString() : "";
+  } catch {
+    return "";
+  }
 }
 
 function htmlArtifact(records: ExportRecord[]): ExportArtifact {
   const rows = records
     .map((record) => {
       const media = record.media
-        .map((entry) => `<li><a href="${escapeHtml(entry.url)}">${escapeHtml(entry.kind)}</a></li>`)
+        .map((entry) => {
+          const href = safeHref(entry.url);
+          return href
+            ? `<li><a href="${escapeHtml(href)}" rel="noopener noreferrer">${escapeHtml(entry.kind)}</a></li>`
+            : `<li>${escapeHtml(entry.kind)}</li>`;
+        })
         .join("");
-      const permalink = record.permalink
-        ? `<a href="${escapeHtml(record.permalink)}">${escapeHtml(record.permalink)}</a>`
+      const permalinkHref = record.permalink ? safeHref(record.permalink) : "";
+      const permalink = permalinkHref
+        ? `<a href="${escapeHtml(permalinkHref)}" rel="noopener noreferrer">${escapeHtml(permalinkHref)}</a>`
         : "";
       return `<article class="record">
   <header>

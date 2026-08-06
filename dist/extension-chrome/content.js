@@ -682,16 +682,28 @@ html.av-reduce-motion *::after {
     shell.append(launcher, overlay);
     shadow.append(style, shell);
     let open = false;
+    let dirtyWhileBusy = false;
     const setOpen = (value) => {
       open = value;
       launcher.setAttribute("aria-expanded", String(open));
       overlay.classList.toggle("is-open", open);
       overlay.setAttribute("aria-hidden", String(!open));
       if (open) {
+        if (dirtyWhileBusy) {
+          dirtyWhileBusy = false;
+          render();
+        }
         panel.focus({ preventScroll: true });
       } else {
         launcher.focus({ preventScroll: true });
       }
+    };
+    const isBusy = () => {
+      const active = shadow.activeElement;
+      if (!active) {
+        return false;
+      }
+      return active !== panel;
     };
     const setStatus = (message) => {
       status.textContent = message;
@@ -2063,6 +2075,10 @@ html.av-reduce-motion *::after {
         host.remove();
       },
       refresh() {
+        if (!open || isBusy()) {
+          dirtyWhileBusy = true;
+          return;
+        }
         render();
       }
     };
@@ -2763,7 +2779,7 @@ input[type="checkbox"] {
   // src/features/media/urls.ts
   var IMAGE_HOST = "pbs.twimg.com";
   var FORMAT_PRIORITY = ["jpg", "png", "webp"];
-  function normalizeImageUrl(rawUrl) {
+  function normalizeImageUrl(rawUrl, options = {}) {
     let parsed;
     try {
       parsed = new URL(rawUrl, "https://x.com");
@@ -2780,7 +2796,11 @@ input[type="checkbox"] {
     const requestedFormat = (params.get("format") ?? "").toLowerCase();
     const format = FORMAT_PRIORITY.includes(requestedFormat) ? requestedFormat : "jpg";
     params.set("format", format);
-    params.set("name", "orig");
+    if (options.preferOriginal ?? true) {
+      params.set("name", "orig");
+    } else if (!params.has("name")) {
+      params.set("name", "large");
+    }
     const mediaId = mediaIdFromPath(parsed.pathname);
     return {
       url: `${parsed.origin}${parsed.pathname}?${params.toString()}`,
@@ -2888,15 +2908,16 @@ input[type="checkbox"] {
   }
 
   // src/features/media/extract.ts
-  function extractTweet(article) {
+  function extractTweet(article, options = {}) {
     const tweetId = readTweetId(article);
     const handle = readHandle(article);
     const text = readText(article);
     const media = [];
+    const imageOptions = { preferOriginal: options.preferOriginalImages ?? true };
     for (const img of Array.from(
       article.querySelectorAll('[data-testid="tweetPhoto"] img')
     )) {
-      const normalized = normalizeImageUrl(img.src);
+      const normalized = normalizeImageUrl(img.src, imageOptions);
       if (normalized) {
         media.push({ kind: "photo", source: img, image: normalized });
       }
@@ -2906,7 +2927,7 @@ input[type="checkbox"] {
         media.push({ kind: "video", source: video.container, video });
       }
       if (video.poster) {
-        const normalized = normalizeImageUrl(video.poster);
+        const normalized = normalizeImageUrl(video.poster, imageOptions);
         if (normalized) {
           const fake = document.createElement("img");
           fake.src = video.poster;
@@ -3451,6 +3472,17 @@ input[type="checkbox"] {
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${xmlRows.join("")}</sheetData></worksheet>`;
   }
+  function stripInvalidXmlChars(value) {
+    let output = "";
+    for (const char of value) {
+      const code = char.codePointAt(0) ?? 0;
+      const allowed = code === 9 || code === 10 || code === 13 || code >= 32 && code <= 55295 || code >= 57344 && code <= 65533 || code >= 65536 && code <= 1114111;
+      if (allowed) {
+        output += char;
+      }
+    }
+    return output;
+  }
   function columnLetter(index) {
     let label = "";
     let n = index;
@@ -3461,7 +3493,7 @@ input[type="checkbox"] {
     return label;
   }
   function escapeXml(value) {
-    return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+    return stripInvalidXmlChars(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
   }
 
   // src/features/export/formatters.ts
@@ -3524,18 +3556,34 @@ input[type="checkbox"] {
 `)
     };
   }
+  function neutralizeFormula(value) {
+    return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  }
   function csvCell(value) {
     if (value === void 0 || value === null) {
       return "";
     }
-    const needsQuotes = /[,"\r\n]/.test(value);
-    const escaped = value.replace(/"/g, '""');
+    const safe = neutralizeFormula(value);
+    const needsQuotes = /[,"\r\n]/.test(safe);
+    const escaped = safe.replace(/"/g, '""');
     return needsQuotes ? `"${escaped}"` : escaped;
+  }
+  function safeHref(value) {
+    try {
+      const parsed = new URL(value, "https://x.com");
+      return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.toString() : "";
+    } catch {
+      return "";
+    }
   }
   function htmlArtifact(records) {
     const rows = records.map((record) => {
-      const media = record.media.map((entry) => `<li><a href="${escapeHtml(entry.url)}">${escapeHtml(entry.kind)}</a></li>`).join("");
-      const permalink = record.permalink ? `<a href="${escapeHtml(record.permalink)}">${escapeHtml(record.permalink)}</a>` : "";
+      const media = record.media.map((entry) => {
+        const href = safeHref(entry.url);
+        return href ? `<li><a href="${escapeHtml(href)}" rel="noopener noreferrer">${escapeHtml(entry.kind)}</a></li>` : `<li>${escapeHtml(entry.kind)}</li>`;
+      }).join("");
+      const permalinkHref = record.permalink ? safeHref(record.permalink) : "";
+      const permalink = permalinkHref ? `<a href="${escapeHtml(permalinkHref)}" rel="noopener noreferrer">${escapeHtml(permalinkHref)}</a>` : "";
       return `<article class="record">
   <header>
     <strong>${escapeHtml(record.displayName ?? record.handle ?? "Unknown")}</strong>
@@ -5822,7 +5870,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       if (article.getAttribute(PROCESSED_ATTR) === "1") {
         continue;
       }
-      const tweet = extractTweet(article);
+      const tweet = extractTweet(article, {
+        preferOriginalImages: ctx.settings.media.preferOriginalImages
+      });
       if (tweet.media.length === 0) {
         continue;
       }
@@ -6078,7 +6128,9 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     const concurrency = Math.max(1, Math.min(ctx.settings.jobs.concurrentDownloads, 6));
     const max = Math.max(1, options.maxItems ?? 200);
     const filterKind = options.filterKind ?? "all";
-    const tweets = collectArticles3(document, options.surface);
+    const tweets = collectArticles3(document, options.surface, {
+      preferOriginalImages: ctx.settings.media.preferOriginalImages
+    });
     const tasks = [];
     for (const tweet of tweets) {
       tweet.media.forEach((media, index) => {
@@ -6088,7 +6140,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         tasks.push({ media, tweet, index, target });
       });
       if (tasks.length >= max) {
-        return runTasks(ctx, downloader2, queue2, history2, tasks.slice(0, max));
+        break;
       }
     }
     return runTasks(ctx, downloader2, queue2, history2, tasks.slice(0, max), concurrency);
@@ -6161,12 +6213,12 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     await Promise.all(workers);
     return { ...progress, jobIds, cancelled: false };
   }
-  function collectArticles3(root, surface = "active") {
+  function collectArticles3(root, surface = "active", extractOptions = {}) {
     const articles = root instanceof Element && root.matches('article[data-testid="tweet"]') ? [root] : Array.from(root.querySelectorAll('article[data-testid="tweet"]'));
     const seen = /* @__PURE__ */ new Set();
     const tweets = [];
     for (const article of articles) {
-      const tweet = extractTweet(article);
+      const tweet = extractTweet(article, extractOptions);
       const key = `${tweet.tweetId ?? "noid"}:${tweet.handle ?? "noh"}`;
       if (seen.has(key) || tweet.media.length === 0) continue;
       seen.add(key);
@@ -8488,6 +8540,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   var activeContext;
   var recentPayloads = [];
   var originalFetch;
+  var patchedFetch;
   var networkCaptureFeature = {
     id: "export.networkCapture",
     title: "Passive GraphQL capture",
@@ -8530,17 +8583,25 @@ html.av-mobile [data-testid="primaryColumn"] {
     originalFetch = { fn: globalThis.fetch };
     const patched = async (input, init) => {
       const response = await originalFetch.fn(input, init);
-      void capturePayload(ctx, input, response.clone());
+      if (response.ok && shouldCapture(resolveUrl(input))) {
+        void capturePayload(ctx, input, response.clone());
+      }
       return response;
     };
-    globalThis.fetch = patched;
+    patchedFetch = patched;
+    globalThis.fetch = patchedFetch;
     installed = true;
     ctx.diagnostics.info("Passive GraphQL interceptor installed");
   }
   function uninstallInterceptor(ctx) {
     if (!installed || !originalFetch) return;
-    globalThis.fetch = originalFetch.fn;
+    if (globalThis.fetch === patchedFetch) {
+      globalThis.fetch = originalFetch.fn;
+    } else {
+      ctx.diagnostics.warn("fetch was re-patched downstream \u2014 leaving the current wrapper in place");
+    }
     originalFetch = void 0;
+    patchedFetch = void 0;
     installed = false;
     ctx.diagnostics.info("Passive GraphQL interceptor uninstalled");
   }
@@ -8596,7 +8657,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     void ctx.auditLog.record("export.start", { jobId, operation: operationName });
   }
   function scrubAuth(body) {
-    return body.replace(/"ct0"\s*:\s*"[^"]*"/g, '"ct0":"<scrubbed>"').replace(/Bearer\s+[A-Za-z0-9._-]{12,}/g, "Bearer <scrubbed>");
+    return body.replace(/"(ct0|auth_token|guest_id|csrf_token)"\s*:\s*"[^"]*"/g, '"$1":"<scrubbed>"').replace(/Bearer\s+[A-Za-z0-9._-]{12,}/g, "Bearer <scrubbed>");
   }
 
   // src/features/library/link-unshorten.ts
@@ -8634,11 +8695,15 @@ html.av-mobile [data-testid="primaryColumn"] {
         document.querySelectorAll(`a[${PROCESSED_ATTR4}]`)
       )) {
         link.removeAttribute(PROCESSED_ATTR4);
+        link.classList.remove("av-link-clean");
         const original = link.dataset.avOriginalText;
         if (original !== void 0) {
           link.textContent = original;
           delete link.dataset.avOriginalText;
         }
+        const originalTitle = link.dataset.avOriginalTitle;
+        link.title = originalTitle ?? "";
+        delete link.dataset.avOriginalTitle;
       }
       ctx.diagnostics.info("Link unshortening destroyed");
     }
@@ -8659,6 +8724,9 @@ html.av-mobile [data-testid="primaryColumn"] {
       }
       if (!anchor.dataset.avOriginalText) {
         anchor.dataset.avOriginalText = anchor.textContent ?? "";
+      }
+      if (anchor.dataset.avOriginalTitle === void 0) {
+        anchor.dataset.avOriginalTitle = anchor.title;
       }
       anchor.classList.add("av-link-clean");
       anchor.title = target;
@@ -8922,25 +8990,64 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   };
 
   // src/platform/observer.ts
+  var FLUSH_DELAY_MS = 120;
+  var MAX_BATCH_NODES = 400;
   function observeAddedElements(root, onAdded) {
+    let pending = /* @__PURE__ */ new Set();
+    let timer;
+    let overflowed = false;
+    let stopped = false;
+    const flush = () => {
+      timer = void 0;
+      if (stopped) {
+        return;
+      }
+      const batch = overflowed ? [] : [...pending].filter((node) => node.isConnected);
+      const wasOverflowed = overflowed;
+      pending = /* @__PURE__ */ new Set();
+      overflowed = false;
+      if (wasOverflowed) {
+        onAdded([], root);
+        return;
+      }
+      if (batch.length > 0) {
+        onAdded(batch, root);
+      }
+    };
     const observer = new MutationObserver((mutations) => {
-      const added = [];
       for (const mutation of mutations) {
         for (const node of Array.from(mutation.addedNodes)) {
-          if (node instanceof Element) {
-            added.push(node);
+          if (!(node instanceof Element)) {
+            continue;
           }
+          if (pending.size >= MAX_BATCH_NODES) {
+            overflowed = true;
+            pending.clear();
+            break;
+          }
+          pending.add(node);
         }
       }
-      if (added.length > 0) {
-        onAdded(added, root);
+      if (pending.size === 0 && !overflowed) {
+        return;
+      }
+      if (timer === void 0) {
+        timer = setTimeout(flush, FLUSH_DELAY_MS);
       }
     });
     observer.observe(root, {
       childList: true,
       subtree: true
     });
-    return () => observer.disconnect();
+    return () => {
+      stopped = true;
+      observer.disconnect();
+      if (timer !== void 0) {
+        clearTimeout(timer);
+        timer = void 0;
+      }
+      pending = /* @__PURE__ */ new Set();
+    };
   }
 
   // src/platform/rate-limit.ts
@@ -9169,7 +9276,6 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     registry.register(themeFeature);
     registry.register(i18nFeature);
     registry.register(selectorHealthFeature);
-    registry.register(controlCenterFeature);
     registry.register(layoutDeclutterFeature);
     registry.register(filterEngineFeature);
     registry.register(hiddenPostsFeature);
@@ -9183,6 +9289,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     registry.register(composerSnippetsFeature);
     registry.register(networkCaptureFeature);
     registry.register(aiCommandMenuFeature);
+    registry.register(controlCenterFeature);
     const context = {
       route: readRoute(),
       settings,

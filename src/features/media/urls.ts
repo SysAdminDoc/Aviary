@@ -7,7 +7,15 @@ export interface NormalizedImage {
 const IMAGE_HOST = "pbs.twimg.com";
 const FORMAT_PRIORITY = ["jpg", "png", "webp"] as const;
 
-export function normalizeImageUrl(rawUrl: string): NormalizedImage | null {
+export interface NormalizeImageOptions {
+  /** When false the served size is kept instead of being upgraded to `name=orig`. */
+  preferOriginal?: boolean;
+}
+
+export function normalizeImageUrl(
+  rawUrl: string,
+  options: NormalizeImageOptions = {}
+): NormalizedImage | null {
   let parsed: URL;
   try {
     parsed = new URL(rawUrl, "https://x.com");
@@ -29,7 +37,11 @@ export function normalizeImageUrl(rawUrl: string): NormalizedImage | null {
     : "jpg";
 
   params.set("format", format);
-  params.set("name", "orig");
+  if (options.preferOriginal ?? true) {
+    params.set("name", "orig");
+  } else if (!params.has("name")) {
+    params.set("name", "large");
+  }
 
   const mediaId = mediaIdFromPath(parsed.pathname);
   return {

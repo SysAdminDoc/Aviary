@@ -14,6 +14,7 @@ interface OriginalFetch {
 }
 
 let originalFetch: OriginalFetch | undefined;
+let patchedFetch: typeof fetch | undefined;
 
 export const networkCaptureFeature: FeatureModule = {
   id: "export.networkCapture",
@@ -68,18 +69,29 @@ function installInterceptor(ctx: FeatureContext): void {
   originalFetch = { fn: globalThis.fetch };
   const patched = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const response = await originalFetch!.fn(input, init);
-    void capturePayload(ctx, input, response.clone());
+    // Clone only what will actually be captured: an unread clone tees the body stream and
+    // holds it until GC, and X streams video segments through fetch.
+    if (response.ok && shouldCapture(resolveUrl(input))) {
+      void capturePayload(ctx, input, response.clone());
+    }
     return response;
   };
-  globalThis.fetch = patched as typeof fetch;
+  patchedFetch = patched as typeof fetch;
+  globalThis.fetch = patchedFetch;
   installed = true;
   ctx.diagnostics.info("Passive GraphQL interceptor installed");
 }
 
 function uninstallInterceptor(ctx: FeatureContext): void {
   if (!installed || !originalFetch) return;
-  globalThis.fetch = originalFetch.fn;
+  // Another script may have wrapped fetch after us; restoring blindly would clobber it.
+  if (globalThis.fetch === patchedFetch) {
+    globalThis.fetch = originalFetch.fn;
+  } else {
+    ctx.diagnostics.warn("fetch was re-patched downstream — leaving the current wrapper in place");
+  }
   originalFetch = undefined;
+  patchedFetch = undefined;
   installed = false;
   ctx.diagnostics.info("Passive GraphQL interceptor uninstalled");
 }
@@ -148,6 +160,6 @@ function scrubAuth(body: string): string {
   // Aviary stores response bodies, but we still strip anything that looks like a session token or
   // bearer header echoed back into the response (rare but cheap to guard against).
   return body
-    .replace(/"ct0"\s*:\s*"[^"]*"/g, '"ct0":"<scrubbed>"')
+    .replace(/"(ct0|auth_token|guest_id|csrf_token)"\s*:\s*"[^"]*"/g, '"$1":"<scrubbed>"')
     .replace(/Bearer\s+[A-Za-z0-9._-]{12,}/g, "Bearer <scrubbed>");
 }

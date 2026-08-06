@@ -41,7 +41,9 @@ export async function runMediaBatch(
   const max = Math.max(1, options.maxItems ?? 200);
   const filterKind = options.filterKind ?? "all";
 
-  const tweets = collectArticles(document, options.surface);
+  const tweets = collectArticles(document, options.surface, {
+    preferOriginalImages: ctx.settings.media.preferOriginalImages
+  });
   const tasks: Array<{ media: ExtractedMedia; tweet: ExtractedTweet; index: number; target: ResolvedTarget }> = [];
 
   for (const tweet of tweets) {
@@ -51,8 +53,10 @@ export async function runMediaBatch(
       if (!target) return;
       tasks.push({ media, tweet, index, target });
     });
+    // Stop collecting once the cap is reached; the single exit below keeps the configured
+    // concurrency applied on every path.
     if (tasks.length >= max) {
-      return runTasks(ctx, downloader, queue, history, tasks.slice(0, max));
+      break;
     }
   }
 
@@ -142,7 +146,11 @@ async function runTasks(
   return { ...progress, jobIds, cancelled: false };
 }
 
-function collectArticles(root: ParentNode, surface = "active"): ExtractedTweet[] {
+function collectArticles(
+  root: ParentNode,
+  surface = "active",
+  extractOptions: { preferOriginalImages?: boolean } = {}
+): ExtractedTweet[] {
   const articles =
     root instanceof Element && root.matches('article[data-testid="tweet"]')
       ? [root]
@@ -150,7 +158,7 @@ function collectArticles(root: ParentNode, surface = "active"): ExtractedTweet[]
   const seen = new Set<string>();
   const tweets: ExtractedTweet[] = [];
   for (const article of articles) {
-    const tweet = extractTweet(article);
+    const tweet = extractTweet(article, extractOptions);
     const key = `${tweet.tweetId ?? "noid"}:${tweet.handle ?? "noh"}`;
     if (seen.has(key) || tweet.media.length === 0) continue;
     seen.add(key);

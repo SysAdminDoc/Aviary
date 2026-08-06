@@ -116,7 +116,9 @@ function scanArticles(root: ParentNode | Element, ctx: FeatureContext): void {
     if (article.getAttribute(PROCESSED_ATTR) === "1") {
       continue;
     }
-    const tweet = extractTweet(article);
+    const tweet = extractTweet(article, {
+      preferOriginalImages: ctx.settings.media.preferOriginalImages
+    });
     if (tweet.media.length === 0) {
       continue;
     }

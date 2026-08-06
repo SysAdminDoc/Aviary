@@ -38,11 +38,15 @@ export const linkUnshortenFeature: FeatureModule = {
       document.querySelectorAll<HTMLAnchorElement>(`a[${PROCESSED_ATTR}]`)
     )) {
       link.removeAttribute(PROCESSED_ATTR);
+      link.classList.remove("av-link-clean");
       const original = link.dataset.avOriginalText;
       if (original !== undefined) {
         link.textContent = original;
         delete link.dataset.avOriginalText;
       }
+      const originalTitle = link.dataset.avOriginalTitle;
+      link.title = originalTitle ?? "";
+      delete link.dataset.avOriginalTitle;
     }
     ctx.diagnostics.info("Link unshortening destroyed");
   }
@@ -67,6 +71,9 @@ function scan(root: ParentNode | Element): void {
     }
     if (!anchor.dataset.avOriginalText) {
       anchor.dataset.avOriginalText = anchor.textContent ?? "";
+    }
+    if (anchor.dataset.avOriginalTitle === undefined) {
+      anchor.dataset.avOriginalTitle = anchor.title;
     }
     anchor.classList.add("av-link-clean");
     anchor.title = target;

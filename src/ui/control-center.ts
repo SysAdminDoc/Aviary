@@ -193,6 +193,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   shadow.append(style, shell);
 
   let open = false;
+  let dirtyWhileBusy = false;
 
   const setOpen = (value: boolean): void => {
     open = value;
@@ -200,10 +201,28 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     overlay.classList.toggle("is-open", open);
     overlay.setAttribute("aria-hidden", String(!open));
     if (open) {
+      // Repaint anything that went stale while the panel was closed.
+      if (dirtyWhileBusy) {
+        dirtyWhileBusy = false;
+        render();
+      }
       panel.focus({ preventScroll: true });
     } else {
       launcher.focus({ preventScroll: true });
     }
+  };
+
+  /**
+   * A rebuild replaces every row, which destroys half-typed input and moves focus. Page
+   * mutations must never do that to someone mid-edit, so a refresh requested while the
+   * panel is closed or focused is deferred until it is safe.
+   */
+  const isBusy = (): boolean => {
+    const active = shadow.activeElement;
+    if (!active) {
+      return false;
+    }
+    return active !== panel;
   };
 
   const setStatus = (message: string): void => {
@@ -1703,6 +1722,10 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       host.remove();
     },
     refresh() {
+      if (!open || isBusy()) {
+        dirtyWhileBusy = true;
+        return;
+      }
       render();
     }
   };

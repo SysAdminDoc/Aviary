@@ -56,6 +56,24 @@ function buildSheetXml(rows: readonly string[][]): string {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${xmlRows.join("")}</sheetData></worksheet>`;
 }
 
+function stripInvalidXmlChars(value: string): string {
+  let output = "";
+  for (const char of value) {
+    const code = char.codePointAt(0) ?? 0;
+    const allowed =
+      code === 0x09 ||
+      code === 0x0a ||
+      code === 0x0d ||
+      (code >= 0x20 && code <= 0xd7ff) ||
+      (code >= 0xe000 && code <= 0xfffd) ||
+      (code >= 0x10000 && code <= 0x10ffff);
+    if (allowed) {
+      output += char;
+    }
+  }
+  return output;
+}
+
 function columnLetter(index: number): string {
   let label = "";
   let n = index;
@@ -67,7 +85,9 @@ function columnLetter(index: number): string {
 }
 
 function escapeXml(value: string): string {
-  return value
+  // XML 1.0 forbids most C0 controls outright; leaving one in produces a workbook that
+  // Excel refuses to open with a generic "unreadable content" error.
+  return stripInvalidXmlChars(value)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

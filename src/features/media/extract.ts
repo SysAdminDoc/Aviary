@@ -16,16 +16,22 @@ export interface ExtractedTweet {
   media: ExtractedMedia[];
 }
 
-export function extractTweet(article: Element): ExtractedTweet {
+export interface ExtractTweetOptions {
+  /** Mirrors `settings.media.preferOriginalImages`; defaults to the original-quality rewrite. */
+  preferOriginalImages?: boolean;
+}
+
+export function extractTweet(article: Element, options: ExtractTweetOptions = {}): ExtractedTweet {
   const tweetId = readTweetId(article);
   const handle = readHandle(article);
   const text = readText(article);
   const media: ExtractedMedia[] = [];
+  const imageOptions = { preferOriginal: options.preferOriginalImages ?? true };
 
   for (const img of Array.from(
     article.querySelectorAll<HTMLImageElement>('[data-testid="tweetPhoto"] img')
   )) {
-    const normalized = normalizeImageUrl(img.src);
+    const normalized = normalizeImageUrl(img.src, imageOptions);
     if (normalized) {
       media.push({ kind: "photo", source: img, image: normalized });
     }
@@ -36,7 +42,7 @@ export function extractTweet(article: Element): ExtractedTweet {
       media.push({ kind: "video", source: video.container, video });
     }
     if (video.poster) {
-      const normalized = normalizeImageUrl(video.poster);
+      const normalized = normalizeImageUrl(video.poster, imageOptions);
       if (normalized) {
         const fake = document.createElement("img");
         fake.src = video.poster;
