@@ -922,6 +922,7 @@ html.av-reduce-motion *::after {
           const file = input.files?.[0];
           if (!file) return;
           void (async () => {
+            setStatus("Reading archive \u2014 large files take a moment\u2026");
             try {
               const result = await options.importArchive(file);
               const warningsLabel = result.warnings > 0 || result.errors > 0 ? ` (${result.warnings} warning${result.warnings === 1 ? "" : "s"}, ${result.errors} error${result.errors === 1 ? "" : "s"})` : "";
@@ -973,6 +974,7 @@ html.av-reduce-motion *::after {
       if (options.downloadReport) {
         rows.push(
           actionRow("Download Markdown report", "Audit log + snapshot diff + cleanup preview.", async () => {
+            setStatus("Building report\u2026");
             try {
               await options.downloadReport();
               setStatus("Report downloaded.");
@@ -994,7 +996,7 @@ html.av-reduce-motion *::after {
         rows.push(
           readonlyRow(
             "Destructive actions",
-            "Disabled by policy in v1.0.0 \u2014 the queue stays a review list. Approve / skip records audit only."
+            "Aviary never deletes posts, likes, or follows. The queue is a review list; approving or skipping only writes to the audit log."
           )
         );
       }
@@ -1004,6 +1006,7 @@ html.av-reduce-motion *::after {
             "Enqueue cleanup preview for review",
             "Append every non-protected candidate from the latest cleanup preview to the queue (no destructive action).",
             async () => {
+              setStatus("Building cleanup preview\u2026");
               try {
                 const result = await options.enqueueCleanupReview();
                 setStatus(`Enqueued ${result.added} items (${result.protected} protected skipped).`);
@@ -1363,6 +1366,7 @@ html.av-reduce-motion *::after {
             "Rebuild semantic index",
             "Embed every captured record. Re-running is cheap because cached entries are skipped.",
             async () => {
+              setStatus("Rebuilding semantic index\u2026");
               try {
                 const result = await options.rebuildSemanticIndex();
                 setStatus(
@@ -1530,7 +1534,7 @@ html.av-reduce-motion *::after {
       const rows = [];
       if (options.exportSettings) {
         rows.push(
-          actionRow("Export settings", "Download a JSON file with every Aviary preference.", async () => {
+          actionRow("Export settings", "Downloads your preferences as JSON. API keys and passwords are replaced with a placeholder, so the file is safe to share; importing it here keeps the credentials already saved on this machine.", async () => {
             try {
               await options.exportSettings();
               setStatus("Settings exported.");
@@ -1545,15 +1549,16 @@ html.av-reduce-motion *::after {
         rows.push(
           textareaRow(
             "Import settings (JSON)",
-            "Paste a previously exported settings envelope and press Save list to apply.",
+            "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.",
             [],
             async (lines) => {
               const payload = lines.join("\n");
               try {
                 const report = await options.importSettings(payload);
                 if (report.applied) {
-                  const warnings = report.warnings.length > 0 ? ` (${report.warnings.length} warning(s))` : "";
-                  setStatus(`Settings imported${warnings}.`);
+                  const [first, ...rest] = report.warnings;
+                  const extra = rest.length > 0 ? ` (+${rest.length} more)` : "";
+                  setStatus(first ? `Settings imported. ${first}${extra}` : "Settings imported.");
                 } else {
                   setStatus(`Import failed: ${report.errors.join("; ")}`);
                 }
@@ -1561,7 +1566,8 @@ html.av-reduce-motion *::after {
                 options.onError("Could not import settings", error);
                 setStatus("Could not import settings.");
               }
-            }
+            },
+            "Import"
           )
         );
       }
@@ -1599,7 +1605,7 @@ html.av-reduce-motion *::after {
       rows.push(
         textInputRow(
           "Export formats",
-          "Comma-separated list. Supported: json, csv, html, markdown (xlsx is deferred).",
+          "Comma-separated list. Supported: json, csv, html, markdown, xlsx.",
           options.settings.export.formats.join(","),
           async (value) => {
             const parsed = value.split(/[\s,]+/).map((entry) => entry.trim().toLowerCase()).filter((entry) => entry.length > 0);
@@ -1615,7 +1621,7 @@ html.av-reduce-motion *::after {
       rows.push(
         toggleRow(
           "Preserve raw payloads",
-          "Store unparsed responses next to records for future parser recovery (off until F091 lands).",
+          "Also store the raw GraphQL responses X sends this tab, so records can be re-parsed later. Session tokens are stripped before anything is written.",
           options.settings.export.preserveRawPayloads,
           async (checked) => {
             options.settings.export.preserveRawPayloads = checked;
@@ -1657,9 +1663,12 @@ html.av-reduce-motion *::after {
       if (options.runExport) {
         rows.push(
           actionRow("Export visible tweets", "Collect the currently rendered tweets and download a ZIP.", async () => {
+            setStatus("Collecting visible posts\u2026");
             try {
               const result = await options.runExport();
-              setStatus(`Exported ${result.records} records \u2192 ${result.filename}`);
+              setStatus(
+                result.records === 0 ? "No posts found on this view. Scroll the timeline to load some, then export again." : `Exported ${result.records} record${result.records === 1 ? "" : "s"} \u2192 ${result.filename}`
+              );
             } catch (error) {
               options.onError("Export failed", error);
               setStatus("Export failed. See diagnostics.");
@@ -1686,6 +1695,7 @@ html.av-reduce-motion *::after {
             "Download as WARC",
             "Wrap captured records into an ISO-28500 WARC file for research / preservation tooling.",
             async () => {
+              setStatus("Building WARC archive\u2026");
               try {
                 const result = await options.downloadWarc();
                 setStatus(`WARC downloaded (${result.records} records).`);
@@ -1858,6 +1868,7 @@ html.av-reduce-motion *::after {
             "Download all visible media",
             "Walks every tweet rendered on the current page and queues every photo/video/GIF/thumbnail through the existing download pipeline.",
             async () => {
+              setStatus("Downloading media from this view\u2026");
               try {
                 const result = await options.runMediaBatch();
                 setStatus(
@@ -2257,7 +2268,7 @@ html.av-reduce-motion *::after {
     row.append(button2);
     return row;
   }
-  function textareaRow(label, description, lines, onChange) {
+  function textareaRow(label, description, lines, onChange, actionLabel = "Save list") {
     const row = el("div", "av-row av-row-stack");
     const copy = el("span", "av-row-copy");
     copy.append(el("span", "av-row-label", label), el("span", "av-row-description", description));
@@ -2268,7 +2279,7 @@ html.av-reduce-motion *::after {
     textarea.spellcheck = false;
     textarea.rows = 4;
     textarea.setAttribute("aria-label", label);
-    const apply = el("button", "av-button av-button-secondary", "Save list");
+    const apply = el("button", "av-button av-button-secondary", actionLabel);
     apply.type = "button";
     apply.addEventListener("click", () => {
       const next = textarea.value.split(/\r?\n/).map((line) => line.trim()).filter((line, index, array) => line.length > 0 && array.indexOf(line) === index);
@@ -3924,7 +3935,7 @@ ${sections.join("\n\n---\n\n")}
     await checkpointStore.append(jobId, initialRecords);
     activeJobId = void 0;
     const records = checkpointStore.records(jobId);
-    const artifact = buildExportZip(records, formats, ctx.settings.media.lastSaveFolder);
+    const artifact = records.length === 0 ? null : buildExportZip(records, formats, ctx.settings.media.lastSaveFolder);
     await checkpointStore.finish(jobId);
     ctx.diagnostics.info("Export completed", { records: records.length, formats });
     void ctx.auditLog.record("export.complete", { jobId, records: records.length, formats });
@@ -6928,15 +6939,44 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
 
   // src/features/core/settings-migration.ts
   var SETTINGS_EXPORT_VERSION = 1;
-  function buildSettingsExport(settings) {
+  var REDACTED_SECRET = "__aviary_redacted__";
+  var SECRET_PATHS = [
+    ["aria2", "secret"],
+    ["bluesky", "appPassword"],
+    ["mastodon", "token"],
+    ["ai", "apiKey"],
+    ["semanticSearch", "apiKey"]
+  ];
+  function readSecret(settings, group, key) {
+    const record = settings.integrations[group];
+    const value = record?.[key];
+    return typeof value === "string" ? value : "";
+  }
+  function writeSecret(settings, group, key, value) {
+    const record = settings.integrations[group];
+    if (record) {
+      record[key] = value;
+    }
+  }
+  function buildSettingsExport(settings, options = {}) {
+    const copy = cloneSettings(settings);
+    const includeSecrets = options.includeSecrets === true;
+    if (!includeSecrets) {
+      for (const [group, key] of SECRET_PATHS) {
+        if (readSecret(copy, group, key).length > 0) {
+          writeSecret(copy, group, key, REDACTED_SECRET);
+        }
+      }
+    }
     return {
       generator: "Aviary",
       version: SETTINGS_EXPORT_VERSION,
       exportedAt: (/* @__PURE__ */ new Date()).toISOString(),
-      settings: cloneSettings(settings)
+      secretsRedacted: !includeSecrets,
+      settings: copy
     };
   }
-  function parseSettingsImport(payload) {
+  function parseSettingsImport(payload, current) {
     const errors = [];
     const warnings = [];
     let parsed;
@@ -6962,6 +7002,18 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
     const rawSettings = isRecord5(parsed.settings) ? parsed.settings : parsed;
     const normalized = normalizeSettings(rawSettings);
+    let restored = 0;
+    for (const [group, key] of SECRET_PATHS) {
+      if (readSecret(normalized, group, key) === REDACTED_SECRET) {
+        writeSecret(normalized, group, key, current ? readSecret(current, group, key) : "");
+        restored += 1;
+      }
+    }
+    if (restored > 0) {
+      warnings.push(
+        `${restored} credential${restored === 1 ? " was" : "s were"} redacted in this file; the ${restored === 1 ? "value" : "values"} already saved here ${restored === 1 ? "was" : "were"} kept.`
+      );
+    }
     return { applied: true, errors, warnings, settings: normalized };
   }
   function isRecord5(value) {
@@ -7042,7 +7094,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           void ctx.auditLog.record("settings.export");
         },
         async importSettings(payload) {
-          const report = parseSettingsImport(payload);
+          const report = parseSettingsImport(payload, ctx.settings);
           if (report.applied) {
             Object.assign(ctx.settings, report.settings);
             await ctx.storage.set(SETTINGS_KEY, normalizeSettings(ctx.settings));

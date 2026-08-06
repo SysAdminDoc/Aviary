@@ -6,6 +6,8 @@ export interface SettingsExportEnvelope {
   generator: "Aviary";
   version: number;
   exportedAt: string;
+  /** True when credentials were replaced by {@link REDACTED_SECRET} before writing. */
+  secretsRedacted?: boolean;
   settings: AviarySettings;
 }
 
@@ -16,16 +18,67 @@ export interface SettingsImportReport {
   settings: AviarySettings;
 }
 
-export function buildSettingsExport(settings: AviarySettings): SettingsExportEnvelope {
+export const REDACTED_SECRET = "__aviary_redacted__";
+
+/**
+ * Settings files get shared for support and synced through cloud folders, so credentials
+ * are replaced with a placeholder. Importing keeps whatever is already stored locally, which
+ * makes the file a safe backup of preferences without being a copy of the user's API keys.
+ */
+const SECRET_PATHS: ReadonlyArray<readonly [keyof AviarySettings["integrations"], string]> = [
+  ["aria2", "secret"],
+  ["bluesky", "appPassword"],
+  ["mastodon", "token"],
+  ["ai", "apiKey"],
+  ["semanticSearch", "apiKey"]
+];
+
+function readSecret(settings: AviarySettings, group: string, key: string): string {
+  const record = (settings.integrations as unknown as Record<string, Record<string, unknown>>)[group];
+  const value = record?.[key];
+  return typeof value === "string" ? value : "";
+}
+
+function writeSecret(settings: AviarySettings, group: string, key: string, value: string): void {
+  const record = (settings.integrations as unknown as Record<string, Record<string, unknown>>)[group];
+  if (record) {
+    record[key] = value;
+  }
+}
+
+export interface SettingsExportOptions {
+  /** Opt in to writing real credentials — off by default. */
+  includeSecrets?: boolean;
+}
+
+export function buildSettingsExport(
+  settings: AviarySettings,
+  options: SettingsExportOptions = {}
+): SettingsExportEnvelope {
+  const copy = cloneSettings(settings);
+  const includeSecrets = options.includeSecrets === true;
+
+  if (!includeSecrets) {
+    for (const [group, key] of SECRET_PATHS) {
+      if (readSecret(copy, group, key).length > 0) {
+        writeSecret(copy, group, key, REDACTED_SECRET);
+      }
+    }
+  }
+
   return {
     generator: "Aviary",
     version: SETTINGS_EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
-    settings: cloneSettings(settings)
+    secretsRedacted: !includeSecrets,
+    settings: copy
   };
 }
 
-export function parseSettingsImport(payload: string): SettingsImportReport {
+export function parseSettingsImport(
+  payload: string,
+  current?: AviarySettings
+): SettingsImportReport {
   const errors: string[] = [];
   const warnings: string[] = [];
   let parsed: unknown;
@@ -56,6 +109,24 @@ export function parseSettingsImport(payload: string): SettingsImportReport {
 
   const rawSettings = isRecord(parsed.settings) ? parsed.settings : parsed;
   const normalized = normalizeSettings(rawSettings);
+
+  // Redacted placeholders must never be applied as literal credentials; keep what is
+  // already configured on this machine instead.
+  let restored = 0;
+  for (const [group, key] of SECRET_PATHS) {
+    if (readSecret(normalized, group, key) === REDACTED_SECRET) {
+      writeSecret(normalized, group, key, current ? readSecret(current, group, key) : "");
+      restored += 1;
+    }
+  }
+  if (restored > 0) {
+    warnings.push(
+      `${restored} credential${restored === 1 ? " was" : "s were"} redacted in this file; the ${
+        restored === 1 ? "value" : "values"
+      } already saved here ${restored === 1 ? "was" : "were"} kept.`
+    );
+  }
+
   return { applied: true, errors, warnings, settings: normalized };
 }
 

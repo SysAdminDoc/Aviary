@@ -434,6 +434,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         const file = input.files?.[0];
         if (!file) return;
         void (async () => {
+          setStatus("Reading archive — large files take a moment…");
           try {
             const result = await options.importArchive!(file);
             const warningsLabel =
@@ -492,6 +493,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     if (options.downloadReport) {
       rows.push(
         actionRow("Download Markdown report", "Audit log + snapshot diff + cleanup preview.", async () => {
+          setStatus("Building report…");
           try {
             await options.downloadReport!();
             setStatus("Report downloaded.");
@@ -514,7 +516,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       rows.push(
         readonlyRow(
           "Destructive actions",
-          "Disabled by policy in v1.0.0 — the queue stays a review list. Approve / skip records audit only."
+          "Aviary never deletes posts, likes, or follows. The queue is a review list; approving or skipping only writes to the audit log."
         )
       );
     }
@@ -525,7 +527,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           "Enqueue cleanup preview for review",
           "Append every non-protected candidate from the latest cleanup preview to the queue (no destructive action).",
           async () => {
-            try {
+            setStatus("Building cleanup preview…");
+          try {
               const result = await options.enqueueCleanupReview!();
               setStatus(`Enqueued ${result.added} items (${result.protected} protected skipped).`);
             } catch (error) {
@@ -907,7 +910,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           "Rebuild semantic index",
           "Embed every captured record. Re-running is cheap because cached entries are skipped.",
           async () => {
-            try {
+            setStatus("Rebuilding semantic index…");
+          try {
               const result = await options.rebuildSemanticIndex!();
               setStatus(
                 `Indexed: +${result.added} new · skipped ${result.skipped} · errors ${result.errors} · total ${result.total}.`
@@ -1096,7 +1100,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
     if (options.exportSettings) {
       rows.push(
-        actionRow("Export settings", "Download a JSON file with every Aviary preference.", async () => {
+        actionRow("Export settings", "Downloads your preferences as JSON. API keys and passwords are replaced with a placeholder, so the file is safe to share; importing it here keeps the credentials already saved on this machine.", async () => {
           try {
             await options.exportSettings!();
             setStatus("Settings exported.");
@@ -1112,15 +1116,17 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       rows.push(
         textareaRow(
           "Import settings (JSON)",
-          "Paste a previously exported settings envelope and press Save list to apply.",
+          "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.",
           [],
           async (lines) => {
             const payload = lines.join("\n");
             try {
               const report = await options.importSettings!(payload);
               if (report.applied) {
-                const warnings = report.warnings.length > 0 ? ` (${report.warnings.length} warning(s))` : "";
-                setStatus(`Settings imported${warnings}.`);
+                // Show what the warning actually said — a bare count tells the user nothing.
+                const [first, ...rest] = report.warnings;
+                const extra = rest.length > 0 ? ` (+${rest.length} more)` : "";
+                setStatus(first ? `Settings imported. ${first}${extra}` : "Settings imported.");
               } else {
                 setStatus(`Import failed: ${report.errors.join("; ")}`);
               }
@@ -1128,7 +1134,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
               options.onError("Could not import settings", error);
               setStatus("Could not import settings.");
             }
-          }
+          },
+          "Import"
         )
       );
     }
@@ -1170,7 +1177,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     rows.push(
       textInputRow(
         "Export formats",
-        "Comma-separated list. Supported: json, csv, html, markdown (xlsx is deferred).",
+        "Comma-separated list. Supported: json, csv, html, markdown, xlsx.",
         options.settings.export.formats.join(","),
         async (value) => {
           const parsed = value
@@ -1189,7 +1196,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     rows.push(
       toggleRow(
         "Preserve raw payloads",
-        "Store unparsed responses next to records for future parser recovery (off until F091 lands).",
+        "Also store the raw GraphQL responses X sends this tab, so records can be re-parsed later. Session tokens are stripped before anything is written.",
         options.settings.export.preserveRawPayloads,
         async (checked) => {
           options.settings.export.preserveRawPayloads = checked;
@@ -1233,9 +1240,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     if (options.runExport) {
       rows.push(
         actionRow("Export visible tweets", "Collect the currently rendered tweets and download a ZIP.", async () => {
+          setStatus("Collecting visible posts…");
           try {
             const result = await options.runExport!();
-            setStatus(`Exported ${result.records} records → ${result.filename}`);
+            setStatus(
+              result.records === 0
+                ? "No posts found on this view. Scroll the timeline to load some, then export again."
+                : `Exported ${result.records} record${result.records === 1 ? "" : "s"} → ${result.filename}`
+            );
           } catch (error) {
             options.onError("Export failed", error);
             setStatus("Export failed. See diagnostics.");
@@ -1264,7 +1276,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           "Download as WARC",
           "Wrap captured records into an ISO-28500 WARC file for research / preservation tooling.",
           async () => {
-            try {
+            setStatus("Building WARC archive…");
+          try {
               const result = await options.downloadWarc!();
               setStatus(`WARC downloaded (${result.records} records).`);
             } catch (error) {
@@ -1445,7 +1458,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           "Download all visible media",
           "Walks every tweet rendered on the current page and queues every photo/video/GIF/thumbnail through the existing download pipeline.",
           async () => {
-            try {
+            setStatus("Downloading media from this view…");
+          try {
               const result = await options.runMediaBatch!();
               setStatus(
                 `Batch finished: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
@@ -1944,7 +1958,8 @@ function textareaRow(
   label: string,
   description: string,
   lines: string[],
-  onChange: (lines: string[]) => Promise<void>
+  onChange: (lines: string[]) => Promise<void>,
+  actionLabel = "Save list"
 ): HTMLElement {
   const row = el("div", "av-row av-row-stack");
   const copy = el("span", "av-row-copy");
@@ -1958,7 +1973,7 @@ function textareaRow(
   textarea.rows = 4;
   textarea.setAttribute("aria-label", label);
 
-  const apply = el("button", "av-button av-button-secondary", "Save list") as HTMLButtonElement;
+  const apply = el("button", "av-button av-button-secondary", actionLabel) as HTMLButtonElement;
   apply.type = "button";
   apply.addEventListener("click", () => {
     const next = textarea.value

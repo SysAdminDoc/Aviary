@@ -123,7 +123,7 @@ export const controlCenterFeature: FeatureModule = {
         void ctx.auditLog.record("settings.export");
       },
       async importSettings(payload: string): Promise<SettingsImportReport> {
-        const report = parseSettingsImport(payload);
+        const report = parseSettingsImport(payload, ctx.settings);
         if (report.applied) {
           Object.assign(ctx.settings, report.settings);
           await ctx.storage.set(SETTINGS_KEY, normalizeSettings(ctx.settings));

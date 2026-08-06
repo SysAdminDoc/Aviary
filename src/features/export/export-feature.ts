@@ -101,7 +101,11 @@ export async function runExportOfVisibleTweets(ctx: FeatureContext): Promise<Exp
   activeJobId = undefined;
 
   const records = checkpointStore.records(jobId);
-  const artifact = buildExportZip(records, formats, ctx.settings.media.lastSaveFolder);
+  // Handing the user an empty ZIP is worse than telling them nothing was captured.
+  const artifact =
+    records.length === 0
+      ? null
+      : buildExportZip(records, formats, ctx.settings.media.lastSaveFolder);
   await checkpointStore.finish(jobId);
   ctx.diagnostics.info("Export completed", { records: records.length, formats });
   void ctx.auditLog.record("export.complete", { jobId, records: records.length, formats });
