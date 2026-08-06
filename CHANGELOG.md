@@ -1,5 +1,73 @@
 # Changelog
 
+## 1.7.0 - 2026-08-06
+
+Full engineering, security, UX, accessibility and theming audit. Findings left open are
+listed at the end of ROADMAP.md.
+
+### Fixed — correctness
+
+- Mutation batches are coalesced into one delivery per 120ms window. Every feature previously
+  re-scanned, and the Control Center re-rendered, on each individual batch; five ordinary page
+  mutations produced five full panel rebuilds, destroying half-typed input and moving focus.
+- The Control Center defers rebuilds requested while it is closed or while a field is focused,
+  and repaints when it is safe.
+- The Control Center is registered last so its first paint reads stores that have finished
+  loading, instead of reporting zeroes.
+- The media batch downloader ignored `jobs.concurrentDownloads` whenever it hit the item cap.
+- "Prefer original quality" was wired to nothing; image URLs were always rewritten to
+  `name=orig`. It now applies to both download paths.
+- Exporting a view with nothing captured no longer builds and downloads an empty ZIP.
+- Network capture cloned every response before checking whether it was capturable, teeing
+  video segment streams it never read, and restored `fetch` even when another script had
+  wrapped it afterwards.
+- Link unshortening left its class and rewritten title behind on teardown.
+- XLSX export stripped no XML-illegal control characters, producing workbooks Excel rejects.
+
+### Fixed — security and data safety
+
+- CSV export escapes leading `=`, `+`, `-` and `@` so attacker-controlled post text cannot
+  execute as a formula when the export is opened in a spreadsheet.
+- Settings export redacts the Aria2 secret, Bluesky app password, Mastodon token and both API
+  keys; importing a redacted file keeps the values already stored locally. A full export is
+  available behind an explicit opt-in.
+- Credential fields render masked with an explicit Show/Hide toggle instead of plain text.
+- HTML export drops non-http(s) hrefs rather than writing them into a file opened from disk.
+- Captured GraphQL payloads also scrub `auth_token`, `guest_id` and `csrf_token`.
+
+### Fixed — accessibility
+
+- The closed panel is inert; all 137 of its controls were previously focusable inside an
+  `aria-hidden` container, so keyboard users tabbed into an invisible settings panel.
+- The default dim theme rendered every row description, section title and the status line at
+  3.96:1. Its muted token now measures 5.26:1, clearing the 4.5:1 AA floor.
+- Touch targets in the panel meet 44px. The touch and viewport rules were being written into
+  `document.head`, where they could not reach the panel's shadow root at all.
+- "Reduced motion" gained a control — the setting previously had no UI — and now reaches the
+  panel and toast, which a page-level class cannot style across a shadow boundary.
+- The per-post Hide control rests at a legible opacity instead of 1.56:1, and is fully opaque
+  on devices with no hover.
+- Engagement counts can be hidden without hiding the buttons; their aria-labels still carry
+  the totals.
+
+### Fixed — UX and visual
+
+- Settings rows drew a 1.4:1 border, effectively invisible; now 2.3-2.6:1 in every theme.
+- The launcher gradient followed X blue in all five themes; it follows the theme accent.
+- The toast used hardcoded colours and looked foreign outside the dim theme.
+- The panel's browser-default white focus halo is drawn in the theme accent.
+- Long operations (export, media batch, WARC, report, semantic index, archive import) announce
+  themselves instead of appearing frozen.
+- Archive search is debounced and no longer re-tokenizes every captured record on each
+  keystroke that matches nothing. Empty and no-match states say something useful.
+- Copy corrected where it described shipped features as unavailable ("xlsx is deferred", "off
+  until F091 lands"), told users to press a button that does not exist on that row, or
+  reported "(1 warning(s))" without showing the warning.
+- Presets no longer report changes they cannot deliver: `hideCounts` is implemented, while
+  `hideBorders` and `writerMode` are removed from presets and tracked in ROADMAP.md.
+- The locale selector states what it currently does, since the panel is not yet localized.
+- docs/PRIVACY.md lists every storage key and corrects the claim that no passwords are stored.
+
 ## 1.6.0 - 2026-08-06
 
 - Added a per-post Hide control that remembers the post locally and keeps it collapsed on every later visit, so the next post is promoted instead of leaving a gap.

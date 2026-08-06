@@ -361,8 +361,10 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           options.listLocales().map((entry) => [entry.code, entry.label] as [string, string]),
           async (value) => {
             await options.setLocale!(value);
-            await save(`Locale set to ${value}`);
-          }
+            const entry = options.listLocales?.().find((locale) => locale.code === value);
+            await save(`Locale set to ${entry?.label ?? value}`);
+          },
+          "Sets reading direction for Aviary surfaces — right-to-left for Arabic and Hebrew. Panel labels are English for now."
         )
       );
     }
@@ -1829,10 +1831,17 @@ function selectRow(
   label: string,
   value: string,
   options: Array<[string, string]>,
-  onChange: (value: string) => Promise<void>
+  onChange: (value: string) => Promise<void>,
+  description?: string
 ): HTMLElement {
   const row = el("label", "av-row");
-  row.append(el("span", "av-row-label", label));
+  if (description) {
+    const copy = el("span", "av-row-copy");
+    copy.append(el("span", "av-row-label", label), el("span", "av-row-description", description));
+    row.append(copy);
+  } else {
+    row.append(el("span", "av-row-label", label));
+  }
 
   const select = document.createElement("select");
   select.className = "av-select";

@@ -1,8 +1,8 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.6.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.7.0-2f81f7)
 
-Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.6.0: foundation primitives, fixture-backed selector checks, theme + control-center, layout declutter, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
+Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.7.0: foundation primitives, fixture-backed selector checks, theme + control-center, layout declutter, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
 
 ## Current Status
 
@@ -41,7 +41,7 @@ npm run verify
 
 ## Privacy Model
 
-Aviary is designed to keep account data local. The v0.3.0 runtime does not send telemetry, does not export cookies or auth headers, and does not load remote code.
+Aviary is designed to keep account data local. It sends no telemetry, never reads or exports cookies or auth headers, and loads no remote code. Credentials you enter for optional integrations are stored locally and are redacted when you export settings.
 
 See [docs/PRIVACY.md](docs/PRIVACY.md) for the local data map and optional permission notes.
 
@@ -80,7 +80,7 @@ The Control Center "Media" section exposes:
 - Duplicate history toggle and a "Clear download history" action.
 - Live status readout (running / completed / duplicate / failed) and the size of the dedup index.
 
-Downloads prefer `GM_download` in userscript managers, fall back to the extension service worker (`chrome.downloads` with `conflictAction: uniquify`), and finally use an anchor tag when no privileged downloader is available. The extension's `downloads` permission stays optional — the browser will prompt the first time a download is requested.
+Downloads prefer `GM_download` in userscript managers, fall back to the extension service worker (`chrome.downloads` with `conflictAction: uniquify`), and finally use an anchor tag when no privileged downloader is available. In the MV3 build the `downloads` permission is declared optional but is not yet requested anywhere, so that fallback is what runs today; for cross-origin media the browser opens the file in a tab instead of saving it. The userscript build is unaffected. Tracked in ROADMAP.md.
 
 Tweets with embedded video or GIF players now also expose a Video / GIF button. Aviary scans `<video>` and `<source>` elements inside `[data-testid="videoPlayer"]` / `videoComponent` containers and picks the highest-bitrate variant available in the DOM. When `tweet_video/` URLs or loop+muted players are detected, the button labels itself "GIF" and the dedup history scopes by media kind.
 
@@ -96,7 +96,7 @@ The Media section also exposes:
 The Control Center "Export" section exposes:
 
 - Master capture toggle (accumulates tweets visible on each route into the live job).
-- Format list (JSON, CSV, HTML, Markdown — XLSX intentionally deferred).
+- Format list (JSON, CSV, HTML, Markdown, XLSX).
 - Preserve-raw-payloads and auto-discover-query-ID toggles.
 - Save folder hint that becomes both the ZIP filename prefix and the root path inside the archive.
 - "Export visible tweets" — bundles the configured formats into a STORE-only ZIP and triggers a download.
@@ -108,7 +108,7 @@ Tweets are gathered passively from the DOM; no auth headers, cookies, or session
 
 The Control Center "Backup & Audit" section exposes:
 
-- **Export settings** — downloads a versioned JSON envelope with every Aviary preference.
+- **Export settings** — downloads a versioned JSON envelope with every Aviary preference. API keys and passwords are replaced with a placeholder so the file is safe to share; importing it keeps the credentials already saved on this machine.
 - **Import settings** — paste an envelope and press Save list. Settings are normalized, unsupported keys are dropped, and version mismatches are reported as warnings (never silent overwrites).
 - **Audit entries** — read-only count of logged local actions (downloads, exports, settings round-trips, diagnostic copies).
 - **Clear audit log** — drops the persisted ring buffer.

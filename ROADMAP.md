@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.6.0`
+Version: `1.7.0`
 Research date: 2026-05-19
 Target repo: `C:\Users\--\repos\Twitter_Userscript`
 Target sites: `x.com`, `twitter.com`, `mobile.twitter.com`, `pro.x.com`, `tweetdeck.twitter.com`
@@ -935,3 +935,78 @@ Mandatory Phase 5 checks:
 | Duplicate items removed | Passed. Feature IDs are unique; rejects are not repeated in Now/Next/Later. |
 | Hostile-review concerns addressed | Passed. The roadmap calls out missing fixtures, API volatility, store review, account risk, dependency supply chain, and destructive-operation safety. |
 | Disk write confirmed | This file is `C:\Users\--\repos\Twitter_Userscript\ROADMAP.md`. |
+
+## Audit Findings — 2026-08-06 (not fixed in this pass)
+
+Raised during the full engineering/UX/security audit of v1.6.0. Items fixed in that pass are
+in CHANGELOG.md; these are the ones left open, with the reason each was not taken.
+
+- [ ] P1 — Extension media downloads silently fall back to opening a tab
+  Why: `optional_permissions: ["downloads"]` is never requested, so in the MV3 build
+  `chrome.downloads` is undefined, the background returns "downloads permission not granted",
+  and the downloader falls back to an anchor click. For cross-origin `pbs.twimg.com` URLs the
+  browser ignores `download` and navigates instead, while the button still reports success.
+  `chrome.permissions.request` needs a user gesture on an extension page, and this extension
+  has no popup or options page, so the fix is a new surface rather than a one-line change.
+  Where: src/entrypoints/extension-background.ts, src/features/media/downloader.ts,
+  src/extension/manifest.*.json
+
+- [ ] P2 — Control Center strings are not localized
+  Why: nine locales and ~35 translated keys exist in src/platform/i18n.ts, but `translate()`
+  has no callers; the locale selector only sets reading direction. The panel now says so, but
+  the panel needs ~150 keys and a render-time lookup to be genuinely localized.
+  Where: src/platform/i18n.ts, src/ui/control-center.ts
+
+- [ ] P2 — appearance.hideBorders and layout.writerMode have no implementation
+  Why: both were removed from presets this pass so no preset promises them. hideBorders needs
+  a selector for X's row divider that does not depend on generated `r-*` class names;
+  writerMode is a compose-surface feature that cannot be verified against the static fixtures.
+  Where: src/platform/settings.ts, src/features/appearance/theme.ts
+
+- [ ] P2 — Panel cannot be dismissed from the keyboard
+  Why: closing on Escape needs a keydown listener, which both tools/preflight.mjs and
+  tests/source-contracts.test.mjs reject by policy (Aviary registers no keyboard handlers).
+  Resolving this means deciding whether standard dialog dismissal is an exception to the
+  no-hotkeys rule.
+  Where: src/ui/control-center.ts, tools/preflight.mjs
+
+- [ ] P2 — Focus is lost after any settings save
+  Why: `save()` re-renders the whole panel, so focus returns to the document. Page churn no
+  longer triggers this, but saving still does. Needs stable row identity and focus
+  restoration across renders.
+  Where: src/ui/control-center.ts
+
+- [ ] P3 — Storage writes fail silently when the backend is full
+  Why: MediaHistory, AuditLog and the hidden-post store swallow persistence errors, so a full
+  localStorage quota degrades to "changes stop sticking" with no signal. Surfacing it needs a
+  diagnostics channel in the data classes.
+  Where: src/features/media/history.ts, src/features/core/audit-log.ts,
+  src/features/filtering/hidden-posts.ts
+
+- [ ] P3 — settings.media.zipChunkSize, links.cleanShareButtons, privacy.localOnly,
+  privacy.encryptVault and privacy.auditLog are schema-only
+  Why: they normalize and round-trip through import/export but nothing reads them, and no UI
+  exposes them. Each needs either an implementation or removal from the schema; removal is a
+  breaking change for anyone with them in an exported settings file.
+  Where: src/platform/settings.ts
+
+- [ ] P3 — Repository has no .gitattributes, so checkouts convert LF to CRLF
+  Why: git reports "LF will be replaced by CRLF" on every commit touching src/ or dist/.
+  Adding `* text=auto eol=lf` is correct but renormalizes 469 tracked files in one commit,
+  which is best done deliberately rather than inside an audit.
+  Where: repository root
+
+- [ ] P3 — TokenBucket is dead code and jobs.rateLimitMode drives nothing
+  Why: `ctx.limiter` is constructed in main.ts and passed to every feature, but no feature
+  calls it, so the rate-limit setting only changes the bucket's capacity and nothing else.
+  `waitForToken` also spins forever if asked for more tokens than the capacity.
+  Where: src/platform/rate-limit.ts, src/main.ts, src/platform/settings.ts
+
+- [ ] P3 — Areas not covered by this audit
+  Why: recorded for honesty. Not reviewed in depth: WARC record framing (warc.ts), the STORE
+  ZIP writer's ZIP64 boundaries (zip-store.ts), query-discovery.ts heuristics,
+  bookmarks.ts, cleanup-queue.ts, snapshots diffing, tools/build.mjs, and the
+  .github/workflows/smoke.yml runner. Verification throughout used the captured `_decoded/`
+  fixtures and a synthetic virtualizer harness; nothing was exercised against a live
+  authenticated X session.
+  Where: repository-wide

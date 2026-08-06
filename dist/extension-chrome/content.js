@@ -848,8 +848,10 @@ html.av-reduce-motion *::after {
             options.listLocales().map((entry) => [entry.code, entry.label]),
             async (value) => {
               await options.setLocale(value);
-              await save(`Locale set to ${value}`);
-            }
+              const entry = options.listLocales?.().find((locale) => locale.code === value);
+              await save(`Locale set to ${entry?.label ?? value}`);
+            },
+            "Sets reading direction for Aviary surfaces \u2014 right-to-left for Arabic and Hebrew. Panel labels are English for now."
           )
         );
       }
@@ -2175,9 +2177,15 @@ html.av-reduce-motion *::after {
     row.append(copy, input);
     return row;
   }
-  function selectRow(label, value, options, onChange) {
+  function selectRow(label, value, options, onChange, description) {
     const row = el("label", "av-row");
-    row.append(el("span", "av-row-label", label));
+    if (description) {
+      const copy = el("span", "av-row-copy");
+      copy.append(el("span", "av-row-label", label), el("span", "av-row-description", description));
+      row.append(copy);
+    } else {
+      row.append(el("span", "av-row-label", label));
+    }
     const select = document.createElement("select");
     select.className = "av-select";
     for (const [optionValue, optionLabel] of options) {
