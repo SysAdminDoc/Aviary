@@ -1,6 +1,11 @@
 import { supportedLocales } from "../../platform/i18n";
 import { normalizeSettings, SETTINGS_KEY, type AviarySettings } from "../../platform/settings";
-import type { ControlCenterHandle, ExportStatus, MediaStatus } from "../../ui/control-center";
+import type {
+  ControlCenterHandle,
+  ExportStatus,
+  HiddenPostsStatus,
+  MediaStatus
+} from "../../ui/control-center";
 import { mountControlCenter } from "../../ui/control-center";
 import { applyPreset, describePresetDelta, getPreset, listPresets } from "./presets";
 import {
@@ -16,6 +21,11 @@ import {
   type RetentionPolicy
 } from "../export/jobs";
 import { renderForExternalTarget } from "../export/external-targets";
+import {
+  clearHiddenPosts,
+  getHiddenPostStore,
+  undoLastHide
+} from "../filtering/hidden-posts-feature";
 import { buildWarcArchive } from "../export/warc";
 import { addUriToAria2, removeAria2Download, tellActiveAria2 } from "../integrations/aria2";
 import { crosspost, readComposerText, type CrosspostRequest } from "../integrations/crosspost";
@@ -146,6 +156,35 @@ export const controlCenterFeature: FeatureModule = {
           });
         }
         ctx.requestApply();
+      },
+      getHiddenPostsStatus(): HiddenPostsStatus {
+        const hiddenStore = getHiddenPostStore();
+        const entries = hiddenStore?.list() ?? [];
+        return {
+          total: entries.length,
+          updatedAt: hiddenStore?.updatedAt() ?? null,
+          recent: entries.slice(0, 8).map((entry) => ({
+            key: entry.key,
+            handle: entry.handle,
+            text: entry.text,
+            hiddenAt: entry.hiddenAt
+          }))
+        };
+      },
+      async undoLastHide() {
+        const entry = await undoLastHide(ctx);
+        return { restored: entry !== null, handle: entry?.handle ?? null };
+      },
+      async unhidePost(key: string) {
+        const entry = await getHiddenPostStore()?.unhide(key);
+        if (entry) {
+          ctx.requestApply();
+          void ctx.auditLog.record("post.unhide", { key });
+        }
+        return entry !== null && entry !== undefined;
+      },
+      async clearHiddenPosts() {
+        return await clearHiddenPosts(ctx);
       },
       getUserNotes() {
         return getUserNotes();

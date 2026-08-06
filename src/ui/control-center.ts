@@ -120,6 +120,23 @@ export interface ControlCenterOptions {
   importArchive?: (file: File) => Promise<{ records: number; warnings: number; errors: number }>;
   searchArchive?: (query: string) => Array<{ handle: string | null; tweetId: string | null; text: string; score: number }>;
   downloadReport?: () => Promise<void>;
+  getHiddenPostsStatus?: () => HiddenPostsStatus;
+  undoLastHide?: () => Promise<{ restored: boolean; handle: string | null }>;
+  unhidePost?: (key: string) => Promise<boolean>;
+  clearHiddenPosts?: () => Promise<number>;
+}
+
+export interface HiddenPostSummary {
+  key: string;
+  handle: string | null;
+  text: string;
+  hiddenAt: string;
+}
+
+export interface HiddenPostsStatus {
+  total: number;
+  updatedAt: string | null;
+  recent: HiddenPostSummary[];
 }
 
 export interface ControlCenterHandle {
@@ -235,6 +252,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         })
       ]),
       section("Filtering", filterRows()),
+      section("Hidden posts", hiddenPostRows()),
       section("Media", mediaRows()),
       section("Export", exportRows()),
       section("Library", libraryRows()),
@@ -1515,6 +1533,146 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         "Pending an authenticated fixture; controls stay disabled."
       )
     );
+
+    return rows;
+  };
+
+  const hiddenPostRows = (): HTMLElement[] => {
+    const rows: HTMLElement[] = [];
+
+    rows.push(
+      toggleRow(
+        "Hide dismissed posts",
+        "Keep posts you hid collapsed so the next post rises to the top.",
+        options.settings.hidden.enabled,
+        async (checked) => {
+          options.settings.hidden.enabled = checked;
+          await save(checked ? "Hidden posts applied" : "Hidden posts revealed");
+        }
+      )
+    );
+
+    rows.push(
+      toggleRow(
+        "Show hide buttons",
+        "Adds a Hide control to every post next to the More menu.",
+        options.settings.hidden.buttons,
+        async (checked) => {
+          options.settings.hidden.buttons = checked;
+          await save(checked ? "Hide buttons on" : "Hide buttons off");
+        }
+      )
+    );
+
+    rows.push(
+      surfaceRow(
+        "Active on",
+        "Routes where hiding and the Hide button apply.",
+        options.settings.hidden.surfaces,
+        async (next) => {
+          options.settings.hidden.surfaces = next;
+          await save(
+            next.length > 0
+              ? `Hiding active on ${next.length} route${next.length === 1 ? "" : "s"}`
+              : "Hiding off on every route"
+          );
+        }
+      )
+    );
+
+    rows.push(
+      integerInputRow(
+        "Maximum remembered posts",
+        "Oldest entries are dropped once the store passes this size (100-50000).",
+        options.settings.hidden.maxEntries,
+        async (value) => {
+          options.settings.hidden.maxEntries = value;
+          await save(`Hidden post limit set to ${options.settings.hidden.maxEntries}`);
+        }
+      )
+    );
+
+    const status = options.getHiddenPostsStatus?.();
+    if (!status) {
+      rows.push(readonlyRow("Hidden posts", "Hidden post store unavailable in this build."));
+      return rows;
+    }
+
+    rows.push(
+      readonlyRow(
+        "Hidden posts stored",
+        `${status.total}${status.updatedAt ? ` · updated ${status.updatedAt}` : ""}`
+      )
+    );
+
+    if (options.undoLastHide) {
+      rows.push(
+        actionRow("Undo last hide", "Restores the most recently hidden post.", async () => {
+          try {
+            const result = await options.undoLastHide!();
+            setStatus(
+              result.restored
+                ? `Restored ${result.handle ? `@${result.handle}` : "the last hidden post"}.`
+                : "Nothing left to restore."
+            );
+            render();
+          } catch (error) {
+            options.onError("Could not undo the last hide", error);
+            setStatus("Could not undo the last hide.");
+          }
+        })
+      );
+    }
+
+    for (const entry of status.recent) {
+      const row = el("div", "av-row av-row-stack");
+      const copy = el("span", "av-row-copy");
+      copy.append(
+        el("span", "av-row-label", entry.handle ? `@${entry.handle}` : "Unknown account"),
+        el(
+          "span",
+          "av-row-description",
+          `${entry.hiddenAt} — ${entry.text.length > 0 ? entry.text : "(no text)"}`
+        )
+      );
+      const restore = el("button", "av-button av-button-secondary", "Restore") as HTMLButtonElement;
+      restore.type = "button";
+      restore.addEventListener("click", () => {
+        restore.disabled = true;
+        void options
+          .unhidePost?.(entry.key)
+          .then((restored) => {
+            setStatus(restored ? "Post restored." : "That post was already restored.");
+            render();
+          })
+          .catch((error: unknown) => {
+            options.onError("Could not restore the post", error);
+            setStatus("Could not restore the post.");
+            restore.disabled = false;
+          });
+      });
+      row.append(copy, restore);
+      rows.push(row);
+    }
+
+    if (options.clearHiddenPosts && status.total > 0) {
+      rows.push(
+        actionRow(
+          "Clear hidden posts",
+          "Forgets every hidden post and brings them all back.",
+          async () => {
+            try {
+              const removed = await options.clearHiddenPosts!();
+              setStatus(`Cleared ${removed} hidden post${removed === 1 ? "" : "s"}.`);
+              render();
+            } catch (error) {
+              options.onError("Could not clear hidden posts", error);
+              setStatus("Could not clear hidden posts.");
+            }
+          }
+        )
+      );
+    }
 
     return rows;
   };

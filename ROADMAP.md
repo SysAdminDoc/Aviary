@@ -1,10 +1,12 @@
 # Aviary ROADMAP
 
-Version: `1.5.0`
+Version: `1.6.0`
 Research date: 2026-05-19
 Target repo: `C:\Users\--\repos\Twitter_Userscript`
 Target sites: `x.com`, `twitter.com`, `mobile.twitter.com`, `pro.x.com`, `tweetdeck.twitter.com`
-Implementation status: **v1.5.0 is implemented.** The release adds opt-in CheckpointStore retention (`aviary.retention.maxJobs`, `maxRecordsPerJob`, `maxAgeDays`), persisted Aria2 gid history with completion/error reconciliation, Bluesky image and Mastodon media uploads for explicit crossposts, the default-off "Attach last download" toggle, and a pinned Playwright 1.62.1 smoke workflow with cached browsers and isolated execution. F032/F033 still need authenticated `_decoded/` fixtures. Earlier baseline summary:
+Implementation status: **v1.6.0 is implemented.** The release adds per-post hide-and-remember (F105): a Hide control on every post, a persisted `aviary.hiddenPosts.v1` store keyed by status id with a handle+text signature fallback, collapse of the owning `[data-testid="cellInnerDiv"]` row so the next post is promoted instead of leaving a gap, an undo toast, and a Control Center "Hidden posts" section. Earlier baseline summary:
+
+> **v1.5.0 was implemented.** The release adds opt-in CheckpointStore retention (`aviary.retention.maxJobs`, `maxRecordsPerJob`, `maxAgeDays`), persisted Aria2 gid history with completion/error reconciliation, Bluesky image and Mastodon media uploads for explicit crossposts, the default-off "Attach last download" toggle, and a pinned Playwright 1.62.1 smoke workflow with cached browsers and isolated execution. F032/F033 still need authenticated `_decoded/` fixtures. Earlier baseline summary:
 
 > **v1.3.0 was implemented:** A new `settings.integrations` envelope holds Aria2 / Bluesky / Mastodon / AI / semantic-search configuration; every integration defaults to disabled and only acts when the user provides credentials. `features/integrations/aria2.ts` adds a JSON-RPC client + `shouldHandoffToAria2` threshold check; `Downloader` now picks Aria2 first when enabled and the request exceeds `integrations.aria2.minBytes` (F056). `features/integrations/crosspost.ts` provides Bluesky AT-protocol `createSession` + `createRecord` and Mastodon `POST /api/v1/statuses` clients, surfaced as two Control Center actions that send the current composer text (F077). `features/integrations/ai-provider.ts` adds `runAiPrompt` with adapters for Anthropic Messages and OpenAI-compatible chat completions; the local AI command menu (`features/ai/command-menu.ts`) now routes prompts through the provider when the integration is enabled and copies the response to the clipboard — when it isn't, the prompt itself is copied (F083). `features/integrations/semantic-search.ts` adds `SemanticIndex` with on-demand embedding fetch + cosine ranking, persisted under `aviary.semanticIndex.v1` (F067). The Control Center "Integrations" section surfaces every endpoint / token field plus a "Test Aria2 connection", "Rebuild semantic index", semantic search input, and clear-index action. F099 Playwright live smoke still requires `playwright` + browser binaries and remains queued for v1.4+. Earlier baseline summary:
 
@@ -49,13 +51,13 @@ Internal memo from Phase 0:
 
 | Area | Current state |
 |---|---|
-| Git state | The folder is not a Git repository. `git status` and `git log -200` fail with "not a git repository"; commit/push is skipped until a Git remote exists. |
+| Git state | Git repository with the `origin` remote on GitHub; work lands as conventional commits on `main`. |
 | Source code | TypeScript scaffold exists under `src/` with shared userscript/MV3 entry points, platform primitives, feature registry, and selector diagnostics. |
 | Build system | npm with TypeScript and esbuild dev dependencies. `npm run verify` type-checks, runs tests, and builds userscript plus MV3 extension folders. |
 | Top-level docs | `README.md`, `ROADMAP.md`, `PROJECT_STATE.md`, and `LICENSE` exist. |
 | Runtime target | Browser-hosted JavaScript: readable userscript first, MV3 extension second. |
 | Ground-truth fixtures | Two MHTML captures plus decoded HTML/CSS in `_decoded/`. These are the only local evidence for the current X DOM. |
-| Current deliverable | v0.1.0 through **v1.5.0** are complete. v1.5.0 added bounded checkpoint retention, persisted Aria2 history, crosspost media uploads, and isolated Playwright CI smoke. F032/F033 stay parked behind missing authenticated fixtures. |
+| Current deliverable | v0.1.0 through **v1.6.0** are complete. v1.6.0 added per-post hide-and-remember with virtualizer-aware collapse, undo, and a Control Center management section. F032/F033 stay parked behind missing authenticated fixtures. |
 
 Roadmap progress:
 

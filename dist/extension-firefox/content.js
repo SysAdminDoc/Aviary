@@ -223,6 +223,12 @@ html.av-reduce-motion *::after {
       mediaTypes: { photo: false, video: false, gif: false },
       surfaces: ["home", "status", "profile", "search"]
     },
+    hidden: {
+      enabled: true,
+      buttons: true,
+      surfaces: ["home", "status", "profile", "search", "notifications"],
+      maxEntries: 5e3
+    },
     media: {
       buttons: true,
       preferOriginalImages: true,
@@ -280,6 +286,7 @@ html.av-reduce-motion *::after {
     const appearance = asRecord(record.appearance);
     const layout = asRecord(record.layout);
     const filter = asRecord(record.filter);
+    const hidden = asRecord(record.hidden);
     const media = asRecord(record.media);
     const jobs = asRecord(record.jobs);
     const exportSettings = asRecord(record.export);
@@ -330,6 +337,12 @@ html.av-reduce-motion *::after {
         whitelist: stringArray(filter.whitelist, { maxItems: 200, maxLength: 80 }),
         mediaTypes: mediaTypeRecord(filter.mediaTypes),
         surfaces: surfaceArray(filter.surfaces)
+      },
+      hidden: {
+        enabled: booleanValue(hidden.enabled, DEFAULT_SETTINGS.hidden.enabled),
+        buttons: booleanValue(hidden.buttons, DEFAULT_SETTINGS.hidden.buttons),
+        surfaces: surfaceArray(hidden.surfaces, DEFAULT_SETTINGS.hidden.surfaces),
+        maxEntries: integerValue(hidden.maxEntries, DEFAULT_SETTINGS.hidden.maxEntries, 100, 5e4)
       },
       media: {
         buttons: booleanValue(media.buttons, DEFAULT_SETTINGS.media.buttons),
@@ -535,9 +548,9 @@ html.av-reduce-motion *::after {
     }
     return result;
   }
-  function surfaceArray(value) {
+  function surfaceArray(value, fallback = DEFAULT_SETTINGS.filter.surfaces) {
     if (!Array.isArray(value)) {
-      return [...DEFAULT_SETTINGS.filter.surfaces];
+      return [...fallback];
     }
     const seen = /* @__PURE__ */ new Set();
     for (const item of value) {
@@ -545,7 +558,7 @@ html.av-reduce-motion *::after {
         seen.add(item);
       }
     }
-    return seen.size > 0 ? [...seen] : [...DEFAULT_SETTINGS.filter.surfaces];
+    return seen.size > 0 ? [...seen] : [...fallback];
   }
   function integerValue(value, fallback, min, max) {
     if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -725,6 +738,7 @@ html.av-reduce-motion *::after {
           })
         ]),
         section("Filtering", filterRows()),
+        section("Hidden posts", hiddenPostRows()),
         section("Media", mediaRows()),
         section("Export", exportRows()),
         section("Library", libraryRows()),
@@ -1902,6 +1916,128 @@ html.av-reduce-motion *::after {
           "Pending an authenticated fixture; controls stay disabled."
         )
       );
+      return rows;
+    };
+    const hiddenPostRows = () => {
+      const rows = [];
+      rows.push(
+        toggleRow(
+          "Hide dismissed posts",
+          "Keep posts you hid collapsed so the next post rises to the top.",
+          options.settings.hidden.enabled,
+          async (checked) => {
+            options.settings.hidden.enabled = checked;
+            await save(checked ? "Hidden posts applied" : "Hidden posts revealed");
+          }
+        )
+      );
+      rows.push(
+        toggleRow(
+          "Show hide buttons",
+          "Adds a Hide control to every post next to the More menu.",
+          options.settings.hidden.buttons,
+          async (checked) => {
+            options.settings.hidden.buttons = checked;
+            await save(checked ? "Hide buttons on" : "Hide buttons off");
+          }
+        )
+      );
+      rows.push(
+        surfaceRow(
+          "Active on",
+          "Routes where hiding and the Hide button apply.",
+          options.settings.hidden.surfaces,
+          async (next) => {
+            options.settings.hidden.surfaces = next;
+            await save(
+              next.length > 0 ? `Hiding active on ${next.length} route${next.length === 1 ? "" : "s"}` : "Hiding off on every route"
+            );
+          }
+        )
+      );
+      rows.push(
+        integerInputRow(
+          "Maximum remembered posts",
+          "Oldest entries are dropped once the store passes this size (100-50000).",
+          options.settings.hidden.maxEntries,
+          async (value) => {
+            options.settings.hidden.maxEntries = value;
+            await save(`Hidden post limit set to ${options.settings.hidden.maxEntries}`);
+          }
+        )
+      );
+      const status2 = options.getHiddenPostsStatus?.();
+      if (!status2) {
+        rows.push(readonlyRow("Hidden posts", "Hidden post store unavailable in this build."));
+        return rows;
+      }
+      rows.push(
+        readonlyRow(
+          "Hidden posts stored",
+          `${status2.total}${status2.updatedAt ? ` \xB7 updated ${status2.updatedAt}` : ""}`
+        )
+      );
+      if (options.undoLastHide) {
+        rows.push(
+          actionRow("Undo last hide", "Restores the most recently hidden post.", async () => {
+            try {
+              const result = await options.undoLastHide();
+              setStatus(
+                result.restored ? `Restored ${result.handle ? `@${result.handle}` : "the last hidden post"}.` : "Nothing left to restore."
+              );
+              render();
+            } catch (error) {
+              options.onError("Could not undo the last hide", error);
+              setStatus("Could not undo the last hide.");
+            }
+          })
+        );
+      }
+      for (const entry of status2.recent) {
+        const row = el("div", "av-row av-row-stack");
+        const copy = el("span", "av-row-copy");
+        copy.append(
+          el("span", "av-row-label", entry.handle ? `@${entry.handle}` : "Unknown account"),
+          el(
+            "span",
+            "av-row-description",
+            `${entry.hiddenAt} \u2014 ${entry.text.length > 0 ? entry.text : "(no text)"}`
+          )
+        );
+        const restore = el("button", "av-button av-button-secondary", "Restore");
+        restore.type = "button";
+        restore.addEventListener("click", () => {
+          restore.disabled = true;
+          void options.unhidePost?.(entry.key).then((restored) => {
+            setStatus(restored ? "Post restored." : "That post was already restored.");
+            render();
+          }).catch((error) => {
+            options.onError("Could not restore the post", error);
+            setStatus("Could not restore the post.");
+            restore.disabled = false;
+          });
+        });
+        row.append(copy, restore);
+        rows.push(row);
+      }
+      if (options.clearHiddenPosts && status2.total > 0) {
+        rows.push(
+          actionRow(
+            "Clear hidden posts",
+            "Forgets every hidden post and brings them all back.",
+            async () => {
+              try {
+                const removed = await options.clearHiddenPosts();
+                setStatus(`Cleared ${removed} hidden post${removed === 1 ? "" : "s"}.`);
+                render();
+              } catch (error) {
+                options.onError("Could not clear hidden posts", error);
+                setStatus("Could not clear hidden posts.");
+              }
+            }
+          )
+        );
+      }
       return rows;
     };
     const save = async (message) => {
@@ -3747,6 +3883,660 @@ ${record.text}${mediaList}`;
     };
   }
 
+  // src/features/filtering/hidden-posts.ts
+  var HIDDEN_POSTS_KEY = "aviary.hiddenPosts.v1";
+  var TEXT_SNIPPET_LENGTH = 80;
+  var UNDO_STACK_LIMIT = 20;
+  var CONTROL_CHARS = /\p{Cc}/gu;
+  function derivePostKey(identity) {
+    const tweetId = normalizeTweetId(identity.tweetId);
+    if (tweetId) {
+      return `id:${tweetId}`;
+    }
+    const handle = normalizeHandle(identity.handle);
+    const text = collapseWhitespace(identity.text);
+    if (!handle || text.length === 0) {
+      return null;
+    }
+    return `sig:${handle}:${hashText(text)}`;
+  }
+  function hashText(value) {
+    let hash = 2166136261;
+    for (let index = 0; index < value.length; index += 1) {
+      hash ^= value.charCodeAt(index);
+      hash = Math.imul(hash, 16777619) >>> 0;
+    }
+    return `${hash.toString(36)}${value.length.toString(36)}`;
+  }
+  function handleFromHref(href) {
+    if (typeof href !== "string") {
+      return null;
+    }
+    const withoutOrigin = href.replace(
+      /^https?:\/\/(?:www\.|mobile\.|pro\.)?(?:x|twitter)\.com/i,
+      ""
+    );
+    const match = /^\/([A-Za-z0-9_]{1,15})(?:[/?#]|$)/.exec(withoutOrigin);
+    return match?.[1] ? normalizeHandle(match[1]) : null;
+  }
+  function normalizeHiddenPosts(input, maxEntries) {
+    const record = isRecord2(input) ? input : {};
+    const rawEntries = Array.isArray(record.entries) ? record.entries : [];
+    const byKey = /* @__PURE__ */ new Map();
+    for (const raw of rawEntries) {
+      const entry = normalizeEntry(raw);
+      if (!entry) {
+        continue;
+      }
+      const previous = byKey.get(entry.key);
+      if (!previous || previous.hiddenAt <= entry.hiddenAt) {
+        byKey.set(entry.key, entry);
+      }
+    }
+    const entries = [...byKey.values()].sort(
+      (left, right) => left.hiddenAt < right.hiddenAt ? -1 : left.hiddenAt > right.hiddenAt ? 1 : 0
+    );
+    const limit = Number.isFinite(maxEntries) ? Math.max(1, Math.trunc(maxEntries)) : 5e3;
+    const trimmed = entries.length > limit ? entries.slice(entries.length - limit) : entries;
+    return {
+      entries: trimmed,
+      updatedAt: typeof record.updatedAt === "string" ? record.updatedAt : null
+    };
+  }
+  var HiddenPostStore = class {
+    #storage;
+    #entries = /* @__PURE__ */ new Map();
+    #undoStack = [];
+    #updatedAt = null;
+    #version = 0;
+    #loaded = false;
+    constructor(storage) {
+      this.#storage = storage;
+    }
+    async load(maxEntries) {
+      const stored = await this.#storage.get(HIDDEN_POSTS_KEY, null);
+      const snapshot = normalizeHiddenPosts(stored, maxEntries);
+      this.#entries = new Map(snapshot.entries.map((entry) => [entry.key, entry]));
+      this.#updatedAt = snapshot.updatedAt;
+      this.#undoStack = [];
+      this.#loaded = true;
+      this.#version += 1;
+    }
+    get loaded() {
+      return this.#loaded;
+    }
+    /** Bumped on every mutation so DOM passes know a re-evaluation is required. */
+    version() {
+      return this.#version;
+    }
+    has(key) {
+      return this.#entries.has(key);
+    }
+    size() {
+      return this.#entries.size;
+    }
+    updatedAt() {
+      return this.#updatedAt;
+    }
+    /** Newest first — the Control Center and undo affordances read the head. */
+    list() {
+      return [...this.#entries.values()].sort(
+        (left, right) => left.hiddenAt < right.hiddenAt ? 1 : left.hiddenAt > right.hiddenAt ? -1 : 0
+      );
+    }
+    undoDepth() {
+      return this.#undoStack.length;
+    }
+    async hide(identity, maxEntries) {
+      const key = identity.key ?? derivePostKey(identity);
+      if (!key || this.#entries.has(key)) {
+        return null;
+      }
+      const entry = {
+        key,
+        hiddenAt: (/* @__PURE__ */ new Date()).toISOString(),
+        handle: normalizeHandle(identity.handle),
+        tweetId: normalizeTweetId(identity.tweetId),
+        text: snippet(identity.text)
+      };
+      this.#entries.set(key, entry);
+      this.#undoStack.push(key);
+      if (this.#undoStack.length > UNDO_STACK_LIMIT) {
+        this.#undoStack.shift();
+      }
+      this.#evict(maxEntries);
+      this.#version += 1;
+      await this.#persist();
+      return entry;
+    }
+    async unhide(key) {
+      const entry = this.#entries.get(key);
+      if (!entry) {
+        return null;
+      }
+      this.#entries.delete(key);
+      this.#undoStack = this.#undoStack.filter((candidate) => candidate !== key);
+      this.#version += 1;
+      await this.#persist();
+      return entry;
+    }
+    /** Pops the most recent hide from this session; falls back to the newest stored entry. */
+    async undoLast() {
+      while (this.#undoStack.length > 0) {
+        const key = this.#undoStack.pop();
+        if (key && this.#entries.has(key)) {
+          return await this.unhide(key);
+        }
+      }
+      const newest = this.list()[0];
+      return newest ? await this.unhide(newest.key) : null;
+    }
+    async clear() {
+      const removed = this.#entries.size;
+      this.#entries.clear();
+      this.#undoStack = [];
+      this.#version += 1;
+      await this.#persist();
+      return removed;
+    }
+    #evict(maxEntries) {
+      const limit = Math.max(1, Math.trunc(maxEntries));
+      if (this.#entries.size <= limit) {
+        return;
+      }
+      const ordered = [...this.#entries.values()].sort(
+        (left, right) => left.hiddenAt < right.hiddenAt ? -1 : left.hiddenAt > right.hiddenAt ? 1 : 0
+      );
+      for (const entry of ordered.slice(0, this.#entries.size - limit)) {
+        this.#entries.delete(entry.key);
+      }
+    }
+    async #persist() {
+      this.#updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+      const snapshot = {
+        entries: [...this.#entries.values()],
+        updatedAt: this.#updatedAt
+      };
+      await this.#storage.set(HIDDEN_POSTS_KEY, snapshot);
+    }
+  };
+  function normalizeEntry(input) {
+    if (!isRecord2(input)) {
+      return null;
+    }
+    const key = typeof input.key === "string" ? input.key.trim() : "";
+    if (!/^(id:\d{1,25}|sig:[a-z0-9_]{1,15}:[a-z0-9]{1,20})$/.test(key)) {
+      return null;
+    }
+    const hiddenAt = typeof input.hiddenAt === "string" && !Number.isNaN(Date.parse(input.hiddenAt)) ? input.hiddenAt : (/* @__PURE__ */ new Date(0)).toISOString();
+    return {
+      key,
+      hiddenAt,
+      handle: typeof input.handle === "string" ? normalizeHandle(input.handle) : null,
+      tweetId: typeof input.tweetId === "string" ? normalizeTweetId(input.tweetId) : null,
+      text: typeof input.text === "string" ? snippet(input.text) : ""
+    };
+  }
+  function snippet(value) {
+    return collapseWhitespace(value).slice(0, TEXT_SNIPPET_LENGTH);
+  }
+  function collapseWhitespace(value) {
+    return value.replace(CONTROL_CHARS, " ").replace(/\s+/g, " ").trim();
+  }
+  function normalizeHandle(value) {
+    if (typeof value !== "string") {
+      return null;
+    }
+    const cleaned = value.replace(/^@/, "").trim().toLowerCase();
+    return /^[a-z0-9_]{1,15}$/.test(cleaned) ? cleaned : null;
+  }
+  function normalizeTweetId(value) {
+    if (typeof value !== "string") {
+      return null;
+    }
+    const cleaned = value.trim();
+    return /^\d{1,25}$/.test(cleaned) ? cleaned : null;
+  }
+  function isRecord2(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+
+  // src/features/filtering/hidden-posts-feature.ts
+  var STYLE_ID2 = "av-hidden-posts";
+  var TOAST_HOST_ID = "av-hidden-toast";
+  var ARTICLE_SELECTOR = 'article[data-testid="tweet"]';
+  var CELL_SELECTOR = '[data-testid="cellInnerDiv"]';
+  var BUTTON_ATTR = "data-av-hide-button";
+  var HIDDEN_ATTR = "data-av-hidden";
+  var KEY_ATTR = "data-av-post-key";
+  var STATE_ATTR = "data-av-hide-state";
+  var TOAST_TIMEOUT_MS = 8e3;
+  var store;
+  var lastAppliedVersion = -1;
+  var toastTimer;
+  var reflowHandle;
+  var hiddenPostsFeature = {
+    id: "filtering.hiddenPosts",
+    title: "Hide posts",
+    category: "filtering",
+    defaultEnabled: true,
+    async init(ctx) {
+      ensureStyle();
+      store = new HiddenPostStore(ctx.storage);
+      try {
+        await store.load(ctx.settings.hidden.maxEntries);
+      } catch (error) {
+        ctx.diagnostics.error("Hidden posts failed to load", errorDetails2(error));
+      }
+      applyRootClass(ctx);
+      scan(document, ctx);
+      ctx.diagnostics.info("Hidden posts initialized", { hidden: store.size() });
+    },
+    apply(ctx, root, addedNodes) {
+      ensureStyle();
+      applyRootClass(ctx);
+      if (!store) {
+        return;
+      }
+      if (store.version() !== lastAppliedVersion) {
+        lastAppliedVersion = store.version();
+        scan(document, ctx);
+        return;
+      }
+      if (!addedNodes || addedNodes.length === 0) {
+        scan(root, ctx);
+        return;
+      }
+      for (const node of addedNodes) {
+        scan(node, ctx);
+      }
+    },
+    destroy(ctx) {
+      document.getElementById(STYLE_ID2)?.remove();
+      document.getElementById(TOAST_HOST_ID)?.remove();
+      document.documentElement.classList.remove("av-hide-posts-enabled");
+      for (const button2 of Array.from(document.querySelectorAll(`[${BUTTON_ATTR}]`))) {
+        button2.remove();
+      }
+      for (const node of Array.from(
+        document.querySelectorAll(`[${HIDDEN_ATTR}], [${KEY_ATTR}], [${STATE_ATTR}]`)
+      )) {
+        node.removeAttribute(HIDDEN_ATTR);
+        node.removeAttribute(KEY_ATTR);
+        node.removeAttribute(STATE_ATTR);
+      }
+      if (toastTimer !== void 0) {
+        clearTimeout(toastTimer);
+        toastTimer = void 0;
+      }
+      store = void 0;
+      lastAppliedVersion = -1;
+      ctx.diagnostics.info("Hidden posts destroyed");
+    },
+    getStatus() {
+      return {
+        ok: true,
+        message: store ? `${store.size()} posts hidden` : "Hidden posts idle"
+      };
+    }
+  };
+  function getHiddenPostStore() {
+    return store;
+  }
+  async function undoLastHide(ctx) {
+    if (!store) {
+      return null;
+    }
+    const entry = await store.undoLast();
+    if (entry) {
+      ctx.requestApply();
+      void ctx.auditLog.record("post.unhide", { key: entry.key });
+    }
+    return entry;
+  }
+  async function clearHiddenPosts(ctx) {
+    if (!store) {
+      return 0;
+    }
+    const removed = await store.clear();
+    ctx.requestApply();
+    void ctx.auditLog.record("post.hide.cleared", { removed });
+    return removed;
+  }
+  function applyRootClass(ctx) {
+    document.documentElement.classList.toggle(
+      "av-hide-posts-enabled",
+      ctx.settings.hidden.enabled
+    );
+  }
+  function surfaceMatches(ctx) {
+    const surfaces = ctx.settings.hidden.surfaces;
+    return surfaces.includes(ctx.route.surface);
+  }
+  function scan(root, ctx) {
+    if (!store || !ctx.settings.hidden.enabled || !surfaceMatches(ctx)) {
+      return;
+    }
+    for (const article of collectArticles(root)) {
+      processArticle(article, ctx);
+    }
+  }
+  function collectArticles(root) {
+    const found = [];
+    if (root instanceof Element && root.matches(ARTICLE_SELECTOR)) {
+      found.push(root);
+    }
+    if ("querySelectorAll" in root) {
+      for (const article of Array.from(root.querySelectorAll(ARTICLE_SELECTOR))) {
+        found.push(article);
+      }
+    }
+    return found;
+  }
+  function processArticle(article, ctx) {
+    if (!store) {
+      return;
+    }
+    const stateStamp = String(store.version());
+    if (article.getAttribute(STATE_ATTR) === stateStamp) {
+      return;
+    }
+    const key = resolvePostKey(article);
+    article.setAttribute(STATE_ATTR, stateStamp);
+    if (!key) {
+      return;
+    }
+    if (store.has(key)) {
+      collapse(article);
+      return;
+    }
+    reveal(article);
+    if (ctx.settings.hidden.buttons) {
+      ensureButton(article, key, ctx);
+    }
+  }
+  function resolvePostKey(article) {
+    const cached = article.getAttribute(KEY_ATTR);
+    if (cached) {
+      return cached;
+    }
+    const key = derivePostKey(readIdentity(article));
+    if (key) {
+      article.setAttribute(KEY_ATTR, key);
+    }
+    return key;
+  }
+  function readIdentity(article) {
+    return {
+      tweetId: readTweetId2(article),
+      handle: readHandle2(article),
+      text: readText2(article)
+    };
+  }
+  function readTweetId2(article) {
+    for (const link of Array.from(article.querySelectorAll('a[href*="/status/"]'))) {
+      const match = /\/status\/(\d{1,25})/.exec(link.getAttribute("href") ?? "");
+      if (match?.[1]) {
+        return match[1];
+      }
+    }
+    return null;
+  }
+  function readHandle2(article) {
+    const userName = article.querySelector('[data-testid="User-Name"]');
+    for (const link of Array.from(userName?.querySelectorAll("a[href]") ?? [])) {
+      const handle = handleFromHref(link.getAttribute("href"));
+      if (handle) {
+        return handle;
+      }
+    }
+    return null;
+  }
+  function readText2(article) {
+    const nodes = article.querySelectorAll('[data-testid="tweetText"]');
+    if (nodes.length > 0) {
+      return Array.from(nodes).map((node) => node.textContent ?? "").join(" ");
+    }
+    return article.textContent ?? "";
+  }
+  function collapseTarget(article) {
+    return article.closest(CELL_SELECTOR) ?? article;
+  }
+  function collapse(article) {
+    const target = collapseTarget(article);
+    target.setAttribute(HIDDEN_ATTR, "1");
+    article.querySelector(`[${BUTTON_ATTR}]`)?.remove();
+    nudgeReflow();
+  }
+  function reveal(article) {
+    const target = collapseTarget(article);
+    if (target.hasAttribute(HIDDEN_ATTR)) {
+      target.removeAttribute(HIDDEN_ATTR);
+      nudgeReflow();
+    }
+  }
+  function nudgeReflow() {
+    if (reflowHandle !== void 0 || typeof requestAnimationFrame !== "function") {
+      return;
+    }
+    reflowHandle = requestAnimationFrame(() => {
+      reflowHandle = void 0;
+      globalThis.dispatchEvent(new Event("resize"));
+    });
+  }
+  function ensureButton(article, key, ctx) {
+    if (article.querySelector(`[${BUTTON_ATTR}]`)) {
+      return;
+    }
+    const button2 = document.createElement("button");
+    button2.type = "button";
+    button2.className = "av-hide-button";
+    button2.setAttribute(BUTTON_ATTR, "1");
+    button2.textContent = "Hide";
+    button2.title = "Hide this post \u2014 Aviary keeps it hidden on future visits";
+    button2.setAttribute("aria-label", "Hide this post");
+    button2.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      void hidePost(article, key, button2, ctx);
+    });
+    const caret = article.querySelector('[data-testid="caret"]');
+    if (caret?.parentElement) {
+      caret.parentElement.insertBefore(button2, caret);
+      return;
+    }
+    const userName = article.querySelector('[data-testid="User-Name"]');
+    if (userName) {
+      userName.append(button2);
+      return;
+    }
+    article.prepend(button2);
+  }
+  async function hidePost(article, key, button2, ctx) {
+    if (!store) {
+      return;
+    }
+    button2.disabled = true;
+    const identity = readIdentity(article);
+    try {
+      const entry = await store.hide({ ...identity, key }, ctx.settings.hidden.maxEntries);
+      lastAppliedVersion = store.version();
+      collapse(article);
+      if (entry) {
+        ctx.diagnostics.info("Post hidden", { key, handle: entry.handle });
+        void ctx.auditLog.record("post.hide", { key });
+        showToast(`Post hidden \u2014 ${store.size()} stored`, ctx);
+      }
+    } catch (error) {
+      button2.disabled = false;
+      ctx.diagnostics.error("Could not hide post", errorDetails2(error));
+      showToast("Could not save the hidden post. Storage rejected the write.", ctx);
+    }
+  }
+  function showToast(message, ctx) {
+    const shadow = ensureToastHost();
+    const card = shadow.querySelector(".av-toast");
+    const text = shadow.querySelector(".av-toast-text");
+    const undo = shadow.querySelector(".av-toast-undo");
+    if (!(card instanceof HTMLElement) || !(text instanceof HTMLElement) || !(undo instanceof HTMLButtonElement)) {
+      return;
+    }
+    text.textContent = message;
+    undo.disabled = false;
+    undo.onclick = () => {
+      undo.disabled = true;
+      void undoLastHide(ctx).then((entry) => {
+        text.textContent = entry ? "Post restored." : "Nothing left to restore.";
+        scheduleToastDismiss(card, 2500);
+      }).catch((error) => {
+        ctx.diagnostics.error("Could not restore post", errorDetails2(error));
+        text.textContent = "Could not restore that post.";
+        scheduleToastDismiss(card, 4e3);
+      });
+    };
+    card.classList.add("is-open");
+    scheduleToastDismiss(card, TOAST_TIMEOUT_MS);
+  }
+  function scheduleToastDismiss(card, delay2) {
+    if (toastTimer !== void 0) {
+      clearTimeout(toastTimer);
+    }
+    toastTimer = setTimeout(() => {
+      card.classList.remove("is-open");
+      toastTimer = void 0;
+    }, delay2);
+  }
+  function ensureToastHost() {
+    const existing = document.getElementById(TOAST_HOST_ID);
+    if (existing?.shadowRoot) {
+      return existing.shadowRoot;
+    }
+    const host = document.createElement("div");
+    host.id = TOAST_HOST_ID;
+    host.dataset.avOwned = "true";
+    document.documentElement.append(host);
+    const shadow = host.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = TOAST_CSS;
+    const card = document.createElement("div");
+    card.className = "av-toast";
+    card.setAttribute("role", "status");
+    card.setAttribute("aria-live", "polite");
+    const text = document.createElement("span");
+    text.className = "av-toast-text";
+    const undo = document.createElement("button");
+    undo.type = "button";
+    undo.className = "av-toast-undo";
+    undo.textContent = "Undo";
+    card.append(text, undo);
+    shadow.append(style, card);
+    return shadow;
+  }
+  function ensureStyle() {
+    if (document.getElementById(STYLE_ID2)) {
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = STYLE_ID2;
+    style.textContent = HIDDEN_CSS;
+    (document.head ?? document.documentElement).append(style);
+  }
+  function errorDetails2(error) {
+    if (error instanceof Error) {
+      return { name: error.name, message: error.message };
+    }
+    return { message: String(error) };
+  }
+  var HIDDEN_CSS = `
+html.av-hide-posts-enabled [${HIDDEN_ATTR}="1"] {
+  display: none !important;
+}
+
+.av-hide-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  margin-right: 4px;
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--av-muted, rgb(113, 118, 123)) 55%, transparent);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--av-muted, rgb(113, 118, 123));
+  cursor: pointer;
+  font: 700 11px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  opacity: 0.4;
+  transition: opacity 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+article[data-testid="tweet"]:hover .av-hide-button,
+article[data-testid="tweet"]:focus-within .av-hide-button,
+.av-hide-button:focus-visible {
+  opacity: 1;
+}
+
+.av-hide-button:hover {
+  border-color: color-mix(in srgb, rgb(244, 33, 46) 70%, transparent);
+  color: rgb(244, 33, 46);
+}
+
+.av-hide-button[disabled] {
+  cursor: default;
+  opacity: 0.3;
+}
+`;
+  var TOAST_CSS = `
+.av-toast {
+  position: fixed;
+  right: 16px;
+  bottom: 76px;
+  z-index: 2147483000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 320px;
+  padding: 10px 12px;
+  border: 1px solid rgb(66, 73, 80);
+  border-radius: 10px;
+  background: rgb(21, 24, 28);
+  color: rgb(231, 233, 234);
+  font: 500 13px/1.35 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.av-toast.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.av-toast-text {
+  flex: 1 1 auto;
+}
+
+.av-toast-undo {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border: 1px solid rgb(29, 155, 240);
+  border-radius: 6px;
+  background: transparent;
+  color: rgb(120, 190, 250);
+  cursor: pointer;
+  font: 700 12px/1.1 inherit;
+}
+
+.av-toast-undo[disabled] {
+  border-color: rgb(66, 73, 80);
+  color: rgb(113, 118, 123);
+  cursor: default;
+}
+`;
+
   // src/features/export/warc.ts
   var ENCODER3 = new TextEncoder();
   function buildWarcArchive(records) {
@@ -4156,7 +4946,7 @@ ${record.text}${mediaList}`;
       throw new Error(`Bluesky media upload HTTP ${response.status}`);
     }
     const payload = await response.json();
-    if (!isRecord2(payload.blob)) {
+    if (!isRecord3(payload.blob)) {
       throw new Error("Bluesky media response was malformed");
     }
     return payload.blob;
@@ -4208,7 +4998,7 @@ ${record.text}${mediaList}`;
     const cleaned = value.replace(/[\\/\u0000-\u001f]/g, "_").trim();
     return cleaned.slice(0, 160) || "aviary-media";
   }
-  function isRecord2(value) {
+  function isRecord3(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
   async function callBluesky(service, nsid, input, bearer) {
@@ -4402,8 +5192,8 @@ ${record.text}${mediaList}`;
     const now = (/* @__PURE__ */ new Date()).toISOString();
     const out = [];
     for (const entry of parsed) {
-      const tweet = isRecord3(entry) && isRecord3(entry.tweet) ? entry.tweet : entry;
-      if (!isRecord3(tweet)) continue;
+      const tweet = isRecord4(entry) && isRecord4(entry.tweet) ? entry.tweet : entry;
+      if (!isRecord4(tweet)) continue;
       const id = stringField(tweet, "id_str", "id");
       const text = stringField(tweet, "full_text", "text") ?? "";
       const createdAt = stringField(tweet, "created_at") ?? now;
@@ -4425,8 +5215,8 @@ ${record.text}${mediaList}`;
     if (!Array.isArray(parsed)) return [];
     const out = [];
     for (const entry of parsed) {
-      const like = isRecord3(entry) && isRecord3(entry.like) ? entry.like : entry;
-      if (!isRecord3(like)) continue;
+      const like = isRecord4(entry) && isRecord4(entry.like) ? entry.like : entry;
+      if (!isRecord4(like)) continue;
       const id = stringField(like, "tweetId", "id");
       const text = stringField(like, "fullText", "text") ?? "";
       const record = {
@@ -4454,14 +5244,14 @@ ${record.text}${mediaList}`;
   }
   function stringFromEntities(tweet) {
     const entities = tweet.entities;
-    if (!isRecord3(entities)) return null;
+    if (!isRecord4(entities)) return null;
     const userMentions = entities.user_mentions;
     if (!Array.isArray(userMentions) || userMentions.length === 0) return null;
     const first = userMentions[0];
-    if (!isRecord3(first)) return null;
+    if (!isRecord4(first)) return null;
     return stringField(first, "screen_name");
   }
-  function isRecord3(value) {
+  function isRecord4(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -4933,8 +5723,8 @@ ${record.text}${mediaList}`;
   };
 
   // src/features/media/media-buttons.ts
-  var STYLE_ID2 = "av-media-buttons";
-  var BUTTON_ATTR = "data-av-media-button";
+  var STYLE_ID3 = "av-media-buttons";
+  var BUTTON_ATTR2 = "data-av-media-button";
   var PROCESSED_ATTR = "data-av-media-processed";
   var downloader;
   var history;
@@ -4961,7 +5751,7 @@ ${record.text}${mediaList}`;
       try {
         await history.load();
       } catch (error) {
-        ctx.diagnostics.warn("Media history failed to load", errorDetails2(error));
+        ctx.diagnostics.warn("Media history failed to load", errorDetails3(error));
       }
       applyToggleClass(ctx);
       scanArticles(document, ctx);
@@ -4982,14 +5772,14 @@ ${record.text}${mediaList}`;
       }
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID2)?.remove();
+      document.getElementById(STYLE_ID3)?.remove();
       document.documentElement.classList.remove("av-media-buttons-enabled");
       for (const article of Array.from(
         document.querySelectorAll(`[${PROCESSED_ATTR}]`)
       )) {
         article.removeAttribute(PROCESSED_ATTR);
       }
-      for (const button2 of Array.from(document.querySelectorAll(`[${BUTTON_ATTR}]`))) {
+      for (const button2 of Array.from(document.querySelectorAll(`[${BUTTON_ATTR2}]`))) {
         button2.remove();
       }
       downloader = void 0;
@@ -5027,7 +5817,7 @@ ${record.text}${mediaList}`;
     if (!ctx.settings.media.buttons) {
       return;
     }
-    const articles = collectArticles(root);
+    const articles = collectArticles2(root);
     for (const article of articles) {
       if (article.getAttribute(PROCESSED_ATTR) === "1") {
         continue;
@@ -5040,7 +5830,7 @@ ${record.text}${mediaList}`;
       article.setAttribute(PROCESSED_ATTR, "1");
     }
   }
-  function collectArticles(root) {
+  function collectArticles2(root) {
     const found = [];
     if (root instanceof Element && root.matches('article[data-testid="tweet"]')) {
       found.push(root);
@@ -5071,13 +5861,13 @@ ${record.text}${mediaList}`;
     return media.source.closest('[data-testid="tweetPhoto"]') ?? media.source.parentElement;
   }
   function hasOwnButton(container, kind) {
-    return container.querySelector(`[${BUTTON_ATTR}="${kind}"]`) !== null;
+    return container.querySelector(`[${BUTTON_ATTR2}="${kind}"]`) !== null;
   }
   function buildButton(media, index, tweet, ctx) {
     const button2 = document.createElement("button");
     button2.type = "button";
     button2.className = "av-media-button";
-    button2.setAttribute(BUTTON_ATTR, media.kind);
+    button2.setAttribute(BUTTON_ATTR2, media.kind);
     button2.dataset.kind = media.kind;
     button2.setAttribute("aria-label", buttonAriaLabel(media));
     button2.textContent = buttonLabel(media);
@@ -5176,7 +5966,7 @@ ${record.text}${mediaList}`;
       button2.classList.remove("is-active");
       button2.classList.add("is-error");
       button2.disabled = false;
-      ctx.diagnostics.error("Media download failed", errorDetails2(error));
+      ctx.diagnostics.error("Media download failed", errorDetails3(error));
       void ctx.auditLog.record("media.download.failed", { filename, kind: media.kind });
     }
   }
@@ -5206,27 +5996,27 @@ ${record.text}${mediaList}`;
     if (media.kind === "video") return media.video?.isGif ? "GIF saved" : "Saved";
     return "Saved";
   }
-  function errorDetails2(error) {
+  function errorDetails3(error) {
     if (error instanceof Error) {
       return { name: error.name, message: error.message };
     }
     return { message: String(error) };
   }
   function ensureMediaStyle() {
-    if (document.getElementById(STYLE_ID2)) {
+    if (document.getElementById(STYLE_ID3)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID2;
+    style.id = STYLE_ID3;
     style.textContent = MEDIA_CSS;
     (document.head ?? document.documentElement).append(style);
   }
   var MEDIA_CSS = `
-html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
+html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   display: none !important;
 }
 
-[${BUTTON_ATTR}] {
+[${BUTTON_ATTR2}] {
   position: absolute;
   top: 8px;
   right: 8px;
@@ -5249,32 +6039,32 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
   position: relative;
 }
 
-[data-testid="tweetPhoto"]:hover [${BUTTON_ATTR}],
-[data-testid="tweetPhoto"]:focus-within [${BUTTON_ATTR}],
-[${BUTTON_ATTR}]:focus-visible,
-[${BUTTON_ATTR}].is-active,
-[${BUTTON_ATTR}].is-success,
-[${BUTTON_ATTR}].is-error,
-[${BUTTON_ATTR}].is-duplicate {
+[data-testid="tweetPhoto"]:hover [${BUTTON_ATTR2}],
+[data-testid="tweetPhoto"]:focus-within [${BUTTON_ATTR2}],
+[${BUTTON_ATTR2}]:focus-visible,
+[${BUTTON_ATTR2}].is-active,
+[${BUTTON_ATTR2}].is-success,
+[${BUTTON_ATTR2}].is-error,
+[${BUTTON_ATTR2}].is-duplicate {
   opacity: 1;
 }
 
-[${BUTTON_ATTR}].is-success {
+[${BUTTON_ATTR2}].is-success {
   border-color: rgb(120, 200, 130);
   color: rgb(206, 240, 210);
 }
 
-[${BUTTON_ATTR}].is-duplicate {
+[${BUTTON_ATTR2}].is-duplicate {
   border-color: var(--av-muted, rgb(113, 118, 123));
   color: var(--av-muted, rgb(113, 118, 123));
 }
 
-[${BUTTON_ATTR}].is-error {
+[${BUTTON_ATTR2}].is-error {
   border-color: rgb(220, 110, 110);
   color: rgb(248, 200, 200);
 }
 
-[${BUTTON_ATTR}][data-kind="thumbnail"] {
+[${BUTTON_ATTR2}][data-kind="thumbnail"] {
   top: 8px;
   right: 76px;
 }
@@ -5288,7 +6078,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
     const concurrency = Math.max(1, Math.min(ctx.settings.jobs.concurrentDownloads, 6));
     const max = Math.max(1, options.maxItems ?? 200);
     const filterKind = options.filterKind ?? "all";
-    const tweets = collectArticles2(document, options.surface);
+    const tweets = collectArticles3(document, options.surface);
     const tasks = [];
     for (const tweet of tweets) {
       tweet.media.forEach((media, index) => {
@@ -5371,7 +6161,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
     await Promise.all(workers);
     return { ...progress, jobIds, cancelled: false };
   }
-  function collectArticles2(root, surface = "active") {
+  function collectArticles3(root, surface = "active") {
     const articles = root instanceof Element && root.matches('article[data-testid="tweet"]') ? [root] : Array.from(root.querySelectorAll('article[data-testid="tweet"]'));
     const seen = /* @__PURE__ */ new Set();
     const tweets = [];
@@ -5569,7 +6359,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
       const stored = {
         ...entry,
         capturedAt: (/* @__PURE__ */ new Date()).toISOString(),
-        accounts: Array.from(new Set(entry.accounts.map(normalizeHandle).filter((value) => value !== null))).sort()
+        accounts: Array.from(new Set(entry.accounts.map(normalizeHandle2).filter((value) => value !== null))).sort()
       };
       this.#state.entries.push(stored);
       while (this.#state.entries.length > this.#limit) {
@@ -5645,7 +6435,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
       const match = /^\/([A-Za-z0-9_]{1,15})(?:[/?#]|$)/.exec(href);
       const candidate = match?.[1];
       if (candidate) {
-        const normalized = normalizeHandle(candidate);
+        const normalized = normalizeHandle2(candidate);
         if (normalized) handles.add(normalized);
       }
     }
@@ -5656,45 +6446,45 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
     const candidate = value;
     return (candidate.kind === "followers" || candidate.kind === "following") && typeof candidate.handle === "string" && typeof candidate.capturedAt === "string" && Array.isArray(candidate.accounts) && candidate.accounts.every((entry) => typeof entry === "string");
   }
-  function normalizeHandle(value) {
+  function normalizeHandle2(value) {
     const cleaned = value.replace(/^@/, "").trim().toLowerCase();
     return /^[a-z0-9_]{1,15}$/.test(cleaned) ? cleaned : null;
   }
 
   // src/features/library/snapshots-feature.ts
-  var store;
+  var store2;
   var snapshotsFeature = {
     id: "library.snapshots",
     title: "Follower / following snapshots",
     category: "core",
     defaultEnabled: true,
     async init(ctx) {
-      store = new SnapshotStore(ctx.storage);
-      await store.load();
-      ctx.diagnostics.info("Snapshots initialized", { entries: store.size() });
+      store2 = new SnapshotStore(ctx.storage);
+      await store2.load();
+      ctx.diagnostics.info("Snapshots initialized", { entries: store2.size() });
     },
     destroy(ctx) {
-      store = void 0;
+      store2 = void 0;
       ctx.diagnostics.info("Snapshots destroyed");
     },
     getStatus() {
       return {
         ok: true,
-        message: store ? `${store.size()} snapshots stored` : "Snapshots idle"
+        message: store2 ? `${store2.size()} snapshots stored` : "Snapshots idle"
       };
     }
   };
   function getSnapshotStore() {
-    return store;
+    return store2;
   }
   async function captureSnapshotFromDom(ctx, kind, profileHandle) {
-    if (!store) return null;
+    if (!store2) return null;
     const accounts = collectAccountsFromDom(document);
     if (accounts.length === 0) {
       ctx.diagnostics.warn("Snapshot skipped \u2014 no UserCell rows in DOM");
       return null;
     }
-    const entry = await store.record({
+    const entry = await store2.record({
       kind,
       handle: profileHandle.toLowerCase(),
       source: "dom",
@@ -5710,7 +6500,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
 
   // src/features/library/user-notes.ts
   var USER_NOTES_KEY = "aviary.userNotes.v1";
-  var STYLE_ID3 = "av-user-notes";
+  var STYLE_ID4 = "av-user-notes";
   var BADGE_ATTR = "data-av-note-badge";
   var ARTICLE_ATTR = "data-av-note-processed";
   var cache;
@@ -5722,13 +6512,13 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
     defaultEnabled: true,
     async init(ctx) {
       activeStorage = ctx.storage;
-      ensureStyle();
+      ensureStyle2();
       cache = await load(ctx.storage);
       decorate(ctx, document);
       ctx.diagnostics.info("User notes initialized", { count: Object.keys(cache.notes).length });
     },
     apply(ctx, root, addedNodes) {
-      ensureStyle();
+      ensureStyle2();
       if (!cache) {
         return;
       }
@@ -5741,7 +6531,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
       }
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID3)?.remove();
+      document.getElementById(STYLE_ID4)?.remove();
       for (const article of Array.from(document.querySelectorAll(`[${ARTICLE_ATTR}]`))) {
         article.removeAttribute(ARTICLE_ATTR);
       }
@@ -5763,7 +6553,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
     return { ...cache?.notes ?? {} };
   }
   async function setUserNote(handle, note) {
-    const normalized = normalizeHandle2(handle);
+    const normalized = normalizeHandle3(handle);
     if (!normalized || !activeStorage) {
       return;
     }
@@ -5795,7 +6585,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
     const notes = stored?.notes ?? {};
     const sanitized = {};
     for (const [handle, note] of Object.entries(notes)) {
-      const normalized = normalizeHandle2(handle);
+      const normalized = normalizeHandle3(handle);
       if (normalized && typeof note === "string" && note.trim().length > 0) {
         sanitized[normalized] = note.slice(0, 280);
       }
@@ -5809,7 +6599,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
       if (article.getAttribute(ARTICLE_ATTR) === "1") {
         continue;
       }
-      const handle = readHandle2(article);
+      const handle = readHandle3(article);
       if (!handle) continue;
       const note = cache.notes[handle];
       if (!note) {
@@ -5832,7 +6622,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
       article.setAttribute(ARTICLE_ATTR, "1");
     }
   }
-  function readHandle2(article) {
+  function readHandle3(article) {
     const userName = article.querySelector('[data-testid="User-Name"]');
     const links = userName?.querySelectorAll('a[href^="/"]') ?? [];
     for (const link of Array.from(links)) {
@@ -5840,21 +6630,21 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
       const match = /^\/([A-Za-z0-9_]{1,15})(?:[/?#]|$)/.exec(href);
       const candidate = match?.[1];
       if (candidate) {
-        return normalizeHandle2(candidate);
+        return normalizeHandle3(candidate);
       }
     }
     return null;
   }
-  function normalizeHandle2(value) {
+  function normalizeHandle3(value) {
     const cleaned = value.replace(/^@/, "").trim().toLowerCase();
     return /^[a-z0-9_]{1,15}$/.test(cleaned) ? cleaned : null;
   }
-  function ensureStyle() {
-    if (document.getElementById(STYLE_ID3)) {
+  function ensureStyle2() {
+    if (document.getElementById(STYLE_ID4)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID3;
+    style.id = STYLE_ID4;
     style.textContent = NOTE_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -5894,7 +6684,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
       errors.push(`Invalid JSON: ${error.message}`);
       return { applied: false, errors, warnings, settings: normalizeSettings({}) };
     }
-    if (!isRecord4(parsed)) {
+    if (!isRecord5(parsed)) {
       errors.push("Top-level value must be an object.");
       return { applied: false, errors, warnings, settings: normalizeSettings({}) };
     }
@@ -5908,11 +6698,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
         `Import version ${version} is newer than supported ${SETTINGS_EXPORT_VERSION}; unknown fields are dropped.`
       );
     }
-    const rawSettings = isRecord4(parsed.settings) ? parsed.settings : parsed;
+    const rawSettings = isRecord5(parsed.settings) ? parsed.settings : parsed;
     const normalized = normalizeSettings(rawSettings);
     return { applied: true, errors, warnings, settings: normalized };
   }
-  function isRecord4(value) {
+  function isRecord5(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -5945,7 +6735,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
           ctx.requestApply();
         },
         onError(message, error) {
-          ctx.diagnostics.error(message, errorDetails3(error));
+          ctx.diagnostics.error(message, errorDetails4(error));
         },
         getMediaStatus() {
           const queue2 = getMediaQueue();
@@ -5963,10 +6753,10 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
           await getMediaHistory()?.clear();
         },
         getExportStatus() {
-          const store2 = getCheckpointStore();
+          const store3 = getCheckpointStore();
           const queries = getDiscoveredQueries();
           return {
-            jobCount: store2?.list().length ?? 0,
+            jobCount: store3?.list().length ?? 0,
             knownQueries: queries ? Object.keys(queries.queries).length : 0
           };
         },
@@ -6024,6 +6814,35 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
           }
           ctx.requestApply();
         },
+        getHiddenPostsStatus() {
+          const hiddenStore = getHiddenPostStore();
+          const entries = hiddenStore?.list() ?? [];
+          return {
+            total: entries.length,
+            updatedAt: hiddenStore?.updatedAt() ?? null,
+            recent: entries.slice(0, 8).map((entry) => ({
+              key: entry.key,
+              handle: entry.handle,
+              text: entry.text,
+              hiddenAt: entry.hiddenAt
+            }))
+          };
+        },
+        async undoLastHide() {
+          const entry = await undoLastHide(ctx);
+          return { restored: entry !== null, handle: entry?.handle ?? null };
+        },
+        async unhidePost(key) {
+          const entry = await getHiddenPostStore()?.unhide(key);
+          if (entry) {
+            ctx.requestApply();
+            void ctx.auditLog.record("post.unhide", { key });
+          }
+          return entry !== null && entry !== void 0;
+        },
+        async clearHiddenPosts() {
+          return await clearHiddenPosts(ctx);
+        },
         getUserNotes() {
           return getUserNotes();
         },
@@ -6042,8 +6861,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
           return { count: result.totalAccounts, handle: result.entry.handle };
         },
         getSnapshotStatus() {
-          const store2 = getSnapshotStore();
-          const entries = store2?.list() ?? [];
+          const store3 = getSnapshotStore();
+          const entries = store3?.list() ?? [];
           const latest = entries[entries.length - 1];
           return {
             total: entries.length,
@@ -6068,12 +6887,12 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
           const buffer = new Uint8Array(await file.arrayBuffer());
           const result = importOfficialArchive(buffer, "archive");
           if (result.records.length > 0) {
-            const store2 = getCheckpointStore();
-            if (store2) {
+            const store3 = getCheckpointStore();
+            if (store3) {
               const jobId = `archive-${Date.now()}`;
-              await store2.start(jobId, "archive", ["json"], false);
-              await store2.append(jobId, result.records);
-              await store2.finish(jobId);
+              await store3.start(jobId, "archive", ["json"], false);
+              await store3.append(jobId, result.records);
+              await store3.finish(jobId);
             }
             rebuildSearchIndex();
             void ctx.auditLog.record("settings.import", {
@@ -6138,8 +6957,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
         },
         async enqueueCleanupReview() {
           rebuildSearchIndex();
-          const store2 = getCheckpointStore();
-          const records = collectAllRecords(store2);
+          const store3 = getCheckpointStore();
+          const records = collectAllRecords(store3);
           const preview = previewCleanup(records, {
             whitelistHandles: ctx.settings.filter.whitelist
           });
@@ -6227,8 +7046,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
             await semanticIndex.load();
           }
           rebuildSearchIndex();
-          const store2 = getCheckpointStore();
-          const records = collectAllRecords(store2);
+          const store3 = getCheckpointStore();
+          const records = collectAllRecords(store3);
           const result = await semanticIndex.embedAndIndex(
             ctx.settings.integrations.semanticSearch,
             records
@@ -6316,8 +7135,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
         },
         async downloadWarc() {
           rebuildSearchIndex();
-          const store2 = getCheckpointStore();
-          const records = collectAllRecords(store2);
+          const store3 = getCheckpointStore();
+          const records = collectAllRecords(store3);
           const artifact = buildWarcArchive(records);
           downloadBlob(artifact.data, artifact.filename, artifact.contentType);
           void ctx.auditLog.record("export.complete", { format: "warc", records: records.length });
@@ -6325,8 +7144,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
         },
         async exportToTarget(target) {
           rebuildSearchIndex();
-          const store2 = getCheckpointStore();
-          const records = collectAllRecords(store2);
+          const store3 = getCheckpointStore();
+          const records = collectAllRecords(store3);
           const rendered = renderForExternalTarget(target, records);
           if (rendered.payload !== void 0) {
             await writeClipboard(rendered.payload);
@@ -6342,8 +7161,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
         },
         async downloadReport() {
           rebuildSearchIndex();
-          const store2 = getCheckpointStore();
-          const records = collectAllRecords(store2);
+          const store3 = getCheckpointStore();
+          const records = collectAllRecords(store3);
           const cleanup = previewCleanup(records, {
             whitelistHandles: ctx.settings.filter.whitelist
           });
@@ -6379,7 +7198,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
       ctx.diagnostics.info("Control Center destroyed");
     }
   };
-  function errorDetails3(error) {
+  function errorDetails4(error) {
     if (error instanceof Error) {
       return {
         name: error.name,
@@ -6406,14 +7225,14 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
     return match?.[1]?.toLowerCase() ?? null;
   }
   function rebuildSearchIndex() {
-    const store2 = getCheckpointStore();
-    searchIndex.rebuild(collectAllRecords(store2));
+    const store3 = getCheckpointStore();
+    searchIndex.rebuild(collectAllRecords(store3));
   }
-  function collectAllRecords(store2) {
-    if (!store2) return [];
+  function collectAllRecords(store3) {
+    if (!store3) return [];
     const all = [];
-    for (const job of store2.list()) {
-      all.push(...store2.records(job.jobId));
+    for (const job of store3.list()) {
+      all.push(...store3.records(job.jobId));
     }
     return all;
   }
@@ -6626,7 +7445,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
     }
     const whitelist = /* @__PURE__ */ new Set();
     for (const handle of input.whitelist) {
-      const normalized = normalizeHandle3(handle);
+      const normalized = normalizeHandle4(handle);
       if (normalized) {
         whitelist.add(normalized);
       }
@@ -6673,7 +7492,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
   function extractTweetSignal(article) {
     const textNodes = article.querySelectorAll('[data-testid="tweetText"]');
     const text = textNodes.length > 0 ? Array.from(textNodes).map((node) => node.textContent ?? "").join("\n") : article.textContent ?? "";
-    const handle = readHandle3(article);
+    const handle = readHandle4(article);
     const premium = article.querySelector('[data-testid="icon-verified"], [aria-label*="Verified" i]') !== null;
     const media = {
       photo: article.querySelector('[data-testid="tweetPhoto"] img[src*="pbs.twimg.com/media"]') !== null,
@@ -6685,7 +7504,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
     }
     return { text, handle, premium, media };
   }
-  function readHandle3(article) {
+  function readHandle4(article) {
     const userName = article.querySelector('[data-testid="User-Name"]');
     const links = userName?.querySelectorAll('a[href^="/"]') ?? [];
     for (const link of Array.from(links)) {
@@ -6693,12 +7512,12 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
       const match = /^\/([A-Za-z0-9_]{1,15})(?:[/?#]|$)/.exec(href);
       const candidate = match?.[1];
       if (candidate) {
-        return normalizeHandle3(candidate);
+        return normalizeHandle4(candidate);
       }
     }
     return null;
   }
-  function normalizeHandle3(value) {
+  function normalizeHandle4(value) {
     const cleaned = value.replace(/^@/, "").trim().toLowerCase();
     return /^[a-z0-9_]{1,15}$/.test(cleaned) ? cleaned : null;
   }
@@ -6734,8 +7553,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
   }
 
   // src/features/filtering/filter-engine.ts
-  var STYLE_ID4 = "av-filter-engine";
-  var ARTICLE_SELECTOR = 'article[data-testid="tweet"]';
+  var STYLE_ID5 = "av-filter-engine";
+  var ARTICLE_SELECTOR2 = 'article[data-testid="tweet"]';
   var PROCESSED_ATTR2 = "data-av-filter-processed";
   var RESULT_ATTR = "data-av-filter-result";
   var generation = 0;
@@ -6756,7 +7575,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
       ensureFilterStyle();
       applyRootClasses(ctx);
       refreshCompiled(ctx);
-      if (!ctx.settings.filter.enabled || !surfaceMatches(ctx)) {
+      if (!ctx.settings.filter.enabled || !surfaceMatches2(ctx)) {
         return;
       }
       if (!addedNodes || addedNodes.length === 0) {
@@ -6770,7 +7589,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
     destroy(ctx) {
       compiled = void 0;
       generation = 0;
-      document.getElementById(STYLE_ID4)?.remove();
+      document.getElementById(STYLE_ID5)?.remove();
       document.documentElement.classList.remove("av-filter-enabled");
       for (const article of Array.from(
         document.querySelectorAll(`[${PROCESSED_ATTR2}]`)
@@ -6790,7 +7609,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
   function applyRootClasses(ctx) {
     document.documentElement.classList.toggle("av-filter-enabled", ctx.settings.filter.enabled);
   }
-  function surfaceMatches(ctx) {
+  function surfaceMatches2(ctx) {
     const surfaces = ctx.settings.filter.surfaces;
     return surfaces.includes(ctx.route.surface);
   }
@@ -6806,27 +7625,27 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
     });
   }
   function scanRoot(root, ctx) {
-    if (!compiled || !ctx.settings.filter.enabled || !surfaceMatches(ctx)) {
+    if (!compiled || !ctx.settings.filter.enabled || !surfaceMatches2(ctx)) {
       return;
     }
-    const articles = collectArticles3(root);
+    const articles = collectArticles4(root);
     for (const article of articles) {
-      processArticle(article, compiled);
+      processArticle2(article, compiled);
     }
   }
-  function collectArticles3(root) {
+  function collectArticles4(root) {
     const results = [];
-    if (root instanceof Element && root.matches(ARTICLE_SELECTOR)) {
+    if (root instanceof Element && root.matches(ARTICLE_SELECTOR2)) {
       results.push(root);
     }
     if ("querySelectorAll" in root) {
-      for (const article of Array.from(root.querySelectorAll(ARTICLE_SELECTOR))) {
+      for (const article of Array.from(root.querySelectorAll(ARTICLE_SELECTOR2))) {
         results.push(article);
       }
     }
     return results;
   }
-  function processArticle(article, filters) {
+  function processArticle2(article, filters) {
     if (article.getAttribute(PROCESSED_ATTR2) === String(filters.generation)) {
       return;
     }
@@ -6850,11 +7669,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
     };
   }
   function ensureFilterStyle() {
-    if (document.getElementById(STYLE_ID4)) {
+    if (document.getElementById(STYLE_ID5)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID4;
+    style.id = STYLE_ID5;
     style.textContent = FILTER_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -6877,7 +7696,7 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
 `;
 
   // src/features/layout/declutter.ts
-  var STYLE_ID5 = "av-layout-declutter";
+  var STYLE_ID6 = "av-layout-declutter";
   var layoutDeclutterFeature = {
     id: "layout.declutter",
     title: "Layout declutter",
@@ -6893,7 +7712,7 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
       applyLayoutClasses(ctx);
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID5)?.remove();
+      document.getElementById(STYLE_ID6)?.remove();
       document.documentElement.classList.remove(
         "av-hide-right-sidebar",
         "av-hide-trends",
@@ -6925,11 +7744,11 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
     }
   }
   function ensureLayoutStyle() {
-    if (document.getElementById(STYLE_ID5)) {
+    if (document.getElementById(STYLE_ID6)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID5;
+    style.id = STYLE_ID6;
     style.textContent = LAYOUT_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -7090,7 +7909,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
   }
 
   // src/features/ai/command-menu.ts
-  var STYLE_ID6 = "av-ai-command-menu";
+  var STYLE_ID7 = "av-ai-command-menu";
   var TRIGGER_ATTR = "data-av-ai-trigger";
   var PROCESSED_ATTR3 = "data-av-ai-processed";
   var AI_COMMANDS = [
@@ -7133,12 +7952,12 @@ ${text}`
     category: "core",
     defaultEnabled: true,
     init(ctx) {
-      ensureStyle2();
+      ensureStyle3();
       decorate2(ctx, document);
       ctx.diagnostics.info("AI command menu ready");
     },
     apply(ctx, root, addedNodes) {
-      ensureStyle2();
+      ensureStyle3();
       if (!addedNodes || addedNodes.length === 0) {
         decorate2(ctx, root);
         return;
@@ -7148,7 +7967,7 @@ ${text}`
       }
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID6)?.remove();
+      document.getElementById(STYLE_ID7)?.remove();
       for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR3}]`))) {
         article.removeAttribute(PROCESSED_ATTR3);
       }
@@ -7276,12 +8095,12 @@ ${text}`
     }
     throw new Error("Clipboard API unavailable");
   }
-  function ensureStyle2() {
-    if (document.getElementById(STYLE_ID6)) {
+  function ensureStyle3() {
+    if (document.getElementById(STYLE_ID7)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID6;
+    style.id = STYLE_ID7;
     style.textContent = AI_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -7339,7 +8158,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 `;
 
   // src/features/composer/composer-snippets.ts
-  var STYLE_ID7 = "av-composer-snippets";
+  var STYLE_ID8 = "av-composer-snippets";
   var TOOLBAR_ATTR = "data-av-composer-mounted";
   var PALETTE_ATTR = "data-av-snippet-palette";
   var composerSnippetsFeature = {
@@ -7363,7 +8182,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       }
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID7)?.remove();
+      document.getElementById(STYLE_ID8)?.remove();
       for (const toolbar of Array.from(document.querySelectorAll(`[${TOOLBAR_ATTR}]`))) {
         toolbar.removeAttribute(TOOLBAR_ATTR);
       }
@@ -7412,19 +8231,19 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       empty.textContent = "No snippets yet. Add some in the Control Center \u2192 Library.";
       popover.append(empty);
     } else {
-      for (const snippet of snippets) {
+      for (const snippet2 of snippets) {
         const option = document.createElement("button");
         option.type = "button";
         option.className = "av-snippet-option";
-        option.textContent = snippet.length > 80 ? `${snippet.slice(0, 77)}\u2026` : snippet;
+        option.textContent = snippet2.length > 80 ? `${snippet2.slice(0, 77)}\u2026` : snippet2;
         option.setAttribute("role", "menuitem");
-        option.title = snippet;
+        option.title = snippet2;
         option.addEventListener("click", (event) => {
           event.stopPropagation();
           event.preventDefault();
-          if (insertSnippet(snippet)) {
-            ctx.diagnostics.info("Snippet inserted", { length: snippet.length });
-            void ctx.auditLog.record("settings.import", { kind: "snippet", length: snippet.length });
+          if (insertSnippet(snippet2)) {
+            ctx.diagnostics.info("Snippet inserted", { length: snippet2.length });
+            void ctx.auditLog.record("settings.import", { kind: "snippet", length: snippet2.length });
           } else {
             ctx.diagnostics.warn("Snippet insert failed \u2014 composer not focused");
           }
@@ -7443,15 +8262,15 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     };
     setTimeout(() => document.addEventListener("click", dismiss, true), 0);
   }
-  function insertSnippet(snippet) {
+  function insertSnippet(snippet2) {
     const composer = document.querySelector('[data-testid="tweetTextarea_0"]');
     if (!composer) return false;
     composer.focus();
-    const ok = document.execCommand("insertText", false, snippet);
+    const ok = document.execCommand("insertText", false, snippet2);
     if (!ok) {
       return false;
     }
-    composer.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: snippet }));
+    composer.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: snippet2 }));
     return true;
   }
   function positionPopover(popover, trigger) {
@@ -7462,11 +8281,11 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     popover.style.maxWidth = "320px";
   }
   function ensureComposerStyle() {
-    if (document.getElementById(STYLE_ID7)) {
+    if (document.getElementById(STYLE_ID8)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID7;
+    style.id = STYLE_ID8;
     style.textContent = COMPOSER_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -7520,7 +8339,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 `;
 
   // src/features/core/i18n-feature.ts
-  var STYLE_ID8 = "av-i18n";
+  var STYLE_ID9 = "av-i18n";
   var i18nFeature = {
     id: "core.i18n",
     title: "Internationalization",
@@ -7536,7 +8355,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       applyLocaleClasses(ctx);
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID8)?.remove();
+      document.getElementById(STYLE_ID9)?.remove();
       const root = document.documentElement;
       root.classList.remove("av-rtl", "av-ltr");
       delete root.dataset.avLocale;
@@ -7551,11 +8370,11 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     root.classList.toggle("av-ltr", direction === "ltr");
   }
   function ensureI18nStyle() {
-    if (document.getElementById(STYLE_ID8)) {
+    if (document.getElementById(STYLE_ID9)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID8;
+    style.id = STYLE_ID9;
     style.textContent = I18N_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -7594,7 +8413,7 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
 `;
 
   // src/features/core/mobile-touch.ts
-  var STYLE_ID9 = "av-mobile-touch";
+  var STYLE_ID10 = "av-mobile-touch";
   var mobileTouchFeature = {
     id: "core.mobileTouch",
     title: "Mobile & touch ergonomics",
@@ -7610,7 +8429,7 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
       applyMobileClasses();
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID9)?.remove();
+      document.getElementById(STYLE_ID10)?.remove();
       document.documentElement.classList.remove("av-mobile", "av-touch");
       ctx.diagnostics.info("Mobile/touch destroyed");
     }
@@ -7626,11 +8445,11 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
     root.classList.toggle("av-mobile", narrow);
   }
   function ensureMobileStyle() {
-    if (document.getElementById(STYLE_ID9)) {
+    if (document.getElementById(STYLE_ID10)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID9;
+    style.id = STYLE_ID10;
     style.textContent = MOBILE_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -7755,14 +8574,14 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
   }
   async function persistPayload(ctx, url, body) {
-    const store2 = getCheckpointStore();
-    if (!store2) return;
+    const store3 = getCheckpointStore();
+    if (!store3) return;
     const operationName = /\/i\/api\/graphql\/[^/]+\/([A-Za-z0-9_]+)/.exec(url)?.[1] ?? "graphql";
     const jobId = `capture-${operationName}`;
-    if (store2.list().every((entry) => entry.jobId !== jobId)) {
-      await store2.start(jobId, "capture", ["json"], true);
+    if (store3.list().every((entry) => entry.jobId !== jobId)) {
+      await store3.start(jobId, "capture", ["json"], true);
     }
-    await store2.append(jobId, [
+    await store3.append(jobId, [
       {
         tweetId: null,
         handle: null,
@@ -7781,7 +8600,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   }
 
   // src/features/library/link-unshorten.ts
-  var STYLE_ID10 = "av-link-unshorten";
+  var STYLE_ID11 = "av-link-unshorten";
   var PROCESSED_ATTR4 = "data-av-link-clean";
   var linkUnshortenFeature = {
     id: "library.linkUnshorten",
@@ -7789,28 +8608,28 @@ html.av-mobile [data-testid="primaryColumn"] {
     category: "core",
     defaultEnabled: true,
     init(ctx) {
-      ensureStyle3();
+      ensureStyle4();
       if (!ctx.settings.links.expandTco) {
         return;
       }
-      scan(document);
+      scan2(document);
       ctx.diagnostics.info("Link unshortening initialized");
     },
     apply(ctx, root, addedNodes) {
-      ensureStyle3();
+      ensureStyle4();
       if (!ctx.settings.links.expandTco) {
         return;
       }
       if (!addedNodes || addedNodes.length === 0) {
-        scan(root);
+        scan2(root);
         return;
       }
       for (const node of addedNodes) {
-        scan(node);
+        scan2(node);
       }
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID10)?.remove();
+      document.getElementById(STYLE_ID11)?.remove();
       for (const link of Array.from(
         document.querySelectorAll(`a[${PROCESSED_ATTR4}]`)
       )) {
@@ -7824,7 +8643,7 @@ html.av-mobile [data-testid="primaryColumn"] {
       ctx.diagnostics.info("Link unshortening destroyed");
     }
   };
-  function scan(root) {
+  function scan2(root) {
     const anchors = root instanceof HTMLAnchorElement ? [root] : Array.from(root.querySelectorAll("a"));
     for (const anchor of anchors) {
       if (anchor.getAttribute(PROCESSED_ATTR4) === "1") {
@@ -7864,12 +8683,12 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
     return null;
   }
-  function ensureStyle3() {
-    if (document.getElementById(STYLE_ID10)) {
+  function ensureStyle4() {
+    if (document.getElementById(STYLE_ID11)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID10;
+    style.id = STYLE_ID11;
     style.textContent = LINK_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -7881,7 +8700,7 @@ a.av-link-clean {
 `;
 
   // src/features/media/media-presentation.ts
-  var STYLE_ID11 = "av-media-presentation";
+  var STYLE_ID12 = "av-media-presentation";
   var mediaPresentationFeature = {
     id: "media.presentation",
     title: "Media presentation",
@@ -7900,7 +8719,7 @@ a.av-link-clean {
       applyPresentationClasses(ctx);
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID11)?.remove();
+      document.getElementById(STYLE_ID12)?.remove();
       const root = document.documentElement;
       for (const className of [
         "av-sensitive-default",
@@ -7937,11 +8756,11 @@ a.av-link-clean {
     root.classList.add(`av-media-layout-${ctx.settings.media.layout}`);
   }
   function ensurePresentationStyle() {
-    if (document.getElementById(STYLE_ID11)) {
+    if (document.getElementById(STYLE_ID12)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID11;
+    style.id = STYLE_ID12;
     style.textContent = PRESENTATION_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -8015,7 +8834,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           this.#active.add(feature.id);
           ctx.diagnostics.info(`Feature initialized: ${feature.id}`);
         } catch (error) {
-          ctx.diagnostics.error(`Feature failed to initialize: ${feature.id}`, errorDetails4(error));
+          ctx.diagnostics.error(`Feature failed to initialize: ${feature.id}`, errorDetails5(error));
         }
       }
     }
@@ -8026,7 +8845,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           try {
             await feature.apply(ctx, root, addedNodes);
           } catch (error) {
-            ctx.diagnostics.error(`Feature failed to apply: ${id}`, errorDetails4(error));
+            ctx.diagnostics.error(`Feature failed to apply: ${id}`, errorDetails5(error));
           }
         }
       }
@@ -8039,7 +8858,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
             await feature.destroy(ctx);
           }
         } catch (error) {
-          ctx.diagnostics.error(`Feature failed to destroy: ${id}`, errorDetails4(error));
+          ctx.diagnostics.error(`Feature failed to destroy: ${id}`, errorDetails5(error));
         }
         this.#active.delete(id);
       }
@@ -8055,13 +8874,13 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           return {
             ok: false,
             message: `${feature.id} status failed`,
-            details: errorDetails4(error)
+            details: errorDetails5(error)
           };
         }
       });
     }
   };
-  function errorDetails4(error) {
+  function errorDetails5(error) {
     if (error instanceof Error) {
       return {
         name: error.name,
@@ -8353,6 +9172,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     registry.register(controlCenterFeature);
     registry.register(layoutDeclutterFeature);
     registry.register(filterEngineFeature);
+    registry.register(hiddenPostsFeature);
     registry.register(mediaButtonsFeature);
     registry.register(mediaPresentationFeature);
     registry.register(exportFeature);
@@ -8414,7 +9234,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       };
       return activeApp;
     } catch (error) {
-      diagnostics.error("Aviary boot failed", errorDetails5(error));
+      diagnostics.error("Aviary boot failed", errorDetails6(error));
       document.documentElement.dataset.avReady = "error";
       for (const stop of stops.reverse()) {
         stop();
@@ -8423,7 +9243,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       throw error;
     }
   }
-  function errorDetails5(error) {
+  function errorDetails6(error) {
     if (error instanceof Error) {
       return {
         name: error.name,

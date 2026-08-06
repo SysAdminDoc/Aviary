@@ -142,6 +142,17 @@ Completed:
 - `docs/FAQ.md` documents the privacy contract, selector regression workflow, no-hotkeys policy, no-light-theme policy, export flow, and the deferral of F032/F033.
 - New tests verify the docs ship and the preflight wiring is intact.
 
+## v1.6.0 deliverables
+
+- `src/features/filtering/hidden-posts.ts` — `HiddenPostStore` over `aviary.hiddenPosts.v1` plus the pure helpers `derivePostKey`, `handleFromHref`, `hashText`, and `normalizeHiddenPosts`. Keys are `id:<statusId>` where a `/status/` link exists and `sig:<handle>:<fnv1a>` otherwise, so promoted units without a status id still get one stable identity. Oldest-first eviction at `settings.hidden.maxEntries`, 20-deep session undo stack, `version()` counter that invalidates DOM decisions (F105).
+- `src/features/filtering/hidden-posts-feature.ts` — injects the per-post Hide button before `[data-testid="caret"]` (falling back to `[data-testid="User-Name"]`), collapses the owning `[data-testid="cellInnerDiv"]` row, and fires one coalesced `resize` so the virtualizer closes the vacated slot. Undo toast lives in its own shadow host so page CSS cannot reach it.
+- `settings.hidden` — `{ enabled, buttons, surfaces, maxEntries }`. `surfaceArray()` now takes a fallback so hidden posts default to `home/status/profile/search/notifications` without disturbing `filter.surfaces`.
+- Control Center "Hidden posts" section: master switch, button toggle, route chips, cap, stored count, "Undo last hide", Restore for the eight most recent, and "Clear hidden posts".
+- New audit actions `post.hide`, `post.unhide`, `post.hide.cleared`.
+- Tests: key derivation (id preferred, whitespace-stable signature), href parsing for relative and absolute profile links, store normalization (malformed keys dropped, dedupe keeps newest, oldest trimmed at the cap), persistence/eviction/undo/clear round trip, settings clamping, and source contracts.
+
+**Verified in a real browser** (Playwright Chromium on the isolated display, `dist/aviary.user.js` injected): 9 Hide buttons on the captured home fixture, click collapses the owning cell to `display:none`, entry persists to `aviary.hiddenPosts.v1`, the post stays hidden after reload, toast undo restores it, and on a synthetic virtualizer harness the second post's `translateY` drops from 91px to 0 after hiding the first. The captured fixture cannot exercise the live virtualizer — the harness reproduces X's absolute-row layout for that leg.
+
 ## Continuation Brief (v1.5.0+ — picks up cleanly from here)
 
 **Current state.** v0.1.0 → v1.4.0 are complete. `npm run verify` (typecheck → test → build → preflight) is green; **74 tests pass**. `npm run smoke` is the new optional gate; it requires `playwright` + `npx playwright install chromium` to be useful, otherwise it exits with a setup message.
@@ -162,7 +173,7 @@ Completed:
 
 - F032 (blocked accounts) and F033 (self-reposts) still need authenticated `_decoded/` captures before they can ship.
 - F088 encrypted local vault, F079/F080 actual destructive cleanup, and any feature that mutates account state on the user's behalf stay disabled by policy.
-- The folder is still not a Git repo — no commits land until a remote is configured.
+- ~~The folder is still not a Git repo~~ — corrected 2026-08-06: the repo has an `origin` remote on GitHub and work lands as conventional commits on `main`.
 
 **Gotchas learned this session.**
 
@@ -193,7 +204,7 @@ Completed:
 
 - F032 (blocked accounts) and F033 (self-reposts) still need authenticated `_decoded/` captures before they can ship.
 - F088 encrypted local vault, F079/F080 actual destructive cleanup, and any feature that mutates account state on the user's behalf stay disabled by policy.
-- The folder is still not a Git repo — no commits land until a remote is configured.
+- ~~The folder is still not a Git repo~~ — corrected 2026-08-06: the repo has an `origin` remote on GitHub and work lands as conventional commits on `main`.
 
 **Gotchas learned this session.**
 
@@ -223,7 +234,7 @@ Completed:
 
 - F032 (blocked accounts) and F033 (self-reposts) still need authenticated `_decoded/` captures before they can ship.
 - F088 encrypted local vault, F079/F080 actual destructive cleanup, and any feature that mutates account state on the user's behalf stay disabled by policy.
-- The folder is still not a Git repo — no commits land until a remote is configured.
+- ~~The folder is still not a Git repo~~ — corrected 2026-08-06: the repo has an `origin` remote on GitHub and work lands as conventional commits on `main`.
 
 **Gotchas learned this session.**
 
@@ -255,7 +266,7 @@ Completed:
 
 - F032 (blocked accounts) and F033 (self-reposts) still need authenticated `_decoded/` captures before they can ship.
 - F088 encrypted local vault, F079/F080 actual destructive cleanup, and any feature that mutates account state on the user's behalf stay disabled by policy in this product line.
-- The folder is still not a Git repo — no commits land until a remote is configured.
+- ~~The folder is still not a Git repo~~ — corrected 2026-08-06: the repo has an `origin` remote on GitHub and work lands as conventional commits on `main`.
 
 **Gotchas learned this session.**
 

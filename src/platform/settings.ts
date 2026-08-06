@@ -110,6 +110,12 @@ export interface AviarySettings {
     mediaTypes: Record<string, boolean>;
     surfaces: FilterSurface[];
   };
+  hidden: {
+    enabled: boolean;
+    buttons: boolean;
+    surfaces: FilterSurface[];
+    maxEntries: number;
+  };
   media: {
     buttons: boolean;
     preferOriginalImages: boolean;
@@ -183,6 +189,12 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     mediaTypes: { photo: false, video: false, gif: false },
     surfaces: ["home", "status", "profile", "search"]
   },
+  hidden: {
+    enabled: true,
+    buttons: true,
+    surfaces: ["home", "status", "profile", "search", "notifications"],
+    maxEntries: 5000
+  },
   media: {
     buttons: true,
     preferOriginalImages: true,
@@ -241,6 +253,7 @@ export function normalizeSettings(input: unknown): AviarySettings {
   const appearance = asRecord(record.appearance);
   const layout = asRecord(record.layout);
   const filter = asRecord(record.filter);
+  const hidden = asRecord(record.hidden);
   const media = asRecord(record.media);
   const jobs = asRecord(record.jobs);
   const exportSettings = asRecord(record.export);
@@ -292,6 +305,12 @@ export function normalizeSettings(input: unknown): AviarySettings {
       whitelist: stringArray(filter.whitelist, { maxItems: 200, maxLength: 80 }),
       mediaTypes: mediaTypeRecord(filter.mediaTypes),
       surfaces: surfaceArray(filter.surfaces)
+    },
+    hidden: {
+      enabled: booleanValue(hidden.enabled, DEFAULT_SETTINGS.hidden.enabled),
+      buttons: booleanValue(hidden.buttons, DEFAULT_SETTINGS.hidden.buttons),
+      surfaces: surfaceArray(hidden.surfaces, DEFAULT_SETTINGS.hidden.surfaces),
+      maxEntries: integerValue(hidden.maxEntries, DEFAULT_SETTINGS.hidden.maxEntries, 100, 50_000)
     },
     media: {
       buttons: booleanValue(media.buttons, DEFAULT_SETTINGS.media.buttons),
@@ -518,9 +537,12 @@ function mediaTypeRecord(value: unknown): Record<string, boolean> {
   return result;
 }
 
-function surfaceArray(value: unknown): FilterSurface[] {
+function surfaceArray(
+  value: unknown,
+  fallback: readonly FilterSurface[] = DEFAULT_SETTINGS.filter.surfaces
+): FilterSurface[] {
   if (!Array.isArray(value)) {
-    return [...DEFAULT_SETTINGS.filter.surfaces];
+    return [...fallback];
   }
   const seen = new Set<FilterSurface>();
   for (const item of value) {
@@ -528,7 +550,7 @@ function surfaceArray(value: unknown): FilterSurface[] {
       seen.add(item as FilterSurface);
     }
   }
-  return seen.size > 0 ? [...seen] : [...DEFAULT_SETTINGS.filter.surfaces];
+  return seen.size > 0 ? [...seen] : [...fallback];
 }
 
 function integerValue(value: unknown, fallback: number, min: number, max: number): number {

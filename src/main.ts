@@ -2,6 +2,7 @@ import { themeFeature } from "./features/appearance/theme";
 import { controlCenterFeature } from "./features/core/control-center";
 import { selectorHealthFeature } from "./features/core/selector-health";
 import { filterEngineFeature } from "./features/filtering/filter-engine";
+import { hiddenPostsFeature } from "./features/filtering/hidden-posts-feature";
 import { layoutDeclutterFeature } from "./features/layout/declutter";
 import { AuditLog } from "./features/core/audit-log";
 import { aiCommandMenuFeature } from "./features/ai/command-menu";
@@ -76,6 +77,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   registry.register(controlCenterFeature);
   registry.register(layoutDeclutterFeature);
   registry.register(filterEngineFeature);
+  registry.register(hiddenPostsFeature);
   registry.register(mediaButtonsFeature);
   registry.register(mediaPresentationFeature);
   registry.register(exportFeature);

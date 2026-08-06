@@ -1,8 +1,8 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.5.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.6.0-2f81f7)
 
-Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.5.0: foundation primitives, fixture-backed selector checks, theme + control-center, layout declutter, reversible filtering, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
+Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.6.0: foundation primitives, fixture-backed selector checks, theme + control-center, layout declutter, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
 
 ## Current Status
 
@@ -13,6 +13,7 @@ Aviary is a local-first X/Twitter enhancer delivered as a readable userscript fi
 - Settings/storage foundations: `src/platform/settings.ts`, `src/platform/storage.ts`
 - Layout declutter and theme foundations: `src/features/layout/declutter.ts`, `src/features/appearance/theme.ts`
 - Filter engine and predicates: `src/features/filtering/filter-engine.ts`, `src/features/filtering/predicates.ts`
+- Hidden posts: `src/features/filtering/hidden-posts.ts` (store), `src/features/filtering/hidden-posts-feature.ts` (Hide button + collapse)
 - Media downloads: `src/features/media/` (`media-buttons.ts`, `urls.ts`, `template.ts`, `history.ts`, `queue.ts`, `downloader.ts`, `extract.ts`, `video-extract.ts`, `media-presentation.ts`, `batch-downloader.ts`)
 - Export core: `src/features/export/` (`export-feature.ts`, `collector.ts`, `formatters.ts`, `zip-store.ts`, `zip-reader.ts`, `jobs.ts`, `query-discovery.ts`, `network-capture.ts`, `xlsx.ts`, `warc.ts`, `external-targets.ts`, `types.ts`)
 - AI: `src/features/ai/command-menu.ts` (local prompt builder; optionally runs through `features/integrations/ai-provider.ts` when the user supplies an API key)
@@ -58,6 +59,16 @@ The Control Center "Filtering" section exposes:
 Filters process only tweet articles added by MutationObserver and re-evaluate existing tweets when rules change. Disabling the master toggle removes every visible filter effect without a reload.
 
 Blocked-account (F032) and self-repost (F033) filters are deferred until an authenticated fixture capture lands; their settings keys are reserved.
+
+## Hidden Posts
+
+Every post carries a **Hide** control next to its More menu. Clicking it records the post locally and collapses it for good, so the following post is promoted into the slot instead of leaving a gap — you can clear a timeline by tapping Hide rather than scrolling past.
+
+- Posts are keyed by status id. Posts without a `/status/` link (promoted units, some cards) fall back to a handle + text signature so the same unit stays hidden after a refresh.
+- Hiding collapses the owning `[data-testid="cellInnerDiv"]` row, not just the article, because X positions timeline rows absolutely inside a measured container. A single coalesced `resize` event lets the virtualizer close the gap without moving scroll position.
+- A toast with **Undo** appears after each hide; the Control Center also offers "Undo last hide", per-post Restore for the eight most recent, and "Clear hidden posts".
+- Storage key: `aviary.hiddenPosts.v1`. The oldest entries are dropped once the store passes "Maximum remembered posts" (default 5000, range 100-50000).
+- The Control Center "Hidden posts" section controls the master switch, the per-post button, per-route activation, and the cap. Turning the master switch off reveals everything again without forgetting anything.
 
 ## One-click media
 
@@ -161,7 +172,7 @@ The Integrations panel also surfaces a "Recent integration errors" readout that 
 
 ## Roadmap
 
-The working plan is in [ROADMAP.md](ROADMAP.md). v1.5.0 closes the local retention/history, crosspost-upload, and CI-smoke batch. F032/F033 remain in [Roadmap_Blocked.md](Roadmap_Blocked.md) until authenticated `_decoded/` captures are available.
+The working plan is in [ROADMAP.md](ROADMAP.md). v1.5.0 closes the local retention/history, crosspost-upload, and CI-smoke batch. F032/F033 remain blocked until authenticated `_decoded/` captures are available.
 
 `npm run smoke` runs the Playwright spec at `tests/smoke/aviary.smoke.mjs`. The CI workflow caches Chromium and runs it inside an isolated Xvfb display. For local use, install the pinned runner and browser:
 
