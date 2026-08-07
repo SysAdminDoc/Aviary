@@ -92,6 +92,16 @@ Drains the audit findings left open by the v1.7.0 pass.
   silently — past those limits the archive was still produced and simply unzipped to the wrong
   thing. Each now throws a `RangeError` naming the limit rather than emitting a corrupt file.
 
+- **A CRLF in a scraped value can no longer corrupt a WARC.** `WARC-Target-URI` and
+  `Content-Type` were interpolated unsanitised, and WARC headers are CRLF-delimited — so a
+  newline in a permalink or media URL injected arbitrary headers (a forged `WARC-Type` among
+  them) and, once the injected text was read as a record boundary, `warcio` raised
+  `ArchiveLoadFailed` and every later record was lost. Reachable because `library/archive-import.ts`
+  feeds records straight from a downloaded X archive, where a field can hold anything. C0
+  controls are now stripped from header values, and a record with no target or mime still emits
+  both fields. Verified with `warcio`: all records parse, no header is injected, and every
+  `Content-Length` matches its body bytes.
+
 ### Decided
 
 - **No Escape-to-close handler.** The open question was whether standard dialog dismissal should

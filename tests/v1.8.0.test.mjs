@@ -525,3 +525,55 @@ test("the zip writer refuses to emit a silently-truncated archive", async () => 
   const ok = buildStoreZip([{ filename: "a.txt", data: new TextEncoder().encode("hi") }]);
   assert.equal(new DataView(ok.buffer, ok.byteOffset).getUint32(0, true), 0x04034b50);
 });
+
+test("a CRLF in a scraped value cannot inject WARC headers or split a record", async () => {
+  const { formatRecord, buildWarcArchive } = await importBundledModule("src/features/export/warc.ts");
+
+  const hostile = "https://x.com/a/status/456\r\nWARC-Type: warcinfo\r\nX-Injected: yes";
+  const bytes = formatRecord({ url: hostile, mime: "application/json", body: "{}" });
+  const text = new TextDecoder().decode(bytes);
+
+  // One record means exactly one version line and one header block.
+  assert.equal(text.split("WARC/1.1").length - 1, 1, "the value started a second record");
+
+  // The hostile text survives *inside* the URI value, which is fine and inert. What must not
+  // happen is it becoming its own header line, so assert on line starts rather than substrings.
+  const headerLines = text.split("\r\n\r\n")[0].split("\r\n");
+  assert.ok(
+    !headerLines.some((line) => line.startsWith("X-Injected")),
+    `an arbitrary header was injected: ${JSON.stringify(headerLines)}`
+  );
+  assert.equal(
+    headerLines.filter((line) => line.startsWith("WARC-Type:")).length,
+    1,
+    "WARC-Type could be forged"
+  );
+
+  // The whole archive must still parse as the expected number of records.
+  const archive = buildWarcArchive([
+    { tweetId: "1", handle: "a", text: "t", permalink: hostile, media: [{ url: hostile, kind: "photo", type: "image/jpeg" }] }
+  ]);
+  const all = new TextDecoder().decode(archive.data);
+  assert.equal(all.split("WARC/1.1").length - 1, 3, "expected metadata + resource + media records");
+});
+
+test("WARC Content-Length counts bytes, not characters", async () => {
+  const { formatRecord } = await importBundledModule("src/features/export/warc.ts");
+
+  // 8 characters, but more than 8 bytes once encoded — a char count would truncate the body
+  // and desynchronise every following record.
+  const body = "アーカイブ-é";
+  const expected = new TextEncoder().encode(body).length;
+  assert.notEqual(expected, body.length, "pick a body where bytes and chars differ");
+
+  const text = new TextDecoder().decode(formatRecord({ url: "urn:x", mime: "text/plain", body }));
+  const declared = Number(/Content-Length: (\d+)/.exec(text)[1]);
+  assert.equal(declared, expected);
+});
+
+test("a record with no target URI or mime still carries both fields", async () => {
+  const { formatRecord } = await importBundledModule("src/features/export/warc.ts");
+  const text = new TextDecoder().decode(formatRecord({ url: "", mime: "", body: "x" }));
+  assert.match(text, /WARC-Target-URI: urn:aviary:unknown/);
+  assert.match(text, /Content-Type: application\/octet-stream/);
+});

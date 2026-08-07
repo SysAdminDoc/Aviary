@@ -56,18 +56,42 @@ export function buildWarcArchive(records: readonly ExportRecord[]): ExportArtifa
   };
 }
 
+/**
+ * WARC headers are CRLF-delimited, so a CR or LF inside a value does not escape — it ends the
+ * line. A scraped permalink or media URL carrying one injects arbitrary headers (including a
+ * forged `WARC-Type`) and, once the injected text is mistaken for a record boundary, the reader
+ * fails the whole file: warcio raises ArchiveLoadFailed and every later record is lost.
+ *
+ * These values are not all browser-normalized — `library/archive-import.ts` feeds records
+ * straight out of a downloaded X archive, where a field can hold anything. Strip CR, LF and the
+ * other C0 controls rather than trusting the source, the same way CSV export escapes formulas.
+ */
+function sanitizeHeaderValue(value: string): string {
+  let out = "";
+  for (const ch of value) {
+    const code = ch.codePointAt(0) ?? 0;
+    // C0 controls (CR and LF among them) and DEL end or corrupt a header line. Written as a
+    // code-point test rather than a character class so no control byte lives in this source.
+    out += code < 0x20 || code === 0x7f ? " " : ch;
+  }
+  return out.split(" ").filter((part) => part.length > 0).join(" ");
+}
+
 export function formatRecord(input: WarcRecordInput): Uint8Array {
   const recordType = input.recordType ?? "resource";
   const recordedAt = (input.recordedAt ?? new Date()).toISOString().replace(/\.[0-9]{3}Z$/, "Z");
   const id = `<urn:uuid:${randomUuid()}>`;
   const bodyBytes = typeof input.body === "string" ? ENCODER.encode(input.body) : input.body;
+  const url = sanitizeHeaderValue(input.url);
+  const mime = sanitizeHeaderValue(input.mime);
   const headerLines = [
     "WARC/1.1",
     `WARC-Type: ${recordType}`,
-    `WARC-Target-URI: ${input.url}`,
+    // A record with no usable target still has to carry the field, or readers reject it.
+    `WARC-Target-URI: ${url.length > 0 ? url : "urn:aviary:unknown"}`,
     `WARC-Date: ${recordedAt}`,
     `WARC-Record-ID: ${id}`,
-    `Content-Type: ${input.mime}`,
+    `Content-Type: ${mime.length > 0 ? mime : "application/octet-stream"}`,
     `Content-Length: ${bodyBytes.length}`
   ];
   const headerBytes = ENCODER.encode(`${headerLines.join("\r\n")}\r\n\r\n`);

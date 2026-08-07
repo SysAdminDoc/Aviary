@@ -7805,18 +7805,29 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       data: out
     };
   }
+  function sanitizeHeaderValue(value) {
+    let out = "";
+    for (const ch of value) {
+      const code = ch.codePointAt(0) ?? 0;
+      out += code < 32 || code === 127 ? " " : ch;
+    }
+    return out.split(" ").filter((part) => part.length > 0).join(" ");
+  }
   function formatRecord(input) {
     const recordType = input.recordType ?? "resource";
     const recordedAt = (input.recordedAt ?? /* @__PURE__ */ new Date()).toISOString().replace(/\.[0-9]{3}Z$/, "Z");
     const id = `<urn:uuid:${randomUuid()}>`;
     const bodyBytes = typeof input.body === "string" ? ENCODER3.encode(input.body) : input.body;
+    const url = sanitizeHeaderValue(input.url);
+    const mime = sanitizeHeaderValue(input.mime);
     const headerLines = [
       "WARC/1.1",
       `WARC-Type: ${recordType}`,
-      `WARC-Target-URI: ${input.url}`,
+      // A record with no usable target still has to carry the field, or readers reject it.
+      `WARC-Target-URI: ${url.length > 0 ? url : "urn:aviary:unknown"}`,
       `WARC-Date: ${recordedAt}`,
       `WARC-Record-ID: ${id}`,
-      `Content-Type: ${input.mime}`,
+      `Content-Type: ${mime.length > 0 ? mime : "application/octet-stream"}`,
       `Content-Length: ${bodyBytes.length}`
     ];
     const headerBytes = ENCODER3.encode(`${headerLines.join("\r\n")}\r
