@@ -103,7 +103,11 @@ test("removeFeatureToast takes the host with it", async () => {
 test("the AI menu flips above the trigger instead of running past the fold", async () => {
   const result = await page.evaluate(() => {
     const ctx = {
-      settings: { integrations: { ai: { enabled: false, apiKey: "" } }, i18n: { locale: "en" } },
+      settings: {
+        ai: { commandMenu: true },
+        integrations: { ai: { enabled: false, apiKey: "" } },
+        i18n: { locale: "en" }
+      },
       diagnostics: { info() {}, warn() {}, error() {} },
       auditLog: { record() {} }
     };
@@ -142,7 +146,11 @@ test("the AI menu flips above the trigger instead of running past the fold", asy
 test("destroy removes an open AI menu and its document listener", async () => {
   const result = await page.evaluate(() => {
     const ctx = {
-      settings: { integrations: { ai: { enabled: false, apiKey: "" } }, i18n: { locale: "en" } },
+      settings: {
+        ai: { commandMenu: true },
+        integrations: { ai: { enabled: false, apiKey: "" } },
+        i18n: { locale: "en" }
+      },
       diagnostics: { info() {}, warn() {}, error() {} },
       auditLog: { record() {} }
     };

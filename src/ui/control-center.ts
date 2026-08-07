@@ -5,7 +5,6 @@ import type {
   FilterSurface,
   MediaLayout,
   ReduceMotionMode,
-  SensitiveMode
 } from "../platform/settings";
 import { FILTER_MEDIA_KEYS, FILTER_SURFACES, isThemeId } from "../platform/settings";
 import { hasTranslation, translateText } from "../platform/i18n";
@@ -20,21 +19,6 @@ declare const __AVIARY_VERSION__: string;
 
 const AVIARY_VERSION = typeof __AVIARY_VERSION__ === "undefined" ? "dev" : __AVIARY_VERSION__;
 
-/**
- * These say "every" because that is what they do.
- *
- * The rules behind blur and hide match every `tweetPhoto` and video in the timeline, not only
- * media X has marked sensitive — measured in tests/media-scope.test.mjs against the captured
- * timeline, where all three photos are affected and none of them is sensitive. Neither capture
- * contains a single piece of sensitive media, so there is no verified marker to scope them to.
- * Until there is, the label describes the behaviour rather than the intent.
- */
-const SENSITIVE_OPTIONS: Array<[SensitiveMode, string]> = [
-  ["default", "Default (X decides)"],
-  ["reveal", "Reveal media X has hidden"],
-  ["blur", "Blur every photo and video"],
-  ["hide", "Hide every photo and video"]
-];
 
 const MEDIA_LAYOUT_OPTIONS: Array<[MediaLayout, string]> = [
   ["default", "Default grid"],
@@ -95,6 +79,8 @@ export interface ControlCenterOptions {
   runExport?: () => Promise<ExportResultSummary>;
   copyDiagnostics?: () => Promise<void>;
   exportSettings?: () => Promise<void>;
+  /** Puts every setting back to "Aviary changes nothing about X". */
+  resetSettings?: () => Promise<void>;
   importSettings?: (payload: string) => Promise<{ applied: boolean; warnings: string[]; errors: string[] }>;
   getAuditSize?: () => number;
   /**
@@ -388,6 +374,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   const appearanceRows = (): HTMLElement[] => {
     return [
         selectRow("Theme", options.settings.appearance.theme, [
+          ["off", "Off (X's own theme)"],
           ["dim", "Dim"],
           ["lightsOut", "Lights out"],
           ["graphite", "Graphite"],
@@ -1408,6 +1395,18 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
     rows.push(
       toggleRow(
+        "Show the AI button on posts",
+        "Adds a button to every post that builds a Translate, Summarize, Explain or Fact-check prompt. Without an AI provider configured it copies the prompt to your clipboard; nothing is sent anywhere.",
+        options.settings.ai.commandMenu,
+        async (checked) => {
+          options.settings.ai.commandMenu = checked;
+          await save(checked ? "AI button on" : "AI button off");
+        }
+      )
+    );
+
+    rows.push(
+      toggleRow(
         "Unshorten t.co links",
         "Replace short `t.co` redirects with the destination from aria-labels and titles.",
         options.settings.links.expandTco,
@@ -1497,6 +1496,24 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
   const backupRows = (): HTMLElement[] => {
     const rows: HTMLElement[] = [];
+
+    if (options.resetSettings) {
+      rows.push(
+        actionRow(
+          "Reset everything to plain X",
+          "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept — this only resets preferences.",
+          async () => {
+            try {
+              await options.resetSettings!();
+              setStatus("Everything reset. X is untouched again.");
+            } catch (error) {
+              options.onError("Could not reset settings", error);
+              setStatus("Could not reset settings.");
+            }
+          }
+        )
+      );
+    }
 
     if (options.exportSettings) {
       rows.push(
@@ -1837,17 +1854,6 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         async (checked) => {
           options.settings.media.downloadHistory = checked;
           await save(checked ? "Duplicate history on" : "Duplicate history off");
-        }
-      )
-    );
-    rows.push(
-      selectRow(
-        "Photos and videos",
-        options.settings.media.sensitive,
-        SENSITIVE_OPTIONS,
-        async (value) => {
-          options.settings.media.sensitive = coerceSensitive(value);
-          await save("Photo and video display saved");
         }
       )
     );
@@ -2670,10 +2676,6 @@ function coerceFilterAction(value: string): FilterAction {
   return value === "hide" || value === "dim" ? value : "off";
 }
 
-function coerceSensitive(value: string): SensitiveMode {
-  return value === "reveal" || value === "blur" || value === "hide" ? value : "default";
-}
-
 function coerceLayout(value: string): MediaLayout {
   return value === "stacked" || value === "grid" ? value : "default";
 }
@@ -2719,11 +2721,15 @@ const CONTROL_CENTER_CSS = `
   min-height: 42px;
   border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 70%, transparent);
   border-radius: 8px;
-  /* Follows the active theme's accent — this was pinned to X blue in every theme. */
+  /* Opaque, and deliberately so. This was a translucent accent wash over whatever the page had
+     behind it, which worked only because Aviary used to force X dark. With the default now
+     "leave X alone", the same wash sat on X's light mode at 1.12:1 against its own near-white
+     label — invisible. The launcher is Aviary's own chrome and must not depend on the page.
+     Measured in tests/injected-ui-contract.test.mjs by compositing on canvas. */
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 22%, transparent),
-    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, transparent)
+    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 22%, var(--av-surface-raised, rgb(22, 24, 28))),
+    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, var(--av-surface-raised, rgb(22, 24, 28)))
   );
   color: var(--av-text, rgb(239, 243, 244));
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.42);

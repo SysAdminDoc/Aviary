@@ -57,20 +57,23 @@ test("settings schema accepts new media presentation fields", async () => {
     "src/platform/settings.ts"
   );
 
-  assert.equal(DEFAULT_SETTINGS.media.sensitive, "default");
   assert.equal(DEFAULT_SETTINGS.media.layout, "default");
 
   const normalized = normalizeSettings({
-    media: { sensitive: "blur", layout: "stacked", lastSaveFolder: "X/<weird>?folder" }
+    media: { layout: "stacked", lastSaveFolder: "X/<weird>?folder" }
   });
-  assert.equal(normalized.media.sensitive, "blur");
   assert.equal(normalized.media.layout, "stacked");
   assert.ok(!normalized.media.lastSaveFolder.includes("<"));
   assert.ok(!normalized.media.lastSaveFolder.includes("?"));
 
-  const fallback = normalizeSettings({ media: { sensitive: "nope", layout: "wide" } });
-  assert.equal(fallback.media.sensitive, "default");
+  const fallback = normalizeSettings({ media: { layout: "wide" } });
   assert.equal(fallback.media.layout, "default");
+
+  // media.sensitive was removed in v1.13.0 -- its rules could not tell sensitive media from any
+  // other media, so Aviary now leaves sensitive content entirely to X. A settings file from an
+  // older build still carrying the key must import without smuggling it back in.
+  const legacy = normalizeSettings({ media: { sensitive: "blur", layout: "default" } });
+  assert.equal("sensitive" in legacy.media, false);
 });
 
 test("presentation feature destroy removes every class it sets", async () => {
@@ -79,10 +82,6 @@ test("presentation feature destroy removes every class it sets", async () => {
     "utf8"
   );
   for (const marker of [
-    "av-sensitive-default",
-    "av-sensitive-reveal",
-    "av-sensitive-blur",
-    "av-sensitive-hide",
     "av-media-layout-default",
     "av-media-layout-stacked",
     "av-media-layout-grid"
@@ -90,6 +89,9 @@ test("presentation feature destroy removes every class it sets", async () => {
     assert.ok(source.includes(marker), `presentation source missing ${marker}`);
   }
   assert.match(source, /destroy/);
+  // Nothing may reintroduce a rule that claims to act on sensitive media: the build cannot tell
+  // sensitive media apart, which is exactly why the modes were removed.
+  assert.ok(!source.includes("av-sensitive"), "sensitive-media rules must not come back unscoped");
 });
 
 function stubVideoContainer({ sources, loop = false, muted = false, ariaLabel = "" }) {

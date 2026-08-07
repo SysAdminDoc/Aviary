@@ -47,6 +47,11 @@ export const composerSnippetsFeature: FeatureModule = {
 };
 
 function decorate(ctx: FeatureContext, root: ParentNode | Element): void {
+  // The trigger is only worth its place once there is something to insert. With no snippets
+  // configured -- the default -- the composer is left exactly as X built it.
+  if (ctx.settings.composer.snippets.length === 0) {
+    return;
+  }
   const toolbars =
     root instanceof Element && root.matches('[data-testid="toolBar"]')
       ? [root as HTMLElement]

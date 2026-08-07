@@ -90,6 +90,11 @@ export const aiCommandMenuFeature: FeatureModule = {
 };
 
 function decorate(ctx: FeatureContext, root: ParentNode | Element): void {
+  // Off by default: a button on every post is a visible change to X, and nothing Aviary adds to
+  // the timeline appears until it is asked for.
+  if (!ctx.settings.ai.commandMenu) {
+    return;
+  }
   const articles =
     root instanceof Element && root.matches('article[data-testid="tweet"]')
       ? [root]

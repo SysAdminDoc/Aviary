@@ -81,7 +81,7 @@ export const PRESETS: PresetDefinition[] = [
         preserveRawPayloads: true,
         autoDiscoverQueryIds: true
       },
-      media: { sensitive: "default", layout: "default" },
+      media: { layout: "default" },
       links: { cleanShareButtons: true }
     }
   },

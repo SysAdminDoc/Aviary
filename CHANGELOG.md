@@ -1,5 +1,47 @@
 # Changelog
 
+## 1.13.0 - 2026-08-07
+
+### Changed
+
+- **Installing Aviary now changes nothing about X.** A fresh install used to hide the right
+  sidebar, hide trends, hide Grok, repaint the page with the "dim" theme, force `color-scheme:
+  dark` over X's own setting, add a Hide button and two media buttons to every post, rewrite share
+  buttons, and pause video that scrolled offscreen — none of it asked for. Everything that alters
+  what X looks like or how it behaves now starts off, and only what you switch on applies. The
+  launcher button is the sole exception, because without it nothing can be switched on.
+  Invisible local bookkeeping (the action log, selector health, the local-only network guard)
+  stays on, because it changes nothing on the page.
+- The theme picker gained **Off (X's own theme)**, which is the new default. Choosing it removes
+  every hook Aviary paints through, rather than painting a dark theme that happens to resemble X's.
+- **Trust → Reset everything to plain X** puts every preference back to that state in one action.
+  Saved posts, notes, bookmarks and download history are untouched — it resets preferences only.
+  Flipping the defaults alone would have done nothing for anyone who already had settings stored.
+
+### Removed
+
+- **The sensitive-content modes are gone.** They could not tell sensitive media from any other
+  media — every rule matched every photo and video — so "blur" smeared the whole timeline and read
+  as images failing to load. Scoping them needs a capture containing sensitive media, and neither
+  capture holds one. Aviary now leaves sensitive content entirely to X, whose own filter is the
+  only thing here that knows which posts are sensitive.
+
+### Fixed
+
+- **The AI button and the snippet trigger injected themselves regardless of any setting.** Neither
+  was gated on anything, so a "vanilla" install still put a button on every post — caught by
+  counting real elements in a real timeline, not by reading the schema. The AI button now has its
+  own toggle (Library → Show the AI button on posts, off by default), and the snippet trigger
+  appears once there is a snippet to insert.
+- **The launcher became unreadable on X in light mode.** It painted a translucent accent wash
+  straight over the page, which only worked while Aviary forced X dark — measured at 1.12:1
+  against its own near-white label on a white page. The gradient now mixes into an opaque
+  surface, so what is behind it stops mattering.
+- **Aviary was clearing X's own `color-scheme`.** X sets `color-scheme: dark` inline on `<html>`;
+  resetting the theme wrote an empty string over it, taking X's value with it and flipping the
+  page to `normal`. It now clears only the value it set itself.
+
+
 ## 1.12.1 - 2026-08-07
 
 ### Fixed

@@ -42,6 +42,7 @@ function stubs(variant) {
   getExportStatus: () => ({ jobCount: ${v ? 2 : 8}, knownQueries: ${v ? 3 : 11} }),
   runExport: async () => ({ records: 0, filename: "aviary.json" }),
   copyDiagnostics: async () => {},
+  resetSettings: async () => {},
   exportSettings: async () => {},
   importSettings: async () => ({ applied: true, warnings: [], errors: [] }),
   getAuditSize: () => ${v ? 3 : 12},

@@ -24,11 +24,10 @@ test("listPresets and applyPreset mutate the expected sections", async () => {
   const archivist = getPreset("media-archivist");
   assert.ok(archivist);
   const next = applyPreset(DEFAULT_SETTINGS, archivist);
-  // Media Archivist set media.sensitive to "blur" until v1.12.1 and described it as "sensitive
-  // blur". The rules behind that mode reach every photo and video, not only sensitive ones, so
-  // the preset blurred the entire timeline — see tests/media-scope.test.mjs. An archivist preset
-  // has no reason to touch how media is displayed at all.
-  assert.equal(next.media.sensitive, "default", "the archivist preset must not blur the timeline");
+  // Media Archivist set media.sensitive to "blur" and described it as "sensitive blur". Those
+  // rules reached every photo and video, not only sensitive ones, so the preset blurred the whole
+  // timeline. The mode was removed outright in v1.13.0 — Aviary leaves sensitive media to X.
+  assert.equal("sensitive" in next.media, false, "the sensitive mode must stay gone");
   assert.equal(next.media.layout, "stacked");
   assert.equal(next.appearance.theme, "lightsOut");
 

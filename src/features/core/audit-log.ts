@@ -15,6 +15,7 @@ export type AuditAction =
   | "export.start"
   | "export.complete"
   | "capture.payload"
+  | "settings.reset"
   | "settings.import"
   | "settings.export"
   | "preset.apply"

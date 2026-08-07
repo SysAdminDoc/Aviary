@@ -1,8 +1,27 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.12.1-2f81f7)
+![Version](https://img.shields.io/badge/version-1.13.0-2f81f7)
 
 Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.7.0: foundation primitives, fixture-backed selector checks, theme + control-center, layout declutter, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
+
+## Vanilla by default
+
+Installing Aviary changes nothing about X. Every setting that alters what X looks like or how it
+behaves — themes, hiding the sidebar or trends, the Hide and media buttons, filtering, pausing
+offscreen video, refusing analytics beacons — starts off. Only what you switch on applies. The
+one thing Aviary adds unasked is its own launcher button, because without it there is nothing to
+switch anything on with.
+
+`tests/vanilla-by-default.test.mjs` measures this rather than asserting it: with default settings
+it mounts the real theme code against the captured timeline and requires the computed styles to
+come back byte-identical.
+
+Already configured it and want to start over? **Trust → Reset everything to plain X**. That resets
+preferences only; saved posts, notes, bookmarks and download history are kept.
+
+Aviary does not touch sensitive media. It has no setting for it, because it cannot tell sensitive
+posts from any other post — X's own filter is the only thing here that knows, and it is left to do
+its job.
 
 ## Current Status
 
@@ -92,7 +111,7 @@ In the MV3 build `downloads` is an optional permission. Until it is granted the 
 
 Tweets with embedded video or GIF players now also expose a Video / GIF button. Aviary scans `<video>` and `<source>` elements inside `[data-testid="videoPlayer"]` / `videoComponent` containers and picks the highest-bitrate variant available in the DOM. When `tweet_video/` URLs or loop+muted players are detected, the button labels itself "GIF" and the dedup history scopes by media kind.
 
-## Sensitive content and layout
+## Media layout
 
 The Media section also exposes:
 

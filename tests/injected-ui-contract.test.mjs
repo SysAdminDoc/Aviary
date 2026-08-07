@@ -78,6 +78,9 @@ const CTX_SETUP = () => {
         filenameTemplate: "{handle}",
         downloadHistory: false
       },
+      // The AI button is off by default since v1.13.0; this suite measures it, so it opts in.
+      ai: { commandMenu: true },
+      composer: { snippets: ["a snippet"] },
       integrations: { ai: { enabled: false, apiKey: "" } },
       i18n: { locale: "en" }
     },
@@ -216,6 +219,8 @@ test("timeline controls render in the reader's locale, not English", async () =>
         settings: {
           media: { buttons: true, preferOriginalImages: true, filenameTemplate: "x", downloadHistory: false },
           hidden: { enabled: true, buttons: true, surfaces: ["home"], maxEntries: 10 },
+          ai: { commandMenu: true },
+          composer: { snippets: ["a snippet"] },
           integrations: { ai: { enabled: false, apiKey: "" } },
           i18n: { locale },
           accessibility: { reduceMotion: "never" }
@@ -279,3 +284,90 @@ test("timeline controls render in the reader's locale, not English", async () =>
     }
   }
 });
+
+/**
+ * The launcher must be readable on whatever X is showing, including light mode.
+ *
+ * It used to paint a translucent accent wash straight over the page, which only worked because
+ * Aviary forced X dark. Once the default became "leave X alone", that wash sat on X's light mode
+ * at 1.12:1 against its own near-white label. The gradient now mixes into an opaque surface, so
+ * the page behind it stops mattering.
+ *
+ * Compositing is done by the browser on a canvas rather than by parsing colour strings: Chromium
+ * resolves color-mix() to `color(srgb ...)`, and a regex over that reads digits out of decimals
+ * and reports nonsense ratios that pass every assertion.
+ */
+test("the launcher stays legible on a light page", async () => {
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch({ headless: true });
+
+  try {
+    const page = await browser.newPage();
+    await page.setContent('<body style="background:#fff">x</body>');
+    await page.addStyleTag({ content: await launcherCss() });
+    await page.setContent(
+      '<body style="background:#fff"><button class="av-launcher">Aviary</button></body>'
+    );
+    await page.addStyleTag({ content: await launcherCss() });
+
+    const measured = await page.evaluate(() => {
+      const launcher = document.querySelector(".av-launcher");
+      const style = getComputedStyle(launcher);
+      const stops = style.backgroundImage.match(/(?:color\(srgb[^)]*\)|rgba?\([^)]*\))/g) ?? [];
+
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 1;
+      const g = canvas.getContext("2d");
+      const composite = (over, base) => {
+        g.fillStyle = base;
+        g.fillRect(0, 0, 1, 1);
+        g.fillStyle = over;
+        g.fillRect(0, 0, 1, 1);
+        return [...g.getImageData(0, 0, 1, 1).data].slice(0, 3);
+      };
+      const luminance = ([r, gr, b]) => {
+        const channel = (v) => {
+          const c = v / 255;
+          return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+        };
+        return 0.2126 * channel(r) + 0.7152 * channel(gr) + 0.0722 * channel(b);
+      };
+      const ratio = (a, b) => {
+        const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+        return (hi + 0.05) / (lo + 0.05);
+      };
+
+      // Every gradient stop, composited over WHITE -- the worst case for a light-coloured label.
+      const text = composite(style.color, "#ffffff");
+      const ratios = stops.map((stop) => ratio(composite(stop, "#ffffff"), text));
+
+      return {
+        stops: stops.length,
+        worst: Math.min(...ratios),
+        // Control: a harness that cannot report a bad pair as bad is authorising everything.
+        controlWhiteOnWhite: ratio(composite("#ffffff", "#ffffff"), composite("#ffffff", "#ffffff"))
+      };
+    });
+
+    assert.ok(measured.stops >= 2, `expected gradient stops, found ${measured.stops}`);
+    assert.ok(
+      measured.controlWhiteOnWhite < 1.05,
+      `control failed — the harness reported ${measured.controlWhiteOnWhite}:1 for white on white`
+    );
+    assert.ok(
+      measured.worst >= 4.5,
+      `launcher label measures ${measured.worst.toFixed(2)}:1 against its own background`
+    );
+  } finally {
+    await browser.close();
+  }
+});
+
+async function launcherCss() {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+  const start = source.indexOf(".av-launcher {");
+  const end = source.indexOf("}", start) + 1;
+  // `position: fixed` would take it out of flow and give it a zero box in this harness.
+  return source.slice(start, end).replace("position: fixed;", "position: static;");
+}

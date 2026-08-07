@@ -231,17 +231,19 @@ test("pauseOffscreenVideo is a real setting the normalizer round-trips", async (
     "src/platform/settings.ts"
   );
 
-  assert.equal(DEFAULT_SETTINGS.performance.pauseOffscreenVideo, true);
-  assert.equal(normalizeSettings({}).performance.pauseOffscreenVideo, true);
+  // Off since v1.13.0: pausing video X chose to play is a change to how X behaves, and nothing
+  // that changes X is on until the user asks for it.
+  assert.equal(DEFAULT_SETTINGS.performance.pauseOffscreenVideo, false);
+  assert.equal(normalizeSettings({}).performance.pauseOffscreenVideo, false);
   assert.equal(
-    normalizeSettings({ performance: { pauseOffscreenVideo: false } }).performance
+    normalizeSettings({ performance: { pauseOffscreenVideo: true } }).performance
       .pauseOffscreenVideo,
-    false
+    true
   );
   assert.equal(
-    normalizeSettings({ performance: { pauseOffscreenVideo: "no" } }).performance
+    normalizeSettings({ performance: { pauseOffscreenVideo: "yes" } }).performance
       .pauseOffscreenVideo,
-    true,
+    false,
     "a non-boolean falls back to the default rather than becoming truthy"
   );
 });

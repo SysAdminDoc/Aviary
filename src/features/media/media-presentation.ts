@@ -2,6 +2,19 @@ import type { FeatureContext, FeatureModule } from "../registry";
 
 const STYLE_ID = "av-media-presentation";
 
+/**
+ * Media layout only.
+ *
+ * This module also carried a `media.sensitive` mode (default / reveal / blur / hide) until
+ * v1.13.0. None of its rules could tell sensitive media apart from any other media -- they
+ * matched every `tweetPhoto` and video in the timeline -- so "blur" smeared the whole timeline
+ * and read as images failing to load. Scoping them needs a capture containing sensitive media,
+ * and neither `_decoded/` capture holds a single instance.
+ *
+ * Rather than keep a control that could not do what it was named for, Aviary now leaves sensitive
+ * media entirely to X, whose own filter is the one thing here that actually knows which posts are
+ * sensitive. Roadmap_Blocked.md records what a capture would unblock.
+ */
 export const mediaPresentationFeature: FeatureModule = {
   id: "media.presentation",
   title: "Media presentation",
@@ -12,7 +25,6 @@ export const mediaPresentationFeature: FeatureModule = {
     ensurePresentationStyle();
     applyPresentationClasses(ctx);
     ctx.diagnostics.info("Media presentation initialized", {
-      sensitive: ctx.settings.media.sensitive,
       layout: ctx.settings.media.layout
     });
   },
@@ -26,10 +38,6 @@ export const mediaPresentationFeature: FeatureModule = {
     document.getElementById(STYLE_ID)?.remove();
     const root = document.documentElement;
     for (const className of [
-      "av-sensitive-default",
-      "av-sensitive-reveal",
-      "av-sensitive-blur",
-      "av-sensitive-hide",
       "av-media-layout-default",
       "av-media-layout-stacked",
       "av-media-layout-grid"
@@ -42,16 +50,6 @@ export const mediaPresentationFeature: FeatureModule = {
 
 function applyPresentationClasses(ctx: FeatureContext): void {
   const root = document.documentElement;
-  for (const className of [
-    "av-sensitive-default",
-    "av-sensitive-reveal",
-    "av-sensitive-blur",
-    "av-sensitive-hide"
-  ]) {
-    root.classList.remove(className);
-  }
-  root.classList.add(`av-sensitive-${ctx.settings.media.sensitive}`);
-
   for (const className of [
     "av-media-layout-default",
     "av-media-layout-stacked",
@@ -72,35 +70,8 @@ function ensurePresentationStyle(): void {
   (document.head ?? document.documentElement).append(style);
 }
 
+// `av-media-layout-default` deliberately has no rules: the default is X's own layout, untouched.
 const PRESENTATION_CSS = `
-html.av-sensitive-reveal article[data-testid="tweet"] [data-testid="contentDisclosureButton"] {
-  display: none !important;
-}
-
-html.av-sensitive-reveal article[data-testid="tweet"] [data-testid="tweetPhoto"] img,
-html.av-sensitive-reveal article[data-testid="tweet"] [data-testid="videoPlayer"] video,
-html.av-sensitive-reveal article[data-testid="tweet"] [data-testid="videoComponent"] video {
-  filter: none !important;
-}
-
-html.av-sensitive-blur article[data-testid="tweet"] [data-testid="tweetPhoto"] img,
-html.av-sensitive-blur article[data-testid="tweet"] [data-testid="videoPlayer"] video,
-html.av-sensitive-blur article[data-testid="tweet"] [data-testid="videoComponent"] video {
-  filter: blur(18px) saturate(0.85) !important;
-  transition: filter 160ms ease;
-}
-
-html.av-sensitive-blur article[data-testid="tweet"] [data-testid="tweetPhoto"]:hover img,
-html.av-sensitive-blur article[data-testid="tweet"] [data-testid="tweetPhoto"]:focus-within img {
-  filter: none !important;
-}
-
-html.av-sensitive-hide article[data-testid="tweet"] [data-testid="tweetPhoto"],
-html.av-sensitive-hide article[data-testid="tweet"] [data-testid="videoPlayer"],
-html.av-sensitive-hide article[data-testid="tweet"] [data-testid="videoComponent"] {
-  display: none !important;
-}
-
 html.av-media-layout-stacked article[data-testid="tweet"] [data-testid="tweetPhoto"] {
   display: block !important;
   width: 100% !important;

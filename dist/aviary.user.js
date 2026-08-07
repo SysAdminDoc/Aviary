@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/aviary-x
-// @version      1.12.1
+// @version      1.13.0
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       Aviary contributors
 // @match        https://x.com/*
@@ -57,7 +57,7 @@ var Aviary = (() => {
       );
       delete document.documentElement.dataset.avTheme;
       delete document.documentElement.dataset.avWidth;
-      document.documentElement.style.colorScheme = "";
+      setColorScheme(document.documentElement, void 0);
       ctx.diagnostics.info("Theme foundation destroyed");
     }
   };
@@ -67,7 +67,11 @@ var Aviary = (() => {
     for (const value of ["dim", "lightsOut", "graphite", "plum", "midnight"]) {
       root.classList.toggle(`av-theme-${value}`, value === theme);
     }
-    root.dataset.avTheme = theme;
+    if (theme === "off") {
+      delete root.dataset.avTheme;
+    } else {
+      root.dataset.avTheme = theme;
+    }
     root.dataset.avWidth = settings.appearance.timelineWidth;
     root.classList.toggle("av-chirp", settings.appearance.restoreChirp);
     root.classList.toggle("av-dense", settings.appearance.denseMode);
@@ -75,7 +79,18 @@ var Aviary = (() => {
     root.classList.toggle("av-hide-borders", settings.appearance.hideBorders);
     root.classList.toggle("av-high-contrast", settings.accessibility.highContrast);
     root.classList.toggle("av-reduce-motion", shouldReduceMotion(settings));
-    root.style.colorScheme = "dark";
+    setColorScheme(root, theme === "off" ? void 0 : "dark");
+  }
+  function setColorScheme(root, value) {
+    if (value === void 0) {
+      if (root.dataset.avColorScheme === "1") {
+        root.style.colorScheme = "";
+        delete root.dataset.avColorScheme;
+      }
+      return;
+    }
+    root.style.colorScheme = value;
+    root.dataset.avColorScheme = "1";
   }
   function shouldReduceMotion(settings) {
     if (settings.accessibility.reduceMotion === "always") return true;
@@ -237,6 +252,15 @@ html.av-reduce-motion *::after {
   // src/platform/i18n-catalog.ts
   var PANEL_CATALOG = {
     es: {
+      "Show the AI button on posts": "Mostrar el bot\xF3n de IA en las publicaciones",
+      "Adds a button to every post that builds a Translate, Summarize, Explain or Fact-check prompt. Without an AI provider configured it copies the prompt to your clipboard; nothing is sent anywhere.": "A\xF1ade a cada publicaci\xF3n un bot\xF3n que crea una instrucci\xF3n de Traducir, Resumir, Explicar o Verificar. Si no has configurado un proveedor de IA, copia la instrucci\xF3n al portapapeles; no se env\xEDa nada a ninguna parte.",
+      "AI button on": "Bot\xF3n de IA activado",
+      "AI button off": "Bot\xF3n de IA desactivado",
+      "Off (X's own theme)": "Desactivado (el tema propio de X)",
+      "Reset everything to plain X": "Restablecer todo a X sin cambios",
+      "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "Devuelve cada ajuste a su valor predeterminado, que es no cambiar nada de X. Se conservan tus publicaciones guardadas, notas, marcadores e historial de descargas: esto solo restablece las preferencias.",
+      "Everything reset. X is untouched again.": "Todo restablecido. X vuelve a estar intacto.",
+      "Could not reset settings.": "No se pudieron restablecer los ajustes.",
       "Photos and videos": "Fotos y v\xEDdeos",
       "Default (X decides)": "Predeterminado (lo decide X)",
       "Reveal media X has hidden": "Mostrar el contenido que X ha ocultado",
@@ -735,6 +759,15 @@ html.av-reduce-motion *::after {
       "Cancel": "Cancelar"
     },
     pt: {
+      "Show the AI button on posts": "Mostrar o bot\xE3o de IA nas publica\xE7\xF5es",
+      "Adds a button to every post that builds a Translate, Summarize, Explain or Fact-check prompt. Without an AI provider configured it copies the prompt to your clipboard; nothing is sent anywhere.": "Adiciona a cada publica\xE7\xE3o um bot\xE3o que comp\xF5e um pedido de Traduzir, Resumir, Explicar ou Verificar factos. Sem um fornecedor de IA configurado, copia o pedido para a \xE1rea de transfer\xEAncia; nada \xE9 enviado para lado nenhum.",
+      "AI button on": "Bot\xE3o de IA ativado",
+      "AI button off": "Bot\xE3o de IA desativado",
+      "Off (X's own theme)": "Desativado (o tema do pr\xF3prio X)",
+      "Reset everything to plain X": "Repor tudo para o X original",
+      "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "Devolve todas as defini\xE7\xF5es ao valor predefinido, que \xE9 n\xE3o alterar nada no X. As tuas publica\xE7\xF5es guardadas, notas, marcadores e hist\xF3rico de transfer\xEAncias s\xE3o mantidos \u2014 isto rep\xF5e apenas as prefer\xEAncias.",
+      "Everything reset. X is untouched again.": "Tudo reposto. O X est\xE1 intacto outra vez.",
+      "Could not reset settings.": "N\xE3o foi poss\xEDvel repor as defini\xE7\xF5es.",
       "Photos and videos": "Fotos e v\xEDdeos",
       "Default (X decides)": "Predefinido (decide o X)",
       "Reveal media X has hidden": "Mostrar conte\xFAdo que o X ocultou",
@@ -1233,6 +1266,15 @@ html.av-reduce-motion *::after {
       "Cancel": "Cancelar"
     },
     fr: {
+      "Show the AI button on posts": "Afficher le bouton IA sur les posts",
+      "Adds a button to every post that builds a Translate, Summarize, Explain or Fact-check prompt. Without an AI provider configured it copies the prompt to your clipboard; nothing is sent anywhere.": "Ajoute \xE0 chaque post un bouton qui compose une requ\xEAte Traduire, R\xE9sumer, Expliquer ou V\xE9rifier. Sans fournisseur d'IA configur\xE9, la requ\xEAte est copi\xE9e dans le presse-papiers ; rien n'est envoy\xE9 nulle part.",
+      "AI button on": "Bouton IA activ\xE9",
+      "AI button off": "Bouton IA d\xE9sactiv\xE9",
+      "Off (X's own theme)": "D\xE9sactiv\xE9 (th\xE8me natif de X)",
+      "Reset everything to plain X": "Tout r\xE9initialiser au X d'origine",
+      "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "Remet chaque r\xE9glage \xE0 sa valeur par d\xE9faut, c'est-\xE0-dire ne rien modifier sur X. Vos posts enregistr\xE9s, notes, favoris et historique de t\xE9l\xE9chargement sont conserv\xE9s : seules les pr\xE9f\xE9rences sont r\xE9initialis\xE9es.",
+      "Everything reset. X is untouched again.": "Tout est r\xE9initialis\xE9. X est de nouveau intact.",
+      "Could not reset settings.": "Impossible de r\xE9initialiser les r\xE9glages.",
       "Photos and videos": "Photos et vid\xE9os",
       "Default (X decides)": "Par d\xE9faut (choix de X)",
       "Reveal media X has hidden": "Afficher les m\xE9dias masqu\xE9s par X",
@@ -1731,6 +1773,15 @@ html.av-reduce-motion *::after {
       "Cancel": "Annuler"
     },
     de: {
+      "Show the AI button on posts": "KI-Schaltfl\xE4che an Beitr\xE4gen anzeigen",
+      "Adds a button to every post that builds a Translate, Summarize, Explain or Fact-check prompt. Without an AI provider configured it copies the prompt to your clipboard; nothing is sent anywhere.": "F\xFCgt jedem Beitrag eine Schaltfl\xE4che hinzu, die eine Anfrage zum \xDCbersetzen, Zusammenfassen, Erkl\xE4ren oder Faktenpr\xFCfen erstellt. Ohne eingerichteten KI-Anbieter wird die Anfrage in die Zwischenablage kopiert; es wird nichts irgendwohin gesendet.",
+      "AI button on": "KI-Schaltfl\xE4che an",
+      "AI button off": "KI-Schaltfl\xE4che aus",
+      "Off (X's own theme)": "Aus (X' eigenes Design)",
+      "Reset everything to plain X": "Alles auf das pure X zur\xFCcksetzen",
+      "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "Setzt jede Einstellung auf ihren Standard zur\xFCck \u2014 und der ist, an X \xFCberhaupt nichts zu \xE4ndern. Gespeicherte Beitr\xE4ge, Notizen, Lesezeichen und der Download-Verlauf bleiben erhalten; zur\xFCckgesetzt werden nur die Einstellungen.",
+      "Everything reset. X is untouched again.": "Alles zur\xFCckgesetzt. X ist wieder unber\xFChrt.",
+      "Could not reset settings.": "Einstellungen konnten nicht zur\xFCckgesetzt werden.",
       "Photos and videos": "Fotos und Videos",
       "Default (X decides)": "Standard (X entscheidet)",
       "Reveal media X has hidden": "Von X ausgeblendete Medien anzeigen",
@@ -2229,6 +2280,15 @@ html.av-reduce-motion *::after {
       "Cancel": "Abbrechen"
     },
     ja: {
+      "Show the AI button on posts": "\u6295\u7A3F\u306B AI \u30DC\u30BF\u30F3\u3092\u8868\u793A\u3059\u308B",
+      "Adds a button to every post that builds a Translate, Summarize, Explain or Fact-check prompt. Without an AI provider configured it copies the prompt to your clipboard; nothing is sent anywhere.": "\u7FFB\u8A33\u30FB\u8981\u7D04\u30FB\u89E3\u8AAC\u30FB\u30D5\u30A1\u30AF\u30C8\u30C1\u30A7\u30C3\u30AF\u306E\u30D7\u30ED\u30F3\u30D7\u30C8\u3092\u7D44\u307F\u7ACB\u3066\u308B\u30DC\u30BF\u30F3\u3092\u5404\u6295\u7A3F\u306B\u8FFD\u52A0\u3057\u307E\u3059\u3002AI \u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u3092\u8A2D\u5B9A\u3057\u3066\u3044\u306A\u3044\u5834\u5408\u306F\u30D7\u30ED\u30F3\u30D7\u30C8\u3092\u30AF\u30EA\u30C3\u30D7\u30DC\u30FC\u30C9\u306B\u30B3\u30D4\u30FC\u3059\u308B\u3060\u3051\u3067\u3001\u3069\u3053\u306B\u3082\u9001\u4FE1\u3055\u308C\u307E\u305B\u3093\u3002",
+      "AI button on": "AI \u30DC\u30BF\u30F3\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
+      "AI button off": "AI \u30DC\u30BF\u30F3\u3092\u30AA\u30D5\u306B\u3057\u307E\u3057\u305F",
+      "Off (X's own theme)": "\u30AA\u30D5\uFF08X \u672C\u6765\u306E\u30C6\u30FC\u30DE\uFF09",
+      "Reset everything to plain X": "\u3059\u3079\u3066\u3092\u7D20\u306E X \u306B\u623B\u3059",
+      "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "\u3059\u3079\u3066\u306E\u8A2D\u5B9A\u3092\u65E2\u5B9A\u5024\u306B\u623B\u3057\u307E\u3059\u3002\u65E2\u5B9A\u5024\u3068\u306F\u3001X \u306B\u4E00\u5207\u624B\u3092\u52A0\u3048\u306A\u3044\u3068\u3044\u3046\u72B6\u614B\u3067\u3059\u3002\u4FDD\u5B58\u3057\u305F\u6295\u7A3F\u30FB\u30E1\u30E2\u30FB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u30FB\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u5C65\u6B74\u306F\u305D\u306E\u307E\u307E\u6B8B\u308A\u3001\u623B\u308B\u306E\u306F\u8A2D\u5B9A\u3060\u3051\u3067\u3059\u3002",
+      "Everything reset. X is untouched again.": "\u3059\u3079\u3066\u5143\u306B\u623B\u3057\u307E\u3057\u305F\u3002X \u306B\u306F\u624B\u3092\u52A0\u3048\u3066\u3044\u307E\u305B\u3093\u3002",
+      "Could not reset settings.": "\u8A2D\u5B9A\u3092\u5143\u306B\u623B\u305B\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "Photos and videos": "\u5199\u771F\u3068\u52D5\u753B",
       "Default (X decides)": "\u65E2\u5B9A\uFF08X \u306B\u4EFB\u305B\u308B\uFF09",
       "Reveal media X has hidden": "X \u304C\u96A0\u3057\u305F\u30E1\u30C7\u30A3\u30A2\u3092\u8868\u793A\u3059\u308B",
@@ -2727,6 +2787,15 @@ html.av-reduce-motion *::after {
       "Cancel": "\u30AD\u30E3\u30F3\u30BB\u30EB"
     },
     ko: {
+      "Show the AI button on posts": "\uAC8C\uC2DC\uBB3C\uC5D0 AI \uBC84\uD2BC \uD45C\uC2DC",
+      "Adds a button to every post that builds a Translate, Summarize, Explain or Fact-check prompt. Without an AI provider configured it copies the prompt to your clipboard; nothing is sent anywhere.": "\uBC88\uC5ED\xB7\uC694\uC57D\xB7\uC124\uBA85\xB7\uC0AC\uC2E4 \uD655\uC778 \uD504\uB86C\uD504\uD2B8\uB97C \uB9CC\uB4E4\uC5B4 \uC8FC\uB294 \uBC84\uD2BC\uC744 \uBAA8\uB4E0 \uAC8C\uC2DC\uBB3C\uC5D0 \uCD94\uAC00\uD569\uB2C8\uB2E4. AI \uACF5\uAE09\uC790\uB97C \uC124\uC815\uD558\uC9C0 \uC54A\uC558\uB2E4\uBA74 \uD504\uB86C\uD504\uD2B8\uB97C \uD074\uB9BD\uBCF4\uB4DC\uC5D0 \uBCF5\uC0AC\uD560 \uBFD0, \uC544\uBB34\uAC83\uB3C4 \uC804\uC1A1\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+      "AI button on": "AI \uBC84\uD2BC \uCF1C\uC9D0",
+      "AI button off": "AI \uBC84\uD2BC \uAEBC\uC9D0",
+      "Off (X's own theme)": "\uB044\uAE30 (X \uC790\uCCB4 \uD14C\uB9C8)",
+      "Reset everything to plain X": "\uBAA8\uB450 \uAE30\uBCF8 X \uC0C1\uD0DC\uB85C \uB418\uB3CC\uB9AC\uAE30",
+      "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "\uBAA8\uB4E0 \uC124\uC815\uC744 \uAE30\uBCF8\uAC12\uC73C\uB85C \uB418\uB3CC\uB9BD\uB2C8\uB2E4. \uAE30\uBCF8\uAC12\uC740 X\uB97C \uC804\uD600 \uBC14\uAFB8\uC9C0 \uC54A\uB294 \uC0C1\uD0DC\uC785\uB2C8\uB2E4. \uC800\uC7A5\uD55C \uAC8C\uC2DC\uBB3C\xB7\uBA54\uBAA8\xB7\uBD81\uB9C8\uD06C\xB7\uB2E4\uC6B4\uB85C\uB4DC \uAE30\uB85D\uC740 \uADF8\uB300\uB85C \uC720\uC9C0\uB418\uBA70 \uC124\uC815\uB9CC \uCD08\uAE30\uD654\uB429\uB2C8\uB2E4.",
+      "Everything reset. X is untouched again.": "\uBAA8\uB450 \uCD08\uAE30\uD654\uD588\uC2B5\uB2C8\uB2E4. X\uB294 \uB2E4\uC2DC \uADF8\uB300\uB85C\uC785\uB2C8\uB2E4.",
+      "Could not reset settings.": "\uC124\uC815\uC744 \uCD08\uAE30\uD654\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "Photos and videos": "\uC0AC\uC9C4\uACFC \uB3D9\uC601\uC0C1",
       "Default (X decides)": "\uAE30\uBCF8\uAC12 (X\uAC00 \uACB0\uC815)",
       "Reveal media X has hidden": "X\uAC00 \uAC00\uB9B0 \uBBF8\uB514\uC5B4 \uD45C\uC2DC",
@@ -3225,6 +3294,15 @@ html.av-reduce-motion *::after {
       "Cancel": "\uCDE8\uC18C"
     },
     ar: {
+      "Show the AI button on posts": "\u0625\u0638\u0647\u0627\u0631 \u0632\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0639\u0644\u0649 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A",
+      "Adds a button to every post that builds a Translate, Summarize, Explain or Fact-check prompt. Without an AI provider configured it copies the prompt to your clipboard; nothing is sent anywhere.": "\u064A\u0636\u064A\u0641 \u0625\u0644\u0649 \u0643\u0644 \u0645\u0646\u0634\u0648\u0631 \u0632\u0631\u064B\u0627 \u064A\u064F\u0646\u0634\u0626 \u0637\u0644\u0628\u064B\u0627 \u0644\u0644\u062A\u0631\u062C\u0645\u0629 \u0623\u0648 \u0627\u0644\u062A\u0644\u062E\u064A\u0635 \u0623\u0648 \u0627\u0644\u0634\u0631\u062D \u0623\u0648 \u0627\u0644\u062A\u062D\u0642\u0642 \u0645\u0646 \u0627\u0644\u062D\u0642\u0627\u0626\u0642. \u0648\u0628\u062F\u0648\u0646 \u0625\u0639\u062F\u0627\u062F \u0645\u0632\u0648\u0651\u062F \u0630\u0643\u0627\u0621 \u0627\u0635\u0637\u0646\u0627\u0639\u064A\u060C \u064A\u064F\u0646\u0633\u062E \u0627\u0644\u0637\u0644\u0628 \u0625\u0644\u0649 \u0627\u0644\u062D\u0627\u0641\u0638\u0629 \u0641\u0642\u0637 \u0648\u0644\u0627 \u064A\u064F\u0631\u0633\u0644 \u0623\u064A \u0634\u064A\u0621 \u0625\u0644\u0649 \u0623\u064A \u062C\u0647\u0629.",
+      "AI button on": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0632\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A",
+      "AI button off": "\u062A\u0645 \u0625\u064A\u0642\u0627\u0641 \u0632\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A",
+      "Off (X's own theme)": "\u0625\u064A\u0642\u0627\u0641 (\u0633\u0645\u0629 X \u0627\u0644\u0623\u0635\u0644\u064A\u0629)",
+      "Reset everything to plain X": "\u0625\u0639\u0627\u062F\u0629 \u0643\u0644 \u0634\u064A\u0621 \u0625\u0644\u0649 X \u0643\u0645\u0627 \u0647\u0648",
+      "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "\u064A\u0639\u064A\u062F \u0643\u0644 \u0625\u0639\u062F\u0627\u062F \u0625\u0644\u0649 \u0642\u064A\u0645\u062A\u0647 \u0627\u0644\u0627\u0641\u062A\u0631\u0627\u0636\u064A\u0629\u060C \u0648\u0647\u064A \u0639\u062F\u0645 \u062A\u063A\u064A\u064A\u0631 \u0623\u064A \u0634\u064A\u0621 \u0641\u064A X \u0639\u0644\u0649 \u0627\u0644\u0625\u0637\u0644\u0627\u0642. \u062A\u0628\u0642\u0649 \u0645\u0646\u0634\u0648\u0631\u0627\u062A\u0643 \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629 \u0648\u0645\u0644\u0627\u062D\u0638\u0627\u062A\u0643 \u0648\u0625\u0634\u0627\u0631\u0627\u062A\u0643 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0648\u0633\u062C\u0644 \u0627\u0644\u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0643\u0645\u0627 \u0647\u064A \u2014 \u0647\u0630\u0627 \u064A\u0639\u064A\u062F \u0636\u0628\u0637 \u0627\u0644\u062A\u0641\u0636\u064A\u0644\u0627\u062A \u0641\u0642\u0637.",
+      "Everything reset. X is untouched again.": "\u062A\u0645\u062A \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0636\u0628\u0637. \u0623\u0635\u0628\u062D X \u0643\u0645\u0627 \u0643\u0627\u0646 \u062F\u0648\u0646 \u062A\u063A\u064A\u064A\u0631.",
+      "Could not reset settings.": "\u062A\u0639\u0630\u0651\u0631\u062A \u0625\u0639\u0627\u062F\u0629 \u0636\u0628\u0637 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A.",
       "Photos and videos": "\u0627\u0644\u0635\u0648\u0631 \u0648\u0645\u0642\u0627\u0637\u0639 \u0627\u0644\u0641\u064A\u062F\u064A\u0648",
       "Default (X decides)": "\u0627\u0644\u0627\u0641\u062A\u0631\u0627\u0636\u064A (\u064A\u0642\u0631\u0631\u0647 X)",
       "Reveal media X has hidden": "\u0625\u0638\u0647\u0627\u0631 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u062A\u064A \u0623\u062E\u0641\u0627\u0647\u0627 X",
@@ -3723,6 +3801,15 @@ html.av-reduce-motion *::after {
       "Cancel": "\u0625\u0644\u063A\u0627\u0621"
     },
     he: {
+      "Show the AI button on posts": "\u05DC\u05D4\u05E6\u05D9\u05D2 \u05D0\u05EA \u05DB\u05E4\u05EA\u05D5\u05E8 \u05D4-AI \u05D1\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD",
+      "Adds a button to every post that builds a Translate, Summarize, Explain or Fact-check prompt. Without an AI provider configured it copies the prompt to your clipboard; nothing is sent anywhere.": "\u05DE\u05D5\u05E1\u05D9\u05E3 \u05DC\u05DB\u05DC \u05E4\u05D5\u05E1\u05D8 \u05DB\u05E4\u05EA\u05D5\u05E8 \u05E9\u05DE\u05E8\u05DB\u05D9\u05D1 \u05D1\u05E7\u05E9\u05D4 \u05DC\u05EA\u05E8\u05D2\u05D5\u05DD, \u05E1\u05D9\u05DB\u05D5\u05DD, \u05D4\u05E1\u05D1\u05E8 \u05D0\u05D5 \u05D1\u05D3\u05D9\u05E7\u05EA \u05E2\u05D5\u05D1\u05D3\u05D5\u05EA. \u05DC\u05DC\u05D0 \u05E1\u05E4\u05E7 AI \u05DE\u05D5\u05D2\u05D3\u05E8, \u05D4\u05D1\u05E7\u05E9\u05D4 \u05E4\u05E9\u05D5\u05D8 \u05DE\u05D5\u05E2\u05EA\u05E7\u05EA \u05DC\u05DC\u05D5\u05D7 \u05E9\u05DC\u05DA \u05D5\u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05E0\u05E9\u05DC\u05D7 \u05DC\u05E9\u05D5\u05DD \u05DE\u05E7\u05D5\u05DD.",
+      "AI button on": "\u05DB\u05E4\u05EA\u05D5\u05E8 \u05D4-AI \u05E4\u05E2\u05D9\u05DC",
+      "AI button off": "\u05DB\u05E4\u05EA\u05D5\u05E8 \u05D4-AI \u05DB\u05D1\u05D5\u05D9",
+      "Off (X's own theme)": "\u05DB\u05D1\u05D5\u05D9 (\u05E2\u05E8\u05DB\u05EA \u05D4\u05E0\u05D5\u05E9\u05D0 \u05E9\u05DC X \u05E2\u05E6\u05DE\u05D5)",
+      "Reset everything to plain X": "\u05DC\u05D0\u05E4\u05E1 \u05D4\u05DB\u05D5\u05DC \u05DC-X \u05E8\u05D2\u05D9\u05DC",
+      "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "\u05DE\u05D7\u05D6\u05D9\u05E8 \u05DB\u05DC \u05D4\u05D2\u05D3\u05E8\u05D4 \u05DC\u05D1\u05E8\u05D9\u05E8\u05EA \u05D4\u05DE\u05D7\u05D3\u05DC \u05E9\u05DC\u05D4, \u05E9\u05D4\u05D9\u05D0 \u05DC\u05D0 \u05DC\u05E9\u05E0\u05D5\u05EA \u05D3\u05D1\u05E8 \u05D1-X. \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D4\u05E9\u05DE\u05D5\u05E8\u05D9\u05DD, \u05D4\u05D4\u05E2\u05E8\u05D5\u05EA, \u05D4\u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05D5\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05D4\u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05E9\u05DC\u05DA \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u2014 \u05D4\u05D0\u05D9\u05E4\u05D5\u05E1 \u05E0\u05D5\u05D2\u05E2 \u05DC\u05D4\u05E2\u05D3\u05E4\u05D5\u05EA \u05D1\u05DC\u05D1\u05D3.",
+      "Everything reset. X is untouched again.": "\u05D4\u05DB\u05D5\u05DC \u05D0\u05D5\u05E4\u05E1. \u200FX \u05D7\u05D6\u05E8 \u05DC\u05D4\u05D9\u05D5\u05EA \u05DC\u05DC\u05D0 \u05E9\u05D9\u05E0\u05D5\u05D9.",
+      "Could not reset settings.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05D4\u05D9\u05D4 \u05DC\u05D0\u05E4\u05E1 \u05D0\u05EA \u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA.",
       "Photos and videos": "\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D5\u05E1\u05E8\u05D8\u05D5\u05E0\u05D9\u05DD",
       "Default (X decides)": "\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC (\u200FX \u05DE\u05D7\u05DC\u05D9\u05D8)",
       "Reveal media X has hidden": "\u05DC\u05D4\u05E6\u05D9\u05D2 \u05DE\u05D3\u05D9\u05D4 \u05E9-X \u05D4\u05E1\u05EA\u05D9\u05E8",
@@ -4255,7 +4342,7 @@ html.av-reduce-motion *::after {
 
   // src/platform/settings.ts
   var SETTINGS_KEY = "aviary.settings.v1";
-  var THEME_IDS = ["dim", "lightsOut", "graphite", "plum", "midnight"];
+  var THEME_IDS = ["off", "dim", "lightsOut", "graphite", "plum", "midnight"];
   var RATE_LIMIT_MODES = ["conservative", "balanced"];
   var REDUCE_MOTION_MODES = ["system", "always", "never"];
   var FILTER_ACTIONS = ["off", "hide", "dim"];
@@ -4267,7 +4354,6 @@ html.av-reduce-motion *::after {
     "notifications",
     "messages"
   ];
-  var SENSITIVE_MODES = ["default", "reveal", "blur", "hide"];
   var MEDIA_LAYOUTS = ["default", "stacked", "grid"];
   var FILTER_MEDIA_KEYS = ["photo", "video", "gif"];
   var EXPORT_FORMATS = ["json", "csv", "html", "markdown", "xlsx"];
@@ -4285,7 +4371,7 @@ html.av-reduce-motion *::after {
   ];
   var DEFAULT_SETTINGS = {
     appearance: {
-      theme: "dim",
+      theme: "off",
       denseMode: false,
       timelineWidth: "default",
       hideBorders: false,
@@ -4294,9 +4380,9 @@ html.av-reduce-motion *::after {
     },
     layout: {
       hideNavItems: [],
-      hideRightSidebar: true,
-      hideTrends: true,
-      hideGrok: true,
+      hideRightSidebar: false,
+      hideTrends: false,
+      hideGrok: false,
       writerMode: false,
       forceFollowing: false
     },
@@ -4315,19 +4401,18 @@ html.av-reduce-motion *::after {
       surfaces: ["home", "status", "profile", "search"]
     },
     hidden: {
-      enabled: true,
-      buttons: true,
+      enabled: false,
+      buttons: false,
       surfaces: ["home", "status", "profile", "search", "notifications"],
       maxEntries: 5e3
     },
     media: {
-      buttons: true,
+      buttons: false,
       preferOriginalImages: true,
       inlineOriginalImages: false,
       filenameTemplate: "{handle}_{tweetId}_{index}",
       downloadHistory: true,
       zipChunkSize: 250,
-      sensitive: "default",
       layout: "default",
       lastSaveFolder: ""
     },
@@ -4342,17 +4427,20 @@ html.av-reduce-motion *::after {
       autoDiscoverQueryIds: true
     },
     links: {
-      cleanShareButtons: true,
+      cleanShareButtons: false,
       expandTco: false
     },
     performance: {
-      pauseOffscreenVideo: true,
+      pauseOffscreenVideo: false,
       // Off by default: it rewrites the playlist X's player fetches, so it changes how video is
       // delivered rather than how it is displayed. New network-affecting capabilities opt in.
       forceVideoQuality: false
     },
     composer: {
       snippets: []
+    },
+    ai: {
+      commandMenu: false
     },
     privacy: {
       localOnly: true,
@@ -4393,6 +4481,7 @@ html.av-reduce-motion *::after {
     const links = asRecord(record.links);
     const performance = asRecord(record.performance);
     const composer = asRecord(record.composer);
+    const ai = asRecord(record.ai);
     const privacy = asRecord(record.privacy);
     const accessibility = asRecord(record.accessibility);
     const i18n = asRecord(record.i18n);
@@ -4460,7 +4549,6 @@ html.av-reduce-motion *::after {
         filenameTemplate: stringValue(media.filenameTemplate, DEFAULT_SETTINGS.media.filenameTemplate, 160),
         downloadHistory: booleanValue(media.downloadHistory, DEFAULT_SETTINGS.media.downloadHistory),
         zipChunkSize: integerValue(media.zipChunkSize, DEFAULT_SETTINGS.media.zipChunkSize, 25, 1e3),
-        sensitive: enumValue(media.sensitive, SENSITIVE_MODES, DEFAULT_SETTINGS.media.sensitive),
         layout: enumValue(media.layout, MEDIA_LAYOUTS, DEFAULT_SETTINGS.media.layout),
         lastSaveFolder: folderHintValue(media.lastSaveFolder, DEFAULT_SETTINGS.media.lastSaveFolder)
       },
@@ -4501,6 +4589,9 @@ html.av-reduce-motion *::after {
       },
       composer: {
         snippets: stringArray(composer.snippets, { maxItems: 100, maxLength: 500 })
+      },
+      ai: {
+        commandMenu: booleanValue(ai.commandMenu, DEFAULT_SETTINGS.ai.commandMenu)
       },
       privacy: {
         localOnly: anyIntegrationEnabled ? false : booleanValue(privacy.localOnly, DEFAULT_SETTINGS.privacy.localOnly),
@@ -4737,13 +4828,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION = false ? "dev" : "1.12.1";
-  var SENSITIVE_OPTIONS = [
-    ["default", "Default (X decides)"],
-    ["reveal", "Reveal media X has hidden"],
-    ["blur", "Blur every photo and video"],
-    ["hide", "Hide every photo and video"]
-  ];
+  var AVIARY_VERSION = false ? "dev" : "1.13.0";
   var MEDIA_LAYOUT_OPTIONS = [
     ["default", "Default grid"],
     ["stacked", "Stacked"],
@@ -4912,6 +4997,7 @@ html.av-reduce-motion *::after {
     const appearanceRows = () => {
       return [
         selectRow("Theme", options.settings.appearance.theme, [
+          ["off", "Off (X's own theme)"],
           ["dim", "Dim"],
           ["lightsOut", "Lights out"],
           ["graphite", "Graphite"],
@@ -5842,6 +5928,17 @@ html.av-reduce-motion *::after {
       const rows = [];
       rows.push(
         toggleRow(
+          "Show the AI button on posts",
+          "Adds a button to every post that builds a Translate, Summarize, Explain or Fact-check prompt. Without an AI provider configured it copies the prompt to your clipboard; nothing is sent anywhere.",
+          options.settings.ai.commandMenu,
+          async (checked) => {
+            options.settings.ai.commandMenu = checked;
+            await save(checked ? "AI button on" : "AI button off");
+          }
+        )
+      );
+      rows.push(
+        toggleRow(
           "Unshorten t.co links",
           "Replace short `t.co` redirects with the destination from aria-labels and titles.",
           options.settings.links.expandTco,
@@ -5919,6 +6016,23 @@ html.av-reduce-motion *::after {
     };
     const backupRows = () => {
       const rows = [];
+      if (options.resetSettings) {
+        rows.push(
+          actionRow(
+            "Reset everything to plain X",
+            "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.",
+            async () => {
+              try {
+                await options.resetSettings();
+                setStatus("Everything reset. X is untouched again.");
+              } catch (error) {
+                options.onError("Could not reset settings", error);
+                setStatus("Could not reset settings.");
+              }
+            }
+          )
+        );
+      }
       if (options.exportSettings) {
         rows.push(
           actionRow("Export settings", "Downloads your preferences as JSON. API keys and passwords are replaced with a placeholder, so the file is safe to share; importing it here keeps the credentials already saved on this machine.", async () => {
@@ -6235,17 +6349,6 @@ html.av-reduce-motion *::after {
           async (checked) => {
             options.settings.media.downloadHistory = checked;
             await save(checked ? "Duplicate history on" : "Duplicate history off");
-          }
-        )
-      );
-      rows.push(
-        selectRow(
-          "Photos and videos",
-          options.settings.media.sensitive,
-          SENSITIVE_OPTIONS,
-          async (value) => {
-            options.settings.media.sensitive = coerceSensitive(value);
-            await save("Photo and video display saved");
           }
         )
       );
@@ -6866,9 +6969,6 @@ html.av-reduce-motion *::after {
   function coerceFilterAction(value) {
     return value === "hide" || value === "dim" ? value : "off";
   }
-  function coerceSensitive(value) {
-    return value === "reveal" || value === "blur" || value === "hide" ? value : "default";
-  }
   function coerceLayout(value) {
     return value === "stacked" || value === "grid" ? value : "default";
   }
@@ -6907,11 +7007,15 @@ html.av-reduce-motion *::after {
   min-height: 42px;
   border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 70%, transparent);
   border-radius: 8px;
-  /* Follows the active theme's accent \u2014 this was pinned to X blue in every theme. */
+  /* Opaque, and deliberately so. This was a translucent accent wash over whatever the page had
+     behind it, which worked only because Aviary used to force X dark. With the default now
+     "leave X alone", the same wash sat on X's light mode at 1.12:1 against its own near-white
+     label \u2014 invisible. The launcher is Aviary's own chrome and must not depend on the page.
+     Measured in tests/injected-ui-contract.test.mjs by compositing on canvas. */
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 22%, transparent),
-    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, transparent)
+    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 22%, var(--av-surface-raised, rgb(22, 24, 28))),
+    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, var(--av-surface-raised, rgb(22, 24, 28)))
   );
   color: var(--av-text, rgb(239, 243, 244));
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.42);
@@ -7572,7 +7676,7 @@ input[type="checkbox"] {
           preserveRawPayloads: true,
           autoDiscoverQueryIds: true
         },
-        media: { sensitive: "default", layout: "default" },
+        media: { layout: "default" },
         links: { cleanShareButtons: true }
       }
     },
@@ -12363,6 +12467,16 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           await writeClipboard(payload);
           void ctx.auditLog.record("diagnostics.copy");
         },
+        async resetSettings() {
+          const live = ctx.settings;
+          for (const key of Object.keys(live)) {
+            delete live[key];
+          }
+          Object.assign(ctx.settings, cloneSettings(DEFAULT_SETTINGS));
+          await ctx.saveSettings();
+          ctx.requestApply();
+          void ctx.auditLog.record("settings.reset");
+        },
         async exportSettings() {
           const envelope = buildSettingsExport(ctx.settings);
           const text = JSON.stringify(envelope, null, 2);
@@ -13802,6 +13916,9 @@ ${text}`
     }
   };
   function decorate2(ctx, root) {
+    if (!ctx.settings.ai.commandMenu) {
+      return;
+    }
     const articles = root instanceof Element && root.matches('article[data-testid="tweet"]') ? [root] : Array.from(root.querySelectorAll('article[data-testid="tweet"]'));
     for (const article of articles) {
       if (article.getAttribute(PROCESSED_ATTR3) === "1") {
@@ -14053,6 +14170,9 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     }
   };
   function decorate3(ctx, root) {
+    if (ctx.settings.composer.snippets.length === 0) {
+      return;
+    }
     const toolbars = root instanceof Element && root.matches('[data-testid="toolBar"]') ? [root] : Array.from(root.querySelectorAll('[data-testid="toolBar"]'));
     for (const toolbar of toolbars) {
       if (toolbar.getAttribute(TOOLBAR_ATTR) === "1") {
@@ -14990,7 +15110,6 @@ a.av-link-clean {
       ensurePresentationStyle();
       applyPresentationClasses(ctx);
       ctx.diagnostics.info("Media presentation initialized", {
-        sensitive: ctx.settings.media.sensitive,
         layout: ctx.settings.media.layout
       });
     },
@@ -15002,10 +15121,6 @@ a.av-link-clean {
       document.getElementById(STYLE_ID12)?.remove();
       const root = document.documentElement;
       for (const className of [
-        "av-sensitive-default",
-        "av-sensitive-reveal",
-        "av-sensitive-blur",
-        "av-sensitive-hide",
         "av-media-layout-default",
         "av-media-layout-stacked",
         "av-media-layout-grid"
@@ -15017,15 +15132,6 @@ a.av-link-clean {
   };
   function applyPresentationClasses(ctx) {
     const root = document.documentElement;
-    for (const className of [
-      "av-sensitive-default",
-      "av-sensitive-reveal",
-      "av-sensitive-blur",
-      "av-sensitive-hide"
-    ]) {
-      root.classList.remove(className);
-    }
-    root.classList.add(`av-sensitive-${ctx.settings.media.sensitive}`);
     for (const className of [
       "av-media-layout-default",
       "av-media-layout-stacked",
@@ -15045,34 +15151,6 @@ a.av-link-clean {
     (document.head ?? document.documentElement).append(style);
   }
   var PRESENTATION_CSS = `
-html.av-sensitive-reveal article[data-testid="tweet"] [data-testid="contentDisclosureButton"] {
-  display: none !important;
-}
-
-html.av-sensitive-reveal article[data-testid="tweet"] [data-testid="tweetPhoto"] img,
-html.av-sensitive-reveal article[data-testid="tweet"] [data-testid="videoPlayer"] video,
-html.av-sensitive-reveal article[data-testid="tweet"] [data-testid="videoComponent"] video {
-  filter: none !important;
-}
-
-html.av-sensitive-blur article[data-testid="tweet"] [data-testid="tweetPhoto"] img,
-html.av-sensitive-blur article[data-testid="tweet"] [data-testid="videoPlayer"] video,
-html.av-sensitive-blur article[data-testid="tweet"] [data-testid="videoComponent"] video {
-  filter: blur(18px) saturate(0.85) !important;
-  transition: filter 160ms ease;
-}
-
-html.av-sensitive-blur article[data-testid="tweet"] [data-testid="tweetPhoto"]:hover img,
-html.av-sensitive-blur article[data-testid="tweet"] [data-testid="tweetPhoto"]:focus-within img {
-  filter: none !important;
-}
-
-html.av-sensitive-hide article[data-testid="tweet"] [data-testid="tweetPhoto"],
-html.av-sensitive-hide article[data-testid="tweet"] [data-testid="videoPlayer"],
-html.av-sensitive-hide article[data-testid="tweet"] [data-testid="videoComponent"] {
-  display: none !important;
-}
-
 html.av-media-layout-stacked article[data-testid="tweet"] [data-testid="tweetPhoto"] {
   display: block !important;
   width: 100% !important;
@@ -15894,7 +15972,9 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     return bootingApp;
   }
   async function bootInternal(options) {
-    document.documentElement.dataset.avTheme = DEFAULT_SETTINGS.appearance.theme;
+    if (DEFAULT_SETTINGS.appearance.theme !== "off") {
+      document.documentElement.dataset.avTheme = DEFAULT_SETTINGS.appearance.theme;
+    }
     document.documentElement.dataset.avReady = "booting";
     const storage = createStorageGateway("aviary");
     const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));

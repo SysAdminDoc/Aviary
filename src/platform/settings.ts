@@ -1,10 +1,9 @@
 export const SETTINGS_KEY = "aviary.settings.v1";
 
-export type ThemeId = "dim" | "lightsOut" | "graphite" | "plum" | "midnight";
+export type ThemeId = "off" | "dim" | "lightsOut" | "graphite" | "plum" | "midnight";
 export type RateLimitMode = "conservative" | "balanced";
 export type ReduceMotionMode = "system" | "always" | "never";
 export type FilterAction = "off" | "hide" | "dim";
-export type SensitiveMode = "default" | "reveal" | "blur" | "hide";
 export type MediaLayout = "default" | "stacked" | "grid";
 export type FilterSurface =
   | "home"
@@ -14,7 +13,7 @@ export type FilterSurface =
   | "notifications"
   | "messages";
 
-const THEME_IDS: ThemeId[] = ["dim", "lightsOut", "graphite", "plum", "midnight"];
+const THEME_IDS: ThemeId[] = ["off", "dim", "lightsOut", "graphite", "plum", "midnight"];
 const RATE_LIMIT_MODES: RateLimitMode[] = ["conservative", "balanced"];
 const REDUCE_MOTION_MODES: ReduceMotionMode[] = ["system", "always", "never"];
 const FILTER_ACTIONS: FilterAction[] = ["off", "hide", "dim"];
@@ -26,7 +25,6 @@ export const FILTER_SURFACES: FilterSurface[] = [
   "notifications",
   "messages"
 ];
-const SENSITIVE_MODES: SensitiveMode[] = ["default", "reveal", "blur", "hide"];
 const MEDIA_LAYOUTS: MediaLayout[] = ["default", "stacked", "grid"];
 export const FILTER_MEDIA_KEYS = ["photo", "video", "gif"] as const;
 export type FilterMediaKey = (typeof FILTER_MEDIA_KEYS)[number];
@@ -124,7 +122,6 @@ export interface AviarySettings {
     filenameTemplate: string;
     downloadHistory: boolean;
     zipChunkSize: number;
-    sensitive: SensitiveMode;
     layout: MediaLayout;
     lastSaveFolder: string;
   };
@@ -149,6 +146,14 @@ export interface AviarySettings {
   composer: {
     snippets: string[];
   };
+  ai: {
+    /**
+     * The per-post AI button. Deliberately NOT gated on `integrations.ai.enabled`: the menu also
+     * works with no provider at all (it copies the assembled prompt), and enabling an integration
+     * turns `privacy.localOnly` off as a side effect.
+     */
+    commandMenu: boolean;
+  };
   privacy: {
     localOnly: boolean;
     telemetry: false;
@@ -170,7 +175,7 @@ export interface AviarySettings {
 
 export const DEFAULT_SETTINGS: AviarySettings = {
   appearance: {
-    theme: "dim",
+    theme: "off",
     denseMode: false,
     timelineWidth: "default",
     hideBorders: false,
@@ -179,9 +184,9 @@ export const DEFAULT_SETTINGS: AviarySettings = {
   },
   layout: {
     hideNavItems: [],
-    hideRightSidebar: true,
-    hideTrends: true,
-    hideGrok: true,
+    hideRightSidebar: false,
+    hideTrends: false,
+    hideGrok: false,
     writerMode: false,
     forceFollowing: false
   },
@@ -200,19 +205,18 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     surfaces: ["home", "status", "profile", "search"]
   },
   hidden: {
-    enabled: true,
-    buttons: true,
+    enabled: false,
+    buttons: false,
     surfaces: ["home", "status", "profile", "search", "notifications"],
     maxEntries: 5000
   },
   media: {
-    buttons: true,
+    buttons: false,
     preferOriginalImages: true,
     inlineOriginalImages: false,
     filenameTemplate: "{handle}_{tweetId}_{index}",
     downloadHistory: true,
     zipChunkSize: 250,
-    sensitive: "default",
     layout: "default",
     lastSaveFolder: ""
   },
@@ -227,17 +231,20 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     autoDiscoverQueryIds: true
   },
   links: {
-    cleanShareButtons: true,
+    cleanShareButtons: false,
     expandTco: false
   },
   performance: {
-    pauseOffscreenVideo: true,
+    pauseOffscreenVideo: false,
     // Off by default: it rewrites the playlist X's player fetches, so it changes how video is
     // delivered rather than how it is displayed. New network-affecting capabilities opt in.
     forceVideoQuality: false
   },
   composer: {
     snippets: []
+  },
+  ai: {
+    commandMenu: false
   },
   privacy: {
     localOnly: true,
@@ -279,6 +286,7 @@ export function normalizeSettings(input: unknown): AviarySettings {
   const links = asRecord(record.links);
   const performance = asRecord(record.performance);
   const composer = asRecord(record.composer);
+  const ai = asRecord(record.ai);
   const privacy = asRecord(record.privacy);
   const accessibility = asRecord(record.accessibility);
   const i18n = asRecord(record.i18n);
@@ -352,7 +360,6 @@ export function normalizeSettings(input: unknown): AviarySettings {
       filenameTemplate: stringValue(media.filenameTemplate, DEFAULT_SETTINGS.media.filenameTemplate, 160),
       downloadHistory: booleanValue(media.downloadHistory, DEFAULT_SETTINGS.media.downloadHistory),
       zipChunkSize: integerValue(media.zipChunkSize, DEFAULT_SETTINGS.media.zipChunkSize, 25, 1000),
-      sensitive: enumValue(media.sensitive, SENSITIVE_MODES, DEFAULT_SETTINGS.media.sensitive),
       layout: enumValue(media.layout, MEDIA_LAYOUTS, DEFAULT_SETTINGS.media.layout),
       lastSaveFolder: folderHintValue(media.lastSaveFolder, DEFAULT_SETTINGS.media.lastSaveFolder)
     },
@@ -393,6 +400,9 @@ export function normalizeSettings(input: unknown): AviarySettings {
     },
     composer: {
       snippets: stringArray(composer.snippets, { maxItems: 100, maxLength: 500 })
+    },
+    ai: {
+      commandMenu: booleanValue(ai.commandMenu, DEFAULT_SETTINGS.ai.commandMenu)
     },
     privacy: {
       localOnly: anyIntegrationEnabled

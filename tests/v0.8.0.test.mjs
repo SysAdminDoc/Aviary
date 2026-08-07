@@ -42,7 +42,8 @@ test("settings export/import round-trips with normalization", async () => {
   assert.equal(report.applied, true);
   assert.deepEqual(report.errors, []);
   assert.deepEqual(report.settings.filter.surfaces, ["home", "profile"]);
-  assert.equal(report.settings.media.sensitive, "blur");
+  // media.sensitive was removed in v1.13.0; an older export carrying it must not resurrect it.
+  assert.equal("sensitive" in report.settings.media, false);
 
   const garbage = parseSettingsImport("{not json");
   assert.equal(garbage.applied, false);

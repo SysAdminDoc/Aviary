@@ -66,7 +66,11 @@ export function boot(options: BootOptions): Promise<AviaryApp | undefined> {
 }
 
 async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined> {
-  document.documentElement.dataset.avTheme = DEFAULT_SETTINGS.appearance.theme;
+  // Anti-FOUC only applies when a theme is actually going to be painted. The default is "off",
+  // which means Aviary leaves X's appearance alone, so there is nothing to pre-empt.
+  if (DEFAULT_SETTINGS.appearance.theme !== "off") {
+    document.documentElement.dataset.avTheme = DEFAULT_SETTINGS.appearance.theme;
+  }
   document.documentElement.dataset.avReady = "booting";
 
   const storage = createStorageGateway("aviary");

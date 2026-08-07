@@ -37,7 +37,7 @@ export const themeFeature: FeatureModule = {
     );
     delete document.documentElement.dataset.avTheme;
     delete document.documentElement.dataset.avWidth;
-    document.documentElement.style.colorScheme = "";
+    setColorScheme(document.documentElement, undefined);
     ctx.diagnostics.info("Theme foundation destroyed");
   }
 };
@@ -50,7 +50,14 @@ export function applyTheme(settings: AviarySettings): void {
     root.classList.toggle(`av-theme-${value}`, value === theme);
   }
 
-  root.dataset.avTheme = theme;
+  // The attribute is the hook for every rule that repaints X itself -- `html[data-av-theme] body`,
+  // the primary column, the sidebar. With no theme chosen it must be absent entirely, or "off"
+  // would still force X's background black and claim `color-scheme: dark` over its own setting.
+  if (theme === "off") {
+    delete root.dataset.avTheme;
+  } else {
+    root.dataset.avTheme = theme;
+  }
   root.dataset.avWidth = settings.appearance.timelineWidth;
   root.classList.toggle("av-chirp", settings.appearance.restoreChirp);
   root.classList.toggle("av-dense", settings.appearance.denseMode);
@@ -58,7 +65,28 @@ export function applyTheme(settings: AviarySettings): void {
   root.classList.toggle("av-hide-borders", settings.appearance.hideBorders);
   root.classList.toggle("av-high-contrast", settings.accessibility.highContrast);
   root.classList.toggle("av-reduce-motion", shouldReduceMotion(settings));
-  root.style.colorScheme = "dark";
+  setColorScheme(root, theme === "off" ? undefined : "dark");
+}
+
+/**
+ * Sets the inline `color-scheme`, and clears only what Aviary itself wrote.
+ *
+ * X sets `color-scheme: dark` inline on `<html>` on its own. Writing `""` unconditionally --
+ * which is what "reset it" looks like -- deletes X's value along with ours and flips the page to
+ * `normal`, silently overriding the user's own X setting. Measured on `_decoded/home.html`:
+ * clearing the property moves `<html>` from `dark` to `normal`, so the marker is what makes this
+ * reversible rather than destructive.
+ */
+function setColorScheme(root: HTMLElement, value: string | undefined): void {
+  if (value === undefined) {
+    if (root.dataset.avColorScheme === "1") {
+      root.style.colorScheme = "";
+      delete root.dataset.avColorScheme;
+    }
+    return;
+  }
+  root.style.colorScheme = value;
+  root.dataset.avColorScheme = "1";
 }
 
 function shouldReduceMotion(settings: AviarySettings): boolean {
@@ -78,7 +106,10 @@ function ensureThemeStyle(): void {
   (document.head ?? document.documentElement).append(style);
 }
 
-const themeVars: Record<ThemeId, string> = {
+// "off" is absent by construction: it emits no class, so it has no variables. The Control
+// Center's own CSS carries fallbacks (`var(--av-surface, ...)`), so the panel stays styled
+// while X is left completely alone.
+const themeVars: Record<Exclude<ThemeId, "off">, string> = {
   dim: `
     --av-bg: rgb(0, 0, 0);
     --av-surface: rgb(15, 20, 25);
@@ -128,7 +159,8 @@ const themeVars: Record<ThemeId, string> = {
   `
 };
 
-const THEME_CSS = `
+/** Exported so tests can mount the real stylesheet rather than a copy of it. */
+export const THEME_CSS = `
 html.av-theme-dim { ${themeVars.dim} }
 html.av-theme-lightsOut { ${themeVars.lightsOut} }
 html.av-theme-graphite { ${themeVars.graphite} }

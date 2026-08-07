@@ -1,5 +1,5 @@
 import { supportedLocales } from "../../platform/i18n";
-import type { AviarySettings } from "../../platform/settings";
+import { DEFAULT_SETTINGS, cloneSettings, type AviarySettings } from "../../platform/settings";
 import type {
   ControlCenterHandle,
   ExportStatus,
@@ -119,6 +119,19 @@ export const controlCenterFeature: FeatureModule = {
         const payload = buildDiagnosticsPayload(ctx);
         await writeClipboard(payload);
         void ctx.auditLog.record("diagnostics.copy");
+      },
+      async resetSettings() {
+        // Replace in place: every feature holds a reference to this same object, and swapping it
+        // out would leave them reading the old one. Data stores are untouched -- resetting a
+        // preference must never be a way to lose saved posts or notes.
+        const live = ctx.settings as unknown as Record<string, unknown>;
+        for (const key of Object.keys(live)) {
+          delete live[key];
+        }
+        Object.assign(ctx.settings, cloneSettings(DEFAULT_SETTINGS));
+        await ctx.saveSettings();
+        ctx.requestApply();
+        void ctx.auditLog.record("settings.reset");
       },
       async exportSettings() {
         const envelope = buildSettingsExport(ctx.settings);
