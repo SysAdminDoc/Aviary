@@ -127,6 +127,19 @@ for (const target of ["extension-chrome", "extension-firefox"]) {
     legalComments: "inline"
   });
 
+  // The page-world agent. Declared in both manifests with "world": "MAIN", which is the only
+  // place X's own fetch is visible; see src/page/page-agent.ts.
+  await esbuild.build({
+    entryPoints: [path.join(root, "src/entrypoints/extension-page.ts")],
+    outfile: path.join(targetDir, "page.js"),
+    bundle: true,
+    format: "iife",
+    target: "es2022",
+    platform: "browser",
+    minify: false,
+    legalComments: "inline"
+  });
+
   await esbuild.build({
     entryPoints: [path.join(root, "src/entrypoints/extension-background.ts")],
     outfile: path.join(targetDir, "background.js"),
@@ -305,6 +318,7 @@ ${matches}
 // @grant        GM_setValue
 // @grant        GM_deleteValue
 // @grant        GM_download
+// @grant        unsafeWindow
 // @connect      pbs.twimg.com
 // @connect      video.twimg.com
 // @updateURL    https://raw.githubusercontent.com/aviary-x/aviary/main/dist/aviary.user.js

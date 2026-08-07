@@ -144,6 +144,7 @@ export interface AviarySettings {
   };
   performance: {
     pauseOffscreenVideo: boolean;
+    forceVideoQuality: boolean;
   };
   composer: {
     snippets: string[];
@@ -151,6 +152,7 @@ export interface AviarySettings {
   privacy: {
     localOnly: boolean;
     telemetry: false;
+    blockAnalyticsBeacons: boolean;
     encryptVault: boolean;
     auditLog: boolean;
   };
@@ -227,7 +229,10 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     expandTco: false
   },
   performance: {
-    pauseOffscreenVideo: true
+    pauseOffscreenVideo: true,
+    // Off by default: it rewrites the playlist X's player fetches, so it changes how video is
+    // delivered rather than how it is displayed. New network-affecting capabilities opt in.
+    forceVideoQuality: false
   },
   composer: {
     snippets: []
@@ -235,6 +240,9 @@ export const DEFAULT_SETTINGS: AviarySettings = {
   privacy: {
     localOnly: true,
     telemetry: false,
+    // Off by default. Aviary sends no telemetry of its own either way; this refuses X's, which
+    // is a change to how the site behaves and is the user's call to make, not a default.
+    blockAnalyticsBeacons: false,
     encryptVault: false,
     auditLog: true
   },
@@ -376,6 +384,10 @@ export function normalizeSettings(input: unknown): AviarySettings {
       pauseOffscreenVideo: booleanValue(
         performance.pauseOffscreenVideo,
         DEFAULT_SETTINGS.performance.pauseOffscreenVideo
+      ),
+      forceVideoQuality: booleanValue(
+        performance.forceVideoQuality,
+        DEFAULT_SETTINGS.performance.forceVideoQuality
       )
     },
     composer: {
@@ -386,6 +398,10 @@ export function normalizeSettings(input: unknown): AviarySettings {
         ? false
         : booleanValue(privacy.localOnly, DEFAULT_SETTINGS.privacy.localOnly),
       telemetry: false,
+      blockAnalyticsBeacons: booleanValue(
+        privacy.blockAnalyticsBeacons,
+        DEFAULT_SETTINGS.privacy.blockAnalyticsBeacons
+      ),
       encryptVault: booleanValue(privacy.encryptVault, DEFAULT_SETTINGS.privacy.encryptVault),
       auditLog: booleanValue(privacy.auditLog, DEFAULT_SETTINGS.privacy.auditLog)
     },

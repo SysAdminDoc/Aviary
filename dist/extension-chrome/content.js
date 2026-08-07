@@ -4111,7 +4111,10 @@ html.av-reduce-motion *::after {
       expandTco: false
     },
     performance: {
-      pauseOffscreenVideo: true
+      pauseOffscreenVideo: true,
+      // Off by default: it rewrites the playlist X's player fetches, so it changes how video is
+      // delivered rather than how it is displayed. New network-affecting capabilities opt in.
+      forceVideoQuality: false
     },
     composer: {
       snippets: []
@@ -4119,6 +4122,9 @@ html.av-reduce-motion *::after {
     privacy: {
       localOnly: true,
       telemetry: false,
+      // Off by default. Aviary sends no telemetry of its own either way; this refuses X's, which
+      // is a change to how the site behaves and is the user's call to make, not a default.
+      blockAnalyticsBeacons: false,
       encryptVault: false,
       auditLog: true
     },
@@ -4253,6 +4259,10 @@ html.av-reduce-motion *::after {
         pauseOffscreenVideo: booleanValue(
           performance.pauseOffscreenVideo,
           DEFAULT_SETTINGS.performance.pauseOffscreenVideo
+        ),
+        forceVideoQuality: booleanValue(
+          performance.forceVideoQuality,
+          DEFAULT_SETTINGS.performance.forceVideoQuality
         )
       },
       composer: {
@@ -4261,6 +4271,10 @@ html.av-reduce-motion *::after {
       privacy: {
         localOnly: anyIntegrationEnabled ? false : booleanValue(privacy.localOnly, DEFAULT_SETTINGS.privacy.localOnly),
         telemetry: false,
+        blockAnalyticsBeacons: booleanValue(
+          privacy.blockAnalyticsBeacons,
+          DEFAULT_SETTINGS.privacy.blockAnalyticsBeacons
+        ),
         encryptVault: booleanValue(privacy.encryptVault, DEFAULT_SETTINGS.privacy.encryptVault),
         auditLog: booleanValue(privacy.auditLog, DEFAULT_SETTINGS.privacy.auditLog)
       },
@@ -4788,6 +4802,16 @@ html.av-reduce-motion *::after {
             await save(checked ? "Local-only mode on" : "Local-only mode off");
           }
         ),
+        toggleRow(
+          "Refuse X's analytics beacons",
+          "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.",
+          options.settings.privacy.blockAnalyticsBeacons,
+          async (checked) => {
+            options.settings.privacy.blockAnalyticsBeacons = checked;
+            await save(checked ? "Analytics beacons refused" : "Analytics beacons allowed");
+          }
+        ),
+        ...beaconRows(),
         storageHealthRow(),
         readonlyRow("Telemetry", options.settings.privacy.telemetry ? "Enabled" : "Disabled"),
         coverageRow(),
@@ -5568,6 +5592,17 @@ html.av-reduce-motion *::after {
           }
         )
       );
+      rows.push(
+        toggleRow(
+          "Always play video at the highest quality",
+          "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.",
+          options.settings.performance.forceVideoQuality,
+          async (checked) => {
+            options.settings.performance.forceVideoQuality = checked;
+            await save(checked ? "Best video quality on" : "Video quality left to X");
+          }
+        )
+      );
       return rows;
     };
     const libraryRows = () => {
@@ -6293,6 +6328,24 @@ html.av-reduce-motion *::after {
         `${t("Some changes could not be saved \u2014 the browser store may be full.")} ${last} (${failures.length})`
       );
     };
+    const beaconRows = () => {
+      if (!options.getPageHooks) {
+        return [];
+      }
+      const hooks = options.getPageHooks();
+      if (!hooks.reachable) {
+        return [
+          dataRow(
+            "Beacon blocking",
+            hooks.reason || t("Unavailable \u2014 Aviary cannot see X's network requests here.")
+          )
+        ];
+      }
+      if (!options.settings.privacy.blockAnalyticsBeacons) {
+        return [];
+      }
+      return [dataRow("Beacons refused", String(hooks.blockedBeacons))];
+    };
     const selectorSummary = () => {
       const last = [...options.diagnostics()].reverse().find((event) => event.message.includes("Selector"));
       return last?.message ?? "Monitoring active";
@@ -6544,21 +6597,21 @@ html.av-reduce-motion *::after {
     const group = el("div", "av-chip-group");
     group.setAttribute("role", "group");
     group.setAttribute("aria-label", t(label));
-    const state = new Set(selected);
+    const state2 = new Set(selected);
     for (const surface of FILTER_SURFACES) {
       const chip = document.createElement("label");
       chip.className = "av-chip";
       const input = document.createElement("input");
       input.type = "checkbox";
-      input.checked = state.has(surface);
+      input.checked = state2.has(surface);
       input.value = surface;
       input.addEventListener("change", () => {
         if (input.checked) {
-          state.add(surface);
+          state2.add(surface);
         } else {
-          state.delete(surface);
+          state2.delete(surface);
         }
-        void onChange(FILTER_SURFACES.filter((value) => state.has(value)));
+        void onChange(FILTER_SURFACES.filter((value) => state2.has(value)));
       });
       const text = el("span", "av-chip-label", t(FILTER_SURFACE_LABELS[surface]));
       chip.append(input, text);
@@ -7136,6 +7189,98 @@ input[type="checkbox"] {
 }
 `;
 
+  // src/features/privacy/page-hooks.ts
+  var blockedBeacons = 0;
+  var rewrittenPlaylists = 0;
+  var bridgeStatus = "connecting";
+  var bridgeReason = "";
+  var subscribed = false;
+  var pageHooksFeature = {
+    id: "privacy.pageHooks",
+    title: "Page-world hooks",
+    category: "privacy",
+    defaultEnabled: true,
+    init(ctx) {
+      const bridge = ctx.pageBridge;
+      if (!bridge) {
+        bridgeStatus = "unavailable";
+        bridgeReason = "No page bridge was created for this build.";
+        return;
+      }
+      if (!subscribed) {
+        subscribed = true;
+        bridge.on("blocked", (payload) => {
+          blockedBeacons += 1;
+          const blocked = payload;
+          ctx.diagnostics.info("Analytics beacon refused", {
+            via: blocked?.via,
+            url: blocked?.url
+          });
+        });
+        bridge.on("playlist", (payload) => {
+          rewrittenPlaylists += 1;
+          const rewrite = payload;
+          ctx.diagnostics.info("Video playlist pinned to its best rendition", {
+            variantsBefore: rewrite?.variantsBefore
+          });
+        });
+      }
+      pushConfig(ctx);
+    },
+    apply(ctx) {
+      pushConfig(ctx);
+    },
+    destroy(ctx) {
+      ctx.pageBridge?.configure({
+        blockBeacons: false,
+        captureGraphql: false,
+        forceVideoQuality: false
+      });
+      blockedBeacons = 0;
+      rewrittenPlaylists = 0;
+    },
+    getStatus() {
+      if (bridgeStatus === "unavailable") {
+        return {
+          ok: false,
+          message: bridgeReason || "Aviary cannot reach the page's own network layer."
+        };
+      }
+      if (bridgeStatus === "connecting") {
+        return { ok: true, message: "Connecting to the page\u2026" };
+      }
+      const parts = [];
+      if (blockedBeacons > 0) {
+        parts.push(`${blockedBeacons} beacon${blockedBeacons === 1 ? "" : "s"} refused`);
+      }
+      if (rewrittenPlaylists > 0) {
+        parts.push(
+          `${rewrittenPlaylists} video${rewrittenPlaylists === 1 ? "" : "s"} pinned to best quality`
+        );
+      }
+      return {
+        ok: true,
+        message: parts.length > 0 ? parts.join(" \xB7 ") : "Connected to the page"
+      };
+    }
+  };
+  function pushConfig(ctx) {
+    const bridge = ctx.pageBridge;
+    if (!bridge) {
+      return;
+    }
+    bridgeStatus = bridge.status();
+    bridgeReason = bridge.reason();
+    bridge.configure({
+      blockBeacons: ctx.settings.privacy.blockAnalyticsBeacons,
+      captureGraphql: ctx.settings.export.preserveRawPayloads,
+      forceVideoQuality: ctx.settings.performance.forceVideoQuality
+    });
+  }
+  function pageHookCounters() {
+    return { blockedBeacons, rewrittenPlaylists };
+  }
+
   // src/features/core/presets.ts
   var PRESETS = [
     {
@@ -7614,7 +7759,7 @@ input[type="checkbox"] {
     const articles = root instanceof Element && root.matches('article[data-testid="tweet"]') ? [root] : Array.from(root.querySelectorAll('article[data-testid="tweet"]'));
     const seen = /* @__PURE__ */ new Set();
     const records = [];
-    const now = (/* @__PURE__ */ new Date()).toISOString();
+    const now2 = (/* @__PURE__ */ new Date()).toISOString();
     for (const article of articles) {
       const tweet = extractTweet(article);
       const key = `${tweet.tweetId ?? "noid"}:${tweet.handle ?? "noh"}:${(tweet.text || "").slice(0, 60)}`;
@@ -7658,7 +7803,7 @@ input[type="checkbox"] {
         handle: tweet.handle,
         displayName,
         text: tweet.text,
-        capturedAt: now,
+        capturedAt: now2,
         surface,
         media,
         permalink
@@ -10170,14 +10315,14 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
   function mapTweets(parsed, surface) {
     if (!Array.isArray(parsed)) return [];
-    const now = (/* @__PURE__ */ new Date()).toISOString();
+    const now2 = (/* @__PURE__ */ new Date()).toISOString();
     const out = [];
     for (const entry of parsed) {
       const tweet = isRecord4(entry) && isRecord4(entry.tweet) ? entry.tweet : entry;
       if (!isRecord4(tweet)) continue;
       const id = stringField(tweet, "id_str", "id");
       const text = stringField(tweet, "full_text", "text") ?? "";
-      const createdAt = stringField(tweet, "created_at") ?? now;
+      const createdAt = stringField(tweet, "created_at") ?? now2;
       const record = {
         tweetId: id,
         handle: stringFromEntities(tweet) ?? null,
@@ -12002,6 +12147,14 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         getAuditSize() {
           return ctx.auditLog.size();
         },
+        getPageHooks() {
+          const bridge = ctx.pageBridge;
+          return {
+            reachable: bridge ? bridge.status() !== "unavailable" : false,
+            reason: bridge?.reason() ?? "",
+            blockedBeacons: pageHookCounters().blockedBeacons
+          };
+        },
         async clearAuditLog() {
           await ctx.auditLog.clear();
         },
@@ -12611,10 +12764,10 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         return;
       }
       const signature = `${ctx.route.surface}:${missingCritical.map((item) => item.surface).join(",")}`;
-      const now = Date.now();
-      if (signature !== lastSignature || now - lastLogAt >= MIN_LOG_INTERVAL_MS) {
+      const now2 = Date.now();
+      if (signature !== lastSignature || now2 - lastLogAt >= MIN_LOG_INTERVAL_MS) {
         lastSignature = signature;
-        lastLogAt = now;
+        lastLogAt = now2;
         ctx.diagnostics.warn("Critical selector health degraded", {
           route: ctx.route.surface,
           missing: missingCritical.map((item) => item.surface)
@@ -13948,11 +14101,9 @@ html.av-mobile [data-testid="primaryColumn"] {
   // src/features/export/network-capture.ts
   var MAX_PAYLOAD_BYTES = 15e5;
   var MAX_PAYLOADS = 50;
-  var installed = false;
+  var subscribed2 = false;
   var activeContext;
   var recentPayloads = [];
-  var originalFetch;
-  var patchedFetch;
   var networkCaptureFeature = {
     id: "export.networkCapture",
     title: "Passive GraphQL capture",
@@ -13960,88 +14111,67 @@ html.av-mobile [data-testid="primaryColumn"] {
     defaultEnabled: true,
     init(ctx) {
       activeContext = ctx;
-      if (ctx.settings.export.preserveRawPayloads) {
-        installInterceptor(ctx);
+      const bridge = ctx.pageBridge;
+      if (bridge && !subscribed2) {
+        subscribed2 = true;
+        bridge.on("graphql", (payload) => {
+          void onCaptured(payload);
+        });
       }
       ctx.diagnostics.info("Network capture feature ready", {
         enabled: ctx.settings.export.preserveRawPayloads,
-        installed
+        bridge: bridge?.status() ?? "absent"
       });
     },
     apply(ctx) {
       activeContext = ctx;
-      if (ctx.settings.export.preserveRawPayloads && !installed) {
-        installInterceptor(ctx);
-      } else if (!ctx.settings.export.preserveRawPayloads && installed) {
-        uninstallInterceptor(ctx);
-      }
     },
     destroy(ctx) {
-      if (installed) {
-        uninstallInterceptor(ctx);
-      }
       activeContext = void 0;
+      recentPayloads.length = 0;
       ctx.diagnostics.info("Network capture destroyed");
     },
     getStatus() {
-      if (!installed) {
+      const ctx = activeContext;
+      if (!ctx?.settings.export.preserveRawPayloads) {
         return { ok: true, message: "Capture inactive" };
+      }
+      const bridge = ctx.pageBridge;
+      if (!bridge || bridge.status() === "unavailable") {
+        return {
+          ok: false,
+          message: bridge?.reason() || "Aviary cannot see X's requests in this browser."
+        };
+      }
+      if (recentPayloads.length === 0) {
+        return { ok: true, message: "Watching X's timeline requests" };
       }
       return {
         ok: true,
-        message: recentPayloads.length === 0 ? "Interceptor installed \u2014 sees Aviary's own requests only" : `${recentPayloads.length} payload${recentPayloads.length === 1 ? "" : "s"} sampled`
+        message: `${recentPayloads.length} payload${recentPayloads.length === 1 ? "" : "s"} captured`
       };
     }
   };
-  function installInterceptor(ctx) {
-    if (installed || typeof globalThis.fetch !== "function") return;
-    originalFetch = { fn: globalThis.fetch };
-    const patched = async (input, init) => {
-      const response = await originalFetch.fn(input, init);
-      if (response.ok && shouldCapture(resolveUrl(input))) {
-        void capturePayload(ctx, input, response.clone());
-      }
-      return response;
-    };
-    patchedFetch = patched;
-    globalThis.fetch = patchedFetch;
-    installed = true;
-    ctx.diagnostics.info("Passive GraphQL interceptor installed");
-  }
-  function uninstallInterceptor(ctx) {
-    if (!installed || !originalFetch) return;
-    if (globalThis.fetch === patchedFetch) {
-      globalThis.fetch = originalFetch.fn;
-    } else {
-      ctx.diagnostics.warn("fetch was re-patched downstream \u2014 leaving the current wrapper in place");
+  async function onCaptured(payload) {
+    const ctx = activeContext;
+    if (!ctx || !payload || typeof payload.url !== "string") {
+      return;
     }
-    originalFetch = void 0;
-    patchedFetch = void 0;
-    installed = false;
-    ctx.diagnostics.info("Passive GraphQL interceptor uninstalled");
-  }
-  async function capturePayload(ctx, input, response) {
+    if (!ctx.settings.export.preserveRawPayloads) {
+      return;
+    }
     try {
-      const url = resolveUrl(input);
-      if (!shouldCapture(url)) return;
-      if (!response.ok || !response.body) return;
-      const blob = await response.blob();
-      if (blob.size === 0 || blob.size > MAX_PAYLOAD_BYTES) return;
-      const text = await blob.text();
-      recordPayload(url, response.status, blob.size);
-      await persistPayload(ctx, url, text);
+      const body = typeof payload.body === "string" ? payload.body : "";
+      if (body.length === 0 || body.length > MAX_PAYLOAD_BYTES) {
+        return;
+      }
+      recordPayload(payload.url, payload.status, body.length);
+      await persistPayload(ctx, payload.url, payload.operation || "graphql", body);
     } catch (error) {
-      ctx.diagnostics.warn("Network capture skipped", { error: String(error?.message ?? error) });
+      ctx.diagnostics.warn("Network capture skipped", {
+        error: String(error?.message ?? error)
+      });
     }
-  }
-  function resolveUrl(input) {
-    if (typeof input === "string") return input;
-    if (input instanceof URL) return input.toString();
-    return input.url;
-  }
-  function shouldCapture(url) {
-    if (!/\/i\/api\/graphql\//.test(url)) return false;
-    return true;
   }
   function recordPayload(url, status, bytes) {
     recentPayloads.push({ url, status, bytes, at: (/* @__PURE__ */ new Date()).toISOString() });
@@ -14049,10 +14179,9 @@ html.av-mobile [data-testid="primaryColumn"] {
       recentPayloads.shift();
     }
   }
-  async function persistPayload(ctx, url, body) {
+  async function persistPayload(ctx, url, operationName, body) {
     const store3 = getCheckpointStore();
     if (!store3) return;
-    const operationName = /\/i\/api\/graphql\/[^/]+\/([A-Za-z0-9_]+)/.exec(url)?.[1] ?? "graphql";
     const jobId = `capture-${operationName}`;
     if (store3.list().every((entry) => entry.jobId !== jobId)) {
       await store3.start(jobId, "capture", ["json"], true);
@@ -14069,7 +14198,7 @@ html.av-mobile [data-testid="primaryColumn"] {
         permalink: url
       }
     ]);
-    void ctx.auditLog.record("export.start", { jobId, operation: operationName });
+    void ctx.auditLog.record("capture.payload", { jobId, operation: operationName });
   }
   function scrubAuth(body) {
     return body.replace(/"(ct0|auth_token|guest_id|csrf_token)"\s*:\s*"[^"]*"/g, '"$1":"<scrubbed>"').replace(/Bearer\s+[A-Za-z0-9._-]{12,}/g, "Bearer <scrubbed>");
@@ -14833,6 +14962,405 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     }
   };
 
+  // src/page/page-agent.ts
+  var PAGE_CHANNEL = "aviary.page.v1";
+  var MAX_PAYLOAD_BYTES2 = 15e5;
+  var TELEMETRY_PATTERNS = [
+    /\/i\/api\/[^/]+\/jot(?:\/|$)/i,
+    /\/i\/api\/[^/]+\/jot\.json(?:$|\?)/i,
+    /^https?:\/\/analytics\.twitter\.com\//i
+  ];
+  var GRAPHQL_PATTERN = /\/i\/api\/graphql\/([^/?#]+)\/([^/?#]+)/i;
+  function isTelemetryUrl(url) {
+    if (!url) {
+      return false;
+    }
+    return TELEMETRY_PATTERNS.some((pattern) => pattern.test(url));
+  }
+  function isGraphqlUrl(url) {
+    return GRAPHQL_PATTERN.test(url);
+  }
+  function graphqlOperationName(url) {
+    const match = GRAPHQL_PATTERN.exec(url);
+    return match?.[2] ?? "unknown";
+  }
+  function rewritePlaylistToBestVariant(text) {
+    if (!text.includes("#EXT-X-STREAM-INF")) {
+      return void 0;
+    }
+    const lines = text.split(/\r?\n/);
+    const header = [];
+    const variants = [];
+    for (let index = 0; index < lines.length; index += 1) {
+      const line = lines[index] ?? "";
+      if (!line.startsWith("#EXT-X-STREAM-INF")) {
+        if (variants.length === 0) {
+          header.push(line);
+        }
+        continue;
+      }
+      const uriIndex = nextUriIndex(lines, index + 1);
+      if (uriIndex === -1) {
+        continue;
+      }
+      variants.push({
+        bandwidth: parseBandwidth(line),
+        lines: [line, lines[uriIndex] ?? ""]
+      });
+      index = uriIndex;
+    }
+    const best = variants.reduce(
+      (winner, variant) => winner && winner.bandwidth >= variant.bandwidth ? winner : variant,
+      void 0
+    );
+    if (variants.length < 2 || !best) {
+      return void 0;
+    }
+    const trimmedHeader = [...header];
+    while (trimmedHeader.length > 0 && (trimmedHeader[trimmedHeader.length - 1] ?? "").trim() === "") {
+      trimmedHeader.pop();
+    }
+    return {
+      playlist: [...trimmedHeader, ...best.lines, ""].join("\n"),
+      variantsBefore: variants.length
+    };
+  }
+  function nextUriIndex(lines, from) {
+    for (let index = from; index < lines.length; index += 1) {
+      const candidate = (lines[index] ?? "").trim();
+      if (candidate === "") {
+        continue;
+      }
+      if (candidate.startsWith("#")) {
+        return -1;
+      }
+      return index;
+    }
+    return -1;
+  }
+  function parseBandwidth(line) {
+    const average = /AVERAGE-BANDWIDTH=(\d+)/i.exec(line);
+    const peak = /[^-]BANDWIDTH=(\d+)/i.exec(` ${line}`);
+    const value = average?.[1] ?? peak?.[1];
+    return value ? Number.parseInt(value, 10) : 0;
+  }
+  function isPlaylistUrl(url) {
+    return /\.m3u8(?:$|\?)/i.test(url);
+  }
+  var DISABLED = {
+    blockBeacons: false,
+    captureGraphql: false,
+    forceVideoQuality: false
+  };
+  var state;
+  function installPageAgent(target, sink) {
+    if (state) {
+      return () => uninstallPageAgent();
+    }
+    const originalFetch = target.fetch;
+    const originalSendBeacon = target.navigator?.sendBeacon;
+    const xhrProto = target.XMLHttpRequest?.prototype;
+    const messageListener = (event) => {
+      const data = event?.data;
+      if (!data || data.channel !== PAGE_CHANNEL) {
+        return;
+      }
+      if (data.kind === "config") {
+        state && (state.config = normalizeConfig(data.payload));
+        return;
+      }
+      if (data.kind === "hello") {
+        emit("ready");
+        return;
+      }
+      if (data.kind === "teardown") {
+        uninstallPageAgent();
+      }
+    };
+    state = {
+      config: { ...DISABLED },
+      target,
+      originalFetch,
+      originalSendBeacon,
+      originalXhrOpen: xhrProto?.open,
+      originalXhrSend: xhrProto?.send,
+      messageListener,
+      sink
+    };
+    target.addEventListener("message", messageListener);
+    target.fetch = makePatchedFetch(originalFetch);
+    if (originalSendBeacon && target.navigator) {
+      target.navigator.sendBeacon = function patchedSendBeacon(url, data) {
+        try {
+          if (state?.config.blockBeacons && isTelemetryUrl(String(url))) {
+            emit("blocked", { url: String(url), via: "sendBeacon", at: now() });
+            return true;
+          }
+        } catch {
+        }
+        return originalSendBeacon.call(target.navigator, url, data);
+      };
+    }
+    if (xhrProto && state.originalXhrOpen && state.originalXhrSend) {
+      const originalOpen = state.originalXhrOpen;
+      const originalSend = state.originalXhrSend;
+      xhrProto.open = function patchedOpen(...args) {
+        try {
+          this.__aviaryUrl = String(args[1] ?? "");
+        } catch {
+        }
+        return originalOpen.apply(this, args);
+      };
+      xhrProto.send = function patchedSend(...args) {
+        try {
+          const url = String(this.__aviaryUrl ?? "");
+          if (state?.config.blockBeacons && isTelemetryUrl(url)) {
+            emit("blocked", { url, via: "xhr", at: now() });
+            return;
+          }
+        } catch {
+        }
+        return originalSend.apply(this, args);
+      };
+    }
+    emit("ready");
+    return () => uninstallPageAgent();
+  }
+  function uninstallPageAgent() {
+    if (!state) {
+      return;
+    }
+    const current = state;
+    state = void 0;
+    current.target.removeEventListener("message", current.messageListener);
+    current.target.fetch = current.originalFetch;
+    if (current.originalSendBeacon && current.target.navigator) {
+      current.target.navigator.sendBeacon = current.originalSendBeacon;
+    }
+    const xhrProto = current.target.XMLHttpRequest?.prototype;
+    if (xhrProto && current.originalXhrOpen && current.originalXhrSend) {
+      xhrProto.open = current.originalXhrOpen;
+      xhrProto.send = current.originalXhrSend;
+    }
+  }
+  function makePatchedFetch(originalFetch) {
+    return async function patchedFetch(input, init) {
+      let url = "";
+      try {
+        url = requestUrl(input);
+      } catch {
+        return originalFetch(input, init);
+      }
+      const config = state?.config ?? DISABLED;
+      if (config.blockBeacons && isTelemetryUrl(url)) {
+        emit("blocked", { url, via: "fetch", at: now() });
+        return new Response(null, { status: 204, statusText: "No Content" });
+      }
+      const response = await originalFetch(input, init);
+      if (config.forceVideoQuality && isPlaylistUrl(url) && response.ok) {
+        try {
+          const cloned = response.clone();
+          const text = await cloned.text();
+          const rewritten = rewritePlaylistToBestVariant(text);
+          if (rewritten) {
+            emit("playlist", { url, variantsBefore: rewritten.variantsBefore, at: now() });
+            return new Response(rewritten.playlist, {
+              status: response.status,
+              statusText: response.statusText,
+              headers: response.headers
+            });
+          }
+        } catch {
+        }
+      }
+      if (config.captureGraphql && isGraphqlUrl(url)) {
+        try {
+          const cloned = response.clone();
+          void cloned.text().then((body) => {
+            const bytes = body.length;
+            emit("graphql", {
+              url,
+              operation: graphqlOperationName(url),
+              status: response.status,
+              bytes,
+              at: now(),
+              body: bytes <= MAX_PAYLOAD_BYTES2 ? body : void 0
+            });
+          });
+        } catch {
+        }
+      }
+      return response;
+    };
+  }
+  function requestUrl(input) {
+    if (typeof input === "string") {
+      return input;
+    }
+    if (input instanceof URL) {
+      return input.href;
+    }
+    return input.url ?? "";
+  }
+  function normalizeConfig(payload) {
+    const value = payload ?? {};
+    return {
+      blockBeacons: value.blockBeacons === true,
+      captureGraphql: value.captureGraphql === true,
+      forceVideoQuality: value.forceVideoQuality === true
+    };
+  }
+  function emit(kind, payload) {
+    if (!state) {
+      return;
+    }
+    try {
+      const envelope = { channel: PAGE_CHANNEL, kind, payload };
+      if (state.sink) {
+        state.sink(envelope);
+        return;
+      }
+      state.target.postMessage(envelope, state.target.location?.origin ?? "*");
+    } catch {
+    }
+  }
+  function now() {
+    return (/* @__PURE__ */ new Date()).toISOString();
+  }
+
+  // src/platform/page-bridge.ts
+  var HANDSHAKE_TIMEOUT_MS = 3e3;
+  function pageWindowFromSandbox() {
+    try {
+      if (typeof unsafeWindow === "undefined" || !unsafeWindow) {
+        return void 0;
+      }
+      if (unsafeWindow === globalThis) {
+        return void 0;
+      }
+      if (typeof unsafeWindow.fetch !== "function") {
+        return void 0;
+      }
+      return unsafeWindow;
+    } catch {
+      return void 0;
+    }
+  }
+  function createPageBridge(options) {
+    const handlers = /* @__PURE__ */ new Map();
+    let status = "connecting";
+    let reason = "";
+    let lastConfig;
+    let uninstallAgent;
+    let windowListener;
+    let handshakeTimer;
+    function dispatch(envelope) {
+      if (envelope.kind === "ready") {
+        if (status !== "connected") {
+          status = "connected";
+          reason = "";
+          options.diagnostics.info("Page bridge connected", { source: options.source });
+          if (lastConfig) {
+            send({ channel: PAGE_CHANNEL, kind: "config", payload: lastConfig });
+          }
+        }
+        return;
+      }
+      const set = handlers.get(envelope.kind);
+      if (!set) {
+        return;
+      }
+      for (const handler of set) {
+        try {
+          handler(envelope.payload);
+        } catch (error) {
+          options.diagnostics.error("Page bridge handler failed", {
+            kind: envelope.kind,
+            message: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+    }
+    let send = () => {
+    };
+    if (options.source === "userscript") {
+      const target = pageWindowFromSandbox();
+      if (!target) {
+        status = "unavailable";
+        reason = "This userscript manager does not expose the page's own window, so Aviary cannot see X's network requests.";
+      } else {
+        uninstallAgent = installPageAgent(target, dispatch);
+        send = (envelope) => {
+          try {
+            target.postMessage(envelope, "*");
+          } catch {
+          }
+        };
+        status = "connected";
+      }
+    } else {
+      windowListener = (event) => {
+        if (event.source !== globalThis.window) {
+          return;
+        }
+        const data = event.data;
+        if (!data || data.channel !== PAGE_CHANNEL) {
+          return;
+        }
+        dispatch(data);
+      };
+      globalThis.addEventListener("message", windowListener);
+      send = (envelope) => {
+        try {
+          globalThis.postMessage(envelope, globalThis.location?.origin ?? "*");
+        } catch {
+        }
+      };
+      send({ channel: PAGE_CHANNEL, kind: "hello" });
+      handshakeTimer = setTimeout(() => {
+        if (status !== "connected") {
+          status = "unavailable";
+          reason = "The page-world script did not load, so Aviary cannot see X's network requests.";
+          options.diagnostics.warn("Page bridge handshake timed out");
+        }
+      }, HANDSHAKE_TIMEOUT_MS);
+    }
+    return {
+      status: () => status,
+      reason: () => reason,
+      configure(config) {
+        lastConfig = config;
+        if (status === "unavailable") {
+          return;
+        }
+        send({ channel: PAGE_CHANNEL, kind: "config", payload: config });
+      },
+      on(kind, handler) {
+        const set = handlers.get(kind) ?? /* @__PURE__ */ new Set();
+        set.add(handler);
+        handlers.set(kind, set);
+      },
+      destroy() {
+        if (handshakeTimer) {
+          clearTimeout(handshakeTimer);
+          handshakeTimer = void 0;
+        }
+        if (status === "connected") {
+          send({ channel: PAGE_CHANNEL, kind: "teardown" });
+        }
+        uninstallAgent?.();
+        uninstallAgent = void 0;
+        if (windowListener) {
+          globalThis.removeEventListener("message", windowListener);
+          windowListener = void 0;
+        }
+        handlers.clear();
+        status = "unavailable";
+        reason = "Page bridge torn down.";
+      }
+    };
+  }
+
   // src/platform/observer.ts
   var FLUSH_DELAY_MS = 120;
   var MAX_BATCH_NODES = 400;
@@ -14936,10 +15464,10 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       };
     }
     refill() {
-      const now = Date.now();
-      const elapsed = Math.max(0, now - this.#lastRefill) / 1e3;
+      const now2 = Date.now();
+      const elapsed = Math.max(0, now2 - this.#lastRefill) / 1e3;
       this.#tokens = Math.min(this.capacity, this.#tokens + elapsed * this.refillPerSecond);
-      this.#lastRefill = now;
+      this.#lastRefill = now2;
     }
   };
   function delay(ms) {
@@ -15169,9 +15697,11 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     registry.register(snapshotsFeature);
     registry.register(mobileTouchFeature);
     registry.register(composerSnippetsFeature);
+    registry.register(pageHooksFeature);
     registry.register(networkCaptureFeature);
     registry.register(aiCommandMenuFeature);
     registry.register(controlCenterFeature);
+    const pageBridge = createPageBridge({ source: options.source, diagnostics });
     const context = {
       route: readRoute(),
       settings,
@@ -15179,6 +15709,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       limiter,
       diagnostics,
       auditLog,
+      pageBridge,
       async saveSettings() {
         await storage.set(SETTINGS_KEY, normalizeSettings(cloneSettings(settings)));
         diagnostics.info("Settings saved", { key: SETTINGS_KEY });
@@ -15216,6 +15747,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
             stop();
           }
           await registry.destroyAll(context);
+          pageBridge.destroy();
           delete document.documentElement.dataset.avReady;
           delete document.documentElement.dataset.avSource;
           activeApp = void 0;
@@ -15229,6 +15761,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         stop();
       }
       await registry.destroyAll(context);
+      pageBridge.destroy();
       throw error;
     }
   }

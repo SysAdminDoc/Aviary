@@ -14,6 +14,7 @@ export type AuditAction =
   | "post.hide.cleared"
   | "export.start"
   | "export.complete"
+  | "capture.payload"
   | "settings.import"
   | "settings.export"
   | "preset.apply"

@@ -116,16 +116,13 @@ test("network-capture source guards GraphQL routing, payload bounds, and auth sc
     path.join(root, "src/features/export/network-capture.ts"),
     "utf8"
   );
-  for (const marker of [
-    "api\\/graphql",
-    "MAX_PAYLOAD_BYTES",
-    "preserveRawPayloads",
-    "scrubAuth",
-    "ct0",
-    "Bearer"
-  ]) {
+  for (const marker of ["MAX_PAYLOAD_BYTES", "preserveRawPayloads", "scrubAuth", "ct0", "Bearer"]) {
     assert.ok(source.includes(marker), `network-capture missing ${marker}`);
   }
+
+  // GraphQL routing moved to the page world in v1.12.0; this module no longer matches URLs at all.
+  const agent = await readFile(path.join(root, "src/page/page-agent.ts"), "utf8");
+  assert.ok(agent.includes("api\\/graphql"), "page-agent must route GraphQL");
 });
 
 test("composer-snippets source uses execCommand insertText (no keyboard simulation)", async () => {

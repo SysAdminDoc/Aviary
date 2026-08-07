@@ -7,6 +7,7 @@ import type {
   MediaStatus
 } from "../../ui/control-center";
 import { mountControlCenter } from "../../ui/control-center";
+import { pageHookCounters } from "../privacy/page-hooks";
 import { applyPreset, describePresetDelta, getPreset, listPresets } from "./presets";
 import {
   getCheckpointStore,
@@ -141,6 +142,14 @@ export const controlCenterFeature: FeatureModule = {
       },
       getAuditSize() {
         return ctx.auditLog.size();
+      },
+      getPageHooks() {
+        const bridge = ctx.pageBridge;
+        return {
+          reachable: bridge ? bridge.status() !== "unavailable" : false,
+          reason: bridge?.reason() ?? "",
+          blockedBeacons: pageHookCounters().blockedBeacons
+        };
       },
       async clearAuditLog() {
         await ctx.auditLog.clear();

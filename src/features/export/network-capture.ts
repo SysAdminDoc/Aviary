@@ -1,21 +1,27 @@
 import type { FeatureContext, FeatureModule } from "../registry";
 import type { CheckpointStore } from "./jobs";
 import { getCheckpointStore } from "./export-feature";
+import type { CapturedGraphqlPayload } from "../../page/page-agent";
 
 const MAX_PAYLOAD_BYTES = 1_500_000;
 const MAX_PAYLOADS = 50;
 
-let installed = false;
+let subscribed = false;
 let activeContext: FeatureContext | undefined;
 const recentPayloads: Array<{ url: string; status: number; at: string; bytes: number }> = [];
 
-interface OriginalFetch {
-  fn: typeof fetch;
-}
-
-let originalFetch: OriginalFetch | undefined;
-let patchedFetch: typeof fetch | undefined;
-
+/**
+ * Records X's GraphQL responses into the CheckpointStore.
+ *
+ * This used to wrap `globalThis.fetch`, which is Aviary's own fetch and not the page's -- the
+ * content script runs in the isolated world, so X's requests never passed through it and the
+ * feature's own status line had to admit it saw nothing but Aviary's traffic.
+ *
+ * The requests now arrive from `src/page/page-agent.ts`, which runs in the page's world where
+ * they are actually visible. The hook is switched on by `privacy.pageHooks` from
+ * `export.preserveRawPayloads`, so this module never patches anything itself; it subscribes,
+ * scrubs and persists.
+ */
 export const networkCaptureFeature: FeatureModule = {
   id: "export.networkCapture",
   title: "Passive GraphQL capture",
@@ -24,45 +30,49 @@ export const networkCaptureFeature: FeatureModule = {
 
   init(ctx) {
     activeContext = ctx;
-    if (ctx.settings.export.preserveRawPayloads) {
-      installInterceptor(ctx);
+    const bridge = ctx.pageBridge;
+    if (bridge && !subscribed) {
+      subscribed = true;
+      bridge.on("graphql", (payload) => {
+        void onCaptured(payload as CapturedGraphqlPayload);
+      });
     }
     ctx.diagnostics.info("Network capture feature ready", {
       enabled: ctx.settings.export.preserveRawPayloads,
-      installed
+      bridge: bridge?.status() ?? "absent"
     });
   },
 
   apply(ctx) {
     activeContext = ctx;
-    if (ctx.settings.export.preserveRawPayloads && !installed) {
-      installInterceptor(ctx);
-    } else if (!ctx.settings.export.preserveRawPayloads && installed) {
-      uninstallInterceptor(ctx);
-    }
   },
 
   destroy(ctx) {
-    if (installed) {
-      uninstallInterceptor(ctx);
-    }
+    // The page-side hook is turned off by `privacy.pageHooks`, which owns the config. Dropping
+    // the context here is what stops anything reaching the store.
     activeContext = undefined;
+    recentPayloads.length = 0;
     ctx.diagnostics.info("Network capture destroyed");
   },
 
   getStatus() {
-    if (!installed) {
+    const ctx = activeContext;
+    if (!ctx?.settings.export.preserveRawPayloads) {
       return { ok: true, message: "Capture inactive" };
     }
-    // Deliberately not "Capturing GraphQL": see installInterceptor. X's own requests are made in
-    // the page's world and are not visible here, so a count of zero is the expected result and
-    // must not read as though the feature is watching the timeline.
+    const bridge = ctx.pageBridge;
+    if (!bridge || bridge.status() === "unavailable") {
+      return {
+        ok: false,
+        message: bridge?.reason() || "Aviary cannot see X's requests in this browser."
+      };
+    }
+    if (recentPayloads.length === 0) {
+      return { ok: true, message: "Watching X's timeline requests" };
+    }
     return {
       ok: true,
-      message:
-        recentPayloads.length === 0
-          ? "Interceptor installed — sees Aviary's own requests only"
-          : `${recentPayloads.length} payload${recentPayloads.length === 1 ? "" : "s"} sampled`
+      message: `${recentPayloads.length} payload${recentPayloads.length === 1 ? "" : "s"} captured`
     };
   }
 };
@@ -71,84 +81,26 @@ export function getRecentCapturedPayloads(): typeof recentPayloads {
   return [...recentPayloads];
 }
 
-/**
- * Wraps `globalThis.fetch` -- which is Aviary's own fetch, not the page's.
- *
- * Neither manifest declares `"world": "MAIN"`, so the content script runs in the isolated world
- * and gets its own copy of every Web API. X's GraphQL requests are issued by X's code in the
- * page's world and never pass through this wrapper. The userscript build is in the same position:
- * it is granted `GM_*`, which puts it in the sandboxed scope rather than page scope.
- *
- * This was checked by trying to build a runtime probe (a minimal MV3 extension patching fetch,
- * driven against a page that fetches). The harness here could not load an unpacked extension at
- * all -- no service worker, no background page, content script never ran -- so that probe was
- * removed rather than kept as a test that proves nothing. The claim therefore rests on the
- * absence of `world: "MAIN"` in both manifests plus documented MV3 behaviour, not on a
- * measurement, and Roadmap_Blocked.md records what would unblock it.
- *
- * The wrapper is kept because it is correct for the requests Aviary itself makes (integrations,
- * media fetches), which is what `getStatus` now says.
- */
-function installInterceptor(ctx: FeatureContext): void {
-  if (installed || typeof globalThis.fetch !== "function") return;
-  originalFetch = { fn: globalThis.fetch };
-  const patched = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const response = await originalFetch!.fn(input, init);
-    // Clone only what will actually be captured: an unread clone tees the body stream and
-    // holds it until GC, and X streams video segments through fetch.
-    if (response.ok && shouldCapture(resolveUrl(input))) {
-      void capturePayload(ctx, input, response.clone());
-    }
-    return response;
-  };
-  patchedFetch = patched as typeof fetch;
-  globalThis.fetch = patchedFetch;
-  installed = true;
-  ctx.diagnostics.info("Passive GraphQL interceptor installed");
-}
-
-function uninstallInterceptor(ctx: FeatureContext): void {
-  if (!installed || !originalFetch) return;
-  // Another script may have wrapped fetch after us; restoring blindly would clobber it.
-  if (globalThis.fetch === patchedFetch) {
-    globalThis.fetch = originalFetch.fn;
-  } else {
-    ctx.diagnostics.warn("fetch was re-patched downstream — leaving the current wrapper in place");
+async function onCaptured(payload: CapturedGraphqlPayload): Promise<void> {
+  const ctx = activeContext;
+  if (!ctx || !payload || typeof payload.url !== "string") {
+    return;
   }
-  originalFetch = undefined;
-  patchedFetch = undefined;
-  installed = false;
-  ctx.diagnostics.info("Passive GraphQL interceptor uninstalled");
-}
-
-async function capturePayload(
-  ctx: FeatureContext,
-  input: RequestInfo | URL,
-  response: Response
-): Promise<void> {
+  if (!ctx.settings.export.preserveRawPayloads) {
+    return;
+  }
   try {
-    const url = resolveUrl(input);
-    if (!shouldCapture(url)) return;
-    if (!response.ok || !response.body) return;
-    const blob = await response.blob();
-    if (blob.size === 0 || blob.size > MAX_PAYLOAD_BYTES) return;
-    const text = await blob.text();
-    recordPayload(url, response.status, blob.size);
-    await persistPayload(ctx, url, text);
+    const body = typeof payload.body === "string" ? payload.body : "";
+    if (body.length === 0 || body.length > MAX_PAYLOAD_BYTES) {
+      return;
+    }
+    recordPayload(payload.url, payload.status, body.length);
+    await persistPayload(ctx, payload.url, payload.operation || "graphql", body);
   } catch (error) {
-    ctx.diagnostics.warn("Network capture skipped", { error: String((error as Error)?.message ?? error) });
+    ctx.diagnostics.warn("Network capture skipped", {
+      error: String((error as Error)?.message ?? error)
+    });
   }
-}
-
-function resolveUrl(input: RequestInfo | URL): string {
-  if (typeof input === "string") return input;
-  if (input instanceof URL) return input.toString();
-  return (input as Request).url;
-}
-
-function shouldCapture(url: string): boolean {
-  if (!/\/i\/api\/graphql\//.test(url)) return false;
-  return true;
 }
 
 function recordPayload(url: string, status: number, bytes: number): void {
@@ -158,10 +110,14 @@ function recordPayload(url: string, status: number, bytes: number): void {
   }
 }
 
-async function persistPayload(ctx: FeatureContext, url: string, body: string): Promise<void> {
+async function persistPayload(
+  ctx: FeatureContext,
+  url: string,
+  operationName: string,
+  body: string
+): Promise<void> {
   const store = getCheckpointStore() as CheckpointStore | undefined;
   if (!store) return;
-  const operationName = /\/i\/api\/graphql\/[^/]+\/([A-Za-z0-9_]+)/.exec(url)?.[1] ?? "graphql";
   const jobId = `capture-${operationName}`;
   if (store.list().every((entry) => entry.jobId !== jobId)) {
     await store.start(jobId, "capture", ["json"], true);
@@ -178,7 +134,7 @@ async function persistPayload(ctx: FeatureContext, url: string, body: string): P
       permalink: url
     }
   ]);
-  void ctx.auditLog.record("export.start", { jobId, operation: operationName });
+  void ctx.auditLog.record("capture.payload", { jobId, operation: operationName });
 }
 
 function scrubAuth(body: string): string {

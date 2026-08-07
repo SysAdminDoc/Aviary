@@ -42,6 +42,20 @@
         "https://tweetdeck.twitter.com/*"
       ],
       "js": [
+        "page.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*",
+        "https://mobile.twitter.com/*",
+        "https://pro.x.com/*",
+        "https://tweetdeck.twitter.com/*"
+      ],
+      "js": [
         "content.js"
       ],
       "run_at": "document_start"

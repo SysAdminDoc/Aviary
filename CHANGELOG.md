@@ -1,5 +1,35 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Aviary can now see the page's own network layer**, which three features were designed around
+  and none of them could reach. Both manifests gained a second content script declared
+  `"world": "MAIN"`, and the userscript reaches the same place through `unsafeWindow`. A bridge
+  carries settings in and observations back, and every hook stays off until a setting turns it on.
+- **Refuse X's analytics beacons** (off by default, under Trust & privacy). Blocks the tracking
+  pings X sends as you scroll, click and pause, across `fetch`, `XMLHttpRequest` and
+  `sendBeacon`. A refused beacon is answered with `204` rather than rejected, because a thrown
+  request surfaces in X's own error reporting — which is itself another beacon. Only the analytics
+  endpoints are matched; the panel reports the running count, so a hook that never fires is
+  visibly distinct from one that does not work.
+- **Always play video at the highest quality** (off by default, under Performance). X streams
+  timeline video through Media Source Extensions, so there is no `src` to rewrite and no
+  `<source>` list to re-rank — the rendition is chosen by the player's own adaptive-bitrate logic.
+  Aviary now trims the master playlist to its best rendition before the player sees it, so that
+  logic has only one thing to choose. Sustained bandwidth decides, not peak.
+
+### Fixed
+
+- **Passive GraphQL capture never saw a single GraphQL response.** It wrapped `globalThis.fetch`,
+  which is Aviary's own copy — the content script runs in the isolated world, so X's requests were
+  never going to pass through it, and the feature's status line had been reduced to admitting it
+  saw nothing but Aviary's own traffic. Payloads now arrive from the page world, where those
+  requests are actually visible.
+- Captured payloads were recorded in the action log as `export.start`. Captures are not exports;
+  they have their own kind now.
+
 ## 1.11.0 - 2026-08-07
 
 ### Added

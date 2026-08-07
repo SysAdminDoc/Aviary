@@ -88,6 +88,12 @@ export interface ControlCenterOptions {
   exportSettings?: () => Promise<void>;
   importSettings?: (payload: string) => Promise<{ applied: boolean; warnings: string[]; errors: string[] }>;
   getAuditSize?: () => number;
+  /**
+   * Reports whether Aviary actually reached the page's own network layer, and what it has done
+   * there. The counts matter as much as the toggle: an installed hook that never fires looks
+   * exactly like a hook that does not work.
+   */
+  getPageHooks?: () => { reachable: boolean; reason: string; blockedBeacons: number };
   clearAuditLog?: () => Promise<void>;
   getRetentionPolicy?: () => RetentionPolicy;
   saveRetentionPolicy?: (policy: RetentionPolicy) => Promise<void>;
@@ -498,6 +504,16 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             await save(checked ? "Local-only mode on" : "Local-only mode off");
           }
         ),
+        toggleRow(
+          "Refuse X's analytics beacons",
+          "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused — timeline, media and login traffic is untouched.",
+          options.settings.privacy.blockAnalyticsBeacons,
+          async (checked) => {
+            options.settings.privacy.blockAnalyticsBeacons = checked;
+            await save(checked ? "Analytics beacons refused" : "Analytics beacons allowed");
+          }
+        ),
+        ...beaconRows(),
         storageHealthRow(),
         readonlyRow("Telemetry", options.settings.privacy.telemetry ? "Enabled" : "Disabled"),
         coverageRow(),
@@ -1363,6 +1379,18 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       )
     );
 
+    rows.push(
+      toggleRow(
+        "Always play video at the highest quality",
+        "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.",
+        options.settings.performance.forceVideoQuality,
+        async (checked) => {
+          options.settings.performance.forceVideoQuality = checked;
+          await save(checked ? "Best video quality on" : "Video quality left to X");
+        }
+      )
+    );
+
     return rows;
   };
 
@@ -2173,6 +2201,32 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       "Saving",
       `${t("Some changes could not be saved — the browser store may be full.")} ${last} (${failures.length})`
     );
+  };
+
+  /**
+   * The honest readout for the page-world hooks.
+   *
+   * Two things can go wrong that a toggle alone would hide: the browser or userscript manager may
+   * not give Aviary the page's own network layer at all, and the hook may be live but idle. The
+   * first is reported as a failure with its reason, the second as a plain count.
+   */
+  const beaconRows = (): HTMLElement[] => {
+    if (!options.getPageHooks) {
+      return [];
+    }
+    const hooks = options.getPageHooks();
+    if (!hooks.reachable) {
+      return [
+        dataRow(
+          "Beacon blocking",
+          hooks.reason || t("Unavailable — Aviary cannot see X's network requests here.")
+        )
+      ];
+    }
+    if (!options.settings.privacy.blockAnalyticsBeacons) {
+      return [];
+    }
+    return [dataRow("Beacons refused", String(hooks.blockedBeacons))];
   };
 
   const selectorSummary = (): string => {

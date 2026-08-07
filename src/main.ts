@@ -22,7 +22,9 @@ import { mediaButtonsFeature } from "./features/media/media-buttons";
 import { mediaPresentationFeature } from "./features/media/media-presentation";
 import { FeatureRegistry, type FeatureContext } from "./features/registry";
 import { setLocalOnlyPolicy } from "./features/integrations/network-policy";
+import { pageHooksFeature } from "./features/privacy/page-hooks";
 import { Diagnostics } from "./platform/diagnostics";
+import { createPageBridge } from "./platform/page-bridge";
 import { observeAddedElements } from "./platform/observer";
 import { TokenBucket } from "./platform/rate-limit";
 import { readRoute, watchRoute } from "./platform/route";
@@ -115,11 +117,17 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   registry.register(snapshotsFeature);
   registry.register(mobileTouchFeature);
   registry.register(composerSnippetsFeature);
+  // Registered before networkCapture: it owns the page-side config that switches capture on.
+  registry.register(pageHooksFeature);
   registry.register(networkCaptureFeature);
   registry.register(aiCommandMenuFeature);
   // Registered last so its first paint reads stores that are already loaded — features
   // initialize in registration order, and the panel reports their counts.
   registry.register(controlCenterFeature);
+
+  // The only route to the page's own fetch. Created before features initialize so the first
+  // config push happens during init rather than a frame later.
+  const pageBridge = createPageBridge({ source: options.source, diagnostics });
 
   const context: FeatureContext = {
     route: readRoute(),
@@ -128,6 +136,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     limiter,
     diagnostics,
     auditLog,
+    pageBridge,
     async saveSettings() {
       // Normalized here so persistence has one choke point with one guarantee. Panel handlers
       // wrote whatever was in memory while import/preset/locale wrote normalized values.
@@ -174,6 +183,8 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
           stop();
         }
         await registry.destroyAll(context);
+        // After the features, so their `destroy` can still turn their hooks off through it.
+        pageBridge.destroy();
         delete document.documentElement.dataset.avReady;
         delete document.documentElement.dataset.avSource;
         activeApp = undefined;
@@ -188,6 +199,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
       stop();
     }
     await registry.destroyAll(context);
+    pageBridge.destroy();
     throw error;
   }
 }

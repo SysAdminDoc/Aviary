@@ -1,5 +1,6 @@
 import type { AviarySettings } from "../platform/settings";
 import type { Diagnostics } from "../platform/diagnostics";
+import type { PageBridge } from "../platform/page-bridge";
 import type { RouteState } from "../platform/route";
 import type { StorageGateway } from "../platform/storage";
 import type { TokenBucket } from "../platform/rate-limit";
@@ -12,6 +13,12 @@ export interface FeatureContext {
   limiter: TokenBucket;
   diagnostics: Diagnostics;
   auditLog: AuditLog;
+  /**
+   * Access to the page's own world. Absent when the host cannot provide it -- an old userscript
+   * manager, or a browser that ignores `"world": "MAIN"` -- so every consumer must handle its
+   * absence rather than assume the hooks are live.
+   */
+  pageBridge?: PageBridge;
   saveSettings(): Promise<void>;
   requestApply(): void;
 }

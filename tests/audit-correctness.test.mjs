@@ -122,11 +122,18 @@ test("Control Center defers rebuilds that would destroy in-progress input", asyn
   assert.match(source, /dirtyWhileBusy = false;\s*render\(\);/);
 });
 
-test("network capture clones only capturable responses and restores fetch safely", async () => {
+test("network capture takes its payloads from the page bridge and patches no fetch of its own", async () => {
   const source = await readFile(path.join(root, "src/features/export/network-capture.ts"), "utf8");
 
-  assert.match(source, /if \(response\.ok && shouldCapture\(resolveUrl\(input\)\)\)/);
-  assert.match(source, /globalThis\.fetch === patchedFetch/);
+  // Until v1.12.0 this module wrapped `globalThis.fetch` -- Aviary's own fetch, not the page's,
+  // because the content script runs in the isolated world. It saw none of X's traffic. Payloads
+  // now arrive from src/page/page-agent.ts, which runs where those requests are visible.
+  assert.ok(
+    !source.includes("globalThis.fetch ="),
+    "network-capture must not patch fetch: the copy it can reach is not the one X uses"
+  );
+  assert.match(source, /pageBridge/, "payloads must come from the page bridge");
+  assert.match(source, /bridge\.on\("graphql"/);
   assert.match(source, /auth_token/, "session cookies must be scrubbed from stored payloads");
 });
 
