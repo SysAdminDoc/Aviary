@@ -207,6 +207,12 @@ const statusLiterals = harvestStatusLiterals(src);
 const featureSources = await readFeatureSources();
 const featureLiterals = [...new Set(featureSources.flatMap(harvestFeatureLiterals))];
 
+// The extension options page is a separate document that gets its subset defined in at build
+// time, so its strings have to reach this manifest or that subset is empty.
+const optionsHtml = await readFile(path.join(root, "src/extension/options.html"), "utf8");
+const optionsController = await readFile(path.join(root, "src/entrypoints/extension-options.ts"), "utf8");
+const optionsLiterals = harvestOptionsLiterals(optionsHtml, optionsController);
+
 /**
  * Collects every string literal inside a `setStatus(...)` / `save(...)` call.
  *
@@ -251,6 +257,31 @@ function harvestFeatureLiterals(source) {
     found.push(JSON.parse(`"${match[1]}"`));
   }
   return found;
+}
+
+function harvestOptionsLiterals(html, controller) {
+  const found = new Set();
+  const decode = (value) =>
+    value
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, String.fromCharCode(34))
+      .replace(/&#39;/g, String.fromCharCode(39));
+  const attr = new RegExp('data-i18n="((?:[^"' + String.fromCharCode(92) + String.fromCharCode(92) + ']|' + String.fromCharCode(92) + String.fromCharCode(92) + '.)*)"', "g");
+  for (const match of html.matchAll(attr)) {
+    found.add(decode(match[1]));
+  }
+  const literal = '((?:[^"' + String.fromCharCode(92) + String.fromCharCode(92) + ']|' + String.fromCharCode(92) + String.fromCharCode(92) + '.)*)"';
+  for (const pattern of [
+    new RegExp(String.fromCharCode(92) + 'btranslate' + String.fromCharCode(92) + '(' + String.fromCharCode(92) + 's*"' + literal, "g"),
+    new RegExp('(?:grantedLabel|missingLabel|grantedMessage):' + String.fromCharCode(92) + 's*"' + literal, "g")
+  ]) {
+    for (const match of controller.matchAll(pattern)) {
+      found.add(JSON.parse('"' + match[1] + '"'));
+    }
+  }
+  return [...found];
 }
 
 function harvestStatusLiterals(source) {
@@ -298,7 +329,7 @@ const { PANEL_STRINGS: previous } = await import(pathToFileURL(prevOut).href);
 
 const manifest = [];
 const seen = new Set();
-for (const s of [...copy, ...statusLiterals, ...featureLiterals, ...previous]) {
+for (const s of [...copy, ...statusLiterals, ...featureLiterals, ...optionsLiterals, ...previous]) {
   const v = s.trim();
   if (v.length > 0 && !seen.has(v)) {
     seen.add(v);
@@ -310,6 +341,7 @@ console.log(`rendered:        ${a.strings.length} (${a.sections} sections visite
 console.log(`data / endonyms: ${dropped.length} dropped`);
 console.log(`setStatus:       ${statusLiterals.length}`);
 console.log(`ft() + presets:  ${featureLiterals.length}`);
+console.log(`options page:    ${optionsLiterals.length}`);
 console.log(`MANIFEST:        ${manifest.length}`);
 
 const catOut = path.join(temp, "catalog.mjs");

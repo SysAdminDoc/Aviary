@@ -1,6 +1,6 @@
 import { copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import esbuild from "esbuild";
 
 const CRC32_TABLE = (() => {
@@ -25,6 +25,72 @@ const matchLines = [
   "https://pro.x.com/*",
   "https://tweetdeck.twitter.com/*"
 ];
+
+/**
+ * The translations the options page actually uses, pulled out of the one catalog.
+ *
+ * The page is a separate document and cannot reach a FeatureContext, so it gets its strings
+ * defined in at build time instead of importing PANEL_CATALOG -- which would put roughly 240KB
+ * of translations into a page that otherwise ships a few KB. The key list comes from the
+ * `data-i18n` attributes in options.html plus the runtime status strings, so adding a string to
+ * the page is enough to carry its translations across.
+ */
+async function optionsCatalogSubset() {
+  const html = await readFile(path.join(root, "src/extension/options.html"), "utf8");
+  const controller = await readFile(path.join(root, "src/entrypoints/extension-options.ts"), "utf8");
+
+  const keys = new Set();
+  for (const match of html.matchAll(/data-i18n="((?:[^"\\]|\\.)*)"/g)) {
+    keys.add(decodeHtmlEntities(match[1]));
+  }
+  for (const match of controller.matchAll(/\btranslate\(\s*"((?:[^"\\]|\\.)*)"/g)) {
+    keys.add(JSON.parse(`"${match[1]}"`));
+  }
+  for (const match of controller.matchAll(/\b(?:grantedLabel|missingLabel|grantedMessage):\s*"((?:[^"\\]|\\.)*)"/g)) {
+    keys.add(JSON.parse(`"${match[1]}"`));
+  }
+
+  const catalogSource = await readFile(path.join(root, "src/platform/i18n-catalog.ts"), "utf8");
+  const outfile = path.join(dist, ".options-catalog.mjs");
+  await esbuild.build({
+    entryPoints: [path.join(root, "src/platform/i18n-catalog.ts")],
+    outfile,
+    bundle: true,
+    format: "esm",
+    platform: "neutral",
+    logLevel: "silent"
+  });
+  const { PANEL_CATALOG } = await import(`${pathToFileURL(outfile).href}?v=${catalogSource.length}`);
+  await rm(outfile, { force: true });
+
+  const subset = {};
+  const missing = [];
+  for (const [locale, entries] of Object.entries(PANEL_CATALOG)) {
+    subset[locale] = {};
+    for (const key of keys) {
+      const translated = entries[key];
+      if (translated === undefined) {
+        missing.push(`${locale}: ${key}`);
+        continue;
+      }
+      subset[locale][key] = translated;
+    }
+  }
+  if (missing.length > 0) {
+    // Loud rather than silently shipping an English options page in a translated build.
+    console.warn(`options page missing ${missing.length} translations:\n  ${missing.slice(0, 5).join("\n  ")}`);
+  }
+  return subset;
+}
+
+function decodeHtmlEntities(value) {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
 
 await rm(dist, { force: true, recursive: true });
 await mkdir(dist, { recursive: true });
@@ -73,6 +139,7 @@ for (const target of ["extension-chrome", "extension-firefox"]) {
   await esbuild.build({
     entryPoints: [path.join(root, "src/entrypoints/extension-options.ts")],
     outfile: path.join(targetDir, "options.js"),
+    define: { __AVIARY_OPTIONS_I18N__: JSON.stringify(await optionsCatalogSubset()) },
     bundle: true,
     format: "iife",
     target: "es2022",

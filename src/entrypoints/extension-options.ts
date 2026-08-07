@@ -8,6 +8,50 @@
 
 export const MEDIA_ORIGINS = ["https://pbs.twimg.com/*", "https://video.twimg.com/*"];
 
+/**
+ * Only the strings this page uses, injected at build time from the one catalog.
+ *
+ * The page is a separate document with no FeatureContext, so it cannot call `ft()`. Importing
+ * PANEL_CATALOG would put roughly 240KB of translations into a page that otherwise ships a few
+ * KB and is opened rarely, so tools/build.mjs reads the `data-i18n` keys out of options.html and
+ * defines just those. One source of truth, and the page stays small.
+ */
+declare const __AVIARY_OPTIONS_I18N__: Record<string, Record<string, string>>;
+
+const CATALOG: Record<string, Record<string, string>> =
+  typeof __AVIARY_OPTIONS_I18N__ === "undefined" ? {} : __AVIARY_OPTIONS_I18N__;
+
+let locale = "en";
+
+function translate(english: string): string {
+  return CATALOG[locale]?.[english] ?? english;
+}
+
+const RTL_LOCALES = new Set(["ar", "he"]);
+
+/** Reads the locale the Control Center saved, through whichever backend this build has. */
+async function readLocale(): Promise<string> {
+  try {
+    const stored = await globalThis.chrome?.storage?.local?.get("aviary.settings.v1");
+    const settings = stored?.["aviary.settings.v1"] as { i18n?: { locale?: unknown } } | undefined;
+    const code = settings?.i18n?.locale;
+    return typeof code === "string" && code.length > 0 ? code : "en";
+  } catch {
+    return "en";
+  }
+}
+
+function applyTranslations(): void {
+  for (const node of Array.from(document.querySelectorAll<HTMLElement>("[data-i18n]"))) {
+    const english = node.dataset.i18n;
+    if (english) {
+      node.textContent = translate(english);
+    }
+  }
+  document.documentElement.lang = locale;
+  document.documentElement.dir = RTL_LOCALES.has(locale) ? "rtl" : "ltr";
+}
+
 interface PermissionRequest {
   permissions?: string[];
   origins?: string[];
@@ -55,6 +99,14 @@ function start(): void {
   for (const card of CARDS) {
     wireCard(card);
   }
+  // After wiring, so the state labels a card writes are re-rendered in the chosen locale.
+  void readLocale().then((code) => {
+    locale = code;
+    applyTranslations();
+    for (const card of CARDS) {
+      void refresh(card);
+    }
+  });
 }
 
 function showVersion(): void {
@@ -82,7 +134,7 @@ function wireCard(card: CardWiring): void {
 async function run(card: CardWiring, action: "request" | "remove"): Promise<void> {
   const permissions = globalThis.chrome?.permissions;
   if (!permissions) {
-    setStatus("This browser did not expose the permissions API.");
+    setStatus(translate("This browser did not expose the permissions API."));
     return;
   }
   try {
@@ -92,9 +144,9 @@ async function run(card: CardWiring, action: "request" | "remove"): Promise<void
         : await permissions.remove(card.request);
     const granted = await refresh(card);
     if (action === "request") {
-      setStatus(granted ? card.grantedMessage : "Request dismissed — nothing changed.");
+      setStatus(granted ? translate(card.grantedMessage) : translate("Request dismissed — nothing changed."));
     } else {
-      setStatus(changed && !granted ? "Revoked." : "Nothing to revoke.");
+      setStatus(changed && !granted ? translate("Revoked.") : translate("Nothing to revoke."));
     }
   } catch (error) {
     setStatus(error instanceof Error ? error.message : String(error));
@@ -117,7 +169,7 @@ async function refresh(card: CardWiring): Promise<boolean> {
   }
 
   if (state) {
-    state.textContent = granted ? card.grantedLabel : card.missingLabel;
+    state.textContent = translate(granted ? card.grantedLabel : card.missingLabel);
     state.setAttribute("data-granted", String(granted));
   }
   if (grant) grant.disabled = granted;

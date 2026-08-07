@@ -167,7 +167,8 @@ test("each options-page permission card explains its own grant", async () => {
   // Host access has nothing to do with "media saves through the browser".
   assert.match(source, /grantedMessage: "Granted\. Media saves through the browser now\."/);
   assert.match(source, /grantedMessage: "Granted\. Aviary can read full-size media directly for exports now\."/);
-  assert.match(source, /setStatus\(granted \? card\.grantedMessage/);
+  // Routed through translate() since the page was localized, but still per-card.
+  assert.match(source, /setStatus\(granted \? translate\(card\.grantedMessage\)/);
 });
 
 test("aria2 routes by size, so the threshold finally means something", async () => {
@@ -249,6 +250,35 @@ test("the nav rail signals that it scrolls", async () => {
   assert.match(nav, /overflow-y: auto/);
   assert.match(nav, /mask-image: linear-gradient/);
   assert.match(nav, /scrollbar-gutter: stable/);
+});
+
+test("the options page is localized without importing the whole catalog", async () => {
+  const html = await readFile(path.join(root, "src/extension/options.html"), "utf8");
+  const controller = await readFile(path.join(root, "src/entrypoints/extension-options.ts"), "utf8");
+  const build = await readFile(path.join(root, "tools/build.mjs"), "utf8");
+  const catalog = await readFile(path.join(root, "src/platform/i18n-catalog.ts"), "utf8");
+
+  // The page is a separate document with no FeatureContext, so its subset is defined at build
+  // time. Importing PANEL_CATALOG instead would put ~240KB into a page that ships a few KB.
+  assert.ok(
+    !/platform\/i18n/.test(controller),
+    "the options page must not import the catalog directly"
+  );
+  assert.match(build, /define: \{ __AVIARY_OPTIONS_I18N__/);
+  assert.match(controller, /readLocale/);
+  assert.match(controller, /document\.documentElement\.dir =/, "RTL locales need a direction");
+
+  // Every key the page marks up has to exist in the catalog, or the subset ships it in English.
+  const keys = [...html.matchAll(/data-i18n="((?:[^"\\]|\\.)*)"/g)].map((match) =>
+    match[1].replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, String.fromCharCode(34)).replace(/&#39;/g, String.fromCharCode(39))
+  );
+  assert.ok(keys.length >= 10, `expected the page to be marked up, found ${keys.length} keys`);
+
+  const start = catalog.indexOf("  ja: {");
+  const jaBlock = catalog.slice(start, catalog.indexOf(String.fromCharCode(10) + "  },", start));
+  for (const key of keys) {
+    assert.ok(jaBlock.includes(JSON.stringify(key)), `options string missing from ja: ${key.slice(0, 50)}`);
+  }
 });
 
 async function importBundledModule(relativePath) {

@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.9.0`
+Version: `1.10.0`
 Research date: 2026-05-19
 Target repo: `C:\Users\--\repos\Twitter_Userscript`
 Target sites: `x.com`, `twitter.com`, `mobile.twitter.com`, `pro.x.com`, `tweetdeck.twitter.com`
@@ -954,19 +954,3 @@ Baseline at `409f846`: `tsc` clean, 188/188 tests pass, build+preflight green. F
 ordered P1 → P3; each was verified as described in its Evidence line. Verification harnesses ran
 read-only (Playwright against `_decoded/home.html` and scratch pages); no source was changed.
 
-- [ ] P3 — The extension options page is still English-only
-  Category: ux
-  Where: src/extension/options.html, src/entrypoints/extension-options.ts
-  Problem: Every other Aviary surface is localized across nine locales as of v1.9.0; the
-  permissions page is not. It is a separate document with no FeatureContext, so it cannot use
-  `ft()` -- it would have to read `aviary.settings.v1` from chrome.storage itself.
-  Evidence: The page's strings are literals in options.html plus the status sentences in
-  extension-options.ts; neither imports platform/i18n.
-  Fix: Decide the bundle trade-off first -- importing PANEL_CATALOG pulls ~240KB into a page
-  that currently ships ~3KB and is opened rarely. Either (a) accept it and resolve
-  `data-i18n` attributes on load after reading the locale from chrome.storage.local, or
-  (b) emit a small options-only catalog subset at build time in tools/build.mjs.
-  Acceptance: With locale=ja saved, opening the options page shows Japanese card titles,
-  button labels and status sentences; the built options bundle size is recorded in the commit.
-  Confidence: Verified
-  Effort: M

@@ -1,5 +1,68 @@
 # Changelog
 
+## 1.10.0 - 2026-08-07
+
+Drains the 2026-08-07 audit: 25 findings, all closed. Several were features that reported
+success while doing nothing.
+
+### Fixed
+
+- **The video Save button was lying.** X streams timeline video through MediaSource, so the only
+  variant is a `blob:` handle that no downloader can resolve — and because `blob:` counts as
+  same-origin, the anchor fallback returned success with no degraded flag, so the button showed
+  "Saved" while nothing reached disk. A blob now loses to any real URL in ranking, a blob-only
+  video refuses to resolve, and no button is offered where nothing can be saved. The poster keeps
+  its Thumb button. GIFs, which are served as real files, are unaffected.
+- **That button was also invisible.** Every hover-reveal rule named `tweetPhoto`, but a video's
+  container is the player — so the control sat at `opacity: 0` with no rule that could show it,
+  anchored to whatever ancestor X happened to have positioned.
+- **Importing an X archive could not read an X archive.** The reader accepted STORE entries only;
+  official archives are DEFLATE like every standard zip. It now inflates through the platform's
+  own `DecompressionStream`, and verifies the CRC against the inflated bytes.
+- **A disabled aria2 integration still called your aria2 on every boot** (the check looked at the
+  endpoint string, not the enabled flag) — and with local-only mode on, that reconcile threw
+  through init, which the registry treats as a dead feature: every Save button disappeared.
+- **One boot with a mistyped aria2 secret erased the queued-download ledger.** Any RPC fault
+  mapped to "removed", and reconcile deletes those. Only an unknown GID means removed now.
+- **"Test connection" queued a junk download every click** — it called `addUri` with a bogus URL,
+  which aria2 accepts. It calls `getVersion` now.
+- **Crossposts silently lost text.** Bluesky segments were cut at 300 UTF-16 units and the
+  remainder posted nowhere; Mastodon was never chunked at all. Both are chunked to their real
+  limits now, counted in graphemes and split at word boundaries. A thread that fails partway
+  reports how much was already posted instead of inviting a retry that double-posts.
+- **Thread mode was almost unreachable**: the composer read used `textContent`, which joins
+  Draft.js paragraph blocks with no separator, so the blank-line split never fired.
+- **Ten controls rendered in the browser default font.** `font: 700 13px/1.1 inherit` is invalid —
+  the shorthand cannot take a CSS-wide keyword as its family, so the whole declaration is dropped.
+  The Control Center launcher and every nav item measured Arial 13.33px/400.
+- **Saved-post search could not match Japanese, Korean, Arabic, Hebrew or Cyrillic** — the very
+  languages the panel is translated into. The tokenizer was ASCII-only.
+- **The action log described the wrong events**: a failed crosspost was recorded as
+  "export.start", an aria2 cancel as "export.complete". Six event kinds now exist and are used.
+- Failed storage *reads* were silent, so a corrupted value read as unset and the next save
+  overwrote it for good; aria2 handoff failures fell through to a browser download with no trace;
+  the semantic index grew without bound; exports embedded unusable `blob:` URLs; Obsidian
+  frontmatter broke on any display name containing a colon or quote.
+- The filter engine re-extracted and re-decided every visible post on every mutation batch — its
+  processed-stamp check could never hit, because the stamp was invalidated on every apply.
+- `aria2.minBytes` could never take effect (no caller measured a size) and had no control in the
+  panel; the export "capture as you scroll" path was unreachable; the settings nav rail clipped
+  its last item with nothing to say it scrolled.
+
+### Added
+
+- **Aviary now speaks your language everywhere it appears.** The Control Center has been
+  localized since v1.8.0, but every control injected into the timeline stayed English — the Hide
+  button, media buttons, the AI menu, snippets, account-note badges, and the panel's own preset
+  cards. All of it now translates, along with the extension options page, across nine locales
+  (452 → 470 strings). The string extractor harvests these call sites from source, since a
+  timeline control never renders inside the panel.
+- **Visible outcomes for the AI menu and snippets.** Every path used to end in silence — success,
+  provider failure and a blocked clipboard all looked identical, because the menu simply closed.
+  A shared status toast now names the cause and the fix.
+- **Settings that finally do something**: an aria2 size threshold that routes by measured size,
+  with its missing panel control.
+
 ## 1.9.0 - 2026-08-07
 
 Adds a performance module, three capabilities researched from the high-install X userscripts, and

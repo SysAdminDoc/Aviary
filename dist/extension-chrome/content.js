@@ -236,6 +236,8 @@ html.av-reduce-motion *::after {
       "Integrations": "Integraciones",
       "Backup & Audit": "Copia y auditor\xEDa",
       "Trust": "Privacidad",
+      "Quiet Reader": "Lectura tranquila",
+      "Hide trends and row borders, dim premium posts, strip t.co, dense + dim theme.": "Oculta tendencias y bordes, aten\xFAa las publicaciones premium, limpia t.co, tema denso y oscuro.",
       "Apply": "Aplicar",
       "Locale": "Idioma",
       "Translates the panel and sets reading direction \u2014 right-to-left for Arabic and Hebrew. Trust shows how much of the chosen locale is filled in; anything missing stays English.": "Traduce el panel y define la direcci\xF3n de lectura: de derecha a izquierda para \xE1rabe y hebreo. Privacidad indica qu\xE9 parte del idioma elegido est\xE1 completa; lo que falte permanece en ingl\xE9s.",
@@ -409,6 +411,8 @@ html.av-reduce-motion *::after {
       "Aria2 RPC secret": "Secreto RPC de Aria2",
       "Optional shared secret for token: auth.": "Secreto compartido opcional para la autenticaci\xF3n token:.",
       "Show": "Mostrar",
+      "Hand off files larger than (MB)": "Derivar archivos mayores de (MB)",
+      "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.": "Los archivos m\xE1s peque\xF1os se guardan con el navegador. Aviary comprueba primero el tama\xF1o; si el servidor no lo indica, el archivo se deriva igualmente.",
       "Test Aria2 connection": "Probar la conexi\xF3n con Aria2",
       "Sends a trivial JSON-RPC call.": "Env\xEDa una llamada JSON-RPC trivial.",
       "Refresh": "Actualizar",
@@ -517,6 +521,7 @@ html.av-reduce-motion *::after {
       "Aria2 handoff off": "Transferencia a Aria2 desactivada",
       "Aria2 endpoint saved": "Endpoint de Aria2 guardado",
       "Aria2 secret saved": "Secreto de Aria2 guardado",
+      "Aria2 threshold saved": "Umbral de Aria2 guardado",
       "Aria2 reachable.": "Aria2 accesible.",
       "Aria2 sweep failed.": "Error al consultar Aria2.",
       "Bluesky on": "Bluesky activado",
@@ -609,6 +614,70 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "No se pudieron borrar las publicaciones ocultas.",
       "Saving...": "Guardando...",
       "Could not save settings. Try again.": "No se pudieron guardar los ajustes. Int\xE9ntalo de nuevo.",
+      "Open Aviary AI command menu": "Abrir el men\xFA de comandos de IA de Aviary",
+      "Aviary AI commands (offline prompt builder)": "Comandos de IA de Aviary (generador de prompts sin conexi\xF3n)",
+      "Run with provider": "Ejecutar con el proveedor",
+      "running\u2026": "ejecutando\u2026",
+      "result copied to the clipboard.": "resultado copiado al portapapeles.",
+      "The result could not be copied. Your browser blocked clipboard access.": "No se pudo copiar el resultado. Tu navegador bloque\xF3 el acceso al portapapeles.",
+      "the provider did not respond": "el proveedor no respondi\xF3",
+      "Check the key and model in Integrations.": "Revisa la clave y el modelo en Integraciones.",
+      "Prompt copied to the clipboard \u2014 paste it into your assistant.": "Prompt copiado al portapapeles: p\xE9galo en tu asistente.",
+      "The prompt could not be copied. Your browser blocked clipboard access.": "No se pudo copiar el prompt. Tu navegador bloque\xF3 el acceso al portapapeles.",
+      "Translate": "Traducir",
+      "Translate the selected post to your active locale.": "Traduce la publicaci\xF3n seleccionada a tu idioma activo.",
+      "Summarize": "Resumir",
+      "Summarize a thread or long post in 3 bullet points.": "Resume un hilo o una publicaci\xF3n larga en 3 puntos.",
+      "Explain": "Explicar",
+      "Explain context, jargon, and references in the post.": "Explica el contexto, la jerga y las referencias de la publicaci\xF3n.",
+      "Fact-check prompt": "Prompt de verificaci\xF3n",
+      "Generate a fact-check prompt for the post (no network call without your key).": "Genera un prompt de verificaci\xF3n para la publicaci\xF3n (sin llamadas de red si no hay clave).",
+      "Snippets": "Fragmentos",
+      "Open Aviary composer snippets": "Abrir los fragmentos del redactor de Aviary",
+      "No snippets yet. Add some in the Control Center \u2192 Library.": "A\xFAn no hay fragmentos. A\xF1\xE1delos en el Centro de control \u2192 Biblioteca.",
+      "Click into the composer first, then pick a snippet.": "Haz clic en el redactor y luego elige un fragmento.",
+      "Media Archivist": "Archivo de medios",
+      "Original-quality downloads, deterministic filenames, dedup history, sensitive blur.": "Descargas en calidad original, nombres de archivo deterministas, historial sin duplicados, desenfoque de contenido sensible.",
+      "Creator": "Creador",
+      "Writer mode, composer snippets, share-button cleanup, sidebar and trends hidden.": "Modo escritura, fragmentos en el redactor, limpieza del bot\xF3n de compartir, barra lateral y tendencias ocultas.",
+      "Researcher": "Investigaci\xF3n",
+      "Export capture on, JSON+CSV+HTML+MD formats, auto-discover query IDs, raw payloads.": "Captura para exportaci\xF3n activada, formatos JSON+CSV+HTML+MD, detecci\xF3n de IDs de consulta, cargas sin procesar.",
+      "Classic": "Cl\xE1sico",
+      "Restore dim, keep sidebar, hide Grok only, no premium filtering.": "Restaura el tema atenuado, mantiene la barra lateral, oculta solo Grok, sin filtro premium.",
+      "Minimal": "M\xEDnimo",
+      "Maximum declutter: no counts, no borders, no trends, big text safe zones.": "M\xE1xima limpieza: sin contadores, sin bordes, sin tendencias, zonas seguras para texto grande.",
+      "Hide this post \u2014 Aviary keeps it hidden on future visits": "Ocultar esta publicaci\xF3n: Aviary la mantendr\xE1 oculta en pr\xF3ximas visitas",
+      "Hide this post": "Ocultar esta publicaci\xF3n",
+      "Post hidden": "Publicaci\xF3n oculta",
+      "Could not save the hidden post. Storage rejected the write.": "No se pudo guardar la publicaci\xF3n oculta. El almacenamiento rechaz\xF3 la escritura.",
+      "Undo": "Deshacer",
+      "Could not restore that post.": "No se pudo restaurar esa publicaci\xF3n.",
+      "Note": "Nota",
+      "Unavailable": "No disponible",
+      "Saved": "Guardado",
+      "Queued": "En cola",
+      "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "Tu navegador abri\xF3 el archivo en lugar de guardarlo: concede a Aviary el permiso de descargas para guardarlo de verdad.",
+      "Aviary needs the browser download permission. Opening its options page.": "Aviary necesita el permiso de descargas del navegador. Abriendo su p\xE1gina de opciones.",
+      "Allow": "Permitir",
+      "Retry": "Reintentar",
+      "Aviary ships with the narrowest permission set that still works. Everything below is optional, granted only by you, and revocable from this page at any time. Nothing on this page sends data anywhere.": "Aviary se instala con el conjunto de permisos m\xE1s reducido que sigue funcionando. Todo lo de abajo es opcional, lo concedes t\xFA y puedes revocarlo desde esta p\xE1gina cuando quieras. Nada de esta p\xE1gina env\xEDa datos a ning\xFAn sitio.",
+      "Save media to disk": "Guardar medios en el disco",
+      "checking\u2026": "comprobando\u2026",
+      "Lets the Save and Thumb buttons write files through the browser's download manager, with your filename template and duplicate history. Without it the browser opens media in a tab instead of saving it.": "Permite que los botones Guardar y Miniatura escriban archivos con el gestor de descargas del navegador, con tu plantilla de nombres y el historial de duplicados. Sin \xE9l, el navegador abre los medios en una pesta\xF1a en lugar de guardarlos.",
+      "Grant download access": "Conceder acceso a descargas",
+      "Revoke": "Revocar",
+      "Read media hosts directly": "Leer los servidores de medios directamente",
+      "Adds the media hosts so large files can be fetched without a page round-trip. Optional \u2014 media buttons work without it.": "A\xF1ade los servidores de medios para descargar archivos grandes sin pasar por la p\xE1gina. Opcional: los botones de medios funcionan sin esto.",
+      "Grant media hosts": "Conceder servidores de medios",
+      "Settings, filters, notes and archives live in the Control Center on x.com. This page only manages browser permissions.": "Los ajustes, filtros, notas y archivos est\xE1n en el Centro de control en x.com. Esta p\xE1gina solo gestiona los permisos del navegador.",
+      "This browser did not expose the permissions API.": "Este navegador no expone la API de permisos.",
+      "Request dismissed \u2014 nothing changed.": "Solicitud descartada: no ha cambiado nada.",
+      "Revoked.": "Revocado.",
+      "Nothing to revoke.": "No hay nada que revocar.",
+      "granted": "concedido",
+      "not granted": "no concedido",
+      "Granted. Media saves through the browser now.": "Concedido. Ahora los medios se guardan con el navegador.",
+      "Granted. Aviary can read full-size media directly for exports now.": "Concedido. Ahora Aviary puede leer medios a tama\xF1o completo para las exportaciones.",
       "Working \u2014 every change has been written.": "Correcto: se han guardado todos los cambios.",
       "Monitoring active": "Supervisi\xF3n activa",
       "Preset packs unavailable in this build.": "Los paquetes predefinidos no est\xE1n disponibles en esta compilaci\xF3n.",
@@ -639,6 +708,8 @@ html.av-reduce-motion *::after {
       "Integrations": "Integra\xE7\xF5es",
       "Backup & Audit": "Backup e auditoria",
       "Trust": "Privacidade",
+      "Quiet Reader": "Leitura tranquila",
+      "Hide trends and row borders, dim premium posts, strip t.co, dense + dim theme.": "Oculta tend\xEAncias e limites, atenua publica\xE7\xF5es premium, limpa t.co, tema denso e escuro.",
       "Apply": "Aplicar",
       "Locale": "Idioma",
       "Translates the panel and sets reading direction \u2014 right-to-left for Arabic and Hebrew. Trust shows how much of the chosen locale is filled in; anything missing stays English.": "Traduz o painel e define a dire\xE7\xE3o de leitura: da direita para a esquerda em \xE1rabe e hebraico. Privacidade mostra quanto do idioma escolhido est\xE1 preenchido; o que faltar permanece em ingl\xEAs.",
@@ -812,6 +883,8 @@ html.av-reduce-motion *::after {
       "Aria2 RPC secret": "Segredo RPC do Aria2",
       "Optional shared secret for token: auth.": "Segredo compartilhado opcional para a autentica\xE7\xE3o token:.",
       "Show": "Mostrar",
+      "Hand off files larger than (MB)": "Encaminhar ficheiros maiores que (MB)",
+      "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.": "Os ficheiros mais pequenos s\xE3o guardados pelo navegador. O Aviary verifica primeiro o tamanho; se o servidor n\xE3o o indicar, o ficheiro \xE9 encaminhado \xE0 mesma.",
       "Test Aria2 connection": "Testar a liga\xE7\xE3o ao Aria2",
       "Sends a trivial JSON-RPC call.": "Envia uma chamada JSON-RPC trivial.",
       "Refresh": "Atualizar",
@@ -920,6 +993,7 @@ html.av-reduce-motion *::after {
       "Aria2 handoff off": "Entrega ao Aria2 desativada",
       "Aria2 endpoint saved": "Endpoint do Aria2 guardado",
       "Aria2 secret saved": "Segredo do Aria2 salvo",
+      "Aria2 threshold saved": "Limite do Aria2 guardado",
       "Aria2 reachable.": "Aria2 acess\xEDvel.",
       "Aria2 sweep failed.": "Falha ao consultar o Aria2.",
       "Bluesky on": "Bluesky ativado",
@@ -1012,6 +1086,70 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "N\xE3o foi poss\xEDvel limpar as publica\xE7\xF5es ocultas.",
       "Saving...": "A guardar...",
       "Could not save settings. Try again.": "N\xE3o foi poss\xEDvel guardar as defini\xE7\xF5es. Tente novamente.",
+      "Open Aviary AI command menu": "Abrir o menu de comandos de IA do Aviary",
+      "Aviary AI commands (offline prompt builder)": "Comandos de IA do Aviary (gerador de prompts offline)",
+      "Run with provider": "Executar com o fornecedor",
+      "running\u2026": "a executar\u2026",
+      "result copied to the clipboard.": "resultado copiado para a \xE1rea de transfer\xEAncia.",
+      "The result could not be copied. Your browser blocked clipboard access.": "N\xE3o foi poss\xEDvel copiar o resultado. O teu navegador bloqueou o acesso \xE0 \xE1rea de transfer\xEAncia.",
+      "the provider did not respond": "o fornecedor n\xE3o respondeu",
+      "Check the key and model in Integrations.": "Verifica a chave e o modelo em Integra\xE7\xF5es.",
+      "Prompt copied to the clipboard \u2014 paste it into your assistant.": "Prompt copiado para a \xE1rea de transfer\xEAncia \u2014 cola-o no teu assistente.",
+      "The prompt could not be copied. Your browser blocked clipboard access.": "N\xE3o foi poss\xEDvel copiar o prompt. O teu navegador bloqueou o acesso \xE0 \xE1rea de transfer\xEAncia.",
+      "Translate": "Traduzir",
+      "Translate the selected post to your active locale.": "Traduz a publica\xE7\xE3o selecionada para o teu idioma ativo.",
+      "Summarize": "Resumir",
+      "Summarize a thread or long post in 3 bullet points.": "Resume uma sequ\xEAncia ou publica\xE7\xE3o longa em 3 pontos.",
+      "Explain": "Explicar",
+      "Explain context, jargon, and references in the post.": "Explica o contexto, o jarg\xE3o e as refer\xEAncias da publica\xE7\xE3o.",
+      "Fact-check prompt": "Prompt de verifica\xE7\xE3o",
+      "Generate a fact-check prompt for the post (no network call without your key).": "Gera um prompt de verifica\xE7\xE3o para a publica\xE7\xE3o (sem chamadas de rede sem a tua chave).",
+      "Snippets": "Excertos",
+      "Open Aviary composer snippets": "Abrir os excertos do editor do Aviary",
+      "No snippets yet. Add some in the Control Center \u2192 Library.": "Ainda n\xE3o h\xE1 excertos. Adiciona alguns no Centro de Controlo \u2192 Biblioteca.",
+      "Click into the composer first, then pick a snippet.": "Clica primeiro no editor e depois escolhe um excerto.",
+      "Media Archivist": "Arquivo de multim\xE9dia",
+      "Original-quality downloads, deterministic filenames, dedup history, sensitive blur.": "Transfer\xEAncias na qualidade original, nomes de ficheiro determin\xEDsticos, hist\xF3rico sem duplicados, desfoque de conte\xFAdo sens\xEDvel.",
+      "Creator": "Criador",
+      "Writer mode, composer snippets, share-button cleanup, sidebar and trends hidden.": "Modo de escrita, excertos no editor, limpeza do bot\xE3o de partilha, barra lateral e tend\xEAncias ocultas.",
+      "Researcher": "Investiga\xE7\xE3o",
+      "Export capture on, JSON+CSV+HTML+MD formats, auto-discover query IDs, raw payloads.": "Captura para exporta\xE7\xE3o ativada, formatos JSON+CSV+HTML+MD, dete\xE7\xE3o de IDs de consulta, dados em bruto.",
+      "Classic": "Cl\xE1ssico",
+      "Restore dim, keep sidebar, hide Grok only, no premium filtering.": "Rep\xF5e o tema atenuado, mant\xE9m a barra lateral, oculta apenas o Grok, sem filtro premium.",
+      "Minimal": "M\xEDnimo",
+      "Maximum declutter: no counts, no borders, no trends, big text safe zones.": "Limpeza m\xE1xima: sem contadores, sem limites, sem tend\xEAncias, zonas seguras para texto grande.",
+      "Hide this post \u2014 Aviary keeps it hidden on future visits": "Ocultar esta publica\xE7\xE3o \u2014 o Aviary mant\xE9m-na oculta em visitas futuras",
+      "Hide this post": "Ocultar esta publica\xE7\xE3o",
+      "Post hidden": "Publica\xE7\xE3o oculta",
+      "Could not save the hidden post. Storage rejected the write.": "N\xE3o foi poss\xEDvel guardar a publica\xE7\xE3o oculta. O armazenamento rejeitou a escrita.",
+      "Undo": "Anular",
+      "Could not restore that post.": "N\xE3o foi poss\xEDvel restaurar essa publica\xE7\xE3o.",
+      "Note": "Nota",
+      "Unavailable": "Indispon\xEDvel",
+      "Saved": "Guardado",
+      "Queued": "Em fila",
+      "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "O teu navegador abriu o ficheiro em vez de o guardar \u2014 concede ao Aviary a permiss\xE3o de transfer\xEAncias para guardar mesmo.",
+      "Aviary needs the browser download permission. Opening its options page.": "O Aviary precisa da permiss\xE3o de transfer\xEAncias do navegador. A abrir a p\xE1gina de op\xE7\xF5es.",
+      "Allow": "Permitir",
+      "Retry": "Tentar de novo",
+      "Aviary ships with the narrowest permission set that still works. Everything below is optional, granted only by you, and revocable from this page at any time. Nothing on this page sends data anywhere.": "O Aviary vem com o conjunto de permiss\xF5es mais reduzido que ainda funciona. Tudo abaixo \xE9 opcional, concedido apenas por ti e revog\xE1vel nesta p\xE1gina a qualquer momento. Nada nesta p\xE1gina envia dados para lado nenhum.",
+      "Save media to disk": "Guardar multim\xE9dia no disco",
+      "checking\u2026": "a verificar\u2026",
+      "Lets the Save and Thumb buttons write files through the browser's download manager, with your filename template and duplicate history. Without it the browser opens media in a tab instead of saving it.": "Permite que os bot\xF5es Guardar e Miniatura escrevam ficheiros atrav\xE9s do gestor de transfer\xEAncias do navegador, com o teu modelo de nomes e o hist\xF3rico de duplicados. Sem isso, o navegador abre a multim\xE9dia num separador em vez de a guardar.",
+      "Grant download access": "Conceder acesso a transfer\xEAncias",
+      "Revoke": "Revogar",
+      "Read media hosts directly": "Ler os servidores de multim\xE9dia diretamente",
+      "Adds the media hosts so large files can be fetched without a page round-trip. Optional \u2014 media buttons work without it.": "Adiciona os servidores de multim\xE9dia para obter ficheiros grandes sem passar pela p\xE1gina. Opcional \u2014 os bot\xF5es de multim\xE9dia funcionam sem isto.",
+      "Grant media hosts": "Conceder servidores de multim\xE9dia",
+      "Settings, filters, notes and archives live in the Control Center on x.com. This page only manages browser permissions.": "As defini\xE7\xF5es, filtros, notas e arquivos est\xE3o no Centro de Controlo em x.com. Esta p\xE1gina s\xF3 gere as permiss\xF5es do navegador.",
+      "This browser did not expose the permissions API.": "Este navegador n\xE3o exp\xF5e a API de permiss\xF5es.",
+      "Request dismissed \u2014 nothing changed.": "Pedido dispensado \u2014 nada mudou.",
+      "Revoked.": "Revogado.",
+      "Nothing to revoke.": "N\xE3o h\xE1 nada para revogar.",
+      "granted": "concedido",
+      "not granted": "n\xE3o concedido",
+      "Granted. Media saves through the browser now.": "Concedido. A multim\xE9dia passa agora a ser guardada pelo navegador.",
+      "Granted. Aviary can read full-size media directly for exports now.": "Concedido. O Aviary pode agora ler multim\xE9dia em tamanho completo para as exporta\xE7\xF5es.",
       "Working \u2014 every change has been written.": "Tudo certo: todas as altera\xE7\xF5es foram gravadas.",
       "Monitoring active": "Monitoramento ativo",
       "Preset packs unavailable in this build.": "Pacotes de predefini\xE7\xF5es indispon\xEDveis nesta compila\xE7\xE3o.",
@@ -1042,6 +1180,8 @@ html.av-reduce-motion *::after {
       "Integrations": "Int\xE9grations",
       "Backup & Audit": "Sauvegarde et audit",
       "Trust": "Confidentialit\xE9",
+      "Quiet Reader": "Lecture calme",
+      "Hide trends and row borders, dim premium posts, strip t.co, dense + dim theme.": "Masque les tendances et les bordures, att\xE9nue les posts premium, nettoie t.co, th\xE8me dense et sombre.",
       "Apply": "Appliquer",
       "Locale": "Langue",
       "Translates the panel and sets reading direction \u2014 right-to-left for Arabic and Hebrew. Trust shows how much of the chosen locale is filled in; anything missing stays English.": "Traduit le panneau et d\xE9finit le sens de lecture : de droite \xE0 gauche pour l'arabe et l'h\xE9breu. Confiance indique la part de la langue choisie qui est renseign\xE9e ; ce qui manque reste en anglais.",
@@ -1215,6 +1355,8 @@ html.av-reduce-motion *::after {
       "Aria2 RPC secret": "Secret RPC Aria2",
       "Optional shared secret for token: auth.": "Secret partag\xE9 facultatif pour l'authentification token:.",
       "Show": "Afficher",
+      "Hand off files larger than (MB)": "Transf\xE9rer les fichiers de plus de (Mo)",
+      "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.": "Les fichiers plus petits sont enregistr\xE9s par le navigateur. Aviary v\xE9rifie d'abord la taille ; si le serveur ne l'indique pas, le fichier est transf\xE9r\xE9 quand m\xEAme.",
       "Test Aria2 connection": "Tester la connexion Aria2",
       "Sends a trivial JSON-RPC call.": "Envoie un appel JSON-RPC trivial.",
       "Refresh": "Actualiser",
@@ -1323,6 +1465,7 @@ html.av-reduce-motion *::after {
       "Aria2 handoff off": "Transfert vers Aria2 d\xE9sactiv\xE9",
       "Aria2 endpoint saved": "Point de terminaison Aria2 enregistr\xE9",
       "Aria2 secret saved": "Secret Aria2 enregistr\xE9",
+      "Aria2 threshold saved": "Seuil Aria2 enregistr\xE9",
       "Aria2 reachable.": "Aria2 joignable.",
       "Aria2 sweep failed.": "\xC9chec de l'interrogation d'Aria2.",
       "Bluesky on": "Bluesky activ\xE9",
@@ -1415,6 +1558,70 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "Impossible d'effacer les publications masqu\xE9es.",
       "Saving...": "Enregistrement...",
       "Could not save settings. Try again.": "Impossible d'enregistrer les r\xE9glages. R\xE9essayez.",
+      "Open Aviary AI command menu": "Ouvrir le menu de commandes IA d'Aviary",
+      "Aviary AI commands (offline prompt builder)": "Commandes IA d'Aviary (g\xE9n\xE9rateur de prompts hors ligne)",
+      "Run with provider": "Ex\xE9cuter avec le fournisseur",
+      "running\u2026": "en cours\u2026",
+      "result copied to the clipboard.": "r\xE9sultat copi\xE9 dans le presse-papiers.",
+      "The result could not be copied. Your browser blocked clipboard access.": "Le r\xE9sultat n'a pas pu \xEAtre copi\xE9. Votre navigateur a bloqu\xE9 l'acc\xE8s au presse-papiers.",
+      "the provider did not respond": "le fournisseur n'a pas r\xE9pondu",
+      "Check the key and model in Integrations.": "V\xE9rifiez la cl\xE9 et le mod\xE8le dans Int\xE9grations.",
+      "Prompt copied to the clipboard \u2014 paste it into your assistant.": "Prompt copi\xE9 dans le presse-papiers \u2014 collez-le dans votre assistant.",
+      "The prompt could not be copied. Your browser blocked clipboard access.": "Le prompt n'a pas pu \xEAtre copi\xE9. Votre navigateur a bloqu\xE9 l'acc\xE8s au presse-papiers.",
+      "Translate": "Traduire",
+      "Translate the selected post to your active locale.": "Traduit le post s\xE9lectionn\xE9 dans votre langue active.",
+      "Summarize": "R\xE9sumer",
+      "Summarize a thread or long post in 3 bullet points.": "R\xE9sume un fil ou un long post en 3 points.",
+      "Explain": "Expliquer",
+      "Explain context, jargon, and references in the post.": "Explique le contexte, le jargon et les r\xE9f\xE9rences du post.",
+      "Fact-check prompt": "Prompt de v\xE9rification",
+      "Generate a fact-check prompt for the post (no network call without your key).": "G\xE9n\xE8re un prompt de v\xE9rification pour le post (aucun appel r\xE9seau sans votre cl\xE9).",
+      "Snippets": "Extraits",
+      "Open Aviary composer snippets": "Ouvrir les extraits du compositeur Aviary",
+      "No snippets yet. Add some in the Control Center \u2192 Library.": "Aucun extrait pour l'instant. Ajoutez-en dans le Centre de contr\xF4le \u2192 Biblioth\xE8que.",
+      "Click into the composer first, then pick a snippet.": "Cliquez d'abord dans le compositeur, puis choisissez un extrait.",
+      "Media Archivist": "Archiviste m\xE9dia",
+      "Original-quality downloads, deterministic filenames, dedup history, sensitive blur.": "T\xE9l\xE9chargements en qualit\xE9 d'origine, noms de fichiers d\xE9terministes, historique sans doublons, floutage du contenu sensible.",
+      "Creator": "Cr\xE9ateur",
+      "Writer mode, composer snippets, share-button cleanup, sidebar and trends hidden.": "Mode \xE9criture, extraits dans le compositeur, nettoyage du bouton de partage, barre lat\xE9rale et tendances masqu\xE9es.",
+      "Researcher": "Recherche",
+      "Export capture on, JSON+CSV+HTML+MD formats, auto-discover query IDs, raw payloads.": "Capture pour l'export activ\xE9e, formats JSON+CSV+HTML+MD, d\xE9tection des ID de requ\xEAte, donn\xE9es brutes.",
+      "Classic": "Classique",
+      "Restore dim, keep sidebar, hide Grok only, no premium filtering.": "R\xE9tablit le th\xE8me att\xE9nu\xE9, garde la barre lat\xE9rale, masque seulement Grok, sans filtre premium.",
+      "Minimal": "Minimal",
+      "Maximum declutter: no counts, no borders, no trends, big text safe zones.": "\xC9puration maximale : pas de compteurs, pas de bordures, pas de tendances, zones s\xFBres pour le grand texte.",
+      "Hide this post \u2014 Aviary keeps it hidden on future visits": "Masquer ce post \u2014 Aviary le gardera masqu\xE9 lors des prochaines visites",
+      "Hide this post": "Masquer ce post",
+      "Post hidden": "Post masqu\xE9",
+      "Could not save the hidden post. Storage rejected the write.": "Impossible d'enregistrer le post masqu\xE9. Le stockage a refus\xE9 l'\xE9criture.",
+      "Undo": "Annuler",
+      "Could not restore that post.": "Impossible de restaurer ce post.",
+      "Note": "Note",
+      "Unavailable": "Indisponible",
+      "Saved": "Enregistr\xE9",
+      "Queued": "En file",
+      "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "Votre navigateur a ouvert ce fichier au lieu de l'enregistrer \u2014 accordez \xE0 Aviary l'autorisation de t\xE9l\xE9chargement pour un vrai enregistrement.",
+      "Aviary needs the browser download permission. Opening its options page.": "Aviary a besoin de l'autorisation de t\xE9l\xE9chargement du navigateur. Ouverture de sa page d'options.",
+      "Allow": "Autoriser",
+      "Retry": "R\xE9essayer",
+      "Aviary ships with the narrowest permission set that still works. Everything below is optional, granted only by you, and revocable from this page at any time. Nothing on this page sends data anywhere.": "Aviary est livr\xE9 avec le jeu d'autorisations le plus restreint qui fonctionne encore. Tout ce qui suit est facultatif, accord\xE9 par vous seul et r\xE9vocable depuis cette page \xE0 tout moment. Rien sur cette page n'envoie de donn\xE9es.",
+      "Save media to disk": "Enregistrer les m\xE9dias sur le disque",
+      "checking\u2026": "v\xE9rification\u2026",
+      "Lets the Save and Thumb buttons write files through the browser's download manager, with your filename template and duplicate history. Without it the browser opens media in a tab instead of saving it.": "Permet aux boutons Enregistrer et Miniature d'\xE9crire des fichiers via le gestionnaire de t\xE9l\xE9chargements du navigateur, avec votre mod\xE8le de nom et l'historique des doublons. Sans cela, le navigateur ouvre le m\xE9dia dans un onglet au lieu de l'enregistrer.",
+      "Grant download access": "Autoriser les t\xE9l\xE9chargements",
+      "Revoke": "R\xE9voquer",
+      "Read media hosts directly": "Lire directement les h\xF4tes m\xE9dia",
+      "Adds the media hosts so large files can be fetched without a page round-trip. Optional \u2014 media buttons work without it.": "Ajoute les h\xF4tes m\xE9dia pour r\xE9cup\xE9rer les gros fichiers sans passer par la page. Facultatif \u2014 les boutons m\xE9dia fonctionnent sans.",
+      "Grant media hosts": "Autoriser les h\xF4tes m\xE9dia",
+      "Settings, filters, notes and archives live in the Control Center on x.com. This page only manages browser permissions.": "Les r\xE9glages, filtres, notes et archives se trouvent dans le Centre de contr\xF4le sur x.com. Cette page ne g\xE8re que les autorisations du navigateur.",
+      "This browser did not expose the permissions API.": "Ce navigateur n'expose pas l'API des autorisations.",
+      "Request dismissed \u2014 nothing changed.": "Demande abandonn\xE9e \u2014 rien n'a chang\xE9.",
+      "Revoked.": "R\xE9voqu\xE9.",
+      "Nothing to revoke.": "Rien \xE0 r\xE9voquer.",
+      "granted": "accord\xE9",
+      "not granted": "non accord\xE9",
+      "Granted. Media saves through the browser now.": "Accord\xE9. Les m\xE9dias sont d\xE9sormais enregistr\xE9s par le navigateur.",
+      "Granted. Aviary can read full-size media directly for exports now.": "Accord\xE9. Aviary peut d\xE9sormais lire les m\xE9dias en taille r\xE9elle pour les exports.",
       "Working \u2014 every change has been written.": "Tout va bien : chaque modification a \xE9t\xE9 enregistr\xE9e.",
       "Monitoring active": "Surveillance active",
       "Preset packs unavailable in this build.": "Packs de pr\xE9r\xE9glages indisponibles dans cette version.",
@@ -1445,6 +1652,8 @@ html.av-reduce-motion *::after {
       "Integrations": "Integrationen",
       "Backup & Audit": "Sicherung & Audit",
       "Trust": "Datenschutz",
+      "Quiet Reader": "Ruhiges Lesen",
+      "Hide trends and row borders, dim premium posts, strip t.co, dense + dim theme.": "Blendet Trends und Zeilenrahmen aus, dimmt Premium-Beitr\xE4ge, bereinigt t.co, dichtes dunkles Thema.",
       "Apply": "Anwenden",
       "Locale": "Sprache",
       "Translates the panel and sets reading direction \u2014 right-to-left for Arabic and Hebrew. Trust shows how much of the chosen locale is filled in; anything missing stays English.": "\xDCbersetzt das Panel und legt die Leserichtung fest \u2013 rechts nach links f\xFCr Arabisch und Hebr\xE4isch. Unter Vertrauen steht, wie vollst\xE4ndig die gew\xE4hlte Sprache ist; Fehlendes bleibt Englisch.",
@@ -1618,6 +1827,8 @@ html.av-reduce-motion *::after {
       "Aria2 RPC secret": "Aria2-RPC-Secret",
       "Optional shared secret for token: auth.": "Optionales gemeinsames Secret f\xFCr die token:-Authentifizierung.",
       "Show": "Anzeigen",
+      "Hand off files larger than (MB)": "Dateien \xFCbergeben ab (MB)",
+      "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.": "Kleinere Dateien werden \xFCber den Browser gespeichert. Aviary pr\xFCft zuerst die Gr\xF6\xDFe; nennt der Server keine, wird die Datei trotzdem \xFCbergeben.",
       "Test Aria2 connection": "Aria2-Verbindung testen",
       "Sends a trivial JSON-RPC call.": "Sendet einen einfachen JSON-RPC-Aufruf.",
       "Refresh": "Aktualisieren",
@@ -1726,6 +1937,7 @@ html.av-reduce-motion *::after {
       "Aria2 handoff off": "Aria2-\xDCbergabe aus",
       "Aria2 endpoint saved": "Aria2-Endpunkt gespeichert",
       "Aria2 secret saved": "Aria2-Secret gespeichert",
+      "Aria2 threshold saved": "Aria2-Schwelle gespeichert",
       "Aria2 reachable.": "Aria2 erreichbar.",
       "Aria2 sweep failed.": "Aria2-Abfrage fehlgeschlagen.",
       "Bluesky on": "Bluesky an",
@@ -1818,6 +2030,70 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "Ausgeblendete Beitr\xE4ge konnten nicht gel\xF6scht werden.",
       "Saving...": "Wird gespeichert...",
       "Could not save settings. Try again.": "Einstellungen konnten nicht gespeichert werden. Bitte erneut versuchen.",
+      "Open Aviary AI command menu": "Aviarys KI-Befehlsmen\xFC \xF6ffnen",
+      "Aviary AI commands (offline prompt builder)": "Aviary-KI-Befehle (Prompt-Baukasten ohne Netz)",
+      "Run with provider": "Mit Anbieter ausf\xFChren",
+      "running\u2026": "l\xE4uft\u2026",
+      "result copied to the clipboard.": "Ergebnis in die Zwischenablage kopiert.",
+      "The result could not be copied. Your browser blocked clipboard access.": "Das Ergebnis konnte nicht kopiert werden. Dein Browser hat den Zugriff auf die Zwischenablage blockiert.",
+      "the provider did not respond": "der Anbieter hat nicht geantwortet",
+      "Check the key and model in Integrations.": "Pr\xFCfe Schl\xFCssel und Modell unter Integrationen.",
+      "Prompt copied to the clipboard \u2014 paste it into your assistant.": "Prompt in die Zwischenablage kopiert \u2014 f\xFCge ihn in deinen Assistenten ein.",
+      "The prompt could not be copied. Your browser blocked clipboard access.": "Der Prompt konnte nicht kopiert werden. Dein Browser hat den Zugriff auf die Zwischenablage blockiert.",
+      "Translate": "\xDCbersetzen",
+      "Translate the selected post to your active locale.": "\xDCbersetzt den ausgew\xE4hlten Beitrag in deine aktive Sprache.",
+      "Summarize": "Zusammenfassen",
+      "Summarize a thread or long post in 3 bullet points.": "Fasst einen Thread oder langen Beitrag in 3 Stichpunkten zusammen.",
+      "Explain": "Erkl\xE4ren",
+      "Explain context, jargon, and references in the post.": "Erkl\xE4rt Kontext, Fachjargon und Anspielungen im Beitrag.",
+      "Fact-check prompt": "Faktencheck-Prompt",
+      "Generate a fact-check prompt for the post (no network call without your key).": "Erzeugt einen Faktencheck-Prompt f\xFCr den Beitrag (ohne Schl\xFCssel keine Netzanfrage).",
+      "Snippets": "Textbausteine",
+      "Open Aviary composer snippets": "Aviarys Textbausteine im Editor \xF6ffnen",
+      "No snippets yet. Add some in the Control Center \u2192 Library.": "Noch keine Textbausteine. Lege welche im Control Center \u2192 Bibliothek an.",
+      "Click into the composer first, then pick a snippet.": "Klicke erst in den Editor und w\xE4hle dann einen Textbaustein.",
+      "Media Archivist": "Medienarchiv",
+      "Original-quality downloads, deterministic filenames, dedup history, sensitive blur.": "Downloads in Originalqualit\xE4t, deterministische Dateinamen, Duplikatverlauf, Weichzeichner f\xFCr sensible Inhalte.",
+      "Creator": "Creator",
+      "Writer mode, composer snippets, share-button cleanup, sidebar and trends hidden.": "Schreibmodus, Textbausteine im Editor, bereinigte Teilen-Schaltfl\xE4che, Seitenleiste und Trends ausgeblendet.",
+      "Researcher": "Recherche",
+      "Export capture on, JSON+CSV+HTML+MD formats, auto-discover query IDs, raw payloads.": "Export-Erfassung an, Formate JSON+CSV+HTML+MD, Query-IDs automatisch erkennen, Rohdaten.",
+      "Classic": "Klassisch",
+      "Restore dim, keep sidebar, hide Grok only, no premium filtering.": "Stellt das gedimmte Thema wieder her, beh\xE4lt die Seitenleiste, blendet nur Grok aus, kein Premium-Filter.",
+      "Minimal": "Minimal",
+      "Maximum declutter: no counts, no borders, no trends, big text safe zones.": "Maximal aufger\xE4umt: keine Zahlen, keine Rahmen, keine Trends, sichere Zonen f\xFCr gro\xDFe Schrift.",
+      "Hide this post \u2014 Aviary keeps it hidden on future visits": "Diesen Beitrag ausblenden \u2014 Aviary h\xE4lt ihn auch bei sp\xE4teren Besuchen ausgeblendet",
+      "Hide this post": "Diesen Beitrag ausblenden",
+      "Post hidden": "Beitrag ausgeblendet",
+      "Could not save the hidden post. Storage rejected the write.": "Der ausgeblendete Beitrag konnte nicht gespeichert werden. Der Speicher hat den Schreibvorgang abgelehnt.",
+      "Undo": "R\xFCckg\xE4ngig",
+      "Could not restore that post.": "Dieser Beitrag konnte nicht wiederhergestellt werden.",
+      "Note": "Notiz",
+      "Unavailable": "Nicht verf\xFCgbar",
+      "Saved": "Gespeichert",
+      "Queued": "In Warteschlange",
+      "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "Dein Browser hat die Datei ge\xF6ffnet statt gespeichert \u2014 erteile Aviary die Download-Berechtigung f\xFCr ein echtes Speichern.",
+      "Aviary needs the browser download permission. Opening its options page.": "Aviary ben\xF6tigt die Download-Berechtigung des Browsers. Die Optionsseite wird ge\xF6ffnet.",
+      "Allow": "Zulassen",
+      "Retry": "Erneut versuchen",
+      "Aviary ships with the narrowest permission set that still works. Everything below is optional, granted only by you, and revocable from this page at any time. Nothing on this page sends data anywhere.": "Aviary kommt mit dem kleinsten Berechtigungssatz, der noch funktioniert. Alles Folgende ist optional, wird nur von dir erteilt und kann hier jederzeit widerrufen werden. Nichts auf dieser Seite sendet Daten irgendwohin.",
+      "Save media to disk": "Medien auf die Festplatte speichern",
+      "checking\u2026": "wird gepr\xFCft\u2026",
+      "Lets the Save and Thumb buttons write files through the browser's download manager, with your filename template and duplicate history. Without it the browser opens media in a tab instead of saving it.": "L\xE4sst die Schaltfl\xE4chen Speichern und Vorschaubild Dateien \xFCber den Download-Manager des Browsers schreiben, mit deiner Namensvorlage und dem Duplikatverlauf. Ohne sie \xF6ffnet der Browser Medien in einem Tab, statt sie zu speichern.",
+      "Grant download access": "Download-Zugriff erteilen",
+      "Revoke": "Widerrufen",
+      "Read media hosts directly": "Medien-Hosts direkt lesen",
+      "Adds the media hosts so large files can be fetched without a page round-trip. Optional \u2014 media buttons work without it.": "F\xFCgt die Medien-Hosts hinzu, damit gro\xDFe Dateien ohne Umweg \xFCber die Seite geladen werden. Optional \u2014 die Medienschaltfl\xE4chen funktionieren auch ohne.",
+      "Grant media hosts": "Medien-Hosts erlauben",
+      "Settings, filters, notes and archives live in the Control Center on x.com. This page only manages browser permissions.": "Einstellungen, Filter, Notizen und Archive liegen im Control Center auf x.com. Diese Seite verwaltet nur Browser-Berechtigungen.",
+      "This browser did not expose the permissions API.": "Dieser Browser stellt die Berechtigungs-API nicht bereit.",
+      "Request dismissed \u2014 nothing changed.": "Anfrage verworfen \u2014 nichts ge\xE4ndert.",
+      "Revoked.": "Widerrufen.",
+      "Nothing to revoke.": "Nichts zu widerrufen.",
+      "granted": "erteilt",
+      "not granted": "nicht erteilt",
+      "Granted. Media saves through the browser now.": "Erteilt. Medien werden jetzt \xFCber den Browser gespeichert.",
+      "Granted. Aviary can read full-size media directly for exports now.": "Erteilt. Aviary kann Medien jetzt in voller Gr\xF6\xDFe f\xFCr Exporte lesen.",
       "Working \u2014 every change has been written.": "Alles in Ordnung \u2013 jede \xC4nderung wurde gespeichert.",
       "Monitoring active": "\xDCberwachung aktiv",
       "Preset packs unavailable in this build.": "Voreinstellungspakete stehen in diesem Build nicht zur Verf\xFCgung.",
@@ -1848,6 +2124,8 @@ html.av-reduce-motion *::after {
       "Integrations": "\u9023\u643A",
       "Backup & Audit": "\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3068\u76E3\u67FB",
       "Trust": "\u30D7\u30E9\u30A4\u30D0\u30B7\u30FC",
+      "Quiet Reader": "\u9759\u304B\u306A\u95B2\u89A7",
+      "Hide trends and row borders, dim premium posts, strip t.co, dense + dim theme.": "\u30C8\u30EC\u30F3\u30C9\u3068\u884C\u306E\u5883\u754C\u7DDA\u3092\u96A0\u3057\u3001\u30D7\u30EC\u30DF\u30A2\u30E0\u6295\u7A3F\u3092\u8584\u304F\u3057\u3001t.co \u3092\u6574\u7406\u3002\u9AD8\u5BC6\u5EA6\u306E\u30C0\u30FC\u30AF\u30C6\u30FC\u30DE\u3002",
       "Apply": "\u9069\u7528",
       "Locale": "\u8A00\u8A9E",
       "Translates the panel and sets reading direction \u2014 right-to-left for Arabic and Hebrew. Trust shows how much of the chosen locale is filled in; anything missing stays English.": "\u30D1\u30CD\u30EB\u3092\u7FFB\u8A33\u3057\u3001\u8AAD\u3080\u65B9\u5411\u3092\u8A2D\u5B9A\u3057\u307E\u3059\uFF08\u30A2\u30E9\u30D3\u30A2\u8A9E\u3068\u30D8\u30D6\u30E9\u30A4\u8A9E\u306F\u53F3\u304B\u3089\u5DE6\uFF09\u3002\u300C\u30D7\u30E9\u30A4\u30D0\u30B7\u30FC\u300D\u306B\u9078\u629E\u3057\u305F\u8A00\u8A9E\u306E\u7FFB\u8A33\u7387\u304C\u8868\u793A\u3055\u308C\u3001\u672A\u7FFB\u8A33\u306E\u9805\u76EE\u306F\u82F1\u8A9E\u306E\u307E\u307E\u306B\u306A\u308A\u307E\u3059\u3002",
@@ -2021,6 +2299,8 @@ html.av-reduce-motion *::after {
       "Aria2 RPC secret": "Aria2 \u306E RPC \u30B7\u30FC\u30AF\u30EC\u30C3\u30C8",
       "Optional shared secret for token: auth.": "token: \u8A8D\u8A3C\u306B\u4F7F\u3046\u5171\u6709\u30B7\u30FC\u30AF\u30EC\u30C3\u30C8\uFF08\u4EFB\u610F\uFF09\u3002",
       "Show": "\u8868\u793A",
+      "Hand off files larger than (MB)": "\u3053\u306E\u5BB9\u91CF\u3092\u8D85\u3048\u305F\u3089\u5F15\u304D\u6E21\u3059 (MB)",
+      "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.": "\u3053\u308C\u3088\u308A\u5C0F\u3055\u3044\u30D5\u30A1\u30A4\u30EB\u306F\u30D6\u30E9\u30A6\u30B6\u30FC\u3067\u4FDD\u5B58\u3057\u307E\u3059\u3002Aviary \u306F\u307E\u305A\u5BB9\u91CF\u3092\u78BA\u8A8D\u3057\u3001\u30B5\u30FC\u30D0\u30FC\u304C\u5BB9\u91CF\u3092\u8FD4\u3055\u306A\u3044\u5834\u5408\u306F\u305D\u306E\u307E\u307E\u5F15\u304D\u6E21\u3057\u307E\u3059\u3002",
       "Test Aria2 connection": "Aria2 \u306E\u63A5\u7D9A\u3092\u78BA\u8A8D",
       "Sends a trivial JSON-RPC call.": "\u7C21\u5358\u306A JSON-RPC \u547C\u3073\u51FA\u3057\u3092\u9001\u4FE1\u3057\u307E\u3059\u3002",
       "Refresh": "\u66F4\u65B0",
@@ -2129,6 +2409,7 @@ html.av-reduce-motion *::after {
       "Aria2 handoff off": "Aria2 \u3078\u306E\u5F15\u304D\u6E21\u3057 \u30AA\u30D5",
       "Aria2 endpoint saved": "Aria2 \u306E\u30A8\u30F3\u30C9\u30DD\u30A4\u30F3\u30C8\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Aria2 secret saved": "Aria2 \u306E\u30B7\u30FC\u30AF\u30EC\u30C3\u30C8\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
+      "Aria2 threshold saved": "Aria2 \u306E\u3057\u304D\u3044\u5024\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Aria2 reachable.": "Aria2 \u306B\u63A5\u7D9A\u3067\u304D\u307E\u3057\u305F\u3002",
       "Aria2 sweep failed.": "Aria2 \u306E\u4E00\u89A7\u53D6\u5F97\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
       "Bluesky on": "Bluesky \u30AA\u30F3",
@@ -2221,6 +2502,70 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "\u975E\u8868\u793A\u306E\u6295\u7A3F\u3092\u6D88\u53BB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "Saving...": "\u4FDD\u5B58\u4E2D...",
       "Could not save settings. Try again.": "\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+      "Open Aviary AI command menu": "Aviary \u306E AI \u30B3\u30DE\u30F3\u30C9\u30E1\u30CB\u30E5\u30FC\u3092\u958B\u304F",
+      "Aviary AI commands (offline prompt builder)": "Aviary \u306E AI \u30B3\u30DE\u30F3\u30C9\uFF08\u30AA\u30D5\u30E9\u30A4\u30F3\u306E\u30D7\u30ED\u30F3\u30D7\u30C8\u4F5C\u6210\uFF09",
+      "Run with provider": "\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u3067\u5B9F\u884C",
+      "running\u2026": "\u5B9F\u884C\u4E2D\u2026",
+      "result copied to the clipboard.": "\u7D50\u679C\u3092\u30AF\u30EA\u30C3\u30D7\u30DC\u30FC\u30C9\u306B\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F\u3002",
+      "The result could not be copied. Your browser blocked clipboard access.": "\u7D50\u679C\u3092\u30B3\u30D4\u30FC\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u30D6\u30E9\u30A6\u30B6\u30FC\u304C\u30AF\u30EA\u30C3\u30D7\u30DC\u30FC\u30C9\u3078\u306E\u30A2\u30AF\u30BB\u30B9\u3092\u62D2\u5426\u3057\u307E\u3057\u305F\u3002",
+      "the provider did not respond": "\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u304B\u3089\u5FDC\u7B54\u304C\u3042\u308A\u307E\u305B\u3093",
+      "Check the key and model in Integrations.": "\u300C\u9023\u643A\u300D\u3067\u30AD\u30FC\u3068\u30E2\u30C7\u30EB\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+      "Prompt copied to the clipboard \u2014 paste it into your assistant.": "\u30D7\u30ED\u30F3\u30D7\u30C8\u3092\u30AF\u30EA\u30C3\u30D7\u30DC\u30FC\u30C9\u306B\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F\u3002\u30A2\u30B7\u30B9\u30BF\u30F3\u30C8\u306B\u8CBC\u308A\u4ED8\u3051\u3066\u304F\u3060\u3055\u3044\u3002",
+      "The prompt could not be copied. Your browser blocked clipboard access.": "\u30D7\u30ED\u30F3\u30D7\u30C8\u3092\u30B3\u30D4\u30FC\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u30D6\u30E9\u30A6\u30B6\u30FC\u304C\u30AF\u30EA\u30C3\u30D7\u30DC\u30FC\u30C9\u3078\u306E\u30A2\u30AF\u30BB\u30B9\u3092\u62D2\u5426\u3057\u307E\u3057\u305F\u3002",
+      "Translate": "\u7FFB\u8A33",
+      "Translate the selected post to your active locale.": "\u9078\u629E\u3057\u305F\u6295\u7A3F\u3092\u73FE\u5728\u306E\u8A00\u8A9E\u306B\u7FFB\u8A33\u3057\u307E\u3059\u3002",
+      "Summarize": "\u8981\u7D04",
+      "Summarize a thread or long post in 3 bullet points.": "\u30B9\u30EC\u30C3\u30C9\u3084\u9577\u3044\u6295\u7A3F\u3092 3 \u3064\u306E\u7B87\u6761\u66F8\u304D\u306B\u307E\u3068\u3081\u307E\u3059\u3002",
+      "Explain": "\u89E3\u8AAC",
+      "Explain context, jargon, and references in the post.": "\u6295\u7A3F\u306E\u80CC\u666F\u3001\u5C02\u9580\u7528\u8A9E\u3001\u5F15\u7528\u5143\u3092\u8AAC\u660E\u3057\u307E\u3059\u3002",
+      "Fact-check prompt": "\u30D5\u30A1\u30AF\u30C8\u30C1\u30A7\u30C3\u30AF\u7528\u30D7\u30ED\u30F3\u30D7\u30C8",
+      "Generate a fact-check prompt for the post (no network call without your key).": "\u6295\u7A3F\u306E\u30D5\u30A1\u30AF\u30C8\u30C1\u30A7\u30C3\u30AF\u7528\u30D7\u30ED\u30F3\u30D7\u30C8\u3092\u4F5C\u6210\u3057\u307E\u3059\uFF08\u30AD\u30FC\u304C\u306A\u3051\u308C\u3070\u901A\u4FE1\u3057\u307E\u305B\u3093\uFF09\u3002",
+      "Snippets": "\u5B9A\u578B\u6587",
+      "Open Aviary composer snippets": "Aviary \u306E\u5B9A\u578B\u6587\u3092\u958B\u304F",
+      "No snippets yet. Add some in the Control Center \u2192 Library.": "\u5B9A\u578B\u6587\u304C\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u30BB\u30F3\u30BF\u30FC \u2192 \u30E9\u30A4\u30D6\u30E9\u30EA\u3067\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+      "Click into the composer first, then pick a snippet.": "\u5148\u306B\u5165\u529B\u6B04\u3092\u30AF\u30EA\u30C3\u30AF\u3057\u3066\u304B\u3089\u5B9A\u578B\u6587\u3092\u9078\u3093\u3067\u304F\u3060\u3055\u3044\u3002",
+      "Media Archivist": "\u30E1\u30C7\u30A3\u30A2\u4FDD\u5B58",
+      "Original-quality downloads, deterministic filenames, dedup history, sensitive blur.": "\u30AA\u30EA\u30B8\u30CA\u30EB\u753B\u8CEA\u3067\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3001\u4E00\u5B9A\u306E\u30D5\u30A1\u30A4\u30EB\u540D\u3001\u91CD\u8907\u5C65\u6B74\u3001\u30BB\u30F3\u30B7\u30C6\u30A3\u30D6\u5185\u5BB9\u3092\u307C\u304B\u3057\u3002",
+      "Creator": "\u30AF\u30EA\u30A8\u30A4\u30BF\u30FC",
+      "Writer mode, composer snippets, share-button cleanup, sidebar and trends hidden.": "\u30E9\u30A4\u30BF\u30FC\u30E2\u30FC\u30C9\u3001\u5B9A\u578B\u6587\u3001\u5171\u6709\u30DC\u30BF\u30F3\u306E\u6574\u7406\u3001\u30B5\u30A4\u30C9\u30D0\u30FC\u3068\u30C8\u30EC\u30F3\u30C9\u3092\u975E\u8868\u793A\u3002",
+      "Researcher": "\u30EA\u30B5\u30FC\u30C1",
+      "Export capture on, JSON+CSV+HTML+MD formats, auto-discover query IDs, raw payloads.": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u7528\u30AD\u30E3\u30D7\u30C1\u30E3 \u30AA\u30F3\u3001JSON+CSV+HTML+MD \u5F62\u5F0F\u3001\u30AF\u30A8\u30EA ID \u306E\u81EA\u52D5\u691C\u51FA\u3001\u751F\u30C7\u30FC\u30BF\u3002",
+      "Classic": "\u30AF\u30E9\u30B7\u30C3\u30AF",
+      "Restore dim, keep sidebar, hide Grok only, no premium filtering.": "Dim \u30C6\u30FC\u30DE\u306B\u623B\u3057\u3001\u30B5\u30A4\u30C9\u30D0\u30FC\u306F\u6B8B\u3057\u3001Grok \u306E\u307F\u975E\u8868\u793A\u3002\u30D7\u30EC\u30DF\u30A2\u30E0\u306E\u7D5E\u308A\u8FBC\u307F\u306A\u3057\u3002",
+      "Minimal": "\u30DF\u30CB\u30DE\u30EB",
+      "Maximum declutter: no counts, no borders, no trends, big text safe zones.": "\u6700\u5927\u9650\u306B\u7C21\u7D20\u5316\uFF1A\u30AB\u30A6\u30F3\u30C8\u306A\u3057\u3001\u5883\u754C\u7DDA\u306A\u3057\u3001\u30C8\u30EC\u30F3\u30C9\u306A\u3057\u3001\u5927\u304D\u306A\u6587\u5B57\u3067\u3082\u5D29\u308C\u306A\u3044\u4F59\u767D\u3002",
+      "Hide this post \u2014 Aviary keeps it hidden on future visits": "\u3053\u306E\u6295\u7A3F\u3092\u975E\u8868\u793A\u306B\u3059\u308B\uFF08\u6B21\u56DE\u4EE5\u964D\u3082\u975E\u8868\u793A\u306E\u307E\u307E\u306B\u306A\u308A\u307E\u3059\uFF09",
+      "Hide this post": "\u3053\u306E\u6295\u7A3F\u3092\u975E\u8868\u793A",
+      "Post hidden": "\u6295\u7A3F\u3092\u975E\u8868\u793A\u306B\u3057\u307E\u3057\u305F",
+      "Could not save the hidden post. Storage rejected the write.": "\u975E\u8868\u793A\u306E\u6295\u7A3F\u3092\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u30B9\u30C8\u30EC\u30FC\u30B8\u304C\u66F8\u304D\u8FBC\u307F\u3092\u62D2\u5426\u3057\u307E\u3057\u305F\u3002",
+      "Undo": "\u5143\u306B\u623B\u3059",
+      "Could not restore that post.": "\u305D\u306E\u6295\u7A3F\u3092\u5FA9\u5143\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+      "Note": "\u30E1\u30E2",
+      "Unavailable": "\u5229\u7528\u3067\u304D\u307E\u305B\u3093",
+      "Saved": "\u4FDD\u5B58\u3057\u307E\u3057\u305F",
+      "Queued": "\u5F85\u6A5F\u4E2D",
+      "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "\u30D6\u30E9\u30A6\u30B6\u30FC\u304C\u30D5\u30A1\u30A4\u30EB\u3092\u4FDD\u5B58\u305B\u305A\u306B\u958B\u304D\u307E\u3057\u305F\u3002\u78BA\u5B9F\u306B\u4FDD\u5B58\u3059\u308B\u306B\u306F Aviary \u306B\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u6A29\u9650\u3092\u8A31\u53EF\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+      "Aviary needs the browser download permission. Opening its options page.": "Aviary \u306B\u306F\u30D6\u30E9\u30A6\u30B6\u30FC\u306E\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u6A29\u9650\u304C\u5FC5\u8981\u3067\u3059\u3002\u30AA\u30D7\u30B7\u30E7\u30F3\u30DA\u30FC\u30B8\u3092\u958B\u304D\u307E\u3059\u3002",
+      "Allow": "\u8A31\u53EF",
+      "Retry": "\u518D\u8A66\u884C",
+      "Aviary ships with the narrowest permission set that still works. Everything below is optional, granted only by you, and revocable from this page at any time. Nothing on this page sends data anywhere.": "Aviary \u306F\u52D5\u4F5C\u306B\u5FC5\u8981\u306A\u6700\u5C0F\u9650\u306E\u6A29\u9650\u3060\u3051\u3067\u914D\u5E03\u3055\u308C\u3066\u3044\u307E\u3059\u3002\u4EE5\u4E0B\u306F\u3059\u3079\u3066\u4EFB\u610F\u3067\u3001\u8A31\u53EF\u3059\u308B\u306E\u306F\u3042\u306A\u305F\u3060\u3051\u3001\u3053\u306E\u30DA\u30FC\u30B8\u304B\u3089\u3044\u3064\u3067\u3082\u53D6\u308A\u6D88\u305B\u307E\u3059\u3002\u3053\u306E\u30DA\u30FC\u30B8\u304B\u3089\u5916\u90E8\u306B\u30C7\u30FC\u30BF\u306F\u9001\u4FE1\u3055\u308C\u307E\u305B\u3093\u3002",
+      "Save media to disk": "\u30E1\u30C7\u30A3\u30A2\u3092\u30C7\u30A3\u30B9\u30AF\u306B\u4FDD\u5B58",
+      "checking\u2026": "\u78BA\u8A8D\u4E2D\u2026",
+      "Lets the Save and Thumb buttons write files through the browser's download manager, with your filename template and duplicate history. Without it the browser opens media in a tab instead of saving it.": "\u300C\u4FDD\u5B58\u300D\u300C\u30B5\u30E0\u30CD\u30A4\u30EB\u300D\u30DC\u30BF\u30F3\u304C\u3001\u30D6\u30E9\u30A6\u30B6\u30FC\u306E\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u6A5F\u80FD\u3067\u30D5\u30A1\u30A4\u30EB\u3092\u66F8\u304D\u51FA\u305B\u308B\u3088\u3046\u306B\u306A\u308A\u307E\u3059\uFF08\u30D5\u30A1\u30A4\u30EB\u540D\u30C6\u30F3\u30D7\u30EC\u30FC\u30C8\u3068\u91CD\u8907\u5C65\u6B74\u3064\u304D\uFF09\u3002\u8A31\u53EF\u3057\u306A\u3044\u5834\u5408\u3001\u30D6\u30E9\u30A6\u30B6\u30FC\u306F\u4FDD\u5B58\u305B\u305A\u306B\u30BF\u30D6\u3067\u958B\u304D\u307E\u3059\u3002",
+      "Grant download access": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u6A29\u9650\u3092\u8A31\u53EF",
+      "Revoke": "\u53D6\u308A\u6D88\u3059",
+      "Read media hosts directly": "\u30E1\u30C7\u30A3\u30A2\u30B5\u30FC\u30D0\u30FC\u3078\u76F4\u63A5\u30A2\u30AF\u30BB\u30B9",
+      "Adds the media hosts so large files can be fetched without a page round-trip. Optional \u2014 media buttons work without it.": "\u5927\u304D\u306A\u30D5\u30A1\u30A4\u30EB\u3092\u30DA\u30FC\u30B8\u7D4C\u7531\u305B\u305A\u306B\u53D6\u5F97\u3067\u304D\u308B\u3088\u3046\u3001\u30E1\u30C7\u30A3\u30A2\u30B5\u30FC\u30D0\u30FC\u3092\u8FFD\u52A0\u3057\u307E\u3059\u3002\u4EFB\u610F\u3067\u3059\u3002\u8A31\u53EF\u3057\u306A\u304F\u3066\u3082\u30E1\u30C7\u30A3\u30A2\u30DC\u30BF\u30F3\u306F\u52D5\u4F5C\u3057\u307E\u3059\u3002",
+      "Grant media hosts": "\u30E1\u30C7\u30A3\u30A2\u30B5\u30FC\u30D0\u30FC\u3092\u8A31\u53EF",
+      "Settings, filters, notes and archives live in the Control Center on x.com. This page only manages browser permissions.": "\u8A2D\u5B9A\u30FB\u30D5\u30A3\u30EB\u30BF\u30FC\u30FB\u30E1\u30E2\u30FB\u30A2\u30FC\u30AB\u30A4\u30D6\u306F x.com \u306E\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u30BB\u30F3\u30BF\u30FC\u306B\u3042\u308A\u307E\u3059\u3002\u3053\u306E\u30DA\u30FC\u30B8\u306F\u30D6\u30E9\u30A6\u30B6\u30FC\u306E\u6A29\u9650\u306E\u307F\u3092\u6271\u3044\u307E\u3059\u3002",
+      "This browser did not expose the permissions API.": "\u3053\u306E\u30D6\u30E9\u30A6\u30B6\u30FC\u306F\u6A29\u9650 API \u3092\u63D0\u4F9B\u3057\u3066\u3044\u307E\u305B\u3093\u3002",
+      "Request dismissed \u2014 nothing changed.": "\u30EA\u30AF\u30A8\u30B9\u30C8\u306F\u53D6\u308A\u6D88\u3055\u308C\u307E\u3057\u305F\u3002\u5909\u66F4\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+      "Revoked.": "\u53D6\u308A\u6D88\u3057\u307E\u3057\u305F\u3002",
+      "Nothing to revoke.": "\u53D6\u308A\u6D88\u3059\u6A29\u9650\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+      "granted": "\u8A31\u53EF\u6E08\u307F",
+      "not granted": "\u672A\u8A31\u53EF",
+      "Granted. Media saves through the browser now.": "\u8A31\u53EF\u3057\u307E\u3057\u305F\u3002\u4ECA\u5F8C\u306F\u30D6\u30E9\u30A6\u30B6\u30FC\u7D4C\u7531\u3067\u30E1\u30C7\u30A3\u30A2\u3092\u4FDD\u5B58\u3057\u307E\u3059\u3002",
+      "Granted. Aviary can read full-size media directly for exports now.": "\u8A31\u53EF\u3057\u307E\u3057\u305F\u3002\u4ECA\u5F8C Aviary \u306F\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u7528\u306B\u30D5\u30EB\u30B5\u30A4\u30BA\u306E\u30E1\u30C7\u30A3\u30A2\u3092\u76F4\u63A5\u8AAD\u307F\u53D6\u308C\u307E\u3059\u3002",
       "Working \u2014 every change has been written.": "\u6B63\u5E38\u3067\u3059\u3002\u3059\u3079\u3066\u306E\u5909\u66F4\u304C\u4FDD\u5B58\u3055\u308C\u3066\u3044\u307E\u3059\u3002",
       "Monitoring active": "\u76E3\u8996\u4E2D",
       "Preset packs unavailable in this build.": "\u3053\u306E\u30D3\u30EB\u30C9\u3067\u306F\u30D7\u30EA\u30BB\u30C3\u30C8\u3092\u5229\u7528\u3067\u304D\u307E\u305B\u3093\u3002",
@@ -2251,6 +2596,8 @@ html.av-reduce-motion *::after {
       "Integrations": "\uC5F0\uB3D9",
       "Backup & Audit": "\uBC31\uC5C5 \uBC0F \uAC10\uC0AC",
       "Trust": "\uAC1C\uC778\uC815\uBCF4",
+      "Quiet Reader": "\uC870\uC6A9\uD55C \uC77D\uAE30",
+      "Hide trends and row borders, dim premium posts, strip t.co, dense + dim theme.": "\uD2B8\uB80C\uB4DC\uC640 \uD589 \uD14C\uB450\uB9AC\uB97C \uC228\uAE30\uACE0, \uD504\uB9AC\uBBF8\uC5C4 \uAC8C\uC2DC\uBB3C\uC744 \uD750\uB9AC\uAC8C \uD558\uACE0, t.co\uB97C \uC815\uB9AC\uD569\uB2C8\uB2E4. \uC870\uBC00\uD55C \uC5B4\uB450\uC6B4 \uD14C\uB9C8.",
       "Apply": "\uC801\uC6A9",
       "Locale": "\uC5B8\uC5B4",
       "Translates the panel and sets reading direction \u2014 right-to-left for Arabic and Hebrew. Trust shows how much of the chosen locale is filled in; anything missing stays English.": "\uD328\uB110\uC744 \uBC88\uC5ED\uD558\uACE0 \uC77D\uB294 \uBC29\uD5A5\uC744 \uC124\uC815\uD569\uB2C8\uB2E4(\uC544\uB78D\uC5B4\uC640 \uD788\uBE0C\uB9AC\uC5B4\uB294 \uC624\uB978\uCABD\uC5D0\uC11C \uC67C\uCABD). '\uAC1C\uC778\uC815\uBCF4'\uC5D0 \uC120\uD0DD\uD55C \uC5B8\uC5B4\uC758 \uBC88\uC5ED \uC815\uB3C4\uAC00 \uD45C\uC2DC\uB418\uBA70, \uBE60\uC9C4 \uD56D\uBAA9\uC740 \uC601\uC5B4\uB85C \uB0A8\uC2B5\uB2C8\uB2E4.",
@@ -2424,6 +2771,8 @@ html.av-reduce-motion *::after {
       "Aria2 RPC secret": "Aria2 RPC \uC2DC\uD06C\uB9BF",
       "Optional shared secret for token: auth.": "token: \uC778\uC99D\uC5D0 \uC4F0\uB294 \uACF5\uC720 \uC2DC\uD06C\uB9BF(\uC120\uD0DD).",
       "Show": "\uD45C\uC2DC",
+      "Hand off files larger than (MB)": "\uC774 \uD06C\uAE30\uB97C \uB118\uC73C\uBA74 \uC804\uB2EC (MB)",
+      "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.": "\uC774\uBCF4\uB2E4 \uC791\uC740 \uD30C\uC77C\uC740 \uBE0C\uB77C\uC6B0\uC800\uB85C \uC800\uC7A5\uD569\uB2C8\uB2E4. Aviary\uAC00 \uBA3C\uC800 \uD06C\uAE30\uB97C \uD655\uC778\uD558\uBA70, \uC11C\uBC84\uAC00 \uD06C\uAE30\uB97C \uC54C\uB824\uC8FC\uC9C0 \uC54A\uC73C\uBA74 \uADF8\uB300\uB85C \uC804\uB2EC\uD569\uB2C8\uB2E4.",
       "Test Aria2 connection": "Aria2 \uC5F0\uACB0 \uD14C\uC2A4\uD2B8",
       "Sends a trivial JSON-RPC call.": "\uAC04\uB2E8\uD55C JSON-RPC \uD638\uCD9C\uC744 \uBCF4\uB0C5\uB2C8\uB2E4.",
       "Refresh": "\uC0C8\uB85C \uACE0\uCE68",
@@ -2532,6 +2881,7 @@ html.av-reduce-motion *::after {
       "Aria2 handoff off": "Aria2 \uC804\uB2EC \uB054",
       "Aria2 endpoint saved": "Aria2 \uC5D4\uB4DC\uD3EC\uC778\uD2B8\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Aria2 secret saved": "Aria2 \uC2DC\uD06C\uB9BF\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
+      "Aria2 threshold saved": "Aria2 \uAE30\uC900 \uD06C\uAE30\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Aria2 reachable.": "Aria2\uC5D0 \uC5F0\uACB0\uB428.",
       "Aria2 sweep failed.": "Aria2 \uBAA9\uB85D\uC744 \uAC00\uC838\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "Bluesky on": "Bluesky \uCF2C",
@@ -2624,6 +2974,70 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "\uC228\uAE34 \uAC8C\uC2DC\uBB3C\uC744 \uC9C0\uC6B0\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "Saving...": "\uC800\uC7A5 \uC911...",
       "Could not save settings. Try again.": "\uC124\uC815\uC744 \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+      "Open Aviary AI command menu": "Aviary AI \uBA85\uB839 \uBA54\uB274 \uC5F4\uAE30",
+      "Aviary AI commands (offline prompt builder)": "Aviary AI \uBA85\uB839 (\uC624\uD504\uB77C\uC778 \uD504\uB86C\uD504\uD2B8 \uC791\uC131\uAE30)",
+      "Run with provider": "\uC81C\uACF5\uC790\uB85C \uC2E4\uD589",
+      "running\u2026": "\uC2E4\uD589 \uC911\u2026",
+      "result copied to the clipboard.": "\uACB0\uACFC\uB97C \uD074\uB9BD\uBCF4\uB4DC\uC5D0 \uBCF5\uC0AC\uD588\uC2B5\uB2C8\uB2E4.",
+      "The result could not be copied. Your browser blocked clipboard access.": "\uACB0\uACFC\uB97C \uBCF5\uC0AC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uBE0C\uB77C\uC6B0\uC800\uAC00 \uD074\uB9BD\uBCF4\uB4DC \uC811\uADFC\uC744 \uCC28\uB2E8\uD588\uC2B5\uB2C8\uB2E4.",
+      "the provider did not respond": "\uC81C\uACF5\uC790\uAC00 \uC751\uB2F5\uD558\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4",
+      "Check the key and model in Integrations.": "\uC5F0\uB3D9\uC5D0\uC11C \uD0A4\uC640 \uBAA8\uB378\uC744 \uD655\uC778\uD558\uC138\uC694.",
+      "Prompt copied to the clipboard \u2014 paste it into your assistant.": "\uD504\uB86C\uD504\uD2B8\uB97C \uD074\uB9BD\uBCF4\uB4DC\uC5D0 \uBCF5\uC0AC\uD588\uC2B5\uB2C8\uB2E4. \uC5B4\uC2DC\uC2A4\uD134\uD2B8\uC5D0 \uBD99\uC5EC\uB123\uC73C\uC138\uC694.",
+      "The prompt could not be copied. Your browser blocked clipboard access.": "\uD504\uB86C\uD504\uD2B8\uB97C \uBCF5\uC0AC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uBE0C\uB77C\uC6B0\uC800\uAC00 \uD074\uB9BD\uBCF4\uB4DC \uC811\uADFC\uC744 \uCC28\uB2E8\uD588\uC2B5\uB2C8\uB2E4.",
+      "Translate": "\uBC88\uC5ED",
+      "Translate the selected post to your active locale.": "\uC120\uD0DD\uD55C \uAC8C\uC2DC\uBB3C\uC744 \uD604\uC7AC \uC5B8\uC5B4\uB85C \uBC88\uC5ED\uD569\uB2C8\uB2E4.",
+      "Summarize": "\uC694\uC57D",
+      "Summarize a thread or long post in 3 bullet points.": "\uC2A4\uB808\uB4DC\uB098 \uAE34 \uAC8C\uC2DC\uBB3C\uC744 3\uAC1C\uC758 \uD56D\uBAA9\uC73C\uB85C \uC694\uC57D\uD569\uB2C8\uB2E4.",
+      "Explain": "\uC124\uBA85",
+      "Explain context, jargon, and references in the post.": "\uAC8C\uC2DC\uBB3C\uC758 \uB9E5\uB77D, \uC804\uBB38 \uC6A9\uC5B4, \uC778\uC6A9\uC744 \uC124\uBA85\uD569\uB2C8\uB2E4.",
+      "Fact-check prompt": "\uD329\uD2B8\uCCB4\uD06C \uD504\uB86C\uD504\uD2B8",
+      "Generate a fact-check prompt for the post (no network call without your key).": "\uAC8C\uC2DC\uBB3C\uC5D0 \uB300\uD55C \uD329\uD2B8\uCCB4\uD06C \uD504\uB86C\uD504\uD2B8\uB97C \uB9CC\uB4ED\uB2C8\uB2E4 (\uD0A4\uAC00 \uC5C6\uC73C\uBA74 \uB124\uD2B8\uC6CC\uD06C\uB97C \uC4F0\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4).",
+      "Snippets": "\uC2A4\uB2C8\uD3AB",
+      "Open Aviary composer snippets": "Aviary \uC791\uC131\uAE30 \uC2A4\uB2C8\uD3AB \uC5F4\uAE30",
+      "No snippets yet. Add some in the Control Center \u2192 Library.": "\uC544\uC9C1 \uC2A4\uB2C8\uD3AB\uC774 \uC5C6\uC2B5\uB2C8\uB2E4. \uC81C\uC5B4\uD310 \u2192 \uB77C\uC774\uBE0C\uB7EC\uB9AC\uC5D0\uC11C \uCD94\uAC00\uD558\uC138\uC694.",
+      "Click into the composer first, then pick a snippet.": "\uBA3C\uC800 \uC791\uC131\uAE30\uB97C \uD074\uB9AD\uD55C \uB4A4 \uC2A4\uB2C8\uD3AB\uC744 \uACE0\uB974\uC138\uC694.",
+      "Media Archivist": "\uBBF8\uB514\uC5B4 \uBCF4\uAD00",
+      "Original-quality downloads, deterministic filenames, dedup history, sensitive blur.": "\uC6D0\uBCF8 \uD654\uC9C8 \uB2E4\uC6B4\uB85C\uB4DC, \uC77C\uC815\uD55C \uD30C\uC77C \uC774\uB984, \uC911\uBCF5 \uAE30\uB85D, \uBBFC\uAC10\uD55C \uB0B4\uC6A9 \uD750\uB9AC\uAC8C.",
+      "Creator": "\uD06C\uB9AC\uC5D0\uC774\uD130",
+      "Writer mode, composer snippets, share-button cleanup, sidebar and trends hidden.": "\uC791\uC131 \uBAA8\uB4DC, \uC791\uC131\uAE30 \uC2A4\uB2C8\uD3AB, \uACF5\uC720 \uBC84\uD2BC \uC815\uB9AC, \uC0AC\uC774\uB4DC\uBC14\uC640 \uD2B8\uB80C\uB4DC \uC228\uAE40.",
+      "Researcher": "\uB9AC\uC11C\uCE58",
+      "Export capture on, JSON+CSV+HTML+MD formats, auto-discover query IDs, raw payloads.": "\uB0B4\uBCF4\uB0B4\uAE30 \uCEA1\uCC98 \uCF2C, JSON+CSV+HTML+MD \uD615\uC2DD, \uCFFC\uB9AC ID \uC790\uB3D9 \uAC80\uC0C9, \uC6D0\uBCF8 \uB370\uC774\uD130.",
+      "Classic": "\uD074\uB798\uC2DD",
+      "Restore dim, keep sidebar, hide Grok only, no premium filtering.": "Dim \uD14C\uB9C8\uB85C \uB418\uB3CC\uB9AC\uACE0 \uC0AC\uC774\uB4DC\uBC14\uB294 \uC720\uC9C0\uD558\uBA70 Grok\uB9CC \uC228\uAE41\uB2C8\uB2E4. \uD504\uB9AC\uBBF8\uC5C4 \uD544\uD130 \uC5C6\uC74C.",
+      "Minimal": "\uBBF8\uB2C8\uBA40",
+      "Maximum declutter: no counts, no borders, no trends, big text safe zones.": "\uCD5C\uB300\uD55C \uAC04\uACB0\uD558\uAC8C: \uCE74\uC6B4\uD2B8 \uC5C6\uC74C, \uD14C\uB450\uB9AC \uC5C6\uC74C, \uD2B8\uB80C\uB4DC \uC5C6\uC74C, \uD070 \uAE00\uC790\uC5D0\uB3C4 \uC548\uC804\uD55C \uC5EC\uBC31.",
+      "Hide this post \u2014 Aviary keeps it hidden on future visits": "\uC774 \uAC8C\uC2DC\uBB3C \uC228\uAE30\uAE30 \u2014 \uB2E4\uC74C\uC5D0 \uBC29\uBB38\uD574\uB3C4 \uACC4\uC18D \uC228\uACA8\uC9D1\uB2C8\uB2E4",
+      "Hide this post": "\uC774 \uAC8C\uC2DC\uBB3C \uC228\uAE30\uAE30",
+      "Post hidden": "\uAC8C\uC2DC\uBB3C\uC744 \uC228\uACBC\uC2B5\uB2C8\uB2E4",
+      "Could not save the hidden post. Storage rejected the write.": "\uC228\uAE34 \uAC8C\uC2DC\uBB3C\uC744 \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uC800\uC7A5\uC18C\uAC00 \uC4F0\uAE30\uB97C \uAC70\uBD80\uD588\uC2B5\uB2C8\uB2E4.",
+      "Undo": "\uC2E4\uD589 \uCDE8\uC18C",
+      "Could not restore that post.": "\uADF8 \uAC8C\uC2DC\uBB3C\uC744 \uBCF5\uC6D0\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
+      "Note": "\uBA54\uBAA8",
+      "Unavailable": "\uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC74C",
+      "Saved": "\uC800\uC7A5\uB428",
+      "Queued": "\uB300\uAE30 \uC911",
+      "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "\uBE0C\uB77C\uC6B0\uC800\uAC00 \uD30C\uC77C\uC744 \uC800\uC7A5\uD558\uC9C0 \uC54A\uACE0 \uC5F4\uC5C8\uC2B5\uB2C8\uB2E4. \uC2E4\uC81C\uB85C \uC800\uC7A5\uD558\uB824\uBA74 Aviary\uC5D0 \uB2E4\uC6B4\uB85C\uB4DC \uAD8C\uD55C\uC744 \uD5C8\uC6A9\uD558\uC138\uC694.",
+      "Aviary needs the browser download permission. Opening its options page.": "Aviary\uC5D0\uB294 \uBE0C\uB77C\uC6B0\uC800 \uB2E4\uC6B4\uB85C\uB4DC \uAD8C\uD55C\uC774 \uD544\uC694\uD569\uB2C8\uB2E4. \uC635\uC158 \uD398\uC774\uC9C0\uB97C \uC5FD\uB2C8\uB2E4.",
+      "Allow": "\uD5C8\uC6A9",
+      "Retry": "\uB2E4\uC2DC \uC2DC\uB3C4",
+      "Aviary ships with the narrowest permission set that still works. Everything below is optional, granted only by you, and revocable from this page at any time. Nothing on this page sends data anywhere.": "Aviary\uB294 \uB3D9\uC791\uC5D0 \uD544\uC694\uD55C \uCD5C\uC18C\uD55C\uC758 \uAD8C\uD55C\uB9CC\uC73C\uB85C \uBC30\uD3EC\uB429\uB2C8\uB2E4. \uC544\uB798 \uD56D\uBAA9\uC740 \uBAA8\uB450 \uC120\uD0DD \uC0AC\uD56D\uC774\uBA70, \uC624\uC9C1 \uC0AC\uC6A9\uC790\uAC00 \uD5C8\uC6A9\uD558\uACE0 \uC774 \uD398\uC774\uC9C0\uC5D0\uC11C \uC5B8\uC81C\uB4E0\uC9C0 \uCDE8\uC18C\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4. \uC774 \uD398\uC774\uC9C0\uB294 \uC5B4\uB514\uB85C\uB3C4 \uB370\uC774\uD130\uB97C \uBCF4\uB0B4\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+      "Save media to disk": "\uBBF8\uB514\uC5B4\uB97C \uB514\uC2A4\uD06C\uC5D0 \uC800\uC7A5",
+      "checking\u2026": "\uD655\uC778 \uC911\u2026",
+      "Lets the Save and Thumb buttons write files through the browser's download manager, with your filename template and duplicate history. Without it the browser opens media in a tab instead of saving it.": "\uC800\uC7A5\xB7\uC378\uB124\uC77C \uBC84\uD2BC\uC774 \uBE0C\uB77C\uC6B0\uC800 \uB2E4\uC6B4\uB85C\uB4DC \uAD00\uB9AC\uC790\uB97C \uD1B5\uD574 \uD30C\uC77C\uC744 \uC800\uC7A5\uD560 \uC218 \uC788\uAC8C \uD569\uB2C8\uB2E4(\uD30C\uC77C \uC774\uB984 \uD15C\uD50C\uB9BF\uACFC \uC911\uBCF5 \uAE30\uB85D \uD3EC\uD568). \uD5C8\uC6A9\uD558\uC9C0 \uC54A\uC73C\uBA74 \uBE0C\uB77C\uC6B0\uC800\uAC00 \uC800\uC7A5 \uB300\uC2E0 \uC0C8 \uD0ED\uC5D0\uC11C \uC5FD\uB2C8\uB2E4.",
+      "Grant download access": "\uB2E4\uC6B4\uB85C\uB4DC \uAD8C\uD55C \uD5C8\uC6A9",
+      "Revoke": "\uCDE8\uC18C",
+      "Read media hosts directly": "\uBBF8\uB514\uC5B4 \uC11C\uBC84\uC5D0 \uC9C1\uC811 \uC811\uADFC",
+      "Adds the media hosts so large files can be fetched without a page round-trip. Optional \u2014 media buttons work without it.": "\uD070 \uD30C\uC77C\uC744 \uD398\uC774\uC9C0\uB97C \uAC70\uCE58\uC9C0 \uC54A\uACE0 \uAC00\uC838\uC62C \uC218 \uC788\uB3C4\uB85D \uBBF8\uB514\uC5B4 \uC11C\uBC84\uB97C \uCD94\uAC00\uD569\uB2C8\uB2E4. \uC120\uD0DD \uC0AC\uD56D\uC774\uBA70, \uC5C6\uC5B4\uB3C4 \uBBF8\uB514\uC5B4 \uBC84\uD2BC\uC740 \uB3D9\uC791\uD569\uB2C8\uB2E4.",
+      "Grant media hosts": "\uBBF8\uB514\uC5B4 \uC11C\uBC84 \uD5C8\uC6A9",
+      "Settings, filters, notes and archives live in the Control Center on x.com. This page only manages browser permissions.": "\uC124\uC815, \uD544\uD130, \uBA54\uBAA8, \uBCF4\uAD00 \uC790\uB8CC\uB294 x.com\uC758 \uC81C\uC5B4\uD310\uC5D0 \uC788\uC2B5\uB2C8\uB2E4. \uC774 \uD398\uC774\uC9C0\uB294 \uBE0C\uB77C\uC6B0\uC800 \uAD8C\uD55C\uB9CC \uAD00\uB9AC\uD569\uB2C8\uB2E4.",
+      "This browser did not expose the permissions API.": "\uC774 \uBE0C\uB77C\uC6B0\uC800\uB294 \uAD8C\uD55C API\uB97C \uC81C\uACF5\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+      "Request dismissed \u2014 nothing changed.": "\uC694\uCCAD\uC774 \uCDE8\uC18C\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uBCC0\uACBD\uB41C \uAC83\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
+      "Revoked.": "\uCDE8\uC18C\uD588\uC2B5\uB2C8\uB2E4.",
+      "Nothing to revoke.": "\uCDE8\uC18C\uD560 \uAD8C\uD55C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
+      "granted": "\uD5C8\uC6A9\uB428",
+      "not granted": "\uD5C8\uC6A9\uB418\uC9C0 \uC54A\uC74C",
+      "Granted. Media saves through the browser now.": "\uD5C8\uC6A9\uD588\uC2B5\uB2C8\uB2E4. \uC774\uC81C \uBE0C\uB77C\uC6B0\uC800\uB97C \uD1B5\uD574 \uBBF8\uB514\uC5B4\uB97C \uC800\uC7A5\uD569\uB2C8\uB2E4.",
+      "Granted. Aviary can read full-size media directly for exports now.": "\uD5C8\uC6A9\uD588\uC2B5\uB2C8\uB2E4. \uC774\uC81C Aviary\uAC00 \uB0B4\uBCF4\uB0B4\uAE30\uB97C \uC704\uD574 \uC6D0\uBCF8 \uD06C\uAE30 \uBBF8\uB514\uC5B4\uB97C \uC9C1\uC811 \uC77D\uC744 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
       "Working \u2014 every change has been written.": "\uC815\uC0C1\uC785\uB2C8\uB2E4. \uBAA8\uB4E0 \uBCC0\uACBD \uC0AC\uD56D\uC774 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
       "Monitoring active": "\uBAA8\uB2C8\uD130\uB9C1 \uC911",
       "Preset packs unavailable in this build.": "\uC774 \uBE4C\uB4DC\uC5D0\uC11C\uB294 \uD504\uB9AC\uC14B\uC744 \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
@@ -2654,6 +3068,8 @@ html.av-reduce-motion *::after {
       "Integrations": "\u0627\u0644\u062A\u0643\u0627\u0645\u0644\u0627\u062A",
       "Backup & Audit": "\u0627\u0644\u0646\u0633\u062E \u0627\u0644\u0627\u062D\u062A\u064A\u0627\u0637\u064A \u0648\u0627\u0644\u062A\u062F\u0642\u064A\u0642",
       "Trust": "\u0627\u0644\u062E\u0635\u0648\u0635\u064A\u0629",
+      "Quiet Reader": "\u0642\u0631\u0627\u0621\u0629 \u0647\u0627\u062F\u0626\u0629",
+      "Hide trends and row borders, dim premium posts, strip t.co, dense + dim theme.": "\u064A\u062E\u0641\u064A \u0627\u0644\u0627\u062A\u062C\u0627\u0647\u0627\u062A \u0648\u062D\u062F\u0648\u062F \u0627\u0644\u0635\u0641\u0648\u0641\u060C \u0648\u064A\u0639\u062A\u0651\u0645 \u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0628\u0631\u064A\u0645\u064A\u0648\u0645\u060C \u0648\u064A\u0646\u0638\u0651\u0641 \u0631\u0648\u0627\u0628\u0637 t.co\u060C \u0628\u0633\u0645\u0629 \u062F\u0627\u0643\u0646\u0629 \u0648\u0645\u0643\u062B\u0641\u0629.",
       "Apply": "\u062A\u0637\u0628\u064A\u0642",
       "Locale": "\u0627\u0644\u0644\u063A\u0629",
       "Translates the panel and sets reading direction \u2014 right-to-left for Arabic and Hebrew. Trust shows how much of the chosen locale is filled in; anything missing stays English.": "\u064A\u062A\u0631\u062C\u0645 \u0627\u0644\u0644\u0648\u062D\u0629 \u0648\u064A\u0636\u0628\u0637 \u0627\u062A\u062C\u0627\u0647 \u0627\u0644\u0642\u0631\u0627\u0621\u0629 \u2014 \u0645\u0646 \u0627\u0644\u064A\u0645\u064A\u0646 \u0625\u0644\u0649 \u0627\u0644\u064A\u0633\u0627\u0631 \u0644\u0644\u0639\u0631\u0628\u064A\u0629 \u0648\u0627\u0644\u0639\u0628\u0631\u064A\u0629. \u064A\u0639\u0631\u0636 \u0642\u0633\u0645 \u0627\u0644\u062E\u0635\u0648\u0635\u064A\u0629 \u0646\u0633\u0628\u0629 \u0627\u0643\u062A\u0645\u0627\u0644 \u0627\u0644\u0644\u063A\u0629 \u0627\u0644\u0645\u062E\u062A\u0627\u0631\u0629\u060C \u0648\u0645\u0627 \u064A\u0646\u0642\u0635 \u064A\u0628\u0642\u0649 \u0628\u0627\u0644\u0625\u0646\u062C\u0644\u064A\u0632\u064A\u0629.",
@@ -2827,6 +3243,8 @@ html.av-reduce-motion *::after {
       "Aria2 RPC secret": "\u0633\u0631 RPC \u0627\u0644\u062E\u0627\u0635 \u0628\u0640 Aria2",
       "Optional shared secret for token: auth.": "\u0633\u0631 \u0645\u0634\u062A\u0631\u0643 \u0627\u062E\u062A\u064A\u0627\u0631\u064A \u0644\u0645\u0635\u0627\u062F\u0642\u0629 token:.",
       "Show": "\u0625\u0638\u0647\u0627\u0631",
+      "Hand off files larger than (MB)": "\u062A\u0633\u0644\u064A\u0645 \u0627\u0644\u0645\u0644\u0641\u0627\u062A \u0627\u0644\u0623\u0643\u0628\u0631 \u0645\u0646 (\u0645\u064A\u063A\u0627\u0628\u0627\u064A\u062A)",
+      "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.": "\u062A\u064F\u062D\u0641\u0638 \u0627\u0644\u0645\u0644\u0641\u0627\u062A \u0627\u0644\u0623\u0635\u063A\u0631 \u0639\u0628\u0631 \u0627\u0644\u0645\u062A\u0635\u0641\u062D. \u064A\u062A\u062D\u0642\u0642 Aviary \u0645\u0646 \u0627\u0644\u062D\u062C\u0645 \u0623\u0648\u0644\u064B\u0627\u060C \u0648\u0625\u0630\u0627 \u0644\u0645 \u064A\u0630\u0643\u0631\u0647 \u0627\u0644\u062E\u0627\u062F\u0645 \u0641\u0633\u064A\u062A\u0645 \u062A\u0633\u0644\u064A\u0645 \u0627\u0644\u0645\u0644\u0641 \u0639\u0644\u0649 \u0623\u064A \u062D\u0627\u0644.",
       "Test Aria2 connection": "\u0627\u062E\u062A\u0628\u0627\u0631 \u0627\u0644\u0627\u062A\u0635\u0627\u0644 \u0628\u0640 Aria2",
       "Sends a trivial JSON-RPC call.": "\u064A\u0631\u0633\u0644 \u0637\u0644\u0628 JSON-RPC \u0628\u0633\u064A\u0637\u064B\u0627.",
       "Refresh": "\u062A\u062D\u062F\u064A\u062B",
@@ -2935,6 +3353,7 @@ html.av-reduce-motion *::after {
       "Aria2 handoff off": "\u0627\u0644\u062A\u0633\u0644\u064A\u0645 \u0625\u0644\u0649 Aria2 \u0645\u0639\u0637\u0651\u0644",
       "Aria2 endpoint saved": "\u062A\u0645 \u062D\u0641\u0638 \u0646\u0642\u0637\u0629 Aria2",
       "Aria2 secret saved": "\u062A\u0645 \u062D\u0641\u0638 \u0633\u0631 Aria2",
+      "Aria2 threshold saved": "\u062A\u0645 \u062D\u0641\u0638 \u062D\u062F Aria2",
       "Aria2 reachable.": "\u064A\u0645\u0643\u0646 \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 Aria2.",
       "Aria2 sweep failed.": "\u062A\u0639\u0630\u0651\u0631 \u062C\u0644\u0628 \u0642\u0627\u0626\u0645\u0629 Aria2.",
       "Bluesky on": "Bluesky \u0645\u0641\u0639\u0651\u0644",
@@ -3027,6 +3446,70 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "\u062A\u0639\u0630\u0651\u0631 \u0645\u0633\u062D \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u062E\u0641\u064A\u0629.",
       "Saving...": "\u062C\u0627\u0631\u064D \u0627\u0644\u062D\u0641\u0638...",
       "Could not save settings. Try again.": "\u062A\u0639\u0630\u0651\u0631 \u062D\u0641\u0638 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A. \u062D\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649.",
+      "Open Aviary AI command menu": "\u0641\u062A\u062D \u0642\u0627\u0626\u0645\u0629 \u0623\u0648\u0627\u0645\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0641\u064A Aviary",
+      "Aviary AI commands (offline prompt builder)": "\u0623\u0648\u0627\u0645\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0641\u064A Aviary (\u0645\u0646\u0634\u0626 \u0645\u0637\u0627\u0644\u0628\u0627\u062A \u062F\u0648\u0646 \u0627\u062A\u0635\u0627\u0644)",
+      "Run with provider": "\u0627\u0644\u062A\u0634\u063A\u064A\u0644 \u0639\u0628\u0631 \u0627\u0644\u0645\u0632\u0648\u0651\u062F",
+      "running\u2026": "\u062C\u0627\u0631\u064D \u0627\u0644\u062A\u0646\u0641\u064A\u0630\u2026",
+      "result copied to the clipboard.": "\u062A\u0645 \u0646\u0633\u062E \u0627\u0644\u0646\u062A\u064A\u062C\u0629 \u0625\u0644\u0649 \u0627\u0644\u062D\u0627\u0641\u0638\u0629.",
+      "The result could not be copied. Your browser blocked clipboard access.": "\u062A\u0639\u0630\u0651\u0631 \u0646\u0633\u062E \u0627\u0644\u0646\u062A\u064A\u062C\u0629. \u062D\u0638\u0631 \u0645\u062A\u0635\u0641\u062D\u0643 \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 \u0627\u0644\u062D\u0627\u0641\u0638\u0629.",
+      "the provider did not respond": "\u0644\u0645 \u064A\u0633\u062A\u062C\u0628 \u0627\u0644\u0645\u0632\u0648\u0651\u062F",
+      "Check the key and model in Integrations.": "\u062A\u062D\u0642\u0642 \u0645\u0646 \u0627\u0644\u0645\u0641\u062A\u0627\u062D \u0648\u0627\u0644\u0646\u0645\u0648\u0630\u062C \u0641\u064A \u0627\u0644\u062A\u0643\u0627\u0645\u0644\u0627\u062A.",
+      "Prompt copied to the clipboard \u2014 paste it into your assistant.": "\u062A\u0645 \u0646\u0633\u062E \u0627\u0644\u0645\u0637\u0627\u0644\u0628\u0629 \u0625\u0644\u0649 \u0627\u0644\u062D\u0627\u0641\u0638\u0629 \u2014 \u0627\u0644\u0635\u0642\u0647\u0627 \u0641\u064A \u0645\u0633\u0627\u0639\u062F\u0643.",
+      "The prompt could not be copied. Your browser blocked clipboard access.": "\u062A\u0639\u0630\u0651\u0631 \u0646\u0633\u062E \u0627\u0644\u0645\u0637\u0627\u0644\u0628\u0629. \u062D\u0638\u0631 \u0645\u062A\u0635\u0641\u062D\u0643 \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 \u0627\u0644\u062D\u0627\u0641\u0638\u0629.",
+      "Translate": "\u062A\u0631\u062C\u0645\u0629",
+      "Translate the selected post to your active locale.": "\u064A\u062A\u0631\u062C\u0645 \u0627\u0644\u0645\u0646\u0634\u0648\u0631 \u0627\u0644\u0645\u062D\u062F\u062F \u0625\u0644\u0649 \u0644\u063A\u062A\u0643 \u0627\u0644\u062D\u0627\u0644\u064A\u0629.",
+      "Summarize": "\u062A\u0644\u062E\u064A\u0635",
+      "Summarize a thread or long post in 3 bullet points.": "\u064A\u0644\u062E\u0651\u0635 \u0633\u0644\u0633\u0644\u0629 \u0623\u0648 \u0645\u0646\u0634\u0648\u0631\u064B\u0627 \u0637\u0648\u064A\u0644\u064B\u0627 \u0641\u064A \u062B\u0644\u0627\u062B \u0646\u0642\u0627\u0637.",
+      "Explain": "\u0634\u0631\u062D",
+      "Explain context, jargon, and references in the post.": "\u064A\u0634\u0631\u062D \u0627\u0644\u0633\u064A\u0627\u0642 \u0648\u0627\u0644\u0645\u0635\u0637\u0644\u062D\u0627\u062A \u0648\u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0648\u0627\u0631\u062F\u0629 \u0641\u064A \u0627\u0644\u0645\u0646\u0634\u0648\u0631.",
+      "Fact-check prompt": "\u0645\u0637\u0627\u0644\u0628\u0629 \u0644\u0644\u062A\u062D\u0642\u0642",
+      "Generate a fact-check prompt for the post (no network call without your key).": "\u064A\u0646\u0634\u0626 \u0645\u0637\u0627\u0644\u0628\u0629 \u0644\u0644\u062A\u062D\u0642\u0642 \u0645\u0646 \u0627\u0644\u0645\u0646\u0634\u0648\u0631 (\u0628\u0644\u0627 \u0627\u062A\u0635\u0627\u0644 \u0628\u0627\u0644\u0634\u0628\u0643\u0629 \u0645\u0646 \u062F\u0648\u0646 \u0645\u0641\u062A\u0627\u062D\u0643).",
+      "Snippets": "\u0627\u0644\u0645\u0642\u062A\u0637\u0641\u0627\u062A",
+      "Open Aviary composer snippets": "\u0641\u062A\u062D \u0645\u0642\u062A\u0637\u0641\u0627\u062A \u0645\u062D\u0631\u0651\u0631 Aviary",
+      "No snippets yet. Add some in the Control Center \u2192 Library.": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u0642\u062A\u0637\u0641\u0627\u062A \u0628\u0639\u062F. \u0623\u0636\u0650\u0641\u0647\u0627 \u0645\u0646 \u0645\u0631\u0643\u0632 \u0627\u0644\u062A\u062D\u0643\u0645 \u2190 \u0627\u0644\u0645\u0643\u062A\u0628\u0629.",
+      "Click into the composer first, then pick a snippet.": "\u0627\u0646\u0642\u0631 \u062F\u0627\u062E\u0644 \u0627\u0644\u0645\u062D\u0631\u0651\u0631 \u0623\u0648\u0644\u064B\u0627\u060C \u062B\u0645 \u0627\u062E\u062A\u0631 \u0645\u0642\u062A\u0637\u0641\u064B\u0627.",
+      "Media Archivist": "\u0623\u0631\u0634\u0641\u0629 \u0627\u0644\u0648\u0633\u0627\u0626\u0637",
+      "Original-quality downloads, deterministic filenames, dedup history, sensitive blur.": "\u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0628\u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629\u060C \u0623\u0633\u0645\u0627\u0621 \u0645\u0644\u0641\u0627\u062A \u062B\u0627\u0628\u062A\u0629\u060C \u0633\u062C\u0644 \u0628\u0644\u0627 \u062A\u0643\u0631\u0627\u0631\u060C \u062A\u0645\u0648\u064A\u0647 \u0627\u0644\u0645\u062D\u062A\u0648\u0649 \u0627\u0644\u062D\u0633\u0627\u0633.",
+      "Creator": "\u0635\u0627\u0646\u0639 \u0645\u062D\u062A\u0648\u0649",
+      "Writer mode, composer snippets, share-button cleanup, sidebar and trends hidden.": "\u0648\u0636\u0639 \u0627\u0644\u0643\u062A\u0627\u0628\u0629\u060C \u0645\u0642\u062A\u0637\u0641\u0627\u062A \u0627\u0644\u0645\u062D\u0631\u0651\u0631\u060C \u062A\u0646\u0638\u064A\u0641 \u0632\u0631 \u0627\u0644\u0645\u0634\u0627\u0631\u0643\u0629\u060C \u0625\u062E\u0641\u0627\u0621 \u0627\u0644\u0634\u0631\u064A\u0637 \u0627\u0644\u062C\u0627\u0646\u0628\u064A \u0648\u0627\u0644\u0627\u062A\u062C\u0627\u0647\u0627\u062A.",
+      "Researcher": "\u0628\u062D\u062B",
+      "Export capture on, JSON+CSV+HTML+MD formats, auto-discover query IDs, raw payloads.": "\u0627\u0644\u062A\u0642\u0627\u0637 \u0627\u0644\u062A\u0635\u062F\u064A\u0631 \u0645\u0641\u0639\u0651\u0644\u060C \u0635\u064A\u063A JSON+CSV+HTML+MD\u060C \u0627\u0643\u062A\u0634\u0627\u0641 \u0645\u0639\u0631\u0651\u0641\u0627\u062A \u0627\u0644\u0627\u0633\u062A\u0639\u0644\u0627\u0645 \u062A\u0644\u0642\u0627\u0626\u064A\u064B\u0627\u060C \u0628\u064A\u0627\u0646\u0627\u062A \u062E\u0627\u0645.",
+      "Classic": "\u0643\u0644\u0627\u0633\u064A\u0643\u064A",
+      "Restore dim, keep sidebar, hide Grok only, no premium filtering.": "\u064A\u0639\u064A\u062F \u0627\u0644\u0633\u0645\u0629 \u0627\u0644\u0645\u0639\u062A\u0645\u0629\u060C \u0648\u064A\u0628\u0642\u064A \u0627\u0644\u0634\u0631\u064A\u0637 \u0627\u0644\u062C\u0627\u0646\u0628\u064A\u060C \u0648\u064A\u062E\u0641\u064A Grok \u0641\u0642\u0637\u060C \u0628\u0644\u0627 \u062A\u0635\u0641\u064A\u0629 \u0628\u0631\u064A\u0645\u064A\u0648\u0645.",
+      "Minimal": "\u0628\u0633\u064A\u0637",
+      "Maximum declutter: no counts, no borders, no trends, big text safe zones.": "\u0623\u0642\u0635\u0649 \u062A\u0628\u0633\u064A\u0637: \u0628\u0644\u0627 \u0623\u0639\u062F\u0627\u062F\u060C \u0628\u0644\u0627 \u062D\u062F\u0648\u062F\u060C \u0628\u0644\u0627 \u0627\u062A\u062C\u0627\u0647\u0627\u062A\u060C \u0645\u0633\u0627\u062D\u0627\u062A \u0622\u0645\u0646\u0629 \u0644\u0644\u0646\u0635 \u0627\u0644\u0643\u0628\u064A\u0631.",
+      "Hide this post \u2014 Aviary keeps it hidden on future visits": "\u0625\u062E\u0641\u0627\u0621 \u0647\u0630\u0627 \u0627\u0644\u0645\u0646\u0634\u0648\u0631 \u2014 \u0633\u064A\u0628\u0642\u064A\u0647 Aviary \u0645\u062E\u0641\u064A\u064B\u0627 \u0641\u064A \u0627\u0644\u0632\u064A\u0627\u0631\u0627\u062A \u0627\u0644\u0642\u0627\u062F\u0645\u0629",
+      "Hide this post": "\u0625\u062E\u0641\u0627\u0621 \u0647\u0630\u0627 \u0627\u0644\u0645\u0646\u0634\u0648\u0631",
+      "Post hidden": "\u062A\u0645 \u0625\u062E\u0641\u0627\u0621 \u0627\u0644\u0645\u0646\u0634\u0648\u0631",
+      "Could not save the hidden post. Storage rejected the write.": "\u062A\u0639\u0630\u0651\u0631 \u062D\u0641\u0638 \u0627\u0644\u0645\u0646\u0634\u0648\u0631 \u0627\u0644\u0645\u062E\u0641\u064A. \u0631\u0641\u0636 \u0627\u0644\u062A\u062E\u0632\u064A\u0646 \u0639\u0645\u0644\u064A\u0629 \u0627\u0644\u0643\u062A\u0627\u0628\u0629.",
+      "Undo": "\u062A\u0631\u0627\u062C\u0639",
+      "Could not restore that post.": "\u062A\u0639\u0630\u0651\u0631\u062A \u0627\u0633\u062A\u0639\u0627\u062F\u0629 \u0630\u0644\u0643 \u0627\u0644\u0645\u0646\u0634\u0648\u0631.",
+      "Note": "\u0645\u0644\u0627\u062D\u0638\u0629",
+      "Unavailable": "\u063A\u064A\u0631 \u0645\u062A\u0627\u062D",
+      "Saved": "\u062A\u0645 \u0627\u0644\u062D\u0641\u0638",
+      "Queued": "\u0641\u064A \u0627\u0644\u0627\u0646\u062A\u0638\u0627\u0631",
+      "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "\u0641\u062A\u062D \u0645\u062A\u0635\u0641\u062D\u0643 \u0627\u0644\u0645\u0644\u0641 \u0628\u062F\u0644 \u062D\u0641\u0638\u0647 \u2014 \u0627\u0645\u0646\u062D Aviary \u0625\u0630\u0646 \u0627\u0644\u062A\u0646\u0632\u064A\u0644 \u0644\u064A\u062D\u0641\u0638\u0647 \u0641\u0639\u0644\u064A\u064B\u0627.",
+      "Aviary needs the browser download permission. Opening its options page.": "\u064A\u062D\u062A\u0627\u062C Aviary \u0625\u0644\u0649 \u0625\u0630\u0646 \u0627\u0644\u062A\u0646\u0632\u064A\u0644 \u0645\u0646 \u0627\u0644\u0645\u062A\u0635\u0641\u062D. \u064A\u062C\u0631\u064A \u0641\u062A\u062D \u0635\u0641\u062D\u0629 \u0627\u0644\u062E\u064A\u0627\u0631\u0627\u062A.",
+      "Allow": "\u0627\u0644\u0633\u0645\u0627\u062D",
+      "Retry": "\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0645\u062D\u0627\u0648\u0644\u0629",
+      "Aviary ships with the narrowest permission set that still works. Everything below is optional, granted only by you, and revocable from this page at any time. Nothing on this page sends data anywhere.": "\u064A\u0623\u062A\u064A Aviary \u0628\u0623\u0636\u064A\u0642 \u0645\u062C\u0645\u0648\u0639\u0629 \u0623\u0630\u0648\u0646\u0627\u062A \u062A\u0638\u0644 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0639\u0645\u0644. \u0643\u0644 \u0645\u0627 \u064A\u0644\u064A \u0627\u062E\u062A\u064A\u0627\u0631\u064A\u060C \u062A\u0645\u0646\u062D\u0647 \u0623\u0646\u062A \u0648\u062D\u062F\u0643\u060C \u0648\u064A\u0645\u0643\u0646 \u0633\u062D\u0628\u0647 \u0645\u0646 \u0647\u0630\u0647 \u0627\u0644\u0635\u0641\u062D\u0629 \u0641\u064A \u0623\u064A \u0648\u0642\u062A. \u0644\u0627 \u0634\u064A\u0621 \u0641\u064A \u0647\u0630\u0647 \u0627\u0644\u0635\u0641\u062D\u0629 \u064A\u0631\u0633\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0625\u0644\u0649 \u0623\u064A \u062C\u0647\u0629.",
+      "Save media to disk": "\u062D\u0641\u0638 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0639\u0644\u0649 \u0627\u0644\u0642\u0631\u0635",
+      "checking\u2026": "\u062C\u0627\u0631\u064D \u0627\u0644\u062A\u062D\u0642\u0642\u2026",
+      "Lets the Save and Thumb buttons write files through the browser's download manager, with your filename template and duplicate history. Without it the browser opens media in a tab instead of saving it.": "\u064A\u062A\u064A\u062D \u0644\u0632\u0631\u064E\u0651\u064A \u0627\u0644\u062D\u0641\u0638 \u0648\u0627\u0644\u0645\u0635\u063A\u0651\u0631\u0629 \u0643\u062A\u0627\u0628\u0629 \u0627\u0644\u0645\u0644\u0641\u0627\u062A \u0639\u0628\u0631 \u0645\u062F\u064A\u0631 \u0627\u0644\u062A\u0646\u0632\u064A\u0644 \u0641\u064A \u0627\u0644\u0645\u062A\u0635\u0641\u062D\u060C \u0645\u0639 \u0642\u0627\u0644\u0628 \u0627\u0633\u0645 \u0627\u0644\u0645\u0644\u0641 \u0648\u0633\u062C\u0644 \u0627\u0644\u062A\u0643\u0631\u0627\u0631\u0627\u062A. \u0648\u0628\u062F\u0648\u0646\u0647 \u064A\u0641\u062A\u062D \u0627\u0644\u0645\u062A\u0635\u0641\u062D \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0641\u064A \u062A\u0628\u0648\u064A\u0628 \u0628\u062F\u0644 \u062D\u0641\u0638\u0647\u0627.",
+      "Grant download access": "\u0645\u0646\u062D \u0625\u0630\u0646 \u0627\u0644\u062A\u0646\u0632\u064A\u0644",
+      "Revoke": "\u0633\u062D\u0628 \u0627\u0644\u0625\u0630\u0646",
+      "Read media hosts directly": "\u0642\u0631\u0627\u0621\u0629 \u062E\u0648\u0627\u062F\u0645 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0645\u0628\u0627\u0634\u0631\u0629",
+      "Adds the media hosts so large files can be fetched without a page round-trip. Optional \u2014 media buttons work without it.": "\u064A\u0636\u064A\u0641 \u062E\u0648\u0627\u062F\u0645 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0644\u062C\u0644\u0628 \u0627\u0644\u0645\u0644\u0641\u0627\u062A \u0627\u0644\u0643\u0628\u064A\u0631\u0629 \u062F\u0648\u0646 \u0627\u0644\u0645\u0631\u0648\u0631 \u0628\u0627\u0644\u0635\u0641\u062D\u0629. \u0627\u062E\u062A\u064A\u0627\u0631\u064A \u2014 \u0623\u0632\u0631\u0627\u0631 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u062A\u0639\u0645\u0644 \u0628\u062F\u0648\u0646\u0647.",
+      "Grant media hosts": "\u0645\u0646\u062D \u062E\u0648\u0627\u062F\u0645 \u0627\u0644\u0648\u0633\u0627\u0626\u0637",
+      "Settings, filters, notes and archives live in the Control Center on x.com. This page only manages browser permissions.": "\u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0648\u0639\u0648\u0627\u0645\u0644 \u0627\u0644\u062A\u0635\u0641\u064A\u0629 \u0648\u0627\u0644\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0648\u0627\u0644\u0623\u0631\u0634\u064A\u0641 \u0645\u0648\u062C\u0648\u062F\u0629 \u0641\u064A \u0645\u0631\u0643\u0632 \u0627\u0644\u062A\u062D\u0643\u0645 \u0639\u0644\u0649 x.com. \u0647\u0630\u0647 \u0627\u0644\u0635\u0641\u062D\u0629 \u062A\u062F\u064A\u0631 \u0623\u0630\u0648\u0646\u0627\u062A \u0627\u0644\u0645\u062A\u0635\u0641\u062D \u0641\u0642\u0637.",
+      "This browser did not expose the permissions API.": "\u0644\u0627 \u064A\u0648\u0641\u0651\u0631 \u0647\u0630\u0627 \u0627\u0644\u0645\u062A\u0635\u0641\u062D \u0648\u0627\u062C\u0647\u0629 \u0627\u0644\u0623\u0630\u0648\u0646\u0627\u062A.",
+      "Request dismissed \u2014 nothing changed.": "\u062A\u0645 \u062A\u062C\u0627\u0647\u0644 \u0627\u0644\u0637\u0644\u0628 \u2014 \u0644\u0645 \u064A\u062A\u063A\u064A\u0651\u0631 \u0634\u064A\u0621.",
+      "Revoked.": "\u062A\u0645 \u0633\u062D\u0628 \u0627\u0644\u0625\u0630\u0646.",
+      "Nothing to revoke.": "\u0644\u0627 \u064A\u0648\u062C\u062F \u0625\u0630\u0646 \u0644\u0633\u062D\u0628\u0647.",
+      "granted": "\u0645\u0645\u0646\u0648\u062D",
+      "not granted": "\u063A\u064A\u0631 \u0645\u0645\u0646\u0648\u062D",
+      "Granted. Media saves through the browser now.": "\u062A\u0645 \u0627\u0644\u0645\u0646\u062D. \u062A\u064F\u062D\u0641\u0638 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u0622\u0646 \u0639\u0628\u0631 \u0627\u0644\u0645\u062A\u0635\u0641\u062D.",
+      "Granted. Aviary can read full-size media directly for exports now.": "\u062A\u0645 \u0627\u0644\u0645\u0646\u062D. \u064A\u0645\u0643\u0646 \u0644\u0640 Aviary \u0627\u0644\u0622\u0646 \u0642\u0631\u0627\u0621\u0629 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0628\u0627\u0644\u062D\u062C\u0645 \u0627\u0644\u0643\u0627\u0645\u0644 \u0645\u0628\u0627\u0634\u0631\u0629\u064B \u0644\u0623\u063A\u0631\u0627\u0636 \u0627\u0644\u062A\u0635\u062F\u064A\u0631.",
       "Working \u2014 every change has been written.": "\u064A\u0639\u0645\u0644 \u0628\u0634\u0643\u0644 \u0633\u0644\u064A\u0645 \u2014 \u062A\u0645 \u062D\u0641\u0638 \u0643\u0644 \u0627\u0644\u062A\u063A\u064A\u064A\u0631\u0627\u062A.",
       "Monitoring active": "\u0627\u0644\u0645\u0631\u0627\u0642\u0628\u0629 \u0646\u0634\u0637\u0629",
       "Preset packs unavailable in this build.": "\u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u062C\u0627\u0647\u0632\u0629 \u063A\u064A\u0631 \u0645\u062A\u0648\u0641\u0631\u0629 \u0641\u064A \u0647\u0630\u0647 \u0627\u0644\u0646\u0633\u062E\u0629.",
@@ -3057,6 +3540,8 @@ html.av-reduce-motion *::after {
       "Integrations": "\u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D5\u05EA",
       "Backup & Audit": "\u05D2\u05D9\u05D1\u05D5\u05D9 \u05D5\u05D1\u05D9\u05E7\u05D5\u05E8\u05EA",
       "Trust": "\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA",
+      "Quiet Reader": "\u05E7\u05E8\u05D9\u05D0\u05D4 \u05E9\u05E7\u05D8\u05D4",
+      "Hide trends and row borders, dim premium posts, strip t.co, dense + dim theme.": "\u05DE\u05E1\u05EA\u05D9\u05E8 \u05DE\u05D2\u05DE\u05D5\u05EA \u05D5\u05D2\u05D1\u05D5\u05DC\u05D5\u05EA \u05E9\u05D5\u05E8\u05D5\u05EA, \u05DE\u05E2\u05DE\u05E2\u05DD \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05DC \u05E4\u05E8\u05D9\u05DE\u05D9\u05D5\u05DD, \u05DE\u05E0\u05E7\u05D4 t.co, \u05E2\u05E8\u05DB\u05D4 \u05DB\u05D4\u05D4 \u05D5\u05E6\u05E4\u05D5\u05E4\u05D4.",
       "Apply": "\u05D4\u05D7\u05DC\u05D4",
       "Locale": "\u05E9\u05E4\u05D4",
       "Translates the panel and sets reading direction \u2014 right-to-left for Arabic and Hebrew. Trust shows how much of the chosen locale is filled in; anything missing stays English.": "\u05DE\u05EA\u05E8\u05D2\u05DD \u05D0\u05EA \u05D4\u05E4\u05D0\u05E0\u05DC \u05D5\u05E7\u05D5\u05D1\u05E2 \u05D0\u05EA \u05DB\u05D9\u05D5\u05D5\u05DF \u05D4\u05E7\u05E8\u05D9\u05D0\u05D4 \u2014 \u05DE\u05D9\u05DE\u05D9\u05DF \u05DC\u05E9\u05DE\u05D0\u05DC \u05D1\u05E2\u05E8\u05D1\u05D9\u05EA \u05D5\u05D1\u05E2\u05D1\u05E8\u05D9\u05EA. \u05D1\u05DE\u05E7\u05D8\u05E2 \u05D4\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA \u05DE\u05D5\u05E6\u05D2 \u05DB\u05DE\u05D4 \u05DE\u05D4\u05E9\u05E4\u05D4 \u05D4\u05E0\u05D1\u05D7\u05E8\u05EA \u05DE\u05EA\u05D5\u05E8\u05D2\u05DD; \u05DE\u05D4 \u05E9\u05D7\u05E1\u05E8 \u05E0\u05E9\u05D0\u05E8 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA.",
@@ -3230,6 +3715,8 @@ html.av-reduce-motion *::after {
       "Aria2 RPC secret": "\u05E1\u05D5\u05D3 \u05D4\u2011RPC \u05E9\u05DC Aria2",
       "Optional shared secret for token: auth.": "\u05E1\u05D5\u05D3 \u05DE\u05E9\u05D5\u05EA\u05E3 \u05D0\u05D5\u05E4\u05E6\u05D9\u05D5\u05E0\u05DC\u05D9 \u05DC\u05D0\u05D9\u05DE\u05D5\u05EA token:.",
       "Show": "\u05D4\u05E6\u05D2\u05D4",
+      "Hand off files larger than (MB)": "\u05D4\u05E2\u05D1\u05E8\u05EA \u05E7\u05D1\u05E6\u05D9\u05DD \u05D2\u05D3\u05D5\u05DC\u05D9\u05DD \u05DE-(MB)",
+      "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.": "\u05E7\u05D1\u05E6\u05D9\u05DD \u05E7\u05D8\u05E0\u05D9\u05DD \u05D9\u05D5\u05EA\u05E8 \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05D3\u05E8\u05DA \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF. Aviary \u05D1\u05D5\u05D3\u05E7 \u05E7\u05D5\u05D3\u05DD \u05D0\u05EA \u05D4\u05D2\u05D5\u05D3\u05DC, \u05D5\u05D0\u05DD \u05D4\u05E9\u05E8\u05EA \u05D0\u05D9\u05E0\u05D5 \u05DE\u05D3\u05D5\u05D5\u05D7 \u05E2\u05DC\u05D9\u05D5 \u05D4\u05E7\u05D5\u05D1\u05E5 \u05DE\u05D5\u05E2\u05D1\u05E8 \u05D1\u05DB\u05DC \u05D6\u05D0\u05EA.",
       "Test Aria2 connection": "\u05D1\u05D3\u05D9\u05E7\u05EA \u05D4\u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u2011Aria2",
       "Sends a trivial JSON-RPC call.": "\u05E9\u05D5\u05DC\u05D7 \u05E7\u05E8\u05D9\u05D0\u05EA JSON-RPC \u05E4\u05E9\u05D5\u05D8\u05D4.",
       "Refresh": "\u05E8\u05E2\u05E0\u05D5\u05DF",
@@ -3338,6 +3825,7 @@ html.av-reduce-motion *::after {
       "Aria2 handoff off": "\u05D4\u05E2\u05D1\u05E8\u05D4 \u05DC-Aria2 \u05DB\u05D1\u05D5\u05D9\u05D4",
       "Aria2 endpoint saved": "\u05E0\u05E7\u05D5\u05D3\u05EA \u05D4\u05E7\u05E6\u05D4 \u05E9\u05DC Aria2 \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Aria2 secret saved": "\u05D4\u05E1\u05D5\u05D3 \u05E9\u05DC Aria2 \u05E0\u05E9\u05DE\u05E8",
+      "Aria2 threshold saved": "\u05E1\u05E3 Aria2 \u05E0\u05E9\u05DE\u05E8",
       "Aria2 reachable.": "\u05D9\u05E9 \u05D2\u05D9\u05E9\u05D4 \u05DC-Aria2.",
       "Aria2 sweep failed.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E7\u05D1\u05DC \u05D0\u05EA \u05E8\u05E9\u05D9\u05DE\u05EA Aria2.",
       "Bluesky on": "Bluesky \u05E4\u05E2\u05D9\u05DC",
@@ -3430,6 +3918,70 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E0\u05E7\u05D5\u05EA \u05D0\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D4\u05DE\u05D5\u05E1\u05EA\u05E8\u05D9\u05DD.",
       "Saving...": "\u05E9\u05D5\u05DE\u05E8...",
       "Could not save settings. Try again.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D0\u05EA \u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA. \u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1.",
+      "Open Aviary AI command menu": "\u05E4\u05EA\u05D9\u05D7\u05EA \u05EA\u05E4\u05E8\u05D9\u05D8 \u05E4\u05E7\u05D5\u05D3\u05D5\u05EA \u05D4-AI \u05E9\u05DC Aviary",
+      "Aviary AI commands (offline prompt builder)": "\u05E4\u05E7\u05D5\u05D3\u05D5\u05EA \u05D4-AI \u05E9\u05DC Aviary (\u05D1\u05D5\u05E0\u05D4 \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8\u05D9\u05DD \u05DC\u05DC\u05D0 \u05E8\u05E9\u05EA)",
+      "Run with provider": "\u05D4\u05E8\u05E6\u05D4 \u05DE\u05D5\u05DC \u05D4\u05E1\u05E4\u05E7",
+      "running\u2026": "\u05E8\u05E5\u2026",
+      "result copied to the clipboard.": "\u05D4\u05EA\u05D5\u05E6\u05D0\u05D4 \u05D4\u05D5\u05E2\u05EA\u05E7\u05D4 \u05DC\u05DC\u05D5\u05D7.",
+      "The result could not be copied. Your browser blocked clipboard access.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05D4\u05D9\u05D4 \u05DC\u05D4\u05E2\u05EA\u05D9\u05E7 \u05D0\u05EA \u05D4\u05EA\u05D5\u05E6\u05D0\u05D4. \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05D7\u05E1\u05DD \u05D0\u05EA \u05D4\u05D2\u05D9\u05E9\u05D4 \u05DC\u05DC\u05D5\u05D7.",
+      "the provider did not respond": "\u05D4\u05E1\u05E4\u05E7 \u05DC\u05D0 \u05D4\u05D2\u05D9\u05D1",
+      "Check the key and model in Integrations.": "\u05D1\u05D3\u05D5\u05E7 \u05D0\u05EA \u05D4\u05DE\u05E4\u05EA\u05D7 \u05D5\u05D4\u05DE\u05D5\u05D3\u05DC \u05EA\u05D7\u05EA \u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D5\u05EA.",
+      "Prompt copied to the clipboard \u2014 paste it into your assistant.": "\u05D4\u05E4\u05E8\u05D5\u05DE\u05E4\u05D8 \u05D4\u05D5\u05E2\u05EA\u05E7 \u05DC\u05DC\u05D5\u05D7 \u2014 \u05D4\u05D3\u05D1\u05E7 \u05D0\u05D5\u05EA\u05D5 \u05D1\u05E2\u05D5\u05D6\u05E8 \u05E9\u05DC\u05DA.",
+      "The prompt could not be copied. Your browser blocked clipboard access.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05D4\u05D9\u05D4 \u05DC\u05D4\u05E2\u05EA\u05D9\u05E7 \u05D0\u05EA \u05D4\u05E4\u05E8\u05D5\u05DE\u05E4\u05D8. \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05D7\u05E1\u05DD \u05D0\u05EA \u05D4\u05D2\u05D9\u05E9\u05D4 \u05DC\u05DC\u05D5\u05D7.",
+      "Translate": "\u05EA\u05E8\u05D2\u05D5\u05DD",
+      "Translate the selected post to your active locale.": "\u05DE\u05EA\u05E8\u05D2\u05DD \u05D0\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8 \u05E9\u05E0\u05D1\u05D7\u05E8 \u05DC\u05E9\u05E4\u05D4 \u05D4\u05E4\u05E2\u05D9\u05DC\u05D4 \u05E9\u05DC\u05DA.",
+      "Summarize": "\u05E1\u05D9\u05DB\u05D5\u05DD",
+      "Summarize a thread or long post in 3 bullet points.": "\u05DE\u05E1\u05DB\u05DD \u05E9\u05E8\u05E9\u05D5\u05E8 \u05D0\u05D5 \u05E4\u05D5\u05E1\u05D8 \u05D0\u05E8\u05D5\u05DA \u05D1\u05E9\u05DC\u05D5\u05E9 \u05E0\u05E7\u05D5\u05D3\u05D5\u05EA.",
+      "Explain": "\u05D4\u05E1\u05D1\u05E8",
+      "Explain context, jargon, and references in the post.": "\u05DE\u05E1\u05D1\u05D9\u05E8 \u05D0\u05EA \u05D4\u05D4\u05E7\u05E9\u05E8, \u05D4\u05DE\u05D5\u05E0\u05D7\u05D9\u05DD \u05D5\u05D4\u05D4\u05E4\u05E0\u05D9\u05D5\u05EA \u05D1\u05E4\u05D5\u05E1\u05D8.",
+      "Fact-check prompt": "\u05E4\u05E8\u05D5\u05DE\u05E4\u05D8 \u05DC\u05D1\u05D3\u05D9\u05E7\u05EA \u05E2\u05D5\u05D1\u05D3\u05D5\u05EA",
+      "Generate a fact-check prompt for the post (no network call without your key).": "\u05D9\u05D5\u05E6\u05E8 \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8 \u05DC\u05D1\u05D3\u05D9\u05E7\u05EA \u05E2\u05D5\u05D1\u05D3\u05D5\u05EA \u05E2\u05D1\u05D5\u05E8 \u05D4\u05E4\u05D5\u05E1\u05D8 (\u05DC\u05DC\u05D0 \u05E4\u05E0\u05D9\u05D9\u05D4 \u05DC\u05E8\u05E9\u05EA \u05D1\u05DC\u05D9 \u05D4\u05DE\u05E4\u05EA\u05D7 \u05E9\u05DC\u05DA).",
+      "Snippets": "\u05E7\u05D8\u05E2\u05D9 \u05D8\u05E7\u05E1\u05D8",
+      "Open Aviary composer snippets": "\u05E4\u05EA\u05D9\u05D7\u05EA \u05E7\u05D8\u05E2\u05D9 \u05D4\u05D8\u05E7\u05E1\u05D8 \u05E9\u05DC \u05D4\u05E2\u05D5\u05E8\u05DA \u05D1-Aviary",
+      "No snippets yet. Add some in the Control Center \u2192 Library.": "\u05D0\u05D9\u05DF \u05E2\u05D3\u05D9\u05D9\u05DF \u05E7\u05D8\u05E2\u05D9 \u05D8\u05E7\u05E1\u05D8. \u05D4\u05D5\u05E1\u05E3 \u05D0\u05D5\u05EA\u05DD \u05D1\u05DE\u05E8\u05DB\u05D6 \u05D4\u05D1\u05E7\u05E8\u05D4 \u2190 \u05E1\u05E4\u05E8\u05D9\u05D9\u05D4.",
+      "Click into the composer first, then pick a snippet.": "\u05DC\u05D7\u05E5 \u05E7\u05D5\u05D3\u05DD \u05D1\u05EA\u05D5\u05DA \u05D4\u05E2\u05D5\u05E8\u05DA, \u05D5\u05D0\u05D6 \u05D1\u05D7\u05E8 \u05E7\u05D8\u05E2 \u05D8\u05E7\u05E1\u05D8.",
+      "Media Archivist": "\u05D0\u05E8\u05DB\u05D9\u05D5\u05DF \u05DE\u05D3\u05D9\u05D4",
+      "Original-quality downloads, deterministic filenames, dedup history, sensitive blur.": "\u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05D1\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05E8\u05D9\u05EA, \u05E9\u05DE\u05D5\u05EA \u05E7\u05D1\u05E6\u05D9\u05DD \u05E2\u05E7\u05D1\u05D9\u05D9\u05DD, \u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05DB\u05E4\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA, \u05D8\u05E9\u05D8\u05D5\u05E9 \u05EA\u05D5\u05DB\u05DF \u05E8\u05D2\u05D9\u05E9.",
+      "Creator": "\u05D9\u05D5\u05E6\u05E8",
+      "Writer mode, composer snippets, share-button cleanup, sidebar and trends hidden.": "\u05DE\u05E6\u05D1 \u05DB\u05EA\u05D9\u05D1\u05D4, \u05E7\u05D8\u05E2\u05D9 \u05D8\u05E7\u05E1\u05D8 \u05D1\u05E2\u05D5\u05E8\u05DA, \u05E0\u05D9\u05E7\u05D5\u05D9 \u05DB\u05E4\u05EA\u05D5\u05E8 \u05D4\u05E9\u05D9\u05EA\u05D5\u05E3, \u05D4\u05E1\u05EA\u05E8\u05EA \u05E1\u05E8\u05D2\u05DC \u05E6\u05D3 \u05D5\u05DE\u05D2\u05DE\u05D5\u05EA.",
+      "Researcher": "\u05DE\u05D7\u05E7\u05E8",
+      "Export capture on, JSON+CSV+HTML+MD formats, auto-discover query IDs, raw payloads.": "\u05DC\u05DB\u05D9\u05D3\u05D4 \u05DC\u05D9\u05D9\u05E6\u05D5\u05D0 \u05E4\u05E2\u05D9\u05DC\u05D4, \u05E4\u05D5\u05E8\u05DE\u05D8\u05D9\u05DD JSON+CSV+HTML+MD, \u05D6\u05D9\u05D4\u05D5\u05D9 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9 \u05E9\u05DC \u05DE\u05D6\u05D4\u05D9 \u05E9\u05D0\u05D9\u05DC\u05EA\u05D4, \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D2\u05D5\u05DC\u05DE\u05D9\u05D9\u05DD.",
+      "Classic": "\u05E7\u05DC\u05D0\u05E1\u05D9",
+      "Restore dim, keep sidebar, hide Grok only, no premium filtering.": "\u05DE\u05D7\u05D6\u05D9\u05E8 \u05D0\u05EA \u05D4\u05E2\u05E8\u05DB\u05D4 \u05D4\u05DE\u05E2\u05D5\u05DE\u05E2\u05DE\u05EA, \u05E9\u05D5\u05DE\u05E8 \u05E2\u05DC \u05E1\u05E8\u05D2\u05DC \u05D4\u05E6\u05D3, \u05DE\u05E1\u05EA\u05D9\u05E8 \u05E8\u05E7 \u05D0\u05EA Grok, \u05D1\u05DC\u05D9 \u05E1\u05D9\u05E0\u05D5\u05DF \u05E4\u05E8\u05D9\u05DE\u05D9\u05D5\u05DD.",
+      "Minimal": "\u05DE\u05D9\u05E0\u05D9\u05DE\u05DC\u05D9",
+      "Maximum declutter: no counts, no borders, no trends, big text safe zones.": "\u05E0\u05D9\u05E7\u05D9\u05D5\u05DF \u05DE\u05E8\u05D1\u05D9: \u05D1\u05DC\u05D9 \u05DE\u05D5\u05E0\u05D9\u05DD, \u05D1\u05DC\u05D9 \u05D2\u05D1\u05D5\u05DC\u05D5\u05EA, \u05D1\u05DC\u05D9 \u05DE\u05D2\u05DE\u05D5\u05EA, \u05D0\u05D6\u05D5\u05E8\u05D9\u05DD \u05D1\u05D8\u05D5\u05D7\u05D9\u05DD \u05DC\u05D8\u05E7\u05E1\u05D8 \u05D2\u05D3\u05D5\u05DC.",
+      "Hide this post \u2014 Aviary keeps it hidden on future visits": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8 \u05D4\u05D6\u05D4 \u2014 Aviary \u05D9\u05E9\u05DE\u05D5\u05E8 \u05D0\u05D5\u05EA\u05D5 \u05DE\u05D5\u05E1\u05EA\u05E8 \u05D2\u05DD \u05D1\u05D1\u05D9\u05E7\u05D5\u05E8\u05D9\u05DD \u05D4\u05D1\u05D0\u05D9\u05DD",
+      "Hide this post": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8 \u05D4\u05D6\u05D4",
+      "Post hidden": "\u05D4\u05E4\u05D5\u05E1\u05D8 \u05D4\u05D5\u05E1\u05EA\u05E8",
+      "Could not save the hidden post. Storage rejected the write.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05D4\u05D9\u05D4 \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D0\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8 \u05D4\u05DE\u05D5\u05E1\u05EA\u05E8. \u05D4\u05D0\u05D7\u05E1\u05D5\u05DF \u05D3\u05D7\u05D4 \u05D0\u05EA \u05D4\u05DB\u05EA\u05D9\u05D1\u05D4.",
+      "Undo": "\u05D1\u05D9\u05D8\u05D5\u05DC",
+      "Could not restore that post.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05D4\u05D9\u05D4 \u05DC\u05E9\u05D7\u05D6\u05E8 \u05D0\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8 \u05D4\u05D6\u05D4.",
+      "Note": "\u05D4\u05E2\u05E8\u05D4",
+      "Unavailable": "\u05DC\u05D0 \u05D6\u05DE\u05D9\u05DF",
+      "Saved": "\u05E0\u05E9\u05DE\u05E8",
+      "Queued": "\u05D1\u05EA\u05D5\u05E8",
+      "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "\u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05E4\u05EA\u05D7 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D1\u05E5 \u05D1\u05DE\u05E7\u05D5\u05DD \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D0\u05D5\u05EA\u05D5 \u2014 \u05D4\u05E2\u05E0\u05E7 \u05DC-Aviary \u05D4\u05E8\u05E9\u05D0\u05EA \u05D4\u05D5\u05E8\u05D3\u05D4 \u05DB\u05D3\u05D9 \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D1\u05D0\u05DE\u05EA.",
+      "Aviary needs the browser download permission. Opening its options page.": "\u05DC-Aviary \u05E0\u05D3\u05E8\u05E9\u05EA \u05D4\u05E8\u05E9\u05D0\u05EA \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05E9\u05DC \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF. \u05E0\u05E4\u05EA\u05D7 \u05D3\u05E3 \u05D4\u05D0\u05E4\u05E9\u05E8\u05D5\u05D9\u05D5\u05EA.",
+      "Allow": "\u05D0\u05D9\u05E9\u05D5\u05E8",
+      "Retry": "\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1",
+      "Aviary ships with the narrowest permission set that still works. Everything below is optional, granted only by you, and revocable from this page at any time. Nothing on this page sends data anywhere.": "Aviary \u05DE\u05D2\u05D9\u05E2 \u05E2\u05DD \u05DE\u05E2\u05E8\u05DA \u05D4\u05D4\u05E8\u05E9\u05D0\u05D5\u05EA \u05D4\u05DE\u05E6\u05D5\u05DE\u05E6\u05DD \u05D1\u05D9\u05D5\u05EA\u05E8 \u05E9\u05E2\u05D3\u05D9\u05D9\u05DF \u05E2\u05D5\u05D1\u05D3. \u05DB\u05DC \u05DE\u05D4 \u05E9\u05DC\u05D4\u05DC\u05DF \u05D4\u05D5\u05D0 \u05E8\u05E9\u05D5\u05EA, \u05E0\u05D9\u05EA\u05DF \u05E2\u05DC \u05D9\u05D3\u05DA \u05D1\u05DC\u05D1\u05D3, \u05D5\u05E0\u05D9\u05EA\u05DF \u05DC\u05D1\u05D9\u05D8\u05D5\u05DC \u05DE\u05D3\u05E3 \u05D6\u05D4 \u05D1\u05DB\u05DC \u05E2\u05EA. \u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05D1\u05D3\u05E3 \u05D4\u05D6\u05D4 \u05D0\u05D9\u05E0\u05D5 \u05E9\u05D5\u05DC\u05D7 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05DC\u05E9\u05D5\u05DD \u05DE\u05E7\u05D5\u05DD.",
+      "Save media to disk": "\u05E9\u05DE\u05D9\u05E8\u05EA \u05DE\u05D3\u05D9\u05D4 \u05DC\u05D3\u05D9\u05E1\u05E7",
+      "checking\u2026": "\u05D1\u05D5\u05D3\u05E7\u2026",
+      "Lets the Save and Thumb buttons write files through the browser's download manager, with your filename template and duplicate history. Without it the browser opens media in a tab instead of saving it.": "\u05DE\u05D0\u05E4\u05E9\u05E8 \u05DC\u05DB\u05E4\u05EA\u05D5\u05E8\u05D9 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05D5\u05D4\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D4\u05DE\u05DE\u05D5\u05D6\u05E2\u05E8\u05EA \u05DC\u05DB\u05EA\u05D5\u05D1 \u05E7\u05D1\u05E6\u05D9\u05DD \u05D3\u05E8\u05DA \u05DE\u05E0\u05D4\u05DC \u05D4\u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05E9\u05DC \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF, \u05E2\u05DD \u05EA\u05D1\u05E0\u05D9\u05EA \u05E9\u05DD \u05D4\u05E7\u05D5\u05D1\u05E5 \u05D5\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05D4\u05DB\u05E4\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA. \u05D1\u05DC\u05E2\u05D3\u05D9\u05D5 \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05E4\u05D5\u05EA\u05D7 \u05D0\u05EA \u05D4\u05DE\u05D3\u05D9\u05D4 \u05D1\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05D1\u05DE\u05E7\u05D5\u05DD \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D0\u05D5\u05EA\u05D4.",
+      "Grant download access": "\u05DE\u05EA\u05DF \u05D4\u05E8\u05E9\u05D0\u05EA \u05D4\u05D5\u05E8\u05D3\u05D4",
+      "Revoke": "\u05D1\u05D9\u05D8\u05D5\u05DC \u05D4\u05E8\u05E9\u05D0\u05D4",
+      "Read media hosts directly": "\u05E7\u05E8\u05D9\u05D0\u05D4 \u05D9\u05E9\u05D9\u05E8\u05D4 \u05DE\u05E9\u05E8\u05EA\u05D9 \u05D4\u05DE\u05D3\u05D9\u05D4",
+      "Adds the media hosts so large files can be fetched without a page round-trip. Optional \u2014 media buttons work without it.": "\u05DE\u05D5\u05E1\u05D9\u05E3 \u05D0\u05EA \u05E9\u05E8\u05EA\u05D9 \u05D4\u05DE\u05D3\u05D9\u05D4 \u05DB\u05D3\u05D9 \u05DC\u05D4\u05D1\u05D9\u05D0 \u05E7\u05D1\u05E6\u05D9\u05DD \u05D2\u05D3\u05D5\u05DC\u05D9\u05DD \u05D1\u05DC\u05D9 \u05DC\u05E2\u05D1\u05D5\u05E8 \u05D3\u05E8\u05DA \u05D4\u05D3\u05E3. \u05E8\u05E9\u05D5\u05EA \u2014 \u05DB\u05E4\u05EA\u05D5\u05E8\u05D9 \u05D4\u05DE\u05D3\u05D9\u05D4 \u05E2\u05D5\u05D1\u05D3\u05D9\u05DD \u05D2\u05DD \u05D1\u05DC\u05D9 \u05D6\u05D4.",
+      "Grant media hosts": "\u05DE\u05EA\u05DF \u05D4\u05E8\u05E9\u05D0\u05D4 \u05DC\u05E9\u05E8\u05EA\u05D9 \u05D4\u05DE\u05D3\u05D9\u05D4",
+      "Settings, filters, notes and archives live in the Control Center on x.com. This page only manages browser permissions.": "\u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA, \u05D4\u05DE\u05E1\u05E0\u05E0\u05D9\u05DD, \u05D4\u05D4\u05E2\u05E8\u05D5\u05EA \u05D5\u05D4\u05D0\u05E8\u05DB\u05D9\u05D5\u05E0\u05D9\u05DD \u05E0\u05DE\u05E6\u05D0\u05D9\u05DD \u05D1\u05DE\u05E8\u05DB\u05D6 \u05D4\u05D1\u05E7\u05E8\u05D4 \u05D1-x.com. \u05D4\u05D3\u05E3 \u05D4\u05D6\u05D4 \u05DE\u05E0\u05D4\u05DC \u05E8\u05E7 \u05D0\u05EA \u05D4\u05E8\u05E9\u05D0\u05D5\u05EA \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF.",
+      "This browser did not expose the permissions API.": "\u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05D4\u05D6\u05D4 \u05D0\u05D9\u05E0\u05D5 \u05D7\u05D5\u05E9\u05E3 \u05D0\u05EA \u05DE\u05DE\u05E9\u05E7 \u05D4\u05D4\u05E8\u05E9\u05D0\u05D5\u05EA.",
+      "Request dismissed \u2014 nothing changed.": "\u05D4\u05D1\u05E7\u05E9\u05D4 \u05E0\u05D3\u05D7\u05EA\u05D4 \u2014 \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05D4\u05E9\u05EA\u05E0\u05D4.",
+      "Revoked.": "\u05D4\u05D4\u05E8\u05E9\u05D0\u05D4 \u05D1\u05D5\u05D8\u05DC\u05D4.",
+      "Nothing to revoke.": "\u05D0\u05D9\u05DF \u05D4\u05E8\u05E9\u05D0\u05D4 \u05DC\u05D1\u05D8\u05DC.",
+      "granted": "\u05E0\u05D9\u05EA\u05E0\u05D4",
+      "not granted": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05E0\u05D4",
+      "Granted. Media saves through the browser now.": "\u05E0\u05D9\u05EA\u05E0\u05D4 \u05D4\u05E8\u05E9\u05D0\u05D4. \u05DE\u05E2\u05DB\u05E9\u05D9\u05D5 \u05D4\u05DE\u05D3\u05D9\u05D4 \u05E0\u05E9\u05DE\u05E8\u05EA \u05D3\u05E8\u05DA \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF.",
+      "Granted. Aviary can read full-size media directly for exports now.": "\u05E0\u05D9\u05EA\u05E0\u05D4 \u05D4\u05E8\u05E9\u05D0\u05D4. \u05DE\u05E2\u05DB\u05E9\u05D9\u05D5 Aviary \u05D9\u05DB\u05D5\u05DC \u05DC\u05E7\u05E8\u05D5\u05D0 \u05DE\u05D3\u05D9\u05D4 \u05D1\u05D2\u05D5\u05D3\u05DC \u05DE\u05DC\u05D0 \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA \u05E2\u05D1\u05D5\u05E8 \u05D9\u05D9\u05E6\u05D5\u05D0.",
       "Working \u2014 every change has been written.": "\u05EA\u05E7\u05D9\u05DF \u2014 \u05DB\u05DC \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05E0\u05E9\u05DE\u05E8\u05D5.",
       "Monitoring active": "\u05D4\u05E0\u05D9\u05D8\u05D5\u05E8 \u05E4\u05E2\u05D9\u05DC",
       "Preset packs unavailable in this build.": "\u05D4\u05E2\u05E8\u05DB\u05D5\u05EA \u05D4\u05DE\u05D5\u05DB\u05E0\u05D5\u05EA \u05D0\u05D9\u05E0\u05DF \u05D6\u05DE\u05D9\u05E0\u05D5\u05EA \u05D1\u05D2\u05E8\u05E1\u05D4 \u05D6\u05D5.",
@@ -4319,8 +4871,8 @@ html.av-reduce-motion *::after {
         const row = el("div", "av-row av-row-stack");
         const copy = el("span", "av-row-copy");
         copy.append(
-          el("span", "av-row-label", preset.label),
-          el("span", "av-row-description", preset.description)
+          el("span", "av-row-label", t(preset.label)),
+          el("span", "av-row-description", t(preset.description))
         );
         const apply = el("button", "av-button av-button-secondary", t("Apply"));
         apply.type = "button";
@@ -4328,9 +4880,9 @@ html.av-reduce-motion *::after {
           apply.disabled = true;
           void options.applyPreset(preset.id).then((result) => {
             if (result.applied) {
-              setStatus(`Applied "${preset.label}" \u2014 ${result.changes.length} changes`);
+              setStatus(`${t("Preset applied")}: ${t(preset.label)} (${result.changes.length})`);
             } else {
-              setStatus(`Preset "${preset.label}" unchanged.`);
+              setStatus(`${t("Preset already applied")}: ${t(preset.label)}`);
             }
           }).catch((error) => {
             options.onError("Could not apply preset", error);
@@ -4591,6 +5143,17 @@ html.av-reduce-motion *::after {
           async (value) => {
             integrations.aria2.secret = value;
             await save("Aria2 secret saved");
+          }
+        )
+      );
+      rows.push(
+        integerInputRow(
+          "Hand off files larger than (MB)",
+          "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.",
+          Math.round(integrations.aria2.minBytes / 1e6),
+          async (value) => {
+            integrations.aria2.minBytes = Math.max(0, value) * 1e6;
+            await save("Aria2 threshold saved");
           }
         )
       );
@@ -4893,8 +5456,9 @@ html.av-reduce-motion *::after {
               setStatus("Rebuilding semantic index\u2026");
               try {
                 const result = await options.rebuildSemanticIndex();
+                const trimmed = result.dropped > 0 ? ` \xB7 oldest ${result.dropped} dropped` : "";
                 setStatus(
-                  `Indexed: +${result.added} new \xB7 skipped ${result.skipped} \xB7 errors ${result.errors} \xB7 total ${result.total}.`
+                  `Indexed: +${result.added} new \xB7 skipped ${result.skipped} \xB7 errors ${result.errors} \xB7 total ${result.total}${trimmed}.`
                 );
               } catch (error) {
                 options.onError("Embedding failed", error);
@@ -6054,7 +6618,10 @@ html.av-reduce-motion *::after {
   color: var(--av-text, rgb(239, 243, 244));
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.42);
   cursor: pointer;
-  font: 700 13px/1.1 inherit;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.1;
+  font-family: inherit;
   letter-spacing: 0;
   pointer-events: auto;
   transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
@@ -6150,7 +6717,10 @@ input:focus-visible {
   border-radius: 8px;
   background: var(--av-surface-raised, rgb(22, 24, 28));
   color: var(--av-text, rgb(239, 243, 244));
-  font: 650 13px/1.2 inherit;
+  font-weight: 650;
+  font-size: 13px;
+  line-height: 1.2;
+  font-family: inherit;
 }
 
 .av-button {
@@ -6171,7 +6741,9 @@ input:focus-visible {
   border-radius: 8px;
   background: var(--av-surface, rgb(15, 20, 25));
   color: var(--av-text, rgb(239, 243, 244));
-  font: 13px/1.4 inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  font-family: inherit;
 }
 
 .av-search-input::placeholder {
@@ -6194,7 +6766,14 @@ input:focus-visible {
   gap: 2px;
   padding: 12px 8px;
   overflow-y: auto;
+  /* Reserved so the list does not reflow the moment it becomes scrollable. */
+  scrollbar-gutter: stable;
   border-right: 1px solid var(--av-border, rgb(47, 51, 54));
+  /* The rail scrolls at thirteen sections and a short viewport, and nothing said so -- the last
+     item rendered cut through its own baseline, which reads as a rendering fault rather than a
+     list with more below. The mask only bites where content actually reaches the bottom edge,
+     so a rail that fits is untouched. */
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent 100%);
 }
 
 .av-nav-group {
@@ -6221,7 +6800,10 @@ input:focus-visible {
   border-radius: 8px;
   background: transparent;
   color: var(--av-muted, rgb(113, 118, 123));
-  font: 600 13px/1.2 inherit;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
+  font-family: inherit;
   text-align: left;
   cursor: pointer;
 }
@@ -6666,6 +7248,11 @@ input[type="checkbox"] {
 
   // src/features/integrations/semantic-search.ts
   var SEMANTIC_INDEX_KEY = "aviary.semanticIndex.v1";
+  var SEMANTIC_INDEX_LIMIT = 2e3;
+  var VECTOR_PRECISION = 1e5;
+  function roundVector(vector) {
+    return vector.map((value) => Math.round(value * VECTOR_PRECISION) / VECTOR_PRECISION);
+  }
   var EMPTY = { entries: [], model: "" };
   var SemanticIndex = class {
     #storage;
@@ -6691,7 +7278,7 @@ input[type="checkbox"] {
     }
     async embedAndIndex(config, records) {
       if (!config.enabled || !config.endpoint || !config.apiKey || !config.model) {
-        return { added: 0, skipped: records.length, errors: 0 };
+        return { added: 0, skipped: records.length, errors: 0, dropped: 0 };
       }
       await this.load();
       if (this.#state.model && this.#state.model !== config.model) {
@@ -6719,14 +7306,18 @@ input[type="checkbox"] {
           tweetId: record.tweetId,
           handle: record.handle,
           text: record.text,
-          vector,
+          vector: roundVector(vector),
           embeddedAt: (/* @__PURE__ */ new Date()).toISOString()
         });
         known.add(id);
         added += 1;
       }
+      const overflow = Math.max(0, this.#state.entries.length - SEMANTIC_INDEX_LIMIT);
+      if (overflow > 0) {
+        this.#state.entries = this.#state.entries.slice(overflow);
+      }
       await this.#persist();
-      return { added, skipped, errors };
+      return { added, skipped, errors, dropped: overflow };
     }
     async search(config, query, limit = 10) {
       if (!config.enabled || !config.endpoint || !config.apiKey || !config.model || query.trim().length === 0) {
@@ -6894,8 +7485,15 @@ input[type="checkbox"] {
       bitrate: parsePositiveInt(bitrate)
     });
   }
+  function isSaveableVariantUrl(url) {
+    return !/^blob:/i.test(url);
+  }
   function pickPreferred(variants) {
     const sorted = [...variants].sort((a, b) => {
+      const saveableDiff = Number(isSaveableVariantUrl(b.url)) - Number(isSaveableVariantUrl(a.url));
+      if (saveableDiff !== 0) {
+        return saveableDiff;
+      }
       const bitrateDiff = (b.bitrate ?? 0) - (a.bitrate ?? 0);
       if (bitrateDiff !== 0) {
         return bitrateDiff;
@@ -6998,9 +7596,10 @@ input[type="checkbox"] {
       const media = [];
       for (const item of tweet.media) {
         if (item.kind === "video" && item.video?.preferred) {
+          const url = item.video.preferred.url;
           const entry = {
             kind: "video",
-            url: item.video.preferred.url,
+            url: isSaveableVariantUrl(url) ? url : "",
             type: item.video.preferred.type
           };
           if (item.video.preferred.width !== null) entry.width = item.video.preferred.width;
@@ -7754,8 +8353,18 @@ ${sections.join("\n\n---\n\n")}
       }
     },
     async apply(ctx, root, addedNodes) {
-      if (!ctx.settings.export.enabled || !checkpointStore || !activeJobId) {
+      if (!ctx.settings.export.enabled || !checkpointStore) {
         return;
+      }
+      if (!activeJobId) {
+        activeJobId = `session-${Date.now()}`;
+        await checkpointStore.start(
+          activeJobId,
+          ctx.route.surface,
+          selectSupportedFormats(ctx.settings.export.formats),
+          ctx.settings.export.preserveRawPayloads
+        );
+        ctx.diagnostics.info("Export capture session started", { jobId: activeJobId });
       }
       const records = collectExportRecords(root, ctx.route.surface);
       if (records.length === 0) {
@@ -7766,7 +8375,10 @@ ${sections.join("\n\n---\n\n")}
         ctx.diagnostics.info("Export captured nodes", { count: records.length });
       }
     },
-    destroy(ctx) {
+    async destroy(ctx) {
+      if (activeJobId && checkpointStore) {
+        await checkpointStore.finish(activeJobId);
+      }
       checkpointStore = void 0;
       queryRegistry = void 0;
       activeJobId = void 0;
@@ -7799,10 +8411,8 @@ ${sections.join("\n\n---\n\n")}
     const formats = selectSupportedFormats(ctx.settings.export.formats);
     await checkpointStore.start(jobId, ctx.route.surface, formats, ctx.settings.export.preserveRawPayloads);
     void ctx.auditLog.record("export.start", { jobId, formats, surface: ctx.route.surface });
-    activeJobId = jobId;
     const initialRecords = collectExportRecords(document, ctx.route.surface);
     await checkpointStore.append(jobId, initialRecords);
-    activeJobId = void 0;
     const records = checkpointStore.records(jobId);
     const artifacts = records.length === 0 ? [] : buildExportZipChunks(
       records,
@@ -7934,12 +8544,12 @@ ${lines.join("\n\n---\n\n")}
       const tags = ["#aviary", `#x/${handle}`];
       const frontmatter = [
         "---",
-        `tweet_id: ${safeId}`,
-        `handle: ${handle}`,
-        `display_name: ${record.displayName ?? ""}`,
-        `captured_at: ${record.capturedAt}`,
-        `surface: ${record.surface}`,
-        `permalink: ${record.permalink ?? ""}`,
+        `tweet_id: ${yamlScalar(safeId)}`,
+        `handle: ${yamlScalar(handle)}`,
+        `display_name: ${yamlScalar(record.displayName ?? "")}`,
+        `captured_at: ${yamlScalar(record.capturedAt)}`,
+        `surface: ${yamlScalar(record.surface)}`,
+        `permalink: ${yamlScalar(record.permalink ?? "")}`,
         `tags: [${tags.join(", ")}]`,
         "---"
       ].join("\n");
@@ -7958,6 +8568,10 @@ ${record.text}${mediaList}`;
       contentType: "text/markdown",
       data: ENCODER2.encode(document2)
     };
+  }
+  function yamlScalar(value) {
+    const escaped = value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/[\r\n]+/g, " ");
+    return `"${escaped}"`;
   }
   function toNotionArtifact(records) {
     const lines = ["# Aviary export"];
@@ -7996,6 +8610,11 @@ ${record.text}${mediaList}`;
       contentType: "application/json",
       data: ENCODER2.encode(json)
     };
+  }
+
+  // src/features/core/feature-i18n.ts
+  function ft(ctx, english) {
+    return translateText(ctx.settings.i18n.locale, english);
   }
 
   // src/features/filtering/hidden-posts.ts
@@ -8455,9 +9074,9 @@ ${record.text}${mediaList}`;
     button2.type = "button";
     button2.className = "av-hide-button";
     button2.setAttribute(BUTTON_ATTR, "1");
-    button2.textContent = "Hide";
-    button2.title = "Hide this post \u2014 Aviary keeps it hidden on future visits";
-    button2.setAttribute("aria-label", "Hide this post");
+    button2.textContent = ft(ctx, "Hide");
+    button2.title = ft(ctx, "Hide this post \u2014 Aviary keeps it hidden on future visits");
+    button2.setAttribute("aria-label", ft(ctx, "Hide this post"));
     button2.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -8488,12 +9107,12 @@ ${record.text}${mediaList}`;
       if (entry) {
         ctx.diagnostics.info("Post hidden", { key, handle: entry.handle });
         void ctx.auditLog.record("post.hide", { key });
-        showToast(`Post hidden \u2014 ${store.size()} stored`, ctx);
+        showToast(`${ft(ctx, "Post hidden")} \u2014 ${store.size()}`, ctx);
       }
     } catch (error) {
       button2.disabled = false;
       ctx.diagnostics.error("Could not hide post", errorDetails2(error));
-      showToast("Could not save the hidden post. Storage rejected the write.", ctx);
+      showToast(ft(ctx, "Could not save the hidden post. Storage rejected the write."), ctx);
     }
   }
   function showToast(message, ctx) {
@@ -8509,15 +9128,16 @@ ${record.text}${mediaList}`;
       return;
     }
     text.textContent = message;
+    undo.textContent = ft(ctx, "Undo");
     undo.disabled = false;
     undo.onclick = () => {
       undo.disabled = true;
       void undoLastHide(ctx).then((entry) => {
-        text.textContent = entry ? "Post restored." : "Nothing left to restore.";
+        text.textContent = ft(ctx, entry ? "Post restored." : "Nothing left to restore.");
         scheduleToastDismiss(card, 2500);
       }).catch((error) => {
         ctx.diagnostics.error("Could not restore post", errorDetails2(error));
-        text.textContent = "Could not restore that post.";
+        text.textContent = ft(ctx, "Could not restore that post.");
         scheduleToastDismiss(card, 4e3);
       });
     };
@@ -8559,7 +9179,6 @@ ${record.text}${mediaList}`;
     const undo = document.createElement("button");
     undo.type = "button";
     undo.className = "av-toast-undo";
-    undo.textContent = "Undo";
     card.append(text, undo);
     shadow.append(style, card);
     return shadow;
@@ -8674,7 +9293,10 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   background: transparent;
   color: var(--av-accent, rgb(29, 155, 240));
   cursor: pointer;
-  font: 700 12px/1.1 inherit;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1.1;
+  font-family: inherit;
 }
 
 .av-toast-undo:focus-visible {
@@ -8912,6 +9534,34 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       }
     }
   };
+  async function pingAria2Version(config) {
+    assertOutboundAllowed("The Aria2 connection test");
+    if (!config.endpoint) {
+      return { ok: false, error: "Aria2 endpoint not configured" };
+    }
+    try {
+      const response = await fetch(`${config.endpoint}/jsonrpc`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: `aviary-${Date.now()}`,
+          method: "aria2.getVersion",
+          params: config.secret ? [`token:${config.secret}`] : []
+        })
+      });
+      if (!response.ok) {
+        return { ok: false, error: `Aria2 HTTP ${response.status}` };
+      }
+      const payload = await response.json();
+      if (payload?.error) {
+        return { ok: false, error: payload.error.message ?? "Aria2 rejected the request" };
+      }
+      return typeof payload?.result?.version === "string" ? { ok: true, gid: payload.result.version } : { ok: false, error: "Aria2 did not report a version" };
+    } catch (error) {
+      return { ok: false, error: String(error?.message ?? error) };
+    }
+  }
   async function tellActiveAria2(config) {
     assertOutboundAllowed("The Aria2 sweep");
     const payload = await callAria2(config, "aria2.tellActive", []);
@@ -8934,9 +9584,13 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     return { ok: false, error: "Aria2 did not return a GID" };
   }
   async function tellAria2Status(config, gid) {
-    assertOutboundAllowed("The Aria2 status check");
     if (!gid) return null;
     if (!config.endpoint) return null;
+    try {
+      assertOutboundAllowed("The Aria2 status check");
+    } catch {
+      return null;
+    }
     const token = config.secret ? `token:${config.secret}` : void 0;
     const params = token ? [token, gid] : [gid];
     try {
@@ -8952,7 +9606,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       });
       if (!response.ok) return null;
       const payload = await response.json();
-      if (payload.error) return "removed";
+      if (payload.error) {
+        return isUnknownGidError(payload.error) ? "removed" : null;
+      }
       return typeof payload.result?.status === "string" ? payload.result.status : null;
     } catch {
       return null;
@@ -8981,6 +9637,10 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       return null;
     }
   }
+  function isUnknownGidError(error) {
+    const message = typeof error.message === "string" ? error.message.toLowerCase() : "";
+    return /gid/.test(message) && /(not found|is not found|cannot be found)/.test(message);
+  }
   function isHistoryEntry(value) {
     if (typeof value !== "object" || value === null) return false;
     const entry = value;
@@ -8988,16 +9648,55 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
 
   // src/features/integrations/crosspost.ts
+  var TARGET_LIMITS = {
+    bluesky: 300,
+    mastodon: 500
+  };
   function splitForThread(text) {
     const blocks = text.split(/\r?\n\s*\r?\n/).map((block) => block.trim()).filter((block) => block.length > 0);
     return blocks.length === 0 ? [text.trim()].filter((block) => block.length > 0) : blocks;
+  }
+  function graphemes(text) {
+    const Segmenter = Intl.Segmenter;
+    if (typeof Segmenter === "function") {
+      return Array.from(
+        new Segmenter(void 0, { granularity: "grapheme" }).segment(text),
+        (part) => part.segment
+      );
+    }
+    return Array.from(text);
+  }
+  function chunkToLimit(text, limit) {
+    const units = graphemes(text);
+    if (units.length <= limit) {
+      return [text];
+    }
+    const chunks = [];
+    let index = 0;
+    while (index < units.length) {
+      let take = Math.min(limit, units.length - index);
+      if (index + take < units.length) {
+        const window2 = units.slice(index, index + take);
+        const lastSpace = window2.lastIndexOf(" ");
+        if (lastSpace > limit * 0.5) {
+          take = lastSpace;
+        }
+      }
+      chunks.push(units.slice(index, index + take).join("").trim());
+      index += take;
+    }
+    return chunks.filter((chunk) => chunk.length > 0);
+  }
+  function segmentsForTarget(text, target, asThread) {
+    const blocks = asThread ? splitForThread(text) : [text];
+    return blocks.flatMap((block) => chunkToLimit(block, TARGET_LIMITS[target]));
   }
   async function crosspost(integrations, request) {
     assertOutboundAllowed("The crosspost");
     if (request.text.trim().length === 0) {
       return { ok: false, target: request.target, error: "Empty post body" };
     }
-    const segments = request.asThread ? splitForThread(request.text) : [request.text];
+    const segments = segmentsForTarget(request.text, request.target, request.asThread === true);
     if (segments.length === 0) {
       return { ok: false, target: request.target, error: "Empty post body" };
     }
@@ -9011,6 +9710,8 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     if (!config.service || !config.handle || !config.appPassword) {
       return { ok: false, target: "bluesky", error: "Bluesky credentials missing" };
     }
+    let firstUri = null;
+    let posted = 0;
     try {
       const session = await callBluesky(config.service, "com.atproto.server.createSession", {
         identifier: config.handle,
@@ -9022,10 +9723,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       const uploadedBlob = attachment ? await uploadBlueskyImage(config.service, session.accessJwt, attachment) : null;
       let rootRef = null;
       let parentRef = null;
-      let firstUri = null;
       for (const segment of segments) {
         const record = {
-          text: segment.slice(0, 300),
+          text: segment,
           createdAt: (/* @__PURE__ */ new Date()).toISOString(),
           $type: "app.bsky.feed.post"
         };
@@ -9054,13 +9754,14 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         const uri = typeof response?.uri === "string" ? response.uri : null;
         const cid = typeof response?.cid === "string" ? response.cid : null;
         if (!uri || !cid) {
-          return { ok: false, target: "bluesky", error: "Bluesky post response was malformed" };
+          return partialFailure("bluesky", "Bluesky post response was malformed", posted, firstUri ? deriveBlueskyUrl(firstUri, config.handle) : null);
         }
         if (!rootRef) {
           rootRef = { uri, cid };
           firstUri = uri;
         }
         parentRef = { uri, cid };
+        posted += 1;
       }
       const result = {
         ok: true,
@@ -9070,18 +9771,34 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       if (firstUri) result.url = deriveBlueskyUrl(firstUri, config.handle);
       return result;
     } catch (error) {
-      return { ok: false, target: "bluesky", error: String(error?.message ?? error) };
+      return partialFailure(
+        "bluesky",
+        String(error?.message ?? error),
+        posted,
+        firstUri ? deriveBlueskyUrl(firstUri, config.handle) : null
+      );
     }
+  }
+  function partialFailure(target, error, posted, url) {
+    const result = {
+      ok: false,
+      target,
+      error: posted > 0 ? `${error} \u2014 ${posted} of the thread was already posted` : error
+    };
+    if (posted > 0) result.posts = posted;
+    if (url) result.url = url;
+    return result;
   }
   async function postToMastodon(config, segments, attachment) {
     if (!config.enabled) return { ok: false, target: "mastodon", error: "Mastodon integration disabled" };
     if (!config.instance || !config.token) {
       return { ok: false, target: "mastodon", error: "Mastodon credentials missing" };
     }
+    let firstUrl = null;
+    let posted = 0;
     try {
       const mediaId = attachment ? await uploadMastodonMedia(config.instance, config.token, attachment) : null;
       let inReplyTo = null;
-      let firstUrl = null;
       for (const segment of segments) {
         const body = {
           status: segment,
@@ -9098,13 +9815,14 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
           body: JSON.stringify(body)
         });
         if (!response.ok) {
-          return { ok: false, target: "mastodon", error: `Mastodon HTTP ${response.status}` };
+          return partialFailure("mastodon", `Mastodon HTTP ${response.status}`, posted, firstUrl);
         }
         const payload = await response.json();
         if (typeof payload?.id !== "string") {
-          return { ok: false, target: "mastodon", error: "Mastodon response missing status id" };
+          return partialFailure("mastodon", "Mastodon response missing status id", posted, firstUrl);
         }
         inReplyTo = payload.id;
+        posted += 1;
         if (typeof payload?.url === "string" && firstUrl === null) {
           firstUrl = payload.url;
         }
@@ -9113,7 +9831,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       if (firstUrl) result.url = firstUrl;
       return result;
     } catch (error) {
-      return { ok: false, target: "mastodon", error: String(error?.message ?? error) };
+      return partialFailure("mastodon", String(error?.message ?? error), posted, firstUrl);
     }
   }
   async function uploadBlueskyImage(service, accessJwt, attachment) {
@@ -9208,13 +9926,22 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
   function readComposerText() {
     const composer = document.querySelector('[data-testid="tweetTextarea_0"]');
-    return composer?.textContent?.trim() ?? "";
+    if (!composer) {
+      return "";
+    }
+    const blocks = Array.from(composer.querySelectorAll('[data-block="true"]'));
+    if (blocks.length > 0) {
+      return blocks.map((block) => block.textContent ?? "").join("\n\n").trim();
+    }
+    return (composer.innerText ?? composer.textContent ?? "").trim();
   }
 
   // src/features/core/integration-errors.ts
   var ERROR_ACTIONS = /* @__PURE__ */ new Set([
     "media.download.failed",
-    "export.start",
+    "crosspost",
+    "aria2.cancel",
+    "semantic.index",
     "export.complete"
   ]);
   function recentIntegrationErrors(entries, limit = 10) {
@@ -9245,8 +9972,11 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
 
   // src/features/export/zip-reader.ts
   var LOCAL_HEADER = 67324752;
+  var CENTRAL_HEADER = 33639248;
   var EOCD_SIGNATURE = 101010256;
   var ZIP64_LOCATOR = 117853008;
+  var METHOD_STORE = 0;
+  var METHOD_DEFLATE = 8;
   var TEXT_DECODER = new TextDecoder();
   var UnsupportedZipMethodError = class extends Error {
     constructor(method, filename) {
@@ -9254,7 +9984,41 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       this.name = "UnsupportedZipMethodError";
     }
   };
-  function readStoreZip(data) {
+  async function readZip(data) {
+    const results = [];
+    for (const entry of parseEntries(data)) {
+      if (entry.method === METHOD_STORE) {
+        results.push(finish(entry, entry.raw));
+        continue;
+      }
+      if (entry.method !== METHOD_DEFLATE) {
+        throw new UnsupportedZipMethodError(entry.method, entry.filename);
+      }
+      results.push(finish(entry, await inflateRaw(entry.raw, entry.filename)));
+    }
+    return results;
+  }
+  function canInflate() {
+    return typeof globalThis.DecompressionStream === "function";
+  }
+  async function inflateRaw(bytes, filename) {
+    if (!canInflate()) {
+      throw new UnsupportedZipMethodError(METHOD_DEFLATE, filename);
+    }
+    const stream = new Response(
+      new Blob([new Uint8Array(bytes)]).stream().pipeThrough(new DecompressionStream("deflate-raw"))
+    );
+    return new Uint8Array(await stream.arrayBuffer());
+  }
+  function finish(entry, data) {
+    return {
+      filename: entry.filename,
+      data: new Uint8Array(data),
+      // Checked against the inflated bytes, which is what the CRC in the header describes.
+      crcOk: crc32(data) === entry.declaredCrc && data.length === entry.uncompressedSize
+    };
+  }
+  function parseEntries(data) {
     const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
     const eocd = locateEOCD(view, data.length);
     if (eocd === -1) {
@@ -9265,39 +10029,38 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     const results = [];
     let cursor = centralOffset;
     for (let i = 0; i < entryCount; i++) {
-      if (view.getUint32(cursor, true) !== 33639248) {
+      if (cursor + 46 > data.length || view.getUint32(cursor, true) !== CENTRAL_HEADER) {
         break;
       }
-      const method = view.getUint16(cursor + 10, true);
-      const compressedSize = view.getUint32(cursor + 20, true);
-      const uncompressedSize = view.getUint32(cursor + 24, true);
-      const nameLength = view.getUint16(cursor + 28, true);
-      const extraLength = view.getUint16(cursor + 30, true);
-      const commentLength = view.getUint16(cursor + 32, true);
-      const localOffset = view.getUint32(cursor + 42, true);
-      const filename = TEXT_DECODER.decode(data.subarray(cursor + 46, cursor + 46 + nameLength));
-      cursor += 46 + nameLength + extraLength + commentLength;
+      const entryStart = cursor;
+      const method = view.getUint16(entryStart + 10, true);
+      const declaredCrc = view.getUint32(entryStart + 16, true);
+      const compressedSize = view.getUint32(entryStart + 20, true);
+      const uncompressedSize = view.getUint32(entryStart + 24, true);
+      const nameLength = view.getUint16(entryStart + 28, true);
+      const extraLength = view.getUint16(entryStart + 30, true);
+      const commentLength = view.getUint16(entryStart + 32, true);
+      const localOffset = view.getUint32(entryStart + 42, true);
+      const filename = TEXT_DECODER.decode(
+        data.subarray(entryStart + 46, entryStart + 46 + nameLength)
+      );
+      cursor = entryStart + 46 + nameLength + extraLength + commentLength;
       if (filename.endsWith("/")) {
         continue;
       }
-      if (method !== 0) {
-        throw new UnsupportedZipMethodError(method, filename);
-      }
-      if (view.getUint32(localOffset, true) !== LOCAL_HEADER) {
+      if (localOffset + 30 > data.length || view.getUint32(localOffset, true) !== LOCAL_HEADER) {
         continue;
       }
       const localNameLength = view.getUint16(localOffset + 26, true);
       const localExtraLength = view.getUint16(localOffset + 28, true);
       const fileStart = localOffset + 30 + localNameLength + localExtraLength;
-      const fileEnd = fileStart + compressedSize;
-      const fileData = data.subarray(fileStart, fileEnd);
-      const declaredCrc = view.getUint32(cursor - (extraLength + commentLength + nameLength + 46) + 16, true);
-      const actualCrc = crc32(fileData);
-      const expectedSize = uncompressedSize;
+      const fileEnd = Math.min(fileStart + compressedSize, data.length);
       results.push({
         filename,
-        data: new Uint8Array(fileData),
-        crcOk: declaredCrc === actualCrc && fileData.length === expectedSize
+        method,
+        uncompressedSize,
+        declaredCrc,
+        raw: data.subarray(fileStart, fileEnd)
       });
     }
     return results;
@@ -9316,20 +10079,22 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
 
   // src/features/library/archive-import.ts
   var TEXT_DECODER2 = new TextDecoder();
-  function importOfficialArchive(buffer, surface = "archive") {
+  async function importOfficialArchive(buffer, surface = "archive") {
     const warnings = [];
     const errors = [];
     const filesParsed = [];
     const records = [];
     let entries;
     try {
-      entries = readStoreZip(buffer);
+      entries = await readZip(buffer);
     } catch (error) {
       errors.push(error.message);
       return { records, warnings, errors, filesParsed };
     }
     if (entries.length === 0) {
-      errors.push("Archive contained no readable entries (compression methods other than STORE are not supported).");
+      errors.push(
+        canInflate() ? "Archive contained no readable entries." : "This browser cannot decompress archives (DecompressionStream is unavailable)."
+      );
       return { records, warnings, errors, filesParsed };
     }
     for (const entry of entries) {
@@ -9674,7 +10439,8 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         if (options.aria2History?.hasUrl(request.url)) {
           return { ok: true, via: "aria2", deduplicated: true };
         }
-        if (shouldHandoffToAria2(aria, request.estimatedBytes ?? null)) {
+        const estimatedBytes = request.estimatedBytes ?? (aria.enabled && aria.endpoint ? await estimateBytes(request.url) : null);
+        if (shouldHandoffToAria2(aria, estimatedBytes)) {
           const result = await addUriToAria2(
             { endpoint: aria.endpoint, secret: aria.secret },
             { url: request.url, filename: request.filename }
@@ -9689,6 +10455,10 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
             }
             return { ok: true, via: "aria2", ...result.gid ? { gid: result.gid } : {} };
           }
+          options.onWarn?.("Aria2 refused the handoff \u2014 saving through the browser instead", {
+            error: result.error ?? "unknown",
+            filename: request.filename
+          });
         }
       }
       const gmResult = await tryGmDownload(request);
@@ -9719,6 +10489,21 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       return base === void 0 ? true : parsed.origin !== new URL(base).origin;
     } catch {
       return false;
+    }
+  }
+  async function estimateBytes(url) {
+    if (typeof fetch !== "function") {
+      return null;
+    }
+    try {
+      const response = await fetch(url, { method: "HEAD" });
+      if (!response.ok) {
+        return null;
+      }
+      const length = Number(response.headers.get("content-length"));
+      return Number.isFinite(length) && length > 0 ? length : null;
+    } catch {
+      return null;
     }
   }
   async function tryGmDownload(request) {
@@ -10002,13 +10787,21 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       ensureMediaStyle();
       aria2History = new Aria2History(ctx.storage);
       await aria2History.load();
-      if (ctx.settings.integrations.aria2.endpoint) {
-        await aria2History.reconcile({
-          endpoint: ctx.settings.integrations.aria2.endpoint,
-          secret: ctx.settings.integrations.aria2.secret
-        });
+      if (ctx.settings.integrations.aria2.enabled && ctx.settings.integrations.aria2.endpoint) {
+        try {
+          await aria2History.reconcile({
+            endpoint: ctx.settings.integrations.aria2.endpoint,
+            secret: ctx.settings.integrations.aria2.secret
+          });
+        } catch (error) {
+          ctx.diagnostics.warn("Aria2 history reconcile skipped", errorDetails3(error));
+        }
       }
-      downloader = createDownloader({ integrations: ctx.settings.integrations, aria2History });
+      downloader = createDownloader({
+        integrations: ctx.settings.integrations,
+        aria2History,
+        onWarn: (message, details) => ctx.diagnostics.warn(message, details)
+      });
       queue = new DownloadQueue();
       history = new MediaHistory(ctx.storage, void 0, (error) => {
         ctx.diagnostics.error("Media history failed to save", errorDetails3(error));
@@ -10117,6 +10910,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       if (!container || hasOwnButton(container, media.kind)) {
         return;
       }
+      if (!resolveTarget(media)) {
+        return;
+      }
       const button2 = buildButton(media, index, tweet, ctx);
       container.append(button2);
     });
@@ -10136,8 +10932,8 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     button2.className = "av-media-button";
     button2.setAttribute(BUTTON_ATTR2, media.kind);
     button2.dataset.kind = media.kind;
-    button2.setAttribute("aria-label", buttonAriaLabel(media));
-    button2.textContent = buttonLabel(media);
+    button2.setAttribute("aria-label", ft(ctx, buttonAriaLabel(media)));
+    button2.textContent = ft(ctx, buttonLabel(media));
     button2.addEventListener("click", (event) => {
       event.stopPropagation();
       event.preventDefault();
@@ -10169,7 +10965,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     }
     const target = resolveTarget(media);
     if (!target) {
-      button2.textContent = "Unavailable";
+      button2.textContent = ft(ctx, "Unavailable");
       button2.disabled = true;
       button2.classList.add("is-error");
       ctx.diagnostics.warn("Media target unavailable", { kind: media.kind });
@@ -10189,7 +10985,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     if (ctx.settings.media.downloadHistory && history.has(dedupeKey)) {
       const job2 = queue.enqueue({ url: target.url, filename });
       queue.mark(job2.id, "duplicate");
-      button2.textContent = "Saved";
+      button2.textContent = ft(ctx, "Saved");
       button2.classList.add("is-duplicate");
       ctx.diagnostics.info("Media skipped \u2014 already in history", { dedupeKey });
       void ctx.auditLog.record("media.download.duplicate", { dedupeKey });
@@ -10203,7 +10999,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       const result = await downloader({ url: target.url, filename });
       if (result.deduplicated) {
         queue.mark(job.id, "duplicate");
-        button2.textContent = "Queued";
+        button2.textContent = ft(ctx, "Queued");
         button2.classList.remove("is-active");
         button2.classList.add("is-duplicate");
         ctx.diagnostics.info("Media skipped \u2014 already queued in Aria2 history", { url: target.url });
@@ -10222,23 +11018,23 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       if (ctx.settings.media.downloadHistory) {
         await history.record(dedupeKey);
       }
-      button2.textContent = result.degraded ? "Opened" : successLabel(media);
+      button2.textContent = ft(ctx, result.degraded ? "Opened" : successLabel(media));
       button2.classList.remove("is-active");
       button2.classList.add("is-success");
       if (result.degraded) {
-        button2.title = "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.";
+        button2.title = ft(ctx, "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.");
       }
       ctx.diagnostics.info("Media saved", { filename, kind: media.kind, degraded: result.degraded === true });
       void ctx.auditLog.record("media.download", { filename, kind: media.kind, via: result.via });
     } catch (error) {
       const needsPermission = error instanceof DownloadPermissionError;
       queue.mark(job.id, "failed", String(error?.message ?? error));
-      button2.textContent = needsPermission ? "Allow" : "Retry";
+      button2.textContent = ft(ctx, needsPermission ? "Allow" : "Retry");
       button2.classList.remove("is-active");
       button2.classList.add("is-error");
       button2.disabled = false;
       if (needsPermission) {
-        button2.title = "Aviary needs the browser download permission. Opening its options page.";
+        button2.title = ft(ctx, "Aviary needs the browser download permission. Opening its options page.");
         if (!permissionSurfaceOpened) {
           permissionSurfaceOpened = true;
           void requestDownloadPermissionSurface();
@@ -10255,6 +11051,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   function resolveTarget(media) {
     if (media.kind === "video" && media.video?.preferred) {
       const url = media.video.preferred.url;
+      if (!isSaveableVariantUrl(url)) {
+        return null;
+      }
       return { url, mediaId: mediaIdFromVideo(url), ext: extensionForVideo(media.video.preferred.type, url) };
     }
     if (media.image) {
@@ -10317,12 +11116,22 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   transition: opacity 120ms ease, border-color 120ms ease;
 }
 
-[data-testid="tweetPhoto"] {
+/* Every container that can host a button needs to be the positioning context, or the
+   absolutely-positioned button anchors to whatever ancestor X happens to have positioned. */
+[data-testid="tweetPhoto"],
+[data-testid="videoPlayer"],
+[data-testid="videoComponent"] {
   position: relative;
 }
 
+/* The reveal list has to name every host container. It covered tweetPhoto only, so the button
+   on a video player rested at opacity 0 with no rule that could ever show it. */
 [data-testid="tweetPhoto"]:hover [${BUTTON_ATTR2}],
 [data-testid="tweetPhoto"]:focus-within [${BUTTON_ATTR2}],
+[data-testid="videoPlayer"]:hover [${BUTTON_ATTR2}],
+[data-testid="videoPlayer"]:focus-within [${BUTTON_ATTR2}],
+[data-testid="videoComponent"]:hover [${BUTTON_ATTR2}],
+[data-testid="videoComponent"]:focus-within [${BUTTON_ATTR2}],
 [${BUTTON_ATTR2}]:focus-visible,
 [${BUTTON_ATTR2}].is-active,
 [${BUTTON_ATTR2}].is-success,
@@ -10356,7 +11165,10 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   async function runMediaBatch(ctx, options = {}) {
     const queue2 = getMediaQueue();
     const history2 = getMediaHistory();
-    const downloader2 = createDownloader({ integrations: ctx.settings.integrations });
+    const downloader2 = createDownloader({
+      integrations: ctx.settings.integrations,
+      onWarn: (message, details) => ctx.diagnostics.warn(message, details)
+    });
     const concurrency = Math.max(1, Math.min(ctx.settings.jobs.concurrentDownloads, 6));
     const max = Math.max(1, options.maxItems ?? 200);
     const filterKind = options.filterKind ?? "all";
@@ -10473,6 +11285,9 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   function resolveTarget2(media) {
     if (media.kind === "video" && media.video?.preferred) {
       const url = media.video.preferred.url;
+      if (!isSaveableVariantUrl(url)) {
+        return null;
+      }
       return { url, mediaId: mediaIdFromVideo2(url), ext: extensionForVideo2(media.video.preferred.type, url) };
     }
     if (media.image) {
@@ -10563,8 +11378,27 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     return new Set(tokenize(haystack));
   }
   function tokenize(value) {
-    return value.toLowerCase().split(/[^a-z0-9_@]+/i).map((token) => token.replace(/^@/, "")).filter((token) => token.length >= 2 && token.length <= 40);
+    const normalized = value.normalize("NFC").toLowerCase();
+    const words = normalized.split(/[^\p{L}\p{N}_@]+/u).map((token) => token.replace(/^@/, "")).filter((token) => token.length > 0 && token.length <= 40);
+    const tokens = [];
+    for (const word of words) {
+      if (UNSPACED_SCRIPT.test(word)) {
+        if (word.length === 1) {
+          tokens.push(word);
+          continue;
+        }
+        for (let i = 0; i < word.length - 1; i++) {
+          tokens.push(word.slice(i, i + 2));
+        }
+        continue;
+      }
+      if (word.length >= 2) {
+        tokens.push(word);
+      }
+    }
+    return tokens;
   }
+  var UNSPACED_SCRIPT = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
 
   // src/features/library/reports.ts
   function buildMarkdownReport(input) {
@@ -10888,7 +11722,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
     return { notes: sanitized, updatedAt: stored?.updatedAt ?? null };
   }
-  function decorate(_ctx, root) {
+  function decorate(ctx, root) {
     if (!cache) return;
     const articles = root instanceof Element && root.matches('article[data-testid="tweet"]') ? [root] : Array.from(root.querySelectorAll('article[data-testid="tweet"]'));
     for (const article of articles) {
@@ -10910,10 +11744,10 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       const badge = document.createElement("span");
       badge.setAttribute(BADGE_ATTR, "1");
       badge.className = "av-note-badge";
-      badge.textContent = "Note";
+      badge.textContent = ft(ctx, "Note");
       badge.title = note;
       badge.setAttribute("role", "note");
-      badge.setAttribute("aria-label", `Note for @${handle}: ${note}`);
+      badge.setAttribute("aria-label", `${ft(ctx, "Note")} @${handle}: ${note}`);
       userName.append(badge);
       article.setAttribute(ARTICLE_ATTR, "1");
     }
@@ -10954,7 +11788,10 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   border-radius: 6px;
   background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 18%, transparent);
   color: var(--av-text, rgb(239, 243, 244));
-  font: 700 10px/1.2 inherit;
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 1.2;
+  font-family: inherit;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -11124,7 +11961,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           const report = parseSettingsImport(payload, ctx.settings);
           if (report.applied) {
             Object.assign(ctx.settings, report.settings);
-            await ctx.storage.set(SETTINGS_KEY, normalizeSettings(ctx.settings));
+            await ctx.saveSettings();
             ctx.requestApply();
             void ctx.auditLog.record("settings.import", {
               warnings: report.warnings.length,
@@ -11226,7 +12063,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         },
         async importArchive(file) {
           const buffer = new Uint8Array(await file.arrayBuffer());
-          const result = importOfficialArchive(buffer, "archive");
+          const result = await importOfficialArchive(buffer, "archive");
           if (result.records.length > 0) {
             const store3 = getCheckpointStore();
             if (store3) {
@@ -11269,9 +12106,9 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           const changes = describePresetDelta(ctx.settings, preset);
           const next = applyPreset(ctx.settings, preset);
           replaceSettings(ctx.settings, next);
-          await ctx.storage.set(SETTINGS_KEY, normalizeSettings(ctx.settings));
+          await ctx.saveSettings();
           ctx.requestApply();
-          void ctx.auditLog.record("settings.import", { preset: preset.id, changes: changes.length });
+          void ctx.auditLog.record("preset.apply", { preset: preset.id, changes: changes.length });
           return { applied: changes.length > 0, changes };
         },
         listLocales() {
@@ -11283,7 +12120,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         },
         async setLocale(code) {
           ctx.settings.i18n.locale = code;
-          await ctx.storage.set(SETTINGS_KEY, normalizeSettings(ctx.settings));
+          await ctx.saveSettings();
           ctx.requestApply();
         },
         getCleanupQueueSize() {
@@ -11305,8 +12142,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           const candidates = preview.candidates;
           const protectedCount = candidates.filter((candidate) => candidate.protected).length;
           const added = await cleanupQueue?.enqueue(candidates) ?? 0;
-          void ctx.auditLog.record("settings.export", {
-            cleanupEnqueued: added,
+          void ctx.auditLog.record("cleanup.enqueue", {
+            enqueued: added,
             protected: protectedCount
           });
           return { added, protected: protectedCount };
@@ -11335,8 +12172,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
             }
           }
           const result = await crosspost(ctx.settings.integrations, request);
-          void ctx.auditLog.record(result.ok ? "export.complete" : "export.start", {
-            kind: "crosspost",
+          void ctx.auditLog.record("crosspost", {
             target,
             ok: result.ok,
             asThread: options.asThread,
@@ -11372,7 +12208,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
             gid
           );
           if (result.ok) {
-            void ctx.auditLog.record("export.complete", { kind: "aria2-cancel", gid });
+            void ctx.auditLog.record("aria2.cancel", { gid });
             return { ok: true };
           }
           return { ok: false, ...result.error ? { error: result.error } : {} };
@@ -11392,11 +12228,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
             ctx.settings.integrations.semanticSearch,
             records
           );
-          void ctx.auditLog.record("export.complete", {
-            kind: "semantic-index",
+          void ctx.auditLog.record("semantic.index", {
             added: result.added,
             skipped: result.skipped,
-            errors: result.errors
+            errors: result.errors,
+            dropped: result.dropped
           });
           return { ...result, total: semanticIndex.size() };
         },
@@ -11418,21 +12254,12 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           await semanticIndex?.clear();
         },
         async pingAria2() {
-          const result = await addUriToAria2(
-            {
-              endpoint: ctx.settings.integrations.aria2.endpoint,
-              secret: ctx.settings.integrations.aria2.secret
-            },
-            { url: "https://example.invalid/aviary-ping", filename: "ping.txt" }
-          );
+          const result = await pingAria2Version({
+            endpoint: ctx.settings.integrations.aria2.endpoint,
+            secret: ctx.settings.integrations.aria2.secret
+          });
           if (result.ok) return { ok: true };
-          if (result.error && /HTTP/.test(result.error)) {
-            return { ok: false, error: result.error };
-          }
-          if (result.error && /Aria2 endpoint/.test(result.error)) {
-            return { ok: false, error: result.error };
-          }
-          return { ok: true };
+          return { ok: false, ...result.error ? { error: result.error } : {} };
         },
         getIntegrationStatus() {
           const integrations = ctx.settings.integrations;
@@ -11907,6 +12734,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   var RESULT_ATTR = "data-av-filter-result";
   var generation = 0;
   var compiled;
+  var compiledSignature = "";
   var filterEngineFeature = {
     id: "filtering.engine",
     title: "Filter engine",
@@ -11936,6 +12764,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     },
     destroy(ctx) {
       compiled = void 0;
+      compiledSignature = "";
       generation = 0;
       document.getElementById(STYLE_ID5)?.remove();
       document.documentElement.classList.remove("av-filter-enabled");
@@ -11962,6 +12791,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     return surfaces.includes(ctx.route.surface);
   }
   function refreshCompiled(ctx) {
+    const signature = filterSignature(ctx);
+    if (compiled && signature === compiledSignature) {
+      return;
+    }
+    compiledSignature = signature;
     generation += 1;
     compiled = compileFilters({
       keywords: ctx.settings.filter.keywordRules,
@@ -11971,6 +12805,17 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       media: ctx.settings.filter.mediaTypes,
       generation
     });
+  }
+  function filterSignature(ctx) {
+    const filter = ctx.settings.filter;
+    return JSON.stringify([
+      filter.keywordRules,
+      filter.regexRules,
+      filter.whitelist,
+      filter.premiumRule,
+      filter.mediaTypes,
+      filter.enabled
+    ]);
   }
   function scanRoot(root, ctx) {
     if (!compiled || !ctx.settings.filter.enabled || !surfaceMatches2(ctx)) {
@@ -12348,6 +13193,119 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
     return { ok: true, text };
   }
 
+  // src/features/core/feature-toast.ts
+  var TOAST_HOST_ID2 = "av-feature-toast";
+  var DEFAULT_TIMEOUT_MS = 4e3;
+  var dismissTimer;
+  function showFeatureToast(message, options = {}) {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const shadow = ensureHost();
+    const host = document.getElementById(TOAST_HOST_ID2);
+    if (host && options.ctx) {
+      host.dataset.avMotion = prefersReducedMotion2(options.ctx) ? "reduce" : "full";
+    }
+    const card = shadow.querySelector(".av-ftoast");
+    const text = shadow.querySelector(".av-ftoast-text");
+    if (!(card instanceof HTMLElement) || !(text instanceof HTMLElement)) {
+      return;
+    }
+    text.textContent = message;
+    card.dataset.tone = options.tone ?? "info";
+    card.classList.add("is-open");
+    if (dismissTimer !== void 0) {
+      clearTimeout(dismissTimer);
+    }
+    dismissTimer = setTimeout(() => {
+      card.classList.remove("is-open");
+      dismissTimer = void 0;
+    }, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  }
+  function removeFeatureToast() {
+    if (dismissTimer !== void 0) {
+      clearTimeout(dismissTimer);
+      dismissTimer = void 0;
+    }
+    document.getElementById(TOAST_HOST_ID2)?.remove();
+  }
+  function prefersReducedMotion2(ctx) {
+    if (ctx.settings.accessibility.reduceMotion === "always") return true;
+    if (ctx.settings.accessibility.reduceMotion === "never") return false;
+    return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  }
+  function ensureHost() {
+    const existing = document.getElementById(TOAST_HOST_ID2);
+    if (existing?.shadowRoot) {
+      return existing.shadowRoot;
+    }
+    const host = document.createElement("div");
+    host.id = TOAST_HOST_ID2;
+    host.dataset.avOwned = "true";
+    document.documentElement.append(host);
+    const shadow = host.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = TOAST_CSS2;
+    const card = document.createElement("div");
+    card.className = "av-ftoast";
+    card.setAttribute("role", "status");
+    card.setAttribute("aria-live", "polite");
+    const text = document.createElement("span");
+    text.className = "av-ftoast-text";
+    card.append(text);
+    shadow.append(style, card);
+    return shadow;
+  }
+  var TOAST_CSS2 = `
+.av-ftoast {
+  position: fixed;
+  right: 16px;
+  bottom: 132px;
+  z-index: 2147483000;
+  display: flex;
+  align-items: center;
+  max-width: 340px;
+  padding: 10px 12px;
+  border: 1px solid var(--av-border, rgb(47, 51, 54));
+  border-left: 3px solid var(--av-accent, rgb(29, 155, 240));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 97%, black);
+  color: var(--av-text, rgb(239, 243, 244));
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.35;
+  font-family: TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+/* Tone is carried by the accent rule AND the wording, never by colour alone. */
+.av-ftoast[data-tone="error"] {
+  border-left-color: rgb(220, 110, 110);
+}
+
+.av-ftoast.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .av-ftoast {
+    transition: none;
+    transform: none;
+  }
+}
+
+:host([data-av-motion="reduce"]) .av-ftoast {
+  transition: none;
+  transform: none;
+}
+`;
+
   // src/features/ai/command-menu.ts
   var STYLE_ID7 = "av-ai-command-menu";
   var TRIGGER_ATTR = "data-av-ai-trigger";
@@ -12407,6 +13365,8 @@ ${text}`
       }
     },
     destroy(ctx) {
+      closeOpenMenu();
+      removeFeatureToast();
       document.getElementById(STYLE_ID7)?.remove();
       for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR3}]`))) {
         article.removeAttribute(PROCESSED_ATTR3);
@@ -12439,8 +13399,8 @@ ${text}`
       trigger.type = "button";
       trigger.className = "av-ai-trigger";
       trigger.setAttribute(TRIGGER_ATTR, "1");
-      trigger.setAttribute("aria-label", "Open Aviary AI command menu");
-      trigger.title = "Aviary AI commands (offline prompt builder)";
+      trigger.setAttribute("aria-label", ft(ctx, "Open Aviary AI command menu"));
+      trigger.title = ft(ctx, "Aviary AI commands (offline prompt builder)");
       trigger.textContent = "AI";
       trigger.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -12451,10 +13411,21 @@ ${text}`
       article.setAttribute(PROCESSED_ATTR3, "1");
     }
   }
-  function openMenu(article, trigger, ctx) {
-    for (const previous of Array.from(document.querySelectorAll(".av-ai-menu"))) {
-      previous.remove();
+  var openMenuNode;
+  var openMenuDismiss;
+  function closeOpenMenu() {
+    if (openMenuDismiss) {
+      document.removeEventListener("click", openMenuDismiss, true);
+      openMenuDismiss = void 0;
     }
+    openMenuNode?.remove();
+    openMenuNode = void 0;
+    for (const stray of Array.from(document.querySelectorAll(".av-ai-menu"))) {
+      stray.remove();
+    }
+  }
+  function openMenu(article, trigger, ctx) {
+    closeOpenMenu();
     const menu = document.createElement("div");
     menu.className = "av-ai-menu";
     menu.setAttribute("role", "menu");
@@ -12465,15 +13436,15 @@ ${text}`
       item.type = "button";
       item.className = "av-ai-option";
       item.setAttribute("role", "menuitem");
-      item.title = command.hint;
-      item.textContent = aiEnabled ? `${command.label} (Run with provider)` : command.label;
+      item.title = ft(ctx, command.hint);
+      item.textContent = aiEnabled ? `${ft(ctx, command.label)} \u2014 ${ft(ctx, "Run with provider")}` : ft(ctx, command.label);
       item.addEventListener("click", async (event) => {
         event.stopPropagation();
         event.preventDefault();
         const prompt = command.promptTemplate(text);
         if (aiEnabled) {
           item.disabled = true;
-          item.textContent = `${command.label} \u2014 running\u2026`;
+          item.textContent = `${ft(ctx, command.label)} \u2014 ${ft(ctx, "running\u2026")}`;
           const result = await runAiPrompt(ctx.settings.integrations.ai, { prompt });
           if (result.ok && result.text) {
             try {
@@ -12487,45 +13458,63 @@ ${text}`
                 command: command.id,
                 provider: ctx.settings.integrations.ai.provider
               });
+              showFeatureToast(`${ft(ctx, command.label)}: ${ft(ctx, "result copied to the clipboard.")}`, { ctx });
             } catch (error) {
               ctx.diagnostics.warn("AI result clipboard failed", {
                 error: String(error?.message ?? error)
               });
+              showFeatureToast(ft(ctx, "The result could not be copied. Your browser blocked clipboard access."), {
+                tone: "error",
+                ctx
+              });
             }
           } else {
             ctx.diagnostics.warn("AI provider call failed", { error: result.error ?? "unknown" });
+            showFeatureToast(
+              `${ft(ctx, command.label)}: ${result.error ?? ft(ctx, "the provider did not respond")}. ${ft(ctx, "Check the key and model in Integrations.")}`,
+              { tone: "error", ctx }
+            );
           }
         } else {
           try {
             await copyToClipboard(prompt);
             ctx.diagnostics.info("AI prompt copied", { command: command.id, length: prompt.length });
             void ctx.auditLog.record("diagnostics.copy", { kind: "ai", command: command.id });
+            showFeatureToast(ft(ctx, "Prompt copied to the clipboard \u2014 paste it into your assistant."), { ctx });
           } catch (error) {
             ctx.diagnostics.warn("AI prompt clipboard failed", {
               error: String(error?.message ?? error)
             });
+            showFeatureToast(ft(ctx, "The prompt could not be copied. Your browser blocked clipboard access."), {
+              tone: "error",
+              ctx
+            });
           }
         }
-        menu.remove();
+        closeOpenMenu();
       });
       menu.append(item);
     }
-    positionMenu(menu, trigger);
     document.body.append(menu);
+    positionMenu(menu, trigger);
+    openMenuNode = menu;
     const dismiss = (event) => {
       if (!menu.contains(event.target) && event.target !== trigger) {
-        menu.remove();
-        document.removeEventListener("click", dismiss, true);
+        closeOpenMenu();
       }
     };
+    openMenuDismiss = dismiss;
     setTimeout(() => document.addEventListener("click", dismiss, true), 0);
   }
   function positionMenu(menu, trigger) {
     const rect = trigger.getBoundingClientRect();
     menu.style.position = "fixed";
     menu.style.left = `${Math.max(12, rect.left)}px`;
-    menu.style.top = `${Math.max(12, rect.bottom + 6)}px`;
     menu.style.maxWidth = "260px";
+    const viewportHeight = globalThis.innerHeight || 0;
+    const height = menu.getBoundingClientRect().height;
+    const below = rect.bottom + 6;
+    menu.style.top = viewportHeight > 0 && below + height > viewportHeight - 12 ? `${Math.max(12, rect.top - height - 6)}px` : `${Math.max(12, below)}px`;
   }
   async function copyToClipboard(text) {
     const clipboard = globalThis.navigator?.clipboard;
@@ -12552,7 +13541,10 @@ ${text}`
   border-radius: 6px;
   background: transparent;
   color: var(--av-muted, rgb(113, 118, 123));
-  font: 700 10px/1.2 inherit;
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 1.2;
+  font-family: inherit;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
@@ -12585,7 +13577,10 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   border-radius: 6px;
   background: transparent;
   color: var(--av-text, rgb(239, 243, 244));
-  font: 600 12px/1.3 inherit;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.3;
+  font-family: inherit;
   text-align: start;
   cursor: pointer;
 }
@@ -12622,6 +13617,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       }
     },
     destroy(ctx) {
+      removeFeatureToast();
       document.getElementById(STYLE_ID8)?.remove();
       for (const toolbar of Array.from(document.querySelectorAll(`[${TOOLBAR_ATTR}]`))) {
         toolbar.removeAttribute(TOOLBAR_ATTR);
@@ -12645,8 +13641,8 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       button2.type = "button";
       button2.className = "av-snippet-trigger";
       button2.setAttribute(PALETTE_ATTR, "trigger");
-      button2.textContent = "Snippets";
-      button2.setAttribute("aria-label", "Open Aviary composer snippets");
+      button2.textContent = ft(ctx, "Snippets");
+      button2.setAttribute("aria-label", ft(ctx, "Open Aviary composer snippets"));
       button2.addEventListener("click", (event) => {
         event.stopPropagation();
         event.preventDefault();
@@ -12668,7 +13664,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     if (snippets.length === 0) {
       const empty = document.createElement("div");
       empty.className = "av-snippet-empty";
-      empty.textContent = "No snippets yet. Add some in the Control Center \u2192 Library.";
+      empty.textContent = ft(ctx, "No snippets yet. Add some in the Control Center \u2192 Library.");
       popover.append(empty);
     } else {
       for (const snippet2 of snippets) {
@@ -12683,9 +13679,13 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
           event.preventDefault();
           if (insertSnippet(snippet2)) {
             ctx.diagnostics.info("Snippet inserted", { length: snippet2.length });
-            void ctx.auditLog.record("settings.import", { kind: "snippet", length: snippet2.length });
+            void ctx.auditLog.record("snippet.insert", { length: snippet2.length });
           } else {
             ctx.diagnostics.warn("Snippet insert failed \u2014 composer not focused");
+            showFeatureToast(ft(ctx, "Click into the composer first, then pick a snippet."), {
+              tone: "error",
+              ctx
+            });
           }
           popover.remove();
         });
@@ -12737,7 +13737,10 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   border-radius: 6px;
   background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 14%, transparent);
   color: var(--av-text, rgb(239, 243, 244));
-  font: 700 11px/1.2 inherit;
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 1.2;
+  font-family: inherit;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
@@ -12760,7 +13763,10 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   border-radius: 6px;
   background: transparent;
   color: var(--av-text, rgb(239, 243, 244));
-  font: 600 12px/1.3 inherit;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.3;
+  font-family: inherit;
   text-align: start;
   cursor: pointer;
 }
@@ -14001,7 +15007,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           }
           const raw = globalThis.localStorage?.getItem(storageKey);
           return raw === null || raw === void 0 ? fallback : JSON.parse(raw);
-        } catch {
+        } catch (error) {
+          onWriteError?.(storageKey, error, "read");
           return fallback;
         }
       },
@@ -14022,7 +15029,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           }
           throw new Error(`No storage backend is available for ${storageKey}`);
         } catch (error) {
-          onWriteError?.(storageKey, error);
+          onWriteError?.(storageKey, error, "write");
           throw error;
         }
       },
@@ -14096,8 +15103,11 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     const storage = createStorageGateway("aviary");
     const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
     const diagnostics = new Diagnostics();
-    setStorageErrorSink((key, error) => {
-      diagnostics.error(`Storage write failed to save ${key}`, errorDetails6(error));
+    setStorageErrorSink((key, error, op) => {
+      diagnostics.error(
+        op === "read" ? `Storage could not read ${key}` : `Storage write failed to save ${key}`,
+        errorDetails6(error)
+      );
     });
     setLocalOnlyPolicy(() => settings.privacy.localOnly);
     const limiter = settings.jobs.rateLimitMode === "conservative" ? new TokenBucket(4, 1) : new TokenBucket(8, 4);
@@ -14141,7 +15151,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       diagnostics,
       auditLog,
       async saveSettings() {
-        await storage.set(SETTINGS_KEY, cloneSettings(settings));
+        await storage.set(SETTINGS_KEY, normalizeSettings(cloneSettings(settings)));
         diagnostics.info("Settings saved", { key: SETTINGS_KEY });
       },
       requestApply() {
