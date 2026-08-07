@@ -235,7 +235,45 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     status.textContent = message;
   };
 
+  /**
+   * A row's identity across rebuilds: its section title, its label, and its position among the
+   * focusable controls of that row. Every row is rebuilt from the same settings object in the
+   * same order, so this survives a render even though the nodes do not.
+   */
+  const focusIdentity = (node: Element | null): string | null => {
+    if (!node || !body.contains(node)) {
+      return null;
+    }
+    const row = node.closest(".av-row");
+    const sectionTitle = node.closest(".av-section")?.querySelector(".av-section-title")?.textContent ?? "";
+    const label = row?.querySelector(".av-row-label")?.textContent ?? "";
+    const scope: ParentNode = row ?? body;
+    const index = Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).indexOf(
+      node as HTMLElement
+    );
+    if (label) {
+      return `row|${sectionTitle}|${label}|${node.tagName}|${index}`;
+    }
+    return `path|${positionalPath(body, node)}`;
+  };
+
+  const findByIdentity = (identity: string): HTMLElement | null => {
+    for (const candidate of Array.from(body.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))) {
+      if (focusIdentity(candidate) === identity) {
+        return candidate;
+      }
+    }
+    return null;
+  };
+
   const render = (): void => {
+    // Every render replaces every row, so the caret has to be put back deliberately —
+    // otherwise saving a setting drops focus to the document.
+    const active = shadow.activeElement as HTMLElement | null;
+    const identity = focusIdentity(active);
+    const selection = captureSelection(active);
+    const scrollTop = body.scrollTop;
+
     // Mirrored onto the host because shadow content cannot see the page-level motion class.
     host.dataset.avMotion = prefersReducedMotion(options.settings) ? "reduce" : "full";
     body.replaceChildren(
@@ -314,6 +352,15 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         readonlyRow("Selector health", selectorSummary())
       ])
     );
+
+    body.scrollTop = scrollTop;
+    if (identity) {
+      const target = findByIdentity(identity);
+      if (target) {
+        target.focus({ preventScroll: true });
+        restoreSelection(target, selection);
+      }
+    }
   };
 
   const presetRows = (): HTMLElement[] => {
@@ -1792,6 +1839,52 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       render();
     }
   };
+}
+
+const FOCUSABLE_SELECTOR = "button, input, select, textarea, a[href], [tabindex]:not([tabindex='-1'])";
+
+interface CapturedSelection {
+  start: number | null;
+  end: number | null;
+}
+
+/** Text fields keep their caret across a rebuild; everything else only needs focus back. */
+function captureSelection(node: Element | null): CapturedSelection | null {
+  if (!isTextField(node)) {
+    return null;
+  }
+  return { start: node.selectionStart, end: node.selectionEnd };
+}
+
+function restoreSelection(node: Element, selection: CapturedSelection | null): void {
+  if (!selection || !isTextField(node) || selection.start === null || selection.end === null) {
+    return;
+  }
+  try {
+    node.setSelectionRange(selection.start, selection.end);
+  } catch {
+    // Input types such as email/number reject setSelectionRange; focus alone is enough.
+  }
+}
+
+function isTextField(node: Element | null): node is HTMLInputElement | HTMLTextAreaElement {
+  if (node instanceof HTMLTextAreaElement) {
+    return true;
+  }
+  return node instanceof HTMLInputElement && node.type !== "checkbox" && node.type !== "radio";
+}
+
+/** Fallback identity for controls that sit outside a labelled row. */
+function positionalPath(root: Element, node: Element): string {
+  const steps: number[] = [];
+  let current: Element | null = node;
+  while (current && current !== root) {
+    const parent: Element | null = current.parentElement;
+    if (!parent) break;
+    steps.unshift(Array.prototype.indexOf.call(parent.children, current));
+    current = parent;
+  }
+  return steps.join(".");
 }
 
 function prefersReducedMotion(settings: AviarySettings): boolean {

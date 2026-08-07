@@ -15,6 +15,11 @@ Drains the audit findings left open by the v1.7.0 pass.
 
 ### Fixed
 
+- **Saving a setting no longer throws focus away.** `save()` rebuilds every row, so focus landed
+  back on the document each time. Rows now carry an identity derived from their section title and
+  label rather than a node reference, and a render restores focus, the text caret and the panel's
+  scroll position. Verified in Chromium: before the fix `shadow.activeElement` was `null` after a
+  toggle; after it, focus is back on the same (rebuilt) control.
 - **Media downloads no longer report success when nothing was saved.** In the MV3 build without
   the `downloads` permission the background returned an error, the downloader fell back to an
   anchor click, and the browser ignored `download` for cross-origin `pbs.twimg.com` URLs and

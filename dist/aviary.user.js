@@ -751,7 +751,35 @@ html.av-reduce-motion *::after {
     const setStatus = (message) => {
       status.textContent = message;
     };
+    const focusIdentity = (node) => {
+      if (!node || !body.contains(node)) {
+        return null;
+      }
+      const row = node.closest(".av-row");
+      const sectionTitle = node.closest(".av-section")?.querySelector(".av-section-title")?.textContent ?? "";
+      const label = row?.querySelector(".av-row-label")?.textContent ?? "";
+      const scope = row ?? body;
+      const index = Array.from(scope.querySelectorAll(FOCUSABLE_SELECTOR)).indexOf(
+        node
+      );
+      if (label) {
+        return `row|${sectionTitle}|${label}|${node.tagName}|${index}`;
+      }
+      return `path|${positionalPath(body, node)}`;
+    };
+    const findByIdentity = (identity) => {
+      for (const candidate of Array.from(body.querySelectorAll(FOCUSABLE_SELECTOR))) {
+        if (focusIdentity(candidate) === identity) {
+          return candidate;
+        }
+      }
+      return null;
+    };
     const render = () => {
+      const active = shadow.activeElement;
+      const identity = focusIdentity(active);
+      const selection = captureSelection(active);
+      const scrollTop = body.scrollTop;
       host.dataset.avMotion = prefersReducedMotion(options.settings) ? "reduce" : "full";
       body.replaceChildren(
         section("Presets", presetRows()),
@@ -829,6 +857,14 @@ html.av-reduce-motion *::after {
           readonlyRow("Selector health", selectorSummary())
         ])
       );
+      body.scrollTop = scrollTop;
+      if (identity) {
+        const target = findByIdentity(identity);
+        if (target) {
+          target.focus({ preventScroll: true });
+          restoreSelection(target, selection);
+        }
+      }
     };
     const presetRows = () => {
       const rows = [];
@@ -2176,6 +2212,39 @@ html.av-reduce-motion *::after {
         render();
       }
     };
+  }
+  var FOCUSABLE_SELECTOR = "button, input, select, textarea, a[href], [tabindex]:not([tabindex='-1'])";
+  function captureSelection(node) {
+    if (!isTextField(node)) {
+      return null;
+    }
+    return { start: node.selectionStart, end: node.selectionEnd };
+  }
+  function restoreSelection(node, selection) {
+    if (!selection || !isTextField(node) || selection.start === null || selection.end === null) {
+      return;
+    }
+    try {
+      node.setSelectionRange(selection.start, selection.end);
+    } catch {
+    }
+  }
+  function isTextField(node) {
+    if (node instanceof HTMLTextAreaElement) {
+      return true;
+    }
+    return node instanceof HTMLInputElement && node.type !== "checkbox" && node.type !== "radio";
+  }
+  function positionalPath(root, node) {
+    const steps = [];
+    let current = node;
+    while (current && current !== root) {
+      const parent = current.parentElement;
+      if (!parent) break;
+      steps.unshift(Array.prototype.indexOf.call(parent.children, current));
+      current = parent;
+    }
+    return steps.join(".");
   }
   function prefersReducedMotion(settings) {
     if (settings.accessibility.reduceMotion === "always") return true;

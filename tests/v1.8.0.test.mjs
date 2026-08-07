@@ -123,6 +123,24 @@ test("the build ships the options page into both extension targets", async () =>
   assert.match(preflight, /options\.html contains inline script/);
 });
 
+test("a Control Center render restores focus, caret and scroll", async () => {
+  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+
+  // The bug: save() -> render() -> body.replaceChildren() dropped focus to the document.
+  const render = source.slice(source.indexOf("const render = ("), source.indexOf("const presetRows"));
+  assert.match(render, /const identity = focusIdentity\(active\)/);
+  assert.match(render, /const scrollTop = body\.scrollTop/);
+  assert.match(render, /body\.scrollTop = scrollTop/);
+  assert.match(render, /target\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(render, /restoreSelection\(target, selection\)/);
+
+  // Identity must survive a rebuild, so it cannot be a node reference.
+  assert.match(source, /const focusIdentity = \(node: Element \| null\): string \| null/);
+  assert.match(source, /`row\|\$\{sectionTitle\}\|\$\{label\}\|\$\{node\.tagName\}\|\$\{index\}`/);
+  assert.match(source, /function positionalPath\(/, "controls outside a labelled row need a fallback");
+  assert.match(source, /setSelectionRange/);
+});
+
 async function importBundledModule(relativePath) {
   const temp = await mkdtemp(path.join(tmpdir(), "aviary-v180-"));
   const outfile = path.join(temp, "module.mjs");

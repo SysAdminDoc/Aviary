@@ -960,12 +960,6 @@ in CHANGELOG.md; these are the ones left open, with the reason each was not take
   no-hotkeys rule.
   Where: src/ui/control-center.ts, tools/preflight.mjs
 
-- [ ] P2 — Focus is lost after any settings save
-  Why: `save()` re-renders the whole panel, so focus returns to the document. Page churn no
-  longer triggers this, but saving still does. Needs stable row identity and focus
-  restoration across renders.
-  Where: src/ui/control-center.ts
-
 - [ ] P3 — Storage writes fail silently when the backend is full
   Why: MediaHistory, AuditLog and the hidden-post store swallow persistence errors, so a full
   localStorage quota degrades to "changes stop sticking" with no signal. Surfacing it needs a

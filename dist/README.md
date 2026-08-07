@@ -80,7 +80,9 @@ The Control Center "Media" section exposes:
 - Duplicate history toggle and a "Clear download history" action.
 - Live status readout (running / completed / duplicate / failed) and the size of the dedup index.
 
-Downloads prefer `GM_download` in userscript managers, fall back to the extension service worker (`chrome.downloads` with `conflictAction: uniquify`), and finally use an anchor tag when no privileged downloader is available. In the MV3 build the `downloads` permission is declared optional but is not yet requested anywhere, so that fallback is what runs today; for cross-origin media the browser opens the file in a tab instead of saving it. The userscript build is unaffected. Tracked in ROADMAP.md.
+Downloads prefer `GM_download` in userscript managers, fall back to the extension service worker (`chrome.downloads` with `conflictAction: uniquify`), and finally use an anchor tag when no privileged downloader is available.
+
+In the MV3 build `downloads` is an optional permission. Until it is granted the service worker answers with `downloads-permission-missing`, the button reads **Allow** instead of claiming a save, and Aviary opens its options page once so the permission can be granted with a real user gesture. The options page (toolbar icon, or Extensions → Aviary → Options) shows the live grant state for `downloads` and for the `pbs.twimg.com` / `video.twimg.com` media hosts, and can revoke either. On the rare path where the anchor fallback still runs for a cross-origin URL, the button reads **Opened**, not Saved. The userscript build is unaffected.
 
 Tweets with embedded video or GIF players now also expose a Video / GIF button. Aviary scans `<video>` and `<source>` elements inside `[data-testid="videoPlayer"]` / `videoComponent` containers and picks the highest-bitrate variant available in the DOM. When `tweet_video/` URLs or loop+muted players are detected, the button labels itself "GIF" and the dedup history scopes by media kind.
 
