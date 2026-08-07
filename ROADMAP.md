@@ -942,12 +942,6 @@ Sourced from the userscript indexes (Greasy Fork itself edge-blocks automated cl
 listing was read through userscript.zone plus targeted search). Ranked by how often the capability
 shows up in high-install scripts against how much of it Aviary already has.
 
-- [ ] P2 — Force the Following timeline over For You
-  Why: repeatedly requested and not solved well by existing scripts. Route-aware: detect the
-  home tab strip and select Following on load. Needs care — X restores For You on some
-  navigations, so this has to reassert on route change rather than once at boot.
-  Where: src/features/layout/, src/platform/route.ts
-
 - [ ] P2 — Force highest-quality video playback
   Why: `Video Quality Fixer for X` is a distinct need from downloading — X adapts bitrate down
   and leaves it there. Aviary already parses variant lists in media/video-extract.ts for the

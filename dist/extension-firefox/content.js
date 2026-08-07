@@ -235,6 +235,8 @@ html.av-reduce-motion *::after {
       "Remove Grok drawer and composer buttons where detected.": "Elimina el panel de Grok y sus botones en el redactor cuando se detecten.",
       "Writer mode": "Modo escritura",
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "Mientras el foco est\xE1 en el redactor, aten\xFAa la barra lateral y la cronolog\xEDa detr\xE1s. Todo vuelve en cuanto haces clic fuera.",
+      "Open Following instead of For you": "Abrir Siguiendo en lugar de Para ti",
+      "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "Selecciona la segunda pesta\xF1a de inicio cada vez que llegas a la cronolog\xEDa. Si vuelves a Para ti, se queda ah\xED hasta que salgas de la p\xE1gina.",
       "Enable filters": "Activar filtros",
       "Master switch for keyword, regex, premium, and media filters.": "Interruptor general de los filtros de palabras clave, expresiones regulares, Premium y multimedia.",
       "Keyword rules": "Reglas de palabras clave",
@@ -451,6 +453,8 @@ html.av-reduce-motion *::after {
       "Grok preference saved": "Preferencia de Grok guardada",
       "Writer mode on": "Modo escritura activado",
       "Writer mode off": "Modo escritura desactivado",
+      "Following timeline on": "Cronolog\xEDa Siguiendo activada",
+      "Following timeline off": "Cronolog\xEDa Siguiendo desactivada",
       "Local-only mode on": "Modo solo local activado",
       "Local-only mode off": "Modo solo local desactivado",
       "Could not apply preset.": "No se pudo aplicar el ajuste predefinido.",
@@ -620,6 +624,8 @@ html.av-reduce-motion *::after {
       "Remove Grok drawer and composer buttons where detected.": "Remove o painel do Grok e os bot\xF5es no editor quando detectados.",
       "Writer mode": "Modo escrita",
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "Enquanto o foco est\xE1 no editor, esmaece a barra lateral e a linha do tempo atr\xE1s dele. Tudo volta assim que voc\xEA clica fora.",
+      "Open Following instead of For you": "Abrir A seguir em vez de Para ti",
+      "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "Seleciona o segundo separador do in\xEDcio sempre que chegas \xE0 cronologia. Se voltares a Para ti, fica assim at\xE9 sa\xEDres da p\xE1gina.",
       "Enable filters": "Ativar filtros",
       "Master switch for keyword, regex, premium, and media filters.": "Chave geral dos filtros de palavra-chave, regex, Premium e m\xEDdia.",
       "Keyword rules": "Regras de palavras-chave",
@@ -836,6 +842,8 @@ html.av-reduce-motion *::after {
       "Grok preference saved": "Prefer\xEAncia do Grok guardada",
       "Writer mode on": "Modo de escrita ativado",
       "Writer mode off": "Modo de escrita desativado",
+      "Following timeline on": "Cronologia A seguir ativada",
+      "Following timeline off": "Cronologia A seguir desativada",
       "Local-only mode on": "Modo apenas local ativado",
       "Local-only mode off": "Modo apenas local desativado",
       "Could not apply preset.": "N\xE3o foi poss\xEDvel aplicar a predefini\xE7\xE3o.",
@@ -1005,6 +1013,8 @@ html.av-reduce-motion *::after {
       "Remove Grok drawer and composer buttons where detected.": "Supprime le panneau Grok et ses boutons dans le r\xE9dacteur lorsqu'ils sont d\xE9tect\xE9s.",
       "Writer mode": "Mode \xE9criture",
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "Tant que le focus est dans le r\xE9dacteur, la colonne lat\xE9rale et le fil s'estompent. Tout revient d\xE8s que vous cliquez ailleurs.",
+      "Open Following instead of For you": "Ouvrir Abonnements plut\xF4t que Pour vous",
+      "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "S\xE9lectionne le deuxi\xE8me onglet d'accueil \xE0 chaque arriv\xE9e sur le fil. Si vous revenez \xE0 Pour vous, cela reste ainsi jusqu'\xE0 ce que vous quittiez la page.",
       "Enable filters": "Activer les filtres",
       "Master switch for keyword, regex, premium, and media filters.": "Interrupteur g\xE9n\xE9ral des filtres mots-cl\xE9s, regex, Premium et m\xE9dias.",
       "Keyword rules": "R\xE8gles de mots-cl\xE9s",
@@ -1221,6 +1231,8 @@ html.av-reduce-motion *::after {
       "Grok preference saved": "Pr\xE9f\xE9rence Grok enregistr\xE9e",
       "Writer mode on": "Mode \xE9criture activ\xE9",
       "Writer mode off": "Mode \xE9criture d\xE9sactiv\xE9",
+      "Following timeline on": "Fil Abonnements activ\xE9",
+      "Following timeline off": "Fil Abonnements d\xE9sactiv\xE9",
       "Local-only mode on": "Mode local uniquement activ\xE9",
       "Local-only mode off": "Mode local uniquement d\xE9sactiv\xE9",
       "Could not apply preset.": "Impossible d'appliquer le pr\xE9r\xE9glage.",
@@ -1390,6 +1402,8 @@ html.av-reduce-motion *::after {
       "Remove Grok drawer and composer buttons where detected.": "Entfernt die Grok-Leiste und ihre Schaltfl\xE4chen im Verfasser, sofern erkannt.",
       "Writer mode": "Schreibmodus",
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "Solange der Fokus im Verfasser liegt, treten Seitenleiste und Timeline dahinter zur\xFCck. Alles kehrt zur\xFCck, sobald Sie daneben klicken.",
+      "Open Following instead of For you": "Folge ich statt F\xFCr dich \xF6ffnen",
+      "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "W\xE4hlt bei jedem Aufruf der Timeline den zweiten Start-Tab. Wechselst du zur\xFCck zu F\xFCr dich, bleibt es dabei, bis du die Seite verl\xE4sst.",
       "Enable filters": "Filter aktivieren",
       "Master switch for keyword, regex, premium, and media filters.": "Hauptschalter f\xFCr Stichwort-, Regex-, Premium- und Medienfilter.",
       "Keyword rules": "Stichwortregeln",
@@ -1606,6 +1620,8 @@ html.av-reduce-motion *::after {
       "Grok preference saved": "Grok-Einstellung gespeichert",
       "Writer mode on": "Schreibmodus an",
       "Writer mode off": "Schreibmodus aus",
+      "Following timeline on": "Timeline \u201EFolge ich\u201C an",
+      "Following timeline off": "Timeline \u201EFolge ich\u201C aus",
       "Local-only mode on": "Nur-lokal-Modus an",
       "Local-only mode off": "Nur-lokal-Modus aus",
       "Could not apply preset.": "Voreinstellung konnte nicht angewendet werden.",
@@ -1775,6 +1791,8 @@ html.av-reduce-motion *::after {
       "Remove Grok drawer and composer buttons where detected.": "\u691C\u51FA\u3067\u304D\u305F Grok \u306E\u30C9\u30ED\u30EF\u30FC\u3068\u6295\u7A3F\u6B04\u306E\u30DC\u30BF\u30F3\u3092\u6D88\u3057\u307E\u3059\u3002",
       "Writer mode": "\u30E9\u30A4\u30BF\u30FC\u30E2\u30FC\u30C9",
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "\u6295\u7A3F\u6B04\u306B\u30D5\u30A9\u30FC\u30AB\u30B9\u304C\u3042\u308B\u9593\u3001\u30B5\u30A4\u30C9\u30D0\u30FC\u3068\u80CC\u5F8C\u306E\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u3092\u8584\u304F\u3057\u307E\u3059\u3002\u5225\u306E\u5834\u6240\u3092\u30AF\u30EA\u30C3\u30AF\u3059\u308C\u3070\u3059\u3050\u5143\u306B\u623B\u308A\u307E\u3059\u3002",
+      "Open Following instead of For you": "\u300C\u304A\u3059\u3059\u3081\u300D\u3067\u306F\u306A\u304F\u300C\u30D5\u30A9\u30ED\u30FC\u4E2D\u300D\u3092\u958B\u304F",
+      "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u3092\u958B\u304F\u305F\u3073\u306B\u30DB\u30FC\u30E0\u306E2\u756A\u76EE\u306E\u30BF\u30D6\u3092\u9078\u3073\u307E\u3059\u3002\u300C\u304A\u3059\u3059\u3081\u300D\u306B\u623B\u3057\u305F\u5834\u5408\u306F\u3001\u30DA\u30FC\u30B8\u3092\u96E2\u308C\u308B\u307E\u3067\u305D\u306E\u307E\u307E\u3067\u3059\u3002",
       "Enable filters": "\u30D5\u30A3\u30EB\u30BF\u3092\u6709\u52B9\u306B\u3059\u308B",
       "Master switch for keyword, regex, premium, and media filters.": "\u30AD\u30FC\u30EF\u30FC\u30C9\u30FB\u6B63\u898F\u8868\u73FE\u30FB\u30D7\u30EC\u30DF\u30A2\u30E0\u30FB\u30E1\u30C7\u30A3\u30A2\u306E\u5404\u30D5\u30A3\u30EB\u30BF\u3092\u307E\u3068\u3081\u3066\u5207\u308A\u66FF\u3048\u307E\u3059\u3002",
       "Keyword rules": "\u30AD\u30FC\u30EF\u30FC\u30C9\u306E\u30EB\u30FC\u30EB",
@@ -1991,6 +2009,8 @@ html.av-reduce-motion *::after {
       "Grok preference saved": "Grok \u306E\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Writer mode on": "\u30E9\u30A4\u30BF\u30FC\u30E2\u30FC\u30C9 \u30AA\u30F3",
       "Writer mode off": "\u30E9\u30A4\u30BF\u30FC\u30E2\u30FC\u30C9 \u30AA\u30D5",
+      "Following timeline on": "\u300C\u30D5\u30A9\u30ED\u30FC\u4E2D\u300D\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3 \u30AA\u30F3",
+      "Following timeline off": "\u300C\u30D5\u30A9\u30ED\u30FC\u4E2D\u300D\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3 \u30AA\u30D5",
       "Local-only mode on": "\u30ED\u30FC\u30AB\u30EB\u9650\u5B9A\u30E2\u30FC\u30C9 \u30AA\u30F3",
       "Local-only mode off": "\u30ED\u30FC\u30AB\u30EB\u9650\u5B9A\u30E2\u30FC\u30C9 \u30AA\u30D5",
       "Could not apply preset.": "\u30D7\u30EA\u30BB\u30C3\u30C8\u3092\u9069\u7528\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
@@ -2160,6 +2180,8 @@ html.av-reduce-motion *::after {
       "Remove Grok drawer and composer buttons where detected.": "\uAC10\uC9C0\uB41C Grok \uC11C\uB78D\uACFC \uC791\uC131\uCC3D \uBC84\uD2BC\uC744 \uC5C6\uC571\uB2C8\uB2E4.",
       "Writer mode": "\uC9D1\uD544 \uBAA8\uB4DC",
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "\uC791\uC131\uCC3D\uC5D0 \uD3EC\uCEE4\uC2A4\uAC00 \uC788\uB294 \uB3D9\uC548 \uC0AC\uC774\uB4DC\uBC14\uC640 \uB4A4\uCABD \uD0C0\uC784\uB77C\uC778\uC744 \uD750\uB9AC\uAC8C \uD569\uB2C8\uB2E4. \uB2E4\uB978 \uACF3\uC744 \uD074\uB9AD\uD558\uBA74 \uC989\uC2DC \uB3CC\uC544\uC635\uB2C8\uB2E4.",
+      "Open Following instead of For you": "'\uCD94\uCC9C' \uB300\uC2E0 '\uD314\uB85C\uC6B0 \uC911' \uC5F4\uAE30",
+      "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "\uD0C0\uC784\uB77C\uC778\uC5D0 \uB4E4\uC5B4\uC62C \uB54C\uB9C8\uB2E4 \uD648\uC758 \uB450 \uBC88\uC9F8 \uD0ED\uC744 \uC120\uD0DD\uD569\uB2C8\uB2E4. '\uCD94\uCC9C'\uC73C\uB85C \uB418\uB3CC\uB9AC\uBA74 \uD398\uC774\uC9C0\uB97C \uBC97\uC5B4\uB0A0 \uB54C\uAE4C\uC9C0 \uADF8\uB300\uB85C \uC720\uC9C0\uB429\uB2C8\uB2E4.",
       "Enable filters": "\uD544\uD130 \uC0AC\uC6A9",
       "Master switch for keyword, regex, premium, and media filters.": "\uD0A4\uC6CC\uB4DC\xB7\uC815\uADDC\uC2DD\xB7\uD504\uB9AC\uBBF8\uC5C4\xB7\uBBF8\uB514\uC5B4 \uD544\uD130\uB97C \uD55C\uAEBC\uBC88\uC5D0 \uCF1C\uACE0 \uB055\uB2C8\uB2E4.",
       "Keyword rules": "\uD0A4\uC6CC\uB4DC \uADDC\uCE59",
@@ -2376,6 +2398,8 @@ html.av-reduce-motion *::after {
       "Grok preference saved": "Grok \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Writer mode on": "\uC791\uC131 \uBAA8\uB4DC \uCF2C",
       "Writer mode off": "\uC791\uC131 \uBAA8\uB4DC \uB054",
+      "Following timeline on": "'\uD314\uB85C\uC6B0 \uC911' \uD0C0\uC784\uB77C\uC778 \uCF2C",
+      "Following timeline off": "'\uD314\uB85C\uC6B0 \uC911' \uD0C0\uC784\uB77C\uC778 \uB054",
       "Local-only mode on": "\uB85C\uCEEC \uC804\uC6A9 \uBAA8\uB4DC \uCF2C",
       "Local-only mode off": "\uB85C\uCEEC \uC804\uC6A9 \uBAA8\uB4DC \uB054",
       "Could not apply preset.": "\uD504\uB9AC\uC14B\uC744 \uC801\uC6A9\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
@@ -2545,6 +2569,8 @@ html.av-reduce-motion *::after {
       "Remove Grok drawer and composer buttons where detected.": "\u064A\u0632\u064A\u0644 \u0644\u0648\u062D\u0629 Grok \u0648\u0623\u0632\u0631\u0627\u0631\u0647 \u0641\u064A \u0645\u062D\u0631\u0631 \u0627\u0644\u0645\u0646\u0634\u0648\u0631 \u0639\u0646\u062F \u0627\u0643\u062A\u0634\u0627\u0641\u0647\u0627.",
       "Writer mode": "\u0648\u0636\u0639 \u0627\u0644\u0643\u062A\u0627\u0628\u0629",
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "\u0623\u062B\u0646\u0627\u0621 \u0627\u0644\u062A\u0631\u0643\u064A\u0632 \u0639\u0644\u0649 \u0645\u062D\u0631\u0631 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u060C \u064A\u062E\u0641\u062A \u0627\u0644\u0634\u0631\u064A\u0637 \u0627\u0644\u062C\u0627\u0646\u0628\u064A \u0648\u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \u062E\u0644\u0641\u0647. \u064A\u0639\u0648\u062F \u0643\u0644 \u0634\u064A\u0621 \u0628\u0645\u062C\u0631\u062F \u0627\u0644\u0646\u0642\u0631 \u062E\u0627\u0631\u062C\u0647.",
+      "Open Following instead of For you": "\u0641\u062A\u062D \xAB\u0627\u0644\u0645\u062A\u0627\u0628\u064E\u0639\u0648\u0646\xBB \u0628\u062F\u0644\u064B\u0627 \u0645\u0646 \xAB\u0644\u0643\xBB",
+      "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "\u064A\u062D\u062F\u062F \u0639\u0644\u0627\u0645\u0629 \u0627\u0644\u062A\u0628\u0648\u064A\u0628 \u0627\u0644\u062B\u0627\u0646\u064A\u0629 \u0641\u064A \u0627\u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629 \u0641\u064A \u0643\u0644 \u0645\u0631\u0629 \u062A\u0635\u0644 \u0641\u064A\u0647\u0627 \u0625\u0644\u0649 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A. \u0648\u0625\u0630\u0627 \u0639\u062F\u062A \u0625\u0644\u0649 \xAB\u0644\u0643\xBB \u0641\u0633\u064A\u0628\u0642\u0649 \u0643\u0630\u0644\u0643 \u062D\u062A\u0649 \u062A\u063A\u0627\u062F\u0631 \u0627\u0644\u0635\u0641\u062D\u0629.",
       "Enable filters": "\u062A\u0641\u0639\u064A\u0644 \u0627\u0644\u0641\u0644\u0627\u062A\u0631",
       "Master switch for keyword, regex, premium, and media filters.": "\u0645\u0641\u062A\u0627\u062D \u0631\u0626\u064A\u0633\u064A \u0644\u0641\u0644\u0627\u062A\u0631 \u0627\u0644\u0643\u0644\u0645\u0627\u062A \u0627\u0644\u0645\u0641\u062A\u0627\u062D\u064A\u0629 \u0648\u0627\u0644\u062A\u0639\u0628\u064A\u0631\u0627\u062A \u0627\u0644\u0646\u0645\u0637\u064A\u0629 \u0648\u0627\u0644\u062D\u0633\u0627\u0628\u0627\u062A \u0627\u0644\u0645\u0645\u064A\u0632\u0629 \u0648\u0627\u0644\u0648\u0633\u0627\u0626\u0637.",
       "Keyword rules": "\u0642\u0648\u0627\u0639\u062F \u0627\u0644\u0643\u0644\u0645\u0627\u062A \u0627\u0644\u0645\u0641\u062A\u0627\u062D\u064A\u0629",
@@ -2761,6 +2787,8 @@ html.av-reduce-motion *::after {
       "Grok preference saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 Grok",
       "Writer mode on": "\u0648\u0636\u0639 \u0627\u0644\u0643\u062A\u0627\u0628\u0629 \u0645\u0641\u0639\u0651\u0644",
       "Writer mode off": "\u0648\u0636\u0639 \u0627\u0644\u0643\u062A\u0627\u0628\u0629 \u0645\u0639\u0637\u0651\u0644",
+      "Following timeline on": "\u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \xAB\u0627\u0644\u0645\u062A\u0627\u0628\u064E\u0639\u0648\u0646\xBB \u0645\u0641\u0639\u0651\u0644",
+      "Following timeline off": "\u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \xAB\u0627\u0644\u0645\u062A\u0627\u0628\u064E\u0639\u0648\u0646\xBB \u0645\u0639\u0637\u0651\u0644",
       "Local-only mode on": "\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0645\u062D\u0644\u064A \u0641\u0642\u0637 \u0645\u0641\u0639\u0651\u0644",
       "Local-only mode off": "\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0645\u062D\u0644\u064A \u0641\u0642\u0637 \u0645\u0639\u0637\u0651\u0644",
       "Could not apply preset.": "\u062A\u0639\u0630\u0651\u0631 \u062A\u0637\u0628\u064A\u0642 \u0627\u0644\u0625\u0639\u062F\u0627\u062F \u0627\u0644\u062C\u0627\u0647\u0632.",
@@ -2930,6 +2958,8 @@ html.av-reduce-motion *::after {
       "Remove Grok drawer and composer buttons where detected.": "\u05DE\u05E1\u05D9\u05E8 \u05D0\u05EA \u05DE\u05D2\u05D9\u05E8\u05EA Grok \u05D5\u05D0\u05EA \u05DB\u05E4\u05EA\u05D5\u05E8\u05D9\u05D5 \u05D1\u05D7\u05DC\u05D5\u05DF \u05D4\u05DB\u05EA\u05D9\u05D1\u05D4, \u05D4\u05D9\u05DB\u05DF \u05E9\u05D6\u05D5\u05D4\u05D5.",
       "Writer mode": "\u05DE\u05E6\u05D1 \u05DB\u05EA\u05D9\u05D1\u05D4",
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "\u05DB\u05DC \u05E2\u05D5\u05D3 \u05D4\u05DE\u05D9\u05E7\u05D5\u05D3 \u05D1\u05D7\u05DC\u05D5\u05DF \u05D4\u05DB\u05EA\u05D9\u05D1\u05D4, \u05E1\u05E8\u05D2\u05DC \u05D4\u05E6\u05D3 \u05D5\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF \u05E9\u05DE\u05D0\u05D7\u05D5\u05E8\u05D9\u05D5 \u05DE\u05EA\u05E2\u05DE\u05E2\u05DE\u05D9\u05DD. \u05D4\u05DB\u05D5\u05DC \u05D7\u05D5\u05D6\u05E8 \u05D1\u05E8\u05D2\u05E2 \u05E9\u05DC\u05D5\u05D7\u05E6\u05D9\u05DD \u05D1\u05DE\u05E7\u05D5\u05DD \u05D0\u05D7\u05E8.",
+      "Open Following instead of For you": '\u05DC\u05E4\u05EA\u05D5\u05D7 \u05D0\u05EA "\u05E2\u05D5\u05E7\u05D1" \u05D1\u05DE\u05E7\u05D5\u05DD "\u05D1\u05E9\u05D1\u05D9\u05DC\u05DA"',
+      "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": '\u05D1\u05D5\u05D7\u05E8 \u05D0\u05EA \u05D4\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05D4\u05E9\u05E0\u05D9\u05D9\u05D4 \u05D1\u05D3\u05E3 \u05D4\u05D1\u05D9\u05EA \u05D1\u05DB\u05DC \u05DB\u05E0\u05D9\u05E1\u05D4 \u05DC\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF. \u05D0\u05DD \u05EA\u05D7\u05D6\u05D5\u05E8 \u05DC"\u05D1\u05E9\u05D1\u05D9\u05DC\u05DA", \u05D6\u05D4 \u05D9\u05D9\u05E9\u05D0\u05E8 \u05DB\u05DA \u05E2\u05D3 \u05E9\u05EA\u05E2\u05D6\u05D5\u05D1 \u05D0\u05EA \u05D4\u05D3\u05E3.',
       "Enable filters": "\u05D4\u05E4\u05E2\u05DC\u05EA \u05DE\u05E1\u05E0\u05E0\u05D9\u05DD",
       "Master switch for keyword, regex, premium, and media filters.": "\u05DE\u05EA\u05D2 \u05E8\u05D0\u05E9\u05D9 \u05DC\u05DE\u05E1\u05E0\u05E0\u05D9 \u05DE\u05D9\u05DC\u05D5\u05EA \u05DE\u05E4\u05EA\u05D7, \u05D1\u05D9\u05D8\u05D5\u05D9\u05D9\u05DD \u05E8\u05D2\u05D5\u05DC\u05E8\u05D9\u05D9\u05DD, \u05E4\u05E8\u05D9\u05DE\u05D9\u05D5\u05DD \u05D5\u05DE\u05D3\u05D9\u05D4.",
       "Keyword rules": "\u05DB\u05DC\u05DC\u05D9 \u05DE\u05D9\u05DC\u05D5\u05EA \u05DE\u05E4\u05EA\u05D7",
@@ -3146,6 +3176,8 @@ html.av-reduce-motion *::after {
       "Grok preference saved": "\u05D4\u05E2\u05D3\u05E4\u05EA Grok \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Writer mode on": "\u05DE\u05E6\u05D1 \u05DB\u05EA\u05D9\u05D1\u05D4 \u05E4\u05E2\u05D9\u05DC",
       "Writer mode off": "\u05DE\u05E6\u05D1 \u05DB\u05EA\u05D9\u05D1\u05D4 \u05DB\u05D1\u05D5\u05D9",
+      "Following timeline on": '\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF "\u05E2\u05D5\u05E7\u05D1" \u05E4\u05E2\u05D9\u05DC',
+      "Following timeline off": '\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF "\u05E2\u05D5\u05E7\u05D1" \u05DB\u05D1\u05D5\u05D9',
       "Local-only mode on": "\u05DE\u05E6\u05D1 \u05DE\u05E7\u05D5\u05DE\u05D9 \u05D1\u05DC\u05D1\u05D3 \u05E4\u05E2\u05D9\u05DC",
       "Local-only mode off": "\u05DE\u05E6\u05D1 \u05DE\u05E7\u05D5\u05DE\u05D9 \u05D1\u05DC\u05D1\u05D3 \u05DB\u05D1\u05D5\u05D9",
       "Could not apply preset.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05D4\u05D7\u05D9\u05DC \u05D0\u05EA \u05D4\u05E2\u05E8\u05DB\u05D4.",
@@ -3339,7 +3371,8 @@ html.av-reduce-motion *::after {
       hideRightSidebar: true,
       hideTrends: true,
       hideGrok: true,
-      writerMode: false
+      writerMode: false,
+      forceFollowing: false
     },
     filter: {
       enabled: false,
@@ -3461,7 +3494,8 @@ html.av-reduce-motion *::after {
         hideRightSidebar: booleanValue(layout.hideRightSidebar, DEFAULT_SETTINGS.layout.hideRightSidebar),
         hideTrends: booleanValue(layout.hideTrends, DEFAULT_SETTINGS.layout.hideTrends),
         hideGrok: booleanValue(layout.hideGrok, DEFAULT_SETTINGS.layout.hideGrok),
-        writerMode: booleanValue(layout.writerMode, DEFAULT_SETTINGS.layout.writerMode)
+        writerMode: booleanValue(layout.writerMode, DEFAULT_SETTINGS.layout.writerMode),
+        forceFollowing: booleanValue(layout.forceFollowing, DEFAULT_SETTINGS.layout.forceFollowing)
       },
       filter: {
         enabled: booleanValue(filter.enabled, DEFAULT_SETTINGS.filter.enabled),
@@ -4005,6 +4039,15 @@ html.av-reduce-motion *::after {
           async (checked) => {
             options.settings.layout.writerMode = checked;
             await save(checked ? "Writer mode on" : "Writer mode off");
+          }
+        ),
+        toggleRow(
+          "Open Following instead of For you",
+          "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.",
+          options.settings.layout.forceFollowing,
+          async (checked) => {
+            options.settings.layout.forceFollowing = checked;
+            await save(checked ? "Following timeline on" : "Following timeline off");
           }
         )
       ];
@@ -13072,6 +13115,59 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
   };
 
+  // src/features/layout/force-following.ts
+  var TABLIST = '[role="tablist"][data-testid="ScrollSnap-List"]';
+  var TABLIST_FALLBACK = '[role="tablist"]';
+  function findFollowingTab(root) {
+    const list = root.querySelector(TABLIST) ?? root.querySelector(TABLIST_FALLBACK);
+    if (!list) {
+      return null;
+    }
+    const tabs = Array.from(list.querySelectorAll('[role="tab"]'));
+    if (tabs.length < 2) {
+      return null;
+    }
+    return tabs[1] ?? null;
+  }
+  function shouldSelectFollowing(tab) {
+    return tab.getAttribute("aria-selected") !== "true";
+  }
+  var assertedForHref = null;
+  var forceFollowingFeature = {
+    id: "layout.forceFollowing",
+    title: "Open Following instead of For you",
+    category: "layout",
+    defaultEnabled: true,
+    init(ctx) {
+      assertedForHref = null;
+      if (ctx.settings.layout.forceFollowing) {
+        ctx.diagnostics.info("Following-timeline preference initialized");
+      }
+    },
+    apply(ctx, root) {
+      if (!ctx.settings.layout.forceFollowing || ctx.route.surface !== "home") {
+        return;
+      }
+      if (assertedForHref === ctx.route.href) {
+        return;
+      }
+      const tab = findFollowingTab(root) ?? findFollowingTab(document);
+      if (!tab) {
+        return;
+      }
+      assertedForHref = ctx.route.href;
+      if (!shouldSelectFollowing(tab)) {
+        return;
+      }
+      tab.click();
+      ctx.diagnostics.info("Selected the Following timeline");
+    },
+    destroy(ctx) {
+      assertedForHref = null;
+      ctx.diagnostics.info("Following-timeline preference destroyed");
+    }
+  };
+
   // src/features/library/link-unshorten.ts
   var STYLE_ID11 = "av-link-unshorten";
   var PROCESSED_ATTR6 = "data-av-link-clean";
@@ -13728,6 +13824,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     registry.register(linkUnshortenFeature);
     registry.register(cleanShareLinksFeature);
     registry.register(pauseOffscreenVideoFeature);
+    registry.register(forceFollowingFeature);
     registry.register(snapshotsFeature);
     registry.register(mobileTouchFeature);
     registry.register(composerSnippetsFeature);

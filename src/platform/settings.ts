@@ -98,6 +98,7 @@ export interface AviarySettings {
     hideTrends: boolean;
     hideGrok: boolean;
     writerMode: boolean;
+    forceFollowing: boolean;
   };
   filter: {
     enabled: boolean;
@@ -179,7 +180,8 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     hideRightSidebar: true,
     hideTrends: true,
     hideGrok: true,
-    writerMode: false
+    writerMode: false,
+    forceFollowing: false
   },
   filter: {
     enabled: false,
@@ -308,7 +310,8 @@ export function normalizeSettings(input: unknown): AviarySettings {
       hideRightSidebar: booleanValue(layout.hideRightSidebar, DEFAULT_SETTINGS.layout.hideRightSidebar),
       hideTrends: booleanValue(layout.hideTrends, DEFAULT_SETTINGS.layout.hideTrends),
       hideGrok: booleanValue(layout.hideGrok, DEFAULT_SETTINGS.layout.hideGrok),
-      writerMode: booleanValue(layout.writerMode, DEFAULT_SETTINGS.layout.writerMode)
+      writerMode: booleanValue(layout.writerMode, DEFAULT_SETTINGS.layout.writerMode),
+      forceFollowing: booleanValue(layout.forceFollowing, DEFAULT_SETTINGS.layout.forceFollowing)
     },
     filter: {
       enabled: booleanValue(filter.enabled, DEFAULT_SETTINGS.filter.enabled),

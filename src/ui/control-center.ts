@@ -430,6 +430,15 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             options.settings.layout.writerMode = checked;
             await save(checked ? "Writer mode on" : "Writer mode off");
           }
+        ),
+        toggleRow(
+          "Open Following instead of For you",
+          "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.",
+          options.settings.layout.forceFollowing,
+          async (checked) => {
+            options.settings.layout.forceFollowing = checked;
+            await save(checked ? "Following timeline on" : "Following timeline off");
+          }
         )
     ];
   };
