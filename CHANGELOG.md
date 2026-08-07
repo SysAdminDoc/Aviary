@@ -29,6 +29,12 @@
   requests are actually visible.
 - Captured payloads were recorded in the action log as `export.start`. Captures are not exports;
   they have their own kind now.
+- **Four sentences shipped in English in every locale while coverage reported 100%** — the
+  empty-search state ("Nothing matches that search.") and both preset confirmations. The string
+  extractor learns a panel's copy by rendering it twice and keeping what appears in both, so copy
+  behind a condition no render reaches is copy it cannot see. It now also harvests every literal
+  passed to `t()` straight from the panel source, which needs no maintenance as rows are added.
+  Nine locales, 470 → 488 strings.
 
 ## 1.11.0 - 2026-08-07
 

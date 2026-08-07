@@ -45,6 +45,7 @@ function stubs(variant) {
   exportSettings: async () => {},
   importSettings: async () => ({ applied: true, warnings: [], errors: [] }),
   getAuditSize: () => ${v ? 3 : 12},
+  getPageHooks: () => ({ reachable: true, reason: "", blockedBeacons: ${v ? 5 : 17} }),
   clearAuditLog: async () => {},
   getRetentionPolicy: () => ({ maxJobs: ${v ? 10 : 20}, maxRecordsPerJob: ${v ? 100 : 200}, maxAgeDays: ${v ? 30 : 60} }),
   saveRetentionPolicy: async () => {},
@@ -113,6 +114,9 @@ settings.integrations.bluesky.enabled = true;
 settings.integrations.mastodon.enabled = true;
 settings.integrations.ai.enabled = true;
 settings.integrations.semanticSearch.enabled = true;
+// The beacon count row only renders when blocking is on; without this its label is copy no
+// render reaches, which is how three sentences here shipped in English at full reported coverage.
+settings.privacy.blockAnalyticsBeacons = true;
 
 const handle = mountControlCenter({
   settings,
@@ -199,6 +203,8 @@ const dropped = a.strings.filter((s) => !inB.has(s) || endonyms.has(s));
 // Status and toast copy sits in branches a render cannot reach.
 const src = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
 const statusLiterals = harvestStatusLiterals(src);
+// Copy inside rows a render cannot reach (see harvestPanelLiterals).
+const panelLiterals = harvestPanelLiterals(src);
 
 // Features that inject into the timeline translate through `ft(ctx, "…")`. They never render
 // inside the panel, so no amount of mounting finds them -- they are harvested from source, like
@@ -329,7 +335,14 @@ const { PANEL_STRINGS: previous } = await import(pathToFileURL(prevOut).href);
 
 const manifest = [];
 const seen = new Set();
-for (const s of [...copy, ...statusLiterals, ...featureLiterals, ...optionsLiterals, ...previous]) {
+for (const s of [
+  ...copy,
+  ...statusLiterals,
+  ...panelLiterals,
+  ...featureLiterals,
+  ...optionsLiterals,
+  ...previous
+]) {
   const v = s.trim();
   if (v.length > 0 && !seen.has(v)) {
     seen.add(v);
@@ -340,6 +353,7 @@ for (const s of [...copy, ...statusLiterals, ...featureLiterals, ...optionsLiter
 console.log(`rendered:        ${a.strings.length} (${a.sections} sections visited)`);
 console.log(`data / endonyms: ${dropped.length} dropped`);
 console.log(`setStatus:       ${statusLiterals.length}`);
+console.log(`panel t():       ${panelLiterals.length}`);
 console.log(`ft() + presets:  ${featureLiterals.length}`);
 console.log(`options page:    ${optionsLiterals.length}`);
 console.log(`MANIFEST:        ${manifest.length}`);
@@ -368,3 +382,23 @@ if (write) {
 }
 
 await rm(temp, { recursive: true, force: true });
+
+/**
+ * Every double-quoted literal passed directly to `t(...)` in the panel source.
+ *
+ * The two-render diff can only see copy that some render actually reached, and a row rendered
+ * behind a condition -- an unreachable page bridge, a hook that has not fired yet -- is copy no
+ * stub can reliably produce in both variants at once. Those sentences shipped in English while
+ * the manifest reported full coverage.
+ *
+ * `t()` takes the English source string as its key, so anything passed to it literally is copy by
+ * definition. Collecting them from source needs no maintenance as rows are added, and the union
+ * with the rendered set costs nothing when a string appears in both.
+ */
+function harvestPanelLiterals(source) {
+  const found = [];
+  for (const match of source.matchAll(/\bt\(\s*"((?:[^"\\]|\\.)*)"\s*\)/g)) {
+    found.push(JSON.parse(`"${match[1]}"`));
+  }
+  return [...new Set(found)];
+}

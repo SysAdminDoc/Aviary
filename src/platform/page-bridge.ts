@@ -27,11 +27,19 @@ import type { Diagnostics } from "./diagnostics";
 
 export type PageScopeStatus = "unavailable" | "connecting" | "connected";
 
+/**
+ * Why page scope is unavailable, as a code rather than a sentence.
+ *
+ * The platform layer has no locale and no access to `t()`, so a sentence built here would render
+ * in English in every translated build. The Control Center owns the wording.
+ */
+export type PageScopeReason = "" | "no-page-scope" | "agent-absent" | "torn-down";
+
 export type PageEventHandler = (payload: unknown) => void;
 
 export interface PageBridge {
   status(): PageScopeStatus;
-  reason(): string;
+  reason(): PageScopeReason;
   configure(config: PageAgentConfig): void;
   on(kind: PageAgentKind, handler: PageEventHandler): void;
   destroy(): void;
@@ -72,7 +80,7 @@ export function createPageBridge(options: {
 }): PageBridge {
   const handlers = new Map<PageAgentKind, Set<PageEventHandler>>();
   let status: PageScopeStatus = "connecting";
-  let reason = "";
+  let reason: PageScopeReason = "";
   let lastConfig: PageAgentConfig | undefined;
   let uninstallAgent: (() => void) | undefined;
   let windowListener: ((event: MessageEvent) => void) | undefined;
@@ -112,8 +120,7 @@ export function createPageBridge(options: {
     const target = pageWindowFromSandbox();
     if (!target) {
       status = "unavailable";
-      reason =
-        "This userscript manager does not expose the page's own window, so Aviary cannot see X's network requests.";
+      reason = "no-page-scope";
     } else {
       uninstallAgent = installPageAgent(target, dispatch);
       send = (envelope) => {
@@ -149,8 +156,7 @@ export function createPageBridge(options: {
     handshakeTimer = setTimeout(() => {
       if (status !== "connected") {
         status = "unavailable";
-        reason =
-          "The page-world script did not load, so Aviary cannot see X's network requests.";
+        reason = "agent-absent";
         options.diagnostics.warn("Page bridge handshake timed out");
       }
     }, HANDSHAKE_TIMEOUT_MS);
@@ -187,7 +193,7 @@ export function createPageBridge(options: {
       }
       handlers.clear();
       status = "unavailable";
-      reason = "Page bridge torn down.";
+      reason = "torn-down";
     }
   };
 }

@@ -237,6 +237,24 @@ html.av-reduce-motion *::after {
   // src/platform/i18n-catalog.ts
   var PANEL_CATALOG = {
     es: {
+      "Always play video at the highest quality": "Reproducir siempre el v\xEDdeo con la m\xE1xima calidad",
+      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X elige una calidad de v\xEDdeo acorde a tu conexi\xF3n y, en conexiones r\xE1pidas, suele quedarse por debajo de la mejor disponible. Esto fija cada v\xEDdeo en su m\xE1xima resoluci\xF3n. Consume m\xE1s datos.",
+      "Refuse X's analytics beacons": "Rechazar las balizas de anal\xEDtica de X",
+      "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.": "Detiene los avisos de seguimiento que X env\xEDa cuando te desplazas, haces clic o pausas. Solo se rechazan los puntos de anal\xEDtica: el tr\xE1fico del cronograma, los medios y el inicio de sesi\xF3n no se tocan.",
+      "Connected to the page": "Conectado a la p\xE1gina",
+      "Page access": "Acceso a la p\xE1gina",
+      "Beacons refused": "Balizas rechazadas",
+      "Analytics beacons refused": "Balizas de anal\xEDtica rechazadas",
+      "Analytics beacons allowed": "Balizas de anal\xEDtica permitidas",
+      "Best video quality on": "M\xE1xima calidad de v\xEDdeo activada",
+      "Video quality left to X": "Calidad de v\xEDdeo a criterio de X",
+      "Nothing matches that search.": "Nada coincide con esa b\xFAsqueda.",
+      "Try a shorter word, or pick a section on the left.": "Prueba con una palabra m\xE1s corta o elige una secci\xF3n a la izquierda.",
+      "Preset applied": "Ajuste preestablecido aplicado",
+      "Preset already applied": "El ajuste preestablecido ya estaba aplicado",
+      "This userscript manager does not give Aviary access to the page itself.": "Este gestor de userscripts no da a Aviary acceso a la propia p\xE1gina.",
+      "This browser did not load Aviary's page script.": "Este navegador no carg\xF3 el script de p\xE1gina de Aviary.",
+      "Unavailable in this browser.": "No disponible en este navegador.",
       "Aviary": "Aviary",
       "Local controls for a quieter X.": "Controles locales para una X m\xE1s tranquila.",
       "Close": "Cerrar",
@@ -709,6 +727,24 @@ html.av-reduce-motion *::after {
       "Cancel": "Cancelar"
     },
     pt: {
+      "Always play video at the highest quality": "Reproduzir sempre o v\xEDdeo na m\xE1xima qualidade",
+      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "O X escolhe uma qualidade de v\xEDdeo adequada \xE0 tua liga\xE7\xE3o e, numa liga\xE7\xE3o r\xE1pida, fica muitas vezes abaixo da melhor dispon\xEDvel. Isto fixa cada v\xEDdeo na sua resolu\xE7\xE3o m\xE1xima. Consome mais dados.",
+      "Refuse X's analytics beacons": "Recusar os sinalizadores de an\xE1lise do X",
+      "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.": "Impede os sinais de rastreio que o X envia quando percorres, clicas e pausas. S\xF3 os pontos de an\xE1lise s\xE3o recusados \u2014 o tr\xE1fego da cronologia, da multim\xE9dia e do in\xEDcio de sess\xE3o fica intacto.",
+      "Connected to the page": "Ligado \xE0 p\xE1gina",
+      "Page access": "Acesso \xE0 p\xE1gina",
+      "Beacons refused": "Sinalizadores recusados",
+      "Analytics beacons refused": "Sinalizadores de an\xE1lise recusados",
+      "Analytics beacons allowed": "Sinalizadores de an\xE1lise permitidos",
+      "Best video quality on": "M\xE1xima qualidade de v\xEDdeo ativada",
+      "Video quality left to X": "Qualidade de v\xEDdeo ao crit\xE9rio do X",
+      "Nothing matches that search.": "Nada corresponde a essa pesquisa.",
+      "Try a shorter word, or pick a section on the left.": "Tenta uma palavra mais curta ou escolhe uma sec\xE7\xE3o \xE0 esquerda.",
+      "Preset applied": "Predefini\xE7\xE3o aplicada",
+      "Preset already applied": "A predefini\xE7\xE3o j\xE1 estava aplicada",
+      "This userscript manager does not give Aviary access to the page itself.": "Este gestor de userscripts n\xE3o d\xE1 ao Aviary acesso \xE0 pr\xF3pria p\xE1gina.",
+      "This browser did not load Aviary's page script.": "Este navegador n\xE3o carregou o script de p\xE1gina do Aviary.",
+      "Unavailable in this browser.": "Indispon\xEDvel neste navegador.",
       "Aviary": "Aviary",
       "Local controls for a quieter X.": "Controles locais para um X mais tranquilo.",
       "Close": "Fechar",
@@ -1181,6 +1217,24 @@ html.av-reduce-motion *::after {
       "Cancel": "Cancelar"
     },
     fr: {
+      "Always play video at the highest quality": "Toujours lire les vid\xE9os en qualit\xE9 maximale",
+      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X choisit une qualit\xE9 vid\xE9o adapt\xE9e \xE0 votre connexion et, sur une connexion rapide, reste souvent en de\xE7\xE0 de la meilleure disponible. Cette option fixe chaque vid\xE9o sur sa d\xE9finition la plus \xE9lev\xE9e. Elle consomme plus de donn\xE9es.",
+      "Refuse X's analytics beacons": "Refuser les balises d'analyse de X",
+      "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.": "Bloque les signaux de suivi que X envoie lorsque vous faites d\xE9filer, cliquez et mettez en pause. Seuls les points d'analyse sont refus\xE9s : le trafic du fil, des m\xE9dias et de la connexion reste intact.",
+      "Connected to the page": "Connect\xE9 \xE0 la page",
+      "Page access": "Acc\xE8s \xE0 la page",
+      "Beacons refused": "Balises refus\xE9es",
+      "Analytics beacons refused": "Balises d'analyse refus\xE9es",
+      "Analytics beacons allowed": "Balises d'analyse autoris\xE9es",
+      "Best video quality on": "Qualit\xE9 vid\xE9o maximale activ\xE9e",
+      "Video quality left to X": "Qualit\xE9 vid\xE9o laiss\xE9e \xE0 X",
+      "Nothing matches that search.": "Aucun r\xE9sultat pour cette recherche.",
+      "Try a shorter word, or pick a section on the left.": "Essayez un mot plus court ou choisissez une section \xE0 gauche.",
+      "Preset applied": "Pr\xE9r\xE9glage appliqu\xE9",
+      "Preset already applied": "Pr\xE9r\xE9glage d\xE9j\xE0 appliqu\xE9",
+      "This userscript manager does not give Aviary access to the page itself.": "Ce gestionnaire d'userscripts ne donne pas \xE0 Aviary l'acc\xE8s \xE0 la page elle-m\xEAme.",
+      "This browser did not load Aviary's page script.": "Ce navigateur n'a pas charg\xE9 le script de page d'Aviary.",
+      "Unavailable in this browser.": "Indisponible dans ce navigateur.",
       "Aviary": "Aviary",
       "Local controls for a quieter X.": "Des commandes locales pour un X plus calme.",
       "Close": "Fermer",
@@ -1653,6 +1707,24 @@ html.av-reduce-motion *::after {
       "Cancel": "Annuler"
     },
     de: {
+      "Always play video at the highest quality": "Videos immer in h\xF6chster Qualit\xE4t abspielen",
+      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X w\xE4hlt eine Videoqualit\xE4t passend zu deiner Verbindung und bleibt bei schnellen Verbindungen oft unter der bestm\xF6glichen. Dies legt jedes Video auf seine h\xF6chste Aufl\xF6sung fest. Es verbraucht mehr Daten.",
+      "Refuse X's analytics beacons": "Analyse-Beacons von X abweisen",
+      "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.": "Stoppt die Tracking-Signale, die X beim Scrollen, Klicken und Pausieren sendet. Nur die Analyse-Endpunkte werden abgewiesen \u2014 Timeline-, Medien- und Anmeldeverkehr bleibt unber\xFChrt.",
+      "Connected to the page": "Mit der Seite verbunden",
+      "Page access": "Seitenzugriff",
+      "Beacons refused": "Abgewiesene Beacons",
+      "Analytics beacons refused": "Analyse-Beacons abgewiesen",
+      "Analytics beacons allowed": "Analyse-Beacons zugelassen",
+      "Best video quality on": "Beste Videoqualit\xE4t an",
+      "Video quality left to X": "Videoqualit\xE4t bleibt X \xFCberlassen",
+      "Nothing matches that search.": "Nichts passt zu dieser Suche.",
+      "Try a shorter word, or pick a section on the left.": "Versuche ein k\xFCrzeres Wort oder w\xE4hle links einen Bereich.",
+      "Preset applied": "Voreinstellung angewendet",
+      "Preset already applied": "Voreinstellung bereits angewendet",
+      "This userscript manager does not give Aviary access to the page itself.": "Dieser Userscript-Manager gibt Aviary keinen Zugriff auf die Seite selbst.",
+      "This browser did not load Aviary's page script.": "Dieser Browser hat Aviarys Seitenskript nicht geladen.",
+      "Unavailable in this browser.": "In diesem Browser nicht verf\xFCgbar.",
       "Aviary": "Aviary",
       "Local controls for a quieter X.": "Lokale Steuerung f\xFCr ein ruhigeres X.",
       "Close": "Schlie\xDFen",
@@ -2125,6 +2197,24 @@ html.av-reduce-motion *::after {
       "Cancel": "Abbrechen"
     },
     ja: {
+      "Always play video at the highest quality": "\u52D5\u753B\u3092\u5E38\u306B\u6700\u9AD8\u753B\u8CEA\u3067\u518D\u751F\u3059\u308B",
+      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X \u306F\u63A5\u7D9A\u72B6\u6CC1\u306B\u5408\u308F\u305B\u3066\u753B\u8CEA\u3092\u9078\u3076\u305F\u3081\u3001\u9AD8\u901F\u306A\u56DE\u7DDA\u3067\u3082\u5229\u7528\u53EF\u80FD\u306A\u6700\u9AD8\u753B\u8CEA\u3088\u308A\u4F4E\u304F\u843D\u3061\u7740\u304F\u3053\u3068\u304C\u3088\u304F\u3042\u308A\u307E\u3059\u3002\u3053\u306E\u8A2D\u5B9A\u306F\u3059\u3079\u3066\u306E\u52D5\u753B\u3092\u6700\u9AD8\u753B\u8CEA\u306B\u56FA\u5B9A\u3057\u307E\u3059\u3002\u901A\u4FE1\u91CF\u306F\u5897\u3048\u307E\u3059\u3002",
+      "Refuse X's analytics beacons": "X \u306E\u89E3\u6790\u30D3\u30FC\u30B3\u30F3\u3092\u62D2\u5426\u3059\u308B",
+      "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.": "\u30B9\u30AF\u30ED\u30FC\u30EB\u30FB\u30AF\u30EA\u30C3\u30AF\u30FB\u4E00\u6642\u505C\u6B62\u306E\u305F\u3073\u306B X \u304C\u9001\u4FE1\u3059\u308B\u8FFD\u8DE1\u7528\u306E\u901A\u4FE1\u3092\u6B62\u3081\u307E\u3059\u3002\u62D2\u5426\u3055\u308C\u308B\u306E\u306F\u89E3\u6790\u7528\u306E\u30A8\u30F3\u30C9\u30DD\u30A4\u30F3\u30C8\u3060\u3051\u3067\u3001\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u30FB\u30E1\u30C7\u30A3\u30A2\u30FB\u30ED\u30B0\u30A4\u30F3\u306E\u901A\u4FE1\u306B\u306F\u624B\u3092\u89E6\u308C\u307E\u305B\u3093\u3002",
+      "Connected to the page": "\u30DA\u30FC\u30B8\u306B\u63A5\u7D9A\u6E08\u307F",
+      "Page access": "\u30DA\u30FC\u30B8\u3078\u306E\u30A2\u30AF\u30BB\u30B9",
+      "Beacons refused": "\u62D2\u5426\u3057\u305F\u30D3\u30FC\u30B3\u30F3",
+      "Analytics beacons refused": "\u89E3\u6790\u30D3\u30FC\u30B3\u30F3\u3092\u62D2\u5426\u3057\u307E\u3057\u305F",
+      "Analytics beacons allowed": "\u89E3\u6790\u30D3\u30FC\u30B3\u30F3\u3092\u8A31\u53EF\u3057\u307E\u3057\u305F",
+      "Best video quality on": "\u6700\u9AD8\u753B\u8CEA\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
+      "Video quality left to X": "\u753B\u8CEA\u306F X \u306B\u4EFB\u305B\u307E\u3059",
+      "Nothing matches that search.": "\u305D\u306E\u691C\u7D22\u306B\u4E00\u81F4\u3059\u308B\u3082\u306E\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+      "Try a shorter word, or pick a section on the left.": "\u77ED\u3044\u8A9E\u3067\u8A66\u3059\u304B\u3001\u5DE6\u306E\u30BB\u30AF\u30B7\u30E7\u30F3\u3092\u9078\u3093\u3067\u304F\u3060\u3055\u3044\u3002",
+      "Preset applied": "\u30D7\u30EA\u30BB\u30C3\u30C8\u3092\u9069\u7528\u3057\u307E\u3057\u305F",
+      "Preset already applied": "\u30D7\u30EA\u30BB\u30C3\u30C8\u306F\u9069\u7528\u6E08\u307F\u3067\u3059",
+      "This userscript manager does not give Aviary access to the page itself.": "\u3053\u306E\u30E6\u30FC\u30B6\u30FC\u30B9\u30AF\u30EA\u30D7\u30C8\u30DE\u30CD\u30FC\u30B8\u30E3\u30FC\u306F\u3001\u30DA\u30FC\u30B8\u81EA\u4F53\u3078\u306E\u30A2\u30AF\u30BB\u30B9\u3092 Aviary \u306B\u4E0E\u3048\u3066\u3044\u307E\u305B\u3093\u3002",
+      "This browser did not load Aviary's page script.": "\u3053\u306E\u30D6\u30E9\u30A6\u30B6\u30FC\u306F Aviary \u306E\u30DA\u30FC\u30B8\u30B9\u30AF\u30EA\u30D7\u30C8\u3092\u8AAD\u307F\u8FBC\u307F\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+      "Unavailable in this browser.": "\u3053\u306E\u30D6\u30E9\u30A6\u30B6\u30FC\u3067\u306F\u5229\u7528\u3067\u304D\u307E\u305B\u3093\u3002",
       "Aviary": "Aviary",
       "Local controls for a quieter X.": "\u9759\u304B\u306A X \u306E\u305F\u3081\u306E\u30ED\u30FC\u30AB\u30EB\u8A2D\u5B9A\u3002",
       "Close": "\u9589\u3058\u308B",
@@ -2597,6 +2687,24 @@ html.av-reduce-motion *::after {
       "Cancel": "\u30AD\u30E3\u30F3\u30BB\u30EB"
     },
     ko: {
+      "Always play video at the highest quality": "\uD56D\uC0C1 \uCD5C\uACE0 \uD654\uC9C8\uB85C \uB3D9\uC601\uC0C1 \uC7AC\uC0DD",
+      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X\uB294 \uC5F0\uACB0 \uC0C1\uD0DC\uC5D0 \uB9DE\uCDB0 \uD654\uC9C8\uC744 \uACE0\uB974\uAE30 \uB54C\uBB38\uC5D0, \uBE60\uB978 \uD68C\uC120\uC5D0\uC11C\uB3C4 \uC0AC\uC6A9\uD560 \uC218 \uC788\uB294 \uCD5C\uACE0 \uD654\uC9C8\uBCF4\uB2E4 \uB0AE\uAC8C \uBA38\uBB34\uB294 \uACBD\uC6B0\uAC00 \uB9CE\uC2B5\uB2C8\uB2E4. \uC774 \uC124\uC815\uC740 \uBAA8\uB4E0 \uB3D9\uC601\uC0C1\uC744 \uCD5C\uACE0 \uD654\uC9C8\uB85C \uACE0\uC815\uD569\uB2C8\uB2E4. \uB370\uC774\uD130\uB97C \uB354 \uC0AC\uC6A9\uD569\uB2C8\uB2E4.",
+      "Refuse X's analytics beacons": "X\uC758 \uBD84\uC11D \uBE44\uCF58 \uAC70\uBD80",
+      "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.": "\uC2A4\uD06C\uB864\uD558\uAC70\uB098 \uD074\uB9AD\uD558\uAC70\uB098 \uC77C\uC2DC\uC815\uC9C0\uD560 \uB54C X\uAC00 \uBCF4\uB0B4\uB294 \uCD94\uC801 \uC2E0\uD638\uB97C \uB9C9\uC2B5\uB2C8\uB2E4. \uBD84\uC11D \uC5D4\uB4DC\uD3EC\uC778\uD2B8\uB9CC \uAC70\uBD80\uD558\uBA70 \uD0C0\uC784\uB77C\uC778\xB7\uBBF8\uB514\uC5B4\xB7\uB85C\uADF8\uC778 \uD2B8\uB798\uD53D\uC740 \uAC74\uB4DC\uB9AC\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+      "Connected to the page": "\uD398\uC774\uC9C0\uC5D0 \uC5F0\uACB0\uB428",
+      "Page access": "\uD398\uC774\uC9C0 \uC811\uADFC",
+      "Beacons refused": "\uAC70\uBD80\uD55C \uBE44\uCF58",
+      "Analytics beacons refused": "\uBD84\uC11D \uBE44\uCF58\uC744 \uAC70\uBD80\uD588\uC2B5\uB2C8\uB2E4",
+      "Analytics beacons allowed": "\uBD84\uC11D \uBE44\uCF58\uC744 \uD5C8\uC6A9\uD588\uC2B5\uB2C8\uB2E4",
+      "Best video quality on": "\uCD5C\uACE0 \uD654\uC9C8\uC744 \uCF30\uC2B5\uB2C8\uB2E4",
+      "Video quality left to X": "\uD654\uC9C8\uC740 X\uC5D0 \uB9E1\uAE41\uB2C8\uB2E4",
+      "Nothing matches that search.": "\uAC80\uC0C9\uACFC \uC77C\uCE58\uD558\uB294 \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
+      "Try a shorter word, or pick a section on the left.": "\uB354 \uC9E7\uC740 \uB2E8\uC5B4\uB85C \uAC80\uC0C9\uD558\uAC70\uB098 \uC67C\uCABD\uC5D0\uC11C \uC139\uC158\uC744 \uC120\uD0DD\uD558\uC138\uC694.",
+      "Preset applied": "\uD504\uB9AC\uC14B\uC744 \uC801\uC6A9\uD588\uC2B5\uB2C8\uB2E4",
+      "Preset already applied": "\uD504\uB9AC\uC14B\uC774 \uC774\uBBF8 \uC801\uC6A9\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4",
+      "This userscript manager does not give Aviary access to the page itself.": "\uC774 \uC720\uC800\uC2A4\uD06C\uB9BD\uD2B8 \uAD00\uB9AC\uC790\uB294 Aviary\uC5D0 \uD398\uC774\uC9C0 \uC790\uCCB4\uC5D0 \uB300\uD55C \uC811\uADFC \uAD8C\uD55C\uC744 \uC8FC\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+      "This browser did not load Aviary's page script.": "\uC774 \uBE0C\uB77C\uC6B0\uC800\uB294 Aviary\uC758 \uD398\uC774\uC9C0 \uC2A4\uD06C\uB9BD\uD2B8\uB97C \uBD88\uB7EC\uC624\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.",
+      "Unavailable in this browser.": "\uC774 \uBE0C\uB77C\uC6B0\uC800\uC5D0\uC11C\uB294 \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
       "Aviary": "Aviary",
       "Local controls for a quieter X.": "\uC870\uC6A9\uD55C X\uB97C \uC704\uD55C \uB85C\uCEEC \uC124\uC815.",
       "Close": "\uB2EB\uAE30",
@@ -3069,6 +3177,24 @@ html.av-reduce-motion *::after {
       "Cancel": "\uCDE8\uC18C"
     },
     ar: {
+      "Always play video at the highest quality": "\u062A\u0634\u063A\u064A\u0644 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u062F\u0627\u0626\u0645\u064B\u0627 \u0628\u0623\u0639\u0644\u0649 \u062C\u0648\u062F\u0629",
+      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "\u064A\u062E\u062A\u0627\u0631 X \u062C\u0648\u062F\u0629 \u0641\u064A\u062F\u064A\u0648 \u062A\u0646\u0627\u0633\u0628 \u0627\u062A\u0635\u0627\u0644\u0643\u060C \u0648\u0639\u0644\u0649 \u0627\u0644\u0627\u062A\u0635\u0627\u0644\u0627\u062A \u0627\u0644\u0633\u0631\u064A\u0639\u0629 \u0643\u062B\u064A\u0631\u064B\u0627 \u0645\u0627 \u064A\u0633\u062A\u0642\u0631 \u062F\u0648\u0646 \u0623\u0641\u0636\u0644 \u062C\u0648\u062F\u0629 \u0645\u062A\u0627\u062D\u0629. \u064A\u062B\u0628\u0651\u062A \u0647\u0630\u0627 \u0627\u0644\u062E\u064A\u0627\u0631 \u0643\u0644 \u0641\u064A\u062F\u064A\u0648 \u0639\u0644\u0649 \u0623\u0639\u0644\u0649 \u062C\u0648\u062F\u0629 \u0644\u0647. \u0648\u064A\u0633\u062A\u0647\u0644\u0643 \u0628\u064A\u0627\u0646\u0627\u062A \u0623\u0643\u062B\u0631.",
+      "Refuse X's analytics beacons": "\u0631\u0641\u0636 \u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A \u0645\u0646 X",
+      "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.": "\u064A\u0648\u0642\u0641 \u0646\u0628\u0636\u0627\u062A \u0627\u0644\u062A\u062A\u0628\u0639 \u0627\u0644\u062A\u064A \u064A\u0631\u0633\u0644\u0647\u0627 X \u0623\u062B\u0646\u0627\u0621 \u0627\u0644\u062A\u0645\u0631\u064A\u0631 \u0648\u0627\u0644\u0646\u0642\u0631 \u0648\u0627\u0644\u0625\u064A\u0642\u0627\u0641 \u0627\u0644\u0645\u0624\u0642\u062A. \u062A\u064F\u0631\u0641\u0636 \u0646\u0642\u0627\u0637 \u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A \u0641\u0642\u0637 \u2014 \u0623\u0645\u0627 \u062D\u0631\u0643\u0629 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \u0648\u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0648\u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0641\u062A\u0628\u0642\u0649 \u0643\u0645\u0627 \u0647\u064A.",
+      "Connected to the page": "\u0645\u062A\u0635\u0644 \u0628\u0627\u0644\u0635\u0641\u062D\u0629",
+      "Page access": "\u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 \u0627\u0644\u0635\u0641\u062D\u0629",
+      "Beacons refused": "\u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u0641\u0648\u0636\u0629",
+      "Analytics beacons refused": "\u062A\u0645 \u0631\u0641\u0636 \u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A",
+      "Analytics beacons allowed": "\u062A\u0645 \u0627\u0644\u0633\u0645\u0627\u062D \u0628\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A",
+      "Best video quality on": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0623\u0639\u0644\u0649 \u062C\u0648\u062F\u0629 \u0641\u064A\u062F\u064A\u0648",
+      "Video quality left to X": "\u062C\u0648\u062F\u0629 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u0645\u062A\u0631\u0648\u0643\u0629 \u0644\u0640 X",
+      "Nothing matches that search.": "\u0644\u0627 \u064A\u0648\u062C\u062F \u0645\u0627 \u064A\u0637\u0627\u0628\u0642 \u0647\u0630\u0627 \u0627\u0644\u0628\u062D\u062B.",
+      "Try a shorter word, or pick a section on the left.": "\u062C\u0631\u0651\u0628 \u0643\u0644\u0645\u0629 \u0623\u0642\u0635\u0631\u060C \u0623\u0648 \u0627\u062E\u062A\u0631 \u0642\u0633\u0645\u064B\u0627 \u0645\u0646 \u0627\u0644\u064A\u0645\u064A\u0646.",
+      "Preset applied": "\u062A\u0645 \u062A\u0637\u0628\u064A\u0642 \u0627\u0644\u0625\u0639\u062F\u0627\u062F \u0627\u0644\u062C\u0627\u0647\u0632",
+      "Preset already applied": "\u0627\u0644\u0625\u0639\u062F\u0627\u062F \u0627\u0644\u062C\u0627\u0647\u0632 \u0645\u064F\u0637\u0628\u064E\u0651\u0642 \u0628\u0627\u0644\u0641\u0639\u0644",
+      "This userscript manager does not give Aviary access to the page itself.": "\u0645\u062F\u064A\u0631 \u0633\u0643\u0631\u0628\u062A\u0627\u062A \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0647\u0630\u0627 \u0644\u0627 \u064A\u0645\u0646\u062D Aviary \u0648\u0635\u0648\u0644\u0627\u064B \u0625\u0644\u0649 \u0627\u0644\u0635\u0641\u062D\u0629 \u0646\u0641\u0633\u0647\u0627.",
+      "This browser did not load Aviary's page script.": "\u0644\u0645 \u064A\u062D\u0645\u0651\u0644 \u0647\u0630\u0627 \u0627\u0644\u0645\u062A\u0635\u0641\u062D \u0633\u0643\u0631\u0628\u062A \u0627\u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u062E\u0627\u0635 \u0628\u0640 Aviary.",
+      "Unavailable in this browser.": "\u063A\u064A\u0631 \u0645\u062A\u0627\u062D \u0641\u064A \u0647\u0630\u0627 \u0627\u0644\u0645\u062A\u0635\u0641\u062D.",
       "Aviary": "Aviary",
       "Local controls for a quieter X.": "\u0623\u062F\u0648\u0627\u062A \u0645\u062D\u0644\u064A\u0629 \u0644\u062A\u062C\u0631\u0628\u0629 \u0623\u0647\u062F\u0623 \u0639\u0644\u0649 X.",
       "Close": "\u0625\u063A\u0644\u0627\u0642",
@@ -3541,6 +3667,24 @@ html.av-reduce-motion *::after {
       "Cancel": "\u0625\u0644\u063A\u0627\u0621"
     },
     he: {
+      "Always play video at the highest quality": "\u05DC\u05E0\u05D2\u05DF \u05D5\u05D9\u05D3\u05D0\u05D5 \u05EA\u05DE\u05D9\u05D3 \u05D1\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8",
+      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "\u200FX \u05D1\u05D5\u05D7\u05E8 \u05D0\u05D9\u05DB\u05D5\u05EA \u05D5\u05D9\u05D3\u05D0\u05D5 \u05E9\u05DE\u05EA\u05D0\u05D9\u05DE\u05D4 \u05DC\u05D7\u05D9\u05D1\u05D5\u05E8 \u05E9\u05DC\u05DA, \u05D5\u05D1\u05D7\u05D9\u05D1\u05D5\u05E8 \u05DE\u05D4\u05D9\u05E8 \u05D4\u05D5\u05D0 \u05DC\u05E8\u05D5\u05D1 \u05E0\u05E2\u05E6\u05E8 \u05DE\u05EA\u05D7\u05EA \u05DC\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D8\u05D5\u05D1\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8 \u05D4\u05D6\u05DE\u05D9\u05E0\u05D4. \u05D4\u05D0\u05E4\u05E9\u05E8\u05D5\u05EA \u05D4\u05D6\u05D5 \u05DE\u05E7\u05D1\u05E2\u05EA \u05DB\u05DC \u05E1\u05E8\u05D8\u05D5\u05DF \u05DC\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8 \u05E9\u05DC\u05D5. \u05D4\u05D9\u05D0 \u05E6\u05D5\u05E8\u05DB\u05EA \u05D9\u05D5\u05EA\u05E8 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD.",
+      "Refuse X's analytics beacons": "\u05DC\u05E1\u05E8\u05D1 \u05DC\u05DE\u05E9\u05D5\u05D0\u05D5\u05EA \u05D4\u05E0\u05D9\u05EA\u05D5\u05D7 \u05E9\u05DC X",
+      "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.": "\u05E2\u05D5\u05E6\u05E8 \u05D0\u05EA \u05E4\u05E0\u05D9\u05D5\u05EA \u05D4\u05DE\u05E2\u05E7\u05D1 \u05E9-X \u05E9\u05D5\u05DC\u05D7 \u05D1\u05DB\u05DC \u05D2\u05DC\u05D9\u05DC\u05D4, \u05DC\u05D7\u05D9\u05E6\u05D4 \u05D5\u05D4\u05E9\u05D4\u05D9\u05D4. \u05E8\u05E7 \u05E0\u05E7\u05D5\u05D3\u05D5\u05EA \u05D4\u05E0\u05D9\u05EA\u05D5\u05D7 \u05E0\u05D3\u05D7\u05D5\u05EA \u2014 \u05EA\u05E2\u05D1\u05D5\u05E8\u05EA \u05D4\u05E6\u05D9\u05E8, \u05D4\u05DE\u05D3\u05D9\u05D4 \u05D5\u05D4\u05D4\u05EA\u05D7\u05D1\u05E8\u05D5\u05EA \u05E0\u05E9\u05D0\u05E8\u05EA \u05E9\u05DC\u05DE\u05D4.",
+      "Connected to the page": "\u05DE\u05D7\u05D5\u05D1\u05E8 \u05DC\u05D3\u05E3",
+      "Page access": "\u05D2\u05D9\u05E9\u05D4 \u05DC\u05D3\u05E3",
+      "Beacons refused": "\u05DE\u05E9\u05D5\u05D0\u05D5\u05EA \u05E9\u05E0\u05D3\u05D7\u05D5",
+      "Analytics beacons refused": "\u05DE\u05E9\u05D5\u05D0\u05D5\u05EA \u05D4\u05E0\u05D9\u05EA\u05D5\u05D7 \u05E0\u05D3\u05D7\u05D5",
+      "Analytics beacons allowed": "\u05DE\u05E9\u05D5\u05D0\u05D5\u05EA \u05D4\u05E0\u05D9\u05EA\u05D5\u05D7 \u05DE\u05D5\u05EA\u05E8\u05D5\u05EA",
+      "Best video quality on": "\u05D4\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8 \u05D4\u05D5\u05E4\u05E2\u05DC\u05D4",
+      "Video quality left to X": "\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D5\u05D5\u05D9\u05D3\u05D0\u05D5 \u05E0\u05EA\u05D5\u05E0\u05D4 \u05DC-X",
+      "Nothing matches that search.": "\u05D0\u05D9\u05DF \u05EA\u05D5\u05E6\u05D0\u05D5\u05EA \u05DC\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D4\u05D6\u05D4.",
+      "Try a shorter word, or pick a section on the left.": "\u05E0\u05E1\u05D4 \u05DE\u05D9\u05DC\u05D4 \u05E7\u05E6\u05E8\u05D4 \u05D9\u05D5\u05EA\u05E8, \u05D0\u05D5 \u05D1\u05D7\u05E8 \u05DE\u05E7\u05D8\u05E2 \u05DE\u05D9\u05DE\u05D9\u05DF.",
+      "Preset applied": "\u05D4\u05E2\u05E8\u05DB\u05D4 \u05D4\u05D5\u05D7\u05DC\u05D4",
+      "Preset already applied": "\u05D4\u05E2\u05E8\u05DB\u05D4 \u05DB\u05D1\u05E8 \u05D4\u05D5\u05D7\u05DC\u05D4",
+      "This userscript manager does not give Aviary access to the page itself.": "\u05DE\u05E0\u05D4\u05DC \u05D4\u05E1\u05E7\u05E8\u05D9\u05E4\u05D8\u05D9\u05DD \u05D4\u05D6\u05D4 \u05D0\u05D9\u05E0\u05D5 \u05DE\u05E2\u05E0\u05D9\u05E7 \u05DC-Aviary \u05D2\u05D9\u05E9\u05D4 \u05DC\u05D3\u05E3 \u05E2\u05E6\u05DE\u05D5.",
+      "This browser did not load Aviary's page script.": "\u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05D4\u05D6\u05D4 \u05DC\u05D0 \u05D8\u05E2\u05DF \u05D0\u05EA \u05E1\u05E7\u05E8\u05D9\u05E4\u05D8 \u05D4\u05D3\u05E3 \u05E9\u05DC Aviary.",
+      "Unavailable in this browser.": "\u05DC\u05D0 \u05D6\u05DE\u05D9\u05DF \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF \u05D4\u05D6\u05D4.",
       "Aviary": "Aviary",
       "Local controls for a quieter X.": "\u05DB\u05DC\u05D9\u05DD \u05DE\u05E7\u05D5\u05DE\u05D9\u05D9\u05DD \u05DC\u2011X \u05E9\u05E7\u05D8 \u05D9\u05D5\u05EA\u05E8.",
       "Close": "\u05E1\u05D2\u05D9\u05E8\u05D4",
@@ -6357,18 +6501,25 @@ html.av-reduce-motion *::after {
         return [];
       }
       const hooks = options.getPageHooks();
-      if (!hooks.reachable) {
-        return [
-          dataRow(
-            "Beacon blocking",
-            hooks.reason || t("Unavailable \u2014 Aviary cannot see X's network requests here.")
-          )
-        ];
+      const rows = [
+        dataRow(
+          "Page access",
+          hooks.reachable ? t("Connected to the page") : pageScopeReason(hooks.reason)
+        )
+      ];
+      if (hooks.reachable && options.settings.privacy.blockAnalyticsBeacons) {
+        rows.push(dataRow("Beacons refused", String(hooks.blockedBeacons)));
       }
-      if (!options.settings.privacy.blockAnalyticsBeacons) {
-        return [];
+      return rows;
+    };
+    const pageScopeReason = (code) => {
+      if (code === "no-page-scope") {
+        return t("This userscript manager does not give Aviary access to the page itself.");
       }
-      return [dataRow("Beacons refused", String(hooks.blockedBeacons))];
+      if (code === "agent-absent") {
+        return t("This browser did not load Aviary's page script.");
+      }
+      return t("Unavailable in this browser.");
     };
     const selectorSummary = () => {
       const last = [...options.diagnostics()].reverse().find((event) => event.message.includes("Selector"));
@@ -15311,7 +15462,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       const target = pageWindowFromSandbox();
       if (!target) {
         status = "unavailable";
-        reason = "This userscript manager does not expose the page's own window, so Aviary cannot see X's network requests.";
+        reason = "no-page-scope";
       } else {
         uninstallAgent = installPageAgent(target, dispatch);
         send = (envelope) => {
@@ -15344,7 +15495,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       handshakeTimer = setTimeout(() => {
         if (status !== "connected") {
           status = "unavailable";
-          reason = "The page-world script did not load, so Aviary cannot see X's network requests.";
+          reason = "agent-absent";
           options.diagnostics.warn("Page bridge handshake timed out");
         }
       }, HANDSHAKE_TIMEOUT_MS);
@@ -15380,7 +15531,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         }
         handlers.clear();
         status = "unavailable";
-        reason = "Page bridge torn down.";
+        reason = "torn-down";
       }
     };
   }

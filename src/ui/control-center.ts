@@ -2215,18 +2215,32 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       return [];
     }
     const hooks = options.getPageHooks();
-    if (!hooks.reachable) {
-      return [
-        dataRow(
-          "Beacon blocking",
-          hooks.reason || t("Unavailable — Aviary cannot see X's network requests here.")
-        )
-      ];
+    const rows = [
+      dataRow(
+        "Page access",
+        hooks.reachable ? t("Connected to the page") : pageScopeReason(hooks.reason)
+      )
+    ];
+    if (hooks.reachable && options.settings.privacy.blockAnalyticsBeacons) {
+      rows.push(dataRow("Beacons refused", String(hooks.blockedBeacons)));
     }
-    if (!options.settings.privacy.blockAnalyticsBeacons) {
-      return [];
+    return rows;
+  };
+
+  /**
+   * Turns the bridge's reason code into a sentence.
+   *
+   * The bridge reports a code rather than prose because it lives in the platform layer, which has
+   * no locale — a sentence built there would render in English in every translated build.
+   */
+  const pageScopeReason = (code: string): string => {
+    if (code === "no-page-scope") {
+      return t("This userscript manager does not give Aviary access to the page itself.");
     }
-    return [dataRow("Beacons refused", String(hooks.blockedBeacons))];
+    if (code === "agent-absent") {
+      return t("This browser did not load Aviary's page script.");
+    }
+    return t("Unavailable in this browser.");
   };
 
   const selectorSummary = (): string => {
