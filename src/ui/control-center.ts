@@ -2785,7 +2785,14 @@ input:focus-visible {
   gap: 2px;
   padding: 12px 8px;
   overflow-y: auto;
+  /* Reserved so the list does not reflow the moment it becomes scrollable. */
+  scrollbar-gutter: stable;
   border-right: 1px solid var(--av-border, rgb(47, 51, 54));
+  /* The rail scrolls at thirteen sections and a short viewport, and nothing said so -- the last
+     item rendered cut through its own baseline, which reads as a rendering fault rather than a
+     list with more below. The mask only bites where content actually reaches the bottom edge,
+     so a rail that fits is untouched. */
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent 100%);
 }
 
 .av-nav-group {

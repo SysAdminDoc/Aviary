@@ -220,6 +220,37 @@ test("the aria2 threshold is reachable from the panel", async () => {
   assert.match(panel, /integrations\.aria2\.minBytes = Math\.max\(0, value\) \* 1_000_000/);
 });
 
+test("scroll capture is a real session rather than a one-await window", async () => {
+  const source = await readFile(path.join(root, "src/features/export/export-feature.ts"), "utf8");
+
+  // activeJobId used to be set and cleared around a single append, so apply()'s capture branch
+  // could only fire during that await -- "capture as you scroll" never happened.
+  const apply = source.slice(source.indexOf("async apply(ctx, root, addedNodes)"), source.indexOf("async destroy(ctx)"));
+  assert.match(apply, /if \(!activeJobId\) \{/, "apply must be able to open a capture session");
+  assert.match(apply, /checkpointStore\.start\(/);
+
+  const run = source.slice(source.indexOf("export async function runExportOfVisibleTweets"));
+  assert.ok(
+    !/activeJobId = undefined;/.test(run.slice(0, run.indexOf("const records ="))),
+    "the export run must not close the capture window it just opened"
+  );
+
+  // A session left open would never be marked done.
+  const destroy = source.slice(source.indexOf("async destroy(ctx)"), source.indexOf("getStatus()"));
+  assert.match(destroy, /checkpointStore\.finish\(activeJobId\)/);
+});
+
+test("the nav rail signals that it scrolls", async () => {
+  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+
+  // Thirteen sections overflow a short viewport; the last item rendered cut through its own
+  // baseline with nothing to say there was more below it.
+  const nav = source.slice(source.indexOf(".av-nav {"), source.indexOf(".av-nav-group"));
+  assert.match(nav, /overflow-y: auto/);
+  assert.match(nav, /mask-image: linear-gradient/);
+  assert.match(nav, /scrollbar-gutter: stable/);
+});
+
 async function importBundledModule(relativePath) {
   const temp = await mkdtemp(path.join(tmpdir(), "aviary-audit0807-"));
   const outfile = path.join(temp, "module.mjs");

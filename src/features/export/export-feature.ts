@@ -36,8 +36,20 @@ export const exportFeature: FeatureModule = {
   },
 
   async apply(ctx, root, addedNodes) {
-    if (!ctx.settings.export.enabled || !checkpointStore || !activeJobId) {
+    // Capture-as-you-scroll is real now: the job stays open for the session instead of for the
+    // single await that used to bracket `activeJobId`, which made this branch unreachable.
+    if (!ctx.settings.export.enabled || !checkpointStore) {
       return;
+    }
+    if (!activeJobId) {
+      activeJobId = `session-${Date.now()}`;
+      await checkpointStore.start(
+        activeJobId,
+        ctx.route.surface,
+        selectSupportedFormats(ctx.settings.export.formats),
+        ctx.settings.export.preserveRawPayloads
+      );
+      ctx.diagnostics.info("Export capture session started", { jobId: activeJobId });
     }
     const records = collectExportRecords(root, ctx.route.surface);
     if (records.length === 0) {
@@ -49,7 +61,10 @@ export const exportFeature: FeatureModule = {
     }
   },
 
-  destroy(ctx) {
+  async destroy(ctx) {
+    if (activeJobId && checkpointStore) {
+      await checkpointStore.finish(activeJobId);
+    }
     checkpointStore = undefined;
     queryRegistry = undefined;
     activeJobId = undefined;
@@ -101,10 +116,8 @@ export async function runExportOfVisibleTweets(ctx: FeatureContext): Promise<Exp
   await checkpointStore.start(jobId, ctx.route.surface, formats, ctx.settings.export.preserveRawPayloads);
   void ctx.auditLog.record("export.start", { jobId, formats, surface: ctx.route.surface });
 
-  activeJobId = jobId;
   const initialRecords = collectExportRecords(document, ctx.route.surface);
   await checkpointStore.append(jobId, initialRecords);
-  activeJobId = undefined;
 
   const records = checkpointStore.records(jobId);
   // Handing the user an empty ZIP is worse than telling them nothing was captured.

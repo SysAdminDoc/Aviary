@@ -964,26 +964,6 @@ read-only (Playwright against `_decoded/home.html` and scratch pages); no source
   Confidence: Verified
   Effort: L
 
-- [ ] P3 — Export's observer capture path is dead code (activeJobId window is one storage write)
-  Category: maintainability
-  Where: src/features/export/export-feature.ts:38-50 (apply), 104-107 (activeJobId set and cleared)
-  Problem: apply() appends only while activeJobId is set, but runExportOfVisibleTweets clears it immediately after the initial append — the observer path can only fire during that single await. "Capture as you scroll" therefore never happens; the panel copy ("Scroll the timeline to load some, then export again") papers over it.
-  Evidence: Read both; no other writer of activeJobId exists.
-  Fix: Either make it real — keep the job open while export.enabled (session-scoped background capture with an explicit stop control) — or delete the apply path and the activeJobId plumbing. Decide with the panel copy in mind.
-  Acceptance: Either scrolling during an enabled session grows the job's record count, or the dead branch is gone and tests still pass.
-  Confidence: Verified
-  Effort: M
-
-- [ ] P3 — Nav rail clips its last item mid-glyph with no scroll affordance
-  Category: visual
-  Where: src/ui/control-center.ts:2754-2761 (.av-nav) at ≤ ~900px viewport height
-  Problem: With 13 sections the rail overflows; overflow-y:auto makes it scrollable but nothing signals that — "Trust" renders cut through the baseline (screenshot-verified at 1280×900), reading as a rendering bug rather than a scrollable list.
-  Evidence: Playwright screenshot of the mounted panel, plum theme, 900px height.
-  Fix: Add a bottom fade (mask-image or sticky gradient) to .av-nav when scrollable, or reduce item min-height/padding so 13 items fit the panel's max-height; scrollbar-gutter: stable also helps.
-  Acceptance: At 1280×900 either all items are visible or the fade communicates the overflow; no mid-glyph clipping.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P3 — Testing gaps around this audit's defect classes
   Category: testing
   Where: tests/
