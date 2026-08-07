@@ -158,10 +158,25 @@ const handle = mountControlCenter({
     document.getElementById("av-control-center").shadowRoot.querySelector(".av-launcher").click()
   );
   await page.evaluate(() => globalThis.__av.handle.refresh());
-  return page.evaluate(() => ({
-    strings: globalThis.__av.strings(),
-    locales: globalThis.__av.locales
-  }));
+  // Since the panel gained a nav rail it draws one section at a time, and the coverage tally is
+  // reset on every render -- so a single render now reports only the default section's strings.
+  // Every section is visited and the results unioned, or rows outside "Presets" would silently
+  // stop reaching the manifest.
+  return page.evaluate(() => {
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    const ids = [...shadow.querySelectorAll(".av-nav-item")].map((item) => item.dataset.avSection);
+    if (ids.length === 0) {
+      throw new Error("no nav items found -- the panel structure changed");
+    }
+    const strings = new Set();
+    for (const id of ids) {
+      shadow.querySelector(`.av-nav-item[data-av-section="${id}"]`).click();
+      for (const value of globalThis.__av.strings()) {
+        strings.add(value);
+      }
+    }
+    return { strings: [...strings], locales: globalThis.__av.locales, sections: ids.length };
+  });
 }
 
 const browser = await chromium.launch({ headless: true });
@@ -178,9 +193,45 @@ const dropped = a.strings.filter((s) => !inB.has(s) || endonyms.has(s));
 
 // Status and toast copy sits in branches a render cannot reach.
 const src = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
-const statusLiterals = [...src.matchAll(/\b(?:setStatus|save)\(\s*"((?:[^"\\]|\\.)*)"/g)].map((m) =>
-  JSON.parse(`"${m[1]}"`)
-);
+const statusLiterals = harvestStatusLiterals(src);
+
+/**
+ * Collects every string literal inside a `setStatus(...)` / `save(...)` call.
+ *
+ * Anchoring on the literal that immediately follows the open paren misses the far more common
+ * `save(checked ? "X on" : "X off")` form -- which is how nearly every toggle reports itself, so
+ * those confirmations were shipping in English regardless of locale. Scanning to the matching
+ * close paren instead catches both arms, and any future shape.
+ */
+function harvestStatusLiterals(source) {
+  const found = [];
+  for (const match of source.matchAll(/\b(?:setStatus|save)\(/g)) {
+    const start = match.index + match[0].length;
+    let depth = 1;
+    let i = start;
+    while (i < source.length && depth > 0) {
+      const ch = source[i];
+      if (ch === "(") depth += 1;
+      else if (ch === ")") depth -= 1;
+      else if (ch === '"' || ch === "'" || ch === "`") {
+        // Skip the whole literal so a paren inside it cannot unbalance the scan.
+        const quote = ch;
+        let j = i + 1;
+        while (j < source.length && source[j] !== quote) {
+          j += source[j] === "\\" ? 2 : 1;
+        }
+        // Template literals interpolate, so they can never match a catalog key -- skip, do not
+        // collect. Same rule the `t()` guidance in CLAUDE.md states.
+        if (quote === '"') {
+          found.push(JSON.parse(source.slice(i, j + 1)));
+        }
+        i = j;
+      }
+      i += 1;
+    }
+  }
+  return [...new Set(found)];
+}
 
 // Previously-curated entries cover fallback rows ("… unavailable in this build.") that only
 // appear when a capability is absent, which neither render nor the status scan reaches.
@@ -205,7 +256,7 @@ for (const s of [...copy, ...statusLiterals, ...previous]) {
   }
 }
 
-console.log(`rendered:        ${a.strings.length}`);
+console.log(`rendered:        ${a.strings.length} (${a.sections} sections visited)`);
 console.log(`data / endonyms: ${dropped.length} dropped`);
 console.log(`setStatus:       ${statusLiterals.length}`);
 console.log(`MANIFEST:        ${manifest.length}`);

@@ -942,13 +942,6 @@ Sourced from the userscript indexes (Greasy Fork itself edge-blocks automated cl
 listing was read through userscript.zone plus targeted search). Ranked by how often the capability
 shows up in high-install scripts against how much of it Aviary already has.
 
-- [ ] P1 — Performance module: pause offscreen video, block analytics beacons
-  Why: `X.com Heavy JS Optimizer+` exists because X is heavy, and nothing in Aviary addresses
-  runtime cost. An IntersectionObserver that pauses `<video>` outside the viewport is cheap,
-  reversible, and measurable. Analytics-beacon blocking must stay opt-in and be scoped to
-  telemetry endpoints, never anything the timeline needs.
-  Where: new src/features/performance/
-
 - [ ] P2 — Force the Following timeline over For You
   Why: repeatedly requested and not solved well by existing scripts. Route-aware: detect the
   home tab strip and select Following on load. Needs care — X restores For You on some

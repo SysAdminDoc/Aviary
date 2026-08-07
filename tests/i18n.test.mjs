@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -95,6 +95,53 @@ test("the Control Center routes its copy through the translator", async () => {
 
   assert.match(source, /export function renderedPanelStrings\(/, "drift accounting was removed");
 });
+
+test("the extractor reaches every panel section and every status branch", async () => {
+  const tool = await readFile(path.join(root, "tools/i18n-extract.mjs"), "utf8");
+
+  // The panel draws one section at a time behind the nav rail, and the coverage tally resets on
+  // every render. A single render therefore reports only the default section -- which is exactly
+  // how the extractor silently degraded from 254 strings to 26 when the rail landed.
+  assert.match(tool, /querySelectorAll\(".av-nav-item"\)/);
+  assert.match(tool, /no nav items found/);
+
+  // `save(checked ? "X on" : "X off")` is how nearly every toggle reports itself. Anchoring the
+  // status harvest on the literal immediately after the open paren missed both arms, so 51
+  // confirmations shipped in English regardless of locale.
+  assert.match(tool, /function harvestStatusLiterals\(/);
+  const { harvested } = await harvestFrom(tool);
+  assert.ok(harvested.includes("Link cleaning on"), "ternary status arms must be harvested");
+  assert.ok(harvested.includes("Link cleaning off"), "ternary status arms must be harvested");
+});
+
+/** Runs the tool's own harvester over a sample so the assertion tests behaviour, not just text. */
+async function harvestFrom(toolSource) {
+  const start = toolSource.indexOf("function harvestStatusLiterals(");
+  assert.ok(start > -1, "harvestStatusLiterals not found");
+  // The tool is a top-level-await script, so only the function itself can be imported.
+  const end = toolSource.indexOf("\n}\n", start);
+  assert.ok(end > start, "could not find the end of harvestStatusLiterals");
+  const fn = toolSource.slice(start, end + 3);
+  const temp = await mkdtemp(path.join(tmpdir(), "aviary-i18n-harvest-"));
+  try {
+    const file = path.join(temp, "harvest.mjs");
+    await writeFile(
+      file,
+      `${fn}
+export { harvestStatusLiterals };
+`,
+      "utf8"
+    );
+    const mod = await import(pathToFileURL(file).href);
+    return {
+      harvested: mod.harvestStatusLiterals(
+        'save(checked ? "Link cleaning on" : "Link cleaning off");\nsetStatus("Plain one");'
+      )
+    };
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+}
 
 async function importBundledModule(relativePath) {
   const temp = await mkdtemp(path.join(tmpdir(), "aviary-i18n-test-"));

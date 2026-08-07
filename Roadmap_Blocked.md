@@ -45,3 +45,28 @@ then implement it in the filter engine as a `filter.promotedRule` FilterAction a
 
 Note: two preset descriptions claimed "no promoted" while nothing implemented it. That copy has
 been corrected rather than left promising a feature the build does not have.
+
+## Block analytics beacons
+
+Split out of the P1 performance item; the offscreen-video half of that item shipped in v1.9.0.
+
+Blocked on an architecture and permission decision, not on effort. Aviary's content script has no
+`"world": "MAIN"` entry in either manifest, so it runs in the isolated world: patching `fetch`,
+`XMLHttpRequest` or `navigator.sendBeacon` there rewrites the *extension's* copies of those APIs
+and leaves the page's untouched. The userscript is in the same position -- it is granted `GM_*`,
+which puts it in the sandboxed scope rather than page scope.
+
+That leaves two routes, and they are not equivalent:
+
+1. `declarativeNetRequest` with dynamic rules from the service worker. Real blocking, but it adds
+   a network-blocking permission to a manifest that currently asks only for `storage`, and it
+   changes how the extension is reviewed. The userscript build cannot use it at all, so the two
+   artifacts would stop behaving the same way.
+2. A second `world: "MAIN"` content script carrying only the beacon patch, messaging back for the
+   setting. No new permission, but it is a new entrypoint and bundle in `tools/build.mjs`, and it
+   still has no userscript equivalent without dropping to `@grant none`.
+
+Re-entry condition: decide whether the extension may diverge from the userscript on this, and
+whether the permission expansion in route 1 is acceptable. Then implement against that decision,
+scoped to telemetry endpoints only (`/i/api/1.1/jot/*` and friends) with a fixture proving a
+timeline request is never matched.

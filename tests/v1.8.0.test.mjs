@@ -620,7 +620,15 @@ test("the panel renders one section at a time behind a nav rail", async () => {
     source.indexOf("const buildNav =")
   );
   const entries = [...registry.matchAll(/id: "([a-z]+)", title: "([^"]+)", group: "([A-Za-z]+)"/g)];
-  assert.equal(entries.length, 12, "every section must be declared in the registry");
+  // A lower bound, not an exact count: adding a section is normal growth, and pinning the number
+  // only turns every new section into a failing test. What must hold is that sections are
+  // declared here rather than inlined, and that ids stay unique.
+  assert.ok(entries.length >= 12, `expected at least 12 declared sections, found ${entries.length}`);
+  assert.equal(
+    new Set(entries.map((m) => m[1])).size,
+    entries.length,
+    "section ids must be unique -- a duplicate makes one section unreachable"
+  );
   assert.deepEqual(
     [...new Set(entries.map((m) => m[3]))],
     ["Start", "Reading", "Data", "Advanced"],

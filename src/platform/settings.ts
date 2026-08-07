@@ -140,6 +140,9 @@ export interface AviarySettings {
     cleanShareButtons: boolean;
     expandTco: boolean;
   };
+  performance: {
+    pauseOffscreenVideo: boolean;
+  };
   composer: {
     snippets: string[];
   };
@@ -219,6 +222,9 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     cleanShareButtons: true,
     expandTco: false
   },
+  performance: {
+    pauseOffscreenVideo: true
+  },
   composer: {
     snippets: []
   },
@@ -258,6 +264,7 @@ export function normalizeSettings(input: unknown): AviarySettings {
   const jobs = asRecord(record.jobs);
   const exportSettings = asRecord(record.export);
   const links = asRecord(record.links);
+  const performance = asRecord(record.performance);
   const composer = asRecord(record.composer);
   const privacy = asRecord(record.privacy);
   const accessibility = asRecord(record.accessibility);
@@ -358,6 +365,12 @@ export function normalizeSettings(input: unknown): AviarySettings {
     links: {
       cleanShareButtons: booleanValue(links.cleanShareButtons, DEFAULT_SETTINGS.links.cleanShareButtons),
       expandTco: booleanValue(links.expandTco, DEFAULT_SETTINGS.links.expandTco)
+    },
+    performance: {
+      pauseOffscreenVideo: booleanValue(
+        performance.pauseOffscreenVideo,
+        DEFAULT_SETTINGS.performance.pauseOffscreenVideo
+      )
     },
     composer: {
       snippets: stringArray(composer.snippets, { maxItems: 100, maxLength: 500 })

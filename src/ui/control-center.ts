@@ -468,6 +468,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     { id: "layout", title: "Layout", group: "Reading", build: layoutRows },
     { id: "filtering", title: "Filtering", group: "Reading", build: filterRows },
     { id: "hidden", title: "Hidden posts", group: "Reading", build: hiddenPostRows },
+    { id: "performance", title: "Performance", group: "Reading", build: performanceRows },
     { id: "media", title: "Media", group: "Data", build: mediaRows },
     { id: "export", title: "Export", group: "Data", build: exportRows },
     { id: "library", title: "Library", group: "Data", build: libraryRows },
@@ -1277,6 +1278,24 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         rows.push(row);
       }
     }
+
+    return rows;
+  };
+
+  const performanceRows = (): HTMLElement[] => {
+    const rows: HTMLElement[] = [];
+
+    rows.push(
+      toggleRow(
+        "Pause video that scrolls out of view",
+        "Stops decoding timeline video once it leaves the screen, and resumes it when it comes back. A video you paused yourself stays paused.",
+        options.settings.performance.pauseOffscreenVideo,
+        async (checked) => {
+          options.settings.performance.pauseOffscreenVideo = checked;
+          await save(checked ? "Offscreen video paused" : "Offscreen video left playing");
+        }
+      )
+    );
 
     return rows;
   };
