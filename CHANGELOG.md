@@ -107,6 +107,23 @@ Drains the audit findings left open by the v1.7.0 pass.
   both fields. Verified with `warcio`: all records parse, no header is injected, and every
   `Content-Length` matches its body bytes.
 
+- **The Control Center is navigable.** It rendered all twelve sections into a single 386px
+  column: 144 controls and roughly **nineteen screens of scrolling**, with no way to jump and no
+  search. It now has a grouped nav rail (Start / Reading / Data / Advanced) and builds only the
+  section being viewed — the same panel opens at **one screen** instead of nineteen, and the
+  panel widened to 780px so descriptions stop wrapping to four lines.
+- **Settings search.** Specified in the original F002 and never built. Typing filters rows across
+  every section at once, grouped under the section each match came from, with an empty state that
+  points back at the rail. Matching runs against the rendered row text, so a row added later is
+  searchable the moment it exists and a label edit cannot drift from a keyword list. The field
+  sits in the panel chrome rather than the re-rendered body, so typing keeps its caret.
+- **Below 760px the rail becomes a horizontal chip strip**, keeping every section one tap away
+  instead of behind a menu, with 44px targets.
+- **The panel chrome now follows the locale.** The search placeholder and the status line were
+  built once at mount and never repainted, so they stayed English in every other language — and
+  because `render()` resets the coverage tally, mount-only strings never reached the catalog at
+  all. Both now repaint per render and are translated in all nine locales.
+
 ### Decided
 
 - **No Escape-to-close handler.** The open question was whether standard dialog dismissal should

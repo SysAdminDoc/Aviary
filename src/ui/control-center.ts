@@ -143,6 +143,14 @@ export interface HiddenPostsStatus {
   recent: HiddenPostSummary[];
 }
 
+/** One entry in the settings rail: a heading group, a title, and the rows it owns. */
+interface PanelSection {
+  id: string;
+  title: string;
+  group: string;
+  build: () => HTMLElement[];
+}
+
 export interface ControlCenterHandle {
   destroy(): void;
   refresh(): void;
@@ -196,14 +204,34 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   status.setAttribute("role", "status");
   status.setAttribute("aria-live", "polite");
 
+  /**
+   * The search field lives in the chrome rather than the body. `render()` replaces the body
+   * wholesale, so a field inside it would lose focus and its caret on every keystroke; keeping
+   * it out here means typing survives a re-render with no restoration logic at all.
+   */
+  const searchBar = el("div", "av-searchbar");
+  const search = document.createElement("input");
+  search.type = "search";
+  search.className = "av-search-input";
+  search.placeholder = t("Search settings");
+  search.setAttribute("aria-label", t("Search settings"));
+  search.spellcheck = false;
+  searchBar.append(search);
+
   const body = el("div", "av-panel-body");
-  panel.append(header, body, status);
+  panel.append(header, searchBar, body, status);
   overlay.append(panel);
   shell.append(launcher, overlay);
   shadow.append(style, shell);
 
   let open = false;
   let dirtyWhileBusy = false;
+  /** Which section the content pane is showing. Survives a re-render via the closure. */
+  let activeSectionId = "presets";
+  /** Non-empty means the content pane shows matches from every section instead of one. */
+  let searchQuery = "";
+  /** English source of whatever the status line shows, so a locale change can re-translate it. */
+  let lastStatusEnglish = "Saved locally";
 
   const setOpen = (value: boolean): void => {
     open = value;
@@ -239,6 +267,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   };
 
   const setStatus = (message: string): void => {
+    lastStatusEnglish = message;
     status.textContent = t(message);
   };
 
@@ -288,12 +317,41 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     subtitle.textContent = t("Local controls for a quieter X.");
     close.textContent = t("Close");
     launcher.textContent = t("Aviary");
+    // Chrome outside `body` survives the re-render, which is the point — but that also means
+    // nothing repaints it on a locale change unless it is done here.
+    search.placeholder = t("Search settings");
+    search.setAttribute("aria-label", t("Search settings"));
+    // The status line keeps its English source so a locale change can re-translate whatever it
+    // is currently showing, rather than stranding the last toast in the previous language.
+    status.textContent = t(lastStatusEnglish);
 
     // Mirrored onto the host because shadow content cannot see the page-level motion class.
     host.dataset.avMotion = prefersReducedMotion(options.settings) ? "reduce" : "full";
-    body.replaceChildren(
-      section("Presets", presetRows()),
-      section("Appearance", [
+    const registry = sectionRegistry();
+    if (!registry.some((entry) => entry.id === activeSectionId)) {
+      activeSectionId = registry[0]?.id ?? "presets";
+    }
+    body.replaceChildren(buildNav(registry), buildContent(registry));
+
+    // Filled after the body exists so the number counts the render that just happened,
+    // including the rows drawn after this one.
+    const coverage = body.querySelector(`.${COVERAGE_ROW_CLASS} .av-row-description`);
+    if (coverage) {
+      coverage.textContent = coverageSummary();
+    }
+
+    body.scrollTop = scrollTop;
+    if (identity) {
+      const target = findByIdentity(identity);
+      if (target) {
+        target.focus({ preventScroll: true });
+        restoreSelection(target, selection);
+      }
+    }
+  };
+
+  const appearanceRows = (): HTMLElement[] => {
+    return [
         selectRow("Theme", options.settings.appearance.theme, [
           ["dim", "Dim"],
           ["lightsOut", "Lights out"],
@@ -347,8 +405,11 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             await save("Motion preference saved");
           }
         )
-      ]),
-      section("Layout", [
+    ];
+  };
+
+  const layoutRows = (): HTMLElement[] => {
+    return [
         toggleRow("Hide right sidebar", "Reduce trends, recommendations, and footer noise.", options.settings.layout.hideRightSidebar, async (checked) => {
           options.settings.layout.hideRightSidebar = checked;
           await save("Sidebar preference saved");
@@ -370,16 +431,11 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             await save(checked ? "Writer mode on" : "Writer mode off");
           }
         )
-      ]),
-      section("Filtering", filterRows()),
-      section("Hidden posts", hiddenPostRows()),
-      section("Media", mediaRows()),
-      section("Export", exportRows()),
-      section("Library", libraryRows()),
-      section("Snapshots & Archive", snapshotRows()),
-      section("Integrations", integrationRows()),
-      section("Backup & Audit", backupRows()),
-      section("Trust", [
+    ];
+  };
+
+  const trustRows = (): HTMLElement[] => {
+    return [
         readonlyRow("Storage", "Settings stay in this browser."),
         toggleRow(
           "Local-only mode",
@@ -394,24 +450,102 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         readonlyRow("Telemetry", options.settings.privacy.telemetry ? "Enabled" : "Disabled"),
         coverageRow(),
         dataRow("Selector health", selectorSummary())
-      ])
-    );
+    ];
+  };
 
-    // Filled after the body exists so the number counts the render that just happened,
-    // including the rows drawn after this one.
-    const coverage = body.querySelector(`.${COVERAGE_ROW_CLASS} .av-row-description`);
-    if (coverage) {
-      coverage.textContent = coverageSummary();
-    }
+  /**
+   * The panel used to render all twelve sections into one column: 144 controls and roughly
+   * nineteen screens of scrolling, with nothing to jump by. The registry lets the nav list the
+   * sections and the content pane build only the one being looked at, so opening the panel
+   * costs one section's worth of DOM instead of all of it.
+   *
+   * `group` is the heading a section sits under in the rail. Everyday reading controls come
+   * first; the things most people touch once, if ever, sit under Advanced.
+   */
+  const sectionRegistry = (): PanelSection[] => [
+    { id: "presets", title: "Presets", group: "Start", build: presetRows },
+    { id: "appearance", title: "Appearance", group: "Reading", build: appearanceRows },
+    { id: "layout", title: "Layout", group: "Reading", build: layoutRows },
+    { id: "filtering", title: "Filtering", group: "Reading", build: filterRows },
+    { id: "hidden", title: "Hidden posts", group: "Reading", build: hiddenPostRows },
+    { id: "media", title: "Media", group: "Data", build: mediaRows },
+    { id: "export", title: "Export", group: "Data", build: exportRows },
+    { id: "library", title: "Library", group: "Data", build: libraryRows },
+    { id: "snapshots", title: "Snapshots & Archive", group: "Data", build: snapshotRows },
+    { id: "integrations", title: "Integrations", group: "Advanced", build: integrationRows },
+    { id: "backup", title: "Backup & Audit", group: "Advanced", build: backupRows },
+    { id: "trust", title: "Trust", group: "Advanced", build: trustRows }
+  ];
 
-    body.scrollTop = scrollTop;
-    if (identity) {
-      const target = findByIdentity(identity);
-      if (target) {
-        target.focus({ preventScroll: true });
-        restoreSelection(target, selection);
+  const buildNav = (registry: PanelSection[]): HTMLElement => {
+    const nav = el("nav", "av-nav");
+    nav.setAttribute("aria-label", t("Settings sections"));
+
+    let currentGroup = "";
+    for (const entry of registry) {
+      if (entry.group !== currentGroup) {
+        currentGroup = entry.group;
+        nav.append(el("p", "av-nav-group", t(currentGroup)));
       }
+      const item = el("button", "av-nav-item", t(entry.title)) as HTMLButtonElement;
+      item.type = "button";
+      item.dataset.avSection = entry.id;
+      const selected = searchQuery.length === 0 && entry.id === activeSectionId;
+      item.classList.toggle("is-active", selected);
+      // A rail of buttons is a tablist in behaviour; say so rather than leaving it to guesswork.
+      item.setAttribute("aria-current", selected ? "true" : "false");
+      item.addEventListener("click", () => {
+        activeSectionId = entry.id;
+        // Choosing a section is an explicit "show me this", so drop any active filter.
+        searchQuery = "";
+        search.value = "";
+        render();
+      });
+      nav.append(item);
     }
+    return nav;
+  };
+
+  const buildContent = (registry: PanelSection[]): HTMLElement => {
+    const content = el("div", "av-content");
+    if (searchQuery.length > 0) {
+      content.append(...searchResults(registry));
+      return content;
+    }
+    const entry = registry.find((candidate) => candidate.id === activeSectionId) ?? registry[0]!;
+    content.append(section(entry.title, entry.build()));
+    return content;
+  };
+
+  /**
+   * Matching happens on the rendered row text rather than a separate keyword table, so a row
+   * added later is searchable the moment it exists and a label edit cannot desynchronise from
+   * its search terms. Sections are built once each here, which is the one render where paying
+   * for the whole panel is the point.
+   */
+  const searchResults = (registry: PanelSection[]): HTMLElement[] => {
+    const needle = searchQuery.trim().toLowerCase();
+    const out: HTMLElement[] = [];
+    let matches = 0;
+
+    for (const entry of registry) {
+      const hits = entry.build().filter((row) => (row.textContent ?? "").toLowerCase().includes(needle));
+      if (hits.length === 0) {
+        continue;
+      }
+      matches += hits.length;
+      out.push(section(entry.title, hits));
+    }
+
+    if (matches === 0) {
+      const empty = el("div", "av-empty");
+      empty.append(
+        el("p", "av-empty-title", t("Nothing matches that search.")),
+        el("p", "av-empty-hint", t("Try a shorter word, or pick a section on the left."))
+      );
+      return [empty];
+    }
+    return out;
   };
 
   const presetRows = (): HTMLElement[] => {
@@ -1952,6 +2086,12 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
   launcher.addEventListener("click", () => setOpen(!open));
   close.addEventListener("click", () => setOpen(false));
+  // `input` covers typing and the native clear affordance alike. The field is outside `body`,
+  // so the re-render below cannot steal the caret back.
+  search.addEventListener("input", () => {
+    searchQuery = search.value;
+    render();
+  });
   render();
 
   return {
@@ -2459,9 +2599,14 @@ input:focus-visible {
 }
 
 .av-panel {
-  width: min(386px, calc(100vw - 36px));
+  /* Was 386px for all twelve sections stacked in one column. The rail needs room beside the
+     content, and the content itself reads badly at ~350px once descriptions wrap to four
+     lines. */
+  width: min(780px, calc(100vw - 36px));
   max-height: min(720px, calc(100vh - 96px));
-  overflow: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--av-border, rgb(47, 51, 54));
   border-radius: 12px;
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
@@ -2514,10 +2659,111 @@ input:focus-visible {
   cursor: pointer;
 }
 
+.av-searchbar {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
+}
+
+.av-search-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--av-border, rgb(47, 51, 54));
+  border-radius: 8px;
+  background: var(--av-surface, rgb(15, 20, 25));
+  color: var(--av-text, rgb(239, 243, 244));
+  font: 13px/1.4 inherit;
+}
+
+.av-search-input::placeholder {
+  color: var(--av-muted, rgb(113, 118, 123));
+}
+
+/* Two panes: a fixed rail and a scrolling content column. Each scrolls independently, so
+   moving through a long section never scrolls the section list out of reach. */
 .av-panel-body {
   display: grid;
+  grid-template-columns: 196px minmax(0, 1fr);
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.av-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 8px;
+  overflow-y: auto;
+  border-right: 1px solid var(--av-border, rgb(47, 51, 54));
+}
+
+.av-nav-group {
+  /* The rail is sized so all twelve sections fit without scrolling at the default panel
+     height; a sliced-in-half last item reads as a rendering bug rather than as "more below". */
+  margin: 6px 0 2px;
+  padding: 0 8px;
+  color: var(--av-muted, rgb(113, 118, 123));
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.av-nav-group:first-child {
+  margin-top: 0;
+}
+
+.av-nav-item {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--av-muted, rgb(113, 118, 123));
+  font: 600 13px/1.2 inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.av-nav-item:hover {
+  background: var(--av-surface-raised, rgb(22, 24, 28));
+  color: var(--av-text, rgb(239, 243, 244));
+}
+
+.av-nav-item.is-active {
+  border-color: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 45%, transparent);
+  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 16%, transparent);
+  color: var(--av-text, rgb(239, 243, 244));
+}
+
+.av-content {
+  display: grid;
+  align-content: start;
   gap: 14px;
   padding: 16px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.av-empty {
+  display: grid;
+  gap: 6px;
+  padding: 24px 4px;
+}
+
+.av-empty-title {
+  margin: 0;
+  color: var(--av-text, rgb(239, 243, 244));
+  font-size: 14px;
+}
+
+.av-empty-hint {
+  margin: 0;
+  color: var(--av-muted, rgb(113, 118, 123));
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .av-section {
@@ -2552,6 +2798,14 @@ input:focus-visible {
   flex-direction: column;
   align-items: stretch;
   gap: 8px;
+}
+
+/* Text fields and textareas want the full row width; an action button does not. At the old
+   386px panel a stretched button looked deliberate — at 780px it reads as a banner. */
+.av-row-stack > .av-button {
+  align-self: start;
+  width: auto;
+  min-width: 132px;
 }
 
 .av-textarea,
@@ -2725,6 +2979,33 @@ input[type="checkbox"] {
   .av-panel {
     width: min(420px, calc(100vw - 16px));
     max-height: min(85vh, calc(100vh - 64px));
+  }
+
+  /* No room for a side rail. It becomes a horizontal strip of chips above the content, which
+     keeps every section one tap away instead of hiding them behind a menu. */
+  .av-panel-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .av-nav {
+    flex-direction: row;
+    gap: 6px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-right: 0;
+    border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
+  }
+
+  .av-nav-item {
+    flex: 0 0 auto;
+    min-height: 44px;
+  }
+
+  /* The group headings only make sense stacked; the chip order still follows them. */
+  .av-nav-group {
+    display: none;
   }
 }
 

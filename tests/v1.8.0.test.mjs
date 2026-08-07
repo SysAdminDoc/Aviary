@@ -610,3 +610,53 @@ test("a swallowed storage write still reports through the gateway sink", async (
     globalThis.localStorage = original;
   }
 });
+
+test("the panel renders one section at a time behind a nav rail", async () => {
+  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+
+  // Twelve sections in one column was ~144 controls and 19 screens of scrolling.
+  const registry = source.slice(
+    source.indexOf("const sectionRegistry ="),
+    source.indexOf("const buildNav =")
+  );
+  const entries = [...registry.matchAll(/id: "([a-z]+)", title: "([^"]+)", group: "([A-Za-z]+)"/g)];
+  assert.equal(entries.length, 12, "every section must be declared in the registry");
+  assert.deepEqual(
+    [...new Set(entries.map((m) => m[3]))],
+    ["Start", "Reading", "Data", "Advanced"],
+    "group order is the rail's reading order"
+  );
+
+  // The content pane builds the active section only — building all twelve would put the
+  // scrolling straight back.
+  assert.match(source, /content\.append\(section\(entry\.title, entry\.build\(\)\)\)/);
+});
+
+test("the settings search lives outside the re-rendered body", async () => {
+  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+
+  // render() calls body.replaceChildren(), so a search field inside `body` would lose focus
+  // and its caret on every keystroke. It has to hang off the panel chrome instead.
+  assert.match(source, /panel\.append\(header, searchBar, body, status\)/);
+  assert.ok(
+    !/body\.append\([^)]*searchBar/.test(source),
+    "the search bar must not be inside the re-rendered body"
+  );
+  assert.match(source, /search\.addEventListener\("input"/);
+  assert.ok(!/search\.addEventListener\("key/.test(source), "Aviary registers no key handlers");
+});
+
+test("search matches rendered row text and offers a way out when nothing matches", async () => {
+  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+
+  // Matching on the row's own text means a row added later is searchable immediately, and a
+  // label edit cannot drift from a separate keyword list.
+  assert.match(source, /\(row\.textContent \?\? ""\)\.toLowerCase\(\)\.includes\(needle\)/);
+  assert.match(source, /Nothing matches that search\./);
+  assert.match(source, /Try a shorter word, or pick a section on the left\./);
+
+  // Choosing a section has to clear the filter, or the click appears to do nothing.
+  const navClick = source.slice(source.indexOf("item.addEventListener(\"click\""), source.indexOf("nav.append(item)"));
+  assert.match(navClick, /searchQuery = ""/);
+  assert.match(navClick, /search\.value = ""/);
+});

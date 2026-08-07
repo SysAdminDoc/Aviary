@@ -190,7 +190,8 @@ test("hidden posts feature collapses the virtualizer cell and is registered at b
   assert.ok(!/keydown|keyup|keypress/.test(feature), "Aviary registers no keyboard shortcuts");
 
   assert.match(main, /registry\.register\(hiddenPostsFeature\)/);
-  assert.match(controlCenter, /section\("Hidden posts", hiddenPostRows\(\)\)/);
+  // Sections are declared in the panel's registry rather than inlined into one long render.
+  assert.match(controlCenter, /title: "Hidden posts", group: "\w+", build: hiddenPostRows/);
 });
 
 test("home fixture exposes the anchors the hide button and collapse rely on", async () => {
