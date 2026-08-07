@@ -1,5 +1,6 @@
 import type { FilterSurface } from "../../platform/settings";
 import type { FeatureContext, FeatureModule } from "../registry";
+import { ft } from "../core/feature-i18n";
 import {
   derivePostKey,
   handleFromHref,
@@ -289,9 +290,9 @@ function ensureButton(article: Element, key: string, ctx: FeatureContext): void 
   button.type = "button";
   button.className = "av-hide-button";
   button.setAttribute(BUTTON_ATTR, "1");
-  button.textContent = "Hide";
-  button.title = "Hide this post — Aviary keeps it hidden on future visits";
-  button.setAttribute("aria-label", "Hide this post");
+  button.textContent = ft(ctx, "Hide");
+  button.title = ft(ctx, "Hide this post — Aviary keeps it hidden on future visits");
+  button.setAttribute("aria-label", ft(ctx, "Hide this post"));
   button.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -333,12 +334,12 @@ async function hidePost(
     if (entry) {
       ctx.diagnostics.info("Post hidden", { key, handle: entry.handle });
       void ctx.auditLog.record("post.hide", { key });
-      showToast(`Post hidden — ${store.size()} stored`, ctx);
+      showToast(`${ft(ctx, "Post hidden")} — ${store.size()}`, ctx);
     }
   } catch (error) {
     button.disabled = false;
     ctx.diagnostics.error("Could not hide post", errorDetails(error));
-    showToast("Could not save the hidden post. Storage rejected the write.", ctx);
+    showToast(ft(ctx, "Could not save the hidden post. Storage rejected the write."), ctx);
   }
 }
 
@@ -357,17 +358,18 @@ function showToast(message: string, ctx: FeatureContext): void {
   }
 
   text.textContent = message;
+  undo.textContent = ft(ctx, "Undo");
   undo.disabled = false;
   undo.onclick = () => {
     undo.disabled = true;
     void undoLastHide(ctx)
       .then((entry) => {
-        text.textContent = entry ? "Post restored." : "Nothing left to restore.";
+        text.textContent = ft(ctx, entry ? "Post restored." : "Nothing left to restore.");
         scheduleToastDismiss(card, 2500);
       })
       .catch((error: unknown) => {
         ctx.diagnostics.error("Could not restore post", errorDetails(error));
-        text.textContent = "Could not restore that post.";
+        text.textContent = ft(ctx, "Could not restore that post.");
         scheduleToastDismiss(card, 4000);
       });
   };
@@ -418,7 +420,7 @@ function ensureToastHost(): ShadowRoot {
   const undo = document.createElement("button");
   undo.type = "button";
   undo.className = "av-toast-undo";
-  undo.textContent = "Undo";
+  // Label set per-show in showToast, where the context (and therefore the locale) is in hand.
 
   card.append(text, undo);
   shadow.append(style, card);

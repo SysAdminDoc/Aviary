@@ -1,4 +1,5 @@
 import type { FeatureContext, FeatureModule } from "../registry";
+import { ft } from "../core/feature-i18n";
 import { Aria2History } from "../integrations/aria2";
 import {
   createDownloader,
@@ -204,8 +205,8 @@ function buildButton(
   button.className = "av-media-button";
   button.setAttribute(BUTTON_ATTR, media.kind);
   button.dataset.kind = media.kind;
-  button.setAttribute("aria-label", buttonAriaLabel(media));
-  button.textContent = buttonLabel(media);
+  button.setAttribute("aria-label", ft(ctx, buttonAriaLabel(media)));
+  button.textContent = ft(ctx, buttonLabel(media));
 
   button.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -249,7 +250,7 @@ async function handleDownload(
 
   const target = resolveTarget(media);
   if (!target) {
-    button.textContent = "Unavailable";
+    button.textContent = ft(ctx, "Unavailable");
     button.disabled = true;
     button.classList.add("is-error");
     ctx.diagnostics.warn("Media target unavailable", { kind: media.kind });
@@ -272,7 +273,7 @@ async function handleDownload(
   if (ctx.settings.media.downloadHistory && history.has(dedupeKey)) {
     const job = queue.enqueue({ url: target.url, filename });
     queue.mark(job.id, "duplicate");
-    button.textContent = "Saved";
+    button.textContent = ft(ctx, "Saved");
     button.classList.add("is-duplicate");
     ctx.diagnostics.info("Media skipped — already in history", { dedupeKey });
     void ctx.auditLog.record("media.download.duplicate", { dedupeKey });
@@ -288,7 +289,7 @@ async function handleDownload(
     const result = await downloader({ url: target.url, filename });
     if (result.deduplicated) {
       queue.mark(job.id, "duplicate");
-      button.textContent = "Queued";
+      button.textContent = ft(ctx, "Queued");
       button.classList.remove("is-active");
       button.classList.add("is-duplicate");
       ctx.diagnostics.info("Media skipped — already queued in Aria2 history", { url: target.url });
@@ -307,23 +308,23 @@ async function handleDownload(
     if (ctx.settings.media.downloadHistory) {
       await history.record(dedupeKey);
     }
-    button.textContent = result.degraded ? "Opened" : successLabel(media);
+    button.textContent = ft(ctx, result.degraded ? "Opened" : successLabel(media));
     button.classList.remove("is-active");
     button.classList.add("is-success");
     if (result.degraded) {
-      button.title = "Your browser opened this file instead of saving it — grant Aviary the download permission for a real save.";
+      button.title = ft(ctx, "Your browser opened this file instead of saving it — grant Aviary the download permission for a real save.");
     }
     ctx.diagnostics.info("Media saved", { filename, kind: media.kind, degraded: result.degraded === true });
     void ctx.auditLog.record("media.download", { filename, kind: media.kind, via: result.via });
   } catch (error) {
     const needsPermission = error instanceof DownloadPermissionError;
     queue.mark(job.id, "failed", String((error as Error)?.message ?? error));
-    button.textContent = needsPermission ? "Allow" : "Retry";
+    button.textContent = ft(ctx, needsPermission ? "Allow" : "Retry");
     button.classList.remove("is-active");
     button.classList.add("is-error");
     button.disabled = false;
     if (needsPermission) {
-      button.title = "Aviary needs the browser download permission. Opening its options page.";
+      button.title = ft(ctx, "Aviary needs the browser download permission. Opening its options page.");
       if (!permissionSurfaceOpened) {
         permissionSurfaceOpened = true;
         void requestDownloadPermissionSurface();

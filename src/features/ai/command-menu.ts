@@ -1,6 +1,7 @@
 import type { FeatureContext, FeatureModule } from "../registry";
 import { runAiPrompt } from "../integrations/ai-provider";
 import { removeFeatureToast, showFeatureToast } from "../core/feature-toast";
+import { ft } from "../core/feature-i18n";
 
 const STYLE_ID = "av-ai-command-menu";
 const TRIGGER_ATTR = "data-av-ai-trigger";
@@ -111,8 +112,8 @@ function decorate(ctx: FeatureContext, root: ParentNode | Element): void {
     trigger.type = "button";
     trigger.className = "av-ai-trigger";
     trigger.setAttribute(TRIGGER_ATTR, "1");
-    trigger.setAttribute("aria-label", "Open Aviary AI command menu");
-    trigger.title = "Aviary AI commands (offline prompt builder)";
+    trigger.setAttribute("aria-label", ft(ctx, "Open Aviary AI command menu"));
+    trigger.title = ft(ctx, "Aviary AI commands (offline prompt builder)");
     trigger.textContent = "AI";
     trigger.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -152,15 +153,17 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
     item.type = "button";
     item.className = "av-ai-option";
     item.setAttribute("role", "menuitem");
-    item.title = command.hint;
-    item.textContent = aiEnabled ? `${command.label} (Run with provider)` : command.label;
+    item.title = ft(ctx, command.hint);
+    item.textContent = aiEnabled
+      ? `${ft(ctx, command.label)} — ${ft(ctx, "Run with provider")}`
+      : ft(ctx, command.label);
     item.addEventListener("click", async (event) => {
       event.stopPropagation();
       event.preventDefault();
       const prompt = command.promptTemplate(text);
       if (aiEnabled) {
         item.disabled = true;
-        item.textContent = `${command.label} — running…`;
+        item.textContent = `${ft(ctx, command.label)} — ${ft(ctx, "running…")}`;
         const result = await runAiPrompt(ctx.settings.integrations.ai, { prompt });
         if (result.ok && result.text) {
           try {
@@ -174,12 +177,12 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
               command: command.id,
               provider: ctx.settings.integrations.ai.provider
             });
-            showFeatureToast(`${command.label} finished — result copied to the clipboard.`, { ctx });
+            showFeatureToast(`${ft(ctx, command.label)}: ${ft(ctx, "result copied to the clipboard.")}`, { ctx });
           } catch (error) {
             ctx.diagnostics.warn("AI result clipboard failed", {
               error: String((error as Error)?.message ?? error)
             });
-            showFeatureToast("The result could not be copied. Your browser blocked clipboard access.", {
+            showFeatureToast(ft(ctx, "The result could not be copied. Your browser blocked clipboard access."), {
               tone: "error",
               ctx
             });
@@ -187,7 +190,7 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
         } else {
           ctx.diagnostics.warn("AI provider call failed", { error: result.error ?? "unknown" });
           showFeatureToast(
-            `${command.label} failed: ${result.error ?? "the provider did not respond"}. Check the key and model in Integrations.`,
+            `${ft(ctx, command.label)}: ${result.error ?? ft(ctx, "the provider did not respond")}. ${ft(ctx, "Check the key and model in Integrations.")}`,
             { tone: "error", ctx }
           );
         }
@@ -196,12 +199,12 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
           await copyToClipboard(prompt);
           ctx.diagnostics.info("AI prompt copied", { command: command.id, length: prompt.length });
           void ctx.auditLog.record("diagnostics.copy", { kind: "ai", command: command.id });
-          showFeatureToast("Prompt copied to the clipboard — paste it into your assistant.", { ctx });
+          showFeatureToast(ft(ctx, "Prompt copied to the clipboard — paste it into your assistant."), { ctx });
         } catch (error) {
           ctx.diagnostics.warn("AI prompt clipboard failed", {
             error: String((error as Error)?.message ?? error)
           });
-          showFeatureToast("The prompt could not be copied. Your browser blocked clipboard access.", {
+          showFeatureToast(ft(ctx, "The prompt could not be copied. Your browser blocked clipboard access."), {
             tone: "error",
             ctx
           });

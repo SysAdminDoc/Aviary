@@ -31,6 +31,7 @@ before(async () => {
       `export { mediaButtonsFeature } from ${JSON.stringify(abs("src/features/media/media-buttons.ts"))};`,
       `export { aiCommandMenuFeature } from ${JSON.stringify(abs("src/features/ai/command-menu.ts"))};`,
       `export { userNotesFeature } from ${JSON.stringify(abs("src/features/library/user-notes.ts"))};`,
+      `export { hiddenPostsFeature } from ${JSON.stringify(abs("src/features/filtering/hidden-posts-feature.ts"))};`,
       `export { readComposerText } from ${JSON.stringify(abs("src/features/integrations/crosspost.ts"))};`
     ].join("\n"),
     "utf8"
@@ -77,7 +78,8 @@ const CTX_SETUP = () => {
         filenameTemplate: "{handle}",
         downloadHistory: false
       },
-      integrations: { ai: { enabled: false, apiKey: "" } }
+      integrations: { ai: { enabled: false, apiKey: "" } },
+      i18n: { locale: "en" }
     },
     diagnostics: { info() {}, warn() {}, error() {} },
     auditLog: { record() {} }
@@ -203,4 +205,77 @@ test("readComposerText preserves paragraph breaks in a Draft.js-shaped composer"
 
   assert.equal(text, "first paragraph\n\nsecond paragraph");
   assert.equal(text.split(/\r?\n\s*\r?\n/).length, 2, "thread mode splits on exactly this break");
+});
+
+test("timeline controls render in the reader's locale, not English", async () => {
+  const rendered = await page.evaluate(async () => {
+    const results = {};
+    for (const locale of ["en", "ja", "ar"]) {
+      document.body.replaceChildren();
+      const ctx = {
+        settings: {
+          media: { buttons: true, preferOriginalImages: true, filenameTemplate: "x", downloadHistory: false },
+          hidden: { enabled: true, buttons: true, surfaces: ["home"], maxEntries: 10 },
+          integrations: { ai: { enabled: false, apiKey: "" } },
+          i18n: { locale },
+          accessibility: { reduceMotion: "never" }
+        },
+        route: { surface: "home", href: "https://x.com/home", path: "/home" },
+        storage: { get: async (_key, fallback) => fallback, set: async () => {} },
+        diagnostics: { info() {}, warn() {}, error() {} },
+        auditLog: { record() {} },
+        requestApply() {}
+      };
+
+      const article = document.createElement("article");
+      article.setAttribute("data-testid", "tweet");
+      const name = document.createElement("div");
+      name.setAttribute("data-testid", "User-Name");
+      const handle = document.createElement("a");
+      handle.setAttribute("href", "/someone");
+      name.append(handle);
+      const status = document.createElement("a");
+      status.setAttribute("href", "/someone/status/123");
+      const group = document.createElement("div");
+      group.setAttribute("role", "group");
+      group.setAttribute("aria-label", "actions");
+      const photo = document.createElement("div");
+      photo.setAttribute("data-testid", "tweetPhoto");
+      const img = document.createElement("img");
+      img.src = "https://pbs.twimg.com/media/AbCdEf123?format=jpg&name=900x900";
+      photo.append(img);
+      article.append(name, status, group, photo);
+      document.body.append(article);
+
+      await Aviary.hiddenPostsFeature.init(ctx);
+      Aviary.mediaButtonsFeature.apply(ctx, document, [article]);
+      Aviary.aiCommandMenuFeature.apply(ctx, document, [article]);
+
+      results[locale] = {
+        hide: document.querySelector("[data-av-hide-button]")?.textContent ?? null,
+        save: document.querySelector("[data-av-media-button]")?.textContent ?? null,
+        ai: document.querySelector("[data-av-ai-trigger]")?.getAttribute("aria-label") ?? null
+      };
+
+      await Aviary.hiddenPostsFeature.destroy(ctx);
+      Aviary.mediaButtonsFeature.destroy(ctx);
+      Aviary.aiCommandMenuFeature.destroy(ctx);
+    }
+    return results;
+  });
+
+  assert.deepEqual(rendered.en, {
+    hide: "Hide",
+    save: "Save",
+    ai: "Open Aviary AI command menu"
+  });
+
+  // The panel has been fully localized since v1.8.0 while every control Aviary puts on the page
+  // stayed English -- a translated settings panel next to an English Hide button on every post.
+  for (const locale of ["ja", "ar"]) {
+    for (const [key, value] of Object.entries(rendered[locale])) {
+      assert.ok(value, `${locale}.${key} did not render`);
+      assert.notEqual(value, rendered.en[key], `${locale}.${key} is still English`);
+    }
+  }
 });

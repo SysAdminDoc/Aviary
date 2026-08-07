@@ -103,7 +103,7 @@ test("removeFeatureToast takes the host with it", async () => {
 test("the AI menu flips above the trigger instead of running past the fold", async () => {
   const result = await page.evaluate(() => {
     const ctx = {
-      settings: { integrations: { ai: { enabled: false, apiKey: "" } } },
+      settings: { integrations: { ai: { enabled: false, apiKey: "" } }, i18n: { locale: "en" } },
       diagnostics: { info() {}, warn() {}, error() {} },
       auditLog: { record() {} }
     };
@@ -142,7 +142,7 @@ test("the AI menu flips above the trigger instead of running past the fold", asy
 test("destroy removes an open AI menu and its document listener", async () => {
   const result = await page.evaluate(() => {
     const ctx = {
-      settings: { integrations: { ai: { enabled: false, apiKey: "" } } },
+      settings: { integrations: { ai: { enabled: false, apiKey: "" } }, i18n: { locale: "en" } },
       diagnostics: { info() {}, warn() {}, error() {} },
       auditLog: { record() {} }
     };
@@ -173,9 +173,11 @@ test("no outcome path in the AI menu or snippets ends without telling the user",
   const snippets = await readFile(path.join(root, "src/features/composer/composer-snippets.ts"), "utf8");
 
   // Every branch that previously closed the menu in silence.
-  assert.match(menu, /result copied to the clipboard/);
+  // Routed through ft() now, so the assertions look for the source strings the catalog is
+  // keyed on rather than the interpolated sentence.
+  assert.match(menu, /result copied to the clipboard\./);
   assert.match(menu, /could not be copied/);
-  assert.match(menu, /failed: \$\{result\.error/);
+  assert.match(menu, /the provider did not respond/);
   assert.match(menu, /Prompt copied to the clipboard/);
   assert.match(snippets, /Click into the composer first/);
 });

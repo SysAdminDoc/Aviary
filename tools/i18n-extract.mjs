@@ -16,6 +16,9 @@
  *    language and translating them would be wrong.
  * 4. Status and error copy lives in branches one render cannot reach, so `setStatus("…")`
  *    literals are harvested from the source and unioned in.
+ * 5. Features that inject into the timeline never render inside the panel at all, so their
+ *    `ft(ctx, "…")` call sites — and the static preset label/description data — are harvested
+ *    from source the same way.
  */
 import { chromium } from "playwright";
 import { build } from "esbuild";
@@ -48,7 +51,9 @@ function stubs(variant) {
   getUserNotes: () => ({ ${v ? "someone" : "another"}: "a note" }),
   setUserNote: async () => {},
   clearUserNotes: async () => {},
-  listPresets: () => [{ id: "quiet", label: "Quiet Reader", description: "A calmer timeline." }],
+  // Real preset copy: a stub phrase here would enter the manifest and give translators a
+  // string the product never shows.
+  listPresets: () => [{ id: "quiet-reader", label: "Quiet Reader", description: "Hide trends and row borders, dim premium posts, strip t.co, dense + dim theme." }],
   applyPreset: async () => ({ applied: true, changes: [] }),
   listLocales: () => supportedLocales(),
   setLocale: async (code: string) => { settings.i18n.locale = code; },
@@ -195,6 +200,13 @@ const dropped = a.strings.filter((s) => !inB.has(s) || endonyms.has(s));
 const src = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
 const statusLiterals = harvestStatusLiterals(src);
 
+// Features that inject into the timeline translate through `ft(ctx, "…")`. They never render
+// inside the panel, so no amount of mounting finds them -- they are harvested from source, like
+// the status literals. Preset labels and descriptions are static data in presets.ts and are
+// wrapped with t() at render time, so they come from there too.
+const featureSources = await readFeatureSources();
+const featureLiterals = [...new Set(featureSources.flatMap(harvestFeatureLiterals))];
+
 /**
  * Collects every string literal inside a `setStatus(...)` / `save(...)` call.
  *
@@ -203,6 +215,44 @@ const statusLiterals = harvestStatusLiterals(src);
  * those confirmations were shipping in English regardless of locale. Scanning to the matching
  * close paren instead catches both arms, and any future shape.
  */
+async function readFeatureSources() {
+  const { readdir } = await import("node:fs/promises");
+  const roots = [path.join(root, "src/features"), path.join(root, "src/ui")];
+  const files = [];
+  const walk = async (dir) => {
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) await walk(full);
+      else if (entry.name.endsWith(".ts")) files.push(full);
+    }
+  };
+  for (const dir of roots) await walk(dir);
+  return Promise.all(files.map((file) => readFile(file, "utf8")));
+}
+
+/**
+ * Every double-quoted literal reachable from an `ft(ctx, …)` call, plus the static
+ * label/description/hint data (presets, AI commands) that the panel wraps in `t()` at render
+ * time. Both arms of a ternary are taken, for the same reason the status harvest does it.
+ */
+function harvestFeatureLiterals(source) {
+  const found = [];
+  for (const match of source.matchAll(/\bft\([^,]+,\s*"((?:[^"\\]|\\.)*)"/g)) {
+    found.push(JSON.parse(`"${match[1]}"`));
+  }
+  for (const match of source.matchAll(
+    /\bft\([^,]+,[^)]*\?\s*"((?:[^"\\]|\\.)*)"\s*:\s*"((?:[^"\\]|\\.)*)"/g
+  )) {
+    found.push(JSON.parse(`"${match[1]}"`), JSON.parse(`"${match[2]}"`));
+  }
+  for (const match of source.matchAll(
+    /^\s+(?:label|description|hint):\s*"((?:[^"\\]|\\.)*)",?$/gm
+  )) {
+    found.push(JSON.parse(`"${match[1]}"`));
+  }
+  return found;
+}
+
 function harvestStatusLiterals(source) {
   const found = [];
   for (const match of source.matchAll(/\b(?:setStatus|save)\(/g)) {
@@ -248,7 +298,7 @@ const { PANEL_STRINGS: previous } = await import(pathToFileURL(prevOut).href);
 
 const manifest = [];
 const seen = new Set();
-for (const s of [...copy, ...statusLiterals, ...previous]) {
+for (const s of [...copy, ...statusLiterals, ...featureLiterals, ...previous]) {
   const v = s.trim();
   if (v.length > 0 && !seen.has(v)) {
     seen.add(v);
@@ -259,6 +309,7 @@ for (const s of [...copy, ...statusLiterals, ...previous]) {
 console.log(`rendered:        ${a.strings.length} (${a.sections} sections visited)`);
 console.log(`data / endonyms: ${dropped.length} dropped`);
 console.log(`setStatus:       ${statusLiterals.length}`);
+console.log(`ft() + presets:  ${featureLiterals.length}`);
 console.log(`MANIFEST:        ${manifest.length}`);
 
 const catOut = path.join(temp, "catalog.mjs");

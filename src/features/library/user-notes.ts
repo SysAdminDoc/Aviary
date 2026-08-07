@@ -1,5 +1,6 @@
 import type { StorageGateway } from "../../platform/storage";
 import type { FeatureContext, FeatureModule } from "../registry";
+import { ft } from "../core/feature-i18n";
 
 export const USER_NOTES_KEY = "aviary.userNotes.v1";
 const STYLE_ID = "av-user-notes";
@@ -112,7 +113,7 @@ async function load(storage: StorageGateway): Promise<UserNotesStore> {
   return { notes: sanitized, updatedAt: stored?.updatedAt ?? null };
 }
 
-function decorate(_ctx: FeatureContext, root: ParentNode | Element): void {
+function decorate(ctx: FeatureContext, root: ParentNode | Element): void {
   if (!cache) return;
   const articles =
     root instanceof Element && root.matches('article[data-testid="tweet"]')
@@ -138,10 +139,10 @@ function decorate(_ctx: FeatureContext, root: ParentNode | Element): void {
     const badge = document.createElement("span");
     badge.setAttribute(BADGE_ATTR, "1");
     badge.className = "av-note-badge";
-    badge.textContent = "Note";
+    badge.textContent = ft(ctx, "Note");
     badge.title = note;
     badge.setAttribute("role", "note");
-    badge.setAttribute("aria-label", `Note for @${handle}: ${note}`);
+    badge.setAttribute("aria-label", `${ft(ctx, "Note")} @${handle}: ${note}`);
     userName.append(badge);
     article.setAttribute(ARTICLE_ATTR, "1");
   }

@@ -597,8 +597,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       const row = el("div", "av-row av-row-stack");
       const copy = el("span", "av-row-copy");
       copy.append(
-        el("span", "av-row-label", preset.label),
-        el("span", "av-row-description", preset.description)
+        el("span", "av-row-label", t(preset.label)),
+        el("span", "av-row-description", t(preset.description))
       );
       const apply = el("button", "av-button av-button-secondary", t("Apply")) as HTMLButtonElement;
       apply.type = "button";
@@ -608,9 +608,9 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           .applyPreset!(preset.id)
           .then((result) => {
             if (result.applied) {
-              setStatus(`Applied "${preset.label}" — ${result.changes.length} changes`);
+              setStatus(`${t("Preset applied")}: ${t(preset.label)} (${result.changes.length})`);
             } else {
-              setStatus(`Preset "${preset.label}" unchanged.`);
+              setStatus(`${t("Preset already applied")}: ${t(preset.label)}`);
             }
           })
           .catch((error: unknown) => {

@@ -1,4 +1,5 @@
 import type { FeatureContext, FeatureModule } from "../registry";
+import { ft } from "../core/feature-i18n";
 import { removeFeatureToast, showFeatureToast } from "../core/feature-toast";
 
 const STYLE_ID = "av-composer-snippets";
@@ -59,8 +60,8 @@ function decorate(ctx: FeatureContext, root: ParentNode | Element): void {
     button.type = "button";
     button.className = "av-snippet-trigger";
     button.setAttribute(PALETTE_ATTR, "trigger");
-    button.textContent = "Snippets";
-    button.setAttribute("aria-label", "Open Aviary composer snippets");
+    button.textContent = ft(ctx, "Snippets");
+    button.setAttribute("aria-label", ft(ctx, "Open Aviary composer snippets"));
     button.addEventListener("click", (event) => {
       event.stopPropagation();
       event.preventDefault();
@@ -86,7 +87,7 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
   if (snippets.length === 0) {
     const empty = document.createElement("div");
     empty.className = "av-snippet-empty";
-    empty.textContent = "No snippets yet. Add some in the Control Center → Library.";
+    empty.textContent = ft(ctx, "No snippets yet. Add some in the Control Center → Library.");
     popover.append(empty);
   } else {
     for (const snippet of snippets) {
@@ -106,7 +107,7 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
           ctx.diagnostics.warn("Snippet insert failed — composer not focused");
           // A successful insert is self-evident (the text appears); only the failure needs
           // saying, and it needs to say what to do about it.
-          showFeatureToast("Click into the composer first, then pick a snippet.", {
+          showFeatureToast(ft(ctx, "Click into the composer first, then pick a snippet."), {
             tone: "error",
             ctx
           });

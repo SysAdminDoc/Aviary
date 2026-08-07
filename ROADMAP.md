@@ -954,13 +954,19 @@ Baseline at `409f846`: `tsc` clean, 188/188 tests pass, build+preflight green. F
 ordered P1 → P3; each was verified as described in its Evidence line. Verification harnesses ran
 read-only (Playwright against `_decoded/home.html` and scratch pages); no source was changed.
 
-- [ ] P2 — Every timeline-injected surface (and the options page) is English-only while the panel ships 8 locales
+- [ ] P3 — The extension options page is still English-only
   Category: ux
-  Where: src/features/filtering/hidden-posts-feature.ts (Hide button, toast copy), src/features/media/media-buttons.ts (Save/Saved/Queued/Unavailable/Retry/Allow + permission titles), src/features/ai/command-menu.ts (AI_COMMANDS labels/hints, menu items), src/features/composer/composer-snippets.ts (Snippets, empty copy), src/features/library/user-notes.ts (Note badge), src/extension/options.html + src/entrypoints/extension-options.ts; plus src/ui/control-center.ts:584-607 — preset cards render preset.label/preset.description raw, and the Applied-preset setStatus is a template literal that can never match the catalog (the panel's landing section)
-  Problem: The catalog covers only strings routed through t() in the panel; none of the injected features import i18n at all, so an Arabic or Japanese user gets a fully translated Control Center whose default section (Presets) and every in-timeline control is English.
-  Evidence: grep -l "platform/i18n" over src/features matches only core/control-center and core/i18n-feature; preset rows at ui/control-center.ts:594-595 bypass t().
-  Fix: Route injected-UI strings through translateText (they can share PANEL_CATALOG; extend tools/i18n-extract.mjs's source harvest to per-feature exported string constants), wrap preset label/description in t(), and split the Applied-preset status into catalog-matchable parts. Options page strings can ship as data-i18n attributes resolved by extension-options.ts.
-  Acceptance: With locale=es, the Hide button, media buttons, AI menu, snippets, preset cards and the Applied status all render Spanish; i18n-extract reports the new strings and every locale stays complete.
+  Where: src/extension/options.html, src/entrypoints/extension-options.ts
+  Problem: Every other Aviary surface is localized across nine locales as of v1.9.0; the
+  permissions page is not. It is a separate document with no FeatureContext, so it cannot use
+  `ft()` -- it would have to read `aviary.settings.v1` from chrome.storage itself.
+  Evidence: The page's strings are literals in options.html plus the status sentences in
+  extension-options.ts; neither imports platform/i18n.
+  Fix: Decide the bundle trade-off first -- importing PANEL_CATALOG pulls ~240KB into a page
+  that currently ships ~3KB and is opened rarely. Either (a) accept it and resolve
+  `data-i18n` attributes on load after reading the locale from chrome.storage.local, or
+  (b) emit a small options-only catalog subset at build time in tools/build.mjs.
+  Acceptance: With locale=ja saved, opening the options page shows Japanese card titles,
+  button labels and status sentences; the built options bundle size is recorded in the commit.
   Confidence: Verified
-  Effort: L
-
+  Effort: M
