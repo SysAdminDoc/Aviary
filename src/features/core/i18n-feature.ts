@@ -64,17 +64,11 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
   unicode-bidi: plaintext;
 }
 
-[data-testid="tweetText"],
-[data-testid="cellInnerDiv"] {
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
 @media (pointer: coarse) {
-  html [data-testid="reply"],
-  html [data-testid="retweet"],
-  html [data-testid="like"],
-  html [data-testid="bookmark"] {
+  html.av-touch [data-testid="reply"],
+  html.av-touch [data-testid="retweet"],
+  html.av-touch [data-testid="like"],
+  html.av-touch [data-testid="bookmark"] {
     min-height: 44px;
     min-width: 44px;
   }

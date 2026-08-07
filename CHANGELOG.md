@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.13.1 - 2026-08-07
+
+### Fixed
+
+- **Two stylesheets restyled X no matter what your settings said.** `media-buttons` injected its
+  sheet from `init()` *before* checking `media.buttons`, so every install — including one with
+  every option switched off — got `position: relative` forced onto every `tweetPhoto`,
+  `videoPlayer` and `videoComponent`. X anchors the photo itself with `position: absolute` and
+  `inset: 0`, so on any layout where the photo box takes its height from a sibling spacer, making
+  that box the containing block collapses the image to zero height: loaded, present, invisible.
+  The sheet is now injected only while the feature is on, removed when it is switched off, and
+  the rule itself is scoped to `html.av-media-buttons-enabled`.
+- `i18n-feature` likewise rewrote X's text wrapping (`overflow-wrap: anywhere; word-break:
+  break-word` on every tweet and timeline cell) and enlarged its reply/repost/like/bookmark tap
+  targets for everyone, with nothing to switch either off. The wrapping override is gone; the tap
+  targets now require the `av-touch` class that the mobile feature already manages.
+- A test now fails any rule Aviary injects into the page whose selector carries no `av-` class,
+  `data-av` attribute or `:host` — the property that both defects violated.
+
+
 ## 1.13.0 - 2026-08-07
 
 ### Changed

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/aviary-x
-// @version      1.13.0
+// @version      1.13.1
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       Aviary contributors
 // @match        https://x.com/*
@@ -4828,7 +4828,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION = false ? "dev" : "1.13.0";
+  var AVIARY_VERSION = false ? "dev" : "1.13.1";
   var MEDIA_LAYOUT_OPTIONS = [
     ["default", "Default grid"],
     ["stacked", "Stacked"],
@@ -11301,7 +11301,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     category: "media",
     defaultEnabled: true,
     async init(ctx) {
-      ensureMediaStyle();
+      if (ctx.settings.media.buttons) {
+        ensureMediaStyle();
+      }
       aria2History = new Aria2History(ctx.storage);
       await aria2History.load();
       if (ctx.settings.integrations.aria2.enabled && ctx.settings.integrations.aria2.endpoint) {
@@ -11336,8 +11338,10 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       ensureMediaStyle();
       applyToggleClass(ctx);
       if (!ctx.settings.media.buttons) {
+        document.getElementById(STYLE_ID3)?.remove();
         return;
       }
+      ensureMediaStyle();
       if (!addedNodes || addedNodes.length === 0) {
         scanArticles(root, ctx);
         return;
@@ -11634,10 +11638,16 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
 }
 
 /* Every container that can host a button needs to be the positioning context, or the
-   absolutely-positioned button anchors to whatever ancestor X happens to have positioned. */
-[data-testid="tweetPhoto"],
-[data-testid="videoPlayer"],
-[data-testid="videoComponent"] {
+   absolutely-positioned button anchors to whatever ancestor X happens to have positioned.
+
+   Scoped to the enabled class, and deliberately so: X anchors the photo itself with
+   position:absolute and inset:0, and on layouts where the tweetPhoto box is zero-height (the
+   height coming from a sibling spacer) making it the containing block collapses the image to
+   nothing. Loaded, present, and invisible. It must never apply unless a button is actually
+   there to be positioned. */
+html.av-media-buttons-enabled [data-testid="tweetPhoto"],
+html.av-media-buttons-enabled [data-testid="videoPlayer"],
+html.av-media-buttons-enabled [data-testid="videoComponent"] {
   position: relative;
 }
 
@@ -14382,17 +14392,11 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
   unicode-bidi: plaintext;
 }
 
-[data-testid="tweetText"],
-[data-testid="cellInnerDiv"] {
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
 @media (pointer: coarse) {
-  html [data-testid="reply"],
-  html [data-testid="retweet"],
-  html [data-testid="like"],
-  html [data-testid="bookmark"] {
+  html.av-touch [data-testid="reply"],
+  html.av-touch [data-testid="retweet"],
+  html.av-touch [data-testid="like"],
+  html.av-touch [data-testid="bookmark"] {
     min-height: 44px;
     min-width: 44px;
   }

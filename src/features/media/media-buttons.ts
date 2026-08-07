@@ -32,7 +32,12 @@ export const mediaButtonsFeature: FeatureModule = {
   defaultEnabled: true,
 
   async init(ctx) {
-    ensureMediaStyle();
+    // Only when the feature is on. This used to run unconditionally, so a user with media
+    // buttons disabled still got `position: relative` forced onto every tweetPhoto -- which
+    // collapses the image to zero height wherever X anchors it to a taller ancestor.
+    if (ctx.settings.media.buttons) {
+      ensureMediaStyle();
+    }
     aria2History = new Aria2History(ctx.storage);
     await aria2History.load();
     // Gated on `enabled`, not merely on a configured endpoint: turning the integration off left
@@ -72,8 +77,11 @@ export const mediaButtonsFeature: FeatureModule = {
     ensureMediaStyle();
     applyToggleClass(ctx);
     if (!ctx.settings.media.buttons) {
+      // Turned off after boot: drop the stylesheet so nothing of ours is left styling X.
+      document.getElementById(STYLE_ID)?.remove();
       return;
     }
+    ensureMediaStyle();
     if (!addedNodes || addedNodes.length === 0) {
       scanArticles(root, ctx);
       return;
@@ -416,10 +424,16 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
 }
 
 /* Every container that can host a button needs to be the positioning context, or the
-   absolutely-positioned button anchors to whatever ancestor X happens to have positioned. */
-[data-testid="tweetPhoto"],
-[data-testid="videoPlayer"],
-[data-testid="videoComponent"] {
+   absolutely-positioned button anchors to whatever ancestor X happens to have positioned.
+
+   Scoped to the enabled class, and deliberately so: X anchors the photo itself with
+   position:absolute and inset:0, and on layouts where the tweetPhoto box is zero-height (the
+   height coming from a sibling spacer) making it the containing block collapses the image to
+   nothing. Loaded, present, and invisible. It must never apply unless a button is actually
+   there to be positioned. */
+html.av-media-buttons-enabled [data-testid="tweetPhoto"],
+html.av-media-buttons-enabled [data-testid="videoPlayer"],
+html.av-media-buttons-enabled [data-testid="videoComponent"] {
   position: relative;
 }
 
