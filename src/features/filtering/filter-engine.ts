@@ -15,6 +15,8 @@ const RESULT_ATTR = "data-av-filter-result";
 
 let generation = 0;
 let compiled: CompiledFilters | undefined;
+/** Serialised filter inputs behind the current `compiled`, so an unchanged apply is free. */
+let compiledSignature = "";
 
 export const filterEngineFeature: FeatureModule = {
   id: "filtering.engine",
@@ -51,6 +53,7 @@ export const filterEngineFeature: FeatureModule = {
 
   destroy(ctx) {
     compiled = undefined;
+    compiledSignature = "";
     generation = 0;
     document.getElementById(STYLE_ID)?.remove();
     document.documentElement.classList.remove("av-filter-enabled");
@@ -84,6 +87,14 @@ function surfaceMatches(ctx: FeatureContext): boolean {
 }
 
 function refreshCompiled(ctx: FeatureContext): void {
+  // `generation` doubles as the per-article processed stamp, so bumping it on every apply
+  // invalidated every article on every mutation batch -- the stamp check could never hit and
+  // the whole visible timeline was re-extracted (5+ querySelectorAll each) roughly every 120ms.
+  const signature = filterSignature(ctx);
+  if (compiled && signature === compiledSignature) {
+    return;
+  }
+  compiledSignature = signature;
   generation += 1;
   compiled = compileFilters({
     keywords: ctx.settings.filter.keywordRules,
@@ -93,6 +104,18 @@ function refreshCompiled(ctx: FeatureContext): void {
     media: ctx.settings.filter.mediaTypes,
     generation
   });
+}
+
+function filterSignature(ctx: FeatureContext): string {
+  const filter = ctx.settings.filter;
+  return JSON.stringify([
+    filter.keywordRules,
+    filter.regexRules,
+    filter.whitelist,
+    filter.premiumRule,
+    filter.mediaTypes,
+    filter.enabled
+  ]);
 }
 
 function scanRoot(root: ParentNode | Element, ctx: FeatureContext): void {

@@ -1,5 +1,5 @@
 import { supportedLocales } from "../../platform/i18n";
-import { normalizeSettings, SETTINGS_KEY, type AviarySettings } from "../../platform/settings";
+import type { AviarySettings } from "../../platform/settings";
 import type {
   ControlCenterHandle,
   ExportStatus,
@@ -130,7 +130,7 @@ export const controlCenterFeature: FeatureModule = {
         const report = parseSettingsImport(payload, ctx.settings);
         if (report.applied) {
           Object.assign(ctx.settings, report.settings);
-          await ctx.storage.set(SETTINGS_KEY, normalizeSettings(ctx.settings));
+          await ctx.saveSettings();
           ctx.requestApply();
           void ctx.auditLog.record("settings.import", {
             warnings: report.warnings.length,
@@ -277,7 +277,7 @@ export const controlCenterFeature: FeatureModule = {
         const changes = describePresetDelta(ctx.settings, preset);
         const next = applyPreset(ctx.settings, preset);
         replaceSettings(ctx.settings, next);
-        await ctx.storage.set(SETTINGS_KEY, normalizeSettings(ctx.settings));
+        await ctx.saveSettings();
         ctx.requestApply();
         void ctx.auditLog.record("settings.import", { preset: preset.id, changes: changes.length });
         return { applied: changes.length > 0, changes };
@@ -291,7 +291,7 @@ export const controlCenterFeature: FeatureModule = {
       },
       async setLocale(code) {
         ctx.settings.i18n.locale = code;
-        await ctx.storage.set(SETTINGS_KEY, normalizeSettings(ctx.settings));
+        await ctx.saveSettings();
         ctx.requestApply();
       },
       getCleanupQueueSize() {

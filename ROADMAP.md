@@ -974,16 +974,6 @@ read-only (Playwright against `_decoded/home.html` and scratch pages); no source
   Confidence: Verified
   Effort: M
 
-- [ ] P2 — Filter engine re-extracts and re-decides every article on every mutation batch
-  Category: perf
-  Where: src/features/filtering/filter-engine.ts:33-36 (apply → refreshCompiled), 88-97 (generation += 1), 120-135 (processArticle stamp check)
-  Problem: apply() unconditionally calls refreshCompiled, which increments generation; processArticle skips only when the article's stamp equals the current generation — which is new every batch. The stamp optimization is therefore dead: every observer flush re-runs extractTweetSignal (5+ querySelectorAll per article) and recompiles user regexes for the whole visible timeline, roughly every 120 ms while scrolling with filters enabled.
-  Evidence: Read the three functions; generation is bumped even when settings are unchanged.
-  Fix: Recompile only when the filter inputs actually changed — keep a serialized snapshot of the six inputs and bump generation only on change; otherwise reuse the compiled object.
-  Acceptance: A test applies twice with unchanged settings and asserts a stamped article is not re-processed on the second pass, and a settings change still re-processes it.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — Saved-post search cannot match any non-Latin text
   Category: ux
   Where: src/features/library/local-search.ts tokenize (split on /[^a-z0-9_@]+/i)
@@ -1044,16 +1034,6 @@ read-only (Playwright against `_decoded/home.html` and scratch pages); no source
   Confidence: Verified
   Effort: S
 
-- [ ] P3 — Silent read-failure path can quietly reset a store to defaults (localStorage backend)
-  Category: reliability
-  Where: src/platform/storage.ts get() catch → returns fallback
-  Problem: A JSON.parse failure (corrupted value) or backend read error returns the fallback with no signal; at boot that means DEFAULT_SETTINGS, and the next save permanently overwrites the corrupted-but-recoverable value. Only the write path reports to the error sink.
-  Evidence: Read get(); the sink is write-only.
-  Fix: Report read failures through the same sink (with an op discriminator) before returning the fallback; do not throw.
-  Acceptance: Test: a localStorage value of invalid JSON triggers the sink once and returns the fallback.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P3 — Export's observer capture path is dead code (activeJobId window is one storage write)
   Category: maintainability
   Where: src/features/export/export-feature.ts:38-50 (apply), 104-107 (activeJobId set and cleared)
@@ -1081,16 +1061,6 @@ read-only (Playwright against `_decoded/home.html` and scratch pages); no source
   Evidence: Read createDownloader; the error is dropped (the module has no diagnostics access).
   Fix: Thread an optional onWarn callback through DownloaderOptions (media-buttons passes ctx.diagnostics.warn) and report "Aria2 refused (…) — saved via browser instead".
   Acceptance: With a stub aria2 returning an error, diagnostics contains the warning and the download still completes via the fallback.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P3 — Two settings write paths with different guarantees
-  Category: maintainability
-  Where: src/main.ts:128-131 (saveSettings — writes cloneSettings unnormalized), src/features/core/control-center.ts:129-141, 274-284, 292-296 (write normalizeSettings directly via storage.set)
-  Problem: Panel toggles persist whatever is in memory; import/preset/locale persist normalized. A future handler writing an out-of-range value ships it to disk until next boot. One choke point should own persistence.
-  Evidence: Read both paths.
-  Fix: Make ctx.saveSettings normalize before writing and route importSettings/applyPreset/setLocale through it (they already hold ctx).
-  Acceptance: A single storage.set(SETTINGS_KEY…) call site remains; a test asserts saveSettings normalizes an injected invalid value.
   Confidence: Verified
   Effort: S
 

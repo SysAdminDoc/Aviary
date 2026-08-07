@@ -71,8 +71,11 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
   const diagnostics = new Diagnostics();
   // Every failed write reaches diagnostics, including the ones individual stores swallow.
-  setStorageErrorSink((key, error) => {
-    diagnostics.error(`Storage write failed to save ${key}`, errorDetails(error));
+  setStorageErrorSink((key, error, op) => {
+    diagnostics.error(
+      op === "read" ? `Storage could not read ${key}` : `Storage write failed to save ${key}`,
+      errorDetails(error)
+    );
   });
   // Read fresh on every outbound call, so toggling local-only mode applies at once.
   setLocalOnlyPolicy(() => settings.privacy.localOnly);
@@ -126,7 +129,9 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     diagnostics,
     auditLog,
     async saveSettings() {
-      await storage.set(SETTINGS_KEY, cloneSettings(settings));
+      // Normalized here so persistence has one choke point with one guarantee. Panel handlers
+      // wrote whatever was in memory while import/preset/locale wrote normalized values.
+      await storage.set(SETTINGS_KEY, normalizeSettings(cloneSettings(settings)));
       diagnostics.info("Settings saved", { key: SETTINGS_KEY });
     },
     requestApply() {

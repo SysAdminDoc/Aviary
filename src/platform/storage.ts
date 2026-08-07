@@ -19,7 +19,7 @@ type GlobalWithUserscriptStorage = typeof globalThis & {
  * no signal. Reporting here catches every one of them — and every store added later — without
  * each having to remember to plumb a sink through its constructor.
  */
-export type StorageErrorSink = (key: string, error: unknown) => void;
+export type StorageErrorSink = (key: string, error: unknown, op: "read" | "write") => void;
 
 let onWriteError: StorageErrorSink | undefined;
 
@@ -52,7 +52,11 @@ export function createStorageGateway(namespace = "aviary"): StorageGateway {
 
         const raw = globalThis.localStorage?.getItem(storageKey);
         return raw === null || raw === undefined ? fallback : (JSON.parse(raw) as T);
-      } catch {
+      } catch (error) {
+        onWriteError?.(storageKey, error, "read");
+        // Returning the fallback silently means a corrupted value reads as "unset", and the
+        // next save overwrites the recoverable original for good. Still non-throwing -- a bad
+        // read must not take the boot down -- but no longer invisible.
         return fallback;
       }
     },
@@ -81,7 +85,7 @@ export function createStorageGateway(namespace = "aviary"): StorageGateway {
 
         throw new Error(`No storage backend is available for ${storageKey}`);
       } catch (error) {
-        onWriteError?.(storageKey, error);
+        onWriteError?.(storageKey, error, "write");
         throw error;
       }
     },
