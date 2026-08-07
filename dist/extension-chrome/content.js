@@ -4217,7 +4217,10 @@ html.av-reduce-motion *::after {
       keywordRules: [],
       regexRules: [],
       premiumRule: "off",
-      blockedAccounts: "hide",
+      // "off" until something reads it. F032 needs an authenticated capture containing X's
+      // blocked-account markup before a predicate can be written; until then a default of "hide"
+      // is a filter the settings claim to apply and the engine never applies.
+      blockedAccounts: "off",
       selfRepost: "off",
       whitelist: [],
       mediaTypes: { photo: false, video: false, gif: false },

@@ -29,6 +29,11 @@
   requests are actually visible.
 - Captured payloads were recorded in the action log as `export.start`. Captures are not exports;
   they have their own kind now.
+- **Every install carried a blocked-account filter that was never applied.**
+  `filter.blockedAccounts` defaulted to `hide` while no predicate consulted it, so the setting
+  claimed an active filter and every settings export published that claim. It defaults to `off`
+  until the filter exists, and a test now fails any filter action that defaults to something
+  active while nothing reads it.
 - **Four sentences shipped in English in every locale while coverage reported 100%** — the
   empty-search state ("Nothing matches that search.") and both preset confirmations. The string
   extractor learns a panel's copy by rendering it twice and keeping what appears in both, so copy

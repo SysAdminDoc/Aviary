@@ -67,9 +67,13 @@ An unread-settings sweep (probe self-checked against a key known to be read, so 
 could not report everything as dead) found five. `timelineWidth` and `restoreChirp` were wired in
 v1.9.0. Three remain, each blocked rather than merely unbuilt:
 
-- `filter.selfRepost` -- F033. Needs a capture containing a self-repost.
-- `filter.blockedAccounts` -- defaults to `"hide"`, so it is an active claim the build does not
-  keep. Needs a capture containing X's blocked-account placeholder row to anchor a predicate.
+- `filter.selfRepost` -- F033. Needs a capture containing a self-repost. Already defaults to
+  `"off"`, so it claims nothing while it waits.
+- `filter.blockedAccounts` -- the *feature* still needs a capture containing X's blocked-account
+  placeholder row. The *claim* is fixed: it defaulted to `"hide"`, so every install carried a
+  filter the engine never applied and every settings export published that claim. It defaults to
+  `"off"` now, and `tests/settings-claims.test.mjs` fails any filter action that defaults to
+  something active while nothing reads it.
 - `privacy.encryptVault` -- see above; a key-custody decision, not an implementation gap.
 
 Re-entry condition for the first two: the same authenticated `_decoded/` capture that unblocks
