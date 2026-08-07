@@ -232,7 +232,7 @@ export const controlCenterFeature: FeatureModule = {
       },
       async importArchive(file) {
         const buffer = new Uint8Array(await file.arrayBuffer());
-        const result = importOfficialArchive(buffer, "archive");
+        const result = await importOfficialArchive(buffer, "archive");
         if (result.records.length > 0) {
           const store = getCheckpointStore();
           if (store) {

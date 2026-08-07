@@ -1,4 +1,4 @@
-import { readStoreZip } from "../export/zip-reader";
+import { canInflate, readZip } from "../export/zip-reader";
 import type { ExportRecord } from "../export/types";
 
 export interface ArchiveImportResult {
@@ -10,20 +10,27 @@ export interface ArchiveImportResult {
 
 const TEXT_DECODER = new TextDecoder();
 
-export function importOfficialArchive(buffer: Uint8Array, surface = "archive"): ArchiveImportResult {
+export async function importOfficialArchive(
+  buffer: Uint8Array,
+  surface = "archive"
+): Promise<ArchiveImportResult> {
   const warnings: string[] = [];
   const errors: string[] = [];
   const filesParsed: string[] = [];
   const records: ExportRecord[] = [];
   let entries;
   try {
-    entries = readStoreZip(buffer);
+    entries = await readZip(buffer);
   } catch (error) {
     errors.push((error as Error).message);
     return { records, warnings, errors, filesParsed };
   }
   if (entries.length === 0) {
-    errors.push("Archive contained no readable entries (compression methods other than STORE are not supported).");
+    errors.push(
+      canInflate()
+        ? "Archive contained no readable entries."
+        : "This browser cannot decompress archives (DecompressionStream is unavailable)."
+    );
     return { records, warnings, errors, filesParsed };
   }
 

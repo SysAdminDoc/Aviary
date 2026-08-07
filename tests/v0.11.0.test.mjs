@@ -74,7 +74,7 @@ test("importOfficialArchive parses tweets.js + like.js into ExportRecords", asyn
     { filename: "data/manifest.js", data: encoder.encode("ignored") }
   ]);
 
-  const result = importOfficialArchive(archive, "archive");
+  const result = await importOfficialArchive(archive, "archive");
   assert.deepEqual(result.errors, []);
   assert.equal(result.records.length, 2);
   const tweet = result.records.find((r) => r.tweetId === "100");

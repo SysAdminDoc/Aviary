@@ -954,16 +954,6 @@ Baseline at `409f846`: `tsc` clean, 188/188 tests pass, build+preflight green. F
 ordered P1 → P3; each was verified as described in its Evidence line. Verification harnesses ran
 read-only (Playwright against `_decoded/home.html` and scratch pages); no source was changed.
 
-- [ ] P1 — "Import your X archive" cannot read real X archives (DEFLATE unsupported)
-  Category: correctness
-  Where: src/features/library/archive-import.ts:18-27, src/features/export/zip-reader.ts (STORE-only)
-  Problem: readStoreZip only understands STORE entries and the import errors with "compression methods other than STORE are not supported." Official X archive ZIPs compress their data files (tweets.js etc.) with DEFLATE like every standard zip tool, so the Library feature fails on essentially every real input it is named for.
-  Evidence: zip-reader parses method 0 only (the error string in archive-import admits it); X archives are produced with standard compression — text .js payloads are always deflated. No fixture archive exists in-repo to prove otherwise.
-  Fix: Add DEFLATE support via `DecompressionStream("deflate-raw")` (Chrome ≥ 116 per manifest minimum) in zip-reader for method 8 entries, keeping the STORE path; make the read path async (or add an async readZip wrapper). Add a small deflated fixture zip to tests.
-  Acceptance: A test builds (or vendors) a zip with a DEFLATE-compressed `data/tweets.js` and importOfficialArchive returns its records; the STORE path still passes existing tests.
-  Confidence: Likely (needs one real archive to confirm; mechanism certain)
-  Effort: M
-
 - [ ] P2 — `font: … inherit` shorthand is invalid CSS — eight controls render in browser-default type
   Category: visual
   Where: src/ui/control-center.ts:2620 (.av-launcher), 2787 (.av-nav-item); src/features/ai/command-menu.ts:227, 260; src/features/composer/composer-snippets.ts:165, 188; src/features/filtering/hidden-posts-feature.ts:543 (.av-toast-undo); src/features/library/user-notes.ts:189 (.av-note-badge)
