@@ -96,9 +96,38 @@ function tokensFor(record: ExportRecord): Set<string> {
 }
 
 function tokenize(value: string): string[] {
-  return value
-    .toLowerCase()
-    .split(/[^a-z0-9_@]+/i)
+  // Unicode-aware: the old ASCII-only class produced zero tokens for Japanese, Korean, Arabic,
+  // Hebrew and Cyrillic -- the very languages the panel is translated into -- so those records
+  // were unfindable and queries in them always returned nothing.
+  //
+  // NFC, never NFD: decomposing Hangul yields Jamo, which are letters rather than marks, and a
+  // decomposed query would never match a composed record.
+  const normalized = value.normalize("NFC").toLowerCase();
+  const words = normalized
+    .split(/[^\p{L}\p{N}_@]+/u)
     .map((token) => token.replace(/^@/, ""))
-    .filter((token) => token.length >= 2 && token.length <= 40);
+    .filter((token) => token.length > 0 && token.length <= 40);
+
+  const tokens: string[] = [];
+  for (const word of words) {
+    // Scripts that do not space their words need bigrams, or the whole run is one token that
+    // only an exact-phrase query could ever hit.
+    if (UNSPACED_SCRIPT.test(word)) {
+      if (word.length === 1) {
+        tokens.push(word);
+        continue;
+      }
+      for (let i = 0; i < word.length - 1; i++) {
+        tokens.push(word.slice(i, i + 2));
+      }
+      continue;
+    }
+    if (word.length >= 2) {
+      tokens.push(word);
+    }
+  }
+  return tokens;
 }
+
+/** Han, Hiragana, Katakana and Hangul: written without spaces between words. */
+const UNSPACED_SCRIPT = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;

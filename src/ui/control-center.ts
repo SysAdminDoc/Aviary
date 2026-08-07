@@ -101,7 +101,13 @@ export interface ControlCenterOptions {
   listAria2Active?: () => Promise<Array<{ gid: string; status: string; totalLength: number; completedLength: number; path: string }>>;
   cancelAria2?: (gid: string) => Promise<{ ok: boolean; error?: string }>;
   recentIntegrationErrors?: () => Array<{ at: string; kind: string; message: string }>;
-  rebuildSemanticIndex?: () => Promise<{ added: number; skipped: number; errors: number; total: number }>;
+  rebuildSemanticIndex?: () => Promise<{
+    added: number;
+    skipped: number;
+    errors: number;
+    total: number;
+    dropped: number;
+  }>;
   semanticSearchQuery?: (
     query: string
   ) => Promise<Array<{ tweetId: string | null; handle: string | null; text: string; score: number }>>;
@@ -1212,8 +1218,11 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             setStatus("Rebuilding semantic index…");
           try {
               const result = await options.rebuildSemanticIndex!();
+              // The index is capped, so say when the cap actually bit rather than letting the
+              // total quietly stop growing.
+              const trimmed = result.dropped > 0 ? ` · oldest ${result.dropped} dropped` : "";
               setStatus(
-                `Indexed: +${result.added} new · skipped ${result.skipped} · errors ${result.errors} · total ${result.total}.`
+                `Indexed: +${result.added} new · skipped ${result.skipped} · errors ${result.errors} · total ${result.total}${trimmed}.`
               );
             } catch (error) {
               options.onError("Embedding failed", error);

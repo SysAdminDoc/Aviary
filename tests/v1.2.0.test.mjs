@@ -69,7 +69,10 @@ test("renderForExternalTarget produces Obsidian frontmatter and Notion headings"
   assert.ok(obsidian.artifact);
   const obsidianText = new TextDecoder().decode(obsidian.artifact.data);
   assert.match(obsidianText, /^---/);
-  assert.match(obsidianText, /tweet_id: 42/);
+  // Quoted since v1.9.0: frontmatter scalars are scraped page text and must not be able to
+  // break or extend the block. Quoting also keeps a 19-digit tweet id a string -- YAML would
+  // otherwise parse it as a number and lose the low digits.
+  assert.match(obsidianText, /tweet_id: "42"/);
   assert.match(obsidianText, /#aviary/);
 
   const notion = renderForExternalTarget("notion", records);

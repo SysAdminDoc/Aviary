@@ -45,12 +45,12 @@ function toObsidianArtifact(records: readonly ExportRecord[]): ExportArtifact {
     const tags = ["#aviary", `#x/${handle}`];
     const frontmatter = [
       "---",
-      `tweet_id: ${safeId}`,
-      `handle: ${handle}`,
-      `display_name: ${record.displayName ?? ""}`,
-      `captured_at: ${record.capturedAt}`,
-      `surface: ${record.surface}`,
-      `permalink: ${record.permalink ?? ""}`,
+      `tweet_id: ${yamlScalar(safeId)}`,
+      `handle: ${yamlScalar(handle)}`,
+      `display_name: ${yamlScalar(record.displayName ?? "")}`,
+      `captured_at: ${yamlScalar(record.capturedAt)}`,
+      `surface: ${yamlScalar(record.surface)}`,
+      `permalink: ${yamlScalar(record.permalink ?? "")}`,
       `tags: [${tags.join(", ")}]`,
       "---"
     ].join("\n");
@@ -66,6 +66,21 @@ function toObsidianArtifact(records: readonly ExportRecord[]): ExportArtifact {
     contentType: "text/markdown",
     data: ENCODER.encode(document)
   };
+}
+
+/**
+ * Quotes a scraped value so it cannot break — or extend — the frontmatter block.
+ *
+ * Display names are page text. A colon followed by a space, a leading quote or `#`, or a newline
+ * all produce invalid YAML, which Obsidian renders as a broken block; a crafted name could add
+ * frontmatter keys of its own.
+ */
+function yamlScalar(value: string): string {
+  const escaped = value
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/[\r\n]+/g, " ");
+  return `"${escaped}"`;
 }
 
 function toNotionArtifact(records: readonly ExportRecord[]): ExportArtifact {

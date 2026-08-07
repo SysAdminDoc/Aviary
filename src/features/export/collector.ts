@@ -1,4 +1,5 @@
 import { extractTweet } from "../media/extract";
+import { isSaveableVariantUrl } from "../media/video-extract";
 import { tweetIdFromHref } from "../media/urls";
 import type {
   ExportArticleSummary,
@@ -29,9 +30,13 @@ export function collectExportRecords(root: ParentNode, surface: string): ExportR
     const media: ExportMedia[] = [];
     for (const item of tweet.media) {
       if (item.kind === "video" && item.video?.preferred) {
+        // A MediaSource blob URL is meaningless outside the tab that created it, so shipping it
+        // in an export is worse than shipping nothing: the metadata and permalink still carry
+        // what the record is, and the URL no longer pretends to be fetchable.
+        const url = item.video.preferred.url;
         const entry: ExportMedia = {
           kind: "video",
-          url: item.video.preferred.url,
+          url: isSaveableVariantUrl(url) ? url : "",
           type: item.video.preferred.type
         };
         if (item.video.preferred.width !== null) entry.width = item.video.preferred.width;

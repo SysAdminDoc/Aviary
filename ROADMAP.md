@@ -974,26 +974,6 @@ read-only (Playwright against `_decoded/home.html` and scratch pages); no source
   Confidence: Verified
   Effort: M
 
-- [ ] P2 — Saved-post search cannot match any non-Latin text
-  Category: ux
-  Where: src/features/library/local-search.ts tokenize (split on /[^a-z0-9_@]+/i)
-  Problem: Tokenization keeps only ASCII alphanumerics, so Japanese, Korean, Arabic, Hebrew, Cyrillic — the very languages the panel is translated into — produce zero tokens. Records in those languages are unfindable in Library search, and queries in them always return nothing.
-  Evidence: Read tokenize; any CJK string splits to an empty token list. Reached from the panel's searchArchive path.
-  Fix: Tokenize on Unicode letters/numbers with the u flag, NFC-normalize first, and add bigram tokens (or Intl.Segmenter word segmentation) for CJK so substring queries match. Note the NFC/Hangul trap: NFD decomposition breaks Korean matching.
-  Acceptance: Test: a record with Japanese text is returned for a Japanese query; existing Latin tests still pass.
-  Confidence: Verified
-  Effort: M
-
-- [ ] P2 — Semantic index grows without bound and rewrites the whole store per batch
-  Category: reliability
-  Where: src/features/integrations/semantic-search.ts:56-98 (embedAndIndex), 125-131 (persist)
-  Problem: Every other store caps its size (bookmarks 5000, aria2 1000, audit 500); the semantic index has no limit, and each entry carries a full float vector (~20-30 KB as JSON for 1536 dims). A few thousand embedded posts mean tens of MB serialized through the storage gateway on every persist — chrome.storage.local quota exhaustion (10 MB without unlimitedStorage) then surfaces as the storage-error sink firing on unrelated writes.
-  Evidence: Read embedAndIndex/persist; no cap, single-key JSON persistence of the entire index.
-  Fix: Cap entries (e.g. 2000, trimming oldest), round vector components (~5 decimals) before storing, and surface the dropped count in the panel's semantic status row.
-  Acceptance: Test: indexing limit+N records retains the cap and drops oldest; stored JSON for one entry shrinks measurably after rounding.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — Crosspost threads: silent 300-char Bluesky truncation, no Mastodon chunking, orphaned partial threads, and a composer read that loses paragraphs
   Category: correctness
   Where: src/features/integrations/crosspost.ts:27-34 (splitForThread — its comment promises "then chunk to platform max" but no chunking exists), 79 (text: segment.slice(0, 300)), 141-167 (Mastodon loop), 290-293 (readComposerText)
@@ -1003,26 +983,6 @@ read-only (Playwright against `_decoded/home.html` and scratch pages); no source
   Acceptance: Tests: a 700-char segment posts as 3 Bluesky records with no content loss; mid-thread failure reports posted count; a two-paragraph composer-shaped DOM yields two segments.
   Confidence: Verified (a-c), Likely (d)
   Effort: M
-
-- [ ] P3 — Exports embed useless blob: URLs for every real video
-  Category: correctness
-  Where: src/features/export/collector.ts (media mapping), formatters.ts csv/json/markdown, external-targets.ts
-  Problem: Video records carry the MSE blob URL as media.url; JSON/CSV/Markdown/Obsidian/Notion exports ship links that are meaningless outside the capturing tab. The HTML formatter already drops them (safeHref); the others do not.
-  Evidence: The fixture video is blob-backed; collector uses preferred.url verbatim.
-  Fix: In the collector, omit a blob: video URL (keep width/height/bitrate metadata and the permalink) and mark the record "video stream not capturable".
-  Acceptance: Export of the home fixture contains no "blob:" substring in any artifact.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P3 — Obsidian export frontmatter breaks on display names with colons or quotes (YAML injection)
-  Category: correctness
-  Where: src/features/export/external-targets.ts toObsidianArtifact (display_name and friends interpolated bare)
-  Problem: Display names are scraped page text; a colon+space, leading quote, or hash produces invalid YAML (Obsidian renders the whole frontmatter block broken), and a crafted name could inject extra frontmatter keys.
-  Evidence: Read the template; values are interpolated without quoting.
-  Fix: YAML-quote every interpolated scalar (double quotes, escape backslash and quote), including handle and permalink.
-  Acceptance: A record with a display name containing `: "` produces frontmatter a YAML parser round-trips.
-  Confidence: Verified
-  Effort: S
 
 - [ ] P3 — The Action log mislabels events because AuditAction lacks real kinds
   Category: ux

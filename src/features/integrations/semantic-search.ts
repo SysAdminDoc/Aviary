@@ -5,6 +5,22 @@ import { assertOutboundAllowed } from "./network-policy";
 
 export const SEMANTIC_INDEX_KEY = "aviary.semanticIndex.v1";
 
+/**
+ * Every other store here is bounded (bookmarks 5000, aria2 1000, audit 500); this one was not,
+ * and each entry carries a full embedding -- roughly 20-30 KB of JSON at 1536 dimensions. A few
+ * thousand posts is tens of megabytes rewritten on every persist, which exhausts
+ * chrome.storage.local (10 MB without unlimitedStorage) and then surfaces as the storage error
+ * sink firing on completely unrelated writes.
+ */
+export const SEMANTIC_INDEX_LIMIT = 2000;
+
+/** Embeddings are unit-ish floats; five decimals keeps cosine similarity stable at ~1/3 the bytes. */
+const VECTOR_PRECISION = 1e5;
+
+function roundVector(vector: readonly number[]): number[] {
+  return vector.map((value) => Math.round(value * VECTOR_PRECISION) / VECTOR_PRECISION);
+}
+
 export interface SemanticEntry {
   id: string;
   tweetId: string | null;
@@ -56,9 +72,9 @@ export class SemanticIndex {
   async embedAndIndex(
     config: IntegrationSettings["semanticSearch"],
     records: readonly ExportRecord[]
-  ): Promise<{ added: number; skipped: number; errors: number }> {
+  ): Promise<{ added: number; skipped: number; errors: number; dropped: number }> {
     if (!config.enabled || !config.endpoint || !config.apiKey || !config.model) {
-      return { added: 0, skipped: records.length, errors: 0 };
+      return { added: 0, skipped: records.length, errors: 0, dropped: 0 };
     }
     await this.load();
     if (this.#state.model && this.#state.model !== config.model) {
@@ -87,14 +103,18 @@ export class SemanticIndex {
         tweetId: record.tweetId,
         handle: record.handle,
         text: record.text,
-        vector,
+        vector: roundVector(vector),
         embeddedAt: new Date().toISOString()
       });
       known.add(id);
       added += 1;
     }
+    const overflow = Math.max(0, this.#state.entries.length - SEMANTIC_INDEX_LIMIT);
+    if (overflow > 0) {
+      this.#state.entries = this.#state.entries.slice(overflow);
+    }
     await this.#persist();
-    return { added, skipped, errors };
+    return { added, skipped, errors, dropped: overflow };
   }
 
   async search(
