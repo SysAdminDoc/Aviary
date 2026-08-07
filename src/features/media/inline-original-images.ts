@@ -30,12 +30,27 @@ export function upgradeImage(img: HTMLImageElement): boolean {
     // silently out-rank the src we just upgraded, and the feature would look like it did nothing.
     img.dataset[ORIGINAL_SRCSET] = img.getAttribute("srcset") ?? "";
   }
+  // X does not hold an `orig` rendition for every media item -- some 404, and a broken <img> in
+  // the timeline is far worse than a slightly softer one. Revert that image the moment its
+  // upgraded URL fails, so the failure mode is "no change", never "no picture".
+  img.addEventListener("error", onUpgradeError, { once: true });
   img.removeAttribute("srcset");
   img.setAttribute("src", normalized.url);
   return true;
 }
 
+function onUpgradeError(event: Event): void {
+  const img = event.currentTarget as HTMLImageElement;
+  if (img.dataset[ORIGINAL_SRC] === undefined) {
+    return;
+  }
+  restoreImage(img);
+  // Left marked as processed: retrying would fail again on every mutation batch.
+  img.setAttribute(PROCESSED_ATTR, "1");
+}
+
 export function restoreImage(img: HTMLImageElement): void {
+  img.removeEventListener("error", onUpgradeError);
   const original = img.dataset[ORIGINAL_SRC];
   if (original !== undefined) {
     img.setAttribute("src", original);

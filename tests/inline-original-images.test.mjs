@@ -105,6 +105,32 @@ test("a srcset would out-rank the upgraded src, so it is removed and restored", 
   assert.match(result.src, /name=900x900/);
 });
 
+test("an original-quality URL that fails to load reverts to the one X served", async () => {
+  const result = await page.evaluate(async () => {
+    const img = document.createElement("img");
+    // Both URLs are aborted by the test's route handler, so the upgraded one fires `error`
+    // exactly as a missing `orig` rendition would on the live site.
+    const served = "https://pbs.twimg.com/media/FailMe404?format=jpg&name=900x900";
+    img.setAttribute("src", served);
+    document.body.append(img);
+
+    AviaryImages.upgradeImage(img);
+    const upgraded = img.getAttribute("src");
+
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    const settled = img.getAttribute("src");
+    img.remove();
+    return { served, upgraded, settled };
+  });
+
+  assert.match(result.upgraded, /name=orig/, "the upgrade must have been attempted");
+  assert.equal(
+    result.settled,
+    result.served,
+    "a failed original-quality load must fall back, not leave a broken image"
+  );
+});
+
 test("non-timeline images and already-original URLs are left alone", async () => {
   const results = await page.evaluate(() => {
     const make = (src) => {

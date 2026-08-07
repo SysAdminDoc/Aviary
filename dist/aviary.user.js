@@ -51,9 +51,11 @@ var Aviary = (() => {
         "av-hide-counts",
         "av-hide-borders",
         "av-high-contrast",
-        "av-reduce-motion"
+        "av-reduce-motion",
+        "av-chirp"
       );
       delete document.documentElement.dataset.avTheme;
+      delete document.documentElement.dataset.avWidth;
       document.documentElement.style.colorScheme = "";
       ctx.diagnostics.info("Theme foundation destroyed");
     }
@@ -65,6 +67,8 @@ var Aviary = (() => {
       root.classList.toggle(`av-theme-${value}`, value === theme);
     }
     root.dataset.avTheme = theme;
+    root.dataset.avWidth = settings.appearance.timelineWidth;
+    root.classList.toggle("av-chirp", settings.appearance.restoreChirp);
     root.classList.toggle("av-dense", settings.appearance.denseMode);
     root.classList.toggle("av-hide-counts", settings.appearance.hideCounts);
     root.classList.toggle("av-hide-borders", settings.appearance.hideBorders);
@@ -160,6 +164,32 @@ html[data-av-theme] [aria-label="Timeline: Trending now"] {
   border-color: var(--av-border);
 }
 
+/* The primary column takes its width from its own box, not from a max-width -- measured on
+   _decoded/home.html at a 1400px viewport, the column and its first four ancestors all report
+   max-width:none and the same 677.77px. The tier is therefore expressed as a width, and clamped
+   against 100vw rather than 100% -- every ancestor is already the column's own 677.77px, so a
+   percentage can never resolve to anything larger and the setting would silently do nothing. */
+html[data-av-width="comfortable"] [data-testid="primaryColumn"] {
+  width: min(820px, 100vw) !important;
+  max-width: none !important;
+}
+
+html[data-av-width="wide"] [data-testid="primaryColumn"] {
+  width: min(1040px, 100vw) !important;
+  max-width: none !important;
+}
+
+/* TwitterChirp is the family X registers the font under -- confirmed in the captured
+   stylesheets, which preload Chirp-Regular/Bold/Medium woff2 and declare the stack twice. The
+   rule reaches into descendants because X sets font-family per element through generated atomic
+   classes, so inheriting from body alone would not reach them. Aviary's own panel is inside a
+   shadow root, which document CSS cannot cross, so it keeps its own type. */
+html.av-chirp body,
+html.av-chirp body * {
+  font-family: TwitterChirp, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif !important;
+}
+
 html.av-dense article[data-testid="tweet"] {
   padding-top: 8px;
   padding-bottom: 8px;
@@ -240,6 +270,13 @@ html.av-reduce-motion *::after {
       "Midnight": "Medianoche",
       "Dense mode": "Modo denso",
       "Tighten timeline spacing for scanning.": "Comprime el espaciado de la cronolog\xEDa para leer m\xE1s r\xE1pido.",
+      "Timeline width": "Ancho de la cronolog\xEDa",
+      "Widen the main column past the width X fixes it at. Capped to the space available, so a narrow window is unaffected.": "Ensancha la columna principal m\xE1s all\xE1 del ancho que fija X. Se limita al espacio disponible, as\xED que una ventana estrecha no cambia.",
+      "Default": "Predeterminado",
+      "Comfortable": "C\xF3modo",
+      "Wide": "Ancho",
+      "Restore the Chirp font": "Restaurar la fuente Chirp",
+      "Force X's own Chirp typeface where the site has fallen back to a system font.": "Fuerza la tipograf\xEDa Chirp de X donde el sitio ha vuelto a una fuente del sistema.",
       "Hide engagement counts": "Ocultar contadores de interacci\xF3n",
       "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.": "Oculta los n\xFAmeros de respuestas, reposts y me gusta. Los botones siguen funcionando y los lectores de pantalla siguen anunciando los totales.",
       "Hide row borders": "Ocultar bordes de fila",
@@ -467,6 +504,9 @@ html.av-reduce-motion *::after {
       "Theme value is not supported.": "Ese tema no es compatible.",
       "Theme updated": "Tema actualizado",
       "Density updated": "Densidad actualizada",
+      "Timeline width updated": "Ancho de la cronolog\xEDa actualizado",
+      "Chirp font on": "Fuente Chirp activada",
+      "Chirp font off": "Fuente Chirp desactivada",
       "Engagement counts hidden": "Contadores de interacci\xF3n ocultos",
       "Engagement counts shown": "Contadores de interacci\xF3n visibles",
       "Row borders hidden": "Bordes de fila ocultos",
@@ -633,6 +673,13 @@ html.av-reduce-motion *::after {
       "Midnight": "Meia-noite",
       "Dense mode": "Modo denso",
       "Tighten timeline spacing for scanning.": "Compacta o espa\xE7amento da linha do tempo para leitura r\xE1pida.",
+      "Timeline width": "Largura da cronologia",
+      "Widen the main column past the width X fixes it at. Capped to the space available, so a narrow window is unaffected.": "Alarga a coluna principal para al\xE9m da largura fixada pelo X. Limitada ao espa\xE7o dispon\xEDvel, pelo que uma janela estreita n\xE3o \xE9 afetada.",
+      "Default": "Predefinido",
+      "Comfortable": "Confort\xE1vel",
+      "Wide": "Largo",
+      "Restore the Chirp font": "Repor o tipo de letra Chirp",
+      "Force X's own Chirp typeface where the site has fallen back to a system font.": "For\xE7a o tipo de letra Chirp do X onde o site recorreu a um tipo de letra do sistema.",
       "Hide engagement counts": "Ocultar contadores de intera\xE7\xE3o",
       "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.": "Oculta os n\xFAmeros de respostas, reposts e curtidas. Os bot\xF5es continuam funcionando e os leitores de tela ainda anunciam os totais.",
       "Hide row borders": "Ocultar bordas das linhas",
@@ -860,6 +907,9 @@ html.av-reduce-motion *::after {
       "Theme value is not supported.": "Esse tema n\xE3o \xE9 suportado.",
       "Theme updated": "Tema atualizado",
       "Density updated": "Densidade atualizada",
+      "Timeline width updated": "Largura da cronologia atualizada",
+      "Chirp font on": "Tipo de letra Chirp ativado",
+      "Chirp font off": "Tipo de letra Chirp desativado",
       "Engagement counts hidden": "Contadores de intera\xE7\xE3o ocultos",
       "Engagement counts shown": "Contadores de intera\xE7\xE3o vis\xEDveis",
       "Row borders hidden": "Limites das linhas ocultos",
@@ -1026,6 +1076,13 @@ html.av-reduce-motion *::after {
       "Midnight": "Minuit",
       "Dense mode": "Mode dense",
       "Tighten timeline spacing for scanning.": "Resserre l'espacement du fil pour parcourir plus vite.",
+      "Timeline width": "Largeur du fil",
+      "Widen the main column past the width X fixes it at. Capped to the space available, so a narrow window is unaffected.": "\xC9largit la colonne principale au-del\xE0 de la largeur fix\xE9e par X. Limit\xE9e \xE0 l'espace disponible : une fen\xEAtre \xE9troite reste inchang\xE9e.",
+      "Default": "Par d\xE9faut",
+      "Comfortable": "Confortable",
+      "Wide": "Large",
+      "Restore the Chirp font": "R\xE9tablir la police Chirp",
+      "Force X's own Chirp typeface where the site has fallen back to a system font.": "Impose la police Chirp de X l\xE0 o\xF9 le site est revenu \xE0 une police syst\xE8me.",
       "Hide engagement counts": "Masquer les compteurs d'engagement",
       "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.": "Masque le nombre de r\xE9ponses, de republications et de j'aime. Les boutons fonctionnent toujours et les lecteurs d'\xE9cran annoncent encore les totaux.",
       "Hide row borders": "Masquer les bordures de ligne",
@@ -1253,6 +1310,9 @@ html.av-reduce-motion *::after {
       "Theme value is not supported.": "Ce th\xE8me n'est pas pris en charge.",
       "Theme updated": "Th\xE8me mis \xE0 jour",
       "Density updated": "Densit\xE9 mise \xE0 jour",
+      "Timeline width updated": "Largeur du fil mise \xE0 jour",
+      "Chirp font on": "Police Chirp activ\xE9e",
+      "Chirp font off": "Police Chirp d\xE9sactiv\xE9e",
       "Engagement counts hidden": "Compteurs d'engagement masqu\xE9s",
       "Engagement counts shown": "Compteurs d'engagement affich\xE9s",
       "Row borders hidden": "Bordures de ligne masqu\xE9es",
@@ -1419,6 +1479,13 @@ html.av-reduce-motion *::after {
       "Midnight": "Mitternacht",
       "Dense mode": "Kompaktmodus",
       "Tighten timeline spacing for scanning.": "Verdichtet die Abst\xE4nde der Timeline zum schnellen \xDCberfliegen.",
+      "Timeline width": "Timeline-Breite",
+      "Widen the main column past the width X fixes it at. Capped to the space available, so a narrow window is unaffected.": "Verbreitert die Hauptspalte \xFCber die von X festgelegte Breite hinaus. Auf den verf\xFCgbaren Platz begrenzt, ein schmales Fenster bleibt also unver\xE4ndert.",
+      "Default": "Standard",
+      "Comfortable": "Komfortabel",
+      "Wide": "Breit",
+      "Restore the Chirp font": "Chirp-Schrift wiederherstellen",
+      "Force X's own Chirp typeface where the site has fallen back to a system font.": "Erzwingt X' eigene Chirp-Schrift dort, wo die Seite auf eine Systemschrift zur\xFCckgefallen ist.",
       "Hide engagement counts": "Interaktionszahlen ausblenden",
       "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.": "Blendet die Zahlen f\xFCr Antworten, Reposts und Likes aus. Die Schaltfl\xE4chen funktionieren weiter, und Screenreader nennen die Summen weiterhin.",
       "Hide row borders": "Zeilentrenner ausblenden",
@@ -1646,6 +1713,9 @@ html.av-reduce-motion *::after {
       "Theme value is not supported.": "Dieses Design wird nicht unterst\xFCtzt.",
       "Theme updated": "Design aktualisiert",
       "Density updated": "Dichte aktualisiert",
+      "Timeline width updated": "Timeline-Breite aktualisiert",
+      "Chirp font on": "Chirp-Schrift an",
+      "Chirp font off": "Chirp-Schrift aus",
       "Engagement counts hidden": "Interaktionszahlen ausgeblendet",
       "Engagement counts shown": "Interaktionszahlen eingeblendet",
       "Row borders hidden": "Zeilenrahmen ausgeblendet",
@@ -1812,6 +1882,13 @@ html.av-reduce-motion *::after {
       "Midnight": "\u30DF\u30C3\u30C9\u30CA\u30A4\u30C8",
       "Dense mode": "\u9AD8\u5BC6\u5EA6\u30E2\u30FC\u30C9",
       "Tighten timeline spacing for scanning.": "\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u306E\u4F59\u767D\u3092\u8A70\u3081\u3066\u4E00\u89A7\u3057\u3084\u3059\u304F\u3057\u307E\u3059\u3002",
+      "Timeline width": "\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u306E\u5E45",
+      "Widen the main column past the width X fixes it at. Capped to the space available, so a narrow window is unaffected.": "\u30E1\u30A4\u30F3\u30AB\u30E9\u30E0\u3092 X \u304C\u56FA\u5B9A\u3057\u3066\u3044\u308B\u5E45\u3088\u308A\u5E83\u3052\u307E\u3059\u3002\u5229\u7528\u3067\u304D\u308B\u5E45\u304C\u4E0A\u9650\u306A\u306E\u3067\u3001\u72ED\u3044\u30A6\u30A3\u30F3\u30C9\u30A6\u3067\u306F\u5909\u308F\u308A\u307E\u305B\u3093\u3002",
+      "Default": "\u65E2\u5B9A",
+      "Comfortable": "\u3086\u3063\u305F\u308A",
+      "Wide": "\u5E83\u3044",
+      "Restore the Chirp font": "Chirp \u30D5\u30A9\u30F3\u30C8\u3092\u5FA9\u5143",
+      "Force X's own Chirp typeface where the site has fallen back to a system font.": "\u30B5\u30A4\u30C8\u304C\u30B7\u30B9\u30C6\u30E0\u30D5\u30A9\u30F3\u30C8\u306B\u623B\u3063\u3066\u3044\u308B\u7B87\u6240\u3067\u3001X \u672C\u6765\u306E Chirp \u66F8\u4F53\u3092\u9069\u7528\u3057\u307E\u3059\u3002",
       "Hide engagement counts": "\u30A8\u30F3\u30B2\u30FC\u30B8\u30E1\u30F3\u30C8\u6570\u3092\u975E\u8868\u793A",
       "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.": "\u8FD4\u4FE1\u30FB\u30EA\u30DD\u30B9\u30C8\u30FB\u3044\u3044\u306D\u306E\u6570\u3092\u96A0\u3057\u307E\u3059\u3002\u30DC\u30BF\u30F3\u306F\u5F15\u304D\u7D9A\u304D\u6A5F\u80FD\u3057\u3001\u30B9\u30AF\u30EA\u30FC\u30F3\u30EA\u30FC\u30C0\u30FC\u306F\u5408\u8A08\u3092\u8AAD\u307F\u4E0A\u3052\u307E\u3059\u3002",
       "Hide row borders": "\u884C\u306E\u5883\u754C\u7DDA\u3092\u975E\u8868\u793A",
@@ -2039,6 +2116,9 @@ html.av-reduce-motion *::after {
       "Theme value is not supported.": "\u305D\u306E\u30C6\u30FC\u30DE\u306B\u306F\u5BFE\u5FDC\u3057\u3066\u3044\u307E\u305B\u3093\u3002",
       "Theme updated": "\u30C6\u30FC\u30DE\u3092\u66F4\u65B0\u3057\u307E\u3057\u305F",
       "Density updated": "\u8868\u793A\u5BC6\u5EA6\u3092\u66F4\u65B0\u3057\u307E\u3057\u305F",
+      "Timeline width updated": "\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u306E\u5E45\u3092\u66F4\u65B0\u3057\u307E\u3057\u305F",
+      "Chirp font on": "Chirp \u30D5\u30A9\u30F3\u30C8 \u30AA\u30F3",
+      "Chirp font off": "Chirp \u30D5\u30A9\u30F3\u30C8 \u30AA\u30D5",
       "Engagement counts hidden": "\u30A8\u30F3\u30B2\u30FC\u30B8\u30E1\u30F3\u30C8\u6570\u3092\u975E\u8868\u793A\u306B\u3057\u307E\u3057\u305F",
       "Engagement counts shown": "\u30A8\u30F3\u30B2\u30FC\u30B8\u30E1\u30F3\u30C8\u6570\u3092\u8868\u793A\u3057\u307E\u3057\u305F",
       "Row borders hidden": "\u884C\u306E\u5883\u754C\u7DDA\u3092\u975E\u8868\u793A\u306B\u3057\u307E\u3057\u305F",
@@ -2205,6 +2285,13 @@ html.av-reduce-motion *::after {
       "Midnight": "\uBBF8\uB4DC\uB098\uC774\uD2B8",
       "Dense mode": "\uACE0\uBC00\uB3C4 \uBAA8\uB4DC",
       "Tighten timeline spacing for scanning.": "\uD0C0\uC784\uB77C\uC778 \uAC04\uACA9\uC744 \uC881\uD600 \uD6D1\uC5B4\uBCF4\uAE30 \uC27D\uAC8C \uD569\uB2C8\uB2E4.",
+      "Timeline width": "\uD0C0\uC784\uB77C\uC778 \uB108\uBE44",
+      "Widen the main column past the width X fixes it at. Capped to the space available, so a narrow window is unaffected.": "X\uAC00 \uACE0\uC815\uD574 \uB454 \uB108\uBE44\uBCF4\uB2E4 \uBCF8\uBB38 \uC5F4\uC744 \uB113\uD799\uB2C8\uB2E4. \uC0AC\uC6A9 \uAC00\uB2A5\uD55C \uACF5\uAC04\uC774 \uD55C\uACC4\uB77C\uC11C \uCC3D\uC774 \uC881\uC73C\uBA74 \uADF8\uB300\uB85C\uC785\uB2C8\uB2E4.",
+      "Default": "\uAE30\uBCF8",
+      "Comfortable": "\uC5EC\uC720\uB86D\uAC8C",
+      "Wide": "\uB113\uAC8C",
+      "Restore the Chirp font": "Chirp \uAE00\uAF34 \uBCF5\uC6D0",
+      "Force X's own Chirp typeface where the site has fallen back to a system font.": "\uC0AC\uC774\uD2B8\uAC00 \uC2DC\uC2A4\uD15C \uAE00\uAF34\uB85C \uB300\uCCB4\uB41C \uACF3\uC5D0 X \uACE0\uC720\uC758 Chirp \uC11C\uCCB4\uB97C \uC801\uC6A9\uD569\uB2C8\uB2E4.",
       "Hide engagement counts": "\uBC18\uC751 \uC218 \uC228\uAE30\uAE30",
       "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.": "\uB2F5\uAE00\xB7\uC7AC\uAC8C\uC2DC\xB7\uB9C8\uC74C\uC5D0 \uB4E4\uC5B4\uC694 \uC218\uB97C \uC228\uAE41\uB2C8\uB2E4. \uBC84\uD2BC\uC740 \uADF8\uB300\uB85C \uC791\uB3D9\uD558\uACE0 \uC2A4\uD06C\uB9B0 \uB9AC\uB354\uB294 \uD569\uACC4\uB97C \uACC4\uC18D \uC77D\uC5B4 \uC90D\uB2C8\uB2E4.",
       "Hide row borders": "\uD589 \uACBD\uACC4\uC120 \uC228\uAE30\uAE30",
@@ -2432,6 +2519,9 @@ html.av-reduce-motion *::after {
       "Theme value is not supported.": "\uC9C0\uC6D0\uD558\uC9C0 \uC54A\uB294 \uD14C\uB9C8\uC785\uB2C8\uB2E4.",
       "Theme updated": "\uD14C\uB9C8\uB97C \uBCC0\uACBD\uD588\uC2B5\uB2C8\uB2E4",
       "Density updated": "\uD45C\uC2DC \uBC00\uB3C4\uB97C \uBCC0\uACBD\uD588\uC2B5\uB2C8\uB2E4",
+      "Timeline width updated": "\uD0C0\uC784\uB77C\uC778 \uB108\uBE44\uB97C \uBCC0\uACBD\uD588\uC2B5\uB2C8\uB2E4",
+      "Chirp font on": "Chirp \uAE00\uAF34 \uCF2C",
+      "Chirp font off": "Chirp \uAE00\uAF34 \uB054",
       "Engagement counts hidden": "\uCC38\uC5EC \uC218 \uC228\uAE40",
       "Engagement counts shown": "\uCC38\uC5EC \uC218 \uD45C\uC2DC",
       "Row borders hidden": "\uD589 \uD14C\uB450\uB9AC \uC228\uAE40",
@@ -2598,6 +2688,13 @@ html.av-reduce-motion *::after {
       "Midnight": "\u0645\u0646\u062A\u0635\u0641 \u0627\u0644\u0644\u064A\u0644",
       "Dense mode": "\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0645\u0643\u062B\u0641",
       "Tighten timeline spacing for scanning.": "\u064A\u0642\u0644\u0651\u0635 \u0627\u0644\u0645\u0633\u0627\u0641\u0627\u062A \u0641\u064A \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \u0644\u062A\u0635\u0641\u0651\u062D \u0623\u0633\u0631\u0639.",
+      "Timeline width": "\u0639\u0631\u0636 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A",
+      "Widen the main column past the width X fixes it at. Capped to the space available, so a narrow window is unaffected.": "\u064A\u0648\u0633\u0651\u0639 \u0627\u0644\u0639\u0645\u0648\u062F \u0627\u0644\u0631\u0626\u064A\u0633\u064A \u0625\u0644\u0649 \u0645\u0627 \u0628\u0639\u062F \u0627\u0644\u0639\u0631\u0636 \u0627\u0644\u0630\u064A \u064A\u062B\u0628\u0651\u062A\u0647 X. \u0645\u062D\u062F\u0648\u062F \u0628\u0627\u0644\u0645\u0633\u0627\u062D\u0629 \u0627\u0644\u0645\u062A\u0627\u062D\u0629\u060C \u0641\u0644\u0627 \u062A\u062A\u0623\u062B\u0631 \u0627\u0644\u0646\u0627\u0641\u0630\u0629 \u0627\u0644\u0636\u064A\u0642\u0629.",
+      "Default": "\u0627\u0641\u062A\u0631\u0627\u0636\u064A",
+      "Comfortable": "\u0645\u0631\u064A\u062D",
+      "Wide": "\u0639\u0631\u064A\u0636",
+      "Restore the Chirp font": "\u0627\u0633\u062A\u0639\u0627\u062F\u0629 \u062E\u0637 Chirp",
+      "Force X's own Chirp typeface where the site has fallen back to a system font.": "\u064A\u0641\u0631\u0636 \u062E\u0637 Chirp \u0627\u0644\u062E\u0627\u0635 \u0628\u0640 X \u062D\u064A\u062B \u0639\u0627\u062F \u0627\u0644\u0645\u0648\u0642\u0639 \u0625\u0644\u0649 \u062E\u0637 \u0627\u0644\u0646\u0638\u0627\u0645.",
       "Hide engagement counts": "\u0625\u062E\u0641\u0627\u0621 \u0623\u0639\u062F\u0627\u062F \u0627\u0644\u062A\u0641\u0627\u0639\u0644",
       "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.": "\u064A\u062E\u0641\u064A \u0623\u0639\u062F\u0627\u062F \u0627\u0644\u0631\u062F\u0648\u062F \u0648\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0646\u0634\u0631 \u0648\u0627\u0644\u0625\u0639\u062C\u0627\u0628\u0627\u062A. \u062A\u0638\u0644 \u0627\u0644\u0623\u0632\u0631\u0627\u0631 \u062A\u0639\u0645\u0644 \u0648\u062A\u0638\u0644 \u0642\u0627\u0631\u0626\u0627\u062A \u0627\u0644\u0634\u0627\u0634\u0629 \u062A\u0639\u0644\u0646 \u0627\u0644\u0625\u062C\u0645\u0627\u0644\u064A\u0627\u062A.",
       "Hide row borders": "\u0625\u062E\u0641\u0627\u0621 \u062D\u062F\u0648\u062F \u0627\u0644\u0635\u0641\u0648\u0641",
@@ -2825,6 +2922,9 @@ html.av-reduce-motion *::after {
       "Theme value is not supported.": "\u0647\u0630\u0627 \u0627\u0644\u0645\u0638\u0647\u0631 \u063A\u064A\u0631 \u0645\u062F\u0639\u0648\u0645.",
       "Theme updated": "\u062A\u0645 \u062A\u062D\u062F\u064A\u062B \u0627\u0644\u0645\u0638\u0647\u0631",
       "Density updated": "\u062A\u0645 \u062A\u062D\u062F\u064A\u062B \u0627\u0644\u0643\u062B\u0627\u0641\u0629",
+      "Timeline width updated": "\u062A\u0645 \u062A\u062D\u062F\u064A\u062B \u0639\u0631\u0636 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A",
+      "Chirp font on": "\u062E\u0637 Chirp \u0645\u0641\u0639\u0651\u0644",
+      "Chirp font off": "\u062E\u0637 Chirp \u0645\u0639\u0637\u0651\u0644",
       "Engagement counts hidden": "\u062A\u0645 \u0625\u062E\u0641\u0627\u0621 \u0623\u0639\u062F\u0627\u062F \u0627\u0644\u062A\u0641\u0627\u0639\u0644",
       "Engagement counts shown": "\u062A\u0645 \u0625\u0638\u0647\u0627\u0631 \u0623\u0639\u062F\u0627\u062F \u0627\u0644\u062A\u0641\u0627\u0639\u0644",
       "Row borders hidden": "\u062A\u0645 \u0625\u062E\u0641\u0627\u0621 \u062D\u062F\u0648\u062F \u0627\u0644\u0635\u0641\u0648\u0641",
@@ -2991,6 +3091,13 @@ html.av-reduce-motion *::after {
       "Midnight": "\u05D7\u05E6\u05D5\u05EA",
       "Dense mode": "\u05DE\u05E6\u05D1 \u05E6\u05E4\u05D5\u05E3",
       "Tighten timeline spacing for scanning.": "\u05DE\u05E6\u05DE\u05E6\u05DD \u05D0\u05EA \u05D4\u05E8\u05D9\u05D5\u05D5\u05D7 \u05D1\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF \u05DC\u05E1\u05E8\u05D9\u05E7\u05D4 \u05DE\u05D4\u05D9\u05E8\u05D4.",
+      "Timeline width": "\u05E8\u05D5\u05D7\u05D1 \u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF",
+      "Widen the main column past the width X fixes it at. Capped to the space available, so a narrow window is unaffected.": "\u05DE\u05E8\u05D7\u05D9\u05D1 \u05D0\u05EA \u05D4\u05E2\u05DE\u05D5\u05D3\u05D4 \u05D4\u05E8\u05D0\u05E9\u05D9\u05EA \u05DE\u05E2\u05D1\u05E8 \u05DC\u05E8\u05D5\u05D7\u05D1 \u05E9-X \u05E7\u05D5\u05D1\u05E2. \u05DE\u05D5\u05D2\u05D1\u05DC \u05DC\u05DE\u05E7\u05D5\u05DD \u05D4\u05E4\u05E0\u05D5\u05D9, \u05DB\u05DA \u05E9\u05D7\u05DC\u05D5\u05DF \u05E6\u05E8 \u05D0\u05D9\u05E0\u05D5 \u05DE\u05D5\u05E9\u05E4\u05E2.",
+      "Default": "\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC",
+      "Comfortable": "\u05E0\u05D5\u05D7",
+      "Wide": "\u05E8\u05D7\u05D1",
+      "Restore the Chirp font": "\u05E9\u05D7\u05D6\u05D5\u05E8 \u05D4\u05D2\u05D5\u05E4\u05DF Chirp",
+      "Force X's own Chirp typeface where the site has fallen back to a system font.": "\u05DB\u05D5\u05E4\u05D4 \u05D0\u05EA \u05D4\u05D2\u05D5\u05E4\u05DF Chirp \u05E9\u05DC X \u05D1\u05DE\u05E7\u05D5\u05DE\u05D5\u05EA \u05E9\u05D1\u05D4\u05DD \u05D4\u05D0\u05EA\u05E8 \u05D7\u05D6\u05E8 \u05DC\u05D2\u05D5\u05E4\u05DF \u05DE\u05E2\u05E8\u05DB\u05EA.",
       "Hide engagement counts": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05DE\u05D5\u05E0\u05D9 \u05DE\u05E2\u05D5\u05E8\u05D1\u05D5\u05EA",
       "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.": "\u05DE\u05E1\u05EA\u05D9\u05E8 \u05D0\u05EA \u05DE\u05E1\u05E4\u05E8\u05D9 \u05D4\u05EA\u05D2\u05D5\u05D1\u05D5\u05EA, \u05D4\u05E9\u05D9\u05EA\u05D5\u05E4\u05D9\u05DD \u05D5\u05D4\u05DC\u05D9\u05D9\u05E7\u05D9\u05DD. \u05D4\u05DB\u05E4\u05EA\u05D5\u05E8\u05D9\u05DD \u05DE\u05DE\u05E9\u05D9\u05DB\u05D9\u05DD \u05DC\u05E4\u05E2\u05D5\u05DC \u05D5\u05E7\u05D5\u05E8\u05D0\u05D9 \u05DE\u05E1\u05DA \u05DE\u05DE\u05E9\u05D9\u05DB\u05D9\u05DD \u05DC\u05D4\u05E7\u05E8\u05D9\u05D0 \u05D0\u05EA \u05D4\u05E1\u05DB\u05D5\u05DE\u05D9\u05DD.",
       "Hide row borders": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05D2\u05D1\u05D5\u05DC\u05D5\u05EA \u05E9\u05D5\u05E8\u05D5\u05EA",
@@ -3218,6 +3325,9 @@ html.av-reduce-motion *::after {
       "Theme value is not supported.": "\u05E2\u05E8\u05DB\u05EA \u05D4\u05E0\u05D5\u05E9\u05D0 \u05D4\u05D6\u05D5 \u05D0\u05D9\u05E0\u05D4 \u05E0\u05EA\u05DE\u05DB\u05EA.",
       "Theme updated": "\u05E2\u05E8\u05DB\u05EA \u05D4\u05E0\u05D5\u05E9\u05D0 \u05E2\u05D5\u05D3\u05DB\u05E0\u05D4",
       "Density updated": "\u05D4\u05E6\u05E4\u05D9\u05E4\u05D5\u05EA \u05E2\u05D5\u05D3\u05DB\u05E0\u05D4",
+      "Timeline width updated": "\u05E8\u05D5\u05D7\u05D1 \u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF \u05E2\u05D5\u05D3\u05DB\u05DF",
+      "Chirp font on": "\u05D4\u05D2\u05D5\u05E4\u05DF Chirp \u05E4\u05E2\u05D9\u05DC",
+      "Chirp font off": "\u05D4\u05D2\u05D5\u05E4\u05DF Chirp \u05DB\u05D1\u05D5\u05D9",
       "Engagement counts hidden": "\u05DE\u05D5\u05E0\u05D9 \u05D4\u05DE\u05E2\u05D5\u05E8\u05D1\u05D5\u05EA \u05D4\u05D5\u05E1\u05EA\u05E8\u05D5",
       "Engagement counts shown": "\u05DE\u05D5\u05E0\u05D9 \u05D4\u05DE\u05E2\u05D5\u05E8\u05D1\u05D5\u05EA \u05DE\u05D5\u05E6\u05D2\u05D9\u05DD",
       "Row borders hidden": "\u05D2\u05D1\u05D5\u05DC\u05D5\u05EA \u05D4\u05E9\u05D5\u05E8\u05D5\u05EA \u05D4\u05D5\u05E1\u05EA\u05E8\u05D5",
@@ -4038,6 +4148,29 @@ html.av-reduce-motion *::after {
           options.settings.appearance.denseMode = checked;
           await save("Density updated");
         }),
+        selectRow(
+          "Timeline width",
+          options.settings.appearance.timelineWidth,
+          [
+            ["default", "Default"],
+            ["comfortable", "Comfortable"],
+            ["wide", "Wide"]
+          ],
+          async (value) => {
+            options.settings.appearance.timelineWidth = value;
+            await save("Timeline width updated");
+          },
+          "Widen the main column past the width X fixes it at. Capped to the space available, so a narrow window is unaffected."
+        ),
+        toggleRow(
+          "Restore the Chirp font",
+          "Force X's own Chirp typeface where the site has fallen back to a system font.",
+          options.settings.appearance.restoreChirp,
+          async (checked) => {
+            options.settings.appearance.restoreChirp = checked;
+            await save(checked ? "Chirp font on" : "Chirp font off");
+          }
+        ),
         toggleRow(
           "Hide engagement counts",
           "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.",
@@ -13254,11 +13387,21 @@ html.av-mobile [data-testid="primaryColumn"] {
       img.dataset[ORIGINAL_SRC] = current;
       img.dataset[ORIGINAL_SRCSET] = img.getAttribute("srcset") ?? "";
     }
+    img.addEventListener("error", onUpgradeError, { once: true });
     img.removeAttribute("srcset");
     img.setAttribute("src", normalized.url);
     return true;
   }
+  function onUpgradeError(event) {
+    const img = event.currentTarget;
+    if (img.dataset[ORIGINAL_SRC] === void 0) {
+      return;
+    }
+    restoreImage(img);
+    img.setAttribute(PROCESSED_ATTR6, "1");
+  }
   function restoreImage(img) {
+    img.removeEventListener("error", onUpgradeError);
     const original = img.dataset[ORIGINAL_SRC];
     if (original !== void 0) {
       img.setAttribute("src", original);

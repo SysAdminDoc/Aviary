@@ -32,9 +32,11 @@ export const themeFeature: FeatureModule = {
       "av-hide-counts",
       "av-hide-borders",
       "av-high-contrast",
-      "av-reduce-motion"
+      "av-reduce-motion",
+      "av-chirp"
     );
     delete document.documentElement.dataset.avTheme;
+    delete document.documentElement.dataset.avWidth;
     document.documentElement.style.colorScheme = "";
     ctx.diagnostics.info("Theme foundation destroyed");
   }
@@ -49,6 +51,8 @@ export function applyTheme(settings: AviarySettings): void {
   }
 
   root.dataset.avTheme = theme;
+  root.dataset.avWidth = settings.appearance.timelineWidth;
+  root.classList.toggle("av-chirp", settings.appearance.restoreChirp);
   root.classList.toggle("av-dense", settings.appearance.denseMode);
   root.classList.toggle("av-hide-counts", settings.appearance.hideCounts);
   root.classList.toggle("av-hide-borders", settings.appearance.hideBorders);
@@ -147,6 +151,32 @@ html[data-av-theme] [data-testid="sidebarColumn"] section,
 html[data-av-theme] [aria-label="Timeline: Trending now"] {
   background-color: color-mix(in srgb, var(--av-surface) 92%, transparent);
   border-color: var(--av-border);
+}
+
+/* The primary column takes its width from its own box, not from a max-width -- measured on
+   _decoded/home.html at a 1400px viewport, the column and its first four ancestors all report
+   max-width:none and the same 677.77px. The tier is therefore expressed as a width, and clamped
+   against 100vw rather than 100% -- every ancestor is already the column's own 677.77px, so a
+   percentage can never resolve to anything larger and the setting would silently do nothing. */
+html[data-av-width="comfortable"] [data-testid="primaryColumn"] {
+  width: min(820px, 100vw) !important;
+  max-width: none !important;
+}
+
+html[data-av-width="wide"] [data-testid="primaryColumn"] {
+  width: min(1040px, 100vw) !important;
+  max-width: none !important;
+}
+
+/* TwitterChirp is the family X registers the font under -- confirmed in the captured
+   stylesheets, which preload Chirp-Regular/Bold/Medium woff2 and declare the stack twice. The
+   rule reaches into descendants because X sets font-family per element through generated atomic
+   classes, so inheriting from body alone would not reach them. Aviary's own panel is inside a
+   shadow root, which document CSS cannot cross, so it keeps its own type. */
+html.av-chirp body,
+html.av-chirp body * {
+  font-family: TwitterChirp, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif !important;
 }
 
 html.av-dense article[data-testid="tweet"] {

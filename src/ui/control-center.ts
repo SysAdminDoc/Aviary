@@ -370,6 +370,29 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           options.settings.appearance.denseMode = checked;
           await save("Density updated");
         }),
+        selectRow(
+          "Timeline width",
+          options.settings.appearance.timelineWidth,
+          [
+            ["default", "Default"],
+            ["comfortable", "Comfortable"],
+            ["wide", "Wide"]
+          ],
+          async (value) => {
+            options.settings.appearance.timelineWidth = value as "default" | "comfortable" | "wide";
+            await save("Timeline width updated");
+          },
+          "Widen the main column past the width X fixes it at. Capped to the space available, so a narrow window is unaffected."
+        ),
+        toggleRow(
+          "Restore the Chirp font",
+          "Force X's own Chirp typeface where the site has fallen back to a system font.",
+          options.settings.appearance.restoreChirp,
+          async (checked) => {
+            options.settings.appearance.restoreChirp = checked;
+            await save(checked ? "Chirp font on" : "Chirp font off");
+          }
+        ),
         toggleRow(
           "Hide engagement counts",
           "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.",
