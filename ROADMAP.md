@@ -964,16 +964,6 @@ read-only (Playwright against `_decoded/home.html` and scratch pages); no source
   Confidence: Likely (needs one real archive to confirm; mechanism certain)
   Effort: M
 
-- [ ] P1 — AI command menu and composer snippets end in silence — no user-visible success or failure
-  Category: ux
-  Where: src/features/ai/command-menu.ts:138-190, src/features/composer/composer-snippets.ts:99-110
-  Problem: After "Translate — running…", every outcome is invisible: on success the result goes to the clipboard with no toast; on provider failure only `diagnostics.warn` fires and the menu just closes. Clipboard rejection likewise. Same for snippets: a failed insert ("composer not focused") logs to diagnostics and the palette closes. This violates the repo's own error-handling rule (never fail silently) — a user cannot tell "worked, check clipboard" from "failed".
-  Evidence: Read the full click path — no DOM feedback after line 144's "running…" label; menu.remove() at 177 is unconditional.
-  Fix: Reuse the hidden-posts toast pattern (shadow-root toast, role=status) as a shared helper, or at minimum swap the menu item's label to a visible "Copied" / the error message for ~1.5 s before closing. Failure copy should name the cause ("Provider HTTP 401 — check the API key in Integrations").
-  Acceptance: Driving the menu with a stubbed failing provider shows user-visible failure text; success shows a visible copied confirmation. No silent path remains.
-  Confidence: Verified
-  Effort: M
-
 - [ ] P2 — `font: … inherit` shorthand is invalid CSS — eight controls render in browser-default type
   Category: visual
   Where: src/ui/control-center.ts:2620 (.av-launcher), 2787 (.av-nav-item); src/features/ai/command-menu.ts:227, 260; src/features/composer/composer-snippets.ts:165, 188; src/features/filtering/hidden-posts-feature.ts:543 (.av-toast-undo); src/features/library/user-notes.ts:189 (.av-note-badge)
@@ -1093,16 +1083,6 @@ read-only (Playwright against `_decoded/home.html` and scratch pages); no source
   Acceptance: Either scrolling during an enabled session grows the job's record count, or the dead branch is gone and tests still pass.
   Confidence: Verified
   Effort: M
-
-- [ ] P3 — Popover menus outlive destroy() and can drop their styles; AI menu never flips at the fold
-  Category: reliability
-  Where: src/features/ai/command-menu.ts:70-79 (destroy), 122-198 (openMenu/dismiss/positionMenu); src/features/composer/composer-snippets.ts (shared listener lifecycle)
-  Problem: destroy() removes the feature stylesheet and triggers but not an open .av-ai-menu (appended to body) — the menu survives as an unstyled div, and its capture-phase document click listener persists until the next click. positionMenu clamps top/left only, so a menu opened near the bottom of the viewport renders partially off-screen.
-  Evidence: Read both files; destroy has no .av-ai-menu sweep (snippets does remove its popover via the palette attribute; only command-menu orphans).
-  Fix: In destroy, remove any open menu and its dismiss listener (hold a module-scope reference); in positionMenu, flip above the trigger when the menu would cross innerHeight.
-  Acceptance: destroy() with a menu open leaves no .av-ai-menu in the DOM; a menu opened near the fold renders fully on-screen.
-  Confidence: Verified (orphan), Likely (flip)
-  Effort: S
 
 - [ ] P3 — Nav rail clips its last item mid-glyph with no scroll affordance
   Category: visual

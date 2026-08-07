@@ -1,4 +1,5 @@
 import type { FeatureContext, FeatureModule } from "../registry";
+import { removeFeatureToast, showFeatureToast } from "../core/feature-toast";
 
 const STYLE_ID = "av-composer-snippets";
 const TOOLBAR_ATTR = "data-av-composer-mounted";
@@ -28,6 +29,7 @@ export const composerSnippetsFeature: FeatureModule = {
   },
 
   destroy(ctx) {
+    removeFeatureToast();
     document.getElementById(STYLE_ID)?.remove();
     for (const toolbar of Array.from(document.querySelectorAll(`[${TOOLBAR_ATTR}]`))) {
       toolbar.removeAttribute(TOOLBAR_ATTR);
@@ -102,6 +104,12 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
           void ctx.auditLog.record("settings.import", { kind: "snippet", length: snippet.length });
         } else {
           ctx.diagnostics.warn("Snippet insert failed — composer not focused");
+          // A successful insert is self-evident (the text appears); only the failure needs
+          // saying, and it needs to say what to do about it.
+          showFeatureToast("Click into the composer first, then pick a snippet.", {
+            tone: "error",
+            ctx
+          });
         }
         popover.remove();
       });

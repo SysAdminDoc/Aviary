@@ -1,5 +1,6 @@
 import type { FeatureContext, FeatureModule } from "../registry";
 import { runAiPrompt } from "../integrations/ai-provider";
+import { removeFeatureToast, showFeatureToast } from "../core/feature-toast";
 
 const STYLE_ID = "av-ai-command-menu";
 const TRIGGER_ATTR = "data-av-ai-trigger";
@@ -68,6 +69,10 @@ export const aiCommandMenuFeature: FeatureModule = {
   },
 
   destroy(ctx) {
+    // The menu lives on <body>, outside anything the selectors below sweep: without this it
+    // survived teardown as an unstyled list with a live capture-phase click listener.
+    closeOpenMenu();
+    removeFeatureToast();
     document.getElementById(STYLE_ID)?.remove();
     for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR}]`))) {
       article.removeAttribute(PROCESSED_ATTR);
@@ -119,10 +124,24 @@ function decorate(ctx: FeatureContext, root: ParentNode | Element): void {
   }
 }
 
-function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): void {
-  for (const previous of Array.from(document.querySelectorAll(".av-ai-menu"))) {
-    previous.remove();
+/** The menu is appended to <body>, so destroy() has to be able to reach it. */
+let openMenuNode: HTMLElement | undefined;
+let openMenuDismiss: ((event: Event) => void) | undefined;
+
+function closeOpenMenu(): void {
+  if (openMenuDismiss) {
+    document.removeEventListener("click", openMenuDismiss, true);
+    openMenuDismiss = undefined;
   }
+  openMenuNode?.remove();
+  openMenuNode = undefined;
+  for (const stray of Array.from(document.querySelectorAll(".av-ai-menu"))) {
+    stray.remove();
+  }
+}
+
+function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): void {
+  closeOpenMenu();
   const menu = document.createElement("div");
   menu.className = "av-ai-menu";
   menu.setAttribute("role", "menu");
@@ -155,37 +174,53 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
               command: command.id,
               provider: ctx.settings.integrations.ai.provider
             });
+            showFeatureToast(`${command.label} finished — result copied to the clipboard.`, { ctx });
           } catch (error) {
             ctx.diagnostics.warn("AI result clipboard failed", {
               error: String((error as Error)?.message ?? error)
             });
+            showFeatureToast("The result could not be copied. Your browser blocked clipboard access.", {
+              tone: "error",
+              ctx
+            });
           }
         } else {
           ctx.diagnostics.warn("AI provider call failed", { error: result.error ?? "unknown" });
+          showFeatureToast(
+            `${command.label} failed: ${result.error ?? "the provider did not respond"}. Check the key and model in Integrations.`,
+            { tone: "error", ctx }
+          );
         }
       } else {
         try {
           await copyToClipboard(prompt);
           ctx.diagnostics.info("AI prompt copied", { command: command.id, length: prompt.length });
           void ctx.auditLog.record("diagnostics.copy", { kind: "ai", command: command.id });
+          showFeatureToast("Prompt copied to the clipboard — paste it into your assistant.", { ctx });
         } catch (error) {
           ctx.diagnostics.warn("AI prompt clipboard failed", {
             error: String((error as Error)?.message ?? error)
           });
+          showFeatureToast("The prompt could not be copied. Your browser blocked clipboard access.", {
+            tone: "error",
+            ctx
+          });
         }
       }
-      menu.remove();
+      closeOpenMenu();
     });
     menu.append(item);
   }
-  positionMenu(menu, trigger);
   document.body.append(menu);
+  // Measured after insertion: the flip decision needs the menu's real height.
+  positionMenu(menu, trigger);
+  openMenuNode = menu;
   const dismiss = (event: Event): void => {
     if (!menu.contains(event.target as Node) && event.target !== trigger) {
-      menu.remove();
-      document.removeEventListener("click", dismiss, true);
+      closeOpenMenu();
     }
   };
+  openMenuDismiss = dismiss;
   setTimeout(() => document.addEventListener("click", dismiss, true), 0);
 }
 
@@ -193,8 +228,16 @@ function positionMenu(menu: HTMLElement, trigger: HTMLElement): void {
   const rect = trigger.getBoundingClientRect();
   menu.style.position = "fixed";
   menu.style.left = `${Math.max(12, rect.left)}px`;
-  menu.style.top = `${Math.max(12, rect.bottom + 6)}px`;
   menu.style.maxWidth = "260px";
+
+  // Flip above the trigger when the menu would run past the fold. Clamping the top alone left
+  // the lower half of the list unreachable on a post near the bottom of the viewport.
+  const viewportHeight = globalThis.innerHeight || 0;
+  const height = menu.getBoundingClientRect().height;
+  const below = rect.bottom + 6;
+  menu.style.top = viewportHeight > 0 && below + height > viewportHeight - 12
+    ? `${Math.max(12, rect.top - height - 6)}px`
+    : `${Math.max(12, below)}px`;
 }
 
 async function copyToClipboard(text: string): Promise<void> {
