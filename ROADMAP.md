@@ -941,11 +941,6 @@ Mandatory Phase 5 checks:
 Raised during the full engineering/UX/security audit of v1.6.0. Items fixed in that pass are
 in CHANGELOG.md; these are the ones left open, with the reason each was not taken.
 
-- [ ] P3 — settings.media.zipChunkSize is schema-only
-  Why: normalizes and round-trips through import/export, but the ZIP writer never splits an
-  export, so the value is inert. Needs the export path to actually chunk at this size.
-  Where: src/platform/settings.ts, src/features/export/zip-store.ts
-
 - [ ] P3 — settings.links.cleanShareButtons is schema-only, and three presets promise it
   Why: Quiet Reader, Researcher and Minimal all set it, so applying a preset claims a change
   that never happens. Needs a feature that strips tracking parameters from share URLs, or the

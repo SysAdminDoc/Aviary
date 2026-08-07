@@ -311,6 +311,8 @@ html.av-reduce-motion *::after {
       "Heading-first Markdown that Notion imports cleanly.": "Markdown basado en encabezados que Notion importa sin problemas.",
       "Save records JSON": "Guardar registros en JSON",
       "Raw ExportRecord[] JSON without ZIP wrapping.": "JSON ExportRecord[] sin comprimir en ZIP.",
+      "Records per ZIP": "Registros por ZIP",
+      "Split a long export across several archives instead of one huge file (25-1000).": "Divide una exportaci\xF3n larga en varios archivos en lugar de uno enorme (25-1000).",
       "Maximum export jobs": "M\xE1ximo de trabajos de exportaci\xF3n",
       "Keep the newest jobs. Use 0 for unlimited.": "Conserva los trabajos m\xE1s recientes. Usa 0 para ilimitado.",
       "Maximum records per job": "M\xE1ximo de registros por trabajo",
@@ -476,6 +478,7 @@ html.av-reduce-motion *::after {
       "Building WARC archive\u2026": "Generando el archivo WARC\u2026",
       "WARC export failed.": "Error en la exportaci\xF3n WARC.",
       "External export failed.": "La exportaci\xF3n externa fall\xF3.",
+      "Records per ZIP saved": "Registros por ZIP guardados",
       "Export job retention saved": "Retenci\xF3n de trabajos guardada",
       "Record retention saved": "Retenci\xF3n de registros guardada",
       "Age-based retention saved": "Retenci\xF3n por antig\xFCedad guardada",
@@ -628,6 +631,8 @@ html.av-reduce-motion *::after {
       "Heading-first Markdown that Notion imports cleanly.": "Markdown baseado em t\xEDtulos que o Notion importa sem problemas.",
       "Save records JSON": "Guardar registos em JSON",
       "Raw ExportRecord[] JSON without ZIP wrapping.": "JSON ExportRecord[] sem compress\xE3o ZIP.",
+      "Records per ZIP": "Registos por ZIP",
+      "Split a long export across several archives instead of one huge file (25-1000).": "Divide uma exporta\xE7\xE3o longa em v\xE1rios ficheiros em vez de um enorme (25-1000).",
       "Maximum export jobs": "M\xE1ximo de trabalhos de exporta\xE7\xE3o",
       "Keep the newest jobs. Use 0 for unlimited.": "Mant\xE9m os trabalhos mais recentes. Use 0 para ilimitado.",
       "Maximum records per job": "M\xE1ximo de registos por trabalho",
@@ -793,6 +798,7 @@ html.av-reduce-motion *::after {
       "Building WARC archive\u2026": "A gerar o arquivo WARC\u2026",
       "WARC export failed.": "Falha na exporta\xE7\xE3o WARC.",
       "External export failed.": "A exporta\xE7\xE3o externa falhou.",
+      "Records per ZIP saved": "Registos por ZIP guardados",
       "Export job retention saved": "Reten\xE7\xE3o de trabalhos guardada",
       "Record retention saved": "Reten\xE7\xE3o de registos guardada",
       "Age-based retention saved": "Reten\xE7\xE3o por idade guardada",
@@ -945,6 +951,8 @@ html.av-reduce-motion *::after {
       "Heading-first Markdown that Notion imports cleanly.": "Markdown structur\xE9 par titres, import\xE9 proprement par Notion.",
       "Save records JSON": "Enregistrer les enregistrements en JSON",
       "Raw ExportRecord[] JSON without ZIP wrapping.": "JSON ExportRecord[] brut, sans archive ZIP.",
+      "Records per ZIP": "Enregistrements par ZIP",
+      "Split a long export across several archives instead of one huge file (25-1000).": "R\xE9partit un export volumineux sur plusieurs archives au lieu d'un seul \xE9norme fichier (25-1000).",
       "Maximum export jobs": "Nombre maximal de t\xE2ches d'export",
       "Keep the newest jobs. Use 0 for unlimited.": "Conserve les t\xE2ches les plus r\xE9centes. 0 pour illimit\xE9.",
       "Maximum records per job": "Nombre maximal d'enregistrements par t\xE2che",
@@ -1110,6 +1118,7 @@ html.av-reduce-motion *::after {
       "Building WARC archive\u2026": "G\xE9n\xE9ration de l'archive WARC\u2026",
       "WARC export failed.": "\xC9chec de l'export WARC.",
       "External export failed.": "L'export externe a \xE9chou\xE9.",
+      "Records per ZIP saved": "Enregistrements par ZIP enregistr\xE9s",
       "Export job retention saved": "R\xE9tention des t\xE2ches enregistr\xE9e",
       "Record retention saved": "R\xE9tention des enregistrements enregistr\xE9e",
       "Age-based retention saved": "R\xE9tention par anciennet\xE9 enregistr\xE9e",
@@ -1262,6 +1271,8 @@ html.av-reduce-motion *::after {
       "Heading-first Markdown that Notion imports cleanly.": "\xDCberschriftenbasiertes Markdown, das Notion sauber importiert.",
       "Save records JSON": "Datens\xE4tze als JSON speichern",
       "Raw ExportRecord[] JSON without ZIP wrapping.": "Rohes ExportRecord[]-JSON ohne ZIP-Verpackung.",
+      "Records per ZIP": "Datens\xE4tze pro ZIP",
+      "Split a long export across several archives instead of one huge file (25-1000).": "Verteilt einen langen Export auf mehrere Archive statt auf eine riesige Datei (25-1000).",
       "Maximum export jobs": "Maximale Anzahl Export-Auftr\xE4ge",
       "Keep the newest jobs. Use 0 for unlimited.": "Beh\xE4lt die neuesten Auftr\xE4ge. 0 bedeutet unbegrenzt.",
       "Maximum records per job": "Maximale Datens\xE4tze pro Auftrag",
@@ -1427,6 +1438,7 @@ html.av-reduce-motion *::after {
       "Building WARC archive\u2026": "WARC-Archiv wird erstellt\u2026",
       "WARC export failed.": "WARC-Export fehlgeschlagen.",
       "External export failed.": "Externer Export fehlgeschlagen.",
+      "Records per ZIP saved": "Datens\xE4tze pro ZIP gespeichert",
       "Export job retention saved": "Aufbewahrung der Export-Auftr\xE4ge gespeichert",
       "Record retention saved": "Aufbewahrung der Datens\xE4tze gespeichert",
       "Age-based retention saved": "Aufbewahrung nach Alter gespeichert",
@@ -1579,6 +1591,8 @@ html.av-reduce-motion *::after {
       "Heading-first Markdown that Notion imports cleanly.": "Notion \u304C\u304D\u308C\u3044\u306B\u53D6\u308A\u8FBC\u3081\u308B\u3001\u898B\u51FA\u3057\u4E2D\u5FC3\u306E Markdown\u3002",
       "Save records JSON": "\u8A18\u9332\u3092 JSON \u3067\u4FDD\u5B58",
       "Raw ExportRecord[] JSON without ZIP wrapping.": "ZIP \u306B\u307E\u3068\u3081\u306A\u3044\u3001\u751F\u306E ExportRecord[] JSON\u3002",
+      "Records per ZIP": "ZIP \u3042\u305F\u308A\u306E\u4EF6\u6570",
+      "Split a long export across several archives instead of one huge file (25-1000).": "\u5927\u91CF\u306E\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u3092 1 \u3064\u306E\u5DE8\u5927\u306A\u30D5\u30A1\u30A4\u30EB\u306B\u305B\u305A\u3001\u8907\u6570\u306E\u66F8\u5EAB\u306B\u5206\u5272\u3057\u307E\u3059\uFF0825\u301C1000\uFF09\u3002",
       "Maximum export jobs": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6\u306E\u4E0A\u9650",
       "Keep the newest jobs. Use 0 for unlimited.": "\u65B0\u3057\u3044\u30B8\u30E7\u30D6\u3092\u6B8B\u3057\u307E\u3059\u30020 \u3067\u7121\u5236\u9650\u3002",
       "Maximum records per job": "\u30B8\u30E7\u30D6\u3054\u3068\u306E\u8A18\u9332\u306E\u4E0A\u9650",
@@ -1744,6 +1758,7 @@ html.av-reduce-motion *::after {
       "Building WARC archive\u2026": "WARC \u30A2\u30FC\u30AB\u30A4\u30D6\u3092\u4F5C\u6210\u4E2D\u2026",
       "WARC export failed.": "WARC \u306E\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
       "External export failed.": "\u5916\u90E8\u3078\u306E\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
+      "Records per ZIP saved": "ZIP \u3042\u305F\u308A\u306E\u4EF6\u6570\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Export job retention saved": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6\u306E\u4FDD\u6301\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Record retention saved": "\u8A18\u9332\u306E\u4FDD\u6301\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Age-based retention saved": "\u65E5\u6570\u306B\u3088\u308B\u4FDD\u6301\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
@@ -1896,6 +1911,8 @@ html.av-reduce-motion *::after {
       "Heading-first Markdown that Notion imports cleanly.": "Notion\uC774 \uAE54\uB054\uD558\uAC8C \uAC00\uC838\uC624\uB294 \uC81C\uBAA9 \uC911\uC2EC Markdown.",
       "Save records JSON": "\uAE30\uB85D\uC744 JSON\uC73C\uB85C \uC800\uC7A5",
       "Raw ExportRecord[] JSON without ZIP wrapping.": "ZIP\uC73C\uB85C \uBB36\uC9C0 \uC54A\uC740 \uC6D0\uBCF8 ExportRecord[] JSON.",
+      "Records per ZIP": "ZIP\uB2F9 \uAE30\uB85D \uC218",
+      "Split a long export across several archives instead of one huge file (25-1000).": "\uAE34 \uB0B4\uBCF4\uB0B4\uAE30\uB97C \uD558\uB098\uC758 \uAC70\uB300\uD55C \uD30C\uC77C \uB300\uC2E0 \uC5EC\uB7EC \uC544\uCE74\uC774\uBE0C\uB85C \uB098\uB215\uB2C8\uB2E4(25~1000).",
       "Maximum export jobs": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5 \uCD5C\uB300 \uC218",
       "Keep the newest jobs. Use 0 for unlimited.": "\uCD5C\uC2E0 \uC791\uC5C5\uC744 \uC720\uC9C0\uD569\uB2C8\uB2E4. 0\uC740 \uBB34\uC81C\uD55C\uC785\uB2C8\uB2E4.",
       "Maximum records per job": "\uC791\uC5C5\uB2F9 \uAE30\uB85D \uCD5C\uB300 \uC218",
@@ -2061,6 +2078,7 @@ html.av-reduce-motion *::after {
       "Building WARC archive\u2026": "WARC \uBCF4\uAD00 \uD30C\uC77C\uC744 \uB9CC\uB4DC\uB294 \uC911\u2026",
       "WARC export failed.": "WARC \uB0B4\uBCF4\uB0B4\uAE30\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
       "External export failed.": "\uC678\uBD80 \uB0B4\uBCF4\uB0B4\uAE30\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
+      "Records per ZIP saved": "ZIP\uB2F9 \uAE30\uB85D \uC218\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Export job retention saved": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5 \uBCF4\uAD00 \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Record retention saved": "\uAE30\uB85D \uBCF4\uAD00 \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Age-based retention saved": "\uAE30\uAC04 \uAE30\uC900 \uBCF4\uAD00 \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
@@ -2213,6 +2231,8 @@ html.av-reduce-motion *::after {
       "Heading-first Markdown that Notion imports cleanly.": "Markdown \u064A\u0639\u062A\u0645\u062F \u0639\u0644\u0649 \u0627\u0644\u0639\u0646\u0627\u0648\u064A\u0646 \u0648\u064A\u0633\u062A\u0648\u0631\u062F\u0647 Notion \u0628\u0633\u0644\u0627\u0633\u0629.",
       "Save records JSON": "\u062D\u0641\u0638 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0628\u0635\u064A\u063A\u0629 JSON",
       "Raw ExportRecord[] JSON without ZIP wrapping.": "\u200FJSON \u062E\u0627\u0645 \u0645\u0646 \u0646\u0648\u0639 ExportRecord[] \u062F\u0648\u0646 \u062A\u063A\u0644\u064A\u0641 ZIP.",
+      "Records per ZIP": "\u0639\u062F\u062F \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0644\u0643\u0644 ZIP",
+      "Split a long export across several archives instead of one huge file (25-1000).": "\u064A\u0642\u0633\u0651\u0645 \u0639\u0645\u0644\u064A\u0627\u062A \u0627\u0644\u062A\u0635\u062F\u064A\u0631 \u0627\u0644\u0637\u0648\u064A\u0644\u0629 \u0639\u0644\u0649 \u0639\u062F\u0629 \u0645\u0644\u0641\u0627\u062A \u0628\u062F\u0644 \u0645\u0644\u0641 \u0648\u0627\u062D\u062F \u0636\u062E\u0645 (25-1000).",
       "Maximum export jobs": "\u0627\u0644\u062D\u062F \u0627\u0644\u0623\u0642\u0635\u0649 \u0644\u0645\u0647\u0627\u0645 \u0627\u0644\u062A\u0635\u062F\u064A\u0631",
       "Keep the newest jobs. Use 0 for unlimited.": "\u064A\u062D\u062A\u0641\u0638 \u0628\u0623\u062D\u062F\u062B \u0627\u0644\u0645\u0647\u0627\u0645. \u0627\u0633\u062A\u062E\u062F\u0645 0 \u0644\u0639\u062F\u062F \u063A\u064A\u0631 \u0645\u062D\u062F\u0648\u062F.",
       "Maximum records per job": "\u0627\u0644\u062D\u062F \u0627\u0644\u0623\u0642\u0635\u0649 \u0644\u0644\u0633\u062C\u0644\u0627\u062A \u0644\u0643\u0644 \u0645\u0647\u0645\u0629",
@@ -2378,6 +2398,7 @@ html.av-reduce-motion *::after {
       "Building WARC archive\u2026": "\u062C\u0627\u0631\u064D \u0625\u0646\u0634\u0627\u0621 \u0623\u0631\u0634\u064A\u0641 WARC\u2026",
       "WARC export failed.": "\u0641\u0634\u0644 \u062A\u0635\u062F\u064A\u0631 WARC.",
       "External export failed.": "\u0641\u0634\u0644 \u0627\u0644\u062A\u0635\u062F\u064A\u0631 \u0627\u0644\u062E\u0627\u0631\u062C\u064A.",
+      "Records per ZIP saved": "\u062A\u0645 \u062D\u0641\u0638 \u0639\u062F\u062F \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0644\u0643\u0644 ZIP",
       "Export job retention saved": "\u062A\u0645 \u062D\u0641\u0638 \u0645\u062F\u0629 \u0627\u0644\u0627\u062D\u062A\u0641\u0627\u0638 \u0628\u0645\u0647\u0627\u0645 \u0627\u0644\u062A\u0635\u062F\u064A\u0631",
       "Record retention saved": "\u062A\u0645 \u062D\u0641\u0638 \u0645\u062F\u0629 \u0627\u0644\u0627\u062D\u062A\u0641\u0627\u0638 \u0628\u0627\u0644\u0633\u062C\u0644\u0627\u062A",
       "Age-based retention saved": "\u062A\u0645 \u062D\u0641\u0638 \u0627\u0644\u0627\u062D\u062A\u0641\u0627\u0638 \u062D\u0633\u0628 \u0627\u0644\u0639\u0645\u0631",
@@ -2530,6 +2551,8 @@ html.av-reduce-motion *::after {
       "Heading-first Markdown that Notion imports cleanly.": "\u200FMarkdown \u05DE\u05D1\u05D5\u05E1\u05E1 \u05DB\u05D5\u05EA\u05E8\u05D5\u05EA \u05E9\u2011Notion \u05DE\u05D9\u05D9\u05D1\u05D0 \u05D1\u05E6\u05D5\u05E8\u05D4 \u05E0\u05E7\u05D9\u05D9\u05D4.",
       "Save records JSON": "\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05DB\u2011JSON",
       "Raw ExportRecord[] JSON without ZIP wrapping.": "\u200FJSON \u05D2\u05D5\u05DC\u05DE\u05D9 \u05DE\u05E1\u05D5\u05D2 ExportRecord[] \u05DC\u05DC\u05D0 \u05E2\u05D8\u05D9\u05E4\u05EA ZIP.",
+      "Records per ZIP": "\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05DC\u05DB\u05DC ZIP",
+      "Split a long export across several archives instead of one huge file (25-1000).": "\u05DE\u05E4\u05E6\u05DC \u05D9\u05D9\u05E6\u05D5\u05D0 \u05D0\u05E8\u05D5\u05DA \u05DC\u05DB\u05DE\u05D4 \u05D0\u05E8\u05DB\u05D9\u05D5\u05E0\u05D9\u05DD \u05D1\u05DE\u05E7\u05D5\u05DD \u05E7\u05D5\u05D1\u05E5 \u05E2\u05E0\u05E7 \u05D0\u05D7\u05D3 (25-1000).",
       "Maximum export jobs": "\u05DE\u05E1\u05E4\u05E8 \u05DE\u05E8\u05D1\u05D9 \u05E9\u05DC \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D9\u05D9\u05E6\u05D5\u05D0",
       "Keep the newest jobs. Use 0 for unlimited.": "\u05E9\u05D5\u05DE\u05E8 \u05D0\u05EA \u05D4\u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D4\u05D7\u05D3\u05E9\u05D5\u05EA. 0 \u05DE\u05D1\u05D8\u05DC \u05D0\u05EA \u05D4\u05DE\u05D2\u05D1\u05DC\u05D4.",
       "Maximum records per job": "\u05DE\u05E1\u05E4\u05E8 \u05DE\u05E8\u05D1\u05D9 \u05E9\u05DC \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05DC\u05DE\u05E9\u05D9\u05DE\u05D4",
@@ -2695,6 +2718,7 @@ html.av-reduce-motion *::after {
       "Building WARC archive\u2026": "\u05D1\u05D5\u05E0\u05D4 \u05D0\u05E8\u05DB\u05D9\u05D5\u05DF WARC\u2026",
       "WARC export failed.": "\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D4\u2011WARC \u05E0\u05DB\u05E9\u05DC.",
       "External export failed.": "\u05D4\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D4\u05D7\u05D9\u05E6\u05D5\u05E0\u05D9 \u05E0\u05DB\u05E9\u05DC.",
+      "Records per ZIP saved": "\u05DE\u05E1\u05E4\u05E8 \u05D4\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05DC\u05DB\u05DC ZIP \u05E0\u05E9\u05DE\u05E8",
       "Export job retention saved": "\u05E9\u05DE\u05D9\u05E8\u05EA \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D4\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D4\u05D5\u05D2\u05D3\u05E8\u05D4",
       "Record retention saved": "\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05D4\u05D5\u05D2\u05D3\u05E8\u05D4",
       "Age-based retention saved": "\u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05DC\u05E4\u05D9 \u05D2\u05D9\u05DC \u05D4\u05D5\u05D2\u05D3\u05E8\u05D4",
@@ -4334,8 +4358,9 @@ html.av-reduce-motion *::after {
             setStatus("Collecting visible posts\u2026");
             try {
               const result = await options.runExport();
+              const files = result.files ?? 1;
               setStatus(
-                result.records === 0 ? "No posts found on this view. Scroll the timeline to load some, then export again." : `Exported ${result.records} record${result.records === 1 ? "" : "s"} \u2192 ${result.filename}`
+                result.records === 0 ? "No posts found on this view. Scroll the timeline to load some, then export again." : files > 1 ? `Exported ${result.records} records across ${files} ZIPs \u2192 ${result.filename}` : `Exported ${result.records} record${result.records === 1 ? "" : "s"} \u2192 ${result.filename}`
               );
             } catch (error) {
               options.onError("Export failed", error);
@@ -4399,6 +4424,17 @@ html.av-reduce-motion *::after {
         }
       }
       if (options.getRetentionPolicy && options.saveRetentionPolicy) {
+        rows.push(
+          integerInputRow(
+            "Records per ZIP",
+            "Split a long export across several archives instead of one huge file (25-1000).",
+            options.settings.media.zipChunkSize,
+            async (value) => {
+              options.settings.media.zipChunkSize = value;
+              await save("Records per ZIP saved");
+            }
+          )
+        );
         const policy = options.getRetentionPolicy();
         rows.push(
           integerInputRow(
@@ -6698,7 +6734,12 @@ ${sections.join("\n\n---\n\n")}
     await checkpointStore.append(jobId, initialRecords);
     activeJobId = void 0;
     const records = checkpointStore.records(jobId);
-    const artifact = records.length === 0 ? null : buildExportZip(records, formats, ctx.settings.media.lastSaveFolder);
+    const artifacts = records.length === 0 ? [] : buildExportZipChunks(
+      records,
+      formats,
+      ctx.settings.media.lastSaveFolder,
+      ctx.settings.media.zipChunkSize
+    );
     await checkpointStore.finish(jobId);
     ctx.diagnostics.info("Export completed", { records: records.length, formats });
     void ctx.auditLog.record("export.complete", { jobId, records: records.length, formats });
@@ -6708,8 +6749,8 @@ ${sections.join("\n\n---\n\n")}
     return {
       jobId,
       records: records.length,
-      artifact,
-      filename: zipFilename(ctx.settings.media.lastSaveFolder)
+      artifacts,
+      filename: artifacts[0]?.filename ?? zipFilename(ctx.settings.media.lastSaveFolder)
     };
   }
   function buildExportZip(records, formats, folder) {
@@ -6723,6 +6764,26 @@ ${sections.join("\n\n---\n\n")}
       });
     }
     return buildStoreZip(entries);
+  }
+  function buildExportZipChunks(records, formats, folder, chunkSize) {
+    if (records.length === 0) {
+      return [];
+    }
+    const size = Math.max(1, Math.trunc(chunkSize) || records.length);
+    const base = zipFilename(folder);
+    if (records.length <= size) {
+      return [{ data: buildExportZip(records, formats, folder), filename: base }];
+    }
+    const total = Math.ceil(records.length / size);
+    const artifacts = [];
+    for (let index = 0; index < total; index += 1) {
+      const slice = records.slice(index * size, (index + 1) * size);
+      artifacts.push({
+        data: buildExportZip(slice, formats, folder),
+        filename: base.replace(/\.zip$/, `-part${index + 1}of${total}.zip`)
+      });
+    }
+    return artifacts;
   }
   function selectSupportedFormats(input) {
     const allowed = ["json", "csv", "html", "markdown", "xlsx"];
@@ -9927,10 +9988,14 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         },
         async runExport() {
           const result = await runExportOfVisibleTweets(ctx);
-          if (result.artifact) {
-            downloadBlob(result.artifact, result.filename);
+          for (const artifact of result.artifacts) {
+            downloadBlob(artifact.data, artifact.filename);
           }
-          return { records: result.records, filename: result.filename };
+          return {
+            records: result.records,
+            filename: result.filename,
+            files: result.artifacts.length
+          };
         },
         async copyDiagnostics() {
           const payload = buildDiagnosticsPayload(ctx);

@@ -77,10 +77,16 @@ export function getDiscoveredQueries(): QueryRegistry | undefined {
   return queryRegistry;
 }
 
+export interface ExportArtifact {
+  data: Uint8Array;
+  filename: string;
+}
+
 export interface ExportRunResult {
   jobId: string;
   records: number;
-  artifact: Uint8Array | null;
+  /** One entry per ZIP. `media.zipChunkSize` caps how many records each one carries. */
+  artifacts: ExportArtifact[];
   filename: string;
 }
 
@@ -102,10 +108,15 @@ export async function runExportOfVisibleTweets(ctx: FeatureContext): Promise<Exp
 
   const records = checkpointStore.records(jobId);
   // Handing the user an empty ZIP is worse than telling them nothing was captured.
-  const artifact =
+  const artifacts =
     records.length === 0
-      ? null
-      : buildExportZip(records, formats, ctx.settings.media.lastSaveFolder);
+      ? []
+      : buildExportZipChunks(
+          records,
+          formats,
+          ctx.settings.media.lastSaveFolder,
+          ctx.settings.media.zipChunkSize
+        );
   await checkpointStore.finish(jobId);
   ctx.diagnostics.info("Export completed", { records: records.length, formats });
   void ctx.auditLog.record("export.complete", { jobId, records: records.length, formats });
@@ -115,8 +126,8 @@ export async function runExportOfVisibleTweets(ctx: FeatureContext): Promise<Exp
   return {
     jobId,
     records: records.length,
-    artifact,
-    filename: zipFilename(ctx.settings.media.lastSaveFolder)
+    artifacts,
+    filename: artifacts[0]?.filename ?? zipFilename(ctx.settings.media.lastSaveFolder)
   };
 }
 
@@ -136,6 +147,41 @@ export function buildExportZip(
     });
   }
   return buildStoreZip(entries);
+}
+
+/**
+ * Splits an export into one ZIP per `chunkSize` records. A single archive of a long profile
+ * scrape can reach a size the browser's download path and the user's unzip tool both handle
+ * badly, which is what `media.zipChunkSize` was added for -- it just never did anything.
+ *
+ * A run that fits in one chunk keeps the plain single-file name, so the common case is
+ * unchanged; only a split run gets `-part1of3` suffixes.
+ */
+export function buildExportZipChunks(
+  records: ExportRecord[],
+  formats: readonly ExportFormat[],
+  folder: string,
+  chunkSize: number
+): ExportArtifact[] {
+  if (records.length === 0) {
+    return [];
+  }
+  const size = Math.max(1, Math.trunc(chunkSize) || records.length);
+  const base = zipFilename(folder);
+  if (records.length <= size) {
+    return [{ data: buildExportZip(records, formats, folder), filename: base }];
+  }
+
+  const total = Math.ceil(records.length / size);
+  const artifacts: ExportArtifact[] = [];
+  for (let index = 0; index < total; index += 1) {
+    const slice = records.slice(index * size, (index + 1) * size);
+    artifacts.push({
+      data: buildExportZip(slice, formats, folder),
+      filename: base.replace(/\.zip$/, `-part${index + 1}of${total}.zip`)
+    });
+  }
+  return artifacts;
 }
 
 export function selectSupportedFormats(input: readonly string[]): ExportFormat[] {

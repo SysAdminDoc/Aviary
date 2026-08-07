@@ -58,6 +58,13 @@ Drains the audit findings left open by the v1.7.0 pass.
   read it, so turning the local action log off left it recording exactly as before. `AuditLog`
   now checks it on every write, and Backup & Audit carries the toggle that was missing.
 
+- **`media.zipChunkSize` splits long exports.** The setting normalized and round-tripped while
+  the ZIP writer never split anything, so a long profile scrape produced one archive of whatever
+  size it happened to be. An export now yields one ZIP per chunk (`-part1of3` naming), a run that
+  fits keeps its plain single-file name, and Export gained the **Records per ZIP** control the
+  setting never had. `tools/i18n-sync.mjs` folds new translations into the catalog and refuses to
+  write one that is missing strings.
+
 ### Decided
 
 - **No Escape-to-close handler.** The open question was whether standard dialog dismissal should

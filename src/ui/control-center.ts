@@ -62,6 +62,8 @@ export interface ExportStatus {
 export interface ExportResultSummary {
   records: number;
   filename: string;
+  /** How many ZIPs the run produced; more than one when media.zipChunkSize split it. */
+  files?: number;
 }
 
 export interface ControlCenterOptions {
@@ -1375,10 +1377,13 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           setStatus("Collecting visible posts…");
           try {
             const result = await options.runExport!();
+            const files = result.files ?? 1;
             setStatus(
               result.records === 0
                 ? "No posts found on this view. Scroll the timeline to load some, then export again."
-                : `Exported ${result.records} record${result.records === 1 ? "" : "s"} → ${result.filename}`
+                : files > 1
+                  ? `Exported ${result.records} records across ${files} ZIPs → ${result.filename}`
+                  : `Exported ${result.records} record${result.records === 1 ? "" : "s"} → ${result.filename}`
             );
           } catch (error) {
             options.onError("Export failed", error);
@@ -1448,6 +1453,17 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     }
 
     if (options.getRetentionPolicy && options.saveRetentionPolicy) {
+      rows.push(
+        integerInputRow(
+          "Records per ZIP",
+          "Split a long export across several archives instead of one huge file (25-1000).",
+          options.settings.media.zipChunkSize,
+          async (value) => {
+            options.settings.media.zipChunkSize = value;
+            await save("Records per ZIP saved");
+          }
+        )
+      );
       const policy = options.getRetentionPolicy();
       rows.push(
         integerInputRow(

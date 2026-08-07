@@ -89,7 +89,9 @@ test("an export with nothing captured produces no file and says so", async () =>
   const source = await readFile(path.join(root, "src/features/export/export-feature.ts"), "utf8");
   const ui = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
 
-  assert.match(source, /records\.length === 0\s*\?\s*null/);
+  // An export now yields a list of archives (media.zipChunkSize can split it), so "no file"
+  // is an empty list rather than a null artifact.
+  assert.match(source, /records\.length === 0\s*\?\s*\[\]/);
   assert.match(ui, /No posts found on this view/);
   // Long operations announce themselves before awaiting.
   assert.match(ui, /setStatus\("Collecting visible posts…"\)/);

@@ -105,10 +105,14 @@ export const controlCenterFeature: FeatureModule = {
       },
       async runExport() {
         const result = await runExportOfVisibleTweets(ctx);
-        if (result.artifact) {
-          downloadBlob(result.artifact, result.filename);
+        for (const artifact of result.artifacts) {
+          downloadBlob(artifact.data, artifact.filename);
         }
-        return { records: result.records, filename: result.filename };
+        return {
+          records: result.records,
+          filename: result.filename,
+          files: result.artifacts.length
+        };
       },
       async copyDiagnostics() {
         const payload = buildDiagnosticsPayload(ctx);
