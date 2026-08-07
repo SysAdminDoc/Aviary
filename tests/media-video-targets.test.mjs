@@ -71,19 +71,21 @@ test("the media stylesheet reveals and anchors buttons on every container it use
       new RegExp(`\\[data-testid="${testid}"\\]:hover \\[\\$\\{BUTTON_ATTR\\}\\]`),
       `${testid} has no hover reveal rule`
     );
-    assert.match(
-      source,
-      new RegExp(`\\[data-testid="${testid}"\\],?\\n?`),
-      `${testid} is not in the positioning context list`
-    );
   }
-  const positioning = source.slice(
-    source.indexOf("Every container that can host a button"),
-    source.indexOf("The reveal list has to name")
-  );
-  assert.match(positioning, /position: relative/);
-  assert.match(positioning, /videoPlayer/);
-  assert.match(positioning, /videoComponent/);
+
+  // The positioning context is no longer taken from X. Making tweetPhoto the containing block
+  // collapsed the photo it holds: X keeps that box at height 0 and hangs the picture off it with
+  // position:absolute inset:0, so the picture inherited the zero height and vanished the moment
+  // the Save button was switched on. Offsets are measured against whatever ancestor X has
+  // already positioned -- see positionButton() and tests/media-button-layout.test.mjs.
+  assert.match(source, /function positionButton\(/);
+  assert.match(source, /function positionedAncestor\(/);
+
+  const css = source.slice(source.indexOf("const MEDIA_CSS"));
+  const forced = [...css.matchAll(/([^{}]+)\{([^{}]*position\s*:\s*relative[^{}]*)\}/g)]
+    .map((m) => m[1].replace(/\s+/g, " ").trim())
+    .filter((selector) => /data-testid=/.test(selector));
+  assert.deepEqual(forced, [], "Aviary must not make X's media containers the positioning context");
 });
 
 test("a disabled aria2 integration is not contacted at boot", async () => {

@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.14.0 - 2026-08-07
+
+### Fixed
+
+- **The Save button made photos disappear.** Switching it on removed every image from the
+  timeline; switching it off brought them straight back. Aviary's stylesheet forced
+  `position: relative` onto `[data-testid="tweetPhoto"]` so the button had something to anchor to.
+  X keeps that box at **height 0** — it is a flex container whose two children, the background-image
+  div that actually draws the photo and the `<img>` beside it, are both `position: absolute;
+  inset: 0`, with the real height carried by an ancestor. Making the zero-height box their
+  containing block collapsed both to nothing: loaded, present in the DOM, and invisible.
+  Aviary no longer restyles any of X's containers. The button measures its offsets against
+  whichever ancestor X has already positioned — the same box the photo itself resolves against —
+  and an absolutely positioned child is out of flow, so inserting it cannot disturb the layout
+  either. Reproduced and pinned in `tests/media-button-layout.test.mjs`, which fails with
+  "the stylesheet changed the photo from 317px to 0px" if the rule ever returns.
+- **Turning "Hide posts" on gave you no Hide button.** v1.13.0 made both `hidden.enabled` and
+  `hidden.buttons` default to off, so the feature needed two switches and nothing said so. The
+  button now follows the feature, still gated by it — nothing is injected while the feature is off.
+
+
 ## 1.13.1 - 2026-08-07
 
 ### Fixed

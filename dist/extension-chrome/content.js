@@ -4378,7 +4378,9 @@ html.av-reduce-motion *::after {
     },
     hidden: {
       enabled: false,
-      buttons: false,
+      // True, but gated by `enabled` above: turning the feature on should give you the button that
+      // operates it, not leave you hunting for a second switch.
+      buttons: true,
       surfaces: ["home", "status", "profile", "search", "notifications"],
       maxEntries: 5e3
     },
@@ -4804,7 +4806,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION = false ? "dev" : "1.13.1";
+  var AVIARY_VERSION = false ? "dev" : "1.14.0";
   var MEDIA_LAYOUT_OPTIONS = [
     ["default", "Default grid"],
     ["stacked", "Stacked"],
@@ -11311,7 +11313,6 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       ctx.diagnostics.info("Media buttons initialized", { history: history.size() });
     },
     apply(ctx, root, addedNodes) {
-      ensureMediaStyle();
       applyToggleClass(ctx);
       if (!ctx.settings.media.buttons) {
         document.getElementById(STYLE_ID3)?.remove();
@@ -11412,7 +11413,30 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       }
       const button2 = buildButton(media, index, tweet, ctx);
       container.append(button2);
+      positionButton(button2, container);
     });
+  }
+  function positionButton(button2, container) {
+    const anchor = positionedAncestor(container);
+    const media = container.getBoundingClientRect();
+    const base = anchor?.getBoundingClientRect();
+    if (!anchor || !base || media.width === 0 || media.height === 0) {
+      button2.style.top = "8px";
+      button2.style.right = "8px";
+      return;
+    }
+    button2.style.top = `${Math.round(media.top - base.top + 8)}px`;
+    button2.style.right = `${Math.round(base.right - media.right + 8)}px`;
+  }
+  function positionedAncestor(node) {
+    let current = node;
+    while (current && current !== document.body) {
+      if (getComputedStyle(current).position !== "static") {
+        return current;
+      }
+      current = current.parentElement;
+    }
+    return null;
   }
   function resolveContainer(media) {
     if (media.kind === "video" && media.video) {
@@ -11596,8 +11620,6 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
 
 [${BUTTON_ATTR2}] {
   position: absolute;
-  top: 8px;
-  right: 8px;
   z-index: 2;
   min-height: 28px;
   padding: 4px 10px;
@@ -11613,19 +11635,14 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   transition: opacity 120ms ease, border-color 120ms ease;
 }
 
-/* Every container that can host a button needs to be the positioning context, or the
-   absolutely-positioned button anchors to whatever ancestor X happens to have positioned.
+/* Aviary no longer makes X's media containers the positioning context.
 
-   Scoped to the enabled class, and deliberately so: X anchors the photo itself with
-   position:absolute and inset:0, and on layouts where the tweetPhoto box is zero-height (the
-   height coming from a sibling spacer) making it the containing block collapses the image to
-   nothing. Loaded, present, and invisible. It must never apply unless a button is actually
-   there to be positioned. */
-html.av-media-buttons-enabled [data-testid="tweetPhoto"],
-html.av-media-buttons-enabled [data-testid="videoPlayer"],
-html.av-media-buttons-enabled [data-testid="videoComponent"] {
-  position: relative;
-}
+   Forcing position:relative onto [data-testid="tweetPhoto"] made a box X keeps at zero height
+   -- it is a flex container whose two children are both position:absolute inset:0, with the real
+   height carried by an ancestor -- into the containing block for those children. They collapsed
+   to zero height, so the photo vanished the moment the Save button was switched on and came back
+   the moment it was switched off. positionButton() measures against whatever ancestor X has
+   already positioned, which is the same box the photo itself resolves against. */
 
 /* The reveal list has to name every host container. It covered tweetPhoto only, so the button
    on a video player rested at opacity 0 with no rule that could ever show it. */

@@ -154,7 +154,9 @@ test("hidden settings normalize with their own defaults and a clamped cap", asyn
   // Off since v1.13.0. The surface list is still the full set, so enabling it needs one toggle
   // rather than a toggle plus rebuilding the surfaces.
   assert.equal(DEFAULT_SETTINGS.hidden.enabled, false);
-  assert.equal(DEFAULT_SETTINGS.hidden.buttons, false);
+  // True, but gated by `enabled` above. Two separate switches meant turning "Hide posts" on
+  // still produced no Hide button anywhere, with nothing to say a second toggle was needed.
+  assert.equal(DEFAULT_SETTINGS.hidden.buttons, true);
 
   const defaults = normalizeSettings({});
   assert.deepEqual(defaults.hidden, DEFAULT_SETTINGS.hidden);
@@ -163,7 +165,7 @@ test("hidden settings normalize with their own defaults and a clamped cap", asyn
     hidden: { enabled: false, buttons: "yes", surfaces: ["home", "nope", "home"], maxEntries: 9_000_000 }
   });
   assert.equal(custom.hidden.enabled, false);
-  assert.equal(custom.hidden.buttons, false, "non-boolean falls back to the default");
+  assert.equal(custom.hidden.buttons, true, "non-boolean falls back to the default");
   assert.deepEqual(custom.hidden.surfaces, ["home"]);
   assert.equal(custom.hidden.maxEntries, 50_000);
 

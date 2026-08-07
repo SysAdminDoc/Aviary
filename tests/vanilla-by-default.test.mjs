@@ -45,7 +45,8 @@ test("no default setting changes what X looks like or how it behaves", async () 
   // only caught by counting real elements in a real timeline.
   assert.equal(s.media.buttons, false);
   assert.equal(s.hidden.enabled, false);
-  assert.equal(s.hidden.buttons, false);
+  // True, but unreachable while `enabled` is false, so nothing is injected either way.
+  assert.equal(s.hidden.buttons, true);
   assert.equal(s.links.cleanShareButtons, false);
   assert.equal(s.links.expandTco, false);
   assert.equal(s.ai.commandMenu, false);

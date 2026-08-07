@@ -74,7 +74,6 @@ export const mediaButtonsFeature: FeatureModule = {
   },
 
   apply(ctx, root, addedNodes) {
-    ensureMediaStyle();
     applyToggleClass(ctx);
     if (!ctx.settings.media.buttons) {
       // Turned off after boot: drop the stylesheet so nothing of ours is left styling X.
@@ -188,7 +187,44 @@ function decorateArticle(tweet: ExtractedTweet, ctx: FeatureContext): void {
     }
     const button = buildButton(media, index, tweet, ctx);
     container.append(button);
+    positionButton(button, container);
   });
+}
+
+/**
+ * Places the button at the media's top-right without changing any of X's own styles.
+ *
+ * The button is `position: absolute`, so it resolves against the nearest positioned ancestor --
+ * the same one X's own photo resolves against. Offsets are therefore measured relative to that
+ * ancestor rather than assumed to be the media box. An absolutely positioned child is out of
+ * flow, so inserting it cannot disturb a flex or grid container either.
+ */
+function positionButton(button: HTMLElement, container: Element): void {
+  const anchor = positionedAncestor(container);
+  const media = container.getBoundingClientRect();
+  const base = anchor?.getBoundingClientRect();
+
+  // Fall back to the media box's own corner when there is nothing to measure against yet, or
+  // nothing positioned above. Never remove the button: the article is marked processed once
+  // decorated, so a button dropped here would never be offered again.
+  if (!anchor || !base || media.width === 0 || media.height === 0) {
+    button.style.top = "8px";
+    button.style.right = "8px";
+    return;
+  }
+  button.style.top = `${Math.round(media.top - base.top + 8)}px`;
+  button.style.right = `${Math.round(base.right - media.right + 8)}px`;
+}
+
+function positionedAncestor(node: Element): Element | null {
+  let current: Element | null = node;
+  while (current && current !== document.body) {
+    if (getComputedStyle(current).position !== "static") {
+      return current;
+    }
+    current = current.parentElement;
+  }
+  return null;
 }
 
 function resolveContainer(media: ExtractedMedia): Element | null {
@@ -406,8 +442,6 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
 
 [${BUTTON_ATTR}] {
   position: absolute;
-  top: 8px;
-  right: 8px;
   z-index: 2;
   min-height: 28px;
   padding: 4px 10px;
@@ -423,19 +457,14 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
   transition: opacity 120ms ease, border-color 120ms ease;
 }
 
-/* Every container that can host a button needs to be the positioning context, or the
-   absolutely-positioned button anchors to whatever ancestor X happens to have positioned.
+/* Aviary no longer makes X's media containers the positioning context.
 
-   Scoped to the enabled class, and deliberately so: X anchors the photo itself with
-   position:absolute and inset:0, and on layouts where the tweetPhoto box is zero-height (the
-   height coming from a sibling spacer) making it the containing block collapses the image to
-   nothing. Loaded, present, and invisible. It must never apply unless a button is actually
-   there to be positioned. */
-html.av-media-buttons-enabled [data-testid="tweetPhoto"],
-html.av-media-buttons-enabled [data-testid="videoPlayer"],
-html.av-media-buttons-enabled [data-testid="videoComponent"] {
-  position: relative;
-}
+   Forcing position:relative onto [data-testid="tweetPhoto"] made a box X keeps at zero height
+   -- it is a flex container whose two children are both position:absolute inset:0, with the real
+   height carried by an ancestor -- into the containing block for those children. They collapsed
+   to zero height, so the photo vanished the moment the Save button was switched on and came back
+   the moment it was switched off. positionButton() measures against whatever ancestor X has
+   already positioned, which is the same box the photo itself resolves against. */
 
 /* The reveal list has to name every host container. It covered tweetPhoto only, so the button
    on a video player rested at opacity 0 with no rule that could ever show it. */

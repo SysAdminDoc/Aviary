@@ -180,12 +180,19 @@ test("a media button becomes visible on hover over every container that can host
     );
     assert.equal(after, "1", `${testid}: hovering the container must reveal the button`);
 
-    // And the container must be the positioning context, or the button lands somewhere else.
+    // And the stylesheet must NOT have made the container a positioning context. Doing so
+    // collapsed X's photo to zero height, because X keeps that box at height 0 and hangs the
+    // actual picture off it with position:absolute inset:0 -- see
+    // tests/media-button-layout.test.mjs. positionButton() measures offsets instead.
     const positioned = await page.evaluate(
       (id) => getComputedStyle(document.querySelector(`#host-${id}`)).position,
       testid
     );
-    assert.equal(positioned, "relative", `${testid}: must anchor its own absolutely-placed button`);
+    assert.equal(
+      positioned,
+      "static",
+      `${testid}: Aviary must not restyle X's media container`
+    );
   }
 });
 
