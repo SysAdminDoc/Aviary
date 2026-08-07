@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.7.0`
+Version: `1.8.0`
 Research date: 2026-05-19
 Target repo: `C:\Users\--\repos\Twitter_Userscript`
 Target sites: `x.com`, `twitter.com`, `mobile.twitter.com`, `pro.x.com`, `tweetdeck.twitter.com`
@@ -940,12 +940,6 @@ Mandatory Phase 5 checks:
 
 Raised during the full engineering/UX/security audit of v1.6.0. Items fixed in that pass are
 in CHANGELOG.md; these are the ones left open, with the reason each was not taken.
-
-- [ ] P2 — Control Center strings are not localized
-  Why: nine locales and ~35 translated keys exist in src/platform/i18n.ts, but `translate()`
-  has no callers; the locale selector only sets reading direction. The panel now says so, but
-  the panel needs ~150 keys and a render-time lookup to be genuinely localized.
-  Where: src/platform/i18n.ts, src/ui/control-center.ts
 
 - [ ] P2 — Panel cannot be dismissed from the keyboard
   Why: closing on Escape needs a keydown listener, which both tools/preflight.mjs and

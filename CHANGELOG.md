@@ -6,6 +6,23 @@ Drains the audit findings left open by the v1.7.0 pass.
 
 ### Added
 
+- **The Control Center is actually localized.** All nine locales are complete: every one of the
+  310 panel strings — labels, descriptions, select options, buttons, toasts and error copy — is
+  translated for Spanish, Portuguese, French, German, Japanese, Korean, Arabic and Hebrew, with
+  English as the source. The catalog is gettext-style, keyed on the English string itself, so
+  editing a label can never leave a stale translation attached to it: the edited string simply
+  misses the catalog and falls back to English, which is visible rather than silently wrong.
+  Arabic and Hebrew also flip the panel to right-to-left.
+- **An honest coverage readout.** The Trust section reports the translation coverage measured
+  from the render that just happened, not from a hand-kept list, so a row added tomorrow without
+  a catalog entry lowers the number immediately. Runtime data (counts, timestamps, endpoint
+  summaries) and locale endonyms no longer pass through the translator, so they cannot make a
+  finished locale look incomplete.
+- **`tools/i18n-extract.mjs`** regenerates the string manifest by mounting the panel in a real
+  browser and recording what it renders. It renders twice with different stub data and drops
+  anything that changes, which separates copy from interpolated values without a hand-maintained
+  exclusion list. `tests/i18n.test.mjs` fails the build if any locale falls behind the manifest,
+  if a locale echoes English back, or if the row helpers stop routing copy through the translator.
 - **Hide row borders** (`appearance.hideBorders`) now does something. The divider is drawn on the
   first child of X's virtualizer cell by a generated atomic class, so the rule anchors on
   `[data-testid="cellInnerDiv"] > div` instead of the class name, and also drops the primary

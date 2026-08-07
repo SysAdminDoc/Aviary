@@ -8,6 +8,7 @@ import type {
   SensitiveMode
 } from "../platform/settings";
 import { FILTER_MEDIA_KEYS, FILTER_SURFACES, isThemeId } from "../platform/settings";
+import { hasTranslation, translateText } from "../platform/i18n";
 import type { RetentionPolicy } from "../features/export/jobs";
 
 const SENSITIVE_OPTIONS: Array<[SensitiveMode, string]> = [
@@ -149,6 +150,10 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   const existing = document.getElementById("av-control-center");
   existing?.remove();
 
+  // Set before any chrome is built, so the header is localized on the very first paint.
+  panelLocale = options.settings.i18n.locale;
+  resetCoverageTally();
+
   const host = document.createElement("div");
   host.id = "av-control-center";
   host.dataset.avOwned = "true";
@@ -177,15 +182,15 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
   const header = el("header", "av-panel-header");
   const titleWrap = el("div", "av-title-wrap");
-  const title = el("h2", "av-title", "Aviary");
-  const subtitle = el("p", "av-subtitle", "Local controls for a quieter X.");
+  const title = el("h2", "av-title", t("Aviary"));
+  const subtitle = el("p", "av-subtitle", t("Local controls for a quieter X."));
   titleWrap.append(title, subtitle);
 
   const close = button("Close", "av-button av-button-secondary");
   close.type = "button";
   header.append(titleWrap, close);
 
-  const status = el("div", "av-status", "Saved locally");
+  const status = el("div", "av-status", t("Saved locally"));
   status.setAttribute("role", "status");
   status.setAttribute("aria-live", "polite");
 
@@ -232,7 +237,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   };
 
   const setStatus = (message: string): void => {
-    status.textContent = message;
+    status.textContent = t(message);
   };
 
   /**
@@ -273,6 +278,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     const identity = focusIdentity(active);
     const selection = captureSelection(active);
     const scrollTop = body.scrollTop;
+
+    panelLocale = options.settings.i18n.locale;
+    resetCoverageTally();
+    // Chrome is built once at mount, so a locale change has to repaint it explicitly.
+    title.textContent = t("Aviary");
+    subtitle.textContent = t("Local controls for a quieter X.");
+    close.textContent = t("Close");
+    launcher.textContent = t("Aviary");
 
     // Mirrored onto the host because shadow content cannot see the page-level motion class.
     host.dataset.avMotion = prefersReducedMotion(options.settings) ? "reduce" : "full";
@@ -367,9 +380,17 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       section("Trust", [
         readonlyRow("Storage", "Settings stay in this browser."),
         readonlyRow("Telemetry", options.settings.privacy.telemetry ? "Enabled" : "Disabled"),
-        readonlyRow("Selector health", selectorSummary())
+        coverageRow(),
+        dataRow("Selector health", selectorSummary())
       ])
     );
+
+    // Filled after the body exists so the number counts the render that just happened,
+    // including the rows drawn after this one.
+    const coverage = body.querySelector(`.${COVERAGE_ROW_CLASS} .av-row-description`);
+    if (coverage) {
+      coverage.textContent = coverageSummary();
+    }
 
     body.scrollTop = scrollTop;
     if (identity) {
@@ -394,7 +415,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         el("span", "av-row-label", preset.label),
         el("span", "av-row-description", preset.description)
       );
-      const apply = el("button", "av-button av-button-secondary", "Apply") as HTMLButtonElement;
+      const apply = el("button", "av-button av-button-secondary", t("Apply")) as HTMLButtonElement;
       apply.type = "button";
       apply.addEventListener("click", () => {
         apply.disabled = true;
@@ -429,7 +450,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             const entry = options.listLocales?.().find((locale) => locale.code === value);
             await save(`Locale set to ${entry?.label ?? value}`);
           },
-          "Sets reading direction for Aviary surfaces — right-to-left for Arabic and Hebrew. Panel labels are English for now."
+          "Translates the panel and sets reading direction — right-to-left for Arabic and Hebrew. Trust shows how much of the chosen locale is filled in; anything missing stays English.",
+          false
         )
       );
     }
@@ -442,7 +464,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     if (options.getSnapshotStatus) {
       const status = options.getSnapshotStatus();
       rows.push(
-        readonlyRow(
+        dataRow(
           "Snapshots stored",
           `${status.total} entries${
             status.latestAt
@@ -606,7 +628,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     if (options.getCleanupQueueSize) {
       const queueStatus = options.getCleanupQueueSize();
       rows.push(
-        readonlyRow(
+        dataRow(
           "Cleanup review queue",
           `${queueStatus.total} items · queued ${queueStatus.queued} · approved ${queueStatus.approved} · skipped ${queueStatus.skipped}`
         )
@@ -726,7 +748,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
               el("span", "av-row-label", `${job.path || job.gid} · ${total}`),
               el("span", "av-row-description", `gid ${job.gid} · ${job.status}`)
             );
-            const cancel = el("button", "av-button av-button-secondary", "Cancel") as HTMLButtonElement;
+            const cancel = el("button", "av-button av-button-secondary", t("Cancel")) as HTMLButtonElement;
             cancel.type = "button";
             cancel.addEventListener("click", async () => {
               cancel.disabled = true;
@@ -747,7 +769,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           setStatus("Aria2 sweep failed.");
         }
       };
-      const refreshBtn = el("button", "av-button av-button-secondary", "Refresh") as HTMLButtonElement;
+      const refreshBtn = el("button", "av-button av-button-secondary", t("Refresh")) as HTMLButtonElement;
       refreshBtn.type = "button";
       refreshBtn.addEventListener("click", () => void refresh());
       row.append(copy, refreshBtn, list);
@@ -1082,7 +1104,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         `AI: ${status.ai.enabled ? "on" : "off"} · ${status.ai.configured ? "configured" : "missing key/model"}`,
         `Semantic: ${status.semanticSearch.enabled ? "on" : "off"} · ${status.semanticSearch.indexed} indexed`
       ];
-      rows.push(readonlyRow("Integration status", lines.join(" · ")));
+      rows.push(dataRow("Integration status", lines.join(" · ")));
     }
 
     if (options.recentIntegrationErrors) {
@@ -1239,7 +1261,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     }
 
     if (options.getAuditSize) {
-      rows.push(readonlyRow("Audit entries", String(options.getAuditSize())));
+      rows.push(dataRow("Audit entries", String(options.getAuditSize())));
     }
 
     if (options.clearAuditLog) {
@@ -1328,7 +1350,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     const status = options.getExportStatus?.();
     if (status) {
       rows.push(
-        readonlyRow(
+        dataRow(
           "Export status",
           `${status.jobCount} jobs tracked · ${status.knownQueries} GraphQL IDs cached`
         )
@@ -1528,12 +1550,12 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     const status = options.getMediaStatus?.();
     if (status) {
       rows.push(
-        readonlyRow(
+        dataRow(
           "Download status",
           `${status.running} running / ${status.completed} done / ${status.duplicate} dup / ${status.failed} failed`
         )
       );
-      rows.push(readonlyRow("History entries", String(status.historySize)));
+      rows.push(dataRow("History entries", String(status.historySize)));
     }
 
     if (options.clearMediaHistory) {
@@ -1746,7 +1768,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     }
 
     rows.push(
-      readonlyRow(
+      dataRow(
         "Hidden posts stored",
         `${status.total}${status.updatedAt ? ` · updated ${status.updatedAt}` : ""}`
       )
@@ -1782,7 +1804,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           `${entry.hiddenAt} — ${entry.text.length > 0 ? entry.text : "(no text)"}`
         )
       );
-      const restore = el("button", "av-button av-button-secondary", "Restore") as HTMLButtonElement;
+      const restore = el("button", "av-button av-button-secondary", t("Restore")) as HTMLButtonElement;
       restore.type = "button";
       restore.addEventListener("click", () => {
         restore.disabled = true;
@@ -1836,6 +1858,25 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     }
   };
 
+  const coverageRow = (): HTMLElement => {
+    const row = dataRow("Panel language", "");
+    row.classList.add(COVERAGE_ROW_CLASS);
+    return row;
+  };
+
+  const coverageSummary = (): string => {
+    const label =
+      options.listLocales?.().find((entry) => entry.code === panelLocale)?.label ?? panelLocale;
+    if (renderedStrings === 0) {
+      return label;
+    }
+    const percent = Math.round((translatedStrings / renderedStrings) * 100);
+    if (translatedStrings === renderedStrings) {
+      return `${label} — every panel string translated (${renderedStrings}).`;
+    }
+    return `${label} — ${translatedStrings} of ${renderedStrings} panel strings translated (${percent}%). The rest fall back to English.`;
+  };
+
   const selectorSummary = (): string => {
     const last = [...options.diagnostics()].reverse().find((event) => event.message.includes("Selector"));
     return last?.message ?? "Monitoring active";
@@ -1860,6 +1901,49 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 }
 
 const FOCUSABLE_SELECTOR = "button, input, select, textarea, a[href], [tabindex]:not([tabindex='-1'])";
+const COVERAGE_ROW_CLASS = "av-locale-coverage";
+
+/**
+ * Only one panel is mounted at a time, so the active locale can live at module scope. Every
+ * row helper below runs its user-visible copy through `t()`, which means a new row is
+ * localized the moment it is added — there is no second place to remember to update.
+ */
+let panelLocale = "en";
+
+/**
+ * Coverage is measured from the render that just happened, not from a hand-kept list — a row
+ * added tomorrow is counted the moment it is drawn, so the Trust readout cannot drift into
+ * claiming a locale is more complete than it is.
+ */
+const seenStrings = new Set<string>();
+let renderedStrings = 0;
+let translatedStrings = 0;
+
+function resetCoverageTally(): void {
+  seenStrings.clear();
+  renderedStrings = 0;
+  translatedStrings = 0;
+}
+
+/**
+ * Every English string the last render passed through `t()`. This is the ground truth the
+ * checked-in `PANEL_STRINGS` manifest is generated from, and what the drift check compares
+ * against — a row added without a catalog entry shows up here immediately.
+ */
+export function renderedPanelStrings(): string[] {
+  return [...seenStrings];
+}
+
+function t(text: string): string {
+  if (text.length > 0 && !seenStrings.has(text)) {
+    seenStrings.add(text);
+    renderedStrings += 1;
+    if (hasTranslation(panelLocale, text)) {
+      translatedStrings += 1;
+    }
+  }
+  return translateText(panelLocale, text);
+}
 
 interface CapturedSelection {
   start: number | null;
@@ -1913,7 +1997,7 @@ function prefersReducedMotion(settings: AviarySettings): boolean {
 
 function section(title: string, rows: HTMLElement[]): HTMLElement {
   const node = el("section", "av-section");
-  node.append(el("h3", "av-section-title", title), ...rows);
+  node.append(el("h3", "av-section-title", t(title)), ...rows);
   return node;
 }
 
@@ -1925,7 +2009,7 @@ function toggleRow(
 ): HTMLElement {
   const row = el("label", "av-row");
   const copy = el("span", "av-row-copy");
-  copy.append(el("span", "av-row-label", label), el("span", "av-row-description", description));
+  copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
 
   const input = document.createElement("input");
   input.type = "checkbox";
@@ -1943,15 +2027,21 @@ function selectRow(
   value: string,
   options: Array<[string, string]>,
   onChange: (value: string) => Promise<void>,
-  description?: string
+  description?: string,
+  /**
+   * Set false when the option labels are already in their own language — the locale picker
+   * lists endonyms (Español, 日本語), which must never be translated and must never count
+   * against a locale's coverage.
+   */
+  translateOptions = true
 ): HTMLElement {
   const row = el("label", "av-row");
   if (description) {
     const copy = el("span", "av-row-copy");
-    copy.append(el("span", "av-row-label", label), el("span", "av-row-description", description));
+    copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
     row.append(copy);
   } else {
-    row.append(el("span", "av-row-label", label));
+    row.append(el("span", "av-row-label", t(label)));
   }
 
   const select = document.createElement("select");
@@ -1959,7 +2049,7 @@ function selectRow(
   for (const [optionValue, optionLabel] of options) {
     const option = document.createElement("option");
     option.value = optionValue;
-    option.textContent = optionLabel;
+    option.textContent = translateOptions ? t(optionLabel) : optionLabel;
     option.selected = optionValue === value;
     select.append(option);
   }
@@ -1973,7 +2063,19 @@ function selectRow(
 
 function readonlyRow(label: string, value: string): HTMLElement {
   const row = el("div", "av-row av-row-readonly");
-  row.append(el("span", "av-row-label", label), el("span", "av-row-description", value));
+  row.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(value)));
+  return row;
+}
+
+/**
+ * A readonly row whose value is runtime data — counts, timestamps, endpoint summaries — rather
+ * than copy. The label is translated and the value is left alone. Sending data through `t()`
+ * would put strings no catalog can ever contain into the coverage tally, which would then
+ * under-report a fully translated locale forever.
+ */
+function dataRow(label: string, value: string): HTMLElement {
+  const row = el("div", "av-row av-row-readonly");
+  row.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", value));
   return row;
 }
 
@@ -1985,7 +2087,7 @@ function textInputRow(
 ): HTMLElement {
   const row = el("div", "av-row av-row-stack");
   const copy = el("span", "av-row-copy");
-  copy.append(el("span", "av-row-label", label), el("span", "av-row-description", description));
+  copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
   row.append(copy);
 
   const input = document.createElement("input");
@@ -1993,9 +2095,9 @@ function textInputRow(
   input.className = "av-text-input";
   input.value = value;
   input.spellcheck = false;
-  input.setAttribute("aria-label", label);
+  input.setAttribute("aria-label", t(label));
 
-  const apply = el("button", "av-button av-button-secondary", "Save") as HTMLButtonElement;
+  const apply = el("button", "av-button av-button-secondary", t("Save")) as HTMLButtonElement;
   apply.type = "button";
   apply.addEventListener("click", () => {
     void onChange(input.value.trim());
@@ -2017,7 +2119,7 @@ function secretInputRow(
 ): HTMLElement {
   const row = el("div", "av-row av-row-stack");
   const copy = el("span", "av-row-copy");
-  copy.append(el("span", "av-row-label", label), el("span", "av-row-description", description));
+  copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
   row.append(copy);
 
   const input = document.createElement("input");
@@ -2026,23 +2128,23 @@ function secretInputRow(
   input.value = value;
   input.spellcheck = false;
   input.autocomplete = "off";
-  input.setAttribute("aria-label", label);
+  input.setAttribute("aria-label", t(label));
 
   const controls = el("div", "av-inline-controls");
 
-  const reveal = el("button", "av-button av-button-secondary", "Show") as HTMLButtonElement;
+  const reveal = el("button", "av-button av-button-secondary", t("Show")) as HTMLButtonElement;
   reveal.type = "button";
-  reveal.setAttribute("aria-label", `Show ${label}`);
+  reveal.setAttribute("aria-label", `${t("Show")} ${t(label)}`);
   reveal.setAttribute("aria-pressed", "false");
   reveal.addEventListener("click", () => {
     const masked = input.type === "password";
     input.type = masked ? "text" : "password";
-    reveal.textContent = masked ? "Hide" : "Show";
+    reveal.textContent = masked ? t("Hide") : t("Show");
     reveal.setAttribute("aria-pressed", String(masked));
-    reveal.setAttribute("aria-label", `${masked ? "Hide" : "Show"} ${label}`);
+    reveal.setAttribute("aria-label", `${masked ? t("Hide") : t("Show")} ${t(label)}`);
   });
 
-  const apply = el("button", "av-button av-button-secondary", "Save") as HTMLButtonElement;
+  const apply = el("button", "av-button av-button-secondary", t("Save")) as HTMLButtonElement;
   apply.type = "button";
   apply.addEventListener("click", () => {
     void onChange(input.value.trim());
@@ -2061,7 +2163,7 @@ function integerInputRow(
 ): HTMLElement {
   const row = el("div", "av-row av-row-stack");
   const copy = el("span", "av-row-copy");
-  copy.append(el("span", "av-row-label", label), el("span", "av-row-description", description));
+  copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
   row.append(copy);
 
   const input = document.createElement("input");
@@ -2070,9 +2172,9 @@ function integerInputRow(
   input.step = "1";
   input.className = "av-text-input";
   input.value = String(value);
-  input.setAttribute("aria-label", label);
+  input.setAttribute("aria-label", t(label));
 
-  const apply = el("button", "av-button av-button-secondary", "Save") as HTMLButtonElement;
+  const apply = el("button", "av-button av-button-secondary", t("Save")) as HTMLButtonElement;
   apply.type = "button";
   apply.addEventListener("click", () => {
     const parsed = Number.parseInt(input.value, 10);
@@ -2090,10 +2192,10 @@ function actionRow(
 ): HTMLElement {
   const row = el("div", "av-row");
   const copy = el("span", "av-row-copy");
-  copy.append(el("span", "av-row-label", label), el("span", "av-row-description", description));
+  copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
   row.append(copy);
 
-  const button = el("button", "av-button av-button-secondary", label) as HTMLButtonElement;
+  const button = el("button", "av-button av-button-secondary", t(label)) as HTMLButtonElement;
   button.type = "button";
   button.addEventListener("click", () => {
     button.disabled = true;
@@ -2114,7 +2216,7 @@ function textareaRow(
 ): HTMLElement {
   const row = el("div", "av-row av-row-stack");
   const copy = el("span", "av-row-copy");
-  copy.append(el("span", "av-row-label", label), el("span", "av-row-description", description));
+  copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
   row.append(copy);
 
   const textarea = document.createElement("textarea");
@@ -2122,9 +2224,9 @@ function textareaRow(
   textarea.value = lines.join("\n");
   textarea.spellcheck = false;
   textarea.rows = 4;
-  textarea.setAttribute("aria-label", label);
+  textarea.setAttribute("aria-label", t(label));
 
-  const apply = el("button", "av-button av-button-secondary", actionLabel) as HTMLButtonElement;
+  const apply = el("button", "av-button av-button-secondary", t(actionLabel)) as HTMLButtonElement;
   apply.type = "button";
   apply.addEventListener("click", () => {
     const next = textarea.value
@@ -2146,12 +2248,12 @@ function surfaceRow(
 ): HTMLElement {
   const row = el("div", "av-row av-row-stack");
   const copy = el("span", "av-row-copy");
-  copy.append(el("span", "av-row-label", label), el("span", "av-row-description", description));
+  copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
   row.append(copy);
 
   const group = el("div", "av-chip-group");
   group.setAttribute("role", "group");
-  group.setAttribute("aria-label", label);
+  group.setAttribute("aria-label", t(label));
 
   const state = new Set<FilterSurface>(selected);
 
@@ -2170,7 +2272,7 @@ function surfaceRow(
       }
       void onChange(FILTER_SURFACES.filter((value) => state.has(value)));
     });
-    const text = el("span", "av-chip-label", FILTER_SURFACE_LABELS[surface]);
+    const text = el("span", "av-chip-label", t(FILTER_SURFACE_LABELS[surface]));
     chip.append(input, text);
     group.append(chip);
   }
@@ -2198,7 +2300,7 @@ function coerceLayout(value: string): MediaLayout {
 function button(label: string, className: string): HTMLButtonElement {
   const node = document.createElement("button");
   node.className = className;
-  node.textContent = label;
+  node.textContent = t(label);
   return node;
 }
 

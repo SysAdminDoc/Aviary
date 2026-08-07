@@ -1,3 +1,5 @@
+import { PANEL_CATALOG, PANEL_STRINGS } from "./i18n-catalog";
+
 export type LocaleCode = "en" | "es" | "pt" | "fr" | "de" | "ja" | "ko" | "ar" | "he";
 
 export interface LocaleEntry {
@@ -158,6 +160,51 @@ const PARTIAL_BUNDLES: Partial<Record<LocaleCode, Partial<Record<StringKey, stri
 export function translate(locale: string, key: StringKey): string {
   const bundle = PARTIAL_BUNDLES[locale as LocaleCode];
   return bundle?.[key] ?? FALLBACK[key];
+}
+
+/**
+ * Render-time lookup for panel copy. Unknown strings return themselves, so an untranslated
+ * or freshly-edited label degrades to English instead of to an empty box or a key name.
+ */
+export function translateText(locale: string, english: string): string {
+  if (locale === "en") {
+    return english;
+  }
+  return PANEL_CATALOG[locale as LocaleCode]?.[english] ?? english;
+}
+
+/** True when the catalog actually carries this string — not "the output differs". */
+export function hasTranslation(locale: string, english: string): boolean {
+  if (locale === "en") {
+    return true;
+  }
+  return PANEL_CATALOG[locale as LocaleCode]?.[english] !== undefined;
+}
+
+export interface LocaleCoverage {
+  translated: number;
+  total: number;
+  percent: number;
+}
+
+/**
+ * Coverage of a locale against the generated `PANEL_STRINGS` manifest. English is trivially
+ * complete. This is the denominator the test suite asserts on; the panel itself reports the
+ * narrower number it measured from the render it just performed.
+ */
+export function panelCoverage(locale: string): LocaleCoverage {
+  const total = PANEL_STRINGS.length;
+  if (locale === "en") {
+    return { translated: total, total, percent: 100 };
+  }
+  const bundle = PANEL_CATALOG[locale as LocaleCode];
+  let translated = 0;
+  for (const source of PANEL_STRINGS) {
+    if (bundle?.[source] !== undefined) {
+      translated += 1;
+    }
+  }
+  return { translated, total, percent: Math.round((translated / total) * 100) };
 }
 
 export function localeDirection(locale: string): "ltr" | "rtl" {
