@@ -35,7 +35,7 @@ export const PRESETS: PresetDefinition[] = [
   {
     id: "quiet-reader",
     label: "Quiet Reader",
-    description: "Hide promoted modules and row borders, dim premium posts, strip t.co, dense + dim theme.",
+    description: "Hide trends and row borders, dim premium posts, strip t.co, dense + dim theme.",
     overrides: {
       appearance: { theme: "dim", denseMode: true, hideCounts: true, hideBorders: true },
       layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
@@ -103,7 +103,7 @@ export const PRESETS: PresetDefinition[] = [
   {
     id: "minimal",
     label: "Minimal",
-    description: "Maximum declutter: no counts, no borders, no trends, no promoted, big text safe zones.",
+    description: "Maximum declutter: no counts, no borders, no trends, big text safe zones.",
     overrides: {
       appearance: { theme: "lightsOut", denseMode: false, hideCounts: true, hideBorders: true },
       layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },

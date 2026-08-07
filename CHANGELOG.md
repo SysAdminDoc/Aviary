@@ -124,6 +124,13 @@ Drains the audit findings left open by the v1.7.0 pass.
   because `render()` resets the coverage tally, mount-only strings never reached the catalog at
   all. Both now repaint per render and are translated in all nine locales.
 
+- **Preset descriptions no longer promise ad-hiding.** Quiet Reader and Minimal both advertised
+  "no promoted" while nothing implemented it. Detection turns out to need a capture Aviary does
+  not have: `[data-testid="placementTracking"]` is not an ad marker — in `_decoded/home.html`
+  both instances wrap organic content (a quote-tweet video and the news sidebar), and "Promoted"
+  appears nowhere in either fixture. The copy is corrected and the feature is parked with its
+  re-entry condition rather than shipped on a selector that would hide real posts.
+
 ### Decided
 
 - **No Escape-to-close handler.** The open question was whether standard dialog dismissal should

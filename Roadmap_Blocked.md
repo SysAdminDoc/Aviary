@@ -29,3 +29,19 @@ custody model is chosen.
 Re-entry condition: decide passphrase-derived (with the unlock UX and an explicit "forgotten
 passphrase means unrecoverable data" warning) versus dropping the key from the schema. Then
 implement against that decision — and state the threat model it does and does not cover.
+
+## Hide promoted posts and ad units
+
+Blocked pending a capture that actually contains a promoted post. The obvious anchor,
+`[data-testid="placementTracking"]`, is **not** a promoted marker: both instances in
+`_decoded/home.html` wrap organic content — one a quote-tweet video player, the other the
+`news_sidebar` module — and the string "Promoted" appears zero times in either fixture. Shipping
+a predicate on that selector would hide the news module and a quote tweet.
+
+Re-entry condition: add a `_decoded/` capture containing a real promoted unit, confirm what
+distinguishes it (a label node, an `aria-label`, or a wrapper attribute) against that evidence,
+then implement it in the filter engine as a `filter.promotedRule` FilterAction alongside
+`premiumRule`, and fixture-test that organic `placementTracking` content is untouched.
+
+Note: two preset descriptions claimed "no promoted" while nothing implemented it. That copy has
+been corrected rather than left promising a feature the build does not have.
