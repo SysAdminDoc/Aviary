@@ -170,7 +170,10 @@ const COMPOSER_CSS = `
   border-radius: 6px;
   background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 14%, transparent);
   color: var(--av-text, rgb(239, 243, 244));
-  font: 700 11px/1.2 inherit;
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 1.2;
+  font-family: inherit;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
@@ -193,7 +196,10 @@ const COMPOSER_CSS = `
   border-radius: 6px;
   background: transparent;
   color: var(--av-text, rgb(239, 243, 244));
-  font: 600 12px/1.3 inherit;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.3;
+  font-family: inherit;
   text-align: start;
   cursor: pointer;
 }

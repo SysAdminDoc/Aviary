@@ -540,7 +540,10 @@ const TOAST_CSS = `
   background: transparent;
   color: var(--av-accent, rgb(29, 155, 240));
   cursor: pointer;
-  font: 700 12px/1.1 inherit;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1.1;
+  font-family: inherit;
 }
 
 .av-toast-undo:focus-visible {

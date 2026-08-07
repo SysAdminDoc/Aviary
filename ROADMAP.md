@@ -954,16 +954,6 @@ Baseline at `409f846`: `tsc` clean, 188/188 tests pass, build+preflight green. F
 ordered P1 → P3; each was verified as described in its Evidence line. Verification harnesses ran
 read-only (Playwright against `_decoded/home.html` and scratch pages); no source was changed.
 
-- [ ] P2 — `font: … inherit` shorthand is invalid CSS — eight controls render in browser-default type
-  Category: visual
-  Where: src/ui/control-center.ts:2620 (.av-launcher), 2787 (.av-nav-item); src/features/ai/command-menu.ts:227, 260; src/features/composer/composer-snippets.ts:165, 188; src/features/filtering/hidden-posts-feature.ts:543 (.av-toast-undo); src/features/library/user-notes.ts:189 (.av-note-badge)
-  Problem: The `font` shorthand cannot take `inherit` as its family component; the whole declaration is dropped. Every one of these controls loses its size/weight AND its family — buttons do not inherit font, so the Aviary launcher chip, all 13 nav-rail items, the AI trigger, snippet buttons, toast Undo and Note badge render at UA defaults (Arial ~13.3px/400 measured), not the designed 10-13px/600-700 panel stack.
-  Evidence: Chromium probe: `#t { font: 700 10px/1.2 inherit }` computes 13.33px/400/Arial. Live shadow-root check on the mounted panel: `.av-launcher` and `.av-nav-item` compute 13.33px/400/Arial while `.av-panel` is 15px TwitterChirp.
-  Fix: Replace each with longhands (`font-weight` / `font-size` / `line-height` + `font-family: inherit`), or name the family list explicitly like MEDIA_CSS line 387 does.
-  Acceptance: Computed style of .av-launcher inside the shadow root reports the declared size/weight and a non-UA family; a source-contract test rejects the pattern `font: … inherit`.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — Every timeline-injected surface (and the options page) is English-only while the panel ships 8 locales
   Category: ux
   Where: src/features/filtering/hidden-posts-feature.ts (Hide button, toast copy), src/features/media/media-buttons.ts (Save/Saved/Queued/Unavailable/Retry/Allow + permission titles), src/features/ai/command-menu.ts (AI_COMMANDS labels/hints, menu items), src/features/composer/composer-snippets.ts (Snippets, empty copy), src/features/library/user-notes.ts (Note badge), src/extension/options.html + src/entrypoints/extension-options.ts; plus src/ui/control-center.ts:584-607 — preset cards render preset.label/preset.description raw, and the Applied-preset setStatus is a template literal that can never match the catalog (the panel's landing section)

@@ -267,7 +267,10 @@ const AI_CSS = `
   border-radius: 6px;
   background: transparent;
   color: var(--av-muted, rgb(113, 118, 123));
-  font: 700 10px/1.2 inherit;
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 1.2;
+  font-family: inherit;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
@@ -300,7 +303,10 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   border-radius: 6px;
   background: transparent;
   color: var(--av-text, rgb(239, 243, 244));
-  font: 600 12px/1.3 inherit;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.3;
+  font-family: inherit;
   text-align: start;
   cursor: pointer;
 }

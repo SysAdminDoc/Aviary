@@ -186,7 +186,10 @@ const NOTE_CSS = `
   border-radius: 6px;
   background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 18%, transparent);
   color: var(--av-text, rgb(239, 243, 244));
-  font: 700 10px/1.2 inherit;
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 1.2;
+  font-family: inherit;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }

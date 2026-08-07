@@ -2617,7 +2617,10 @@ const CONTROL_CENTER_CSS = `
   color: var(--av-text, rgb(239, 243, 244));
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.42);
   cursor: pointer;
-  font: 700 13px/1.1 inherit;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.1;
+  font-family: inherit;
   letter-spacing: 0;
   pointer-events: auto;
   transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
@@ -2713,7 +2716,10 @@ input:focus-visible {
   border-radius: 8px;
   background: var(--av-surface-raised, rgb(22, 24, 28));
   color: var(--av-text, rgb(239, 243, 244));
-  font: 650 13px/1.2 inherit;
+  font-weight: 650;
+  font-size: 13px;
+  line-height: 1.2;
+  font-family: inherit;
 }
 
 .av-button {
@@ -2734,7 +2740,9 @@ input:focus-visible {
   border-radius: 8px;
   background: var(--av-surface, rgb(15, 20, 25));
   color: var(--av-text, rgb(239, 243, 244));
-  font: 13px/1.4 inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  font-family: inherit;
 }
 
 .av-search-input::placeholder {
@@ -2784,7 +2792,10 @@ input:focus-visible {
   border-radius: 8px;
   background: transparent;
   color: var(--av-muted, rgb(113, 118, 123));
-  font: 600 13px/1.2 inherit;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
+  font-family: inherit;
   text-align: left;
   cursor: pointer;
 }

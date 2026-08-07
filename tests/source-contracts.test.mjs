@@ -94,6 +94,30 @@ test("layout declutter is class-scoped and reversible", async () => {
   assert.ok(!/querySelectorAll\(['"]\*\s*['"]\)/.test(source));
 });
 
+test("no stylesheet uses the font shorthand with an inherited family", async () => {
+  // `font: 700 10px/1.2 inherit` is invalid: the shorthand cannot take a CSS-wide keyword as
+  // its family, so the whole declaration is dropped and the control falls back to the UA font.
+  // Measured before the fix: the Control Center launcher and every nav item rendered Arial
+  // 13.33px/400 instead of the declared 13px/600-700 panel type. Buttons do not inherit font,
+  // so this silently hit ten declarations across five files.
+  const files = await listFiles(path.join(root, "src"), ".ts");
+  const offenders = [];
+
+  for (const file of files) {
+    const source = await readFile(file, "utf8");
+    source.split("\n").forEach((line, index) => {
+      if (/\bfont:\s*[^;]*\binherit\b/.test(line)) {
+        offenders.push(`${path.relative(root, file)}:${index + 1}`);
+      }
+    });
+  }
+
+  assert.deepEqual(
+    offenders,
+    [],
+    `use font-size/font-weight/line-height longhands with font-family: inherit instead:\n${offenders.join("\n")}`
+  );
+});
 async function listFiles(dir, suffix) {
   const entries = await readdir(dir, { withFileTypes: true });
   const files = [];
