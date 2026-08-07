@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.11.0 - 2026-08-07
+
+### Added
+
+- **The Control Center header now shows the running version.** Reloading an unpacked extension
+  gave no signal about which build actually took effect without opening `chrome://extensions`;
+  the panel you already have open on x.com now says. Stamped in at build time from
+  `package.json`, so the userscript and both extension builds report the same number, and a test
+  fails if either manifest drifts from it.
+
 ## 1.10.0 - 2026-08-07
 
 Drains the 2026-08-07 audit: 25 findings, all closed. Several were features that reported

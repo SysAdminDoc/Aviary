@@ -11,6 +11,15 @@ import { FILTER_MEDIA_KEYS, FILTER_SURFACES, isThemeId } from "../platform/setti
 import { hasTranslation, translateText } from "../platform/i18n";
 import type { RetentionPolicy } from "../features/export/jobs";
 
+/**
+ * Stamped in by `tools/build.mjs` so a reload shows at a glance which build is running.
+ * Both artifacts get it: the extension could read `chrome.runtime.getManifest()`, but the
+ * userscript has no such API, and one define keeps the two in step.
+ */
+declare const __AVIARY_VERSION__: string;
+
+const AVIARY_VERSION = typeof __AVIARY_VERSION__ === "undefined" ? "dev" : __AVIARY_VERSION__;
+
 const SENSITIVE_OPTIONS: Array<[SensitiveMode, string]> = [
   ["default", "Default (X choice)"],
   ["reveal", "Always reveal"],
@@ -198,9 +207,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
   const header = el("header", "av-panel-header");
   const titleWrap = el("div", "av-title-wrap");
+  const titleRow = el("div", "av-title-row");
   const title = el("h2", "av-title", t("Aviary"));
+  // Data, not copy: never routed through t(), and never counted against locale coverage.
+  const version = el("span", "av-version", `v${AVIARY_VERSION}`);
+  version.title = "Aviary version";
+  titleRow.append(title, version);
   const subtitle = el("p", "av-subtitle", t("Local controls for a quieter X."));
-  titleWrap.append(title, subtitle);
+  titleWrap.append(titleRow, subtitle);
 
   const close = button("Close", "av-button av-button-secondary");
   close.type = "button";
@@ -2713,6 +2727,30 @@ input:focus-visible {
   gap: 16px;
   padding: 18px 18px 14px;
   border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
+}
+
+.av-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+/* Quiet by default -- it is a build marker, not a heading. Carries the accent so a reload reads
+   as a different build at a glance. */
+.av-version {
+  padding: 1px 6px;
+  border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 45%, transparent);
+  /* 6px, matching the other badges: the repo's shape rules reject pill backdrops. */
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 14%, transparent);
+  color: var(--av-muted, rgb(132, 139, 145));
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 1.4;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .av-title {

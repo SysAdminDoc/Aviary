@@ -281,6 +281,31 @@ test("the options page is localized without importing the whole catalog", async 
   }
 });
 
+test("the panel shows the build it is running, stamped from package.json", async () => {
+  const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
+  const panel = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+  const build = await readFile(path.join(root, "tools/build.mjs"), "utf8");
+
+  // Reloading an unpacked extension gives no signal about which build took effect unless the
+  // running code says so. chrome.runtime.getManifest() would cover the extension only, so the
+  // version is defined in at build time and both artifacts stay in step.
+  assert.match(panel, /declare const __AVIARY_VERSION__/);
+  assert.match(panel, /el\("span", "av-version", `v\$\{AVIARY_VERSION\}`\)/);
+  assert.ok(
+    !/t\(\s*`v\$\{AVIARY_VERSION\}/.test(panel),
+    "a version number is data, not copy -- it must not be translated or counted for coverage"
+  );
+
+  const defines = [...build.matchAll(/define: \{ __AVIARY_VERSION__/g)];
+  assert.equal(defines.length, 2, "the userscript and the content script both need the stamp");
+
+  // The manifests are what chrome://extensions reads; they must not drift from package.json.
+  for (const manifest of ["src/extension/manifest.chrome.json", "src/extension/manifest.firefox.json"]) {
+    const parsed = JSON.parse(await readFile(path.join(root, manifest), "utf8"));
+    assert.equal(parsed.version, pkg.version, `${manifest} is out of step with package.json`);
+  }
+});
+
 async function importBundledModule(relativePath) {
   const temp = await mkdtemp(path.join(tmpdir(), "aviary-audit0807-"));
   const outfile = path.join(temp, "module.mjs");
