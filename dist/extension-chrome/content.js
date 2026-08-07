@@ -7690,17 +7690,21 @@ ${sections.join("\n\n---\n\n")}
   // src/features/export/query-discovery.ts
   var QUERY_REGISTRY_KEY = "aviary.queryIds.v1";
   var QUERY_REGEX = /\/i\/api\/graphql\/([A-Za-z0-9_-]{6,})\/([A-Za-z0-9_]{2,80})/g;
+  var MAX_INLINE_SCRIPT_BYTES = 256e3;
   async function discoverQueryIds(storage) {
     const fallback = { queries: {}, observedAt: null };
     const existing = await storage.get(QUERY_REGISTRY_KEY, fallback);
     const queries = { ...existing.queries };
     if (typeof document !== "undefined") {
-      const scripts = Array.from(document.querySelectorAll("script[src]"));
+      const scripts = Array.from(document.querySelectorAll("script"));
       for (const script of scripts) {
-        mergeFromString(queries, script.src);
+        const src = script.getAttribute("src");
+        if (src) {
+          mergeFromString(queries, src);
+        } else if (script.textContent && script.textContent.length <= MAX_INLINE_SCRIPT_BYTES) {
+          mergeFromString(queries, script.textContent);
+        }
       }
-      const documentText = document.documentElement?.outerHTML ?? "";
-      mergeFromString(queries, documentText);
     }
     const result = {
       queries,
@@ -9504,19 +9508,30 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   // src/features/library/cleanup-queue.ts
   var CLEANUP_QUEUE_KEY = "aviary.cleanupQueue.v1";
   var CLEANUP_QUEUE_LIMIT = 5e3;
-  var EMPTY3 = { items: [], destructiveExecuted: false };
+  var CLEANUP_QUEUE_STATUSES = ["queued", "approved", "skipped", "complete"];
+  var DestructiveActionBlockedError = class extends Error {
+    constructor(action) {
+      super(`Destructive action refused: ${action}`);
+      this.name = "DestructiveActionBlockedError";
+    }
+  };
+  function emptyState() {
+    return { items: [], destructiveExecuted: false };
+  }
   var CleanupQueue = class {
     #storage;
     #limit;
-    #state = EMPTY3;
+    #state = emptyState();
     #loaded = false;
+    /** Monotonic within the session, so ids stay unique once the queue is trimming at its limit. */
+    #sequence = 0;
     constructor(storage, limit = CLEANUP_QUEUE_LIMIT) {
       this.#storage = storage;
       this.#limit = Math.max(50, limit);
     }
     async load() {
       if (this.#loaded) return;
-      const stored = await this.#storage.get(CLEANUP_QUEUE_KEY, EMPTY3);
+      const stored = await this.#storage.get(CLEANUP_QUEUE_KEY, emptyState());
       this.#state = {
         items: Array.isArray(stored?.items) ? stored.items.filter(isQueueItem).slice(-this.#limit) : [],
         destructiveExecuted: stored?.destructiveExecuted === true
@@ -9530,7 +9545,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         if (candidate.protected) continue;
         this.#state.items.push({
           ...candidate,
-          id: `item-${Date.now()}-${this.#state.items.length}-${added}`,
+          id: `item-${Date.now()}-${this.#sequence += 1}`,
           enqueuedAt: (/* @__PURE__ */ new Date()).toISOString(),
           status: "queued"
         });
@@ -9561,17 +9576,31 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       await this.#persist();
     }
     async clear() {
+      await this.load();
       this.#state = { items: [], destructiveExecuted: this.#state.destructiveExecuted };
       this.#loaded = true;
       await this.#persist();
     }
     /**
-     * Aviary does not delete account data in v1.0.0. This flag exists to record
-     * the deliberate refusal so future versions can flip it behind an explicit
-     * destructive-action toggle. The current implementation always reports false.
+     * Aviary does not delete account data. Always false today; a future version would flip it
+     * behind an explicit destructive-action toggle.
      */
     destructiveAllowed() {
       return false;
+    }
+    /**
+     * The gate itself. Any code that would delete, unlike, unfollow or otherwise act on the
+     * account must call this first -- it fails closed, so a destructive path added without a
+     * deliberate decision throws instead of running.
+     *
+     * This exists because `destructiveAllowed()` alone was a recorded intention: it returned false
+     * and nothing consulted it, so the guarantee held only by the accident that no destructive code
+     * had been written yet.
+     */
+    assertDestructiveAllowed(action) {
+      if (!this.destructiveAllowed()) {
+        throw new DestructiveActionBlockedError(action);
+      }
     }
     async #persist() {
       try {
@@ -9583,7 +9612,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   function isQueueItem(value) {
     if (typeof value !== "object" || value === null) return false;
     const candidate = value;
-    return typeof candidate.id === "string" && typeof candidate.enqueuedAt === "string" && typeof candidate.status === "string" && typeof candidate.bucket === "string";
+    return typeof candidate.id === "string" && typeof candidate.enqueuedAt === "string" && typeof candidate.status === "string" && CLEANUP_QUEUE_STATUSES.includes(candidate.status) && typeof candidate.bucket === "string";
   }
 
   // src/features/media/template.ts
@@ -10604,11 +10633,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   // src/features/library/snapshots.ts
   var SNAPSHOTS_KEY = "aviary.snapshots.v1";
   var SNAPSHOT_LIMIT = 24;
-  var EMPTY4 = { entries: [] };
+  var EMPTY3 = { entries: [] };
   var SnapshotStore = class {
     #storage;
     #limit;
-    #state = EMPTY4;
+    #state = EMPTY3;
     #loaded = false;
     constructor(storage, limit = SNAPSHOT_LIMIT) {
       this.#storage = storage;
@@ -10616,7 +10645,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
     async load() {
       if (this.#loaded) return;
-      const stored = await this.#storage.get(SNAPSHOTS_KEY, EMPTY4);
+      const stored = await this.#storage.get(SNAPSHOTS_KEY, EMPTY3);
       const entries = Array.isArray(stored?.entries) ? stored.entries : [];
       this.#state = { entries: entries.filter(isSnapshotEntry).slice(-this.#limit) };
       this.#loaded = true;
@@ -12186,7 +12215,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
   // src/features/core/audit-log.ts
   var AUDIT_LOG_KEY = "aviary.audit.v1";
   var AUDIT_LOG_LIMIT = 500;
-  var EMPTY5 = { entries: [] };
+  var EMPTY4 = { entries: [] };
   var AuditLog = class {
     #storage;
     #limit;
@@ -12233,7 +12262,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
       return this.#entries.length;
     }
     async #hydrate() {
-      const stored = await this.#storage.get(AUDIT_LOG_KEY, EMPTY5);
+      const stored = await this.#storage.get(AUDIT_LOG_KEY, EMPTY4);
       const entries = Array.isArray(stored?.entries) ? stored.entries : [];
       this.#entries = entries.filter(
         (entry) => typeof entry?.at === "string" && typeof entry?.action === "string"
@@ -12920,9 +12949,12 @@ html.av-mobile [data-testid="primaryColumn"] {
       ctx.diagnostics.info("Network capture destroyed");
     },
     getStatus() {
+      if (!installed) {
+        return { ok: true, message: "Capture inactive" };
+      }
       return {
         ok: true,
-        message: installed ? `Capturing GraphQL \u2014 ${recentPayloads.length} payload${recentPayloads.length === 1 ? "" : "s"} sampled` : "Capture inactive"
+        message: recentPayloads.length === 0 ? "Interceptor installed \u2014 sees Aviary's own requests only" : `${recentPayloads.length} payload${recentPayloads.length === 1 ? "" : "s"} sampled`
       };
     }
   };

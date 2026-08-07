@@ -51,11 +51,18 @@ export const networkCaptureFeature: FeatureModule = {
   },
 
   getStatus() {
+    if (!installed) {
+      return { ok: true, message: "Capture inactive" };
+    }
+    // Deliberately not "Capturing GraphQL": see installInterceptor. X's own requests are made in
+    // the page's world and are not visible here, so a count of zero is the expected result and
+    // must not read as though the feature is watching the timeline.
     return {
       ok: true,
-      message: installed
-        ? `Capturing GraphQL — ${recentPayloads.length} payload${recentPayloads.length === 1 ? "" : "s"} sampled`
-        : "Capture inactive"
+      message:
+        recentPayloads.length === 0
+          ? "Interceptor installed — sees Aviary's own requests only"
+          : `${recentPayloads.length} payload${recentPayloads.length === 1 ? "" : "s"} sampled`
     };
   }
 };
@@ -64,6 +71,24 @@ export function getRecentCapturedPayloads(): typeof recentPayloads {
   return [...recentPayloads];
 }
 
+/**
+ * Wraps `globalThis.fetch` -- which is Aviary's own fetch, not the page's.
+ *
+ * Neither manifest declares `"world": "MAIN"`, so the content script runs in the isolated world
+ * and gets its own copy of every Web API. X's GraphQL requests are issued by X's code in the
+ * page's world and never pass through this wrapper. The userscript build is in the same position:
+ * it is granted `GM_*`, which puts it in the sandboxed scope rather than page scope.
+ *
+ * This was checked by trying to build a runtime probe (a minimal MV3 extension patching fetch,
+ * driven against a page that fetches). The harness here could not load an unpacked extension at
+ * all -- no service worker, no background page, content script never ran -- so that probe was
+ * removed rather than kept as a test that proves nothing. The claim therefore rests on the
+ * absence of `world: "MAIN"` in both manifests plus documented MV3 behaviour, not on a
+ * measurement, and Roadmap_Blocked.md records what would unblock it.
+ *
+ * The wrapper is kept because it is correct for the requests Aviary itself makes (integrations,
+ * media fetches), which is what `getStatus` now says.
+ */
 function installInterceptor(ctx: FeatureContext): void {
   if (installed || typeof globalThis.fetch !== "function") return;
   originalFetch = { fn: globalThis.fetch };

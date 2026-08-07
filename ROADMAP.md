@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.8.0`
+Version: `1.9.0`
 Research date: 2026-05-19
 Target repo: `C:\Users\--\repos\Twitter_Userscript`
 Target sites: `x.com`, `twitter.com`, `mobile.twitter.com`, `pro.x.com`, `tweetdeck.twitter.com`
@@ -947,15 +947,3 @@ shows up in high-install scripts against how much of it Aviary already has.
 Raised during the full engineering/UX/security audit of v1.6.0. Items fixed in that pass are
 in CHANGELOG.md; these are the ones left open, with the reason each was not taken.
 
-- [ ] P3 — Areas still not reviewed in depth
-  Why: recorded for honesty. Reviewed and fixed since: WARC record framing (header injection
-  corrupted the archive), the STORE ZIP writer (UTF-8 name flag, 32-bit ceilings), snapshot
-  diffing (sound as written), and the smoke.yml runner (confirmed it genuinely loads the
-  unpacked extension and asserts on real DOM, rather than passing vacuously). Still unreviewed:
-  query-discovery.ts heuristics, bookmarks.ts, cleanup-queue.ts and tools/build.mjs.
-  Note: `CleanupQueue.destructiveAllowed()` is a recorded intention, not an enforced gate --
-  nothing consults it, and the guarantee currently holds only because no destructive path
-  exists. Any future destructive action must be made to check it.
-  Verification throughout still uses the captured `_decoded/` fixtures and synthetic harnesses;
-  nothing has been exercised against a live authenticated X session.
-  Where: repository-wide

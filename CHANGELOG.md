@@ -1,5 +1,62 @@
 # Changelog
 
+## 1.9.0 - 2026-08-07
+
+Adds a performance module, three capabilities researched from the high-install X userscripts, and
+drains the deferred code review.
+
+### Added
+
+- **Pause video that scrolls out of view.** An IntersectionObserver pauses timeline `<video>` once
+  it leaves the screen and resumes it on the way back. A video you paused yourself stays paused:
+  pause events are counted rather than flagged, because `HTMLMediaElement.pause()` dispatches its
+  event on a later task and a synchronous "am I pausing right now" flag is already false by the
+  time the handler runs. On by default, fully reversible.
+- **Open Following instead of For you** (off by default). Selects the second home tab on arrival
+  at `/home`, identified by position rather than label -- X localises the tab text, so matching
+  the word "Following" would only work for English readers. Asserted once per URL, so a deliberate
+  switch back to For you survives for the rest of that visit and the preference reasserts when you
+  return to the timeline.
+- **Show images at original quality** (off by default, because a full-size photo is several times
+  the bytes X serves for the slot). Points the downloader's existing `name=orig` normalisation at
+  the displayed `src`. If the original-quality URL fails to load -- X does not hold an `orig`
+  rendition for every media item -- that image reverts to the URL X served, so the worst case is a
+  softer photo rather than a broken one.
+- **Timeline width** and **Restore the Chirp font**, in Appearance. Both settings already existed
+  in the schema and had round-tripped through the normalizer for two releases while no code read
+  them and no control exposed them -- the same defect class as the four found in the v1.8.0 audit.
+- A **Performance** section in the Control Center, and a settings sweep that finds this class of
+  dead setting. Three remain, each blocked on evidence rather than effort; see Roadmap_Blocked.md.
+
+### Fixed
+
+- **51 status messages had never been translated in any locale.** The string extractor anchored
+  its status harvest on the literal immediately after `save(`, which misses
+  `save(checked ? "X on" : "X off")` -- the form nearly every toggle uses. The catalog is now
+  401 strings across 8 locales.
+- **The string extractor had been silently degraded by the v1.8.0 nav rail.** The panel draws one
+  section at a time and the coverage tally resets per render, so a single render reported only the
+  default section: 26 strings where there had been 254. It now visits every section and unions the
+  results, and fails loudly if the nav is missing.
+- **Passive GraphQL capture no longer claims to be capturing X's traffic.** Neither manifest
+  declares `world: "MAIN"`, so the content script runs in the isolated world and X's own requests
+  never pass through its `fetch` wrapper. The status said "Capturing GraphQL"; it now says what is
+  actually observable. The same constraint blocks two roadmap items, recorded in Roadmap_Blocked.md.
+- **Query-ID discovery no longer serialises the whole DOM at boot.** It scanned
+  `documentElement.outerHTML` -- megabytes of string allocation -- for a pattern that matches zero
+  times in either captured page, because X's query IDs live inside bundled JS that is referenced by
+  URL and never inlined.
+- **Bookmark ids could collide, and `remove()` deletes by id** -- so removing one saved bookmark
+  could take a second with it. The id ended in `entries.length`, which is pinned to the limit once
+  the store is trimming, making two bookmarks saved in the same millisecond identical. The cleanup
+  queue had the same id defect, where it sent a review to the wrong item.
+- **`CleanupQueue.destructiveAllowed()` was a recorded intention, not a gate** -- it returned false
+  and nothing consulted it, so the no-destructive-actions guarantee held only by the accident that
+  no such code had been written. There is now an `assertDestructiveAllowed()` that fails closed.
+- Clearing the cleanup queue before its stored state was read reset the destructive-execution
+  record; a stored item with an unrecognised status is now rejected instead of being carried
+  forever against the limit.
+
 ## 1.8.0 - 2026-08-06
 
 Drains the audit findings left open by the v1.7.0 pass.

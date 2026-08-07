@@ -19,13 +19,38 @@ interface CleanupQueueState {
   destructiveExecuted: boolean;
 }
 
-const EMPTY: CleanupQueueState = { items: [], destructiveExecuted: false };
+const CLEANUP_QUEUE_STATUSES: CleanupQueueStatus[] = ["queued", "approved", "skipped", "complete"];
+
+/**
+ * Thrown by `assertDestructiveAllowed`. Exported so a future destructive path can be tested
+ * against the gate rather than against the boolean.
+ */
+export class DestructiveActionBlockedError extends Error {
+  constructor(action: string) {
+    super(`Destructive action refused: ${action}`);
+    this.name = "DestructiveActionBlockedError";
+  }
+}
+
+/**
+ * A fresh state object per call.
+ *
+ * This used to be one shared module-level constant used both as the initial `#state` and as the
+ * `storage.get` fallback, which put the same `items` array on every instance. Nothing mutated it
+ * on the paths that exist today, so it was latent rather than live -- but the first destructive
+ * path that pushed before `load()` would have written into a value shared by every future queue.
+ */
+function emptyState(): CleanupQueueState {
+  return { items: [], destructiveExecuted: false };
+}
 
 export class CleanupQueue {
   readonly #storage: StorageGateway;
   readonly #limit: number;
-  #state: CleanupQueueState = EMPTY;
+  #state: CleanupQueueState = emptyState();
   #loaded = false;
+  /** Monotonic within the session, so ids stay unique once the queue is trimming at its limit. */
+  #sequence = 0;
 
   constructor(storage: StorageGateway, limit = CLEANUP_QUEUE_LIMIT) {
     this.#storage = storage;
@@ -34,7 +59,7 @@ export class CleanupQueue {
 
   async load(): Promise<void> {
     if (this.#loaded) return;
-    const stored = await this.#storage.get<CleanupQueueState>(CLEANUP_QUEUE_KEY, EMPTY);
+    const stored = await this.#storage.get<CleanupQueueState>(CLEANUP_QUEUE_KEY, emptyState());
     this.#state = {
       items: Array.isArray(stored?.items) ? stored.items.filter(isQueueItem).slice(-this.#limit) : [],
       destructiveExecuted: stored?.destructiveExecuted === true
@@ -49,7 +74,7 @@ export class CleanupQueue {
       if (candidate.protected) continue;
       this.#state.items.push({
         ...candidate,
-        id: `item-${Date.now()}-${this.#state.items.length}-${added}`,
+        id: `item-${Date.now()}-${(this.#sequence += 1)}`,
         enqueuedAt: new Date().toISOString(),
         status: "queued"
       });
@@ -84,18 +109,35 @@ export class CleanupQueue {
   }
 
   async clear(): Promise<void> {
+    // Loaded first: clearing before the stored state has been read would drop
+    // `destructiveExecuted` back to false rather than preserving what was on disk.
+    await this.load();
     this.#state = { items: [], destructiveExecuted: this.#state.destructiveExecuted };
     this.#loaded = true;
     await this.#persist();
   }
 
   /**
-   * Aviary does not delete account data in v1.0.0. This flag exists to record
-   * the deliberate refusal so future versions can flip it behind an explicit
-   * destructive-action toggle. The current implementation always reports false.
+   * Aviary does not delete account data. Always false today; a future version would flip it
+   * behind an explicit destructive-action toggle.
    */
   destructiveAllowed(): boolean {
     return false;
+  }
+
+  /**
+   * The gate itself. Any code that would delete, unlike, unfollow or otherwise act on the
+   * account must call this first -- it fails closed, so a destructive path added without a
+   * deliberate decision throws instead of running.
+   *
+   * This exists because `destructiveAllowed()` alone was a recorded intention: it returned false
+   * and nothing consulted it, so the guarantee held only by the accident that no destructive code
+   * had been written yet.
+   */
+  assertDestructiveAllowed(action: string): void {
+    if (!this.destructiveAllowed()) {
+      throw new DestructiveActionBlockedError(action);
+    }
   }
 
   async #persist(): Promise<void> {
@@ -114,6 +156,7 @@ function isQueueItem(value: unknown): value is CleanupQueueItem {
     typeof candidate.id === "string" &&
     typeof candidate.enqueuedAt === "string" &&
     typeof candidate.status === "string" &&
+    (CLEANUP_QUEUE_STATUSES as string[]).includes(candidate.status) &&
     typeof candidate.bucket === "string"
   );
 }

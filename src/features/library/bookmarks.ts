@@ -21,7 +21,10 @@ interface BookmarksState {
   entries: BookmarkRecord[];
 }
 
-const EMPTY: BookmarksState = { entries: [] };
+/** A fresh object per call -- one shared constant would hand every store the same array. */
+function emptyState(): BookmarksState {
+  return { entries: [] };
+}
 
 export interface BookmarkInput {
   tweetId?: string | null;
@@ -37,8 +40,14 @@ export interface BookmarkInput {
 export class BookmarkStore {
   readonly #storage: StorageGateway;
   readonly #limit: number;
-  #state: BookmarksState = EMPTY;
+  #state: BookmarksState = emptyState();
   #loaded = false;
+  /**
+   * Monotonic within the session. The id used to end in `entries.length`, which is pinned to the
+   * limit once the store is trimming -- so two bookmarks saved in the same millisecond got the
+   * same id, and `remove()` filters by id, which would have deleted both.
+   */
+  #sequence = 0;
 
   constructor(storage: StorageGateway, limit = BOOKMARKS_LIMIT) {
     this.#storage = storage;
@@ -47,7 +56,7 @@ export class BookmarkStore {
 
   async load(): Promise<void> {
     if (this.#loaded) return;
-    const stored = await this.#storage.get<BookmarksState>(BOOKMARKS_KEY, EMPTY);
+    const stored = await this.#storage.get<BookmarksState>(BOOKMARKS_KEY, emptyState());
     const entries = Array.isArray(stored?.entries) ? stored.entries : [];
     this.#state = {
       entries: entries.filter(isBookmark).slice(-this.#limit).map(normalizeBookmark)
@@ -79,7 +88,7 @@ export class BookmarkStore {
     }
 
     const entry: BookmarkRecord = {
-      id: `bm-${Date.now()}-${this.#state.entries.length}`,
+      id: `bm-${Date.now()}-${(this.#sequence += 1)}`,
       tweetId,
       handle: input.handle ?? null,
       text: input.text ?? "",
