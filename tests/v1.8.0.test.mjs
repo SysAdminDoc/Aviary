@@ -475,3 +475,53 @@ export { runAiPrompt } from "${p("src/features/integrations/ai-provider.ts")}";`
     await rm(temp, { recursive: true, force: true });
   }
 });
+
+test("zip entry names are flagged UTF-8 so non-ASCII paths survive extraction", async () => {
+  const { buildStoreZip } = await importBundledModule("src/features/export/zip-store.ts");
+
+  const name = "Recherché-アーカイブ/aviary-export.json";
+  const zip = buildStoreZip([
+    { filename: name, data: new TextEncoder().encode('{"ok":true}'), date: new Date("2026-08-06T12:00:00Z") }
+  ]);
+  const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength);
+
+  // Bit 11 says "these name bytes are UTF-8". Without it a conforming extractor must read them
+  // as CP437, and Recherché-アーカイブ arrives as Recherch├⌐-πéóπâ╝πé½πéñπâû.
+  assert.equal(view.getUint16(6, true) & 0x0800, 0x0800, "local header is not flagged UTF-8");
+
+  let centralAt = -1;
+  for (let i = 0; i < zip.length - 4; i += 1) {
+    if (view.getUint32(i, true) === 0x02014b50) {
+      centralAt = i;
+      break;
+    }
+  }
+  assert.ok(centralAt > -1, "no central directory header found");
+  assert.equal(view.getUint16(centralAt + 8, true) & 0x0800, 0x0800, "central header is not flagged UTF-8");
+
+  // The stored bytes must be the UTF-8 encoding, and the length field must count bytes not chars.
+  const expected = new TextEncoder().encode(name);
+  assert.equal(view.getUint16(26, true), expected.length);
+  assert.deepEqual(zip.slice(30, 30 + expected.length), expected);
+});
+
+test("the zip writer refuses to emit a silently-truncated archive", async () => {
+  const { buildStoreZip } = await importBundledModule("src/features/export/zip-store.ts");
+
+  // setUint16/setUint32 truncate without complaint, so these ceilings have to be checked.
+  const tooMany = Array.from({ length: 0x10000 }, (_, i) => ({
+    filename: `f${i}.txt`,
+    data: new Uint8Array(0)
+  }));
+  assert.throws(() => buildStoreZip(tooMany), RangeError);
+
+  // A name longer than the uint16 field that records its length.
+  assert.throws(
+    () => buildStoreZip([{ filename: "x".repeat(0x10000), data: new Uint8Array(0) }]),
+    RangeError
+  );
+
+  // The ordinary case still works and stays byte-identical in shape.
+  const ok = buildStoreZip([{ filename: "a.txt", data: new TextEncoder().encode("hi") }]);
+  assert.equal(new DataView(ok.buffer, ok.byteOffset).getUint32(0, true), 0x04034b50);
+});

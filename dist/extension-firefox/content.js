@@ -6378,13 +6378,29 @@ input[type="checkbox"] {
     }
     return (c ^ 4294967295) >>> 0;
   }
+  var FLAG_UTF8_NAMES = 2048;
+  var MAX_UINT16 = 65535;
+  var MAX_UINT32 = 4294967295;
   function buildStoreZip(entries) {
     const encoder = new TextEncoder();
     const localBlocks = [];
     const centralBlocks = [];
     let offset = 0;
+    if (entries.length > MAX_UINT16) {
+      throw new RangeError(
+        `A STORE zip holds at most ${MAX_UINT16} entries without ZIP64; got ${entries.length}.`
+      );
+    }
     for (const entry of entries) {
+      if (entry.data.length > MAX_UINT32) {
+        throw new RangeError(
+          `"${entry.filename}" is ${entry.data.length} bytes; a STORE zip entry cannot exceed ${MAX_UINT32} without ZIP64.`
+        );
+      }
       const nameBytes = encoder.encode(entry.filename);
+      if (nameBytes.length > MAX_UINT16) {
+        throw new RangeError(`"${entry.filename}" has a name longer than ${MAX_UINT16} bytes.`);
+      }
       const crc = crc32(entry.data);
       const size = entry.data.length;
       const date = entry.date ?? /* @__PURE__ */ new Date();
@@ -6394,7 +6410,7 @@ input[type="checkbox"] {
       const lhView = new DataView(localHeader);
       lhView.setUint32(0, 67324752, true);
       lhView.setUint16(4, 20, true);
-      lhView.setUint16(6, 0, true);
+      lhView.setUint16(6, FLAG_UTF8_NAMES, true);
       lhView.setUint16(8, 0, true);
       lhView.setUint16(10, dosTime, true);
       lhView.setUint16(12, dosDate, true);
@@ -6412,7 +6428,7 @@ input[type="checkbox"] {
       chView.setUint32(0, 33639248, true);
       chView.setUint16(4, 20, true);
       chView.setUint16(6, 20, true);
-      chView.setUint16(8, 0, true);
+      chView.setUint16(8, FLAG_UTF8_NAMES, true);
       chView.setUint16(10, 0, true);
       chView.setUint16(12, dosTime, true);
       chView.setUint16(14, dosDate, true);
@@ -6435,6 +6451,11 @@ input[type="checkbox"] {
     let centralSize = 0;
     for (const block of centralBlocks) {
       centralSize += block.length;
+    }
+    if (centralStart > MAX_UINT32 || centralSize > MAX_UINT32) {
+      throw new RangeError(
+        `The archive is too large for a non-ZIP64 zip (central directory at ${centralStart}, size ${centralSize}).`
+      );
     }
     const endRecord = new Uint8Array(22);
     const erView = new DataView(endRecord.buffer);

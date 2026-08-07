@@ -81,6 +81,17 @@ Drains the audit findings left open by the v1.7.0 pass.
   Upgrading with a configured integration clears the flag — enabling an integration was already
   the opt-in, and silently breaking a working setup would be worse than the inconsistency.
 
+- **Non-ASCII paths survive extraction.** The ZIP writer emitted UTF-8 filename bytes without
+  setting general-purpose bit 11, so a conforming extractor had to read them as CP437: a save
+  folder named `Recherché-アーカイブ` unzipped as `Recherch├⌐-πéóπâ╝πé½πéñπâû`. Reproduced with
+  Python's `zipfile` and fixed by flagging the encoding in both the local and central headers;
+  the same extractor now round-trips the name exactly, with CRCs intact. (.NET and Explorer
+  always guessed UTF-8, which is why this was invisible on Windows.)
+- **The ZIP writer fails loudly at its 32-bit ceilings.** Entry counts, entry sizes, name lengths
+  and the central-directory offset are written with `setUint16`/`setUint32`, which truncate
+  silently — past those limits the archive was still produced and simply unzipped to the wrong
+  thing. Each now throws a `RangeError` naming the limit rather than emitting a corrupt file.
+
 ### Decided
 
 - **No Escape-to-close handler.** The open question was whether standard dialog dismissal should

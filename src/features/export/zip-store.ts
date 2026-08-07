@@ -24,14 +24,46 @@ export function crc32(data: Uint8Array): number {
   return (c ^ 0xffffffff) >>> 0;
 }
 
+/**
+ * General-purpose bit 11: "the filename and comment are UTF-8". `TextEncoder` only emits UTF-8,
+ * so without this flag a conforming extractor must read the bytes as IBM CP437 (APPNOTE 4.4.4)
+ * and a name like `Recherché-アーカイブ/` arrives as `Recherch├⌐-πéóπâ╝πé½πéñπâû/`. Reachable
+ * from any non-ASCII save-folder hint, which `sanitizeFolder` deliberately preserves.
+ *
+ * Set unconditionally: UTF-8 and CP437 agree on the ASCII range, so there is no case where
+ * flagging it is wrong, and a single code path beats one that is only sometimes correct.
+ */
+const FLAG_UTF8_NAMES = 0x0800;
+
+/** The format's 32-bit ceilings. Past them a STORE archive needs ZIP64 to stay readable. */
+const MAX_UINT16 = 0xffff;
+const MAX_UINT32 = 0xffffffff;
+
 export function buildStoreZip(entries: ZipFileEntry[]): Uint8Array {
   const encoder = new TextEncoder();
   const localBlocks: Uint8Array[] = [];
   const centralBlocks: Uint8Array[] = [];
   let offset = 0;
 
+  // These fields are written with setUint16/setUint32, which truncate silently. Producing an
+  // archive that unzips to the wrong thing is worse than refusing to produce one, and the
+  // caller (an export run) can surface the message.
+  if (entries.length > MAX_UINT16) {
+    throw new RangeError(
+      `A STORE zip holds at most ${MAX_UINT16} entries without ZIP64; got ${entries.length}.`
+    );
+  }
+
   for (const entry of entries) {
+    if (entry.data.length > MAX_UINT32) {
+      throw new RangeError(
+        `"${entry.filename}" is ${entry.data.length} bytes; a STORE zip entry cannot exceed ${MAX_UINT32} without ZIP64.`
+      );
+    }
     const nameBytes = encoder.encode(entry.filename);
+    if (nameBytes.length > MAX_UINT16) {
+      throw new RangeError(`"${entry.filename}" has a name longer than ${MAX_UINT16} bytes.`);
+    }
     const crc = crc32(entry.data);
     const size = entry.data.length;
     const date = entry.date ?? new Date();
@@ -42,7 +74,7 @@ export function buildStoreZip(entries: ZipFileEntry[]): Uint8Array {
     const lhView = new DataView(localHeader);
     lhView.setUint32(0, 0x04034b50, true);
     lhView.setUint16(4, 20, true); // version
-    lhView.setUint16(6, 0, true); // flags
+    lhView.setUint16(6, FLAG_UTF8_NAMES, true); // flags
     lhView.setUint16(8, 0, true); // method = STORE
     lhView.setUint16(10, dosTime, true);
     lhView.setUint16(12, dosDate, true);
@@ -61,7 +93,7 @@ export function buildStoreZip(entries: ZipFileEntry[]): Uint8Array {
     chView.setUint32(0, 0x02014b50, true);
     chView.setUint16(4, 20, true); // version made by
     chView.setUint16(6, 20, true); // version needed
-    chView.setUint16(8, 0, true); // flags
+    chView.setUint16(8, FLAG_UTF8_NAMES, true); // flags
     chView.setUint16(10, 0, true); // STORE
     chView.setUint16(12, dosTime, true);
     chView.setUint16(14, dosDate, true);
@@ -86,6 +118,13 @@ export function buildStoreZip(entries: ZipFileEntry[]): Uint8Array {
   let centralSize = 0;
   for (const block of centralBlocks) {
     centralSize += block.length;
+  }
+
+  // The end-of-central-directory record stores both as uint32.
+  if (centralStart > MAX_UINT32 || centralSize > MAX_UINT32) {
+    throw new RangeError(
+      `The archive is too large for a non-ZIP64 zip (central directory at ${centralStart}, size ${centralSize}).`
+    );
   }
 
   const endRecord = new Uint8Array(22);
