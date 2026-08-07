@@ -964,12 +964,3 @@ read-only (Playwright against `_decoded/home.html` and scratch pages); no source
   Confidence: Verified
   Effort: L
 
-- [ ] P3 — Testing gaps around this audit's defect classes
-  Category: testing
-  Where: tests/
-  Problem: (a) Nothing pins the injected-UI CSS contract — the invalid font shorthand and the missing video hover-reveal both shipped through a green suite; (b) no test drives filter-engine across two observer batches to catch the rescan regression; (c) crosspost has no test shaped like the real composer DOM (block divs), so the thread-split path is unproven; (d) aria2 reconcile error-mapping is untested.
-  Evidence: Grep of tests/ for videoPlayer hover rules, generation-stamp behavior, composer-shaped fixtures, and reconcile error stubs finds none.
-  Fix: Add: a computed-style test mounting each injected stylesheet in Chromium asserting declared font sizes apply and reveal selectors cover video containers; a filter-engine double-apply test; a composer-shaped DOM fixture for readComposerText; reconcile tests per the P2 item. Bait-verify each new gate once (restore the bug, watch it fail).
-  Acceptance: Each new test fails when its corresponding fix is reverted.
-  Confidence: Verified
-  Effort: M
