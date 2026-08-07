@@ -682,7 +682,6 @@ Settings schema outline:
 | `composer.snippets` | `[]` | Composer | F075 |
 | `privacy.localOnly` | `true` | Privacy | F087 |
 | `privacy.telemetry` | `false` | Privacy | F087 |
-| `privacy.encryptVault` | `false` | Security | F088 |
 | `privacy.auditLog` | `true` | Observability | F092 |
 | `accessibility.reduceMotion` | `system` | Accessibility | F093 |
 | `accessibility.highContrast` | `false` | Accessibility | F094 |

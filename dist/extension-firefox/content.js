@@ -4272,7 +4272,6 @@ html.av-reduce-motion *::after {
       // Off by default. Aviary sends no telemetry of its own either way; this refuses X's, which
       // is a change to how the site behaves and is the user's call to make, not a default.
       blockAnalyticsBeacons: false,
-      encryptVault: false,
       auditLog: true
     },
     accessibility: {
@@ -4422,7 +4421,6 @@ html.av-reduce-motion *::after {
           privacy.blockAnalyticsBeacons,
           DEFAULT_SETTINGS.privacy.blockAnalyticsBeacons
         ),
-        encryptVault: booleanValue(privacy.encryptVault, DEFAULT_SETTINGS.privacy.encryptVault),
         auditLog: booleanValue(privacy.auditLog, DEFAULT_SETTINGS.privacy.auditLog)
       },
       accessibility: {

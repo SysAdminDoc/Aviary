@@ -20,6 +20,17 @@
   Aviary now trims the master playlist to its best rendition before the player sees it, so that
   logic has only one thing to choose. Sustained bandwidth decides, not peak.
 
+### Removed
+
+- **`privacy.encryptVault` is gone from the schema rather than implemented.** It had been parked
+  on a key-custody decision: a key stored beside its own ciphertext protects nothing, and a
+  passphrase-derived key means an unlock step and permanent data loss if the passphrase is
+  forgotten. What settles it is scope — Aviary's vault sits in the same browser profile as X's
+  own session cookie, auth token and cached media, none of which Aviary can encrypt and all of
+  which are more sensitive than its copy. A toggle that encrypted the lesser half would invite
+  the belief that the profile was protected. Full-disk encryption covers all of it. Settings
+  files from older builds still carrying the key import cleanly.
+
 ### Fixed
 
 - **Passive GraphQL capture never saw a single GraphQL response.** It wrapped `globalThis.fetch`,

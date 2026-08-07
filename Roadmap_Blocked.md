@@ -12,24 +12,6 @@ Blocked pending an authenticated `_decoded/` quote/thread capture containing the
 
 Re-entry condition: add the authenticated capture, verify the social-context selector, then implement and fixture-test self-repost detection without broad text heuristics.
 
-## settings.privacy.encryptVault — encrypt local data at rest
-
-Blocked on a key-custody decision, which is a product call rather than an implementation detail.
-WebCrypto can encrypt the CheckpointStore, snapshots and audit log easily enough; the question is
-where the key lives. Deriving it from a user passphrase means an unlock step on every page load
-and permanent data loss if the passphrase is forgotten — a real UX and support commitment.
-Storing the key in the same `chrome.storage.local` / `localStorage` the ciphertext sits in
-protects nothing: any script that can read one can read the other, and so can anyone with the
-browser profile on disk.
-
-Shipping the second option would be worse than shipping nothing, because the toggle would claim a
-protection the product does not have. The setting stays schema-only and unexposed until the
-custody model is chosen.
-
-Re-entry condition: decide passphrase-derived (with the unlock UX and an explicit "forgotten
-passphrase means unrecoverable data" warning) versus dropping the key from the schema. Then
-implement against that decision — and state the threat model it does and does not cover.
-
 ## Hide promoted posts and ad units
 
 Blocked pending a capture that actually contains a promoted post. The obvious anchor,
@@ -65,7 +47,8 @@ that an original post carrying a quote-tweet is untouched.
 
 An unread-settings sweep (probe self-checked against a key known to be read, so a broken regex
 could not report everything as dead) found five. `timelineWidth` and `restoreChirp` were wired in
-v1.9.0. Three remain, each blocked rather than merely unbuilt:
+v1.9.0, and `privacy.encryptVault` was removed in v1.12.0 rather than implemented (see
+CHANGELOG.md for why). Two remain, both waiting on the same capture:
 
 - `filter.selfRepost` -- F033. Needs a capture containing a self-repost. Already defaults to
   `"off"`, so it claims nothing while it waits.
@@ -74,7 +57,6 @@ v1.9.0. Three remain, each blocked rather than merely unbuilt:
   filter the engine never applied and every settings export published that claim. It defaults to
   `"off"` now, and `tests/settings-claims.test.mjs` fails any filter action that defaults to
   something active while nothing reads it.
-- `privacy.encryptVault` -- see above; a key-custody decision, not an implementation gap.
 
-Re-entry condition for the first two: the same authenticated `_decoded/` capture that unblocks
+Re-entry condition for both: the same authenticated `_decoded/` capture that unblocks
 hide-promoted-posts and hide-all-reposts. One capture settles four items.

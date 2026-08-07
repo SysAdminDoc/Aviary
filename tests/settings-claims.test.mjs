@@ -1,10 +1,27 @@
 import assert from "node:assert/strict";
-import { readdir, readFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+async function bundleSettings() {
+  const temp = await mkdtemp(path.join(tmpdir(), "aviary-claims-"));
+  const outfile = path.join(temp, "settings.mjs");
+  await build({
+    entryPoints: [path.join(root, "src/platform/settings.ts")],
+    outfile,
+    bundle: true,
+    format: "esm",
+    platform: "neutral",
+    target: "es2022",
+    logLevel: "silent"
+  });
+  return `${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`;
+}
 
 async function featureSources() {
   const sources = [];
@@ -60,4 +77,21 @@ test("a filter action nothing reads cannot default to anything but off", async (
       );
     }
   }
+});
+
+/**
+ * `privacy.encryptVault` was removed in v1.12.0 rather than implemented. Settings files exported
+ * by any earlier build still carry it, and importing one must neither throw nor smuggle the key
+ * back into the live settings object.
+ */
+test("a settings file from an older build imports without its removed keys", async () => {
+  const { normalizeSettings } = await import(await bundleSettings());
+  const legacy = {
+    privacy: { localOnly: false, telemetry: false, encryptVault: true, auditLog: false }
+  };
+  const normalized = normalizeSettings(legacy);
+
+  assert.equal("encryptVault" in normalized.privacy, false, "the removed key must not survive");
+  assert.equal(normalized.privacy.localOnly, false, "surrounding values must still be honoured");
+  assert.equal(normalized.privacy.auditLog, false);
 });
