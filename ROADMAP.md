@@ -941,24 +941,22 @@ Mandatory Phase 5 checks:
 Raised during the full engineering/UX/security audit of v1.6.0. Items fixed in that pass are
 in CHANGELOG.md; these are the ones left open, with the reason each was not taken.
 
-- [ ] P3 — settings.media.zipChunkSize, links.cleanShareButtons, privacy.localOnly,
-  privacy.encryptVault and privacy.auditLog are schema-only
-  Why: they normalize and round-trip through import/export but nothing reads them, and no UI
-  exposes them. Each needs either an implementation or removal from the schema; removal is a
-  breaking change for anyone with them in an exported settings file.
-  Where: src/platform/settings.ts
+- [ ] P3 — settings.media.zipChunkSize is schema-only
+  Why: normalizes and round-trips through import/export, but the ZIP writer never splits an
+  export, so the value is inert. Needs the export path to actually chunk at this size.
+  Where: src/platform/settings.ts, src/features/export/zip-store.ts
 
-- [ ] P3 — Repository has no .gitattributes, so checkouts convert LF to CRLF
-  Why: git reports "LF will be replaced by CRLF" on every commit touching src/ or dist/.
-  Adding `* text=auto eol=lf` is correct but renormalizes 469 tracked files in one commit,
-  which is best done deliberately rather than inside an audit.
-  Where: repository root
+- [ ] P3 — settings.links.cleanShareButtons is schema-only, and three presets promise it
+  Why: Quiet Reader, Researcher and Minimal all set it, so applying a preset claims a change
+  that never happens. Needs a feature that strips tracking parameters from share URLs, or the
+  key removed from both the schema and those presets.
+  Where: src/platform/settings.ts, src/features/core/presets.ts
 
-- [ ] P3 — TokenBucket is dead code and jobs.rateLimitMode drives nothing
-  Why: `ctx.limiter` is constructed in main.ts and passed to every feature, but no feature
-  calls it, so the rate-limit setting only changes the bucket's capacity and nothing else.
-  `waitForToken` also spins forever if asked for more tokens than the capacity.
-  Where: src/platform/rate-limit.ts, src/main.ts, src/platform/settings.ts
+- [ ] P3 — settings.privacy.localOnly and privacy.encryptVault are schema-only
+  Why: `localOnly` defaults to true while the integrations happily make network calls, so the
+  two disagree on what the product promises — decide whether it gates the integration surface
+  or leaves the schema. `encryptVault` needs a real WebCrypto at-rest story or removal.
+  Where: src/platform/settings.ts, src/features/integrations/
 
 - [ ] P3 — Areas not covered by this audit
   Why: recorded for honesty. Not reviewed in depth: WARC record framing (warc.ts), the STORE

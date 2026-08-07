@@ -247,3 +247,32 @@ test("the Control Center surfaces failed writes in the Trust section", async () 
     );
   }
 });
+
+test("waitForToken refuses an impossible request instead of hanging forever", async () => {
+  const { TokenBucket } = await importBundledModule("src/platform/rate-limit.ts");
+
+  const bucket = new TokenBucket(4, 1);
+  // refill() clamps at capacity, so this condition could never come true — it used to spin.
+  await assert.rejects(() => bucket.waitForToken(5), RangeError);
+
+  assert.equal(bucket.tryRemove(4), true, "a full bucket should satisfy a capacity-sized draw");
+  assert.equal(bucket.tryRemove(1), false, "an empty bucket should refuse");
+});
+
+test("the media batch actually draws from the rate limiter", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(path.join(root, "src/features/media/batch-downloader.ts"), "utf8");
+
+  assert.match(
+    source,
+    /await ctx\.limiter\.waitForToken\(\)/,
+    "jobs.rateLimitMode drives nothing again — the batch stopped drawing tokens"
+  );
+
+  // The setting has to reach both the burst size and the sustained rate, or "conservative"
+  // and "standard" differ only in how big the opening burst is.
+  const main = await readFile(path.join(root, "src/main.ts"), "utf8");
+  assert.match(main, /rateLimitMode === "conservative"/);
+  assert.match(main, /new TokenBucket\(4, 1\)/);
+  assert.match(main, /new TokenBucket\(8, 4\)/);
+});

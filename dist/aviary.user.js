@@ -429,6 +429,8 @@ html.av-reduce-motion *::after {
       "Import settings (JSON)": "Importar ajustes (JSON)",
       "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.": "Pega un archivo de ajustes exportado desde Aviary y pulsa Importar. Las credenciales ocultas conservan los valores ya guardados aqu\xED.",
       "Import": "Importar",
+      "Keep a local action log": "Mantener un registro local de acciones",
+      "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.": "Registra descargas, exportaciones y cambios de ajustes en este dispositivo para que puedas revisar lo que hizo Aviary. No se env\xEDa nada a ning\xFAn sitio. Al desactivarlo se dejan de a\xF1adir entradas de inmediato; las existentes se conservan hasta que las borres.",
       "Audit entries": "Entradas de auditor\xEDa",
       "Clear audit log": "Borrar el registro de auditor\xEDa",
       "Drop the local action log.": "Elimina el registro local de acciones.",
@@ -743,6 +745,8 @@ html.av-reduce-motion *::after {
       "Import settings (JSON)": "Importar defini\xE7\xF5es (JSON)",
       "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.": "Cole um ficheiro de defini\xE7\xF5es exportado do Aviary e escolha Importar. As credenciais ocultadas mant\xEAm os valores j\xE1 guardados aqui.",
       "Import": "Importar",
+      "Keep a local action log": "Manter um registo local de a\xE7\xF5es",
+      "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.": "Regista transfer\xEAncias, exporta\xE7\xF5es e altera\xE7\xF5es de defini\xE7\xF5es neste dispositivo para poder rever o que o Aviary fez. Nada \xE9 enviado para lado nenhum. Ao desativar, deixam de ser criadas novas entradas; as existentes permanecem at\xE9 as limpar.",
       "Audit entries": "Entradas de auditoria",
       "Clear audit log": "Limpar o registo de auditoria",
       "Drop the local action log.": "Elimina o registo local de a\xE7\xF5es.",
@@ -1057,6 +1061,8 @@ html.av-reduce-motion *::after {
       "Import settings (JSON)": "Importer des r\xE9glages (JSON)",
       "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.": "Collez un fichier de r\xE9glages export\xE9 depuis Aviary, puis choisissez Importer. Les identifiants masqu\xE9s conservent les valeurs d\xE9j\xE0 enregistr\xE9es ici.",
       "Import": "Importer",
+      "Keep a local action log": "Conserver un journal local des actions",
+      "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.": "Enregistre les t\xE9l\xE9chargements, les exports et les changements de r\xE9glages sur cet appareil afin que vous puissiez v\xE9rifier ce qu'Aviary a fait. Rien n'est envoy\xE9 nulle part. D\xE9sactiver cette option arr\xEAte imm\xE9diatement les nouvelles entr\xE9es ; les existantes restent jusqu'\xE0 ce que vous les effaciez.",
       "Audit entries": "Entr\xE9es d'audit",
       "Clear audit log": "Effacer le journal d'audit",
       "Drop the local action log.": "Supprime le journal local des actions.",
@@ -1371,6 +1377,8 @@ html.av-reduce-motion *::after {
       "Import settings (JSON)": "Einstellungen importieren (JSON)",
       "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.": "F\xFCge eine aus Aviary exportierte Einstellungsdatei ein und w\xE4hle Importieren. Geschw\xE4rzte Zugangsdaten behalten die hier gespeicherten Werte.",
       "Import": "Importieren",
+      "Keep a local action log": "Lokales Aktionsprotokoll f\xFChren",
+      "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.": "Zeichnet Downloads, Exporte und Einstellungs\xE4nderungen auf diesem Ger\xE4t auf, damit du nachvollziehen kannst, was Aviary getan hat. Es wird nichts \xFCbertragen. Beim Ausschalten werden sofort keine neuen Eintr\xE4ge mehr angelegt; vorhandene bleiben, bis du sie l\xF6schst.",
       "Audit entries": "Pr\xFCfprotokoll-Eintr\xE4ge",
       "Clear audit log": "Pr\xFCfprotokoll l\xF6schen",
       "Drop the local action log.": "Entfernt das lokale Aktionsprotokoll.",
@@ -1685,6 +1693,8 @@ html.av-reduce-motion *::after {
       "Import settings (JSON)": "\u8A2D\u5B9A\u3092\u30A4\u30F3\u30DD\u30FC\u30C8\uFF08JSON\uFF09",
       "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.": "Aviary \u304B\u3089\u66F8\u304D\u51FA\u3057\u305F\u8A2D\u5B9A\u30D5\u30A1\u30A4\u30EB\u3092\u8CBC\u308A\u4ED8\u3051\u3066\u300C\u30A4\u30F3\u30DD\u30FC\u30C8\u300D\u3092\u9078\u3073\u307E\u3059\u3002\u4F0F\u305B\u5B57\u306E\u8A8D\u8A3C\u60C5\u5831\u306F\u3001\u3053\u3053\u306B\u4FDD\u5B58\u6E08\u307F\u306E\u5024\u304C\u4FDD\u305F\u308C\u307E\u3059\u3002",
       "Import": "\u30A4\u30F3\u30DD\u30FC\u30C8",
+      "Keep a local action log": "\u30ED\u30FC\u30AB\u30EB\u306E\u64CD\u4F5C\u30ED\u30B0\u3092\u6B8B\u3059",
+      "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u30FB\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30FB\u8A2D\u5B9A\u5909\u66F4\u3092\u3053\u306E\u7AEF\u672B\u306B\u8A18\u9332\u3057\u3001Aviary \u306E\u52D5\u4F5C\u3092\u3042\u3068\u304B\u3089\u78BA\u8A8D\u3067\u304D\u308B\u3088\u3046\u306B\u3057\u307E\u3059\u3002\u3069\u3053\u306B\u3082\u9001\u4FE1\u3055\u308C\u307E\u305B\u3093\u3002\u30AA\u30D5\u306B\u3059\u308B\u3068\u65B0\u3057\u3044\u8A18\u9332\u306F\u76F4\u3061\u306B\u505C\u6B62\u3057\u3001\u65E2\u5B58\u306E\u8A18\u9332\u306F\u6D88\u53BB\u3059\u308B\u307E\u3067\u6B8B\u308A\u307E\u3059\u3002",
       "Audit entries": "\u76E3\u67FB\u30ED\u30B0\u306E\u4EF6\u6570",
       "Clear audit log": "\u76E3\u67FB\u30ED\u30B0\u3092\u6D88\u53BB",
       "Drop the local action log.": "\u30ED\u30FC\u30AB\u30EB\u306E\u64CD\u4F5C\u30ED\u30B0\u3092\u524A\u9664\u3057\u307E\u3059\u3002",
@@ -1999,6 +2009,8 @@ html.av-reduce-motion *::after {
       "Import settings (JSON)": "\uC124\uC815 \uAC00\uC838\uC624\uAE30(JSON)",
       "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.": "Aviary\uC5D0\uC11C \uB0B4\uBCF4\uB0B8 \uC124\uC815 \uD30C\uC77C\uC744 \uBD99\uC5EC \uB123\uACE0 \uAC00\uC838\uC624\uAE30\uB97C \uB204\uB974\uC138\uC694. \uAC00\uB824\uC9C4 \uC778\uC99D \uC815\uBCF4\uB294 \uC5EC\uAE30\uC5D0 \uC800\uC7A5\uB41C \uAC12\uC774 \uC720\uC9C0\uB429\uB2C8\uB2E4.",
       "Import": "\uAC00\uC838\uC624\uAE30",
+      "Keep a local action log": "\uB85C\uCEEC \uC791\uC5C5 \uB85C\uADF8 \uC720\uC9C0",
+      "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.": "\uB2E4\uC6B4\uB85C\uB4DC, \uB0B4\uBCF4\uB0B4\uAE30, \uC124\uC815 \uBCC0\uACBD\uC744 \uC774 \uAE30\uAE30\uC5D0 \uAE30\uB85D\uD574 Aviary\uAC00 \uBB34\uC5C7\uC744 \uD588\uB294\uC9C0 \uD655\uC778\uD560 \uC218 \uC788\uAC8C \uD569\uB2C8\uB2E4. \uC678\uBD80\uB85C \uC804\uC1A1\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. \uB044\uBA74 \uC0C8 \uAE30\uB85D\uC774 \uC989\uC2DC \uC911\uB2E8\uB418\uBA70, \uAE30\uC874 \uAE30\uB85D\uC740 \uC9C0\uC6B8 \uB54C\uAE4C\uC9C0 \uB0A8\uC2B5\uB2C8\uB2E4.",
       "Audit entries": "\uAC10\uC0AC \uAE30\uB85D \uC218",
       "Clear audit log": "\uAC10\uC0AC \uB85C\uADF8 \uC9C0\uC6B0\uAE30",
       "Drop the local action log.": "\uB85C\uCEEC \uC791\uC5C5 \uB85C\uADF8\uB97C \uC0AD\uC81C\uD569\uB2C8\uB2E4.",
@@ -2313,6 +2325,8 @@ html.av-reduce-motion *::after {
       "Import settings (JSON)": "\u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A (JSON)",
       "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.": "\u0627\u0644\u0635\u0642 \u0645\u0644\u0641 \u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0645\u064F\u0635\u062F\u064E\u0651\u0631\u064B\u0627 \u0645\u0646 Aviary \u062B\u0645 \u0627\u062E\u062A\u0631 \u0627\u0633\u062A\u064A\u0631\u0627\u062F. \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0627\u0639\u062A\u0645\u0627\u062F \u0627\u0644\u0645\u062D\u062C\u0648\u0628\u0629 \u062A\u062D\u062A\u0641\u0638 \u0628\u0627\u0644\u0642\u064A\u0645 \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629 \u0647\u0646\u0627.",
       "Import": "\u0627\u0633\u062A\u064A\u0631\u0627\u062F",
+      "Keep a local action log": "\u0627\u0644\u0627\u062D\u062A\u0641\u0627\u0638 \u0628\u0633\u062C\u0644 \u0645\u062D\u0644\u064A \u0644\u0644\u0625\u062C\u0631\u0627\u0621\u0627\u062A",
+      "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.": "\u064A\u0633\u062C\u0651\u0644 \u0627\u0644\u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0648\u0639\u0645\u0644\u064A\u0627\u062A \u0627\u0644\u062A\u0635\u062F\u064A\u0631 \u0648\u062A\u063A\u064A\u064A\u0631\u0627\u062A \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0639\u0644\u0649 \u0647\u0630\u0627 \u0627\u0644\u062C\u0647\u0627\u0632 \u0644\u062A\u062A\u0645\u0643\u0646 \u0645\u0646 \u0645\u0631\u0627\u062C\u0639\u0629 \u0645\u0627 \u0641\u0639\u0644\u0647 Aviary. \u0644\u0627 \u064A\u064F\u0631\u0633\u0644 \u0623\u064A \u0634\u064A\u0621 \u0625\u0644\u0649 \u0623\u064A \u062C\u0647\u0629. \u0625\u064A\u0642\u0627\u0641\u0647 \u064A\u0645\u0646\u0639 \u0625\u0636\u0627\u0641\u0629 \u0623\u064A \u0639\u0646\u0627\u0635\u0631 \u062C\u062F\u064A\u062F\u0629 \u0641\u0648\u0631\u064B\u0627\u060C \u0648\u062A\u0628\u0642\u0649 \u0627\u0644\u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062D\u0627\u0644\u064A\u0629 \u062D\u062A\u0649 \u062A\u0645\u0633\u062D\u0647\u0627.",
       "Audit entries": "\u0639\u0646\u0627\u0635\u0631 \u0633\u062C\u0644 \u0627\u0644\u062A\u062F\u0642\u064A\u0642",
       "Clear audit log": "\u0645\u0633\u062D \u0633\u062C\u0644 \u0627\u0644\u062A\u062F\u0642\u064A\u0642",
       "Drop the local action log.": "\u064A\u062D\u0630\u0641 \u0633\u062C\u0644 \u0627\u0644\u0625\u062C\u0631\u0627\u0621\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u064A.",
@@ -2627,6 +2641,8 @@ html.av-reduce-motion *::after {
       "Import settings (JSON)": "\u05D9\u05D9\u05D1\u05D5\u05D0 \u05D4\u05D2\u05D3\u05E8\u05D5\u05EA (JSON)",
       "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.": "\u05D4\u05D3\u05D1\u05E7 \u05E7\u05D5\u05D1\u05E5 \u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05E9\u05D9\u05D5\u05E6\u05D0 \u05DE\u2011Aviary \u05D5\u05D1\u05D7\u05E8 \u05D9\u05D9\u05D1\u05D5\u05D0. \u05E4\u05E8\u05D8\u05D9 \u05D2\u05D9\u05E9\u05D4 \u05DE\u05D5\u05E1\u05EA\u05E8\u05D9\u05DD \u05D9\u05E9\u05DE\u05E8\u05D5 \u05E2\u05DC \u05D4\u05E2\u05E8\u05DB\u05D9\u05DD \u05D4\u05E7\u05D9\u05D9\u05DE\u05D9\u05DD \u05DB\u05D0\u05DF.",
       "Import": "\u05D9\u05D9\u05D1\u05D5\u05D0",
+      "Keep a local action log": "\u05E9\u05DE\u05D9\u05E8\u05EA \u05D9\u05D5\u05DE\u05DF \u05E4\u05E2\u05D5\u05DC\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9",
+      "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.": "\u05DE\u05EA\u05E2\u05D3 \u05D4\u05D5\u05E8\u05D3\u05D5\u05EA, \u05D9\u05D9\u05E6\u05D5\u05D0 \u05D5\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9 \u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D4\u05D6\u05D4 \u05DB\u05D3\u05D9 \u05E9\u05EA\u05D5\u05DB\u05DC \u05DC\u05D1\u05D3\u05D5\u05E7 \u05DE\u05D4 Aviary \u05E2\u05E9\u05D4. \u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05E0\u05E9\u05DC\u05D7 \u05DC\u05E9\u05D5\u05DD \u05DE\u05E7\u05D5\u05DD. \u05DB\u05D9\u05D1\u05D5\u05D9 \u05E2\u05D5\u05E6\u05E8 \u05DE\u05D9\u05D3 \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05D7\u05D3\u05E9\u05D5\u05EA; \u05D4\u05E7\u05D9\u05D9\u05DE\u05D5\u05EA \u05E0\u05E9\u05D0\u05E8\u05D5\u05EA \u05E2\u05D3 \u05E9\u05EA\u05DE\u05D7\u05E7 \u05D0\u05D5\u05EA\u05DF.",
       "Audit entries": "\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05D1\u05D9\u05E7\u05D5\u05E8\u05EA",
       "Clear audit log": "\u05E0\u05D9\u05E7\u05D5\u05D9 \u05D9\u05D5\u05DE\u05DF \u05D4\u05D1\u05D9\u05E7\u05D5\u05E8\u05EA",
       "Drop the local action log.": "\u05DE\u05D5\u05D7\u05E7 \u05D0\u05EA \u05D9\u05D5\u05DE\u05DF \u05D4\u05E4\u05E2\u05D5\u05DC\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9.",
@@ -4228,6 +4244,17 @@ html.av-reduce-motion *::after {
         );
       }
       if (options.getAuditSize) {
+        rows.push(
+          toggleRow(
+            "Keep a local action log",
+            "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.",
+            options.settings.privacy.auditLog,
+            async (value) => {
+              options.settings.privacy.auditLog = value;
+              await save(value ? "Action log on" : "Action log off");
+            }
+          )
+        );
         rows.push(dataRow("Audit entries", String(options.getAuditSize())));
       }
       if (options.clearAuditLog) {
@@ -9231,6 +9258,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           }
           continue;
         }
+        await ctx.limiter.waitForToken();
         const job = queue2?.enqueue({ url: task.target.url, filename });
         if (job) {
           jobIds.push(job.id);
@@ -11031,13 +11059,15 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
     #storage;
     #limit;
     #onPersistError;
+    #isEnabled;
     #entries = [];
     #loaded = false;
     #loading;
-    constructor(storage, limit = AUDIT_LOG_LIMIT, onPersistError) {
+    constructor(storage, limit = AUDIT_LOG_LIMIT, onPersistError, isEnabled) {
       this.#storage = storage;
       this.#limit = Math.max(50, limit);
       this.#onPersistError = onPersistError;
+      this.#isEnabled = isEnabled;
     }
     async load() {
       if (this.#loaded) return;
@@ -11047,6 +11077,9 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
       await this.#loading;
     }
     async record(action, detail) {
+      if (this.#isEnabled && !this.#isEnabled()) {
+        return;
+      }
       await this.load();
       const entry = { at: (/* @__PURE__ */ new Date()).toISOString(), action };
       if (detail) entry.detail = detail;
@@ -12250,7 +12283,17 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       this.#tokens -= tokens;
       return true;
     }
+    /**
+     * Waits until `tokens` are available. Asking for more than the bucket can ever hold used to
+     * spin forever, because refill() clamps at capacity and the condition could never become
+     * true — a silent hang rather than a visible error.
+     */
     async waitForToken(tokens = 1) {
+      if (tokens > this.capacity) {
+        throw new RangeError(
+          `TokenBucket asked for ${tokens} tokens but capacity is ${this.capacity}; this would wait forever.`
+        );
+      }
       while (!this.tryRemove(tokens)) {
         await delay(250);
       }
@@ -12450,12 +12493,17 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     const storage = createStorageGateway("aviary");
     const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
     const diagnostics = new Diagnostics();
-    const limiter = new TokenBucket(settings.jobs.rateLimitMode === "conservative" ? 4 : 8, 0.5);
+    const limiter = settings.jobs.rateLimitMode === "conservative" ? new TokenBucket(4, 1) : new TokenBucket(8, 4);
     const registry = new FeatureRegistry();
     const policy = createTrustedHtmlPolicy();
-    const auditLog = new AuditLog(storage, void 0, (error) => {
-      diagnostics.error("Audit log failed to save", errorDetails6(error));
-    });
+    const auditLog = new AuditLog(
+      storage,
+      void 0,
+      (error) => {
+        diagnostics.error("Audit log failed to save", errorDetails6(error));
+      },
+      () => settings.privacy.auditLog
+    );
     await auditLog.load();
     registry.register(themeFeature);
     registry.register(i18nFeature);

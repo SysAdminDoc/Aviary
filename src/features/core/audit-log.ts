@@ -34,6 +34,7 @@ export class AuditLog {
   readonly #storage: StorageGateway;
   readonly #limit: number;
   readonly #onPersistError: PersistErrorSink | undefined;
+  readonly #isEnabled: (() => boolean) | undefined;
   #entries: AuditEntry[] = [];
   #loaded = false;
   #loading: Promise<void> | undefined;
@@ -41,11 +42,14 @@ export class AuditLog {
   constructor(
     storage: StorageGateway,
     limit = AUDIT_LOG_LIMIT,
-    onPersistError?: PersistErrorSink
+    onPersistError?: PersistErrorSink,
+    /** Read fresh on every write so toggling `privacy.auditLog` takes effect immediately. */
+    isEnabled?: () => boolean
   ) {
     this.#storage = storage;
     this.#limit = Math.max(50, limit);
     this.#onPersistError = onPersistError;
+    this.#isEnabled = isEnabled;
   }
 
   async load(): Promise<void> {
@@ -57,6 +61,11 @@ export class AuditLog {
   }
 
   async record(action: AuditAction, detail?: Record<string, unknown>): Promise<void> {
+    // `privacy.auditLog` used to normalize and round-trip while nothing read it, so turning
+    // the local action log off left it recording exactly as before.
+    if (this.#isEnabled && !this.#isEnabled()) {
+      return;
+    }
     await this.load();
     const entry: AuditEntry = { at: new Date().toISOString(), action };
     if (detail) entry.detail = detail;

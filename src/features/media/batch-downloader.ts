@@ -118,6 +118,11 @@ async function runTasks(
         continue;
       }
 
+      // `jobs.rateLimitMode` used to change nothing but the bucket's capacity, because no
+      // feature ever drew from it. A batch is the one place the pacing matters: it is the
+      // only path that fires hundreds of requests at X's media hosts back to back.
+      await ctx.limiter.waitForToken();
+
       const job = queue?.enqueue({ url: task.target.url, filename });
       if (job) {
         jobIds.push(job.id);

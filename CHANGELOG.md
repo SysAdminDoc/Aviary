@@ -46,6 +46,18 @@ Drains the audit findings left open by the v1.7.0 pass.
   written." or names the failure and its count. Writes stay best-effort: a failed write still
   resolves rather than throwing into the caller.
 
+- **`jobs.rateLimitMode` now paces a batch instead of only resizing a bucket.** `ctx.limiter` was
+  built in `main.ts` and handed to every feature, and no feature ever drew from it. The media
+  batch — the one path that fires hundreds of requests at X's media hosts back to back — now
+  takes a token per download. The mode sets both the burst and the sustained rate (conservative
+  4/1s, standard 8/4s); the old fixed 0.5/s refill would have made a 200-item batch look hung.
+- **`waitForToken` no longer hangs on an impossible request.** Asking for more tokens than the
+  bucket's capacity could never be satisfied, because refill clamps at capacity — it spun
+  silently forever. It now throws `RangeError`.
+- **`privacy.auditLog` does something.** The toggle normalized and round-tripped while nothing
+  read it, so turning the local action log off left it recording exactly as before. `AuditLog`
+  now checks it on every write, and Backup & Audit carries the toggle that was missing.
+
 ### Decided
 
 - **No Escape-to-close handler.** The open question was whether standard dialog dismissal should

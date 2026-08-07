@@ -1262,6 +1262,17 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     }
 
     if (options.getAuditSize) {
+      rows.push(
+        toggleRow(
+          "Keep a local action log",
+          "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.",
+          options.settings.privacy.auditLog,
+          async (value) => {
+            options.settings.privacy.auditLog = value;
+            await save(value ? "Action log on" : "Action log off");
+          }
+        )
+      );
       rows.push(dataRow("Audit entries", String(options.getAuditSize())));
     }
 

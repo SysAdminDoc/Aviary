@@ -65,12 +65,22 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   const storage = createStorageGateway("aviary");
   const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
   const diagnostics = new Diagnostics();
-  const limiter = new TokenBucket(settings.jobs.rateLimitMode === "conservative" ? 4 : 8, 0.5);
+  // Burst covers an ordinary page of media without any wait; the refill rate is what paces a
+  // long batch. 0.5/s was low enough that a 200-item batch would have looked hung.
+  const limiter =
+    settings.jobs.rateLimitMode === "conservative"
+      ? new TokenBucket(4, 1)
+      : new TokenBucket(8, 4);
   const registry = new FeatureRegistry();
   const policy = createTrustedHtmlPolicy();
-  const auditLog = new AuditLog(storage, undefined, (error) => {
-    diagnostics.error("Audit log failed to save", errorDetails(error));
-  });
+  const auditLog = new AuditLog(
+    storage,
+    undefined,
+    (error) => {
+      diagnostics.error("Audit log failed to save", errorDetails(error));
+    },
+    () => settings.privacy.auditLog
+  );
   await auditLog.load();
 
   registry.register(themeFeature);
