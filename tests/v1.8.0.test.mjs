@@ -311,3 +311,61 @@ test("media.zipChunkSize splits a long export into several archives", async () =
 
   assert.equal(buildExportZipChunks([], ["json"], "", 100).length, 0, "no records, no archive");
 });
+
+test("cleanShareButtons strips tracking parameters without breaking links", async () => {
+  const { cleanUrl } = await importBundledModule("src/features/library/clean-share-links.ts");
+
+  // X's own share sheet appends t= and s=.
+  assert.equal(
+    cleanUrl("https://x.com/someone/status/123?t=AbC&s=20"),
+    "https://x.com/someone/status/123"
+  );
+  // Campaign parameters go everywhere; unrelated query values must survive.
+  assert.equal(
+    cleanUrl("https://example.com/a?utm_source=x&id=7&fbclid=zz"),
+    "https://example.com/a?id=7"
+  );
+  // A relative SPA route stays relative — returning an absolute URL would change navigation.
+  assert.equal(cleanUrl("/someone/status/123?t=AbC"), "/someone/status/123");
+
+  // `t` and `s` are ordinary parameter names off X; stripping them elsewhere breaks real links.
+  assert.equal(cleanUrl("https://example.com/search?s=shoes&t=1"), null);
+
+  // Nothing to do, or unsafe to touch.
+  assert.equal(cleanUrl("https://example.com/plain"), null);
+  assert.equal(cleanUrl("https://t.co/abc123"), null, "t.co paths are the identifier");
+  assert.equal(cleanUrl("javascript:alert(1)"), null);
+  assert.equal(cleanUrl("mailto:a@b.c"), null);
+  assert.equal(cleanUrl(""), null);
+  assert.equal(cleanUrl("not a url at all"), null);
+});
+
+test("the clean-share-links feature is registered and fully reversible", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(path.join(root, "src/features/library/clean-share-links.ts"), "utf8");
+  const main = await readFile(path.join(root, "src/main.ts"), "utf8");
+
+  assert.match(main, /registry\.register\(cleanShareLinksFeature\)/, "feature is not registered");
+  // Every feature must reverse itself: destroy has to put the original href back.
+  assert.match(source, /destroy\(ctx\)/);
+  assert.match(source, /setAttribute\("href", original\)/, "destroy does not restore the href");
+  assert.match(source, /settings\.links\.cleanShareButtons/, "the setting drives nothing again");
+});
+
+test("every setting a preset promises now has an implementation behind it", async () => {
+  const { PRESETS } = await importBundledModule("src/features/core/presets.ts");
+
+  // A preset that flips a setting nothing reads silently lies about what applying it does.
+  // These are the keys the presets touch that were schema-only when v1.8.0 opened.
+  const promised = PRESETS.flatMap((preset) => Object.keys(preset.overrides.links ?? {}));
+  assert.ok(promised.includes("cleanShareButtons"), "presets no longer exercise this key");
+
+  const feature = await readFile(
+    path.join(root, "src/features/library/clean-share-links.ts"),
+    "utf8"
+  );
+  assert.match(feature, /settings\.links\.cleanShareButtons/);
+
+  const main = await readFile(path.join(root, "src/main.ts"), "utf8");
+  assert.match(main, /registry\.register\(cleanShareLinksFeature\)/);
+});

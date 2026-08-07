@@ -65,6 +65,14 @@ Drains the audit findings left open by the v1.7.0 pass.
   setting never had. `tools/i18n-sync.mjs` folds new translations into the catalog and refuses to
   write one that is missing strings.
 
+- **`links.cleanShareButtons` strips tracking from links.** Quiet Reader, Researcher and Minimal
+  all set it, so applying any of them claimed a change that never happened. A new reversible
+  feature removes share tokens and campaign parameters (`utm_*`, `fbclid`, and X's own `t`/`s`)
+  from timeline links, with a **Clean tracking from links** toggle in Library. `t`/`s` are only
+  stripped on X hosts — they are ordinary parameter names elsewhere, and removing them would
+  break real links. `t.co` URLs are left alone because their path *is* the identifier. Verified
+  in Chromium: late-arriving rows are cleaned too, and destroy restores every original href.
+
 ### Decided
 
 - **No Escape-to-close handler.** The open question was whether standard dialog dismissal should

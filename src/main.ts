@@ -11,6 +11,7 @@ import { i18nFeature } from "./features/core/i18n-feature";
 import { mobileTouchFeature } from "./features/core/mobile-touch";
 import { exportFeature } from "./features/export/export-feature";
 import { networkCaptureFeature } from "./features/export/network-capture";
+import { cleanShareLinksFeature } from "./features/library/clean-share-links";
 import { linkUnshortenFeature } from "./features/library/link-unshorten";
 import { snapshotsFeature } from "./features/library/snapshots-feature";
 import { userNotesFeature } from "./features/library/user-notes";
@@ -94,6 +95,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   registry.register(exportFeature);
   registry.register(userNotesFeature);
   registry.register(linkUnshortenFeature);
+  registry.register(cleanShareLinksFeature);
   registry.register(snapshotsFeature);
   registry.register(mobileTouchFeature);
   registry.register(composerSnippetsFeature);

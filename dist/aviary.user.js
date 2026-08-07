@@ -345,6 +345,8 @@ html.av-reduce-motion *::after {
       "Export": "Exportaci\xF3n",
       "Unshorten t.co links": "Expandir enlaces t.co",
       "Replace short `t.co` redirects with the destination from aria-labels and titles.": "Sustituye las redirecciones cortas `t.co` por el destino que aparece en aria-labels y t\xEDtulos.",
+      "Clean tracking from links": "Limpiar el rastreo de los enlaces",
+      "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.": "Elimina los tokens para compartir y los par\xE1metros de campa\xF1a (utm_*, fbclid y los propios t/s de X) de los enlaces del cronograma, de modo que lo que copias es la direcci\xF3n limpia.",
       "Account notes": "Notas de cuentas",
       "Format: handle: note. One per line. Empty notes remove the entry.": "Formato: usuario: nota. Una por l\xEDnea. Las notas vac\xEDas eliminan la entrada.",
       "Clear all account notes": "Borrar todas las notas de cuentas",
@@ -665,6 +667,8 @@ html.av-reduce-motion *::after {
       "Export": "Exporta\xE7\xE3o",
       "Unshorten t.co links": "Expandir links t.co",
       "Replace short `t.co` redirects with the destination from aria-labels and titles.": "Substitui os redirecionamentos curtos `t.co` pelo destino obtido de aria-labels e t\xEDtulos.",
+      "Clean tracking from links": "Limpar o rastreio dos liga\xE7\xF5es",
+      "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.": "Remove os tokens de partilha e os par\xE2metros de campanha (utm_*, fbclid e os pr\xF3prios t/s do X) das liga\xE7\xF5es na cronologia, para que o que copia seja o endere\xE7o simples.",
       "Account notes": "Notas de contas",
       "Format: handle: note. One per line. Empty notes remove the entry.": "Formato: utilizador: nota. Uma por linha. Notas vazias removem a entrada.",
       "Clear all account notes": "Limpar todas as notas de contas",
@@ -985,6 +989,8 @@ html.av-reduce-motion *::after {
       "Export": "Export",
       "Unshorten t.co links": "D\xE9velopper les liens t.co",
       "Replace short `t.co` redirects with the destination from aria-labels and titles.": "Remplace les redirections courtes `t.co` par la destination lue dans les aria-labels et les titres.",
+      "Clean tracking from links": "Nettoyer le suivi des liens",
+      "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.": "Supprime les jetons de partage et les param\xE8tres de campagne (utm_*, fbclid et les t/s propres \xE0 X) des liens du fil, pour que ce que vous copiez soit l'adresse brute.",
       "Account notes": "Notes de comptes",
       "Format: handle: note. One per line. Empty notes remove the entry.": "Format : identifiant : note. Une par ligne. Une note vide supprime l'entr\xE9e.",
       "Clear all account notes": "Effacer toutes les notes de comptes",
@@ -1305,6 +1311,8 @@ html.av-reduce-motion *::after {
       "Export": "Export",
       "Unshorten t.co links": "t.co-Links aufl\xF6sen",
       "Replace short `t.co` redirects with the destination from aria-labels and titles.": "Ersetzt kurze `t.co`-Weiterleitungen durch das Ziel aus aria-labels und Titeln.",
+      "Clean tracking from links": "Tracking aus Links entfernen",
+      "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.": "Entfernt Share-Tokens und Kampagnenparameter (utm_*, fbclid und X' eigene t/s) aus Links in der Timeline, sodass du die blanke Adresse kopierst.",
       "Account notes": "Konto-Notizen",
       "Format: handle: note. One per line. Empty notes remove the entry.": "Format: Name: Notiz. Eine pro Zeile. Leere Notizen entfernen den Eintrag.",
       "Clear all account notes": "Alle Konto-Notizen l\xF6schen",
@@ -1625,6 +1633,8 @@ html.av-reduce-motion *::after {
       "Export": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8",
       "Unshorten t.co links": "t.co \u30EA\u30F3\u30AF\u3092\u5C55\u958B",
       "Replace short `t.co` redirects with the destination from aria-labels and titles.": "\u77ED\u7E2E\u3055\u308C\u305F `t.co` \u306E\u30EA\u30F3\u30AF\u3092\u3001aria-label \u3084 title \u306B\u3042\u308B\u5B9F\u969B\u306E URL \u306B\u7F6E\u304D\u63DB\u3048\u307E\u3059\u3002",
+      "Clean tracking from links": "\u30EA\u30F3\u30AF\u304B\u3089\u30C8\u30E9\u30C3\u30AD\u30F3\u30B0\u3092\u9664\u53BB",
+      "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.": "\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u306E\u30EA\u30F3\u30AF\u304B\u3089\u5171\u6709\u30C8\u30FC\u30AF\u30F3\u3068\u30AD\u30E3\u30F3\u30DA\u30FC\u30F3\u7528\u30D1\u30E9\u30E1\u30FC\u30BF\uFF08utm_*\u3001fbclid\u3001X \u72EC\u81EA\u306E t/s\uFF09\u3092\u53D6\u308A\u9664\u304D\u3001\u30B3\u30D4\u30FC\u3057\u305F\u5185\u5BB9\u304C\u7D20\u306E\u30A2\u30C9\u30EC\u30B9\u306B\u306A\u308B\u3088\u3046\u306B\u3057\u307E\u3059\u3002",
       "Account notes": "\u30A2\u30AB\u30A6\u30F3\u30C8\u306E\u30E1\u30E2",
       "Format: handle: note. One per line. Empty notes remove the entry.": "\u5F62\u5F0F: \u30A2\u30AB\u30A6\u30F3\u30C8\u540D: \u30E1\u30E2\u30021 \u884C\u306B 1 \u3064\u3002\u30E1\u30E2\u3092\u7A7A\u306B\u3059\u308B\u3068\u524A\u9664\u3055\u308C\u307E\u3059\u3002",
       "Clear all account notes": "\u30A2\u30AB\u30A6\u30F3\u30C8\u306E\u30E1\u30E2\u3092\u3059\u3079\u3066\u6D88\u53BB",
@@ -1945,6 +1955,8 @@ html.av-reduce-motion *::after {
       "Export": "\uB0B4\uBCF4\uB0B4\uAE30",
       "Unshorten t.co links": "t.co \uB9C1\uD06C \uD3BC\uCE58\uAE30",
       "Replace short `t.co` redirects with the destination from aria-labels and titles.": "\uC9E7\uC740 `t.co` \uB9C1\uD06C\uB97C aria-label\uACFC title\uC5D0 \uC788\uB294 \uC2E4\uC81C \uC8FC\uC18C\uB85C \uBC14\uAFC9\uB2C8\uB2E4.",
+      "Clean tracking from links": "\uB9C1\uD06C\uC5D0\uC11C \uCD94\uC801 \uC815\uBCF4 \uC81C\uAC70",
+      "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.": "\uD0C0\uC784\uB77C\uC778 \uB9C1\uD06C\uC5D0\uC11C \uACF5\uC720 \uD1A0\uD070\uACFC \uCEA0\uD398\uC778 \uB9E4\uAC1C\uBCC0\uC218(utm_*, fbclid, X \uC790\uCCB4\uC758 t/s)\uB97C \uC81C\uAC70\uD574 \uBCF5\uC0AC\uD55C \uB0B4\uC6A9\uC774 \uC21C\uC218\uD55C \uC8FC\uC18C\uAC00 \uB418\uB3C4\uB85D \uD569\uB2C8\uB2E4.",
       "Account notes": "\uACC4\uC815 \uBA54\uBAA8",
       "Format: handle: note. One per line. Empty notes remove the entry.": "\uD615\uC2DD: \uACC4\uC815: \uBA54\uBAA8. \uD55C \uC904\uC5D0 \uD558\uB098\uC529. \uBA54\uBAA8\uB97C \uBE44\uC6B0\uBA74 \uC0AD\uC81C\uB429\uB2C8\uB2E4.",
       "Clear all account notes": "\uACC4\uC815 \uBA54\uBAA8 \uBAA8\uB450 \uC9C0\uC6B0\uAE30",
@@ -2265,6 +2277,8 @@ html.av-reduce-motion *::after {
       "Export": "\u0627\u0644\u062A\u0635\u062F\u064A\u0631",
       "Unshorten t.co links": "\u062A\u0648\u0633\u064A\u0639 \u0631\u0648\u0627\u0628\u0637 t.co",
       "Replace short `t.co` redirects with the destination from aria-labels and titles.": "\u064A\u0633\u062A\u0628\u062F\u0644 \u0631\u0648\u0627\u0628\u0637 `t.co` \u0627\u0644\u0645\u062E\u062A\u0635\u0631\u0629 \u0628\u0627\u0644\u0648\u062C\u0647\u0629 \u0627\u0644\u0645\u0623\u062E\u0648\u0630\u0629 \u0645\u0646 aria-label \u0648\u0627\u0644\u0639\u0646\u0627\u0648\u064A\u0646.",
+      "Clean tracking from links": "\u0625\u0632\u0627\u0644\u0629 \u0627\u0644\u062A\u062A\u0628\u0651\u0639 \u0645\u0646 \u0627\u0644\u0631\u0648\u0627\u0628\u0637",
+      "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.": "\u064A\u0632\u064A\u0644 \u0631\u0645\u0648\u0632 \u0627\u0644\u0645\u0634\u0627\u0631\u0643\u0629 \u0648\u0645\u0639\u0627\u0645\u0644\u0627\u062A \u0627\u0644\u062D\u0645\u0644\u0627\u062A (utm_* \u0648fbclid \u0648\u0645\u0639\u0627\u0645\u0644\u0627\u062A t/s \u0627\u0644\u062E\u0627\u0635\u0629 \u0628\u0640 X) \u0645\u0646 \u0631\u0648\u0627\u0628\u0637 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A\u060C \u0641\u064A\u0635\u0628\u062D \u0645\u0627 \u062A\u0646\u0633\u062E\u0647 \u0647\u0648 \u0627\u0644\u0639\u0646\u0648\u0627\u0646 \u0627\u0644\u0645\u062C\u0631\u0651\u062F.",
       "Account notes": "\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u062D\u0633\u0627\u0628\u0627\u062A",
       "Format: handle: note. One per line. Empty notes remove the entry.": "\u0627\u0644\u0635\u064A\u063A\u0629: \u0627\u0644\u062D\u0633\u0627\u0628: \u0627\u0644\u0645\u0644\u0627\u062D\u0638\u0629. \u0648\u0627\u062D\u062F\u0629 \u0641\u064A \u0643\u0644 \u0633\u0637\u0631. \u0627\u0644\u0645\u0644\u0627\u062D\u0638\u0629 \u0627\u0644\u0641\u0627\u0631\u063A\u0629 \u062A\u062D\u0630\u0641 \u0627\u0644\u0639\u0646\u0635\u0631.",
       "Clear all account notes": "\u0645\u0633\u062D \u0643\u0644 \u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u062D\u0633\u0627\u0628\u0627\u062A",
@@ -2585,6 +2599,8 @@ html.av-reduce-motion *::after {
       "Export": "\u05D9\u05D9\u05E6\u05D5\u05D0",
       "Unshorten t.co links": "\u05E4\u05EA\u05D9\u05D7\u05EA \u05E7\u05D9\u05E9\u05D5\u05E8\u05D9 t.co",
       "Replace short `t.co` redirects with the destination from aria-labels and titles.": "\u05DE\u05D7\u05DC\u05D9\u05E3 \u05E7\u05D9\u05E9\u05D5\u05E8\u05D9 `t.co` \u05DE\u05E7\u05D5\u05E6\u05E8\u05D9\u05DD \u05D1\u05D9\u05E2\u05D3 \u05E9\u05DE\u05D5\u05E4\u05D9\u05E2 \u05D1\u2011aria-label \u05D5\u05D1\u05DB\u05D5\u05EA\u05E8\u05D5\u05EA.",
+      "Clean tracking from links": "\u05E0\u05D9\u05E7\u05D5\u05D9 \u05DE\u05E2\u05E7\u05D1 \u05DE\u05E7\u05D9\u05E9\u05D5\u05E8\u05D9\u05DD",
+      "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.": "\u05DE\u05E1\u05D9\u05E8 \u05D0\u05E1\u05D9\u05DE\u05D5\u05E0\u05D9 \u05E9\u05D9\u05EA\u05D5\u05E3 \u05D5\u05E4\u05E8\u05DE\u05D8\u05E8\u05D9 \u05E7\u05DE\u05E4\u05D9\u05D9\u05DF (utm_*, fbclid, \u05D5\u05D4\u2011t/s \u05E9\u05DC X \u05E2\u05E6\u05DE\u05D4) \u05DE\u05E7\u05D9\u05E9\u05D5\u05E8\u05D9\u05DD \u05D1\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF, \u05DB\u05DA \u05E9\u05DE\u05D4 \u05E9\u05EA\u05E2\u05EA\u05D9\u05E7 \u05D4\u05D5\u05D0 \u05D4\u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05E0\u05E7\u05D9\u05D9\u05D4.",
       "Account notes": "\u05D4\u05E2\u05E8\u05D5\u05EA \u05E2\u05DC \u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA",
       "Format: handle: note. One per line. Empty notes remove the entry.": "\u05DE\u05D1\u05E0\u05D4: \u05D7\u05E9\u05D1\u05D5\u05DF: \u05D4\u05E2\u05E8\u05D4. \u05D0\u05D7\u05EA \u05D1\u05DB\u05DC \u05E9\u05D5\u05E8\u05D4. \u05D4\u05E2\u05E8\u05D4 \u05E8\u05D9\u05E7\u05D4 \u05DE\u05D5\u05D7\u05E7\u05EA \u05D0\u05EA \u05D4\u05E8\u05E9\u05D5\u05DE\u05D4.",
       "Clear all account notes": "\u05E0\u05D9\u05E7\u05D5\u05D9 \u05DB\u05DC \u05D4\u05D4\u05E2\u05E8\u05D5\u05EA",
@@ -4176,6 +4192,17 @@ html.av-reduce-motion *::after {
           async (checked) => {
             options.settings.links.expandTco = checked;
             await save(checked ? "Unshorten on" : "Unshorten off");
+          }
+        )
+      );
+      rows.push(
+        toggleRow(
+          "Clean tracking from links",
+          "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.",
+          options.settings.links.cleanShareButtons,
+          async (checked) => {
+            options.settings.links.cleanShareButtons = checked;
+            await save(checked ? "Link cleaning on" : "Link cleaning off");
           }
         )
       );
@@ -11948,25 +11975,42 @@ html.av-mobile [data-testid="primaryColumn"] {
     return body.replace(/"(ct0|auth_token|guest_id|csrf_token)"\s*:\s*"[^"]*"/g, '"$1":"<scrubbed>"').replace(/Bearer\s+[A-Za-z0-9._-]{12,}/g, "Bearer <scrubbed>");
   }
 
-  // src/features/library/link-unshorten.ts
-  var STYLE_ID11 = "av-link-unshorten";
-  var PROCESSED_ATTR4 = "data-av-link-clean";
-  var linkUnshortenFeature = {
-    id: "library.linkUnshorten",
-    title: "Direct link unshortening",
+  // src/features/library/clean-share-links.ts
+  var PROCESSED_ATTR4 = "data-av-share-clean";
+  var ORIGINAL_HREF = "avOriginalHref";
+  var TRACKING_PARAMS = /* @__PURE__ */ new Set([
+    "t",
+    "s",
+    "ref_src",
+    "ref_url",
+    "cxt",
+    "twclid",
+    "fbclid",
+    "gclid",
+    "dclid",
+    "msclkid",
+    "igshid",
+    "mc_eid",
+    "mc_cid",
+    "vero_id",
+    "_hsenc",
+    "_hsmi"
+  ]);
+  var X_HOSTS = /(^|\.)((x|twitter)\.com|t\.co)$/i;
+  var cleanShareLinksFeature = {
+    id: "library.cleanShareLinks",
+    title: "Clean share links",
     category: "core",
     defaultEnabled: true,
     init(ctx) {
-      ensureStyle4();
-      if (!ctx.settings.links.expandTco) {
+      if (!ctx.settings.links.cleanShareButtons) {
         return;
       }
       scan2(document);
-      ctx.diagnostics.info("Link unshortening initialized");
+      ctx.diagnostics.info("Share link cleaning initialized");
     },
     apply(ctx, root, addedNodes) {
-      ensureStyle4();
-      if (!ctx.settings.links.expandTco) {
+      if (!ctx.settings.links.cleanShareButtons) {
         return;
       }
       if (!addedNodes || addedNodes.length === 0) {
@@ -11978,11 +12022,120 @@ html.av-mobile [data-testid="primaryColumn"] {
       }
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID11)?.remove();
-      for (const link of Array.from(
+      for (const anchor of Array.from(
         document.querySelectorAll(`a[${PROCESSED_ATTR4}]`)
       )) {
-        link.removeAttribute(PROCESSED_ATTR4);
+        const original = anchor.dataset[ORIGINAL_HREF];
+        if (original !== void 0) {
+          anchor.setAttribute("href", original);
+          delete anchor.dataset[ORIGINAL_HREF];
+        }
+        anchor.removeAttribute(PROCESSED_ATTR4);
+      }
+      ctx.diagnostics.info("Share link cleaning destroyed");
+    }
+  };
+  function scan2(root) {
+    const anchors = root instanceof HTMLAnchorElement ? [root] : Array.from(root.querySelectorAll("a[href]"));
+    for (const anchor of anchors) {
+      if (anchor.getAttribute(PROCESSED_ATTR4) === "1") {
+        continue;
+      }
+      const href = anchor.getAttribute("href");
+      if (!href) {
+        continue;
+      }
+      const cleaned = cleanUrl(href);
+      anchor.setAttribute(PROCESSED_ATTR4, "1");
+      if (cleaned === null || cleaned === href) {
+        continue;
+      }
+      if (anchor.dataset[ORIGINAL_HREF] === void 0) {
+        anchor.dataset[ORIGINAL_HREF] = href;
+      }
+      anchor.setAttribute("href", cleaned);
+    }
+  }
+  function cleanUrl(href) {
+    const trimmed = href.trim();
+    if (trimmed.length === 0 || /^(javascript|data|mailto|blob):/i.test(trimmed)) {
+      return null;
+    }
+    let url;
+    const relative = !/^[a-z][a-z0-9+.-]*:/i.test(trimmed) && !trimmed.startsWith("//");
+    try {
+      url = new URL(trimmed, "https://x.com");
+    } catch {
+      return null;
+    }
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return null;
+    }
+    if (/(^|\.)t\.co$/i.test(url.hostname)) {
+      return null;
+    }
+    const keys = [];
+    url.searchParams.forEach((_value, key) => {
+      keys.push(key);
+    });
+    let changed = false;
+    for (const key of keys) {
+      const lower = key.toLowerCase();
+      const isCampaign = lower.startsWith("utm_") || TRACKING_PARAMS.has(lower);
+      const scopedToX = lower === "t" || lower === "s";
+      if (!isCampaign) {
+        continue;
+      }
+      if (scopedToX && !X_HOSTS.test(url.hostname)) {
+        continue;
+      }
+      url.searchParams.delete(key);
+      changed = true;
+    }
+    if (!changed) {
+      return null;
+    }
+    if (relative) {
+      return `${url.pathname}${url.search}${url.hash}`;
+    }
+    return url.toString();
+  }
+
+  // src/features/library/link-unshorten.ts
+  var STYLE_ID11 = "av-link-unshorten";
+  var PROCESSED_ATTR5 = "data-av-link-clean";
+  var linkUnshortenFeature = {
+    id: "library.linkUnshorten",
+    title: "Direct link unshortening",
+    category: "core",
+    defaultEnabled: true,
+    init(ctx) {
+      ensureStyle4();
+      if (!ctx.settings.links.expandTco) {
+        return;
+      }
+      scan3(document);
+      ctx.diagnostics.info("Link unshortening initialized");
+    },
+    apply(ctx, root, addedNodes) {
+      ensureStyle4();
+      if (!ctx.settings.links.expandTco) {
+        return;
+      }
+      if (!addedNodes || addedNodes.length === 0) {
+        scan3(root);
+        return;
+      }
+      for (const node of addedNodes) {
+        scan3(node);
+      }
+    },
+    destroy(ctx) {
+      document.getElementById(STYLE_ID11)?.remove();
+      for (const link of Array.from(
+        document.querySelectorAll(`a[${PROCESSED_ATTR5}]`)
+      )) {
+        link.removeAttribute(PROCESSED_ATTR5);
         link.classList.remove("av-link-clean");
         const original = link.dataset.avOriginalText;
         if (original !== void 0) {
@@ -11996,10 +12149,10 @@ html.av-mobile [data-testid="primaryColumn"] {
       ctx.diagnostics.info("Link unshortening destroyed");
     }
   };
-  function scan2(root) {
+  function scan3(root) {
     const anchors = root instanceof HTMLAnchorElement ? [root] : Array.from(root.querySelectorAll("a"));
     for (const anchor of anchors) {
-      if (anchor.getAttribute(PROCESSED_ATTR4) === "1") {
+      if (anchor.getAttribute(PROCESSED_ATTR5) === "1") {
         continue;
       }
       const href = anchor.getAttribute("href") ?? "";
@@ -12018,7 +12171,7 @@ html.av-mobile [data-testid="primaryColumn"] {
       }
       anchor.classList.add("av-link-clean");
       anchor.title = target;
-      anchor.setAttribute(PROCESSED_ATTR4, "1");
+      anchor.setAttribute(PROCESSED_ATTR5, "1");
       if (anchor.textContent && /^https?:\/\/t\.co\//i.test(anchor.textContent.trim())) {
         anchor.textContent = target;
       }
@@ -12589,6 +12742,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     registry.register(exportFeature);
     registry.register(userNotesFeature);
     registry.register(linkUnshortenFeature);
+    registry.register(cleanShareLinksFeature);
     registry.register(snapshotsFeature);
     registry.register(mobileTouchFeature);
     registry.register(composerSnippetsFeature);

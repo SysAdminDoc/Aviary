@@ -1153,6 +1153,18 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       )
     );
 
+    rows.push(
+      toggleRow(
+        "Clean tracking from links",
+        "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.",
+        options.settings.links.cleanShareButtons,
+        async (checked) => {
+          options.settings.links.cleanShareButtons = checked;
+          await save(checked ? "Link cleaning on" : "Link cleaning off");
+        }
+      )
+    );
+
     if (options.getUserNotes && options.setUserNote) {
       const notes = options.getUserNotes();
       const serialized = Object.entries(notes)
