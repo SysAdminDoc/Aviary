@@ -68,7 +68,9 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   const limiter = new TokenBucket(settings.jobs.rateLimitMode === "conservative" ? 4 : 8, 0.5);
   const registry = new FeatureRegistry();
   const policy = createTrustedHtmlPolicy();
-  const auditLog = new AuditLog(storage);
+  const auditLog = new AuditLog(storage, undefined, (error) => {
+    diagnostics.error("Audit log failed to save", errorDetails(error));
+  });
   await auditLog.load();
 
   registry.register(themeFeature);

@@ -941,13 +941,6 @@ Mandatory Phase 5 checks:
 Raised during the full engineering/UX/security audit of v1.6.0. Items fixed in that pass are
 in CHANGELOG.md; these are the ones left open, with the reason each was not taken.
 
-- [ ] P3 — Storage writes fail silently when the backend is full
-  Why: MediaHistory, AuditLog and the hidden-post store swallow persistence errors, so a full
-  localStorage quota degrades to "changes stop sticking" with no signal. Surfacing it needs a
-  diagnostics channel in the data classes.
-  Where: src/features/media/history.ts, src/features/core/audit-log.ts,
-  src/features/filtering/hidden-posts.ts
-
 - [ ] P3 — settings.media.zipChunkSize, links.cleanShareButtons, privacy.localOnly,
   privacy.encryptVault and privacy.auditLog are schema-only
   Why: they normalize and round-trip through import/export but nothing reads them, and no UI

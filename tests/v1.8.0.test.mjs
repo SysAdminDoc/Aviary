@@ -200,3 +200,50 @@ async function importBundledModule(relativePath) {
     await rm(temp, { recursive: true, force: true });
   }
 }
+
+test("a failed write reports to the persistence sink instead of vanishing", async () => {
+  const { MediaHistory } = await importBundledModule("src/features/media/history.ts");
+
+  const full = {
+    async get(_key, fallback) {
+      return fallback;
+    },
+    async set() {
+      throw new DOMException("exceeded the quota", "QuotaExceededError");
+    }
+  };
+
+  const reported = [];
+  const history = new MediaHistory(full, undefined, (error) => reported.push(error));
+  await history.load();
+
+  // The write fails, but the call must still resolve — persistence is best-effort by design.
+  await history.record("https://pbs.twimg.com/media/a.jpg");
+
+  assert.equal(reported.length, 1, "a full backend must not fail silently");
+  assert.match(String(reported[0]), /quota/i);
+});
+
+test("the Control Center surfaces failed writes in the Trust section", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+
+  assert.match(source, /storageHealthRow/, "the storage health row was removed");
+  assert.match(source, /failed to save/, "the row no longer matches the diagnostics it reports");
+
+  // The three stores must actually be handed a sink, or the row can never light up.
+  for (const [file, ctor] of [
+    ["src/features/media/media-buttons.ts", "new MediaHistory"],
+    ["src/features/filtering/hidden-posts-feature.ts", "new HiddenPostStore"],
+    ["src/main.ts", "new AuditLog"]
+  ]) {
+    const wired = await readFile(path.join(root, file), "utf8");
+    const at = wired.indexOf(ctor);
+    assert.ok(at > -1, `${ctor} not found in ${file}`);
+    assert.match(
+      wired.slice(at, at + 220),
+      /failed to save/,
+      `${ctor} in ${file} is constructed without a persistence sink`
+    );
+  }
+});

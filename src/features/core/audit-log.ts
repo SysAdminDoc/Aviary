@@ -1,4 +1,5 @@
 import type { StorageGateway } from "../../platform/storage";
+import type { PersistErrorSink } from "../media/history";
 
 export const AUDIT_LOG_KEY = "aviary.audit.v1";
 export const AUDIT_LOG_LIMIT = 500;
@@ -32,13 +33,19 @@ const EMPTY: AuditSnapshot = { entries: [] };
 export class AuditLog {
   readonly #storage: StorageGateway;
   readonly #limit: number;
+  readonly #onPersistError: PersistErrorSink | undefined;
   #entries: AuditEntry[] = [];
   #loaded = false;
   #loading: Promise<void> | undefined;
 
-  constructor(storage: StorageGateway, limit = AUDIT_LOG_LIMIT) {
+  constructor(
+    storage: StorageGateway,
+    limit = AUDIT_LOG_LIMIT,
+    onPersistError?: PersistErrorSink
+  ) {
     this.#storage = storage;
     this.#limit = Math.max(50, limit);
+    this.#onPersistError = onPersistError;
   }
 
   async load(): Promise<void> {
@@ -89,8 +96,8 @@ export class AuditLog {
   async #persist(): Promise<void> {
     try {
       await this.#storage.set(AUDIT_LOG_KEY, { entries: this.#entries });
-    } catch {
-      // best effort
+    } catch (error) {
+      this.#onPersistError?.(error);
     }
   }
 }

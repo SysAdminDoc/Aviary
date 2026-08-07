@@ -39,6 +39,13 @@ Drains the audit findings left open by the v1.7.0 pass.
   extension page, which a content script is not. Preflight fails the build if the page is missing,
   declares inline script, or is dropped from a manifest.
 
+- **Failed writes are no longer silent.** `MediaHistory`, `AuditLog` and the hidden-post store
+  swallowed every persistence error, so a full browser store degraded to "changes stop sticking" —
+  indistinguishable from a bug. All three now take a persistence-error sink wired to diagnostics,
+  and the Trust section carries a **Saving** row that reads "Working — every change has been
+  written." or names the failure and its count. Writes stay best-effort: a failed write still
+  resolves rather than throwing into the caller.
+
 ### Decided
 
 - **No Escape-to-close handler.** The open question was whether standard dialog dismissal should

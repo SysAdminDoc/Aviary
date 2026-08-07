@@ -30,7 +30,9 @@ export const hiddenPostsFeature: FeatureModule = {
 
   async init(ctx) {
     ensureStyle();
-    store = new HiddenPostStore(ctx.storage);
+    store = new HiddenPostStore(ctx.storage, (error) => {
+      ctx.diagnostics.error("Hidden posts failed to save", errorDetails(error));
+    });
     try {
       await store.load(ctx.settings.hidden.maxEntries);
     } catch (error) {

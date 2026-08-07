@@ -12,17 +12,30 @@ export interface MediaHistorySnapshot {
   entries: MediaHistoryEntry[];
 }
 
+/**
+ * Called when a write to the storage backend fails. Persistence here is best-effort by design,
+ * but swallowing the error entirely turns a full quota into "changes silently stop sticking",
+ * which is indistinguishable from a bug. Reporting it lets the caller surface the state.
+ */
+export type PersistErrorSink = (error: unknown) => void;
+
 export class MediaHistory {
   readonly #storage: StorageGateway;
   readonly #limit: number;
+  readonly #onPersistError: PersistErrorSink | undefined;
   #entries: MediaHistoryEntry[] = [];
   #index = new Set<string>();
   #loaded = false;
   #loading: Promise<void> | undefined;
 
-  constructor(storage: StorageGateway, limit = MEDIA_HISTORY_LIMIT) {
+  constructor(
+    storage: StorageGateway,
+    limit = MEDIA_HISTORY_LIMIT,
+    onPersistError?: PersistErrorSink
+  ) {
     this.#storage = storage;
     this.#limit = Math.max(50, limit);
+    this.#onPersistError = onPersistError;
   }
 
   async load(): Promise<void> {
@@ -89,8 +102,9 @@ export class MediaHistory {
       await this.#storage.set<MediaHistorySnapshot>(MEDIA_HISTORY_KEY, {
         entries: this.#entries
       });
-    } catch {
-      // History is best-effort; fall through.
+    } catch (error) {
+      // Best-effort, but not silent: a full backend must be visible somewhere.
+      this.#onPersistError?.(error);
     }
   }
 }

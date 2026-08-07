@@ -41,7 +41,9 @@ export const mediaButtonsFeature: FeatureModule = {
     }
     downloader = createDownloader({ integrations: ctx.settings.integrations, aria2History });
     queue = new DownloadQueue();
-    history = new MediaHistory(ctx.storage);
+    history = new MediaHistory(ctx.storage, undefined, (error) => {
+      ctx.diagnostics.error("Media history failed to save", errorDetails(error));
+    });
     try {
       await history.load();
     } catch (error) {

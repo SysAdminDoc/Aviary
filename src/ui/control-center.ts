@@ -379,6 +379,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       section("Backup & Audit", backupRows()),
       section("Trust", [
         readonlyRow("Storage", "Settings stay in this browser."),
+        storageHealthRow(),
         readonlyRow("Telemetry", options.settings.privacy.telemetry ? "Enabled" : "Disabled"),
         coverageRow(),
         dataRow("Selector health", selectorSummary())
@@ -1875,6 +1876,25 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       return `${label} — every panel string translated (${renderedStrings}).`;
     }
     return `${label} — ${translatedStrings} of ${renderedStrings} panel strings translated (${percent}%). The rest fall back to English.`;
+  };
+
+  /**
+   * A full storage backend used to degrade to "changes quietly stop sticking", which reads as a
+   * bug rather than a full disk. The stores now report failed writes to diagnostics; this row
+   * is where that becomes visible without asking the user to copy a diagnostics blob.
+   */
+  const storageHealthRow = (): HTMLElement => {
+    const failures = options
+      .diagnostics()
+      .filter((event) => event.level === "error" && event.message.includes("failed to save"));
+    if (failures.length === 0) {
+      return readonlyRow("Saving", "Working — every change has been written.");
+    }
+    const last = failures[failures.length - 1]?.message ?? "";
+    return dataRow(
+      "Saving",
+      `${t("Some changes could not be saved — the browser store may be full.")} ${last} (${failures.length})`
+    );
   };
 
   const selectorSummary = (): string => {

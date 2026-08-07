@@ -1,4 +1,5 @@
 import type { StorageGateway } from "../../platform/storage";
+import type { PersistErrorSink } from "../media/history";
 
 export const HIDDEN_POSTS_KEY = "aviary.hiddenPosts.v1";
 
@@ -105,14 +106,16 @@ export function normalizeHiddenPosts(input: unknown, maxEntries: number): Hidden
 
 export class HiddenPostStore {
   readonly #storage: StorageGateway;
+  readonly #onPersistError: PersistErrorSink | undefined;
   #entries = new Map<string, HiddenPostEntry>();
   #undoStack: string[] = [];
   #updatedAt: string | null = null;
   #version = 0;
   #loaded = false;
 
-  constructor(storage: StorageGateway) {
+  constructor(storage: StorageGateway, onPersistError?: PersistErrorSink) {
     this.#storage = storage;
+    this.#onPersistError = onPersistError;
   }
 
   async load(maxEntries: number): Promise<void> {
@@ -234,7 +237,12 @@ export class HiddenPostStore {
       entries: [...this.#entries.values()],
       updatedAt: this.#updatedAt
     };
-    await this.#storage.set(HIDDEN_POSTS_KEY, snapshot);
+    try {
+      await this.#storage.set(HIDDEN_POSTS_KEY, snapshot);
+    } catch (error) {
+      // A hide that did not persist comes back on reload; say so rather than pretend.
+      this.#onPersistError?.(error);
+    }
   }
 }
 

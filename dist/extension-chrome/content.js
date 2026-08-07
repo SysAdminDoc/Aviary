@@ -412,11 +412,12 @@ html.av-reduce-motion *::after {
       "Backup & Audit": "Copia y auditor\xEDa",
       "Storage": "Almacenamiento",
       "Settings stay in this browser.": "Los ajustes se quedan en este navegador.",
+      "Saving": "Guardado",
+      "Working \u2014 every change has been written.": "Correcto: se han guardado todos los cambios.",
       "Telemetry": "Telemetr\xEDa",
       "Disabled": "Desactivada",
       "Panel language": "Idioma del panel",
       "Selector health": "Estado de los selectores",
-      "Monitoring active": "Supervisi\xF3n activa",
       "Trust": "Privacidad",
       "Theme value is not supported.": "Ese tema no es compatible.",
       "Theme updated": "Tema actualizado",
@@ -490,6 +491,7 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "No se pudieron borrar las publicaciones ocultas.",
       "Saving...": "Guardando...",
       "Could not save settings. Try again.": "No se pudieron guardar los ajustes. Int\xE9ntalo de nuevo.",
+      "Monitoring active": "Supervisi\xF3n activa",
       "Preset packs unavailable in this build.": "Los paquetes predefinidos no est\xE1n disponibles en esta compilaci\xF3n.",
       "Hidden post store unavailable in this build.": "El almac\xE9n de publicaciones ocultas no est\xE1 disponible en esta compilaci\xF3n.",
       "Cancel": "Cancelar"
@@ -724,11 +726,12 @@ html.av-reduce-motion *::after {
       "Backup & Audit": "Backup e auditoria",
       "Storage": "Armazenamento",
       "Settings stay in this browser.": "As configura\xE7\xF5es ficam neste navegador.",
+      "Saving": "Grava\xE7\xE3o",
+      "Working \u2014 every change has been written.": "Tudo certo: todas as altera\xE7\xF5es foram gravadas.",
       "Telemetry": "Telemetria",
       "Disabled": "Desativada",
       "Panel language": "Idioma do painel",
       "Selector health": "Sa\xFAde dos seletores",
-      "Monitoring active": "Monitoramento ativo",
       "Trust": "Privacidade",
       "Theme value is not supported.": "Esse tema n\xE3o \xE9 suportado.",
       "Theme updated": "Tema atualizado",
@@ -802,6 +805,7 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "N\xE3o foi poss\xEDvel limpar as publica\xE7\xF5es ocultas.",
       "Saving...": "A guardar...",
       "Could not save settings. Try again.": "N\xE3o foi poss\xEDvel guardar as defini\xE7\xF5es. Tente novamente.",
+      "Monitoring active": "Monitoramento ativo",
       "Preset packs unavailable in this build.": "Pacotes de predefini\xE7\xF5es indispon\xEDveis nesta compila\xE7\xE3o.",
       "Hidden post store unavailable in this build.": "Armazenamento de posts ocultos indispon\xEDvel nesta compila\xE7\xE3o.",
       "Cancel": "Cancelar"
@@ -1036,11 +1040,12 @@ html.av-reduce-motion *::after {
       "Backup & Audit": "Sauvegarde et audit",
       "Storage": "Stockage",
       "Settings stay in this browser.": "Les r\xE9glages restent dans ce navigateur.",
+      "Saving": "Enregistrement",
+      "Working \u2014 every change has been written.": "Tout va bien : chaque modification a \xE9t\xE9 enregistr\xE9e.",
       "Telemetry": "T\xE9l\xE9m\xE9trie",
       "Disabled": "D\xE9sactiv\xE9e",
       "Panel language": "Langue du panneau",
       "Selector health": "\xC9tat des s\xE9lecteurs",
-      "Monitoring active": "Surveillance active",
       "Trust": "Confidentialit\xE9",
       "Theme value is not supported.": "Ce th\xE8me n'est pas pris en charge.",
       "Theme updated": "Th\xE8me mis \xE0 jour",
@@ -1114,6 +1119,7 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "Impossible d'effacer les publications masqu\xE9es.",
       "Saving...": "Enregistrement...",
       "Could not save settings. Try again.": "Impossible d'enregistrer les r\xE9glages. R\xE9essayez.",
+      "Monitoring active": "Surveillance active",
       "Preset packs unavailable in this build.": "Packs de pr\xE9r\xE9glages indisponibles dans cette version.",
       "Hidden post store unavailable in this build.": "Stock des publications masqu\xE9es indisponible dans cette version.",
       "Cancel": "Annuler"
@@ -1348,11 +1354,12 @@ html.av-reduce-motion *::after {
       "Backup & Audit": "Sicherung & Audit",
       "Storage": "Speicher",
       "Settings stay in this browser.": "Einstellungen bleiben in diesem Browser.",
+      "Saving": "Speichern",
+      "Working \u2014 every change has been written.": "Alles in Ordnung \u2013 jede \xC4nderung wurde gespeichert.",
       "Telemetry": "Telemetrie",
       "Disabled": "Deaktiviert",
       "Panel language": "Sprache des Panels",
       "Selector health": "Selektor-Zustand",
-      "Monitoring active": "\xDCberwachung aktiv",
       "Trust": "Datenschutz",
       "Theme value is not supported.": "Dieses Design wird nicht unterst\xFCtzt.",
       "Theme updated": "Design aktualisiert",
@@ -1426,6 +1433,7 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "Ausgeblendete Beitr\xE4ge konnten nicht gel\xF6scht werden.",
       "Saving...": "Wird gespeichert...",
       "Could not save settings. Try again.": "Einstellungen konnten nicht gespeichert werden. Bitte erneut versuchen.",
+      "Monitoring active": "\xDCberwachung aktiv",
       "Preset packs unavailable in this build.": "Voreinstellungspakete stehen in diesem Build nicht zur Verf\xFCgung.",
       "Hidden post store unavailable in this build.": "Speicher f\xFCr ausgeblendete Beitr\xE4ge steht in diesem Build nicht zur Verf\xFCgung.",
       "Cancel": "Abbrechen"
@@ -1660,11 +1668,12 @@ html.av-reduce-motion *::after {
       "Backup & Audit": "\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3068\u76E3\u67FB",
       "Storage": "\u4FDD\u5B58\u5834\u6240",
       "Settings stay in this browser.": "\u8A2D\u5B9A\u306F\u3053\u306E\u30D6\u30E9\u30A6\u30B6\u5185\u306B\u7559\u307E\u308A\u307E\u3059\u3002",
+      "Saving": "\u4FDD\u5B58",
+      "Working \u2014 every change has been written.": "\u6B63\u5E38\u3067\u3059\u3002\u3059\u3079\u3066\u306E\u5909\u66F4\u304C\u4FDD\u5B58\u3055\u308C\u3066\u3044\u307E\u3059\u3002",
       "Telemetry": "\u30C6\u30EC\u30E1\u30C8\u30EA",
       "Disabled": "\u7121\u52B9",
       "Panel language": "\u30D1\u30CD\u30EB\u306E\u8A00\u8A9E",
       "Selector health": "\u30BB\u30EC\u30AF\u30BF\u306E\u72B6\u614B",
-      "Monitoring active": "\u76E3\u8996\u4E2D",
       "Trust": "\u30D7\u30E9\u30A4\u30D0\u30B7\u30FC",
       "Theme value is not supported.": "\u305D\u306E\u30C6\u30FC\u30DE\u306B\u306F\u5BFE\u5FDC\u3057\u3066\u3044\u307E\u305B\u3093\u3002",
       "Theme updated": "\u30C6\u30FC\u30DE\u3092\u66F4\u65B0\u3057\u307E\u3057\u305F",
@@ -1738,6 +1747,7 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "\u975E\u8868\u793A\u306E\u6295\u7A3F\u3092\u6D88\u53BB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "Saving...": "\u4FDD\u5B58\u4E2D...",
       "Could not save settings. Try again.": "\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+      "Monitoring active": "\u76E3\u8996\u4E2D",
       "Preset packs unavailable in this build.": "\u3053\u306E\u30D3\u30EB\u30C9\u3067\u306F\u30D7\u30EA\u30BB\u30C3\u30C8\u3092\u5229\u7528\u3067\u304D\u307E\u305B\u3093\u3002",
       "Hidden post store unavailable in this build.": "\u3053\u306E\u30D3\u30EB\u30C9\u3067\u306F\u975E\u8868\u793A\u6295\u7A3F\u306E\u4FDD\u5B58\u6A5F\u80FD\u3092\u5229\u7528\u3067\u304D\u307E\u305B\u3093\u3002",
       "Cancel": "\u30AD\u30E3\u30F3\u30BB\u30EB"
@@ -1972,11 +1982,12 @@ html.av-reduce-motion *::after {
       "Backup & Audit": "\uBC31\uC5C5 \uBC0F \uAC10\uC0AC",
       "Storage": "\uC800\uC7A5 \uC704\uCE58",
       "Settings stay in this browser.": "\uC124\uC815\uC740 \uC774 \uBE0C\uB77C\uC6B0\uC800\uC5D0\uB9CC \uB0A8\uC2B5\uB2C8\uB2E4.",
+      "Saving": "\uC800\uC7A5",
+      "Working \u2014 every change has been written.": "\uC815\uC0C1\uC785\uB2C8\uB2E4. \uBAA8\uB4E0 \uBCC0\uACBD \uC0AC\uD56D\uC774 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
       "Telemetry": "\uD154\uB808\uBA54\uD2B8\uB9AC",
       "Disabled": "\uC0AC\uC6A9 \uC548 \uD568",
       "Panel language": "\uD328\uB110 \uC5B8\uC5B4",
       "Selector health": "\uC120\uD0DD\uC790 \uC0C1\uD0DC",
-      "Monitoring active": "\uBAA8\uB2C8\uD130\uB9C1 \uC911",
       "Trust": "\uAC1C\uC778\uC815\uBCF4",
       "Theme value is not supported.": "\uC9C0\uC6D0\uD558\uC9C0 \uC54A\uB294 \uD14C\uB9C8\uC785\uB2C8\uB2E4.",
       "Theme updated": "\uD14C\uB9C8\uB97C \uBCC0\uACBD\uD588\uC2B5\uB2C8\uB2E4",
@@ -2050,6 +2061,7 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "\uC228\uAE34 \uAC8C\uC2DC\uBB3C\uC744 \uC9C0\uC6B0\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "Saving...": "\uC800\uC7A5 \uC911...",
       "Could not save settings. Try again.": "\uC124\uC815\uC744 \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+      "Monitoring active": "\uBAA8\uB2C8\uD130\uB9C1 \uC911",
       "Preset packs unavailable in this build.": "\uC774 \uBE4C\uB4DC\uC5D0\uC11C\uB294 \uD504\uB9AC\uC14B\uC744 \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
       "Hidden post store unavailable in this build.": "\uC774 \uBE4C\uB4DC\uC5D0\uC11C\uB294 \uC228\uAE34 \uAC8C\uC2DC\uBB3C \uC800\uC7A5\uC18C\uB97C \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
       "Cancel": "\uCDE8\uC18C"
@@ -2284,11 +2296,12 @@ html.av-reduce-motion *::after {
       "Backup & Audit": "\u0627\u0644\u0646\u0633\u062E \u0627\u0644\u0627\u062D\u062A\u064A\u0627\u0637\u064A \u0648\u0627\u0644\u062A\u062F\u0642\u064A\u0642",
       "Storage": "\u0627\u0644\u062A\u062E\u0632\u064A\u0646",
       "Settings stay in this browser.": "\u062A\u0628\u0642\u0649 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A \u062F\u0627\u062E\u0644 \u0647\u0630\u0627 \u0627\u0644\u0645\u062A\u0635\u0641\u062D.",
+      "Saving": "\u0627\u0644\u062D\u0641\u0638",
+      "Working \u2014 every change has been written.": "\u064A\u0639\u0645\u0644 \u0628\u0634\u0643\u0644 \u0633\u0644\u064A\u0645 \u2014 \u062A\u0645 \u062D\u0641\u0638 \u0643\u0644 \u0627\u0644\u062A\u063A\u064A\u064A\u0631\u0627\u062A.",
       "Telemetry": "\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0627\u0633\u062A\u062E\u062F\u0627\u0645",
       "Disabled": "\u0645\u0639\u0637\u0651\u0644",
       "Panel language": "\u0644\u063A\u0629 \u0627\u0644\u0644\u0648\u062D\u0629",
       "Selector health": "\u062D\u0627\u0644\u0629 \u0627\u0644\u0645\u062D\u062F\u0650\u0651\u062F\u0627\u062A",
-      "Monitoring active": "\u0627\u0644\u0645\u0631\u0627\u0642\u0628\u0629 \u0646\u0634\u0637\u0629",
       "Trust": "\u0627\u0644\u062E\u0635\u0648\u0635\u064A\u0629",
       "Theme value is not supported.": "\u0647\u0630\u0627 \u0627\u0644\u0645\u0638\u0647\u0631 \u063A\u064A\u0631 \u0645\u062F\u0639\u0648\u0645.",
       "Theme updated": "\u062A\u0645 \u062A\u062D\u062F\u064A\u062B \u0627\u0644\u0645\u0638\u0647\u0631",
@@ -2362,6 +2375,7 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "\u062A\u0639\u0630\u0651\u0631 \u0645\u0633\u062D \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u062E\u0641\u064A\u0629.",
       "Saving...": "\u062C\u0627\u0631\u064D \u0627\u0644\u062D\u0641\u0638...",
       "Could not save settings. Try again.": "\u062A\u0639\u0630\u0651\u0631 \u062D\u0641\u0638 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A. \u062D\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649.",
+      "Monitoring active": "\u0627\u0644\u0645\u0631\u0627\u0642\u0628\u0629 \u0646\u0634\u0637\u0629",
       "Preset packs unavailable in this build.": "\u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u062C\u0627\u0647\u0632\u0629 \u063A\u064A\u0631 \u0645\u062A\u0648\u0641\u0631\u0629 \u0641\u064A \u0647\u0630\u0647 \u0627\u0644\u0646\u0633\u062E\u0629.",
       "Hidden post store unavailable in this build.": "\u0645\u062E\u0632\u0646 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u062E\u0641\u064A\u0629 \u063A\u064A\u0631 \u0645\u062A\u0648\u0641\u0631 \u0641\u064A \u0647\u0630\u0647 \u0627\u0644\u0646\u0633\u062E\u0629.",
       "Cancel": "\u0625\u0644\u063A\u0627\u0621"
@@ -2596,11 +2610,12 @@ html.av-reduce-motion *::after {
       "Backup & Audit": "\u05D2\u05D9\u05D1\u05D5\u05D9 \u05D5\u05D1\u05D9\u05E7\u05D5\u05E8\u05EA",
       "Storage": "\u05D0\u05D7\u05E1\u05D5\u05DF",
       "Settings stay in this browser.": "\u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05E0\u05E9\u05D0\u05E8\u05D5\u05EA \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF \u05D4\u05D6\u05D4.",
+      "Saving": "\u05E9\u05DE\u05D9\u05E8\u05D4",
+      "Working \u2014 every change has been written.": "\u05EA\u05E7\u05D9\u05DF \u2014 \u05DB\u05DC \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05E0\u05E9\u05DE\u05E8\u05D5.",
       "Telemetry": "\u05E0\u05EA\u05D5\u05E0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9",
       "Disabled": "\u05DE\u05D5\u05E9\u05D1\u05EA",
       "Panel language": "\u05E9\u05E4\u05EA \u05D4\u05E4\u05D0\u05E0\u05DC",
       "Selector health": "\u05EA\u05E7\u05D9\u05E0\u05D5\u05EA \u05D4\u05E1\u05DC\u05E7\u05D8\u05D5\u05E8\u05D9\u05DD",
-      "Monitoring active": "\u05D4\u05E0\u05D9\u05D8\u05D5\u05E8 \u05E4\u05E2\u05D9\u05DC",
       "Trust": "\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA",
       "Theme value is not supported.": "\u05E2\u05E8\u05DB\u05EA \u05D4\u05E0\u05D5\u05E9\u05D0 \u05D4\u05D6\u05D5 \u05D0\u05D9\u05E0\u05D4 \u05E0\u05EA\u05DE\u05DB\u05EA.",
       "Theme updated": "\u05E2\u05E8\u05DB\u05EA \u05D4\u05E0\u05D5\u05E9\u05D0 \u05E2\u05D5\u05D3\u05DB\u05E0\u05D4",
@@ -2674,6 +2689,7 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E0\u05E7\u05D5\u05EA \u05D0\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D4\u05DE\u05D5\u05E1\u05EA\u05E8\u05D9\u05DD.",
       "Saving...": "\u05E9\u05D5\u05DE\u05E8...",
       "Could not save settings. Try again.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D0\u05EA \u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA. \u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1.",
+      "Monitoring active": "\u05D4\u05E0\u05D9\u05D8\u05D5\u05E8 \u05E4\u05E2\u05D9\u05DC",
       "Preset packs unavailable in this build.": "\u05D4\u05E2\u05E8\u05DB\u05D5\u05EA \u05D4\u05DE\u05D5\u05DB\u05E0\u05D5\u05EA \u05D0\u05D9\u05E0\u05DF \u05D6\u05DE\u05D9\u05E0\u05D5\u05EA \u05D1\u05D2\u05E8\u05E1\u05D4 \u05D6\u05D5.",
       "Hidden post store unavailable in this build.": "\u05DE\u05D0\u05D2\u05E8 \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D4\u05DE\u05D5\u05E1\u05EA\u05E8\u05D9\u05DD \u05D0\u05D9\u05E0\u05D5 \u05D6\u05DE\u05D9\u05DF \u05D1\u05D2\u05E8\u05E1\u05D4 \u05D6\u05D5.",
       "Cancel": "\u05D1\u05D9\u05D8\u05D5\u05DC"
@@ -3383,6 +3399,7 @@ html.av-reduce-motion *::after {
         section("Backup & Audit", backupRows()),
         section("Trust", [
           readonlyRow("Storage", "Settings stay in this browser."),
+          storageHealthRow(),
           readonlyRow("Telemetry", options.settings.privacy.telemetry ? "Enabled" : "Disabled"),
           coverageRow(),
           dataRow("Selector health", selectorSummary())
@@ -4744,6 +4761,17 @@ html.av-reduce-motion *::after {
         return `${label} \u2014 every panel string translated (${renderedStrings}).`;
       }
       return `${label} \u2014 ${translatedStrings} of ${renderedStrings} panel strings translated (${percent}%). The rest fall back to English.`;
+    };
+    const storageHealthRow = () => {
+      const failures = options.diagnostics().filter((event) => event.level === "error" && event.message.includes("failed to save"));
+      if (failures.length === 0) {
+        return readonlyRow("Saving", "Working \u2014 every change has been written.");
+      }
+      const last = failures[failures.length - 1]?.message ?? "";
+      return dataRow(
+        "Saving",
+        `${t("Some changes could not be saved \u2014 the browser store may be full.")} ${last} (${failures.length})`
+      );
     };
     const selectorSummary = () => {
       const last = [...options.diagnostics()].reverse().find((event) => event.message.includes("Selector"));
@@ -6866,13 +6894,15 @@ ${record.text}${mediaList}`;
   }
   var HiddenPostStore = class {
     #storage;
+    #onPersistError;
     #entries = /* @__PURE__ */ new Map();
     #undoStack = [];
     #updatedAt = null;
     #version = 0;
     #loaded = false;
-    constructor(storage) {
+    constructor(storage, onPersistError) {
       this.#storage = storage;
+      this.#onPersistError = onPersistError;
     }
     async load(maxEntries) {
       const stored = await this.#storage.get(HIDDEN_POSTS_KEY, null);
@@ -6978,7 +7008,11 @@ ${record.text}${mediaList}`;
         entries: [...this.#entries.values()],
         updatedAt: this.#updatedAt
       };
-      await this.#storage.set(HIDDEN_POSTS_KEY, snapshot);
+      try {
+        await this.#storage.set(HIDDEN_POSTS_KEY, snapshot);
+      } catch (error) {
+        this.#onPersistError?.(error);
+      }
     }
   };
   function normalizeEntry(input) {
@@ -7043,7 +7077,9 @@ ${record.text}${mediaList}`;
     defaultEnabled: true,
     async init(ctx) {
       ensureStyle();
-      store = new HiddenPostStore(ctx.storage);
+      store = new HiddenPostStore(ctx.storage, (error) => {
+        ctx.diagnostics.error("Hidden posts failed to save", errorDetails2(error));
+      });
       try {
         await store.load(ctx.settings.hidden.maxEntries);
       } catch (error) {
@@ -8555,13 +8591,15 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   var MediaHistory = class {
     #storage;
     #limit;
+    #onPersistError;
     #entries = [];
     #index = /* @__PURE__ */ new Set();
     #loaded = false;
     #loading;
-    constructor(storage, limit = MEDIA_HISTORY_LIMIT) {
+    constructor(storage, limit = MEDIA_HISTORY_LIMIT, onPersistError) {
       this.#storage = storage;
       this.#limit = Math.max(50, limit);
+      this.#onPersistError = onPersistError;
     }
     async load() {
       if (this.#loaded) {
@@ -8618,7 +8656,8 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         await this.#storage.set(MEDIA_HISTORY_KEY, {
           entries: this.#entries
         });
-      } catch {
+      } catch (error) {
+        this.#onPersistError?.(error);
       }
     }
   };
@@ -8764,7 +8803,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       }
       downloader = createDownloader({ integrations: ctx.settings.integrations, aria2History });
       queue = new DownloadQueue();
-      history = new MediaHistory(ctx.storage);
+      history = new MediaHistory(ctx.storage, void 0, (error) => {
+        ctx.diagnostics.error("Media history failed to save", errorDetails3(error));
+      });
       try {
         await history.load();
       } catch (error) {
@@ -10966,12 +11007,14 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
   var AuditLog = class {
     #storage;
     #limit;
+    #onPersistError;
     #entries = [];
     #loaded = false;
     #loading;
-    constructor(storage, limit = AUDIT_LOG_LIMIT) {
+    constructor(storage, limit = AUDIT_LOG_LIMIT, onPersistError) {
       this.#storage = storage;
       this.#limit = Math.max(50, limit);
+      this.#onPersistError = onPersistError;
     }
     async load() {
       if (this.#loaded) return;
@@ -11012,7 +11055,8 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
     async #persist() {
       try {
         await this.#storage.set(AUDIT_LOG_KEY, { entries: this.#entries });
-      } catch {
+      } catch (error) {
+        this.#onPersistError?.(error);
       }
     }
   };
@@ -12386,7 +12430,9 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     const limiter = new TokenBucket(settings.jobs.rateLimitMode === "conservative" ? 4 : 8, 0.5);
     const registry = new FeatureRegistry();
     const policy = createTrustedHtmlPolicy();
-    const auditLog = new AuditLog(storage);
+    const auditLog = new AuditLog(storage, void 0, (error) => {
+      diagnostics.error("Audit log failed to save", errorDetails6(error));
+    });
     await auditLog.load();
     registry.register(themeFeature);
     registry.register(i18nFeature);
