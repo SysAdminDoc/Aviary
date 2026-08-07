@@ -901,6 +901,17 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         }
       )
     );
+    rows.push(
+      integerInputRow(
+        "Hand off files larger than (MB)",
+        "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.",
+        Math.round(integrations.aria2.minBytes / 1_000_000),
+        async (value) => {
+          integrations.aria2.minBytes = Math.max(0, value) * 1_000_000;
+          await save("Aria2 threshold saved");
+        }
+      )
+    );
     if (options.pingAria2) {
       rows.push(
         actionRow("Test Aria2 connection", "Sends a trivial JSON-RPC call.", async () => {

@@ -170,6 +170,56 @@ test("each options-page permission card explains its own grant", async () => {
   assert.match(source, /setStatus\(granted \? card\.grantedMessage/);
 });
 
+test("aria2 routes by size, so the threshold finally means something", async () => {
+  const { createDownloader } = await importBundledModule("src/features/media/downloader.ts");
+  const { shouldHandoffToAria2 } = await importBundledModule("src/features/integrations/aria2.ts");
+
+  // The predicate always said yes without a size, and no caller ever supplied one -- so with
+  // aria2 on, a 40 KB thumbnail was handed off just like a 4 GB video.
+  const aria = { enabled: true, endpoint: "http://127.0.0.1:6800", secret: "", minBytes: 50_000_000 };
+  assert.equal(shouldHandoffToAria2(aria, 10_000), false);
+  assert.equal(shouldHandoffToAria2(aria, 90_000_000), true);
+  assert.equal(shouldHandoffToAria2(aria, null), true, "an unknown size still hands off");
+
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    calls.push({ url: String(url), method: init?.method ?? "GET" });
+    if (init?.method === "HEAD") {
+      return { ok: true, headers: { get: () => "20000" } };
+    }
+    return { ok: true, json: async () => ({ result: "gid-1" }) };
+  };
+
+  const originalDocument = globalThis.document;
+  globalThis.document = {
+    createElement: () => ({ style: {}, click() {}, remove() {}, setAttribute() {} }),
+    body: { append() {} }
+  };
+
+  try {
+    const download = createDownloader({ integrations: { aria2: aria } });
+    const result = await download({ url: "https://pbs.twimg.com/media/small.jpg", filename: "small.jpg" });
+    assert.notEqual(result.via, "aria2", "a 20 KB file is below the 50 MB threshold");
+    assert.ok(calls.some((call) => call.method === "HEAD"), "the size must actually be measured");
+    assert.ok(
+      !calls.some((call) => call.url.includes("jsonrpc")),
+      "no aria2 RPC may be issued for a file below the threshold"
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    globalThis.document = originalDocument;
+  }
+});
+
+test("the aria2 threshold is reachable from the panel", async () => {
+  const panel = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+
+  // It normalized and round-tripped for releases with no control anywhere in the UI.
+  assert.match(panel, /Hand off files larger than \(MB\)/);
+  assert.match(panel, /integrations\.aria2\.minBytes = Math\.max\(0, value\) \* 1_000_000/);
+});
+
 async function importBundledModule(relativePath) {
   const temp = await mkdtemp(path.join(tmpdir(), "aviary-audit0807-"));
   const outfile = path.join(temp, "module.mjs");

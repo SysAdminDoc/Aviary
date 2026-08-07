@@ -964,16 +964,6 @@ read-only (Playwright against `_decoded/home.html` and scratch pages); no source
   Confidence: Verified
   Effort: L
 
-- [ ] P2 — aria2.minBytes can never take effect: no caller passes estimatedBytes, and it has no panel control
-  Category: correctness
-  Where: src/features/media/downloader.ts:72 (shouldHandoffToAria2(aria, request.estimatedBytes ?? null)); src/features/media/media-buttons.ts:268 and batch-downloader.ts:134 (neither passes estimatedBytes); src/platform/settings.ts:411-414
-  Problem: shouldHandoffToAria2 returns true for estimatedBytes === null, and every call site omits it — so with aria2 enabled, EVERY item (40 KB thumbnails included) routes to aria2 regardless of the 50 MB default threshold. The setting also has no Control Center row (minBytes is absent from ui/control-center.ts). This is the "settings that only normalize" defect class already tracked in Roadmap_Blocked, except this one silently changes routing behavior.
-  Evidence: grep for estimatedBytes shows zero producers; grep for minBytes in the panel shows zero controls.
-  Fix: Populate estimatedBytes (HEAD request, or bitrate-derived estimate for videos) before the handoff decision, or drop the parameter and document aria2 handoff as all-or-nothing; either way add the missing integer row next to the endpoint/secret fields or remove the setting from the schema with a migration note.
-  Acceptance: With aria2 enabled and minBytes=50MB, a small photo saves via the browser path (stubbed downloader test); or the setting is gone from schema+normalizer.
-  Confidence: Verified
-  Effort: M
-
 - [ ] P2 — Crosspost threads: silent 300-char Bluesky truncation, no Mastodon chunking, orphaned partial threads, and a composer read that loses paragraphs
   Category: correctness
   Where: src/features/integrations/crosspost.ts:27-34 (splitForThread — its comment promises "then chunk to platform max" but no chunking exists), 79 (text: segment.slice(0, 300)), 141-167 (Mastodon loop), 290-293 (readComposerText)

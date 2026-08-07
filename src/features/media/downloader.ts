@@ -75,7 +75,12 @@ export function createDownloader(options: DownloaderOptions = {}): Downloader {
       if (options.aria2History?.hasUrl(request.url)) {
         return { ok: true, via: "aria2", deduplicated: true };
       }
-      if (shouldHandoffToAria2(aria, request.estimatedBytes ?? null)) {
+      // Without a size, shouldHandoffToAria2 sends everything -- so the 50 MB default threshold
+      // routed 40 KB thumbnails to aria2 too. No caller had a size to give, so one is measured
+      // here with a HEAD request, and a failed probe keeps the old send-anyway behaviour.
+      const estimatedBytes =
+        request.estimatedBytes ?? (aria.enabled && aria.endpoint ? await estimateBytes(request.url) : null);
+      if (shouldHandoffToAria2(aria, estimatedBytes)) {
         const result = await addUriToAria2(
           { endpoint: aria.endpoint, secret: aria.secret },
           { url: request.url, filename: request.filename }
@@ -134,6 +139,28 @@ export function isCrossOrigin(url: string): boolean {
     return base === undefined ? true : parsed.origin !== new URL(base).origin;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Content-Length via HEAD, or null when the server will not say.
+ *
+ * Null preserves the previous behaviour (hand off regardless), because a threshold that silently
+ * blocked handoffs on a server that hides its size would be worse than one that over-sends.
+ */
+async function estimateBytes(url: string): Promise<number | null> {
+  if (typeof fetch !== "function") {
+    return null;
+  }
+  try {
+    const response = await fetch(url, { method: "HEAD" });
+    if (!response.ok) {
+      return null;
+    }
+    const length = Number(response.headers.get("content-length"));
+    return Number.isFinite(length) && length > 0 ? length : null;
+  } catch {
+    return null;
   }
 }
 
