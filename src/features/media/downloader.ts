@@ -16,7 +16,32 @@ export interface DownloaderResult {
   via: "gm" | "extension" | "anchor" | "aria2";
   gid?: string;
   deduplicated?: boolean;
+  /** True when the file was handed to the browser without a guaranteed save (cross-origin anchor). */
+  degraded?: boolean;
 }
+
+/** Code shared with the background worker so both sides agree on the failure. */
+export const DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
+
+/**
+ * Thrown when running as an extension without the optional `downloads` permission.
+ * The anchor fallback cannot save a cross-origin `pbs.twimg.com` URL — the browser
+ * ignores `download` and navigates instead — so reporting success there is a lie.
+ */
+export class DownloadPermissionError extends Error {
+  readonly code = DOWNLOAD_PERMISSION_CODE;
+
+  constructor(message = "Aviary needs the browser download permission to save this file.") {
+    super(message);
+    this.name = "DownloadPermissionError";
+  }
+}
+
+type ExtensionAttempt =
+  | { status: "ok" }
+  | { status: "unavailable" }
+  | { status: "needs-permission" }
+  | { status: "failed"; error: string };
 
 export interface DownloaderOptions {
   integrations?: IntegrationSettings;
@@ -68,13 +93,38 @@ export function createDownloader(options: DownloaderOptions = {}): Downloader {
     }
 
     const extResult = await tryExtensionDownload(request);
-    if (extResult) {
+    if (extResult.status === "ok") {
       return { ok: true, via: "extension" };
+    }
+    if (extResult.status === "needs-permission") {
+      throw new DownloadPermissionError();
+    }
+    if (extResult.status === "failed") {
+      throw new Error(extResult.error);
     }
 
     triggerAnchor(request);
-    return { ok: true, via: "anchor" };
+    return isCrossOrigin(request.url)
+      ? { ok: true, via: "anchor", degraded: true }
+      : { ok: true, via: "anchor" };
   };
+}
+
+/**
+ * `<a download>` is honoured only for same-origin (or blob/data) URLs. Anywhere else the
+ * attribute is dropped and the click navigates, so callers must not claim the file was saved.
+ */
+export function isCrossOrigin(url: string): boolean {
+  if (/^(blob|data):/i.test(url)) {
+    return false;
+  }
+  const base = typeof location === "undefined" ? undefined : location.href;
+  try {
+    const parsed = new URL(url, base);
+    return base === undefined ? true : parsed.origin !== new URL(base).origin;
+  } catch {
+    return false;
+  }
 }
 
 async function tryGmDownload(request: DownloadRequest): Promise<boolean> {
@@ -98,10 +148,10 @@ async function tryGmDownload(request: DownloadRequest): Promise<boolean> {
   });
 }
 
-async function tryExtensionDownload(request: DownloadRequest): Promise<boolean> {
+async function tryExtensionDownload(request: DownloadRequest): Promise<ExtensionAttempt> {
   const runtime = globalThis.chrome?.runtime;
   if (!runtime?.sendMessage) {
-    return false;
+    return { status: "unavailable" };
   }
 
   try {
@@ -109,7 +159,33 @@ async function tryExtensionDownload(request: DownloadRequest): Promise<boolean> 
       type: "AVIARY_DOWNLOAD",
       url: request.url,
       filename: request.filename
-    })) as { ok?: boolean } | undefined;
+    })) as { ok?: boolean; code?: string; error?: string } | undefined;
+    if (response?.ok === true) {
+      return { status: "ok" };
+    }
+    if (response?.code === DOWNLOAD_PERMISSION_CODE) {
+      return { status: "needs-permission" };
+    }
+    if (response === undefined) {
+      // No listener answered — this page is not running the extension build.
+      return { status: "unavailable" };
+    }
+    return { status: "failed", error: response.error ?? "download failed" };
+  } catch {
+    return { status: "unavailable" };
+  }
+}
+
+/** Asks the background worker to open the options page, where the grant button lives. */
+export async function requestDownloadPermissionSurface(): Promise<boolean> {
+  const runtime = globalThis.chrome?.runtime;
+  if (!runtime?.sendMessage) {
+    return false;
+  }
+  try {
+    const response = (await runtime.sendMessage({ type: "AVIARY_OPEN_OPTIONS" })) as
+      | { ok?: boolean }
+      | undefined;
     return response?.ok === true;
   } catch {
     return false;

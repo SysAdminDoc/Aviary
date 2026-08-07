@@ -70,6 +70,21 @@ for (const target of ["extension-chrome", "extension-firefox"]) {
     legalComments: "inline"
   });
 
+  await esbuild.build({
+    entryPoints: [path.join(root, "src/entrypoints/extension-options.ts")],
+    outfile: path.join(targetDir, "options.js"),
+    bundle: true,
+    format: "iife",
+    target: "es2022",
+    platform: "browser",
+    minify: false,
+    legalComments: "inline"
+  });
+
+  for (const asset of ["options.html", "options.css"]) {
+    await copyFile(path.join(root, "src/extension", asset), path.join(targetDir, asset));
+  }
+
   const manifestName = target === "extension-chrome" ? "manifest.chrome.json" : "manifest.firefox.json";
   const manifest = JSON.parse(await readFile(path.join(root, "src/extension", manifestName), "utf8"));
   manifest.version = pkg.version;

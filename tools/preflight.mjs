@@ -70,6 +70,11 @@ async function checkManifests() {
     if (hosts.length === 0) {
       failures.push(`${target}: host_permissions is empty`);
     }
+    // The options page is the only surface with a user gesture for permissions.request().
+    const optionsPage = manifest.options_ui?.page;
+    if (optionsPage !== "options.html") {
+      failures.push(`${target}: options_ui.page must be options.html (optional permissions need a grant surface)`);
+    }
   }
 }
 
@@ -95,7 +100,8 @@ async function checkBundles() {
   for (const target of ["extension-chrome", "extension-firefox"]) {
     const contentPath = path.join(root, "dist", target, "content.js");
     const bgPath = path.join(root, "dist", target, "background.js");
-    for (const filePath of [contentPath, bgPath]) {
+    const optionsPath = path.join(root, "dist", target, "options.js");
+    for (const filePath of [contentPath, bgPath, optionsPath]) {
       try {
         const text = await readFile(filePath, "utf8");
         if (/\beval\s*\(/.test(text)) {
@@ -107,6 +113,20 @@ async function checkBundles() {
       } catch (error) {
         failures.push(`${target}: ${path.basename(filePath)} missing (${(error).message})`);
       }
+    }
+
+    // MV3's page CSP rejects inline script; catch it here rather than at store review.
+    const htmlPath = path.join(root, "dist", target, "options.html");
+    try {
+      const html = await readFile(htmlPath, "utf8");
+      if (/<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?\S[\s\S]*?<\/script>/i.test(html)) {
+        failures.push(`${target}: options.html contains inline script — MV3 page CSP blocks it`);
+      }
+      if (/\son[a-z]+\s*=/i.test(html)) {
+        failures.push(`${target}: options.html uses an inline event handler attribute`);
+      }
+    } catch (error) {
+      failures.push(`${target}: options.html missing (${(error).message})`);
     }
   }
 }

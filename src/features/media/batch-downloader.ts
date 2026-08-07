@@ -2,6 +2,8 @@ import { renderFilename } from "./template";
 import { extractTweet } from "./extract";
 import {
   createDownloader,
+  DownloadPermissionError,
+  requestDownloadPermissionSurface,
   type Downloader,
   type DownloaderResult
 } from "./downloader";
@@ -26,6 +28,8 @@ export interface BatchProgress {
 export interface BatchResult extends BatchProgress {
   jobIds: string[];
   cancelled: boolean;
+  /** Set when the batch stopped early because the browser download permission is missing. */
+  needsDownloadPermission?: boolean;
 }
 
 type ResolvedTarget = { url: string; mediaId: string | null; ext: string };
@@ -81,10 +85,14 @@ async function runTasks(
   const jobIds: string[] = [];
 
   let cursor = 0;
+  let needsDownloadPermission = false;
   const workers: Promise<void>[] = [];
 
   const next = async (): Promise<void> => {
     while (true) {
+      // A missing download permission fails every remaining task the same way — stop
+      // instead of grinding through hundreds of identical failures.
+      if (needsDownloadPermission) return;
       const index = cursor++;
       if (index >= tasks.length) return;
       const task = tasks[index]!;
@@ -128,6 +136,10 @@ async function runTasks(
       } catch (error) {
         if (job) queue?.mark(job.id, "failed", String((error as Error)?.message ?? error));
         progress.failed += 1;
+        if (error instanceof DownloadPermissionError) {
+          needsDownloadPermission = true;
+          void requestDownloadPermissionSurface();
+        }
         ctx.diagnostics.error("Batch media download failed", {
           filename,
           kind: task.media.kind,
@@ -143,7 +155,12 @@ async function runTasks(
   }
   await Promise.all(workers);
 
-  return { ...progress, jobIds, cancelled: false };
+  return {
+    ...progress,
+    jobIds,
+    cancelled: false,
+    ...(needsDownloadPermission ? { needsDownloadPermission: true } : {})
+  };
 }
 
 function collectArticles(

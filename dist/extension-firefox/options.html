@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aviary — permissions</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="head">
+        <h1>Aviary</h1>
+        <p class="version" id="version">extension</p>
+      </header>
+
+      <p class="lede">
+        Aviary ships with the narrowest permission set that still works. Everything below is
+        optional, granted only by you, and revocable from this page at any time. Nothing on this
+        page sends data anywhere.
+      </p>
+
+      <section class="card" id="downloads-card">
+        <div class="card-head">
+          <h2>Save media to disk</h2>
+          <span class="state" id="downloads-state">checking…</span>
+        </div>
+        <p>
+          Lets the Save and Thumb buttons write files through the browser's download manager, with
+          your filename template and duplicate history. Without it the browser opens media in a tab
+          instead of saving it, because <code>&lt;a download&gt;</code> is ignored for
+          <code>pbs.twimg.com</code> URLs.
+        </p>
+        <div class="actions">
+          <button type="button" id="downloads-grant">Grant download access</button>
+          <button type="button" class="ghost" id="downloads-revoke">Revoke</button>
+        </div>
+      </section>
+
+      <section class="card" id="media-card">
+        <div class="card-head">
+          <h2>Read media hosts directly</h2>
+          <span class="state" id="media-state">checking…</span>
+        </div>
+        <p>
+          Adds <code>pbs.twimg.com</code> and <code>video.twimg.com</code> so large media can be
+          fetched without a page round-trip. Optional — media buttons work without it.
+        </p>
+        <div class="actions">
+          <button type="button" id="media-grant">Grant media hosts</button>
+          <button type="button" class="ghost" id="media-revoke">Revoke</button>
+        </div>
+      </section>
+
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+
+      <footer class="foot">
+        Settings, filters, notes and archives live in the Control Center on x.com. This page only
+        manages browser permissions.
+      </footer>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>

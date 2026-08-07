@@ -1,6 +1,27 @@
 # Changelog
 
-## 1.7.0 - 2026-08-06
+## 1.8.0 - 2026-08-06
+
+Drains the audit findings left open by the v1.7.0 pass.
+
+### Added
+
+- **Extension options page.** A dark, self-contained page (toolbar icon, or Extensions → Aviary →
+  Options) reports the live grant state of the optional `downloads` permission and the
+  `pbs.twimg.com` / `video.twimg.com` media hosts, and grants or revokes either. This is the
+  surface `chrome.permissions.request` needs — it only resolves from a user gesture on an
+  extension page, which a content script is not. Preflight fails the build if the page is missing,
+  declares inline script, or is dropped from a manifest.
+
+### Fixed
+
+- **Media downloads no longer report success when nothing was saved.** In the MV3 build without
+  the `downloads` permission the background returned an error, the downloader fell back to an
+  anchor click, and the browser ignored `download` for cross-origin `pbs.twimg.com` URLs and
+  navigated — while the button said "Saved". The background now distinguishes a missing permission
+  from a real failure, the downloader throws instead of falling through, the button reads "Allow"
+  and opens the grant page once per session, and a batch stops at the first permission error rather
+  than repeating it hundreds of times. A cross-origin anchor fallback now reports "Opened".
 
 Full engineering, security, UX, accessibility and theming audit. Findings left open are
 listed at the end of ROADMAP.md.

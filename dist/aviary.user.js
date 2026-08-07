@@ -5772,6 +5772,14 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
 
   // src/features/media/downloader.ts
+  var DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
+  var DownloadPermissionError = class extends Error {
+    code = DOWNLOAD_PERMISSION_CODE;
+    constructor(message = "Aviary needs the browser download permission to save this file.") {
+      super(message);
+      this.name = "DownloadPermissionError";
+    }
+  };
   function createDownloader(options = {}) {
     return async (request) => {
       if (options.integrations) {
@@ -5801,12 +5809,30 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         return { ok: true, via: "gm" };
       }
       const extResult = await tryExtensionDownload(request);
-      if (extResult) {
+      if (extResult.status === "ok") {
         return { ok: true, via: "extension" };
       }
+      if (extResult.status === "needs-permission") {
+        throw new DownloadPermissionError();
+      }
+      if (extResult.status === "failed") {
+        throw new Error(extResult.error);
+      }
       triggerAnchor(request);
-      return { ok: true, via: "anchor" };
+      return isCrossOrigin(request.url) ? { ok: true, via: "anchor", degraded: true } : { ok: true, via: "anchor" };
     };
+  }
+  function isCrossOrigin(url) {
+    if (/^(blob|data):/i.test(url)) {
+      return false;
+    }
+    const base = typeof location === "undefined" ? void 0 : location.href;
+    try {
+      const parsed = new URL(url, base);
+      return base === void 0 ? true : parsed.origin !== new URL(base).origin;
+    } catch {
+      return false;
+    }
   }
   async function tryGmDownload(request) {
     const globals = globalThis;
@@ -5830,7 +5856,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   async function tryExtensionDownload(request) {
     const runtime = globalThis.chrome?.runtime;
     if (!runtime?.sendMessage) {
-      return false;
+      return { status: "unavailable" };
     }
     try {
       const response = await runtime.sendMessage({
@@ -5838,6 +5864,27 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         url: request.url,
         filename: request.filename
       });
+      if (response?.ok === true) {
+        return { status: "ok" };
+      }
+      if (response?.code === DOWNLOAD_PERMISSION_CODE) {
+        return { status: "needs-permission" };
+      }
+      if (response === void 0) {
+        return { status: "unavailable" };
+      }
+      return { status: "failed", error: response.error ?? "download failed" };
+    } catch {
+      return { status: "unavailable" };
+    }
+  }
+  async function requestDownloadPermissionSurface() {
+    const runtime = globalThis.chrome?.runtime;
+    if (!runtime?.sendMessage) {
+      return false;
+    }
+    try {
+      const response = await runtime.sendMessage({ type: "AVIARY_OPEN_OPTIONS" });
       return response?.ok === true;
     } catch {
       return false;
@@ -6055,6 +6102,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   var history;
   var aria2History;
   var queue;
+  var permissionSurfaceOpened = false;
   var mediaButtonsFeature = {
     id: "media.buttons",
     title: "One-click media",
@@ -6282,19 +6330,34 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       if (ctx.settings.media.downloadHistory) {
         await history.record(dedupeKey);
       }
-      button2.textContent = successLabel(media);
+      button2.textContent = result.degraded ? "Opened" : successLabel(media);
       button2.classList.remove("is-active");
       button2.classList.add("is-success");
-      ctx.diagnostics.info("Media saved", { filename, kind: media.kind });
-      void ctx.auditLog.record("media.download", { filename, kind: media.kind });
+      if (result.degraded) {
+        button2.title = "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.";
+      }
+      ctx.diagnostics.info("Media saved", { filename, kind: media.kind, degraded: result.degraded === true });
+      void ctx.auditLog.record("media.download", { filename, kind: media.kind, via: result.via });
     } catch (error) {
+      const needsPermission = error instanceof DownloadPermissionError;
       queue.mark(job.id, "failed", String(error?.message ?? error));
-      button2.textContent = "Retry";
+      button2.textContent = needsPermission ? "Allow" : "Retry";
       button2.classList.remove("is-active");
       button2.classList.add("is-error");
       button2.disabled = false;
+      if (needsPermission) {
+        button2.title = "Aviary needs the browser download permission. Opening its options page.";
+        if (!permissionSurfaceOpened) {
+          permissionSurfaceOpened = true;
+          void requestDownloadPermissionSurface();
+        }
+      }
       ctx.diagnostics.error("Media download failed", errorDetails3(error));
-      void ctx.auditLog.record("media.download.failed", { filename, kind: media.kind });
+      void ctx.auditLog.record("media.download.failed", {
+        filename,
+        kind: media.kind,
+        ...needsPermission ? { reason: "downloads-permission-missing" } : {}
+      });
     }
   }
   function resolveTarget(media) {
@@ -6432,9 +6495,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     };
     const jobIds = [];
     let cursor = 0;
+    let needsDownloadPermission = false;
     const workers = [];
     const next = async () => {
       while (true) {
+        if (needsDownloadPermission) return;
         const index = cursor++;
         if (index >= tasks.length) return;
         const task = tasks[index];
@@ -6475,6 +6540,10 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         } catch (error) {
           if (job) queue2?.mark(job.id, "failed", String(error?.message ?? error));
           progress.failed += 1;
+          if (error instanceof DownloadPermissionError) {
+            needsDownloadPermission = true;
+            void requestDownloadPermissionSurface();
+          }
           ctx.diagnostics.error("Batch media download failed", {
             filename,
             kind: task.media.kind,
@@ -6488,7 +6557,12 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       workers.push(next());
     }
     await Promise.all(workers);
-    return { ...progress, jobIds, cancelled: false };
+    return {
+      ...progress,
+      jobIds,
+      cancelled: false,
+      ...needsDownloadPermission ? { needsDownloadPermission: true } : {}
+    };
   }
   function collectArticles3(root, surface = "active", extractOptions = {}) {
     const articles = root instanceof Element && root.matches('article[data-testid="tweet"]') ? [root] : Array.from(root.querySelectorAll('article[data-testid="tweet"]'));
@@ -9409,10 +9483,10 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   }
 
   // src/platform/route.ts
-  function readRoute(location = globalThis.location) {
-    const path = location.pathname;
+  function readRoute(location2 = globalThis.location) {
+    const path = location2.pathname;
     return {
-      href: location.href,
+      href: location2.href,
       path,
       surface: detectSurface(path)
     };

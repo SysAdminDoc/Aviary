@@ -941,16 +941,6 @@ Mandatory Phase 5 checks:
 Raised during the full engineering/UX/security audit of v1.6.0. Items fixed in that pass are
 in CHANGELOG.md; these are the ones left open, with the reason each was not taken.
 
-- [ ] P1 — Extension media downloads silently fall back to opening a tab
-  Why: `optional_permissions: ["downloads"]` is never requested, so in the MV3 build
-  `chrome.downloads` is undefined, the background returns "downloads permission not granted",
-  and the downloader falls back to an anchor click. For cross-origin `pbs.twimg.com` URLs the
-  browser ignores `download` and navigates instead, while the button still reports success.
-  `chrome.permissions.request` needs a user gesture on an extension page, and this extension
-  has no popup or options page, so the fix is a new surface rather than a one-line change.
-  Where: src/entrypoints/extension-background.ts, src/features/media/downloader.ts,
-  src/extension/manifest.*.json
-
 - [ ] P2 — Control Center strings are not localized
   Why: nine locales and ~35 translated keys exist in src/platform/i18n.ts, but `translate()`
   has no callers; the locale selector only sets reading direction. The panel now says so, but

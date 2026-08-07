@@ -12,8 +12,16 @@
   "action": {
     "default_title": "Aviary"
   },
-  "permissions": ["storage"],
-  "optional_permissions": ["downloads"],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "permissions": [
+    "storage"
+  ],
+  "optional_permissions": [
+    "downloads"
+  ],
   "host_permissions": [
     "https://x.com/*",
     "https://twitter.com/*",
@@ -38,7 +46,9 @@
         "https://pro.x.com/*",
         "https://tweetdeck.twitter.com/*"
       ],
-      "js": ["content.js"],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_start"
     }
   ]

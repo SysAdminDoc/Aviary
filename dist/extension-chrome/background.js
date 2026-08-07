@@ -1,11 +1,29 @@
 // src/entrypoints/extension-background.ts
 var runtime = globalThis.chrome?.runtime;
+var DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
 runtime?.onInstalled?.addListener(() => {
 });
+globalThis.chrome?.action?.onClicked?.addListener(() => {
+  void openOptions();
+});
 runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
-  if (isPing(message)) {
+  if (isType(message, "AVIARY_PING")) {
     sendResponse({ ok: true, product: "aviary" });
     return false;
+  }
+  if (isType(message, "AVIARY_DOWNLOAD_CAPABILITY")) {
+    hasDownloadPermission().then(
+      (granted) => sendResponse({ ok: true, granted }),
+      () => sendResponse({ ok: true, granted: false })
+    );
+    return true;
+  }
+  if (isType(message, "AVIARY_OPEN_OPTIONS")) {
+    openOptions().then(
+      (opened) => sendResponse({ ok: opened }),
+      (error) => sendResponse({ ok: false, error: errorMessage(error) })
+    );
+    return true;
   }
   if (isDownload(message)) {
     handleDownload(message).then(
@@ -16,8 +34,8 @@ runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
   }
   return false;
 });
-function isPing(message) {
-  return typeof message === "object" && message !== null && message.type === "AVIARY_PING";
+function isType(message, type) {
+  return typeof message === "object" && message !== null && message.type === type;
 }
 function isDownload(message) {
   if (typeof message !== "object" || message === null) {
@@ -26,10 +44,38 @@ function isDownload(message) {
   const candidate = message;
   return candidate.type === "AVIARY_DOWNLOAD" && typeof candidate.url === "string" && typeof candidate.filename === "string";
 }
+async function hasDownloadPermission() {
+  if (!globalThis.chrome?.downloads) {
+    return false;
+  }
+  const permissions = globalThis.chrome?.permissions;
+  if (!permissions?.contains) {
+    return true;
+  }
+  try {
+    return await permissions.contains({ permissions: ["downloads"] });
+  } catch {
+    return false;
+  }
+}
+async function openOptions() {
+  if (typeof runtime?.openOptionsPage !== "function") {
+    return false;
+  }
+  await runtime.openOptionsPage();
+  return true;
+}
 async function handleDownload(message) {
+  if (!await hasDownloadPermission()) {
+    return {
+      ok: false,
+      code: DOWNLOAD_PERMISSION_CODE,
+      error: "downloads permission not granted"
+    };
+  }
   const downloads = globalThis.chrome?.downloads;
   if (!downloads) {
-    return { ok: false, error: "downloads permission not granted" };
+    return { ok: false, code: DOWNLOAD_PERMISSION_CODE, error: "downloads permission not granted" };
   }
   try {
     const id = await downloads.download({
@@ -48,3 +94,6 @@ function errorMessage(error) {
   }
   return String(error);
 }
+export {
+  DOWNLOAD_PERMISSION_CODE
+};

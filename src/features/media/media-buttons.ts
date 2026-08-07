@@ -1,6 +1,11 @@
 import type { FeatureContext, FeatureModule } from "../registry";
 import { Aria2History } from "../integrations/aria2";
-import { createDownloader, type Downloader } from "./downloader";
+import {
+  createDownloader,
+  DownloadPermissionError,
+  requestDownloadPermissionSurface,
+  type Downloader
+} from "./downloader";
 import { extractTweet, type ExtractedMedia, type ExtractedTweet } from "./extract";
 import { MediaHistory } from "./history";
 import { rememberLastDownload } from "./last-download";
@@ -15,6 +20,8 @@ let downloader: Downloader | undefined;
 let history: MediaHistory | undefined;
 let aria2History: Aria2History | undefined;
 let queue: DownloadQueue | undefined;
+/** The grant page is opened once per session, never once per failed button. */
+let permissionSurfaceOpened = false;
 
 export const mediaButtonsFeature: FeatureModule = {
   id: "media.buttons",
@@ -278,19 +285,34 @@ async function handleDownload(
     if (ctx.settings.media.downloadHistory) {
       await history.record(dedupeKey);
     }
-    button.textContent = successLabel(media);
+    button.textContent = result.degraded ? "Opened" : successLabel(media);
     button.classList.remove("is-active");
     button.classList.add("is-success");
-    ctx.diagnostics.info("Media saved", { filename, kind: media.kind });
-    void ctx.auditLog.record("media.download", { filename, kind: media.kind });
+    if (result.degraded) {
+      button.title = "Your browser opened this file instead of saving it — grant Aviary the download permission for a real save.";
+    }
+    ctx.diagnostics.info("Media saved", { filename, kind: media.kind, degraded: result.degraded === true });
+    void ctx.auditLog.record("media.download", { filename, kind: media.kind, via: result.via });
   } catch (error) {
+    const needsPermission = error instanceof DownloadPermissionError;
     queue.mark(job.id, "failed", String((error as Error)?.message ?? error));
-    button.textContent = "Retry";
+    button.textContent = needsPermission ? "Allow" : "Retry";
     button.classList.remove("is-active");
     button.classList.add("is-error");
     button.disabled = false;
+    if (needsPermission) {
+      button.title = "Aviary needs the browser download permission. Opening its options page.";
+      if (!permissionSurfaceOpened) {
+        permissionSurfaceOpened = true;
+        void requestDownloadPermissionSurface();
+      }
+    }
     ctx.diagnostics.error("Media download failed", errorDetails(error));
-    void ctx.auditLog.record("media.download.failed", { filename, kind: media.kind });
+    void ctx.auditLog.record("media.download.failed", {
+      filename,
+      kind: media.kind,
+      ...(needsPermission ? { reason: "downloads-permission-missing" } : {})
+    });
   }
 }
 

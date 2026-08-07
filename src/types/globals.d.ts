@@ -34,6 +34,9 @@ declare global {
 
   var chrome: {
     runtime?: {
+      id?: string;
+      getManifest?: () => { name?: string; version?: string };
+      openOptionsPage?: () => Promise<void>;
       onInstalled?: {
         addListener(listener: () => void): void;
       };
@@ -61,6 +64,12 @@ declare global {
     permissions?: {
       contains(permissions: { permissions?: string[]; origins?: string[] }): Promise<boolean>;
       request(permissions: { permissions?: string[]; origins?: string[] }): Promise<boolean>;
+      remove(permissions: { permissions?: string[]; origins?: string[] }): Promise<boolean>;
+    };
+    action?: {
+      onClicked?: {
+        addListener(listener: () => void): void;
+      };
     };
   } | undefined;
 }
