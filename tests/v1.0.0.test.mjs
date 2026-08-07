@@ -24,7 +24,11 @@ test("listPresets and applyPreset mutate the expected sections", async () => {
   const archivist = getPreset("media-archivist");
   assert.ok(archivist);
   const next = applyPreset(DEFAULT_SETTINGS, archivist);
-  assert.equal(next.media.sensitive, "blur");
+  // Media Archivist set media.sensitive to "blur" until v1.12.1 and described it as "sensitive
+  // blur". The rules behind that mode reach every photo and video, not only sensitive ones, so
+  // the preset blurred the entire timeline — see tests/media-scope.test.mjs. An archivist preset
+  // has no reason to touch how media is displayed at all.
+  assert.equal(next.media.sensitive, "default", "the archivist preset must not blur the timeline");
   assert.equal(next.media.layout, "stacked");
   assert.equal(next.appearance.theme, "lightsOut");
 

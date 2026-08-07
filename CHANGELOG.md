@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.12.1 - 2026-08-07
+
+### Fixed
+
+- **"Sensitive content" blurred or hid every photo and video, not just sensitive ones.** The rules
+  behind the blur and hide modes match every `tweetPhoto` and video in the timeline; nothing in
+  them tests whether X marked the media sensitive. Picking "Blur until hovered" therefore smeared
+  the entire timeline at 18px, which reads as images failing to load rather than as a setting.
+  Measured against the captured timeline: all three photos affected, none of them sensitive.
+  Scoping the rules properly needs a capture containing sensitive media — neither `home.html` nor
+  `status.html` contains a single instance, and the one `contentDisclosureButton` in either file
+  belongs to the composer toolbar, not a post. Until then the control says what it does: it is
+  now **Photos and videos**, offering "Blur every photo and video" and "Hide every photo and
+  video".
+- **The Media Archivist preset blurred your whole timeline.** It set that mode and described it as
+  "sensitive blur" — a claim the build cannot keep, since it cannot tell sensitive media apart. An
+  archivist preset has no reason to change how media is displayed; it no longer does.
+- **Quiet Reader hid engagement counts without saying so.** Its description listed trends, borders,
+  premium dimming and t.co cleanup, but not the like and reply counts it also removes. A test now
+  fails any preset that hides counts without mentioning them, or that claims to act on sensitive
+  media at all.
+
+
 ## 1.12.0 - 2026-08-07
 
 ### Added

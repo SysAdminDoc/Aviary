@@ -213,6 +213,14 @@ html.av-reduce-motion *::after {
   // src/platform/i18n-catalog.ts
   var PANEL_CATALOG = {
     es: {
+      "Photos and videos": "Fotos y v\xEDdeos",
+      "Default (X decides)": "Predeterminado (lo decide X)",
+      "Reveal media X has hidden": "Mostrar el contenido que X ha ocultado",
+      "Blur every photo and video": "Desenfocar todas las fotos y v\xEDdeos",
+      "Hide every photo and video": "Ocultar todas las fotos y v\xEDdeos",
+      "Photo and video display saved": "Preferencia de fotos y v\xEDdeos guardada",
+      "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.": "Oculta tendencias, bordes de fila y contadores de interacci\xF3n, aten\xFAa las publicaciones premium, limpia t.co, tema denso y tenue.",
+      "Original-quality downloads, deterministic filenames, dedup history, stacked media.": "Descargas con calidad original, nombres de archivo deterministas, historial sin duplicados, medios apilados.",
       "Always play video at the highest quality": "Reproducir siempre el v\xEDdeo con la m\xE1xima calidad",
       "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X elige una calidad de v\xEDdeo acorde a tu conexi\xF3n y, en conexiones r\xE1pidas, suele quedarse por debajo de la mejor disponible. Esto fija cada v\xEDdeo en su m\xE1xima resoluci\xF3n. Consume m\xE1s datos.",
       "Refuse X's analytics beacons": "Rechazar las balizas de anal\xEDtica de X",
@@ -703,6 +711,14 @@ html.av-reduce-motion *::after {
       "Cancel": "Cancelar"
     },
     pt: {
+      "Photos and videos": "Fotos e v\xEDdeos",
+      "Default (X decides)": "Predefinido (decide o X)",
+      "Reveal media X has hidden": "Mostrar conte\xFAdo que o X ocultou",
+      "Blur every photo and video": "Desfocar todas as fotos e v\xEDdeos",
+      "Hide every photo and video": "Ocultar todas as fotos e v\xEDdeos",
+      "Photo and video display saved": "Prefer\xEAncia de fotos e v\xEDdeos guardada",
+      "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.": "Oculta tend\xEAncias, limites de linha e contadores de intera\xE7\xE3o, atenua publica\xE7\xF5es premium, limpa t.co, tema denso e esbatido.",
+      "Original-quality downloads, deterministic filenames, dedup history, stacked media.": "Transfer\xEAncias com qualidade original, nomes de ficheiro determin\xEDsticos, hist\xF3rico sem duplicados, multim\xE9dia empilhada.",
       "Always play video at the highest quality": "Reproduzir sempre o v\xEDdeo na m\xE1xima qualidade",
       "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "O X escolhe uma qualidade de v\xEDdeo adequada \xE0 tua liga\xE7\xE3o e, numa liga\xE7\xE3o r\xE1pida, fica muitas vezes abaixo da melhor dispon\xEDvel. Isto fixa cada v\xEDdeo na sua resolu\xE7\xE3o m\xE1xima. Consome mais dados.",
       "Refuse X's analytics beacons": "Recusar os sinalizadores de an\xE1lise do X",
@@ -1193,6 +1209,14 @@ html.av-reduce-motion *::after {
       "Cancel": "Cancelar"
     },
     fr: {
+      "Photos and videos": "Photos et vid\xE9os",
+      "Default (X decides)": "Par d\xE9faut (choix de X)",
+      "Reveal media X has hidden": "Afficher les m\xE9dias masqu\xE9s par X",
+      "Blur every photo and video": "Flouter toutes les photos et vid\xE9os",
+      "Hide every photo and video": "Masquer toutes les photos et vid\xE9os",
+      "Photo and video display saved": "Pr\xE9f\xE9rence photos et vid\xE9os enregistr\xE9e",
+      "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.": "Masque les tendances, les bordures de ligne et les compteurs d'interaction, att\xE9nue les posts premium, nettoie t.co, th\xE8me dense et sombre.",
+      "Original-quality downloads, deterministic filenames, dedup history, stacked media.": "T\xE9l\xE9chargements en qualit\xE9 d'origine, noms de fichiers d\xE9terministes, historique d\xE9dupliqu\xE9, m\xE9dias empil\xE9s.",
       "Always play video at the highest quality": "Toujours lire les vid\xE9os en qualit\xE9 maximale",
       "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X choisit une qualit\xE9 vid\xE9o adapt\xE9e \xE0 votre connexion et, sur une connexion rapide, reste souvent en de\xE7\xE0 de la meilleure disponible. Cette option fixe chaque vid\xE9o sur sa d\xE9finition la plus \xE9lev\xE9e. Elle consomme plus de donn\xE9es.",
       "Refuse X's analytics beacons": "Refuser les balises d'analyse de X",
@@ -1683,6 +1707,14 @@ html.av-reduce-motion *::after {
       "Cancel": "Annuler"
     },
     de: {
+      "Photos and videos": "Fotos und Videos",
+      "Default (X decides)": "Standard (X entscheidet)",
+      "Reveal media X has hidden": "Von X ausgeblendete Medien anzeigen",
+      "Blur every photo and video": "Alle Fotos und Videos weichzeichnen",
+      "Hide every photo and video": "Alle Fotos und Videos ausblenden",
+      "Photo and video display saved": "Einstellung f\xFCr Fotos und Videos gespeichert",
+      "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.": "Blendet Trends, Zeilenrahmen und Interaktionszahlen aus, dimmt Premium-Beitr\xE4ge, bereinigt t.co, dichtes und gedimmtes Design.",
+      "Original-quality downloads, deterministic filenames, dedup history, stacked media.": "Downloads in Originalqualit\xE4t, deterministische Dateinamen, Verlauf ohne Duplikate, gestapelte Medien.",
       "Always play video at the highest quality": "Videos immer in h\xF6chster Qualit\xE4t abspielen",
       "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X w\xE4hlt eine Videoqualit\xE4t passend zu deiner Verbindung und bleibt bei schnellen Verbindungen oft unter der bestm\xF6glichen. Dies legt jedes Video auf seine h\xF6chste Aufl\xF6sung fest. Es verbraucht mehr Daten.",
       "Refuse X's analytics beacons": "Analyse-Beacons von X abweisen",
@@ -2173,6 +2205,14 @@ html.av-reduce-motion *::after {
       "Cancel": "Abbrechen"
     },
     ja: {
+      "Photos and videos": "\u5199\u771F\u3068\u52D5\u753B",
+      "Default (X decides)": "\u65E2\u5B9A\uFF08X \u306B\u4EFB\u305B\u308B\uFF09",
+      "Reveal media X has hidden": "X \u304C\u96A0\u3057\u305F\u30E1\u30C7\u30A3\u30A2\u3092\u8868\u793A\u3059\u308B",
+      "Blur every photo and video": "\u3059\u3079\u3066\u306E\u5199\u771F\u3068\u52D5\u753B\u3092\u307C\u304B\u3059",
+      "Hide every photo and video": "\u3059\u3079\u3066\u306E\u5199\u771F\u3068\u52D5\u753B\u3092\u96A0\u3059",
+      "Photo and video display saved": "\u5199\u771F\u3068\u52D5\u753B\u306E\u8868\u793A\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
+      "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.": "\u30C8\u30EC\u30F3\u30C9\u30FB\u884C\u306E\u5883\u754C\u7DDA\u30FB\u30A8\u30F3\u30B2\u30FC\u30B8\u30E1\u30F3\u30C8\u6570\u3092\u96A0\u3057\u3001\u30D7\u30EC\u30DF\u30A2\u30E0\u6295\u7A3F\u3092\u6697\u304F\u3057\u3001t.co \u3092\u6574\u7406\u3059\u308B\u9AD8\u5BC6\u5EA6\u306E\u30C0\u30FC\u30AF\u30C6\u30FC\u30DE\u3002",
+      "Original-quality downloads, deterministic filenames, dedup history, stacked media.": "\u539F\u5BF8\u3067\u306E\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3001\u898F\u5247\u7684\u306A\u30D5\u30A1\u30A4\u30EB\u540D\u3001\u91CD\u8907\u3092\u9664\u304F\u5C65\u6B74\u3001\u7E26\u7A4D\u307F\u306E\u30E1\u30C7\u30A3\u30A2\u8868\u793A\u3002",
       "Always play video at the highest quality": "\u52D5\u753B\u3092\u5E38\u306B\u6700\u9AD8\u753B\u8CEA\u3067\u518D\u751F\u3059\u308B",
       "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X \u306F\u63A5\u7D9A\u72B6\u6CC1\u306B\u5408\u308F\u305B\u3066\u753B\u8CEA\u3092\u9078\u3076\u305F\u3081\u3001\u9AD8\u901F\u306A\u56DE\u7DDA\u3067\u3082\u5229\u7528\u53EF\u80FD\u306A\u6700\u9AD8\u753B\u8CEA\u3088\u308A\u4F4E\u304F\u843D\u3061\u7740\u304F\u3053\u3068\u304C\u3088\u304F\u3042\u308A\u307E\u3059\u3002\u3053\u306E\u8A2D\u5B9A\u306F\u3059\u3079\u3066\u306E\u52D5\u753B\u3092\u6700\u9AD8\u753B\u8CEA\u306B\u56FA\u5B9A\u3057\u307E\u3059\u3002\u901A\u4FE1\u91CF\u306F\u5897\u3048\u307E\u3059\u3002",
       "Refuse X's analytics beacons": "X \u306E\u89E3\u6790\u30D3\u30FC\u30B3\u30F3\u3092\u62D2\u5426\u3059\u308B",
@@ -2663,6 +2703,14 @@ html.av-reduce-motion *::after {
       "Cancel": "\u30AD\u30E3\u30F3\u30BB\u30EB"
     },
     ko: {
+      "Photos and videos": "\uC0AC\uC9C4\uACFC \uB3D9\uC601\uC0C1",
+      "Default (X decides)": "\uAE30\uBCF8\uAC12 (X\uAC00 \uACB0\uC815)",
+      "Reveal media X has hidden": "X\uAC00 \uAC00\uB9B0 \uBBF8\uB514\uC5B4 \uD45C\uC2DC",
+      "Blur every photo and video": "\uBAA8\uB4E0 \uC0AC\uC9C4\uACFC \uB3D9\uC601\uC0C1 \uD750\uB9AC\uAC8C",
+      "Hide every photo and video": "\uBAA8\uB4E0 \uC0AC\uC9C4\uACFC \uB3D9\uC601\uC0C1 \uC228\uAE30\uAE30",
+      "Photo and video display saved": "\uC0AC\uC9C4 \uBC0F \uB3D9\uC601\uC0C1 \uD45C\uC2DC \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
+      "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.": "\uD2B8\uB80C\uB4DC\xB7\uD589 \uACBD\uACC4\uC120\xB7\uBC18\uC751 \uC218\uB97C \uC228\uAE30\uACE0, \uD504\uB9AC\uBBF8\uC5C4 \uAC8C\uC2DC\uBB3C\uC744 \uD750\uB9AC\uAC8C \uD558\uBA70, t.co\uB97C \uC815\uB9AC\uD558\uB294 \uC870\uBC00\uD558\uACE0 \uC5B4\uB450\uC6B4 \uD14C\uB9C8.",
+      "Original-quality downloads, deterministic filenames, dedup history, stacked media.": "\uC6D0\uBCF8 \uD654\uC9C8 \uB2E4\uC6B4\uB85C\uB4DC, \uADDC\uCE59\uC801\uC778 \uD30C\uC77C \uC774\uB984, \uC911\uBCF5 \uC5C6\uB294 \uAE30\uB85D, \uC138\uB85C\uB85C \uC313\uC778 \uBBF8\uB514\uC5B4.",
       "Always play video at the highest quality": "\uD56D\uC0C1 \uCD5C\uACE0 \uD654\uC9C8\uB85C \uB3D9\uC601\uC0C1 \uC7AC\uC0DD",
       "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X\uB294 \uC5F0\uACB0 \uC0C1\uD0DC\uC5D0 \uB9DE\uCDB0 \uD654\uC9C8\uC744 \uACE0\uB974\uAE30 \uB54C\uBB38\uC5D0, \uBE60\uB978 \uD68C\uC120\uC5D0\uC11C\uB3C4 \uC0AC\uC6A9\uD560 \uC218 \uC788\uB294 \uCD5C\uACE0 \uD654\uC9C8\uBCF4\uB2E4 \uB0AE\uAC8C \uBA38\uBB34\uB294 \uACBD\uC6B0\uAC00 \uB9CE\uC2B5\uB2C8\uB2E4. \uC774 \uC124\uC815\uC740 \uBAA8\uB4E0 \uB3D9\uC601\uC0C1\uC744 \uCD5C\uACE0 \uD654\uC9C8\uB85C \uACE0\uC815\uD569\uB2C8\uB2E4. \uB370\uC774\uD130\uB97C \uB354 \uC0AC\uC6A9\uD569\uB2C8\uB2E4.",
       "Refuse X's analytics beacons": "X\uC758 \uBD84\uC11D \uBE44\uCF58 \uAC70\uBD80",
@@ -3153,6 +3201,14 @@ html.av-reduce-motion *::after {
       "Cancel": "\uCDE8\uC18C"
     },
     ar: {
+      "Photos and videos": "\u0627\u0644\u0635\u0648\u0631 \u0648\u0645\u0642\u0627\u0637\u0639 \u0627\u0644\u0641\u064A\u062F\u064A\u0648",
+      "Default (X decides)": "\u0627\u0644\u0627\u0641\u062A\u0631\u0627\u0636\u064A (\u064A\u0642\u0631\u0631\u0647 X)",
+      "Reveal media X has hidden": "\u0625\u0638\u0647\u0627\u0631 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u062A\u064A \u0623\u062E\u0641\u0627\u0647\u0627 X",
+      "Blur every photo and video": "\u062A\u0645\u0648\u064A\u0647 \u0643\u0644 \u0627\u0644\u0635\u0648\u0631 \u0648\u0645\u0642\u0627\u0637\u0639 \u0627\u0644\u0641\u064A\u062F\u064A\u0648",
+      "Hide every photo and video": "\u0625\u062E\u0641\u0627\u0621 \u0643\u0644 \u0627\u0644\u0635\u0648\u0631 \u0648\u0645\u0642\u0627\u0637\u0639 \u0627\u0644\u0641\u064A\u062F\u064A\u0648",
+      "Photo and video display saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 \u0639\u0631\u0636 \u0627\u0644\u0635\u0648\u0631 \u0648\u0627\u0644\u0641\u064A\u062F\u064A\u0648",
+      "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.": "\u064A\u062E\u0641\u064A \u0627\u0644\u0627\u062A\u062C\u0627\u0647\u0627\u062A \u0648\u062D\u062F\u0648\u062F \u0627\u0644\u0635\u0641\u0648\u0641 \u0648\u0623\u0639\u062F\u0627\u062F \u0627\u0644\u062A\u0641\u0627\u0639\u0644\u060C \u0648\u064A\u0639\u062A\u0651\u0645 \u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0628\u0631\u064A\u0645\u064A\u0648\u0645\u060C \u0648\u064A\u0646\u0638\u0651\u0641 \u0631\u0648\u0627\u0628\u0637 t.co\u060C \u0628\u0633\u0645\u0629 \u062F\u0627\u0643\u0646\u0629 \u0648\u0645\u0643\u062B\u0641\u0629.",
+      "Original-quality downloads, deterministic filenames, dedup history, stacked media.": "\u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0628\u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629\u060C \u0623\u0633\u0645\u0627\u0621 \u0645\u0644\u0641\u0627\u062A \u062B\u0627\u0628\u062A\u0629\u060C \u0633\u062C\u0644 \u0628\u0644\u0627 \u062A\u0643\u0631\u0627\u0631\u060C \u0648\u0633\u0627\u0626\u0637 \u0645\u0631\u062A\u0628\u0629 \u0639\u0645\u0648\u062F\u064A\u064B\u0627.",
       "Always play video at the highest quality": "\u062A\u0634\u063A\u064A\u0644 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u062F\u0627\u0626\u0645\u064B\u0627 \u0628\u0623\u0639\u0644\u0649 \u062C\u0648\u062F\u0629",
       "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "\u064A\u062E\u062A\u0627\u0631 X \u062C\u0648\u062F\u0629 \u0641\u064A\u062F\u064A\u0648 \u062A\u0646\u0627\u0633\u0628 \u0627\u062A\u0635\u0627\u0644\u0643\u060C \u0648\u0639\u0644\u0649 \u0627\u0644\u0627\u062A\u0635\u0627\u0644\u0627\u062A \u0627\u0644\u0633\u0631\u064A\u0639\u0629 \u0643\u062B\u064A\u0631\u064B\u0627 \u0645\u0627 \u064A\u0633\u062A\u0642\u0631 \u062F\u0648\u0646 \u0623\u0641\u0636\u0644 \u062C\u0648\u062F\u0629 \u0645\u062A\u0627\u062D\u0629. \u064A\u062B\u0628\u0651\u062A \u0647\u0630\u0627 \u0627\u0644\u062E\u064A\u0627\u0631 \u0643\u0644 \u0641\u064A\u062F\u064A\u0648 \u0639\u0644\u0649 \u0623\u0639\u0644\u0649 \u062C\u0648\u062F\u0629 \u0644\u0647. \u0648\u064A\u0633\u062A\u0647\u0644\u0643 \u0628\u064A\u0627\u0646\u0627\u062A \u0623\u0643\u062B\u0631.",
       "Refuse X's analytics beacons": "\u0631\u0641\u0636 \u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A \u0645\u0646 X",
@@ -3643,6 +3699,14 @@ html.av-reduce-motion *::after {
       "Cancel": "\u0625\u0644\u063A\u0627\u0621"
     },
     he: {
+      "Photos and videos": "\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D5\u05E1\u05E8\u05D8\u05D5\u05E0\u05D9\u05DD",
+      "Default (X decides)": "\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC (\u200FX \u05DE\u05D7\u05DC\u05D9\u05D8)",
+      "Reveal media X has hidden": "\u05DC\u05D4\u05E6\u05D9\u05D2 \u05DE\u05D3\u05D9\u05D4 \u05E9-X \u05D4\u05E1\u05EA\u05D9\u05E8",
+      "Blur every photo and video": "\u05DC\u05D8\u05E9\u05D8\u05E9 \u05D0\u05EA \u05DB\u05DC \u05D4\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D5\u05D4\u05E1\u05E8\u05D8\u05D5\u05E0\u05D9\u05DD",
+      "Hide every photo and video": "\u05DC\u05D4\u05E1\u05EA\u05D9\u05E8 \u05D0\u05EA \u05DB\u05DC \u05D4\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D5\u05D4\u05E1\u05E8\u05D8\u05D5\u05E0\u05D9\u05DD",
+      "Photo and video display saved": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05E9\u05DC \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D5\u05E1\u05E8\u05D8\u05D5\u05E0\u05D9\u05DD \u05E0\u05E9\u05DE\u05E8\u05D4",
+      "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.": "\u05DE\u05E1\u05EA\u05D9\u05E8 \u05DE\u05D2\u05DE\u05D5\u05EA, \u05D2\u05D1\u05D5\u05DC\u05D5\u05EA \u05E9\u05D5\u05E8\u05D4 \u05D5\u05DE\u05D5\u05E0\u05D9 \u05DE\u05E2\u05D5\u05E8\u05D1\u05D5\u05EA, \u05DE\u05E2\u05DE\u05E2\u05DD \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05DC \u05E4\u05E8\u05D9\u05DE\u05D9\u05D5\u05DD, \u05DE\u05E0\u05E7\u05D4 \u05E7\u05D9\u05E9\u05D5\u05E8\u05D9 t.co, \u05E2\u05E8\u05DB\u05D4 \u05E6\u05E4\u05D5\u05E4\u05D4 \u05D5\u05DB\u05D4\u05D4.",
+      "Original-quality downloads, deterministic filenames, dedup history, stacked media.": "\u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05D1\u05D0\u05D9\u05DB\u05D5\u05EA \u05DE\u05E7\u05D5\u05E8\u05D9\u05EA, \u05E9\u05DE\u05D5\u05EA \u05E7\u05D1\u05E6\u05D9\u05DD \u05E2\u05E7\u05D1\u05D9\u05D9\u05DD, \u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05DC\u05DC\u05D0 \u05DB\u05E4\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA, \u05DE\u05D3\u05D9\u05D4 \u05D1\u05E4\u05E8\u05D9\u05E1\u05D4 \u05DE\u05D5\u05E2\u05E8\u05DE\u05EA.",
       "Always play video at the highest quality": "\u05DC\u05E0\u05D2\u05DF \u05D5\u05D9\u05D3\u05D0\u05D5 \u05EA\u05DE\u05D9\u05D3 \u05D1\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8",
       "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "\u200FX \u05D1\u05D5\u05D7\u05E8 \u05D0\u05D9\u05DB\u05D5\u05EA \u05D5\u05D9\u05D3\u05D0\u05D5 \u05E9\u05DE\u05EA\u05D0\u05D9\u05DE\u05D4 \u05DC\u05D7\u05D9\u05D1\u05D5\u05E8 \u05E9\u05DC\u05DA, \u05D5\u05D1\u05D7\u05D9\u05D1\u05D5\u05E8 \u05DE\u05D4\u05D9\u05E8 \u05D4\u05D5\u05D0 \u05DC\u05E8\u05D5\u05D1 \u05E0\u05E2\u05E6\u05E8 \u05DE\u05EA\u05D7\u05EA \u05DC\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D8\u05D5\u05D1\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8 \u05D4\u05D6\u05DE\u05D9\u05E0\u05D4. \u05D4\u05D0\u05E4\u05E9\u05E8\u05D5\u05EA \u05D4\u05D6\u05D5 \u05DE\u05E7\u05D1\u05E2\u05EA \u05DB\u05DC \u05E1\u05E8\u05D8\u05D5\u05DF \u05DC\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8 \u05E9\u05DC\u05D5. \u05D4\u05D9\u05D0 \u05E6\u05D5\u05E8\u05DB\u05EA \u05D9\u05D5\u05EA\u05E8 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD.",
       "Refuse X's analytics beacons": "\u05DC\u05E1\u05E8\u05D1 \u05DC\u05DE\u05E9\u05D5\u05D0\u05D5\u05EA \u05D4\u05E0\u05D9\u05EA\u05D5\u05D7 \u05E9\u05DC X",
@@ -4649,12 +4713,12 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION = false ? "dev" : "1.12.0";
+  var AVIARY_VERSION = false ? "dev" : "1.12.1";
   var SENSITIVE_OPTIONS = [
-    ["default", "Default (X choice)"],
-    ["reveal", "Always reveal"],
-    ["blur", "Blur until hovered"],
-    ["hide", "Always hide"]
+    ["default", "Default (X decides)"],
+    ["reveal", "Reveal media X has hidden"],
+    ["blur", "Blur every photo and video"],
+    ["hide", "Hide every photo and video"]
   ];
   var MEDIA_LAYOUT_OPTIONS = [
     ["default", "Default grid"],
@@ -6152,12 +6216,12 @@ html.av-reduce-motion *::after {
       );
       rows.push(
         selectRow(
-          "Sensitive content",
+          "Photos and videos",
           options.settings.media.sensitive,
           SENSITIVE_OPTIONS,
           async (value) => {
             options.settings.media.sensitive = coerceSensitive(value);
-            await save("Sensitive content preference saved");
+            await save("Photo and video display saved");
           }
         )
       );
@@ -7438,7 +7502,7 @@ input[type="checkbox"] {
     {
       id: "quiet-reader",
       label: "Quiet Reader",
-      description: "Hide trends and row borders, dim premium posts, strip t.co, dense + dim theme.",
+      description: "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.",
       overrides: {
         appearance: { theme: "dim", denseMode: true, hideCounts: true, hideBorders: true },
         layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
@@ -7449,14 +7513,13 @@ input[type="checkbox"] {
     {
       id: "media-archivist",
       label: "Media Archivist",
-      description: "Original-quality downloads, deterministic filenames, dedup history, sensitive blur.",
+      description: "Original-quality downloads, deterministic filenames, dedup history, stacked media.",
       overrides: {
         appearance: { theme: "lightsOut" },
         media: {
           buttons: true,
           preferOriginalImages: true,
           downloadHistory: true,
-          sensitive: "blur",
           layout: "stacked"
         },
         filter: { enabled: false }

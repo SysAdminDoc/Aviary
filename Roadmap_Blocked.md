@@ -54,6 +54,26 @@ Re-entry condition: add a `_decoded/` capture containing a repost, confirm the m
 then implement as a `filter.repostRule` FilterAction alongside `premiumRule`, and fixture-test
 that an original post carrying a quote-tweet is untouched.
 
+## Scope the media display modes to genuinely sensitive media
+
+`media.sensitive` reads as a sensitive-content control, and its blur and hide rules match every
+`[data-testid="tweetPhoto"]`, `videoPlayer` and `videoComponent` in the timeline -- nothing in them
+tests whether X marked the media sensitive. In v1.12.1 the control was relabelled to say what it
+does ("Blur every photo and video") rather than shipping a scope it does not have.
+
+Blocked on a capture containing sensitive media. Measured across both fixtures: `home.html` holds
+3 photos and 2 videos, `status.html` 2 and 2, and neither contains a single sensitive item. The
+one `[data-testid="contentDisclosureButton"]` in either file sits in the composer toolbar
+(`toolBar` -> `primaryColumn`), not inside any `article[data-testid="tweet"]` -- it is the control
+for marking your *own* post sensitive, not a media overlay. So the existing `av-sensitive-reveal`
+rule, which hides that testid inside an article, matches nothing that has ever been captured.
+
+Re-entry condition: add a `_decoded/` capture containing sensitive media, confirm what marks it
+(an overlay wrapper, an `aria-label`, a disclosure button inside the media container), then stamp
+the owning media container with a `data-av-*` attribute from the feature and scope the CSS to that
+attribute. Then relabel the control back to naming sensitive media --
+`tests/media-scope.test.mjs` fails at that moment, which is what forces the copy to follow.
+
 ## Settings that normalize but nothing reads
 
 An unread-settings sweep (probe self-checked against a key known to be read, so a broken regex

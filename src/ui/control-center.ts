@@ -20,11 +20,20 @@ declare const __AVIARY_VERSION__: string;
 
 const AVIARY_VERSION = typeof __AVIARY_VERSION__ === "undefined" ? "dev" : __AVIARY_VERSION__;
 
+/**
+ * These say "every" because that is what they do.
+ *
+ * The rules behind blur and hide match every `tweetPhoto` and video in the timeline, not only
+ * media X has marked sensitive — measured in tests/media-scope.test.mjs against the captured
+ * timeline, where all three photos are affected and none of them is sensitive. Neither capture
+ * contains a single piece of sensitive media, so there is no verified marker to scope them to.
+ * Until there is, the label describes the behaviour rather than the intent.
+ */
 const SENSITIVE_OPTIONS: Array<[SensitiveMode, string]> = [
-  ["default", "Default (X choice)"],
-  ["reveal", "Always reveal"],
-  ["blur", "Blur until hovered"],
-  ["hide", "Always hide"]
+  ["default", "Default (X decides)"],
+  ["reveal", "Reveal media X has hidden"],
+  ["blur", "Blur every photo and video"],
+  ["hide", "Hide every photo and video"]
 ];
 
 const MEDIA_LAYOUT_OPTIONS: Array<[MediaLayout, string]> = [
@@ -1833,12 +1842,12 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     );
     rows.push(
       selectRow(
-        "Sensitive content",
+        "Photos and videos",
         options.settings.media.sensitive,
         SENSITIVE_OPTIONS,
         async (value) => {
           options.settings.media.sensitive = coerceSensitive(value);
-          await save("Sensitive content preference saved");
+          await save("Photo and video display saved");
         }
       )
     );

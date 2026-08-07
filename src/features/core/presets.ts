@@ -35,7 +35,7 @@ export const PRESETS: PresetDefinition[] = [
   {
     id: "quiet-reader",
     label: "Quiet Reader",
-    description: "Hide trends and row borders, dim premium posts, strip t.co, dense + dim theme.",
+    description: "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.",
     overrides: {
       appearance: { theme: "dim", denseMode: true, hideCounts: true, hideBorders: true },
       layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
@@ -46,14 +46,13 @@ export const PRESETS: PresetDefinition[] = [
   {
     id: "media-archivist",
     label: "Media Archivist",
-    description: "Original-quality downloads, deterministic filenames, dedup history, sensitive blur.",
+    description: "Original-quality downloads, deterministic filenames, dedup history, stacked media.",
     overrides: {
       appearance: { theme: "lightsOut" },
       media: {
         buttons: true,
         preferOriginalImages: true,
         downloadHistory: true,
-        sensitive: "blur",
         layout: "stacked"
       },
       filter: { enabled: false }
