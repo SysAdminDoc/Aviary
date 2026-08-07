@@ -1,0 +1,19 @@
+# Without this, every checkout on Windows rewrites LF to CRLF and git reports "LF will be
+# replaced by CRLF" on each commit touching src/ or dist/. Line endings also change file
+# hashes, which silently breaks any digest pinned over a tracked text file.
+#
+# Deliberately scoped to the directories this repo authors. A blanket `*` rule would also
+# rewrite the 331 vendored node_modules files and the _decoded/ + .mhtml captures -- and the
+# captures are evidence, which must keep matching what the browser saved byte for byte.
+src/** text=auto eol=lf
+tests/** text=auto eol=lf
+tools/** text=auto eol=lf
+dist/** text=auto eol=lf
+docs/** text=auto eol=lf
+*.md text=auto eol=lf
+*.json text=auto eol=lf
+*.gitignore text=auto eol=lf
+*.gitattributes text=auto eol=lf
+
+*.zip binary
+*.png binary
