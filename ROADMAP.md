@@ -964,16 +964,6 @@ read-only (Playwright against `_decoded/home.html` and scratch pages); no source
   Confidence: Verified
   Effort: L
 
-- [ ] P2 — Crosspost threads: silent 300-char Bluesky truncation, no Mastodon chunking, orphaned partial threads, and a composer read that loses paragraphs
-  Category: correctness
-  Where: src/features/integrations/crosspost.ts:27-34 (splitForThread — its comment promises "then chunk to platform max" but no chunking exists), 79 (text: segment.slice(0, 300)), 141-167 (Mastodon loop), 290-293 (readComposerText)
-  Problem: (a) Bluesky segments are silently cut at 300 UTF-16 units — content loss with no warning (the real limit is 300 graphemes, so emoji shorten it further). (b) Mastodon posts segments verbatim; over 500 chars returns an opaque "Mastodon HTTP 422". (c) If segment 3 of 5 fails, segments 1-2 stay published but the result only says ok:false — a retry double-posts. (d) readComposerText uses textContent on the Draft.js composer, which drops block boundaries, so the asThread blank-line split likely never triggers from the real composer.
-  Evidence: Read the full flow; the stale comment is at line 28. (d) follows from Draft.js div-per-block rendering — textContent concatenates without newlines.
-  Fix: Implement the promised chunking (grapheme-aware via Intl.Segmenter, 300/500 per target) before posting; return partial results (posted count, first URL, failed segment index) on mid-thread failure and surface "2 of 5 posted" in the panel; read composer blocks via per-block elements (or innerText) to preserve paragraph breaks.
-  Acceptance: Tests: a 700-char segment posts as 3 Bluesky records with no content loss; mid-thread failure reports posted count; a two-paragraph composer-shaped DOM yields two segments.
-  Confidence: Verified (a-c), Likely (d)
-  Effort: M
-
 - [ ] P3 — Export's observer capture path is dead code (activeJobId window is one storage write)
   Category: maintainability
   Where: src/features/export/export-feature.ts:38-50 (apply), 104-107 (activeJobId set and cleared)

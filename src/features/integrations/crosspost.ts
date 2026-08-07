@@ -24,13 +24,71 @@ export interface CrosspostResult {
   posts?: number;
 }
 
+/** Post length limits, counted in graphemes because that is what both platforms count. */
+export const TARGET_LIMITS: Record<CrosspostTarget, number> = {
+  bluesky: 300,
+  mastodon: 500
+};
+
 export function splitForThread(text: string): string[] {
-  // Aviary keeps thread segmentation deterministic: split on blank lines, then chunk to platform max.
   const blocks = text
     .split(/\r?\n\s*\r?\n/)
     .map((block) => block.trim())
     .filter((block) => block.length > 0);
   return blocks.length === 0 ? [text.trim()].filter((block) => block.length > 0) : blocks;
+}
+
+/** Grapheme count, so an emoji or a family sequence costs what the platform charges for it. */
+function graphemes(text: string): string[] {
+  const Segmenter = (Intl as { Segmenter?: typeof Intl.Segmenter }).Segmenter;
+  if (typeof Segmenter === "function") {
+    return Array.from(
+      new Segmenter(undefined, { granularity: "grapheme" }).segment(text),
+      (part) => part.segment
+    );
+  }
+  return Array.from(text);
+}
+
+/**
+ * Splits a block that is over the limit, preferring a word boundary.
+ *
+ * The old code sliced Bluesky segments to 300 UTF-16 units and posted the rest nowhere -- silent
+ * content loss -- while Mastodon got no chunking at all and simply returned HTTP 422. The comment
+ * on splitForThread had promised this since the feature shipped.
+ */
+export function chunkToLimit(text: string, limit: number): string[] {
+  const units = graphemes(text);
+  if (units.length <= limit) {
+    return [text];
+  }
+
+  const chunks: string[] = [];
+  let index = 0;
+  while (index < units.length) {
+    let take = Math.min(limit, units.length - index);
+    if (index + take < units.length) {
+      // Back up to the last space in this window so words are not cut in half. If there is none
+      // (a long URL, or a script written without spaces), take the whole window.
+      const window = units.slice(index, index + take);
+      const lastSpace = window.lastIndexOf(" ");
+      if (lastSpace > limit * 0.5) {
+        take = lastSpace;
+      }
+    }
+    chunks.push(units.slice(index, index + take).join("").trim());
+    index += take;
+  }
+  return chunks.filter((chunk) => chunk.length > 0);
+}
+
+export function segmentsForTarget(
+  text: string,
+  target: CrosspostTarget,
+  asThread: boolean
+): string[] {
+  const blocks = asThread ? splitForThread(text) : [text];
+  return blocks.flatMap((block) => chunkToLimit(block, TARGET_LIMITS[target]));
 }
 
 export async function crosspost(
@@ -41,7 +99,7 @@ export async function crosspost(
   if (request.text.trim().length === 0) {
     return { ok: false, target: request.target, error: "Empty post body" };
   }
-  const segments = request.asThread ? splitForThread(request.text) : [request.text];
+  const segments = segmentsForTarget(request.text, request.target, request.asThread === true);
   if (segments.length === 0) {
     return { ok: false, target: request.target, error: "Empty post body" };
   }
@@ -60,6 +118,10 @@ async function postToBluesky(
   if (!config.service || !config.handle || !config.appPassword) {
     return { ok: false, target: "bluesky", error: "Bluesky credentials missing" };
   }
+  // Declared outside the try: a throw mid-thread has still published everything before it, and
+  // the catch has to be able to say so.
+  let firstUri: string | null = null;
+  let posted = 0;
   try {
     const session = await callBluesky(config.service, "com.atproto.server.createSession", {
       identifier: config.handle,
@@ -73,10 +135,9 @@ async function postToBluesky(
       : null;
     let rootRef: { uri: string; cid: string } | null = null;
     let parentRef: { uri: string; cid: string } | null = null;
-    let firstUri: string | null = null;
     for (const segment of segments) {
       const record: Record<string, unknown> = {
-        text: segment.slice(0, 300),
+        text: segment,
         createdAt: new Date().toISOString(),
         $type: "app.bsky.feed.post"
       };
@@ -105,13 +166,14 @@ async function postToBluesky(
       const uri = typeof response?.uri === "string" ? response.uri : null;
       const cid = typeof response?.cid === "string" ? response.cid : null;
       if (!uri || !cid) {
-        return { ok: false, target: "bluesky", error: "Bluesky post response was malformed" };
+        return partialFailure("bluesky", "Bluesky post response was malformed", posted, firstUri ? deriveBlueskyUrl(firstUri, config.handle) : null);
       }
       if (!rootRef) {
         rootRef = { uri, cid };
         firstUri = uri;
       }
       parentRef = { uri, cid };
+      posted += 1;
     }
     const result: CrosspostResult = {
       ok: true,
@@ -121,8 +183,33 @@ async function postToBluesky(
     if (firstUri) result.url = deriveBlueskyUrl(firstUri, config.handle);
     return result;
   } catch (error) {
-    return { ok: false, target: "bluesky", error: String((error as Error)?.message ?? error) };
+    return partialFailure(
+      "bluesky",
+      String((error as Error)?.message ?? error),
+      posted,
+      firstUri ? deriveBlueskyUrl(firstUri, config.handle) : null
+    );
   }
+}
+
+/**
+ * A thread that stopped halfway has already published posts. Saying only "failed" invites a
+ * retry that double-posts, so the count and the first URL come back with the error.
+ */
+function partialFailure(
+  target: CrosspostTarget,
+  error: string,
+  posted: number,
+  url: string | null
+): CrosspostResult {
+  const result: CrosspostResult = {
+    ok: false,
+    target,
+    error: posted > 0 ? `${error} — ${posted} of the thread was already posted` : error
+  };
+  if (posted > 0) result.posts = posted;
+  if (url) result.url = url;
+  return result;
 }
 
 async function postToMastodon(
@@ -134,10 +221,11 @@ async function postToMastodon(
   if (!config.instance || !config.token) {
     return { ok: false, target: "mastodon", error: "Mastodon credentials missing" };
   }
+  let firstUrl: string | null = null;
+  let posted = 0;
   try {
     const mediaId = attachment ? await uploadMastodonMedia(config.instance, config.token, attachment) : null;
     let inReplyTo: string | null = null;
-    let firstUrl: string | null = null;
     for (const segment of segments) {
       const body: Record<string, unknown> = {
         status: segment,
@@ -154,13 +242,14 @@ async function postToMastodon(
         body: JSON.stringify(body)
       });
       if (!response.ok) {
-        return { ok: false, target: "mastodon", error: `Mastodon HTTP ${response.status}` };
+        return partialFailure("mastodon", `Mastodon HTTP ${response.status}`, posted, firstUrl);
       }
       const payload = (await response.json()) as { id?: string; url?: string };
       if (typeof payload?.id !== "string") {
-        return { ok: false, target: "mastodon", error: "Mastodon response missing status id" };
+        return partialFailure("mastodon", "Mastodon response missing status id", posted, firstUrl);
       }
       inReplyTo = payload.id;
+      posted += 1;
       if (typeof payload?.url === "string" && firstUrl === null) {
         firstUrl = payload.url;
       }
@@ -169,7 +258,7 @@ async function postToMastodon(
     if (firstUrl) result.url = firstUrl;
     return result;
   } catch (error) {
-    return { ok: false, target: "mastodon", error: String((error as Error)?.message ?? error) };
+    return partialFailure("mastodon", String((error as Error)?.message ?? error), posted, firstUrl);
   }
 }
 
@@ -288,6 +377,19 @@ function deriveBlueskyUrl(uri: string, handle: string): string {
 }
 
 export function readComposerText(): string {
-  const composer = document.querySelector('[data-testid="tweetTextarea_0"]');
-  return composer?.textContent?.trim() ?? "";
+  const composer = document.querySelector<HTMLElement>('[data-testid="tweetTextarea_0"]');
+  if (!composer) {
+    return "";
+  }
+  // Draft.js renders one element per paragraph, and textContent concatenates them with no
+  // separator -- so a two-paragraph draft arrived here as a single run and the blank-line split
+  // that drives thread mode could never fire from the real composer.
+  const blocks = Array.from(composer.querySelectorAll<HTMLElement>('[data-block="true"]'));
+  if (blocks.length > 0) {
+    return blocks
+      .map((block) => block.textContent ?? "")
+      .join("\n\n")
+      .trim();
+  }
+  return (composer.innerText ?? composer.textContent ?? "").trim();
 }
