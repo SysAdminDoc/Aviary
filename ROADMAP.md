@@ -984,16 +984,6 @@ read-only (Playwright against `_decoded/home.html` and scratch pages); no source
   Confidence: Verified (a-c), Likely (d)
   Effort: M
 
-- [ ] P3 — The Action log mislabels events because AuditAction lacks real kinds
-  Category: ux
-  Where: src/features/core/audit-log.ts:7-19 (AuditAction union); shoehorned callers: core/control-center.ts crosspost→export.start/export.complete, cancelAria2→export.complete, enqueueCleanupReview→settings.export, rebuildSemanticIndex→export.complete; composer-snippets insert→settings.import
-  Problem: The user-facing audit trail (and recentIntegrationErrors, which keys off these strings) records a failed crosspost as "export.start" and an aria2 cancel as "export.complete" — the log cannot be trusted to describe what happened.
-  Evidence: Read each call site; integration-errors.ts even special-cases the misuse (its ERROR_ACTIONS includes export.start/complete to catch crosspost failures).
-  Fix: Extend AuditAction with crosspost, aria2.cancel, cleanup.enqueue, semantic.index, snippet.insert, preset.apply; update recentIntegrationErrors and the panel's log rendering.
-  Acceptance: A failed crosspost appears in the Action log as a crosspost entry; integration-errors tests updated accordingly.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P3 — Export's observer capture path is dead code (activeJobId window is one storage write)
   Category: maintainability
   Where: src/features/export/export-feature.ts:38-50 (apply), 104-107 (activeJobId set and cleared)
@@ -1011,26 +1001,6 @@ read-only (Playwright against `_decoded/home.html` and scratch pages); no source
   Evidence: Playwright screenshot of the mounted panel, plum theme, 900px height.
   Fix: Add a bottom fade (mask-image or sticky gradient) to .av-nav when scrollable, or reduce item min-height/padding so 13 items fit the panel's max-height; scrollbar-gutter: stable also helps.
   Acceptance: At 1280×900 either all items are visible or the fade communicates the overflow; no mid-glyph clipping.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P3 — Aria2 handoff failure falls through to a browser download without a trace
-  Category: reliability
-  Where: src/features/media/downloader.ts:72-88
-  Problem: When addUriToAria2 returns ok:false (endpoint down, bad secret), result.error is discarded and the download silently proceeds via GM/extension/anchor. The user configured aria2 for large files; a misconfiguration is never surfaced on the path where it matters.
-  Evidence: Read createDownloader; the error is dropped (the module has no diagnostics access).
-  Fix: Thread an optional onWarn callback through DownloaderOptions (media-buttons passes ctx.diagnostics.warn) and report "Aria2 refused (…) — saved via browser instead".
-  Acceptance: With a stub aria2 returning an error, diagnostics contains the warning and the download still completes via the fallback.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P3 — Options page success copy is wrong for the media-origins card
-  Category: ux
-  Where: src/entrypoints/extension-options.ts run() — "Granted. Media saves through the browser now."
-  Problem: The same status string is shown for both cards; granting pbs/video.twimg.com host access has nothing to do with "media saves through the browser", which describes the downloads permission.
-  Evidence: Read run(); the message is card-independent.
-  Fix: Move success copy into CardWiring per card (downloads keeps the current sentence; origins gets "Granted. Aviary can fetch full-size media for exports now.").
-  Acceptance: Each card shows its own success sentence.
   Confidence: Verified
   Effort: S
 

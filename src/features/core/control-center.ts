@@ -279,7 +279,7 @@ export const controlCenterFeature: FeatureModule = {
         replaceSettings(ctx.settings, next);
         await ctx.saveSettings();
         ctx.requestApply();
-        void ctx.auditLog.record("settings.import", { preset: preset.id, changes: changes.length });
+        void ctx.auditLog.record("preset.apply", { preset: preset.id, changes: changes.length });
         return { applied: changes.length > 0, changes };
       },
       listLocales() {
@@ -313,8 +313,8 @@ export const controlCenterFeature: FeatureModule = {
         const candidates = preview.candidates;
         const protectedCount = candidates.filter((candidate) => candidate.protected).length;
         const added = (await cleanupQueue?.enqueue(candidates)) ?? 0;
-        void ctx.auditLog.record("settings.export", {
-          cleanupEnqueued: added,
+        void ctx.auditLog.record("cleanup.enqueue", {
+          enqueued: added,
           protected: protectedCount
         });
         return { added, protected: protectedCount };
@@ -343,8 +343,7 @@ export const controlCenterFeature: FeatureModule = {
           }
         }
         const result = await crosspost(ctx.settings.integrations, request);
-        void ctx.auditLog.record(result.ok ? "export.complete" : "export.start", {
-          kind: "crosspost",
+        void ctx.auditLog.record("crosspost", {
           target,
           ok: result.ok,
           asThread: options.asThread,
@@ -380,7 +379,7 @@ export const controlCenterFeature: FeatureModule = {
           gid
         );
         if (result.ok) {
-          void ctx.auditLog.record("export.complete", { kind: "aria2-cancel", gid });
+          void ctx.auditLog.record("aria2.cancel", { gid });
           return { ok: true };
         }
         return { ok: false, ...(result.error ? { error: result.error } : {}) };
@@ -400,11 +399,11 @@ export const controlCenterFeature: FeatureModule = {
           ctx.settings.integrations.semanticSearch,
           records
         );
-        void ctx.auditLog.record("export.complete", {
-          kind: "semantic-index",
+        void ctx.auditLog.record("semantic.index", {
           added: result.added,
           skipped: result.skipped,
-          errors: result.errors
+          errors: result.errors,
+          dropped: result.dropped
         });
         return { ...result, total: semanticIndex.size() };
       },

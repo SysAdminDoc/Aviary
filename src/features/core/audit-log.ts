@@ -16,6 +16,12 @@ export type AuditAction =
   | "export.complete"
   | "settings.import"
   | "settings.export"
+  | "preset.apply"
+  | "crosspost"
+  | "aria2.cancel"
+  | "cleanup.enqueue"
+  | "semantic.index"
+  | "snippet.insert"
   | "diagnostics.copy";
 
 export interface AuditEntry {

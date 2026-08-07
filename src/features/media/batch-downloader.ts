@@ -41,7 +41,10 @@ export async function runMediaBatch(
 ): Promise<BatchResult> {
   const queue = getMediaQueue();
   const history = getMediaHistory();
-  const downloader: Downloader = createDownloader({ integrations: ctx.settings.integrations });
+  const downloader: Downloader = createDownloader({
+    integrations: ctx.settings.integrations,
+    onWarn: (message, details) => ctx.diagnostics.warn(message, details)
+  });
   const concurrency = Math.max(1, Math.min(ctx.settings.jobs.concurrentDownloads, 6));
   const max = Math.max(1, options.maxItems ?? 200);
   const filterKind = options.filterKind ?? "all";

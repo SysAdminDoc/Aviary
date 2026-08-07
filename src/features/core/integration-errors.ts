@@ -1,8 +1,15 @@
 import type { AuditEntry } from "./audit-log";
 
+/**
+ * Actions that can carry a failure. `export.start`/`export.complete` are no longer in this set
+ * because crosspost and aria2 cancel stopped masquerading as them -- they have their own kinds
+ * now, so this reads the log rather than working around how it was written.
+ */
 const ERROR_ACTIONS = new Set([
   "media.download.failed",
-  "export.start",
+  "crosspost",
+  "aria2.cancel",
+  "semantic.index",
   "export.complete"
 ]);
 

@@ -48,7 +48,11 @@ export const mediaButtonsFeature: FeatureModule = {
         ctx.diagnostics.warn("Aria2 history reconcile skipped", errorDetails(error));
       }
     }
-    downloader = createDownloader({ integrations: ctx.settings.integrations, aria2History });
+    downloader = createDownloader({
+      integrations: ctx.settings.integrations,
+      aria2History,
+      onWarn: (message, details) => ctx.diagnostics.warn(message, details)
+    });
     queue = new DownloadQueue();
     history = new MediaHistory(ctx.storage, undefined, (error) => {
       ctx.diagnostics.error("Media history failed to save", errorDetails(error));

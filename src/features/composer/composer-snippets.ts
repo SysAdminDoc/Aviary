@@ -101,7 +101,7 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
         event.preventDefault();
         if (insertSnippet(snippet)) {
           ctx.diagnostics.info("Snippet inserted", { length: snippet.length });
-          void ctx.auditLog.record("settings.import", { kind: "snippet", length: snippet.length });
+          void ctx.auditLog.record("snippet.insert", { length: snippet.length });
         } else {
           ctx.diagnostics.warn("Snippet insert failed — composer not focused");
           // A successful insert is self-evident (the text appears); only the failure needs

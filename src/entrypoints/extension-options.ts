@@ -20,6 +20,8 @@ interface CardWiring {
   revokeId: string;
   grantedLabel: string;
   missingLabel: string;
+  /** Card-specific, because host access and download access do different things. */
+  grantedMessage: string;
 }
 
 const CARDS: CardWiring[] = [
@@ -29,7 +31,8 @@ const CARDS: CardWiring[] = [
     grantId: "downloads-grant",
     revokeId: "downloads-revoke",
     grantedLabel: "granted",
-    missingLabel: "not granted"
+    missingLabel: "not granted",
+    grantedMessage: "Granted. Media saves through the browser now."
   },
   {
     request: { origins: MEDIA_ORIGINS },
@@ -37,7 +40,8 @@ const CARDS: CardWiring[] = [
     grantId: "media-grant",
     revokeId: "media-revoke",
     grantedLabel: "granted",
-    missingLabel: "not granted"
+    missingLabel: "not granted",
+    grantedMessage: "Granted. Aviary can read full-size media directly for exports now."
   }
 ];
 
@@ -88,7 +92,7 @@ async function run(card: CardWiring, action: "request" | "remove"): Promise<void
         : await permissions.remove(card.request);
     const granted = await refresh(card);
     if (action === "request") {
-      setStatus(granted ? "Granted. Media saves through the browser now." : "Request dismissed — nothing changed.");
+      setStatus(granted ? card.grantedMessage : "Request dismissed — nothing changed.");
     } else {
       setStatus(changed && !granted ? "Revoked." : "Nothing to revoke.");
     }

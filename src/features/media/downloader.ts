@@ -46,6 +46,12 @@ type ExtensionAttempt =
 export interface DownloaderOptions {
   integrations?: IntegrationSettings;
   aria2History?: Aria2History;
+  /**
+   * Reports a handoff that was configured but refused. Without it, an unreachable aria2 or a
+   * wrong secret silently fell through to a browser download -- the one place a
+   * misconfiguration actually matters, and the only place it was invisible.
+   */
+  onWarn?: (message: string, details?: Record<string, unknown>) => void;
 }
 
 export type Downloader = (request: DownloadRequest) => Promise<DownloaderResult>;
@@ -84,6 +90,10 @@ export function createDownloader(options: DownloaderOptions = {}): Downloader {
           }
           return { ok: true, via: "aria2", ...(result.gid ? { gid: result.gid } : {}) };
         }
+        options.onWarn?.("Aria2 refused the handoff — saving through the browser instead", {
+          error: result.error ?? "unknown",
+          filename: request.filename
+        });
       }
     }
 

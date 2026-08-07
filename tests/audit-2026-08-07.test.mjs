@@ -116,6 +116,60 @@ test("an out-of-range value cannot reach storage through saveSettings", async ()
   assert.equal(persisted.appearance.theme, DEFAULT_SETTINGS.appearance.theme);
 });
 
+test("the action log records what happened, not the nearest available label", async () => {
+  const { AUDIT_LOG_KEY } = await importBundledModule("src/features/core/audit-log.ts");
+  assert.equal(typeof AUDIT_LOG_KEY, "string");
+
+  const panel = await readFile(path.join(root, "src/features/core/control-center.ts"), "utf8");
+  const snippets = await readFile(path.join(root, "src/features/composer/composer-snippets.ts"), "utf8");
+  const audit = await readFile(path.join(root, "src/features/core/audit-log.ts"), "utf8");
+
+  // Each of these used to be filed under the nearest export.* or settings.* label, so a failed
+  // crosspost appeared in the user-facing log as "export.start".
+  for (const action of ["crosspost", "aria2.cancel", "cleanup.enqueue", "semantic.index", "preset.apply", "snippet.insert"]) {
+    assert.match(audit, new RegExp(`"${action.replace(".", "\.")}"`), `${action} is not a declared AuditAction`);
+  }
+  assert.match(panel, /record\("crosspost", \{/);
+  assert.match(panel, /record\("aria2\.cancel", \{/);
+  assert.match(panel, /record\("cleanup\.enqueue", \{/);
+  assert.match(panel, /record\("semantic\.index", \{/);
+  assert.match(panel, /record\("preset\.apply", \{/);
+  assert.match(snippets, /record\("snippet\.insert", \{/);
+  assert.ok(!/kind: "crosspost"/.test(panel), "crosspost no longer needs to smuggle its kind");
+});
+
+test("a failed crosspost surfaces as an integration error under its own kind", async () => {
+  const { recentIntegrationErrors } = await importBundledModule(
+    "src/features/core/integration-errors.ts"
+  );
+
+  const errors = recentIntegrationErrors([
+    { at: "2026-08-07T00:00:00.000Z", action: "crosspost", detail: { target: "bluesky", ok: false, error: "Bluesky credentials missing" } },
+    { at: "2026-08-07T00:00:01.000Z", action: "crosspost", detail: { target: "mastodon", ok: true, error: null } }
+  ]);
+
+  assert.equal(errors.length, 1, "only the failure is an error");
+  assert.equal(errors[0].kind, "crosspost:bluesky");
+  assert.equal(errors[0].message, "Bluesky credentials missing");
+});
+
+test("a refused aria2 handoff is reported rather than silently falling back", async () => {
+  const downloader = await readFile(path.join(root, "src/features/media/downloader.ts"), "utf8");
+  const buttons = await readFile(path.join(root, "src/features/media/media-buttons.ts"), "utf8");
+
+  assert.match(downloader, /onWarn\?\.\("Aria2 refused the handoff/);
+  assert.match(buttons, /onWarn: \(message, details\) => ctx\.diagnostics\.warn/);
+});
+
+test("each options-page permission card explains its own grant", async () => {
+  const source = await readFile(path.join(root, "src/entrypoints/extension-options.ts"), "utf8");
+
+  // Host access has nothing to do with "media saves through the browser".
+  assert.match(source, /grantedMessage: "Granted\. Media saves through the browser now\."/);
+  assert.match(source, /grantedMessage: "Granted\. Aviary can read full-size media directly for exports now\."/);
+  assert.match(source, /setStatus\(granted \? card\.grantedMessage/);
+});
+
 async function importBundledModule(relativePath) {
   const temp = await mkdtemp(path.join(tmpdir(), "aviary-audit0807-"));
   const outfile = path.join(temp, "module.mjs");

@@ -276,15 +276,17 @@ test("recentIntegrationErrors surfaces failed audit entries newest-first", async
       action: "media.download.failed",
       detail: { kind: "video", error: "HTTP 404" }
     },
+    // Filed under their own action since v1.9.0. These used to be recorded as export.start /
+    // export.complete, which made the user-facing log describe a failed crosspost as an export.
     {
       at: "2026-05-19T10:06:00Z",
-      action: "export.start",
-      detail: { kind: "crosspost", target: "bluesky", ok: false, error: "Bluesky HTTP 401" }
+      action: "crosspost",
+      detail: { target: "bluesky", ok: false, error: "Bluesky HTTP 401" }
     },
     {
       at: "2026-05-19T10:07:00Z",
-      action: "export.complete",
-      detail: { kind: "crosspost", target: "mastodon", ok: true }
+      action: "crosspost",
+      detail: { target: "mastodon", ok: true }
     }
   ];
   const errors = recentIntegrationErrors(entries);
