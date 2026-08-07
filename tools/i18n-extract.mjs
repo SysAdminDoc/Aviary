@@ -111,7 +111,12 @@ settings.integrations.semanticSearch.enabled = true;
 
 const handle = mountControlCenter({
   settings,
-  diagnostics: () => [],
+  // Both variants carry the same failure so the storage-health row renders its error
+  // branch. Copy that only appears on one side of a condition would otherwise look like
+  // data to the two-render diff and be dropped.
+  diagnostics: () => [
+    { level: "error", at: "2026-08-06T00:00:00Z", message: "Media history failed to save" }
+  ] as any,
   onChange: async () => {},
   onError: () => {},
   ...${stubs(variant)}
