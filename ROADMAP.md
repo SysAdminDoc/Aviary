@@ -941,13 +941,6 @@ Mandatory Phase 5 checks:
 Raised during the full engineering/UX/security audit of v1.6.0. Items fixed in that pass are
 in CHANGELOG.md; these are the ones left open, with the reason each was not taken.
 
-- [ ] P2 — Panel cannot be dismissed from the keyboard
-  Why: closing on Escape needs a keydown listener, which both tools/preflight.mjs and
-  tests/source-contracts.test.mjs reject by policy (Aviary registers no keyboard handlers).
-  Resolving this means deciding whether standard dialog dismissal is an exception to the
-  no-hotkeys rule.
-  Where: src/ui/control-center.ts, tools/preflight.mjs
-
 - [ ] P3 — Storage writes fail silently when the backend is full
   Why: MediaHistory, AuditLog and the hidden-post store swallow persistence errors, so a full
   localStorage quota degrades to "changes stop sticking" with no signal. Surfacing it needs a

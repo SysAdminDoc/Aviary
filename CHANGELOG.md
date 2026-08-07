@@ -39,6 +39,16 @@ Drains the audit findings left open by the v1.7.0 pass.
   extension page, which a content script is not. Preflight fails the build if the page is missing,
   declares inline script, or is dropped from a manifest.
 
+### Decided
+
+- **No Escape-to-close handler.** The open question was whether standard dialog dismissal should
+  be an exception to the no-keyboard-handlers rule. It should not: the panel is non-modal, and
+  the keyboard path is already complete without one — the launcher is reachable in two Tabs,
+  Enter opens the panel, Close is the *first* tab stop inside it, and activating it returns focus
+  to the launcher. Escape would add a global key listener (which `tools/preflight.mjs` and
+  `tests/source-contracts.test.mjs` both reject) to duplicate a control that is already one Tab
+  away. Verified in Chromium.
+
 ### Fixed
 
 - **Saving a setting no longer throws focus away.** `save()` rebuilds every row, so focus landed
