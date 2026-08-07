@@ -24,7 +24,7 @@ import { observeAddedElements } from "./platform/observer";
 import { TokenBucket } from "./platform/rate-limit";
 import { readRoute, watchRoute } from "./platform/route";
 import { cloneSettings, DEFAULT_SETTINGS, normalizeSettings, SETTINGS_KEY } from "./platform/settings";
-import { createStorageGateway } from "./platform/storage";
+import { createStorageGateway, setStorageErrorSink } from "./platform/storage";
 import { createTrustedHtmlPolicy } from "./platform/trusted-types";
 
 export interface BootOptions {
@@ -67,6 +67,10 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   const storage = createStorageGateway("aviary");
   const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
   const diagnostics = new Diagnostics();
+  // Every failed write reaches diagnostics, including the ones individual stores swallow.
+  setStorageErrorSink((key, error) => {
+    diagnostics.error(`Storage write failed to save ${key}`, errorDetails(error));
+  });
   // Read fresh on every outbound call, so toggling local-only mode applies at once.
   setLocalOnlyPolicy(() => settings.privacy.localOnly);
   // Burst covers an ordinary page of media without any wait; the refill rate is what paces a

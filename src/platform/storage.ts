@@ -10,6 +10,23 @@ type GlobalWithUserscriptStorage = typeof globalThis & {
   GM_deleteValue?: (key: string) => void | Promise<void>;
 };
 
+/**
+ * Notified whenever a write fails, before the error is rethrown to the caller.
+ *
+ * Nine call sites wrap `set()` in `try { … } catch {}` because losing a dedup entry or an index
+ * must not break the action that triggered it. That is the right call individually and a bad
+ * outcome collectively: a full backend became "changes stop sticking" everywhere at once, with
+ * no signal. Reporting here catches every one of them — and every store added later — without
+ * each having to remember to plumb a sink through its constructor.
+ */
+export type StorageErrorSink = (key: string, error: unknown) => void;
+
+let onWriteError: StorageErrorSink | undefined;
+
+export function setStorageErrorSink(sink: StorageErrorSink | undefined): void {
+  onWriteError = sink;
+}
+
 export function createStorageGateway(namespace = "aviary"): StorageGateway {
   const scoped = (key: string) => {
     if (namespace.length === 0 || key.startsWith(`${namespace}.`)) {
@@ -43,22 +60,30 @@ export function createStorageGateway(namespace = "aviary"): StorageGateway {
     async set<T>(key: string, value: T): Promise<void> {
       const storageKey = scoped(key);
 
-      if (typeof globals.GM_setValue === "function") {
-        await globals.GM_setValue(storageKey, value);
-        return;
-      }
+      // Reported and rethrown: callers that deliberately swallow the error keep working, but
+      // the failure is no longer invisible. A quota error here is the difference between "a
+      // setting did not stick" and "the browser store is full".
+      try {
+        if (typeof globals.GM_setValue === "function") {
+          await globals.GM_setValue(storageKey, value);
+          return;
+        }
 
-      if (globalThis.chrome?.storage?.local) {
-        await globalThis.chrome.storage.local.set({ [storageKey]: value });
-        return;
-      }
+        if (globalThis.chrome?.storage?.local) {
+          await globalThis.chrome.storage.local.set({ [storageKey]: value });
+          return;
+        }
 
-      if (globalThis.localStorage) {
-        globalThis.localStorage.setItem(storageKey, JSON.stringify(value));
-        return;
-      }
+        if (globalThis.localStorage) {
+          globalThis.localStorage.setItem(storageKey, JSON.stringify(value));
+          return;
+        }
 
-      throw new Error(`No storage backend is available for ${storageKey}`);
+        throw new Error(`No storage backend is available for ${storageKey}`);
+      } catch (error) {
+        onWriteError?.(storageKey, error);
+        throw error;
+      }
     },
 
     async remove(key: string): Promise<void> {

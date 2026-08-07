@@ -12698,6 +12698,10 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   }
 
   // src/platform/storage.ts
+  var onWriteError;
+  function setStorageErrorSink(sink) {
+    onWriteError = sink;
+  }
   function createStorageGateway(namespace = "aviary") {
     const scoped = (key) => {
       if (namespace.length === 0 || key.startsWith(`${namespace}.`)) {
@@ -12725,19 +12729,24 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       },
       async set(key, value) {
         const storageKey = scoped(key);
-        if (typeof globals.GM_setValue === "function") {
-          await globals.GM_setValue(storageKey, value);
-          return;
+        try {
+          if (typeof globals.GM_setValue === "function") {
+            await globals.GM_setValue(storageKey, value);
+            return;
+          }
+          if (globalThis.chrome?.storage?.local) {
+            await globalThis.chrome.storage.local.set({ [storageKey]: value });
+            return;
+          }
+          if (globalThis.localStorage) {
+            globalThis.localStorage.setItem(storageKey, JSON.stringify(value));
+            return;
+          }
+          throw new Error(`No storage backend is available for ${storageKey}`);
+        } catch (error) {
+          onWriteError?.(storageKey, error);
+          throw error;
         }
-        if (globalThis.chrome?.storage?.local) {
-          await globalThis.chrome.storage.local.set({ [storageKey]: value });
-          return;
-        }
-        if (globalThis.localStorage) {
-          globalThis.localStorage.setItem(storageKey, JSON.stringify(value));
-          return;
-        }
-        throw new Error(`No storage backend is available for ${storageKey}`);
       },
       async remove(key) {
         const storageKey = scoped(key);
@@ -12809,6 +12818,9 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     const storage = createStorageGateway("aviary");
     const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
     const diagnostics = new Diagnostics();
+    setStorageErrorSink((key, error) => {
+      diagnostics.error(`Storage write failed to save ${key}`, errorDetails6(error));
+    });
     setLocalOnlyPolicy(() => settings.privacy.localOnly);
     const limiter = settings.jobs.rateLimitMode === "conservative" ? new TokenBucket(4, 1) : new TokenBucket(8, 4);
     const registry = new FeatureRegistry();

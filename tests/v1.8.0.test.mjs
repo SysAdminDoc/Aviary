@@ -577,3 +577,36 @@ test("a record with no target URI or mime still carries both fields", async () =
   assert.match(text, /WARC-Target-URI: urn:aviary:unknown/);
   assert.match(text, /Content-Type: application\/octet-stream/);
 });
+
+test("a swallowed storage write still reports through the gateway sink", async () => {
+  const { createStorageGateway, setStorageErrorSink } = await importBundledModule(
+    "src/platform/storage.ts"
+  );
+
+  const original = globalThis.localStorage;
+  globalThis.localStorage = {
+    setItem() {
+      throw new DOMException("exceeded the quota", "QuotaExceededError");
+    },
+    getItem: () => null,
+    removeItem() {}
+  };
+
+  const seen = [];
+  setStorageErrorSink((key, error) => seen.push({ key, error }));
+  try {
+    const storage = createStorageGateway("aviary");
+    // The gateway must report *and* rethrow: callers that swallow keep working, but the
+    // failure stops being invisible. Nine call sites wrap set() in an empty catch.
+    await assert.rejects(() => storage.set("cleanupQueue.v1", { a: 1 }));
+    assert.equal(seen.length, 1, "a failed write did not reach the sink");
+    assert.match(seen[0].key, /cleanupQueue/);
+    assert.match(String(seen[0].error), /quota/i);
+
+    // The Trust row keys off this wording; keep them in step.
+    assert.match(`Storage write failed to save ${seen[0].key}`, /failed to save/);
+  } finally {
+    setStorageErrorSink(undefined);
+    globalThis.localStorage = original;
+  }
+});

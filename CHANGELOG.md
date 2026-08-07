@@ -39,6 +39,11 @@ Drains the audit findings left open by the v1.7.0 pass.
   extension page, which a content script is not. Preflight fails the build if the page is missing,
   declares inline script, or is dropped from a manifest.
 
+- **Every failed write is reported, not just three stores'.** The storage gateway now notifies a
+  diagnostics sink before rethrowing, so the nine call sites that deliberately wrap `set()` in an
+  empty `catch` keep working while their failures stop being invisible — `CheckpointStore`,
+  bookmarks, the cleanup queue, the semantic index, the Aria2 history and query discovery
+  included. Any store added later gets this without plumbing a sink through its constructor.
 - **Failed writes are no longer silent.** `MediaHistory`, `AuditLog` and the hidden-post store
   swallowed every persistence error, so a full browser store degraded to "changes stop sticking" —
   indistinguishable from a bug. All three now take a persistence-error sink wired to diagnostics,
