@@ -942,23 +942,6 @@ Sourced from the userscript indexes (Greasy Fork itself edge-blocks automated cl
 listing was read through userscript.zone plus targeted search). Ranked by how often the capability
 shows up in high-install scripts against how much of it Aviary already has.
 
-- [ ] P2 — Force highest-quality video playback
-  Why: `Video Quality Fixer for X` is a distinct need from downloading — X adapts bitrate down
-  and leaves it there. Aviary already parses variant lists in media/video-extract.ts for the
-  downloader, so the variant selection logic exists and needs pointing at the player.
-  Where: src/features/media/video-extract.ts, new playback feature
-
-- [ ] P2 — Hide all reposts (not only self-reposts)
-  Why: F033 is parked on authenticated fixtures for *self*-reposts, but hiding every repost needs
-  only the social-context row, which the public fixture does expose. Ships the common case now
-  and leaves F033 for the harder one.
-  Where: src/features/filtering/predicates.ts
-
-- [ ] P3 — View original-quality images inline
-  Why: `Twitterᴾˡᵘˢ` and TwitterHD both do it; Aviary rewrites to name=orig for downloads only,
-  so the same URL normalisation applies to the displayed `src`.
-  Where: src/features/media/urls.ts, media-presentation.ts
-
 ## Audit Findings — 2026-08-06 (not fixed in this pass)
 
 Raised during the full engineering/UX/security audit of v1.6.0. Items fixed in that pass are

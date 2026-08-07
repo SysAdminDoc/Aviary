@@ -70,3 +70,37 @@ Re-entry condition: decide whether the extension may diverge from the userscript
 whether the permission expansion in route 1 is acceptable. Then implement against that decision,
 scoped to telemetry endpoints only (`/i/api/1.1/jot/*` and friends) with a fixture proving a
 timeline request is never matched.
+
+## Force highest-quality video playback
+
+Blocked by the same root cause as beacon blocking, and it will unblock with it.
+
+X plays timeline video through Media Source Extensions. The captured `<video>` in
+`_decoded/home.html` carries `<source type="video/mp4" src="blob:https://x.com/d83b1aef-...">`,
+which is a `URL.createObjectURL(mediaSource)` handle, not a file. Variant selection happens inside
+the player's adaptive-bitrate logic over segments it fetches itself, so there is no `src` to
+rewrite and no `<source>` list to re-rank -- `video-extract.ts` finds exactly one variant on a
+live player, which is why it serves the downloader through the network capture instead.
+
+Reaching that decision means intercepting the page's own manifest fetch, and the content script
+runs in the isolated world where the page's `fetch` is not visible. See the beacon-blocking entry
+above: the same `world: "MAIN"` decision governs both.
+
+Re-entry condition: whichever route is chosen for beacon blocking. Then rewrite or re-rank the
+HLS/DASH manifest so the player's own ABR starts at the top rendition, and prove it with a
+capture where the selected rendition changes.
+
+## Hide all reposts
+
+Blocked on a fixture that contains a repost -- the roadmap entry that proposed this asserted the
+public capture exposes the social-context row, and that is wrong. Measured: `socialContext`
+appears 0 times in `_decoded/home.html` and `_decoded/status.html`, and so do the strings
+"reposted" and "retweeted" (case-insensitive). Neither capture contains a single repost, so there
+is nothing to build a predicate against and nothing to fixture-test it with.
+
+This is the same blocker as F033 (self-reposts) and hide-promoted-posts: one capture of a real
+logged-in timeline would unblock all three at once.
+
+Re-entry condition: add a `_decoded/` capture containing a repost, confirm the marker against it,
+then implement as a `filter.repostRule` FilterAction alongside `premiumRule`, and fixture-test
+that an original post carrying a quote-tweet is untouched.

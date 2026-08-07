@@ -1714,6 +1714,17 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       )
     );
     rows.push(
+      toggleRow(
+        "Show images at original quality",
+        "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.",
+        options.settings.media.inlineOriginalImages,
+        async (checked) => {
+          options.settings.media.inlineOriginalImages = checked;
+          await save(checked ? "Full-size images on" : "Full-size images off");
+        }
+      )
+    );
+    rows.push(
       textInputRow(
         "Filename template",
         "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",

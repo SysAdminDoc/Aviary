@@ -120,6 +120,7 @@ export interface AviarySettings {
   media: {
     buttons: boolean;
     preferOriginalImages: boolean;
+    inlineOriginalImages: boolean;
     filenameTemplate: string;
     downloadHistory: boolean;
     zipChunkSize: number;
@@ -203,6 +204,7 @@ export const DEFAULT_SETTINGS: AviarySettings = {
   media: {
     buttons: true,
     preferOriginalImages: true,
+    inlineOriginalImages: false,
     filenameTemplate: "{handle}_{tweetId}_{index}",
     downloadHistory: true,
     zipChunkSize: 250,
@@ -337,6 +339,7 @@ export function normalizeSettings(input: unknown): AviarySettings {
     media: {
       buttons: booleanValue(media.buttons, DEFAULT_SETTINGS.media.buttons),
       preferOriginalImages: booleanValue(media.preferOriginalImages, DEFAULT_SETTINGS.media.preferOriginalImages),
+      inlineOriginalImages: booleanValue(media.inlineOriginalImages, DEFAULT_SETTINGS.media.inlineOriginalImages),
       filenameTemplate: stringValue(media.filenameTemplate, DEFAULT_SETTINGS.media.filenameTemplate, 160),
       downloadHistory: booleanValue(media.downloadHistory, DEFAULT_SETTINGS.media.downloadHistory),
       zipChunkSize: integerValue(media.zipChunkSize, DEFAULT_SETTINGS.media.zipChunkSize, 25, 1000),

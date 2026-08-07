@@ -285,6 +285,8 @@ html.av-reduce-motion *::after {
       "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "A\xF1ade botones Guardar y Miniatura sobre las fotos y las miniaturas de v\xEDdeo.",
       "Prefer original quality": "Preferir calidad original",
       "Rewrite image URLs to name=orig before downloading.": "Reescribe las URL de imagen a name=orig antes de descargar.",
+      "Show images at original quality": "Mostrar im\xE1genes en calidad original",
+      "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "Carga las fotos de la cronolog\xEDa a tama\xF1o completo en lugar de la versi\xF3n que X elige para el hueco. M\xE1s n\xEDtidas, y varias veces m\xE1s datos.",
       "Filename template": "Plantilla de nombre de archivo",
       "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "Campos: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
       "Duplicate history": "Historial de duplicados",
@@ -539,6 +541,8 @@ html.av-reduce-motion *::after {
       "Media buttons on": "Botones de medios activados",
       "Media buttons off": "Botones de medios desactivados",
       "Original quality preference saved": "Preferencia de calidad original guardada",
+      "Full-size images on": "Im\xE1genes a tama\xF1o completo activadas",
+      "Full-size images off": "Im\xE1genes a tama\xF1o completo desactivadas",
       "Filename template saved": "Plantilla de nombre de archivo guardada",
       "Duplicate history on": "Historial de duplicados activado",
       "Duplicate history off": "Historial de duplicados desactivado",
@@ -674,6 +678,8 @@ html.av-reduce-motion *::after {
       "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "Insere bot\xF5es Salvar e Miniatura sobre as fotos e miniaturas de v\xEDdeo.",
       "Prefer original quality": "Preferir qualidade original",
       "Rewrite image URLs to name=orig before downloading.": "Reescreve as URLs de imagem para name=orig antes de baixar.",
+      "Show images at original quality": "Mostrar imagens na qualidade original",
+      "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "Carrega as fotos da cronologia em tamanho completo em vez da vers\xE3o que o X escolhe para o espa\xE7o. Mais n\xEDtidas, e v\xE1rias vezes mais dados.",
       "Filename template": "Modelo de nome de arquivo",
       "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "Campos: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
       "Duplicate history": "Hist\xF3rico de duplicados",
@@ -928,6 +934,8 @@ html.av-reduce-motion *::after {
       "Media buttons on": "Bot\xF5es de multim\xE9dia ativados",
       "Media buttons off": "Bot\xF5es de multim\xE9dia desativados",
       "Original quality preference saved": "Prefer\xEAncia de qualidade original guardada",
+      "Full-size images on": "Imagens em tamanho completo ativadas",
+      "Full-size images off": "Imagens em tamanho completo desativadas",
       "Filename template saved": "Modelo de nome de ficheiro guardado",
       "Duplicate history on": "Hist\xF3rico de duplicados ativado",
       "Duplicate history off": "Hist\xF3rico de duplicados desativado",
@@ -1063,6 +1071,8 @@ html.av-reduce-motion *::after {
       "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "Ajoute des boutons Enregistrer et Vignette sur les photos et les vignettes vid\xE9o.",
       "Prefer original quality": "Pr\xE9f\xE9rer la qualit\xE9 d'origine",
       "Rewrite image URLs to name=orig before downloading.": "R\xE9\xE9crit les URL d'image en name=orig avant le t\xE9l\xE9chargement.",
+      "Show images at original quality": "Afficher les images en qualit\xE9 d'origine",
+      "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "Charge les photos du fil en taille r\xE9elle plut\xF4t que la version choisie par X pour l'emplacement. Plus net, et plusieurs fois plus de donn\xE9es.",
       "Filename template": "Mod\xE8le de nom de fichier",
       "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "Champs : {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
       "Duplicate history": "Historique des doublons",
@@ -1317,6 +1327,8 @@ html.av-reduce-motion *::after {
       "Media buttons on": "Boutons m\xE9dia activ\xE9s",
       "Media buttons off": "Boutons m\xE9dia d\xE9sactiv\xE9s",
       "Original quality preference saved": "Pr\xE9f\xE9rence de qualit\xE9 d'origine enregistr\xE9e",
+      "Full-size images on": "Images en taille r\xE9elle activ\xE9es",
+      "Full-size images off": "Images en taille r\xE9elle d\xE9sactiv\xE9es",
       "Filename template saved": "Mod\xE8le de nom de fichier enregistr\xE9",
       "Duplicate history on": "Historique des doublons activ\xE9",
       "Duplicate history off": "Historique des doublons d\xE9sactiv\xE9",
@@ -1452,6 +1464,8 @@ html.av-reduce-motion *::after {
       "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "Blendet Speichern- und Vorschaubild-Schaltfl\xE4chen \xFCber Fotos und Video-Vorschaubildern ein.",
       "Prefer original quality": "Originalqualit\xE4t bevorzugen",
       "Rewrite image URLs to name=orig before downloading.": "Schreibt Bild-URLs vor dem Download auf name=orig um.",
+      "Show images at original quality": "Bilder in Originalqualit\xE4t anzeigen",
+      "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "L\xE4dt Timeline-Fotos in voller Gr\xF6\xDFe statt in der Version, die X f\xFCr den Platz ausw\xE4hlt. Sch\xE4rfer, und ein Vielfaches an Daten.",
       "Filename template": "Dateinamenvorlage",
       "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "Felder: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
       "Duplicate history": "Duplikatverlauf",
@@ -1706,6 +1720,8 @@ html.av-reduce-motion *::after {
       "Media buttons on": "Medienschaltfl\xE4chen an",
       "Media buttons off": "Medienschaltfl\xE4chen aus",
       "Original quality preference saved": "Einstellung f\xFCr Originalqualit\xE4t gespeichert",
+      "Full-size images on": "Bilder in voller Gr\xF6\xDFe an",
+      "Full-size images off": "Bilder in voller Gr\xF6\xDFe aus",
       "Filename template saved": "Dateinamen-Vorlage gespeichert",
       "Duplicate history on": "Duplikatverlauf an",
       "Duplicate history off": "Duplikatverlauf aus",
@@ -1841,6 +1857,8 @@ html.av-reduce-motion *::after {
       "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "\u6295\u7A3F\u306E\u5199\u771F\u3068\u52D5\u753B\u30B5\u30E0\u30CD\u30A4\u30EB\u306E\u4E0A\u306B\u300C\u4FDD\u5B58\u300D\u300C\u30B5\u30E0\u30CD\u300D\u30DC\u30BF\u30F3\u3092\u8FFD\u52A0\u3057\u307E\u3059\u3002",
       "Prefer original quality": "\u30AA\u30EA\u30B8\u30CA\u30EB\u753B\u8CEA\u3092\u512A\u5148",
       "Rewrite image URLs to name=orig before downloading.": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u524D\u306B\u753B\u50CF URL \u3092 name=orig \u306B\u66F8\u304D\u63DB\u3048\u307E\u3059\u3002",
+      "Show images at original quality": "\u753B\u50CF\u3092\u30AA\u30EA\u30B8\u30CA\u30EB\u753B\u8CEA\u3067\u8868\u793A",
+      "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u306E\u5199\u771F\u3092\u3001X \u304C\u67A0\u306B\u5408\u308F\u305B\u3066\u9078\u3093\u3060\u7248\u3067\u306F\u306A\u304F\u30D5\u30EB\u30B5\u30A4\u30BA\u3067\u8AAD\u307F\u8FBC\u307F\u307E\u3059\u3002\u3088\u308A\u9BAE\u660E\u3067\u3059\u304C\u3001\u901A\u4FE1\u91CF\u306F\u6570\u500D\u306B\u306A\u308A\u307E\u3059\u3002",
       "Filename template": "\u30D5\u30A1\u30A4\u30EB\u540D\u306E\u30C6\u30F3\u30D7\u30EC\u30FC\u30C8",
       "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "\u4F7F\u7528\u3067\u304D\u308B\u9805\u76EE: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}\u3002",
       "Duplicate history": "\u91CD\u8907\u306E\u5C65\u6B74",
@@ -2095,6 +2113,8 @@ html.av-reduce-motion *::after {
       "Media buttons on": "\u30E1\u30C7\u30A3\u30A2\u30DC\u30BF\u30F3 \u30AA\u30F3",
       "Media buttons off": "\u30E1\u30C7\u30A3\u30A2\u30DC\u30BF\u30F3 \u30AA\u30D5",
       "Original quality preference saved": "\u30AA\u30EA\u30B8\u30CA\u30EB\u753B\u8CEA\u306E\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
+      "Full-size images on": "\u30D5\u30EB\u30B5\u30A4\u30BA\u753B\u50CF \u30AA\u30F3",
+      "Full-size images off": "\u30D5\u30EB\u30B5\u30A4\u30BA\u753B\u50CF \u30AA\u30D5",
       "Filename template saved": "\u30D5\u30A1\u30A4\u30EB\u540D\u306E\u30C6\u30F3\u30D7\u30EC\u30FC\u30C8\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Duplicate history on": "\u91CD\u8907\u5C65\u6B74 \u30AA\u30F3",
       "Duplicate history off": "\u91CD\u8907\u5C65\u6B74 \u30AA\u30D5",
@@ -2230,6 +2250,8 @@ html.av-reduce-motion *::after {
       "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "\uAC8C\uC2DC\uBB3C\uC758 \uC0AC\uC9C4\uACFC \uB3D9\uC601\uC0C1 \uC378\uB124\uC77C \uC704\uC5D0 \uC800\uC7A5\xB7\uC378\uB124\uC77C \uBC84\uD2BC\uC744 \uCD94\uAC00\uD569\uB2C8\uB2E4.",
       "Prefer original quality": "\uC6D0\uBCF8 \uD654\uC9C8 \uC6B0\uC120",
       "Rewrite image URLs to name=orig before downloading.": "\uB0B4\uB824\uBC1B\uAE30 \uC804\uC5D0 \uC774\uBBF8\uC9C0 URL\uC744 name=orig\uB85C \uBC14\uAFC9\uB2C8\uB2E4.",
+      "Show images at original quality": "\uC774\uBBF8\uC9C0\uB97C \uC6D0\uBCF8 \uD654\uC9C8\uB85C \uD45C\uC2DC",
+      "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "\uD0C0\uC784\uB77C\uC778 \uC0AC\uC9C4\uC744 X\uAC00 \uC790\uB9AC\uC5D0 \uB9DE\uCDB0 \uACE0\uB978 \uBC84\uC804 \uB300\uC2E0 \uC804\uCCB4 \uD06C\uAE30\uB85C \uBD88\uB7EC\uC635\uB2C8\uB2E4. \uB354 \uC120\uBA85\uD558\uC9C0\uB9CC \uB370\uC774\uD130 \uC0AC\uC6A9\uB7C9\uC740 \uBA87 \uBC30\uAC00 \uB429\uB2C8\uB2E4.",
       "Filename template": "\uD30C\uC77C \uC774\uB984 \uD15C\uD50C\uB9BF",
       "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "\uC0AC\uC6A9 \uAC00\uB2A5\uD55C \uD56D\uBAA9: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
       "Duplicate history": "\uC911\uBCF5 \uAE30\uB85D",
@@ -2484,6 +2506,8 @@ html.av-reduce-motion *::after {
       "Media buttons on": "\uBBF8\uB514\uC5B4 \uBC84\uD2BC \uCF2C",
       "Media buttons off": "\uBBF8\uB514\uC5B4 \uBC84\uD2BC \uB054",
       "Original quality preference saved": "\uC6D0\uBCF8 \uD654\uC9C8 \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
+      "Full-size images on": "\uC6D0\uBCF8 \uD06C\uAE30 \uC774\uBBF8\uC9C0 \uCF2C",
+      "Full-size images off": "\uC6D0\uBCF8 \uD06C\uAE30 \uC774\uBBF8\uC9C0 \uB054",
       "Filename template saved": "\uD30C\uC77C \uC774\uB984 \uD15C\uD50C\uB9BF\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Duplicate history on": "\uC911\uBCF5 \uAE30\uB85D \uCF2C",
       "Duplicate history off": "\uC911\uBCF5 \uAE30\uB85D \uB054",
@@ -2619,6 +2643,8 @@ html.av-reduce-motion *::after {
       "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "\u064A\u0636\u064A\u0641 \u0632\u0631\u064E\u0651\u064A \u0627\u0644\u062D\u0641\u0638 \u0648\u0627\u0644\u0645\u0635\u063A\u0651\u0631\u0629 \u0641\u0648\u0642 \u0635\u0648\u0631 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0648\u0645\u0635\u063A\u0651\u0631\u0627\u062A \u0627\u0644\u0641\u064A\u062F\u064A\u0648.",
       "Prefer original quality": "\u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629",
       "Rewrite image URLs to name=orig before downloading.": "\u064A\u0639\u064A\u062F \u0643\u062A\u0627\u0628\u0629 \u0631\u0648\u0627\u0628\u0637 \u0627\u0644\u0635\u0648\u0631 \u0625\u0644\u0649 name=orig \u0642\u0628\u0644 \u0627\u0644\u062A\u0646\u0632\u064A\u0644.",
+      "Show images at original quality": "\u0639\u0631\u0636 \u0627\u0644\u0635\u0648\u0631 \u0628\u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629",
+      "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "\u064A\u062D\u0645\u0651\u0644 \u0635\u0648\u0631 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \u0628\u0627\u0644\u062D\u062C\u0645 \u0627\u0644\u0643\u0627\u0645\u0644 \u0628\u062F\u0644\u064B\u0627 \u0645\u0646 \u0627\u0644\u0646\u0633\u062E\u0629 \u0627\u0644\u062A\u064A \u064A\u062E\u062A\u0627\u0631\u0647\u0627 X \u0644\u0644\u0645\u0633\u0627\u062D\u0629 \u0627\u0644\u0645\u062A\u0627\u062D\u0629. \u0623\u0648\u0636\u062D\u060C \u0644\u0643\u0646 \u0628\u0627\u0633\u062A\u0647\u0644\u0627\u0643 \u0628\u064A\u0627\u0646\u0627\u062A \u0623\u0643\u0628\u0631 \u0628\u0639\u062F\u0629 \u0623\u0636\u0639\u0627\u0641.",
       "Filename template": "\u0642\u0627\u0644\u0628 \u0627\u0633\u0645 \u0627\u0644\u0645\u0644\u0641",
       "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "\u0627\u0644\u062D\u0642\u0648\u0644: {handle}\u060C {tweetId}\u060C {mediaId}\u060C {index}\u060C {total}\u060C {date}\u060C {text}\u060C {ext}.",
       "Duplicate history": "\u0633\u062C\u0644 \u0627\u0644\u062A\u0643\u0631\u0627\u0631\u0627\u062A",
@@ -2873,6 +2899,8 @@ html.av-reduce-motion *::after {
       "Media buttons on": "\u0623\u0632\u0631\u0627\u0631 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0645\u0641\u0639\u0651\u0644\u0629",
       "Media buttons off": "\u0623\u0632\u0631\u0627\u0631 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0645\u0639\u0637\u0651\u0644\u0629",
       "Original quality preference saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629",
+      "Full-size images on": "\u0627\u0644\u0635\u0648\u0631 \u0628\u0627\u0644\u062D\u062C\u0645 \u0627\u0644\u0643\u0627\u0645\u0644 \u0645\u0641\u0639\u0651\u0644\u0629",
+      "Full-size images off": "\u0627\u0644\u0635\u0648\u0631 \u0628\u0627\u0644\u062D\u062C\u0645 \u0627\u0644\u0643\u0627\u0645\u0644 \u0645\u0639\u0637\u0651\u0644\u0629",
       "Filename template saved": "\u062A\u0645 \u062D\u0641\u0638 \u0642\u0627\u0644\u0628 \u0627\u0633\u0645 \u0627\u0644\u0645\u0644\u0641",
       "Duplicate history on": "\u0633\u062C\u0644 \u0627\u0644\u062A\u0643\u0631\u0627\u0631\u0627\u062A \u0645\u0641\u0639\u0651\u0644",
       "Duplicate history off": "\u0633\u062C\u0644 \u0627\u0644\u062A\u0643\u0631\u0627\u0631\u0627\u062A \u0645\u0639\u0637\u0651\u0644",
@@ -3008,6 +3036,8 @@ html.av-reduce-motion *::after {
       "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "\u05DE\u05D5\u05E1\u05D9\u05E3 \u05DB\u05E4\u05EA\u05D5\u05E8\u05D9 \u05E9\u05DE\u05D9\u05E8\u05D4 \u05D5\u05EA\u05DE\u05D5\u05E0\u05D4 \u05DE\u05DE\u05D5\u05D6\u05E2\u05E8\u05EA \u05DE\u05E2\u05DC \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D5\u05EA\u05E7\u05E6\u05D9\u05E8\u05D9 \u05D4\u05D5\u05D5\u05D9\u05D3\u05D0\u05D5.",
       "Prefer original quality": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D0\u05D9\u05DB\u05D5\u05EA \u05DE\u05E7\u05D5\u05E8\u05D9\u05EA",
       "Rewrite image URLs to name=orig before downloading.": "\u05DE\u05E9\u05DB\u05EA\u05D1 \u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05EA\u05DE\u05D5\u05E0\u05D4 \u05DC\u2011name=orig \u05DC\u05E4\u05E0\u05D9 \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4.",
+      "Show images at original quality": "\u05D4\u05E6\u05D2\u05EA \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D1\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05E8\u05D9\u05EA",
+      "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "\u05D8\u05D5\u05E2\u05DF \u05D0\u05EA \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF \u05D1\u05D2\u05D5\u05D3\u05DC \u05DE\u05DC\u05D0 \u05D1\u05DE\u05E7\u05D5\u05DD \u05D1\u05D2\u05E8\u05E1\u05D4 \u05E9-X \u05D1\u05D5\u05D7\u05E8 \u05DC\u05DE\u05E7\u05D5\u05DD. \u05D7\u05D3 \u05D9\u05D5\u05EA\u05E8, \u05D5\u05E4\u05D9 \u05DB\u05DE\u05D4 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD.",
       "Filename template": "\u05EA\u05D1\u05E0\u05D9\u05EA \u05E9\u05DD \u05E7\u05D5\u05D1\u05E5",
       "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "\u05E9\u05D3\u05D5\u05EA: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
       "Duplicate history": "\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05DB\u05E4\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA",
@@ -3262,6 +3292,8 @@ html.av-reduce-motion *::after {
       "Media buttons on": "\u05DB\u05E4\u05EA\u05D5\u05E8\u05D9 \u05DE\u05D3\u05D9\u05D4 \u05E4\u05E2\u05D9\u05DC\u05D9\u05DD",
       "Media buttons off": "\u05DB\u05E4\u05EA\u05D5\u05E8\u05D9 \u05DE\u05D3\u05D9\u05D4 \u05DB\u05D1\u05D5\u05D9\u05D9\u05DD",
       "Original quality preference saved": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D4\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05E8\u05D9\u05EA \u05E0\u05E9\u05DE\u05E8\u05D4",
+      "Full-size images on": "\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D1\u05D2\u05D5\u05D3\u05DC \u05DE\u05DC\u05D0 \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA",
+      "Full-size images off": "\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D1\u05D2\u05D5\u05D3\u05DC \u05DE\u05DC\u05D0 \u05DB\u05D1\u05D5\u05D9\u05D5\u05EA",
       "Filename template saved": "\u05EA\u05D1\u05E0\u05D9\u05EA \u05E9\u05DD \u05D4\u05E7\u05D5\u05D1\u05E5 \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Duplicate history on": "\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05DB\u05E4\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC\u05D4",
       "Duplicate history off": "\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05DB\u05E4\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA \u05DB\u05D1\u05D5\u05D9\u05D4",
@@ -3394,6 +3426,7 @@ html.av-reduce-motion *::after {
     media: {
       buttons: true,
       preferOriginalImages: true,
+      inlineOriginalImages: false,
       filenameTemplate: "{handle}_{tweetId}_{index}",
       downloadHistory: true,
       zipChunkSize: 250,
@@ -3521,6 +3554,7 @@ html.av-reduce-motion *::after {
       media: {
         buttons: booleanValue(media.buttons, DEFAULT_SETTINGS.media.buttons),
         preferOriginalImages: booleanValue(media.preferOriginalImages, DEFAULT_SETTINGS.media.preferOriginalImages),
+        inlineOriginalImages: booleanValue(media.inlineOriginalImages, DEFAULT_SETTINGS.media.inlineOriginalImages),
         filenameTemplate: stringValue(media.filenameTemplate, DEFAULT_SETTINGS.media.filenameTemplate, 160),
         downloadHistory: booleanValue(media.downloadHistory, DEFAULT_SETTINGS.media.downloadHistory),
         zipChunkSize: integerValue(media.zipChunkSize, DEFAULT_SETTINGS.media.zipChunkSize, 25, 1e3),
@@ -5198,6 +5232,17 @@ html.av-reduce-motion *::after {
           async (checked) => {
             options.settings.media.preferOriginalImages = checked;
             await save("Original quality preference saved");
+          }
+        )
+      );
+      rows.push(
+        toggleRow(
+          "Show images at original quality",
+          "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.",
+          options.settings.media.inlineOriginalImages,
+          async (checked) => {
+            options.settings.media.inlineOriginalImages = checked;
+            await save(checked ? "Full-size images on" : "Full-size images off");
           }
         )
       );
@@ -13168,25 +13213,57 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
   };
 
-  // src/features/library/link-unshorten.ts
-  var STYLE_ID11 = "av-link-unshorten";
-  var PROCESSED_ATTR6 = "data-av-link-clean";
-  var linkUnshortenFeature = {
-    id: "library.linkUnshorten",
-    title: "Direct link unshortening",
-    category: "core",
+  // src/features/media/inline-original-images.ts
+  var PROCESSED_ATTR6 = "data-av-orig-image";
+  var ORIGINAL_SRC = "avOriginalSrc";
+  var ORIGINAL_SRCSET = "avOriginalSrcset";
+  var IMAGE_SELECTOR = 'img[src*="pbs.twimg.com/media"]';
+  function upgradeImage(img) {
+    const current = img.getAttribute("src");
+    if (!current) {
+      return false;
+    }
+    const normalized = normalizeImageUrl(current, { preferOriginal: true });
+    if (!normalized || normalized.url === current) {
+      return false;
+    }
+    if (img.dataset[ORIGINAL_SRC] === void 0) {
+      img.dataset[ORIGINAL_SRC] = current;
+      img.dataset[ORIGINAL_SRCSET] = img.getAttribute("srcset") ?? "";
+    }
+    img.removeAttribute("srcset");
+    img.setAttribute("src", normalized.url);
+    return true;
+  }
+  function restoreImage(img) {
+    const original = img.dataset[ORIGINAL_SRC];
+    if (original !== void 0) {
+      img.setAttribute("src", original);
+      delete img.dataset[ORIGINAL_SRC];
+    }
+    const srcset = img.dataset[ORIGINAL_SRCSET];
+    if (srcset !== void 0) {
+      if (srcset.length > 0) {
+        img.setAttribute("srcset", srcset);
+      }
+      delete img.dataset[ORIGINAL_SRCSET];
+    }
+    img.removeAttribute(PROCESSED_ATTR6);
+  }
+  var inlineOriginalImagesFeature = {
+    id: "media.inlineOriginalImages",
+    title: "Show images at original quality",
+    category: "media",
     defaultEnabled: true,
     init(ctx) {
-      ensureStyle4();
-      if (!ctx.settings.links.expandTco) {
+      if (!ctx.settings.media.inlineOriginalImages) {
         return;
       }
       scan3(document);
-      ctx.diagnostics.info("Link unshortening initialized");
+      ctx.diagnostics.info("Original-quality images initialized");
     },
     apply(ctx, root, addedNodes) {
-      ensureStyle4();
-      if (!ctx.settings.links.expandTco) {
+      if (!ctx.settings.media.inlineOriginalImages) {
         return;
       }
       if (!addedNodes || addedNodes.length === 0) {
@@ -13198,11 +13275,60 @@ html.av-mobile [data-testid="primaryColumn"] {
       }
     },
     destroy(ctx) {
+      for (const img of Array.from(
+        document.querySelectorAll(`img[${PROCESSED_ATTR6}]`)
+      )) {
+        restoreImage(img);
+      }
+      ctx.diagnostics.info("Original-quality images destroyed");
+    }
+  };
+  function scan3(root) {
+    const images = root.tagName === "IMG" ? [root] : Array.from(root.querySelectorAll(IMAGE_SELECTOR));
+    for (const img of images) {
+      if (img.getAttribute(PROCESSED_ATTR6) === "1") {
+        continue;
+      }
+      img.setAttribute(PROCESSED_ATTR6, "1");
+      upgradeImage(img);
+    }
+  }
+
+  // src/features/library/link-unshorten.ts
+  var STYLE_ID11 = "av-link-unshorten";
+  var PROCESSED_ATTR7 = "data-av-link-clean";
+  var linkUnshortenFeature = {
+    id: "library.linkUnshorten",
+    title: "Direct link unshortening",
+    category: "core",
+    defaultEnabled: true,
+    init(ctx) {
+      ensureStyle4();
+      if (!ctx.settings.links.expandTco) {
+        return;
+      }
+      scan4(document);
+      ctx.diagnostics.info("Link unshortening initialized");
+    },
+    apply(ctx, root, addedNodes) {
+      ensureStyle4();
+      if (!ctx.settings.links.expandTco) {
+        return;
+      }
+      if (!addedNodes || addedNodes.length === 0) {
+        scan4(root);
+        return;
+      }
+      for (const node of addedNodes) {
+        scan4(node);
+      }
+    },
+    destroy(ctx) {
       document.getElementById(STYLE_ID11)?.remove();
       for (const link of Array.from(
-        document.querySelectorAll(`a[${PROCESSED_ATTR6}]`)
+        document.querySelectorAll(`a[${PROCESSED_ATTR7}]`)
       )) {
-        link.removeAttribute(PROCESSED_ATTR6);
+        link.removeAttribute(PROCESSED_ATTR7);
         link.classList.remove("av-link-clean");
         const original = link.dataset.avOriginalText;
         if (original !== void 0) {
@@ -13216,10 +13342,10 @@ html.av-mobile [data-testid="primaryColumn"] {
       ctx.diagnostics.info("Link unshortening destroyed");
     }
   };
-  function scan3(root) {
+  function scan4(root) {
     const anchors = root instanceof HTMLAnchorElement ? [root] : Array.from(root.querySelectorAll("a"));
     for (const anchor of anchors) {
-      if (anchor.getAttribute(PROCESSED_ATTR6) === "1") {
+      if (anchor.getAttribute(PROCESSED_ATTR7) === "1") {
         continue;
       }
       const href = anchor.getAttribute("href") ?? "";
@@ -13238,7 +13364,7 @@ html.av-mobile [data-testid="primaryColumn"] {
       }
       anchor.classList.add("av-link-clean");
       anchor.title = target;
-      anchor.setAttribute(PROCESSED_ATTR6, "1");
+      anchor.setAttribute(PROCESSED_ATTR7, "1");
       if (anchor.textContent && /^https?:\/\/t\.co\//i.test(anchor.textContent.trim())) {
         anchor.textContent = target;
       }
@@ -13825,6 +13951,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     registry.register(cleanShareLinksFeature);
     registry.register(pauseOffscreenVideoFeature);
     registry.register(forceFollowingFeature);
+    registry.register(inlineOriginalImagesFeature);
     registry.register(snapshotsFeature);
     registry.register(mobileTouchFeature);
     registry.register(composerSnippetsFeature);
