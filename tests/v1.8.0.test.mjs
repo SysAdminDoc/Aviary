@@ -141,6 +141,46 @@ test("a Control Center render restores focus, caret and scroll", async () => {
   assert.match(source, /setSelectionRange/);
 });
 
+test("hideBorders targets structure, not generated atomic class names", async () => {
+  const source = await readFile(path.join(root, "src/features/appearance/theme.ts"), "utf8");
+  assert.match(source, /root\.classList\.toggle\("av-hide-borders", settings\.appearance\.hideBorders\)/);
+  assert.match(source, /html\.av-hide-borders \[data-testid="cellInnerDiv"\] > div/);
+  assert.match(source, /html\.av-hide-borders \[data-testid="primaryColumn"\]/);
+  assert.match(source, /"av-hide-borders"/, "destroy must drop the class");
+  assert.ok(!/\.r-[a-z0-9]{5,}/.test(source), "no dependency on X's generated class names");
+});
+
+test("writer mode is focus-driven, reversible, and registers no key handlers", async () => {
+  const source = await readFile(path.join(root, "src/features/layout/declutter.ts"), "utf8");
+  assert.match(source, /root\.classList\.toggle\("av-writer-mode", ctx\.settings\.layout\.writerMode\)/);
+  assert.match(source, /document\.addEventListener\("focusin", syncWritingClass, true\)/);
+  assert.match(source, /document\.addEventListener\("focusout", onFocusOut, true\)/);
+  assert.match(source, /document\.removeEventListener\("focusin"/);
+  assert.match(source, /document\.removeEventListener\("focusout"/);
+  assert.match(source, /html\.av-writer-mode\.av-writing \[data-testid="sidebarColumn"\]/);
+  assert.ok(!/keydown|keyup|keypress/.test(source), "focus is the signal, never a key event");
+  assert.match(source, /"av-writer-mode",\s*\n\s*"av-writing"/, "destroy must drop both classes");
+});
+
+test("presets can promise the two settings that now have implementations", async () => {
+  const { PRESETS } = await importBundledModule("src/features/core/presets.ts");
+  const byId = Object.fromEntries(PRESETS.map((preset) => [preset.id, preset]));
+  assert.equal(byId["quiet-reader"].overrides.appearance.hideBorders, true);
+  assert.equal(byId.minimal.overrides.appearance.hideBorders, true);
+  assert.equal(byId.creator.overrides.layout.writerMode, true);
+  const source = await readFile(path.join(root, "src/features/core/presets.ts"), "utf8");
+  assert.ok(
+    !/nothing implements it yet/.test(source),
+    "the caveat must go once the settings are implemented"
+  );
+});
+
+test("the Control Center exposes both settings", async () => {
+  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+  assert.match(source, /options\.settings\.appearance\.hideBorders = checked/);
+  assert.match(source, /options\.settings\.layout\.writerMode = checked/);
+});
+
 async function importBundledModule(relativePath) {
   const temp = await mkdtemp(path.join(tmpdir(), "aviary-v180-"));
   const outfile = path.join(temp, "module.mjs");

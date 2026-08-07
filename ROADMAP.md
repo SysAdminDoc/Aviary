@@ -947,12 +947,6 @@ in CHANGELOG.md; these are the ones left open, with the reason each was not take
   the panel needs ~150 keys and a render-time lookup to be genuinely localized.
   Where: src/platform/i18n.ts, src/ui/control-center.ts
 
-- [ ] P2 — appearance.hideBorders and layout.writerMode have no implementation
-  Why: both were removed from presets this pass so no preset promises them. hideBorders needs
-  a selector for X's row divider that does not depend on generated `r-*` class names;
-  writerMode is a compose-surface feature that cannot be verified against the static fixtures.
-  Where: src/platform/settings.ts, src/features/appearance/theme.ts
-
 - [ ] P2 — Panel cannot be dismissed from the keyboard
   Why: closing on Escape needs a keydown listener, which both tools/preflight.mjs and
   tests/source-contracts.test.mjs reject by policy (Aviary registers no keyboard handlers).

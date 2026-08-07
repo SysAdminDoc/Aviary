@@ -148,6 +148,8 @@ The build also produces `dist/extension-chrome-v<version>.zip` and `dist/extensi
 - **Presets** — Quiet Reader, Media Archivist, Creator, Researcher, Classic, Minimal. The Control Center "Presets" section applies any preset in one click and reports the exact deltas in the status line.
 - **i18n + RTL** — 9-locale translation table with English fallback, `av-rtl`/`av-ltr` HTML classes, and Arabic/Hebrew bidi-safe tweet text.
 - **Mobile/touch** — `(pointer: coarse)` and `(max-width: 760px)` media queries expand action targets to 44 px and widen the Control Center panel.
+- **Hide row borders** — drops the 1px divider under each timeline post and the primary column's side rules. The rule anchors on `[data-testid="cellInnerDiv"] > div`, not on X's generated `r-*` class names, so a rename does not silently disable it.
+- **Writer mode** — while focus is inside the composer, the sidebar and the timeline behind it fade back; everything returns the moment focus leaves, and hovering a faded row restores it. Driven by `focusin`/`focusout` only — Aviary registers no key handlers.
 - **Snapshots & Archive** — capture follower / following lists from the active page; import official X archive ZIPs into the CheckpointStore; search captured records; download a Markdown report.
 - **Cleanup review queue** — Aviary never deletes account data; the queue is a read-only review surface (`destructiveAllowed()` returns `false` by policy).
 - **Bookmark library** — tags, folders, reminders, and due-time queries stored locally.

@@ -2,6 +2,22 @@ import type { FeatureContext, FeatureModule } from "../registry";
 
 const STYLE_ID = "av-layout-declutter";
 
+/**
+ * Writer mode watches the composer through focus events only. Key events are banned by policy
+ * (preflight and the source contracts both reject them), and they would be the wrong signal
+ * anyway — focus is what says "the user is composing", whether they arrived by pointer,
+ * touch or Tab.
+ */
+const COMPOSER_SELECTOR = [
+  '[data-testid^="tweetTextarea_"]',
+  '[data-testid="toolBar"]',
+  '[data-testid="tweetButtonInline"]',
+  '[data-testid="tweetButton"]'
+].join(", ");
+
+let writerListenersBound = false;
+let writerFrame = 0;
+
 export const layoutDeclutterFeature: FeatureModule = {
   id: "layout.declutter",
   title: "Layout declutter",
@@ -21,10 +37,13 @@ export const layoutDeclutterFeature: FeatureModule = {
 
   destroy(ctx) {
     document.getElementById(STYLE_ID)?.remove();
+    unbindWriterListeners();
     document.documentElement.classList.remove(
       "av-hide-right-sidebar",
       "av-hide-trends",
-      "av-hide-grok"
+      "av-hide-grok",
+      "av-writer-mode",
+      "av-writing"
     );
     for (const className of Array.from(document.documentElement.classList)) {
       if (className.startsWith("av-hide-nav-")) {
@@ -41,6 +60,14 @@ function applyLayoutClasses(ctx: FeatureContext): void {
   root.classList.toggle("av-hide-trends", ctx.settings.layout.hideTrends);
   root.classList.toggle("av-hide-grok", ctx.settings.layout.hideGrok);
 
+  root.classList.toggle("av-writer-mode", ctx.settings.layout.writerMode);
+  if (ctx.settings.layout.writerMode) {
+    bindWriterListeners();
+    syncWritingClass();
+  } else {
+    unbindWriterListeners();
+  }
+
   for (const className of Array.from(root.classList)) {
     if (className.startsWith("av-hide-nav-")) {
       root.classList.remove(className);
@@ -53,6 +80,54 @@ function applyLayoutClasses(ctx: FeatureContext): void {
       root.classList.add(`av-hide-nav-${safe}`);
     }
   }
+}
+
+function isComposerNode(node: unknown): boolean {
+  if (!(node instanceof Element)) {
+    return false;
+  }
+  return node.closest(COMPOSER_SELECTOR) !== null;
+}
+
+function syncWritingClass(): void {
+  const writing = isComposerNode(document.activeElement);
+  document.documentElement.classList.toggle("av-writing", writing);
+}
+
+/** focusout fires before focus lands, so re-read on the next frame. */
+function onFocusOut(): void {
+  if (writerFrame !== 0) {
+    return;
+  }
+  const schedule = globalThis.requestAnimationFrame ?? ((cb: FrameRequestCallback) => globalThis.setTimeout(() => cb(0), 16));
+  writerFrame = schedule(() => {
+    writerFrame = 0;
+    syncWritingClass();
+  }) as unknown as number;
+}
+
+function bindWriterListeners(): void {
+  if (writerListenersBound) {
+    return;
+  }
+  document.addEventListener("focusin", syncWritingClass, true);
+  document.addEventListener("focusout", onFocusOut, true);
+  writerListenersBound = true;
+}
+
+function unbindWriterListeners(): void {
+  if (!writerListenersBound) {
+    document.documentElement.classList.remove("av-writing");
+    return;
+  }
+  document.removeEventListener("focusin", syncWritingClass, true);
+  document.removeEventListener("focusout", onFocusOut, true);
+  if (writerFrame !== 0) {
+    globalThis.cancelAnimationFrame?.(writerFrame);
+    writerFrame = 0;
+  }
+  writerListenersBound = false;
+  document.documentElement.classList.remove("av-writing");
 }
 
 function ensureLayoutStyle(): void {
@@ -82,6 +157,29 @@ html.av-hide-grok [data-testid="chat-drawer-root"],
 html.av-hide-grok [data-testid="chat-drawer-main"],
 html.av-hide-grok [data-testid="grokImgGen"] {
   display: none !important;
+}
+
+/* Writer mode: only active while focus is inside the composer, so the timeline is untouched
+   the rest of the time. Nothing is display:none'd here — the surroundings recede and come
+   straight back on blur, which keeps the effect reversible mid-scroll. */
+html.av-writer-mode.av-writing [data-testid="sidebarColumn"],
+html.av-writer-mode.av-writing [data-testid="news_sidebar"] {
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+html.av-writer-mode.av-writing [data-testid="cellInnerDiv"] {
+  opacity: 0.28;
+}
+
+html.av-writer-mode [data-testid="sidebarColumn"],
+html.av-writer-mode [data-testid="news_sidebar"],
+html.av-writer-mode [data-testid="cellInnerDiv"] {
+  transition: opacity 160ms ease;
+}
+
+html.av-writer-mode.av-writing [data-testid="cellInnerDiv"]:hover {
+  opacity: 1;
 }
 
 html.av-hide-nav-premium [data-testid="premium-signup-tab"],

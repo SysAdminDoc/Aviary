@@ -306,6 +306,15 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             await save(checked ? "Engagement counts hidden" : "Engagement counts shown");
           }
         ),
+        toggleRow(
+          "Hide row borders",
+          "Remove the 1px divider under each timeline post and the primary column's side rules.",
+          options.settings.appearance.hideBorders,
+          async (checked) => {
+            options.settings.appearance.hideBorders = checked;
+            await save(checked ? "Row borders hidden" : "Row borders restored");
+          }
+        ),
         toggleRow("High contrast", "Use stronger borders and text contrast.", options.settings.accessibility.highContrast, async (checked) => {
           options.settings.accessibility.highContrast = checked;
           await save("Contrast preference saved");
@@ -336,7 +345,16 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         toggleRow("Hide Grok surfaces", "Remove Grok drawer and composer buttons where detected.", options.settings.layout.hideGrok, async (checked) => {
           options.settings.layout.hideGrok = checked;
           await save("Grok preference saved");
-        })
+        }),
+        toggleRow(
+          "Writer mode",
+          "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.",
+          options.settings.layout.writerMode,
+          async (checked) => {
+            options.settings.layout.writerMode = checked;
+            await save(checked ? "Writer mode on" : "Writer mode off");
+          }
+        )
       ]),
       section("Filtering", filterRows()),
       section("Hidden posts", hiddenPostRows()),

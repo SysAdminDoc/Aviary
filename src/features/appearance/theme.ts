@@ -30,6 +30,7 @@ export const themeFeature: FeatureModule = {
     document.documentElement.classList.remove(
       "av-dense",
       "av-hide-counts",
+      "av-hide-borders",
       "av-high-contrast",
       "av-reduce-motion"
     );
@@ -50,6 +51,7 @@ export function applyTheme(settings: AviarySettings): void {
   root.dataset.avTheme = theme;
   root.classList.toggle("av-dense", settings.appearance.denseMode);
   root.classList.toggle("av-hide-counts", settings.appearance.hideCounts);
+  root.classList.toggle("av-hide-borders", settings.appearance.hideBorders);
   root.classList.toggle("av-high-contrast", settings.accessibility.highContrast);
   root.classList.toggle("av-reduce-motion", shouldReduceMotion(settings));
   root.style.colorScheme = "dark";
@@ -160,6 +162,19 @@ html.av-hide-counts article[data-testid="tweet"] [data-testid="unretweet"] [data
 html.av-hide-counts article[data-testid="tweet"] [data-testid="like"] [data-testid="app-text-transition-container"],
 html.av-hide-counts article[data-testid="tweet"] [data-testid="unlike"] [data-testid="app-text-transition-container"] {
   display: none !important;
+}
+
+/* Row dividers live on the first child of the virtualizer cell, styled by a generated atomic
+   class (r-qklmqi in the captured CSS). Anchor on the structure, not the generated name. The
+   column's own left/right rules are the other half of the "borderless" look. Verified against
+   _decoded/home.html with its captured stylesheets: 10/10 cells carry a 1px bottom border. */
+html.av-hide-borders [data-testid="cellInnerDiv"] > div {
+  border-bottom-width: 0 !important;
+}
+
+html.av-hide-borders [data-testid="primaryColumn"] {
+  border-left-width: 0 !important;
+  border-right-width: 0 !important;
 }
 
 html.av-high-contrast {

@@ -6,6 +6,15 @@ Drains the audit findings left open by the v1.7.0 pass.
 
 ### Added
 
+- **Hide row borders** (`appearance.hideBorders`) now does something. The divider is drawn on the
+  first child of X's virtualizer cell by a generated atomic class, so the rule anchors on
+  `[data-testid="cellInnerDiv"] > div` instead of the class name, and also drops the primary
+  column's side rules. Verified against `_decoded/home.html` with its captured stylesheets:
+  10/10 rows go 1px → 0px and back on destroy.
+- **Writer mode** (`layout.writerMode`) now does something. While focus is inside the composer the
+  sidebar and the timeline behind it fade back; everything returns on blur. Driven by
+  `focusin`/`focusout` only — no key handlers, and hovering a faded row brings it back.
+  Quiet Reader and Minimal turn borders off again; Creator turns writer mode on.
 - **Extension options page.** A dark, self-contained page (toolbar icon, or Extensions → Aviary →
   Options) reports the live grant state of the optional `downloads` permission and the
   `pbs.twimg.com` / `video.twimg.com` media hosts, and grants or revokes either. This is the

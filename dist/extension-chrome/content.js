@@ -26,6 +26,7 @@
       document.documentElement.classList.remove(
         "av-dense",
         "av-hide-counts",
+        "av-hide-borders",
         "av-high-contrast",
         "av-reduce-motion"
       );
@@ -43,6 +44,7 @@
     root.dataset.avTheme = theme;
     root.classList.toggle("av-dense", settings.appearance.denseMode);
     root.classList.toggle("av-hide-counts", settings.appearance.hideCounts);
+    root.classList.toggle("av-hide-borders", settings.appearance.hideBorders);
     root.classList.toggle("av-high-contrast", settings.accessibility.highContrast);
     root.classList.toggle("av-reduce-motion", shouldReduceMotion(settings));
     root.style.colorScheme = "dark";
@@ -148,6 +150,19 @@ html.av-hide-counts article[data-testid="tweet"] [data-testid="unretweet"] [data
 html.av-hide-counts article[data-testid="tweet"] [data-testid="like"] [data-testid="app-text-transition-container"],
 html.av-hide-counts article[data-testid="tweet"] [data-testid="unlike"] [data-testid="app-text-transition-container"] {
   display: none !important;
+}
+
+/* Row dividers live on the first child of the virtualizer cell, styled by a generated atomic
+   class (r-qklmqi in the captured CSS). Anchor on the structure, not the generated name. The
+   column's own left/right rules are the other half of the "borderless" look. Verified against
+   _decoded/home.html with its captured stylesheets: 10/10 cells carry a 1px bottom border. */
+html.av-hide-borders [data-testid="cellInnerDiv"] > div {
+  border-bottom-width: 0 !important;
+}
+
+html.av-hide-borders [data-testid="primaryColumn"] {
+  border-left-width: 0 !important;
+  border-right-width: 0 !important;
 }
 
 html.av-high-contrast {
@@ -788,6 +803,15 @@ html.av-reduce-motion *::after {
               await save(checked ? "Engagement counts hidden" : "Engagement counts shown");
             }
           ),
+          toggleRow(
+            "Hide row borders",
+            "Remove the 1px divider under each timeline post and the primary column's side rules.",
+            options.settings.appearance.hideBorders,
+            async (checked) => {
+              options.settings.appearance.hideBorders = checked;
+              await save(checked ? "Row borders hidden" : "Row borders restored");
+            }
+          ),
           toggleRow("High contrast", "Use stronger borders and text contrast.", options.settings.accessibility.highContrast, async (checked) => {
             options.settings.accessibility.highContrast = checked;
             await save("Contrast preference saved");
@@ -818,7 +842,16 @@ html.av-reduce-motion *::after {
           toggleRow("Hide Grok surfaces", "Remove Grok drawer and composer buttons where detected.", options.settings.layout.hideGrok, async (checked) => {
             options.settings.layout.hideGrok = checked;
             await save("Grok preference saved");
-          })
+          }),
+          toggleRow(
+            "Writer mode",
+            "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.",
+            options.settings.layout.writerMode,
+            async (checked) => {
+              options.settings.layout.writerMode = checked;
+              await save(checked ? "Writer mode on" : "Writer mode off");
+            }
+          )
         ]),
         section("Filtering", filterRows()),
         section("Hidden posts", hiddenPostRows()),
@@ -2806,11 +2839,9 @@ input[type="checkbox"] {
     {
       id: "quiet-reader",
       label: "Quiet Reader",
-      description: "Hide promoted modules, dim premium posts, strip t.co, dense + dim theme.",
+      description: "Hide promoted modules and row borders, dim premium posts, strip t.co, dense + dim theme.",
       overrides: {
-        // hideBorders is intentionally absent: nothing implements it yet, and a preset that
-        // reports a change it cannot deliver is worse than one that leaves the value alone.
-        appearance: { theme: "dim", denseMode: true, hideCounts: true },
+        appearance: { theme: "dim", denseMode: true, hideCounts: true, hideBorders: true },
         layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
         filter: { enabled: true, premiumRule: "dim" },
         links: { expandTco: true, cleanShareButtons: true }
@@ -2835,10 +2866,10 @@ input[type="checkbox"] {
     {
       id: "creator",
       label: "Creator",
-      description: "Composer snippets, share-button cleanup, sidebar and trends hidden.",
+      description: "Writer mode, composer snippets, share-button cleanup, sidebar and trends hidden.",
       overrides: {
         appearance: { theme: "midnight" },
-        layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
+        layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true, writerMode: true },
         media: { layout: "grid" },
         links: { cleanShareButtons: true, expandTco: true }
       }
@@ -2876,9 +2907,9 @@ input[type="checkbox"] {
     {
       id: "minimal",
       label: "Minimal",
-      description: "Maximum declutter, hide counts, hide trends, hide promoted, big text safe zones.",
+      description: "Maximum declutter: no counts, no borders, no trends, no promoted, big text safe zones.",
       overrides: {
-        appearance: { theme: "lightsOut", denseMode: false, hideCounts: true },
+        appearance: { theme: "lightsOut", denseMode: false, hideCounts: true, hideBorders: true },
         layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
         filter: { enabled: true, premiumRule: "hide" },
         accessibility: { reduceMotion: "always" }
@@ -8194,6 +8225,14 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
 
   // src/features/layout/declutter.ts
   var STYLE_ID6 = "av-layout-declutter";
+  var COMPOSER_SELECTOR = [
+    '[data-testid^="tweetTextarea_"]',
+    '[data-testid="toolBar"]',
+    '[data-testid="tweetButtonInline"]',
+    '[data-testid="tweetButton"]'
+  ].join(", ");
+  var writerListenersBound = false;
+  var writerFrame = 0;
   var layoutDeclutterFeature = {
     id: "layout.declutter",
     title: "Layout declutter",
@@ -8210,10 +8249,13 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
     },
     destroy(ctx) {
       document.getElementById(STYLE_ID6)?.remove();
+      unbindWriterListeners();
       document.documentElement.classList.remove(
         "av-hide-right-sidebar",
         "av-hide-trends",
-        "av-hide-grok"
+        "av-hide-grok",
+        "av-writer-mode",
+        "av-writing"
       );
       for (const className of Array.from(document.documentElement.classList)) {
         if (className.startsWith("av-hide-nav-")) {
@@ -8228,6 +8270,13 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
     root.classList.toggle("av-hide-right-sidebar", ctx.settings.layout.hideRightSidebar);
     root.classList.toggle("av-hide-trends", ctx.settings.layout.hideTrends);
     root.classList.toggle("av-hide-grok", ctx.settings.layout.hideGrok);
+    root.classList.toggle("av-writer-mode", ctx.settings.layout.writerMode);
+    if (ctx.settings.layout.writerMode) {
+      bindWriterListeners();
+      syncWritingClass();
+    } else {
+      unbindWriterListeners();
+    }
     for (const className of Array.from(root.classList)) {
       if (className.startsWith("av-hide-nav-")) {
         root.classList.remove(className);
@@ -8239,6 +8288,48 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
         root.classList.add(`av-hide-nav-${safe}`);
       }
     }
+  }
+  function isComposerNode(node) {
+    if (!(node instanceof Element)) {
+      return false;
+    }
+    return node.closest(COMPOSER_SELECTOR) !== null;
+  }
+  function syncWritingClass() {
+    const writing = isComposerNode(document.activeElement);
+    document.documentElement.classList.toggle("av-writing", writing);
+  }
+  function onFocusOut() {
+    if (writerFrame !== 0) {
+      return;
+    }
+    const schedule = globalThis.requestAnimationFrame ?? ((cb) => globalThis.setTimeout(() => cb(0), 16));
+    writerFrame = schedule(() => {
+      writerFrame = 0;
+      syncWritingClass();
+    });
+  }
+  function bindWriterListeners() {
+    if (writerListenersBound) {
+      return;
+    }
+    document.addEventListener("focusin", syncWritingClass, true);
+    document.addEventListener("focusout", onFocusOut, true);
+    writerListenersBound = true;
+  }
+  function unbindWriterListeners() {
+    if (!writerListenersBound) {
+      document.documentElement.classList.remove("av-writing");
+      return;
+    }
+    document.removeEventListener("focusin", syncWritingClass, true);
+    document.removeEventListener("focusout", onFocusOut, true);
+    if (writerFrame !== 0) {
+      globalThis.cancelAnimationFrame?.(writerFrame);
+      writerFrame = 0;
+    }
+    writerListenersBound = false;
+    document.documentElement.classList.remove("av-writing");
   }
   function ensureLayoutStyle() {
     if (document.getElementById(STYLE_ID6)) {
@@ -8265,6 +8356,29 @@ html.av-hide-grok [data-testid="chat-drawer-root"],
 html.av-hide-grok [data-testid="chat-drawer-main"],
 html.av-hide-grok [data-testid="grokImgGen"] {
   display: none !important;
+}
+
+/* Writer mode: only active while focus is inside the composer, so the timeline is untouched
+   the rest of the time. Nothing is display:none'd here \u2014 the surroundings recede and come
+   straight back on blur, which keeps the effect reversible mid-scroll. */
+html.av-writer-mode.av-writing [data-testid="sidebarColumn"],
+html.av-writer-mode.av-writing [data-testid="news_sidebar"] {
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+html.av-writer-mode.av-writing [data-testid="cellInnerDiv"] {
+  opacity: 0.28;
+}
+
+html.av-writer-mode [data-testid="sidebarColumn"],
+html.av-writer-mode [data-testid="news_sidebar"],
+html.av-writer-mode [data-testid="cellInnerDiv"] {
+  transition: opacity 160ms ease;
+}
+
+html.av-writer-mode.av-writing [data-testid="cellInnerDiv"]:hover {
+  opacity: 1;
 }
 
 html.av-hide-nav-premium [data-testid="premium-signup-tab"],
