@@ -87,8 +87,21 @@ function pushVariant(
   });
 }
 
+/**
+ * A `blob:` source is X's MediaSource handle, not a file: it cannot be fetched or saved, so any
+ * real URL beats it however low its bitrate. Ranking is only a preference here — when the blob is
+ * the only variant it still wins, and callers that need a saveable target check {@link isSaveableVariantUrl}.
+ */
+export function isSaveableVariantUrl(url: string): boolean {
+  return !/^blob:/i.test(url);
+}
+
 function pickPreferred(variants: VideoVariant[]): VideoVariant {
   const sorted = [...variants].sort((a, b) => {
+    const saveableDiff = Number(isSaveableVariantUrl(b.url)) - Number(isSaveableVariantUrl(a.url));
+    if (saveableDiff !== 0) {
+      return saveableDiff;
+    }
     const bitrateDiff = (b.bitrate ?? 0) - (a.bitrate ?? 0);
     if (bitrateDiff !== 0) {
       return bitrateDiff;

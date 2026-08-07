@@ -8,6 +8,7 @@ import {
   type DownloaderResult
 } from "./downloader";
 import { getMediaHistory, getMediaQueue } from "./media-buttons";
+import { isSaveableVariantUrl } from "./video-extract";
 import type { ExtractedTweet, ExtractedMedia } from "./extract";
 import type { FeatureContext } from "../registry";
 
@@ -192,6 +193,11 @@ function collectArticles(
 export function resolveTarget(media: ExtractedMedia): ResolvedTarget | null {
   if (media.kind === "video" && media.video?.preferred) {
     const url = media.video.preferred.url;
+    // A MediaSource blob cannot be handed to any downloader; skipping it keeps the batch
+    // counters honest instead of recording saves that never happened.
+    if (!isSaveableVariantUrl(url)) {
+      return null;
+    }
     return { url, mediaId: mediaIdFromVideo(url), ext: extensionForVideo(media.video.preferred.type, url) };
   }
   if (media.image) {

@@ -7,6 +7,7 @@ import {
   type Downloader
 } from "./downloader";
 import { extractTweet, type ExtractedMedia, type ExtractedTweet } from "./extract";
+import { isSaveableVariantUrl } from "./video-extract";
 import { MediaHistory } from "./history";
 import { rememberLastDownload } from "./last-download";
 import { DownloadQueue } from "./queue";
@@ -33,11 +34,19 @@ export const mediaButtonsFeature: FeatureModule = {
     ensureMediaStyle();
     aria2History = new Aria2History(ctx.storage);
     await aria2History.load();
-    if (ctx.settings.integrations.aria2.endpoint) {
-      await aria2History.reconcile({
-        endpoint: ctx.settings.integrations.aria2.endpoint,
-        secret: ctx.settings.integrations.aria2.secret
-      });
+    // Gated on `enabled`, not merely on a configured endpoint: turning the integration off left
+    // the endpoint string in place, so every boot still called the user's aria2. Wrapped as well
+    // because reconciling a history is housekeeping -- it must never be able to take the Save
+    // buttons down with it (local-only mode made that reachable).
+    if (ctx.settings.integrations.aria2.enabled && ctx.settings.integrations.aria2.endpoint) {
+      try {
+        await aria2History.reconcile({
+          endpoint: ctx.settings.integrations.aria2.endpoint,
+          secret: ctx.settings.integrations.aria2.secret
+        });
+      } catch (error) {
+        ctx.diagnostics.warn("Aria2 history reconcile skipped", errorDetails(error));
+      }
     }
     downloader = createDownloader({ integrations: ctx.settings.integrations, aria2History });
     queue = new DownloadQueue();
@@ -155,6 +164,13 @@ function decorateArticle(tweet: ExtractedTweet, ctx: FeatureContext): void {
   tweet.media.forEach((media, index) => {
     const container = resolveContainer(media);
     if (!container || hasOwnButton(container, media.kind)) {
+      return;
+    }
+    // No button at all when nothing can be saved. X streams timeline video through MediaSource,
+    // so the only variant is a `blob:` handle -- offering a control that can never work (and
+    // used to report "Saved") is worse than offering none. The poster still gets its Thumb
+    // button, so a video post is not left bare.
+    if (!resolveTarget(media)) {
       return;
     }
     const button = buildButton(media, index, tweet, ctx);
@@ -323,6 +339,9 @@ function resolveTarget(
 ): { url: string; mediaId: string | null; ext: string } | null {
   if (media.kind === "video" && media.video?.preferred) {
     const url = media.video.preferred.url;
+    if (!isSaveableVariantUrl(url)) {
+      return null;
+    }
     return { url, mediaId: mediaIdFromVideo(url), ext: extensionForVideo(media.video.preferred.type, url) };
   }
   if (media.image) {
@@ -391,12 +410,22 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
   transition: opacity 120ms ease, border-color 120ms ease;
 }
 
-[data-testid="tweetPhoto"] {
+/* Every container that can host a button needs to be the positioning context, or the
+   absolutely-positioned button anchors to whatever ancestor X happens to have positioned. */
+[data-testid="tweetPhoto"],
+[data-testid="videoPlayer"],
+[data-testid="videoComponent"] {
   position: relative;
 }
 
+/* The reveal list has to name every host container. It covered tweetPhoto only, so the button
+   on a video player rested at opacity 0 with no rule that could ever show it. */
 [data-testid="tweetPhoto"]:hover [${BUTTON_ATTR}],
 [data-testid="tweetPhoto"]:focus-within [${BUTTON_ATTR}],
+[data-testid="videoPlayer"]:hover [${BUTTON_ATTR}],
+[data-testid="videoPlayer"]:focus-within [${BUTTON_ATTR}],
+[data-testid="videoComponent"]:hover [${BUTTON_ATTR}],
+[data-testid="videoComponent"]:focus-within [${BUTTON_ATTR}],
 [${BUTTON_ATTR}]:focus-visible,
 [${BUTTON_ATTR}].is-active,
 [${BUTTON_ATTR}].is-success,

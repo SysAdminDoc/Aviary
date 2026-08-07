@@ -27,7 +27,7 @@ import {
   undoLastHide
 } from "../filtering/hidden-posts-feature";
 import { buildWarcArchive } from "../export/warc";
-import { addUriToAria2, removeAria2Download, tellActiveAria2 } from "../integrations/aria2";
+import { pingAria2Version, removeAria2Download, tellActiveAria2 } from "../integrations/aria2";
 import { crosspost, readComposerText, type CrosspostRequest } from "../integrations/crosspost";
 import { SemanticIndex } from "../integrations/semantic-search";
 import { recentIntegrationErrors } from "./integration-errors";
@@ -426,24 +426,12 @@ export const controlCenterFeature: FeatureModule = {
         await semanticIndex?.clear();
       },
       async pingAria2() {
-        const result = await addUriToAria2(
-          {
-            endpoint: ctx.settings.integrations.aria2.endpoint,
-            secret: ctx.settings.integrations.aria2.secret
-          },
-          { url: "https://example.invalid/aviary-ping", filename: "ping.txt" }
-        );
-        // The endpoint is intentionally invalid — we only want to know whether the RPC reaches Aria2.
-        // A real Aria2 will respond with a structured error; an unreachable Aria2 will throw.
+        const result = await pingAria2Version({
+          endpoint: ctx.settings.integrations.aria2.endpoint,
+          secret: ctx.settings.integrations.aria2.secret
+        });
         if (result.ok) return { ok: true };
-        if (result.error && /HTTP/.test(result.error)) {
-          return { ok: false, error: result.error };
-        }
-        if (result.error && /Aria2 endpoint/.test(result.error)) {
-          return { ok: false, error: result.error };
-        }
-        // RPC reached the server but raised a structured Aria2 error → endpoint is alive.
-        return { ok: true };
+        return { ok: false, ...(result.error ? { error: result.error } : {}) };
       },
       getIntegrationStatus() {
         const integrations = ctx.settings.integrations;

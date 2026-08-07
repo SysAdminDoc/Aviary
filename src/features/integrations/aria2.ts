@@ -178,6 +178,45 @@ export class Aria2History {
   }
 }
 
+/**
+ * Reaches the RPC without side effects. The old ping called `aria2.addUri` with a bogus URL --
+ * aria2 accepts any syntactically valid URI and returns a GID, so every press of "Test
+ * connection" left a real, permanently-failing download in the user's queue.
+ */
+export async function pingAria2Version(config: Aria2Config): Promise<Aria2Result> {
+  assertOutboundAllowed("The Aria2 connection test");
+  if (!config.endpoint) {
+    return { ok: false, error: "Aria2 endpoint not configured" };
+  }
+  try {
+    const response = await fetch(`${config.endpoint}/jsonrpc`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: `aviary-${Date.now()}`,
+        method: "aria2.getVersion",
+        params: config.secret ? [`token:${config.secret}`] : []
+      })
+    });
+    if (!response.ok) {
+      return { ok: false, error: `Aria2 HTTP ${response.status}` };
+    }
+    const payload = (await response.json()) as {
+      result?: { version?: unknown };
+      error?: { message?: string };
+    };
+    if (payload?.error) {
+      return { ok: false, error: payload.error.message ?? "Aria2 rejected the request" };
+    }
+    return typeof payload?.result?.version === "string"
+      ? { ok: true, gid: payload.result.version }
+      : { ok: false, error: "Aria2 did not report a version" };
+  } catch (error) {
+    return { ok: false, error: String((error as Error)?.message ?? error) };
+  }
+}
+
 export async function tellActiveAria2(config: Aria2Config): Promise<Aria2ActiveDownload[]> {
   assertOutboundAllowed("The Aria2 sweep");
   const payload = await callAria2<Array<Record<string, unknown>>>(config, "aria2.tellActive", []);
@@ -206,9 +245,16 @@ export async function removeAria2Download(config: Aria2Config, gid: string): Pro
 }
 
 export async function tellAria2Status(config: Aria2Config, gid: string): Promise<string | null> {
-  assertOutboundAllowed("The Aria2 status check");
   if (!gid) return null;
   if (!config.endpoint) return null;
+  // Inside the soft-failure contract, not above it. A status check is a background reconcile;
+  // in local-only mode it must report "unknown" like any other unreachable endpoint rather than
+  // throwing out of the caller and failing whatever feature happened to be initializing.
+  try {
+    assertOutboundAllowed("The Aria2 status check");
+  } catch {
+    return null;
+  }
   const token = config.secret ? `token:${config.secret}` : undefined;
   const params: unknown[] = token ? [token, gid] : [gid];
   try {
@@ -225,9 +271,15 @@ export async function tellAria2Status(config: Aria2Config, gid: string): Promise
     if (!response.ok) return null;
     const payload = (await response.json()) as {
       result?: { status?: unknown };
-      error?: unknown;
+      error?: { code?: unknown; message?: unknown };
     };
-    if (payload.error) return "removed";
+    // Only a GID aria2 does not know means the download is gone. Every other fault -- a wrong
+    // secret above all -- used to map to "removed" too, and reconcile deletes those entries, so
+    // one boot with a mistyped secret erased the whole queued ledger and re-enabled duplicate
+    // handoffs. An unrecognised error returns null, which reconcile retains.
+    if (payload.error) {
+      return isUnknownGidError(payload.error) ? "removed" : null;
+    }
     return typeof payload.result?.status === "string" ? payload.result.status : null;
   } catch {
     return null;
@@ -256,6 +308,16 @@ async function callAria2<T>(config: Aria2Config, method: string, args: unknown[]
   } catch {
     return null;
   }
+}
+
+/**
+ * aria2 answers `tellStatus` for an unknown GID with code 1 and a message naming the GID. Auth
+ * and transport faults use other codes and messages, and must not be read as "this download is
+ * finished with".
+ */
+function isUnknownGidError(error: { code?: unknown; message?: unknown }): boolean {
+  const message = typeof error.message === "string" ? error.message.toLowerCase() : "";
+  return /gid/.test(message) && /(not found|is not found|cannot be found)/.test(message);
 }
 
 function isHistoryEntry(value: unknown): value is Aria2HistoryEntry {

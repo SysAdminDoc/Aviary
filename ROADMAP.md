@@ -947,3 +947,209 @@ shows up in high-install scripts against how much of it Aviary already has.
 Raised during the full engineering/UX/security audit of v1.6.0. Items fixed in that pass are
 in CHANGELOG.md; these are the ones left open, with the reason each was not taken.
 
+
+## Audit Findings — 2026-08-07 (audit-only pass; not fixed)
+
+Baseline at `409f846`: `tsc` clean, 188/188 tests pass, build+preflight green. Findings are
+ordered P1 → P3; each was verified as described in its Evidence line. Verification harnesses ran
+read-only (Playwright against `_decoded/home.html` and scratch pages); no source was changed.
+
+- [ ] P1 — "Import your X archive" cannot read real X archives (DEFLATE unsupported)
+  Category: correctness
+  Where: src/features/library/archive-import.ts:18-27, src/features/export/zip-reader.ts (STORE-only)
+  Problem: readStoreZip only understands STORE entries and the import errors with "compression methods other than STORE are not supported." Official X archive ZIPs compress their data files (tweets.js etc.) with DEFLATE like every standard zip tool, so the Library feature fails on essentially every real input it is named for.
+  Evidence: zip-reader parses method 0 only (the error string in archive-import admits it); X archives are produced with standard compression — text .js payloads are always deflated. No fixture archive exists in-repo to prove otherwise.
+  Fix: Add DEFLATE support via `DecompressionStream("deflate-raw")` (Chrome ≥ 116 per manifest minimum) in zip-reader for method 8 entries, keeping the STORE path; make the read path async (or add an async readZip wrapper). Add a small deflated fixture zip to tests.
+  Acceptance: A test builds (or vendors) a zip with a DEFLATE-compressed `data/tweets.js` and importOfficialArchive returns its records; the STORE path still passes existing tests.
+  Confidence: Likely (needs one real archive to confirm; mechanism certain)
+  Effort: M
+
+- [ ] P1 — AI command menu and composer snippets end in silence — no user-visible success or failure
+  Category: ux
+  Where: src/features/ai/command-menu.ts:138-190, src/features/composer/composer-snippets.ts:99-110
+  Problem: After "Translate — running…", every outcome is invisible: on success the result goes to the clipboard with no toast; on provider failure only `diagnostics.warn` fires and the menu just closes. Clipboard rejection likewise. Same for snippets: a failed insert ("composer not focused") logs to diagnostics and the palette closes. This violates the repo's own error-handling rule (never fail silently) — a user cannot tell "worked, check clipboard" from "failed".
+  Evidence: Read the full click path — no DOM feedback after line 144's "running…" label; menu.remove() at 177 is unconditional.
+  Fix: Reuse the hidden-posts toast pattern (shadow-root toast, role=status) as a shared helper, or at minimum swap the menu item's label to a visible "Copied" / the error message for ~1.5 s before closing. Failure copy should name the cause ("Provider HTTP 401 — check the API key in Integrations").
+  Acceptance: Driving the menu with a stubbed failing provider shows user-visible failure text; success shows a visible copied confirmation. No silent path remains.
+  Confidence: Verified
+  Effort: M
+
+- [ ] P2 — `font: … inherit` shorthand is invalid CSS — eight controls render in browser-default type
+  Category: visual
+  Where: src/ui/control-center.ts:2620 (.av-launcher), 2787 (.av-nav-item); src/features/ai/command-menu.ts:227, 260; src/features/composer/composer-snippets.ts:165, 188; src/features/filtering/hidden-posts-feature.ts:543 (.av-toast-undo); src/features/library/user-notes.ts:189 (.av-note-badge)
+  Problem: The `font` shorthand cannot take `inherit` as its family component; the whole declaration is dropped. Every one of these controls loses its size/weight AND its family — buttons do not inherit font, so the Aviary launcher chip, all 13 nav-rail items, the AI trigger, snippet buttons, toast Undo and Note badge render at UA defaults (Arial ~13.3px/400 measured), not the designed 10-13px/600-700 panel stack.
+  Evidence: Chromium probe: `#t { font: 700 10px/1.2 inherit }` computes 13.33px/400/Arial. Live shadow-root check on the mounted panel: `.av-launcher` and `.av-nav-item` compute 13.33px/400/Arial while `.av-panel` is 15px TwitterChirp.
+  Fix: Replace each with longhands (`font-weight` / `font-size` / `line-height` + `font-family: inherit`), or name the family list explicitly like MEDIA_CSS line 387 does.
+  Acceptance: Computed style of .av-launcher inside the shadow root reports the declared size/weight and a non-UA family; a source-contract test rejects the pattern `font: … inherit`.
+  Confidence: Verified
+  Effort: S
+
+- [ ] P2 — Every timeline-injected surface (and the options page) is English-only while the panel ships 8 locales
+  Category: ux
+  Where: src/features/filtering/hidden-posts-feature.ts (Hide button, toast copy), src/features/media/media-buttons.ts (Save/Saved/Queued/Unavailable/Retry/Allow + permission titles), src/features/ai/command-menu.ts (AI_COMMANDS labels/hints, menu items), src/features/composer/composer-snippets.ts (Snippets, empty copy), src/features/library/user-notes.ts (Note badge), src/extension/options.html + src/entrypoints/extension-options.ts; plus src/ui/control-center.ts:584-607 — preset cards render preset.label/preset.description raw, and the Applied-preset setStatus is a template literal that can never match the catalog (the panel's landing section)
+  Problem: The catalog covers only strings routed through t() in the panel; none of the injected features import i18n at all, so an Arabic or Japanese user gets a fully translated Control Center whose default section (Presets) and every in-timeline control is English.
+  Evidence: grep -l "platform/i18n" over src/features matches only core/control-center and core/i18n-feature; preset rows at ui/control-center.ts:594-595 bypass t().
+  Fix: Route injected-UI strings through translateText (they can share PANEL_CATALOG; extend tools/i18n-extract.mjs's source harvest to per-feature exported string constants), wrap preset label/description in t(), and split the Applied-preset status into catalog-matchable parts. Options page strings can ship as data-i18n attributes resolved by extension-options.ts.
+  Acceptance: With locale=es, the Hide button, media buttons, AI menu, snippets, preset cards and the Applied status all render Spanish; i18n-extract reports the new strings and every locale stays complete.
+  Confidence: Verified
+  Effort: L
+
+- [ ] P2 — aria2.minBytes can never take effect: no caller passes estimatedBytes, and it has no panel control
+  Category: correctness
+  Where: src/features/media/downloader.ts:72 (shouldHandoffToAria2(aria, request.estimatedBytes ?? null)); src/features/media/media-buttons.ts:268 and batch-downloader.ts:134 (neither passes estimatedBytes); src/platform/settings.ts:411-414
+  Problem: shouldHandoffToAria2 returns true for estimatedBytes === null, and every call site omits it — so with aria2 enabled, EVERY item (40 KB thumbnails included) routes to aria2 regardless of the 50 MB default threshold. The setting also has no Control Center row (minBytes is absent from ui/control-center.ts). This is the "settings that only normalize" defect class already tracked in Roadmap_Blocked, except this one silently changes routing behavior.
+  Evidence: grep for estimatedBytes shows zero producers; grep for minBytes in the panel shows zero controls.
+  Fix: Populate estimatedBytes (HEAD request, or bitrate-derived estimate for videos) before the handoff decision, or drop the parameter and document aria2 handoff as all-or-nothing; either way add the missing integer row next to the endpoint/secret fields or remove the setting from the schema with a migration note.
+  Acceptance: With aria2 enabled and minBytes=50MB, a small photo saves via the browser path (stubbed downloader test); or the setting is gone from schema+normalizer.
+  Confidence: Verified
+  Effort: M
+
+- [ ] P2 — Filter engine re-extracts and re-decides every article on every mutation batch
+  Category: perf
+  Where: src/features/filtering/filter-engine.ts:33-36 (apply → refreshCompiled), 88-97 (generation += 1), 120-135 (processArticle stamp check)
+  Problem: apply() unconditionally calls refreshCompiled, which increments generation; processArticle skips only when the article's stamp equals the current generation — which is new every batch. The stamp optimization is therefore dead: every observer flush re-runs extractTweetSignal (5+ querySelectorAll per article) and recompiles user regexes for the whole visible timeline, roughly every 120 ms while scrolling with filters enabled.
+  Evidence: Read the three functions; generation is bumped even when settings are unchanged.
+  Fix: Recompile only when the filter inputs actually changed — keep a serialized snapshot of the six inputs and bump generation only on change; otherwise reuse the compiled object.
+  Acceptance: A test applies twice with unchanged settings and asserts a stamped article is not re-processed on the second pass, and a settings change still re-processes it.
+  Confidence: Verified
+  Effort: S
+
+- [ ] P2 — Saved-post search cannot match any non-Latin text
+  Category: ux
+  Where: src/features/library/local-search.ts tokenize (split on /[^a-z0-9_@]+/i)
+  Problem: Tokenization keeps only ASCII alphanumerics, so Japanese, Korean, Arabic, Hebrew, Cyrillic — the very languages the panel is translated into — produce zero tokens. Records in those languages are unfindable in Library search, and queries in them always return nothing.
+  Evidence: Read tokenize; any CJK string splits to an empty token list. Reached from the panel's searchArchive path.
+  Fix: Tokenize on Unicode letters/numbers with the u flag, NFC-normalize first, and add bigram tokens (or Intl.Segmenter word segmentation) for CJK so substring queries match. Note the NFC/Hangul trap: NFD decomposition breaks Korean matching.
+  Acceptance: Test: a record with Japanese text is returned for a Japanese query; existing Latin tests still pass.
+  Confidence: Verified
+  Effort: M
+
+- [ ] P2 — Semantic index grows without bound and rewrites the whole store per batch
+  Category: reliability
+  Where: src/features/integrations/semantic-search.ts:56-98 (embedAndIndex), 125-131 (persist)
+  Problem: Every other store caps its size (bookmarks 5000, aria2 1000, audit 500); the semantic index has no limit, and each entry carries a full float vector (~20-30 KB as JSON for 1536 dims). A few thousand embedded posts mean tens of MB serialized through the storage gateway on every persist — chrome.storage.local quota exhaustion (10 MB without unlimitedStorage) then surfaces as the storage-error sink firing on unrelated writes.
+  Evidence: Read embedAndIndex/persist; no cap, single-key JSON persistence of the entire index.
+  Fix: Cap entries (e.g. 2000, trimming oldest), round vector components (~5 decimals) before storing, and surface the dropped count in the panel's semantic status row.
+  Acceptance: Test: indexing limit+N records retains the cap and drops oldest; stored JSON for one entry shrinks measurably after rounding.
+  Confidence: Verified
+  Effort: S
+
+- [ ] P2 — Crosspost threads: silent 300-char Bluesky truncation, no Mastodon chunking, orphaned partial threads, and a composer read that loses paragraphs
+  Category: correctness
+  Where: src/features/integrations/crosspost.ts:27-34 (splitForThread — its comment promises "then chunk to platform max" but no chunking exists), 79 (text: segment.slice(0, 300)), 141-167 (Mastodon loop), 290-293 (readComposerText)
+  Problem: (a) Bluesky segments are silently cut at 300 UTF-16 units — content loss with no warning (the real limit is 300 graphemes, so emoji shorten it further). (b) Mastodon posts segments verbatim; over 500 chars returns an opaque "Mastodon HTTP 422". (c) If segment 3 of 5 fails, segments 1-2 stay published but the result only says ok:false — a retry double-posts. (d) readComposerText uses textContent on the Draft.js composer, which drops block boundaries, so the asThread blank-line split likely never triggers from the real composer.
+  Evidence: Read the full flow; the stale comment is at line 28. (d) follows from Draft.js div-per-block rendering — textContent concatenates without newlines.
+  Fix: Implement the promised chunking (grapheme-aware via Intl.Segmenter, 300/500 per target) before posting; return partial results (posted count, first URL, failed segment index) on mid-thread failure and surface "2 of 5 posted" in the panel; read composer blocks via per-block elements (or innerText) to preserve paragraph breaks.
+  Acceptance: Tests: a 700-char segment posts as 3 Bluesky records with no content loss; mid-thread failure reports posted count; a two-paragraph composer-shaped DOM yields two segments.
+  Confidence: Verified (a-c), Likely (d)
+  Effort: M
+
+- [ ] P3 — Exports embed useless blob: URLs for every real video
+  Category: correctness
+  Where: src/features/export/collector.ts (media mapping), formatters.ts csv/json/markdown, external-targets.ts
+  Problem: Video records carry the MSE blob URL as media.url; JSON/CSV/Markdown/Obsidian/Notion exports ship links that are meaningless outside the capturing tab. The HTML formatter already drops them (safeHref); the others do not.
+  Evidence: The fixture video is blob-backed; collector uses preferred.url verbatim.
+  Fix: In the collector, omit a blob: video URL (keep width/height/bitrate metadata and the permalink) and mark the record "video stream not capturable".
+  Acceptance: Export of the home fixture contains no "blob:" substring in any artifact.
+  Confidence: Verified
+  Effort: S
+
+- [ ] P3 — Obsidian export frontmatter breaks on display names with colons or quotes (YAML injection)
+  Category: correctness
+  Where: src/features/export/external-targets.ts toObsidianArtifact (display_name and friends interpolated bare)
+  Problem: Display names are scraped page text; a colon+space, leading quote, or hash produces invalid YAML (Obsidian renders the whole frontmatter block broken), and a crafted name could inject extra frontmatter keys.
+  Evidence: Read the template; values are interpolated without quoting.
+  Fix: YAML-quote every interpolated scalar (double quotes, escape backslash and quote), including handle and permalink.
+  Acceptance: A record with a display name containing `: "` produces frontmatter a YAML parser round-trips.
+  Confidence: Verified
+  Effort: S
+
+- [ ] P3 — The Action log mislabels events because AuditAction lacks real kinds
+  Category: ux
+  Where: src/features/core/audit-log.ts:7-19 (AuditAction union); shoehorned callers: core/control-center.ts crosspost→export.start/export.complete, cancelAria2→export.complete, enqueueCleanupReview→settings.export, rebuildSemanticIndex→export.complete; composer-snippets insert→settings.import
+  Problem: The user-facing audit trail (and recentIntegrationErrors, which keys off these strings) records a failed crosspost as "export.start" and an aria2 cancel as "export.complete" — the log cannot be trusted to describe what happened.
+  Evidence: Read each call site; integration-errors.ts even special-cases the misuse (its ERROR_ACTIONS includes export.start/complete to catch crosspost failures).
+  Fix: Extend AuditAction with crosspost, aria2.cancel, cleanup.enqueue, semantic.index, snippet.insert, preset.apply; update recentIntegrationErrors and the panel's log rendering.
+  Acceptance: A failed crosspost appears in the Action log as a crosspost entry; integration-errors tests updated accordingly.
+  Confidence: Verified
+  Effort: S
+
+- [ ] P3 — Silent read-failure path can quietly reset a store to defaults (localStorage backend)
+  Category: reliability
+  Where: src/platform/storage.ts get() catch → returns fallback
+  Problem: A JSON.parse failure (corrupted value) or backend read error returns the fallback with no signal; at boot that means DEFAULT_SETTINGS, and the next save permanently overwrites the corrupted-but-recoverable value. Only the write path reports to the error sink.
+  Evidence: Read get(); the sink is write-only.
+  Fix: Report read failures through the same sink (with an op discriminator) before returning the fallback; do not throw.
+  Acceptance: Test: a localStorage value of invalid JSON triggers the sink once and returns the fallback.
+  Confidence: Verified
+  Effort: S
+
+- [ ] P3 — Export's observer capture path is dead code (activeJobId window is one storage write)
+  Category: maintainability
+  Where: src/features/export/export-feature.ts:38-50 (apply), 104-107 (activeJobId set and cleared)
+  Problem: apply() appends only while activeJobId is set, but runExportOfVisibleTweets clears it immediately after the initial append — the observer path can only fire during that single await. "Capture as you scroll" therefore never happens; the panel copy ("Scroll the timeline to load some, then export again") papers over it.
+  Evidence: Read both; no other writer of activeJobId exists.
+  Fix: Either make it real — keep the job open while export.enabled (session-scoped background capture with an explicit stop control) — or delete the apply path and the activeJobId plumbing. Decide with the panel copy in mind.
+  Acceptance: Either scrolling during an enabled session grows the job's record count, or the dead branch is gone and tests still pass.
+  Confidence: Verified
+  Effort: M
+
+- [ ] P3 — Popover menus outlive destroy() and can drop their styles; AI menu never flips at the fold
+  Category: reliability
+  Where: src/features/ai/command-menu.ts:70-79 (destroy), 122-198 (openMenu/dismiss/positionMenu); src/features/composer/composer-snippets.ts (shared listener lifecycle)
+  Problem: destroy() removes the feature stylesheet and triggers but not an open .av-ai-menu (appended to body) — the menu survives as an unstyled div, and its capture-phase document click listener persists until the next click. positionMenu clamps top/left only, so a menu opened near the bottom of the viewport renders partially off-screen.
+  Evidence: Read both files; destroy has no .av-ai-menu sweep (snippets does remove its popover via the palette attribute; only command-menu orphans).
+  Fix: In destroy, remove any open menu and its dismiss listener (hold a module-scope reference); in positionMenu, flip above the trigger when the menu would cross innerHeight.
+  Acceptance: destroy() with a menu open leaves no .av-ai-menu in the DOM; a menu opened near the fold renders fully on-screen.
+  Confidence: Verified (orphan), Likely (flip)
+  Effort: S
+
+- [ ] P3 — Nav rail clips its last item mid-glyph with no scroll affordance
+  Category: visual
+  Where: src/ui/control-center.ts:2754-2761 (.av-nav) at ≤ ~900px viewport height
+  Problem: With 13 sections the rail overflows; overflow-y:auto makes it scrollable but nothing signals that — "Trust" renders cut through the baseline (screenshot-verified at 1280×900), reading as a rendering bug rather than a scrollable list.
+  Evidence: Playwright screenshot of the mounted panel, plum theme, 900px height.
+  Fix: Add a bottom fade (mask-image or sticky gradient) to .av-nav when scrollable, or reduce item min-height/padding so 13 items fit the panel's max-height; scrollbar-gutter: stable also helps.
+  Acceptance: At 1280×900 either all items are visible or the fade communicates the overflow; no mid-glyph clipping.
+  Confidence: Verified
+  Effort: S
+
+- [ ] P3 — Aria2 handoff failure falls through to a browser download without a trace
+  Category: reliability
+  Where: src/features/media/downloader.ts:72-88
+  Problem: When addUriToAria2 returns ok:false (endpoint down, bad secret), result.error is discarded and the download silently proceeds via GM/extension/anchor. The user configured aria2 for large files; a misconfiguration is never surfaced on the path where it matters.
+  Evidence: Read createDownloader; the error is dropped (the module has no diagnostics access).
+  Fix: Thread an optional onWarn callback through DownloaderOptions (media-buttons passes ctx.diagnostics.warn) and report "Aria2 refused (…) — saved via browser instead".
+  Acceptance: With a stub aria2 returning an error, diagnostics contains the warning and the download still completes via the fallback.
+  Confidence: Verified
+  Effort: S
+
+- [ ] P3 — Two settings write paths with different guarantees
+  Category: maintainability
+  Where: src/main.ts:128-131 (saveSettings — writes cloneSettings unnormalized), src/features/core/control-center.ts:129-141, 274-284, 292-296 (write normalizeSettings directly via storage.set)
+  Problem: Panel toggles persist whatever is in memory; import/preset/locale persist normalized. A future handler writing an out-of-range value ships it to disk until next boot. One choke point should own persistence.
+  Evidence: Read both paths.
+  Fix: Make ctx.saveSettings normalize before writing and route importSettings/applyPreset/setLocale through it (they already hold ctx).
+  Acceptance: A single storage.set(SETTINGS_KEY…) call site remains; a test asserts saveSettings normalizes an injected invalid value.
+  Confidence: Verified
+  Effort: S
+
+- [ ] P3 — Options page success copy is wrong for the media-origins card
+  Category: ux
+  Where: src/entrypoints/extension-options.ts run() — "Granted. Media saves through the browser now."
+  Problem: The same status string is shown for both cards; granting pbs/video.twimg.com host access has nothing to do with "media saves through the browser", which describes the downloads permission.
+  Evidence: Read run(); the message is card-independent.
+  Fix: Move success copy into CardWiring per card (downloads keeps the current sentence; origins gets "Granted. Aviary can fetch full-size media for exports now.").
+  Acceptance: Each card shows its own success sentence.
+  Confidence: Verified
+  Effort: S
+
+- [ ] P3 — Testing gaps around this audit's defect classes
+  Category: testing
+  Where: tests/
+  Problem: (a) Nothing pins the injected-UI CSS contract — the invalid font shorthand and the missing video hover-reveal both shipped through a green suite; (b) no test drives filter-engine across two observer batches to catch the rescan regression; (c) crosspost has no test shaped like the real composer DOM (block divs), so the thread-split path is unproven; (d) aria2 reconcile error-mapping is untested.
+  Evidence: Grep of tests/ for videoPlayer hover rules, generation-stamp behavior, composer-shaped fixtures, and reconcile error stubs finds none.
+  Fix: Add: a computed-style test mounting each injected stylesheet in Chromium asserting declared font sizes apply and reveal selectors cover video containers; a filter-engine double-apply test; a composer-shaped DOM fixture for readComposerText; reconcile tests per the P2 item. Bait-verify each new gate once (restore the bug, watch it fail).
+  Acceptance: Each new test fails when its corresponding fix is reverted.
+  Confidence: Verified
+  Effort: M
