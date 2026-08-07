@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/aviary-x
-// @version      1.11.0
+// @version      1.12.0
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       Aviary contributors
 // @match        https://x.com/*
@@ -4673,7 +4673,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION = false ? "dev" : "1.11.0";
+  var AVIARY_VERSION = false ? "dev" : "1.12.0";
   var SENSITIVE_OPTIONS = [
     ["default", "Default (X choice)"],
     ["reveal", "Always reveal"],

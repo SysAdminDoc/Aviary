@@ -1,5 +1,16 @@
 # Aviary blocked roadmap
 
+Every item below waits on the same thing: evidence from a logged-in timeline that the public
+`_decoded/` fixtures do not contain.
+
+Since v1.12.0 there is a second way to produce that evidence, and it is easier than capturing
+MHTML. Passive GraphQL capture now genuinely sees X's responses (it patched the wrong `fetch`
+before), so turning on "Keep raw payloads" in Export and scrolling a home timeline records the
+server's own description of each post -- including the fields that mark a promoted unit, a repost
+and a blocked author. That is strictly better evidence than DOM markup for these four items,
+because it does not move when X reskins the timeline. What none of them can be built against is
+a guess about the response shape.
+
 ## F032 — Hide blocked accounts again
 
 Blocked pending an authenticated `_decoded/` home/status capture containing the current blocked-account markup. The existing public fixtures do not expose the required `[data-testid="userActions"]` blocked state, so shipping a predicate now would be speculative.

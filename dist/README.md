@@ -1,6 +1,6 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.11.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.12.0-2f81f7)
 
 Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.7.0: foundation primitives, fixture-backed selector checks, theme + control-center, layout declutter, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
 
@@ -9,6 +9,8 @@ Aviary is a local-first X/Twitter enhancer delivered as a readable userscript fi
 - Userscript entry: `src/entrypoints/userscript.ts`
 - MV3 content entry: `src/entrypoints/extension-content.ts`
 - MV3 background entry: `src/entrypoints/extension-background.ts`
+- MV3 page-world entry: `src/entrypoints/extension-page.ts` (declared `"world": "MAIN"`; the userscript reaches the same place through `unsafeWindow`)
+- Page bridge and agent: `src/platform/page-bridge.ts`, `src/page/page-agent.ts`
 - Stable selector registry: `src/platform/selectors.ts`
 - Settings/storage foundations: `src/platform/settings.ts`, `src/platform/storage.ts`
 - Layout declutter and theme foundations: `src/features/layout/declutter.ts`, `src/features/appearance/theme.ts`
@@ -42,6 +44,10 @@ npm run verify
 ## Privacy Model
 
 Aviary is designed to keep account data local. It sends no telemetry, never reads or exports cookies or auth headers, and loads no remote code. Credentials you enter for optional integrations are stored locally and are redacted when you export settings.
+
+Aviary can also refuse X's own analytics beacons — the tracking pings sent as you scroll, click and pause. It is off by default, because refusing them changes how the site behaves and that is your call rather than a default. Only the analytics endpoints are matched; timeline, media and login traffic is untouched, and the panel reports how many have actually been refused so an idle hook is visibly different from a broken one.
+
+Aviary does not encrypt its local data, and deliberately offers no setting that claims to. Its vault sits in the same browser profile as X's own session cookie, auth token and cached media — none of which Aviary can encrypt, all of which are more sensitive than its copy. Use full-disk encryption, which covers all of it.
 
 See [docs/PRIVACY.md](docs/PRIVACY.md) for the local data map and optional permission notes.
 

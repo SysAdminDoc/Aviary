@@ -26,6 +26,8 @@ The first time you click an Aviary Save / Video / Thumb button the browser will 
 
 ## 3. Firefox extension (temporary load)
 
+Requires Firefox 128 or newer: Aviary ships a `"world": "MAIN"` content script, which is what lets it see X's own network requests, and 128 is the first release to support it.
+
 1. Build as above.
 2. Open `about:debugging#/runtime/this-firefox`.
 3. **Load Temporary Add-on…** and select `dist/extension-firefox/manifest.json`.

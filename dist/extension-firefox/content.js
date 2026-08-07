@@ -4649,7 +4649,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION = false ? "dev" : "1.11.0";
+  var AVIARY_VERSION = false ? "dev" : "1.12.0";
   var SENSITIVE_OPTIONS = [
     ["default", "Default (X choice)"],
     ["reveal", "Always reveal"],

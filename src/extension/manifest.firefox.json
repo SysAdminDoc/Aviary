@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Aviary for X",
   "description": "Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "browser_specific_settings": {
     "gecko": {
       "id": "aviary@example.local",
