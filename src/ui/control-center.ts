@@ -381,6 +381,15 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       section("Backup & Audit", backupRows()),
       section("Trust", [
         readonlyRow("Storage", "Settings stay in this browser."),
+        toggleRow(
+          "Local-only mode",
+          "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.",
+          options.settings.privacy.localOnly,
+          async (checked) => {
+            options.settings.privacy.localOnly = checked;
+            await save(checked ? "Local-only mode on" : "Local-only mode off");
+          }
+        ),
         storageHealthRow(),
         readonlyRow("Telemetry", options.settings.privacy.telemetry ? "Enabled" : "Disabled"),
         coverageRow(),

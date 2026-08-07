@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -368,4 +368,110 @@ test("every setting a preset promises now has an implementation behind it", asyn
 
   const main = await readFile(path.join(root, "src/main.ts"), "utf8");
   assert.match(main, /registry\.register\(cleanShareLinksFeature\)/);
+});
+
+test("local-only mode blocks every integration entry point", async () => {
+  const policy = await importBundledModule("src/features/integrations/network-policy.ts");
+  const { assertOutboundAllowed, setLocalOnlyPolicy, resetLocalOnlyPolicy, LocalOnlyError } = policy;
+
+  resetLocalOnlyPolicy();
+  assert.doesNotThrow(() => assertOutboundAllowed("A request"));
+
+  setLocalOnlyPolicy(() => true);
+  assert.throws(() => assertOutboundAllowed("A request"), LocalOnlyError);
+  // The message has to name the switch, or a blocked call reads as a broken integration.
+  assert.throws(() => assertOutboundAllowed("A request"), /Local-only mode/i);
+
+  // Read fresh each call, so toggling the setting applies without a reload.
+  let on = true;
+  setLocalOnlyPolicy(() => on);
+  assert.throws(() => assertOutboundAllowed("A request"), LocalOnlyError);
+  on = false;
+  assert.doesNotThrow(() => assertOutboundAllowed("A request"));
+  resetLocalOnlyPolicy();
+
+  // Every module that can reach the network must consult the policy.
+  const { readFile } = await import("node:fs/promises");
+  for (const file of ["ai-provider.ts", "aria2.ts", "crosspost.ts", "semantic-search.ts"]) {
+    const source = await readFile(path.join(root, "src/features/integrations", file), "utf8");
+    assert.match(source, /assertOutboundAllowed\(/, `${file} can still reach the network unguarded`);
+  }
+  const main = await readFile(path.join(root, "src/main.ts"), "utf8");
+  assert.match(main, /setLocalOnlyPolicy\(\(\) => settings\.privacy\.localOnly\)/);
+});
+
+test("upgrading with a configured integration does not silently break it", async () => {
+  const { normalizeSettings, DEFAULT_SETTINGS } = await importBundledModule("src/platform/settings.ts");
+
+  // A fresh install keeps the local-only default, because integrations ship disabled.
+  assert.equal(normalizeSettings({}).privacy.localOnly, true);
+  assert.equal(DEFAULT_SETTINGS.privacy.localOnly, true);
+
+  // Someone who configured Aria2 in v1.3-v1.7 was already opting into those requests.
+  const upgraded = normalizeSettings({
+    privacy: { localOnly: true },
+    integrations: { aria2: { enabled: true, endpoint: "http://localhost:6800" } }
+  });
+  assert.equal(upgraded.privacy.localOnly, false, "an enabled integration must clear local-only");
+
+  // A disabled integration is not consent.
+  const untouched = normalizeSettings({
+    privacy: { localOnly: true },
+    integrations: { aria2: { enabled: false, endpoint: "http://localhost:6800" } }
+  });
+  assert.equal(untouched.privacy.localOnly, true);
+});
+
+test("the local-only guard fires before any integration touches the network", async () => {
+  // Bundled as one entry on purpose: the policy is module-scope state, so this also proves
+  // main.ts and the integration clients share one instance in a real build. Bundling each
+  // module separately would give each its own copy and quietly pass while shipping broken.
+  const temp = await mkdtemp(path.join(tmpdir(), "aviary-localonly-"));
+  try {
+    const entry = path.join(temp, "entry.ts");
+    const p = (rel) => path.resolve(root, rel).split(path.sep).join("/");
+    await writeFile(
+      entry,
+      `export { setLocalOnlyPolicy, resetLocalOnlyPolicy, LocalOnlyError } from "${p("src/features/integrations/network-policy.ts")}";
+export { addUriToAria2, tellActiveAria2 } from "${p("src/features/integrations/aria2.ts")}";
+export { crosspost } from "${p("src/features/integrations/crosspost.ts")}";
+export { runAiPrompt } from "${p("src/features/integrations/ai-provider.ts")}";`
+    );
+    const outfile = path.join(temp, "bundle.mjs");
+    await build({
+      entryPoints: [entry],
+      outfile,
+      bundle: true,
+      format: "esm",
+      platform: "neutral",
+      logLevel: "silent"
+    });
+    const mod = await import(pathToFileURL(outfile).href);
+
+    // Any fetch at all means the guard did not stop the call early enough.
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = () => {
+      throw new Error("network was reached while local-only mode was on");
+    };
+    try {
+      mod.setLocalOnlyPolicy(() => true);
+      await assert.rejects(
+        () => mod.addUriToAria2({ enabled: true, endpoint: "http://localhost:6800", secret: "" }, { url: "https://x/y.mp4" }),
+        mod.LocalOnlyError
+      );
+      await assert.rejects(
+        () => mod.tellActiveAria2({ enabled: true, endpoint: "http://localhost:6800", secret: "" }),
+        mod.LocalOnlyError
+      );
+      await assert.rejects(
+        () => mod.runAiPrompt({ enabled: true, apiKey: "k", provider: "anthropic", endpoint: "", model: "m" }, { prompt: "hi" }),
+        mod.LocalOnlyError
+      );
+    } finally {
+      mod.resetLocalOnlyPolicy();
+      globalThis.fetch = originalFetch;
+    }
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
 });

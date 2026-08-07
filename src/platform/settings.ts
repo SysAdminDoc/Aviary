@@ -271,6 +271,18 @@ export function normalizeSettings(input: unknown): AviarySettings {
   const integrationsSemantic = asRecord(integrations.semanticSearch);
   const integrationsCrosspost = asRecord(integrations.crosspost);
 
+  // Local-only mode became a real gate in v1.8.0. Anyone who had already configured an
+  // integration was, by enabling it, opting into those requests -- so honour that rather than
+  // silently breaking a working setup on upgrade. New installs keep the local-only default,
+  // because every integration ships disabled.
+  const anyIntegrationEnabled = [
+    integrationsAria,
+    integrationsBluesky,
+    integrationsMastodon,
+    integrationsAi,
+    integrationsSemantic
+  ].some((entry) => entry.enabled === true);
+
   return {
     appearance: {
       theme: enumValue(appearance.theme, THEME_IDS, DEFAULT_SETTINGS.appearance.theme),
@@ -351,7 +363,9 @@ export function normalizeSettings(input: unknown): AviarySettings {
       snippets: stringArray(composer.snippets, { maxItems: 100, maxLength: 500 })
     },
     privacy: {
-      localOnly: booleanValue(privacy.localOnly, DEFAULT_SETTINGS.privacy.localOnly),
+      localOnly: anyIntegrationEnabled
+        ? false
+        : booleanValue(privacy.localOnly, DEFAULT_SETTINGS.privacy.localOnly),
       telemetry: false,
       encryptVault: booleanValue(privacy.encryptVault, DEFAULT_SETTINGS.privacy.encryptVault),
       auditLog: booleanValue(privacy.auditLog, DEFAULT_SETTINGS.privacy.auditLog)

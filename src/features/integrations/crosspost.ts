@@ -1,4 +1,5 @@
 import type { IntegrationSettings } from "../../platform/settings";
+import { assertOutboundAllowed } from "./network-policy";
 
 export type CrosspostTarget = "bluesky" | "mastodon";
 
@@ -36,6 +37,7 @@ export async function crosspost(
   integrations: IntegrationSettings,
   request: CrosspostRequest
 ): Promise<CrosspostResult> {
+  assertOutboundAllowed("The crosspost");
   if (request.text.trim().length === 0) {
     return { ok: false, target: request.target, error: "Empty post body" };
   }

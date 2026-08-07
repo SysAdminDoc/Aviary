@@ -941,12 +941,6 @@ Mandatory Phase 5 checks:
 Raised during the full engineering/UX/security audit of v1.6.0. Items fixed in that pass are
 in CHANGELOG.md; these are the ones left open, with the reason each was not taken.
 
-- [ ] P3 — settings.privacy.localOnly and privacy.encryptVault are schema-only
-  Why: `localOnly` defaults to true while the integrations happily make network calls, so the
-  two disagree on what the product promises — decide whether it gates the integration surface
-  or leaves the schema. `encryptVault` needs a real WebCrypto at-rest story or removal.
-  Where: src/platform/settings.ts, src/features/integrations/
-
 - [ ] P3 — Areas not covered by this audit
   Why: recorded for honesty. Not reviewed in depth: WARC record framing (warc.ts), the STORE
   ZIP writer's ZIP64 boundaries (zip-store.ts), query-discovery.ts heuristics,

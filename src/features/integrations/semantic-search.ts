@@ -1,6 +1,7 @@
 import type { StorageGateway } from "../../platform/storage";
 import type { IntegrationSettings } from "../../platform/settings";
 import type { ExportRecord } from "../export/types";
+import { assertOutboundAllowed } from "./network-policy";
 
 export const SEMANTIC_INDEX_KEY = "aviary.semanticIndex.v1";
 
@@ -134,6 +135,7 @@ async function fetchEmbedding(
   config: IntegrationSettings["semanticSearch"],
   text: string
 ): Promise<number[] | null> {
+  assertOutboundAllowed("Embedding");
   try {
     const response = await fetch(config.endpoint, {
       method: "POST",

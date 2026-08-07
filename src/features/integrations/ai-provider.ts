@@ -1,4 +1,5 @@
 import type { IntegrationSettings } from "../../platform/settings";
+import { assertOutboundAllowed } from "./network-policy";
 
 export interface AiProviderRequest {
   prompt: string;
@@ -16,6 +17,7 @@ export async function runAiPrompt(
   config: IntegrationSettings["ai"],
   request: AiProviderRequest
 ): Promise<AiProviderResponse> {
+  assertOutboundAllowed("The AI request");
   if (!config.enabled) return { ok: false, error: "AI provider integration disabled" };
   if (!config.apiKey) return { ok: false, error: "AI provider API key missing" };
   if (!config.model) return { ok: false, error: "AI provider model missing" };

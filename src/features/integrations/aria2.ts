@@ -1,5 +1,6 @@
 import type { IntegrationSettings } from "../../platform/settings";
 import type { StorageGateway } from "../../platform/storage";
+import { assertOutboundAllowed } from "./network-policy";
 
 export const ARIA2_HISTORY_KEY = "aviary.aria2.history.v1";
 const ARIA2_HISTORY_LIMIT = 1000;
@@ -39,6 +40,7 @@ export async function addUriToAria2(
   config: Aria2Config,
   request: Aria2Request
 ): Promise<Aria2Result> {
+  assertOutboundAllowed("The Aria2 handoff");
   if (!config.endpoint) {
     return { ok: false, error: "Aria2 endpoint not configured" };
   }
@@ -177,6 +179,7 @@ export class Aria2History {
 }
 
 export async function tellActiveAria2(config: Aria2Config): Promise<Aria2ActiveDownload[]> {
+  assertOutboundAllowed("The Aria2 sweep");
   const payload = await callAria2<Array<Record<string, unknown>>>(config, "aria2.tellActive", []);
   if (!Array.isArray(payload)) return [];
   return payload.map((row) => ({
@@ -193,6 +196,7 @@ export async function tellActiveAria2(config: Aria2Config): Promise<Aria2ActiveD
 }
 
 export async function removeAria2Download(config: Aria2Config, gid: string): Promise<Aria2Result> {
+  assertOutboundAllowed("The Aria2 cancel");
   if (!gid) return { ok: false, error: "Missing GID" };
   const payload = await callAria2<string>(config, "aria2.remove", [gid]);
   if (typeof payload === "string") {
@@ -202,6 +206,7 @@ export async function removeAria2Download(config: Aria2Config, gid: string): Pro
 }
 
 export async function tellAria2Status(config: Aria2Config, gid: string): Promise<string | null> {
+  assertOutboundAllowed("The Aria2 status check");
   if (!gid) return null;
   if (!config.endpoint) return null;
   const token = config.secret ? `token:${config.secret}` : undefined;

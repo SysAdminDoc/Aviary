@@ -441,6 +441,8 @@ html.av-reduce-motion *::after {
       "Backup & Audit": "Copia y auditor\xEDa",
       "Storage": "Almacenamiento",
       "Settings stay in this browser.": "Los ajustes se quedan en este navegador.",
+      "Local-only mode": "Modo solo local",
+      "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.": "Bloquea todas las peticiones salientes, incluidas las integraciones que hayas configurado. Activado de forma predeterminada; activar una integraci\xF3n es lo que lo desactiva.",
       "Some changes could not be saved \u2014 the browser store may be full.": "No se pudieron guardar algunos cambios; el almacenamiento del navegador podr\xEDa estar lleno.",
       "Saving": "Guardado",
       "Telemetry": "Telemetr\xEDa",
@@ -763,6 +765,8 @@ html.av-reduce-motion *::after {
       "Backup & Audit": "Backup e auditoria",
       "Storage": "Armazenamento",
       "Settings stay in this browser.": "As configura\xE7\xF5es ficam neste navegador.",
+      "Local-only mode": "Modo apenas local",
+      "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.": "Bloqueia todos os pedidos de sa\xEDda, incluindo as integra\xE7\xF5es que configurou. Ativado por predefini\xE7\xE3o; ativar uma integra\xE7\xE3o \xE9 o que o desliga.",
       "Some changes could not be saved \u2014 the browser store may be full.": "N\xE3o foi poss\xEDvel gravar algumas altera\xE7\xF5es; o armazenamento do navegador pode estar cheio.",
       "Saving": "Grava\xE7\xE3o",
       "Telemetry": "Telemetria",
@@ -1085,6 +1089,8 @@ html.av-reduce-motion *::after {
       "Backup & Audit": "Sauvegarde et audit",
       "Storage": "Stockage",
       "Settings stay in this browser.": "Les r\xE9glages restent dans ce navigateur.",
+      "Local-only mode": "Mode local uniquement",
+      "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.": "Bloque toutes les requ\xEAtes sortantes, y compris les int\xE9grations que vous avez configur\xE9es. Activ\xE9 par d\xE9faut ; activer une int\xE9gration est ce qui le d\xE9sactive.",
       "Some changes could not be saved \u2014 the browser store may be full.": "Certaines modifications n'ont pas pu \xEAtre enregistr\xE9es ; le stockage du navigateur est peut-\xEAtre plein.",
       "Saving": "Enregistrement",
       "Telemetry": "T\xE9l\xE9m\xE9trie",
@@ -1407,6 +1413,8 @@ html.av-reduce-motion *::after {
       "Backup & Audit": "Sicherung & Audit",
       "Storage": "Speicher",
       "Settings stay in this browser.": "Einstellungen bleiben in diesem Browser.",
+      "Local-only mode": "Nur-lokal-Modus",
+      "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.": "Blockiert jede ausgehende Anfrage, auch die von dir eingerichteten Integrationen. Standardm\xE4\xDFig an; das Einschalten einer Integration schaltet ihn aus.",
       "Some changes could not be saved \u2014 the browser store may be full.": "Einige \xC4nderungen konnten nicht gespeichert werden \u2013 der Browser-Speicher ist m\xF6glicherweise voll.",
       "Saving": "Speichern",
       "Telemetry": "Telemetrie",
@@ -1729,6 +1737,8 @@ html.av-reduce-motion *::after {
       "Backup & Audit": "\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3068\u76E3\u67FB",
       "Storage": "\u4FDD\u5B58\u5834\u6240",
       "Settings stay in this browser.": "\u8A2D\u5B9A\u306F\u3053\u306E\u30D6\u30E9\u30A6\u30B6\u5185\u306B\u7559\u307E\u308A\u307E\u3059\u3002",
+      "Local-only mode": "\u30ED\u30FC\u30AB\u30EB\u9650\u5B9A\u30E2\u30FC\u30C9",
+      "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.": "\u8A2D\u5B9A\u3057\u305F\u9023\u643A\u3092\u542B\u3081\u3001\u5916\u90E8\u3078\u306E\u3059\u3079\u3066\u306E\u901A\u4FE1\u3092\u30D6\u30ED\u30C3\u30AF\u3057\u307E\u3059\u3002\u65E2\u5B9A\u3067\u30AA\u30F3\u3067\u3001\u9023\u643A\u3092\u30AA\u30F3\u306B\u3059\u308B\u3068\u3053\u308C\u304C\u30AA\u30D5\u306B\u306A\u308A\u307E\u3059\u3002",
       "Some changes could not be saved \u2014 the browser store may be full.": "\u4E00\u90E8\u306E\u5909\u66F4\u3092\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u30D6\u30E9\u30A6\u30B6\u306E\u4FDD\u5B58\u9818\u57DF\u304C\u3044\u3063\u3071\u3044\u306E\u53EF\u80FD\u6027\u304C\u3042\u308A\u307E\u3059\u3002",
       "Saving": "\u4FDD\u5B58",
       "Telemetry": "\u30C6\u30EC\u30E1\u30C8\u30EA",
@@ -2051,6 +2061,8 @@ html.av-reduce-motion *::after {
       "Backup & Audit": "\uBC31\uC5C5 \uBC0F \uAC10\uC0AC",
       "Storage": "\uC800\uC7A5 \uC704\uCE58",
       "Settings stay in this browser.": "\uC124\uC815\uC740 \uC774 \uBE0C\uB77C\uC6B0\uC800\uC5D0\uB9CC \uB0A8\uC2B5\uB2C8\uB2E4.",
+      "Local-only mode": "\uB85C\uCEEC \uC804\uC6A9 \uBAA8\uB4DC",
+      "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.": "\uC124\uC815\uD55C \uC5F0\uB3D9\uC744 \uD3EC\uD568\uD574 \uBAA8\uB4E0 \uC678\uBD80 \uC694\uCCAD\uC744 \uCC28\uB2E8\uD569\uB2C8\uB2E4. \uAE30\uBCF8\uC73C\uB85C \uCF1C\uC838 \uC788\uC73C\uBA70, \uC5F0\uB3D9\uC744 \uCF1C\uBA74 \uC774 \uBAA8\uB4DC\uAC00 \uAEBC\uC9D1\uB2C8\uB2E4.",
       "Some changes could not be saved \u2014 the browser store may be full.": "\uC77C\uBD80 \uBCC0\uACBD \uC0AC\uD56D\uC744 \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uBE0C\uB77C\uC6B0\uC800 \uC800\uC7A5 \uACF5\uAC04\uC774 \uAC00\uB4DD \uCC3C\uC744 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
       "Saving": "\uC800\uC7A5",
       "Telemetry": "\uD154\uB808\uBA54\uD2B8\uB9AC",
@@ -2373,6 +2385,8 @@ html.av-reduce-motion *::after {
       "Backup & Audit": "\u0627\u0644\u0646\u0633\u062E \u0627\u0644\u0627\u062D\u062A\u064A\u0627\u0637\u064A \u0648\u0627\u0644\u062A\u062F\u0642\u064A\u0642",
       "Storage": "\u0627\u0644\u062A\u062E\u0632\u064A\u0646",
       "Settings stay in this browser.": "\u062A\u0628\u0642\u0649 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A \u062F\u0627\u062E\u0644 \u0647\u0630\u0627 \u0627\u0644\u0645\u062A\u0635\u0641\u062D.",
+      "Local-only mode": "\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0645\u062D\u0644\u064A \u0641\u0642\u0637",
+      "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.": "\u064A\u0645\u0646\u0639 \u0643\u0644 \u0627\u0644\u0637\u0644\u0628\u0627\u062A \u0627\u0644\u0635\u0627\u062F\u0631\u0629\u060C \u0628\u0645\u0627 \u0641\u064A\u0647\u0627 \u0627\u0644\u062A\u0643\u0627\u0645\u0644\u0627\u062A \u0627\u0644\u062A\u064A \u0623\u0639\u062F\u062F\u062A\u0647\u0627. \u0645\u064F\u0641\u0639\u0651\u0644 \u0627\u0641\u062A\u0631\u0627\u0636\u064A\u064B\u0627\u060C \u0648\u062A\u0641\u0639\u064A\u0644 \u0623\u064A \u062A\u0643\u0627\u0645\u0644 \u0647\u0648 \u0645\u0627 \u064A\u0648\u0642\u0641\u0647.",
       "Some changes could not be saved \u2014 the browser store may be full.": "\u062A\u0639\u0630\u0651\u0631 \u062D\u0641\u0638 \u0628\u0639\u0636 \u0627\u0644\u062A\u063A\u064A\u064A\u0631\u0627\u062A \u2014 \u0642\u062F \u062A\u0643\u0648\u0646 \u0645\u0633\u0627\u062D\u0629 \u062A\u062E\u0632\u064A\u0646 \u0627\u0644\u0645\u062A\u0635\u0641\u062D \u0645\u0645\u062A\u0644\u0626\u0629.",
       "Saving": "\u0627\u0644\u062D\u0641\u0638",
       "Telemetry": "\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0627\u0633\u062A\u062E\u062F\u0627\u0645",
@@ -2695,6 +2709,8 @@ html.av-reduce-motion *::after {
       "Backup & Audit": "\u05D2\u05D9\u05D1\u05D5\u05D9 \u05D5\u05D1\u05D9\u05E7\u05D5\u05E8\u05EA",
       "Storage": "\u05D0\u05D7\u05E1\u05D5\u05DF",
       "Settings stay in this browser.": "\u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05E0\u05E9\u05D0\u05E8\u05D5\u05EA \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF \u05D4\u05D6\u05D4.",
+      "Local-only mode": "\u05DE\u05E6\u05D1 \u05DE\u05E7\u05D5\u05DE\u05D9 \u05D1\u05DC\u05D1\u05D3",
+      "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.": "\u05D7\u05D5\u05E1\u05DD \u05DB\u05DC \u05D1\u05E7\u05E9\u05D4 \u05D9\u05D5\u05E6\u05D0\u05EA, \u05DB\u05D5\u05DC\u05DC \u05D4\u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D5\u05EA \u05E9\u05D4\u05D2\u05D3\u05E8\u05EA. \u05DE\u05D5\u05E4\u05E2\u05DC \u05DB\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC; \u05D4\u05E4\u05E2\u05DC\u05EA \u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D4 \u05D4\u05D9\u05D0 \u05DE\u05D4 \u05E9\u05DE\u05DB\u05D1\u05D4 \u05D0\u05D5\u05EA\u05D5.",
       "Some changes could not be saved \u2014 the browser store may be full.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05D4\u05D9\u05D4 \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D7\u05DC\u05E7 \u05DE\u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u2014 \u05D9\u05D9\u05EA\u05DB\u05DF \u05E9\u05D0\u05D7\u05E1\u05D5\u05DF \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05DE\u05DC\u05D0.",
       "Saving": "\u05E9\u05DE\u05D9\u05E8\u05D4",
       "Telemetry": "\u05E0\u05EA\u05D5\u05E0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9",
@@ -2951,6 +2967,13 @@ html.av-reduce-motion *::after {
     const integrationsAi = asRecord(integrations.ai);
     const integrationsSemantic = asRecord(integrations.semanticSearch);
     const integrationsCrosspost = asRecord(integrations.crosspost);
+    const anyIntegrationEnabled = [
+      integrationsAria,
+      integrationsBluesky,
+      integrationsMastodon,
+      integrationsAi,
+      integrationsSemantic
+    ].some((entry) => entry.enabled === true);
     return {
       appearance: {
         theme: enumValue(appearance.theme, THEME_IDS, DEFAULT_SETTINGS.appearance.theme),
@@ -3031,7 +3054,7 @@ html.av-reduce-motion *::after {
         snippets: stringArray(composer.snippets, { maxItems: 100, maxLength: 500 })
       },
       privacy: {
-        localOnly: booleanValue(privacy.localOnly, DEFAULT_SETTINGS.privacy.localOnly),
+        localOnly: anyIntegrationEnabled ? false : booleanValue(privacy.localOnly, DEFAULT_SETTINGS.privacy.localOnly),
         telemetry: false,
         encryptVault: booleanValue(privacy.encryptVault, DEFAULT_SETTINGS.privacy.encryptVault),
         auditLog: booleanValue(privacy.auditLog, DEFAULT_SETTINGS.privacy.auditLog)
@@ -3486,6 +3509,15 @@ html.av-reduce-motion *::after {
         section("Backup & Audit", backupRows()),
         section("Trust", [
           readonlyRow("Storage", "Settings stay in this browser."),
+          toggleRow(
+            "Local-only mode",
+            "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.",
+            options.settings.privacy.localOnly,
+            async (checked) => {
+              options.settings.privacy.localOnly = checked;
+              await save(checked ? "Local-only mode on" : "Local-only mode off");
+            }
+          ),
           storageHealthRow(),
           readonlyRow("Telemetry", options.settings.privacy.telemetry ? "Enabled" : "Disabled"),
           coverageRow(),
@@ -5670,6 +5702,25 @@ input[type="checkbox"] {
     return JSON.parse(JSON.stringify(overrides));
   }
 
+  // src/features/integrations/network-policy.ts
+  var LocalOnlyError = class extends Error {
+    constructor(what) {
+      super(
+        `${what} was blocked: Aviary is in local-only mode. Turn off "Local-only mode" in Trust to let configured integrations reach the network.`
+      );
+      this.name = "LocalOnlyError";
+    }
+  };
+  var localOnly = () => false;
+  function setLocalOnlyPolicy(predicate) {
+    localOnly = predicate;
+  }
+  function assertOutboundAllowed(what) {
+    if (localOnly()) {
+      throw new LocalOnlyError(what);
+    }
+  }
+
   // src/features/integrations/semantic-search.ts
   var SEMANTIC_INDEX_KEY = "aviary.semanticIndex.v1";
   var EMPTY = { entries: [], model: "" };
@@ -5758,6 +5809,7 @@ input[type="checkbox"] {
     }
   };
   async function fetchEmbedding(config, text) {
+    assertOutboundAllowed("Embedding");
     try {
       const response = await fetch(config.endpoint, {
         method: "POST",
@@ -7768,6 +7820,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   var ARIA2_HISTORY_KEY = "aviary.aria2.history.v1";
   var ARIA2_HISTORY_LIMIT = 1e3;
   async function addUriToAria2(config, request) {
+    assertOutboundAllowed("The Aria2 handoff");
     if (!config.endpoint) {
       return { ok: false, error: "Aria2 endpoint not configured" };
     }
@@ -7881,6 +7934,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     }
   };
   async function tellActiveAria2(config) {
+    assertOutboundAllowed("The Aria2 sweep");
     const payload = await callAria2(config, "aria2.tellActive", []);
     if (!Array.isArray(payload)) return [];
     return payload.map((row) => ({
@@ -7892,6 +7946,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     }));
   }
   async function removeAria2Download(config, gid) {
+    assertOutboundAllowed("The Aria2 cancel");
     if (!gid) return { ok: false, error: "Missing GID" };
     const payload = await callAria2(config, "aria2.remove", [gid]);
     if (typeof payload === "string") {
@@ -7900,6 +7955,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     return { ok: false, error: "Aria2 did not return a GID" };
   }
   async function tellAria2Status(config, gid) {
+    assertOutboundAllowed("The Aria2 status check");
     if (!gid) return null;
     if (!config.endpoint) return null;
     const token = config.secret ? `token:${config.secret}` : void 0;
@@ -7958,6 +8014,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     return blocks.length === 0 ? [text.trim()].filter((block) => block.length > 0) : blocks;
   }
   async function crosspost(integrations, request) {
+    assertOutboundAllowed("The crosspost");
     if (request.text.trim().length === 0) {
       return { ok: false, target: request.target, error: "Empty post body" };
     }
@@ -11219,6 +11276,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
 
   // src/features/integrations/ai-provider.ts
   async function runAiPrompt(config, request) {
+    assertOutboundAllowed("The AI request");
     if (!config.enabled) return { ok: false, error: "AI provider integration disabled" };
     if (!config.apiKey) return { ok: false, error: "AI provider API key missing" };
     if (!config.model) return { ok: false, error: "AI provider model missing" };
@@ -12719,6 +12777,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     const storage = createStorageGateway("aviary");
     const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
     const diagnostics = new Diagnostics();
+    setLocalOnlyPolicy(() => settings.privacy.localOnly);
     const limiter = settings.jobs.rateLimitMode === "conservative" ? new TokenBucket(4, 1) : new TokenBucket(8, 4);
     const registry = new FeatureRegistry();
     const policy = createTrustedHtmlPolicy();

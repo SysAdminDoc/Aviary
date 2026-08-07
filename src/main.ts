@@ -18,6 +18,7 @@ import { userNotesFeature } from "./features/library/user-notes";
 import { mediaButtonsFeature } from "./features/media/media-buttons";
 import { mediaPresentationFeature } from "./features/media/media-presentation";
 import { FeatureRegistry, type FeatureContext } from "./features/registry";
+import { setLocalOnlyPolicy } from "./features/integrations/network-policy";
 import { Diagnostics } from "./platform/diagnostics";
 import { observeAddedElements } from "./platform/observer";
 import { TokenBucket } from "./platform/rate-limit";
@@ -66,6 +67,8 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   const storage = createStorageGateway("aviary");
   const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
   const diagnostics = new Diagnostics();
+  // Read fresh on every outbound call, so toggling local-only mode applies at once.
+  setLocalOnlyPolicy(() => settings.privacy.localOnly);
   // Burst covers an ordinary page of media without any wait; the refill rate is what paces a
   // long batch. 0.5/s was low enough that a 200-item batch would have looked hung.
   const limiter =

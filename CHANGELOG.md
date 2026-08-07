@@ -73,6 +73,14 @@ Drains the audit findings left open by the v1.7.0 pass.
   break real links. `t.co` URLs are left alone because their path *is* the identifier. Verified
   in Chromium: late-arriving rows are cleaned too, and destroy restores every original href.
 
+- **`privacy.localOnly` is a real switch.** It defaulted to `true` while every integration made
+  network requests, so the setting and the behaviour disagreed about what the product promised.
+  It now gates the outbound path of Aria2, Bluesky, Mastodon, the AI provider and embeddings, and
+  Trust carries a **Local-only mode** toggle. The guard sits at each integration's entry point
+  rather than at each `fetch`, so a blocked call fails once, before any credential is attached.
+  Upgrading with a configured integration clears the flag — enabling an integration was already
+  the opt-in, and silently breaking a working setup would be worse than the inconsistency.
+
 ### Decided
 
 - **No Escape-to-close handler.** The open question was whether standard dialog dismissal should
