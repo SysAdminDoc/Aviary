@@ -109,13 +109,17 @@ Downloads prefer `GM_download` in userscript managers, fall back to the extensio
 
 In the MV3 build `downloads` is an optional permission. Until it is granted the service worker answers with `downloads-permission-missing`, the button reads **Allow** instead of claiming a save, and Aviary opens its options page once so the permission can be granted with a real user gesture. The options page (toolbar icon, or Extensions → Aviary → Options) shows the live grant state for `downloads` and for the `pbs.twimg.com` / `video.twimg.com` media hosts, and can revoke either. On the rare path where the anchor fallback still runs for a cross-origin URL, the button reads **Opened**, not Saved. The userscript build is unaffected.
 
-Tweets with embedded video or GIF players now also expose a Video / GIF button. Aviary scans `<video>` and `<source>` elements inside `[data-testid="videoPlayer"]` / `videoComponent` containers and picks the highest-bitrate variant available in the DOM. When `tweet_video/` URLs or loop+muted players are detected, the button labels itself "GIF" and the dedup history scopes by media kind.
+Tweets with embedded video or GIF players expose a Video / GIF button when Aviary's page-world
+GraphQL capture finds a direct downloadable variant. X commonly gives timeline players a `blob:`
+MediaSource URL, so blob-only players intentionally have no video control; a known poster still
+gets its Thumb control. Aviary keeps only bounded media metadata, matches it to the tweet/media,
+and picks the highest-bitrate variant it can save. When `tweet_video/` URLs or loop+muted players
+are detected, the button labels itself "GIF" and the dedup history scopes by media kind.
 
 ## Media layout
 
 The Media section also exposes:
 
-- **Sensitive content** — Default (X choice), Always reveal, Blur until hovered, or Always hide. Applied via `av-sensitive-*` classes on `<html>`; toggling reverses cleanly.
 - **Media layout** — Default, Stacked (full-width images, one per row), or Strict grid (`auto-fit` columns).
 
 ## Export core
@@ -152,7 +156,8 @@ The Control Center "Library" section exposes:
 - **Local bookmarks** — use the Save locally control on a rendered post, then search the Library
   and edit tags, folders, reminders, or notes. Removing a bookmark affects only Aviary's local
   library and leaves X's own bookmark action untouched.
-- **Composer snippets** — reusable templates / replies (insertion into `[data-testid="tweetTextarea_0"]` lands in a later release; the editor and storage ship now).
+- **Composer snippets** — reusable replies / templates edited in Library and inserted into the focused
+  composer from the Snippets toolbar button.
 
 ## Install & FAQ
 
@@ -204,7 +209,10 @@ The Integrations panel also surfaces a "Recent integration errors" readout that 
 
 ## Roadmap
 
-The working plan is in [ROADMAP.md](ROADMAP.md). v1.5.0 closes the local retention/history, crosspost-upload, and CI-smoke batch. F032/F033 remain blocked until authenticated `_decoded/` captures are available.
+The working plan is in [ROADMAP.md](ROADMAP.md). v1.15.0 is the current release; the latest batch
+adds current-X compatibility coverage, route-aware selector health, live-toggle reconciliation,
+local bookmarks, and scoped original-quality image rewriting. F032/F033 remain blocked until
+authenticated `_decoded/` captures are available.
 
 `npm run smoke` runs the Playwright spec at `tests/smoke/aviary.smoke.mjs`. The CI workflow caches Chromium and runs it inside an isolated Xvfb display. For local use, install the pinned runner and browser:
 

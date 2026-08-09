@@ -13,6 +13,7 @@ await checkBundles();
 await checkPermissions();
 await checkSourcePolicy();
 await checkDependencyPolicy();
+await checkReleaseMetadata();
 
 if (failures.length > 0) {
   console.error("Preflight failed:");
@@ -166,6 +167,67 @@ async function checkDependencyPolicy() {
   }
   if (Object.keys(pkg.dependencies ?? {}).length > 0) {
     warnings.push("runtime dependencies present — confirm they are reviewed for the MV3 supply-chain audit");
+  }
+}
+
+async function checkReleaseMetadata() {
+  const required = [
+    ["README.md", "shields.io/badge/version-" + pkg.version + "-"],
+    ["ROADMAP.md", "Version: " + String.fromCharCode(96) + pkg.version + String.fromCharCode(96)],
+    ["CHANGELOG.md", "## " + pkg.version + " -"]
+  ];
+  const optional = [["CLAUDE.md", "**Current version:** " + pkg.version]];
+  const contents = new Map();
+
+  for (const [relative, expected] of [...required, ...optional]) {
+    let text;
+    try {
+      text = await readFile(path.join(root, relative), "utf8");
+    } catch (error) {
+      if (optional.some(([candidate]) => candidate === relative) && error.code === "ENOENT") {
+        continue;
+      }
+      failures.push(relative + ": release metadata is unreadable (" + error.message + ")");
+      continue;
+    }
+    contents.set(relative, text);
+    if (!text.includes(expected)) {
+      failures.push(relative + ": does not advertise package version " + pkg.version);
+    }
+  }
+
+  for (const relative of ["src/extension/manifest.chrome.json", "src/extension/manifest.firefox.json"]) {
+    try {
+      const manifest = JSON.parse(await readFile(path.join(root, relative), "utf8"));
+      if (manifest.version !== pkg.version) {
+        failures.push(relative + ": version (" + manifest.version + ") != package.json (" + pkg.version + ")");
+      }
+    } catch (error) {
+      failures.push(relative + ": source manifest is unreadable (" + error.message + ")");
+    }
+  }
+
+  const readme = contents.get("README.md") ?? "";
+  if (/\*\*Sensitive content\*\*\s*[—-]/i.test(readme)) {
+    failures.push("README.md: removed Sensitive content control is still advertised");
+  }
+  if (/insertion(?: into[^)]*)? lands? in a later release|insertion landing in a later release/i.test(readme)) {
+    failures.push("README.md: shipped composer insertion is still described as future work");
+  }
+  if (/v1\.5\.0 closes the .*batch/i.test(readme)) {
+    failures.push("README.md: roadmap paragraph still claims v1.5.0 is current");
+  }
+
+  const panel = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+  if (/insertion landing in a later release/i.test(panel)) {
+    failures.push("src/ui/control-center.ts: composer insertion is still described as future work");
+  }
+  if (!panel.includes("__AVIARY_VERSION__") || !panel.includes("av-version")) {
+    failures.push("src/ui/control-center.ts: Control Center version stamp contract is missing");
+  }
+  const userscript = await readFile(path.join(root, "dist", "aviary.user.js"), "utf8");
+  if (!userscript.includes("AVIARY_VERSION") || !userscript.includes('"' + pkg.version + '"')) {
+    failures.push("dist/aviary.user.js: Control Center/build version stamp " + pkg.version + " is missing");
   }
 }
 

@@ -1890,7 +1890,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     rows.push(
       textareaRow(
         "Composer snippets",
-        "One snippet per line. Reusable replies / templates (insertion landing in a later release).",
+        "One snippet per line. Reusable replies / templates insert from the composer toolbar.",
         options.settings.composer.snippets,
         async (lines) => {
           options.settings.composer.snippets = lines

@@ -55,6 +55,9 @@
   Save locally control, and Library search can edit tags, folders, reminders, notes, or remove entries.
 - Original-quality image mutation now upgrades only `pbs.twimg.com/media` tweet photos; avatars,
   emoji, cards, and stale non-media markers are left untouched or restored during reconciliation.
+- Release metadata now stays synchronized across the package, manifests, README, roadmap, changelog,
+  and build-stamped Control Center; the panel and README describe shipped snippet insertion and
+  current MediaSource limitations accurately.
 
 ## 1.14.1 - 2026-08-08
 

@@ -84,6 +84,43 @@ test("development dependencies are pinned for reproducible builds", async () => 
   }
 });
 
+test("release metadata and removed UI claims stay synchronized", async () => {
+  const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
+  const [readme, roadmap, changelog, panel] = await Promise.all(
+    ["README.md", "ROADMAP.md", "CHANGELOG.md", "src/ui/control-center.ts"].map((relative) =>
+      readFile(path.join(root, relative), "utf8")
+    )
+  );
+  const claude = await readFile(path.join(root, "CLAUDE.md"), "utf8").catch((error) => {
+    if (error.code === "ENOENT") {
+      return "";
+    }
+    throw error;
+  });
+
+  assert.ok(
+    readme.includes("shields.io/badge/version-" + pkg.version + "-"),
+    "README version badge is out of sync"
+  );
+  if (claude) {
+    assert.ok(
+      claude.includes("**Current version:** " + pkg.version),
+      "CLAUDE current version is out of sync"
+    );
+  }
+  assert.ok(
+    roadmap.includes("Version: " + String.fromCharCode(96) + pkg.version + String.fromCharCode(96)),
+    "ROADMAP version is out of sync"
+  );
+  assert.ok(changelog.includes("## " + pkg.version + " -"), "CHANGELOG has no current release heading");
+  assert.doesNotMatch(readme, /\*\*Sensitive content\*\*\s*[—-]/i);
+  assert.doesNotMatch(readme, /insertion(?: into[^)]*)? lands? in a later release/i);
+  assert.doesNotMatch(readme, /v1\.5\.0 closes the .*batch/i);
+  assert.doesNotMatch(panel, /insertion landing in a later release/i);
+  assert.match(panel, /declare const __AVIARY_VERSION__/);
+  assert.match(panel, /av-version/);
+});
+
 test("layout declutter is class-scoped and reversible", async () => {
   const source = await readFile(path.join(root, "src/features/layout/declutter.ts"), "utf8");
 
