@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { promisify } from "node:util";
 import { build } from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const execFileAsync = promisify(execFile);
 
 test("an unchanged apply does not invalidate every article's processed stamp", async () => {
   const source = await readFile(path.join(root, "src/features/filtering/filter-engine.ts"), "utf8");
@@ -304,6 +308,21 @@ test("the panel shows the build it is running, stamped from package.json", async
     const parsed = JSON.parse(await readFile(path.join(root, manifest), "utf8"));
     assert.equal(parsed.version, pkg.version, `${manifest} is out of step with package.json`);
   }
+});
+
+test("store extension archives are byte-reproducible", async () => {
+  const packageJson = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
+  const archivePaths = [
+    path.join(root, "dist", `extension-chrome-v${packageJson.version}.zip`),
+    path.join(root, "dist", `extension-firefox-v${packageJson.version}.zip`)
+  ];
+
+  await execFileAsync(process.execPath, ["tools/build.mjs"], { cwd: root });
+  const first = await Promise.all(archivePaths.map(async (archivePath) => createHash("sha256").update(await readFile(archivePath)).digest("hex")));
+  await execFileAsync(process.execPath, ["tools/build.mjs"], { cwd: root });
+  const second = await Promise.all(archivePaths.map(async (archivePath) => createHash("sha256").update(await readFile(archivePath)).digest("hex")));
+
+  assert.deepEqual(second, first, "repeated builds changed a tracked ZIP without source changes");
 });
 
 async function importBundledModule(relativePath) {

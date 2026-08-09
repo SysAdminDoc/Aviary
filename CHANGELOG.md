@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.14.1 - 2026-08-08
+
+### Fixed
+
+- Store-ready Chrome and Firefox ZIP archives are now byte-reproducible. Packaging uses a stable
+  DOS timestamp and sorted filesystem entries, so repeated verification builds no longer dirty
+  tracked release artifacts when the source has not changed.
+
 ## 1.14.0 - 2026-08-07
 
 ### Fixed

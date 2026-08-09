@@ -18,6 +18,7 @@ const CRC32_TABLE = (() => {
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dist = path.join(root, "dist");
 const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
+const STORE_ZIP_DATE = new Date("1980-01-01T00:00:00.000Z");
 const matchLines = [
   "https://x.com/*",
   "https://twitter.com/*",
@@ -193,7 +194,9 @@ async function packDirectoryAsStoreZip(directory, outputPath) {
 }
 
 async function* walk(directory) {
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  entries.sort((left, right) => (left.name < right.name ? -1 : left.name > right.name ? 1 : 0));
+  for (const entry of entries) {
     const next = path.join(directory, entry.name);
     if (entry.isDirectory()) {
       yield* walk(next);
@@ -221,7 +224,9 @@ function buildStoreZip(entries) {
     const nameBytes = encoder.encode(entry.filename);
     const crc = crc32(entry.data);
     const size = entry.data.length;
-    const date = new Date();
+    // Store artifacts must be byte-reproducible. A live timestamp would dirty the tracked ZIPs
+    // on every verification run even when the source and generated files are unchanged.
+    const date = STORE_ZIP_DATE;
     const dosDate = ((Math.max(date.getUTCFullYear() - 1980, 0) & 0x7f) << 9)
       | (((date.getUTCMonth() + 1) & 0x0f) << 5)
       | (date.getUTCDate() & 0x1f);

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/aviary-x
-// @version      1.14.0
+// @version      1.14.1
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       Aviary contributors
 // @match        https://x.com/*
@@ -4830,7 +4830,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION = false ? "dev" : "1.14.0";
+  var AVIARY_VERSION = false ? "dev" : "1.14.1";
   var MEDIA_LAYOUT_OPTIONS = [
     ["default", "Default grid"],
     ["stacked", "Stacked"],

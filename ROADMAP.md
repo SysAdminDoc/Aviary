@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.14.0`
+Version: `1.14.1`
 Research date: 2026-05-19
 Target repo: `C:\Users\--\repos\Twitter_Userscript`
 Target sites: `x.com`, `twitter.com`, `mobile.twitter.com`, `pro.x.com`, `tweetdeck.twitter.com`
@@ -952,4 +952,3 @@ in CHANGELOG.md; these are the ones left open, with the reason each was not take
 Baseline at `409f846`: `tsc` clean, 188/188 tests pass, build+preflight green. Findings are
 ordered P1 → P3; each was verified as described in its Evidence line. Verification harnesses ran
 read-only (Playwright against `_decoded/home.html` and scratch pages); no source was changed.
-
