@@ -62,6 +62,55 @@ test("Control Center ships its own touch and viewport rules", async () => {
   }
 });
 
+test("Control Center implements the ImageGen page system across every menu section", async () => {
+  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+  const presets = await readFile(path.join(root, "src/features/core/presets.ts"), "utf8");
+  const feature = await readFile(path.join(root, "src/features/core/control-center.ts"), "utf8");
+  const registry = source.slice(source.indexOf("const sectionRegistry"), source.indexOf("const buildNav"));
+
+  assert.equal([...registry.matchAll(/\bicon:\s*"/g)].length, 13, "every section needs its own line icon");
+  assert.equal([...registry.matchAll(/\baccent:\s*"rgb\(/g)].length, 13, "every section needs its own accent");
+  assert.equal([...registry.matchAll(/\bsummary:\s*"/g)].length, 13, "every section needs its own page summary");
+  for (const id of [
+    "presets",
+    "appearance",
+    "layout",
+    "filtering",
+    "hidden",
+    "performance",
+    "media",
+    "export",
+    "library",
+    "snapshots",
+    "integrations",
+    "backup",
+    "trust"
+  ]) {
+    assert.match(registry, new RegExp(`id: "${id}"`));
+  }
+
+  assert.match(source, /header\.append\(titleWrap, searchBar, close\)/);
+  assert.match(source, /classList\.add\("av-page-icon"\)/);
+  assert.match(source, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(source, /\.av-section\[data-av-section="presets"\] \.av-page-grid/);
+  assert.match(source, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(source, /@media \(max-width: 1100px\)/);
+  assert.match(source, /cardHeader\.append\(presetIcon\(preset\.id\), copy\)/);
+  assert.match(source, /"av-preset-highlights"/);
+  assert.match(presets, /highlights: PresetHighlight\[\]/);
+  assert.match(feature, /highlights: preset\.highlights\.map/);
+
+  for (const board of [
+    "control-center-presets.png",
+    "control-center-reading.png",
+    "control-center-data.png",
+    "control-center-advanced.png"
+  ]) {
+    const image = await readFile(path.join(root, "docs", "mockups", board));
+    assert.ok(image.length > 100_000, `${board} must retain the generated design reference`);
+  }
+});
+
 test("credential fields are masked and offer an explicit reveal", async () => {
   const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
 

@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.14.1`
+Version: `1.15.0`
 Research date: 2026-05-19
 Target repo: `C:\Users\--\repos\Twitter_Userscript`
 Target sites: `x.com`, `twitter.com`, `mobile.twitter.com`, `pro.x.com`, `tweetdeck.twitter.com`

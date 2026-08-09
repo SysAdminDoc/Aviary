@@ -13,7 +13,13 @@ export interface PresetDefinition {
   id: PresetId;
   label: string;
   description: string;
+  highlights: PresetHighlight[];
   overrides: PresetOverrides;
+}
+
+export interface PresetHighlight {
+  label: string;
+  value: string;
 }
 
 export type PresetOverrides = Partial<{
@@ -36,6 +42,11 @@ export const PRESETS: PresetDefinition[] = [
     id: "quiet-reader",
     label: "Quiet Reader",
     description: "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.",
+    highlights: [
+      { label: "Hide right sidebar", value: "Enabled" },
+      { label: "Hide engagement counts", value: "Enabled" },
+      { label: "Theme", value: "Dim" }
+    ],
     overrides: {
       appearance: { theme: "dim", denseMode: true, hideCounts: true, hideBorders: true },
       layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
@@ -47,6 +58,11 @@ export const PRESETS: PresetDefinition[] = [
     id: "media-archivist",
     label: "Media Archivist",
     description: "Original-quality downloads, deterministic filenames, dedup history, stacked media.",
+    highlights: [
+      { label: "Prefer original quality", value: "Enabled" },
+      { label: "Media layout", value: "Stacked" },
+      { label: "Show download buttons", value: "Enabled" }
+    ],
     overrides: {
       appearance: { theme: "lightsOut" },
       media: {
@@ -62,6 +78,11 @@ export const PRESETS: PresetDefinition[] = [
     id: "creator",
     label: "Creator",
     description: "Writer mode, composer snippets, share-button cleanup, sidebar and trends hidden.",
+    highlights: [
+      { label: "Writer mode", value: "Enabled" },
+      { label: "Hide trends", value: "Enabled" },
+      { label: "Media layout", value: "Strict grid" }
+    ],
     overrides: {
       appearance: { theme: "midnight" },
       layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true, writerMode: true },
@@ -73,6 +94,11 @@ export const PRESETS: PresetDefinition[] = [
     id: "researcher",
     label: "Researcher",
     description: "Export capture on, JSON+CSV+HTML+MD formats, auto-discover query IDs, raw payloads.",
+    highlights: [
+      { label: "Capture visible tweets", value: "Enabled" },
+      { label: "Preserve raw payloads", value: "Enabled" },
+      { label: "Export formats", value: "Enabled" }
+    ],
     overrides: {
       filter: { enabled: false },
       export: {
@@ -89,6 +115,11 @@ export const PRESETS: PresetDefinition[] = [
     id: "classic",
     label: "Classic",
     description: "Restore dim, keep sidebar, hide Grok only, no premium filtering.",
+    highlights: [
+      { label: "Theme", value: "Dim" },
+      { label: "Dense mode", value: "Disabled" },
+      { label: "Hide Grok surfaces", value: "Enabled" }
+    ],
     overrides: {
       appearance: { theme: "dim", denseMode: false },
       layout: {
@@ -103,6 +134,11 @@ export const PRESETS: PresetDefinition[] = [
     id: "minimal",
     label: "Minimal",
     description: "Maximum declutter: no counts, no borders, no trends, big text safe zones.",
+    highlights: [
+      { label: "Hide engagement counts", value: "Enabled" },
+      { label: "Hide row borders", value: "Enabled" },
+      { label: "Reduced motion", value: "Always reduce" }
+    ],
     overrides: {
       appearance: { theme: "lightsOut", denseMode: false, hideCounts: true, hideBorders: true },
       layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
@@ -113,7 +149,11 @@ export const PRESETS: PresetDefinition[] = [
 ];
 
 export function listPresets(): PresetDefinition[] {
-  return PRESETS.map((preset) => ({ ...preset, overrides: cloneOverrides(preset.overrides) }));
+  return PRESETS.map((preset) => ({
+    ...preset,
+    highlights: preset.highlights.map((highlight) => ({ ...highlight })),
+    overrides: cloneOverrides(preset.overrides)
+  }));
 }
 
 export function getPreset(id: PresetId): PresetDefinition | undefined {

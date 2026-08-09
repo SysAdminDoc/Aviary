@@ -4806,7 +4806,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION = false ? "dev" : "1.14.1";
+  var AVIARY_VERSION = false ? "dev" : "1.15.0";
   var MEDIA_LAYOUT_OPTIONS = [
     ["default", "Default grid"],
     ["stacked", "Stacked"],
@@ -4866,7 +4866,6 @@ html.av-reduce-motion *::after {
     titleWrap.append(titleRow, subtitle);
     const close = button("Close", "av-button av-button-secondary");
     close.type = "button";
-    header.append(titleWrap, close);
     const status = el("div", "av-status", t("Saved locally"));
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
@@ -4878,8 +4877,9 @@ html.av-reduce-motion *::after {
     search.setAttribute("aria-label", t("Search settings"));
     search.spellcheck = false;
     searchBar.append(search);
+    header.append(titleWrap, searchBar, close);
     const body = el("div", "av-panel-body");
-    panel.append(header, searchBar, body, status);
+    panel.append(header, body, status);
     overlay.append(panel);
     shell.append(launcher, overlay);
     shadow.append(style, shell);
@@ -4958,6 +4958,8 @@ html.av-reduce-motion *::after {
       if (!registry.some((entry) => entry.id === activeSectionId)) {
         activeSectionId = registry[0]?.id ?? "presets";
       }
+      const activeEntry = registry.find((entry) => entry.id === activeSectionId) ?? registry[0];
+      panel.style.setProperty("--av-page-accent", activeEntry?.accent ?? "rgb(77, 199, 255)");
       body.replaceChildren(buildNav(registry), buildContent(registry));
       const coverage = body.querySelector(`.${COVERAGE_ROW_CLASS} .av-row-description`);
       if (coverage) {
@@ -5116,19 +5118,123 @@ html.av-reduce-motion *::after {
       ];
     };
     const sectionRegistry = () => [
-      { id: "presets", title: "Presets", group: "Start", build: presetRows },
-      { id: "appearance", title: "Appearance", group: "Reading", build: appearanceRows },
-      { id: "layout", title: "Layout", group: "Reading", build: layoutRows },
-      { id: "filtering", title: "Filtering", group: "Reading", build: filterRows },
-      { id: "hidden", title: "Hidden posts", group: "Reading", build: hiddenPostRows },
-      { id: "performance", title: "Performance", group: "Reading", build: performanceRows },
-      { id: "media", title: "Media", group: "Data", build: mediaRows },
-      { id: "export", title: "Export", group: "Data", build: exportRows },
-      { id: "library", title: "Library", group: "Data", build: libraryRows },
-      { id: "snapshots", title: "Snapshots & Archive", group: "Data", build: snapshotRows },
-      { id: "integrations", title: "Integrations", group: "Advanced", build: integrationRows },
-      { id: "backup", title: "Backup & Audit", group: "Advanced", build: backupRows },
-      { id: "trust", title: "Trust", group: "Advanced", build: trustRows }
+      {
+        id: "presets",
+        title: "Presets",
+        group: "Start",
+        summary: "Local controls for a quieter X.",
+        icon: "presets",
+        accent: "rgb(77, 199, 255)",
+        build: presetRows
+      },
+      {
+        id: "appearance",
+        title: "Appearance",
+        group: "Reading",
+        summary: "Use stronger borders and text contrast.",
+        icon: "appearance",
+        accent: "rgb(72, 211, 193)",
+        build: appearanceRows
+      },
+      {
+        id: "layout",
+        title: "Layout",
+        group: "Reading",
+        summary: "Reduce trends, recommendations, and footer noise.",
+        icon: "layout",
+        accent: "rgb(130, 151, 255)",
+        build: layoutRows
+      },
+      {
+        id: "filtering",
+        title: "Filtering",
+        group: "Reading",
+        summary: "Master switch for keyword, regex, premium, and media filters.",
+        icon: "filtering",
+        accent: "rgb(178, 139, 255)",
+        build: filterRows
+      },
+      {
+        id: "hidden",
+        title: "Hidden posts",
+        group: "Reading",
+        summary: "Keep posts you hid collapsed so the next post rises to the top.",
+        icon: "hidden",
+        accent: "rgb(255, 184, 107)",
+        build: hiddenPostRows
+      },
+      {
+        id: "performance",
+        title: "Performance",
+        group: "Reading",
+        summary: "Stops decoding timeline video once it leaves the screen, and resumes it when it comes back. A video you paused yourself stays paused.",
+        icon: "performance",
+        accent: "rgb(80, 210, 160)",
+        build: performanceRows
+      },
+      {
+        id: "media",
+        title: "Media",
+        group: "Data",
+        summary: "Inject Save and Thumb buttons over tweet photos and video thumbnails.",
+        icon: "media",
+        accent: "rgb(77, 199, 255)",
+        build: mediaRows
+      },
+      {
+        id: "export",
+        title: "Export",
+        group: "Data",
+        summary: "Accumulate tweets visible on the active page for the next export run.",
+        icon: "export",
+        accent: "rgb(54, 211, 176)",
+        build: exportRows
+      },
+      {
+        id: "library",
+        title: "Library",
+        group: "Data",
+        summary: "Replace short `t.co` redirects with the destination from aria-labels and titles.",
+        icon: "library",
+        accent: "rgb(171, 139, 255)",
+        build: libraryRows
+      },
+      {
+        id: "snapshots",
+        title: "Snapshots & Archive",
+        group: "Data",
+        summary: "Walks UserCell rows on the current page. Open a /handle/followers view first.",
+        icon: "snapshots",
+        accent: "rgb(247, 183, 73)",
+        build: snapshotRows
+      },
+      {
+        id: "integrations",
+        title: "Integrations",
+        group: "Advanced",
+        summary: "Send large media downloads to a self-hosted Aria2 JSON-RPC endpoint.",
+        icon: "integrations",
+        accent: "rgb(70, 200, 255)",
+        build: integrationRows
+      },
+      {
+        id: "backup",
+        title: "Backup & Audit",
+        group: "Advanced",
+        summary: "Downloads your preferences as JSON. API keys and passwords are replaced with a placeholder, so the file is safe to share; importing it here keeps the credentials already saved on this machine.",
+        icon: "backup",
+        accent: "rgb(137, 126, 255)",
+        build: backupRows
+      },
+      {
+        id: "trust",
+        title: "Trust",
+        group: "Advanced",
+        summary: "Settings stay in this browser.",
+        icon: "trust",
+        accent: "rgb(72, 211, 147)",
+        build: trustRows
+      }
     ];
     const buildNav = (registry) => {
       const nav = el("nav", "av-nav");
@@ -5142,6 +5248,7 @@ html.av-reduce-motion *::after {
         const item = el("button", "av-nav-item", t(entry.title));
         item.type = "button";
         item.dataset.avSection = entry.id;
+        item.style.setProperty("--av-page-accent", entry.accent);
         const selected = searchQuery.length === 0 && entry.id === activeSectionId;
         item.classList.toggle("is-active", selected);
         item.setAttribute("aria-current", selected ? "true" : "false");
@@ -5162,7 +5269,7 @@ html.av-reduce-motion *::after {
         return content;
       }
       const entry = registry.find((candidate) => candidate.id === activeSectionId) ?? registry[0];
-      content.append(section(entry.title, entry.build()));
+      content.append(section(entry, entry.build()));
       return content;
     };
     const searchResults = (registry) => {
@@ -5175,7 +5282,7 @@ html.av-reduce-motion *::after {
           continue;
         }
         matches += hits.length;
-        out.push(section(entry.title, hits));
+        out.push(section(entry, hits));
       }
       if (matches === 0) {
         const empty = el("div", "av-empty");
@@ -5194,12 +5301,24 @@ html.av-reduce-motion *::after {
         return rows;
       }
       for (const preset of options.listPresets()) {
-        const row = el("div", "av-row av-row-stack");
+        const row = el("div", "av-row av-row-stack av-preset-card");
+        row.dataset.avPreset = preset.id;
+        const cardHeader = el("div", "av-preset-header");
         const copy = el("span", "av-row-copy");
         copy.append(
           el("span", "av-row-label", t(preset.label)),
           el("span", "av-row-description", t(preset.description))
         );
+        cardHeader.append(presetIcon(preset.id), copy);
+        const highlights = el("div", "av-preset-highlights");
+        for (const highlight of preset.highlights ?? []) {
+          const preview = el("div", "av-preset-highlight");
+          preview.append(
+            el("span", "av-preset-highlight-label", t(highlight.label)),
+            el("span", "av-preset-highlight-value", t(highlight.value))
+          );
+          highlights.append(preview);
+        }
         const apply = el("button", "av-button av-button-secondary", t("Apply"));
         apply.type = "button";
         apply.addEventListener("click", () => {
@@ -5217,7 +5336,11 @@ html.av-reduce-motion *::after {
             apply.disabled = false;
           });
         });
-        row.append(copy, apply);
+        row.append(cardHeader);
+        if (highlights.childElementCount > 0) {
+          row.append(highlights);
+        }
+        row.append(apply);
         rows.push(row);
       }
       if (options.listLocales && options.setLocale) {
@@ -6749,10 +6872,71 @@ html.av-reduce-motion *::after {
     if (settings.accessibility.reduceMotion === "never") return false;
     return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
   }
-  function section(title, rows) {
+  function section(entry, rows) {
     const node = el("section", "av-section");
-    node.append(el("h3", "av-section-title", t(title)), ...rows);
+    node.dataset.avSection = entry.id;
+    node.style.setProperty("--av-page-accent", entry.accent);
+    const heading = el("div", "av-page-header");
+    const headingCopy = el("div", "av-page-heading-copy");
+    headingCopy.append(
+      el("p", "av-page-kicker", t(entry.group)),
+      el("h3", "av-section-title", t(entry.title)),
+      el("p", "av-page-summary", t(entry.summary))
+    );
+    heading.append(sectionIcon(entry.icon), headingCopy);
+    const grid = el("div", "av-page-grid");
+    grid.append(...rows);
+    node.append(heading, grid);
     return node;
+  }
+  function sectionIcon(icon) {
+    const paths = {
+      presets: ["M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"],
+      appearance: ["M12 3a9 9 0 1 0 0 18V3Z"],
+      layout: ["M4 4h16v16H4zM4 9h16M9 9v11"],
+      filtering: ["M4 5h16l-6 7v5l-4 2v-7L4 5Z"],
+      hidden: ["M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6Z", "M4 4l16 16"],
+      performance: ["M4 17a8 8 0 0 1 16 0", "M12 17l4-6"],
+      media: ["M4 5h16v14H4z", "M7 16l3-4 3 3 2-2 3 3", "M9 9h.01"],
+      export: ["M12 3v12", "M7 10l5 5 5-5", "M5 21h14"],
+      library: ["M5 4h14v16H5z", "M8 8h8M8 12h8M8 16h5"],
+      snapshots: ["M12 7v5l3 2", "M4.9 4.9A10 10 0 1 1 2 12", "M2 5v7h7"],
+      integrations: ["M8 3v4M16 3v4", "M6 7h12v5a6 6 0 0 1-12 0V7Z", "M12 18v3"],
+      backup: ["M4 4v5h5", "M4.8 8.8A8 8 0 1 1 6.3 17.7", "M12 8v5l3 2"],
+      trust: ["M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3Z", "M9 12l2 2 4-4"]
+    };
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.classList.add("av-page-icon");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    for (const data of paths[icon]) {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", data);
+      svg.append(path);
+    }
+    return svg;
+  }
+  function presetIcon(id) {
+    const paths = {
+      "quiet-reader": ["M4 5.5c2.8-.8 5.5-.3 8 1.5v13c-2.5-1.8-5.2-2.3-8-1.5v-13Z", "M20 5.5c-2.8-.8-5.5-.3-8 1.5v13c2.5-1.8 5.2-2.3 8-1.5v-13Z"],
+      "media-archivist": ["M3 7h7l2 2h9l-2 10H5L3 7Z", "M5 7l1-3h5l2 3"],
+      creator: ["M4 20l4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20Z", "M13.5 7.5l3 3"],
+      researcher: ["M10.5 18a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15Z", "M16 16l5 5"],
+      classic: ["M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"],
+      minimal: ["M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z", "M8 12h8"]
+    };
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.classList.add("av-preset-icon");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    for (const data of paths[id] ?? paths["quiet-reader"]) {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", data);
+      svg.append(path);
+    }
+    return svg;
   }
   function toggleRow(label, description, checked, onChange) {
     const row = el("label", "av-row");
@@ -7024,9 +7208,8 @@ input:focus-visible {
   position: fixed;
   inset: 0;
   display: grid;
-  justify-content: end;
-  align-items: end;
-  padding: 72px 18px 72px;
+  place-items: center;
+  padding: 24px;
   opacity: 0;
   pointer-events: none;
   /* Belt and braces with [inert]: keeps the closed panel out of the tab order even where
@@ -7045,35 +7228,38 @@ input:focus-visible {
 }
 
 .av-panel {
-  /* Was 386px for all twelve sections stacked in one column. The rail needs room beside the
-     content, and the content itself reads badly at ~350px once descriptions wrap to four
-     lines. */
-  width: min(780px, calc(100vw - 36px));
-  max-height: min(720px, calc(100vh - 96px));
+  width: min(1180px, calc(100vw - 48px));
+  height: min(820px, calc(100vh - 48px));
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--av-border, rgb(47, 51, 54));
+  border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 82%, var(--av-text, rgb(239, 243, 244)) 18%);
   border-radius: 12px;
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
-  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.58);
+  box-shadow: 0 28px 88px rgba(0, 0, 0, 0.64);
   pointer-events: auto;
 }
 
 /* The panel takes focus when it opens; the UA default paints a hard white halo around the
    whole dialog. Keep the indicator, make it read as a highlighted edge instead. */
 .av-panel:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 70%, transparent);
-  outline-offset: -2px;
+  outline: 1px solid color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 52%, transparent);
+  outline-offset: -1px;
 }
 
 .av-panel-header {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px 18px 14px;
+  display: grid;
+  grid-template-columns: minmax(180px, auto) minmax(260px, 460px) auto;
+  align-items: center;
+  gap: 20px;
+  min-height: 70px;
+  padding: 13px 18px;
   border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
+  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 90%, black);
+}
+
+.av-panel-header > .av-button {
+  justify-self: end;
 }
 
 .av-title-row {
@@ -7086,10 +7272,10 @@ input:focus-visible {
    as a different build at a glance. */
 .av-version {
   padding: 1px 6px;
-  border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 45%, transparent);
   /* 6px, matching the other badges: the repo's shape rules reject pill backdrops. */
   border-radius: 6px;
-  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 14%, transparent);
+  background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 14%, transparent);
   color: var(--av-muted, rgb(132, 139, 145));
   font-weight: 600;
   font-size: 11px;
@@ -7103,14 +7289,14 @@ input:focus-visible {
 .av-title {
   margin: 0;
   color: var(--av-text, rgb(239, 243, 244));
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1.25;
 }
 
 .av-subtitle {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   color: var(--av-muted, rgb(113, 118, 123));
-  font-size: 13px;
+  font-size: 11px;
   line-height: 1.35;
 }
 
@@ -7130,20 +7316,30 @@ input:focus-visible {
 .av-button {
   padding: 0 12px;
   cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.av-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 54%, transparent);
+  background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 10%, var(--av-surface-raised, rgb(22, 24, 28)));
+}
+
+.av-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .av-searchbar {
-  padding: 12px 18px;
-  border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
+  min-width: 0;
 }
 
 .av-search-input {
   width: 100%;
-  height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--av-border, rgb(47, 51, 54));
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 78%, var(--av-text, rgb(239, 243, 244)) 22%);
   border-radius: 8px;
-  background: var(--av-surface, rgb(15, 20, 25));
+  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 82%, black);
   color: var(--av-text, rgb(239, 243, 244));
   font-size: 13px;
   line-height: 1.4;
@@ -7154,11 +7350,16 @@ input:focus-visible {
   color: var(--av-muted, rgb(113, 118, 123));
 }
 
+.av-search-input:focus-visible {
+  border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 70%, transparent);
+  outline-color: var(--av-page-accent, rgb(77, 199, 255));
+}
+
 /* Two panes: a fixed rail and a scrolling content column. Each scrolls independently, so
    moving through a long section never scrolls the section list out of reach. */
 .av-panel-body {
   display: grid;
-  grid-template-columns: 196px minmax(0, 1fr);
+  grid-template-columns: 178px minmax(0, 1fr);
   min-height: 0;
   flex: 1;
   overflow: hidden;
@@ -7167,12 +7368,13 @@ input:focus-visible {
 .av-nav {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   padding: 12px 8px;
   overflow-y: auto;
   /* Reserved so the list does not reflow the moment it becomes scrollable. */
   scrollbar-gutter: stable;
   border-right: 1px solid var(--av-border, rgb(47, 51, 54));
+  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 88%, black);
   /* The rail scrolls at thirteen sections and a short viewport, and nothing said so -- the last
      item rendered cut through its own baseline, which reads as a rendering fault rather than a
      list with more below. The mask only bites where content actually reaches the bottom edge,
@@ -7180,11 +7382,29 @@ input:focus-visible {
   mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent 100%);
 }
 
+.av-nav,
+.av-content {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--av-muted, rgb(113, 118, 123)) 58%, transparent) transparent;
+}
+
+.av-nav::-webkit-scrollbar,
+.av-content::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.av-nav::-webkit-scrollbar-thumb,
+.av-content::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--av-muted, rgb(113, 118, 123)) 58%, transparent);
+}
+
 .av-nav-group {
   /* The rail is sized so all twelve sections fit without scrolling at the default panel
      height; a sliced-in-half last item reads as a rendering bug rather than as "more below". */
-  margin: 6px 0 2px;
-  padding: 0 8px;
+  margin: 8px 0 3px;
+  padding: 0 10px;
   color: var(--av-muted, rgb(113, 118, 123));
   font-size: 10px;
   font-weight: 800;
@@ -7198,18 +7418,29 @@ input:focus-visible {
 }
 
 .av-nav-item {
-  min-height: 32px;
-  padding: 0 10px;
+  position: relative;
+  min-height: 28px;
+  padding: 0 10px 0 14px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 7px;
   background: transparent;
   color: var(--av-muted, rgb(113, 118, 123));
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.2;
   font-family: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.av-nav-item::before {
+  content: "";
+  position: absolute;
+  inset-block: 8px;
+  inset-inline-start: 4px;
+  width: 2px;
+  border-radius: 2px;
+  background: transparent;
 }
 
 .av-nav-item:hover {
@@ -7218,18 +7449,25 @@ input:focus-visible {
 }
 
 .av-nav-item.is-active {
-  border-color: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 45%, transparent);
-  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 16%, transparent);
+  border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 34%, transparent);
+  background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 12%, transparent);
   color: var(--av-text, rgb(239, 243, 244));
+}
+
+.av-nav-item.is-active::before {
+  background: var(--av-page-accent, rgb(77, 199, 255));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 55%, transparent);
 }
 
 .av-content {
   display: grid;
   align-content: start;
-  gap: 14px;
-  padding: 16px;
+  gap: 20px;
+  padding: 24px 26px 28px;
   overflow-y: auto;
   min-height: 0;
+  scrollbar-gutter: stable;
+  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 94%, black);
 }
 
 .av-empty {
@@ -7253,16 +7491,91 @@ input:focus-visible {
 
 .av-section {
   display: grid;
-  gap: 8px;
+  gap: 20px;
+  min-width: 0;
+}
+
+.av-page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 62px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 24%, var(--av-border, rgb(47, 51, 54)));
+}
+
+.av-page-icon {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  padding: 5px;
+  fill: none;
+  stroke: var(--av-page-accent, rgb(77, 199, 255));
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  box-sizing: border-box;
+}
+
+.av-page-heading-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.av-page-kicker {
+  margin: 0;
+  color: var(--av-page-accent, rgb(77, 199, 255));
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
 }
 
 .av-section-title {
   margin: 0;
+  color: var(--av-text, rgb(239, 243, 244));
+  font-size: 24px;
+  font-weight: 760;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+}
+
+.av-page-summary {
+  margin: 0;
   color: var(--av-muted, rgb(113, 118, 123));
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1.2;
-  text-transform: uppercase;
+  font-size: 12px;
+  line-height: 1.35;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.av-page-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 10px;
+  min-width: 0;
+}
+
+.av-section[data-av-section="presets"] .av-page-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.av-section[data-av-section="presets"] .av-page-grid > .av-row:not(.av-preset-card) {
+  grid-column: 1 / -1;
+  min-height: 52px;
+  padding: 8px 12px;
+}
+
+.av-section[data-av-section="presets"] .av-page-grid > .av-row:not(.av-preset-card) .av-row-description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
 }
 
 .av-row {
@@ -7270,19 +7583,128 @@ input:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  min-height: 48px;
-  padding: 10px 12px;
+  min-width: 0;
+  min-height: 82px;
+  padding: 14px;
+  box-sizing: border-box;
   /* The border token alone sits near 1.4:1 against the row fill, which reads as no border at
      all across ~100 rows. Lifted toward the text token so grouping is actually visible. */
   border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)), var(--av-text, rgb(239, 243, 244)) 18%);
   border-radius: 10px;
   background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 62%, transparent);
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.av-row:hover {
+  border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 34%, var(--av-border, rgb(47, 51, 54)));
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 78%, transparent);
+}
+
+.av-page-grid > .av-row-stack:not(.av-preset-card),
+.av-page-grid > .av-row:has(.av-textarea),
+.av-page-grid > .av-row:has(.av-text-input),
+.av-page-grid > .av-row:has(.av-file-input),
+.av-page-grid > .av-row:has(.av-search-results) {
+  grid-column: 1 / -1;
 }
 
 .av-row-stack {
   flex-direction: column;
   align-items: stretch;
   gap: 8px;
+}
+
+.av-preset-card {
+  position: relative;
+  min-height: 140px;
+  gap: 6px;
+  padding: 8px 10px;
+  overflow: hidden;
+}
+
+.av-preset-card::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 3px;
+  background: var(--av-card-accent, var(--av-page-accent, rgb(77, 199, 255)));
+}
+
+.av-preset-card:nth-child(6n + 1) { --av-card-accent: rgb(77, 199, 255); }
+.av-preset-card:nth-child(6n + 2) { --av-card-accent: rgb(72, 211, 193); }
+.av-preset-card:nth-child(6n + 3) { --av-card-accent: rgb(130, 151, 255); }
+.av-preset-card:nth-child(6n + 4) { --av-card-accent: rgb(178, 139, 255); }
+.av-preset-card:nth-child(6n + 5) { --av-card-accent: rgb(255, 184, 107); }
+.av-preset-card:nth-child(6n + 6) { --av-card-accent: rgb(80, 210, 160); }
+
+.av-preset-card .av-row-label {
+  color: var(--av-text, rgb(239, 243, 244));
+  font-size: 14px;
+}
+
+.av-preset-header {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.av-preset-icon {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  padding: 2px;
+  box-sizing: border-box;
+  fill: none;
+  stroke: var(--av-card-accent, var(--av-page-accent, rgb(77, 199, 255)));
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.av-preset-card .av-row-description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.av-preset-highlights {
+  display: grid;
+  gap: 2px;
+  padding-top: 5px;
+  border-top: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 82%, transparent);
+}
+
+.av-preset-highlight {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.av-preset-highlight-label {
+  overflow: hidden;
+  color: var(--av-muted, rgb(113, 118, 123));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.av-preset-highlight-value {
+  flex: 0 0 auto;
+  color: var(--av-card-accent, var(--av-page-accent, rgb(77, 199, 255)));
+  font-weight: 700;
+}
+
+.av-row-stack.av-preset-card > .av-button {
+  margin-top: auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 28px;
 }
 
 /* Text fields and textareas want the full row width; an action button does not. At the old
@@ -7373,6 +7795,7 @@ input:focus-visible {
 .av-row-copy {
   display: grid;
   gap: 3px;
+  min-width: 0;
 }
 
 .av-inline-controls {
@@ -7400,21 +7823,74 @@ input:focus-visible {
 input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  accent-color: var(--av-accent, rgb(29, 155, 240));
+  accent-color: var(--av-page-accent, var(--av-accent, rgb(29, 155, 240)));
+}
+
+.av-row > input[type="checkbox"] {
+  position: relative;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 22px;
+  margin: 0;
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 70%, var(--av-text, rgb(239, 243, 244)) 30%);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 78%, black);
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.av-row > input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-start: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--av-muted, rgb(113, 118, 123));
+  transition: transform 140ms ease, background 140ms ease;
+}
+
+.av-row > input[type="checkbox"]:checked {
+  border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 72%, transparent);
+  background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 28%, var(--av-surface, rgb(15, 20, 25)));
+}
+
+.av-row > input[type="checkbox"]:checked::before {
+  background: var(--av-page-accent, rgb(77, 199, 255));
+  transform: translateX(16px);
+}
+
+:host-context([dir="rtl"]) .av-row > input[type="checkbox"]:checked::before {
+  transform: translateX(-16px);
 }
 
 .av-select {
-  max-width: 150px;
+  max-width: 178px;
   padding: 0 10px;
 }
 
 .av-status {
-  min-height: 35px;
-  padding: 10px 16px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 37px;
+  padding: 9px 18px;
   border-top: 1px solid var(--av-border, rgb(47, 51, 54));
   color: var(--av-muted, rgb(113, 118, 123));
   font-size: 12px;
   line-height: 1.3;
+  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 90%, black);
+}
+
+.av-status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgb(72, 211, 147);
+  box-shadow: 0 0 9px rgba(72, 211, 147, 0.45);
 }
 
 /* Touch and viewport rules must live in this stylesheet: a sheet in document.head cannot
@@ -7449,6 +7925,25 @@ input[type="checkbox"] {
   }
 }
 
+@media (max-width: 1100px) {
+  .av-panel {
+    width: min(960px, calc(100vw - 32px));
+  }
+
+  .av-panel-body {
+    grid-template-columns: 166px minmax(0, 1fr);
+  }
+
+  .av-content {
+    padding-inline: 20px;
+  }
+
+  .av-page-grid,
+  .av-section[data-av-section="presets"] .av-page-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 760px) {
   .av-launcher {
     right: 12px;
@@ -7458,12 +7953,27 @@ input[type="checkbox"] {
   }
 
   .av-overlay {
-    padding: 16px 8px 84px;
+    padding: 8px 8px 76px;
   }
 
   .av-panel {
     width: min(420px, calc(100vw - 16px));
-    max-height: min(85vh, calc(100vh - 64px));
+    height: min(86vh, calc(100vh - 60px));
+  }
+
+  .av-panel-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px 12px;
+    padding: 12px;
+  }
+
+  .av-searchbar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .av-subtitle {
+    display: none;
   }
 
   /* No room for a side rail. It becomes a horizontal strip of chips above the content, which
@@ -7481,6 +7991,12 @@ input[type="checkbox"] {
     overflow-y: hidden;
     border-right: 0;
     border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
+    mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+    scrollbar-width: none;
+  }
+
+  .av-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .av-nav-item {
@@ -7491,6 +8007,35 @@ input[type="checkbox"] {
   /* The group headings only make sense stacked; the chip order still follows them. */
   .av-nav-group {
     display: none;
+  }
+
+  .av-content {
+    padding: 18px 14px 22px;
+  }
+
+  .av-page-header {
+    gap: 12px;
+    padding-bottom: 14px;
+  }
+
+  .av-page-icon {
+    width: 42px;
+    height: 42px;
+    padding: 9px;
+  }
+
+  .av-section-title {
+    font-size: 21px;
+  }
+
+  .av-page-grid,
+  .av-section[data-av-section="presets"] .av-page-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .av-row,
+  .av-preset-card {
+    min-height: 76px;
   }
 }
 
@@ -7609,6 +8154,11 @@ input[type="checkbox"] {
       id: "quiet-reader",
       label: "Quiet Reader",
       description: "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.",
+      highlights: [
+        { label: "Hide right sidebar", value: "Enabled" },
+        { label: "Hide engagement counts", value: "Enabled" },
+        { label: "Theme", value: "Dim" }
+      ],
       overrides: {
         appearance: { theme: "dim", denseMode: true, hideCounts: true, hideBorders: true },
         layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
@@ -7620,6 +8170,11 @@ input[type="checkbox"] {
       id: "media-archivist",
       label: "Media Archivist",
       description: "Original-quality downloads, deterministic filenames, dedup history, stacked media.",
+      highlights: [
+        { label: "Prefer original quality", value: "Enabled" },
+        { label: "Media layout", value: "Stacked" },
+        { label: "Show download buttons", value: "Enabled" }
+      ],
       overrides: {
         appearance: { theme: "lightsOut" },
         media: {
@@ -7635,6 +8190,11 @@ input[type="checkbox"] {
       id: "creator",
       label: "Creator",
       description: "Writer mode, composer snippets, share-button cleanup, sidebar and trends hidden.",
+      highlights: [
+        { label: "Writer mode", value: "Enabled" },
+        { label: "Hide trends", value: "Enabled" },
+        { label: "Media layout", value: "Strict grid" }
+      ],
       overrides: {
         appearance: { theme: "midnight" },
         layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true, writerMode: true },
@@ -7646,6 +8206,11 @@ input[type="checkbox"] {
       id: "researcher",
       label: "Researcher",
       description: "Export capture on, JSON+CSV+HTML+MD formats, auto-discover query IDs, raw payloads.",
+      highlights: [
+        { label: "Capture visible tweets", value: "Enabled" },
+        { label: "Preserve raw payloads", value: "Enabled" },
+        { label: "Export formats", value: "Enabled" }
+      ],
       overrides: {
         filter: { enabled: false },
         export: {
@@ -7662,6 +8227,11 @@ input[type="checkbox"] {
       id: "classic",
       label: "Classic",
       description: "Restore dim, keep sidebar, hide Grok only, no premium filtering.",
+      highlights: [
+        { label: "Theme", value: "Dim" },
+        { label: "Dense mode", value: "Disabled" },
+        { label: "Hide Grok surfaces", value: "Enabled" }
+      ],
       overrides: {
         appearance: { theme: "dim", denseMode: false },
         layout: {
@@ -7676,6 +8246,11 @@ input[type="checkbox"] {
       id: "minimal",
       label: "Minimal",
       description: "Maximum declutter: no counts, no borders, no trends, big text safe zones.",
+      highlights: [
+        { label: "Hide engagement counts", value: "Enabled" },
+        { label: "Hide row borders", value: "Enabled" },
+        { label: "Reduced motion", value: "Always reduce" }
+      ],
       overrides: {
         appearance: { theme: "lightsOut", denseMode: false, hideCounts: true, hideBorders: true },
         layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
@@ -7685,7 +8260,11 @@ input[type="checkbox"] {
     }
   ];
   function listPresets() {
-    return PRESETS.map((preset) => ({ ...preset, overrides: cloneOverrides(preset.overrides) }));
+    return PRESETS.map((preset) => ({
+      ...preset,
+      highlights: preset.highlights.map((highlight) => ({ ...highlight })),
+      overrides: cloneOverrides(preset.overrides)
+    }));
   }
   function getPreset(id) {
     return listPresets().find((preset) => preset.id === id);
@@ -12635,7 +13214,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           return listPresets().map((preset) => ({
             id: preset.id,
             label: preset.label,
-            description: preset.description
+            description: preset.description,
+            highlights: preset.highlights.map((highlight) => ({ ...highlight }))
           }));
         },
         async applyPreset(id) {

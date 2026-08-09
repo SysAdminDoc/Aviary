@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.15.0 - 2026-08-08
+
+### Added
+
+- Four ImageGen design boards now cover Presets, Reading, Data, and Advanced, providing a durable
+  visual reference for every Control Center page under `docs/mockups/`.
+
+### Changed
+
+- Reimagined all 13 Control Center pages around a compact integrated header, slimmer grouped rail,
+  page-specific line icon and accent, editorial page heading, two-column control cards, and a
+  three-column preset gallery with real override previews. Every existing setting and action
+  remains available.
+- Toggle rows now use clear switch controls, card and focus states follow each page accent, and the
+  local-save state stays visible in a compact footer.
+- The responsive shell collapses to a single card column with a horizontally scrollable section
+  rail on narrow screens while preserving touch targets, focus behaviour, and zero horizontal
+  content overflow.
+
 ## 1.14.1 - 2026-08-08
 
 ### Fixed

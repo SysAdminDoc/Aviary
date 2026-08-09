@@ -619,7 +619,9 @@ test("the panel renders one section at a time behind a nav rail", async () => {
     source.indexOf("const sectionRegistry ="),
     source.indexOf("const buildNav =")
   );
-  const entries = [...registry.matchAll(/id: "([a-z]+)", title: "([^"]+)", group: "([A-Za-z]+)"/g)];
+  const entries = [
+    ...registry.matchAll(/id:\s*"([a-z]+)",\s*title:\s*"([^"]+)",\s*group:\s*"([A-Za-z]+)"/g)
+  ];
   // A lower bound, not an exact count: adding a section is normal growth, and pinning the number
   // only turns every new section into a failing test. What must hold is that sections are
   // declared here rather than inlined, and that ids stay unique.
@@ -637,7 +639,7 @@ test("the panel renders one section at a time behind a nav rail", async () => {
 
   // The content pane builds the active section only — building all twelve would put the
   // scrolling straight back.
-  assert.match(source, /content\.append\(section\(entry\.title, entry\.build\(\)\)\)/);
+  assert.match(source, /content\.append\(section\(entry, entry\.build\(\)\)\)/);
 });
 
 test("the settings search lives outside the re-rendered body", async () => {
@@ -645,7 +647,8 @@ test("the settings search lives outside the re-rendered body", async () => {
 
   // render() calls body.replaceChildren(), so a search field inside `body` would lose focus
   // and its caret on every keystroke. It has to hang off the panel chrome instead.
-  assert.match(source, /panel\.append\(header, searchBar, body, status\)/);
+  assert.match(source, /header\.append\(titleWrap, searchBar, close\)/);
+  assert.match(source, /panel\.append\(header, body, status\)/);
   assert.ok(
     !/body\.append\([^)]*searchBar/.test(source),
     "the search bar must not be inside the re-rendered body"

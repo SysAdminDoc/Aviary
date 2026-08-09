@@ -290,7 +290,8 @@ export const controlCenterFeature: FeatureModule = {
         return listPresets().map((preset) => ({
           id: preset.id,
           label: preset.label,
-          description: preset.description
+          description: preset.description,
+          highlights: preset.highlights.map((highlight) => ({ ...highlight }))
         }));
       },
       async applyPreset(id) {

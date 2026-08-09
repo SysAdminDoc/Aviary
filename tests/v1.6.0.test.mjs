@@ -195,7 +195,10 @@ test("hidden posts feature collapses the virtualizer cell and is registered at b
 
   assert.match(main, /registry\.register\(hiddenPostsFeature\)/);
   // Sections are declared in the panel's registry rather than inlined into one long render.
-  assert.match(controlCenter, /title: "Hidden posts", group: "\w+", build: hiddenPostRows/);
+  assert.match(
+    controlCenter,
+    /id:\s*"hidden",\s*title:\s*"Hidden posts",\s*group:\s*"\w+",[\s\S]*?build:\s*hiddenPostRows/
+  );
 });
 
 test("home fixture exposes the anchors the hide button and collapse rely on", async () => {
