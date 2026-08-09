@@ -45,6 +45,7 @@ export const cleanShareLinksFeature: FeatureModule = {
 
   apply(ctx, root, addedNodes) {
     if (!ctx.settings.links.cleanShareButtons) {
+      restoreProcessedLinks();
       return;
     }
     if (!addedNodes || addedNodes.length === 0) {
@@ -57,6 +58,12 @@ export const cleanShareLinksFeature: FeatureModule = {
   },
 
   destroy(ctx) {
+    restoreProcessedLinks();
+    ctx.diagnostics.info("Share link cleaning destroyed");
+  }
+};
+
+function restoreProcessedLinks(): void {
     for (const anchor of Array.from(
       document.querySelectorAll<HTMLAnchorElement>(`a[${PROCESSED_ATTR}]`)
     )) {
@@ -67,9 +74,7 @@ export const cleanShareLinksFeature: FeatureModule = {
       }
       anchor.removeAttribute(PROCESSED_ATTR);
     }
-    ctx.diagnostics.info("Share link cleaning destroyed");
-  }
-};
+}
 
 function scan(root: ParentNode | Element): void {
   const anchors: HTMLAnchorElement[] =

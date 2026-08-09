@@ -121,31 +121,51 @@ function decorate(ctx: FeatureContext, root: ParentNode | Element): void {
       : Array.from(root.querySelectorAll<Element>('article[data-testid="tweet"]'));
 
   for (const article of articles) {
-    if (article.getAttribute(ARTICLE_ATTR) === "1") {
-      continue;
-    }
-    const handle = readHandle(article);
-    if (!handle) continue;
-    const note = cache.notes[handle];
-    if (!note) {
-      article.setAttribute(ARTICLE_ATTR, "1");
-      continue;
-    }
-    const userName = article.querySelector('[data-testid="User-Name"]');
-    if (!userName || userName.querySelector(`[${BADGE_ATTR}]`)) {
-      article.setAttribute(ARTICLE_ATTR, "1");
-      continue;
-    }
-    const badge = document.createElement("span");
-    badge.setAttribute(BADGE_ATTR, "1");
-    badge.className = "av-note-badge";
-    badge.textContent = ft(ctx, "Note");
-    badge.title = note;
-    badge.setAttribute("role", "note");
-    badge.setAttribute("aria-label", `${ft(ctx, "Note")} @${handle}: ${note}`);
-    userName.append(badge);
-    article.setAttribute(ARTICLE_ATTR, "1");
+    reconcileArticle(article, ctx);
   }
+}
+
+function reconcileArticle(article: Element, ctx: FeatureContext): void {
+  const handle = readHandle(article);
+  const note = handle ? cache?.notes[handle] : undefined;
+  const userName = article.querySelector('[data-testid="User-Name"]');
+  const badges = Array.from(article.querySelectorAll(`[${BADGE_ATTR}]`));
+
+  if (!handle || !note || !userName) {
+    for (const badge of badges) {
+      badge.remove();
+    }
+    article.setAttribute(ARTICLE_ATTR, "1");
+    return;
+  }
+
+  const badge = badges.find((candidate) => userName.contains(candidate));
+  for (const duplicate of badges) {
+    if (duplicate !== badge) {
+      duplicate.remove();
+    }
+  }
+
+  if (badge instanceof HTMLElement) {
+    updateBadge(badge, handle, note, ctx);
+    article.setAttribute(ARTICLE_ATTR, "1");
+    return;
+  }
+
+  const nextBadge = document.createElement("span");
+  nextBadge.setAttribute(BADGE_ATTR, "1");
+  nextBadge.className = "av-note-badge";
+  nextBadge.setAttribute("role", "note");
+  updateBadge(nextBadge, handle, note, ctx);
+  userName.append(nextBadge);
+  article.setAttribute(ARTICLE_ATTR, "1");
+}
+
+function updateBadge(badge: HTMLElement, handle: string, note: string, ctx: FeatureContext): void {
+  const label = ft(ctx, "Note");
+  badge.textContent = label;
+  badge.title = note;
+  badge.setAttribute("aria-label", `${label} @${handle}: ${note}`);
 }
 
 function readHandle(article: Element): string | null {

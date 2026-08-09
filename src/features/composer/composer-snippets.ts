@@ -13,12 +13,28 @@ export const composerSnippetsFeature: FeatureModule = {
   defaultEnabled: true,
 
   init(ctx) {
+    appliedSnippetsSignature = snippetsSignature(ctx);
+    if (ctx.settings.composer.snippets.length === 0) {
+      return;
+    }
     ensureComposerStyle();
     decorate(ctx, document);
     ctx.diagnostics.info("Composer snippets initialized");
   },
 
   apply(ctx, root, addedNodes) {
+    if (ctx.settings.composer.snippets.length === 0) {
+      clearDecorations();
+      appliedSnippetsSignature = undefined;
+      return;
+    }
+    const signature = snippetsSignature(ctx);
+    if (appliedSnippetsSignature !== undefined && appliedSnippetsSignature !== signature) {
+      // A visible palette contains the old list. Close it before repainting the existing
+      // toolbar so a subsequent click cannot choose a deleted snippet.
+      closePalettes();
+    }
+    appliedSnippetsSignature = signature;
     ensureComposerStyle();
     if (!addedNodes || addedNodes.length === 0) {
       decorate(ctx, root);
@@ -30,14 +46,8 @@ export const composerSnippetsFeature: FeatureModule = {
   },
 
   destroy(ctx) {
-    removeFeatureToast();
-    document.getElementById(STYLE_ID)?.remove();
-    for (const toolbar of Array.from(document.querySelectorAll(`[${TOOLBAR_ATTR}]`))) {
-      toolbar.removeAttribute(TOOLBAR_ATTR);
-    }
-    for (const palette of Array.from(document.querySelectorAll(`[${PALETTE_ATTR}]`))) {
-      palette.remove();
-    }
+    clearDecorations();
+    appliedSnippetsSignature = undefined;
     ctx.diagnostics.info("Composer snippets destroyed");
   },
 
@@ -45,6 +55,40 @@ export const composerSnippetsFeature: FeatureModule = {
     return { ok: true, message: "Composer snippets ready" };
   }
 };
+
+let openPaletteDismiss: ((event: Event) => void) | undefined;
+let openPaletteDismissTimer: ReturnType<typeof setTimeout> | undefined;
+let appliedSnippetsSignature: string | undefined;
+
+function clearDecorations(): void {
+  closePalettes();
+  removeFeatureToast();
+  document.getElementById(STYLE_ID)?.remove();
+  for (const toolbar of Array.from(document.querySelectorAll(`[${TOOLBAR_ATTR}]`))) {
+    toolbar.removeAttribute(TOOLBAR_ATTR);
+  }
+  for (const trigger of Array.from(document.querySelectorAll(`[${PALETTE_ATTR}="trigger"]`))) {
+    trigger.remove();
+  }
+}
+
+function closePalettes(): void {
+  if (openPaletteDismiss) {
+    document.removeEventListener("click", openPaletteDismiss, true);
+    openPaletteDismiss = undefined;
+  }
+  if (openPaletteDismissTimer !== undefined) {
+    clearTimeout(openPaletteDismissTimer);
+    openPaletteDismissTimer = undefined;
+  }
+  for (const palette of Array.from(document.querySelectorAll(`[${PALETTE_ATTR}="popover"]`))) {
+    palette.remove();
+  }
+}
+
+function snippetsSignature(ctx: FeatureContext): string {
+  return ctx.settings.composer.snippets.join("\u001f");
+}
 
 function decorate(ctx: FeatureContext, root: ParentNode | Element): void {
   // The trigger is only worth its place once there is something to insert. With no snippets
@@ -59,6 +103,11 @@ function decorate(ctx: FeatureContext, root: ParentNode | Element): void {
 
   for (const toolbar of toolbars) {
     if (toolbar.getAttribute(TOOLBAR_ATTR) === "1") {
+      const trigger = toolbar.querySelector<HTMLElement>(`[${PALETTE_ATTR}="trigger"]`);
+      if (trigger) {
+        trigger.textContent = ft(ctx, "Snippets");
+        trigger.setAttribute("aria-label", ft(ctx, "Open Aviary composer snippets"));
+      }
       continue;
     }
     const button = document.createElement("button");
@@ -79,9 +128,7 @@ function decorate(ctx: FeatureContext, root: ParentNode | Element): void {
 
 function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
   // Close any existing palette before opening a new one (idempotent).
-  for (const previous of Array.from(document.querySelectorAll(`[${PALETTE_ATTR}="popover"]`))) {
-    previous.remove();
-  }
+  closePalettes();
 
   const snippets = ctx.settings.composer.snippets;
   const popover = document.createElement("div");
@@ -130,10 +177,20 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
     if (!popover.contains(event.target as Node) && event.target !== trigger) {
       popover.remove();
       document.removeEventListener("click", dismiss, true);
+      if (openPaletteDismiss === dismiss) {
+        openPaletteDismiss = undefined;
+      }
     }
   };
   // Defer so the click that opened the palette doesn't dismiss it.
-  setTimeout(() => document.addEventListener("click", dismiss, true), 0);
+  openPaletteDismiss = dismiss;
+  openPaletteDismissTimer = setTimeout(() => {
+    openPaletteDismissTimer = undefined;
+    // The feature may have been disabled before the deferred listener was installed.
+    if (openPaletteDismiss === dismiss && document.contains(popover)) {
+      document.addEventListener("click", dismiss, true);
+    }
+  }, 0);
 }
 
 function insertSnippet(snippet: string): boolean {

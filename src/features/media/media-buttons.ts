@@ -22,6 +22,7 @@ let downloader: Downloader | undefined;
 let history: MediaHistory | undefined;
 let aria2History: Aria2History | undefined;
 let queue: DownloadQueue | undefined;
+let appliedPreferOriginalImages: boolean | undefined;
 /** The grant page is opened once per session, never once per failed button. */
 let permissionSurfaceOpened = false;
 
@@ -69,6 +70,7 @@ export const mediaButtonsFeature: FeatureModule = {
       ctx.diagnostics.warn("Media history failed to load", errorDetails(error));
     }
     applyToggleClass(ctx);
+    appliedPreferOriginalImages = ctx.settings.media.preferOriginalImages;
     scanArticles(document, ctx);
     ctx.diagnostics.info("Media buttons initialized", { history: history.size() });
   },
@@ -76,10 +78,19 @@ export const mediaButtonsFeature: FeatureModule = {
   apply(ctx, root, addedNodes) {
     applyToggleClass(ctx);
     if (!ctx.settings.media.buttons) {
-      // Turned off after boot: drop the stylesheet so nothing of ours is left styling X.
-      document.getElementById(STYLE_ID)?.remove();
+      clearDecorations();
+      appliedPreferOriginalImages = undefined;
       return;
     }
+    if (
+      appliedPreferOriginalImages !== undefined &&
+      appliedPreferOriginalImages !== ctx.settings.media.preferOriginalImages
+    ) {
+      // The extracted media object is captured by each button's click handler. Rebuild when the
+      // preference changes so an already-rendered Save button cannot keep the old URL choice.
+      clearDecorations();
+    }
+    appliedPreferOriginalImages = ctx.settings.media.preferOriginalImages;
     ensureMediaStyle();
     if (!addedNodes || addedNodes.length === 0) {
       scanArticles(root, ctx);
@@ -91,21 +102,13 @@ export const mediaButtonsFeature: FeatureModule = {
   },
 
   destroy(ctx) {
-    document.getElementById(STYLE_ID)?.remove();
-    document.documentElement.classList.remove("av-media-buttons-enabled");
-    for (const article of Array.from(
-      document.querySelectorAll(`[${PROCESSED_ATTR}]`)
-    )) {
-      article.removeAttribute(PROCESSED_ATTR);
-    }
-    for (const button of Array.from(document.querySelectorAll(`[${BUTTON_ATTR}]`))) {
-      button.remove();
-    }
+    clearDecorations();
     downloader = undefined;
     history = undefined;
     aria2History = undefined;
     queue?.clear();
     queue = undefined;
+    appliedPreferOriginalImages = undefined;
     ctx.diagnostics.info("Media buttons destroyed");
   },
 
@@ -135,6 +138,17 @@ function applyToggleClass(ctx: FeatureContext): void {
     "av-media-buttons-enabled",
     ctx.settings.media.buttons
   );
+}
+
+function clearDecorations(): void {
+  document.getElementById(STYLE_ID)?.remove();
+  document.documentElement.classList.remove("av-media-buttons-enabled");
+  for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR}]`))) {
+    article.removeAttribute(PROCESSED_ATTR);
+  }
+  for (const button of Array.from(document.querySelectorAll(`[${BUTTON_ATTR}]`))) {
+    button.remove();
+  }
 }
 
 function scanArticles(root: ParentNode | Element, ctx: FeatureContext): void {

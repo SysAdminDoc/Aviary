@@ -30,7 +30,6 @@ export const hiddenPostsFeature: FeatureModule = {
   defaultEnabled: true,
 
   async init(ctx) {
-    ensureStyle();
     store = new HiddenPostStore(ctx.storage, (error) => {
       ctx.diagnostics.error("Hidden posts failed to save", errorDetails(error));
     });
@@ -38,6 +37,9 @@ export const hiddenPostsFeature: FeatureModule = {
       await store.load(ctx.settings.hidden.maxEntries);
     } catch (error) {
       ctx.diagnostics.error("Hidden posts failed to load", errorDetails(error));
+    }
+    if (ctx.settings.hidden.enabled) {
+      ensureStyle();
     }
     applyRootClass(ctx);
     scan(document, ctx);
@@ -48,6 +50,11 @@ export const hiddenPostsFeature: FeatureModule = {
     ensureStyle();
     applyRootClass(ctx);
     if (!store) {
+      return;
+    }
+
+    if (!ctx.settings.hidden.enabled || !surfaceMatches(ctx)) {
+      clearDecorations();
       return;
     }
 
@@ -68,23 +75,7 @@ export const hiddenPostsFeature: FeatureModule = {
   },
 
   destroy(ctx) {
-    document.getElementById(STYLE_ID)?.remove();
-    document.getElementById(TOAST_HOST_ID)?.remove();
-    document.documentElement.classList.remove("av-hide-posts-enabled");
-    for (const button of Array.from(document.querySelectorAll(`[${BUTTON_ATTR}]`))) {
-      button.remove();
-    }
-    for (const node of Array.from(
-      document.querySelectorAll(`[${HIDDEN_ATTR}], [${KEY_ATTR}], [${STATE_ATTR}]`)
-    )) {
-      node.removeAttribute(HIDDEN_ATTR);
-      node.removeAttribute(KEY_ATTR);
-      node.removeAttribute(STATE_ATTR);
-    }
-    if (toastTimer !== undefined) {
-      clearTimeout(toastTimer);
-      toastTimer = undefined;
-    }
+    clearDecorations();
     store = undefined;
     lastAppliedVersion = -1;
     ctx.diagnostics.info("Hidden posts destroyed");
@@ -131,6 +122,34 @@ function applyRootClass(ctx: FeatureContext): void {
   );
 }
 
+function clearDecorations(): void {
+  const hadHiddenRows = document.querySelector(`[${HIDDEN_ATTR}]`) !== null;
+  document.getElementById(STYLE_ID)?.remove();
+  document.getElementById(TOAST_HOST_ID)?.remove();
+  document.documentElement.classList.remove("av-hide-posts-enabled");
+  for (const button of Array.from(document.querySelectorAll(`[${BUTTON_ATTR}]`))) {
+    button.remove();
+  }
+  for (const node of Array.from(
+    document.querySelectorAll(`[${HIDDEN_ATTR}], [${KEY_ATTR}], [${STATE_ATTR}]`)
+  )) {
+    node.removeAttribute(HIDDEN_ATTR);
+    node.removeAttribute(KEY_ATTR);
+    node.removeAttribute(STATE_ATTR);
+  }
+  if (toastTimer !== undefined) {
+    clearTimeout(toastTimer);
+    toastTimer = undefined;
+  }
+  if (reflowHandle !== undefined && typeof cancelAnimationFrame === "function") {
+    cancelAnimationFrame(reflowHandle);
+    reflowHandle = undefined;
+  }
+  if (hadHiddenRows) {
+    nudgeReflow();
+  }
+}
+
 function surfaceMatches(ctx: FeatureContext): boolean {
   const surfaces = ctx.settings.hidden.surfaces as readonly FilterSurface[];
   return surfaces.includes(ctx.route.surface as FilterSurface);
@@ -166,6 +185,15 @@ function processArticle(article: Element, ctx: FeatureContext): void {
 
   const stateStamp = String(store.version());
   if (article.getAttribute(STATE_ATTR) === stateStamp) {
+    const key = resolvePostKey(article);
+    if (!key) {
+      return;
+    }
+    if (ctx.settings.hidden.buttons && !store.has(key)) {
+      ensureButton(article, key, ctx);
+    } else if (!ctx.settings.hidden.buttons) {
+      article.querySelector(`[${BUTTON_ATTR}]`)?.remove();
+    }
     return;
   }
 

@@ -9959,7 +9959,6 @@ ${record.text}${mediaList}`;
     category: "filtering",
     defaultEnabled: true,
     async init(ctx) {
-      ensureStyle();
       store = new HiddenPostStore(ctx.storage, (error) => {
         ctx.diagnostics.error("Hidden posts failed to save", errorDetails2(error));
       });
@@ -9967,6 +9966,9 @@ ${record.text}${mediaList}`;
         await store.load(ctx.settings.hidden.maxEntries);
       } catch (error) {
         ctx.diagnostics.error("Hidden posts failed to load", errorDetails2(error));
+      }
+      if (ctx.settings.hidden.enabled) {
+        ensureStyle();
       }
       applyRootClass(ctx);
       scan(document, ctx);
@@ -9976,6 +9978,10 @@ ${record.text}${mediaList}`;
       ensureStyle();
       applyRootClass(ctx);
       if (!store) {
+        return;
+      }
+      if (!ctx.settings.hidden.enabled || !surfaceMatches(ctx)) {
+        clearDecorations();
         return;
       }
       if (store.version() !== lastAppliedVersion) {
@@ -9992,23 +9998,7 @@ ${record.text}${mediaList}`;
       }
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID2)?.remove();
-      document.getElementById(TOAST_HOST_ID)?.remove();
-      document.documentElement.classList.remove("av-hide-posts-enabled");
-      for (const button2 of Array.from(document.querySelectorAll(`[${BUTTON_ATTR}]`))) {
-        button2.remove();
-      }
-      for (const node of Array.from(
-        document.querySelectorAll(`[${HIDDEN_ATTR}], [${KEY_ATTR}], [${STATE_ATTR}]`)
-      )) {
-        node.removeAttribute(HIDDEN_ATTR);
-        node.removeAttribute(KEY_ATTR);
-        node.removeAttribute(STATE_ATTR);
-      }
-      if (toastTimer !== void 0) {
-        clearTimeout(toastTimer);
-        toastTimer = void 0;
-      }
+      clearDecorations();
       store = void 0;
       lastAppliedVersion = -1;
       ctx.diagnostics.info("Hidden posts destroyed");
@@ -10049,6 +10039,33 @@ ${record.text}${mediaList}`;
       ctx.settings.hidden.enabled
     );
   }
+  function clearDecorations() {
+    const hadHiddenRows = document.querySelector(`[${HIDDEN_ATTR}]`) !== null;
+    document.getElementById(STYLE_ID2)?.remove();
+    document.getElementById(TOAST_HOST_ID)?.remove();
+    document.documentElement.classList.remove("av-hide-posts-enabled");
+    for (const button2 of Array.from(document.querySelectorAll(`[${BUTTON_ATTR}]`))) {
+      button2.remove();
+    }
+    for (const node of Array.from(
+      document.querySelectorAll(`[${HIDDEN_ATTR}], [${KEY_ATTR}], [${STATE_ATTR}]`)
+    )) {
+      node.removeAttribute(HIDDEN_ATTR);
+      node.removeAttribute(KEY_ATTR);
+      node.removeAttribute(STATE_ATTR);
+    }
+    if (toastTimer !== void 0) {
+      clearTimeout(toastTimer);
+      toastTimer = void 0;
+    }
+    if (reflowHandle !== void 0 && typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(reflowHandle);
+      reflowHandle = void 0;
+    }
+    if (hadHiddenRows) {
+      nudgeReflow();
+    }
+  }
   function surfaceMatches(ctx) {
     const surfaces = ctx.settings.hidden.surfaces;
     return surfaces.includes(ctx.route.surface);
@@ -10079,6 +10096,15 @@ ${record.text}${mediaList}`;
     }
     const stateStamp = String(store.version());
     if (article.getAttribute(STATE_ATTR) === stateStamp) {
+      const key2 = resolvePostKey(article);
+      if (!key2) {
+        return;
+      }
+      if (ctx.settings.hidden.buttons && !store.has(key2)) {
+        ensureButton(article, key2, ctx);
+      } else if (!ctx.settings.hidden.buttons) {
+        article.querySelector(`[${BUTTON_ATTR}]`)?.remove();
+      }
       return;
     }
     const key = resolvePostKey(article);
@@ -11875,6 +11901,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   var history;
   var aria2History;
   var queue;
+  var appliedPreferOriginalImages;
   var permissionSurfaceOpened = false;
   var mediaButtonsFeature = {
     id: "media.buttons",
@@ -11912,15 +11939,21 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         ctx.diagnostics.warn("Media history failed to load", errorDetails3(error));
       }
       applyToggleClass(ctx);
+      appliedPreferOriginalImages = ctx.settings.media.preferOriginalImages;
       scanArticles(document, ctx);
       ctx.diagnostics.info("Media buttons initialized", { history: history.size() });
     },
     apply(ctx, root, addedNodes) {
       applyToggleClass(ctx);
       if (!ctx.settings.media.buttons) {
-        document.getElementById(STYLE_ID3)?.remove();
+        clearDecorations2();
+        appliedPreferOriginalImages = void 0;
         return;
       }
+      if (appliedPreferOriginalImages !== void 0 && appliedPreferOriginalImages !== ctx.settings.media.preferOriginalImages) {
+        clearDecorations2();
+      }
+      appliedPreferOriginalImages = ctx.settings.media.preferOriginalImages;
       ensureMediaStyle();
       if (!addedNodes || addedNodes.length === 0) {
         scanArticles(root, ctx);
@@ -11931,21 +11964,13 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       }
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID3)?.remove();
-      document.documentElement.classList.remove("av-media-buttons-enabled");
-      for (const article of Array.from(
-        document.querySelectorAll(`[${PROCESSED_ATTR}]`)
-      )) {
-        article.removeAttribute(PROCESSED_ATTR);
-      }
-      for (const button2 of Array.from(document.querySelectorAll(`[${BUTTON_ATTR2}]`))) {
-        button2.remove();
-      }
+      clearDecorations2();
       downloader = void 0;
       history = void 0;
       aria2History = void 0;
       queue?.clear();
       queue = void 0;
+      appliedPreferOriginalImages = void 0;
       ctx.diagnostics.info("Media buttons destroyed");
     },
     getStatus() {
@@ -11971,6 +11996,16 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       "av-media-buttons-enabled",
       ctx.settings.media.buttons
     );
+  }
+  function clearDecorations2() {
+    document.getElementById(STYLE_ID3)?.remove();
+    document.documentElement.classList.remove("av-media-buttons-enabled");
+    for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR}]`))) {
+      article.removeAttribute(PROCESSED_ATTR);
+    }
+    for (const button2 of Array.from(document.querySelectorAll(`[${BUTTON_ATTR2}]`))) {
+      button2.remove();
+    }
   }
   function scanArticles(root, ctx) {
     if (!ctx.settings.media.buttons) {
@@ -12849,31 +12884,45 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     if (!cache) return;
     const articles = root instanceof Element && root.matches('article[data-testid="tweet"]') ? [root] : Array.from(root.querySelectorAll('article[data-testid="tweet"]'));
     for (const article of articles) {
-      if (article.getAttribute(ARTICLE_ATTR) === "1") {
-        continue;
-      }
-      const handle = readHandle3(article);
-      if (!handle) continue;
-      const note = cache.notes[handle];
-      if (!note) {
-        article.setAttribute(ARTICLE_ATTR, "1");
-        continue;
-      }
-      const userName = article.querySelector('[data-testid="User-Name"]');
-      if (!userName || userName.querySelector(`[${BADGE_ATTR}]`)) {
-        article.setAttribute(ARTICLE_ATTR, "1");
-        continue;
-      }
-      const badge = document.createElement("span");
-      badge.setAttribute(BADGE_ATTR, "1");
-      badge.className = "av-note-badge";
-      badge.textContent = ft(ctx, "Note");
-      badge.title = note;
-      badge.setAttribute("role", "note");
-      badge.setAttribute("aria-label", `${ft(ctx, "Note")} @${handle}: ${note}`);
-      userName.append(badge);
-      article.setAttribute(ARTICLE_ATTR, "1");
+      reconcileArticle(article, ctx);
     }
+  }
+  function reconcileArticle(article, ctx) {
+    const handle = readHandle3(article);
+    const note = handle ? cache?.notes[handle] : void 0;
+    const userName = article.querySelector('[data-testid="User-Name"]');
+    const badges = Array.from(article.querySelectorAll(`[${BADGE_ATTR}]`));
+    if (!handle || !note || !userName) {
+      for (const badge2 of badges) {
+        badge2.remove();
+      }
+      article.setAttribute(ARTICLE_ATTR, "1");
+      return;
+    }
+    const badge = badges.find((candidate) => userName.contains(candidate));
+    for (const duplicate of badges) {
+      if (duplicate !== badge) {
+        duplicate.remove();
+      }
+    }
+    if (badge instanceof HTMLElement) {
+      updateBadge(badge, handle, note, ctx);
+      article.setAttribute(ARTICLE_ATTR, "1");
+      return;
+    }
+    const nextBadge = document.createElement("span");
+    nextBadge.setAttribute(BADGE_ATTR, "1");
+    nextBadge.className = "av-note-badge";
+    nextBadge.setAttribute("role", "note");
+    updateBadge(nextBadge, handle, note, ctx);
+    userName.append(nextBadge);
+    article.setAttribute(ARTICLE_ATTR, "1");
+  }
+  function updateBadge(badge, handle, note, ctx) {
+    const label = ft(ctx, "Note");
+    badge.textContent = label;
+    badge.title = note;
+    badge.setAttribute("aria-label", `${label} @${handle}: ${note}`);
   }
   function readHandle3(article) {
     const userName = article.querySelector('[data-testid="User-Name"]');
@@ -14492,11 +14541,18 @@ ${text}`
     category: "core",
     defaultEnabled: true,
     init(ctx) {
+      if (!ctx.settings.ai.commandMenu) {
+        return;
+      }
       ensureStyle3();
       decorate2(ctx, document);
       ctx.diagnostics.info("AI command menu ready");
     },
     apply(ctx, root, addedNodes) {
+      if (!ctx.settings.ai.commandMenu) {
+        clearDecorations3();
+        return;
+      }
       ensureStyle3();
       if (!addedNodes || addedNodes.length === 0) {
         decorate2(ctx, root);
@@ -14507,21 +14563,24 @@ ${text}`
       }
     },
     destroy(ctx) {
-      closeOpenMenu();
-      removeFeatureToast();
-      document.getElementById(STYLE_ID7)?.remove();
-      for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR3}]`))) {
-        article.removeAttribute(PROCESSED_ATTR3);
-      }
-      for (const trigger of Array.from(document.querySelectorAll(`[${TRIGGER_ATTR}]`))) {
-        trigger.remove();
-      }
+      clearDecorations3();
       ctx.diagnostics.info("AI command menu destroyed");
     },
     getStatus() {
       return { ok: true, message: `${AI_COMMANDS.length} local AI prompts` };
     }
   };
+  function clearDecorations3() {
+    closeOpenMenu();
+    removeFeatureToast();
+    document.getElementById(STYLE_ID7)?.remove();
+    for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR3}]`))) {
+      article.removeAttribute(PROCESSED_ATTR3);
+    }
+    for (const trigger of Array.from(document.querySelectorAll(`[${TRIGGER_ATTR}]`))) {
+      trigger.remove();
+    }
+  }
   function decorate2(ctx, root) {
     if (!ctx.settings.ai.commandMenu) {
       return;
@@ -14747,11 +14806,25 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     category: "core",
     defaultEnabled: true,
     init(ctx) {
+      appliedSnippetsSignature = snippetsSignature(ctx);
+      if (ctx.settings.composer.snippets.length === 0) {
+        return;
+      }
       ensureComposerStyle();
       decorate3(ctx, document);
       ctx.diagnostics.info("Composer snippets initialized");
     },
     apply(ctx, root, addedNodes) {
+      if (ctx.settings.composer.snippets.length === 0) {
+        clearDecorations4();
+        appliedSnippetsSignature = void 0;
+        return;
+      }
+      const signature = snippetsSignature(ctx);
+      if (appliedSnippetsSignature !== void 0 && appliedSnippetsSignature !== signature) {
+        closePalettes();
+      }
+      appliedSnippetsSignature = signature;
       ensureComposerStyle();
       if (!addedNodes || addedNodes.length === 0) {
         decorate3(ctx, root);
@@ -14762,20 +14835,44 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       }
     },
     destroy(ctx) {
-      removeFeatureToast();
-      document.getElementById(STYLE_ID8)?.remove();
-      for (const toolbar of Array.from(document.querySelectorAll(`[${TOOLBAR_ATTR}]`))) {
-        toolbar.removeAttribute(TOOLBAR_ATTR);
-      }
-      for (const palette of Array.from(document.querySelectorAll(`[${PALETTE_ATTR}]`))) {
-        palette.remove();
-      }
+      clearDecorations4();
+      appliedSnippetsSignature = void 0;
       ctx.diagnostics.info("Composer snippets destroyed");
     },
     getStatus() {
       return { ok: true, message: "Composer snippets ready" };
     }
   };
+  var openPaletteDismiss;
+  var openPaletteDismissTimer;
+  var appliedSnippetsSignature;
+  function clearDecorations4() {
+    closePalettes();
+    removeFeatureToast();
+    document.getElementById(STYLE_ID8)?.remove();
+    for (const toolbar of Array.from(document.querySelectorAll(`[${TOOLBAR_ATTR}]`))) {
+      toolbar.removeAttribute(TOOLBAR_ATTR);
+    }
+    for (const trigger of Array.from(document.querySelectorAll(`[${PALETTE_ATTR}="trigger"]`))) {
+      trigger.remove();
+    }
+  }
+  function closePalettes() {
+    if (openPaletteDismiss) {
+      document.removeEventListener("click", openPaletteDismiss, true);
+      openPaletteDismiss = void 0;
+    }
+    if (openPaletteDismissTimer !== void 0) {
+      clearTimeout(openPaletteDismissTimer);
+      openPaletteDismissTimer = void 0;
+    }
+    for (const palette of Array.from(document.querySelectorAll(`[${PALETTE_ATTR}="popover"]`))) {
+      palette.remove();
+    }
+  }
+  function snippetsSignature(ctx) {
+    return ctx.settings.composer.snippets.join("");
+  }
   function decorate3(ctx, root) {
     if (ctx.settings.composer.snippets.length === 0) {
       return;
@@ -14783,6 +14880,11 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     const toolbars = root instanceof Element && root.matches('[data-testid="toolBar"]') ? [root] : Array.from(root.querySelectorAll('[data-testid="toolBar"]'));
     for (const toolbar of toolbars) {
       if (toolbar.getAttribute(TOOLBAR_ATTR) === "1") {
+        const trigger = toolbar.querySelector(`[${PALETTE_ATTR}="trigger"]`);
+        if (trigger) {
+          trigger.textContent = ft(ctx, "Snippets");
+          trigger.setAttribute("aria-label", ft(ctx, "Open Aviary composer snippets"));
+        }
         continue;
       }
       const button2 = document.createElement("button");
@@ -14801,9 +14903,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     }
   }
   function openPalette(trigger, ctx) {
-    for (const previous of Array.from(document.querySelectorAll(`[${PALETTE_ATTR}="popover"]`))) {
-      previous.remove();
-    }
+    closePalettes();
     const snippets = ctx.settings.composer.snippets;
     const popover = document.createElement("div");
     popover.setAttribute(PALETTE_ATTR, "popover");
@@ -14846,9 +14946,18 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       if (!popover.contains(event.target) && event.target !== trigger) {
         popover.remove();
         document.removeEventListener("click", dismiss, true);
+        if (openPaletteDismiss === dismiss) {
+          openPaletteDismiss = void 0;
+        }
       }
     };
-    setTimeout(() => document.addEventListener("click", dismiss, true), 0);
+    openPaletteDismiss = dismiss;
+    openPaletteDismissTimer = setTimeout(() => {
+      openPaletteDismissTimer = void 0;
+      if (openPaletteDismiss === dismiss && document.contains(popover)) {
+        document.addEventListener("click", dismiss, true);
+      }
+    }, 0);
   }
   function insertSnippet(snippet2) {
     const composer = document.querySelector('[data-testid="tweetTextarea_0"]');
@@ -15200,6 +15309,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     },
     apply(ctx, root, addedNodes) {
       if (!ctx.settings.links.cleanShareButtons) {
+        restoreProcessedLinks();
         return;
       }
       if (!addedNodes || addedNodes.length === 0) {
@@ -15211,19 +15321,22 @@ html.av-mobile [data-testid="primaryColumn"] {
       }
     },
     destroy(ctx) {
-      for (const anchor of Array.from(
-        document.querySelectorAll(`a[${PROCESSED_ATTR4}]`)
-      )) {
-        const original = anchor.dataset[ORIGINAL_HREF];
-        if (original !== void 0) {
-          anchor.setAttribute("href", original);
-          delete anchor.dataset[ORIGINAL_HREF];
-        }
-        anchor.removeAttribute(PROCESSED_ATTR4);
-      }
+      restoreProcessedLinks();
       ctx.diagnostics.info("Share link cleaning destroyed");
     }
   };
+  function restoreProcessedLinks() {
+    for (const anchor of Array.from(
+      document.querySelectorAll(`a[${PROCESSED_ATTR4}]`)
+    )) {
+      const original = anchor.dataset[ORIGINAL_HREF];
+      if (original !== void 0) {
+        anchor.setAttribute("href", original);
+        delete anchor.dataset[ORIGINAL_HREF];
+      }
+      anchor.removeAttribute(PROCESSED_ATTR4);
+    }
+  }
   function scan2(root) {
     const anchors = root instanceof HTMLAnchorElement ? [root] : Array.from(root.querySelectorAll("a[href]"));
     for (const anchor of anchors) {
@@ -15414,9 +15527,11 @@ html.av-mobile [data-testid="primaryColumn"] {
     },
     apply(ctx, root, addedNodes) {
       if (!ctx.settings.performance.pauseOffscreenVideo) {
+        pauser.stop();
         return;
       }
-      if (!pauser.start(window)) {
+      available = pauser.start(window);
+      if (!available) {
         return;
       }
       if (!addedNodes || addedNodes.length === 0) {
@@ -15563,6 +15678,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     },
     apply(ctx, root, addedNodes) {
       if (!ctx.settings.media.inlineOriginalImages) {
+        restoreProcessedImages();
         return;
       }
       if (!addedNodes || addedNodes.length === 0) {
@@ -15574,14 +15690,17 @@ html.av-mobile [data-testid="primaryColumn"] {
       }
     },
     destroy(ctx) {
-      for (const img of Array.from(
-        document.querySelectorAll(`img[${PROCESSED_ATTR6}]`)
-      )) {
-        restoreImage(img);
-      }
+      restoreProcessedImages();
       ctx.diagnostics.info("Original-quality images destroyed");
     }
   };
+  function restoreProcessedImages() {
+    for (const img of Array.from(document.querySelectorAll("img"))) {
+      if (img.hasAttribute(PROCESSED_ATTR6) || img.dataset[ORIGINAL_SRC] !== void 0 || img.dataset[ORIGINAL_SRCSET] !== void 0) {
+        restoreImage(img);
+      }
+    }
+  }
   function scan3(root) {
     const images = root.tagName === "IMG" ? [root] : Array.from(root.querySelectorAll(IMAGE_SELECTOR));
     for (const img of images) {
@@ -15596,24 +15715,27 @@ html.av-mobile [data-testid="primaryColumn"] {
   // src/features/library/link-unshorten.ts
   var STYLE_ID11 = "av-link-unshorten";
   var PROCESSED_ATTR7 = "data-av-link-clean";
+  var ORIGINAL_TITLE_PRESENT = "avOriginalTitlePresent";
   var linkUnshortenFeature = {
     id: "library.linkUnshorten",
     title: "Direct link unshortening",
     category: "core",
     defaultEnabled: true,
     init(ctx) {
-      ensureStyle4();
       if (!ctx.settings.links.expandTco) {
         return;
       }
+      ensureStyle4();
       scan4(document);
       ctx.diagnostics.info("Link unshortening initialized");
     },
     apply(ctx, root, addedNodes) {
-      ensureStyle4();
       if (!ctx.settings.links.expandTco) {
+        restoreProcessedLinks2();
+        document.getElementById(STYLE_ID11)?.remove();
         return;
       }
+      ensureStyle4();
       if (!addedNodes || addedNodes.length === 0) {
         scan4(root);
         return;
@@ -15623,24 +15745,33 @@ html.av-mobile [data-testid="primaryColumn"] {
       }
     },
     destroy(ctx) {
+      restoreProcessedLinks2();
       document.getElementById(STYLE_ID11)?.remove();
-      for (const link of Array.from(
-        document.querySelectorAll(`a[${PROCESSED_ATTR7}]`)
-      )) {
-        link.removeAttribute(PROCESSED_ATTR7);
-        link.classList.remove("av-link-clean");
-        const original = link.dataset.avOriginalText;
-        if (original !== void 0) {
-          link.textContent = original;
-          delete link.dataset.avOriginalText;
-        }
-        const originalTitle = link.dataset.avOriginalTitle;
-        link.title = originalTitle ?? "";
-        delete link.dataset.avOriginalTitle;
-      }
       ctx.diagnostics.info("Link unshortening destroyed");
     }
   };
+  function restoreProcessedLinks2() {
+    for (const link of Array.from(
+      document.querySelectorAll(`a[${PROCESSED_ATTR7}]`)
+    )) {
+      const original = link.dataset.avOriginalText;
+      if (original !== void 0) {
+        link.textContent = original;
+        delete link.dataset.avOriginalText;
+      }
+      const originalTitle = link.dataset.avOriginalTitle;
+      const titleWasPresent = link.dataset[ORIGINAL_TITLE_PRESENT] === "1";
+      if (originalTitle !== void 0 && titleWasPresent) {
+        link.title = originalTitle;
+      } else {
+        link.removeAttribute("title");
+      }
+      delete link.dataset.avOriginalTitle;
+      delete link.dataset[ORIGINAL_TITLE_PRESENT];
+      link.classList.remove("av-link-clean");
+      link.removeAttribute(PROCESSED_ATTR7);
+    }
+  }
   function scan4(root) {
     const anchors = root instanceof HTMLAnchorElement ? [root] : Array.from(root.querySelectorAll("a"));
     for (const anchor of anchors) {
@@ -15655,11 +15786,12 @@ html.av-mobile [data-testid="primaryColumn"] {
       if (!target) {
         continue;
       }
-      if (!anchor.dataset.avOriginalText) {
+      if (anchor.dataset.avOriginalText === void 0) {
         anchor.dataset.avOriginalText = anchor.textContent ?? "";
       }
       if (anchor.dataset.avOriginalTitle === void 0) {
         anchor.dataset.avOriginalTitle = anchor.title;
+        anchor.dataset[ORIGINAL_TITLE_PRESENT] = anchor.hasAttribute("title") ? "1" : "0";
       }
       anchor.classList.add("av-link-clean");
       anchor.title = target;

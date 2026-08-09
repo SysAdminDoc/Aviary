@@ -19,6 +19,13 @@
   rail on narrow screens while preserving touch targets, focus behaviour, and zero horizontal
   content overflow.
 
+### Fixed
+
+- Runtime feature changes now reconcile already-rendered X content in both directions. Disabling
+  media, AI, snippets, link cleanup, original-quality images, offscreen video pausing, or hidden
+  posts removes Aviary's markers, listeners, styles, buttons, URL rewrites, and collapsed rows
+  without a reload; note edits and snippet edits repaint mounted controls immediately.
+
 ## 1.14.1 - 2026-08-08
 
 ### Fixed

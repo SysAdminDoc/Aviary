@@ -82,6 +82,7 @@ export const inlineOriginalImagesFeature: FeatureModule = {
 
   apply(ctx: FeatureContext, root: ParentNode, addedNodes?: Element[]) {
     if (!ctx.settings.media.inlineOriginalImages) {
+      restoreProcessedImages();
       return;
     }
     if (!addedNodes || addedNodes.length === 0) {
@@ -94,14 +95,22 @@ export const inlineOriginalImagesFeature: FeatureModule = {
   },
 
   destroy(ctx: FeatureContext) {
-    for (const img of Array.from(
-      document.querySelectorAll<HTMLImageElement>(`img[${PROCESSED_ATTR}]`)
-    )) {
-      restoreImage(img);
-    }
+    restoreProcessedImages();
     ctx.diagnostics.info("Original-quality images destroyed");
   }
 };
+
+function restoreProcessedImages(): void {
+  for (const img of Array.from(document.querySelectorAll<HTMLImageElement>("img"))) {
+    if (
+      img.hasAttribute(PROCESSED_ATTR) ||
+      img.dataset[ORIGINAL_SRC] !== undefined ||
+      img.dataset[ORIGINAL_SRCSET] !== undefined
+    ) {
+      restoreImage(img);
+    }
+  }
+}
 
 function scan(root: ParentNode | Element): void {
   const images: HTMLImageElement[] =

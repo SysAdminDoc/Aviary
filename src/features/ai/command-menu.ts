@@ -53,12 +53,19 @@ export const aiCommandMenuFeature: FeatureModule = {
   defaultEnabled: true,
 
   init(ctx) {
+    if (!ctx.settings.ai.commandMenu) {
+      return;
+    }
     ensureStyle();
     decorate(ctx, document);
     ctx.diagnostics.info("AI command menu ready");
   },
 
   apply(ctx, root, addedNodes) {
+    if (!ctx.settings.ai.commandMenu) {
+      clearDecorations();
+      return;
+    }
     ensureStyle();
     if (!addedNodes || addedNodes.length === 0) {
       decorate(ctx, root);
@@ -72,15 +79,7 @@ export const aiCommandMenuFeature: FeatureModule = {
   destroy(ctx) {
     // The menu lives on <body>, outside anything the selectors below sweep: without this it
     // survived teardown as an unstyled list with a live capture-phase click listener.
-    closeOpenMenu();
-    removeFeatureToast();
-    document.getElementById(STYLE_ID)?.remove();
-    for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR}]`))) {
-      article.removeAttribute(PROCESSED_ATTR);
-    }
-    for (const trigger of Array.from(document.querySelectorAll(`[${TRIGGER_ATTR}]`))) {
-      trigger.remove();
-    }
+    clearDecorations();
     ctx.diagnostics.info("AI command menu destroyed");
   },
 
@@ -88,6 +87,18 @@ export const aiCommandMenuFeature: FeatureModule = {
     return { ok: true, message: `${AI_COMMANDS.length} local AI prompts` };
   }
 };
+
+function clearDecorations(): void {
+  closeOpenMenu();
+  removeFeatureToast();
+  document.getElementById(STYLE_ID)?.remove();
+  for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR}]`))) {
+    article.removeAttribute(PROCESSED_ATTR);
+  }
+  for (const trigger of Array.from(document.querySelectorAll(`[${TRIGGER_ATTR}]`))) {
+    trigger.remove();
+  }
+}
 
 function decorate(ctx: FeatureContext, root: ParentNode | Element): void {
   // Off by default: a button on every post is a visible change to X, and nothing Aviary adds to

@@ -153,9 +153,13 @@ export const pauseOffscreenVideoFeature: FeatureModule = {
 
   apply(ctx: FeatureContext, root: ParentNode, addedNodes?: Element[]) {
     if (!ctx.settings.performance.pauseOffscreenVideo) {
+      // Settings changes must be reversible without waiting for Aviary teardown. Stopping the
+      // pauser removes the observer, listener and both attributes it owns from every video.
+      pauser.stop();
       return;
     }
-    if (!pauser.start(window)) {
+    available = pauser.start(window);
+    if (!available) {
       return;
     }
     if (!addedNodes || addedNodes.length === 0) {

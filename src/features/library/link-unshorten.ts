@@ -2,6 +2,7 @@ import type { FeatureModule } from "../registry";
 
 const STYLE_ID = "av-link-unshorten";
 const PROCESSED_ATTR = "data-av-link-clean";
+const ORIGINAL_TITLE_PRESENT = "avOriginalTitlePresent";
 
 export const linkUnshortenFeature: FeatureModule = {
   id: "library.linkUnshorten",
@@ -10,19 +11,21 @@ export const linkUnshortenFeature: FeatureModule = {
   defaultEnabled: true,
 
   init(ctx) {
-    ensureStyle();
     if (!ctx.settings.links.expandTco) {
       return;
     }
+    ensureStyle();
     scan(document);
     ctx.diagnostics.info("Link unshortening initialized");
   },
 
   apply(ctx, root, addedNodes) {
-    ensureStyle();
     if (!ctx.settings.links.expandTco) {
+      restoreProcessedLinks();
+      document.getElementById(STYLE_ID)?.remove();
       return;
     }
+    ensureStyle();
     if (!addedNodes || addedNodes.length === 0) {
       scan(root);
       return;
@@ -33,24 +36,35 @@ export const linkUnshortenFeature: FeatureModule = {
   },
 
   destroy(ctx) {
+    // restoreProcessedLinks removes the av-link-clean class and restores every captured value.
+    restoreProcessedLinks();
     document.getElementById(STYLE_ID)?.remove();
-    for (const link of Array.from(
-      document.querySelectorAll<HTMLAnchorElement>(`a[${PROCESSED_ATTR}]`)
-    )) {
-      link.removeAttribute(PROCESSED_ATTR);
-      link.classList.remove("av-link-clean");
-      const original = link.dataset.avOriginalText;
-      if (original !== undefined) {
-        link.textContent = original;
-        delete link.dataset.avOriginalText;
-      }
-      const originalTitle = link.dataset.avOriginalTitle;
-      link.title = originalTitle ?? "";
-      delete link.dataset.avOriginalTitle;
-    }
     ctx.diagnostics.info("Link unshortening destroyed");
   }
 };
+
+function restoreProcessedLinks(): void {
+  for (const link of Array.from(
+    document.querySelectorAll<HTMLAnchorElement>(`a[${PROCESSED_ATTR}]`)
+  )) {
+    const original = link.dataset.avOriginalText;
+    if (original !== undefined) {
+      link.textContent = original;
+      delete link.dataset.avOriginalText;
+    }
+    const originalTitle = link.dataset.avOriginalTitle;
+    const titleWasPresent = link.dataset[ORIGINAL_TITLE_PRESENT] === "1";
+    if (originalTitle !== undefined && titleWasPresent) {
+      link.title = originalTitle;
+    } else {
+      link.removeAttribute("title");
+    }
+    delete link.dataset.avOriginalTitle;
+    delete link.dataset[ORIGINAL_TITLE_PRESENT];
+    link.classList.remove("av-link-clean");
+    link.removeAttribute(PROCESSED_ATTR);
+  }
+}
 
 function scan(root: ParentNode | Element): void {
   const anchors: HTMLAnchorElement[] =
@@ -69,11 +83,12 @@ function scan(root: ParentNode | Element): void {
     if (!target) {
       continue;
     }
-    if (!anchor.dataset.avOriginalText) {
+    if (anchor.dataset.avOriginalText === undefined) {
       anchor.dataset.avOriginalText = anchor.textContent ?? "";
     }
     if (anchor.dataset.avOriginalTitle === undefined) {
       anchor.dataset.avOriginalTitle = anchor.title;
+      anchor.dataset[ORIGINAL_TITLE_PRESENT] = anchor.hasAttribute("title") ? "1" : "0";
     }
     anchor.classList.add("av-link-clean");
     anchor.title = target;
