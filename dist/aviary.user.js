@@ -182,17 +182,24 @@ html[data-av-theme] [aria-label="Timeline: Trending now"] {
 
 /* The primary column takes its width from its own box, not from a max-width -- measured on
    _decoded/home.html at a 1400px viewport, the column and its first four ancestors all report
-   max-width:none and the same 677.77px. The tier is therefore expressed as a width, and clamped
-   against 100vw rather than 100% -- every ancestor is already the column's own 677.77px, so a
-   percentage can never resolve to anything larger and the setting would silently do nothing. */
+   max-width:none and the same 677.77px. Current X also makes this box a flex item with a growing
+   auto basis; width alone then grows Comfortable and Wide to the same wrapper width. Pin the
+   basis and growth as well, and clamp against the viewport rather than 100% so the rule works
+   through both the old block layout and the current flex wrapper. */
 html[data-av-width="comfortable"] [data-testid="primaryColumn"] {
-  width: min(820px, 100vw) !important;
-  max-width: none !important;
+  flex: 0 1 min(820px, calc(100vw - 16px)) !important;
+  flex-basis: min(820px, calc(100vw - 16px)) !important;
+  width: min(820px, calc(100vw - 16px)) !important;
+  max-width: min(820px, calc(100vw - 16px)) !important;
+  min-width: 0 !important;
 }
 
 html[data-av-width="wide"] [data-testid="primaryColumn"] {
-  width: min(1040px, 100vw) !important;
-  max-width: none !important;
+  flex: 0 1 min(1040px, calc(100vw - 16px)) !important;
+  flex-basis: min(1040px, calc(100vw - 16px)) !important;
+  width: min(1040px, calc(100vw - 16px)) !important;
+  max-width: min(1040px, calc(100vw - 16px)) !important;
+  min-width: 0 !important;
 }
 
 /* TwitterChirp is the family X registers the font under -- confirmed in the captured

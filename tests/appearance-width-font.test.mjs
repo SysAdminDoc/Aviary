@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
@@ -11,7 +11,9 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 let browser;
 let page;
+let currentPage;
 let temp;
+let bundle;
 
 /** Settings shaped enough for applyTheme, which reads appearance + accessibility. */
 const settings = (appearance) => ({
@@ -29,7 +31,7 @@ const settings = (appearance) => ({
 
 before(async () => {
   temp = await mkdtemp(path.join(tmpdir(), "aviary-appearance-"));
-  const bundle = path.join(temp, "bundle.js");
+  bundle = path.join(temp, "bundle.js");
   const entry = path.join(temp, "entry.ts");
   await writeFile(
     entry,
@@ -66,9 +68,18 @@ before(async () => {
     style.id = "av-theme-style";
     document.head.append(style);
   });
+
+  currentPage = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+  const currentCapture = decodeMhtml(await readFile(path.join(root, "Home _ X.mhtml"), "utf8"));
+  await currentPage.setContent(currentCapture.html);
+  for (const css of currentCapture.css) {
+    await currentPage.addStyleTag({ content: css });
+  }
+  await currentPage.addScriptTag({ path: bundle });
 });
 
 after(async () => {
+  await currentPage?.close();
   await browser?.close();
   await rm(temp, { recursive: true, force: true });
 });
@@ -97,6 +108,24 @@ async function measure(appearance) {
   );
 }
 
+async function measureCurrent(appearance) {
+  return currentPage.evaluate(
+    (nextSettings) => {
+      document.getElementById("av-theme-foundation")?.remove();
+      AviaryTheme.themeFeature.init({
+        settings: nextSettings,
+        diagnostics: { info() {}, error() {} }
+      });
+      const column = document.querySelector('[data-testid="primaryColumn"]');
+      return {
+        width: Math.round(column.getBoundingClientRect().width),
+        flexBasis: getComputedStyle(column).flexBasis
+      };
+    },
+    settings(appearance)
+  );
+}
+
 test("timelineWidth actually widens the captured primary column", async () => {
   const base = await measure({ timelineWidth: "default" });
   const comfortable = await measure({ timelineWidth: "comfortable" });
@@ -114,6 +143,27 @@ test("timelineWidth actually widens the captured primary column", async () => {
     `wide (${wide.width}px) must exceed comfortable (${comfortable.width}px)`
   );
   assert.equal(wide.width, 1040, "wide is capped at its declared width on a 1400px viewport");
+});
+
+test("timelineWidth controls the current X flex item when the sidebar is hidden", async () => {
+  await currentPage.evaluate(() => {
+    document.querySelector('[data-testid="sidebarColumn"]')?.remove();
+  });
+
+  const base = await measureCurrent({ timelineWidth: "default" });
+  const comfortable = await measureCurrent({ timelineWidth: "comfortable" });
+  const wide = await measureCurrent({ timelineWidth: "wide" });
+
+  assert.ok(
+    comfortable.width > base.width,
+    `current X comfortable (${comfortable.width}px) must exceed default (${base.width}px)`
+  );
+  assert.ok(
+    wide.width > comfortable.width,
+    `current X wide (${wide.width}px) must exceed comfortable (${comfortable.width}px)`
+  );
+  assert.equal(wide.width, 1040);
+  assert.ok(wide.flexBasis.includes("1040px"), `current X flex basis should be pinned, saw ${wide.flexBasis}`);
 });
 
 test("timelineWidth never overflows a viewport narrower than the tier", async () => {
@@ -149,3 +199,31 @@ test("destroy clears both new hooks off the document element", async () => {
   assert.equal(after.dataWidth, null);
   assert.equal(after.chirpClass, false);
 });
+
+function decodeMhtml(source) {
+  const boundary = /boundary="([^"]+)"/.exec(source)?.[1];
+  assert.ok(boundary, "current X capture has no MIME boundary");
+  const parts = source
+    .split(`--${boundary}`)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0 && part !== "--")
+    .map((part) => {
+      const divider = part.indexOf("\n\n");
+      const headers = (divider >= 0 ? part.slice(0, divider) : part).toLowerCase();
+      const body = divider >= 0 ? part.slice(divider + 2) : "";
+      return { headers, body: decodeQuotedPrintable(body) };
+    });
+  const html = parts.find((part) => part.headers.includes("content-type: text/html"))?.body;
+  assert.ok(html, "current X capture has no HTML part");
+  const css = parts
+    .filter((part) => part.headers.includes("content-type: text/css"))
+    .map((part) => part.body)
+    .filter((body) => body.length > 0);
+  return { html, css };
+}
+
+function decodeQuotedPrintable(value) {
+  return value
+    .replace(/=\r?\n/g, "")
+    .replace(/=([0-9A-F]{2})/gi, (_, hex) => String.fromCharCode(Number.parseInt(hex, 16)));
+}
