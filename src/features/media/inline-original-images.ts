@@ -6,6 +6,8 @@ const ORIGINAL_SRC = "avOriginalSrc";
 const ORIGINAL_SRCSET = "avOriginalSrcset";
 
 const IMAGE_SELECTOR = 'img[src*="pbs.twimg.com/media"]';
+const MARKER_SELECTOR =
+  `img[${PROCESSED_ATTR}], img[data-av-original-src], img[data-av-original-srcset]`;
 
 /**
  * Serves timeline photos at `name=orig` instead of the size X picked for the slot.
@@ -113,8 +115,11 @@ function restoreProcessedImages(): void {
 }
 
 function scan(root: ParentNode | Element): void {
+  restoreStaleImages(root);
+
+  const rootElement = root instanceof Element ? root : null;
   const images: HTMLImageElement[] =
-    (root as Element).tagName === "IMG"
+    rootElement?.matches(IMAGE_SELECTOR)
       ? [root as HTMLImageElement]
       : Array.from(root.querySelectorAll<HTMLImageElement>(IMAGE_SELECTOR));
 
@@ -126,5 +131,21 @@ function scan(root: ParentNode | Element): void {
     // rewrite, and re-testing it on every mutation batch is pure work.
     img.setAttribute(PROCESSED_ATTR, "1");
     upgradeImage(img);
+  }
+}
+
+function restoreStaleImages(root: ParentNode | Element): void {
+  const rootElement = root instanceof Element ? root : null;
+  const markedImages: HTMLImageElement[] = [];
+
+  if (rootElement?.matches(MARKER_SELECTOR)) {
+    markedImages.push(rootElement as HTMLImageElement);
+  }
+  markedImages.push(...Array.from(root.querySelectorAll<HTMLImageElement>(MARKER_SELECTOR)));
+
+  for (const img of markedImages) {
+    if (!img.matches(IMAGE_SELECTOR)) {
+      restoreImage(img);
+    }
   }
 }

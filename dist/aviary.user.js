@@ -17373,6 +17373,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   var ORIGINAL_SRC = "avOriginalSrc";
   var ORIGINAL_SRCSET = "avOriginalSrcset";
   var IMAGE_SELECTOR = 'img[src*="pbs.twimg.com/media"]';
+  var MARKER_SELECTOR = `img[${PROCESSED_ATTR6}], img[data-av-original-src], img[data-av-original-srcset]`;
   function upgradeImage(img) {
     const current = img.getAttribute("src");
     if (!current) {
@@ -17453,13 +17454,28 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
   }
   function scan4(root) {
-    const images = root.tagName === "IMG" ? [root] : Array.from(root.querySelectorAll(IMAGE_SELECTOR));
+    restoreStaleImages(root);
+    const rootElement = root instanceof Element ? root : null;
+    const images = rootElement?.matches(IMAGE_SELECTOR) ? [root] : Array.from(root.querySelectorAll(IMAGE_SELECTOR));
     for (const img of images) {
       if (img.getAttribute(PROCESSED_ATTR6) === "1") {
         continue;
       }
       img.setAttribute(PROCESSED_ATTR6, "1");
       upgradeImage(img);
+    }
+  }
+  function restoreStaleImages(root) {
+    const rootElement = root instanceof Element ? root : null;
+    const markedImages = [];
+    if (rootElement?.matches(MARKER_SELECTOR)) {
+      markedImages.push(rootElement);
+    }
+    markedImages.push(...Array.from(root.querySelectorAll(MARKER_SELECTOR)));
+    for (const img of markedImages) {
+      if (!img.matches(IMAGE_SELECTOR)) {
+        restoreImage(img);
+      }
     }
   }
 

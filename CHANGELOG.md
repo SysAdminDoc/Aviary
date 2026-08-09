@@ -53,6 +53,8 @@
   bucket immediately while blocked-account and self-repost placeholders remain disabled.
 - The local bookmark library is now a shipped product surface: rendered posts get a reversible
   Save locally control, and Library search can edit tags, folders, reminders, notes, or remove entries.
+- Original-quality image mutation now upgrades only `pbs.twimg.com/media` tweet photos; avatars,
+  emoji, cards, and stale non-media markers are left untouched or restored during reconciliation.
 
 ## 1.14.1 - 2026-08-08
 

@@ -155,6 +155,62 @@ test("non-timeline images and already-original URLs are left alone", async () =>
   assert.equal(results.foreignSrc, "https://example.com/media/photo.jpg?name=small");
 });
 
+test("mutation scans only media images and clears stale non-media markers", async () => {
+  const result = await page.evaluate(() => {
+    const host = document.createElement("div");
+    const make = (src) => {
+      const img = document.createElement("img");
+      img.setAttribute("src", src);
+      return img;
+    };
+    const avatar = make("https://pbs.twimg.com/profile_images/1/avatar_normal.jpg");
+    const emoji = make("https://abs.twimg.com/emoji/v2/72x72/1f600.png");
+    const card = make("https://pbs.twimg.com/card-icon.png");
+    const photo = make("https://pbs.twimg.com/media/MutationPhoto?format=jpg&name=small");
+    const stale = make("https://pbs.twimg.com/profile_images/2/stale_normal.jpg?name=orig");
+    stale.setAttribute("data-av-orig-image", "1");
+    stale.dataset.avOriginalSrc = "https://pbs.twimg.com/profile_images/2/stale_normal.jpg";
+    stale.dataset.avOriginalSrcset =
+      "https://pbs.twimg.com/profile_images/2/stale_normal.jpg 1x";
+    stale.removeAttribute("srcset");
+    host.append(avatar, emoji, card, photo, stale);
+
+    const ctx = {
+      settings: { media: { inlineOriginalImages: true } },
+      diagnostics: { info() {}, error() {} }
+    };
+    AviaryImages.inlineOriginalImagesFeature.apply(ctx, host, [
+      avatar,
+      emoji,
+      card,
+      photo,
+      stale
+    ]);
+
+    const during = [...host.querySelectorAll("img")].map((img) => ({
+      src: img.getAttribute("src"),
+      srcset: img.getAttribute("srcset"),
+      marker: img.getAttribute("data-av-orig-image")
+    }));
+    host.remove();
+    return during;
+  });
+
+  assert.equal(result.length, 5);
+  for (const index of [0, 1, 2]) {
+    assert.equal(result[index].marker, null, "non-media images must not be marked");
+  }
+  assert.match(result[3].src, /name=orig/, "tweet media should be upgraded");
+  assert.equal(result[3].marker, "1");
+  assert.equal(result[4].src, "https://pbs.twimg.com/profile_images/2/stale_normal.jpg");
+  assert.equal(
+    result[4].srcset,
+    "https://pbs.twimg.com/profile_images/2/stale_normal.jpg 1x",
+    "stale state should be restored before the next scan"
+  );
+  assert.equal(result[4].marker, null, "stale non-media markers must be removed");
+});
+
 test("the feature is off by default and reverses every image it touched", async () => {
   const settings = await readFile(path.join(root, "src/platform/settings.ts"), "utf8");
   assert.match(settings, /inlineOriginalImages: false/, "full-size images cost bandwidth: opt in");
