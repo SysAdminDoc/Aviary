@@ -25,6 +25,9 @@
   media, AI, snippets, link cleanup, original-quality images, offscreen video pausing, or hidden
   posts removes Aviary's markers, listeners, styles, buttons, URL rewrites, and collapsed rows
   without a reload; note edits and snippet edits repaint mounted controls immediately.
+- Current X MediaSource players now get a real poster Thumb anchor and a Video/GIF control when
+  the page-world GraphQL response exposes a direct variant. Blob-only players remain unavailable
+  instead of reporting a false save, with metadata retained in a bounded local cache.
 
 ## 1.14.1 - 2026-08-08
 

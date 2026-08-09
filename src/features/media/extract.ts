@@ -1,5 +1,10 @@
 import { normalizeImageUrl, tweetIdFromHref, type NormalizedImage } from "./urls";
-import { extractVideos, type ExtractedVideo } from "./video-extract";
+import type { CapturedMediaMetadata } from "./media-metadata";
+import {
+  extractVideo,
+  VIDEO_CONTAINER_SELECTOR,
+  type ExtractedVideo
+} from "./video-extract";
 
 export interface ExtractedMedia {
   kind: "photo" | "thumbnail" | "video";
@@ -19,6 +24,12 @@ export interface ExtractedTweet {
 export interface ExtractTweetOptions {
   /** Mirrors `settings.media.preferOriginalImages`; defaults to the original-quality rewrite. */
   preferOriginalImages?: boolean;
+  /** Resolves page-world media metadata for a DOM player backed by a `blob:` URL. */
+  mediaMetadata?: (args: {
+    tweetId: string | null;
+    mediaId: string | null;
+    poster: string | null;
+  }) => CapturedMediaMetadata | null;
 }
 
 export function extractTweet(article: Element, options: ExtractTweetOptions = {}): ExtractedTweet {
@@ -37,21 +48,37 @@ export function extractTweet(article: Element, options: ExtractTweetOptions = {}
     }
   }
 
-  for (const video of extractVideos(article)) {
+  for (const container of Array.from(
+    article.querySelectorAll<HTMLElement>(VIDEO_CONTAINER_SELECTOR)
+  )) {
+    const localPoster = container.querySelector<HTMLVideoElement>("video")?.poster || null;
+    const captured = options.mediaMetadata?.({
+      tweetId,
+      mediaId: mediaIdFromUrl(localPoster),
+      poster: localPoster
+    });
+    const video = extractVideo(container, captured ?? undefined);
+    if (!video) {
+      continue;
+    }
     if (video.preferred) {
       media.push({ kind: "video", source: video.container, video });
     }
     if (video.poster) {
       const normalized = normalizeImageUrl(video.poster, imageOptions);
       if (normalized) {
-        const fake = document.createElement("img");
-        fake.src = video.poster;
-        media.push({ kind: "thumbnail", source: fake, image: normalized });
+        // Keep the player in the document as the placement anchor. A detached fake image has no
+        // tweetPhoto ancestor, so media-buttons cannot attach the promised Thumb control to it.
+        media.push({ kind: "thumbnail", source: video.container, image: normalized });
       }
     }
   }
 
   return { article, tweetId, handle, text, media };
+}
+
+function mediaIdFromUrl(url: string | null): string | null {
+  return /\/media\/([A-Za-z0-9_-]+)/i.exec(url ?? "")?.[1] ?? null;
 }
 
 function readTweetId(article: Element): string | null {

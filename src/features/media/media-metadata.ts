@@ -1,0 +1,426 @@
+import type { VideoVariant } from "./video-extract";
+
+export interface CapturedMediaMetadata {
+  tweetId: string | null;
+  mediaId: string | null;
+  poster: string | null;
+  variants: VideoVariant[];
+  isGif: boolean;
+}
+
+interface MetadataPayload {
+  body?: unknown;
+}
+
+const MAX_BODY_CHARS = 1_500_000;
+const MAX_ENTRIES = 256;
+const MAX_NODES = 50_000;
+const MAX_DEPTH = 32;
+const MEDIA_URL_PATTERN = /\/media\/([A-Za-z0-9_-]+)/i;
+
+/**
+ * Keeps the small part of X's GraphQL responses that the DOM player cannot expose.
+ *
+ * X's timeline video is normally backed by a MediaSource `blob:` URL. The response that created
+ * the player still contains a preview image and direct `video_info.variants`, so retaining only
+ * those fields gives the media controls a useful target without retaining an authenticated
+ * response body or growing with the user's browsing session.
+ */
+export class MediaMetadataCache {
+  #entries = new Map<string, CapturedMediaMetadata>();
+  #version = 0;
+
+  get version(): number {
+    return this.#version;
+  }
+
+  get size(): number {
+    return this.#entries.size;
+  }
+
+  ingest(payload: unknown): number {
+    const body = readBody(payload);
+    if (!body || body.length === 0 || body.length > MAX_BODY_CHARS) {
+      return 0;
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      return 0;
+    }
+
+    const found: CapturedMediaMetadata[] = [];
+    const state = { nodes: 0 };
+    collectMetadata(parsed, null, 0, state, found);
+
+    let changed = 0;
+    for (const metadata of found) {
+      if (upsert(this.#entries, metadata)) {
+        changed += 1;
+        this.#version += 1;
+      }
+    }
+    while (this.#entries.size > MAX_ENTRIES) {
+      const oldest = this.#entries.keys().next().value as string | undefined;
+      if (!oldest) {
+        break;
+      }
+      this.#entries.delete(oldest);
+    }
+    return changed;
+  }
+
+  find(
+    tweetId: string | null,
+    mediaId: string | null = null,
+    poster: string | null = null
+  ): CapturedMediaMetadata | null {
+    const wantedTweet = cleanId(tweetId);
+    const wantedMedia = cleanId(mediaId) ?? mediaIdFromUrl(poster);
+    const wantedPoster = cleanUrl(poster);
+
+    let winner: CapturedMediaMetadata | null = null;
+    let winnerScore = 0;
+    let tied = false;
+
+    for (const entry of this.#entries.values()) {
+      let score = 0;
+      if (wantedTweet && entry.tweetId === wantedTweet) {
+        score += 4;
+      } else if (wantedTweet && entry.tweetId) {
+        continue;
+      }
+      if (wantedMedia) {
+        const mediaMatches =
+          entry.mediaId === wantedMedia || mediaIdFromUrl(entry.poster) === wantedMedia;
+        if (!mediaMatches && (!wantedPoster || cleanUrl(entry.poster) !== wantedPoster)) {
+          continue;
+        }
+        if (mediaMatches) {
+          score += 8;
+        }
+      }
+      if (wantedPoster && cleanUrl(entry.poster) === wantedPoster) {
+        score += 6;
+      } else if (wantedMedia && mediaIdFromUrl(entry.poster) === wantedMedia) {
+        score += 3;
+      }
+      if (score === 0 || score < winnerScore) {
+        continue;
+      }
+      if (score === winnerScore) {
+        tied = true;
+        continue;
+      }
+      winner = entry;
+      winnerScore = score;
+      tied = false;
+    }
+
+    // If an article cannot identify which of several media items it contains, do not attach one
+    // item's MP4 to another item's player. A single tweet/media match is safe; an ambiguous one
+    // is intentionally treated like a cache miss.
+    return winner && !tied ? cloneMetadata(winner) : null;
+  }
+
+  clear(): void {
+    this.#entries.clear();
+    this.#version += 1;
+  }
+}
+
+export function mediaIdFromUrl(url: string | null | undefined): string | null {
+  if (!url) {
+    return null;
+  }
+  return MEDIA_URL_PATTERN.exec(url)?.[1] ?? null;
+}
+
+function readBody(payload: unknown): string | null {
+  if (typeof payload === "string") {
+    return payload;
+  }
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+  const body = (payload as MetadataPayload).body;
+  return typeof body === "string" ? body : null;
+}
+
+function collectMetadata(
+  value: unknown,
+  inheritedTweetId: string | null,
+  depth: number,
+  state: { nodes: number },
+  found: CapturedMediaMetadata[]
+): void {
+  if (depth > MAX_DEPTH || state.nodes >= MAX_NODES || !value || typeof value !== "object") {
+    return;
+  }
+  state.nodes += 1;
+
+  if (Array.isArray(value)) {
+    for (const child of value) {
+      collectMetadata(child, inheritedTweetId, depth + 1, state, found);
+      if (state.nodes >= MAX_NODES) {
+        return;
+      }
+    }
+    return;
+  }
+
+  const record = value as Record<string, unknown>;
+  const tweetId = isMediaRecord(record) ? inheritedTweetId : readTweetId(record) ?? inheritedTweetId;
+  if (isMediaRecord(record)) {
+    const metadata = readMediaMetadata(record, tweetId);
+    if (metadata) {
+      found.push(metadata);
+    }
+  }
+
+  for (const child of Object.values(record)) {
+    collectMetadata(child, tweetId, depth + 1, state, found);
+    if (state.nodes >= MAX_NODES) {
+      return;
+    }
+  }
+}
+
+function readTweetId(record: Record<string, unknown>): string | null {
+  const restId = cleanId(record.rest_id);
+  if (restId && looksLikeTweet(record)) {
+    return restId;
+  }
+  const id = cleanId(record.id_str);
+  return id && looksLikeTweet(record) ? id : null;
+}
+
+function looksLikeTweet(record: Record<string, unknown>): boolean {
+  return (
+    "legacy" in record ||
+    "core" in record ||
+    "conversation_id_str" in record ||
+    "full_text" in record ||
+    "note_tweet" in record ||
+    "quoted_status_result" in record
+  );
+}
+
+function isMediaRecord(record: Record<string, unknown>): boolean {
+  const type = typeof record.type === "string" ? record.type.toLowerCase() : "";
+  return (
+    type === "video" ||
+    type === "animated_gif" ||
+    isRecord(record.video_info) ||
+    (Boolean(record.preview_image_url || record.preview_image_url_https) &&
+      (type.includes("video") || type.includes("gif")))
+  );
+}
+
+function readMediaMetadata(
+  record: Record<string, unknown>,
+  tweetId: string | null
+): CapturedMediaMetadata | null {
+  const videoInfo = isRecord(record.video_info) ? record.video_info : {};
+  const variants = readVariants(videoInfo.variants);
+  const poster = firstUrl(
+    record.preview_image_url_https,
+    record.preview_image_url,
+    record.media_url_https,
+    record.media_url
+  );
+  const mediaId =
+    (poster ? mediaIdFromUrl(poster) : null) ??
+    cleanId(record.media_key) ??
+    cleanId(record.media_id_string) ??
+    cleanId(record.media_id);
+  const isGif =
+    record.type === "animated_gif" ||
+    record.is_gif === true ||
+    variants.some((variant) => variant.url.toLowerCase().includes("tweet_video"));
+
+  if (!poster && variants.length === 0) {
+    return null;
+  }
+  return { tweetId, mediaId, poster, variants, isGif };
+}
+
+function readVariants(value: unknown): VideoVariant[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const variants: VideoVariant[] = [];
+  const seen = new Set<string>();
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+    const url = httpUrl(entry.url);
+    if (!url || seen.has(url)) {
+      continue;
+    }
+    seen.add(url);
+    variants.push({
+      url,
+      type: typeof entry.content_type === "string" ? entry.content_type : "video/mp4",
+      width: positiveNumber(entry.width) ?? dimensionsFromUrl(url)?.width ?? null,
+      height: positiveNumber(entry.height) ?? dimensionsFromUrl(url)?.height ?? null,
+      bitrate: positiveNumber(entry.bitrate) ?? positiveNumber(entry.bit_rate) ?? null
+    });
+  }
+  return variants;
+}
+
+function upsert(entries: Map<string, CapturedMediaMetadata>, incoming: CapturedMediaMetadata): boolean {
+  const existingKey = findExistingKey(entries, incoming);
+  if (!existingKey) {
+    entries.set(metadataKey(incoming), cloneMetadata(incoming));
+    return true;
+  }
+
+  const existing = entries.get(existingKey)!;
+  const merged = mergeMetadata(existing, incoming);
+  if (!metadataEqual(existing, merged)) {
+    entries.delete(existingKey);
+    entries.set(metadataKey(merged), merged);
+    return true;
+  }
+  // Touch the entry so frequently seen timeline responses remain in the bounded cache.
+  entries.delete(existingKey);
+  entries.set(existingKey, existing);
+  return false;
+}
+
+function findExistingKey(
+  entries: Map<string, CapturedMediaMetadata>,
+  incoming: CapturedMediaMetadata
+): string | null {
+  const incomingPosterId = mediaIdFromUrl(incoming.poster);
+  for (const [key, entry] of entries) {
+    if (incoming.mediaId && entry.mediaId === incoming.mediaId) {
+      return key;
+    }
+    if (incomingPosterId && mediaIdFromUrl(entry.poster) === incomingPosterId) {
+      return key;
+    }
+    if (
+      incoming.tweetId &&
+      entry.tweetId === incoming.tweetId &&
+      incoming.poster &&
+      entry.poster === incoming.poster
+    ) {
+      return key;
+    }
+  }
+  return null;
+}
+
+function mergeMetadata(
+  existing: CapturedMediaMetadata,
+  incoming: CapturedMediaMetadata
+): CapturedMediaMetadata {
+  const variants = [...existing.variants];
+  const seen = new Set(variants.map((variant) => variant.url));
+  for (const variant of incoming.variants) {
+    if (!seen.has(variant.url)) {
+      variants.push(variant);
+      seen.add(variant.url);
+    }
+  }
+  return {
+    tweetId: existing.tweetId ?? incoming.tweetId,
+    mediaId: existing.mediaId ?? incoming.mediaId,
+    poster: existing.poster ?? incoming.poster,
+    variants,
+    isGif: existing.isGif || incoming.isGif
+  };
+}
+
+function metadataEqual(a: CapturedMediaMetadata, b: CapturedMediaMetadata): boolean {
+  return (
+    a.tweetId === b.tweetId &&
+    a.mediaId === b.mediaId &&
+    a.poster === b.poster &&
+    a.isGif === b.isGif &&
+    a.variants.length === b.variants.length &&
+    a.variants.every((variant, index) => {
+      const other = b.variants[index];
+      return (
+        variant.url === other?.url &&
+        variant.type === other.type &&
+        variant.width === other.width &&
+        variant.height === other.height &&
+        variant.bitrate === other.bitrate
+      );
+    })
+  );
+}
+
+function metadataKey(metadata: CapturedMediaMetadata): string {
+  return (
+    [
+      metadata.tweetId,
+      metadata.mediaId,
+      mediaIdFromUrl(metadata.poster),
+      metadata.poster,
+      metadata.variants[0]?.url
+    ]
+      .filter(Boolean)
+      .join(":") || "unknown"
+  );
+}
+
+function cloneMetadata(metadata: CapturedMediaMetadata): CapturedMediaMetadata {
+  return {
+    ...metadata,
+    variants: metadata.variants.map((variant) => ({ ...variant }))
+  };
+}
+
+function firstUrl(...values: unknown[]): string | null {
+  for (const value of values) {
+    const url = httpUrl(value);
+    if (url) {
+      return url;
+    }
+  }
+  return null;
+}
+
+function httpUrl(value: unknown): string | null {
+  if (typeof value !== "string" || !/^https?:\/\//i.test(value)) {
+    return null;
+  }
+  return value;
+}
+
+function cleanId(value: unknown): string | null {
+  if (typeof value !== "string" && typeof value !== "number") {
+    return null;
+  }
+  const result = String(value).trim();
+  return result.length > 0 ? result : null;
+}
+
+function cleanUrl(value: string | null | undefined): string | null {
+  return httpUrl(value);
+}
+
+function positiveNumber(value: unknown): number | null {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : null;
+}
+
+function dimensionsFromUrl(url: string): { width: number; height: number } | null {
+  const match = /\/(\d{2,5})x(\d{2,5})\//.exec(url);
+  if (!match) {
+    return null;
+  }
+  return { width: Number(match[1]), height: Number(match[2]) };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}

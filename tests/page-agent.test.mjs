@@ -289,6 +289,38 @@ test("GraphQL capture reads the body without consuming the page's response", asy
   }
 });
 
+test("media metadata capture shares GraphQL delivery without enabling raw export capture", async () => {
+  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+
+  const body = JSON.stringify({ data: { tweet: { rest_id: "123" } } });
+  const target = fakeWindow(async () => new Response(body, { status: 200 }));
+  const events = [];
+  const uninstall = installPageAgent(target, (envelope) => events.push(envelope));
+
+  try {
+    target.postMessage({
+      channel: PAGE_CHANNEL,
+      kind: "config",
+      payload: {
+        blockBeacons: false,
+        captureGraphql: false,
+        captureMediaMetadata: true,
+        forceVideoQuality: false
+      }
+    });
+
+    const response = await target.fetch("https://x.com/i/api/graphql/abc123/HomeTimeline");
+    assert.equal(await response.text(), body);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    const captured = events.filter((event) => event.kind === "graphql");
+    assert.equal(captured.length, 1);
+    assert.equal(captured[0].payload.body, body);
+  } finally {
+    uninstall();
+  }
+});
+
 test("teardown restores the exact references it replaced", async () => {
   const { installPageAgent } = await importBundledModule("src/page/page-agent.ts");
   const target = fakeWindow();

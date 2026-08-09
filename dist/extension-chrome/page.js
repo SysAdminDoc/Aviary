@@ -88,6 +88,7 @@
   var DISABLED = {
     blockBeacons: false,
     captureGraphql: false,
+    captureMediaMetadata: false,
     forceVideoQuality: false
   };
   var state;
@@ -211,7 +212,7 @@
         } catch {
         }
       }
-      if (config.captureGraphql && isGraphqlUrl(url)) {
+      if ((config.captureGraphql || config.captureMediaMetadata) && isGraphqlUrl(url)) {
         try {
           const cloned = response.clone();
           void cloned.text().then((body) => {
@@ -245,6 +246,7 @@
     return {
       blockBeacons: value.blockBeacons === true,
       captureGraphql: value.captureGraphql === true,
+      captureMediaMetadata: value.captureMediaMetadata === true,
       forceVideoQuality: value.forceVideoQuality === true
     };
   }

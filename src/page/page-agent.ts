@@ -31,6 +31,7 @@ export type PageAgentKind =
 export interface PageAgentConfig {
   blockBeacons: boolean;
   captureGraphql: boolean;
+  captureMediaMetadata: boolean;
   forceVideoQuality: boolean;
 }
 
@@ -205,6 +206,7 @@ export interface PageAgentTarget {
 const DISABLED: PageAgentConfig = {
   blockBeacons: false,
   captureGraphql: false,
+  captureMediaMetadata: false,
   forceVideoQuality: false
 };
 
@@ -384,7 +386,10 @@ function makePatchedFetch(originalFetch: typeof fetch): typeof fetch {
       }
     }
 
-    if (config.captureGraphql && isGraphqlUrl(url)) {
+    // The export feature and the media feature share this bounded response event. Media metadata
+    // is page-local too, but it needs the page world's response because the isolated world only
+    // sees X's MediaSource blob after the player has consumed the direct variants.
+    if ((config.captureGraphql || config.captureMediaMetadata) && isGraphqlUrl(url)) {
       try {
         const cloned = response.clone();
         void cloned.text().then((body) => {
@@ -422,6 +427,7 @@ function normalizeConfig(payload: unknown): PageAgentConfig {
   return {
     blockBeacons: value.blockBeacons === true,
     captureGraphql: value.captureGraphql === true,
+    captureMediaMetadata: value.captureMediaMetadata === true,
     forceVideoQuality: value.forceVideoQuality === true
   };
 }

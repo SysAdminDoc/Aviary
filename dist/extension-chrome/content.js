@@ -8101,6 +8101,7 @@ input[type="checkbox"] {
       ctx.pageBridge?.configure({
         blockBeacons: false,
         captureGraphql: false,
+        captureMediaMetadata: false,
         forceVideoQuality: false
       });
       blockedBeacons = 0;
@@ -8141,6 +8142,7 @@ input[type="checkbox"] {
     bridge.configure({
       blockBeacons: ctx.settings.privacy.blockAnalyticsBeacons,
       captureGraphql: ctx.settings.export.preserveRawPayloads,
+      captureMediaMetadata: ctx.settings.media.buttons,
       forceVideoQuality: ctx.settings.performance.forceVideoQuality
     });
   }
@@ -8503,18 +8505,8 @@ input[type="checkbox"] {
   }
 
   // src/features/media/video-extract.ts
-  var VIDEO_SELECTOR = '[data-testid="videoPlayer"], [data-testid="videoComponent"]';
-  function extractVideos(article) {
-    const results = [];
-    for (const container of Array.from(article.querySelectorAll(VIDEO_SELECTOR))) {
-      const extracted = extractVideo(container);
-      if (extracted) {
-        results.push(extracted);
-      }
-    }
-    return results;
-  }
-  function extractVideo(container) {
+  var VIDEO_CONTAINER_SELECTOR = '[data-testid="videoPlayer"], [data-testid="videoComponent"]';
+  function extractVideo(container, metadata = {}) {
     const video = container.querySelector("video");
     if (!video) {
       return null;
@@ -8538,13 +8530,27 @@ input[type="checkbox"] {
         source.dataset.bitrate
       );
     }
-    if (variants.length === 0) {
+    for (const variant of metadata.variants ?? []) {
+      pushVariantObject(variants, seen, variant);
+    }
+    const poster = video.poster || metadata.poster || null;
+    if (variants.length === 0 && !poster) {
       return null;
     }
-    const preferred = pickPreferred(variants);
-    const poster = video.poster || null;
-    const isGif = looksLikeGif(container, video, variants);
+    const preferred = variants.length > 0 ? pickPreferred(variants) : null;
+    const isGif = metadata.isGif === true || looksLikeGif(container, video, variants);
     return { container, poster, isGif, variants, preferred };
+  }
+  function pushVariantObject(variants, seen, variant) {
+    pushVariant(
+      variants,
+      seen,
+      variant.url,
+      variant.type,
+      variant.width === null ? void 0 : String(variant.width),
+      variant.height === null ? void 0 : String(variant.height),
+      variant.bitrate === null ? void 0 : String(variant.bitrate)
+    );
   }
   function pushVariant(variants, seen, src, type, width, height, bitrate) {
     if (!src || seen.has(src)) {
@@ -8611,20 +8617,33 @@ input[type="checkbox"] {
         media.push({ kind: "photo", source: img, image: normalized });
       }
     }
-    for (const video of extractVideos(article)) {
+    for (const container of Array.from(
+      article.querySelectorAll(VIDEO_CONTAINER_SELECTOR)
+    )) {
+      const localPoster = container.querySelector("video")?.poster || null;
+      const captured = options.mediaMetadata?.({
+        tweetId,
+        mediaId: mediaIdFromUrl(localPoster),
+        poster: localPoster
+      });
+      const video = extractVideo(container, captured ?? void 0);
+      if (!video) {
+        continue;
+      }
       if (video.preferred) {
         media.push({ kind: "video", source: video.container, video });
       }
       if (video.poster) {
         const normalized = normalizeImageUrl(video.poster, imageOptions);
         if (normalized) {
-          const fake = document.createElement("img");
-          fake.src = video.poster;
-          media.push({ kind: "thumbnail", source: fake, image: normalized });
+          media.push({ kind: "thumbnail", source: video.container, image: normalized });
         }
       }
     }
     return { article, tweetId, handle, text, media };
+  }
+  function mediaIdFromUrl(url) {
+    return /\/media\/([A-Za-z0-9_-]+)/i.exec(url ?? "")?.[1] ?? null;
   }
   function readTweetId(article) {
     const links = article.querySelectorAll('a[href*="/status/"]');
@@ -10894,7 +10913,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     if (!config.instance || !config.token) {
       return { ok: false, target: "mastodon", error: "Mastodon credentials missing" };
     }
-    let firstUrl = null;
+    let firstUrl2 = null;
     let posted = 0;
     try {
       const mediaId = attachment ? await uploadMastodonMedia(config.instance, config.token, attachment) : null;
@@ -10915,23 +10934,23 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
           body: JSON.stringify(body)
         });
         if (!response.ok) {
-          return partialFailure("mastodon", `Mastodon HTTP ${response.status}`, posted, firstUrl);
+          return partialFailure("mastodon", `Mastodon HTTP ${response.status}`, posted, firstUrl2);
         }
         const payload = await response.json();
         if (typeof payload?.id !== "string") {
-          return partialFailure("mastodon", "Mastodon response missing status id", posted, firstUrl);
+          return partialFailure("mastodon", "Mastodon response missing status id", posted, firstUrl2);
         }
         inReplyTo = payload.id;
         posted += 1;
-        if (typeof payload?.url === "string" && firstUrl === null) {
-          firstUrl = payload.url;
+        if (typeof payload?.url === "string" && firstUrl2 === null) {
+          firstUrl2 = payload.url;
         }
       }
       const result = { ok: true, target: "mastodon", posts: segments.length };
-      if (firstUrl) result.url = firstUrl;
+      if (firstUrl2) result.url = firstUrl2;
       return result;
     } catch (error) {
-      return partialFailure("mastodon", String(error?.message ?? error), posted, firstUrl);
+      return partialFailure("mastodon", String(error?.message ?? error), posted, firstUrl2);
     }
   }
   async function uploadBlueskyImage(service, accessJwt, attachment) {
@@ -11677,6 +11696,308 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     anchor.remove();
   }
 
+  // src/features/media/media-metadata.ts
+  var MAX_BODY_CHARS = 15e5;
+  var MAX_ENTRIES = 256;
+  var MAX_NODES = 5e4;
+  var MAX_DEPTH = 32;
+  var MEDIA_URL_PATTERN = /\/media\/([A-Za-z0-9_-]+)/i;
+  var MediaMetadataCache = class {
+    #entries = /* @__PURE__ */ new Map();
+    #version = 0;
+    get version() {
+      return this.#version;
+    }
+    get size() {
+      return this.#entries.size;
+    }
+    ingest(payload) {
+      const body = readBody(payload);
+      if (!body || body.length === 0 || body.length > MAX_BODY_CHARS) {
+        return 0;
+      }
+      let parsed;
+      try {
+        parsed = JSON.parse(body);
+      } catch {
+        return 0;
+      }
+      const found = [];
+      const state2 = { nodes: 0 };
+      collectMetadata(parsed, null, 0, state2, found);
+      let changed = 0;
+      for (const metadata of found) {
+        if (upsert(this.#entries, metadata)) {
+          changed += 1;
+          this.#version += 1;
+        }
+      }
+      while (this.#entries.size > MAX_ENTRIES) {
+        const oldest = this.#entries.keys().next().value;
+        if (!oldest) {
+          break;
+        }
+        this.#entries.delete(oldest);
+      }
+      return changed;
+    }
+    find(tweetId, mediaId = null, poster = null) {
+      const wantedTweet = cleanId(tweetId);
+      const wantedMedia = cleanId(mediaId) ?? mediaIdFromUrl2(poster);
+      const wantedPoster = cleanUrl(poster);
+      let winner = null;
+      let winnerScore = 0;
+      let tied = false;
+      for (const entry of this.#entries.values()) {
+        let score = 0;
+        if (wantedTweet && entry.tweetId === wantedTweet) {
+          score += 4;
+        } else if (wantedTweet && entry.tweetId) {
+          continue;
+        }
+        if (wantedMedia) {
+          const mediaMatches = entry.mediaId === wantedMedia || mediaIdFromUrl2(entry.poster) === wantedMedia;
+          if (!mediaMatches && (!wantedPoster || cleanUrl(entry.poster) !== wantedPoster)) {
+            continue;
+          }
+          if (mediaMatches) {
+            score += 8;
+          }
+        }
+        if (wantedPoster && cleanUrl(entry.poster) === wantedPoster) {
+          score += 6;
+        } else if (wantedMedia && mediaIdFromUrl2(entry.poster) === wantedMedia) {
+          score += 3;
+        }
+        if (score === 0 || score < winnerScore) {
+          continue;
+        }
+        if (score === winnerScore) {
+          tied = true;
+          continue;
+        }
+        winner = entry;
+        winnerScore = score;
+        tied = false;
+      }
+      return winner && !tied ? cloneMetadata(winner) : null;
+    }
+    clear() {
+      this.#entries.clear();
+      this.#version += 1;
+    }
+  };
+  function mediaIdFromUrl2(url) {
+    if (!url) {
+      return null;
+    }
+    return MEDIA_URL_PATTERN.exec(url)?.[1] ?? null;
+  }
+  function readBody(payload) {
+    if (typeof payload === "string") {
+      return payload;
+    }
+    if (!payload || typeof payload !== "object") {
+      return null;
+    }
+    const body = payload.body;
+    return typeof body === "string" ? body : null;
+  }
+  function collectMetadata(value, inheritedTweetId, depth, state2, found) {
+    if (depth > MAX_DEPTH || state2.nodes >= MAX_NODES || !value || typeof value !== "object") {
+      return;
+    }
+    state2.nodes += 1;
+    if (Array.isArray(value)) {
+      for (const child of value) {
+        collectMetadata(child, inheritedTweetId, depth + 1, state2, found);
+        if (state2.nodes >= MAX_NODES) {
+          return;
+        }
+      }
+      return;
+    }
+    const record = value;
+    const tweetId = isMediaRecord(record) ? inheritedTweetId : readTweetId3(record) ?? inheritedTweetId;
+    if (isMediaRecord(record)) {
+      const metadata = readMediaMetadata(record, tweetId);
+      if (metadata) {
+        found.push(metadata);
+      }
+    }
+    for (const child of Object.values(record)) {
+      collectMetadata(child, tweetId, depth + 1, state2, found);
+      if (state2.nodes >= MAX_NODES) {
+        return;
+      }
+    }
+  }
+  function readTweetId3(record) {
+    const restId = cleanId(record.rest_id);
+    if (restId && looksLikeTweet(record)) {
+      return restId;
+    }
+    const id = cleanId(record.id_str);
+    return id && looksLikeTweet(record) ? id : null;
+  }
+  function looksLikeTweet(record) {
+    return "legacy" in record || "core" in record || "conversation_id_str" in record || "full_text" in record || "note_tweet" in record || "quoted_status_result" in record;
+  }
+  function isMediaRecord(record) {
+    const type = typeof record.type === "string" ? record.type.toLowerCase() : "";
+    return type === "video" || type === "animated_gif" || isRecord5(record.video_info) || Boolean(record.preview_image_url || record.preview_image_url_https) && (type.includes("video") || type.includes("gif"));
+  }
+  function readMediaMetadata(record, tweetId) {
+    const videoInfo = isRecord5(record.video_info) ? record.video_info : {};
+    const variants = readVariants(videoInfo.variants);
+    const poster = firstUrl(
+      record.preview_image_url_https,
+      record.preview_image_url,
+      record.media_url_https,
+      record.media_url
+    );
+    const mediaId = (poster ? mediaIdFromUrl2(poster) : null) ?? cleanId(record.media_key) ?? cleanId(record.media_id_string) ?? cleanId(record.media_id);
+    const isGif = record.type === "animated_gif" || record.is_gif === true || variants.some((variant) => variant.url.toLowerCase().includes("tweet_video"));
+    if (!poster && variants.length === 0) {
+      return null;
+    }
+    return { tweetId, mediaId, poster, variants, isGif };
+  }
+  function readVariants(value) {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    const variants = [];
+    const seen = /* @__PURE__ */ new Set();
+    for (const entry of value) {
+      if (!isRecord5(entry)) {
+        continue;
+      }
+      const url = httpUrl(entry.url);
+      if (!url || seen.has(url)) {
+        continue;
+      }
+      seen.add(url);
+      variants.push({
+        url,
+        type: typeof entry.content_type === "string" ? entry.content_type : "video/mp4",
+        width: positiveNumber(entry.width) ?? dimensionsFromUrl(url)?.width ?? null,
+        height: positiveNumber(entry.height) ?? dimensionsFromUrl(url)?.height ?? null,
+        bitrate: positiveNumber(entry.bitrate) ?? positiveNumber(entry.bit_rate) ?? null
+      });
+    }
+    return variants;
+  }
+  function upsert(entries, incoming) {
+    const existingKey = findExistingKey(entries, incoming);
+    if (!existingKey) {
+      entries.set(metadataKey(incoming), cloneMetadata(incoming));
+      return true;
+    }
+    const existing = entries.get(existingKey);
+    const merged = mergeMetadata(existing, incoming);
+    if (!metadataEqual(existing, merged)) {
+      entries.delete(existingKey);
+      entries.set(metadataKey(merged), merged);
+      return true;
+    }
+    entries.delete(existingKey);
+    entries.set(existingKey, existing);
+    return false;
+  }
+  function findExistingKey(entries, incoming) {
+    const incomingPosterId = mediaIdFromUrl2(incoming.poster);
+    for (const [key, entry] of entries) {
+      if (incoming.mediaId && entry.mediaId === incoming.mediaId) {
+        return key;
+      }
+      if (incomingPosterId && mediaIdFromUrl2(entry.poster) === incomingPosterId) {
+        return key;
+      }
+      if (incoming.tweetId && entry.tweetId === incoming.tweetId && incoming.poster && entry.poster === incoming.poster) {
+        return key;
+      }
+    }
+    return null;
+  }
+  function mergeMetadata(existing, incoming) {
+    const variants = [...existing.variants];
+    const seen = new Set(variants.map((variant) => variant.url));
+    for (const variant of incoming.variants) {
+      if (!seen.has(variant.url)) {
+        variants.push(variant);
+        seen.add(variant.url);
+      }
+    }
+    return {
+      tweetId: existing.tweetId ?? incoming.tweetId,
+      mediaId: existing.mediaId ?? incoming.mediaId,
+      poster: existing.poster ?? incoming.poster,
+      variants,
+      isGif: existing.isGif || incoming.isGif
+    };
+  }
+  function metadataEqual(a, b) {
+    return a.tweetId === b.tweetId && a.mediaId === b.mediaId && a.poster === b.poster && a.isGif === b.isGif && a.variants.length === b.variants.length && a.variants.every((variant, index) => {
+      const other = b.variants[index];
+      return variant.url === other?.url && variant.type === other.type && variant.width === other.width && variant.height === other.height && variant.bitrate === other.bitrate;
+    });
+  }
+  function metadataKey(metadata) {
+    return [
+      metadata.tweetId,
+      metadata.mediaId,
+      mediaIdFromUrl2(metadata.poster),
+      metadata.poster,
+      metadata.variants[0]?.url
+    ].filter(Boolean).join(":") || "unknown";
+  }
+  function cloneMetadata(metadata) {
+    return {
+      ...metadata,
+      variants: metadata.variants.map((variant) => ({ ...variant }))
+    };
+  }
+  function firstUrl(...values) {
+    for (const value of values) {
+      const url = httpUrl(value);
+      if (url) {
+        return url;
+      }
+    }
+    return null;
+  }
+  function httpUrl(value) {
+    if (typeof value !== "string" || !/^https?:\/\//i.test(value)) {
+      return null;
+    }
+    return value;
+  }
+  function cleanId(value) {
+    if (typeof value !== "string" && typeof value !== "number") {
+      return null;
+    }
+    const result = String(value).trim();
+    return result.length > 0 ? result : null;
+  }
+  function cleanUrl(value) {
+    return httpUrl(value);
+  }
+  function positiveNumber(value) {
+    const parsed = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : null;
+  }
+  function dimensionsFromUrl(url) {
+    const match = /\/(\d{2,5})x(\d{2,5})\//.exec(url);
+    if (!match) {
+      return null;
+    }
+    return { width: Number(match[1]), height: Number(match[2]) };
+  }
+  function isRecord5(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+
   // src/features/media/history.ts
   var MEDIA_HISTORY_KEY = "aviary.media.history.v1";
   var MEDIA_HISTORY_LIMIT = 1500;
@@ -11878,6 +12199,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   var aria2History;
   var queue;
   var appliedPreferOriginalImages;
+  var appliedMetadataVersion;
+  var mediaMetadataCache = new MediaMetadataCache();
+  var subscribedBridge;
   var permissionSurfaceOpened = false;
   var mediaButtonsFeature = {
     id: "media.buttons",
@@ -11885,6 +12209,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     category: "media",
     defaultEnabled: true,
     async init(ctx) {
+      subscribeToMediaMetadata(ctx);
       if (ctx.settings.media.buttons) {
         ensureMediaStyle();
       }
@@ -11916,6 +12241,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       }
       applyToggleClass(ctx);
       appliedPreferOriginalImages = ctx.settings.media.preferOriginalImages;
+      appliedMetadataVersion = mediaMetadataCache.version;
       scanArticles(document, ctx);
       ctx.diagnostics.info("Media buttons initialized", { history: history.size() });
     },
@@ -11924,12 +12250,17 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       if (!ctx.settings.media.buttons) {
         clearDecorations2();
         appliedPreferOriginalImages = void 0;
+        appliedMetadataVersion = void 0;
         return;
       }
       if (appliedPreferOriginalImages !== void 0 && appliedPreferOriginalImages !== ctx.settings.media.preferOriginalImages) {
         clearDecorations2();
       }
+      if (appliedMetadataVersion !== void 0 && appliedMetadataVersion !== mediaMetadataCache.version) {
+        clearDecorations2();
+      }
       appliedPreferOriginalImages = ctx.settings.media.preferOriginalImages;
+      appliedMetadataVersion = mediaMetadataCache.version;
       ensureMediaStyle();
       if (!addedNodes || addedNodes.length === 0) {
         scanArticles(root, ctx);
@@ -11947,6 +12278,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       queue?.clear();
       queue = void 0;
       appliedPreferOriginalImages = void 0;
+      appliedMetadataVersion = void 0;
+      mediaMetadataCache.clear();
+      subscribedBridge = void 0;
       ctx.diagnostics.info("Media buttons destroyed");
     },
     getStatus() {
@@ -11966,6 +12300,19 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
   function getMediaHistory() {
     return history;
+  }
+  function subscribeToMediaMetadata(ctx) {
+    const bridge = ctx.pageBridge;
+    if (!bridge || subscribedBridge === bridge) {
+      return;
+    }
+    subscribedBridge = bridge;
+    bridge.on("graphql", (payload) => {
+      const changed = mediaMetadataCache.ingest(payload);
+      if (changed > 0 && ctx.settings.media.buttons) {
+        ctx.requestApply();
+      }
+    });
   }
   function applyToggleClass(ctx) {
     document.documentElement.classList.toggle(
@@ -11993,7 +12340,8 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         continue;
       }
       const tweet = extractTweet(article, {
-        preferOriginalImages: ctx.settings.media.preferOriginalImages
+        preferOriginalImages: ctx.settings.media.preferOriginalImages,
+        mediaMetadata: ({ tweetId, mediaId, poster }) => mediaMetadataCache.find(tweetId, mediaId, poster)
       });
       if (tweet.media.length === 0) {
         continue;
@@ -12055,6 +12403,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   function resolveContainer(media) {
     if (media.kind === "video" && media.video) {
       return media.video.container;
+    }
+    if (media.kind === "thumbnail" && (media.source.matches?.('[data-testid="videoPlayer"], [data-testid="videoComponent"]') ?? false)) {
+      return media.source;
     }
     return media.source.closest('[data-testid="tweetPhoto"]') ?? media.source.parentElement;
   }
@@ -12994,7 +13345,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       errors.push(`Invalid JSON: ${error.message}`);
       return { applied: false, errors, warnings, settings: normalizeSettings({}) };
     }
-    if (!isRecord5(parsed)) {
+    if (!isRecord6(parsed)) {
       errors.push("Top-level value must be an object.");
       return { applied: false, errors, warnings, settings: normalizeSettings({}) };
     }
@@ -13008,7 +13359,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         `Import version ${version} is newer than supported ${SETTINGS_EXPORT_VERSION}; unknown fields are dropped.`
       );
     }
-    const rawSettings = isRecord5(parsed.settings) ? parsed.settings : parsed;
+    const rawSettings = isRecord6(parsed.settings) ? parsed.settings : parsed;
     const normalized = normalizeSettings(rawSettings);
     let restored = 0;
     for (const [group, key] of SECRET_PATHS) {
@@ -13024,7 +13375,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
     return { applied: true, errors, warnings, settings: normalized };
   }
-  function isRecord5(value) {
+  function isRecord6(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -15323,7 +15674,7 @@ html.av-mobile [data-testid="primaryColumn"] {
       if (!href) {
         continue;
       }
-      const cleaned = cleanUrl(href);
+      const cleaned = cleanUrl2(href);
       anchor.setAttribute(PROCESSED_ATTR4, "1");
       if (cleaned === null || cleaned === href) {
         continue;
@@ -15334,7 +15685,7 @@ html.av-mobile [data-testid="primaryColumn"] {
       anchor.setAttribute("href", cleaned);
     }
   }
-  function cleanUrl(href) {
+  function cleanUrl2(href) {
     const trimmed = href.trim();
     if (trimmed.length === 0 || /^(javascript|data|mailto|blob):/i.test(trimmed)) {
       return null;
@@ -16076,6 +16427,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   var DISABLED = {
     blockBeacons: false,
     captureGraphql: false,
+    captureMediaMetadata: false,
     forceVideoQuality: false
   };
   var state;
@@ -16199,7 +16551,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         } catch {
         }
       }
-      if (config.captureGraphql && isGraphqlUrl(url)) {
+      if ((config.captureGraphql || config.captureMediaMetadata) && isGraphqlUrl(url)) {
         try {
           const cloned = response.clone();
           void cloned.text().then((body) => {
@@ -16233,6 +16585,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     return {
       blockBeacons: value.blockBeacons === true,
       captureGraphql: value.captureGraphql === true,
+      captureMediaMetadata: value.captureMediaMetadata === true,
       forceVideoQuality: value.forceVideoQuality === true
     };
   }

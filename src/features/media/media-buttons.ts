@@ -1,6 +1,8 @@
 import type { FeatureContext, FeatureModule } from "../registry";
 import { ft } from "../core/feature-i18n";
 import { Aria2History } from "../integrations/aria2";
+import type { CapturedGraphqlPayload } from "../../page/page-agent";
+import type { PageBridge } from "../../platform/page-bridge";
 import {
   createDownloader,
   DownloadPermissionError,
@@ -8,6 +10,7 @@ import {
   type Downloader
 } from "./downloader";
 import { extractTweet, type ExtractedMedia, type ExtractedTweet } from "./extract";
+import { MediaMetadataCache } from "./media-metadata";
 import { isSaveableVariantUrl } from "./video-extract";
 import { MediaHistory } from "./history";
 import { rememberLastDownload } from "./last-download";
@@ -23,6 +26,9 @@ let history: MediaHistory | undefined;
 let aria2History: Aria2History | undefined;
 let queue: DownloadQueue | undefined;
 let appliedPreferOriginalImages: boolean | undefined;
+let appliedMetadataVersion: number | undefined;
+const mediaMetadataCache = new MediaMetadataCache();
+let subscribedBridge: PageBridge | undefined;
 /** The grant page is opened once per session, never once per failed button. */
 let permissionSurfaceOpened = false;
 
@@ -33,6 +39,7 @@ export const mediaButtonsFeature: FeatureModule = {
   defaultEnabled: true,
 
   async init(ctx) {
+    subscribeToMediaMetadata(ctx);
     // Only when the feature is on. This used to run unconditionally, so a user with media
     // buttons disabled still got `position: relative` forced onto every tweetPhoto -- which
     // collapses the image to zero height wherever X anchors it to a taller ancestor.
@@ -71,6 +78,7 @@ export const mediaButtonsFeature: FeatureModule = {
     }
     applyToggleClass(ctx);
     appliedPreferOriginalImages = ctx.settings.media.preferOriginalImages;
+    appliedMetadataVersion = mediaMetadataCache.version;
     scanArticles(document, ctx);
     ctx.diagnostics.info("Media buttons initialized", { history: history.size() });
   },
@@ -80,6 +88,7 @@ export const mediaButtonsFeature: FeatureModule = {
     if (!ctx.settings.media.buttons) {
       clearDecorations();
       appliedPreferOriginalImages = undefined;
+      appliedMetadataVersion = undefined;
       return;
     }
     if (
@@ -90,7 +99,16 @@ export const mediaButtonsFeature: FeatureModule = {
       // preference changes so an already-rendered Save button cannot keep the old URL choice.
       clearDecorations();
     }
+    if (
+      appliedMetadataVersion !== undefined &&
+      appliedMetadataVersion !== mediaMetadataCache.version
+    ) {
+      // A GraphQL response can arrive after X has mounted a blob-backed player. Re-extract the
+      // article so its closures pick up the direct variant and the real poster from the cache.
+      clearDecorations();
+    }
     appliedPreferOriginalImages = ctx.settings.media.preferOriginalImages;
+    appliedMetadataVersion = mediaMetadataCache.version;
     ensureMediaStyle();
     if (!addedNodes || addedNodes.length === 0) {
       scanArticles(root, ctx);
@@ -109,6 +127,9 @@ export const mediaButtonsFeature: FeatureModule = {
     queue?.clear();
     queue = undefined;
     appliedPreferOriginalImages = undefined;
+    appliedMetadataVersion = undefined;
+    mediaMetadataCache.clear();
+    subscribedBridge = undefined;
     ctx.diagnostics.info("Media buttons destroyed");
   },
 
@@ -131,6 +152,29 @@ export function getMediaQueue(): DownloadQueue | undefined {
 
 export function getMediaHistory(): MediaHistory | undefined {
   return history;
+}
+
+/** Exposed for the headed compatibility lane and for the page bridge contract test. */
+export function ingestMediaMetadata(payload: CapturedGraphqlPayload | unknown): number {
+  return mediaMetadataCache.ingest(payload);
+}
+
+export function mediaMetadataCacheSize(): number {
+  return mediaMetadataCache.size;
+}
+
+function subscribeToMediaMetadata(ctx: FeatureContext): void {
+  const bridge = ctx.pageBridge;
+  if (!bridge || subscribedBridge === bridge) {
+    return;
+  }
+  subscribedBridge = bridge;
+  bridge.on("graphql", (payload) => {
+    const changed = mediaMetadataCache.ingest(payload as CapturedGraphqlPayload);
+    if (changed > 0 && ctx.settings.media.buttons) {
+      ctx.requestApply();
+    }
+  });
 }
 
 function applyToggleClass(ctx: FeatureContext): void {
@@ -161,7 +205,9 @@ function scanArticles(root: ParentNode | Element, ctx: FeatureContext): void {
       continue;
     }
     const tweet = extractTweet(article, {
-      preferOriginalImages: ctx.settings.media.preferOriginalImages
+      preferOriginalImages: ctx.settings.media.preferOriginalImages,
+      mediaMetadata: ({ tweetId, mediaId, poster }) =>
+        mediaMetadataCache.find(tweetId, mediaId, poster)
     });
     if (tweet.media.length === 0) {
       continue;
@@ -244,6 +290,13 @@ function positionedAncestor(node: Element): Element | null {
 function resolveContainer(media: ExtractedMedia): Element | null {
   if (media.kind === "video" && media.video) {
     return media.video.container;
+  }
+  if (
+    media.kind === "thumbnail" &&
+    (media.source.matches?.('[data-testid="videoPlayer"], [data-testid="videoComponent"]') ??
+      false)
+  ) {
+    return media.source;
   }
   return media.source.closest('[data-testid="tweetPhoto"]') ?? media.source.parentElement;
 }

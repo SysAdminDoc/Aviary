@@ -70,6 +70,7 @@ export const pageHooksFeature: FeatureModule = {
     ctx.pageBridge?.configure({
       blockBeacons: false,
       captureGraphql: false,
+      captureMediaMetadata: false,
       forceVideoQuality: false
     });
     blockedBeacons = 0;
@@ -113,6 +114,7 @@ function pushConfig(ctx: FeatureContext): void {
   bridge.configure({
     blockBeacons: ctx.settings.privacy.blockAnalyticsBeacons,
     captureGraphql: ctx.settings.export.preserveRawPayloads,
+    captureMediaMetadata: ctx.settings.media.buttons,
     forceVideoQuality: ctx.settings.performance.forceVideoQuality
   });
 }

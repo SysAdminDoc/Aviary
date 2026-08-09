@@ -6,6 +6,12 @@ export interface VideoVariant {
   bitrate: number | null;
 }
 
+export interface VideoMetadata {
+  poster?: string | null;
+  variants?: VideoVariant[];
+  isGif?: boolean;
+}
+
 export interface ExtractedVideo {
   container: HTMLElement;
   poster: string | null;
@@ -14,11 +20,14 @@ export interface ExtractedVideo {
   preferred: VideoVariant | null;
 }
 
-const VIDEO_SELECTOR = '[data-testid="videoPlayer"], [data-testid="videoComponent"]';
+export const VIDEO_CONTAINER_SELECTOR =
+  '[data-testid="videoPlayer"], [data-testid="videoComponent"]';
 
 export function extractVideos(article: Element): ExtractedVideo[] {
   const results: ExtractedVideo[] = [];
-  for (const container of Array.from(article.querySelectorAll<HTMLElement>(VIDEO_SELECTOR))) {
+  for (const container of Array.from(
+    article.querySelectorAll<HTMLElement>(VIDEO_CONTAINER_SELECTOR)
+  )) {
     const extracted = extractVideo(container);
     if (extracted) {
       results.push(extracted);
@@ -27,7 +36,10 @@ export function extractVideos(article: Element): ExtractedVideo[] {
   return results;
 }
 
-export function extractVideo(container: HTMLElement): ExtractedVideo | null {
+export function extractVideo(
+  container: HTMLElement,
+  metadata: VideoMetadata = {}
+): ExtractedVideo | null {
   const video = container.querySelector<HTMLVideoElement>("video");
   if (!video) {
     return null;
@@ -54,15 +66,35 @@ export function extractVideo(container: HTMLElement): ExtractedVideo | null {
     );
   }
 
-  if (variants.length === 0) {
+  for (const variant of metadata.variants ?? []) {
+    pushVariantObject(variants, seen, variant);
+  }
+
+  const poster = video.poster || metadata.poster || null;
+  if (variants.length === 0 && !poster) {
     return null;
   }
 
-  const preferred = pickPreferred(variants);
-  const poster = video.poster || null;
-  const isGif = looksLikeGif(container, video, variants);
+  const preferred = variants.length > 0 ? pickPreferred(variants) : null;
+  const isGif = metadata.isGif === true || looksLikeGif(container, video, variants);
 
   return { container, poster, isGif, variants, preferred };
+}
+
+function pushVariantObject(
+  variants: VideoVariant[],
+  seen: Set<string>,
+  variant: VideoVariant
+): void {
+  pushVariant(
+    variants,
+    seen,
+    variant.url,
+    variant.type,
+    variant.width === null ? undefined : String(variant.width),
+    variant.height === null ? undefined : String(variant.height),
+    variant.bitrate === null ? undefined : String(variant.bitrate)
+  );
 }
 
 function pushVariant(
