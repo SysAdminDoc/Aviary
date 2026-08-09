@@ -9869,58 +9869,45 @@ ${sections.join("\n\n---\n\n")}
   var checkpointStore;
   var queryRegistry;
   var activeJobId;
+  var lastExportEnabled = false;
+  var lastAutoDiscoverQueryIds = false;
+  var lifecycleQueue = Promise.resolve();
+  var sessionSequence = 0;
   var exportFeature = {
     id: "export.core",
     title: "Export core",
     category: "export",
     defaultEnabled: true,
     async init(ctx) {
+      activeJobId = void 0;
+      queryRegistry = void 0;
+      lastExportEnabled = false;
+      lastAutoDiscoverQueryIds = false;
+      lifecycleQueue = Promise.resolve();
       checkpointStore = new CheckpointStore(ctx.storage);
       const retention = await checkpointStore.load();
       if (retention.removedJobs > 0 || retention.removedRecords > 0) {
         ctx.diagnostics.info("Checkpoint retention sweep", { ...retention });
       }
       if (ctx.settings.export.autoDiscoverQueryIds) {
-        try {
-          queryRegistry = await discoverQueryIds(ctx.storage);
-          ctx.diagnostics.info("Query IDs discovered", {
-            count: Object.keys(queryRegistry.queries).length
-          });
-        } catch (error) {
-          ctx.diagnostics.warn("Query ID discovery failed", errorDetails(error));
-        }
+        await discoverQueryIdsForContext(ctx);
       }
+      lastAutoDiscoverQueryIds = ctx.settings.export.autoDiscoverQueryIds;
     },
     async apply(ctx, root, addedNodes) {
-      if (!ctx.settings.export.enabled || !checkpointStore) {
-        return;
-      }
-      if (!activeJobId) {
-        activeJobId = `session-${Date.now()}`;
-        await checkpointStore.start(
-          activeJobId,
-          ctx.route.surface,
-          selectSupportedFormats(ctx.settings.export.formats),
-          ctx.settings.export.preserveRawPayloads
-        );
-        ctx.diagnostics.info("Export capture session started", { jobId: activeJobId });
-      }
-      const records = collectExportRecords(root, ctx.route.surface);
-      if (records.length === 0) {
-        return;
-      }
-      await checkpointStore.append(activeJobId, records);
-      if (addedNodes) {
-        ctx.diagnostics.info("Export captured nodes", { count: records.length });
-      }
+      const next = lifecycleQueue.then(() => reconcileExportState(ctx, root, addedNodes));
+      lifecycleQueue = next.catch(() => void 0);
+      await next;
     },
     async destroy(ctx) {
-      if (activeJobId && checkpointStore) {
-        await checkpointStore.finish(activeJobId);
-      }
+      await lifecycleQueue;
+      await finishCaptureSession(ctx);
       checkpointStore = void 0;
       queryRegistry = void 0;
       activeJobId = void 0;
+      lastExportEnabled = false;
+      lastAutoDiscoverQueryIds = false;
+      lifecycleQueue = Promise.resolve();
       ctx.diagnostics.info("Export core destroyed");
     },
     getStatus() {
@@ -10022,6 +10009,83 @@ ${sections.join("\n\n---\n\n")}
     const safe = sanitizeFolder(folder);
     const base = safe.length > 0 ? safe.replace(/\//g, "_") : "aviary-export";
     return `${base}-${(/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-")}.zip`;
+  }
+  async function reconcileExportState(ctx, root, addedNodes) {
+    if (!checkpointStore) {
+      return;
+    }
+    const autoDiscover = ctx.settings.export.autoDiscoverQueryIds;
+    if (autoDiscover && !lastAutoDiscoverQueryIds) {
+      await discoverQueryIdsForContext(ctx);
+    }
+    lastAutoDiscoverQueryIds = autoDiscover;
+    const enabled = ctx.settings.export.enabled;
+    if (!enabled) {
+      if (lastExportEnabled || activeJobId) {
+        await finishCaptureSession(ctx);
+      }
+      lastExportEnabled = false;
+      return;
+    }
+    if (!lastExportEnabled || !activeJobId) {
+      await startCaptureSession(ctx);
+    }
+    lastExportEnabled = true;
+    if (!activeJobId) {
+      return;
+    }
+    const records = collectExportRecords(root, ctx.route.surface);
+    if (records.length === 0) {
+      return;
+    }
+    await checkpointStore.append(activeJobId, records);
+    if (addedNodes) {
+      ctx.diagnostics.info("Export captured nodes", { count: records.length });
+    }
+  }
+  async function discoverQueryIdsForContext(ctx) {
+    try {
+      queryRegistry = await discoverQueryIds(ctx.storage);
+      ctx.diagnostics.info("Query IDs discovered", {
+        count: Object.keys(queryRegistry.queries).length
+      });
+    } catch (error) {
+      ctx.diagnostics.warn("Query ID discovery failed", errorDetails(error));
+    }
+  }
+  async function startCaptureSession(ctx) {
+    if (!checkpointStore || activeJobId) {
+      return;
+    }
+    const jobId = `session-${Date.now()}-${++sessionSequence}`;
+    try {
+      await checkpointStore.start(
+        jobId,
+        ctx.route.surface,
+        selectSupportedFormats(ctx.settings.export.formats),
+        ctx.settings.export.preserveRawPayloads
+      );
+      activeJobId = jobId;
+      ctx.diagnostics.info("Export capture session started", { jobId });
+    } catch (error) {
+      activeJobId = void 0;
+      throw error;
+    }
+  }
+  async function finishCaptureSession(ctx) {
+    const jobId = activeJobId;
+    if (!jobId || !checkpointStore) {
+      activeJobId = void 0;
+      return;
+    }
+    try {
+      await checkpointStore.finish(jobId);
+      ctx.diagnostics.info("Export capture session finished", { jobId });
+    } finally {
+      if (activeJobId === jobId) {
+        activeJobId = void 0;
+      }
+    }
   }
   function errorDetails(error) {
     if (error instanceof Error) {

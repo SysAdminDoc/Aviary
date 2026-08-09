@@ -228,11 +228,14 @@ test("the aria2 threshold is reachable from the panel", async () => {
 test("scroll capture is a real session rather than a one-await window", async () => {
   const source = await readFile(path.join(root, "src/features/export/export-feature.ts"), "utf8");
 
-  // activeJobId used to be set and cleared around a single append, so apply()'s capture branch
-  // could only fire during that await -- "capture as you scroll" never happened.
+  // The lifecycle is serialized because settings changes and MutationObserver delivery can race.
+  // The reconciliation helper keeps the session open across every apply while the toggle stays
+  // enabled, instead of setting and clearing activeJobId around one append.
   const apply = source.slice(source.indexOf("async apply(ctx, root, addedNodes)"), source.indexOf("async destroy(ctx)"));
-  assert.match(apply, /if \(!activeJobId\) \{/, "apply must be able to open a capture session");
-  assert.match(apply, /checkpointStore\.start\(/);
+  assert.match(apply, /lifecycleQueue\.then\(\(\) => reconcileExportState/);
+  assert.match(source, /if \(!lastExportEnabled \|\| !activeJobId\) \{/);
+  assert.match(source, /checkpointStore\.start\(/);
+  assert.match(source, /await finishCaptureSession\(ctx\)/);
 
   const run = source.slice(source.indexOf("export async function runExportOfVisibleTweets"));
   assert.ok(
@@ -240,9 +243,10 @@ test("scroll capture is a real session rather than a one-await window", async ()
     "the export run must not close the capture window it just opened"
   );
 
-  // A session left open would never be marked done.
+  // A session left open would never be marked done; teardown delegates to the same serialized
+  // finisher used by the live false transition.
   const destroy = source.slice(source.indexOf("async destroy(ctx)"), source.indexOf("getStatus()"));
-  assert.match(destroy, /checkpointStore\.finish\(activeJobId\)/);
+  assert.match(destroy, /await finishCaptureSession\(ctx\)/);
 });
 
 test("the nav rail signals that it scrolls", async () => {

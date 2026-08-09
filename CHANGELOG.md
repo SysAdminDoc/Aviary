@@ -39,6 +39,9 @@
   refusals.
 - Snapshot, archive, cleanup, semantic-index, and export mutations now refresh store-derived rows
   immediately while preserving the focused action and scroll position.
+- Export query discovery and scroll-capture sessions now reconcile live setting changes: enabling
+  discovery runs it once, disabling capture finishes the current job, and re-enabling starts a
+  distinct session without duplicate work from concurrent applies.
 - The local bookmark library is now a shipped product surface: rendered posts get a reversible
   Save locally control, and Library search can edit tags, folders, reminders, notes, or remove entries.
 

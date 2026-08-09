@@ -10,6 +10,10 @@ import type { ExportFormat, ExportRecord } from "./types";
 let checkpointStore: CheckpointStore | undefined;
 let queryRegistry: QueryRegistry | undefined;
 let activeJobId: string | undefined;
+let lastExportEnabled = false;
+let lastAutoDiscoverQueryIds = false;
+let lifecycleQueue: Promise<void> = Promise.resolve();
+let sessionSequence = 0;
 
 export const exportFeature: FeatureModule = {
   id: "export.core",
@@ -18,56 +22,46 @@ export const exportFeature: FeatureModule = {
   defaultEnabled: true,
 
   async init(ctx) {
+    // init() is followed by the first apply() pass. Keep the prior capture state explicitly off
+    // so a setting that was already enabled at boot opens its session exactly once there.
+    activeJobId = undefined;
+    queryRegistry = undefined;
+    lastExportEnabled = false;
+    lastAutoDiscoverQueryIds = false;
+    lifecycleQueue = Promise.resolve();
     checkpointStore = new CheckpointStore(ctx.storage);
     const retention = await checkpointStore.load();
     if (retention.removedJobs > 0 || retention.removedRecords > 0) {
       ctx.diagnostics.info("Checkpoint retention sweep", { ...retention });
     }
     if (ctx.settings.export.autoDiscoverQueryIds) {
-      try {
-        queryRegistry = await discoverQueryIds(ctx.storage);
-        ctx.diagnostics.info("Query IDs discovered", {
-          count: Object.keys(queryRegistry.queries).length
-        });
-      } catch (error) {
-        ctx.diagnostics.warn("Query ID discovery failed", errorDetails(error));
-      }
+      await discoverQueryIdsForContext(ctx);
     }
+    // Mark the initial value as observed so the first apply does not rediscover it. A user
+    // toggle back through false is the explicit retry boundary after a failed discovery.
+    lastAutoDiscoverQueryIds = ctx.settings.export.autoDiscoverQueryIds;
   },
 
   async apply(ctx, root, addedNodes) {
-    // Capture-as-you-scroll is real now: the job stays open for the session instead of for the
-    // single await that used to bracket `activeJobId`, which made this branch unreachable.
-    if (!ctx.settings.export.enabled || !checkpointStore) {
-      return;
-    }
-    if (!activeJobId) {
-      activeJobId = `session-${Date.now()}`;
-      await checkpointStore.start(
-        activeJobId,
-        ctx.route.surface,
-        selectSupportedFormats(ctx.settings.export.formats),
-        ctx.settings.export.preserveRawPayloads
-      );
-      ctx.diagnostics.info("Export capture session started", { jobId: activeJobId });
-    }
-    const records = collectExportRecords(root, ctx.route.surface);
-    if (records.length === 0) {
-      return;
-    }
-    await checkpointStore.append(activeJobId, records);
-    if (addedNodes) {
-      ctx.diagnostics.info("Export captured nodes", { count: records.length });
-    }
+    // Route changes, MutationObserver delivery, and settings saves can all request apply at the
+    // same time. Serializing the lifecycle makes each transition observe the latest settings and
+    // prevents two callers from opening duplicate jobs or finishing the same one concurrently.
+    const next = lifecycleQueue.then(() => reconcileExportState(ctx, root, addedNodes));
+    lifecycleQueue = next.catch(() => undefined);
+    await next;
   },
 
   async destroy(ctx) {
-    if (activeJobId && checkpointStore) {
-      await checkpointStore.finish(activeJobId);
-    }
+    // A queued append must settle before the final finish, otherwise a late mutation can reopen
+    // the job after teardown has marked it done.
+    await lifecycleQueue;
+    await finishCaptureSession(ctx);
     checkpointStore = undefined;
     queryRegistry = undefined;
     activeJobId = undefined;
+    lastExportEnabled = false;
+    lastAutoDiscoverQueryIds = false;
+    lifecycleQueue = Promise.resolve();
     ctx.diagnostics.info("Export core destroyed");
   },
 
@@ -217,6 +211,99 @@ function zipFilename(folder: string): string {
   const safe = sanitizeFolder(folder);
   const base = safe.length > 0 ? safe.replace(/\//g, "_") : "aviary-export";
   return `${base}-${new Date().toISOString().replace(/[:.]/g, "-")}.zip`;
+}
+
+async function reconcileExportState(
+  ctx: FeatureContext,
+  root: ParentNode,
+  addedNodes?: Element[]
+): Promise<void> {
+  if (!checkpointStore) {
+    return;
+  }
+
+  const autoDiscover = ctx.settings.export.autoDiscoverQueryIds;
+  if (autoDiscover && !lastAutoDiscoverQueryIds) {
+    await discoverQueryIdsForContext(ctx);
+  }
+  lastAutoDiscoverQueryIds = autoDiscover;
+
+  const enabled = ctx.settings.export.enabled;
+  if (!enabled) {
+    if (lastExportEnabled || activeJobId) {
+      await finishCaptureSession(ctx);
+    }
+    lastExportEnabled = false;
+    return;
+  }
+
+  // Capture-as-you-scroll stays open for the enabled session. A missing active id is also a
+  // recoverable start failure, so the next apply may retry without duplicating a healthy job.
+  if (!lastExportEnabled || !activeJobId) {
+    await startCaptureSession(ctx);
+  }
+  lastExportEnabled = true;
+
+  if (!activeJobId) {
+    return;
+  }
+  const records = collectExportRecords(root, ctx.route.surface);
+  if (records.length === 0) {
+    return;
+  }
+  await checkpointStore.append(activeJobId, records);
+  if (addedNodes) {
+    ctx.diagnostics.info("Export captured nodes", { count: records.length });
+  }
+}
+
+async function discoverQueryIdsForContext(ctx: FeatureContext): Promise<void> {
+  try {
+    queryRegistry = await discoverQueryIds(ctx.storage);
+    ctx.diagnostics.info("Query IDs discovered", {
+      count: Object.keys(queryRegistry.queries).length
+    });
+  } catch (error) {
+    ctx.diagnostics.warn("Query ID discovery failed", errorDetails(error));
+  }
+}
+
+async function startCaptureSession(ctx: FeatureContext): Promise<void> {
+  if (!checkpointStore || activeJobId) {
+    return;
+  }
+  const jobId = `session-${Date.now()}-${++sessionSequence}`;
+  try {
+    await checkpointStore.start(
+      jobId,
+      ctx.route.surface,
+      selectSupportedFormats(ctx.settings.export.formats),
+      ctx.settings.export.preserveRawPayloads
+    );
+    activeJobId = jobId;
+    ctx.diagnostics.info("Export capture session started", { jobId });
+  } catch (error) {
+    // Do not leave a phantom id behind when persistence rejects the start. A later apply can
+    // retry the transition, while the registry still receives the original failure.
+    activeJobId = undefined;
+    throw error;
+  }
+}
+
+async function finishCaptureSession(ctx: FeatureContext): Promise<void> {
+  const jobId = activeJobId;
+  if (!jobId || !checkpointStore) {
+    activeJobId = undefined;
+    return;
+  }
+  try {
+    await checkpointStore.finish(jobId);
+    ctx.diagnostics.info("Export capture session finished", { jobId });
+  } finally {
+    if (activeJobId === jobId) {
+      activeJobId = undefined;
+    }
+  }
 }
 
 function errorDetails(error: unknown): Record<string, unknown> {
