@@ -32,6 +32,8 @@
   the drawer and image-generation entry points, while leaving unrelated navigation and actions alone.
 - Comfortable and Wide timeline widths now pin their flex basis as well as width, so current X's
   growing layout keeps the tiers distinct when the sidebar is hidden.
+- Arabic and Hebrew now set direction on the Control Center host itself, mirroring the panel rail
+  and switches without changing X's document direction.
 - The local bookmark library is now a shipped product surface: rendered posts get a reversible
   Save locally control, and Library search can edit tags, folders, reminders, notes, or remove entries.
 

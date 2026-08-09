@@ -5021,6 +5021,7 @@ html.av-reduce-motion *::after {
     const host = document.createElement("div");
     host.id = "av-control-center";
     host.dataset.avOwned = "true";
+    host.dir = localeDirection(panelLocale);
     document.documentElement.append(host);
     const shadow = host.attachShadow({ mode: "open" });
     const style = document.createElement("style");
@@ -5129,6 +5130,7 @@ html.av-reduce-motion *::after {
       const selection = captureSelection(active);
       const scrollTop = body.scrollTop;
       panelLocale = options.settings.i18n.locale;
+      host.dir = localeDirection(panelLocale);
       resetCoverageTally();
       title.textContent = t("Aviary");
       subtitle.textContent = t("Local controls for a quieter X.");
@@ -7244,7 +7246,11 @@ html.av-reduce-motion *::after {
     input.addEventListener("change", () => {
       void onChange(input.checked);
     });
-    row.append(copy, input);
+    const toggleControl = el("span", "av-toggle-control");
+    const toggle = el("span", "av-toggle");
+    toggle.setAttribute("aria-hidden", "true");
+    toggleControl.append(input, toggle);
+    row.append(copy, toggleControl);
     return row;
   }
   function selectRow(label, value, options, onChange, description, translateOptions = true) {
@@ -7473,8 +7479,13 @@ html.av-reduce-motion *::after {
   }
   var CONTROL_CENTER_CSS = `
 :host {
+  direction: ltr;
   color-scheme: dark;
   font-family: TwitterChirp, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+:host([dir="rtl"]) {
+  direction: rtl;
 }
 
 .av-shell {
@@ -7486,7 +7497,7 @@ html.av-reduce-motion *::after {
 
 .av-launcher {
   position: fixed;
-  right: 18px;
+  inset-inline-end: 18px;
   bottom: 18px;
   min-width: 78px;
   min-height: 42px;
@@ -7696,7 +7707,7 @@ input:focus-visible {
   overflow-y: auto;
   /* Reserved so the list does not reflow the moment it becomes scrollable. */
   scrollbar-gutter: stable;
-  border-right: 1px solid var(--av-border, rgb(47, 51, 54));
+  border-inline-end: 1px solid var(--av-border, rgb(47, 51, 54));
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 88%, black);
   /* The rail scrolls at thirteen sections and a short viewport, and nothing said so -- the last
      item rendered cut through its own baseline, which reads as a rendering fault rather than a
@@ -7743,7 +7754,8 @@ input:focus-visible {
 .av-nav-item {
   position: relative;
   min-height: 28px;
-  padding: 0 10px 0 14px;
+  padding-block: 0;
+  padding-inline: 14px 10px;
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
@@ -7752,7 +7764,7 @@ input:focus-visible {
   font-size: 12px;
   line-height: 1.2;
   font-family: inherit;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
 }
 
@@ -8165,21 +8177,35 @@ input[type="checkbox"] {
   accent-color: var(--av-page-accent, var(--av-accent, rgb(29, 155, 240)));
 }
 
-.av-row > input[type="checkbox"] {
+.av-toggle-control {
   position: relative;
-  flex: 0 0 auto;
+  flex: 0 0 38px;
   width: 38px;
   height: 22px;
+}
+
+.av-toggle-control > input[type="checkbox"] {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
   margin: 0;
   appearance: none;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.av-toggle {
+  position: absolute;
+  inset: 0;
   border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 70%, var(--av-text, rgb(239, 243, 244)) 30%);
   border-radius: 12px;
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 78%, black);
-  cursor: pointer;
   transition: border-color 140ms ease, background 140ms ease;
 }
 
-.av-row > input[type="checkbox"]::before {
+.av-toggle::before {
   content: "";
   position: absolute;
   inset-block-start: 3px;
@@ -8191,18 +8217,23 @@ input[type="checkbox"] {
   transition: transform 140ms ease, background 140ms ease;
 }
 
-.av-row > input[type="checkbox"]:checked {
+.av-toggle-control > input[type="checkbox"]:checked + .av-toggle {
   border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 72%, transparent);
   background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 28%, var(--av-surface, rgb(15, 20, 25)));
 }
 
-.av-row > input[type="checkbox"]:checked::before {
+.av-toggle-control > input[type="checkbox"]:checked + .av-toggle::before {
   background: var(--av-page-accent, rgb(77, 199, 255));
   transform: translateX(16px);
 }
 
-:host-context([dir="rtl"]) .av-row > input[type="checkbox"]:checked::before {
+:host([dir="rtl"]) .av-toggle-control > input[type="checkbox"]:checked + .av-toggle::before {
   transform: translateX(-16px);
+}
+
+.av-toggle-control > input[type="checkbox"]:focus-visible + .av-toggle {
+  outline: 2px solid var(--av-page-accent, rgb(77, 199, 255));
+  outline-offset: 2px;
 }
 
 .av-select {
@@ -8285,7 +8316,7 @@ input[type="checkbox"] {
 
 @media (max-width: 760px) {
   .av-launcher {
-    right: 12px;
+    inset-inline-end: 12px;
     bottom: 12px;
     min-width: 92px;
     min-height: 48px;
@@ -8328,7 +8359,7 @@ input[type="checkbox"] {
     padding: 10px 12px;
     overflow-x: auto;
     overflow-y: hidden;
-    border-right: 0;
+    border-inline-end: 0;
     border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
     mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
     scrollbar-width: none;
@@ -16199,6 +16230,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       const root = document.documentElement;
       root.classList.remove("av-rtl", "av-ltr");
       delete root.dataset.avLocale;
+      document.getElementById("av-control-center")?.removeAttribute("dir");
       ctx.diagnostics.info("i18n destroyed");
     }
   };
@@ -16208,6 +16240,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     root.dataset.avLocale = ctx.settings.i18n.locale;
     root.classList.toggle("av-rtl", direction === "rtl");
     root.classList.toggle("av-ltr", direction === "ltr");
+    document.getElementById("av-control-center")?.setAttribute("dir", direction);
   }
   function ensureI18nStyle() {
     if (document.getElementById(STYLE_ID10)) {

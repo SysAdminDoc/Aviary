@@ -25,6 +25,7 @@ export const i18nFeature: FeatureModule = {
     const root = document.documentElement;
     root.classList.remove("av-rtl", "av-ltr");
     delete root.dataset.avLocale;
+    document.getElementById("av-control-center")?.removeAttribute("dir");
     ctx.diagnostics.info("i18n destroyed");
   }
 };
@@ -35,6 +36,7 @@ function applyLocaleClasses(ctx: FeatureContext): void {
   root.dataset.avLocale = ctx.settings.i18n.locale;
   root.classList.toggle("av-rtl", direction === "rtl");
   root.classList.toggle("av-ltr", direction === "ltr");
+  document.getElementById("av-control-center")?.setAttribute("dir", direction);
 }
 
 function ensureI18nStyle(): void {
