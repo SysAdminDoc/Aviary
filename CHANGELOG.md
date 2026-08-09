@@ -18,6 +18,9 @@
 - The responsive shell collapses to a single card column with a horizontally scrollable section
   rail on narrow screens while preserving touch targets, focus behaviour, and zero horizontal
   content overflow.
+- The isolated headed MV3 smoke lane now fulfills a sanitized current-X DOM fixture and exercises
+  width tiers, Grok anchors, MSE metadata, RTL direction, reversible toggles, rejected actions,
+  store readouts, and selector-health transitions without an authenticated profile.
 
 ### Fixed
 

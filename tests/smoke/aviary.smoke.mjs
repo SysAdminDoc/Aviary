@@ -1,26 +1,19 @@
 // Playwright smoke spec for Aviary (F099).
 //
-// This file is intentionally NOT picked up by `npm test`. Run it through
-// `npm run smoke` once you have:
-//   1. `npm install --save-dev playwright@1.62.1`
-//   2. `npx playwright install chromium`
-//   3. Built the extension: `npm run build`
-//
-// The script loads the unpacked Chromium extension, navigates to x.com,
-// and asserts:
-//   a) the Aviary Control Center launcher mounts
-//   b) opening it does not throw
-//   c) toggling the filter master adds `html.av-filter-enabled`
-//   d) the integrations section renders
+// The page is served at the x.com origin so the production MV3 match patterns, page-world
+// handshake, storage backend, and isolated content script all run unchanged. Playwright fulfills
+// that navigation with the checked-in sanitized current-X fixture, so this lane never needs a
+// signed-in profile or sends a request to a third-party account.
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const extensionDir = path.join(root, "dist", "extension-chrome");
+const fixturePath = path.join(root, "tests", "smoke", "current-x-home.html");
 
 if (!existsSync(extensionDir)) {
   console.error("Build the extension first: `npm run build`.");
@@ -37,106 +30,448 @@ try {
   process.exit(3);
 }
 
+const fixtureHtml = await readFile(fixturePath, "utf8");
+const mseMetadata = JSON.stringify({
+  data: {
+    home: {
+      instructions: [
+        {
+          entries: [
+            {
+              content: {
+                itemContent: {
+                  tweet_results: {
+                    result: {
+                      rest_id: "123456789",
+                      legacy: {
+                        extended_entities: {
+                          media: [
+                            {
+                              type: "video",
+                              media_key: "7_456789",
+                              preview_image_url_https:
+                                "https://pbs.twimg.com/media/456789?format=jpg&name=small",
+                              video_info: {
+                                variants: [
+                                  {
+                                    content_type: "video/mp4",
+                                    url: "https://video.twimg.com/ext_tw_video/123/pu/vid/1280x720/direct.mp4",
+                                    bitrate: 2176000
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+});
+
 const userDataDir = await mkdtemp(path.join(tmpdir(), "aviary-smoke-"));
 let context;
-const headless = process.env.AVIARY_SMOKE_HEADLESS === "1";
+const pageErrors = [];
+const consoleErrors = [];
+
+function expect(condition, message) {
+  if (!condition) {
+    throw new Error(message);
+  }
+}
+
+async function openSection(page, section) {
+  await page.evaluate((id) => {
+    const host = document.querySelector("#av-control-center");
+    const button = host?.shadowRoot?.querySelector(`[data-av-section="${id}"]`);
+    if (!(button instanceof HTMLElement)) {
+      throw new Error(`Control Center section missing: ${id}`);
+    }
+    button.click();
+  }, section);
+  await page.waitForTimeout(100);
+}
+
+async function setToggle(page, section, label, checked) {
+  await openSection(page, section);
+  await page.evaluate(({ label, checked }) => {
+    const host = document.querySelector("#av-control-center");
+    const row = [...(host?.shadowRoot?.querySelectorAll(".av-row") ?? [])].find(
+      (candidate) => candidate.querySelector(".av-row-label")?.textContent === label
+    );
+    const input = row?.querySelector('input[type="checkbox"]');
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error(`Toggle missing: ${label}`);
+    }
+    if (input.checked !== checked) {
+      input.click();
+    }
+  }, { label, checked });
+  await page.waitForTimeout(350);
+}
+
+async function selectValue(page, section, label, value) {
+  await openSection(page, section);
+  await page.evaluate(({ label, value }) => {
+    const host = document.querySelector("#av-control-center");
+    const row = [...(host?.shadowRoot?.querySelectorAll(".av-row") ?? [])].find(
+      (candidate) => candidate.querySelector(".av-row-label")?.textContent === label
+    );
+    const select = row?.querySelector("select");
+    if (!(select instanceof HTMLSelectElement)) {
+      throw new Error(`Select missing: ${label}`);
+    }
+    if (select.value !== value) {
+      select.value = value;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }, { label, value });
+  await page.waitForTimeout(450);
+}
+
+async function setText(page, section, label, value) {
+  await openSection(page, section);
+  await page.evaluate(({ label, value }) => {
+    const host = document.querySelector("#av-control-center");
+    const row = [...(host?.shadowRoot?.querySelectorAll(".av-row") ?? [])].find(
+      (candidate) => candidate.querySelector(".av-row-label")?.textContent === label
+    );
+    const input = row?.querySelector('input[type="text"]');
+    const save = row?.querySelector("button");
+    if (!(input instanceof HTMLInputElement) || !(save instanceof HTMLElement)) {
+      throw new Error(`Text editor missing: ${label}`);
+    }
+    input.value = value;
+    save.click();
+  }, { label, value });
+  await page.waitForTimeout(450);
+}
+
+async function selectLocale(page, value) {
+  await openSection(page, "presets");
+  await page.evaluate((value) => {
+    const host = document.querySelector("#av-control-center");
+    const select = [...(host?.shadowRoot?.querySelectorAll("select") ?? [])].find((candidate) =>
+      [...candidate.options].some((option) => option.value === value)
+    );
+    if (!(select instanceof HTMLSelectElement)) {
+      throw new Error(`Locale select missing: ${value}`);
+    }
+    select.value = value;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  }, value);
+  await page.waitForTimeout(450);
+}
+
+async function clickAction(page, section, label) {
+  await openSection(page, section);
+  await page.evaluate((label) => {
+    const host = document.querySelector("#av-control-center");
+    const row = [...(host?.shadowRoot?.querySelectorAll(".av-row") ?? [])].find(
+      (candidate) => candidate.querySelector(".av-row-label")?.textContent === label
+    );
+    const button = row?.querySelector("button");
+    if (!(button instanceof HTMLElement)) {
+      throw new Error(`Action missing: ${label}`);
+    }
+    button.click();
+  }, label);
+}
+
+async function rowText(page, section, label) {
+  await openSection(page, section);
+  return page.evaluate((label) => {
+    const host = document.querySelector("#av-control-center");
+    const row = [...(host?.shadowRoot?.querySelectorAll(".av-row") ?? [])].find(
+      (candidate) => candidate.querySelector(".av-row-label")?.textContent === label
+    );
+    return row?.textContent ?? "";
+  }, label);
+}
 
 try {
   context = await chromium.launchPersistentContext(userDataDir, {
-    headless,
+    // MV3 content scripts do not load in headless Chromium; CI supplies Xvfb for this headed lane.
+    headless: false,
     args: [
       `--disable-extensions-except=${extensionDir}`,
       `--load-extension=${extensionDir}`,
-      "--no-sandbox",
-      ...(headless ? ["--headless=new"] : [])
+      "--no-sandbox"
     ]
   });
   console.log(`[smoke] service workers: ${context.serviceWorkers().map((worker) => worker.url()).join(", ") || "none"}`);
+
   const page = await context.newPage();
+  await page.setViewportSize({ width: 1600, height: 1000 });
   page.on("console", (message) => {
-    if (message.type() === "error") console.error(`[smoke] console: ${message.text()}`);
+    if (message.type() === "error") {
+      consoleErrors.push(`${message.text()} @ ${message.location().url}`);
+    }
   });
-  page.on("pageerror", (error) => console.error(`[smoke] page error: ${error.message}`));
-  await page.goto("https://x.com/", { waitUntil: "domcontentloaded", timeout: 60_000 });
-  await page.waitForTimeout(2_000);
-
-  const launcher = page.locator("#av-control-center").first();
-  if (!(await launcher.count())) {
-    const diagnostics = await page.evaluate(() => ({
-      url: location.href,
-      ready: document.documentElement.dataset.avReady ?? null,
-      source: document.documentElement.dataset.avSource ?? null,
-      title: document.title,
-      body: document.body?.textContent?.slice(0, 300) ?? ""
-    }));
-    console.error(`[smoke] diagnostics: ${JSON.stringify(diagnostics)}`);
-    throw new Error("Control Center host missing from the page.");
-  }
-  console.log("[smoke] Control Center host mounted.");
-
-  const launcherPresent = await page.evaluate(() => {
-    const host = document.querySelector("#av-control-center");
-    return Boolean(host?.shadowRoot?.querySelector(".av-launcher"));
+  page.on("pageerror", (error) => {
+    pageErrors.push(error.message);
   });
-  if (!launcherPresent) {
-    throw new Error("Launcher button missing inside shadow root.");
-  }
+
+  await page.route("https://pbs.twimg.com/**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64")
+    });
+  });
+  await page.route("https://x.com/**", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname === "/home") {
+      await route.fulfill({ status: 200, contentType: "text/html", body: fixtureHtml });
+      return;
+    }
+    if (url.pathname === "/favicon.ico") {
+      await route.fulfill({ status: 200, contentType: "image/svg+xml", body: "<svg xmlns=\"http://www.w3.org/2000/svg\"/>" });
+      return;
+    }
+    if (url.pathname.startsWith("/i/api/graphql/")) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: mseMetadata });
+      return;
+    }
+    if (url.pathname === "/aria2-failure/jsonrpc") {
+      await route.fulfill({ status: 503, contentType: "application/json", body: '{"error":"fixture failure"}' });
+      return;
+    }
+    await route.fulfill({ status: 404, contentType: "text/plain", body: "fixture route not found" });
+  });
+
+  await page.goto("https://x.com/home", { waitUntil: "domcontentloaded", timeout: 60_000 });
+  await page.waitForFunction(() => document.documentElement.dataset.avReady === "true", null, { timeout: 15_000 });
+  await page.waitForSelector("#av-control-center", { state: "attached", timeout: 15_000 });
+  await page.waitForFunction(
+    () => Boolean(document.querySelector("#av-control-center")?.shadowRoot?.querySelector(".av-launcher")),
+    null,
+    { timeout: 15_000 }
+  );
+  console.log("[smoke] isolated current-X fixture booted through the MV3 content script.");
+
+  const anchors = await page.evaluate(() => ({
+    root: Boolean(document.querySelector("#react-root")),
+    primary: Boolean(document.querySelector('[data-testid="primaryColumn"]')),
+    navigation: Boolean(document.querySelector('[data-testid^="AppTabBar_"]')),
+    article: Boolean(document.querySelector('article[data-testid="tweet"]')),
+    composer: Boolean(document.querySelector('[data-testid="tweetTextarea_0"]')),
+    grok: Boolean(document.querySelector('a[href="/i/grok"]'))
+  }));
+  expect(Object.values(anchors).every(Boolean), `current-X fixture anchors missing: ${JSON.stringify(anchors)}`);
 
   await page.evaluate(() => {
     const host = document.querySelector("#av-control-center");
     const button = host?.shadowRoot?.querySelector(".av-launcher");
-    button?.click();
+    if (!(button instanceof HTMLElement)) throw new Error("Launcher button missing");
+    button.click();
   });
-  await page.waitForTimeout(500);
-  console.log("[smoke] Launcher activation did not throw.");
+  await page.waitForTimeout(250);
+  console.log("[smoke] Control Center launcher mounted and opened.");
 
-  const filterTogglePresent = await page.evaluate(() => {
-    const host = document.querySelector("#av-control-center");
-    const rows = Array.from(host?.shadowRoot?.querySelectorAll("label.av-row") ?? []);
-    return rows.some((row) => row.textContent?.includes("Enable filters"));
-  });
-  if (!filterTogglePresent) {
-    throw new Error("Filter master toggle missing.");
-  }
-
-  await page.evaluate(() => {
-    const host = document.querySelector("#av-control-center");
-    const row = Array.from(host?.shadowRoot?.querySelectorAll("label.av-row") ?? [])
-      .find((candidate) => candidate.textContent?.includes("Enable filters"));
-    const checkbox = row?.querySelector("input[type=checkbox]");
-    checkbox?.click();
-  });
-  await page.waitForTimeout(500);
-  const filterProbe = await page.evaluate(() => {
-    const host = document.querySelector("#av-control-center");
-    const row = Array.from(host?.shadowRoot?.querySelectorAll("label.av-row") ?? [])
-      .find((candidate) => candidate.textContent?.includes("Enable filters"));
-    const checkbox = row?.querySelector("input[type=checkbox]");
+  // Width tiers must remain distinct after current X's flex item consumes the available row.
+  await selectValue(page, "appearance", "Timeline width", "comfortable");
+  const comfortable = await page.evaluate(() => {
+    const node = document.querySelector('[data-testid="primaryColumn"]');
+    const style = node ? getComputedStyle(node) : null;
     return {
-      checked: checkbox instanceof HTMLInputElement ? checkbox.checked : null,
-      path: location.pathname,
-      className: document.documentElement.className
+      width: style?.width ?? "",
+      flexBasis: style?.flexBasis ?? "",
+      rect: node?.getBoundingClientRect().width ?? 0,
+      setting: document.documentElement.dataset.avWidth ?? ""
     };
   });
-  console.log(`[smoke] filter probe: ${JSON.stringify(filterProbe)}`);
-  const filterClassAdded = filterProbe.className.split(/\s+/).includes("av-filter-enabled");
-  if (!filterClassAdded) {
-    throw new Error("Filter master toggle did not add av-filter-enabled.");
-  }
-  console.log("[smoke] Filter master toggle applied.");
-
-  const integrationsPresent = await page.evaluate(() => {
-    const host = document.querySelector("#av-control-center");
-    const sectionTitles = Array.from(host?.shadowRoot?.querySelectorAll(".av-section-title") ?? [])
-      .map((node) => node.textContent ?? "");
-    return sectionTitles.includes("Integrations");
+  await selectValue(page, "appearance", "Timeline width", "wide");
+  const wide = await page.evaluate(() => {
+    const node = document.querySelector('[data-testid="primaryColumn"]');
+    const style = node ? getComputedStyle(node) : null;
+    return {
+      width: style?.width ?? "",
+      flexBasis: style?.flexBasis ?? "",
+      rect: node?.getBoundingClientRect().width ?? 0,
+      setting: document.documentElement.dataset.avWidth ?? ""
+    };
   });
-  if (!integrationsPresent) {
-    throw new Error("Integrations section did not render.");
-  }
-  console.log("[smoke] Integrations section rendered.");
+  expect(comfortable.setting === "comfortable" && wide.setting === "wide", "width settings did not settle");
+  expect(comfortable.flexBasis !== wide.flexBasis, `width flex tiers collapsed: ${JSON.stringify({ comfortable, wide })}`);
+  expect(comfortable.width !== wide.width, `width computed tiers collapsed: ${JSON.stringify({ comfortable, wide })}`);
+  console.log(`[smoke] width tiers: ${JSON.stringify({ comfortable, wide })}`);
+
+  // Current Grok surfaces all share the hide switch and return when it is reversed.
+  await setToggle(page, "layout", "Hide Grok surfaces", true);
+  const grokHidden = await page.evaluate(() =>
+    [
+      '[data-testid="GrokDrawer"]',
+      '[data-testid="grokImgGen"]',
+      'a[href="/i/grok"]',
+      'button[aria-label="Grok actions"]'
+    ].map((selector) => getComputedStyle(document.querySelector(selector)).display)
+  );
+  expect(grokHidden.every((display) => display === "none"), `Grok surfaces remained visible: ${grokHidden.join(",")}`);
+  await setToggle(page, "layout", "Hide Grok surfaces", false);
+  const grokRestored = await page.evaluate(() =>
+    [
+      '[data-testid="GrokDrawer"]',
+      '[data-testid="grokImgGen"]',
+      'a[href="/i/grok"]',
+      'button[aria-label="Grok actions"]'
+    ].every((selector) => getComputedStyle(document.querySelector(selector)).display !== "none")
+  );
+  expect(grokRestored, "Grok surfaces did not return after the toggle was reversed");
+  console.log("[smoke] current Grok drawer, image-generation, nav, and action anchors toggle cleanly.");
+
+  // MediaSource players begin with a blob URL and only gain a Video control after page-world
+  // GraphQL metadata arrives. The same setting is cycled off and back on to catch stale buttons.
+  await setToggle(page, "media", "Show download buttons", true);
+  await page.waitForFunction(
+    () => document.querySelectorAll("[data-av-media-button]").length >= 2,
+    null,
+    { timeout: 8_000 }
+  );
+  const beforeMetadata = await page.evaluate(() =>
+    [...document.querySelectorAll("[data-av-media-button]")].map((button) => button.getAttribute("data-av-media-button")).sort()
+  );
+  await page.evaluate(async () => {
+    const response = await fetch("/i/api/graphql/fixture/HomeTimeline");
+    if (!response.ok) throw new Error(`fixture GraphQL failed: ${response.status}`);
+    await response.json();
+  });
+  await page.waitForFunction(
+    () => Boolean(document.querySelector('[data-av-media-button="video"]')),
+    null,
+    { timeout: 8_000 }
+  );
+  const afterMetadata = await page.evaluate(() =>
+    [...document.querySelectorAll("[data-av-media-button]")].map((button) => button.getAttribute("data-av-media-button")).sort()
+  );
+  expect(beforeMetadata.includes("thumbnail") && !beforeMetadata.includes("video"), `blob player exposed an invalid control: ${beforeMetadata}`);
+  expect(afterMetadata.includes("thumbnail") && afterMetadata.includes("video"), `MSE metadata did not add Video: ${afterMetadata}`);
+  await setToggle(page, "media", "Show download buttons", false);
+  await page.waitForFunction(() => document.querySelectorAll("[data-av-media-button]").length === 0, null, { timeout: 8_000 });
+  await setToggle(page, "media", "Show download buttons", true);
+  await page.waitForFunction(() => Boolean(document.querySelector('[data-av-media-button="video"]')), null, { timeout: 8_000 });
+  await setToggle(page, "media", "Show download buttons", false);
+  await page.waitForFunction(() => document.querySelectorAll("[data-av-media-button]").length === 0, null, { timeout: 8_000 });
+  console.log(`[smoke] MSE media controls settled from ${JSON.stringify(beforeMetadata)} to ${JSON.stringify(afterMetadata)} and cleaned up on off cycles.`);
+
+  // Locale changes must reach both the shadow host and current X's primary column.
+  await selectLocale(page, "he");
+  const rtl = await page.evaluate(() => ({
+    host: document.querySelector("#av-control-center")?.getAttribute("dir") ?? "",
+    page: getComputedStyle(document.documentElement).direction,
+    primary: getComputedStyle(document.querySelector('[data-testid="primaryColumn"]')).direction,
+    marker: document.documentElement.classList.contains("av-rtl")
+  }));
+  expect(rtl.host === "rtl" && rtl.primary === "rtl" && rtl.marker, `RTL direction did not settle: ${JSON.stringify(rtl)}`);
+  await selectLocale(page, "en");
+  const ltr = await page.evaluate(() => ({
+    host: document.querySelector("#av-control-center")?.getAttribute("dir") ?? "",
+    primary: getComputedStyle(document.querySelector('[data-testid="primaryColumn"]')).direction
+  }));
+  expect(ltr.host === "ltr" && ltr.primary === "ltr", `LTR restoration failed: ${JSON.stringify(ltr)}`);
+  console.log(`[smoke] RTL direction mirrored and restored: ${JSON.stringify({ rtl, ltr })}`);
+
+  // A local snapshot mutation must repaint its count while the panel stays open.
+  await clickAction(page, "snapshots", "Capture followers from this view");
+  await page.waitForFunction(
+    () => [...(document.querySelector("#av-control-center")?.shadowRoot?.querySelectorAll(".av-row") ?? [])]
+      .some((row) => row.querySelector(".av-row-label")?.textContent === "Snapshots stored" && row.textContent?.includes("1 entries")),
+    null,
+    { timeout: 8_000 }
+  );
+  const snapshotAfterCapture = await rowText(page, "snapshots", "Snapshots stored");
+  await clickAction(page, "snapshots", "Clear all snapshots");
+  await page.waitForFunction(
+    () => [...(document.querySelector("#av-control-center")?.shadowRoot?.querySelectorAll(".av-row") ?? [])]
+      .some((row) => row.querySelector(".av-row-label")?.textContent === "Snapshots stored" && row.textContent?.includes("0 entries")),
+    null,
+    { timeout: 8_000 }
+  );
+  const snapshotAfterClear = await rowText(page, "snapshots", "Snapshots stored");
+  console.log(`[smoke] snapshot readout refreshed: ${JSON.stringify({ snapshotAfterCapture, snapshotAfterClear })}`);
+
+  // The Integrations section is exercised against a same-origin fixture failure below.
+  // The action path is exercised against a same-origin fixture failure: no real service is
+  // contacted, but the real integration callback must surface the failure and re-enable itself.
+  await setToggle(page, "trust", "Local-only mode", false);
+  await setText(page, "integrations", "Aria2 endpoint", "https://x.com/aria2-failure");
+  await clickAction(page, "integrations", "Test Aria2 connection");
+  await page.waitForFunction(
+    () => document.querySelector("#av-control-center")?.shadowRoot?.querySelector(".av-status")?.textContent?.includes("Aria2 unreachable"),
+    null,
+    { timeout: 8_000 }
+  );
+  const actionProbe = await page.evaluate(() => {
+    const host = document.querySelector("#av-control-center");
+    const row = [...(host?.shadowRoot?.querySelectorAll(".av-row") ?? [])].find(
+      (candidate) => candidate.querySelector(".av-row-label")?.textContent === "Test Aria2 connection"
+    );
+    return {
+      status: host?.shadowRoot?.querySelector(".av-status")?.textContent ?? "",
+      disabled: row?.querySelector("button")?.disabled ?? null
+    };
+  });
+  expect(actionProbe.disabled === false && actionProbe.status.includes("Aria2 unreachable"), `rejected action did not settle visibly: ${JSON.stringify(actionProbe)}`);
+  console.log(`[smoke] rejected integration action reported and recovered: ${JSON.stringify(actionProbe)}`);
+
+  // Selector health is a live state machine: disabled, healthy, degraded, then healthy again.
+  await setToggle(page, "trust", "Monitor selector health", false);
+  const disabledHealth = await rowText(page, "trust", "Selector health");
+  expect(disabledHealth.includes("Disabled"), `selector health did not disable: ${disabledHealth}`);
+  await setToggle(page, "trust", "Monitor selector health", true);
+  const healthyHealth = await rowText(page, "trust", "Selector health");
+  expect(healthyHealth.includes("Healthy"), `selector health did not recover: ${healthyHealth}`);
+
+  await page.evaluate(() => {
+    const primary = document.querySelector('[data-testid="primaryColumn"]');
+    if (!primary) throw new Error("primary fixture anchor missing before degradation probe");
+    primary.remove();
+    const marker = document.createElement("span");
+    marker.dataset.avSmokeMutation = "missing-primary";
+    document.body.append(marker);
+  });
+  await page.waitForFunction(
+    () => [...(document.querySelector("#av-control-center")?.shadowRoot?.querySelectorAll(".av-row") ?? [])]
+      .some((row) => row.querySelector(".av-row-label")?.textContent === "Selector health" && row.textContent?.includes("Degraded")),
+    null,
+    { timeout: 8_000 }
+  );
+  const degradedHealth = await rowText(page, "trust", "Selector health");
+  await page.evaluate(() => {
+    const shell = document.querySelector('[data-testid="timeline-shell"]');
+    const restored = document.createElement("main");
+    restored.setAttribute("data-testid", "primaryColumn");
+    shell?.prepend(restored);
+    const marker = document.createElement("span");
+    marker.dataset.avSmokeMutation = "restored-primary";
+    document.body.append(marker);
+  });
+  await page.waitForFunction(
+    () => [...(document.querySelector("#av-control-center")?.shadowRoot?.querySelectorAll(".av-row") ?? [])]
+      .some((row) => row.querySelector(".av-row-label")?.textContent === "Selector health" && row.textContent?.includes("Healthy")),
+    null,
+    { timeout: 8_000 }
+  );
+  const recoveredHealth = await rowText(page, "trust", "Selector health");
+  console.log(`[smoke] selector health transitions settled: ${JSON.stringify({ disabledHealth, healthyHealth, degradedHealth, recoveredHealth })}`);
+
+  expect(pageErrors.length === 0, `uncaught page errors: ${pageErrors.join(" | ")}`);
+  const unexpectedConsoleErrors = consoleErrors.filter(
+    (message) =>
+      !message.includes("net::ERR_FILE_NOT_FOUND") &&
+      !message.includes("the server responded with a status of 503 (Service Unavailable)")
+  );
+  expect(unexpectedConsoleErrors.length === 0, `browser console errors: ${unexpectedConsoleErrors.join(" | ")}`);
 } finally {
   await context?.close();
   await rm(userDataDir, { force: true, recursive: true });
 }
-console.log("[smoke] All assertions passed.");
+
+console.log("[smoke] All current-X compatibility assertions passed.");

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Home / X</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; background: #000; color: #e7e9ea; font: 15px system-ui, sans-serif; }
+      #react-root { min-height: 100vh; }
+      [data-testid="app-shell"] { display: flex; min-height: 100vh; width: 100%; }
+      nav { width: 224px; padding: 12px; border-right: 1px solid #2f3336; }
+      nav a { display: block; padding: 12px; color: #e7e9ea; text-decoration: none; }
+      [data-testid="timeline-shell"] { display: flex; flex: 1 1 auto; min-width: 0; }
+      [data-testid="primaryColumn"] {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        width: 677.77px;
+        min-width: 0;
+        border-left: 1px solid #2f3336;
+        border-right: 1px solid #2f3336;
+      }
+      [data-testid="sidebarColumn"] { width: 320px; padding: 16px; }
+      [data-testid="cellInnerDiv"] > div { min-height: 180px; padding: 16px; border-bottom: 1px solid #2f3336; }
+      article[data-testid="tweet"] { min-height: 140px; }
+      [data-testid="User-Name"] a { color: #1d9bf0; }
+      [data-testid="tweetText"] { margin: 10px 0; }
+      [data-testid="tweetPhoto"], [data-testid="videoPlayer"] { position: relative; width: 420px; height: 220px; margin-top: 10px; overflow: hidden; border-radius: 12px; background: #16181c; }
+      [data-testid="tweetPhoto"] img { display: block; width: 100%; height: 100%; object-fit: cover; }
+      [data-testid="videoPlayer"] video { display: block; width: 100%; height: 100%; object-fit: cover; }
+      [data-testid="toolBar"] { padding: 18px; border-top: 1px solid #2f3336; }
+      [data-testid="tweetTextarea_0"] { min-height: 40px; padding: 8px; border: 1px solid #536471; }
+      [data-testid="GrokDrawer"], [data-testid="grokImgGen"] { margin: 12px; padding: 12px; border: 1px solid #7856ff; }
+    </style>
+  </head>
+  <body>
+    <div id="react-root">
+      <div data-testid="app-shell">
+        <nav aria-label="Primary navigation">
+          <a data-testid="AppTabBar_Home_Link" href="/home">Home</a>
+          <a data-testid="AppTabBar_Explore_Link" href="/explore">Explore</a>
+          <a data-testid="AppTabBar_Notifications_Link" href="/notifications">Notifications</a>
+          <a data-testid="AppTabBar_DirectMessage_Link" href="/messages">Messages</a>
+          <a data-testid="AppTabBar_Profile_Link" href="/profile">Profile</a>
+          <a data-testid="AppTabBar_More_Menu" href="/more">More</a>
+          <a href="/i/grok">Grok</a>
+          <button data-testid="SideNav_NewTweet_Button" type="button">Post</button>
+        </nav>
+        <div data-testid="timeline-shell">
+          <main data-testid="primaryColumn">
+            <div data-testid="cellInnerDiv">
+              <div>
+                <article data-testid="tweet">
+                  <div data-testid="User-Name"><a href="/aviary_test">Aviary Test</a></div>
+                  <a href="/aviary_test/status/123456789">1h</a>
+                  <div data-testid="tweetText" lang="en">A sanitized current-X media post.</div>
+                  <div data-testid="tweetPhoto">
+                    <img alt="A fixture photo" src="https://pbs.twimg.com/media/456789?format=jpg&amp;name=small">
+                  </div>
+                  <div data-testid="videoPlayer">
+                    <video poster="https://pbs.twimg.com/media/456789?format=jpg&amp;name=small" src="blob:https://x.com/mse-player"></video>
+                  </div>
+                  <div data-testid="tweet-actions">
+                    <button data-testid="reply" type="button" aria-label="Reply">Reply</button>
+                    <button data-testid="retweet" type="button" aria-label="Repost">Repost</button>
+                    <button data-testid="like" type="button" aria-label="Like">Like</button>
+                    <button data-testid="caret" type="button" aria-label="More">More</button>
+                  </div>
+                </article>
+              </div>
+            </div>
+            <div data-testid="cellInnerDiv">
+              <div>
+                <article data-testid="tweet">
+                  <div data-testid="User-Name"><a href="/second_fixture">Second Fixture</a></div>
+                  <a href="/second_fixture/status/987654321">2h</a>
+                  <div data-testid="tweetText" lang="en">A second sanitized post.</div>
+                </article>
+              </div>
+            </div>
+            <div data-testid="toolBar">
+              <div data-testid="tweetTextarea_0" role="textbox" aria-label="Post text" contenteditable="true"></div>
+              <button data-testid="tweetButtonInline" type="button">Post</button>
+            </div>
+          </main>
+          <aside data-testid="sidebarColumn">
+            <section data-testid="news_sidebar">Trending now</section>
+            <div data-testid="UserCell"><a href="/alice_fixture">Alice Fixture</a></div>
+            <div data-testid="UserCell"><a href="/bob_fixture">Bob Fixture</a></div>
+          </aside>
+        </div>
+        <div data-testid="GrokDrawer">Grok drawer fixture</div>
+        <div data-testid="grokImgGen">Image generation fixture</div>
+        <button type="button" aria-label="Grok actions">Grok actions</button>
+      </div>
+    </div>
+  </body>
+</html>

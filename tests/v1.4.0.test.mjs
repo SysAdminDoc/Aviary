@@ -336,6 +336,11 @@ test("smoke spec scaffold ships with explicit setup instructions", async () => {
   assert.match(source, /npm install --save-dev playwright/);
   assert.match(source, /launchPersistentContext/);
   assert.match(source, /Integrations/);
+  assert.match(source, /current-x-home\.html/);
+  assert.match(source, /headless: false/);
+  assert.match(source, /page\.route/);
+  assert.match(source, /data-av-media-button/);
+  assert.match(source, /Selector health/);
   const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
   assert.equal(pkg.scripts.smoke, "node tests/smoke/aviary.smoke.mjs");
 });
