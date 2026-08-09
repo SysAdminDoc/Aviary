@@ -214,7 +214,11 @@ adds current-X compatibility coverage, route-aware selector health, live-toggle 
 local bookmarks, and scoped original-quality image rewriting. F032/F033 remain blocked until
 authenticated `_decoded/` captures are available.
 
-`npm run smoke` runs the Playwright spec at `tests/smoke/aviary.smoke.mjs`. The CI workflow caches Chromium and runs it inside an isolated Xvfb display. For local use, install the pinned runner and browser:
+`npm run smoke` runs both Playwright lanes: current-X compatibility coverage and a side-effect-free
+externally gated-action flow. Chromium's new headless mode keeps the MV3 service worker and real
+options page loaded without opening a physical browser window; all provider calls go to local
+stubs and all profiles/downloads are temporary. The CI workflow caches Chromium and runs the same
+command in its isolated job. For local use, install the pinned runner and browser:
 
 ```bash
 npm ci

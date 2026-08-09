@@ -331,11 +331,13 @@ async function rowText(page, section, label) {
 
 try {
   context = await chromium.launchPersistentContext(userDataDir, {
-    // MV3 content scripts do not load in headless Chromium; CI supplies Xvfb for this headed lane.
+    // Classic headless skips MV3, while Chromium's new headless mode keeps the extension loaded
+    // without opening a physical window for local runs or CI.
     headless: false,
     args: [
       `--disable-extensions-except=${extensionDir}`,
       `--load-extension=${extensionDir}`,
+      "--headless=new",
       "--no-sandbox"
     ]
   });

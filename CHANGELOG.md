@@ -18,9 +18,13 @@
 - The responsive shell collapses to a single card column with a horizontally scrollable section
   rail on narrow screens while preserving touch targets, focus behaviour, and zero horizontal
   content overflow.
-- The isolated headed MV3 smoke lane now fulfills a sanitized current-X DOM fixture and exercises
+- The isolated MV3 smoke lane now fulfills a sanitized current-X DOM fixture and exercises
   width tiers, Grok anchors, MSE metadata, RTL direction, reversible toggles, rejected actions,
   store readouts, and selector-health transitions without an authenticated profile.
+- The smoke command now also runs a side-effect-free external-action lane in Chromium's new
+  headless mode: the real MV3 options page, archive import, clipboard, optional-permission refusal,
+  Aria2, AI, embeddings, threaded Bluesky/Mastodon uploads, exports, and cleanup all run against
+  local stubs and temporary profiles.
 
 ### Fixed
 
@@ -53,7 +57,7 @@
   bucket immediately while blocked-account and self-repost placeholders remain disabled.
 - The local bookmark library is now a shipped product surface: rendered posts get a reversible
   Save locally control, and Library search can edit tags, folders, reminders, notes, or remove entries.
-- Headed MV3 smoke now exercises every page-hook combination across fresh Home, Following, profile,
+- MV3 smoke now exercises every page-hook combination across fresh Home, Following, profile,
   search, and status fixture navigations, with controlled HLS responses and a degraded-selector route.
 - Original-quality image mutation now upgrades only `pbs.twimg.com/media` tweet photos; avatars,
   emoji, cards, and stale non-media markers are left untouched or restored during reconciliation.

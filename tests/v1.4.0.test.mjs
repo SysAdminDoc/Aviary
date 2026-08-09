@@ -346,8 +346,23 @@ test("smoke spec scaffold ships with explicit setup instructions", async () => {
   assert.match(source, /PageHookProbe/);
   assert.match(source, /selector-degraded/);
   assert.match(source, /resourceType\(\) === "document"/);
+  const external = await readFile(
+    path.join(root, "tests/smoke/externally-gated.smoke.mjs"),
+    "utf8"
+  );
+  assert.match(external, /--headless=new/);
+  assert.match(external, /chrome\.runtime\.sendMessage/);
+  assert.match(external, /Import official X archive/);
+  assert.match(external, /Rebuild semantic index/);
+  assert.match(external, /Test Aria2 connection/);
+  assert.match(external, /Crosspost composer/);
+  assert.match(external, /provider\.server\.close/);
+  assert.match(external, /rm\(tempProfile/);
   const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
-  assert.equal(pkg.scripts.smoke, "node tests/smoke/aviary.smoke.mjs");
+  assert.equal(
+    pkg.scripts.smoke,
+    "node tests/smoke/aviary.smoke.mjs && node tests/smoke/externally-gated.smoke.mjs"
+  );
 });
 
 test("Playwright smoke workflow caches browsers and stays separate from verify", async () => {
