@@ -30,6 +30,8 @@
   instead of reporting a false save, with metadata retained in a bounded local cache.
 - Hide Grok now covers the current navigation link and per-post “Grok actions” buttons as well as
   the drawer and image-generation entry points, while leaving unrelated navigation and actions alone.
+- The local bookmark library is now a shipped product surface: rendered posts get a reversible
+  Save locally control, and Library search can edit tags, folders, reminders, notes, or remove entries.
 
 ## 1.14.1 - 2026-08-08
 

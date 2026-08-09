@@ -40,6 +40,13 @@ import { LocalSearchIndex } from "../library/local-search";
 import { buildMarkdownReport } from "../library/reports";
 import { captureSnapshotFromDom, getSnapshotStore } from "../library/snapshots-feature";
 import { clearUserNotes, getUserNotes, setUserNote } from "../library/user-notes";
+import {
+  bookmarkStatus,
+  clearBookmarks,
+  removeBookmark,
+  searchBookmarks,
+  updateBookmark
+} from "../library/bookmarks-feature";
 import { getMediaHistory, getMediaQueue } from "../media/media-buttons";
 import { getLastDownload } from "../media/last-download";
 import type { FeatureModule } from "../registry";
@@ -221,6 +228,33 @@ export const controlCenterFeature: FeatureModule = {
       },
       async clearUserNotes() {
         await clearUserNotes();
+        ctx.requestApply();
+      },
+      getBookmarkStatus() {
+        return bookmarkStatus();
+      },
+      searchBookmarks(query) {
+        return searchBookmarks(query);
+      },
+      async updateBookmark(id, input) {
+        const entry = await updateBookmark(id, input);
+        if (entry) {
+          void ctx.auditLog.record("bookmark.update", { id: entry.id, tweetId: entry.tweetId });
+          ctx.requestApply();
+        }
+        return entry;
+      },
+      async removeBookmark(id) {
+        const removed = await removeBookmark(id);
+        if (removed) {
+          void ctx.auditLog.record("bookmark.remove", { id });
+          ctx.requestApply();
+        }
+        return removed;
+      },
+      async clearBookmarks() {
+        await clearBookmarks();
+        void ctx.auditLog.record("bookmark.clear");
         ctx.requestApply();
       },
       async captureSnapshot(kind) {

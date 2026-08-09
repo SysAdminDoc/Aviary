@@ -67,22 +67,14 @@ export class BookmarkStore {
   async upsert(input: BookmarkInput): Promise<BookmarkRecord> {
     await this.load();
     const now = new Date().toISOString();
-    const tweetId = input.tweetId ?? null;
+    const tweetId = normalizeId(input.tweetId);
     const existing = tweetId
       ? this.#state.entries.find((entry) => entry.tweetId === tweetId)
       : undefined;
 
     if (existing) {
-      Object.assign(existing, {
-        handle: input.handle ?? existing.handle,
-        text: input.text ?? existing.text,
-        url: input.url ?? existing.url,
-        tags: dedupeTags(input.tags ?? existing.tags),
-        folder: input.folder ?? existing.folder,
-        remindAt: input.remindAt ?? existing.remindAt,
-        notes: input.notes ?? existing.notes,
-        updatedAt: now
-      });
+      applyInput(existing, input);
+      existing.updatedAt = now;
       await this.#persist();
       return existing;
     }
@@ -90,13 +82,13 @@ export class BookmarkStore {
     const entry: BookmarkRecord = {
       id: `bm-${Date.now()}-${(this.#sequence += 1)}`,
       tweetId,
-      handle: input.handle ?? null,
-      text: input.text ?? "",
-      url: input.url ?? null,
+      handle: normalizeHandle(input.handle),
+      text: normalizeText(input.text),
+      url: normalizeUrl(input.url),
       tags: dedupeTags(input.tags ?? []),
-      folder: input.folder ?? null,
-      remindAt: input.remindAt ?? null,
-      notes: input.notes ?? "",
+      folder: normalizeFolder(input.folder),
+      remindAt: normalizeReminder(input.remindAt),
+      notes: normalizeNotes(input.notes),
       capturedAt: now,
       updatedAt: now
     };
@@ -105,6 +97,18 @@ export class BookmarkStore {
     while (this.#state.entries.length > this.#limit) {
       this.#state.entries.shift();
     }
+    await this.#persist();
+    return entry;
+  }
+
+  async update(id: string, input: BookmarkInput): Promise<BookmarkRecord | null> {
+    await this.load();
+    const entry = this.#state.entries.find((candidate) => candidate.id === id);
+    if (!entry) {
+      return null;
+    }
+    applyInput(entry, input);
+    entry.updatedAt = new Date().toISOString();
     await this.#persist();
     return entry;
   }
@@ -120,7 +124,17 @@ export class BookmarkStore {
       if (filter?.tag && !entry.tags.includes(filter.tag.toLowerCase())) return false;
       if (filter?.folder !== undefined && entry.folder !== filter.folder) return false;
       return true;
-    });
+    }).map(cloneBookmark);
+  }
+
+  get(id: string): BookmarkRecord | null {
+    const entry = this.#state.entries.find((candidate) => candidate.id === id);
+    return entry ? cloneBookmark(entry) : null;
+  }
+
+  findByTweetId(tweetId: string): BookmarkRecord | null {
+    const entry = this.#state.entries.find((candidate) => candidate.tweetId === tweetId);
+    return entry ? cloneBookmark(entry) : null;
   }
 
   size(): number {
@@ -147,7 +161,7 @@ export class BookmarkStore {
     return this.#state.entries.filter((entry) => {
       if (!entry.remindAt) return false;
       return Date.parse(entry.remindAt) <= at.getTime();
-    });
+    }).map(cloneBookmark);
   }
 
   async clear(): Promise<void> {
@@ -168,6 +182,7 @@ export class BookmarkStore {
 function dedupeTags(input: readonly string[]): string[] {
   const set = new Set<string>();
   for (const tag of input) {
+    if (typeof tag !== "string") continue;
     const cleaned = tag.replace(/^#/, "").trim().toLowerCase().slice(0, 32);
     if (/^[a-z0-9_-]{1,32}$/.test(cleaned)) {
       set.add(cleaned);
@@ -185,7 +200,67 @@ function isBookmark(value: unknown): value is BookmarkRecord {
 function normalizeBookmark(entry: BookmarkRecord): BookmarkRecord {
   return {
     ...entry,
-    tags: dedupeTags(entry.tags ?? []),
-    notes: entry.notes ?? ""
+    tweetId: normalizeId(entry.tweetId),
+    handle: normalizeHandle(entry.handle),
+    text: normalizeText(entry.text),
+    url: normalizeUrl(entry.url),
+    tags: dedupeTags(Array.isArray(entry.tags) ? entry.tags : []),
+    folder: normalizeFolder(entry.folder),
+    remindAt: normalizeReminder(entry.remindAt),
+    notes: normalizeNotes(entry.notes)
   };
+}
+
+function applyInput(entry: BookmarkRecord, input: BookmarkInput): void {
+  if ("tweetId" in input) entry.tweetId = normalizeId(input.tweetId);
+  if ("handle" in input) entry.handle = normalizeHandle(input.handle);
+  if ("text" in input) entry.text = normalizeText(input.text);
+  if ("url" in input) entry.url = normalizeUrl(input.url);
+  if ("tags" in input) entry.tags = dedupeTags(input.tags ?? []);
+  if ("folder" in input) entry.folder = normalizeFolder(input.folder);
+  if ("remindAt" in input) entry.remindAt = normalizeReminder(input.remindAt);
+  if ("notes" in input) entry.notes = normalizeNotes(input.notes);
+}
+
+function normalizeId(value: string | null | undefined): string | null {
+  const cleaned = typeof value === "string" ? value.trim() : "";
+  return cleaned.length > 0 ? cleaned.slice(0, 64) : null;
+}
+
+function normalizeHandle(value: string | null | undefined): string | null {
+  const cleaned = typeof value === "string" ? value.replace(/^@/, "").trim().toLowerCase() : "";
+  return /^[a-z0-9_]{1,15}$/.test(cleaned) ? cleaned : null;
+}
+
+function normalizeText(value: string | undefined): string {
+  return typeof value === "string" ? value.trim().slice(0, 20_000) : "";
+}
+
+function normalizeUrl(value: string | null | undefined): string | null {
+  if (typeof value !== "string" || value.trim().length === 0) return null;
+  try {
+    const url = new URL(value, "https://x.com");
+    return /^https?:$/i.test(url.protocol) ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeFolder(value: string | null | undefined): string | null {
+  const cleaned = typeof value === "string" ? value.trim().slice(0, 64) : "";
+  return cleaned.length > 0 ? cleaned : null;
+}
+
+function normalizeReminder(value: string | null | undefined): string | null {
+  if (typeof value !== "string" || value.trim().length === 0) return null;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
+}
+
+function normalizeNotes(value: string | undefined): string {
+  return typeof value === "string" ? value.trim().slice(0, 1000) : "";
+}
+
+function cloneBookmark(entry: BookmarkRecord): BookmarkRecord {
+  return { ...entry, tags: [...entry.tags] };
 }

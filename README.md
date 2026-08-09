@@ -39,7 +39,7 @@ its job.
 - Export core: `src/features/export/` (`export-feature.ts`, `collector.ts`, `formatters.ts`, `zip-store.ts`, `zip-reader.ts`, `jobs.ts`, `query-discovery.ts`, `network-capture.ts`, `xlsx.ts`, `warc.ts`, `external-targets.ts`, `types.ts`)
 - AI: `src/features/ai/command-menu.ts` (local prompt builder; optionally runs through `features/integrations/ai-provider.ts` when the user supplies an API key)
 - Integrations: `src/features/integrations/` (`aria2.ts`, `crosspost.ts`, `ai-provider.ts`, `semantic-search.ts`)
-- Library: `src/features/library/` (`user-notes.ts`, `link-unshorten.ts`, `snapshots.ts`, `snapshots-feature.ts`, `archive-import.ts`, `cleanup-preview.ts`, `cleanup-queue.ts`, `reports.ts`, `local-search.ts`, `bookmarks.ts`)
+- Library: `src/features/library/` (`user-notes.ts`, `link-unshorten.ts`, `snapshots.ts`, `snapshots-feature.ts`, `archive-import.ts`, `cleanup-preview.ts`, `cleanup-queue.ts`, `reports.ts`, `local-search.ts`, `bookmarks.ts`, `bookmarks-feature.ts`)
 - Composer: `src/features/composer/composer-snippets.ts`
 - i18n: `src/platform/i18n.ts` + `src/features/core/i18n-feature.ts`
 - Presets: `src/features/core/presets.ts`
@@ -149,6 +149,9 @@ The Control Center "Library" section exposes:
 - **Unshorten t.co links** — replaces visible `t.co` redirects in tweet body / quoted card text with the destination URL pulled from `aria-label` / `data-expanded-url` / `title` / textContent (no network calls). Reversed on destroy.
 - **Account notes** — one `handle: note` per line. Aviary stores notes per-handle and decorates the matching tweet's User-Name area with a small Note badge whose tooltip shows the note text.
 - **Clear all account notes** — drops every persisted note.
+- **Local bookmarks** — use the Save locally control on a rendered post, then search the Library
+  and edit tags, folders, reminders, or notes. Removing a bookmark affects only Aviary's local
+  library and leaves X's own bookmark action untouched.
 - **Composer snippets** — reusable templates / replies (insertion into `[data-testid="tweetTextarea_0"]` lands in a later release; the editor and storage ship now).
 
 ## Install & FAQ

@@ -427,6 +427,7 @@ html.av-reduce-motion *::after {
       "Drop every persisted note.": "Elimina todas las notas guardadas.",
       "Composer snippets": "Fragmentos del redactor",
       "One snippet per line. Reusable replies / templates (insertion landing in a later release).": "Un fragmento por l\xEDnea. Respuestas y plantillas reutilizables (la inserci\xF3n llegar\xE1 en una versi\xF3n posterior).",
+      "Save, search, organize, and revisit posts in a local bookmark library.": "Guarda, busca, organiza y vuelve a visitar publicaciones en una biblioteca local de marcadores.",
       "Snapshots stored": "Instant\xE1neas guardadas",
       "Capture followers from this view": "Capturar seguidores desde esta vista",
       "Walks UserCell rows on the current page. Open a /handle/followers view first.": "Recorre las filas UserCell de la p\xE1gina actual. Abre primero una vista /usuario/followers.",
@@ -602,6 +603,13 @@ html.av-reduce-motion *::after {
       "Offscreen video left playing": "V\xEDdeo fuera de pantalla sigue reproduci\xE9ndose",
       "Best video quality on": "M\xE1xima calidad de v\xEDdeo activada",
       "Video quality left to X": "Calidad de v\xEDdeo a criterio de X",
+      "Bookmark updated.": "Marcador actualizado.",
+      "Could not update bookmark.": "No se pudo actualizar el marcador.",
+      "Bookmark removed.": "Marcador eliminado.",
+      "Bookmark was already removed.": "El marcador ya se hab\xEDa eliminado.",
+      "Could not remove bookmark.": "No se pudo eliminar el marcador.",
+      "Bookmarks cleared.": "Marcadores borrados.",
+      "Could not clear bookmarks.": "No se pudieron borrar los marcadores.",
       "AI button on": "Bot\xF3n de IA activado",
       "AI button off": "Bot\xF3n de IA desactivado",
       "Unshorten on": "Expansi\xF3n de enlaces activada",
@@ -672,6 +680,13 @@ html.av-reduce-motion *::after {
       "Preset applied": "Ajuste preestablecido aplicado",
       "Preset already applied": "El ajuste preestablecido ya estaba aplicado",
       "Cancel": "Cancelar",
+      "Find local bookmarks": "Buscar marcadores locales",
+      "Search saved posts by text, handle, tags, folder, or ID.": "Busca publicaciones guardadas por texto, usuario, etiquetas, carpeta o ID.",
+      "Search local bookmarks": "Buscar marcadores locales",
+      "No local bookmarks match this search.": "Ning\xFAn marcador local coincide con esta b\xFAsqueda.",
+      "Notes": "Notas",
+      "Bookmark notes": "Notas del marcador",
+      "Remove": "Eliminar",
       "This userscript manager does not give Aviary access to the page itself.": "Este gestor de userscripts no da a Aviary acceso a la propia p\xE1gina.",
       "This browser did not load Aviary's page script.": "Este navegador no carg\xF3 el script de p\xE1gina de Aviary.",
       "Unavailable in this browser.": "No disponible en este navegador.",
@@ -714,6 +729,9 @@ html.av-reduce-motion *::after {
       "Could not save the hidden post. Storage rejected the write.": "No se pudo guardar la publicaci\xF3n oculta. El almacenamiento rechaz\xF3 la escritura.",
       "Undo": "Deshacer",
       "Could not restore that post.": "No se pudo restaurar esa publicaci\xF3n.",
+      "Bookmark failed": "Error al guardar el marcador.",
+      "Save locally": "Guardar localmente",
+      "Remove local bookmark": "Eliminar marcador local",
       "Note": "Nota",
       "Unavailable": "No disponible",
       "Saved": "Guardado",
@@ -935,6 +953,7 @@ html.av-reduce-motion *::after {
       "Drop every persisted note.": "Elimina todas as notas guardadas.",
       "Composer snippets": "Trechos do editor",
       "One snippet per line. Reusable replies / templates (insertion landing in a later release).": "Um trecho por linha. Respostas e modelos reutiliz\xE1veis (a inser\xE7\xE3o chega em uma vers\xE3o futura).",
+      "Save, search, organize, and revisit posts in a local bookmark library.": "Guarde, pesquise, organize e reveja publica\xE7\xF5es numa biblioteca local de marcadores.",
       "Snapshots stored": "Instant\xE2neos guardados",
       "Capture followers from this view": "Capturar seguidores a partir desta vista",
       "Walks UserCell rows on the current page. Open a /handle/followers view first.": "Percorre as linhas UserCell da p\xE1gina atual. Abra primeiro uma vista /utilizador/followers.",
@@ -1110,6 +1129,13 @@ html.av-reduce-motion *::after {
       "Offscreen video left playing": "V\xEDdeo fora do ecr\xE3 continua a reproduzir",
       "Best video quality on": "M\xE1xima qualidade de v\xEDdeo ativada",
       "Video quality left to X": "Qualidade de v\xEDdeo ao crit\xE9rio do X",
+      "Bookmark updated.": "Marcador atualizado.",
+      "Could not update bookmark.": "N\xE3o foi poss\xEDvel atualizar o marcador.",
+      "Bookmark removed.": "Marcador removido.",
+      "Bookmark was already removed.": "O marcador j\xE1 tinha sido removido.",
+      "Could not remove bookmark.": "N\xE3o foi poss\xEDvel remover o marcador.",
+      "Bookmarks cleared.": "Marcadores apagados.",
+      "Could not clear bookmarks.": "N\xE3o foi poss\xEDvel apagar os marcadores.",
       "AI button on": "Bot\xE3o de IA ativado",
       "AI button off": "Bot\xE3o de IA desativado",
       "Unshorten on": "Expans\xE3o de liga\xE7\xF5es ativada",
@@ -1180,6 +1206,13 @@ html.av-reduce-motion *::after {
       "Preset applied": "Predefini\xE7\xE3o aplicada",
       "Preset already applied": "A predefini\xE7\xE3o j\xE1 estava aplicada",
       "Cancel": "Cancelar",
+      "Find local bookmarks": "Encontrar marcadores locais",
+      "Search saved posts by text, handle, tags, folder, or ID.": "Pesquise publica\xE7\xF5es guardadas por texto, utilizador, etiquetas, pasta ou ID.",
+      "Search local bookmarks": "Pesquisar marcadores locais",
+      "No local bookmarks match this search.": "Nenhum marcador local corresponde a esta pesquisa.",
+      "Notes": "Notas",
+      "Bookmark notes": "Notas do marcador",
+      "Remove": "Remover",
       "This userscript manager does not give Aviary access to the page itself.": "Este gestor de userscripts n\xE3o d\xE1 ao Aviary acesso \xE0 pr\xF3pria p\xE1gina.",
       "This browser did not load Aviary's page script.": "Este navegador n\xE3o carregou o script de p\xE1gina do Aviary.",
       "Unavailable in this browser.": "Indispon\xEDvel neste navegador.",
@@ -1222,6 +1255,9 @@ html.av-reduce-motion *::after {
       "Could not save the hidden post. Storage rejected the write.": "N\xE3o foi poss\xEDvel guardar a publica\xE7\xE3o oculta. O armazenamento rejeitou a escrita.",
       "Undo": "Anular",
       "Could not restore that post.": "N\xE3o foi poss\xEDvel restaurar essa publica\xE7\xE3o.",
+      "Bookmark failed": "Falha ao guardar o marcador.",
+      "Save locally": "Guardar localmente",
+      "Remove local bookmark": "Remover marcador local",
       "Note": "Nota",
       "Unavailable": "Indispon\xEDvel",
       "Saved": "Guardado",
@@ -1443,6 +1479,7 @@ html.av-reduce-motion *::after {
       "Drop every persisted note.": "Supprime toutes les notes enregistr\xE9es.",
       "Composer snippets": "Extraits du r\xE9dacteur",
       "One snippet per line. Reusable replies / templates (insertion landing in a later release).": "Un extrait par ligne. R\xE9ponses et mod\xE8les r\xE9utilisables (l'insertion arrive dans une version ult\xE9rieure).",
+      "Save, search, organize, and revisit posts in a local bookmark library.": "Enregistrez, recherchez, organisez et retrouvez vos publications dans une biblioth\xE8que locale de marque-pages.",
       "Snapshots stored": "Instantan\xE9s enregistr\xE9s",
       "Capture followers from this view": "Capturer les abonn\xE9s depuis cette vue",
       "Walks UserCell rows on the current page. Open a /handle/followers view first.": "Parcourt les lignes UserCell de la page actuelle. Ouvrez d'abord une vue /identifiant/followers.",
@@ -1618,6 +1655,13 @@ html.av-reduce-motion *::after {
       "Offscreen video left playing": "Vid\xE9o hors \xE9cran laiss\xE9e en lecture",
       "Best video quality on": "Qualit\xE9 vid\xE9o maximale activ\xE9e",
       "Video quality left to X": "Qualit\xE9 vid\xE9o laiss\xE9e \xE0 X",
+      "Bookmark updated.": "Marque-page mis \xE0 jour.",
+      "Could not update bookmark.": "Impossible de mettre \xE0 jour le marque-page.",
+      "Bookmark removed.": "Marque-page supprim\xE9.",
+      "Bookmark was already removed.": "Le marque-page avait d\xE9j\xE0 \xE9t\xE9 supprim\xE9.",
+      "Could not remove bookmark.": "Impossible de supprimer le marque-page.",
+      "Bookmarks cleared.": "Marque-pages supprim\xE9s.",
+      "Could not clear bookmarks.": "Impossible de supprimer les marque-pages.",
       "AI button on": "Bouton IA activ\xE9",
       "AI button off": "Bouton IA d\xE9sactiv\xE9",
       "Unshorten on": "D\xE9veloppement des liens activ\xE9",
@@ -1688,6 +1732,13 @@ html.av-reduce-motion *::after {
       "Preset applied": "Pr\xE9r\xE9glage appliqu\xE9",
       "Preset already applied": "Pr\xE9r\xE9glage d\xE9j\xE0 appliqu\xE9",
       "Cancel": "Annuler",
+      "Find local bookmarks": "Trouver les marque-pages locaux",
+      "Search saved posts by text, handle, tags, folder, or ID.": "Recherchez les publications enregistr\xE9es par texte, identifiant, tags, dossier ou ID.",
+      "Search local bookmarks": "Rechercher dans les marque-pages locaux",
+      "No local bookmarks match this search.": "Aucun marque-page local ne correspond \xE0 cette recherche.",
+      "Notes": "Annotations",
+      "Bookmark notes": "Notes du marque-page",
+      "Remove": "Supprimer",
       "This userscript manager does not give Aviary access to the page itself.": "Ce gestionnaire d'userscripts ne donne pas \xE0 Aviary l'acc\xE8s \xE0 la page elle-m\xEAme.",
       "This browser did not load Aviary's page script.": "Ce navigateur n'a pas charg\xE9 le script de page d'Aviary.",
       "Unavailable in this browser.": "Indisponible dans ce navigateur.",
@@ -1730,6 +1781,9 @@ html.av-reduce-motion *::after {
       "Could not save the hidden post. Storage rejected the write.": "Impossible d'enregistrer le post masqu\xE9. Le stockage a refus\xE9 l'\xE9criture.",
       "Undo": "Annuler",
       "Could not restore that post.": "Impossible de restaurer ce post.",
+      "Bookmark failed": "\xC9chec de l\u2019enregistrement du marque-page.",
+      "Save locally": "Enregistrer localement",
+      "Remove local bookmark": "Supprimer le marque-page local",
       "Note": "Note",
       "Unavailable": "Indisponible",
       "Saved": "Enregistr\xE9",
@@ -1951,6 +2005,7 @@ html.av-reduce-motion *::after {
       "Drop every persisted note.": "Entfernt alle gespeicherten Notizen.",
       "Composer snippets": "Verfasser-Textbausteine",
       "One snippet per line. Reusable replies / templates (insertion landing in a later release).": "Ein Baustein pro Zeile. Wiederverwendbare Antworten und Vorlagen (das Einf\xFCgen folgt in einer sp\xE4teren Version).",
+      "Save, search, organize, and revisit posts in a local bookmark library.": "Beitr\xE4ge in einer lokalen Lesezeichenbibliothek speichern, suchen, organisieren und wiederfinden.",
       "Snapshots stored": "Gespeicherte Momentaufnahmen",
       "Capture followers from this view": "Follower aus dieser Ansicht erfassen",
       "Walks UserCell rows on the current page. Open a /handle/followers view first.": "Durchl\xE4uft die UserCell-Zeilen der aktuellen Seite. \xD6ffne zuerst eine /name/followers-Ansicht.",
@@ -2126,6 +2181,13 @@ html.av-reduce-motion *::after {
       "Offscreen video left playing": "Video au\xDFerhalb des Bilds l\xE4uft weiter",
       "Best video quality on": "Beste Videoqualit\xE4t an",
       "Video quality left to X": "Videoqualit\xE4t bleibt X \xFCberlassen",
+      "Bookmark updated.": "Lesezeichen aktualisiert.",
+      "Could not update bookmark.": "Lesezeichen konnte nicht aktualisiert werden.",
+      "Bookmark removed.": "Lesezeichen entfernt.",
+      "Bookmark was already removed.": "Das Lesezeichen war bereits entfernt.",
+      "Could not remove bookmark.": "Lesezeichen konnte nicht entfernt werden.",
+      "Bookmarks cleared.": "Lesezeichen gel\xF6scht.",
+      "Could not clear bookmarks.": "Lesezeichen konnten nicht gel\xF6scht werden.",
       "AI button on": "KI-Schaltfl\xE4che an",
       "AI button off": "KI-Schaltfl\xE4che aus",
       "Unshorten on": "Linkaufl\xF6sung an",
@@ -2196,6 +2258,13 @@ html.av-reduce-motion *::after {
       "Preset applied": "Voreinstellung angewendet",
       "Preset already applied": "Voreinstellung bereits angewendet",
       "Cancel": "Abbrechen",
+      "Find local bookmarks": "Lokale Lesezeichen finden",
+      "Search saved posts by text, handle, tags, folder, or ID.": "Gespeicherte Beitr\xE4ge nach Text, Handle, Tags, Ordner oder ID suchen.",
+      "Search local bookmarks": "Lokale Lesezeichen durchsuchen",
+      "No local bookmarks match this search.": "Keine lokalen Lesezeichen passen zu dieser Suche.",
+      "Notes": "Notizen",
+      "Bookmark notes": "Lesezeichen-Notizen",
+      "Remove": "Entfernen",
       "This userscript manager does not give Aviary access to the page itself.": "Dieser Userscript-Manager gibt Aviary keinen Zugriff auf die Seite selbst.",
       "This browser did not load Aviary's page script.": "Dieser Browser hat Aviarys Seitenskript nicht geladen.",
       "Unavailable in this browser.": "In diesem Browser nicht verf\xFCgbar.",
@@ -2238,6 +2307,9 @@ html.av-reduce-motion *::after {
       "Could not save the hidden post. Storage rejected the write.": "Der ausgeblendete Beitrag konnte nicht gespeichert werden. Der Speicher hat den Schreibvorgang abgelehnt.",
       "Undo": "R\xFCckg\xE4ngig",
       "Could not restore that post.": "Dieser Beitrag konnte nicht wiederhergestellt werden.",
+      "Bookmark failed": "Lesezeichen konnte nicht gespeichert werden.",
+      "Save locally": "Lokal speichern",
+      "Remove local bookmark": "Lokales Lesezeichen entfernen",
       "Note": "Notiz",
       "Unavailable": "Nicht verf\xFCgbar",
       "Saved": "Gespeichert",
@@ -2459,6 +2531,7 @@ html.av-reduce-motion *::after {
       "Drop every persisted note.": "\u4FDD\u5B58\u3055\u308C\u3066\u3044\u308B\u30E1\u30E2\u3092\u3059\u3079\u3066\u524A\u9664\u3057\u307E\u3059\u3002",
       "Composer snippets": "\u5B9A\u578B\u6587",
       "One snippet per line. Reusable replies / templates (insertion landing in a later release).": "1 \u884C\u306B 1 \u3064\u3002\u4F7F\u3044\u56DE\u305B\u308B\u8FD4\u4FE1\u3084\u30C6\u30F3\u30D7\u30EC\u30FC\u30C8\u3067\u3059\uFF08\u633F\u5165\u6A5F\u80FD\u306F\u4ECA\u5F8C\u306E\u30EA\u30EA\u30FC\u30B9\u3067\u5BFE\u5FDC\uFF09\u3002",
+      "Save, search, organize, and revisit posts in a local bookmark library.": "\u6295\u7A3F\u3092\u30ED\u30FC\u30AB\u30EB\u306E\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u30E9\u30A4\u30D6\u30E9\u30EA\u306B\u4FDD\u5B58\u3057\u3001\u691C\u7D22\u3001\u6574\u7406\u3001\u518D\u8A2A\u3067\u304D\u307E\u3059\u3002",
       "Snapshots stored": "\u4FDD\u5B58\u3055\u308C\u305F\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8",
       "Capture followers from this view": "\u3053\u306E\u753B\u9762\u304B\u3089\u30D5\u30A9\u30ED\u30EF\u30FC\u3092\u53D6\u5F97",
       "Walks UserCell rows on the current page. Open a /handle/followers view first.": "\u73FE\u5728\u306E\u30DA\u30FC\u30B8\u306E UserCell \u884C\u3092\u8D70\u67FB\u3057\u307E\u3059\u3002\u5148\u306B /\u30A2\u30AB\u30A6\u30F3\u30C8\u540D/followers \u3092\u958B\u3044\u3066\u304F\u3060\u3055\u3044\u3002",
@@ -2634,6 +2707,13 @@ html.av-reduce-motion *::after {
       "Offscreen video left playing": "\u753B\u9762\u5916\u306E\u52D5\u753B\u306F\u518D\u751F\u3057\u305F\u307E\u307E\u306B\u3057\u307E\u3059",
       "Best video quality on": "\u6700\u9AD8\u753B\u8CEA\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
       "Video quality left to X": "\u753B\u8CEA\u306F X \u306B\u4EFB\u305B\u307E\u3059",
+      "Bookmark updated.": "\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u66F4\u65B0\u3057\u307E\u3057\u305F\u3002",
+      "Could not update bookmark.": "\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u66F4\u65B0\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+      "Bookmark removed.": "\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u524A\u9664\u3057\u307E\u3057\u305F\u3002",
+      "Bookmark was already removed.": "\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u306F\u3059\u3067\u306B\u524A\u9664\u3055\u308C\u3066\u3044\u307E\u3059\u3002",
+      "Could not remove bookmark.": "\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u524A\u9664\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+      "Bookmarks cleared.": "\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u3059\u3079\u3066\u524A\u9664\u3057\u307E\u3057\u305F\u3002",
+      "Could not clear bookmarks.": "\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u524A\u9664\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "AI button on": "AI \u30DC\u30BF\u30F3\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
       "AI button off": "AI \u30DC\u30BF\u30F3\u3092\u30AA\u30D5\u306B\u3057\u307E\u3057\u305F",
       "Unshorten on": "\u77ED\u7E2E\u30EA\u30F3\u30AF\u306E\u5C55\u958B \u30AA\u30F3",
@@ -2704,6 +2784,13 @@ html.av-reduce-motion *::after {
       "Preset applied": "\u30D7\u30EA\u30BB\u30C3\u30C8\u3092\u9069\u7528\u3057\u307E\u3057\u305F",
       "Preset already applied": "\u30D7\u30EA\u30BB\u30C3\u30C8\u306F\u9069\u7528\u6E08\u307F\u3067\u3059",
       "Cancel": "\u30AD\u30E3\u30F3\u30BB\u30EB",
+      "Find local bookmarks": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u63A2\u3059",
+      "Search saved posts by text, handle, tags, folder, or ID.": "\u4FDD\u5B58\u3057\u305F\u6295\u7A3F\u3092\u672C\u6587\u3001\u30CF\u30F3\u30C9\u30EB\u3001\u30BF\u30B0\u3001\u30D5\u30A9\u30EB\u30C0\u30FC\u3001ID\u3067\u691C\u7D22\u3057\u307E\u3059\u3002",
+      "Search local bookmarks": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u691C\u7D22",
+      "No local bookmarks match this search.": "\u3053\u306E\u691C\u7D22\u306B\u4E00\u81F4\u3059\u308B\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+      "Notes": "\u30E1\u30E2",
+      "Bookmark notes": "\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u306E\u30E1\u30E2",
+      "Remove": "\u524A\u9664",
       "This userscript manager does not give Aviary access to the page itself.": "\u3053\u306E\u30E6\u30FC\u30B6\u30FC\u30B9\u30AF\u30EA\u30D7\u30C8\u30DE\u30CD\u30FC\u30B8\u30E3\u30FC\u306F\u3001\u30DA\u30FC\u30B8\u81EA\u4F53\u3078\u306E\u30A2\u30AF\u30BB\u30B9\u3092 Aviary \u306B\u4E0E\u3048\u3066\u3044\u307E\u305B\u3093\u3002",
       "This browser did not load Aviary's page script.": "\u3053\u306E\u30D6\u30E9\u30A6\u30B6\u30FC\u306F Aviary \u306E\u30DA\u30FC\u30B8\u30B9\u30AF\u30EA\u30D7\u30C8\u3092\u8AAD\u307F\u8FBC\u307F\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "Unavailable in this browser.": "\u3053\u306E\u30D6\u30E9\u30A6\u30B6\u30FC\u3067\u306F\u5229\u7528\u3067\u304D\u307E\u305B\u3093\u3002",
@@ -2746,6 +2833,9 @@ html.av-reduce-motion *::after {
       "Could not save the hidden post. Storage rejected the write.": "\u975E\u8868\u793A\u306E\u6295\u7A3F\u3092\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u30B9\u30C8\u30EC\u30FC\u30B8\u304C\u66F8\u304D\u8FBC\u307F\u3092\u62D2\u5426\u3057\u307E\u3057\u305F\u3002",
       "Undo": "\u5143\u306B\u623B\u3059",
       "Could not restore that post.": "\u305D\u306E\u6295\u7A3F\u3092\u5FA9\u5143\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+      "Bookmark failed": "\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u306E\u4FDD\u5B58\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
+      "Save locally": "\u30ED\u30FC\u30AB\u30EB\u306B\u4FDD\u5B58",
+      "Remove local bookmark": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u524A\u9664",
       "Note": "\u30E1\u30E2",
       "Unavailable": "\u5229\u7528\u3067\u304D\u307E\u305B\u3093",
       "Saved": "\u4FDD\u5B58\u3057\u307E\u3057\u305F",
@@ -2967,6 +3057,7 @@ html.av-reduce-motion *::after {
       "Drop every persisted note.": "\uC800\uC7A5\uB41C \uBA54\uBAA8\uB97C \uBAA8\uB450 \uC0AD\uC81C\uD569\uB2C8\uB2E4.",
       "Composer snippets": "\uC0C1\uC6A9\uAD6C",
       "One snippet per line. Reusable replies / templates (insertion landing in a later release).": "\uD55C \uC904\uC5D0 \uD558\uB098\uC529. \uB2E4\uC2DC \uC4F8 \uC218 \uC788\uB294 \uB2F5\uAE00\uC774\uB098 \uD15C\uD50C\uB9BF\uC785\uB2C8\uB2E4(\uC0BD\uC785 \uAE30\uB2A5\uC740 \uC774\uD6C4 \uB9B4\uB9AC\uC2A4\uC5D0\uC11C \uC9C0\uC6D0).",
+      "Save, search, organize, and revisit posts in a local bookmark library.": "\uAC8C\uC2DC\uBB3C\uC744 \uB85C\uCEEC \uBD81\uB9C8\uD06C \uB77C\uC774\uBE0C\uB7EC\uB9AC\uC5D0 \uC800\uC7A5\uD558\uACE0 \uAC80\uC0C9\uD558\uBA70 \uC815\uB9AC\uD558\uACE0 \uB2E4\uC2DC \uBCFC \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
       "Snapshots stored": "\uC800\uC7A5\uB41C \uC2A4\uB0C5\uC0F7",
       "Capture followers from this view": "\uC774 \uD654\uBA74\uC5D0\uC11C \uD314\uB85C\uC6CC \uC218\uC9D1",
       "Walks UserCell rows on the current page. Open a /handle/followers view first.": "\uD604\uC7AC \uD398\uC774\uC9C0\uC758 UserCell \uD589\uC744 \uD6D1\uC2B5\uB2C8\uB2E4. \uBA3C\uC800 /\uACC4\uC815/followers \uD654\uBA74\uC744 \uC5EC\uC138\uC694.",
@@ -3142,6 +3233,13 @@ html.av-reduce-motion *::after {
       "Offscreen video left playing": "\uD654\uBA74 \uBC16 \uB3D9\uC601\uC0C1\uC744 \uACC4\uC18D \uC7AC\uC0DD\uD568",
       "Best video quality on": "\uCD5C\uACE0 \uD654\uC9C8\uC744 \uCF30\uC2B5\uB2C8\uB2E4",
       "Video quality left to X": "\uD654\uC9C8\uC740 X\uC5D0 \uB9E1\uAE41\uB2C8\uB2E4",
+      "Bookmark updated.": "\uBD81\uB9C8\uD06C\uB97C \uC5C5\uB370\uC774\uD2B8\uD588\uC2B5\uB2C8\uB2E4.",
+      "Could not update bookmark.": "\uBD81\uB9C8\uD06C\uB97C \uC5C5\uB370\uC774\uD2B8\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
+      "Bookmark removed.": "\uBD81\uB9C8\uD06C\uB97C \uC0AD\uC81C\uD588\uC2B5\uB2C8\uB2E4.",
+      "Bookmark was already removed.": "\uBD81\uB9C8\uD06C\uAC00 \uC774\uBBF8 \uC0AD\uC81C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+      "Could not remove bookmark.": "\uBD81\uB9C8\uD06C\uB97C \uC0AD\uC81C\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
+      "Bookmarks cleared.": "\uBD81\uB9C8\uD06C\uB97C \uBAA8\uB450 \uC9C0\uC6E0\uC2B5\uB2C8\uB2E4.",
+      "Could not clear bookmarks.": "\uBD81\uB9C8\uD06C\uB97C \uC9C0\uC6B0\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "AI button on": "AI \uBC84\uD2BC \uCF1C\uC9D0",
       "AI button off": "AI \uBC84\uD2BC \uAEBC\uC9D0",
       "Unshorten on": "\uB9C1\uD06C \uD3BC\uCE58\uAE30 \uCF2C",
@@ -3212,6 +3310,13 @@ html.av-reduce-motion *::after {
       "Preset applied": "\uD504\uB9AC\uC14B\uC744 \uC801\uC6A9\uD588\uC2B5\uB2C8\uB2E4",
       "Preset already applied": "\uD504\uB9AC\uC14B\uC774 \uC774\uBBF8 \uC801\uC6A9\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4",
       "Cancel": "\uCDE8\uC18C",
+      "Find local bookmarks": "\uB85C\uCEEC \uBD81\uB9C8\uD06C \uCC3E\uAE30",
+      "Search saved posts by text, handle, tags, folder, or ID.": "\uC800\uC7A5\uD55C \uAC8C\uC2DC\uBB3C\uC744 \uBCF8\uBB38, \uD578\uB4E4, \uD0DC\uADF8, \uD3F4\uB354 \uB610\uB294 ID\uB85C \uAC80\uC0C9\uD569\uB2C8\uB2E4.",
+      "Search local bookmarks": "\uB85C\uCEEC \uBD81\uB9C8\uD06C \uAC80\uC0C9",
+      "No local bookmarks match this search.": "\uC774 \uAC80\uC0C9\uACFC \uC77C\uCE58\uD558\uB294 \uB85C\uCEEC \uBD81\uB9C8\uD06C\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+      "Notes": "\uBA54\uBAA8",
+      "Bookmark notes": "\uBD81\uB9C8\uD06C \uBA54\uBAA8",
+      "Remove": "\uC0AD\uC81C",
       "This userscript manager does not give Aviary access to the page itself.": "\uC774 \uC720\uC800\uC2A4\uD06C\uB9BD\uD2B8 \uAD00\uB9AC\uC790\uB294 Aviary\uC5D0 \uD398\uC774\uC9C0 \uC790\uCCB4\uC5D0 \uB300\uD55C \uC811\uADFC \uAD8C\uD55C\uC744 \uC8FC\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
       "This browser did not load Aviary's page script.": "\uC774 \uBE0C\uB77C\uC6B0\uC800\uB294 Aviary\uC758 \uD398\uC774\uC9C0 \uC2A4\uD06C\uB9BD\uD2B8\uB97C \uBD88\uB7EC\uC624\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.",
       "Unavailable in this browser.": "\uC774 \uBE0C\uB77C\uC6B0\uC800\uC5D0\uC11C\uB294 \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
@@ -3254,6 +3359,9 @@ html.av-reduce-motion *::after {
       "Could not save the hidden post. Storage rejected the write.": "\uC228\uAE34 \uAC8C\uC2DC\uBB3C\uC744 \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uC800\uC7A5\uC18C\uAC00 \uC4F0\uAE30\uB97C \uAC70\uBD80\uD588\uC2B5\uB2C8\uB2E4.",
       "Undo": "\uC2E4\uD589 \uCDE8\uC18C",
       "Could not restore that post.": "\uADF8 \uAC8C\uC2DC\uBB3C\uC744 \uBCF5\uC6D0\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
+      "Bookmark failed": "\uBD81\uB9C8\uD06C \uC800\uC7A5\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
+      "Save locally": "\uB85C\uCEEC\uC5D0 \uC800\uC7A5",
+      "Remove local bookmark": "\uB85C\uCEEC \uBD81\uB9C8\uD06C \uC0AD\uC81C",
       "Note": "\uBA54\uBAA8",
       "Unavailable": "\uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC74C",
       "Saved": "\uC800\uC7A5\uB428",
@@ -3475,6 +3583,7 @@ html.av-reduce-motion *::after {
       "Drop every persisted note.": "\u064A\u062D\u0630\u0641 \u0643\u0644 \u0627\u0644\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629.",
       "Composer snippets": "\u0627\u0644\u0646\u0635\u0648\u0635 \u0627\u0644\u062C\u0627\u0647\u0632\u0629",
       "One snippet per line. Reusable replies / templates (insertion landing in a later release).": "\u0646\u0635 \u0648\u0627\u062D\u062F \u0641\u064A \u0643\u0644 \u0633\u0637\u0631. \u0631\u062F\u0648\u062F \u0648\u0642\u0648\u0627\u0644\u0628 \u0642\u0627\u0628\u0644\u0629 \u0644\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0627\u0633\u062A\u062E\u062F\u0627\u0645 (\u0627\u0644\u0625\u062F\u0631\u0627\u062C \u0627\u0644\u062A\u0644\u0642\u0627\u0626\u064A \u0641\u064A \u0625\u0635\u062F\u0627\u0631 \u0644\u0627\u062D\u0642).",
+      "Save, search, organize, and revisit posts in a local bookmark library.": "\u0627\u062D\u0641\u0638 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0648\u0627\u0628\u062D\u062B \u0639\u0646\u0647\u0627 \u0648\u0646\u0638\u0651\u0645\u0647\u0627 \u0648\u0639\u062F \u0625\u0644\u064A\u0647\u0627 \u0641\u064A \u0645\u0643\u062A\u0628\u0629 \u0625\u0634\u0627\u0631\u0627\u062A \u0645\u0631\u062C\u0639\u064A\u0629 \u0645\u062D\u0644\u064A\u0629.",
       "Snapshots stored": "\u0627\u0644\u0644\u0642\u0637\u0627\u062A \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629",
       "Capture followers from this view": "\u062C\u0645\u0639 \u0627\u0644\u0645\u062A\u0627\u0628\u0650\u0639\u064A\u0646 \u0645\u0646 \u0647\u0630\u0647 \u0627\u0644\u0635\u0641\u062D\u0629",
       "Walks UserCell rows on the current page. Open a /handle/followers view first.": "\u064A\u0645\u0631\u0651 \u0639\u0644\u0649 \u0635\u0641\u0648\u0641 UserCell \u0641\u064A \u0627\u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u062D\u0627\u0644\u064A\u0629. \u0627\u0641\u062A\u062D \u0623\u0648\u0644\u064B\u0627 \u0635\u0641\u062D\u0629 \u200E/\u0627\u0644\u062D\u0633\u0627\u0628/followers\u200E.",
@@ -3650,6 +3759,13 @@ html.av-reduce-motion *::after {
       "Offscreen video left playing": "\u062A\u064F\u0631\u0643 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u062E\u0627\u0631\u062C \u0627\u0644\u0634\u0627\u0634\u0629 \u0642\u064A\u062F \u0627\u0644\u062A\u0634\u063A\u064A\u0644",
       "Best video quality on": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0623\u0639\u0644\u0649 \u062C\u0648\u062F\u0629 \u0641\u064A\u062F\u064A\u0648",
       "Video quality left to X": "\u062C\u0648\u062F\u0629 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u0645\u062A\u0631\u0648\u0643\u0629 \u0644\u0640 X",
+      "Bookmark updated.": "\u062A\u0645 \u062A\u062D\u062F\u064A\u062B \u0627\u0644\u0625\u0634\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629.",
+      "Could not update bookmark.": "\u062A\u0639\u0630\u0631 \u062A\u062D\u062F\u064A\u062B \u0627\u0644\u0625\u0634\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629.",
+      "Bookmark removed.": "\u062A\u0645\u062A \u0625\u0632\u0627\u0644\u0629 \u0627\u0644\u0625\u0634\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629.",
+      "Bookmark was already removed.": "\u062A\u0645\u062A \u0625\u0632\u0627\u0644\u0629 \u0627\u0644\u0625\u0634\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0645\u0633\u0628\u0642\u064B\u0627.",
+      "Could not remove bookmark.": "\u062A\u0639\u0630\u0631\u062A \u0625\u0632\u0627\u0644\u0629 \u0627\u0644\u0625\u0634\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629.",
+      "Bookmarks cleared.": "\u062A\u0645 \u0645\u0633\u062D \u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629.",
+      "Could not clear bookmarks.": "\u062A\u0639\u0630\u0631 \u0645\u0633\u062D \u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629.",
       "AI button on": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0632\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A",
       "AI button off": "\u062A\u0645 \u0625\u064A\u0642\u0627\u0641 \u0632\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A",
       "Unshorten on": "\u062A\u0648\u0633\u064A\u0639 \u0627\u0644\u0631\u0648\u0627\u0628\u0637 \u0645\u0641\u0639\u0651\u0644",
@@ -3720,6 +3836,13 @@ html.av-reduce-motion *::after {
       "Preset applied": "\u062A\u0645 \u062A\u0637\u0628\u064A\u0642 \u0627\u0644\u0625\u0639\u062F\u0627\u062F \u0627\u0644\u062C\u0627\u0647\u0632",
       "Preset already applied": "\u0627\u0644\u0625\u0639\u062F\u0627\u062F \u0627\u0644\u062C\u0627\u0647\u0632 \u0645\u064F\u0637\u0628\u064E\u0651\u0642 \u0628\u0627\u0644\u0641\u0639\u0644",
       "Cancel": "\u0625\u0644\u063A\u0627\u0621",
+      "Find local bookmarks": "\u0627\u0644\u0639\u062B\u0648\u0631 \u0639\u0644\u0649 \u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
+      "Search saved posts by text, handle, tags, folder, or ID.": "\u0627\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629 \u0628\u0627\u0644\u0646\u0635 \u0623\u0648 \u0627\u0644\u0645\u0639\u0631\u0651\u0641 \u0623\u0648 \u0627\u0644\u0648\u0633\u0648\u0645 \u0623\u0648 \u0627\u0644\u0645\u062C\u0644\u062F \u0623\u0648 \u0627\u0644\u0631\u0642\u0645.",
+      "Search local bookmarks": "\u0627\u0644\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
+      "No local bookmarks match this search.": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0625\u0634\u0627\u0631\u0627\u062A \u0645\u0631\u062C\u0639\u064A\u0629 \u0645\u062D\u0644\u064A\u0629 \u062A\u0637\u0627\u0628\u0642 \u0647\u0630\u0627 \u0627\u0644\u0628\u062D\u062B.",
+      "Notes": "\u0645\u0644\u0627\u062D\u0638\u0627\u062A",
+      "Bookmark notes": "\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0625\u0634\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629",
+      "Remove": "\u0625\u0632\u0627\u0644\u0629",
       "This userscript manager does not give Aviary access to the page itself.": "\u0645\u062F\u064A\u0631 \u0633\u0643\u0631\u0628\u062A\u0627\u062A \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0647\u0630\u0627 \u0644\u0627 \u064A\u0645\u0646\u062D Aviary \u0648\u0635\u0648\u0644\u0627\u064B \u0625\u0644\u0649 \u0627\u0644\u0635\u0641\u062D\u0629 \u0646\u0641\u0633\u0647\u0627.",
       "This browser did not load Aviary's page script.": "\u0644\u0645 \u064A\u062D\u0645\u0651\u0644 \u0647\u0630\u0627 \u0627\u0644\u0645\u062A\u0635\u0641\u062D \u0633\u0643\u0631\u0628\u062A \u0627\u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u062E\u0627\u0635 \u0628\u0640 Aviary.",
       "Unavailable in this browser.": "\u063A\u064A\u0631 \u0645\u062A\u0627\u062D \u0641\u064A \u0647\u0630\u0627 \u0627\u0644\u0645\u062A\u0635\u0641\u062D.",
@@ -3762,6 +3885,9 @@ html.av-reduce-motion *::after {
       "Could not save the hidden post. Storage rejected the write.": "\u062A\u0639\u0630\u0651\u0631 \u062D\u0641\u0638 \u0627\u0644\u0645\u0646\u0634\u0648\u0631 \u0627\u0644\u0645\u062E\u0641\u064A. \u0631\u0641\u0636 \u0627\u0644\u062A\u062E\u0632\u064A\u0646 \u0639\u0645\u0644\u064A\u0629 \u0627\u0644\u0643\u062A\u0627\u0628\u0629.",
       "Undo": "\u062A\u0631\u0627\u062C\u0639",
       "Could not restore that post.": "\u062A\u0639\u0630\u0651\u0631\u062A \u0627\u0633\u062A\u0639\u0627\u062F\u0629 \u0630\u0644\u0643 \u0627\u0644\u0645\u0646\u0634\u0648\u0631.",
+      "Bookmark failed": "\u0641\u0634\u0644 \u062D\u0641\u0638 \u0627\u0644\u0625\u0634\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629.",
+      "Save locally": "\u062D\u0641\u0638 \u0645\u062D\u0644\u064A\u064B\u0627",
+      "Remove local bookmark": "\u0625\u0632\u0627\u0644\u0629 \u0627\u0644\u0625\u0634\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
       "Note": "\u0645\u0644\u0627\u062D\u0638\u0629",
       "Unavailable": "\u063A\u064A\u0631 \u0645\u062A\u0627\u062D",
       "Saved": "\u062A\u0645 \u0627\u0644\u062D\u0641\u0638",
@@ -3983,6 +4109,7 @@ html.av-reduce-motion *::after {
       "Drop every persisted note.": "\u05DE\u05D5\u05D7\u05E7 \u05D0\u05EA \u05DB\u05DC \u05D4\u05D4\u05E2\u05E8\u05D5\u05EA \u05D4\u05E9\u05DE\u05D5\u05E8\u05D5\u05EA.",
       "Composer snippets": "\u05E7\u05D8\u05E2\u05D9 \u05D8\u05E7\u05E1\u05D8",
       "One snippet per line. Reusable replies / templates (insertion landing in a later release).": "\u05E7\u05D8\u05E2 \u05D0\u05D7\u05D3 \u05D1\u05DB\u05DC \u05E9\u05D5\u05E8\u05D4. \u05EA\u05D2\u05D5\u05D1\u05D5\u05EA \u05D5\u05EA\u05D1\u05E0\u05D9\u05D5\u05EA \u05DC\u05E9\u05D9\u05DE\u05D5\u05E9 \u05D7\u05D5\u05D6\u05E8 (\u05D4\u05D4\u05D5\u05E1\u05E4\u05D4 \u05D4\u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA \u05D1\u05D2\u05E8\u05E1\u05D4 \u05E2\u05EA\u05D9\u05D3\u05D9\u05EA).",
+      "Save, search, organize, and revisit posts in a local bookmark library.": "\u05E9\u05DE\u05D9\u05E8\u05EA \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD, \u05D7\u05D9\u05E4\u05D5\u05E9, \u05D0\u05E8\u05D2\u05D5\u05DF \u05D5\u05D7\u05D6\u05E8\u05D4 \u05D0\u05DC\u05D9\u05D4\u05DD \u05D1\u05E1\u05E4\u05E8\u05D9\u05D9\u05EA \u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9\u05EA.",
       "Snapshots stored": "\u05EA\u05E6\u05DC\u05D5\u05DE\u05D9 \u05DE\u05E6\u05D1 \u05E9\u05E0\u05E9\u05DE\u05E8\u05D5",
       "Capture followers from this view": "\u05D0\u05D9\u05E1\u05D5\u05E3 \u05E2\u05D5\u05E7\u05D1\u05D9\u05DD \u05DE\u05D4\u05E2\u05DE\u05D5\u05D3 \u05D4\u05D6\u05D4",
       "Walks UserCell rows on the current page. Open a /handle/followers view first.": "\u05E2\u05D5\u05D1\u05E8 \u05E2\u05DC \u05E9\u05D5\u05E8\u05D5\u05EA UserCell \u05D1\u05E2\u05DE\u05D5\u05D3 \u05D4\u05E0\u05D5\u05DB\u05D7\u05D9. \u05E4\u05EA\u05D7 \u05EA\u05D7\u05D9\u05DC\u05D4 \u05E2\u05DE\u05D5\u05D3 \u200E/\u05D7\u05E9\u05D1\u05D5\u05DF/followers\u200E.",
@@ -4158,6 +4285,13 @@ html.av-reduce-motion *::after {
       "Offscreen video left playing": "\u05D5\u05D9\u05D3\u05D0\u05D5 \u05DE\u05D7\u05D5\u05E5 \u05DC\u05DE\u05E1\u05DA \u05DE\u05DE\u05E9\u05D9\u05DA \u05DC\u05E4\u05E2\u05D5\u05DC",
       "Best video quality on": "\u05D4\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8 \u05D4\u05D5\u05E4\u05E2\u05DC\u05D4",
       "Video quality left to X": "\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D5\u05D5\u05D9\u05D3\u05D0\u05D5 \u05E0\u05EA\u05D5\u05E0\u05D4 \u05DC-X",
+      "Bookmark updated.": "\u05D4\u05E1\u05D9\u05DE\u05E0\u05D9\u05D9\u05D4 \u05E2\u05D5\u05D3\u05DB\u05E0\u05D4.",
+      "Could not update bookmark.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E2\u05D3\u05DB\u05DF \u05D0\u05EA \u05D4\u05E1\u05D9\u05DE\u05E0\u05D9\u05D9\u05D4.",
+      "Bookmark removed.": "\u05D4\u05E1\u05D9\u05DE\u05E0\u05D9\u05D9\u05D4 \u05D4\u05D5\u05E1\u05E8\u05D4.",
+      "Bookmark was already removed.": "\u05D4\u05E1\u05D9\u05DE\u05E0\u05D9\u05D9\u05D4 \u05DB\u05D1\u05E8 \u05D4\u05D5\u05E1\u05E8\u05D4.",
+      "Could not remove bookmark.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05D4\u05E1\u05D9\u05E8 \u05D0\u05EA \u05D4\u05E1\u05D9\u05DE\u05E0\u05D9\u05D9\u05D4.",
+      "Bookmarks cleared.": "\u05D4\u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05E0\u05DE\u05D7\u05E7\u05D5.",
+      "Could not clear bookmarks.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05DE\u05D7\u05D5\u05E7 \u05D0\u05EA \u05D4\u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA.",
       "AI button on": "\u05DB\u05E4\u05EA\u05D5\u05E8 \u05D4-AI \u05E4\u05E2\u05D9\u05DC",
       "AI button off": "\u05DB\u05E4\u05EA\u05D5\u05E8 \u05D4-AI \u05DB\u05D1\u05D5\u05D9",
       "Unshorten on": "\u05E4\u05EA\u05D9\u05D7\u05EA \u05E7\u05D9\u05E9\u05D5\u05E8\u05D9\u05DD \u05DE\u05E7\u05D5\u05E6\u05E8\u05D9\u05DD \u05E4\u05E2\u05D9\u05DC\u05D4",
@@ -4228,6 +4362,13 @@ html.av-reduce-motion *::after {
       "Preset applied": "\u05D4\u05E2\u05E8\u05DB\u05D4 \u05D4\u05D5\u05D7\u05DC\u05D4",
       "Preset already applied": "\u05D4\u05E2\u05E8\u05DB\u05D4 \u05DB\u05D1\u05E8 \u05D4\u05D5\u05D7\u05DC\u05D4",
       "Cancel": "\u05D1\u05D9\u05D8\u05D5\u05DC",
+      "Find local bookmarks": "\u05DE\u05E6\u05D9\u05D0\u05EA \u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA",
+      "Search saved posts by text, handle, tags, folder, or ID.": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05DE\u05D5\u05E8\u05D9\u05DD \u05DC\u05E4\u05D9 \u05D8\u05E7\u05E1\u05D8, \u05D9\u05D3\u05D9\u05EA, \u05EA\u05D2\u05D9\u05D5\u05EA, \u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D0\u05D5 \u05DE\u05D6\u05D4\u05D4.",
+      "Search local bookmarks": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D1\u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA",
+      "No local bookmarks match this search.": "\u05D0\u05D9\u05DF \u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA \u05E9\u05EA\u05D5\u05D0\u05DE\u05D5\u05EA \u05DC\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D4\u05D6\u05D4.",
+      "Notes": "\u05D4\u05E2\u05E8\u05D5\u05EA",
+      "Bookmark notes": "\u05D4\u05E2\u05E8\u05D5\u05EA \u05D4\u05E1\u05D9\u05DE\u05E0\u05D9\u05D9\u05D4",
+      "Remove": "\u05D4\u05E1\u05E8\u05D4",
       "This userscript manager does not give Aviary access to the page itself.": "\u05DE\u05E0\u05D4\u05DC \u05D4\u05E1\u05E7\u05E8\u05D9\u05E4\u05D8\u05D9\u05DD \u05D4\u05D6\u05D4 \u05D0\u05D9\u05E0\u05D5 \u05DE\u05E2\u05E0\u05D9\u05E7 \u05DC-Aviary \u05D2\u05D9\u05E9\u05D4 \u05DC\u05D3\u05E3 \u05E2\u05E6\u05DE\u05D5.",
       "This browser did not load Aviary's page script.": "\u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05D4\u05D6\u05D4 \u05DC\u05D0 \u05D8\u05E2\u05DF \u05D0\u05EA \u05E1\u05E7\u05E8\u05D9\u05E4\u05D8 \u05D4\u05D3\u05E3 \u05E9\u05DC Aviary.",
       "Unavailable in this browser.": "\u05DC\u05D0 \u05D6\u05DE\u05D9\u05DF \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF \u05D4\u05D6\u05D4.",
@@ -4270,6 +4411,9 @@ html.av-reduce-motion *::after {
       "Could not save the hidden post. Storage rejected the write.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05D4\u05D9\u05D4 \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D0\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8 \u05D4\u05DE\u05D5\u05E1\u05EA\u05E8. \u05D4\u05D0\u05D7\u05E1\u05D5\u05DF \u05D3\u05D7\u05D4 \u05D0\u05EA \u05D4\u05DB\u05EA\u05D9\u05D1\u05D4.",
       "Undo": "\u05D1\u05D9\u05D8\u05D5\u05DC",
       "Could not restore that post.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05D4\u05D9\u05D4 \u05DC\u05E9\u05D7\u05D6\u05E8 \u05D0\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8 \u05D4\u05D6\u05D4.",
+      "Bookmark failed": "\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05E1\u05D9\u05DE\u05E0\u05D9\u05D9\u05D4 \u05E0\u05DB\u05E9\u05DC\u05D4.",
+      "Save locally": "\u05E9\u05DE\u05D9\u05E8\u05D4 \u05DE\u05E7\u05D5\u05DE\u05D9\u05EA",
+      "Remove local bookmark": "\u05D4\u05E1\u05E8\u05EA \u05E1\u05D9\u05DE\u05E0\u05D9\u05D9\u05D4 \u05DE\u05E7\u05D5\u05DE\u05D9\u05EA",
       "Note": "\u05D4\u05E2\u05E8\u05D4",
       "Unavailable": "\u05DC\u05D0 \u05D6\u05DE\u05D9\u05DF",
       "Saved": "\u05E0\u05E9\u05DE\u05E8",
@@ -4919,6 +5063,7 @@ html.av-reduce-motion *::after {
     let dirtyWhileBusy = false;
     let activeSectionId = "presets";
     let searchQuery = "";
+    let bookmarkQuery = "";
     let lastStatusEnglish = "Saved locally";
     const setOpen = (value) => {
       open = value;
@@ -5226,7 +5371,7 @@ html.av-reduce-motion *::after {
         id: "library",
         title: "Library",
         group: "Data",
-        summary: "Replace short `t.co` redirects with the destination from aria-labels and titles.",
+        summary: "Save, search, organize, and revisit posts in a local bookmark library.",
         icon: "library",
         accent: "rgb(171, 139, 255)",
         build: libraryRows
@@ -6059,6 +6204,118 @@ html.av-reduce-motion *::after {
     };
     const libraryRows = () => {
       const rows = [];
+      if (options.getBookmarkStatus && options.searchBookmarks && options.updateBookmark && options.removeBookmark) {
+        const status2 = options.getBookmarkStatus();
+        rows.push(
+          dataRow(
+            "Local bookmarks",
+            `${status2.total} saved \xB7 ${status2.due} due \xB7 ${status2.tags.length} tags \xB7 ${status2.folders.length} folders`
+          )
+        );
+        const bookmarkRow = el("div", "av-row av-row-stack");
+        const bookmarkCopy = el("span", "av-row-copy");
+        bookmarkCopy.append(
+          el("span", "av-row-label", t("Find local bookmarks")),
+          el("span", "av-row-description", t("Search saved posts by text, handle, tags, folder, or ID."))
+        );
+        const bookmarkInput = document.createElement("input");
+        bookmarkInput.type = "search";
+        bookmarkInput.className = "av-text-input";
+        bookmarkInput.value = bookmarkQuery;
+        bookmarkInput.placeholder = t("Search local bookmarks");
+        bookmarkInput.setAttribute("aria-label", t("Find local bookmarks"));
+        bookmarkInput.spellcheck = false;
+        const bookmarkResults = el("div", "av-search-results");
+        bookmarkResults.setAttribute("role", "list");
+        bookmarkResults.setAttribute("aria-live", "polite");
+        const renderBookmarks = () => {
+          bookmarkResults.replaceChildren();
+          const matches = options.searchBookmarks(bookmarkQuery).slice(0, 30);
+          if (matches.length === 0) {
+            bookmarkResults.append(el("div", "av-row-description", t("No local bookmarks match this search.")));
+            return;
+          }
+          for (const entry of matches) {
+            const item = el("div", "av-search-hit av-bookmark-hit");
+            item.setAttribute("role", "listitem");
+            const head = el("span", "av-row-label", `@${entry.handle ?? "anon"} \xB7 ${entry.tweetId ?? entry.id}`);
+            const body2 = el("span", "av-row-description", entry.text.slice(0, 180) || entry.url || "(no text)");
+            item.append(head, body2);
+            const editor = el("div", "av-bookmark-editor");
+            const tags = bookmarkField("Bookmark tags", entry.tags.join(", "), "Tags, comma-separated");
+            const folder = bookmarkField("Bookmark folder", entry.folder ?? "", "Folder");
+            const reminder = bookmarkField(
+              "Bookmark reminder",
+              toDatetimeLocal(entry.remindAt),
+              "Reminder"
+            );
+            reminder.type = "datetime-local";
+            const notes = document.createElement("textarea");
+            notes.className = "av-textarea av-bookmark-notes";
+            notes.rows = 2;
+            notes.value = entry.notes;
+            notes.placeholder = t("Notes");
+            notes.setAttribute("aria-label", t("Bookmark notes"));
+            editor.append(tags, folder, reminder, notes);
+            const controls = el("div", "av-inline-controls");
+            const save2 = el("button", "av-button av-button-secondary", t("Save"));
+            save2.type = "button";
+            save2.addEventListener("click", () => {
+              save2.disabled = true;
+              void options.updateBookmark(entry.id, {
+                tags: splitBookmarkTags(tags.value),
+                folder: folder.value.trim() || null,
+                remindAt: fromDatetimeLocal(reminder.value),
+                notes: notes.value
+              }).then(() => {
+                setStatus("Bookmark updated.");
+                render();
+              }).catch((error) => {
+                options.onError("Bookmark update failed", error);
+                setStatus("Could not update bookmark.");
+                save2.disabled = false;
+              });
+            });
+            const remove = el("button", "av-button av-button-secondary", t("Remove"));
+            remove.type = "button";
+            remove.addEventListener("click", () => {
+              remove.disabled = true;
+              void options.removeBookmark(entry.id).then((removed) => {
+                setStatus(removed ? "Bookmark removed." : "Bookmark was already removed.");
+                render();
+              }).catch((error) => {
+                options.onError("Bookmark removal failed", error);
+                setStatus("Could not remove bookmark.");
+                remove.disabled = false;
+              });
+            });
+            controls.append(save2, remove);
+            item.append(editor, controls);
+            bookmarkResults.append(item);
+          }
+        };
+        bookmarkInput.addEventListener("input", () => {
+          bookmarkQuery = bookmarkInput.value;
+          renderBookmarks();
+        });
+        renderBookmarks();
+        bookmarkRow.append(bookmarkCopy, bookmarkInput, bookmarkResults);
+        rows.push(bookmarkRow);
+        if (options.clearBookmarks) {
+          rows.push(
+            actionRow("Clear local bookmarks", "Remove every saved local bookmark.", async () => {
+              try {
+                await options.clearBookmarks();
+                setStatus("Bookmarks cleared.");
+                render();
+              } catch (error) {
+                options.onError("Could not clear bookmarks", error);
+                setStatus("Could not clear bookmarks.");
+              }
+            })
+          );
+        }
+      }
       rows.push(
         toggleRow(
           "Show the AI button on posts",
@@ -7126,6 +7383,33 @@ html.av-reduce-motion *::after {
     row.append(textarea, apply);
     return row;
   }
+  function bookmarkField(label, value, placeholder) {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "av-text-input av-bookmark-field";
+    input.value = value;
+    input.placeholder = t(placeholder);
+    input.setAttribute("aria-label", t(label));
+    input.spellcheck = false;
+    return input;
+  }
+  function splitBookmarkTags(value) {
+    return value.split(/[\s,]+/).map((tag) => tag.trim()).filter((tag, index, all) => tag.length > 0 && all.indexOf(tag) === index);
+  }
+  function toDatetimeLocal(value) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return "";
+    const pad = (part) => String(part).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+      date.getHours()
+    )}:${pad(date.getMinutes())}`;
+  }
+  function fromDatetimeLocal(value) {
+    if (value.trim().length === 0) return null;
+    const date = new Date(value);
+    return Number.isFinite(date.getTime()) ? date.toISOString() : null;
+  }
   function surfaceRow(label, description, selected, onChange) {
     const row = el("div", "av-row av-row-stack");
     const copy = el("span", "av-row-copy");
@@ -7787,6 +8071,22 @@ input:focus-visible {
   border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 70%, transparent);
   border-radius: 8px;
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 70%, transparent);
+}
+
+.av-bookmark-editor {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.av-bookmark-editor .av-bookmark-notes {
+  grid-column: 1 / -1;
+  min-height: 54px;
+}
+
+.av-bookmark-hit > .av-inline-controls {
+  margin-top: 2px;
 }
 
 .av-textarea:focus-visible {
@@ -8744,7 +9044,7 @@ input[type="checkbox"] {
         }
       }
       const displayName = readDisplayName(article);
-      const permalink = readPermalink(article, tweet.handle, tweet.tweetId);
+      const permalink2 = readPermalink(article, tweet.handle, tweet.tweetId);
       const poll = readPoll(article);
       const quote = readQuote(article);
       const articleSummary = readArticle(article);
@@ -8757,7 +9057,7 @@ input[type="checkbox"] {
         capturedAt: now2,
         surface,
         media,
-        permalink
+        permalink: permalink2
       };
       if (poll) record.poll = poll;
       if (quote) record.quote = quote;
@@ -9345,7 +9645,7 @@ input[type="checkbox"] {
         return href ? `<li><a href="${escapeHtml(href)}" rel="noopener noreferrer">${escapeHtml(entry.kind)}</a></li>` : `<li>${escapeHtml(entry.kind)}</li>`;
       }).join("");
       const permalinkHref = record.permalink ? safeHref(record.permalink) : "";
-      const permalink = permalinkHref ? `<a href="${escapeHtml(permalinkHref)}" rel="noopener noreferrer">${escapeHtml(permalinkHref)}</a>` : "";
+      const permalink2 = permalinkHref ? `<a href="${escapeHtml(permalinkHref)}" rel="noopener noreferrer">${escapeHtml(permalinkHref)}</a>` : "";
       return `<article class="record">
   <header>
     <strong>${escapeHtml(record.displayName ?? record.handle ?? "Unknown")}</strong>
@@ -9354,7 +9654,7 @@ input[type="checkbox"] {
   </header>
   <p>${escapeHtml(record.text).replace(/\n/g, "<br>")}</p>
   <ul>${media}</ul>
-  <footer>${permalink}</footer>
+  <footer>${permalink2}</footer>
 </article>`;
     }).join("\n");
     const html = `<!doctype html>
@@ -9388,12 +9688,12 @@ ${rows}
       const media = record.media.length === 0 ? "" : `
 
 ${record.media.map((entry) => `- [${entry.kind}](${entry.url})`).join("\n")}`;
-      const permalink = record.permalink ? `
+      const permalink2 = record.permalink ? `
 
 ${record.permalink}` : "";
       return `${header}
 
-${body}${media}${permalink}`;
+${body}${media}${permalink2}`;
     });
     const md = `# Aviary export
 
@@ -9651,9 +9951,9 @@ ${sections.join("\n\n---\n\n")}
   function toPlainMarkdown(records) {
     const lines = records.map((record) => {
       const handle = record.handle ? `@${record.handle}` : "(unknown)";
-      const permalink = record.permalink ? ` \u2014 [link](${record.permalink})` : "";
+      const permalink2 = record.permalink ? ` \u2014 [link](${record.permalink})` : "";
       const body = record.text.split("\n").map((line) => `> ${line}`).join("\n");
-      return `### ${record.displayName ?? handle} (${handle})${permalink}
+      return `### ${record.displayName ?? handle} (${handle})${permalink2}
 
 ${body}`;
     });
@@ -13328,6 +13628,448 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
 }
 `;
 
+  // src/features/library/bookmarks.ts
+  var BOOKMARKS_KEY = "aviary.library.bookmarks.v1";
+  var BOOKMARKS_LIMIT = 5e3;
+  function emptyState2() {
+    return { entries: [] };
+  }
+  var BookmarkStore = class {
+    #storage;
+    #limit;
+    #state = emptyState2();
+    #loaded = false;
+    /**
+     * Monotonic within the session. The id used to end in `entries.length`, which is pinned to the
+     * limit once the store is trimming -- so two bookmarks saved in the same millisecond got the
+     * same id, and `remove()` filters by id, which would have deleted both.
+     */
+    #sequence = 0;
+    constructor(storage, limit = BOOKMARKS_LIMIT) {
+      this.#storage = storage;
+      this.#limit = Math.max(64, limit);
+    }
+    async load() {
+      if (this.#loaded) return;
+      const stored = await this.#storage.get(BOOKMARKS_KEY, emptyState2());
+      const entries = Array.isArray(stored?.entries) ? stored.entries : [];
+      this.#state = {
+        entries: entries.filter(isBookmark).slice(-this.#limit).map(normalizeBookmark)
+      };
+      this.#loaded = true;
+    }
+    async upsert(input) {
+      await this.load();
+      const now2 = (/* @__PURE__ */ new Date()).toISOString();
+      const tweetId = normalizeId(input.tweetId);
+      const existing = tweetId ? this.#state.entries.find((entry2) => entry2.tweetId === tweetId) : void 0;
+      if (existing) {
+        applyInput(existing, input);
+        existing.updatedAt = now2;
+        await this.#persist();
+        return existing;
+      }
+      const entry = {
+        id: `bm-${Date.now()}-${this.#sequence += 1}`,
+        tweetId,
+        handle: normalizeHandle4(input.handle),
+        text: normalizeText(input.text),
+        url: normalizeUrl(input.url),
+        tags: dedupeTags(input.tags ?? []),
+        folder: normalizeFolder(input.folder),
+        remindAt: normalizeReminder(input.remindAt),
+        notes: normalizeNotes(input.notes),
+        capturedAt: now2,
+        updatedAt: now2
+      };
+      this.#state.entries.push(entry);
+      while (this.#state.entries.length > this.#limit) {
+        this.#state.entries.shift();
+      }
+      await this.#persist();
+      return entry;
+    }
+    async update(id, input) {
+      await this.load();
+      const entry = this.#state.entries.find((candidate) => candidate.id === id);
+      if (!entry) {
+        return null;
+      }
+      applyInput(entry, input);
+      entry.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+      await this.#persist();
+      return entry;
+    }
+    async remove(id) {
+      await this.load();
+      this.#state.entries = this.#state.entries.filter((entry) => entry.id !== id);
+      await this.#persist();
+    }
+    list(filter) {
+      return this.#state.entries.filter((entry) => {
+        if (filter?.tag && !entry.tags.includes(filter.tag.toLowerCase())) return false;
+        if (filter?.folder !== void 0 && entry.folder !== filter.folder) return false;
+        return true;
+      }).map(cloneBookmark);
+    }
+    get(id) {
+      const entry = this.#state.entries.find((candidate) => candidate.id === id);
+      return entry ? cloneBookmark(entry) : null;
+    }
+    findByTweetId(tweetId) {
+      const entry = this.#state.entries.find((candidate) => candidate.tweetId === tweetId);
+      return entry ? cloneBookmark(entry) : null;
+    }
+    size() {
+      return this.#state.entries.length;
+    }
+    tags() {
+      const set = /* @__PURE__ */ new Set();
+      for (const entry of this.#state.entries) {
+        for (const tag of entry.tags) set.add(tag);
+      }
+      return [...set].sort();
+    }
+    folders() {
+      const set = /* @__PURE__ */ new Set();
+      for (const entry of this.#state.entries) {
+        if (entry.folder) set.add(entry.folder);
+      }
+      return [...set].sort();
+    }
+    dueReminders(at = /* @__PURE__ */ new Date()) {
+      return this.#state.entries.filter((entry) => {
+        if (!entry.remindAt) return false;
+        return Date.parse(entry.remindAt) <= at.getTime();
+      }).map(cloneBookmark);
+    }
+    async clear() {
+      this.#state = { entries: [] };
+      this.#loaded = true;
+      await this.#persist();
+    }
+    async #persist() {
+      try {
+        await this.#storage.set(BOOKMARKS_KEY, this.#state);
+      } catch {
+      }
+    }
+  };
+  function dedupeTags(input) {
+    const set = /* @__PURE__ */ new Set();
+    for (const tag of input) {
+      if (typeof tag !== "string") continue;
+      const cleaned = tag.replace(/^#/, "").trim().toLowerCase().slice(0, 32);
+      if (/^[a-z0-9_-]{1,32}$/.test(cleaned)) {
+        set.add(cleaned);
+      }
+    }
+    return [...set].sort();
+  }
+  function isBookmark(value) {
+    if (typeof value !== "object" || value === null) return false;
+    const candidate = value;
+    return typeof candidate.id === "string" && typeof candidate.capturedAt === "string";
+  }
+  function normalizeBookmark(entry) {
+    return {
+      ...entry,
+      tweetId: normalizeId(entry.tweetId),
+      handle: normalizeHandle4(entry.handle),
+      text: normalizeText(entry.text),
+      url: normalizeUrl(entry.url),
+      tags: dedupeTags(Array.isArray(entry.tags) ? entry.tags : []),
+      folder: normalizeFolder(entry.folder),
+      remindAt: normalizeReminder(entry.remindAt),
+      notes: normalizeNotes(entry.notes)
+    };
+  }
+  function applyInput(entry, input) {
+    if ("tweetId" in input) entry.tweetId = normalizeId(input.tweetId);
+    if ("handle" in input) entry.handle = normalizeHandle4(input.handle);
+    if ("text" in input) entry.text = normalizeText(input.text);
+    if ("url" in input) entry.url = normalizeUrl(input.url);
+    if ("tags" in input) entry.tags = dedupeTags(input.tags ?? []);
+    if ("folder" in input) entry.folder = normalizeFolder(input.folder);
+    if ("remindAt" in input) entry.remindAt = normalizeReminder(input.remindAt);
+    if ("notes" in input) entry.notes = normalizeNotes(input.notes);
+  }
+  function normalizeId(value) {
+    const cleaned = typeof value === "string" ? value.trim() : "";
+    return cleaned.length > 0 ? cleaned.slice(0, 64) : null;
+  }
+  function normalizeHandle4(value) {
+    const cleaned = typeof value === "string" ? value.replace(/^@/, "").trim().toLowerCase() : "";
+    return /^[a-z0-9_]{1,15}$/.test(cleaned) ? cleaned : null;
+  }
+  function normalizeText(value) {
+    return typeof value === "string" ? value.trim().slice(0, 2e4) : "";
+  }
+  function normalizeUrl(value) {
+    if (typeof value !== "string" || value.trim().length === 0) return null;
+    try {
+      const url = new URL(value, "https://x.com");
+      return /^https?:$/i.test(url.protocol) ? url.href : null;
+    } catch {
+      return null;
+    }
+  }
+  function normalizeFolder(value) {
+    const cleaned = typeof value === "string" ? value.trim().slice(0, 64) : "";
+    return cleaned.length > 0 ? cleaned : null;
+  }
+  function normalizeReminder(value) {
+    if (typeof value !== "string" || value.trim().length === 0) return null;
+    const timestamp = Date.parse(value);
+    return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
+  }
+  function normalizeNotes(value) {
+    return typeof value === "string" ? value.trim().slice(0, 1e3) : "";
+  }
+  function cloneBookmark(entry) {
+    return { ...entry, tags: [...entry.tags] };
+  }
+
+  // src/features/library/bookmarks-feature.ts
+  var STYLE_ID5 = "av-local-bookmarks";
+  var BUTTON_ATTR3 = "data-av-local-bookmark";
+  var ARTICLE_ATTR2 = "data-av-local-bookmark-processed";
+  var store3;
+  var bookmarksFeature = {
+    id: "library.bookmarks",
+    title: "Local bookmarks",
+    category: "core",
+    defaultEnabled: true,
+    async init(ctx) {
+      store3 = new BookmarkStore(ctx.storage);
+      await store3.load();
+      ensureStyle3();
+      scan2(ctx, document);
+      ctx.diagnostics.info("Local bookmarks initialized", { count: store3.size() });
+    },
+    apply(ctx, root, addedNodes) {
+      ensureStyle3();
+      if (!addedNodes || addedNodes.length === 0) {
+        scan2(ctx, root);
+        return;
+      }
+      for (const node of addedNodes) {
+        scan2(ctx, node);
+      }
+    },
+    destroy(ctx) {
+      document.getElementById(STYLE_ID5)?.remove();
+      for (const article of Array.from(document.querySelectorAll(`[${ARTICLE_ATTR2}]`))) {
+        article.removeAttribute(ARTICLE_ATTR2);
+      }
+      for (const button2 of Array.from(document.querySelectorAll(`[${BUTTON_ATTR3}]`))) {
+        button2.remove();
+      }
+      store3 = void 0;
+      ctx.diagnostics.info("Local bookmarks destroyed");
+    },
+    getStatus() {
+      if (!store3) {
+        return { ok: true, message: "Bookmarks idle" };
+      }
+      const due = store3.dueReminders().length;
+      return {
+        ok: true,
+        message: `${store3.size()} local bookmark${store3.size() === 1 ? "" : "s"}${due > 0 ? ` \xB7 ${due} due` : ""}`
+      };
+    }
+  };
+  function getBookmarks() {
+    return store3?.list() ?? [];
+  }
+  function searchBookmarks(query) {
+    const needle = query.trim().toLocaleLowerCase();
+    return getBookmarks().filter((entry) => {
+      if (!needle) return true;
+      return [
+        entry.tweetId,
+        entry.handle,
+        entry.text,
+        entry.url,
+        entry.folder,
+        entry.notes,
+        ...entry.tags
+      ].filter(Boolean).some((value) => value.toLocaleLowerCase().includes(needle));
+    }).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }
+  function bookmarkStatus() {
+    return {
+      total: store3?.size() ?? 0,
+      due: store3?.dueReminders().length ?? 0,
+      tags: store3?.tags() ?? [],
+      folders: store3?.folders() ?? []
+    };
+  }
+  async function updateBookmark(id, input) {
+    return await store3?.update(id, input) ?? null;
+  }
+  async function removeBookmark(id) {
+    const existing = store3?.get(id);
+    if (!existing || !store3) {
+      return false;
+    }
+    await store3.remove(id);
+    return true;
+  }
+  async function clearBookmarks() {
+    await store3?.clear();
+  }
+  function scan2(ctx, root) {
+    if (!store3) {
+      return;
+    }
+    const articles = root instanceof Element && root.matches('article[data-testid="tweet"]') ? [root] : Array.from(root.querySelectorAll('article[data-testid="tweet"]'));
+    for (const article of articles) {
+      reconcileArticle2(ctx, article);
+    }
+  }
+  function reconcileArticle2(ctx, article) {
+    if (!store3) return;
+    const tweet = extractTweet(article);
+    const buttons = Array.from(article.querySelectorAll(`[${BUTTON_ATTR3}]`));
+    const existing = buttons[0];
+    for (const duplicate of buttons.slice(1)) {
+      duplicate.remove();
+    }
+    if (!tweet.tweetId) {
+      existing?.remove();
+      article.removeAttribute(ARTICLE_ATTR2);
+      return;
+    }
+    const anchor = findActionAnchor(article);
+    if (!anchor) {
+      existing?.remove();
+      article.removeAttribute(ARTICLE_ATTR2);
+      return;
+    }
+    const saved = store3.findByTweetId(tweet.tweetId);
+    const button2 = existing ?? buildButton2(ctx, article);
+    if (!existing) {
+      anchor.append(button2);
+    }
+    updateButton(button2, Boolean(saved), ctx);
+    article.setAttribute(ARTICLE_ATTR2, "1");
+  }
+  function findActionAnchor(article) {
+    return article.querySelector('[role="group"][aria-label="Post actions"]') ?? article.querySelector('[role="group"][aria-label*="Post actions" i]') ?? article.querySelector('[role="group"]');
+  }
+  function buildButton2(ctx, article) {
+    const button2 = document.createElement("button");
+    button2.type = "button";
+    button2.className = "av-bookmark-button";
+    button2.setAttribute(BUTTON_ATTR3, "1");
+    button2.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      void toggleBookmark(ctx, article, button2);
+    });
+    return button2;
+  }
+  async function toggleBookmark(ctx, article, button2) {
+    if (!store3) return;
+    const tweet = extractTweet(article);
+    if (!tweet.tweetId) return;
+    button2.disabled = true;
+    try {
+      const existing = store3.findByTweetId(tweet.tweetId);
+      if (existing) {
+        await store3.remove(existing.id);
+        void ctx.auditLog.record("bookmark.remove", { tweetId: tweet.tweetId });
+        ctx.diagnostics.info("Local bookmark removed", { tweetId: tweet.tweetId });
+      } else {
+        const entry = await store3.upsert({
+          tweetId: tweet.tweetId,
+          handle: tweet.handle,
+          text: tweet.text,
+          url: permalink(article, tweet.tweetId)
+        });
+        void ctx.auditLog.record("bookmark.save", { id: entry.id, tweetId: tweet.tweetId });
+        ctx.diagnostics.info("Local bookmark saved", { tweetId: tweet.tweetId });
+      }
+      reconcileArticle2(ctx, article);
+      ctx.requestApply();
+    } catch (error) {
+      ctx.diagnostics.error("Local bookmark action failed", {
+        message: error instanceof Error ? error.message : String(error)
+      });
+      button2.classList.add("is-error");
+      button2.textContent = ft(ctx, "Bookmark failed");
+    } finally {
+      button2.disabled = false;
+    }
+  }
+  function updateButton(button2, saved, ctx) {
+    button2.dataset.state = saved ? "saved" : "empty";
+    button2.textContent = ft(ctx, saved ? "Saved locally" : "Save locally");
+    button2.setAttribute("aria-label", ft(ctx, saved ? "Remove local bookmark" : "Save locally"));
+    button2.title = button2.getAttribute("aria-label") ?? "";
+    button2.classList.toggle("is-saved", saved);
+    button2.classList.remove("is-error");
+  }
+  function permalink(article, tweetId) {
+    const link = article.querySelector('a[href*="/status/"]');
+    if (link?.href && /^https?:/i.test(link.href)) {
+      return link.href;
+    }
+    const rawHref = link?.getAttribute("href") ?? "";
+    const handle = /^\/([A-Za-z0-9_]{1,15})\/status\//.exec(rawHref)?.[1];
+    if (handle) {
+      return `https://x.com/${handle}/status/${tweetId}`;
+    }
+    const profileHref = article.querySelector('a[href^="/"]')?.href;
+    if (profileHref) {
+      try {
+        const url = new URL(profileHref);
+        return `${url.origin}/i/status/${tweetId}`;
+      } catch {
+      }
+    }
+    return `https://x.com/i/status/${tweetId}`;
+  }
+  function ensureStyle3() {
+    if (document.getElementById(STYLE_ID5)) return;
+    const style = document.createElement("style");
+    style.id = STYLE_ID5;
+    style.textContent = BOOKMARK_CSS;
+    (document.head ?? document.documentElement).append(style);
+  }
+  var BOOKMARK_CSS = `
+[${BUTTON_ATTR3}] {
+  min-width: 0;
+  min-height: 24px;
+  margin-left: 4px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--av-muted, rgb(113, 118, 123));
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+[${BUTTON_ATTR3}]:hover,
+[${BUTTON_ATTR3}]:focus-visible {
+  border-color: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 65%, transparent);
+  color: var(--av-accent, rgb(29, 155, 240));
+}
+
+[${BUTTON_ATTR3}].is-saved {
+  color: var(--av-accent, rgb(29, 155, 240));
+}
+
+[${BUTTON_ATTR3}].is-error {
+  color: rgb(220, 110, 110);
+}
+`;
+
   // src/features/core/settings-migration.ts
   var SETTINGS_EXPORT_VERSION = 1;
   var REDACTED_SECRET = "__aviary_redacted__";
@@ -13458,10 +14200,10 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           await getMediaHistory()?.clear();
         },
         getExportStatus() {
-          const store3 = getCheckpointStore();
+          const store4 = getCheckpointStore();
           const queries = getDiscoveredQueries();
           return {
-            jobCount: store3?.list().length ?? 0,
+            jobCount: store4?.list().length ?? 0,
             knownQueries: queries ? Object.keys(queries.queries).length : 0
           };
         },
@@ -13581,6 +14323,33 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           await clearUserNotes();
           ctx.requestApply();
         },
+        getBookmarkStatus() {
+          return bookmarkStatus();
+        },
+        searchBookmarks(query) {
+          return searchBookmarks(query);
+        },
+        async updateBookmark(id, input) {
+          const entry = await updateBookmark(id, input);
+          if (entry) {
+            void ctx.auditLog.record("bookmark.update", { id: entry.id, tweetId: entry.tweetId });
+            ctx.requestApply();
+          }
+          return entry;
+        },
+        async removeBookmark(id) {
+          const removed = await removeBookmark(id);
+          if (removed) {
+            void ctx.auditLog.record("bookmark.remove", { id });
+            ctx.requestApply();
+          }
+          return removed;
+        },
+        async clearBookmarks() {
+          await clearBookmarks();
+          void ctx.auditLog.record("bookmark.clear");
+          ctx.requestApply();
+        },
         async captureSnapshot(kind) {
           const handle = inferProfileHandle(ctx.route.path) ?? "self";
           const result = await captureSnapshotFromDom(ctx, kind, handle);
@@ -13588,8 +14357,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           return { count: result.totalAccounts, handle: result.entry.handle };
         },
         getSnapshotStatus() {
-          const store3 = getSnapshotStore();
-          const entries = store3?.list() ?? [];
+          const store4 = getSnapshotStore();
+          const entries = store4?.list() ?? [];
           const latest = entries[entries.length - 1];
           return {
             total: entries.length,
@@ -13614,12 +14383,12 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           const buffer = new Uint8Array(await file.arrayBuffer());
           const result = await importOfficialArchive(buffer, "archive");
           if (result.records.length > 0) {
-            const store3 = getCheckpointStore();
-            if (store3) {
+            const store4 = getCheckpointStore();
+            if (store4) {
               const jobId = `archive-${Date.now()}`;
-              await store3.start(jobId, "archive", ["json"], false);
-              await store3.append(jobId, result.records);
-              await store3.finish(jobId);
+              await store4.start(jobId, "archive", ["json"], false);
+              await store4.append(jobId, result.records);
+              await store4.finish(jobId);
             }
             rebuildSearchIndex();
             void ctx.auditLog.record("settings.import", {
@@ -13684,8 +14453,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         },
         async enqueueCleanupReview() {
           rebuildSearchIndex();
-          const store3 = getCheckpointStore();
-          const records = collectAllRecords(store3);
+          const store4 = getCheckpointStore();
+          const records = collectAllRecords(store4);
           const preview = previewCleanup(records, {
             whitelistHandles: ctx.settings.filter.whitelist
           });
@@ -13772,8 +14541,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
             await semanticIndex.load();
           }
           rebuildSearchIndex();
-          const store3 = getCheckpointStore();
-          const records = collectAllRecords(store3);
+          const store4 = getCheckpointStore();
+          const records = collectAllRecords(store4);
           const result = await semanticIndex.embedAndIndex(
             ctx.settings.integrations.semanticSearch,
             records
@@ -13852,8 +14621,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         },
         async downloadWarc() {
           rebuildSearchIndex();
-          const store3 = getCheckpointStore();
-          const records = collectAllRecords(store3);
+          const store4 = getCheckpointStore();
+          const records = collectAllRecords(store4);
           const artifact = buildWarcArchive(records);
           downloadBlob(artifact.data, artifact.filename, artifact.contentType);
           void ctx.auditLog.record("export.complete", { format: "warc", records: records.length });
@@ -13861,8 +14630,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         },
         async exportToTarget(target) {
           rebuildSearchIndex();
-          const store3 = getCheckpointStore();
-          const records = collectAllRecords(store3);
+          const store4 = getCheckpointStore();
+          const records = collectAllRecords(store4);
           const rendered = renderForExternalTarget(target, records);
           if (rendered.payload !== void 0) {
             await writeClipboard(rendered.payload);
@@ -13878,8 +14647,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         },
         async downloadReport() {
           rebuildSearchIndex();
-          const store3 = getCheckpointStore();
-          const records = collectAllRecords(store3);
+          const store4 = getCheckpointStore();
+          const records = collectAllRecords(store4);
           const cleanup = previewCleanup(records, {
             whitelistHandles: ctx.settings.filter.whitelist
           });
@@ -13941,23 +14710,23 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     const match = /^\/([A-Za-z0-9_]{1,15})(?:\/(?:followers|following|verified_followers))?/.exec(path);
     return match?.[1]?.toLowerCase() ?? null;
   }
-  function countStoredRecords(store3) {
-    if (!store3) return 0;
+  function countStoredRecords(store4) {
+    if (!store4) return 0;
     let total = 0;
-    for (const job of store3.list()) {
-      total += store3.records(job.jobId).length;
+    for (const job of store4.list()) {
+      total += store4.records(job.jobId).length;
     }
     return total;
   }
   function rebuildSearchIndex() {
-    const store3 = getCheckpointStore();
-    searchIndex.rebuild(collectAllRecords(store3));
+    const store4 = getCheckpointStore();
+    searchIndex.rebuild(collectAllRecords(store4));
   }
-  function collectAllRecords(store3) {
-    if (!store3) return [];
+  function collectAllRecords(store4) {
+    if (!store4) return [];
     const all = [];
-    for (const job of store3.list()) {
-      all.push(...store3.records(job.jobId));
+    for (const job of store4.list()) {
+      all.push(...store4.records(job.jobId));
     }
     return all;
   }
@@ -14170,7 +14939,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
     const whitelist = /* @__PURE__ */ new Set();
     for (const handle of input.whitelist) {
-      const normalized = normalizeHandle4(handle);
+      const normalized = normalizeHandle5(handle);
       if (normalized) {
         whitelist.add(normalized);
       }
@@ -14237,12 +15006,12 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       const match = /^\/([A-Za-z0-9_]{1,15})(?:[/?#]|$)/.exec(href);
       const candidate = match?.[1];
       if (candidate) {
-        return normalizeHandle4(candidate);
+        return normalizeHandle5(candidate);
       }
     }
     return null;
   }
-  function normalizeHandle4(value) {
+  function normalizeHandle5(value) {
     const cleaned = value.replace(/^@/, "").trim().toLowerCase();
     return /^[a-z0-9_]{1,15}$/.test(cleaned) ? cleaned : null;
   }
@@ -14278,7 +15047,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
 
   // src/features/filtering/filter-engine.ts
-  var STYLE_ID5 = "av-filter-engine";
+  var STYLE_ID6 = "av-filter-engine";
   var ARTICLE_SELECTOR2 = 'article[data-testid="tweet"]';
   var PROCESSED_ATTR2 = "data-av-filter-processed";
   var RESULT_ATTR = "data-av-filter-result";
@@ -14316,7 +15085,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       compiled = void 0;
       compiledSignature = "";
       generation = 0;
-      document.getElementById(STYLE_ID5)?.remove();
+      document.getElementById(STYLE_ID6)?.remove();
       document.documentElement.classList.remove("av-filter-enabled");
       for (const article of Array.from(
         document.querySelectorAll(`[${PROCESSED_ATTR2}]`)
@@ -14412,11 +15181,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     };
   }
   function ensureFilterStyle() {
-    if (document.getElementById(STYLE_ID5)) {
+    if (document.getElementById(STYLE_ID6)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID5;
+    style.id = STYLE_ID6;
     style.textContent = FILTER_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -14439,7 +15208,7 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
 `;
 
   // src/features/layout/declutter.ts
-  var STYLE_ID6 = "av-layout-declutter";
+  var STYLE_ID7 = "av-layout-declutter";
   var COMPOSER_SELECTOR = [
     '[data-testid^="tweetTextarea_"]',
     '[data-testid="toolBar"]',
@@ -14463,7 +15232,7 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
       applyLayoutClasses(ctx);
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID6)?.remove();
+      document.getElementById(STYLE_ID7)?.remove();
       unbindWriterListeners();
       document.documentElement.classList.remove(
         "av-hide-right-sidebar",
@@ -14547,11 +15316,11 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
     document.documentElement.classList.remove("av-writing");
   }
   function ensureLayoutStyle() {
-    if (document.getElementById(STYLE_ID6)) {
+    if (document.getElementById(STYLE_ID7)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID6;
+    style.id = STYLE_ID7;
     style.textContent = LAYOUT_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -14859,7 +15628,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
 `;
 
   // src/features/ai/command-menu.ts
-  var STYLE_ID7 = "av-ai-command-menu";
+  var STYLE_ID8 = "av-ai-command-menu";
   var TRIGGER_ATTR = "data-av-ai-trigger";
   var PROCESSED_ATTR3 = "data-av-ai-processed";
   var AI_COMMANDS = [
@@ -14905,7 +15674,7 @@ ${text}`
       if (!ctx.settings.ai.commandMenu) {
         return;
       }
-      ensureStyle3();
+      ensureStyle4();
       decorate2(ctx, document);
       ctx.diagnostics.info("AI command menu ready");
     },
@@ -14914,7 +15683,7 @@ ${text}`
         clearDecorations3();
         return;
       }
-      ensureStyle3();
+      ensureStyle4();
       if (!addedNodes || addedNodes.length === 0) {
         decorate2(ctx, root);
         return;
@@ -14934,7 +15703,7 @@ ${text}`
   function clearDecorations3() {
     closeOpenMenu();
     removeFeatureToast();
-    document.getElementById(STYLE_ID7)?.remove();
+    document.getElementById(STYLE_ID8)?.remove();
     for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR3}]`))) {
       article.removeAttribute(PROCESSED_ATTR3);
     }
@@ -15089,12 +15858,12 @@ ${text}`
     }
     throw new Error("Clipboard API unavailable");
   }
-  function ensureStyle3() {
-    if (document.getElementById(STYLE_ID7)) {
+  function ensureStyle4() {
+    if (document.getElementById(STYLE_ID8)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID7;
+    style.id = STYLE_ID8;
     style.textContent = AI_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -15158,7 +15927,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 `;
 
   // src/features/composer/composer-snippets.ts
-  var STYLE_ID8 = "av-composer-snippets";
+  var STYLE_ID9 = "av-composer-snippets";
   var TOOLBAR_ATTR = "data-av-composer-mounted";
   var PALETTE_ATTR = "data-av-snippet-palette";
   var composerSnippetsFeature = {
@@ -15210,7 +15979,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   function clearDecorations4() {
     closePalettes();
     removeFeatureToast();
-    document.getElementById(STYLE_ID8)?.remove();
+    document.getElementById(STYLE_ID9)?.remove();
     for (const toolbar of Array.from(document.querySelectorAll(`[${TOOLBAR_ATTR}]`))) {
       toolbar.removeAttribute(TOOLBAR_ATTR);
     }
@@ -15339,11 +16108,11 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     popover.style.maxWidth = "320px";
   }
   function ensureComposerStyle() {
-    if (document.getElementById(STYLE_ID8)) {
+    if (document.getElementById(STYLE_ID9)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID8;
+    style.id = STYLE_ID9;
     style.textContent = COMPOSER_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -15403,7 +16172,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 `;
 
   // src/features/core/i18n-feature.ts
-  var STYLE_ID9 = "av-i18n";
+  var STYLE_ID10 = "av-i18n";
   var i18nFeature = {
     id: "core.i18n",
     title: "Internationalization",
@@ -15419,7 +16188,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       applyLocaleClasses(ctx);
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID9)?.remove();
+      document.getElementById(STYLE_ID10)?.remove();
       const root = document.documentElement;
       root.classList.remove("av-rtl", "av-ltr");
       delete root.dataset.avLocale;
@@ -15434,11 +16203,11 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     root.classList.toggle("av-ltr", direction === "ltr");
   }
   function ensureI18nStyle() {
-    if (document.getElementById(STYLE_ID9)) {
+    if (document.getElementById(STYLE_ID10)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID9;
+    style.id = STYLE_ID10;
     style.textContent = I18N_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -15471,7 +16240,7 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
 `;
 
   // src/features/core/mobile-touch.ts
-  var STYLE_ID10 = "av-mobile-touch";
+  var STYLE_ID11 = "av-mobile-touch";
   var mobileTouchFeature = {
     id: "core.mobileTouch",
     title: "Mobile & touch ergonomics",
@@ -15487,7 +16256,7 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
       applyMobileClasses();
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID10)?.remove();
+      document.getElementById(STYLE_ID11)?.remove();
       document.documentElement.classList.remove("av-mobile", "av-touch");
       ctx.diagnostics.info("Mobile/touch destroyed");
     }
@@ -15503,11 +16272,11 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
     root.classList.toggle("av-mobile", narrow);
   }
   function ensureMobileStyle() {
-    if (document.getElementById(STYLE_ID10)) {
+    if (document.getElementById(STYLE_ID11)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID10;
+    style.id = STYLE_ID11;
     style.textContent = MOBILE_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -15610,13 +16379,13 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
   }
   async function persistPayload(ctx, url, operationName, body) {
-    const store3 = getCheckpointStore();
-    if (!store3) return;
+    const store4 = getCheckpointStore();
+    if (!store4) return;
     const jobId = `capture-${operationName}`;
-    if (store3.list().every((entry) => entry.jobId !== jobId)) {
-      await store3.start(jobId, "capture", ["json"], true);
+    if (store4.list().every((entry) => entry.jobId !== jobId)) {
+      await store4.start(jobId, "capture", ["json"], true);
     }
-    await store3.append(jobId, [
+    await store4.append(jobId, [
       {
         tweetId: null,
         handle: null,
@@ -15665,7 +16434,7 @@ html.av-mobile [data-testid="primaryColumn"] {
       if (!ctx.settings.links.cleanShareButtons) {
         return;
       }
-      scan2(document);
+      scan3(document);
       ctx.diagnostics.info("Share link cleaning initialized");
     },
     apply(ctx, root, addedNodes) {
@@ -15674,11 +16443,11 @@ html.av-mobile [data-testid="primaryColumn"] {
         return;
       }
       if (!addedNodes || addedNodes.length === 0) {
-        scan2(root);
+        scan3(root);
         return;
       }
       for (const node of addedNodes) {
-        scan2(node);
+        scan3(node);
       }
     },
     destroy(ctx) {
@@ -15698,7 +16467,7 @@ html.av-mobile [data-testid="primaryColumn"] {
       anchor.removeAttribute(PROCESSED_ATTR4);
     }
   }
-  function scan2(root) {
+  function scan3(root) {
     const anchors = root instanceof HTMLAnchorElement ? [root] : Array.from(root.querySelectorAll("a[href]"));
     for (const anchor of anchors) {
       if (anchor.getAttribute(PROCESSED_ATTR4) === "1") {
@@ -16034,7 +16803,7 @@ html.av-mobile [data-testid="primaryColumn"] {
       if (!ctx.settings.media.inlineOriginalImages) {
         return;
       }
-      scan3(document);
+      scan4(document);
       ctx.diagnostics.info("Original-quality images initialized");
     },
     apply(ctx, root, addedNodes) {
@@ -16043,11 +16812,11 @@ html.av-mobile [data-testid="primaryColumn"] {
         return;
       }
       if (!addedNodes || addedNodes.length === 0) {
-        scan3(root);
+        scan4(root);
         return;
       }
       for (const node of addedNodes) {
-        scan3(node);
+        scan4(node);
       }
     },
     destroy(ctx) {
@@ -16062,7 +16831,7 @@ html.av-mobile [data-testid="primaryColumn"] {
       }
     }
   }
-  function scan3(root) {
+  function scan4(root) {
     const images = root.tagName === "IMG" ? [root] : Array.from(root.querySelectorAll(IMAGE_SELECTOR));
     for (const img of images) {
       if (img.getAttribute(PROCESSED_ATTR6) === "1") {
@@ -16074,7 +16843,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   }
 
   // src/features/library/link-unshorten.ts
-  var STYLE_ID11 = "av-link-unshorten";
+  var STYLE_ID12 = "av-link-unshorten";
   var PROCESSED_ATTR7 = "data-av-link-clean";
   var ORIGINAL_TITLE_PRESENT = "avOriginalTitlePresent";
   var linkUnshortenFeature = {
@@ -16086,28 +16855,28 @@ html.av-mobile [data-testid="primaryColumn"] {
       if (!ctx.settings.links.expandTco) {
         return;
       }
-      ensureStyle4();
-      scan4(document);
+      ensureStyle5();
+      scan5(document);
       ctx.diagnostics.info("Link unshortening initialized");
     },
     apply(ctx, root, addedNodes) {
       if (!ctx.settings.links.expandTco) {
         restoreProcessedLinks2();
-        document.getElementById(STYLE_ID11)?.remove();
+        document.getElementById(STYLE_ID12)?.remove();
         return;
       }
-      ensureStyle4();
+      ensureStyle5();
       if (!addedNodes || addedNodes.length === 0) {
-        scan4(root);
+        scan5(root);
         return;
       }
       for (const node of addedNodes) {
-        scan4(node);
+        scan5(node);
       }
     },
     destroy(ctx) {
       restoreProcessedLinks2();
-      document.getElementById(STYLE_ID11)?.remove();
+      document.getElementById(STYLE_ID12)?.remove();
       ctx.diagnostics.info("Link unshortening destroyed");
     }
   };
@@ -16133,7 +16902,7 @@ html.av-mobile [data-testid="primaryColumn"] {
       link.removeAttribute(PROCESSED_ATTR7);
     }
   }
-  function scan4(root) {
+  function scan5(root) {
     const anchors = root instanceof HTMLAnchorElement ? [root] : Array.from(root.querySelectorAll("a"));
     for (const anchor of anchors) {
       if (anchor.getAttribute(PROCESSED_ATTR7) === "1") {
@@ -16177,12 +16946,12 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
     return null;
   }
-  function ensureStyle4() {
-    if (document.getElementById(STYLE_ID11)) {
+  function ensureStyle5() {
+    if (document.getElementById(STYLE_ID12)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID11;
+    style.id = STYLE_ID12;
     style.textContent = LINK_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -16194,7 +16963,7 @@ a.av-link-clean {
 `;
 
   // src/features/media/media-presentation.ts
-  var STYLE_ID12 = "av-media-presentation";
+  var STYLE_ID13 = "av-media-presentation";
   var mediaPresentationFeature = {
     id: "media.presentation",
     title: "Media presentation",
@@ -16212,7 +16981,7 @@ a.av-link-clean {
       applyPresentationClasses(ctx);
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID12)?.remove();
+      document.getElementById(STYLE_ID13)?.remove();
       const root = document.documentElement;
       for (const className of [
         "av-media-layout-default",
@@ -16236,11 +17005,11 @@ a.av-link-clean {
     root.classList.add(`av-media-layout-${ctx.settings.media.layout}`);
   }
   function ensurePresentationStyle() {
-    if (document.getElementById(STYLE_ID12)) {
+    if (document.getElementById(STYLE_ID13)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID12;
+    style.id = STYLE_ID13;
     style.textContent = PRESENTATION_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -17103,6 +17872,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     registry.register(mediaButtonsFeature);
     registry.register(mediaPresentationFeature);
     registry.register(exportFeature);
+    registry.register(bookmarksFeature);
     registry.register(userNotesFeature);
     registry.register(linkUnshortenFeature);
     registry.register(cleanShareLinksFeature);

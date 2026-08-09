@@ -18,6 +18,7 @@ import { inlineOriginalImagesFeature } from "./features/media/inline-original-im
 import { linkUnshortenFeature } from "./features/library/link-unshorten";
 import { snapshotsFeature } from "./features/library/snapshots-feature";
 import { userNotesFeature } from "./features/library/user-notes";
+import { bookmarksFeature } from "./features/library/bookmarks-feature";
 import { mediaButtonsFeature } from "./features/media/media-buttons";
 import { mediaPresentationFeature } from "./features/media/media-presentation";
 import { FeatureRegistry, type FeatureContext } from "./features/registry";
@@ -112,6 +113,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   registry.register(mediaButtonsFeature);
   registry.register(mediaPresentationFeature);
   registry.register(exportFeature);
+  registry.register(bookmarksFeature);
   registry.register(userNotesFeature);
   registry.register(linkUnshortenFeature);
   registry.register(cleanShareLinksFeature);

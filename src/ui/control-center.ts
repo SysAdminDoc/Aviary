@@ -9,6 +9,7 @@ import type {
 import { FILTER_MEDIA_KEYS, FILTER_SURFACES, isThemeId } from "../platform/settings";
 import { hasTranslation, translateText } from "../platform/i18n";
 import type { RetentionPolicy } from "../features/export/jobs";
+import type { BookmarkInput, BookmarkRecord } from "../features/library/bookmarks";
 
 /**
  * Stamped in by `tools/build.mjs` so a reload shows at a glance which build is running.
@@ -95,6 +96,11 @@ export interface ControlCenterOptions {
   getUserNotes?: () => Record<string, string>;
   setUserNote?: (handle: string, note: string) => Promise<void>;
   clearUserNotes?: () => Promise<void>;
+  getBookmarkStatus?: () => BookmarkStatus;
+  searchBookmarks?: (query: string) => BookmarkRecord[];
+  updateBookmark?: (id: string, input: BookmarkInput) => Promise<BookmarkRecord | null>;
+  removeBookmark?: (id: string) => Promise<boolean>;
+  clearBookmarks?: () => Promise<void>;
   listPresets?: () => Array<{
     id: string;
     label: string;
@@ -162,6 +168,13 @@ export interface HiddenPostsStatus {
   total: number;
   updatedAt: string | null;
   recent: HiddenPostSummary[];
+}
+
+export interface BookmarkStatus {
+  total: number;
+  due: number;
+  tags: string[];
+  folders: string[];
 }
 
 /** One entry in the settings rail: a heading group, a title, and the rows it owns. */
@@ -274,6 +287,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   let activeSectionId = "presets";
   /** Non-empty means the content pane shows matches from every section instead of one. */
   let searchQuery = "";
+  /** Search state for the local bookmark library survives panel refreshes and settings saves. */
+  let bookmarkQuery = "";
   /** English source of whatever the status line shows, so a locale change can re-translate it. */
   let lastStatusEnglish = "Saved locally";
 
@@ -628,7 +643,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       id: "library",
       title: "Library",
       group: "Data",
-      summary: "Replace short `t.co` redirects with the destination from aria-labels and titles.",
+      summary: "Save, search, organize, and revisit posts in a local bookmark library.",
       icon: "library",
       accent: "rgb(171, 139, 255)",
       build: libraryRows
@@ -1539,6 +1554,131 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
   const libraryRows = (): HTMLElement[] => {
     const rows: HTMLElement[] = [];
+
+    if (options.getBookmarkStatus && options.searchBookmarks && options.updateBookmark && options.removeBookmark) {
+      const status = options.getBookmarkStatus();
+      rows.push(
+        dataRow(
+          "Local bookmarks",
+          `${status.total} saved · ${status.due} due · ${status.tags.length} tags · ${status.folders.length} folders`
+        )
+      );
+
+      const bookmarkRow = el("div", "av-row av-row-stack");
+      const bookmarkCopy = el("span", "av-row-copy");
+      bookmarkCopy.append(
+        el("span", "av-row-label", t("Find local bookmarks")),
+        el("span", "av-row-description", t("Search saved posts by text, handle, tags, folder, or ID."))
+      );
+      const bookmarkInput = document.createElement("input");
+      bookmarkInput.type = "search";
+      bookmarkInput.className = "av-text-input";
+      bookmarkInput.value = bookmarkQuery;
+      bookmarkInput.placeholder = t("Search local bookmarks");
+      bookmarkInput.setAttribute("aria-label", t("Find local bookmarks"));
+      bookmarkInput.spellcheck = false;
+      const bookmarkResults = el("div", "av-search-results");
+      bookmarkResults.setAttribute("role", "list");
+      bookmarkResults.setAttribute("aria-live", "polite");
+
+      const renderBookmarks = (): void => {
+        bookmarkResults.replaceChildren();
+        const matches = options.searchBookmarks!(bookmarkQuery).slice(0, 30);
+        if (matches.length === 0) {
+          bookmarkResults.append(el("div", "av-row-description", t("No local bookmarks match this search.")));
+          return;
+        }
+        for (const entry of matches) {
+          const item = el("div", "av-search-hit av-bookmark-hit");
+          item.setAttribute("role", "listitem");
+          const head = el("span", "av-row-label", `@${entry.handle ?? "anon"} · ${entry.tweetId ?? entry.id}`);
+          const body = el("span", "av-row-description", entry.text.slice(0, 180) || entry.url || "(no text)");
+          item.append(head, body);
+
+          const editor = el("div", "av-bookmark-editor");
+          const tags = bookmarkField("Bookmark tags", entry.tags.join(", "), "Tags, comma-separated");
+          const folder = bookmarkField("Bookmark folder", entry.folder ?? "", "Folder");
+          const reminder = bookmarkField(
+            "Bookmark reminder",
+            toDatetimeLocal(entry.remindAt),
+            "Reminder"
+          );
+          reminder.type = "datetime-local";
+          const notes = document.createElement("textarea");
+          notes.className = "av-textarea av-bookmark-notes";
+          notes.rows = 2;
+          notes.value = entry.notes;
+          notes.placeholder = t("Notes");
+          notes.setAttribute("aria-label", t("Bookmark notes"));
+          editor.append(tags, folder, reminder, notes);
+
+          const controls = el("div", "av-inline-controls");
+          const save = el("button", "av-button av-button-secondary", t("Save")) as HTMLButtonElement;
+          save.type = "button";
+          save.addEventListener("click", () => {
+            save.disabled = true;
+            void options
+              .updateBookmark!(entry.id, {
+                tags: splitBookmarkTags(tags.value),
+                folder: folder.value.trim() || null,
+                remindAt: fromDatetimeLocal(reminder.value),
+                notes: notes.value
+              })
+              .then(() => {
+                setStatus("Bookmark updated.");
+                render();
+              })
+              .catch((error: unknown) => {
+                options.onError("Bookmark update failed", error);
+                setStatus("Could not update bookmark.");
+                save.disabled = false;
+              });
+          });
+          const remove = el("button", "av-button av-button-secondary", t("Remove")) as HTMLButtonElement;
+          remove.type = "button";
+          remove.addEventListener("click", () => {
+            remove.disabled = true;
+            void options
+              .removeBookmark!(entry.id)
+              .then((removed) => {
+                setStatus(removed ? "Bookmark removed." : "Bookmark was already removed.");
+                render();
+              })
+              .catch((error: unknown) => {
+                options.onError("Bookmark removal failed", error);
+                setStatus("Could not remove bookmark.");
+                remove.disabled = false;
+              });
+          });
+          controls.append(save, remove);
+          item.append(editor, controls);
+          bookmarkResults.append(item);
+        }
+      };
+
+      bookmarkInput.addEventListener("input", () => {
+        bookmarkQuery = bookmarkInput.value;
+        renderBookmarks();
+      });
+      renderBookmarks();
+      bookmarkRow.append(bookmarkCopy, bookmarkInput, bookmarkResults);
+      rows.push(bookmarkRow);
+
+      if (options.clearBookmarks) {
+        rows.push(
+          actionRow("Clear local bookmarks", "Remove every saved local bookmark.", async () => {
+            try {
+              await options.clearBookmarks!();
+              setStatus("Bookmarks cleared.");
+              render();
+            } catch (error) {
+              options.onError("Could not clear bookmarks", error);
+              setStatus("Could not clear bookmarks.");
+            }
+          })
+        );
+      }
+    }
 
     rows.push(
       toggleRow(
@@ -2839,6 +2979,40 @@ function textareaRow(
   return row;
 }
 
+function bookmarkField(label: string, value: string, placeholder: string): HTMLInputElement {
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "av-text-input av-bookmark-field";
+  input.value = value;
+  input.placeholder = t(placeholder);
+  input.setAttribute("aria-label", t(label));
+  input.spellcheck = false;
+  return input;
+}
+
+function splitBookmarkTags(value: string): string[] {
+  return value
+    .split(/[\s,]+/)
+    .map((tag) => tag.trim())
+    .filter((tag, index, all) => tag.length > 0 && all.indexOf(tag) === index);
+}
+
+function toDatetimeLocal(value: string | null): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  const pad = (part: number): string => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours()
+  )}:${pad(date.getMinutes())}`;
+}
+
+function fromDatetimeLocal(value: string): string | null {
+  if (value.trim().length === 0) return null;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date.toISOString() : null;
+}
+
 function surfaceRow(
   label: string,
   description: string,
@@ -3519,6 +3693,22 @@ input:focus-visible {
   border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 70%, transparent);
   border-radius: 8px;
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 70%, transparent);
+}
+
+.av-bookmark-editor {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.av-bookmark-editor .av-bookmark-notes {
+  grid-column: 1 / -1;
+  min-height: 54px;
+}
+
+.av-bookmark-hit > .av-inline-controls {
+  margin-top: 2px;
 }
 
 .av-textarea:focus-visible {
