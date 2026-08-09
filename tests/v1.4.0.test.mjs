@@ -341,6 +341,11 @@ test("smoke spec scaffold ships with explicit setup instructions", async () => {
   assert.match(source, /page\.route/);
   assert.match(source, /data-av-media-button/);
   assert.match(source, /Selector health/);
+  assert.match(source, /16 page-hook configurations/);
+  assert.match(source, /home\?tab=following/);
+  assert.match(source, /PageHookProbe/);
+  assert.match(source, /selector-degraded/);
+  assert.match(source, /resourceType\(\) === "document"/);
   const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
   assert.equal(pkg.scripts.smoke, "node tests/smoke/aviary.smoke.mjs");
 });

@@ -53,6 +53,8 @@
   bucket immediately while blocked-account and self-repost placeholders remain disabled.
 - The local bookmark library is now a shipped product surface: rendered posts get a reversible
   Save locally control, and Library search can edit tags, folders, reminders, notes, or remove entries.
+- Headed MV3 smoke now exercises every page-hook combination across fresh Home, Following, profile,
+  search, and status fixture navigations, with controlled HLS responses and a degraded-selector route.
 - Original-quality image mutation now upgrades only `pbs.twimg.com/media` tweet photos; avatars,
   emoji, cards, and stale non-media markers are left untouched or restored during reconciliation.
 - Release metadata now stays synchronized across the package, manifests, README, roadmap, changelog,

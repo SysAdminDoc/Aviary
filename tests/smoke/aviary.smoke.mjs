@@ -31,6 +31,8 @@ try {
 }
 
 const fixtureHtml = await readFile(fixturePath, "utf8");
+const fixtureDocumentPaths = new Set(["/home", "/alice_fixture", "/search", "/alice_fixture/status/123456789", "/selector-degraded"]);
+const degradedFixtureHtml = fixtureHtml.replace(/<main data-testid="primaryColumn">[\s\S]*?<\/main>/, "");
 const mseMetadata = JSON.stringify({
   data: {
     home: {
@@ -75,6 +77,17 @@ const mseMetadata = JSON.stringify({
     }
   }
 });
+const masterPlaylist = [
+  "#EXTM3U",
+  "#EXT-X-INDEPENDENT-SEGMENTS",
+  "#EXT-X-STREAM-INF:BANDWIDTH=256000,RESOLUTION=320x180",
+  "/low.m3u8",
+  "#EXT-X-STREAM-INF:BANDWIDTH=832000,RESOLUTION=640x360",
+  "/mid.m3u8",
+  "#EXT-X-STREAM-INF:BANDWIDTH=2176000,RESOLUTION=1280x720",
+  "/high.m3u8",
+  ""
+].join("\n");
 
 const userDataDir = await mkdtemp(path.join(tmpdir(), "aviary-smoke-"));
 let context;
@@ -99,7 +112,7 @@ async function openSection(page, section) {
   await page.waitForTimeout(100);
 }
 
-async function setToggle(page, section, label, checked) {
+async function setToggle(page, section, label, checked, settleMs = 350) {
   await openSection(page, section);
   await page.evaluate(({ label, checked }) => {
     const host = document.querySelector("#av-control-center");
@@ -112,9 +125,129 @@ async function setToggle(page, section, label, checked) {
     }
     if (input.checked !== checked) {
       input.click();
+      input.blur();
     }
   }, { label, checked });
-  await page.waitForTimeout(350);
+  await page.waitForTimeout(settleMs);
+}
+
+const pageHookControls = [
+  { section: "trust", label: "Refuse X's analytics beacons", key: "blockBeacons" },
+  { section: "export", label: "Preserve raw payloads", key: "captureGraphql" },
+  { section: "media", label: "Show download buttons", key: "captureMediaMetadata" },
+  { section: "performance", label: "Always play video at the highest quality", key: "forceVideoQuality" }
+];
+
+async function setPageHookConfiguration(page, config) {
+  for (const control of pageHookControls) {
+    await setToggle(page, control.section, control.label, Boolean(config[control.key]), 180);
+  }
+}
+
+async function navigateSmokeRoute(page, nextPath) {
+  await page.goto(`https://x.com${nextPath}`, { waitUntil: "domcontentloaded", timeout: 60_000 });
+  await page.waitForFunction(() => document.documentElement.dataset.avReady === "true", null, {
+    timeout: 15_000
+  });
+  await page.waitForFunction(
+    () => Boolean(document.querySelector("#av-control-center")?.shadowRoot?.querySelector(".av-launcher")),
+    null,
+    { timeout: 15_000 }
+  );
+  await page.waitForTimeout(120);
+}
+
+async function runPageHookMatrix(page) {
+  const routes = [
+    "/home",
+    "/home?tab=following",
+    "/alice_fixture",
+    "/search?q=aviary",
+    "/alice_fixture/status/123456789"
+  ];
+  const configs = Array.from({ length: 16 }, (_, mask) => ({
+    blockBeacons: Boolean(mask & 1),
+    captureGraphql: Boolean(mask & 2),
+    captureMediaMetadata: Boolean(mask & 4),
+    forceVideoQuality: Boolean(mask & 8)
+  }));
+  const matrixErrors = pageErrors.length;
+
+  for (const [index, config] of configs.entries()) {
+    const beforeErrors = pageErrors.length;
+    await setPageHookConfiguration(page, config);
+    const probe = await page.evaluate(async () => {
+      const telemetry = await fetch("/i/api/1.1/jot/client_event.json", {
+        method: "POST",
+        body: "fixture telemetry"
+      });
+      const graphql = await fetch("/i/api/graphql/fixture/PageHookProbe");
+      const playlist = await fetch("https://video.twimg.com/fixture/master.m3u8");
+      const graphqlBody = await graphql.text();
+      const playlistBody = await playlist.text();
+      const beaconAccepted = navigator.sendBeacon(
+        "/i/api/1.1/jot/client_event.json",
+        "fixture beacon"
+      );
+      return {
+        telemetryStatus: telemetry.status,
+        graphqlStatus: graphql.status,
+        graphqlBody,
+        playlistStatus: playlist.status,
+        playlistBody,
+        beaconAccepted
+      };
+    });
+
+    expect(
+      probe.telemetryStatus === (config.blockBeacons ? 204 : 200),
+      "analytics hook response drifted for config " + JSON.stringify(config)
+    );
+    expect(
+      probe.graphqlStatus === 200 && probe.graphqlBody.includes("\"data\""),
+      "GraphQL probe failed for config " + JSON.stringify(config)
+    );
+    expect(
+      probe.playlistStatus === 200 && probe.playlistBody.includes("/high.m3u8"),
+      "playlist probe failed for config " + JSON.stringify(config)
+    );
+    expect(
+      config.forceVideoQuality
+        ? !probe.playlistBody.includes("/low.m3u8") && !probe.playlistBody.includes("/mid.m3u8")
+        : probe.playlistBody.includes("/low.m3u8") && probe.playlistBody.includes("/mid.m3u8"),
+      "playlist hook response drifted for config " + JSON.stringify(config)
+    );
+    expect(probe.beaconAccepted === true, "beacon probe was not acknowledged");
+
+    await navigateSmokeRoute(page, routes[index % routes.length]);
+    expect(
+      pageErrors.length === beforeErrors,
+      "route/config produced an uncaught page error for " + JSON.stringify(config)
+    );
+  }
+
+  for (let cycle = 0; cycle < 3; cycle += 1) {
+    for (const route of routes) {
+      await navigateSmokeRoute(page, route);
+    }
+  }
+  await setPageHookConfiguration(page, {
+    blockBeacons: false,
+    captureGraphql: false,
+    captureMediaMetadata: false,
+    forceVideoQuality: false
+  });
+  await page.goto("https://x.com/home", { waitUntil: "domcontentloaded", timeout: 60_000 });
+  await page.waitForFunction(() => document.documentElement.dataset.avReady === "true", null, {
+    timeout: 15_000
+  });
+  await page.waitForFunction(
+    () => Boolean(document.querySelector("#av-control-center")?.shadowRoot?.querySelector(".av-launcher")),
+    null,
+    { timeout: 15_000 }
+  );
+  expect(pageErrors.length === matrixErrors, "page-hook matrix added uncaught page errors");
+  console.log("[smoke] 16 page-hook configurations and 3 repeated Home/Following/profile route cycles passed.");
 }
 
 async function selectValue(page, section, label, value) {
@@ -226,10 +359,21 @@ try {
       body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64")
     });
   });
+  await page.route("https://video.twimg.com/**", async (route) => {
+    if (route.request().url().includes(".m3u8")) {
+      await route.fulfill({ status: 200, contentType: "application/vnd.apple.mpegurl", body: masterPlaylist });
+      return;
+    }
+    await route.fulfill({ status: 404, contentType: "text/plain", body: "fixture video route not found" });
+  });
   await page.route("https://x.com/**", async (route) => {
     const url = new URL(route.request().url());
-    if (url.pathname === "/home") {
-      await route.fulfill({ status: 200, contentType: "text/html", body: fixtureHtml });
+    if (url.pathname === "/home" || (route.request().resourceType() === "document" && fixtureDocumentPaths.has(url.pathname))) {
+      await route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: url.pathname === "/selector-degraded" ? degradedFixtureHtml : fixtureHtml
+      });
       return;
     }
     if (url.pathname === "/favicon.ico") {
@@ -238,6 +382,10 @@ try {
     }
     if (url.pathname.startsWith("/i/api/graphql/")) {
       await route.fulfill({ status: 200, contentType: "application/json", body: mseMetadata });
+      return;
+    }
+    if (url.pathname.includes("/jot/")) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
       return;
     }
     if (url.pathname === "/aria2-failure/jsonrpc") {
@@ -275,6 +423,7 @@ try {
   });
   await page.waitForTimeout(250);
   console.log("[smoke] Control Center launcher mounted and opened.");
+  await runPageHookMatrix(page);
 
   // Width tiers must remain distinct after current X's flex item consumes the available row.
   await selectValue(page, "appearance", "Timeline width", "comfortable");
@@ -428,38 +577,12 @@ try {
   await setToggle(page, "trust", "Monitor selector health", true);
   const healthyHealth = await rowText(page, "trust", "Selector health");
   expect(healthyHealth.includes("Healthy"), `selector health did not recover: ${healthyHealth}`);
-
-  await page.evaluate(() => {
-    const primary = document.querySelector('[data-testid="primaryColumn"]');
-    if (!primary) throw new Error("primary fixture anchor missing before degradation probe");
-    primary.remove();
-    const marker = document.createElement("span");
-    marker.dataset.avSmokeMutation = "missing-primary";
-    document.body.append(marker);
-  });
-  await page.waitForFunction(
-    () => [...(document.querySelector("#av-control-center")?.shadowRoot?.querySelectorAll(".av-row") ?? [])]
-      .some((row) => row.querySelector(".av-row-label")?.textContent === "Selector health" && row.textContent?.includes("Degraded")),
-    null,
-    { timeout: 8_000 }
-  );
+  await navigateSmokeRoute(page, "/selector-degraded");
   const degradedHealth = await rowText(page, "trust", "Selector health");
-  await page.evaluate(() => {
-    const shell = document.querySelector('[data-testid="timeline-shell"]');
-    const restored = document.createElement("main");
-    restored.setAttribute("data-testid", "primaryColumn");
-    shell?.prepend(restored);
-    const marker = document.createElement("span");
-    marker.dataset.avSmokeMutation = "restored-primary";
-    document.body.append(marker);
-  });
-  await page.waitForFunction(
-    () => [...(document.querySelector("#av-control-center")?.shadowRoot?.querySelectorAll(".av-row") ?? [])]
-      .some((row) => row.querySelector(".av-row-label")?.textContent === "Selector health" && row.textContent?.includes("Healthy")),
-    null,
-    { timeout: 8_000 }
-  );
+  expect(degradedHealth.includes("Degraded"), `selector health did not degrade: ${degradedHealth}`);
+  await navigateSmokeRoute(page, "/home");
   const recoveredHealth = await rowText(page, "trust", "Selector health");
+  expect(recoveredHealth.includes("Healthy"), `selector health did not recover after navigation: ${recoveredHealth}`);
   console.log(`[smoke] selector health transitions settled: ${JSON.stringify({ disabledHealth, healthyHealth, degradedHealth, recoveredHealth })}`);
 
   expect(pageErrors.length === 0, `uncaught page errors: ${pageErrors.join(" | ")}`);
