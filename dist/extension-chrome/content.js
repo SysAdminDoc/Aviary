@@ -5181,7 +5181,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION = false ? "dev" : "1.15.0";
+  var AVIARY_VERSION = false ? "dev" : "1.16.0";
   var MEDIA_LAYOUT_OPTIONS = [
     ["default", "Default grid"],
     ["stacked", "Stacked"],

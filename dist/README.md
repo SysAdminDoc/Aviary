@@ -1,8 +1,8 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.15.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.16.0-2f81f7)
 
-Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.15.0: a redesigned 13-page Control Center, foundation primitives, fixture-backed selector checks, theme + layout controls, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
+Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.16.0: a redesigned 13-page Control Center, foundation primitives, fixture-backed selector checks, theme + layout controls, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
 
 ## Vanilla by default
 
@@ -209,12 +209,16 @@ The Integrations panel also surfaces a "Recent integration errors" readout that 
 
 ## Roadmap
 
-The working plan is in [ROADMAP.md](ROADMAP.md). v1.15.0 is the current release; the latest batch
+The working plan is in [ROADMAP.md](ROADMAP.md). v1.16.0 is the current release; the latest batch
 adds current-X compatibility coverage, route-aware selector health, live-toggle reconciliation,
 local bookmarks, and scoped original-quality image rewriting. F032/F033 remain blocked until
 authenticated `_decoded/` captures are available.
 
-`npm run smoke` runs the Playwright spec at `tests/smoke/aviary.smoke.mjs`. The CI workflow caches Chromium and runs it inside an isolated Xvfb display. For local use, install the pinned runner and browser:
+`npm run smoke` runs both Playwright lanes: current-X compatibility coverage and a side-effect-free
+externally gated-action flow. Chromium's new headless mode keeps the MV3 service worker and real
+options page loaded without opening a physical browser window; all provider calls go to local
+stubs and all profiles/downloads are temporary. The CI workflow caches Chromium and runs the same
+command in its isolated job. For local use, install the pinned runner and browser:
 
 ```bash
 npm ci
