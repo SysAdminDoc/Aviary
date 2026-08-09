@@ -21,6 +21,7 @@ export interface SelectorHealthTransition {
 }
 
 export interface SelectorHealthSnapshot {
+  enabled: boolean;
   route: string;
   state: "healthy" | "degraded";
   required: number;
@@ -52,6 +53,9 @@ export const selectorHealthFeature: FeatureModule = {
 
   apply(ctx) {
     if (!ctx.settings.diagnostics.selectorHealth) {
+      if (currentSnapshot.enabled) {
+        resetState();
+      }
       return;
     }
 
@@ -136,6 +140,7 @@ function updateSnapshot(ctx: FeatureContext): void {
     lastHealthSignature = signature;
   }
   currentSnapshot = {
+    enabled: true,
     route: ctx.route.surface,
     state,
     required: required.length,
@@ -161,6 +166,7 @@ function resetState(): void {
 
 function emptySnapshot(): SelectorHealthSnapshot {
   return {
+    enabled: false,
     route: "unknown",
     state: "healthy",
     required: 0,
@@ -178,6 +184,7 @@ function emptySnapshot(): SelectorHealthSnapshot {
 
 function snapshotDetails(snapshot: SelectorHealthSnapshot): Record<string, unknown> {
   return {
+    enabled: snapshot.enabled,
     route: snapshot.route,
     state: snapshot.state,
     required: snapshot.required,

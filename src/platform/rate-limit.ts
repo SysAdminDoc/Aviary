@@ -3,11 +3,19 @@ export class TokenBucket {
   #lastRefill: number;
 
   constructor(
-    readonly capacity: number,
-    readonly refillPerSecond: number
+    public capacity: number,
+    public refillPerSecond: number
   ) {
     this.#tokens = capacity;
     this.#lastRefill = Date.now();
+  }
+
+  /** Reconcile a live settings change without discarding tokens already earned. */
+  configure(capacity: number, refillPerSecond: number): void {
+    this.refill();
+    this.capacity = Math.max(1, capacity);
+    this.refillPerSecond = Math.max(0, refillPerSecond);
+    this.#tokens = Math.min(this.#tokens, this.capacity);
   }
 
   tryRemove(tokens = 1): boolean {

@@ -4,6 +4,7 @@ import type {
   FilterMediaKey,
   FilterSurface,
   MediaLayout,
+  RateLimitMode,
   ReduceMotionMode,
 } from "../platform/settings";
 import { FILTER_MEDIA_KEYS, FILTER_SURFACES, isThemeId } from "../platform/settings";
@@ -49,6 +50,8 @@ const FILTER_MEDIA_LABELS: Record<FilterMediaKey, string> = {
   gif: "GIFs"
 };
 
+const HIDE_NAV_ITEM_IDS = new Set(["premium", "home", "explore", "notifications", "messages", "profile", "more"]);
+
 export interface MediaStatus {
   historySize: number;
   completed: number;
@@ -70,6 +73,7 @@ export interface ExportResultSummary {
 }
 
 export interface SelectorHealthStatus {
+  enabled: boolean;
   route: string;
   state: "healthy" | "degraded";
   required: number;
@@ -564,7 +568,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   };
 
   const layoutRows = (): HTMLElement[] => {
-    return [
+    const rows = [
         toggleRow("Hide right sidebar", "Reduce trends, recommendations, and footer noise.", options.settings.layout.hideRightSidebar, async (checked) => {
           options.settings.layout.hideRightSidebar = checked;
           await save("Sidebar preference saved");
@@ -596,6 +600,22 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           }
         )
     ];
+    rows.push(
+      textareaRow(
+        "Hide navigation items",
+        "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.",
+        options.settings.layout.hideNavItems,
+        async (lines) => {
+          options.settings.layout.hideNavItems = [...new Set(
+            lines
+              .map((line) => line.trim().toLowerCase())
+              .filter((line) => HIDE_NAV_ITEM_IDS.has(line))
+          )].slice(0, 24);
+          await save("Navigation visibility saved");
+        }
+      )
+    );
+    return rows;
   };
 
   const trustRows = (): HTMLElement[] => {
@@ -617,6 +637,15 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           async (checked) => {
             options.settings.privacy.blockAnalyticsBeacons = checked;
             await save(checked ? "Analytics beacons refused" : "Analytics beacons allowed");
+          }
+        ),
+        toggleRow(
+          "Monitor selector health",
+          "Check the current X surface for required and fallback anchors. Turn this off when you do not want selector diagnostics.",
+          options.settings.diagnostics.selectorHealth,
+          async (checked) => {
+            options.settings.diagnostics.selectorHealth = checked;
+            await save(checked ? "Selector health monitoring on" : "Selector health monitoring off");
           }
         ),
         ...beaconRows(),
@@ -2251,6 +2280,35 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         }
       )
     );
+    rows.push(
+      integerInputRow(
+        "Concurrent downloads",
+        "Maximum media downloads in flight during a batch (1-6).",
+        options.settings.jobs.concurrentDownloads,
+        async (value) => {
+          options.settings.jobs.concurrentDownloads = Math.max(1, Math.min(6, Math.trunc(value)));
+          await save("Concurrent download limit saved");
+        },
+        { min: 1, max: 6 }
+      )
+    );
+    rows.push(
+      selectRow(
+        "Download pacing",
+        options.settings.jobs.rateLimitMode,
+        [
+          ["conservative", "Conservative"],
+          ["balanced", "Balanced"]
+        ],
+        async (value) => {
+          if (value === "conservative" || value === "balanced") {
+            options.settings.jobs.rateLimitMode = value as RateLimitMode;
+            await save("Download pacing saved");
+          }
+        },
+        "Controls the opening burst and sustained pace of batch media requests."
+      )
+    );
 
     const status = options.getMediaStatus?.();
     if (status) {
@@ -2648,7 +2706,13 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
   const selectorHealthRows = (): HTMLElement[] => {
     const health = options.getSelectorHealth?.();
-    if (!health || health.required === 0) {
+    if (!health) {
+      return [dataRow("Selector health", selectorSummary())];
+    }
+    if (!health.enabled) {
+      return [dataRow("Selector health", "Disabled")];
+    }
+    if (health.required === 0) {
       return [dataRow("Selector health", selectorSummary())];
     }
 
@@ -3055,7 +3119,8 @@ function integerInputRow(
   label: string,
   description: string,
   value: number,
-  onChange: (value: number) => Promise<void>
+  onChange: (value: number) => Promise<void>,
+  bounds: { min?: number; max?: number } = {}
 ): HTMLElement {
   const row = el("div", "av-row av-row-stack");
   const copy = el("span", "av-row-copy");
@@ -3064,7 +3129,10 @@ function integerInputRow(
 
   const input = document.createElement("input");
   input.type = "number";
-  input.min = "0";
+  input.min = String(bounds.min ?? 0);
+  if (bounds.max !== undefined) {
+    input.max = String(bounds.max);
+  }
   input.step = "1";
   input.className = "av-text-input";
   input.value = String(value);

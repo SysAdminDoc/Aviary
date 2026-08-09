@@ -92,6 +92,16 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     settings.jobs.rateLimitMode === "conservative"
       ? new TokenBucket(4, 1)
       : new TokenBucket(8, 4);
+  let appliedRateLimitMode = settings.jobs.rateLimitMode;
+  const reconcileRateLimit = (): void => {
+    if (settings.jobs.rateLimitMode === appliedRateLimitMode) {
+      return;
+    }
+    const conservative = settings.jobs.rateLimitMode === "conservative";
+    limiter.configure(conservative ? 4 : 8, conservative ? 1 : 4);
+    appliedRateLimitMode = settings.jobs.rateLimitMode;
+    diagnostics.info("Rate limit mode reconciled", { mode: appliedRateLimitMode });
+  };
   const registry = new FeatureRegistry();
   const policy = createTrustedHtmlPolicy();
   const auditLog = new AuditLog(
@@ -150,6 +160,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
       diagnostics.info("Settings saved", { key: SETTINGS_KEY });
     },
     requestApply() {
+      reconcileRateLimit();
       void registry.applyAll(context, document);
     }
   };

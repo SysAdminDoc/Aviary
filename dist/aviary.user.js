@@ -323,11 +323,13 @@ html.av-reduce-motion *::after {
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "Mientras el foco est\xE1 en el redactor, aten\xFAa la barra lateral y la cronolog\xEDa detr\xE1s. Todo vuelve en cuanto haces clic fuera.",
       "Open Following instead of For you": "Abrir Siguiendo en lugar de Para ti",
       "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "Selecciona la segunda pesta\xF1a de inicio cada vez que llegas a la cronolog\xEDa. Si vuelves a Para ti, se queda ah\xED hasta que salgas de la p\xE1gina.",
+      "Hide navigation items": "Ocultar elementos de navegaci\xF3n",
+      "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Un ID estable de navegaci\xF3n de X por l\xEDnea: home, explore, notifications, messages, profile, more o premium.",
+      "Save list": "Guardar lista",
       "Enable filters": "Activar filtros",
       "Master switch for keyword, regex, premium, and media filters.": "Interruptor general de los filtros de palabras clave, expresiones regulares, Premium y multimedia.",
       "Keyword rules": "Reglas de palabras clave",
       "One keyword or phrase per line. Case-insensitive substring match.": "Una palabra clave o frase por l\xEDnea. Coincidencia parcial sin distinguir may\xFAsculas.",
-      "Save list": "Guardar lista",
       "Regex rules": "Reglas de expresiones regulares",
       "One pattern per line. Use /pattern/flags or a bare pattern (case-insensitive).": "Un patr\xF3n por l\xEDnea. Usa /patr\xF3n/flags o un patr\xF3n simple (sin distinguir may\xFAsculas).",
       "Whitelist handles": "Cuentas en la lista blanca",
@@ -383,6 +385,12 @@ html.av-reduce-motion *::after {
       "Default grid": "Cuadr\xEDcula predeterminada",
       "Stacked": "Apilado",
       "Strict grid": "Cuadr\xEDcula estricta",
+      "Concurrent downloads": "Descargas simult\xE1neas",
+      "Maximum media downloads in flight during a batch (1-6).": "M\xE1ximo de descargas multimedia simult\xE1neas durante un lote (1-6).",
+      "Download pacing": "Ritmo de descarga",
+      "Controls the opening burst and sustained pace of batch media requests.": "Controla el impulso inicial y el ritmo sostenido de las solicitudes multimedia por lote.",
+      "Conservative": "Conservador",
+      "Balanced": "Equilibrado",
       "Download status": "Estado de las descargas",
       "History entries": "Entradas del historial",
       "Clear download history": "Borrar historial de descargas",
@@ -527,6 +535,8 @@ html.av-reduce-motion *::after {
       "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.": "Bloquea todas las peticiones salientes, incluidas las integraciones que hayas configurado. Activado de forma predeterminada; activar una integraci\xF3n es lo que lo desactiva.",
       "Refuse X's analytics beacons": "Rechazar las balizas de anal\xEDtica de X",
       "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.": "Detiene los avisos de seguimiento que X env\xEDa cuando te desplazas, haces clic o pausas. Solo se rechazan los puntos de anal\xEDtica: el tr\xE1fico del cronograma, los medios y el inicio de sesi\xF3n no se tocan.",
+      "Monitor selector health": "Supervisar el estado de los selectores",
+      "Check the current X surface for required and fallback anchors. Turn this off when you do not want selector diagnostics.": "Comprueba la superficie actual de X en busca de anclas obligatorias y alternativas. Desact\xEDvalo si no quieres diagn\xF3sticos de selectores.",
       "Connected to the page": "Conectado a la p\xE1gina",
       "Page access": "Acceso a la p\xE1gina",
       "Beacons refused": "Balizas rechazadas",
@@ -556,10 +566,13 @@ html.av-reduce-motion *::after {
       "Writer mode off": "Modo escritura desactivado",
       "Following timeline on": "Cronolog\xEDa Siguiendo activada",
       "Following timeline off": "Cronolog\xEDa Siguiendo desactivada",
+      "Navigation visibility saved": "Visibilidad de navegaci\xF3n guardada",
       "Local-only mode on": "Modo solo local activado",
       "Local-only mode off": "Modo solo local desactivado",
       "Analytics beacons refused": "Balizas de anal\xEDtica rechazadas",
       "Analytics beacons allowed": "Balizas de anal\xEDtica permitidas",
+      "Selector health monitoring on": "Supervisi\xF3n del estado de selectores activada",
+      "Selector health monitoring off": "Supervisi\xF3n del estado de selectores desactivada",
       "Could not apply preset.": "No se pudo aplicar el ajuste predefinido.",
       "No UserCell rows found.": "No se encontraron filas UserCell.",
       "Snapshot failed.": "La instant\xE1nea fall\xF3.",
@@ -666,6 +679,8 @@ html.av-reduce-motion *::after {
       "Duplicate history on": "Historial de duplicados activado",
       "Duplicate history off": "Historial de duplicados desactivado",
       "Media layout saved": "Disposici\xF3n multimedia guardada",
+      "Concurrent download limit saved": "L\xEDmite de descargas simult\xE1neas guardado",
+      "Download pacing saved": "Ritmo de descarga guardado",
       "History cleared": "Historial borrado",
       "Could not clear history.": "No se pudo borrar el historial.",
       "Downloading media from this view\u2026": "Descargando el contenido de esta vista\u2026",
@@ -860,11 +875,13 @@ html.av-reduce-motion *::after {
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "Enquanto o foco est\xE1 no editor, esmaece a barra lateral e a linha do tempo atr\xE1s dele. Tudo volta assim que voc\xEA clica fora.",
       "Open Following instead of For you": "Abrir A seguir em vez de Para ti",
       "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "Seleciona o segundo separador do in\xEDcio sempre que chegas \xE0 cronologia. Se voltares a Para ti, fica assim at\xE9 sa\xEDres da p\xE1gina.",
+      "Hide navigation items": "Ocultar itens de navega\xE7\xE3o",
+      "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Um ID de navega\xE7\xE3o est\xE1vel do X por linha: home, explore, notifications, messages, profile, more ou premium.",
+      "Save list": "Salvar lista",
       "Enable filters": "Ativar filtros",
       "Master switch for keyword, regex, premium, and media filters.": "Chave geral dos filtros de palavra-chave, regex, Premium e m\xEDdia.",
       "Keyword rules": "Regras de palavras-chave",
       "One keyword or phrase per line. Case-insensitive substring match.": "Uma palavra-chave ou frase por linha. Correspond\xEAncia parcial sem diferenciar mai\xFAsculas.",
-      "Save list": "Salvar lista",
       "Regex rules": "Regras de express\xF5es regulares",
       "One pattern per line. Use /pattern/flags or a bare pattern (case-insensitive).": "Um padr\xE3o por linha. Use /padr\xE3o/flags ou um padr\xE3o simples (sem diferenciar mai\xFAsculas).",
       "Whitelist handles": "Perfis na lista branca",
@@ -920,6 +937,12 @@ html.av-reduce-motion *::after {
       "Default grid": "Grade padr\xE3o",
       "Stacked": "Empilhado",
       "Strict grid": "Grade estrita",
+      "Concurrent downloads": "Downloads simult\xE2neos",
+      "Maximum media downloads in flight during a batch (1-6).": "M\xE1ximo de downloads de m\xEDdia simult\xE2neos durante um lote (1-6).",
+      "Download pacing": "Ritmo de download",
+      "Controls the opening burst and sustained pace of batch media requests.": "Controla o pico inicial e o ritmo cont\xEDnuo das solicita\xE7\xF5es de m\xEDdia em lote.",
+      "Conservative": "Conservador",
+      "Balanced": "Equilibrado",
       "Download status": "Estado das transfer\xEAncias",
       "History entries": "Entradas do hist\xF3rico",
       "Clear download history": "Limpar hist\xF3rico de transfer\xEAncias",
@@ -1064,6 +1087,8 @@ html.av-reduce-motion *::after {
       "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.": "Bloqueia todos os pedidos de sa\xEDda, incluindo as integra\xE7\xF5es que configurou. Ativado por predefini\xE7\xE3o; ativar uma integra\xE7\xE3o \xE9 o que o desliga.",
       "Refuse X's analytics beacons": "Recusar os sinalizadores de an\xE1lise do X",
       "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.": "Impede os sinais de rastreio que o X envia quando percorres, clicas e pausas. S\xF3 os pontos de an\xE1lise s\xE3o recusados \u2014 o tr\xE1fego da cronologia, da multim\xE9dia e do in\xEDcio de sess\xE3o fica intacto.",
+      "Monitor selector health": "Monitorar a sa\xFAde dos seletores",
+      "Check the current X surface for required and fallback anchors. Turn this off when you do not want selector diagnostics.": "Verifica a superf\xEDcie atual do X em busca de \xE2ncoras obrigat\xF3rias e alternativas. Desative se n\xE3o quiser diagn\xF3sticos de seletores.",
       "Connected to the page": "Ligado \xE0 p\xE1gina",
       "Page access": "Acesso \xE0 p\xE1gina",
       "Beacons refused": "Sinalizadores recusados",
@@ -1093,10 +1118,13 @@ html.av-reduce-motion *::after {
       "Writer mode off": "Modo de escrita desativado",
       "Following timeline on": "Cronologia A seguir ativada",
       "Following timeline off": "Cronologia A seguir desativada",
+      "Navigation visibility saved": "Visibilidade da navega\xE7\xE3o salva",
       "Local-only mode on": "Modo apenas local ativado",
       "Local-only mode off": "Modo apenas local desativado",
       "Analytics beacons refused": "Sinalizadores de an\xE1lise recusados",
       "Analytics beacons allowed": "Sinalizadores de an\xE1lise permitidos",
+      "Selector health monitoring on": "Monitoramento da sa\xFAde dos seletores ativado",
+      "Selector health monitoring off": "Monitoramento da sa\xFAde dos seletores desativado",
       "Could not apply preset.": "N\xE3o foi poss\xEDvel aplicar a predefini\xE7\xE3o.",
       "No UserCell rows found.": "N\xE3o foram encontradas linhas UserCell.",
       "Snapshot failed.": "O instant\xE2neo falhou.",
@@ -1203,6 +1231,8 @@ html.av-reduce-motion *::after {
       "Duplicate history on": "Hist\xF3rico de duplicados ativado",
       "Duplicate history off": "Hist\xF3rico de duplicados desativado",
       "Media layout saved": "Layout de m\xEDdia salvo",
+      "Concurrent download limit saved": "Limite de downloads simult\xE2neos salvo",
+      "Download pacing saved": "Ritmo de download salvo",
       "History cleared": "Hist\xF3rico limpo",
       "Could not clear history.": "N\xE3o foi poss\xEDvel limpar o hist\xF3rico.",
       "Downloading media from this view\u2026": "A transferir a m\xE9dia desta vista\u2026",
@@ -1397,11 +1427,13 @@ html.av-reduce-motion *::after {
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "Tant que le focus est dans le r\xE9dacteur, la colonne lat\xE9rale et le fil s'estompent. Tout revient d\xE8s que vous cliquez ailleurs.",
       "Open Following instead of For you": "Ouvrir Abonnements plut\xF4t que Pour vous",
       "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "S\xE9lectionne le deuxi\xE8me onglet d'accueil \xE0 chaque arriv\xE9e sur le fil. Si vous revenez \xE0 Pour vous, cela reste ainsi jusqu'\xE0 ce que vous quittiez la page.",
+      "Hide navigation items": "Masquer les \xE9l\xE9ments de navigation",
+      "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Un identifiant de navigation X stable par ligne : home, explore, notifications, messages, profile, more ou premium.",
+      "Save list": "Enregistrer la liste",
       "Enable filters": "Activer les filtres",
       "Master switch for keyword, regex, premium, and media filters.": "Interrupteur g\xE9n\xE9ral des filtres mots-cl\xE9s, regex, Premium et m\xE9dias.",
       "Keyword rules": "R\xE8gles de mots-cl\xE9s",
       "One keyword or phrase per line. Case-insensitive substring match.": "Un mot-cl\xE9 ou une expression par ligne. Correspondance partielle, insensible \xE0 la casse.",
-      "Save list": "Enregistrer la liste",
       "Regex rules": "R\xE8gles d'expressions r\xE9guli\xE8res",
       "One pattern per line. Use /pattern/flags or a bare pattern (case-insensitive).": "Un motif par ligne. Utilisez /motif/flags ou un motif simple (insensible \xE0 la casse).",
       "Whitelist handles": "Comptes sur liste blanche",
@@ -1457,6 +1489,12 @@ html.av-reduce-motion *::after {
       "Default grid": "Grille par d\xE9faut",
       "Stacked": "Empil\xE9",
       "Strict grid": "Grille stricte",
+      "Concurrent downloads": "T\xE9l\xE9chargements simultan\xE9s",
+      "Maximum media downloads in flight during a batch (1-6).": "Nombre maximal de t\xE9l\xE9chargements multim\xE9dias simultan\xE9s pendant un lot (1-6).",
+      "Download pacing": "Cadence des t\xE9l\xE9chargements",
+      "Controls the opening burst and sustained pace of batch media requests.": "Contr\xF4le la rafale initiale et le rythme soutenu des requ\xEAtes multim\xE9dias par lot.",
+      "Conservative": "Prudent",
+      "Balanced": "\xC9quilibr\xE9",
       "Download status": "\xC9tat des t\xE9l\xE9chargements",
       "History entries": "Entr\xE9es de l'historique",
       "Clear download history": "Effacer l'historique des t\xE9l\xE9chargements",
@@ -1601,6 +1639,8 @@ html.av-reduce-motion *::after {
       "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.": "Bloque toutes les requ\xEAtes sortantes, y compris les int\xE9grations que vous avez configur\xE9es. Activ\xE9 par d\xE9faut ; activer une int\xE9gration est ce qui le d\xE9sactive.",
       "Refuse X's analytics beacons": "Refuser les balises d'analyse de X",
       "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.": "Bloque les signaux de suivi que X envoie lorsque vous faites d\xE9filer, cliquez et mettez en pause. Seuls les points d'analyse sont refus\xE9s : le trafic du fil, des m\xE9dias et de la connexion reste intact.",
+      "Monitor selector health": "Surveiller l\u2019\xE9tat des s\xE9lecteurs",
+      "Check the current X surface for required and fallback anchors. Turn this off when you do not want selector diagnostics.": "V\xE9rifie la surface X actuelle pour trouver les ancres requises et de secours. D\xE9sactivez cette option si vous ne voulez pas de diagnostics des s\xE9lecteurs.",
       "Connected to the page": "Connect\xE9 \xE0 la page",
       "Page access": "Acc\xE8s \xE0 la page",
       "Beacons refused": "Balises refus\xE9es",
@@ -1630,10 +1670,13 @@ html.av-reduce-motion *::after {
       "Writer mode off": "Mode \xE9criture d\xE9sactiv\xE9",
       "Following timeline on": "Fil Abonnements activ\xE9",
       "Following timeline off": "Fil Abonnements d\xE9sactiv\xE9",
+      "Navigation visibility saved": "Visibilit\xE9 de la navigation enregistr\xE9e",
       "Local-only mode on": "Mode local uniquement activ\xE9",
       "Local-only mode off": "Mode local uniquement d\xE9sactiv\xE9",
       "Analytics beacons refused": "Balises d'analyse refus\xE9es",
       "Analytics beacons allowed": "Balises d'analyse autoris\xE9es",
+      "Selector health monitoring on": "Surveillance de l\u2019\xE9tat des s\xE9lecteurs activ\xE9e",
+      "Selector health monitoring off": "Surveillance de l\u2019\xE9tat des s\xE9lecteurs d\xE9sactiv\xE9e",
       "Could not apply preset.": "Impossible d'appliquer le pr\xE9r\xE9glage.",
       "No UserCell rows found.": "Aucune ligne UserCell trouv\xE9e.",
       "Snapshot failed.": "L'instantan\xE9 a \xE9chou\xE9.",
@@ -1740,6 +1783,8 @@ html.av-reduce-motion *::after {
       "Duplicate history on": "Historique des doublons activ\xE9",
       "Duplicate history off": "Historique des doublons d\xE9sactiv\xE9",
       "Media layout saved": "Disposition des m\xE9dias enregistr\xE9e",
+      "Concurrent download limit saved": "Limite de t\xE9l\xE9chargements simultan\xE9s enregistr\xE9e",
+      "Download pacing saved": "Cadence des t\xE9l\xE9chargements enregistr\xE9e",
       "History cleared": "Historique effac\xE9",
       "Could not clear history.": "Impossible d'effacer l'historique.",
       "Downloading media from this view\u2026": "T\xE9l\xE9chargement des m\xE9dias de cette vue\u2026",
@@ -1934,11 +1979,13 @@ html.av-reduce-motion *::after {
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "Solange der Fokus im Verfasser liegt, treten Seitenleiste und Timeline dahinter zur\xFCck. Alles kehrt zur\xFCck, sobald Sie daneben klicken.",
       "Open Following instead of For you": "Folge ich statt F\xFCr dich \xF6ffnen",
       "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "W\xE4hlt bei jedem Aufruf der Timeline den zweiten Start-Tab. Wechselst du zur\xFCck zu F\xFCr dich, bleibt es dabei, bis du die Seite verl\xE4sst.",
+      "Hide navigation items": "Navigationselemente ausblenden",
+      "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Eine stabile X-Navigations-ID pro Zeile: home, explore, notifications, messages, profile, more oder premium.",
+      "Save list": "Liste speichern",
       "Enable filters": "Filter aktivieren",
       "Master switch for keyword, regex, premium, and media filters.": "Hauptschalter f\xFCr Stichwort-, Regex-, Premium- und Medienfilter.",
       "Keyword rules": "Stichwortregeln",
       "One keyword or phrase per line. Case-insensitive substring match.": "Ein Stichwort oder eine Wendung pro Zeile. Teiltreffer ohne Beachtung der Gro\xDF-/Kleinschreibung.",
-      "Save list": "Liste speichern",
       "Regex rules": "Regex-Regeln",
       "One pattern per line. Use /pattern/flags or a bare pattern (case-insensitive).": "Ein Muster pro Zeile. Verwenden Sie /muster/flags oder ein einfaches Muster (ohne Gro\xDF-/Kleinschreibung).",
       "Whitelist handles": "Konten auf der Positivliste",
@@ -1994,6 +2041,12 @@ html.av-reduce-motion *::after {
       "Default grid": "Standardraster",
       "Stacked": "Gestapelt",
       "Strict grid": "Striktes Raster",
+      "Concurrent downloads": "Gleichzeitige Downloads",
+      "Maximum media downloads in flight during a batch (1-6).": "Maximale Anzahl gleichzeitig laufender Mediendownloads w\xE4hrend eines Stapels (1\u20136).",
+      "Download pacing": "Download-Taktung",
+      "Controls the opening burst and sustained pace of batch media requests.": "Steuert den anf\xE4nglichen Burst und das anhaltende Tempo von Medienanfragen im Stapel.",
+      "Conservative": "Konservativ",
+      "Balanced": "Ausgewogen",
       "Download status": "Download-Status",
       "History entries": "Verlaufseintr\xE4ge",
       "Clear download history": "Download-Verlauf l\xF6schen",
@@ -2138,6 +2191,8 @@ html.av-reduce-motion *::after {
       "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.": "Blockiert jede ausgehende Anfrage, auch die von dir eingerichteten Integrationen. Standardm\xE4\xDFig an; das Einschalten einer Integration schaltet ihn aus.",
       "Refuse X's analytics beacons": "Analyse-Beacons von X abweisen",
       "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.": "Stoppt die Tracking-Signale, die X beim Scrollen, Klicken und Pausieren sendet. Nur die Analyse-Endpunkte werden abgewiesen \u2014 Timeline-, Medien- und Anmeldeverkehr bleibt unber\xFChrt.",
+      "Monitor selector health": "Selektorstatus \xFCberwachen",
+      "Check the current X surface for required and fallback anchors. Turn this off when you do not want selector diagnostics.": "Pr\xFCft die aktuelle X-Oberfl\xE4che auf erforderliche und alternative Anker. Deaktivieren Sie dies, wenn Sie keine Selektordiagnose w\xFCnschen.",
       "Connected to the page": "Mit der Seite verbunden",
       "Page access": "Seitenzugriff",
       "Beacons refused": "Abgewiesene Beacons",
@@ -2167,10 +2222,13 @@ html.av-reduce-motion *::after {
       "Writer mode off": "Schreibmodus aus",
       "Following timeline on": "Timeline \u201EFolge ich\u201C an",
       "Following timeline off": "Timeline \u201EFolge ich\u201C aus",
+      "Navigation visibility saved": "Sichtbarkeit der Navigation gespeichert",
       "Local-only mode on": "Nur-lokal-Modus an",
       "Local-only mode off": "Nur-lokal-Modus aus",
       "Analytics beacons refused": "Analyse-Beacons abgewiesen",
       "Analytics beacons allowed": "Analyse-Beacons zugelassen",
+      "Selector health monitoring on": "\xDCberwachung des Selektorstatus aktiviert",
+      "Selector health monitoring off": "\xDCberwachung des Selektorstatus deaktiviert",
       "Could not apply preset.": "Voreinstellung konnte nicht angewendet werden.",
       "No UserCell rows found.": "Keine UserCell-Zeilen gefunden.",
       "Snapshot failed.": "Momentaufnahme fehlgeschlagen.",
@@ -2277,6 +2335,8 @@ html.av-reduce-motion *::after {
       "Duplicate history on": "Duplikatverlauf an",
       "Duplicate history off": "Duplikatverlauf aus",
       "Media layout saved": "Medienlayout gespeichert",
+      "Concurrent download limit saved": "Limit f\xFCr gleichzeitige Downloads gespeichert",
+      "Download pacing saved": "Download-Taktung gespeichert",
       "History cleared": "Verlauf geleert",
       "Could not clear history.": "Verlauf konnte nicht gel\xF6scht werden.",
       "Downloading media from this view\u2026": "Medien dieser Ansicht werden heruntergeladen\u2026",
@@ -2471,11 +2531,13 @@ html.av-reduce-motion *::after {
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "\u6295\u7A3F\u6B04\u306B\u30D5\u30A9\u30FC\u30AB\u30B9\u304C\u3042\u308B\u9593\u3001\u30B5\u30A4\u30C9\u30D0\u30FC\u3068\u80CC\u5F8C\u306E\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u3092\u8584\u304F\u3057\u307E\u3059\u3002\u5225\u306E\u5834\u6240\u3092\u30AF\u30EA\u30C3\u30AF\u3059\u308C\u3070\u3059\u3050\u5143\u306B\u623B\u308A\u307E\u3059\u3002",
       "Open Following instead of For you": "\u300C\u304A\u3059\u3059\u3081\u300D\u3067\u306F\u306A\u304F\u300C\u30D5\u30A9\u30ED\u30FC\u4E2D\u300D\u3092\u958B\u304F",
       "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u3092\u958B\u304F\u305F\u3073\u306B\u30DB\u30FC\u30E0\u306E2\u756A\u76EE\u306E\u30BF\u30D6\u3092\u9078\u3073\u307E\u3059\u3002\u300C\u304A\u3059\u3059\u3081\u300D\u306B\u623B\u3057\u305F\u5834\u5408\u306F\u3001\u30DA\u30FC\u30B8\u3092\u96E2\u308C\u308B\u307E\u3067\u305D\u306E\u307E\u307E\u3067\u3059\u3002",
+      "Hide navigation items": "\u30CA\u30D3\u30B2\u30FC\u30B7\u30E7\u30F3\u9805\u76EE\u3092\u975E\u8868\u793A",
+      "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "1\u884C\u306B1\u3064\u306E\u5B89\u5B9A\u3057\u305FX\u30CA\u30D3\u30B2\u30FC\u30B7\u30E7\u30F3ID\u3092\u5165\u529B\u3057\u307E\u3059: home\u3001explore\u3001notifications\u3001messages\u3001profile\u3001more\u3001premium\u3002",
+      "Save list": "\u30EA\u30B9\u30C8\u3092\u4FDD\u5B58",
       "Enable filters": "\u30D5\u30A3\u30EB\u30BF\u3092\u6709\u52B9\u306B\u3059\u308B",
       "Master switch for keyword, regex, premium, and media filters.": "\u30AD\u30FC\u30EF\u30FC\u30C9\u30FB\u6B63\u898F\u8868\u73FE\u30FB\u30D7\u30EC\u30DF\u30A2\u30E0\u30FB\u30E1\u30C7\u30A3\u30A2\u306E\u5404\u30D5\u30A3\u30EB\u30BF\u3092\u307E\u3068\u3081\u3066\u5207\u308A\u66FF\u3048\u307E\u3059\u3002",
       "Keyword rules": "\u30AD\u30FC\u30EF\u30FC\u30C9\u306E\u30EB\u30FC\u30EB",
       "One keyword or phrase per line. Case-insensitive substring match.": "1 \u884C\u306B 1 \u3064\u306E\u30AD\u30FC\u30EF\u30FC\u30C9\u307E\u305F\u306F\u30D5\u30EC\u30FC\u30BA\u3002\u5927\u6587\u5B57\u5C0F\u6587\u5B57\u3092\u533A\u5225\u3057\u306A\u3044\u90E8\u5206\u4E00\u81F4\u3067\u3059\u3002",
-      "Save list": "\u30EA\u30B9\u30C8\u3092\u4FDD\u5B58",
       "Regex rules": "\u6B63\u898F\u8868\u73FE\u306E\u30EB\u30FC\u30EB",
       "One pattern per line. Use /pattern/flags or a bare pattern (case-insensitive).": "1 \u884C\u306B 1 \u3064\u306E\u30D1\u30BF\u30FC\u30F3\u3002/pattern/flags \u5F62\u5F0F\u304B\u3001\u305D\u306E\u307E\u307E\u306E\u30D1\u30BF\u30FC\u30F3\uFF08\u5927\u6587\u5B57\u5C0F\u6587\u5B57\u3092\u533A\u5225\u3057\u307E\u305B\u3093\uFF09\u3002",
       "Whitelist handles": "\u9664\u5916\u3059\u308B\u30A2\u30AB\u30A6\u30F3\u30C8",
@@ -2531,6 +2593,12 @@ html.av-reduce-motion *::after {
       "Default grid": "\u30C7\u30D5\u30A9\u30EB\u30C8\u306E\u30B0\u30EA\u30C3\u30C9",
       "Stacked": "\u7E26\u7A4D\u307F",
       "Strict grid": "\u5747\u7B49\u30B0\u30EA\u30C3\u30C9",
+      "Concurrent downloads": "\u540C\u6642\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u6570",
+      "Maximum media downloads in flight during a batch (1-6).": "\u30D0\u30C3\u30C1\u4E2D\u306B\u540C\u6642\u5B9F\u884C\u3059\u308B\u30E1\u30C7\u30A3\u30A2\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306E\u6700\u5927\u6570\uFF081\uFF5E6\uFF09\u3002",
+      "Download pacing": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u30DA\u30FC\u30B9",
+      "Controls the opening burst and sustained pace of batch media requests.": "\u30D0\u30C3\u30C1\u30E1\u30C7\u30A3\u30A2\u30EA\u30AF\u30A8\u30B9\u30C8\u306E\u958B\u59CB\u30D0\u30FC\u30B9\u30C8\u3068\u7D99\u7D9A\u30DA\u30FC\u30B9\u3092\u5236\u5FA1\u3057\u307E\u3059\u3002",
+      "Conservative": "\u4FDD\u5B88\u7684",
+      "Balanced": "\u30D0\u30E9\u30F3\u30B9",
       "Download status": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306E\u72B6\u614B",
       "History entries": "\u5C65\u6B74\u306E\u4EF6\u6570",
       "Clear download history": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u5C65\u6B74\u3092\u6D88\u53BB",
@@ -2675,6 +2743,8 @@ html.av-reduce-motion *::after {
       "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.": "\u8A2D\u5B9A\u3057\u305F\u9023\u643A\u3092\u542B\u3081\u3001\u5916\u90E8\u3078\u306E\u3059\u3079\u3066\u306E\u901A\u4FE1\u3092\u30D6\u30ED\u30C3\u30AF\u3057\u307E\u3059\u3002\u65E2\u5B9A\u3067\u30AA\u30F3\u3067\u3001\u9023\u643A\u3092\u30AA\u30F3\u306B\u3059\u308B\u3068\u3053\u308C\u304C\u30AA\u30D5\u306B\u306A\u308A\u307E\u3059\u3002",
       "Refuse X's analytics beacons": "X \u306E\u89E3\u6790\u30D3\u30FC\u30B3\u30F3\u3092\u62D2\u5426\u3059\u308B",
       "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.": "\u30B9\u30AF\u30ED\u30FC\u30EB\u30FB\u30AF\u30EA\u30C3\u30AF\u30FB\u4E00\u6642\u505C\u6B62\u306E\u305F\u3073\u306B X \u304C\u9001\u4FE1\u3059\u308B\u8FFD\u8DE1\u7528\u306E\u901A\u4FE1\u3092\u6B62\u3081\u307E\u3059\u3002\u62D2\u5426\u3055\u308C\u308B\u306E\u306F\u89E3\u6790\u7528\u306E\u30A8\u30F3\u30C9\u30DD\u30A4\u30F3\u30C8\u3060\u3051\u3067\u3001\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u30FB\u30E1\u30C7\u30A3\u30A2\u30FB\u30ED\u30B0\u30A4\u30F3\u306E\u901A\u4FE1\u306B\u306F\u624B\u3092\u89E6\u308C\u307E\u305B\u3093\u3002",
+      "Monitor selector health": "\u30BB\u30EC\u30AF\u30BF\u30FC\u72B6\u614B\u3092\u76E3\u8996",
+      "Check the current X surface for required and fallback anchors. Turn this off when you do not want selector diagnostics.": "\u73FE\u5728\u306EX\u753B\u9762\u3067\u5FC5\u9808\u30A2\u30F3\u30AB\u30FC\u3068\u30D5\u30A9\u30FC\u30EB\u30D0\u30C3\u30AF\u30A2\u30F3\u30AB\u30FC\u3092\u78BA\u8A8D\u3057\u307E\u3059\u3002\u30BB\u30EC\u30AF\u30BF\u30FC\u8A3A\u65AD\u304C\u4E0D\u8981\u306A\u5834\u5408\u306F\u30AA\u30D5\u306B\u3057\u307E\u3059\u3002",
       "Connected to the page": "\u30DA\u30FC\u30B8\u306B\u63A5\u7D9A\u6E08\u307F",
       "Page access": "\u30DA\u30FC\u30B8\u3078\u306E\u30A2\u30AF\u30BB\u30B9",
       "Beacons refused": "\u62D2\u5426\u3057\u305F\u30D3\u30FC\u30B3\u30F3",
@@ -2704,10 +2774,13 @@ html.av-reduce-motion *::after {
       "Writer mode off": "\u30E9\u30A4\u30BF\u30FC\u30E2\u30FC\u30C9 \u30AA\u30D5",
       "Following timeline on": "\u300C\u30D5\u30A9\u30ED\u30FC\u4E2D\u300D\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3 \u30AA\u30F3",
       "Following timeline off": "\u300C\u30D5\u30A9\u30ED\u30FC\u4E2D\u300D\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3 \u30AA\u30D5",
+      "Navigation visibility saved": "\u30CA\u30D3\u30B2\u30FC\u30B7\u30E7\u30F3\u8868\u793A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Local-only mode on": "\u30ED\u30FC\u30AB\u30EB\u9650\u5B9A\u30E2\u30FC\u30C9 \u30AA\u30F3",
       "Local-only mode off": "\u30ED\u30FC\u30AB\u30EB\u9650\u5B9A\u30E2\u30FC\u30C9 \u30AA\u30D5",
       "Analytics beacons refused": "\u89E3\u6790\u30D3\u30FC\u30B3\u30F3\u3092\u62D2\u5426\u3057\u307E\u3057\u305F",
       "Analytics beacons allowed": "\u89E3\u6790\u30D3\u30FC\u30B3\u30F3\u3092\u8A31\u53EF\u3057\u307E\u3057\u305F",
+      "Selector health monitoring on": "\u30BB\u30EC\u30AF\u30BF\u30FC\u72B6\u614B\u306E\u76E3\u8996\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
+      "Selector health monitoring off": "\u30BB\u30EC\u30AF\u30BF\u30FC\u72B6\u614B\u306E\u76E3\u8996\u3092\u30AA\u30D5\u306B\u3057\u307E\u3057\u305F",
       "Could not apply preset.": "\u30D7\u30EA\u30BB\u30C3\u30C8\u3092\u9069\u7528\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "No UserCell rows found.": "UserCell \u306E\u884C\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002",
       "Snapshot failed.": "\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
@@ -2814,6 +2887,8 @@ html.av-reduce-motion *::after {
       "Duplicate history on": "\u91CD\u8907\u5C65\u6B74 \u30AA\u30F3",
       "Duplicate history off": "\u91CD\u8907\u5C65\u6B74 \u30AA\u30D5",
       "Media layout saved": "\u30E1\u30C7\u30A3\u30A2\u306E\u30EC\u30A4\u30A2\u30A6\u30C8\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
+      "Concurrent download limit saved": "\u540C\u6642\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u4E0A\u9650\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
+      "Download pacing saved": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u30DA\u30FC\u30B9\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "History cleared": "\u5C65\u6B74\u3092\u6D88\u53BB\u3057\u307E\u3057\u305F",
       "Could not clear history.": "\u5C65\u6B74\u3092\u6D88\u53BB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "Downloading media from this view\u2026": "\u3053\u306E\u753B\u9762\u306E\u30E1\u30C7\u30A3\u30A2\u3092\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u4E2D\u2026",
@@ -3008,11 +3083,13 @@ html.av-reduce-motion *::after {
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "\uC791\uC131\uCC3D\uC5D0 \uD3EC\uCEE4\uC2A4\uAC00 \uC788\uB294 \uB3D9\uC548 \uC0AC\uC774\uB4DC\uBC14\uC640 \uB4A4\uCABD \uD0C0\uC784\uB77C\uC778\uC744 \uD750\uB9AC\uAC8C \uD569\uB2C8\uB2E4. \uB2E4\uB978 \uACF3\uC744 \uD074\uB9AD\uD558\uBA74 \uC989\uC2DC \uB3CC\uC544\uC635\uB2C8\uB2E4.",
       "Open Following instead of For you": "'\uCD94\uCC9C' \uB300\uC2E0 '\uD314\uB85C\uC6B0 \uC911' \uC5F4\uAE30",
       "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "\uD0C0\uC784\uB77C\uC778\uC5D0 \uB4E4\uC5B4\uC62C \uB54C\uB9C8\uB2E4 \uD648\uC758 \uB450 \uBC88\uC9F8 \uD0ED\uC744 \uC120\uD0DD\uD569\uB2C8\uB2E4. '\uCD94\uCC9C'\uC73C\uB85C \uB418\uB3CC\uB9AC\uBA74 \uD398\uC774\uC9C0\uB97C \uBC97\uC5B4\uB0A0 \uB54C\uAE4C\uC9C0 \uADF8\uB300\uB85C \uC720\uC9C0\uB429\uB2C8\uB2E4.",
+      "Hide navigation items": "\uB0B4\uBE44\uAC8C\uC774\uC158 \uD56D\uBAA9 \uC228\uAE30\uAE30",
+      "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "\uC904\uB9C8\uB2E4 \uC548\uC815\uC801\uC778 X \uB0B4\uBE44\uAC8C\uC774\uC158 ID \uD558\uB098\uB97C \uC785\uB825\uD558\uC138\uC694: home, explore, notifications, messages, profile, more \uB610\uB294 premium.",
+      "Save list": "\uBAA9\uB85D \uC800\uC7A5",
       "Enable filters": "\uD544\uD130 \uC0AC\uC6A9",
       "Master switch for keyword, regex, premium, and media filters.": "\uD0A4\uC6CC\uB4DC\xB7\uC815\uADDC\uC2DD\xB7\uD504\uB9AC\uBBF8\uC5C4\xB7\uBBF8\uB514\uC5B4 \uD544\uD130\uB97C \uD55C\uAEBC\uBC88\uC5D0 \uCF1C\uACE0 \uB055\uB2C8\uB2E4.",
       "Keyword rules": "\uD0A4\uC6CC\uB4DC \uADDC\uCE59",
       "One keyword or phrase per line. Case-insensitive substring match.": "\uD55C \uC904\uC5D0 \uD0A4\uC6CC\uB4DC\uB098 \uBB38\uAD6C \uD558\uB098\uC529. \uB300\uC18C\uBB38\uC790\uB97C \uAD6C\uBD84\uD558\uC9C0 \uC54A\uB294 \uBD80\uBD84 \uC77C\uCE58\uC785\uB2C8\uB2E4.",
-      "Save list": "\uBAA9\uB85D \uC800\uC7A5",
       "Regex rules": "\uC815\uADDC\uC2DD \uADDC\uCE59",
       "One pattern per line. Use /pattern/flags or a bare pattern (case-insensitive).": "\uD55C \uC904\uC5D0 \uD328\uD134 \uD558\uB098\uC529. /pattern/flags \uD615\uC2DD\uC774\uB098 \uD328\uD134\uB9CC \uC785\uB825\uD558\uC138\uC694(\uB300\uC18C\uBB38\uC790 \uAD6C\uBD84 \uC548 \uD568).",
       "Whitelist handles": "\uC81C\uC678\uD560 \uACC4\uC815",
@@ -3068,6 +3145,12 @@ html.av-reduce-motion *::after {
       "Default grid": "\uAE30\uBCF8 \uADF8\uB9AC\uB4DC",
       "Stacked": "\uC138\uB85C \uC313\uAE30",
       "Strict grid": "\uADE0\uC77C \uADF8\uB9AC\uB4DC",
+      "Concurrent downloads": "\uB3D9\uC2DC \uB2E4\uC6B4\uB85C\uB4DC",
+      "Maximum media downloads in flight during a batch (1-6).": "\uBC30\uCE58 \uC911 \uB3D9\uC2DC\uC5D0 \uC9C4\uD589\uB418\uB294 \uBBF8\uB514\uC5B4 \uB2E4\uC6B4\uB85C\uB4DC \uCD5C\uB300 \uC218(1-6).",
+      "Download pacing": "\uB2E4\uC6B4\uB85C\uB4DC \uC18D\uB3C4 \uC870\uC808",
+      "Controls the opening burst and sustained pace of batch media requests.": "\uBC30\uCE58 \uBBF8\uB514\uC5B4 \uC694\uCCAD\uC758 \uCD08\uAE30 \uBC84\uC2A4\uD2B8\uC640 \uC9C0\uC18D \uC18D\uB3C4\uB97C \uC81C\uC5B4\uD569\uB2C8\uB2E4.",
+      "Conservative": "\uBCF4\uC218\uC801",
+      "Balanced": "\uADE0\uD615",
       "Download status": "\uB2E4\uC6B4\uB85C\uB4DC \uC0C1\uD0DC",
       "History entries": "\uAE30\uB85D \uAC1C\uC218",
       "Clear download history": "\uB2E4\uC6B4\uB85C\uB4DC \uAE30\uB85D \uC9C0\uC6B0\uAE30",
@@ -3212,6 +3295,8 @@ html.av-reduce-motion *::after {
       "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.": "\uC124\uC815\uD55C \uC5F0\uB3D9\uC744 \uD3EC\uD568\uD574 \uBAA8\uB4E0 \uC678\uBD80 \uC694\uCCAD\uC744 \uCC28\uB2E8\uD569\uB2C8\uB2E4. \uAE30\uBCF8\uC73C\uB85C \uCF1C\uC838 \uC788\uC73C\uBA70, \uC5F0\uB3D9\uC744 \uCF1C\uBA74 \uC774 \uBAA8\uB4DC\uAC00 \uAEBC\uC9D1\uB2C8\uB2E4.",
       "Refuse X's analytics beacons": "X\uC758 \uBD84\uC11D \uBE44\uCF58 \uAC70\uBD80",
       "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.": "\uC2A4\uD06C\uB864\uD558\uAC70\uB098 \uD074\uB9AD\uD558\uAC70\uB098 \uC77C\uC2DC\uC815\uC9C0\uD560 \uB54C X\uAC00 \uBCF4\uB0B4\uB294 \uCD94\uC801 \uC2E0\uD638\uB97C \uB9C9\uC2B5\uB2C8\uB2E4. \uBD84\uC11D \uC5D4\uB4DC\uD3EC\uC778\uD2B8\uB9CC \uAC70\uBD80\uD558\uBA70 \uD0C0\uC784\uB77C\uC778\xB7\uBBF8\uB514\uC5B4\xB7\uB85C\uADF8\uC778 \uD2B8\uB798\uD53D\uC740 \uAC74\uB4DC\uB9AC\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+      "Monitor selector health": "\uC120\uD0DD\uC790 \uC0C1\uD0DC \uBAA8\uB2C8\uD130\uB9C1",
+      "Check the current X surface for required and fallback anchors. Turn this off when you do not want selector diagnostics.": "\uD604\uC7AC X \uD654\uBA74\uC5D0\uC11C \uD544\uC218 \uBC0F \uB300\uCCB4 \uC575\uCEE4\uB97C \uD655\uC778\uD569\uB2C8\uB2E4. \uC120\uD0DD\uC790 \uC9C4\uB2E8\uC774 \uD544\uC694\uD558\uC9C0 \uC54A\uC73C\uBA74 \uB044\uC138\uC694.",
       "Connected to the page": "\uD398\uC774\uC9C0\uC5D0 \uC5F0\uACB0\uB428",
       "Page access": "\uD398\uC774\uC9C0 \uC811\uADFC",
       "Beacons refused": "\uAC70\uBD80\uD55C \uBE44\uCF58",
@@ -3241,10 +3326,13 @@ html.av-reduce-motion *::after {
       "Writer mode off": "\uC791\uC131 \uBAA8\uB4DC \uB054",
       "Following timeline on": "'\uD314\uB85C\uC6B0 \uC911' \uD0C0\uC784\uB77C\uC778 \uCF2C",
       "Following timeline off": "'\uD314\uB85C\uC6B0 \uC911' \uD0C0\uC784\uB77C\uC778 \uB054",
+      "Navigation visibility saved": "\uB0B4\uBE44\uAC8C\uC774\uC158 \uD45C\uC2DC\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Local-only mode on": "\uB85C\uCEEC \uC804\uC6A9 \uBAA8\uB4DC \uCF2C",
       "Local-only mode off": "\uB85C\uCEEC \uC804\uC6A9 \uBAA8\uB4DC \uB054",
       "Analytics beacons refused": "\uBD84\uC11D \uBE44\uCF58\uC744 \uAC70\uBD80\uD588\uC2B5\uB2C8\uB2E4",
       "Analytics beacons allowed": "\uBD84\uC11D \uBE44\uCF58\uC744 \uD5C8\uC6A9\uD588\uC2B5\uB2C8\uB2E4",
+      "Selector health monitoring on": "\uC120\uD0DD\uC790 \uC0C1\uD0DC \uBAA8\uB2C8\uD130\uB9C1 \uCF2C",
+      "Selector health monitoring off": "\uC120\uD0DD\uC790 \uC0C1\uD0DC \uBAA8\uB2C8\uD130\uB9C1 \uB054",
       "Could not apply preset.": "\uD504\uB9AC\uC14B\uC744 \uC801\uC6A9\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "No UserCell rows found.": "UserCell \uD589\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
       "Snapshot failed.": "\uC2A4\uB0C5\uC0F7\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
@@ -3351,6 +3439,8 @@ html.av-reduce-motion *::after {
       "Duplicate history on": "\uC911\uBCF5 \uAE30\uB85D \uCF2C",
       "Duplicate history off": "\uC911\uBCF5 \uAE30\uB85D \uB054",
       "Media layout saved": "\uBBF8\uB514\uC5B4 \uBC30\uCE58\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
+      "Concurrent download limit saved": "\uB3D9\uC2DC \uB2E4\uC6B4\uB85C\uB4DC \uC81C\uD55C\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
+      "Download pacing saved": "\uB2E4\uC6B4\uB85C\uB4DC \uC18D\uB3C4\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "History cleared": "\uAE30\uB85D\uC744 \uC9C0\uC6E0\uC2B5\uB2C8\uB2E4",
       "Could not clear history.": "\uAE30\uB85D\uC744 \uC9C0\uC6B0\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "Downloading media from this view\u2026": "\uC774 \uD654\uBA74\uC758 \uBBF8\uB514\uC5B4\uB97C \uB0B4\uB824\uBC1B\uB294 \uC911\u2026",
@@ -3545,11 +3635,13 @@ html.av-reduce-motion *::after {
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "\u0623\u062B\u0646\u0627\u0621 \u0627\u0644\u062A\u0631\u0643\u064A\u0632 \u0639\u0644\u0649 \u0645\u062D\u0631\u0631 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u060C \u064A\u062E\u0641\u062A \u0627\u0644\u0634\u0631\u064A\u0637 \u0627\u0644\u062C\u0627\u0646\u0628\u064A \u0648\u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \u062E\u0644\u0641\u0647. \u064A\u0639\u0648\u062F \u0643\u0644 \u0634\u064A\u0621 \u0628\u0645\u062C\u0631\u062F \u0627\u0644\u0646\u0642\u0631 \u062E\u0627\u0631\u062C\u0647.",
       "Open Following instead of For you": "\u0641\u062A\u062D \xAB\u0627\u0644\u0645\u062A\u0627\u0628\u064E\u0639\u0648\u0646\xBB \u0628\u062F\u0644\u064B\u0627 \u0645\u0646 \xAB\u0644\u0643\xBB",
       "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "\u064A\u062D\u062F\u062F \u0639\u0644\u0627\u0645\u0629 \u0627\u0644\u062A\u0628\u0648\u064A\u0628 \u0627\u0644\u062B\u0627\u0646\u064A\u0629 \u0641\u064A \u0627\u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629 \u0641\u064A \u0643\u0644 \u0645\u0631\u0629 \u062A\u0635\u0644 \u0641\u064A\u0647\u0627 \u0625\u0644\u0649 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A. \u0648\u0625\u0630\u0627 \u0639\u062F\u062A \u0625\u0644\u0649 \xAB\u0644\u0643\xBB \u0641\u0633\u064A\u0628\u0642\u0649 \u0643\u0630\u0644\u0643 \u062D\u062A\u0649 \u062A\u063A\u0627\u062F\u0631 \u0627\u0644\u0635\u0641\u062D\u0629.",
+      "Hide navigation items": "\u0625\u062E\u0641\u0627\u0621 \u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062A\u0646\u0642\u0644",
+      "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "\u0645\u0639\u0631\u0651\u0641 \u062A\u0646\u0642\u0644 \u062B\u0627\u0628\u062A \u0648\u0627\u062D\u062F \u0641\u064A X \u0644\u0643\u0644 \u0633\u0637\u0631: home \u0623\u0648 explore \u0623\u0648 notifications \u0623\u0648 messages \u0623\u0648 profile \u0623\u0648 more \u0623\u0648 premium.",
+      "Save list": "\u062D\u0641\u0638 \u0627\u0644\u0642\u0627\u0626\u0645\u0629",
       "Enable filters": "\u062A\u0641\u0639\u064A\u0644 \u0627\u0644\u0641\u0644\u0627\u062A\u0631",
       "Master switch for keyword, regex, premium, and media filters.": "\u0645\u0641\u062A\u0627\u062D \u0631\u0626\u064A\u0633\u064A \u0644\u0641\u0644\u0627\u062A\u0631 \u0627\u0644\u0643\u0644\u0645\u0627\u062A \u0627\u0644\u0645\u0641\u062A\u0627\u062D\u064A\u0629 \u0648\u0627\u0644\u062A\u0639\u0628\u064A\u0631\u0627\u062A \u0627\u0644\u0646\u0645\u0637\u064A\u0629 \u0648\u0627\u0644\u062D\u0633\u0627\u0628\u0627\u062A \u0627\u0644\u0645\u0645\u064A\u0632\u0629 \u0648\u0627\u0644\u0648\u0633\u0627\u0626\u0637.",
       "Keyword rules": "\u0642\u0648\u0627\u0639\u062F \u0627\u0644\u0643\u0644\u0645\u0627\u062A \u0627\u0644\u0645\u0641\u062A\u0627\u062D\u064A\u0629",
       "One keyword or phrase per line. Case-insensitive substring match.": "\u0643\u0644\u0645\u0629 \u0623\u0648 \u0639\u0628\u0627\u0631\u0629 \u0648\u0627\u062D\u062F\u0629 \u0641\u064A \u0643\u0644 \u0633\u0637\u0631. \u0627\u0644\u0645\u0637\u0627\u0628\u0642\u0629 \u062C\u0632\u0626\u064A\u0629 \u0648\u0644\u0627 \u062A\u0645\u064A\u0651\u0632 \u0628\u064A\u0646 \u0627\u0644\u0623\u062D\u0631\u0641 \u0627\u0644\u0643\u0628\u064A\u0631\u0629 \u0648\u0627\u0644\u0635\u063A\u064A\u0631\u0629.",
-      "Save list": "\u062D\u0641\u0638 \u0627\u0644\u0642\u0627\u0626\u0645\u0629",
       "Regex rules": "\u0642\u0648\u0627\u0639\u062F \u0627\u0644\u062A\u0639\u0628\u064A\u0631\u0627\u062A \u0627\u0644\u0646\u0645\u0637\u064A\u0629",
       "One pattern per line. Use /pattern/flags or a bare pattern (case-insensitive).": "\u0646\u0645\u0637 \u0648\u0627\u062D\u062F \u0641\u064A \u0643\u0644 \u0633\u0637\u0631. \u0627\u0633\u062A\u062E\u062F\u0645 \u200E/pattern/flags\u200E \u0623\u0648 \u0627\u0644\u0646\u0645\u0637 \u0645\u062C\u0631\u062F\u064B\u0627 (\u062F\u0648\u0646 \u062A\u0645\u064A\u064A\u0632 \u062D\u0627\u0644\u0629 \u0627\u0644\u0623\u062D\u0631\u0641).",
       "Whitelist handles": "\u062D\u0633\u0627\u0628\u0627\u062A \u0645\u0633\u062A\u062B\u0646\u0627\u0629",
@@ -3605,6 +3697,12 @@ html.av-reduce-motion *::after {
       "Default grid": "\u0627\u0644\u0634\u0628\u0643\u0629 \u0627\u0644\u0627\u0641\u062A\u0631\u0627\u0636\u064A\u0629",
       "Stacked": "\u0645\u062A\u0631\u0627\u0635",
       "Strict grid": "\u0634\u0628\u0643\u0629 \u0645\u0646\u062A\u0638\u0645\u0629",
+      "Concurrent downloads": "\u0627\u0644\u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0627\u0644\u0645\u062A\u0632\u0627\u0645\u0646\u0629",
+      "Maximum media downloads in flight during a batch (1-6).": "\u0627\u0644\u062D\u062F \u0627\u0644\u0623\u0642\u0635\u0649 \u0644\u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u062C\u0627\u0631\u064A\u0629 \u0623\u062B\u0646\u0627\u0621 \u0627\u0644\u062F\u0641\u0639\u0629 (1-6).",
+      "Download pacing": "\u0648\u062A\u064A\u0631\u0629 \u0627\u0644\u062A\u0646\u0632\u064A\u0644",
+      "Controls the opening burst and sustained pace of batch media requests.": "\u064A\u062A\u062D\u0643\u0645 \u0641\u064A \u0627\u0644\u062F\u0641\u0639\u0629 \u0627\u0644\u0627\u0641\u062A\u062A\u0627\u062D\u064A\u0629 \u0648\u0627\u0644\u0648\u062A\u064A\u0631\u0629 \u0627\u0644\u0645\u0633\u062A\u0645\u0631\u0629 \u0644\u0637\u0644\u0628\u0627\u062A \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u0645\u062C\u0645\u0639\u0629.",
+      "Conservative": "\u0645\u062D\u0627\u0641\u0638",
+      "Balanced": "\u0645\u062A\u0648\u0627\u0632\u0646",
       "Download status": "\u062D\u0627\u0644\u0629 \u0627\u0644\u062A\u0646\u0632\u064A\u0644",
       "History entries": "\u0639\u062F\u062F \u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u0633\u062C\u0644",
       "Clear download history": "\u0645\u0633\u062D \u0633\u062C\u0644 \u0627\u0644\u062A\u0646\u0632\u064A\u0644\u0627\u062A",
@@ -3749,6 +3847,8 @@ html.av-reduce-motion *::after {
       "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.": "\u064A\u0645\u0646\u0639 \u0643\u0644 \u0627\u0644\u0637\u0644\u0628\u0627\u062A \u0627\u0644\u0635\u0627\u062F\u0631\u0629\u060C \u0628\u0645\u0627 \u0641\u064A\u0647\u0627 \u0627\u0644\u062A\u0643\u0627\u0645\u0644\u0627\u062A \u0627\u0644\u062A\u064A \u0623\u0639\u062F\u062F\u062A\u0647\u0627. \u0645\u064F\u0641\u0639\u0651\u0644 \u0627\u0641\u062A\u0631\u0627\u0636\u064A\u064B\u0627\u060C \u0648\u062A\u0641\u0639\u064A\u0644 \u0623\u064A \u062A\u0643\u0627\u0645\u0644 \u0647\u0648 \u0645\u0627 \u064A\u0648\u0642\u0641\u0647.",
       "Refuse X's analytics beacons": "\u0631\u0641\u0636 \u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A \u0645\u0646 X",
       "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.": "\u064A\u0648\u0642\u0641 \u0646\u0628\u0636\u0627\u062A \u0627\u0644\u062A\u062A\u0628\u0639 \u0627\u0644\u062A\u064A \u064A\u0631\u0633\u0644\u0647\u0627 X \u0623\u062B\u0646\u0627\u0621 \u0627\u0644\u062A\u0645\u0631\u064A\u0631 \u0648\u0627\u0644\u0646\u0642\u0631 \u0648\u0627\u0644\u0625\u064A\u0642\u0627\u0641 \u0627\u0644\u0645\u0624\u0642\u062A. \u062A\u064F\u0631\u0641\u0636 \u0646\u0642\u0627\u0637 \u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A \u0641\u0642\u0637 \u2014 \u0623\u0645\u0627 \u062D\u0631\u0643\u0629 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \u0648\u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0648\u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0641\u062A\u0628\u0642\u0649 \u0643\u0645\u0627 \u0647\u064A.",
+      "Monitor selector health": "\u0645\u0631\u0627\u0642\u0628\u0629 \u0635\u062D\u0629 \u0627\u0644\u0645\u062D\u062F\u062F\u0627\u062A",
+      "Check the current X surface for required and fallback anchors. Turn this off when you do not want selector diagnostics.": "\u064A\u062A\u062D\u0642\u0642 \u0645\u0646 \u0633\u0637\u062D X \u0627\u0644\u062D\u0627\u0644\u064A \u0628\u062D\u062B\u064B\u0627 \u0639\u0646 \u0646\u0642\u0627\u0637 \u0627\u0644\u0627\u0631\u062A\u0633\u0627\u0621 \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629 \u0648\u0627\u0644\u0628\u062F\u064A\u0644\u0629. \u0623\u0648\u0642\u0641\u0647 \u0625\u0630\u0627 \u0644\u0645 \u062A\u0643\u0646 \u062A\u0631\u064A\u062F \u062A\u0634\u062E\u064A\u0635\u0627\u062A \u0627\u0644\u0645\u062D\u062F\u062F\u0627\u062A.",
       "Connected to the page": "\u0645\u062A\u0635\u0644 \u0628\u0627\u0644\u0635\u0641\u062D\u0629",
       "Page access": "\u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 \u0627\u0644\u0635\u0641\u062D\u0629",
       "Beacons refused": "\u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u0641\u0648\u0636\u0629",
@@ -3778,10 +3878,13 @@ html.av-reduce-motion *::after {
       "Writer mode off": "\u0648\u0636\u0639 \u0627\u0644\u0643\u062A\u0627\u0628\u0629 \u0645\u0639\u0637\u0651\u0644",
       "Following timeline on": "\u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \xAB\u0627\u0644\u0645\u062A\u0627\u0628\u064E\u0639\u0648\u0646\xBB \u0645\u0641\u0639\u0651\u0644",
       "Following timeline off": "\u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \xAB\u0627\u0644\u0645\u062A\u0627\u0628\u064E\u0639\u0648\u0646\xBB \u0645\u0639\u0637\u0651\u0644",
+      "Navigation visibility saved": "\u062A\u0645 \u062D\u0641\u0638 \u0631\u0624\u064A\u0629 \u0627\u0644\u062A\u0646\u0642\u0644",
       "Local-only mode on": "\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0645\u062D\u0644\u064A \u0641\u0642\u0637 \u0645\u0641\u0639\u0651\u0644",
       "Local-only mode off": "\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0645\u062D\u0644\u064A \u0641\u0642\u0637 \u0645\u0639\u0637\u0651\u0644",
       "Analytics beacons refused": "\u062A\u0645 \u0631\u0641\u0636 \u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A",
       "Analytics beacons allowed": "\u062A\u0645 \u0627\u0644\u0633\u0645\u0627\u062D \u0628\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A",
+      "Selector health monitoring on": "\u062A\u0645 \u062A\u0634\u063A\u064A\u0644 \u0645\u0631\u0627\u0642\u0628\u0629 \u0635\u062D\u0629 \u0627\u0644\u0645\u062D\u062F\u062F\u0627\u062A",
+      "Selector health monitoring off": "\u062A\u0645 \u0625\u064A\u0642\u0627\u0641 \u0645\u0631\u0627\u0642\u0628\u0629 \u0635\u062D\u0629 \u0627\u0644\u0645\u062D\u062F\u062F\u0627\u062A",
       "Could not apply preset.": "\u062A\u0639\u0630\u0651\u0631 \u062A\u0637\u0628\u064A\u0642 \u0627\u0644\u0625\u0639\u062F\u0627\u062F \u0627\u0644\u062C\u0627\u0647\u0632.",
       "No UserCell rows found.": "\u0644\u0645 \u064A\u062A\u0645 \u0627\u0644\u0639\u062B\u0648\u0631 \u0639\u0644\u0649 \u0635\u0641\u0648\u0641 UserCell.",
       "Snapshot failed.": "\u0641\u0634\u0644\u062A \u0627\u0644\u0644\u0642\u0637\u0629.",
@@ -3888,6 +3991,8 @@ html.av-reduce-motion *::after {
       "Duplicate history on": "\u0633\u062C\u0644 \u0627\u0644\u062A\u0643\u0631\u0627\u0631\u0627\u062A \u0645\u0641\u0639\u0651\u0644",
       "Duplicate history off": "\u0633\u062C\u0644 \u0627\u0644\u062A\u0643\u0631\u0627\u0631\u0627\u062A \u0645\u0639\u0637\u0651\u0644",
       "Media layout saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u062E\u0637\u064A\u0637 \u0627\u0644\u0648\u0633\u0627\u0626\u0637",
+      "Concurrent download limit saved": "\u062A\u0645 \u062D\u0641\u0638 \u062D\u062F \u0627\u0644\u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0627\u0644\u0645\u062A\u0632\u0627\u0645\u0646\u0629",
+      "Download pacing saved": "\u062A\u0645 \u062D\u0641\u0638 \u0648\u062A\u064A\u0631\u0629 \u0627\u0644\u062A\u0646\u0632\u064A\u0644",
       "History cleared": "\u062A\u0645 \u0645\u0633\u062D \u0627\u0644\u0633\u062C\u0644",
       "Could not clear history.": "\u062A\u0639\u0630\u0651\u0631 \u0645\u0633\u062D \u0627\u0644\u0633\u062C\u0644.",
       "Downloading media from this view\u2026": "\u062C\u0627\u0631\u064D \u062A\u0646\u0632\u064A\u0644 \u0648\u0633\u0627\u0626\u0637 \u0647\u0630\u0647 \u0627\u0644\u0635\u0641\u062D\u0629\u2026",
@@ -4082,11 +4187,13 @@ html.av-reduce-motion *::after {
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "\u05DB\u05DC \u05E2\u05D5\u05D3 \u05D4\u05DE\u05D9\u05E7\u05D5\u05D3 \u05D1\u05D7\u05DC\u05D5\u05DF \u05D4\u05DB\u05EA\u05D9\u05D1\u05D4, \u05E1\u05E8\u05D2\u05DC \u05D4\u05E6\u05D3 \u05D5\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF \u05E9\u05DE\u05D0\u05D7\u05D5\u05E8\u05D9\u05D5 \u05DE\u05EA\u05E2\u05DE\u05E2\u05DE\u05D9\u05DD. \u05D4\u05DB\u05D5\u05DC \u05D7\u05D5\u05D6\u05E8 \u05D1\u05E8\u05D2\u05E2 \u05E9\u05DC\u05D5\u05D7\u05E6\u05D9\u05DD \u05D1\u05DE\u05E7\u05D5\u05DD \u05D0\u05D7\u05E8.",
       "Open Following instead of For you": '\u05DC\u05E4\u05EA\u05D5\u05D7 \u05D0\u05EA "\u05E2\u05D5\u05E7\u05D1" \u05D1\u05DE\u05E7\u05D5\u05DD "\u05D1\u05E9\u05D1\u05D9\u05DC\u05DA"',
       "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": '\u05D1\u05D5\u05D7\u05E8 \u05D0\u05EA \u05D4\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05D4\u05E9\u05E0\u05D9\u05D9\u05D4 \u05D1\u05D3\u05E3 \u05D4\u05D1\u05D9\u05EA \u05D1\u05DB\u05DC \u05DB\u05E0\u05D9\u05E1\u05D4 \u05DC\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF. \u05D0\u05DD \u05EA\u05D7\u05D6\u05D5\u05E8 \u05DC"\u05D1\u05E9\u05D1\u05D9\u05DC\u05DA", \u05D6\u05D4 \u05D9\u05D9\u05E9\u05D0\u05E8 \u05DB\u05DA \u05E2\u05D3 \u05E9\u05EA\u05E2\u05D6\u05D5\u05D1 \u05D0\u05EA \u05D4\u05D3\u05E3.',
+      "Hide navigation items": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05E4\u05E8\u05D9\u05D8\u05D9 \u05E0\u05D9\u05D5\u05D5\u05D8",
+      "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "\u05DE\u05D6\u05D4\u05D4 \u05E0\u05D9\u05D5\u05D5\u05D8 \u05D9\u05E6\u05D9\u05D1 \u05D0\u05D7\u05D3 \u05E9\u05DC X \u05D1\u05DB\u05DC \u05E9\u05D5\u05E8\u05D4: home, explore, notifications, messages, profile, more \u05D0\u05D5 premium.",
+      "Save list": "\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05E8\u05E9\u05D9\u05DE\u05D4",
       "Enable filters": "\u05D4\u05E4\u05E2\u05DC\u05EA \u05DE\u05E1\u05E0\u05E0\u05D9\u05DD",
       "Master switch for keyword, regex, premium, and media filters.": "\u05DE\u05EA\u05D2 \u05E8\u05D0\u05E9\u05D9 \u05DC\u05DE\u05E1\u05E0\u05E0\u05D9 \u05DE\u05D9\u05DC\u05D5\u05EA \u05DE\u05E4\u05EA\u05D7, \u05D1\u05D9\u05D8\u05D5\u05D9\u05D9\u05DD \u05E8\u05D2\u05D5\u05DC\u05E8\u05D9\u05D9\u05DD, \u05E4\u05E8\u05D9\u05DE\u05D9\u05D5\u05DD \u05D5\u05DE\u05D3\u05D9\u05D4.",
       "Keyword rules": "\u05DB\u05DC\u05DC\u05D9 \u05DE\u05D9\u05DC\u05D5\u05EA \u05DE\u05E4\u05EA\u05D7",
       "One keyword or phrase per line. Case-insensitive substring match.": "\u05DE\u05D9\u05DC\u05D4 \u05D0\u05D5 \u05D1\u05D9\u05D8\u05D5\u05D9 \u05D0\u05D7\u05D3 \u05D1\u05DB\u05DC \u05E9\u05D5\u05E8\u05D4. \u05D4\u05EA\u05D0\u05DE\u05D4 \u05D7\u05DC\u05E7\u05D9\u05EA \u05DC\u05DC\u05D0 \u05D4\u05D1\u05D7\u05E0\u05D4 \u05D1\u05D9\u05DF \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA \u05D2\u05D3\u05D5\u05DC\u05D5\u05EA \u05DC\u05E7\u05D8\u05E0\u05D5\u05EA.",
-      "Save list": "\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05E8\u05E9\u05D9\u05DE\u05D4",
       "Regex rules": "\u05DB\u05DC\u05DC\u05D9 \u05D1\u05D9\u05D8\u05D5\u05D9\u05D9\u05DD \u05E8\u05D2\u05D5\u05DC\u05E8\u05D9\u05D9\u05DD",
       "One pattern per line. Use /pattern/flags or a bare pattern (case-insensitive).": "\u05EA\u05D1\u05E0\u05D9\u05EA \u05D0\u05D7\u05EA \u05D1\u05DB\u05DC \u05E9\u05D5\u05E8\u05D4. \u05D0\u05E4\u05E9\u05E8 \u200E/pattern/flags\u200E \u05D0\u05D5 \u05EA\u05D1\u05E0\u05D9\u05EA \u05D1\u05DC\u05D1\u05D3 (\u05DC\u05DC\u05D0 \u05D4\u05D1\u05D7\u05E0\u05D4 \u05D1\u05D9\u05DF \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA \u05D2\u05D3\u05D5\u05DC\u05D5\u05EA \u05DC\u05E7\u05D8\u05E0\u05D5\u05EA).",
       "Whitelist handles": "\u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA \u05DE\u05D5\u05D7\u05E8\u05D2\u05D9\u05DD",
@@ -4142,6 +4249,12 @@ html.av-reduce-motion *::after {
       "Default grid": "\u05E8\u05E9\u05EA \u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC",
       "Stacked": "\u05DE\u05D5\u05E2\u05E8\u05DD",
       "Strict grid": "\u05E8\u05E9\u05EA \u05D0\u05D7\u05D9\u05D3\u05D4",
+      "Concurrent downloads": "\u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05D1\u05DE\u05E7\u05D1\u05D9\u05DC",
+      "Maximum media downloads in flight during a batch (1-6).": "\u05D4\u05DE\u05E1\u05E4\u05E8 \u05D4\u05DE\u05E8\u05D1\u05D9 \u05E9\u05DC \u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05DE\u05D3\u05D9\u05D4 \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA \u05D1\u05D0\u05E6\u05D5\u05D5\u05D4 (1\u20136).",
+      "Download pacing": "\u05E7\u05E6\u05D1 \u05D4\u05D5\u05E8\u05D3\u05D4",
+      "Controls the opening burst and sustained pace of batch media requests.": "\u05E9\u05D5\u05DC\u05D8 \u05D1\u05E4\u05E8\u05E5 \u05D4\u05E4\u05EA\u05D9\u05D7\u05D4 \u05D5\u05D1\u05E7\u05E6\u05D1 \u05D4\u05DE\u05EA\u05DE\u05E9\u05DA \u05E9\u05DC \u05D1\u05E7\u05E9\u05D5\u05EA \u05DE\u05D3\u05D9\u05D4 \u05D1\u05D0\u05E6\u05D5\u05D5\u05D4.",
+      "Conservative": "\u05E9\u05DE\u05E8\u05E0\u05D9",
+      "Balanced": "\u05DE\u05D0\u05D5\u05D6\u05DF",
       "Download status": "\u05DE\u05E6\u05D1 \u05D4\u05D4\u05D5\u05E8\u05D3\u05D5\u05EA",
       "History entries": "\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05D1\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4",
       "Clear download history": "\u05E0\u05D9\u05E7\u05D5\u05D9 \u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05D4\u05D4\u05D5\u05E8\u05D3\u05D5\u05EA",
@@ -4286,6 +4399,8 @@ html.av-reduce-motion *::after {
       "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.": "\u05D7\u05D5\u05E1\u05DD \u05DB\u05DC \u05D1\u05E7\u05E9\u05D4 \u05D9\u05D5\u05E6\u05D0\u05EA, \u05DB\u05D5\u05DC\u05DC \u05D4\u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D5\u05EA \u05E9\u05D4\u05D2\u05D3\u05E8\u05EA. \u05DE\u05D5\u05E4\u05E2\u05DC \u05DB\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC; \u05D4\u05E4\u05E2\u05DC\u05EA \u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D4 \u05D4\u05D9\u05D0 \u05DE\u05D4 \u05E9\u05DE\u05DB\u05D1\u05D4 \u05D0\u05D5\u05EA\u05D5.",
       "Refuse X's analytics beacons": "\u05DC\u05E1\u05E8\u05D1 \u05DC\u05DE\u05E9\u05D5\u05D0\u05D5\u05EA \u05D4\u05E0\u05D9\u05EA\u05D5\u05D7 \u05E9\u05DC X",
       "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.": "\u05E2\u05D5\u05E6\u05E8 \u05D0\u05EA \u05E4\u05E0\u05D9\u05D5\u05EA \u05D4\u05DE\u05E2\u05E7\u05D1 \u05E9-X \u05E9\u05D5\u05DC\u05D7 \u05D1\u05DB\u05DC \u05D2\u05DC\u05D9\u05DC\u05D4, \u05DC\u05D7\u05D9\u05E6\u05D4 \u05D5\u05D4\u05E9\u05D4\u05D9\u05D4. \u05E8\u05E7 \u05E0\u05E7\u05D5\u05D3\u05D5\u05EA \u05D4\u05E0\u05D9\u05EA\u05D5\u05D7 \u05E0\u05D3\u05D7\u05D5\u05EA \u2014 \u05EA\u05E2\u05D1\u05D5\u05E8\u05EA \u05D4\u05E6\u05D9\u05E8, \u05D4\u05DE\u05D3\u05D9\u05D4 \u05D5\u05D4\u05D4\u05EA\u05D7\u05D1\u05E8\u05D5\u05EA \u05E0\u05E9\u05D0\u05E8\u05EA \u05E9\u05DC\u05DE\u05D4.",
+      "Monitor selector health": "\u05E0\u05D9\u05D8\u05D5\u05E8 \u05EA\u05E7\u05D9\u05E0\u05D5\u05EA \u05D1\u05D5\u05E8\u05E8\u05D9\u05DD",
+      "Check the current X surface for required and fallback anchors. Turn this off when you do not want selector diagnostics.": "\u05D1\u05D5\u05D3\u05E7 \u05D0\u05EA \u05DE\u05E9\u05D8\u05D7 X \u05D4\u05E0\u05D5\u05DB\u05D7\u05D9 \u05DC\u05D0\u05D9\u05EA\u05D5\u05E8 \u05E2\u05D5\u05D2\u05E0\u05D9\u05DD \u05E0\u05D3\u05E8\u05E9\u05D9\u05DD \u05D5\u05D7\u05DC\u05D5\u05E4\u05D9\u05D9\u05DD. \u05DB\u05D1\u05D4 \u05D6\u05D0\u05EA \u05D0\u05DD \u05D0\u05D9\u05E0\u05DA \u05E8\u05D5\u05E6\u05D4 \u05D0\u05D1\u05D7\u05D5\u05DF \u05D1\u05D5\u05E8\u05E8\u05D9\u05DD.",
       "Connected to the page": "\u05DE\u05D7\u05D5\u05D1\u05E8 \u05DC\u05D3\u05E3",
       "Page access": "\u05D2\u05D9\u05E9\u05D4 \u05DC\u05D3\u05E3",
       "Beacons refused": "\u05DE\u05E9\u05D5\u05D0\u05D5\u05EA \u05E9\u05E0\u05D3\u05D7\u05D5",
@@ -4315,10 +4430,13 @@ html.av-reduce-motion *::after {
       "Writer mode off": "\u05DE\u05E6\u05D1 \u05DB\u05EA\u05D9\u05D1\u05D4 \u05DB\u05D1\u05D5\u05D9",
       "Following timeline on": '\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF "\u05E2\u05D5\u05E7\u05D1" \u05E4\u05E2\u05D9\u05DC',
       "Following timeline off": '\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF "\u05E2\u05D5\u05E7\u05D1" \u05DB\u05D1\u05D5\u05D9',
+      "Navigation visibility saved": "\u05E0\u05E8\u05D0\u05D5\u05EA \u05D4\u05E0\u05D9\u05D5\u05D5\u05D8 \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Local-only mode on": "\u05DE\u05E6\u05D1 \u05DE\u05E7\u05D5\u05DE\u05D9 \u05D1\u05DC\u05D1\u05D3 \u05E4\u05E2\u05D9\u05DC",
       "Local-only mode off": "\u05DE\u05E6\u05D1 \u05DE\u05E7\u05D5\u05DE\u05D9 \u05D1\u05DC\u05D1\u05D3 \u05DB\u05D1\u05D5\u05D9",
       "Analytics beacons refused": "\u05DE\u05E9\u05D5\u05D0\u05D5\u05EA \u05D4\u05E0\u05D9\u05EA\u05D5\u05D7 \u05E0\u05D3\u05D7\u05D5",
       "Analytics beacons allowed": "\u05DE\u05E9\u05D5\u05D0\u05D5\u05EA \u05D4\u05E0\u05D9\u05EA\u05D5\u05D7 \u05DE\u05D5\u05EA\u05E8\u05D5\u05EA",
+      "Selector health monitoring on": "\u05E0\u05D9\u05D8\u05D5\u05E8 \u05EA\u05E7\u05D9\u05E0\u05D5\u05EA \u05D4\u05D1\u05D5\u05E8\u05E8\u05D9\u05DD \u05D4\u05D5\u05E4\u05E2\u05DC",
+      "Selector health monitoring off": "\u05E0\u05D9\u05D8\u05D5\u05E8 \u05EA\u05E7\u05D9\u05E0\u05D5\u05EA \u05D4\u05D1\u05D5\u05E8\u05E8\u05D9\u05DD \u05D4\u05D5\u05E9\u05D1\u05EA",
       "Could not apply preset.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05D4\u05D7\u05D9\u05DC \u05D0\u05EA \u05D4\u05E2\u05E8\u05DB\u05D4.",
       "No UserCell rows found.": "\u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0\u05D5 \u05E9\u05D5\u05E8\u05D5\u05EA UserCell.",
       "Snapshot failed.": "\u05EA\u05E6\u05DC\u05D5\u05DD \u05D4\u05DE\u05E6\u05D1 \u05E0\u05DB\u05E9\u05DC.",
@@ -4425,6 +4543,8 @@ html.av-reduce-motion *::after {
       "Duplicate history on": "\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05DB\u05E4\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC\u05D4",
       "Duplicate history off": "\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05DB\u05E4\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA \u05DB\u05D1\u05D5\u05D9\u05D4",
       "Media layout saved": "\u05E4\u05E8\u05D9\u05E1\u05EA \u05D4\u05DE\u05D3\u05D9\u05D4 \u05E0\u05E9\u05DE\u05E8\u05D4",
+      "Concurrent download limit saved": "\u05DE\u05D2\u05D1\u05DC\u05EA \u05D4\u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05D1\u05DE\u05E7\u05D1\u05D9\u05DC \u05E0\u05E9\u05DE\u05E8\u05D4",
+      "Download pacing saved": "\u05E7\u05E6\u05D1 \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05E0\u05E9\u05DE\u05E8",
       "History cleared": "\u05D4\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05E0\u05D5\u05E7\u05EA\u05D4",
       "Could not clear history.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E0\u05E7\u05D5\u05EA \u05D0\u05EA \u05D4\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4.",
       "Downloading media from this view\u2026": "\u05DE\u05D5\u05E8\u05D9\u05D3 \u05D0\u05EA \u05D4\u05DE\u05D3\u05D9\u05D4 \u05DE\u05D4\u05E2\u05DE\u05D5\u05D3 \u05D4\u05D6\u05D4\u2026",
@@ -5101,6 +5221,7 @@ html.av-reduce-motion *::after {
     video: "Videos",
     gif: "GIFs"
   };
+  var HIDE_NAV_ITEM_IDS = /* @__PURE__ */ new Set(["premium", "home", "explore", "notifications", "messages", "profile", "more"]);
   function mountControlCenter(options) {
     const existing = document.getElementById("av-control-center");
     existing?.remove();
@@ -5357,7 +5478,7 @@ html.av-reduce-motion *::after {
       ];
     };
     const layoutRows = () => {
-      return [
+      const rows = [
         toggleRow("Hide right sidebar", "Reduce trends, recommendations, and footer noise.", options.settings.layout.hideRightSidebar, async (checked) => {
           options.settings.layout.hideRightSidebar = checked;
           await save("Sidebar preference saved");
@@ -5389,6 +5510,20 @@ html.av-reduce-motion *::after {
           }
         )
       ];
+      rows.push(
+        textareaRow(
+          "Hide navigation items",
+          "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.",
+          options.settings.layout.hideNavItems,
+          async (lines) => {
+            options.settings.layout.hideNavItems = [...new Set(
+              lines.map((line) => line.trim().toLowerCase()).filter((line) => HIDE_NAV_ITEM_IDS.has(line))
+            )].slice(0, 24);
+            await save("Navigation visibility saved");
+          }
+        )
+      );
+      return rows;
     };
     const trustRows = () => {
       return [
@@ -5409,6 +5544,15 @@ html.av-reduce-motion *::after {
           async (checked) => {
             options.settings.privacy.blockAnalyticsBeacons = checked;
             await save(checked ? "Analytics beacons refused" : "Analytics beacons allowed");
+          }
+        ),
+        toggleRow(
+          "Monitor selector health",
+          "Check the current X surface for required and fallback anchors. Turn this off when you do not want selector diagnostics.",
+          options.settings.diagnostics.selectorHealth,
+          async (checked) => {
+            options.settings.diagnostics.selectorHealth = checked;
+            await save(checked ? "Selector health monitoring on" : "Selector health monitoring off");
           }
         ),
         ...beaconRows(),
@@ -6903,6 +7047,35 @@ html.av-reduce-motion *::after {
           }
         )
       );
+      rows.push(
+        integerInputRow(
+          "Concurrent downloads",
+          "Maximum media downloads in flight during a batch (1-6).",
+          options.settings.jobs.concurrentDownloads,
+          async (value) => {
+            options.settings.jobs.concurrentDownloads = Math.max(1, Math.min(6, Math.trunc(value)));
+            await save("Concurrent download limit saved");
+          },
+          { min: 1, max: 6 }
+        )
+      );
+      rows.push(
+        selectRow(
+          "Download pacing",
+          options.settings.jobs.rateLimitMode,
+          [
+            ["conservative", "Conservative"],
+            ["balanced", "Balanced"]
+          ],
+          async (value) => {
+            if (value === "conservative" || value === "balanced") {
+              options.settings.jobs.rateLimitMode = value;
+              await save("Download pacing saved");
+            }
+          },
+          "Controls the opening burst and sustained pace of batch media requests."
+        )
+      );
       const status2 = options.getMediaStatus?.();
       if (status2) {
         rows.push(
@@ -7235,7 +7408,13 @@ html.av-reduce-motion *::after {
     };
     const selectorHealthRows = () => {
       const health = options.getSelectorHealth?.();
-      if (!health || health.required === 0) {
+      if (!health) {
+        return [dataRow("Selector health", selectorSummary())];
+      }
+      if (!health.enabled) {
+        return [dataRow("Selector health", "Disabled")];
+      }
+      if (health.required === 0) {
         return [dataRow("Selector health", selectorSummary())];
       }
       t("Selector matches");
@@ -7529,14 +7708,17 @@ html.av-reduce-motion *::after {
     row.append(input, controls);
     return row;
   }
-  function integerInputRow(label, description, value, onChange) {
+  function integerInputRow(label, description, value, onChange, bounds = {}) {
     const row = el("div", "av-row av-row-stack");
     const copy = el("span", "av-row-copy");
     copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
     row.append(copy);
     const input = document.createElement("input");
     input.type = "number";
-    input.min = "0";
+    input.min = String(bounds.min ?? 0);
+    if (bounds.max !== void 0) {
+      input.max = String(bounds.max);
+    }
     input.step = "1";
     input.className = "av-text-input";
     input.value = String(value);
@@ -8873,6 +9055,9 @@ input[type="checkbox"] {
     },
     apply(ctx) {
       if (!ctx.settings.diagnostics.selectorHealth) {
+        if (currentSnapshot.enabled) {
+          resetState();
+        }
         return;
       }
       updateSnapshot(ctx);
@@ -8945,6 +9130,7 @@ input[type="checkbox"] {
       lastHealthSignature = signature;
     }
     currentSnapshot = {
+      enabled: true,
       route: ctx.route.surface,
       state: state2,
       required: required.length,
@@ -8968,6 +9154,7 @@ input[type="checkbox"] {
   }
   function emptySnapshot() {
     return {
+      enabled: false,
       route: "unknown",
       state: "healthy",
       required: 0,
@@ -8984,6 +9171,7 @@ input[type="checkbox"] {
   }
   function snapshotDetails(snapshot) {
     return {
+      enabled: snapshot.enabled,
       route: snapshot.route,
       state: snapshot.state,
       required: snapshot.required,
@@ -18047,6 +18235,13 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     }
     #tokens;
     #lastRefill;
+    /** Reconcile a live settings change without discarding tokens already earned. */
+    configure(capacity, refillPerSecond) {
+      this.refill();
+      this.capacity = Math.max(1, capacity);
+      this.refillPerSecond = Math.max(0, refillPerSecond);
+      this.#tokens = Math.min(this.#tokens, this.capacity);
+    }
     tryRemove(tokens = 1) {
       this.refill();
       if (this.#tokens < tokens) {
@@ -18285,6 +18480,16 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     });
     setLocalOnlyPolicy(() => settings.privacy.localOnly);
     const limiter = settings.jobs.rateLimitMode === "conservative" ? new TokenBucket(4, 1) : new TokenBucket(8, 4);
+    let appliedRateLimitMode = settings.jobs.rateLimitMode;
+    const reconcileRateLimit = () => {
+      if (settings.jobs.rateLimitMode === appliedRateLimitMode) {
+        return;
+      }
+      const conservative = settings.jobs.rateLimitMode === "conservative";
+      limiter.configure(conservative ? 4 : 8, conservative ? 1 : 4);
+      appliedRateLimitMode = settings.jobs.rateLimitMode;
+      diagnostics.info("Rate limit mode reconciled", { mode: appliedRateLimitMode });
+    };
     const registry = new FeatureRegistry();
     const policy = createTrustedHtmlPolicy();
     const auditLog = new AuditLog(
@@ -18333,6 +18538,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         diagnostics.info("Settings saved", { key: SETTINGS_KEY });
       },
       requestApply() {
+        reconcileRateLimit();
         void registry.applyAll(context, document);
       }
     };

@@ -275,6 +275,8 @@ test("the media batch actually draws from the rate limiter", async () => {
   assert.match(main, /rateLimitMode === "conservative"/);
   assert.match(main, /new TokenBucket\(4, 1\)/);
   assert.match(main, /new TokenBucket\(8, 4\)/);
+  assert.match(main, /limiter\.configure\(conservative \? 4 : 8, conservative \? 1 : 4\)/);
+  assert.match(main, /reconcileRateLimit\(\);\s*void registry\.applyAll/);
 });
 
 test("media.zipChunkSize splits a long export into several archives", async () => {

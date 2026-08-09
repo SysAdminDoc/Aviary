@@ -45,6 +45,9 @@
 - Trust now reports route-aware selector health with required and optional counts, stable or
   fallback matches, missing surfaces, affected features, and live healthy/degraded transitions;
   Grok coverage is visible without treating unrelated routes as failures.
+- Control Center now exposes bounded editors for navigation declutter, concurrent media downloads,
+  download pacing, and selector-health monitoring; changing pacing reconciles the live token
+  bucket immediately while blocked-account and self-repost placeholders remain disabled.
 - The local bookmark library is now a shipped product surface: rendered posts get a reversible
   Save locally control, and Library search can edit tags, folders, reminders, notes, or remove entries.
 
