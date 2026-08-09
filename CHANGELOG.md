@@ -28,6 +28,8 @@
 - Current X MediaSource players now get a real poster Thumb anchor and a Video/GIF control when
   the page-world GraphQL response exposes a direct variant. Blob-only players remain unavailable
   instead of reporting a false save, with metadata retained in a bounded local cache.
+- Hide Grok now covers the current navigation link and per-post “Grok actions” buttons as well as
+  the drawer and image-generation entry points, while leaving unrelated navigation and actions alone.
 
 ## 1.14.1 - 2026-08-08
 

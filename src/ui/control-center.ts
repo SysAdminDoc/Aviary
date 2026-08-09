@@ -488,7 +488,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           options.settings.layout.hideTrends = checked;
           await save("Trend preference saved");
         }),
-        toggleRow("Hide Grok surfaces", "Remove Grok drawer and composer buttons where detected.", options.settings.layout.hideGrok, async (checked) => {
+        toggleRow("Hide Grok surfaces", "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.", options.settings.layout.hideGrok, async (checked) => {
           options.settings.layout.hideGrok = checked;
           await save("Grok preference saved");
         }),

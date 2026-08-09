@@ -155,7 +155,9 @@ html.av-hide-grok [data-testid="GrokDrawer"],
 html.av-hide-grok [data-testid="GrokDrawerHeader"],
 html.av-hide-grok [data-testid="chat-drawer-root"],
 html.av-hide-grok [data-testid="chat-drawer-main"],
-html.av-hide-grok [data-testid="grokImgGen"] {
+html.av-hide-grok [data-testid="grokImgGen"],
+html.av-hide-grok a[href="/i/grok"],
+html.av-hide-grok button[aria-label="Grok actions"] {
   display: none !important;
 }
 

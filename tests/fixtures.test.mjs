@@ -32,7 +32,9 @@ test("source selector registry contains stable and fallback selectors", async ()
     'article[data-testid="tweet"]',
     '[data-testid="tweetText"]',
     '[data-testid="tweetTextarea_0"]',
-    '[data-testid="GrokDrawer"]'
+    '[data-testid="GrokDrawer"]',
+    'a[href="/i/grok"]',
+    'button[aria-label="Grok actions"]'
   ]) {
     assert.ok(source.includes(selector), `missing selector: ${selector}`);
   }

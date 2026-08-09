@@ -84,10 +84,11 @@ export const SURFACE_SELECTORS: SurfaceSelector[] = [
   },
   {
     surface: "Grok",
-    stable: '[data-testid="GrokDrawer"], [data-testid="grokImgGen"]',
+    stable:
+      '[data-testid="GrokDrawer"], [data-testid="grokImgGen"], a[href="/i/grok"], button[aria-label="Grok actions"]',
     fallback: 'div[id*="grok" i]',
     churnRisk: "High",
-    note: "Grok controls change frequently; isolate all tweaks."
+    note: "Drawer, navigation, image-generation, and per-post Grok surfaces change frequently; isolate all tweaks."
   }
 ];
 
