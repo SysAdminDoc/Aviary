@@ -331,6 +331,9 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     status.textContent = t(message);
   };
 
+  /** Disabled buttons lose focus in Chromium, so remember the action row across a refresh. */
+  let pendingActionFocus: string | null = null;
+
   /**
    * A row's identity across rebuilds: its section title, its label, and its position among the
    * focusable controls of that row. Every row is rebuilt from the same settings object in the
@@ -362,11 +365,49 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     return null;
   };
 
+  /**
+   * All action rows share one rejection boundary. A handler may still catch an expected failure
+   * itself when it has more useful copy, but a new action cannot leak an unhandled rejection or
+   * leave its button disabled just because its first implementation forgot that boundary.
+   */
+  const actionRow = (
+    label: string,
+    description: string,
+    onClick: () => Promise<void>,
+    failureMessage = "Action failed."
+  ): HTMLElement =>
+    buildActionRow(
+      label,
+      description,
+      onClick,
+      (error) => {
+        try {
+          options.onError(`${label} failed`, error);
+        } catch {
+          // Error reporting is diagnostic plumbing; it must never create a second rejected action.
+        }
+        if (failureMessage === "Action failed.") {
+          setStatus("Action failed.");
+        } else {
+          setStatus(failureMessage);
+        }
+      },
+      (button) => {
+        pendingActionFocus = focusIdentity(button);
+      },
+      (button) => {
+        if (pendingActionFocus && !shadow.activeElement && button.isConnected) {
+          button.focus({ preventScroll: true });
+          pendingActionFocus = null;
+        }
+      }
+    );
+
   const render = (): void => {
     // Every render replaces every row, so the caret has to be put back deliberately —
     // otherwise saving a setting drops focus to the document.
     const active = shadow.activeElement as HTMLElement | null;
-    const identity = focusIdentity(active);
+    const identity = focusIdentity(active) ?? pendingActionFocus;
     const selection = captureSelection(active);
     const scrollTop = body.scrollTop;
 
@@ -409,6 +450,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       if (target) {
         target.focus({ preventScroll: true });
         restoreSelection(target, selection);
+        pendingActionFocus = null;
       }
     }
   };
@@ -858,6 +900,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           async () => {
             try {
               const result = await options.captureSnapshot!("followers");
+              render();
               setStatus(result ? `Captured ${result.count} followers for @${result.handle}.` : "No UserCell rows found.");
             } catch (error) {
               options.onError("Snapshot failed", error);
@@ -873,6 +916,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           async () => {
             try {
               const result = await options.captureSnapshot!("following");
+              render();
               setStatus(result ? `Captured ${result.count} following for @${result.handle}.` : "No UserCell rows found.");
             } catch (error) {
               options.onError("Snapshot failed", error);
@@ -915,6 +959,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           setStatus("Reading archive — large files take a moment…");
           try {
             const result = await options.importArchive!(file);
+            render();
             const warningsLabel =
               result.warnings > 0 || result.errors > 0
                 ? ` (${result.warnings} warning${result.warnings === 1 ? "" : "s"}, ${result.errors} error${
@@ -1025,6 +1070,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             setStatus("Building cleanup preview…");
           try {
               const result = await options.enqueueCleanupReview!();
+              render();
               setStatus(`Enqueued ${result.added} items (${result.protected} protected skipped).`);
             } catch (error) {
               options.onError("Could not enqueue cleanup", error);
@@ -1105,8 +1151,13 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     if (options.pingAria2) {
       rows.push(
         actionRow("Test Aria2 connection", "Sends a trivial JSON-RPC call.", async () => {
-          const result = await options.pingAria2!();
-          setStatus(result.ok ? "Aria2 reachable." : `Aria2 unreachable: ${result.error}`);
+          try {
+            const result = await options.pingAria2!();
+            setStatus(result.ok ? "Aria2 reachable." : `Aria2 unreachable: ${result.error}`);
+          } catch (error) {
+            options.onError("Aria2 connection test failed", error);
+            setStatus("Aria2 connection test failed.");
+          }
         })
       );
     }
@@ -1269,22 +1320,32 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
       rows.push(
         actionRow("Crosspost composer → Bluesky", "Uses the current composer text.", async () => {
-          const result = await options.crosspost!("bluesky", { asThread: checkbox.checked });
-          setStatus(
-            result.ok
-              ? `Posted ${result.posts ?? 1} to Bluesky.${result.url ? ` ${result.url}` : ""}`
-              : `Bluesky failed: ${result.error}`
-          );
+          try {
+            const result = await options.crosspost!("bluesky", { asThread: checkbox.checked });
+            setStatus(
+              result.ok
+                ? `Posted ${result.posts ?? 1} to Bluesky.${result.url ? ` ${result.url}` : ""}`
+                : `Bluesky failed: ${result.error}`
+            );
+          } catch (error) {
+            options.onError("Bluesky crosspost failed", error);
+            setStatus("Bluesky crosspost failed.");
+          }
         })
       );
       rows.push(
         actionRow("Crosspost composer → Mastodon", "Uses the current composer text.", async () => {
-          const result = await options.crosspost!("mastodon", { asThread: checkbox.checked });
-          setStatus(
-            result.ok
-              ? `Posted ${result.posts ?? 1} to Mastodon.${result.url ? ` ${result.url}` : ""}`
-              : `Mastodon failed: ${result.error}`
-          );
+          try {
+            const result = await options.crosspost!("mastodon", { asThread: checkbox.checked });
+            setStatus(
+              result.ok
+                ? `Posted ${result.posts ?? 1} to Mastodon.${result.url ? ` ${result.url}` : ""}`
+                : `Mastodon failed: ${result.error}`
+            );
+          } catch (error) {
+            options.onError("Mastodon crosspost failed", error);
+            setStatus("Mastodon crosspost failed.");
+          }
         })
       );
     }
@@ -1417,8 +1478,9 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           "Embed every captured record. Re-running is cheap because cached entries are skipped.",
           async () => {
             setStatus("Rebuilding semantic index…");
-          try {
+            try {
               const result = await options.rebuildSemanticIndex!();
+              render();
               // The index is capped, so say when the cap actually bit rather than letting the
               // total quietly stop growing.
               const trimmed = result.dropped > 0 ? ` · oldest ${result.dropped} dropped` : "";
@@ -1479,8 +1541,13 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     if (options.clearSemanticIndex) {
       rows.push(
         actionRow("Clear semantic index", "Forget every embedded record.", async () => {
-          await options.clearSemanticIndex!();
-          await save("Semantic index cleared");
+          try {
+            await options.clearSemanticIndex!();
+            await save("Semantic index cleared");
+          } catch (error) {
+            options.onError("Could not clear semantic index", error);
+            setStatus("Could not clear semantic index.");
+          }
         })
       );
     }
@@ -1960,6 +2027,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           setStatus("Collecting visible posts…");
           try {
             const result = await options.runExport!();
+            render();
             const files = result.files ?? 1;
             setStatus(
               result.records === 0
@@ -2930,10 +2998,13 @@ function integerInputRow(
   return row;
 }
 
-function actionRow(
+function buildActionRow(
   label: string,
   description: string,
-  onClick: () => Promise<void>
+  onClick: () => Promise<void>,
+  onReject?: (error: unknown) => void,
+  onStart?: (button: HTMLButtonElement) => void,
+  onFinish?: (button: HTMLButtonElement) => void
 ): HTMLElement {
   const row = el("div", "av-row");
   const copy = el("span", "av-row-copy");
@@ -2943,10 +3014,21 @@ function actionRow(
   const button = el("button", "av-button av-button-secondary", t(label)) as HTMLButtonElement;
   button.type = "button";
   button.addEventListener("click", () => {
+    onStart?.(button);
     button.disabled = true;
-    void onClick().finally(() => {
-      button.disabled = false;
-    });
+    void Promise.resolve()
+      .then(onClick)
+      .catch((error: unknown) => {
+        try {
+          onReject?.(error);
+        } catch {
+          // The rejection boundary must remain terminal even if diagnostic UI code fails.
+        }
+      })
+      .finally(() => {
+        button.disabled = false;
+        onFinish?.(button);
+      });
   });
   row.append(button);
   return row;

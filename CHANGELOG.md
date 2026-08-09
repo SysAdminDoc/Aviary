@@ -34,6 +34,11 @@
   growing layout keeps the tiers distinct when the sidebar is hidden.
 - Arabic and Hebrew now set direction on the Control Center host itself, mirroring the panel rail
   and switches without changing X's document direction.
+- Control Center action rows now catch rejected or synchronously thrown callbacks, report failures
+  to diagnostics, restore their buttons, and show localized failure status for Aria2 and crosspost
+  refusals.
+- Snapshot, archive, cleanup, semantic-index, and export mutations now refresh store-derived rows
+  immediately while preserving the focused action and scroll position.
 - The local bookmark library is now a shipped product surface: rendered posts get a reversible
   Save locally control, and Library search can edit tags, folders, reminders, notes, or remove entries.
 

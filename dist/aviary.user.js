@@ -536,6 +536,7 @@ html.av-reduce-motion *::after {
       "Disabled": "Desactivada",
       "Panel language": "Idioma del panel",
       "Selector health": "Estado de los selectores",
+      "Action failed.": "La acci\xF3n fall\xF3.",
       "Theme value is not supported.": "Ese tema no es compatible.",
       "Theme updated": "Tema actualizado",
       "Density updated": "Densidad actualizada",
@@ -579,6 +580,7 @@ html.av-reduce-motion *::after {
       "Aria2 secret saved": "Secreto de Aria2 guardado",
       "Aria2 threshold saved": "Umbral de Aria2 guardado",
       "Aria2 reachable.": "Aria2 accesible.",
+      "Aria2 connection test failed.": "Fall\xF3 la prueba de conexi\xF3n con Aria2.",
       "Aria2 sweep failed.": "Error al consultar Aria2.",
       "Bluesky on": "Bluesky activado",
       "Bluesky off": "Bluesky desactivado",
@@ -591,6 +593,8 @@ html.av-reduce-motion *::after {
       "Mastodon token saved": "Token de Mastodon guardado",
       "Crosspost attachment on": "Adjunto de publicaci\xF3n cruzada activado",
       "Crosspost attachment off": "Adjunto de publicaci\xF3n cruzada desactivado",
+      "Bluesky crosspost failed.": "Fall\xF3 la publicaci\xF3n cruzada en Bluesky.",
+      "Mastodon crosspost failed.": "Fall\xF3 la publicaci\xF3n cruzada en Mastodon.",
       "AI runs on": "Ejecuciones de IA activadas",
       "AI runs off": "Ejecuciones de IA desactivadas",
       "AI endpoint saved": "Endpoint de IA guardado",
@@ -606,6 +610,7 @@ html.av-reduce-motion *::after {
       "Rebuilding semantic index\u2026": "Reconstruyendo el \xEDndice sem\xE1ntico\u2026",
       "Embedding failed.": "Fallaron los embeddings.",
       "Semantic index cleared": "\xCDndice sem\xE1ntico borrado",
+      "Could not clear semantic index.": "No se pudo borrar el \xEDndice sem\xE1ntico.",
       "Offscreen video paused": "V\xEDdeo fuera de pantalla en pausa",
       "Offscreen video left playing": "V\xEDdeo fuera de pantalla sigue reproduci\xE9ndose",
       "Best video quality on": "M\xE1xima calidad de v\xEDdeo activada",
@@ -1062,6 +1067,7 @@ html.av-reduce-motion *::after {
       "Disabled": "Desativada",
       "Panel language": "Idioma do painel",
       "Selector health": "Sa\xFAde dos seletores",
+      "Action failed.": "A a\xE7\xE3o falhou.",
       "Theme value is not supported.": "Esse tema n\xE3o \xE9 suportado.",
       "Theme updated": "Tema atualizado",
       "Density updated": "Densidade atualizada",
@@ -1105,6 +1111,7 @@ html.av-reduce-motion *::after {
       "Aria2 secret saved": "Segredo do Aria2 salvo",
       "Aria2 threshold saved": "Limite do Aria2 guardado",
       "Aria2 reachable.": "Aria2 acess\xEDvel.",
+      "Aria2 connection test failed.": "Falha no teste de liga\xE7\xE3o ao Aria2.",
       "Aria2 sweep failed.": "Falha ao consultar o Aria2.",
       "Bluesky on": "Bluesky ativado",
       "Bluesky off": "Bluesky desativado",
@@ -1117,6 +1124,8 @@ html.av-reduce-motion *::after {
       "Mastodon token saved": "Token do Mastodon guardado",
       "Crosspost attachment on": "Anexo de publica\xE7\xE3o cruzada ativado",
       "Crosspost attachment off": "Anexo de publica\xE7\xE3o cruzada desativado",
+      "Bluesky crosspost failed.": "Falha na publica\xE7\xE3o cruzada para o Bluesky.",
+      "Mastodon crosspost failed.": "Falha na publica\xE7\xE3o cruzada para o Mastodon.",
       "AI runs on": "Execu\xE7\xF5es de IA ativadas",
       "AI runs off": "Execu\xE7\xF5es de IA desativadas",
       "AI endpoint saved": "Endpoint de IA guardado",
@@ -1132,6 +1141,7 @@ html.av-reduce-motion *::after {
       "Rebuilding semantic index\u2026": "A reconstruir o \xEDndice sem\xE2ntico\u2026",
       "Embedding failed.": "Os embeddings falharam.",
       "Semantic index cleared": "\xCDndice sem\xE2ntico limpo",
+      "Could not clear semantic index.": "N\xE3o foi poss\xEDvel limpar o \xEDndice sem\xE2ntico.",
       "Offscreen video paused": "V\xEDdeo fora do ecr\xE3 em pausa",
       "Offscreen video left playing": "V\xEDdeo fora do ecr\xE3 continua a reproduzir",
       "Best video quality on": "M\xE1xima qualidade de v\xEDdeo ativada",
@@ -1588,6 +1598,7 @@ html.av-reduce-motion *::after {
       "Disabled": "D\xE9sactiv\xE9e",
       "Panel language": "Langue du panneau",
       "Selector health": "\xC9tat des s\xE9lecteurs",
+      "Action failed.": "L\u2019action a \xE9chou\xE9.",
       "Theme value is not supported.": "Ce th\xE8me n'est pas pris en charge.",
       "Theme updated": "Th\xE8me mis \xE0 jour",
       "Density updated": "Densit\xE9 mise \xE0 jour",
@@ -1631,6 +1642,7 @@ html.av-reduce-motion *::after {
       "Aria2 secret saved": "Secret Aria2 enregistr\xE9",
       "Aria2 threshold saved": "Seuil Aria2 enregistr\xE9",
       "Aria2 reachable.": "Aria2 joignable.",
+      "Aria2 connection test failed.": "\xC9chec du test de connexion \xE0 Aria2.",
       "Aria2 sweep failed.": "\xC9chec de l'interrogation d'Aria2.",
       "Bluesky on": "Bluesky activ\xE9",
       "Bluesky off": "Bluesky d\xE9sactiv\xE9",
@@ -1643,6 +1655,8 @@ html.av-reduce-motion *::after {
       "Mastodon token saved": "Jeton Mastodon enregistr\xE9",
       "Crosspost attachment on": "Pi\xE8ce jointe de republication activ\xE9e",
       "Crosspost attachment off": "Pi\xE8ce jointe de republication d\xE9sactiv\xE9e",
+      "Bluesky crosspost failed.": "\xC9chec de la publication crois\xE9e vers Bluesky.",
+      "Mastodon crosspost failed.": "\xC9chec de la publication crois\xE9e vers Mastodon.",
       "AI runs on": "Ex\xE9cutions IA activ\xE9es",
       "AI runs off": "Ex\xE9cutions IA d\xE9sactiv\xE9es",
       "AI endpoint saved": "Point de terminaison IA enregistr\xE9",
@@ -1658,6 +1672,7 @@ html.av-reduce-motion *::after {
       "Rebuilding semantic index\u2026": "Reconstruction de l'index s\xE9mantique\u2026",
       "Embedding failed.": "Le calcul des embeddings a \xE9chou\xE9.",
       "Semantic index cleared": "Index s\xE9mantique effac\xE9",
+      "Could not clear semantic index.": "Impossible d\u2019effacer l\u2019index s\xE9mantique.",
       "Offscreen video paused": "Vid\xE9o hors \xE9cran mise en pause",
       "Offscreen video left playing": "Vid\xE9o hors \xE9cran laiss\xE9e en lecture",
       "Best video quality on": "Qualit\xE9 vid\xE9o maximale activ\xE9e",
@@ -2114,6 +2129,7 @@ html.av-reduce-motion *::after {
       "Disabled": "Deaktiviert",
       "Panel language": "Sprache des Panels",
       "Selector health": "Selektor-Zustand",
+      "Action failed.": "Aktion fehlgeschlagen.",
       "Theme value is not supported.": "Dieses Design wird nicht unterst\xFCtzt.",
       "Theme updated": "Design aktualisiert",
       "Density updated": "Dichte aktualisiert",
@@ -2157,6 +2173,7 @@ html.av-reduce-motion *::after {
       "Aria2 secret saved": "Aria2-Secret gespeichert",
       "Aria2 threshold saved": "Aria2-Schwelle gespeichert",
       "Aria2 reachable.": "Aria2 erreichbar.",
+      "Aria2 connection test failed.": "Aria2-Verbindungstest fehlgeschlagen.",
       "Aria2 sweep failed.": "Aria2-Abfrage fehlgeschlagen.",
       "Bluesky on": "Bluesky an",
       "Bluesky off": "Bluesky aus",
@@ -2169,6 +2186,8 @@ html.av-reduce-motion *::after {
       "Mastodon token saved": "Mastodon-Token gespeichert",
       "Crosspost attachment on": "Crosspost-Anhang an",
       "Crosspost attachment off": "Crosspost-Anhang aus",
+      "Bluesky crosspost failed.": "Bluesky-Crosspost fehlgeschlagen.",
+      "Mastodon crosspost failed.": "Mastodon-Crosspost fehlgeschlagen.",
       "AI runs on": "KI-L\xE4ufe an",
       "AI runs off": "KI-L\xE4ufe aus",
       "AI endpoint saved": "KI-Endpunkt gespeichert",
@@ -2184,6 +2203,7 @@ html.av-reduce-motion *::after {
       "Rebuilding semantic index\u2026": "Semantischer Index wird neu aufgebaut\u2026",
       "Embedding failed.": "Embedding fehlgeschlagen.",
       "Semantic index cleared": "Semantischer Index gel\xF6scht",
+      "Could not clear semantic index.": "Semantischer Index konnte nicht gel\xF6scht werden.",
       "Offscreen video paused": "Video au\xDFerhalb des Bilds pausiert",
       "Offscreen video left playing": "Video au\xDFerhalb des Bilds l\xE4uft weiter",
       "Best video quality on": "Beste Videoqualit\xE4t an",
@@ -2640,6 +2660,7 @@ html.av-reduce-motion *::after {
       "Disabled": "\u7121\u52B9",
       "Panel language": "\u30D1\u30CD\u30EB\u306E\u8A00\u8A9E",
       "Selector health": "\u30BB\u30EC\u30AF\u30BF\u306E\u72B6\u614B",
+      "Action failed.": "\u64CD\u4F5C\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
       "Theme value is not supported.": "\u305D\u306E\u30C6\u30FC\u30DE\u306B\u306F\u5BFE\u5FDC\u3057\u3066\u3044\u307E\u305B\u3093\u3002",
       "Theme updated": "\u30C6\u30FC\u30DE\u3092\u66F4\u65B0\u3057\u307E\u3057\u305F",
       "Density updated": "\u8868\u793A\u5BC6\u5EA6\u3092\u66F4\u65B0\u3057\u307E\u3057\u305F",
@@ -2683,6 +2704,7 @@ html.av-reduce-motion *::after {
       "Aria2 secret saved": "Aria2 \u306E\u30B7\u30FC\u30AF\u30EC\u30C3\u30C8\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Aria2 threshold saved": "Aria2 \u306E\u3057\u304D\u3044\u5024\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Aria2 reachable.": "Aria2 \u306B\u63A5\u7D9A\u3067\u304D\u307E\u3057\u305F\u3002",
+      "Aria2 connection test failed.": "Aria2 \u63A5\u7D9A\u30C6\u30B9\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
       "Aria2 sweep failed.": "Aria2 \u306E\u4E00\u89A7\u53D6\u5F97\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
       "Bluesky on": "Bluesky \u30AA\u30F3",
       "Bluesky off": "Bluesky \u30AA\u30D5",
@@ -2695,6 +2717,8 @@ html.av-reduce-motion *::after {
       "Mastodon token saved": "Mastodon \u306E\u30C8\u30FC\u30AF\u30F3\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Crosspost attachment on": "\u30AF\u30ED\u30B9\u30DD\u30B9\u30C8\u306E\u6DFB\u4ED8 \u30AA\u30F3",
       "Crosspost attachment off": "\u30AF\u30ED\u30B9\u30DD\u30B9\u30C8\u306E\u6DFB\u4ED8 \u30AA\u30D5",
+      "Bluesky crosspost failed.": "Bluesky \u3078\u306E\u30AF\u30ED\u30B9\u30DD\u30B9\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
+      "Mastodon crosspost failed.": "Mastodon \u3078\u306E\u30AF\u30ED\u30B9\u30DD\u30B9\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
       "AI runs on": "AI \u5B9F\u884C \u30AA\u30F3",
       "AI runs off": "AI \u5B9F\u884C \u30AA\u30D5",
       "AI endpoint saved": "AI \u306E\u30A8\u30F3\u30C9\u30DD\u30A4\u30F3\u30C8\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
@@ -2710,6 +2734,7 @@ html.av-reduce-motion *::after {
       "Rebuilding semantic index\u2026": "\u30BB\u30DE\u30F3\u30C6\u30A3\u30C3\u30AF\u7D22\u5F15\u3092\u518D\u69CB\u7BC9\u4E2D\u2026",
       "Embedding failed.": "\u57CB\u3081\u8FBC\u307F\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
       "Semantic index cleared": "\u30BB\u30DE\u30F3\u30C6\u30A3\u30C3\u30AF\u7D22\u5F15\u3092\u6D88\u53BB\u3057\u307E\u3057\u305F",
+      "Could not clear semantic index.": "\u30BB\u30DE\u30F3\u30C6\u30A3\u30C3\u30AF\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9\u3092\u6D88\u53BB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "Offscreen video paused": "\u753B\u9762\u5916\u306E\u52D5\u753B\u3092\u4E00\u6642\u505C\u6B62\u3057\u307E\u3057\u305F",
       "Offscreen video left playing": "\u753B\u9762\u5916\u306E\u52D5\u753B\u306F\u518D\u751F\u3057\u305F\u307E\u307E\u306B\u3057\u307E\u3059",
       "Best video quality on": "\u6700\u9AD8\u753B\u8CEA\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
@@ -3166,6 +3191,7 @@ html.av-reduce-motion *::after {
       "Disabled": "\uC0AC\uC6A9 \uC548 \uD568",
       "Panel language": "\uD328\uB110 \uC5B8\uC5B4",
       "Selector health": "\uC120\uD0DD\uC790 \uC0C1\uD0DC",
+      "Action failed.": "\uC791\uC5C5\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
       "Theme value is not supported.": "\uC9C0\uC6D0\uD558\uC9C0 \uC54A\uB294 \uD14C\uB9C8\uC785\uB2C8\uB2E4.",
       "Theme updated": "\uD14C\uB9C8\uB97C \uBCC0\uACBD\uD588\uC2B5\uB2C8\uB2E4",
       "Density updated": "\uD45C\uC2DC \uBC00\uB3C4\uB97C \uBCC0\uACBD\uD588\uC2B5\uB2C8\uB2E4",
@@ -3209,6 +3235,7 @@ html.av-reduce-motion *::after {
       "Aria2 secret saved": "Aria2 \uC2DC\uD06C\uB9BF\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Aria2 threshold saved": "Aria2 \uAE30\uC900 \uD06C\uAE30\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Aria2 reachable.": "Aria2\uC5D0 \uC5F0\uACB0\uB428.",
+      "Aria2 connection test failed.": "Aria2 \uC5F0\uACB0 \uD14C\uC2A4\uD2B8\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
       "Aria2 sweep failed.": "Aria2 \uBAA9\uB85D\uC744 \uAC00\uC838\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "Bluesky on": "Bluesky \uCF2C",
       "Bluesky off": "Bluesky \uB054",
@@ -3221,6 +3248,8 @@ html.av-reduce-motion *::after {
       "Mastodon token saved": "Mastodon \uD1A0\uD070\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Crosspost attachment on": "\uD06C\uB85C\uC2A4\uD3EC\uC2A4\uD2B8 \uCCA8\uBD80 \uCF2C",
       "Crosspost attachment off": "\uD06C\uB85C\uC2A4\uD3EC\uC2A4\uD2B8 \uCCA8\uBD80 \uB054",
+      "Bluesky crosspost failed.": "Bluesky \uAD50\uCC28 \uAC8C\uC2DC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
+      "Mastodon crosspost failed.": "Mastodon \uAD50\uCC28 \uAC8C\uC2DC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
       "AI runs on": "AI \uC2E4\uD589 \uCF2C",
       "AI runs off": "AI \uC2E4\uD589 \uB054",
       "AI endpoint saved": "AI \uC5D4\uB4DC\uD3EC\uC778\uD2B8\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
@@ -3236,6 +3265,7 @@ html.av-reduce-motion *::after {
       "Rebuilding semantic index\u2026": "\uC758\uBBF8 \uC0C9\uC778\uC744 \uB2E4\uC2DC \uB9CC\uB4DC\uB294 \uC911\u2026",
       "Embedding failed.": "\uC784\uBCA0\uB529\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
       "Semantic index cleared": "\uC758\uBBF8 \uC0C9\uC778\uC744 \uC9C0\uC6E0\uC2B5\uB2C8\uB2E4",
+      "Could not clear semantic index.": "\uC2DC\uB9E8\uD2F1 \uC0C9\uC778\uC744 \uC9C0\uC6B8 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
       "Offscreen video paused": "\uD654\uBA74 \uBC16 \uB3D9\uC601\uC0C1\uC744 \uC77C\uC2DC\uC815\uC9C0\uD568",
       "Offscreen video left playing": "\uD654\uBA74 \uBC16 \uB3D9\uC601\uC0C1\uC744 \uACC4\uC18D \uC7AC\uC0DD\uD568",
       "Best video quality on": "\uCD5C\uACE0 \uD654\uC9C8\uC744 \uCF30\uC2B5\uB2C8\uB2E4",
@@ -3692,6 +3722,7 @@ html.av-reduce-motion *::after {
       "Disabled": "\u0645\u0639\u0637\u0651\u0644",
       "Panel language": "\u0644\u063A\u0629 \u0627\u0644\u0644\u0648\u062D\u0629",
       "Selector health": "\u062D\u0627\u0644\u0629 \u0627\u0644\u0645\u062D\u062F\u0650\u0651\u062F\u0627\u062A",
+      "Action failed.": "\u0641\u0634\u0644 \u0627\u0644\u0625\u062C\u0631\u0627\u0621.",
       "Theme value is not supported.": "\u0647\u0630\u0627 \u0627\u0644\u0645\u0638\u0647\u0631 \u063A\u064A\u0631 \u0645\u062F\u0639\u0648\u0645.",
       "Theme updated": "\u062A\u0645 \u062A\u062D\u062F\u064A\u062B \u0627\u0644\u0645\u0638\u0647\u0631",
       "Density updated": "\u062A\u0645 \u062A\u062D\u062F\u064A\u062B \u0627\u0644\u0643\u062B\u0627\u0641\u0629",
@@ -3735,6 +3766,7 @@ html.av-reduce-motion *::after {
       "Aria2 secret saved": "\u062A\u0645 \u062D\u0641\u0638 \u0633\u0631 Aria2",
       "Aria2 threshold saved": "\u062A\u0645 \u062D\u0641\u0638 \u062D\u062F Aria2",
       "Aria2 reachable.": "\u064A\u0645\u0643\u0646 \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 Aria2.",
+      "Aria2 connection test failed.": "\u0641\u0634\u0644 \u0627\u062E\u062A\u0628\u0627\u0631 \u0627\u0644\u0627\u062A\u0635\u0627\u0644 \u0628\u0640 Aria2.",
       "Aria2 sweep failed.": "\u062A\u0639\u0630\u0651\u0631 \u062C\u0644\u0628 \u0642\u0627\u0626\u0645\u0629 Aria2.",
       "Bluesky on": "Bluesky \u0645\u0641\u0639\u0651\u0644",
       "Bluesky off": "Bluesky \u0645\u0639\u0637\u0651\u0644",
@@ -3747,6 +3779,8 @@ html.av-reduce-motion *::after {
       "Mastodon token saved": "\u062A\u0645 \u062D\u0641\u0638 \u0631\u0645\u0632 Mastodon",
       "Crosspost attachment on": "\u0625\u0631\u0641\u0627\u0642 \u0627\u0644\u0646\u0634\u0631 \u0627\u0644\u0645\u062A\u0642\u0627\u0637\u0639 \u0645\u0641\u0639\u0651\u0644",
       "Crosspost attachment off": "\u0625\u0631\u0641\u0627\u0642 \u0627\u0644\u0646\u0634\u0631 \u0627\u0644\u0645\u062A\u0642\u0627\u0637\u0639 \u0645\u0639\u0637\u0651\u0644",
+      "Bluesky crosspost failed.": "\u0641\u0634\u0644 \u0627\u0644\u0646\u0634\u0631 \u0627\u0644\u0645\u062A\u0642\u0627\u0637\u0639 \u0639\u0644\u0649 Bluesky.",
+      "Mastodon crosspost failed.": "\u0641\u0634\u0644 \u0627\u0644\u0646\u0634\u0631 \u0627\u0644\u0645\u062A\u0642\u0627\u0637\u0639 \u0639\u0644\u0649 Mastodon.",
       "AI runs on": "\u0639\u0645\u0644\u064A\u0627\u062A \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0645\u0641\u0639\u0651\u0644\u0629",
       "AI runs off": "\u0639\u0645\u0644\u064A\u0627\u062A \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0645\u0639\u0637\u0651\u0644\u0629",
       "AI endpoint saved": "\u062A\u0645 \u062D\u0641\u0638 \u0646\u0642\u0637\u0629 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A",
@@ -3762,6 +3796,7 @@ html.av-reduce-motion *::after {
       "Rebuilding semantic index\u2026": "\u062C\u0627\u0631\u064D \u0625\u0639\u0627\u062F\u0629 \u0628\u0646\u0627\u0621 \u0627\u0644\u0641\u0647\u0631\u0633 \u0627\u0644\u062F\u0644\u0627\u0644\u064A\u2026",
       "Embedding failed.": "\u0641\u0634\u0644 \u0627\u0644\u062A\u0636\u0645\u064A\u0646.",
       "Semantic index cleared": "\u062A\u0645 \u0645\u0633\u062D \u0627\u0644\u0641\u0647\u0631\u0633 \u0627\u0644\u062F\u0644\u0627\u0644\u064A",
+      "Could not clear semantic index.": "\u062A\u0639\u0630\u0651\u0631 \u0645\u0633\u062D \u0627\u0644\u0641\u0647\u0631\u0633 \u0627\u0644\u062F\u0644\u0627\u0644\u064A.",
       "Offscreen video paused": "\u062A\u0645 \u0625\u064A\u0642\u0627\u0641 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u062E\u0627\u0631\u062C \u0627\u0644\u0634\u0627\u0634\u0629 \u0645\u0624\u0642\u062A\u064B\u0627",
       "Offscreen video left playing": "\u062A\u064F\u0631\u0643 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u062E\u0627\u0631\u062C \u0627\u0644\u0634\u0627\u0634\u0629 \u0642\u064A\u062F \u0627\u0644\u062A\u0634\u063A\u064A\u0644",
       "Best video quality on": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0623\u0639\u0644\u0649 \u062C\u0648\u062F\u0629 \u0641\u064A\u062F\u064A\u0648",
@@ -4218,6 +4253,7 @@ html.av-reduce-motion *::after {
       "Disabled": "\u05DE\u05D5\u05E9\u05D1\u05EA",
       "Panel language": "\u05E9\u05E4\u05EA \u05D4\u05E4\u05D0\u05E0\u05DC",
       "Selector health": "\u05EA\u05E7\u05D9\u05E0\u05D5\u05EA \u05D4\u05E1\u05DC\u05E7\u05D8\u05D5\u05E8\u05D9\u05DD",
+      "Action failed.": "\u05D4\u05E4\u05E2\u05D5\u05DC\u05D4 \u05E0\u05DB\u05E9\u05DC\u05D4.",
       "Theme value is not supported.": "\u05E2\u05E8\u05DB\u05EA \u05D4\u05E0\u05D5\u05E9\u05D0 \u05D4\u05D6\u05D5 \u05D0\u05D9\u05E0\u05D4 \u05E0\u05EA\u05DE\u05DB\u05EA.",
       "Theme updated": "\u05E2\u05E8\u05DB\u05EA \u05D4\u05E0\u05D5\u05E9\u05D0 \u05E2\u05D5\u05D3\u05DB\u05E0\u05D4",
       "Density updated": "\u05D4\u05E6\u05E4\u05D9\u05E4\u05D5\u05EA \u05E2\u05D5\u05D3\u05DB\u05E0\u05D4",
@@ -4261,6 +4297,7 @@ html.av-reduce-motion *::after {
       "Aria2 secret saved": "\u05D4\u05E1\u05D5\u05D3 \u05E9\u05DC Aria2 \u05E0\u05E9\u05DE\u05E8",
       "Aria2 threshold saved": "\u05E1\u05E3 Aria2 \u05E0\u05E9\u05DE\u05E8",
       "Aria2 reachable.": "\u05D9\u05E9 \u05D2\u05D9\u05E9\u05D4 \u05DC-Aria2.",
+      "Aria2 connection test failed.": "\u05D1\u05D3\u05D9\u05E7\u05EA \u05D4\u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u2011Aria2 \u05E0\u05DB\u05E9\u05DC\u05D4.",
       "Aria2 sweep failed.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E7\u05D1\u05DC \u05D0\u05EA \u05E8\u05E9\u05D9\u05DE\u05EA Aria2.",
       "Bluesky on": "Bluesky \u05E4\u05E2\u05D9\u05DC",
       "Bluesky off": "Bluesky \u05DB\u05D1\u05D5\u05D9",
@@ -4273,6 +4310,8 @@ html.av-reduce-motion *::after {
       "Mastodon token saved": "\u05D0\u05E1\u05D9\u05DE\u05D5\u05DF Mastodon \u05E0\u05E9\u05DE\u05E8",
       "Crosspost attachment on": "\u05E6\u05D9\u05E8\u05D5\u05E3 \u05DC\u05E4\u05E8\u05E1\u05D5\u05DD \u05DE\u05D5\u05E6\u05DC\u05D1 \u05E4\u05E2\u05D9\u05DC",
       "Crosspost attachment off": "\u05E6\u05D9\u05E8\u05D5\u05E3 \u05DC\u05E4\u05E8\u05E1\u05D5\u05DD \u05DE\u05D5\u05E6\u05DC\u05D1 \u05DB\u05D1\u05D5\u05D9",
+      "Bluesky crosspost failed.": "\u05D4\u05E4\u05E8\u05E1\u05D5\u05DD \u05D4\u05DE\u05E7\u05D1\u05D9\u05DC \u05D1\u2011Bluesky \u05E0\u05DB\u05E9\u05DC.",
+      "Mastodon crosspost failed.": "\u05D4\u05E4\u05E8\u05E1\u05D5\u05DD \u05D4\u05DE\u05E7\u05D1\u05D9\u05DC \u05D1\u2011Mastodon \u05E0\u05DB\u05E9\u05DC.",
       "AI runs on": "\u05D4\u05E8\u05E6\u05D5\u05EA AI \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA",
       "AI runs off": "\u05D4\u05E8\u05E6\u05D5\u05EA AI \u05DB\u05D1\u05D5\u05D9\u05D5\u05EA",
       "AI endpoint saved": "\u05E0\u05E7\u05D5\u05D3\u05EA \u05D4\u05E7\u05E6\u05D4 \u05E0\u05E9\u05DE\u05E8\u05D4",
@@ -4288,6 +4327,7 @@ html.av-reduce-motion *::after {
       "Rebuilding semantic index\u2026": "\u05D1\u05D5\u05E0\u05D4 \u05DE\u05D7\u05D3\u05E9 \u05D0\u05EA \u05D4\u05D0\u05D9\u05E0\u05D3\u05E7\u05E1 \u05D4\u05E1\u05DE\u05E0\u05D8\u05D9\u2026",
       "Embedding failed.": "\u05D4\u05D4\u05D8\u05DE\u05E2\u05D4 \u05E0\u05DB\u05E9\u05DC\u05D4.",
       "Semantic index cleared": "\u05D4\u05D0\u05D9\u05E0\u05D3\u05E7\u05E1 \u05D4\u05E1\u05DE\u05E0\u05D8\u05D9 \u05E0\u05D5\u05E7\u05D4",
+      "Could not clear semantic index.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E0\u05E7\u05D5\u05EA \u05D0\u05EA \u05D4\u05D0\u05D9\u05E0\u05D3\u05E7\u05E1 \u05D4\u05E1\u05DE\u05E0\u05D8\u05D9.",
       "Offscreen video paused": "\u05D5\u05D9\u05D3\u05D0\u05D5 \u05DE\u05D7\u05D5\u05E5 \u05DC\u05DE\u05E1\u05DA \u05D4\u05D5\u05E9\u05D4\u05D4",
       "Offscreen video left playing": "\u05D5\u05D9\u05D3\u05D0\u05D5 \u05DE\u05D7\u05D5\u05E5 \u05DC\u05DE\u05E1\u05DA \u05DE\u05DE\u05E9\u05D9\u05DA \u05DC\u05E4\u05E2\u05D5\u05DC",
       "Best video quality on": "\u05D4\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8 \u05D4\u05D5\u05E4\u05E2\u05DC\u05D4",
@@ -5100,6 +5140,7 @@ html.av-reduce-motion *::after {
       lastStatusEnglish = message;
       status.textContent = t(message);
     };
+    let pendingActionFocus = null;
     const focusIdentity = (node) => {
       if (!node || !body.contains(node)) {
         return null;
@@ -5124,9 +5165,34 @@ html.av-reduce-motion *::after {
       }
       return null;
     };
+    const actionRow = (label, description, onClick, failureMessage = "Action failed.") => buildActionRow(
+      label,
+      description,
+      onClick,
+      (error) => {
+        try {
+          options.onError(`${label} failed`, error);
+        } catch {
+        }
+        if (failureMessage === "Action failed.") {
+          setStatus("Action failed.");
+        } else {
+          setStatus(failureMessage);
+        }
+      },
+      (button2) => {
+        pendingActionFocus = focusIdentity(button2);
+      },
+      (button2) => {
+        if (pendingActionFocus && !shadow.activeElement && button2.isConnected) {
+          button2.focus({ preventScroll: true });
+          pendingActionFocus = null;
+        }
+      }
+    );
     const render = () => {
       const active = shadow.activeElement;
-      const identity = focusIdentity(active);
+      const identity = focusIdentity(active) ?? pendingActionFocus;
       const selection = captureSelection(active);
       const scrollTop = body.scrollTop;
       panelLocale = options.settings.i18n.locale;
@@ -5157,6 +5223,7 @@ html.av-reduce-motion *::after {
         if (target) {
           target.focus({ preventScroll: true });
           restoreSelection(target, selection);
+          pendingActionFocus = null;
         }
       }
     };
@@ -5566,6 +5633,7 @@ html.av-reduce-motion *::after {
             async () => {
               try {
                 const result = await options.captureSnapshot("followers");
+                render();
                 setStatus(result ? `Captured ${result.count} followers for @${result.handle}.` : "No UserCell rows found.");
               } catch (error) {
                 options.onError("Snapshot failed", error);
@@ -5581,6 +5649,7 @@ html.av-reduce-motion *::after {
             async () => {
               try {
                 const result = await options.captureSnapshot("following");
+                render();
                 setStatus(result ? `Captured ${result.count} following for @${result.handle}.` : "No UserCell rows found.");
               } catch (error) {
                 options.onError("Snapshot failed", error);
@@ -5621,6 +5690,7 @@ html.av-reduce-motion *::after {
             setStatus("Reading archive \u2014 large files take a moment\u2026");
             try {
               const result = await options.importArchive(file);
+              render();
               const warningsLabel = result.warnings > 0 || result.errors > 0 ? ` (${result.warnings} warning${result.warnings === 1 ? "" : "s"}, ${result.errors} error${result.errors === 1 ? "" : "s"})` : "";
               setStatus(`Imported ${result.records} records${warningsLabel}.`);
             } catch (error) {
@@ -5720,6 +5790,7 @@ html.av-reduce-motion *::after {
               setStatus("Building cleanup preview\u2026");
               try {
                 const result = await options.enqueueCleanupReview();
+                render();
                 setStatus(`Enqueued ${result.added} items (${result.protected} protected skipped).`);
               } catch (error) {
                 options.onError("Could not enqueue cleanup", error);
@@ -5795,8 +5866,13 @@ html.av-reduce-motion *::after {
       if (options.pingAria2) {
         rows.push(
           actionRow("Test Aria2 connection", "Sends a trivial JSON-RPC call.", async () => {
-            const result = await options.pingAria2();
-            setStatus(result.ok ? "Aria2 reachable." : `Aria2 unreachable: ${result.error}`);
+            try {
+              const result = await options.pingAria2();
+              setStatus(result.ok ? "Aria2 reachable." : `Aria2 unreachable: ${result.error}`);
+            } catch (error) {
+              options.onError("Aria2 connection test failed", error);
+              setStatus("Aria2 connection test failed.");
+            }
           })
         );
       }
@@ -5951,18 +6027,28 @@ html.av-reduce-motion *::after {
         rows.push(threadRow);
         rows.push(
           actionRow("Crosspost composer \u2192 Bluesky", "Uses the current composer text.", async () => {
-            const result = await options.crosspost("bluesky", { asThread: checkbox.checked });
-            setStatus(
-              result.ok ? `Posted ${result.posts ?? 1} to Bluesky.${result.url ? ` ${result.url}` : ""}` : `Bluesky failed: ${result.error}`
-            );
+            try {
+              const result = await options.crosspost("bluesky", { asThread: checkbox.checked });
+              setStatus(
+                result.ok ? `Posted ${result.posts ?? 1} to Bluesky.${result.url ? ` ${result.url}` : ""}` : `Bluesky failed: ${result.error}`
+              );
+            } catch (error) {
+              options.onError("Bluesky crosspost failed", error);
+              setStatus("Bluesky crosspost failed.");
+            }
           })
         );
         rows.push(
           actionRow("Crosspost composer \u2192 Mastodon", "Uses the current composer text.", async () => {
-            const result = await options.crosspost("mastodon", { asThread: checkbox.checked });
-            setStatus(
-              result.ok ? `Posted ${result.posts ?? 1} to Mastodon.${result.url ? ` ${result.url}` : ""}` : `Mastodon failed: ${result.error}`
-            );
+            try {
+              const result = await options.crosspost("mastodon", { asThread: checkbox.checked });
+              setStatus(
+                result.ok ? `Posted ${result.posts ?? 1} to Mastodon.${result.url ? ` ${result.url}` : ""}` : `Mastodon failed: ${result.error}`
+              );
+            } catch (error) {
+              options.onError("Mastodon crosspost failed", error);
+              setStatus("Mastodon crosspost failed.");
+            }
           })
         );
       }
@@ -6091,6 +6177,7 @@ html.av-reduce-motion *::after {
               setStatus("Rebuilding semantic index\u2026");
               try {
                 const result = await options.rebuildSemanticIndex();
+                render();
                 const trimmed = result.dropped > 0 ? ` \xB7 oldest ${result.dropped} dropped` : "";
                 setStatus(
                   `Indexed: +${result.added} new \xB7 skipped ${result.skipped} \xB7 errors ${result.errors} \xB7 total ${result.total}${trimmed}.`
@@ -6144,8 +6231,13 @@ html.av-reduce-motion *::after {
       if (options.clearSemanticIndex) {
         rows.push(
           actionRow("Clear semantic index", "Forget every embedded record.", async () => {
-            await options.clearSemanticIndex();
-            await save("Semantic index cleared");
+            try {
+              await options.clearSemanticIndex();
+              await save("Semantic index cleared");
+            } catch (error) {
+              options.onError("Could not clear semantic index", error);
+              setStatus("Could not clear semantic index.");
+            }
           })
         );
       }
@@ -6577,6 +6669,7 @@ html.av-reduce-motion *::after {
             setStatus("Collecting visible posts\u2026");
             try {
               const result = await options.runExport();
+              render();
               const files = result.files ?? 1;
               setStatus(
                 result.records === 0 ? "No posts found on this view. Scroll the timeline to load some, then export again." : files > 1 ? `Exported ${result.records} records across ${files} ZIPs \u2192 ${result.filename}` : `Exported ${result.records} record${result.records === 1 ? "" : "s"} \u2192 ${result.filename}`
@@ -7360,7 +7453,7 @@ html.av-reduce-motion *::after {
     row.append(input, apply);
     return row;
   }
-  function actionRow(label, description, onClick) {
+  function buildActionRow(label, description, onClick, onReject, onStart, onFinish) {
     const row = el("div", "av-row");
     const copy = el("span", "av-row-copy");
     copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
@@ -7368,9 +7461,16 @@ html.av-reduce-motion *::after {
     const button2 = el("button", "av-button av-button-secondary", t(label));
     button2.type = "button";
     button2.addEventListener("click", () => {
+      onStart?.(button2);
       button2.disabled = true;
-      void onClick().finally(() => {
+      void Promise.resolve().then(onClick).catch((error) => {
+        try {
+          onReject?.(error);
+        } catch {
+        }
+      }).finally(() => {
         button2.disabled = false;
+        onFinish?.(button2);
       });
     });
     row.append(button2);
