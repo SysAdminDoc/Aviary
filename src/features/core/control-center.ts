@@ -8,6 +8,7 @@ import type {
 } from "../../ui/control-center";
 import { mountControlCenter } from "../../ui/control-center";
 import { pageHookCounters } from "../privacy/page-hooks";
+import { getSelectorHealthSnapshot } from "./selector-health";
 import { applyPreset, describePresetDelta, getPreset, listPresets } from "./presets";
 import {
   getCheckpointStore,
@@ -170,6 +171,9 @@ export const controlCenterFeature: FeatureModule = {
           reason: bridge?.reason() ?? "",
           blockedBeacons: pageHookCounters().blockedBeacons
         };
+      },
+      getSelectorHealth() {
+        return getSelectorHealthSnapshot();
       },
       async clearAuditLog() {
         await ctx.auditLog.clear();

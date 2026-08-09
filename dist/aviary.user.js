@@ -702,6 +702,12 @@ html.av-reduce-motion *::after {
       "This userscript manager does not give Aviary access to the page itself.": "Este gestor de userscripts no da a Aviary acceso a la propia p\xE1gina.",
       "This browser did not load Aviary's page script.": "Este navegador no carg\xF3 el script de p\xE1gina de Aviary.",
       "Unavailable in this browser.": "No disponible en este navegador.",
+      "Selector matches": "Coincidencias de selectores",
+      "Missing required surfaces": "Superficies obligatorias ausentes",
+      "Optional surfaces missing": "Superficies opcionales ausentes",
+      "Fallback selectors in use": "Selectores alternativos en uso",
+      "Affected features": "Funciones afectadas",
+      "Last selector transition": "\xDAltima transici\xF3n de selectores",
       "Open Aviary AI command menu": "Abrir el men\xFA de comandos de IA de Aviary",
       "Aviary AI commands (offline prompt builder)": "Comandos de IA de Aviary (generador de prompts sin conexi\xF3n)",
       "Run with provider": "Ejecutar con el proveedor",
@@ -1233,6 +1239,12 @@ html.av-reduce-motion *::after {
       "This userscript manager does not give Aviary access to the page itself.": "Este gestor de userscripts n\xE3o d\xE1 ao Aviary acesso \xE0 pr\xF3pria p\xE1gina.",
       "This browser did not load Aviary's page script.": "Este navegador n\xE3o carregou o script de p\xE1gina do Aviary.",
       "Unavailable in this browser.": "Indispon\xEDvel neste navegador.",
+      "Selector matches": "Correspond\xEAncias de seletores",
+      "Missing required surfaces": "Superf\xEDcies obrigat\xF3rias ausentes",
+      "Optional surfaces missing": "Superf\xEDcies opcionais ausentes",
+      "Fallback selectors in use": "Seletores alternativos em uso",
+      "Affected features": "Funcionalidades afetadas",
+      "Last selector transition": "\xDAltima transi\xE7\xE3o de seletores",
       "Open Aviary AI command menu": "Abrir o menu de comandos de IA do Aviary",
       "Aviary AI commands (offline prompt builder)": "Comandos de IA do Aviary (gerador de prompts offline)",
       "Run with provider": "Executar com o fornecedor",
@@ -1764,6 +1776,12 @@ html.av-reduce-motion *::after {
       "This userscript manager does not give Aviary access to the page itself.": "Ce gestionnaire d'userscripts ne donne pas \xE0 Aviary l'acc\xE8s \xE0 la page elle-m\xEAme.",
       "This browser did not load Aviary's page script.": "Ce navigateur n'a pas charg\xE9 le script de page d'Aviary.",
       "Unavailable in this browser.": "Indisponible dans ce navigateur.",
+      "Selector matches": "Correspondances des s\xE9lecteurs",
+      "Missing required surfaces": "Surfaces obligatoires manquantes",
+      "Optional surfaces missing": "Surfaces facultatives manquantes",
+      "Fallback selectors in use": "S\xE9lecteurs de secours utilis\xE9s",
+      "Affected features": "Fonctionnalit\xE9s concern\xE9es",
+      "Last selector transition": "Derni\xE8re transition de s\xE9lecteur",
       "Open Aviary AI command menu": "Ouvrir le menu de commandes IA d'Aviary",
       "Aviary AI commands (offline prompt builder)": "Commandes IA d'Aviary (g\xE9n\xE9rateur de prompts hors ligne)",
       "Run with provider": "Ex\xE9cuter avec le fournisseur",
@@ -2295,6 +2313,12 @@ html.av-reduce-motion *::after {
       "This userscript manager does not give Aviary access to the page itself.": "Dieser Userscript-Manager gibt Aviary keinen Zugriff auf die Seite selbst.",
       "This browser did not load Aviary's page script.": "Dieser Browser hat Aviarys Seitenskript nicht geladen.",
       "Unavailable in this browser.": "In diesem Browser nicht verf\xFCgbar.",
+      "Selector matches": "Selektor-Treffer",
+      "Missing required surfaces": "Erforderliche Oberfl\xE4chen fehlen",
+      "Optional surfaces missing": "Optionale Oberfl\xE4chen fehlen",
+      "Fallback selectors in use": "Ersatzselektoren in Verwendung",
+      "Affected features": "Betroffene Funktionen",
+      "Last selector transition": "Letzter Selektor\xFCbergang",
       "Open Aviary AI command menu": "Aviarys KI-Befehlsmen\xFC \xF6ffnen",
       "Aviary AI commands (offline prompt builder)": "Aviary-KI-Befehle (Prompt-Baukasten ohne Netz)",
       "Run with provider": "Mit Anbieter ausf\xFChren",
@@ -2826,6 +2850,12 @@ html.av-reduce-motion *::after {
       "This userscript manager does not give Aviary access to the page itself.": "\u3053\u306E\u30E6\u30FC\u30B6\u30FC\u30B9\u30AF\u30EA\u30D7\u30C8\u30DE\u30CD\u30FC\u30B8\u30E3\u30FC\u306F\u3001\u30DA\u30FC\u30B8\u81EA\u4F53\u3078\u306E\u30A2\u30AF\u30BB\u30B9\u3092 Aviary \u306B\u4E0E\u3048\u3066\u3044\u307E\u305B\u3093\u3002",
       "This browser did not load Aviary's page script.": "\u3053\u306E\u30D6\u30E9\u30A6\u30B6\u30FC\u306F Aviary \u306E\u30DA\u30FC\u30B8\u30B9\u30AF\u30EA\u30D7\u30C8\u3092\u8AAD\u307F\u8FBC\u307F\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "Unavailable in this browser.": "\u3053\u306E\u30D6\u30E9\u30A6\u30B6\u30FC\u3067\u306F\u5229\u7528\u3067\u304D\u307E\u305B\u3093\u3002",
+      "Selector matches": "\u30BB\u30EC\u30AF\u30BF\u30FC\u306E\u4E00\u81F4",
+      "Missing required surfaces": "\u5FC5\u9808\u30B5\u30FC\u30D5\u30A7\u30B9\u304C\u3042\u308A\u307E\u305B\u3093",
+      "Optional surfaces missing": "\u4EFB\u610F\u30B5\u30FC\u30D5\u30A7\u30B9\u304C\u3042\u308A\u307E\u305B\u3093",
+      "Fallback selectors in use": "\u30D5\u30A9\u30FC\u30EB\u30D0\u30C3\u30AF\u30BB\u30EC\u30AF\u30BF\u30FC\u3092\u4F7F\u7528\u4E2D",
+      "Affected features": "\u5F71\u97FF\u3092\u53D7\u3051\u308B\u6A5F\u80FD",
+      "Last selector transition": "\u6700\u5F8C\u306E\u30BB\u30EC\u30AF\u30BF\u30FC\u9077\u79FB",
       "Open Aviary AI command menu": "Aviary \u306E AI \u30B3\u30DE\u30F3\u30C9\u30E1\u30CB\u30E5\u30FC\u3092\u958B\u304F",
       "Aviary AI commands (offline prompt builder)": "Aviary \u306E AI \u30B3\u30DE\u30F3\u30C9\uFF08\u30AA\u30D5\u30E9\u30A4\u30F3\u306E\u30D7\u30ED\u30F3\u30D7\u30C8\u4F5C\u6210\uFF09",
       "Run with provider": "\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u3067\u5B9F\u884C",
@@ -3357,6 +3387,12 @@ html.av-reduce-motion *::after {
       "This userscript manager does not give Aviary access to the page itself.": "\uC774 \uC720\uC800\uC2A4\uD06C\uB9BD\uD2B8 \uAD00\uB9AC\uC790\uB294 Aviary\uC5D0 \uD398\uC774\uC9C0 \uC790\uCCB4\uC5D0 \uB300\uD55C \uC811\uADFC \uAD8C\uD55C\uC744 \uC8FC\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
       "This browser did not load Aviary's page script.": "\uC774 \uBE0C\uB77C\uC6B0\uC800\uB294 Aviary\uC758 \uD398\uC774\uC9C0 \uC2A4\uD06C\uB9BD\uD2B8\uB97C \uBD88\uB7EC\uC624\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.",
       "Unavailable in this browser.": "\uC774 \uBE0C\uB77C\uC6B0\uC800\uC5D0\uC11C\uB294 \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+      "Selector matches": "\uC120\uD0DD\uC790 \uC77C\uCE58",
+      "Missing required surfaces": "\uD544\uC218 \uD45C\uBA74 \uB204\uB77D",
+      "Optional surfaces missing": "\uC120\uD0DD\uC801 \uD45C\uBA74 \uB204\uB77D",
+      "Fallback selectors in use": "\uB300\uCCB4 \uC120\uD0DD\uC790 \uC0AC\uC6A9 \uC911",
+      "Affected features": "\uC601\uD5A5\uBC1B\uB294 \uAE30\uB2A5",
+      "Last selector transition": "\uB9C8\uC9C0\uB9C9 \uC120\uD0DD\uC790 \uC804\uD658",
       "Open Aviary AI command menu": "Aviary AI \uBA85\uB839 \uBA54\uB274 \uC5F4\uAE30",
       "Aviary AI commands (offline prompt builder)": "Aviary AI \uBA85\uB839 (\uC624\uD504\uB77C\uC778 \uD504\uB86C\uD504\uD2B8 \uC791\uC131\uAE30)",
       "Run with provider": "\uC81C\uACF5\uC790\uB85C \uC2E4\uD589",
@@ -3888,6 +3924,12 @@ html.av-reduce-motion *::after {
       "This userscript manager does not give Aviary access to the page itself.": "\u0645\u062F\u064A\u0631 \u0633\u0643\u0631\u0628\u062A\u0627\u062A \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0647\u0630\u0627 \u0644\u0627 \u064A\u0645\u0646\u062D Aviary \u0648\u0635\u0648\u0644\u0627\u064B \u0625\u0644\u0649 \u0627\u0644\u0635\u0641\u062D\u0629 \u0646\u0641\u0633\u0647\u0627.",
       "This browser did not load Aviary's page script.": "\u0644\u0645 \u064A\u062D\u0645\u0651\u0644 \u0647\u0630\u0627 \u0627\u0644\u0645\u062A\u0635\u0641\u062D \u0633\u0643\u0631\u0628\u062A \u0627\u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u062E\u0627\u0635 \u0628\u0640 Aviary.",
       "Unavailable in this browser.": "\u063A\u064A\u0631 \u0645\u062A\u0627\u062D \u0641\u064A \u0647\u0630\u0627 \u0627\u0644\u0645\u062A\u0635\u0641\u062D.",
+      "Selector matches": "\u062A\u0637\u0627\u0628\u0642\u0627\u062A \u0627\u0644\u0645\u062D\u062F\u062F\u0627\u062A",
+      "Missing required surfaces": "\u0627\u0644\u0623\u0633\u0637\u062D \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629 \u0645\u0641\u0642\u0648\u062F\u0629",
+      "Optional surfaces missing": "\u0627\u0644\u0623\u0633\u0637\u062D \u0627\u0644\u0627\u062E\u062A\u064A\u0627\u0631\u064A\u0629 \u0645\u0641\u0642\u0648\u062F\u0629",
+      "Fallback selectors in use": "\u0627\u0644\u0645\u062D\u062F\u062F\u0627\u062A \u0627\u0644\u0628\u062F\u064A\u0644\u0629 \u0642\u064A\u062F \u0627\u0644\u0627\u0633\u062A\u062E\u062F\u0627\u0645",
+      "Affected features": "\u0627\u0644\u0645\u064A\u0632\u0627\u062A \u0627\u0644\u0645\u062A\u0623\u062B\u0631\u0629",
+      "Last selector transition": "\u0622\u062E\u0631 \u0627\u0646\u062A\u0642\u0627\u0644 \u0644\u0644\u0645\u062D\u062F\u062F",
       "Open Aviary AI command menu": "\u0641\u062A\u062D \u0642\u0627\u0626\u0645\u0629 \u0623\u0648\u0627\u0645\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0641\u064A Aviary",
       "Aviary AI commands (offline prompt builder)": "\u0623\u0648\u0627\u0645\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0641\u064A Aviary (\u0645\u0646\u0634\u0626 \u0645\u0637\u0627\u0644\u0628\u0627\u062A \u062F\u0648\u0646 \u0627\u062A\u0635\u0627\u0644)",
       "Run with provider": "\u0627\u0644\u062A\u0634\u063A\u064A\u0644 \u0639\u0628\u0631 \u0627\u0644\u0645\u0632\u0648\u0651\u062F",
@@ -4419,6 +4461,12 @@ html.av-reduce-motion *::after {
       "This userscript manager does not give Aviary access to the page itself.": "\u05DE\u05E0\u05D4\u05DC \u05D4\u05E1\u05E7\u05E8\u05D9\u05E4\u05D8\u05D9\u05DD \u05D4\u05D6\u05D4 \u05D0\u05D9\u05E0\u05D5 \u05DE\u05E2\u05E0\u05D9\u05E7 \u05DC-Aviary \u05D2\u05D9\u05E9\u05D4 \u05DC\u05D3\u05E3 \u05E2\u05E6\u05DE\u05D5.",
       "This browser did not load Aviary's page script.": "\u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05D4\u05D6\u05D4 \u05DC\u05D0 \u05D8\u05E2\u05DF \u05D0\u05EA \u05E1\u05E7\u05E8\u05D9\u05E4\u05D8 \u05D4\u05D3\u05E3 \u05E9\u05DC Aviary.",
       "Unavailable in this browser.": "\u05DC\u05D0 \u05D6\u05DE\u05D9\u05DF \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF \u05D4\u05D6\u05D4.",
+      "Selector matches": "\u05D4\u05EA\u05D0\u05DE\u05D5\u05EA \u05D1\u05D5\u05E8\u05E8\u05D9\u05DD",
+      "Missing required surfaces": "\u05DE\u05E9\u05D8\u05D7\u05D9\u05DD \u05E0\u05D3\u05E8\u05E9\u05D9\u05DD \u05D7\u05E1\u05E8\u05D9\u05DD",
+      "Optional surfaces missing": "\u05DE\u05E9\u05D8\u05D7\u05D9\u05DD \u05D0\u05D5\u05E4\u05E6\u05D9\u05D5\u05E0\u05DC\u05D9\u05D9\u05DD \u05D7\u05E1\u05E8\u05D9\u05DD",
+      "Fallback selectors in use": "\u05D1\u05D5\u05E8\u05E8\u05D9 \u05D2\u05D9\u05D1\u05D5\u05D9 \u05D1\u05E9\u05D9\u05DE\u05D5\u05E9",
+      "Affected features": "\u05EA\u05DB\u05D5\u05E0\u05D5\u05EA \u05DE\u05D5\u05E9\u05E4\u05E2\u05D5\u05EA",
+      "Last selector transition": "\u05DE\u05E2\u05D1\u05E8 \u05D4\u05D1\u05D5\u05E8\u05E8 \u05D4\u05D0\u05D7\u05E8\u05D5\u05DF",
       "Open Aviary AI command menu": "\u05E4\u05EA\u05D9\u05D7\u05EA \u05EA\u05E4\u05E8\u05D9\u05D8 \u05E4\u05E7\u05D5\u05D3\u05D5\u05EA \u05D4-AI \u05E9\u05DC Aviary",
       "Aviary AI commands (offline prompt builder)": "\u05E4\u05E7\u05D5\u05D3\u05D5\u05EA \u05D4-AI \u05E9\u05DC Aviary (\u05D1\u05D5\u05E0\u05D4 \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8\u05D9\u05DD \u05DC\u05DC\u05D0 \u05E8\u05E9\u05EA)",
       "Run with provider": "\u05D4\u05E8\u05E6\u05D4 \u05DE\u05D5\u05DC \u05D4\u05E1\u05E4\u05E7",
@@ -5367,7 +5415,7 @@ html.av-reduce-motion *::after {
         storageHealthRow(),
         readonlyRow("Telemetry", options.settings.privacy.telemetry ? "Enabled" : "Disabled"),
         coverageRow(),
-        dataRow("Selector health", selectorSummary())
+        ...selectorHealthRows()
       ];
     };
     const sectionRegistry = () => [
@@ -7185,6 +7233,55 @@ html.av-reduce-motion *::after {
       const last = [...options.diagnostics()].reverse().find((event) => event.message.includes("Selector"));
       return last?.message ?? "Monitoring active";
     };
+    const selectorHealthRows = () => {
+      const health = options.getSelectorHealth?.();
+      if (!health || health.required === 0) {
+        return [dataRow("Selector health", selectorSummary())];
+      }
+      t("Selector matches");
+      t("Missing required surfaces");
+      t("Optional surfaces missing");
+      t("Fallback selectors in use");
+      t("Affected features");
+      t("Last selector transition");
+      const rows = [
+        dataRow(
+          "Selector health",
+          `${health.state === "healthy" ? "Healthy" : "Degraded"} \xB7 ${health.route} \xB7 ${health.requiredMatched}/${health.required} required \xB7 ${health.optionalMatched}/${health.optional} optional`
+        ),
+        dataRow(
+          "Selector matches",
+          health.surfaces.filter((surface) => surface.relevance !== "inapplicable").map((surface) => `${surface.surface}: ${surface.matched}`).join(" \xB7 ")
+        ),
+        dataRow(
+          "Missing required surfaces",
+          health.missingRequired.length > 0 ? health.missingRequired.join(", ") : "None"
+        )
+      ];
+      if (health.optionalMissing.length > 0) {
+        rows.push(dataRow("Optional surfaces missing", health.optionalMissing.join(", ")));
+      }
+      if (health.fallbackMatches.length > 0) {
+        rows.push(
+          dataRow(
+            "Fallback selectors in use",
+            health.fallbackMatches.map((entry) => `${entry.surface}: ${entry.selector}`).join(" \xB7 ")
+          )
+        );
+      }
+      if (health.affectedFeatures.length > 0) {
+        rows.push(dataRow("Affected features", health.affectedFeatures.join(", ")));
+      }
+      if (health.lastTransition) {
+        rows.push(
+          dataRow(
+            "Last selector transition",
+            `${health.lastTransition.to} \xB7 ${health.lastTransition.route} \xB7 ${health.lastTransition.at}`
+          )
+        );
+      }
+      return rows;
+    };
     launcher.addEventListener("click", () => setOpen(!open));
     close.addEventListener("click", () => setOpen(false));
     search.addEventListener("input", () => {
@@ -8618,6 +8715,287 @@ input[type="checkbox"] {
   }
   function pageHookCounters() {
     return { blockedBeacons, rewrittenPlaylists };
+  }
+
+  // src/platform/selectors.ts
+  var SURFACE_SELECTORS = [
+    {
+      surface: "App root",
+      stable: "#react-root",
+      fallback: "body > div:first-child",
+      churnRisk: "Medium",
+      note: "Readiness anchor only; do not use as the scan scope after boot."
+    },
+    {
+      surface: "Primary column",
+      stable: '[data-testid="primaryColumn"]',
+      fallback: ".r-150rngu.r-16y2uox",
+      churnRisk: "Medium",
+      note: "Main observer scope for timeline pages."
+    },
+    {
+      surface: "Sidebar",
+      stable: '[data-testid="sidebarColumn"]',
+      fallback: ".r-1ifxtd0.r-1udh08x",
+      churnRisk: "High",
+      note: "Optional because the sidebar collapses by viewport."
+    },
+    {
+      surface: "Tweet",
+      stable: 'article[data-testid="tweet"]',
+      fallback: "article .css-175oi2r",
+      churnRisk: "High",
+      note: "Process added articles only and mark processed nodes."
+    },
+    {
+      surface: "Tweet text",
+      stable: '[data-testid="tweetText"]',
+      fallback: "article div[lang] span",
+      churnRisk: "Medium",
+      note: "Text extraction source with article textContent fallback."
+    },
+    {
+      surface: "Composer",
+      stable: '[data-testid="tweetTextarea_0"]',
+      fallback: 'div[role="textbox"][aria-label]',
+      churnRisk: "High",
+      note: "Draft.js-aware insertion required for later composer features."
+    },
+    {
+      surface: "Media photo",
+      stable: '[data-testid="tweetPhoto"] img[src*="pbs.twimg.com/media"]',
+      fallback: 'img[src*="format="]',
+      churnRisk: "Medium",
+      note: "Normalize image URLs to original quality before download."
+    },
+    {
+      surface: "Video",
+      stable: '[data-testid="videoPlayer"], [data-testid="videoComponent"]',
+      fallback: 'video[src], div[aria-label*="Video"]',
+      churnRisk: "High",
+      note: "Network capture is required for complete video variants."
+    },
+    {
+      surface: "Navigation",
+      stable: '[data-testid^="AppTabBar_"], [data-testid="SideNav_NewTweet_Button"]',
+      fallback: 'nav[aria-label] a[role="link"]',
+      churnRisk: "High",
+      note: "Support full, compact, and mobile navigation."
+    },
+    {
+      surface: "Grok",
+      stable: '[data-testid="GrokDrawer"], [data-testid="grokImgGen"], a[href="/i/grok"], button[aria-label="Grok actions"]',
+      fallback: 'div[id*="grok" i]',
+      churnRisk: "High",
+      note: "Drawer, navigation, image-generation, and per-post Grok surfaces change frequently; isolate all tweaks."
+    }
+  ];
+  function getSelectorHealthForRoute(root = document, route = "unknown") {
+    return SURFACE_SELECTORS.map((entry) => {
+      const stableCount = countMatches(root, entry.stable);
+      const fallbackCount = countMatches(root, entry.fallback);
+      const matched = stableCount > 0 ? "stable" : fallbackCount > 0 ? "fallback" : "missing";
+      return {
+        surface: entry.surface,
+        stable: entry.stable,
+        fallback: entry.fallback,
+        stableCount,
+        fallbackCount,
+        churnRisk: entry.churnRisk,
+        healthy: stableCount > 0 || fallbackCount > 0,
+        relevance: selectorRelevance(entry.surface, route),
+        matched,
+        matchedSelector: matched === "stable" ? entry.stable : matched === "fallback" ? entry.fallback : null,
+        feature: featureForSurface(entry.surface)
+      };
+    });
+  }
+  var CONTENT_SURFACES = /* @__PURE__ */ new Set([
+    "home",
+    "status",
+    "profile",
+    "notifications",
+    "search"
+  ]);
+  function selectorRelevance(surface, route) {
+    if (surface === "App root" || surface === "Primary column" || surface === "Navigation") {
+      return "required";
+    }
+    if (surface === "Grok") {
+      return route === "grok" ? "required" : "optional";
+    }
+    if (["Tweet", "Tweet text", "Composer", "Media photo", "Video"].includes(surface)) {
+      return CONTENT_SURFACES.has(route) ? "optional" : "inapplicable";
+    }
+    if (surface === "Sidebar") {
+      return route === "settings" ? "inapplicable" : "optional";
+    }
+    return "optional";
+  }
+  function featureForSurface(surface) {
+    if (surface === "App root" || surface === "Primary column") return "Boot and timeline scope";
+    if (surface === "Sidebar" || surface === "Navigation") return "Layout declutter";
+    if (surface === "Tweet" || surface === "Tweet text") return "Filtering and export";
+    if (surface === "Composer") return "Composer and crosspost";
+    if (surface === "Media photo" || surface === "Video") return "Media controls";
+    if (surface === "Grok") return "Grok declutter";
+    return "Aviary surface";
+  }
+  function countMatches(root, selector) {
+    try {
+      const self = root instanceof Element && root.matches(selector) ? 1 : 0;
+      return self + root.querySelectorAll(selector).length;
+    } catch {
+      return 0;
+    }
+  }
+
+  // src/features/core/selector-health.ts
+  var CRITICAL_SURFACES = /* @__PURE__ */ new Set(["App root", "Primary column"]);
+  var MIN_LOG_INTERVAL_MS = 5e3;
+  var lastLogAt = 0;
+  var lastHealthSignature = "";
+  var lastCriticalSignature = "";
+  var previousState = null;
+  var currentSnapshot = emptySnapshot();
+  var selectorHealthFeature = {
+    id: "core.selectorHealth",
+    title: "Selector health diagnostics",
+    category: "core",
+    defaultEnabled: true,
+    init(ctx) {
+      resetState();
+      if (!ctx.settings.diagnostics.selectorHealth) {
+        return;
+      }
+      updateSnapshot(ctx);
+      ctx.diagnostics.info("Selector health initialized", snapshotDetails(currentSnapshot));
+    },
+    apply(ctx) {
+      if (!ctx.settings.diagnostics.selectorHealth) {
+        return;
+      }
+      updateSnapshot(ctx);
+      const missingCritical = currentSnapshot.surfaces.filter(
+        (item) => item.relevance === "required" && !item.healthy && CRITICAL_SURFACES.has(item.surface)
+      );
+      if (missingCritical.length === 0) {
+        return;
+      }
+      const signature = `${ctx.route.surface}:${missingCritical.map((item) => item.surface).join(",")}`;
+      const now2 = Date.now();
+      if (signature !== lastCriticalSignature || now2 - lastLogAt >= MIN_LOG_INTERVAL_MS) {
+        lastCriticalSignature = signature;
+        lastLogAt = now2;
+        ctx.diagnostics.warn("Critical selector health degraded", {
+          route: ctx.route.surface,
+          missing: missingCritical.map((item) => item.surface),
+          affectedFeatures: currentSnapshot.affectedFeatures
+        });
+      }
+    },
+    destroy(ctx) {
+      resetState();
+      ctx.diagnostics.info("Selector health destroyed");
+    },
+    getStatus() {
+      return {
+        ok: currentSnapshot.state === "healthy",
+        message: `${currentSnapshot.requiredMatched}/${currentSnapshot.required} required selector surfaces detected`,
+        details: snapshotDetails(currentSnapshot)
+      };
+    }
+  };
+  function getSelectorHealthSnapshot() {
+    return {
+      ...currentSnapshot,
+      missingRequired: [...currentSnapshot.missingRequired],
+      optionalMissing: [...currentSnapshot.optionalMissing],
+      fallbackMatches: currentSnapshot.fallbackMatches.map((entry) => ({ ...entry })),
+      affectedFeatures: [...currentSnapshot.affectedFeatures],
+      surfaces: currentSnapshot.surfaces.map((entry) => ({ ...entry })),
+      lastTransition: currentSnapshot.lastTransition ? { ...currentSnapshot.lastTransition } : null
+    };
+  }
+  function updateSnapshot(ctx) {
+    const surfaces = getSelectorHealthForRoute(document, ctx.route.surface);
+    const required = surfaces.filter((item) => item.relevance === "required");
+    const optional = surfaces.filter((item) => item.relevance === "optional");
+    const missingRequired = required.filter((item) => !item.healthy).map((item) => item.surface);
+    const optionalMissing = optional.filter((item) => !item.healthy).map((item) => item.surface);
+    const fallbackMatches = surfaces.filter((item) => item.relevance !== "inapplicable" && item.matched === "fallback" && item.matchedSelector).map((item) => ({ surface: item.surface, selector: item.matchedSelector }));
+    const affectedFeatures = [...new Set(
+      surfaces.filter((item) => item.relevance !== "inapplicable" && !item.healthy).map((item) => item.feature)
+    )];
+    const state2 = missingRequired.length === 0 ? "healthy" : "degraded";
+    const signature = [
+      ctx.route.surface,
+      state2,
+      ...surfaces.map((item) => `${item.surface}:${item.relevance}:${item.matched}:${item.stableCount}:${item.fallbackCount}`)
+    ].join("|");
+    let lastTransition = currentSnapshot.lastTransition;
+    if (signature !== lastHealthSignature) {
+      lastTransition = {
+        at: (/* @__PURE__ */ new Date()).toISOString(),
+        from: previousState,
+        to: state2,
+        route: ctx.route.surface
+      };
+      previousState = state2;
+      lastHealthSignature = signature;
+    }
+    currentSnapshot = {
+      route: ctx.route.surface,
+      state: state2,
+      required: required.length,
+      requiredMatched: required.filter((item) => item.healthy).length,
+      optional: optional.length,
+      optionalMatched: optional.filter((item) => item.healthy).length,
+      missingRequired,
+      optionalMissing,
+      fallbackMatches,
+      affectedFeatures,
+      surfaces,
+      lastTransition
+    };
+  }
+  function resetState() {
+    lastLogAt = 0;
+    lastHealthSignature = "";
+    lastCriticalSignature = "";
+    previousState = null;
+    currentSnapshot = emptySnapshot();
+  }
+  function emptySnapshot() {
+    return {
+      route: "unknown",
+      state: "healthy",
+      required: 0,
+      requiredMatched: 0,
+      optional: 0,
+      optionalMatched: 0,
+      missingRequired: [],
+      optionalMissing: [],
+      fallbackMatches: [],
+      affectedFeatures: [],
+      surfaces: [],
+      lastTransition: null
+    };
+  }
+  function snapshotDetails(snapshot) {
+    return {
+      route: snapshot.route,
+      state: snapshot.state,
+      required: snapshot.required,
+      requiredMatched: snapshot.requiredMatched,
+      optional: snapshot.optional,
+      optionalMatched: snapshot.optionalMatched,
+      missingRequired: snapshot.missingRequired,
+      optionalMissing: snapshot.optionalMissing,
+      fallbackMatches: snapshot.fallbackMatches,
+      affectedFeatures: snapshot.affectedFeatures,
+      lastTransition: snapshot.lastTransition
+    };
   }
 
   // src/features/core/presets.ts
@@ -14466,6 +14844,9 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
             blockedBeacons: pageHookCounters().blockedBeacons
           };
         },
+        getSelectorHealth() {
+          return getSelectorHealthSnapshot();
+        },
         async clearAuditLog() {
           await ctx.auditLog.clear();
         },
@@ -14976,158 +15357,6 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
     throw new Error("Clipboard API unavailable in this context");
   }
-
-  // src/platform/selectors.ts
-  var SURFACE_SELECTORS = [
-    {
-      surface: "App root",
-      stable: "#react-root",
-      fallback: "body > div:first-child",
-      churnRisk: "Medium",
-      note: "Readiness anchor only; do not use as the scan scope after boot."
-    },
-    {
-      surface: "Primary column",
-      stable: '[data-testid="primaryColumn"]',
-      fallback: ".r-150rngu.r-16y2uox",
-      churnRisk: "Medium",
-      note: "Main observer scope for timeline pages."
-    },
-    {
-      surface: "Sidebar",
-      stable: '[data-testid="sidebarColumn"]',
-      fallback: ".r-1ifxtd0.r-1udh08x",
-      churnRisk: "High",
-      note: "Optional because the sidebar collapses by viewport."
-    },
-    {
-      surface: "Tweet",
-      stable: 'article[data-testid="tweet"]',
-      fallback: "article .css-175oi2r",
-      churnRisk: "High",
-      note: "Process added articles only and mark processed nodes."
-    },
-    {
-      surface: "Tweet text",
-      stable: '[data-testid="tweetText"]',
-      fallback: "article div[lang] span",
-      churnRisk: "Medium",
-      note: "Text extraction source with article textContent fallback."
-    },
-    {
-      surface: "Composer",
-      stable: '[data-testid="tweetTextarea_0"]',
-      fallback: 'div[role="textbox"][aria-label]',
-      churnRisk: "High",
-      note: "Draft.js-aware insertion required for later composer features."
-    },
-    {
-      surface: "Media photo",
-      stable: '[data-testid="tweetPhoto"] img[src*="pbs.twimg.com/media"]',
-      fallback: 'img[src*="format="]',
-      churnRisk: "Medium",
-      note: "Normalize image URLs to original quality before download."
-    },
-    {
-      surface: "Video",
-      stable: '[data-testid="videoPlayer"], [data-testid="videoComponent"]',
-      fallback: 'video[src], div[aria-label*="Video"]',
-      churnRisk: "High",
-      note: "Network capture is required for complete video variants."
-    },
-    {
-      surface: "Navigation",
-      stable: '[data-testid^="AppTabBar_"], [data-testid="SideNav_NewTweet_Button"]',
-      fallback: 'nav[aria-label] a[role="link"]',
-      churnRisk: "High",
-      note: "Support full, compact, and mobile navigation."
-    },
-    {
-      surface: "Grok",
-      stable: '[data-testid="GrokDrawer"], [data-testid="grokImgGen"], a[href="/i/grok"], button[aria-label="Grok actions"]',
-      fallback: 'div[id*="grok" i]',
-      churnRisk: "High",
-      note: "Drawer, navigation, image-generation, and per-post Grok surfaces change frequently; isolate all tweaks."
-    }
-  ];
-  function getSelectorHealth(root = document) {
-    return SURFACE_SELECTORS.map((entry) => {
-      const stableCount = countMatches(root, entry.stable);
-      const fallbackCount = countMatches(root, entry.fallback);
-      return {
-        surface: entry.surface,
-        stable: entry.stable,
-        fallback: entry.fallback,
-        stableCount,
-        fallbackCount,
-        churnRisk: entry.churnRisk,
-        healthy: stableCount > 0 || fallbackCount > 0
-      };
-    });
-  }
-  function countMatches(root, selector) {
-    try {
-      const self = root instanceof Element && root.matches(selector) ? 1 : 0;
-      return self + root.querySelectorAll(selector).length;
-    } catch {
-      return 0;
-    }
-  }
-
-  // src/features/core/selector-health.ts
-  var CRITICAL_SURFACES = /* @__PURE__ */ new Set(["App root", "Primary column"]);
-  var MIN_LOG_INTERVAL_MS = 5e3;
-  var lastLogAt = 0;
-  var lastSignature = "";
-  var selectorHealthFeature = {
-    id: "core.selectorHealth",
-    title: "Selector health diagnostics",
-    category: "core",
-    defaultEnabled: true,
-    init(ctx) {
-      if (!ctx.settings.diagnostics.selectorHealth) {
-        return;
-      }
-      ctx.diagnostics.info("Selector health initialized", {
-        route: ctx.route.surface,
-        healthy: getSelectorHealth().filter((item) => item.healthy).length
-      });
-    },
-    apply(ctx, root) {
-      if (!ctx.settings.diagnostics.selectorHealth) {
-        return;
-      }
-      const health = getSelectorHealth(root);
-      const missingCritical = health.filter((item) => !item.healthy && CRITICAL_SURFACES.has(item.surface));
-      if (missingCritical.length === 0) {
-        return;
-      }
-      const signature = `${ctx.route.surface}:${missingCritical.map((item) => item.surface).join(",")}`;
-      const now2 = Date.now();
-      if (signature !== lastSignature || now2 - lastLogAt >= MIN_LOG_INTERVAL_MS) {
-        lastSignature = signature;
-        lastLogAt = now2;
-        ctx.diagnostics.warn("Critical selector health degraded", {
-          route: ctx.route.surface,
-          missing: missingCritical.map((item) => item.surface)
-        });
-      }
-    },
-    destroy(ctx) {
-      lastLogAt = 0;
-      lastSignature = "";
-      ctx.diagnostics.info("Selector health destroyed");
-    },
-    getStatus() {
-      const health = getSelectorHealth();
-      const healthyCount = health.filter((item) => item.healthy).length;
-      return {
-        ok: healthyCount > 0,
-        message: `${healthyCount}/${health.length} selector surfaces detected`,
-        details: { health }
-      };
-    }
-  };
 
   // src/features/filtering/predicates.ts
   function compileFilters(input) {

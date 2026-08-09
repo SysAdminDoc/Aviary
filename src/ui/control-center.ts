@@ -69,6 +69,31 @@ export interface ExportResultSummary {
   files?: number;
 }
 
+export interface SelectorHealthStatus {
+  route: string;
+  state: "healthy" | "degraded";
+  required: number;
+  requiredMatched: number;
+  optional: number;
+  optionalMatched: number;
+  missingRequired: string[];
+  optionalMissing: string[];
+  fallbackMatches: Array<{ surface: string; selector: string }>;
+  affectedFeatures: string[];
+  surfaces: Array<{
+    surface: string;
+    relevance: "required" | "optional" | "inapplicable";
+    matched: "stable" | "fallback" | "missing";
+    matchedSelector: string | null;
+  }>;
+  lastTransition: {
+    at: string;
+    from: "healthy" | "degraded" | null;
+    to: "healthy" | "degraded";
+    route: string;
+  } | null;
+}
+
 export interface ControlCenterOptions {
   settings: AviarySettings;
   diagnostics: () => DiagnosticEvent[];
@@ -90,6 +115,7 @@ export interface ControlCenterOptions {
    * exactly like a hook that does not work.
    */
   getPageHooks?: () => { reachable: boolean; reason: string; blockedBeacons: number };
+  getSelectorHealth?: () => SelectorHealthStatus;
   clearAuditLog?: () => Promise<void>;
   getRetentionPolicy?: () => RetentionPolicy;
   saveRetentionPolicy?: (policy: RetentionPolicy) => Promise<void>;
@@ -597,7 +623,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         storageHealthRow(),
         readonlyRow("Telemetry", options.settings.privacy.telemetry ? "Enabled" : "Disabled"),
         coverageRow(),
-        dataRow("Selector health", selectorSummary())
+        ...selectorHealthRows()
     ];
   };
 
@@ -2618,6 +2644,63 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   const selectorSummary = (): string => {
     const last = [...options.diagnostics()].reverse().find((event) => event.message.includes("Selector"));
     return last?.message ?? "Monitoring active";
+  };
+
+  const selectorHealthRows = (): HTMLElement[] => {
+    const health = options.getSelectorHealth?.();
+    if (!health || health.required === 0) {
+      return [dataRow("Selector health", selectorSummary())];
+    }
+
+    // These labels are conditional on the structured callback, so register them for the catalog
+    // even in the extractor's capability-minimal render.
+    t("Selector matches");
+    t("Missing required surfaces");
+    t("Optional surfaces missing");
+    t("Fallback selectors in use");
+    t("Affected features");
+    t("Last selector transition");
+
+    const rows = [
+      dataRow(
+        "Selector health",
+        `${health.state === "healthy" ? "Healthy" : "Degraded"} · ${health.route} · ${health.requiredMatched}/${health.required} required · ${health.optionalMatched}/${health.optional} optional`
+      ),
+      dataRow(
+        "Selector matches",
+        health.surfaces
+          .filter((surface) => surface.relevance !== "inapplicable")
+          .map((surface) => `${surface.surface}: ${surface.matched}`)
+          .join(" · ")
+      ),
+      dataRow(
+        "Missing required surfaces",
+        health.missingRequired.length > 0 ? health.missingRequired.join(", ") : "None"
+      )
+    ];
+    if (health.optionalMissing.length > 0) {
+      rows.push(dataRow("Optional surfaces missing", health.optionalMissing.join(", ")));
+    }
+    if (health.fallbackMatches.length > 0) {
+      rows.push(
+        dataRow(
+          "Fallback selectors in use",
+          health.fallbackMatches.map((entry) => `${entry.surface}: ${entry.selector}`).join(" · ")
+        )
+      );
+    }
+    if (health.affectedFeatures.length > 0) {
+      rows.push(dataRow("Affected features", health.affectedFeatures.join(", ")));
+    }
+    if (health.lastTransition) {
+      rows.push(
+        dataRow(
+          "Last selector transition",
+          `${health.lastTransition.to} · ${health.lastTransition.route} · ${health.lastTransition.at}`
+        )
+      );
+    }
+    return rows;
   };
 
   launcher.addEventListener("click", () => setOpen(!open));

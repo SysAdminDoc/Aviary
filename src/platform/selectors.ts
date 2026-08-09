@@ -1,4 +1,8 @@
+import type { RouteSurface } from "./route";
+
 export type ChurnRisk = "Low" | "Medium" | "High";
+export type SelectorRelevance = "required" | "optional" | "inapplicable";
+export type SelectorMatch = "stable" | "fallback" | "missing";
 
 export interface SurfaceSelector {
   surface: string;
@@ -16,6 +20,10 @@ export interface SelectorHealth {
   fallbackCount: number;
   churnRisk: ChurnRisk;
   healthy: boolean;
+  relevance: SelectorRelevance;
+  matched: SelectorMatch;
+  matchedSelector: string | null;
+  feature: string;
 }
 
 export const SURFACE_SELECTORS: SurfaceSelector[] = [
@@ -93,9 +101,17 @@ export const SURFACE_SELECTORS: SurfaceSelector[] = [
 ];
 
 export function getSelectorHealth(root: ParentNode = document): SelectorHealth[] {
+  return getSelectorHealthForRoute(root, "unknown");
+}
+
+export function getSelectorHealthForRoute(
+  root: ParentNode = document,
+  route: RouteSurface = "unknown"
+): SelectorHealth[] {
   return SURFACE_SELECTORS.map((entry) => {
     const stableCount = countMatches(root, entry.stable);
     const fallbackCount = countMatches(root, entry.fallback);
+    const matched: SelectorMatch = stableCount > 0 ? "stable" : fallbackCount > 0 ? "fallback" : "missing";
     return {
       surface: entry.surface,
       stable: entry.stable,
@@ -103,9 +119,47 @@ export function getSelectorHealth(root: ParentNode = document): SelectorHealth[]
       stableCount,
       fallbackCount,
       churnRisk: entry.churnRisk,
-      healthy: stableCount > 0 || fallbackCount > 0
+      healthy: stableCount > 0 || fallbackCount > 0,
+      relevance: selectorRelevance(entry.surface, route),
+      matched,
+      matchedSelector: matched === "stable" ? entry.stable : matched === "fallback" ? entry.fallback : null,
+      feature: featureForSurface(entry.surface)
     };
   });
+}
+
+const CONTENT_SURFACES = new Set<RouteSurface>([
+  "home",
+  "status",
+  "profile",
+  "notifications",
+  "search"
+]);
+
+function selectorRelevance(surface: string, route: RouteSurface): SelectorRelevance {
+  if (surface === "App root" || surface === "Primary column" || surface === "Navigation") {
+    return "required";
+  }
+  if (surface === "Grok") {
+    return route === "grok" ? "required" : "optional";
+  }
+  if (["Tweet", "Tweet text", "Composer", "Media photo", "Video"].includes(surface)) {
+    return CONTENT_SURFACES.has(route) ? "optional" : "inapplicable";
+  }
+  if (surface === "Sidebar") {
+    return route === "settings" ? "inapplicable" : "optional";
+  }
+  return "optional";
+}
+
+function featureForSurface(surface: string): string {
+  if (surface === "App root" || surface === "Primary column") return "Boot and timeline scope";
+  if (surface === "Sidebar" || surface === "Navigation") return "Layout declutter";
+  if (surface === "Tweet" || surface === "Tweet text") return "Filtering and export";
+  if (surface === "Composer") return "Composer and crosspost";
+  if (surface === "Media photo" || surface === "Video") return "Media controls";
+  if (surface === "Grok") return "Grok declutter";
+  return "Aviary surface";
 }
 
 function countMatches(root: ParentNode, selector: string): number {

@@ -42,6 +42,9 @@
 - Export query discovery and scroll-capture sessions now reconcile live setting changes: enabling
   discovery runs it once, disabling capture finishes the current job, and re-enabling starts a
   distinct session without duplicate work from concurrent applies.
+- Trust now reports route-aware selector health with required and optional counts, stable or
+  fallback matches, missing surfaces, affected features, and live healthy/degraded transitions;
+  Grok coverage is visible without treating unrelated routes as failures.
 - The local bookmark library is now a shipped product surface: rendered posts get a reversible
   Save locally control, and Library search can edit tags, folders, reminders, notes, or remove entries.
 
