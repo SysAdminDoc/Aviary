@@ -83,6 +83,14 @@ export const controlCenterFeature: FeatureModule = {
     controlCenter = mountControlCenter({
       settings: ctx.settings,
       diagnostics: () => ctx.diagnostics.snapshot(),
+      getStorageStatus: () => ctx.storage.getStatus?.() ?? {
+        backend: "legacy",
+        schemaVersion: 0,
+        migratedKeys: 0,
+        usageBytes: null,
+        quotaBytes: null,
+        lastError: null
+      },
       async onChange() {
         await ctx.saveSettings();
         ctx.requestApply();

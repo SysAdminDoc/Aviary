@@ -28,6 +28,7 @@ const MEDIA_LAYOUT_OPTIONS: Array<[MediaLayout, string]> = [
   ["grid", "Strict grid"]
 ];
 import type { DiagnosticEvent } from "../platform/diagnostics";
+import type { StorageStatus } from "../platform/storage";
 
 const FILTER_ACTION_OPTIONS: Array<[FilterAction, string]> = [
   ["off", "Off"],
@@ -101,6 +102,7 @@ export interface SelectorHealthStatus {
 export interface ControlCenterOptions {
   settings: AviarySettings;
   diagnostics: () => DiagnosticEvent[];
+  getStorageStatus?: () => StorageStatus;
   onChange: () => Promise<void>;
   onError: (message: string, error: unknown) => void;
   getMediaStatus?: () => MediaStatus;
@@ -620,7 +622,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
   const trustRows = (): HTMLElement[] => {
     return [
-        readonlyRow("Storage", "Settings stay in this browser."),
+        storageStatusRow(),
         toggleRow(
           "Local-only mode",
           "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.",
@@ -2683,6 +2685,26 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     );
   };
 
+  const storageStatusRow = (): HTMLElement => {
+    const status = options.getStorageStatus?.();
+    if (!status) {
+      return readonlyRow("Storage", "Settings stay in this browser.");
+    }
+    const backend =
+      status.backend === "indexeddb"
+        ? "IndexedDB"
+        : status.backend === "indexeddb-fallback"
+          ? "IndexedDB fallback"
+          : "Browser storage";
+    const usage = status.usageBytes === null ? "usage unavailable" : `${formatBytes(status.usageBytes)} used`;
+    const quota = status.quotaBytes === null ? "quota unavailable" : `${formatBytes(status.quotaBytes)} available`;
+    const error = status.lastError ? ` · ${status.lastError}` : "";
+    return dataRow(
+      "Storage",
+      `${backend} · schema v${status.schemaVersion} · ${usage} · ${quota} · ${status.migratedKeys} stores migrated${error}`
+    );
+  };
+
   /**
    * The honest readout for the page-world hooks.
    *
@@ -3061,6 +3083,12 @@ function dataRow(label: string, value: string): HTMLElement {
   const row = el("div", "av-row av-row-readonly");
   row.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", value));
   return row;
+}
+
+function formatBytes(value: number): string {
+  if (value < 1024) return `${Math.round(value)} B`;
+  if (value < 1024 * 1024) return `${Math.round(value / 1024)} KiB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MiB`;
 }
 
 function textInputRow(

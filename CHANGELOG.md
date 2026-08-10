@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Versioned local stores now migrate into a browser-native IndexedDB repository when available,
+  retain the legacy copy until the transaction commits, fall back visibly when IndexedDB cannot
+  open, and expose schema, usage, quota, and migration status in Trust.
 - Profile subroutes, filter cleanup/cell reflow, page-bridge session authentication, UTF-8 capture
   limits, bounded archive inflation, durable hidden-post mutations, and serialized raw-capture
   persistence now handle the audited edge cases without false success or stale page state.

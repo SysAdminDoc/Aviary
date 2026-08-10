@@ -31,6 +31,7 @@ import { TokenBucket } from "./platform/rate-limit";
 import { readRoute, watchRoute } from "./platform/route";
 import { cloneSettings, DEFAULT_SETTINGS, normalizeSettings, SETTINGS_KEY } from "./platform/settings";
 import { createStorageGateway, setStorageErrorSink } from "./platform/storage";
+import { createDurableStorageGateway, DURABLE_STORAGE_KEYS } from "./platform/durable-storage";
 import { createTrustedHtmlPolicy } from "./platform/trusted-types";
 
 export interface BootOptions {
@@ -74,8 +75,8 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   }
   document.documentElement.dataset.avReady = "booting";
 
-  const storage = createStorageGateway("aviary");
-  const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
+  const legacyStorage = createStorageGateway("aviary");
+  const storage = createDurableStorageGateway(legacyStorage);
   const diagnostics = new Diagnostics();
   // Every failed write reaches diagnostics, including the ones individual stores swallow.
   setStorageErrorSink((key, error, op) => {
@@ -84,6 +85,13 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
       errorDetails(error)
     );
   });
+  const storageStatus = await storage.initialize(DURABLE_STORAGE_KEYS);
+  diagnostics.info("Durable storage initialized", {
+    backend: storageStatus.backend,
+    schemaVersion: storageStatus.schemaVersion,
+    migratedKeys: storageStatus.migratedKeys
+  });
+  const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
   // Read fresh on every outbound call, so toggling local-only mode applies at once.
   setLocalOnlyPolicy(() => settings.privacy.localOnly);
   // Burst covers an ordinary page of media without any wait; the refill rate is what paces a

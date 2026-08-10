@@ -2,6 +2,16 @@ export interface StorageGateway {
   get<T>(key: string, fallback: T): Promise<T>;
   set<T>(key: string, value: T): Promise<void>;
   remove(key: string): Promise<void>;
+  getStatus?(): StorageStatus;
+}
+
+export interface StorageStatus {
+  backend: "legacy" | "indexeddb" | "indexeddb-fallback";
+  schemaVersion: number;
+  migratedKeys: number;
+  usageBytes: number | null;
+  quotaBytes: number | null;
+  lastError: string | null;
 }
 
 type GlobalWithUserscriptStorage = typeof globalThis & {
@@ -25,6 +35,10 @@ let onWriteError: StorageErrorSink | undefined;
 
 export function setStorageErrorSink(sink: StorageErrorSink | undefined): void {
   onWriteError = sink;
+}
+
+export function reportStorageError(key: string, error: unknown, op: "read" | "write"): void {
+  onWriteError?.(key, error, op);
 }
 
 export function createStorageGateway(namespace = "aviary"): StorageGateway {
@@ -53,7 +67,7 @@ export function createStorageGateway(namespace = "aviary"): StorageGateway {
         const raw = globalThis.localStorage?.getItem(storageKey);
         return raw === null || raw === undefined ? fallback : (JSON.parse(raw) as T);
       } catch (error) {
-        onWriteError?.(storageKey, error, "read");
+        reportStorageError(storageKey, error, "read");
         // Returning the fallback silently means a corrupted value reads as "unset", and the
         // next save overwrites the recoverable original for good. Still non-throwing -- a bad
         // read must not take the boot down -- but no longer invisible.
@@ -85,7 +99,7 @@ export function createStorageGateway(namespace = "aviary"): StorageGateway {
 
         throw new Error(`No storage backend is available for ${storageKey}`);
       } catch (error) {
-        onWriteError?.(storageKey, error, "write");
+        reportStorageError(storageKey, error, "write");
         throw error;
       }
     },
