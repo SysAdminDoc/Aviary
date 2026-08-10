@@ -18,6 +18,8 @@
   clear the pending state, and close without an unhandled rejection.
 - Aria2’s dynamically rendered Cancel action now catches RPC and policy failures, reports status,
   and always restores its enabled state.
+- Semantic search now sequences debounced requests, clears empty queries, and ignores stale
+  responses or errors from older input.
 
 ## 1.16.0 - 2026-08-09
 

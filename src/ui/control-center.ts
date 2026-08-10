@@ -1576,12 +1576,22 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       input.className = "av-text-input";
       const results = el("div", "av-search-results");
       let pending: number | undefined;
+      let searchSequence = 0;
       input.addEventListener("input", () => {
         if (pending !== undefined) clearTimeout(pending);
+        const sequence = ++searchSequence;
+        const query = input.value.trim();
+        if (query.length === 0) {
+          results.replaceChildren();
+          pending = undefined;
+          return;
+        }
         pending = setTimeout(() => {
+          pending = undefined;
           void options
-            .semanticSearchQuery!(input.value.trim())
+            .semanticSearchQuery!(query)
             .then((hits) => {
+              if (sequence !== searchSequence || input.value.trim() !== query) return;
               results.replaceChildren();
               if (hits.length === 0) {
                 results.append(el("div", "av-row-description", "No matches (or integration disabled)."));
@@ -1597,7 +1607,9 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
               }
             })
             .catch((error: unknown) => {
-              options.onError("Semantic search failed", error);
+              if (sequence === searchSequence && input.value.trim() === query) {
+                options.onError("Semantic search failed", error);
+              }
             });
         }, 220) as unknown as number;
       });

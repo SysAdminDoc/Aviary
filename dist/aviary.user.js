@@ -6417,10 +6417,20 @@ html.av-reduce-motion *::after {
         input.className = "av-text-input";
         const results = el("div", "av-search-results");
         let pending;
+        let searchSequence = 0;
         input.addEventListener("input", () => {
           if (pending !== void 0) clearTimeout(pending);
+          const sequence = ++searchSequence;
+          const query = input.value.trim();
+          if (query.length === 0) {
+            results.replaceChildren();
+            pending = void 0;
+            return;
+          }
           pending = setTimeout(() => {
-            void options.semanticSearchQuery(input.value.trim()).then((hits) => {
+            pending = void 0;
+            void options.semanticSearchQuery(query).then((hits) => {
+              if (sequence !== searchSequence || input.value.trim() !== query) return;
               results.replaceChildren();
               if (hits.length === 0) {
                 results.append(el("div", "av-row-description", "No matches (or integration disabled)."));
@@ -6435,7 +6445,9 @@ html.av-reduce-motion *::after {
                 results.append(item);
               }
             }).catch((error) => {
-              options.onError("Semantic search failed", error);
+              if (sequence === searchSequence && input.value.trim() === query) {
+                options.onError("Semantic search failed", error);
+              }
             });
           }, 220);
         });

@@ -162,6 +162,47 @@ test("a rejected Aria2 cancel reports failure and re-enables the row action", as
   assert.equal(result.unhandled.length, 0);
 });
 
+test("semantic search ignores results that belong to an older query", async () => {
+  const result = await page.evaluate(async () => {
+    document.body.replaceChildren();
+    const settings = AviaryActions.cloneSettings(AviaryActions.DEFAULT_SETTINGS);
+    const deferred = new Map();
+    const panel = AviaryActions.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: () => {},
+      semanticSearchQuery: (query) =>
+        new Promise((resolve) => {
+          deferred.set(query, resolve);
+        })
+    });
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    shadow.querySelector('[data-av-section="integrations"]').click();
+    const input = [...shadow.querySelectorAll('input[type="search"]')].find(
+      (candidate) => candidate.placeholder === "Describe what you're looking for…"
+    );
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    input.value = "alpha";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await wait(240);
+    input.value = "beta";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await wait(240);
+    deferred.get("beta")([{ tweetId: "b", handle: "beta", text: "new result", score: 0.9 }]);
+    await wait(0);
+    deferred.get("alpha")([{ tweetId: "a", handle: "alpha", text: "stale result", score: 0.99 }]);
+    await wait(0);
+    const text = input.closest(".av-row").querySelector(".av-search-results").textContent;
+    panel.destroy();
+    return text;
+  });
+
+  assert.match(result, /new result/);
+  assert.doesNotMatch(result, /stale result/);
+});
+
 test("snapshot capture and clear refresh the count while preserving action focus", async () => {
   const result = await page.evaluate(async () => {
     document.body.replaceChildren();
