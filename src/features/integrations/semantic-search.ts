@@ -12,7 +12,9 @@ export const SEMANTIC_INDEX_KEY = "aviary.semanticIndex.v1";
  * chrome.storage.local (10 MB without unlimitedStorage) and then surfaces as the storage error
  * sink firing on completely unrelated writes.
  */
-export const SEMANTIC_INDEX_LIMIT = 2000;
+export const SEMANTIC_INDEX_LIMIT = 400;
+export const SEMANTIC_INDEX_MAX_BYTES = 8 * 1024 * 1024;
+const MAX_VECTOR_DIMENSIONS = 4096;
 
 /** Embeddings are unit-ish floats; five decimals keeps cosine similarity stable at ~1/3 the bytes. */
 const VECTOR_PRECISION = 1e5;
@@ -55,9 +57,12 @@ export class SemanticIndex {
     if (this.#loaded) return;
     const stored = await this.#storage.get<SemanticIndexState>(SEMANTIC_INDEX_KEY, EMPTY);
     this.#state = {
-      entries: Array.isArray(stored?.entries) ? stored.entries.filter(isEntry) : [],
+      entries: Array.isArray(stored?.entries)
+        ? stored.entries.filter(isEntry).slice(-SEMANTIC_INDEX_LIMIT)
+        : [],
       model: typeof stored?.model === "string" ? stored.model : ""
     };
+    this.#trimToBudget();
     this.#loaded = true;
   }
 
@@ -77,6 +82,7 @@ export class SemanticIndex {
       return { added: 0, skipped: records.length, errors: 0, dropped: 0 };
     }
     await this.load();
+    const before = cloneState(this.#state);
     if (this.#state.model && this.#state.model !== config.model) {
       this.#state = { entries: [], model: config.model };
     } else {
@@ -93,7 +99,8 @@ export class SemanticIndex {
         skipped += 1;
         continue;
       }
-      const vector = await fetchEmbedding(config, record.text);
+      const expectedDimension = this.#state.entries[0]?.vector.length;
+      const vector = await fetchEmbedding(config, record.text, expectedDimension);
       if (!vector) {
         errors += 1;
         continue;
@@ -109,12 +116,14 @@ export class SemanticIndex {
       known.add(id);
       added += 1;
     }
-    const overflow = Math.max(0, this.#state.entries.length - SEMANTIC_INDEX_LIMIT);
-    if (overflow > 0) {
-      this.#state.entries = this.#state.entries.slice(overflow);
+    const dropped = this.#trimToBudget();
+    try {
+      await this.#persist();
+    } catch (error) {
+      this.#state = before;
+      throw error;
     }
-    await this.#persist();
-    return { added, skipped, errors, dropped: overflow };
+    return { added, skipped, errors, dropped };
   }
 
   async search(
@@ -127,7 +136,7 @@ export class SemanticIndex {
     }
     await this.load();
     if (this.#state.entries.length === 0) return [];
-    const queryVector = await fetchEmbedding(config, query);
+    const queryVector = await fetchEmbedding(config, query, this.#state.entries[0]?.vector.length);
     if (!queryVector) return [];
     const hits = this.#state.entries
       .map((entry) => ({ entry, score: cosineSimilarity(queryVector, entry.vector) }))
@@ -137,23 +146,38 @@ export class SemanticIndex {
   }
 
   async clear(): Promise<void> {
+    const before = cloneState(this.#state);
     this.#state = { entries: [], model: this.#state.model };
     this.#loaded = true;
-    await this.#persist();
+    try {
+      await this.#persist();
+    } catch (error) {
+      this.#state = before;
+      throw error;
+    }
+  }
+
+  #trimToBudget(): number {
+    const before = this.#state.entries.length;
+    while (
+      this.#state.entries.length > SEMANTIC_INDEX_LIMIT ||
+      serializedBytes(this.#state) > SEMANTIC_INDEX_MAX_BYTES
+    ) {
+      if (this.#state.entries.length === 0) break;
+      this.#state.entries.shift();
+    }
+    return before - this.#state.entries.length;
   }
 
   async #persist(): Promise<void> {
-    try {
-      await this.#storage.set(SEMANTIC_INDEX_KEY, this.#state);
-    } catch {
-      // best effort
-    }
+    await this.#storage.set(SEMANTIC_INDEX_KEY, this.#state);
   }
 }
 
 async function fetchEmbedding(
   config: IntegrationSettings["semanticSearch"],
-  text: string
+  text: string,
+  expectedDimension?: number
 ): Promise<number[] | null> {
   assertOutboundAllowed("Embedding");
   try {
@@ -170,17 +194,19 @@ async function fetchEmbedding(
       data?: Array<{ embedding?: number[] }>;
       embedding?: number[];
     };
-    if (Array.isArray(payload?.embedding)) return payload.embedding;
+    if (Array.isArray(payload?.embedding)) {
+      return validEmbedding(payload.embedding, expectedDimension) ? payload.embedding : null;
+    }
     const vector = payload?.data?.[0]?.embedding;
-    return Array.isArray(vector) ? vector : null;
+    return Array.isArray(vector) && validEmbedding(vector, expectedDimension) ? vector : null;
   } catch {
     return null;
   }
 }
 
 export function cosineSimilarity(a: number[], b: number[]): number {
-  const length = Math.min(a.length, b.length);
-  if (length === 0) return 0;
+  if (!validEmbedding(a) || !validEmbedding(b) || a.length !== b.length) return 0;
+  const length = a.length;
   let dot = 0;
   let normA = 0;
   let normB = 0;
@@ -192,11 +218,46 @@ export function cosineSimilarity(a: number[], b: number[]): number {
     normB += bv * bv;
   }
   if (normA === 0 || normB === 0) return 0;
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+  const score = dot / (Math.sqrt(normA) * Math.sqrt(normB));
+  return Number.isFinite(score) ? score : 0;
 }
 
 function isEntry(value: unknown): value is SemanticEntry {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Partial<SemanticEntry>;
-  return typeof candidate.id === "string" && Array.isArray(candidate.vector);
+  return (
+    typeof candidate.id === "string" &&
+    (typeof candidate.tweetId === "string" || candidate.tweetId === null) &&
+    (typeof candidate.handle === "string" || candidate.handle === null) &&
+    typeof candidate.text === "string" &&
+    typeof candidate.embeddedAt === "string" &&
+    validEmbedding(candidate.vector)
+  );
+}
+
+function validEmbedding(value: unknown, expectedDimension?: number): value is number[] {
+  if (
+    !Array.isArray(value) ||
+    value.length === 0 ||
+    value.length > MAX_VECTOR_DIMENSIONS ||
+    (expectedDimension !== undefined && value.length !== expectedDimension)
+  ) {
+    return false;
+  }
+  return value.every((item) => typeof item === "number" && Number.isFinite(item));
+}
+
+function serializedBytes(state: SemanticIndexState): number {
+  try {
+    return new TextEncoder().encode(JSON.stringify(state)).byteLength;
+  } catch {
+    return Number.POSITIVE_INFINITY;
+  }
+}
+
+function cloneState(state: SemanticIndexState): SemanticIndexState {
+  return {
+    model: state.model,
+    entries: state.entries.map((entry) => ({ ...entry, vector: [...entry.vector] }))
+  };
 }

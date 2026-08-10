@@ -30,6 +30,12 @@ export const TARGET_LIMITS: Record<CrosspostTarget, number> = {
   mastodon: 500
 };
 
+export const ATTACHMENT_LIMITS = {
+  photo: 10 * 1024 * 1024,
+  thumbnail: 10 * 1024 * 1024,
+  video: 50 * 1024 * 1024
+} as const;
+
 export function splitForThread(text: string): string[] {
   const blocks = text
     .split(/\r?\n\s*\r?\n/)
@@ -320,11 +326,58 @@ async function fetchAttachment(
     throw new Error(`Media attachment HTTP ${response.status}`);
   }
   const contentType = normalizeContentType(response.headers.get("content-type")) ?? inferContentType(attachment);
-  const bytes = await response.arrayBuffer();
+  const maxBytes = ATTACHMENT_LIMITS[attachment.kind ?? "photo"];
+  const declaredLength = Number.parseInt(response.headers.get("content-length") ?? "", 10);
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+    throw new Error(`Media attachment exceeds the ${Math.round(maxBytes / (1024 * 1024))} MiB limit`);
+  }
+  const bytes = await readBoundedResponse(response, maxBytes);
   if (bytes.byteLength === 0) {
     throw new Error("Media attachment was empty");
   }
-  return { blob: new Blob([bytes], { type: contentType }), contentType };
+  return { blob: new Blob([bytes.buffer as ArrayBuffer], { type: contentType }), contentType };
+}
+
+async function readBoundedResponse(response: Response, maxBytes: number): Promise<Uint8Array> {
+  if (!response.body) {
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength > maxBytes) {
+      throw new Error(`Media attachment exceeds the ${Math.round(maxBytes / (1024 * 1024))} MiB limit`);
+    }
+    return bytes;
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const next = await reader.read();
+      if (next.done) break;
+      const chunk = next.value as Uint8Array;
+      total += chunk.byteLength;
+      if (total > maxBytes) {
+        throw new Error(`Media attachment exceeds the ${Math.round(maxBytes / (1024 * 1024))} MiB limit`);
+      }
+      chunks.push(chunk);
+    }
+  } catch (error) {
+    try {
+      await reader.cancel();
+    } catch {
+      // The response may already be closed; preserve the size/error result.
+    }
+    throw error;
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
 }
 
 function normalizeContentType(value: string | null): string | null {

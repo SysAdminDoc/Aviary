@@ -64,7 +64,7 @@ test("importOfficialArchive parses tweets.js + like.js into ExportRecords", asyn
     {
       filename: "data/tweets.js",
       data: encoder.encode(
-        'window.YTD.tweets.part0 = [{"tweet":{"id_str":"100","full_text":"hello world","created_at":"Mon May 19 12:00:00 +0000 2026","entities":{"user_mentions":[{"screen_name":"alpha"}]}}}]'
+        'window.YTD.tweets.part0 = [{"tweet":{"id_str":"100","full_text":"hello world","created_at":"Mon May 19 12:00:00 +0000 2026","user":{"screen_name":"author"},"entities":{"user_mentions":[{"screen_name":"alpha"}]}}}]'
       )
     },
     {
@@ -79,6 +79,7 @@ test("importOfficialArchive parses tweets.js + like.js into ExportRecords", asyn
   assert.equal(result.records.length, 2);
   const tweet = result.records.find((r) => r.tweetId === "100");
   assert.equal(tweet?.text, "hello world");
+  assert.equal(tweet?.handle, "author", "the expanded tweet user is the author, not the first mention");
   const like = result.records.find((r) => r.tweetId === "200");
   assert.equal(like?.text, "loved it");
   assert.ok(like.surface.includes("likes"));

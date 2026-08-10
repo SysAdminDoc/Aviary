@@ -265,6 +265,53 @@ test("crosspost uploads the last media to Mastodon and attaches it to the first 
   }
 });
 
+test("crosspost rejects an attachment over the bounded download limit", async () => {
+  const { ATTACHMENT_LIMITS, crosspost } = await importBundledModule(
+    "src/features/integrations/crosspost.ts"
+  );
+  const original = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    calls.push(url);
+    if (String(url).includes("createSession")) {
+      return new Response(JSON.stringify({ accessJwt: "jwt", did: "did:plc:1" }), { status: 200 });
+    }
+    if (String(url).includes("source.jpg")) {
+      return new Response(new Uint8Array([1]), {
+        status: 200,
+        headers: {
+          "content-type": "image/jpeg",
+          "content-length": String(ATTACHMENT_LIMITS.photo + 1)
+        }
+      });
+    }
+    throw new Error(`unexpected network call: ${String(url)}`);
+  };
+
+  try {
+    const result = await crosspost(
+      {
+        aria2: { enabled: false, endpoint: "", secret: "", minBytes: 1_000_000 },
+        bluesky: { enabled: true, service: "https://bsky.social", handle: "you.bsky.social", appPassword: "abc" },
+        mastodon: { enabled: false, instance: "", token: "", visibility: "public" },
+        ai: { enabled: false, provider: "anthropic", endpoint: "", apiKey: "", model: "" },
+        semanticSearch: { enabled: false, endpoint: "", apiKey: "", model: "", autoIndex: false },
+        crosspost: { attachLastDownload: true }
+      },
+      {
+        text: "Too large",
+        target: "bluesky",
+        attachment: { url: "https://cdn.test/source.jpg", filename: "source.jpg", kind: "photo" }
+      }
+    );
+    assert.equal(result.ok, false);
+    assert.match(result.error, /limit/i);
+    assert.equal(calls.length, 2, "session may authenticate, but the oversized media must not upload or post");
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
 test("recentIntegrationErrors surfaces failed audit entries newest-first", async () => {
   const { recentIntegrationErrors } = await importBundledModule(
     "src/features/core/integration-errors.ts"

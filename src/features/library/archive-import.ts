@@ -104,7 +104,7 @@ function mapTweets(parsed: unknown, surface: string): ExportRecord[] {
     const createdAt = stringField(tweet, "created_at") ?? now;
     const record: ExportRecord = {
       tweetId: id,
-      handle: stringFromEntities(tweet) ?? null,
+      handle: stringFromAuthor(tweet) ?? null,
       displayName: null,
       text,
       capturedAt: createdAt,
@@ -150,7 +150,18 @@ function stringField(record: Record<string, unknown>, ...keys: string[]): string
   return null;
 }
 
-function stringFromEntities(tweet: Record<string, unknown>): string | null {
+function stringFromAuthor(tweet: Record<string, unknown>): string | null {
+  const user = tweet.user;
+  if (isRecord(user)) {
+    const author = stringField(user, "screen_name", "username", "handle");
+    if (author) {
+      return author;
+    }
+  }
+
+  // Some archive variants omit the expanded user object. Mentions are only a last-resort hint;
+  // using the first mention as the primary author silently attributes ordinary posts to someone
+  // the tweet happened to mention.
   const entities = tweet.entities;
   if (!isRecord(entities)) return null;
   const userMentions = entities.user_mentions;

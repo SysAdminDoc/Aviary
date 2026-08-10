@@ -7,6 +7,9 @@
 - Profile subroutes, filter cleanup/cell reflow, page-bridge session authentication, UTF-8 capture
   limits, bounded archive inflation, durable hidden-post mutations, and serialized raw-capture
   persistence now handle the audited edge cases without false success or stale page state.
+- Archive imports preserve the actual tweet author, reports carry the build version, semantic
+  embeddings are validated and quota-bounded, and crosspost media downloads enforce streamed size
+  limits before upload.
 
 ## 1.16.0 - 2026-08-09
 

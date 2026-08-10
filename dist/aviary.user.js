@@ -4715,6 +4715,9 @@ html.av-reduce-motion *::after {
     return LOCALES.map((entry) => ({ ...entry }));
   }
 
+  // src/platform/build-version.ts
+  var AVIARY_VERSION = false ? "dev" : "1.16.0";
+
   // src/platform/settings.ts
   var SETTINGS_KEY = "aviary.settings.v1";
   var THEME_IDS = ["off", "dim", "lightsOut", "graphite", "plum", "midnight"];
@@ -5205,7 +5208,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION = false ? "dev" : "1.16.0";
+  var AVIARY_VERSION2 = false ? "dev" : "1.16.0";
   var MEDIA_LAYOUT_OPTIONS = [
     ["default", "Default grid"],
     ["stacked", "Stacked"],
@@ -5260,7 +5263,7 @@ html.av-reduce-motion *::after {
     const titleWrap = el("div", "av-title-wrap");
     const titleRow = el("div", "av-title-row");
     const title = el("h2", "av-title", t("Aviary"));
-    const version = el("span", "av-version", `v${AVIARY_VERSION}`);
+    const version = el("span", "av-version", `v${AVIARY_VERSION2}`);
     version.title = "Aviary version";
     titleRow.append(title, version);
     const subtitle = el("p", "av-subtitle", t("Local controls for a quieter X."));
@@ -9368,7 +9371,9 @@ input[type="checkbox"] {
 
   // src/features/integrations/semantic-search.ts
   var SEMANTIC_INDEX_KEY = "aviary.semanticIndex.v1";
-  var SEMANTIC_INDEX_LIMIT = 2e3;
+  var SEMANTIC_INDEX_LIMIT = 400;
+  var SEMANTIC_INDEX_MAX_BYTES = 8 * 1024 * 1024;
+  var MAX_VECTOR_DIMENSIONS = 4096;
   var VECTOR_PRECISION = 1e5;
   function roundVector(vector) {
     return vector.map((value) => Math.round(value * VECTOR_PRECISION) / VECTOR_PRECISION);
@@ -9385,9 +9390,10 @@ input[type="checkbox"] {
       if (this.#loaded) return;
       const stored = await this.#storage.get(SEMANTIC_INDEX_KEY, EMPTY);
       this.#state = {
-        entries: Array.isArray(stored?.entries) ? stored.entries.filter(isEntry) : [],
+        entries: Array.isArray(stored?.entries) ? stored.entries.filter(isEntry).slice(-SEMANTIC_INDEX_LIMIT) : [],
         model: typeof stored?.model === "string" ? stored.model : ""
       };
+      this.#trimToBudget();
       this.#loaded = true;
     }
     size() {
@@ -9401,6 +9407,7 @@ input[type="checkbox"] {
         return { added: 0, skipped: records.length, errors: 0, dropped: 0 };
       }
       await this.load();
+      const before = cloneState(this.#state);
       if (this.#state.model && this.#state.model !== config.model) {
         this.#state = { entries: [], model: config.model };
       } else {
@@ -9416,7 +9423,8 @@ input[type="checkbox"] {
           skipped += 1;
           continue;
         }
-        const vector = await fetchEmbedding(config, record.text);
+        const expectedDimension = this.#state.entries[0]?.vector.length;
+        const vector = await fetchEmbedding(config, record.text, expectedDimension);
         if (!vector) {
           errors += 1;
           continue;
@@ -9432,12 +9440,14 @@ input[type="checkbox"] {
         known.add(id);
         added += 1;
       }
-      const overflow = Math.max(0, this.#state.entries.length - SEMANTIC_INDEX_LIMIT);
-      if (overflow > 0) {
-        this.#state.entries = this.#state.entries.slice(overflow);
+      const dropped = this.#trimToBudget();
+      try {
+        await this.#persist();
+      } catch (error) {
+        this.#state = before;
+        throw error;
       }
-      await this.#persist();
-      return { added, skipped, errors, dropped: overflow };
+      return { added, skipped, errors, dropped };
     }
     async search(config, query, limit = 10) {
       if (!config.enabled || !config.endpoint || !config.apiKey || !config.model || query.trim().length === 0) {
@@ -9445,24 +9455,35 @@ input[type="checkbox"] {
       }
       await this.load();
       if (this.#state.entries.length === 0) return [];
-      const queryVector = await fetchEmbedding(config, query);
+      const queryVector = await fetchEmbedding(config, query, this.#state.entries[0]?.vector.length);
       if (!queryVector) return [];
       const hits = this.#state.entries.map((entry) => ({ entry, score: cosineSimilarity(queryVector, entry.vector) })).sort((a, b) => b.score - a.score).slice(0, limit);
       return hits;
     }
     async clear() {
+      const before = cloneState(this.#state);
       this.#state = { entries: [], model: this.#state.model };
       this.#loaded = true;
-      await this.#persist();
-    }
-    async #persist() {
       try {
-        await this.#storage.set(SEMANTIC_INDEX_KEY, this.#state);
-      } catch {
+        await this.#persist();
+      } catch (error) {
+        this.#state = before;
+        throw error;
       }
     }
+    #trimToBudget() {
+      const before = this.#state.entries.length;
+      while (this.#state.entries.length > SEMANTIC_INDEX_LIMIT || serializedBytes(this.#state) > SEMANTIC_INDEX_MAX_BYTES) {
+        if (this.#state.entries.length === 0) break;
+        this.#state.entries.shift();
+      }
+      return before - this.#state.entries.length;
+    }
+    async #persist() {
+      await this.#storage.set(SEMANTIC_INDEX_KEY, this.#state);
+    }
   };
-  async function fetchEmbedding(config, text) {
+  async function fetchEmbedding(config, text, expectedDimension) {
     assertOutboundAllowed("Embedding");
     try {
       const response = await fetch(config.endpoint, {
@@ -9475,16 +9496,18 @@ input[type="checkbox"] {
       });
       if (!response.ok) return null;
       const payload = await response.json();
-      if (Array.isArray(payload?.embedding)) return payload.embedding;
+      if (Array.isArray(payload?.embedding)) {
+        return validEmbedding(payload.embedding, expectedDimension) ? payload.embedding : null;
+      }
       const vector = payload?.data?.[0]?.embedding;
-      return Array.isArray(vector) ? vector : null;
+      return Array.isArray(vector) && validEmbedding(vector, expectedDimension) ? vector : null;
     } catch {
       return null;
     }
   }
   function cosineSimilarity(a, b) {
-    const length = Math.min(a.length, b.length);
-    if (length === 0) return 0;
+    if (!validEmbedding(a) || !validEmbedding(b) || a.length !== b.length) return 0;
+    const length = a.length;
     let dot = 0;
     let normA = 0;
     let normB = 0;
@@ -9496,12 +9519,32 @@ input[type="checkbox"] {
       normB += bv * bv;
     }
     if (normA === 0 || normB === 0) return 0;
-    return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+    const score = dot / (Math.sqrt(normA) * Math.sqrt(normB));
+    return Number.isFinite(score) ? score : 0;
   }
   function isEntry(value) {
     if (typeof value !== "object" || value === null) return false;
     const candidate = value;
-    return typeof candidate.id === "string" && Array.isArray(candidate.vector);
+    return typeof candidate.id === "string" && (typeof candidate.tweetId === "string" || candidate.tweetId === null) && (typeof candidate.handle === "string" || candidate.handle === null) && typeof candidate.text === "string" && typeof candidate.embeddedAt === "string" && validEmbedding(candidate.vector);
+  }
+  function validEmbedding(value, expectedDimension) {
+    if (!Array.isArray(value) || value.length === 0 || value.length > MAX_VECTOR_DIMENSIONS || expectedDimension !== void 0 && value.length !== expectedDimension) {
+      return false;
+    }
+    return value.every((item) => typeof item === "number" && Number.isFinite(item));
+  }
+  function serializedBytes(state2) {
+    try {
+      return new TextEncoder().encode(JSON.stringify(state2)).byteLength;
+    } catch {
+      return Number.POSITIVE_INFINITY;
+    }
+  }
+  function cloneState(state2) {
+    return {
+      model: state2.model,
+      entries: state2.entries.map((entry) => ({ ...entry, vector: [...entry.vector] }))
+    };
   }
 
   // src/features/media/urls.ts
@@ -11910,6 +11953,11 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     bluesky: 300,
     mastodon: 500
   };
+  var ATTACHMENT_LIMITS = {
+    photo: 10 * 1024 * 1024,
+    thumbnail: 10 * 1024 * 1024,
+    video: 50 * 1024 * 1024
+  };
   function splitForThread(text) {
     const blocks = text.split(/\r?\n\s*\r?\n/).map((block) => block.trim()).filter((block) => block.length > 0);
     return blocks.length === 0 ? [text.trim()].filter((block) => block.length > 0) : blocks;
@@ -12138,11 +12186,55 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       throw new Error(`Media attachment HTTP ${response.status}`);
     }
     const contentType = normalizeContentType(response.headers.get("content-type")) ?? inferContentType(attachment);
-    const bytes = await response.arrayBuffer();
+    const maxBytes = ATTACHMENT_LIMITS[attachment.kind ?? "photo"];
+    const declaredLength = Number.parseInt(response.headers.get("content-length") ?? "", 10);
+    if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+      throw new Error(`Media attachment exceeds the ${Math.round(maxBytes / (1024 * 1024))} MiB limit`);
+    }
+    const bytes = await readBoundedResponse(response, maxBytes);
     if (bytes.byteLength === 0) {
       throw new Error("Media attachment was empty");
     }
-    return { blob: new Blob([bytes], { type: contentType }), contentType };
+    return { blob: new Blob([bytes.buffer], { type: contentType }), contentType };
+  }
+  async function readBoundedResponse(response, maxBytes) {
+    if (!response.body) {
+      const bytes2 = new Uint8Array(await response.arrayBuffer());
+      if (bytes2.byteLength > maxBytes) {
+        throw new Error(`Media attachment exceeds the ${Math.round(maxBytes / (1024 * 1024))} MiB limit`);
+      }
+      return bytes2;
+    }
+    const reader = response.body.getReader();
+    const chunks = [];
+    let total = 0;
+    try {
+      while (true) {
+        const next = await reader.read();
+        if (next.done) break;
+        const chunk = next.value;
+        total += chunk.byteLength;
+        if (total > maxBytes) {
+          throw new Error(`Media attachment exceeds the ${Math.round(maxBytes / (1024 * 1024))} MiB limit`);
+        }
+        chunks.push(chunk);
+      }
+    } catch (error) {
+      try {
+        await reader.cancel();
+      } catch {
+      }
+      throw error;
+    } finally {
+      reader.releaseLock();
+    }
+    const bytes = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return bytes;
   }
   function normalizeContentType(value) {
     const type = value?.split(";", 1)[0]?.trim().toLowerCase();
@@ -12468,7 +12560,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       const createdAt = stringField(tweet, "created_at") ?? now2;
       const record = {
         tweetId: id,
-        handle: stringFromEntities(tweet) ?? null,
+        handle: stringFromAuthor(tweet) ?? null,
         displayName: null,
         text,
         capturedAt: createdAt,
@@ -12511,7 +12603,14 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     }
     return null;
   }
-  function stringFromEntities(tweet) {
+  function stringFromAuthor(tweet) {
+    const user = tweet.user;
+    if (isRecord4(user)) {
+      const author = stringField(user, "screen_name", "username", "handle");
+      if (author) {
+        return author;
+      }
+    }
     const entities = tweet.entities;
     if (!isRecord4(entities)) return null;
     const userMentions = entities.user_mentions;
@@ -15534,9 +15633,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           if (latest) {
             reportInput.snapshots = diff ? { latest, diff } : { latest };
           }
-          if (ctx.settings.i18n.locale !== "en") {
-            reportInput.version = ctx.settings.i18n.locale;
-          }
+          reportInput.version = AVIARY_VERSION;
           const markdown = buildMarkdownReport(reportInput);
           const bytes = new TextEncoder().encode(markdown);
           downloadBlob(bytes, reportFilename(), "text/markdown");

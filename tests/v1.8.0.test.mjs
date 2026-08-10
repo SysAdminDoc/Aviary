@@ -248,6 +248,12 @@ test("the Control Center surfaces failed writes in the Trust section", async () 
   }
 });
 
+test("reports use the build version rather than the selected locale", async () => {
+  const source = await readFile(path.join(root, "src/features/core/control-center.ts"), "utf8");
+  assert.match(source, /reportInput\.version\s*=\s*AVIARY_VERSION/);
+  assert.ok(!/reportInput\.version\s*=\s*ctx\.settings\.i18n\.locale/.test(source));
+});
+
 test("waitForToken refuses an impossible request instead of hanging forever", async () => {
   const { TokenBucket } = await importBundledModule("src/platform/rate-limit.ts");
 

@@ -96,6 +96,36 @@ test("the semantic index is bounded and reports what it dropped", async () => {
   }
 });
 
+test("semantic embeddings require finite, non-empty, dimension-consistent vectors", async () => {
+  const { SemanticIndex, cosineSimilarity } = await importBundledModule(
+    "src/features/integrations/semantic-search.ts"
+  );
+  const storage = {
+    async get(_key, fallback) {
+      return fallback;
+    },
+    async set() {}
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({ data: [{ embedding: [0.1, "not-a-number", 0.3] }] })
+  });
+  try {
+    const index = new SemanticIndex(storage);
+    const result = await index.embedAndIndex(
+      { enabled: true, endpoint: "https://embed.test", apiKey: "k", model: "m", autoIndex: false },
+      [record({ tweetId: "bad-vector", text: "should be rejected" })]
+    );
+    assert.equal(result.errors, 1);
+    assert.equal(index.size(), 0);
+    assert.equal(cosineSimilarity([1, Number.NaN], [1, 0]), 0);
+    assert.equal(cosineSimilarity([1, 0], [1]), 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("exports never carry a blob: URL that only meant something in the capturing tab", async () => {
   const { renderForExternalTarget } = await importBundledModule(
     "src/features/export/external-targets.ts"

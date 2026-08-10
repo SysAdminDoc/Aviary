@@ -1,4 +1,5 @@
 import { supportedLocales } from "../../platform/i18n";
+import { AVIARY_VERSION } from "../../platform/build-version";
 import { DEFAULT_SETTINGS, cloneSettings, type AviarySettings } from "../../platform/settings";
 import type {
   ControlCenterHandle,
@@ -583,9 +584,7 @@ export const controlCenterFeature: FeatureModule = {
         if (latest) {
           reportInput.snapshots = diff ? { latest, diff } : { latest };
         }
-        if (ctx.settings.i18n.locale !== "en") {
-          reportInput.version = ctx.settings.i18n.locale;
-        }
+        reportInput.version = AVIARY_VERSION;
         const markdown = buildMarkdownReport(reportInput);
         const bytes = new TextEncoder().encode(markdown);
         downloadBlob(bytes, reportFilename(), "text/markdown");
