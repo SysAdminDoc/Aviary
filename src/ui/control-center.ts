@@ -1242,16 +1242,28 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             );
             const cancel = el("button", "av-button av-button-secondary", t("Cancel")) as HTMLButtonElement;
             cancel.type = "button";
-            cancel.addEventListener("click", async () => {
-              cancel.disabled = true;
-              const result = await options.cancelAria2!(job.gid);
-              cancel.disabled = false;
-              if (result.ok) {
-                setStatus(`Cancelled ${job.gid}.`);
-                await refresh();
-              } else {
-                setStatus(`Aria2 cancel failed: ${result.error}`);
-              }
+            cancel.addEventListener("click", () => {
+              void (async () => {
+                cancel.disabled = true;
+                try {
+                  const result = await options.cancelAria2!(job.gid);
+                  if (result.ok) {
+                    setStatus(`Cancelled ${job.gid}.`);
+                    await refresh();
+                  } else {
+                    setStatus(`Aria2 cancel failed: ${result.error ?? "unknown error"}`);
+                  }
+                } catch (error) {
+                  try {
+                    options.onError("Aria2 cancel failed", error);
+                  } catch {
+                    // Diagnostic reporting must not create a second rejected action.
+                  }
+                  setStatus("Aria2 cancel failed.");
+                } finally {
+                  cancel.disabled = false;
+                }
+              })();
             });
             item.append(cancel);
             list.append(item);

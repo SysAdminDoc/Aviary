@@ -16,6 +16,8 @@
   abort deadlines, including response-body work, so stalled endpoints settle with a useful error.
 - AI command-menu provider failures, including local-only policy refusals, now surface a toast,
   clear the pending state, and close without an unhandled rejection.
+- Aria2’s dynamically rendered Cancel action now catches RPC and policy failures, reports status,
+  and always restores its enabled state.
 
 ## 1.16.0 - 2026-08-09
 

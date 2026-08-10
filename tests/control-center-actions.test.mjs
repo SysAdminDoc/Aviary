@@ -119,6 +119,49 @@ test("rejected Control Center actions report failure and re-enable their buttons
   );
 });
 
+test("a rejected Aria2 cancel reports failure and re-enables the row action", async () => {
+  const result = await page.evaluate(async () => {
+    document.body.replaceChildren();
+    const settings = AviaryActions.cloneSettings(AviaryActions.DEFAULT_SETTINGS);
+    const errors = [];
+    const unhandled = [];
+    const panel = AviaryActions.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: (message, error) => errors.push({ message, error: String(error) }),
+      listAria2Active: async () => [
+        { gid: "gid-1", status: "active", totalLength: 100, completedLength: 20, path: "clip.mp4" }
+      ],
+      cancelAria2: async () => {
+        throw new Error("LocalOnlyError");
+      }
+    });
+    const onUnhandled = (event) => {
+      unhandled.push(String(event.reason));
+      event.preventDefault();
+    };
+    window.addEventListener("unhandledrejection", onUnhandled);
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    shadow.querySelector('[data-av-section="integrations"]').click();
+    const refresh = [...shadow.querySelectorAll(".av-button")].find((button) => button.textContent === "Refresh");
+    refresh.click();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const cancel = [...shadow.querySelectorAll(".av-button")].find((button) => button.textContent === "Cancel");
+    cancel.click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const state = { disabled: cancel.disabled, status: shadow.querySelector(".av-status").textContent };
+    window.removeEventListener("unhandledrejection", onUnhandled);
+    panel.destroy();
+    return { state, errors, unhandled };
+  });
+
+  assert.deepEqual(result.state, { disabled: false, status: "Aria2 cancel failed." });
+  assert.deepEqual(result.errors.map((entry) => entry.message), ["Aria2 cancel failed"]);
+  assert.equal(result.unhandled.length, 0);
+});
+
 test("snapshot capture and clear refresh the count while preserving action focus", async () => {
   const result = await page.evaluate(async () => {
     document.body.replaceChildren();
