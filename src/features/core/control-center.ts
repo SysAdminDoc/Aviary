@@ -14,6 +14,9 @@ import { applyPreset, describePresetDelta, getPreset, listPresets } from "./pres
 import {
   getCheckpointStore,
   getDiscoveredQueries,
+  cancelExportJob,
+  pauseExportJob,
+  resumeExportJob,
   runExportOfVisibleTweets
 } from "../export/export-feature";
 import {
@@ -37,7 +40,15 @@ import { recentIntegrationErrors } from "./integration-errors";
 import { importOfficialArchive, MAX_ARCHIVE_BYTES } from "../library/archive-import";
 import { previewCleanup } from "../library/cleanup-preview";
 import { CleanupQueue } from "../library/cleanup-queue";
-import { runMediaBatch } from "../media/batch-downloader";
+import {
+  cancelMediaBatch,
+  getMediaBatchStatus,
+  pauseMediaBatch,
+  resumeMediaBatch,
+  resumePendingMediaJobs,
+  retryFailedMediaJobs,
+  runMediaBatch
+} from "../media/batch-downloader";
 import { LocalSearchIndex } from "../library/local-search";
 import { buildMarkdownReport } from "../library/reports";
 import { captureSnapshotFromDom, getSnapshotStore } from "../library/snapshots-feature";
@@ -102,12 +113,17 @@ export const controlCenterFeature: FeatureModule = {
         const queue = getMediaQueue();
         const history = getMediaHistory();
         const snapshot = queue?.snapshot();
+        const batch = getMediaBatchStatus();
         return {
           historySize: history?.size() ?? 0,
           completed: snapshot?.completed ?? 0,
           failed: snapshot?.failed ?? 0,
           duplicate: snapshot?.duplicate ?? 0,
-          running: snapshot?.running ?? 0
+          running: snapshot?.running ?? 0,
+          queued: snapshot?.queued ?? 0,
+          paused: snapshot?.paused ?? 0,
+          cancelled: snapshot?.cancelled ?? 0,
+          ...(batch ? { batch } : {})
         };
       },
       async clearMediaHistory() {
@@ -118,9 +134,20 @@ export const controlCenterFeature: FeatureModule = {
         const queries = getDiscoveredQueries();
         return {
           jobCount: store?.list().length ?? 0,
-          knownQueries: queries ? Object.keys(queries.queries).length : 0
+          knownQueries: queries ? Object.keys(queries.queries).length : 0,
+          jobs: (store?.list() ?? []).map((job) => ({
+            jobId: job.jobId,
+            status: job.status,
+            recordCount: job.recordCount,
+            surface: job.surface,
+            startedAt: job.startedAt,
+            ...(job.error ? { error: job.error } : {})
+          }))
         };
       },
+      pauseExportJob,
+      resumeExportJob,
+      cancelExportJob,
       async runExport() {
         const result = await runExportOfVisibleTweets(ctx);
         for (const artifact of result.artifacts) {
@@ -540,13 +567,38 @@ export const controlCenterFeature: FeatureModule = {
           total: result.total,
           downloaded: result.downloaded,
           duplicate: result.duplicate,
-          failed: result.failed
+          failed: result.failed,
+          cancelled: result.cancelled
         });
         return {
           total: result.total,
           downloaded: result.downloaded,
           duplicate: result.duplicate,
-          failed: result.failed
+          failed: result.failed,
+          cancelled: result.cancelled
+        };
+      },
+      pauseMediaBatch,
+      resumeMediaBatch,
+      cancelMediaBatch,
+      async resumePendingMediaJobs() {
+        const result = await resumePendingMediaJobs(ctx);
+        return {
+          total: result.total,
+          downloaded: result.downloaded,
+          duplicate: result.duplicate,
+          failed: result.failed,
+          cancelled: result.cancelled
+        };
+      },
+      async retryFailedMediaJobs() {
+        const result = await retryFailedMediaJobs(ctx);
+        return {
+          total: result.total,
+          downloaded: result.downloaded,
+          duplicate: result.duplicate,
+          failed: result.failed,
+          cancelled: result.cancelled
         };
       },
       async downloadWarc() {

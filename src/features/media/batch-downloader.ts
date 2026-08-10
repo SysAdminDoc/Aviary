@@ -10,6 +10,7 @@ import {
 import { getMediaHistory, getMediaQueue } from "./media-buttons";
 import { isSaveableVariantUrl } from "./video-extract";
 import type { ExtractedTweet, ExtractedMedia } from "./extract";
+import type { DownloadJob } from "./queue";
 import type { FeatureContext } from "../registry";
 
 export interface BatchOptions {
@@ -33,7 +34,68 @@ export interface BatchResult extends BatchProgress {
   needsDownloadPermission?: boolean;
 }
 
+export interface MediaBatchStatus extends BatchProgress {
+  id: string;
+  status: "running" | "paused" | "cancelling";
+}
+
+export interface BatchActionResult {
+  ok: boolean;
+  error?: string;
+}
+
 type ResolvedTarget = { url: string; mediaId: string | null; ext: string };
+
+interface ActiveBatch {
+  id: string;
+  status: "running" | "paused" | "cancelling";
+  cancelled: boolean;
+  waiters: Set<() => void>;
+  progress: BatchProgress;
+}
+
+let activeBatch: ActiveBatch | undefined;
+let batchSequence = 0;
+
+export function getMediaBatchStatus(): MediaBatchStatus | undefined {
+  if (!activeBatch) {
+    return undefined;
+  }
+  const { id, status } = activeBatch;
+  const { total, enqueued, downloaded, duplicate, failed } = activeBatch.progress;
+  return { id, status, total, enqueued, downloaded, duplicate, failed };
+}
+
+export function pauseMediaBatch(): BatchActionResult {
+  if (!activeBatch) {
+    return { ok: false, error: "No media batch is running" };
+  }
+  if (activeBatch.status === "running") {
+    activeBatch.status = "paused";
+  }
+  return { ok: true };
+}
+
+export function resumeMediaBatch(): BatchActionResult {
+  if (!activeBatch) {
+    return { ok: false, error: "No media batch is running" };
+  }
+  if (activeBatch.status === "paused") {
+    activeBatch.status = "running";
+    wakeBatch(activeBatch);
+  }
+  return { ok: true };
+}
+
+export function cancelMediaBatch(): BatchActionResult {
+  if (!activeBatch) {
+    return { ok: false, error: "No media batch is running" };
+  }
+  activeBatch.status = "cancelling";
+  activeBatch.cancelled = true;
+  wakeBatch(activeBatch);
+  return { ok: true };
+}
 
 export async function runMediaBatch(
   ctx: FeatureContext,
@@ -87,89 +149,222 @@ async function runTasks(
     failed: 0
   };
   const jobIds: string[] = [];
+  const control = beginBatch(tasks.length, progress);
 
   let cursor = 0;
   let needsDownloadPermission = false;
   const workers: Promise<void>[] = [];
 
-  const next = async (): Promise<void> => {
-    while (true) {
-      // A missing download permission fails every remaining task the same way — stop
-      // instead of grinding through hundreds of identical failures.
-      if (needsDownloadPermission) return;
-      const index = cursor++;
-      if (index >= tasks.length) return;
-      const task = tasks[index]!;
-      const dedupeKey = `${task.tweet.tweetId ?? "0"}:${task.target.mediaId ?? task.target.url}:${task.index}:${task.media.kind}`;
-      const filename = renderFilename(ctx.settings.media.filenameTemplate, {
-        handle: task.tweet.handle,
-        tweetId: task.tweet.tweetId,
-        index: task.index,
-        total: task.tweet.media.length,
-        date: new Date(),
-        ext: task.target.ext,
-        text: task.tweet.text,
-        mediaId: task.target.mediaId
-      });
+  try {
+    const next = async (): Promise<void> => {
+      while (true) {
+        // A missing download permission fails every remaining task the same way — stop
+        // instead of grinding through hundreds of identical failures.
+        if (needsDownloadPermission) return;
+        if (control.cancelled) return;
+        await waitForBatch(control);
+        if (needsDownloadPermission) return;
+        if (control.cancelled) return;
+        const index = cursor++;
+        if (index >= tasks.length) return;
+        const task = tasks[index]!;
+        const dedupeKey = `${task.tweet.tweetId ?? "0"}:${task.target.mediaId ?? task.target.url}:${task.index}:${task.media.kind}`;
+        const filename = renderFilename(ctx.settings.media.filenameTemplate, {
+          handle: task.tweet.handle,
+          tweetId: task.tweet.tweetId,
+          index: task.index,
+          total: task.tweet.media.length,
+          date: new Date(),
+          ext: task.target.ext,
+          text: task.tweet.text,
+          mediaId: task.target.mediaId
+        });
 
-      if (ctx.settings.media.downloadHistory && history?.has(dedupeKey)) {
-        progress.duplicate += 1;
-        if (queue) {
-          const job = queue.enqueue({ url: task.target.url, filename });
-          queue.mark(job.id, "duplicate");
+        if (ctx.settings.media.downloadHistory && history?.has(dedupeKey)) {
+          progress.duplicate += 1;
+          if (queue) {
+            const job = queue.enqueue({ url: task.target.url, filename });
+            queue.mark(job.id, "duplicate");
+            jobIds.push(job.id);
+          }
+          continue;
+        }
+
+        // `jobs.rateLimitMode` used to change nothing but the bucket's capacity, because no
+        // feature ever drew from it. A batch is the one place the pacing matters: it is the
+        // only path that fires hundreds of requests at X's media hosts back to back.
+        await ctx.limiter.waitForToken();
+        if (control.cancelled) return;
+        await waitForBatch(control);
+        if (control.cancelled) return;
+
+        const job = queue?.enqueue({ url: task.target.url, filename });
+        if (job) {
           jobIds.push(job.id);
+          queue?.mark(job.id, "running");
         }
-        continue;
-      }
+        progress.enqueued += 1;
 
-      // `jobs.rateLimitMode` used to change nothing but the bucket's capacity, because no
-      // feature ever drew from it. A batch is the one place the pacing matters: it is the
-      // only path that fires hundreds of requests at X's media hosts back to back.
-      await ctx.limiter.waitForToken();
-
-      const job = queue?.enqueue({ url: task.target.url, filename });
-      if (job) {
-        jobIds.push(job.id);
-        queue?.mark(job.id, "running");
+        try {
+          const result: DownloaderResult = await downloader({ url: task.target.url, filename });
+          if (job) queue?.mark(job.id, "completed");
+          if (ctx.settings.media.downloadHistory && history) {
+            await history.record(dedupeKey);
+          }
+          progress.downloaded += 1;
+          void ctx.auditLog.record("media.download", { filename, kind: task.media.kind, via: result.via, batch: true });
+        } catch (error) {
+          if (job) queue?.mark(job.id, "failed", String((error as Error)?.message ?? error));
+          progress.failed += 1;
+          if (error instanceof DownloadPermissionError) {
+            needsDownloadPermission = true;
+            void requestDownloadPermissionSurface();
+          }
+          ctx.diagnostics.error("Batch media download failed", {
+            filename,
+            kind: task.media.kind,
+            error: String((error as Error)?.message ?? error)
+          });
+          void ctx.auditLog.record("media.download.failed", { filename, kind: task.media.kind, batch: true });
+        }
       }
+    };
+
+    for (let i = 0; i < concurrency; i++) {
+      workers.push(next());
+    }
+    await Promise.all(workers);
+
+    return {
+      ...progress,
+      jobIds,
+      cancelled: control.cancelled,
+      ...(needsDownloadPermission ? { needsDownloadPermission: true } : {})
+    };
+  } finally {
+    finishBatch(control);
+  }
+}
+
+/** Replays jobs left in the durable queue after a restart, only after an explicit user action. */
+export async function resumePendingMediaJobs(ctx: FeatureContext): Promise<BatchResult> {
+  const queue = getMediaQueue();
+  const pending = queue?.pending() ?? [];
+  return runPersistedJobs(ctx, queue, pending);
+}
+
+/** Marks failed/cancelled queue entries retryable, then runs them through the normal downloader. */
+export async function retryFailedMediaJobs(ctx: FeatureContext): Promise<BatchResult> {
+  const queue = getMediaQueue();
+  const pending = queue?.retryFailed() ?? [];
+  return runPersistedJobs(ctx, queue, pending);
+}
+
+async function runPersistedJobs(
+  ctx: FeatureContext,
+  queue: ReturnType<typeof getMediaQueue>,
+  jobs: DownloadJob[]
+): Promise<BatchResult> {
+  const progress: BatchProgress = {
+    total: jobs.length,
+    enqueued: 0,
+    downloaded: 0,
+    duplicate: 0,
+    failed: 0
+  };
+  const jobIds = jobs.map((job) => job.id);
+  if (!queue || jobs.length === 0) {
+    return { ...progress, jobIds, cancelled: false };
+  }
+  const control = beginBatch(jobs.length, progress);
+  const downloader = createDownloader({
+    integrations: ctx.settings.integrations,
+    onWarn: (message, details) => ctx.diagnostics.warn(message, details)
+  });
+  let needsDownloadPermission = false;
+
+  try {
+    for (const job of jobs) {
+      if (control.cancelled || needsDownloadPermission) break;
+      await waitForBatch(control);
+      if (control.cancelled) break;
+      queue.resume(job.id);
+      queue.mark(job.id, "running");
       progress.enqueued += 1;
-
       try {
-        const result: DownloaderResult = await downloader({ url: task.target.url, filename });
-        if (job) queue?.mark(job.id, "completed");
-        if (ctx.settings.media.downloadHistory && history) {
-          await history.record(dedupeKey);
+        await ctx.limiter.waitForToken();
+        if (control.cancelled) break;
+        const result = await downloader({ url: job.url, filename: job.filename });
+        queue.mark(job.id, result.deduplicated ? "duplicate" : "completed");
+        if (result.deduplicated) {
+          progress.duplicate += 1;
+        } else {
+          progress.downloaded += 1;
         }
-        progress.downloaded += 1;
-        void ctx.auditLog.record("media.download", { filename, kind: task.media.kind, via: result.via, batch: true });
+        void ctx.auditLog.record(result.deduplicated ? "media.download.duplicate" : "media.download", {
+          filename: job.filename,
+          batch: true,
+          resumed: true,
+          via: result.via
+        });
       } catch (error) {
-        if (job) queue?.mark(job.id, "failed", String((error as Error)?.message ?? error));
+        queue.mark(job.id, "failed", String((error as Error)?.message ?? error));
         progress.failed += 1;
         if (error instanceof DownloadPermissionError) {
           needsDownloadPermission = true;
           void requestDownloadPermissionSurface();
         }
-        ctx.diagnostics.error("Batch media download failed", {
-          filename,
-          kind: task.media.kind,
+        ctx.diagnostics.error("Resumed media download failed", {
+          filename: job.filename,
           error: String((error as Error)?.message ?? error)
         });
-        void ctx.auditLog.record("media.download.failed", { filename, kind: task.media.kind, batch: true });
+        void ctx.auditLog.record("media.download.failed", { filename: job.filename, batch: true, resumed: true });
       }
     }
-  };
-
-  for (let i = 0; i < concurrency; i++) {
-    workers.push(next());
+    return {
+      ...progress,
+      jobIds,
+      cancelled: control.cancelled,
+      ...(needsDownloadPermission ? { needsDownloadPermission: true } : {})
+    };
+  } finally {
+    finishBatch(control);
   }
-  await Promise.all(workers);
+}
 
-  return {
-    ...progress,
-    jobIds,
+function beginBatch(total: number, progress: BatchProgress): ActiveBatch {
+  if (activeBatch) {
+    throw new Error("A media batch is already running");
+  }
+  const control: ActiveBatch = {
+    id: `media-${Date.now()}-${++batchSequence}`,
+    status: "running",
     cancelled: false,
-    ...(needsDownloadPermission ? { needsDownloadPermission: true } : {})
+    waiters: new Set(),
+    progress
   };
+  activeBatch = control;
+  return control;
+}
+
+async function waitForBatch(control: ActiveBatch): Promise<void> {
+  while (control.status === "paused" && !control.cancelled) {
+    await new Promise<void>((resolve) => control.waiters.add(resolve));
+  }
+}
+
+function wakeBatch(control: ActiveBatch): void {
+  for (const resolve of control.waiters) {
+    resolve();
+  }
+  control.waiters.clear();
+}
+
+function finishBatch(control: ActiveBatch): void {
+  wakeBatch(control);
+  if (activeBatch === control) {
+    activeBatch = undefined;
+  }
 }
 
 function collectArticles(

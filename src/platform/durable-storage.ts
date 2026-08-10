@@ -8,6 +8,7 @@ export const DURABLE_STORAGE_KEYS = [
   "aviary.export.checkpoints.v1",
   "aviary.queryIds.v1",
   "aviary.media.history.v1",
+  "aviary.media.queue.v1",
   "aviary.aria2.history.v1",
   "aviary.hiddenPosts.v1",
   "aviary.media.last-download.v1",

@@ -58,6 +58,13 @@ export interface ExportArtifact {
   data: Uint8Array;
 }
 
+export type ExportJobStatus = "queued" | "running" | "paused" | "cancelled" | "failed" | "completed";
+
+export interface ExportJobProgress {
+  completed: number;
+  total: number | null;
+}
+
 export interface ExportCheckpoint {
   jobId: string;
   startedAt: string;
@@ -66,4 +73,9 @@ export interface ExportCheckpoint {
   done: boolean;
   formats: ExportFormat[];
   preserveRawPayloads: boolean;
+  status: ExportJobStatus;
+  progress: ExportJobProgress;
+  updatedAt: string;
+  resumeOnBoot: boolean;
+  error?: string;
 }

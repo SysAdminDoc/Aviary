@@ -18,6 +18,7 @@ export type AuditAction =
   | "bookmark.clear"
   | "export.start"
   | "export.complete"
+  | "export.failed"
   | "capture.payload"
   | "settings.reset"
   | "settings.import"

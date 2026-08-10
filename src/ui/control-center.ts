@@ -59,11 +59,31 @@ export interface MediaStatus {
   failed: number;
   duplicate: number;
   running: number;
+  queued?: number;
+  paused?: number;
+  cancelled?: number;
+  batch?: {
+    id: string;
+    status: "running" | "paused" | "cancelling";
+    total: number;
+    enqueued: number;
+    downloaded: number;
+    duplicate: number;
+    failed: number;
+  };
 }
 
 export interface ExportStatus {
   jobCount: number;
   knownQueries: number;
+  jobs?: Array<{
+    jobId: string;
+    status: "queued" | "running" | "paused" | "cancelled" | "failed" | "completed";
+    recordCount: number;
+    surface: string;
+    startedAt: string;
+    error?: string;
+  }>;
 }
 
 export interface ExportResultSummary {
@@ -108,6 +128,9 @@ export interface ControlCenterOptions {
   getMediaStatus?: () => MediaStatus;
   clearMediaHistory?: () => Promise<void>;
   getExportStatus?: () => ExportStatus;
+  pauseExportJob?: (jobId: string) => Promise<{ ok: boolean; error?: string }>;
+  resumeExportJob?: (jobId: string) => Promise<{ ok: boolean; error?: string }>;
+  cancelExportJob?: (jobId: string) => Promise<{ ok: boolean; error?: string }>;
   runExport?: () => Promise<ExportResultSummary>;
   copyDiagnostics?: () => Promise<void>;
   exportSettings?: () => Promise<void>;
@@ -145,7 +168,30 @@ export interface ControlCenterOptions {
   getCleanupQueueSize?: () => { total: number; queued: number; approved: number; skipped: number };
   enqueueCleanupReview?: () => Promise<{ added: number; protected: number }>;
   clearCleanupQueue?: () => Promise<void>;
-  runMediaBatch?: () => Promise<{ total: number; downloaded: number; duplicate: number; failed: number }>;
+  pauseMediaBatch?: () => { ok: boolean; error?: string };
+  resumeMediaBatch?: () => { ok: boolean; error?: string };
+  cancelMediaBatch?: () => { ok: boolean; error?: string };
+  resumePendingMediaJobs?: () => Promise<{
+    total: number;
+    downloaded: number;
+    duplicate: number;
+    failed: number;
+    cancelled: boolean;
+  }>;
+  retryFailedMediaJobs?: () => Promise<{
+    total: number;
+    downloaded: number;
+    duplicate: number;
+    failed: number;
+    cancelled: boolean;
+  }>;
+  runMediaBatch?: () => Promise<{
+    total: number;
+    downloaded: number;
+    duplicate: number;
+    failed: number;
+    cancelled?: boolean;
+  }>;
   downloadWarc?: () => Promise<{ records: number }>;
   exportToTarget?: (
     target: "clipboard-markdown" | "obsidian" | "notion" | "raw-json"
@@ -2100,6 +2146,44 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           `${status.jobCount} jobs tracked · ${status.knownQueries} GraphQL IDs cached`
         )
       );
+      for (const job of (status.jobs ?? []).slice(-3)) {
+        rows.push(
+          dataRow(
+            "Export job",
+            `${job.status} · ${job.recordCount} records · ${job.surface}${job.error ? ` · ${job.error}` : ""}`
+          )
+        );
+        if (job.status === "running" && options.pauseExportJob) {
+          rows.push(
+            actionRow("Pause export job", `Pause ${job.jobId}.`, async () => {
+              const result = await options.pauseExportJob!(job.jobId);
+              if (!result.ok) throw new Error(result.error ?? "Export job could not be paused");
+              render();
+              setStatus("Export job paused.");
+            })
+          );
+        }
+        if (job.status === "paused" && options.resumeExportJob) {
+          rows.push(
+            actionRow("Resume export job", `Resume ${job.jobId}.`, async () => {
+              const result = await options.resumeExportJob!(job.jobId);
+              if (!result.ok) throw new Error(result.error ?? "Export job could not be resumed");
+              render();
+              setStatus("Export job resumed.");
+            })
+          );
+        }
+        if ((job.status === "running" || job.status === "paused" || job.status === "queued") && options.cancelExportJob) {
+          rows.push(
+            actionRow("Cancel export job", `Cancel ${job.jobId}.`, async () => {
+              const result = await options.cancelExportJob!(job.jobId);
+              if (!result.ok) throw new Error(result.error ?? "Export job could not be cancelled");
+              render();
+              setStatus("Export job cancelled.");
+            })
+          );
+        }
+      }
     }
 
     if (options.runExport) {
@@ -2341,9 +2425,17 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       rows.push(
         dataRow(
           "Download status",
-          `${status.running} running / ${status.completed} done / ${status.duplicate} dup / ${status.failed} failed`
+          `${status.running} running / ${status.queued ?? 0} queued / ${status.paused ?? 0} paused / ${status.completed} done / ${status.duplicate} dup / ${status.failed} failed`
         )
       );
+      if (status.batch) {
+        rows.push(
+          dataRow(
+            "Active media batch",
+            `${status.batch.status} · ${status.batch.downloaded} saved / ${status.batch.duplicate} dup / ${status.batch.failed} failed of ${status.batch.total}`
+          )
+        );
+      }
       rows.push(dataRow("History entries", String(status.historySize)));
     }
 
@@ -2370,8 +2462,11 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             setStatus("Downloading media from this view…");
           try {
               const result = await options.runMediaBatch!();
+              render();
               setStatus(
-                `Batch finished: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
+                result.cancelled
+                  ? `Batch cancelled: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
+                  : `Batch finished: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
               );
             } catch (error) {
               options.onError("Batch download failed", error);
@@ -2379,6 +2474,75 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             }
           }
         )
+      );
+    }
+
+    const mediaControlAction = (
+      label: string,
+      description: string,
+      action: () => { ok: boolean; error?: string },
+      success: string
+    ): void => {
+      rows.push(
+        actionRow(label, description, async () => {
+          const result = action();
+          if (!result.ok) {
+            throw new Error(result.error ?? `${label} failed`);
+          }
+          render();
+          setStatus(success);
+        })
+      );
+    };
+
+    if (options.pauseMediaBatch) {
+      mediaControlAction(
+        "Pause media batch",
+        "Stop starting new downloads; the current downloads finish and the queue remains resumable.",
+        options.pauseMediaBatch,
+        "Media batch paused."
+      );
+    }
+    if (options.resumeMediaBatch) {
+      mediaControlAction(
+        "Resume media batch",
+        "Continue the active batch from its durable queue.",
+        options.resumeMediaBatch,
+        "Media batch resumed."
+      );
+    }
+    if (options.cancelMediaBatch) {
+      mediaControlAction(
+        "Cancel media batch",
+        "Stop scheduling new downloads and leave unfinished queue entries available for recovery.",
+        options.cancelMediaBatch,
+        "Media batch cancelling."
+      );
+    }
+    if (options.resumePendingMediaJobs) {
+      rows.push(
+        actionRow("Resume queued media", "Recover paused or queued downloads from an earlier session.", async () => {
+          const result = await options.resumePendingMediaJobs!();
+          render();
+          setStatus(
+            result.cancelled
+              ? `Queued media recovery cancelled after ${result.downloaded} saved.`
+              : `Queued media recovery finished: ${result.downloaded} saved / ${result.failed} failed.`
+          );
+        })
+      );
+    }
+    if (options.retryFailedMediaJobs) {
+      rows.push(
+        actionRow("Retry failed media", "Retry every failed or cancelled media job in the durable queue.", async () => {
+          const result = await options.retryFailedMediaJobs!();
+          render();
+          setStatus(
+            result.total === 0
+              ? "No failed media jobs to retry."
+              : `Media retry finished: ${result.downloaded} saved / ${result.failed} failed.`
+          );
+        })
       );
     }
 

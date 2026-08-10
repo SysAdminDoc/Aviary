@@ -180,6 +180,52 @@ test("DownloadQueue tracks status transitions and snapshots", async () => {
   assert.ok(snapshot.recent.some((job) => job.error === "network"));
 });
 
+test("DownloadQueue persists interrupted work and supports recovery controls", async () => {
+  const { DownloadQueue, MEDIA_QUEUE_KEY } = await importBundledModule("src/features/media/queue.ts");
+  const store = new Map([
+    [MEDIA_QUEUE_KEY, {
+      sequence: 4,
+      jobs: [{ id: "job-4", url: "https://cdn.test/recover.jpg", filename: "recover.jpg", status: "running" }]
+    }]
+  ]);
+  const storage = {
+    async get(key, fallback) {
+      return store.has(key) ? store.get(key) : fallback;
+    },
+    async set(key, value) {
+      store.set(key, JSON.parse(JSON.stringify(value)));
+    },
+    async remove(key) {
+      store.delete(key);
+    }
+  };
+
+  const queue = new DownloadQueue(storage);
+  await queue.load();
+  assert.equal(queue.snapshot().paused, 1);
+  const [interrupted] = queue.pending(true);
+  assert.equal(interrupted?.resumeOnBoot, true);
+  assert.match(interrupted?.error ?? "", /Interrupted/);
+
+  assert.equal(queue.resume(interrupted.id), true);
+  assert.equal(queue.pause(interrupted.id), true);
+  assert.equal(queue.snapshot().paused, 1);
+  assert.equal(queue.cancel(interrupted.id), true);
+  assert.equal(queue.snapshot().cancelled, 1);
+
+  const failed = queue.enqueue({ url: "https://cdn.test/retry.jpg", filename: "retry.jpg" });
+  queue.mark(failed.id, "failed", "network");
+  const retryable = queue.retryFailed();
+  assert.deepEqual(retryable.map((job) => job.id), ["job-4", failed.id]);
+  assert.equal(queue.snapshot().queued, 2);
+  await queue.flush();
+
+  const reloaded = new DownloadQueue(storage);
+  await reloaded.load();
+  assert.equal(reloaded.snapshot().queued, 2);
+  assert.equal(reloaded.snapshot().paused, 0);
+});
+
 test("Aria2 history persists queued gids and reconciles completed or failed work", async () => {
   const { Aria2History, ARIA2_HISTORY_KEY } = await importBundledModule(
     "src/features/integrations/aria2.ts"

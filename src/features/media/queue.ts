@@ -1,4 +1,13 @@
-export type JobStatus = "queued" | "running" | "completed" | "failed" | "duplicate";
+import type { StorageGateway } from "../../platform/storage";
+
+export type JobStatus =
+  | "queued"
+  | "running"
+  | "paused"
+  | "cancelled"
+  | "completed"
+  | "failed"
+  | "duplicate";
 
 export interface DownloadJob {
   id: string;
@@ -8,6 +17,7 @@ export interface DownloadJob {
   error?: string;
   startedAt?: string;
   finishedAt?: string;
+  resumeOnBoot?: boolean;
 }
 
 export interface QueueSnapshot {
@@ -17,20 +27,69 @@ export interface QueueSnapshot {
   completed: number;
   failed: number;
   duplicate: number;
+  paused: number;
+  cancelled: number;
   recent: DownloadJob[];
 }
 
+export const MEDIA_QUEUE_KEY = "aviary.media.queue.v1";
 const RECENT_LIMIT = 40;
+interface QueueState {
+  sequence: number;
+  jobs: DownloadJob[];
+}
 
 export class DownloadQueue {
   readonly #jobs: DownloadJob[] = [];
   readonly #listeners = new Set<(snapshot: QueueSnapshot) => void>();
+  readonly #storage: StorageGateway | undefined;
+  readonly #onPersistError: ((error: unknown) => void) | undefined;
   #seq = 0;
+  #loaded = false;
+  #persistTail: Promise<void> = Promise.resolve();
+
+  constructor(storage?: StorageGateway, onPersistError?: (error: unknown) => void) {
+    this.#storage = storage;
+    this.#onPersistError = onPersistError;
+  }
+
+  async load(): Promise<void> {
+    if (this.#loaded) return;
+    this.#loaded = true;
+    if (!this.#storage) return;
+    try {
+      const raw = await this.#storage.get<QueueState>(MEDIA_QUEUE_KEY, { sequence: 0, jobs: [] });
+      const jobs = Array.isArray(raw?.jobs) ? raw.jobs.filter(isDownloadJob).map(normalizeJob) : [];
+      for (const job of jobs) {
+        if (job.status === "running") {
+          job.status = "paused";
+          job.resumeOnBoot = true;
+          job.error = "Interrupted before completion; resume when ready.";
+        }
+      }
+      this.#jobs.push(...jobs.slice(-200));
+      this.#seq = Math.max(
+        Number.isFinite(raw?.sequence) ? Math.trunc(raw.sequence) : 0,
+        ...this.#jobs.map((job) => sequenceFromId(job.id))
+      );
+      if (jobs.some((job) => job.status === "paused" && job.resumeOnBoot)) {
+        this.#persist();
+      }
+      this.#notify();
+    } catch (error) {
+      this.#onPersistError?.(error);
+    }
+  }
+
+  async flush(): Promise<void> {
+    await this.#persistTail;
+  }
 
   enqueue(job: Omit<DownloadJob, "id" | "status">): DownloadJob {
     const entry: DownloadJob = {
       id: `job-${++this.#seq}`,
       status: "queued",
+      resumeOnBoot: true,
       ...job
     };
     this.#jobs.push(entry);
@@ -49,6 +108,11 @@ export class DownloadQueue {
     }
     if (status === "completed" || status === "failed" || status === "duplicate") {
       job.finishedAt = new Date().toISOString();
+      job.resumeOnBoot = false;
+    }
+    if (status === "cancelled") {
+      job.finishedAt = new Date().toISOString();
+      job.resumeOnBoot = false;
     }
     job.status = status;
     if (error) {
@@ -56,7 +120,64 @@ export class DownloadQueue {
     } else if (status !== "failed") {
       delete job.error;
     }
+    this.#persist();
     this.#notify();
+  }
+
+  pause(jobId: string): boolean {
+    const job = this.#jobs.find((entry) => entry.id === jobId);
+    if (!job || job.status === "completed" || job.status === "failed" || job.status === "duplicate" || job.status === "cancelled") return false;
+    job.status = "paused";
+    job.resumeOnBoot = false;
+    job.error = "Paused by user.";
+    this.#persist();
+    this.#notify();
+    return true;
+  }
+
+  resume(jobId: string): boolean {
+    const job = this.#jobs.find((entry) => entry.id === jobId);
+    if (!job || (job.status !== "paused" && job.status !== "queued")) return false;
+    job.status = "queued";
+    job.resumeOnBoot = false;
+    delete job.error;
+    this.#persist();
+    this.#notify();
+    return true;
+  }
+
+  cancel(jobId: string): boolean {
+    const job = this.#jobs.find((entry) => entry.id === jobId);
+    if (!job || job.status === "completed" || job.status === "failed" || job.status === "duplicate" || job.status === "cancelled") return false;
+    job.status = "cancelled";
+    job.resumeOnBoot = false;
+    job.finishedAt = new Date().toISOString();
+    this.#persist();
+    this.#notify();
+    return true;
+  }
+
+  retryFailed(): DownloadJob[] {
+    const retryable = this.#jobs.filter(
+      (job) => job.status === "failed" || job.status === "cancelled"
+    );
+    for (const job of retryable) {
+      job.status = "queued";
+      job.resumeOnBoot = true;
+      delete job.error;
+      delete job.finishedAt;
+    }
+    if (retryable.length > 0) {
+      this.#persist();
+      this.#notify();
+    }
+    return retryable.map((job) => ({ ...job }));
+  }
+
+  pending(resumeOnBoot = false): DownloadJob[] {
+    return this.#jobs
+      .filter((job) => (job.status === "queued" || job.status === "paused") && (!resumeOnBoot || job.resumeOnBoot === true))
+      .map((job) => ({ ...job }));
   }
 
   snapshot(): QueueSnapshot {
@@ -65,7 +186,9 @@ export class DownloadQueue {
       running: 0,
       completed: 0,
       failed: 0,
-      duplicate: 0
+      duplicate: 0,
+      paused: 0,
+      cancelled: 0
     };
     for (const job of this.#jobs) {
       counts[job.status] += 1;
@@ -77,6 +200,8 @@ export class DownloadQueue {
       completed: counts.completed,
       failed: counts.failed,
       duplicate: counts.duplicate,
+      paused: counts.paused,
+      cancelled: counts.cancelled,
       recent: this.#jobs.slice(-RECENT_LIMIT)
     };
   }
@@ -91,6 +216,7 @@ export class DownloadQueue {
 
   clear(): void {
     this.#jobs.length = 0;
+    this.#persist();
     this.#notify();
   }
 
@@ -110,4 +236,42 @@ export class DownloadQueue {
       }
     }
   }
+
+  #persist(): void {
+    if (!this.#storage) return;
+    const snapshot: QueueState = {
+      sequence: this.#seq,
+      jobs: this.#jobs.map((job) => ({ ...job }))
+    };
+    this.#persistTail = this.#persistTail
+      .then(() => this.#storage!.set(MEDIA_QUEUE_KEY, snapshot))
+      .catch((error) => {
+        this.#onPersistError?.(error);
+      });
+  }
+}
+
+function isDownloadJob(value: unknown): value is DownloadJob {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return typeof record.id === "string" && typeof record.url === "string" && typeof record.filename === "string";
+}
+
+function normalizeJob(value: DownloadJob): DownloadJob {
+  const valid = value.status === "queued" || value.status === "running" || value.status === "completed" || value.status === "failed" || value.status === "duplicate" || value.status === "paused" || value.status === "cancelled";
+  return {
+    id: value.id,
+    url: value.url,
+    filename: value.filename,
+    status: valid ? value.status : "failed",
+    ...(typeof value.error === "string" ? { error: value.error } : {}),
+    ...(typeof value.startedAt === "string" ? { startedAt: value.startedAt } : {}),
+    ...(typeof value.finishedAt === "string" ? { finishedAt: value.finishedAt } : {}),
+    resumeOnBoot: value.resumeOnBoot === true
+  };
+}
+
+function sequenceFromId(id: string): number {
+  const match = /^job-(\d+)$/.exec(id);
+  return match ? Number.parseInt(match[1]!, 10) : 0;
 }

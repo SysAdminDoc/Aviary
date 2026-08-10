@@ -67,7 +67,10 @@ export const mediaButtonsFeature: FeatureModule = {
       aria2History,
       onWarn: (message, details) => ctx.diagnostics.warn(message, details)
     });
-    queue = new DownloadQueue();
+    queue = new DownloadQueue(ctx.storage, (error) => {
+      ctx.diagnostics.error("Media queue failed to save", errorDetails(error));
+    });
+    await queue.load();
     history = new MediaHistory(ctx.storage, undefined, (error) => {
       ctx.diagnostics.error("Media history failed to save", errorDetails(error));
     });
@@ -119,12 +122,12 @@ export const mediaButtonsFeature: FeatureModule = {
     }
   },
 
-  destroy(ctx) {
+  async destroy(ctx) {
     clearDecorations();
     downloader = undefined;
     history = undefined;
     aria2History = undefined;
-    queue?.clear();
+    await queue?.flush();
     queue = undefined;
     appliedPreferOriginalImages = undefined;
     appliedMetadataVersion = undefined;

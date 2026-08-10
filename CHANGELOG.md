@@ -25,6 +25,9 @@
   responses or errors from older input.
 - Bookmark loading now drops invalid timestamps and repairs partial records before Library sorting,
   so malformed persisted entries cannot crash search.
+- Export checkpoints and media download jobs now persist lifecycle state, reclassify interrupted
+  work as resumable, and expose pause, resume, cancel, recovery, and retry controls in the Control
+  Center.
 
 ## 1.16.0 - 2026-08-09
 

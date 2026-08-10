@@ -14,6 +14,7 @@ let lastExportEnabled = false;
 let lastAutoDiscoverQueryIds = false;
 let lifecycleQueue: Promise<void> = Promise.resolve();
 let sessionSequence = 0;
+let manuallyPausedJobId: string | undefined;
 
 export const exportFeature: FeatureModule = {
   id: "export.core",
@@ -29,6 +30,7 @@ export const exportFeature: FeatureModule = {
     lastExportEnabled = false;
     lastAutoDiscoverQueryIds = false;
     lifecycleQueue = Promise.resolve();
+    manuallyPausedJobId = undefined;
     checkpointStore = new CheckpointStore(ctx.storage);
     const retention = await checkpointStore.load();
     if (retention.removedJobs > 0 || retention.removedRecords > 0) {
@@ -61,6 +63,7 @@ export const exportFeature: FeatureModule = {
     activeJobId = undefined;
     lastExportEnabled = false;
     lastAutoDiscoverQueryIds = false;
+    manuallyPausedJobId = undefined;
     lifecycleQueue = Promise.resolve();
     ctx.diagnostics.info("Export core destroyed");
   },
@@ -99,6 +102,11 @@ export interface ExportRunResult {
   filename: string;
 }
 
+export interface ExportJobActionResult {
+  ok: boolean;
+  error?: string;
+}
+
 export async function runExportOfVisibleTweets(ctx: FeatureContext): Promise<ExportRunResult> {
   if (!checkpointStore) {
     checkpointStore = new CheckpointStore(ctx.storage);
@@ -109,33 +117,73 @@ export async function runExportOfVisibleTweets(ctx: FeatureContext): Promise<Exp
   const formats = selectSupportedFormats(ctx.settings.export.formats);
   await checkpointStore.start(jobId, ctx.route.surface, formats, ctx.settings.export.preserveRawPayloads);
   void ctx.auditLog.record("export.start", { jobId, formats, surface: ctx.route.surface });
+  try {
+    const initialRecords = collectExportRecords(document, ctx.route.surface);
+    await checkpointStore.append(jobId, initialRecords);
 
-  const initialRecords = collectExportRecords(document, ctx.route.surface);
-  await checkpointStore.append(jobId, initialRecords);
-
-  const records = checkpointStore.records(jobId);
-  // Handing the user an empty ZIP is worse than telling them nothing was captured.
-  const artifacts =
-    records.length === 0
-      ? []
-      : buildExportZipChunks(
-          records,
-          formats,
-          ctx.settings.media.lastSaveFolder,
-          ctx.settings.media.zipChunkSize
-        );
-  await checkpointStore.finish(jobId);
-  ctx.diagnostics.info("Export completed", { records: records.length, formats });
-  void ctx.auditLog.record("export.complete", { jobId, records: records.length, formats });
-  if (ctx.settings.integrations.semanticSearch.autoIndex) {
-    void autoIndexExport(ctx, records);
+    const records = checkpointStore.records(jobId);
+    await checkpointStore.updateProgress(jobId, { completed: records.length, total: records.length });
+    // Handing the user an empty ZIP is worse than telling them nothing was captured.
+    const artifacts =
+      records.length === 0
+        ? []
+        : buildExportZipChunks(
+            records,
+            formats,
+            ctx.settings.media.lastSaveFolder,
+            ctx.settings.media.zipChunkSize
+          );
+    await checkpointStore.finish(jobId);
+    ctx.diagnostics.info("Export completed", { records: records.length, formats });
+    void ctx.auditLog.record("export.complete", { jobId, records: records.length, formats });
+    if (ctx.settings.integrations.semanticSearch.autoIndex) {
+      void autoIndexExport(ctx, records);
+    }
+    return {
+      jobId,
+      records: records.length,
+      artifacts,
+      filename: artifacts[0]?.filename ?? zipFilename(ctx.settings.media.lastSaveFolder)
+    };
+  } catch (error) {
+    await checkpointStore.fail(jobId, error);
+    ctx.diagnostics.error("Export failed", errorDetails(error));
+    void ctx.auditLog.record("export.failed", { jobId, error: String((error as Error)?.message ?? error) });
+    throw error;
   }
-  return {
-    jobId,
-    records: records.length,
-    artifacts,
-    filename: artifacts[0]?.filename ?? zipFilename(ctx.settings.media.lastSaveFolder)
-  };
+}
+
+export async function pauseExportJob(jobId: string): Promise<ExportJobActionResult> {
+  if (!checkpointStore) return { ok: false, error: "Export store is not loaded" };
+  const ok = await checkpointStore.pause(jobId);
+  if (ok && activeJobId === jobId) {
+    activeJobId = undefined;
+    manuallyPausedJobId = jobId;
+  }
+  return actionResult(ok);
+}
+
+export async function resumeExportJob(jobId: string): Promise<ExportJobActionResult> {
+  if (!checkpointStore) return { ok: false, error: "Export store is not loaded" };
+  const ok = await checkpointStore.resume(jobId);
+  if (ok) {
+    activeJobId = jobId;
+    manuallyPausedJobId = undefined;
+  }
+  return actionResult(ok);
+}
+
+export async function cancelExportJob(jobId: string): Promise<ExportJobActionResult> {
+  if (!checkpointStore) return { ok: false, error: "Export store is not loaded" };
+  const ok = await checkpointStore.cancel(jobId);
+  if (activeJobId === jobId) {
+    activeJobId = undefined;
+    lastExportEnabled = false;
+  }
+  if (manuallyPausedJobId === jobId) {
+    manuallyPausedJobId = undefined;
+  }
+  return actionResult(ok);
 }
 
 export function buildExportZip(
@@ -240,6 +288,10 @@ async function reconcileExportState(
   // Capture-as-you-scroll stays open for the enabled session. A missing active id is also a
   // recoverable start failure, so the next apply may retry without duplicating a healthy job.
   if (!lastExportEnabled || !activeJobId) {
+    if (manuallyPausedJobId && checkpointStore.list().some((job) => job.jobId === manuallyPausedJobId && job.status === "paused")) {
+      lastExportEnabled = true;
+      return;
+    }
     await startCaptureSession(ctx);
   }
   lastExportEnabled = true;
@@ -271,6 +323,20 @@ async function discoverQueryIdsForContext(ctx: FeatureContext): Promise<void> {
 async function startCaptureSession(ctx: FeatureContext): Promise<void> {
   if (!checkpointStore || activeJobId) {
     return;
+  }
+  const resumable = checkpointStore.listResumable()
+    .filter((job) => job.surface === ctx.route.surface)
+    .at(-1);
+  if (resumable) {
+    const resumed = await checkpointStore.resume(resumable.jobId);
+    if (resumed) {
+      activeJobId = resumable.jobId;
+      ctx.diagnostics.info("Export capture session resumed", {
+        jobId: resumable.jobId,
+        records: resumable.recordCount
+      });
+      return;
+    }
   }
   const jobId = `session-${Date.now()}-${++sessionSequence}`;
   try {
@@ -328,4 +394,8 @@ async function autoIndexExport(ctx: FeatureContext, records: readonly ExportReco
   } catch (error) {
     ctx.diagnostics.warn("Auto-embedding failed", errorDetails(error));
   }
+}
+
+function actionResult(ok: boolean): ExportJobActionResult {
+  return ok ? { ok: true } : { ok: false, error: "The export job is no longer active" };
 }

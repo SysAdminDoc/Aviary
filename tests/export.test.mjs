@@ -246,6 +246,45 @@ test("CheckpointStore removes jobs older than the configured age at boot", async
   assert.equal(checkpoints.records("old").length, 0);
 });
 
+test("CheckpointStore recovers interrupted jobs and keeps lifecycle actions durable", async () => {
+  const { CheckpointStore } = await importBundledModule("src/features/export/jobs.ts");
+  const store = new Map();
+  const storage = {
+    async get(key, fallback) {
+      return store.has(key) ? structuredClone(store.get(key)) : structuredClone(fallback);
+    },
+    async set(key, value) {
+      store.set(key, structuredClone(value));
+    },
+    async remove(key) {
+      store.delete(key);
+    }
+  };
+
+  const first = new CheckpointStore(storage);
+  await first.start("job-interrupted", "home", ["json"], false);
+  await first.append("job-interrupted", [
+    { tweetId: "1", handle: "alpha", displayName: "Alpha", text: "saved", capturedAt: "2026-05-19T00:00:00Z", surface: "home", media: [], permalink: null }
+  ]);
+
+  const reloaded = new CheckpointStore(storage);
+  await reloaded.load();
+  assert.equal(reloaded.list()[0].status, "paused");
+  assert.equal(reloaded.list()[0].resumeOnBoot, true);
+  assert.equal(reloaded.listResumable()[0].jobId, "job-interrupted");
+
+  assert.equal(await reloaded.resume("job-interrupted"), true);
+  assert.equal(reloaded.list()[0].status, "running");
+  assert.equal(await reloaded.updateProgress("job-interrupted", { completed: 1, total: 3 }), true);
+  assert.deepEqual(reloaded.list()[0].progress, { completed: 1, total: 3 });
+  assert.equal(await reloaded.pause("job-interrupted"), true);
+  assert.equal(reloaded.list()[0].resumeOnBoot, false, "manual pause must not auto-resume");
+  assert.equal(await reloaded.cancel("job-interrupted"), true);
+  assert.equal(reloaded.list()[0].status, "cancelled");
+  assert.equal(reloaded.list()[0].done, true);
+  assert.equal(await reloaded.resume("job-interrupted"), false, "terminal jobs are idempotently closed");
+});
+
 test("selectSupportedFormats filters unsupported values and never returns empty", async () => {
   const { selectSupportedFormats } = await importBundledModule(
     "src/features/export/export-feature.ts"

@@ -6864,6 +6864,44 @@ html.av-reduce-motion *::after {
             `${status2.jobCount} jobs tracked \xB7 ${status2.knownQueries} GraphQL IDs cached`
           )
         );
+        for (const job of (status2.jobs ?? []).slice(-3)) {
+          rows.push(
+            dataRow(
+              "Export job",
+              `${job.status} \xB7 ${job.recordCount} records \xB7 ${job.surface}${job.error ? ` \xB7 ${job.error}` : ""}`
+            )
+          );
+          if (job.status === "running" && options.pauseExportJob) {
+            rows.push(
+              actionRow("Pause export job", `Pause ${job.jobId}.`, async () => {
+                const result = await options.pauseExportJob(job.jobId);
+                if (!result.ok) throw new Error(result.error ?? "Export job could not be paused");
+                render();
+                setStatus("Export job paused.");
+              })
+            );
+          }
+          if (job.status === "paused" && options.resumeExportJob) {
+            rows.push(
+              actionRow("Resume export job", `Resume ${job.jobId}.`, async () => {
+                const result = await options.resumeExportJob(job.jobId);
+                if (!result.ok) throw new Error(result.error ?? "Export job could not be resumed");
+                render();
+                setStatus("Export job resumed.");
+              })
+            );
+          }
+          if ((job.status === "running" || job.status === "paused" || job.status === "queued") && options.cancelExportJob) {
+            rows.push(
+              actionRow("Cancel export job", `Cancel ${job.jobId}.`, async () => {
+                const result = await options.cancelExportJob(job.jobId);
+                if (!result.ok) throw new Error(result.error ?? "Export job could not be cancelled");
+                render();
+                setStatus("Export job cancelled.");
+              })
+            );
+          }
+        }
       }
       if (options.runExport) {
         rows.push(
@@ -7091,9 +7129,17 @@ html.av-reduce-motion *::after {
         rows.push(
           dataRow(
             "Download status",
-            `${status2.running} running / ${status2.completed} done / ${status2.duplicate} dup / ${status2.failed} failed`
+            `${status2.running} running / ${status2.queued ?? 0} queued / ${status2.paused ?? 0} paused / ${status2.completed} done / ${status2.duplicate} dup / ${status2.failed} failed`
           )
         );
+        if (status2.batch) {
+          rows.push(
+            dataRow(
+              "Active media batch",
+              `${status2.batch.status} \xB7 ${status2.batch.downloaded} saved / ${status2.batch.duplicate} dup / ${status2.batch.failed} failed of ${status2.batch.total}`
+            )
+          );
+        }
         rows.push(dataRow("History entries", String(status2.historySize)));
       }
       if (options.clearMediaHistory) {
@@ -7118,8 +7164,9 @@ html.av-reduce-motion *::after {
               setStatus("Downloading media from this view\u2026");
               try {
                 const result = await options.runMediaBatch();
+                render();
                 setStatus(
-                  `Batch finished: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
+                  result.cancelled ? `Batch cancelled: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).` : `Batch finished: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
                 );
               } catch (error) {
                 options.onError("Batch download failed", error);
@@ -7127,6 +7174,64 @@ html.av-reduce-motion *::after {
               }
             }
           )
+        );
+      }
+      const mediaControlAction = (label, description, action, success) => {
+        rows.push(
+          actionRow(label, description, async () => {
+            const result = action();
+            if (!result.ok) {
+              throw new Error(result.error ?? `${label} failed`);
+            }
+            render();
+            setStatus(success);
+          })
+        );
+      };
+      if (options.pauseMediaBatch) {
+        mediaControlAction(
+          "Pause media batch",
+          "Stop starting new downloads; the current downloads finish and the queue remains resumable.",
+          options.pauseMediaBatch,
+          "Media batch paused."
+        );
+      }
+      if (options.resumeMediaBatch) {
+        mediaControlAction(
+          "Resume media batch",
+          "Continue the active batch from its durable queue.",
+          options.resumeMediaBatch,
+          "Media batch resumed."
+        );
+      }
+      if (options.cancelMediaBatch) {
+        mediaControlAction(
+          "Cancel media batch",
+          "Stop scheduling new downloads and leave unfinished queue entries available for recovery.",
+          options.cancelMediaBatch,
+          "Media batch cancelling."
+        );
+      }
+      if (options.resumePendingMediaJobs) {
+        rows.push(
+          actionRow("Resume queued media", "Recover paused or queued downloads from an earlier session.", async () => {
+            const result = await options.resumePendingMediaJobs();
+            render();
+            setStatus(
+              result.cancelled ? `Queued media recovery cancelled after ${result.downloaded} saved.` : `Queued media recovery finished: ${result.downloaded} saved / ${result.failed} failed.`
+            );
+          })
+        );
+      }
+      if (options.retryFailedMediaJobs) {
+        rows.push(
+          actionRow("Retry failed media", "Retry every failed or cancelled media job in the durable queue.", async () => {
+            const result = await options.retryFailedMediaJobs();
+            render();
+            setStatus(
+              result.total === 0 ? "No failed media jobs to retry." : `Media retry finished: ${result.downloaded} saved / ${result.failed} failed.`
+            );
+          })
         );
       }
       return rows;
@@ -10001,8 +10106,8 @@ input[type="checkbox"] {
       if (this.#loaded) return emptySweep(this.#policy, Object.keys(this.#state.jobs).length);
       const raw = await this.#storage.get(CHECKPOINT_KEY, EMPTY2);
       this.#state = {
-        jobs: { ...raw?.jobs ?? {} },
-        records: { ...raw?.records ?? {} }
+        jobs: normalizeJobs(raw?.jobs),
+        records: normalizeRecords(raw?.records)
       };
       this.#policy = await loadRetentionPolicy(this.#storage);
       this.#loaded = true;
@@ -10026,7 +10131,11 @@ input[type="checkbox"] {
         recordCount: 0,
         done: false,
         formats,
-        preserveRawPayloads
+        preserveRawPayloads,
+        status: "running",
+        progress: { completed: 0, total: null },
+        updatedAt: (/* @__PURE__ */ new Date()).toISOString(),
+        resumeOnBoot: false
       };
       this.#state.records[jobId] = [];
       await this.#persist();
@@ -10035,7 +10144,7 @@ input[type="checkbox"] {
     async append(jobId, batch) {
       await this.load();
       const job = this.#state.jobs[jobId];
-      if (!job) return;
+      if (!job || isTerminal(job.status)) return;
       const seen = new Set(this.#state.records[jobId]?.map((entry) => recordKey(entry)) ?? []);
       const records = this.#state.records[jobId] ?? [];
       for (const record of batch) {
@@ -10048,6 +10157,8 @@ input[type="checkbox"] {
       const retained = this.#policy.maxRecordsPerJob > 0 ? records.slice(-this.#policy.maxRecordsPerJob) : records;
       this.#state.records[jobId] = retained;
       job.recordCount = retained.length;
+      job.progress = { completed: retained.length, total: job.progress.total };
+      job.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
       await this.#persist();
     }
     async finish(jobId) {
@@ -10055,8 +10166,74 @@ input[type="checkbox"] {
       const job = this.#state.jobs[jobId];
       if (job) {
         job.done = true;
+        job.status = "completed";
+        job.progress = { completed: job.recordCount, total: job.progress.total ?? job.recordCount };
+        job.resumeOnBoot = false;
+        job.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+        delete job.error;
         await this.#persist();
       }
+    }
+    async pause(jobId) {
+      await this.load();
+      const job = this.#state.jobs[jobId];
+      if (!job || isTerminal(job.status)) return false;
+      job.status = "paused";
+      job.done = false;
+      job.resumeOnBoot = false;
+      job.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+      await this.#persist();
+      return true;
+    }
+    async resume(jobId) {
+      await this.load();
+      const job = this.#state.jobs[jobId];
+      if (!job || job.status !== "paused" && job.status !== "queued") return false;
+      job.status = "running";
+      job.done = false;
+      job.resumeOnBoot = false;
+      job.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+      delete job.error;
+      await this.#persist();
+      return true;
+    }
+    async cancel(jobId) {
+      await this.load();
+      const job = this.#state.jobs[jobId];
+      if (!job || isTerminal(job.status)) return false;
+      job.status = "cancelled";
+      job.done = true;
+      job.resumeOnBoot = false;
+      job.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+      await this.#persist();
+      return true;
+    }
+    async fail(jobId, error) {
+      await this.load();
+      const job = this.#state.jobs[jobId];
+      if (!job || isTerminal(job.status)) return false;
+      job.status = "failed";
+      job.done = true;
+      job.resumeOnBoot = false;
+      job.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+      job.error = error instanceof Error ? error.message : String(error);
+      await this.#persist();
+      return true;
+    }
+    async updateProgress(jobId, progress) {
+      await this.load();
+      const job = this.#state.jobs[jobId];
+      if (!job || isTerminal(job.status)) return false;
+      job.progress = {
+        completed: nonNegativeInteger(progress.completed, job.progress.completed),
+        total: progress.total === null ? null : nonNegativeInteger(progress.total, job.progress.total ?? 0)
+      };
+      job.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+      await this.#persist();
+      return true;
+    }
+    listResumable() {
+      return this.list().filter((job) => job.status === "paused" && job.resumeOnBoot).sort(compareJobs);
     }
     async remove(jobId) {
       await this.load();
@@ -10171,6 +10348,67 @@ input[type="checkbox"] {
   function recordKey(record) {
     const identity = record.tweetId ? `tweet:${record.tweetId}` : `source:${record.permalink ?? ""}|${record.surface}|${record.handle ?? ""}`;
     return `${identity}|${record.text.length}|${hashRecordText(record.text)}`;
+  }
+  function normalizeJobs(input) {
+    if (!input || typeof input !== "object") return {};
+    const result = {};
+    for (const [jobId, value] of Object.entries(input)) {
+      const job = normalizeJob(value, jobId);
+      if (job) result[job.jobId] = job;
+    }
+    return result;
+  }
+  function normalizeRecords(input) {
+    if (!input || typeof input !== "object") return {};
+    const result = {};
+    for (const [jobId, records] of Object.entries(input)) {
+      if (Array.isArray(records)) result[jobId] = records;
+    }
+    return result;
+  }
+  function normalizeJob(value, fallbackId) {
+    if (!value || typeof value !== "object") return null;
+    const raw = value;
+    const jobId = typeof raw.jobId === "string" && raw.jobId.length > 0 ? raw.jobId : fallbackId;
+    const startedAt = typeof raw.startedAt === "string" ? raw.startedAt : (/* @__PURE__ */ new Date(0)).toISOString();
+    const recordCount = nonNegativeInteger(raw.recordCount, 0);
+    const persistedStatus = validStatus(raw.status) ? raw.status : raw.done === true ? "completed" : "paused";
+    const status = persistedStatus === "running" ? "paused" : persistedStatus;
+    const progress = normalizeProgress(raw.progress, recordCount);
+    return {
+      jobId,
+      startedAt,
+      surface: typeof raw.surface === "string" ? raw.surface : "unknown",
+      recordCount,
+      done: status === "completed" || status === "cancelled" || status === "failed",
+      formats: Array.isArray(raw.formats) ? raw.formats.filter(isExportFormat) : ["json"],
+      preserveRawPayloads: raw.preserveRawPayloads === true,
+      status,
+      progress,
+      updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : startedAt,
+      resumeOnBoot: status === "paused" && (persistedStatus === "running" || raw.resumeOnBoot !== false),
+      ...typeof raw.error === "string" && raw.error.length > 0 ? { error: raw.error } : {}
+    };
+  }
+  function normalizeProgress(value, fallback) {
+    if (!value || typeof value !== "object") return { completed: fallback, total: null };
+    const raw = value;
+    return {
+      completed: nonNegativeInteger(raw.completed, fallback),
+      total: raw.total === null ? null : nonNegativeInteger(raw.total, fallback)
+    };
+  }
+  function validStatus(value) {
+    return value === "queued" || value === "running" || value === "paused" || value === "cancelled" || value === "failed" || value === "completed";
+  }
+  function isExportFormat(value) {
+    return value === "json" || value === "csv" || value === "html" || value === "markdown" || value === "xlsx";
+  }
+  function isTerminal(status) {
+    return status === "cancelled" || status === "failed" || status === "completed";
+  }
+  function nonNegativeInteger(value, fallback) {
+    return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : fallback;
   }
   function hashRecordText(value) {
     let hash = 2166136261;
@@ -10591,6 +10829,7 @@ ${sections.join("\n\n---\n\n")}
   var lastAutoDiscoverQueryIds = false;
   var lifecycleQueue = Promise.resolve();
   var sessionSequence = 0;
+  var manuallyPausedJobId;
   var exportFeature = {
     id: "export.core",
     title: "Export core",
@@ -10602,6 +10841,7 @@ ${sections.join("\n\n---\n\n")}
       lastExportEnabled = false;
       lastAutoDiscoverQueryIds = false;
       lifecycleQueue = Promise.resolve();
+      manuallyPausedJobId = void 0;
       checkpointStore = new CheckpointStore(ctx.storage);
       const retention = await checkpointStore.load();
       if (retention.removedJobs > 0 || retention.removedRecords > 0) {
@@ -10625,6 +10865,7 @@ ${sections.join("\n\n---\n\n")}
       activeJobId = void 0;
       lastExportEnabled = false;
       lastAutoDiscoverQueryIds = false;
+      manuallyPausedJobId = void 0;
       lifecycleQueue = Promise.resolve();
       ctx.diagnostics.info("Export core destroyed");
     },
@@ -10655,27 +10896,65 @@ ${sections.join("\n\n---\n\n")}
     const formats = selectSupportedFormats(ctx.settings.export.formats);
     await checkpointStore.start(jobId, ctx.route.surface, formats, ctx.settings.export.preserveRawPayloads);
     void ctx.auditLog.record("export.start", { jobId, formats, surface: ctx.route.surface });
-    const initialRecords = collectExportRecords(document, ctx.route.surface);
-    await checkpointStore.append(jobId, initialRecords);
-    const records = checkpointStore.records(jobId);
-    const artifacts = records.length === 0 ? [] : buildExportZipChunks(
-      records,
-      formats,
-      ctx.settings.media.lastSaveFolder,
-      ctx.settings.media.zipChunkSize
-    );
-    await checkpointStore.finish(jobId);
-    ctx.diagnostics.info("Export completed", { records: records.length, formats });
-    void ctx.auditLog.record("export.complete", { jobId, records: records.length, formats });
-    if (ctx.settings.integrations.semanticSearch.autoIndex) {
-      void autoIndexExport(ctx, records);
+    try {
+      const initialRecords = collectExportRecords(document, ctx.route.surface);
+      await checkpointStore.append(jobId, initialRecords);
+      const records = checkpointStore.records(jobId);
+      await checkpointStore.updateProgress(jobId, { completed: records.length, total: records.length });
+      const artifacts = records.length === 0 ? [] : buildExportZipChunks(
+        records,
+        formats,
+        ctx.settings.media.lastSaveFolder,
+        ctx.settings.media.zipChunkSize
+      );
+      await checkpointStore.finish(jobId);
+      ctx.diagnostics.info("Export completed", { records: records.length, formats });
+      void ctx.auditLog.record("export.complete", { jobId, records: records.length, formats });
+      if (ctx.settings.integrations.semanticSearch.autoIndex) {
+        void autoIndexExport(ctx, records);
+      }
+      return {
+        jobId,
+        records: records.length,
+        artifacts,
+        filename: artifacts[0]?.filename ?? zipFilename(ctx.settings.media.lastSaveFolder)
+      };
+    } catch (error) {
+      await checkpointStore.fail(jobId, error);
+      ctx.diagnostics.error("Export failed", errorDetails(error));
+      void ctx.auditLog.record("export.failed", { jobId, error: String(error?.message ?? error) });
+      throw error;
     }
-    return {
-      jobId,
-      records: records.length,
-      artifacts,
-      filename: artifacts[0]?.filename ?? zipFilename(ctx.settings.media.lastSaveFolder)
-    };
+  }
+  async function pauseExportJob(jobId) {
+    if (!checkpointStore) return { ok: false, error: "Export store is not loaded" };
+    const ok = await checkpointStore.pause(jobId);
+    if (ok && activeJobId === jobId) {
+      activeJobId = void 0;
+      manuallyPausedJobId = jobId;
+    }
+    return actionResult(ok);
+  }
+  async function resumeExportJob(jobId) {
+    if (!checkpointStore) return { ok: false, error: "Export store is not loaded" };
+    const ok = await checkpointStore.resume(jobId);
+    if (ok) {
+      activeJobId = jobId;
+      manuallyPausedJobId = void 0;
+    }
+    return actionResult(ok);
+  }
+  async function cancelExportJob(jobId) {
+    if (!checkpointStore) return { ok: false, error: "Export store is not loaded" };
+    const ok = await checkpointStore.cancel(jobId);
+    if (activeJobId === jobId) {
+      activeJobId = void 0;
+      lastExportEnabled = false;
+    }
+    if (manuallyPausedJobId === jobId) {
+      manuallyPausedJobId = void 0;
+    }
+    return actionResult(ok);
   }
   function buildExportZip(records, formats, folder) {
     const entries = [];
@@ -10746,6 +11025,10 @@ ${sections.join("\n\n---\n\n")}
       return;
     }
     if (!lastExportEnabled || !activeJobId) {
+      if (manuallyPausedJobId && checkpointStore.list().some((job) => job.jobId === manuallyPausedJobId && job.status === "paused")) {
+        lastExportEnabled = true;
+        return;
+      }
       await startCaptureSession(ctx);
     }
     lastExportEnabled = true;
@@ -10774,6 +11057,18 @@ ${sections.join("\n\n---\n\n")}
   async function startCaptureSession(ctx) {
     if (!checkpointStore || activeJobId) {
       return;
+    }
+    const resumable = checkpointStore.listResumable().filter((job) => job.surface === ctx.route.surface).at(-1);
+    if (resumable) {
+      const resumed = await checkpointStore.resume(resumable.jobId);
+      if (resumed) {
+        activeJobId = resumable.jobId;
+        ctx.diagnostics.info("Export capture session resumed", {
+          jobId: resumable.jobId,
+          records: resumable.recordCount
+        });
+        return;
+      }
     }
     const jobId = `session-${Date.now()}-${++sessionSequence}`;
     try {
@@ -10826,6 +11121,9 @@ ${sections.join("\n\n---\n\n")}
     } catch (error) {
       ctx.diagnostics.warn("Auto-embedding failed", errorDetails(error));
     }
+  }
+  function actionResult(ok) {
+    return ok ? { ok: true } : { ok: false, error: "The export job is no longer active" };
   }
 
   // src/features/export/external-targets.ts
@@ -13516,15 +13814,55 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
 
   // src/features/media/queue.ts
+  var MEDIA_QUEUE_KEY = "aviary.media.queue.v1";
   var RECENT_LIMIT = 40;
   var DownloadQueue = class {
     #jobs = [];
     #listeners = /* @__PURE__ */ new Set();
+    #storage;
+    #onPersistError;
     #seq = 0;
+    #loaded = false;
+    #persistTail = Promise.resolve();
+    constructor(storage, onPersistError) {
+      this.#storage = storage;
+      this.#onPersistError = onPersistError;
+    }
+    async load() {
+      if (this.#loaded) return;
+      this.#loaded = true;
+      if (!this.#storage) return;
+      try {
+        const raw = await this.#storage.get(MEDIA_QUEUE_KEY, { sequence: 0, jobs: [] });
+        const jobs = Array.isArray(raw?.jobs) ? raw.jobs.filter(isDownloadJob).map(normalizeJob2) : [];
+        for (const job of jobs) {
+          if (job.status === "running") {
+            job.status = "paused";
+            job.resumeOnBoot = true;
+            job.error = "Interrupted before completion; resume when ready.";
+          }
+        }
+        this.#jobs.push(...jobs.slice(-200));
+        this.#seq = Math.max(
+          Number.isFinite(raw?.sequence) ? Math.trunc(raw.sequence) : 0,
+          ...this.#jobs.map((job) => sequenceFromId(job.id))
+        );
+        if (jobs.some((job) => job.status === "paused" && job.resumeOnBoot)) {
+          this.#persist();
+        }
+        this.#notify();
+      } catch (error) {
+        this.#onPersistError?.(error);
+      }
+    }
+    async flush() {
+      await this.#persistTail;
+    }
     enqueue(job) {
       const entry = {
         id: `job-${++this.#seq}`,
         status: "queued",
+        resumeOnBoot: true,
         ...job
       };
       this.#jobs.push(entry);
@@ -13542,6 +13880,11 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       }
       if (status === "completed" || status === "failed" || status === "duplicate") {
         job.finishedAt = (/* @__PURE__ */ new Date()).toISOString();
+        job.resumeOnBoot = false;
+      }
+      if (status === "cancelled") {
+        job.finishedAt = (/* @__PURE__ */ new Date()).toISOString();
+        job.resumeOnBoot = false;
       }
       job.status = status;
       if (error) {
@@ -13549,7 +13892,57 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       } else if (status !== "failed") {
         delete job.error;
       }
+      this.#persist();
       this.#notify();
+    }
+    pause(jobId) {
+      const job = this.#jobs.find((entry) => entry.id === jobId);
+      if (!job || job.status === "completed" || job.status === "failed" || job.status === "duplicate" || job.status === "cancelled") return false;
+      job.status = "paused";
+      job.resumeOnBoot = false;
+      job.error = "Paused by user.";
+      this.#persist();
+      this.#notify();
+      return true;
+    }
+    resume(jobId) {
+      const job = this.#jobs.find((entry) => entry.id === jobId);
+      if (!job || job.status !== "paused" && job.status !== "queued") return false;
+      job.status = "queued";
+      job.resumeOnBoot = false;
+      delete job.error;
+      this.#persist();
+      this.#notify();
+      return true;
+    }
+    cancel(jobId) {
+      const job = this.#jobs.find((entry) => entry.id === jobId);
+      if (!job || job.status === "completed" || job.status === "failed" || job.status === "duplicate" || job.status === "cancelled") return false;
+      job.status = "cancelled";
+      job.resumeOnBoot = false;
+      job.finishedAt = (/* @__PURE__ */ new Date()).toISOString();
+      this.#persist();
+      this.#notify();
+      return true;
+    }
+    retryFailed() {
+      const retryable = this.#jobs.filter(
+        (job) => job.status === "failed" || job.status === "cancelled"
+      );
+      for (const job of retryable) {
+        job.status = "queued";
+        job.resumeOnBoot = true;
+        delete job.error;
+        delete job.finishedAt;
+      }
+      if (retryable.length > 0) {
+        this.#persist();
+        this.#notify();
+      }
+      return retryable.map((job) => ({ ...job }));
+    }
+    pending(resumeOnBoot = false) {
+      return this.#jobs.filter((job) => (job.status === "queued" || job.status === "paused") && (!resumeOnBoot || job.resumeOnBoot === true)).map((job) => ({ ...job }));
     }
     snapshot() {
       const counts = {
@@ -13557,7 +13950,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         running: 0,
         completed: 0,
         failed: 0,
-        duplicate: 0
+        duplicate: 0,
+        paused: 0,
+        cancelled: 0
       };
       for (const job of this.#jobs) {
         counts[job.status] += 1;
@@ -13569,6 +13964,8 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         completed: counts.completed,
         failed: counts.failed,
         duplicate: counts.duplicate,
+        paused: counts.paused,
+        cancelled: counts.cancelled,
         recent: this.#jobs.slice(-RECENT_LIMIT)
       };
     }
@@ -13581,6 +13978,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     }
     clear() {
       this.#jobs.length = 0;
+      this.#persist();
       this.#notify();
     }
     #trim() {
@@ -13597,7 +13995,39 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         }
       }
     }
+    #persist() {
+      if (!this.#storage) return;
+      const snapshot = {
+        sequence: this.#seq,
+        jobs: this.#jobs.map((job) => ({ ...job }))
+      };
+      this.#persistTail = this.#persistTail.then(() => this.#storage.set(MEDIA_QUEUE_KEY, snapshot)).catch((error) => {
+        this.#onPersistError?.(error);
+      });
+    }
   };
+  function isDownloadJob(value) {
+    if (!value || typeof value !== "object") return false;
+    const record = value;
+    return typeof record.id === "string" && typeof record.url === "string" && typeof record.filename === "string";
+  }
+  function normalizeJob2(value) {
+    const valid = value.status === "queued" || value.status === "running" || value.status === "completed" || value.status === "failed" || value.status === "duplicate" || value.status === "paused" || value.status === "cancelled";
+    return {
+      id: value.id,
+      url: value.url,
+      filename: value.filename,
+      status: valid ? value.status : "failed",
+      ...typeof value.error === "string" ? { error: value.error } : {},
+      ...typeof value.startedAt === "string" ? { startedAt: value.startedAt } : {},
+      ...typeof value.finishedAt === "string" ? { finishedAt: value.finishedAt } : {},
+      resumeOnBoot: value.resumeOnBoot === true
+    };
+  }
+  function sequenceFromId(id) {
+    const match = /^job-(\d+)$/.exec(id);
+    return match ? Number.parseInt(match[1], 10) : 0;
+  }
 
   // src/features/media/media-buttons.ts
   var STYLE_ID3 = "av-media-buttons";
@@ -13639,7 +14069,10 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         aria2History,
         onWarn: (message, details) => ctx.diagnostics.warn(message, details)
       });
-      queue = new DownloadQueue();
+      queue = new DownloadQueue(ctx.storage, (error) => {
+        ctx.diagnostics.error("Media queue failed to save", errorDetails3(error));
+      });
+      await queue.load();
       history = new MediaHistory(ctx.storage, void 0, (error) => {
         ctx.diagnostics.error("Media history failed to save", errorDetails3(error));
       });
@@ -13679,12 +14112,12 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         scanArticles(node, ctx);
       }
     },
-    destroy(ctx) {
+    async destroy(ctx) {
       clearDecorations2();
       downloader = void 0;
       history = void 0;
       aria2History = void 0;
-      queue?.clear();
+      await queue?.flush();
       queue = void 0;
       appliedPreferOriginalImages = void 0;
       appliedMetadataVersion = void 0;
@@ -14056,6 +14489,44 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
 `;
 
   // src/features/media/batch-downloader.ts
+  var activeBatch;
+  var batchSequence = 0;
+  function getMediaBatchStatus() {
+    if (!activeBatch) {
+      return void 0;
+    }
+    const { id, status } = activeBatch;
+    const { total, enqueued, downloaded, duplicate, failed } = activeBatch.progress;
+    return { id, status, total, enqueued, downloaded, duplicate, failed };
+  }
+  function pauseMediaBatch() {
+    if (!activeBatch) {
+      return { ok: false, error: "No media batch is running" };
+    }
+    if (activeBatch.status === "running") {
+      activeBatch.status = "paused";
+    }
+    return { ok: true };
+  }
+  function resumeMediaBatch() {
+    if (!activeBatch) {
+      return { ok: false, error: "No media batch is running" };
+    }
+    if (activeBatch.status === "paused") {
+      activeBatch.status = "running";
+      wakeBatch(activeBatch);
+    }
+    return { ok: true };
+  }
+  function cancelMediaBatch() {
+    if (!activeBatch) {
+      return { ok: false, error: "No media batch is running" };
+    }
+    activeBatch.status = "cancelling";
+    activeBatch.cancelled = true;
+    wakeBatch(activeBatch);
+    return { ok: true };
+  }
   async function runMediaBatch(ctx, options = {}) {
     const queue2 = getMediaQueue();
     const history2 = getMediaHistory();
@@ -14092,76 +14563,195 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       failed: 0
     };
     const jobIds = [];
+    const control = beginBatch(tasks.length, progress);
     let cursor = 0;
     let needsDownloadPermission = false;
     const workers = [];
-    const next = async () => {
-      while (true) {
-        if (needsDownloadPermission) return;
-        const index = cursor++;
-        if (index >= tasks.length) return;
-        const task = tasks[index];
-        const dedupeKey = `${task.tweet.tweetId ?? "0"}:${task.target.mediaId ?? task.target.url}:${task.index}:${task.media.kind}`;
-        const filename = renderFilename(ctx.settings.media.filenameTemplate, {
-          handle: task.tweet.handle,
-          tweetId: task.tweet.tweetId,
-          index: task.index,
-          total: task.tweet.media.length,
-          date: /* @__PURE__ */ new Date(),
-          ext: task.target.ext,
-          text: task.tweet.text,
-          mediaId: task.target.mediaId
-        });
-        if (ctx.settings.media.downloadHistory && history2?.has(dedupeKey)) {
-          progress.duplicate += 1;
-          if (queue2) {
-            const job2 = queue2.enqueue({ url: task.target.url, filename });
-            queue2.mark(job2.id, "duplicate");
-            jobIds.push(job2.id);
+    try {
+      const next = async () => {
+        while (true) {
+          if (needsDownloadPermission) return;
+          if (control.cancelled) return;
+          await waitForBatch(control);
+          if (needsDownloadPermission) return;
+          if (control.cancelled) return;
+          const index = cursor++;
+          if (index >= tasks.length) return;
+          const task = tasks[index];
+          const dedupeKey = `${task.tweet.tweetId ?? "0"}:${task.target.mediaId ?? task.target.url}:${task.index}:${task.media.kind}`;
+          const filename = renderFilename(ctx.settings.media.filenameTemplate, {
+            handle: task.tweet.handle,
+            tweetId: task.tweet.tweetId,
+            index: task.index,
+            total: task.tweet.media.length,
+            date: /* @__PURE__ */ new Date(),
+            ext: task.target.ext,
+            text: task.tweet.text,
+            mediaId: task.target.mediaId
+          });
+          if (ctx.settings.media.downloadHistory && history2?.has(dedupeKey)) {
+            progress.duplicate += 1;
+            if (queue2) {
+              const job2 = queue2.enqueue({ url: task.target.url, filename });
+              queue2.mark(job2.id, "duplicate");
+              jobIds.push(job2.id);
+            }
+            continue;
           }
-          continue;
+          await ctx.limiter.waitForToken();
+          if (control.cancelled) return;
+          await waitForBatch(control);
+          if (control.cancelled) return;
+          const job = queue2?.enqueue({ url: task.target.url, filename });
+          if (job) {
+            jobIds.push(job.id);
+            queue2?.mark(job.id, "running");
+          }
+          progress.enqueued += 1;
+          try {
+            const result = await downloader2({ url: task.target.url, filename });
+            if (job) queue2?.mark(job.id, "completed");
+            if (ctx.settings.media.downloadHistory && history2) {
+              await history2.record(dedupeKey);
+            }
+            progress.downloaded += 1;
+            void ctx.auditLog.record("media.download", { filename, kind: task.media.kind, via: result.via, batch: true });
+          } catch (error) {
+            if (job) queue2?.mark(job.id, "failed", String(error?.message ?? error));
+            progress.failed += 1;
+            if (error instanceof DownloadPermissionError) {
+              needsDownloadPermission = true;
+              void requestDownloadPermissionSurface();
+            }
+            ctx.diagnostics.error("Batch media download failed", {
+              filename,
+              kind: task.media.kind,
+              error: String(error?.message ?? error)
+            });
+            void ctx.auditLog.record("media.download.failed", { filename, kind: task.media.kind, batch: true });
+          }
         }
-        await ctx.limiter.waitForToken();
-        const job = queue2?.enqueue({ url: task.target.url, filename });
-        if (job) {
-          jobIds.push(job.id);
-          queue2?.mark(job.id, "running");
-        }
+      };
+      for (let i = 0; i < concurrency; i++) {
+        workers.push(next());
+      }
+      await Promise.all(workers);
+      return {
+        ...progress,
+        jobIds,
+        cancelled: control.cancelled,
+        ...needsDownloadPermission ? { needsDownloadPermission: true } : {}
+      };
+    } finally {
+      finishBatch(control);
+    }
+  }
+  async function resumePendingMediaJobs(ctx) {
+    const queue2 = getMediaQueue();
+    const pending = queue2?.pending() ?? [];
+    return runPersistedJobs(ctx, queue2, pending);
+  }
+  async function retryFailedMediaJobs(ctx) {
+    const queue2 = getMediaQueue();
+    const pending = queue2?.retryFailed() ?? [];
+    return runPersistedJobs(ctx, queue2, pending);
+  }
+  async function runPersistedJobs(ctx, queue2, jobs) {
+    const progress = {
+      total: jobs.length,
+      enqueued: 0,
+      downloaded: 0,
+      duplicate: 0,
+      failed: 0
+    };
+    const jobIds = jobs.map((job) => job.id);
+    if (!queue2 || jobs.length === 0) {
+      return { ...progress, jobIds, cancelled: false };
+    }
+    const control = beginBatch(jobs.length, progress);
+    const downloader2 = createDownloader({
+      integrations: ctx.settings.integrations,
+      onWarn: (message, details) => ctx.diagnostics.warn(message, details)
+    });
+    let needsDownloadPermission = false;
+    try {
+      for (const job of jobs) {
+        if (control.cancelled || needsDownloadPermission) break;
+        await waitForBatch(control);
+        if (control.cancelled) break;
+        queue2.resume(job.id);
+        queue2.mark(job.id, "running");
         progress.enqueued += 1;
         try {
-          const result = await downloader2({ url: task.target.url, filename });
-          if (job) queue2?.mark(job.id, "completed");
-          if (ctx.settings.media.downloadHistory && history2) {
-            await history2.record(dedupeKey);
+          await ctx.limiter.waitForToken();
+          if (control.cancelled) break;
+          const result = await downloader2({ url: job.url, filename: job.filename });
+          queue2.mark(job.id, result.deduplicated ? "duplicate" : "completed");
+          if (result.deduplicated) {
+            progress.duplicate += 1;
+          } else {
+            progress.downloaded += 1;
           }
-          progress.downloaded += 1;
-          void ctx.auditLog.record("media.download", { filename, kind: task.media.kind, via: result.via, batch: true });
+          void ctx.auditLog.record(result.deduplicated ? "media.download.duplicate" : "media.download", {
+            filename: job.filename,
+            batch: true,
+            resumed: true,
+            via: result.via
+          });
         } catch (error) {
-          if (job) queue2?.mark(job.id, "failed", String(error?.message ?? error));
+          queue2.mark(job.id, "failed", String(error?.message ?? error));
           progress.failed += 1;
           if (error instanceof DownloadPermissionError) {
             needsDownloadPermission = true;
             void requestDownloadPermissionSurface();
           }
-          ctx.diagnostics.error("Batch media download failed", {
-            filename,
-            kind: task.media.kind,
+          ctx.diagnostics.error("Resumed media download failed", {
+            filename: job.filename,
             error: String(error?.message ?? error)
           });
-          void ctx.auditLog.record("media.download.failed", { filename, kind: task.media.kind, batch: true });
+          void ctx.auditLog.record("media.download.failed", { filename: job.filename, batch: true, resumed: true });
         }
       }
-    };
-    for (let i = 0; i < concurrency; i++) {
-      workers.push(next());
+      return {
+        ...progress,
+        jobIds,
+        cancelled: control.cancelled,
+        ...needsDownloadPermission ? { needsDownloadPermission: true } : {}
+      };
+    } finally {
+      finishBatch(control);
     }
-    await Promise.all(workers);
-    return {
-      ...progress,
-      jobIds,
+  }
+  function beginBatch(total, progress) {
+    if (activeBatch) {
+      throw new Error("A media batch is already running");
+    }
+    const control = {
+      id: `media-${Date.now()}-${++batchSequence}`,
+      status: "running",
       cancelled: false,
-      ...needsDownloadPermission ? { needsDownloadPermission: true } : {}
+      waiters: /* @__PURE__ */ new Set(),
+      progress
     };
+    activeBatch = control;
+    return control;
+  }
+  async function waitForBatch(control) {
+    while (control.status === "paused" && !control.cancelled) {
+      await new Promise((resolve) => control.waiters.add(resolve));
+    }
+  }
+  function wakeBatch(control) {
+    for (const resolve of control.waiters) {
+      resolve();
+    }
+    control.waiters.clear();
+  }
+  function finishBatch(control) {
+    wakeBatch(control);
+    if (activeBatch === control) {
+      activeBatch = void 0;
+    }
   }
   function collectArticles3(root, surface = "active", extractOptions = {}) {
     const articles = root instanceof Element && root.matches('article[data-testid="tweet"]') ? [root] : Array.from(root.querySelectorAll('article[data-testid="tweet"]'));
@@ -15283,12 +15873,17 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           const queue2 = getMediaQueue();
           const history2 = getMediaHistory();
           const snapshot = queue2?.snapshot();
+          const batch = getMediaBatchStatus();
           return {
             historySize: history2?.size() ?? 0,
             completed: snapshot?.completed ?? 0,
             failed: snapshot?.failed ?? 0,
             duplicate: snapshot?.duplicate ?? 0,
-            running: snapshot?.running ?? 0
+            running: snapshot?.running ?? 0,
+            queued: snapshot?.queued ?? 0,
+            paused: snapshot?.paused ?? 0,
+            cancelled: snapshot?.cancelled ?? 0,
+            ...batch ? { batch } : {}
           };
         },
         async clearMediaHistory() {
@@ -15299,9 +15894,20 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           const queries = getDiscoveredQueries();
           return {
             jobCount: store4?.list().length ?? 0,
-            knownQueries: queries ? Object.keys(queries.queries).length : 0
+            knownQueries: queries ? Object.keys(queries.queries).length : 0,
+            jobs: (store4?.list() ?? []).map((job) => ({
+              jobId: job.jobId,
+              status: job.status,
+              recordCount: job.recordCount,
+              surface: job.surface,
+              startedAt: job.startedAt,
+              ...job.error ? { error: job.error } : {}
+            }))
           };
         },
+        pauseExportJob,
+        resumeExportJob,
+        cancelExportJob,
         async runExport() {
           const result = await runExportOfVisibleTweets(ctx);
           for (const artifact of result.artifacts) {
@@ -15711,13 +16317,38 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
             total: result.total,
             downloaded: result.downloaded,
             duplicate: result.duplicate,
-            failed: result.failed
+            failed: result.failed,
+            cancelled: result.cancelled
           });
           return {
             total: result.total,
             downloaded: result.downloaded,
             duplicate: result.duplicate,
-            failed: result.failed
+            failed: result.failed,
+            cancelled: result.cancelled
+          };
+        },
+        pauseMediaBatch,
+        resumeMediaBatch,
+        cancelMediaBatch,
+        async resumePendingMediaJobs() {
+          const result = await resumePendingMediaJobs(ctx);
+          return {
+            total: result.total,
+            downloaded: result.downloaded,
+            duplicate: result.duplicate,
+            failed: result.failed,
+            cancelled: result.cancelled
+          };
+        },
+        async retryFailedMediaJobs() {
+          const result = await retryFailedMediaJobs(ctx);
+          return {
+            total: result.total,
+            downloaded: result.downloaded,
+            duplicate: result.duplicate,
+            failed: result.failed,
+            cancelled: result.cancelled
           };
         },
         async downloadWarc() {
@@ -18895,6 +19526,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     "aviary.export.checkpoints.v1",
     "aviary.queryIds.v1",
     "aviary.media.history.v1",
+    "aviary.media.queue.v1",
     "aviary.aria2.history.v1",
     "aviary.hiddenPosts.v1",
     "aviary.media.last-download.v1",
