@@ -1,5 +1,6 @@
 import type { IntegrationSettings } from "../../platform/settings";
 import type { StorageGateway } from "../../platform/storage";
+import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network";
 import { assertOutboundAllowed } from "./network-policy";
 
 export const ARIA2_HISTORY_KEY = "aviary.aria2.history.v1";
@@ -55,21 +56,26 @@ export async function addUriToAria2(
     params
   });
   try {
-    const response = await fetch(`${config.endpoint}/jsonrpc`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body
-    });
-    if (!response.ok) {
-      return { ok: false, error: `Aria2 HTTP ${response.status}` };
+    const networkResult = await withNetworkTimeout(async (signal) => {
+      const response = await fetch(`${config.endpoint}/jsonrpc`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body,
+        signal
+      });
+      if (!response.ok) return { status: response.status } as const;
+      return { payload: (await response.json()) as { result?: string; error?: { message?: string } } } as const;
+    }, NETWORK_TIMEOUTS.aria2);
+    if ("status" in networkResult) {
+      return { ok: false, error: `Aria2 HTTP ${networkResult.status}` };
     }
-    const payload = (await response.json()) as { result?: string; error?: { message?: string } };
+    const payload = networkResult.payload;
     if (payload?.error) {
       return { ok: false, error: payload.error.message ?? "Aria2 error" };
     }
-    const result: Aria2Result = { ok: true };
-    if (typeof payload?.result === "string") result.gid = payload.result;
-    return result;
+    const ariaResult: Aria2Result = { ok: true };
+    if (typeof payload?.result === "string") ariaResult.gid = payload.result;
+    return ariaResult;
   } catch (error) {
     return { ok: false, error: String((error as Error)?.message ?? error) };
   }
@@ -189,23 +195,30 @@ export async function pingAria2Version(config: Aria2Config): Promise<Aria2Result
     return { ok: false, error: "Aria2 endpoint not configured" };
   }
   try {
-    const response = await fetch(`${config.endpoint}/jsonrpc`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: `aviary-${Date.now()}`,
-        method: "aria2.getVersion",
-        params: config.secret ? [`token:${config.secret}`] : []
-      })
-    });
-    if (!response.ok) {
-      return { ok: false, error: `Aria2 HTTP ${response.status}` };
+    const result = await withNetworkTimeout(async (signal) => {
+      const response = await fetch(`${config.endpoint}/jsonrpc`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: `aviary-${Date.now()}`,
+          method: "aria2.getVersion",
+          params: config.secret ? [`token:${config.secret}`] : []
+        }),
+        signal
+      });
+      if (!response.ok) return { status: response.status } as const;
+      return {
+        payload: (await response.json()) as {
+          result?: { version?: unknown };
+          error?: { message?: string };
+        }
+      } as const;
+    }, NETWORK_TIMEOUTS.aria2);
+    if ("status" in result) {
+      return { ok: false, error: `Aria2 HTTP ${result.status}` };
     }
-    const payload = (await response.json()) as {
-      result?: { version?: unknown };
-      error?: { message?: string };
-    };
+    const payload = result.payload;
     if (payload?.error) {
       return { ok: false, error: payload.error.message ?? "Aria2 rejected the request" };
     }
@@ -258,21 +271,25 @@ export async function tellAria2Status(config: Aria2Config, gid: string): Promise
   const token = config.secret ? `token:${config.secret}` : undefined;
   const params: unknown[] = token ? [token, gid] : [gid];
   try {
-    const response = await fetch(`${config.endpoint}/jsonrpc`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: `aviary-${Date.now()}`,
-        method: "aria2.tellStatus",
-        params
-      })
-    });
-    if (!response.ok) return null;
-    const payload = (await response.json()) as {
-      result?: { status?: unknown };
-      error?: { code?: unknown; message?: unknown };
-    };
+    const payload = await withNetworkTimeout(async (signal) => {
+      const response = await fetch(`${config.endpoint}/jsonrpc`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: `aviary-${Date.now()}`,
+          method: "aria2.tellStatus",
+          params
+        }),
+        signal
+      });
+      if (!response.ok) return null;
+      return (await response.json()) as {
+        result?: { status?: unknown };
+        error?: { code?: unknown; message?: unknown };
+      };
+    }, NETWORK_TIMEOUTS.aria2);
+    if (!payload) return null;
     // Only a GID aria2 does not know means the download is gone. Every other fault -- a wrong
     // secret above all -- used to map to "removed" too, and reconcile deletes those entries, so
     // one boot with a mistyped secret erased the whole queued ledger and re-enabled duplicate
@@ -297,13 +314,17 @@ async function callAria2<T>(config: Aria2Config, method: string, args: unknown[]
     params
   });
   try {
-    const response = await fetch(`${config.endpoint}/jsonrpc`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body
-    });
-    if (!response.ok) return null;
-    const json = (await response.json()) as { result?: T };
+    const json = await withNetworkTimeout(async (signal) => {
+      const response = await fetch(`${config.endpoint}/jsonrpc`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body,
+        signal
+      });
+      if (!response.ok) return null;
+      return (await response.json()) as { result?: T };
+    }, NETWORK_TIMEOUTS.aria2);
+    if (!json) return null;
     return (json?.result ?? null) as T | null;
   } catch {
     return null;

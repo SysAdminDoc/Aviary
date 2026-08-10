@@ -4,6 +4,7 @@ import {
   Aria2History,
   shouldHandoffToAria2
 } from "../integrations/aria2";
+import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network";
 
 export interface DownloadRequest {
   url: string;
@@ -153,7 +154,10 @@ async function estimateBytes(url: string): Promise<number | null> {
     return null;
   }
   try {
-    const response = await fetch(url, { method: "HEAD" });
+    const response = await withNetworkTimeout(
+      (signal) => fetch(url, { method: "HEAD", signal }),
+      NETWORK_TIMEOUTS.mediaProbe
+    );
     if (!response.ok) {
       return null;
     }

@@ -12,6 +12,8 @@
   limits before upload.
 - Page-world subscriptions now rebind to a replacement bridge after teardown, so privacy-hook
   diagnostics and network-capture events continue working across a reboot.
+- Aria2, AI, semantic-search, cross-post, attachment, and media-probe requests now share bounded
+  abort deadlines, including response-body work, so stalled endpoints settle with a useful error.
 
 ## 1.16.0 - 2026-08-09
 

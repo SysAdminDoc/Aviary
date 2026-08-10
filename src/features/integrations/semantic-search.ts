@@ -1,6 +1,7 @@
 import type { StorageGateway } from "../../platform/storage";
 import type { IntegrationSettings } from "../../platform/settings";
 import type { ExportRecord } from "../export/types";
+import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network";
 import { assertOutboundAllowed } from "./network-policy";
 
 export const SEMANTIC_INDEX_KEY = "aviary.semanticIndex.v1";
@@ -181,19 +182,23 @@ async function fetchEmbedding(
 ): Promise<number[] | null> {
   assertOutboundAllowed("Embedding");
   try {
-    const response = await fetch(config.endpoint, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${config.apiKey}`
-      },
-      body: JSON.stringify({ model: config.model, input: text })
-    });
-    if (!response.ok) return null;
-    const payload = (await response.json()) as {
-      data?: Array<{ embedding?: number[] }>;
-      embedding?: number[];
-    };
+    const payload = await withNetworkTimeout(async (signal) => {
+      const response = await fetch(config.endpoint, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${config.apiKey}`
+        },
+        body: JSON.stringify({ model: config.model, input: text }),
+        signal
+      });
+      if (!response.ok) return null;
+      return (await response.json()) as {
+        data?: Array<{ embedding?: number[] }>;
+        embedding?: number[];
+      };
+    }, NETWORK_TIMEOUTS.semantic);
+    if (!payload) return null;
     if (Array.isArray(payload?.embedding)) {
       return validEmbedding(payload.embedding, expectedDimension) ? payload.embedding : null;
     }

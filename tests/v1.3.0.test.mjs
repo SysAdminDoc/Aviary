@@ -8,6 +8,29 @@ import { build } from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+test("network operations abort and settle when an endpoint stalls", async () => {
+  const { NetworkTimeoutError, withNetworkTimeout } = await importBundledModule(
+    "src/platform/network.ts"
+  );
+  let signal;
+  const started = Date.now();
+  await assert.rejects(
+    () =>
+      withNetworkTimeout(
+        (requestSignal) => {
+          signal = requestSignal;
+          return new Promise((_, reject) => {
+            requestSignal.addEventListener("abort", () => reject(requestSignal.reason));
+          });
+        },
+        15
+      ),
+    (error) => error instanceof NetworkTimeoutError && error.timeoutMs === 15
+  );
+  assert.equal(signal?.aborted, true);
+  assert.ok(Date.now() - started < 500, "a stalled operation must not hold the caller");
+});
+
 test("settings carry an integrations envelope with defaults disabled and URL validation", async () => {
   const { DEFAULT_SETTINGS, normalizeSettings } = await importBundledModule(
     "src/platform/settings.ts"

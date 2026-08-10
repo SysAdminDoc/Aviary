@@ -1,4 +1,5 @@
 import type { IntegrationSettings } from "../../platform/settings";
+import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network";
 import { assertOutboundAllowed } from "./network-policy";
 
 export type CrosspostTarget = "bluesky" | "mastodon";
@@ -239,18 +240,26 @@ async function postToMastodon(
       };
       if (inReplyTo) body.in_reply_to_id = inReplyTo;
       if (mediaId && !inReplyTo) body.media_ids = [mediaId];
-      const response = await fetch(`${config.instance}/api/v1/statuses`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${config.token}`
-        },
-        body: JSON.stringify(body)
-      });
+      const result = await withNetworkTimeout(async (signal) => {
+        const response = await fetch(`${config.instance}/api/v1/statuses`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${config.token}`
+          },
+          body: JSON.stringify(body),
+          signal
+        });
+        return {
+          response,
+          payload: response.ok ? ((await response.json()) as { id?: string; url?: string }) : null
+        };
+      }, NETWORK_TIMEOUTS.crosspost);
+      const response = result.response;
       if (!response.ok) {
         return partialFailure("mastodon", `Mastodon HTTP ${response.status}`, posted, firstUrl);
       }
-      const payload = (await response.json()) as { id?: string; url?: string };
+      const payload = result.payload;
       if (typeof payload?.id !== "string") {
         return partialFailure("mastodon", "Mastodon response missing status id", posted, firstUrl);
       }
@@ -277,14 +286,19 @@ async function uploadBlueskyImage(
   if (!media.contentType.startsWith("image/")) {
     throw new Error("Bluesky crosspost attachments must be images");
   }
-  const response = await fetch(`${service}/xrpc/com.atproto.repo.uploadBlob`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${accessJwt}`,
-      "content-type": media.contentType
-    },
-    body: media.blob
-  });
+  const response = await withNetworkTimeout(
+    (signal) =>
+      fetch(`${service}/xrpc/com.atproto.repo.uploadBlob`, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${accessJwt}`,
+          "content-type": media.contentType
+        },
+        body: media.blob,
+        signal
+      }),
+    NETWORK_TIMEOUTS.mediaTransfer
+  );
   if (!response.ok) {
     throw new Error(`Bluesky media upload HTTP ${response.status}`);
   }
@@ -303,11 +317,16 @@ async function uploadMastodonMedia(
   const media = await fetchAttachment(attachment);
   const form = new FormData();
   form.append("file", media.blob, safeFilename(attachment.filename));
-  const response = await fetch(`${instance}/api/v1/media`, {
-    method: "POST",
-    headers: { authorization: `Bearer ${token}` },
-    body: form
-  });
+  const response = await withNetworkTimeout(
+    (signal) =>
+      fetch(`${instance}/api/v1/media`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}` },
+        body: form,
+        signal
+      }),
+    NETWORK_TIMEOUTS.mediaTransfer
+  );
   if (!response.ok) {
     throw new Error(`Mastodon media upload HTTP ${response.status}`);
   }
@@ -321,21 +340,23 @@ async function uploadMastodonMedia(
 async function fetchAttachment(
   attachment: CrosspostAttachment
 ): Promise<{ blob: Blob; contentType: string }> {
-  const response = await fetch(attachment.url);
-  if (!response.ok) {
-    throw new Error(`Media attachment HTTP ${response.status}`);
-  }
-  const contentType = normalizeContentType(response.headers.get("content-type")) ?? inferContentType(attachment);
-  const maxBytes = ATTACHMENT_LIMITS[attachment.kind ?? "photo"];
-  const declaredLength = Number.parseInt(response.headers.get("content-length") ?? "", 10);
-  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
-    throw new Error(`Media attachment exceeds the ${Math.round(maxBytes / (1024 * 1024))} MiB limit`);
-  }
-  const bytes = await readBoundedResponse(response, maxBytes);
-  if (bytes.byteLength === 0) {
-    throw new Error("Media attachment was empty");
-  }
-  return { blob: new Blob([bytes.buffer as ArrayBuffer], { type: contentType }), contentType };
+  return withNetworkTimeout(async (signal) => {
+    const response = await fetch(attachment.url, { signal });
+    if (!response.ok) {
+      throw new Error(`Media attachment HTTP ${response.status}`);
+    }
+    const contentType = normalizeContentType(response.headers.get("content-type")) ?? inferContentType(attachment);
+    const maxBytes = ATTACHMENT_LIMITS[attachment.kind ?? "photo"];
+    const declaredLength = Number.parseInt(response.headers.get("content-length") ?? "", 10);
+    if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+      throw new Error(`Media attachment exceeds the ${Math.round(maxBytes / (1024 * 1024))} MiB limit`);
+    }
+    const bytes = await readBoundedResponse(response, maxBytes);
+    if (bytes.byteLength === 0) {
+      throw new Error("Media attachment was empty");
+    }
+    return { blob: new Blob([bytes.buffer as ArrayBuffer], { type: contentType }), contentType };
+  }, NETWORK_TIMEOUTS.mediaTransfer);
 }
 
 async function readBoundedResponse(response: Response, maxBytes: number): Promise<Uint8Array> {
@@ -412,15 +433,18 @@ async function callBluesky(
 ): Promise<Record<string, unknown> | null> {
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (bearer) headers.authorization = `Bearer ${bearer}`;
-  const response = await fetch(`${service}/xrpc/${nsid}`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(input)
-  });
-  if (!response.ok) {
-    throw new Error(`Bluesky ${nsid} HTTP ${response.status}`);
-  }
-  return (await response.json()) as Record<string, unknown>;
+  return withNetworkTimeout(async (signal) => {
+    const response = await fetch(`${service}/xrpc/${nsid}`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(input),
+      signal
+    });
+    if (!response.ok) {
+      throw new Error(`Bluesky ${nsid} HTTP ${response.status}`);
+    }
+    return (await response.json()) as Record<string, unknown>;
+  }, NETWORK_TIMEOUTS.crosspost);
 }
 
 function deriveBlueskyUrl(uri: string, handle: string): string {

@@ -9353,6 +9353,49 @@ input[type="checkbox"] {
     return JSON.parse(JSON.stringify(overrides));
   }
 
+  // src/platform/network.ts
+  var NETWORK_TIMEOUTS = {
+    aria2: 15e3,
+    ai: 3e4,
+    semantic: 3e4,
+    crosspost: 3e4,
+    mediaProbe: 5e3,
+    mediaTransfer: 6e4
+  };
+  var NetworkTimeoutError = class extends Error {
+    timeoutMs;
+    constructor(timeoutMs) {
+      super(`Network request timed out after ${Math.ceil(timeoutMs / 1e3)} seconds`);
+      this.name = "NetworkTimeoutError";
+      this.timeoutMs = timeoutMs;
+    }
+  };
+  async function withNetworkTimeout(operation, timeoutMs) {
+    const deadline = Math.max(1, Math.trunc(timeoutMs));
+    const controller = new AbortController();
+    let timer;
+    let timedOut = false;
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+        reject(new NetworkTimeoutError(deadline));
+      }, deadline);
+    });
+    const request = Promise.resolve().then(() => operation(controller.signal));
+    try {
+      return await Promise.race([request, timeout]);
+    } catch (error) {
+      if (timedOut) {
+        throw new NetworkTimeoutError(deadline);
+      }
+      throw error;
+    } finally {
+      if (timer !== void 0) clearTimeout(timer);
+      if (timedOut) controller.abort();
+    }
+  }
+
   // src/features/integrations/network-policy.ts
   var LocalOnlyError = class extends Error {
     constructor(what) {
@@ -9489,16 +9532,20 @@ input[type="checkbox"] {
   async function fetchEmbedding(config, text, expectedDimension) {
     assertOutboundAllowed("Embedding");
     try {
-      const response = await fetch(config.endpoint, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${config.apiKey}`
-        },
-        body: JSON.stringify({ model: config.model, input: text })
-      });
-      if (!response.ok) return null;
-      const payload = await response.json();
+      const payload = await withNetworkTimeout(async (signal) => {
+        const response = await fetch(config.endpoint, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${config.apiKey}`
+          },
+          body: JSON.stringify({ model: config.model, input: text }),
+          signal
+        });
+        if (!response.ok) return null;
+        return await response.json();
+      }, NETWORK_TIMEOUTS.semantic);
+      if (!payload) return null;
       if (Array.isArray(payload?.embedding)) {
         return validEmbedding(payload.embedding, expectedDimension) ? payload.embedding : null;
       }
@@ -11740,21 +11787,26 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       params
     });
     try {
-      const response = await fetch(`${config.endpoint}/jsonrpc`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body
-      });
-      if (!response.ok) {
-        return { ok: false, error: `Aria2 HTTP ${response.status}` };
+      const networkResult = await withNetworkTimeout(async (signal) => {
+        const response = await fetch(`${config.endpoint}/jsonrpc`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body,
+          signal
+        });
+        if (!response.ok) return { status: response.status };
+        return { payload: await response.json() };
+      }, NETWORK_TIMEOUTS.aria2);
+      if ("status" in networkResult) {
+        return { ok: false, error: `Aria2 HTTP ${networkResult.status}` };
       }
-      const payload = await response.json();
+      const payload = networkResult.payload;
       if (payload?.error) {
         return { ok: false, error: payload.error.message ?? "Aria2 error" };
       }
-      const result = { ok: true };
-      if (typeof payload?.result === "string") result.gid = payload.result;
-      return result;
+      const ariaResult = { ok: true };
+      if (typeof payload?.result === "string") ariaResult.gid = payload.result;
+      return ariaResult;
     } catch (error) {
       return { ok: false, error: String(error?.message ?? error) };
     }
@@ -11844,20 +11896,27 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       return { ok: false, error: "Aria2 endpoint not configured" };
     }
     try {
-      const response = await fetch(`${config.endpoint}/jsonrpc`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: `aviary-${Date.now()}`,
-          method: "aria2.getVersion",
-          params: config.secret ? [`token:${config.secret}`] : []
-        })
-      });
-      if (!response.ok) {
-        return { ok: false, error: `Aria2 HTTP ${response.status}` };
+      const result = await withNetworkTimeout(async (signal) => {
+        const response = await fetch(`${config.endpoint}/jsonrpc`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: `aviary-${Date.now()}`,
+            method: "aria2.getVersion",
+            params: config.secret ? [`token:${config.secret}`] : []
+          }),
+          signal
+        });
+        if (!response.ok) return { status: response.status };
+        return {
+          payload: await response.json()
+        };
+      }, NETWORK_TIMEOUTS.aria2);
+      if ("status" in result) {
+        return { ok: false, error: `Aria2 HTTP ${result.status}` };
       }
-      const payload = await response.json();
+      const payload = result.payload;
       if (payload?.error) {
         return { ok: false, error: payload.error.message ?? "Aria2 rejected the request" };
       }
@@ -11898,18 +11957,22 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     const token = config.secret ? `token:${config.secret}` : void 0;
     const params = token ? [token, gid] : [gid];
     try {
-      const response = await fetch(`${config.endpoint}/jsonrpc`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: `aviary-${Date.now()}`,
-          method: "aria2.tellStatus",
-          params
-        })
-      });
-      if (!response.ok) return null;
-      const payload = await response.json();
+      const payload = await withNetworkTimeout(async (signal) => {
+        const response = await fetch(`${config.endpoint}/jsonrpc`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: `aviary-${Date.now()}`,
+            method: "aria2.tellStatus",
+            params
+          }),
+          signal
+        });
+        if (!response.ok) return null;
+        return await response.json();
+      }, NETWORK_TIMEOUTS.aria2);
+      if (!payload) return null;
       if (payload.error) {
         return isUnknownGidError(payload.error) ? "removed" : null;
       }
@@ -11929,13 +11992,17 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       params
     });
     try {
-      const response = await fetch(`${config.endpoint}/jsonrpc`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body
-      });
-      if (!response.ok) return null;
-      const json = await response.json();
+      const json = await withNetworkTimeout(async (signal) => {
+        const response = await fetch(`${config.endpoint}/jsonrpc`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body,
+          signal
+        });
+        if (!response.ok) return null;
+        return await response.json();
+      }, NETWORK_TIMEOUTS.aria2);
+      if (!json) return null;
       return json?.result ?? null;
     } catch {
       return null;
@@ -12115,18 +12182,26 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         };
         if (inReplyTo) body.in_reply_to_id = inReplyTo;
         if (mediaId && !inReplyTo) body.media_ids = [mediaId];
-        const response = await fetch(`${config.instance}/api/v1/statuses`, {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            authorization: `Bearer ${config.token}`
-          },
-          body: JSON.stringify(body)
-        });
+        const result2 = await withNetworkTimeout(async (signal) => {
+          const response2 = await fetch(`${config.instance}/api/v1/statuses`, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              authorization: `Bearer ${config.token}`
+            },
+            body: JSON.stringify(body),
+            signal
+          });
+          return {
+            response: response2,
+            payload: response2.ok ? await response2.json() : null
+          };
+        }, NETWORK_TIMEOUTS.crosspost);
+        const response = result2.response;
         if (!response.ok) {
           return partialFailure("mastodon", `Mastodon HTTP ${response.status}`, posted, firstUrl2);
         }
-        const payload = await response.json();
+        const payload = result2.payload;
         if (typeof payload?.id !== "string") {
           return partialFailure("mastodon", "Mastodon response missing status id", posted, firstUrl2);
         }
@@ -12148,14 +12223,18 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     if (!media.contentType.startsWith("image/")) {
       throw new Error("Bluesky crosspost attachments must be images");
     }
-    const response = await fetch(`${service}/xrpc/com.atproto.repo.uploadBlob`, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${accessJwt}`,
-        "content-type": media.contentType
-      },
-      body: media.blob
-    });
+    const response = await withNetworkTimeout(
+      (signal) => fetch(`${service}/xrpc/com.atproto.repo.uploadBlob`, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${accessJwt}`,
+          "content-type": media.contentType
+        },
+        body: media.blob,
+        signal
+      }),
+      NETWORK_TIMEOUTS.mediaTransfer
+    );
     if (!response.ok) {
       throw new Error(`Bluesky media upload HTTP ${response.status}`);
     }
@@ -12169,11 +12248,15 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     const media = await fetchAttachment(attachment);
     const form = new FormData();
     form.append("file", media.blob, safeFilename(attachment.filename));
-    const response = await fetch(`${instance}/api/v1/media`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${token}` },
-      body: form
-    });
+    const response = await withNetworkTimeout(
+      (signal) => fetch(`${instance}/api/v1/media`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}` },
+        body: form,
+        signal
+      }),
+      NETWORK_TIMEOUTS.mediaTransfer
+    );
     if (!response.ok) {
       throw new Error(`Mastodon media upload HTTP ${response.status}`);
     }
@@ -12184,21 +12267,23 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     return payload.id;
   }
   async function fetchAttachment(attachment) {
-    const response = await fetch(attachment.url);
-    if (!response.ok) {
-      throw new Error(`Media attachment HTTP ${response.status}`);
-    }
-    const contentType = normalizeContentType(response.headers.get("content-type")) ?? inferContentType(attachment);
-    const maxBytes = ATTACHMENT_LIMITS[attachment.kind ?? "photo"];
-    const declaredLength = Number.parseInt(response.headers.get("content-length") ?? "", 10);
-    if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
-      throw new Error(`Media attachment exceeds the ${Math.round(maxBytes / (1024 * 1024))} MiB limit`);
-    }
-    const bytes = await readBoundedResponse(response, maxBytes);
-    if (bytes.byteLength === 0) {
-      throw new Error("Media attachment was empty");
-    }
-    return { blob: new Blob([bytes.buffer], { type: contentType }), contentType };
+    return withNetworkTimeout(async (signal) => {
+      const response = await fetch(attachment.url, { signal });
+      if (!response.ok) {
+        throw new Error(`Media attachment HTTP ${response.status}`);
+      }
+      const contentType = normalizeContentType(response.headers.get("content-type")) ?? inferContentType(attachment);
+      const maxBytes = ATTACHMENT_LIMITS[attachment.kind ?? "photo"];
+      const declaredLength = Number.parseInt(response.headers.get("content-length") ?? "", 10);
+      if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+        throw new Error(`Media attachment exceeds the ${Math.round(maxBytes / (1024 * 1024))} MiB limit`);
+      }
+      const bytes = await readBoundedResponse(response, maxBytes);
+      if (bytes.byteLength === 0) {
+        throw new Error("Media attachment was empty");
+      }
+      return { blob: new Blob([bytes.buffer], { type: contentType }), contentType };
+    }, NETWORK_TIMEOUTS.mediaTransfer);
   }
   async function readBoundedResponse(response, maxBytes) {
     if (!response.body) {
@@ -12262,15 +12347,18 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   async function callBluesky(service, nsid, input, bearer) {
     const headers = { "content-type": "application/json" };
     if (bearer) headers.authorization = `Bearer ${bearer}`;
-    const response = await fetch(`${service}/xrpc/${nsid}`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(input)
-    });
-    if (!response.ok) {
-      throw new Error(`Bluesky ${nsid} HTTP ${response.status}`);
-    }
-    return await response.json();
+    return withNetworkTimeout(async (signal) => {
+      const response = await fetch(`${service}/xrpc/${nsid}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(input),
+        signal
+      });
+      if (!response.ok) {
+        throw new Error(`Bluesky ${nsid} HTTP ${response.status}`);
+      }
+      return await response.json();
+    }, NETWORK_TIMEOUTS.crosspost);
   }
   function deriveBlueskyUrl(uri, handle) {
     const match = /^at:\/\/[^/]+\/app\.bsky\.feed\.post\/(.+)$/.exec(uri);
@@ -12915,7 +13003,10 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       return null;
     }
     try {
-      const response = await fetch(url, { method: "HEAD" });
+      const response = await withNetworkTimeout(
+        (signal) => fetch(url, { method: "HEAD", signal }),
+        NETWORK_TIMEOUTS.mediaProbe
+      );
       if (!response.ok) {
         return null;
       }
@@ -16320,24 +16411,31 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
   }
   async function callAnthropic(config, request) {
     const endpoint = config.endpoint || "https://api.anthropic.com/v1/messages";
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": config.apiKey,
-        "anthropic-version": "2023-06-01"
-      },
-      body: JSON.stringify({
-        model: config.model,
-        max_tokens: request.maxTokens ?? 1024,
-        system: request.systemPrompt,
-        messages: [{ role: "user", content: request.prompt }]
-      })
-    });
-    if (!response.ok) {
-      return { ok: false, error: `Anthropic HTTP ${response.status}` };
+    const result = await withNetworkTimeout(async (signal) => {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-api-key": config.apiKey,
+          "anthropic-version": "2023-06-01"
+        },
+        body: JSON.stringify({
+          model: config.model,
+          max_tokens: request.maxTokens ?? 1024,
+          system: request.systemPrompt,
+          messages: [{ role: "user", content: request.prompt }]
+        }),
+        signal
+      });
+      if (!response.ok) return { status: response.status };
+      return {
+        payload: await response.json()
+      };
+    }, NETWORK_TIMEOUTS.ai);
+    if ("status" in result) {
+      return { ok: false, error: `Anthropic HTTP ${result.status}` };
     }
-    const payload = await response.json();
+    const payload = result.payload;
     if (payload?.error) return { ok: false, error: payload.error.message ?? "Anthropic error" };
     const text = payload?.content?.filter((block) => block?.type === "text").map((block) => block.text ?? "").join("\n");
     return { ok: true, text: text ?? "" };
@@ -16348,22 +16446,29 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
       "content-type": "application/json",
       authorization: `Bearer ${config.apiKey}`
     };
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        model: config.model,
-        max_tokens: request.maxTokens ?? 1024,
-        messages: [
-          ...request.systemPrompt ? [{ role: "system", content: request.systemPrompt }] : [],
-          { role: "user", content: request.prompt }
-        ]
-      })
-    });
-    if (!response.ok) {
-      return { ok: false, error: `Provider HTTP ${response.status}` };
+    const result = await withNetworkTimeout(async (signal) => {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: config.model,
+          max_tokens: request.maxTokens ?? 1024,
+          messages: [
+            ...request.systemPrompt ? [{ role: "system", content: request.systemPrompt }] : [],
+            { role: "user", content: request.prompt }
+          ]
+        }),
+        signal
+      });
+      if (!response.ok) return { status: response.status };
+      return {
+        payload: await response.json()
+      };
+    }, NETWORK_TIMEOUTS.ai);
+    if ("status" in result) {
+      return { ok: false, error: `Provider HTTP ${result.status}` };
     }
-    const payload = await response.json();
+    const payload = result.payload;
     if (payload?.error) return { ok: false, error: payload.error.message ?? "Provider error" };
     const text = payload?.choices?.[0]?.message?.content ?? "";
     return { ok: true, text };
