@@ -29,6 +29,7 @@ const MEDIA_LAYOUT_OPTIONS: Array<[MediaLayout, string]> = [
 ];
 import type { DiagnosticEvent } from "../platform/diagnostics";
 import type { StorageStatus } from "../platform/storage";
+import type { ProfileStatus } from "../platform/profile";
 
 const FILTER_ACTION_OPTIONS: Array<[FilterAction, string]> = [
   ["off", "Off"],
@@ -138,6 +139,10 @@ export interface ControlCenterOptions {
   getStorageStatus?: () => StorageStatus;
   onChange: () => Promise<void>;
   onError: (message: string, error: unknown) => void;
+  getProfileStatus?: () => ProfileStatus;
+  createProfile?: (label: string) => Promise<{ ok: boolean; error?: string }>;
+  switchProfile?: (profileId: string) => Promise<{ ok: boolean; error?: string }>;
+  adoptLegacyProfileData?: () => Promise<{ moved: number; skipped: number }>;
   getMediaStatus?: () => MediaStatus;
   clearMediaHistory?: () => Promise<void>;
   getExportStatus?: () => ExportStatus;
@@ -685,7 +690,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   };
 
   const trustRows = (): HTMLElement[] => {
-    return [
+    const rows = [
         storageStatusRow(),
         toggleRow(
           "Local-only mode",
@@ -720,6 +725,60 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         coverageRow(),
         ...selectorHealthRows()
     ];
+    const profile = options.getProfileStatus?.();
+    if (profile) {
+      rows.splice(
+        1,
+        0,
+        dataRow("Active profile", `${profile.activeLabel} · ${profile.activeId}`),
+        selectRow(
+          "Switch profile",
+          profile.activeId,
+          profile.profiles.map((entry) => [entry.id, `${entry.label} (${entry.kind})`] as [string, string]),
+          async (profileId) => {
+            if (!options.switchProfile) return;
+            try {
+              const result = await options.switchProfile(profileId);
+              if (!result.ok) throw new Error(result.error ?? "Profile could not be switched");
+              setStatus("Profile switched. Reloading…");
+            } catch (error) {
+              options.onError("Profile switch failed", error);
+              setStatus("Profile switch failed.");
+            }
+          },
+          "A profile is an explicit local boundary for settings, credentials, library data, jobs, and search.",
+          false
+        )
+      );
+      if (profile.legacyDataAvailable && options.adoptLegacyProfileData) {
+        rows.push(
+          actionRow(
+            "Assign legacy data here",
+            "Move unassigned pre-profile settings and library stores into the active profile. Nothing is guessed from the current X route.",
+            async () => {
+              const result = await options.adoptLegacyProfileData!();
+              render();
+              setStatus(`Assigned ${result.moved} stores${result.skipped > 0 ? `; ${result.skipped} already existed` : ""}.`);
+            }
+          )
+        );
+      }
+      if (options.createProfile) {
+        rows.push(
+          textInputRow("New profile", "Create an empty offline profile before switching accounts or importing another archive.", "", async (label) => {
+            try {
+              const result = await options.createProfile!(label);
+              if (!result.ok) throw new Error(result.error ?? "Profile could not be created");
+              setStatus("Profile created. Reloading…");
+            } catch (error) {
+              options.onError("Profile creation failed", error);
+              setStatus("Profile creation failed.");
+            }
+          })
+        );
+      }
+    }
+    return rows;
   };
 
   /**

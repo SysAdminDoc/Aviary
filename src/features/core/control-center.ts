@@ -1,5 +1,6 @@
 import { supportedLocales } from "../../platform/i18n";
 import { AVIARY_VERSION } from "../../platform/build-version";
+import type { ProfileStatus } from "../../platform/profile";
 import { DEFAULT_SETTINGS, cloneSettings, type AviarySettings } from "../../platform/settings";
 import type {
   ControlCenterHandle,
@@ -117,6 +118,36 @@ export const controlCenterFeature: FeatureModule = {
       },
       onError(message, error) {
         ctx.diagnostics.error(message, errorDetails(error));
+      },
+      getProfileStatus(): ProfileStatus {
+        return ctx.profile?.status() ?? {
+          activeId: "offline-default",
+          activeLabel: "Offline library",
+          profiles: [],
+          legacyDataAvailable: false
+        };
+      },
+      async createProfile(label) {
+        const profile = await ctx.profile?.create(label);
+        if (!profile) return { ok: false, error: "Profile manager is not loaded" };
+        await ctx.profile?.switchTo(profile.id);
+        reloadPage();
+        return { ok: true };
+      },
+      async switchProfile(profileId) {
+        const switched = await ctx.profile?.switchTo(profileId);
+        if (!switched) return { ok: false, error: "Profile was not found" };
+        reloadPage();
+        return { ok: true };
+      },
+      async adoptLegacyProfileData() {
+        if (!ctx.profile) return { moved: 0, skipped: 0 };
+        const result = await ctx.profile.adoptLegacyIntoActive();
+        if (result.moved > 0) {
+          ctx.diagnostics.info("Legacy data assigned to profile", result);
+          reloadPage();
+        }
+        return result;
       },
       getMediaStatus(): MediaStatus {
         const queue = getMediaQueue();
@@ -817,6 +848,12 @@ function settingsFilename(): string {
 
 function reportFilename(): string {
   return `aviary-report-${new Date().toISOString().replace(/[:.]/g, "-")}.md`;
+}
+
+function reloadPage(): void {
+  if (typeof globalThis.location?.reload === "function") {
+    globalThis.location.reload();
+  }
 }
 
 function inferProfileHandle(path: string): string | null {

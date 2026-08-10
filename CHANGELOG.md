@@ -31,6 +31,9 @@
 - Official archive imports now persist their local ZIP source while running, checkpoint records
   before completion, recover interrupted work as paused, and expose pause, resume, cancel, and retry
   actions without retaining completed archive bytes.
+- Local settings, credentials, libraries, jobs, captures, and search stores now sit behind an
+  explicit profile boundary; switching profiles reloads into an isolated namespace, and legacy
+  unassigned data requires a visible one-time assignment instead of route-based account guessing.
 
 ## 1.16.0 - 2026-08-09
 

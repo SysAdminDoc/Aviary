@@ -5537,7 +5537,7 @@ html.av-reduce-motion *::after {
       return rows;
     };
     const trustRows = () => {
-      return [
+      const rows = [
         storageStatusRow(),
         toggleRow(
           "Local-only mode",
@@ -5572,6 +5572,60 @@ html.av-reduce-motion *::after {
         coverageRow(),
         ...selectorHealthRows()
       ];
+      const profile = options.getProfileStatus?.();
+      if (profile) {
+        rows.splice(
+          1,
+          0,
+          dataRow("Active profile", `${profile.activeLabel} \xB7 ${profile.activeId}`),
+          selectRow(
+            "Switch profile",
+            profile.activeId,
+            profile.profiles.map((entry) => [entry.id, `${entry.label} (${entry.kind})`]),
+            async (profileId) => {
+              if (!options.switchProfile) return;
+              try {
+                const result = await options.switchProfile(profileId);
+                if (!result.ok) throw new Error(result.error ?? "Profile could not be switched");
+                setStatus("Profile switched. Reloading\u2026");
+              } catch (error) {
+                options.onError("Profile switch failed", error);
+                setStatus("Profile switch failed.");
+              }
+            },
+            "A profile is an explicit local boundary for settings, credentials, library data, jobs, and search.",
+            false
+          )
+        );
+        if (profile.legacyDataAvailable && options.adoptLegacyProfileData) {
+          rows.push(
+            actionRow(
+              "Assign legacy data here",
+              "Move unassigned pre-profile settings and library stores into the active profile. Nothing is guessed from the current X route.",
+              async () => {
+                const result = await options.adoptLegacyProfileData();
+                render();
+                setStatus(`Assigned ${result.moved} stores${result.skipped > 0 ? `; ${result.skipped} already existed` : ""}.`);
+              }
+            )
+          );
+        }
+        if (options.createProfile) {
+          rows.push(
+            textInputRow("New profile", "Create an empty offline profile before switching accounts or importing another archive.", "", async (label) => {
+              try {
+                const result = await options.createProfile(label);
+                if (!result.ok) throw new Error(result.error ?? "Profile could not be created");
+                setStatus("Profile created. Reloading\u2026");
+              } catch (error) {
+                options.onError("Profile creation failed", error);
+                setStatus("Profile creation failed.");
+              }
+            })
+          );
+        }
+      }
+      return rows;
     };
     const sectionRegistry = () => [
       {
@@ -16198,6 +16252,36 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         onError(message, error) {
           ctx.diagnostics.error(message, errorDetails4(error));
         },
+        getProfileStatus() {
+          return ctx.profile?.status() ?? {
+            activeId: "offline-default",
+            activeLabel: "Offline library",
+            profiles: [],
+            legacyDataAvailable: false
+          };
+        },
+        async createProfile(label) {
+          const profile = await ctx.profile?.create(label);
+          if (!profile) return { ok: false, error: "Profile manager is not loaded" };
+          await ctx.profile?.switchTo(profile.id);
+          reloadPage();
+          return { ok: true };
+        },
+        async switchProfile(profileId) {
+          const switched = await ctx.profile?.switchTo(profileId);
+          if (!switched) return { ok: false, error: "Profile was not found" };
+          reloadPage();
+          return { ok: true };
+        },
+        async adoptLegacyProfileData() {
+          if (!ctx.profile) return { moved: 0, skipped: 0 };
+          const result = await ctx.profile.adoptLegacyIntoActive();
+          if (result.moved > 0) {
+            ctx.diagnostics.info("Legacy data assigned to profile", result);
+            reloadPage();
+          }
+          return result;
+        },
         getMediaStatus() {
           const queue2 = getMediaQueue();
           const history2 = getMediaHistory();
@@ -16866,6 +16950,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
   function reportFilename() {
     return `aviary-report-${(/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-")}.md`;
+  }
+  function reloadPage() {
+    if (typeof globalThis.location?.reload === "function") {
+      globalThis.location.reload();
+    }
   }
   function inferProfileHandle(path) {
     const match = /^\/([A-Za-z0-9_]{1,15})(?:\/(?:followers|following|verified_followers))?/.exec(path);
@@ -19953,6 +20042,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   // src/platform/durable-storage.ts
   var DURABLE_STORAGE_SCHEMA_VERSION = 1;
   var DURABLE_STORAGE_KEYS = [
+    "aviary.profiles.v1",
+    "aviary.profile.active.v1",
     "aviary.settings.v1",
     "aviary.export.checkpoints.v1",
     "aviary.queryIds.v1",
@@ -20246,6 +20337,174 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     return typeof value === "number" && Number.isFinite(value) ? value : null;
   }
 
+  // src/platform/profile.ts
+  var PROFILE_REGISTRY_KEY = "aviary.profiles.v1";
+  var ACTIVE_PROFILE_KEY = "aviary.profile.active.v1";
+  var PROFILE_MIGRATION_KEYS = [
+    "aviary.settings.v1",
+    "aviary.export.checkpoints.v1",
+    "aviary.queryIds.v1",
+    "aviary.media.history.v1",
+    "aviary.media.queue.v1",
+    "aviary.aria2.history.v1",
+    "aviary.hiddenPosts.v1",
+    "aviary.media.last-download.v1",
+    "aviary.cleanupQueue.v1",
+    "aviary.userNotes.v1",
+    "aviary.audit.v1",
+    "aviary.library.bookmarks.v1",
+    "aviary.snapshots.v1",
+    "aviary.semanticIndex.v1",
+    "aviary.archive.imports.v1",
+    "aviary.retention.maxJobs",
+    "aviary.retention.maxRecordsPerJob",
+    "aviary.retention.maxAgeDays"
+  ];
+  var DEFAULT_PROFILE_ID = "offline-default";
+  var EMPTY6 = { profiles: [] };
+  var ProfileManager = class {
+    #base;
+    #state = EMPTY6;
+    #activeId = DEFAULT_PROFILE_ID;
+    #legacyDataAvailable = false;
+    #loaded = false;
+    constructor(base) {
+      this.#base = base;
+    }
+    async load() {
+      if (this.#loaded) return;
+      this.#state = normalizeState2(await this.#base.get(PROFILE_REGISTRY_KEY, EMPTY6));
+      const active = await this.#base.get(ACTIVE_PROFILE_KEY, null);
+      if (typeof active === "string" && this.#state.profiles.some((profile) => profile.id === active)) {
+        this.#activeId = active;
+      }
+      if (!this.#state.profiles.some((profile) => profile.id === this.#activeId)) {
+        this.#state.profiles.unshift({
+          id: DEFAULT_PROFILE_ID,
+          label: "Offline library",
+          kind: "offline",
+          createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+          lastUsedAt: (/* @__PURE__ */ new Date()).toISOString()
+        });
+      }
+      this.#legacyDataAvailable = await this.hasLegacyData();
+      this.#loaded = true;
+    }
+    get activeId() {
+      return this.#activeId;
+    }
+    status() {
+      const active = this.#state.profiles.find((profile) => profile.id === this.#activeId);
+      return {
+        activeId: this.#activeId,
+        activeLabel: active?.label ?? this.#activeId,
+        profiles: this.#state.profiles.map((profile) => ({ ...profile })),
+        legacyDataAvailable: this.#legacyDataAvailable
+      };
+    }
+    async create(label, kind = "offline") {
+      await this.load();
+      const cleanLabel = label.trim().slice(0, 80) || "Offline library";
+      const now2 = (/* @__PURE__ */ new Date()).toISOString();
+      const profile = {
+        id: `${kind === "x-account" ? "account" : "offline"}-${Date.now()}-${this.#state.profiles.length + 1}`,
+        label: cleanLabel,
+        kind,
+        createdAt: now2,
+        lastUsedAt: now2
+      };
+      this.#state.profiles.push(profile);
+      await this.#persist();
+      return { ...profile };
+    }
+    async switchTo(profileId) {
+      await this.load();
+      const profile = this.#state.profiles.find((entry) => entry.id === profileId);
+      if (!profile) return false;
+      this.#activeId = profile.id;
+      profile.lastUsedAt = (/* @__PURE__ */ new Date()).toISOString();
+      await this.#base.set(ACTIVE_PROFILE_KEY, this.#activeId);
+      await this.#persist();
+      return true;
+    }
+    async adoptLegacyIntoActive() {
+      await this.load();
+      const scoped = createProfileStorageGateway(this.#base, this.#activeId);
+      let moved = 0;
+      let skipped = 0;
+      for (const key of PROFILE_MIGRATION_KEYS) {
+        const legacy = await this.#base.get(key, void 0);
+        if (legacy === void 0) continue;
+        const existing = await scoped.get(key, void 0);
+        if (existing !== void 0) {
+          skipped += 1;
+          continue;
+        }
+        await scoped.set(key, legacy);
+        await this.#base.remove(key);
+        moved += 1;
+      }
+      this.#legacyDataAvailable = await this.hasLegacyData();
+      return { moved, skipped };
+    }
+    async hasLegacyData() {
+      for (const key of PROFILE_MIGRATION_KEYS) {
+        if (await this.#base.get(key, void 0) !== void 0) return true;
+      }
+      return false;
+    }
+    async #persist() {
+      await this.#base.set(PROFILE_REGISTRY_KEY, this.#state);
+    }
+  };
+  function createProfileStorageGateway(base, profileId) {
+    const safeId = profileId.replace(/[^A-Za-z0-9_-]/g, "-").slice(0, 80) || DEFAULT_PROFILE_ID;
+    const prefix = `aviary.profile.${safeId}`;
+    const scoped = (key) => key.startsWith("aviary.") ? `${prefix}.${key.slice("aviary.".length)}` : `${prefix}.${key}`;
+    return {
+      get(key, fallback) {
+        return base.get(scoped(key), fallback);
+      },
+      set(key, value) {
+        return base.set(scoped(key), value);
+      },
+      remove(key) {
+        return base.remove(scoped(key));
+      },
+      getStatus() {
+        return base.getStatus?.() ?? {
+          backend: "legacy",
+          schemaVersion: 0,
+          migratedKeys: 0,
+          usageBytes: null,
+          quotaBytes: null,
+          lastError: null
+        };
+      }
+    };
+  }
+  function normalizeState2(value) {
+    if (!value || typeof value !== "object") return { profiles: [] };
+    const raw = value;
+    const profiles = Array.isArray(raw.profiles) ? raw.profiles.map(normalizeProfile).filter((profile) => profile !== null) : [];
+    const unique = new Map(profiles.map((profile) => [profile.id, profile]));
+    return { profiles: [...unique.values()] };
+  }
+  function normalizeProfile(value) {
+    if (!value || typeof value !== "object") return null;
+    const raw = value;
+    if (typeof raw.id !== "string" || raw.id.length === 0 || typeof raw.label !== "string") return null;
+    const kind = raw.kind === "x-account" ? "x-account" : "offline";
+    const createdAt = typeof raw.createdAt === "string" ? raw.createdAt : (/* @__PURE__ */ new Date(0)).toISOString();
+    return {
+      id: raw.id.replace(/[^A-Za-z0-9_-]/g, "-").slice(0, 80),
+      label: raw.label.trim().slice(0, 80) || "Offline library",
+      kind,
+      createdAt,
+      lastUsedAt: typeof raw.lastUsedAt === "string" ? raw.lastUsedAt : createdAt
+    };
+  }
+
   // src/platform/trusted-types.ts
   function createTrustedHtmlPolicy(name = "aviary") {
     const factory = globalThis.window?.trustedTypes;
@@ -20297,7 +20556,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     }
     document.documentElement.dataset.avReady = "booting";
     const legacyStorage = createStorageGateway("aviary");
-    const storage = createDurableStorageGateway(legacyStorage);
+    const durableStorage = createDurableStorageGateway(legacyStorage);
     const diagnostics = new Diagnostics();
     setStorageErrorSink((key, error, op) => {
       diagnostics.error(
@@ -20305,12 +20564,15 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         errorDetails6(error)
       );
     });
-    const storageStatus = await storage.initialize(DURABLE_STORAGE_KEYS);
+    const storageStatus = await durableStorage.initialize(DURABLE_STORAGE_KEYS);
     diagnostics.info("Durable storage initialized", {
       backend: storageStatus.backend,
       schemaVersion: storageStatus.schemaVersion,
       migratedKeys: storageStatus.migratedKeys
     });
+    const profileManager = new ProfileManager(durableStorage);
+    await profileManager.load();
+    const storage = createProfileStorageGateway(durableStorage, profileManager.activeId);
     const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
     setLocalOnlyPolicy(() => settings.privacy.localOnly);
     const limiter = settings.jobs.rateLimitMode === "conservative" ? new TokenBucket(4, 1) : new TokenBucket(8, 4);
@@ -20363,6 +20625,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       route: readRoute(),
       settings,
       storage,
+      profile: profileManager,
       limiter,
       diagnostics,
       auditLog,

@@ -32,6 +32,7 @@ import { readRoute, watchRoute } from "./platform/route";
 import { cloneSettings, DEFAULT_SETTINGS, normalizeSettings, SETTINGS_KEY } from "./platform/settings";
 import { createStorageGateway, setStorageErrorSink } from "./platform/storage";
 import { createDurableStorageGateway, DURABLE_STORAGE_KEYS } from "./platform/durable-storage";
+import { createProfileStorageGateway, ProfileManager } from "./platform/profile";
 import { createTrustedHtmlPolicy } from "./platform/trusted-types";
 
 export interface BootOptions {
@@ -76,7 +77,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   document.documentElement.dataset.avReady = "booting";
 
   const legacyStorage = createStorageGateway("aviary");
-  const storage = createDurableStorageGateway(legacyStorage);
+  const durableStorage = createDurableStorageGateway(legacyStorage);
   const diagnostics = new Diagnostics();
   // Every failed write reaches diagnostics, including the ones individual stores swallow.
   setStorageErrorSink((key, error, op) => {
@@ -85,12 +86,15 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
       errorDetails(error)
     );
   });
-  const storageStatus = await storage.initialize(DURABLE_STORAGE_KEYS);
+  const storageStatus = await durableStorage.initialize(DURABLE_STORAGE_KEYS);
   diagnostics.info("Durable storage initialized", {
     backend: storageStatus.backend,
     schemaVersion: storageStatus.schemaVersion,
     migratedKeys: storageStatus.migratedKeys
   });
+  const profileManager = new ProfileManager(durableStorage);
+  await profileManager.load();
+  const storage = createProfileStorageGateway(durableStorage, profileManager.activeId);
   const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
   // Read fresh on every outbound call, so toggling local-only mode applies at once.
   setLocalOnlyPolicy(() => settings.privacy.localOnly);
@@ -157,6 +161,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     route: readRoute(),
     settings,
     storage,
+    profile: profileManager,
     limiter,
     diagnostics,
     auditLog,

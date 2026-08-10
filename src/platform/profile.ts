@@ -1,0 +1,207 @@
+import type { StorageGateway } from "./storage";
+
+export const PROFILE_REGISTRY_KEY = "aviary.profiles.v1";
+export const ACTIVE_PROFILE_KEY = "aviary.profile.active.v1";
+
+/** Stores that contained account-specific data before profile isolation was introduced. */
+export const PROFILE_MIGRATION_KEYS = [
+  "aviary.settings.v1",
+  "aviary.export.checkpoints.v1",
+  "aviary.queryIds.v1",
+  "aviary.media.history.v1",
+  "aviary.media.queue.v1",
+  "aviary.aria2.history.v1",
+  "aviary.hiddenPosts.v1",
+  "aviary.media.last-download.v1",
+  "aviary.cleanupQueue.v1",
+  "aviary.userNotes.v1",
+  "aviary.audit.v1",
+  "aviary.library.bookmarks.v1",
+  "aviary.snapshots.v1",
+  "aviary.semanticIndex.v1",
+  "aviary.archive.imports.v1",
+  "aviary.retention.maxJobs",
+  "aviary.retention.maxRecordsPerJob",
+  "aviary.retention.maxAgeDays"
+] as const;
+
+const DEFAULT_PROFILE_ID = "offline-default";
+
+export interface ProfileRecord {
+  id: string;
+  label: string;
+  kind: "offline" | "x-account";
+  createdAt: string;
+  lastUsedAt: string;
+}
+
+export interface ProfileStatus {
+  activeId: string;
+  activeLabel: string;
+  profiles: ProfileRecord[];
+  legacyDataAvailable: boolean;
+}
+
+interface ProfileState {
+  profiles: ProfileRecord[];
+}
+
+const EMPTY: ProfileState = { profiles: [] };
+
+export class ProfileManager {
+  readonly #base: StorageGateway;
+  #state: ProfileState = EMPTY;
+  #activeId = DEFAULT_PROFILE_ID;
+  #legacyDataAvailable = false;
+  #loaded = false;
+
+  constructor(base: StorageGateway) {
+    this.#base = base;
+  }
+
+  async load(): Promise<void> {
+    if (this.#loaded) return;
+    this.#state = normalizeState(await this.#base.get<ProfileState>(PROFILE_REGISTRY_KEY, EMPTY));
+    const active = await this.#base.get<string | null>(ACTIVE_PROFILE_KEY, null);
+    if (typeof active === "string" && this.#state.profiles.some((profile) => profile.id === active)) {
+      this.#activeId = active;
+    }
+    if (!this.#state.profiles.some((profile) => profile.id === this.#activeId)) {
+      this.#state.profiles.unshift({
+        id: DEFAULT_PROFILE_ID,
+        label: "Offline library",
+        kind: "offline",
+        createdAt: new Date().toISOString(),
+        lastUsedAt: new Date().toISOString()
+      });
+    }
+    this.#legacyDataAvailable = await this.hasLegacyData();
+    this.#loaded = true;
+  }
+
+  get activeId(): string {
+    return this.#activeId;
+  }
+
+  status(): ProfileStatus {
+    const active = this.#state.profiles.find((profile) => profile.id === this.#activeId);
+    return {
+      activeId: this.#activeId,
+      activeLabel: active?.label ?? this.#activeId,
+      profiles: this.#state.profiles.map((profile) => ({ ...profile })),
+      legacyDataAvailable: this.#legacyDataAvailable
+    };
+  }
+
+  async create(label: string, kind: ProfileRecord["kind"] = "offline"): Promise<ProfileRecord> {
+    await this.load();
+    const cleanLabel = label.trim().slice(0, 80) || "Offline library";
+    const now = new Date().toISOString();
+    const profile: ProfileRecord = {
+      id: `${kind === "x-account" ? "account" : "offline"}-${Date.now()}-${this.#state.profiles.length + 1}`,
+      label: cleanLabel,
+      kind,
+      createdAt: now,
+      lastUsedAt: now
+    };
+    this.#state.profiles.push(profile);
+    await this.#persist();
+    return { ...profile };
+  }
+
+  async switchTo(profileId: string): Promise<boolean> {
+    await this.load();
+    const profile = this.#state.profiles.find((entry) => entry.id === profileId);
+    if (!profile) return false;
+    this.#activeId = profile.id;
+    profile.lastUsedAt = new Date().toISOString();
+    await this.#base.set(ACTIVE_PROFILE_KEY, this.#activeId);
+    await this.#persist();
+    return true;
+  }
+
+  async adoptLegacyIntoActive(): Promise<{ moved: number; skipped: number }> {
+    await this.load();
+    const scoped = createProfileStorageGateway(this.#base, this.#activeId);
+    let moved = 0;
+    let skipped = 0;
+    for (const key of PROFILE_MIGRATION_KEYS) {
+      const legacy = await this.#base.get<unknown>(key, undefined);
+      if (legacy === undefined) continue;
+      const existing = await scoped.get<unknown>(key, undefined);
+      if (existing !== undefined) {
+        skipped += 1;
+        continue;
+      }
+      await scoped.set(key, legacy);
+      await this.#base.remove(key);
+      moved += 1;
+    }
+    this.#legacyDataAvailable = await this.hasLegacyData();
+    return { moved, skipped };
+  }
+
+  async hasLegacyData(): Promise<boolean> {
+    for (const key of PROFILE_MIGRATION_KEYS) {
+      if ((await this.#base.get<unknown>(key, undefined)) !== undefined) return true;
+    }
+    return false;
+  }
+
+  async #persist(): Promise<void> {
+    await this.#base.set(PROFILE_REGISTRY_KEY, this.#state);
+  }
+}
+
+export function createProfileStorageGateway(base: StorageGateway, profileId: string): StorageGateway {
+  const safeId = profileId.replace(/[^A-Za-z0-9_-]/g, "-").slice(0, 80) || DEFAULT_PROFILE_ID;
+  const prefix = `aviary.profile.${safeId}`;
+  const scoped = (key: string): string =>
+    key.startsWith("aviary.") ? `${prefix}.${key.slice("aviary.".length)}` : `${prefix}.${key}`;
+  return {
+    get<T>(key: string, fallback: T): Promise<T> {
+      return base.get(scoped(key), fallback);
+    },
+    set<T>(key: string, value: T): Promise<void> {
+      return base.set(scoped(key), value);
+    },
+    remove(key: string): Promise<void> {
+      return base.remove(scoped(key));
+    },
+    getStatus(): ReturnType<NonNullable<StorageGateway["getStatus"]>> {
+      return base.getStatus?.() ?? {
+        backend: "legacy",
+        schemaVersion: 0,
+        migratedKeys: 0,
+        usageBytes: null,
+        quotaBytes: null,
+        lastError: null
+      };
+    }
+  };
+}
+
+function normalizeState(value: unknown): ProfileState {
+  if (!value || typeof value !== "object") return { profiles: [] };
+  const raw = value as Partial<ProfileState>;
+  const profiles = Array.isArray(raw.profiles)
+    ? raw.profiles.map(normalizeProfile).filter((profile): profile is ProfileRecord => profile !== null)
+    : [];
+  const unique = new Map(profiles.map((profile) => [profile.id, profile]));
+  return { profiles: [...unique.values()] };
+}
+
+function normalizeProfile(value: unknown): ProfileRecord | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Partial<ProfileRecord>;
+  if (typeof raw.id !== "string" || raw.id.length === 0 || typeof raw.label !== "string") return null;
+  const kind = raw.kind === "x-account" ? "x-account" : "offline";
+  const createdAt = typeof raw.createdAt === "string" ? raw.createdAt : new Date(0).toISOString();
+  return {
+    id: raw.id.replace(/[^A-Za-z0-9_-]/g, "-").slice(0, 80),
+    label: raw.label.trim().slice(0, 80) || "Offline library",
+    kind,
+    createdAt,
+    lastUsedAt: typeof raw.lastUsedAt === "string" ? raw.lastUsedAt : createdAt
+  };
+}

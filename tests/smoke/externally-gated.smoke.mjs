@@ -668,8 +668,12 @@ try {
   provider.state.fail.aria2 = false;
 
   await optionsPage.evaluate(async (base) => {
+    const active = await chrome.storage.local.get("aviary.profile.active.v1");
+    const profileId = typeof active["aviary.profile.active.v1"] === "string"
+      ? active["aviary.profile.active.v1"]
+      : "offline-default";
     await chrome.storage.local.set({
-      "aviary.media.last-download.v1": {
+      [`aviary.profile.${profileId}.media.last-download.v1`]: {
         url: `${base}/media/fixture.png`,
         filename: "fixture.png",
         kind: "photo",

@@ -4,6 +4,8 @@ export const DURABLE_STORAGE_SCHEMA_VERSION = 1;
 
 /** Every current versioned store is migrated before the first feature reads it. */
 export const DURABLE_STORAGE_KEYS = [
+  "aviary.profiles.v1",
+  "aviary.profile.active.v1",
   "aviary.settings.v1",
   "aviary.export.checkpoints.v1",
   "aviary.queryIds.v1",

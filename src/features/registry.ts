@@ -3,6 +3,7 @@ import type { Diagnostics } from "../platform/diagnostics";
 import type { PageBridge } from "../platform/page-bridge";
 import type { RouteState } from "../platform/route";
 import type { StorageGateway } from "../platform/storage";
+import type { ProfileManager } from "../platform/profile";
 import type { TokenBucket } from "../platform/rate-limit";
 import type { AuditLog } from "./core/audit-log";
 
@@ -10,6 +11,8 @@ export interface FeatureContext {
   route: RouteState;
   settings: AviarySettings;
   storage: StorageGateway;
+  /** Explicit local profile selected by the user; absent in minimal unit-test contexts. */
+  profile?: ProfileManager;
   limiter: TokenBucket;
   diagnostics: Diagnostics;
   auditLog: AuditLog;
