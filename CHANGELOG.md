@@ -20,6 +20,8 @@
   and always restores its enabled state.
 - Semantic search now sequences debounced requests, clears empty queries, and ignores stale
   responses or errors from older input.
+- Bookmark loading now drops invalid timestamps and repairs partial records before Library sorting,
+  so malformed persisted entries cannot crash search.
 
 ## 1.16.0 - 2026-08-09
 

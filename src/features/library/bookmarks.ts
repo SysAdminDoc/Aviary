@@ -59,7 +59,10 @@ export class BookmarkStore {
     const stored = await this.#storage.get<BookmarksState>(BOOKMARKS_KEY, emptyState());
     const entries = Array.isArray(stored?.entries) ? stored.entries : [];
     this.#state = {
-      entries: entries.filter(isBookmark).slice(-this.#limit).map(normalizeBookmark)
+      entries: entries
+        .filter(isBookmark)
+        .slice(-this.#limit)
+        .map(normalizeBookmark)
     };
     this.#loaded = true;
   }
@@ -194,12 +197,18 @@ function dedupeTags(input: readonly string[]): string[] {
 function isBookmark(value: unknown): value is BookmarkRecord {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Partial<BookmarkRecord>;
-  return typeof candidate.id === "string" && typeof candidate.capturedAt === "string";
+  return (
+    typeof candidate.id === "string" &&
+    candidate.id.trim().length > 0 &&
+    typeof candidate.capturedAt === "string" &&
+    Number.isFinite(Date.parse(candidate.capturedAt))
+  );
 }
 
 function normalizeBookmark(entry: BookmarkRecord): BookmarkRecord {
+  const capturedAt = normalizeTimestamp(entry.capturedAt)!;
   return {
-    ...entry,
+    id: entry.id.trim().slice(0, 96),
     tweetId: normalizeId(entry.tweetId),
     handle: normalizeHandle(entry.handle),
     text: normalizeText(entry.text),
@@ -207,7 +216,11 @@ function normalizeBookmark(entry: BookmarkRecord): BookmarkRecord {
     tags: dedupeTags(Array.isArray(entry.tags) ? entry.tags : []),
     folder: normalizeFolder(entry.folder),
     remindAt: normalizeReminder(entry.remindAt),
-    notes: normalizeNotes(entry.notes)
+    notes: normalizeNotes(entry.notes),
+    capturedAt,
+    // Older or partially written records may not have updatedAt. Sorting/search must remain safe
+    // and the capture timestamp is the least surprising repair value.
+    updatedAt: normalizeTimestamp(entry.updatedAt) ?? capturedAt
   };
 }
 
@@ -252,6 +265,12 @@ function normalizeFolder(value: string | null | undefined): string | null {
 }
 
 function normalizeReminder(value: string | null | undefined): string | null {
+  if (typeof value !== "string" || value.trim().length === 0) return null;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
+}
+
+function normalizeTimestamp(value: string | null | undefined): string | null {
   if (typeof value !== "string" || value.trim().length === 0) return null;
   const timestamp = Date.parse(value);
   return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;

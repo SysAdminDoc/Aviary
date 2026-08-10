@@ -21,7 +21,7 @@ before(async () => {
     entry,
     [
       `export { BookmarkStore } from ${JSON.stringify(abs("src/features/library/bookmarks.ts"))};`,
-      `export { bookmarksFeature, getBookmarks, getBookmarkStore, bookmarkStatus } from ${JSON.stringify(abs("src/features/library/bookmarks-feature.ts"))};`,
+      `export { bookmarksFeature, getBookmarks, getBookmarkStore, bookmarkStatus, searchBookmarks } from ${JSON.stringify(abs("src/features/library/bookmarks-feature.ts"))};`,
       `export { mountControlCenter } from ${JSON.stringify(abs("src/ui/control-center.ts"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};`
     ].join("\n"),
@@ -224,4 +224,70 @@ test("Library exposes editable bookmark metadata and removal", async () => {
   assert.equal(result.updated.remindAt, "2026-08-20T14:30:00.000Z");
   assert.equal(result.updated.notes, "Review this later");
   assert.equal(result.afterRemove, 0);
+});
+
+test("malformed persisted bookmarks are repaired or ignored before Library search sorts them", async () => {
+  const result = await page.evaluate(async () => {
+    const data = new Map([
+      [
+        "aviary.library.bookmarks.v1",
+        {
+          entries: [
+            {
+              id: "missing-updated",
+              tweetId: "1",
+              handle: "alice",
+              text: "valid bookmark",
+              capturedAt: "2026-08-10T00:00:00Z",
+              tags: ["Reading", 42],
+              updatedAt: undefined
+            },
+            {
+              id: "bad-arrays",
+              capturedAt: "2026-08-11T00:00:00Z",
+              tags: "not-an-array",
+              updatedAt: null,
+              notes: null
+            },
+            { id: "bad-date", capturedAt: "not-a-date", updatedAt: "also-not-a-date" }
+          ]
+        }
+      ]
+    ]);
+    const storage = {
+      async get(key, fallback) {
+        return data.has(key) ? structuredClone(data.get(key)) : structuredClone(fallback);
+      },
+      async set(key, value) {
+        data.set(key, structuredClone(value));
+      },
+      async remove(key) {
+        data.delete(key);
+      }
+    };
+    const context = {
+      storage,
+      settings: { i18n: { locale: "en" } },
+      diagnostics: { info() {}, warn() {}, error() {} },
+      auditLog: { record() {} },
+      requestApply() {}
+    };
+    document.body.replaceChildren();
+    await AviaryBookmarks.bookmarksFeature.init(context);
+    const searched = AviaryBookmarks.searchBookmarks("");
+    const state = searched.map((entry) => ({
+      id: entry.id,
+      updatedAt: entry.updatedAt,
+      capturedAt: entry.capturedAt,
+      tags: entry.tags
+    }));
+    await AviaryBookmarks.bookmarksFeature.destroy(context);
+    return state;
+  });
+
+  assert.equal(result.length, 2, "the invalid timestamp record should be ignored");
+  assert.ok(result.every((entry) => typeof entry.updatedAt === "string"));
+  const repaired = result.find((entry) => entry.id === "missing-updated");
+  assert.equal(repaired.updatedAt, repaired.capturedAt);
+  assert.deepEqual(result.find((entry) => entry.id === "bad-arrays").tags, []);
 });

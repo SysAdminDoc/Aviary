@@ -14827,11 +14827,12 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   function isBookmark(value) {
     if (typeof value !== "object" || value === null) return false;
     const candidate = value;
-    return typeof candidate.id === "string" && typeof candidate.capturedAt === "string";
+    return typeof candidate.id === "string" && candidate.id.trim().length > 0 && typeof candidate.capturedAt === "string" && Number.isFinite(Date.parse(candidate.capturedAt));
   }
   function normalizeBookmark(entry) {
+    const capturedAt = normalizeTimestamp(entry.capturedAt);
     return {
-      ...entry,
+      id: entry.id.trim().slice(0, 96),
       tweetId: normalizeId(entry.tweetId),
       handle: normalizeHandle4(entry.handle),
       text: normalizeText(entry.text),
@@ -14839,7 +14840,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       tags: dedupeTags(Array.isArray(entry.tags) ? entry.tags : []),
       folder: normalizeFolder(entry.folder),
       remindAt: normalizeReminder(entry.remindAt),
-      notes: normalizeNotes(entry.notes)
+      notes: normalizeNotes(entry.notes),
+      capturedAt,
+      // Older or partially written records may not have updatedAt. Sorting/search must remain safe
+      // and the capture timestamp is the least surprising repair value.
+      updatedAt: normalizeTimestamp(entry.updatedAt) ?? capturedAt
     };
   }
   function applyInput(entry, input) {
@@ -14877,6 +14882,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     return cleaned.length > 0 ? cleaned : null;
   }
   function normalizeReminder(value) {
+    if (typeof value !== "string" || value.trim().length === 0) return null;
+    const timestamp = Date.parse(value);
+    return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
+  }
+  function normalizeTimestamp(value) {
     if (typeof value !== "string" || value.trim().length === 0) return null;
     const timestamp = Date.parse(value);
     return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
