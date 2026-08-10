@@ -2,13 +2,41 @@
 (() => {
   // src/page/page-agent.ts
   var PAGE_CHANNEL = "aviary.page.v1";
-  var MAX_PAYLOAD_BYTES = 15e5;
+  var MAX_GRAPHQL_PAYLOAD_BYTES = 15e5;
+  var PAGE_AGENT_KINDS = /* @__PURE__ */ new Set([
+    "hello",
+    "ready",
+    "config",
+    "graphql",
+    "blocked",
+    "playlist",
+    "teardown"
+  ]);
+  var MAX_NONCE_LENGTH = 256;
+  var X_GRAPHQL_HOSTNAMES = /* @__PURE__ */ new Set([
+    "x.com",
+    "www.x.com",
+    "twitter.com",
+    "www.twitter.com",
+    "mobile.twitter.com",
+    "pro.x.com",
+    "tweetdeck.twitter.com"
+  ]);
+  var GRAPHQL_PATH_PATTERN = /^\/i\/api\/graphql\/([A-Za-z0-9_-]{1,200})\/([A-Za-z0-9_-]{1,100})$/;
+  function isPageAgentEnvelope(value) {
+    if (!isRecord(value) || value.channel !== PAGE_CHANNEL || typeof value.kind !== "string") {
+      return false;
+    }
+    if (!PAGE_AGENT_KINDS.has(value.kind)) {
+      return false;
+    }
+    return value.nonce === void 0 || typeof value.nonce === "string" && value.nonce.length >= 16 && value.nonce.length <= MAX_NONCE_LENGTH;
+  }
   var TELEMETRY_PATTERNS = [
     /\/i\/api\/[^/]+\/jot(?:\/|$)/i,
     /\/i\/api\/[^/]+\/jot\.json(?:$|\?)/i,
     /^https?:\/\/analytics\.twitter\.com\//i
   ];
-  var GRAPHQL_PATTERN = /\/i\/api\/graphql\/([^/?#]+)\/([^/?#]+)/i;
   function isTelemetryUrl(url) {
     if (!url) {
       return false;
@@ -16,11 +44,10 @@
     return TELEMETRY_PATTERNS.some((pattern) => pattern.test(url));
   }
   function isGraphqlUrl(url) {
-    return GRAPHQL_PATTERN.test(url);
+    return parseGraphqlRoute(url) !== null;
   }
   function graphqlOperationName(url) {
-    const match = GRAPHQL_PATTERN.exec(url);
-    return match?.[2] ?? "unknown";
+    return parseGraphqlRoute(url)?.operation ?? "unknown";
   }
   function rewritePlaylistToBestVariant(text) {
     if (!text.includes("#EXT-X-STREAM-INF")) {
@@ -100,10 +127,18 @@
     const originalSendBeacon = target.navigator?.sendBeacon;
     const xhrProto = target.XMLHttpRequest?.prototype;
     const messageListener = (event) => {
-      const data = event?.data;
-      if (!data || data.channel !== PAGE_CHANNEL) {
+      const message = event;
+      if (message.source !== void 0 && message.source !== target) {
         return;
       }
+      const expectedOrigin = target.location?.origin;
+      if (typeof message.origin === "string" && message.origin.length > 0 && message.origin !== "null" && expectedOrigin && message.origin !== expectedOrigin) {
+        return;
+      }
+      if (!isPageAgentEnvelope(message.data)) {
+        return;
+      }
+      const data = message.data;
       if (data.kind === "hello") {
         const nonce = typeof data.nonce === "string" ? data.nonce : "";
         if (nonce.length < 16) {
@@ -141,7 +176,7 @@
       sink
     };
     target.addEventListener("message", messageListener);
-    target.fetch = makePatchedFetch(originalFetch);
+    target.fetch = makePatchedFetch(originalFetch, target.location?.origin);
     if (originalSendBeacon && target.navigator) {
       target.navigator.sendBeacon = function patchedSendBeacon(url, data) {
         try {
@@ -195,11 +230,11 @@
       xhrProto.send = current.originalXhrSend;
     }
   }
-  function makePatchedFetch(originalFetch) {
+  function makePatchedFetch(originalFetch, baseOrigin) {
     return async function patchedFetch(input, init) {
       let url = "";
       try {
-        url = requestUrl(input);
+        url = requestUrl(input, baseOrigin);
       } catch {
         return originalFetch(input, init);
       }
@@ -236,7 +271,7 @@
               status: response.status,
               bytes,
               at: now(),
-              body: bytes <= MAX_PAYLOAD_BYTES ? body : void 0
+              body: bytes <= MAX_GRAPHQL_PAYLOAD_BYTES ? body : void 0
             });
           });
         } catch {
@@ -245,14 +280,49 @@
       return response;
     };
   }
-  function requestUrl(input) {
+  function requestUrl(input, baseOrigin) {
+    let raw = "";
     if (typeof input === "string") {
-      return input;
+      raw = input;
+    } else if (input instanceof URL) {
+      raw = input.href;
+    } else {
+      raw = input.url ?? "";
     }
-    if (input instanceof URL) {
-      return input.href;
+    try {
+      return new URL(raw, baseOrigin ?? "https://x.com").href;
+    } catch {
+      return raw;
     }
-    return input.url ?? "";
+  }
+  function parseGraphqlRoute(rawUrl, expectedOrigin) {
+    if (typeof rawUrl !== "string" || rawUrl.length === 0 || rawUrl.length > 4096) {
+      return null;
+    }
+    let url;
+    try {
+      url = new URL(rawUrl, expectedOrigin ?? "https://x.com");
+    } catch {
+      return null;
+    }
+    if (url.protocol !== "https:" || !X_GRAPHQL_HOSTNAMES.has(url.hostname.toLowerCase())) {
+      return null;
+    }
+    if (expectedOrigin) {
+      try {
+        const origin = new URL(expectedOrigin);
+        if (origin.protocol !== "https:" || url.origin !== origin.origin) {
+          return null;
+        }
+      } catch {
+        return null;
+      }
+    }
+    const match = GRAPHQL_PATH_PATTERN.exec(url.pathname);
+    if (!match || url.hash) {
+      return null;
+    }
+    return { href: url.href, operation: match[2] ?? "" };
   }
   function normalizeConfig(payload) {
     const value = payload ?? {};
@@ -284,6 +354,9 @@
   }
   function now() {
     return (/* @__PURE__ */ new Date()).toISOString();
+  }
+  function isRecord(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
   // src/entrypoints/extension-page.ts

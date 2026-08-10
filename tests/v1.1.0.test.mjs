@@ -117,7 +117,7 @@ test("network-capture source guards GraphQL routing, payload bounds, and auth sc
     "utf8"
   );
   for (const marker of [
-    "MAX_PAYLOAD_BYTES",
+    "MAX_GRAPHQL_PAYLOAD_BYTES",
     "TextEncoder",
     "captureTail",
     "preserveRawPayloads",
@@ -131,6 +131,51 @@ test("network-capture source guards GraphQL routing, payload bounds, and auth sc
   // GraphQL routing moved to the page world in v1.12.0; this module no longer matches URLs at all.
   const agent = await readFile(path.join(root, "src/page/page-agent.ts"), "utf8");
   assert.ok(agent.includes("api\\/graphql"), "page-agent must route GraphQL");
+});
+
+test("network capture rejects forged payloads and bounds a burst before persistence", async () => {
+  const { networkCaptureFeature, getRecentCapturedPayloads } = await importBundledModule(
+    "src/features/export/network-capture.ts"
+  );
+  const bridge = fakeBridge();
+  const diagnostics = { events: [], info() {}, warn(message, details) { this.events.push({ message, details }); }, error() {} };
+  const context = {
+    pageBridge: bridge,
+    route: { href: "https://x.com/home" },
+    settings: { export: { preserveRawPayloads: true } },
+    diagnostics,
+    auditLog: { record: async () => {} }
+  };
+
+  networkCaptureFeature.init(context);
+  const at = new Date().toISOString();
+  bridge.emit("graphql", {
+    url: "https://evil.example/i/api/graphql/abc/HomeTimeline",
+    operation: "HomeTimeline",
+    status: 200,
+    bytes: 2,
+    at,
+    body: "{}"
+  });
+  for (let index = 0; index < 64; index += 1) {
+    bridge.emit("graphql", {
+      url: "https://x.com/i/api/graphql/abc/HomeTimeline",
+      operation: "HomeTimeline",
+      status: 200,
+      bytes: 2,
+      at,
+      body: "{}"
+    });
+  }
+  await new Promise((resolve) => setTimeout(resolve, 20));
+
+  assert.equal(getRecentCapturedPayloads().length, 32, "burst intake must stop at backpressure capacity");
+  assert.ok(
+    diagnostics.events.some((entry) => entry.details?.reason === "invalid GraphQL payload"),
+    "malformed or off-origin page messages must be diagnosed"
+  );
+  assert.match(networkCaptureFeature.getStatus().message, /rejected/);
+  networkCaptureFeature.destroy(context);
 });
 
 test("page-world feature subscriptions survive a destroy and reboot", async () => {
@@ -213,6 +258,11 @@ function fakeBridge() {
       const list = handlers.get(kind) ?? [];
       list.push(handler);
       handlers.set(kind, list);
+    },
+    emit(kind, payload) {
+      for (const handler of handlers.get(kind) ?? []) {
+        handler(payload);
+      }
     },
     count(kind) {
       return handlers.get(kind)?.length ?? 0;

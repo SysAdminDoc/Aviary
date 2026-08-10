@@ -1,6 +1,8 @@
 import {
   PAGE_CHANNEL,
   installPageAgent,
+  isPageAgentEnvelope,
+  sanitizeCapturedGraphqlPayload,
   type PageAgentConfig,
   type PageAgentEnvelope,
   type PageAgentKind,
@@ -86,8 +88,23 @@ export function createPageBridge(options: {
   let uninstallAgent: (() => void) | undefined;
   let windowListener: ((event: MessageEvent) => void) | undefined;
   let handshakeTimer: ReturnType<typeof setTimeout> | undefined;
+  let lastRejectedAt = 0;
 
-  function dispatch(envelope: PageAgentEnvelope): void {
+  function rejectMessage(reason: string): void {
+    const now = Date.now();
+    if (now - lastRejectedAt < 1000) {
+      return;
+    }
+    lastRejectedAt = now;
+    options.diagnostics.warn("Page bridge rejected an untrusted message", { reason });
+  }
+
+  function dispatch(value: unknown): void {
+    if (!isPageAgentEnvelope(value)) {
+      rejectMessage("invalid envelope");
+      return;
+    }
+    const envelope = value;
     if (envelope.nonce !== sessionNonce) {
       return;
     }
@@ -102,13 +119,22 @@ export function createPageBridge(options: {
       }
       return;
     }
+    let payload = envelope.payload;
+    if (envelope.kind === "graphql") {
+      const sanitized = sanitizeCapturedGraphqlPayload(payload, globalThis.location?.origin);
+      if (!sanitized) {
+        rejectMessage("invalid GraphQL payload");
+        return;
+      }
+      payload = sanitized;
+    }
     const set = handlers.get(envelope.kind);
     if (!set) {
       return;
     }
     for (const handler of set) {
       try {
-        handler(envelope.payload);
+        handler(payload);
       } catch (error) {
         options.diagnostics.error("Page bridge handler failed", {
           kind: envelope.kind,
@@ -139,14 +165,14 @@ export function createPageBridge(options: {
     }
   } else {
     windowListener = (event: MessageEvent): void => {
-      if (event.source !== globalThis.window) {
+      if (event.source && event.source !== globalThis.window) {
         return;
       }
-      const data = event.data as PageAgentEnvelope | undefined;
-      if (!data || data.channel !== PAGE_CHANNEL) {
+      const expectedOrigin = globalThis.location?.origin;
+      if (event.origin && event.origin !== "null" && expectedOrigin && event.origin !== expectedOrigin) {
         return;
       }
-      dispatch(data);
+      dispatch(event.data);
     };
     globalThis.addEventListener("message", windowListener as EventListener);
     send = (envelope) => {

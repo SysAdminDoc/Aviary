@@ -18847,13 +18847,418 @@ html.av-mobile [data-testid="primaryColumn"] {
 }
 `;
 
+  // src/page/page-agent.ts
+  var PAGE_CHANNEL = "aviary.page.v1";
+  var MAX_GRAPHQL_PAYLOAD_BYTES = 15e5;
+  var PAGE_AGENT_KINDS = /* @__PURE__ */ new Set([
+    "hello",
+    "ready",
+    "config",
+    "graphql",
+    "blocked",
+    "playlist",
+    "teardown"
+  ]);
+  var MAX_NONCE_LENGTH = 256;
+  var X_GRAPHQL_HOSTNAMES = /* @__PURE__ */ new Set([
+    "x.com",
+    "www.x.com",
+    "twitter.com",
+    "www.twitter.com",
+    "mobile.twitter.com",
+    "pro.x.com",
+    "tweetdeck.twitter.com"
+  ]);
+  var GRAPHQL_PATH_PATTERN = /^\/i\/api\/graphql\/([A-Za-z0-9_-]{1,200})\/([A-Za-z0-9_-]{1,100})$/;
+  function isPageAgentEnvelope(value) {
+    if (!isRecord8(value) || value.channel !== PAGE_CHANNEL || typeof value.kind !== "string") {
+      return false;
+    }
+    if (!PAGE_AGENT_KINDS.has(value.kind)) {
+      return false;
+    }
+    return value.nonce === void 0 || typeof value.nonce === "string" && value.nonce.length >= 16 && value.nonce.length <= MAX_NONCE_LENGTH;
+  }
+  function sanitizeCapturedGraphqlPayload(value, expectedOrigin) {
+    if (!isRecord8(value)) {
+      return null;
+    }
+    const url = typeof value.url === "string" ? value.url : "";
+    const route = parseGraphqlRoute(url, expectedOrigin);
+    if (!route || value.operation !== route.operation) {
+      return null;
+    }
+    const status = value.status;
+    if (typeof status !== "number" || !Number.isSafeInteger(status) || status < 100 || status > 599) {
+      return null;
+    }
+    const bytes = value.bytes;
+    if (typeof bytes !== "number" || !Number.isSafeInteger(bytes) || bytes <= 0 || bytes > MAX_GRAPHQL_PAYLOAD_BYTES) {
+      return null;
+    }
+    const at = typeof value.at === "string" ? value.at : "";
+    if (at.length === 0 || at.length > 80 || !Number.isFinite(Date.parse(at))) {
+      return null;
+    }
+    const body = value.body;
+    if (typeof body !== "string") {
+      return null;
+    }
+    const encoded = new TextEncoder().encode(body);
+    if (encoded.byteLength !== bytes) {
+      return null;
+    }
+    try {
+      if (new TextDecoder("utf-8", { fatal: true }).decode(encoded) !== body) {
+        return null;
+      }
+    } catch {
+      return null;
+    }
+    return { url: route.href, operation: route.operation, status, bytes, at, body };
+  }
+  var TELEMETRY_PATTERNS = [
+    /\/i\/api\/[^/]+\/jot(?:\/|$)/i,
+    /\/i\/api\/[^/]+\/jot\.json(?:$|\?)/i,
+    /^https?:\/\/analytics\.twitter\.com\//i
+  ];
+  function isTelemetryUrl(url) {
+    if (!url) {
+      return false;
+    }
+    return TELEMETRY_PATTERNS.some((pattern) => pattern.test(url));
+  }
+  function isGraphqlUrl(url) {
+    return parseGraphqlRoute(url) !== null;
+  }
+  function graphqlOperationName(url) {
+    return parseGraphqlRoute(url)?.operation ?? "unknown";
+  }
+  function rewritePlaylistToBestVariant(text) {
+    if (!text.includes("#EXT-X-STREAM-INF")) {
+      return void 0;
+    }
+    const lines = text.split(/\r?\n/);
+    const header = [];
+    const variants = [];
+    for (let index = 0; index < lines.length; index += 1) {
+      const line = lines[index] ?? "";
+      if (!line.startsWith("#EXT-X-STREAM-INF")) {
+        if (variants.length === 0) {
+          header.push(line);
+        }
+        continue;
+      }
+      const uriIndex = nextUriIndex(lines, index + 1);
+      if (uriIndex === -1) {
+        continue;
+      }
+      variants.push({
+        bandwidth: parseBandwidth(line),
+        lines: [line, lines[uriIndex] ?? ""]
+      });
+      index = uriIndex;
+    }
+    const best = variants.reduce(
+      (winner, variant) => winner && winner.bandwidth >= variant.bandwidth ? winner : variant,
+      void 0
+    );
+    if (variants.length < 2 || !best) {
+      return void 0;
+    }
+    const trimmedHeader = [...header];
+    while (trimmedHeader.length > 0 && (trimmedHeader[trimmedHeader.length - 1] ?? "").trim() === "") {
+      trimmedHeader.pop();
+    }
+    return {
+      playlist: [...trimmedHeader, ...best.lines, ""].join("\n"),
+      variantsBefore: variants.length
+    };
+  }
+  function nextUriIndex(lines, from) {
+    for (let index = from; index < lines.length; index += 1) {
+      const candidate = (lines[index] ?? "").trim();
+      if (candidate === "") {
+        continue;
+      }
+      if (candidate.startsWith("#")) {
+        return -1;
+      }
+      return index;
+    }
+    return -1;
+  }
+  function parseBandwidth(line) {
+    const average = /AVERAGE-BANDWIDTH=(\d+)/i.exec(line);
+    const peak = /[^-]BANDWIDTH=(\d+)/i.exec(` ${line}`);
+    const value = average?.[1] ?? peak?.[1];
+    return value ? Number.parseInt(value, 10) : 0;
+  }
+  function isPlaylistUrl(url) {
+    return /\.m3u8(?:$|\?)/i.test(url);
+  }
+  var DISABLED = {
+    blockBeacons: false,
+    captureGraphql: false,
+    captureMediaMetadata: false,
+    forceVideoQuality: false
+  };
+  var state;
+  function installPageAgent(target, sink) {
+    if (state) {
+      return () => uninstallPageAgent();
+    }
+    const originalFetch = target.fetch;
+    const originalSendBeacon = target.navigator?.sendBeacon;
+    const xhrProto = target.XMLHttpRequest?.prototype;
+    const messageListener = (event) => {
+      const message = event;
+      if (message.source !== void 0 && message.source !== target) {
+        return;
+      }
+      const expectedOrigin = target.location?.origin;
+      if (typeof message.origin === "string" && message.origin.length > 0 && message.origin !== "null" && expectedOrigin && message.origin !== expectedOrigin) {
+        return;
+      }
+      if (!isPageAgentEnvelope(message.data)) {
+        return;
+      }
+      const data = message.data;
+      if (data.kind === "hello") {
+        const nonce = typeof data.nonce === "string" ? data.nonce : "";
+        if (nonce.length < 16) {
+          return;
+        }
+        if (state?.peerNonce && state.peerNonce !== nonce) {
+          return;
+        }
+        if (state) {
+          state.peerNonce = nonce;
+        }
+        emit("ready");
+        return;
+      }
+      if (!state?.peerNonce || data.nonce !== state.peerNonce) {
+        return;
+      }
+      if (data.kind === "config") {
+        state && (state.config = normalizeConfig(data.payload));
+        return;
+      }
+      if (data.kind === "teardown") {
+        uninstallPageAgent();
+      }
+    };
+    state = {
+      config: { ...DISABLED },
+      peerNonce: void 0,
+      target,
+      originalFetch,
+      originalSendBeacon,
+      originalXhrOpen: xhrProto?.open,
+      originalXhrSend: xhrProto?.send,
+      messageListener,
+      sink
+    };
+    target.addEventListener("message", messageListener);
+    target.fetch = makePatchedFetch(originalFetch, target.location?.origin);
+    if (originalSendBeacon && target.navigator) {
+      target.navigator.sendBeacon = function patchedSendBeacon(url, data) {
+        try {
+          if (state?.config.blockBeacons && isTelemetryUrl(String(url))) {
+            emit("blocked", { url: String(url), via: "sendBeacon", at: now() });
+            return true;
+          }
+        } catch {
+        }
+        return originalSendBeacon.call(target.navigator, url, data);
+      };
+    }
+    if (xhrProto && state.originalXhrOpen && state.originalXhrSend) {
+      const originalOpen = state.originalXhrOpen;
+      const originalSend = state.originalXhrSend;
+      xhrProto.open = function patchedOpen(...args) {
+        try {
+          this.__aviaryUrl = String(args[1] ?? "");
+        } catch {
+        }
+        return originalOpen.apply(this, args);
+      };
+      xhrProto.send = function patchedSend(...args) {
+        try {
+          const url = String(this.__aviaryUrl ?? "");
+          if (state?.config.blockBeacons && isTelemetryUrl(url)) {
+            emit("blocked", { url, via: "xhr", at: now() });
+            return;
+          }
+        } catch {
+        }
+        return originalSend.apply(this, args);
+      };
+    }
+    return () => uninstallPageAgent();
+  }
+  function uninstallPageAgent() {
+    if (!state) {
+      return;
+    }
+    const current = state;
+    state = void 0;
+    current.target.removeEventListener("message", current.messageListener);
+    current.target.fetch = current.originalFetch;
+    if (current.originalSendBeacon && current.target.navigator) {
+      current.target.navigator.sendBeacon = current.originalSendBeacon;
+    }
+    const xhrProto = current.target.XMLHttpRequest?.prototype;
+    if (xhrProto && current.originalXhrOpen && current.originalXhrSend) {
+      xhrProto.open = current.originalXhrOpen;
+      xhrProto.send = current.originalXhrSend;
+    }
+  }
+  function makePatchedFetch(originalFetch, baseOrigin) {
+    return async function patchedFetch(input, init) {
+      let url = "";
+      try {
+        url = requestUrl(input, baseOrigin);
+      } catch {
+        return originalFetch(input, init);
+      }
+      const config = state?.config ?? DISABLED;
+      if (config.blockBeacons && isTelemetryUrl(url)) {
+        emit("blocked", { url, via: "fetch", at: now() });
+        return new Response(null, { status: 204, statusText: "No Content" });
+      }
+      const response = await originalFetch(input, init);
+      if (config.forceVideoQuality && isPlaylistUrl(url) && response.ok) {
+        try {
+          const cloned = response.clone();
+          const text = await cloned.text();
+          const rewritten = rewritePlaylistToBestVariant(text);
+          if (rewritten) {
+            emit("playlist", { url, variantsBefore: rewritten.variantsBefore, at: now() });
+            return new Response(rewritten.playlist, {
+              status: response.status,
+              statusText: response.statusText,
+              headers: response.headers
+            });
+          }
+        } catch {
+        }
+      }
+      if ((config.captureGraphql || config.captureMediaMetadata) && isGraphqlUrl(url)) {
+        try {
+          const cloned = response.clone();
+          void cloned.text().then((body) => {
+            const bytes = new TextEncoder().encode(body).byteLength;
+            emit("graphql", {
+              url,
+              operation: graphqlOperationName(url),
+              status: response.status,
+              bytes,
+              at: now(),
+              body: bytes <= MAX_GRAPHQL_PAYLOAD_BYTES ? body : void 0
+            });
+          });
+        } catch {
+        }
+      }
+      return response;
+    };
+  }
+  function requestUrl(input, baseOrigin) {
+    let raw = "";
+    if (typeof input === "string") {
+      raw = input;
+    } else if (input instanceof URL) {
+      raw = input.href;
+    } else {
+      raw = input.url ?? "";
+    }
+    try {
+      return new URL(raw, baseOrigin ?? "https://x.com").href;
+    } catch {
+      return raw;
+    }
+  }
+  function parseGraphqlRoute(rawUrl, expectedOrigin) {
+    if (typeof rawUrl !== "string" || rawUrl.length === 0 || rawUrl.length > 4096) {
+      return null;
+    }
+    let url;
+    try {
+      url = new URL(rawUrl, expectedOrigin ?? "https://x.com");
+    } catch {
+      return null;
+    }
+    if (url.protocol !== "https:" || !X_GRAPHQL_HOSTNAMES.has(url.hostname.toLowerCase())) {
+      return null;
+    }
+    if (expectedOrigin) {
+      try {
+        const origin = new URL(expectedOrigin);
+        if (origin.protocol !== "https:" || url.origin !== origin.origin) {
+          return null;
+        }
+      } catch {
+        return null;
+      }
+    }
+    const match = GRAPHQL_PATH_PATTERN.exec(url.pathname);
+    if (!match || url.hash) {
+      return null;
+    }
+    return { href: url.href, operation: match[2] ?? "" };
+  }
+  function normalizeConfig(payload) {
+    const value = payload ?? {};
+    return {
+      blockBeacons: value.blockBeacons === true,
+      captureGraphql: value.captureGraphql === true,
+      captureMediaMetadata: value.captureMediaMetadata === true,
+      forceVideoQuality: value.forceVideoQuality === true
+    };
+  }
+  function emit(kind, payload) {
+    if (!state) {
+      return;
+    }
+    try {
+      const envelope = {
+        channel: PAGE_CHANNEL,
+        kind,
+        ...state.peerNonce === void 0 ? {} : { nonce: state.peerNonce },
+        payload
+      };
+      if (state.sink) {
+        state.sink(envelope);
+        return;
+      }
+      state.target.postMessage(envelope, state.target.location?.origin ?? "*");
+    } catch {
+    }
+  }
+  function now() {
+    return (/* @__PURE__ */ new Date()).toISOString();
+  }
+  function isRecord8(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+
   // src/features/export/network-capture.ts
-  var MAX_PAYLOAD_BYTES = 15e5;
   var MAX_PAYLOADS = 50;
+  var MAX_SESSION_PAYLOADS = 500;
+  var MAX_SESSION_BYTES = 5e7;
+  var MAX_PENDING_PAYLOADS = 32;
   var subscribedBridge3;
   var activeContext;
   var captureEpoch = 0;
   var captureTail = Promise.resolve();
+  var sessionPayloads = 0;
+  var sessionBytes = 0;
+  var pendingPayloads = 0;
+  var rejectedPayloads = 0;
+  var lastRejectionWarningAt = 0;
+  var lastCaptureEnabled = false;
   var recentPayloads = [];
   var networkCaptureFeature = {
     id: "export.networkCapture",
@@ -18861,13 +19266,17 @@ html.av-mobile [data-testid="primaryColumn"] {
     category: "export",
     defaultEnabled: true,
     init(ctx) {
+      const previousContext = activeContext;
       activeContext = ctx;
       const bridge = ctx.pageBridge;
-      if (bridge && subscribedBridge3 !== bridge) {
+      if (bridge && (subscribedBridge3 !== bridge || previousContext !== ctx)) {
+        resetCaptureSession();
         subscribedBridge3 = bridge;
         bridge.on("graphql", (payload) => {
-          const epoch = captureEpoch;
-          captureTail = captureTail.then(() => onCaptured(payload, epoch));
+          const current = activeContext;
+          if (current) {
+            enqueueCaptured(payload, captureEpoch, current);
+          }
         });
       }
       ctx.diagnostics.info("Network capture feature ready", {
@@ -18877,10 +19286,16 @@ html.av-mobile [data-testid="primaryColumn"] {
     },
     apply(ctx) {
       activeContext = ctx;
+      const enabled = ctx.settings.export.preserveRawPayloads;
+      if (enabled !== lastCaptureEnabled) {
+        resetCaptureSession();
+        lastCaptureEnabled = enabled;
+      }
     },
     destroy(ctx) {
       activeContext = void 0;
-      captureEpoch += 1;
+      resetCaptureSession();
+      lastCaptureEnabled = false;
       recentPayloads.length = 0;
       if (subscribedBridge3 === ctx.pageBridge) {
         subscribedBridge3 = void 0;
@@ -18900,11 +19315,14 @@ html.av-mobile [data-testid="primaryColumn"] {
         };
       }
       if (recentPayloads.length === 0) {
-        return { ok: true, message: "Watching X's timeline requests" };
+        return {
+          ok: true,
+          message: rejectedPayloads > 0 ? `Watching X's timeline requests \xB7 ${rejectedPayloads} rejected` : "Watching X's timeline requests"
+        };
       }
       return {
         ok: true,
-        message: `${recentPayloads.length} payload${recentPayloads.length === 1 ? "" : "s"} captured`
+        message: `${recentPayloads.length} payload${recentPayloads.length === 1 ? "" : "s"} captured${rejectedPayloads > 0 ? ` \xB7 ${rejectedPayloads} rejected` : ""}`
       };
     }
   };
@@ -18917,17 +19335,72 @@ html.av-mobile [data-testid="primaryColumn"] {
       return;
     }
     try {
-      const body = typeof payload.body === "string" ? payload.body : "";
-      const bodyBytes = new TextEncoder().encode(body).byteLength;
-      if (bodyBytes === 0 || bodyBytes > MAX_PAYLOAD_BYTES) {
-        return;
-      }
-      recordPayload(payload.url, payload.status, bodyBytes);
-      await persistPayload(ctx, payload.url, payload.operation || "graphql", body, epoch);
+      recordPayload(payload.url, payload.status, payload.bytes);
+      await persistPayload(ctx, payload.url, payload.operation, payload.body, epoch);
     } catch (error) {
       ctx.diagnostics.warn("Network capture skipped", {
         error: String(error?.message ?? error)
       });
+    }
+  }
+  function enqueueCaptured(payload, epoch, ctx) {
+    if (epoch !== captureEpoch || activeContext !== ctx) {
+      return;
+    }
+    const sanitized = sanitizeCapturedGraphqlPayload(payload, pageOrigin(ctx));
+    if (!sanitized) {
+      rejectCapture(ctx, "invalid GraphQL payload");
+      return;
+    }
+    if (sessionPayloads >= MAX_SESSION_PAYLOADS) {
+      rejectCapture(ctx, "session payload limit reached");
+      return;
+    }
+    if (sessionBytes + sanitized.bytes > MAX_SESSION_BYTES) {
+      rejectCapture(ctx, "session byte limit reached");
+      return;
+    }
+    if (pendingPayloads >= MAX_PENDING_PAYLOADS) {
+      rejectCapture(ctx, "capture backpressure limit reached");
+      return;
+    }
+    sessionPayloads += 1;
+    sessionBytes += sanitized.bytes;
+    pendingPayloads += 1;
+    captureTail = captureTail.then(() => onCaptured(sanitized, epoch)).catch((error) => {
+      ctx.diagnostics.warn("Network capture event failed", {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }).finally(() => {
+      if (captureEpoch === epoch) {
+        pendingPayloads = Math.max(0, pendingPayloads - 1);
+      }
+    });
+  }
+  function rejectCapture(ctx, reason) {
+    rejectedPayloads += 1;
+    const now2 = Date.now();
+    if (now2 - lastRejectionWarningAt < 1e3) {
+      return;
+    }
+    lastRejectionWarningAt = now2;
+    ctx.diagnostics.warn("Network capture rejected a page message", { reason });
+  }
+  function resetCaptureSession() {
+    captureEpoch += 1;
+    captureTail = Promise.resolve();
+    sessionPayloads = 0;
+    sessionBytes = 0;
+    pendingPayloads = 0;
+    rejectedPayloads = 0;
+    lastRejectionWarningAt = 0;
+  }
+  function pageOrigin(ctx) {
+    try {
+      const origin = new URL(ctx.route.href).origin;
+      return origin.startsWith("https://") ? origin : void 0;
+    } catch {
+      return void 0;
     }
   }
   function recordPayload(url, status, bytes) {
@@ -18946,7 +19419,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     if (store4.list().every((entry) => entry.jobId !== jobId)) {
       await store4.start(jobId, "capture", ["json"], true);
     }
-    const scrubbed = truncateUtf8(scrubAuth(body), MAX_PAYLOAD_BYTES);
+    const scrubbed = truncateUtf8(scrubAuth(body), MAX_GRAPHQL_PAYLOAD_BYTES);
     await store4.append(jobId, [
       {
         tweetId: null,
@@ -19727,292 +20200,6 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     }
   };
 
-  // src/page/page-agent.ts
-  var PAGE_CHANNEL = "aviary.page.v1";
-  var MAX_PAYLOAD_BYTES2 = 15e5;
-  var TELEMETRY_PATTERNS = [
-    /\/i\/api\/[^/]+\/jot(?:\/|$)/i,
-    /\/i\/api\/[^/]+\/jot\.json(?:$|\?)/i,
-    /^https?:\/\/analytics\.twitter\.com\//i
-  ];
-  var GRAPHQL_PATTERN = /\/i\/api\/graphql\/([^/?#]+)\/([^/?#]+)/i;
-  function isTelemetryUrl(url) {
-    if (!url) {
-      return false;
-    }
-    return TELEMETRY_PATTERNS.some((pattern) => pattern.test(url));
-  }
-  function isGraphqlUrl(url) {
-    return GRAPHQL_PATTERN.test(url);
-  }
-  function graphqlOperationName(url) {
-    const match = GRAPHQL_PATTERN.exec(url);
-    return match?.[2] ?? "unknown";
-  }
-  function rewritePlaylistToBestVariant(text) {
-    if (!text.includes("#EXT-X-STREAM-INF")) {
-      return void 0;
-    }
-    const lines = text.split(/\r?\n/);
-    const header = [];
-    const variants = [];
-    for (let index = 0; index < lines.length; index += 1) {
-      const line = lines[index] ?? "";
-      if (!line.startsWith("#EXT-X-STREAM-INF")) {
-        if (variants.length === 0) {
-          header.push(line);
-        }
-        continue;
-      }
-      const uriIndex = nextUriIndex(lines, index + 1);
-      if (uriIndex === -1) {
-        continue;
-      }
-      variants.push({
-        bandwidth: parseBandwidth(line),
-        lines: [line, lines[uriIndex] ?? ""]
-      });
-      index = uriIndex;
-    }
-    const best = variants.reduce(
-      (winner, variant) => winner && winner.bandwidth >= variant.bandwidth ? winner : variant,
-      void 0
-    );
-    if (variants.length < 2 || !best) {
-      return void 0;
-    }
-    const trimmedHeader = [...header];
-    while (trimmedHeader.length > 0 && (trimmedHeader[trimmedHeader.length - 1] ?? "").trim() === "") {
-      trimmedHeader.pop();
-    }
-    return {
-      playlist: [...trimmedHeader, ...best.lines, ""].join("\n"),
-      variantsBefore: variants.length
-    };
-  }
-  function nextUriIndex(lines, from) {
-    for (let index = from; index < lines.length; index += 1) {
-      const candidate = (lines[index] ?? "").trim();
-      if (candidate === "") {
-        continue;
-      }
-      if (candidate.startsWith("#")) {
-        return -1;
-      }
-      return index;
-    }
-    return -1;
-  }
-  function parseBandwidth(line) {
-    const average = /AVERAGE-BANDWIDTH=(\d+)/i.exec(line);
-    const peak = /[^-]BANDWIDTH=(\d+)/i.exec(` ${line}`);
-    const value = average?.[1] ?? peak?.[1];
-    return value ? Number.parseInt(value, 10) : 0;
-  }
-  function isPlaylistUrl(url) {
-    return /\.m3u8(?:$|\?)/i.test(url);
-  }
-  var DISABLED = {
-    blockBeacons: false,
-    captureGraphql: false,
-    captureMediaMetadata: false,
-    forceVideoQuality: false
-  };
-  var state;
-  function installPageAgent(target, sink) {
-    if (state) {
-      return () => uninstallPageAgent();
-    }
-    const originalFetch = target.fetch;
-    const originalSendBeacon = target.navigator?.sendBeacon;
-    const xhrProto = target.XMLHttpRequest?.prototype;
-    const messageListener = (event) => {
-      const data = event?.data;
-      if (!data || data.channel !== PAGE_CHANNEL) {
-        return;
-      }
-      if (data.kind === "hello") {
-        const nonce = typeof data.nonce === "string" ? data.nonce : "";
-        if (nonce.length < 16) {
-          return;
-        }
-        if (state?.peerNonce && state.peerNonce !== nonce) {
-          return;
-        }
-        if (state) {
-          state.peerNonce = nonce;
-        }
-        emit("ready");
-        return;
-      }
-      if (!state?.peerNonce || data.nonce !== state.peerNonce) {
-        return;
-      }
-      if (data.kind === "config") {
-        state && (state.config = normalizeConfig(data.payload));
-        return;
-      }
-      if (data.kind === "teardown") {
-        uninstallPageAgent();
-      }
-    };
-    state = {
-      config: { ...DISABLED },
-      peerNonce: void 0,
-      target,
-      originalFetch,
-      originalSendBeacon,
-      originalXhrOpen: xhrProto?.open,
-      originalXhrSend: xhrProto?.send,
-      messageListener,
-      sink
-    };
-    target.addEventListener("message", messageListener);
-    target.fetch = makePatchedFetch(originalFetch);
-    if (originalSendBeacon && target.navigator) {
-      target.navigator.sendBeacon = function patchedSendBeacon(url, data) {
-        try {
-          if (state?.config.blockBeacons && isTelemetryUrl(String(url))) {
-            emit("blocked", { url: String(url), via: "sendBeacon", at: now() });
-            return true;
-          }
-        } catch {
-        }
-        return originalSendBeacon.call(target.navigator, url, data);
-      };
-    }
-    if (xhrProto && state.originalXhrOpen && state.originalXhrSend) {
-      const originalOpen = state.originalXhrOpen;
-      const originalSend = state.originalXhrSend;
-      xhrProto.open = function patchedOpen(...args) {
-        try {
-          this.__aviaryUrl = String(args[1] ?? "");
-        } catch {
-        }
-        return originalOpen.apply(this, args);
-      };
-      xhrProto.send = function patchedSend(...args) {
-        try {
-          const url = String(this.__aviaryUrl ?? "");
-          if (state?.config.blockBeacons && isTelemetryUrl(url)) {
-            emit("blocked", { url, via: "xhr", at: now() });
-            return;
-          }
-        } catch {
-        }
-        return originalSend.apply(this, args);
-      };
-    }
-    return () => uninstallPageAgent();
-  }
-  function uninstallPageAgent() {
-    if (!state) {
-      return;
-    }
-    const current = state;
-    state = void 0;
-    current.target.removeEventListener("message", current.messageListener);
-    current.target.fetch = current.originalFetch;
-    if (current.originalSendBeacon && current.target.navigator) {
-      current.target.navigator.sendBeacon = current.originalSendBeacon;
-    }
-    const xhrProto = current.target.XMLHttpRequest?.prototype;
-    if (xhrProto && current.originalXhrOpen && current.originalXhrSend) {
-      xhrProto.open = current.originalXhrOpen;
-      xhrProto.send = current.originalXhrSend;
-    }
-  }
-  function makePatchedFetch(originalFetch) {
-    return async function patchedFetch(input, init) {
-      let url = "";
-      try {
-        url = requestUrl(input);
-      } catch {
-        return originalFetch(input, init);
-      }
-      const config = state?.config ?? DISABLED;
-      if (config.blockBeacons && isTelemetryUrl(url)) {
-        emit("blocked", { url, via: "fetch", at: now() });
-        return new Response(null, { status: 204, statusText: "No Content" });
-      }
-      const response = await originalFetch(input, init);
-      if (config.forceVideoQuality && isPlaylistUrl(url) && response.ok) {
-        try {
-          const cloned = response.clone();
-          const text = await cloned.text();
-          const rewritten = rewritePlaylistToBestVariant(text);
-          if (rewritten) {
-            emit("playlist", { url, variantsBefore: rewritten.variantsBefore, at: now() });
-            return new Response(rewritten.playlist, {
-              status: response.status,
-              statusText: response.statusText,
-              headers: response.headers
-            });
-          }
-        } catch {
-        }
-      }
-      if ((config.captureGraphql || config.captureMediaMetadata) && isGraphqlUrl(url)) {
-        try {
-          const cloned = response.clone();
-          void cloned.text().then((body) => {
-            const bytes = new TextEncoder().encode(body).byteLength;
-            emit("graphql", {
-              url,
-              operation: graphqlOperationName(url),
-              status: response.status,
-              bytes,
-              at: now(),
-              body: bytes <= MAX_PAYLOAD_BYTES2 ? body : void 0
-            });
-          });
-        } catch {
-        }
-      }
-      return response;
-    };
-  }
-  function requestUrl(input) {
-    if (typeof input === "string") {
-      return input;
-    }
-    if (input instanceof URL) {
-      return input.href;
-    }
-    return input.url ?? "";
-  }
-  function normalizeConfig(payload) {
-    const value = payload ?? {};
-    return {
-      blockBeacons: value.blockBeacons === true,
-      captureGraphql: value.captureGraphql === true,
-      captureMediaMetadata: value.captureMediaMetadata === true,
-      forceVideoQuality: value.forceVideoQuality === true
-    };
-  }
-  function emit(kind, payload) {
-    if (!state) {
-      return;
-    }
-    try {
-      const envelope = {
-        channel: PAGE_CHANNEL,
-        kind,
-        ...state.peerNonce === void 0 ? {} : { nonce: state.peerNonce },
-        payload
-      };
-      if (state.sink) {
-        state.sink(envelope);
-        return;
-      }
-      state.target.postMessage(envelope, state.target.location?.origin ?? "*");
-    } catch {
-    }
-  }
-  function now() {
-    return (/* @__PURE__ */ new Date()).toISOString();
-  }
-
   // src/platform/page-bridge.ts
   var HANDSHAKE_TIMEOUT_MS = 3e3;
   function pageWindowFromSandbox() {
@@ -20040,7 +20227,21 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     let uninstallAgent;
     let windowListener;
     let handshakeTimer;
-    function dispatch(envelope) {
+    let lastRejectedAt = 0;
+    function rejectMessage(reason2) {
+      const now2 = Date.now();
+      if (now2 - lastRejectedAt < 1e3) {
+        return;
+      }
+      lastRejectedAt = now2;
+      options.diagnostics.warn("Page bridge rejected an untrusted message", { reason: reason2 });
+    }
+    function dispatch(value) {
+      if (!isPageAgentEnvelope(value)) {
+        rejectMessage("invalid envelope");
+        return;
+      }
+      const envelope = value;
       if (envelope.nonce !== sessionNonce) {
         return;
       }
@@ -20055,13 +20256,22 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         }
         return;
       }
+      let payload = envelope.payload;
+      if (envelope.kind === "graphql") {
+        const sanitized = sanitizeCapturedGraphqlPayload(payload, globalThis.location?.origin);
+        if (!sanitized) {
+          rejectMessage("invalid GraphQL payload");
+          return;
+        }
+        payload = sanitized;
+      }
       const set = handlers.get(envelope.kind);
       if (!set) {
         return;
       }
       for (const handler of set) {
         try {
-          handler(envelope.payload);
+          handler(payload);
         } catch (error) {
           options.diagnostics.error("Page bridge handler failed", {
             kind: envelope.kind,
@@ -20089,14 +20299,14 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       }
     } else {
       windowListener = (event) => {
-        if (event.source !== globalThis.window) {
+        if (event.source && event.source !== globalThis.window) {
           return;
         }
-        const data = event.data;
-        if (!data || data.channel !== PAGE_CHANNEL) {
+        const expectedOrigin = globalThis.location?.origin;
+        if (event.origin && event.origin !== "null" && expectedOrigin && event.origin !== expectedOrigin) {
           return;
         }
-        dispatch(data);
+        dispatch(event.data);
       };
       globalThis.addEventListener("message", windowListener);
       send = (envelope) => {

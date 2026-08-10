@@ -52,6 +52,10 @@ export interface CapturedGraphqlPayload {
   body?: string;
 }
 
+export interface SanitizedCapturedGraphqlPayload extends CapturedGraphqlPayload {
+  body: string;
+}
+
 export interface BlockedBeaconPayload {
   url: string;
   via: "fetch" | "xhr" | "sendBeacon";
@@ -65,7 +69,91 @@ export interface PlaylistRewritePayload {
 }
 
 /** Mirrors the isolated-world cap so a hostile response cannot grow the message channel. */
-const MAX_PAYLOAD_BYTES = 1_500_000;
+export const MAX_GRAPHQL_PAYLOAD_BYTES = 1_500_000;
+
+const PAGE_AGENT_KINDS = new Set<PageAgentKind>([
+  "hello",
+  "ready",
+  "config",
+  "graphql",
+  "blocked",
+  "playlist",
+  "teardown"
+]);
+const MAX_NONCE_LENGTH = 256;
+const X_GRAPHQL_HOSTNAMES = new Set([
+  "x.com",
+  "www.x.com",
+  "twitter.com",
+  "www.twitter.com",
+  "mobile.twitter.com",
+  "pro.x.com",
+  "tweetdeck.twitter.com"
+]);
+const GRAPHQL_PATH_PATTERN = /^\/i\/api\/graphql\/([A-Za-z0-9_-]{1,200})\/([A-Za-z0-9_-]{1,100})$/;
+
+/** Rejects arbitrary page objects before they can be interpreted as bridge messages. */
+export function isPageAgentEnvelope(value: unknown): value is PageAgentEnvelope {
+  if (!isRecord(value) || value.channel !== PAGE_CHANNEL || typeof value.kind !== "string") {
+    return false;
+  }
+  if (!PAGE_AGENT_KINDS.has(value.kind as PageAgentKind)) {
+    return false;
+  }
+  return (
+    value.nonce === undefined ||
+    (typeof value.nonce === "string" && value.nonce.length >= 16 && value.nonce.length <= MAX_NONCE_LENGTH)
+  );
+}
+
+/**
+ * Converts a page-visible GraphQL event into a bounded, same-origin value.
+ *
+ * The nonce is a session correlation value, not a cryptographic signature: page scripts can observe
+ * postMessage traffic. This validator is therefore the actual trust boundary for the isolated
+ * world, and it intentionally returns a fresh object rather than passing the page-owned object on.
+ */
+export function sanitizeCapturedGraphqlPayload(
+  value: unknown,
+  expectedOrigin?: string
+): SanitizedCapturedGraphqlPayload | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const url = typeof value.url === "string" ? value.url : "";
+  const route = parseGraphqlRoute(url, expectedOrigin);
+  if (!route || value.operation !== route.operation) {
+    return null;
+  }
+  const status = value.status;
+  if (typeof status !== "number" || !Number.isSafeInteger(status) || status < 100 || status > 599) {
+    return null;
+  }
+  const bytes = value.bytes;
+  if (typeof bytes !== "number" || !Number.isSafeInteger(bytes) || bytes <= 0 || bytes > MAX_GRAPHQL_PAYLOAD_BYTES) {
+    return null;
+  }
+  const at = typeof value.at === "string" ? value.at : "";
+  if (at.length === 0 || at.length > 80 || !Number.isFinite(Date.parse(at))) {
+    return null;
+  }
+  const body = value.body;
+  if (typeof body !== "string") {
+    return null;
+  }
+  const encoded = new TextEncoder().encode(body);
+  if (encoded.byteLength !== bytes) {
+    return null;
+  }
+  try {
+    if (new TextDecoder("utf-8", { fatal: true }).decode(encoded) !== body) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+  return { url: route.href, operation: route.operation, status, bytes, at, body };
+}
 
 /**
  * Telemetry endpoints only.
@@ -81,8 +169,6 @@ const TELEMETRY_PATTERNS: RegExp[] = [
   /^https?:\/\/analytics\.twitter\.com\//i
 ];
 
-const GRAPHQL_PATTERN = /\/i\/api\/graphql\/([^/?#]+)\/([^/?#]+)/i;
-
 export function isTelemetryUrl(url: string): boolean {
   if (!url) {
     return false;
@@ -91,12 +177,11 @@ export function isTelemetryUrl(url: string): boolean {
 }
 
 export function isGraphqlUrl(url: string): boolean {
-  return GRAPHQL_PATTERN.test(url);
+  return parseGraphqlRoute(url) !== null;
 }
 
 export function graphqlOperationName(url: string): string {
-  const match = GRAPHQL_PATTERN.exec(url);
-  return match?.[2] ?? "unknown";
+  return parseGraphqlRoute(url)?.operation ?? "unknown";
 }
 
 /**
@@ -254,10 +339,24 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
   const xhrProto = target.XMLHttpRequest?.prototype;
 
   const messageListener = (event: unknown): void => {
-    const data = (event as { data?: unknown })?.data as PageAgentEnvelope | undefined;
-    if (!data || data.channel !== PAGE_CHANNEL) {
+    const message = event as { data?: unknown; source?: unknown; origin?: unknown };
+    if (message.source !== undefined && message.source !== target) {
       return;
     }
+    const expectedOrigin = target.location?.origin;
+    if (
+      typeof message.origin === "string" &&
+      message.origin.length > 0 &&
+      message.origin !== "null" &&
+      expectedOrigin &&
+      message.origin !== expectedOrigin
+    ) {
+      return;
+    }
+    if (!isPageAgentEnvelope(message.data)) {
+      return;
+    }
+    const data = message.data;
     if (data.kind === "hello") {
       const nonce = typeof data.nonce === "string" ? data.nonce : "";
       if (nonce.length < 16) {
@@ -297,7 +396,7 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
   };
 
   target.addEventListener("message", messageListener);
-  target.fetch = makePatchedFetch(originalFetch);
+  target.fetch = makePatchedFetch(originalFetch, target.location?.origin);
 
   if (originalSendBeacon && target.navigator) {
     target.navigator.sendBeacon = function patchedSendBeacon(url: string, data?: unknown): boolean {
@@ -361,14 +460,14 @@ export function uninstallPageAgent(): void {
   }
 }
 
-function makePatchedFetch(originalFetch: typeof fetch): typeof fetch {
+function makePatchedFetch(originalFetch: typeof fetch, baseOrigin?: string): typeof fetch {
   return async function patchedFetch(
     input: RequestInfo | URL,
     init?: RequestInit
   ): Promise<Response> {
     let url = "";
     try {
-      url = requestUrl(input);
+      url = requestUrl(input, baseOrigin);
     } catch {
       return originalFetch(input, init);
     }
@@ -416,7 +515,7 @@ function makePatchedFetch(originalFetch: typeof fetch): typeof fetch {
             status: response.status,
             bytes,
             at: now(),
-            body: bytes <= MAX_PAYLOAD_BYTES ? body : undefined
+            body: bytes <= MAX_GRAPHQL_PAYLOAD_BYTES ? body : undefined
           });
         });
       } catch {
@@ -428,14 +527,53 @@ function makePatchedFetch(originalFetch: typeof fetch): typeof fetch {
   } as typeof fetch;
 }
 
-function requestUrl(input: RequestInfo | URL): string {
+function requestUrl(input: RequestInfo | URL, baseOrigin?: string): string {
+  let raw = "";
   if (typeof input === "string") {
-    return input;
+    raw = input;
+  } else if (input instanceof URL) {
+    raw = input.href;
+  } else {
+    raw = (input as Request).url ?? "";
   }
-  if (input instanceof URL) {
-    return input.href;
+  try {
+    return new URL(raw, baseOrigin ?? "https://x.com").href;
+  } catch {
+    return raw;
   }
-  return (input as Request).url ?? "";
+}
+
+function parseGraphqlRoute(
+  rawUrl: string,
+  expectedOrigin?: string
+): { href: string; operation: string } | null {
+  if (typeof rawUrl !== "string" || rawUrl.length === 0 || rawUrl.length > 4096) {
+    return null;
+  }
+  let url: URL;
+  try {
+    url = new URL(rawUrl, expectedOrigin ?? "https://x.com");
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:" || !X_GRAPHQL_HOSTNAMES.has(url.hostname.toLowerCase())) {
+    return null;
+  }
+  if (expectedOrigin) {
+    try {
+      const origin = new URL(expectedOrigin);
+      if (origin.protocol !== "https:" || url.origin !== origin.origin) {
+        return null;
+      }
+    } catch {
+      return null;
+    }
+  }
+  const match = GRAPHQL_PATH_PATTERN.exec(url.pathname);
+  if (!match || url.hash) {
+    return null;
+  }
+  return { href: url.href, operation: match[2] ?? "" };
 }
 
 function normalizeConfig(payload: unknown): PageAgentConfig {
@@ -471,4 +609,8 @@ function emit(kind: PageAgentKind, payload?: unknown): void {
 
 function now(): string {
   return new Date().toISOString();
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

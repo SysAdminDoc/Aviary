@@ -38,6 +38,10 @@
   typed profiles, account references, direct messages, media references, lists, and follower data
   persist in a separate local collection store while authored posts and likes retain searchable
   checkpoint storage without exposing private messages to public-post search.
+- Page-world GraphQL capture now treats page messages as hostile input: same-origin route and
+  operation checks, status/byte/timestamp/body validation, UTF-8 and size limits, session budgets,
+  and bounded backpressure reject forged, replay-shaped, oversized, or flooding events before
+  they reach local persistence.
 
 ## 1.16.0 - 2026-08-09
 

@@ -110,6 +110,59 @@ test("the telemetry matcher cannot match a GraphQL request", async () => {
   assert.equal(isGraphqlUrl("https://x.com/i/api/1.1/jot/client_event.json"), false);
 });
 
+test("the isolated GraphQL boundary rejects forged, inconsistent, oversized, and malformed events", async () => {
+  const {
+    MAX_GRAPHQL_PAYLOAD_BYTES,
+    isPageAgentEnvelope,
+    sanitizeCapturedGraphqlPayload,
+    PAGE_CHANNEL
+  } = await importBundledModule("src/page/page-agent.ts");
+  const at = new Date().toISOString();
+  const valid = {
+    url: "/i/api/graphql/abc123/HomeTimeline?variables=%7B%7D",
+    operation: "HomeTimeline",
+    status: 200,
+    bytes: 2,
+    at,
+    body: "{}"
+  };
+
+  const accepted = sanitizeCapturedGraphqlPayload(valid, "https://x.com");
+  assert.equal(accepted?.url, "https://x.com/i/api/graphql/abc123/HomeTimeline?variables=%7B%7D");
+  assert.equal(accepted?.operation, "HomeTimeline");
+
+  const rejected = [
+    { ...valid, url: "https://evil.example/i/api/graphql/abc123/HomeTimeline" },
+    { ...valid, operation: "TweetDetail" },
+    { ...valid, status: 200.5 },
+    { ...valid, bytes: 3 },
+    { ...valid, body: undefined },
+    { ...valid, bytes: MAX_GRAPHQL_PAYLOAD_BYTES + 1, body: "x" },
+    { ...valid, at: "not-a-date" },
+    { ...valid, body: "\ud800", bytes: 3 }
+  ];
+  for (const candidate of rejected) {
+    assert.equal(
+      sanitizeCapturedGraphqlPayload(candidate, "https://x.com"),
+      null,
+      `must reject ${JSON.stringify(candidate)}`
+    );
+  }
+
+  assert.equal(
+    isPageAgentEnvelope({ channel: PAGE_CHANNEL, kind: "graphql", nonce: "short", payload: valid }),
+    false
+  );
+  assert.equal(
+    isPageAgentEnvelope({ channel: PAGE_CHANNEL, kind: "unknown", nonce: "trusted-session-nonce-1234" }),
+    false
+  );
+  assert.equal(
+    isPageAgentEnvelope({ channel: PAGE_CHANNEL, kind: "graphql", nonce: "trusted-session-nonce-1234", payload: valid }),
+    true
+  );
+});
+
 test("installing the agent patches nothing until a config enables a hook", async () => {
   const { installPageAgent } = await importBundledModule("src/page/page-agent.ts");
   const target = fakeWindow();

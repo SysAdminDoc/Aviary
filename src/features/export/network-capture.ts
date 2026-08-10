@@ -1,16 +1,28 @@
 import type { FeatureContext, FeatureModule } from "../registry";
 import type { CheckpointStore } from "./jobs";
 import { getCheckpointStore } from "./export-feature";
-import type { CapturedGraphqlPayload } from "../../page/page-agent";
+import {
+  MAX_GRAPHQL_PAYLOAD_BYTES,
+  sanitizeCapturedGraphqlPayload,
+  type SanitizedCapturedGraphqlPayload
+} from "../../page/page-agent";
 import type { PageBridge } from "../../platform/page-bridge";
 
-const MAX_PAYLOAD_BYTES = 1_500_000;
 const MAX_PAYLOADS = 50;
+const MAX_SESSION_PAYLOADS = 500;
+const MAX_SESSION_BYTES = 50_000_000;
+const MAX_PENDING_PAYLOADS = 32;
 
 let subscribedBridge: PageBridge | undefined;
 let activeContext: FeatureContext | undefined;
 let captureEpoch = 0;
 let captureTail: Promise<void> = Promise.resolve();
+let sessionPayloads = 0;
+let sessionBytes = 0;
+let pendingPayloads = 0;
+let rejectedPayloads = 0;
+let lastRejectionWarningAt = 0;
+let lastCaptureEnabled = false;
 const recentPayloads: Array<{ url: string; status: number; at: string; bytes: number }> = [];
 
 /**
@@ -32,13 +44,17 @@ export const networkCaptureFeature: FeatureModule = {
   defaultEnabled: true,
 
   init(ctx) {
+    const previousContext = activeContext;
     activeContext = ctx;
     const bridge = ctx.pageBridge;
-    if (bridge && subscribedBridge !== bridge) {
+    if (bridge && (subscribedBridge !== bridge || previousContext !== ctx)) {
+      resetCaptureSession();
       subscribedBridge = bridge;
       bridge.on("graphql", (payload) => {
-        const epoch = captureEpoch;
-        captureTail = captureTail.then(() => onCaptured(payload as CapturedGraphqlPayload, epoch));
+        const current = activeContext;
+        if (current) {
+          enqueueCaptured(payload, captureEpoch, current);
+        }
       });
     }
     ctx.diagnostics.info("Network capture feature ready", {
@@ -49,13 +65,19 @@ export const networkCaptureFeature: FeatureModule = {
 
   apply(ctx) {
     activeContext = ctx;
+    const enabled = ctx.settings.export.preserveRawPayloads;
+    if (enabled !== lastCaptureEnabled) {
+      resetCaptureSession();
+      lastCaptureEnabled = enabled;
+    }
   },
 
   destroy(ctx) {
     // The page-side hook is turned off by `privacy.pageHooks`, which owns the config. Dropping
     // the context here is what stops anything reaching the store.
     activeContext = undefined;
-    captureEpoch += 1;
+    resetCaptureSession();
+    lastCaptureEnabled = false;
     recentPayloads.length = 0;
     if (subscribedBridge === ctx.pageBridge) {
       subscribedBridge = undefined;
@@ -76,11 +98,19 @@ export const networkCaptureFeature: FeatureModule = {
       };
     }
     if (recentPayloads.length === 0) {
-      return { ok: true, message: "Watching X's timeline requests" };
+      return {
+        ok: true,
+        message:
+          rejectedPayloads > 0
+            ? `Watching X's timeline requests · ${rejectedPayloads} rejected`
+            : "Watching X's timeline requests"
+      };
     }
     return {
       ok: true,
-      message: `${recentPayloads.length} payload${recentPayloads.length === 1 ? "" : "s"} captured`
+      message: `${recentPayloads.length} payload${recentPayloads.length === 1 ? "" : "s"} captured${
+        rejectedPayloads > 0 ? ` · ${rejectedPayloads} rejected` : ""
+      }`
     };
   }
 };
@@ -89,7 +119,7 @@ export function getRecentCapturedPayloads(): typeof recentPayloads {
   return [...recentPayloads];
 }
 
-async function onCaptured(payload: CapturedGraphqlPayload, epoch: number): Promise<void> {
+async function onCaptured(payload: SanitizedCapturedGraphqlPayload, epoch: number): Promise<void> {
   const ctx = activeContext;
   if (epoch !== captureEpoch || !ctx || !payload || typeof payload.url !== "string") {
     return;
@@ -98,17 +128,79 @@ async function onCaptured(payload: CapturedGraphqlPayload, epoch: number): Promi
     return;
   }
   try {
-    const body = typeof payload.body === "string" ? payload.body : "";
-    const bodyBytes = new TextEncoder().encode(body).byteLength;
-    if (bodyBytes === 0 || bodyBytes > MAX_PAYLOAD_BYTES) {
-      return;
-    }
-    recordPayload(payload.url, payload.status, bodyBytes);
-    await persistPayload(ctx, payload.url, payload.operation || "graphql", body, epoch);
+    recordPayload(payload.url, payload.status, payload.bytes);
+    await persistPayload(ctx, payload.url, payload.operation, payload.body, epoch);
   } catch (error) {
     ctx.diagnostics.warn("Network capture skipped", {
       error: String((error as Error)?.message ?? error)
     });
+  }
+}
+
+function enqueueCaptured(payload: unknown, epoch: number, ctx: FeatureContext): void {
+  if (epoch !== captureEpoch || activeContext !== ctx) {
+    return;
+  }
+  const sanitized = sanitizeCapturedGraphqlPayload(payload, pageOrigin(ctx));
+  if (!sanitized) {
+    rejectCapture(ctx, "invalid GraphQL payload");
+    return;
+  }
+  if (sessionPayloads >= MAX_SESSION_PAYLOADS) {
+    rejectCapture(ctx, "session payload limit reached");
+    return;
+  }
+  if (sessionBytes + sanitized.bytes > MAX_SESSION_BYTES) {
+    rejectCapture(ctx, "session byte limit reached");
+    return;
+  }
+  if (pendingPayloads >= MAX_PENDING_PAYLOADS) {
+    rejectCapture(ctx, "capture backpressure limit reached");
+    return;
+  }
+  sessionPayloads += 1;
+  sessionBytes += sanitized.bytes;
+  pendingPayloads += 1;
+  captureTail = captureTail
+    .then(() => onCaptured(sanitized, epoch))
+    .catch((error: unknown) => {
+      ctx.diagnostics.warn("Network capture event failed", {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    })
+    .finally(() => {
+      if (captureEpoch === epoch) {
+        pendingPayloads = Math.max(0, pendingPayloads - 1);
+      }
+    });
+}
+
+function rejectCapture(ctx: FeatureContext, reason: string): void {
+  rejectedPayloads += 1;
+  const now = Date.now();
+  if (now - lastRejectionWarningAt < 1000) {
+    return;
+  }
+  lastRejectionWarningAt = now;
+  ctx.diagnostics.warn("Network capture rejected a page message", { reason });
+}
+
+function resetCaptureSession(): void {
+  captureEpoch += 1;
+  captureTail = Promise.resolve();
+  sessionPayloads = 0;
+  sessionBytes = 0;
+  pendingPayloads = 0;
+  rejectedPayloads = 0;
+  lastRejectionWarningAt = 0;
+}
+
+function pageOrigin(ctx: FeatureContext): string | undefined {
+  try {
+    const origin = new URL(ctx.route.href).origin;
+    return origin.startsWith("https://") ? origin : undefined;
+  } catch {
+    return undefined;
   }
 }
 
@@ -135,7 +227,7 @@ async function persistPayload(
   if (store.list().every((entry) => entry.jobId !== jobId)) {
     await store.start(jobId, "capture", ["json"], true);
   }
-  const scrubbed = truncateUtf8(scrubAuth(body), MAX_PAYLOAD_BYTES);
+  const scrubbed = truncateUtf8(scrubAuth(body), MAX_GRAPHQL_PAYLOAD_BYTES);
   await store.append(jobId, [
     {
       tweetId: null,
