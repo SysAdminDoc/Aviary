@@ -43,6 +43,7 @@ import {
   ArchiveImportJobStore,
   type ArchiveImportJobActionResult
 } from "../library/archive-import-jobs";
+import { ArchiveLibraryStore } from "../library/archive-library";
 import { previewCleanup } from "../library/cleanup-preview";
 import { CleanupQueue } from "../library/cleanup-queue";
 import {
@@ -80,6 +81,7 @@ let cleanupQueue: CleanupQueue | undefined;
 let semanticIndex: SemanticIndex | undefined;
 let retentionPolicy: RetentionPolicy | undefined;
 let archiveImportJobs: ArchiveImportJobStore | undefined;
+let archiveLibrary: ArchiveLibraryStore | undefined;
 
 export const controlCenterFeature: FeatureModule = {
   id: "core.controlCenter",
@@ -100,6 +102,10 @@ export const controlCenterFeature: FeatureModule = {
     if (!archiveImportJobs) {
       archiveImportJobs = new ArchiveImportJobStore(ctx.storage);
       await archiveImportJobs.load();
+    }
+    if (!archiveLibrary) {
+      archiveLibrary = new ArchiveLibraryStore(ctx.storage);
+      await archiveLibrary.load();
     }
     controlCenter = mountControlCenter({
       settings: ctx.settings,
@@ -389,6 +395,20 @@ export const controlCenterFeature: FeatureModule = {
             errorCount: job.errorCount,
             ...(job.error ? { error: job.error } : {})
           }))
+        };
+      },
+      getArchiveLibraryStatus() {
+        const snapshot = archiveLibrary?.snapshot();
+        return {
+          authoredPosts: countRecordsForSurface(getCheckpointStore(), "archive"),
+          likes: countRecordsForSurface(getCheckpointStore(), "archive.likes"),
+          directMessages: snapshot?.directMessages.length ?? 0,
+          media: snapshot?.media.length ?? 0,
+          followers: snapshot?.followers.length ?? 0,
+          following: snapshot?.following.length ?? 0,
+          lists: snapshot?.lists.length ?? 0,
+          profile: snapshot?.profile ? 1 : 0,
+          account: snapshot?.account ? 1 : 0
         };
       },
       async resumeArchiveImport(jobId) {
@@ -728,6 +748,7 @@ export const controlCenterFeature: FeatureModule = {
     semanticIndex = undefined;
     retentionPolicy = undefined;
     archiveImportJobs = undefined;
+    archiveLibrary = undefined;
     ctx.diagnostics.info("Control Center destroyed");
   }
 };
@@ -736,12 +757,19 @@ async function processArchiveImport(
   ctx: FeatureContext,
   jobs: ArchiveImportJobStore,
   jobId: string
-): Promise<{ records: number; warnings: number; errors: number }> {
+): Promise<{
+  records: number;
+  warnings: number;
+  errors: number;
+  recognizedFiles: number;
+  skippedFiles: number;
+  malformedFiles: number;
+}> {
   const source = jobs.source(jobId);
   if (!source) {
     const message = "The durable archive source is unavailable or corrupted.";
     await jobs.fail(jobId, message);
-    return { records: 0, warnings: 0, errors: 1 };
+    return { records: 0, warnings: 0, errors: 1, recognizedFiles: 0, skippedFiles: 0, malformedFiles: 0 };
   }
   await jobs.markRunning(jobId);
   try {
@@ -752,17 +780,41 @@ async function processArchiveImport(
     if (state?.status === "cancelled" || state?.status === "paused") {
       await jobs.updateProgress(jobId, {
         filesParsed: result.filesParsed.length,
-        recordCount: result.records.length,
+        recordCount: 0,
         warningCount: result.warnings.length,
         errorCount: result.errors.length
       });
       return {
-        records: result.records.length,
+        records: 0,
         warnings: result.warnings.length,
-        errors: result.errors.length
+        errors: result.errors.length,
+        recognizedFiles: result.recognizedFiles.length,
+        skippedFiles: result.skippedFiles.length,
+        malformedFiles: result.malformedFiles.length
       };
     }
 
+    if (result.errors.length > 0) {
+      await jobs.updateProgress(jobId, {
+        filesParsed: result.filesParsed.length,
+        recordCount: 0,
+        warningCount: result.warnings.length,
+        errorCount: result.errors.length
+      });
+      await jobs.fail(jobId, result.errors.join("; "));
+      return {
+        records: 0,
+        warnings: result.warnings.length,
+        errors: result.errors.length,
+        recognizedFiles: result.recognizedFiles.length,
+        skippedFiles: result.skippedFiles.length,
+        malformedFiles: result.malformedFiles.length
+      };
+    }
+
+    if (archiveLibrary && hasArchiveCollections(result.collections)) {
+      await archiveLibrary.merge(result.collections, jobId);
+    }
     const store = getCheckpointStore();
     if (result.records.length > 0 && store) {
       if (!store.list().some((job) => job.jobId === jobId)) {
@@ -775,9 +827,12 @@ async function processArchiveImport(
       await store.append(jobId, result.records);
       await store.finish(jobId);
       rebuildSearchIndex();
+    }
+    if (result.records.length > 0 || hasArchiveCollections(result.collections)) {
       void ctx.auditLog.record("settings.import", {
         archive: jobs.get(jobId)?.filename ?? "archive.zip",
         records: result.records.length,
+        collections: result.recognizedFiles.length,
         warnings: result.warnings.length
       });
     }
@@ -787,20 +842,19 @@ async function processArchiveImport(
       warningCount: result.warnings.length,
       errorCount: result.errors.length
     });
-    if (result.errors.length > 0 && result.records.length === 0) {
-      await jobs.fail(jobId, result.errors.join("; "));
-    } else {
-      await jobs.complete(jobId, {
-        filesParsed: result.filesParsed.length,
-        recordCount: result.records.length,
-        warningCount: result.warnings.length,
-        errorCount: result.errors.length
-      });
-    }
+    await jobs.complete(jobId, {
+      filesParsed: result.filesParsed.length,
+      recordCount: result.records.length,
+      warningCount: result.warnings.length,
+      errorCount: result.errors.length
+    });
     return {
       records: result.records.length,
       warnings: result.warnings.length,
-      errors: result.errors.length
+      errors: result.errors.length,
+      recognizedFiles: result.recognizedFiles.length,
+      skippedFiles: result.skippedFiles.length,
+      malformedFiles: result.malformedFiles.length
     };
   } catch (error) {
     await jobs.fail(jobId, error);
@@ -868,6 +922,30 @@ function countStoredRecords(store: ReturnType<typeof getCheckpointStore>): numbe
     total += store.records(job.jobId).length;
   }
   return total;
+}
+
+function countRecordsForSurface(
+  store: ReturnType<typeof getCheckpointStore>,
+  surface: string
+): number {
+  if (!store) return 0;
+  let total = 0;
+  for (const job of store.list()) {
+    total += store.records(job.jobId).filter((record) => record.surface === surface).length;
+  }
+  return total;
+}
+
+function hasArchiveCollections(collections: import("../library/archive-types").ArchiveCollections): boolean {
+  return Boolean(
+    collections.profile ||
+      collections.account ||
+      collections.directMessages.length > 0 ||
+      collections.media.length > 0 ||
+      collections.followers.length > 0 ||
+      collections.following.length > 0 ||
+      collections.lists.length > 0
+  );
 }
 
 function rebuildSearchIndex(): void {

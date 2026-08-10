@@ -34,6 +34,10 @@
 - Local settings, credentials, libraries, jobs, captures, and search stores now sit behind an
   explicit profile boundary; switching profiles reloads into an isolated namespace, and legacy
   unassigned data requires a visible one-time assignment instead of route-based account guessing.
+- Official X archive imports now classify and preview recognized, skipped, and malformed files;
+  typed profiles, account references, direct messages, media references, lists, and follower data
+  persist in a separate local collection store while authored posts and likes retain searchable
+  checkpoint storage without exposing private messages to public-post search.
 
 ## 1.16.0 - 2026-08-09
 

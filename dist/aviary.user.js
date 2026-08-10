@@ -5930,6 +5930,15 @@ html.av-reduce-motion *::after {
         );
       }
       const archiveStatus = options.getArchiveImportStatus?.();
+      const archiveLibraryStatus = options.getArchiveLibraryStatus?.();
+      if (archiveLibraryStatus) {
+        rows.push(
+          dataRow(
+            "Imported collections",
+            `${archiveLibraryStatus.authoredPosts} posts \xB7 ${archiveLibraryStatus.likes} likes \xB7 ${archiveLibraryStatus.directMessages} direct messages (kept out of public search) \xB7 ${archiveLibraryStatus.media} media refs \xB7 ${archiveLibraryStatus.followers} followers \xB7 ${archiveLibraryStatus.following} following \xB7 ${archiveLibraryStatus.lists} lists`
+          )
+        );
+      }
       if (archiveStatus) {
         for (const job of archiveStatus.jobs) {
           rows.push(
@@ -6000,7 +6009,8 @@ html.av-reduce-motion *::after {
               const result = await options.importArchive(file);
               render();
               const warningsLabel = result.warnings > 0 || result.errors > 0 ? ` (${result.warnings} warning${result.warnings === 1 ? "" : "s"}, ${result.errors} error${result.errors === 1 ? "" : "s"})` : "";
-              setStatus(`Imported ${result.records} records${warningsLabel}.`);
+              const reportLabel = result.recognizedFiles !== void 0 ? ` ${result.recognizedFiles} recognized, ${result.skippedFiles ?? 0} skipped, ${result.malformedFiles ?? 0} malformed.` : "";
+              setStatus(`Imported ${result.records} records${warningsLabel}.${reportLabel}`);
             } catch (error) {
               options.onError("Archive import failed", error);
               setStatus("Archive import failed.");
@@ -13017,6 +13027,19 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     return -1;
   }
 
+  // src/features/library/archive-types.ts
+  function emptyArchiveCollections() {
+    return {
+      profile: null,
+      account: null,
+      directMessages: [],
+      media: [],
+      followers: [],
+      following: [],
+      lists: []
+    };
+  }
+
   // src/features/library/archive-import.ts
   var TEXT_DECODER2 = new TextDecoder();
   var MAX_ARCHIVE_BYTES = 256 * 1024 * 1024;
@@ -13025,26 +13048,32 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     const errors = [];
     const filesParsed = [];
     const records = [];
+    const collections = emptyArchiveCollections();
+    const recognizedFiles = [];
+    const skippedFiles = [];
+    const malformedFiles = [];
     if (buffer.byteLength > MAX_ARCHIVE_BYTES) {
       errors.push("Archive exceeds the 256 MiB input limit.");
-      return { records, warnings, errors, filesParsed };
+      return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles };
     }
     let entries;
     try {
       entries = await readZip(buffer);
     } catch (error) {
       errors.push(error.message);
-      return { records, warnings, errors, filesParsed };
+      return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles };
     }
     if (entries.length === 0) {
       errors.push(
         canInflate() ? "Archive contained no readable entries." : "This browser cannot decompress archives (DecompressionStream is unavailable)."
       );
-      return { records, warnings, errors, filesParsed };
+      return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles };
     }
     for (const entry of entries) {
       const lower = entry.filename.toLowerCase();
-      if (!isInterestingFile(lower)) {
+      const collection = classifyArchiveFile(lower);
+      if (!collection) {
+        skippedFiles.push(entry.filename);
         continue;
       }
       if (!entry.crcOk) {
@@ -13059,18 +13088,198 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         parsed = JSON.parse(payload);
       } catch (error) {
         warnings.push(`${entry.filename}: JSON parse failed (${error.message})`);
+        malformedFiles.push(entry.filename);
+        recognizedFiles.push({ filename: entry.filename, collection, status: "malformed", records: 0 });
         continue;
       }
-      if (lower.includes("tweets.js") || lower.includes("tweets-part") || lower.endsWith("/tweet.js")) {
-        records.push(...mapTweets(parsed, surface));
-      } else if (lower.includes("like.js")) {
-        records.push(...mapLikes(parsed, surface));
+      const count = appendCollection(collections, collection, parsed, entry.filename, surface, records);
+      recognizedFiles.push({ filename: entry.filename, collection, status: "parsed", records: count });
+    }
+    return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles };
+  }
+  function classifyArchiveFile(name) {
+    if (/(?:^|\/)tweets(?:-part\d+)?\.js$/.test(name) || /(?:^|\/)tweet\.js$/.test(name)) return "authored-posts";
+    if (/(?:^|\/)(?:like|likes|liked-tweets)\.js$/.test(name)) return "likes";
+    if (/(?:^|\/)(?:direct-messages|direct_messages|dm|dms)\.js$/.test(name)) return "direct-messages";
+    if (/(?:^|\/)media(?:\/|\.js$)/.test(name)) return "media";
+    if (/(?:^|\/)followers?\.js$/.test(name)) return "followers";
+    if (/(?:^|\/)following\.js$/.test(name)) return "following";
+    if (/(?:^|\/)lists?\.js$/.test(name)) return "lists";
+    if (/(?:^|\/)profile\.js$/.test(name)) return "profile";
+    if (/(?:^|\/)account\.js$/.test(name)) return "account";
+    return null;
+  }
+  function appendCollection(collections, collection, parsed, filename, surface, records) {
+    if (collection === "authored-posts") {
+      const mapped2 = mapTweets(parsed, surface);
+      records.push(...mapped2);
+      return mapped2.length;
+    }
+    if (collection === "likes") {
+      const mapped2 = mapLikes(parsed, surface);
+      records.push(...mapped2);
+      return mapped2.length;
+    }
+    if (collection === "direct-messages") {
+      const mapped2 = mapDirectMessages(parsed);
+      collections.directMessages.push(...mapped2);
+      return mapped2.length;
+    }
+    if (collection === "media") {
+      const mapped2 = mapMediaReferences(parsed, filename);
+      collections.media.push(...mapped2);
+      return mapped2.length;
+    }
+    if (collection === "followers" || collection === "following") {
+      const mapped2 = mapAccountRefs(parsed, filename);
+      collections[collection].push(...mapped2);
+      return mapped2.length;
+    }
+    if (collection === "lists") {
+      const mapped2 = mapLists(parsed);
+      collections.lists.push(...mapped2);
+      return mapped2.length;
+    }
+    if (collection === "profile") {
+      const mapped2 = mapProfile(parsed);
+      if (mapped2) collections.profile = mapped2;
+      return mapped2 ? 1 : 0;
+    }
+    const mapped = mapAccount(parsed);
+    if (mapped) collections.account = mapped;
+    return mapped ? 1 : 0;
+  }
+  function mapDirectMessages(parsed) {
+    const out = [];
+    for (const entry of arrayEntries(parsed)) {
+      const root = unwrapRecord(entry, ["dmConversation", "conversation"]);
+      const conversationId = stringField(root, "conversationId", "id");
+      const messages = Array.isArray(root.messages) ? root.messages : [root];
+      for (const candidate of messages) {
+        const message = unwrapRecord(candidate, ["messageCreate", "message"]);
+        const text = stringField(message, "text", "full_text") ?? "";
+        const id = stringField(message, "id", "id_str");
+        if (!id && text.length === 0) continue;
+        out.push({
+          id,
+          conversationId,
+          senderId: stringField(message, "senderId", "sender_id"),
+          recipientIds: [
+            ...stringArrayField(message, "recipientIds", "recipient_ids"),
+            ...[stringField(message, "recipientId", "recipient_id") ?? ""].filter(Boolean)
+          ].slice(0, 1e3),
+          text,
+          createdAt: stringField(message, "createdAt", "created_at"),
+          mediaUrls: stringArrayField(message, "mediaUrls", "media_urls").filter(isHttpUrl)
+        });
       }
     }
-    return { records, warnings, errors, filesParsed };
+    return out;
   }
-  function isInterestingFile(name) {
-    return name.endsWith("tweets.js") || name.endsWith("tweet.js") || name.includes("tweets-part") || name.endsWith("like.js");
+  function mapMediaReferences(parsed, sourceFile) {
+    const out = [];
+    for (const entry of arrayEntries(parsed)) {
+      const media = unwrapRecord(entry, ["media", "mediaEntity", "uploadMedia"]);
+      const url = stringField(media, "url", "mediaUrl", "media_url");
+      const urls = stringArrayField(media, "urls", "mediaUrls", "media_urls");
+      const candidates = [url, ...urls].filter((candidate) => Boolean(candidate));
+      if (candidates.length === 0 && !stringField(media, "id", "id_str")) continue;
+      out.push({
+        id: stringField(media, "id", "id_str", "mediaId"),
+        tweetId: stringField(media, "tweetId", "tweet_id", "statusId"),
+        url: candidates.find(isHttpUrl) ?? null,
+        filename: stringField(media, "filename", "name"),
+        mimeType: stringField(media, "mimeType", "mime_type", "type"),
+        sourceFile
+      });
+    }
+    return out;
+  }
+  function mapAccountRefs(parsed, sourceFile) {
+    const out = [];
+    for (const entry of arrayEntries(parsed)) {
+      const account = unwrapRecord(entry, ["account", "user", "follower", "following"]);
+      const id = stringField(account, "accountId", "account_id", "id", "id_str");
+      const handle = stringField(account, "userLink", "screen_name", "username", "handle")?.replace(/^https?:\/\/(?:x|twitter)\.com\//i, "").replace(/^@/, "").split(/[/?#]/)[0] ?? null;
+      const displayName = stringField(account, "displayName", "name", "full_name");
+      if (!id && !handle && !displayName) continue;
+      out.push({ id, handle, displayName, sourceFile });
+    }
+    return out;
+  }
+  function mapLists(parsed) {
+    const out = [];
+    for (const entry of arrayEntries(parsed)) {
+      const list = unwrapRecord(entry, ["list", "lists-list"]);
+      if (!stringField(list, "id", "id_str", "listId") && !stringField(list, "name")) continue;
+      out.push({
+        id: stringField(list, "id", "id_str", "listId"),
+        name: stringField(list, "name", "fullName"),
+        description: stringField(list, "description"),
+        memberIds: stringArrayField(list, "memberIds", "member_ids"),
+        subscriberIds: stringArrayField(list, "subscriberIds", "subscriber_ids")
+      });
+    }
+    return out;
+  }
+  function mapProfile(parsed) {
+    const profile = unwrapRecord(arrayEntries(parsed)[0], ["profile", "user"]);
+    if (Object.keys(profile).length === 0) return null;
+    return {
+      handle: stringField(profile, "screenName", "screen_name", "username", "handle"),
+      displayName: stringField(profile, "displayName", "name", "full_name"),
+      bio: stringField(profile, "bio", "description"),
+      location: stringField(profile, "location"),
+      website: stringField(profile, "website", "url"),
+      joinedAt: stringField(profile, "createdAt", "created_at")
+    };
+  }
+  function mapAccount(parsed) {
+    const account = unwrapRecord(arrayEntries(parsed)[0], ["account", "user"]);
+    if (Object.keys(account).length === 0) return null;
+    return {
+      id: stringField(account, "accountId", "account_id", "id", "id_str"),
+      handle: stringField(account, "screenName", "screen_name", "username", "handle"),
+      displayName: stringField(account, "displayName", "name", "full_name"),
+      email: stringField(account, "email", "emailAddress")
+    };
+  }
+  function arrayEntries(value) {
+    if (Array.isArray(value)) return value;
+    if (isRecord4(value)) {
+      for (const candidate of Object.values(value)) {
+        if (Array.isArray(candidate)) return candidate;
+      }
+      return [value];
+    }
+    return [];
+  }
+  function unwrapRecord(value, keys) {
+    if (!isRecord4(value)) return {};
+    for (const key of keys) {
+      if (isRecord4(value[key])) return value[key];
+    }
+    return value;
+  }
+  function stringArrayField(record, ...keys) {
+    for (const key of keys) {
+      const value = record[key];
+      if (!Array.isArray(value)) continue;
+      return value.flatMap((entry) => {
+        if (typeof entry === "string") return [entry];
+        if (isRecord4(entry)) return [stringField(entry, "id", "id_str", "url") ?? ""];
+        return [];
+      }).filter((entry) => entry.length > 0).slice(0, 1e3);
+    }
+    return [];
+  }
+  function isHttpUrl(value) {
+    try {
+      const url = new URL(value);
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      return false;
+    }
   }
   function safeDecode(data, errors, filename) {
     try {
@@ -13406,6 +13615,154 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       bytes[index] = binary.charCodeAt(index);
     }
     return bytes;
+  }
+
+  // src/features/library/archive-library.ts
+  var ARCHIVE_LIBRARY_KEY = "aviary.archive.library.v1";
+  var EMPTY4 = {
+    version: 1,
+    profile: null,
+    account: null,
+    directMessages: [],
+    media: [],
+    followers: [],
+    following: [],
+    lists: [],
+    importedJobs: [],
+    updatedAt: null
+  };
+  var ArchiveLibraryStore = class {
+    #storage;
+    #snapshot = cloneSnapshot(EMPTY4);
+    #loaded = false;
+    constructor(storage) {
+      this.#storage = storage;
+    }
+    async load() {
+      if (this.#loaded) return;
+      this.#snapshot = normalizeSnapshot(await this.#storage.get(ARCHIVE_LIBRARY_KEY, EMPTY4));
+      this.#loaded = true;
+    }
+    snapshot() {
+      return cloneSnapshot(this.#snapshot);
+    }
+    async merge(collections, jobId) {
+      await this.load();
+      const next = cloneSnapshot(this.#snapshot);
+      next.profile = collections.profile ?? next.profile;
+      next.account = collections.account ?? next.account;
+      next.directMessages = mergeByKey(
+        next.directMessages,
+        collections.directMessages,
+        (entry) => entry.id ?? `${entry.conversationId ?? ""}:${entry.createdAt ?? ""}:${entry.text}`
+      );
+      next.media = mergeByKey(
+        next.media,
+        collections.media,
+        (entry) => entry.id ?? `${entry.tweetId ?? ""}:${entry.url ?? ""}:${entry.sourceFile}`
+      );
+      next.followers = mergeByKey(
+        next.followers,
+        collections.followers,
+        (entry) => entry.id ?? entry.handle ?? `${entry.sourceFile}:${entry.displayName ?? ""}`
+      );
+      next.following = mergeByKey(
+        next.following,
+        collections.following,
+        (entry) => entry.id ?? entry.handle ?? `${entry.sourceFile}:${entry.displayName ?? ""}`
+      );
+      next.lists = mergeByKey(
+        next.lists,
+        collections.lists,
+        (entry) => entry.id ?? `${entry.name ?? ""}:${entry.description ?? ""}`
+      );
+      if (!next.importedJobs.includes(jobId)) {
+        next.importedJobs.push(jobId);
+        next.importedJobs = next.importedJobs.slice(-100);
+      }
+      next.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+      await this.#storage.set(ARCHIVE_LIBRARY_KEY, next);
+      this.#snapshot = next;
+    }
+    async clear() {
+      const next = cloneSnapshot(EMPTY4);
+      this.#loaded = true;
+      await this.#storage.set(ARCHIVE_LIBRARY_KEY, next);
+      this.#snapshot = next;
+    }
+  };
+  function normalizeSnapshot(value) {
+    if (!value || typeof value !== "object") return cloneSnapshot(EMPTY4);
+    const raw = value;
+    return {
+      version: 1,
+      profile: isRecord5(raw.profile) ? {
+        handle: stringOrNull(raw.profile.handle),
+        displayName: stringOrNull(raw.profile.displayName),
+        bio: stringOrNull(raw.profile.bio),
+        location: stringOrNull(raw.profile.location),
+        website: stringOrNull(raw.profile.website),
+        joinedAt: stringOrNull(raw.profile.joinedAt)
+      } : null,
+      account: isRecord5(raw.account) ? {
+        id: stringOrNull(raw.account.id),
+        handle: stringOrNull(raw.account.handle),
+        displayName: stringOrNull(raw.account.displayName),
+        email: stringOrNull(raw.account.email)
+      } : null,
+      directMessages: arrayOf(raw.directMessages).filter(isDirectMessage),
+      media: arrayOf(raw.media).filter(isMediaReference),
+      followers: arrayOf(raw.followers).filter(isAccountRef),
+      following: arrayOf(raw.following).filter(isAccountRef),
+      lists: arrayOf(raw.lists).filter(isList),
+      importedJobs: arrayOf(raw.importedJobs).filter((entry) => typeof entry === "string").slice(-100),
+      updatedAt: stringOrNull(raw.updatedAt)
+    };
+  }
+  function mergeByKey(current, incoming, key) {
+    const result = [...current];
+    const seen = new Set(current.map(key));
+    for (const entry of incoming) {
+      const identity = key(entry);
+      if (seen.has(identity)) continue;
+      seen.add(identity);
+      result.push(entry);
+    }
+    return result.slice(-1e4);
+  }
+  function cloneSnapshot(snapshot) {
+    return {
+      ...snapshot,
+      profile: snapshot.profile ? { ...snapshot.profile } : null,
+      account: snapshot.account ? { ...snapshot.account } : null,
+      directMessages: snapshot.directMessages.map((entry) => ({ ...entry, recipientIds: [...entry.recipientIds], mediaUrls: [...entry.mediaUrls] })),
+      media: snapshot.media.map((entry) => ({ ...entry })),
+      followers: snapshot.followers.map((entry) => ({ ...entry })),
+      following: snapshot.following.map((entry) => ({ ...entry })),
+      lists: snapshot.lists.map((entry) => ({ ...entry, memberIds: [...entry.memberIds], subscriberIds: [...entry.subscriberIds] })),
+      importedJobs: [...snapshot.importedJobs]
+    };
+  }
+  function arrayOf(value) {
+    return Array.isArray(value) ? value : [];
+  }
+  function stringOrNull(value) {
+    return typeof value === "string" ? value : null;
+  }
+  function isRecord5(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+  function isDirectMessage(value) {
+    return isRecord5(value) && typeof value.text === "string" && Array.isArray(value.recipientIds) && Array.isArray(value.mediaUrls);
+  }
+  function isMediaReference(value) {
+    return isRecord5(value) && typeof value.sourceFile === "string";
+  }
+  function isAccountRef(value) {
+    return isRecord5(value) && typeof value.sourceFile === "string";
+  }
+  function isList(value) {
+    return isRecord5(value) && Array.isArray(value.memberIds) && Array.isArray(value.subscriberIds);
   }
 
   // src/features/library/cleanup-preview.ts
@@ -13930,10 +14287,10 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
   function isMediaRecord(record) {
     const type = typeof record.type === "string" ? record.type.toLowerCase() : "";
-    return type === "video" || type === "animated_gif" || isRecord5(record.video_info) || Boolean(record.preview_image_url || record.preview_image_url_https) && (type.includes("video") || type.includes("gif"));
+    return type === "video" || type === "animated_gif" || isRecord6(record.video_info) || Boolean(record.preview_image_url || record.preview_image_url_https) && (type.includes("video") || type.includes("gif"));
   }
   function readMediaMetadata(record, tweetId) {
-    const videoInfo = isRecord5(record.video_info) ? record.video_info : {};
+    const videoInfo = isRecord6(record.video_info) ? record.video_info : {};
     const variants = readVariants(videoInfo.variants);
     const poster = firstUrl(
       record.preview_image_url_https,
@@ -13955,7 +14312,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     const variants = [];
     const seen = /* @__PURE__ */ new Set();
     for (const entry of value) {
-      if (!isRecord5(entry)) {
+      if (!isRecord6(entry)) {
         continue;
       }
       const url = httpUrl(entry.url);
@@ -14079,7 +14436,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     }
     return { width: Number(match[1]), height: Number(match[2]) };
   }
-  function isRecord5(value) {
+  function isRecord6(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -14163,7 +14520,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   // src/features/media/last-download.ts
   var LAST_DOWNLOAD_KEY = "aviary.media.last-download.v1";
   async function rememberLastDownload(storage, input) {
-    if (!isHttpUrl(input.url) || input.filename.trim().length === 0) return;
+    if (!isHttpUrl2(input.url) || input.filename.trim().length === 0) return;
     try {
       await storage.set(LAST_DOWNLOAD_KEY, {
         ...input,
@@ -14180,9 +14537,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   function isLastDownload(value) {
     if (typeof value !== "object" || value === null) return false;
     const candidate = value;
-    return typeof candidate.url === "string" && isHttpUrl(candidate.url) && typeof candidate.filename === "string" && candidate.filename.length > 0 && (candidate.kind === "photo" || candidate.kind === "video" || candidate.kind === "thumbnail") && typeof candidate.downloadedAt === "string";
+    return typeof candidate.url === "string" && isHttpUrl2(candidate.url) && typeof candidate.filename === "string" && candidate.filename.length > 0 && (candidate.kind === "photo" || candidate.kind === "video" || candidate.kind === "thumbnail") && typeof candidate.downloadedAt === "string";
   }
-  function isHttpUrl(value) {
+  function isHttpUrl2(value) {
     try {
       const parsed = new URL(value);
       return parsed.protocol === "http:" || parsed.protocol === "https:";
@@ -15329,11 +15686,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   // src/features/library/snapshots.ts
   var SNAPSHOTS_KEY = "aviary.snapshots.v1";
   var SNAPSHOT_LIMIT = 24;
-  var EMPTY4 = { entries: [] };
+  var EMPTY5 = { entries: [] };
   var SnapshotStore = class {
     #storage;
     #limit;
-    #state = EMPTY4;
+    #state = EMPTY5;
     #loaded = false;
     constructor(storage, limit = SNAPSHOT_LIMIT) {
       this.#storage = storage;
@@ -15341,7 +15698,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
     async load() {
       if (this.#loaded) return;
-      const stored = await this.#storage.get(SNAPSHOTS_KEY, EMPTY4);
+      const stored = await this.#storage.get(SNAPSHOTS_KEY, EMPTY5);
       const entries = Array.isArray(stored?.entries) ? stored.entries : [];
       this.#state = { entries: entries.filter(isSnapshotEntry).slice(-this.#limit) };
       this.#loaded = true;
@@ -16174,7 +16531,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       errors.push(`Invalid JSON: ${error.message}`);
       return { applied: false, errors, warnings, settings: normalizeSettings({}) };
     }
-    if (!isRecord6(parsed)) {
+    if (!isRecord7(parsed)) {
       errors.push("Top-level value must be an object.");
       return { applied: false, errors, warnings, settings: normalizeSettings({}) };
     }
@@ -16188,7 +16545,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         `Import version ${version} is newer than supported ${SETTINGS_EXPORT_VERSION}; unknown fields are dropped.`
       );
     }
-    const rawSettings = isRecord6(parsed.settings) ? parsed.settings : parsed;
+    const rawSettings = isRecord7(parsed.settings) ? parsed.settings : parsed;
     const normalized = normalizeSettings(rawSettings);
     let restored = 0;
     for (const [group, key] of SECRET_PATHS) {
@@ -16204,7 +16561,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
     return { applied: true, errors, warnings, settings: normalized };
   }
-  function isRecord6(value) {
+  function isRecord7(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -16215,6 +16572,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   var semanticIndex;
   var retentionPolicy;
   var archiveImportJobs;
+  var archiveLibrary;
   var controlCenterFeature = {
     id: "core.controlCenter",
     title: "Control Center",
@@ -16233,6 +16591,10 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       if (!archiveImportJobs) {
         archiveImportJobs = new ArchiveImportJobStore(ctx.storage);
         await archiveImportJobs.load();
+      }
+      if (!archiveLibrary) {
+        archiveLibrary = new ArchiveLibraryStore(ctx.storage);
+        await archiveLibrary.load();
       }
       controlCenter = mountControlCenter({
         settings: ctx.settings,
@@ -16519,6 +16881,20 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
               errorCount: job.errorCount,
               ...job.error ? { error: job.error } : {}
             }))
+          };
+        },
+        getArchiveLibraryStatus() {
+          const snapshot = archiveLibrary?.snapshot();
+          return {
+            authoredPosts: countRecordsForSurface(getCheckpointStore(), "archive"),
+            likes: countRecordsForSurface(getCheckpointStore(), "archive.likes"),
+            directMessages: snapshot?.directMessages.length ?? 0,
+            media: snapshot?.media.length ?? 0,
+            followers: snapshot?.followers.length ?? 0,
+            following: snapshot?.following.length ?? 0,
+            lists: snapshot?.lists.length ?? 0,
+            profile: snapshot?.profile ? 1 : 0,
+            account: snapshot?.account ? 1 : 0
           };
         },
         async resumeArchiveImport(jobId) {
@@ -16849,6 +17225,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       semanticIndex = void 0;
       retentionPolicy = void 0;
       archiveImportJobs = void 0;
+      archiveLibrary = void 0;
       ctx.diagnostics.info("Control Center destroyed");
     }
   };
@@ -16857,7 +17234,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     if (!source) {
       const message = "The durable archive source is unavailable or corrupted.";
       await jobs.fail(jobId, message);
-      return { records: 0, warnings: 0, errors: 1 };
+      return { records: 0, warnings: 0, errors: 1, recognizedFiles: 0, skippedFiles: 0, malformedFiles: 0 };
     }
     await jobs.markRunning(jobId);
     try {
@@ -16866,15 +17243,38 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       if (state2?.status === "cancelled" || state2?.status === "paused") {
         await jobs.updateProgress(jobId, {
           filesParsed: result.filesParsed.length,
-          recordCount: result.records.length,
+          recordCount: 0,
           warningCount: result.warnings.length,
           errorCount: result.errors.length
         });
         return {
-          records: result.records.length,
+          records: 0,
           warnings: result.warnings.length,
-          errors: result.errors.length
+          errors: result.errors.length,
+          recognizedFiles: result.recognizedFiles.length,
+          skippedFiles: result.skippedFiles.length,
+          malformedFiles: result.malformedFiles.length
         };
+      }
+      if (result.errors.length > 0) {
+        await jobs.updateProgress(jobId, {
+          filesParsed: result.filesParsed.length,
+          recordCount: 0,
+          warningCount: result.warnings.length,
+          errorCount: result.errors.length
+        });
+        await jobs.fail(jobId, result.errors.join("; "));
+        return {
+          records: 0,
+          warnings: result.warnings.length,
+          errors: result.errors.length,
+          recognizedFiles: result.recognizedFiles.length,
+          skippedFiles: result.skippedFiles.length,
+          malformedFiles: result.malformedFiles.length
+        };
+      }
+      if (archiveLibrary && hasArchiveCollections(result.collections)) {
+        await archiveLibrary.merge(result.collections, jobId);
       }
       const store4 = getCheckpointStore();
       if (result.records.length > 0 && store4) {
@@ -16886,9 +17286,12 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         await store4.append(jobId, result.records);
         await store4.finish(jobId);
         rebuildSearchIndex();
+      }
+      if (result.records.length > 0 || hasArchiveCollections(result.collections)) {
         void ctx.auditLog.record("settings.import", {
           archive: jobs.get(jobId)?.filename ?? "archive.zip",
           records: result.records.length,
+          collections: result.recognizedFiles.length,
           warnings: result.warnings.length
         });
       }
@@ -16898,20 +17301,19 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         warningCount: result.warnings.length,
         errorCount: result.errors.length
       });
-      if (result.errors.length > 0 && result.records.length === 0) {
-        await jobs.fail(jobId, result.errors.join("; "));
-      } else {
-        await jobs.complete(jobId, {
-          filesParsed: result.filesParsed.length,
-          recordCount: result.records.length,
-          warningCount: result.warnings.length,
-          errorCount: result.errors.length
-        });
-      }
+      await jobs.complete(jobId, {
+        filesParsed: result.filesParsed.length,
+        recordCount: result.records.length,
+        warningCount: result.warnings.length,
+        errorCount: result.errors.length
+      });
       return {
         records: result.records.length,
         warnings: result.warnings.length,
-        errors: result.errors.length
+        errors: result.errors.length,
+        recognizedFiles: result.recognizedFiles.length,
+        skippedFiles: result.skippedFiles.length,
+        malformedFiles: result.malformedFiles.length
       };
     } catch (error) {
       await jobs.fail(jobId, error);
@@ -16967,6 +17369,19 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       total += store4.records(job.jobId).length;
     }
     return total;
+  }
+  function countRecordsForSurface(store4, surface) {
+    if (!store4) return 0;
+    let total = 0;
+    for (const job of store4.list()) {
+      total += store4.records(job.jobId).filter((record) => record.surface === surface).length;
+    }
+    return total;
+  }
+  function hasArchiveCollections(collections) {
+    return Boolean(
+      collections.profile || collections.account || collections.directMessages.length > 0 || collections.media.length > 0 || collections.followers.length > 0 || collections.following.length > 0 || collections.lists.length > 0
+    );
   }
   function rebuildSearchIndex() {
     const store4 = getCheckpointStore();
@@ -17514,7 +17929,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
   // src/features/core/audit-log.ts
   var AUDIT_LOG_KEY = "aviary.audit.v1";
   var AUDIT_LOG_LIMIT = 500;
-  var EMPTY5 = { entries: [] };
+  var EMPTY6 = { entries: [] };
   var AuditLog = class {
     #storage;
     #limit;
@@ -17561,7 +17976,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
       return this.#entries.length;
     }
     async #hydrate() {
-      const stored = await this.#storage.get(AUDIT_LOG_KEY, EMPTY5);
+      const stored = await this.#storage.get(AUDIT_LOG_KEY, EMPTY6);
       const entries = Array.isArray(stored?.entries) ? stored.entries : [];
       this.#entries = entries.filter(
         (entry) => typeof entry?.at === "string" && typeof entry?.action === "string"
@@ -20058,7 +20473,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     "aviary.library.bookmarks.v1",
     "aviary.snapshots.v1",
     "aviary.semanticIndex.v1",
-    "aviary.archive.imports.v1"
+    "aviary.archive.imports.v1",
+    "aviary.archive.library.v1"
   ];
   var DATABASE_NAME = "aviary.durable.v1";
   var OBJECT_STORE = "values";
@@ -20356,15 +20772,16 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     "aviary.snapshots.v1",
     "aviary.semanticIndex.v1",
     "aviary.archive.imports.v1",
+    "aviary.archive.library.v1",
     "aviary.retention.maxJobs",
     "aviary.retention.maxRecordsPerJob",
     "aviary.retention.maxAgeDays"
   ];
   var DEFAULT_PROFILE_ID = "offline-default";
-  var EMPTY6 = { profiles: [] };
+  var EMPTY7 = { profiles: [] };
   var ProfileManager = class {
     #base;
-    #state = EMPTY6;
+    #state = EMPTY7;
     #activeId = DEFAULT_PROFILE_ID;
     #legacyDataAvailable = false;
     #loaded = false;
@@ -20373,7 +20790,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     }
     async load() {
       if (this.#loaded) return;
-      this.#state = normalizeState2(await this.#base.get(PROFILE_REGISTRY_KEY, EMPTY6));
+      this.#state = normalizeState2(await this.#base.get(PROFILE_REGISTRY_KEY, EMPTY7));
       const active = await this.#base.get(ACTIVE_PROFILE_KEY, null);
       if (typeof active === "string" && this.#state.profiles.some((profile) => profile.id === active)) {
         this.#activeId = active;

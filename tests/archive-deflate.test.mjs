@@ -112,6 +112,100 @@ test("a DEFLATE-compressed archive — what X actually ships — imports", async
   assert.deepEqual(result.warnings, [], "the CRC must verify against the inflated bytes");
 });
 
+test("official archive collection files are classified, typed, and reported before commit", async () => {
+  const { importOfficialArchive } = await importBundledModule(
+    "src/features/library/archive-import.ts"
+  );
+  const assign = (name, value) => `window.YTD.${name}.part0 = ${JSON.stringify(value)}`;
+  const archive = buildZip([
+    {
+      name: "data/tweets.js",
+      content: TWEETS_JS,
+      method: 8
+    },
+    {
+      name: "data/direct-messages.js",
+      content: assign("direct_messages", [
+        {
+          dmConversation: {
+            conversationId: "conversation-1",
+            messages: [
+              {
+                messageCreate: {
+                  id: "message-1",
+                  senderId: "sender-1",
+                  recipientId: "recipient-1",
+                  text: "A private archive message.",
+                  createdAt: "2026-01-16T12:01:00.000Z"
+                }
+              }
+            ]
+          }
+        }
+      ])
+    },
+    {
+      name: "data/media.js",
+      content: assign("media", [
+        {
+          uploadMedia: {
+            mediaId: "media-1",
+            mediaUrl: "https://pbs.twimg.com/media/example.jpg"
+          }
+        }
+      ])
+    },
+    {
+      name: "data/follower.js",
+      content: assign("follower", [
+        { follower: { accountId: "follower-1", userLink: "https://twitter.com/alice" } }
+      ])
+    },
+    {
+      name: "data/following.js",
+      content: assign("following", [
+        { following: { accountId: "following-1", userLink: "https://x.com/bob" } }
+      ])
+    },
+    {
+      name: "data/lists.js",
+      content: assign("lists", [
+        { "lists-list": { listId: "list-1", name: "Research", description: "Useful accounts" } }
+      ])
+    },
+    {
+      name: "data/profile.js",
+      content: assign("profile", [
+        { profile: { screenName: "aviary", name: "Aviary", description: "Local first" } }
+      ])
+    },
+    {
+      name: "data/account.js",
+      content: assign("account", [
+        { account: { accountId: "account-1", username: "aviary", email: "local@example.test" } }
+      ])
+    },
+    { name: "data/like.js", content: "window.YTD.like.part0 = not-json" },
+    { name: "data/manifest.js", content: "window.__THAR_CONFIG = {};" }
+  ]);
+
+  const result = await importOfficialArchive(archive, "archive");
+
+  assert.equal(result.records.length, 1, "authored posts retain the existing searchable path");
+  assert.equal(result.collections.directMessages.length, 1);
+  assert.deepEqual(result.collections.directMessages[0].recipientIds, ["recipient-1"]);
+  assert.equal(result.collections.media[0].url, "https://pbs.twimg.com/media/example.jpg");
+  assert.equal(result.collections.followers[0].handle, "alice");
+  assert.equal(result.collections.following[0].handle, "bob");
+  assert.equal(result.collections.lists[0].id, "list-1");
+  assert.equal(result.collections.profile?.handle, "aviary");
+  assert.equal(result.collections.account?.email, "local@example.test");
+  assert.equal(result.recognizedFiles.length, 9);
+  assert.deepEqual(result.skippedFiles, ["data/manifest.js"]);
+  assert.deepEqual(result.malformedFiles, ["data/like.js"]);
+  assert.ok(result.warnings.some((warning) => warning.includes("data/like.js")));
+});
+
 test("STORE entries still read, and mixed archives read both", async () => {
   const { readZip } = await importBundledModule("src/features/export/zip-reader.ts");
 
@@ -223,6 +317,84 @@ test("archive import jobs rehydrate interrupted source and release it after comp
   }), true);
   assert.equal(reloaded.source(second.jobId), null, "completed imports must release their ZIP source");
   assert.ok(store.has(ARCHIVE_IMPORT_JOBS_KEY));
+});
+
+test("typed archive collections persist separately from searchable tweet records and dedupe", async () => {
+  const { ArchiveLibraryStore, ARCHIVE_LIBRARY_KEY } = await importBundledModule(
+    "src/features/library/archive-library.ts"
+  );
+  const persisted = new Map();
+  const storage = {
+    async get(key, fallback) {
+      return persisted.has(key) ? structuredClone(persisted.get(key)) : structuredClone(fallback);
+    },
+    async set(key, value) {
+      persisted.set(key, structuredClone(value));
+    },
+    async remove(key) {
+      persisted.delete(key);
+    }
+  };
+  const collections = {
+    profile: { handle: "aviary", displayName: "Aviary", bio: null, location: null, website: null, joinedAt: null },
+    account: null,
+    directMessages: [
+      {
+        id: "message-1",
+        conversationId: "conversation-1",
+        senderId: "sender-1",
+        recipientIds: ["recipient-1"],
+        text: "private",
+        createdAt: null,
+        mediaUrls: []
+      }
+    ],
+    media: [],
+    followers: [],
+    following: [],
+    lists: []
+  };
+
+  const store = new ArchiveLibraryStore(storage);
+  await store.merge(collections, "archive-1");
+  await store.merge(collections, "archive-2");
+  assert.equal(store.snapshot().directMessages.length, 1);
+  assert.deepEqual(store.snapshot().importedJobs, ["archive-1", "archive-2"]);
+  assert.ok(persisted.has(ARCHIVE_LIBRARY_KEY));
+
+  const reloaded = new ArchiveLibraryStore(storage);
+  await reloaded.load();
+  assert.equal(reloaded.snapshot().profile?.handle, "aviary");
+  assert.equal(reloaded.snapshot().directMessages[0].text, "private");
+});
+
+test("typed archive collection writes do not mutate the live snapshot when persistence fails", async () => {
+  const { ArchiveLibraryStore } = await importBundledModule(
+    "src/features/library/archive-library.ts"
+  );
+  const storage = {
+    async get(key, fallback) {
+      return structuredClone(fallback);
+    },
+    async set() {
+      throw new Error("quota exhausted");
+    },
+    async remove() {}
+  };
+  const store = new ArchiveLibraryStore(storage);
+  await assert.rejects(
+    () => store.merge({
+      profile: { handle: "should-not-stick", displayName: null, bio: null, location: null, website: null, joinedAt: null },
+      account: null,
+      directMessages: [],
+      media: [],
+      followers: [],
+      following: [],
+      lists: []
+    }, "archive-failed"),
+    /quota exhausted/
+  );
+  assert.equal(store.snapshot().profile, null);
 });
 
 async function importBundledModule(relativePath) {

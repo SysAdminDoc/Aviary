@@ -244,8 +244,26 @@ export interface ControlCenterOptions {
     handle: string
   ) => { added: number; removed: number; unchanged: number } | null;
   clearSnapshots?: () => Promise<void>;
-  importArchive?: (file: File) => Promise<{ records: number; warnings: number; errors: number }>;
+  importArchive?: (file: File) => Promise<{
+    records: number;
+    warnings: number;
+    errors: number;
+    recognizedFiles?: number;
+    skippedFiles?: number;
+    malformedFiles?: number;
+  }>;
   getArchiveImportStatus?: () => ArchiveImportStatus;
+  getArchiveLibraryStatus?: () => {
+    authoredPosts: number;
+    likes: number;
+    directMessages: number;
+    media: number;
+    followers: number;
+    following: number;
+    lists: number;
+    profile: number;
+    account: number;
+  };
   pauseArchiveImport?: (jobId: string) => Promise<{ ok: boolean; error?: string }>;
   resumeArchiveImport?: (jobId: string) => Promise<{ ok: boolean; error?: string }>;
   cancelArchiveImport?: (jobId: string) => Promise<{ ok: boolean; error?: string }>;
@@ -1122,6 +1140,15 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     }
 
     const archiveStatus = options.getArchiveImportStatus?.();
+    const archiveLibraryStatus = options.getArchiveLibraryStatus?.();
+    if (archiveLibraryStatus) {
+      rows.push(
+        dataRow(
+          "Imported collections",
+          `${archiveLibraryStatus.authoredPosts} posts · ${archiveLibraryStatus.likes} likes · ${archiveLibraryStatus.directMessages} direct messages (kept out of public search) · ${archiveLibraryStatus.media} media refs · ${archiveLibraryStatus.followers} followers · ${archiveLibraryStatus.following} following · ${archiveLibraryStatus.lists} lists`
+        )
+      );
+    }
     if (archiveStatus) {
       for (const job of archiveStatus.jobs) {
         rows.push(
@@ -1201,7 +1228,11 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
                     result.errors === 1 ? "" : "s"
                   })`
                 : "";
-            setStatus(`Imported ${result.records} records${warningsLabel}.`);
+            const reportLabel =
+              result.recognizedFiles !== undefined
+                ? ` ${result.recognizedFiles} recognized, ${result.skippedFiles ?? 0} skipped, ${result.malformedFiles ?? 0} malformed.`
+                : "";
+            setStatus(`Imported ${result.records} records${warningsLabel}.${reportLabel}`);
           } catch (error) {
             options.onError("Archive import failed", error);
             setStatus("Archive import failed.");

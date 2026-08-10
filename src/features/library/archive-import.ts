@@ -1,11 +1,43 @@
 import { canInflate, readZip } from "../export/zip-reader";
 import type { ExportRecord } from "../export/types";
+import {
+  emptyArchiveCollections,
+  type ArchiveAccount,
+  type ArchiveAccountRef,
+  type ArchiveCollections,
+  type ArchiveDirectMessage,
+  type ArchiveList,
+  type ArchiveMediaReference,
+  type ArchiveProfile
+} from "./archive-types";
+
+export type ArchiveCollectionName =
+  | "authored-posts"
+  | "likes"
+  | "direct-messages"
+  | "media"
+  | "followers"
+  | "following"
+  | "lists"
+  | "profile"
+  | "account";
+
+export interface ArchiveFileReport {
+  filename: string;
+  collection: ArchiveCollectionName;
+  status: "parsed" | "malformed";
+  records: number;
+}
 
 export interface ArchiveImportResult {
   records: ExportRecord[];
+  collections: ArchiveCollections;
   warnings: string[];
   errors: string[];
   filesParsed: string[];
+  recognizedFiles: ArchiveFileReport[];
+  skippedFiles: string[];
+  malformedFiles: string[];
 }
 
 const TEXT_DECODER = new TextDecoder();
@@ -19,16 +51,20 @@ export async function importOfficialArchive(
   const errors: string[] = [];
   const filesParsed: string[] = [];
   const records: ExportRecord[] = [];
+  const collections = emptyArchiveCollections();
+  const recognizedFiles: ArchiveFileReport[] = [];
+  const skippedFiles: string[] = [];
+  const malformedFiles: string[] = [];
   if (buffer.byteLength > MAX_ARCHIVE_BYTES) {
     errors.push("Archive exceeds the 256 MiB input limit.");
-    return { records, warnings, errors, filesParsed };
+    return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles };
   }
   let entries;
   try {
     entries = await readZip(buffer);
   } catch (error) {
     errors.push((error as Error).message);
-    return { records, warnings, errors, filesParsed };
+    return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles };
   }
   if (entries.length === 0) {
     errors.push(
@@ -36,12 +72,14 @@ export async function importOfficialArchive(
         ? "Archive contained no readable entries."
         : "This browser cannot decompress archives (DecompressionStream is unavailable)."
     );
-    return { records, warnings, errors, filesParsed };
+    return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles };
   }
 
   for (const entry of entries) {
     const lower = entry.filename.toLowerCase();
-    if (!isInterestingFile(lower)) {
+    const collection = classifyArchiveFile(lower);
+    if (!collection) {
+      skippedFiles.push(entry.filename);
       continue;
     }
     if (!entry.crcOk) {
@@ -56,25 +94,225 @@ export async function importOfficialArchive(
       parsed = JSON.parse(payload);
     } catch (error) {
       warnings.push(`${entry.filename}: JSON parse failed (${(error as Error).message})`);
+      malformedFiles.push(entry.filename);
+      recognizedFiles.push({ filename: entry.filename, collection, status: "malformed", records: 0 });
       continue;
     }
-    if (lower.includes("tweets.js") || lower.includes("tweets-part") || lower.endsWith("/tweet.js")) {
-      records.push(...mapTweets(parsed, surface));
-    } else if (lower.includes("like.js")) {
-      records.push(...mapLikes(parsed, surface));
-    }
+    const count = appendCollection(collections, collection, parsed, entry.filename, surface, records);
+    recognizedFiles.push({ filename: entry.filename, collection, status: "parsed", records: count });
   }
 
-  return { records, warnings, errors, filesParsed };
+  return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles };
 }
 
-function isInterestingFile(name: string): boolean {
-  return (
-    name.endsWith("tweets.js") ||
-    name.endsWith("tweet.js") ||
-    name.includes("tweets-part") ||
-    name.endsWith("like.js")
-  );
+function classifyArchiveFile(name: string): ArchiveCollectionName | null {
+  if (/(?:^|\/)tweets(?:-part\d+)?\.js$/.test(name) || /(?:^|\/)tweet\.js$/.test(name)) return "authored-posts";
+  if (/(?:^|\/)(?:like|likes|liked-tweets)\.js$/.test(name)) return "likes";
+  if (/(?:^|\/)(?:direct-messages|direct_messages|dm|dms)\.js$/.test(name)) return "direct-messages";
+  if (/(?:^|\/)media(?:\/|\.js$)/.test(name)) return "media";
+  if (/(?:^|\/)followers?\.js$/.test(name)) return "followers";
+  if (/(?:^|\/)following\.js$/.test(name)) return "following";
+  if (/(?:^|\/)lists?\.js$/.test(name)) return "lists";
+  if (/(?:^|\/)profile\.js$/.test(name)) return "profile";
+  if (/(?:^|\/)account\.js$/.test(name)) return "account";
+  return null;
+}
+
+function appendCollection(
+  collections: ArchiveCollections,
+  collection: ArchiveCollectionName,
+  parsed: unknown,
+  filename: string,
+  surface: string,
+  records: ExportRecord[]
+): number {
+  if (collection === "authored-posts") {
+    const mapped = mapTweets(parsed, surface);
+    records.push(...mapped);
+    return mapped.length;
+  }
+  if (collection === "likes") {
+    const mapped = mapLikes(parsed, surface);
+    records.push(...mapped);
+    return mapped.length;
+  }
+  if (collection === "direct-messages") {
+    const mapped = mapDirectMessages(parsed);
+    collections.directMessages.push(...mapped);
+    return mapped.length;
+  }
+  if (collection === "media") {
+    const mapped = mapMediaReferences(parsed, filename);
+    collections.media.push(...mapped);
+    return mapped.length;
+  }
+  if (collection === "followers" || collection === "following") {
+    const mapped = mapAccountRefs(parsed, filename);
+    collections[collection].push(...mapped);
+    return mapped.length;
+  }
+  if (collection === "lists") {
+    const mapped = mapLists(parsed);
+    collections.lists.push(...mapped);
+    return mapped.length;
+  }
+  if (collection === "profile") {
+    const mapped = mapProfile(parsed);
+    if (mapped) collections.profile = mapped;
+    return mapped ? 1 : 0;
+  }
+  const mapped = mapAccount(parsed);
+  if (mapped) collections.account = mapped;
+  return mapped ? 1 : 0;
+}
+
+function mapDirectMessages(parsed: unknown): ArchiveDirectMessage[] {
+  const out: ArchiveDirectMessage[] = [];
+  for (const entry of arrayEntries(parsed)) {
+    const root = unwrapRecord(entry, ["dmConversation", "conversation"]);
+    const conversationId = stringField(root, "conversationId", "id");
+    const messages = Array.isArray(root.messages) ? root.messages : [root];
+    for (const candidate of messages) {
+      const message = unwrapRecord(candidate, ["messageCreate", "message"]);
+      const text = stringField(message, "text", "full_text") ?? "";
+      const id = stringField(message, "id", "id_str");
+      if (!id && text.length === 0) continue;
+      out.push({
+        id,
+        conversationId,
+        senderId: stringField(message, "senderId", "sender_id"),
+        recipientIds: [
+          ...stringArrayField(message, "recipientIds", "recipient_ids"),
+          ...[stringField(message, "recipientId", "recipient_id") ?? ""].filter(Boolean)
+        ].slice(0, 1000),
+        text,
+        createdAt: stringField(message, "createdAt", "created_at"),
+        mediaUrls: stringArrayField(message, "mediaUrls", "media_urls")
+          .filter(isHttpUrl)
+      });
+    }
+  }
+  return out;
+}
+
+function mapMediaReferences(parsed: unknown, sourceFile: string): ArchiveMediaReference[] {
+  const out: ArchiveMediaReference[] = [];
+  for (const entry of arrayEntries(parsed)) {
+    const media = unwrapRecord(entry, ["media", "mediaEntity", "uploadMedia"]);
+    const url = stringField(media, "url", "mediaUrl", "media_url");
+    const urls = stringArrayField(media, "urls", "mediaUrls", "media_urls");
+    const candidates = [url, ...urls].filter((candidate): candidate is string => Boolean(candidate));
+    if (candidates.length === 0 && !stringField(media, "id", "id_str")) continue;
+    out.push({
+      id: stringField(media, "id", "id_str", "mediaId"),
+      tweetId: stringField(media, "tweetId", "tweet_id", "statusId"),
+      url: candidates.find(isHttpUrl) ?? null,
+      filename: stringField(media, "filename", "name"),
+      mimeType: stringField(media, "mimeType", "mime_type", "type"),
+      sourceFile
+    });
+  }
+  return out;
+}
+
+function mapAccountRefs(parsed: unknown, sourceFile: string): ArchiveAccountRef[] {
+  const out: ArchiveAccountRef[] = [];
+  for (const entry of arrayEntries(parsed)) {
+    const account = unwrapRecord(entry, ["account", "user", "follower", "following"]);
+    const id = stringField(account, "accountId", "account_id", "id", "id_str");
+    const handle = stringField(account, "userLink", "screen_name", "username", "handle")
+      ?.replace(/^https?:\/\/(?:x|twitter)\.com\//i, "")
+      .replace(/^@/, "")
+      .split(/[/?#]/)[0] ?? null;
+    const displayName = stringField(account, "displayName", "name", "full_name");
+    if (!id && !handle && !displayName) continue;
+    out.push({ id, handle, displayName, sourceFile });
+  }
+  return out;
+}
+
+function mapLists(parsed: unknown): ArchiveList[] {
+  const out: ArchiveList[] = [];
+  for (const entry of arrayEntries(parsed)) {
+    const list = unwrapRecord(entry, ["list", "lists-list"]);
+    if (!stringField(list, "id", "id_str", "listId") && !stringField(list, "name")) continue;
+    out.push({
+      id: stringField(list, "id", "id_str", "listId"),
+      name: stringField(list, "name", "fullName"),
+      description: stringField(list, "description"),
+      memberIds: stringArrayField(list, "memberIds", "member_ids"),
+      subscriberIds: stringArrayField(list, "subscriberIds", "subscriber_ids")
+    });
+  }
+  return out;
+}
+
+function mapProfile(parsed: unknown): ArchiveProfile | null {
+  const profile = unwrapRecord(arrayEntries(parsed)[0], ["profile", "user"]);
+  if (Object.keys(profile).length === 0) return null;
+  return {
+    handle: stringField(profile, "screenName", "screen_name", "username", "handle"),
+    displayName: stringField(profile, "displayName", "name", "full_name"),
+    bio: stringField(profile, "bio", "description"),
+    location: stringField(profile, "location"),
+    website: stringField(profile, "website", "url"),
+    joinedAt: stringField(profile, "createdAt", "created_at")
+  };
+}
+
+function mapAccount(parsed: unknown): ArchiveAccount | null {
+  const account = unwrapRecord(arrayEntries(parsed)[0], ["account", "user"]);
+  if (Object.keys(account).length === 0) return null;
+  return {
+    id: stringField(account, "accountId", "account_id", "id", "id_str"),
+    handle: stringField(account, "screenName", "screen_name", "username", "handle"),
+    displayName: stringField(account, "displayName", "name", "full_name"),
+    email: stringField(account, "email", "emailAddress")
+  };
+}
+
+function arrayEntries(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (isRecord(value)) {
+    for (const candidate of Object.values(value)) {
+      if (Array.isArray(candidate)) return candidate;
+    }
+    return [value];
+  }
+  return [];
+}
+
+function unwrapRecord(value: unknown, keys: string[]): Record<string, unknown> {
+  if (!isRecord(value)) return {};
+  for (const key of keys) {
+    if (isRecord(value[key])) return value[key];
+  }
+  return value;
+}
+
+function stringArrayField(record: Record<string, unknown>, ...keys: string[]): string[] {
+  for (const key of keys) {
+    const value = record[key];
+    if (!Array.isArray(value)) continue;
+    return value
+      .flatMap((entry) => {
+        if (typeof entry === "string") return [entry];
+        if (isRecord(entry)) return [stringField(entry, "id", "id_str", "url") ?? ""];
+        return [];
+      })
+      .filter((entry) => entry.length > 0)
+      .slice(0, 1000);
+  }
+  return [];
+}
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function safeDecode(data: Uint8Array, errors: string[], filename: string): string | null {
