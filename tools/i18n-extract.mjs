@@ -14,7 +14,8 @@
  *    dropped. This replaces a hand-kept exclusion list that would rot.
  * 3. Locale endonyms (Español, 日本語, …) are dropped: they are already in their own
  *    language and translating them would be wrong.
- * 4. Status and error copy lives in branches one render cannot reach, so `setStatus("…")`
+ * 4. Status and error copy lives in branches one render cannot reach, so `setStatus("…")` and
+ * `setStatusCopy("…", values)` literals are harvested from the source and unioned in.
  *    literals are harvested from the source and unioned in.
  * 5. Features that inject into the timeline never render inside the panel at all, so their
  *    `ft(ctx, "…")` call sites — and the static preset label/description data — are harvested
@@ -221,7 +222,7 @@ const optionsController = await readFile(path.join(root, "src/entrypoints/extens
 const optionsLiterals = harvestOptionsLiterals(optionsHtml, optionsController);
 
 /**
- * Collects every string literal inside a `setStatus(...)` / `save(...)` call.
+ * Collects every string literal inside a `setStatus(...)`, `setStatusCopy(...)`, or `save(...)` call.
  *
  * Anchoring on the literal that immediately follows the open paren misses the far more common
  * `save(checked ? "X on" : "X off")` form -- which is how nearly every toggle reports itself, so
@@ -293,30 +294,53 @@ function harvestOptionsLiterals(html, controller) {
 
 function harvestStatusLiterals(source) {
   const found = [];
-  for (const match of source.matchAll(/\b(?:setStatus|save)\(/g)) {
-    const start = match.index + match[0].length;
+  const readLiteral = (i) => {
+    const quote = source[i];
+    let j = i + 1;
+    while (j < source.length && source[j] !== quote) {
+      j += source[j] === "\\" ? 2 : 1;
+    }
+    if (quote === '"') {
+      found.push(JSON.parse(source.slice(i, j + 1)));
+    }
+    return j;
+  };
+
+  const collectAllArguments = (start) => {
     let depth = 1;
     let i = start;
     while (i < source.length && depth > 0) {
       const ch = source[i];
       if (ch === "(") depth += 1;
       else if (ch === ")") depth -= 1;
-      else if (ch === '"' || ch === "'" || ch === "`") {
-        // Skip the whole literal so a paren inside it cannot unbalance the scan.
-        const quote = ch;
-        let j = i + 1;
-        while (j < source.length && source[j] !== quote) {
-          j += source[j] === "\\" ? 2 : 1;
-        }
-        // Template literals interpolate, so they can never match a catalog key -- skip, do not
-        // collect. Same rule the `t()` guidance in CLAUDE.md states.
-        if (quote === '"') {
-          found.push(JSON.parse(source.slice(i, j + 1)));
-        }
-        i = j;
+      else if (ch === '"' || ch === "'" || ch === "`") i = readLiteral(i);
+      i += 1;
+    }
+  };
+
+  const collectFirstArgument = (start) => {
+    let depth = 0;
+    let i = start;
+    while (i < source.length) {
+      const ch = source[i];
+      if (ch === '"' || ch === "'" || ch === "`") {
+        i = readLiteral(i);
+      } else if (ch === "(" || ch === "[" || ch === "{") {
+        depth += 1;
+      } else if (ch === ")" || ch === "]" || ch === "}") {
+        if (depth === 0) return;
+        depth -= 1;
+      } else if (ch === "," && depth === 0) {
+        return;
       }
       i += 1;
     }
+  };
+
+  for (const match of source.matchAll(/\b(setStatusCopy|setStatus|save)\(/g)) {
+    const start = match.index + match[0].length;
+    if (match[1] === "setStatusCopy") collectFirstArgument(start);
+    else collectAllArguments(start);
   }
   return [...new Set(found)];
 }

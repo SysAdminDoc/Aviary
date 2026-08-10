@@ -426,6 +426,12 @@ html.av-reduce-motion *::after {
       "Walks UserCell rows on the current page. Open a /handle/following view first.": "Recorre las filas UserCell de la p\xE1gina actual. Abre primero una vista /usuario/following.",
       "Clear all snapshots": "Borrar todas las instant\xE1neas",
       "Drop every stored follower/following snapshot.": "Elimina todas las instant\xE1neas de seguidores y seguidos.",
+      "Import official X archive": "Importar el archivo oficial de X",
+      "Pick a ZIP exported from x.com. STORE and DEFLATE entries are supported; the source stays local while it is resumable.": "Elige un ZIP exportado desde x.com. Se admiten entradas STORE y DEFLATE; el origen permanece local mientras se puede reanudar.",
+      "Search captured records": "Buscar registros capturados",
+      "Full-text search across the latest export collector run.": "B\xFAsqueda de texto completo en la \xFAltima ejecuci\xF3n del recolector de exportaci\xF3n.",
+      "@handle, keyword, phrase\u2026": "@usuario, palabra clave, frase\u2026",
+      "Type to search the records captured by export runs.": "Escribe para buscar los registros capturados por las ejecuciones de exportaci\xF3n.",
       "Download Markdown report": "Descargar informe en Markdown",
       "Audit log + snapshot diff + cleanup preview.": "Registro de auditor\xEDa, comparaci\xF3n de instant\xE1neas y vista previa de limpieza.",
       "Cleanup review queue": "Cola de revisi\xF3n de limpieza",
@@ -446,6 +452,8 @@ html.av-reduce-motion *::after {
       "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.": "Los archivos m\xE1s peque\xF1os se guardan con el navegador. Aviary comprueba primero el tama\xF1o; si el servidor no lo indica, el archivo se deriva igualmente.",
       "Test Aria2 connection": "Probar la conexi\xF3n con Aria2",
       "Sends a trivial JSON-RPC call.": "Env\xEDa una llamada JSON-RPC trivial.",
+      "Aria2 active downloads": "Descargas activas de Aria2",
+      "Refresh to list in-flight transfers; tap Cancel to abort one.": "Actualiza para listar transferencias en curso; pulsa Cancelar para abortar una.",
       "Refresh": "Actualizar",
       "Bluesky crosspost": "Publicaci\xF3n cruzada en Bluesky",
       "Post composer text to your Bluesky account on demand.": "Publica el texto del redactor en tu cuenta de Bluesky cuando lo pidas.",
@@ -463,6 +471,8 @@ html.av-reduce-motion *::after {
       "Bearer token with write:statuses scope.": "Token Bearer con el \xE1mbito write:statuses.",
       "Attach last download": "Adjuntar la \xFAltima descarga",
       "Upload the last successful Aviary media download with the first post in an explicit crosspost.": "Adjunta la \xFAltima descarga correcta de Aviary a la primera publicaci\xF3n de una publicaci\xF3n cruzada expl\xEDcita.",
+      "Crosspost as thread": "Publicar como hilo",
+      "Split on blank lines and reply each segment to the previous one.": "Divide en p\xE1rrafos vac\xEDos y responde a cada segmento del anterior.",
       "Crosspost composer \u2192 Bluesky": "Publicar el redactor en Bluesky",
       "Uses the current composer text.": "Usa el texto actual del redactor.",
       "Crosspost composer \u2192 Mastodon": "Publicar el redactor en Mastodon",
@@ -490,9 +500,22 @@ html.av-reduce-motion *::after {
       "After each export run, kick the embedding job in the background. Off by default.": "Tras cada exportaci\xF3n, lanza el trabajo de incrustaci\xF3n en segundo plano. Desactivado por defecto.",
       "Rebuild semantic index": "Reconstruir el \xEDndice sem\xE1ntico",
       "Embed every captured record. Re-running is cheap because cached entries are skipped.": "Genera embeddings de cada registro capturado. Repetirlo es barato porque se omiten las entradas en cach\xE9.",
+      "Vector similarity over captured records. Embeddings run on demand.": "Similitud vectorial en los registros capturados. Los embeddings se ejecutan bajo demanda.",
+      "Describe what you're looking for\u2026": "Describe lo que buscas\u2026",
       "Clear semantic index": "Borrar el \xEDndice sem\xE1ntico",
       "Forget every embedded record.": "Olvida todos los registros con embeddings.",
+      "on": "activado",
+      "off": "desactivado",
+      "configured": "configurado",
+      "missing endpoint": "falta el endpoint",
+      "missing credentials": "faltan las credenciales",
+      "missing key/model": "falta la clave o el modelo",
+      "indexed": "indexados",
+      "{name}: {state} \xB7 {config}": "{name} \u2014 {state} \xB7 {config}",
+      "{name}: {state} \xB7 {count} {indexed}": "{name} \u2014 {state} \xB7 {count} {indexed}",
       "Integration status": "Estado de las integraciones",
+      "Recent integration errors": "Errores recientes de integraci\xF3n",
+      "Drawn from the audit log; only failed integration calls show up.": "Se muestran desde el registro de auditor\xEDa; solo aparecen las llamadas de integraci\xF3n fallidas.",
       "Reset everything to plain X": "Restablecer todo a X sin cambios",
       "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "Devuelve cada ajuste a su valor predeterminado, que es no cambiar nada de X. Se conservan tus publicaciones guardadas, notas, marcadores e historial de descargas: esto solo restablece las preferencias.",
       "Export settings": "Exportar ajustes",
@@ -549,11 +572,19 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "Balizas de anal\xEDtica permitidas",
       "Selector health monitoring on": "Supervisi\xF3n del estado de selectores activada",
       "Selector health monitoring off": "Supervisi\xF3n del estado de selectores desactivada",
+      "Profile switched. Reloading\u2026": "Perfil cambiado. Recargando\u2026",
+      "Profile switch failed.": "No se pudo cambiar el perfil.",
+      "Profile created. Reloading\u2026": "Perfil creado. Recargando\u2026",
+      "Profile creation failed.": "No se pudo crear el perfil.",
       "Could not apply preset.": "No se pudo aplicar el ajuste predefinido.",
       "No UserCell rows found.": "No se encontraron filas UserCell.",
       "Snapshot failed.": "La instant\xE1nea fall\xF3.",
       "Snapshots cleared": "Instant\xE1neas borradas",
       "Could not clear snapshots.": "No se pudieron borrar las instant\xE1neas.",
+      "Archive import paused.": "Importaci\xF3n del archivo pausada.",
+      "Archive import resumed.": "Importaci\xF3n del archivo reanudada.",
+      "Archive import cancelled.": "Importaci\xF3n del archivo cancelada.",
+      "Archive import retry started.": "Se inici\xF3 el reintento de importaci\xF3n del archivo.",
       "Reading archive \u2014 large files take a moment\u2026": "Leyendo el archivo: los ficheros grandes tardan un momento\u2026",
       "Archive import failed.": "Error al importar el archivo.",
       "Building report\u2026": "Generando el informe\u2026",
@@ -570,6 +601,7 @@ html.av-reduce-motion *::after {
       "Aria2 threshold saved": "Umbral de Aria2 guardado",
       "Aria2 reachable.": "Aria2 accesible.",
       "Aria2 connection test failed.": "Fall\xF3 la prueba de conexi\xF3n con Aria2.",
+      "Aria2 cancel failed.": "Fall\xF3 la cancelaci\xF3n de Aria2.",
       "Aria2 sweep failed.": "Error al consultar Aria2.",
       "Bluesky on": "Bluesky activado",
       "Bluesky off": "Bluesky desactivado",
@@ -634,6 +666,9 @@ html.av-reduce-motion *::after {
       "Raw payload preference saved": "Preferencia de payloads sin procesar guardada",
       "Query discovery preference saved": "Preferencia de descubrimiento de consultas guardada",
       "Save folder hint saved": "Carpeta de guardado guardada",
+      "Export job paused.": "Trabajo de exportaci\xF3n pausado.",
+      "Export job resumed.": "Trabajo de exportaci\xF3n reanudado.",
+      "Export job cancelled.": "Trabajo de exportaci\xF3n cancelado.",
       "Collecting visible posts\u2026": "Recopilando las publicaciones visibles\u2026",
       "No posts found on this view. Scroll the timeline to load some, then export again.": "No se encontraron publicaciones en esta vista. Desplaza la cronolog\xEDa para cargar algunas y vuelve a exportar.",
       "Export failed. See diagnostics.": "La exportaci\xF3n fall\xF3. Consulta el diagn\xF3stico.",
@@ -661,6 +696,7 @@ html.av-reduce-motion *::after {
       "Could not clear history.": "No se pudo borrar el historial.",
       "Downloading media from this view\u2026": "Descargando el contenido de esta vista\u2026",
       "Batch download failed.": "La descarga por lotes fall\xF3.",
+      "No failed media jobs to retry.": "No hay trabajos de medios fallidos para reintentar.",
       "Filters enabled": "Filtros activados",
       "Filters disabled": "Filtros desactivados",
       "Premium filter saved": "Filtro Premium guardado",
@@ -678,11 +714,15 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "No se pudieron borrar las publicaciones ocultas.",
       "Saving...": "Guardando...",
       "Could not save settings. Try again.": "No se pudieron guardar los ajustes. Int\xE9ntalo de nuevo.",
+      "Aviary settings": "Ajustes de Aviary",
       "Nothing matches that search.": "Nada coincide con esa b\xFAsqueda.",
       "Try a shorter word, or pick a section on the left.": "Prueba con una palabra m\xE1s corta o elige una secci\xF3n a la izquierda.",
       "Preset applied": "Ajuste preestablecido aplicado",
       "Preset already applied": "El ajuste preestablecido ya estaba aplicado",
+      "No captured records match \u201C{query}\u201D.": "No hay registros capturados que coincidan con \xAB{query}\xBB.",
+      "No active downloads.": "No hay descargas activas.",
       "Cancel": "Cancelar",
+      "No matches (or integration disabled).": "No hay coincidencias (o la integraci\xF3n est\xE1 desactivada).",
       "Find local bookmarks": "Buscar marcadores locales",
       "Search saved posts by text, handle, tags, folder, or ID.": "Busca publicaciones guardadas por texto, usuario, etiquetas, carpeta o ID.",
       "Search local bookmarks": "Buscar marcadores locales",
@@ -979,6 +1019,12 @@ html.av-reduce-motion *::after {
       "Walks UserCell rows on the current page. Open a /handle/following view first.": "Percorre as linhas UserCell da p\xE1gina atual. Abra primeiro uma vista /utilizador/following.",
       "Clear all snapshots": "Limpar todos os instant\xE2neos",
       "Drop every stored follower/following snapshot.": "Elimina todos os instant\xE2neos de seguidores e seguidos.",
+      "Import official X archive": "Importar o arquivo oficial do X",
+      "Pick a ZIP exported from x.com. STORE and DEFLATE entries are supported; the source stays local while it is resumable.": "Escolha um ZIP exportado de x.com. S\xE3o suportadas entradas STORE e DEFLATE; a origem permanece local enquanto puder ser retomada.",
+      "Search captured records": "Pesquisar registos capturados",
+      "Full-text search across the latest export collector run.": "Pesquisa de texto completo na execu\xE7\xE3o mais recente do coletor de exporta\xE7\xE3o.",
+      "@handle, keyword, phrase\u2026": "@utilizador, palavra-chave, frase\u2026",
+      "Type to search the records captured by export runs.": "Escreva para pesquisar os registos capturados pelas execu\xE7\xF5es de exporta\xE7\xE3o.",
       "Download Markdown report": "Transferir relat\xF3rio em Markdown",
       "Audit log + snapshot diff + cleanup preview.": "Registo de auditoria, compara\xE7\xE3o de instant\xE2neos e pr\xE9-visualiza\xE7\xE3o de limpeza.",
       "Cleanup review queue": "Fila de revis\xE3o de limpeza",
@@ -999,6 +1045,8 @@ html.av-reduce-motion *::after {
       "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.": "Os ficheiros mais pequenos s\xE3o guardados pelo navegador. O Aviary verifica primeiro o tamanho; se o servidor n\xE3o o indicar, o ficheiro \xE9 encaminhado \xE0 mesma.",
       "Test Aria2 connection": "Testar a liga\xE7\xE3o ao Aria2",
       "Sends a trivial JSON-RPC call.": "Envia uma chamada JSON-RPC trivial.",
+      "Aria2 active downloads": "Transfer\xEAncias ativas do Aria2",
+      "Refresh to list in-flight transfers; tap Cancel to abort one.": "Atualize para listar transfer\xEAncias em curso; toque em Cancelar para interromper uma.",
       "Refresh": "Atualizar",
       "Bluesky crosspost": "Publica\xE7\xE3o cruzada no Bluesky",
       "Post composer text to your Bluesky account on demand.": "Publica o texto do editor na sua conta do Bluesky quando voc\xEA pedir.",
@@ -1016,6 +1064,8 @@ html.av-reduce-motion *::after {
       "Bearer token with write:statuses scope.": "Token Bearer com o escopo write:statuses.",
       "Attach last download": "Anexar o \xFAltimo download",
       "Upload the last successful Aviary media download with the first post in an explicit crosspost.": "Anexa o \xFAltimo download bem-sucedido do Aviary ao primeiro post de uma publica\xE7\xE3o cruzada expl\xEDcita.",
+      "Crosspost as thread": "Publicar como t\xF3pico",
+      "Split on blank lines and reply each segment to the previous one.": "Divida nas linhas vazias e responda a cada segmento ao anterior.",
       "Crosspost composer \u2192 Bluesky": "Publicar o editor no Bluesky",
       "Uses the current composer text.": "Usa o texto atual do editor.",
       "Crosspost composer \u2192 Mastodon": "Publicar o editor no Mastodon",
@@ -1043,9 +1093,22 @@ html.av-reduce-motion *::after {
       "After each export run, kick the embedding job in the background. Off by default.": "Ap\xF3s cada exporta\xE7\xE3o, dispara o trabalho de embeddings em segundo plano. Desligado por padr\xE3o.",
       "Rebuild semantic index": "Reconstruir o \xEDndice sem\xE2ntico",
       "Embed every captured record. Re-running is cheap because cached entries are skipped.": "Gera embeddings de cada registo capturado. Repetir \xE9 barato porque as entradas em cache s\xE3o ignoradas.",
+      "Vector similarity over captured records. Embeddings run on demand.": "Similaridade vetorial nos registos capturados. Os embeddings s\xE3o executados a pedido.",
+      "Describe what you're looking for\u2026": "Descreva o que procura\u2026",
       "Clear semantic index": "Limpar o \xEDndice sem\xE2ntico",
       "Forget every embedded record.": "Esquece todos os registos com embeddings.",
+      "on": "ativado",
+      "off": "desativado",
+      "configured": "configurado",
+      "missing endpoint": "endpoint em falta",
+      "missing credentials": "credenciais em falta",
+      "missing key/model": "chave/modelo em falta",
+      "indexed": "indexados",
+      "{name}: {state} \xB7 {config}": "{name} \u2014 {state} \xB7 {config}",
+      "{name}: {state} \xB7 {count} {indexed}": "{name} \u2014 {state} \xB7 {count} {indexed}",
       "Integration status": "Estado das integra\xE7\xF5es",
+      "Recent integration errors": "Erros recentes de integra\xE7\xE3o",
+      "Drawn from the audit log; only failed integration calls show up.": "Obtidos do registo de auditoria; s\xF3 s\xE3o mostradas chamadas de integra\xE7\xE3o falhadas.",
       "Reset everything to plain X": "Repor tudo para o X original",
       "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "Devolve todas as defini\xE7\xF5es ao valor predefinido, que \xE9 n\xE3o alterar nada no X. As tuas publica\xE7\xF5es guardadas, notas, marcadores e hist\xF3rico de transfer\xEAncias s\xE3o mantidos \u2014 isto rep\xF5e apenas as prefer\xEAncias.",
       "Export settings": "Exportar defini\xE7\xF5es",
@@ -1102,11 +1165,19 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "Sinalizadores de an\xE1lise permitidos",
       "Selector health monitoring on": "Monitoramento da sa\xFAde dos seletores ativado",
       "Selector health monitoring off": "Monitoramento da sa\xFAde dos seletores desativado",
+      "Profile switched. Reloading\u2026": "Perfil alterado. A recarregar\u2026",
+      "Profile switch failed.": "N\xE3o foi poss\xEDvel alterar o perfil.",
+      "Profile created. Reloading\u2026": "Perfil criado. A recarregar\u2026",
+      "Profile creation failed.": "N\xE3o foi poss\xEDvel criar o perfil.",
       "Could not apply preset.": "N\xE3o foi poss\xEDvel aplicar a predefini\xE7\xE3o.",
       "No UserCell rows found.": "N\xE3o foram encontradas linhas UserCell.",
       "Snapshot failed.": "O instant\xE2neo falhou.",
       "Snapshots cleared": "Instant\xE2neos limpos",
       "Could not clear snapshots.": "N\xE3o foi poss\xEDvel limpar os instant\xE2neos.",
+      "Archive import paused.": "Importa\xE7\xE3o do arquivo pausada.",
+      "Archive import resumed.": "Importa\xE7\xE3o do arquivo retomada.",
+      "Archive import cancelled.": "Importa\xE7\xE3o do arquivo cancelada.",
+      "Archive import retry started.": "Foi iniciada uma nova tentativa de importa\xE7\xE3o do arquivo.",
       "Reading archive \u2014 large files take a moment\u2026": "A ler o arquivo: ficheiros grandes demoram um momento\u2026",
       "Archive import failed.": "Falha ao importar o arquivo.",
       "Building report\u2026": "A gerar o relat\xF3rio\u2026",
@@ -1123,6 +1194,7 @@ html.av-reduce-motion *::after {
       "Aria2 threshold saved": "Limite do Aria2 guardado",
       "Aria2 reachable.": "Aria2 acess\xEDvel.",
       "Aria2 connection test failed.": "Falha no teste de liga\xE7\xE3o ao Aria2.",
+      "Aria2 cancel failed.": "Falha ao cancelar o Aria2.",
       "Aria2 sweep failed.": "Falha ao consultar o Aria2.",
       "Bluesky on": "Bluesky ativado",
       "Bluesky off": "Bluesky desativado",
@@ -1187,6 +1259,9 @@ html.av-reduce-motion *::after {
       "Raw payload preference saved": "Prefer\xEAncia de payloads em bruto guardada",
       "Query discovery preference saved": "Prefer\xEAncia de descoberta de consultas guardada",
       "Save folder hint saved": "Pasta de destino guardada",
+      "Export job paused.": "Trabalho de exporta\xE7\xE3o pausado.",
+      "Export job resumed.": "Trabalho de exporta\xE7\xE3o retomado.",
+      "Export job cancelled.": "Trabalho de exporta\xE7\xE3o cancelado.",
       "Collecting visible posts\u2026": "A reunir as publica\xE7\xF5es vis\xEDveis\u2026",
       "No posts found on this view. Scroll the timeline to load some, then export again.": "N\xE3o foram encontradas publica\xE7\xF5es nesta vista. Percorre a cronologia para carregar algumas e exporta de novo.",
       "Export failed. See diagnostics.": "A exporta\xE7\xE3o falhou. Consulte o diagn\xF3stico.",
@@ -1214,6 +1289,7 @@ html.av-reduce-motion *::after {
       "Could not clear history.": "N\xE3o foi poss\xEDvel limpar o hist\xF3rico.",
       "Downloading media from this view\u2026": "A transferir a m\xE9dia desta vista\u2026",
       "Batch download failed.": "A transfer\xEAncia em lote falhou.",
+      "No failed media jobs to retry.": "N\xE3o existem trabalhos de multim\xE9dia falhados para repetir.",
       "Filters enabled": "Filtros ativados",
       "Filters disabled": "Filtros desativados",
       "Premium filter saved": "Filtro Premium salvo",
@@ -1231,11 +1307,15 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "N\xE3o foi poss\xEDvel limpar as publica\xE7\xF5es ocultas.",
       "Saving...": "A guardar...",
       "Could not save settings. Try again.": "N\xE3o foi poss\xEDvel guardar as defini\xE7\xF5es. Tente novamente.",
+      "Aviary settings": "Defini\xE7\xF5es do Aviary",
       "Nothing matches that search.": "Nada corresponde a essa pesquisa.",
       "Try a shorter word, or pick a section on the left.": "Tenta uma palavra mais curta ou escolhe uma sec\xE7\xE3o \xE0 esquerda.",
       "Preset applied": "Predefini\xE7\xE3o aplicada",
       "Preset already applied": "A predefini\xE7\xE3o j\xE1 estava aplicada",
+      "No captured records match \u201C{query}\u201D.": "Nenhum registo capturado corresponde a \xAB{query}\xBB.",
+      "No active downloads.": "N\xE3o existem transfer\xEAncias ativas.",
       "Cancel": "Cancelar",
+      "No matches (or integration disabled).": "Sem correspond\xEAncias (ou a integra\xE7\xE3o est\xE1 desativada).",
       "Find local bookmarks": "Encontrar marcadores locais",
       "Search saved posts by text, handle, tags, folder, or ID.": "Pesquise publica\xE7\xF5es guardadas por texto, utilizador, etiquetas, pasta ou ID.",
       "Search local bookmarks": "Pesquisar marcadores locais",
@@ -1532,6 +1612,12 @@ html.av-reduce-motion *::after {
       "Walks UserCell rows on the current page. Open a /handle/following view first.": "Parcourt les lignes UserCell de la page actuelle. Ouvrez d'abord une vue /identifiant/following.",
       "Clear all snapshots": "Effacer tous les instantan\xE9s",
       "Drop every stored follower/following snapshot.": "Supprime tous les instantan\xE9s d'abonn\xE9s et d'abonnements.",
+      "Import official X archive": "Importer l\u2019archive X officielle",
+      "Pick a ZIP exported from x.com. STORE and DEFLATE entries are supported; the source stays local while it is resumable.": "Choisissez un ZIP export\xE9 depuis x.com. Les entr\xE9es STORE et DEFLATE sont prises en charge ; la source reste locale pendant sa reprise.",
+      "Search captured records": "Rechercher les enregistrements captur\xE9s",
+      "Full-text search across the latest export collector run.": "Recherche plein texte dans la derni\xE8re collecte d\u2019exportation.",
+      "@handle, keyword, phrase\u2026": "@compte, mot-cl\xE9, phrase\u2026",
+      "Type to search the records captured by export runs.": "Saisissez votre recherche dans les enregistrements captur\xE9s par les exports.",
       "Download Markdown report": "T\xE9l\xE9charger le rapport Markdown",
       "Audit log + snapshot diff + cleanup preview.": "Journal d'audit, comparaison d'instantan\xE9s et aper\xE7u du nettoyage.",
       "Cleanup review queue": "File de revue du nettoyage",
@@ -1552,6 +1638,8 @@ html.av-reduce-motion *::after {
       "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.": "Les fichiers plus petits sont enregistr\xE9s par le navigateur. Aviary v\xE9rifie d'abord la taille ; si le serveur ne l'indique pas, le fichier est transf\xE9r\xE9 quand m\xEAme.",
       "Test Aria2 connection": "Tester la connexion Aria2",
       "Sends a trivial JSON-RPC call.": "Envoie un appel JSON-RPC trivial.",
+      "Aria2 active downloads": "T\xE9l\xE9chargements Aria2 actifs",
+      "Refresh to list in-flight transfers; tap Cancel to abort one.": "Actualisez pour lister les transferts en cours ; touchez Annuler pour en interrompre un.",
       "Refresh": "Actualiser",
       "Bluesky crosspost": "Republication vers Bluesky",
       "Post composer text to your Bluesky account on demand.": "Publie le texte du r\xE9dacteur sur votre compte Bluesky \xE0 la demande.",
@@ -1569,6 +1657,8 @@ html.av-reduce-motion *::after {
       "Bearer token with write:statuses scope.": "Jeton Bearer avec la port\xE9e write:statuses.",
       "Attach last download": "Joindre le dernier t\xE9l\xE9chargement",
       "Upload the last successful Aviary media download with the first post in an explicit crosspost.": "Joint le dernier t\xE9l\xE9chargement Aviary r\xE9ussi \xE0 la premi\xE8re publication d'une republication explicite.",
+      "Crosspost as thread": "Publier en fil",
+      "Split on blank lines and reply each segment to the previous one.": "S\xE9pare les paragraphes vides et r\xE9pond \xE0 chaque segment au pr\xE9c\xE9dent.",
       "Crosspost composer \u2192 Bluesky": "Publier le brouillon sur Bluesky",
       "Uses the current composer text.": "Utilise le texte actuel du r\xE9dacteur.",
       "Crosspost composer \u2192 Mastodon": "Publier le brouillon sur Mastodon",
@@ -1596,9 +1686,22 @@ html.av-reduce-motion *::after {
       "After each export run, kick the embedding job in the background. Off by default.": "Apr\xE8s chaque export, lance la t\xE2che d'indexation en arri\xE8re-plan. D\xE9sactiv\xE9 par d\xE9faut.",
       "Rebuild semantic index": "Reconstruire l'index s\xE9mantique",
       "Embed every captured record. Re-running is cheap because cached entries are skipped.": "Calcule les embeddings de chaque enregistrement captur\xE9. Relancer co\xFBte peu car les entr\xE9es en cache sont ignor\xE9es.",
+      "Vector similarity over captured records. Embeddings run on demand.": "Similarit\xE9 vectorielle sur les enregistrements captur\xE9s. Les embeddings sont lanc\xE9s \xE0 la demande.",
+      "Describe what you're looking for\u2026": "D\xE9crivez votre recherche\u2026",
       "Clear semantic index": "Effacer l'index s\xE9mantique",
       "Forget every embedded record.": "Oublie tous les enregistrements vectoris\xE9s.",
+      "on": "activ\xE9",
+      "off": "d\xE9sactiv\xE9",
+      "configured": "configur\xE9",
+      "missing endpoint": "point de terminaison manquant",
+      "missing credentials": "identifiants manquants",
+      "missing key/model": "cl\xE9 ou mod\xE8le manquant",
+      "indexed": "index\xE9s",
+      "{name}: {state} \xB7 {config}": "{name} : {state} \xB7 {config}",
+      "{name}: {state} \xB7 {count} {indexed}": "{name} : {state} \xB7 {count} {indexed}",
       "Integration status": "\xC9tat des int\xE9grations",
+      "Recent integration errors": "Erreurs d\u2019int\xE9gration r\xE9centes",
+      "Drawn from the audit log; only failed integration calls show up.": "Issues du journal d\u2019audit ; seules les int\xE9grations \xE9chou\xE9es apparaissent.",
       "Reset everything to plain X": "Tout r\xE9initialiser au X d'origine",
       "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "Remet chaque r\xE9glage \xE0 sa valeur par d\xE9faut, c'est-\xE0-dire ne rien modifier sur X. Vos posts enregistr\xE9s, notes, favoris et historique de t\xE9l\xE9chargement sont conserv\xE9s : seules les pr\xE9f\xE9rences sont r\xE9initialis\xE9es.",
       "Export settings": "Exporter les r\xE9glages",
@@ -1655,11 +1758,19 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "Balises d'analyse autoris\xE9es",
       "Selector health monitoring on": "Surveillance de l\u2019\xE9tat des s\xE9lecteurs activ\xE9e",
       "Selector health monitoring off": "Surveillance de l\u2019\xE9tat des s\xE9lecteurs d\xE9sactiv\xE9e",
+      "Profile switched. Reloading\u2026": "Profil chang\xE9. Rechargement\u2026",
+      "Profile switch failed.": "\xC9chec du changement de profil.",
+      "Profile created. Reloading\u2026": "Profil cr\xE9\xE9. Rechargement\u2026",
+      "Profile creation failed.": "\xC9chec de la cr\xE9ation du profil.",
       "Could not apply preset.": "Impossible d'appliquer le pr\xE9r\xE9glage.",
       "No UserCell rows found.": "Aucune ligne UserCell trouv\xE9e.",
       "Snapshot failed.": "L'instantan\xE9 a \xE9chou\xE9.",
       "Snapshots cleared": "Instantan\xE9s effac\xE9s",
       "Could not clear snapshots.": "Impossible d'effacer les instantan\xE9s.",
+      "Archive import paused.": "Importation de l\u2019archive suspendue.",
+      "Archive import resumed.": "Importation de l\u2019archive reprise.",
+      "Archive import cancelled.": "Importation de l\u2019archive annul\xE9e.",
+      "Archive import retry started.": "Nouvelle tentative d\u2019importation de l\u2019archive d\xE9marr\xE9e.",
       "Reading archive \u2014 large files take a moment\u2026": "Lecture de l'archive : les gros fichiers prennent un instant\u2026",
       "Archive import failed.": "\xC9chec de l'import de l'archive.",
       "Building report\u2026": "G\xE9n\xE9ration du rapport\u2026",
@@ -1676,6 +1787,7 @@ html.av-reduce-motion *::after {
       "Aria2 threshold saved": "Seuil Aria2 enregistr\xE9",
       "Aria2 reachable.": "Aria2 joignable.",
       "Aria2 connection test failed.": "\xC9chec du test de connexion \xE0 Aria2.",
+      "Aria2 cancel failed.": "\xC9chec de l\u2019annulation d\u2019Aria2.",
       "Aria2 sweep failed.": "\xC9chec de l'interrogation d'Aria2.",
       "Bluesky on": "Bluesky activ\xE9",
       "Bluesky off": "Bluesky d\xE9sactiv\xE9",
@@ -1740,6 +1852,9 @@ html.av-reduce-motion *::after {
       "Raw payload preference saved": "Pr\xE9f\xE9rence de donn\xE9es brutes enregistr\xE9e",
       "Query discovery preference saved": "Pr\xE9f\xE9rence de d\xE9couverte des requ\xEAtes enregistr\xE9e",
       "Save folder hint saved": "Dossier d'enregistrement enregistr\xE9",
+      "Export job paused.": "T\xE2che d\u2019exportation suspendue.",
+      "Export job resumed.": "T\xE2che d\u2019exportation reprise.",
+      "Export job cancelled.": "T\xE2che d\u2019exportation annul\xE9e.",
       "Collecting visible posts\u2026": "Collecte des publications visibles\u2026",
       "No posts found on this view. Scroll the timeline to load some, then export again.": "Aucun post trouv\xE9 sur cette vue. Faites d\xE9filer le fil pour en charger, puis relancez l'export.",
       "Export failed. See diagnostics.": "L'export a \xE9chou\xE9. Consultez le diagnostic.",
@@ -1767,6 +1882,7 @@ html.av-reduce-motion *::after {
       "Could not clear history.": "Impossible d'effacer l'historique.",
       "Downloading media from this view\u2026": "T\xE9l\xE9chargement des m\xE9dias de cette vue\u2026",
       "Batch download failed.": "Le t\xE9l\xE9chargement par lot a \xE9chou\xE9.",
+      "No failed media jobs to retry.": "Aucune t\xE2che multim\xE9dia \xE9chou\xE9e \xE0 r\xE9essayer.",
       "Filters enabled": "Filtres activ\xE9s",
       "Filters disabled": "Filtres d\xE9sactiv\xE9s",
       "Premium filter saved": "Filtre Premium enregistr\xE9",
@@ -1784,11 +1900,15 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "Impossible d'effacer les publications masqu\xE9es.",
       "Saving...": "Enregistrement...",
       "Could not save settings. Try again.": "Impossible d'enregistrer les r\xE9glages. R\xE9essayez.",
+      "Aviary settings": "Param\xE8tres d\u2019Aviary",
       "Nothing matches that search.": "Aucun r\xE9sultat pour cette recherche.",
       "Try a shorter word, or pick a section on the left.": "Essayez un mot plus court ou choisissez une section \xE0 gauche.",
       "Preset applied": "Pr\xE9r\xE9glage appliqu\xE9",
       "Preset already applied": "Pr\xE9r\xE9glage d\xE9j\xE0 appliqu\xE9",
+      "No captured records match \u201C{query}\u201D.": "Aucun enregistrement captur\xE9 ne correspond \xE0 \xAB {query} \xBB.",
+      "No active downloads.": "Aucun t\xE9l\xE9chargement actif.",
       "Cancel": "Annuler",
+      "No matches (or integration disabled).": "Aucun r\xE9sultat (ou int\xE9gration d\xE9sactiv\xE9e).",
       "Find local bookmarks": "Trouver les marque-pages locaux",
       "Search saved posts by text, handle, tags, folder, or ID.": "Recherchez les publications enregistr\xE9es par texte, identifiant, tags, dossier ou ID.",
       "Search local bookmarks": "Rechercher dans les marque-pages locaux",
@@ -2085,6 +2205,12 @@ html.av-reduce-motion *::after {
       "Walks UserCell rows on the current page. Open a /handle/following view first.": "Durchl\xE4uft die UserCell-Zeilen der aktuellen Seite. \xD6ffne zuerst eine /name/following-Ansicht.",
       "Clear all snapshots": "Alle Momentaufnahmen l\xF6schen",
       "Drop every stored follower/following snapshot.": "Entfernt alle gespeicherten Follower- und Gefolgt-Momentaufnahmen.",
+      "Import official X archive": "Offizielle X-Archivdatei importieren",
+      "Pick a ZIP exported from x.com. STORE and DEFLATE entries are supported; the source stays local while it is resumable.": "W\xE4hle ein von x.com exportiertes ZIP. STORE- und DEFLATE-Eintr\xE4ge werden unterst\xFCtzt; die Quelle bleibt lokal, solange der Vorgang fortgesetzt werden kann.",
+      "Search captured records": "Erfasste Datens\xE4tze suchen",
+      "Full-text search across the latest export collector run.": "Volltextsuche \xFCber den letzten Export-Sammlerlauf.",
+      "@handle, keyword, phrase\u2026": "@Handle, Stichwort, Ausdruck\u2026",
+      "Type to search the records captured by export runs.": "Gib einen Suchbegriff f\xFCr die von Exportl\xE4ufen erfassten Datens\xE4tze ein.",
       "Download Markdown report": "Markdown-Bericht herunterladen",
       "Audit log + snapshot diff + cleanup preview.": "Pr\xFCfprotokoll, Momentaufnahmen-Vergleich und Bereinigungsvorschau.",
       "Cleanup review queue": "Pr\xFCfliste f\xFCr die Bereinigung",
@@ -2105,6 +2231,8 @@ html.av-reduce-motion *::after {
       "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.": "Kleinere Dateien werden \xFCber den Browser gespeichert. Aviary pr\xFCft zuerst die Gr\xF6\xDFe; nennt der Server keine, wird die Datei trotzdem \xFCbergeben.",
       "Test Aria2 connection": "Aria2-Verbindung testen",
       "Sends a trivial JSON-RPC call.": "Sendet einen einfachen JSON-RPC-Aufruf.",
+      "Aria2 active downloads": "Aktive Aria2-Downloads",
+      "Refresh to list in-flight transfers; tap Cancel to abort one.": "Aktualisieren, um laufende \xDCbertragungen aufzulisten; mit \u201EAbbrechen\u201C eine abbrechen.",
       "Refresh": "Aktualisieren",
       "Bluesky crosspost": "Bluesky-Crosspost",
       "Post composer text to your Bluesky account on demand.": "Ver\xF6ffentlicht den Verfassertext auf Wunsch in Ihrem Bluesky-Konto.",
@@ -2122,6 +2250,8 @@ html.av-reduce-motion *::after {
       "Bearer token with write:statuses scope.": "Bearer-Token mit dem Geltungsbereich write:statuses.",
       "Attach last download": "Letzten Download anh\xE4ngen",
       "Upload the last successful Aviary media download with the first post in an explicit crosspost.": "H\xE4ngt den letzten erfolgreichen Aviary-Mediendownload an den ersten Beitrag eines ausdr\xFCcklichen Crossposts an.",
+      "Crosspost as thread": "Als Thread crossposten",
+      "Split on blank lines and reply each segment to the previous one.": "An leeren Zeilen teilen und jedes Segment als Antwort auf das vorherige senden.",
       "Crosspost composer \u2192 Bluesky": "Entwurf auf Bluesky posten",
       "Uses the current composer text.": "Verwendet den aktuellen Text im Editor.",
       "Crosspost composer \u2192 Mastodon": "Entwurf auf Mastodon posten",
@@ -2149,9 +2279,22 @@ html.av-reduce-motion *::after {
       "After each export run, kick the embedding job in the background. Off by default.": "St\xF6\xDFt nach jedem Exportlauf den Embedding-Job im Hintergrund an. Standardm\xE4\xDFig aus.",
       "Rebuild semantic index": "Semantischen Index neu aufbauen",
       "Embed every captured record. Re-running is cheap because cached entries are skipped.": "Erzeugt Embeddings f\xFCr jeden erfassten Datensatz. Ein erneuter Lauf ist g\xFCnstig, da zwischengespeicherte Eintr\xE4ge \xFCbersprungen werden.",
+      "Vector similarity over captured records. Embeddings run on demand.": "Vektorsimilarit\xE4t \xFCber erfasste Datens\xE4tze. Embeddings werden bei Bedarf ausgef\xFChrt.",
+      "Describe what you're looking for\u2026": "Beschreibe, wonach du suchst\u2026",
       "Clear semantic index": "Semantischen Index l\xF6schen",
       "Forget every embedded record.": "Vergisst alle eingebetteten Datens\xE4tze.",
+      "on": "ein",
+      "off": "aus",
+      "configured": "konfiguriert",
+      "missing endpoint": "Endpunkt fehlt",
+      "missing credentials": "Zugangsdaten fehlen",
+      "missing key/model": "Schl\xFCssel/Modell fehlt",
+      "indexed": "indexiert",
+      "{name}: {state} \xB7 {config}": "{name} \u2014 {state} \xB7 {config}",
+      "{name}: {state} \xB7 {count} {indexed}": "{name} \u2014 {state} \xB7 {count} {indexed}",
       "Integration status": "Status der Integrationen",
+      "Recent integration errors": "Aktuelle Integrationsfehler",
+      "Drawn from the audit log; only failed integration calls show up.": "Aus dem Auditprotokoll; nur fehlgeschlagene Integrationsaufrufe werden angezeigt.",
       "Reset everything to plain X": "Alles auf das pure X zur\xFCcksetzen",
       "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "Setzt jede Einstellung auf ihren Standard zur\xFCck \u2014 und der ist, an X \xFCberhaupt nichts zu \xE4ndern. Gespeicherte Beitr\xE4ge, Notizen, Lesezeichen und der Download-Verlauf bleiben erhalten; zur\xFCckgesetzt werden nur die Einstellungen.",
       "Export settings": "Einstellungen exportieren",
@@ -2208,11 +2351,19 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "Analyse-Beacons zugelassen",
       "Selector health monitoring on": "\xDCberwachung des Selektorstatus aktiviert",
       "Selector health monitoring off": "\xDCberwachung des Selektorstatus deaktiviert",
+      "Profile switched. Reloading\u2026": "Profil gewechselt. Wird neu geladen\u2026",
+      "Profile switch failed.": "Profilwechsel fehlgeschlagen.",
+      "Profile created. Reloading\u2026": "Profil erstellt. Wird neu geladen\u2026",
+      "Profile creation failed.": "Profilerstellung fehlgeschlagen.",
       "Could not apply preset.": "Voreinstellung konnte nicht angewendet werden.",
       "No UserCell rows found.": "Keine UserCell-Zeilen gefunden.",
       "Snapshot failed.": "Momentaufnahme fehlgeschlagen.",
       "Snapshots cleared": "Momentaufnahmen gel\xF6scht",
       "Could not clear snapshots.": "Momentaufnahmen konnten nicht gel\xF6scht werden.",
+      "Archive import paused.": "Archivimport pausiert.",
+      "Archive import resumed.": "Archivimport fortgesetzt.",
+      "Archive import cancelled.": "Archivimport abgebrochen.",
+      "Archive import retry started.": "Erneuter Archivimport gestartet.",
       "Reading archive \u2014 large files take a moment\u2026": "Archiv wird gelesen \u2013 gro\xDFe Dateien dauern einen Moment\u2026",
       "Archive import failed.": "Archivimport fehlgeschlagen.",
       "Building report\u2026": "Bericht wird erstellt\u2026",
@@ -2229,6 +2380,7 @@ html.av-reduce-motion *::after {
       "Aria2 threshold saved": "Aria2-Schwelle gespeichert",
       "Aria2 reachable.": "Aria2 erreichbar.",
       "Aria2 connection test failed.": "Aria2-Verbindungstest fehlgeschlagen.",
+      "Aria2 cancel failed.": "Abbruch von Aria2 fehlgeschlagen.",
       "Aria2 sweep failed.": "Aria2-Abfrage fehlgeschlagen.",
       "Bluesky on": "Bluesky an",
       "Bluesky off": "Bluesky aus",
@@ -2293,6 +2445,9 @@ html.av-reduce-motion *::after {
       "Raw payload preference saved": "Einstellung f\xFCr Rohdaten gespeichert",
       "Query discovery preference saved": "Einstellung zur Query-Erkennung gespeichert",
       "Save folder hint saved": "Zielordner gespeichert",
+      "Export job paused.": "Exportauftrag pausiert.",
+      "Export job resumed.": "Exportauftrag fortgesetzt.",
+      "Export job cancelled.": "Exportauftrag abgebrochen.",
       "Collecting visible posts\u2026": "Sichtbare Beitr\xE4ge werden gesammelt\u2026",
       "No posts found on this view. Scroll the timeline to load some, then export again.": "In dieser Ansicht wurden keine Beitr\xE4ge gefunden. Scrolle die Timeline, um welche zu laden, und exportiere erneut.",
       "Export failed. See diagnostics.": "Export fehlgeschlagen. Siehe Diagnose.",
@@ -2320,6 +2475,7 @@ html.av-reduce-motion *::after {
       "Could not clear history.": "Verlauf konnte nicht gel\xF6scht werden.",
       "Downloading media from this view\u2026": "Medien dieser Ansicht werden heruntergeladen\u2026",
       "Batch download failed.": "Stapel-Download fehlgeschlagen.",
+      "No failed media jobs to retry.": "Keine fehlgeschlagenen Medienauftr\xE4ge zum Wiederholen.",
       "Filters enabled": "Filter aktiviert",
       "Filters disabled": "Filter deaktiviert",
       "Premium filter saved": "Premium-Filter gespeichert",
@@ -2337,11 +2493,15 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "Ausgeblendete Beitr\xE4ge konnten nicht gel\xF6scht werden.",
       "Saving...": "Wird gespeichert...",
       "Could not save settings. Try again.": "Einstellungen konnten nicht gespeichert werden. Bitte erneut versuchen.",
+      "Aviary settings": "Aviary-Einstellungen",
       "Nothing matches that search.": "Nichts passt zu dieser Suche.",
       "Try a shorter word, or pick a section on the left.": "Versuche ein k\xFCrzeres Wort oder w\xE4hle links einen Bereich.",
       "Preset applied": "Voreinstellung angewendet",
       "Preset already applied": "Voreinstellung bereits angewendet",
+      "No captured records match \u201C{query}\u201D.": "Keine erfassten Datens\xE4tze entsprechen \u201E{query}\u201C.",
+      "No active downloads.": "Keine aktiven Downloads.",
       "Cancel": "Abbrechen",
+      "No matches (or integration disabled).": "Keine Treffer (oder Integration deaktiviert).",
       "Find local bookmarks": "Lokale Lesezeichen finden",
       "Search saved posts by text, handle, tags, folder, or ID.": "Gespeicherte Beitr\xE4ge nach Text, Handle, Tags, Ordner oder ID suchen.",
       "Search local bookmarks": "Lokale Lesezeichen durchsuchen",
@@ -2638,6 +2798,12 @@ html.av-reduce-motion *::after {
       "Walks UserCell rows on the current page. Open a /handle/following view first.": "\u73FE\u5728\u306E\u30DA\u30FC\u30B8\u306E UserCell \u884C\u3092\u8D70\u67FB\u3057\u307E\u3059\u3002\u5148\u306B /\u30A2\u30AB\u30A6\u30F3\u30C8\u540D/following \u3092\u958B\u3044\u3066\u304F\u3060\u3055\u3044\u3002",
       "Clear all snapshots": "\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8\u3092\u3059\u3079\u3066\u6D88\u53BB",
       "Drop every stored follower/following snapshot.": "\u4FDD\u5B58\u6E08\u307F\u306E\u30D5\u30A9\u30ED\u30EF\u30FC\u30FB\u30D5\u30A9\u30ED\u30FC\u4E2D\u306E\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8\u3092\u3059\u3079\u3066\u524A\u9664\u3057\u307E\u3059\u3002",
+      "Import official X archive": "\u516C\u5F0FX\u30A2\u30FC\u30AB\u30A4\u30D6\u3092\u30A4\u30F3\u30DD\u30FC\u30C8",
+      "Pick a ZIP exported from x.com. STORE and DEFLATE entries are supported; the source stays local while it is resumable.": "x.com\u304B\u3089\u66F8\u304D\u51FA\u3057\u305FZIP\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044\u3002STORE\u3068DEFLATE\u30A8\u30F3\u30C8\u30EA\u306B\u5BFE\u5FDC\u3057\u3066\u3044\u307E\u3059\u3002\u518D\u958B\u53EF\u80FD\u306A\u9593\u306F\u5143\u30C7\u30FC\u30BF\u3092\u30ED\u30FC\u30AB\u30EB\u306B\u4FDD\u6301\u3057\u307E\u3059\u3002",
+      "Search captured records": "\u53D6\u5F97\u3057\u305F\u30EC\u30B3\u30FC\u30C9\u3092\u691C\u7D22",
+      "Full-text search across the latest export collector run.": "\u6700\u65B0\u306E\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u53CE\u96C6\u5B9F\u884C\u3092\u5168\u6587\u691C\u7D22\u3057\u307E\u3059\u3002",
+      "@handle, keyword, phrase\u2026": "@\u30CF\u30F3\u30C9\u30EB\u3001\u30AD\u30FC\u30EF\u30FC\u30C9\u3001\u30D5\u30EC\u30FC\u30BA\u2026",
+      "Type to search the records captured by export runs.": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u5B9F\u884C\u3067\u53D6\u5F97\u3057\u305F\u30EC\u30B3\u30FC\u30C9\u3092\u691C\u7D22\u3059\u308B\u306B\u306F\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
       "Download Markdown report": "Markdown \u30EC\u30DD\u30FC\u30C8\u3092\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9",
       "Audit log + snapshot diff + cleanup preview.": "\u76E3\u67FB\u30ED\u30B0\u30FB\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8\u306E\u5DEE\u5206\u30FB\u6574\u7406\u306E\u30D7\u30EC\u30D3\u30E5\u30FC\u3002",
       "Cleanup review queue": "\u6574\u7406\u306E\u78BA\u8A8D\u30AD\u30E5\u30FC",
@@ -2658,6 +2824,8 @@ html.av-reduce-motion *::after {
       "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.": "\u3053\u308C\u3088\u308A\u5C0F\u3055\u3044\u30D5\u30A1\u30A4\u30EB\u306F\u30D6\u30E9\u30A6\u30B6\u30FC\u3067\u4FDD\u5B58\u3057\u307E\u3059\u3002Aviary \u306F\u307E\u305A\u5BB9\u91CF\u3092\u78BA\u8A8D\u3057\u3001\u30B5\u30FC\u30D0\u30FC\u304C\u5BB9\u91CF\u3092\u8FD4\u3055\u306A\u3044\u5834\u5408\u306F\u305D\u306E\u307E\u307E\u5F15\u304D\u6E21\u3057\u307E\u3059\u3002",
       "Test Aria2 connection": "Aria2 \u306E\u63A5\u7D9A\u3092\u78BA\u8A8D",
       "Sends a trivial JSON-RPC call.": "\u7C21\u5358\u306A JSON-RPC \u547C\u3073\u51FA\u3057\u3092\u9001\u4FE1\u3057\u307E\u3059\u3002",
+      "Aria2 active downloads": "Aria2\u306E\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9",
+      "Refresh to list in-flight transfers; tap Cancel to abort one.": "\u66F4\u65B0\u3057\u3066\u9032\u884C\u4E2D\u306E\u8EE2\u9001\u3092\u4E00\u89A7\u8868\u793A\u3057\u307E\u3059\u3002\u300C\u30AD\u30E3\u30F3\u30BB\u30EB\u300D\u3067\u4E2D\u6B62\u3067\u304D\u307E\u3059\u3002",
       "Refresh": "\u66F4\u65B0",
       "Bluesky crosspost": "Bluesky \u3078\u306E\u30AF\u30ED\u30B9\u30DD\u30B9\u30C8",
       "Post composer text to your Bluesky account on demand.": "\u6295\u7A3F\u6B04\u306E\u30C6\u30AD\u30B9\u30C8\u3092\u3001\u5FC5\u8981\u306A\u3068\u304D\u306B Bluesky \u3078\u6295\u7A3F\u3057\u307E\u3059\u3002",
@@ -2675,6 +2843,8 @@ html.av-reduce-motion *::after {
       "Bearer token with write:statuses scope.": "write:statuses \u30B9\u30B3\u30FC\u30D7\u3092\u6301\u3064\u30D9\u30A2\u30E9\u30FC\u30C8\u30FC\u30AF\u30F3\u3002",
       "Attach last download": "\u76F4\u8FD1\u306E\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3092\u6DFB\u4ED8",
       "Upload the last successful Aviary media download with the first post in an explicit crosspost.": "\u30AF\u30ED\u30B9\u30DD\u30B9\u30C8\u306E\u6700\u521D\u306E\u6295\u7A3F\u306B\u3001Aviary \u3067\u6700\u5F8C\u306B\u6210\u529F\u3057\u305F\u30E1\u30C7\u30A3\u30A2\u306E\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3092\u6DFB\u4ED8\u3057\u307E\u3059\u3002",
+      "Crosspost as thread": "\u30B9\u30EC\u30C3\u30C9\u3068\u3057\u3066\u30AF\u30ED\u30B9\u30DD\u30B9\u30C8",
+      "Split on blank lines and reply each segment to the previous one.": "\u7A7A\u884C\u3067\u5206\u5272\u3057\u3001\u5404\u30BB\u30B0\u30E1\u30F3\u30C8\u3092\u524D\u306E\u6295\u7A3F\u3078\u306E\u8FD4\u4FE1\u3068\u3057\u3066\u9001\u4FE1\u3057\u307E\u3059\u3002",
       "Crosspost composer \u2192 Bluesky": "\u6295\u7A3F\u6B04\u3092 Bluesky \u3078",
       "Uses the current composer text.": "\u73FE\u5728\u306E\u6295\u7A3F\u6B04\u306E\u30C6\u30AD\u30B9\u30C8\u3092\u4F7F\u3044\u307E\u3059\u3002",
       "Crosspost composer \u2192 Mastodon": "\u6295\u7A3F\u6B04\u3092 Mastodon \u3078",
@@ -2702,9 +2872,22 @@ html.av-reduce-motion *::after {
       "After each export run, kick the embedding job in the background. Off by default.": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u306E\u305F\u3073\u306B\u3001\u57CB\u3081\u8FBC\u307F\u51E6\u7406\u3092\u30D0\u30C3\u30AF\u30B0\u30E9\u30A6\u30F3\u30C9\u3067\u958B\u59CB\u3057\u307E\u3059\u3002\u65E2\u5B9A\u306F\u30AA\u30D5\u3067\u3059\u3002",
       "Rebuild semantic index": "\u30BB\u30DE\u30F3\u30C6\u30A3\u30C3\u30AF\u7D22\u5F15\u3092\u518D\u69CB\u7BC9",
       "Embed every captured record. Re-running is cheap because cached entries are skipped.": "\u53CE\u96C6\u3057\u305F\u3059\u3079\u3066\u306E\u8A18\u9332\u3092\u57CB\u3081\u8FBC\u307F\u307E\u3059\u3002\u30AD\u30E3\u30C3\u30B7\u30E5\u6E08\u307F\u306F\u98DB\u3070\u3059\u306E\u3067\u3001\u518D\u5B9F\u884C\u306E\u8CA0\u8377\u306F\u5C0F\u3055\u3044\u3067\u3059\u3002",
+      "Vector similarity over captured records. Embeddings run on demand.": "\u53D6\u5F97\u3057\u305F\u30EC\u30B3\u30FC\u30C9\u306E\u30D9\u30AF\u30C8\u30EB\u985E\u4F3C\u5EA6\u3002\u57CB\u3081\u8FBC\u307F\u306F\u5FC5\u8981\u306A\u3068\u304D\u306B\u5B9F\u884C\u3055\u308C\u307E\u3059\u3002",
+      "Describe what you're looking for\u2026": "\u63A2\u3057\u3066\u3044\u308B\u5185\u5BB9\u3092\u8AAC\u660E\u3057\u3066\u304F\u3060\u3055\u3044\u2026",
       "Clear semantic index": "\u30BB\u30DE\u30F3\u30C6\u30A3\u30C3\u30AF\u7D22\u5F15\u3092\u6D88\u53BB",
       "Forget every embedded record.": "\u57CB\u3081\u8FBC\u307F\u6E08\u307F\u306E\u8A18\u9332\u3092\u3059\u3079\u3066\u5FD8\u308C\u307E\u3059\u3002",
+      "on": "\u30AA\u30F3",
+      "off": "\u30AA\u30D5",
+      "configured": "\u8A2D\u5B9A\u6E08\u307F",
+      "missing endpoint": "\u30A8\u30F3\u30C9\u30DD\u30A4\u30F3\u30C8\u672A\u8A2D\u5B9A",
+      "missing credentials": "\u8A8D\u8A3C\u60C5\u5831\u672A\u8A2D\u5B9A",
+      "missing key/model": "\u30AD\u30FC/\u30E2\u30C7\u30EB\u672A\u8A2D\u5B9A",
+      "indexed": "\u4EF6\u3092\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9\u5316",
+      "{name}: {state} \xB7 {config}": "{name} \u2014 {state} \xB7 {config}",
+      "{name}: {state} \xB7 {count} {indexed}": "{name} \u2014 {state} \xB7 {count} {indexed}",
       "Integration status": "\u9023\u643A\u306E\u72B6\u614B",
+      "Recent integration errors": "\u6700\u8FD1\u306E\u7D71\u5408\u30A8\u30E9\u30FC",
+      "Drawn from the audit log; only failed integration calls show up.": "\u76E3\u67FB\u30ED\u30B0\u304B\u3089\u8868\u793A\u3002\u5931\u6557\u3057\u305F\u7D71\u5408\u547C\u3073\u51FA\u3057\u306E\u307F\u8868\u793A\u3057\u307E\u3059\u3002",
       "Reset everything to plain X": "\u3059\u3079\u3066\u3092\u7D20\u306E X \u306B\u623B\u3059",
       "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "\u3059\u3079\u3066\u306E\u8A2D\u5B9A\u3092\u65E2\u5B9A\u5024\u306B\u623B\u3057\u307E\u3059\u3002\u65E2\u5B9A\u5024\u3068\u306F\u3001X \u306B\u4E00\u5207\u624B\u3092\u52A0\u3048\u306A\u3044\u3068\u3044\u3046\u72B6\u614B\u3067\u3059\u3002\u4FDD\u5B58\u3057\u305F\u6295\u7A3F\u30FB\u30E1\u30E2\u30FB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u30FB\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u5C65\u6B74\u306F\u305D\u306E\u307E\u307E\u6B8B\u308A\u3001\u623B\u308B\u306E\u306F\u8A2D\u5B9A\u3060\u3051\u3067\u3059\u3002",
       "Export settings": "\u8A2D\u5B9A\u3092\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8",
@@ -2761,11 +2944,19 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "\u89E3\u6790\u30D3\u30FC\u30B3\u30F3\u3092\u8A31\u53EF\u3057\u307E\u3057\u305F",
       "Selector health monitoring on": "\u30BB\u30EC\u30AF\u30BF\u30FC\u72B6\u614B\u306E\u76E3\u8996\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
       "Selector health monitoring off": "\u30BB\u30EC\u30AF\u30BF\u30FC\u72B6\u614B\u306E\u76E3\u8996\u3092\u30AA\u30D5\u306B\u3057\u307E\u3057\u305F",
+      "Profile switched. Reloading\u2026": "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u5207\u308A\u66FF\u3048\u307E\u3057\u305F\u3002\u518D\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
+      "Profile switch failed.": "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u306E\u5207\u308A\u66FF\u3048\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
+      "Profile created. Reloading\u2026": "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u4F5C\u6210\u3057\u307E\u3057\u305F\u3002\u518D\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
+      "Profile creation failed.": "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u306E\u4F5C\u6210\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
       "Could not apply preset.": "\u30D7\u30EA\u30BB\u30C3\u30C8\u3092\u9069\u7528\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "No UserCell rows found.": "UserCell \u306E\u884C\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002",
       "Snapshot failed.": "\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
       "Snapshots cleared": "\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8\u3092\u6D88\u53BB\u3057\u307E\u3057\u305F",
       "Could not clear snapshots.": "\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8\u3092\u6D88\u53BB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+      "Archive import paused.": "\u30A2\u30FC\u30AB\u30A4\u30D6\u306E\u30A4\u30F3\u30DD\u30FC\u30C8\u3092\u4E00\u6642\u505C\u6B62\u3057\u307E\u3057\u305F\u3002",
+      "Archive import resumed.": "\u30A2\u30FC\u30AB\u30A4\u30D6\u306E\u30A4\u30F3\u30DD\u30FC\u30C8\u3092\u518D\u958B\u3057\u307E\u3057\u305F\u3002",
+      "Archive import cancelled.": "\u30A2\u30FC\u30AB\u30A4\u30D6\u306E\u30A4\u30F3\u30DD\u30FC\u30C8\u3092\u30AD\u30E3\u30F3\u30BB\u30EB\u3057\u307E\u3057\u305F\u3002",
+      "Archive import retry started.": "\u30A2\u30FC\u30AB\u30A4\u30D6\u306E\u518D\u8A66\u884C\u3092\u958B\u59CB\u3057\u307E\u3057\u305F\u3002",
       "Reading archive \u2014 large files take a moment\u2026": "\u30A2\u30FC\u30AB\u30A4\u30D6\u3092\u8AAD\u307F\u8FBC\u307F\u4E2D \u2014 \u5927\u304D\u306A\u30D5\u30A1\u30A4\u30EB\u306F\u5C11\u3057\u6642\u9593\u304C\u304B\u304B\u308A\u307E\u3059\u2026",
       "Archive import failed.": "\u30A2\u30FC\u30AB\u30A4\u30D6\u306E\u8AAD\u307F\u8FBC\u307F\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
       "Building report\u2026": "\u30EC\u30DD\u30FC\u30C8\u3092\u4F5C\u6210\u4E2D\u2026",
@@ -2782,6 +2973,7 @@ html.av-reduce-motion *::after {
       "Aria2 threshold saved": "Aria2 \u306E\u3057\u304D\u3044\u5024\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Aria2 reachable.": "Aria2 \u306B\u63A5\u7D9A\u3067\u304D\u307E\u3057\u305F\u3002",
       "Aria2 connection test failed.": "Aria2 \u63A5\u7D9A\u30C6\u30B9\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
+      "Aria2 cancel failed.": "Aria2\u306E\u30AD\u30E3\u30F3\u30BB\u30EB\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
       "Aria2 sweep failed.": "Aria2 \u306E\u4E00\u89A7\u53D6\u5F97\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
       "Bluesky on": "Bluesky \u30AA\u30F3",
       "Bluesky off": "Bluesky \u30AA\u30D5",
@@ -2846,6 +3038,9 @@ html.av-reduce-motion *::after {
       "Raw payload preference saved": "\u751F\u30EC\u30B9\u30DD\u30F3\u30B9\u306E\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Query discovery preference saved": "\u30AF\u30A8\u30EA\u691C\u51FA\u306E\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Save folder hint saved": "\u4FDD\u5B58\u5148\u30D5\u30A9\u30EB\u30C0\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
+      "Export job paused.": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6\u3092\u4E00\u6642\u505C\u6B62\u3057\u307E\u3057\u305F\u3002",
+      "Export job resumed.": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6\u3092\u518D\u958B\u3057\u307E\u3057\u305F\u3002",
+      "Export job cancelled.": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6\u3092\u30AD\u30E3\u30F3\u30BB\u30EB\u3057\u307E\u3057\u305F\u3002",
       "Collecting visible posts\u2026": "\u8868\u793A\u4E2D\u306E\u6295\u7A3F\u3092\u53CE\u96C6\u4E2D\u2026",
       "No posts found on this view. Scroll the timeline to load some, then export again.": "\u3053\u306E\u30D3\u30E5\u30FC\u3067\u306F\u6295\u7A3F\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u3092\u30B9\u30AF\u30ED\u30FC\u30EB\u3057\u3066\u8AAD\u307F\u8FBC\u3093\u3067\u304B\u3089\u3001\u3082\u3046\u4E00\u5EA6\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
       "Export failed. See diagnostics.": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u8A3A\u65AD\u60C5\u5831\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
@@ -2873,6 +3068,7 @@ html.av-reduce-motion *::after {
       "Could not clear history.": "\u5C65\u6B74\u3092\u6D88\u53BB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "Downloading media from this view\u2026": "\u3053\u306E\u753B\u9762\u306E\u30E1\u30C7\u30A3\u30A2\u3092\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u4E2D\u2026",
       "Batch download failed.": "\u4E00\u62EC\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
+      "No failed media jobs to retry.": "\u518D\u8A66\u884C\u3067\u304D\u308B\u5931\u6557\u3057\u305F\u30E1\u30C7\u30A3\u30A2\u30B8\u30E7\u30D6\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
       "Filters enabled": "\u30D5\u30A3\u30EB\u30BF\u30FC\u3092\u6709\u52B9\u306B\u3057\u307E\u3057\u305F",
       "Filters disabled": "\u30D5\u30A3\u30EB\u30BF\u30FC\u3092\u7121\u52B9\u306B\u3057\u307E\u3057\u305F",
       "Premium filter saved": "\u30D7\u30EC\u30DF\u30A2\u30E0\u30D5\u30A3\u30EB\u30BF\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
@@ -2890,11 +3086,15 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "\u975E\u8868\u793A\u306E\u6295\u7A3F\u3092\u6D88\u53BB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "Saving...": "\u4FDD\u5B58\u4E2D...",
       "Could not save settings. Try again.": "\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+      "Aviary settings": "Aviary\u306E\u8A2D\u5B9A",
       "Nothing matches that search.": "\u305D\u306E\u691C\u7D22\u306B\u4E00\u81F4\u3059\u308B\u3082\u306E\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
       "Try a shorter word, or pick a section on the left.": "\u77ED\u3044\u8A9E\u3067\u8A66\u3059\u304B\u3001\u5DE6\u306E\u30BB\u30AF\u30B7\u30E7\u30F3\u3092\u9078\u3093\u3067\u304F\u3060\u3055\u3044\u3002",
       "Preset applied": "\u30D7\u30EA\u30BB\u30C3\u30C8\u3092\u9069\u7528\u3057\u307E\u3057\u305F",
       "Preset already applied": "\u30D7\u30EA\u30BB\u30C3\u30C8\u306F\u9069\u7528\u6E08\u307F\u3067\u3059",
+      "No captured records match \u201C{query}\u201D.": "\u300C{query}\u300D\u306B\u4E00\u81F4\u3059\u308B\u53D6\u5F97\u6E08\u307F\u30EC\u30B3\u30FC\u30C9\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+      "No active downloads.": "\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
       "Cancel": "\u30AD\u30E3\u30F3\u30BB\u30EB",
+      "No matches (or integration disabled).": "\u4E00\u81F4\u3059\u308B\u7D50\u679C\u304C\u3042\u308A\u307E\u305B\u3093\uFF08\u7D71\u5408\u304C\u7121\u52B9\u306B\u306A\u3063\u3066\u3044\u308B\u53EF\u80FD\u6027\u304C\u3042\u308A\u307E\u3059\uFF09\u3002",
       "Find local bookmarks": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u63A2\u3059",
       "Search saved posts by text, handle, tags, folder, or ID.": "\u4FDD\u5B58\u3057\u305F\u6295\u7A3F\u3092\u672C\u6587\u3001\u30CF\u30F3\u30C9\u30EB\u3001\u30BF\u30B0\u3001\u30D5\u30A9\u30EB\u30C0\u30FC\u3001ID\u3067\u691C\u7D22\u3057\u307E\u3059\u3002",
       "Search local bookmarks": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u691C\u7D22",
@@ -3191,6 +3391,12 @@ html.av-reduce-motion *::after {
       "Walks UserCell rows on the current page. Open a /handle/following view first.": "\uD604\uC7AC \uD398\uC774\uC9C0\uC758 UserCell \uD589\uC744 \uD6D1\uC2B5\uB2C8\uB2E4. \uBA3C\uC800 /\uACC4\uC815/following \uD654\uBA74\uC744 \uC5EC\uC138\uC694.",
       "Clear all snapshots": "\uC2A4\uB0C5\uC0F7 \uBAA8\uB450 \uC9C0\uC6B0\uAE30",
       "Drop every stored follower/following snapshot.": "\uC800\uC7A5\uB41C \uD314\uB85C\uC6CC\xB7\uD314\uB85C\uC789 \uC2A4\uB0C5\uC0F7\uC744 \uBAA8\uB450 \uC0AD\uC81C\uD569\uB2C8\uB2E4.",
+      "Import official X archive": "\uACF5\uC2DD X \uC544\uCE74\uC774\uBE0C \uAC00\uC838\uC624\uAE30",
+      "Pick a ZIP exported from x.com. STORE and DEFLATE entries are supported; the source stays local while it is resumable.": "x.com\uC5D0\uC11C \uB0B4\uBCF4\uB0B8 ZIP\uC744 \uC120\uD0DD\uD558\uC138\uC694. STORE \uBC0F DEFLATE \uD56D\uBAA9\uC744 \uC9C0\uC6D0\uD558\uBA70, \uC7AC\uAC1C \uAC00\uB2A5\uD55C \uB3D9\uC548 \uC6D0\uBCF8\uC740 \uB85C\uCEEC\uC5D0 \uC720\uC9C0\uB429\uB2C8\uB2E4.",
+      "Search captured records": "\uCEA1\uCC98\uD55C \uB808\uCF54\uB4DC \uAC80\uC0C9",
+      "Full-text search across the latest export collector run.": "\uCD5C\uADFC \uB0B4\uBCF4\uB0B4\uAE30 \uC218\uC9D1 \uC2E4\uD589\uC5D0\uC11C \uC804\uCCB4 \uD14D\uC2A4\uD2B8\uB97C \uAC80\uC0C9\uD569\uB2C8\uB2E4.",
+      "@handle, keyword, phrase\u2026": "@\uD578\uB4E4, \uD0A4\uC6CC\uB4DC, \uBB38\uAD6C\u2026",
+      "Type to search the records captured by export runs.": "\uB0B4\uBCF4\uB0B4\uAE30 \uC2E4\uD589\uC5D0\uC11C \uCEA1\uCC98\uD55C \uB808\uCF54\uB4DC\uB97C \uAC80\uC0C9\uD558\uB824\uBA74 \uC785\uB825\uD558\uC138\uC694.",
       "Download Markdown report": "Markdown \uBCF4\uACE0\uC11C \uB0B4\uB824\uBC1B\uAE30",
       "Audit log + snapshot diff + cleanup preview.": "\uAC10\uC0AC \uB85C\uADF8, \uC2A4\uB0C5\uC0F7 \uBE44\uAD50, \uC815\uB9AC \uBBF8\uB9AC\uBCF4\uAE30.",
       "Cleanup review queue": "\uC815\uB9AC \uAC80\uD1A0 \uB300\uAE30\uC5F4",
@@ -3211,6 +3417,8 @@ html.av-reduce-motion *::after {
       "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.": "\uC774\uBCF4\uB2E4 \uC791\uC740 \uD30C\uC77C\uC740 \uBE0C\uB77C\uC6B0\uC800\uB85C \uC800\uC7A5\uD569\uB2C8\uB2E4. Aviary\uAC00 \uBA3C\uC800 \uD06C\uAE30\uB97C \uD655\uC778\uD558\uBA70, \uC11C\uBC84\uAC00 \uD06C\uAE30\uB97C \uC54C\uB824\uC8FC\uC9C0 \uC54A\uC73C\uBA74 \uADF8\uB300\uB85C \uC804\uB2EC\uD569\uB2C8\uB2E4.",
       "Test Aria2 connection": "Aria2 \uC5F0\uACB0 \uD14C\uC2A4\uD2B8",
       "Sends a trivial JSON-RPC call.": "\uAC04\uB2E8\uD55C JSON-RPC \uD638\uCD9C\uC744 \uBCF4\uB0C5\uB2C8\uB2E4.",
+      "Aria2 active downloads": "Aria2 \uD65C\uC131 \uB2E4\uC6B4\uB85C\uB4DC",
+      "Refresh to list in-flight transfers; tap Cancel to abort one.": "\uC0C8\uB85C \uACE0\uCCD0 \uC9C4\uD589 \uC911\uC778 \uC804\uC1A1\uC744 \uB098\uC5F4\uD569\uB2C8\uB2E4. \uCDE8\uC18C\uB97C \uB20C\uB7EC \uC911\uB2E8\uD558\uC138\uC694.",
       "Refresh": "\uC0C8\uB85C \uACE0\uCE68",
       "Bluesky crosspost": "Bluesky \uAD50\uCC28 \uAC8C\uC2DC",
       "Post composer text to your Bluesky account on demand.": "\uC791\uC131\uCC3D\uC758 \uAE00\uC744 \uD544\uC694\uD560 \uB54C Bluesky \uACC4\uC815\uC5D0 \uC62C\uB9BD\uB2C8\uB2E4.",
@@ -3228,6 +3436,8 @@ html.av-reduce-motion *::after {
       "Bearer token with write:statuses scope.": "write:statuses \uBC94\uC704\uB97C \uAC00\uC9C4 \uBCA0\uC5B4\uB7EC \uD1A0\uD070.",
       "Attach last download": "\uCD5C\uADFC \uB2E4\uC6B4\uB85C\uB4DC \uCCA8\uBD80",
       "Upload the last successful Aviary media download with the first post in an explicit crosspost.": "\uAD50\uCC28 \uAC8C\uC2DC\uC758 \uCCAB \uAE00\uC5D0 Aviary\uC5D0\uC11C \uB9C8\uC9C0\uB9C9\uC73C\uB85C \uC131\uACF5\uD55C \uBBF8\uB514\uC5B4 \uB2E4\uC6B4\uB85C\uB4DC\uB97C \uCCA8\uBD80\uD569\uB2C8\uB2E4.",
+      "Crosspost as thread": "\uC2A4\uB808\uB4DC\uB85C \uD06C\uB85C\uC2A4\uD3EC\uC2A4\uD2B8",
+      "Split on blank lines and reply each segment to the previous one.": "\uBE48 \uC904\uC744 \uAE30\uC900\uC73C\uB85C \uB098\uB204\uACE0 \uAC01 \uC138\uADF8\uBA3C\uD2B8\uB97C \uC774\uC804 \uAC8C\uC2DC\uBB3C\uC5D0 \uB2F5\uAE00\uB85C \uBCF4\uB0C5\uB2C8\uB2E4.",
       "Crosspost composer \u2192 Bluesky": "\uC791\uC131\uCC3D\uC744 Bluesky\uB85C",
       "Uses the current composer text.": "\uD604\uC7AC \uC791\uC131\uCC3D\uC758 \uAE00\uC744 \uC0AC\uC6A9\uD569\uB2C8\uB2E4.",
       "Crosspost composer \u2192 Mastodon": "\uC791\uC131\uCC3D\uC744 Mastodon\uC73C\uB85C",
@@ -3255,9 +3465,22 @@ html.av-reduce-motion *::after {
       "After each export run, kick the embedding job in the background. Off by default.": "\uB0B4\uBCF4\uB0B4\uAE30\uB97C \uB9C8\uCE60 \uB54C\uB9C8\uB2E4 \uC784\uBCA0\uB529 \uC791\uC5C5\uC744 \uBC31\uADF8\uB77C\uC6B4\uB4DC\uC5D0\uC11C \uC2DC\uC791\uD569\uB2C8\uB2E4. \uAE30\uBCF8\uC740 \uAEBC\uC9D0\uC785\uB2C8\uB2E4.",
       "Rebuild semantic index": "\uC758\uBBF8 \uC0C9\uC778 \uB2E4\uC2DC \uB9CC\uB4E4\uAE30",
       "Embed every captured record. Re-running is cheap because cached entries are skipped.": "\uC218\uC9D1\uD55C \uBAA8\uB4E0 \uAE30\uB85D\uC744 \uC784\uBCA0\uB529\uD569\uB2C8\uB2E4. \uCE90\uC2DC\uB41C \uD56D\uBAA9\uC740 \uAC74\uB108\uB6F0\uBBC0\uB85C \uB2E4\uC2DC \uC2E4\uD589\uD574\uB3C4 \uBD80\uB2F4\uC774 \uC801\uC2B5\uB2C8\uB2E4.",
+      "Vector similarity over captured records. Embeddings run on demand.": "\uCEA1\uCC98\uD55C \uB808\uCF54\uB4DC\uC758 \uBCA1\uD130 \uC720\uC0AC\uB3C4\uC785\uB2C8\uB2E4. \uC784\uBCA0\uB529\uC740 \uD544\uC694\uD560 \uB54C \uC2E4\uD589\uB429\uB2C8\uB2E4.",
+      "Describe what you're looking for\u2026": "\uCC3E\uB294 \uB0B4\uC6A9\uC744 \uC124\uBA85\uD558\uC138\uC694\u2026",
       "Clear semantic index": "\uC758\uBBF8 \uC0C9\uC778 \uC9C0\uC6B0\uAE30",
       "Forget every embedded record.": "\uC784\uBCA0\uB529\uB41C \uAE30\uB85D\uC744 \uBAA8\uB450 \uC78A\uC2B5\uB2C8\uB2E4.",
+      "on": "\uCF1C\uC9D0",
+      "off": "\uAEBC\uC9D0",
+      "configured": "\uAD6C\uC131\uB428",
+      "missing endpoint": "\uC5D4\uB4DC\uD3EC\uC778\uD2B8 \uC5C6\uC74C",
+      "missing credentials": "\uC790\uACA9 \uC99D\uBA85 \uC5C6\uC74C",
+      "missing key/model": "\uD0A4 \uB610\uB294 \uBAA8\uB378 \uC5C6\uC74C",
+      "indexed": "\uAC1C \uC0C9\uC778\uB428",
+      "{name}: {state} \xB7 {config}": "{name} \u2014 {state} \xB7 {config}",
+      "{name}: {state} \xB7 {count} {indexed}": "{name} \u2014 {state} \xB7 {count}{indexed}",
       "Integration status": "\uC5F0\uB3D9 \uC0C1\uD0DC",
+      "Recent integration errors": "\uCD5C\uADFC \uD1B5\uD569 \uC624\uB958",
+      "Drawn from the audit log; only failed integration calls show up.": "\uAC10\uC0AC \uB85C\uADF8\uC5D0\uC11C \uAC00\uC838\uC624\uBA70 \uC2E4\uD328\uD55C \uD1B5\uD569 \uD638\uCD9C\uB9CC \uD45C\uC2DC\uB429\uB2C8\uB2E4.",
       "Reset everything to plain X": "\uBAA8\uB450 \uAE30\uBCF8 X \uC0C1\uD0DC\uB85C \uB418\uB3CC\uB9AC\uAE30",
       "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "\uBAA8\uB4E0 \uC124\uC815\uC744 \uAE30\uBCF8\uAC12\uC73C\uB85C \uB418\uB3CC\uB9BD\uB2C8\uB2E4. \uAE30\uBCF8\uAC12\uC740 X\uB97C \uC804\uD600 \uBC14\uAFB8\uC9C0 \uC54A\uB294 \uC0C1\uD0DC\uC785\uB2C8\uB2E4. \uC800\uC7A5\uD55C \uAC8C\uC2DC\uBB3C\xB7\uBA54\uBAA8\xB7\uBD81\uB9C8\uD06C\xB7\uB2E4\uC6B4\uB85C\uB4DC \uAE30\uB85D\uC740 \uADF8\uB300\uB85C \uC720\uC9C0\uB418\uBA70 \uC124\uC815\uB9CC \uCD08\uAE30\uD654\uB429\uB2C8\uB2E4.",
       "Export settings": "\uC124\uC815 \uB0B4\uBCF4\uB0B4\uAE30",
@@ -3314,11 +3537,19 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "\uBD84\uC11D \uBE44\uCF58\uC744 \uD5C8\uC6A9\uD588\uC2B5\uB2C8\uB2E4",
       "Selector health monitoring on": "\uC120\uD0DD\uC790 \uC0C1\uD0DC \uBAA8\uB2C8\uD130\uB9C1 \uCF2C",
       "Selector health monitoring off": "\uC120\uD0DD\uC790 \uC0C1\uD0DC \uBAA8\uB2C8\uD130\uB9C1 \uB054",
+      "Profile switched. Reloading\u2026": "\uD504\uB85C\uD544\uC774 \uC804\uD658\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uB85C\uB4DC\uD558\uB294 \uC911\u2026",
+      "Profile switch failed.": "\uD504\uB85C\uD544 \uC804\uD658\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
+      "Profile created. Reloading\u2026": "\uD504\uB85C\uD544\uC774 \uC0DD\uC131\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uB85C\uB4DC\uD558\uB294 \uC911\u2026",
+      "Profile creation failed.": "\uD504\uB85C\uD544 \uC0DD\uC131\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
       "Could not apply preset.": "\uD504\uB9AC\uC14B\uC744 \uC801\uC6A9\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "No UserCell rows found.": "UserCell \uD589\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
       "Snapshot failed.": "\uC2A4\uB0C5\uC0F7\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
       "Snapshots cleared": "\uC2A4\uB0C5\uC0F7\uC744 \uC9C0\uC6E0\uC2B5\uB2C8\uB2E4",
       "Could not clear snapshots.": "\uC2A4\uB0C5\uC0F7\uC744 \uC9C0\uC6B0\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
+      "Archive import paused.": "\uC544\uCE74\uC774\uBE0C \uAC00\uC838\uC624\uAE30\uAC00 \uC77C\uC2DC \uC911\uC9C0\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+      "Archive import resumed.": "\uC544\uCE74\uC774\uBE0C \uAC00\uC838\uC624\uAE30\uAC00 \uC7AC\uAC1C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+      "Archive import cancelled.": "\uC544\uCE74\uC774\uBE0C \uAC00\uC838\uC624\uAE30\uAC00 \uCDE8\uC18C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+      "Archive import retry started.": "\uC544\uCE74\uC774\uBE0C \uAC00\uC838\uC624\uAE30 \uC7AC\uC2DC\uB3C4\uAC00 \uC2DC\uC791\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
       "Reading archive \u2014 large files take a moment\u2026": "\uBCF4\uAD00 \uD30C\uC77C\uC744 \uC77D\uB294 \uC911 \u2014 \uD070 \uD30C\uC77C\uC740 \uC2DC\uAC04\uC774 \uAC78\uB9BD\uB2C8\uB2E4\u2026",
       "Archive import failed.": "\uBCF4\uAD00 \uD30C\uC77C \uAC00\uC838\uC624\uAE30\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
       "Building report\u2026": "\uBCF4\uACE0\uC11C\uB97C \uB9CC\uB4DC\uB294 \uC911\u2026",
@@ -3335,6 +3566,7 @@ html.av-reduce-motion *::after {
       "Aria2 threshold saved": "Aria2 \uAE30\uC900 \uD06C\uAE30\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Aria2 reachable.": "Aria2\uC5D0 \uC5F0\uACB0\uB428.",
       "Aria2 connection test failed.": "Aria2 \uC5F0\uACB0 \uD14C\uC2A4\uD2B8\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
+      "Aria2 cancel failed.": "Aria2 \uCDE8\uC18C\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
       "Aria2 sweep failed.": "Aria2 \uBAA9\uB85D\uC744 \uAC00\uC838\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "Bluesky on": "Bluesky \uCF2C",
       "Bluesky off": "Bluesky \uB054",
@@ -3399,6 +3631,9 @@ html.av-reduce-motion *::after {
       "Raw payload preference saved": "\uC6D0\uBCF8 \uC751\uB2F5 \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Query discovery preference saved": "\uCFFC\uB9AC \uAC80\uC0C9 \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Save folder hint saved": "\uC800\uC7A5 \uD3F4\uB354\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
+      "Export job paused.": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5\uC774 \uC77C\uC2DC \uC911\uC9C0\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+      "Export job resumed.": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5\uC774 \uC7AC\uAC1C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+      "Export job cancelled.": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5\uC774 \uCDE8\uC18C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
       "Collecting visible posts\u2026": "\uD45C\uC2DC\uB41C \uAC8C\uC2DC\uBB3C\uC744 \uBAA8\uC73C\uB294 \uC911\u2026",
       "No posts found on this view. Scroll the timeline to load some, then export again.": "\uC774 \uD654\uBA74\uC5D0\uC11C \uAC8C\uC2DC\uBB3C\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. \uD0C0\uC784\uB77C\uC778\uC744 \uC2A4\uD06C\uB864\uD574 \uBD88\uB7EC\uC628 \uB4A4 \uB2E4\uC2DC \uB0B4\uBCF4\uB0B4\uC138\uC694.",
       "Export failed. See diagnostics.": "\uB0B4\uBCF4\uB0B4\uAE30\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4. \uC9C4\uB2E8 \uC815\uBCF4\uB97C \uD655\uC778\uD558\uC138\uC694.",
@@ -3426,6 +3661,7 @@ html.av-reduce-motion *::after {
       "Could not clear history.": "\uAE30\uB85D\uC744 \uC9C0\uC6B0\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "Downloading media from this view\u2026": "\uC774 \uD654\uBA74\uC758 \uBBF8\uB514\uC5B4\uB97C \uB0B4\uB824\uBC1B\uB294 \uC911\u2026",
       "Batch download failed.": "\uC77C\uAD04 \uB2E4\uC6B4\uB85C\uB4DC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
+      "No failed media jobs to retry.": "\uC7AC\uC2DC\uB3C4\uD560 \uC2E4\uD328\uD55C \uBBF8\uB514\uC5B4 \uC791\uC5C5\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
       "Filters enabled": "\uD544\uD130\uB97C \uCF30\uC2B5\uB2C8\uB2E4",
       "Filters disabled": "\uD544\uD130\uB97C \uAED0\uC2B5\uB2C8\uB2E4",
       "Premium filter saved": "\uD504\uB9AC\uBBF8\uC5C4 \uD544\uD130\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
@@ -3443,11 +3679,15 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "\uC228\uAE34 \uAC8C\uC2DC\uBB3C\uC744 \uC9C0\uC6B0\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "Saving...": "\uC800\uC7A5 \uC911...",
       "Could not save settings. Try again.": "\uC124\uC815\uC744 \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+      "Aviary settings": "Aviary \uC124\uC815",
       "Nothing matches that search.": "\uAC80\uC0C9\uACFC \uC77C\uCE58\uD558\uB294 \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
       "Try a shorter word, or pick a section on the left.": "\uB354 \uC9E7\uC740 \uB2E8\uC5B4\uB85C \uAC80\uC0C9\uD558\uAC70\uB098 \uC67C\uCABD\uC5D0\uC11C \uC139\uC158\uC744 \uC120\uD0DD\uD558\uC138\uC694.",
       "Preset applied": "\uD504\uB9AC\uC14B\uC744 \uC801\uC6A9\uD588\uC2B5\uB2C8\uB2E4",
       "Preset already applied": "\uD504\uB9AC\uC14B\uC774 \uC774\uBBF8 \uC801\uC6A9\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4",
+      "No captured records match \u201C{query}\u201D.": "\u201C{query}\u201D\uC640 \uC77C\uCE58\uD558\uB294 \uCEA1\uCC98\uD55C \uB808\uCF54\uB4DC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+      "No active downloads.": "\uD65C\uC131 \uB2E4\uC6B4\uB85C\uB4DC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
       "Cancel": "\uCDE8\uC18C",
+      "No matches (or integration disabled).": "\uC77C\uCE58\uD558\uB294 \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4(\uD1B5\uD569\uC774 \uBE44\uD65C\uC131\uD654\uB418\uC5C8\uAC70\uB098 \uC9C0\uC6D0\uB418\uC9C0 \uC54A\uC74C).",
       "Find local bookmarks": "\uB85C\uCEEC \uBD81\uB9C8\uD06C \uCC3E\uAE30",
       "Search saved posts by text, handle, tags, folder, or ID.": "\uC800\uC7A5\uD55C \uAC8C\uC2DC\uBB3C\uC744 \uBCF8\uBB38, \uD578\uB4E4, \uD0DC\uADF8, \uD3F4\uB354 \uB610\uB294 ID\uB85C \uAC80\uC0C9\uD569\uB2C8\uB2E4.",
       "Search local bookmarks": "\uB85C\uCEEC \uBD81\uB9C8\uD06C \uAC80\uC0C9",
@@ -3744,6 +3984,12 @@ html.av-reduce-motion *::after {
       "Walks UserCell rows on the current page. Open a /handle/following view first.": "\u064A\u0645\u0631\u0651 \u0639\u0644\u0649 \u0635\u0641\u0648\u0641 UserCell \u0641\u064A \u0627\u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u062D\u0627\u0644\u064A\u0629. \u0627\u0641\u062A\u062D \u0623\u0648\u0644\u064B\u0627 \u0635\u0641\u062D\u0629 \u200E/\u0627\u0644\u062D\u0633\u0627\u0628/following\u200E.",
       "Clear all snapshots": "\u0645\u0633\u062D \u0643\u0644 \u0627\u0644\u0644\u0642\u0637\u0627\u062A",
       "Drop every stored follower/following snapshot.": "\u064A\u062D\u0630\u0641 \u0643\u0644 \u0644\u0642\u0637\u0627\u062A \u0627\u0644\u0645\u062A\u0627\u0628\u0650\u0639\u064A\u0646 \u0648\u0627\u0644\u0645\u062A\u0627\u0628\u064E\u0639\u064A\u0646 \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629.",
+      "Import official X archive": "\u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0623\u0631\u0634\u064A\u0641 X \u0627\u0644\u0631\u0633\u0645\u064A",
+      "Pick a ZIP exported from x.com. STORE and DEFLATE entries are supported; the source stays local while it is resumable.": "\u0627\u062E\u062A\u0631 \u0645\u0644\u0641 ZIP \u0645\u064F\u0635\u062F\u0651\u0631\u0627\u064B \u0645\u0646 x.com. \u062A\u064F\u062F\u0639\u0645 \u0625\u062F\u062E\u0627\u0644\u0627\u062A STORE \u0648DEFLATE\u061B \u0648\u062A\u0628\u0642\u0649 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u0635\u062F\u0631 \u0645\u062D\u0644\u064A\u0629 \u0645\u0627 \u062F\u0627\u0645 \u0627\u0644\u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0642\u0627\u0628\u0644\u0627\u064B \u0644\u0644\u0627\u0633\u062A\u0626\u0646\u0627\u0641.",
+      "Search captured records": "\u0627\u0644\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0627\u0644\u0645\u0644\u062A\u0642\u0637\u0629",
+      "Full-text search across the latest export collector run.": "\u0628\u062D\u062B \u0646\u0635\u064A \u0643\u0627\u0645\u0644 \u0641\u064A \u0623\u062D\u062F\u062B \u0639\u0645\u0644\u064A\u0629 \u062C\u0645\u0639 \u0644\u0644\u062A\u0635\u062F\u064A\u0631.",
+      "@handle, keyword, phrase\u2026": "@\u0627\u0644\u0645\u0639\u0631\u0651\u0641\u060C \u0643\u0644\u0645\u0629 \u0645\u0641\u062A\u0627\u062D\u064A\u0629\u060C \u0639\u0628\u0627\u0631\u0629\u2026",
+      "Type to search the records captured by export runs.": "\u0627\u0643\u062A\u0628 \u0644\u0644\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0627\u0644\u062A\u064A \u0627\u0644\u062A\u0642\u0637\u062A\u0647\u0627 \u0639\u0645\u0644\u064A\u0627\u062A \u0627\u0644\u062A\u0635\u062F\u064A\u0631.",
       "Download Markdown report": "\u062A\u0646\u0632\u064A\u0644 \u062A\u0642\u0631\u064A\u0631 Markdown",
       "Audit log + snapshot diff + cleanup preview.": "\u0633\u062C\u0644 \u0627\u0644\u062A\u062F\u0642\u064A\u0642 \u0648\u0645\u0642\u0627\u0631\u0646\u0629 \u0627\u0644\u0644\u0642\u0637\u0627\u062A \u0648\u0645\u0639\u0627\u064A\u0646\u0629 \u0627\u0644\u062A\u0646\u0638\u064A\u0641.",
       "Cleanup review queue": "\u0642\u0627\u0626\u0645\u0629 \u0645\u0631\u0627\u062C\u0639\u0629 \u0627\u0644\u062A\u0646\u0638\u064A\u0641",
@@ -3764,6 +4010,8 @@ html.av-reduce-motion *::after {
       "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.": "\u062A\u064F\u062D\u0641\u0638 \u0627\u0644\u0645\u0644\u0641\u0627\u062A \u0627\u0644\u0623\u0635\u063A\u0631 \u0639\u0628\u0631 \u0627\u0644\u0645\u062A\u0635\u0641\u062D. \u064A\u062A\u062D\u0642\u0642 Aviary \u0645\u0646 \u0627\u0644\u062D\u062C\u0645 \u0623\u0648\u0644\u064B\u0627\u060C \u0648\u0625\u0630\u0627 \u0644\u0645 \u064A\u0630\u0643\u0631\u0647 \u0627\u0644\u062E\u0627\u062F\u0645 \u0641\u0633\u064A\u062A\u0645 \u062A\u0633\u0644\u064A\u0645 \u0627\u0644\u0645\u0644\u0641 \u0639\u0644\u0649 \u0623\u064A \u062D\u0627\u0644.",
       "Test Aria2 connection": "\u0627\u062E\u062A\u0628\u0627\u0631 \u0627\u0644\u0627\u062A\u0635\u0627\u0644 \u0628\u0640 Aria2",
       "Sends a trivial JSON-RPC call.": "\u064A\u0631\u0633\u0644 \u0637\u0644\u0628 JSON-RPC \u0628\u0633\u064A\u0637\u064B\u0627.",
+      "Aria2 active downloads": "\u0627\u0644\u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0627\u0644\u0646\u0634\u0637\u0629 \u0641\u064A Aria2",
+      "Refresh to list in-flight transfers; tap Cancel to abort one.": "\u062D\u062F\u0651\u062B \u0644\u0639\u0631\u0636 \u0639\u0645\u0644\u064A\u0627\u062A \u0627\u0644\u0646\u0642\u0644 \u0627\u0644\u062C\u0627\u0631\u064A\u0629\u061B \u0627\u0636\u063A\u0637 \xAB\u0625\u0644\u063A\u0627\u0621\xBB \u0644\u0625\u064A\u0642\u0627\u0641 \u0625\u062D\u062F\u0627\u0647\u0627.",
       "Refresh": "\u062A\u062D\u062F\u064A\u062B",
       "Bluesky crosspost": "\u0627\u0644\u0646\u0634\u0631 \u0627\u0644\u0645\u062A\u0642\u0627\u0637\u0639 \u0639\u0644\u0649 Bluesky",
       "Post composer text to your Bluesky account on demand.": "\u064A\u0646\u0634\u0631 \u0646\u0635 \u0627\u0644\u0645\u062D\u0631\u0631 \u0639\u0644\u0649 \u062D\u0633\u0627\u0628\u0643 \u0641\u064A Bluesky \u0639\u0646\u062F \u0627\u0644\u0637\u0644\u0628.",
@@ -3781,6 +4029,8 @@ html.av-reduce-motion *::after {
       "Bearer token with write:statuses scope.": "\u0631\u0645\u0632 Bearer \u0628\u0646\u0637\u0627\u0642 write:statuses.",
       "Attach last download": "\u0625\u0631\u0641\u0627\u0642 \u0622\u062E\u0631 \u062A\u0646\u0632\u064A\u0644",
       "Upload the last successful Aviary media download with the first post in an explicit crosspost.": "\u064A\u0631\u0641\u0639 \u0622\u062E\u0631 \u0648\u0633\u0627\u0626\u0637 \u0646\u0632\u0651\u0644\u0647\u0627 Aviary \u0628\u0646\u062C\u0627\u062D \u0645\u0639 \u0623\u0648\u0644 \u0645\u0646\u0634\u0648\u0631 \u0641\u064A \u0627\u0644\u0646\u0634\u0631 \u0627\u0644\u0645\u062A\u0642\u0627\u0637\u0639.",
+      "Crosspost as thread": "\u0627\u0644\u0646\u0634\u0631 \u0643\u0633\u0644\u0633\u0644\u0629",
+      "Split on blank lines and reply each segment to the previous one.": "\u0642\u0633\u0651\u0645 \u0627\u0644\u0646\u0635 \u0639\u0646\u062F \u0627\u0644\u0623\u0633\u0637\u0631 \u0627\u0644\u0641\u0627\u0631\u063A\u0629 \u0648\u0631\u062F\u0651 \u0639\u0644\u0649 \u0643\u0644 \u0645\u0642\u0637\u0639 \u0639\u0644\u0649 \u0627\u0644\u0633\u0627\u0628\u0642.",
       "Crosspost composer \u2192 Bluesky": "\u0646\u0634\u0631 \u0627\u0644\u0645\u062D\u0631\u0631 \u0639\u0644\u0649 Bluesky",
       "Uses the current composer text.": "\u064A\u0633\u062A\u062E\u062F\u0645 \u0627\u0644\u0646\u0635 \u0627\u0644\u062D\u0627\u0644\u064A \u0641\u064A \u0627\u0644\u0645\u062D\u0631\u0631.",
       "Crosspost composer \u2192 Mastodon": "\u0646\u0634\u0631 \u0627\u0644\u0645\u062D\u0631\u0631 \u0639\u0644\u0649 Mastodon",
@@ -3808,9 +4058,22 @@ html.av-reduce-motion *::after {
       "After each export run, kick the embedding job in the background. Off by default.": "\u0628\u0639\u062F \u0643\u0644 \u0639\u0645\u0644\u064A\u0629 \u062A\u0635\u062F\u064A\u0631\u060C \u064A\u0628\u062F\u0623 \u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0641\u064A \u0627\u0644\u062E\u0644\u0641\u064A\u0629. \u0645\u0639\u0637\u0651\u0644 \u0627\u0641\u062A\u0631\u0627\u0636\u064A\u064B\u0627.",
       "Rebuild semantic index": "\u0625\u0639\u0627\u062F\u0629 \u0628\u0646\u0627\u0621 \u0627\u0644\u0641\u0647\u0631\u0633 \u0627\u0644\u062F\u0644\u0627\u0644\u064A",
       "Embed every captured record. Re-running is cheap because cached entries are skipped.": "\u064A\u0636\u0645\u0651\u0646 \u0643\u0644 \u0633\u062C\u0644 \u0645\u062C\u0645\u0651\u0639. \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u062A\u0634\u063A\u064A\u0644 \u063A\u064A\u0631 \u0645\u0643\u0644\u0641\u0629 \u0644\u0623\u0646 \u0627\u0644\u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u0645\u062E\u0632\u0651\u0646\u0629 \u062A\u064F\u062A\u062E\u0637\u0651\u0649.",
+      "Vector similarity over captured records. Embeddings run on demand.": "\u0627\u0644\u062A\u0634\u0627\u0628\u0647 \u0627\u0644\u0645\u062A\u062C\u0647\u064A \u0641\u064A \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0627\u0644\u0645\u0644\u062A\u0642\u0637\u0629. \u062A\u064F\u0646\u0634\u0623 \u0627\u0644\u062A\u0636\u0645\u064A\u0646\u0627\u062A \u0639\u0646\u062F \u0627\u0644\u0637\u0644\u0628.",
+      "Describe what you're looking for\u2026": "\u0635\u0641 \u0645\u0627 \u062A\u0628\u062D\u062B \u0639\u0646\u0647\u2026",
       "Clear semantic index": "\u0645\u0633\u062D \u0627\u0644\u0641\u0647\u0631\u0633 \u0627\u0644\u062F\u0644\u0627\u0644\u064A",
       "Forget every embedded record.": "\u064A\u0646\u0633\u0649 \u0643\u0644 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0627\u0644\u0645\u0636\u0645\u0651\u0646\u0629.",
+      "on": "\u0645\u0641\u0639\u0651\u0644",
+      "off": "\u0645\u062A\u0648\u0642\u0641",
+      "configured": "\u0645\u064F\u0647\u064A\u0651\u0623",
+      "missing endpoint": "\u0646\u0642\u0637\u0629 \u0627\u0644\u0646\u0647\u0627\u064A\u0629 \u0645\u0641\u0642\u0648\u062F\u0629",
+      "missing credentials": "\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0627\u0639\u062A\u0645\u0627\u062F \u0645\u0641\u0642\u0648\u062F\u0629",
+      "missing key/model": "\u0627\u0644\u0645\u0641\u062A\u0627\u062D \u0623\u0648 \u0627\u0644\u0646\u0645\u0648\u0630\u062C \u0645\u0641\u0642\u0648\u062F",
+      "indexed": "\u0645\u0641\u0647\u0631\u0633",
+      "{name}: {state} \xB7 {config}": "{name} \u2014 {state} \xB7 {config}",
+      "{name}: {state} \xB7 {count} {indexed}": "{name} \u2014 {state} \xB7 {count} {indexed}",
       "Integration status": "\u062D\u0627\u0644\u0629 \u0627\u0644\u062A\u0643\u0627\u0645\u0644\u0627\u062A",
+      "Recent integration errors": "\u0623\u062E\u0637\u0627\u0621 \u0627\u0644\u062A\u0643\u0627\u0645\u0644 \u0627\u0644\u0623\u062E\u064A\u0631\u0629",
+      "Drawn from the audit log; only failed integration calls show up.": "\u0645\u0646 \u0633\u062C\u0644 \u0627\u0644\u062A\u062F\u0642\u064A\u0642\u061B \u062A\u0638\u0647\u0631 \u0641\u0642\u0637 \u0627\u0633\u062A\u062F\u0639\u0627\u0621\u0627\u062A \u0627\u0644\u062A\u0643\u0627\u0645\u0644 \u0627\u0644\u0641\u0627\u0634\u0644\u0629.",
       "Reset everything to plain X": "\u0625\u0639\u0627\u062F\u0629 \u0643\u0644 \u0634\u064A\u0621 \u0625\u0644\u0649 X \u0643\u0645\u0627 \u0647\u0648",
       "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "\u064A\u0639\u064A\u062F \u0643\u0644 \u0625\u0639\u062F\u0627\u062F \u0625\u0644\u0649 \u0642\u064A\u0645\u062A\u0647 \u0627\u0644\u0627\u0641\u062A\u0631\u0627\u0636\u064A\u0629\u060C \u0648\u0647\u064A \u0639\u062F\u0645 \u062A\u063A\u064A\u064A\u0631 \u0623\u064A \u0634\u064A\u0621 \u0641\u064A X \u0639\u0644\u0649 \u0627\u0644\u0625\u0637\u0644\u0627\u0642. \u062A\u0628\u0642\u0649 \u0645\u0646\u0634\u0648\u0631\u0627\u062A\u0643 \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629 \u0648\u0645\u0644\u0627\u062D\u0638\u0627\u062A\u0643 \u0648\u0625\u0634\u0627\u0631\u0627\u062A\u0643 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0648\u0633\u062C\u0644 \u0627\u0644\u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0643\u0645\u0627 \u0647\u064A \u2014 \u0647\u0630\u0627 \u064A\u0639\u064A\u062F \u0636\u0628\u0637 \u0627\u0644\u062A\u0641\u0636\u064A\u0644\u0627\u062A \u0641\u0642\u0637.",
       "Export settings": "\u062A\u0635\u062F\u064A\u0631 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A",
@@ -3867,11 +4130,19 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "\u062A\u0645 \u0627\u0644\u0633\u0645\u0627\u062D \u0628\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A",
       "Selector health monitoring on": "\u062A\u0645 \u062A\u0634\u063A\u064A\u0644 \u0645\u0631\u0627\u0642\u0628\u0629 \u0635\u062D\u0629 \u0627\u0644\u0645\u062D\u062F\u062F\u0627\u062A",
       "Selector health monitoring off": "\u062A\u0645 \u0625\u064A\u0642\u0627\u0641 \u0645\u0631\u0627\u0642\u0628\u0629 \u0635\u062D\u0629 \u0627\u0644\u0645\u062D\u062F\u062F\u0627\u062A",
+      "Profile switched. Reloading\u2026": "\u062A\u0645 \u062A\u0628\u062F\u064A\u0644 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A. \u062C\u0627\u0631\u064D \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u062A\u062D\u0645\u064A\u0644\u2026",
+      "Profile switch failed.": "\u0641\u0634\u0644 \u062A\u0628\u062F\u064A\u0644 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A.",
+      "Profile created. Reloading\u2026": "\u062A\u0645 \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A. \u062C\u0627\u0631\u064D \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u062A\u062D\u0645\u064A\u0644\u2026",
+      "Profile creation failed.": "\u0641\u0634\u0644 \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A.",
       "Could not apply preset.": "\u062A\u0639\u0630\u0651\u0631 \u062A\u0637\u0628\u064A\u0642 \u0627\u0644\u0625\u0639\u062F\u0627\u062F \u0627\u0644\u062C\u0627\u0647\u0632.",
       "No UserCell rows found.": "\u0644\u0645 \u064A\u062A\u0645 \u0627\u0644\u0639\u062B\u0648\u0631 \u0639\u0644\u0649 \u0635\u0641\u0648\u0641 UserCell.",
       "Snapshot failed.": "\u0641\u0634\u0644\u062A \u0627\u0644\u0644\u0642\u0637\u0629.",
       "Snapshots cleared": "\u062A\u0645 \u0645\u0633\u062D \u0627\u0644\u0644\u0642\u0637\u0627\u062A",
       "Could not clear snapshots.": "\u062A\u0639\u0630\u0651\u0631 \u0645\u0633\u062D \u0627\u0644\u0644\u0642\u0637\u0627\u062A.",
+      "Archive import paused.": "\u062A\u0645 \u0625\u064A\u0642\u0627\u0641 \u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0623\u0631\u0634\u064A\u0641 \u0645\u0624\u0642\u062A\u0627\u064B.",
+      "Archive import resumed.": "\u062A\u0645 \u0627\u0633\u062A\u0626\u0646\u0627\u0641 \u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0623\u0631\u0634\u064A\u0641.",
+      "Archive import cancelled.": "\u062A\u0645 \u0625\u0644\u063A\u0627\u0621 \u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0623\u0631\u0634\u064A\u0641.",
+      "Archive import retry started.": "\u0628\u062F\u0623\u062A \u0625\u0639\u0627\u062F\u0629 \u0645\u062D\u0627\u0648\u0644\u0629 \u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0623\u0631\u0634\u064A\u0641.",
       "Reading archive \u2014 large files take a moment\u2026": "\u062C\u0627\u0631\u064D \u0642\u0631\u0627\u0621\u0629 \u0627\u0644\u0623\u0631\u0634\u064A\u0641 \u2014 \u0627\u0644\u0645\u0644\u0641\u0627\u062A \u0627\u0644\u0643\u0628\u064A\u0631\u0629 \u062A\u0633\u062A\u063A\u0631\u0642 \u0644\u062D\u0638\u0629\u2026",
       "Archive import failed.": "\u0641\u0634\u0644 \u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0623\u0631\u0634\u064A\u0641.",
       "Building report\u2026": "\u062C\u0627\u0631\u064D \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u062A\u0642\u0631\u064A\u0631\u2026",
@@ -3888,6 +4159,7 @@ html.av-reduce-motion *::after {
       "Aria2 threshold saved": "\u062A\u0645 \u062D\u0641\u0638 \u062D\u062F Aria2",
       "Aria2 reachable.": "\u064A\u0645\u0643\u0646 \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 Aria2.",
       "Aria2 connection test failed.": "\u0641\u0634\u0644 \u0627\u062E\u062A\u0628\u0627\u0631 \u0627\u0644\u0627\u062A\u0635\u0627\u0644 \u0628\u0640 Aria2.",
+      "Aria2 cancel failed.": "\u0641\u0634\u0644 \u0625\u0644\u063A\u0627\u0621 Aria2.",
       "Aria2 sweep failed.": "\u062A\u0639\u0630\u0651\u0631 \u062C\u0644\u0628 \u0642\u0627\u0626\u0645\u0629 Aria2.",
       "Bluesky on": "Bluesky \u0645\u0641\u0639\u0651\u0644",
       "Bluesky off": "Bluesky \u0645\u0639\u0637\u0651\u0644",
@@ -3952,6 +4224,9 @@ html.av-reduce-motion *::after {
       "Raw payload preference saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u0627\u0633\u062A\u062C\u0627\u0628\u0627\u062A \u0627\u0644\u062E\u0627\u0645",
       "Query discovery preference saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 \u0627\u0643\u062A\u0634\u0627\u0641 \u0627\u0644\u0627\u0633\u062A\u0639\u0644\u0627\u0645\u0627\u062A",
       "Save folder hint saved": "\u062A\u0645 \u062D\u0641\u0638 \u0645\u062C\u0644\u062F \u0627\u0644\u062D\u0641\u0638",
+      "Export job paused.": "\u062A\u0645 \u0625\u064A\u0642\u0627\u0641 \u0645\u0647\u0645\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631 \u0645\u0624\u0642\u062A\u0627\u064B.",
+      "Export job resumed.": "\u062A\u0645 \u0627\u0633\u062A\u0626\u0646\u0627\u0641 \u0645\u0647\u0645\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631.",
+      "Export job cancelled.": "\u062A\u0645 \u0625\u0644\u063A\u0627\u0621 \u0645\u0647\u0645\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631.",
       "Collecting visible posts\u2026": "\u062C\u0627\u0631\u064D \u062C\u0645\u0639 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0638\u0627\u0647\u0631\u0629\u2026",
       "No posts found on this view. Scroll the timeline to load some, then export again.": "\u0644\u0645 \u064A\u062A\u0645 \u0627\u0644\u0639\u062B\u0648\u0631 \u0639\u0644\u0649 \u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0641\u064A \u0647\u0630\u0627 \u0627\u0644\u0639\u0631\u0636. \u0645\u0631\u0651\u0631 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \u0644\u062A\u062D\u0645\u064A\u0644 \u0628\u0639\u0636\u0647\u0627 \u062B\u0645 \u0635\u062F\u0651\u0631 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649.",
       "Export failed. See diagnostics.": "\u0641\u0634\u0644 \u0627\u0644\u062A\u0635\u062F\u064A\u0631. \u0631\u0627\u062C\u0639 \u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0627\u0644\u062A\u0634\u062E\u064A\u0635.",
@@ -3979,6 +4254,7 @@ html.av-reduce-motion *::after {
       "Could not clear history.": "\u062A\u0639\u0630\u0651\u0631 \u0645\u0633\u062D \u0627\u0644\u0633\u062C\u0644.",
       "Downloading media from this view\u2026": "\u062C\u0627\u0631\u064D \u062A\u0646\u0632\u064A\u0644 \u0648\u0633\u0627\u0626\u0637 \u0647\u0630\u0647 \u0627\u0644\u0635\u0641\u062D\u0629\u2026",
       "Batch download failed.": "\u0641\u0634\u0644 \u0627\u0644\u062A\u0646\u0632\u064A\u0644 \u0627\u0644\u062C\u0645\u0627\u0639\u064A.",
+      "No failed media jobs to retry.": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u0647\u0627\u0645 \u0648\u0633\u0627\u0626\u0637 \u0641\u0627\u0634\u0644\u0629 \u0644\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0645\u062D\u0627\u0648\u0644\u0629.",
       "Filters enabled": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0639\u0648\u0627\u0645\u0644 \u0627\u0644\u062A\u0635\u0641\u064A\u0629",
       "Filters disabled": "\u062A\u0645 \u062A\u0639\u0637\u064A\u0644 \u0639\u0648\u0627\u0645\u0644 \u0627\u0644\u062A\u0635\u0641\u064A\u0629",
       "Premium filter saved": "\u062A\u0645 \u062D\u0641\u0638 \u0641\u0644\u062A\u0631 Premium",
@@ -3996,11 +4272,15 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "\u062A\u0639\u0630\u0651\u0631 \u0645\u0633\u062D \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u062E\u0641\u064A\u0629.",
       "Saving...": "\u062C\u0627\u0631\u064D \u0627\u0644\u062D\u0641\u0638...",
       "Could not save settings. Try again.": "\u062A\u0639\u0630\u0651\u0631 \u062D\u0641\u0638 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A. \u062D\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649.",
+      "Aviary settings": "\u0625\u0639\u062F\u0627\u062F\u0627\u062A Aviary",
       "Nothing matches that search.": "\u0644\u0627 \u064A\u0648\u062C\u062F \u0645\u0627 \u064A\u0637\u0627\u0628\u0642 \u0647\u0630\u0627 \u0627\u0644\u0628\u062D\u062B.",
       "Try a shorter word, or pick a section on the left.": "\u062C\u0631\u0651\u0628 \u0643\u0644\u0645\u0629 \u0623\u0642\u0635\u0631\u060C \u0623\u0648 \u0627\u062E\u062A\u0631 \u0642\u0633\u0645\u064B\u0627 \u0645\u0646 \u0627\u0644\u064A\u0645\u064A\u0646.",
       "Preset applied": "\u062A\u0645 \u062A\u0637\u0628\u064A\u0642 \u0627\u0644\u0625\u0639\u062F\u0627\u062F \u0627\u0644\u062C\u0627\u0647\u0632",
       "Preset already applied": "\u0627\u0644\u0625\u0639\u062F\u0627\u062F \u0627\u0644\u062C\u0627\u0647\u0632 \u0645\u064F\u0637\u0628\u064E\u0651\u0642 \u0628\u0627\u0644\u0641\u0639\u0644",
+      "No captured records match \u201C{query}\u201D.": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0633\u062C\u0644\u0627\u062A \u0645\u0644\u062A\u0642\u0637\u0629 \u062A\u0637\u0627\u0628\u0642 \xAB{query}\xBB.",
+      "No active downloads.": "\u0644\u0627 \u062A\u0648\u062C\u062F \u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0646\u0634\u0637\u0629.",
       "Cancel": "\u0625\u0644\u063A\u0627\u0621",
+      "No matches (or integration disabled).": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0646\u062A\u0627\u0626\u062C \u0645\u0637\u0627\u0628\u0642\u0629 (\u0623\u0648 \u0623\u0646 \u0627\u0644\u062A\u0643\u0627\u0645\u0644 \u0645\u0639\u0637\u0651\u0644).",
       "Find local bookmarks": "\u0627\u0644\u0639\u062B\u0648\u0631 \u0639\u0644\u0649 \u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
       "Search saved posts by text, handle, tags, folder, or ID.": "\u0627\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629 \u0628\u0627\u0644\u0646\u0635 \u0623\u0648 \u0627\u0644\u0645\u0639\u0631\u0651\u0641 \u0623\u0648 \u0627\u0644\u0648\u0633\u0648\u0645 \u0623\u0648 \u0627\u0644\u0645\u062C\u0644\u062F \u0623\u0648 \u0627\u0644\u0631\u0642\u0645.",
       "Search local bookmarks": "\u0627\u0644\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
@@ -4297,6 +4577,12 @@ html.av-reduce-motion *::after {
       "Walks UserCell rows on the current page. Open a /handle/following view first.": "\u05E2\u05D5\u05D1\u05E8 \u05E2\u05DC \u05E9\u05D5\u05E8\u05D5\u05EA UserCell \u05D1\u05E2\u05DE\u05D5\u05D3 \u05D4\u05E0\u05D5\u05DB\u05D7\u05D9. \u05E4\u05EA\u05D7 \u05EA\u05D7\u05D9\u05DC\u05D4 \u05E2\u05DE\u05D5\u05D3 \u200E/\u05D7\u05E9\u05D1\u05D5\u05DF/following\u200E.",
       "Clear all snapshots": "\u05E0\u05D9\u05E7\u05D5\u05D9 \u05DB\u05DC \u05EA\u05E6\u05DC\u05D5\u05DE\u05D9 \u05D4\u05DE\u05E6\u05D1",
       "Drop every stored follower/following snapshot.": "\u05DE\u05D5\u05D7\u05E7 \u05D0\u05EA \u05DB\u05DC \u05EA\u05E6\u05DC\u05D5\u05DE\u05D9 \u05D4\u05E2\u05D5\u05E7\u05D1\u05D9\u05DD \u05D5\u05D4\u05E0\u05E2\u05E7\u05D1\u05D9\u05DD \u05E9\u05E0\u05E9\u05DE\u05E8\u05D5.",
+      "Import official X archive": "\u05D9\u05D9\u05D1\u05D5\u05D0 \u05D0\u05E8\u05DB\u05D9\u05D5\u05DF X \u05D4\u05E8\u05E9\u05DE\u05D9",
+      "Pick a ZIP exported from x.com. STORE and DEFLATE entries are supported; the source stays local while it is resumable.": "\u05D1\u05D7\u05E8 \u05E7\u05D5\u05D1\u05E5 ZIP \u05E9\u05D9\u05D5\u05E6\u05D0 \u05DE\u05BEx.com. \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA STORE \u05D5\u05BEDEFLATE \u05E0\u05EA\u05DE\u05DB\u05D5\u05EA; \u05D4\u05DE\u05E7\u05D5\u05E8 \u05E0\u05E9\u05D0\u05E8 \u05DE\u05E7\u05D5\u05DE\u05D9 \u05DB\u05DC \u05E2\u05D5\u05D3 \u05E0\u05D9\u05EA\u05DF \u05DC\u05D4\u05DE\u05E9\u05D9\u05DA \u05D0\u05EA \u05D4\u05D9\u05D9\u05D1\u05D5\u05D0.",
+      "Search captured records": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05E0\u05DC\u05DB\u05D3\u05D5",
+      "Full-text search across the latest export collector run.": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D8\u05E7\u05E1\u05D8 \u05DE\u05DC\u05D0 \u05D1\u05D4\u05E8\u05E6\u05EA \u05D0\u05D9\u05E1\u05D5\u05E3 \u05D4\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D4\u05D0\u05D7\u05E8\u05D5\u05E0\u05D4.",
+      "@handle, keyword, phrase\u2026": "@\u05DB\u05D9\u05E0\u05D5\u05D9, \u05DE\u05D9\u05DC\u05EA \u05DE\u05E4\u05EA\u05D7, \u05D1\u05D9\u05D8\u05D5\u05D9\u2026",
+      "Type to search the records captured by export runs.": "\u05D4\u05E7\u05DC\u05D3 \u05DB\u05D3\u05D9 \u05DC\u05D7\u05E4\u05E9 \u05D1\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05E0\u05DC\u05DB\u05D3\u05D5 \u05D1\u05D4\u05E8\u05E6\u05D5\u05EA \u05D4\u05D9\u05D9\u05E6\u05D5\u05D0.",
       "Download Markdown report": "\u05D4\u05D5\u05E8\u05D3\u05EA \u05D3\u05D5\u05D7 Markdown",
       "Audit log + snapshot diff + cleanup preview.": "\u05D9\u05D5\u05DE\u05DF \u05D1\u05D9\u05E7\u05D5\u05E8\u05EA, \u05D4\u05E9\u05D5\u05D5\u05D0\u05EA \u05EA\u05E6\u05DC\u05D5\u05DE\u05D9 \u05DE\u05E6\u05D1 \u05D5\u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05E9\u05DC \u05E0\u05D9\u05E7\u05D5\u05D9.",
       "Cleanup review queue": "\u05EA\u05D5\u05E8 \u05DC\u05D1\u05D3\u05D9\u05E7\u05EA \u05E0\u05D9\u05E7\u05D5\u05D9",
@@ -4317,6 +4603,8 @@ html.av-reduce-motion *::after {
       "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.": "\u05E7\u05D1\u05E6\u05D9\u05DD \u05E7\u05D8\u05E0\u05D9\u05DD \u05D9\u05D5\u05EA\u05E8 \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05D3\u05E8\u05DA \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF. Aviary \u05D1\u05D5\u05D3\u05E7 \u05E7\u05D5\u05D3\u05DD \u05D0\u05EA \u05D4\u05D2\u05D5\u05D3\u05DC, \u05D5\u05D0\u05DD \u05D4\u05E9\u05E8\u05EA \u05D0\u05D9\u05E0\u05D5 \u05DE\u05D3\u05D5\u05D5\u05D7 \u05E2\u05DC\u05D9\u05D5 \u05D4\u05E7\u05D5\u05D1\u05E5 \u05DE\u05D5\u05E2\u05D1\u05E8 \u05D1\u05DB\u05DC \u05D6\u05D0\u05EA.",
       "Test Aria2 connection": "\u05D1\u05D3\u05D9\u05E7\u05EA \u05D4\u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u2011Aria2",
       "Sends a trivial JSON-RPC call.": "\u05E9\u05D5\u05DC\u05D7 \u05E7\u05E8\u05D9\u05D0\u05EA JSON-RPC \u05E4\u05E9\u05D5\u05D8\u05D4.",
+      "Aria2 active downloads": "\u05D4\u05D5\u05E8\u05D3\u05D5\u05EA Aria2 \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA",
+      "Refresh to list in-flight transfers; tap Cancel to abort one.": "\u05E8\u05E2\u05E0\u05DF \u05DB\u05D3\u05D9 \u05DC\u05D4\u05E6\u05D9\u05D2 \u05D4\u05E2\u05D1\u05E8\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA; \u05DC\u05D7\u05E5 \u05E2\u05DC \u05D1\u05D9\u05D8\u05D5\u05DC \u05DB\u05D3\u05D9 \u05DC\u05E2\u05E6\u05D5\u05E8 \u05D0\u05D7\u05EA.",
       "Refresh": "\u05E8\u05E2\u05E0\u05D5\u05DF",
       "Bluesky crosspost": "\u05E4\u05E8\u05E1\u05D5\u05DD \u05DE\u05E7\u05D1\u05D9\u05DC \u05D1\u2011Bluesky",
       "Post composer text to your Bluesky account on demand.": "\u05DE\u05E4\u05E8\u05E1\u05DD \u05D0\u05EA \u05D4\u05D8\u05E7\u05E1\u05D8 \u05DE\u05D7\u05DC\u05D5\u05DF \u05D4\u05DB\u05EA\u05D9\u05D1\u05D4 \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF Bluesky \u05E9\u05DC\u05DA \u05DC\u05E4\u05D9 \u05D3\u05E8\u05D9\u05E9\u05D4.",
@@ -4334,6 +4622,8 @@ html.av-reduce-motion *::after {
       "Bearer token with write:statuses scope.": "\u05D0\u05E1\u05D9\u05DE\u05D5\u05DF Bearer \u05E2\u05DD \u05D4\u05E8\u05E9\u05D0\u05EA write:statuses.",
       "Attach last download": "\u05E6\u05D9\u05E8\u05D5\u05E3 \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05D4\u05D0\u05D7\u05E8\u05D5\u05E0\u05D4",
       "Upload the last successful Aviary media download with the first post in an explicit crosspost.": "\u05DE\u05E2\u05DC\u05D4 \u05D0\u05EA \u05D4\u05DE\u05D3\u05D9\u05D4 \u05D4\u05D0\u05D7\u05E8\u05D5\u05E0\u05D4 \u05E9\u2011Aviary \u05D4\u05D5\u05E8\u05D9\u05D3 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4 \u05D9\u05D7\u05D3 \u05E2\u05DD \u05D4\u05E4\u05D5\u05E1\u05D8 \u05D4\u05E8\u05D0\u05E9\u05D5\u05DF \u05D1\u05E4\u05E8\u05E1\u05D5\u05DD \u05DE\u05E7\u05D1\u05D9\u05DC.",
+      "Crosspost as thread": "\u05E4\u05E8\u05E1\u05D5\u05DD \u05DB\u05E9\u05E8\u05E9\u05D5\u05E8",
+      "Split on blank lines and reply each segment to the previous one.": "\u05E4\u05E6\u05DC \u05D1\u05E9\u05D5\u05E8\u05D5\u05EA \u05E8\u05D9\u05E7\u05D5\u05EA \u05D5\u05D4\u05E9\u05D1 \u05DC\u05DB\u05DC \u05DE\u05E7\u05D8\u05E2 \u05DC\u05E7\u05D8\u05E2 \u05D4\u05E7\u05D5\u05D3\u05DD.",
       "Crosspost composer \u2192 Bluesky": "\u05E4\u05E8\u05E1\u05D5\u05DD \u05D7\u05DC\u05D5\u05DF \u05D4\u05DB\u05EA\u05D9\u05D1\u05D4 \u05D1\u2011Bluesky",
       "Uses the current composer text.": "\u05DE\u05E9\u05EA\u05DE\u05E9 \u05D1\u05D8\u05E7\u05E1\u05D8 \u05D4\u05E0\u05D5\u05DB\u05D7\u05D9 \u05D1\u05D7\u05DC\u05D5\u05DF \u05D4\u05DB\u05EA\u05D9\u05D1\u05D4.",
       "Crosspost composer \u2192 Mastodon": "\u05E4\u05E8\u05E1\u05D5\u05DD \u05D7\u05DC\u05D5\u05DF \u05D4\u05DB\u05EA\u05D9\u05D1\u05D4 \u05D1\u2011Mastodon",
@@ -4361,9 +4651,22 @@ html.av-reduce-motion *::after {
       "After each export run, kick the embedding job in the background. Off by default.": "\u05D0\u05D7\u05E8\u05D9 \u05DB\u05DC \u05D9\u05D9\u05E6\u05D5\u05D0, \u05DE\u05E4\u05E2\u05D9\u05DC \u05D0\u05EA \u05DE\u05E9\u05D9\u05DE\u05EA \u05D4\u05D4\u05D8\u05DE\u05E2\u05D4 \u05D1\u05E8\u05E7\u05E2. \u05DB\u05D1\u05D5\u05D9 \u05DB\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC.",
       "Rebuild semantic index": "\u05D1\u05E0\u05D9\u05D9\u05D4 \u05DE\u05D7\u05D3\u05E9 \u05E9\u05DC \u05D4\u05D0\u05D9\u05E0\u05D3\u05E7\u05E1 \u05D4\u05E1\u05DE\u05E0\u05D8\u05D9",
       "Embed every captured record. Re-running is cheap because cached entries are skipped.": "\u05DE\u05D8\u05DE\u05D9\u05E2 \u05DB\u05DC \u05E8\u05E9\u05D5\u05DE\u05D4 \u05E9\u05E0\u05D0\u05E1\u05E4\u05D4. \u05D4\u05E8\u05E6\u05D4 \u05D7\u05D5\u05D6\u05E8\u05EA \u05D6\u05D5\u05DC\u05D4 \u05DB\u05D9 \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05DB\u05D1\u05E8 \u05D1\u05DE\u05D8\u05DE\u05D5\u05DF \u05DE\u05D3\u05D5\u05DC\u05D2\u05D5\u05EA.",
+      "Vector similarity over captured records. Embeddings run on demand.": "\u05D3\u05DE\u05D9\u05D5\u05DF \u05D5\u05E7\u05D8\u05D5\u05E8\u05D9 \u05D1\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05E0\u05DC\u05DB\u05D3\u05D5. \u05D4\u05D8\u05DE\u05E2\u05D5\u05EA \u05DE\u05D5\u05E4\u05E2\u05DC\u05D5\u05EA \u05DC\u05E4\u05D9 \u05D3\u05E8\u05D9\u05E9\u05D4.",
+      "Describe what you're looking for\u2026": "\u05EA\u05D0\u05E8 \u05DE\u05D4 \u05D0\u05EA\u05D4 \u05DE\u05D7\u05E4\u05E9\u2026",
       "Clear semantic index": "\u05E0\u05D9\u05E7\u05D5\u05D9 \u05D4\u05D0\u05D9\u05E0\u05D3\u05E7\u05E1 \u05D4\u05E1\u05DE\u05E0\u05D8\u05D9",
       "Forget every embedded record.": "\u05E9\u05D5\u05DB\u05D7 \u05D0\u05EA \u05DB\u05DC \u05D4\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05D4\u05D5\u05D8\u05DE\u05E2\u05D5.",
+      "on": "\u05E4\u05E2\u05D9\u05DC",
+      "off": "\u05DB\u05D1\u05D5\u05D9",
+      "configured": "\u05DE\u05D5\u05D2\u05D3\u05E8",
+      "missing endpoint": "\u05E0\u05E7\u05D5\u05D3\u05EA \u05E7\u05E6\u05D4 \u05D7\u05E1\u05E8\u05D4",
+      "missing credentials": "\u05E4\u05E8\u05D8\u05D9 \u05D4\u05EA\u05D7\u05D1\u05E8\u05D5\u05EA \u05D7\u05E1\u05E8\u05D9\u05DD",
+      "missing key/model": "\u05DE\u05E4\u05EA\u05D7 \u05D0\u05D5 \u05DE\u05D5\u05D3\u05DC \u05D7\u05E1\u05E8\u05D9\u05DD",
+      "indexed": "\u05DE\u05D0\u05D5\u05E0\u05D3\u05E7\u05E1",
+      "{name}: {state} \xB7 {config}": "{name} \u2014 {state} \xB7 {config}",
+      "{name}: {state} \xB7 {count} {indexed}": "{name} \u2014 {state} \xB7 {count} {indexed}",
       "Integration status": "\u05DE\u05E6\u05D1 \u05D4\u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D5\u05EA",
+      "Recent integration errors": "\u05E9\u05D2\u05D9\u05D0\u05D5\u05EA \u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D4 \u05D0\u05D7\u05E8\u05D5\u05E0\u05D5\u05EA",
+      "Drawn from the audit log; only failed integration calls show up.": "\u05E0\u05DC\u05E7\u05D7 \u05DE\u05D9\u05D5\u05DE\u05DF \u05D4\u05D1\u05D9\u05E7\u05D5\u05E8\u05EA; \u05E8\u05E7 \u05E7\u05E8\u05D9\u05D0\u05D5\u05EA \u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D4 \u05E9\u05E0\u05DB\u05E9\u05DC\u05D5 \u05DE\u05D5\u05E6\u05D2\u05D5\u05EA.",
       "Reset everything to plain X": "\u05DC\u05D0\u05E4\u05E1 \u05D4\u05DB\u05D5\u05DC \u05DC-X \u05E8\u05D2\u05D9\u05DC",
       "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "\u05DE\u05D7\u05D6\u05D9\u05E8 \u05DB\u05DC \u05D4\u05D2\u05D3\u05E8\u05D4 \u05DC\u05D1\u05E8\u05D9\u05E8\u05EA \u05D4\u05DE\u05D7\u05D3\u05DC \u05E9\u05DC\u05D4, \u05E9\u05D4\u05D9\u05D0 \u05DC\u05D0 \u05DC\u05E9\u05E0\u05D5\u05EA \u05D3\u05D1\u05E8 \u05D1-X. \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D4\u05E9\u05DE\u05D5\u05E8\u05D9\u05DD, \u05D4\u05D4\u05E2\u05E8\u05D5\u05EA, \u05D4\u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05D5\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05D4\u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05E9\u05DC\u05DA \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u2014 \u05D4\u05D0\u05D9\u05E4\u05D5\u05E1 \u05E0\u05D5\u05D2\u05E2 \u05DC\u05D4\u05E2\u05D3\u05E4\u05D5\u05EA \u05D1\u05DC\u05D1\u05D3.",
       "Export settings": "\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D4\u05D2\u05D3\u05E8\u05D5\u05EA",
@@ -4420,11 +4723,19 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "\u05DE\u05E9\u05D5\u05D0\u05D5\u05EA \u05D4\u05E0\u05D9\u05EA\u05D5\u05D7 \u05DE\u05D5\u05EA\u05E8\u05D5\u05EA",
       "Selector health monitoring on": "\u05E0\u05D9\u05D8\u05D5\u05E8 \u05EA\u05E7\u05D9\u05E0\u05D5\u05EA \u05D4\u05D1\u05D5\u05E8\u05E8\u05D9\u05DD \u05D4\u05D5\u05E4\u05E2\u05DC",
       "Selector health monitoring off": "\u05E0\u05D9\u05D8\u05D5\u05E8 \u05EA\u05E7\u05D9\u05E0\u05D5\u05EA \u05D4\u05D1\u05D5\u05E8\u05E8\u05D9\u05DD \u05D4\u05D5\u05E9\u05D1\u05EA",
+      "Profile switched. Reloading\u2026": "\u05D4\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05D4\u05D5\u05D7\u05DC\u05E3. \u05D8\u05D5\u05E2\u05DF \u05DE\u05D7\u05D3\u05E9\u2026",
+      "Profile switch failed.": "\u05D4\u05D7\u05DC\u05E4\u05EA \u05D4\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05E0\u05DB\u05E9\u05DC\u05D4.",
+      "Profile created. Reloading\u2026": "\u05D4\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05E0\u05D5\u05E6\u05E8. \u05D8\u05D5\u05E2\u05DF \u05DE\u05D7\u05D3\u05E9\u2026",
+      "Profile creation failed.": "\u05D9\u05E6\u05D9\u05E8\u05EA \u05D4\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05E0\u05DB\u05E9\u05DC\u05D4.",
       "Could not apply preset.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05D4\u05D7\u05D9\u05DC \u05D0\u05EA \u05D4\u05E2\u05E8\u05DB\u05D4.",
       "No UserCell rows found.": "\u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0\u05D5 \u05E9\u05D5\u05E8\u05D5\u05EA UserCell.",
       "Snapshot failed.": "\u05EA\u05E6\u05DC\u05D5\u05DD \u05D4\u05DE\u05E6\u05D1 \u05E0\u05DB\u05E9\u05DC.",
       "Snapshots cleared": "\u05EA\u05E6\u05DC\u05D5\u05DE\u05D9 \u05D4\u05DE\u05E6\u05D1 \u05E0\u05D5\u05E7\u05D5",
       "Could not clear snapshots.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E0\u05E7\u05D5\u05EA \u05D0\u05EA \u05EA\u05E6\u05DC\u05D5\u05DE\u05D9 \u05D4\u05DE\u05E6\u05D1.",
+      "Archive import paused.": "\u05D9\u05D9\u05D1\u05D5\u05D0 \u05D4\u05D0\u05E8\u05DB\u05D9\u05D5\u05DF \u05D4\u05D5\u05E9\u05D4\u05D4.",
+      "Archive import resumed.": "\u05D9\u05D9\u05D1\u05D5\u05D0 \u05D4\u05D0\u05E8\u05DB\u05D9\u05D5\u05DF \u05D7\u05D5\u05D3\u05E9.",
+      "Archive import cancelled.": "\u05D9\u05D9\u05D1\u05D5\u05D0 \u05D4\u05D0\u05E8\u05DB\u05D9\u05D5\u05DF \u05D1\u05D5\u05D8\u05DC.",
+      "Archive import retry started.": "\u05D4\u05D5\u05E4\u05E2\u05DC \u05E0\u05D9\u05E1\u05D9\u05D5\u05DF \u05D7\u05D5\u05D6\u05E8 \u05DC\u05D9\u05D9\u05D1\u05D5\u05D0 \u05D4\u05D0\u05E8\u05DB\u05D9\u05D5\u05DF.",
       "Reading archive \u2014 large files take a moment\u2026": "\u05E7\u05D5\u05E8\u05D0 \u05D0\u05EA \u05D4\u05D0\u05E8\u05DB\u05D9\u05D5\u05DF \u2014 \u05E7\u05D1\u05E6\u05D9\u05DD \u05D2\u05D3\u05D5\u05DC\u05D9\u05DD \u05DC\u05D5\u05E7\u05D7\u05D9\u05DD \u05E8\u05D2\u05E2\u2026",
       "Archive import failed.": "\u05D9\u05D9\u05D1\u05D5\u05D0 \u05D4\u05D0\u05E8\u05DB\u05D9\u05D5\u05DF \u05E0\u05DB\u05E9\u05DC.",
       "Building report\u2026": "\u05D1\u05D5\u05E0\u05D4 \u05D0\u05EA \u05D4\u05D3\u05D5\u05D7\u2026",
@@ -4441,6 +4752,7 @@ html.av-reduce-motion *::after {
       "Aria2 threshold saved": "\u05E1\u05E3 Aria2 \u05E0\u05E9\u05DE\u05E8",
       "Aria2 reachable.": "\u05D9\u05E9 \u05D2\u05D9\u05E9\u05D4 \u05DC-Aria2.",
       "Aria2 connection test failed.": "\u05D1\u05D3\u05D9\u05E7\u05EA \u05D4\u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u2011Aria2 \u05E0\u05DB\u05E9\u05DC\u05D4.",
+      "Aria2 cancel failed.": "\u05D1\u05D9\u05D8\u05D5\u05DC Aria2 \u05E0\u05DB\u05E9\u05DC.",
       "Aria2 sweep failed.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E7\u05D1\u05DC \u05D0\u05EA \u05E8\u05E9\u05D9\u05DE\u05EA Aria2.",
       "Bluesky on": "Bluesky \u05E4\u05E2\u05D9\u05DC",
       "Bluesky off": "Bluesky \u05DB\u05D1\u05D5\u05D9",
@@ -4505,6 +4817,9 @@ html.av-reduce-motion *::after {
       "Raw payload preference saved": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D4\u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05D4\u05D2\u05D5\u05DC\u05DE\u05D9\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Query discovery preference saved": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D6\u05D9\u05D4\u05D5\u05D9 \u05D4\u05E9\u05D0\u05D9\u05DC\u05EA\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Save folder hint saved": "\u05EA\u05D9\u05E7\u05D9\u05D9\u05EA \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05E0\u05E9\u05DE\u05E8\u05D4",
+      "Export job paused.": "\u05DE\u05E9\u05D9\u05DE\u05EA \u05D4\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D4\u05D5\u05E9\u05D4\u05EA\u05D4.",
+      "Export job resumed.": "\u05DE\u05E9\u05D9\u05DE\u05EA \u05D4\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D7\u05D5\u05D3\u05E9\u05D4.",
+      "Export job cancelled.": "\u05DE\u05E9\u05D9\u05DE\u05EA \u05D4\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D1\u05D5\u05D8\u05DC\u05D4.",
       "Collecting visible posts\u2026": "\u05D0\u05D5\u05E1\u05E3 \u05D0\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D4\u05DE\u05D5\u05E6\u05D2\u05D9\u05DD\u2026",
       "No posts found on this view. Scroll the timeline to load some, then export again.": "\u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0\u05D5 \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D1\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05D6\u05D5. \u05D2\u05DC\u05D5\u05DC \u05D1\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF \u05DB\u05D3\u05D9 \u05DC\u05D8\u05E2\u05D5\u05DF \u05DB\u05DE\u05D4, \u05D5\u05D0\u05D6 \u05D9\u05D9\u05E6\u05D0 \u05E9\u05D5\u05D1.",
       "Export failed. See diagnostics.": "\u05D4\u05D9\u05D9\u05E6\u05D5\u05D0 \u05E0\u05DB\u05E9\u05DC. \u05E2\u05D9\u05D9\u05DF \u05D1\u05E0\u05EA\u05D5\u05E0\u05D9 \u05D4\u05D0\u05D1\u05D7\u05D5\u05DF.",
@@ -4532,6 +4847,7 @@ html.av-reduce-motion *::after {
       "Could not clear history.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E0\u05E7\u05D5\u05EA \u05D0\u05EA \u05D4\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4.",
       "Downloading media from this view\u2026": "\u05DE\u05D5\u05E8\u05D9\u05D3 \u05D0\u05EA \u05D4\u05DE\u05D3\u05D9\u05D4 \u05DE\u05D4\u05E2\u05DE\u05D5\u05D3 \u05D4\u05D6\u05D4\u2026",
       "Batch download failed.": "\u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05D4\u05DE\u05E8\u05D5\u05DB\u05D6\u05EA \u05E0\u05DB\u05E9\u05DC\u05D4.",
+      "No failed media jobs to retry.": "\u05D0\u05D9\u05DF \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05DE\u05D3\u05D9\u05D4 \u05E9\u05E0\u05DB\u05E9\u05DC\u05D5 \u05DC\u05E0\u05D9\u05E1\u05D9\u05D5\u05DF \u05D7\u05D5\u05D6\u05E8.",
       "Filters enabled": "\u05D4\u05DE\u05E1\u05E0\u05E0\u05D9\u05DD \u05D4\u05D5\u05E4\u05E2\u05DC\u05D5",
       "Filters disabled": "\u05D4\u05DE\u05E1\u05E0\u05E0\u05D9\u05DD \u05DB\u05D5\u05D1\u05D5",
       "Premium filter saved": "\u05DE\u05E1\u05E0\u05DF \u05D4\u05E4\u05E8\u05D9\u05DE\u05D9\u05D5\u05DD \u05E0\u05E9\u05DE\u05E8",
@@ -4549,11 +4865,15 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E0\u05E7\u05D5\u05EA \u05D0\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D4\u05DE\u05D5\u05E1\u05EA\u05E8\u05D9\u05DD.",
       "Saving...": "\u05E9\u05D5\u05DE\u05E8...",
       "Could not save settings. Try again.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D0\u05EA \u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA. \u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1.",
+      "Aviary settings": "\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA Aviary",
       "Nothing matches that search.": "\u05D0\u05D9\u05DF \u05EA\u05D5\u05E6\u05D0\u05D5\u05EA \u05DC\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D4\u05D6\u05D4.",
       "Try a shorter word, or pick a section on the left.": "\u05E0\u05E1\u05D4 \u05DE\u05D9\u05DC\u05D4 \u05E7\u05E6\u05E8\u05D4 \u05D9\u05D5\u05EA\u05E8, \u05D0\u05D5 \u05D1\u05D7\u05E8 \u05DE\u05E7\u05D8\u05E2 \u05DE\u05D9\u05DE\u05D9\u05DF.",
       "Preset applied": "\u05D4\u05E2\u05E8\u05DB\u05D4 \u05D4\u05D5\u05D7\u05DC\u05D4",
       "Preset already applied": "\u05D4\u05E2\u05E8\u05DB\u05D4 \u05DB\u05D1\u05E8 \u05D4\u05D5\u05D7\u05DC\u05D4",
+      "No captured records match \u201C{query}\u201D.": "\u05D0\u05D9\u05DF \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05E0\u05DC\u05DB\u05D3\u05D5 \u05D4\u05EA\u05D5\u05D0\u05DE\u05D5\u05EA \u05DC\u05BE\u201E{query}\u201D.",
+      "No active downloads.": "\u05D0\u05D9\u05DF \u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA.",
       "Cancel": "\u05D1\u05D9\u05D8\u05D5\u05DC",
+      "No matches (or integration disabled).": "\u05D0\u05D9\u05DF \u05D4\u05EA\u05D0\u05DE\u05D5\u05EA (\u05D0\u05D5 \u05E9\u05D4\u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D4 \u05DE\u05D5\u05E9\u05D1\u05EA\u05EA).",
       "Find local bookmarks": "\u05DE\u05E6\u05D9\u05D0\u05EA \u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA",
       "Search saved posts by text, handle, tags, folder, or ID.": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05DE\u05D5\u05E8\u05D9\u05DD \u05DC\u05E4\u05D9 \u05D8\u05E7\u05E1\u05D8, \u05D9\u05D3\u05D9\u05EA, \u05EA\u05D2\u05D9\u05D5\u05EA, \u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D0\u05D5 \u05DE\u05D6\u05D4\u05D4.",
       "Search local bookmarks": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D1\u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA",
@@ -5233,7 +5553,7 @@ html.av-reduce-motion *::after {
     const panel = el("section", "av-panel");
     panel.id = "av-control-panel";
     panel.setAttribute("role", "dialog");
-    panel.setAttribute("aria-label", "Aviary settings");
+    panel.setAttribute("aria-label", t("Aviary settings"));
     panel.tabIndex = -1;
     const header = el("header", "av-panel-header");
     const titleWrap = el("div", "av-title-wrap");
@@ -5269,6 +5589,7 @@ html.av-reduce-motion *::after {
     let searchQuery = "";
     let bookmarkQuery = "";
     let lastStatusEnglish = "Saved locally";
+    let lastStatusValues = {};
     const setOpen = (value) => {
       open = value;
       launcher.setAttribute("aria-expanded", String(open));
@@ -5294,7 +5615,13 @@ html.av-reduce-motion *::after {
     };
     const setStatus = (message) => {
       lastStatusEnglish = message;
+      lastStatusValues = {};
       status.textContent = t(message);
+    };
+    const setStatusCopy = (source, values) => {
+      lastStatusEnglish = source;
+      lastStatusValues = { ...values };
+      status.textContent = formatCopy(t(source), lastStatusValues);
     };
     let pendingActionFocus = null;
     const focusIdentity = (node) => {
@@ -5360,7 +5687,7 @@ html.av-reduce-motion *::after {
       launcher.textContent = t("Aviary");
       search.placeholder = t("Search settings");
       search.setAttribute("aria-label", t("Search settings"));
-      status.textContent = t(lastStatusEnglish);
+      status.textContent = formatCopy(t(lastStatusEnglish), lastStatusValues);
       host.dataset.avMotion = prefersReducedMotion(options.settings) ? "reduce" : "full";
       const registry = sectionRegistry();
       if (!registry.some((entry) => entry.id === activeSectionId)) {
@@ -5581,7 +5908,10 @@ html.av-reduce-motion *::after {
               async () => {
                 const result = await options.adoptLegacyProfileData();
                 render();
-                setStatus(`Assigned ${result.moved} stores${result.skipped > 0 ? `; ${result.skipped} already existed` : ""}.`);
+                setStatusCopy("Assigned {moved} stores; {skipped} already existed.", {
+                  moved: result.moved,
+                  skipped: result.skipped
+                });
               }
             )
           );
@@ -5811,9 +6141,12 @@ html.av-reduce-motion *::after {
           apply.disabled = true;
           void options.applyPreset(preset.id).then((result) => {
             if (result.applied) {
-              setStatus(`${t("Preset applied")}: ${t(preset.label)} (${result.changes.length})`);
+              setStatusCopy("Preset applied: {preset} ({changes})", {
+                preset: t(preset.label),
+                changes: result.changes.length
+              });
             } else {
-              setStatus(`${t("Preset already applied")}: ${t(preset.label)}`);
+              setStatusCopy("Preset already applied: {preset}", { preset: t(preset.label) });
             }
           }).catch((error) => {
             options.onError("Could not apply preset", error);
@@ -5867,7 +6200,14 @@ html.av-reduce-motion *::after {
               try {
                 const result = await options.captureSnapshot("followers");
                 render();
-                setStatus(result ? `Captured ${result.count} followers for @${result.handle}.` : "No UserCell rows found.");
+                if (result) {
+                  setStatusCopy("Captured {count} followers for @{handle}.", {
+                    count: result.count,
+                    handle: result.handle
+                  });
+                } else {
+                  setStatus("No UserCell rows found.");
+                }
               } catch (error) {
                 options.onError("Snapshot failed", error);
                 setStatus("Snapshot failed.");
@@ -5883,7 +6223,14 @@ html.av-reduce-motion *::after {
               try {
                 const result = await options.captureSnapshot("following");
                 render();
-                setStatus(result ? `Captured ${result.count} following for @${result.handle}.` : "No UserCell rows found.");
+                if (result) {
+                  setStatusCopy("Captured {count} following for @{handle}.", {
+                    count: result.count,
+                    handle: result.handle
+                  });
+                } else {
+                  setStatus("No UserCell rows found.");
+                }
               } catch (error) {
                 options.onError("Snapshot failed", error);
                 setStatus("Snapshot failed.");
@@ -5969,13 +6316,14 @@ html.av-reduce-motion *::after {
         const row = el("div", "av-row av-row-stack");
         const copy = el("span", "av-row-copy");
         copy.append(
-          el("span", "av-row-label", "Import official X archive"),
-          el("span", "av-row-description", "Pick a ZIP exported from x.com. STORE and DEFLATE entries are supported; the source stays local while it is resumable.")
+          el("span", "av-row-label", t("Import official X archive")),
+          el("span", "av-row-description", t("Pick a ZIP exported from x.com. STORE and DEFLATE entries are supported; the source stays local while it is resumable."))
         );
         const input = document.createElement("input");
         input.type = "file";
         input.accept = ".zip,application/zip";
         input.className = "av-file-input";
+        input.setAttribute("aria-label", t("Import official X archive"));
         input.addEventListener("change", () => {
           const file = input.files?.[0];
           if (!file) return;
@@ -5984,9 +6332,17 @@ html.av-reduce-motion *::after {
             try {
               const result = await options.importArchive(file);
               render();
-              const warningsLabel = result.warnings > 0 || result.errors > 0 ? ` (${result.warnings} warning${result.warnings === 1 ? "" : "s"}, ${result.errors} error${result.errors === 1 ? "" : "s"})` : "";
-              const reportLabel = result.recognizedFiles !== void 0 ? ` ${result.recognizedFiles} recognized, ${result.skippedFiles ?? 0} skipped, ${result.malformedFiles ?? 0} malformed.` : "";
-              setStatus(`Imported ${result.records} records${warningsLabel}.${reportLabel}`);
+              setStatusCopy(
+                "Imported {records} records. Warnings: {warnings}; errors: {errors}. Files: {recognized} recognized, {skipped} skipped, {malformed} malformed.",
+                {
+                  records: result.records,
+                  warnings: result.warnings,
+                  errors: result.errors,
+                  recognized: result.recognizedFiles ?? 0,
+                  skipped: result.skippedFiles ?? 0,
+                  malformed: result.malformedFiles ?? 0
+                }
+              );
             } catch (error) {
               options.onError("Archive import failed", error);
               setStatus("Archive import failed.");
@@ -6002,12 +6358,13 @@ html.av-reduce-motion *::after {
         const row = el("div", "av-row av-row-stack");
         const copy = el("span", "av-row-copy");
         copy.append(
-          el("span", "av-row-label", "Search captured records"),
-          el("span", "av-row-description", "Full-text search across the latest export collector run.")
+          el("span", "av-row-label", t("Search captured records")),
+          el("span", "av-row-description", t("Full-text search across the latest export collector run."))
         );
         const input = document.createElement("input");
         input.type = "search";
-        input.placeholder = "@handle, keyword, phrase\u2026";
+        input.placeholder = t("@handle, keyword, phrase\u2026");
+        input.setAttribute("aria-label", t("Search captured records"));
         input.className = "av-text-input";
         const results = el("div", "av-search-results");
         results.setAttribute("role", "list");
@@ -6017,13 +6374,19 @@ html.av-reduce-motion *::after {
           results.replaceChildren();
           if (query.length === 0) {
             results.append(
-              el("div", "av-row-description", "Type to search the records captured by export runs.")
+              el("div", "av-row-description", t("Type to search the records captured by export runs."))
             );
             return;
           }
           const hits = options.searchArchive(query);
           if (hits.length === 0) {
-            results.append(el("div", "av-row-description", `No captured records match \u201C${query}\u201D.`));
+            results.append(
+              el(
+                "div",
+                "av-row-description",
+                formatCopy(t("No captured records match \u201C{query}\u201D."), { query })
+              )
+            );
             return;
           }
           for (const hit of hits.slice(0, 10)) {
@@ -6085,7 +6448,10 @@ html.av-reduce-motion *::after {
               try {
                 const result = await options.enqueueCleanupReview();
                 render();
-                setStatus(`Enqueued ${result.added} items (${result.protected} protected skipped).`);
+                setStatusCopy("Enqueued {added} items ({protected} protected skipped).", {
+                  added: result.added,
+                  protected: result.protected
+                });
               } catch (error) {
                 options.onError("Could not enqueue cleanup", error);
                 setStatus("Could not enqueue cleanup.");
@@ -6162,7 +6528,11 @@ html.av-reduce-motion *::after {
           actionRow("Test Aria2 connection", "Sends a trivial JSON-RPC call.", async () => {
             try {
               const result = await options.pingAria2();
-              setStatus(result.ok ? "Aria2 reachable." : `Aria2 unreachable: ${result.error}`);
+              if (result.ok) {
+                setStatus("Aria2 reachable.");
+              } else {
+                setStatusCopy("Aria2 unreachable: {error}", { error: result.error ?? "unknown error" });
+              }
             } catch (error) {
               options.onError("Aria2 connection test failed", error);
               setStatus("Aria2 connection test failed.");
@@ -6174,8 +6544,8 @@ html.av-reduce-motion *::after {
         const row = el("div", "av-row av-row-stack");
         const copy = el("span", "av-row-copy");
         copy.append(
-          el("span", "av-row-label", "Aria2 active downloads"),
-          el("span", "av-row-description", "Refresh to list in-flight transfers; tap Cancel to abort one.")
+          el("span", "av-row-label", t("Aria2 active downloads")),
+          el("span", "av-row-description", t("Refresh to list in-flight transfers; tap Cancel to abort one."))
         );
         const list = el("div", "av-search-results");
         const refresh = async () => {
@@ -6183,7 +6553,7 @@ html.av-reduce-motion *::after {
             const active = await options.listAria2Active();
             list.replaceChildren();
             if (active.length === 0) {
-              list.append(el("div", "av-row-description", "No active downloads."));
+              list.append(el("div", "av-row-description", t("No active downloads.")));
               return;
             }
             for (const job of active) {
@@ -6201,10 +6571,12 @@ html.av-reduce-motion *::after {
                   try {
                     const result = await options.cancelAria2(job.gid);
                     if (result.ok) {
-                      setStatus(`Cancelled ${job.gid}.`);
+                      setStatusCopy("Cancelled {gid}.", { gid: job.gid });
                       await refresh();
                     } else {
-                      setStatus(`Aria2 cancel failed: ${result.error ?? "unknown error"}`);
+                      setStatusCopy("Aria2 cancel failed: {error}", {
+                        error: result.error ?? "unknown error"
+                      });
                     }
                   } catch (error) {
                     try {
@@ -6323,20 +6695,26 @@ html.av-reduce-motion *::after {
         const threadRow = el("div", "av-row");
         const copy = el("span", "av-row-copy");
         copy.append(
-          el("span", "av-row-label", "Crosspost as thread"),
-          el("span", "av-row-description", "Split on blank lines and reply each segment to the previous one.")
+          el("span", "av-row-label", t("Crosspost as thread")),
+          el("span", "av-row-description", t("Split on blank lines and reply each segment to the previous one."))
         );
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
+        checkbox.setAttribute("aria-label", t("Crosspost as thread"));
         threadRow.append(copy, checkbox);
         rows.push(threadRow);
         rows.push(
           actionRow("Crosspost composer \u2192 Bluesky", "Uses the current composer text.", async () => {
             try {
               const result = await options.crosspost("bluesky", { asThread: checkbox.checked });
-              setStatus(
-                result.ok ? `Posted ${result.posts ?? 1} to Bluesky.${result.url ? ` ${result.url}` : ""}` : `Bluesky failed: ${result.error}`
-              );
+              if (result.ok) {
+                setStatusCopy("Posted {posts} to Bluesky.{url}", {
+                  posts: result.posts ?? 1,
+                  url: result.url ? ` ${result.url}` : ""
+                });
+              } else {
+                setStatusCopy("Bluesky failed: {error}", { error: result.error ?? "unknown error" });
+              }
             } catch (error) {
               options.onError("Bluesky crosspost failed", error);
               setStatus("Bluesky crosspost failed.");
@@ -6347,9 +6725,14 @@ html.av-reduce-motion *::after {
           actionRow("Crosspost composer \u2192 Mastodon", "Uses the current composer text.", async () => {
             try {
               const result = await options.crosspost("mastodon", { asThread: checkbox.checked });
-              setStatus(
-                result.ok ? `Posted ${result.posts ?? 1} to Mastodon.${result.url ? ` ${result.url}` : ""}` : `Mastodon failed: ${result.error}`
-              );
+              if (result.ok) {
+                setStatusCopy("Posted {posts} to Mastodon.{url}", {
+                  posts: result.posts ?? 1,
+                  url: result.url ? ` ${result.url}` : ""
+                });
+              } else {
+                setStatusCopy("Mastodon failed: {error}", { error: result.error ?? "unknown error" });
+              }
             } catch (error) {
               options.onError("Mastodon crosspost failed", error);
               setStatus("Mastodon crosspost failed.");
@@ -6484,8 +6867,15 @@ html.av-reduce-motion *::after {
                 const result = await options.rebuildSemanticIndex();
                 render();
                 const trimmed = result.dropped > 0 ? ` \xB7 oldest ${result.dropped} dropped` : "";
-                setStatus(
-                  `Indexed: +${result.added} new \xB7 skipped ${result.skipped} \xB7 errors ${result.errors} \xB7 total ${result.total}${trimmed}.`
+                setStatusCopy(
+                  "Indexed: +{added} new \xB7 skipped {skipped} \xB7 errors {errors} \xB7 total {total}{trimmed}.",
+                  {
+                    added: result.added,
+                    skipped: result.skipped,
+                    errors: result.errors,
+                    total: result.total,
+                    trimmed
+                  }
                 );
               } catch (error) {
                 options.onError("Embedding failed", error);
@@ -6499,12 +6889,13 @@ html.av-reduce-motion *::after {
         const row = el("div", "av-row av-row-stack");
         const copy = el("span", "av-row-copy");
         copy.append(
-          el("span", "av-row-label", "Semantic search"),
-          el("span", "av-row-description", "Vector similarity over captured records. Embeddings run on demand.")
+          el("span", "av-row-label", t("Semantic search")),
+          el("span", "av-row-description", t("Vector similarity over captured records. Embeddings run on demand."))
         );
         const input = document.createElement("input");
         input.type = "search";
-        input.placeholder = "Describe what you're looking for\u2026";
+        input.placeholder = t("Describe what you're looking for\u2026");
+        input.setAttribute("aria-label", t("Semantic search"));
         input.className = "av-text-input";
         const results = el("div", "av-search-results");
         let pending;
@@ -6524,7 +6915,7 @@ html.av-reduce-motion *::after {
               if (sequence !== searchSequence || input.value.trim() !== query) return;
               results.replaceChildren();
               if (hits.length === 0) {
-                results.append(el("div", "av-row-description", "No matches (or integration disabled)."));
+                results.append(el("div", "av-row-description", t("No matches (or integration disabled).")));
                 return;
               }
               for (const hit of hits) {
@@ -6559,12 +6950,29 @@ html.av-reduce-motion *::after {
         );
       }
       if (status2) {
+        const on = t("on");
+        const off = t("off");
+        const configured = t("configured");
+        const missingEndpoint = t("missing endpoint");
+        const missingCredentials = t("missing credentials");
+        const missingKeyModel = t("missing key/model");
+        const indexed = t("indexed");
+        const integrationLine = (name, enabled, ready, missing) => formatCopy(t("{name}: {state} \xB7 {config}"), {
+          name,
+          state: enabled ? on : off,
+          config: ready ? configured : missing
+        });
         const lines = [
-          `Aria2: ${status2.aria2.enabled ? "on" : "off"} \xB7 ${status2.aria2.configured ? "configured" : "missing endpoint"}`,
-          `Bluesky: ${status2.bluesky.enabled ? "on" : "off"} \xB7 ${status2.bluesky.configured ? "configured" : "missing credentials"}`,
-          `Mastodon: ${status2.mastodon.enabled ? "on" : "off"} \xB7 ${status2.mastodon.configured ? "configured" : "missing credentials"}`,
-          `AI: ${status2.ai.enabled ? "on" : "off"} \xB7 ${status2.ai.configured ? "configured" : "missing key/model"}`,
-          `Semantic: ${status2.semanticSearch.enabled ? "on" : "off"} \xB7 ${status2.semanticSearch.indexed} indexed`
+          integrationLine("Aria2", status2.aria2.enabled, status2.aria2.configured, missingEndpoint),
+          integrationLine("Bluesky", status2.bluesky.enabled, status2.bluesky.configured, missingCredentials),
+          integrationLine("Mastodon", status2.mastodon.enabled, status2.mastodon.configured, missingCredentials),
+          integrationLine("AI", status2.ai.enabled, status2.ai.configured, missingKeyModel),
+          formatCopy(t("{name}: {state} \xB7 {count} {indexed}"), {
+            name: "Semantic",
+            state: status2.semanticSearch.enabled ? on : off,
+            count: status2.semanticSearch.indexed,
+            indexed
+          })
         ];
         rows.push(dataRow("Integration status", lines.join(" \xB7 ")));
       }
@@ -6576,8 +6984,8 @@ html.av-reduce-motion *::after {
           const row = el("div", "av-row av-row-stack");
           const copy = el("span", "av-row-copy");
           copy.append(
-            el("span", "av-row-label", "Recent integration errors"),
-            el("span", "av-row-description", "Drawn from the audit log; only failed integration calls show up.")
+            el("span", "av-row-label", t("Recent integration errors")),
+            el("span", "av-row-description", t("Drawn from the audit log; only failed integration calls show up."))
           );
           const list = el("div", "av-search-results");
           for (const error of errors.slice(0, 8)) {
@@ -6867,9 +7275,11 @@ html.av-reduce-motion *::after {
                 if (report.applied) {
                   const [first, ...rest] = report.warnings;
                   const extra = rest.length > 0 ? ` (+${rest.length} more)` : "";
-                  setStatus(first ? `Settings imported. ${first}${extra}` : "Settings imported.");
+                  setStatusCopy("Settings imported. {warning}", {
+                    warning: first ? `${first}${extra}` : ""
+                  });
                 } else {
-                  setStatus(`Import failed: ${report.errors.join("; ")}`);
+                  setStatusCopy("Import failed: {errors}", { errors: report.errors.join("; ") });
                 }
               } catch (error) {
                 options.onError("Could not import settings", error);
@@ -7058,7 +7468,7 @@ html.av-reduce-motion *::after {
               setStatus("Building WARC archive\u2026");
               try {
                 const result = await options.downloadWarc();
-                setStatus(`WARC downloaded (${result.records} records).`);
+                setStatusCopy("WARC downloaded ({records} records).", { records: result.records });
               } catch (error) {
                 options.onError("WARC export failed", error);
                 setStatus("WARC export failed.");
@@ -7557,7 +7967,10 @@ html.av-reduce-motion *::after {
             async () => {
               try {
                 const removed = await options.clearHiddenPosts();
-                setStatus(`Cleared ${removed} hidden post${removed === 1 ? "" : "s"}.`);
+                setStatusCopy(
+                  removed === 1 ? "Cleared {removed} hidden post." : "Cleared {removed} hidden posts.",
+                  { removed }
+                );
                 render();
               } catch (error) {
                 options.onError("Could not clear hidden posts", error);
@@ -7745,6 +8158,12 @@ html.av-reduce-motion *::after {
       }
     }
     return translateText(panelLocale, text);
+  }
+  function formatCopy(template, values) {
+    return Object.entries(values).reduce(
+      (result, [key, value]) => result.replaceAll(`{${key}}`, String(value)),
+      template
+    );
   }
   function captureSelection(node) {
     if (!isTextField(node)) {

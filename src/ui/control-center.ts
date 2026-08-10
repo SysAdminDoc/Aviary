@@ -359,7 +359,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   const panel = el("section", "av-panel");
   panel.id = "av-control-panel";
   panel.setAttribute("role", "dialog");
-  panel.setAttribute("aria-label", "Aviary settings");
+  panel.setAttribute("aria-label", t("Aviary settings"));
   panel.tabIndex = -1;
 
   const header = el("header", "av-panel-header");
@@ -411,6 +411,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   let bookmarkQuery = "";
   /** English source of whatever the status line shows, so a locale change can re-translate it. */
   let lastStatusEnglish = "Saved locally";
+  let lastStatusValues: Record<string, string | number> = {};
 
   const setOpen = (value: boolean): void => {
     open = value;
@@ -447,7 +448,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
   const setStatus = (message: string): void => {
     lastStatusEnglish = message;
+    lastStatusValues = {};
     status.textContent = t(message);
+  };
+
+  const setStatusCopy = (source: string, values: Record<string, string | number>): void => {
+    lastStatusEnglish = source;
+    lastStatusValues = { ...values };
+    status.textContent = formatCopy(t(source), lastStatusValues);
   };
 
   /** Disabled buttons lose focus in Chromium, so remember the action row across a refresh. */
@@ -544,7 +552,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     search.setAttribute("aria-label", t("Search settings"));
     // The status line keeps its English source so a locale change can re-translate whatever it
     // is currently showing, rather than stranding the last toast in the previous language.
-    status.textContent = t(lastStatusEnglish);
+    status.textContent = formatCopy(t(lastStatusEnglish), lastStatusValues);
 
     // Mirrored onto the host because shadow content cannot see the page-level motion class.
     host.dataset.avMotion = prefersReducedMotion(options.settings) ? "reduce" : "full";
@@ -776,7 +784,10 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             async () => {
               const result = await options.adoptLegacyProfileData!();
               render();
-              setStatus(`Assigned ${result.moved} stores${result.skipped > 0 ? `; ${result.skipped} already existed` : ""}.`);
+              setStatusCopy("Assigned {moved} stores; {skipped} already existed.", {
+                moved: result.moved,
+                skipped: result.skipped
+              });
             }
           )
         );
@@ -1034,9 +1045,12 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           .applyPreset!(preset.id)
           .then((result) => {
             if (result.applied) {
-              setStatus(`${t("Preset applied")}: ${t(preset.label)} (${result.changes.length})`);
+              setStatusCopy("Preset applied: {preset} ({changes})", {
+                preset: t(preset.label),
+                changes: result.changes.length
+              });
             } else {
-              setStatus(`${t("Preset already applied")}: ${t(preset.label)}`);
+              setStatusCopy("Preset already applied: {preset}", { preset: t(preset.label) });
             }
           })
           .catch((error: unknown) => {
@@ -1099,7 +1113,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             try {
               const result = await options.captureSnapshot!("followers");
               render();
-              setStatus(result ? `Captured ${result.count} followers for @${result.handle}.` : "No UserCell rows found.");
+              if (result) {
+                setStatusCopy("Captured {count} followers for @{handle}.", {
+                  count: result.count,
+                  handle: result.handle
+                });
+              } else {
+                setStatus("No UserCell rows found.");
+              }
             } catch (error) {
               options.onError("Snapshot failed", error);
               setStatus("Snapshot failed.");
@@ -1115,7 +1136,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             try {
               const result = await options.captureSnapshot!("following");
               render();
-              setStatus(result ? `Captured ${result.count} following for @${result.handle}.` : "No UserCell rows found.");
+              if (result) {
+                setStatusCopy("Captured {count} following for @{handle}.", {
+                  count: result.count,
+                  handle: result.handle
+                });
+              } else {
+                setStatus("No UserCell rows found.");
+              }
             } catch (error) {
               options.onError("Snapshot failed", error);
               setStatus("Snapshot failed.");
@@ -1207,13 +1235,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       const row = el("div", "av-row av-row-stack");
       const copy = el("span", "av-row-copy");
       copy.append(
-        el("span", "av-row-label", "Import official X archive"),
-        el("span", "av-row-description", "Pick a ZIP exported from x.com. STORE and DEFLATE entries are supported; the source stays local while it is resumable.")
+        el("span", "av-row-label", t("Import official X archive")),
+        el("span", "av-row-description", t("Pick a ZIP exported from x.com. STORE and DEFLATE entries are supported; the source stays local while it is resumable."))
       );
       const input = document.createElement("input");
       input.type = "file";
       input.accept = ".zip,application/zip";
       input.className = "av-file-input";
+      input.setAttribute("aria-label", t("Import official X archive"));
       input.addEventListener("change", () => {
         const file = input.files?.[0];
         if (!file) return;
@@ -1222,17 +1251,17 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           try {
             const result = await options.importArchive!(file);
             render();
-            const warningsLabel =
-              result.warnings > 0 || result.errors > 0
-                ? ` (${result.warnings} warning${result.warnings === 1 ? "" : "s"}, ${result.errors} error${
-                    result.errors === 1 ? "" : "s"
-                  })`
-                : "";
-            const reportLabel =
-              result.recognizedFiles !== undefined
-                ? ` ${result.recognizedFiles} recognized, ${result.skippedFiles ?? 0} skipped, ${result.malformedFiles ?? 0} malformed.`
-                : "";
-            setStatus(`Imported ${result.records} records${warningsLabel}.${reportLabel}`);
+            setStatusCopy(
+              "Imported {records} records. Warnings: {warnings}; errors: {errors}. Files: {recognized} recognized, {skipped} skipped, {malformed} malformed.",
+              {
+                records: result.records,
+                warnings: result.warnings,
+                errors: result.errors,
+                recognized: result.recognizedFiles ?? 0,
+                skipped: result.skippedFiles ?? 0,
+                malformed: result.malformedFiles ?? 0
+              }
+            );
           } catch (error) {
             options.onError("Archive import failed", error);
             setStatus("Archive import failed.");
@@ -1249,12 +1278,13 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       const row = el("div", "av-row av-row-stack");
       const copy = el("span", "av-row-copy");
       copy.append(
-        el("span", "av-row-label", "Search captured records"),
-        el("span", "av-row-description", "Full-text search across the latest export collector run.")
+        el("span", "av-row-label", t("Search captured records")),
+        el("span", "av-row-description", t("Full-text search across the latest export collector run."))
       );
       const input = document.createElement("input");
       input.type = "search";
-      input.placeholder = "@handle, keyword, phrase…";
+      input.placeholder = t("@handle, keyword, phrase…");
+      input.setAttribute("aria-label", t("Search captured records"));
       input.className = "av-text-input";
       const results = el("div", "av-search-results");
       results.setAttribute("role", "list");
@@ -1264,13 +1294,19 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         results.replaceChildren();
         if (query.length === 0) {
           results.append(
-            el("div", "av-row-description", "Type to search the records captured by export runs.")
+            el("div", "av-row-description", t("Type to search the records captured by export runs."))
           );
           return;
         }
         const hits = options.searchArchive!(query);
         if (hits.length === 0) {
-          results.append(el("div", "av-row-description", `No captured records match “${query}”.`));
+          results.append(
+            el(
+              "div",
+              "av-row-description",
+              formatCopy(t("No captured records match “{query}”."), { query })
+            )
+          );
           return;
         }
         for (const hit of hits.slice(0, 10)) {
@@ -1337,7 +1373,10 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           try {
               const result = await options.enqueueCleanupReview!();
               render();
-              setStatus(`Enqueued ${result.added} items (${result.protected} protected skipped).`);
+              setStatusCopy("Enqueued {added} items ({protected} protected skipped).", {
+                added: result.added,
+                protected: result.protected
+              });
             } catch (error) {
               options.onError("Could not enqueue cleanup", error);
               setStatus("Could not enqueue cleanup.");
@@ -1419,7 +1458,11 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         actionRow("Test Aria2 connection", "Sends a trivial JSON-RPC call.", async () => {
           try {
             const result = await options.pingAria2!();
-            setStatus(result.ok ? "Aria2 reachable." : `Aria2 unreachable: ${result.error}`);
+            if (result.ok) {
+              setStatus("Aria2 reachable.");
+            } else {
+              setStatusCopy("Aria2 unreachable: {error}", { error: result.error ?? "unknown error" });
+            }
           } catch (error) {
             options.onError("Aria2 connection test failed", error);
             setStatus("Aria2 connection test failed.");
@@ -1432,8 +1475,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       const row = el("div", "av-row av-row-stack");
       const copy = el("span", "av-row-copy");
       copy.append(
-        el("span", "av-row-label", "Aria2 active downloads"),
-        el("span", "av-row-description", "Refresh to list in-flight transfers; tap Cancel to abort one.")
+        el("span", "av-row-label", t("Aria2 active downloads")),
+        el("span", "av-row-description", t("Refresh to list in-flight transfers; tap Cancel to abort one."))
       );
       const list = el("div", "av-search-results");
       const refresh = async (): Promise<void> => {
@@ -1441,7 +1484,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           const active = await options.listAria2Active!();
           list.replaceChildren();
           if (active.length === 0) {
-            list.append(el("div", "av-row-description", "No active downloads."));
+            list.append(el("div", "av-row-description", t("No active downloads.")));
             return;
           }
           for (const job of active) {
@@ -1459,10 +1502,12 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
                 try {
                   const result = await options.cancelAria2!(job.gid);
                   if (result.ok) {
-                    setStatus(`Cancelled ${job.gid}.`);
+                    setStatusCopy("Cancelled {gid}.", { gid: job.gid });
                     await refresh();
                   } else {
-                    setStatus(`Aria2 cancel failed: ${result.error ?? "unknown error"}`);
+                    setStatusCopy("Aria2 cancel failed: {error}", {
+                      error: result.error ?? "unknown error"
+                    });
                   }
                 } catch (error) {
                   try {
@@ -1588,11 +1633,12 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       const threadRow = el("div", "av-row");
       const copy = el("span", "av-row-copy");
       copy.append(
-        el("span", "av-row-label", "Crosspost as thread"),
-        el("span", "av-row-description", "Split on blank lines and reply each segment to the previous one.")
+        el("span", "av-row-label", t("Crosspost as thread")),
+        el("span", "av-row-description", t("Split on blank lines and reply each segment to the previous one."))
       );
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
+      checkbox.setAttribute("aria-label", t("Crosspost as thread"));
       threadRow.append(copy, checkbox);
       rows.push(threadRow);
 
@@ -1600,11 +1646,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         actionRow("Crosspost composer → Bluesky", "Uses the current composer text.", async () => {
           try {
             const result = await options.crosspost!("bluesky", { asThread: checkbox.checked });
-            setStatus(
-              result.ok
-                ? `Posted ${result.posts ?? 1} to Bluesky.${result.url ? ` ${result.url}` : ""}`
-                : `Bluesky failed: ${result.error}`
-            );
+            if (result.ok) {
+              setStatusCopy("Posted {posts} to Bluesky.{url}", {
+                posts: result.posts ?? 1,
+                url: result.url ? ` ${result.url}` : ""
+              });
+            } else {
+              setStatusCopy("Bluesky failed: {error}", { error: result.error ?? "unknown error" });
+            }
           } catch (error) {
             options.onError("Bluesky crosspost failed", error);
             setStatus("Bluesky crosspost failed.");
@@ -1615,11 +1664,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         actionRow("Crosspost composer → Mastodon", "Uses the current composer text.", async () => {
           try {
             const result = await options.crosspost!("mastodon", { asThread: checkbox.checked });
-            setStatus(
-              result.ok
-                ? `Posted ${result.posts ?? 1} to Mastodon.${result.url ? ` ${result.url}` : ""}`
-                : `Mastodon failed: ${result.error}`
-            );
+            if (result.ok) {
+              setStatusCopy("Posted {posts} to Mastodon.{url}", {
+                posts: result.posts ?? 1,
+                url: result.url ? ` ${result.url}` : ""
+              });
+            } else {
+              setStatusCopy("Mastodon failed: {error}", { error: result.error ?? "unknown error" });
+            }
           } catch (error) {
             options.onError("Mastodon crosspost failed", error);
             setStatus("Mastodon crosspost failed.");
@@ -1762,8 +1814,15 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
               // The index is capped, so say when the cap actually bit rather than letting the
               // total quietly stop growing.
               const trimmed = result.dropped > 0 ? ` · oldest ${result.dropped} dropped` : "";
-              setStatus(
-                `Indexed: +${result.added} new · skipped ${result.skipped} · errors ${result.errors} · total ${result.total}${trimmed}.`
+              setStatusCopy(
+                "Indexed: +{added} new · skipped {skipped} · errors {errors} · total {total}{trimmed}.",
+                {
+                  added: result.added,
+                  skipped: result.skipped,
+                  errors: result.errors,
+                  total: result.total,
+                  trimmed
+                }
               );
             } catch (error) {
               options.onError("Embedding failed", error);
@@ -1778,12 +1837,13 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       const row = el("div", "av-row av-row-stack");
       const copy = el("span", "av-row-copy");
       copy.append(
-        el("span", "av-row-label", "Semantic search"),
-        el("span", "av-row-description", "Vector similarity over captured records. Embeddings run on demand.")
+        el("span", "av-row-label", t("Semantic search")),
+        el("span", "av-row-description", t("Vector similarity over captured records. Embeddings run on demand."))
       );
       const input = document.createElement("input");
       input.type = "search";
-      input.placeholder = "Describe what you're looking for…";
+      input.placeholder = t("Describe what you're looking for…");
+      input.setAttribute("aria-label", t("Semantic search"));
       input.className = "av-text-input";
       const results = el("div", "av-search-results");
       let pending: number | undefined;
@@ -1805,7 +1865,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
               if (sequence !== searchSequence || input.value.trim() !== query) return;
               results.replaceChildren();
               if (hits.length === 0) {
-                results.append(el("div", "av-row-description", "No matches (or integration disabled)."));
+                results.append(el("div", "av-row-description", t("No matches (or integration disabled).")));
                 return;
               }
               for (const hit of hits) {
@@ -1843,12 +1903,30 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     }
 
     if (status) {
+      const on = t("on");
+      const off = t("off");
+      const configured = t("configured");
+      const missingEndpoint = t("missing endpoint");
+      const missingCredentials = t("missing credentials");
+      const missingKeyModel = t("missing key/model");
+      const indexed = t("indexed");
+      const integrationLine = (name: string, enabled: boolean, ready: boolean, missing: string): string =>
+        formatCopy(t("{name}: {state} · {config}"), {
+          name,
+          state: enabled ? on : off,
+          config: ready ? configured : missing
+        });
       const lines = [
-        `Aria2: ${status.aria2.enabled ? "on" : "off"} · ${status.aria2.configured ? "configured" : "missing endpoint"}`,
-        `Bluesky: ${status.bluesky.enabled ? "on" : "off"} · ${status.bluesky.configured ? "configured" : "missing credentials"}`,
-        `Mastodon: ${status.mastodon.enabled ? "on" : "off"} · ${status.mastodon.configured ? "configured" : "missing credentials"}`,
-        `AI: ${status.ai.enabled ? "on" : "off"} · ${status.ai.configured ? "configured" : "missing key/model"}`,
-        `Semantic: ${status.semanticSearch.enabled ? "on" : "off"} · ${status.semanticSearch.indexed} indexed`
+        integrationLine("Aria2", status.aria2.enabled, status.aria2.configured, missingEndpoint),
+        integrationLine("Bluesky", status.bluesky.enabled, status.bluesky.configured, missingCredentials),
+        integrationLine("Mastodon", status.mastodon.enabled, status.mastodon.configured, missingCredentials),
+        integrationLine("AI", status.ai.enabled, status.ai.configured, missingKeyModel),
+        formatCopy(t("{name}: {state} · {count} {indexed}"), {
+          name: "Semantic",
+          state: status.semanticSearch.enabled ? on : off,
+          count: status.semanticSearch.indexed,
+          indexed
+        })
       ];
       rows.push(dataRow("Integration status", lines.join(" · ")));
     }
@@ -1861,8 +1939,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         const row = el("div", "av-row av-row-stack");
         const copy = el("span", "av-row-copy");
         copy.append(
-          el("span", "av-row-label", "Recent integration errors"),
-          el("span", "av-row-description", "Drawn from the audit log; only failed integration calls show up.")
+          el("span", "av-row-label", t("Recent integration errors")),
+          el("span", "av-row-description", t("Drawn from the audit log; only failed integration calls show up."))
         );
         const list = el("div", "av-search-results");
         for (const error of errors.slice(0, 8)) {
@@ -2189,9 +2267,11 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
                 // Show what the warning actually said — a bare count tells the user nothing.
                 const [first, ...rest] = report.warnings;
                 const extra = rest.length > 0 ? ` (+${rest.length} more)` : "";
-                setStatus(first ? `Settings imported. ${first}${extra}` : "Settings imported.");
+                setStatusCopy("Settings imported. {warning}", {
+                  warning: first ? `${first}${extra}` : ""
+                });
               } else {
-                setStatus(`Import failed: ${report.errors.join("; ")}`);
+                setStatusCopy("Import failed: {errors}", { errors: report.errors.join("; ") });
               }
             } catch (error) {
               options.onError("Could not import settings", error);
@@ -2395,7 +2475,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             setStatus("Building WARC archive…");
           try {
               const result = await options.downloadWarc!();
-              setStatus(`WARC downloaded (${result.records} records).`);
+              setStatusCopy("WARC downloaded ({records} records).", { records: result.records });
             } catch (error) {
               options.onError("WARC export failed", error);
               setStatus("WARC export failed.");
@@ -2948,7 +3028,10 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           async () => {
             try {
               const removed = await options.clearHiddenPosts!();
-              setStatus(`Cleared ${removed} hidden post${removed === 1 ? "" : "s"}.`);
+              setStatusCopy(
+                removed === 1 ? "Cleared {removed} hidden post." : "Cleared {removed} hidden posts.",
+                { removed }
+              );
               render();
             } catch (error) {
               options.onError("Could not clear hidden posts", error);
@@ -3207,6 +3290,13 @@ function t(text: string): string {
     }
   }
   return translateText(panelLocale, text);
+}
+
+function formatCopy(template: string, values: Record<string, string | number>): string {
+  return Object.entries(values).reduce(
+    (result, [key, value]) => result.replaceAll(`{${key}}`, String(value)),
+    template
+  );
 }
 
 interface CapturedSelection {
