@@ -16739,35 +16739,45 @@ ${text}`
         if (aiEnabled) {
           item.disabled = true;
           item.textContent = `${ft(ctx, command.label)} \u2014 ${ft(ctx, "running\u2026")}`;
-          const result = await runAiPrompt(ctx.settings.integrations.ai, { prompt });
-          if (result.ok && result.text) {
-            try {
-              await copyToClipboard(result.text);
-              ctx.diagnostics.info("AI result copied", {
-                command: command.id,
-                length: result.text.length
-              });
-              void ctx.auditLog.record("diagnostics.copy", {
-                kind: "ai-response",
-                command: command.id,
-                provider: ctx.settings.integrations.ai.provider
-              });
-              showFeatureToast(`${ft(ctx, command.label)}: ${ft(ctx, "result copied to the clipboard.")}`, { ctx });
-            } catch (error) {
-              ctx.diagnostics.warn("AI result clipboard failed", {
-                error: String(error?.message ?? error)
-              });
-              showFeatureToast(ft(ctx, "The result could not be copied. Your browser blocked clipboard access."), {
-                tone: "error",
-                ctx
-              });
+          try {
+            const result = await runAiPrompt(ctx.settings.integrations.ai, { prompt });
+            if (result.ok && result.text) {
+              try {
+                await copyToClipboard(result.text);
+                ctx.diagnostics.info("AI result copied", {
+                  command: command.id,
+                  length: result.text.length
+                });
+                void ctx.auditLog.record("diagnostics.copy", {
+                  kind: "ai-response",
+                  command: command.id,
+                  provider: ctx.settings.integrations.ai.provider
+                });
+                showFeatureToast(`${ft(ctx, command.label)}: ${ft(ctx, "result copied to the clipboard.")}`, { ctx });
+              } catch (error) {
+                ctx.diagnostics.warn("AI result clipboard failed", {
+                  error: String(error?.message ?? error)
+                });
+                showFeatureToast(ft(ctx, "The result could not be copied. Your browser blocked clipboard access."), {
+                  tone: "error",
+                  ctx
+                });
+              }
+            } else {
+              ctx.diagnostics.warn("AI provider call failed", { error: result.error ?? "unknown" });
+              showFeatureToast(
+                `${ft(ctx, command.label)}: ${result.error ?? ft(ctx, "the provider did not respond")}. ${ft(ctx, "Check the key and model in Integrations.")}`,
+                { tone: "error", ctx }
+              );
             }
-          } else {
-            ctx.diagnostics.warn("AI provider call failed", { error: result.error ?? "unknown" });
-            showFeatureToast(
-              `${ft(ctx, command.label)}: ${result.error ?? ft(ctx, "the provider did not respond")}. ${ft(ctx, "Check the key and model in Integrations.")}`,
-              { tone: "error", ctx }
-            );
+          } catch (error) {
+            const message = String(error?.message ?? error);
+            ctx.diagnostics.warn("AI provider call failed", { error: message });
+            showFeatureToast(`${ft(ctx, command.label)}: ${message}`, { tone: "error", ctx });
+          } finally {
+            item.disabled = false;
+            item.textContent = `${ft(ctx, command.label)} \u2014 ${ft(ctx, "Run with provider")}`;
+            closeOpenMenu();
           }
         } else {
           try {

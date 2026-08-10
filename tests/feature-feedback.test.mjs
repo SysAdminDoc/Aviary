@@ -24,6 +24,9 @@ before(async () => {
       )};`,
       `export { aiCommandMenuFeature } from ${JSON.stringify(
         path.resolve(root, "src/features/ai/command-menu.ts").replace(/\\/g, "/")
+      )};`,
+      `export { setLocalOnlyPolicy, resetLocalOnlyPolicy } from ${JSON.stringify(
+        path.resolve(root, "src/features/integrations/network-policy.ts").replace(/\\/g, "/")
       )};`
     ].join("\n"),
     "utf8"
@@ -176,6 +179,50 @@ test("destroy removes an open AI menu and its document listener", async () => {
   assert.equal(result.openedAfter, 0, "an orphaned menu survives teardown as an unstyled list");
 });
 
+test("a local-only AI refusal closes cleanly and restores the command item", async () => {
+  const result = await page.evaluate(async () => {
+    const ctx = {
+      settings: {
+        ai: { commandMenu: true },
+        integrations: {
+          ai: { enabled: true, apiKey: "key", model: "model", provider: "openai", endpoint: "" }
+        },
+        i18n: { locale: "en" },
+        accessibility: { reduceMotion: "never" }
+      },
+      diagnostics: { info() {}, warn() {}, error() {} },
+      auditLog: { record() {} }
+    };
+    AviaryFeedback.setLocalOnlyPolicy(() => true);
+    const article = document.createElement("article");
+    article.setAttribute("data-testid", "tweet");
+    const text = document.createElement("div");
+    text.setAttribute("data-testid", "tweetText");
+    text.textContent = "A local-only test post";
+    const group = document.createElement("div");
+    group.setAttribute("role", "group");
+    group.setAttribute("aria-label", "actions");
+    article.append(text, group);
+    document.body.append(article);
+    AviaryFeedback.aiCommandMenuFeature.apply(ctx, document, [article]);
+    article.querySelector("[data-av-ai-trigger]").click();
+    const item = document.querySelector(".av-ai-option");
+    item.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const toast = document.querySelector("#av-feature-toast")?.shadowRoot?.querySelector(".av-ftoast-text")?.textContent ?? "";
+    const state = { menuCount: document.querySelectorAll(".av-ai-menu").length, disabled: item.disabled, text: item.textContent, toast };
+    AviaryFeedback.aiCommandMenuFeature.destroy(ctx);
+    article.remove();
+    AviaryFeedback.resetLocalOnlyPolicy();
+    return state;
+  });
+
+  assert.equal(result.menuCount, 0);
+  assert.equal(result.disabled, false);
+  assert.match(result.text, /Run with provider/);
+  assert.match(result.toast, /local-only mode/i);
+});
+
 test("no outcome path in the AI menu or snippets ends without telling the user", async () => {
   const menu = await readFile(path.join(root, "src/features/ai/command-menu.ts"), "utf8");
   const snippets = await readFile(path.join(root, "src/features/composer/composer-snippets.ts"), "utf8");
@@ -187,5 +234,6 @@ test("no outcome path in the AI menu or snippets ends without telling the user",
   assert.match(menu, /could not be copied/);
   assert.match(menu, /the provider did not respond/);
   assert.match(menu, /Prompt copied to the clipboard/);
+  assert.match(menu, /finally/);
   assert.match(snippets, /Click into the composer first/);
 });

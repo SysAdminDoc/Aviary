@@ -14,6 +14,8 @@
   diagnostics and network-capture events continue working across a reboot.
 - Aria2, AI, semantic-search, cross-post, attachment, and media-probe requests now share bounded
   abort deadlines, including response-body work, so stalled endpoints settle with a useful error.
+- AI command-menu provider failures, including local-only policy refusals, now surface a toast,
+  clear the pending state, and close without an unhandled rejection.
 
 ## 1.16.0 - 2026-08-09
 
