@@ -133,6 +133,26 @@ test("network-capture source guards GraphQL routing, payload bounds, and auth sc
   assert.ok(agent.includes("api\\/graphql"), "page-agent must route GraphQL");
 });
 
+test("page-world feature subscriptions survive a destroy and reboot", async () => {
+  const { pageHooksFeature } = await importBundledModule("src/features/privacy/page-hooks.ts");
+  const { networkCaptureFeature } = await importBundledModule("src/features/export/network-capture.ts");
+
+  for (const [feature, event] of [
+    [pageHooksFeature, "blocked"],
+    [networkCaptureFeature, "graphql"]
+  ]) {
+    const first = fakeBridge();
+    feature.init(contextFor(first));
+    assert.equal(first.count(event), 1, `${event} subscription missing on first boot`);
+    feature.destroy(contextFor(first));
+
+    const second = fakeBridge();
+    feature.init(contextFor(second));
+    assert.equal(second.count(event), 1, `${event} subscription missing after reboot`);
+    feature.destroy(contextFor(second));
+  }
+});
+
 test("composer-snippets source uses execCommand insertText (no keyboard simulation)", async () => {
   const source = await readFile(
     path.join(root, "src/features/composer/composer-snippets.ts"),
@@ -181,4 +201,35 @@ async function importBundledModule(relativePath) {
   } finally {
     await rm(temp, { force: true, recursive: true });
   }
+}
+
+function fakeBridge() {
+  const handlers = new Map();
+  return {
+    status: () => "connected",
+    reason: () => "",
+    configure() {},
+    on(kind, handler) {
+      const list = handlers.get(kind) ?? [];
+      list.push(handler);
+      handlers.set(kind, list);
+    },
+    count(kind) {
+      return handlers.get(kind)?.length ?? 0;
+    },
+    destroy() {}
+  };
+}
+
+function contextFor(pageBridge) {
+  return {
+    pageBridge,
+    settings: {
+      privacy: { blockAnalyticsBeacons: false },
+      export: { preserveRawPayloads: false },
+      media: { buttons: false },
+      performance: { forceVideoQuality: false }
+    },
+    diagnostics: { info() {}, warn() {}, error() {} }
+  };
 }

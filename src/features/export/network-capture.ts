@@ -2,11 +2,12 @@ import type { FeatureContext, FeatureModule } from "../registry";
 import type { CheckpointStore } from "./jobs";
 import { getCheckpointStore } from "./export-feature";
 import type { CapturedGraphqlPayload } from "../../page/page-agent";
+import type { PageBridge } from "../../platform/page-bridge";
 
 const MAX_PAYLOAD_BYTES = 1_500_000;
 const MAX_PAYLOADS = 50;
 
-let subscribed = false;
+let subscribedBridge: PageBridge | undefined;
 let activeContext: FeatureContext | undefined;
 let captureEpoch = 0;
 let captureTail: Promise<void> = Promise.resolve();
@@ -33,8 +34,8 @@ export const networkCaptureFeature: FeatureModule = {
   init(ctx) {
     activeContext = ctx;
     const bridge = ctx.pageBridge;
-    if (bridge && !subscribed) {
-      subscribed = true;
+    if (bridge && subscribedBridge !== bridge) {
+      subscribedBridge = bridge;
       bridge.on("graphql", (payload) => {
         const epoch = captureEpoch;
         captureTail = captureTail.then(() => onCaptured(payload as CapturedGraphqlPayload, epoch));
@@ -56,6 +57,9 @@ export const networkCaptureFeature: FeatureModule = {
     activeContext = undefined;
     captureEpoch += 1;
     recentPayloads.length = 0;
+    if (subscribedBridge === ctx.pageBridge) {
+      subscribedBridge = undefined;
+    }
     ctx.diagnostics.info("Network capture destroyed");
   },
 

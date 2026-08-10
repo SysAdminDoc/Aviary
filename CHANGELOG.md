@@ -10,6 +10,8 @@
 - Archive imports preserve the actual tweet author, reports carry the build version, semantic
   embeddings are validated and quota-bounded, and crosspost media downloads enforce streamed size
   limits before upload.
+- Page-world subscriptions now rebind to a replacement bridge after teardown, so privacy-hook
+  diagnostics and network-capture events continue working across a reboot.
 
 ## 1.16.0 - 2026-08-09
 

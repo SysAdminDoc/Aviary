@@ -8797,7 +8797,7 @@ input[type="checkbox"] {
   var rewrittenPlaylists = 0;
   var bridgeStatus = "connecting";
   var bridgeReason = "";
-  var subscribed = false;
+  var subscribedBridge;
   var pageHooksFeature = {
     id: "privacy.pageHooks",
     title: "Page-world hooks",
@@ -8810,8 +8810,8 @@ input[type="checkbox"] {
         bridgeReason = "No page bridge was created for this build.";
         return;
       }
-      if (!subscribed) {
-        subscribed = true;
+      if (subscribedBridge !== bridge) {
+        subscribedBridge = bridge;
         bridge.on("blocked", (payload) => {
           blockedBeacons += 1;
           const blocked = payload;
@@ -8842,6 +8842,9 @@ input[type="checkbox"] {
       });
       blockedBeacons = 0;
       rewrittenPlaylists = 0;
+      if (subscribedBridge === ctx.pageBridge) {
+        subscribedBridge = void 0;
+      }
     },
     getStatus() {
       if (bridgeStatus === "unavailable") {
@@ -13474,7 +13477,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   var appliedPreferOriginalImages;
   var appliedMetadataVersion;
   var mediaMetadataCache = new MediaMetadataCache();
-  var subscribedBridge;
+  var subscribedBridge2;
   var permissionSurfaceOpened = false;
   var mediaButtonsFeature = {
     id: "media.buttons",
@@ -13553,7 +13556,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       appliedPreferOriginalImages = void 0;
       appliedMetadataVersion = void 0;
       mediaMetadataCache.clear();
-      subscribedBridge = void 0;
+      subscribedBridge2 = void 0;
       ctx.diagnostics.info("Media buttons destroyed");
     },
     getStatus() {
@@ -13576,10 +13579,10 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
   function subscribeToMediaMetadata(ctx) {
     const bridge = ctx.pageBridge;
-    if (!bridge || subscribedBridge === bridge) {
+    if (!bridge || subscribedBridge2 === bridge) {
       return;
     }
-    subscribedBridge = bridge;
+    subscribedBridge2 = bridge;
     bridge.on("graphql", (payload) => {
       const changed = mediaMetadataCache.ingest(payload);
       if (changed > 0 && ctx.settings.media.buttons) {
@@ -17130,7 +17133,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   // src/features/export/network-capture.ts
   var MAX_PAYLOAD_BYTES = 15e5;
   var MAX_PAYLOADS = 50;
-  var subscribed2 = false;
+  var subscribedBridge3;
   var activeContext;
   var captureEpoch = 0;
   var captureTail = Promise.resolve();
@@ -17143,8 +17146,8 @@ html.av-mobile [data-testid="primaryColumn"] {
     init(ctx) {
       activeContext = ctx;
       const bridge = ctx.pageBridge;
-      if (bridge && !subscribed2) {
-        subscribed2 = true;
+      if (bridge && subscribedBridge3 !== bridge) {
+        subscribedBridge3 = bridge;
         bridge.on("graphql", (payload) => {
           const epoch = captureEpoch;
           captureTail = captureTail.then(() => onCaptured(payload, epoch));
@@ -17162,6 +17165,9 @@ html.av-mobile [data-testid="primaryColumn"] {
       activeContext = void 0;
       captureEpoch += 1;
       recentPayloads.length = 0;
+      if (subscribedBridge3 === ctx.pageBridge) {
+        subscribedBridge3 = void 0;
+      }
       ctx.diagnostics.info("Network capture destroyed");
     },
     getStatus() {

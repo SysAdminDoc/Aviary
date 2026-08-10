@@ -1,4 +1,5 @@
 import type { FeatureContext, FeatureModule, FeatureStatus } from "../registry";
+import type { PageBridge } from "../../platform/page-bridge";
 import type {
   BlockedBeaconPayload,
   PlaylistRewritePayload
@@ -22,7 +23,7 @@ let blockedBeacons = 0;
 let rewrittenPlaylists = 0;
 let bridgeStatus: "unavailable" | "connecting" | "connected" = "connecting";
 let bridgeReason = "";
-let subscribed = false;
+let subscribedBridge: PageBridge | undefined;
 
 export const pageHooksFeature: FeatureModule = {
   id: "privacy.pageHooks",
@@ -38,8 +39,8 @@ export const pageHooksFeature: FeatureModule = {
       return;
     }
 
-    if (!subscribed) {
-      subscribed = true;
+    if (subscribedBridge !== bridge) {
+      subscribedBridge = bridge;
       bridge.on("blocked", (payload) => {
         blockedBeacons += 1;
         const blocked = payload as BlockedBeaconPayload;
@@ -75,6 +76,9 @@ export const pageHooksFeature: FeatureModule = {
     });
     blockedBeacons = 0;
     rewrittenPlaylists = 0;
+    if (subscribedBridge === ctx.pageBridge) {
+      subscribedBridge = undefined;
+    }
   },
 
   getStatus(): FeatureStatus {
