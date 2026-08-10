@@ -139,6 +139,30 @@ test("HiddenPostStore reloads what it wrote and bumps its version on every mutat
   assert.equal(await second.undoLast(), null);
 });
 
+test("HiddenPostStore rejects a hide when persistence fails and rolls back memory", async () => {
+  const { HiddenPostStore } = await importBundledModule("src/features/filtering/hidden-posts.ts");
+  const reported = [];
+  const storage = {
+    async get(_key, fallback) {
+      return fallback;
+    },
+    async set() {
+      throw new Error("quota exceeded");
+    },
+    async remove() {}
+  };
+  const store = new HiddenPostStore(storage, (error) => reported.push(error));
+  await store.load(100);
+
+  await assert.rejects(
+    () => store.hide({ tweetId: "901", handle: "dana", text: "must not claim success" }, 100),
+    /quota exceeded/
+  );
+  assert.equal(store.size(), 0);
+  assert.equal(store.undoDepth(), 0);
+  assert.equal(reported.length, 1);
+});
+
 test("hidden settings normalize with their own defaults and a clamped cap", async () => {
   const { DEFAULT_SETTINGS, normalizeSettings } = await importBundledModule(
     "src/platform/settings.ts"

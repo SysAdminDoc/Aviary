@@ -116,7 +116,15 @@ test("network-capture source guards GraphQL routing, payload bounds, and auth sc
     path.join(root, "src/features/export/network-capture.ts"),
     "utf8"
   );
-  for (const marker of ["MAX_PAYLOAD_BYTES", "preserveRawPayloads", "scrubAuth", "ct0", "Bearer"]) {
+  for (const marker of [
+    "MAX_PAYLOAD_BYTES",
+    "TextEncoder",
+    "captureTail",
+    "preserveRawPayloads",
+    "scrubAuth",
+    "ct0",
+    "Bearer"
+  ]) {
     assert.ok(source.includes(marker), `network-capture missing ${marker}`);
   }
 

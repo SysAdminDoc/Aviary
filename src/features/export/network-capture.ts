@@ -8,6 +8,8 @@ const MAX_PAYLOADS = 50;
 
 let subscribed = false;
 let activeContext: FeatureContext | undefined;
+let captureEpoch = 0;
+let captureTail: Promise<void> = Promise.resolve();
 const recentPayloads: Array<{ url: string; status: number; at: string; bytes: number }> = [];
 
 /**
@@ -34,7 +36,8 @@ export const networkCaptureFeature: FeatureModule = {
     if (bridge && !subscribed) {
       subscribed = true;
       bridge.on("graphql", (payload) => {
-        void onCaptured(payload as CapturedGraphqlPayload);
+        const epoch = captureEpoch;
+        captureTail = captureTail.then(() => onCaptured(payload as CapturedGraphqlPayload, epoch));
       });
     }
     ctx.diagnostics.info("Network capture feature ready", {
@@ -51,6 +54,7 @@ export const networkCaptureFeature: FeatureModule = {
     // The page-side hook is turned off by `privacy.pageHooks`, which owns the config. Dropping
     // the context here is what stops anything reaching the store.
     activeContext = undefined;
+    captureEpoch += 1;
     recentPayloads.length = 0;
     ctx.diagnostics.info("Network capture destroyed");
   },
@@ -81,9 +85,9 @@ export function getRecentCapturedPayloads(): typeof recentPayloads {
   return [...recentPayloads];
 }
 
-async function onCaptured(payload: CapturedGraphqlPayload): Promise<void> {
+async function onCaptured(payload: CapturedGraphqlPayload, epoch: number): Promise<void> {
   const ctx = activeContext;
-  if (!ctx || !payload || typeof payload.url !== "string") {
+  if (epoch !== captureEpoch || !ctx || !payload || typeof payload.url !== "string") {
     return;
   }
   if (!ctx.settings.export.preserveRawPayloads) {
@@ -91,11 +95,12 @@ async function onCaptured(payload: CapturedGraphqlPayload): Promise<void> {
   }
   try {
     const body = typeof payload.body === "string" ? payload.body : "";
-    if (body.length === 0 || body.length > MAX_PAYLOAD_BYTES) {
+    const bodyBytes = new TextEncoder().encode(body).byteLength;
+    if (bodyBytes === 0 || bodyBytes > MAX_PAYLOAD_BYTES) {
       return;
     }
-    recordPayload(payload.url, payload.status, body.length);
-    await persistPayload(ctx, payload.url, payload.operation || "graphql", body);
+    recordPayload(payload.url, payload.status, bodyBytes);
+    await persistPayload(ctx, payload.url, payload.operation || "graphql", body, epoch);
   } catch (error) {
     ctx.diagnostics.warn("Network capture skipped", {
       error: String((error as Error)?.message ?? error)
@@ -114,20 +119,25 @@ async function persistPayload(
   ctx: FeatureContext,
   url: string,
   operationName: string,
-  body: string
+  body: string,
+  epoch: number
 ): Promise<void> {
+  if (epoch !== captureEpoch || activeContext !== ctx) {
+    return;
+  }
   const store = getCheckpointStore() as CheckpointStore | undefined;
   if (!store) return;
   const jobId = `capture-${operationName}`;
   if (store.list().every((entry) => entry.jobId !== jobId)) {
     await store.start(jobId, "capture", ["json"], true);
   }
+  const scrubbed = truncateUtf8(scrubAuth(body), MAX_PAYLOAD_BYTES);
   await store.append(jobId, [
     {
       tweetId: null,
       handle: null,
       displayName: null,
-      text: scrubAuth(body).slice(0, MAX_PAYLOAD_BYTES),
+      text: scrubbed,
       capturedAt: new Date().toISOString(),
       surface: `graphql:${operationName}`,
       media: [],
@@ -135,6 +145,14 @@ async function persistPayload(
     }
   ]);
   void ctx.auditLog.record("capture.payload", { jobId, operation: operationName });
+}
+
+function truncateUtf8(value: string, maxBytes: number): string {
+  const bytes = new TextEncoder().encode(value);
+  if (bytes.byteLength <= maxBytes) {
+    return value;
+  }
+  return new TextDecoder().decode(bytes.slice(0, maxBytes));
 }
 
 function scrubAuth(body: string): string {

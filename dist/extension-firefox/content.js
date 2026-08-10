@@ -10034,7 +10034,16 @@ input[type="checkbox"] {
     return { removedJobs: 0, removedRecords: 0, retainedJobs, policy: { ...policy } };
   }
   function recordKey(record) {
-    return `${record.tweetId ?? ""}|${record.handle ?? ""}|${record.text.slice(0, 80)}`;
+    const identity = record.tweetId ? `tweet:${record.tweetId}` : `source:${record.permalink ?? ""}|${record.surface}|${record.handle ?? ""}`;
+    return `${identity}|${record.text.length}|${hashRecordText(record.text)}`;
+  }
+  function hashRecordText(value) {
+    let hash = 2166136261;
+    for (let index = 0; index < value.length; index += 1) {
+      hash ^= value.charCodeAt(index);
+      hash = Math.imul(hash, 16777619) >>> 0;
+    }
+    return hash.toString(36);
   }
 
   // src/features/export/zip-store.ts
@@ -10905,6 +10914,7 @@ ${record.text}${mediaList}`;
       if (!key || this.#entries.has(key)) {
         return null;
       }
+      const before = this.#snapshot();
       const entry = {
         key,
         hiddenAt: (/* @__PURE__ */ new Date()).toISOString(),
@@ -10919,7 +10929,7 @@ ${record.text}${mediaList}`;
       }
       this.#evict(maxEntries);
       this.#version += 1;
-      await this.#persist();
+      await this.#persist(before);
       return entry;
     }
     async unhide(key) {
@@ -10927,10 +10937,11 @@ ${record.text}${mediaList}`;
       if (!entry) {
         return null;
       }
+      const before = this.#snapshot();
       this.#entries.delete(key);
       this.#undoStack = this.#undoStack.filter((candidate) => candidate !== key);
       this.#version += 1;
-      await this.#persist();
+      await this.#persist(before);
       return entry;
     }
     /** Pops the most recent hide from this session; falls back to the newest stored entry. */
@@ -10946,10 +10957,11 @@ ${record.text}${mediaList}`;
     }
     async clear() {
       const removed = this.#entries.size;
+      const before = this.#snapshot();
       this.#entries.clear();
       this.#undoStack = [];
       this.#version += 1;
-      await this.#persist();
+      await this.#persist(before);
       return removed;
     }
     #evict(maxEntries) {
@@ -10964,7 +10976,21 @@ ${record.text}${mediaList}`;
         this.#entries.delete(entry.key);
       }
     }
-    async #persist() {
+    #snapshot() {
+      return {
+        entries: new Map(this.#entries),
+        undoStack: [...this.#undoStack],
+        updatedAt: this.#updatedAt,
+        version: this.#version
+      };
+    }
+    #restore(snapshot) {
+      this.#entries = new Map(snapshot.entries);
+      this.#undoStack = [...snapshot.undoStack];
+      this.#updatedAt = snapshot.updatedAt;
+      this.#version = snapshot.version;
+    }
+    async #persist(before) {
       this.#updatedAt = (/* @__PURE__ */ new Date()).toISOString();
       const snapshot = {
         entries: [...this.#entries.values()],
@@ -10973,7 +10999,12 @@ ${record.text}${mediaList}`;
       try {
         await this.#storage.set(HIDDEN_POSTS_KEY, snapshot);
       } catch (error) {
-        this.#onPersistError?.(error);
+        this.#restore(before);
+        try {
+          this.#onPersistError?.(error);
+        } catch {
+        }
+        throw error;
       }
     }
   };
@@ -12180,6 +12211,11 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   var ZIP64_LOCATOR = 117853008;
   var METHOD_STORE = 0;
   var METHOD_DEFLATE = 8;
+  var ZIP_LIMITS = {
+    maxEntries: 4096,
+    maxEntryUncompressedBytes: 25 * 1024 * 1024,
+    maxTotalUncompressedBytes: 100 * 1024 * 1024
+  };
   var TEXT_DECODER = new TextDecoder();
   var UnsupportedZipMethodError = class extends Error {
     constructor(method, filename) {
@@ -12187,31 +12223,72 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       this.name = "UnsupportedZipMethodError";
     }
   };
+  var ZipLimitError = class extends Error {
+    constructor(message) {
+      super(message);
+      this.name = "ZipLimitError";
+    }
+  };
   async function readZip(data) {
     const results = [];
+    let totalUncompressed = 0;
     for (const entry of parseEntries(data)) {
       if (entry.method === METHOD_STORE) {
+        totalUncompressed += entry.raw.length;
+        if (totalUncompressed > ZIP_LIMITS.maxTotalUncompressedBytes) {
+          throw new ZipLimitError("ZIP expands beyond the 100 MiB archive limit.");
+        }
         results.push(finish(entry, entry.raw));
         continue;
       }
       if (entry.method !== METHOD_DEFLATE) {
         throw new UnsupportedZipMethodError(entry.method, entry.filename);
       }
-      results.push(finish(entry, await inflateRaw(entry.raw, entry.filename)));
+      const remaining = ZIP_LIMITS.maxTotalUncompressedBytes - totalUncompressed;
+      const inflated = await inflateRaw(
+        entry.raw,
+        entry.filename,
+        Math.min(entry.uncompressedSize, remaining)
+      );
+      totalUncompressed += inflated.length;
+      results.push(finish(entry, inflated));
     }
     return results;
   }
   function canInflate() {
     return typeof globalThis.DecompressionStream === "function";
   }
-  async function inflateRaw(bytes, filename) {
+  async function inflateRaw(bytes, filename, maxBytes) {
     if (!canInflate()) {
       throw new UnsupportedZipMethodError(METHOD_DEFLATE, filename);
     }
-    const stream = new Response(
-      new Blob([new Uint8Array(bytes)]).stream().pipeThrough(new DecompressionStream("deflate-raw"))
-    );
-    return new Uint8Array(await stream.arrayBuffer());
+    const stream = new Blob([new Uint8Array(bytes)]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+    const reader = stream.getReader();
+    const chunks = [];
+    let total = 0;
+    try {
+      while (true) {
+        const next = await reader.read();
+        if (next.done) {
+          break;
+        }
+        const chunk = next.value;
+        total += chunk.byteLength;
+        if (total > maxBytes) {
+          throw new ZipLimitError(`ZIP entry "${filename}" expands beyond its size limit.`);
+        }
+        chunks.push(chunk);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+    const output = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      output.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return output;
   }
   function finish(entry, data) {
     return {
@@ -12228,6 +12305,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       return [];
     }
     const entryCount = view.getUint16(eocd + 10, true);
+    if (entryCount > ZIP_LIMITS.maxEntries) {
+      throw new ZipLimitError(`ZIP contains more than ${ZIP_LIMITS.maxEntries} entries.`);
+    }
     const centralOffset = view.getUint32(eocd + 16, true);
     const results = [];
     let cursor = centralOffset;
@@ -12240,6 +12320,11 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       const declaredCrc = view.getUint32(entryStart + 16, true);
       const compressedSize = view.getUint32(entryStart + 20, true);
       const uncompressedSize = view.getUint32(entryStart + 24, true);
+      if (uncompressedSize > ZIP_LIMITS.maxEntryUncompressedBytes) {
+        throw new ZipLimitError(
+          `ZIP entry exceeds the ${ZIP_LIMITS.maxEntryUncompressedBytes / (1024 * 1024)} MiB entry limit.`
+        );
+      }
       const nameLength = view.getUint16(entryStart + 28, true);
       const extraLength = view.getUint16(entryStart + 30, true);
       const commentLength = view.getUint16(entryStart + 32, true);
@@ -12282,11 +12367,16 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
 
   // src/features/library/archive-import.ts
   var TEXT_DECODER2 = new TextDecoder();
+  var MAX_ARCHIVE_BYTES = 256 * 1024 * 1024;
   async function importOfficialArchive(buffer, surface = "archive") {
     const warnings = [];
     const errors = [];
     const filesParsed = [];
     const records = [];
+    if (buffer.byteLength > MAX_ARCHIVE_BYTES) {
+      errors.push("Archive exceeds the 256 MiB input limit.");
+      return { records, warnings, errors, filesParsed };
+    }
     let entries;
     try {
       entries = await readZip(buffer);
@@ -15135,6 +15225,9 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           await getSnapshotStore()?.clear();
         },
         async importArchive(file) {
+          if (typeof file.size === "number" && file.size > MAX_ARCHIVE_BYTES) {
+            throw new Error("Archive exceeds the 256 MiB input limit.");
+          }
           const buffer = new Uint8Array(await file.arrayBuffer());
           const result = await importOfficialArchive(buffer, "archive");
           if (result.records.length > 0) {
@@ -15652,11 +15745,14 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   // src/features/filtering/filter-engine.ts
   var STYLE_ID6 = "av-filter-engine";
   var ARTICLE_SELECTOR2 = 'article[data-testid="tweet"]';
+  var CELL_SELECTOR2 = '[data-testid="cellInnerDiv"]';
   var PROCESSED_ATTR2 = "data-av-filter-processed";
   var RESULT_ATTR = "data-av-filter-result";
+  var CELL_RESULT_ATTR = "data-av-filter-cell-hidden";
   var generation = 0;
   var compiled;
   var compiledSignature = "";
+  var filterActive = false;
   var filterEngineFeature = {
     id: "filtering.engine",
     title: "Filter engine",
@@ -15665,17 +15761,26 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     init(ctx) {
       ensureFilterStyle();
       refreshCompiled(ctx);
+      filterActive = ctx.settings.filter.enabled && surfaceMatches2(ctx);
       applyRootClasses(ctx);
-      scanRoot(document, ctx);
+      if (filterActive) {
+        scanRoot(document, ctx);
+      }
       ctx.diagnostics.info("Filter engine initialized", filterSummary(ctx));
     },
     apply(ctx, root, addedNodes) {
       ensureFilterStyle();
       applyRootClasses(ctx);
       refreshCompiled(ctx);
-      if (!ctx.settings.filter.enabled || !surfaceMatches2(ctx)) {
+      const active = ctx.settings.filter.enabled && surfaceMatches2(ctx);
+      if (!active) {
+        if (filterActive) {
+          clearDecorations3();
+        }
+        filterActive = false;
         return;
       }
+      filterActive = true;
       if (!addedNodes || addedNodes.length === 0) {
         scanRoot(root, ctx);
         return;
@@ -15688,14 +15793,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       compiled = void 0;
       compiledSignature = "";
       generation = 0;
+      clearDecorations3();
       document.getElementById(STYLE_ID6)?.remove();
-      document.documentElement.classList.remove("av-filter-enabled");
-      for (const article of Array.from(
-        document.querySelectorAll(`[${PROCESSED_ATTR2}]`)
-      )) {
-        article.removeAttribute(PROCESSED_ATTR2);
-        article.removeAttribute(RESULT_ATTR);
-      }
       ctx.diagnostics.info("Filter engine destroyed");
     },
     getStatus() {
@@ -15706,7 +15805,10 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
   };
   function applyRootClasses(ctx) {
-    document.documentElement.classList.toggle("av-filter-enabled", ctx.settings.filter.enabled);
+    document.documentElement.classList.toggle(
+      "av-filter-enabled",
+      ctx.settings.filter.enabled && surfaceMatches2(ctx)
+    );
   }
   function surfaceMatches2(ctx) {
     const surfaces = ctx.settings.filter.surfaces;
@@ -15772,6 +15874,28 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     } else {
       article.setAttribute(RESULT_ATTR, decision);
     }
+    syncCollapsedCell(article);
+  }
+  function clearDecorations3() {
+    document.documentElement.classList.remove("av-filter-enabled");
+    for (const node of Array.from(
+      document.querySelectorAll(`[${PROCESSED_ATTR2}], [${RESULT_ATTR}], [${CELL_RESULT_ATTR}]`)
+    )) {
+      node.removeAttribute(PROCESSED_ATTR2);
+      node.removeAttribute(RESULT_ATTR);
+      node.removeAttribute(CELL_RESULT_ATTR);
+    }
+    filterActive = false;
+  }
+  function syncCollapsedCell(article) {
+    const cell = article.closest(CELL_SELECTOR2);
+    if (!cell || cell === article) {
+      return;
+    }
+    const hasHiddenArticle = cell.querySelector(
+      `${ARTICLE_SELECTOR2}[${RESULT_ATTR}="hide"]`
+    ) !== null;
+    cell.toggleAttribute(CELL_RESULT_ATTR, hasHiddenArticle);
   }
   function filterSummary(ctx) {
     return {
@@ -15794,6 +15918,10 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
   var FILTER_CSS = `
 html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="hide"] {
+  display: none !important;
+}
+
+html.av-filter-enabled [${CELL_RESULT_ATTR}="1"] {
   display: none !important;
 }
 
@@ -16283,7 +16411,7 @@ ${text}`
     },
     apply(ctx, root, addedNodes) {
       if (!ctx.settings.ai.commandMenu) {
-        clearDecorations3();
+        clearDecorations4();
         return;
       }
       ensureStyle4();
@@ -16296,14 +16424,14 @@ ${text}`
       }
     },
     destroy(ctx) {
-      clearDecorations3();
+      clearDecorations4();
       ctx.diagnostics.info("AI command menu destroyed");
     },
     getStatus() {
       return { ok: true, message: `${AI_COMMANDS.length} local AI prompts` };
     }
   };
-  function clearDecorations3() {
+  function clearDecorations4() {
     closeOpenMenu();
     removeFeatureToast();
     document.getElementById(STYLE_ID8)?.remove();
@@ -16549,7 +16677,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     },
     apply(ctx, root, addedNodes) {
       if (ctx.settings.composer.snippets.length === 0) {
-        clearDecorations4();
+        clearDecorations5();
         appliedSnippetsSignature = void 0;
         return;
       }
@@ -16568,7 +16696,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       }
     },
     destroy(ctx) {
-      clearDecorations4();
+      clearDecorations5();
       appliedSnippetsSignature = void 0;
       ctx.diagnostics.info("Composer snippets destroyed");
     },
@@ -16579,7 +16707,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   var openPaletteDismiss;
   var openPaletteDismissTimer;
   var appliedSnippetsSignature;
-  function clearDecorations4() {
+  function clearDecorations5() {
     closePalettes();
     removeFeatureToast();
     document.getElementById(STYLE_ID9)?.remove();
@@ -16907,6 +17035,8 @@ html.av-mobile [data-testid="primaryColumn"] {
   var MAX_PAYLOADS = 50;
   var subscribed2 = false;
   var activeContext;
+  var captureEpoch = 0;
+  var captureTail = Promise.resolve();
   var recentPayloads = [];
   var networkCaptureFeature = {
     id: "export.networkCapture",
@@ -16919,7 +17049,8 @@ html.av-mobile [data-testid="primaryColumn"] {
       if (bridge && !subscribed2) {
         subscribed2 = true;
         bridge.on("graphql", (payload) => {
-          void onCaptured(payload);
+          const epoch = captureEpoch;
+          captureTail = captureTail.then(() => onCaptured(payload, epoch));
         });
       }
       ctx.diagnostics.info("Network capture feature ready", {
@@ -16932,6 +17063,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     },
     destroy(ctx) {
       activeContext = void 0;
+      captureEpoch += 1;
       recentPayloads.length = 0;
       ctx.diagnostics.info("Network capture destroyed");
     },
@@ -16956,9 +17088,9 @@ html.av-mobile [data-testid="primaryColumn"] {
       };
     }
   };
-  async function onCaptured(payload) {
+  async function onCaptured(payload, epoch) {
     const ctx = activeContext;
-    if (!ctx || !payload || typeof payload.url !== "string") {
+    if (epoch !== captureEpoch || !ctx || !payload || typeof payload.url !== "string") {
       return;
     }
     if (!ctx.settings.export.preserveRawPayloads) {
@@ -16966,11 +17098,12 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
     try {
       const body = typeof payload.body === "string" ? payload.body : "";
-      if (body.length === 0 || body.length > MAX_PAYLOAD_BYTES) {
+      const bodyBytes = new TextEncoder().encode(body).byteLength;
+      if (bodyBytes === 0 || bodyBytes > MAX_PAYLOAD_BYTES) {
         return;
       }
-      recordPayload(payload.url, payload.status, body.length);
-      await persistPayload(ctx, payload.url, payload.operation || "graphql", body);
+      recordPayload(payload.url, payload.status, bodyBytes);
+      await persistPayload(ctx, payload.url, payload.operation || "graphql", body, epoch);
     } catch (error) {
       ctx.diagnostics.warn("Network capture skipped", {
         error: String(error?.message ?? error)
@@ -16983,19 +17116,23 @@ html.av-mobile [data-testid="primaryColumn"] {
       recentPayloads.shift();
     }
   }
-  async function persistPayload(ctx, url, operationName, body) {
+  async function persistPayload(ctx, url, operationName, body, epoch) {
+    if (epoch !== captureEpoch || activeContext !== ctx) {
+      return;
+    }
     const store4 = getCheckpointStore();
     if (!store4) return;
     const jobId = `capture-${operationName}`;
     if (store4.list().every((entry) => entry.jobId !== jobId)) {
       await store4.start(jobId, "capture", ["json"], true);
     }
+    const scrubbed = truncateUtf8(scrubAuth(body), MAX_PAYLOAD_BYTES);
     await store4.append(jobId, [
       {
         tweetId: null,
         handle: null,
         displayName: null,
-        text: scrubAuth(body).slice(0, MAX_PAYLOAD_BYTES),
+        text: scrubbed,
         capturedAt: (/* @__PURE__ */ new Date()).toISOString(),
         surface: `graphql:${operationName}`,
         media: [],
@@ -17003,6 +17140,13 @@ html.av-mobile [data-testid="primaryColumn"] {
       }
     ]);
     void ctx.auditLog.record("capture.payload", { jobId, operation: operationName });
+  }
+  function truncateUtf8(value, maxBytes) {
+    const bytes = new TextEncoder().encode(value);
+    if (bytes.byteLength <= maxBytes) {
+      return value;
+    }
+    return new TextDecoder().decode(bytes.slice(0, maxBytes));
   }
   function scrubAuth(body) {
     return body.replace(/"(ct0|auth_token|guest_id|csrf_token)"\s*:\s*"[^"]*"/g, '"$1":"<scrubbed>"').replace(/Bearer\s+[A-Za-z0-9._-]{12,}/g, "Bearer <scrubbed>");
@@ -17867,12 +18011,25 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       if (!data || data.channel !== PAGE_CHANNEL) {
         return;
       }
-      if (data.kind === "config") {
-        state && (state.config = normalizeConfig(data.payload));
+      if (data.kind === "hello") {
+        const nonce = typeof data.nonce === "string" ? data.nonce : "";
+        if (nonce.length < 16) {
+          return;
+        }
+        if (state?.peerNonce && state.peerNonce !== nonce) {
+          return;
+        }
+        if (state) {
+          state.peerNonce = nonce;
+        }
+        emit("ready");
         return;
       }
-      if (data.kind === "hello") {
-        emit("ready");
+      if (!state?.peerNonce || data.nonce !== state.peerNonce) {
+        return;
+      }
+      if (data.kind === "config") {
+        state && (state.config = normalizeConfig(data.payload));
         return;
       }
       if (data.kind === "teardown") {
@@ -17881,6 +18038,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     };
     state = {
       config: { ...DISABLED },
+      peerNonce: void 0,
       target,
       originalFetch,
       originalSendBeacon,
@@ -17925,7 +18083,6 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         return originalSend.apply(this, args);
       };
     }
-    emit("ready");
     return () => uninstallPageAgent();
   }
   function uninstallPageAgent() {
@@ -17979,7 +18136,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         try {
           const cloned = response.clone();
           void cloned.text().then((body) => {
-            const bytes = body.length;
+            const bytes = new TextEncoder().encode(body).byteLength;
             emit("graphql", {
               url,
               operation: graphqlOperationName(url),
@@ -18018,7 +18175,12 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       return;
     }
     try {
-      const envelope = { channel: PAGE_CHANNEL, kind, payload };
+      const envelope = {
+        channel: PAGE_CHANNEL,
+        kind,
+        ...state.peerNonce === void 0 ? {} : { nonce: state.peerNonce },
+        payload
+      };
       if (state.sink) {
         state.sink(envelope);
         return;
@@ -18051,6 +18213,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   }
   function createPageBridge(options) {
     const handlers = /* @__PURE__ */ new Map();
+    const sessionNonce = createSessionNonce();
     let status = "connecting";
     let reason = "";
     let lastConfig;
@@ -18058,13 +18221,16 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     let windowListener;
     let handshakeTimer;
     function dispatch(envelope) {
+      if (envelope.nonce !== sessionNonce) {
+        return;
+      }
       if (envelope.kind === "ready") {
         if (status !== "connected") {
           status = "connected";
           reason = "";
           options.diagnostics.info("Page bridge connected", { source: options.source });
           if (lastConfig) {
-            send({ channel: PAGE_CHANNEL, kind: "config", payload: lastConfig });
+            send(makeEnvelope("config", lastConfig));
           }
         }
         return;
@@ -18099,7 +18265,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           } catch {
           }
         };
-        status = "connected";
+        send(makeEnvelope("hello"));
       }
     } else {
       windowListener = (event) => {
@@ -18119,7 +18285,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         } catch {
         }
       };
-      send({ channel: PAGE_CHANNEL, kind: "hello" });
+      send(makeEnvelope("hello"));
       handshakeTimer = setTimeout(() => {
         if (status !== "connected") {
           status = "unavailable";
@@ -18136,7 +18302,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         if (status === "unavailable") {
           return;
         }
-        send({ channel: PAGE_CHANNEL, kind: "config", payload: config });
+        send(makeEnvelope("config", config));
       },
       on(kind, handler) {
         const set = handlers.get(kind) ?? /* @__PURE__ */ new Set();
@@ -18149,7 +18315,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           handshakeTimer = void 0;
         }
         if (status === "connected") {
-          send({ channel: PAGE_CHANNEL, kind: "teardown" });
+          send(makeEnvelope("teardown"));
         }
         uninstallAgent?.();
         uninstallAgent = void 0;
@@ -18162,6 +18328,25 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         reason = "torn-down";
       }
     };
+    function makeEnvelope(kind, payload) {
+      return {
+        channel: PAGE_CHANNEL,
+        kind,
+        nonce: sessionNonce,
+        ...payload === void 0 ? {} : { payload }
+      };
+    }
+  }
+  function createSessionNonce() {
+    try {
+      const values = new Uint32Array(4);
+      globalThis.crypto?.getRandomValues(values);
+      if (values.some((value) => value !== 0)) {
+        return Array.from(values, (value) => value.toString(16).padStart(8, "0")).join("");
+      }
+    } catch {
+    }
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
   }
 
   // src/platform/observer.ts
@@ -18344,7 +18529,10 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     if (path.startsWith("/settings")) return "settings";
     if (path.startsWith("/search")) return "search";
     if (path.startsWith("/i/grok")) return "grok";
-    if (/^\/[^/]+$/.test(path)) return "profile";
+    if (/^\/[^/]+(?:\/(?:followers|following|verified_followers))\/?$/.test(path)) {
+      return "profile";
+    }
+    if (/^\/[^/]+\/?$/.test(path)) return "profile";
     return "unknown";
   }
 

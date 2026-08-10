@@ -10,13 +10,16 @@ import {
 
 const STYLE_ID = "av-filter-engine";
 const ARTICLE_SELECTOR = 'article[data-testid="tweet"]';
+const CELL_SELECTOR = '[data-testid="cellInnerDiv"]';
 const PROCESSED_ATTR = "data-av-filter-processed";
 const RESULT_ATTR = "data-av-filter-result";
+const CELL_RESULT_ATTR = "data-av-filter-cell-hidden";
 
 let generation = 0;
 let compiled: CompiledFilters | undefined;
 /** Serialised filter inputs behind the current `compiled`, so an unchanged apply is free. */
 let compiledSignature = "";
+let filterActive = false;
 
 export const filterEngineFeature: FeatureModule = {
   id: "filtering.engine",
@@ -27,8 +30,11 @@ export const filterEngineFeature: FeatureModule = {
   init(ctx) {
     ensureFilterStyle();
     refreshCompiled(ctx);
+    filterActive = ctx.settings.filter.enabled && surfaceMatches(ctx);
     applyRootClasses(ctx);
-    scanRoot(document, ctx);
+    if (filterActive) {
+      scanRoot(document, ctx);
+    }
     ctx.diagnostics.info("Filter engine initialized", filterSummary(ctx));
   },
 
@@ -37,9 +43,15 @@ export const filterEngineFeature: FeatureModule = {
     applyRootClasses(ctx);
     refreshCompiled(ctx);
 
-    if (!ctx.settings.filter.enabled || !surfaceMatches(ctx)) {
+    const active = ctx.settings.filter.enabled && surfaceMatches(ctx);
+    if (!active) {
+      if (filterActive) {
+        clearDecorations();
+      }
+      filterActive = false;
       return;
     }
+    filterActive = true;
 
     if (!addedNodes || addedNodes.length === 0) {
       scanRoot(root, ctx);
@@ -55,14 +67,8 @@ export const filterEngineFeature: FeatureModule = {
     compiled = undefined;
     compiledSignature = "";
     generation = 0;
+    clearDecorations();
     document.getElementById(STYLE_ID)?.remove();
-    document.documentElement.classList.remove("av-filter-enabled");
-    for (const article of Array.from(
-      document.querySelectorAll(`[${PROCESSED_ATTR}]`)
-    )) {
-      article.removeAttribute(PROCESSED_ATTR);
-      article.removeAttribute(RESULT_ATTR);
-    }
     ctx.diagnostics.info("Filter engine destroyed");
   },
 
@@ -77,8 +83,10 @@ export const filterEngineFeature: FeatureModule = {
 };
 
 function applyRootClasses(ctx: FeatureContext): void {
-  // The class represents the master switch. Predicate processing remains route-scoped below.
-  document.documentElement.classList.toggle("av-filter-enabled", ctx.settings.filter.enabled);
+  document.documentElement.classList.toggle(
+    "av-filter-enabled",
+    ctx.settings.filter.enabled && surfaceMatches(ctx)
+  );
 }
 
 function surfaceMatches(ctx: FeatureContext): boolean {
@@ -155,6 +163,30 @@ function processArticle(article: Element, filters: CompiledFilters): void {
   } else {
     article.setAttribute(RESULT_ATTR, decision);
   }
+  syncCollapsedCell(article);
+}
+
+function clearDecorations(): void {
+  document.documentElement.classList.remove("av-filter-enabled");
+  for (const node of Array.from(
+    document.querySelectorAll(`[${PROCESSED_ATTR}], [${RESULT_ATTR}], [${CELL_RESULT_ATTR}]`)
+  )) {
+    node.removeAttribute(PROCESSED_ATTR);
+    node.removeAttribute(RESULT_ATTR);
+    node.removeAttribute(CELL_RESULT_ATTR);
+  }
+  filterActive = false;
+}
+
+function syncCollapsedCell(article: Element): void {
+  const cell = article.closest(CELL_SELECTOR);
+  if (!cell || cell === article) {
+    return;
+  }
+  const hasHiddenArticle = cell.querySelector(
+    `${ARTICLE_SELECTOR}[${RESULT_ATTR}="hide"]`
+  ) !== null;
+  cell.toggleAttribute(CELL_RESULT_ATTR, hasHiddenArticle);
 }
 
 function filterSummary(ctx: FeatureContext): Record<string, unknown> {
@@ -182,6 +214,10 @@ function ensureFilterStyle(): void {
 
 const FILTER_CSS = `
 html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="hide"] {
+  display: none !important;
+}
+
+html.av-filter-enabled [${CELL_RESULT_ATTR}="1"] {
   display: none !important;
 }
 

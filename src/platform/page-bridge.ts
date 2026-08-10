@@ -79,6 +79,7 @@ export function createPageBridge(options: {
   diagnostics: Diagnostics;
 }): PageBridge {
   const handlers = new Map<PageAgentKind, Set<PageEventHandler>>();
+  const sessionNonce = createSessionNonce();
   let status: PageScopeStatus = "connecting";
   let reason: PageScopeReason = "";
   let lastConfig: PageAgentConfig | undefined;
@@ -87,13 +88,16 @@ export function createPageBridge(options: {
   let handshakeTimer: ReturnType<typeof setTimeout> | undefined;
 
   function dispatch(envelope: PageAgentEnvelope): void {
+    if (envelope.nonce !== sessionNonce) {
+      return;
+    }
     if (envelope.kind === "ready") {
       if (status !== "connected") {
         status = "connected";
         reason = "";
         options.diagnostics.info("Page bridge connected", { source: options.source });
         if (lastConfig) {
-          send({ channel: PAGE_CHANNEL, kind: "config", payload: lastConfig });
+          send(makeEnvelope("config", lastConfig));
         }
       }
       return;
@@ -131,7 +135,7 @@ export function createPageBridge(options: {
           // handled by the ready-timeout path
         }
       };
-      status = "connected";
+      send(makeEnvelope("hello"));
     }
   } else {
     windowListener = (event: MessageEvent): void => {
@@ -152,7 +156,7 @@ export function createPageBridge(options: {
         // handled by the ready-timeout path
       }
     };
-    send({ channel: PAGE_CHANNEL, kind: "hello" });
+    send(makeEnvelope("hello"));
     handshakeTimer = setTimeout(() => {
       if (status !== "connected") {
         status = "unavailable";
@@ -170,7 +174,7 @@ export function createPageBridge(options: {
       if (status === "unavailable") {
         return;
       }
-      send({ channel: PAGE_CHANNEL, kind: "config", payload: config });
+      send(makeEnvelope("config", config));
     },
     on(kind, handler) {
       const set = handlers.get(kind) ?? new Set<PageEventHandler>();
@@ -183,7 +187,7 @@ export function createPageBridge(options: {
         handshakeTimer = undefined;
       }
       if (status === "connected") {
-        send({ channel: PAGE_CHANNEL, kind: "teardown" });
+        send(makeEnvelope("teardown"));
       }
       uninstallAgent?.();
       uninstallAgent = undefined;
@@ -196,4 +200,28 @@ export function createPageBridge(options: {
       reason = "torn-down";
     }
   };
+
+  function makeEnvelope(kind: PageAgentKind, payload?: unknown): PageAgentEnvelope {
+    return {
+      channel: PAGE_CHANNEL,
+      kind,
+      nonce: sessionNonce,
+      ...(payload === undefined ? {} : { payload })
+    };
+  }
+}
+
+function createSessionNonce(): string {
+  try {
+    const values = new Uint32Array(4);
+    globalThis.crypto?.getRandomValues(values);
+    if (values.some((value) => value !== 0)) {
+      return Array.from(values, (value) => value.toString(16).padStart(8, "0")).join("");
+    }
+  } catch {
+    // Fall through to a best-effort value for hardened manager environments without Web Crypto.
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random()
+    .toString(36)
+    .slice(2)}`;
 }

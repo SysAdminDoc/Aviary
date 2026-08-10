@@ -140,6 +140,36 @@ test("CheckpointStore round-trips jobs and dedupes records", async () => {
   assert.equal(checkpoints.records("job-1").length, 2, "duplicates should be dropped");
   assert.equal(checkpoints.list()[0].done, true);
 
+  await checkpoints.start("capture-HomeTimeline", "capture", ["json"], true);
+  const sharedPrefix = "x".repeat(120);
+  await checkpoints.append("capture-HomeTimeline", [
+    {
+      tweetId: null,
+      handle: null,
+      displayName: null,
+      text: `${sharedPrefix}A`,
+      capturedAt: "2026-05-19T12:00:00Z",
+      surface: "graphql:HomeTimeline",
+      media: [],
+      permalink: "https://x.com/i/api/graphql/a/HomeTimeline"
+    },
+    {
+      tweetId: null,
+      handle: null,
+      displayName: null,
+      text: `${sharedPrefix}B`,
+      capturedAt: "2026-05-19T12:00:01Z",
+      surface: "graphql:HomeTimeline",
+      media: [],
+      permalink: "https://x.com/i/api/graphql/a/HomeTimeline"
+    }
+  ]);
+  assert.equal(
+    checkpoints.records("capture-HomeTimeline").length,
+    2,
+    "raw bodies that differ after the old 80-character key must both be retained"
+  );
+
   const reloaded = new (await importBundledModule("src/features/export/jobs.ts")).CheckpointStore(storage);
   await reloaded.load();
   assert.equal(reloaded.records("job-1").length, 2, "checkpoint persisted across reloads");

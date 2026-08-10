@@ -82,6 +82,9 @@ function detectSurface(path: string): RouteSurface {
   if (path.startsWith("/settings")) return "settings";
   if (path.startsWith("/search")) return "search";
   if (path.startsWith("/i/grok")) return "grok";
-  if (/^\/[^/]+$/.test(path)) return "profile";
+  if (/^\/[^/]+(?:\/(?:followers|following|verified_followers))\/?$/.test(path)) {
+    return "profile";
+  }
+  if (/^\/[^/]+\/?$/.test(path)) return "profile";
   return "unknown";
 }

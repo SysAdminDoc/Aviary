@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Profile subroutes, filter cleanup/cell reflow, page-bridge session authentication, UTF-8 capture
+  limits, bounded archive inflation, durable hidden-post mutations, and serialized raw-capture
+  persistence now handle the audited edge cases without false success or stale page state.
+
 ## 1.16.0 - 2026-08-09
 
 ### Added

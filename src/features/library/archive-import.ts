@@ -9,6 +9,7 @@ export interface ArchiveImportResult {
 }
 
 const TEXT_DECODER = new TextDecoder();
+export const MAX_ARCHIVE_BYTES = 256 * 1024 * 1024;
 
 export async function importOfficialArchive(
   buffer: Uint8Array,
@@ -18,6 +19,10 @@ export async function importOfficialArchive(
   const errors: string[] = [];
   const filesParsed: string[] = [];
   const records: ExportRecord[] = [];
+  if (buffer.byteLength > MAX_ARCHIVE_BYTES) {
+    errors.push("Archive exceeds the 256 MiB input limit.");
+    return { records, warnings, errors, filesParsed };
+  }
   let entries;
   try {
     entries = await readZip(buffer);

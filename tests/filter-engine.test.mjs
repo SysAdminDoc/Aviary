@@ -131,6 +131,20 @@ test("normalizeSettings keeps surfaces and selfRepost stable", async () => {
   assert.deepEqual(fallback.filter.surfaces, DEFAULT_SETTINGS.filter.surfaces);
 });
 
+test("profile collection subroutes keep profile-scoped features active", async () => {
+  const { readRoute } = await importBundledModule("src/platform/route.ts");
+  for (const pathname of [
+    "/alice",
+    "/alice/",
+    "/alice/followers",
+    "/alice/following",
+    "/alice/verified_followers"
+  ]) {
+    assert.equal(readRoute({ href: `https://x.com${pathname}`, pathname }).surface, "profile", pathname);
+  }
+  assert.equal(readRoute({ href: "https://x.com/alice/likes", pathname: "/alice/likes" }).surface, "unknown");
+});
+
 test("filter engine source registers the expected hooks and CSS class", async () => {
   const source = await readFile(
     path.join(root, "src/features/filtering/filter-engine.ts"),
@@ -142,6 +156,8 @@ test("filter engine source registers the expected hooks and CSS class", async ()
   assert.match(source, /article\[data-testid="tweet"\]/);
   assert.match(source, /destroy/);
   assert.match(source, /generation/);
+  assert.match(source, /data-av-filter-cell-hidden/);
+  assert.match(source, /clearDecorations/);
   assert.ok(!/innerHTML/.test(source), "filter engine must not use innerHTML");
 });
 

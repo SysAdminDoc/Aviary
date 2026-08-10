@@ -154,6 +154,20 @@ test("a corrupted deflate stream is reported, not silently dropped", async () =>
   );
 });
 
+test("ZIP inflation rejects an entry whose declared expansion exceeds the safety limit", async () => {
+  const { readZip, ZipLimitError, ZIP_LIMITS } = await importBundledModule(
+    "src/features/export/zip-reader.ts"
+  );
+  const archive = buildZip([
+    {
+      name: "data/oversized.js",
+      content: "x".repeat(ZIP_LIMITS.maxEntryUncompressedBytes + 1),
+      method: 8
+    }
+  ]);
+  await assert.rejects(() => readZip(archive), (error) => error instanceof ZipLimitError);
+});
+
 async function importBundledModule(relativePath) {
   const temp = await mkdtemp(path.join(tmpdir(), "aviary-deflate-"));
   const outfile = path.join(temp, "module.mjs");

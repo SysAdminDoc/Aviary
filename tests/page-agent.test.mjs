@@ -136,10 +136,10 @@ test("an enabled beacon hook refuses telemetry and reports it, without disturbin
   const uninstall = installPageAgent(target, (envelope) => events.push(envelope));
 
   try {
-    target.postMessage({
-      channel: PAGE_CHANNEL,
-      kind: "config",
-      payload: { blockBeacons: true, captureGraphql: false, forceVideoQuality: false }
+    sendConfig(target, PAGE_CHANNEL, {
+      blockBeacons: true,
+      captureGraphql: false,
+      forceVideoQuality: false
     });
 
     const blocked = await target.fetch("https://x.com/i/api/1.1/jot/client_event.json");
@@ -166,16 +166,58 @@ test("an enabled beacon hook refuses telemetry and reports it, without disturbin
   }
 });
 
+test("page-agent config and teardown require the negotiated session nonce", async () => {
+  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+  const target = fakeWindow();
+  const uninstall = installPageAgent(target);
+  const nonce = "trusted-session-nonce-1234";
+
+  try {
+    target.postMessage({
+      channel: PAGE_CHANNEL,
+      kind: "config",
+      nonce: "forged-session-nonce-1234",
+      payload: { blockBeacons: true }
+    });
+    assert.equal(
+      (await target.fetch("https://x.com/i/api/1.1/jot/client_event.json")).status,
+      200,
+      "a config without the negotiated nonce must be ignored"
+    );
+
+    target.postMessage({ channel: PAGE_CHANNEL, kind: "hello", nonce });
+    target.postMessage({
+      channel: PAGE_CHANNEL,
+      kind: "config",
+      nonce,
+      payload: { blockBeacons: true }
+    });
+    assert.equal(
+      (await target.fetch("https://x.com/i/api/1.1/jot/client_event.json")).status,
+      204
+    );
+
+    target.postMessage({
+      channel: PAGE_CHANNEL,
+      kind: "teardown",
+      nonce: "another-session-nonce-1234"
+    });
+    assert.notEqual(target.fetch, target.originals.fetch, "forged teardown must be ignored");
+  } finally {
+    uninstall();
+  }
+});
+
 test("XHR telemetry is refused by URL captured at open()", async () => {
   const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
   const target = fakeWindow();
   const uninstall = installPageAgent(target);
 
   try {
-    target.postMessage({
-      channel: PAGE_CHANNEL,
-      kind: "config",
-      payload: { blockBeacons: true, captureGraphql: false, forceVideoQuality: false }
+    sendConfig(target, PAGE_CHANNEL, {
+      blockBeacons: true,
+      captureGraphql: false,
+      forceVideoQuality: false
     });
 
     const xhr = Object.create(target.XMLHttpRequest.prototype);
@@ -241,10 +283,10 @@ test("a fetched playlist is rewritten in flight and reported", async () => {
   const uninstall = installPageAgent(target, (envelope) => events.push(envelope));
 
   try {
-    target.postMessage({
-      channel: PAGE_CHANNEL,
-      kind: "config",
-      payload: { blockBeacons: false, captureGraphql: false, forceVideoQuality: true }
+    sendConfig(target, PAGE_CHANNEL, {
+      blockBeacons: false,
+      captureGraphql: false,
+      forceVideoQuality: true
     });
 
     const response = await target.fetch("https://video.twimg.com/x/pl/master.m3u8");
@@ -269,10 +311,10 @@ test("GraphQL capture reads the body without consuming the page's response", asy
   const uninstall = installPageAgent(target, (envelope) => events.push(envelope));
 
   try {
-    target.postMessage({
-      channel: PAGE_CHANNEL,
-      kind: "config",
-      payload: { blockBeacons: false, captureGraphql: true, forceVideoQuality: false }
+    sendConfig(target, PAGE_CHANNEL, {
+      blockBeacons: false,
+      captureGraphql: true,
+      forceVideoQuality: false
     });
 
     const response = await target.fetch("https://x.com/i/api/graphql/abc123/HomeTimeline");
@@ -298,15 +340,11 @@ test("media metadata capture shares GraphQL delivery without enabling raw export
   const uninstall = installPageAgent(target, (envelope) => events.push(envelope));
 
   try {
-    target.postMessage({
-      channel: PAGE_CHANNEL,
-      kind: "config",
-      payload: {
-        blockBeacons: false,
-        captureGraphql: false,
-        captureMediaMetadata: true,
-        forceVideoQuality: false
-      }
+    sendConfig(target, PAGE_CHANNEL, {
+      blockBeacons: false,
+      captureGraphql: false,
+      captureMediaMetadata: true,
+      forceVideoQuality: false
     });
 
     const response = await target.fetch("https://x.com/i/api/graphql/abc123/HomeTimeline");
@@ -356,4 +394,10 @@ async function importBundledModule(relativePath) {
   } finally {
     await rm(temp, { recursive: true, force: true });
   }
+}
+
+function sendConfig(target, channel, config) {
+  const nonce = "test-session-nonce-1234";
+  target.postMessage({ channel, kind: "hello", nonce });
+  target.postMessage({ channel, kind: "config", nonce, payload: config });
 }

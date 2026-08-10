@@ -38,6 +38,8 @@ export interface PageAgentConfig {
 export interface PageAgentEnvelope {
   channel: typeof PAGE_CHANNEL;
   kind: PageAgentKind;
+  /** Per-install capability negotiated by the isolated world. */
+  nonce?: string;
   payload?: unknown;
 }
 
@@ -212,6 +214,7 @@ const DISABLED: PageAgentConfig = {
 
 interface AgentState {
   config: PageAgentConfig;
+  peerNonce: string | undefined;
   target: PageAgentTarget;
   originalFetch: typeof fetch;
   originalSendBeacon: ((url: string, data?: unknown) => boolean) | undefined;
@@ -255,12 +258,25 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
     if (!data || data.channel !== PAGE_CHANNEL) {
       return;
     }
-    if (data.kind === "config") {
-      state && (state.config = normalizeConfig(data.payload));
+    if (data.kind === "hello") {
+      const nonce = typeof data.nonce === "string" ? data.nonce : "";
+      if (nonce.length < 16) {
+        return;
+      }
+      if (state?.peerNonce && state.peerNonce !== nonce) {
+        return;
+      }
+      if (state) {
+        state.peerNonce = nonce;
+      }
+      emit("ready");
       return;
     }
-    if (data.kind === "hello") {
-      emit("ready");
+    if (!state?.peerNonce || data.nonce !== state.peerNonce) {
+      return;
+    }
+    if (data.kind === "config") {
+      state && (state.config = normalizeConfig(data.payload));
       return;
     }
     if (data.kind === "teardown") {
@@ -270,6 +286,7 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
 
   state = {
     config: { ...DISABLED },
+    peerNonce: undefined,
     target,
     originalFetch,
     originalSendBeacon,
@@ -322,7 +339,6 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
     };
   }
 
-  emit("ready");
   return () => uninstallPageAgent();
 }
 
@@ -393,7 +409,7 @@ function makePatchedFetch(originalFetch: typeof fetch): typeof fetch {
       try {
         const cloned = response.clone();
         void cloned.text().then((body) => {
-          const bytes = body.length;
+          const bytes = new TextEncoder().encode(body).byteLength;
           emit("graphql", {
             url,
             operation: graphqlOperationName(url),
@@ -437,7 +453,12 @@ function emit(kind: PageAgentKind, payload?: unknown): void {
     return;
   }
   try {
-    const envelope: PageAgentEnvelope = { channel: PAGE_CHANNEL, kind, payload };
+    const envelope: PageAgentEnvelope = {
+      channel: PAGE_CHANNEL,
+      kind,
+      ...(state.peerNonce === undefined ? {} : { nonce: state.peerNonce }),
+      payload
+    };
     if (state.sink) {
       state.sink(envelope);
       return;

@@ -33,7 +33,7 @@ import { pingAria2Version, removeAria2Download, tellActiveAria2 } from "../integ
 import { crosspost, readComposerText, type CrosspostRequest } from "../integrations/crosspost";
 import { SemanticIndex } from "../integrations/semantic-search";
 import { recentIntegrationErrors } from "./integration-errors";
-import { importOfficialArchive } from "../library/archive-import";
+import { importOfficialArchive, MAX_ARCHIVE_BYTES } from "../library/archive-import";
 import { previewCleanup } from "../library/cleanup-preview";
 import { CleanupQueue } from "../library/cleanup-queue";
 import { runMediaBatch } from "../media/batch-downloader";
@@ -291,6 +291,9 @@ export const controlCenterFeature: FeatureModule = {
         await getSnapshotStore()?.clear();
       },
       async importArchive(file) {
+        if (typeof file.size === "number" && file.size > MAX_ARCHIVE_BYTES) {
+          throw new Error("Archive exceeds the 256 MiB input limit.");
+        }
         const buffer = new Uint8Array(await file.arrayBuffer());
         const result = await importOfficialArchive(buffer, "archive");
         if (result.records.length > 0) {

@@ -104,12 +104,25 @@
       if (!data || data.channel !== PAGE_CHANNEL) {
         return;
       }
-      if (data.kind === "config") {
-        state && (state.config = normalizeConfig(data.payload));
+      if (data.kind === "hello") {
+        const nonce = typeof data.nonce === "string" ? data.nonce : "";
+        if (nonce.length < 16) {
+          return;
+        }
+        if (state?.peerNonce && state.peerNonce !== nonce) {
+          return;
+        }
+        if (state) {
+          state.peerNonce = nonce;
+        }
+        emit("ready");
         return;
       }
-      if (data.kind === "hello") {
-        emit("ready");
+      if (!state?.peerNonce || data.nonce !== state.peerNonce) {
+        return;
+      }
+      if (data.kind === "config") {
+        state && (state.config = normalizeConfig(data.payload));
         return;
       }
       if (data.kind === "teardown") {
@@ -118,6 +131,7 @@
     };
     state = {
       config: { ...DISABLED },
+      peerNonce: void 0,
       target,
       originalFetch,
       originalSendBeacon,
@@ -162,7 +176,6 @@
         return originalSend.apply(this, args);
       };
     }
-    emit("ready");
     return () => uninstallPageAgent();
   }
   function uninstallPageAgent() {
@@ -216,7 +229,7 @@
         try {
           const cloned = response.clone();
           void cloned.text().then((body) => {
-            const bytes = body.length;
+            const bytes = new TextEncoder().encode(body).byteLength;
             emit("graphql", {
               url,
               operation: graphqlOperationName(url),
@@ -255,7 +268,12 @@
       return;
     }
     try {
-      const envelope = { channel: PAGE_CHANNEL, kind, payload };
+      const envelope = {
+        channel: PAGE_CHANNEL,
+        kind,
+        ...state.peerNonce === void 0 ? {} : { nonce: state.peerNonce },
+        payload
+      };
       if (state.sink) {
         state.sink(envelope);
         return;

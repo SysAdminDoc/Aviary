@@ -28,6 +28,13 @@ export interface PostIdentity {
   text: string;
 }
 
+interface StoreState {
+  entries: Map<string, HiddenPostEntry>;
+  undoStack: string[];
+  updatedAt: string | null;
+  version: number;
+}
+
 /**
  * Stable per-post identity. Status ids are preferred; promoted posts and other
  * article shapes without a /status/ link fall back to a handle + text signature
@@ -166,6 +173,8 @@ export class HiddenPostStore {
       return null;
     }
 
+    const before = this.#snapshot();
+
     const entry: HiddenPostEntry = {
       key,
       hiddenAt: new Date().toISOString(),
@@ -181,7 +190,7 @@ export class HiddenPostStore {
     }
     this.#evict(maxEntries);
     this.#version += 1;
-    await this.#persist();
+    await this.#persist(before);
     return entry;
   }
 
@@ -190,10 +199,11 @@ export class HiddenPostStore {
     if (!entry) {
       return null;
     }
+    const before = this.#snapshot();
     this.#entries.delete(key);
     this.#undoStack = this.#undoStack.filter((candidate) => candidate !== key);
     this.#version += 1;
-    await this.#persist();
+    await this.#persist(before);
     return entry;
   }
 
@@ -211,10 +221,11 @@ export class HiddenPostStore {
 
   async clear(): Promise<number> {
     const removed = this.#entries.size;
+    const before = this.#snapshot();
     this.#entries.clear();
     this.#undoStack = [];
     this.#version += 1;
-    await this.#persist();
+    await this.#persist(before);
     return removed;
   }
 
@@ -231,7 +242,23 @@ export class HiddenPostStore {
     }
   }
 
-  async #persist(): Promise<void> {
+  #snapshot(): StoreState {
+    return {
+      entries: new Map(this.#entries),
+      undoStack: [...this.#undoStack],
+      updatedAt: this.#updatedAt,
+      version: this.#version
+    };
+  }
+
+  #restore(snapshot: StoreState): void {
+    this.#entries = new Map(snapshot.entries);
+    this.#undoStack = [...snapshot.undoStack];
+    this.#updatedAt = snapshot.updatedAt;
+    this.#version = snapshot.version;
+  }
+
+  async #persist(before: StoreState): Promise<void> {
     this.#updatedAt = new Date().toISOString();
     const snapshot: HiddenPostsSnapshot = {
       entries: [...this.#entries.values()],
@@ -240,8 +267,14 @@ export class HiddenPostStore {
     try {
       await this.#storage.set(HIDDEN_POSTS_KEY, snapshot);
     } catch (error) {
-      // A hide that did not persist comes back on reload; say so rather than pretend.
-      this.#onPersistError?.(error);
+      this.#restore(before);
+      // A mutation that did not persist must not be presented as a successful hide/unhide/clear.
+      try {
+        this.#onPersistError?.(error);
+      } catch {
+        // Diagnostics must not mask the original persistence failure.
+      }
+      throw error;
     }
   }
 }
