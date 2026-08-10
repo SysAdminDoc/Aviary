@@ -93,6 +93,19 @@ export interface ExportResultSummary {
   files?: number;
 }
 
+export interface ArchiveImportStatus {
+  jobs: Array<{
+    jobId: string;
+    filename: string;
+    status: "queued" | "running" | "paused" | "cancelled" | "failed" | "completed";
+    filesParsed: number;
+    recordCount: number;
+    warningCount: number;
+    errorCount: number;
+    error?: string;
+  }>;
+}
+
 export interface SelectorHealthStatus {
   enabled: boolean;
   route: string;
@@ -227,6 +240,11 @@ export interface ControlCenterOptions {
   ) => { added: number; removed: number; unchanged: number } | null;
   clearSnapshots?: () => Promise<void>;
   importArchive?: (file: File) => Promise<{ records: number; warnings: number; errors: number }>;
+  getArchiveImportStatus?: () => ArchiveImportStatus;
+  pauseArchiveImport?: (jobId: string) => Promise<{ ok: boolean; error?: string }>;
+  resumeArchiveImport?: (jobId: string) => Promise<{ ok: boolean; error?: string }>;
+  cancelArchiveImport?: (jobId: string) => Promise<{ ok: boolean; error?: string }>;
+  retryArchiveImport?: (jobId: string) => Promise<{ ok: boolean; error?: string }>;
   searchArchive?: (query: string) => Array<{ handle: string | null; tweetId: string | null; text: string; score: number }>;
   downloadReport?: () => Promise<void>;
   getHiddenPostsStatus?: () => HiddenPostsStatus;
@@ -1044,12 +1062,67 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       );
     }
 
+    const archiveStatus = options.getArchiveImportStatus?.();
+    if (archiveStatus) {
+      for (const job of archiveStatus.jobs) {
+        rows.push(
+          dataRow(
+            "Archive import",
+            `${job.status} · ${job.filename} · ${job.recordCount} records · ${job.filesParsed} files · ${job.warningCount} warnings${job.error ? ` · ${job.error}` : ""}`
+          )
+        );
+        if (job.status === "running" && options.pauseArchiveImport) {
+          rows.push(
+            actionRow("Pause archive import", `Pause ${job.filename}.`, async () => {
+              const result = await options.pauseArchiveImport!(job.jobId);
+              if (!result.ok) throw new Error(result.error ?? "Archive import could not be paused");
+              render();
+              setStatus("Archive import paused.");
+            })
+          );
+        }
+        if ((job.status === "paused" || job.status === "queued") && options.resumeArchiveImport) {
+          rows.push(
+            actionRow("Resume archive import", `Resume ${job.filename}.`, async () => {
+              const result = await options.resumeArchiveImport!(job.jobId);
+              if (!result.ok) throw new Error(result.error ?? "Archive import could not be resumed");
+              render();
+              setStatus("Archive import resumed.");
+            })
+          );
+        }
+        if (
+          (job.status === "running" || job.status === "paused" || job.status === "queued") &&
+          options.cancelArchiveImport
+        ) {
+          rows.push(
+            actionRow("Cancel archive import", `Cancel ${job.filename}.`, async () => {
+              const result = await options.cancelArchiveImport!(job.jobId);
+              if (!result.ok) throw new Error(result.error ?? "Archive import could not be cancelled");
+              render();
+              setStatus("Archive import cancelled.");
+            })
+          );
+        }
+        if ((job.status === "failed" || job.status === "cancelled") && options.retryArchiveImport) {
+          rows.push(
+            actionRow("Retry archive import", `Retry ${job.filename}.`, async () => {
+              const result = await options.retryArchiveImport!(job.jobId);
+              if (!result.ok) throw new Error(result.error ?? "Archive import could not be retried");
+              render();
+              setStatus("Archive import retry started.");
+            })
+          );
+        }
+      }
+    }
+
     if (options.importArchive) {
       const row = el("div", "av-row av-row-stack");
       const copy = el("span", "av-row-copy");
       copy.append(
         el("span", "av-row-label", "Import official X archive"),
-        el("span", "av-row-description", "Pick a ZIP exported from x.com. STORE-only entries only; compressed archives are rejected.")
+        el("span", "av-row-description", "Pick a ZIP exported from x.com. STORE and DEFLATE entries are supported; the source stays local while it is resumable.")
       );
       const input = document.createElement("input");
       input.type = "file";

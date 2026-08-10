@@ -5851,12 +5851,63 @@ html.av-reduce-motion *::after {
           })
         );
       }
+      const archiveStatus = options.getArchiveImportStatus?.();
+      if (archiveStatus) {
+        for (const job of archiveStatus.jobs) {
+          rows.push(
+            dataRow(
+              "Archive import",
+              `${job.status} \xB7 ${job.filename} \xB7 ${job.recordCount} records \xB7 ${job.filesParsed} files \xB7 ${job.warningCount} warnings${job.error ? ` \xB7 ${job.error}` : ""}`
+            )
+          );
+          if (job.status === "running" && options.pauseArchiveImport) {
+            rows.push(
+              actionRow("Pause archive import", `Pause ${job.filename}.`, async () => {
+                const result = await options.pauseArchiveImport(job.jobId);
+                if (!result.ok) throw new Error(result.error ?? "Archive import could not be paused");
+                render();
+                setStatus("Archive import paused.");
+              })
+            );
+          }
+          if ((job.status === "paused" || job.status === "queued") && options.resumeArchiveImport) {
+            rows.push(
+              actionRow("Resume archive import", `Resume ${job.filename}.`, async () => {
+                const result = await options.resumeArchiveImport(job.jobId);
+                if (!result.ok) throw new Error(result.error ?? "Archive import could not be resumed");
+                render();
+                setStatus("Archive import resumed.");
+              })
+            );
+          }
+          if ((job.status === "running" || job.status === "paused" || job.status === "queued") && options.cancelArchiveImport) {
+            rows.push(
+              actionRow("Cancel archive import", `Cancel ${job.filename}.`, async () => {
+                const result = await options.cancelArchiveImport(job.jobId);
+                if (!result.ok) throw new Error(result.error ?? "Archive import could not be cancelled");
+                render();
+                setStatus("Archive import cancelled.");
+              })
+            );
+          }
+          if ((job.status === "failed" || job.status === "cancelled") && options.retryArchiveImport) {
+            rows.push(
+              actionRow("Retry archive import", `Retry ${job.filename}.`, async () => {
+                const result = await options.retryArchiveImport(job.jobId);
+                if (!result.ok) throw new Error(result.error ?? "Archive import could not be retried");
+                render();
+                setStatus("Archive import retry started.");
+              })
+            );
+          }
+        }
+      }
       if (options.importArchive) {
         const row = el("div", "av-row av-row-stack");
         const copy = el("span", "av-row-copy");
         copy.append(
           el("span", "av-row-label", "Import official X archive"),
-          el("span", "av-row-description", "Pick a ZIP exported from x.com. STORE-only entries only; compressed archives are rejected.")
+          el("span", "av-row-description", "Pick a ZIP exported from x.com. STORE and DEFLATE entries are supported; the source stays local while it is resumable.")
         );
         const input = document.createElement("input");
         input.type = "file";
@@ -13030,6 +13081,255 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
+  // src/features/library/archive-import-jobs.ts
+  var ARCHIVE_IMPORT_JOBS_KEY = "aviary.archive.imports.v1";
+  var MAX_RETAINED_JOBS = 12;
+  var MAX_SOURCE_BYTES = 256 * 1024 * 1024;
+  var EMPTY3 = { jobs: {}, sequence: 0 };
+  var ArchiveImportJobStore = class {
+    #storage;
+    #state = EMPTY3;
+    #loaded = false;
+    constructor(storage) {
+      this.#storage = storage;
+    }
+    async load() {
+      if (this.#loaded) return;
+      const raw = await this.#storage.get(ARCHIVE_IMPORT_JOBS_KEY, EMPTY3);
+      this.#state = normalizeState(raw);
+      let interrupted = false;
+      for (const job of Object.values(this.#state.jobs)) {
+        if (job.status === "running") {
+          job.status = "paused";
+          job.resumeOnBoot = true;
+          job.error = "Interrupted before import completed; resume when ready.";
+          job.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+          interrupted = true;
+        }
+      }
+      this.#loaded = true;
+      if (interrupted) {
+        await this.#persist();
+      }
+    }
+    list() {
+      return Object.values(this.#state.jobs).sort(compareJobs2).map(cloneJob);
+    }
+    get(jobId) {
+      const job = this.#state.jobs[jobId];
+      return job ? cloneJob(job) : void 0;
+    }
+    async start(filename, source) {
+      await this.load();
+      if (source.byteLength > MAX_SOURCE_BYTES) {
+        throw new Error("Archive exceeds the 256 MiB input limit.");
+      }
+      const now2 = (/* @__PURE__ */ new Date()).toISOString();
+      const job = {
+        jobId: `archive-${Date.now()}-${++this.#state.sequence}`,
+        filename: filename || "archive.zip",
+        sourceBytes: source.byteLength,
+        status: "queued",
+        filesParsed: 0,
+        recordCount: 0,
+        warningCount: 0,
+        errorCount: 0,
+        createdAt: now2,
+        updatedAt: now2,
+        resumeOnBoot: true,
+        source: encodeBase64(source)
+      };
+      this.#state.jobs[job.jobId] = job;
+      this.#trim();
+      await this.#persist();
+      return cloneJob(job);
+    }
+    source(jobId) {
+      const job = this.#state.jobs[jobId];
+      if (!job) return null;
+      try {
+        const bytes = decodeBase64(job.source);
+        return bytes.byteLength === job.sourceBytes ? bytes : null;
+      } catch {
+        return null;
+      }
+    }
+    async markRunning(jobId) {
+      return this.#set(jobId, (job) => {
+        if (isTerminal2(job.status)) return false;
+        job.status = "running";
+        job.resumeOnBoot = true;
+        delete job.error;
+        return true;
+      });
+    }
+    async updateProgress(jobId, update) {
+      return this.#set(jobId, (job) => {
+        if (isTerminal2(job.status)) return false;
+        job.filesParsed = nonNegative(update.filesParsed, job.filesParsed);
+        job.recordCount = nonNegative(update.recordCount, job.recordCount);
+        job.warningCount = nonNegative(update.warningCount, job.warningCount);
+        job.errorCount = nonNegative(update.errorCount, job.errorCount);
+        return true;
+      });
+    }
+    async complete(jobId, update) {
+      return this.#set(jobId, (job) => {
+        if (job.status === "cancelled") return false;
+        job.status = "completed";
+        job.resumeOnBoot = false;
+        job.filesParsed = nonNegative(update.filesParsed, job.filesParsed);
+        job.recordCount = nonNegative(update.recordCount, job.recordCount);
+        job.warningCount = nonNegative(update.warningCount, job.warningCount);
+        job.errorCount = nonNegative(update.errorCount, job.errorCount);
+        job.source = "";
+        delete job.error;
+        return true;
+      });
+    }
+    async pause(jobId) {
+      return this.#action(jobId, (job) => {
+        if (isTerminal2(job.status)) return "Import is already finished";
+        job.status = "paused";
+        job.resumeOnBoot = false;
+        job.error = "Paused by user.";
+        return null;
+      });
+    }
+    async resume(jobId) {
+      return this.#action(jobId, (job) => {
+        if (job.status !== "paused" && job.status !== "queued") return "Import is not paused";
+        job.status = "running";
+        job.resumeOnBoot = false;
+        delete job.error;
+        return null;
+      });
+    }
+    async cancel(jobId) {
+      return this.#action(jobId, (job) => {
+        if (isTerminal2(job.status)) return "Import is already finished";
+        job.status = "cancelled";
+        job.resumeOnBoot = false;
+        job.error = "Cancelled by user.";
+        return null;
+      });
+    }
+    async retry(jobId) {
+      return this.#action(jobId, (job) => {
+        if (job.status !== "failed" && job.status !== "cancelled") return "Import is not failed or cancelled";
+        if (job.source.length === 0) return "The original archive source is no longer available";
+        job.status = "queued";
+        job.resumeOnBoot = true;
+        delete job.error;
+        return null;
+      });
+    }
+    async fail(jobId, error) {
+      return this.#set(jobId, (job) => {
+        if (job.status === "cancelled") return false;
+        job.status = "failed";
+        job.resumeOnBoot = false;
+        job.error = error instanceof Error ? error.message : String(error);
+        return true;
+      });
+    }
+    async #set(jobId, mutate) {
+      await this.load();
+      const job = this.#state.jobs[jobId];
+      if (!job || !mutate(job)) return false;
+      job.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+      await this.#persist();
+      return true;
+    }
+    async #action(jobId, mutate) {
+      await this.load();
+      const job = this.#state.jobs[jobId];
+      if (!job) return { ok: false, error: "Archive import job was not found" };
+      const error = mutate(job);
+      if (error) return { ok: false, error };
+      job.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+      await this.#persist();
+      return { ok: true };
+    }
+    async #persist() {
+      await this.#storage.set(ARCHIVE_IMPORT_JOBS_KEY, this.#state);
+    }
+    #trim() {
+      const jobs = Object.values(this.#state.jobs).sort(compareJobs2);
+      for (const job of jobs.slice(0, Math.max(0, jobs.length - MAX_RETAINED_JOBS))) {
+        delete this.#state.jobs[job.jobId];
+      }
+    }
+  };
+  function normalizeState(value) {
+    if (!value || typeof value !== "object") return { ...EMPTY3, jobs: {} };
+    const raw = value;
+    const jobs = {};
+    if (raw.jobs && typeof raw.jobs === "object") {
+      for (const [fallbackId, candidate] of Object.entries(raw.jobs)) {
+        const job = normalizeJob2(candidate, fallbackId);
+        if (job) jobs[job.jobId] = job;
+      }
+    }
+    return {
+      sequence: nonNegative(raw.sequence, 0),
+      jobs
+    };
+  }
+  function normalizeJob2(value, fallbackId) {
+    if (!value || typeof value !== "object") return null;
+    const raw = value;
+    if (typeof raw.source !== "string" || typeof raw.filename !== "string") return null;
+    const status = validStatus2(raw.status) ? raw.status : "failed";
+    const startedAt = typeof raw.createdAt === "string" ? raw.createdAt : (/* @__PURE__ */ new Date(0)).toISOString();
+    return {
+      jobId: typeof raw.jobId === "string" && raw.jobId.length > 0 ? raw.jobId : fallbackId,
+      filename: raw.filename.slice(0, 240),
+      sourceBytes: nonNegative(raw.sourceBytes, 0),
+      status,
+      filesParsed: nonNegative(raw.filesParsed, 0),
+      recordCount: nonNegative(raw.recordCount, 0),
+      warningCount: nonNegative(raw.warningCount, 0),
+      errorCount: nonNegative(raw.errorCount, 0),
+      createdAt: startedAt,
+      updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : startedAt,
+      resumeOnBoot: status === "running" || status === "paused" && raw.resumeOnBoot === true,
+      source: raw.source,
+      ...typeof raw.error === "string" && raw.error.length > 0 ? { error: raw.error } : {}
+    };
+  }
+  function validStatus2(value) {
+    return value === "queued" || value === "running" || value === "paused" || value === "cancelled" || value === "failed" || value === "completed";
+  }
+  function isTerminal2(status) {
+    return status === "cancelled" || status === "failed" || status === "completed";
+  }
+  function nonNegative(value, fallback) {
+    return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : fallback;
+  }
+  function compareJobs2(left, right) {
+    return Date.parse(left.createdAt) - Date.parse(right.createdAt) || left.jobId.localeCompare(right.jobId);
+  }
+  function cloneJob(job) {
+    return { ...job };
+  }
+  function encodeBase64(bytes) {
+    let output = "";
+    const chunkSize = 32768;
+    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+      output += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+    }
+    return btoa(output);
+  }
+  function decodeBase64(value) {
+    const binary = atob(value);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return bytes;
+  }
+
   // src/features/library/cleanup-preview.ts
   function previewCleanup(records, options = {}) {
     const whitelist = new Set((options.whitelistHandles ?? []).map((h) => h.toLowerCase()));
@@ -13834,7 +14134,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       if (!this.#storage) return;
       try {
         const raw = await this.#storage.get(MEDIA_QUEUE_KEY, { sequence: 0, jobs: [] });
-        const jobs = Array.isArray(raw?.jobs) ? raw.jobs.filter(isDownloadJob).map(normalizeJob2) : [];
+        const jobs = Array.isArray(raw?.jobs) ? raw.jobs.filter(isDownloadJob).map(normalizeJob3) : [];
         for (const job of jobs) {
           if (job.status === "running") {
             job.status = "paused";
@@ -14011,7 +14311,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     const record = value;
     return typeof record.id === "string" && typeof record.url === "string" && typeof record.filename === "string";
   }
-  function normalizeJob2(value) {
+  function normalizeJob3(value) {
     const valid = value.status === "queued" || value.status === "running" || value.status === "completed" || value.status === "failed" || value.status === "duplicate" || value.status === "paused" || value.status === "cancelled";
     return {
       id: value.id,
@@ -14951,11 +15251,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   // src/features/library/snapshots.ts
   var SNAPSHOTS_KEY = "aviary.snapshots.v1";
   var SNAPSHOT_LIMIT = 24;
-  var EMPTY3 = { entries: [] };
+  var EMPTY4 = { entries: [] };
   var SnapshotStore = class {
     #storage;
     #limit;
-    #state = EMPTY3;
+    #state = EMPTY4;
     #loaded = false;
     constructor(storage, limit = SNAPSHOT_LIMIT) {
       this.#storage = storage;
@@ -14963,7 +15263,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
     async load() {
       if (this.#loaded) return;
-      const stored = await this.#storage.get(SNAPSHOTS_KEY, EMPTY3);
+      const stored = await this.#storage.get(SNAPSHOTS_KEY, EMPTY4);
       const entries = Array.isArray(stored?.entries) ? stored.entries : [];
       this.#state = { entries: entries.filter(isSnapshotEntry).slice(-this.#limit) };
       this.#loaded = true;
@@ -15836,6 +16136,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   var cleanupQueue;
   var semanticIndex;
   var retentionPolicy;
+  var archiveImportJobs;
   var controlCenterFeature = {
     id: "core.controlCenter",
     title: "Control Center",
@@ -15851,6 +16152,10 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         await semanticIndex.load();
       }
       retentionPolicy = await loadRetentionPolicy(ctx.storage);
+      if (!archiveImportJobs) {
+        archiveImportJobs = new ArchiveImportJobStore(ctx.storage);
+        await archiveImportJobs.load();
+      }
       controlCenter = mountControlCenter({
         settings: ctx.settings,
         diagnostics: () => ctx.diagnostics.snapshot(),
@@ -16088,27 +16393,51 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
             throw new Error("Archive exceeds the 256 MiB input limit.");
           }
           const buffer = new Uint8Array(await file.arrayBuffer());
-          const result = await importOfficialArchive(buffer, "archive");
-          if (result.records.length > 0) {
-            const store4 = getCheckpointStore();
-            if (store4) {
-              const jobId = `archive-${Date.now()}`;
-              await store4.start(jobId, "archive", ["json"], false);
-              await store4.append(jobId, result.records);
-              await store4.finish(jobId);
-            }
-            rebuildSearchIndex();
-            void ctx.auditLog.record("settings.import", {
-              archive: file.name,
-              records: result.records.length,
-              warnings: result.warnings.length
-            });
-          }
+          const jobs = archiveImportJobs ?? new ArchiveImportJobStore(ctx.storage);
+          archiveImportJobs = jobs;
+          const job = await jobs.start(file.name, buffer);
+          return processArchiveImport(ctx, jobs, job.jobId);
+        },
+        getArchiveImportStatus() {
+          const jobs = archiveImportJobs?.list() ?? [];
           return {
-            records: result.records.length,
-            warnings: result.warnings.length,
-            errors: result.errors.length
+            jobs: jobs.slice(-3).map((job) => ({
+              jobId: job.jobId,
+              filename: job.filename,
+              status: job.status,
+              filesParsed: job.filesParsed,
+              recordCount: job.recordCount,
+              warningCount: job.warningCount,
+              errorCount: job.errorCount,
+              ...job.error ? { error: job.error } : {}
+            }))
           };
+        },
+        async resumeArchiveImport(jobId) {
+          const jobs = archiveImportJobs;
+          if (!jobs) return { ok: false, error: "Archive import store is not loaded" };
+          const resumed = await jobs.resume(jobId);
+          if (!resumed.ok) return resumed;
+          return processArchiveImportAction(ctx, jobs, jobId);
+        },
+        async pauseArchiveImport(jobId) {
+          return await archiveImportJobs?.pause(jobId) ?? {
+            ok: false,
+            error: "Archive import store is not loaded"
+          };
+        },
+        async cancelArchiveImport(jobId) {
+          return await archiveImportJobs?.cancel(jobId) ?? {
+            ok: false,
+            error: "Archive import store is not loaded"
+          };
+        },
+        async retryArchiveImport(jobId) {
+          const jobs = archiveImportJobs;
+          if (!jobs) return { ok: false, error: "Archive import store is not loaded" };
+          const retried = await jobs.retry(jobId);
+          if (!retried.ok) return retried;
+          return processArchiveImportAction(ctx, jobs, jobId);
         },
         searchArchive(query) {
           if (query.length === 0) return [];
@@ -16411,9 +16740,87 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       cleanupQueue = void 0;
       semanticIndex = void 0;
       retentionPolicy = void 0;
+      archiveImportJobs = void 0;
       ctx.diagnostics.info("Control Center destroyed");
     }
   };
+  async function processArchiveImport(ctx, jobs, jobId) {
+    const source = jobs.source(jobId);
+    if (!source) {
+      const message = "The durable archive source is unavailable or corrupted.";
+      await jobs.fail(jobId, message);
+      return { records: 0, warnings: 0, errors: 1 };
+    }
+    await jobs.markRunning(jobId);
+    try {
+      const result = await importOfficialArchive(source, "archive");
+      const state2 = jobs.get(jobId);
+      if (state2?.status === "cancelled" || state2?.status === "paused") {
+        await jobs.updateProgress(jobId, {
+          filesParsed: result.filesParsed.length,
+          recordCount: result.records.length,
+          warningCount: result.warnings.length,
+          errorCount: result.errors.length
+        });
+        return {
+          records: result.records.length,
+          warnings: result.warnings.length,
+          errors: result.errors.length
+        };
+      }
+      const store4 = getCheckpointStore();
+      if (result.records.length > 0 && store4) {
+        if (!store4.list().some((job) => job.jobId === jobId)) {
+          await store4.start(jobId, "archive", ["json"], false);
+        } else {
+          await store4.resume(jobId);
+        }
+        await store4.append(jobId, result.records);
+        await store4.finish(jobId);
+        rebuildSearchIndex();
+        void ctx.auditLog.record("settings.import", {
+          archive: jobs.get(jobId)?.filename ?? "archive.zip",
+          records: result.records.length,
+          warnings: result.warnings.length
+        });
+      }
+      await jobs.updateProgress(jobId, {
+        filesParsed: result.filesParsed.length,
+        recordCount: result.records.length,
+        warningCount: result.warnings.length,
+        errorCount: result.errors.length
+      });
+      if (result.errors.length > 0 && result.records.length === 0) {
+        await jobs.fail(jobId, result.errors.join("; "));
+      } else {
+        await jobs.complete(jobId, {
+          filesParsed: result.filesParsed.length,
+          recordCount: result.records.length,
+          warningCount: result.warnings.length,
+          errorCount: result.errors.length
+        });
+      }
+      return {
+        records: result.records.length,
+        warnings: result.warnings.length,
+        errors: result.errors.length
+      };
+    } catch (error) {
+      await jobs.fail(jobId, error);
+      const store4 = getCheckpointStore();
+      if (store4?.list().some((job) => job.jobId === jobId)) {
+        await store4.fail(jobId, error);
+      }
+      throw error;
+    }
+  }
+  async function processArchiveImportAction(ctx, jobs, jobId) {
+    const result = await processArchiveImport(ctx, jobs, jobId);
+    if (result.errors > 0 && result.records === 0) {
+      return { ok: false, error: "Archive import produced no records" };
+    }
+    return { ok: true };
+  }
   function errorDetails4(error) {
     if (error instanceof Error) {
       return {
@@ -16994,7 +17401,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
   // src/features/core/audit-log.ts
   var AUDIT_LOG_KEY = "aviary.audit.v1";
   var AUDIT_LOG_LIMIT = 500;
-  var EMPTY4 = { entries: [] };
+  var EMPTY5 = { entries: [] };
   var AuditLog = class {
     #storage;
     #limit;
@@ -17041,7 +17448,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
       return this.#entries.length;
     }
     async #hydrate() {
-      const stored = await this.#storage.get(AUDIT_LOG_KEY, EMPTY4);
+      const stored = await this.#storage.get(AUDIT_LOG_KEY, EMPTY5);
       const entries = Array.isArray(stored?.entries) ? stored.entries : [];
       this.#entries = entries.filter(
         (entry) => typeof entry?.at === "string" && typeof entry?.action === "string"
@@ -19535,7 +19942,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     "aviary.audit.v1",
     "aviary.library.bookmarks.v1",
     "aviary.snapshots.v1",
-    "aviary.semanticIndex.v1"
+    "aviary.semanticIndex.v1",
+    "aviary.archive.imports.v1"
   ];
   var DATABASE_NAME = "aviary.durable.v1";
   var OBJECT_STORE = "values";

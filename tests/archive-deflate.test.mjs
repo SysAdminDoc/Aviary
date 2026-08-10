@@ -168,6 +168,63 @@ test("ZIP inflation rejects an entry whose declared expansion exceeds the safety
   await assert.rejects(() => readZip(archive), (error) => error instanceof ZipLimitError);
 });
 
+test("archive import jobs rehydrate interrupted source and release it after completion", async () => {
+  const { ArchiveImportJobStore, ARCHIVE_IMPORT_JOBS_KEY } = await importBundledModule(
+    "src/features/library/archive-import-jobs.ts"
+  );
+  const source = new Uint8Array([0, 1, 2, 253, 254, 255]);
+  const store = new Map();
+  const storage = {
+    async get(key, fallback) {
+      return store.has(key) ? store.get(key) : fallback;
+    },
+    async set(key, value) {
+      store.set(key, JSON.parse(JSON.stringify(value)));
+    },
+    async remove(key) {
+      store.delete(key);
+    }
+  };
+
+  const jobs = new ArchiveImportJobStore(storage);
+  const started = await jobs.start("fixture.zip", source);
+  assert.deepEqual(jobs.source(started.jobId), source);
+  await jobs.markRunning(started.jobId);
+
+  const reloaded = new ArchiveImportJobStore(storage);
+  await reloaded.load();
+  assert.equal(reloaded.get(started.jobId)?.status, "paused");
+  assert.equal(reloaded.get(started.jobId)?.resumeOnBoot, true);
+  assert.deepEqual(reloaded.source(started.jobId), source);
+
+  assert.deepEqual(await reloaded.resume(started.jobId), { ok: true });
+  assert.deepEqual(await reloaded.cancel(started.jobId), { ok: true });
+  assert.equal(await reloaded.complete(started.jobId, {
+    filesParsed: 1,
+    recordCount: 1,
+    warningCount: 0,
+    errorCount: 0
+  }), false, "cancelled work must not become completed");
+  assert.deepEqual(await reloaded.retry(started.jobId), { ok: true });
+  assert.equal(await reloaded.complete(started.jobId, {
+    filesParsed: 1,
+    recordCount: 1,
+    warningCount: 0,
+    errorCount: 0
+  }), true);
+  assert.equal(reloaded.source(started.jobId), null, "completed imports must release their ZIP source");
+
+  const second = await reloaded.start("done.zip", source);
+  assert.equal(await reloaded.complete(second.jobId, {
+    filesParsed: 1,
+    recordCount: 2,
+    warningCount: 0,
+    errorCount: 0
+  }), true);
+  assert.equal(reloaded.source(second.jobId), null, "completed imports must release their ZIP source");
+  assert.ok(store.has(ARCHIVE_IMPORT_JOBS_KEY));
+});
+
 async function importBundledModule(relativePath) {
   const temp = await mkdtemp(path.join(tmpdir(), "aviary-deflate-"));
   const outfile = path.join(temp, "module.mjs");

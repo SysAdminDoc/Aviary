@@ -17,7 +17,8 @@ export const DURABLE_STORAGE_KEYS = [
   "aviary.audit.v1",
   "aviary.library.bookmarks.v1",
   "aviary.snapshots.v1",
-  "aviary.semanticIndex.v1"
+  "aviary.semanticIndex.v1",
+  "aviary.archive.imports.v1"
 ] as const;
 
 export interface DurableStorageEstimate {

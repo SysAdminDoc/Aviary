@@ -38,6 +38,10 @@ import { crosspost, readComposerText, type CrosspostRequest } from "../integrati
 import { SemanticIndex } from "../integrations/semantic-search";
 import { recentIntegrationErrors } from "./integration-errors";
 import { importOfficialArchive, MAX_ARCHIVE_BYTES } from "../library/archive-import";
+import {
+  ArchiveImportJobStore,
+  type ArchiveImportJobActionResult
+} from "../library/archive-import-jobs";
 import { previewCleanup } from "../library/cleanup-preview";
 import { CleanupQueue } from "../library/cleanup-queue";
 import {
@@ -62,7 +66,7 @@ import {
 } from "../library/bookmarks-feature";
 import { getMediaHistory, getMediaQueue } from "../media/media-buttons";
 import { getLastDownload } from "../media/last-download";
-import type { FeatureModule } from "../registry";
+import type { FeatureContext, FeatureModule } from "../registry";
 import {
   buildSettingsExport,
   parseSettingsImport,
@@ -74,6 +78,7 @@ const searchIndex = new LocalSearchIndex();
 let cleanupQueue: CleanupQueue | undefined;
 let semanticIndex: SemanticIndex | undefined;
 let retentionPolicy: RetentionPolicy | undefined;
+let archiveImportJobs: ArchiveImportJobStore | undefined;
 
 export const controlCenterFeature: FeatureModule = {
   id: "core.controlCenter",
@@ -91,6 +96,10 @@ export const controlCenterFeature: FeatureModule = {
       await semanticIndex.load();
     }
     retentionPolicy = await loadRetentionPolicy(ctx.storage);
+    if (!archiveImportJobs) {
+      archiveImportJobs = new ArchiveImportJobStore(ctx.storage);
+      await archiveImportJobs.load();
+    }
     controlCenter = mountControlCenter({
       settings: ctx.settings,
       diagnostics: () => ctx.diagnostics.snapshot(),
@@ -331,27 +340,51 @@ export const controlCenterFeature: FeatureModule = {
           throw new Error("Archive exceeds the 256 MiB input limit.");
         }
         const buffer = new Uint8Array(await file.arrayBuffer());
-        const result = await importOfficialArchive(buffer, "archive");
-        if (result.records.length > 0) {
-          const store = getCheckpointStore();
-          if (store) {
-            const jobId = `archive-${Date.now()}`;
-            await store.start(jobId, "archive", ["json"], false);
-            await store.append(jobId, result.records);
-            await store.finish(jobId);
-          }
-          rebuildSearchIndex();
-          void ctx.auditLog.record("settings.import", {
-            archive: file.name,
-            records: result.records.length,
-            warnings: result.warnings.length
-          });
-        }
+        const jobs = archiveImportJobs ?? new ArchiveImportJobStore(ctx.storage);
+        archiveImportJobs = jobs;
+        const job = await jobs.start(file.name, buffer);
+        return processArchiveImport(ctx, jobs, job.jobId);
+      },
+      getArchiveImportStatus() {
+        const jobs = archiveImportJobs?.list() ?? [];
         return {
-          records: result.records.length,
-          warnings: result.warnings.length,
-          errors: result.errors.length
+          jobs: jobs.slice(-3).map((job) => ({
+            jobId: job.jobId,
+            filename: job.filename,
+            status: job.status,
+            filesParsed: job.filesParsed,
+            recordCount: job.recordCount,
+            warningCount: job.warningCount,
+            errorCount: job.errorCount,
+            ...(job.error ? { error: job.error } : {})
+          }))
         };
+      },
+      async resumeArchiveImport(jobId) {
+        const jobs = archiveImportJobs;
+        if (!jobs) return { ok: false, error: "Archive import store is not loaded" };
+        const resumed = await jobs.resume(jobId);
+        if (!resumed.ok) return resumed;
+        return processArchiveImportAction(ctx, jobs, jobId);
+      },
+      async pauseArchiveImport(jobId): Promise<ArchiveImportJobActionResult> {
+        return (await archiveImportJobs?.pause(jobId)) ?? {
+          ok: false,
+          error: "Archive import store is not loaded"
+        };
+      },
+      async cancelArchiveImport(jobId): Promise<ArchiveImportJobActionResult> {
+        return (await archiveImportJobs?.cancel(jobId)) ?? {
+          ok: false,
+          error: "Archive import store is not loaded"
+        };
+      },
+      async retryArchiveImport(jobId): Promise<ArchiveImportJobActionResult> {
+        const jobs = archiveImportJobs;
+        if (!jobs) return { ok: false, error: "Archive import store is not loaded" };
+        const retried = await jobs.retry(jobId);
+        if (!retried.ok) return retried;
+        return processArchiveImportAction(ctx, jobs, jobId);
       },
       searchArchive(query) {
         if (query.length === 0) return [];
@@ -663,9 +696,102 @@ export const controlCenterFeature: FeatureModule = {
     cleanupQueue = undefined;
     semanticIndex = undefined;
     retentionPolicy = undefined;
+    archiveImportJobs = undefined;
     ctx.diagnostics.info("Control Center destroyed");
   }
 };
+
+async function processArchiveImport(
+  ctx: FeatureContext,
+  jobs: ArchiveImportJobStore,
+  jobId: string
+): Promise<{ records: number; warnings: number; errors: number }> {
+  const source = jobs.source(jobId);
+  if (!source) {
+    const message = "The durable archive source is unavailable or corrupted.";
+    await jobs.fail(jobId, message);
+    return { records: 0, warnings: 0, errors: 1 };
+  }
+  await jobs.markRunning(jobId);
+  try {
+    const result = await importOfficialArchive(source, "archive");
+    const state = jobs.get(jobId);
+    // Pause/cancel is checked after parsing because ZIP inflation is a single asynchronous
+    // operation. No records are committed when the user changes the job state while it runs.
+    if (state?.status === "cancelled" || state?.status === "paused") {
+      await jobs.updateProgress(jobId, {
+        filesParsed: result.filesParsed.length,
+        recordCount: result.records.length,
+        warningCount: result.warnings.length,
+        errorCount: result.errors.length
+      });
+      return {
+        records: result.records.length,
+        warnings: result.warnings.length,
+        errors: result.errors.length
+      };
+    }
+
+    const store = getCheckpointStore();
+    if (result.records.length > 0 && store) {
+      if (!store.list().some((job) => job.jobId === jobId)) {
+        await store.start(jobId, "archive", ["json"], false);
+      } else {
+        await store.resume(jobId);
+      }
+      // CheckpointStore dedupes records by tweet identity, so a restart after append but before
+      // finish cannot duplicate the imported library.
+      await store.append(jobId, result.records);
+      await store.finish(jobId);
+      rebuildSearchIndex();
+      void ctx.auditLog.record("settings.import", {
+        archive: jobs.get(jobId)?.filename ?? "archive.zip",
+        records: result.records.length,
+        warnings: result.warnings.length
+      });
+    }
+    await jobs.updateProgress(jobId, {
+      filesParsed: result.filesParsed.length,
+      recordCount: result.records.length,
+      warningCount: result.warnings.length,
+      errorCount: result.errors.length
+    });
+    if (result.errors.length > 0 && result.records.length === 0) {
+      await jobs.fail(jobId, result.errors.join("; "));
+    } else {
+      await jobs.complete(jobId, {
+        filesParsed: result.filesParsed.length,
+        recordCount: result.records.length,
+        warningCount: result.warnings.length,
+        errorCount: result.errors.length
+      });
+    }
+    return {
+      records: result.records.length,
+      warnings: result.warnings.length,
+      errors: result.errors.length
+    };
+  } catch (error) {
+    await jobs.fail(jobId, error);
+    const store = getCheckpointStore();
+    if (store?.list().some((job) => job.jobId === jobId)) {
+      await store.fail(jobId, error);
+    }
+    throw error;
+  }
+}
+
+async function processArchiveImportAction(
+  ctx: FeatureContext,
+  jobs: ArchiveImportJobStore,
+  jobId: string
+): Promise<ArchiveImportJobActionResult> {
+  const result = await processArchiveImport(ctx, jobs, jobId);
+  if (result.errors > 0 && result.records === 0) {
+    return { ok: false, error: "Archive import produced no records" };
+  }
+  return { ok: true };
+}
 
 function errorDetails(error: unknown): Record<string, unknown> {
   if (error instanceof Error) {

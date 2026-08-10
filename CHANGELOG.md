@@ -28,6 +28,9 @@
 - Export checkpoints and media download jobs now persist lifecycle state, reclassify interrupted
   work as resumable, and expose pause, resume, cancel, recovery, and retry controls in the Control
   Center.
+- Official archive imports now persist their local ZIP source while running, checkpoint records
+  before completion, recover interrupted work as paused, and expose pause, resume, cancel, and retry
+  actions without retaining completed archive bytes.
 
 ## 1.16.0 - 2026-08-09
 
