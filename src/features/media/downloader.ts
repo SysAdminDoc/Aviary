@@ -1,4 +1,6 @@
 import type { IntegrationSettings } from "../../platform/settings";
+import { sha256Hex } from "../export/assets";
+import type { ExportMedia, ExportRecord } from "../export/types";
 import {
   addUriToAria2,
   Aria2History,
@@ -21,8 +23,93 @@ export interface DownloaderResult {
   degraded?: boolean;
 }
 
+export interface CapturedMediaBytes {
+  sourceUrl: string;
+  capturedAt: string;
+  bytes: Uint8Array;
+  byteLength: number;
+  sha256: string;
+  contentType: string;
+}
+
+export interface CaptureMediaOptions {
+  maxBytes?: number;
+  timeoutMs?: number;
+}
+
 /** Code shared with the background worker so both sides agree on the failure. */
 export const DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
+
+/**
+ * Reads a media response into the export model. Browser download APIs only acknowledge a
+ * handoff; they cannot prove that an offline package contains the body, so package capture uses
+ * this explicit, bounded path instead.
+ */
+export async function captureMediaBytes(
+  url: string,
+  options: CaptureMediaOptions = {}
+): Promise<CapturedMediaBytes> {
+  const sourceUrl = url.trim();
+  if (!/^https?:\/\//i.test(sourceUrl)) {
+    throw new TypeError("Only HTTP(S) media URLs can be captured into an archive.");
+  }
+  const maxBytes = Math.max(1, Math.trunc(options.maxBytes ?? 50 * 1024 * 1024));
+  const response = await withNetworkTimeout(
+    (signal) => fetch(sourceUrl, { signal }),
+    options.timeoutMs ?? NETWORK_TIMEOUTS.mediaTransfer
+  );
+  if (!response.ok) {
+    throw new Error(`Media request failed with HTTP ${response.status}.`);
+  }
+  const declaredLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+    throw new RangeError(`Media response exceeds the ${maxBytes}-byte capture limit.`);
+  }
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.byteLength > maxBytes) {
+    throw new RangeError(`Media response exceeds the ${maxBytes}-byte capture limit.`);
+  }
+  return {
+    sourceUrl,
+    capturedAt: new Date().toISOString(),
+    bytes,
+    byteLength: bytes.byteLength,
+    sha256: sha256Hex(bytes),
+    contentType: response.headers.get("content-type")?.split(";", 1)[0]?.trim() || "application/octet-stream"
+  };
+}
+
+/** Captures each asset explicitly and retains a retryable remote-reference on failure. */
+export async function captureExportRecordMedia(
+  record: ExportRecord,
+  options: CaptureMediaOptions = {}
+): Promise<ExportRecord> {
+  const media = await Promise.all(record.media.map(async (entry): Promise<ExportMedia> => {
+    const sourceUrl = (entry.sourceUrl ?? entry.url).trim();
+    try {
+      const captured = await captureMediaBytes(sourceUrl, options);
+      return {
+        ...entry,
+        sourceUrl: captured.sourceUrl,
+        capturedAt: captured.capturedAt,
+        byteLength: captured.byteLength,
+        sha256: captured.sha256,
+        bytes: captured.bytes,
+        type: entry.type?.includes("/") ? entry.type : captured.contentType,
+        captureStatus: "captured-bytes"
+      };
+    } catch (error) {
+      return {
+        ...entry,
+        sourceUrl,
+        capturedAt: entry.capturedAt ?? new Date().toISOString(),
+        captureStatus: /^https?:\/\//i.test(sourceUrl) ? "remote-reference" : "missing",
+        captureError: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }));
+  return { ...record, media };
+}
 
 /**
  * Thrown when running as an extension without the optional `downloads` permission.

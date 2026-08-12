@@ -1,4 +1,5 @@
-import type { ExportArtifact, ExportRecord } from "./types";
+import { buildExportPackageManifest, describeMediaCapture, serializeExportRecord } from "./assets";
+import type { ExportArtifact, ExportMedia, ExportRecord } from "./types";
 
 const ENCODER = new TextEncoder();
 
@@ -12,31 +13,53 @@ export interface WarcRecordInput {
 
 export function buildWarcArchive(records: readonly ExportRecord[]): ExportArtifact {
   const blocks: Uint8Array[] = [];
+  const packageManifest = buildExportPackageManifest(records, []);
   blocks.push(formatRecord({
     url: "metadata://aviary",
     mime: "application/json",
     body: JSON.stringify({
       generator: "Aviary",
       generatedAt: new Date().toISOString(),
-      count: records.length
+      count: records.length,
+      metadataOnly: true,
+      packageManifest
     }),
     recordType: "metadata"
   }));
 
   for (const record of records) {
-    const summary = JSON.stringify(record, null, 2);
+    const summary = JSON.stringify(serializeExportRecord(record), null, 2);
     blocks.push(formatRecord({
       url: record.permalink ?? `tweet://${record.tweetId ?? "unknown"}`,
       mime: "application/json",
       body: summary,
       recordType: "resource"
     }));
-    for (const media of record.media) {
+    for (const media of Array.isArray(record.media) ? record.media : []) {
+      const capture = describeMediaCapture(media, record.capturedAt);
+      const recordedAt = capture.capturedAt ? validDate(capture.capturedAt) : undefined;
+      if (capture.status === "captured-bytes" && media.bytes instanceof Uint8Array) {
+        blocks.push(formatRecord({
+          url: capture.sourceUrl || `media://${record.tweetId ?? "unknown"}/${media.kind}`,
+          mime: mediaMime(media),
+          body: media.bytes,
+          recordType: "response",
+          ...(recordedAt ? { recordedAt } : {})
+        }));
+        continue;
+      }
+
       blocks.push(formatRecord({
-        url: media.url,
-        mime: media.type ?? "application/octet-stream",
-        body: `Aviary captured the resource URL for ${media.kind} ${media.url} without re-downloading the body. Use the Aviary media downloader to fetch the bytes if needed.`,
-        recordType: "metadata"
+        url: capture.sourceUrl || `media://${record.tweetId ?? "unknown"}/${media.kind}`,
+        mime: "application/json",
+        body: JSON.stringify({
+          generator: "Aviary",
+          metadataOnly: true,
+          message: "The media body is not in this WARC; the manifest records whether it is retryable.",
+          media: capture
+        }),
+        recordType: "metadata",
+        ...(recordedAt ? { recordedAt } : {})
       }));
     }
   }
@@ -54,6 +77,19 @@ export function buildWarcArchive(records: readonly ExportRecord[]): ExportArtifa
     contentType: "application/warc",
     data: out
   };
+}
+
+function validDate(value: string): Date | undefined {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+function mediaMime(media: ExportMedia): string {
+  if (media.type?.includes("/")) return media.type;
+  if (media.type === "png") return "image/png";
+  if (media.type === "webp") return "image/webp";
+  if (media.kind === "video") return "video/mp4";
+  return "image/jpeg";
 }
 
 /**

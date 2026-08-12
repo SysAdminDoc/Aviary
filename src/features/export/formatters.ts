@@ -1,4 +1,5 @@
 import type { ExportArtifact, ExportFormat, ExportRecord } from "./types";
+import { describeMediaCapture, serializeExportRecords } from "./assets";
 import { formatXlsx } from "./xlsx";
 
 const TEXT_ENCODER = new TextEncoder();
@@ -26,7 +27,7 @@ function jsonArtifact(records: ExportRecord[]): ExportArtifact {
       generator: "Aviary",
       generatedAt: new Date().toISOString(),
       count: records.length,
-      records
+      records: serializeExportRecords(records)
     },
     null,
     2
@@ -39,10 +40,23 @@ function jsonArtifact(records: ExportRecord[]): ExportArtifact {
 }
 
 function csvArtifact(records: ExportRecord[]): ExportArtifact {
-  const headers = ["tweetId", "handle", "displayName", "capturedAt", "surface", "permalink", "text", "mediaUrls"];
+  const headers = [
+    "tweetId",
+    "handle",
+    "displayName",
+    "capturedAt",
+    "surface",
+    "permalink",
+    "text",
+    "mediaUrls",
+    "mediaStatus",
+    "mediaManifest"
+  ];
   const lines = [headers.join(",")];
   for (const record of records) {
-    const mediaUrls = record.media.map((media) => media.url).join("|");
+    const captures = record.media.map((media) => describeMediaCapture(media, record.capturedAt));
+    const mediaUrls = captures.map((media) => media.sourceUrl).filter(Boolean).join("|");
+    const mediaStatus = captures.map((media) => media.status).join("|");
     lines.push(
       [
         record.tweetId ?? "",
@@ -52,7 +66,9 @@ function csvArtifact(records: ExportRecord[]): ExportArtifact {
         record.surface,
         record.permalink ?? "",
         record.text,
-        mediaUrls
+        mediaUrls,
+        mediaStatus,
+        JSON.stringify(captures)
       ]
         .map(csvCell)
         .join(",")
@@ -99,10 +115,23 @@ function htmlArtifact(records: ExportRecord[]): ExportArtifact {
     .map((record) => {
       const media = record.media
         .map((entry) => {
-          const href = safeHref(entry.url);
-          return href
-            ? `<li><a href="${escapeHtml(href)}" rel="noopener noreferrer">${escapeHtml(entry.kind)}</a></li>`
-            : `<li>${escapeHtml(entry.kind)}</li>`;
+          const capture = describeMediaCapture(entry, record.capturedAt);
+          const href = capture.packagePath
+            ? safeRelativeHref(capture.packagePath)
+            : safeHref(capture.sourceUrl);
+          const label = `${entry.kind} — ${capture.status}`;
+          const link = href
+            ? `<a href="${escapeHtml(href)}" rel="noopener noreferrer">${escapeHtml(label)}</a>`
+            : escapeHtml(label);
+          const details = [
+            capture.capturedAt ? `captured ${capture.capturedAt}` : "capture time unknown",
+            capture.byteLength === null ? "bytes unknown" : `${capture.byteLength} bytes`,
+            capture.sha256 ? `sha256 ${capture.sha256}` : "checksum unknown"
+          ].join(" · ");
+          const source = capture.sourceUrl && capture.status !== "captured-bytes"
+            ? ` <small>source: ${escapeHtml(capture.sourceUrl)}</small>`
+            : "";
+          return `<li data-capture-status="${escapeHtml(capture.status)}">${link} <small>${escapeHtml(details)}</small>${source}</li>`;
         })
         .join("");
       const permalinkHref = record.permalink ? safeHref(record.permalink) : "";
@@ -138,6 +167,7 @@ a { color: #1d9bf0; }
 </head><body>
 <h1>Aviary export</h1>
 <p>${records.length} records, generated ${new Date().toISOString()}.</p>
+<p>Media status is explicit: captured bytes use package-relative links; remote references are not fetched until a link is activated.</p>
 ${rows}
 </body></html>`;
 
@@ -155,12 +185,19 @@ function markdownArtifact(records: ExportRecord[]): ExportArtifact {
     const media =
       record.media.length === 0
         ? ""
-        : `\n\n${record.media.map((entry) => `- [${entry.kind}](${entry.url})`).join("\n")}`;
+        : `\n\n${record.media.map((entry) => {
+            const capture = describeMediaCapture(entry, record.capturedAt);
+            const target = capture.packagePath ?? capture.sourceUrl;
+            const label = `${entry.kind} — ${capture.status}`;
+            const link = target ? `[${label}](${escapeMarkdownUrl(target)})` : label;
+            const details = `captured ${capture.capturedAt ?? "unknown"}; bytes ${capture.byteLength ?? "unknown"}; sha256 ${capture.sha256 ?? "unknown"}`;
+            return `- ${link} (${details})`;
+          }).join("\n")}`;
     const permalink = record.permalink ? `\n\n${record.permalink}` : "";
     return `${header}\n\n${body}${media}${permalink}`;
   });
 
-  const md = `# Aviary export\n\nGenerated ${new Date().toISOString()} — ${records.length} records.\n\n${sections.join("\n\n---\n\n")}\n`;
+  const md = `# Aviary export\n\nGenerated ${new Date().toISOString()} — ${records.length} records. Media links marked remote-reference are not fetched automatically.\n\n${sections.join("\n\n---\n\n")}\n`;
 
   return {
     filename: "tweets.md",
@@ -176,4 +213,12 @@ function escapeHtml(value: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function safeRelativeHref(value: string): string {
+  return /^(?:[a-z0-9._-]+\/)*[a-z0-9._/-]+$/i.test(value) ? value : "";
+}
+
+function escapeMarkdownUrl(value: string): string {
+  return value.replace(/\\/g, "%5C").replace(/\)/g, "%29").replace(/\s/g, "%20");
 }

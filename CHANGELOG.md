@@ -4,6 +4,11 @@
 
 ### Fixed
 
+- Export packages now include a versioned checksum manifest and explicit per-media
+  `captured-bytes`, `remote-reference`, or `missing` status. Opt-in media-byte capture records
+  successful bodies in the ZIP/WARC and preserves failed items as retryable references; HTML,
+  Markdown, CSV, XLSX, JSON, external targets, and WARC output no longer imply that a live URL is
+  an offline asset.
 - Library search now uses one bounded offline query model for posts, likes, bookmarks, notes,
   snapshots, archive metadata, and semantic-index records, with Unicode-safe ranking and
   deterministic source/account/date/tag/folder/media filters. The Library section exposes the

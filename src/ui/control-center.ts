@@ -2557,6 +2557,17 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     );
     rows.push(
       toggleRow(
+        "Capture media bytes in export",
+        "Fetch media during the export action and include successful bytes with length and checksum; failed items remain retryable references.",
+        options.settings.export.captureMediaBytes,
+        async (checked) => {
+          options.settings.export.captureMediaBytes = checked;
+          await save(checked ? "Media byte capture on" : "Media byte capture off");
+        }
+      )
+    );
+    rows.push(
+      toggleRow(
         "Auto-discover query IDs",
         "Scan loaded scripts for X GraphQL operation IDs and cache them locally.",
         options.settings.export.autoDiscoverQueryIds,

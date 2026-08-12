@@ -1,6 +1,13 @@
 import type { FeatureContext, FeatureModule } from "../registry";
 import { SemanticIndex } from "../integrations/semantic-search";
+import {
+  buildExportPackageManifest,
+  prepareExportPackage,
+  sha256Hex,
+  type ExportPackageFile
+} from "./assets";
 import { collectExportRecords } from "./collector";
+import { captureExportRecordMedia } from "../media/downloader";
 import { CheckpointStore } from "./jobs";
 import { formatExport } from "./formatters";
 import { discoverQueryIds, type QueryRegistry } from "./query-discovery";
@@ -121,7 +128,10 @@ export async function runExportOfVisibleTweets(ctx: FeatureContext): Promise<Exp
     const initialRecords = collectExportRecords(document, ctx.route.surface);
     await checkpointStore.append(jobId, initialRecords);
 
-    const records = checkpointStore.records(jobId);
+    let records = checkpointStore.records(jobId);
+    if (ctx.settings.export.captureMediaBytes) {
+      records = await captureExportMedia(records);
+    }
     await checkpointStore.updateProgress(jobId, { completed: records.length, total: records.length });
     // Handing the user an empty ZIP is worse than telling them nothing was captured.
     const artifacts =
@@ -151,6 +161,13 @@ export async function runExportOfVisibleTweets(ctx: FeatureContext): Promise<Exp
     void ctx.auditLog.record("export.failed", { jobId, error: String((error as Error)?.message ?? error) });
     throw error;
   }
+}
+
+async function captureExportMedia(records: ExportRecord[]): Promise<ExportRecord[]> {
+  // Capture is opt-in because it performs bounded, user-initiated media requests. Each failure
+  // remains on the record as a remote-reference or missing item, so a partial run never claims
+  // that an interrupted response is inside the package.
+  return Promise.all(records.map((record) => captureExportRecordMedia(record)));
 }
 
 export async function pauseExportJob(jobId: string): Promise<ExportJobActionResult> {
@@ -193,14 +210,43 @@ export function buildExportZip(
 ): Uint8Array {
   const entries: ZipFileEntry[] = [];
   const safeFolder = sanitizeFolder(folder);
+  const prepared = prepareExportPackage(records);
+  const packageFiles: ExportPackageFile[] = [];
 
   for (const format of formats) {
-    const artifact = formatExport(format, records);
+    const artifact = formatExport(format, prepared.records);
+    const filename = packagePath(safeFolder, artifact.filename);
     entries.push({
-      filename: safeFolder ? `${safeFolder}/${artifact.filename}` : artifact.filename,
+      filename,
       data: artifact.data
     });
+    packageFiles.push({
+      path: filename,
+      kind: "artifact",
+      contentType: artifact.contentType,
+      byteLength: artifact.data.byteLength,
+      sha256: sha256Hex(artifact.data)
+    });
   }
+
+  for (const asset of prepared.assets) {
+    const filename = packagePath(safeFolder, asset.path);
+    entries.push({ filename, data: asset.data });
+    packageFiles.push({
+      path: filename,
+      kind: "media",
+      contentType: asset.contentType,
+      byteLength: asset.data.byteLength,
+      sha256: sha256Hex(asset.data)
+    });
+  }
+
+  const manifestPath = packagePath(safeFolder, "manifest.json");
+  const manifest = buildExportPackageManifest(prepared.records, packageFiles, safeFolder);
+  entries.push({
+    filename: manifestPath,
+    data: new TextEncoder().encode(JSON.stringify(manifest, null, 2))
+  });
   return buildStoreZip(entries);
 }
 
@@ -253,6 +299,10 @@ export function selectSupportedFormats(input: readonly string[]): ExportFormat[]
 function sanitizeFolder(folder: string): string {
   const cleaned = folder.replace(/[<>:"|?*\u0000-\u001f]/g, "").replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
   return cleaned.slice(0, 80);
+}
+
+function packagePath(folder: string, path: string): string {
+  return folder ? `${folder}/${path}` : path;
 }
 
 function zipFilename(folder: string): string {

@@ -14,6 +14,7 @@ These are the only Aviary-triggered network paths:
 | Feature | When it leaves the browser | Destination and data |
 |---|---|---|
 | Media Save / Thumb | After you click a media button | The selected X media URL. A browser/userscript downloader handles the file. |
+| Export media-byte capture | Only when **Capture media bytes in export** is enabled and you click export | The selected X media URLs; successful response bytes, length, and checksum are placed in that local package, while failures remain local retryable metadata. |
 | Aria2 handoff | When enabled, configured, and the media meets the threshold | Your configured JSON-RPC endpoint; the media URL, filename, and optional RPC secret are sent. |
 | Bluesky / Mastodon | After you click the corresponding crosspost action | Your configured service; composer text, thread metadata, and optionally the last downloaded media when attachment is enabled. |
 | AI provider | When AI runs is enabled and you invoke a provider-backed command | Your configured endpoint; the prompt built from the selected post and the configured system text. |

@@ -63,6 +63,8 @@ grant `downloads` from the options page for deterministic browser-managed saves.
 cross-origin anchor fallback can open the media in a tab; Aviary labels that path **Opened** rather
 than falsely claiming **Saved**. In a userscript, a manager with `GM_download` provides the
 privileged path. Aria2 handoff is optional and falls back to the browser when it is unavailable.
+When a save completes through a privileged downloader, **Aviary downloaded an image** (or other
+media) through that user-initiated path; an opened cross-origin tab is not reported as a download.
 
 ## How do I export what I am seeing?
 
@@ -74,7 +76,9 @@ privileged path. Aria2 handoff is optional and falls back to the browser when it
 A local STORE-only ZIP is produced. The export also exposes WARC output for archival tooling and
 local external targets such as Markdown, Obsidian, Notion, and raw JSON. Media entries can still be
 remote references; the output should not be treated as a byte-complete offline replay unless the
-entry says it was captured. Aviary does not silently fetch X when an exported file is opened.
+entry says it was captured. Enable **Capture media bytes in export** when you want the export action
+to fetch bounded media bodies into the package; failures remain retryable references in
+`manifest.json`. Aviary does not silently fetch X when an exported file is opened.
 
 ## What is XLSX, and is it still future work?
 

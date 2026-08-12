@@ -404,6 +404,8 @@ html.av-reduce-motion *::after {
       "Comma-separated list. Supported: json, csv, html, markdown, xlsx.": "Lista separada por comas. Admitidos: json, csv, html, markdown, xlsx.",
       "Preserve raw payloads": "Conservar cargas \xFAtiles sin procesar",
       "Also store the raw GraphQL responses X sends this tab, so records can be re-parsed later. Session tokens are stripped before anything is written.": "Guarda tambi\xE9n las respuestas GraphQL sin procesar que X env\xEDa a esta pesta\xF1a, para poder reinterpretar los registros m\xE1s tarde. Los tokens de sesi\xF3n se eliminan antes de escribir nada.",
+      "Capture media bytes in export": "Capturar bytes multimedia en la exportaci\xF3n",
+      "Fetch media during the export action and include successful bytes with length and checksum; failed items remain retryable references.": "Descarga el contenido multimedia durante la exportaci\xF3n e incluye los bytes obtenidos con longitud y suma de comprobaci\xF3n; los elementos fallidos quedan como referencias reintentables.",
       "Auto-discover query IDs": "Detectar autom\xE1ticamente los ID de consulta",
       "Scan loaded scripts for X GraphQL operation IDs and cache them locally.": "Analiza los scripts cargados en busca de ID de operaciones GraphQL de X y los guarda localmente.",
       "Save folder hint": "Sugerencia de carpeta de guardado",
@@ -708,6 +710,8 @@ html.av-reduce-motion *::after {
       "Export capture on": "Captura para exportaci\xF3n activada",
       "Export capture off": "Captura para exportaci\xF3n desactivada",
       "Raw payload preference saved": "Preferencia de payloads sin procesar guardada",
+      "Media byte capture on": "Captura de bytes multimedia activada",
+      "Media byte capture off": "Captura de bytes multimedia desactivada",
       "Query discovery preference saved": "Preferencia de descubrimiento de consultas guardada",
       "Save folder hint saved": "Carpeta de guardado guardada",
       "Export job paused.": "Trabajo de exportaci\xF3n pausado.",
@@ -1064,6 +1068,8 @@ html.av-reduce-motion *::after {
       "Comma-separated list. Supported: json, csv, html, markdown, xlsx.": "Lista separada por v\xEDrgulas. Suportados: json, csv, html, markdown, xlsx.",
       "Preserve raw payloads": "Preservar cargas brutas",
       "Also store the raw GraphQL responses X sends this tab, so records can be re-parsed later. Session tokens are stripped before anything is written.": "Tamb\xE9m guarda as respostas GraphQL brutas que o X envia a esta aba, para que os registros possam ser reprocessados depois. Os tokens de sess\xE3o s\xE3o removidos antes de qualquer grava\xE7\xE3o.",
+      "Capture media bytes in export": "Capturar bytes de m\xEDdia na exporta\xE7\xE3o",
+      "Fetch media during the export action and include successful bytes with length and checksum; failed items remain retryable references.": "Busca a m\xEDdia durante a exporta\xE7\xE3o e inclui os bytes obtidos com tamanho e checksum; itens que falharem permanecem como refer\xEAncias que podem ser tentadas novamente.",
       "Auto-discover query IDs": "Descobrir IDs de consulta automaticamente",
       "Scan loaded scripts for X GraphQL operation IDs and cache them locally.": "Varre os scripts carregados em busca de IDs de opera\xE7\xF5es GraphQL do X e os guarda localmente.",
       "Save folder hint": "Sugest\xE3o de pasta de destino",
@@ -1368,6 +1374,8 @@ html.av-reduce-motion *::after {
       "Export capture on": "Captura para exporta\xE7\xE3o ativada",
       "Export capture off": "Captura para exporta\xE7\xE3o desativada",
       "Raw payload preference saved": "Prefer\xEAncia de payloads em bruto guardada",
+      "Media byte capture on": "Captura de bytes de m\xEDdia ativada",
+      "Media byte capture off": "Captura de bytes de m\xEDdia desativada",
       "Query discovery preference saved": "Prefer\xEAncia de descoberta de consultas guardada",
       "Save folder hint saved": "Pasta de destino guardada",
       "Export job paused.": "Trabalho de exporta\xE7\xE3o pausado.",
@@ -1724,6 +1732,8 @@ html.av-reduce-motion *::after {
       "Comma-separated list. Supported: json, csv, html, markdown, xlsx.": "Liste s\xE9par\xE9e par des virgules. Pris en charge : json, csv, html, markdown, xlsx.",
       "Preserve raw payloads": "Conserver les charges utiles brutes",
       "Also store the raw GraphQL responses X sends this tab, so records can be re-parsed later. Session tokens are stripped before anything is written.": "Conserve aussi les r\xE9ponses GraphQL brutes que X envoie \xE0 cet onglet, pour pouvoir r\xE9analyser les enregistrements plus tard. Les jetons de session sont retir\xE9s avant toute \xE9criture.",
+      "Capture media bytes in export": "Capturer les octets multim\xE9dias dans l\u2019export",
+      "Fetch media during the export action and include successful bytes with length and checksum; failed items remain retryable references.": "R\xE9cup\xE8re les m\xE9dias pendant l\u2019export et inclut les octets obtenus avec leur taille et leur somme de contr\xF4le ; les \xE9l\xE9ments \xE9chou\xE9s restent des r\xE9f\xE9rences r\xE9essayables.",
       "Auto-discover query IDs": "D\xE9tecter automatiquement les ID de requ\xEAte",
       "Scan loaded scripts for X GraphQL operation IDs and cache them locally.": "Analyse les scripts charg\xE9s pour y trouver les ID d'op\xE9rations GraphQL de X et les met en cache localement.",
       "Save folder hint": "Dossier d'enregistrement sugg\xE9r\xE9",
@@ -2028,6 +2038,8 @@ html.av-reduce-motion *::after {
       "Export capture on": "Capture pour l'export activ\xE9e",
       "Export capture off": "Capture pour l'export d\xE9sactiv\xE9e",
       "Raw payload preference saved": "Pr\xE9f\xE9rence de donn\xE9es brutes enregistr\xE9e",
+      "Media byte capture on": "Capture des octets multim\xE9dias activ\xE9e",
+      "Media byte capture off": "Capture des octets multim\xE9dias d\xE9sactiv\xE9e",
       "Query discovery preference saved": "Pr\xE9f\xE9rence de d\xE9couverte des requ\xEAtes enregistr\xE9e",
       "Save folder hint saved": "Dossier d'enregistrement enregistr\xE9",
       "Export job paused.": "T\xE2che d\u2019exportation suspendue.",
@@ -2384,6 +2396,8 @@ html.av-reduce-motion *::after {
       "Comma-separated list. Supported: json, csv, html, markdown, xlsx.": "Kommagetrennte Liste. Unterst\xFCtzt: json, csv, html, markdown, xlsx.",
       "Preserve raw payloads": "Rohdaten aufbewahren",
       "Also store the raw GraphQL responses X sends this tab, so records can be re-parsed later. Session tokens are stripped before anything is written.": "Speichert zus\xE4tzlich die rohen GraphQL-Antworten, die X an diesen Tab sendet, damit Datens\xE4tze sp\xE4ter neu ausgewertet werden k\xF6nnen. Sitzungstoken werden vor dem Schreiben entfernt.",
+      "Capture media bytes in export": "Mediendaten beim Export erfassen",
+      "Fetch media during the export action and include successful bytes with length and checksum; failed items remain retryable references.": "L\xE4dt Medien w\xE4hrend des Exports und f\xFCgt erfolgreiche Bytes mit L\xE4nge und Pr\xFCfsumme ein; fehlgeschlagene Elemente bleiben wiederholbare Referenzen.",
       "Auto-discover query IDs": "Query-IDs automatisch ermitteln",
       "Scan loaded scripts for X GraphQL operation IDs and cache them locally.": "Durchsucht geladene Skripte nach GraphQL-Operations-IDs von X und legt sie lokal ab.",
       "Save folder hint": "Zielordner-Hinweis",
@@ -2688,6 +2702,8 @@ html.av-reduce-motion *::after {
       "Export capture on": "Export-Erfassung an",
       "Export capture off": "Export-Erfassung aus",
       "Raw payload preference saved": "Einstellung f\xFCr Rohdaten gespeichert",
+      "Media byte capture on": "Erfassung von Mediendaten aktiviert",
+      "Media byte capture off": "Erfassung von Mediendaten deaktiviert",
       "Query discovery preference saved": "Einstellung zur Query-Erkennung gespeichert",
       "Save folder hint saved": "Zielordner gespeichert",
       "Export job paused.": "Exportauftrag pausiert.",
@@ -3044,6 +3060,8 @@ html.av-reduce-motion *::after {
       "Comma-separated list. Supported: json, csv, html, markdown, xlsx.": "\u30AB\u30F3\u30DE\u533A\u5207\u308A\u3067\u6307\u5B9A\u3057\u307E\u3059\u3002\u5BFE\u5FDC\u5F62\u5F0F: json, csv, html, markdown, xlsx\u3002",
       "Preserve raw payloads": "\u751F\u306E\u30EC\u30B9\u30DD\u30F3\u30B9\u3092\u4FDD\u5B58",
       "Also store the raw GraphQL responses X sends this tab, so records can be re-parsed later. Session tokens are stripped before anything is written.": "X \u304C\u3053\u306E\u30BF\u30D6\u306B\u8FD4\u3059 GraphQL \u306E\u751F\u30EC\u30B9\u30DD\u30F3\u30B9\u3082\u4FDD\u5B58\u3057\u3001\u3042\u3068\u304B\u3089\u518D\u89E3\u6790\u3067\u304D\u308B\u3088\u3046\u306B\u3057\u307E\u3059\u3002\u66F8\u304D\u8FBC\u3080\u524D\u306B\u30BB\u30C3\u30B7\u30E7\u30F3\u30C8\u30FC\u30AF\u30F3\u306F\u53D6\u308A\u9664\u304B\u308C\u307E\u3059\u3002",
+      "Capture media bytes in export": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u3067\u30E1\u30C7\u30A3\u30A2\u306E\u30D0\u30A4\u30C8\u5217\u3092\u53D6\u5F97",
+      "Fetch media during the export action and include successful bytes with length and checksum; failed items remain retryable references.": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u4E2D\u306B\u30E1\u30C7\u30A3\u30A2\u3092\u53D6\u5F97\u3057\u3001\u6210\u529F\u3057\u305F\u30D0\u30A4\u30C8\u5217\u3092\u9577\u3055\u3068\u30C1\u30A7\u30C3\u30AF\u30B5\u30E0\u4ED8\u304D\u3067\u542B\u3081\u307E\u3059\u3002\u5931\u6557\u3057\u305F\u9805\u76EE\u306F\u518D\u8A66\u884C\u53EF\u80FD\u306A\u53C2\u7167\u3068\u3057\u3066\u6B8B\u308A\u307E\u3059\u3002",
       "Auto-discover query IDs": "\u30AF\u30A8\u30EA ID \u3092\u81EA\u52D5\u691C\u51FA",
       "Scan loaded scripts for X GraphQL operation IDs and cache them locally.": "\u8AAD\u307F\u8FBC\u307E\u308C\u305F\u30B9\u30AF\u30EA\u30D7\u30C8\u304B\u3089 X \u306E GraphQL \u64CD\u4F5C ID \u3092\u63A2\u3057\u3001\u30ED\u30FC\u30AB\u30EB\u306B\u4FDD\u5B58\u3057\u307E\u3059\u3002",
       "Save folder hint": "\u4FDD\u5B58\u5148\u30D5\u30A9\u30EB\u30C0",
@@ -3348,6 +3366,8 @@ html.av-reduce-motion *::after {
       "Export capture on": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u7528\u30AD\u30E3\u30D7\u30C1\u30E3 \u30AA\u30F3",
       "Export capture off": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u7528\u30AD\u30E3\u30D7\u30C1\u30E3 \u30AA\u30D5",
       "Raw payload preference saved": "\u751F\u30EC\u30B9\u30DD\u30F3\u30B9\u306E\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
+      "Media byte capture on": "\u30E1\u30C7\u30A3\u30A2\u306E\u30D0\u30A4\u30C8\u53D6\u5F97\u3092\u30AA\u30F3",
+      "Media byte capture off": "\u30E1\u30C7\u30A3\u30A2\u306E\u30D0\u30A4\u30C8\u53D6\u5F97\u3092\u30AA\u30D5",
       "Query discovery preference saved": "\u30AF\u30A8\u30EA\u691C\u51FA\u306E\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Save folder hint saved": "\u4FDD\u5B58\u5148\u30D5\u30A9\u30EB\u30C0\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Export job paused.": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6\u3092\u4E00\u6642\u505C\u6B62\u3057\u307E\u3057\u305F\u3002",
@@ -3704,6 +3724,8 @@ html.av-reduce-motion *::after {
       "Comma-separated list. Supported: json, csv, html, markdown, xlsx.": "\uC27C\uD45C\uB85C \uAD6C\uBD84\uD574 \uC785\uB825\uD569\uB2C8\uB2E4. \uC9C0\uC6D0 \uD615\uC2DD: json, csv, html, markdown, xlsx.",
       "Preserve raw payloads": "\uC6D0\uBCF8 \uC751\uB2F5 \uBCF4\uAD00",
       "Also store the raw GraphQL responses X sends this tab, so records can be re-parsed later. Session tokens are stripped before anything is written.": "X\uAC00 \uC774 \uD0ED\uC5D0 \uBCF4\uB0B4\uB294 GraphQL \uC6D0\uBCF8 \uC751\uB2F5\uB3C4 \uC800\uC7A5\uD574 \uB098\uC911\uC5D0 \uB2E4\uC2DC \uD574\uC11D\uD560 \uC218 \uC788\uAC8C \uD569\uB2C8\uB2E4. \uC800\uC7A5 \uC804\uC5D0 \uC138\uC158 \uD1A0\uD070\uC740 \uC81C\uAC70\uB429\uB2C8\uB2E4.",
+      "Capture media bytes in export": "\uB0B4\uBCF4\uB0B4\uAE30\uC5D0\uC11C \uBBF8\uB514\uC5B4 \uBC14\uC774\uD2B8 \uCEA1\uCC98",
+      "Fetch media during the export action and include successful bytes with length and checksum; failed items remain retryable references.": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5 \uC911 \uBBF8\uB514\uC5B4\uB97C \uAC00\uC838\uC640 \uC131\uACF5\uD55C \uBC14\uC774\uD2B8\uB97C \uAE38\uC774\uC640 \uCCB4\uD06C\uC12C\uACFC \uD568\uAED8 \uD3EC\uD568\uD569\uB2C8\uB2E4. \uC2E4\uD328\uD55C \uD56D\uBAA9\uC740 \uC7AC\uC2DC\uB3C4 \uAC00\uB2A5\uD55C \uCC38\uC870\uB85C \uB0A8\uC2B5\uB2C8\uB2E4.",
       "Auto-discover query IDs": "\uCFFC\uB9AC ID \uC790\uB3D9 \uAC80\uC0C9",
       "Scan loaded scripts for X GraphQL operation IDs and cache them locally.": "\uBD88\uB7EC\uC628 \uC2A4\uD06C\uB9BD\uD2B8\uC5D0\uC11C X\uC758 GraphQL \uC791\uC5C5 ID\uB97C \uCC3E\uC544 \uB85C\uCEEC\uC5D0 \uC800\uC7A5\uD569\uB2C8\uB2E4.",
       "Save folder hint": "\uC800\uC7A5 \uD3F4\uB354",
@@ -4008,6 +4030,8 @@ html.av-reduce-motion *::after {
       "Export capture on": "\uB0B4\uBCF4\uB0B4\uAE30 \uCEA1\uCC98 \uCF2C",
       "Export capture off": "\uB0B4\uBCF4\uB0B4\uAE30 \uCEA1\uCC98 \uB054",
       "Raw payload preference saved": "\uC6D0\uBCF8 \uC751\uB2F5 \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
+      "Media byte capture on": "\uBBF8\uB514\uC5B4 \uBC14\uC774\uD2B8 \uCEA1\uCC98 \uCF1C\uC9D0",
+      "Media byte capture off": "\uBBF8\uB514\uC5B4 \uBC14\uC774\uD2B8 \uCEA1\uCC98 \uAEBC\uC9D0",
       "Query discovery preference saved": "\uCFFC\uB9AC \uAC80\uC0C9 \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Save folder hint saved": "\uC800\uC7A5 \uD3F4\uB354\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Export job paused.": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5\uC774 \uC77C\uC2DC \uC911\uC9C0\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
@@ -4364,6 +4388,8 @@ html.av-reduce-motion *::after {
       "Comma-separated list. Supported: json, csv, html, markdown, xlsx.": "\u0642\u0627\u0626\u0645\u0629 \u0645\u0641\u0635\u0648\u0644\u0629 \u0628\u0641\u0648\u0627\u0635\u0644. \u0627\u0644\u0645\u062F\u0639\u0648\u0645: json\u060C csv\u060C html\u060C markdown\u060C xlsx.",
       "Preserve raw payloads": "\u062D\u0641\u0638 \u0627\u0644\u0627\u0633\u062A\u062C\u0627\u0628\u0627\u062A \u0627\u0644\u062E\u0627\u0645",
       "Also store the raw GraphQL responses X sends this tab, so records can be re-parsed later. Session tokens are stripped before anything is written.": "\u064A\u062D\u0641\u0638 \u0623\u064A\u0636\u064B\u0627 \u0627\u0633\u062A\u062C\u0627\u0628\u0627\u062A GraphQL \u0627\u0644\u062E\u0627\u0645 \u0627\u0644\u062A\u064A \u064A\u0631\u0633\u0644\u0647\u0627 X \u0625\u0644\u0649 \u0647\u0630\u0647 \u0627\u0644\u062A\u0628\u0648\u064A\u0628\u0629\u060C \u0644\u064A\u0645\u0643\u0646 \u062A\u062D\u0644\u064A\u0644\u0647\u0627 \u0644\u0627\u062D\u0642\u064B\u0627. \u062A\u064F\u0632\u0627\u0644 \u0631\u0645\u0648\u0632 \u0627\u0644\u062C\u0644\u0633\u0629 \u0642\u0628\u0644 \u0627\u0644\u0643\u062A\u0627\u0628\u0629.",
+      "Capture media bytes in export": "\u0627\u0644\u062A\u0642\u0627\u0637 \u0648\u062D\u062F\u0627\u062A \u0628\u0627\u064A\u062A \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0641\u064A \u0627\u0644\u062A\u0635\u062F\u064A\u0631",
+      "Fetch media during the export action and include successful bytes with length and checksum; failed items remain retryable references.": "\u064A\u062C\u0644\u0628 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0623\u062B\u0646\u0627\u0621 \u0627\u0644\u062A\u0635\u062F\u064A\u0631 \u0648\u064A\u0636\u0645\u0651\u0646 \u0648\u062D\u062F\u0627\u062A \u0627\u0644\u0628\u0627\u064A\u062A \u0627\u0644\u0646\u0627\u062C\u062D\u0629 \u0645\u0639 \u0627\u0644\u0637\u0648\u0644 \u0648\u0627\u0644\u0645\u062C\u0645\u0648\u0639 \u0627\u0644\u0627\u062E\u062A\u0628\u0627\u0631\u064A\u061B \u0648\u062A\u0628\u0642\u0649 \u0627\u0644\u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u0641\u0627\u0634\u0644\u0629 \u0645\u0631\u0627\u062C\u0639 \u0642\u0627\u0628\u0644\u0629 \u0644\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0645\u062D\u0627\u0648\u0644\u0629.",
       "Auto-discover query IDs": "\u0627\u0643\u062A\u0634\u0627\u0641 \u0645\u0639\u0631\u0651\u0641\u0627\u062A \u0627\u0644\u0627\u0633\u062A\u0639\u0644\u0627\u0645 \u062A\u0644\u0642\u0627\u0626\u064A\u064B\u0627",
       "Scan loaded scripts for X GraphQL operation IDs and cache them locally.": "\u064A\u0641\u062D\u0635 \u0627\u0644\u0633\u0643\u0631\u0628\u062A\u0627\u062A \u0627\u0644\u0645\u062D\u0645\u0651\u0644\u0629 \u0628\u062D\u062B\u064B\u0627 \u0639\u0646 \u0645\u0639\u0631\u0651\u0641\u0627\u062A \u0639\u0645\u0644\u064A\u0627\u062A GraphQL \u0641\u064A X \u0648\u064A\u062E\u0632\u0651\u0646\u0647\u0627 \u0645\u062D\u0644\u064A\u064B\u0627.",
       "Save folder hint": "\u0645\u062C\u0644\u062F \u0627\u0644\u062D\u0641\u0638",
@@ -4668,6 +4694,8 @@ html.av-reduce-motion *::after {
       "Export capture on": "\u0627\u0644\u062A\u0642\u0627\u0637 \u0627\u0644\u062A\u0635\u062F\u064A\u0631 \u0645\u0641\u0639\u0651\u0644",
       "Export capture off": "\u0627\u0644\u062A\u0642\u0627\u0637 \u0627\u0644\u062A\u0635\u062F\u064A\u0631 \u0645\u0639\u0637\u0651\u0644",
       "Raw payload preference saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u0627\u0633\u062A\u062C\u0627\u0628\u0627\u062A \u0627\u0644\u062E\u0627\u0645",
+      "Media byte capture on": "\u0627\u0644\u062A\u0642\u0627\u0637 \u0648\u062D\u062F\u0627\u062A \u0628\u0627\u064A\u062A \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0645\u0641\u0639\u0651\u0644",
+      "Media byte capture off": "\u0627\u0644\u062A\u0642\u0627\u0637 \u0648\u062D\u062F\u0627\u062A \u0628\u0627\u064A\u062A \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0645\u062A\u0648\u0642\u0641",
       "Query discovery preference saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 \u0627\u0643\u062A\u0634\u0627\u0641 \u0627\u0644\u0627\u0633\u062A\u0639\u0644\u0627\u0645\u0627\u062A",
       "Save folder hint saved": "\u062A\u0645 \u062D\u0641\u0638 \u0645\u062C\u0644\u062F \u0627\u0644\u062D\u0641\u0638",
       "Export job paused.": "\u062A\u0645 \u0625\u064A\u0642\u0627\u0641 \u0645\u0647\u0645\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631 \u0645\u0624\u0642\u062A\u0627\u064B.",
@@ -5024,6 +5052,8 @@ html.av-reduce-motion *::after {
       "Comma-separated list. Supported: json, csv, html, markdown, xlsx.": "\u05E8\u05E9\u05D9\u05DE\u05D4 \u05DE\u05D5\u05E4\u05E8\u05D3\u05EA \u05D1\u05E4\u05E1\u05D9\u05E7\u05D9\u05DD. \u05E0\u05EA\u05DE\u05DB\u05D9\u05DD: json, csv, html, markdown, xlsx.",
       "Preserve raw payloads": "\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05D4\u05D2\u05D5\u05DC\u05DE\u05D9\u05D5\u05EA",
       "Also store the raw GraphQL responses X sends this tab, so records can be re-parsed later. Session tokens are stripped before anything is written.": "\u05E9\u05D5\u05DE\u05E8 \u05D2\u05DD \u05D0\u05EA \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05D4\u2011GraphQL \u05D4\u05D2\u05D5\u05DC\u05DE\u05D9\u05D5\u05EA \u05E9\u2011X \u05E9\u05D5\u05DC\u05D7 \u05DC\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA, \u05DB\u05D3\u05D9 \u05DC\u05D0\u05E4\u05E9\u05E8 \u05E0\u05D9\u05EA\u05D5\u05D7 \u05DE\u05D7\u05D3\u05E9 \u05D1\u05D4\u05DE\u05E9\u05DA. \u05D0\u05E1\u05D9\u05DE\u05D5\u05E0\u05D9 \u05D4\u05E4\u05E2\u05DC\u05D4 \u05DE\u05D5\u05E1\u05E8\u05D9\u05DD \u05DC\u05E4\u05E0\u05D9 \u05D4\u05DB\u05EA\u05D9\u05D1\u05D4.",
+      "Capture media bytes in export": "\u05DC\u05DB\u05D9\u05D3\u05EA \u05D1\u05EA\u05D9\u05DD \u05E9\u05DC \u05DE\u05D3\u05D9\u05D4 \u05D1\u05D9\u05D9\u05E6\u05D5\u05D0",
+      "Fetch media during the export action and include successful bytes with length and checksum; failed items remain retryable references.": "\u05DE\u05D5\u05E8\u05D9\u05D3 \u05DE\u05D3\u05D9\u05D4 \u05D1\u05DE\u05D4\u05DC\u05DA \u05E4\u05E2\u05D5\u05DC\u05EA \u05D4\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D5\u05DB\u05D5\u05DC\u05DC \u05D1\u05EA\u05D9\u05DD \u05E9\u05D4\u05EA\u05E7\u05D1\u05DC\u05D5 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4 \u05E2\u05DD \u05D0\u05D5\u05E8\u05DA \u05D5\u05E1\u05DB\u05D5\u05DD \u05D1\u05D9\u05E7\u05D5\u05E8\u05EA; \u05E4\u05E8\u05D9\u05D8\u05D9\u05DD \u05E9\u05E0\u05DB\u05E9\u05DC\u05D5 \u05E0\u05E9\u05D0\u05E8\u05D9\u05DD \u05DB\u05D4\u05E4\u05E0\u05D9\u05D5\u05EA \u05E9\u05E0\u05D9\u05EA\u05DF \u05DC\u05E0\u05E1\u05D5\u05EA \u05DE\u05D7\u05D3\u05E9.",
       "Auto-discover query IDs": "\u05D6\u05D9\u05D4\u05D5\u05D9 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9 \u05E9\u05DC \u05DE\u05D6\u05D4\u05D9 \u05E9\u05D0\u05D9\u05DC\u05EA\u05D4",
       "Scan loaded scripts for X GraphQL operation IDs and cache them locally.": "\u05E1\u05D5\u05E8\u05E7 \u05D0\u05EA \u05D4\u05E1\u05E7\u05E8\u05D9\u05E4\u05D8\u05D9\u05DD \u05E9\u05E0\u05D8\u05E2\u05E0\u05D5 \u05DC\u05D0\u05D9\u05EA\u05D5\u05E8 \u05DE\u05D6\u05D4\u05D9 \u05E4\u05E2\u05D5\u05DC\u05D5\u05EA GraphQL \u05E9\u05DC X \u05D5\u05E9\u05D5\u05DE\u05E8 \u05D0\u05D5\u05EA\u05DD \u05DE\u05E7\u05D5\u05DE\u05D9\u05EA.",
       "Save folder hint": "\u05EA\u05D9\u05E7\u05D9\u05D9\u05EA \u05E9\u05DE\u05D9\u05E8\u05D4",
@@ -5328,6 +5358,8 @@ html.av-reduce-motion *::after {
       "Export capture on": "\u05DC\u05DB\u05D9\u05D3\u05D4 \u05DC\u05D9\u05D9\u05E6\u05D5\u05D0 \u05E4\u05E2\u05D9\u05DC\u05D4",
       "Export capture off": "\u05DC\u05DB\u05D9\u05D3\u05D4 \u05DC\u05D9\u05D9\u05E6\u05D5\u05D0 \u05DB\u05D1\u05D5\u05D9\u05D4",
       "Raw payload preference saved": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D4\u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05D4\u05D2\u05D5\u05DC\u05DE\u05D9\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D4",
+      "Media byte capture on": "\u05DC\u05DB\u05D9\u05D3\u05EA \u05D1\u05EA\u05D9 \u05DE\u05D3\u05D9\u05D4 \u05DE\u05D5\u05E4\u05E2\u05DC\u05EA",
+      "Media byte capture off": "\u05DC\u05DB\u05D9\u05D3\u05EA \u05D1\u05EA\u05D9 \u05DE\u05D3\u05D9\u05D4 \u05DE\u05D5\u05E9\u05D1\u05EA\u05EA",
       "Query discovery preference saved": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D6\u05D9\u05D4\u05D5\u05D9 \u05D4\u05E9\u05D0\u05D9\u05DC\u05EA\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Save folder hint saved": "\u05EA\u05D9\u05E7\u05D9\u05D9\u05EA \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Export job paused.": "\u05DE\u05E9\u05D9\u05DE\u05EA \u05D4\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D4\u05D5\u05E9\u05D4\u05EA\u05D4.",
@@ -5660,7 +5692,8 @@ html.av-reduce-motion *::after {
       enabled: false,
       formats: ["json", "csv", "html"],
       preserveRawPayloads: false,
-      autoDiscoverQueryIds: true
+      autoDiscoverQueryIds: true,
+      captureMediaBytes: false
     },
     links: {
       cleanShareButtons: false,
@@ -5807,6 +5840,10 @@ html.av-reduce-motion *::after {
         autoDiscoverQueryIds: booleanValue(
           exportSettings.autoDiscoverQueryIds,
           DEFAULT_SETTINGS.export.autoDiscoverQueryIds
+        ),
+        captureMediaBytes: booleanValue(
+          exportSettings.captureMediaBytes,
+          DEFAULT_SETTINGS.export.captureMediaBytes
         )
       },
       links: {
@@ -8093,6 +8130,17 @@ html.av-reduce-motion *::after {
           async (checked) => {
             options.settings.export.preserveRawPayloads = checked;
             await save("Raw payload preference saved");
+          }
+        )
+      );
+      rows.push(
+        toggleRow(
+          "Capture media bytes in export",
+          "Fetch media during the export action and include successful bytes with length and checksum; failed items remain retryable references.",
+          options.settings.export.captureMediaBytes,
+          async (checked) => {
+            options.settings.export.captureMediaBytes = checked;
+            await save(checked ? "Media byte capture on" : "Media byte capture off");
           }
         )
       );
@@ -11037,6 +11085,277 @@ input[type="checkbox"] {
     };
   }
 
+  // src/features/export/assets.ts
+  function describeMediaCapture(media, fallbackCapturedAt = null) {
+    const sourceUrl = cleanText(media.sourceUrl ?? media.url);
+    const bytes = media.bytes instanceof Uint8Array ? media.bytes : null;
+    const hasRemoteSource = /^https?:\/\//i.test(sourceUrl);
+    const status = bytes ? "captured-bytes" : media.captureStatus === "missing" || !hasRemoteSource ? "missing" : "remote-reference";
+    const byteLength = bytes ? bytes.byteLength : finiteByteLength(media.byteLength);
+    const sha256 = bytes ? cleanChecksum(media.sha256) ?? sha256Hex(bytes) : cleanChecksum(media.sha256);
+    const capturedAt = cleanText(media.capturedAt ?? fallbackCapturedAt) || null;
+    const error = cleanText(media.captureError);
+    return {
+      status,
+      sourceUrl,
+      capturedAt,
+      byteLength,
+      sha256,
+      retryable: status !== "captured-bytes" && hasRemoteSource,
+      ...status === "captured-bytes" && cleanText(media.assetPath) ? { packagePath: cleanText(media.assetPath) } : {},
+      ...error ? { error } : {}
+    };
+  }
+  function serializeExportMedia(media, fallbackCapturedAt = null) {
+    const capture = describeMediaCapture(media, fallbackCapturedAt);
+    const serialized = {
+      kind: media.kind,
+      url: media.url,
+      capture
+    };
+    if (media.width !== void 0) serialized.width = media.width;
+    if (media.height !== void 0) serialized.height = media.height;
+    if (media.bitrate !== void 0) serialized.bitrate = media.bitrate;
+    if (media.type !== void 0) serialized.type = media.type;
+    if (media.altText !== void 0) serialized.altText = media.altText;
+    return serialized;
+  }
+  function serializeExportRecord(record) {
+    return {
+      ...record,
+      media: mediaOf(record).map((media) => serializeExportMedia(media, record.capturedAt))
+    };
+  }
+  function serializeExportRecords(records) {
+    return records.map(serializeExportRecord);
+  }
+  function prepareExportPackage(records) {
+    const assets = [];
+    let assetNumber = 0;
+    const prepared = records.map((record) => {
+      const media = mediaOf(record).map((entry) => {
+        if (!(entry.bytes instanceof Uint8Array)) {
+          return { ...entry };
+        }
+        const extension = mediaExtension(entry);
+        const path = `media/${String(++assetNumber).padStart(6, "0")}-${entry.kind}.${extension}`;
+        assets.push({
+          path,
+          data: new Uint8Array(entry.bytes),
+          contentType: mediaContentType(entry, extension)
+        });
+        return { ...entry, assetPath: path };
+      });
+      return { ...record, media };
+    });
+    return { records: prepared, assets };
+  }
+  function buildExportPackageManifest(records, files, packageRoot = "", generatedAt = (/* @__PURE__ */ new Date()).toISOString()) {
+    const media = [];
+    let capturedBytes = 0;
+    let remoteReferences = 0;
+    let missing = 0;
+    let retryable = 0;
+    records.forEach((record, recordIndex) => {
+      mediaOf(record).forEach((entry) => {
+        const capture = describeMediaCapture(entry, record.capturedAt);
+        const packagePath2 = capture.packagePath ? joinPackagePath(packageRoot, capture.packagePath) : void 0;
+        const normalizedCapture = packagePath2 ? { ...capture, packagePath: packagePath2 } : capture;
+        media.push({
+          recordIndex,
+          recordId: record.tweetId,
+          kind: entry.kind,
+          capture: normalizedCapture
+        });
+        if (capture.status === "captured-bytes") {
+          capturedBytes += capture.byteLength ?? 0;
+        } else if (capture.status === "remote-reference") {
+          remoteReferences += 1;
+        } else {
+          missing += 1;
+        }
+        if (capture.retryable) retryable += 1;
+      });
+    });
+    return {
+      schemaVersion: 1,
+      generator: "Aviary",
+      generatedAt,
+      recordCount: records.length,
+      files: files.map((file) => ({ ...file })),
+      media,
+      summary: { capturedBytes, remoteReferences, missing, retryable },
+      offlineReady: remoteReferences === 0 && missing === 0,
+      networkRequiredToComplete: remoteReferences > 0 || retryable > 0
+    };
+  }
+  function mediaOf(record) {
+    return Array.isArray(record.media) ? record.media : [];
+  }
+  function sha256Hex(data) {
+    const paddedLength = Math.ceil((data.length + 9) / 64) * 64;
+    const padded = new Uint8Array(paddedLength);
+    padded.set(data);
+    padded[data.length] = 128;
+    const view = new DataView(padded.buffer);
+    const bitLength = data.length * 8;
+    view.setUint32(paddedLength - 8, Math.floor(bitLength / 4294967296));
+    view.setUint32(paddedLength - 4, bitLength >>> 0);
+    const hash = new Uint32Array([
+      1779033703,
+      3144134277,
+      1013904242,
+      2773480762,
+      1359893119,
+      2600822924,
+      528734635,
+      1541459225
+    ]);
+    const words = new Uint32Array(64);
+    for (let block = 0; block < padded.length; block += 64) {
+      for (let index = 0; index < 16; index += 1) {
+        words[index] = view.getUint32(block + index * 4);
+      }
+      for (let index = 16; index < 64; index += 1) {
+        const s0 = rotateRight(words[index - 15], 7) ^ rotateRight(words[index - 15], 18) ^ words[index - 15] >>> 3;
+        const s1 = rotateRight(words[index - 2], 17) ^ rotateRight(words[index - 2], 19) ^ words[index - 2] >>> 10;
+        words[index] = words[index - 16] + s0 + words[index - 7] + s1 >>> 0;
+      }
+      let a = hash[0];
+      let b = hash[1];
+      let c = hash[2];
+      let d = hash[3];
+      let e = hash[4];
+      let f = hash[5];
+      let g = hash[6];
+      let h = hash[7];
+      for (let index = 0; index < 64; index += 1) {
+        const s1 = rotateRight(e, 6) ^ rotateRight(e, 11) ^ rotateRight(e, 25);
+        const choice = e & f ^ ~e & g;
+        const temp1 = h + s1 + choice + SHA256_K[index] + words[index] >>> 0;
+        const s0 = rotateRight(a, 2) ^ rotateRight(a, 13) ^ rotateRight(a, 22);
+        const majority = a & b ^ a & c ^ b & c;
+        const temp2 = s0 + majority >>> 0;
+        h = g;
+        g = f;
+        f = e;
+        e = d + temp1 >>> 0;
+        d = c;
+        c = b;
+        b = a;
+        a = temp1 + temp2 >>> 0;
+      }
+      hash[0] = hash[0] + a >>> 0;
+      hash[1] = hash[1] + b >>> 0;
+      hash[2] = hash[2] + c >>> 0;
+      hash[3] = hash[3] + d >>> 0;
+      hash[4] = hash[4] + e >>> 0;
+      hash[5] = hash[5] + f >>> 0;
+      hash[6] = hash[6] + g >>> 0;
+      hash[7] = hash[7] + h >>> 0;
+    }
+    return Array.from(hash, (word) => word.toString(16).padStart(8, "0")).join("");
+  }
+  function rotateRight(value, bits) {
+    return value >>> bits | value << 32 - bits;
+  }
+  function cleanText(value) {
+    return typeof value === "string" ? value.trim() : "";
+  }
+  function cleanChecksum(value) {
+    const checksum = cleanText(value).toLowerCase();
+    return /^[0-9a-f]{64}$/.test(checksum) ? checksum : null;
+  }
+  function finiteByteLength(value) {
+    return typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.trunc(value) : null;
+  }
+  function joinPackagePath(root, path) {
+    return root ? `${root.replace(/\/+$/g, "")}/${path}` : path;
+  }
+  function mediaExtension(media) {
+    const type = cleanText(media.type).toLowerCase();
+    const fromType = type.includes("/") ? type.split("/").at(-1) ?? "" : type;
+    const fromUrl = /[.?](?:format=)?([a-z0-9]{2,5})(?:[?#]|$)/i.exec(media.url)?.[1]?.toLowerCase() ?? "";
+    const candidate = fromType || fromUrl || (media.kind === "video" ? "mp4" : "jpg");
+    if (candidate === "jpeg") return "jpg";
+    return /^[a-z0-9]{2,5}$/.test(candidate) ? candidate : media.kind === "video" ? "mp4" : "bin";
+  }
+  function mediaContentType(media, extension) {
+    const declared = cleanText(media.type);
+    if (declared.includes("/")) return declared;
+    if (extension === "jpg" || extension === "jpeg") return "image/jpeg";
+    if (extension === "png") return "image/png";
+    if (extension === "webp") return "image/webp";
+    if (extension === "mp4") return "video/mp4";
+    return "application/octet-stream";
+  }
+  var SHA256_K = Uint32Array.from([
+    1116352408,
+    1899447441,
+    3049323471,
+    3921009573,
+    961987163,
+    1508970993,
+    2453635748,
+    2870763221,
+    3624381080,
+    310598401,
+    607225278,
+    1426881987,
+    1925078388,
+    2162078206,
+    2614888103,
+    3248222580,
+    3835390401,
+    4022224774,
+    264347078,
+    604807628,
+    770255983,
+    1249150122,
+    1555081692,
+    1996064986,
+    2554220882,
+    2821834349,
+    2952996808,
+    3210313671,
+    3336571891,
+    3584528711,
+    113926993,
+    338241895,
+    666307205,
+    773529912,
+    1294757372,
+    1396182291,
+    1695183700,
+    1986661051,
+    2177026350,
+    2456956037,
+    2730485921,
+    2820302411,
+    3259730800,
+    3345764771,
+    3516065817,
+    3600352804,
+    4094571909,
+    275423344,
+    430227734,
+    506948616,
+    659060556,
+    883997877,
+    958139571,
+    1322822218,
+    1537002063,
+    1747873779,
+    1955562222,
+    2024104815,
+    2227730452,
+    2361852424,
+    2428436474,
+    2756734187,
+    3204031479,
+    3329325298
+  ]);
+
   // src/features/media/urls.ts
   var IMAGE_HOST = "pbs.twimg.com";
   var FORMAT_PRIORITY = ["jpg", "png", "webp"];
@@ -11396,6 +11715,470 @@ input[type="checkbox"] {
       return new URL(href, "https://x.com").toString();
     }
     return null;
+  }
+
+  // src/features/integrations/aria2.ts
+  var ARIA2_HISTORY_KEY = "aviary.aria2.history.v1";
+  var ARIA2_HISTORY_LIMIT = 1e3;
+  async function addUriToAria2(config, request) {
+    assertOutboundAllowed("The Aria2 handoff");
+    if (!config.endpoint) {
+      return { ok: false, error: "Aria2 endpoint not configured" };
+    }
+    const token = config.secret ? `token:${config.secret}` : void 0;
+    const params = token ? [token] : [];
+    params.push([request.url]);
+    params.push({ out: request.filename });
+    const body = JSON.stringify({
+      jsonrpc: "2.0",
+      id: `aviary-${Date.now()}`,
+      method: "aria2.addUri",
+      params
+    });
+    try {
+      const networkResult = await withNetworkTimeout(async (signal) => {
+        const response = await fetch(`${config.endpoint}/jsonrpc`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body,
+          signal
+        });
+        if (!response.ok) return { status: response.status };
+        return { payload: await response.json() };
+      }, NETWORK_TIMEOUTS.aria2);
+      if ("status" in networkResult) {
+        return { ok: false, error: `Aria2 HTTP ${networkResult.status}` };
+      }
+      const payload = networkResult.payload;
+      if (payload?.error) {
+        return { ok: false, error: payload.error.message ?? "Aria2 error" };
+      }
+      const ariaResult = { ok: true };
+      if (typeof payload?.result === "string") ariaResult.gid = payload.result;
+      return ariaResult;
+    } catch (error) {
+      return { ok: false, error: String(error?.message ?? error) };
+    }
+  }
+  function shouldHandoffToAria2(integration, estimatedBytes) {
+    if (!integration.enabled || !integration.endpoint) return false;
+    if (estimatedBytes === null) return true;
+    return estimatedBytes >= integration.minBytes;
+  }
+  var Aria2History = class {
+    #storage;
+    #limit;
+    #entries = [];
+    #loaded = false;
+    constructor(storage, limit = ARIA2_HISTORY_LIMIT) {
+      this.#storage = storage;
+      this.#limit = Math.max(50, Math.trunc(limit));
+    }
+    async load() {
+      if (this.#loaded) return;
+      const fallback = { entries: [] };
+      const raw = await this.#storage.get(ARIA2_HISTORY_KEY, fallback);
+      const entries = Array.isArray(raw?.entries) ? raw.entries : [];
+      this.#entries = entries.filter(isHistoryEntry).slice(-this.#limit);
+      this.#loaded = true;
+    }
+    hasUrl(url) {
+      return this.#entries.some((entry) => entry.url === url);
+    }
+    snapshot() {
+      return { entries: this.#entries.map((entry) => ({ ...entry })) };
+    }
+    async rememberQueued(entry) {
+      await this.load();
+      if (this.hasUrl(entry.url)) return;
+      this.#entries.push({
+        ...entry,
+        status: "queued",
+        queuedAt: (/* @__PURE__ */ new Date()).toISOString()
+      });
+      while (this.#entries.length > this.#limit) {
+        this.#entries.shift();
+      }
+      await this.#persist();
+    }
+    async reconcile(config) {
+      await this.load();
+      let completed = 0;
+      let removed = 0;
+      const retained = [];
+      for (const entry of this.#entries) {
+        if (entry.status !== "queued") {
+          retained.push(entry);
+          continue;
+        }
+        const status = await tellAria2Status(config, entry.gid);
+        if (status === "complete") {
+          retained.push({ ...entry, status: "complete", completedAt: (/* @__PURE__ */ new Date()).toISOString() });
+          completed += 1;
+        } else if (status === "error" || status === "removed") {
+          removed += 1;
+        } else {
+          retained.push(entry);
+        }
+      }
+      this.#entries = retained;
+      if (completed > 0 || removed > 0) {
+        await this.#persist();
+      }
+      return { completed, removed };
+    }
+    async clear() {
+      this.#entries = [];
+      this.#loaded = true;
+      await this.#persist();
+    }
+    async #persist() {
+      try {
+        await this.#storage.set(ARIA2_HISTORY_KEY, this.snapshot());
+      } catch {
+      }
+    }
+  };
+  async function pingAria2Version(config) {
+    assertOutboundAllowed("The Aria2 connection test");
+    if (!config.endpoint) {
+      return { ok: false, error: "Aria2 endpoint not configured" };
+    }
+    try {
+      const result = await withNetworkTimeout(async (signal) => {
+        const response = await fetch(`${config.endpoint}/jsonrpc`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: `aviary-${Date.now()}`,
+            method: "aria2.getVersion",
+            params: config.secret ? [`token:${config.secret}`] : []
+          }),
+          signal
+        });
+        if (!response.ok) return { status: response.status };
+        return {
+          payload: await response.json()
+        };
+      }, NETWORK_TIMEOUTS.aria2);
+      if ("status" in result) {
+        return { ok: false, error: `Aria2 HTTP ${result.status}` };
+      }
+      const payload = result.payload;
+      if (payload?.error) {
+        return { ok: false, error: payload.error.message ?? "Aria2 rejected the request" };
+      }
+      return typeof payload?.result?.version === "string" ? { ok: true, gid: payload.result.version } : { ok: false, error: "Aria2 did not report a version" };
+    } catch (error) {
+      return { ok: false, error: String(error?.message ?? error) };
+    }
+  }
+  async function tellActiveAria2(config) {
+    assertOutboundAllowed("The Aria2 sweep");
+    const payload = await callAria2(config, "aria2.tellActive", []);
+    if (!Array.isArray(payload)) return [];
+    return payload.map((row) => ({
+      gid: typeof row.gid === "string" ? row.gid : "",
+      status: typeof row.status === "string" ? row.status : "unknown",
+      totalLength: Number(row.totalLength ?? 0),
+      completedLength: Number(row.completedLength ?? 0),
+      files: Array.isArray(row.files) ? row.files.map((file) => typeof file === "object" && file !== null ? file : {}).map((file) => ({ path: typeof file.path === "string" ? file.path : "" })) : []
+    }));
+  }
+  async function removeAria2Download(config, gid) {
+    assertOutboundAllowed("The Aria2 cancel");
+    if (!gid) return { ok: false, error: "Missing GID" };
+    const payload = await callAria2(config, "aria2.remove", [gid]);
+    if (typeof payload === "string") {
+      return { ok: true, gid: payload };
+    }
+    return { ok: false, error: "Aria2 did not return a GID" };
+  }
+  async function tellAria2Status(config, gid) {
+    if (!gid) return null;
+    if (!config.endpoint) return null;
+    try {
+      assertOutboundAllowed("The Aria2 status check");
+    } catch {
+      return null;
+    }
+    const token = config.secret ? `token:${config.secret}` : void 0;
+    const params = token ? [token, gid] : [gid];
+    try {
+      const payload = await withNetworkTimeout(async (signal) => {
+        const response = await fetch(`${config.endpoint}/jsonrpc`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: `aviary-${Date.now()}`,
+            method: "aria2.tellStatus",
+            params
+          }),
+          signal
+        });
+        if (!response.ok) return null;
+        return await response.json();
+      }, NETWORK_TIMEOUTS.aria2);
+      if (!payload) return null;
+      if (payload.error) {
+        return isUnknownGidError(payload.error) ? "removed" : null;
+      }
+      return typeof payload.result?.status === "string" ? payload.result.status : null;
+    } catch {
+      return null;
+    }
+  }
+  async function callAria2(config, method, args) {
+    if (!config.endpoint) return null;
+    const token = config.secret ? `token:${config.secret}` : void 0;
+    const params = token ? [token, ...args] : args;
+    const body = JSON.stringify({
+      jsonrpc: "2.0",
+      id: `aviary-${Date.now()}`,
+      method,
+      params
+    });
+    try {
+      const json = await withNetworkTimeout(async (signal) => {
+        const response = await fetch(`${config.endpoint}/jsonrpc`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body,
+          signal
+        });
+        if (!response.ok) return null;
+        return await response.json();
+      }, NETWORK_TIMEOUTS.aria2);
+      if (!json) return null;
+      return json?.result ?? null;
+    } catch {
+      return null;
+    }
+  }
+  function isUnknownGidError(error) {
+    const message = typeof error.message === "string" ? error.message.toLowerCase() : "";
+    return /gid/.test(message) && /(not found|is not found|cannot be found)/.test(message);
+  }
+  function isHistoryEntry(value) {
+    if (typeof value !== "object" || value === null) return false;
+    const entry = value;
+    return typeof entry.gid === "string" && typeof entry.url === "string" && typeof entry.filename === "string" && (entry.status === "queued" || entry.status === "complete") && typeof entry.queuedAt === "string" && (entry.completedAt === void 0 || typeof entry.completedAt === "string");
+  }
+
+  // src/features/media/downloader.ts
+  var DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
+  async function captureMediaBytes(url, options = {}) {
+    const sourceUrl = url.trim();
+    if (!/^https?:\/\//i.test(sourceUrl)) {
+      throw new TypeError("Only HTTP(S) media URLs can be captured into an archive.");
+    }
+    const maxBytes = Math.max(1, Math.trunc(options.maxBytes ?? 50 * 1024 * 1024));
+    const response = await withNetworkTimeout(
+      (signal) => fetch(sourceUrl, { signal }),
+      options.timeoutMs ?? NETWORK_TIMEOUTS.mediaTransfer
+    );
+    if (!response.ok) {
+      throw new Error(`Media request failed with HTTP ${response.status}.`);
+    }
+    const declaredLength = Number(response.headers.get("content-length"));
+    if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+      throw new RangeError(`Media response exceeds the ${maxBytes}-byte capture limit.`);
+    }
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength > maxBytes) {
+      throw new RangeError(`Media response exceeds the ${maxBytes}-byte capture limit.`);
+    }
+    return {
+      sourceUrl,
+      capturedAt: (/* @__PURE__ */ new Date()).toISOString(),
+      bytes,
+      byteLength: bytes.byteLength,
+      sha256: sha256Hex(bytes),
+      contentType: response.headers.get("content-type")?.split(";", 1)[0]?.trim() || "application/octet-stream"
+    };
+  }
+  async function captureExportRecordMedia(record, options = {}) {
+    const media = await Promise.all(record.media.map(async (entry) => {
+      const sourceUrl = (entry.sourceUrl ?? entry.url).trim();
+      try {
+        const captured = await captureMediaBytes(sourceUrl, options);
+        return {
+          ...entry,
+          sourceUrl: captured.sourceUrl,
+          capturedAt: captured.capturedAt,
+          byteLength: captured.byteLength,
+          sha256: captured.sha256,
+          bytes: captured.bytes,
+          type: entry.type?.includes("/") ? entry.type : captured.contentType,
+          captureStatus: "captured-bytes"
+        };
+      } catch (error) {
+        return {
+          ...entry,
+          sourceUrl,
+          capturedAt: entry.capturedAt ?? (/* @__PURE__ */ new Date()).toISOString(),
+          captureStatus: /^https?:\/\//i.test(sourceUrl) ? "remote-reference" : "missing",
+          captureError: error instanceof Error ? error.message : String(error)
+        };
+      }
+    }));
+    return { ...record, media };
+  }
+  var DownloadPermissionError = class extends Error {
+    code = DOWNLOAD_PERMISSION_CODE;
+    constructor(message = "Aviary needs the browser download permission to save this file.") {
+      super(message);
+      this.name = "DownloadPermissionError";
+    }
+  };
+  function createDownloader(options = {}) {
+    return async (request) => {
+      if (options.integrations) {
+        const aria = options.integrations.aria2;
+        if (options.aria2History?.hasUrl(request.url)) {
+          return { ok: true, via: "aria2", deduplicated: true };
+        }
+        const estimatedBytes = request.estimatedBytes ?? (aria.enabled && aria.endpoint ? await estimateBytes(request.url) : null);
+        if (shouldHandoffToAria2(aria, estimatedBytes)) {
+          const result = await addUriToAria2(
+            { endpoint: aria.endpoint, secret: aria.secret },
+            { url: request.url, filename: request.filename }
+          );
+          if (result.ok) {
+            if (result.gid && options.aria2History) {
+              await options.aria2History.rememberQueued({
+                gid: result.gid,
+                url: request.url,
+                filename: request.filename
+              });
+            }
+            return { ok: true, via: "aria2", ...result.gid ? { gid: result.gid } : {} };
+          }
+          options.onWarn?.("Aria2 refused the handoff \u2014 saving through the browser instead", {
+            error: result.error ?? "unknown",
+            filename: request.filename
+          });
+        }
+      }
+      const gmResult = await tryGmDownload(request);
+      if (gmResult) {
+        return { ok: true, via: "gm" };
+      }
+      const extResult = await tryExtensionDownload(request);
+      if (extResult.status === "ok") {
+        return { ok: true, via: "extension" };
+      }
+      if (extResult.status === "needs-permission") {
+        throw new DownloadPermissionError();
+      }
+      if (extResult.status === "failed") {
+        throw new Error(extResult.error);
+      }
+      triggerAnchor(request);
+      return isCrossOrigin(request.url) ? { ok: true, via: "anchor", degraded: true } : { ok: true, via: "anchor" };
+    };
+  }
+  function isCrossOrigin(url) {
+    if (/^(blob|data):/i.test(url)) {
+      return false;
+    }
+    const base = typeof location === "undefined" ? void 0 : location.href;
+    try {
+      const parsed = new URL(url, base);
+      return base === void 0 ? true : parsed.origin !== new URL(base).origin;
+    } catch {
+      return false;
+    }
+  }
+  async function estimateBytes(url) {
+    if (typeof fetch !== "function") {
+      return null;
+    }
+    try {
+      const response = await withNetworkTimeout(
+        (signal) => fetch(url, { method: "HEAD", signal }),
+        NETWORK_TIMEOUTS.mediaProbe
+      );
+      if (!response.ok) {
+        return null;
+      }
+      const length = Number(response.headers.get("content-length"));
+      return Number.isFinite(length) && length > 0 ? length : null;
+    } catch {
+      return null;
+    }
+  }
+  async function tryGmDownload(request) {
+    const globals = globalThis;
+    if (typeof globals.GM_download !== "function") {
+      return false;
+    }
+    return await new Promise((resolve) => {
+      try {
+        globals.GM_download?.({
+          url: request.url,
+          name: request.filename,
+          onload: () => resolve(true),
+          onerror: () => resolve(false),
+          ontimeout: () => resolve(false)
+        });
+      } catch {
+        resolve(false);
+      }
+    });
+  }
+  async function tryExtensionDownload(request) {
+    const runtime = globalThis.chrome?.runtime;
+    if (!runtime?.sendMessage) {
+      return { status: "unavailable" };
+    }
+    try {
+      const response = await runtime.sendMessage({
+        type: "AVIARY_DOWNLOAD",
+        url: request.url,
+        filename: request.filename
+      });
+      if (response?.ok === true) {
+        return { status: "ok" };
+      }
+      if (response?.code === DOWNLOAD_PERMISSION_CODE) {
+        return { status: "needs-permission" };
+      }
+      if (response === void 0) {
+        return { status: "unavailable" };
+      }
+      return { status: "failed", error: response.error ?? "download failed" };
+    } catch {
+      return { status: "unavailable" };
+    }
+  }
+  async function requestDownloadPermissionSurface() {
+    const runtime = globalThis.chrome?.runtime;
+    if (!runtime?.sendMessage) {
+      return false;
+    }
+    try {
+      const response = await runtime.sendMessage({ type: "AVIARY_OPEN_OPTIONS" });
+      return response?.ok === true;
+    } catch {
+      return false;
+    }
+  }
+  function triggerAnchor(request) {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const anchor = document.createElement("a");
+    anchor.href = request.url;
+    anchor.download = request.filename;
+    anchor.rel = "noopener noreferrer";
+    anchor.target = "_blank";
+    anchor.style.display = "none";
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
   }
 
   // src/features/export/jobs.ts
@@ -11870,9 +12653,21 @@ input[type="checkbox"] {
   var ENCODER = new TextEncoder();
   function formatXlsx(records) {
     const sheetRows = [
-      ["tweetId", "handle", "displayName", "capturedAt", "surface", "permalink", "text", "mediaUrls"]
+      [
+        "tweetId",
+        "handle",
+        "displayName",
+        "capturedAt",
+        "surface",
+        "permalink",
+        "text",
+        "mediaUrls",
+        "mediaStatus",
+        "mediaManifest"
+      ]
     ];
     for (const record of records) {
+      const captures = record.media.map((media) => describeMediaCapture(media, record.capturedAt));
       sheetRows.push([
         record.tweetId ?? "",
         record.handle ?? "",
@@ -11881,7 +12676,9 @@ input[type="checkbox"] {
         record.surface,
         record.permalink ?? "",
         record.text,
-        record.media.map((media) => media.url).join("|")
+        captures.map((media) => media.sourceUrl).filter(Boolean).join("|"),
+        captures.map((media) => media.status).join("|"),
+        JSON.stringify(captures)
       ]);
     }
     const sheetXml = buildSheetXml(sheetRows);
@@ -11969,7 +12766,7 @@ input[type="checkbox"] {
         generator: "Aviary",
         generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
         count: records.length,
-        records
+        records: serializeExportRecords(records)
       },
       null,
       2
@@ -11981,10 +12778,23 @@ input[type="checkbox"] {
     };
   }
   function csvArtifact(records) {
-    const headers = ["tweetId", "handle", "displayName", "capturedAt", "surface", "permalink", "text", "mediaUrls"];
+    const headers = [
+      "tweetId",
+      "handle",
+      "displayName",
+      "capturedAt",
+      "surface",
+      "permalink",
+      "text",
+      "mediaUrls",
+      "mediaStatus",
+      "mediaManifest"
+    ];
     const lines = [headers.join(",")];
     for (const record of records) {
-      const mediaUrls = record.media.map((media) => media.url).join("|");
+      const captures = record.media.map((media) => describeMediaCapture(media, record.capturedAt));
+      const mediaUrls = captures.map((media) => media.sourceUrl).filter(Boolean).join("|");
+      const mediaStatus = captures.map((media) => media.status).join("|");
       lines.push(
         [
           record.tweetId ?? "",
@@ -11994,7 +12804,9 @@ input[type="checkbox"] {
           record.surface,
           record.permalink ?? "",
           record.text,
-          mediaUrls
+          mediaUrls,
+          mediaStatus,
+          JSON.stringify(captures)
         ].map(csvCell).join(",")
       );
     }
@@ -12028,8 +12840,17 @@ input[type="checkbox"] {
   function htmlArtifact(records) {
     const rows = records.map((record) => {
       const media = record.media.map((entry) => {
-        const href = safeHref(entry.url);
-        return href ? `<li><a href="${escapeHtml(href)}" rel="noopener noreferrer">${escapeHtml(entry.kind)}</a></li>` : `<li>${escapeHtml(entry.kind)}</li>`;
+        const capture = describeMediaCapture(entry, record.capturedAt);
+        const href = capture.packagePath ? safeRelativeHref(capture.packagePath) : safeHref(capture.sourceUrl);
+        const label = `${entry.kind} \u2014 ${capture.status}`;
+        const link = href ? `<a href="${escapeHtml(href)}" rel="noopener noreferrer">${escapeHtml(label)}</a>` : escapeHtml(label);
+        const details = [
+          capture.capturedAt ? `captured ${capture.capturedAt}` : "capture time unknown",
+          capture.byteLength === null ? "bytes unknown" : `${capture.byteLength} bytes`,
+          capture.sha256 ? `sha256 ${capture.sha256}` : "checksum unknown"
+        ].join(" \xB7 ");
+        const source = capture.sourceUrl && capture.status !== "captured-bytes" ? ` <small>source: ${escapeHtml(capture.sourceUrl)}</small>` : "";
+        return `<li data-capture-status="${escapeHtml(capture.status)}">${link} <small>${escapeHtml(details)}</small>${source}</li>`;
       }).join("");
       const permalinkHref = record.permalink ? safeHref(record.permalink) : "";
       const permalink2 = permalinkHref ? `<a href="${escapeHtml(permalinkHref)}" rel="noopener noreferrer">${escapeHtml(permalinkHref)}</a>` : "";
@@ -12060,6 +12881,7 @@ a { color: #1d9bf0; }
 </head><body>
 <h1>Aviary export</h1>
 <p>${records.length} records, generated ${(/* @__PURE__ */ new Date()).toISOString()}.</p>
+<p>Media status is explicit: captured bytes use package-relative links; remote references are not fetched until a link is activated.</p>
 ${rows}
 </body></html>`;
     return {
@@ -12074,7 +12896,14 @@ ${rows}
       const body = record.text.split("\n").map((line) => `> ${line}`).join("\n");
       const media = record.media.length === 0 ? "" : `
 
-${record.media.map((entry) => `- [${entry.kind}](${entry.url})`).join("\n")}`;
+${record.media.map((entry) => {
+        const capture = describeMediaCapture(entry, record.capturedAt);
+        const target = capture.packagePath ?? capture.sourceUrl;
+        const label = `${entry.kind} \u2014 ${capture.status}`;
+        const link = target ? `[${label}](${escapeMarkdownUrl(target)})` : label;
+        const details = `captured ${capture.capturedAt ?? "unknown"}; bytes ${capture.byteLength ?? "unknown"}; sha256 ${capture.sha256 ?? "unknown"}`;
+        return `- ${link} (${details})`;
+      }).join("\n")}`;
       const permalink2 = record.permalink ? `
 
 ${record.permalink}` : "";
@@ -12084,7 +12913,7 @@ ${body}${media}${permalink2}`;
     });
     const md = `# Aviary export
 
-Generated ${(/* @__PURE__ */ new Date()).toISOString()} \u2014 ${records.length} records.
+Generated ${(/* @__PURE__ */ new Date()).toISOString()} \u2014 ${records.length} records. Media links marked remote-reference are not fetched automatically.
 
 ${sections.join("\n\n---\n\n")}
 `;
@@ -12096,6 +12925,12 @@ ${sections.join("\n\n---\n\n")}
   }
   function escapeHtml(value) {
     return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+  function safeRelativeHref(value) {
+    return /^(?:[a-z0-9._-]+\/)*[a-z0-9._/-]+$/i.test(value) ? value : "";
+  }
+  function escapeMarkdownUrl(value) {
+    return value.replace(/\\/g, "%5C").replace(/\)/g, "%29").replace(/\s/g, "%20");
   }
 
   // src/features/export/query-discovery.ts
@@ -12216,7 +13051,10 @@ ${sections.join("\n\n---\n\n")}
     try {
       const initialRecords = collectExportRecords(document, ctx.route.surface);
       await checkpointStore.append(jobId, initialRecords);
-      const records = checkpointStore.records(jobId);
+      let records = checkpointStore.records(jobId);
+      if (ctx.settings.export.captureMediaBytes) {
+        records = await captureExportMedia(records);
+      }
       await checkpointStore.updateProgress(jobId, { completed: records.length, total: records.length });
       const artifacts = records.length === 0 ? [] : buildExportZipChunks(
         records,
@@ -12242,6 +13080,9 @@ ${sections.join("\n\n---\n\n")}
       void ctx.auditLog.record("export.failed", { jobId, error: String(error?.message ?? error) });
       throw error;
     }
+  }
+  async function captureExportMedia(records) {
+    return Promise.all(records.map((record) => captureExportRecordMedia(record)));
   }
   async function pauseExportJob(jobId) {
     if (!checkpointStore) return { ok: false, error: "Export store is not loaded" };
@@ -12276,13 +13117,40 @@ ${sections.join("\n\n---\n\n")}
   function buildExportZip(records, formats, folder) {
     const entries = [];
     const safeFolder = sanitizeFolder(folder);
+    const prepared = prepareExportPackage(records);
+    const packageFiles = [];
     for (const format of formats) {
-      const artifact = formatExport(format, records);
+      const artifact = formatExport(format, prepared.records);
+      const filename = packagePath(safeFolder, artifact.filename);
       entries.push({
-        filename: safeFolder ? `${safeFolder}/${artifact.filename}` : artifact.filename,
+        filename,
         data: artifact.data
       });
+      packageFiles.push({
+        path: filename,
+        kind: "artifact",
+        contentType: artifact.contentType,
+        byteLength: artifact.data.byteLength,
+        sha256: sha256Hex(artifact.data)
+      });
     }
+    for (const asset of prepared.assets) {
+      const filename = packagePath(safeFolder, asset.path);
+      entries.push({ filename, data: asset.data });
+      packageFiles.push({
+        path: filename,
+        kind: "media",
+        contentType: asset.contentType,
+        byteLength: asset.data.byteLength,
+        sha256: sha256Hex(asset.data)
+      });
+    }
+    const manifestPath = packagePath(safeFolder, "manifest.json");
+    const manifest = buildExportPackageManifest(prepared.records, packageFiles, safeFolder);
+    entries.push({
+      filename: manifestPath,
+      data: new TextEncoder().encode(JSON.stringify(manifest, null, 2))
+    });
     return buildStoreZip(entries);
   }
   function buildExportZipChunks(records, formats, folder, chunkSize) {
@@ -12318,6 +13186,9 @@ ${sections.join("\n\n---\n\n")}
   function sanitizeFolder(folder) {
     const cleaned = folder.replace(/[<>:"|?*\u0000-\u001f]/g, "").replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
     return cleaned.slice(0, 80);
+  }
+  function packagePath(folder, path) {
+    return folder ? `${folder}/${path}` : path;
   }
   function zipFilename(folder) {
     const safe = sanitizeFolder(folder);
@@ -12464,9 +13335,16 @@ ${sections.join("\n\n---\n\n")}
       const handle = record.handle ? `@${record.handle}` : "(unknown)";
       const permalink2 = record.permalink ? ` \u2014 [link](${record.permalink})` : "";
       const body = record.text.split("\n").map((line) => `> ${line}`).join("\n");
+      const media = record.media.map((entry) => {
+        const capture = describeMediaCapture(entry, record.capturedAt);
+        return `- ${entry.kind} \u2014 ${capture.status}: ${capture.sourceUrl || "no source URL"}; bytes ${capture.byteLength ?? "unknown"}; sha256 ${capture.sha256 ?? "unknown"}`;
+      }).join("\n");
       return `### ${record.displayName ?? handle} (${handle})${permalink2}
 
-${body}`;
+${body}${media ? `
+
+**Media**
+${media}` : ""}`;
     });
     return `# Aviary clipboard export
 
@@ -12491,7 +13369,12 @@ ${lines.join("\n\n---\n\n")}
       ].join("\n");
       const mediaList = record.media.length === 0 ? "" : `
 
-${record.media.map((media) => `- [${media.kind}](${media.url})`).join("\n")}`;
+${record.media.map((media) => {
+        const capture = describeMediaCapture(media, record.capturedAt);
+        const target = capture.packagePath ?? capture.sourceUrl;
+        const label = `${media.kind} \u2014 ${capture.status}`;
+        return `- ${target ? `[${label}](${markdownUrl(target)})` : label} \u2014 captured ${capture.capturedAt ?? "unknown"}; bytes ${capture.byteLength ?? "unknown"}; sha256 ${capture.sha256 ?? "unknown"}`;
+      }).join("\n")}`;
       return `${frontmatter}
 
 # ${record.displayName ?? handle}
@@ -12524,7 +13407,8 @@ ${record.text}${mediaList}`;
         lines.push("");
         lines.push("**Media**");
         for (const media of record.media) {
-          lines.push(`- ${media.kind}: ${media.url}`);
+          const capture = describeMediaCapture(media, record.capturedAt);
+          lines.push(`- ${media.kind} \u2014 ${capture.status}: ${capture.sourceUrl || "no source URL"}; bytes ${capture.byteLength ?? "unknown"}; sha256 ${capture.sha256 ?? "unknown"}`);
         }
       }
     }
@@ -12537,7 +13421,7 @@ ${record.text}${mediaList}`;
   }
   function toJsonArtifact(records) {
     const json = JSON.stringify(
-      { generator: "Aviary", generatedAt: (/* @__PURE__ */ new Date()).toISOString(), records },
+      { generator: "Aviary", generatedAt: (/* @__PURE__ */ new Date()).toISOString(), records: serializeExportRecords(records) },
       null,
       2
     );
@@ -12546,6 +13430,9 @@ ${record.text}${mediaList}`;
       contentType: "application/json",
       data: ENCODER2.encode(json)
     };
+  }
+  function markdownUrl(value) {
+    return value.replace(/\\/g, "%5C").replace(/\)/g, "%29").replace(/\s/g, "%20");
   }
 
   // src/features/core/feature-i18n.ts
@@ -13320,30 +14207,51 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   var ENCODER3 = new TextEncoder();
   function buildWarcArchive(records) {
     const blocks = [];
+    const packageManifest = buildExportPackageManifest(records, []);
     blocks.push(formatRecord({
       url: "metadata://aviary",
       mime: "application/json",
       body: JSON.stringify({
         generator: "Aviary",
         generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
-        count: records.length
+        count: records.length,
+        metadataOnly: true,
+        packageManifest
       }),
       recordType: "metadata"
     }));
     for (const record of records) {
-      const summary = JSON.stringify(record, null, 2);
+      const summary = JSON.stringify(serializeExportRecord(record), null, 2);
       blocks.push(formatRecord({
         url: record.permalink ?? `tweet://${record.tweetId ?? "unknown"}`,
         mime: "application/json",
         body: summary,
         recordType: "resource"
       }));
-      for (const media of record.media) {
+      for (const media of Array.isArray(record.media) ? record.media : []) {
+        const capture = describeMediaCapture(media, record.capturedAt);
+        const recordedAt = capture.capturedAt ? validDate(capture.capturedAt) : void 0;
+        if (capture.status === "captured-bytes" && media.bytes instanceof Uint8Array) {
+          blocks.push(formatRecord({
+            url: capture.sourceUrl || `media://${record.tweetId ?? "unknown"}/${media.kind}`,
+            mime: mediaMime(media),
+            body: media.bytes,
+            recordType: "response",
+            ...recordedAt ? { recordedAt } : {}
+          }));
+          continue;
+        }
         blocks.push(formatRecord({
-          url: media.url,
-          mime: media.type ?? "application/octet-stream",
-          body: `Aviary captured the resource URL for ${media.kind} ${media.url} without re-downloading the body. Use the Aviary media downloader to fetch the bytes if needed.`,
-          recordType: "metadata"
+          url: capture.sourceUrl || `media://${record.tweetId ?? "unknown"}/${media.kind}`,
+          mime: "application/json",
+          body: JSON.stringify({
+            generator: "Aviary",
+            metadataOnly: true,
+            message: "The media body is not in this WARC; the manifest records whether it is retryable.",
+            media: capture
+          }),
+          recordType: "metadata",
+          ...recordedAt ? { recordedAt } : {}
         }));
       }
     }
@@ -13359,6 +14267,17 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       contentType: "application/warc",
       data: out
     };
+  }
+  function validDate(value) {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? void 0 : date;
+  }
+  function mediaMime(media) {
+    if (media.type?.includes("/")) return media.type;
+    if (media.type === "png") return "image/png";
+    if (media.type === "webp") return "image/webp";
+    if (media.kind === "video") return "video/mp4";
+    return "image/jpeg";
   }
   function sanitizeHeaderValue(value) {
     let out = "";
@@ -13401,256 +14320,6 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     }
     const random = (length) => Array.from({ length }, () => Math.floor(Math.random() * 16).toString(16)).join("");
     return `${random(8)}-${random(4)}-4${random(3)}-a${random(3)}-${random(12)}`;
-  }
-
-  // src/features/integrations/aria2.ts
-  var ARIA2_HISTORY_KEY = "aviary.aria2.history.v1";
-  var ARIA2_HISTORY_LIMIT = 1e3;
-  async function addUriToAria2(config, request) {
-    assertOutboundAllowed("The Aria2 handoff");
-    if (!config.endpoint) {
-      return { ok: false, error: "Aria2 endpoint not configured" };
-    }
-    const token = config.secret ? `token:${config.secret}` : void 0;
-    const params = token ? [token] : [];
-    params.push([request.url]);
-    params.push({ out: request.filename });
-    const body = JSON.stringify({
-      jsonrpc: "2.0",
-      id: `aviary-${Date.now()}`,
-      method: "aria2.addUri",
-      params
-    });
-    try {
-      const networkResult = await withNetworkTimeout(async (signal) => {
-        const response = await fetch(`${config.endpoint}/jsonrpc`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body,
-          signal
-        });
-        if (!response.ok) return { status: response.status };
-        return { payload: await response.json() };
-      }, NETWORK_TIMEOUTS.aria2);
-      if ("status" in networkResult) {
-        return { ok: false, error: `Aria2 HTTP ${networkResult.status}` };
-      }
-      const payload = networkResult.payload;
-      if (payload?.error) {
-        return { ok: false, error: payload.error.message ?? "Aria2 error" };
-      }
-      const ariaResult = { ok: true };
-      if (typeof payload?.result === "string") ariaResult.gid = payload.result;
-      return ariaResult;
-    } catch (error) {
-      return { ok: false, error: String(error?.message ?? error) };
-    }
-  }
-  function shouldHandoffToAria2(integration, estimatedBytes) {
-    if (!integration.enabled || !integration.endpoint) return false;
-    if (estimatedBytes === null) return true;
-    return estimatedBytes >= integration.minBytes;
-  }
-  var Aria2History = class {
-    #storage;
-    #limit;
-    #entries = [];
-    #loaded = false;
-    constructor(storage, limit = ARIA2_HISTORY_LIMIT) {
-      this.#storage = storage;
-      this.#limit = Math.max(50, Math.trunc(limit));
-    }
-    async load() {
-      if (this.#loaded) return;
-      const fallback = { entries: [] };
-      const raw = await this.#storage.get(ARIA2_HISTORY_KEY, fallback);
-      const entries = Array.isArray(raw?.entries) ? raw.entries : [];
-      this.#entries = entries.filter(isHistoryEntry).slice(-this.#limit);
-      this.#loaded = true;
-    }
-    hasUrl(url) {
-      return this.#entries.some((entry) => entry.url === url);
-    }
-    snapshot() {
-      return { entries: this.#entries.map((entry) => ({ ...entry })) };
-    }
-    async rememberQueued(entry) {
-      await this.load();
-      if (this.hasUrl(entry.url)) return;
-      this.#entries.push({
-        ...entry,
-        status: "queued",
-        queuedAt: (/* @__PURE__ */ new Date()).toISOString()
-      });
-      while (this.#entries.length > this.#limit) {
-        this.#entries.shift();
-      }
-      await this.#persist();
-    }
-    async reconcile(config) {
-      await this.load();
-      let completed = 0;
-      let removed = 0;
-      const retained = [];
-      for (const entry of this.#entries) {
-        if (entry.status !== "queued") {
-          retained.push(entry);
-          continue;
-        }
-        const status = await tellAria2Status(config, entry.gid);
-        if (status === "complete") {
-          retained.push({ ...entry, status: "complete", completedAt: (/* @__PURE__ */ new Date()).toISOString() });
-          completed += 1;
-        } else if (status === "error" || status === "removed") {
-          removed += 1;
-        } else {
-          retained.push(entry);
-        }
-      }
-      this.#entries = retained;
-      if (completed > 0 || removed > 0) {
-        await this.#persist();
-      }
-      return { completed, removed };
-    }
-    async clear() {
-      this.#entries = [];
-      this.#loaded = true;
-      await this.#persist();
-    }
-    async #persist() {
-      try {
-        await this.#storage.set(ARIA2_HISTORY_KEY, this.snapshot());
-      } catch {
-      }
-    }
-  };
-  async function pingAria2Version(config) {
-    assertOutboundAllowed("The Aria2 connection test");
-    if (!config.endpoint) {
-      return { ok: false, error: "Aria2 endpoint not configured" };
-    }
-    try {
-      const result = await withNetworkTimeout(async (signal) => {
-        const response = await fetch(`${config.endpoint}/jsonrpc`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: `aviary-${Date.now()}`,
-            method: "aria2.getVersion",
-            params: config.secret ? [`token:${config.secret}`] : []
-          }),
-          signal
-        });
-        if (!response.ok) return { status: response.status };
-        return {
-          payload: await response.json()
-        };
-      }, NETWORK_TIMEOUTS.aria2);
-      if ("status" in result) {
-        return { ok: false, error: `Aria2 HTTP ${result.status}` };
-      }
-      const payload = result.payload;
-      if (payload?.error) {
-        return { ok: false, error: payload.error.message ?? "Aria2 rejected the request" };
-      }
-      return typeof payload?.result?.version === "string" ? { ok: true, gid: payload.result.version } : { ok: false, error: "Aria2 did not report a version" };
-    } catch (error) {
-      return { ok: false, error: String(error?.message ?? error) };
-    }
-  }
-  async function tellActiveAria2(config) {
-    assertOutboundAllowed("The Aria2 sweep");
-    const payload = await callAria2(config, "aria2.tellActive", []);
-    if (!Array.isArray(payload)) return [];
-    return payload.map((row) => ({
-      gid: typeof row.gid === "string" ? row.gid : "",
-      status: typeof row.status === "string" ? row.status : "unknown",
-      totalLength: Number(row.totalLength ?? 0),
-      completedLength: Number(row.completedLength ?? 0),
-      files: Array.isArray(row.files) ? row.files.map((file) => typeof file === "object" && file !== null ? file : {}).map((file) => ({ path: typeof file.path === "string" ? file.path : "" })) : []
-    }));
-  }
-  async function removeAria2Download(config, gid) {
-    assertOutboundAllowed("The Aria2 cancel");
-    if (!gid) return { ok: false, error: "Missing GID" };
-    const payload = await callAria2(config, "aria2.remove", [gid]);
-    if (typeof payload === "string") {
-      return { ok: true, gid: payload };
-    }
-    return { ok: false, error: "Aria2 did not return a GID" };
-  }
-  async function tellAria2Status(config, gid) {
-    if (!gid) return null;
-    if (!config.endpoint) return null;
-    try {
-      assertOutboundAllowed("The Aria2 status check");
-    } catch {
-      return null;
-    }
-    const token = config.secret ? `token:${config.secret}` : void 0;
-    const params = token ? [token, gid] : [gid];
-    try {
-      const payload = await withNetworkTimeout(async (signal) => {
-        const response = await fetch(`${config.endpoint}/jsonrpc`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: `aviary-${Date.now()}`,
-            method: "aria2.tellStatus",
-            params
-          }),
-          signal
-        });
-        if (!response.ok) return null;
-        return await response.json();
-      }, NETWORK_TIMEOUTS.aria2);
-      if (!payload) return null;
-      if (payload.error) {
-        return isUnknownGidError(payload.error) ? "removed" : null;
-      }
-      return typeof payload.result?.status === "string" ? payload.result.status : null;
-    } catch {
-      return null;
-    }
-  }
-  async function callAria2(config, method, args) {
-    if (!config.endpoint) return null;
-    const token = config.secret ? `token:${config.secret}` : void 0;
-    const params = token ? [token, ...args] : args;
-    const body = JSON.stringify({
-      jsonrpc: "2.0",
-      id: `aviary-${Date.now()}`,
-      method,
-      params
-    });
-    try {
-      const json = await withNetworkTimeout(async (signal) => {
-        const response = await fetch(`${config.endpoint}/jsonrpc`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body,
-          signal
-        });
-        if (!response.ok) return null;
-        return await response.json();
-      }, NETWORK_TIMEOUTS.aria2);
-      if (!json) return null;
-      return json?.result ?? null;
-    } catch {
-      return null;
-    }
-  }
-  function isUnknownGidError(error) {
-    const message = typeof error.message === "string" ? error.message.toLowerCase() : "";
-    return /gid/.test(message) && /(not found|is not found|cannot be found)/.test(message);
-  }
-  function isHistoryEntry(value) {
-    if (typeof value !== "object" || value === null) return false;
-    const entry = value;
-    return typeof entry.gid === "string" && typeof entry.url === "string" && typeof entry.filename === "string" && (entry.status === "queued" || entry.status === "complete") && typeof entry.queuedAt === "string" && (entry.completedAt === void 0 || typeof entry.completedAt === "string");
   }
 
   // src/features/integrations/crosspost.ts
@@ -15159,163 +15828,6 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     const m = String(date.getUTCMonth() + 1).padStart(2, "0");
     const d = String(date.getUTCDate()).padStart(2, "0");
     return `${y}-${m}-${d}`;
-  }
-
-  // src/features/media/downloader.ts
-  var DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
-  var DownloadPermissionError = class extends Error {
-    code = DOWNLOAD_PERMISSION_CODE;
-    constructor(message = "Aviary needs the browser download permission to save this file.") {
-      super(message);
-      this.name = "DownloadPermissionError";
-    }
-  };
-  function createDownloader(options = {}) {
-    return async (request) => {
-      if (options.integrations) {
-        const aria = options.integrations.aria2;
-        if (options.aria2History?.hasUrl(request.url)) {
-          return { ok: true, via: "aria2", deduplicated: true };
-        }
-        const estimatedBytes = request.estimatedBytes ?? (aria.enabled && aria.endpoint ? await estimateBytes(request.url) : null);
-        if (shouldHandoffToAria2(aria, estimatedBytes)) {
-          const result = await addUriToAria2(
-            { endpoint: aria.endpoint, secret: aria.secret },
-            { url: request.url, filename: request.filename }
-          );
-          if (result.ok) {
-            if (result.gid && options.aria2History) {
-              await options.aria2History.rememberQueued({
-                gid: result.gid,
-                url: request.url,
-                filename: request.filename
-              });
-            }
-            return { ok: true, via: "aria2", ...result.gid ? { gid: result.gid } : {} };
-          }
-          options.onWarn?.("Aria2 refused the handoff \u2014 saving through the browser instead", {
-            error: result.error ?? "unknown",
-            filename: request.filename
-          });
-        }
-      }
-      const gmResult = await tryGmDownload(request);
-      if (gmResult) {
-        return { ok: true, via: "gm" };
-      }
-      const extResult = await tryExtensionDownload(request);
-      if (extResult.status === "ok") {
-        return { ok: true, via: "extension" };
-      }
-      if (extResult.status === "needs-permission") {
-        throw new DownloadPermissionError();
-      }
-      if (extResult.status === "failed") {
-        throw new Error(extResult.error);
-      }
-      triggerAnchor(request);
-      return isCrossOrigin(request.url) ? { ok: true, via: "anchor", degraded: true } : { ok: true, via: "anchor" };
-    };
-  }
-  function isCrossOrigin(url) {
-    if (/^(blob|data):/i.test(url)) {
-      return false;
-    }
-    const base = typeof location === "undefined" ? void 0 : location.href;
-    try {
-      const parsed = new URL(url, base);
-      return base === void 0 ? true : parsed.origin !== new URL(base).origin;
-    } catch {
-      return false;
-    }
-  }
-  async function estimateBytes(url) {
-    if (typeof fetch !== "function") {
-      return null;
-    }
-    try {
-      const response = await withNetworkTimeout(
-        (signal) => fetch(url, { method: "HEAD", signal }),
-        NETWORK_TIMEOUTS.mediaProbe
-      );
-      if (!response.ok) {
-        return null;
-      }
-      const length = Number(response.headers.get("content-length"));
-      return Number.isFinite(length) && length > 0 ? length : null;
-    } catch {
-      return null;
-    }
-  }
-  async function tryGmDownload(request) {
-    const globals = globalThis;
-    if (typeof globals.GM_download !== "function") {
-      return false;
-    }
-    return await new Promise((resolve) => {
-      try {
-        globals.GM_download?.({
-          url: request.url,
-          name: request.filename,
-          onload: () => resolve(true),
-          onerror: () => resolve(false),
-          ontimeout: () => resolve(false)
-        });
-      } catch {
-        resolve(false);
-      }
-    });
-  }
-  async function tryExtensionDownload(request) {
-    const runtime = globalThis.chrome?.runtime;
-    if (!runtime?.sendMessage) {
-      return { status: "unavailable" };
-    }
-    try {
-      const response = await runtime.sendMessage({
-        type: "AVIARY_DOWNLOAD",
-        url: request.url,
-        filename: request.filename
-      });
-      if (response?.ok === true) {
-        return { status: "ok" };
-      }
-      if (response?.code === DOWNLOAD_PERMISSION_CODE) {
-        return { status: "needs-permission" };
-      }
-      if (response === void 0) {
-        return { status: "unavailable" };
-      }
-      return { status: "failed", error: response.error ?? "download failed" };
-    } catch {
-      return { status: "unavailable" };
-    }
-  }
-  async function requestDownloadPermissionSurface() {
-    const runtime = globalThis.chrome?.runtime;
-    if (!runtime?.sendMessage) {
-      return false;
-    }
-    try {
-      const response = await runtime.sendMessage({ type: "AVIARY_OPEN_OPTIONS" });
-      return response?.ok === true;
-    } catch {
-      return false;
-    }
-  }
-  function triggerAnchor(request) {
-    if (typeof document === "undefined") {
-      return;
-    }
-    const anchor = document.createElement("a");
-    anchor.href = request.url;
-    anchor.download = request.filename;
-    anchor.rel = "noopener noreferrer";
-    anchor.target = "_blank";
-    anchor.style.display = "none";
-    document.body.append(anchor);
-    anchor.click();
-    anchor.remove();
   }
 
   // src/features/media/media-metadata.ts

@@ -1,4 +1,5 @@
 import type { ExportArtifact, ExportRecord } from "./types";
+import { describeMediaCapture, serializeExportRecords } from "./assets";
 
 const ENCODER = new TextEncoder();
 
@@ -33,7 +34,11 @@ function toPlainMarkdown(records: readonly ExportRecord[]): string {
     const handle = record.handle ? `@${record.handle}` : "(unknown)";
     const permalink = record.permalink ? ` — [link](${record.permalink})` : "";
     const body = record.text.split("\n").map((line) => `> ${line}`).join("\n");
-    return `### ${record.displayName ?? handle} (${handle})${permalink}\n\n${body}`;
+    const media = record.media.map((entry) => {
+      const capture = describeMediaCapture(entry, record.capturedAt);
+      return `- ${entry.kind} — ${capture.status}: ${capture.sourceUrl || "no source URL"}; bytes ${capture.byteLength ?? "unknown"}; sha256 ${capture.sha256 ?? "unknown"}`;
+    }).join("\n");
+    return `### ${record.displayName ?? handle} (${handle})${permalink}\n\n${body}${media ? `\n\n**Media**\n${media}` : ""}`;
   });
   return `# Aviary clipboard export\n\n${lines.join("\n\n---\n\n")}\n`;
 }
@@ -57,7 +62,12 @@ function toObsidianArtifact(records: readonly ExportRecord[]): ExportArtifact {
     const mediaList =
       record.media.length === 0
         ? ""
-        : `\n\n${record.media.map((media) => `- [${media.kind}](${media.url})`).join("\n")}`;
+        : `\n\n${record.media.map((media) => {
+            const capture = describeMediaCapture(media, record.capturedAt);
+            const target = capture.packagePath ?? capture.sourceUrl;
+            const label = `${media.kind} — ${capture.status}`;
+            return `- ${target ? `[${label}](${markdownUrl(target)})` : label} — captured ${capture.capturedAt ?? "unknown"}; bytes ${capture.byteLength ?? "unknown"}; sha256 ${capture.sha256 ?? "unknown"}`;
+          }).join("\n")}`;
     return `${frontmatter}\n\n# ${record.displayName ?? handle}\n\n${record.text}${mediaList}`;
   });
   const document = sections.join("\n\n---\n\n");
@@ -99,7 +109,8 @@ function toNotionArtifact(records: readonly ExportRecord[]): ExportArtifact {
       lines.push("");
       lines.push("**Media**");
       for (const media of record.media) {
-        lines.push(`- ${media.kind}: ${media.url}`);
+        const capture = describeMediaCapture(media, record.capturedAt);
+        lines.push(`- ${media.kind} — ${capture.status}: ${capture.sourceUrl || "no source URL"}; bytes ${capture.byteLength ?? "unknown"}; sha256 ${capture.sha256 ?? "unknown"}`);
       }
     }
   }
@@ -112,7 +123,7 @@ function toNotionArtifact(records: readonly ExportRecord[]): ExportArtifact {
 
 function toJsonArtifact(records: readonly ExportRecord[]): ExportArtifact {
   const json = JSON.stringify(
-    { generator: "Aviary", generatedAt: new Date().toISOString(), records },
+    { generator: "Aviary", generatedAt: new Date().toISOString(), records: serializeExportRecords(records) },
     null,
     2
   );
@@ -121,4 +132,8 @@ function toJsonArtifact(records: readonly ExportRecord[]): ExportArtifact {
     contentType: "application/json",
     data: ENCODER.encode(json)
   };
+}
+
+function markdownUrl(value: string): string {
+  return value.replace(/\\/g, "%5C").replace(/\)/g, "%29").replace(/\s/g, "%20");
 }

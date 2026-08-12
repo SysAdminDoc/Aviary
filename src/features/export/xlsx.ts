@@ -1,13 +1,26 @@
 import type { ExportArtifact, ExportRecord } from "./types";
+import { describeMediaCapture } from "./assets";
 import { buildStoreZip } from "./zip-store";
 
 const ENCODER = new TextEncoder();
 
 export function formatXlsx(records: readonly ExportRecord[]): ExportArtifact {
   const sheetRows: string[][] = [
-    ["tweetId", "handle", "displayName", "capturedAt", "surface", "permalink", "text", "mediaUrls"]
+    [
+      "tweetId",
+      "handle",
+      "displayName",
+      "capturedAt",
+      "surface",
+      "permalink",
+      "text",
+      "mediaUrls",
+      "mediaStatus",
+      "mediaManifest"
+    ]
   ];
   for (const record of records) {
+    const captures = record.media.map((media) => describeMediaCapture(media, record.capturedAt));
     sheetRows.push([
       record.tweetId ?? "",
       record.handle ?? "",
@@ -16,7 +29,9 @@ export function formatXlsx(records: readonly ExportRecord[]): ExportArtifact {
       record.surface,
       record.permalink ?? "",
       record.text,
-      record.media.map((media) => media.url).join("|")
+      captures.map((media) => media.sourceUrl).filter(Boolean).join("|"),
+      captures.map((media) => media.status).join("|"),
+      JSON.stringify(captures)
     ]);
   }
 

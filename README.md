@@ -36,7 +36,7 @@ its job.
 - Filter engine and predicates: `src/features/filtering/filter-engine.ts`, `src/features/filtering/predicates.ts`
 - Hidden posts: `src/features/filtering/hidden-posts.ts` (store), `src/features/filtering/hidden-posts-feature.ts` (Hide button + collapse)
 - Media downloads: `src/features/media/` (`media-buttons.ts`, `urls.ts`, `template.ts`, `history.ts`, `queue.ts`, `downloader.ts`, `extract.ts`, `video-extract.ts`, `media-presentation.ts`, `batch-downloader.ts`)
-- Export core: `src/features/export/` (`export-feature.ts`, `collector.ts`, `formatters.ts`, `zip-store.ts`, `zip-reader.ts`, `jobs.ts`, `query-discovery.ts`, `network-capture.ts`, `xlsx.ts`, `warc.ts`, `external-targets.ts`, `types.ts`)
+- Export core: `src/features/export/` (`export-feature.ts`, `collector.ts`, `formatters.ts`, `assets.ts`, `zip-store.ts`, `zip-reader.ts`, `jobs.ts`, `query-discovery.ts`, `network-capture.ts`, `xlsx.ts`, `warc.ts`, `external-targets.ts`, `types.ts`)
 - AI: `src/features/ai/command-menu.ts` (local prompt builder; optionally runs through `features/integrations/ai-provider.ts` when the user supplies an API key)
 - Integrations: `src/features/integrations/` (`aria2.ts`, `crosspost.ts`, `ai-provider.ts`, `semantic-search.ts`)
 - Library: `src/features/library/` (`user-notes.ts`, `link-unshorten.ts`, `snapshots.ts`, `snapshots-feature.ts`, `archive-import.ts`, `cleanup-preview.ts`, `cleanup-queue.ts`, `reports.ts`, `local-search.ts`, `bookmarks.ts`, `bookmarks-feature.ts`)
@@ -129,8 +129,11 @@ The Control Center "Export" section exposes:
 - Master capture toggle (accumulates tweets visible on each route into the live job).
 - Format list (JSON, CSV, HTML, Markdown, XLSX).
 - Preserve-raw-payloads and auto-discover-query-ID toggles.
+- Optional media-byte capture during an export; successful assets are packaged with byte length and
+  SHA-256, while failed assets remain explicit retryable references.
 - Save folder hint that becomes both the ZIP filename prefix and the root path inside the archive.
-- "Export visible tweets" — bundles the configured formats into a STORE-only ZIP and triggers a download.
+- "Export visible tweets" — bundles the configured formats into a STORE-only ZIP, adds a
+  `manifest.json` with per-file checksums and media capture status, and triggers a download.
 - "Copy diagnostics" — copies the Aviary diagnostic log (version, route, recent events) to the clipboard.
 
 Tweets are gathered passively from the DOM; no auth headers, cookies, or session tokens are ever read or persisted.
@@ -188,7 +191,8 @@ The build also produces `dist/extension-chrome-v<version>.zip` and `dist/extensi
 - **Bookmark library** — tags, folders, reminders, and due-time queries stored locally.
 - **Composer snippets** — a Snippets button next to the post toolbar opens a popover and inserts via `document.execCommand("insertText")`. No keyboard simulation, no hotkeys.
 - **XLSX export** — added to the Export format list. The writer reuses the STORE-only ZIP encoder, so there's still no external runtime dependency.
-- **WARC export** — emits ISO-28500 WARC/1.1 records for archival research tooling. One file per export run.
+- **WARC export** — emits ISO-28500 WARC/1.1 records for archival research tooling. Captured media
+  becomes a response record; uncaptured media is an explicit metadata-only record. One file per run.
 - **External export targets** — Copy-as-Markdown, Obsidian (YAML frontmatter), Notion (heading-first), raw JSON. Pure local rendering; the clipboard variant never touches disk.
 - **Batch profile-media download** — "Download all visible media" in the Media section walks every rendered tweet and pipes photos / videos / GIFs / thumbnails through the existing queue with the configured concurrency cap and dedup history.
 - **Local AI command menu** — each tweet's action row gets an AI button. Choose Translate / Summarize / Explain / Fact-check prompt and Aviary builds a prompt and copies it to your clipboard. No network calls; no API keys involved.

@@ -67,6 +67,8 @@ Control Center status/about surface.
 Before uninstalling, use the Control Center clear actions for hidden posts, media history, audit,
 snapshots, bookmarks, notes, cleanup queue, and semantic index as needed. **Export settings** only
 moves preferences (with credentials redacted); it is not a full backup of the local library.
+Settings are stored under the local `aviary.settings.v1` key; library collections use separate
+versioned local stores.
 
 Then remove the extension from the browser or delete the userscript from its manager. Browser
 extension storage, IndexedDB, downloaded files, and manager values may survive removal, so use the

@@ -16,12 +16,27 @@ export interface ExportRecord {
 export interface ExportMedia {
   kind: "photo" | "video" | "thumbnail";
   url: string;
+  /** Canonical source URL retained when `url` is blank because the capture was not usable. */
+  sourceUrl?: string;
+  /** Capture time for the asset; the record capture time is used when this is absent. */
+  capturedAt?: string;
+  /** Byte metadata learned by a downloader or a HEAD request. */
+  byteLength?: number;
+  sha256?: string;
+  captureStatus?: MediaCaptureStatus;
+  captureError?: string;
+  /** Transient bytes supplied to package/WARC builders; never serialized as a JSON object. */
+  bytes?: Uint8Array;
+  /** Relative path assigned by the package builder when `bytes` are present. */
+  assetPath?: string;
   width?: number;
   height?: number;
   bitrate?: number;
   type?: string;
   altText?: string;
 }
+
+export type MediaCaptureStatus = "captured-bytes" | "remote-reference" | "missing";
 
 export interface ExportPoll {
   choices: Array<{ label: string; percent?: number; voteShare?: string }>;
