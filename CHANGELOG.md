@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Privacy, installation, and FAQ documentation now match v1.16.0 permissions, opt-in network
+  integrations, local storage keys, export formats, options-page grants, and uninstall limits;
+  a consistency test guards those claims against future release drift.
 - AI and composer-snippet popovers now expose controlled menu state, focus their first option,
   support arrow/Home/End/Escape navigation, and restore trigger focus on dismissal.
 - Injected Hide, media, bookmark, AI, and snippet controls now receive 44px coarse-pointer hit

@@ -1,57 +1,123 @@
-# FAQ
+# Frequently asked questions
 
 ## Does Aviary talk to any server?
 
-No. Every feature in v0.9.0 runs locally:
+By default, no. Aviary has no telemetry or remote-code loader, and local settings, exports,
+snapshots, bookmarks, notes, archive imports, and indexes stay in the browser. X still makes its
+own normal requests while you use the site.
 
-- Settings, media history, export checkpoints, audit log, and account notes live in browser storage.
-- Media downloads use the browser's native `chrome.downloads`, the userscript manager's `GM_download`, or a plain anchor click.
-- Exports produce a STORE-only ZIP that the browser downloads. Nothing is sent over the network from Aviary itself.
+An explicit opt-in or user action can make Aviary contact a destination you configured:
 
-The only outbound traffic Aviary triggers is fetching image / video URLs the *user* selected when clicking Save. Those requests inherit the user's cookies because the browser handles them like any other resource load.
+- **Media Save / Thumb** fetches the selected X media URL.
+- **Aria2** sends a JSON-RPC handoff to your own configured daemon when enabled and eligible.
+- **Bluesky / Mastodon** sends composer text after you click a crosspost action; media attachment
+  is separately opt-in.
+- **AI provider** sends the selected-post prompt only when provider runs are enabled and invoked.
+- **Semantic search** sends record text to your configured embeddings endpoint when indexing or
+  semantic queries run.
+
+These integrations are disabled by default. The Control Center shows their configuration and
+recent errors; [PRIVACY.md](PRIVACY.md) lists the data sent by each path.
+
+## What permissions does the extension need?
+
+The required extension permission is `storage`. `downloads` and direct access to
+`pbs.twimg.com`/`video.twimg.com` are optional. Open the dedicated extension **Options** page to
+grant or revoke each one. A grant is requested only after its button is clicked there; declining
+does not disable the rest of Aviary.
+
+The userscript uses its manager's local-value and download grants plus the two media `@connect`
+hosts. Review the generated userscript metadata before installing it.
 
 ## A button stopped working after an X update — what should I do?
 
-1. Open the Control Center and check the **Selector health** row.
-2. If a critical surface (App root, Primary column) is reported as degraded, X likely renamed a `data-testid`. Aviary's filter / media features use stable IDs first and CSS fallbacks second, so most regressions are visual rather than fatal.
-3. Click **Copy diagnostics** in the Control Center and paste the JSON into a bug report. It includes the active route, the diagnostic event log, and your locale — never auth state.
+1. Open the Control Center and check **Selector health**.
+2. If App root or Primary column is degraded, X may have changed a surface selector. Aviary uses
+   stable test ids first and fallbacks second, so most regressions are visual rather than fatal.
+3. Use **Copy diagnostics** and attach the JSON to a bug report. It contains route/version and
+   recent diagnostic events, not cookies, auth headers, or API keys.
 
-## Why no keyboard shortcuts?
+## Why are there no keyboard shortcuts?
 
-Aviary's house style avoids hotkeys: every command must be reachable via a visible button, menu item, or toggle. Keyboard accessibility (tab order, ARIA labels, focus management) is still honored everywhere.
+Aviary intentionally has no global hotkeys. Every command is reachable through a visible button,
+menu item, or toggle. Normal keyboard navigation, menu arrows, localized labels, focus trapping,
+Escape dismissal, and coarse-pointer hit targets are still supported.
 
-## Why no light theme?
+## Why is there no light theme?
 
-By project policy. Aviary ships deep-dark, Lights-out, Graphite, Plum, and Midnight palettes. If your OS forces a light scheme, the Control Center will still render dark.
+The shipped palettes are deep-dark, Lights out, Graphite, Plum, and Midnight. The Control Center
+keeps its dark surface even if the host page or operating system is light so contrast stays
+predictable.
 
-## Where did my dim mode go after X removed it?
+## How do I hide and restore a post?
 
-The "Restore dim" theme is the default. Open the Control Center → Appearance → Theme = Dim.
+Use **Hide** beside a rendered post's More menu. Aviary stores the status id (or a bounded
+handle/text signature), collapses the owning timeline row, and shows an **Undo** toast. The Hidden
+posts section also has **Undo last hide**, per-post restore for recent entries, and **Clear hidden
+posts**. It never changes the post on X.
 
-## How do I export everything I'm seeing?
+## How do I save media, and why did it open instead?
 
-1. Open the Control Center → **Export** section.
-2. Pick the formats you want (`json`, `csv`, `html`, `markdown`). XLSX is queued for v0.10.0+.
-3. Toggle **Capture visible tweets** on.
-4. Scroll through the timeline / profile / thread you want to archive.
-5. Press **Export visible tweets**. Aviary bundles the configured formats into a STORE-only ZIP using the **Save folder hint** as the archive root.
+The Media section enables **Save**, **Thumb**, and eligible **Video/GIF** controls. In an extension,
+grant `downloads` from the options page for deterministic browser-managed saves. Without it, the
+cross-origin anchor fallback can open the media in a tab; Aviary labels that path **Opened** rather
+than falsely claiming **Saved**. In a userscript, a manager with `GM_download` provides the
+privileged path. Aria2 handoff is optional and falls back to the browser when it is unavailable.
 
-## Aviary downloaded an image but the filename is wrong / generic
+## How do I export what I am seeing?
 
-Cross-origin downloads using the anchor-tag fallback inherit the server's `Content-Disposition` filename. Install Tampermonkey (which uses privileged `GM_download` with explicit filenames) or grant the extension's optional `downloads` permission for the deterministic filename behavior described in the README.
+1. Open **Export** and enable capture.
+2. Select any combination of JSON, CSV, HTML, Markdown, or XLSX.
+3. Scroll the home/profile/search/status surface or thread so its rendered posts are collected.
+4. Press **Export visible tweets**.
 
-## I want to back up my settings
+A local STORE-only ZIP is produced. The export also exposes WARC output for archival tooling and
+local external targets such as Markdown, Obsidian, Notion, and raw JSON. Media entries can still be
+remote references; the output should not be treated as a byte-complete offline replay unless the
+entry says it was captured. Aviary does not silently fetch X when an exported file is opened.
 
-Control Center → **Backup & Audit** → **Export settings**. You'll receive a versioned JSON envelope. Paste the contents back into the **Import settings (JSON)** textarea on another browser to restore.
+## What is XLSX, and is it still future work?
+
+No. XLSX is a supported Export format in 1.16.0. It is generated locally with the same bundled
+STORE-only ZIP machinery and has no runtime dependency on a remote spreadsheet service.
+
+## What does archive import do?
+
+The Snapshots section imports an official X archive ZIP locally, classifies recognized/skipped/
+malformed files, persists resumable jobs, and exposes pause/resume/cancel/retry actions. Imported
+collections such as account data, lists, followers, media references, authored posts, and likes
+remain in separate local stores; direct messages are kept out of public-post search. No archive
+file is uploaded.
+
+## I want to back up my settings. Is that a full backup?
+
+No. **Backup & Audit → Export settings** creates a versioned preferences envelope. It redacts API
+keys and passwords, and importing it preserves credentials already stored on the destination
+browser. It does not include bookmarks, snapshots, archive jobs, export checkpoints, semantic
+vectors, notes, or media files. Clear or copy those local collections separately before moving or
+retiring a profile.
+
+## What is stored locally?
+
+The active profile can contain settings, credentials, hidden posts, media history and queue,
+last-download metadata, audit entries, export checkpoints, retention limits, GraphQL query ids,
+Aria2 history, snapshots, bookmarks, notes, cleanup candidates, semantic vectors, archive-import
+jobs, and archive-library data. See the complete key table and clearing guidance in
+[PRIVACY.md](PRIVACY.md).
 
 ## What's the audit log?
 
-A capped, persisted ring buffer of local actions (downloads, exports, settings round-trips, diagnostic copies). It never leaves the browser. Clear it any time from the same section.
+It is a capped local ring buffer of actions such as downloads, exports, settings round-trips, and
+diagnostic copies. It never leaves the browser unless you explicitly choose **Copy diagnostics**.
+Use **Clear audit log** whenever you want to remove it.
 
 ## What about blocked accounts and self-reposts?
 
-The filter engine reserves `filter.blockedAccounts` and `filter.selfRepost`, but the home / status MHTML captures in this repo don't include the markup needed to detect either reliably. Once an authenticated capture lands in `_decoded/`, the predicates light up and the parked Control Center row goes away.
+Those filter predicates remain reserved until an authenticated fixture capture provides reliable
+markup for them. The current build does not pretend that those surfaces are supported.
 
-## Will Aviary ever post tweets, follow accounts, or like content for me?
+## Will Aviary post, follow, like, or delete for me?
 
-No. The roadmap explicitly rejects auto-like / auto-follow / engagement-farming features (R001). Every action Aviary takes is initiated by an explicit user click.
+No. Aviary never auto-likes, auto-follows, posts, deletes, or engages on your behalf. Crossposting
+is an explicit Control Center action to a configured Bluesky or Mastodon account, and cleanup is a
+read-only review queue.

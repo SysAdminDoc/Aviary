@@ -1,69 +1,93 @@
 # Aviary Privacy Manifest
 
-Updated: 2026-05-19
+Updated: 2026-08-12 · release 1.16.0
 
-## Defaults
+## Defaults and network boundaries
 
-Aviary is local-first.
+Aviary is local-first. The default build sends no telemetry, loads no remote code, exports no
+cookies or authentication headers, and makes no provider request. X continues to make its own
+requests; Aviary's optional page-world capture only observes selected responses after you enable
+the relevant capture setting.
 
-- No telemetry.
-- No remote code.
-- No analytics endpoint.
-- No credential export.
-- No default cloud sync.
-- No hidden third-party requests.
+These are the only Aviary-triggered network paths:
 
-## Data Stored Locally
-
-Everything below lives in userscript storage, `chrome.storage.local`, or the `localStorage`
-fallback — on this device only. Nothing is uploaded.
-
-| Key | Data | Purpose |
+| Feature | When it leaves the browser | Destination and data |
 |---|---|---|
-| `aviary.settings.v1` | Every preference, plus any integration credentials you enter | Persist your configuration. |
-| `aviary.hiddenPosts.v1` | Status ids (or a handle+text signature) of posts you hid, with a short text snippet | Keep hidden posts hidden across visits. |
-| `aviary.media.history.v1` | Hashes of media you downloaded | Skip re-downloading the same file. |
-| `aviary.audit.v1` | Local action log (last 500 entries) | Show what Aviary did on your behalf. |
-| `aviary.export.checkpoints.v1` | Export jobs and the records they captured | Resume exports and power local search. |
-| `aviary.retention.*` | Export retention limits | Bound how long checkpoints are kept. |
-| `aviary.snapshots.v1` | Follower/following snapshots you captured | Diff them over time. |
-| `aviary.library.bookmarks.v1` | Your local bookmark library | Tags, folders, reminders. |
-| `aviary.userNotes.v1` | Private notes you wrote about accounts | Show a note badge on their posts. |
-| `aviary.cleanupQueue.v1` | Cleanup review candidates | Review list only; Aviary never deletes account data. |
-| `aviary.semanticIndex.v1` | Embeddings for records you indexed | Local semantic search. |
-| `aviary.aria2.history.v1` | Aria2 download ids you queued | Avoid requeueing the same download. |
-| `aviary.queryIds.v1` | X GraphQL operation ids seen in loaded scripts | Keep export parsing working as X changes. |
-| Selector diagnostics | in memory only, never written to storage | Diagnose X DOM churn. |
+| Media Save / Thumb | After you click a media button | The selected X media URL. A browser/userscript downloader handles the file. |
+| Aria2 handoff | When enabled, configured, and the media meets the threshold | Your configured JSON-RPC endpoint; the media URL, filename, and optional RPC secret are sent. |
+| Bluesky / Mastodon | After you click the corresponding crosspost action | Your configured service; composer text, thread metadata, and optionally the last downloaded media when attachment is enabled. |
+| AI provider | When AI runs is enabled and you invoke a provider-backed command | Your configured endpoint; the prompt built from the selected post and the configured system text. |
+| Semantic search | When you rebuild the index, search semantically, or enable auto-embedding | Your configured embeddings endpoint; the record text sent for each embedding request. |
+| Analytics refusal | When beacon blocking is enabled | No new destination; matching analytics beacons are intercepted before they leave the page. |
 
-Clearing these is possible from the Control Center: media history, audit log, snapshots,
-cleanup queue, semantic index, account notes, and hidden posts each have a clear action.
+Every integration is disabled by default and requires an explicit setting, endpoint/credential,
+and (for actions) a user gesture. Local prompt building works without an AI key. The options page
+grant/revoke controls are local extension UI and do not send data.
 
-## Data Never Stored
+The extension's optional permissions are `downloads` and direct media-host access for
+`pbs.twimg.com` and `video.twimg.com`. They are requested only from the options page and can be
+revoked there; the userscript declares the equivalent `GM_download`/`@connect` surfaces in its
+metadata.
 
-- X auth cookies, including `auth_token`.
-- `ct0` CSRF token.
-- X bearer tokens and raw request headers.
-- Your X account password.
+## Data stored locally
 
-If "Preserve raw payloads" is on, captured GraphQL bodies are scrubbed of `ct0`,
-`auth_token`, `guest_id`, `csrf_token`, and `Bearer …` values before anything is written.
+The logical keys below are stored in the active profile. The durable-storage backend uses the
+browser's IndexedDB database `aviary.durable.v1` when available and falls back to the extension or
+userscript storage backend when it cannot open. Profile-scoped copies may be prefixed with
+`aviary.profile.<profileId>.`; the Control Center's Trust section reports the active backend,
+schema, migration, usage, and quota status.
 
-## Credentials You Provide
+| Key | Data | Purpose and user control |
+|---|---|---|
+| `aviary.profiles.v1` / `aviary.profile.active.v1` | Profile registry and active-profile id | Keep explicit settings/library boundaries. Profiles are created and switched in Trust. |
+| `aviary.settings.v1` | Preferences and any integration credentials you enter | Configure Aviary. **Export settings** is a settings envelope, not a full-library backup. |
+| `aviary.hiddenPosts.v1` | Hidden status ids or handle/text signatures | Hide posts across visits; **Clear hidden posts** removes them. |
+| `aviary.media.history.v1` | Bounded media dedup records | Avoid duplicate downloads; **Clear download history** removes them. |
+| `aviary.media.queue.v1` | Queued, paused, failed, and completed media jobs | Resume/retry media work; completed history is separately clearable. |
+| `aviary.media.last-download.v1` | Metadata for the last successful download | Make an explicitly enabled crosspost-media attachment possible. |
+| `aviary.audit.v1` | Capped local action log | Review activity; **Clear audit log** removes it. |
+| `aviary.export.checkpoints.v1` | Export jobs, captured records, and checkpoints | Resume capture/export and local search; retention limits can remove old jobs. |
+| `aviary.retention.maxJobs`, `aviary.retention.maxRecordsPerJob`, `aviary.retention.maxAgeDays` | Export retention limits | Bound checkpoint storage; zero disables the corresponding limit. |
+| `aviary.queryIds.v1` | GraphQL operation ids discovered in loaded X scripts | Keep export parsing resilient as X changes. |
+| `aviary.aria2.history.v1` | Queued/completed Aria2 gids and media metadata | Avoid requeueing the same media URL. |
+| `aviary.snapshots.v1` | Captured follower/following snapshots | Compare snapshots over time; **Clear all snapshots** removes them. |
+| `aviary.library.bookmarks.v1` | Local bookmarks, tags, folders, reminders, and notes | Search/edit the local library; individual bookmarks or **Clear local bookmarks** remove them. |
+| `aviary.userNotes.v1` | Private account notes | Decorate matching posts; **Clear all account notes** removes them. |
+| `aviary.cleanupQueue.v1` | Review candidates from cleanup previews | Review-only queue; **Clear cleanup queue** removes it. Aviary does not delete X data. |
+| `aviary.semanticIndex.v1` | Embedding vectors and record metadata | Local semantic search; **Clear semantic index** removes it. |
+| `aviary.archive.imports.v1` | Official X archive import jobs and checkpoints | Pause/resume/retry imports and preserve progress. |
+| `aviary.archive.library.v1` | Imported archive collections, including typed account/media/list data | Keep archive data separate from public-post search. |
 
-Integration credentials — the Aria2 RPC secret, Bluesky app password, Mastodon access token,
-and AI/embedding API keys — are stored in `aviary.settings.v1` in plain text, because the
-browser needs them to make the calls you asked for. They are never sent anywhere except the
-service they belong to. Two consequences worth knowing:
+Selector health and other transient DOM diagnostics are in memory unless an action is explicitly
+written to the audit log. Imported media bytes are not retained after a completed archive import;
+resumable import state may retain the local source while the job is unfinished.
 
-- Exporting settings replaces them with a placeholder, so the exported file is safe to share.
-  Importing that file back keeps whatever is already saved on this machine.
-- Anything with access to this browser profile can read them. Use scoped app passwords and
-  revocable API keys rather than primary credentials.
+## Data not stored
 
-## Optional Permissions
+Aviary does not store X `auth_token` or `ct0` cookies, bearer tokens, raw request headers, or your
+X password. When **Preserve raw payloads** is enabled, captured GraphQL bodies are scrubbed for
+`ct0`, `auth_token`, `guest_id`, `csrf_token`, and `Bearer …` values before persistence. This does
+not make the remaining captured post data anonymous: treat it as account data.
 
-The MV3 manifest declares optional permissions for future media-download work. Those permissions are not requested or used by the v0.3.0 runtime.
+## Credentials and exports
 
-## User Control
+Aria2 secrets, Bluesky app passwords, Mastodon tokens, and AI/embedding keys are stored locally in
+the active profile in the form the browser needs. They are sent only to the service you configured
+when that integration runs. Use scoped, revocable credentials. **Export settings** replaces these
+secrets with placeholders; importing the file keeps credentials already saved on the destination
+browser instead of overwriting them.
 
-Every feature must be reversible. Disabling a feature must remove classes, style nodes, observers, timers, DOM nodes, and event listeners it created.
+Aviary does not encrypt local storage. Use the browser profile's normal protections and full-disk
+encryption. Anyone with access to that browser profile may be able to read the stored credentials
+and local library.
+
+## Clearing and uninstalling
+
+Use the Control Center clear actions listed above before sharing or retiring a profile. Removing an
+extension or userscript does not reliably erase browser storage, IndexedDB, downloaded files, or
+userscript-manager values; use the browser's extension/site-data controls and the manager's own
+storage controls for a complete wipe. Revoking optional `downloads` and media-host permissions is
+available from the extension's dedicated options page.
+
+Every feature is reversible: disabling it removes the DOM nodes, styles, observers, timers, and
+listeners it created. Aviary never auto-likes, auto-follows, posts, deletes, or syncs account data.

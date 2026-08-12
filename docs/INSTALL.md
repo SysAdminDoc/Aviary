@@ -1,52 +1,79 @@
-# Install
+# Install Aviary 1.16.0
 
-Aviary ships in three forms. Pick whichever fits your workflow.
+Aviary ships as a readable userscript and as Manifest V3 extensions. Both builds run on X pages;
+the extensions also provide a dedicated options page for optional browser permissions.
 
-## 1. Userscript (recommended)
+## Userscript (recommended for quick setup)
 
-1. Install [Tampermonkey](https://www.tampermonkey.net/), [Violentmonkey](https://violentmonkey.github.io/), or any other compatible manager.
-2. Open `dist/aviary.user.js` from this repository (or a GitHub raw URL once a release lands).
-3. The manager will prompt to install. Confirm.
+1. Install [Tampermonkey](https://www.tampermonkey.net/), [Violentmonkey](https://violentmonkey.github.io/), or another compatible manager.
+2. Open `dist/aviary.user.js` from this repository, or the raw file from a release, in the manager.
+3. Review and confirm the install prompt.
 
-The userscript is readable, never minified, and lists every grant in its `==UserScript==` block:
+The userscript declares only the grants it uses:
 
-- `GM_getValue`, `GM_setValue`, `GM_deleteValue` — local settings storage.
-- `GM_download` — direct image / video / GIF saves with the configured filename.
-- `@connect pbs.twimg.com` and `@connect video.twimg.com` — required for cross-origin downloads.
+- `GM_getValue`, `GM_setValue`, and `GM_deleteValue` for local settings/library storage.
+- `GM_download` when the manager supplies it for privileged media saves.
+- `unsafeWindow` for the page-world X GraphQL observer used by opt-in capture and media discovery.
+- `@connect pbs.twimg.com` and `@connect video.twimg.com` for cross-origin media downloads.
 
-## 2. Chrome / Edge / Brave extension (developer load)
+No permission prompt is needed for the local prompt builder, snapshots, bookmarks, notes, archive
+import, or local export formats. Provider integrations remain disabled until configured in the
+Control Center.
 
-1. Run `npm run verify`. The build emits `dist/extension-chrome/` and `dist/extension-chrome-v<version>.zip`.
-2. Open `chrome://extensions/`, enable **Developer mode**, then either:
-   - Click **Load unpacked** and pick `dist/extension-chrome/`, **or**
-   - Drag the `.zip` archive onto the page (Chromium 75+ requires unpacked loading for self-signed CRX).
-3. Pin Aviary from the extensions menu so the Control Center launcher is reachable.
+## Chrome, Edge, or Brave (developer load)
 
-The first time you click an Aviary Save / Video / Thumb button the browser will prompt for the optional `downloads` permission. Decline freely — Aviary will fall back to an anchor download.
+1. Run `npm run verify`. The build emits `dist/extension-chrome/` and
+   `dist/extension-chrome-v1.16.0.zip`.
+2. Open `chrome://extensions/` (or the equivalent extensions page), enable **Developer mode**, and
+   choose **Load unpacked** with `dist/extension-chrome/`. A ZIP is a release artifact; Chromium
+   developer loading uses the unpacked directory.
+3. Pin Aviary if you want the extension entry point visible. The Control Center launcher itself
+   appears on matching X pages.
 
-## 3. Firefox extension (temporary load)
+The base permission is `storage`. `downloads` is optional and is requested only from the options
+page after you click **Grant download access**. Optional media-host access for
+`pbs.twimg.com` and `video.twimg.com` is requested separately by **Grant media hosts**. Both can be
+revoked from the same page. Media buttons remain available without either optional grant; without
+`downloads`, a cross-origin anchor may open the media instead of claiming it was saved.
 
-Requires Firefox 128 or newer: Aviary ships a `"world": "MAIN"` content script, which is what lets it see X's own network requests, and 128 is the first release to support it.
+To manage permissions later, open the extension's **Options** page from the extensions manager (or
+the Aviary options link). The page reports live grant state and never writes settings or makes a
+network request.
 
-1. Build as above.
-2. Open `about:debugging#/runtime/this-firefox`.
-3. **Load Temporary Add-on…** and select `dist/extension-firefox/manifest.json`.
-4. Refresh `x.com`; the Control Center launcher appears in the bottom-right.
+## Firefox (temporary load)
+
+Firefox 128 or newer is required because the extension uses a Manifest V3 page-world content script
+(`"world": "MAIN"`) to observe X's own loaded network responses. Build the extension, then:
+
+1. Open `about:debugging#/runtime/this-firefox`.
+2. Select **Load Temporary Add-on…**.
+3. Choose `dist/extension-firefox/manifest.json`.
+4. Refresh an `x.com` page.
+
+The Firefox build has the same base, optional, and options-page permission flow as the Chromium
+build. Temporary add-ons disappear when Firefox restarts.
 
 ## Updating
 
-- Userscript: pull a newer raw URL or re-open `dist/aviary.user.js`. Versions are visible in the `==UserScript==` banner and in the Control Center status row.
-- Extension: re-run `npm run verify` and click the refresh icon on the `chrome://extensions/` card (or re-load the temp add-on in Firefox).
+- Userscript: reopen the newer `dist/aviary.user.js` or update the release URL in your manager.
+- Extension: run `npm run verify`, then use the extension manager's reload button or reload the
+  temporary add-on. Refresh open X tabs after updating the content script.
 
-## Uninstall
+The version is visible in the userscript metadata, extension manifests, build artifacts, and the
+Control Center status/about surface.
 
-All Aviary state lives in your browser's local storage. Removing the extension or userscript wipes:
+## Uninstall and data removal
 
-- Settings (`aviary.settings.v1`)
-- Media history (`aviary.media.history.v1`)
-- Export checkpoints (`aviary.export.checkpoints.v1`)
-- GraphQL query cache (`aviary.queryIds.v1`)
-- Audit log (`aviary.audit.v1`)
-- Account notes (`aviary.userNotes.v1`)
+Before uninstalling, use the Control Center clear actions for hidden posts, media history, audit,
+snapshots, bookmarks, notes, cleanup queue, and semantic index as needed. **Export settings** only
+moves preferences (with credentials redacted); it is not a full backup of the local library.
 
-No data is uploaded anywhere. There is no telemetry. The Control Center's "Export settings" action is the only way to move state between profiles.
+Then remove the extension from the browser or delete the userscript from its manager. Browser
+extension storage, IndexedDB, downloaded files, and manager values may survive removal, so use the
+browser's extension/site-data controls and the userscript manager's storage controls if you need a
+complete wipe. Revoke the optional download and media-host permissions from the extension options
+page before removal when you want the grants gone immediately.
+
+For the complete local data map and the opt-in network boundaries, see
+[PRIVACY.md](PRIVACY.md). For behavior, export formats, integrations, and troubleshooting, see
+[FAQ.md](FAQ.md).
