@@ -1,7 +1,13 @@
 import { supportedLocales } from "../../platform/i18n";
 import { AVIARY_VERSION } from "../../platform/build-version";
 import type { ProfileStatus } from "../../platform/profile";
-import { DEFAULT_SETTINGS, cloneSettings, type AviarySettings } from "../../platform/settings";
+import {
+  DEFAULT_SETTINGS,
+  cloneSettings,
+  normalizeSettings,
+  SETTINGS_KEY,
+  type AviarySettings
+} from "../../platform/settings";
 import type {
   ControlCenterHandle,
   ExportStatus,
@@ -85,6 +91,13 @@ import {
   parseSettingsImport,
   type SettingsImportReport
 } from "./settings-migration";
+import {
+  createLibraryBackup,
+  previewLibraryRestore,
+  restoreLibraryBackup,
+  type LibraryBackupPreview,
+  type LibraryBackupRestoreResult
+} from "./library-backup";
 
 let controlCenter: ControlCenterHandle | undefined;
 const searchIndex = new LocalSearchIndex();
@@ -253,6 +266,59 @@ export const controlCenterFeature: FeatureModule = {
           });
         }
         return report;
+      },
+      async exportLibraryBackup() {
+        const profile = ctx.profile?.status();
+        const result = await createLibraryBackup(ctx.storage, {
+          profile: profile
+            ? { id: profile.activeId, label: profile.activeLabel }
+            : null
+        });
+        downloadBlob(result.artifact.data, result.artifact.filename, result.artifact.contentType);
+        void ctx.auditLog.record("library.backup.export", {
+          collections: result.artifact.collections,
+          bytes: result.artifact.bytes,
+          credentialsRedacted: true
+        });
+        return {
+          filename: result.artifact.filename,
+          collections: result.artifact.collections,
+          bytes: result.artifact.bytes
+        };
+      },
+      async previewLibraryRestore(payload: string): Promise<LibraryBackupPreview> {
+        return previewLibraryRestore(
+          ctx.storage,
+          payload,
+          ctx.profile ? { profileId: ctx.profile.activeId } : {}
+        );
+      },
+      async restoreLibraryBackup(
+        payload: string,
+        restoreOptions: { dryRun: boolean; signal: AbortSignal }
+      ): Promise<LibraryBackupRestoreResult> {
+        const result = await restoreLibraryBackup(ctx.storage, payload, {
+          dryRun: restoreOptions.dryRun,
+          signal: restoreOptions.signal,
+          ...(ctx.profile ? { profileId: ctx.profile.activeId } : {})
+        });
+        if (result.applied) {
+          if (result.restoredKeys.includes(SETTINGS_KEY)) {
+            const restoredSettings = await ctx.storage.get(SETTINGS_KEY, ctx.settings);
+            replaceSettings(ctx.settings, normalizeSettings(restoredSettings));
+            await ctx.saveSettings();
+            ctx.requestApply();
+          }
+          void ctx.auditLog.record("library.backup.restore", {
+            collections: result.restoredKeys.length,
+            dryRun: false,
+            rolledBack: result.rolledBack
+          });
+          // Stores hold in-memory snapshots, so a reload is the only way to make every feature
+          // observe the restored transaction rather than a mixture of old and new state.
+          reloadPage();
+        }
+        return result;
       },
       getAuditSize() {
         return ctx.auditLog.size();

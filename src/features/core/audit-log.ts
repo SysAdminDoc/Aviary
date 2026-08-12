@@ -23,6 +23,8 @@ export type AuditAction =
   | "settings.reset"
   | "settings.import"
   | "settings.export"
+  | "library.backup.export"
+  | "library.backup.restore"
   | "preset.apply"
   | "crosspost"
   | "aria2.cancel"

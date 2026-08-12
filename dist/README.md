@@ -44,7 +44,7 @@ its job.
 - i18n: `src/platform/i18n.ts` + `src/features/core/i18n-feature.ts`
 - Presets: `src/features/core/presets.ts`
 - Mobile/touch: `src/features/core/mobile-touch.ts`
-- Core utilities: `src/features/core/` (`control-center.ts`, `selector-health.ts`, `audit-log.ts`, `settings-migration.ts`)
+- Core utilities: `src/features/core/` (`control-center.ts`, `selector-health.ts`, `audit-log.ts`, `settings-migration.ts`, `library-backup.ts`)
 - Fixture tests: `tests/*.test.mjs`
 
 ## Development
@@ -147,6 +147,14 @@ The Control Center "Backup & Audit" section exposes:
 
 - **Export settings** — downloads a versioned JSON envelope with every Aviary preference. API keys and passwords are replaced with a placeholder so the file is safe to share; importing it keeps the credentials already saved on this machine.
 - **Import settings** — paste an envelope and press Save list. Settings are normalized, unsupported keys are dropped, and version mismatches are reported as warnings (never silent overwrites).
+- **Export full library backup** — downloads one versioned JSON envelope for the active profile's
+  local settings, bookmarks, notes, snapshots, archive collections, export jobs/records, media
+  queues, indexes, retention values, and other durable stores. Integration credentials are excluded
+  by default and remain local when a redacted backup is restored.
+- **Restore a library backup** — choose a backup file to preview schema versions, collection counts,
+  byte totals, conflicts, and checksums. Dry-run validates without mutation; an actual restore can
+  be cancelled and rolls back earlier collection writes if a later local write fails. Restoring
+  local stores reloads the page so in-memory feature snapshots cannot go stale.
 - **Audit entries** — read-only count of logged local actions (downloads, exports, settings round-trips, diagnostic copies).
 - **Clear audit log** — drops the persisted ring buffer.
 

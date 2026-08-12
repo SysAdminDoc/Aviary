@@ -522,6 +522,11 @@ html.av-reduce-motion *::after {
       "Integration status": "Estado de las integraciones",
       "Recent integration errors": "Errores recientes de integraci\xF3n",
       "Drawn from the audit log; only failed integration calls show up.": "Se muestran desde el registro de auditor\xEDa; solo aparecen las llamadas de integraci\xF3n fallidas.",
+      "Redacted \u2014 saved credentials will be kept.": "Redactadas: las credenciales guardadas se conservar\xE1n.",
+      "Stop after the current collection and roll back anything already written.": "Detener despu\xE9s de la colecci\xF3n actual y revertir lo que ya se haya escrito.",
+      "Validate the backup and show the same conflicts without writing or removing any local data.": "Valida la copia y muestra los mismos conflictos sin escribir ni eliminar datos locales.",
+      "Apply the selected profile collections. A failed write rolls back the collections already changed.": "Aplica las colecciones seleccionadas del perfil. Si falla una escritura, se revierten las colecciones ya cambiadas.",
+      "Credentials are redacted; the values already saved in this profile will be kept.": "Las credenciales est\xE1n redactadas; se conservar\xE1n los valores ya guardados en este perfil.",
       "Reset everything to plain X": "Restablecer todo a X sin cambios",
       "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "Devuelve cada ajuste a su valor predeterminado, que es no cambiar nada de X. Se conservan tus publicaciones guardadas, notas, marcadores e historial de descargas: esto solo restablece las preferencias.",
       "Export settings": "Exportar ajustes",
@@ -529,6 +534,10 @@ html.av-reduce-motion *::after {
       "Import settings (JSON)": "Importar ajustes (JSON)",
       "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.": "Pega un archivo de ajustes exportado desde Aviary y pulsa Importar. Las credenciales ocultas conservan los valores ya guardados aqu\xED.",
       "Import": "Importar",
+      "Export full library backup": "Exportar copia completa de la biblioteca",
+      "Downloads one versioned JSON backup of this profile's local collections. Credentials are excluded by default; restoring keeps the credentials already saved here.": "Descarga una copia JSON versionada de las colecciones locales de este perfil. Las credenciales se excluyen de forma predeterminada; al restaurar se conservan las credenciales guardadas aqu\xED.",
+      "Choose a library backup": "Elegir una copia de la biblioteca",
+      "Select a JSON backup to inspect its versions, counts, conflicts, and checksum before changing local data.": "Selecciona una copia JSON para revisar sus versiones, cantidades, conflictos y suma de comprobaci\xF3n antes de cambiar los datos locales.",
       "Keep a local action log": "Mantener un registro local de acciones",
       "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.": "Registra descargas, exportaciones y cambios de ajustes en este dispositivo para que puedas revisar lo que hizo Aviary. No se env\xEDa nada a ning\xFAn sitio. Al desactivarlo se dejan de a\xF1adir entradas de inmediato; las existentes se conservan hasta que las borres.",
       "Audit entries": "Entradas de auditor\xEDa",
@@ -679,6 +688,20 @@ html.av-reduce-motion *::after {
       "Settings imported. {warning}": "Ajustes importados. {warning}",
       "Import failed: {errors}": "Fall\xF3 la importaci\xF3n: {errors}",
       "Could not import settings.": "No se pudieron importar los ajustes.",
+      "Library backup downloaded: {filename} ({collections} collections, {bytes}).": "Copia de la biblioteca descargada: {filename} ({collections} colecciones, {bytes}).",
+      "Could not export full library backup.": "No se pudo exportar la copia completa de la biblioteca.",
+      "Reading library backup\u2026": "Leyendo la copia de la biblioteca\u2026",
+      "Backup loaded: {collections} collections, {conflicts} changes.": "Copia cargada: {collections} colecciones, {conflicts} cambios.",
+      "Could not read library backup.": "No se pudo leer la copia de la biblioteca.",
+      "Cancelling restore\u2026": "Cancelando la restauraci\xF3n\u2026",
+      "Dry-run complete. No local data changed.": "Simulaci\xF3n completada. No se cambiaron los datos locales.",
+      "Dry-run failed: {errors}": "La simulaci\xF3n fall\xF3: {errors}",
+      "Could not dry-run library restore.": "No se pudo simular la restauraci\xF3n de la biblioteca.",
+      "Library backup restored ({collections} collections). Reloading\u2026": "Copia de la biblioteca restaurada ({collections} colecciones). Recargando\u2026",
+      "Restore cancelled; local data was rolled back.": "Restauraci\xF3n cancelada; los datos locales se revirtieron.",
+      "Restore cancelled.": "Restauraci\xF3n cancelada.",
+      "Restore failed: {errors}": "La restauraci\xF3n fall\xF3: {errors}",
+      "Could not restore library backup.": "No se pudo restaurar la copia de la biblioteca.",
       "Action log on": "Registro de acciones activado",
       "Action log off": "Registro de acciones desactivado",
       "Audit log cleared": "Registro de auditor\xEDa borrado",
@@ -800,6 +823,14 @@ html.av-reduce-motion *::after {
       "Retry archive import": "Reintentar importaci\xF3n del archivo",
       "Local bookmarks": "Marcadores locales",
       "Clear local bookmarks": "Borrar marcadores locales",
+      "Backup version": "Versi\xF3n de la copia",
+      "Backup collections": "Colecciones de la copia",
+      "Collection changes": "Cambios en las colecciones",
+      "Credentials": "Credenciales",
+      "Backup warnings": "Advertencias de la copia",
+      "Cancel restore": "Cancelar restauraci\xF3n",
+      "Dry-run restore": "Simular restauraci\xF3n",
+      "Restore this library backup": "Restaurar esta copia de la biblioteca",
       "Export job": "Trabajo de exportaci\xF3n",
       "Pause export job": "Pausar trabajo de exportaci\xF3n",
       "Resume export job": "Reanudar trabajo de exportaci\xF3n",
@@ -1186,6 +1217,11 @@ html.av-reduce-motion *::after {
       "Integration status": "Estado das integra\xE7\xF5es",
       "Recent integration errors": "Erros recentes de integra\xE7\xE3o",
       "Drawn from the audit log; only failed integration calls show up.": "Obtidos do registo de auditoria; s\xF3 s\xE3o mostradas chamadas de integra\xE7\xE3o falhadas.",
+      "Redacted \u2014 saved credentials will be kept.": "Redigidas \u2014 as credenciais salvas ser\xE3o mantidas.",
+      "Stop after the current collection and roll back anything already written.": "Pare ap\xF3s a cole\xE7\xE3o atual e reverta tudo o que j\xE1 foi escrito.",
+      "Validate the backup and show the same conflicts without writing or removing any local data.": "Valide o backup e mostre os mesmos conflitos sem escrever ou remover dados locais.",
+      "Apply the selected profile collections. A failed write rolls back the collections already changed.": "Aplique as cole\xE7\xF5es selecionadas do perfil. Uma falha de grava\xE7\xE3o reverte as cole\xE7\xF5es j\xE1 alteradas.",
+      "Credentials are redacted; the values already saved in this profile will be kept.": "As credenciais est\xE3o redigidas; os valores j\xE1 salvos neste perfil ser\xE3o mantidos.",
       "Reset everything to plain X": "Repor tudo para o X original",
       "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "Devolve todas as defini\xE7\xF5es ao valor predefinido, que \xE9 n\xE3o alterar nada no X. As tuas publica\xE7\xF5es guardadas, notas, marcadores e hist\xF3rico de transfer\xEAncias s\xE3o mantidos \u2014 isto rep\xF5e apenas as prefer\xEAncias.",
       "Export settings": "Exportar defini\xE7\xF5es",
@@ -1193,6 +1229,10 @@ html.av-reduce-motion *::after {
       "Import settings (JSON)": "Importar defini\xE7\xF5es (JSON)",
       "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.": "Cole um ficheiro de defini\xE7\xF5es exportado do Aviary e escolha Importar. As credenciais ocultadas mant\xEAm os valores j\xE1 guardados aqui.",
       "Import": "Importar",
+      "Export full library backup": "Exportar backup completo da biblioteca",
+      "Downloads one versioned JSON backup of this profile's local collections. Credentials are excluded by default; restoring keeps the credentials already saved here.": "Baixa um backup JSON versionado das cole\xE7\xF5es locais deste perfil. As credenciais s\xE3o exclu\xEDdas por padr\xE3o; a restaura\xE7\xE3o mant\xE9m as credenciais j\xE1 salvas aqui.",
+      "Choose a library backup": "Escolher um backup da biblioteca",
+      "Select a JSON backup to inspect its versions, counts, conflicts, and checksum before changing local data.": "Selecione um backup JSON para conferir vers\xF5es, quantidades, conflitos e soma de verifica\xE7\xE3o antes de alterar os dados locais.",
       "Keep a local action log": "Manter um registo local de a\xE7\xF5es",
       "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.": "Regista transfer\xEAncias, exporta\xE7\xF5es e altera\xE7\xF5es de defini\xE7\xF5es neste dispositivo para poder rever o que o Aviary fez. Nada \xE9 enviado para lado nenhum. Ao desativar, deixam de ser criadas novas entradas; as existentes permanecem at\xE9 as limpar.",
       "Audit entries": "Entradas de auditoria",
@@ -1343,6 +1383,20 @@ html.av-reduce-motion *::after {
       "Settings imported. {warning}": "Defini\xE7\xF5es importadas. {warning}",
       "Import failed: {errors}": "Falha na importa\xE7\xE3o: {errors}",
       "Could not import settings.": "N\xE3o foi poss\xEDvel importar as defini\xE7\xF5es.",
+      "Library backup downloaded: {filename} ({collections} collections, {bytes}).": "Backup da biblioteca baixado: {filename} ({collections} cole\xE7\xF5es, {bytes}).",
+      "Could not export full library backup.": "N\xE3o foi poss\xEDvel exportar o backup completo da biblioteca.",
+      "Reading library backup\u2026": "Lendo o backup da biblioteca\u2026",
+      "Backup loaded: {collections} collections, {conflicts} changes.": "Backup carregado: {collections} cole\xE7\xF5es, {conflicts} altera\xE7\xF5es.",
+      "Could not read library backup.": "N\xE3o foi poss\xEDvel ler o backup da biblioteca.",
+      "Cancelling restore\u2026": "Cancelando a restaura\xE7\xE3o\u2026",
+      "Dry-run complete. No local data changed.": "Simula\xE7\xE3o conclu\xEDda. Nenhum dado local foi alterado.",
+      "Dry-run failed: {errors}": "A simula\xE7\xE3o falhou: {errors}",
+      "Could not dry-run library restore.": "N\xE3o foi poss\xEDvel simular a restaura\xE7\xE3o da biblioteca.",
+      "Library backup restored ({collections} collections). Reloading\u2026": "Backup da biblioteca restaurado ({collections} cole\xE7\xF5es). Recarregando\u2026",
+      "Restore cancelled; local data was rolled back.": "Restaura\xE7\xE3o cancelada; os dados locais foram revertidos.",
+      "Restore cancelled.": "Restaura\xE7\xE3o cancelada.",
+      "Restore failed: {errors}": "A restaura\xE7\xE3o falhou: {errors}",
+      "Could not restore library backup.": "N\xE3o foi poss\xEDvel restaurar o backup da biblioteca.",
       "Action log on": "Registo de a\xE7\xF5es ativado",
       "Action log off": "Registo de a\xE7\xF5es desativado",
       "Audit log cleared": "Registro de auditoria limpo",
@@ -1464,6 +1518,14 @@ html.av-reduce-motion *::after {
       "Retry archive import": "Tentar novamente a importa\xE7\xE3o do arquivo",
       "Local bookmarks": "Marcadores locais",
       "Clear local bookmarks": "Limpar marcadores locais",
+      "Backup version": "Vers\xE3o do backup",
+      "Backup collections": "Cole\xE7\xF5es do backup",
+      "Collection changes": "Altera\xE7\xF5es nas cole\xE7\xF5es",
+      "Credentials": "Credenciais",
+      "Backup warnings": "Avisos do backup",
+      "Cancel restore": "Cancelar restaura\xE7\xE3o",
+      "Dry-run restore": "Simular restaura\xE7\xE3o",
+      "Restore this library backup": "Restaurar este backup da biblioteca",
       "Export job": "Tarefa de exporta\xE7\xE3o",
       "Pause export job": "Pausar tarefa de exporta\xE7\xE3o",
       "Resume export job": "Retomar tarefa de exporta\xE7\xE3o",
@@ -1850,6 +1912,11 @@ html.av-reduce-motion *::after {
       "Integration status": "\xC9tat des int\xE9grations",
       "Recent integration errors": "Erreurs d\u2019int\xE9gration r\xE9centes",
       "Drawn from the audit log; only failed integration calls show up.": "Issues du journal d\u2019audit ; seules les int\xE9grations \xE9chou\xE9es apparaissent.",
+      "Redacted \u2014 saved credentials will be kept.": "Masqu\xE9s ; les identifiants enregistr\xE9s seront conserv\xE9s.",
+      "Stop after the current collection and roll back anything already written.": "Arr\xEAter apr\xE8s la collection actuelle et r\xE9tablir tout ce qui a d\xE9j\xE0 \xE9t\xE9 \xE9crit.",
+      "Validate the backup and show the same conflicts without writing or removing any local data.": "Valider la sauvegarde et afficher les m\xEAmes conflits sans \xE9crire ni supprimer de donn\xE9es locales.",
+      "Apply the selected profile collections. A failed write rolls back the collections already changed.": "Appliquer les collections s\xE9lectionn\xE9es du profil. Une \xE9criture \xE9chou\xE9e r\xE9tablit les collections d\xE9j\xE0 modifi\xE9es.",
+      "Credentials are redacted; the values already saved in this profile will be kept.": "Les identifiants sont masqu\xE9s ; les valeurs d\xE9j\xE0 enregistr\xE9es dans ce profil seront conserv\xE9es.",
       "Reset everything to plain X": "Tout r\xE9initialiser au X d'origine",
       "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "Remet chaque r\xE9glage \xE0 sa valeur par d\xE9faut, c'est-\xE0-dire ne rien modifier sur X. Vos posts enregistr\xE9s, notes, favoris et historique de t\xE9l\xE9chargement sont conserv\xE9s : seules les pr\xE9f\xE9rences sont r\xE9initialis\xE9es.",
       "Export settings": "Exporter les r\xE9glages",
@@ -1857,6 +1924,10 @@ html.av-reduce-motion *::after {
       "Import settings (JSON)": "Importer des r\xE9glages (JSON)",
       "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.": "Collez un fichier de r\xE9glages export\xE9 depuis Aviary, puis choisissez Importer. Les identifiants masqu\xE9s conservent les valeurs d\xE9j\xE0 enregistr\xE9es ici.",
       "Import": "Importer",
+      "Export full library backup": "Exporter une sauvegarde compl\xE8te de la biblioth\xE8que",
+      "Downloads one versioned JSON backup of this profile's local collections. Credentials are excluded by default; restoring keeps the credentials already saved here.": "T\xE9l\xE9charge une sauvegarde JSON versionn\xE9e des collections locales de ce profil. Les identifiants sont exclus par d\xE9faut ; la restauration conserve ceux d\xE9j\xE0 enregistr\xE9s ici.",
+      "Choose a library backup": "Choisir une sauvegarde de biblioth\xE8que",
+      "Select a JSON backup to inspect its versions, counts, conflicts, and checksum before changing local data.": "S\xE9lectionnez une sauvegarde JSON pour v\xE9rifier ses versions, quantit\xE9s, conflits et somme de contr\xF4le avant de modifier les donn\xE9es locales.",
       "Keep a local action log": "Conserver un journal local des actions",
       "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.": "Enregistre les t\xE9l\xE9chargements, les exports et les changements de r\xE9glages sur cet appareil afin que vous puissiez v\xE9rifier ce qu'Aviary a fait. Rien n'est envoy\xE9 nulle part. D\xE9sactiver cette option arr\xEAte imm\xE9diatement les nouvelles entr\xE9es ; les existantes restent jusqu'\xE0 ce que vous les effaciez.",
       "Audit entries": "Entr\xE9es d'audit",
@@ -2007,6 +2078,20 @@ html.av-reduce-motion *::after {
       "Settings imported. {warning}": "Param\xE8tres import\xE9s. {warning}",
       "Import failed: {errors}": "\xC9chec de l\u2019importation : {errors}",
       "Could not import settings.": "Impossible d'importer les r\xE9glages.",
+      "Library backup downloaded: {filename} ({collections} collections, {bytes}).": "Sauvegarde de la biblioth\xE8que t\xE9l\xE9charg\xE9e : {filename} ({collections} collections, {bytes}).",
+      "Could not export full library backup.": "Impossible d\u2019exporter la sauvegarde compl\xE8te de la biblioth\xE8que.",
+      "Reading library backup\u2026": "Lecture de la sauvegarde de la biblioth\xE8que\u2026",
+      "Backup loaded: {collections} collections, {conflicts} changes.": "Sauvegarde charg\xE9e : {collections} collections, {conflicts} changements.",
+      "Could not read library backup.": "Impossible de lire la sauvegarde de la biblioth\xE8que.",
+      "Cancelling restore\u2026": "Annulation de la restauration\u2026",
+      "Dry-run complete. No local data changed.": "Simulation termin\xE9e. Aucune donn\xE9e locale n\u2019a chang\xE9.",
+      "Dry-run failed: {errors}": "\xC9chec de la simulation : {errors}",
+      "Could not dry-run library restore.": "Impossible de simuler la restauration de la biblioth\xE8que.",
+      "Library backup restored ({collections} collections). Reloading\u2026": "Sauvegarde de la biblioth\xE8que restaur\xE9e ({collections} collections). Rechargement\u2026",
+      "Restore cancelled; local data was rolled back.": "Restauration annul\xE9e ; les donn\xE9es locales ont \xE9t\xE9 r\xE9tablies.",
+      "Restore cancelled.": "Restauration annul\xE9e.",
+      "Restore failed: {errors}": "\xC9chec de la restauration : {errors}",
+      "Could not restore library backup.": "Impossible de restaurer la sauvegarde de la biblioth\xE8que.",
       "Action log on": "Journal des actions activ\xE9",
       "Action log off": "Journal des actions d\xE9sactiv\xE9",
       "Audit log cleared": "Journal d'audit effac\xE9",
@@ -2128,6 +2213,14 @@ html.av-reduce-motion *::after {
       "Retry archive import": "R\xE9essayer l\u2019importation de l\u2019archive",
       "Local bookmarks": "Signets locaux",
       "Clear local bookmarks": "Effacer les signets locaux",
+      "Backup version": "Version de la sauvegarde",
+      "Backup collections": "Collections de la sauvegarde",
+      "Collection changes": "Changements des collections",
+      "Credentials": "Identifiants",
+      "Backup warnings": "Avertissements de la sauvegarde",
+      "Cancel restore": "Annuler la restauration",
+      "Dry-run restore": "Simuler la restauration",
+      "Restore this library backup": "Restaurer cette sauvegarde de biblioth\xE8que",
       "Export job": "T\xE2che d\u2019exportation",
       "Pause export job": "Mettre en pause la t\xE2che d\u2019exportation",
       "Resume export job": "Reprendre la t\xE2che d\u2019exportation",
@@ -2514,6 +2607,11 @@ html.av-reduce-motion *::after {
       "Integration status": "Status der Integrationen",
       "Recent integration errors": "Aktuelle Integrationsfehler",
       "Drawn from the audit log; only failed integration calls show up.": "Aus dem Auditprotokoll; nur fehlgeschlagene Integrationsaufrufe werden angezeigt.",
+      "Redacted \u2014 saved credentials will be kept.": "Ausgeblendet \u2013 gespeicherte Zugangsdaten bleiben erhalten.",
+      "Stop after the current collection and roll back anything already written.": "Nach der aktuellen Sammlung stoppen und alle bisherigen Schreibvorg\xE4nge zur\xFCcksetzen.",
+      "Validate the backup and show the same conflicts without writing or removing any local data.": "Die Sicherung pr\xFCfen und dieselben Konflikte anzeigen, ohne lokale Daten zu schreiben oder zu l\xF6schen.",
+      "Apply the selected profile collections. A failed write rolls back the collections already changed.": "Die ausgew\xE4hlten Profilsammlungen anwenden. Bei einem fehlgeschlagenen Schreibvorgang werden bereits ge\xE4nderte Sammlungen zur\xFCckgesetzt.",
+      "Credentials are redacted; the values already saved in this profile will be kept.": "Zugangsdaten sind ausgeblendet; die bereits in diesem Profil gespeicherten Werte bleiben erhalten.",
       "Reset everything to plain X": "Alles auf das pure X zur\xFCcksetzen",
       "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "Setzt jede Einstellung auf ihren Standard zur\xFCck \u2014 und der ist, an X \xFCberhaupt nichts zu \xE4ndern. Gespeicherte Beitr\xE4ge, Notizen, Lesezeichen und der Download-Verlauf bleiben erhalten; zur\xFCckgesetzt werden nur die Einstellungen.",
       "Export settings": "Einstellungen exportieren",
@@ -2521,6 +2619,10 @@ html.av-reduce-motion *::after {
       "Import settings (JSON)": "Einstellungen importieren (JSON)",
       "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.": "F\xFCge eine aus Aviary exportierte Einstellungsdatei ein und w\xE4hle Importieren. Geschw\xE4rzte Zugangsdaten behalten die hier gespeicherten Werte.",
       "Import": "Importieren",
+      "Export full library backup": "Vollst\xE4ndige Bibliothekssicherung exportieren",
+      "Downloads one versioned JSON backup of this profile's local collections. Credentials are excluded by default; restoring keeps the credentials already saved here.": "L\xE4dt eine versionierte JSON-Sicherung der lokalen Sammlungen dieses Profils herunter. Zugangsdaten werden standardm\xE4\xDFig ausgeschlossen; beim Wiederherstellen bleiben die hier gespeicherten Zugangsdaten erhalten.",
+      "Choose a library backup": "Bibliothekssicherung ausw\xE4hlen",
+      "Select a JSON backup to inspect its versions, counts, conflicts, and checksum before changing local data.": "W\xE4hle eine JSON-Sicherung aus, um Versionen, Anzahlen, Konflikte und Pr\xFCfsumme vor einer \xC4nderung lokaler Daten zu pr\xFCfen.",
       "Keep a local action log": "Lokales Aktionsprotokoll f\xFChren",
       "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.": "Zeichnet Downloads, Exporte und Einstellungs\xE4nderungen auf diesem Ger\xE4t auf, damit du nachvollziehen kannst, was Aviary getan hat. Es wird nichts \xFCbertragen. Beim Ausschalten werden sofort keine neuen Eintr\xE4ge mehr angelegt; vorhandene bleiben, bis du sie l\xF6schst.",
       "Audit entries": "Pr\xFCfprotokoll-Eintr\xE4ge",
@@ -2671,6 +2773,20 @@ html.av-reduce-motion *::after {
       "Settings imported. {warning}": "Einstellungen importiert. {warning}",
       "Import failed: {errors}": "Import fehlgeschlagen: {errors}",
       "Could not import settings.": "Einstellungen konnten nicht importiert werden.",
+      "Library backup downloaded: {filename} ({collections} collections, {bytes}).": "Bibliothekssicherung heruntergeladen: {filename} ({collections} Sammlungen, {bytes}).",
+      "Could not export full library backup.": "Die vollst\xE4ndige Bibliothekssicherung konnte nicht exportiert werden.",
+      "Reading library backup\u2026": "Bibliothekssicherung wird gelesen\u2026",
+      "Backup loaded: {collections} collections, {conflicts} changes.": "Sicherung geladen: {collections} Sammlungen, {conflicts} \xC4nderungen.",
+      "Could not read library backup.": "Die Bibliothekssicherung konnte nicht gelesen werden.",
+      "Cancelling restore\u2026": "Wiederherstellung wird abgebrochen\u2026",
+      "Dry-run complete. No local data changed.": "Probelauf abgeschlossen. Lokale Daten wurden nicht ge\xE4ndert.",
+      "Dry-run failed: {errors}": "Probelauf fehlgeschlagen: {errors}",
+      "Could not dry-run library restore.": "Der Probelauf der Bibliothekswiederherstellung ist fehlgeschlagen.",
+      "Library backup restored ({collections} collections). Reloading\u2026": "Bibliothekssicherung wiederhergestellt ({collections} Sammlungen). Wird neu geladen\u2026",
+      "Restore cancelled; local data was rolled back.": "Wiederherstellung abgebrochen; lokale Daten wurden zur\xFCckgesetzt.",
+      "Restore cancelled.": "Wiederherstellung abgebrochen.",
+      "Restore failed: {errors}": "Wiederherstellung fehlgeschlagen: {errors}",
+      "Could not restore library backup.": "Die Bibliothekssicherung konnte nicht wiederhergestellt werden.",
       "Action log on": "Aktionsprotokoll an",
       "Action log off": "Aktionsprotokoll aus",
       "Audit log cleared": "Auditprotokoll geleert",
@@ -2792,6 +2908,14 @@ html.av-reduce-motion *::after {
       "Retry archive import": "Archivimport erneut versuchen",
       "Local bookmarks": "Lokale Lesezeichen",
       "Clear local bookmarks": "Lokale Lesezeichen l\xF6schen",
+      "Backup version": "Sicherungsversion",
+      "Backup collections": "Sammlungen der Sicherung",
+      "Collection changes": "\xC4nderungen an Sammlungen",
+      "Credentials": "Zugangsdaten",
+      "Backup warnings": "Warnungen der Sicherung",
+      "Cancel restore": "Wiederherstellung abbrechen",
+      "Dry-run restore": "Wiederherstellung simulieren",
+      "Restore this library backup": "Diese Bibliothekssicherung wiederherstellen",
       "Export job": "Exportauftrag",
       "Pause export job": "Exportauftrag pausieren",
       "Resume export job": "Exportauftrag fortsetzen",
@@ -3178,6 +3302,11 @@ html.av-reduce-motion *::after {
       "Integration status": "\u9023\u643A\u306E\u72B6\u614B",
       "Recent integration errors": "\u6700\u8FD1\u306E\u7D71\u5408\u30A8\u30E9\u30FC",
       "Drawn from the audit log; only failed integration calls show up.": "\u76E3\u67FB\u30ED\u30B0\u304B\u3089\u8868\u793A\u3002\u5931\u6557\u3057\u305F\u7D71\u5408\u547C\u3073\u51FA\u3057\u306E\u307F\u8868\u793A\u3057\u307E\u3059\u3002",
+      "Redacted \u2014 saved credentials will be kept.": "\u4F0F\u305B\u5B57\u3067\u3059\u3002\u4FDD\u5B58\u6E08\u307F\u306E\u8A8D\u8A3C\u60C5\u5831\u306F\u7DAD\u6301\u3055\u308C\u307E\u3059\u3002",
+      "Stop after the current collection and roll back anything already written.": "\u73FE\u5728\u306E\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3\u306E\u5F8C\u3067\u505C\u6B62\u3057\u3001\u66F8\u304D\u8FBC\u307F\u6E08\u307F\u306E\u5185\u5BB9\u3092\u30ED\u30FC\u30EB\u30D0\u30C3\u30AF\u3057\u307E\u3059\u3002",
+      "Validate the backup and show the same conflicts without writing or removing any local data.": "\u30ED\u30FC\u30AB\u30EB\u30C7\u30FC\u30BF\u3092\u66F8\u304D\u8FBC\u3093\u3060\u308A\u524A\u9664\u3057\u305F\u308A\u305B\u305A\u306B\u3001\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3092\u691C\u8A3C\u3057\u3066\u540C\u3058\u7AF6\u5408\u3092\u8868\u793A\u3057\u307E\u3059\u3002",
+      "Apply the selected profile collections. A failed write rolls back the collections already changed.": "\u9078\u629E\u3057\u305F\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u306E\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3\u3092\u9069\u7528\u3057\u307E\u3059\u3002\u66F8\u304D\u8FBC\u307F\u306B\u5931\u6557\u3057\u305F\u5834\u5408\u306F\u3001\u5909\u66F4\u6E08\u307F\u306E\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3\u3092\u30ED\u30FC\u30EB\u30D0\u30C3\u30AF\u3057\u307E\u3059\u3002",
+      "Credentials are redacted; the values already saved in this profile will be kept.": "\u8A8D\u8A3C\u60C5\u5831\u306F\u4F0F\u305B\u5B57\u3067\u3059\u3002\u3053\u306E\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u306B\u4FDD\u5B58\u6E08\u307F\u306E\u5024\u306F\u7DAD\u6301\u3055\u308C\u307E\u3059\u3002",
       "Reset everything to plain X": "\u3059\u3079\u3066\u3092\u7D20\u306E X \u306B\u623B\u3059",
       "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "\u3059\u3079\u3066\u306E\u8A2D\u5B9A\u3092\u65E2\u5B9A\u5024\u306B\u623B\u3057\u307E\u3059\u3002\u65E2\u5B9A\u5024\u3068\u306F\u3001X \u306B\u4E00\u5207\u624B\u3092\u52A0\u3048\u306A\u3044\u3068\u3044\u3046\u72B6\u614B\u3067\u3059\u3002\u4FDD\u5B58\u3057\u305F\u6295\u7A3F\u30FB\u30E1\u30E2\u30FB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u30FB\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u5C65\u6B74\u306F\u305D\u306E\u307E\u307E\u6B8B\u308A\u3001\u623B\u308B\u306E\u306F\u8A2D\u5B9A\u3060\u3051\u3067\u3059\u3002",
       "Export settings": "\u8A2D\u5B9A\u3092\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8",
@@ -3185,6 +3314,10 @@ html.av-reduce-motion *::after {
       "Import settings (JSON)": "\u8A2D\u5B9A\u3092\u30A4\u30F3\u30DD\u30FC\u30C8\uFF08JSON\uFF09",
       "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.": "Aviary \u304B\u3089\u66F8\u304D\u51FA\u3057\u305F\u8A2D\u5B9A\u30D5\u30A1\u30A4\u30EB\u3092\u8CBC\u308A\u4ED8\u3051\u3066\u300C\u30A4\u30F3\u30DD\u30FC\u30C8\u300D\u3092\u9078\u3073\u307E\u3059\u3002\u4F0F\u305B\u5B57\u306E\u8A8D\u8A3C\u60C5\u5831\u306F\u3001\u3053\u3053\u306B\u4FDD\u5B58\u6E08\u307F\u306E\u5024\u304C\u4FDD\u305F\u308C\u307E\u3059\u3002",
       "Import": "\u30A4\u30F3\u30DD\u30FC\u30C8",
+      "Export full library backup": "\u30E9\u30A4\u30D6\u30E9\u30EA\u5168\u4F53\u306E\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3092\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8",
+      "Downloads one versioned JSON backup of this profile's local collections. Credentials are excluded by default; restoring keeps the credentials already saved here.": "\u3053\u306E\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u306E\u30ED\u30FC\u30AB\u30EB\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3\u3092\u30D0\u30FC\u30B8\u30E7\u30F3\u4ED8\u304DJSON\u3067\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3057\u307E\u3059\u3002\u8A8D\u8A3C\u60C5\u5831\u306F\u65E2\u5B9A\u3067\u9664\u5916\u3055\u308C\u3001\u5FA9\u5143\u6642\u3082\u3053\u3053\u306B\u4FDD\u5B58\u6E08\u307F\u306E\u8A8D\u8A3C\u60C5\u5831\u304C\u7DAD\u6301\u3055\u308C\u307E\u3059\u3002",
+      "Choose a library backup": "\u30E9\u30A4\u30D6\u30E9\u30EA\u306E\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3092\u9078\u629E",
+      "Select a JSON backup to inspect its versions, counts, conflicts, and checksum before changing local data.": "JSON\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3092\u9078\u629E\u3057\u3001\u30ED\u30FC\u30AB\u30EB\u30C7\u30FC\u30BF\u3092\u5909\u66F4\u3059\u308B\u524D\u306B\u30D0\u30FC\u30B8\u30E7\u30F3\u3001\u4EF6\u6570\u3001\u7AF6\u5408\u3001\u30C1\u30A7\u30C3\u30AF\u30B5\u30E0\u3092\u78BA\u8A8D\u3057\u307E\u3059\u3002",
       "Keep a local action log": "\u30ED\u30FC\u30AB\u30EB\u306E\u64CD\u4F5C\u30ED\u30B0\u3092\u6B8B\u3059",
       "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u30FB\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30FB\u8A2D\u5B9A\u5909\u66F4\u3092\u3053\u306E\u7AEF\u672B\u306B\u8A18\u9332\u3057\u3001Aviary \u306E\u52D5\u4F5C\u3092\u3042\u3068\u304B\u3089\u78BA\u8A8D\u3067\u304D\u308B\u3088\u3046\u306B\u3057\u307E\u3059\u3002\u3069\u3053\u306B\u3082\u9001\u4FE1\u3055\u308C\u307E\u305B\u3093\u3002\u30AA\u30D5\u306B\u3059\u308B\u3068\u65B0\u3057\u3044\u8A18\u9332\u306F\u76F4\u3061\u306B\u505C\u6B62\u3057\u3001\u65E2\u5B58\u306E\u8A18\u9332\u306F\u6D88\u53BB\u3059\u308B\u307E\u3067\u6B8B\u308A\u307E\u3059\u3002",
       "Audit entries": "\u76E3\u67FB\u30ED\u30B0\u306E\u4EF6\u6570",
@@ -3335,6 +3468,20 @@ html.av-reduce-motion *::after {
       "Settings imported. {warning}": "\u8A2D\u5B9A\u3092\u30A4\u30F3\u30DD\u30FC\u30C8\u3057\u307E\u3057\u305F\u3002{warning}",
       "Import failed: {errors}": "\u30A4\u30F3\u30DD\u30FC\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F: {errors}",
       "Could not import settings.": "\u8A2D\u5B9A\u3092\u30A4\u30F3\u30DD\u30FC\u30C8\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+      "Library backup downloaded: {filename} ({collections} collections, {bytes}).": "\u30E9\u30A4\u30D6\u30E9\u30EA\u306E\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3092\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3057\u307E\u3057\u305F: {filename}\uFF08{collections} \u30B3\u30EC\u30AF\u30B7\u30E7\u30F3\u3001{bytes}\uFF09\u3002",
+      "Could not export full library backup.": "\u30E9\u30A4\u30D6\u30E9\u30EA\u5168\u4F53\u306E\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3092\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+      "Reading library backup\u2026": "\u30E9\u30A4\u30D6\u30E9\u30EA\u306E\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3092\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
+      "Backup loaded: {collections} collections, {conflicts} changes.": "\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3092\u8AAD\u307F\u8FBC\u307F\u307E\u3057\u305F: {collections} \u30B3\u30EC\u30AF\u30B7\u30E7\u30F3\u3001{conflicts} \u4EF6\u306E\u5909\u66F4\u3002",
+      "Could not read library backup.": "\u30E9\u30A4\u30D6\u30E9\u30EA\u306E\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+      "Cancelling restore\u2026": "\u5FA9\u5143\u3092\u30AD\u30E3\u30F3\u30BB\u30EB\u4E2D\u2026",
+      "Dry-run complete. No local data changed.": "\u30C9\u30E9\u30A4\u30E9\u30F3\u304C\u5B8C\u4E86\u3057\u307E\u3057\u305F\u3002\u30ED\u30FC\u30AB\u30EB\u30C7\u30FC\u30BF\u306F\u5909\u66F4\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002",
+      "Dry-run failed: {errors}": "\u30C9\u30E9\u30A4\u30E9\u30F3\u306B\u5931\u6557\u3057\u307E\u3057\u305F: {errors}",
+      "Could not dry-run library restore.": "\u30E9\u30A4\u30D6\u30E9\u30EA\u5FA9\u5143\u306E\u30C9\u30E9\u30A4\u30E9\u30F3\u3092\u5B9F\u884C\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+      "Library backup restored ({collections} collections). Reloading\u2026": "\u30E9\u30A4\u30D6\u30E9\u30EA\u306E\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3092\u5FA9\u5143\u3057\u307E\u3057\u305F\uFF08{collections} \u30B3\u30EC\u30AF\u30B7\u30E7\u30F3\uFF09\u3002\u518D\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
+      "Restore cancelled; local data was rolled back.": "\u5FA9\u5143\u3092\u30AD\u30E3\u30F3\u30BB\u30EB\u3057\u307E\u3057\u305F\u3002\u30ED\u30FC\u30AB\u30EB\u30C7\u30FC\u30BF\u306F\u30ED\u30FC\u30EB\u30D0\u30C3\u30AF\u3055\u308C\u307E\u3057\u305F\u3002",
+      "Restore cancelled.": "\u5FA9\u5143\u3092\u30AD\u30E3\u30F3\u30BB\u30EB\u3057\u307E\u3057\u305F\u3002",
+      "Restore failed: {errors}": "\u5FA9\u5143\u306B\u5931\u6557\u3057\u307E\u3057\u305F: {errors}",
+      "Could not restore library backup.": "\u30E9\u30A4\u30D6\u30E9\u30EA\u306E\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3092\u5FA9\u5143\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "Action log on": "\u64CD\u4F5C\u30ED\u30B0 \u30AA\u30F3",
       "Action log off": "\u64CD\u4F5C\u30ED\u30B0 \u30AA\u30D5",
       "Audit log cleared": "\u76E3\u67FB\u30ED\u30B0\u3092\u6D88\u53BB\u3057\u307E\u3057\u305F",
@@ -3456,6 +3603,14 @@ html.av-reduce-motion *::after {
       "Retry archive import": "\u30A2\u30FC\u30AB\u30A4\u30D6\u306E\u30A4\u30F3\u30DD\u30FC\u30C8\u3092\u518D\u8A66\u884C",
       "Local bookmarks": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF",
       "Clear local bookmarks": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u524A\u9664",
+      "Backup version": "\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u306E\u30D0\u30FC\u30B8\u30E7\u30F3",
+      "Backup collections": "\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u306E\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3",
+      "Collection changes": "\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3\u306E\u5909\u66F4",
+      "Credentials": "\u8A8D\u8A3C\u60C5\u5831",
+      "Backup warnings": "\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u306E\u8B66\u544A",
+      "Cancel restore": "\u5FA9\u5143\u3092\u30AD\u30E3\u30F3\u30BB\u30EB",
+      "Dry-run restore": "\u5FA9\u5143\u3092\u30C9\u30E9\u30A4\u30E9\u30F3",
+      "Restore this library backup": "\u3053\u306E\u30E9\u30A4\u30D6\u30E9\u30EA\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3092\u5FA9\u5143",
       "Export job": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6",
       "Pause export job": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6\u3092\u4E00\u6642\u505C\u6B62",
       "Resume export job": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6\u3092\u518D\u958B",
@@ -3842,6 +3997,11 @@ html.av-reduce-motion *::after {
       "Integration status": "\uC5F0\uB3D9 \uC0C1\uD0DC",
       "Recent integration errors": "\uCD5C\uADFC \uD1B5\uD569 \uC624\uB958",
       "Drawn from the audit log; only failed integration calls show up.": "\uAC10\uC0AC \uB85C\uADF8\uC5D0\uC11C \uAC00\uC838\uC624\uBA70 \uC2E4\uD328\uD55C \uD1B5\uD569 \uD638\uCD9C\uB9CC \uD45C\uC2DC\uB429\uB2C8\uB2E4.",
+      "Redacted \u2014 saved credentials will be kept.": "\uAC00\uB824\uC9D0 \u2014 \uC800\uC7A5\uB41C \uC790\uACA9 \uC99D\uBA85\uC774 \uC720\uC9C0\uB429\uB2C8\uB2E4.",
+      "Stop after the current collection and roll back anything already written.": "\uD604\uC7AC \uCEEC\uB809\uC158 \uB4A4\uC5D0 \uC911\uC9C0\uD558\uACE0 \uC774\uBBF8 \uAE30\uB85D\uB41C \uB0B4\uC6A9\uC744 \uB864\uBC31\uD569\uB2C8\uB2E4.",
+      "Validate the backup and show the same conflicts without writing or removing any local data.": "\uB85C\uCEEC \uB370\uC774\uD130\uB97C \uC4F0\uAC70\uB098 \uC0AD\uC81C\uD558\uC9C0 \uC54A\uACE0 \uBC31\uC5C5\uC744 \uAC80\uC99D\uD558\uACE0 \uAC19\uC740 \uCDA9\uB3CC\uC744 \uD45C\uC2DC\uD569\uB2C8\uB2E4.",
+      "Apply the selected profile collections. A failed write rolls back the collections already changed.": "\uC120\uD0DD\uD55C \uD504\uB85C\uD544 \uCEEC\uB809\uC158\uC744 \uC801\uC6A9\uD569\uB2C8\uB2E4. \uC4F0\uAE30\uC5D0 \uC2E4\uD328\uD558\uBA74 \uC774\uBBF8 \uBCC0\uACBD\uB41C \uCEEC\uB809\uC158\uC744 \uB864\uBC31\uD569\uB2C8\uB2E4.",
+      "Credentials are redacted; the values already saved in this profile will be kept.": "\uC790\uACA9 \uC99D\uBA85\uC740 \uAC00\uB824\uC838 \uC788\uC73C\uBA70 \uC774 \uD504\uB85C\uD544\uC5D0 \uC800\uC7A5\uB41C \uAC12\uC774 \uC720\uC9C0\uB429\uB2C8\uB2E4.",
       "Reset everything to plain X": "\uBAA8\uB450 \uAE30\uBCF8 X \uC0C1\uD0DC\uB85C \uB418\uB3CC\uB9AC\uAE30",
       "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "\uBAA8\uB4E0 \uC124\uC815\uC744 \uAE30\uBCF8\uAC12\uC73C\uB85C \uB418\uB3CC\uB9BD\uB2C8\uB2E4. \uAE30\uBCF8\uAC12\uC740 X\uB97C \uC804\uD600 \uBC14\uAFB8\uC9C0 \uC54A\uB294 \uC0C1\uD0DC\uC785\uB2C8\uB2E4. \uC800\uC7A5\uD55C \uAC8C\uC2DC\uBB3C\xB7\uBA54\uBAA8\xB7\uBD81\uB9C8\uD06C\xB7\uB2E4\uC6B4\uB85C\uB4DC \uAE30\uB85D\uC740 \uADF8\uB300\uB85C \uC720\uC9C0\uB418\uBA70 \uC124\uC815\uB9CC \uCD08\uAE30\uD654\uB429\uB2C8\uB2E4.",
       "Export settings": "\uC124\uC815 \uB0B4\uBCF4\uB0B4\uAE30",
@@ -3849,6 +4009,10 @@ html.av-reduce-motion *::after {
       "Import settings (JSON)": "\uC124\uC815 \uAC00\uC838\uC624\uAE30(JSON)",
       "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.": "Aviary\uC5D0\uC11C \uB0B4\uBCF4\uB0B8 \uC124\uC815 \uD30C\uC77C\uC744 \uBD99\uC5EC \uB123\uACE0 \uAC00\uC838\uC624\uAE30\uB97C \uB204\uB974\uC138\uC694. \uAC00\uB824\uC9C4 \uC778\uC99D \uC815\uBCF4\uB294 \uC5EC\uAE30\uC5D0 \uC800\uC7A5\uB41C \uAC12\uC774 \uC720\uC9C0\uB429\uB2C8\uB2E4.",
       "Import": "\uAC00\uC838\uC624\uAE30",
+      "Export full library backup": "\uC804\uCCB4 \uB77C\uC774\uBE0C\uB7EC\uB9AC \uBC31\uC5C5 \uB0B4\uBCF4\uB0B4\uAE30",
+      "Downloads one versioned JSON backup of this profile's local collections. Credentials are excluded by default; restoring keeps the credentials already saved here.": "\uC774 \uD504\uB85C\uD544\uC758 \uB85C\uCEEC \uCEEC\uB809\uC158\uC744 \uBC84\uC804\uC774 \uC9C0\uC815\uB41C JSON \uBC31\uC5C5 \uD558\uB098\uB85C \uB2E4\uC6B4\uB85C\uB4DC\uD569\uB2C8\uB2E4. \uC790\uACA9 \uC99D\uBA85\uC740 \uAE30\uBCF8\uC801\uC73C\uB85C \uC81C\uC678\uB418\uBA70 \uBCF5\uC6D0\uD574\uB3C4 \uC5EC\uAE30\uC5D0 \uC800\uC7A5\uB41C \uC790\uACA9 \uC99D\uBA85\uC774 \uC720\uC9C0\uB429\uB2C8\uB2E4.",
+      "Choose a library backup": "\uB77C\uC774\uBE0C\uB7EC\uB9AC \uBC31\uC5C5 \uC120\uD0DD",
+      "Select a JSON backup to inspect its versions, counts, conflicts, and checksum before changing local data.": "\uB85C\uCEEC \uB370\uC774\uD130\uB97C \uBCC0\uACBD\uD558\uAE30 \uC804\uC5D0 JSON \uBC31\uC5C5\uC758 \uBC84\uC804, \uAC1C\uC218, \uCDA9\uB3CC \uBC0F \uCCB4\uD06C\uC12C\uC744 \uD655\uC778\uD558\uB824\uBA74 \uBC31\uC5C5\uC744 \uC120\uD0DD\uD558\uC138\uC694.",
       "Keep a local action log": "\uB85C\uCEEC \uC791\uC5C5 \uB85C\uADF8 \uC720\uC9C0",
       "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.": "\uB2E4\uC6B4\uB85C\uB4DC, \uB0B4\uBCF4\uB0B4\uAE30, \uC124\uC815 \uBCC0\uACBD\uC744 \uC774 \uAE30\uAE30\uC5D0 \uAE30\uB85D\uD574 Aviary\uAC00 \uBB34\uC5C7\uC744 \uD588\uB294\uC9C0 \uD655\uC778\uD560 \uC218 \uC788\uAC8C \uD569\uB2C8\uB2E4. \uC678\uBD80\uB85C \uC804\uC1A1\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. \uB044\uBA74 \uC0C8 \uAE30\uB85D\uC774 \uC989\uC2DC \uC911\uB2E8\uB418\uBA70, \uAE30\uC874 \uAE30\uB85D\uC740 \uC9C0\uC6B8 \uB54C\uAE4C\uC9C0 \uB0A8\uC2B5\uB2C8\uB2E4.",
       "Audit entries": "\uAC10\uC0AC \uAE30\uB85D \uC218",
@@ -3999,6 +4163,20 @@ html.av-reduce-motion *::after {
       "Settings imported. {warning}": "\uC124\uC815\uC744 \uAC00\uC838\uC654\uC2B5\uB2C8\uB2E4. {warning}",
       "Import failed: {errors}": "\uAC00\uC838\uC624\uAE30 \uC2E4\uD328: {errors}",
       "Could not import settings.": "\uC124\uC815\uC744 \uAC00\uC838\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
+      "Library backup downloaded: {filename} ({collections} collections, {bytes}).": "\uB77C\uC774\uBE0C\uB7EC\uB9AC \uBC31\uC5C5\uC744 \uB2E4\uC6B4\uB85C\uB4DC\uD588\uC2B5\uB2C8\uB2E4: {filename} ({collections}\uAC1C \uCEEC\uB809\uC158, {bytes}).",
+      "Could not export full library backup.": "\uC804\uCCB4 \uB77C\uC774\uBE0C\uB7EC\uB9AC \uBC31\uC5C5\uC744 \uB0B4\uBCF4\uB0B4\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
+      "Reading library backup\u2026": "\uB77C\uC774\uBE0C\uB7EC\uB9AC \uBC31\uC5C5\uC744 \uC77D\uB294 \uC911\u2026",
+      "Backup loaded: {collections} collections, {conflicts} changes.": "\uBC31\uC5C5\uC744 \uBD88\uB7EC\uC654\uC2B5\uB2C8\uB2E4: {collections}\uAC1C \uCEEC\uB809\uC158, {conflicts}\uAC1C \uBCC0\uACBD.",
+      "Could not read library backup.": "\uB77C\uC774\uBE0C\uB7EC\uB9AC \uBC31\uC5C5\uC744 \uC77D\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
+      "Cancelling restore\u2026": "\uBCF5\uC6D0\uC744 \uCDE8\uC18C\uD558\uB294 \uC911\u2026",
+      "Dry-run complete. No local data changed.": "\uC2DC\uD5D8 \uC2E4\uD589\uC774 \uC644\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB85C\uCEEC \uB370\uC774\uD130\uB294 \uBCC0\uACBD\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.",
+      "Dry-run failed: {errors}": "\uC2DC\uD5D8 \uC2E4\uD589 \uC2E4\uD328: {errors}",
+      "Could not dry-run library restore.": "\uB77C\uC774\uBE0C\uB7EC\uB9AC \uBCF5\uC6D0 \uC2DC\uD5D8 \uC2E4\uD589\uC744 \uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
+      "Library backup restored ({collections} collections). Reloading\u2026": "\uB77C\uC774\uBE0C\uB7EC\uB9AC \uBC31\uC5C5\uC744 \uBCF5\uC6D0\uD588\uC2B5\uB2C8\uB2E4({collections}\uAC1C \uCEEC\uB809\uC158). \uB2E4\uC2DC \uBD88\uB7EC\uC624\uB294 \uC911\u2026",
+      "Restore cancelled; local data was rolled back.": "\uBCF5\uC6D0\uC774 \uCDE8\uC18C\uB418\uC5C8\uACE0 \uB85C\uCEEC \uB370\uC774\uD130\uAC00 \uB864\uBC31\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+      "Restore cancelled.": "\uBCF5\uC6D0\uC774 \uCDE8\uC18C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+      "Restore failed: {errors}": "\uBCF5\uC6D0 \uC2E4\uD328: {errors}",
+      "Could not restore library backup.": "\uB77C\uC774\uBE0C\uB7EC\uB9AC \uBC31\uC5C5\uC744 \uBCF5\uC6D0\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "Action log on": "\uC791\uC5C5 \uAE30\uB85D \uCF2C",
       "Action log off": "\uC791\uC5C5 \uAE30\uB85D \uB054",
       "Audit log cleared": "\uAC10\uC0AC \uB85C\uADF8\uB97C \uC9C0\uC6E0\uC2B5\uB2C8\uB2E4",
@@ -4120,6 +4298,14 @@ html.av-reduce-motion *::after {
       "Retry archive import": "\uC544\uCE74\uC774\uBE0C \uAC00\uC838\uC624\uAE30 \uB2E4\uC2DC \uC2DC\uB3C4",
       "Local bookmarks": "\uB85C\uCEEC \uBD81\uB9C8\uD06C",
       "Clear local bookmarks": "\uB85C\uCEEC \uBD81\uB9C8\uD06C \uC0AD\uC81C",
+      "Backup version": "\uBC31\uC5C5 \uBC84\uC804",
+      "Backup collections": "\uBC31\uC5C5 \uCEEC\uB809\uC158",
+      "Collection changes": "\uCEEC\uB809\uC158 \uBCC0\uACBD",
+      "Credentials": "\uC790\uACA9 \uC99D\uBA85",
+      "Backup warnings": "\uBC31\uC5C5 \uACBD\uACE0",
+      "Cancel restore": "\uBCF5\uC6D0 \uCDE8\uC18C",
+      "Dry-run restore": "\uBCF5\uC6D0 \uC2DC\uD5D8 \uC2E4\uD589",
+      "Restore this library backup": "\uC774 \uB77C\uC774\uBE0C\uB7EC\uB9AC \uBC31\uC5C5 \uBCF5\uC6D0",
       "Export job": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5",
       "Pause export job": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5 \uC77C\uC2DC \uC911\uC9C0",
       "Resume export job": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5 \uC7AC\uAC1C",
@@ -4506,6 +4692,11 @@ html.av-reduce-motion *::after {
       "Integration status": "\u062D\u0627\u0644\u0629 \u0627\u0644\u062A\u0643\u0627\u0645\u0644\u0627\u062A",
       "Recent integration errors": "\u0623\u062E\u0637\u0627\u0621 \u0627\u0644\u062A\u0643\u0627\u0645\u0644 \u0627\u0644\u0623\u062E\u064A\u0631\u0629",
       "Drawn from the audit log; only failed integration calls show up.": "\u0645\u0646 \u0633\u062C\u0644 \u0627\u0644\u062A\u062F\u0642\u064A\u0642\u061B \u062A\u0638\u0647\u0631 \u0641\u0642\u0637 \u0627\u0633\u062A\u062F\u0639\u0627\u0621\u0627\u062A \u0627\u0644\u062A\u0643\u0627\u0645\u0644 \u0627\u0644\u0641\u0627\u0634\u0644\u0629.",
+      "Redacted \u2014 saved credentials will be kept.": "\u0645\u0646\u0642\u062D\u0629 \u2014 \u0633\u062A\u064F\u062D\u0641\u0638 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0627\u0639\u062A\u0645\u0627\u062F \u0627\u0644\u0645\u062E\u0632\u0646\u0629.",
+      "Stop after the current collection and roll back anything already written.": "\u062A\u0648\u0642\u0641 \u0628\u0639\u062F \u0627\u0644\u0645\u062C\u0645\u0648\u0639\u0629 \u0627\u0644\u062D\u0627\u0644\u064A\u0629 \u0648\u0623\u0639\u062F \u0643\u0644 \u0645\u0627 \u062A\u0645\u062A \u0643\u062A\u0627\u0628\u062A\u0647 \u0628\u0627\u0644\u0641\u0639\u0644.",
+      "Validate the backup and show the same conflicts without writing or removing any local data.": "\u062A\u062D\u0642\u0642 \u0645\u0646 \u0627\u0644\u0646\u0633\u062E\u0629 \u0627\u0644\u0627\u062D\u062A\u064A\u0627\u0637\u064A\u0629 \u0648\u0627\u0639\u0631\u0636 \u0627\u0644\u062A\u0639\u0627\u0631\u0636\u0627\u062A \u0646\u0641\u0633\u0647\u0627 \u0645\u0646 \u062F\u0648\u0646 \u0643\u062A\u0627\u0628\u0629 \u0623\u0648 \u0625\u0632\u0627\u0644\u0629 \u0623\u064A \u0628\u064A\u0627\u0646\u0627\u062A \u0645\u062D\u0644\u064A\u0629.",
+      "Apply the selected profile collections. A failed write rolls back the collections already changed.": "\u0637\u0628\u0651\u0642 \u0645\u062C\u0645\u0648\u0639\u0627\u062A \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A \u0627\u0644\u0645\u062D\u062F\u062F\u0629. \u062A\u0624\u062F\u064A \u0627\u0644\u0643\u062A\u0627\u0628\u0629 \u0627\u0644\u0641\u0627\u0634\u0644\u0629 \u0625\u0644\u0649 \u0627\u0644\u062A\u0631\u0627\u062C\u0639 \u0639\u0646 \u0627\u0644\u0645\u062C\u0645\u0648\u0639\u0627\u062A \u0627\u0644\u062A\u064A \u062A\u063A\u064A\u0631\u062A \u0628\u0627\u0644\u0641\u0639\u0644.",
+      "Credentials are redacted; the values already saved in this profile will be kept.": "\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0627\u0639\u062A\u0645\u0627\u062F \u0645\u0646\u0642\u062D\u0629\u061B \u0633\u062A\u064F\u062D\u0641\u0638 \u0627\u0644\u0642\u064A\u0645 \u0627\u0644\u0645\u062E\u0632\u0646\u0629 \u0628\u0627\u0644\u0641\u0639\u0644 \u0641\u064A \u0647\u0630\u0627 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A.",
       "Reset everything to plain X": "\u0625\u0639\u0627\u062F\u0629 \u0643\u0644 \u0634\u064A\u0621 \u0625\u0644\u0649 X \u0643\u0645\u0627 \u0647\u0648",
       "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "\u064A\u0639\u064A\u062F \u0643\u0644 \u0625\u0639\u062F\u0627\u062F \u0625\u0644\u0649 \u0642\u064A\u0645\u062A\u0647 \u0627\u0644\u0627\u0641\u062A\u0631\u0627\u0636\u064A\u0629\u060C \u0648\u0647\u064A \u0639\u062F\u0645 \u062A\u063A\u064A\u064A\u0631 \u0623\u064A \u0634\u064A\u0621 \u0641\u064A X \u0639\u0644\u0649 \u0627\u0644\u0625\u0637\u0644\u0627\u0642. \u062A\u0628\u0642\u0649 \u0645\u0646\u0634\u0648\u0631\u0627\u062A\u0643 \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629 \u0648\u0645\u0644\u0627\u062D\u0638\u0627\u062A\u0643 \u0648\u0625\u0634\u0627\u0631\u0627\u062A\u0643 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0648\u0633\u062C\u0644 \u0627\u0644\u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0643\u0645\u0627 \u0647\u064A \u2014 \u0647\u0630\u0627 \u064A\u0639\u064A\u062F \u0636\u0628\u0637 \u0627\u0644\u062A\u0641\u0636\u064A\u0644\u0627\u062A \u0641\u0642\u0637.",
       "Export settings": "\u062A\u0635\u062F\u064A\u0631 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A",
@@ -4513,6 +4704,10 @@ html.av-reduce-motion *::after {
       "Import settings (JSON)": "\u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A (JSON)",
       "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.": "\u0627\u0644\u0635\u0642 \u0645\u0644\u0641 \u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0645\u064F\u0635\u062F\u064E\u0651\u0631\u064B\u0627 \u0645\u0646 Aviary \u062B\u0645 \u0627\u062E\u062A\u0631 \u0627\u0633\u062A\u064A\u0631\u0627\u062F. \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0627\u0639\u062A\u0645\u0627\u062F \u0627\u0644\u0645\u062D\u062C\u0648\u0628\u0629 \u062A\u062D\u062A\u0641\u0638 \u0628\u0627\u0644\u0642\u064A\u0645 \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629 \u0647\u0646\u0627.",
       "Import": "\u0627\u0633\u062A\u064A\u0631\u0627\u062F",
+      "Export full library backup": "\u062A\u0635\u062F\u064A\u0631 \u0646\u0633\u062E\u0629 \u0627\u062D\u062A\u064A\u0627\u0637\u064A\u0629 \u0643\u0627\u0645\u0644\u0629 \u0644\u0644\u0645\u0643\u062A\u0628\u0629",
+      "Downloads one versioned JSON backup of this profile's local collections. Credentials are excluded by default; restoring keeps the credentials already saved here.": "\u064A\u0646\u0632\u0651\u0644 \u0646\u0633\u062E\u0629 \u0627\u062D\u062A\u064A\u0627\u0637\u064A\u0629 \u0648\u0627\u062D\u062F\u0629 \u0628\u0625\u0635\u062F\u0627\u0631 JSON \u0645\u0646 \u0645\u062C\u0645\u0648\u0639\u0627\u062A \u0647\u0630\u0627 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629. \u062A\u064F\u0633\u062A\u0628\u0639\u062F \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0627\u0639\u062A\u0645\u0627\u062F \u0627\u0641\u062A\u0631\u0627\u0636\u064A\u064B\u0627\u060C \u0648\u064A\u062D\u0627\u0641\u0638 \u0627\u0644\u0627\u0633\u062A\u0631\u062C\u0627\u0639 \u0639\u0644\u0649 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0627\u0639\u062A\u0645\u0627\u062F \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629 \u0647\u0646\u0627.",
+      "Choose a library backup": "\u0627\u062E\u062A\u064A\u0627\u0631 \u0646\u0633\u062E\u0629 \u0627\u062D\u062A\u064A\u0627\u0637\u064A\u0629 \u0644\u0644\u0645\u0643\u062A\u0628\u0629",
+      "Select a JSON backup to inspect its versions, counts, conflicts, and checksum before changing local data.": "\u0627\u062E\u062A\u0631 \u0646\u0633\u062E\u0629 JSON \u0644\u0641\u062D\u0635 \u0625\u0635\u062F\u0627\u0631\u0627\u062A\u0647\u0627 \u0648\u0623\u0639\u062F\u0627\u062F\u0647\u0627 \u0648\u062A\u0639\u0627\u0631\u0636\u0627\u062A\u0647\u0627 \u0648\u0645\u062C\u0645\u0648\u0639 \u062A\u062F\u0642\u064A\u0642\u0647\u0627 \u0642\u0628\u0644 \u062A\u063A\u064A\u064A\u0631 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u064A\u0629.",
       "Keep a local action log": "\u0627\u0644\u0627\u062D\u062A\u0641\u0627\u0638 \u0628\u0633\u062C\u0644 \u0645\u062D\u0644\u064A \u0644\u0644\u0625\u062C\u0631\u0627\u0621\u0627\u062A",
       "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.": "\u064A\u0633\u062C\u0651\u0644 \u0627\u0644\u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0648\u0639\u0645\u0644\u064A\u0627\u062A \u0627\u0644\u062A\u0635\u062F\u064A\u0631 \u0648\u062A\u063A\u064A\u064A\u0631\u0627\u062A \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0639\u0644\u0649 \u0647\u0630\u0627 \u0627\u0644\u062C\u0647\u0627\u0632 \u0644\u062A\u062A\u0645\u0643\u0646 \u0645\u0646 \u0645\u0631\u0627\u062C\u0639\u0629 \u0645\u0627 \u0641\u0639\u0644\u0647 Aviary. \u0644\u0627 \u064A\u064F\u0631\u0633\u0644 \u0623\u064A \u0634\u064A\u0621 \u0625\u0644\u0649 \u0623\u064A \u062C\u0647\u0629. \u0625\u064A\u0642\u0627\u0641\u0647 \u064A\u0645\u0646\u0639 \u0625\u0636\u0627\u0641\u0629 \u0623\u064A \u0639\u0646\u0627\u0635\u0631 \u062C\u062F\u064A\u062F\u0629 \u0641\u0648\u0631\u064B\u0627\u060C \u0648\u062A\u0628\u0642\u0649 \u0627\u0644\u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062D\u0627\u0644\u064A\u0629 \u062D\u062A\u0649 \u062A\u0645\u0633\u062D\u0647\u0627.",
       "Audit entries": "\u0639\u0646\u0627\u0635\u0631 \u0633\u062C\u0644 \u0627\u0644\u062A\u062F\u0642\u064A\u0642",
@@ -4663,6 +4858,20 @@ html.av-reduce-motion *::after {
       "Settings imported. {warning}": "\u062A\u0645 \u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A. {warning}",
       "Import failed: {errors}": "\u0641\u0634\u0644 \u0627\u0644\u0627\u0633\u062A\u064A\u0631\u0627\u062F: {errors}",
       "Could not import settings.": "\u062A\u0639\u0630\u0651\u0631 \u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A.",
+      "Library backup downloaded: {filename} ({collections} collections, {bytes}).": "\u062A\u0645 \u062A\u0646\u0632\u064A\u0644 \u0646\u0633\u062E\u0629 \u0627\u0644\u0645\u0643\u062A\u0628\u0629 \u0627\u0644\u0627\u062D\u062A\u064A\u0627\u0637\u064A\u0629: {filename} ({collections} \u0645\u062C\u0645\u0648\u0639\u0627\u062A\u060C {bytes}).",
+      "Could not export full library backup.": "\u062A\u0639\u0630\u0631 \u062A\u0635\u062F\u064A\u0631 \u0627\u0644\u0646\u0633\u062E\u0629 \u0627\u0644\u0627\u062D\u062A\u064A\u0627\u0637\u064A\u0629 \u0627\u0644\u0643\u0627\u0645\u0644\u0629 \u0644\u0644\u0645\u0643\u062A\u0628\u0629.",
+      "Reading library backup\u2026": "\u062C\u0627\u0631\u064D \u0642\u0631\u0627\u0621\u0629 \u0646\u0633\u062E\u0629 \u0627\u0644\u0645\u0643\u062A\u0628\u0629 \u0627\u0644\u0627\u062D\u062A\u064A\u0627\u0637\u064A\u0629\u2026",
+      "Backup loaded: {collections} collections, {conflicts} changes.": "\u062A\u0645 \u062A\u062D\u0645\u064A\u0644 \u0627\u0644\u0646\u0633\u062E\u0629 \u0627\u0644\u0627\u062D\u062A\u064A\u0627\u0637\u064A\u0629: {collections} \u0645\u062C\u0645\u0648\u0639\u0627\u062A\u060C {conflicts} \u062A\u063A\u064A\u064A\u0631\u0627\u062A.",
+      "Could not read library backup.": "\u062A\u0639\u0630\u0631\u062A \u0642\u0631\u0627\u0621\u0629 \u0646\u0633\u062E\u0629 \u0627\u0644\u0645\u0643\u062A\u0628\u0629 \u0627\u0644\u0627\u062D\u062A\u064A\u0627\u0637\u064A\u0629.",
+      "Cancelling restore\u2026": "\u062C\u0627\u0631\u064D \u0625\u0644\u063A\u0627\u0621 \u0627\u0644\u0627\u0633\u062A\u0631\u062C\u0627\u0639\u2026",
+      "Dry-run complete. No local data changed.": "\u0627\u0643\u062A\u0645\u0644\u062A \u0627\u0644\u0645\u062D\u0627\u0643\u0627\u0629. \u0644\u0645 \u062A\u062A\u063A\u064A\u0631 \u0623\u064A \u0628\u064A\u0627\u0646\u0627\u062A \u0645\u062D\u0644\u064A\u0629.",
+      "Dry-run failed: {errors}": "\u0641\u0634\u0644\u062A \u0627\u0644\u0645\u062D\u0627\u0643\u0627\u0629: {errors}",
+      "Could not dry-run library restore.": "\u062A\u0639\u0630\u0631\u062A \u0645\u062D\u0627\u0643\u0627\u0629 \u0627\u0633\u062A\u0631\u062C\u0627\u0639 \u0627\u0644\u0645\u0643\u062A\u0628\u0629.",
+      "Library backup restored ({collections} collections). Reloading\u2026": "\u062A\u0645 \u0627\u0633\u062A\u0631\u062C\u0627\u0639 \u0646\u0633\u062E\u0629 \u0627\u0644\u0645\u0643\u062A\u0628\u0629 ({collections} \u0645\u062C\u0645\u0648\u0639\u0627\u062A). \u062C\u0627\u0631\u064D \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u062A\u062D\u0645\u064A\u0644\u2026",
+      "Restore cancelled; local data was rolled back.": "\u0623\u064F\u0644\u063A\u064A \u0627\u0644\u0627\u0633\u062A\u0631\u062C\u0627\u0639\u061B \u062A\u0645\u062A \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u064A\u0629 \u0625\u0644\u0649 \u062D\u0627\u0644\u062A\u0647\u0627 \u0627\u0644\u0633\u0627\u0628\u0642\u0629.",
+      "Restore cancelled.": "\u0623\u064F\u0644\u063A\u064A \u0627\u0644\u0627\u0633\u062A\u0631\u062C\u0627\u0639.",
+      "Restore failed: {errors}": "\u0641\u0634\u0644 \u0627\u0644\u0627\u0633\u062A\u0631\u062C\u0627\u0639: {errors}",
+      "Could not restore library backup.": "\u062A\u0639\u0630\u0631 \u0627\u0633\u062A\u0631\u062C\u0627\u0639 \u0646\u0633\u062E\u0629 \u0627\u0644\u0645\u0643\u062A\u0628\u0629 \u0627\u0644\u0627\u062D\u062A\u064A\u0627\u0637\u064A\u0629.",
       "Action log on": "\u0633\u062C\u0644 \u0627\u0644\u0625\u062C\u0631\u0627\u0621\u0627\u062A \u0645\u0641\u0639\u0651\u0644",
       "Action log off": "\u0633\u062C\u0644 \u0627\u0644\u0625\u062C\u0631\u0627\u0621\u0627\u062A \u0645\u0639\u0637\u0651\u0644",
       "Audit log cleared": "\u062A\u0645 \u0645\u0633\u062D \u0633\u062C\u0644 \u0627\u0644\u062A\u062F\u0642\u064A\u0642",
@@ -4784,6 +4993,14 @@ html.av-reduce-motion *::after {
       "Retry archive import": "\u0625\u0639\u0627\u062F\u0629 \u0645\u062D\u0627\u0648\u0644\u0629 \u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0623\u0631\u0634\u064A\u0641",
       "Local bookmarks": "\u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
       "Clear local bookmarks": "\u0645\u0633\u062D \u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
+      "Backup version": "\u0625\u0635\u062F\u0627\u0631 \u0627\u0644\u0646\u0633\u062E\u0629 \u0627\u0644\u0627\u062D\u062A\u064A\u0627\u0637\u064A\u0629",
+      "Backup collections": "\u0645\u062C\u0645\u0648\u0639\u0627\u062A \u0627\u0644\u0646\u0633\u062E\u0629 \u0627\u0644\u0627\u062D\u062A\u064A\u0627\u0637\u064A\u0629",
+      "Collection changes": "\u062A\u063A\u064A\u064A\u0631\u0627\u062A \u0627\u0644\u0645\u062C\u0645\u0648\u0639\u0627\u062A",
+      "Credentials": "\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0627\u0639\u062A\u0645\u0627\u062F",
+      "Backup warnings": "\u062A\u062D\u0630\u064A\u0631\u0627\u062A \u0627\u0644\u0646\u0633\u062E\u0629 \u0627\u0644\u0627\u062D\u062A\u064A\u0627\u0637\u064A\u0629",
+      "Cancel restore": "\u0625\u0644\u063A\u0627\u0621 \u0627\u0644\u0627\u0633\u062A\u0631\u062C\u0627\u0639",
+      "Dry-run restore": "\u0645\u062D\u0627\u0643\u0627\u0629 \u0627\u0644\u0627\u0633\u062A\u0631\u062C\u0627\u0639",
+      "Restore this library backup": "\u0627\u0633\u062A\u0631\u062C\u0627\u0639 \u0646\u0633\u062E\u0629 \u0627\u0644\u0645\u0643\u062A\u0628\u0629 \u0647\u0630\u0647",
       "Export job": "\u0645\u0647\u0645\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631",
       "Pause export job": "\u0625\u064A\u0642\u0627\u0641 \u0645\u0647\u0645\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631 \u0645\u0624\u0642\u062A\u064B\u0627",
       "Resume export job": "\u0627\u0633\u062A\u0626\u0646\u0627\u0641 \u0645\u0647\u0645\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631",
@@ -5170,6 +5387,11 @@ html.av-reduce-motion *::after {
       "Integration status": "\u05DE\u05E6\u05D1 \u05D4\u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D5\u05EA",
       "Recent integration errors": "\u05E9\u05D2\u05D9\u05D0\u05D5\u05EA \u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D4 \u05D0\u05D7\u05E8\u05D5\u05E0\u05D5\u05EA",
       "Drawn from the audit log; only failed integration calls show up.": "\u05E0\u05DC\u05E7\u05D7 \u05DE\u05D9\u05D5\u05DE\u05DF \u05D4\u05D1\u05D9\u05E7\u05D5\u05E8\u05EA; \u05E8\u05E7 \u05E7\u05E8\u05D9\u05D0\u05D5\u05EA \u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D4 \u05E9\u05E0\u05DB\u05E9\u05DC\u05D5 \u05DE\u05D5\u05E6\u05D2\u05D5\u05EA.",
+      "Redacted \u2014 saved credentials will be kept.": "\u05D4\u05D5\u05E1\u05EA\u05E8\u05D5 \u2014 \u05E4\u05E8\u05D8\u05D9 \u05D4\u05D0\u05D9\u05DE\u05D5\u05EA \u05D4\u05E9\u05DE\u05D5\u05E8\u05D9\u05DD \u05D9\u05D9\u05E9\u05DE\u05E8\u05D5.",
+      "Stop after the current collection and roll back anything already written.": "\u05E2\u05E6\u05D9\u05E8\u05D4 \u05D0\u05D7\u05E8\u05D9 \u05D4\u05D0\u05D5\u05E1\u05E3 \u05D4\u05E0\u05D5\u05DB\u05D7\u05D9 \u05D5\u05D4\u05D7\u05D6\u05E8\u05EA \u05DB\u05DC \u05DE\u05D4 \u05E9\u05DB\u05D1\u05E8 \u05E0\u05DB\u05EA\u05D1.",
+      "Validate the backup and show the same conflicts without writing or removing any local data.": "\u05D0\u05D9\u05DE\u05D5\u05EA \u05D4\u05D2\u05D9\u05D1\u05D5\u05D9 \u05D5\u05D4\u05E6\u05D2\u05EA \u05D0\u05D5\u05EA\u05DF \u05D4\u05EA\u05E0\u05D2\u05E9\u05D5\u05D9\u05D5\u05EA \u05D1\u05DC\u05D9 \u05DC\u05DB\u05EA\u05D5\u05D1 \u05D0\u05D5 \u05DC\u05D4\u05E1\u05D9\u05E8 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05DE\u05E7\u05D5\u05DE\u05D9\u05D9\u05DD.",
+      "Apply the selected profile collections. A failed write rolls back the collections already changed.": "\u05D4\u05D7\u05DC\u05EA \u05D0\u05D5\u05E1\u05E4\u05D9 \u05D4\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05E9\u05E0\u05D1\u05D7\u05E8\u05D5. \u05DB\u05EA\u05D9\u05D1\u05D4 \u05E9\u05E0\u05DB\u05E9\u05DC\u05D4 \u05DE\u05D7\u05D6\u05D9\u05E8\u05D4 \u05D0\u05EA \u05D4\u05D0\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05DB\u05D1\u05E8 \u05D4\u05E9\u05EA\u05E0\u05D5.",
+      "Credentials are redacted; the values already saved in this profile will be kept.": "\u05E4\u05E8\u05D8\u05D9 \u05D4\u05D0\u05D9\u05DE\u05D5\u05EA \u05D4\u05D5\u05E1\u05EA\u05E8\u05D5; \u05D4\u05E2\u05E8\u05DB\u05D9\u05DD \u05E9\u05DB\u05D1\u05E8 \u05E0\u05E9\u05DE\u05E8\u05D5 \u05D1\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05D4\u05D6\u05D4 \u05D9\u05D9\u05E9\u05DE\u05E8\u05D5.",
       "Reset everything to plain X": "\u05DC\u05D0\u05E4\u05E1 \u05D4\u05DB\u05D5\u05DC \u05DC-X \u05E8\u05D2\u05D9\u05DC",
       "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.": "\u05DE\u05D7\u05D6\u05D9\u05E8 \u05DB\u05DC \u05D4\u05D2\u05D3\u05E8\u05D4 \u05DC\u05D1\u05E8\u05D9\u05E8\u05EA \u05D4\u05DE\u05D7\u05D3\u05DC \u05E9\u05DC\u05D4, \u05E9\u05D4\u05D9\u05D0 \u05DC\u05D0 \u05DC\u05E9\u05E0\u05D5\u05EA \u05D3\u05D1\u05E8 \u05D1-X. \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D4\u05E9\u05DE\u05D5\u05E8\u05D9\u05DD, \u05D4\u05D4\u05E2\u05E8\u05D5\u05EA, \u05D4\u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05D5\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05D4\u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05E9\u05DC\u05DA \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u2014 \u05D4\u05D0\u05D9\u05E4\u05D5\u05E1 \u05E0\u05D5\u05D2\u05E2 \u05DC\u05D4\u05E2\u05D3\u05E4\u05D5\u05EA \u05D1\u05DC\u05D1\u05D3.",
       "Export settings": "\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D4\u05D2\u05D3\u05E8\u05D5\u05EA",
@@ -5177,6 +5399,10 @@ html.av-reduce-motion *::after {
       "Import settings (JSON)": "\u05D9\u05D9\u05D1\u05D5\u05D0 \u05D4\u05D2\u05D3\u05E8\u05D5\u05EA (JSON)",
       "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.": "\u05D4\u05D3\u05D1\u05E7 \u05E7\u05D5\u05D1\u05E5 \u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05E9\u05D9\u05D5\u05E6\u05D0 \u05DE\u2011Aviary \u05D5\u05D1\u05D7\u05E8 \u05D9\u05D9\u05D1\u05D5\u05D0. \u05E4\u05E8\u05D8\u05D9 \u05D2\u05D9\u05E9\u05D4 \u05DE\u05D5\u05E1\u05EA\u05E8\u05D9\u05DD \u05D9\u05E9\u05DE\u05E8\u05D5 \u05E2\u05DC \u05D4\u05E2\u05E8\u05DB\u05D9\u05DD \u05D4\u05E7\u05D9\u05D9\u05DE\u05D9\u05DD \u05DB\u05D0\u05DF.",
       "Import": "\u05D9\u05D9\u05D1\u05D5\u05D0",
+      "Export full library backup": "\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D2\u05D9\u05D1\u05D5\u05D9 \u05DE\u05DC\u05D0 \u05E9\u05DC \u05D4\u05E1\u05E4\u05E8\u05D9\u05D9\u05D4",
+      "Downloads one versioned JSON backup of this profile's local collections. Credentials are excluded by default; restoring keeps the credentials already saved here.": "\u05DE\u05D5\u05E8\u05D9\u05D3 \u05D2\u05D9\u05D1\u05D5\u05D9 JSON \u05D1\u05D2\u05E8\u05E1\u05D4 \u05D0\u05D7\u05EA \u05E9\u05DC \u05D4\u05D0\u05D5\u05E1\u05E4\u05D9\u05DD \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9\u05D9\u05DD \u05D1\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05D4\u05D6\u05D4. \u05E4\u05E8\u05D8\u05D9 \u05D4\u05D0\u05D9\u05DE\u05D5\u05EA \u05DE\u05D5\u05D7\u05E8\u05D2\u05D9\u05DD \u05DB\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC, \u05D5\u05D4\u05E9\u05D7\u05D6\u05D5\u05E8 \u05E9\u05D5\u05DE\u05E8 \u05E2\u05DC \u05E4\u05E8\u05D8\u05D9 \u05D4\u05D0\u05D9\u05DE\u05D5\u05EA \u05E9\u05DB\u05D1\u05E8 \u05E0\u05E9\u05DE\u05E8\u05D5 \u05DB\u05D0\u05DF.",
+      "Choose a library backup": "\u05D1\u05D7\u05D9\u05E8\u05EA \u05D2\u05D9\u05D1\u05D5\u05D9 \u05E1\u05E4\u05E8\u05D9\u05D9\u05D4",
+      "Select a JSON backup to inspect its versions, counts, conflicts, and checksum before changing local data.": "\u05D1\u05D7\u05E8\u05D5 \u05D2\u05D9\u05D1\u05D5\u05D9 JSON \u05DB\u05D3\u05D9 \u05DC\u05D1\u05D3\u05D5\u05E7 \u05D2\u05E8\u05E1\u05D0\u05D5\u05EA, \u05DB\u05DE\u05D5\u05D9\u05D5\u05EA, \u05D4\u05EA\u05E0\u05D2\u05E9\u05D5\u05D9\u05D5\u05EA \u05D5\u05E1\u05DB\u05D5\u05DD \u05D1\u05D9\u05E7\u05D5\u05E8\u05EA \u05DC\u05E4\u05E0\u05D9 \u05E9\u05D9\u05E0\u05D5\u05D9 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05DE\u05E7\u05D5\u05DE\u05D9\u05D9\u05DD.",
       "Keep a local action log": "\u05E9\u05DE\u05D9\u05E8\u05EA \u05D9\u05D5\u05DE\u05DF \u05E4\u05E2\u05D5\u05DC\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9",
       "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.": "\u05DE\u05EA\u05E2\u05D3 \u05D4\u05D5\u05E8\u05D3\u05D5\u05EA, \u05D9\u05D9\u05E6\u05D5\u05D0 \u05D5\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9 \u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D4\u05D6\u05D4 \u05DB\u05D3\u05D9 \u05E9\u05EA\u05D5\u05DB\u05DC \u05DC\u05D1\u05D3\u05D5\u05E7 \u05DE\u05D4 Aviary \u05E2\u05E9\u05D4. \u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05E0\u05E9\u05DC\u05D7 \u05DC\u05E9\u05D5\u05DD \u05DE\u05E7\u05D5\u05DD. \u05DB\u05D9\u05D1\u05D5\u05D9 \u05E2\u05D5\u05E6\u05E8 \u05DE\u05D9\u05D3 \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05D7\u05D3\u05E9\u05D5\u05EA; \u05D4\u05E7\u05D9\u05D9\u05DE\u05D5\u05EA \u05E0\u05E9\u05D0\u05E8\u05D5\u05EA \u05E2\u05D3 \u05E9\u05EA\u05DE\u05D7\u05E7 \u05D0\u05D5\u05EA\u05DF.",
       "Audit entries": "\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05D1\u05D9\u05E7\u05D5\u05E8\u05EA",
@@ -5327,6 +5553,20 @@ html.av-reduce-motion *::after {
       "Settings imported. {warning}": "\u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D9\u05D5\u05D1\u05D0\u05D5. {warning}",
       "Import failed: {errors}": "\u05D4\u05D9\u05D9\u05D1\u05D5\u05D0 \u05E0\u05DB\u05E9\u05DC: {errors}",
       "Could not import settings.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05D9\u05D9\u05D1\u05D0 \u05D0\u05EA \u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA.",
+      "Library backup downloaded: {filename} ({collections} collections, {bytes}).": "\u05D2\u05D9\u05D1\u05D5\u05D9 \u05D4\u05E1\u05E4\u05E8\u05D9\u05D9\u05D4 \u05D4\u05D5\u05E8\u05D3: {filename} ({collections} \u05D0\u05D5\u05E1\u05E4\u05D9\u05DD, {bytes}).",
+      "Could not export full library backup.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05D9\u05D9\u05E6\u05D0 \u05D0\u05EA \u05D2\u05D9\u05D1\u05D5\u05D9 \u05D4\u05E1\u05E4\u05E8\u05D9\u05D9\u05D4 \u05D4\u05DE\u05DC\u05D0.",
+      "Reading library backup\u2026": "\u05D2\u05D9\u05D1\u05D5\u05D9 \u05D4\u05E1\u05E4\u05E8\u05D9\u05D9\u05D4 \u05E0\u05E7\u05E8\u05D0\u2026",
+      "Backup loaded: {collections} collections, {conflicts} changes.": "\u05D4\u05D2\u05D9\u05D1\u05D5\u05D9 \u05E0\u05D8\u05E2\u05DF: {collections} \u05D0\u05D5\u05E1\u05E4\u05D9\u05DD, {conflicts} \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD.",
+      "Could not read library backup.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E7\u05E8\u05D5\u05D0 \u05D0\u05EA \u05D2\u05D9\u05D1\u05D5\u05D9 \u05D4\u05E1\u05E4\u05E8\u05D9\u05D9\u05D4.",
+      "Cancelling restore\u2026": "\u05D4\u05E9\u05D7\u05D6\u05D5\u05E8 \u05DE\u05D1\u05D5\u05D8\u05DC\u2026",
+      "Dry-run complete. No local data changed.": "\u05D4\u05D4\u05E8\u05E6\u05D4 \u05D4\u05D9\u05D1\u05E9\u05D4 \u05D4\u05D5\u05E9\u05DC\u05DE\u05D4. \u05E9\u05D5\u05DD \u05E0\u05EA\u05D5\u05DF \u05DE\u05E7\u05D5\u05DE\u05D9 \u05DC\u05D0 \u05D4\u05E9\u05EA\u05E0\u05D4.",
+      "Dry-run failed: {errors}": "\u05D4\u05D4\u05E8\u05E6\u05D4 \u05D4\u05D9\u05D1\u05E9\u05D4 \u05E0\u05DB\u05E9\u05DC\u05D4: {errors}",
+      "Could not dry-run library restore.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05D1\u05E6\u05E2 \u05D4\u05E8\u05E6\u05D4 \u05D9\u05D1\u05E9\u05D4 \u05E9\u05DC \u05E9\u05D7\u05D6\u05D5\u05E8 \u05D4\u05E1\u05E4\u05E8\u05D9\u05D9\u05D4.",
+      "Library backup restored ({collections} collections). Reloading\u2026": "\u05D2\u05D9\u05D1\u05D5\u05D9 \u05D4\u05E1\u05E4\u05E8\u05D9\u05D9\u05D4 \u05E9\u05D5\u05D7\u05D6\u05E8 ({collections} \u05D0\u05D5\u05E1\u05E4\u05D9\u05DD). \u05D8\u05D5\u05E2\u05DF \u05DE\u05D7\u05D3\u05E9\u2026",
+      "Restore cancelled; local data was rolled back.": "\u05D4\u05E9\u05D7\u05D6\u05D5\u05E8 \u05D1\u05D5\u05D8\u05DC; \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9\u05D9\u05DD \u05D4\u05D5\u05D7\u05D6\u05E8\u05D5 \u05DC\u05D0\u05D7\u05D5\u05E8.",
+      "Restore cancelled.": "\u05D4\u05E9\u05D7\u05D6\u05D5\u05E8 \u05D1\u05D5\u05D8\u05DC.",
+      "Restore failed: {errors}": "\u05D4\u05E9\u05D7\u05D6\u05D5\u05E8 \u05E0\u05DB\u05E9\u05DC: {errors}",
+      "Could not restore library backup.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E9\u05D7\u05D6\u05E8 \u05D0\u05EA \u05D2\u05D9\u05D1\u05D5\u05D9 \u05D4\u05E1\u05E4\u05E8\u05D9\u05D9\u05D4.",
       "Action log on": "\u05D9\u05D5\u05DE\u05DF \u05D4\u05E4\u05E2\u05D5\u05DC\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC",
       "Action log off": "\u05D9\u05D5\u05DE\u05DF \u05D4\u05E4\u05E2\u05D5\u05DC\u05D5\u05EA \u05DB\u05D1\u05D5\u05D9",
       "Audit log cleared": "\u05D9\u05D5\u05DE\u05DF \u05D4\u05D1\u05D9\u05E7\u05D5\u05E8\u05EA \u05E0\u05D5\u05E7\u05D4",
@@ -5448,6 +5688,14 @@ html.av-reduce-motion *::after {
       "Retry archive import": "\u05E0\u05D9\u05E1\u05D9\u05D5\u05DF \u05D7\u05D5\u05D6\u05E8 \u05DC\u05D9\u05D9\u05D1\u05D5\u05D0 \u05D0\u05E8\u05DB\u05D9\u05D5\u05DF",
       "Local bookmarks": "\u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA",
       "Clear local bookmarks": "\u05E0\u05D9\u05E7\u05D5\u05D9 \u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA",
+      "Backup version": "\u05D2\u05E8\u05E1\u05EA \u05D4\u05D2\u05D9\u05D1\u05D5\u05D9",
+      "Backup collections": "\u05D0\u05D5\u05E1\u05E4\u05D9 \u05D4\u05D2\u05D9\u05D1\u05D5\u05D9",
+      "Collection changes": "\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05D0\u05D5\u05E1\u05E4\u05D9\u05DD",
+      "Credentials": "\u05E4\u05E8\u05D8\u05D9 \u05D0\u05D9\u05DE\u05D5\u05EA",
+      "Backup warnings": "\u05D0\u05D6\u05D4\u05E8\u05D5\u05EA \u05D4\u05D2\u05D9\u05D1\u05D5\u05D9",
+      "Cancel restore": "\u05D1\u05D9\u05D8\u05D5\u05DC \u05D4\u05E9\u05D7\u05D6\u05D5\u05E8",
+      "Dry-run restore": "\u05D4\u05E8\u05E6\u05D4 \u05D9\u05D1\u05E9\u05D4 \u05E9\u05DC \u05E9\u05D7\u05D6\u05D5\u05E8",
+      "Restore this library backup": "\u05E9\u05D7\u05D6\u05D5\u05E8 \u05D2\u05D9\u05D1\u05D5\u05D9 \u05D4\u05E1\u05E4\u05E8\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D4",
       "Export job": "\u05DE\u05E9\u05D9\u05DE\u05EA \u05D9\u05D9\u05E6\u05D5\u05D0",
       "Pause export job": "\u05D4\u05E9\u05D4\u05D9\u05D9\u05EA \u05DE\u05E9\u05D9\u05DE\u05EA \u05D9\u05D9\u05E6\u05D5\u05D0",
       "Resume export job": "\u05D7\u05D9\u05D3\u05D5\u05E9 \u05DE\u05E9\u05D9\u05DE\u05EA \u05D9\u05D9\u05E6\u05D5\u05D0",
@@ -6169,6 +6417,10 @@ html.av-reduce-motion *::after {
     let lastStatusValues = {};
     let bodyWasInert = false;
     let focusTrapAttached = false;
+    let pendingLibraryBackupPayload = null;
+    let pendingLibraryBackupPreview = null;
+    let libraryRestoreRunning = false;
+    let libraryRestoreAbort = null;
     const modalFocusables = () => Array.from(panel.querySelectorAll(FOCUSABLE_SELECTOR)).filter((node) => {
       if (node.hasAttribute("disabled") || node.getAttribute("aria-hidden") === "true") {
         return false;
@@ -7994,6 +8246,11 @@ html.av-reduce-motion *::after {
     };
     const backupRows = () => {
       const rows = [];
+      t("Redacted \u2014 saved credentials will be kept.");
+      t("Stop after the current collection and roll back anything already written.");
+      t("Validate the backup and show the same conflicts without writing or removing any local data.");
+      t("Apply the selected profile collections. A failed write rolls back the collections already changed.");
+      t("Credentials are redacted; the values already saved in this profile will be kept.");
       if (options.resetSettings) {
         rows.push(
           actionRow(
@@ -8051,6 +8308,170 @@ html.av-reduce-motion *::after {
             "Import"
           )
         );
+      }
+      if (options.exportLibraryBackup) {
+        rows.push(
+          actionRow(
+            "Export full library backup",
+            "Downloads one versioned JSON backup of this profile's local collections. Credentials are excluded by default; restoring keeps the credentials already saved here.",
+            async () => {
+              try {
+                const result = await options.exportLibraryBackup();
+                setStatusCopy("Library backup downloaded: {filename} ({collections} collections, {bytes}).", {
+                  filename: result.filename,
+                  collections: result.collections,
+                  bytes: formatBytes(result.bytes)
+                });
+              } catch (error) {
+                options.onError("Could not export full library backup", error);
+                setStatus("Could not export full library backup.");
+              }
+            }
+          )
+        );
+      }
+      if (options.previewLibraryRestore && options.restoreLibraryBackup) {
+        const fileRow = el("div", "av-row av-row-stack");
+        const fileCopy = el("span", "av-row-copy");
+        fileCopy.append(
+          el("span", "av-row-label", t("Choose a library backup")),
+          el(
+            "span",
+            "av-row-description",
+            t("Select a JSON backup to inspect its versions, counts, conflicts, and checksum before changing local data.")
+          )
+        );
+        const fileInput = document.createElement("input");
+        fileInput.type = "file";
+        fileInput.className = "av-text-input";
+        fileInput.accept = ".json,application/json";
+        fileInput.setAttribute("aria-label", t("Choose a library backup"));
+        fileInput.addEventListener("change", () => {
+          const file = fileInput.files?.[0];
+          if (!file) return;
+          pendingLibraryBackupPayload = null;
+          pendingLibraryBackupPreview = null;
+          setStatus("Reading library backup\u2026");
+          void file.text().then(async (payload) => {
+            const preview = await options.previewLibraryRestore(payload);
+            pendingLibraryBackupPayload = payload;
+            pendingLibraryBackupPreview = preview;
+            render();
+            setStatusCopy("Backup loaded: {collections} collections, {conflicts} changes.", {
+              collections: preview.collections.length,
+              conflicts: preview.conflictCount
+            });
+          }).catch((error) => {
+            pendingLibraryBackupPayload = null;
+            pendingLibraryBackupPreview = null;
+            options.onError("Could not read library backup", error);
+            setStatus("Could not read library backup.");
+          });
+        });
+        fileRow.append(fileCopy, fileInput);
+        rows.push(fileRow);
+      }
+      const backupPreview = pendingLibraryBackupPreview;
+      const backupPayload = pendingLibraryBackupPayload;
+      if (backupPreview && backupPayload && options.restoreLibraryBackup) {
+        rows.push(dataRow("Backup version", `v${backupPreview.schemaVersion} \xB7 ${backupPreview.createdAt}`));
+        rows.push(
+          dataRow(
+            "Backup collections",
+            `${backupPreview.collections.length} \xB7 ${formatBytes(backupPreview.totalBytes)}`
+          )
+        );
+        rows.push(
+          dataRow(
+            "Collection changes",
+            backupPreview.collections.map((collection) => `${collection.label} v${collection.version}: ${collection.conflict}`).join(" \xB7 ")
+          )
+        );
+        if (backupPreview.credentialsRedacted) {
+          rows.push(readonlyRow("Credentials", "Redacted \u2014 saved credentials will be kept."));
+        }
+        if (backupPreview.warnings.length > 0) {
+          rows.push(
+            dataRow(
+              "Backup warnings",
+              backupPreview.warnings.map(
+                (warning) => warning === "Credentials are redacted; the values already saved in this profile will be kept." ? t(warning) : warning
+              ).join(" \xB7 ")
+            )
+          );
+        }
+        if (libraryRestoreRunning) {
+          rows.push(
+            actionRow(
+              "Cancel restore",
+              "Stop after the current collection and roll back anything already written.",
+              async () => {
+                libraryRestoreAbort?.abort();
+                setStatus("Cancelling restore\u2026");
+              }
+            )
+          );
+        } else {
+          rows.push(
+            actionRow(
+              "Dry-run restore",
+              "Validate the backup and show the same conflicts without writing or removing any local data.",
+              async () => {
+                try {
+                  const result = await options.restoreLibraryBackup(backupPayload, {
+                    dryRun: true,
+                    signal: new AbortController().signal
+                  });
+                  if (result.errors.length === 0) {
+                    setStatus("Dry-run complete. No local data changed.");
+                  } else {
+                    setStatusCopy("Dry-run failed: {errors}", { errors: result.errors.join("; ") });
+                  }
+                } catch (error) {
+                  options.onError("Could not dry-run library restore", error);
+                  setStatus("Could not dry-run library restore.");
+                }
+              }
+            )
+          );
+          rows.push(
+            actionRow(
+              "Restore this library backup",
+              "Apply the selected profile collections. A failed write rolls back the collections already changed.",
+              async () => {
+                libraryRestoreRunning = true;
+                libraryRestoreAbort = new AbortController();
+                render();
+                try {
+                  const result = await options.restoreLibraryBackup(backupPayload, {
+                    dryRun: false,
+                    signal: libraryRestoreAbort.signal
+                  });
+                  if (result.applied) {
+                    pendingLibraryBackupPayload = null;
+                    pendingLibraryBackupPreview = null;
+                    setStatusCopy("Library backup restored ({collections} collections). Reloading\u2026", {
+                      collections: result.restoredKeys.length
+                    });
+                  } else if (result.cancelled) {
+                    setStatus(
+                      result.rolledBack ? "Restore cancelled; local data was rolled back." : "Restore cancelled."
+                    );
+                  } else {
+                    setStatusCopy("Restore failed: {errors}", { errors: result.errors.join("; ") });
+                  }
+                } catch (error) {
+                  options.onError("Could not restore library backup", error);
+                  setStatus("Could not restore library backup.");
+                } finally {
+                  libraryRestoreRunning = false;
+                  libraryRestoreAbort = null;
+                  render();
+                }
+              }
+            )
+          );
+        }
       }
       if (options.getAuditSize) {
         rows.push(
@@ -19078,6 +19499,638 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
+  // src/features/core/audit-log.ts
+  var AUDIT_LOG_KEY = "aviary.audit.v1";
+  var AUDIT_LOG_LIMIT = 500;
+  var EMPTY6 = { entries: [] };
+  var AuditLog = class {
+    #storage;
+    #limit;
+    #onPersistError;
+    #isEnabled;
+    #entries = [];
+    #loaded = false;
+    #loading;
+    constructor(storage, limit = AUDIT_LOG_LIMIT, onPersistError, isEnabled) {
+      this.#storage = storage;
+      this.#limit = Math.max(50, limit);
+      this.#onPersistError = onPersistError;
+      this.#isEnabled = isEnabled;
+    }
+    async load() {
+      if (this.#loaded) return;
+      if (!this.#loading) {
+        this.#loading = this.#hydrate();
+      }
+      await this.#loading;
+    }
+    async record(action, detail) {
+      if (this.#isEnabled && !this.#isEnabled()) {
+        return;
+      }
+      await this.load();
+      const entry = { at: (/* @__PURE__ */ new Date()).toISOString(), action };
+      if (detail) entry.detail = detail;
+      this.#entries.push(entry);
+      while (this.#entries.length > this.#limit) {
+        this.#entries.shift();
+      }
+      await this.#persist();
+    }
+    snapshot() {
+      return { entries: [...this.#entries] };
+    }
+    async clear() {
+      this.#entries = [];
+      this.#loaded = true;
+      await this.#persist();
+    }
+    size() {
+      return this.#entries.length;
+    }
+    async #hydrate() {
+      const stored = await this.#storage.get(AUDIT_LOG_KEY, EMPTY6);
+      const entries = Array.isArray(stored?.entries) ? stored.entries : [];
+      this.#entries = entries.filter(
+        (entry) => typeof entry?.at === "string" && typeof entry?.action === "string"
+      ).slice(-this.#limit);
+      this.#loaded = true;
+    }
+    async #persist() {
+      try {
+        await this.#storage.set(AUDIT_LOG_KEY, { entries: this.#entries });
+      } catch (error) {
+        this.#onPersistError?.(error);
+      }
+    }
+  };
+
+  // src/features/core/library-backup.ts
+  var LIBRARY_BACKUP_SCHEMA_VERSION = 1;
+  var LIBRARY_BACKUP_COLLECTION_VERSION = 1;
+  var MAX_LIBRARY_BACKUP_BYTES = 100 * 1024 * 1024;
+  var REDACTED_SETTINGS_PATHS = [
+    "integrations.aria2.secret",
+    "integrations.bluesky.appPassword",
+    "integrations.mastodon.token",
+    "integrations.ai.apiKey",
+    "integrations.semanticSearch.apiKey"
+  ];
+  var LIBRARY_BACKUP_COLLECTIONS = [
+    { key: SETTINGS_KEY, label: "Settings", version: 1 },
+    { key: CHECKPOINT_KEY, label: "Export jobs and records", version: 1 },
+    { key: QUERY_REGISTRY_KEY, label: "Discovered query IDs", version: 1 },
+    { key: MEDIA_HISTORY_KEY, label: "Media history", version: 1 },
+    { key: MEDIA_QUEUE_KEY, label: "Media queue", version: 1 },
+    { key: ARIA2_HISTORY_KEY, label: "Aria2 history", version: 1 },
+    { key: HIDDEN_POSTS_KEY, label: "Hidden posts", version: 1 },
+    { key: LAST_DOWNLOAD_KEY, label: "Last download", version: 1 },
+    { key: CLEANUP_QUEUE_KEY, label: "Cleanup queue", version: 1 },
+    { key: USER_NOTES_KEY, label: "User notes", version: 1 },
+    { key: AUDIT_LOG_KEY, label: "Audit log", version: 1 },
+    { key: BOOKMARKS_KEY, label: "Bookmarks", version: 1 },
+    { key: SNAPSHOTS_KEY, label: "Snapshots", version: 1 },
+    { key: SEMANTIC_INDEX_KEY, label: "Semantic index", version: 1 },
+    { key: ARCHIVE_IMPORT_JOBS_KEY, label: "Archive import jobs", version: 1 },
+    { key: ARCHIVE_LIBRARY_KEY, label: "Archive library", version: 1 },
+    { key: RETENTION_KEYS.maxJobs, label: "Job retention", version: 1 },
+    { key: RETENTION_KEYS.maxRecordsPerJob, label: "Record retention", version: 1 },
+    { key: RETENTION_KEYS.maxAgeDays, label: "Age retention", version: 1 }
+  ];
+  var LibraryBackupError = class extends Error {
+    code;
+    constructor(message, code = "invalid") {
+      super(message);
+      this.name = "LibraryBackupError";
+      this.code = code;
+    }
+  };
+  async function createLibraryBackup(storage, options = {}) {
+    const includeCredentials = options.includeCredentials === true;
+    const definitions = selectedDefinitions(options.selectedKeys);
+    const collections = [];
+    for (const definition of definitions) {
+      const current = await storage.get(definition.key, void 0);
+      collections.push(makeCollection(definition.key, current, includeCredentials));
+    }
+    const envelope = makeEnvelope(collections, {
+      createdAt: options.createdAt ?? (/* @__PURE__ */ new Date()).toISOString(),
+      includeCredentials,
+      profile: normalizeProfile(options.profile)
+    });
+    const text = JSON.stringify(envelope, null, 2);
+    const data = new TextEncoder().encode(text);
+    return {
+      envelope,
+      artifact: {
+        filename: backupFilename(envelope.createdAt),
+        contentType: "application/json",
+        data,
+        collections: collections.length,
+        bytes: data.byteLength
+      }
+    };
+  }
+  function parseLibraryBackup(payload) {
+    const text = typeof payload === "string" ? payload : new TextDecoder().decode(payload);
+    if (new TextEncoder().encode(text).byteLength > MAX_LIBRARY_BACKUP_BYTES) {
+      throw new LibraryBackupError(
+        `Backup exceeds the ${Math.round(MAX_LIBRARY_BACKUP_BYTES / (1024 * 1024))} MiB limit.`,
+        "too-large"
+      );
+    }
+    let raw;
+    try {
+      raw = JSON.parse(text);
+    } catch (error) {
+      throw new LibraryBackupError(`Invalid backup JSON: ${errorMessage(error)}`);
+    }
+    if (!isRecord8(raw)) {
+      throw new LibraryBackupError("Backup top-level value must be an object.");
+    }
+    if (raw.generator !== "Aviary") {
+      throw new LibraryBackupError("Backup generator is not Aviary.", "unsupported");
+    }
+    if (raw.schemaVersion !== LIBRARY_BACKUP_SCHEMA_VERSION) {
+      throw new LibraryBackupError(
+        `Backup schema ${String(raw.schemaVersion)} is not supported (expected ${LIBRARY_BACKUP_SCHEMA_VERSION}).`,
+        "unsupported"
+      );
+    }
+    if (typeof raw.createdAt !== "string" || raw.createdAt.length === 0) {
+      throw new LibraryBackupError("Backup is missing its creation time.");
+    }
+    if (typeof raw.includeCredentials !== "boolean") {
+      throw new LibraryBackupError("Backup credential policy is invalid.");
+    }
+    const profile = parseProfile(raw.profile);
+    if (!Array.isArray(raw.collections)) {
+      throw new LibraryBackupError("Backup collections must be an array.");
+    }
+    const seen = /* @__PURE__ */ new Set();
+    const collections = [];
+    for (const candidate of raw.collections) {
+      if (!isRecord8(candidate)) {
+        throw new LibraryBackupError("Backup contains an invalid collection entry.");
+      }
+      const definition = definitionFor(candidate.key);
+      if (!definition) {
+        throw new LibraryBackupError(`Backup collection '${String(candidate.key)}' is not supported.`, "unsupported");
+      }
+      if (seen.has(definition.key)) {
+        throw new LibraryBackupError(`Backup contains duplicate collection '${definition.key}'.`);
+      }
+      seen.add(definition.key);
+      if (candidate.version !== LIBRARY_BACKUP_COLLECTION_VERSION) {
+        throw new LibraryBackupError(
+          `Collection '${definition.key}' uses unsupported version ${String(candidate.version)}.`,
+          "unsupported"
+        );
+      }
+      const present = candidate.present === true;
+      const count = nonNegativeInteger2(candidate.count, `Collection '${definition.key}' count`);
+      const byteLength = nonNegativeInteger2(candidate.byteLength, `Collection '${definition.key}' byte length`);
+      if (byteLength > MAX_LIBRARY_BACKUP_BYTES) {
+        throw new LibraryBackupError(`Collection '${definition.key}' is too large.`, "too-large");
+      }
+      const sha256 = validChecksum(candidate.sha256, `Collection '${definition.key}' checksum`);
+      const redactedPaths = parseRedactedPaths(candidate.redactedPaths, definition.key);
+      let value;
+      if (present) {
+        if (!("value" in candidate)) {
+          throw new LibraryBackupError(`Collection '${definition.key}' is marked present without a value.`);
+        }
+        try {
+          value = deserializeBackupValue(JSON.stringify(candidate.value));
+        } catch (error) {
+          throw new LibraryBackupError(`Collection '${definition.key}' has an invalid value: ${errorMessage(error)}`);
+        }
+        verifyCollectionChecksum(definition.key, value, byteLength, sha256);
+      } else {
+        if (count !== 0 || byteLength !== 0) {
+          throw new LibraryBackupError(`Empty collection '${definition.key}' has non-empty metadata.`);
+        }
+        if (sha256 !== sha256Hex(new Uint8Array())) {
+          throw new LibraryBackupError(`Empty collection '${definition.key}' has an invalid checksum.`, "checksum");
+        }
+      }
+      collections.push({
+        key: definition.key,
+        version: 1,
+        present,
+        count,
+        byteLength,
+        sha256,
+        redactedPaths,
+        ...present ? { value } : {}
+      });
+    }
+    const manifest = parseManifest(raw.manifest);
+    const expectedTotal = collections.reduce((total, collection) => total + collection.byteLength, 0);
+    if (manifest.collectionCount !== collections.length || manifest.totalBytes !== expectedTotal) {
+      throw new LibraryBackupError("Backup manifest totals do not match its collections.", "checksum");
+    }
+    const expectedManifestChecksum = manifestChecksum({
+      createdAt: raw.createdAt,
+      includeCredentials: raw.includeCredentials,
+      profile,
+      collections
+    });
+    if (manifest.sha256 !== expectedManifestChecksum) {
+      throw new LibraryBackupError("Backup manifest checksum does not match its collections.", "checksum");
+    }
+    return {
+      generator: "Aviary",
+      schemaVersion: 1,
+      createdAt: raw.createdAt,
+      profile,
+      includeCredentials: raw.includeCredentials,
+      collections,
+      manifest
+    };
+  }
+  async function previewLibraryRestore(storage, payload, options = {}) {
+    const backup = parseLibraryBackup(payload);
+    const collections = [];
+    for (const collection of backup.collections) {
+      const current = await storage.get(collection.key, void 0);
+      const currentCollection = makeCollection(collection.key, current, backup.includeCredentials);
+      const conflict = compareCollections(collection, currentCollection);
+      const definition = definitionFor(collection.key);
+      collections.push({
+        key: collection.key,
+        label: definition.label,
+        version: collection.version,
+        present: collection.present,
+        count: collection.count,
+        byteLength: collection.byteLength,
+        conflict,
+        currentPresent: currentCollection.present,
+        currentCount: currentCollection.count,
+        currentByteLength: currentCollection.byteLength
+      });
+    }
+    const warnings = [];
+    if (backup.profile?.id && options.profileId && backup.profile.id !== options.profileId) {
+      warnings.push(`Backup profile '${backup.profile.id}' differs from the active profile '${options.profileId}'.`);
+    }
+    if (!backup.includeCredentials && backup.collections.some((collection) => collection.redactedPaths.length > 0)) {
+      warnings.push("Credentials are redacted; the values already saved in this profile will be kept.");
+    }
+    return {
+      schemaVersion: backup.schemaVersion,
+      createdAt: backup.createdAt,
+      profile: backup.profile,
+      includeCredentials: backup.includeCredentials,
+      credentialsRedacted: backup.collections.some((collection) => collection.redactedPaths.length > 0),
+      totalBytes: backup.manifest.totalBytes,
+      collections,
+      conflictCount: collections.filter((collection) => collection.conflict !== "unchanged").length,
+      warnings
+    };
+  }
+  async function restoreLibraryBackup(storage, payload, options = {}) {
+    const backup = parseLibraryBackup(payload);
+    const preview = await previewLibraryRestore(
+      storage,
+      payload,
+      options.profileId === void 0 ? {} : { profileId: options.profileId }
+    );
+    const selected = selectedKeys(backup.collections, options.selectedKeys);
+    const entries = backup.collections.filter((collection) => selected.has(collection.key));
+    const dryRun = options.dryRun === true;
+    const snapshot = [];
+    const warnings = [...preview.warnings];
+    try {
+      for (const entry of entries) {
+        assertNotAborted(options.signal);
+        const current = await storage.get(entry.key, void 0);
+        snapshot.push({ key: entry.key, value: current });
+        if (entry.key === SETTINGS_KEY && entry.present) {
+          const report = parseSettingsImport(JSON.stringify(entry.value), normalizeSettings(current));
+          warnings.push(...report.warnings);
+          if (!report.applied) {
+            throw new LibraryBackupError(`Settings collection could not be normalized: ${report.errors.join("; ")}`);
+          }
+        }
+      }
+    } catch (error) {
+      return {
+        applied: false,
+        dryRun,
+        cancelled: isAbortError(error),
+        rolledBack: false,
+        restoredKeys: [],
+        warnings,
+        errors: [errorMessage(error)],
+        rollbackErrors: [],
+        preview
+      };
+    }
+    if (dryRun) {
+      return {
+        applied: false,
+        dryRun: true,
+        cancelled: false,
+        rolledBack: false,
+        restoredKeys: [],
+        warnings,
+        errors: [],
+        rollbackErrors: [],
+        preview
+      };
+    }
+    const restoredKeys = [];
+    try {
+      for (const entry of entries) {
+        assertNotAborted(options.signal);
+        if (!entry.present) {
+          await storage.remove(entry.key);
+        } else if (entry.key === SETTINGS_KEY) {
+          const current = snapshot.find((item) => item.key === entry.key)?.value;
+          const report = parseSettingsImport(JSON.stringify(entry.value), normalizeSettings(current));
+          if (!report.applied) {
+            throw new LibraryBackupError(`Settings collection could not be restored: ${report.errors.join("; ")}`);
+          }
+          warnings.push(...report.warnings);
+          await storage.set(entry.key, report.settings);
+        } else {
+          await storage.set(entry.key, entry.value);
+        }
+        restoredKeys.push(entry.key);
+      }
+      return {
+        applied: true,
+        dryRun: false,
+        cancelled: false,
+        rolledBack: false,
+        restoredKeys,
+        warnings,
+        errors: [],
+        rollbackErrors: [],
+        preview
+      };
+    } catch (error) {
+      const rollbackErrors = [];
+      for (const item of [...snapshot].reverse()) {
+        try {
+          if (item.value === void 0) await storage.remove(item.key);
+          else await storage.set(item.key, item.value);
+        } catch (rollbackError) {
+          rollbackErrors.push(`${item.key}: ${errorMessage(rollbackError)}`);
+        }
+      }
+      return {
+        applied: false,
+        dryRun: false,
+        cancelled: isAbortError(error),
+        rolledBack: rollbackErrors.length === 0,
+        restoredKeys: [],
+        warnings,
+        errors: [errorMessage(error)],
+        rollbackErrors,
+        preview
+      };
+    }
+  }
+  function makeEnvelope(collections, options) {
+    return {
+      generator: "Aviary",
+      schemaVersion: 1,
+      createdAt: options.createdAt,
+      profile: options.profile,
+      includeCredentials: options.includeCredentials,
+      collections,
+      manifest: {
+        schemaVersion: 1,
+        collectionCount: collections.length,
+        totalBytes: collections.reduce((total, collection) => total + collection.byteLength, 0),
+        sha256: manifestChecksum({ ...options, collections })
+      }
+    };
+  }
+  function makeCollection(key, current, includeCredentials) {
+    const definition = definitionFor(key);
+    if (!definition) {
+      throw new LibraryBackupError(`Collection '${key}' is not supported.`, "unsupported");
+    }
+    if (current === void 0) {
+      return {
+        key: definition.key,
+        version: 1,
+        present: false,
+        count: 0,
+        byteLength: 0,
+        sha256: sha256Hex(new Uint8Array()),
+        redactedPaths: []
+      };
+    }
+    const value = valueForBackup(key, current, includeCredentials);
+    const serialized = serializeBackupValue(value);
+    const bytes = new TextEncoder().encode(serialized);
+    if (bytes.byteLength > MAX_LIBRARY_BACKUP_BYTES) {
+      throw new LibraryBackupError(`Collection '${key}' is too large.`, "too-large");
+    }
+    return {
+      key: definition.key,
+      version: 1,
+      present: true,
+      count: collectionCount(key, value),
+      byteLength: bytes.byteLength,
+      sha256: sha256Hex(bytes),
+      redactedPaths: key === SETTINGS_KEY && !includeCredentials ? [...REDACTED_SETTINGS_PATHS] : [],
+      // Keep the tagged JSON form in the envelope. A raw Uint8Array would stringify as a numeric
+      // object when the outer backup JSON is written, losing its type and invalidating its checksum.
+      value: JSON.parse(serialized)
+    };
+  }
+  function valueForBackup(key, current, includeCredentials) {
+    if (key !== SETTINGS_KEY) return current;
+    return buildSettingsExport(normalizeSettings(current), { includeSecrets: includeCredentials });
+  }
+  function selectedDefinitions(selectedKeys2) {
+    if (selectedKeys2 === void 0) return [...LIBRARY_BACKUP_COLLECTIONS];
+    const requested = new Set(selectedKeys2);
+    for (const key of requested) {
+      if (!definitionFor(key)) {
+        throw new LibraryBackupError(`Collection '${key}' is not supported.`, "unsupported");
+      }
+    }
+    return LIBRARY_BACKUP_COLLECTIONS.filter((definition) => requested.has(definition.key));
+  }
+  function selectedKeys(collections, selectedKeysOption) {
+    if (selectedKeysOption === void 0) return new Set(collections.map((collection) => collection.key));
+    const requested = new Set(selectedKeysOption);
+    for (const key of requested) {
+      if (!definitionFor(key)) {
+        throw new LibraryBackupError(`Collection '${key}' is not supported.`, "unsupported");
+      }
+    }
+    return new Set(collections.map((collection) => collection.key).filter((key) => requested.has(key)));
+  }
+  function definitionFor(key) {
+    return LIBRARY_BACKUP_COLLECTIONS.find((definition) => definition.key === key);
+  }
+  function compareCollections(backup, current) {
+    if (!current.present && !backup.present) return "unchanged";
+    if (!current.present && backup.present) return "add";
+    if (current.present && !backup.present) return "remove";
+    return current.sha256 === backup.sha256 && current.byteLength === backup.byteLength ? "unchanged" : "replace";
+  }
+  function collectionCount(key, value) {
+    if (key === SETTINGS_KEY || key === LAST_DOWNLOAD_KEY) return 1;
+    if (key === CHECKPOINT_KEY && isRecord8(value)) {
+      const records = isRecord8(value.records) ? value.records : {};
+      return Object.values(records).reduce(
+        (total, entries) => total + (Array.isArray(entries) ? entries.length : 0),
+        0
+      );
+    }
+    if (Array.isArray(value)) return value.length;
+    if (!isRecord8(value)) return 1;
+    const arrayKeys = [
+      "entries",
+      "items",
+      "jobs",
+      "records",
+      "snapshots",
+      "vectors",
+      "media",
+      "followers",
+      "following",
+      "lists",
+      "directMessages",
+      "history"
+    ];
+    const counts = arrayKeys.flatMap((name) => {
+      const candidate = value[name];
+      if (Array.isArray(candidate)) return [candidate.length];
+      if (name === "jobs" && isRecord8(candidate)) return [Object.keys(candidate).length];
+      if (name === "records" && isRecord8(candidate)) {
+        return [Object.values(candidate).reduce((total, entries) => total + (Array.isArray(entries) ? entries.length : 0), 0)];
+      }
+      return [];
+    });
+    return counts.length > 0 ? counts.reduce((total, count) => total + count, 0) : 1;
+  }
+  function manifestChecksum(input) {
+    const descriptors = input.collections.map(({ value: _value, ...descriptor }) => descriptor);
+    const text = JSON.stringify({
+      generator: "Aviary",
+      schemaVersion: LIBRARY_BACKUP_SCHEMA_VERSION,
+      createdAt: input.createdAt,
+      includeCredentials: input.includeCredentials,
+      profile: input.profile,
+      collections: descriptors
+    });
+    return sha256Hex(new TextEncoder().encode(text));
+  }
+  function serializeBackupValue(value) {
+    const text = JSON.stringify(value, (_key, current) => {
+      if (current instanceof Uint8Array) {
+        return { __aviaryType: "Uint8Array", base64: encodeBase642(current) };
+      }
+      return current;
+    });
+    if (text === void 0) {
+      throw new LibraryBackupError("A collection contains an unsupported undefined value.");
+    }
+    return text;
+  }
+  function deserializeBackupValue(text) {
+    return JSON.parse(text, (_key, current) => {
+      if (!isRecord8(current) || current.__aviaryType !== "Uint8Array") return current;
+      if (typeof current.base64 !== "string") {
+        throw new Error("Uint8Array value is missing base64 data");
+      }
+      return decodeBase642(current.base64);
+    });
+  }
+  function encodeBase642(bytes) {
+    let binary = "";
+    const chunkSize = 32768;
+    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+    }
+    return globalThis.btoa(binary);
+  }
+  function decodeBase642(value) {
+    if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) {
+      throw new Error("invalid base64 data");
+    }
+    const binary = globalThis.atob(value);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return bytes;
+  }
+  function parseManifest(value) {
+    if (!isRecord8(value) || value.schemaVersion !== 1) {
+      throw new LibraryBackupError("Backup manifest is missing or unsupported.", "unsupported");
+    }
+    return {
+      schemaVersion: 1,
+      collectionCount: nonNegativeInteger2(value.collectionCount, "Manifest collection count"),
+      totalBytes: nonNegativeInteger2(value.totalBytes, "Manifest byte count"),
+      sha256: validChecksum(value.sha256, "Manifest checksum")
+    };
+  }
+  function parseProfile(value) {
+    if (value === null) return null;
+    if (!isRecord8(value) || typeof value.id !== "string" || typeof value.label !== "string") {
+      throw new LibraryBackupError("Backup profile metadata is invalid.");
+    }
+    return { id: value.id.slice(0, 120), label: value.label.slice(0, 120) };
+  }
+  function parseRedactedPaths(value, key) {
+    if (value === void 0) return [];
+    if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string")) {
+      throw new LibraryBackupError(`Collection '${key}' redaction metadata is invalid.`);
+    }
+    return value.map((entry) => entry.slice(0, 160));
+  }
+  function verifyCollectionChecksum(key, value, byteLength, checksum) {
+    const bytes = new TextEncoder().encode(serializeBackupValue(value));
+    if (bytes.byteLength !== byteLength || sha256Hex(bytes) !== checksum) {
+      throw new LibraryBackupError(`Collection '${key}' checksum does not match its value.`, "checksum");
+    }
+  }
+  function nonNegativeInteger2(value, label) {
+    if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
+      throw new LibraryBackupError(`${label} is invalid.`);
+    }
+    return value;
+  }
+  function validChecksum(value, label) {
+    if (typeof value !== "string" || !/^[0-9a-f]{64}$/i.test(value)) {
+      throw new LibraryBackupError(`${label} is invalid.`, "checksum");
+    }
+    return value.toLowerCase();
+  }
+  function normalizeProfile(profile) {
+    if (!profile) return null;
+    return { id: profile.id.slice(0, 120), label: profile.label.slice(0, 120) };
+  }
+  function backupFilename(createdAt) {
+    const stamp = createdAt.replace(/[^0-9A-Za-z]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "backup";
+    return `aviary-library-backup-${stamp}.json`;
+  }
+  function assertNotAborted(signal) {
+    if (signal?.aborted) {
+      throw new DOMException("Backup restore cancelled", "AbortError");
+    }
+  }
+  function isAbortError(error) {
+    return error instanceof DOMException && error.name === "AbortError";
+  }
+  function errorMessage(error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+  function isRecord8(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+
   // src/features/core/control-center.ts
   var controlCenter;
   var searchIndex = new LocalSearchIndex();
@@ -19241,6 +20294,52 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
             });
           }
           return report;
+        },
+        async exportLibraryBackup() {
+          const profile = ctx.profile?.status();
+          const result = await createLibraryBackup(ctx.storage, {
+            profile: profile ? { id: profile.activeId, label: profile.activeLabel } : null
+          });
+          downloadBlob(result.artifact.data, result.artifact.filename, result.artifact.contentType);
+          void ctx.auditLog.record("library.backup.export", {
+            collections: result.artifact.collections,
+            bytes: result.artifact.bytes,
+            credentialsRedacted: true
+          });
+          return {
+            filename: result.artifact.filename,
+            collections: result.artifact.collections,
+            bytes: result.artifact.bytes
+          };
+        },
+        async previewLibraryRestore(payload) {
+          return previewLibraryRestore(
+            ctx.storage,
+            payload,
+            ctx.profile ? { profileId: ctx.profile.activeId } : {}
+          );
+        },
+        async restoreLibraryBackup(payload, restoreOptions) {
+          const result = await restoreLibraryBackup(ctx.storage, payload, {
+            dryRun: restoreOptions.dryRun,
+            signal: restoreOptions.signal,
+            ...ctx.profile ? { profileId: ctx.profile.activeId } : {}
+          });
+          if (result.applied) {
+            if (result.restoredKeys.includes(SETTINGS_KEY)) {
+              const restoredSettings = await ctx.storage.get(SETTINGS_KEY, ctx.settings);
+              replaceSettings(ctx.settings, normalizeSettings(restoredSettings));
+              await ctx.saveSettings();
+              ctx.requestApply();
+            }
+            void ctx.auditLog.record("library.backup.restore", {
+              collections: result.restoredKeys.length,
+              dryRun: false,
+              rolledBack: result.rolledBack
+            });
+            reloadPage();
+          }
+          return result;
         },
         getAuditSize() {
           return ctx.auditLog.size();
@@ -20474,72 +21573,6 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
 }
 `;
 
-  // src/features/core/audit-log.ts
-  var AUDIT_LOG_KEY = "aviary.audit.v1";
-  var AUDIT_LOG_LIMIT = 500;
-  var EMPTY6 = { entries: [] };
-  var AuditLog = class {
-    #storage;
-    #limit;
-    #onPersistError;
-    #isEnabled;
-    #entries = [];
-    #loaded = false;
-    #loading;
-    constructor(storage, limit = AUDIT_LOG_LIMIT, onPersistError, isEnabled) {
-      this.#storage = storage;
-      this.#limit = Math.max(50, limit);
-      this.#onPersistError = onPersistError;
-      this.#isEnabled = isEnabled;
-    }
-    async load() {
-      if (this.#loaded) return;
-      if (!this.#loading) {
-        this.#loading = this.#hydrate();
-      }
-      await this.#loading;
-    }
-    async record(action, detail) {
-      if (this.#isEnabled && !this.#isEnabled()) {
-        return;
-      }
-      await this.load();
-      const entry = { at: (/* @__PURE__ */ new Date()).toISOString(), action };
-      if (detail) entry.detail = detail;
-      this.#entries.push(entry);
-      while (this.#entries.length > this.#limit) {
-        this.#entries.shift();
-      }
-      await this.#persist();
-    }
-    snapshot() {
-      return { entries: [...this.#entries] };
-    }
-    async clear() {
-      this.#entries = [];
-      this.#loaded = true;
-      await this.#persist();
-    }
-    size() {
-      return this.#entries.length;
-    }
-    async #hydrate() {
-      const stored = await this.#storage.get(AUDIT_LOG_KEY, EMPTY6);
-      const entries = Array.isArray(stored?.entries) ? stored.entries : [];
-      this.#entries = entries.filter(
-        (entry) => typeof entry?.at === "string" && typeof entry?.action === "string"
-      ).slice(-this.#limit);
-      this.#loaded = true;
-    }
-    async #persist() {
-      try {
-        await this.#storage.set(AUDIT_LOG_KEY, { entries: this.#entries });
-      } catch (error) {
-        this.#onPersistError?.(error);
-      }
-    }
-  };
-
   // src/features/integrations/ai-provider.ts
   async function runAiPrompt(config, request) {
     assertOutboundAllowed("The AI request");
@@ -21619,7 +22652,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   ]);
   var GRAPHQL_PATH_PATTERN = /^\/i\/api\/graphql\/([A-Za-z0-9_-]{1,200})\/([A-Za-z0-9_-]{1,100})$/;
   function isPageAgentEnvelope(value) {
-    if (!isRecord8(value) || value.channel !== PAGE_CHANNEL || typeof value.kind !== "string") {
+    if (!isRecord9(value) || value.channel !== PAGE_CHANNEL || typeof value.kind !== "string") {
       return false;
     }
     if (!PAGE_AGENT_KINDS.has(value.kind)) {
@@ -21628,7 +22661,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     return value.nonce === void 0 || typeof value.nonce === "string" && value.nonce.length >= 16 && value.nonce.length <= MAX_NONCE_LENGTH;
   }
   function sanitizeCapturedGraphqlPayload(value, expectedOrigin) {
-    if (!isRecord8(value)) {
+    if (!isRecord9(value)) {
       return null;
     }
     const url = typeof value.url === "string" ? value.url : "";
@@ -21988,7 +23021,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   function now() {
     return (/* @__PURE__ */ new Date()).toISOString();
   }
-  function isRecord8(value) {
+  function isRecord9(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -22999,7 +24032,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           reason = "";
           options.diagnostics.info("Page bridge connected", { source: options.source });
           if (lastConfig) {
-            send(makeEnvelope("config", lastConfig));
+            send(makeEnvelope2("config", lastConfig));
           }
         }
         return;
@@ -23043,7 +24076,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           } catch {
           }
         };
-        send(makeEnvelope("hello"));
+        send(makeEnvelope2("hello"));
       }
     } else {
       windowListener = (event) => {
@@ -23063,7 +24096,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         } catch {
         }
       };
-      send(makeEnvelope("hello"));
+      send(makeEnvelope2("hello"));
       handshakeTimer = setTimeout(() => {
         if (status !== "connected") {
           status = "unavailable";
@@ -23080,7 +24113,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         if (status === "unavailable") {
           return;
         }
-        send(makeEnvelope("config", config));
+        send(makeEnvelope2("config", config));
       },
       on(kind, handler) {
         const set = handlers.get(kind) ?? /* @__PURE__ */ new Set();
@@ -23093,7 +24126,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           handshakeTimer = void 0;
         }
         if (status === "connected") {
-          send(makeEnvelope("teardown"));
+          send(makeEnvelope2("teardown"));
         }
         uninstallAgent?.();
         uninstallAgent = void 0;
@@ -23106,7 +24139,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         reason = "torn-down";
       }
     };
-    function makeEnvelope(kind, payload) {
+    function makeEnvelope2(kind, payload) {
       return {
         channel: PAGE_CHANNEL,
         kind,
@@ -23837,11 +24870,11 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   function normalizeState2(value) {
     if (!value || typeof value !== "object") return { profiles: [] };
     const raw = value;
-    const profiles = Array.isArray(raw.profiles) ? raw.profiles.map(normalizeProfile).filter((profile) => profile !== null) : [];
+    const profiles = Array.isArray(raw.profiles) ? raw.profiles.map(normalizeProfile2).filter((profile) => profile !== null) : [];
     const unique = new Map(profiles.map((profile) => [profile.id, profile]));
     return { profiles: [...unique.values()] };
   }
-  function normalizeProfile(value) {
+  function normalizeProfile2(value) {
     if (!value || typeof value !== "object") return null;
     const raw = value;
     if (typeof raw.id !== "string" || raw.id.length === 0 || typeof raw.label !== "string") return null;

@@ -31,6 +31,7 @@ const MEDIA_LAYOUT_OPTIONS: Array<[MediaLayout, string]> = [
 import type { DiagnosticEvent } from "../platform/diagnostics";
 import type { StorageStatus } from "../platform/storage";
 import type { ProfileStatus } from "../platform/profile";
+import type { LibraryBackupPreview, LibraryBackupRestoreResult } from "../features/core/library-backup";
 
 const FILTER_ACTION_OPTIONS: Array<[FilterAction, string]> = [
   ["off", "Off"],
@@ -153,6 +154,12 @@ export interface ControlCenterOptions {
   runExport?: () => Promise<ExportResultSummary>;
   copyDiagnostics?: () => Promise<void>;
   exportSettings?: () => Promise<void>;
+  exportLibraryBackup?: () => Promise<{ filename: string; collections: number; bytes: number }>;
+  previewLibraryRestore?: (payload: string) => Promise<LibraryBackupPreview>;
+  restoreLibraryBackup?: (
+    payload: string,
+    options: { dryRun: boolean; signal: AbortSignal }
+  ) => Promise<LibraryBackupRestoreResult>;
   /** Puts every setting back to "Aviary changes nothing about X". */
   resetSettings?: () => Promise<void>;
   importSettings?: (payload: string) => Promise<{ applied: boolean; warnings: string[]; errors: string[] }>;
@@ -428,6 +435,10 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   let lastStatusValues: Record<string, string | number> = {};
   let bodyWasInert = false;
   let focusTrapAttached = false;
+  let pendingLibraryBackupPayload: string | null = null;
+  let pendingLibraryBackupPreview: LibraryBackupPreview | null = null;
+  let libraryRestoreRunning = false;
+  let libraryRestoreAbort: AbortController | null = null;
 
   const modalFocusables = (): HTMLElement[] =>
     Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter((node) => {
@@ -2437,6 +2448,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   const backupRows = (): HTMLElement[] => {
     const rows: HTMLElement[] = [];
 
+    // These branches appear only after a file has been selected, so keep their stable copy in
+    // the panel manifest even though the extractor cannot click a native file picker.
+    t("Redacted — saved credentials will be kept.");
+    t("Stop after the current collection and roll back anything already written.");
+    t("Validate the backup and show the same conflicts without writing or removing any local data.");
+    t("Apply the selected profile collections. A failed write rolls back the collections already changed.");
+    t("Credentials are redacted; the values already saved in this profile will be kept.");
+
     if (options.resetSettings) {
       rows.push(
         actionRow(
@@ -2497,6 +2516,183 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           "Import"
         )
       );
+    }
+
+    if (options.exportLibraryBackup) {
+      rows.push(
+        actionRow(
+          "Export full library backup",
+          "Downloads one versioned JSON backup of this profile's local collections. Credentials are excluded by default; restoring keeps the credentials already saved here.",
+          async () => {
+            try {
+              const result = await options.exportLibraryBackup!();
+              setStatusCopy("Library backup downloaded: {filename} ({collections} collections, {bytes}).", {
+                filename: result.filename,
+                collections: result.collections,
+                bytes: formatBytes(result.bytes)
+              });
+            } catch (error) {
+              options.onError("Could not export full library backup", error);
+              setStatus("Could not export full library backup.");
+            }
+          }
+        )
+      );
+    }
+
+    if (options.previewLibraryRestore && options.restoreLibraryBackup) {
+      const fileRow = el("div", "av-row av-row-stack");
+      const fileCopy = el("span", "av-row-copy");
+      fileCopy.append(
+        el("span", "av-row-label", t("Choose a library backup")),
+        el(
+          "span",
+          "av-row-description",
+          t("Select a JSON backup to inspect its versions, counts, conflicts, and checksum before changing local data.")
+        )
+      );
+      const fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.className = "av-text-input";
+      fileInput.accept = ".json,application/json";
+      fileInput.setAttribute("aria-label", t("Choose a library backup"));
+      fileInput.addEventListener("change", () => {
+        const file = fileInput.files?.[0];
+        if (!file) return;
+        pendingLibraryBackupPayload = null;
+        pendingLibraryBackupPreview = null;
+        setStatus("Reading library backup…");
+        void file
+          .text()
+          .then(async (payload) => {
+            const preview = await options.previewLibraryRestore!(payload);
+            pendingLibraryBackupPayload = payload;
+            pendingLibraryBackupPreview = preview;
+            render();
+            setStatusCopy("Backup loaded: {collections} collections, {conflicts} changes.", {
+              collections: preview.collections.length,
+              conflicts: preview.conflictCount
+            });
+          })
+          .catch((error: unknown) => {
+            pendingLibraryBackupPayload = null;
+            pendingLibraryBackupPreview = null;
+            options.onError("Could not read library backup", error);
+            setStatus("Could not read library backup.");
+          });
+      });
+      fileRow.append(fileCopy, fileInput);
+      rows.push(fileRow);
+    }
+
+    const backupPreview = pendingLibraryBackupPreview;
+    const backupPayload = pendingLibraryBackupPayload;
+    if (backupPreview && backupPayload && options.restoreLibraryBackup) {
+      rows.push(dataRow("Backup version", `v${backupPreview.schemaVersion} · ${backupPreview.createdAt}`));
+      rows.push(
+        dataRow(
+          "Backup collections",
+          `${backupPreview.collections.length} · ${formatBytes(backupPreview.totalBytes)}`
+        )
+      );
+      rows.push(
+        dataRow(
+          "Collection changes",
+          backupPreview.collections
+            .map((collection) => `${collection.label} v${collection.version}: ${collection.conflict}`)
+            .join(" · ")
+        )
+      );
+      if (backupPreview.credentialsRedacted) {
+        rows.push(readonlyRow("Credentials", "Redacted — saved credentials will be kept."));
+      }
+      if (backupPreview.warnings.length > 0) {
+        rows.push(
+          dataRow(
+            "Backup warnings",
+            backupPreview.warnings
+              .map((warning) =>
+                warning === "Credentials are redacted; the values already saved in this profile will be kept."
+                  ? t(warning)
+                  : warning
+              )
+              .join(" · ")
+          )
+        );
+      }
+
+      if (libraryRestoreRunning) {
+        rows.push(
+          actionRow(
+            "Cancel restore",
+            "Stop after the current collection and roll back anything already written.",
+            async () => {
+              libraryRestoreAbort?.abort();
+              setStatus("Cancelling restore…");
+            }
+          )
+        );
+      } else {
+        rows.push(
+          actionRow(
+            "Dry-run restore",
+            "Validate the backup and show the same conflicts without writing or removing any local data.",
+            async () => {
+              try {
+                const result = await options.restoreLibraryBackup!(backupPayload, {
+                  dryRun: true,
+                  signal: new AbortController().signal
+                });
+                if (result.errors.length === 0) {
+                  setStatus("Dry-run complete. No local data changed.");
+                } else {
+                  setStatusCopy("Dry-run failed: {errors}", { errors: result.errors.join("; ") });
+                }
+              } catch (error) {
+                options.onError("Could not dry-run library restore", error);
+                setStatus("Could not dry-run library restore.");
+              }
+            }
+          )
+        );
+        rows.push(
+          actionRow(
+            "Restore this library backup",
+            "Apply the selected profile collections. A failed write rolls back the collections already changed.",
+            async () => {
+              libraryRestoreRunning = true;
+              libraryRestoreAbort = new AbortController();
+              render();
+              try {
+                const result = await options.restoreLibraryBackup!(backupPayload, {
+                  dryRun: false,
+                  signal: libraryRestoreAbort.signal
+                });
+                if (result.applied) {
+                  pendingLibraryBackupPayload = null;
+                  pendingLibraryBackupPreview = null;
+                  setStatusCopy("Library backup restored ({collections} collections). Reloading…", {
+                    collections: result.restoredKeys.length
+                  });
+                } else if (result.cancelled) {
+                  setStatus(
+                    result.rolledBack ? "Restore cancelled; local data was rolled back." : "Restore cancelled."
+                  );
+                } else {
+                  setStatusCopy("Restore failed: {errors}", { errors: result.errors.join("; ") });
+                }
+              } catch (error) {
+                options.onError("Could not restore library backup", error);
+                setStatus("Could not restore library backup.");
+              } finally {
+                libraryRestoreRunning = false;
+                libraryRestoreAbort = null;
+                render();
+              }
+            }
+          )
+        );
+      }
     }
 
     if (options.getAuditSize) {

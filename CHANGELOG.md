@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- Backup & Audit now exports a versioned, profile-scoped full-library JSON with per-collection
+  counts and checksums, redacts integration credentials by default, previews conflicts, supports
+  dry-run/cancellation, and rolls back a partial restore when a local write fails. Legacy settings
+  import remains unchanged.
 - Export packages now include a versioned checksum manifest and explicit per-media
   `captured-bytes`, `remote-reference`, or `missing` status. Opt-in media-byte capture records
   successful bodies in the ZIP/WARC and preserves failed items as retryable references; HTML,
