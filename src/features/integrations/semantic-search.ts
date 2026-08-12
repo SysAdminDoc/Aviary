@@ -3,6 +3,11 @@ import type { IntegrationSettings } from "../../platform/settings";
 import type { ExportRecord } from "../export/types";
 import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network";
 import { assertOutboundAllowed } from "./network-policy";
+import {
+  defaultEmbeddingBudget,
+  IntegrationUsageLedger,
+  utf8Bytes
+} from "./usage";
 
 export const SEMANTIC_INDEX_KEY = "aviary.semanticIndex.v1";
 
@@ -47,11 +52,13 @@ export interface SemanticHit {
 
 export class SemanticIndex {
   readonly #storage: StorageGateway;
+  readonly #usage: IntegrationUsageLedger | undefined;
   #state: SemanticIndexState = EMPTY;
   #loaded = false;
 
-  constructor(storage: StorageGateway) {
+  constructor(storage: StorageGateway, usage?: IntegrationUsageLedger) {
     this.#storage = storage;
+    this.#usage = usage;
   }
 
   async load(): Promise<void> {
@@ -82,9 +89,9 @@ export class SemanticIndex {
   async embedAndIndex(
     config: IntegrationSettings["semanticSearch"],
     records: readonly ExportRecord[]
-  ): Promise<{ added: number; skipped: number; errors: number; dropped: number }> {
+  ): Promise<{ added: number; skipped: number; errors: number; dropped: number; blocked: number }> {
     if (!config.enabled || !config.endpoint || !config.apiKey || !config.model) {
-      return { added: 0, skipped: records.length, errors: 0, dropped: 0 };
+      return { added: 0, skipped: records.length, errors: 0, dropped: 0, blocked: 0 };
     }
     await this.load();
     const before = cloneState(this.#state);
@@ -98,11 +105,23 @@ export class SemanticIndex {
     let added = 0;
     let skipped = 0;
     let errors = 0;
-    for (const record of records) {
+    let blocked = 0;
+    for (let index = 0; index < records.length; index += 1) {
+      const record = records[index]!;
       const id = `${record.tweetId ?? "no-id"}:${(record.text || "").slice(0, 80)}`;
       if (known.has(id) || record.text.length === 0) {
         skipped += 1;
         continue;
+      }
+      if (this.#usage) {
+        const decision = await this.#usage.reserveEmbedding(
+          utf8Bytes(record.text),
+          defaultEmbeddingBudget(config)
+        );
+        if (!decision.allowed) {
+          blocked = records.length - index;
+          break;
+        }
       }
       const expectedDimension = this.#state.entries[0]?.vector.length;
       const vector = await fetchEmbedding(config, record.text, expectedDimension);
@@ -128,7 +147,7 @@ export class SemanticIndex {
       this.#state = before;
       throw error;
     }
-    return { added, skipped, errors, dropped };
+    return { added, skipped, errors, dropped, blocked };
   }
 
   async search(
@@ -141,6 +160,13 @@ export class SemanticIndex {
     }
     await this.load();
     if (this.#state.entries.length === 0) return [];
+    if (this.#usage) {
+      const decision = await this.#usage.reserveEmbedding(
+        utf8Bytes(query),
+        defaultEmbeddingBudget(config)
+      );
+      if (!decision.allowed) return [];
+    }
     const queryVector = await fetchEmbedding(config, query, this.#state.entries[0]?.vector.length);
     if (!queryVector) return [];
     const hits = this.#state.entries

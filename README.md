@@ -38,7 +38,7 @@ its job.
 - Media downloads: `src/features/media/` (`media-buttons.ts`, `urls.ts`, `template.ts`, `history.ts`, `queue.ts`, `downloader.ts`, `extract.ts`, `video-extract.ts`, `media-presentation.ts`, `batch-downloader.ts`)
 - Export core: `src/features/export/` (`export-feature.ts`, `collector.ts`, `formatters.ts`, `assets.ts`, `viewer.ts`, `zip-store.ts`, `zip-reader.ts`, `jobs.ts`, `query-discovery.ts`, `network-capture.ts`, `xlsx.ts`, `warc.ts`, `external-targets.ts`, `types.ts`)
 - AI: `src/features/ai/command-menu.ts` (local prompt builder; optionally runs through `features/integrations/ai-provider.ts` when the user supplies an API key)
-- Integrations: `src/features/integrations/` (`aria2.ts`, `crosspost.ts`, `ai-provider.ts`, `semantic-search.ts`)
+- Integrations: `src/features/integrations/` (`aria2.ts`, `crosspost.ts`, `ai-provider.ts`, `semantic-search.ts`, `usage.ts`)
 - Library: `src/features/library/` (`user-notes.ts`, `link-unshorten.ts`, `snapshots.ts`, `snapshots-feature.ts`, `archive-import.ts`, `cleanup-preview.ts`, `cleanup-queue.ts`, `reports.ts`, `local-search.ts`, `bookmarks.ts`, `bookmarks-feature.ts`)
 - Composer: `src/features/composer/composer-snippets.ts`
 - i18n: `src/platform/i18n.ts` + `src/features/core/i18n-feature.ts`
@@ -63,6 +63,11 @@ npm run verify
 ## Privacy Model
 
 Aviary is designed to keep account data local. It sends no telemetry, never reads or exports cookies or auth headers, and loads no remote code. Credentials you enter for optional integrations are stored locally and are redacted when you export settings.
+
+AI and embedding calls are opt-in and show the destination, fields, estimated size, retention
+notice, network status, and budget before provider work begins. Per-request and daily UTF-8 byte
+limits are configurable in Integrations; profile-scoped usage history stores counters only, never
+API keys or raw prompts. Local-only mode and disabled integrations make zero provider requests.
 
 Aviary can also refuse X's own analytics beacons — the tracking pings sent as you scroll, click and pause. It is off by default, because refusing them changes how the site behaves and that is your call rather than a default. Only the analytics endpoints are matched; timeline, media and login traffic is untouched, and the panel reports how many have actually been refused so an idle hook is visibly different from a broken one.
 
@@ -149,7 +154,7 @@ The Control Center "Backup & Audit" section exposes:
 - **Import settings** — paste an envelope and press Save list. Settings are normalized, unsupported keys are dropped, and version mismatches are reported as warnings (never silent overwrites).
 - **Export full library backup** — downloads one versioned JSON envelope for the active profile's
   local settings, bookmarks, notes, snapshots, archive collections, export jobs/records, media
-  queues, indexes, retention values, and other durable stores. Integration credentials are excluded
+  queues, indexes, usage counters, retention values, and other durable stores. Integration credentials are excluded
   by default and remain local when a redacted backup is restored.
 - **Restore a library backup** — choose a backup file to preview schema versions, collection counts,
   byte totals, conflicts, and checksums. Dry-run validates without mutation; an actual restore can
@@ -217,8 +222,8 @@ The Control Center "Integrations" section gates each integration behind a per-fe
 - **Aria2 handoff** — when configured and the request exceeds the minimum-bytes threshold, `Downloader` posts an `aria2.addUri` JSON-RPC call to your self-hosted Aria2 daemon (with optional `token:` secret). Falls through to GM_download / extension SW / anchor otherwise. The Integrations panel also lists in-flight transfers and lets you cancel one with a click.
 - **Bluesky / Mastodon crosspost** — sends the current composer text to your Bluesky AT-protocol account or your Mastodon instance. Two explicit Control Center actions; never auto-cross. Toggle "Crosspost as thread" to chunk on blank lines — Bluesky gets `reply.root/parent` refs, Mastodon chains `in_reply_to_id`.
 - **Crosspost media (opt-in)** — the "Attach last download" toggle uploads the last successful Aviary media source to Bluesky or Mastodon and attaches it to the first post only. The source URL and filename stay local until that explicit action.
-- **AI provider runner** — when enabled, the per-tweet AI command menu POSTs the prompt to your configured provider (Anthropic Messages, OpenAI Chat Completions, or any OpenAI-compatible endpoint) and copies the response to your clipboard. With no key, the menu still works as a local prompt builder.
-- **Semantic search** — embeds captured records via your provider's embeddings endpoint, persists them locally, and ranks queries by cosine similarity. Embeddings only fire when you click "Rebuild semantic index" or type into the semantic search box. Flip "Auto-embed every export" if you'd rather have the index stay warm after each export run.
+- **AI provider runner** — when enabled, the per-tweet AI command menu shows the provider, endpoint, fields, character/token estimate, retention notice, network status, and budget before POSTing a prompt to Anthropic, OpenAI, or an OpenAI-compatible endpoint. Per-request and daily UTF-8 byte limits stop calls before they leave the browser; the response is copied to your clipboard. With no key, the menu remains a local prompt builder.
+- **Semantic search** — embeds captured records via your provider's embeddings endpoint, persists vectors and bounded text locally, and ranks queries by cosine similarity. The panel shows the endpoint, fields, retention notice, and byte budget before you enable auto-indexing. Per-record and daily UTF-8 byte limits stop rebuilds or background indexing with a recoverable status. Embeddings only fire when you click "Rebuild semantic index", type into the semantic search box, or enable "Auto-embed every export".
 
 The Integrations panel also surfaces a "Recent integration errors" readout that distills failed audit-log entries — handy when a Bluesky token expires or your Aria2 daemon stops listening. Aria2 history stores completed/queued gids locally and prevents the same media URL from being requeued across browser sessions.
 

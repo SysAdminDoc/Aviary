@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Added
+
+- AI and embedding integrations now disclose their provider, endpoint, fields, retention, and
+  request size before external work; configurable per-request and daily UTF-8 byte budgets stop
+  further calls, while profile-scoped usage history stores counters only and remains backup-safe.
+
 ### Fixed
 
 - Backup & Audit now exports a versioned, profile-scoped full-library JSON with per-collection

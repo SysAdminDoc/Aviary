@@ -7,6 +7,7 @@ export const DURABLE_STORAGE_KEYS = [
   "aviary.profiles.v1",
   "aviary.profile.active.v1",
   "aviary.settings.v1",
+  "aviary.integration.usage.v1",
   "aviary.export.checkpoints.v1",
   "aviary.queryIds.v1",
   "aviary.media.history.v1",

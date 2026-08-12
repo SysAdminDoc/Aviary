@@ -56,6 +56,8 @@ export interface IntegrationSettings {
     endpoint: string;
     apiKey: string;
     model: string;
+    maxRequestBytes: number;
+    dailyRequestBytes: number;
   };
   semanticSearch: {
     enabled: boolean;
@@ -63,6 +65,8 @@ export interface IntegrationSettings {
     apiKey: string;
     model: string;
     autoIndex: boolean;
+    maxRecordBytes: number;
+    dailyRecordBytes: number;
   };
   crosspost: {
     attachLastDownload: boolean;
@@ -272,8 +276,24 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     aria2: { enabled: false, endpoint: "", secret: "", minBytes: 50_000_000 },
     bluesky: { enabled: false, service: "https://bsky.social", handle: "", appPassword: "" },
     mastodon: { enabled: false, instance: "", token: "", visibility: "public" },
-    ai: { enabled: false, provider: "anthropic", endpoint: "", apiKey: "", model: "" },
-    semanticSearch: { enabled: false, endpoint: "", apiKey: "", model: "", autoIndex: false },
+    ai: {
+      enabled: false,
+      provider: "anthropic",
+      endpoint: "",
+      apiKey: "",
+      model: "",
+      maxRequestBytes: 32_000,
+      dailyRequestBytes: 1_000_000
+    },
+    semanticSearch: {
+      enabled: false,
+      endpoint: "",
+      apiKey: "",
+      model: "",
+      autoIndex: false,
+      maxRecordBytes: 20_000,
+      dailyRecordBytes: 2_000_000
+    },
     crosspost: { attachLastDownload: false }
   }
 };
@@ -479,7 +499,19 @@ export function normalizeSettings(input: unknown): AviarySettings {
         provider: enumValue(integrationsAi.provider, AI_PROVIDERS, DEFAULT_SETTINGS.integrations.ai.provider),
         endpoint: urlValue(integrationsAi.endpoint, DEFAULT_SETTINGS.integrations.ai.endpoint),
         apiKey: secretValue(integrationsAi.apiKey, DEFAULT_SETTINGS.integrations.ai.apiKey),
-        model: stringValue(integrationsAi.model, DEFAULT_SETTINGS.integrations.ai.model, 120)
+        model: stringValue(integrationsAi.model, DEFAULT_SETTINGS.integrations.ai.model, 120),
+        maxRequestBytes: integerValue(
+          integrationsAi.maxRequestBytes,
+          DEFAULT_SETTINGS.integrations.ai.maxRequestBytes,
+          0,
+          5_000_000
+        ),
+        dailyRequestBytes: integerValue(
+          integrationsAi.dailyRequestBytes,
+          DEFAULT_SETTINGS.integrations.ai.dailyRequestBytes,
+          0,
+          100_000_000
+        )
       },
       semanticSearch: {
         enabled: booleanValue(
@@ -498,6 +530,18 @@ export function normalizeSettings(input: unknown): AviarySettings {
         autoIndex: booleanValue(
           integrationsSemantic.autoIndex,
           DEFAULT_SETTINGS.integrations.semanticSearch.autoIndex
+        ),
+        maxRecordBytes: integerValue(
+          integrationsSemantic.maxRecordBytes,
+          DEFAULT_SETTINGS.integrations.semanticSearch.maxRecordBytes,
+          0,
+          5_000_000
+        ),
+        dailyRecordBytes: integerValue(
+          integrationsSemantic.dailyRecordBytes,
+          DEFAULT_SETTINGS.integrations.semanticSearch.dailyRecordBytes,
+          0,
+          100_000_000
         )
       },
       crosspost: {

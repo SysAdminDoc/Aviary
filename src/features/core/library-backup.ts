@@ -1,5 +1,6 @@
 import { ARIA2_HISTORY_KEY } from "../integrations/aria2";
 import { SEMANTIC_INDEX_KEY } from "../integrations/semantic-search";
+import { INTEGRATION_USAGE_KEY } from "../integrations/usage";
 import { ARCHIVE_IMPORT_JOBS_KEY } from "../library/archive-import-jobs";
 import { ARCHIVE_LIBRARY_KEY } from "../library/archive-library";
 import { CLEANUP_QUEUE_KEY } from "../library/cleanup-queue";
@@ -46,6 +47,7 @@ export interface LibraryBackupCollectionDefinition {
  */
 export const LIBRARY_BACKUP_COLLECTIONS = [
   { key: SETTINGS_KEY, label: "Settings", version: 1 },
+  { key: INTEGRATION_USAGE_KEY, label: "Integration usage counters", version: 1 },
   { key: CHECKPOINT_KEY, label: "Export jobs and records", version: 1 },
   { key: QUERY_REGISTRY_KEY, label: "Discovered query IDs", version: 1 },
   { key: MEDIA_HISTORY_KEY, label: "Media history", version: 1 },

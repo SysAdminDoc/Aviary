@@ -518,22 +518,43 @@ html.av-reduce-motion *::after {
       "e.g. claude-sonnet-4-6, gpt-4o, llama3.1:8b": "p. ej. claude-sonnet-4-6, gpt-4o, llama3.1:8b",
       "AI API key": "Clave de API de IA",
       "Stored locally only. Aviary never sends this except as the auth header to your provider.": "Se guarda solo en local. Aviary nunca la env\xEDa salvo como cabecera de autenticaci\xF3n a tu proveedor.",
+      "Allowed": "Permitido",
+      "Network status": "Estado de red",
+      "AI destination": "Destino de IA",
+      "AI data disclosure": "Divulgaci\xF3n de datos de IA",
+      "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status.": "Antes de enviar, Aviary muestra el proveedor, el endpoint, los campos, la estimaci\xF3n de caracteres/tokens, la retenci\xF3n y el estado del presupuesto.",
+      "AI usage today": "Uso de IA hoy",
+      "AI max request bytes": "M\xE1ximo de bytes por solicitud de IA",
+      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "Det\xE9n el env\xEDo de solicitudes de IA cuyo cuerpo UTF-8 supere este tama\xF1o. Usa 0 para no limitar cada solicitud.",
+      "AI daily request bytes": "Bytes diarios de solicitudes de IA",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "Det\xE9n las llamadas al proveedor de IA despu\xE9s de estos bytes UTF-8 en el d\xEDa local. Usa 0 para ilimitado.",
       "Semantic search": "B\xFAsqueda sem\xE1ntica",
-      "Embed CheckpointStore records via your provider for similarity search.": "Incrusta los registros del CheckpointStore con tu proveedor para la b\xFAsqueda por similitud.",
+      "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.": "Env\xEDa el texto de los registros capturados al endpoint de embeddings configurado para buscar similitudes. Aqu\xED se muestran el destino, los campos, la retenci\xF3n y el presupuesto de bytes.",
       "Embedding endpoint": "Endpoint de incrustaciones",
       "POST endpoint that returns {data: [{embedding: number[]}]}": "Endpoint POST que devuelve {data: [{embedding: number[]}]}",
       "Embedding model": "Modelo de incrustaciones",
       "e.g. text-embedding-3-small": "p. ej. text-embedding-3-small",
       "Embedding API key": "Clave de API de incrustaciones",
       "Stored locally; used only as the Authorization header.": "Se guarda en local; se usa solo como cabecera Authorization.",
+      "Not configured": "No configurado",
+      "Embedding destination": "Destino de embeddings",
+      "Embedding data disclosure": "Divulgaci\xF3n de datos de embeddings",
+      "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy.": "Una solicitud contiene el modelo y el texto del registro capturado. Los vectores y el texto limitado permanecen en el \xEDndice local de Aviary; la retenci\xF3n del proveedor sigue su pol\xEDtica.",
+      "Embedding usage today": "Uso de embeddings hoy",
+      "Embedding max record bytes": "M\xE1ximo de bytes por registro de embedding",
+      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "Det\xE9n el env\xEDo de registros cuyo cuerpo UTF-8 supere este tama\xF1o. Usa 0 para no limitar cada registro.",
+      "Embedding daily record bytes": "Bytes diarios de registros de embeddings",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "Det\xE9n las llamadas de embeddings despu\xE9s de estos bytes UTF-8 de registros en el d\xEDa local. Usa 0 para ilimitado.",
       "Auto-embed every export": "Incrustar autom\xE1ticamente cada exportaci\xF3n",
-      "After each export run, kick the embedding job in the background. Off by default.": "Tras cada exportaci\xF3n, lanza el trabajo de incrustaci\xF3n en segundo plano. Desactivado por defecto.",
+      "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.": "Antes de activar, revisa arriba el endpoint, los campos de los registros capturados, la retenci\xF3n local y el presupuesto diario de bytes. Despu\xE9s de cada exportaci\xF3n, genera embeddings en segundo plano. Est\xE1 desactivado de forma predeterminada.",
       "Rebuild semantic index": "Reconstruir el \xEDndice sem\xE1ntico",
       "Embed every captured record. Re-running is cheap because cached entries are skipped.": "Genera embeddings de cada registro capturado. Repetirlo es barato porque se omiten las entradas en cach\xE9.",
       "Vector similarity over captured records. Embeddings run on demand.": "Similitud vectorial en los registros capturados. Los embeddings se ejecutan bajo demanda.",
       "Describe what you're looking for\u2026": "Describe lo que buscas\u2026",
       "Clear semantic index": "Borrar el \xEDndice sem\xE1ntico",
       "Forget every embedded record.": "Olvida todos los registros con embeddings.",
+      "Clear AI and embedding usage": "Borrar uso de IA y embeddings",
+      "Forget local request counters only. This does not remove the semantic index or provider credentials.": "Olvida solo los contadores locales de solicitudes. No elimina el \xEDndice sem\xE1ntico ni las credenciales del proveedor.",
       "on": "activado",
       "off": "desactivado",
       "configured": "configurado",
@@ -674,18 +695,25 @@ html.av-reduce-motion *::after {
       "AI endpoint saved": "Endpoint de IA guardado",
       "AI model saved": "Modelo de IA guardado",
       "AI API key saved": "Clave de API de IA guardada",
+      "AI request budget saved": "Presupuesto de solicitudes de IA guardado",
+      "AI daily budget saved": "Presupuesto diario de IA guardado",
       "Semantic search on": "B\xFAsqueda sem\xE1ntica activada",
       "Semantic search off": "B\xFAsqueda sem\xE1ntica desactivada",
       "Embedding endpoint saved": "Endpoint de embeddings guardado",
       "Embedding model saved": "Modelo de embeddings guardado",
       "Embedding API key saved": "Clave de API de embeddings guardada",
+      "Embedding request budget saved": "Presupuesto de solicitudes de embeddings guardado",
+      "Embedding daily budget saved": "Presupuesto diario de embeddings guardado",
       "Auto-embed on": "Incrustaci\xF3n autom\xE1tica activada",
       "Auto-embed off": "Incrustaci\xF3n autom\xE1tica desactivada",
       "Rebuilding semantic index\u2026": "Reconstruyendo el \xEDndice sem\xE1ntico\u2026",
+      "Embedding stopped at the budget ({blocked} records were not sent).": "Los embeddings se detuvieron por el presupuesto ({blocked} registros no se enviaron).",
       "Indexed: +{added} new \xB7 skipped {skipped} \xB7 errors {errors} \xB7 total {total}{trimmed}.": "Indexados: +{added} nuevos \xB7 omitidos {skipped} \xB7 errores {errors} \xB7 total {total}{trimmed}.",
       "Embedding failed.": "Fallaron los embeddings.",
       "Semantic index cleared": "\xCDndice sem\xE1ntico borrado",
       "Could not clear semantic index.": "No se pudo borrar el \xEDndice sem\xE1ntico.",
+      "AI and embedding usage cleared": "Uso de IA y embeddings borrado",
+      "Could not clear AI and embedding usage.": "No se pudo borrar el uso de IA y embeddings.",
       "Offscreen video paused": "V\xEDdeo fuera de pantalla en pausa",
       "Offscreen video left playing": "V\xEDdeo fuera de pantalla sigue reproduci\xE9ndose",
       "Best video quality on": "M\xE1xima calidad de v\xEDdeo activada",
@@ -798,6 +826,8 @@ html.av-reduce-motion *::after {
       "No captured records match \u201C{query}\u201D.": "No hay registros capturados que coincidan con \xAB{query}\xBB.",
       "No active downloads.": "No hay descargas activas.",
       "Cancel": "Cancelar",
+      "Blocked by local-only mode": "Bloqueado por el modo solo local",
+      "unlimited": "ilimitado",
       "No matches (or integration disabled).": "No hay coincidencias (o la integraci\xF3n est\xE1 desactivada).",
       "Search all local collections": "Buscar en todas las colecciones locales",
       "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "Buscar publicaciones, Me gusta, marcadores, notas, etiquetas, carpetas e instant\xE1neas con filtros.",
@@ -872,6 +902,11 @@ html.av-reduce-motion *::after {
       "Check the key and model in Integrations.": "Revisa la clave y el modelo en Integraciones.",
       "Prompt copied to the clipboard \u2014 paste it into your assistant.": "Prompt copiado al portapapeles: p\xE9galo en tu asistente.",
       "The prompt could not be copied. Your browser blocked clipboard access.": "No se pudo copiar el prompt. Tu navegador bloque\xF3 el acceso al portapapeles.",
+      "Review external AI request": "Revisar solicitud de IA externa",
+      "Nothing is sent until you choose Send request.": "No se env\xEDa nada hasta que elijas Enviar solicitud.",
+      "Aviary stores usage counters only; the provider's retention follows its policy.": "Aviary solo guarda contadores de uso; la retenci\xF3n del proveedor sigue su pol\xEDtica.",
+      "Budget blocked this request.": "El presupuesto bloque\xF3 esta solicitud.",
+      "Send request": "Enviar solicitud",
       "Translate": "Traducir",
       "Translate the selected post to your active locale.": "Traduce la publicaci\xF3n seleccionada a tu idioma activo.",
       "Summarize": "Resumir",
@@ -930,6 +965,8 @@ html.av-reduce-motion *::after {
       "not granted": "no concedido",
       "Granted. Media saves through the browser now.": "Concedido. Ahora los medios se guardan con el navegador.",
       "Granted. Aviary can read full-size media directly for exports now.": "Concedido. Ahora Aviary puede leer medios a tama\xF1o completo para las exportaciones.",
+      "Embed CheckpointStore records via your provider for similarity search.": "Incrusta los registros del CheckpointStore con tu proveedor para la b\xFAsqueda por similitud.",
+      "After each export run, kick the embedding job in the background. Off by default.": "Tras cada exportaci\xF3n, lanza el trabajo de incrustaci\xF3n en segundo plano. Desactivado por defecto.",
       "Settings imported.": "Ajustes importados.",
       "Preset applied": "Ajuste preestablecido aplicado",
       "Preset already applied": "El ajuste preestablecido ya estaba aplicado",
@@ -1213,22 +1250,43 @@ html.av-reduce-motion *::after {
       "e.g. claude-sonnet-4-6, gpt-4o, llama3.1:8b": "ex.: claude-sonnet-4-6, gpt-4o, llama3.1:8b",
       "AI API key": "Chave de API de IA",
       "Stored locally only. Aviary never sends this except as the auth header to your provider.": "Guardada apenas localmente. O Aviary s\xF3 a envia como cabe\xE7alho de autentica\xE7\xE3o para o seu provedor.",
+      "Allowed": "Permitido",
+      "Network status": "Status da rede",
+      "AI destination": "Destino da IA",
+      "AI data disclosure": "Divulga\xE7\xE3o de dados da IA",
+      "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status.": "Antes de enviar, o Aviary mostra o provedor, endpoint, campos, estimativa de caracteres/tokens, reten\xE7\xE3o e status do or\xE7amento.",
+      "AI usage today": "Uso de IA hoje",
+      "AI max request bytes": "M\xE1ximo de bytes por solicita\xE7\xE3o de IA",
+      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "Pare antes de enviar uma solicita\xE7\xE3o de IA maior que este corpo UTF-8. Use 0 para n\xE3o limitar cada solicita\xE7\xE3o.",
+      "AI daily request bytes": "Bytes di\xE1rios de solicita\xE7\xF5es de IA",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "Pare as chamadas ao provedor de IA ap\xF3s estes bytes UTF-8 de solicita\xE7\xE3o no dia local. Use 0 para ilimitado.",
       "Semantic search": "Busca sem\xE2ntica",
-      "Embed CheckpointStore records via your provider for similarity search.": "Gera embeddings dos registros do CheckpointStore pelo seu provedor para busca por similaridade.",
+      "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.": "Envie o texto dos registros capturados ao endpoint de embeddings configurado para busca por similaridade. O destino, os campos, a reten\xE7\xE3o e o or\xE7amento de bytes aparecem aqui.",
       "Embedding endpoint": "Endpoint de embeddings",
       "POST endpoint that returns {data: [{embedding: number[]}]}": "Endpoint POST que retorna {data: [{embedding: number[]}]}",
       "Embedding model": "Modelo de embeddings",
       "e.g. text-embedding-3-small": "ex.: text-embedding-3-small",
       "Embedding API key": "Chave de API de embeddings",
       "Stored locally; used only as the Authorization header.": "Guardada localmente; usada apenas como cabe\xE7alho Authorization.",
+      "Not configured": "N\xE3o configurado",
+      "Embedding destination": "Destino dos embeddings",
+      "Embedding data disclosure": "Divulga\xE7\xE3o de dados dos embeddings",
+      "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy.": "Uma solicita\xE7\xE3o cont\xE9m o modelo e o texto do registro capturado. Vetores e texto limitado ficam no \xEDndice local do Aviary; a reten\xE7\xE3o do provedor segue a pol\xEDtica dele.",
+      "Embedding usage today": "Uso de embeddings hoje",
+      "Embedding max record bytes": "M\xE1ximo de bytes por registro de embedding",
+      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "Pare antes de enviar um registro maior que este corpo UTF-8. Use 0 para n\xE3o limitar cada registro.",
+      "Embedding daily record bytes": "Bytes di\xE1rios de registros de embeddings",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "Pare as chamadas de embeddings ap\xF3s estes bytes UTF-8 de registros no dia local. Use 0 para ilimitado.",
       "Auto-embed every export": "Gerar embeddings a cada exporta\xE7\xE3o",
-      "After each export run, kick the embedding job in the background. Off by default.": "Ap\xF3s cada exporta\xE7\xE3o, dispara o trabalho de embeddings em segundo plano. Desligado por padr\xE3o.",
+      "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.": "Antes de ativar, confira acima o endpoint, os campos dos registros capturados, a reten\xE7\xE3o local e o or\xE7amento di\xE1rio de bytes. Depois de cada exporta\xE7\xE3o, gere embeddings em segundo plano. Desativado por padr\xE3o.",
       "Rebuild semantic index": "Reconstruir o \xEDndice sem\xE2ntico",
       "Embed every captured record. Re-running is cheap because cached entries are skipped.": "Gera embeddings de cada registo capturado. Repetir \xE9 barato porque as entradas em cache s\xE3o ignoradas.",
       "Vector similarity over captured records. Embeddings run on demand.": "Similaridade vetorial nos registos capturados. Os embeddings s\xE3o executados a pedido.",
       "Describe what you're looking for\u2026": "Descreva o que procura\u2026",
       "Clear semantic index": "Limpar o \xEDndice sem\xE2ntico",
       "Forget every embedded record.": "Esquece todos os registos com embeddings.",
+      "Clear AI and embedding usage": "Limpar uso de IA e embeddings",
+      "Forget local request counters only. This does not remove the semantic index or provider credentials.": "Esque\xE7a apenas os contadores locais de solicita\xE7\xF5es. Isso n\xE3o remove o \xEDndice sem\xE2ntico nem as credenciais do provedor.",
       "on": "ativado",
       "off": "desativado",
       "configured": "configurado",
@@ -1369,18 +1427,25 @@ html.av-reduce-motion *::after {
       "AI endpoint saved": "Endpoint de IA guardado",
       "AI model saved": "Modelo de IA salvo",
       "AI API key saved": "Chave de API de IA salva",
+      "AI request budget saved": "Or\xE7amento de solicita\xE7\xF5es de IA salvo",
+      "AI daily budget saved": "Or\xE7amento di\xE1rio de IA salvo",
       "Semantic search on": "Pesquisa sem\xE2ntica ativada",
       "Semantic search off": "Pesquisa sem\xE2ntica desativada",
       "Embedding endpoint saved": "Endpoint de embeddings guardado",
       "Embedding model saved": "Modelo de embeddings guardado",
       "Embedding API key saved": "Chave de API de embeddings guardada",
+      "Embedding request budget saved": "Or\xE7amento de solicita\xE7\xF5es de embeddings salvo",
+      "Embedding daily budget saved": "Or\xE7amento di\xE1rio de embeddings salvo",
       "Auto-embed on": "Incorpora\xE7\xE3o autom\xE1tica ativada",
       "Auto-embed off": "Incorpora\xE7\xE3o autom\xE1tica desativada",
       "Rebuilding semantic index\u2026": "A reconstruir o \xEDndice sem\xE2ntico\u2026",
+      "Embedding stopped at the budget ({blocked} records were not sent).": "Os embeddings pararam no or\xE7amento ({blocked} registros n\xE3o foram enviados).",
       "Indexed: +{added} new \xB7 skipped {skipped} \xB7 errors {errors} \xB7 total {total}{trimmed}.": "Indexados: +{added} novos \xB7 ignorados {skipped} \xB7 erros {errors} \xB7 total {total}{trimmed}.",
       "Embedding failed.": "Os embeddings falharam.",
       "Semantic index cleared": "\xCDndice sem\xE2ntico limpo",
       "Could not clear semantic index.": "N\xE3o foi poss\xEDvel limpar o \xEDndice sem\xE2ntico.",
+      "AI and embedding usage cleared": "Uso de IA e embeddings limpo",
+      "Could not clear AI and embedding usage.": "N\xE3o foi poss\xEDvel limpar o uso de IA e embeddings.",
       "Offscreen video paused": "V\xEDdeo fora do ecr\xE3 em pausa",
       "Offscreen video left playing": "V\xEDdeo fora do ecr\xE3 continua a reproduzir",
       "Best video quality on": "M\xE1xima qualidade de v\xEDdeo ativada",
@@ -1493,6 +1558,8 @@ html.av-reduce-motion *::after {
       "No captured records match \u201C{query}\u201D.": "Nenhum registo capturado corresponde a \xAB{query}\xBB.",
       "No active downloads.": "N\xE3o existem transfer\xEAncias ativas.",
       "Cancel": "Cancelar",
+      "Blocked by local-only mode": "Bloqueado pelo modo somente local",
+      "unlimited": "ilimitado",
       "No matches (or integration disabled).": "Sem correspond\xEAncias (ou a integra\xE7\xE3o est\xE1 desativada).",
       "Search all local collections": "Pesquisar todas as cole\xE7\xF5es locais",
       "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "Pesquisar publica\xE7\xF5es, gostos, marcadores, notas, etiquetas, pastas e instant\xE2neos com filtros.",
@@ -1567,6 +1634,11 @@ html.av-reduce-motion *::after {
       "Check the key and model in Integrations.": "Verifica a chave e o modelo em Integra\xE7\xF5es.",
       "Prompt copied to the clipboard \u2014 paste it into your assistant.": "Prompt copiado para a \xE1rea de transfer\xEAncia \u2014 cola-o no teu assistente.",
       "The prompt could not be copied. Your browser blocked clipboard access.": "N\xE3o foi poss\xEDvel copiar o prompt. O teu navegador bloqueou o acesso \xE0 \xE1rea de transfer\xEAncia.",
+      "Review external AI request": "Revisar solicita\xE7\xE3o externa de IA",
+      "Nothing is sent until you choose Send request.": "Nada \xE9 enviado at\xE9 voc\xEA escolher Enviar solicita\xE7\xE3o.",
+      "Aviary stores usage counters only; the provider's retention follows its policy.": "O Aviary armazena apenas contadores de uso; a reten\xE7\xE3o do provedor segue a pol\xEDtica dele.",
+      "Budget blocked this request.": "O or\xE7amento bloqueou esta solicita\xE7\xE3o.",
+      "Send request": "Enviar solicita\xE7\xE3o",
       "Translate": "Traduzir",
       "Translate the selected post to your active locale.": "Traduz a publica\xE7\xE3o selecionada para o teu idioma ativo.",
       "Summarize": "Resumir",
@@ -1625,6 +1697,8 @@ html.av-reduce-motion *::after {
       "not granted": "n\xE3o concedido",
       "Granted. Media saves through the browser now.": "Concedido. A multim\xE9dia passa agora a ser guardada pelo navegador.",
       "Granted. Aviary can read full-size media directly for exports now.": "Concedido. O Aviary pode agora ler multim\xE9dia em tamanho completo para as exporta\xE7\xF5es.",
+      "Embed CheckpointStore records via your provider for similarity search.": "Gera embeddings dos registros do CheckpointStore pelo seu provedor para busca por similaridade.",
+      "After each export run, kick the embedding job in the background. Off by default.": "Ap\xF3s cada exporta\xE7\xE3o, dispara o trabalho de embeddings em segundo plano. Desligado por padr\xE3o.",
       "Settings imported.": "Defini\xE7\xF5es importadas.",
       "Preset applied": "Predefini\xE7\xE3o aplicada",
       "Preset already applied": "A predefini\xE7\xE3o j\xE1 estava aplicada",
@@ -1908,22 +1982,43 @@ html.av-reduce-motion *::after {
       "e.g. claude-sonnet-4-6, gpt-4o, llama3.1:8b": "p. ex. claude-sonnet-4-6, gpt-4o, llama3.1:8b",
       "AI API key": "Cl\xE9 d'API d'IA",
       "Stored locally only. Aviary never sends this except as the auth header to your provider.": "Stock\xE9e en local uniquement. Aviary ne l'envoie que comme en-t\xEAte d'authentification vers votre fournisseur.",
+      "Allowed": "Autoris\xE9",
+      "Network status": "\xC9tat du r\xE9seau",
+      "AI destination": "Destination de l\u2019IA",
+      "AI data disclosure": "Donn\xE9es envoy\xE9es \xE0 l\u2019IA",
+      "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status.": "Avant l\u2019envoi, Aviary affiche le fournisseur, le point de terminaison, les champs, l\u2019estimation des caract\xE8res/tokens, la conservation et l\u2019\xE9tat du budget.",
+      "AI usage today": "Utilisation de l\u2019IA aujourd\u2019hui",
+      "AI max request bytes": "Octets maximum par requ\xEAte IA",
+      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "Arr\xEAter avant d\u2019envoyer une requ\xEAte IA dont le corps UTF-8 d\xE9passe cette taille. Utiliser 0 pour ne pas limiter chaque requ\xEAte.",
+      "AI daily request bytes": "Octets quotidiens des requ\xEAtes IA",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "Arr\xEAter les appels au fournisseur d\u2019IA apr\xE8s ce nombre d\u2019octets UTF-8 dans la journ\xE9e locale. Utiliser 0 pour illimit\xE9.",
       "Semantic search": "Recherche s\xE9mantique",
-      "Embed CheckpointStore records via your provider for similarity search.": "Indexe les enregistrements du CheckpointStore via votre fournisseur pour la recherche par similarit\xE9.",
+      "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.": "Envoyer le texte des enregistrements captur\xE9s au point de terminaison d\u2019embeddings configur\xE9 pour la recherche par similarit\xE9. La destination, les champs, la conservation et le budget d\u2019octets sont affich\xE9s ici.",
       "Embedding endpoint": "Point de terminaison des plongements",
       "POST endpoint that returns {data: [{embedding: number[]}]}": "Point de terminaison POST renvoyant {data: [{embedding: number[]}]}",
       "Embedding model": "Mod\xE8le de plongements",
       "e.g. text-embedding-3-small": "p. ex. text-embedding-3-small",
       "Embedding API key": "Cl\xE9 d'API des plongements",
       "Stored locally; used only as the Authorization header.": "Stock\xE9e en local ; utilis\xE9e uniquement comme en-t\xEAte Authorization.",
+      "Not configured": "Non configur\xE9",
+      "Embedding destination": "Destination des embeddings",
+      "Embedding data disclosure": "Donn\xE9es envoy\xE9es aux embeddings",
+      "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy.": "Une requ\xEAte contient le mod\xE8le et le texte de l\u2019enregistrement captur\xE9. Les vecteurs et le texte limit\xE9 restent dans l\u2019index local d\u2019Aviary ; la conservation du fournisseur suit sa politique.",
+      "Embedding usage today": "Utilisation des embeddings aujourd\u2019hui",
+      "Embedding max record bytes": "Octets maximum par enregistrement d\u2019embedding",
+      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "Arr\xEAter avant d\u2019envoyer un enregistrement dont le corps UTF-8 d\xE9passe cette taille. Utiliser 0 pour ne pas limiter chaque enregistrement.",
+      "Embedding daily record bytes": "Octets quotidiens des enregistrements d\u2019embeddings",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "Arr\xEAter les appels d\u2019embedding apr\xE8s ce nombre d\u2019octets UTF-8 d\u2019enregistrements dans la journ\xE9e locale. Utiliser 0 pour illimit\xE9.",
       "Auto-embed every export": "Indexer automatiquement chaque export",
-      "After each export run, kick the embedding job in the background. Off by default.": "Apr\xE8s chaque export, lance la t\xE2che d'indexation en arri\xE8re-plan. D\xE9sactiv\xE9 par d\xE9faut.",
+      "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.": "Avant l\u2019activation, v\xE9rifiez ci-dessus le point de terminaison, les champs des enregistrements captur\xE9s, la conservation locale et le budget quotidien d\u2019octets. Apr\xE8s chaque exportation, les embeddings sont g\xE9n\xE9r\xE9s en arri\xE8re-plan. D\xE9sactiv\xE9 par d\xE9faut.",
       "Rebuild semantic index": "Reconstruire l'index s\xE9mantique",
       "Embed every captured record. Re-running is cheap because cached entries are skipped.": "Calcule les embeddings de chaque enregistrement captur\xE9. Relancer co\xFBte peu car les entr\xE9es en cache sont ignor\xE9es.",
       "Vector similarity over captured records. Embeddings run on demand.": "Similarit\xE9 vectorielle sur les enregistrements captur\xE9s. Les embeddings sont lanc\xE9s \xE0 la demande.",
       "Describe what you're looking for\u2026": "D\xE9crivez votre recherche\u2026",
       "Clear semantic index": "Effacer l'index s\xE9mantique",
       "Forget every embedded record.": "Oublie tous les enregistrements vectoris\xE9s.",
+      "Clear AI and embedding usage": "Effacer l\u2019utilisation de l\u2019IA et des embeddings",
+      "Forget local request counters only. This does not remove the semantic index or provider credentials.": "Effacer uniquement les compteurs locaux de requ\xEAtes. Cela ne supprime ni l\u2019index s\xE9mantique ni les identifiants du fournisseur.",
       "on": "activ\xE9",
       "off": "d\xE9sactiv\xE9",
       "configured": "configur\xE9",
@@ -2064,18 +2159,25 @@ html.av-reduce-motion *::after {
       "AI endpoint saved": "Point de terminaison IA enregistr\xE9",
       "AI model saved": "Mod\xE8le d'IA enregistr\xE9",
       "AI API key saved": "Cl\xE9 d'API d'IA enregistr\xE9e",
+      "AI request budget saved": "Budget des requ\xEAtes IA enregistr\xE9",
+      "AI daily budget saved": "Budget quotidien IA enregistr\xE9",
       "Semantic search on": "Recherche s\xE9mantique activ\xE9e",
       "Semantic search off": "Recherche s\xE9mantique d\xE9sactiv\xE9e",
       "Embedding endpoint saved": "Point de terminaison d'embeddings enregistr\xE9",
       "Embedding model saved": "Mod\xE8le d'embeddings enregistr\xE9",
       "Embedding API key saved": "Cl\xE9 d'API d'embeddings enregistr\xE9e",
+      "Embedding request budget saved": "Budget des requ\xEAtes d\u2019embedding enregistr\xE9",
+      "Embedding daily budget saved": "Budget quotidien des embeddings enregistr\xE9",
       "Auto-embed on": "Vectorisation automatique activ\xE9e",
       "Auto-embed off": "Vectorisation automatique d\xE9sactiv\xE9e",
       "Rebuilding semantic index\u2026": "Reconstruction de l'index s\xE9mantique\u2026",
+      "Embedding stopped at the budget ({blocked} records were not sent).": "Les embeddings se sont arr\xEAt\xE9s au budget ({blocked} enregistrements n\u2019ont pas \xE9t\xE9 envoy\xE9s).",
       "Indexed: +{added} new \xB7 skipped {skipped} \xB7 errors {errors} \xB7 total {total}{trimmed}.": "Indexation : +{added} nouvelles \xB7 ignor\xE9es {skipped} \xB7 erreurs {errors} \xB7 total {total}{trimmed}.",
       "Embedding failed.": "Le calcul des embeddings a \xE9chou\xE9.",
       "Semantic index cleared": "Index s\xE9mantique effac\xE9",
       "Could not clear semantic index.": "Impossible d\u2019effacer l\u2019index s\xE9mantique.",
+      "AI and embedding usage cleared": "Utilisation de l\u2019IA et des embeddings effac\xE9e",
+      "Could not clear AI and embedding usage.": "Impossible d\u2019effacer l\u2019utilisation de l\u2019IA et des embeddings.",
       "Offscreen video paused": "Vid\xE9o hors \xE9cran mise en pause",
       "Offscreen video left playing": "Vid\xE9o hors \xE9cran laiss\xE9e en lecture",
       "Best video quality on": "Qualit\xE9 vid\xE9o maximale activ\xE9e",
@@ -2188,6 +2290,8 @@ html.av-reduce-motion *::after {
       "No captured records match \u201C{query}\u201D.": "Aucun enregistrement captur\xE9 ne correspond \xE0 \xAB {query} \xBB.",
       "No active downloads.": "Aucun t\xE9l\xE9chargement actif.",
       "Cancel": "Annuler",
+      "Blocked by local-only mode": "Bloqu\xE9 par le mode local uniquement",
+      "unlimited": "illimit\xE9",
       "No matches (or integration disabled).": "Aucun r\xE9sultat (ou int\xE9gration d\xE9sactiv\xE9e).",
       "Search all local collections": "Rechercher dans toutes les collections locales",
       "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "Rechercher des publications, mentions J\u2019aime, signets, notes, tags, dossiers et instantan\xE9s avec des filtres.",
@@ -2262,6 +2366,11 @@ html.av-reduce-motion *::after {
       "Check the key and model in Integrations.": "V\xE9rifiez la cl\xE9 et le mod\xE8le dans Int\xE9grations.",
       "Prompt copied to the clipboard \u2014 paste it into your assistant.": "Prompt copi\xE9 dans le presse-papiers \u2014 collez-le dans votre assistant.",
       "The prompt could not be copied. Your browser blocked clipboard access.": "Le prompt n'a pas pu \xEAtre copi\xE9. Votre navigateur a bloqu\xE9 l'acc\xE8s au presse-papiers.",
+      "Review external AI request": "V\xE9rifier la requ\xEAte IA externe",
+      "Nothing is sent until you choose Send request.": "Rien n\u2019est envoy\xE9 avant de choisir Envoyer la requ\xEAte.",
+      "Aviary stores usage counters only; the provider's retention follows its policy.": "Aviary conserve uniquement des compteurs d'utilisation ; la conservation du fournisseur suit sa politique.",
+      "Budget blocked this request.": "Le budget a bloqu\xE9 cette requ\xEAte.",
+      "Send request": "Envoyer la requ\xEAte",
       "Translate": "Traduire",
       "Translate the selected post to your active locale.": "Traduit le post s\xE9lectionn\xE9 dans votre langue active.",
       "Summarize": "R\xE9sumer",
@@ -2320,6 +2429,8 @@ html.av-reduce-motion *::after {
       "not granted": "non accord\xE9",
       "Granted. Media saves through the browser now.": "Accord\xE9. Les m\xE9dias sont d\xE9sormais enregistr\xE9s par le navigateur.",
       "Granted. Aviary can read full-size media directly for exports now.": "Accord\xE9. Aviary peut d\xE9sormais lire les m\xE9dias en taille r\xE9elle pour les exports.",
+      "Embed CheckpointStore records via your provider for similarity search.": "Indexe les enregistrements du CheckpointStore via votre fournisseur pour la recherche par similarit\xE9.",
+      "After each export run, kick the embedding job in the background. Off by default.": "Apr\xE8s chaque export, lance la t\xE2che d'indexation en arri\xE8re-plan. D\xE9sactiv\xE9 par d\xE9faut.",
       "Settings imported.": "R\xE9glages import\xE9s.",
       "Preset applied": "Pr\xE9r\xE9glage appliqu\xE9",
       "Preset already applied": "Pr\xE9r\xE9glage d\xE9j\xE0 appliqu\xE9",
@@ -2603,22 +2714,43 @@ html.av-reduce-motion *::after {
       "e.g. claude-sonnet-4-6, gpt-4o, llama3.1:8b": "z. B. claude-sonnet-4-6, gpt-4o, llama3.1:8b",
       "AI API key": "KI-API-Schl\xFCssel",
       "Stored locally only. Aviary never sends this except as the auth header to your provider.": "Wird nur lokal gespeichert. Aviary sendet ihn ausschlie\xDFlich als Auth-Header an Ihren Anbieter.",
+      "Allowed": "Erlaubt",
+      "Network status": "Netzwerkstatus",
+      "AI destination": "KI-Ziel",
+      "AI data disclosure": "KI-Datenhinweis",
+      "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status.": "Vor dem Senden zeigt Aviary Anbieter, Endpunkt, Felder, Zeichen-/Token-Sch\xE4tzung, Aufbewahrung und Budgetstatus.",
+      "AI usage today": "KI-Nutzung heute",
+      "AI max request bytes": "Maximale Bytes pro KI-Anfrage",
+      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "Vor dem Senden stoppen, wenn der UTF-8-Textk\xF6rper einer KI-Anfrage gr\xF6\xDFer ist. 0 hebt die Grenze pro Anfrage auf.",
+      "AI daily request bytes": "T\xE4gliche Bytes f\xFCr KI-Anfragen",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "KI-Anbieteraufrufe nach dieser Zahl von UTF-8-Anfragebytes am lokalen Tag stoppen. 0 bedeutet unbegrenzt.",
       "Semantic search": "Semantische Suche",
-      "Embed CheckpointStore records via your provider for similarity search.": "Bettet CheckpointStore-Datens\xE4tze \xFCber Ihren Anbieter f\xFCr die \xC4hnlichkeitssuche ein.",
+      "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.": "Erfassten Datensatztext zur \xC4hnlichkeitssuche an den konfigurierten Embedding-Endpunkt senden. Ziel, Felder, Aufbewahrung und Bytebudget werden hier angezeigt.",
       "Embedding endpoint": "Embedding-Endpunkt",
       "POST endpoint that returns {data: [{embedding: number[]}]}": "POST-Endpunkt, der {data: [{embedding: number[]}]} zur\xFCckgibt",
       "Embedding model": "Embedding-Modell",
       "e.g. text-embedding-3-small": "z. B. text-embedding-3-small",
       "Embedding API key": "Embedding-API-Schl\xFCssel",
       "Stored locally; used only as the Authorization header.": "Wird lokal gespeichert und nur als Authorization-Header verwendet.",
+      "Not configured": "Nicht konfiguriert",
+      "Embedding destination": "Embedding-Ziel",
+      "Embedding data disclosure": "Embedding-Datenhinweis",
+      "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy.": "Eine Anfrage enth\xE4lt Modell und erfassten Datensatztext. Vektoren und begrenzter Text bleiben in Aviarys lokalem Index; die Aufbewahrung des Anbieters folgt dessen Richtlinie.",
+      "Embedding usage today": "Embedding-Nutzung heute",
+      "Embedding max record bytes": "Maximale Bytes pro Embedding-Datensatz",
+      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "Vor dem Senden stoppen, wenn ein Datensatz gr\xF6\xDFer als dieser UTF-8-K\xF6rper ist. 0 hebt die Grenze pro Datensatz auf.",
+      "Embedding daily record bytes": "T\xE4gliche Datensatzbytes f\xFCr Embeddings",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "Embedding-Aufrufe nach dieser Zahl von UTF-8-Datensatzbytes am lokalen Tag stoppen. 0 bedeutet unbegrenzt.",
       "Auto-embed every export": "Jeden Export automatisch einbetten",
-      "After each export run, kick the embedding job in the background. Off by default.": "St\xF6\xDFt nach jedem Exportlauf den Embedding-Job im Hintergrund an. Standardm\xE4\xDFig aus.",
+      "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.": "Pr\xFCfe vor dem Aktivieren oben Endpunkt, Felder erfasster Datens\xE4tze, lokale Aufbewahrung und t\xE4gliches Bytebudget. Nach jedem Export werden Embeddings im Hintergrund erstellt. Standardm\xE4\xDFig aus.",
       "Rebuild semantic index": "Semantischen Index neu aufbauen",
       "Embed every captured record. Re-running is cheap because cached entries are skipped.": "Erzeugt Embeddings f\xFCr jeden erfassten Datensatz. Ein erneuter Lauf ist g\xFCnstig, da zwischengespeicherte Eintr\xE4ge \xFCbersprungen werden.",
       "Vector similarity over captured records. Embeddings run on demand.": "Vektorsimilarit\xE4t \xFCber erfasste Datens\xE4tze. Embeddings werden bei Bedarf ausgef\xFChrt.",
       "Describe what you're looking for\u2026": "Beschreibe, wonach du suchst\u2026",
       "Clear semantic index": "Semantischen Index l\xF6schen",
       "Forget every embedded record.": "Vergisst alle eingebetteten Datens\xE4tze.",
+      "Clear AI and embedding usage": "KI- und Embedding-Nutzung l\xF6schen",
+      "Forget local request counters only. This does not remove the semantic index or provider credentials.": "Nur lokale Anfragez\xE4hler vergessen. Der semantische Index und Anbieterzugangsdaten bleiben erhalten.",
       "on": "ein",
       "off": "aus",
       "configured": "konfiguriert",
@@ -2759,18 +2891,25 @@ html.av-reduce-motion *::after {
       "AI endpoint saved": "KI-Endpunkt gespeichert",
       "AI model saved": "KI-Modell gespeichert",
       "AI API key saved": "KI-API-Schl\xFCssel gespeichert",
+      "AI request budget saved": "KI-Anfragebudget gespeichert",
+      "AI daily budget saved": "T\xE4gliches KI-Budget gespeichert",
       "Semantic search on": "Semantische Suche an",
       "Semantic search off": "Semantische Suche aus",
       "Embedding endpoint saved": "Embedding-Endpunkt gespeichert",
       "Embedding model saved": "Embedding-Modell gespeichert",
       "Embedding API key saved": "Embedding-API-Schl\xFCssel gespeichert",
+      "Embedding request budget saved": "Embedding-Anfragebudget gespeichert",
+      "Embedding daily budget saved": "T\xE4gliches Embedding-Budget gespeichert",
       "Auto-embed on": "Automatisches Einbetten an",
       "Auto-embed off": "Automatisches Einbetten aus",
       "Rebuilding semantic index\u2026": "Semantischer Index wird neu aufgebaut\u2026",
+      "Embedding stopped at the budget ({blocked} records were not sent).": "Embeddings am Budget gestoppt ({blocked} Datens\xE4tze wurden nicht gesendet).",
       "Indexed: +{added} new \xB7 skipped {skipped} \xB7 errors {errors} \xB7 total {total}{trimmed}.": "Indexiert: +{added} neu \xB7 {skipped} \xFCbersprungen \xB7 Fehler {errors} \xB7 gesamt {total}{trimmed}.",
       "Embedding failed.": "Embedding fehlgeschlagen.",
       "Semantic index cleared": "Semantischer Index gel\xF6scht",
       "Could not clear semantic index.": "Semantischer Index konnte nicht gel\xF6scht werden.",
+      "AI and embedding usage cleared": "KI- und Embedding-Nutzung gel\xF6scht",
+      "Could not clear AI and embedding usage.": "KI- und Embedding-Nutzung konnte nicht gel\xF6scht werden.",
       "Offscreen video paused": "Video au\xDFerhalb des Bilds pausiert",
       "Offscreen video left playing": "Video au\xDFerhalb des Bilds l\xE4uft weiter",
       "Best video quality on": "Beste Videoqualit\xE4t an",
@@ -2883,6 +3022,8 @@ html.av-reduce-motion *::after {
       "No captured records match \u201C{query}\u201D.": "Keine erfassten Datens\xE4tze entsprechen \u201E{query}\u201C.",
       "No active downloads.": "Keine aktiven Downloads.",
       "Cancel": "Abbrechen",
+      "Blocked by local-only mode": "Durch den Nur-lokal-Modus blockiert",
+      "unlimited": "unbegrenzt",
       "No matches (or integration disabled).": "Keine Treffer (oder Integration deaktiviert).",
       "Search all local collections": "Alle lokalen Sammlungen durchsuchen",
       "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "Beitr\xE4ge, Likes, Lesezeichen, Notizen, Tags, Ordner und Momentaufnahmen mit Filtern durchsuchen.",
@@ -2957,6 +3098,11 @@ html.av-reduce-motion *::after {
       "Check the key and model in Integrations.": "Pr\xFCfe Schl\xFCssel und Modell unter Integrationen.",
       "Prompt copied to the clipboard \u2014 paste it into your assistant.": "Prompt in die Zwischenablage kopiert \u2014 f\xFCge ihn in deinen Assistenten ein.",
       "The prompt could not be copied. Your browser blocked clipboard access.": "Der Prompt konnte nicht kopiert werden. Dein Browser hat den Zugriff auf die Zwischenablage blockiert.",
+      "Review external AI request": "Externe KI-Anfrage pr\xFCfen",
+      "Nothing is sent until you choose Send request.": "Es wird nichts gesendet, bis du Anfrage senden ausw\xE4hlst.",
+      "Aviary stores usage counters only; the provider's retention follows its policy.": "Aviary speichert nur Nutzungsz\xE4hler; die Aufbewahrung des Anbieters richtet sich nach dessen Richtlinie.",
+      "Budget blocked this request.": "Das Budget hat diese Anfrage blockiert.",
+      "Send request": "Anfrage senden",
       "Translate": "\xDCbersetzen",
       "Translate the selected post to your active locale.": "\xDCbersetzt den ausgew\xE4hlten Beitrag in deine aktive Sprache.",
       "Summarize": "Zusammenfassen",
@@ -3015,6 +3161,8 @@ html.av-reduce-motion *::after {
       "not granted": "nicht erteilt",
       "Granted. Media saves through the browser now.": "Erteilt. Medien werden jetzt \xFCber den Browser gespeichert.",
       "Granted. Aviary can read full-size media directly for exports now.": "Erteilt. Aviary kann Medien jetzt in voller Gr\xF6\xDFe f\xFCr Exporte lesen.",
+      "Embed CheckpointStore records via your provider for similarity search.": "Bettet CheckpointStore-Datens\xE4tze \xFCber Ihren Anbieter f\xFCr die \xC4hnlichkeitssuche ein.",
+      "After each export run, kick the embedding job in the background. Off by default.": "St\xF6\xDFt nach jedem Exportlauf den Embedding-Job im Hintergrund an. Standardm\xE4\xDFig aus.",
       "Settings imported.": "Einstellungen importiert.",
       "Preset applied": "Voreinstellung angewendet",
       "Preset already applied": "Voreinstellung bereits angewendet",
@@ -3298,22 +3446,43 @@ html.av-reduce-motion *::after {
       "e.g. claude-sonnet-4-6, gpt-4o, llama3.1:8b": "\u4F8B: claude-sonnet-4-6, gpt-4o, llama3.1:8b",
       "AI API key": "AI \u306E API \u30AD\u30FC",
       "Stored locally only. Aviary never sends this except as the auth header to your provider.": "\u30ED\u30FC\u30AB\u30EB\u306B\u306E\u307F\u4FDD\u5B58\u3055\u308C\u307E\u3059\u3002Aviary \u306F\u3001\u8A2D\u5B9A\u3057\u305F\u30D7\u30ED\u30D0\u30A4\u30C0\u3078\u306E\u8A8D\u8A3C\u30D8\u30C3\u30C0\u30FC\u4EE5\u5916\u306B\u3053\u308C\u3092\u9001\u4FE1\u3057\u307E\u305B\u3093\u3002",
+      "Allowed": "\u8A31\u53EF",
+      "Network status": "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u72B6\u614B",
+      "AI destination": "AI\u9001\u4FE1\u5148",
+      "AI data disclosure": "AI\u30C7\u30FC\u30BF\u958B\u793A",
+      "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status.": "\u9001\u4FE1\u524D\u306B\u3001Aviary\u306F\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u3001\u30A8\u30F3\u30C9\u30DD\u30A4\u30F3\u30C8\u3001\u30D5\u30A3\u30FC\u30EB\u30C9\u3001\u6587\u5B57\u6570/\u30C8\u30FC\u30AF\u30F3\u6570\u306E\u63A8\u5B9A\u3001\u4FDD\u6301\u3001\u4E88\u7B97\u72B6\u614B\u3092\u8868\u793A\u3057\u307E\u3059\u3002",
+      "AI usage today": "\u4ECA\u65E5\u306EAI\u4F7F\u7528\u91CF",
+      "AI max request bytes": "AI\u30EA\u30AF\u30A8\u30B9\u30C8\u306E\u6700\u5927\u30D0\u30A4\u30C8\u6570",
+      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "\u3053\u306EUTF-8\u672C\u6587\u3088\u308A\u5927\u304D\u3044AI\u30EA\u30AF\u30A8\u30B9\u30C8\u306F\u9001\u4FE1\u524D\u306B\u505C\u6B62\u3057\u307E\u3059\u30020\u3067\u30EA\u30AF\u30A8\u30B9\u30C8\u3054\u3068\u306E\u5236\u9650\u306A\u3057\u3002",
+      "AI daily request bytes": "AI\u306E1\u65E5\u3042\u305F\u308A\u30EA\u30AF\u30A8\u30B9\u30C8\u30D0\u30A4\u30C8\u6570",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "\u30ED\u30FC\u30AB\u30EB\u65E5\u306EUTF-8\u30EA\u30AF\u30A8\u30B9\u30C8\u30D0\u30A4\u30C8\u6570\u304C\u3053\u306E\u5024\u306B\u9054\u3057\u305F\u3089AI\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u547C\u3073\u51FA\u3057\u3092\u505C\u6B62\u3057\u307E\u3059\u30020\u3067\u7121\u5236\u9650\u3002",
       "Semantic search": "\u30BB\u30DE\u30F3\u30C6\u30A3\u30C3\u30AF\u691C\u7D22",
-      "Embed CheckpointStore records via your provider for similarity search.": "\u985E\u4F3C\u691C\u7D22\u306E\u305F\u3081\u306B\u3001CheckpointStore \u306E\u8A18\u9332\u3092\u30D7\u30ED\u30D0\u30A4\u30C0\u3067\u57CB\u3081\u8FBC\u307F\u30D9\u30AF\u30C8\u30EB\u5316\u3057\u307E\u3059\u3002",
+      "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.": "\u985E\u4F3C\u691C\u7D22\u306E\u305F\u3081\u3001\u53D6\u5F97\u3057\u305F\u30EC\u30B3\u30FC\u30C9\u672C\u6587\u3092\u8A2D\u5B9A\u6E08\u307F\u306E\u57CB\u3081\u8FBC\u307F\u30A8\u30F3\u30C9\u30DD\u30A4\u30F3\u30C8\u3078\u9001\u4FE1\u3057\u307E\u3059\u3002\u9001\u4FE1\u5148\u3001\u30D5\u30A3\u30FC\u30EB\u30C9\u3001\u4FDD\u6301\u3001\u30D0\u30A4\u30C8\u4E88\u7B97\u3092\u3053\u3053\u3067\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002",
       "Embedding endpoint": "\u57CB\u3081\u8FBC\u307F\u306E\u30A8\u30F3\u30C9\u30DD\u30A4\u30F3\u30C8",
       "POST endpoint that returns {data: [{embedding: number[]}]}": "{data: [{embedding: number[]}]} \u3092\u8FD4\u3059 POST \u30A8\u30F3\u30C9\u30DD\u30A4\u30F3\u30C8",
       "Embedding model": "\u57CB\u3081\u8FBC\u307F\u30E2\u30C7\u30EB",
       "e.g. text-embedding-3-small": "\u4F8B: text-embedding-3-small",
       "Embedding API key": "\u57CB\u3081\u8FBC\u307F\u306E API \u30AD\u30FC",
       "Stored locally; used only as the Authorization header.": "\u30ED\u30FC\u30AB\u30EB\u306B\u4FDD\u5B58\u3055\u308C\u3001Authorization \u30D8\u30C3\u30C0\u30FC\u3068\u3057\u3066\u306E\u307F\u4F7F\u308F\u308C\u307E\u3059\u3002",
+      "Not configured": "\u672A\u8A2D\u5B9A",
+      "Embedding destination": "\u57CB\u3081\u8FBC\u307F\u9001\u4FE1\u5148",
+      "Embedding data disclosure": "\u57CB\u3081\u8FBC\u307F\u30C7\u30FC\u30BF\u958B\u793A",
+      "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy.": "\u30EA\u30AF\u30A8\u30B9\u30C8\u306B\u306F\u30E2\u30C7\u30EB\u3068\u53D6\u5F97\u3057\u305F\u30EC\u30B3\u30FC\u30C9\u672C\u6587\u304C\u542B\u307E\u308C\u307E\u3059\u3002\u30D9\u30AF\u30C8\u30EB\u3068\u5236\u9650\u3055\u308C\u305F\u672C\u6587\u306FAviary\u306E\u30ED\u30FC\u30AB\u30EB\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9\u306B\u4FDD\u5B58\u3055\u308C\u3001\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u5074\u306E\u4FDD\u6301\u306F\u305D\u306E\u30DD\u30EA\u30B7\u30FC\u306B\u5F93\u3044\u307E\u3059\u3002",
+      "Embedding usage today": "\u4ECA\u65E5\u306E\u57CB\u3081\u8FBC\u307F\u4F7F\u7528\u91CF",
+      "Embedding max record bytes": "\u57CB\u3081\u8FBC\u307F\u30EC\u30B3\u30FC\u30C9\u306E\u6700\u5927\u30D0\u30A4\u30C8\u6570",
+      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "\u3053\u306EUTF-8\u672C\u6587\u3088\u308A\u5927\u304D\u3044\u30EC\u30B3\u30FC\u30C9\u306F\u9001\u4FE1\u524D\u306B\u505C\u6B62\u3057\u307E\u3059\u30020\u3067\u30EC\u30B3\u30FC\u30C9\u3054\u3068\u306E\u5236\u9650\u306A\u3057\u3002",
+      "Embedding daily record bytes": "\u57CB\u3081\u8FBC\u307F\u306E1\u65E5\u3042\u305F\u308A\u30EC\u30B3\u30FC\u30C9\u30D0\u30A4\u30C8\u6570",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "\u30ED\u30FC\u30AB\u30EB\u65E5\u306EUTF-8\u30EC\u30B3\u30FC\u30C9\u30D0\u30A4\u30C8\u6570\u304C\u3053\u306E\u5024\u306B\u9054\u3057\u305F\u3089\u57CB\u3081\u8FBC\u307F\u547C\u3073\u51FA\u3057\u3092\u505C\u6B62\u3057\u307E\u3059\u30020\u3067\u7121\u5236\u9650\u3002",
       "Auto-embed every export": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u3054\u3068\u306B\u81EA\u52D5\u3067\u57CB\u3081\u8FBC\u307F",
-      "After each export run, kick the embedding job in the background. Off by default.": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u306E\u305F\u3073\u306B\u3001\u57CB\u3081\u8FBC\u307F\u51E6\u7406\u3092\u30D0\u30C3\u30AF\u30B0\u30E9\u30A6\u30F3\u30C9\u3067\u958B\u59CB\u3057\u307E\u3059\u3002\u65E2\u5B9A\u306F\u30AA\u30D5\u3067\u3059\u3002",
+      "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.": "\u6709\u52B9\u306B\u3059\u308B\u524D\u306B\u3001\u4E0A\u306E\u30A8\u30F3\u30C9\u30DD\u30A4\u30F3\u30C8\u3001\u53D6\u5F97\u30EC\u30B3\u30FC\u30C9\u306E\u30D5\u30A3\u30FC\u30EB\u30C9\u3001\u30ED\u30FC\u30AB\u30EB\u4FDD\u6301\u30011\u65E5\u306E\u30D0\u30A4\u30C8\u4E88\u7B97\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u5404\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u5F8C\u306B\u30D0\u30C3\u30AF\u30B0\u30E9\u30A6\u30F3\u30C9\u3067\u57CB\u3081\u8FBC\u307F\u307E\u3059\u3002\u65E2\u5B9A\u3067\u306F\u30AA\u30D5\u3067\u3059\u3002",
       "Rebuild semantic index": "\u30BB\u30DE\u30F3\u30C6\u30A3\u30C3\u30AF\u7D22\u5F15\u3092\u518D\u69CB\u7BC9",
       "Embed every captured record. Re-running is cheap because cached entries are skipped.": "\u53CE\u96C6\u3057\u305F\u3059\u3079\u3066\u306E\u8A18\u9332\u3092\u57CB\u3081\u8FBC\u307F\u307E\u3059\u3002\u30AD\u30E3\u30C3\u30B7\u30E5\u6E08\u307F\u306F\u98DB\u3070\u3059\u306E\u3067\u3001\u518D\u5B9F\u884C\u306E\u8CA0\u8377\u306F\u5C0F\u3055\u3044\u3067\u3059\u3002",
       "Vector similarity over captured records. Embeddings run on demand.": "\u53D6\u5F97\u3057\u305F\u30EC\u30B3\u30FC\u30C9\u306E\u30D9\u30AF\u30C8\u30EB\u985E\u4F3C\u5EA6\u3002\u57CB\u3081\u8FBC\u307F\u306F\u5FC5\u8981\u306A\u3068\u304D\u306B\u5B9F\u884C\u3055\u308C\u307E\u3059\u3002",
       "Describe what you're looking for\u2026": "\u63A2\u3057\u3066\u3044\u308B\u5185\u5BB9\u3092\u8AAC\u660E\u3057\u3066\u304F\u3060\u3055\u3044\u2026",
       "Clear semantic index": "\u30BB\u30DE\u30F3\u30C6\u30A3\u30C3\u30AF\u7D22\u5F15\u3092\u6D88\u53BB",
       "Forget every embedded record.": "\u57CB\u3081\u8FBC\u307F\u6E08\u307F\u306E\u8A18\u9332\u3092\u3059\u3079\u3066\u5FD8\u308C\u307E\u3059\u3002",
+      "Clear AI and embedding usage": "AI\u3068\u57CB\u3081\u8FBC\u307F\u306E\u4F7F\u7528\u91CF\u3092\u6D88\u53BB",
+      "Forget local request counters only. This does not remove the semantic index or provider credentials.": "\u30ED\u30FC\u30AB\u30EB\u306E\u30EA\u30AF\u30A8\u30B9\u30C8\u30AB\u30A6\u30F3\u30BF\u30FC\u3060\u3051\u3092\u6D88\u53BB\u3057\u307E\u3059\u3002\u30BB\u30DE\u30F3\u30C6\u30A3\u30C3\u30AF\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9\u3084\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u8A8D\u8A3C\u60C5\u5831\u306F\u524A\u9664\u3057\u307E\u305B\u3093\u3002",
       "on": "\u30AA\u30F3",
       "off": "\u30AA\u30D5",
       "configured": "\u8A2D\u5B9A\u6E08\u307F",
@@ -3454,18 +3623,25 @@ html.av-reduce-motion *::after {
       "AI endpoint saved": "AI \u306E\u30A8\u30F3\u30C9\u30DD\u30A4\u30F3\u30C8\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "AI model saved": "AI \u30E2\u30C7\u30EB\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "AI API key saved": "AI \u306E API \u30AD\u30FC\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
+      "AI request budget saved": "AI\u30EA\u30AF\u30A8\u30B9\u30C8\u4E88\u7B97\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
+      "AI daily budget saved": "AI\u306E1\u65E5\u4E88\u7B97\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Semantic search on": "\u30BB\u30DE\u30F3\u30C6\u30A3\u30C3\u30AF\u691C\u7D22 \u30AA\u30F3",
       "Semantic search off": "\u30BB\u30DE\u30F3\u30C6\u30A3\u30C3\u30AF\u691C\u7D22 \u30AA\u30D5",
       "Embedding endpoint saved": "\u57CB\u3081\u8FBC\u307F\u306E\u30A8\u30F3\u30C9\u30DD\u30A4\u30F3\u30C8\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Embedding model saved": "\u57CB\u3081\u8FBC\u307F\u30E2\u30C7\u30EB\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Embedding API key saved": "\u57CB\u3081\u8FBC\u307F\u306E API \u30AD\u30FC\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
+      "Embedding request budget saved": "\u57CB\u3081\u8FBC\u307F\u30EA\u30AF\u30A8\u30B9\u30C8\u4E88\u7B97\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
+      "Embedding daily budget saved": "\u57CB\u3081\u8FBC\u307F\u306E1\u65E5\u4E88\u7B97\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Auto-embed on": "\u81EA\u52D5\u57CB\u3081\u8FBC\u307F \u30AA\u30F3",
       "Auto-embed off": "\u81EA\u52D5\u57CB\u3081\u8FBC\u307F \u30AA\u30D5",
       "Rebuilding semantic index\u2026": "\u30BB\u30DE\u30F3\u30C6\u30A3\u30C3\u30AF\u7D22\u5F15\u3092\u518D\u69CB\u7BC9\u4E2D\u2026",
+      "Embedding stopped at the budget ({blocked} records were not sent).": "\u4E88\u7B97\u306B\u9054\u3057\u305F\u305F\u3081\u57CB\u3081\u8FBC\u307F\u3092\u505C\u6B62\u3057\u307E\u3057\u305F\uFF08{blocked}\u4EF6\u306E\u30EC\u30B3\u30FC\u30C9\u306F\u9001\u4FE1\u3055\u308C\u307E\u305B\u3093\u3067\u3057\u305F\uFF09\u3002",
       "Indexed: +{added} new \xB7 skipped {skipped} \xB7 errors {errors} \xB7 total {total}{trimmed}.": "\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9: \u65B0\u898F +{added}\u4EF6 \xB7 \u30B9\u30AD\u30C3\u30D7 {skipped}\u4EF6 \xB7 \u30A8\u30E9\u30FC {errors}\u4EF6 \xB7 \u5408\u8A08 {total}\u4EF6{trimmed}\u3002",
       "Embedding failed.": "\u57CB\u3081\u8FBC\u307F\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
       "Semantic index cleared": "\u30BB\u30DE\u30F3\u30C6\u30A3\u30C3\u30AF\u7D22\u5F15\u3092\u6D88\u53BB\u3057\u307E\u3057\u305F",
       "Could not clear semantic index.": "\u30BB\u30DE\u30F3\u30C6\u30A3\u30C3\u30AF\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9\u3092\u6D88\u53BB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+      "AI and embedding usage cleared": "AI\u3068\u57CB\u3081\u8FBC\u307F\u306E\u4F7F\u7528\u91CF\u3092\u6D88\u53BB\u3057\u307E\u3057\u305F",
+      "Could not clear AI and embedding usage.": "AI\u3068\u57CB\u3081\u8FBC\u307F\u306E\u4F7F\u7528\u91CF\u3092\u6D88\u53BB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "Offscreen video paused": "\u753B\u9762\u5916\u306E\u52D5\u753B\u3092\u4E00\u6642\u505C\u6B62\u3057\u307E\u3057\u305F",
       "Offscreen video left playing": "\u753B\u9762\u5916\u306E\u52D5\u753B\u306F\u518D\u751F\u3057\u305F\u307E\u307E\u306B\u3057\u307E\u3059",
       "Best video quality on": "\u6700\u9AD8\u753B\u8CEA\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
@@ -3578,6 +3754,8 @@ html.av-reduce-motion *::after {
       "No captured records match \u201C{query}\u201D.": "\u300C{query}\u300D\u306B\u4E00\u81F4\u3059\u308B\u53D6\u5F97\u6E08\u307F\u30EC\u30B3\u30FC\u30C9\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
       "No active downloads.": "\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
       "Cancel": "\u30AD\u30E3\u30F3\u30BB\u30EB",
+      "Blocked by local-only mode": "\u30ED\u30FC\u30AB\u30EB\u306E\u307F\u30E2\u30FC\u30C9\u3067\u30D6\u30ED\u30C3\u30AF",
+      "unlimited": "\u7121\u5236\u9650",
       "No matches (or integration disabled).": "\u4E00\u81F4\u3059\u308B\u7D50\u679C\u304C\u3042\u308A\u307E\u305B\u3093\uFF08\u7D71\u5408\u304C\u7121\u52B9\u306B\u306A\u3063\u3066\u3044\u308B\u53EF\u80FD\u6027\u304C\u3042\u308A\u307E\u3059\uFF09\u3002",
       "Search all local collections": "\u3059\u3079\u3066\u306E\u30ED\u30FC\u30AB\u30EB\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3\u3092\u691C\u7D22",
       "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "\u30D5\u30A3\u30EB\u30BF\u30FC\u3092\u4F7F\u3063\u3066\u6295\u7A3F\u3001\u3044\u3044\u306D\u3001\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3001\u30E1\u30E2\u3001\u30BF\u30B0\u3001\u30D5\u30A9\u30EB\u30C0\u30FC\u3001\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8\u3092\u691C\u7D22\u3057\u307E\u3059\u3002",
@@ -3652,6 +3830,11 @@ html.av-reduce-motion *::after {
       "Check the key and model in Integrations.": "\u300C\u9023\u643A\u300D\u3067\u30AD\u30FC\u3068\u30E2\u30C7\u30EB\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
       "Prompt copied to the clipboard \u2014 paste it into your assistant.": "\u30D7\u30ED\u30F3\u30D7\u30C8\u3092\u30AF\u30EA\u30C3\u30D7\u30DC\u30FC\u30C9\u306B\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F\u3002\u30A2\u30B7\u30B9\u30BF\u30F3\u30C8\u306B\u8CBC\u308A\u4ED8\u3051\u3066\u304F\u3060\u3055\u3044\u3002",
       "The prompt could not be copied. Your browser blocked clipboard access.": "\u30D7\u30ED\u30F3\u30D7\u30C8\u3092\u30B3\u30D4\u30FC\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u30D6\u30E9\u30A6\u30B6\u30FC\u304C\u30AF\u30EA\u30C3\u30D7\u30DC\u30FC\u30C9\u3078\u306E\u30A2\u30AF\u30BB\u30B9\u3092\u62D2\u5426\u3057\u307E\u3057\u305F\u3002",
+      "Review external AI request": "\u5916\u90E8AI\u30EA\u30AF\u30A8\u30B9\u30C8\u3092\u78BA\u8A8D",
+      "Nothing is sent until you choose Send request.": "\u30EA\u30AF\u30A8\u30B9\u30C8\u3092\u9001\u4FE1\u3092\u9078\u3076\u307E\u3067\u4F55\u3082\u9001\u4FE1\u3055\u308C\u307E\u305B\u3093\u3002",
+      "Aviary stores usage counters only; the provider's retention follows its policy.": "Aviary \u304C\u4FDD\u5B58\u3059\u308B\u306E\u306F\u4F7F\u7528\u91CF\u30AB\u30A6\u30F3\u30BF\u30FC\u3060\u3051\u3067\u3059\u3002\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u306E\u4FDD\u6301\u671F\u9593\u306F\u5404\u793E\u306E\u30DD\u30EA\u30B7\u30FC\u306B\u5F93\u3044\u307E\u3059\u3002",
+      "Budget blocked this request.": "\u4E88\u7B97\u306B\u3088\u308A\u3053\u306E\u30EA\u30AF\u30A8\u30B9\u30C8\u306F\u30D6\u30ED\u30C3\u30AF\u3055\u308C\u307E\u3057\u305F\u3002",
+      "Send request": "\u30EA\u30AF\u30A8\u30B9\u30C8\u3092\u9001\u4FE1",
       "Translate": "\u7FFB\u8A33",
       "Translate the selected post to your active locale.": "\u9078\u629E\u3057\u305F\u6295\u7A3F\u3092\u73FE\u5728\u306E\u8A00\u8A9E\u306B\u7FFB\u8A33\u3057\u307E\u3059\u3002",
       "Summarize": "\u8981\u7D04",
@@ -3710,6 +3893,8 @@ html.av-reduce-motion *::after {
       "not granted": "\u672A\u8A31\u53EF",
       "Granted. Media saves through the browser now.": "\u8A31\u53EF\u3057\u307E\u3057\u305F\u3002\u4ECA\u5F8C\u306F\u30D6\u30E9\u30A6\u30B6\u30FC\u7D4C\u7531\u3067\u30E1\u30C7\u30A3\u30A2\u3092\u4FDD\u5B58\u3057\u307E\u3059\u3002",
       "Granted. Aviary can read full-size media directly for exports now.": "\u8A31\u53EF\u3057\u307E\u3057\u305F\u3002\u4ECA\u5F8C Aviary \u306F\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u7528\u306B\u30D5\u30EB\u30B5\u30A4\u30BA\u306E\u30E1\u30C7\u30A3\u30A2\u3092\u76F4\u63A5\u8AAD\u307F\u53D6\u308C\u307E\u3059\u3002",
+      "Embed CheckpointStore records via your provider for similarity search.": "\u985E\u4F3C\u691C\u7D22\u306E\u305F\u3081\u306B\u3001CheckpointStore \u306E\u8A18\u9332\u3092\u30D7\u30ED\u30D0\u30A4\u30C0\u3067\u57CB\u3081\u8FBC\u307F\u30D9\u30AF\u30C8\u30EB\u5316\u3057\u307E\u3059\u3002",
+      "After each export run, kick the embedding job in the background. Off by default.": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u306E\u305F\u3073\u306B\u3001\u57CB\u3081\u8FBC\u307F\u51E6\u7406\u3092\u30D0\u30C3\u30AF\u30B0\u30E9\u30A6\u30F3\u30C9\u3067\u958B\u59CB\u3057\u307E\u3059\u3002\u65E2\u5B9A\u306F\u30AA\u30D5\u3067\u3059\u3002",
       "Settings imported.": "\u8A2D\u5B9A\u3092\u30A4\u30F3\u30DD\u30FC\u30C8\u3057\u307E\u3057\u305F\u3002",
       "Preset applied": "\u30D7\u30EA\u30BB\u30C3\u30C8\u3092\u9069\u7528\u3057\u307E\u3057\u305F",
       "Preset already applied": "\u30D7\u30EA\u30BB\u30C3\u30C8\u306F\u9069\u7528\u6E08\u307F\u3067\u3059",
@@ -3993,22 +4178,43 @@ html.av-reduce-motion *::after {
       "e.g. claude-sonnet-4-6, gpt-4o, llama3.1:8b": "\uC608: claude-sonnet-4-6, gpt-4o, llama3.1:8b",
       "AI API key": "AI API \uD0A4",
       "Stored locally only. Aviary never sends this except as the auth header to your provider.": "\uB85C\uCEEC\uC5D0\uB9CC \uC800\uC7A5\uB429\uB2C8\uB2E4. Aviary\uB294 \uC124\uC815\uD55C \uC81C\uACF5\uC790\uC758 \uC778\uC99D \uD5E4\uB354 \uC678\uC5D0\uB294 \uC774 \uAC12\uC744 \uBCF4\uB0B4\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+      "Allowed": "\uD5C8\uC6A9\uB428",
+      "Network status": "\uB124\uD2B8\uC6CC\uD06C \uC0C1\uD0DC",
+      "AI destination": "AI \uB300\uC0C1",
+      "AI data disclosure": "AI \uB370\uC774\uD130 \uACF5\uAC1C",
+      "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status.": "\uBCF4\uB0B4\uAE30 \uC804\uC5D0 Aviary\uB294 \uC81C\uACF5\uC790, \uC5D4\uB4DC\uD3EC\uC778\uD2B8, \uD544\uB4DC, \uBB38\uC790/\uD1A0\uD070 \uC608\uC0C1\uCE58, \uBCF4\uC874 \uBC0F \uC608\uC0B0 \uC0C1\uD0DC\uB97C \uD45C\uC2DC\uD569\uB2C8\uB2E4.",
+      "AI usage today": "\uC624\uB298\uC758 AI \uC0AC\uC6A9\uB7C9",
+      "AI max request bytes": "AI \uC694\uCCAD \uCD5C\uB300 \uBC14\uC774\uD2B8",
+      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "\uC774 UTF-8 \uBCF8\uBB38\uBCF4\uB2E4 \uD070 AI \uC694\uCCAD\uC740 \uBCF4\uB0B4\uAE30 \uC804\uC5D0 \uC911\uC9C0\uD569\uB2C8\uB2E4. 0\uC740 \uC694\uCCAD\uBCC4 \uC81C\uD55C \uC5C6\uC74C\uC785\uB2C8\uB2E4.",
+      "AI daily request bytes": "AI \uC77C\uC77C \uC694\uCCAD \uBC14\uC774\uD2B8",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "\uD604\uC9C0 \uB0A0\uC9DC\uC5D0 \uC774 UTF-8 \uC694\uCCAD \uBC14\uC774\uD2B8 \uC218\uC5D0 \uB3C4\uB2EC\uD558\uBA74 AI \uC81C\uACF5\uC790 \uD638\uCD9C\uC744 \uC911\uC9C0\uD569\uB2C8\uB2E4. 0\uC740 \uBB34\uC81C\uD55C\uC785\uB2C8\uB2E4.",
       "Semantic search": "\uC758\uBBF8 \uAE30\uBC18 \uAC80\uC0C9",
-      "Embed CheckpointStore records via your provider for similarity search.": "\uC720\uC0AC\uB3C4 \uAC80\uC0C9\uC744 \uC704\uD574 CheckpointStore \uAE30\uB85D\uC744 \uC81C\uACF5\uC790\uB85C \uC784\uBCA0\uB529\uD569\uB2C8\uB2E4.",
+      "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.": "\uC720\uC0AC\uB3C4 \uAC80\uC0C9\uC744 \uC704\uD574 \uCEA1\uCC98\uD55C \uB808\uCF54\uB4DC \uD14D\uC2A4\uD2B8\uB97C \uC124\uC815\uB41C \uC784\uBCA0\uB529 \uC5D4\uB4DC\uD3EC\uC778\uD2B8\uB85C \uBCF4\uB0C5\uB2C8\uB2E4. \uB300\uC0C1, \uD544\uB4DC, \uBCF4\uC874 \uBC0F \uBC14\uC774\uD2B8 \uC608\uC0B0\uC744 \uC5EC\uAE30\uC11C \uD655\uC778\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
       "Embedding endpoint": "\uC784\uBCA0\uB529 \uC5D4\uB4DC\uD3EC\uC778\uD2B8",
       "POST endpoint that returns {data: [{embedding: number[]}]}": "{data: [{embedding: number[]}]}\uB97C \uBC18\uD658\uD558\uB294 POST \uC5D4\uB4DC\uD3EC\uC778\uD2B8",
       "Embedding model": "\uC784\uBCA0\uB529 \uBAA8\uB378",
       "e.g. text-embedding-3-small": "\uC608: text-embedding-3-small",
       "Embedding API key": "\uC784\uBCA0\uB529 API \uD0A4",
       "Stored locally; used only as the Authorization header.": "\uB85C\uCEEC\uC5D0 \uC800\uC7A5\uB418\uBA70 Authorization \uD5E4\uB354\uB85C\uB9CC \uC0AC\uC6A9\uB429\uB2C8\uB2E4.",
+      "Not configured": "\uAD6C\uC131\uB418\uC9C0 \uC54A\uC74C",
+      "Embedding destination": "\uC784\uBCA0\uB529 \uB300\uC0C1",
+      "Embedding data disclosure": "\uC784\uBCA0\uB529 \uB370\uC774\uD130 \uACF5\uAC1C",
+      "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy.": "\uC694\uCCAD\uC5D0\uB294 \uBAA8\uB378\uACFC \uCEA1\uCC98\uD55C \uB808\uCF54\uB4DC \uD14D\uC2A4\uD2B8\uAC00 \uD3EC\uD568\uB429\uB2C8\uB2E4. \uBCA1\uD130\uC640 \uC81C\uD55C\uB41C \uD14D\uC2A4\uD2B8\uB294 Aviary\uC758 \uB85C\uCEEC \uC778\uB371\uC2A4\uC5D0 \uBCF4\uAD00\uB418\uBA70 \uC81C\uACF5\uC790 \uBCF4\uC874 \uC815\uCC45\uC744 \uB530\uB985\uB2C8\uB2E4.",
+      "Embedding usage today": "\uC624\uB298\uC758 \uC784\uBCA0\uB529 \uC0AC\uC6A9\uB7C9",
+      "Embedding max record bytes": "\uC784\uBCA0\uB529 \uB808\uCF54\uB4DC \uCD5C\uB300 \uBC14\uC774\uD2B8",
+      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "\uC774 UTF-8 \uBCF8\uBB38\uBCF4\uB2E4 \uD070 \uB808\uCF54\uB4DC\uB294 \uBCF4\uB0B4\uAE30 \uC804\uC5D0 \uC911\uC9C0\uD569\uB2C8\uB2E4. 0\uC740 \uB808\uCF54\uB4DC\uBCC4 \uC81C\uD55C \uC5C6\uC74C\uC785\uB2C8\uB2E4.",
+      "Embedding daily record bytes": "\uC784\uBCA0\uB529 \uC77C\uC77C \uB808\uCF54\uB4DC \uBC14\uC774\uD2B8",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "\uD604\uC9C0 \uB0A0\uC9DC\uC5D0 \uC774 UTF-8 \uB808\uCF54\uB4DC \uBC14\uC774\uD2B8 \uC218\uC5D0 \uB3C4\uB2EC\uD558\uBA74 \uC784\uBCA0\uB529 \uD638\uCD9C\uC744 \uC911\uC9C0\uD569\uB2C8\uB2E4. 0\uC740 \uBB34\uC81C\uD55C\uC785\uB2C8\uB2E4.",
       "Auto-embed every export": "\uB0B4\uBCF4\uB0BC \uB54C\uB9C8\uB2E4 \uC790\uB3D9 \uC784\uBCA0\uB529",
-      "After each export run, kick the embedding job in the background. Off by default.": "\uB0B4\uBCF4\uB0B4\uAE30\uB97C \uB9C8\uCE60 \uB54C\uB9C8\uB2E4 \uC784\uBCA0\uB529 \uC791\uC5C5\uC744 \uBC31\uADF8\uB77C\uC6B4\uB4DC\uC5D0\uC11C \uC2DC\uC791\uD569\uB2C8\uB2E4. \uAE30\uBCF8\uC740 \uAEBC\uC9D0\uC785\uB2C8\uB2E4.",
+      "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.": "\uD65C\uC131\uD654\uD558\uAE30 \uC804\uC5D0 \uC704\uC758 \uC5D4\uB4DC\uD3EC\uC778\uD2B8, \uCEA1\uCC98\uD55C \uB808\uCF54\uB4DC \uD544\uB4DC, \uB85C\uCEEC \uBCF4\uC874 \uBC0F \uC77C\uC77C \uBC14\uC774\uD2B8 \uC608\uC0B0\uC744 \uD655\uC778\uD558\uC138\uC694. \uAC01 \uB0B4\uBCF4\uB0B4\uAE30 \uD6C4 \uBC31\uADF8\uB77C\uC6B4\uB4DC\uC5D0\uC11C \uC784\uBCA0\uB529\uD569\uB2C8\uB2E4. \uAE30\uBCF8\uAC12\uC740 \uAEBC\uC9D0\uC785\uB2C8\uB2E4.",
       "Rebuild semantic index": "\uC758\uBBF8 \uC0C9\uC778 \uB2E4\uC2DC \uB9CC\uB4E4\uAE30",
       "Embed every captured record. Re-running is cheap because cached entries are skipped.": "\uC218\uC9D1\uD55C \uBAA8\uB4E0 \uAE30\uB85D\uC744 \uC784\uBCA0\uB529\uD569\uB2C8\uB2E4. \uCE90\uC2DC\uB41C \uD56D\uBAA9\uC740 \uAC74\uB108\uB6F0\uBBC0\uB85C \uB2E4\uC2DC \uC2E4\uD589\uD574\uB3C4 \uBD80\uB2F4\uC774 \uC801\uC2B5\uB2C8\uB2E4.",
       "Vector similarity over captured records. Embeddings run on demand.": "\uCEA1\uCC98\uD55C \uB808\uCF54\uB4DC\uC758 \uBCA1\uD130 \uC720\uC0AC\uB3C4\uC785\uB2C8\uB2E4. \uC784\uBCA0\uB529\uC740 \uD544\uC694\uD560 \uB54C \uC2E4\uD589\uB429\uB2C8\uB2E4.",
       "Describe what you're looking for\u2026": "\uCC3E\uB294 \uB0B4\uC6A9\uC744 \uC124\uBA85\uD558\uC138\uC694\u2026",
       "Clear semantic index": "\uC758\uBBF8 \uC0C9\uC778 \uC9C0\uC6B0\uAE30",
       "Forget every embedded record.": "\uC784\uBCA0\uB529\uB41C \uAE30\uB85D\uC744 \uBAA8\uB450 \uC78A\uC2B5\uB2C8\uB2E4.",
+      "Clear AI and embedding usage": "AI \uBC0F \uC784\uBCA0\uB529 \uC0AC\uC6A9\uB7C9 \uC9C0\uC6B0\uAE30",
+      "Forget local request counters only. This does not remove the semantic index or provider credentials.": "\uB85C\uCEEC \uC694\uCCAD \uCE74\uC6B4\uD130\uB9CC \uC9C0\uC6C1\uB2C8\uB2E4. \uC2DC\uB9E8\uD2F1 \uC778\uB371\uC2A4\uB098 \uC81C\uACF5\uC790 \uC790\uACA9 \uC99D\uBA85\uC740 \uC0AD\uC81C\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
       "on": "\uCF1C\uC9D0",
       "off": "\uAEBC\uC9D0",
       "configured": "\uAD6C\uC131\uB428",
@@ -4149,18 +4355,25 @@ html.av-reduce-motion *::after {
       "AI endpoint saved": "AI \uC5D4\uB4DC\uD3EC\uC778\uD2B8\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "AI model saved": "AI \uBAA8\uB378\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "AI API key saved": "AI API \uD0A4\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
+      "AI request budget saved": "AI \uC694\uCCAD \uC608\uC0B0 \uC800\uC7A5\uB428",
+      "AI daily budget saved": "AI \uC77C\uC77C \uC608\uC0B0 \uC800\uC7A5\uB428",
       "Semantic search on": "\uC758\uBBF8 \uAE30\uBC18 \uAC80\uC0C9 \uCF2C",
       "Semantic search off": "\uC758\uBBF8 \uAE30\uBC18 \uAC80\uC0C9 \uB054",
       "Embedding endpoint saved": "\uC784\uBCA0\uB529 \uC5D4\uB4DC\uD3EC\uC778\uD2B8\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Embedding model saved": "\uC784\uBCA0\uB529 \uBAA8\uB378\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Embedding API key saved": "\uC784\uBCA0\uB529 API \uD0A4\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
+      "Embedding request budget saved": "\uC784\uBCA0\uB529 \uC694\uCCAD \uC608\uC0B0 \uC800\uC7A5\uB428",
+      "Embedding daily budget saved": "\uC784\uBCA0\uB529 \uC77C\uC77C \uC608\uC0B0 \uC800\uC7A5\uB428",
       "Auto-embed on": "\uC790\uB3D9 \uC784\uBCA0\uB529 \uCF2C",
       "Auto-embed off": "\uC790\uB3D9 \uC784\uBCA0\uB529 \uB054",
       "Rebuilding semantic index\u2026": "\uC758\uBBF8 \uC0C9\uC778\uC744 \uB2E4\uC2DC \uB9CC\uB4DC\uB294 \uC911\u2026",
+      "Embedding stopped at the budget ({blocked} records were not sent).": "\uC608\uC0B0\uC5D0 \uB3C4\uB2EC\uD574 \uC784\uBCA0\uB529\uC744 \uC911\uC9C0\uD588\uC2B5\uB2C8\uB2E4({blocked}\uAC1C \uB808\uCF54\uB4DC\uB294 \uC804\uC1A1\uB418\uC9C0 \uC54A\uC74C).",
       "Indexed: +{added} new \xB7 skipped {skipped} \xB7 errors {errors} \xB7 total {total}{trimmed}.": "\uC0C9\uC778\uB428: \uC2E0\uADDC +{added}\uAC1C \xB7 \uAC74\uB108\uB700 {skipped}\uAC1C \xB7 \uC624\uB958 {errors}\uAC1C \xB7 \uCD1D {total}\uAC1C{trimmed}.",
       "Embedding failed.": "\uC784\uBCA0\uB529\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
       "Semantic index cleared": "\uC758\uBBF8 \uC0C9\uC778\uC744 \uC9C0\uC6E0\uC2B5\uB2C8\uB2E4",
       "Could not clear semantic index.": "\uC2DC\uB9E8\uD2F1 \uC0C9\uC778\uC744 \uC9C0\uC6B8 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+      "AI and embedding usage cleared": "AI \uBC0F \uC784\uBCA0\uB529 \uC0AC\uC6A9\uB7C9 \uC9C0\uC6C0",
+      "Could not clear AI and embedding usage.": "AI \uBC0F \uC784\uBCA0\uB529 \uC0AC\uC6A9\uB7C9\uC744 \uC9C0\uC6B0\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "Offscreen video paused": "\uD654\uBA74 \uBC16 \uB3D9\uC601\uC0C1\uC744 \uC77C\uC2DC\uC815\uC9C0\uD568",
       "Offscreen video left playing": "\uD654\uBA74 \uBC16 \uB3D9\uC601\uC0C1\uC744 \uACC4\uC18D \uC7AC\uC0DD\uD568",
       "Best video quality on": "\uCD5C\uACE0 \uD654\uC9C8\uC744 \uCF30\uC2B5\uB2C8\uB2E4",
@@ -4273,6 +4486,8 @@ html.av-reduce-motion *::after {
       "No captured records match \u201C{query}\u201D.": "\u201C{query}\u201D\uC640 \uC77C\uCE58\uD558\uB294 \uCEA1\uCC98\uD55C \uB808\uCF54\uB4DC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
       "No active downloads.": "\uD65C\uC131 \uB2E4\uC6B4\uB85C\uB4DC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
       "Cancel": "\uCDE8\uC18C",
+      "Blocked by local-only mode": "\uB85C\uCEEC \uC804\uC6A9 \uBAA8\uB4DC\uB85C \uCC28\uB2E8\uB428",
+      "unlimited": "\uBB34\uC81C\uD55C",
       "No matches (or integration disabled).": "\uC77C\uCE58\uD558\uB294 \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4(\uD1B5\uD569\uC774 \uBE44\uD65C\uC131\uD654\uB418\uC5C8\uAC70\uB098 \uC9C0\uC6D0\uB418\uC9C0 \uC54A\uC74C).",
       "Search all local collections": "\uBAA8\uB4E0 \uB85C\uCEEC \uCEEC\uB809\uC158 \uAC80\uC0C9",
       "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "\uD544\uD130\uB85C \uAC8C\uC2DC\uBB3C, \uB9C8\uC74C\uC5D0 \uB4E4\uC5B4\uC694, \uBD81\uB9C8\uD06C, \uBA54\uBAA8, \uD0DC\uADF8, \uD3F4\uB354, \uC2A4\uB0C5\uC0F7\uC744 \uAC80\uC0C9\uD569\uB2C8\uB2E4.",
@@ -4347,6 +4562,11 @@ html.av-reduce-motion *::after {
       "Check the key and model in Integrations.": "\uC5F0\uB3D9\uC5D0\uC11C \uD0A4\uC640 \uBAA8\uB378\uC744 \uD655\uC778\uD558\uC138\uC694.",
       "Prompt copied to the clipboard \u2014 paste it into your assistant.": "\uD504\uB86C\uD504\uD2B8\uB97C \uD074\uB9BD\uBCF4\uB4DC\uC5D0 \uBCF5\uC0AC\uD588\uC2B5\uB2C8\uB2E4. \uC5B4\uC2DC\uC2A4\uD134\uD2B8\uC5D0 \uBD99\uC5EC\uB123\uC73C\uC138\uC694.",
       "The prompt could not be copied. Your browser blocked clipboard access.": "\uD504\uB86C\uD504\uD2B8\uB97C \uBCF5\uC0AC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uBE0C\uB77C\uC6B0\uC800\uAC00 \uD074\uB9BD\uBCF4\uB4DC \uC811\uADFC\uC744 \uCC28\uB2E8\uD588\uC2B5\uB2C8\uB2E4.",
+      "Review external AI request": "\uC678\uBD80 AI \uC694\uCCAD \uAC80\uD1A0",
+      "Nothing is sent until you choose Send request.": "\uC694\uCCAD \uBCF4\uB0B4\uAE30\uB97C \uC120\uD0DD\uD558\uAE30 \uC804\uC5D0\uB294 \uC544\uBB34\uAC83\uB3C4 \uC804\uC1A1\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+      "Aviary stores usage counters only; the provider's retention follows its policy.": "Aviary\uB294 \uC0AC\uC6A9\uB7C9 \uCE74\uC6B4\uD130\uB9CC \uC800\uC7A5\uD558\uBA70, \uC81C\uACF5\uC5C5\uCCB4\uC758 \uBCF4\uC874 \uAE30\uAC04\uC740 \uD574\uB2F9 \uC815\uCC45\uC744 \uB530\uB985\uB2C8\uB2E4.",
+      "Budget blocked this request.": "\uC608\uC0B0\uC774 \uC774 \uC694\uCCAD\uC744 \uCC28\uB2E8\uD588\uC2B5\uB2C8\uB2E4.",
+      "Send request": "\uC694\uCCAD \uBCF4\uB0B4\uAE30",
       "Translate": "\uBC88\uC5ED",
       "Translate the selected post to your active locale.": "\uC120\uD0DD\uD55C \uAC8C\uC2DC\uBB3C\uC744 \uD604\uC7AC \uC5B8\uC5B4\uB85C \uBC88\uC5ED\uD569\uB2C8\uB2E4.",
       "Summarize": "\uC694\uC57D",
@@ -4405,6 +4625,8 @@ html.av-reduce-motion *::after {
       "not granted": "\uD5C8\uC6A9\uB418\uC9C0 \uC54A\uC74C",
       "Granted. Media saves through the browser now.": "\uD5C8\uC6A9\uD588\uC2B5\uB2C8\uB2E4. \uC774\uC81C \uBE0C\uB77C\uC6B0\uC800\uB97C \uD1B5\uD574 \uBBF8\uB514\uC5B4\uB97C \uC800\uC7A5\uD569\uB2C8\uB2E4.",
       "Granted. Aviary can read full-size media directly for exports now.": "\uD5C8\uC6A9\uD588\uC2B5\uB2C8\uB2E4. \uC774\uC81C Aviary\uAC00 \uB0B4\uBCF4\uB0B4\uAE30\uB97C \uC704\uD574 \uC6D0\uBCF8 \uD06C\uAE30 \uBBF8\uB514\uC5B4\uB97C \uC9C1\uC811 \uC77D\uC744 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+      "Embed CheckpointStore records via your provider for similarity search.": "\uC720\uC0AC\uB3C4 \uAC80\uC0C9\uC744 \uC704\uD574 CheckpointStore \uAE30\uB85D\uC744 \uC81C\uACF5\uC790\uB85C \uC784\uBCA0\uB529\uD569\uB2C8\uB2E4.",
+      "After each export run, kick the embedding job in the background. Off by default.": "\uB0B4\uBCF4\uB0B4\uAE30\uB97C \uB9C8\uCE60 \uB54C\uB9C8\uB2E4 \uC784\uBCA0\uB529 \uC791\uC5C5\uC744 \uBC31\uADF8\uB77C\uC6B4\uB4DC\uC5D0\uC11C \uC2DC\uC791\uD569\uB2C8\uB2E4. \uAE30\uBCF8\uC740 \uAEBC\uC9D0\uC785\uB2C8\uB2E4.",
       "Settings imported.": "\uC124\uC815\uC744 \uAC00\uC838\uC654\uC2B5\uB2C8\uB2E4.",
       "Preset applied": "\uD504\uB9AC\uC14B\uC744 \uC801\uC6A9\uD588\uC2B5\uB2C8\uB2E4",
       "Preset already applied": "\uD504\uB9AC\uC14B\uC774 \uC774\uBBF8 \uC801\uC6A9\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4",
@@ -4688,22 +4910,43 @@ html.av-reduce-motion *::after {
       "e.g. claude-sonnet-4-6, gpt-4o, llama3.1:8b": "\u0645\u062B\u0627\u0644: claude-sonnet-4-6\u060C gpt-4o\u060C llama3.1:8b",
       "AI API key": "\u0645\u0641\u062A\u0627\u062D API \u0644\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A",
       "Stored locally only. Aviary never sends this except as the auth header to your provider.": "\u064A\u064F\u062D\u0641\u0638 \u0645\u062D\u0644\u064A\u064B\u0627 \u0641\u0642\u0637. \u0644\u0627 \u064A\u0631\u0633\u0644\u0647 Aviary \u0625\u0644\u0627 \u0643\u062A\u0631\u0648\u064A\u0633\u0629 \u0645\u0635\u0627\u062F\u0642\u0629 \u0625\u0644\u0649 \u0645\u0632\u0648\u0651\u062F\u0643.",
+      "Allowed": "\u0645\u0633\u0645\u0648\u062D",
+      "Network status": "\u062D\u0627\u0644\u0629 \u0627\u0644\u0634\u0628\u0643\u0629",
+      "AI destination": "\u0648\u062C\u0647\u0629 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A",
+      "AI data disclosure": "\u0625\u0641\u0635\u0627\u062D \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A",
+      "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status.": "\u0642\u0628\u0644 \u0627\u0644\u0625\u0631\u0633\u0627\u0644\u060C \u064A\u0639\u0631\u0636 Aviary \u0627\u0644\u0645\u0632\u0648\u0651\u062F \u0648\u0646\u0642\u0637\u0629 \u0627\u0644\u0646\u0647\u0627\u064A\u0629 \u0648\u0627\u0644\u062D\u0642\u0648\u0644 \u0648\u062A\u0642\u062F\u064A\u0631 \u0627\u0644\u0623\u062D\u0631\u0641/\u0627\u0644\u0631\u0645\u0648\u0632 \u0648\u0627\u0644\u0627\u062D\u062A\u0641\u0627\u0638 \u0648\u062D\u0627\u0644\u0629 \u0627\u0644\u0645\u064A\u0632\u0627\u0646\u064A\u0629.",
+      "AI usage today": "\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0627\u0644\u064A\u0648\u0645",
+      "AI max request bytes": "\u0627\u0644\u062D\u062F \u0627\u0644\u0623\u0642\u0635\u0649 \u0644\u0628\u0627\u064A\u062A\u0627\u062A \u0637\u0644\u0628 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A",
+      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "\u0623\u0648\u0642\u0641 \u0627\u0644\u0625\u0631\u0633\u0627\u0644 \u0642\u0628\u0644 \u0625\u0631\u0633\u0627\u0644 \u0637\u0644\u0628 \u0630\u0643\u0627\u0621 \u0627\u0635\u0637\u0646\u0627\u0639\u064A \u064A\u062A\u062C\u0627\u0648\u0632 \u062C\u0633\u0645 UTF-8 \u0647\u0630\u0627 \u0627\u0644\u062D\u062C\u0645. \u0627\u0633\u062A\u062E\u062F\u0645 0 \u0628\u0644\u0627 \u062D\u062F \u0644\u0643\u0644 \u0637\u0644\u0628.",
+      "AI daily request bytes": "\u0628\u0627\u064A\u062A\u0627\u062A \u0637\u0644\u0628\u0627\u062A \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0627\u0644\u064A\u0648\u0645\u064A\u0629",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "\u0623\u0648\u0642\u0641 \u0627\u0633\u062A\u062F\u0639\u0627\u0621\u0627\u062A \u0645\u0632\u0648\u0651\u062F \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0628\u0639\u062F \u0647\u0630\u0627 \u0627\u0644\u0639\u062F\u062F \u0645\u0646 \u0628\u0627\u064A\u062A\u0627\u062A \u0637\u0644\u0628 UTF-8 \u0641\u064A \u0627\u0644\u064A\u0648\u0645 \u0627\u0644\u0645\u062D\u0644\u064A. \u0627\u0633\u062A\u062E\u062F\u0645 0 \u0644\u063A\u064A\u0631 \u0645\u062D\u062F\u0648\u062F.",
       "Semantic search": "\u0627\u0644\u0628\u062D\u062B \u0627\u0644\u062F\u0644\u0627\u0644\u064A",
-      "Embed CheckpointStore records via your provider for similarity search.": "\u064A\u062D\u0648\u0651\u0644 \u0633\u062C\u0644\u0627\u062A CheckpointStore \u0625\u0644\u0649 \u0645\u062A\u062C\u0647\u0627\u062A \u0639\u0628\u0631 \u0645\u0632\u0648\u0651\u062F\u0643 \u0644\u0644\u0628\u062D\u062B \u0628\u0627\u0644\u062A\u0634\u0627\u0628\u0647.",
+      "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.": "\u0623\u0631\u0633\u0644 \u0646\u0635 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0627\u0644\u0645\u0644\u062A\u0642\u0637\u0629 \u0625\u0644\u0649 \u0646\u0642\u0637\u0629 \u0646\u0647\u0627\u064A\u0629 \u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0627\u0644\u0645\u0643\u0648\u0651\u0646\u0629 \u0644\u0644\u0628\u062D\u062B \u0639\u0646 \u0627\u0644\u062A\u0634\u0627\u0628\u0647. \u062A\u0638\u0647\u0631 \u0627\u0644\u0648\u062C\u0647\u0629 \u0648\u0627\u0644\u062D\u0642\u0648\u0644 \u0648\u0627\u0644\u0627\u062D\u062A\u0641\u0627\u0638 \u0648\u0645\u064A\u0632\u0627\u0646\u064A\u0629 \u0627\u0644\u0628\u0627\u064A\u062A \u0647\u0646\u0627.",
       "Embedding endpoint": "\u0646\u0642\u0637\u0629 \u0627\u0644\u062A\u0636\u0645\u064A\u0646",
       "POST endpoint that returns {data: [{embedding: number[]}]}": "\u0646\u0642\u0637\u0629 POST \u062A\u064F\u0639\u064A\u062F {data: [{embedding: number[]}]}",
       "Embedding model": "\u0646\u0645\u0648\u0630\u062C \u0627\u0644\u062A\u0636\u0645\u064A\u0646",
       "e.g. text-embedding-3-small": "\u0645\u062B\u0627\u0644: text-embedding-3-small",
       "Embedding API key": "\u0645\u0641\u062A\u0627\u062D API \u0644\u0644\u062A\u0636\u0645\u064A\u0646",
       "Stored locally; used only as the Authorization header.": "\u064A\u064F\u062D\u0641\u0638 \u0645\u062D\u0644\u064A\u064B\u0627\u060C \u0648\u064A\u064F\u0633\u062A\u062E\u062F\u0645 \u0641\u0642\u0637 \u0643\u062A\u0631\u0648\u064A\u0633\u0629 Authorization.",
+      "Not configured": "\u063A\u064A\u0631 \u0645\u0643\u0648\u0651\u0646",
+      "Embedding destination": "\u0648\u062C\u0647\u0629 \u0627\u0644\u062A\u0636\u0645\u064A\u0646",
+      "Embedding data disclosure": "\u0625\u0641\u0635\u0627\u062D \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u062A\u0636\u0645\u064A\u0646",
+      "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy.": "\u064A\u062D\u062A\u0648\u064A \u0627\u0644\u0637\u0644\u0628 \u0639\u0644\u0649 \u0627\u0644\u0646\u0645\u0648\u0630\u062C \u0648\u0646\u0635 \u0627\u0644\u0633\u062C\u0644 \u0627\u0644\u0645\u0644\u062A\u0642\u0637. \u062A\u0628\u0642\u0649 \u0627\u0644\u0645\u062A\u062C\u0647\u0627\u062A \u0648\u0627\u0644\u0646\u0635 \u0627\u0644\u0645\u062D\u062F\u0648\u062F \u0641\u064A \u0641\u0647\u0631\u0633 Aviary \u0627\u0644\u0645\u062D\u0644\u064A\u061B \u0648\u064A\u062A\u0628\u0639 \u0627\u062D\u062A\u0641\u0627\u0638 \u0627\u0644\u0645\u0632\u0648\u0651\u062F \u0633\u064A\u0627\u0633\u062A\u0647.",
+      "Embedding usage today": "\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0627\u0644\u064A\u0648\u0645",
+      "Embedding max record bytes": "\u0627\u0644\u062D\u062F \u0627\u0644\u0623\u0642\u0635\u0649 \u0644\u0628\u0627\u064A\u062A\u0627\u062A \u0633\u062C\u0644 \u0627\u0644\u062A\u0636\u0645\u064A\u0646",
+      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "\u0623\u0648\u0642\u0641 \u0627\u0644\u0625\u0631\u0633\u0627\u0644 \u0642\u0628\u0644 \u0625\u0631\u0633\u0627\u0644 \u0633\u062C\u0644 \u064A\u062A\u062C\u0627\u0648\u0632 \u062C\u0633\u0645 UTF-8 \u0647\u0630\u0627 \u0627\u0644\u062D\u062C\u0645. \u0627\u0633\u062A\u062E\u062F\u0645 0 \u0628\u0644\u0627 \u062D\u062F \u0644\u0643\u0644 \u0633\u062C\u0644.",
+      "Embedding daily record bytes": "\u0628\u0627\u064A\u062A\u0627\u062A \u0633\u062C\u0644\u0627\u062A \u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0627\u0644\u064A\u0648\u0645\u064A\u0629",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "\u0623\u0648\u0642\u0641 \u0627\u0633\u062A\u062F\u0639\u0627\u0621\u0627\u062A \u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0628\u0639\u062F \u0647\u0630\u0627 \u0627\u0644\u0639\u062F\u062F \u0645\u0646 \u0628\u0627\u064A\u062A\u0627\u062A \u0633\u062C\u0644\u0627\u062A UTF-8 \u0641\u064A \u0627\u0644\u064A\u0648\u0645 \u0627\u0644\u0645\u062D\u0644\u064A. \u0627\u0633\u062A\u062E\u062F\u0645 0 \u0644\u063A\u064A\u0631 \u0645\u062D\u062F\u0648\u062F.",
       "Auto-embed every export": "\u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0627\u0644\u062A\u0644\u0642\u0627\u0626\u064A \u0628\u0639\u062F \u0643\u0644 \u062A\u0635\u062F\u064A\u0631",
-      "After each export run, kick the embedding job in the background. Off by default.": "\u0628\u0639\u062F \u0643\u0644 \u0639\u0645\u0644\u064A\u0629 \u062A\u0635\u062F\u064A\u0631\u060C \u064A\u0628\u062F\u0623 \u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0641\u064A \u0627\u0644\u062E\u0644\u0641\u064A\u0629. \u0645\u0639\u0637\u0651\u0644 \u0627\u0641\u062A\u0631\u0627\u0636\u064A\u064B\u0627.",
+      "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.": "\u0642\u0628\u0644 \u0627\u0644\u062A\u0641\u0639\u064A\u0644\u060C \u0631\u0627\u062C\u0639 \u0646\u0642\u0637\u0629 \u0627\u0644\u0646\u0647\u0627\u064A\u0629 \u0648\u062D\u0642\u0648\u0644 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0627\u0644\u0645\u0644\u062A\u0642\u0637\u0629 \u0648\u0627\u0644\u0627\u062D\u062A\u0641\u0627\u0638 \u0627\u0644\u0645\u062D\u0644\u064A \u0648\u0645\u064A\u0632\u0627\u0646\u064A\u0629 \u0627\u0644\u0628\u0627\u064A\u062A \u0627\u0644\u064A\u0648\u0645\u064A\u0629 \u0623\u0639\u0644\u0627\u0647. \u0628\u0639\u062F \u0643\u0644 \u062A\u0635\u062F\u064A\u0631\u060C \u064A\u062A\u0645 \u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0641\u064A \u0627\u0644\u062E\u0644\u0641\u064A\u0629. \u0645\u062A\u0648\u0642\u0641 \u0627\u0641\u062A\u0631\u0627\u0636\u064A\u064B\u0627.",
       "Rebuild semantic index": "\u0625\u0639\u0627\u062F\u0629 \u0628\u0646\u0627\u0621 \u0627\u0644\u0641\u0647\u0631\u0633 \u0627\u0644\u062F\u0644\u0627\u0644\u064A",
       "Embed every captured record. Re-running is cheap because cached entries are skipped.": "\u064A\u0636\u0645\u0651\u0646 \u0643\u0644 \u0633\u062C\u0644 \u0645\u062C\u0645\u0651\u0639. \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u062A\u0634\u063A\u064A\u0644 \u063A\u064A\u0631 \u0645\u0643\u0644\u0641\u0629 \u0644\u0623\u0646 \u0627\u0644\u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u0645\u062E\u0632\u0651\u0646\u0629 \u062A\u064F\u062A\u062E\u0637\u0651\u0649.",
       "Vector similarity over captured records. Embeddings run on demand.": "\u0627\u0644\u062A\u0634\u0627\u0628\u0647 \u0627\u0644\u0645\u062A\u062C\u0647\u064A \u0641\u064A \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0627\u0644\u0645\u0644\u062A\u0642\u0637\u0629. \u062A\u064F\u0646\u0634\u0623 \u0627\u0644\u062A\u0636\u0645\u064A\u0646\u0627\u062A \u0639\u0646\u062F \u0627\u0644\u0637\u0644\u0628.",
       "Describe what you're looking for\u2026": "\u0635\u0641 \u0645\u0627 \u062A\u0628\u062D\u062B \u0639\u0646\u0647\u2026",
       "Clear semantic index": "\u0645\u0633\u062D \u0627\u0644\u0641\u0647\u0631\u0633 \u0627\u0644\u062F\u0644\u0627\u0644\u064A",
       "Forget every embedded record.": "\u064A\u0646\u0633\u0649 \u0643\u0644 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0627\u0644\u0645\u0636\u0645\u0651\u0646\u0629.",
+      "Clear AI and embedding usage": "\u0645\u0633\u062D \u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0648\u0627\u0644\u062A\u0636\u0645\u064A\u0646",
+      "Forget local request counters only. This does not remove the semantic index or provider credentials.": "\u0627\u0646\u0633\u064E \u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u0637\u0644\u0628\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u064A\u0629 \u0641\u0642\u0637. \u0644\u0627 \u064A\u0632\u064A\u0644 \u0630\u0644\u0643 \u0627\u0644\u0641\u0647\u0631\u0633 \u0627\u0644\u062F\u0644\u0627\u0644\u064A \u0623\u0648 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0639\u062A\u0645\u0627\u062F \u0627\u0644\u0645\u0632\u0648\u0651\u062F.",
       "on": "\u0645\u0641\u0639\u0651\u0644",
       "off": "\u0645\u062A\u0648\u0642\u0641",
       "configured": "\u0645\u064F\u0647\u064A\u0651\u0623",
@@ -4844,18 +5087,25 @@ html.av-reduce-motion *::after {
       "AI endpoint saved": "\u062A\u0645 \u062D\u0641\u0638 \u0646\u0642\u0637\u0629 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A",
       "AI model saved": "\u062A\u0645 \u062D\u0641\u0638 \u0646\u0645\u0648\u0630\u062C \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A",
       "AI API key saved": "\u062A\u0645 \u062D\u0641\u0638 \u0645\u0641\u062A\u0627\u062D API \u0644\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A",
+      "AI request budget saved": "\u062A\u0645 \u062D\u0641\u0638 \u0645\u064A\u0632\u0627\u0646\u064A\u0629 \u0637\u0644\u0628\u0627\u062A \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A",
+      "AI daily budget saved": "\u062A\u0645 \u062D\u0641\u0638 \u0645\u064A\u0632\u0627\u0646\u064A\u0629 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0627\u0644\u064A\u0648\u0645\u064A\u0629",
       "Semantic search on": "\u0627\u0644\u0628\u062D\u062B \u0627\u0644\u062F\u0644\u0627\u0644\u064A \u0645\u0641\u0639\u0651\u0644",
       "Semantic search off": "\u0627\u0644\u0628\u062D\u062B \u0627\u0644\u062F\u0644\u0627\u0644\u064A \u0645\u0639\u0637\u0651\u0644",
       "Embedding endpoint saved": "\u062A\u0645 \u062D\u0641\u0638 \u0646\u0642\u0637\u0629 \u0627\u0644\u062A\u0636\u0645\u064A\u0646",
       "Embedding model saved": "\u062A\u0645 \u062D\u0641\u0638 \u0646\u0645\u0648\u0630\u062C \u0627\u0644\u062A\u0636\u0645\u064A\u0646",
       "Embedding API key saved": "\u062A\u0645 \u062D\u0641\u0638 \u0645\u0641\u062A\u0627\u062D API \u0644\u0644\u062A\u0636\u0645\u064A\u0646",
+      "Embedding request budget saved": "\u062A\u0645 \u062D\u0641\u0638 \u0645\u064A\u0632\u0627\u0646\u064A\u0629 \u0637\u0644\u0628\u0627\u062A \u0627\u0644\u062A\u0636\u0645\u064A\u0646",
+      "Embedding daily budget saved": "\u062A\u0645 \u062D\u0641\u0638 \u0645\u064A\u0632\u0627\u0646\u064A\u0629 \u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0627\u0644\u064A\u0648\u0645\u064A\u0629",
       "Auto-embed on": "\u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0627\u0644\u062A\u0644\u0642\u0627\u0626\u064A \u0645\u0641\u0639\u0651\u0644",
       "Auto-embed off": "\u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0627\u0644\u062A\u0644\u0642\u0627\u0626\u064A \u0645\u0639\u0637\u0651\u0644",
       "Rebuilding semantic index\u2026": "\u062C\u0627\u0631\u064D \u0625\u0639\u0627\u062F\u0629 \u0628\u0646\u0627\u0621 \u0627\u0644\u0641\u0647\u0631\u0633 \u0627\u0644\u062F\u0644\u0627\u0644\u064A\u2026",
+      "Embedding stopped at the budget ({blocked} records were not sent).": "\u062A\u0648\u0642\u0641 \u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0639\u0646\u062F \u0627\u0644\u0645\u064A\u0632\u0627\u0646\u064A\u0629 (\u0644\u0645 \u062A\u064F\u0631\u0633\u0644 {blocked} \u0633\u062C\u0644\u0627\u062A).",
       "Indexed: +{added} new \xB7 skipped {skipped} \xB7 errors {errors} \xB7 total {total}{trimmed}.": "\u0627\u0644\u0641\u0647\u0631\u0633\u0629: \u062C\u062F\u064A\u062F +{added} \xB7 \u0645\u062A\u062E\u0637\u0649 {skipped} \xB7 \u0623\u062E\u0637\u0627\u0621 {errors} \xB7 \u0627\u0644\u0625\u062C\u0645\u0627\u0644\u064A {total}{trimmed}.",
       "Embedding failed.": "\u0641\u0634\u0644 \u0627\u0644\u062A\u0636\u0645\u064A\u0646.",
       "Semantic index cleared": "\u062A\u0645 \u0645\u0633\u062D \u0627\u0644\u0641\u0647\u0631\u0633 \u0627\u0644\u062F\u0644\u0627\u0644\u064A",
       "Could not clear semantic index.": "\u062A\u0639\u0630\u0651\u0631 \u0645\u0633\u062D \u0627\u0644\u0641\u0647\u0631\u0633 \u0627\u0644\u062F\u0644\u0627\u0644\u064A.",
+      "AI and embedding usage cleared": "\u062A\u0645 \u0645\u0633\u062D \u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0648\u0627\u0644\u062A\u0636\u0645\u064A\u0646",
+      "Could not clear AI and embedding usage.": "\u062A\u0639\u0630\u0631 \u0645\u0633\u062D \u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0648\u0627\u0644\u062A\u0636\u0645\u064A\u0646.",
       "Offscreen video paused": "\u062A\u0645 \u0625\u064A\u0642\u0627\u0641 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u062E\u0627\u0631\u062C \u0627\u0644\u0634\u0627\u0634\u0629 \u0645\u0624\u0642\u062A\u064B\u0627",
       "Offscreen video left playing": "\u062A\u064F\u0631\u0643 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u062E\u0627\u0631\u062C \u0627\u0644\u0634\u0627\u0634\u0629 \u0642\u064A\u062F \u0627\u0644\u062A\u0634\u063A\u064A\u0644",
       "Best video quality on": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0623\u0639\u0644\u0649 \u062C\u0648\u062F\u0629 \u0641\u064A\u062F\u064A\u0648",
@@ -4968,6 +5218,8 @@ html.av-reduce-motion *::after {
       "No captured records match \u201C{query}\u201D.": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0633\u062C\u0644\u0627\u062A \u0645\u0644\u062A\u0642\u0637\u0629 \u062A\u0637\u0627\u0628\u0642 \xAB{query}\xBB.",
       "No active downloads.": "\u0644\u0627 \u062A\u0648\u062C\u062F \u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0646\u0634\u0637\u0629.",
       "Cancel": "\u0625\u0644\u063A\u0627\u0621",
+      "Blocked by local-only mode": "\u0645\u062D\u0638\u0648\u0631 \u0628\u0633\u0628\u0628 \u0648\u0636\u0639 \u0627\u0644\u0645\u062D\u0644\u064A \u0641\u0642\u0637",
+      "unlimited": "\u063A\u064A\u0631 \u0645\u062D\u062F\u0648\u062F",
       "No matches (or integration disabled).": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0646\u062A\u0627\u0626\u062C \u0645\u0637\u0627\u0628\u0642\u0629 (\u0623\u0648 \u0623\u0646 \u0627\u0644\u062A\u0643\u0627\u0645\u0644 \u0645\u0639\u0637\u0651\u0644).",
       "Search all local collections": "\u0627\u0644\u0628\u062D\u062B \u0641\u064A \u0643\u0644 \u0627\u0644\u0645\u062C\u0645\u0648\u0639\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
       "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "\u0627\u0644\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0648\u0627\u0644\u0625\u0639\u062C\u0627\u0628\u0627\u062A \u0648\u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0648\u0627\u0644\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0648\u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062A \u0648\u0627\u0644\u0645\u062C\u0644\u062F\u0627\u062A \u0648\u0627\u0644\u0644\u0642\u0637\u0627\u062A \u0628\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0639\u0648\u0627\u0645\u0644 \u0627\u0644\u062A\u0635\u0641\u064A\u0629.",
@@ -5042,6 +5294,11 @@ html.av-reduce-motion *::after {
       "Check the key and model in Integrations.": "\u062A\u062D\u0642\u0642 \u0645\u0646 \u0627\u0644\u0645\u0641\u062A\u0627\u062D \u0648\u0627\u0644\u0646\u0645\u0648\u0630\u062C \u0641\u064A \u0627\u0644\u062A\u0643\u0627\u0645\u0644\u0627\u062A.",
       "Prompt copied to the clipboard \u2014 paste it into your assistant.": "\u062A\u0645 \u0646\u0633\u062E \u0627\u0644\u0645\u0637\u0627\u0644\u0628\u0629 \u0625\u0644\u0649 \u0627\u0644\u062D\u0627\u0641\u0638\u0629 \u2014 \u0627\u0644\u0635\u0642\u0647\u0627 \u0641\u064A \u0645\u0633\u0627\u0639\u062F\u0643.",
       "The prompt could not be copied. Your browser blocked clipboard access.": "\u062A\u0639\u0630\u0651\u0631 \u0646\u0633\u062E \u0627\u0644\u0645\u0637\u0627\u0644\u0628\u0629. \u062D\u0638\u0631 \u0645\u062A\u0635\u0641\u062D\u0643 \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 \u0627\u0644\u062D\u0627\u0641\u0638\u0629.",
+      "Review external AI request": "\u0645\u0631\u0627\u062C\u0639\u0629 \u0637\u0644\u0628 \u0630\u0643\u0627\u0621 \u0627\u0635\u0637\u0646\u0627\u0639\u064A \u062E\u0627\u0631\u062C\u064A",
+      "Nothing is sent until you choose Send request.": "\u0644\u0646 \u064A\u064F\u0631\u0633\u0644 \u0634\u064A\u0621 \u062D\u062A\u0649 \u062A\u062E\u062A\u0627\u0631 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0637\u0644\u0628.",
+      "Aviary stores usage counters only; the provider's retention follows its policy.": "\u064A\u062E\u0632\u0646 Aviary \u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0641\u0642\u0637\u061B \u0648\u062A\u062E\u0636\u0639 \u0645\u062F\u0629 \u0627\u062D\u062A\u0641\u0627\u0638 \u0627\u0644\u0645\u0632\u0648\u0651\u062F \u0644\u0633\u064A\u0627\u0633\u0627\u062A\u0647.",
+      "Budget blocked this request.": "\u062D\u0638\u0631\u062A \u0627\u0644\u0645\u064A\u0632\u0627\u0646\u064A\u0629 \u0647\u0630\u0627 \u0627\u0644\u0637\u0644\u0628.",
+      "Send request": "\u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0637\u0644\u0628",
       "Translate": "\u062A\u0631\u062C\u0645\u0629",
       "Translate the selected post to your active locale.": "\u064A\u062A\u0631\u062C\u0645 \u0627\u0644\u0645\u0646\u0634\u0648\u0631 \u0627\u0644\u0645\u062D\u062F\u062F \u0625\u0644\u0649 \u0644\u063A\u062A\u0643 \u0627\u0644\u062D\u0627\u0644\u064A\u0629.",
       "Summarize": "\u062A\u0644\u062E\u064A\u0635",
@@ -5100,6 +5357,8 @@ html.av-reduce-motion *::after {
       "not granted": "\u063A\u064A\u0631 \u0645\u0645\u0646\u0648\u062D",
       "Granted. Media saves through the browser now.": "\u062A\u0645 \u0627\u0644\u0645\u0646\u062D. \u062A\u064F\u062D\u0641\u0638 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u0622\u0646 \u0639\u0628\u0631 \u0627\u0644\u0645\u062A\u0635\u0641\u062D.",
       "Granted. Aviary can read full-size media directly for exports now.": "\u062A\u0645 \u0627\u0644\u0645\u0646\u062D. \u064A\u0645\u0643\u0646 \u0644\u0640 Aviary \u0627\u0644\u0622\u0646 \u0642\u0631\u0627\u0621\u0629 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0628\u0627\u0644\u062D\u062C\u0645 \u0627\u0644\u0643\u0627\u0645\u0644 \u0645\u0628\u0627\u0634\u0631\u0629\u064B \u0644\u0623\u063A\u0631\u0627\u0636 \u0627\u0644\u062A\u0635\u062F\u064A\u0631.",
+      "Embed CheckpointStore records via your provider for similarity search.": "\u064A\u062D\u0648\u0651\u0644 \u0633\u062C\u0644\u0627\u062A CheckpointStore \u0625\u0644\u0649 \u0645\u062A\u062C\u0647\u0627\u062A \u0639\u0628\u0631 \u0645\u0632\u0648\u0651\u062F\u0643 \u0644\u0644\u0628\u062D\u062B \u0628\u0627\u0644\u062A\u0634\u0627\u0628\u0647.",
+      "After each export run, kick the embedding job in the background. Off by default.": "\u0628\u0639\u062F \u0643\u0644 \u0639\u0645\u0644\u064A\u0629 \u062A\u0635\u062F\u064A\u0631\u060C \u064A\u0628\u062F\u0623 \u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0641\u064A \u0627\u0644\u062E\u0644\u0641\u064A\u0629. \u0645\u0639\u0637\u0651\u0644 \u0627\u0641\u062A\u0631\u0627\u0636\u064A\u064B\u0627.",
       "Settings imported.": "\u062A\u0645 \u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A.",
       "Preset applied": "\u062A\u0645 \u062A\u0637\u0628\u064A\u0642 \u0627\u0644\u0625\u0639\u062F\u0627\u062F \u0627\u0644\u062C\u0627\u0647\u0632",
       "Preset already applied": "\u0627\u0644\u0625\u0639\u062F\u0627\u062F \u0627\u0644\u062C\u0627\u0647\u0632 \u0645\u064F\u0637\u0628\u064E\u0651\u0642 \u0628\u0627\u0644\u0641\u0639\u0644",
@@ -5383,22 +5642,43 @@ html.av-reduce-motion *::after {
       "e.g. claude-sonnet-4-6, gpt-4o, llama3.1:8b": "\u05DC\u05D3\u05D5\u05D2\u05DE\u05D4: claude-sonnet-4-6, gpt-4o, llama3.1:8b",
       "AI API key": "\u05DE\u05E4\u05EA\u05D7 API",
       "Stored locally only. Aviary never sends this except as the auth header to your provider.": "\u05E0\u05E9\u05DE\u05E8 \u05DE\u05E7\u05D5\u05DE\u05D9\u05EA \u05D1\u05DC\u05D1\u05D3. \u200FAviary \u05E9\u05D5\u05DC\u05D7 \u05D0\u05D5\u05EA\u05D5 \u05E8\u05E7 \u05DB\u05DB\u05D5\u05EA\u05E8\u05EA \u05D0\u05D9\u05DE\u05D5\u05EA \u05D0\u05DC \u05D4\u05E1\u05E4\u05E7 \u05E9\u05DC\u05DA.",
+      "Allowed": "\u05DE\u05D5\u05EA\u05E8",
+      "Network status": "\u05DE\u05E6\u05D1 \u05D4\u05E8\u05E9\u05EA",
+      "AI destination": "\u05D9\u05E2\u05D3 \u05D4\u05D1\u05D9\u05E0\u05D4 \u05D4\u05DE\u05DC\u05D0\u05DB\u05D5\u05EA\u05D9\u05EA",
+      "AI data disclosure": "\u05D7\u05E9\u05D9\u05E4\u05EA \u05E0\u05EA\u05D5\u05E0\u05D9 \u05D1\u05D9\u05E0\u05D4 \u05DE\u05DC\u05D0\u05DB\u05D5\u05EA\u05D9\u05EA",
+      "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status.": "\u05DC\u05E4\u05E0\u05D9 \u05D4\u05E9\u05DC\u05D9\u05D7\u05D4 Aviary \u05DE\u05E6\u05D9\u05D2\u05D4 \u05D0\u05EA \u05D4\u05E1\u05E4\u05E7, \u05E0\u05E7\u05D5\u05D3\u05EA \u05D4\u05E7\u05E6\u05D4, \u05D4\u05E9\u05D3\u05D5\u05EA, \u05D4\u05E2\u05E8\u05DB\u05EA \u05D4\u05EA\u05D5\u05D5\u05D9\u05DD/\u05D4\u05D8\u05D5\u05E7\u05E0\u05D9\u05DD, \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05D5\u05DE\u05E6\u05D1 \u05D4\u05EA\u05E7\u05E6\u05D9\u05D1.",
+      "AI usage today": "\u05E9\u05D9\u05DE\u05D5\u05E9 \u05D1-AI \u05D4\u05D9\u05D5\u05DD",
+      "AI max request bytes": "\u05DE\u05E7\u05E1\u05D9\u05DE\u05D5\u05DD \u05D1\u05EA\u05D9\u05DD \u05DC\u05D1\u05E7\u05E9\u05EA AI",
+      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "\u05E2\u05E6\u05D9\u05E8\u05D4 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05DC\u05D9\u05D7\u05EA \u05D1\u05E7\u05E9\u05EA AI \u05E9\u05D2\u05D5\u05E3 \u05D4-UTF-8 \u05E9\u05DC\u05D4 \u05D2\u05D3\u05D5\u05DC \u05DE\u05D4\u05E2\u05E8\u05DA \u05D4\u05D6\u05D4. 0 \u05DE\u05D1\u05D8\u05DC \u05D0\u05EA \u05D4\u05D4\u05D2\u05D1\u05DC\u05D4 \u05DC\u05D1\u05E7\u05E9\u05D4.",
+      "AI daily request bytes": "\u05D1\u05EA\u05D9\u05DD \u05D9\u05D5\u05DE\u05D9\u05D9\u05DD \u05DC\u05D1\u05E7\u05E9\u05D5\u05EA AI",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "\u05E2\u05E6\u05D9\u05E8\u05EA \u05E7\u05E8\u05D9\u05D0\u05D5\u05EA \u05DC\u05E1\u05E4\u05E7 AI \u05D0\u05D7\u05E8\u05D9 \u05DE\u05E1\u05E4\u05E8 \u05D6\u05D4 \u05E9\u05DC \u05D1\u05EA\u05D9 \u05D1\u05E7\u05E9\u05D5\u05EA UTF-8 \u05D1\u05D9\u05D5\u05DD \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9. 0 \u05DC\u05DC\u05D0 \u05D4\u05D2\u05D1\u05DC\u05D4.",
       "Semantic search": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05E1\u05DE\u05E0\u05D8\u05D9",
-      "Embed CheckpointStore records via your provider for similarity search.": "\u05DE\u05D8\u05DE\u05D9\u05E2 \u05D0\u05EA \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05D4\u2011CheckpointStore \u05D3\u05E8\u05DA \u05D4\u05E1\u05E4\u05E7 \u05E9\u05DC\u05DA \u05DC\u05E6\u05D5\u05E8\u05DA \u05D7\u05D9\u05E4\u05D5\u05E9 \u05D3\u05DE\u05D9\u05D5\u05DF.",
+      "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.": "\u05E9\u05DC\u05D9\u05D7\u05EA \u05D8\u05E7\u05E1\u05D8 \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05E0\u05DC\u05DB\u05D3\u05D5 \u05DC\u05E0\u05E7\u05D5\u05D3\u05EA \u05D4\u05E7\u05E6\u05D4 \u05D4\u05DE\u05D5\u05D2\u05D3\u05E8\u05EA \u05E9\u05DC embeddings \u05DC\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D3\u05DE\u05D9\u05D5\u05DF. \u05D4\u05D9\u05E2\u05D3, \u05D4\u05E9\u05D3\u05D5\u05EA, \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05D5\u05EA\u05E7\u05E6\u05D9\u05D1 \u05D4\u05D1\u05EA\u05D9\u05DD \u05DE\u05D5\u05E6\u05D2\u05D9\u05DD \u05DB\u05D0\u05DF.",
       "Embedding endpoint": "\u05E0\u05E7\u05D5\u05D3\u05EA \u05E7\u05E6\u05D4 \u05DC\u05D4\u05D8\u05DE\u05E2\u05D4",
       "POST endpoint that returns {data: [{embedding: number[]}]}": "\u05E0\u05E7\u05D5\u05D3\u05EA POST \u05E9\u05DE\u05D7\u05D6\u05D9\u05E8\u05D4 {data: [{embedding: number[]}]}",
       "Embedding model": "\u05DE\u05D5\u05D3\u05DC \u05D4\u05D8\u05DE\u05E2\u05D4",
       "e.g. text-embedding-3-small": "\u05DC\u05D3\u05D5\u05D2\u05DE\u05D4: text-embedding-3-small",
       "Embedding API key": "\u05DE\u05E4\u05EA\u05D7 API \u05DC\u05D4\u05D8\u05DE\u05E2\u05D4",
       "Stored locally; used only as the Authorization header.": "\u05E0\u05E9\u05DE\u05E8 \u05DE\u05E7\u05D5\u05DE\u05D9\u05EA \u05D5\u05DE\u05E9\u05DE\u05E9 \u05E8\u05E7 \u05DB\u05DB\u05D5\u05EA\u05E8\u05EA Authorization.",
+      "Not configured": "\u05DC\u05D0 \u05DE\u05D5\u05D2\u05D3\u05E8",
+      "Embedding destination": "\u05D9\u05E2\u05D3 embeddings",
+      "Embedding data disclosure": "\u05D7\u05E9\u05D9\u05E4\u05EA \u05E0\u05EA\u05D5\u05E0\u05D9 embeddings",
+      "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy.": "\u05D1\u05E7\u05E9\u05D4 \u05DE\u05DB\u05D9\u05DC\u05D4 \u05D0\u05EA \u05D4\u05DE\u05D5\u05D3\u05DC \u05D5\u05D0\u05EA \u05D8\u05E7\u05E1\u05D8 \u05D4\u05E8\u05E9\u05D5\u05DE\u05D4 \u05E9\u05E0\u05DC\u05DB\u05D3\u05D4. \u05D5\u05E7\u05D8\u05D5\u05E8\u05D9\u05DD \u05D5\u05D8\u05E7\u05E1\u05D8 \u05DE\u05D5\u05D2\u05D1\u05DC \u05E0\u05E9\u05D0\u05E8\u05D9\u05DD \u05D1\u05D0\u05D9\u05E0\u05D3\u05E7\u05E1 \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9 \u05E9\u05DC Aviary; \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05D0\u05E6\u05DC \u05D4\u05E1\u05E4\u05E7 \u05E4\u05D5\u05E2\u05DC\u05EA \u05DC\u05E4\u05D9 \u05D4\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E9\u05DC\u05D5.",
+      "Embedding usage today": "\u05E9\u05D9\u05DE\u05D5\u05E9 \u05D1-embeddings \u05D4\u05D9\u05D5\u05DD",
+      "Embedding max record bytes": "\u05DE\u05E7\u05E1\u05D9\u05DE\u05D5\u05DD \u05D1\u05EA\u05D9\u05DD \u05DC\u05E8\u05E9\u05D5\u05DE\u05EA embedding",
+      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "\u05E2\u05E6\u05D9\u05E8\u05D4 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05DC\u05D9\u05D7\u05EA \u05E8\u05E9\u05D5\u05DE\u05D4 \u05E9\u05D2\u05D5\u05E3 \u05D4-UTF-8 \u05E9\u05DC\u05D4 \u05D2\u05D3\u05D5\u05DC \u05DE\u05D4\u05E2\u05E8\u05DA \u05D4\u05D6\u05D4. 0 \u05DC\u05DC\u05D0 \u05D4\u05D2\u05D1\u05DC\u05D4 \u05DC\u05E8\u05E9\u05D5\u05DE\u05D4.",
+      "Embedding daily record bytes": "\u05D1\u05EA\u05D9\u05DD \u05D9\u05D5\u05DE\u05D9\u05D9\u05DD \u05DC\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA embeddings",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "\u05E2\u05E6\u05D9\u05E8\u05EA \u05E7\u05E8\u05D9\u05D0\u05D5\u05EA embeddings \u05D0\u05D7\u05E8\u05D9 \u05DE\u05E1\u05E4\u05E8 \u05D6\u05D4 \u05E9\u05DC \u05D1\u05EA\u05D9 \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA UTF-8 \u05D1\u05D9\u05D5\u05DD \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9. 0 \u05DC\u05DC\u05D0 \u05D4\u05D2\u05D1\u05DC\u05D4.",
       "Auto-embed every export": "\u05D4\u05D8\u05DE\u05E2\u05D4 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA \u05D1\u05DB\u05DC \u05D9\u05D9\u05E6\u05D5\u05D0",
-      "After each export run, kick the embedding job in the background. Off by default.": "\u05D0\u05D7\u05E8\u05D9 \u05DB\u05DC \u05D9\u05D9\u05E6\u05D5\u05D0, \u05DE\u05E4\u05E2\u05D9\u05DC \u05D0\u05EA \u05DE\u05E9\u05D9\u05DE\u05EA \u05D4\u05D4\u05D8\u05DE\u05E2\u05D4 \u05D1\u05E8\u05E7\u05E2. \u05DB\u05D1\u05D5\u05D9 \u05DB\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC.",
+      "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.": "\u05DC\u05E4\u05E0\u05D9 \u05D4\u05D4\u05E4\u05E2\u05DC\u05D4 \u05D9\u05E9 \u05DC\u05D1\u05D3\u05D5\u05E7 \u05DC\u05DE\u05E2\u05DC\u05D4 \u05D0\u05EA \u05E0\u05E7\u05D5\u05D3\u05EA \u05D4\u05E7\u05E6\u05D4, \u05E9\u05D3\u05D5\u05EA \u05D4\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05E0\u05DC\u05DB\u05D3\u05D5, \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9\u05EA \u05D5\u05EA\u05E7\u05E6\u05D9\u05D1 \u05D4\u05D1\u05EA\u05D9\u05DD \u05D4\u05D9\u05D5\u05DE\u05D9. \u05D0\u05D7\u05E8\u05D9 \u05DB\u05DC \u05D9\u05D9\u05E6\u05D5\u05D0 \u05D9\u05EA\u05D1\u05E6\u05E2 embedding \u05D1\u05E8\u05E7\u05E2. \u05DB\u05D1\u05D5\u05D9 \u05DB\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC.",
       "Rebuild semantic index": "\u05D1\u05E0\u05D9\u05D9\u05D4 \u05DE\u05D7\u05D3\u05E9 \u05E9\u05DC \u05D4\u05D0\u05D9\u05E0\u05D3\u05E7\u05E1 \u05D4\u05E1\u05DE\u05E0\u05D8\u05D9",
       "Embed every captured record. Re-running is cheap because cached entries are skipped.": "\u05DE\u05D8\u05DE\u05D9\u05E2 \u05DB\u05DC \u05E8\u05E9\u05D5\u05DE\u05D4 \u05E9\u05E0\u05D0\u05E1\u05E4\u05D4. \u05D4\u05E8\u05E6\u05D4 \u05D7\u05D5\u05D6\u05E8\u05EA \u05D6\u05D5\u05DC\u05D4 \u05DB\u05D9 \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05DB\u05D1\u05E8 \u05D1\u05DE\u05D8\u05DE\u05D5\u05DF \u05DE\u05D3\u05D5\u05DC\u05D2\u05D5\u05EA.",
       "Vector similarity over captured records. Embeddings run on demand.": "\u05D3\u05DE\u05D9\u05D5\u05DF \u05D5\u05E7\u05D8\u05D5\u05E8\u05D9 \u05D1\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05E0\u05DC\u05DB\u05D3\u05D5. \u05D4\u05D8\u05DE\u05E2\u05D5\u05EA \u05DE\u05D5\u05E4\u05E2\u05DC\u05D5\u05EA \u05DC\u05E4\u05D9 \u05D3\u05E8\u05D9\u05E9\u05D4.",
       "Describe what you're looking for\u2026": "\u05EA\u05D0\u05E8 \u05DE\u05D4 \u05D0\u05EA\u05D4 \u05DE\u05D7\u05E4\u05E9\u2026",
       "Clear semantic index": "\u05E0\u05D9\u05E7\u05D5\u05D9 \u05D4\u05D0\u05D9\u05E0\u05D3\u05E7\u05E1 \u05D4\u05E1\u05DE\u05E0\u05D8\u05D9",
       "Forget every embedded record.": "\u05E9\u05D5\u05DB\u05D7 \u05D0\u05EA \u05DB\u05DC \u05D4\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05D4\u05D5\u05D8\u05DE\u05E2\u05D5.",
+      "Clear AI and embedding usage": "\u05E0\u05D9\u05E7\u05D5\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9 \u05D1-AI \u05D5\u05D1-embeddings",
+      "Forget local request counters only. This does not remove the semantic index or provider credentials.": "\u05E9\u05DB\u05D7\u05EA \u05DE\u05D5\u05E0\u05D9 \u05D4\u05D1\u05E7\u05E9\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9\u05D9\u05DD \u05D1\u05DC\u05D1\u05D3. \u05D4\u05D0\u05D9\u05E0\u05D3\u05E7\u05E1 \u05D4\u05E1\u05DE\u05E0\u05D8\u05D9 \u05D5\u05E4\u05E8\u05D8\u05D9 \u05D4\u05D0\u05D9\u05DE\u05D5\u05EA \u05E9\u05DC \u05D4\u05E1\u05E4\u05E7 \u05DC\u05D0 \u05D9\u05D5\u05E1\u05E8\u05D5.",
       "on": "\u05E4\u05E2\u05D9\u05DC",
       "off": "\u05DB\u05D1\u05D5\u05D9",
       "configured": "\u05DE\u05D5\u05D2\u05D3\u05E8",
@@ -5539,18 +5819,25 @@ html.av-reduce-motion *::after {
       "AI endpoint saved": "\u05E0\u05E7\u05D5\u05D3\u05EA \u05D4\u05E7\u05E6\u05D4 \u05E0\u05E9\u05DE\u05E8\u05D4",
       "AI model saved": "\u05D4\u05DE\u05D5\u05D3\u05DC \u05E0\u05E9\u05DE\u05E8",
       "AI API key saved": "\u05DE\u05E4\u05EA\u05D7 \u05D4\u2011API \u05E0\u05E9\u05DE\u05E8",
+      "AI request budget saved": "\u05EA\u05E7\u05E6\u05D9\u05D1 \u05D1\u05E7\u05E9\u05D5\u05EA AI \u05E0\u05E9\u05DE\u05E8",
+      "AI daily budget saved": "\u05EA\u05E7\u05E6\u05D9\u05D1 AI \u05D9\u05D5\u05DE\u05D9 \u05E0\u05E9\u05DE\u05E8",
       "Semantic search on": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05E1\u05DE\u05E0\u05D8\u05D9 \u05E4\u05E2\u05D9\u05DC",
       "Semantic search off": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05E1\u05DE\u05E0\u05D8\u05D9 \u05DB\u05D1\u05D5\u05D9",
       "Embedding endpoint saved": "\u05E0\u05E7\u05D5\u05D3\u05EA \u05D4\u05E7\u05E6\u05D4 \u05DC\u05D4\u05D8\u05DE\u05E2\u05D4 \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Embedding model saved": "\u05DE\u05D5\u05D3\u05DC \u05D4\u05D4\u05D8\u05DE\u05E2\u05D4 \u05E0\u05E9\u05DE\u05E8",
       "Embedding API key saved": "\u05DE\u05E4\u05EA\u05D7 \u05D4\u2011API \u05DC\u05D4\u05D8\u05DE\u05E2\u05D4 \u05E0\u05E9\u05DE\u05E8",
+      "Embedding request budget saved": "\u05EA\u05E7\u05E6\u05D9\u05D1 \u05D1\u05E7\u05E9\u05D5\u05EA embeddings \u05E0\u05E9\u05DE\u05E8",
+      "Embedding daily budget saved": "\u05EA\u05E7\u05E6\u05D9\u05D1 embeddings \u05D9\u05D5\u05DE\u05D9 \u05E0\u05E9\u05DE\u05E8",
       "Auto-embed on": "\u05D4\u05D8\u05DE\u05E2\u05D4 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA \u05E4\u05E2\u05D9\u05DC\u05D4",
       "Auto-embed off": "\u05D4\u05D8\u05DE\u05E2\u05D4 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA \u05DB\u05D1\u05D5\u05D9\u05D4",
       "Rebuilding semantic index\u2026": "\u05D1\u05D5\u05E0\u05D4 \u05DE\u05D7\u05D3\u05E9 \u05D0\u05EA \u05D4\u05D0\u05D9\u05E0\u05D3\u05E7\u05E1 \u05D4\u05E1\u05DE\u05E0\u05D8\u05D9\u2026",
+      "Embedding stopped at the budget ({blocked} records were not sent).": "\u05D4-embeddings \u05E0\u05E2\u05E6\u05E8\u05D5 \u05D1\u05EA\u05E7\u05E6\u05D9\u05D1 ({blocked} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05DC\u05D0 \u05E0\u05E9\u05DC\u05D7\u05D5).",
       "Indexed: +{added} new \xB7 skipped {skipped} \xB7 errors {errors} \xB7 total {total}{trimmed}.": "\u05D0\u05D9\u05E0\u05D3\u05D5\u05E7\u05E1: \u05D7\u05D3\u05E9 +{added} \xB7 \u05D3\u05D5\u05DC\u05D2\u05D5 {skipped} \xB7 \u05E9\u05D2\u05D9\u05D0\u05D5\u05EA {errors} \xB7 \u05E1\u05D4\u05F4\u05DB {total}{trimmed}.",
       "Embedding failed.": "\u05D4\u05D4\u05D8\u05DE\u05E2\u05D4 \u05E0\u05DB\u05E9\u05DC\u05D4.",
       "Semantic index cleared": "\u05D4\u05D0\u05D9\u05E0\u05D3\u05E7\u05E1 \u05D4\u05E1\u05DE\u05E0\u05D8\u05D9 \u05E0\u05D5\u05E7\u05D4",
       "Could not clear semantic index.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E0\u05E7\u05D5\u05EA \u05D0\u05EA \u05D4\u05D0\u05D9\u05E0\u05D3\u05E7\u05E1 \u05D4\u05E1\u05DE\u05E0\u05D8\u05D9.",
+      "AI and embedding usage cleared": "\u05D4\u05E9\u05D9\u05DE\u05D5\u05E9 \u05D1-AI \u05D5\u05D1-embeddings \u05E0\u05D5\u05E7\u05D4",
+      "Could not clear AI and embedding usage.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E0\u05E7\u05D5\u05EA \u05D0\u05EA \u05D4\u05E9\u05D9\u05DE\u05D5\u05E9 \u05D1-AI \u05D5\u05D1-embeddings.",
       "Offscreen video paused": "\u05D5\u05D9\u05D3\u05D0\u05D5 \u05DE\u05D7\u05D5\u05E5 \u05DC\u05DE\u05E1\u05DA \u05D4\u05D5\u05E9\u05D4\u05D4",
       "Offscreen video left playing": "\u05D5\u05D9\u05D3\u05D0\u05D5 \u05DE\u05D7\u05D5\u05E5 \u05DC\u05DE\u05E1\u05DA \u05DE\u05DE\u05E9\u05D9\u05DA \u05DC\u05E4\u05E2\u05D5\u05DC",
       "Best video quality on": "\u05D4\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8 \u05D4\u05D5\u05E4\u05E2\u05DC\u05D4",
@@ -5663,6 +5950,8 @@ html.av-reduce-motion *::after {
       "No captured records match \u201C{query}\u201D.": "\u05D0\u05D9\u05DF \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05E0\u05DC\u05DB\u05D3\u05D5 \u05D4\u05EA\u05D5\u05D0\u05DE\u05D5\u05EA \u05DC\u05BE\u201E{query}\u201D.",
       "No active downloads.": "\u05D0\u05D9\u05DF \u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA.",
       "Cancel": "\u05D1\u05D9\u05D8\u05D5\u05DC",
+      "Blocked by local-only mode": "\u05E0\u05D7\u05E1\u05DD \u05D1\u05DE\u05E6\u05D1 \u05DE\u05E7\u05D5\u05DE\u05D9 \u05D1\u05DC\u05D1\u05D3",
+      "unlimited": "\u05DC\u05DC\u05D0 \u05D4\u05D2\u05D1\u05DC\u05D4",
       "No matches (or integration disabled).": "\u05D0\u05D9\u05DF \u05D4\u05EA\u05D0\u05DE\u05D5\u05EA (\u05D0\u05D5 \u05E9\u05D4\u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D4 \u05DE\u05D5\u05E9\u05D1\u05EA\u05EA).",
       "Search all local collections": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D1\u05DB\u05DC \u05D4\u05D0\u05D5\u05E1\u05E4\u05D9\u05DD \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9\u05D9\u05DD",
       "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D1\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD, \u05DC\u05D9\u05D9\u05E7\u05D9\u05DD, \u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA, \u05D4\u05E2\u05E8\u05D5\u05EA, \u05EA\u05D2\u05D9\u05DD, \u05EA\u05D9\u05E7\u05D9\u05D5\u05EA \u05D5\u05EA\u05E6\u05DC\u05D5\u05DE\u05D9 \u05DE\u05E6\u05D1 \u05E2\u05DD \u05DE\u05E1\u05E0\u05E0\u05D9\u05DD.",
@@ -5737,6 +6026,11 @@ html.av-reduce-motion *::after {
       "Check the key and model in Integrations.": "\u05D1\u05D3\u05D5\u05E7 \u05D0\u05EA \u05D4\u05DE\u05E4\u05EA\u05D7 \u05D5\u05D4\u05DE\u05D5\u05D3\u05DC \u05EA\u05D7\u05EA \u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D5\u05EA.",
       "Prompt copied to the clipboard \u2014 paste it into your assistant.": "\u05D4\u05E4\u05E8\u05D5\u05DE\u05E4\u05D8 \u05D4\u05D5\u05E2\u05EA\u05E7 \u05DC\u05DC\u05D5\u05D7 \u2014 \u05D4\u05D3\u05D1\u05E7 \u05D0\u05D5\u05EA\u05D5 \u05D1\u05E2\u05D5\u05D6\u05E8 \u05E9\u05DC\u05DA.",
       "The prompt could not be copied. Your browser blocked clipboard access.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05D4\u05D9\u05D4 \u05DC\u05D4\u05E2\u05EA\u05D9\u05E7 \u05D0\u05EA \u05D4\u05E4\u05E8\u05D5\u05DE\u05E4\u05D8. \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05D7\u05E1\u05DD \u05D0\u05EA \u05D4\u05D2\u05D9\u05E9\u05D4 \u05DC\u05DC\u05D5\u05D7.",
+      "Review external AI request": "\u05D1\u05D3\u05D9\u05E7\u05EA \u05D1\u05E7\u05E9\u05EA AI \u05D7\u05D9\u05E6\u05D5\u05E0\u05D9\u05EA",
+      "Nothing is sent until you choose Send request.": "\u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05E0\u05E9\u05DC\u05D7 \u05E2\u05D3 \u05DC\u05D1\u05D7\u05D9\u05E8\u05D4 \u05D1\u05E9\u05DC\u05D9\u05D7\u05EA \u05D1\u05E7\u05E9\u05D4.",
+      "Aviary stores usage counters only; the provider's retention follows its policy.": "Aviary \u05E9\u05D5\u05DE\u05E8 \u05E8\u05E7 \u05DE\u05D5\u05E0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9; \u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D0\u05E6\u05DC \u05D4\u05E1\u05E4\u05E7 \u05DB\u05E4\u05D5\u05E4\u05D4 \u05DC\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E9\u05DC\u05D5.",
+      "Budget blocked this request.": "\u05D4\u05EA\u05E7\u05E6\u05D9\u05D1 \u05D7\u05E1\u05DD \u05D0\u05EA \u05D4\u05D1\u05E7\u05E9\u05D4 \u05D4\u05D6\u05D5.",
+      "Send request": "\u05E9\u05DC\u05D9\u05D7\u05EA \u05D1\u05E7\u05E9\u05D4",
       "Translate": "\u05EA\u05E8\u05D2\u05D5\u05DD",
       "Translate the selected post to your active locale.": "\u05DE\u05EA\u05E8\u05D2\u05DD \u05D0\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8 \u05E9\u05E0\u05D1\u05D7\u05E8 \u05DC\u05E9\u05E4\u05D4 \u05D4\u05E4\u05E2\u05D9\u05DC\u05D4 \u05E9\u05DC\u05DA.",
       "Summarize": "\u05E1\u05D9\u05DB\u05D5\u05DD",
@@ -5795,6 +6089,8 @@ html.av-reduce-motion *::after {
       "not granted": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05E0\u05D4",
       "Granted. Media saves through the browser now.": "\u05E0\u05D9\u05EA\u05E0\u05D4 \u05D4\u05E8\u05E9\u05D0\u05D4. \u05DE\u05E2\u05DB\u05E9\u05D9\u05D5 \u05D4\u05DE\u05D3\u05D9\u05D4 \u05E0\u05E9\u05DE\u05E8\u05EA \u05D3\u05E8\u05DA \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF.",
       "Granted. Aviary can read full-size media directly for exports now.": "\u05E0\u05D9\u05EA\u05E0\u05D4 \u05D4\u05E8\u05E9\u05D0\u05D4. \u05DE\u05E2\u05DB\u05E9\u05D9\u05D5 Aviary \u05D9\u05DB\u05D5\u05DC \u05DC\u05E7\u05E8\u05D5\u05D0 \u05DE\u05D3\u05D9\u05D4 \u05D1\u05D2\u05D5\u05D3\u05DC \u05DE\u05DC\u05D0 \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA \u05E2\u05D1\u05D5\u05E8 \u05D9\u05D9\u05E6\u05D5\u05D0.",
+      "Embed CheckpointStore records via your provider for similarity search.": "\u05DE\u05D8\u05DE\u05D9\u05E2 \u05D0\u05EA \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05D4\u2011CheckpointStore \u05D3\u05E8\u05DA \u05D4\u05E1\u05E4\u05E7 \u05E9\u05DC\u05DA \u05DC\u05E6\u05D5\u05E8\u05DA \u05D7\u05D9\u05E4\u05D5\u05E9 \u05D3\u05DE\u05D9\u05D5\u05DF.",
+      "After each export run, kick the embedding job in the background. Off by default.": "\u05D0\u05D7\u05E8\u05D9 \u05DB\u05DC \u05D9\u05D9\u05E6\u05D5\u05D0, \u05DE\u05E4\u05E2\u05D9\u05DC \u05D0\u05EA \u05DE\u05E9\u05D9\u05DE\u05EA \u05D4\u05D4\u05D8\u05DE\u05E2\u05D4 \u05D1\u05E8\u05E7\u05E2. \u05DB\u05D1\u05D5\u05D9 \u05DB\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC.",
       "Settings imported.": "\u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05D9\u05D5\u05D1\u05D0\u05D5.",
       "Preset applied": "\u05D4\u05E2\u05E8\u05DB\u05D4 \u05D4\u05D5\u05D7\u05DC\u05D4",
       "Preset already applied": "\u05D4\u05E2\u05E8\u05DB\u05D4 \u05DB\u05D1\u05E8 \u05D4\u05D5\u05D7\u05DC\u05D4",
@@ -5981,8 +6277,24 @@ html.av-reduce-motion *::after {
       aria2: { enabled: false, endpoint: "", secret: "", minBytes: 5e7 },
       bluesky: { enabled: false, service: "https://bsky.social", handle: "", appPassword: "" },
       mastodon: { enabled: false, instance: "", token: "", visibility: "public" },
-      ai: { enabled: false, provider: "anthropic", endpoint: "", apiKey: "", model: "" },
-      semanticSearch: { enabled: false, endpoint: "", apiKey: "", model: "", autoIndex: false },
+      ai: {
+        enabled: false,
+        provider: "anthropic",
+        endpoint: "",
+        apiKey: "",
+        model: "",
+        maxRequestBytes: 32e3,
+        dailyRequestBytes: 1e6
+      },
+      semanticSearch: {
+        enabled: false,
+        endpoint: "",
+        apiKey: "",
+        model: "",
+        autoIndex: false,
+        maxRecordBytes: 2e4,
+        dailyRecordBytes: 2e6
+      },
       crosspost: { attachLastDownload: false }
     }
   };
@@ -6179,7 +6491,19 @@ html.av-reduce-motion *::after {
           provider: enumValue(integrationsAi.provider, AI_PROVIDERS, DEFAULT_SETTINGS.integrations.ai.provider),
           endpoint: urlValue(integrationsAi.endpoint, DEFAULT_SETTINGS.integrations.ai.endpoint),
           apiKey: secretValue(integrationsAi.apiKey, DEFAULT_SETTINGS.integrations.ai.apiKey),
-          model: stringValue(integrationsAi.model, DEFAULT_SETTINGS.integrations.ai.model, 120)
+          model: stringValue(integrationsAi.model, DEFAULT_SETTINGS.integrations.ai.model, 120),
+          maxRequestBytes: integerValue(
+            integrationsAi.maxRequestBytes,
+            DEFAULT_SETTINGS.integrations.ai.maxRequestBytes,
+            0,
+            5e6
+          ),
+          dailyRequestBytes: integerValue(
+            integrationsAi.dailyRequestBytes,
+            DEFAULT_SETTINGS.integrations.ai.dailyRequestBytes,
+            0,
+            1e8
+          )
         },
         semanticSearch: {
           enabled: booleanValue(
@@ -6198,6 +6522,18 @@ html.av-reduce-motion *::after {
           autoIndex: booleanValue(
             integrationsSemantic.autoIndex,
             DEFAULT_SETTINGS.integrations.semanticSearch.autoIndex
+          ),
+          maxRecordBytes: integerValue(
+            integrationsSemantic.maxRecordBytes,
+            DEFAULT_SETTINGS.integrations.semanticSearch.maxRecordBytes,
+            0,
+            5e6
+          ),
+          dailyRecordBytes: integerValue(
+            integrationsSemantic.dailyRecordBytes,
+            DEFAULT_SETTINGS.integrations.semanticSearch.dailyRecordBytes,
+            0,
+            1e8
           )
         },
         crosspost: {
@@ -7438,6 +7774,7 @@ html.av-reduce-motion *::after {
     const integrationRows = () => {
       const rows = [];
       const status2 = options.getIntegrationStatus?.();
+      const usage = options.getIntegrationUsage?.();
       const integrations = options.settings.integrations;
       rows.push(
         toggleRow(
@@ -7764,10 +8101,50 @@ html.av-reduce-motion *::after {
           }
         )
       );
+      if (usage) {
+        rows.push(
+          dataRow(
+            "Network status",
+            usage.networkAllowed ? t("Allowed") : t("Blocked by local-only mode")
+          ),
+          dataRow(
+            "AI destination",
+            `${integrations.ai.provider} \xB7 ${integrations.ai.endpoint || defaultAiEndpoint(integrations.ai.provider)}`
+          ),
+          readonlyRow(
+            "AI data disclosure",
+            "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status."
+          ),
+          dataRow(
+            "AI usage today",
+            `${usage.ai.requests} requests \xB7 ${formatBytes(usage.ai.bytes)} / ${usage.ai.dailyLimitBytes > 0 ? formatBytes(usage.ai.dailyLimitBytes) : t("unlimited")}`
+          ),
+          integerInputRow(
+            "AI max request bytes",
+            "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.",
+            integrations.ai.maxRequestBytes,
+            async (value) => {
+              integrations.ai.maxRequestBytes = value;
+              await save("AI request budget saved");
+            },
+            { max: 5e6 }
+          ),
+          integerInputRow(
+            "AI daily request bytes",
+            "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.",
+            integrations.ai.dailyRequestBytes,
+            async (value) => {
+              integrations.ai.dailyRequestBytes = value;
+              await save("AI daily budget saved");
+            },
+            { max: 1e8 }
+          )
+        );
+      }
       rows.push(
         toggleRow(
           "Semantic search",
-          "Embed CheckpointStore records via your provider for similarity search.",
+          "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.",
           integrations.semanticSearch.enabled,
           async (checked) => {
             integrations.semanticSearch.enabled = checked;
@@ -7808,10 +8185,46 @@ html.av-reduce-motion *::after {
           }
         )
       );
+      if (usage) {
+        rows.push(
+          dataRow(
+            "Embedding destination",
+            `${integrations.semanticSearch.endpoint || t("Not configured")}`
+          ),
+          readonlyRow(
+            "Embedding data disclosure",
+            "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy."
+          ),
+          dataRow(
+            "Embedding usage today",
+            `${usage.embedding.requests} requests \xB7 ${usage.embedding.records} records \xB7 ${formatBytes(usage.embedding.bytes)} / ${usage.embedding.dailyLimitBytes > 0 ? formatBytes(usage.embedding.dailyLimitBytes) : t("unlimited")}`
+          ),
+          integerInputRow(
+            "Embedding max record bytes",
+            "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.",
+            integrations.semanticSearch.maxRecordBytes,
+            async (value) => {
+              integrations.semanticSearch.maxRecordBytes = value;
+              await save("Embedding request budget saved");
+            },
+            { max: 5e6 }
+          ),
+          integerInputRow(
+            "Embedding daily record bytes",
+            "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.",
+            integrations.semanticSearch.dailyRecordBytes,
+            async (value) => {
+              integrations.semanticSearch.dailyRecordBytes = value;
+              await save("Embedding daily budget saved");
+            },
+            { max: 1e8 }
+          )
+        );
+      }
       rows.push(
         toggleRow(
           "Auto-embed every export",
-          "After each export run, kick the embedding job in the background. Off by default.",
+          "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.",
           integrations.semanticSearch.autoIndex,
           async (checked) => {
             integrations.semanticSearch.autoIndex = checked;
@@ -7829,6 +8242,13 @@ html.av-reduce-motion *::after {
               try {
                 const result = await options.rebuildSemanticIndex();
                 render();
+                if ((result.blocked ?? 0) > 0) {
+                  setStatusCopy(
+                    "Embedding stopped at the budget ({blocked} records were not sent).",
+                    { blocked: result.blocked ?? 0 }
+                  );
+                  return;
+                }
                 const trimmed = result.dropped > 0 ? ` \xB7 oldest ${result.dropped} dropped` : "";
                 setStatusCopy(
                   "Indexed: +{added} new \xB7 skipped {skipped} \xB7 errors {errors} \xB7 total {total}{trimmed}.",
@@ -7913,6 +8333,23 @@ html.av-reduce-motion *::after {
               setStatus("Could not clear semantic index.");
             }
           })
+        );
+      }
+      if (options.clearIntegrationUsage) {
+        rows.push(
+          actionRow(
+            "Clear AI and embedding usage",
+            "Forget local request counters only. This does not remove the semantic index or provider credentials.",
+            async () => {
+              try {
+                await options.clearIntegrationUsage();
+                await save("AI and embedding usage cleared");
+              } catch (error) {
+                options.onError("Could not clear AI and embedding usage", error);
+                setStatus("Could not clear AI and embedding usage.");
+              }
+            }
+          )
         );
       }
       if (status2) {
@@ -9577,6 +10014,9 @@ html.av-reduce-motion *::after {
     if (value < 1024) return `${Math.round(value)} B`;
     if (value < 1024 * 1024) return `${Math.round(value / 1024)} KiB`;
     return `${(value / (1024 * 1024)).toFixed(1)} MiB`;
+  }
+  function defaultAiEndpoint(provider) {
+    return provider === "anthropic" ? "https://api.anthropic.com/v1/messages" : "https://api.openai.com/v1/chat/completions";
   }
   function textInputRow(label, description, value, onChange) {
     const row = el("div", "av-row av-row-stack");
@@ -11327,10 +11767,257 @@ input[type="checkbox"] {
   function setLocalOnlyPolicy(predicate) {
     localOnly = predicate;
   }
+  function isLocalOnly() {
+    return localOnly();
+  }
   function assertOutboundAllowed(what) {
     if (localOnly()) {
       throw new LocalOnlyError(what);
     }
+  }
+
+  // src/features/integrations/usage.ts
+  var INTEGRATION_USAGE_KEY = "aviary.integration.usage.v1";
+  var INTEGRATION_USAGE_SCHEMA_VERSION = 1;
+  var USAGE_HISTORY_DAYS = 31;
+  var DEFAULT_AI_MAX_REQUEST_BYTES = 32e3;
+  var DEFAULT_AI_DAILY_REQUEST_BYTES = 1e6;
+  var DEFAULT_EMBEDDING_MAX_RECORD_BYTES = 2e4;
+  var DEFAULT_EMBEDDING_DAILY_RECORD_BYTES = 2e6;
+  var EMPTY = { schemaVersion: 1, days: [] };
+  var IntegrationUsageLedger = class {
+    #storage;
+    #state = { schemaVersion: 1, days: [] };
+    #loaded = false;
+    #lastBlocked = null;
+    constructor(storage) {
+      this.#storage = storage;
+    }
+    async load() {
+      if (this.#loaded) return;
+      const stored = await this.#storage.get(INTEGRATION_USAGE_KEY, EMPTY);
+      this.#state = normalizeState(stored);
+      this.#loaded = true;
+    }
+    snapshot(now2 = /* @__PURE__ */ new Date()) {
+      const day = localDay(now2);
+      const current = this.#state.days.find((entry) => entry.day === day) ?? emptyDay(day);
+      return {
+        day,
+        historyDays: this.#state.days.length,
+        ai: { ...current.ai },
+        embedding: { ...current.embedding }
+      };
+    }
+    status(aiBudget, embeddingBudget, localOnly2) {
+      const snapshot = this.snapshot();
+      return {
+        day: snapshot.day,
+        networkAllowed: !localOnly2,
+        localOnly: localOnly2,
+        lastBlocked: this.#lastBlocked ? { ...this.#lastBlocked } : null,
+        ai: { ...snapshot.ai, dailyLimitBytes: aiBudget.dailyBytes },
+        embedding: { ...snapshot.embedding, dailyLimitBytes: embeddingBudget.dailyBytes }
+      };
+    }
+    async reserveAi(requestBytes, budget) {
+      return this.#reserve("ai", requestBytes, 0, budget);
+    }
+    async reserveEmbedding(recordBytes, budget) {
+      return this.#reserve("embedding", recordBytes, 1, budget);
+    }
+    async clear() {
+      await this.load();
+      const before = this.#state;
+      this.#state = { schemaVersion: 1, days: [] };
+      this.#lastBlocked = null;
+      try {
+        await this.#storage.set(INTEGRATION_USAGE_KEY, this.#state);
+      } catch (error) {
+        this.#state = before;
+        throw error;
+      }
+    }
+    async #reserve(kind, requestBytes, records, budget) {
+      await this.load();
+      const bytes = Math.max(0, Math.floor(Number.isFinite(requestBytes) ? requestBytes : 0));
+      const maxRequestBytes = finiteLimit(budget.maxRequestBytes);
+      const dailyLimitBytes = finiteLimit(budget.dailyBytes);
+      const current = this.snapshot();
+      const usedBytes = kind === "ai" ? current.ai.bytes : current.embedding.bytes;
+      if (maxRequestBytes > 0 && bytes > maxRequestBytes) {
+        return this.blocked(kind, bytes, usedBytes, dailyLimitBytes, `The ${kind} request is ${bytes} bytes, over the ${maxRequestBytes}-byte per-request budget.`);
+      }
+      if (dailyLimitBytes > 0 && usedBytes + bytes > dailyLimitBytes) {
+        return this.blocked(kind, bytes, usedBytes, dailyLimitBytes, `The ${kind} daily budget has been reached; no provider request was made.`);
+      }
+      const before = cloneState(this.#state);
+      const day = this.#getOrCreateDay(current.day);
+      if (kind === "ai") {
+        day.ai.requests += 1;
+        day.ai.bytes += bytes;
+      } else {
+        day.embedding.requests += 1;
+        day.embedding.records += records;
+        day.embedding.bytes += bytes;
+      }
+      this.#trimHistory();
+      try {
+        await this.#storage.set(INTEGRATION_USAGE_KEY, this.#state);
+      } catch {
+        this.#state = before;
+        return this.blocked(
+          kind,
+          bytes,
+          usedBytes,
+          dailyLimitBytes,
+          "Usage could not be saved locally; the provider request was stopped."
+        );
+      }
+      this.#lastBlocked = null;
+      return {
+        allowed: true,
+        kind,
+        requestBytes: bytes,
+        usedBytes: usedBytes + bytes,
+        dailyLimitBytes
+      };
+    }
+    #getOrCreateDay(day) {
+      let current = this.#state.days.find((entry) => entry.day === day);
+      if (!current) {
+        current = emptyDay(day);
+        this.#state.days.push(current);
+        this.#state.days.sort((a, b) => a.day.localeCompare(b.day));
+      }
+      return current;
+    }
+    #trimHistory() {
+      if (this.#state.days.length > USAGE_HISTORY_DAYS) {
+        this.#state.days = this.#state.days.slice(-USAGE_HISTORY_DAYS);
+      }
+    }
+    blocked(kind, requestBytes, usedBytes, dailyLimitBytes, reason) {
+      this.#lastBlocked = { kind, reason };
+      return { allowed: false, kind, requestBytes, usedBytes, dailyLimitBytes, reason };
+    }
+  };
+  function defaultAiBudget(config) {
+    return {
+      maxRequestBytes: config.maxRequestBytes ?? DEFAULT_AI_MAX_REQUEST_BYTES,
+      dailyBytes: config.dailyRequestBytes ?? DEFAULT_AI_DAILY_REQUEST_BYTES
+    };
+  }
+  function defaultEmbeddingBudget(config) {
+    return {
+      maxRequestBytes: config.maxRecordBytes ?? DEFAULT_EMBEDDING_MAX_RECORD_BYTES,
+      dailyBytes: config.dailyRecordBytes ?? DEFAULT_EMBEDDING_DAILY_RECORD_BYTES
+    };
+  }
+  function buildAiDisclosure(config, request, usage, networkAllowed) {
+    const body = aiRequestBody(config, request);
+    const text = [request.systemPrompt ?? "", request.prompt].join("\n");
+    const budget = defaultAiBudget(config);
+    const requestBytes = estimateAiRequestBytes(config, request);
+    const budgetReason = budget.maxRequestBytes > 0 && requestBytes > budget.maxRequestBytes ? `The AI request is ${requestBytes} bytes, over the ${budget.maxRequestBytes}-byte per-request budget.` : usage && budget.dailyBytes > 0 && usage.ai.bytes + requestBytes > budget.dailyBytes ? "The AI daily budget has been reached; no provider request was made." : null;
+    return {
+      provider: config.provider,
+      endpoint: aiEndpoint(config),
+      fields: ["model", ...request.systemPrompt ? ["system instruction"] : [], "user prompt"],
+      characterCount: [...text].length,
+      requestBytes,
+      estimatedTokens: estimateTokens(text),
+      retained: "Aviary stores usage counters only; the provider's retention follows its policy.",
+      networkAllowed,
+      budgetAllowed: budgetReason === null,
+      budgetReason,
+      dailyUsedBytes: usage?.ai.bytes ?? 0,
+      dailyLimitBytes: budget.dailyBytes
+    };
+  }
+  function aiEndpoint(config) {
+    if (config.endpoint) return config.endpoint;
+    return config.provider === "anthropic" ? "https://api.anthropic.com/v1/messages" : "https://api.openai.com/v1/chat/completions";
+  }
+  function estimateAiRequestBytes(config, request) {
+    return utf8Bytes(JSON.stringify(aiRequestBody(config, request)));
+  }
+  function estimateTokens(text) {
+    return Math.max(0, Math.ceil([...text].length / 4));
+  }
+  function utf8Bytes(text) {
+    return new TextEncoder().encode(text).byteLength;
+  }
+  function aiRequestBody(config, request) {
+    if (config.provider === "anthropic") {
+      return {
+        model: config.model,
+        max_tokens: request.maxTokens ?? 1024,
+        ...request.systemPrompt ? { system: request.systemPrompt } : {},
+        messages: [{ role: "user", content: request.prompt }]
+      };
+    }
+    return {
+      model: config.model,
+      max_tokens: request.maxTokens ?? 1024,
+      messages: [
+        ...request.systemPrompt ? [{ role: "system", content: request.systemPrompt }] : [],
+        { role: "user", content: request.prompt }
+      ]
+    };
+  }
+  function finiteLimit(value) {
+    if (value === void 0) return 0;
+    return Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0;
+  }
+  function localDay(date) {
+    const pad = (value) => String(value).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  }
+  function emptyDay(day) {
+    return { day, ai: { requests: 0, bytes: 0 }, embedding: { requests: 0, records: 0, bytes: 0 } };
+  }
+  function normalizeState(value) {
+    if (!isRecord2(value) || value.schemaVersion !== INTEGRATION_USAGE_SCHEMA_VERSION || !Array.isArray(value.days)) {
+      return { schemaVersion: 1, days: [] };
+    }
+    const days = value.days.map(normalizeDay).filter((day) => day !== null).sort((a, b) => a.day.localeCompare(b.day));
+    return { schemaVersion: 1, days: days.slice(-USAGE_HISTORY_DAYS) };
+  }
+  function normalizeDay(value) {
+    if (!isRecord2(value) || typeof value.day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value.day)) {
+      return null;
+    }
+    const ai = isRecord2(value.ai) ? value.ai : {};
+    const embedding = isRecord2(value.embedding) ? value.embedding : {};
+    return {
+      day: value.day,
+      ai: {
+        requests: safeCount(ai.requests),
+        bytes: safeCount(ai.bytes)
+      },
+      embedding: {
+        requests: safeCount(embedding.requests),
+        records: safeCount(embedding.records),
+        bytes: safeCount(embedding.bytes)
+      }
+    };
+  }
+  function safeCount(value) {
+    return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : 0;
+  }
+  function cloneState(state2) {
+    return {
+      schemaVersion: 1,
+      days: state2.days.map((day) => ({
+        day: day.day,
+        ai: { ...day.ai },
+        embedding: { ...day.embedding }
+      }))
+    };
+  }
+  function isRecord2(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
   // src/features/integrations/semantic-search.ts
@@ -11342,17 +12029,19 @@ input[type="checkbox"] {
   function roundVector(vector) {
     return vector.map((value) => Math.round(value * VECTOR_PRECISION) / VECTOR_PRECISION);
   }
-  var EMPTY = { entries: [], model: "" };
+  var EMPTY2 = { entries: [], model: "" };
   var SemanticIndex = class {
     #storage;
-    #state = EMPTY;
+    #usage;
+    #state = EMPTY2;
     #loaded = false;
-    constructor(storage) {
+    constructor(storage, usage) {
       this.#storage = storage;
+      this.#usage = usage;
     }
     async load() {
       if (this.#loaded) return;
-      const stored = await this.#storage.get(SEMANTIC_INDEX_KEY, EMPTY);
+      const stored = await this.#storage.get(SEMANTIC_INDEX_KEY, EMPTY2);
       this.#state = {
         entries: Array.isArray(stored?.entries) ? stored.entries.filter(isEntry).slice(-SEMANTIC_INDEX_LIMIT) : [],
         model: typeof stored?.model === "string" ? stored.model : ""
@@ -11371,10 +12060,10 @@ input[type="checkbox"] {
     }
     async embedAndIndex(config, records) {
       if (!config.enabled || !config.endpoint || !config.apiKey || !config.model) {
-        return { added: 0, skipped: records.length, errors: 0, dropped: 0 };
+        return { added: 0, skipped: records.length, errors: 0, dropped: 0, blocked: 0 };
       }
       await this.load();
-      const before = cloneState(this.#state);
+      const before = cloneState2(this.#state);
       if (this.#state.model && this.#state.model !== config.model) {
         this.#state = { entries: [], model: config.model };
       } else {
@@ -11384,11 +12073,23 @@ input[type="checkbox"] {
       let added = 0;
       let skipped = 0;
       let errors = 0;
-      for (const record of records) {
+      let blocked = 0;
+      for (let index = 0; index < records.length; index += 1) {
+        const record = records[index];
         const id = `${record.tweetId ?? "no-id"}:${(record.text || "").slice(0, 80)}`;
         if (known.has(id) || record.text.length === 0) {
           skipped += 1;
           continue;
+        }
+        if (this.#usage) {
+          const decision = await this.#usage.reserveEmbedding(
+            utf8Bytes(record.text),
+            defaultEmbeddingBudget(config)
+          );
+          if (!decision.allowed) {
+            blocked = records.length - index;
+            break;
+          }
         }
         const expectedDimension = this.#state.entries[0]?.vector.length;
         const vector = await fetchEmbedding(config, record.text, expectedDimension);
@@ -11414,7 +12115,7 @@ input[type="checkbox"] {
         this.#state = before;
         throw error;
       }
-      return { added, skipped, errors, dropped };
+      return { added, skipped, errors, dropped, blocked };
     }
     async search(config, query, limit = 10) {
       if (!config.enabled || !config.endpoint || !config.apiKey || !config.model || query.trim().length === 0) {
@@ -11422,13 +12123,20 @@ input[type="checkbox"] {
       }
       await this.load();
       if (this.#state.entries.length === 0) return [];
+      if (this.#usage) {
+        const decision = await this.#usage.reserveEmbedding(
+          utf8Bytes(query),
+          defaultEmbeddingBudget(config)
+        );
+        if (!decision.allowed) return [];
+      }
       const queryVector = await fetchEmbedding(config, query, this.#state.entries[0]?.vector.length);
       if (!queryVector) return [];
       const hits = this.#state.entries.map((entry) => ({ entry, score: cosineSimilarity(queryVector, entry.vector) })).sort((a, b) => b.score - a.score).slice(0, limit);
       return hits;
     }
     async clear() {
-      const before = cloneState(this.#state);
+      const before = cloneState2(this.#state);
       this.#state = { entries: [], model: this.#state.model };
       this.#loaded = true;
       try {
@@ -11511,7 +12219,7 @@ input[type="checkbox"] {
       return Number.POSITIVE_INFINITY;
     }
   }
-  function cloneState(state2) {
+  function cloneState2(state2) {
     return {
       model: state2.model,
       entries: state2.entries.map((entry) => ({ ...entry, vector: [...entry.vector] }))
@@ -12626,10 +13334,10 @@ input[type="checkbox"] {
     maxRecordsPerJob: 0,
     maxAgeDays: 0
   };
-  var EMPTY2 = { jobs: {}, records: {} };
+  var EMPTY3 = { jobs: {}, records: {} };
   var CheckpointStore = class {
     #storage;
-    #state = EMPTY2;
+    #state = EMPTY3;
     #policy = DEFAULT_RETENTION_POLICY;
     #loaded = false;
     constructor(storage) {
@@ -12637,7 +13345,7 @@ input[type="checkbox"] {
     }
     async load() {
       if (this.#loaded) return emptySweep(this.#policy, Object.keys(this.#state.jobs).length);
-      const raw = await this.#storage.get(CHECKPOINT_KEY, EMPTY2);
+      const raw = await this.#storage.get(CHECKPOINT_KEY, EMPTY3);
       this.#state = {
         jobs: normalizeJobs(raw?.jobs),
         records: normalizeRecords(raw?.records)
@@ -14287,7 +14995,7 @@ a { color: #8ecdf1; }
   }
   async function autoIndexExport(ctx, records) {
     try {
-      const index = new SemanticIndex(ctx.storage);
+      const index = new SemanticIndex(ctx.storage, ctx.integrationUsage);
       await index.load();
       const result = await index.embedAndIndex(ctx.settings.integrations.semanticSearch, records);
       ctx.diagnostics.info("Auto-embedding finished", result);
@@ -14295,7 +15003,8 @@ a { color: #8ecdf1; }
         kind: "auto-semantic-index",
         added: result.added,
         skipped: result.skipped,
-        errors: result.errors
+        errors: result.errors,
+        blocked: result.blocked
       });
     } catch (error) {
       ctx.diagnostics.warn("Auto-embedding failed", errorDetails(error));
@@ -14468,7 +15177,7 @@ ${record.text}${mediaList}`;
     return match?.[1] ? normalizeHandle(match[1]) : null;
   }
   function normalizeHiddenPosts(input, maxEntries) {
-    const record = isRecord2(input) ? input : {};
+    const record = isRecord3(input) ? input : {};
     const rawEntries = Array.isArray(record.entries) ? record.entries : [];
     const byKey = /* @__PURE__ */ new Map();
     for (const raw of rawEntries) {
@@ -14637,7 +15346,7 @@ ${record.text}${mediaList}`;
     }
   };
   function normalizeEntry(input) {
-    if (!isRecord2(input)) {
+    if (!isRecord3(input)) {
       return null;
     }
     const key = typeof input.key === "string" ? input.key.trim() : "";
@@ -14673,7 +15382,7 @@ ${record.text}${mediaList}`;
     const cleaned = value.trim();
     return /^\d{1,25}$/.test(cleaned) ? cleaned : null;
   }
-  function isRecord2(value) {
+  function isRecord3(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -15534,7 +16243,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       throw new Error(`Bluesky media upload HTTP ${response.status}`);
     }
     const payload = await response.json();
-    if (!isRecord3(payload.blob)) {
+    if (!isRecord4(payload.blob)) {
       throw new Error("Bluesky media response was malformed");
     }
     return payload.blob;
@@ -15636,7 +16345,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     const cleaned = value.replace(/[\\/\u0000-\u001f]/g, "_").trim();
     return cleaned.slice(0, 160) || "aviary-media";
   }
-  function isRecord3(value) {
+  function isRecord4(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
   async function callBluesky(service, nsid, input, bearer) {
@@ -16086,7 +16795,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
   function arrayEntries(value) {
     if (Array.isArray(value)) return value;
-    if (isRecord4(value)) {
+    if (isRecord5(value)) {
       for (const candidate of Object.values(value)) {
         if (Array.isArray(candidate)) return candidate;
       }
@@ -16095,9 +16804,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     return [];
   }
   function unwrapRecord(value, keys) {
-    if (!isRecord4(value)) return {};
+    if (!isRecord5(value)) return {};
     for (const key of keys) {
-      if (isRecord4(value[key])) return value[key];
+      if (isRecord5(value[key])) return value[key];
     }
     return value;
   }
@@ -16107,7 +16816,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       if (!Array.isArray(value)) continue;
       return value.flatMap((entry) => {
         if (typeof entry === "string") return [entry];
-        if (isRecord4(entry)) return [stringField(entry, "id", "id_str", "url") ?? ""];
+        if (isRecord5(entry)) return [stringField(entry, "id", "id_str", "url") ?? ""];
         return [];
       }).filter((entry) => entry.length > 0).slice(0, 1e3);
     }
@@ -16138,8 +16847,8 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     const now2 = (/* @__PURE__ */ new Date()).toISOString();
     const out = [];
     for (const entry of parsed) {
-      const tweet = isRecord4(entry) && isRecord4(entry.tweet) ? entry.tweet : entry;
-      if (!isRecord4(tweet)) continue;
+      const tweet = isRecord5(entry) && isRecord5(entry.tweet) ? entry.tweet : entry;
+      if (!isRecord5(tweet)) continue;
       const id = stringField(tweet, "id_str", "id");
       const text = stringField(tweet, "full_text", "text") ?? "";
       const createdAt = stringField(tweet, "created_at") ?? now2;
@@ -16161,8 +16870,8 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     if (!Array.isArray(parsed)) return [];
     const out = [];
     for (const entry of parsed) {
-      const like = isRecord4(entry) && isRecord4(entry.like) ? entry.like : entry;
-      if (!isRecord4(like)) continue;
+      const like = isRecord5(entry) && isRecord5(entry.like) ? entry.like : entry;
+      if (!isRecord5(like)) continue;
       const id = stringField(like, "tweetId", "id");
       const text = stringField(like, "fullText", "text") ?? "";
       const record = {
@@ -16190,21 +16899,21 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
   function stringFromAuthor(tweet) {
     const user = tweet.user;
-    if (isRecord4(user)) {
+    if (isRecord5(user)) {
       const author = stringField(user, "screen_name", "username", "handle");
       if (author) {
         return author;
       }
     }
     const entities = tweet.entities;
-    if (!isRecord4(entities)) return null;
+    if (!isRecord5(entities)) return null;
     const userMentions = entities.user_mentions;
     if (!Array.isArray(userMentions) || userMentions.length === 0) return null;
     const first = userMentions[0];
-    if (!isRecord4(first)) return null;
+    if (!isRecord5(first)) return null;
     return stringField(first, "screen_name");
   }
-  function isRecord4(value) {
+  function isRecord5(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -16212,18 +16921,18 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   var ARCHIVE_IMPORT_JOBS_KEY = "aviary.archive.imports.v1";
   var MAX_RETAINED_JOBS = 12;
   var MAX_SOURCE_BYTES = 256 * 1024 * 1024;
-  var EMPTY3 = { jobs: {}, sequence: 0 };
+  var EMPTY4 = { jobs: {}, sequence: 0 };
   var ArchiveImportJobStore = class {
     #storage;
-    #state = EMPTY3;
+    #state = EMPTY4;
     #loaded = false;
     constructor(storage) {
       this.#storage = storage;
     }
     async load() {
       if (this.#loaded) return;
-      const raw = await this.#storage.get(ARCHIVE_IMPORT_JOBS_KEY, EMPTY3);
-      this.#state = normalizeState(raw);
+      const raw = await this.#storage.get(ARCHIVE_IMPORT_JOBS_KEY, EMPTY4);
+      this.#state = normalizeState2(raw);
       let interrupted = false;
       for (const job of Object.values(this.#state.jobs)) {
         if (job.status === "running") {
@@ -16388,8 +17097,8 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       }
     }
   };
-  function normalizeState(value) {
-    if (!value || typeof value !== "object") return { ...EMPTY3, jobs: {} };
+  function normalizeState2(value) {
+    if (!value || typeof value !== "object") return { ...EMPTY4, jobs: {} };
     const raw = value;
     const jobs = {};
     if (raw.jobs && typeof raw.jobs === "object") {
@@ -16459,7 +17168,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
 
   // src/features/library/archive-library.ts
   var ARCHIVE_LIBRARY_KEY = "aviary.archive.library.v1";
-  var EMPTY4 = {
+  var EMPTY5 = {
     version: 1,
     profile: null,
     account: null,
@@ -16473,14 +17182,14 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   };
   var ArchiveLibraryStore = class {
     #storage;
-    #snapshot = cloneSnapshot(EMPTY4);
+    #snapshot = cloneSnapshot(EMPTY5);
     #loaded = false;
     constructor(storage) {
       this.#storage = storage;
     }
     async load() {
       if (this.#loaded) return;
-      this.#snapshot = normalizeSnapshot(await this.#storage.get(ARCHIVE_LIBRARY_KEY, EMPTY4));
+      this.#snapshot = normalizeSnapshot(await this.#storage.get(ARCHIVE_LIBRARY_KEY, EMPTY5));
       this.#loaded = true;
     }
     snapshot() {
@@ -16525,18 +17234,18 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       this.#snapshot = next;
     }
     async clear() {
-      const next = cloneSnapshot(EMPTY4);
+      const next = cloneSnapshot(EMPTY5);
       this.#loaded = true;
       await this.#storage.set(ARCHIVE_LIBRARY_KEY, next);
       this.#snapshot = next;
     }
   };
   function normalizeSnapshot(value) {
-    if (!value || typeof value !== "object") return cloneSnapshot(EMPTY4);
+    if (!value || typeof value !== "object") return cloneSnapshot(EMPTY5);
     const raw = value;
     return {
       version: 1,
-      profile: isRecord5(raw.profile) ? {
+      profile: isRecord6(raw.profile) ? {
         handle: stringOrNull(raw.profile.handle),
         displayName: stringOrNull(raw.profile.displayName),
         bio: stringOrNull(raw.profile.bio),
@@ -16544,7 +17253,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         website: stringOrNull(raw.profile.website),
         joinedAt: stringOrNull(raw.profile.joinedAt)
       } : null,
-      account: isRecord5(raw.account) ? {
+      account: isRecord6(raw.account) ? {
         id: stringOrNull(raw.account.id),
         handle: stringOrNull(raw.account.handle),
         displayName: stringOrNull(raw.account.displayName),
@@ -16589,20 +17298,20 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   function stringOrNull(value) {
     return typeof value === "string" ? value : null;
   }
-  function isRecord5(value) {
+  function isRecord6(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
   function isDirectMessage(value) {
-    return isRecord5(value) && typeof value.text === "string" && Array.isArray(value.recipientIds) && Array.isArray(value.mediaUrls);
+    return isRecord6(value) && typeof value.text === "string" && Array.isArray(value.recipientIds) && Array.isArray(value.mediaUrls);
   }
   function isMediaReference(value) {
-    return isRecord5(value) && typeof value.sourceFile === "string";
+    return isRecord6(value) && typeof value.sourceFile === "string";
   }
   function isAccountRef(value) {
-    return isRecord5(value) && typeof value.sourceFile === "string";
+    return isRecord6(value) && typeof value.sourceFile === "string";
   }
   function isList(value) {
-    return isRecord5(value) && Array.isArray(value.memberIds) && Array.isArray(value.subscriberIds);
+    return isRecord6(value) && Array.isArray(value.memberIds) && Array.isArray(value.subscriberIds);
   }
 
   // src/features/library/cleanup-preview.ts
@@ -16970,10 +17679,10 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
   function isMediaRecord(record) {
     const type = typeof record.type === "string" ? record.type.toLowerCase() : "";
-    return type === "video" || type === "animated_gif" || isRecord6(record.video_info) || Boolean(record.preview_image_url || record.preview_image_url_https) && (type.includes("video") || type.includes("gif"));
+    return type === "video" || type === "animated_gif" || isRecord7(record.video_info) || Boolean(record.preview_image_url || record.preview_image_url_https) && (type.includes("video") || type.includes("gif"));
   }
   function readMediaMetadata(record, tweetId) {
-    const videoInfo = isRecord6(record.video_info) ? record.video_info : {};
+    const videoInfo = isRecord7(record.video_info) ? record.video_info : {};
     const variants = readVariants(videoInfo.variants);
     const poster = firstUrl(
       record.preview_image_url_https,
@@ -16995,7 +17704,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     const variants = [];
     const seen = /* @__PURE__ */ new Set();
     for (const entry of value) {
-      if (!isRecord6(entry)) {
+      if (!isRecord7(entry)) {
         continue;
       }
       const url = httpUrl(entry.url);
@@ -17119,7 +17828,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     }
     return { width: Number(match[1]), height: Number(match[2]) };
   }
-  function isRecord6(value) {
+  function isRecord7(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -18644,11 +19353,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   // src/features/library/snapshots.ts
   var SNAPSHOTS_KEY = "aviary.snapshots.v1";
   var SNAPSHOT_LIMIT = 24;
-  var EMPTY5 = { entries: [] };
+  var EMPTY6 = { entries: [] };
   var SnapshotStore = class {
     #storage;
     #limit;
-    #state = EMPTY5;
+    #state = EMPTY6;
     #loaded = false;
     constructor(storage, limit = SNAPSHOT_LIMIT) {
       this.#storage = storage;
@@ -18656,7 +19365,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
     async load() {
       if (this.#loaded) return;
-      const stored = await this.#storage.get(SNAPSHOTS_KEY, EMPTY5);
+      const stored = await this.#storage.get(SNAPSHOTS_KEY, EMPTY6);
       const entries = Array.isArray(stored?.entries) ? stored.entries : [];
       this.#state = { entries: entries.filter(isSnapshotEntry).slice(-this.#limit) };
       this.#loaded = true;
@@ -19489,7 +20198,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       errors.push(`Invalid JSON: ${error.message}`);
       return { applied: false, errors, warnings, settings: normalizeSettings({}) };
     }
-    if (!isRecord7(parsed)) {
+    if (!isRecord8(parsed)) {
       errors.push("Top-level value must be an object.");
       return { applied: false, errors, warnings, settings: normalizeSettings({}) };
     }
@@ -19503,7 +20212,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         `Import version ${version} is newer than supported ${SETTINGS_EXPORT_VERSION}; unknown fields are dropped.`
       );
     }
-    const rawSettings = isRecord7(parsed.settings) ? parsed.settings : parsed;
+    const rawSettings = isRecord8(parsed.settings) ? parsed.settings : parsed;
     const normalized = normalizeSettings(rawSettings);
     let restored = 0;
     for (const [group, key] of SECRET_PATHS) {
@@ -19519,14 +20228,14 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
     return { applied: true, errors, warnings, settings: normalized };
   }
-  function isRecord7(value) {
+  function isRecord8(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
   // src/features/core/audit-log.ts
   var AUDIT_LOG_KEY = "aviary.audit.v1";
   var AUDIT_LOG_LIMIT = 500;
-  var EMPTY6 = { entries: [] };
+  var EMPTY7 = { entries: [] };
   var AuditLog = class {
     #storage;
     #limit;
@@ -19573,7 +20282,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       return this.#entries.length;
     }
     async #hydrate() {
-      const stored = await this.#storage.get(AUDIT_LOG_KEY, EMPTY6);
+      const stored = await this.#storage.get(AUDIT_LOG_KEY, EMPTY7);
       const entries = Array.isArray(stored?.entries) ? stored.entries : [];
       this.#entries = entries.filter(
         (entry) => typeof entry?.at === "string" && typeof entry?.action === "string"
@@ -19602,6 +20311,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   ];
   var LIBRARY_BACKUP_COLLECTIONS = [
     { key: SETTINGS_KEY, label: "Settings", version: 1 },
+    { key: INTEGRATION_USAGE_KEY, label: "Integration usage counters", version: 1 },
     { key: CHECKPOINT_KEY, label: "Export jobs and records", version: 1 },
     { key: QUERY_REGISTRY_KEY, label: "Discovered query IDs", version: 1 },
     { key: MEDIA_HISTORY_KEY, label: "Media history", version: 1 },
@@ -19669,7 +20379,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     } catch (error) {
       throw new LibraryBackupError(`Invalid backup JSON: ${errorMessage(error)}`);
     }
-    if (!isRecord8(raw)) {
+    if (!isRecord9(raw)) {
       throw new LibraryBackupError("Backup top-level value must be an object.");
     }
     if (raw.generator !== "Aviary") {
@@ -19694,7 +20404,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     const seen = /* @__PURE__ */ new Set();
     const collections = [];
     for (const candidate of raw.collections) {
-      if (!isRecord8(candidate)) {
+      if (!isRecord9(candidate)) {
         throw new LibraryBackupError("Backup contains an invalid collection entry.");
       }
       const definition = definitionFor(candidate.key);
@@ -20003,15 +20713,15 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
   function collectionCount(key, value) {
     if (key === SETTINGS_KEY || key === LAST_DOWNLOAD_KEY) return 1;
-    if (key === CHECKPOINT_KEY && isRecord8(value)) {
-      const records = isRecord8(value.records) ? value.records : {};
+    if (key === CHECKPOINT_KEY && isRecord9(value)) {
+      const records = isRecord9(value.records) ? value.records : {};
       return Object.values(records).reduce(
         (total, entries) => total + (Array.isArray(entries) ? entries.length : 0),
         0
       );
     }
     if (Array.isArray(value)) return value.length;
-    if (!isRecord8(value)) return 1;
+    if (!isRecord9(value)) return 1;
     const arrayKeys = [
       "entries",
       "items",
@@ -20029,8 +20739,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     const counts = arrayKeys.flatMap((name) => {
       const candidate = value[name];
       if (Array.isArray(candidate)) return [candidate.length];
-      if (name === "jobs" && isRecord8(candidate)) return [Object.keys(candidate).length];
-      if (name === "records" && isRecord8(candidate)) {
+      if (name === "jobs" && isRecord9(candidate)) return [Object.keys(candidate).length];
+      if (name === "records" && isRecord9(candidate)) {
         return [Object.values(candidate).reduce((total, entries) => total + (Array.isArray(entries) ? entries.length : 0), 0)];
       }
       return [];
@@ -20063,7 +20773,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
   function deserializeBackupValue(text) {
     return JSON.parse(text, (_key, current) => {
-      if (!isRecord8(current) || current.__aviaryType !== "Uint8Array") return current;
+      if (!isRecord9(current) || current.__aviaryType !== "Uint8Array") return current;
       if (typeof current.base64 !== "string") {
         throw new Error("Uint8Array value is missing base64 data");
       }
@@ -20090,7 +20800,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     return bytes;
   }
   function parseManifest(value) {
-    if (!isRecord8(value) || value.schemaVersion !== 1) {
+    if (!isRecord9(value) || value.schemaVersion !== 1) {
       throw new LibraryBackupError("Backup manifest is missing or unsupported.", "unsupported");
     }
     return {
@@ -20102,7 +20812,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
   function parseProfile(value) {
     if (value === null) return null;
-    if (!isRecord8(value) || typeof value.id !== "string" || typeof value.label !== "string") {
+    if (!isRecord9(value) || typeof value.id !== "string" || typeof value.label !== "string") {
       throw new LibraryBackupError("Backup profile metadata is invalid.");
     }
     return { id: value.id.slice(0, 120), label: value.label.slice(0, 120) };
@@ -20151,7 +20861,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   function errorMessage(error) {
     return error instanceof Error ? error.message : String(error);
   }
-  function isRecord8(value) {
+  function isRecord9(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -20174,7 +20884,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         await cleanupQueue.load();
       }
       if (!semanticIndex) {
-        semanticIndex = new SemanticIndex(ctx.storage);
+        semanticIndex = new SemanticIndex(ctx.storage, ctx.integrationUsage);
         await semanticIndex.load();
       }
       retentionPolicy = await loadRetentionPolicy(ctx.storage);
@@ -20711,7 +21421,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         },
         async rebuildSemanticIndex() {
           if (!semanticIndex) {
-            semanticIndex = new SemanticIndex(ctx.storage);
+            semanticIndex = new SemanticIndex(ctx.storage, ctx.integrationUsage);
             await semanticIndex.load();
           }
           rebuildSearchIndex();
@@ -20725,7 +21435,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
             added: result.added,
             skipped: result.skipped,
             errors: result.errors,
-            dropped: result.dropped
+            dropped: result.dropped,
+            blocked: result.blocked
           });
           return { ...result, total: semanticIndex.size() };
         },
@@ -20745,6 +21456,17 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         },
         async clearSemanticIndex() {
           await semanticIndex?.clear();
+        },
+        getIntegrationUsage() {
+          if (!ctx.integrationUsage) return void 0;
+          return ctx.integrationUsage.status(
+            defaultAiBudget(ctx.settings.integrations.ai),
+            defaultEmbeddingBudget(ctx.settings.integrations.semanticSearch),
+            isLocalOnly()
+          );
+        },
+        async clearIntegrationUsage() {
+          await ctx.integrationUsage?.clear();
         },
         async pingAria2() {
           const result = await pingAria2Version({
@@ -21598,11 +22320,24 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
 `;
 
   // src/features/integrations/ai-provider.ts
-  async function runAiPrompt(config, request) {
-    assertOutboundAllowed("The AI request");
+  async function runAiPrompt(config, request, options = {}) {
     if (!config.enabled) return { ok: false, error: "AI provider integration disabled" };
     if (!config.apiKey) return { ok: false, error: "AI provider API key missing" };
     if (!config.model) return { ok: false, error: "AI provider model missing" };
+    assertOutboundAllowed("The AI request");
+    if (options.usage) {
+      const decision = await options.usage.reserveAi(
+        estimateAiRequestBytes(config, request),
+        defaultAiBudget(config)
+      );
+      if (!decision.allowed) {
+        return {
+          ok: false,
+          error: decision.reason ?? "AI request blocked by usage budget",
+          blocked: "budget"
+        };
+      }
+    }
     try {
       switch (config.provider) {
         case "anthropic":
@@ -21871,6 +22606,8 @@ ${text}`
   };
   function clearDecorations4() {
     closeOpenMenu();
+    closeAiReview?.(false);
+    closeAiReview = void 0;
     removeFeatureToast();
     document.getElementById(STYLE_ID8)?.remove();
     for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR3}]`))) {
@@ -21924,6 +22661,7 @@ ${text}`
   var openMenuDismiss;
   var openMenuKeydown;
   var openMenuTrigger;
+  var closeAiReview;
   var menuSequence = 0;
   function closeOpenMenu(restoreFocus = true) {
     if (openMenuDismiss) {
@@ -21970,10 +22708,27 @@ ${text}`
         event.preventDefault();
         const prompt = command.promptTemplate(text);
         if (aiEnabled) {
+          if (ctx.integrationUsage) {
+            const disclosure = buildAiDisclosure(
+              ctx.settings.integrations.ai,
+              { prompt },
+              ctx.integrationUsage.snapshot(),
+              !isLocalOnly()
+            );
+            const approved = await showAiRequestReview(ctx, disclosure);
+            if (!approved) {
+              closeOpenMenu();
+              return;
+            }
+          }
           item.disabled = true;
           item.textContent = `${ft(ctx, command.label)} \u2014 ${ft(ctx, "running\u2026")}`;
           try {
-            const result = await runAiPrompt(ctx.settings.integrations.ai, { prompt });
+            const result = await runAiPrompt(
+              ctx.settings.integrations.ai,
+              { prompt },
+              ctx.integrationUsage ? { usage: ctx.integrationUsage } : {}
+            );
             if (result.ok && result.text) {
               try {
                 await copyToClipboard(result.text);
@@ -22087,6 +22842,88 @@ ${text}`
     openMenuDismiss = dismiss;
     setTimeout(() => document.addEventListener("click", dismiss, true), 0);
   }
+  function showAiRequestReview(ctx, disclosure) {
+    const backdrop = document.createElement("div");
+    backdrop.className = "av-ai-review-backdrop";
+    const dialog = document.createElement("section");
+    dialog.className = "av-ai-review";
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-label", ft(ctx, "Review external AI request"));
+    const title = document.createElement("h2");
+    title.textContent = ft(ctx, "Review external AI request");
+    const intro = document.createElement("p");
+    intro.textContent = ft(ctx, "Nothing is sent until you choose Send request.");
+    const details = document.createElement("dl");
+    const addDetail = (label, value) => {
+      const name = document.createElement("dt");
+      name.textContent = ft(ctx, label);
+      const content = document.createElement("dd");
+      content.textContent = value;
+      details.append(name, content);
+    };
+    addDetail("Provider", disclosure.provider);
+    addDetail("Endpoint", disclosure.endpoint);
+    addDetail("Fields sent", disclosure.fields.join(", "));
+    addDetail("Characters", String(disclosure.characterCount));
+    addDetail("Estimated tokens", String(disclosure.estimatedTokens));
+    addDetail("Request bytes", String(disclosure.requestBytes));
+    addDetail(
+      "Daily usage",
+      `${disclosure.dailyUsedBytes} / ${disclosure.dailyLimitBytes > 0 ? disclosure.dailyLimitBytes : ft(ctx, "unlimited")} bytes`
+    );
+    addDetail(
+      "Retained data",
+      ft(ctx, "Aviary stores usage counters only; the provider's retention follows its policy.")
+    );
+    addDetail(
+      "Network status",
+      disclosure.networkAllowed ? ft(ctx, "Allowed") : ft(ctx, "Blocked by local-only mode")
+    );
+    if (!disclosure.budgetAllowed) {
+      addDetail("Budget status", disclosure.budgetReason ?? ft(ctx, "Budget blocked this request."));
+    }
+    const actions = document.createElement("div");
+    actions.className = "av-ai-review-actions";
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "av-ai-review-button av-ai-review-cancel";
+    cancel.textContent = ft(ctx, "Cancel");
+    const send = document.createElement("button");
+    send.type = "button";
+    send.className = "av-ai-review-button av-ai-review-send";
+    send.textContent = ft(ctx, "Send request");
+    send.disabled = !disclosure.networkAllowed || !disclosure.budgetAllowed;
+    actions.append(cancel, send);
+    dialog.append(title, intro, details, actions);
+    backdrop.append(dialog);
+    document.body.append(backdrop);
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish2 = (approved) => {
+        if (settled) return;
+        settled = true;
+        closeAiReview = void 0;
+        document.removeEventListener("keydown", onKeyDown, true);
+        backdrop.remove();
+        resolve(approved);
+      };
+      const onKeyDown = (event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          finish2(false);
+        }
+      };
+      cancel.addEventListener("click", () => finish2(false));
+      send.addEventListener("click", () => finish2(true));
+      backdrop.addEventListener("click", (event) => {
+        if (event.target === backdrop) finish2(false);
+      });
+      document.addEventListener("keydown", onKeyDown, true);
+      closeAiReview = finish2;
+      (send.disabled ? cancel : send).focus({ preventScroll: true });
+    });
+  }
   function positionMenu(menu, trigger) {
     const rect = trigger.getBoundingClientRect();
     menu.style.position = "fixed";
@@ -22170,6 +23007,87 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 .av-ai-option:focus-visible {
   border-color: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 60%, transparent);
   background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, transparent);
+}
+
+.av-ai-review-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482900;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.58);
+}
+
+.av-ai-review {
+  width: min(460px, 100%);
+  max-height: min(720px, calc(100vh - 32px));
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid var(--av-border, rgb(47, 51, 54));
+  border-radius: 14px;
+  background: var(--av-surface, rgb(15, 20, 25));
+  color: var(--av-text, rgb(239, 243, 244));
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+
+.av-ai-review h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.av-ai-review p {
+  margin: 8px 0 14px;
+  color: var(--av-muted, rgb(113, 118, 123));
+  font-size: 13px;
+}
+
+.av-ai-review dl {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.8fr) minmax(0, 1.5fr);
+  gap: 7px 12px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.av-ai-review dt {
+  color: var(--av-muted, rgb(113, 118, 123));
+}
+
+.av-ai-review dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.av-ai-review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.av-ai-review-button {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--av-border, rgb(47, 51, 54));
+  border-radius: 8px;
+  background: transparent;
+  color: var(--av-text, rgb(239, 243, 244));
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.av-ai-review-send {
+  border-color: var(--av-accent, rgb(29, 155, 240));
+  background: var(--av-accent, rgb(29, 155, 240));
+  color: white;
+}
+
+.av-ai-review-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 `;
 
@@ -22676,7 +23594,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   ]);
   var GRAPHQL_PATH_PATTERN = /^\/i\/api\/graphql\/([A-Za-z0-9_-]{1,200})\/([A-Za-z0-9_-]{1,100})$/;
   function isPageAgentEnvelope(value) {
-    if (!isRecord9(value) || value.channel !== PAGE_CHANNEL || typeof value.kind !== "string") {
+    if (!isRecord10(value) || value.channel !== PAGE_CHANNEL || typeof value.kind !== "string") {
       return false;
     }
     if (!PAGE_AGENT_KINDS.has(value.kind)) {
@@ -22685,7 +23603,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     return value.nonce === void 0 || typeof value.nonce === "string" && value.nonce.length >= 16 && value.nonce.length <= MAX_NONCE_LENGTH;
   }
   function sanitizeCapturedGraphqlPayload(value, expectedOrigin) {
-    if (!isRecord9(value)) {
+    if (!isRecord10(value)) {
       return null;
     }
     const url = typeof value.url === "string" ? value.url : "";
@@ -23045,7 +23963,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   function now() {
     return (/* @__PURE__ */ new Date()).toISOString();
   }
-  function isRecord9(value) {
+  function isRecord10(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -24451,6 +25369,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     "aviary.profiles.v1",
     "aviary.profile.active.v1",
     "aviary.settings.v1",
+    "aviary.integration.usage.v1",
     "aviary.export.checkpoints.v1",
     "aviary.queryIds.v1",
     "aviary.media.history.v1",
@@ -24749,6 +25668,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   var ACTIVE_PROFILE_KEY = "aviary.profile.active.v1";
   var PROFILE_MIGRATION_KEYS = [
     "aviary.settings.v1",
+    "aviary.integration.usage.v1",
     "aviary.export.checkpoints.v1",
     "aviary.queryIds.v1",
     "aviary.media.history.v1",
@@ -24769,10 +25689,10 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     "aviary.retention.maxAgeDays"
   ];
   var DEFAULT_PROFILE_ID = "offline-default";
-  var EMPTY7 = { profiles: [] };
+  var EMPTY8 = { profiles: [] };
   var ProfileManager = class {
     #base;
-    #state = EMPTY7;
+    #state = EMPTY8;
     #activeId = DEFAULT_PROFILE_ID;
     #legacyDataAvailable = false;
     #loaded = false;
@@ -24781,7 +25701,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     }
     async load() {
       if (this.#loaded) return;
-      this.#state = normalizeState2(await this.#base.get(PROFILE_REGISTRY_KEY, EMPTY7));
+      this.#state = normalizeState3(await this.#base.get(PROFILE_REGISTRY_KEY, EMPTY8));
       const active = await this.#base.get(ACTIVE_PROFILE_KEY, null);
       if (typeof active === "string" && this.#state.profiles.some((profile) => profile.id === active)) {
         this.#activeId = active;
@@ -24891,7 +25811,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       }
     };
   }
-  function normalizeState2(value) {
+  function normalizeState3(value) {
     if (!value || typeof value !== "object") return { profiles: [] };
     const raw = value;
     const profiles = Array.isArray(raw.profiles) ? raw.profiles.map(normalizeProfile2).filter((profile) => profile !== null) : [];
@@ -24981,6 +25901,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     const profileManager = new ProfileManager(durableStorage);
     await profileManager.load();
     const storage = createProfileStorageGateway(durableStorage, profileManager.activeId);
+    const integrationUsage = new IntegrationUsageLedger(storage);
+    await integrationUsage.load();
     const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
     setLocalOnlyPolicy(() => settings.privacy.localOnly);
     const limiter = settings.jobs.rateLimitMode === "conservative" ? new TokenBucket(4, 1) : new TokenBucket(8, 4);
@@ -25033,6 +25955,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       route: readRoute(),
       settings,
       storage,
+      integrationUsage,
       profile: profileManager,
       limiter,
       diagnostics,

@@ -117,6 +117,15 @@ function stubs(variant) {
     ai: { enabled: true, configured: true },
     semanticSearch: { enabled: true, configured: true, indexed: ${v ? 5 : 15} }
   }),
+  getIntegrationUsage: () => ({
+    day: "2026-08-0${v ? 6 : 5}",
+    networkAllowed: true,
+    localOnly: false,
+    lastBlocked: null,
+    ai: { requests: ${v ? 2 : 5}, bytes: ${v ? 1200 : 4200}, dailyLimitBytes: 10000 },
+    embedding: { requests: ${v ? 4 : 9}, records: ${v ? 3 : 8}, bytes: ${v ? 1800 : 7200}, dailyLimitBytes: 20000 }
+  }),
+  clearIntegrationUsage: async () => {},
   captureSnapshot: async () => ({ count: 1, handle: "a" }),
   getSnapshotStatus: () => ({ total: ${v ? 1 : 6}, latestAt: "2026-08-0${v ? 6 : 5}T00:00:00Z", latestKind: "${v ? "followers" : "following"}", latestCount: ${v ? 2 : 8} }),
   diffLatestSnapshot: () => ({ added: 1, removed: 0, unchanged: 1 }),

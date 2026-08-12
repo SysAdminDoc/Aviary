@@ -12,7 +12,8 @@ import type {
   ControlCenterHandle,
   ExportStatus,
   HiddenPostsStatus,
-  MediaStatus
+  MediaStatus,
+  IntegrationUsageStatus as ControlCenterUsageStatus
 } from "../../ui/control-center";
 import { mountControlCenter } from "../../ui/control-center";
 import { pageHookCounters } from "../privacy/page-hooks";
@@ -43,6 +44,8 @@ import { buildWarcArchive } from "../export/warc";
 import { pingAria2Version, removeAria2Download, tellActiveAria2 } from "../integrations/aria2";
 import { crosspost, readComposerText, type CrosspostRequest } from "../integrations/crosspost";
 import { SemanticIndex } from "../integrations/semantic-search";
+import { isLocalOnly } from "../integrations/network-policy";
+import { defaultAiBudget, defaultEmbeddingBudget } from "../integrations/usage";
 import { recentIntegrationErrors } from "./integration-errors";
 import { importOfficialArchive, MAX_ARCHIVE_BYTES } from "../library/archive-import";
 import {
@@ -119,7 +122,7 @@ export const controlCenterFeature: FeatureModule = {
       await cleanupQueue.load();
     }
     if (!semanticIndex) {
-      semanticIndex = new SemanticIndex(ctx.storage);
+      semanticIndex = new SemanticIndex(ctx.storage, ctx.integrationUsage);
       await semanticIndex.load();
     }
     retentionPolicy = await loadRetentionPolicy(ctx.storage);
@@ -668,7 +671,7 @@ export const controlCenterFeature: FeatureModule = {
       },
       async rebuildSemanticIndex() {
         if (!semanticIndex) {
-          semanticIndex = new SemanticIndex(ctx.storage);
+          semanticIndex = new SemanticIndex(ctx.storage, ctx.integrationUsage);
           await semanticIndex.load();
         }
         rebuildSearchIndex();
@@ -682,7 +685,8 @@ export const controlCenterFeature: FeatureModule = {
           added: result.added,
           skipped: result.skipped,
           errors: result.errors,
-          dropped: result.dropped
+          dropped: result.dropped,
+          blocked: result.blocked
         });
         return { ...result, total: semanticIndex.size() };
       },
@@ -702,6 +706,17 @@ export const controlCenterFeature: FeatureModule = {
       },
       async clearSemanticIndex() {
         await semanticIndex?.clear();
+      },
+      getIntegrationUsage(): ControlCenterUsageStatus | undefined {
+        if (!ctx.integrationUsage) return undefined;
+        return ctx.integrationUsage.status(
+          defaultAiBudget(ctx.settings.integrations.ai),
+          defaultEmbeddingBudget(ctx.settings.integrations.semanticSearch),
+          isLocalOnly()
+        );
+      },
+      async clearIntegrationUsage() {
+        await ctx.integrationUsage?.clear();
       },
       async pingAria2() {
         const result = await pingAria2Version({

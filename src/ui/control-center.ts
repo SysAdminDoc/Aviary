@@ -32,6 +32,7 @@ import type { DiagnosticEvent } from "../platform/diagnostics";
 import type { StorageStatus } from "../platform/storage";
 import type { ProfileStatus } from "../platform/profile";
 import type { LibraryBackupPreview, LibraryBackupRestoreResult } from "../features/core/library-backup";
+import type { IntegrationUsageStatus } from "../features/integrations/usage";
 
 const FILTER_ACTION_OPTIONS: Array<[FilterAction, string]> = [
   ["off", "Off"],
@@ -95,6 +96,8 @@ export interface ExportResultSummary {
   /** How many ZIPs the run produced; more than one when media.zipChunkSize split it. */
   files?: number;
 }
+
+export type { IntegrationUsageStatus };
 
 export interface ArchiveImportStatus {
   jobs: Array<{
@@ -220,6 +223,8 @@ export interface ControlCenterOptions {
     failed: number;
     cancelled?: boolean;
   }>;
+  getIntegrationUsage?: () => IntegrationUsageStatus | undefined;
+  clearIntegrationUsage?: () => Promise<void>;
   downloadWarc?: () => Promise<{ records: number }>;
   exportToTarget?: (
     target: "clipboard-markdown" | "obsidian" | "notion" | "raw-json"
@@ -234,6 +239,7 @@ export interface ControlCenterOptions {
     errors: number;
     total: number;
     dropped: number;
+    blocked?: number;
   }>;
   semanticSearchQuery?: (
     query: string
@@ -1550,6 +1556,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   const integrationRows = (): HTMLElement[] => {
     const rows: HTMLElement[] = [];
     const status = options.getIntegrationStatus?.();
+    const usage = options.getIntegrationUsage?.();
     const integrations = options.settings.integrations;
 
     // Aria2
@@ -1890,11 +1897,52 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       )
     );
 
+    if (usage) {
+      rows.push(
+        dataRow(
+          "Network status",
+          usage.networkAllowed ? t("Allowed") : t("Blocked by local-only mode")
+        ),
+        dataRow(
+          "AI destination",
+          `${integrations.ai.provider} · ${integrations.ai.endpoint || defaultAiEndpoint(integrations.ai.provider)}`
+        ),
+        readonlyRow(
+          "AI data disclosure",
+          "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status."
+        ),
+        dataRow(
+          "AI usage today",
+          `${usage.ai.requests} requests · ${formatBytes(usage.ai.bytes)} / ${usage.ai.dailyLimitBytes > 0 ? formatBytes(usage.ai.dailyLimitBytes) : t("unlimited")}`
+        ),
+        integerInputRow(
+          "AI max request bytes",
+          "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.",
+          integrations.ai.maxRequestBytes,
+          async (value) => {
+            integrations.ai.maxRequestBytes = value;
+            await save("AI request budget saved");
+          },
+          { max: 5_000_000 }
+        ),
+        integerInputRow(
+          "AI daily request bytes",
+          "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.",
+          integrations.ai.dailyRequestBytes,
+          async (value) => {
+            integrations.ai.dailyRequestBytes = value;
+            await save("AI daily budget saved");
+          },
+          { max: 100_000_000 }
+        )
+      );
+    }
+
     // Semantic search
     rows.push(
       toggleRow(
         "Semantic search",
-        "Embed CheckpointStore records via your provider for similarity search.",
+        "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.",
         integrations.semanticSearch.enabled,
         async (checked) => {
           integrations.semanticSearch.enabled = checked;
@@ -1936,10 +1984,47 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       )
     );
 
+    if (usage) {
+      rows.push(
+        dataRow(
+          "Embedding destination",
+          `${integrations.semanticSearch.endpoint || t("Not configured")}`
+        ),
+        readonlyRow(
+          "Embedding data disclosure",
+          "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy."
+        ),
+        dataRow(
+          "Embedding usage today",
+          `${usage.embedding.requests} requests · ${usage.embedding.records} records · ${formatBytes(usage.embedding.bytes)} / ${usage.embedding.dailyLimitBytes > 0 ? formatBytes(usage.embedding.dailyLimitBytes) : t("unlimited")}`
+        ),
+        integerInputRow(
+          "Embedding max record bytes",
+          "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.",
+          integrations.semanticSearch.maxRecordBytes,
+          async (value) => {
+            integrations.semanticSearch.maxRecordBytes = value;
+            await save("Embedding request budget saved");
+          },
+          { max: 5_000_000 }
+        ),
+        integerInputRow(
+          "Embedding daily record bytes",
+          "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.",
+          integrations.semanticSearch.dailyRecordBytes,
+          async (value) => {
+            integrations.semanticSearch.dailyRecordBytes = value;
+            await save("Embedding daily budget saved");
+          },
+          { max: 100_000_000 }
+        )
+      );
+    }
+
     rows.push(
       toggleRow(
         "Auto-embed every export",
-        "After each export run, kick the embedding job in the background. Off by default.",
+        "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.",
         integrations.semanticSearch.autoIndex,
         async (checked) => {
           integrations.semanticSearch.autoIndex = checked;
@@ -1958,6 +2043,13 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             try {
               const result = await options.rebuildSemanticIndex!();
               render();
+              if ((result.blocked ?? 0) > 0) {
+                setStatusCopy(
+                  "Embedding stopped at the budget ({blocked} records were not sent).",
+                  { blocked: result.blocked ?? 0 }
+                );
+                return;
+              }
               // The index is capped, so say when the cap actually bit rather than letting the
               // total quietly stop growing.
               const trimmed = result.dropped > 0 ? ` · oldest ${result.dropped} dropped` : "";
@@ -2049,6 +2141,24 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             setStatus("Could not clear semantic index.");
           }
         })
+      );
+    }
+
+    if (options.clearIntegrationUsage) {
+      rows.push(
+        actionRow(
+          "Clear AI and embedding usage",
+          "Forget local request counters only. This does not remove the semantic index or provider credentials.",
+          async () => {
+            try {
+              await options.clearIntegrationUsage!();
+              await save("AI and embedding usage cleared");
+            } catch (error) {
+              options.onError("Could not clear AI and embedding usage", error);
+              setStatus("Could not clear AI and embedding usage.");
+            }
+          }
+        )
       );
     }
 
@@ -3960,6 +4070,12 @@ function formatBytes(value: number): string {
   if (value < 1024) return `${Math.round(value)} B`;
   if (value < 1024 * 1024) return `${Math.round(value / 1024)} KiB`;
   return `${(value / (1024 * 1024)).toFixed(1)} MiB`;
+}
+
+function defaultAiEndpoint(provider: string): string {
+  return provider === "anthropic"
+    ? "https://api.anthropic.com/v1/messages"
+    : "https://api.openai.com/v1/chat/completions";
 }
 
 function textInputRow(

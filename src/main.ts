@@ -34,6 +34,7 @@ import { createStorageGateway, setStorageErrorSink } from "./platform/storage";
 import { createDurableStorageGateway, DURABLE_STORAGE_KEYS } from "./platform/durable-storage";
 import { createProfileStorageGateway, ProfileManager } from "./platform/profile";
 import { createTrustedHtmlPolicy } from "./platform/trusted-types";
+import { IntegrationUsageLedger } from "./features/integrations/usage";
 
 export interface BootOptions {
   source: "userscript" | "extension";
@@ -95,6 +96,8 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   const profileManager = new ProfileManager(durableStorage);
   await profileManager.load();
   const storage = createProfileStorageGateway(durableStorage, profileManager.activeId);
+  const integrationUsage = new IntegrationUsageLedger(storage);
+  await integrationUsage.load();
   const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
   // Read fresh on every outbound call, so toggling local-only mode applies at once.
   setLocalOnlyPolicy(() => settings.privacy.localOnly);
@@ -161,6 +164,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     route: readRoute(),
     settings,
     storage,
+    integrationUsage,
     profile: profileManager,
     limiter,
     diagnostics,

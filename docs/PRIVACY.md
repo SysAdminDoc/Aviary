@@ -17,8 +17,8 @@ These are the only Aviary-triggered network paths:
 | Export media-byte capture | Only when **Capture media bytes in export** is enabled and you click export | The selected X media URLs; successful response bytes, length, and checksum are placed in that local package, while failures remain local retryable metadata. |
 | Aria2 handoff | When enabled, configured, and the media meets the threshold | Your configured JSON-RPC endpoint; the media URL, filename, and optional RPC secret are sent. |
 | Bluesky / Mastodon | After you click the corresponding crosspost action | Your configured service; composer text, thread metadata, and optionally the last downloaded media when attachment is enabled. |
-| AI provider | When AI runs is enabled and you invoke a provider-backed command | Your configured endpoint; the prompt built from the selected post and the configured system text. |
-| Semantic search | When you rebuild the index, search semantically, or enable auto-embedding | Your configured embeddings endpoint; the record text sent for each embedding request. |
+| AI provider | When AI runs is enabled, you review the disclosure, and you send a provider-backed command | Your configured endpoint; the prompt built from the selected post and configured system text. The review shows fields, character/token estimate, retention notice, network status, and byte budget. |
+| Semantic search | When you rebuild the index, search semantically, or enable auto-embedding | Your configured embeddings endpoint; the model and record text sent for each embedding request. The Control Center shows the destination, fields, retention notice, and byte budget before auto-indexing. |
 | Analytics refusal | When beacon blocking is enabled | No new destination; matching analytics beacons are intercepted before they leave the page. |
 
 Every integration is disabled by default and requires an explicit setting, endpoint/credential,
@@ -42,6 +42,7 @@ schema, migration, usage, and quota status.
 |---|---|---|
 | `aviary.profiles.v1` / `aviary.profile.active.v1` | Profile registry and active-profile id | Keep explicit settings/library boundaries. Profiles are created and switched in Trust. |
 | `aviary.settings.v1` | Preferences and any integration credentials you enter | Configure Aviary. **Export settings** is a settings envelope, not a full-library backup. |
+| `aviary.integration.usage.v1` | Profile-scoped AI/embedding request, record, and UTF-8 byte counters for the local 31-day history | Enforce configurable per-request/daily budgets and show usage; **Clear AI and embedding usage** removes counters. No API keys or raw prompts are stored here. |
 | `aviary.hiddenPosts.v1` | Hidden status ids or handle/text signatures | Hide posts across visits; **Clear hidden posts** removes them. |
 | `aviary.media.history.v1` | Bounded media dedup records | Avoid duplicate downloads; **Clear download history** removes them. |
 | `aviary.media.queue.v1` | Queued, paused, failed, and completed media jobs | Resume/retry media work; completed history is separately clearable. |
@@ -77,6 +78,11 @@ the active profile in the form the browser needs. They are sent only to the serv
 when that integration runs. Use scoped, revocable credentials. **Export settings** replaces these
 secrets with placeholders; importing the file keeps credentials already saved on the destination
 browser instead of overwriting them.
+
+AI and embedding usage history stores counters only: it does not retain provider URLs, API keys,
+prompts, record text, or vectors. A request is reserved in the local ledger before provider work;
+if the per-request or daily UTF-8 byte budget is exhausted, no provider request is made. Local-only
+mode also blocks every provider call.
 
 Aviary does not encrypt local storage. Use the browser profile's normal protections and full-disk
 encryption. Anyone with access to that browser profile may be able to read the stored credentials

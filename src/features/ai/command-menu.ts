@@ -1,5 +1,7 @@
 import type { FeatureContext, FeatureModule } from "../registry";
 import { runAiPrompt } from "../integrations/ai-provider";
+import { buildAiDisclosure } from "../integrations/usage";
+import { isLocalOnly } from "../integrations/network-policy";
 import { removeFeatureToast, showFeatureToast } from "../core/feature-toast";
 import { ft } from "../core/feature-i18n";
 
@@ -90,6 +92,8 @@ export const aiCommandMenuFeature: FeatureModule = {
 
 function clearDecorations(): void {
   closeOpenMenu();
+  closeAiReview?.(false);
+  closeAiReview = undefined;
   removeFeatureToast();
   document.getElementById(STYLE_ID)?.remove();
   for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR}]`))) {
@@ -152,6 +156,7 @@ let openMenuNode: HTMLElement | undefined;
 let openMenuDismiss: ((event: Event) => void) | undefined;
 let openMenuKeydown: ((event: KeyboardEvent) => void) | undefined;
 let openMenuTrigger: HTMLElement | undefined;
+let closeAiReview: ((approved: boolean) => void) | undefined;
 let menuSequence = 0;
 
 function closeOpenMenu(restoreFocus = true): void {
@@ -202,10 +207,27 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
       event.preventDefault();
       const prompt = command.promptTemplate(text);
       if (aiEnabled) {
+        if (ctx.integrationUsage) {
+          const disclosure = buildAiDisclosure(
+            ctx.settings.integrations.ai,
+            { prompt },
+            ctx.integrationUsage.snapshot(),
+            !isLocalOnly()
+          );
+          const approved = await showAiRequestReview(ctx, disclosure);
+          if (!approved) {
+            closeOpenMenu();
+            return;
+          }
+        }
         item.disabled = true;
         item.textContent = `${ft(ctx, command.label)} — ${ft(ctx, "running…")}`;
         try {
-          const result = await runAiPrompt(ctx.settings.integrations.ai, { prompt });
+          const result = await runAiPrompt(
+            ctx.settings.integrations.ai,
+            { prompt },
+            ctx.integrationUsage ? { usage: ctx.integrationUsage } : {}
+          );
           if (result.ok && result.text) {
             try {
               await copyToClipboard(result.text);
@@ -322,6 +344,95 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
   setTimeout(() => document.addEventListener("click", dismiss, true), 0);
 }
 
+function showAiRequestReview(
+  ctx: FeatureContext,
+  disclosure: ReturnType<typeof buildAiDisclosure>
+): Promise<boolean> {
+  const backdrop = document.createElement("div");
+  backdrop.className = "av-ai-review-backdrop";
+  const dialog = document.createElement("section");
+  dialog.className = "av-ai-review";
+  dialog.setAttribute("role", "dialog");
+  dialog.setAttribute("aria-modal", "true");
+  dialog.setAttribute("aria-label", ft(ctx, "Review external AI request"));
+
+  const title = document.createElement("h2");
+  title.textContent = ft(ctx, "Review external AI request");
+  const intro = document.createElement("p");
+  intro.textContent = ft(ctx, "Nothing is sent until you choose Send request.");
+  const details = document.createElement("dl");
+  const addDetail = (label: string, value: string): void => {
+    const name = document.createElement("dt");
+    name.textContent = ft(ctx, label);
+    const content = document.createElement("dd");
+    content.textContent = value;
+    details.append(name, content);
+  };
+  addDetail("Provider", disclosure.provider);
+  addDetail("Endpoint", disclosure.endpoint);
+  addDetail("Fields sent", disclosure.fields.join(", "));
+  addDetail("Characters", String(disclosure.characterCount));
+  addDetail("Estimated tokens", String(disclosure.estimatedTokens));
+  addDetail("Request bytes", String(disclosure.requestBytes));
+  addDetail(
+    "Daily usage",
+    `${disclosure.dailyUsedBytes} / ${disclosure.dailyLimitBytes > 0 ? disclosure.dailyLimitBytes : ft(ctx, "unlimited")} bytes`
+  );
+  addDetail(
+    "Retained data",
+    ft(ctx, "Aviary stores usage counters only; the provider's retention follows its policy.")
+  );
+  addDetail(
+    "Network status",
+    disclosure.networkAllowed ? ft(ctx, "Allowed") : ft(ctx, "Blocked by local-only mode")
+  );
+  if (!disclosure.budgetAllowed) {
+    addDetail("Budget status", disclosure.budgetReason ?? ft(ctx, "Budget blocked this request."));
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "av-ai-review-actions";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.className = "av-ai-review-button av-ai-review-cancel";
+  cancel.textContent = ft(ctx, "Cancel");
+  const send = document.createElement("button");
+  send.type = "button";
+  send.className = "av-ai-review-button av-ai-review-send";
+  send.textContent = ft(ctx, "Send request");
+  send.disabled = !disclosure.networkAllowed || !disclosure.budgetAllowed;
+  actions.append(cancel, send);
+  dialog.append(title, intro, details, actions);
+  backdrop.append(dialog);
+  document.body.append(backdrop);
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (approved: boolean): void => {
+      if (settled) return;
+      settled = true;
+      closeAiReview = undefined;
+      document.removeEventListener("keydown", onKeyDown, true);
+      backdrop.remove();
+      resolve(approved);
+    };
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        finish(false);
+      }
+    };
+    cancel.addEventListener("click", () => finish(false));
+    send.addEventListener("click", () => finish(true));
+    backdrop.addEventListener("click", (event) => {
+      if (event.target === backdrop) finish(false);
+    });
+    document.addEventListener("keydown", onKeyDown, true);
+    closeAiReview = finish;
+    (send.disabled ? cancel : send).focus({ preventScroll: true });
+  });
+}
+
 function positionMenu(menu: HTMLElement, trigger: HTMLElement): void {
   const rect = trigger.getBoundingClientRect();
   menu.style.position = "fixed";
@@ -413,5 +524,86 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 .av-ai-option:focus-visible {
   border-color: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 60%, transparent);
   background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, transparent);
+}
+
+.av-ai-review-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482900;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.58);
+}
+
+.av-ai-review {
+  width: min(460px, 100%);
+  max-height: min(720px, calc(100vh - 32px));
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid var(--av-border, rgb(47, 51, 54));
+  border-radius: 14px;
+  background: var(--av-surface, rgb(15, 20, 25));
+  color: var(--av-text, rgb(239, 243, 244));
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+
+.av-ai-review h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.av-ai-review p {
+  margin: 8px 0 14px;
+  color: var(--av-muted, rgb(113, 118, 123));
+  font-size: 13px;
+}
+
+.av-ai-review dl {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.8fr) minmax(0, 1.5fr);
+  gap: 7px 12px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.av-ai-review dt {
+  color: var(--av-muted, rgb(113, 118, 123));
+}
+
+.av-ai-review dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.av-ai-review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.av-ai-review-button {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--av-border, rgb(47, 51, 54));
+  border-radius: 8px;
+  background: transparent;
+  color: var(--av-text, rgb(239, 243, 244));
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.av-ai-review-send {
+  border-color: var(--av-accent, rgb(29, 155, 240));
+  background: var(--av-accent, rgb(29, 155, 240));
+  color: white;
+}
+
+.av-ai-review-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 `;

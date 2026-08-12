@@ -6,11 +6,14 @@ import type { StorageGateway } from "../platform/storage";
 import type { ProfileManager } from "../platform/profile";
 import type { TokenBucket } from "../platform/rate-limit";
 import type { AuditLog } from "./core/audit-log";
+import type { IntegrationUsageLedger } from "./integrations/usage";
 
 export interface FeatureContext {
   route: RouteState;
   settings: AviarySettings;
   storage: StorageGateway;
+  /** Profile-scoped counters and budgets for external AI/embedding calls. */
+  integrationUsage?: IntegrationUsageLedger;
   /** Explicit local profile selected by the user; absent in minimal unit-test contexts. */
   profile?: ProfileManager;
   limiter: TokenBucket;

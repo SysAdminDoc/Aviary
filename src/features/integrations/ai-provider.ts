@@ -1,6 +1,11 @@
 import type { IntegrationSettings } from "../../platform/settings";
 import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network";
 import { assertOutboundAllowed } from "./network-policy";
+import {
+  defaultAiBudget,
+  estimateAiRequestBytes,
+  IntegrationUsageLedger
+} from "./usage";
 
 export interface AiProviderRequest {
   prompt: string;
@@ -12,16 +17,35 @@ export interface AiProviderResponse {
   ok: boolean;
   text?: string;
   error?: string;
+  blocked?: "budget";
+}
+
+export interface AiProviderOptions {
+  usage?: IntegrationUsageLedger;
 }
 
 export async function runAiPrompt(
   config: IntegrationSettings["ai"],
-  request: AiProviderRequest
+  request: AiProviderRequest,
+  options: AiProviderOptions = {}
 ): Promise<AiProviderResponse> {
-  assertOutboundAllowed("The AI request");
   if (!config.enabled) return { ok: false, error: "AI provider integration disabled" };
   if (!config.apiKey) return { ok: false, error: "AI provider API key missing" };
   if (!config.model) return { ok: false, error: "AI provider model missing" };
+  assertOutboundAllowed("The AI request");
+  if (options.usage) {
+    const decision = await options.usage.reserveAi(
+      estimateAiRequestBytes(config, request),
+      defaultAiBudget(config)
+    );
+    if (!decision.allowed) {
+      return {
+        ok: false,
+        error: decision.reason ?? "AI request blocked by usage budget",
+        blocked: "budget"
+      };
+    }
+  }
 
   try {
     switch (config.provider) {

@@ -223,6 +223,94 @@ test("a local-only AI refusal closes cleanly and restores the command item", asy
   assert.match(result.toast, /local-only mode/i);
 });
 
+test("an external AI request shows its disclosure before the first fetch", async () => {
+  const result = await page.evaluate(async () => {
+    const ctx = {
+      settings: {
+        ai: { commandMenu: true },
+        integrations: {
+          ai: {
+            enabled: true,
+            apiKey: "key",
+            model: "model",
+            provider: "openai",
+            endpoint: "https://provider.example.test/v1/chat/completions",
+            maxRequestBytes: 32000,
+            dailyRequestBytes: 1000000
+          }
+        },
+        i18n: { locale: "en" },
+        accessibility: { reduceMotion: "never" }
+      },
+      diagnostics: { info() {}, warn() {}, error() {} },
+      auditLog: { record() {} },
+      integrationUsage: {
+        snapshot() {
+          return {
+            day: "2026-08-12",
+            historyDays: 31,
+            ai: { requests: 0, bytes: 0 },
+            embedding: { requests: 0, records: 0, bytes: 0 }
+          };
+        },
+        async reserveAi(requestBytes) {
+          return {
+            allowed: true,
+            kind: "ai",
+            requestBytes,
+            usedBytes: requestBytes,
+            dailyLimitBytes: 1000000
+          };
+        }
+      }
+    };
+    AviaryFeedback.setLocalOnlyPolicy(() => false);
+    let fetchCalls = 0;
+    const originalFetch = window.fetch;
+    window.fetch = async () => {
+      fetchCalls += 1;
+      return new Response(JSON.stringify({ choices: [{ message: { content: "done" } }] }), {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      });
+    };
+    const article = document.createElement("article");
+    article.setAttribute("data-testid", "tweet");
+    const text = document.createElement("div");
+    text.setAttribute("data-testid", "tweetText");
+    text.textContent = "A disclosure test post";
+    const group = document.createElement("div");
+    group.setAttribute("role", "group");
+    group.setAttribute("aria-label", "actions");
+    article.append(text, group);
+    document.body.append(article);
+    AviaryFeedback.aiCommandMenuFeature.apply(ctx, document, [article]);
+    article.querySelector("[data-av-ai-trigger]").click();
+    document.querySelector(".av-ai-option").click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const review = document.querySelector(".av-ai-review");
+    const beforeSend = {
+      fetchCalls,
+      text: review.textContent,
+      sendDisabled: review.querySelector(".av-ai-review-send").disabled
+    };
+    review.querySelector(".av-ai-review-send").click();
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    const afterSend = fetchCalls;
+    window.fetch = originalFetch;
+    AviaryFeedback.aiCommandMenuFeature.destroy(ctx);
+    article.remove();
+    AviaryFeedback.resetLocalOnlyPolicy();
+    return { beforeSend, afterSend };
+  });
+
+  assert.equal(result.beforeSend.fetchCalls, 0);
+  assert.equal(result.beforeSend.sendDisabled, false);
+  assert.match(result.beforeSend.text, /provider\.example\.test/);
+  assert.match(result.beforeSend.text, /user prompt/i);
+  assert.equal(result.afterSend, 1);
+});
+
 test("no outcome path in the AI menu or snippets ends without telling the user", async () => {
   const menu = await readFile(path.join(root, "src/features/ai/command-menu.ts"), "utf8");
   const snippets = await readFile(path.join(root, "src/features/composer/composer-snippets.ts"), "utf8");

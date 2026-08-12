@@ -444,7 +444,7 @@ function errorDetails(error: unknown): Record<string, unknown> {
 
 async function autoIndexExport(ctx: FeatureContext, records: readonly ExportRecord[]): Promise<void> {
   try {
-    const index = new SemanticIndex(ctx.storage);
+    const index = new SemanticIndex(ctx.storage, ctx.integrationUsage);
     await index.load();
     const result = await index.embedAndIndex(ctx.settings.integrations.semanticSearch, records);
     ctx.diagnostics.info("Auto-embedding finished", result);
@@ -452,7 +452,8 @@ async function autoIndexExport(ctx: FeatureContext, records: readonly ExportReco
       kind: "auto-semantic-index",
       added: result.added,
       skipped: result.skipped,
-      errors: result.errors
+      errors: result.errors,
+      blocked: result.blocked
     });
   } catch (error) {
     ctx.diagnostics.warn("Auto-embedding failed", errorDetails(error));

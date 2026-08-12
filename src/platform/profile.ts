@@ -6,6 +6,7 @@ export const ACTIVE_PROFILE_KEY = "aviary.profile.active.v1";
 /** Stores that contained account-specific data before profile isolation was introduced. */
 export const PROFILE_MIGRATION_KEYS = [
   "aviary.settings.v1",
+  "aviary.integration.usage.v1",
   "aviary.export.checkpoints.v1",
   "aviary.queryIds.v1",
   "aviary.media.history.v1",

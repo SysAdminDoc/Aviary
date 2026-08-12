@@ -1,0 +1,407 @@
+import type { IntegrationSettings } from "../../platform/settings";
+import type { StorageGateway } from "../../platform/storage";
+
+export const INTEGRATION_USAGE_KEY = "aviary.integration.usage.v1";
+export const INTEGRATION_USAGE_SCHEMA_VERSION = 1;
+export const USAGE_HISTORY_DAYS = 31;
+
+export const DEFAULT_AI_MAX_REQUEST_BYTES = 32_000;
+export const DEFAULT_AI_DAILY_REQUEST_BYTES = 1_000_000;
+export const DEFAULT_EMBEDDING_MAX_RECORD_BYTES = 20_000;
+export const DEFAULT_EMBEDDING_DAILY_RECORD_BYTES = 2_000_000;
+
+type UsageKind = "ai" | "embedding";
+
+export interface UsageBudget {
+  maxRequestBytes: number;
+  dailyBytes: number;
+}
+
+interface UsageDay {
+  day: string;
+  ai: { requests: number; bytes: number };
+  embedding: { requests: number; records: number; bytes: number };
+}
+
+interface UsageState {
+  schemaVersion: 1;
+  days: UsageDay[];
+}
+
+export interface UsageSnapshot {
+  day: string;
+  historyDays: number;
+  ai: { requests: number; bytes: number };
+  embedding: { requests: number; records: number; bytes: number };
+}
+
+export interface UsageDecision {
+  allowed: boolean;
+  kind: UsageKind;
+  requestBytes: number;
+  usedBytes: number;
+  dailyLimitBytes: number;
+  reason?: string;
+}
+
+export interface IntegrationUsageStatus {
+  day: string;
+  networkAllowed: boolean;
+  localOnly: boolean;
+  lastBlocked: { kind: UsageKind; reason: string } | null;
+  ai: UsageSnapshot["ai"] & { dailyLimitBytes: number };
+  embedding: UsageSnapshot["embedding"] & { dailyLimitBytes: number };
+}
+
+export interface AiDisclosure {
+  provider: string;
+  endpoint: string;
+  fields: string[];
+  characterCount: number;
+  requestBytes: number;
+  estimatedTokens: number;
+  retained: string;
+  networkAllowed: boolean;
+  budgetAllowed: boolean;
+  budgetReason: string | null;
+  dailyUsedBytes: number;
+  dailyLimitBytes: number;
+}
+
+export interface EmbeddingDisclosure {
+  provider: string;
+  endpoint: string;
+  fields: string[];
+  retained: string;
+  networkAllowed: boolean;
+  dailyUsedBytes: number;
+  dailyLimitBytes: number;
+  maxRecordBytes: number;
+}
+
+const EMPTY: UsageState = { schemaVersion: 1, days: [] };
+
+/**
+ * Stores counters only. No provider, endpoint, credential, prompt, post text, or embedding
+ * content enters this record, so a usage history can be inspected or backed up safely.
+ */
+export class IntegrationUsageLedger {
+  readonly #storage: StorageGateway;
+  #state: UsageState = { schemaVersion: 1, days: [] };
+  #loaded = false;
+  #lastBlocked: IntegrationUsageStatus["lastBlocked"] = null;
+
+  constructor(storage: StorageGateway) {
+    this.#storage = storage;
+  }
+
+  async load(): Promise<void> {
+    if (this.#loaded) return;
+    const stored = await this.#storage.get<unknown>(INTEGRATION_USAGE_KEY, EMPTY);
+    this.#state = normalizeState(stored);
+    this.#loaded = true;
+  }
+
+  snapshot(now = new Date()): UsageSnapshot {
+    const day = localDay(now);
+    const current = this.#state.days.find((entry) => entry.day === day) ?? emptyDay(day);
+    return {
+      day,
+      historyDays: this.#state.days.length,
+      ai: { ...current.ai },
+      embedding: { ...current.embedding }
+    };
+  }
+
+  status(
+    aiBudget: UsageBudget,
+    embeddingBudget: UsageBudget,
+    localOnly: boolean
+  ): IntegrationUsageStatus {
+    const snapshot = this.snapshot();
+    return {
+      day: snapshot.day,
+      networkAllowed: !localOnly,
+      localOnly,
+      lastBlocked: this.#lastBlocked ? { ...this.#lastBlocked } : null,
+      ai: { ...snapshot.ai, dailyLimitBytes: aiBudget.dailyBytes },
+      embedding: { ...snapshot.embedding, dailyLimitBytes: embeddingBudget.dailyBytes }
+    };
+  }
+
+  async reserveAi(requestBytes: number, budget: UsageBudget): Promise<UsageDecision> {
+    return this.#reserve("ai", requestBytes, 0, budget);
+  }
+
+  async reserveEmbedding(
+    recordBytes: number,
+    budget: UsageBudget
+  ): Promise<UsageDecision> {
+    return this.#reserve("embedding", recordBytes, 1, budget);
+  }
+
+  async clear(): Promise<void> {
+    await this.load();
+    const before = this.#state;
+    this.#state = { schemaVersion: 1, days: [] };
+    this.#lastBlocked = null;
+    try {
+      await this.#storage.set(INTEGRATION_USAGE_KEY, this.#state);
+    } catch (error) {
+      this.#state = before;
+      throw error;
+    }
+  }
+
+  async #reserve(
+    kind: UsageKind,
+    requestBytes: number,
+    records: number,
+    budget: UsageBudget
+  ): Promise<UsageDecision> {
+    await this.load();
+    const bytes = Math.max(0, Math.floor(Number.isFinite(requestBytes) ? requestBytes : 0));
+    const maxRequestBytes = finiteLimit(budget.maxRequestBytes);
+    const dailyLimitBytes = finiteLimit(budget.dailyBytes);
+    const current = this.snapshot();
+    const usedBytes = kind === "ai" ? current.ai.bytes : current.embedding.bytes;
+    if (maxRequestBytes > 0 && bytes > maxRequestBytes) {
+      return this.blocked(kind, bytes, usedBytes, dailyLimitBytes, `The ${kind} request is ${bytes} bytes, over the ${maxRequestBytes}-byte per-request budget.`);
+    }
+    if (dailyLimitBytes > 0 && usedBytes + bytes > dailyLimitBytes) {
+      return this.blocked(kind, bytes, usedBytes, dailyLimitBytes, `The ${kind} daily budget has been reached; no provider request was made.`);
+    }
+
+    const before = cloneState(this.#state);
+    const day = this.#getOrCreateDay(current.day);
+    if (kind === "ai") {
+      day.ai.requests += 1;
+      day.ai.bytes += bytes;
+    } else {
+      day.embedding.requests += 1;
+      day.embedding.records += records;
+      day.embedding.bytes += bytes;
+    }
+    this.#trimHistory();
+    try {
+      await this.#storage.set(INTEGRATION_USAGE_KEY, this.#state);
+    } catch {
+      this.#state = before;
+      return this.blocked(
+        kind,
+        bytes,
+        usedBytes,
+        dailyLimitBytes,
+        "Usage could not be saved locally; the provider request was stopped."
+      );
+    }
+    this.#lastBlocked = null;
+    return {
+      allowed: true,
+      kind,
+      requestBytes: bytes,
+      usedBytes: usedBytes + bytes,
+      dailyLimitBytes
+    };
+  }
+
+  #getOrCreateDay(day: string): UsageDay {
+    let current = this.#state.days.find((entry) => entry.day === day);
+    if (!current) {
+      current = emptyDay(day);
+      this.#state.days.push(current);
+      this.#state.days.sort((a, b) => a.day.localeCompare(b.day));
+    }
+    return current;
+  }
+
+  #trimHistory(): void {
+    if (this.#state.days.length > USAGE_HISTORY_DAYS) {
+      this.#state.days = this.#state.days.slice(-USAGE_HISTORY_DAYS);
+    }
+  }
+
+  blocked(
+    kind: UsageKind,
+    requestBytes: number,
+    usedBytes: number,
+    dailyLimitBytes: number,
+    reason: string
+  ): UsageDecision {
+    this.#lastBlocked = { kind, reason };
+    return { allowed: false, kind, requestBytes, usedBytes, dailyLimitBytes, reason };
+  }
+}
+
+export function defaultAiBudget(config: IntegrationSettings["ai"]): UsageBudget {
+  return {
+    maxRequestBytes: config.maxRequestBytes ?? DEFAULT_AI_MAX_REQUEST_BYTES,
+    dailyBytes: config.dailyRequestBytes ?? DEFAULT_AI_DAILY_REQUEST_BYTES
+  };
+}
+
+export function defaultEmbeddingBudget(
+  config: IntegrationSettings["semanticSearch"]
+): UsageBudget {
+  return {
+    maxRequestBytes: config.maxRecordBytes ?? DEFAULT_EMBEDDING_MAX_RECORD_BYTES,
+    dailyBytes: config.dailyRecordBytes ?? DEFAULT_EMBEDDING_DAILY_RECORD_BYTES
+  };
+}
+
+export function buildAiDisclosure(
+  config: IntegrationSettings["ai"],
+  request: { prompt: string; systemPrompt?: string; maxTokens?: number },
+  usage: UsageSnapshot | undefined,
+  networkAllowed: boolean
+): AiDisclosure {
+  const body = aiRequestBody(config, request);
+  const text = [request.systemPrompt ?? "", request.prompt].join("\n");
+  const budget = defaultAiBudget(config);
+  const requestBytes = estimateAiRequestBytes(config, request);
+  const budgetReason = budget.maxRequestBytes > 0 && requestBytes > budget.maxRequestBytes
+    ? `The AI request is ${requestBytes} bytes, over the ${budget.maxRequestBytes}-byte per-request budget.`
+    : usage && budget.dailyBytes > 0 && usage.ai.bytes + requestBytes > budget.dailyBytes
+      ? "The AI daily budget has been reached; no provider request was made."
+      : null;
+  return {
+    provider: config.provider,
+    endpoint: aiEndpoint(config),
+    fields: ["model", ...(request.systemPrompt ? ["system instruction"] : []), "user prompt"],
+    characterCount: [...text].length,
+    requestBytes,
+    estimatedTokens: estimateTokens(text),
+    retained: "Aviary stores usage counters only; the provider's retention follows its policy.",
+    networkAllowed,
+    budgetAllowed: budgetReason === null,
+    budgetReason,
+    dailyUsedBytes: usage?.ai.bytes ?? 0,
+    dailyLimitBytes: budget.dailyBytes
+  };
+}
+
+export function buildEmbeddingDisclosure(
+  config: IntegrationSettings["semanticSearch"],
+  usage: UsageSnapshot | undefined,
+  networkAllowed: boolean
+): EmbeddingDisclosure {
+  const budget = defaultEmbeddingBudget(config);
+  return {
+    provider: "Configured embedding endpoint",
+    endpoint: config.endpoint || "Not configured",
+    fields: ["model", "captured record text"],
+    retained: "Vectors and bounded record text stay in Aviary's local semantic index; provider retention follows its policy.",
+    networkAllowed,
+    dailyUsedBytes: usage?.embedding.bytes ?? 0,
+    dailyLimitBytes: budget.dailyBytes,
+    maxRecordBytes: budget.maxRequestBytes
+  };
+}
+
+export function aiEndpoint(config: IntegrationSettings["ai"]): string {
+  if (config.endpoint) return config.endpoint;
+  return config.provider === "anthropic"
+    ? "https://api.anthropic.com/v1/messages"
+    : "https://api.openai.com/v1/chat/completions";
+}
+
+export function estimateAiRequestBytes(
+  config: IntegrationSettings["ai"],
+  request: { prompt: string; systemPrompt?: string; maxTokens?: number }
+): number {
+  return utf8Bytes(JSON.stringify(aiRequestBody(config, request)));
+}
+
+export function estimateTokens(text: string): number {
+  return Math.max(0, Math.ceil([...text].length / 4));
+}
+
+export function utf8Bytes(text: string): number {
+  return new TextEncoder().encode(text).byteLength;
+}
+
+function aiRequestBody(
+  config: IntegrationSettings["ai"],
+  request: { prompt: string; systemPrompt?: string; maxTokens?: number }
+): Record<string, unknown> {
+  if (config.provider === "anthropic") {
+    return {
+      model: config.model,
+      max_tokens: request.maxTokens ?? 1024,
+      ...(request.systemPrompt ? { system: request.systemPrompt } : {}),
+      messages: [{ role: "user", content: request.prompt }]
+    };
+  }
+  return {
+    model: config.model,
+    max_tokens: request.maxTokens ?? 1024,
+    messages: [
+      ...(request.systemPrompt ? [{ role: "system", content: request.systemPrompt }] : []),
+      { role: "user", content: request.prompt }
+    ]
+  };
+}
+
+function finiteLimit(value: number | undefined): number {
+  if (value === undefined) return 0;
+  return Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0;
+}
+
+function localDay(date: Date): string {
+  const pad = (value: number): string => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function emptyDay(day: string): UsageDay {
+  return { day, ai: { requests: 0, bytes: 0 }, embedding: { requests: 0, records: 0, bytes: 0 } };
+}
+
+function normalizeState(value: unknown): UsageState {
+  if (!isRecord(value) || value.schemaVersion !== INTEGRATION_USAGE_SCHEMA_VERSION || !Array.isArray(value.days)) {
+    return { schemaVersion: 1, days: [] };
+  }
+  const days = value.days
+    .map(normalizeDay)
+    .filter((day): day is UsageDay => day !== null)
+    .sort((a, b) => a.day.localeCompare(b.day));
+  return { schemaVersion: 1, days: days.slice(-USAGE_HISTORY_DAYS) };
+}
+
+function normalizeDay(value: unknown): UsageDay | null {
+  if (!isRecord(value) || typeof value.day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value.day)) {
+    return null;
+  }
+  const ai = isRecord(value.ai) ? value.ai : {};
+  const embedding = isRecord(value.embedding) ? value.embedding : {};
+  return {
+    day: value.day,
+    ai: {
+      requests: safeCount(ai.requests),
+      bytes: safeCount(ai.bytes)
+    },
+    embedding: {
+      requests: safeCount(embedding.requests),
+      records: safeCount(embedding.records),
+      bytes: safeCount(embedding.bytes)
+    }
+  };
+}
+
+function safeCount(value: unknown): number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : 0;
+}
+
+function cloneState(state: UsageState): UsageState {
+  return {
+    schemaVersion: 1,
+    days: state.days.map((day) => ({
+      day: day.day,
+      ai: { ...day.ai },
+      embedding: { ...day.embedding }
+    }))
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
