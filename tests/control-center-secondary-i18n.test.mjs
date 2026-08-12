@@ -125,13 +125,29 @@ test("secondary Control Center sections render stable copy through every locale"
       shadow.querySelector(".av-launcher").click();
       const panel = shadow.querySelector(".av-panel");
       const text = {};
+      const controls = {};
       for (const id of sections) {
         shadow.querySelector(`[data-av-section="${id}"]`).click();
         text[id] = panel.textContent;
+        for (const controlId of [
+          "av-import-archive",
+          "av-search-archive",
+          "av-semantic-search",
+          "av-crosspost-thread"
+        ]) {
+          const control = shadow.querySelector(`#${controlId}`);
+          if (!control) continue;
+          const labelledBy = control.getAttribute("aria-labelledby");
+          controls[controlId] = {
+            name: labelledBy ? shadow.querySelector(`#${labelledBy}`)?.textContent?.trim() : "",
+            labelledBy
+          };
+        }
       }
       output[locale] = {
         dialog: panel.getAttribute("aria-label"),
-        text
+        text,
+        controls
       };
       panelHandle.destroy();
       document.querySelector("#av-control-center")?.remove();
@@ -144,6 +160,16 @@ test("secondary Control Center sections render stable copy through every locale"
   assert.match(English.text.integrations, /Aria2 active downloads/);
   assert.match(English.text.export, /2 jobs tracked · 5 GraphQL IDs cached/);
   assert.match(English.text.library, /3 saved · 1 due/);
+  const expectedControlNames = {
+    "av-import-archive": "Import official X archive",
+    "av-search-archive": "Search captured records",
+    "av-semantic-search": "Semantic search",
+    "av-crosspost-thread": "Crosspost as thread"
+  };
+  for (const [id, name] of Object.entries(expectedControlNames)) {
+    assert.equal(English.controls[id].name, name, `${id} has the wrong English accessible name`);
+    assert.ok(English.controls[id].labelledBy, `${id} is missing aria-labelledby`);
+  }
 
   const untranslated = [
     "Snapshots stored",
@@ -161,6 +187,11 @@ test("secondary Control Center sections render stable copy through every locale"
   ];
   for (const locale of locales.slice(1)) {
     assert.notEqual(results[locale].dialog, "Aviary settings", `${locale} dialog label stayed English`);
+    for (const [id, name] of Object.entries(expectedControlNames)) {
+      assert.ok(results[locale].controls[id].name, `${locale}.${id} has no accessible name`);
+      assert.notEqual(results[locale].controls[id].name, name, `${locale}.${id} stayed English`);
+      assert.ok(results[locale].controls[id].labelledBy, `${locale}.${id} is missing aria-labelledby`);
+    }
     for (const id of sectionIds) {
       for (const phrase of untranslated) {
         assert.ok(!results[locale].text[id].includes(phrase), `${locale}.${id} still contains ${phrase}`);

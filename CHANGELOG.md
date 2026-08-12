@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Secondary file, search, semantic-search, and crosspost-thread controls now expose localized
+  visible labels through explicit `aria-labelledby` associations.
 - Secondary Control Center rows now translate dynamic archive, bookmark, export, and media-job
   labels and values across all supported locales, including data that only appears when optional
   integrations are present.

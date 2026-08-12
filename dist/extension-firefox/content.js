@@ -6894,11 +6894,14 @@ html.av-reduce-motion *::after {
           el("span", "av-row-label", t("Import official X archive")),
           el("span", "av-row-description", t("Pick a ZIP exported from x.com. STORE and DEFLATE entries are supported; the source stays local while it is resumable."))
         );
+        const archiveLabel = copy.querySelector(".av-row-label");
+        archiveLabel.id = "av-import-archive-label";
         const input = document.createElement("input");
         input.type = "file";
         input.accept = ".zip,application/zip";
         input.className = "av-file-input";
-        input.setAttribute("aria-label", t("Import official X archive"));
+        input.id = "av-import-archive";
+        input.setAttribute("aria-labelledby", archiveLabel.id);
         input.addEventListener("change", () => {
           const file = input.files?.[0];
           if (!file) return;
@@ -6936,10 +6939,13 @@ html.av-reduce-motion *::after {
           el("span", "av-row-label", t("Search captured records")),
           el("span", "av-row-description", t("Full-text search across the latest export collector run."))
         );
+        const archiveSearchLabel = copy.querySelector(".av-row-label");
         const input = document.createElement("input");
         input.type = "search";
         input.placeholder = t("@handle, keyword, phrase\u2026");
-        input.setAttribute("aria-label", t("Search captured records"));
+        archiveSearchLabel.id = "av-search-archive-label";
+        input.id = "av-search-archive";
+        input.setAttribute("aria-labelledby", archiveSearchLabel.id);
         input.className = "av-text-input";
         const results = el("div", "av-search-results");
         results.setAttribute("role", "list");
@@ -7278,9 +7284,12 @@ html.av-reduce-motion *::after {
           el("span", "av-row-label", t("Crosspost as thread")),
           el("span", "av-row-description", t("Split on blank lines and reply each segment to the previous one."))
         );
+        const threadLabel = copy.querySelector(".av-row-label");
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
-        checkbox.setAttribute("aria-label", t("Crosspost as thread"));
+        threadLabel.id = "av-crosspost-thread-label";
+        checkbox.id = "av-crosspost-thread";
+        checkbox.setAttribute("aria-labelledby", threadLabel.id);
         threadRow.append(copy, checkbox);
         rows.push(threadRow);
         rows.push(
@@ -7472,10 +7481,13 @@ html.av-reduce-motion *::after {
           el("span", "av-row-label", t("Semantic search")),
           el("span", "av-row-description", t("Vector similarity over captured records. Embeddings run on demand."))
         );
+        const semanticSearchLabel = copy.querySelector(".av-row-label");
         const input = document.createElement("input");
         input.type = "search";
         input.placeholder = t("Describe what you're looking for\u2026");
-        input.setAttribute("aria-label", t("Semantic search"));
+        semanticSearchLabel.id = "av-semantic-search-label";
+        input.id = "av-semantic-search";
+        input.setAttribute("aria-labelledby", semanticSearchLabel.id);
         input.className = "av-text-input";
         const results = el("div", "av-search-results");
         let pending;
