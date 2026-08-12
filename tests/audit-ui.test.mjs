@@ -63,7 +63,15 @@ test("Control Center ships its own touch and viewport rules", async () => {
 });
 
 test("Control Center implements the ImageGen page system across every menu section", async () => {
-  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+  const source = (
+    await Promise.all([
+      "src/ui/control-center.ts",
+      "src/ui/control-center/sections/advanced.ts",
+      "src/ui/control-center/sections/data.ts",
+      "src/ui/control-center/sections/presets.ts",
+      "src/ui/control-center/sections/reading.ts"
+    ].map((file) => readFile(path.join(root, file), "utf8")))
+  ).join("\n");
   const presets = await readFile(path.join(root, "src/features/core/presets.ts"), "utf8");
   const feature = await readFile(path.join(root, "src/features/core/control-center.ts"), "utf8");
   const registry = source.slice(source.indexOf("const sectionRegistry"), source.indexOf("const buildNav"));
@@ -95,7 +103,7 @@ test("Control Center implements the ImageGen page system across every menu secti
   assert.match(source, /\.av-section\[data-av-section="presets"\] \.av-page-grid/);
   assert.match(source, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(source, /@media \(max-width: 1100px\)/);
-  assert.match(source, /cardHeader\.append\(presetIcon\(preset\.id\), copy\)/);
+  assert.match(source, /cardHeader\.append\((?:ctx\.)?presetIcon\(preset\.id\), copy\)/);
   assert.match(source, /"av-preset-highlights"/);
   assert.match(presets, /highlights: PresetHighlight\[\]/);
   assert.match(feature, /highlights: preset\.highlights\.map/);
@@ -112,7 +120,13 @@ test("Control Center implements the ImageGen page system across every menu secti
 });
 
 test("credential fields are masked and offer an explicit reveal", async () => {
-  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+  const source = (
+    await Promise.all([
+      "src/ui/control-center.ts",
+      "src/ui/control-center/sections/advanced.ts",
+      "src/ui/control-center/sections/data.ts"
+    ].map((file) => readFile(path.join(root, file), "utf8")))
+  ).join("\n");
 
   assert.match(source, /function secretInputRow\(/);
   assert.match(source, /input\.type = "password"/);
@@ -137,7 +151,12 @@ test("credential fields are masked and offer an explicit reveal", async () => {
 });
 
 test("reduced motion reaches shadow content and is reachable from the UI", async () => {
-  const controlCenter = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+  const controlCenter = (
+    await Promise.all([
+      "src/ui/control-center.ts",
+      "src/ui/control-center/sections/reading.ts"
+    ].map((file) => readFile(path.join(root, file), "utf8")))
+  ).join("\n");
   const hidden = await readFile(path.join(root, "src/features/filtering/hidden-posts-feature.ts"), "utf8");
 
   // A page-level class cannot style shadow descendants, so the host carries the state.

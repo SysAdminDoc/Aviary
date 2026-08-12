@@ -65,7 +65,12 @@ test("presets do not promise settings that nothing implements", async () => {
 });
 
 test("archive search debounces input and only rebuilds a stale index", async () => {
-  const ui = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+  const ui = (
+    await Promise.all([
+      "src/ui/control-center.ts",
+      "src/ui/control-center/sections/data.ts"
+    ].map((file) => readFile(path.join(root, file), "utf8")))
+  ).join("\n");
   const feature = await readFile(path.join(root, "src/features/core/control-center.ts"), "utf8");
 
   assert.match(ui, /searchTimer = setTimeout\(runSearch, 180\)/);

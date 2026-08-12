@@ -8,6 +8,17 @@ import { build } from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+const readControlCenterSource = async () =>
+  (
+    await Promise.all([
+      "src/ui/control-center.ts",
+      "src/ui/control-center/sections/advanced.ts",
+      "src/ui/control-center/sections/data.ts",
+      "src/ui/control-center/sections/presets.ts",
+      "src/ui/control-center/sections/reading.ts"
+    ].map((file) => readFile(path.join(root, file), "utf8")))
+  ).join("\n");
+
 test("exported settings redact credentials but keep every preference", async () => {
   const { buildSettingsExport, REDACTED_SECRET } = await importBundledModule(
     "src/features/core/settings-migration.ts"
@@ -87,7 +98,7 @@ test("importing a redacted file keeps locally stored credentials", async () => {
 
 test("an export with nothing captured produces no file and says so", async () => {
   const source = await readFile(path.join(root, "src/features/export/export-feature.ts"), "utf8");
-  const ui = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+  const ui = await readControlCenterSource();
 
   // An export now yields a list of archives (media.zipChunkSize can split it), so "no file"
   // is an empty list rather than a null artifact.
@@ -100,7 +111,7 @@ test("an export with nothing captured produces no file and says so", async () =>
 });
 
 test("user-facing copy does not advertise shipped features as unavailable", async () => {
-  const ui = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+  const ui = await readControlCenterSource();
   const exportFeature = await readFile(path.join(root, "src/features/export/export-feature.ts"), "utf8");
 
   // xlsx is in the supported list and has a working writer.

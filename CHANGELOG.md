@@ -9,6 +9,9 @@
   further calls, while profile-scoped usage history stores counters only and remains backup-safe.
 - Release verification now includes pinned ESLint static analysis across source, tests, and tooling;
   generated bundles and captured fixtures stay outside the lint target.
+- Control Center section builders now live under `src/ui/control-center/sections/` behind a typed
+  `PanelContext`; focused architecture coverage keeps translation, persistence, action, and
+  accessibility helpers on the shared contract while the mount module remains orchestration-only.
 
 ### Fixed
 

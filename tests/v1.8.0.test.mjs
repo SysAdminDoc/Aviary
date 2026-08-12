@@ -176,9 +176,14 @@ test("presets can promise the two settings that now have implementations", async
 });
 
 test("the Control Center exposes both settings", async () => {
-  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
-  assert.match(source, /options\.settings\.appearance\.hideBorders = checked/);
-  assert.match(source, /options\.settings\.layout\.writerMode = checked/);
+  const source = (
+    await Promise.all([
+      "src/ui/control-center.ts",
+      "src/ui/control-center/sections/reading.ts"
+    ].map((file) => readFile(path.join(root, file), "utf8")))
+  ).join("\n");
+  assert.match(source, /ctx\.options\.settings\.appearance\.hideBorders = checked/);
+  assert.match(source, /ctx\.options\.settings\.layout\.writerMode = checked/);
 });
 
 async function importBundledModule(relativePath) {

@@ -218,7 +218,13 @@ test("aria2 routes by size, so the threshold finally means something", async () 
 });
 
 test("the aria2 threshold is reachable from the panel", async () => {
-  const panel = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+  const panel = (
+    await Promise.all([
+      "src/ui/control-center.ts",
+      "src/ui/control-center/sections/advanced.ts",
+      "src/ui/control-center/sections/data.ts"
+    ].map((file) => readFile(path.join(root, file), "utf8")))
+  ).join("\n");
 
   // It normalized and round-tripped for releases with no control anywhere in the UI.
   assert.match(panel, /Hand off files larger than \(MB\)/);

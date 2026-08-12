@@ -6684,8 +6684,7 @@ html.av-reduce-motion *::after {
     return /^[a-z]{2,3}(-[A-Za-z0-9]{2,8}){0,2}$/.test(normalized) ? normalized : fallback;
   }
 
-  // src/ui/control-center.ts
-  var AVIARY_VERSION2 = false ? "dev" : "1.16.0";
+  // src/ui/control-center/constants.ts
   var MEDIA_LAYOUT_OPTIONS = [
     ["default", "Default grid"],
     ["stacked", "Stacked"],
@@ -6709,7 +6708,2541 @@ html.av-reduce-motion *::after {
     video: "Videos",
     gif: "GIFs"
   };
-  var HIDE_NAV_ITEM_IDS = /* @__PURE__ */ new Set(["premium", "home", "explore", "notifications", "messages", "profile", "more"]);
+  var HIDE_NAV_ITEM_IDS = /* @__PURE__ */ new Set([
+    "premium",
+    "home",
+    "explore",
+    "notifications",
+    "messages",
+    "profile",
+    "more"
+  ]);
+
+  // src/ui/control-center/sections/advanced.ts
+  function buildTrustRows(ctx) {
+    const rows = [
+      ctx.storageStatusRow(),
+      ctx.toggleRow(
+        "Local-only mode",
+        "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.",
+        ctx.options.settings.privacy.localOnly,
+        async (checked) => {
+          ctx.options.settings.privacy.localOnly = checked;
+          await ctx.save(checked ? "Local-only mode on" : "Local-only mode off");
+        }
+      ),
+      ctx.toggleRow(
+        "Refuse X's analytics beacons",
+        "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.",
+        ctx.options.settings.privacy.blockAnalyticsBeacons,
+        async (checked) => {
+          ctx.options.settings.privacy.blockAnalyticsBeacons = checked;
+          await ctx.save(checked ? "Analytics beacons refused" : "Analytics beacons allowed");
+        }
+      ),
+      ctx.toggleRow(
+        "Monitor selector health",
+        "Check the current X surface for required and fallback anchors. Turn this off when you do not want selector diagnostics.",
+        ctx.options.settings.diagnostics.selectorHealth,
+        async (checked) => {
+          ctx.options.settings.diagnostics.selectorHealth = checked;
+          await ctx.save(checked ? "Selector health monitoring on" : "Selector health monitoring off");
+        }
+      ),
+      ...ctx.beaconRows(),
+      ctx.storageHealthRow(),
+      ctx.readonlyRow("Telemetry", ctx.options.settings.privacy.telemetry ? "Enabled" : "Disabled"),
+      ctx.coverageRow(),
+      ...ctx.selectorHealthRows()
+    ];
+    const profile = ctx.options.getProfileStatus?.();
+    if (profile) {
+      rows.splice(
+        1,
+        0,
+        ctx.dataRow("Active profile", `${profile.activeLabel} \xB7 ${profile.activeId}`),
+        ctx.selectRow(
+          "Switch profile",
+          profile.activeId,
+          profile.profiles.map((entry) => [entry.id, `${entry.label} (${entry.kind})`]),
+          async (profileId) => {
+            if (!ctx.options.switchProfile) return;
+            try {
+              const result = await ctx.options.switchProfile(profileId);
+              if (!result.ok) throw new Error(result.error ?? "Profile could not be switched");
+              ctx.setStatus("Profile switched. Reloading\u2026");
+            } catch (error) {
+              ctx.options.onError("Profile switch failed", error);
+              ctx.setStatus("Profile switch failed.");
+            }
+          },
+          "A profile is an explicit local boundary for settings, credentials, library data, jobs, and search.",
+          false
+        )
+      );
+      if (profile.legacyDataAvailable && ctx.options.adoptLegacyProfileData) {
+        rows.push(
+          ctx.actionRow(
+            "Assign legacy data here",
+            "Move unassigned pre-profile settings and library stores into the active profile. Nothing is guessed from the current X route.",
+            async () => {
+              const result = await ctx.options.adoptLegacyProfileData();
+              ctx.render();
+              ctx.setStatusCopy("Assigned {moved} stores; {skipped} already existed.", {
+                moved: result.moved,
+                skipped: result.skipped
+              });
+            }
+          )
+        );
+      }
+      if (ctx.options.createProfile) {
+        rows.push(
+          ctx.textInputRow("New profile", "Create an empty offline profile before switching accounts or importing another archive.", "", async (label) => {
+            try {
+              const result = await ctx.options.createProfile(label);
+              if (!result.ok) throw new Error(result.error ?? "Profile could not be created");
+              ctx.setStatus("Profile created. Reloading\u2026");
+            } catch (error) {
+              ctx.options.onError("Profile creation failed", error);
+              ctx.setStatus("Profile creation failed.");
+            }
+          })
+        );
+      }
+    }
+    return rows;
+  }
+  function buildIntegrationRows(ctx) {
+    const rows = [];
+    const status = ctx.options.getIntegrationStatus?.();
+    const usage = ctx.options.getIntegrationUsage?.();
+    const integrations = ctx.options.settings.integrations;
+    rows.push(
+      ctx.toggleRow(
+        "Aria2 handoff",
+        "Send large media downloads to a self-hosted Aria2 JSON-RPC endpoint.",
+        integrations.aria2.enabled,
+        async (checked) => {
+          integrations.aria2.enabled = checked;
+          await ctx.save(checked ? "Aria2 handoff on" : "Aria2 handoff off");
+        }
+      )
+    );
+    rows.push(
+      ctx.textInputRow(
+        "Aria2 endpoint",
+        "http://localhost:6800 (no trailing slash needed)",
+        integrations.aria2.endpoint,
+        async (value) => {
+          integrations.aria2.endpoint = value;
+          await ctx.save("Aria2 endpoint saved");
+        }
+      )
+    );
+    rows.push(
+      ctx.secretInputRow(
+        "Aria2 RPC secret",
+        "Optional shared secret for token: auth.",
+        integrations.aria2.secret,
+        async (value) => {
+          integrations.aria2.secret = value;
+          await ctx.save("Aria2 secret saved");
+        }
+      )
+    );
+    rows.push(
+      ctx.integerInputRow(
+        "Hand off files larger than (MB)",
+        "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.",
+        Math.round(integrations.aria2.minBytes / 1e6),
+        async (value) => {
+          integrations.aria2.minBytes = Math.max(0, value) * 1e6;
+          await ctx.save("Aria2 threshold saved");
+        }
+      )
+    );
+    if (ctx.options.pingAria2) {
+      rows.push(
+        ctx.actionRow("Test Aria2 connection", "Sends a trivial JSON-RPC call.", async () => {
+          try {
+            const result = await ctx.options.pingAria2();
+            if (result.ok) {
+              ctx.setStatus("Aria2 reachable.");
+            } else {
+              ctx.setStatusCopy("Aria2 unreachable: {error}", { error: result.error ?? "unknown error" });
+            }
+          } catch (error) {
+            ctx.options.onError("Aria2 connection test failed", error);
+            ctx.setStatus("Aria2 connection test failed.");
+          }
+        })
+      );
+    }
+    if (ctx.options.listAria2Active && ctx.options.cancelAria2) {
+      const row = ctx.el("div", "av-row av-row-stack");
+      const copy = ctx.el("span", "av-row-copy");
+      copy.append(
+        ctx.el("span", "av-row-label", ctx.t("Aria2 active downloads")),
+        ctx.el("span", "av-row-description", ctx.t("Refresh to list in-flight transfers; tap Cancel to abort one."))
+      );
+      const list = ctx.el("div", "av-search-results");
+      const refresh = async () => {
+        try {
+          const active = await ctx.options.listAria2Active();
+          list.replaceChildren();
+          if (active.length === 0) {
+            list.append(ctx.el("div", "av-row-description", ctx.t("No active downloads.")));
+            return;
+          }
+          for (const job of active) {
+            const item = ctx.el("div", "av-search-hit");
+            const total = job.totalLength > 0 ? `${Math.round(job.completedLength / job.totalLength * 100)}%` : "?";
+            item.append(
+              ctx.el("span", "av-row-label", `${job.path || job.gid} \xB7 ${total}`),
+              ctx.el("span", "av-row-description", ctx.localizedCopy("gid {gid} \xB7 {status}", { gid: job.gid, status: job.status }))
+            );
+            const cancel = ctx.el("button", "av-button av-button-secondary", ctx.t("Cancel"));
+            cancel.type = "button";
+            cancel.addEventListener("click", () => {
+              void (async () => {
+                cancel.disabled = true;
+                try {
+                  const result = await ctx.options.cancelAria2(job.gid);
+                  if (result.ok) {
+                    ctx.setStatusCopy("Cancelled {gid}.", { gid: job.gid });
+                    await refresh();
+                  } else {
+                    ctx.setStatusCopy("Aria2 cancel failed: {error}", {
+                      error: result.error ?? "unknown error"
+                    });
+                  }
+                } catch (error) {
+                  try {
+                    ctx.options.onError("Aria2 cancel failed", error);
+                  } catch {
+                  }
+                  ctx.setStatus("Aria2 cancel failed.");
+                } finally {
+                  cancel.disabled = false;
+                }
+              })();
+            });
+            item.append(cancel);
+            list.append(item);
+          }
+        } catch (error) {
+          ctx.options.onError("Aria2 sweep failed", error);
+          ctx.setStatus("Aria2 sweep failed.");
+        }
+      };
+      const refreshBtn = ctx.el("button", "av-button av-button-secondary", ctx.t("Refresh"));
+      refreshBtn.type = "button";
+      refreshBtn.addEventListener("click", () => void refresh());
+      row.append(copy, refreshBtn, list);
+      rows.push(row);
+    }
+    rows.push(
+      ctx.toggleRow(
+        "Bluesky crosspost",
+        "Post composer text to your Bluesky account on demand.",
+        integrations.bluesky.enabled,
+        async (checked) => {
+          integrations.bluesky.enabled = checked;
+          await ctx.save(checked ? "Bluesky on" : "Bluesky off");
+        }
+      )
+    );
+    rows.push(
+      ctx.textInputRow(
+        "Bluesky service URL",
+        "Default: https://bsky.social",
+        integrations.bluesky.service,
+        async (value) => {
+          integrations.bluesky.service = value;
+          await ctx.save("Bluesky service saved");
+        }
+      )
+    );
+    rows.push(
+      ctx.textInputRow(
+        "Bluesky handle",
+        "Your handle (no @, e.g. you.bsky.social)",
+        integrations.bluesky.handle,
+        async (value) => {
+          integrations.bluesky.handle = value;
+          await ctx.save("Bluesky handle saved");
+        }
+      )
+    );
+    rows.push(
+      ctx.secretInputRow(
+        "Bluesky app password",
+        "App password from your account settings \u2014 never your main password.",
+        integrations.bluesky.appPassword,
+        async (value) => {
+          integrations.bluesky.appPassword = value;
+          await ctx.save("Bluesky app password saved");
+        }
+      )
+    );
+    rows.push(
+      ctx.toggleRow(
+        "Mastodon crosspost",
+        "Post composer text to your Mastodon account on demand.",
+        integrations.mastodon.enabled,
+        async (checked) => {
+          integrations.mastodon.enabled = checked;
+          await ctx.save(checked ? "Mastodon on" : "Mastodon off");
+        }
+      )
+    );
+    rows.push(
+      ctx.textInputRow(
+        "Mastodon instance",
+        "https://mastodon.social",
+        integrations.mastodon.instance,
+        async (value) => {
+          integrations.mastodon.instance = value;
+          await ctx.save("Mastodon instance saved");
+        }
+      )
+    );
+    rows.push(
+      ctx.secretInputRow(
+        "Mastodon access token",
+        "Bearer token with write:statuses scope.",
+        integrations.mastodon.token,
+        async (value) => {
+          integrations.mastodon.token = value;
+          await ctx.save("Mastodon token saved");
+        }
+      )
+    );
+    rows.push(
+      ctx.toggleRow(
+        "Attach last download",
+        "Upload the last successful Aviary media download with the first post in an explicit crosspost.",
+        integrations.crosspost.attachLastDownload,
+        async (checked) => {
+          integrations.crosspost.attachLastDownload = checked;
+          await ctx.save(checked ? "Crosspost attachment on" : "Crosspost attachment off");
+        }
+      )
+    );
+    if (ctx.options.crosspost) {
+      const threadRow = ctx.el("div", "av-row");
+      const copy = ctx.el("span", "av-row-copy");
+      copy.append(
+        ctx.el("span", "av-row-label", ctx.t("Crosspost as thread")),
+        ctx.el("span", "av-row-description", ctx.t("Split on blank lines and reply each segment to the previous one."))
+      );
+      const threadLabel = copy.querySelector(".av-row-label");
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      threadLabel.id = "av-crosspost-thread-label";
+      checkbox.id = "av-crosspost-thread";
+      checkbox.setAttribute("aria-labelledby", threadLabel.id);
+      threadRow.append(copy, checkbox);
+      rows.push(threadRow);
+      rows.push(
+        ctx.actionRow("Crosspost composer \u2192 Bluesky", "Uses the current composer text.", async () => {
+          try {
+            const result = await ctx.options.crosspost("bluesky", { asThread: checkbox.checked });
+            if (result.ok) {
+              ctx.setStatusCopy("Posted {posts} to Bluesky.{url}", {
+                posts: result.posts ?? 1,
+                url: result.url ? ` ${result.url}` : ""
+              });
+            } else {
+              ctx.setStatusCopy("Bluesky failed: {error}", { error: result.error ?? "unknown error" });
+            }
+          } catch (error) {
+            ctx.options.onError("Bluesky crosspost failed", error);
+            ctx.setStatus("Bluesky crosspost failed.");
+          }
+        })
+      );
+      rows.push(
+        ctx.actionRow("Crosspost composer \u2192 Mastodon", "Uses the current composer text.", async () => {
+          try {
+            const result = await ctx.options.crosspost("mastodon", { asThread: checkbox.checked });
+            if (result.ok) {
+              ctx.setStatusCopy("Posted {posts} to Mastodon.{url}", {
+                posts: result.posts ?? 1,
+                url: result.url ? ` ${result.url}` : ""
+              });
+            } else {
+              ctx.setStatusCopy("Mastodon failed: {error}", { error: result.error ?? "unknown error" });
+            }
+          } catch (error) {
+            ctx.options.onError("Mastodon crosspost failed", error);
+            ctx.setStatus("Mastodon crosspost failed.");
+          }
+        })
+      );
+    }
+    rows.push(
+      ctx.toggleRow(
+        "AI provider runs",
+        "Let the AI command menu POST prompts to your configured provider.",
+        integrations.ai.enabled,
+        async (checked) => {
+          integrations.ai.enabled = checked;
+          await ctx.save(checked ? "AI runs on" : "AI runs off");
+        }
+      )
+    );
+    rows.push(
+      ctx.selectRow(
+        "AI provider",
+        integrations.ai.provider,
+        [
+          ["anthropic", "Anthropic Messages API"],
+          ["openai", "OpenAI Chat Completions"],
+          ["openai-compatible", "OpenAI-compatible (LocalAI, Ollama proxy, \u2026)"]
+        ],
+        async (value) => {
+          if (value === "anthropic" || value === "openai" || value === "openai-compatible") {
+            integrations.ai.provider = value;
+            await ctx.save(`AI provider set to ${value}`);
+          }
+        }
+      )
+    );
+    rows.push(
+      ctx.textInputRow(
+        "AI endpoint (optional)",
+        "Override the default endpoint for the chosen provider.",
+        integrations.ai.endpoint,
+        async (value) => {
+          integrations.ai.endpoint = value;
+          await ctx.save("AI endpoint saved");
+        }
+      )
+    );
+    rows.push(
+      ctx.textInputRow(
+        "AI model",
+        "e.g. claude-sonnet-4-6, gpt-4o, llama3.1:8b",
+        integrations.ai.model,
+        async (value) => {
+          integrations.ai.model = value;
+          await ctx.save("AI model saved");
+        }
+      )
+    );
+    rows.push(
+      ctx.secretInputRow(
+        "AI API key",
+        "Stored locally only. Aviary never sends this except as the auth header to your provider.",
+        integrations.ai.apiKey,
+        async (value) => {
+          integrations.ai.apiKey = value;
+          await ctx.save("AI API key saved");
+        }
+      )
+    );
+    if (usage) {
+      rows.push(
+        ctx.dataRow(
+          "Network status",
+          usage.networkAllowed ? ctx.t("Allowed") : ctx.t("Blocked by local-only mode")
+        ),
+        ctx.dataRow(
+          "AI destination",
+          `${integrations.ai.provider} \xB7 ${integrations.ai.endpoint || ctx.defaultAiEndpoint(integrations.ai.provider)}`
+        ),
+        ctx.readonlyRow(
+          "AI data disclosure",
+          "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status."
+        ),
+        ctx.dataRow(
+          "AI usage today",
+          `${usage.ai.requests} requests \xB7 ${ctx.formatBytes(usage.ai.bytes)} / ${usage.ai.dailyLimitBytes > 0 ? ctx.formatBytes(usage.ai.dailyLimitBytes) : ctx.t("unlimited")}`
+        ),
+        ctx.integerInputRow(
+          "AI max request bytes",
+          "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.",
+          integrations.ai.maxRequestBytes,
+          async (value) => {
+            integrations.ai.maxRequestBytes = value;
+            await ctx.save("AI request budget saved");
+          },
+          { max: 5e6 }
+        ),
+        ctx.integerInputRow(
+          "AI daily request bytes",
+          "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.",
+          integrations.ai.dailyRequestBytes,
+          async (value) => {
+            integrations.ai.dailyRequestBytes = value;
+            await ctx.save("AI daily budget saved");
+          },
+          { max: 1e8 }
+        )
+      );
+    }
+    rows.push(
+      ctx.toggleRow(
+        "Semantic search",
+        "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.",
+        integrations.semanticSearch.enabled,
+        async (checked) => {
+          integrations.semanticSearch.enabled = checked;
+          await ctx.save(checked ? "Semantic search on" : "Semantic search off");
+        }
+      )
+    );
+    rows.push(
+      ctx.textInputRow(
+        "Embedding endpoint",
+        "POST endpoint that returns {data: [{embedding: number[]}]}",
+        integrations.semanticSearch.endpoint,
+        async (value) => {
+          integrations.semanticSearch.endpoint = value;
+          await ctx.save("Embedding endpoint saved");
+        }
+      )
+    );
+    rows.push(
+      ctx.textInputRow(
+        "Embedding model",
+        "e.g. text-embedding-3-small",
+        integrations.semanticSearch.model,
+        async (value) => {
+          integrations.semanticSearch.model = value;
+          await ctx.save("Embedding model saved");
+        }
+      )
+    );
+    rows.push(
+      ctx.secretInputRow(
+        "Embedding API key",
+        "Stored locally; used only as the Authorization header.",
+        integrations.semanticSearch.apiKey,
+        async (value) => {
+          integrations.semanticSearch.apiKey = value;
+          await ctx.save("Embedding API key saved");
+        }
+      )
+    );
+    if (usage) {
+      rows.push(
+        ctx.dataRow(
+          "Embedding destination",
+          `${integrations.semanticSearch.endpoint || ctx.t("Not configured")}`
+        ),
+        ctx.readonlyRow(
+          "Embedding data disclosure",
+          "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy."
+        ),
+        ctx.dataRow(
+          "Embedding usage today",
+          `${usage.embedding.requests} requests \xB7 ${usage.embedding.records} records \xB7 ${ctx.formatBytes(usage.embedding.bytes)} / ${usage.embedding.dailyLimitBytes > 0 ? ctx.formatBytes(usage.embedding.dailyLimitBytes) : ctx.t("unlimited")}`
+        ),
+        ctx.integerInputRow(
+          "Embedding max record bytes",
+          "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.",
+          integrations.semanticSearch.maxRecordBytes,
+          async (value) => {
+            integrations.semanticSearch.maxRecordBytes = value;
+            await ctx.save("Embedding request budget saved");
+          },
+          { max: 5e6 }
+        ),
+        ctx.integerInputRow(
+          "Embedding daily record bytes",
+          "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.",
+          integrations.semanticSearch.dailyRecordBytes,
+          async (value) => {
+            integrations.semanticSearch.dailyRecordBytes = value;
+            await ctx.save("Embedding daily budget saved");
+          },
+          { max: 1e8 }
+        )
+      );
+    }
+    rows.push(
+      ctx.toggleRow(
+        "Auto-embed every export",
+        "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.",
+        integrations.semanticSearch.autoIndex,
+        async (checked) => {
+          integrations.semanticSearch.autoIndex = checked;
+          await ctx.save(checked ? "Auto-embed on" : "Auto-embed off");
+        }
+      )
+    );
+    if (ctx.options.rebuildSemanticIndex) {
+      rows.push(
+        ctx.actionRow(
+          "Rebuild semantic index",
+          "Embed every captured record. Re-running is cheap because cached entries are skipped.",
+          async () => {
+            ctx.setStatus("Rebuilding semantic index\u2026");
+            try {
+              const result = await ctx.options.rebuildSemanticIndex();
+              ctx.render();
+              if ((result.blocked ?? 0) > 0) {
+                ctx.setStatusCopy(
+                  "Embedding stopped at the budget ({blocked} records were not sent).",
+                  { blocked: result.blocked ?? 0 }
+                );
+                return;
+              }
+              const trimmed = result.dropped > 0 ? ` \xB7 oldest ${result.dropped} dropped` : "";
+              ctx.setStatusCopy(
+                "Indexed: +{added} new \xB7 skipped {skipped} \xB7 errors {errors} \xB7 total {total}{trimmed}.",
+                {
+                  added: result.added,
+                  skipped: result.skipped,
+                  errors: result.errors,
+                  total: result.total,
+                  trimmed
+                }
+              );
+            } catch (error) {
+              ctx.options.onError("Embedding failed", error);
+              ctx.setStatus("Embedding failed.");
+            }
+          }
+        )
+      );
+    }
+    if (ctx.options.semanticSearchQuery) {
+      const row = ctx.el("div", "av-row av-row-stack");
+      const copy = ctx.el("span", "av-row-copy");
+      copy.append(
+        ctx.el("span", "av-row-label", ctx.t("Semantic search")),
+        ctx.el("span", "av-row-description", ctx.t("Vector similarity over captured records. Embeddings run on demand."))
+      );
+      const semanticSearchLabel = copy.querySelector(".av-row-label");
+      const input = document.createElement("input");
+      input.type = "search";
+      input.placeholder = ctx.t("Describe what you're looking for\u2026");
+      semanticSearchLabel.id = "av-semantic-search-label";
+      input.id = "av-semantic-search";
+      input.setAttribute("aria-labelledby", semanticSearchLabel.id);
+      input.className = "av-text-input";
+      const results = ctx.el("div", "av-search-results");
+      let pending;
+      let searchSequence = 0;
+      input.addEventListener("input", () => {
+        if (pending !== void 0) clearTimeout(pending);
+        const sequence = ++searchSequence;
+        const query = input.value.trim();
+        if (query.length === 0) {
+          results.replaceChildren();
+          pending = void 0;
+          return;
+        }
+        pending = setTimeout(() => {
+          pending = void 0;
+          void ctx.options.semanticSearchQuery(query).then((hits) => {
+            if (sequence !== searchSequence || input.value.trim() !== query) return;
+            results.replaceChildren();
+            if (hits.length === 0) {
+              results.append(ctx.el("div", "av-row-description", ctx.t("No matches (or integration disabled).")));
+              return;
+            }
+            for (const hit of hits) {
+              const item = ctx.el("div", "av-search-hit");
+              item.append(
+                ctx.el("span", "av-row-label", `@${hit.handle ?? "anon"} \xB7 ${hit.tweetId ?? "\u2014"} \xB7 score ${hit.score.toFixed(3)}`),
+                ctx.el("span", "av-row-description", hit.text.slice(0, 200))
+              );
+              results.append(item);
+            }
+          }).catch((error) => {
+            if (sequence === searchSequence && input.value.trim() === query) {
+              ctx.options.onError("Semantic search failed", error);
+            }
+          });
+        }, 220);
+      });
+      row.append(copy, input, results);
+      rows.push(row);
+    }
+    if (ctx.options.clearSemanticIndex) {
+      rows.push(
+        ctx.actionRow("Clear semantic index", "Forget every embedded record.", async () => {
+          try {
+            await ctx.options.clearSemanticIndex();
+            await ctx.save("Semantic index cleared");
+          } catch (error) {
+            ctx.options.onError("Could not clear semantic index", error);
+            ctx.setStatus("Could not clear semantic index.");
+          }
+        })
+      );
+    }
+    if (ctx.options.clearIntegrationUsage) {
+      rows.push(
+        ctx.actionRow(
+          "Clear AI and embedding usage",
+          "Forget local request counters only. This does not remove the semantic index or provider credentials.",
+          async () => {
+            try {
+              await ctx.options.clearIntegrationUsage();
+              await ctx.save("AI and embedding usage cleared");
+            } catch (error) {
+              ctx.options.onError("Could not clear AI and embedding usage", error);
+              ctx.setStatus("Could not clear AI and embedding usage.");
+            }
+          }
+        )
+      );
+    }
+    if (status) {
+      const on = ctx.t("on");
+      const off = ctx.t("off");
+      const configured = ctx.t("configured");
+      const missingEndpoint = ctx.t("missing endpoint");
+      const missingCredentials = ctx.t("missing credentials");
+      const missingKeyModel = ctx.t("missing key/model");
+      const indexed = ctx.t("indexed");
+      const integrationLine = (name, enabled, ready, missing) => ctx.formatCopy(ctx.t("{name}: {state} \xB7 {config}"), {
+        name,
+        state: enabled ? on : off,
+        config: ready ? configured : missing
+      });
+      const lines = [
+        integrationLine("Aria2", status.aria2.enabled, status.aria2.configured, missingEndpoint),
+        integrationLine("Bluesky", status.bluesky.enabled, status.bluesky.configured, missingCredentials),
+        integrationLine("Mastodon", status.mastodon.enabled, status.mastodon.configured, missingCredentials),
+        integrationLine("AI", status.ai.enabled, status.ai.configured, missingKeyModel),
+        ctx.formatCopy(ctx.t("{name}: {state} \xB7 {count} {indexed}"), {
+          name: "Semantic",
+          state: status.semanticSearch.enabled ? on : off,
+          count: status.semanticSearch.indexed,
+          indexed
+        })
+      ];
+      rows.push(ctx.dataRow("Integration status", lines.join(" \xB7 ")));
+    }
+    if (ctx.options.recentIntegrationErrors) {
+      const errors = ctx.options.recentIntegrationErrors();
+      if (errors.length === 0) {
+        rows.push(ctx.readonlyRow("Recent integration errors", "None recorded."));
+      } else {
+        const row = ctx.el("div", "av-row av-row-stack");
+        const copy = ctx.el("span", "av-row-copy");
+        copy.append(
+          ctx.el("span", "av-row-label", ctx.t("Recent integration errors")),
+          ctx.el("span", "av-row-description", ctx.t("Drawn from the audit log; only failed integration calls show up."))
+        );
+        const list = ctx.el("div", "av-search-results");
+        for (const error of errors.slice(0, 8)) {
+          const item = ctx.el("div", "av-search-hit");
+          item.append(
+            ctx.el("span", "av-row-label", `${error.kind} \xB7 ${error.at}`),
+            ctx.el("span", "av-row-description", error.message.slice(0, 200))
+          );
+          list.append(item);
+        }
+        row.append(copy, list);
+        rows.push(row);
+      }
+    }
+    return rows;
+  }
+  function buildBackupRows(ctx) {
+    const rows = [];
+    ctx.t("Redacted \u2014 saved credentials will be kept.");
+    ctx.t("Stop after the current collection and roll back anything already written.");
+    ctx.t("Validate the backup and show the same conflicts without writing or removing any local data.");
+    ctx.t("Apply the selected profile collections. A failed write rolls back the collections already changed.");
+    ctx.t("Credentials are redacted; the values already saved in this profile will be kept.");
+    if (ctx.options.resetSettings) {
+      rows.push(
+        ctx.actionRow(
+          "Reset everything to plain X",
+          "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.",
+          async () => {
+            try {
+              await ctx.options.resetSettings();
+              ctx.setStatus("Everything reset. X is untouched again.");
+            } catch (error) {
+              ctx.options.onError("Could not reset settings", error);
+              ctx.setStatus("Could not reset settings.");
+            }
+          }
+        )
+      );
+    }
+    if (ctx.options.exportSettings) {
+      rows.push(
+        ctx.actionRow("Export settings", "Downloads your preferences as JSON. API keys and passwords are replaced with a placeholder, so the file is safe to share; importing it here keeps the credentials already saved on this machine.", async () => {
+          try {
+            await ctx.options.exportSettings();
+            ctx.setStatus("Settings exported.");
+          } catch (error) {
+            ctx.options.onError("Could not export settings", error);
+            ctx.setStatus("Could not export settings.");
+          }
+        })
+      );
+    }
+    if (ctx.options.importSettings) {
+      rows.push(
+        ctx.textareaRow(
+          "Import settings (JSON)",
+          "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.",
+          [],
+          async (lines) => {
+            const payload = lines.join("\n");
+            try {
+              const report = await ctx.options.importSettings(payload);
+              if (report.applied) {
+                const [first, ...rest] = report.warnings;
+                const extra = rest.length > 0 ? ` (+${rest.length} more)` : "";
+                ctx.setStatusCopy("Settings imported. {warning}", {
+                  warning: first ? `${first}${extra}` : ""
+                });
+              } else {
+                ctx.setStatusCopy("Import failed: {errors}", { errors: report.errors.join("; ") });
+              }
+            } catch (error) {
+              ctx.options.onError("Could not import settings", error);
+              ctx.setStatus("Could not import settings.");
+            }
+          },
+          "Import"
+        )
+      );
+    }
+    if (ctx.options.exportLibraryBackup) {
+      rows.push(
+        ctx.actionRow(
+          "Export full library backup",
+          "Downloads one versioned JSON backup of this profile's local collections. Credentials are excluded by default; restoring keeps the credentials already saved here.",
+          async () => {
+            try {
+              const result = await ctx.options.exportLibraryBackup();
+              ctx.setStatusCopy("Library backup downloaded: {filename} ({collections} collections, {bytes}).", {
+                filename: result.filename,
+                collections: result.collections,
+                bytes: ctx.formatBytes(result.bytes)
+              });
+            } catch (error) {
+              ctx.options.onError("Could not export full library backup", error);
+              ctx.setStatus("Could not export full library backup.");
+            }
+          }
+        )
+      );
+    }
+    if (ctx.options.previewLibraryRestore && ctx.options.restoreLibraryBackup) {
+      const fileRow = ctx.el("div", "av-row av-row-stack");
+      const fileCopy = ctx.el("span", "av-row-copy");
+      fileCopy.append(
+        ctx.el("span", "av-row-label", ctx.t("Choose a library backup")),
+        ctx.el(
+          "span",
+          "av-row-description",
+          ctx.t("Select a JSON backup to inspect its versions, counts, conflicts, and checksum before changing local data.")
+        )
+      );
+      const fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.className = "av-text-input";
+      fileInput.accept = ".json,application/json";
+      fileInput.setAttribute("aria-label", ctx.t("Choose a library backup"));
+      fileInput.addEventListener("change", () => {
+        const file = fileInput.files?.[0];
+        if (!file) return;
+        ctx.state.pendingLibraryBackupPayload = null;
+        ctx.state.pendingLibraryBackupPreview = null;
+        ctx.setStatus("Reading library backup\u2026");
+        void file.text().then(async (payload) => {
+          const preview = await ctx.options.previewLibraryRestore(payload);
+          ctx.state.pendingLibraryBackupPayload = payload;
+          ctx.state.pendingLibraryBackupPreview = preview;
+          ctx.render();
+          ctx.setStatusCopy("Backup loaded: {collections} collections, {conflicts} changes.", {
+            collections: preview.collections.length,
+            conflicts: preview.conflictCount
+          });
+        }).catch((error) => {
+          ctx.state.pendingLibraryBackupPayload = null;
+          ctx.state.pendingLibraryBackupPreview = null;
+          ctx.options.onError("Could not read library backup", error);
+          ctx.setStatus("Could not read library backup.");
+        });
+      });
+      fileRow.append(fileCopy, fileInput);
+      rows.push(fileRow);
+    }
+    const backupPreview = ctx.state.pendingLibraryBackupPreview;
+    const backupPayload = ctx.state.pendingLibraryBackupPayload;
+    if (backupPreview && backupPayload && ctx.options.restoreLibraryBackup) {
+      rows.push(ctx.dataRow("Backup version", `v${backupPreview.schemaVersion} \xB7 ${backupPreview.createdAt}`));
+      rows.push(
+        ctx.dataRow(
+          "Backup collections",
+          `${backupPreview.collections.length} \xB7 ${ctx.formatBytes(backupPreview.totalBytes)}`
+        )
+      );
+      rows.push(
+        ctx.dataRow(
+          "Collection changes",
+          backupPreview.collections.map((collection) => `${collection.label} v${collection.version}: ${collection.conflict}`).join(" \xB7 ")
+        )
+      );
+      if (backupPreview.credentialsRedacted) {
+        rows.push(ctx.readonlyRow("Credentials", "Redacted \u2014 saved credentials will be kept."));
+      }
+      if (backupPreview.warnings.length > 0) {
+        rows.push(
+          ctx.dataRow(
+            "Backup warnings",
+            backupPreview.warnings.map(
+              (warning) => warning === "Credentials are redacted; the values already saved in this profile will be kept." ? ctx.t(warning) : warning
+            ).join(" \xB7 ")
+          )
+        );
+      }
+      if (ctx.state.libraryRestoreRunning) {
+        rows.push(
+          ctx.actionRow(
+            "Cancel restore",
+            "Stop after the current collection and roll back anything already written.",
+            async () => {
+              ctx.state.libraryRestoreAbort?.abort();
+              ctx.setStatus("Cancelling restore\u2026");
+            }
+          )
+        );
+      } else {
+        rows.push(
+          ctx.actionRow(
+            "Dry-run restore",
+            "Validate the backup and show the same conflicts without writing or removing any local data.",
+            async () => {
+              try {
+                const result = await ctx.options.restoreLibraryBackup(backupPayload, {
+                  dryRun: true,
+                  signal: new AbortController().signal
+                });
+                if (result.errors.length === 0) {
+                  ctx.setStatus("Dry-run complete. No local data changed.");
+                } else {
+                  ctx.setStatusCopy("Dry-run failed: {errors}", { errors: result.errors.join("; ") });
+                }
+              } catch (error) {
+                ctx.options.onError("Could not dry-run library restore", error);
+                ctx.setStatus("Could not dry-run library restore.");
+              }
+            }
+          )
+        );
+        rows.push(
+          ctx.actionRow(
+            "Restore this library backup",
+            "Apply the selected profile collections. A failed write rolls back the collections already changed.",
+            async () => {
+              ctx.state.libraryRestoreRunning = true;
+              ctx.state.libraryRestoreAbort = new AbortController();
+              ctx.render();
+              try {
+                const result = await ctx.options.restoreLibraryBackup(backupPayload, {
+                  dryRun: false,
+                  signal: ctx.state.libraryRestoreAbort.signal
+                });
+                if (result.applied) {
+                  ctx.state.pendingLibraryBackupPayload = null;
+                  ctx.state.pendingLibraryBackupPreview = null;
+                  ctx.setStatusCopy("Library backup restored ({collections} collections). Reloading\u2026", {
+                    collections: result.restoredKeys.length
+                  });
+                } else if (result.cancelled) {
+                  ctx.setStatus(
+                    result.rolledBack ? "Restore cancelled; local data was rolled back." : "Restore cancelled."
+                  );
+                } else {
+                  ctx.setStatusCopy("Restore failed: {errors}", { errors: result.errors.join("; ") });
+                }
+              } catch (error) {
+                ctx.options.onError("Could not restore library backup", error);
+                ctx.setStatus("Could not restore library backup.");
+              } finally {
+                ctx.state.libraryRestoreRunning = false;
+                ctx.state.libraryRestoreAbort = null;
+                ctx.render();
+              }
+            }
+          )
+        );
+      }
+    }
+    if (ctx.options.getAuditSize) {
+      rows.push(
+        ctx.toggleRow(
+          "Keep a local action log",
+          "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.",
+          ctx.options.settings.privacy.auditLog,
+          async (value) => {
+            ctx.options.settings.privacy.auditLog = value;
+            await ctx.save(value ? "Action log on" : "Action log off");
+          }
+        )
+      );
+      rows.push(ctx.dataRow("Audit entries", String(ctx.options.getAuditSize())));
+    }
+    if (ctx.options.clearAuditLog) {
+      rows.push(
+        ctx.actionRow("Clear audit log", "Drop the local action log.", async () => {
+          try {
+            await ctx.options.clearAuditLog();
+            await ctx.save("Audit log cleared");
+          } catch (error) {
+            ctx.options.onError("Could not clear audit log", error);
+            ctx.setStatus("Could not clear audit log.");
+          }
+        })
+      );
+    }
+    return rows;
+  }
+
+  // src/ui/control-center/sections/data.ts
+  function buildSnapshotRows(ctx) {
+    const rows = [];
+    if (ctx.options.getSnapshotStatus) {
+      const status = ctx.options.getSnapshotStatus();
+      rows.push(
+        ctx.dataRow(
+          "Snapshots stored",
+          status.latestAt ? ctx.localizedCopy("{count} entries \xB7 latest {kind} of {latestCount} @ {at}", {
+            count: status.total,
+            kind: status.latestKind ?? "snapshot",
+            latestCount: status.latestCount,
+            at: status.latestAt
+          }) : ctx.localizedCopy("{count} entries", { count: status.total })
+        )
+      );
+    }
+    if (ctx.options.captureSnapshot) {
+      rows.push(
+        ctx.actionRow(
+          "Capture followers from this view",
+          "Walks UserCell rows on the current page. Open a /handle/followers view first.",
+          async () => {
+            try {
+              const result = await ctx.options.captureSnapshot("followers");
+              ctx.render();
+              if (result) {
+                ctx.setStatusCopy("Captured {count} followers for @{handle}.", {
+                  count: result.count,
+                  handle: result.handle
+                });
+              } else {
+                ctx.setStatus("No UserCell rows found.");
+              }
+            } catch (error) {
+              ctx.options.onError("Snapshot failed", error);
+              ctx.setStatus("Snapshot failed.");
+            }
+          }
+        )
+      );
+      rows.push(
+        ctx.actionRow(
+          "Capture following from this view",
+          "Walks UserCell rows on the current page. Open a /handle/following view first.",
+          async () => {
+            try {
+              const result = await ctx.options.captureSnapshot("following");
+              ctx.render();
+              if (result) {
+                ctx.setStatusCopy("Captured {count} following for @{handle}.", {
+                  count: result.count,
+                  handle: result.handle
+                });
+              } else {
+                ctx.setStatus("No UserCell rows found.");
+              }
+            } catch (error) {
+              ctx.options.onError("Snapshot failed", error);
+              ctx.setStatus("Snapshot failed.");
+            }
+          }
+        )
+      );
+    }
+    if (ctx.options.clearSnapshots) {
+      rows.push(
+        ctx.actionRow("Clear all snapshots", "Drop every stored follower/following snapshot.", async () => {
+          try {
+            await ctx.options.clearSnapshots();
+            await ctx.save("Snapshots cleared");
+          } catch (error) {
+            ctx.options.onError("Could not clear snapshots", error);
+            ctx.setStatus("Could not clear snapshots.");
+          }
+        })
+      );
+    }
+    const archiveStatus = ctx.options.getArchiveImportStatus?.();
+    const archiveLibraryStatus = ctx.options.getArchiveLibraryStatus?.();
+    if (archiveLibraryStatus) {
+      rows.push(
+        ctx.dataRow(
+          "Imported collections",
+          ctx.localizedCopy(
+            "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists",
+            {
+              posts: archiveLibraryStatus.authoredPosts,
+              likes: archiveLibraryStatus.likes,
+              messages: archiveLibraryStatus.directMessages,
+              media: archiveLibraryStatus.media,
+              followers: archiveLibraryStatus.followers,
+              following: archiveLibraryStatus.following,
+              lists: archiveLibraryStatus.lists
+            }
+          )
+        )
+      );
+    }
+    if (archiveStatus) {
+      for (const job of archiveStatus.jobs) {
+        rows.push(
+          ctx.dataRow(
+            "Archive import",
+            `${ctx.localizedCopy("{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings", {
+              status: job.status,
+              filename: job.filename,
+              records: job.recordCount,
+              files: job.filesParsed,
+              warnings: job.warningCount
+            })}${job.error ? ` \xB7 ${job.error}` : ""}`
+          )
+        );
+        if (job.status === "running" && ctx.options.pauseArchiveImport) {
+          rows.push(
+            ctx.actionRow("Pause archive import", { source: "Pause {filename}.", values: { filename: job.filename } }, async () => {
+              const result = await ctx.options.pauseArchiveImport(job.jobId);
+              if (!result.ok) throw new Error(result.error ?? "Archive import could not be paused");
+              ctx.render();
+              ctx.setStatus("Archive import paused.");
+            })
+          );
+        }
+        if ((job.status === "paused" || job.status === "queued") && ctx.options.resumeArchiveImport) {
+          rows.push(
+            ctx.actionRow("Resume archive import", { source: "Resume {filename}.", values: { filename: job.filename } }, async () => {
+              const result = await ctx.options.resumeArchiveImport(job.jobId);
+              if (!result.ok) throw new Error(result.error ?? "Archive import could not be resumed");
+              ctx.render();
+              ctx.setStatus("Archive import resumed.");
+            })
+          );
+        }
+        if ((job.status === "running" || job.status === "paused" || job.status === "queued") && ctx.options.cancelArchiveImport) {
+          rows.push(
+            ctx.actionRow("Cancel archive import", { source: "Cancel {filename}.", values: { filename: job.filename } }, async () => {
+              const result = await ctx.options.cancelArchiveImport(job.jobId);
+              if (!result.ok) throw new Error(result.error ?? "Archive import could not be cancelled");
+              ctx.render();
+              ctx.setStatus("Archive import cancelled.");
+            })
+          );
+        }
+        if ((job.status === "failed" || job.status === "cancelled") && ctx.options.retryArchiveImport) {
+          rows.push(
+            ctx.actionRow("Retry archive import", { source: "Retry {filename}.", values: { filename: job.filename } }, async () => {
+              const result = await ctx.options.retryArchiveImport(job.jobId);
+              if (!result.ok) throw new Error(result.error ?? "Archive import could not be retried");
+              ctx.render();
+              ctx.setStatus("Archive import retry started.");
+            })
+          );
+        }
+      }
+    }
+    if (ctx.options.importArchive) {
+      const row = ctx.el("div", "av-row av-row-stack");
+      const copy = ctx.el("span", "av-row-copy");
+      copy.append(
+        ctx.el("span", "av-row-label", ctx.t("Import official X archive")),
+        ctx.el("span", "av-row-description", ctx.t("Pick a ZIP exported from x.com. STORE and DEFLATE entries are supported; the source stays local while it is resumable."))
+      );
+      const archiveLabel = copy.querySelector(".av-row-label");
+      archiveLabel.id = "av-import-archive-label";
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".zip,application/zip";
+      input.className = "av-file-input";
+      input.id = "av-import-archive";
+      input.setAttribute("aria-labelledby", archiveLabel.id);
+      input.addEventListener("change", () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        void (async () => {
+          ctx.setStatus("Reading archive \u2014 large files take a moment\u2026");
+          try {
+            const result = await ctx.options.importArchive(file);
+            ctx.render();
+            ctx.setStatusCopy(
+              "Imported {records} records. Warnings: {warnings}; errors: {errors}. Files: {recognized} recognized, {skipped} skipped, {malformed} malformed.",
+              {
+                records: result.records,
+                warnings: result.warnings,
+                errors: result.errors,
+                recognized: result.recognizedFiles ?? 0,
+                skipped: result.skippedFiles ?? 0,
+                malformed: result.malformedFiles ?? 0
+              }
+            );
+          } catch (error) {
+            ctx.options.onError("Archive import failed", error);
+            ctx.setStatus("Archive import failed.");
+          } finally {
+            input.value = "";
+          }
+        })();
+      });
+      row.append(copy, input);
+      rows.push(row);
+    }
+    if (ctx.options.searchArchive) {
+      const row = ctx.el("div", "av-row av-row-stack");
+      const copy = ctx.el("span", "av-row-copy");
+      copy.append(
+        ctx.el("span", "av-row-label", ctx.t("Search captured records")),
+        ctx.el("span", "av-row-description", ctx.t("Full-text search across the latest export collector run."))
+      );
+      const archiveSearchLabel = copy.querySelector(".av-row-label");
+      const input = document.createElement("input");
+      input.type = "search";
+      input.placeholder = ctx.t("@handle, keyword, phrase\u2026");
+      archiveSearchLabel.id = "av-search-archive-label";
+      input.id = "av-search-archive";
+      input.setAttribute("aria-labelledby", archiveSearchLabel.id);
+      input.className = "av-text-input";
+      const results = ctx.el("div", "av-search-results");
+      results.setAttribute("role", "list");
+      results.setAttribute("aria-live", "polite");
+      const runSearch = () => {
+        const query = input.value.trim();
+        results.replaceChildren();
+        if (query.length === 0) {
+          results.append(
+            ctx.el("div", "av-row-description", ctx.t("Type to search the records captured by export runs."))
+          );
+          return;
+        }
+        const hits = ctx.options.searchArchive(query);
+        if (hits.length === 0) {
+          results.append(
+            ctx.el(
+              "div",
+              "av-row-description",
+              ctx.formatCopy(ctx.t("No captured records match \u201C{query}\u201D."), { query })
+            )
+          );
+          return;
+        }
+        for (const hit of hits.slice(0, 10)) {
+          const item = ctx.el("div", "av-search-hit");
+          item.setAttribute("role", "listitem");
+          const head = ctx.el("span", "av-row-label", `@${hit.handle ?? "anon"} \xB7 ${hit.tweetId ?? "\u2014"}`);
+          const body = ctx.el("span", "av-row-description", hit.text.slice(0, 140));
+          item.append(head, body);
+          results.append(item);
+        }
+      };
+      let searchTimer;
+      input.addEventListener("input", () => {
+        if (searchTimer !== void 0) {
+          clearTimeout(searchTimer);
+        }
+        searchTimer = setTimeout(runSearch, 180);
+      });
+      runSearch();
+      row.append(copy, input, results);
+      rows.push(row);
+    }
+    if (ctx.options.downloadReport) {
+      rows.push(
+        ctx.actionRow("Download Markdown report", "Audit log + snapshot diff + cleanup preview.", async () => {
+          ctx.setStatus("Building report\u2026");
+          try {
+            await ctx.options.downloadReport();
+            ctx.setStatus("Report downloaded.");
+          } catch (error) {
+            ctx.options.onError("Could not build report", error);
+            ctx.setStatus("Could not build report.");
+          }
+        })
+      );
+    }
+    if (ctx.options.getCleanupQueueSize) {
+      const queueStatus = ctx.options.getCleanupQueueSize();
+      rows.push(
+        ctx.dataRow(
+          "Cleanup review queue",
+          ctx.localizedCopy("{total} items \xB7 queued {queued} \xB7 approved {approved} \xB7 skipped {skipped}", {
+            total: queueStatus.total,
+            queued: queueStatus.queued,
+            approved: queueStatus.approved,
+            skipped: queueStatus.skipped
+          })
+        )
+      );
+      rows.push(
+        ctx.readonlyRow(
+          "Destructive actions",
+          "Aviary never deletes posts, likes, or follows. The queue is a review list; approving or skipping only writes to the audit log."
+        )
+      );
+    }
+    if (ctx.options.enqueueCleanupReview) {
+      rows.push(
+        ctx.actionRow(
+          "Enqueue cleanup preview for review",
+          "Append every non-protected candidate from the latest cleanup preview to the queue (no destructive action).",
+          async () => {
+            ctx.setStatus("Building cleanup preview\u2026");
+            try {
+              const result = await ctx.options.enqueueCleanupReview();
+              ctx.render();
+              ctx.setStatusCopy("Enqueued {added} items ({protected} protected skipped).", {
+                added: result.added,
+                protected: result.protected
+              });
+            } catch (error) {
+              ctx.options.onError("Could not enqueue cleanup", error);
+              ctx.setStatus("Could not enqueue cleanup.");
+            }
+          }
+        )
+      );
+    }
+    if (ctx.options.clearCleanupQueue) {
+      rows.push(
+        ctx.actionRow("Clear cleanup queue", "Drop every queued item without touching account data.", async () => {
+          try {
+            await ctx.options.clearCleanupQueue();
+            await ctx.save("Cleanup queue cleared");
+          } catch (error) {
+            ctx.options.onError("Could not clear cleanup queue", error);
+            ctx.setStatus("Could not clear queue.");
+          }
+        })
+      );
+    }
+    return rows;
+  }
+  function buildLibraryRows(ctx) {
+    const rows = [];
+    if (ctx.options.offlineSearch) {
+      const row = ctx.el("div", "av-row av-row-stack");
+      const copy = ctx.el("span", "av-row-copy");
+      copy.append(
+        ctx.el("span", "av-row-label", ctx.t("Search all local collections")),
+        ctx.el(
+          "span",
+          "av-row-description",
+          ctx.t("Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.")
+        )
+      );
+      const input = document.createElement("input");
+      input.type = "search";
+      input.className = "av-text-input";
+      input.placeholder = ctx.t("Search local library (source:, account:, tag:, from:, to:, has:media)");
+      input.setAttribute("aria-label", ctx.t("Search all local collections"));
+      input.spellcheck = false;
+      const semanticToggle = document.createElement("input");
+      semanticToggle.type = "checkbox";
+      semanticToggle.checked = ctx.state.unifiedSemantic;
+      semanticToggle.setAttribute("aria-label", ctx.t("Use semantic ranking (optional)"));
+      const semanticCopy = ctx.el("span", "av-row-description", ctx.t("Use semantic ranking (optional)"));
+      const semanticRow = ctx.el("label", "av-inline-controls");
+      semanticRow.append(semanticToggle, semanticCopy);
+      const results = ctx.el("div", "av-search-results");
+      results.setAttribute("role", "list");
+      results.setAttribute("aria-live", "polite");
+      let searchSequence = 0;
+      const renderUnified = async () => {
+        const sequence = ++searchSequence;
+        const query = input.value.trim();
+        results.replaceChildren();
+        if (query.length === 0) {
+          results.append(ctx.el("div", "av-row-description", ctx.t("Try source:bookmarks, tag:reading, or has:media.")));
+          return;
+        }
+        const matches = ctx.state.unifiedSemantic && ctx.options.offlineSemanticSearch ? await ctx.options.offlineSemanticSearch(query) : ctx.options.offlineSearch(query);
+        if (sequence !== searchSequence) return;
+        if (matches.length === 0) {
+          results.append(ctx.el("div", "av-row-description", ctx.t("No local collections match this search.")));
+          return;
+        }
+        for (const hit of matches.slice(0, 30)) {
+          const item = ctx.el("div", "av-search-hit");
+          item.setAttribute("role", "listitem");
+          const account = hit.document.account ? `@${hit.document.account}` : "local";
+          const mode = hit.mode === "semantic" ? " \xB7 semantic" : "";
+          item.append(
+            ctx.el("span", "av-row-label", `${hit.document.collection}${mode} \xB7 ${account}`),
+            ctx.el("span", "av-row-description", hit.snippet || ctx.t("(no text)"))
+          );
+          results.append(item);
+        }
+      };
+      input.addEventListener("input", () => void renderUnified());
+      semanticToggle.addEventListener("change", () => {
+        ctx.state.unifiedSemantic = semanticToggle.checked;
+        void renderUnified();
+      });
+      results.append(ctx.el("div", "av-row-description", ctx.t("Try source:bookmarks, tag:reading, or has:media.")));
+      row.append(copy, input, semanticRow, results);
+      rows.push(row);
+    }
+    if (ctx.options.getBookmarkStatus && ctx.options.searchBookmarks && ctx.options.updateBookmark && ctx.options.removeBookmark) {
+      const status = ctx.options.getBookmarkStatus();
+      rows.push(
+        ctx.dataRow(
+          "Local bookmarks",
+          ctx.localizedCopy("{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders", {
+            saved: status.total,
+            due: status.due,
+            tags: status.tags.length,
+            folders: status.folders.length
+          })
+        )
+      );
+      const bookmarkRow = ctx.el("div", "av-row av-row-stack");
+      const bookmarkCopy = ctx.el("span", "av-row-copy");
+      bookmarkCopy.append(
+        ctx.el("span", "av-row-label", ctx.t("Find local bookmarks")),
+        ctx.el("span", "av-row-description", ctx.t("Search saved posts by text, handle, tags, folder, or ID."))
+      );
+      const bookmarkInput = document.createElement("input");
+      bookmarkInput.type = "search";
+      bookmarkInput.className = "av-text-input";
+      bookmarkInput.value = ctx.state.bookmarkQuery;
+      bookmarkInput.placeholder = ctx.t("Search local bookmarks");
+      bookmarkInput.setAttribute("aria-label", ctx.t("Find local bookmarks"));
+      bookmarkInput.spellcheck = false;
+      const bookmarkResults = ctx.el("div", "av-search-results");
+      bookmarkResults.setAttribute("role", "list");
+      bookmarkResults.setAttribute("aria-live", "polite");
+      const renderBookmarks = () => {
+        bookmarkResults.replaceChildren();
+        const matches = ctx.options.searchBookmarks(ctx.state.bookmarkQuery).slice(0, 30);
+        if (matches.length === 0) {
+          bookmarkResults.append(ctx.el("div", "av-row-description", ctx.t("No local bookmarks match this search.")));
+          return;
+        }
+        for (const entry of matches) {
+          const item = ctx.el("div", "av-search-hit av-bookmark-hit");
+          item.setAttribute("role", "listitem");
+          const head = ctx.el("span", "av-row-label", `@${entry.handle ?? "anon"} \xB7 ${entry.tweetId ?? entry.id}`);
+          const body = ctx.el(
+            "span",
+            "av-row-description",
+            entry.text.slice(0, 180) || entry.url || ctx.t("(no text)")
+          );
+          item.append(head, body);
+          const editor = ctx.el("div", "av-bookmark-editor");
+          const tags = ctx.bookmarkField("Bookmark tags", entry.tags.join(", "), "Tags, comma-separated");
+          const folder = ctx.bookmarkField("Bookmark folder", entry.folder ?? "", "Folder");
+          const reminder = ctx.bookmarkField(
+            "Bookmark reminder",
+            ctx.toDatetimeLocal(entry.remindAt),
+            "Reminder"
+          );
+          reminder.type = "datetime-local";
+          const notes = document.createElement("textarea");
+          notes.className = "av-textarea av-bookmark-notes";
+          notes.rows = 2;
+          notes.value = entry.notes;
+          notes.placeholder = ctx.t("Notes");
+          notes.setAttribute("aria-label", ctx.t("Bookmark notes"));
+          editor.append(tags, folder, reminder, notes);
+          const controls = ctx.el("div", "av-inline-controls");
+          const saveButton = ctx.el("button", "av-button av-button-secondary", ctx.t("Save"));
+          saveButton.type = "button";
+          saveButton.addEventListener("click", () => {
+            saveButton.disabled = true;
+            void ctx.options.updateBookmark(entry.id, {
+              tags: ctx.splitBookmarkTags(tags.value),
+              folder: folder.value.trim() || null,
+              remindAt: ctx.fromDatetimeLocal(reminder.value),
+              notes: notes.value
+            }).then(() => {
+              ctx.setStatus("Bookmark updated.");
+              ctx.render();
+            }).catch((error) => {
+              ctx.options.onError("Bookmark update failed", error);
+              ctx.setStatus("Could not update bookmark.");
+              saveButton.disabled = false;
+            });
+          });
+          const remove = ctx.el("button", "av-button av-button-secondary", ctx.t("Remove"));
+          remove.type = "button";
+          remove.addEventListener("click", () => {
+            remove.disabled = true;
+            void ctx.options.removeBookmark(entry.id).then((removed) => {
+              ctx.setStatus(removed ? "Bookmark removed." : "Bookmark was already removed.");
+              ctx.render();
+            }).catch((error) => {
+              ctx.options.onError("Bookmark removal failed", error);
+              ctx.setStatus("Could not remove bookmark.");
+              remove.disabled = false;
+            });
+          });
+          controls.append(saveButton, remove);
+          item.append(editor, controls);
+          bookmarkResults.append(item);
+        }
+      };
+      bookmarkInput.addEventListener("input", () => {
+        ctx.state.bookmarkQuery = bookmarkInput.value;
+        renderBookmarks();
+      });
+      renderBookmarks();
+      bookmarkRow.append(bookmarkCopy, bookmarkInput, bookmarkResults);
+      rows.push(bookmarkRow);
+      if (ctx.options.clearBookmarks) {
+        rows.push(
+          ctx.actionRow("Clear local bookmarks", "Remove every saved local bookmark.", async () => {
+            try {
+              await ctx.options.clearBookmarks();
+              ctx.setStatus("Bookmarks cleared.");
+              ctx.render();
+            } catch (error) {
+              ctx.options.onError("Could not clear bookmarks", error);
+              ctx.setStatus("Could not clear bookmarks.");
+            }
+          })
+        );
+      }
+    }
+    rows.push(
+      ctx.toggleRow(
+        "Show the AI button on posts",
+        "Adds a button to every post that builds a Translate, Summarize, Explain or Fact-check prompt. Without an AI provider configured it copies the prompt to your clipboard; nothing is sent anywhere.",
+        ctx.options.settings.ai.commandMenu,
+        async (checked) => {
+          ctx.options.settings.ai.commandMenu = checked;
+          await ctx.save(checked ? "AI button on" : "AI button off");
+        }
+      )
+    );
+    rows.push(
+      ctx.toggleRow(
+        "Unshorten t.co links",
+        "Replace short `t.co` redirects with the destination from aria-labels and titles.",
+        ctx.options.settings.links.expandTco,
+        async (checked) => {
+          ctx.options.settings.links.expandTco = checked;
+          await ctx.save(checked ? "Unshorten on" : "Unshorten off");
+        }
+      )
+    );
+    rows.push(
+      ctx.toggleRow(
+        "Clean tracking from links",
+        "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.",
+        ctx.options.settings.links.cleanShareButtons,
+        async (checked) => {
+          ctx.options.settings.links.cleanShareButtons = checked;
+          await ctx.save(checked ? "Link cleaning on" : "Link cleaning off");
+        }
+      )
+    );
+    if (ctx.options.getUserNotes && ctx.options.setUserNote) {
+      const notes = ctx.options.getUserNotes();
+      const serialized = Object.entries(notes).map(([handle, note]) => `${handle}: ${note}`).sort();
+      rows.push(
+        ctx.textareaRow(
+          "Account notes",
+          "Format: handle: note. One per line. Empty notes remove the entry.",
+          serialized,
+          async (lines) => {
+            const seen = /* @__PURE__ */ new Set();
+            for (const line of lines) {
+              const match = /^@?([A-Za-z0-9_]{1,15})\s*[:\-]\s*(.*)$/.exec(line);
+              if (!match) continue;
+              const [, handle, note] = match;
+              if (handle) {
+                seen.add(handle.toLowerCase());
+                await ctx.options.setUserNote(handle, note ?? "");
+              }
+            }
+            for (const handle of Object.keys(notes)) {
+              if (!seen.has(handle)) {
+                await ctx.options.setUserNote(handle, "");
+              }
+            }
+            await ctx.save(`${seen.size} account note${seen.size === 1 ? "" : "s"} saved`);
+          }
+        )
+      );
+    }
+    if (ctx.options.clearUserNotes) {
+      rows.push(
+        ctx.actionRow("Clear all account notes", "Drop every persisted note.", async () => {
+          try {
+            await ctx.options.clearUserNotes();
+            await ctx.save("Account notes cleared");
+          } catch (error) {
+            ctx.options.onError("Could not clear account notes", error);
+            ctx.setStatus("Could not clear notes.");
+          }
+        })
+      );
+    }
+    rows.push(
+      ctx.textareaRow(
+        "Composer snippets",
+        "One snippet per line. Reusable replies / templates insert from the composer toolbar.",
+        ctx.options.settings.composer.snippets,
+        async (lines) => {
+          ctx.options.settings.composer.snippets = lines.map((line) => line.trim()).filter((line) => line.length > 0).slice(0, 100);
+          await ctx.save(`${ctx.options.settings.composer.snippets.length} snippet${ctx.options.settings.composer.snippets.length === 1 ? "" : "s"} saved`);
+        }
+      )
+    );
+    return rows;
+  }
+  function buildExportRows(ctx) {
+    const rows = [];
+    rows.push(
+      ctx.toggleRow(
+        "Capture visible tweets",
+        "Accumulate tweets visible on the active page for the next export run.",
+        ctx.options.settings.export.enabled,
+        async (checked) => {
+          ctx.options.settings.export.enabled = checked;
+          await ctx.save(checked ? "Export capture on" : "Export capture off");
+        }
+      )
+    );
+    rows.push(
+      ctx.textInputRow(
+        "Export formats",
+        "Comma-separated list. Supported: json, csv, html, markdown, xlsx.",
+        ctx.options.settings.export.formats.join(","),
+        async (value) => {
+          const parsed = value.split(/[\s,]+/).map((entry) => entry.trim().toLowerCase()).filter((entry) => entry.length > 0);
+          const supported = /* @__PURE__ */ new Set(["json", "csv", "html", "markdown", "xlsx"]);
+          ctx.options.settings.export.formats = parsed.filter((entry) => supported.has(entry));
+          if (ctx.options.settings.export.formats.length === 0) {
+            ctx.options.settings.export.formats = ["json"];
+          }
+          await ctx.save(`Export formats: ${ctx.options.settings.export.formats.join(", ")}`);
+        }
+      )
+    );
+    rows.push(
+      ctx.toggleRow(
+        "Preserve raw payloads",
+        "Also store the raw GraphQL responses X sends this tab, so records can be re-parsed later. Session tokens are stripped before anything is written.",
+        ctx.options.settings.export.preserveRawPayloads,
+        async (checked) => {
+          ctx.options.settings.export.preserveRawPayloads = checked;
+          await ctx.save("Raw payload preference saved");
+        }
+      )
+    );
+    rows.push(
+      ctx.toggleRow(
+        "Capture media bytes in export",
+        "Fetch media during the export action and include successful bytes with length and checksum; failed items remain retryable references.",
+        ctx.options.settings.export.captureMediaBytes,
+        async (checked) => {
+          ctx.options.settings.export.captureMediaBytes = checked;
+          await ctx.save(checked ? "Media byte capture on" : "Media byte capture off");
+        }
+      )
+    );
+    rows.push(
+      ctx.toggleRow(
+        "Auto-discover query IDs",
+        "Scan loaded scripts for X GraphQL operation IDs and cache them locally.",
+        ctx.options.settings.export.autoDiscoverQueryIds,
+        async (checked) => {
+          ctx.options.settings.export.autoDiscoverQueryIds = checked;
+          await ctx.save("Query discovery preference saved");
+        }
+      )
+    );
+    rows.push(
+      ctx.textInputRow(
+        "Save folder hint",
+        "Folder name (or path) used as the export ZIP root and download prefix.",
+        ctx.options.settings.media.lastSaveFolder,
+        async (value) => {
+          ctx.options.settings.media.lastSaveFolder = value;
+          await ctx.save("Save folder hint saved");
+        }
+      )
+    );
+    const status = ctx.options.getExportStatus?.();
+    if (status) {
+      rows.push(
+        ctx.dataRow(
+          "Export status",
+          ctx.localizedCopy("{jobs} jobs tracked \xB7 {queries} GraphQL IDs cached", {
+            jobs: status.jobCount,
+            queries: status.knownQueries
+          })
+        )
+      );
+      for (const job of (status.jobs ?? []).slice(-3)) {
+        rows.push(
+          ctx.dataRow(
+            "Export job",
+            `${ctx.localizedCopy("{status} \xB7 {records} records \xB7 {surface}", {
+              status: job.status,
+              records: job.recordCount,
+              surface: job.surface
+            })}${job.error ? ` \xB7 ${job.error}` : ""}`
+          )
+        );
+        if (job.status === "running" && ctx.options.pauseExportJob) {
+          rows.push(
+            ctx.actionRow("Pause export job", { source: "Pause {jobId}.", values: { jobId: job.jobId } }, async () => {
+              const result = await ctx.options.pauseExportJob(job.jobId);
+              if (!result.ok) throw new Error(result.error ?? "Export job could not be paused");
+              ctx.render();
+              ctx.setStatus("Export job paused.");
+            })
+          );
+        }
+        if (job.status === "paused" && ctx.options.resumeExportJob) {
+          rows.push(
+            ctx.actionRow("Resume export job", { source: "Resume {jobId}.", values: { jobId: job.jobId } }, async () => {
+              const result = await ctx.options.resumeExportJob(job.jobId);
+              if (!result.ok) throw new Error(result.error ?? "Export job could not be resumed");
+              ctx.render();
+              ctx.setStatus("Export job resumed.");
+            })
+          );
+        }
+        if ((job.status === "running" || job.status === "paused" || job.status === "queued") && ctx.options.cancelExportJob) {
+          rows.push(
+            ctx.actionRow("Cancel export job", { source: "Cancel {jobId}.", values: { jobId: job.jobId } }, async () => {
+              const result = await ctx.options.cancelExportJob(job.jobId);
+              if (!result.ok) throw new Error(result.error ?? "Export job could not be cancelled");
+              ctx.render();
+              ctx.setStatus("Export job cancelled.");
+            })
+          );
+        }
+      }
+    }
+    if (ctx.options.runExport) {
+      rows.push(
+        ctx.actionRow("Export visible tweets", "Collect the currently rendered tweets and download a ZIP.", async () => {
+          ctx.setStatus("Collecting visible posts\u2026");
+          try {
+            const result = await ctx.options.runExport();
+            ctx.render();
+            const files = result.files ?? 1;
+            if (result.records === 0) {
+              ctx.setStatus("No posts found on this view. Scroll the timeline to load some, then export again.");
+            } else if (files > 1) {
+              ctx.setStatusCopy("Exported {records} records across {files} ZIPs \u2192 {filename}", {
+                records: result.records,
+                files,
+                filename: result.filename
+              });
+            } else if (result.records === 1) {
+              ctx.setStatusCopy("Exported {records} record \u2192 {filename}", {
+                records: result.records,
+                filename: result.filename
+              });
+            } else {
+              ctx.setStatusCopy("Exported {records} records \u2192 {filename}", {
+                records: result.records,
+                filename: result.filename
+              });
+            }
+          } catch (error) {
+            ctx.options.onError("Export failed", error);
+            ctx.setStatus("Export failed. See diagnostics.");
+          }
+        })
+      );
+    }
+    if (ctx.options.copyDiagnostics) {
+      rows.push(
+        ctx.actionRow("Copy diagnostics", "Copy support diagnostics (version, route, recent log).", async () => {
+          try {
+            await ctx.options.copyDiagnostics();
+            ctx.setStatus("Diagnostics copied to clipboard.");
+          } catch (error) {
+            ctx.options.onError("Could not copy diagnostics", error);
+            ctx.setStatus("Could not copy diagnostics.");
+          }
+        })
+      );
+    }
+    if (ctx.options.downloadWarc) {
+      rows.push(
+        ctx.actionRow(
+          "Download as WARC",
+          "Wrap captured records into an ISO-28500 WARC file for research / preservation tooling.",
+          async () => {
+            ctx.setStatus("Building WARC archive\u2026");
+            try {
+              const result = await ctx.options.downloadWarc();
+              ctx.setStatusCopy("WARC downloaded ({records} records).", { records: result.records });
+            } catch (error) {
+              ctx.options.onError("WARC export failed", error);
+              ctx.setStatus("WARC export failed.");
+            }
+          }
+        )
+      );
+    }
+    if (ctx.options.exportToTarget) {
+      const targets = [
+        { id: "clipboard-markdown", label: "Copy as Markdown", description: "Push a plain Markdown export onto the clipboard." },
+        { id: "obsidian", label: "Save Obsidian Markdown", description: "Markdown with YAML frontmatter and Aviary tags." },
+        { id: "notion", label: "Save Notion Markdown", description: "Heading-first Markdown that Notion imports cleanly." },
+        { id: "raw-json", label: "Save records JSON", description: "Raw ExportRecord[] JSON without ZIP wrapping." }
+      ];
+      for (const target of targets) {
+        rows.push(
+          ctx.actionRow(target.label, target.description, async () => {
+            try {
+              const result = await ctx.options.exportToTarget(target.id);
+              if (result.copied) {
+                ctx.setStatusCopy("Copied {records} records to clipboard.", { records: result.records });
+              } else {
+                ctx.setStatusCopy("Exported {records} records to {target}.", {
+                  records: result.records,
+                  target: ctx.t(target.label)
+                });
+              }
+            } catch (error) {
+              ctx.options.onError("External export failed", error);
+              ctx.setStatus("External export failed.");
+            }
+          })
+        );
+      }
+    }
+    if (ctx.options.getRetentionPolicy && ctx.options.saveRetentionPolicy) {
+      rows.push(
+        ctx.integerInputRow(
+          "Records per ZIP",
+          "Split a long export across several archives instead of one huge file (25-1000).",
+          ctx.options.settings.media.zipChunkSize,
+          async (value) => {
+            ctx.options.settings.media.zipChunkSize = value;
+            await ctx.save("Records per ZIP saved");
+          }
+        )
+      );
+      const policy = ctx.options.getRetentionPolicy();
+      rows.push(
+        ctx.integerInputRow(
+          "Maximum export jobs",
+          "Keep the newest jobs. Use 0 for unlimited.",
+          policy.maxJobs,
+          async (value) => {
+            await ctx.options.saveRetentionPolicy({ ...ctx.options.getRetentionPolicy(), maxJobs: value });
+            ctx.render();
+            ctx.setStatus("Export job retention saved");
+          }
+        )
+      );
+      rows.push(
+        ctx.integerInputRow(
+          "Maximum records per job",
+          "Keep the newest records in each job. Use 0 for unlimited.",
+          policy.maxRecordsPerJob,
+          async (value) => {
+            await ctx.options.saveRetentionPolicy({ ...ctx.options.getRetentionPolicy(), maxRecordsPerJob: value });
+            ctx.render();
+            ctx.setStatus("Record retention saved");
+          }
+        )
+      );
+      rows.push(
+        ctx.integerInputRow(
+          "Maximum export age (days)",
+          "Remove older jobs at boot. Use 0 to disable age-based cleanup.",
+          policy.maxAgeDays,
+          async (value) => {
+            await ctx.options.saveRetentionPolicy({ ...ctx.options.getRetentionPolicy(), maxAgeDays: value });
+            ctx.render();
+            ctx.setStatus("Age-based retention saved");
+          }
+        )
+      );
+    }
+    return rows;
+  }
+  function buildMediaRows(ctx) {
+    const rows = [];
+    rows.push(
+      ctx.toggleRow(
+        "Show download buttons",
+        "Inject Save and Thumb buttons over tweet photos and video thumbnails.",
+        ctx.options.settings.media.buttons,
+        async (checked) => {
+          ctx.options.settings.media.buttons = checked;
+          await ctx.save(checked ? "Media buttons on" : "Media buttons off");
+        }
+      )
+    );
+    rows.push(
+      ctx.toggleRow(
+        "Prefer original quality",
+        "Rewrite image URLs to name=orig before downloading.",
+        ctx.options.settings.media.preferOriginalImages,
+        async (checked) => {
+          ctx.options.settings.media.preferOriginalImages = checked;
+          await ctx.save("Original quality preference saved");
+        }
+      )
+    );
+    rows.push(
+      ctx.toggleRow(
+        "Show images at original quality",
+        "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.",
+        ctx.options.settings.media.inlineOriginalImages,
+        async (checked) => {
+          ctx.options.settings.media.inlineOriginalImages = checked;
+          await ctx.save(checked ? "Full-size images on" : "Full-size images off");
+        }
+      )
+    );
+    rows.push(
+      ctx.textInputRow(
+        "Filename template",
+        "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
+        ctx.options.settings.media.filenameTemplate,
+        async (value) => {
+          ctx.options.settings.media.filenameTemplate = value.length > 0 ? value : "{handle}_{tweetId}_{index}";
+          await ctx.save("Filename template saved");
+        }
+      )
+    );
+    rows.push(
+      ctx.toggleRow(
+        "Duplicate history",
+        "Skip downloads of media you have already saved from this browser.",
+        ctx.options.settings.media.downloadHistory,
+        async (checked) => {
+          ctx.options.settings.media.downloadHistory = checked;
+          await ctx.save(checked ? "Duplicate history on" : "Duplicate history off");
+        }
+      )
+    );
+    rows.push(
+      ctx.selectRow(
+        "Media layout",
+        ctx.options.settings.media.layout,
+        MEDIA_LAYOUT_OPTIONS,
+        async (value) => {
+          ctx.options.settings.media.layout = ctx.coerceLayout(value);
+          await ctx.save("Media layout saved");
+        }
+      )
+    );
+    rows.push(
+      ctx.integerInputRow(
+        "Concurrent downloads",
+        "Maximum media downloads in flight during a batch (1-6).",
+        ctx.options.settings.jobs.concurrentDownloads,
+        async (value) => {
+          ctx.options.settings.jobs.concurrentDownloads = Math.max(1, Math.min(6, Math.trunc(value)));
+          await ctx.save("Concurrent download limit saved");
+        },
+        { min: 1, max: 6 }
+      )
+    );
+    rows.push(
+      ctx.selectRow(
+        "Download pacing",
+        ctx.options.settings.jobs.rateLimitMode,
+        [
+          ["conservative", "Conservative"],
+          ["balanced", "Balanced"]
+        ],
+        async (value) => {
+          if (value === "conservative" || value === "balanced") {
+            ctx.options.settings.jobs.rateLimitMode = value;
+            await ctx.save("Download pacing saved");
+          }
+        },
+        "Controls the opening burst and sustained pace of batch media requests."
+      )
+    );
+    const status = ctx.options.getMediaStatus?.();
+    if (status) {
+      rows.push(
+        ctx.dataRow(
+          "Download status",
+          `${status.running} running / ${status.queued ?? 0} queued / ${status.paused ?? 0} paused / ${status.completed} done / ${status.duplicate} dup / ${status.failed} failed`
+        )
+      );
+      if (status.batch) {
+        rows.push(
+          ctx.dataRow(
+            "Active media batch",
+            `${status.batch.status} \xB7 ${status.batch.downloaded} saved / ${status.batch.duplicate} dup / ${status.batch.failed} failed of ${status.batch.total}`
+          )
+        );
+      }
+      rows.push(ctx.dataRow("History entries", String(status.historySize)));
+    }
+    if (ctx.options.clearMediaHistory) {
+      rows.push(
+        ctx.actionRow("Clear download history", "Reset the local dedup index.", async () => {
+          try {
+            await ctx.options.clearMediaHistory?.();
+            await ctx.save("History cleared");
+          } catch (error) {
+            ctx.options.onError("Could not clear download history", error);
+            ctx.setStatus("Could not clear history.");
+          }
+        })
+      );
+    }
+    if (ctx.options.runMediaBatch) {
+      rows.push(
+        ctx.actionRow(
+          "Download all visible media",
+          "Walks every tweet rendered on the current page and queues every photo/video/GIF/thumbnail through the existing download pipeline.",
+          async () => {
+            ctx.setStatus("Downloading media from this view\u2026");
+            try {
+              const result = await ctx.options.runMediaBatch();
+              ctx.render();
+              ctx.setStatus(
+                result.cancelled ? `Batch cancelled: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).` : `Batch finished: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
+              );
+            } catch (error) {
+              ctx.options.onError("Batch download failed", error);
+              ctx.setStatus("Batch download failed.");
+            }
+          }
+        )
+      );
+    }
+    const mediaControlAction = (label, description, action, success) => {
+      rows.push(
+        ctx.actionRow(label, description, async () => {
+          const result = action();
+          if (!result.ok) {
+            throw new Error(result.error ?? `${label} failed`);
+          }
+          ctx.render();
+          ctx.setStatus(success);
+        })
+      );
+    };
+    if (ctx.options.pauseMediaBatch) {
+      mediaControlAction(
+        "Pause media batch",
+        "Stop starting new downloads; the current downloads finish and the queue remains resumable.",
+        ctx.options.pauseMediaBatch,
+        "Media batch paused."
+      );
+    }
+    if (ctx.options.resumeMediaBatch) {
+      mediaControlAction(
+        "Resume media batch",
+        "Continue the active batch from its durable queue.",
+        ctx.options.resumeMediaBatch,
+        "Media batch resumed."
+      );
+    }
+    if (ctx.options.cancelMediaBatch) {
+      mediaControlAction(
+        "Cancel media batch",
+        "Stop scheduling new downloads and leave unfinished queue entries available for recovery.",
+        ctx.options.cancelMediaBatch,
+        "Media batch cancelling."
+      );
+    }
+    if (ctx.options.resumePendingMediaJobs) {
+      rows.push(
+        ctx.actionRow("Resume queued media", "Recover paused or queued downloads from an earlier session.", async () => {
+          const result = await ctx.options.resumePendingMediaJobs();
+          ctx.render();
+          ctx.setStatus(
+            result.cancelled ? `Queued media recovery cancelled after ${result.downloaded} saved.` : `Queued media recovery finished: ${result.downloaded} saved / ${result.failed} failed.`
+          );
+        })
+      );
+    }
+    if (ctx.options.retryFailedMediaJobs) {
+      rows.push(
+        ctx.actionRow("Retry failed media", "Retry every failed or cancelled media job in the durable queue.", async () => {
+          const result = await ctx.options.retryFailedMediaJobs();
+          ctx.render();
+          ctx.setStatus(
+            result.total === 0 ? "No failed media jobs to retry." : `Media retry finished: ${result.downloaded} saved / ${result.failed} failed.`
+          );
+        })
+      );
+    }
+    return rows;
+  }
+
+  // src/ui/control-center/sections/reading.ts
+  function buildAppearanceRows(ctx) {
+    return [
+      ctx.selectRow("Theme", ctx.options.settings.appearance.theme, [
+        ["off", "Off (X's own theme)"],
+        ["dim", "Dim"],
+        ["lightsOut", "Lights out"],
+        ["graphite", "Graphite"],
+        ["plum", "Plum"],
+        ["midnight", "Midnight"]
+      ], async (value) => {
+        if (!ctx.isThemeId(value)) {
+          ctx.setStatus("Theme value is not supported.");
+          return;
+        }
+        ctx.options.settings.appearance.theme = value;
+        await ctx.save("Theme updated");
+      }),
+      ctx.toggleRow("Dense mode", "Tighten timeline spacing for scanning.", ctx.options.settings.appearance.denseMode, async (checked) => {
+        ctx.options.settings.appearance.denseMode = checked;
+        await ctx.save("Density updated");
+      }),
+      ctx.selectRow(
+        "Timeline width",
+        ctx.options.settings.appearance.timelineWidth,
+        [
+          ["default", "Default"],
+          ["comfortable", "Comfortable"],
+          ["wide", "Wide"]
+        ],
+        async (value) => {
+          ctx.options.settings.appearance.timelineWidth = value;
+          await ctx.save("Timeline width updated");
+        },
+        "Widen the main column past the width X fixes it at. Capped to the space available, so a narrow window is unaffected."
+      ),
+      ctx.toggleRow(
+        "Restore the Chirp font",
+        "Force X's own Chirp typeface where the site has fallen back to a system font.",
+        ctx.options.settings.appearance.restoreChirp,
+        async (checked) => {
+          ctx.options.settings.appearance.restoreChirp = checked;
+          await ctx.save(checked ? "Chirp font on" : "Chirp font off");
+        }
+      ),
+      ctx.toggleRow(
+        "Hide engagement counts",
+        "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.",
+        ctx.options.settings.appearance.hideCounts,
+        async (checked) => {
+          ctx.options.settings.appearance.hideCounts = checked;
+          await ctx.save(checked ? "Engagement counts hidden" : "Engagement counts shown");
+        }
+      ),
+      ctx.toggleRow(
+        "Hide row borders",
+        "Remove the 1px divider under each timeline post and the primary column's side rules.",
+        ctx.options.settings.appearance.hideBorders,
+        async (checked) => {
+          ctx.options.settings.appearance.hideBorders = checked;
+          await ctx.save(checked ? "Row borders hidden" : "Row borders restored");
+        }
+      ),
+      ctx.toggleRow("High contrast", "Use stronger borders and text contrast.", ctx.options.settings.accessibility.highContrast, async (checked) => {
+        ctx.options.settings.accessibility.highContrast = checked;
+        await ctx.save("Contrast preference saved");
+      }),
+      ctx.selectRow(
+        "Reduced motion",
+        ctx.options.settings.accessibility.reduceMotion,
+        [
+          ["system", "Follow system setting"],
+          ["always", "Always reduce"],
+          ["never", "Never reduce"]
+        ],
+        async (value) => {
+          ctx.options.settings.accessibility.reduceMotion = ctx.coerceReduceMotion(value);
+          await ctx.save("Motion preference saved");
+        }
+      )
+    ];
+  }
+  function buildLayoutRows(ctx) {
+    const rows = [
+      ctx.toggleRow("Hide right sidebar", "Reduce trends, recommendations, and footer noise.", ctx.options.settings.layout.hideRightSidebar, async (checked) => {
+        ctx.options.settings.layout.hideRightSidebar = checked;
+        await ctx.save("Sidebar preference saved");
+      }),
+      ctx.toggleRow("Hide trends", "Remove trending topics and news modules.", ctx.options.settings.layout.hideTrends, async (checked) => {
+        ctx.options.settings.layout.hideTrends = checked;
+        await ctx.save("Trend preference saved");
+      }),
+      ctx.toggleRow("Hide Grok surfaces", "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.", ctx.options.settings.layout.hideGrok, async (checked) => {
+        ctx.options.settings.layout.hideGrok = checked;
+        await ctx.save("Grok preference saved");
+      }),
+      ctx.toggleRow(
+        "Writer mode",
+        "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.",
+        ctx.options.settings.layout.writerMode,
+        async (checked) => {
+          ctx.options.settings.layout.writerMode = checked;
+          await ctx.save(checked ? "Writer mode on" : "Writer mode off");
+        }
+      ),
+      ctx.toggleRow(
+        "Open Following instead of For you",
+        "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.",
+        ctx.options.settings.layout.forceFollowing,
+        async (checked) => {
+          ctx.options.settings.layout.forceFollowing = checked;
+          await ctx.save(checked ? "Following timeline on" : "Following timeline off");
+        }
+      )
+    ];
+    rows.push(
+      ctx.textareaRow(
+        "Hide navigation items",
+        "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.",
+        ctx.options.settings.layout.hideNavItems,
+        async (lines) => {
+          ctx.options.settings.layout.hideNavItems = [...new Set(
+            lines.map((line) => line.trim().toLowerCase()).filter((line) => HIDE_NAV_ITEM_IDS.has(line))
+          )].slice(0, 24);
+          await ctx.save("Navigation visibility saved");
+        }
+      )
+    );
+    return rows;
+  }
+  function buildPerformanceRows(ctx) {
+    const rows = [];
+    rows.push(
+      ctx.toggleRow(
+        "Pause video that scrolls out of view",
+        "Stops decoding timeline video once it leaves the screen, and resumes it when it comes back. A video you paused yourself stays paused.",
+        ctx.options.settings.performance.pauseOffscreenVideo,
+        async (checked) => {
+          ctx.options.settings.performance.pauseOffscreenVideo = checked;
+          await ctx.save(checked ? "Offscreen video paused" : "Offscreen video left playing");
+        }
+      )
+    );
+    rows.push(
+      ctx.toggleRow(
+        "Always play video at the highest quality",
+        "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.",
+        ctx.options.settings.performance.forceVideoQuality,
+        async (checked) => {
+          ctx.options.settings.performance.forceVideoQuality = checked;
+          await ctx.save(checked ? "Best video quality on" : "Video quality left to X");
+        }
+      )
+    );
+    return rows;
+  }
+  function buildFilterRows(ctx) {
+    const rows = [];
+    rows.push(
+      ctx.toggleRow(
+        "Enable filters",
+        "Master switch for keyword, regex, premium, and media filters.",
+        ctx.options.settings.filter.enabled,
+        async (checked) => {
+          ctx.options.settings.filter.enabled = checked;
+          await ctx.save(checked ? "Filters enabled" : "Filters disabled");
+        }
+      )
+    );
+    rows.push(
+      ctx.textareaRow(
+        "Keyword rules",
+        "One keyword or phrase per line. Case-insensitive substring match.",
+        ctx.options.settings.filter.keywordRules,
+        async (lines) => {
+          ctx.options.settings.filter.keywordRules = lines.slice(0, 200);
+          await ctx.save(`Saved ${ctx.options.settings.filter.keywordRules.length} keyword rules`);
+        }
+      )
+    );
+    rows.push(
+      ctx.textareaRow(
+        "Regex rules",
+        "One pattern per line. Use /pattern/flags or a bare pattern (case-insensitive).",
+        ctx.options.settings.filter.regexRules,
+        async (lines) => {
+          ctx.options.settings.filter.regexRules = lines.slice(0, 100);
+          await ctx.save(`Saved ${ctx.options.settings.filter.regexRules.length} regex rules`);
+        }
+      )
+    );
+    rows.push(
+      ctx.textareaRow(
+        "Whitelist handles",
+        "Handles (one per line, no @) that are never filtered.",
+        ctx.options.settings.filter.whitelist,
+        async (lines) => {
+          ctx.options.settings.filter.whitelist = lines.map((line) => line.replace(/^@/, "").trim()).filter((line) => /^[A-Za-z0-9_]{1,15}$/.test(line)).slice(0, 200);
+          await ctx.save(`Saved ${ctx.options.settings.filter.whitelist.length} whitelist handles`);
+        }
+      )
+    );
+    rows.push(
+      ctx.selectRow(
+        "Premium / verified posts",
+        ctx.options.settings.filter.premiumRule,
+        FILTER_ACTION_OPTIONS,
+        async (value) => {
+          ctx.options.settings.filter.premiumRule = ctx.coerceFilterAction(value);
+          await ctx.save("Premium filter saved");
+        }
+      )
+    );
+    for (const key of FILTER_MEDIA_KEYS) {
+      const label = FILTER_MEDIA_LABELS[key];
+      const current = ctx.options.settings.filter.mediaTypes[key] === true;
+      rows.push(
+        ctx.toggleRow(
+          `Hide posts with ${label.toLowerCase()}`,
+          `Filter posts containing ${label.toLowerCase()}.`,
+          current,
+          async (checked) => {
+            ctx.options.settings.filter.mediaTypes = {
+              ...ctx.options.settings.filter.mediaTypes,
+              [key]: checked
+            };
+            await ctx.save(`${label} filter ${checked ? "on" : "off"}`);
+          }
+        )
+      );
+    }
+    rows.push(
+      ctx.surfaceRow(
+        "Active on",
+        "Routes where filters run.",
+        ctx.options.settings.filter.surfaces,
+        async (next) => {
+          ctx.options.settings.filter.surfaces = next;
+          await ctx.save(
+            next.length > 0 ? `Filters active on ${next.length} route${next.length === 1 ? "" : "s"}` : "Filters off on every route"
+          );
+        }
+      )
+    );
+    rows.push(
+      ctx.readonlyRow(
+        "Blocked accounts / self-reposts",
+        "Pending an authenticated fixture; controls stay disabled."
+      )
+    );
+    return rows;
+  }
+  function buildHiddenPostRows(ctx) {
+    const rows = [];
+    rows.push(
+      ctx.toggleRow(
+        "Hide dismissed posts",
+        "Keep posts you hid collapsed so the next post rises to the top.",
+        ctx.options.settings.hidden.enabled,
+        async (checked) => {
+          ctx.options.settings.hidden.enabled = checked;
+          await ctx.save(checked ? "Hidden posts applied" : "Hidden posts revealed");
+        }
+      )
+    );
+    rows.push(
+      ctx.toggleRow(
+        "Show hide buttons",
+        "Adds a Hide control to every post next to the More menu.",
+        ctx.options.settings.hidden.buttons,
+        async (checked) => {
+          ctx.options.settings.hidden.buttons = checked;
+          await ctx.save(checked ? "Hide buttons on" : "Hide buttons off");
+        }
+      )
+    );
+    rows.push(
+      ctx.surfaceRow(
+        "Active on",
+        "Routes where hiding and the Hide button apply.",
+        ctx.options.settings.hidden.surfaces,
+        async (next) => {
+          ctx.options.settings.hidden.surfaces = next;
+          await ctx.save(
+            next.length > 0 ? `Hiding active on ${next.length} route${next.length === 1 ? "" : "s"}` : "Hiding off on every route"
+          );
+        }
+      )
+    );
+    rows.push(
+      ctx.integerInputRow(
+        "Maximum remembered posts",
+        "Oldest entries are dropped once the store passes this size (100-50000).",
+        ctx.options.settings.hidden.maxEntries,
+        async (value) => {
+          ctx.options.settings.hidden.maxEntries = value;
+          await ctx.save(`Hidden post limit set to ${ctx.options.settings.hidden.maxEntries}`);
+        }
+      )
+    );
+    const status = ctx.options.getHiddenPostsStatus?.();
+    if (!status) {
+      rows.push(ctx.readonlyRow("Hidden posts", "Hidden post store unavailable in this build."));
+      return rows;
+    }
+    rows.push(
+      ctx.dataRow(
+        "Hidden posts stored",
+        `${status.total}${status.updatedAt ? ` \xB7 updated ${status.updatedAt}` : ""}`
+      )
+    );
+    if (ctx.options.undoLastHide) {
+      rows.push(
+        ctx.actionRow("Undo last hide", "Restores the most recently hidden post.", async () => {
+          try {
+            const result = await ctx.options.undoLastHide();
+            ctx.setStatus(
+              result.restored ? `Restored ${result.handle ? `@${result.handle}` : "the last hidden post"}.` : "Nothing left to restore."
+            );
+            ctx.render();
+          } catch (error) {
+            ctx.options.onError("Could not undo the last hide", error);
+            ctx.setStatus("Could not undo the last hide.");
+          }
+        })
+      );
+    }
+    for (const entry of status.recent) {
+      const row = ctx.el("div", "av-row av-row-stack");
+      const copy = ctx.el("span", "av-row-copy");
+      copy.append(
+        ctx.el("span", "av-row-label", entry.handle ? `@${entry.handle}` : "Unknown account"),
+        ctx.el(
+          "span",
+          "av-row-description",
+          `${entry.hiddenAt} \u2014 ${entry.text.length > 0 ? entry.text : "(no text)"}`
+        )
+      );
+      const restore = ctx.el("button", "av-button av-button-secondary", ctx.t("Restore"));
+      restore.type = "button";
+      restore.addEventListener("click", () => {
+        restore.disabled = true;
+        void ctx.options.unhidePost?.(entry.key).then((restored) => {
+          ctx.setStatus(restored ? "Post restored." : "That post was already restored.");
+          ctx.render();
+        }).catch((error) => {
+          ctx.options.onError("Could not restore the post", error);
+          ctx.setStatus("Could not restore the post.");
+          restore.disabled = false;
+        });
+      });
+      row.append(copy, restore);
+      rows.push(row);
+    }
+    if (ctx.options.clearHiddenPosts && status.total > 0) {
+      rows.push(
+        ctx.actionRow(
+          "Clear hidden posts",
+          "Forgets every hidden post and brings them all back.",
+          async () => {
+            try {
+              const removed = await ctx.options.clearHiddenPosts();
+              ctx.setStatusCopy(
+                removed === 1 ? "Cleared {removed} hidden post." : "Cleared {removed} hidden posts.",
+                { removed }
+              );
+              ctx.render();
+            } catch (error) {
+              ctx.options.onError("Could not clear hidden posts", error);
+              ctx.setStatus("Could not clear hidden posts.");
+            }
+          }
+        )
+      );
+    }
+    return rows;
+  }
+
+  // src/ui/control-center/sections/presets.ts
+  function buildPresetRows(ctx) {
+    const rows = [];
+    if (!ctx.options.listPresets || !ctx.options.applyPreset) {
+      rows.push(ctx.readonlyRow("Presets", "Preset packs unavailable in this build."));
+      return rows;
+    }
+    for (const preset of ctx.options.listPresets()) {
+      const row = ctx.el("div", "av-row av-row-stack av-preset-card");
+      row.dataset.avPreset = preset.id;
+      const cardHeader = ctx.el("div", "av-preset-header");
+      const copy = ctx.el("span", "av-row-copy");
+      copy.append(
+        ctx.el("span", "av-row-label", ctx.t(preset.label)),
+        ctx.el("span", "av-row-description", ctx.t(preset.description))
+      );
+      cardHeader.append(ctx.presetIcon(preset.id), copy);
+      const highlights = ctx.el("div", "av-preset-highlights");
+      for (const highlight of preset.highlights ?? []) {
+        const preview = ctx.el("div", "av-preset-highlight");
+        preview.append(
+          ctx.el("span", "av-preset-highlight-label", ctx.t(highlight.label)),
+          ctx.el("span", "av-preset-highlight-value", ctx.t(highlight.value))
+        );
+        highlights.append(preview);
+      }
+      const apply = ctx.el("button", "av-button av-button-secondary", ctx.t("Apply"));
+      apply.type = "button";
+      apply.addEventListener("click", () => {
+        apply.disabled = true;
+        void ctx.options.applyPreset(preset.id).then((result) => {
+          if (result.applied) {
+            ctx.setStatusCopy("Preset applied: {preset} ({changes})", {
+              preset: ctx.t(preset.label),
+              changes: result.changes.length
+            });
+          } else {
+            ctx.setStatusCopy("Preset already applied: {preset}", { preset: ctx.t(preset.label) });
+          }
+        }).catch((error) => {
+          ctx.options.onError("Could not apply preset", error);
+          ctx.setStatus("Could not apply preset.");
+        }).finally(() => {
+          apply.disabled = false;
+        });
+      });
+      row.append(cardHeader);
+      if (highlights.childElementCount > 0) {
+        row.append(highlights);
+      }
+      row.append(apply);
+      rows.push(row);
+    }
+    if (ctx.options.listLocales && ctx.options.setLocale) {
+      rows.push(
+        ctx.selectRow(
+          "Locale",
+          ctx.options.settings.i18n.locale,
+          ctx.options.listLocales().map((entry) => [entry.code, entry.label]),
+          async (value) => {
+            await ctx.options.setLocale(value);
+            const entry = ctx.options.listLocales?.().find((locale) => locale.code === value);
+            await ctx.save(`Locale set to ${entry?.label ?? value}`);
+          },
+          "Translates the panel and sets reading direction \u2014 right-to-left for Arabic and Hebrew. Trust shows how much of the chosen locale is filled in; anything missing stays English.",
+          false
+        )
+      );
+    }
+    return rows;
+  }
+
+  // src/ui/control-center.ts
+  var AVIARY_VERSION2 = false ? "dev" : "1.16.0";
   function mountControlCenter(options) {
     const existing = document.getElementById("av-control-center");
     existing?.remove();
@@ -6771,16 +9304,18 @@ html.av-reduce-motion *::after {
     let dirtyWhileBusy = false;
     let activeSectionId = "presets";
     let searchQuery = "";
-    let bookmarkQuery = "";
-    let unifiedSemantic = false;
+    const panelState = {
+      bookmarkQuery: "",
+      unifiedSemantic: false,
+      pendingLibraryBackupPayload: null,
+      pendingLibraryBackupPreview: null,
+      libraryRestoreRunning: false,
+      libraryRestoreAbort: null
+    };
     let lastStatusEnglish = "Saved locally";
     let lastStatusValues = {};
     let bodyWasInert = false;
     let focusTrapAttached = false;
-    let pendingLibraryBackupPayload = null;
-    let pendingLibraryBackupPreview = null;
-    let libraryRestoreRunning = false;
-    let libraryRestoreAbort = null;
     const modalFocusables = () => Array.from(panel.querySelectorAll(FOCUSABLE_SELECTOR)).filter((node) => {
       if (node.hasAttribute("disabled") || node.getAttribute("aria-hidden") === "true") {
         return false;
@@ -6973,228 +9508,47 @@ html.av-reduce-motion *::after {
         }
       }
     };
-    const appearanceRows = () => {
-      return [
-        selectRow("Theme", options.settings.appearance.theme, [
-          ["off", "Off (X's own theme)"],
-          ["dim", "Dim"],
-          ["lightsOut", "Lights out"],
-          ["graphite", "Graphite"],
-          ["plum", "Plum"],
-          ["midnight", "Midnight"]
-        ], async (value) => {
-          if (!isThemeId(value)) {
-            setStatus("Theme value is not supported.");
-            return;
-          }
-          options.settings.appearance.theme = value;
-          await save("Theme updated");
-        }),
-        toggleRow("Dense mode", "Tighten timeline spacing for scanning.", options.settings.appearance.denseMode, async (checked) => {
-          options.settings.appearance.denseMode = checked;
-          await save("Density updated");
-        }),
-        selectRow(
-          "Timeline width",
-          options.settings.appearance.timelineWidth,
-          [
-            ["default", "Default"],
-            ["comfortable", "Comfortable"],
-            ["wide", "Wide"]
-          ],
-          async (value) => {
-            options.settings.appearance.timelineWidth = value;
-            await save("Timeline width updated");
-          },
-          "Widen the main column past the width X fixes it at. Capped to the space available, so a narrow window is unaffected."
-        ),
-        toggleRow(
-          "Restore the Chirp font",
-          "Force X's own Chirp typeface where the site has fallen back to a system font.",
-          options.settings.appearance.restoreChirp,
-          async (checked) => {
-            options.settings.appearance.restoreChirp = checked;
-            await save(checked ? "Chirp font on" : "Chirp font off");
-          }
-        ),
-        toggleRow(
-          "Hide engagement counts",
-          "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.",
-          options.settings.appearance.hideCounts,
-          async (checked) => {
-            options.settings.appearance.hideCounts = checked;
-            await save(checked ? "Engagement counts hidden" : "Engagement counts shown");
-          }
-        ),
-        toggleRow(
-          "Hide row borders",
-          "Remove the 1px divider under each timeline post and the primary column's side rules.",
-          options.settings.appearance.hideBorders,
-          async (checked) => {
-            options.settings.appearance.hideBorders = checked;
-            await save(checked ? "Row borders hidden" : "Row borders restored");
-          }
-        ),
-        toggleRow("High contrast", "Use stronger borders and text contrast.", options.settings.accessibility.highContrast, async (checked) => {
-          options.settings.accessibility.highContrast = checked;
-          await save("Contrast preference saved");
-        }),
-        selectRow(
-          "Reduced motion",
-          options.settings.accessibility.reduceMotion,
-          [
-            ["system", "Follow system setting"],
-            ["always", "Always reduce"],
-            ["never", "Never reduce"]
-          ],
-          async (value) => {
-            options.settings.accessibility.reduceMotion = coerceReduceMotion(value);
-            await save("Motion preference saved");
-          }
-        )
-      ];
-    };
-    const layoutRows = () => {
-      const rows = [
-        toggleRow("Hide right sidebar", "Reduce trends, recommendations, and footer noise.", options.settings.layout.hideRightSidebar, async (checked) => {
-          options.settings.layout.hideRightSidebar = checked;
-          await save("Sidebar preference saved");
-        }),
-        toggleRow("Hide trends", "Remove trending topics and news modules.", options.settings.layout.hideTrends, async (checked) => {
-          options.settings.layout.hideTrends = checked;
-          await save("Trend preference saved");
-        }),
-        toggleRow("Hide Grok surfaces", "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.", options.settings.layout.hideGrok, async (checked) => {
-          options.settings.layout.hideGrok = checked;
-          await save("Grok preference saved");
-        }),
-        toggleRow(
-          "Writer mode",
-          "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.",
-          options.settings.layout.writerMode,
-          async (checked) => {
-            options.settings.layout.writerMode = checked;
-            await save(checked ? "Writer mode on" : "Writer mode off");
-          }
-        ),
-        toggleRow(
-          "Open Following instead of For you",
-          "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.",
-          options.settings.layout.forceFollowing,
-          async (checked) => {
-            options.settings.layout.forceFollowing = checked;
-            await save(checked ? "Following timeline on" : "Following timeline off");
-          }
-        )
-      ];
-      rows.push(
-        textareaRow(
-          "Hide navigation items",
-          "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.",
-          options.settings.layout.hideNavItems,
-          async (lines) => {
-            options.settings.layout.hideNavItems = [...new Set(
-              lines.map((line) => line.trim().toLowerCase()).filter((line) => HIDE_NAV_ITEM_IDS.has(line))
-            )].slice(0, 24);
-            await save("Navigation visibility saved");
-          }
-        )
-      );
-      return rows;
-    };
-    const trustRows = () => {
-      const rows = [
-        storageStatusRow(),
-        toggleRow(
-          "Local-only mode",
-          "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.",
-          options.settings.privacy.localOnly,
-          async (checked) => {
-            options.settings.privacy.localOnly = checked;
-            await save(checked ? "Local-only mode on" : "Local-only mode off");
-          }
-        ),
-        toggleRow(
-          "Refuse X's analytics beacons",
-          "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused \u2014 timeline, media and login traffic is untouched.",
-          options.settings.privacy.blockAnalyticsBeacons,
-          async (checked) => {
-            options.settings.privacy.blockAnalyticsBeacons = checked;
-            await save(checked ? "Analytics beacons refused" : "Analytics beacons allowed");
-          }
-        ),
-        toggleRow(
-          "Monitor selector health",
-          "Check the current X surface for required and fallback anchors. Turn this off when you do not want selector diagnostics.",
-          options.settings.diagnostics.selectorHealth,
-          async (checked) => {
-            options.settings.diagnostics.selectorHealth = checked;
-            await save(checked ? "Selector health monitoring on" : "Selector health monitoring off");
-          }
-        ),
-        ...beaconRows(),
-        storageHealthRow(),
-        readonlyRow("Telemetry", options.settings.privacy.telemetry ? "Enabled" : "Disabled"),
-        coverageRow(),
-        ...selectorHealthRows()
-      ];
-      const profile = options.getProfileStatus?.();
-      if (profile) {
-        rows.splice(
-          1,
-          0,
-          dataRow("Active profile", `${profile.activeLabel} \xB7 ${profile.activeId}`),
-          selectRow(
-            "Switch profile",
-            profile.activeId,
-            profile.profiles.map((entry) => [entry.id, `${entry.label} (${entry.kind})`]),
-            async (profileId) => {
-              if (!options.switchProfile) return;
-              try {
-                const result = await options.switchProfile(profileId);
-                if (!result.ok) throw new Error(result.error ?? "Profile could not be switched");
-                setStatus("Profile switched. Reloading\u2026");
-              } catch (error) {
-                options.onError("Profile switch failed", error);
-                setStatus("Profile switch failed.");
-              }
-            },
-            "A profile is an explicit local boundary for settings, credentials, library data, jobs, and search.",
-            false
-          )
-        );
-        if (profile.legacyDataAvailable && options.adoptLegacyProfileData) {
-          rows.push(
-            actionRow(
-              "Assign legacy data here",
-              "Move unassigned pre-profile settings and library stores into the active profile. Nothing is guessed from the current X route.",
-              async () => {
-                const result = await options.adoptLegacyProfileData();
-                render();
-                setStatusCopy("Assigned {moved} stores; {skipped} already existed.", {
-                  moved: result.moved,
-                  skipped: result.skipped
-                });
-              }
-            )
-          );
-        }
-        if (options.createProfile) {
-          rows.push(
-            textInputRow("New profile", "Create an empty offline profile before switching accounts or importing another archive.", "", async (label) => {
-              try {
-                const result = await options.createProfile(label);
-                if (!result.ok) throw new Error(result.error ?? "Profile could not be created");
-                setStatus("Profile created. Reloading\u2026");
-              } catch (error) {
-                options.onError("Profile creation failed", error);
-                setStatus("Profile creation failed.");
-              }
-            })
-          );
-        }
-      }
-      return rows;
+    const panelContext = {
+      options,
+      settings: options.settings,
+      state: panelState,
+      t,
+      formatCopy,
+      localizedCopy,
+      setStatus,
+      setStatusCopy,
+      save: (message) => save(message),
+      render,
+      actionRow,
+      toggleRow,
+      selectRow,
+      readonlyRow,
+      dataRow,
+      textInputRow,
+      secretInputRow,
+      integerInputRow,
+      textareaRow,
+      surfaceRow,
+      bookmarkField,
+      splitBookmarkTags,
+      toDatetimeLocal,
+      fromDatetimeLocal,
+      coerceReduceMotion,
+      coerceFilterAction,
+      coerceLayout,
+      formatBytes,
+      defaultAiEndpoint,
+      isThemeId,
+      el,
+      button,
+      presetIcon,
+      coverageRow: () => coverageRow(),
+      storageHealthRow: () => storageHealthRow(),
+      storageStatusRow: () => storageStatusRow(),
+      beaconRows: () => beaconRows(),
+      pageScopeReason: (code) => pageScopeReason(code),
+      selectorHealthRows: () => selectorHealthRows(),
+      selectorSummary: () => selectorSummary()
     };
     const sectionRegistry = () => [
       {
@@ -7204,7 +9558,7 @@ html.av-reduce-motion *::after {
         summary: "Local controls for a quieter X.",
         icon: "presets",
         accent: "rgb(77, 199, 255)",
-        build: presetRows
+        build: () => buildPresetRows(panelContext)
       },
       {
         id: "appearance",
@@ -7213,7 +9567,7 @@ html.av-reduce-motion *::after {
         summary: "Use stronger borders and text contrast.",
         icon: "appearance",
         accent: "rgb(72, 211, 193)",
-        build: appearanceRows
+        build: () => buildAppearanceRows(panelContext)
       },
       {
         id: "layout",
@@ -7222,7 +9576,7 @@ html.av-reduce-motion *::after {
         summary: "Reduce trends, recommendations, and footer noise.",
         icon: "layout",
         accent: "rgb(130, 151, 255)",
-        build: layoutRows
+        build: () => buildLayoutRows(panelContext)
       },
       {
         id: "filtering",
@@ -7231,7 +9585,7 @@ html.av-reduce-motion *::after {
         summary: "Master switch for keyword, regex, premium, and media filters.",
         icon: "filtering",
         accent: "rgb(178, 139, 255)",
-        build: filterRows
+        build: () => buildFilterRows(panelContext)
       },
       {
         id: "hidden",
@@ -7240,7 +9594,7 @@ html.av-reduce-motion *::after {
         summary: "Keep posts you hid collapsed so the next post rises to the top.",
         icon: "hidden",
         accent: "rgb(255, 184, 107)",
-        build: hiddenPostRows
+        build: () => buildHiddenPostRows(panelContext)
       },
       {
         id: "performance",
@@ -7249,7 +9603,7 @@ html.av-reduce-motion *::after {
         summary: "Stops decoding timeline video once it leaves the screen, and resumes it when it comes back. A video you paused yourself stays paused.",
         icon: "performance",
         accent: "rgb(80, 210, 160)",
-        build: performanceRows
+        build: () => buildPerformanceRows(panelContext)
       },
       {
         id: "media",
@@ -7258,7 +9612,7 @@ html.av-reduce-motion *::after {
         summary: "Inject Save and Thumb buttons over tweet photos and video thumbnails.",
         icon: "media",
         accent: "rgb(77, 199, 255)",
-        build: mediaRows
+        build: () => buildMediaRows(panelContext)
       },
       {
         id: "export",
@@ -7267,7 +9621,7 @@ html.av-reduce-motion *::after {
         summary: "Accumulate tweets visible on the active page for the next export run.",
         icon: "export",
         accent: "rgb(54, 211, 176)",
-        build: exportRows
+        build: () => buildExportRows(panelContext)
       },
       {
         id: "library",
@@ -7276,7 +9630,7 @@ html.av-reduce-motion *::after {
         summary: "Save, search, organize, and revisit posts in a local bookmark library.",
         icon: "library",
         accent: "rgb(171, 139, 255)",
-        build: libraryRows
+        build: () => buildLibraryRows(panelContext)
       },
       {
         id: "snapshots",
@@ -7285,7 +9639,7 @@ html.av-reduce-motion *::after {
         summary: "Walks UserCell rows on the current page. Open a /handle/followers view first.",
         icon: "snapshots",
         accent: "rgb(247, 183, 73)",
-        build: snapshotRows
+        build: () => buildSnapshotRows(panelContext)
       },
       {
         id: "integrations",
@@ -7294,7 +9648,7 @@ html.av-reduce-motion *::after {
         summary: "Send large media downloads to a self-hosted Aria2 JSON-RPC endpoint.",
         icon: "integrations",
         accent: "rgb(70, 200, 255)",
-        build: integrationRows
+        build: () => buildIntegrationRows(panelContext)
       },
       {
         id: "backup",
@@ -7303,7 +9657,7 @@ html.av-reduce-motion *::after {
         summary: "Downloads your preferences as JSON. API keys and passwords are replaced with a placeholder, so the file is safe to share; importing it here keeps the credentials already saved on this machine.",
         icon: "backup",
         accent: "rgb(137, 126, 255)",
-        build: backupRows
+        build: () => buildBackupRows(panelContext)
       },
       {
         id: "trust",
@@ -7312,7 +9666,7 @@ html.av-reduce-motion *::after {
         summary: "Settings stay in this browser.",
         icon: "trust",
         accent: "rgb(72, 211, 147)",
-        build: trustRows
+        build: () => buildTrustRows(panelContext)
       }
     ];
     const buildNav = (registry) => {
@@ -7372,2298 +9726,6 @@ html.av-reduce-motion *::after {
         return [empty];
       }
       return out;
-    };
-    const presetRows = () => {
-      const rows = [];
-      if (!options.listPresets || !options.applyPreset) {
-        rows.push(readonlyRow("Presets", "Preset packs unavailable in this build."));
-        return rows;
-      }
-      for (const preset of options.listPresets()) {
-        const row = el("div", "av-row av-row-stack av-preset-card");
-        row.dataset.avPreset = preset.id;
-        const cardHeader = el("div", "av-preset-header");
-        const copy = el("span", "av-row-copy");
-        copy.append(
-          el("span", "av-row-label", t(preset.label)),
-          el("span", "av-row-description", t(preset.description))
-        );
-        cardHeader.append(presetIcon(preset.id), copy);
-        const highlights = el("div", "av-preset-highlights");
-        for (const highlight of preset.highlights ?? []) {
-          const preview = el("div", "av-preset-highlight");
-          preview.append(
-            el("span", "av-preset-highlight-label", t(highlight.label)),
-            el("span", "av-preset-highlight-value", t(highlight.value))
-          );
-          highlights.append(preview);
-        }
-        const apply = el("button", "av-button av-button-secondary", t("Apply"));
-        apply.type = "button";
-        apply.addEventListener("click", () => {
-          apply.disabled = true;
-          void options.applyPreset(preset.id).then((result) => {
-            if (result.applied) {
-              setStatusCopy("Preset applied: {preset} ({changes})", {
-                preset: t(preset.label),
-                changes: result.changes.length
-              });
-            } else {
-              setStatusCopy("Preset already applied: {preset}", { preset: t(preset.label) });
-            }
-          }).catch((error) => {
-            options.onError("Could not apply preset", error);
-            setStatus("Could not apply preset.");
-          }).finally(() => {
-            apply.disabled = false;
-          });
-        });
-        row.append(cardHeader);
-        if (highlights.childElementCount > 0) {
-          row.append(highlights);
-        }
-        row.append(apply);
-        rows.push(row);
-      }
-      if (options.listLocales && options.setLocale) {
-        rows.push(
-          selectRow(
-            "Locale",
-            options.settings.i18n.locale,
-            options.listLocales().map((entry) => [entry.code, entry.label]),
-            async (value) => {
-              await options.setLocale(value);
-              const entry = options.listLocales?.().find((locale) => locale.code === value);
-              await save(`Locale set to ${entry?.label ?? value}`);
-            },
-            "Translates the panel and sets reading direction \u2014 right-to-left for Arabic and Hebrew. Trust shows how much of the chosen locale is filled in; anything missing stays English.",
-            false
-          )
-        );
-      }
-      return rows;
-    };
-    const snapshotRows = () => {
-      const rows = [];
-      if (options.getSnapshotStatus) {
-        const status2 = options.getSnapshotStatus();
-        rows.push(
-          dataRow(
-            "Snapshots stored",
-            status2.latestAt ? localizedCopy("{count} entries \xB7 latest {kind} of {latestCount} @ {at}", {
-              count: status2.total,
-              kind: status2.latestKind ?? "snapshot",
-              latestCount: status2.latestCount,
-              at: status2.latestAt
-            }) : localizedCopy("{count} entries", { count: status2.total })
-          )
-        );
-      }
-      if (options.captureSnapshot) {
-        rows.push(
-          actionRow(
-            "Capture followers from this view",
-            "Walks UserCell rows on the current page. Open a /handle/followers view first.",
-            async () => {
-              try {
-                const result = await options.captureSnapshot("followers");
-                render();
-                if (result) {
-                  setStatusCopy("Captured {count} followers for @{handle}.", {
-                    count: result.count,
-                    handle: result.handle
-                  });
-                } else {
-                  setStatus("No UserCell rows found.");
-                }
-              } catch (error) {
-                options.onError("Snapshot failed", error);
-                setStatus("Snapshot failed.");
-              }
-            }
-          )
-        );
-        rows.push(
-          actionRow(
-            "Capture following from this view",
-            "Walks UserCell rows on the current page. Open a /handle/following view first.",
-            async () => {
-              try {
-                const result = await options.captureSnapshot("following");
-                render();
-                if (result) {
-                  setStatusCopy("Captured {count} following for @{handle}.", {
-                    count: result.count,
-                    handle: result.handle
-                  });
-                } else {
-                  setStatus("No UserCell rows found.");
-                }
-              } catch (error) {
-                options.onError("Snapshot failed", error);
-                setStatus("Snapshot failed.");
-              }
-            }
-          )
-        );
-      }
-      if (options.clearSnapshots) {
-        rows.push(
-          actionRow("Clear all snapshots", "Drop every stored follower/following snapshot.", async () => {
-            try {
-              await options.clearSnapshots();
-              await save("Snapshots cleared");
-            } catch (error) {
-              options.onError("Could not clear snapshots", error);
-              setStatus("Could not clear snapshots.");
-            }
-          })
-        );
-      }
-      const archiveStatus = options.getArchiveImportStatus?.();
-      const archiveLibraryStatus = options.getArchiveLibraryStatus?.();
-      if (archiveLibraryStatus) {
-        rows.push(
-          dataRow(
-            "Imported collections",
-            localizedCopy(
-              "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists",
-              {
-                posts: archiveLibraryStatus.authoredPosts,
-                likes: archiveLibraryStatus.likes,
-                messages: archiveLibraryStatus.directMessages,
-                media: archiveLibraryStatus.media,
-                followers: archiveLibraryStatus.followers,
-                following: archiveLibraryStatus.following,
-                lists: archiveLibraryStatus.lists
-              }
-            )
-          )
-        );
-      }
-      if (archiveStatus) {
-        for (const job of archiveStatus.jobs) {
-          rows.push(
-            dataRow(
-              "Archive import",
-              `${localizedCopy("{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings", {
-                status: job.status,
-                filename: job.filename,
-                records: job.recordCount,
-                files: job.filesParsed,
-                warnings: job.warningCount
-              })}${job.error ? ` \xB7 ${job.error}` : ""}`
-            )
-          );
-          if (job.status === "running" && options.pauseArchiveImport) {
-            rows.push(
-              actionRow("Pause archive import", { source: "Pause {filename}.", values: { filename: job.filename } }, async () => {
-                const result = await options.pauseArchiveImport(job.jobId);
-                if (!result.ok) throw new Error(result.error ?? "Archive import could not be paused");
-                render();
-                setStatus("Archive import paused.");
-              })
-            );
-          }
-          if ((job.status === "paused" || job.status === "queued") && options.resumeArchiveImport) {
-            rows.push(
-              actionRow("Resume archive import", { source: "Resume {filename}.", values: { filename: job.filename } }, async () => {
-                const result = await options.resumeArchiveImport(job.jobId);
-                if (!result.ok) throw new Error(result.error ?? "Archive import could not be resumed");
-                render();
-                setStatus("Archive import resumed.");
-              })
-            );
-          }
-          if ((job.status === "running" || job.status === "paused" || job.status === "queued") && options.cancelArchiveImport) {
-            rows.push(
-              actionRow("Cancel archive import", { source: "Cancel {filename}.", values: { filename: job.filename } }, async () => {
-                const result = await options.cancelArchiveImport(job.jobId);
-                if (!result.ok) throw new Error(result.error ?? "Archive import could not be cancelled");
-                render();
-                setStatus("Archive import cancelled.");
-              })
-            );
-          }
-          if ((job.status === "failed" || job.status === "cancelled") && options.retryArchiveImport) {
-            rows.push(
-              actionRow("Retry archive import", { source: "Retry {filename}.", values: { filename: job.filename } }, async () => {
-                const result = await options.retryArchiveImport(job.jobId);
-                if (!result.ok) throw new Error(result.error ?? "Archive import could not be retried");
-                render();
-                setStatus("Archive import retry started.");
-              })
-            );
-          }
-        }
-      }
-      if (options.importArchive) {
-        const row = el("div", "av-row av-row-stack");
-        const copy = el("span", "av-row-copy");
-        copy.append(
-          el("span", "av-row-label", t("Import official X archive")),
-          el("span", "av-row-description", t("Pick a ZIP exported from x.com. STORE and DEFLATE entries are supported; the source stays local while it is resumable."))
-        );
-        const archiveLabel = copy.querySelector(".av-row-label");
-        archiveLabel.id = "av-import-archive-label";
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = ".zip,application/zip";
-        input.className = "av-file-input";
-        input.id = "av-import-archive";
-        input.setAttribute("aria-labelledby", archiveLabel.id);
-        input.addEventListener("change", () => {
-          const file = input.files?.[0];
-          if (!file) return;
-          void (async () => {
-            setStatus("Reading archive \u2014 large files take a moment\u2026");
-            try {
-              const result = await options.importArchive(file);
-              render();
-              setStatusCopy(
-                "Imported {records} records. Warnings: {warnings}; errors: {errors}. Files: {recognized} recognized, {skipped} skipped, {malformed} malformed.",
-                {
-                  records: result.records,
-                  warnings: result.warnings,
-                  errors: result.errors,
-                  recognized: result.recognizedFiles ?? 0,
-                  skipped: result.skippedFiles ?? 0,
-                  malformed: result.malformedFiles ?? 0
-                }
-              );
-            } catch (error) {
-              options.onError("Archive import failed", error);
-              setStatus("Archive import failed.");
-            } finally {
-              input.value = "";
-            }
-          })();
-        });
-        row.append(copy, input);
-        rows.push(row);
-      }
-      if (options.searchArchive) {
-        const row = el("div", "av-row av-row-stack");
-        const copy = el("span", "av-row-copy");
-        copy.append(
-          el("span", "av-row-label", t("Search captured records")),
-          el("span", "av-row-description", t("Full-text search across the latest export collector run."))
-        );
-        const archiveSearchLabel = copy.querySelector(".av-row-label");
-        const input = document.createElement("input");
-        input.type = "search";
-        input.placeholder = t("@handle, keyword, phrase\u2026");
-        archiveSearchLabel.id = "av-search-archive-label";
-        input.id = "av-search-archive";
-        input.setAttribute("aria-labelledby", archiveSearchLabel.id);
-        input.className = "av-text-input";
-        const results = el("div", "av-search-results");
-        results.setAttribute("role", "list");
-        results.setAttribute("aria-live", "polite");
-        const runSearch = () => {
-          const query = input.value.trim();
-          results.replaceChildren();
-          if (query.length === 0) {
-            results.append(
-              el("div", "av-row-description", t("Type to search the records captured by export runs."))
-            );
-            return;
-          }
-          const hits = options.searchArchive(query);
-          if (hits.length === 0) {
-            results.append(
-              el(
-                "div",
-                "av-row-description",
-                formatCopy(t("No captured records match \u201C{query}\u201D."), { query })
-              )
-            );
-            return;
-          }
-          for (const hit of hits.slice(0, 10)) {
-            const item = el("div", "av-search-hit");
-            item.setAttribute("role", "listitem");
-            const head = el("span", "av-row-label", `@${hit.handle ?? "anon"} \xB7 ${hit.tweetId ?? "\u2014"}`);
-            const body2 = el("span", "av-row-description", hit.text.slice(0, 140));
-            item.append(head, body2);
-            results.append(item);
-          }
-        };
-        let searchTimer;
-        input.addEventListener("input", () => {
-          if (searchTimer !== void 0) {
-            clearTimeout(searchTimer);
-          }
-          searchTimer = setTimeout(runSearch, 180);
-        });
-        runSearch();
-        row.append(copy, input, results);
-        rows.push(row);
-      }
-      if (options.downloadReport) {
-        rows.push(
-          actionRow("Download Markdown report", "Audit log + snapshot diff + cleanup preview.", async () => {
-            setStatus("Building report\u2026");
-            try {
-              await options.downloadReport();
-              setStatus("Report downloaded.");
-            } catch (error) {
-              options.onError("Could not build report", error);
-              setStatus("Could not build report.");
-            }
-          })
-        );
-      }
-      if (options.getCleanupQueueSize) {
-        const queueStatus = options.getCleanupQueueSize();
-        rows.push(
-          dataRow(
-            "Cleanup review queue",
-            localizedCopy("{total} items \xB7 queued {queued} \xB7 approved {approved} \xB7 skipped {skipped}", {
-              total: queueStatus.total,
-              queued: queueStatus.queued,
-              approved: queueStatus.approved,
-              skipped: queueStatus.skipped
-            })
-          )
-        );
-        rows.push(
-          readonlyRow(
-            "Destructive actions",
-            "Aviary never deletes posts, likes, or follows. The queue is a review list; approving or skipping only writes to the audit log."
-          )
-        );
-      }
-      if (options.enqueueCleanupReview) {
-        rows.push(
-          actionRow(
-            "Enqueue cleanup preview for review",
-            "Append every non-protected candidate from the latest cleanup preview to the queue (no destructive action).",
-            async () => {
-              setStatus("Building cleanup preview\u2026");
-              try {
-                const result = await options.enqueueCleanupReview();
-                render();
-                setStatusCopy("Enqueued {added} items ({protected} protected skipped).", {
-                  added: result.added,
-                  protected: result.protected
-                });
-              } catch (error) {
-                options.onError("Could not enqueue cleanup", error);
-                setStatus("Could not enqueue cleanup.");
-              }
-            }
-          )
-        );
-      }
-      if (options.clearCleanupQueue) {
-        rows.push(
-          actionRow("Clear cleanup queue", "Drop every queued item without touching account data.", async () => {
-            try {
-              await options.clearCleanupQueue();
-              await save("Cleanup queue cleared");
-            } catch (error) {
-              options.onError("Could not clear cleanup queue", error);
-              setStatus("Could not clear queue.");
-            }
-          })
-        );
-      }
-      return rows;
-    };
-    const integrationRows = () => {
-      const rows = [];
-      const status2 = options.getIntegrationStatus?.();
-      const usage = options.getIntegrationUsage?.();
-      const integrations = options.settings.integrations;
-      rows.push(
-        toggleRow(
-          "Aria2 handoff",
-          "Send large media downloads to a self-hosted Aria2 JSON-RPC endpoint.",
-          integrations.aria2.enabled,
-          async (checked) => {
-            integrations.aria2.enabled = checked;
-            await save(checked ? "Aria2 handoff on" : "Aria2 handoff off");
-          }
-        )
-      );
-      rows.push(
-        textInputRow(
-          "Aria2 endpoint",
-          "http://localhost:6800 (no trailing slash needed)",
-          integrations.aria2.endpoint,
-          async (value) => {
-            integrations.aria2.endpoint = value;
-            await save("Aria2 endpoint saved");
-          }
-        )
-      );
-      rows.push(
-        secretInputRow(
-          "Aria2 RPC secret",
-          "Optional shared secret for token: auth.",
-          integrations.aria2.secret,
-          async (value) => {
-            integrations.aria2.secret = value;
-            await save("Aria2 secret saved");
-          }
-        )
-      );
-      rows.push(
-        integerInputRow(
-          "Hand off files larger than (MB)",
-          "Smaller files save through the browser. Aviary checks the size first; when the server will not report one, the file is handed off anyway.",
-          Math.round(integrations.aria2.minBytes / 1e6),
-          async (value) => {
-            integrations.aria2.minBytes = Math.max(0, value) * 1e6;
-            await save("Aria2 threshold saved");
-          }
-        )
-      );
-      if (options.pingAria2) {
-        rows.push(
-          actionRow("Test Aria2 connection", "Sends a trivial JSON-RPC call.", async () => {
-            try {
-              const result = await options.pingAria2();
-              if (result.ok) {
-                setStatus("Aria2 reachable.");
-              } else {
-                setStatusCopy("Aria2 unreachable: {error}", { error: result.error ?? "unknown error" });
-              }
-            } catch (error) {
-              options.onError("Aria2 connection test failed", error);
-              setStatus("Aria2 connection test failed.");
-            }
-          })
-        );
-      }
-      if (options.listAria2Active && options.cancelAria2) {
-        const row = el("div", "av-row av-row-stack");
-        const copy = el("span", "av-row-copy");
-        copy.append(
-          el("span", "av-row-label", t("Aria2 active downloads")),
-          el("span", "av-row-description", t("Refresh to list in-flight transfers; tap Cancel to abort one."))
-        );
-        const list = el("div", "av-search-results");
-        const refresh = async () => {
-          try {
-            const active = await options.listAria2Active();
-            list.replaceChildren();
-            if (active.length === 0) {
-              list.append(el("div", "av-row-description", t("No active downloads.")));
-              return;
-            }
-            for (const job of active) {
-              const item = el("div", "av-search-hit");
-              const total = job.totalLength > 0 ? `${Math.round(job.completedLength / job.totalLength * 100)}%` : "?";
-              item.append(
-                el("span", "av-row-label", `${job.path || job.gid} \xB7 ${total}`),
-                el("span", "av-row-description", localizedCopy("gid {gid} \xB7 {status}", { gid: job.gid, status: job.status }))
-              );
-              const cancel = el("button", "av-button av-button-secondary", t("Cancel"));
-              cancel.type = "button";
-              cancel.addEventListener("click", () => {
-                void (async () => {
-                  cancel.disabled = true;
-                  try {
-                    const result = await options.cancelAria2(job.gid);
-                    if (result.ok) {
-                      setStatusCopy("Cancelled {gid}.", { gid: job.gid });
-                      await refresh();
-                    } else {
-                      setStatusCopy("Aria2 cancel failed: {error}", {
-                        error: result.error ?? "unknown error"
-                      });
-                    }
-                  } catch (error) {
-                    try {
-                      options.onError("Aria2 cancel failed", error);
-                    } catch {
-                    }
-                    setStatus("Aria2 cancel failed.");
-                  } finally {
-                    cancel.disabled = false;
-                  }
-                })();
-              });
-              item.append(cancel);
-              list.append(item);
-            }
-          } catch (error) {
-            options.onError("Aria2 sweep failed", error);
-            setStatus("Aria2 sweep failed.");
-          }
-        };
-        const refreshBtn = el("button", "av-button av-button-secondary", t("Refresh"));
-        refreshBtn.type = "button";
-        refreshBtn.addEventListener("click", () => void refresh());
-        row.append(copy, refreshBtn, list);
-        rows.push(row);
-      }
-      rows.push(
-        toggleRow(
-          "Bluesky crosspost",
-          "Post composer text to your Bluesky account on demand.",
-          integrations.bluesky.enabled,
-          async (checked) => {
-            integrations.bluesky.enabled = checked;
-            await save(checked ? "Bluesky on" : "Bluesky off");
-          }
-        )
-      );
-      rows.push(
-        textInputRow(
-          "Bluesky service URL",
-          "Default: https://bsky.social",
-          integrations.bluesky.service,
-          async (value) => {
-            integrations.bluesky.service = value;
-            await save("Bluesky service saved");
-          }
-        )
-      );
-      rows.push(
-        textInputRow(
-          "Bluesky handle",
-          "Your handle (no @, e.g. you.bsky.social)",
-          integrations.bluesky.handle,
-          async (value) => {
-            integrations.bluesky.handle = value;
-            await save("Bluesky handle saved");
-          }
-        )
-      );
-      rows.push(
-        secretInputRow(
-          "Bluesky app password",
-          "App password from your account settings \u2014 never your main password.",
-          integrations.bluesky.appPassword,
-          async (value) => {
-            integrations.bluesky.appPassword = value;
-            await save("Bluesky app password saved");
-          }
-        )
-      );
-      rows.push(
-        toggleRow(
-          "Mastodon crosspost",
-          "Post composer text to your Mastodon account on demand.",
-          integrations.mastodon.enabled,
-          async (checked) => {
-            integrations.mastodon.enabled = checked;
-            await save(checked ? "Mastodon on" : "Mastodon off");
-          }
-        )
-      );
-      rows.push(
-        textInputRow(
-          "Mastodon instance",
-          "https://mastodon.social",
-          integrations.mastodon.instance,
-          async (value) => {
-            integrations.mastodon.instance = value;
-            await save("Mastodon instance saved");
-          }
-        )
-      );
-      rows.push(
-        secretInputRow(
-          "Mastodon access token",
-          "Bearer token with write:statuses scope.",
-          integrations.mastodon.token,
-          async (value) => {
-            integrations.mastodon.token = value;
-            await save("Mastodon token saved");
-          }
-        )
-      );
-      rows.push(
-        toggleRow(
-          "Attach last download",
-          "Upload the last successful Aviary media download with the first post in an explicit crosspost.",
-          integrations.crosspost.attachLastDownload,
-          async (checked) => {
-            integrations.crosspost.attachLastDownload = checked;
-            await save(checked ? "Crosspost attachment on" : "Crosspost attachment off");
-          }
-        )
-      );
-      if (options.crosspost) {
-        const threadRow = el("div", "av-row");
-        const copy = el("span", "av-row-copy");
-        copy.append(
-          el("span", "av-row-label", t("Crosspost as thread")),
-          el("span", "av-row-description", t("Split on blank lines and reply each segment to the previous one."))
-        );
-        const threadLabel = copy.querySelector(".av-row-label");
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        threadLabel.id = "av-crosspost-thread-label";
-        checkbox.id = "av-crosspost-thread";
-        checkbox.setAttribute("aria-labelledby", threadLabel.id);
-        threadRow.append(copy, checkbox);
-        rows.push(threadRow);
-        rows.push(
-          actionRow("Crosspost composer \u2192 Bluesky", "Uses the current composer text.", async () => {
-            try {
-              const result = await options.crosspost("bluesky", { asThread: checkbox.checked });
-              if (result.ok) {
-                setStatusCopy("Posted {posts} to Bluesky.{url}", {
-                  posts: result.posts ?? 1,
-                  url: result.url ? ` ${result.url}` : ""
-                });
-              } else {
-                setStatusCopy("Bluesky failed: {error}", { error: result.error ?? "unknown error" });
-              }
-            } catch (error) {
-              options.onError("Bluesky crosspost failed", error);
-              setStatus("Bluesky crosspost failed.");
-            }
-          })
-        );
-        rows.push(
-          actionRow("Crosspost composer \u2192 Mastodon", "Uses the current composer text.", async () => {
-            try {
-              const result = await options.crosspost("mastodon", { asThread: checkbox.checked });
-              if (result.ok) {
-                setStatusCopy("Posted {posts} to Mastodon.{url}", {
-                  posts: result.posts ?? 1,
-                  url: result.url ? ` ${result.url}` : ""
-                });
-              } else {
-                setStatusCopy("Mastodon failed: {error}", { error: result.error ?? "unknown error" });
-              }
-            } catch (error) {
-              options.onError("Mastodon crosspost failed", error);
-              setStatus("Mastodon crosspost failed.");
-            }
-          })
-        );
-      }
-      rows.push(
-        toggleRow(
-          "AI provider runs",
-          "Let the AI command menu POST prompts to your configured provider.",
-          integrations.ai.enabled,
-          async (checked) => {
-            integrations.ai.enabled = checked;
-            await save(checked ? "AI runs on" : "AI runs off");
-          }
-        )
-      );
-      rows.push(
-        selectRow(
-          "AI provider",
-          integrations.ai.provider,
-          [
-            ["anthropic", "Anthropic Messages API"],
-            ["openai", "OpenAI Chat Completions"],
-            ["openai-compatible", "OpenAI-compatible (LocalAI, Ollama proxy, \u2026)"]
-          ],
-          async (value) => {
-            if (value === "anthropic" || value === "openai" || value === "openai-compatible") {
-              integrations.ai.provider = value;
-              await save(`AI provider set to ${value}`);
-            }
-          }
-        )
-      );
-      rows.push(
-        textInputRow(
-          "AI endpoint (optional)",
-          "Override the default endpoint for the chosen provider.",
-          integrations.ai.endpoint,
-          async (value) => {
-            integrations.ai.endpoint = value;
-            await save("AI endpoint saved");
-          }
-        )
-      );
-      rows.push(
-        textInputRow(
-          "AI model",
-          "e.g. claude-sonnet-4-6, gpt-4o, llama3.1:8b",
-          integrations.ai.model,
-          async (value) => {
-            integrations.ai.model = value;
-            await save("AI model saved");
-          }
-        )
-      );
-      rows.push(
-        secretInputRow(
-          "AI API key",
-          "Stored locally only. Aviary never sends this except as the auth header to your provider.",
-          integrations.ai.apiKey,
-          async (value) => {
-            integrations.ai.apiKey = value;
-            await save("AI API key saved");
-          }
-        )
-      );
-      if (usage) {
-        rows.push(
-          dataRow(
-            "Network status",
-            usage.networkAllowed ? t("Allowed") : t("Blocked by local-only mode")
-          ),
-          dataRow(
-            "AI destination",
-            `${integrations.ai.provider} \xB7 ${integrations.ai.endpoint || defaultAiEndpoint(integrations.ai.provider)}`
-          ),
-          readonlyRow(
-            "AI data disclosure",
-            "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status."
-          ),
-          dataRow(
-            "AI usage today",
-            `${usage.ai.requests} requests \xB7 ${formatBytes(usage.ai.bytes)} / ${usage.ai.dailyLimitBytes > 0 ? formatBytes(usage.ai.dailyLimitBytes) : t("unlimited")}`
-          ),
-          integerInputRow(
-            "AI max request bytes",
-            "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.",
-            integrations.ai.maxRequestBytes,
-            async (value) => {
-              integrations.ai.maxRequestBytes = value;
-              await save("AI request budget saved");
-            },
-            { max: 5e6 }
-          ),
-          integerInputRow(
-            "AI daily request bytes",
-            "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.",
-            integrations.ai.dailyRequestBytes,
-            async (value) => {
-              integrations.ai.dailyRequestBytes = value;
-              await save("AI daily budget saved");
-            },
-            { max: 1e8 }
-          )
-        );
-      }
-      rows.push(
-        toggleRow(
-          "Semantic search",
-          "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.",
-          integrations.semanticSearch.enabled,
-          async (checked) => {
-            integrations.semanticSearch.enabled = checked;
-            await save(checked ? "Semantic search on" : "Semantic search off");
-          }
-        )
-      );
-      rows.push(
-        textInputRow(
-          "Embedding endpoint",
-          "POST endpoint that returns {data: [{embedding: number[]}]}",
-          integrations.semanticSearch.endpoint,
-          async (value) => {
-            integrations.semanticSearch.endpoint = value;
-            await save("Embedding endpoint saved");
-          }
-        )
-      );
-      rows.push(
-        textInputRow(
-          "Embedding model",
-          "e.g. text-embedding-3-small",
-          integrations.semanticSearch.model,
-          async (value) => {
-            integrations.semanticSearch.model = value;
-            await save("Embedding model saved");
-          }
-        )
-      );
-      rows.push(
-        secretInputRow(
-          "Embedding API key",
-          "Stored locally; used only as the Authorization header.",
-          integrations.semanticSearch.apiKey,
-          async (value) => {
-            integrations.semanticSearch.apiKey = value;
-            await save("Embedding API key saved");
-          }
-        )
-      );
-      if (usage) {
-        rows.push(
-          dataRow(
-            "Embedding destination",
-            `${integrations.semanticSearch.endpoint || t("Not configured")}`
-          ),
-          readonlyRow(
-            "Embedding data disclosure",
-            "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy."
-          ),
-          dataRow(
-            "Embedding usage today",
-            `${usage.embedding.requests} requests \xB7 ${usage.embedding.records} records \xB7 ${formatBytes(usage.embedding.bytes)} / ${usage.embedding.dailyLimitBytes > 0 ? formatBytes(usage.embedding.dailyLimitBytes) : t("unlimited")}`
-          ),
-          integerInputRow(
-            "Embedding max record bytes",
-            "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.",
-            integrations.semanticSearch.maxRecordBytes,
-            async (value) => {
-              integrations.semanticSearch.maxRecordBytes = value;
-              await save("Embedding request budget saved");
-            },
-            { max: 5e6 }
-          ),
-          integerInputRow(
-            "Embedding daily record bytes",
-            "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.",
-            integrations.semanticSearch.dailyRecordBytes,
-            async (value) => {
-              integrations.semanticSearch.dailyRecordBytes = value;
-              await save("Embedding daily budget saved");
-            },
-            { max: 1e8 }
-          )
-        );
-      }
-      rows.push(
-        toggleRow(
-          "Auto-embed every export",
-          "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.",
-          integrations.semanticSearch.autoIndex,
-          async (checked) => {
-            integrations.semanticSearch.autoIndex = checked;
-            await save(checked ? "Auto-embed on" : "Auto-embed off");
-          }
-        )
-      );
-      if (options.rebuildSemanticIndex) {
-        rows.push(
-          actionRow(
-            "Rebuild semantic index",
-            "Embed every captured record. Re-running is cheap because cached entries are skipped.",
-            async () => {
-              setStatus("Rebuilding semantic index\u2026");
-              try {
-                const result = await options.rebuildSemanticIndex();
-                render();
-                if ((result.blocked ?? 0) > 0) {
-                  setStatusCopy(
-                    "Embedding stopped at the budget ({blocked} records were not sent).",
-                    { blocked: result.blocked ?? 0 }
-                  );
-                  return;
-                }
-                const trimmed = result.dropped > 0 ? ` \xB7 oldest ${result.dropped} dropped` : "";
-                setStatusCopy(
-                  "Indexed: +{added} new \xB7 skipped {skipped} \xB7 errors {errors} \xB7 total {total}{trimmed}.",
-                  {
-                    added: result.added,
-                    skipped: result.skipped,
-                    errors: result.errors,
-                    total: result.total,
-                    trimmed
-                  }
-                );
-              } catch (error) {
-                options.onError("Embedding failed", error);
-                setStatus("Embedding failed.");
-              }
-            }
-          )
-        );
-      }
-      if (options.semanticSearchQuery) {
-        const row = el("div", "av-row av-row-stack");
-        const copy = el("span", "av-row-copy");
-        copy.append(
-          el("span", "av-row-label", t("Semantic search")),
-          el("span", "av-row-description", t("Vector similarity over captured records. Embeddings run on demand."))
-        );
-        const semanticSearchLabel = copy.querySelector(".av-row-label");
-        const input = document.createElement("input");
-        input.type = "search";
-        input.placeholder = t("Describe what you're looking for\u2026");
-        semanticSearchLabel.id = "av-semantic-search-label";
-        input.id = "av-semantic-search";
-        input.setAttribute("aria-labelledby", semanticSearchLabel.id);
-        input.className = "av-text-input";
-        const results = el("div", "av-search-results");
-        let pending;
-        let searchSequence = 0;
-        input.addEventListener("input", () => {
-          if (pending !== void 0) clearTimeout(pending);
-          const sequence = ++searchSequence;
-          const query = input.value.trim();
-          if (query.length === 0) {
-            results.replaceChildren();
-            pending = void 0;
-            return;
-          }
-          pending = setTimeout(() => {
-            pending = void 0;
-            void options.semanticSearchQuery(query).then((hits) => {
-              if (sequence !== searchSequence || input.value.trim() !== query) return;
-              results.replaceChildren();
-              if (hits.length === 0) {
-                results.append(el("div", "av-row-description", t("No matches (or integration disabled).")));
-                return;
-              }
-              for (const hit of hits) {
-                const item = el("div", "av-search-hit");
-                item.append(
-                  el("span", "av-row-label", `@${hit.handle ?? "anon"} \xB7 ${hit.tweetId ?? "\u2014"} \xB7 score ${hit.score.toFixed(3)}`),
-                  el("span", "av-row-description", hit.text.slice(0, 200))
-                );
-                results.append(item);
-              }
-            }).catch((error) => {
-              if (sequence === searchSequence && input.value.trim() === query) {
-                options.onError("Semantic search failed", error);
-              }
-            });
-          }, 220);
-        });
-        row.append(copy, input, results);
-        rows.push(row);
-      }
-      if (options.clearSemanticIndex) {
-        rows.push(
-          actionRow("Clear semantic index", "Forget every embedded record.", async () => {
-            try {
-              await options.clearSemanticIndex();
-              await save("Semantic index cleared");
-            } catch (error) {
-              options.onError("Could not clear semantic index", error);
-              setStatus("Could not clear semantic index.");
-            }
-          })
-        );
-      }
-      if (options.clearIntegrationUsage) {
-        rows.push(
-          actionRow(
-            "Clear AI and embedding usage",
-            "Forget local request counters only. This does not remove the semantic index or provider credentials.",
-            async () => {
-              try {
-                await options.clearIntegrationUsage();
-                await save("AI and embedding usage cleared");
-              } catch (error) {
-                options.onError("Could not clear AI and embedding usage", error);
-                setStatus("Could not clear AI and embedding usage.");
-              }
-            }
-          )
-        );
-      }
-      if (status2) {
-        const on = t("on");
-        const off = t("off");
-        const configured = t("configured");
-        const missingEndpoint = t("missing endpoint");
-        const missingCredentials = t("missing credentials");
-        const missingKeyModel = t("missing key/model");
-        const indexed = t("indexed");
-        const integrationLine = (name, enabled, ready, missing) => formatCopy(t("{name}: {state} \xB7 {config}"), {
-          name,
-          state: enabled ? on : off,
-          config: ready ? configured : missing
-        });
-        const lines = [
-          integrationLine("Aria2", status2.aria2.enabled, status2.aria2.configured, missingEndpoint),
-          integrationLine("Bluesky", status2.bluesky.enabled, status2.bluesky.configured, missingCredentials),
-          integrationLine("Mastodon", status2.mastodon.enabled, status2.mastodon.configured, missingCredentials),
-          integrationLine("AI", status2.ai.enabled, status2.ai.configured, missingKeyModel),
-          formatCopy(t("{name}: {state} \xB7 {count} {indexed}"), {
-            name: "Semantic",
-            state: status2.semanticSearch.enabled ? on : off,
-            count: status2.semanticSearch.indexed,
-            indexed
-          })
-        ];
-        rows.push(dataRow("Integration status", lines.join(" \xB7 ")));
-      }
-      if (options.recentIntegrationErrors) {
-        const errors = options.recentIntegrationErrors();
-        if (errors.length === 0) {
-          rows.push(readonlyRow("Recent integration errors", "None recorded."));
-        } else {
-          const row = el("div", "av-row av-row-stack");
-          const copy = el("span", "av-row-copy");
-          copy.append(
-            el("span", "av-row-label", t("Recent integration errors")),
-            el("span", "av-row-description", t("Drawn from the audit log; only failed integration calls show up."))
-          );
-          const list = el("div", "av-search-results");
-          for (const error of errors.slice(0, 8)) {
-            const item = el("div", "av-search-hit");
-            item.append(
-              el("span", "av-row-label", `${error.kind} \xB7 ${error.at}`),
-              el("span", "av-row-description", error.message.slice(0, 200))
-            );
-            list.append(item);
-          }
-          row.append(copy, list);
-          rows.push(row);
-        }
-      }
-      return rows;
-    };
-    const performanceRows = () => {
-      const rows = [];
-      rows.push(
-        toggleRow(
-          "Pause video that scrolls out of view",
-          "Stops decoding timeline video once it leaves the screen, and resumes it when it comes back. A video you paused yourself stays paused.",
-          options.settings.performance.pauseOffscreenVideo,
-          async (checked) => {
-            options.settings.performance.pauseOffscreenVideo = checked;
-            await save(checked ? "Offscreen video paused" : "Offscreen video left playing");
-          }
-        )
-      );
-      rows.push(
-        toggleRow(
-          "Always play video at the highest quality",
-          "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.",
-          options.settings.performance.forceVideoQuality,
-          async (checked) => {
-            options.settings.performance.forceVideoQuality = checked;
-            await save(checked ? "Best video quality on" : "Video quality left to X");
-          }
-        )
-      );
-      return rows;
-    };
-    const libraryRows = () => {
-      const rows = [];
-      if (options.offlineSearch) {
-        const row = el("div", "av-row av-row-stack");
-        const copy = el("span", "av-row-copy");
-        copy.append(
-          el("span", "av-row-label", t("Search all local collections")),
-          el(
-            "span",
-            "av-row-description",
-            t("Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.")
-          )
-        );
-        const input = document.createElement("input");
-        input.type = "search";
-        input.className = "av-text-input";
-        input.placeholder = t("Search local library (source:, account:, tag:, from:, to:, has:media)");
-        input.setAttribute("aria-label", t("Search all local collections"));
-        input.spellcheck = false;
-        const semanticToggle = document.createElement("input");
-        semanticToggle.type = "checkbox";
-        semanticToggle.checked = unifiedSemantic;
-        semanticToggle.setAttribute("aria-label", t("Use semantic ranking (optional)"));
-        const semanticCopy = el("span", "av-row-description", t("Use semantic ranking (optional)"));
-        const semanticRow = el("label", "av-inline-controls");
-        semanticRow.append(semanticToggle, semanticCopy);
-        const results = el("div", "av-search-results");
-        results.setAttribute("role", "list");
-        results.setAttribute("aria-live", "polite");
-        let searchSequence = 0;
-        const renderUnified = async () => {
-          const sequence = ++searchSequence;
-          const query = input.value.trim();
-          results.replaceChildren();
-          if (query.length === 0) {
-            results.append(el("div", "av-row-description", t("Try source:bookmarks, tag:reading, or has:media.")));
-            return;
-          }
-          const matches = unifiedSemantic && options.offlineSemanticSearch ? await options.offlineSemanticSearch(query) : options.offlineSearch(query);
-          if (sequence !== searchSequence) return;
-          if (matches.length === 0) {
-            results.append(el("div", "av-row-description", t("No local collections match this search.")));
-            return;
-          }
-          for (const hit of matches.slice(0, 30)) {
-            const item = el("div", "av-search-hit");
-            item.setAttribute("role", "listitem");
-            const account = hit.document.account ? `@${hit.document.account}` : "local";
-            const mode = hit.mode === "semantic" ? " \xB7 semantic" : "";
-            item.append(
-              el("span", "av-row-label", `${hit.document.collection}${mode} \xB7 ${account}`),
-              el("span", "av-row-description", hit.snippet || t("(no text)"))
-            );
-            results.append(item);
-          }
-        };
-        input.addEventListener("input", () => void renderUnified());
-        semanticToggle.addEventListener("change", () => {
-          unifiedSemantic = semanticToggle.checked;
-          void renderUnified();
-        });
-        results.append(el("div", "av-row-description", t("Try source:bookmarks, tag:reading, or has:media.")));
-        row.append(copy, input, semanticRow, results);
-        rows.push(row);
-      }
-      if (options.getBookmarkStatus && options.searchBookmarks && options.updateBookmark && options.removeBookmark) {
-        const status2 = options.getBookmarkStatus();
-        rows.push(
-          dataRow(
-            "Local bookmarks",
-            localizedCopy("{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders", {
-              saved: status2.total,
-              due: status2.due,
-              tags: status2.tags.length,
-              folders: status2.folders.length
-            })
-          )
-        );
-        const bookmarkRow = el("div", "av-row av-row-stack");
-        const bookmarkCopy = el("span", "av-row-copy");
-        bookmarkCopy.append(
-          el("span", "av-row-label", t("Find local bookmarks")),
-          el("span", "av-row-description", t("Search saved posts by text, handle, tags, folder, or ID."))
-        );
-        const bookmarkInput = document.createElement("input");
-        bookmarkInput.type = "search";
-        bookmarkInput.className = "av-text-input";
-        bookmarkInput.value = bookmarkQuery;
-        bookmarkInput.placeholder = t("Search local bookmarks");
-        bookmarkInput.setAttribute("aria-label", t("Find local bookmarks"));
-        bookmarkInput.spellcheck = false;
-        const bookmarkResults = el("div", "av-search-results");
-        bookmarkResults.setAttribute("role", "list");
-        bookmarkResults.setAttribute("aria-live", "polite");
-        const renderBookmarks = () => {
-          bookmarkResults.replaceChildren();
-          const matches = options.searchBookmarks(bookmarkQuery).slice(0, 30);
-          if (matches.length === 0) {
-            bookmarkResults.append(el("div", "av-row-description", t("No local bookmarks match this search.")));
-            return;
-          }
-          for (const entry of matches) {
-            const item = el("div", "av-search-hit av-bookmark-hit");
-            item.setAttribute("role", "listitem");
-            const head = el("span", "av-row-label", `@${entry.handle ?? "anon"} \xB7 ${entry.tweetId ?? entry.id}`);
-            const body2 = el(
-              "span",
-              "av-row-description",
-              entry.text.slice(0, 180) || entry.url || t("(no text)")
-            );
-            item.append(head, body2);
-            const editor = el("div", "av-bookmark-editor");
-            const tags = bookmarkField("Bookmark tags", entry.tags.join(", "), "Tags, comma-separated");
-            const folder = bookmarkField("Bookmark folder", entry.folder ?? "", "Folder");
-            const reminder = bookmarkField(
-              "Bookmark reminder",
-              toDatetimeLocal(entry.remindAt),
-              "Reminder"
-            );
-            reminder.type = "datetime-local";
-            const notes = document.createElement("textarea");
-            notes.className = "av-textarea av-bookmark-notes";
-            notes.rows = 2;
-            notes.value = entry.notes;
-            notes.placeholder = t("Notes");
-            notes.setAttribute("aria-label", t("Bookmark notes"));
-            editor.append(tags, folder, reminder, notes);
-            const controls = el("div", "av-inline-controls");
-            const save2 = el("button", "av-button av-button-secondary", t("Save"));
-            save2.type = "button";
-            save2.addEventListener("click", () => {
-              save2.disabled = true;
-              void options.updateBookmark(entry.id, {
-                tags: splitBookmarkTags(tags.value),
-                folder: folder.value.trim() || null,
-                remindAt: fromDatetimeLocal(reminder.value),
-                notes: notes.value
-              }).then(() => {
-                setStatus("Bookmark updated.");
-                render();
-              }).catch((error) => {
-                options.onError("Bookmark update failed", error);
-                setStatus("Could not update bookmark.");
-                save2.disabled = false;
-              });
-            });
-            const remove = el("button", "av-button av-button-secondary", t("Remove"));
-            remove.type = "button";
-            remove.addEventListener("click", () => {
-              remove.disabled = true;
-              void options.removeBookmark(entry.id).then((removed) => {
-                setStatus(removed ? "Bookmark removed." : "Bookmark was already removed.");
-                render();
-              }).catch((error) => {
-                options.onError("Bookmark removal failed", error);
-                setStatus("Could not remove bookmark.");
-                remove.disabled = false;
-              });
-            });
-            controls.append(save2, remove);
-            item.append(editor, controls);
-            bookmarkResults.append(item);
-          }
-        };
-        bookmarkInput.addEventListener("input", () => {
-          bookmarkQuery = bookmarkInput.value;
-          renderBookmarks();
-        });
-        renderBookmarks();
-        bookmarkRow.append(bookmarkCopy, bookmarkInput, bookmarkResults);
-        rows.push(bookmarkRow);
-        if (options.clearBookmarks) {
-          rows.push(
-            actionRow("Clear local bookmarks", "Remove every saved local bookmark.", async () => {
-              try {
-                await options.clearBookmarks();
-                setStatus("Bookmarks cleared.");
-                render();
-              } catch (error) {
-                options.onError("Could not clear bookmarks", error);
-                setStatus("Could not clear bookmarks.");
-              }
-            })
-          );
-        }
-      }
-      rows.push(
-        toggleRow(
-          "Show the AI button on posts",
-          "Adds a button to every post that builds a Translate, Summarize, Explain or Fact-check prompt. Without an AI provider configured it copies the prompt to your clipboard; nothing is sent anywhere.",
-          options.settings.ai.commandMenu,
-          async (checked) => {
-            options.settings.ai.commandMenu = checked;
-            await save(checked ? "AI button on" : "AI button off");
-          }
-        )
-      );
-      rows.push(
-        toggleRow(
-          "Unshorten t.co links",
-          "Replace short `t.co` redirects with the destination from aria-labels and titles.",
-          options.settings.links.expandTco,
-          async (checked) => {
-            options.settings.links.expandTco = checked;
-            await save(checked ? "Unshorten on" : "Unshorten off");
-          }
-        )
-      );
-      rows.push(
-        toggleRow(
-          "Clean tracking from links",
-          "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.",
-          options.settings.links.cleanShareButtons,
-          async (checked) => {
-            options.settings.links.cleanShareButtons = checked;
-            await save(checked ? "Link cleaning on" : "Link cleaning off");
-          }
-        )
-      );
-      if (options.getUserNotes && options.setUserNote) {
-        const notes = options.getUserNotes();
-        const serialized = Object.entries(notes).map(([handle, note]) => `${handle}: ${note}`).sort();
-        rows.push(
-          textareaRow(
-            "Account notes",
-            "Format: handle: note. One per line. Empty notes remove the entry.",
-            serialized,
-            async (lines) => {
-              const seen = /* @__PURE__ */ new Set();
-              for (const line of lines) {
-                const match = /^@?([A-Za-z0-9_]{1,15})\s*[:\-]\s*(.*)$/.exec(line);
-                if (!match) continue;
-                const [, handle, note] = match;
-                if (handle) {
-                  seen.add(handle.toLowerCase());
-                  await options.setUserNote(handle, note ?? "");
-                }
-              }
-              for (const handle of Object.keys(notes)) {
-                if (!seen.has(handle)) {
-                  await options.setUserNote(handle, "");
-                }
-              }
-              await save(`${seen.size} account note${seen.size === 1 ? "" : "s"} saved`);
-            }
-          )
-        );
-      }
-      if (options.clearUserNotes) {
-        rows.push(
-          actionRow("Clear all account notes", "Drop every persisted note.", async () => {
-            try {
-              await options.clearUserNotes();
-              await save("Account notes cleared");
-            } catch (error) {
-              options.onError("Could not clear account notes", error);
-              setStatus("Could not clear notes.");
-            }
-          })
-        );
-      }
-      rows.push(
-        textareaRow(
-          "Composer snippets",
-          "One snippet per line. Reusable replies / templates insert from the composer toolbar.",
-          options.settings.composer.snippets,
-          async (lines) => {
-            options.settings.composer.snippets = lines.map((line) => line.trim()).filter((line) => line.length > 0).slice(0, 100);
-            await save(`${options.settings.composer.snippets.length} snippet${options.settings.composer.snippets.length === 1 ? "" : "s"} saved`);
-          }
-        )
-      );
-      return rows;
-    };
-    const backupRows = () => {
-      const rows = [];
-      t("Redacted \u2014 saved credentials will be kept.");
-      t("Stop after the current collection and roll back anything already written.");
-      t("Validate the backup and show the same conflicts without writing or removing any local data.");
-      t("Apply the selected profile collections. A failed write rolls back the collections already changed.");
-      t("Credentials are redacted; the values already saved in this profile will be kept.");
-      if (options.resetSettings) {
-        rows.push(
-          actionRow(
-            "Reset everything to plain X",
-            "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.",
-            async () => {
-              try {
-                await options.resetSettings();
-                setStatus("Everything reset. X is untouched again.");
-              } catch (error) {
-                options.onError("Could not reset settings", error);
-                setStatus("Could not reset settings.");
-              }
-            }
-          )
-        );
-      }
-      if (options.exportSettings) {
-        rows.push(
-          actionRow("Export settings", "Downloads your preferences as JSON. API keys and passwords are replaced with a placeholder, so the file is safe to share; importing it here keeps the credentials already saved on this machine.", async () => {
-            try {
-              await options.exportSettings();
-              setStatus("Settings exported.");
-            } catch (error) {
-              options.onError("Could not export settings", error);
-              setStatus("Could not export settings.");
-            }
-          })
-        );
-      }
-      if (options.importSettings) {
-        rows.push(
-          textareaRow(
-            "Import settings (JSON)",
-            "Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here.",
-            [],
-            async (lines) => {
-              const payload = lines.join("\n");
-              try {
-                const report = await options.importSettings(payload);
-                if (report.applied) {
-                  const [first, ...rest] = report.warnings;
-                  const extra = rest.length > 0 ? ` (+${rest.length} more)` : "";
-                  setStatusCopy("Settings imported. {warning}", {
-                    warning: first ? `${first}${extra}` : ""
-                  });
-                } else {
-                  setStatusCopy("Import failed: {errors}", { errors: report.errors.join("; ") });
-                }
-              } catch (error) {
-                options.onError("Could not import settings", error);
-                setStatus("Could not import settings.");
-              }
-            },
-            "Import"
-          )
-        );
-      }
-      if (options.exportLibraryBackup) {
-        rows.push(
-          actionRow(
-            "Export full library backup",
-            "Downloads one versioned JSON backup of this profile's local collections. Credentials are excluded by default; restoring keeps the credentials already saved here.",
-            async () => {
-              try {
-                const result = await options.exportLibraryBackup();
-                setStatusCopy("Library backup downloaded: {filename} ({collections} collections, {bytes}).", {
-                  filename: result.filename,
-                  collections: result.collections,
-                  bytes: formatBytes(result.bytes)
-                });
-              } catch (error) {
-                options.onError("Could not export full library backup", error);
-                setStatus("Could not export full library backup.");
-              }
-            }
-          )
-        );
-      }
-      if (options.previewLibraryRestore && options.restoreLibraryBackup) {
-        const fileRow = el("div", "av-row av-row-stack");
-        const fileCopy = el("span", "av-row-copy");
-        fileCopy.append(
-          el("span", "av-row-label", t("Choose a library backup")),
-          el(
-            "span",
-            "av-row-description",
-            t("Select a JSON backup to inspect its versions, counts, conflicts, and checksum before changing local data.")
-          )
-        );
-        const fileInput = document.createElement("input");
-        fileInput.type = "file";
-        fileInput.className = "av-text-input";
-        fileInput.accept = ".json,application/json";
-        fileInput.setAttribute("aria-label", t("Choose a library backup"));
-        fileInput.addEventListener("change", () => {
-          const file = fileInput.files?.[0];
-          if (!file) return;
-          pendingLibraryBackupPayload = null;
-          pendingLibraryBackupPreview = null;
-          setStatus("Reading library backup\u2026");
-          void file.text().then(async (payload) => {
-            const preview = await options.previewLibraryRestore(payload);
-            pendingLibraryBackupPayload = payload;
-            pendingLibraryBackupPreview = preview;
-            render();
-            setStatusCopy("Backup loaded: {collections} collections, {conflicts} changes.", {
-              collections: preview.collections.length,
-              conflicts: preview.conflictCount
-            });
-          }).catch((error) => {
-            pendingLibraryBackupPayload = null;
-            pendingLibraryBackupPreview = null;
-            options.onError("Could not read library backup", error);
-            setStatus("Could not read library backup.");
-          });
-        });
-        fileRow.append(fileCopy, fileInput);
-        rows.push(fileRow);
-      }
-      const backupPreview = pendingLibraryBackupPreview;
-      const backupPayload = pendingLibraryBackupPayload;
-      if (backupPreview && backupPayload && options.restoreLibraryBackup) {
-        rows.push(dataRow("Backup version", `v${backupPreview.schemaVersion} \xB7 ${backupPreview.createdAt}`));
-        rows.push(
-          dataRow(
-            "Backup collections",
-            `${backupPreview.collections.length} \xB7 ${formatBytes(backupPreview.totalBytes)}`
-          )
-        );
-        rows.push(
-          dataRow(
-            "Collection changes",
-            backupPreview.collections.map((collection) => `${collection.label} v${collection.version}: ${collection.conflict}`).join(" \xB7 ")
-          )
-        );
-        if (backupPreview.credentialsRedacted) {
-          rows.push(readonlyRow("Credentials", "Redacted \u2014 saved credentials will be kept."));
-        }
-        if (backupPreview.warnings.length > 0) {
-          rows.push(
-            dataRow(
-              "Backup warnings",
-              backupPreview.warnings.map(
-                (warning) => warning === "Credentials are redacted; the values already saved in this profile will be kept." ? t(warning) : warning
-              ).join(" \xB7 ")
-            )
-          );
-        }
-        if (libraryRestoreRunning) {
-          rows.push(
-            actionRow(
-              "Cancel restore",
-              "Stop after the current collection and roll back anything already written.",
-              async () => {
-                libraryRestoreAbort?.abort();
-                setStatus("Cancelling restore\u2026");
-              }
-            )
-          );
-        } else {
-          rows.push(
-            actionRow(
-              "Dry-run restore",
-              "Validate the backup and show the same conflicts without writing or removing any local data.",
-              async () => {
-                try {
-                  const result = await options.restoreLibraryBackup(backupPayload, {
-                    dryRun: true,
-                    signal: new AbortController().signal
-                  });
-                  if (result.errors.length === 0) {
-                    setStatus("Dry-run complete. No local data changed.");
-                  } else {
-                    setStatusCopy("Dry-run failed: {errors}", { errors: result.errors.join("; ") });
-                  }
-                } catch (error) {
-                  options.onError("Could not dry-run library restore", error);
-                  setStatus("Could not dry-run library restore.");
-                }
-              }
-            )
-          );
-          rows.push(
-            actionRow(
-              "Restore this library backup",
-              "Apply the selected profile collections. A failed write rolls back the collections already changed.",
-              async () => {
-                libraryRestoreRunning = true;
-                libraryRestoreAbort = new AbortController();
-                render();
-                try {
-                  const result = await options.restoreLibraryBackup(backupPayload, {
-                    dryRun: false,
-                    signal: libraryRestoreAbort.signal
-                  });
-                  if (result.applied) {
-                    pendingLibraryBackupPayload = null;
-                    pendingLibraryBackupPreview = null;
-                    setStatusCopy("Library backup restored ({collections} collections). Reloading\u2026", {
-                      collections: result.restoredKeys.length
-                    });
-                  } else if (result.cancelled) {
-                    setStatus(
-                      result.rolledBack ? "Restore cancelled; local data was rolled back." : "Restore cancelled."
-                    );
-                  } else {
-                    setStatusCopy("Restore failed: {errors}", { errors: result.errors.join("; ") });
-                  }
-                } catch (error) {
-                  options.onError("Could not restore library backup", error);
-                  setStatus("Could not restore library backup.");
-                } finally {
-                  libraryRestoreRunning = false;
-                  libraryRestoreAbort = null;
-                  render();
-                }
-              }
-            )
-          );
-        }
-      }
-      if (options.getAuditSize) {
-        rows.push(
-          toggleRow(
-            "Keep a local action log",
-            "Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them.",
-            options.settings.privacy.auditLog,
-            async (value) => {
-              options.settings.privacy.auditLog = value;
-              await save(value ? "Action log on" : "Action log off");
-            }
-          )
-        );
-        rows.push(dataRow("Audit entries", String(options.getAuditSize())));
-      }
-      if (options.clearAuditLog) {
-        rows.push(
-          actionRow("Clear audit log", "Drop the local action log.", async () => {
-            try {
-              await options.clearAuditLog();
-              await save("Audit log cleared");
-            } catch (error) {
-              options.onError("Could not clear audit log", error);
-              setStatus("Could not clear audit log.");
-            }
-          })
-        );
-      }
-      return rows;
-    };
-    const exportRows = () => {
-      const rows = [];
-      rows.push(
-        toggleRow(
-          "Capture visible tweets",
-          "Accumulate tweets visible on the active page for the next export run.",
-          options.settings.export.enabled,
-          async (checked) => {
-            options.settings.export.enabled = checked;
-            await save(checked ? "Export capture on" : "Export capture off");
-          }
-        )
-      );
-      rows.push(
-        textInputRow(
-          "Export formats",
-          "Comma-separated list. Supported: json, csv, html, markdown, xlsx.",
-          options.settings.export.formats.join(","),
-          async (value) => {
-            const parsed = value.split(/[\s,]+/).map((entry) => entry.trim().toLowerCase()).filter((entry) => entry.length > 0);
-            const supported = /* @__PURE__ */ new Set(["json", "csv", "html", "markdown", "xlsx"]);
-            options.settings.export.formats = parsed.filter((entry) => supported.has(entry));
-            if (options.settings.export.formats.length === 0) {
-              options.settings.export.formats = ["json"];
-            }
-            await save(`Export formats: ${options.settings.export.formats.join(", ")}`);
-          }
-        )
-      );
-      rows.push(
-        toggleRow(
-          "Preserve raw payloads",
-          "Also store the raw GraphQL responses X sends this tab, so records can be re-parsed later. Session tokens are stripped before anything is written.",
-          options.settings.export.preserveRawPayloads,
-          async (checked) => {
-            options.settings.export.preserveRawPayloads = checked;
-            await save("Raw payload preference saved");
-          }
-        )
-      );
-      rows.push(
-        toggleRow(
-          "Capture media bytes in export",
-          "Fetch media during the export action and include successful bytes with length and checksum; failed items remain retryable references.",
-          options.settings.export.captureMediaBytes,
-          async (checked) => {
-            options.settings.export.captureMediaBytes = checked;
-            await save(checked ? "Media byte capture on" : "Media byte capture off");
-          }
-        )
-      );
-      rows.push(
-        toggleRow(
-          "Auto-discover query IDs",
-          "Scan loaded scripts for X GraphQL operation IDs and cache them locally.",
-          options.settings.export.autoDiscoverQueryIds,
-          async (checked) => {
-            options.settings.export.autoDiscoverQueryIds = checked;
-            await save("Query discovery preference saved");
-          }
-        )
-      );
-      rows.push(
-        textInputRow(
-          "Save folder hint",
-          "Folder name (or path) used as the export ZIP root and download prefix.",
-          options.settings.media.lastSaveFolder,
-          async (value) => {
-            options.settings.media.lastSaveFolder = value;
-            await save("Save folder hint saved");
-          }
-        )
-      );
-      const status2 = options.getExportStatus?.();
-      if (status2) {
-        rows.push(
-          dataRow(
-            "Export status",
-            localizedCopy("{jobs} jobs tracked \xB7 {queries} GraphQL IDs cached", {
-              jobs: status2.jobCount,
-              queries: status2.knownQueries
-            })
-          )
-        );
-        for (const job of (status2.jobs ?? []).slice(-3)) {
-          rows.push(
-            dataRow(
-              "Export job",
-              `${localizedCopy("{status} \xB7 {records} records \xB7 {surface}", {
-                status: job.status,
-                records: job.recordCount,
-                surface: job.surface
-              })}${job.error ? ` \xB7 ${job.error}` : ""}`
-            )
-          );
-          if (job.status === "running" && options.pauseExportJob) {
-            rows.push(
-              actionRow("Pause export job", { source: "Pause {jobId}.", values: { jobId: job.jobId } }, async () => {
-                const result = await options.pauseExportJob(job.jobId);
-                if (!result.ok) throw new Error(result.error ?? "Export job could not be paused");
-                render();
-                setStatus("Export job paused.");
-              })
-            );
-          }
-          if (job.status === "paused" && options.resumeExportJob) {
-            rows.push(
-              actionRow("Resume export job", { source: "Resume {jobId}.", values: { jobId: job.jobId } }, async () => {
-                const result = await options.resumeExportJob(job.jobId);
-                if (!result.ok) throw new Error(result.error ?? "Export job could not be resumed");
-                render();
-                setStatus("Export job resumed.");
-              })
-            );
-          }
-          if ((job.status === "running" || job.status === "paused" || job.status === "queued") && options.cancelExportJob) {
-            rows.push(
-              actionRow("Cancel export job", { source: "Cancel {jobId}.", values: { jobId: job.jobId } }, async () => {
-                const result = await options.cancelExportJob(job.jobId);
-                if (!result.ok) throw new Error(result.error ?? "Export job could not be cancelled");
-                render();
-                setStatus("Export job cancelled.");
-              })
-            );
-          }
-        }
-      }
-      if (options.runExport) {
-        rows.push(
-          actionRow("Export visible tweets", "Collect the currently rendered tweets and download a ZIP.", async () => {
-            setStatus("Collecting visible posts\u2026");
-            try {
-              const result = await options.runExport();
-              render();
-              const files = result.files ?? 1;
-              if (result.records === 0) {
-                setStatus("No posts found on this view. Scroll the timeline to load some, then export again.");
-              } else if (files > 1) {
-                setStatusCopy("Exported {records} records across {files} ZIPs \u2192 {filename}", {
-                  records: result.records,
-                  files,
-                  filename: result.filename
-                });
-              } else if (result.records === 1) {
-                setStatusCopy("Exported {records} record \u2192 {filename}", {
-                  records: result.records,
-                  filename: result.filename
-                });
-              } else {
-                setStatusCopy("Exported {records} records \u2192 {filename}", {
-                  records: result.records,
-                  filename: result.filename
-                });
-              }
-            } catch (error) {
-              options.onError("Export failed", error);
-              setStatus("Export failed. See diagnostics.");
-            }
-          })
-        );
-      }
-      if (options.copyDiagnostics) {
-        rows.push(
-          actionRow("Copy diagnostics", "Copy support diagnostics (version, route, recent log).", async () => {
-            try {
-              await options.copyDiagnostics();
-              setStatus("Diagnostics copied to clipboard.");
-            } catch (error) {
-              options.onError("Could not copy diagnostics", error);
-              setStatus("Could not copy diagnostics.");
-            }
-          })
-        );
-      }
-      if (options.downloadWarc) {
-        rows.push(
-          actionRow(
-            "Download as WARC",
-            "Wrap captured records into an ISO-28500 WARC file for research / preservation tooling.",
-            async () => {
-              setStatus("Building WARC archive\u2026");
-              try {
-                const result = await options.downloadWarc();
-                setStatusCopy("WARC downloaded ({records} records).", { records: result.records });
-              } catch (error) {
-                options.onError("WARC export failed", error);
-                setStatus("WARC export failed.");
-              }
-            }
-          )
-        );
-      }
-      if (options.exportToTarget) {
-        const targets = [
-          { id: "clipboard-markdown", label: "Copy as Markdown", description: "Push a plain Markdown export onto the clipboard." },
-          { id: "obsidian", label: "Save Obsidian Markdown", description: "Markdown with YAML frontmatter and Aviary tags." },
-          { id: "notion", label: "Save Notion Markdown", description: "Heading-first Markdown that Notion imports cleanly." },
-          { id: "raw-json", label: "Save records JSON", description: "Raw ExportRecord[] JSON without ZIP wrapping." }
-        ];
-        for (const target of targets) {
-          rows.push(
-            actionRow(target.label, target.description, async () => {
-              try {
-                const result = await options.exportToTarget(target.id);
-                if (result.copied) {
-                  setStatusCopy("Copied {records} records to clipboard.", { records: result.records });
-                } else {
-                  setStatusCopy("Exported {records} records to {target}.", {
-                    records: result.records,
-                    target: t(target.label)
-                  });
-                }
-              } catch (error) {
-                options.onError("External export failed", error);
-                setStatus("External export failed.");
-              }
-            })
-          );
-        }
-      }
-      if (options.getRetentionPolicy && options.saveRetentionPolicy) {
-        rows.push(
-          integerInputRow(
-            "Records per ZIP",
-            "Split a long export across several archives instead of one huge file (25-1000).",
-            options.settings.media.zipChunkSize,
-            async (value) => {
-              options.settings.media.zipChunkSize = value;
-              await save("Records per ZIP saved");
-            }
-          )
-        );
-        const policy = options.getRetentionPolicy();
-        rows.push(
-          integerInputRow(
-            "Maximum export jobs",
-            "Keep the newest jobs. Use 0 for unlimited.",
-            policy.maxJobs,
-            async (value) => {
-              await options.saveRetentionPolicy({ ...options.getRetentionPolicy(), maxJobs: value });
-              render();
-              setStatus("Export job retention saved");
-            }
-          )
-        );
-        rows.push(
-          integerInputRow(
-            "Maximum records per job",
-            "Keep the newest records in each job. Use 0 for unlimited.",
-            policy.maxRecordsPerJob,
-            async (value) => {
-              await options.saveRetentionPolicy({ ...options.getRetentionPolicy(), maxRecordsPerJob: value });
-              render();
-              setStatus("Record retention saved");
-            }
-          )
-        );
-        rows.push(
-          integerInputRow(
-            "Maximum export age (days)",
-            "Remove older jobs at boot. Use 0 to disable age-based cleanup.",
-            policy.maxAgeDays,
-            async (value) => {
-              await options.saveRetentionPolicy({ ...options.getRetentionPolicy(), maxAgeDays: value });
-              render();
-              setStatus("Age-based retention saved");
-            }
-          )
-        );
-      }
-      return rows;
-    };
-    const mediaRows = () => {
-      const rows = [];
-      rows.push(
-        toggleRow(
-          "Show download buttons",
-          "Inject Save and Thumb buttons over tweet photos and video thumbnails.",
-          options.settings.media.buttons,
-          async (checked) => {
-            options.settings.media.buttons = checked;
-            await save(checked ? "Media buttons on" : "Media buttons off");
-          }
-        )
-      );
-      rows.push(
-        toggleRow(
-          "Prefer original quality",
-          "Rewrite image URLs to name=orig before downloading.",
-          options.settings.media.preferOriginalImages,
-          async (checked) => {
-            options.settings.media.preferOriginalImages = checked;
-            await save("Original quality preference saved");
-          }
-        )
-      );
-      rows.push(
-        toggleRow(
-          "Show images at original quality",
-          "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.",
-          options.settings.media.inlineOriginalImages,
-          async (checked) => {
-            options.settings.media.inlineOriginalImages = checked;
-            await save(checked ? "Full-size images on" : "Full-size images off");
-          }
-        )
-      );
-      rows.push(
-        textInputRow(
-          "Filename template",
-          "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
-          options.settings.media.filenameTemplate,
-          async (value) => {
-            options.settings.media.filenameTemplate = value.length > 0 ? value : "{handle}_{tweetId}_{index}";
-            await save("Filename template saved");
-          }
-        )
-      );
-      rows.push(
-        toggleRow(
-          "Duplicate history",
-          "Skip downloads of media you have already saved from this browser.",
-          options.settings.media.downloadHistory,
-          async (checked) => {
-            options.settings.media.downloadHistory = checked;
-            await save(checked ? "Duplicate history on" : "Duplicate history off");
-          }
-        )
-      );
-      rows.push(
-        selectRow(
-          "Media layout",
-          options.settings.media.layout,
-          MEDIA_LAYOUT_OPTIONS,
-          async (value) => {
-            options.settings.media.layout = coerceLayout(value);
-            await save("Media layout saved");
-          }
-        )
-      );
-      rows.push(
-        integerInputRow(
-          "Concurrent downloads",
-          "Maximum media downloads in flight during a batch (1-6).",
-          options.settings.jobs.concurrentDownloads,
-          async (value) => {
-            options.settings.jobs.concurrentDownloads = Math.max(1, Math.min(6, Math.trunc(value)));
-            await save("Concurrent download limit saved");
-          },
-          { min: 1, max: 6 }
-        )
-      );
-      rows.push(
-        selectRow(
-          "Download pacing",
-          options.settings.jobs.rateLimitMode,
-          [
-            ["conservative", "Conservative"],
-            ["balanced", "Balanced"]
-          ],
-          async (value) => {
-            if (value === "conservative" || value === "balanced") {
-              options.settings.jobs.rateLimitMode = value;
-              await save("Download pacing saved");
-            }
-          },
-          "Controls the opening burst and sustained pace of batch media requests."
-        )
-      );
-      const status2 = options.getMediaStatus?.();
-      if (status2) {
-        rows.push(
-          dataRow(
-            "Download status",
-            `${status2.running} running / ${status2.queued ?? 0} queued / ${status2.paused ?? 0} paused / ${status2.completed} done / ${status2.duplicate} dup / ${status2.failed} failed`
-          )
-        );
-        if (status2.batch) {
-          rows.push(
-            dataRow(
-              "Active media batch",
-              `${status2.batch.status} \xB7 ${status2.batch.downloaded} saved / ${status2.batch.duplicate} dup / ${status2.batch.failed} failed of ${status2.batch.total}`
-            )
-          );
-        }
-        rows.push(dataRow("History entries", String(status2.historySize)));
-      }
-      if (options.clearMediaHistory) {
-        rows.push(
-          actionRow("Clear download history", "Reset the local dedup index.", async () => {
-            try {
-              await options.clearMediaHistory?.();
-              await save("History cleared");
-            } catch (error) {
-              options.onError("Could not clear download history", error);
-              setStatus("Could not clear history.");
-            }
-          })
-        );
-      }
-      if (options.runMediaBatch) {
-        rows.push(
-          actionRow(
-            "Download all visible media",
-            "Walks every tweet rendered on the current page and queues every photo/video/GIF/thumbnail through the existing download pipeline.",
-            async () => {
-              setStatus("Downloading media from this view\u2026");
-              try {
-                const result = await options.runMediaBatch();
-                render();
-                setStatus(
-                  result.cancelled ? `Batch cancelled: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).` : `Batch finished: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
-                );
-              } catch (error) {
-                options.onError("Batch download failed", error);
-                setStatus("Batch download failed.");
-              }
-            }
-          )
-        );
-      }
-      const mediaControlAction = (label, description, action, success) => {
-        rows.push(
-          actionRow(label, description, async () => {
-            const result = action();
-            if (!result.ok) {
-              throw new Error(result.error ?? `${label} failed`);
-            }
-            render();
-            setStatus(success);
-          })
-        );
-      };
-      if (options.pauseMediaBatch) {
-        mediaControlAction(
-          "Pause media batch",
-          "Stop starting new downloads; the current downloads finish and the queue remains resumable.",
-          options.pauseMediaBatch,
-          "Media batch paused."
-        );
-      }
-      if (options.resumeMediaBatch) {
-        mediaControlAction(
-          "Resume media batch",
-          "Continue the active batch from its durable queue.",
-          options.resumeMediaBatch,
-          "Media batch resumed."
-        );
-      }
-      if (options.cancelMediaBatch) {
-        mediaControlAction(
-          "Cancel media batch",
-          "Stop scheduling new downloads and leave unfinished queue entries available for recovery.",
-          options.cancelMediaBatch,
-          "Media batch cancelling."
-        );
-      }
-      if (options.resumePendingMediaJobs) {
-        rows.push(
-          actionRow("Resume queued media", "Recover paused or queued downloads from an earlier session.", async () => {
-            const result = await options.resumePendingMediaJobs();
-            render();
-            setStatus(
-              result.cancelled ? `Queued media recovery cancelled after ${result.downloaded} saved.` : `Queued media recovery finished: ${result.downloaded} saved / ${result.failed} failed.`
-            );
-          })
-        );
-      }
-      if (options.retryFailedMediaJobs) {
-        rows.push(
-          actionRow("Retry failed media", "Retry every failed or cancelled media job in the durable queue.", async () => {
-            const result = await options.retryFailedMediaJobs();
-            render();
-            setStatus(
-              result.total === 0 ? "No failed media jobs to retry." : `Media retry finished: ${result.downloaded} saved / ${result.failed} failed.`
-            );
-          })
-        );
-      }
-      return rows;
-    };
-    const filterRows = () => {
-      const rows = [];
-      rows.push(
-        toggleRow(
-          "Enable filters",
-          "Master switch for keyword, regex, premium, and media filters.",
-          options.settings.filter.enabled,
-          async (checked) => {
-            options.settings.filter.enabled = checked;
-            await save(checked ? "Filters enabled" : "Filters disabled");
-          }
-        )
-      );
-      rows.push(
-        textareaRow(
-          "Keyword rules",
-          "One keyword or phrase per line. Case-insensitive substring match.",
-          options.settings.filter.keywordRules,
-          async (lines) => {
-            options.settings.filter.keywordRules = lines.slice(0, 200);
-            await save(`Saved ${options.settings.filter.keywordRules.length} keyword rules`);
-          }
-        )
-      );
-      rows.push(
-        textareaRow(
-          "Regex rules",
-          "One pattern per line. Use /pattern/flags or a bare pattern (case-insensitive).",
-          options.settings.filter.regexRules,
-          async (lines) => {
-            options.settings.filter.regexRules = lines.slice(0, 100);
-            await save(`Saved ${options.settings.filter.regexRules.length} regex rules`);
-          }
-        )
-      );
-      rows.push(
-        textareaRow(
-          "Whitelist handles",
-          "Handles (one per line, no @) that are never filtered.",
-          options.settings.filter.whitelist,
-          async (lines) => {
-            options.settings.filter.whitelist = lines.map((line) => line.replace(/^@/, "").trim()).filter((line) => /^[A-Za-z0-9_]{1,15}$/.test(line)).slice(0, 200);
-            await save(`Saved ${options.settings.filter.whitelist.length} whitelist handles`);
-          }
-        )
-      );
-      rows.push(
-        selectRow(
-          "Premium / verified posts",
-          options.settings.filter.premiumRule,
-          FILTER_ACTION_OPTIONS,
-          async (value) => {
-            options.settings.filter.premiumRule = coerceFilterAction(value);
-            await save("Premium filter saved");
-          }
-        )
-      );
-      for (const key of FILTER_MEDIA_KEYS) {
-        const label = FILTER_MEDIA_LABELS[key];
-        const current = options.settings.filter.mediaTypes[key] === true;
-        rows.push(
-          toggleRow(
-            `Hide posts with ${label.toLowerCase()}`,
-            `Filter posts containing ${label.toLowerCase()}.`,
-            current,
-            async (checked) => {
-              options.settings.filter.mediaTypes = {
-                ...options.settings.filter.mediaTypes,
-                [key]: checked
-              };
-              await save(`${label} filter ${checked ? "on" : "off"}`);
-            }
-          )
-        );
-      }
-      rows.push(
-        surfaceRow(
-          "Active on",
-          "Routes where filters run.",
-          options.settings.filter.surfaces,
-          async (next) => {
-            options.settings.filter.surfaces = next;
-            await save(
-              next.length > 0 ? `Filters active on ${next.length} route${next.length === 1 ? "" : "s"}` : "Filters off on every route"
-            );
-          }
-        )
-      );
-      rows.push(
-        readonlyRow(
-          "Blocked accounts / self-reposts",
-          "Pending an authenticated fixture; controls stay disabled."
-        )
-      );
-      return rows;
-    };
-    const hiddenPostRows = () => {
-      const rows = [];
-      rows.push(
-        toggleRow(
-          "Hide dismissed posts",
-          "Keep posts you hid collapsed so the next post rises to the top.",
-          options.settings.hidden.enabled,
-          async (checked) => {
-            options.settings.hidden.enabled = checked;
-            await save(checked ? "Hidden posts applied" : "Hidden posts revealed");
-          }
-        )
-      );
-      rows.push(
-        toggleRow(
-          "Show hide buttons",
-          "Adds a Hide control to every post next to the More menu.",
-          options.settings.hidden.buttons,
-          async (checked) => {
-            options.settings.hidden.buttons = checked;
-            await save(checked ? "Hide buttons on" : "Hide buttons off");
-          }
-        )
-      );
-      rows.push(
-        surfaceRow(
-          "Active on",
-          "Routes where hiding and the Hide button apply.",
-          options.settings.hidden.surfaces,
-          async (next) => {
-            options.settings.hidden.surfaces = next;
-            await save(
-              next.length > 0 ? `Hiding active on ${next.length} route${next.length === 1 ? "" : "s"}` : "Hiding off on every route"
-            );
-          }
-        )
-      );
-      rows.push(
-        integerInputRow(
-          "Maximum remembered posts",
-          "Oldest entries are dropped once the store passes this size (100-50000).",
-          options.settings.hidden.maxEntries,
-          async (value) => {
-            options.settings.hidden.maxEntries = value;
-            await save(`Hidden post limit set to ${options.settings.hidden.maxEntries}`);
-          }
-        )
-      );
-      const status2 = options.getHiddenPostsStatus?.();
-      if (!status2) {
-        rows.push(readonlyRow("Hidden posts", "Hidden post store unavailable in this build."));
-        return rows;
-      }
-      rows.push(
-        dataRow(
-          "Hidden posts stored",
-          `${status2.total}${status2.updatedAt ? ` \xB7 updated ${status2.updatedAt}` : ""}`
-        )
-      );
-      if (options.undoLastHide) {
-        rows.push(
-          actionRow("Undo last hide", "Restores the most recently hidden post.", async () => {
-            try {
-              const result = await options.undoLastHide();
-              setStatus(
-                result.restored ? `Restored ${result.handle ? `@${result.handle}` : "the last hidden post"}.` : "Nothing left to restore."
-              );
-              render();
-            } catch (error) {
-              options.onError("Could not undo the last hide", error);
-              setStatus("Could not undo the last hide.");
-            }
-          })
-        );
-      }
-      for (const entry of status2.recent) {
-        const row = el("div", "av-row av-row-stack");
-        const copy = el("span", "av-row-copy");
-        copy.append(
-          el("span", "av-row-label", entry.handle ? `@${entry.handle}` : "Unknown account"),
-          el(
-            "span",
-            "av-row-description",
-            `${entry.hiddenAt} \u2014 ${entry.text.length > 0 ? entry.text : "(no text)"}`
-          )
-        );
-        const restore = el("button", "av-button av-button-secondary", t("Restore"));
-        restore.type = "button";
-        restore.addEventListener("click", () => {
-          restore.disabled = true;
-          void options.unhidePost?.(entry.key).then((restored) => {
-            setStatus(restored ? "Post restored." : "That post was already restored.");
-            render();
-          }).catch((error) => {
-            options.onError("Could not restore the post", error);
-            setStatus("Could not restore the post.");
-            restore.disabled = false;
-          });
-        });
-        row.append(copy, restore);
-        rows.push(row);
-      }
-      if (options.clearHiddenPosts && status2.total > 0) {
-        rows.push(
-          actionRow(
-            "Clear hidden posts",
-            "Forgets every hidden post and brings them all back.",
-            async () => {
-              try {
-                const removed = await options.clearHiddenPosts();
-                setStatusCopy(
-                  removed === 1 ? "Cleared {removed} hidden post." : "Cleared {removed} hidden posts.",
-                  { removed }
-                );
-                render();
-              } catch (error) {
-                options.onError("Could not clear hidden posts", error);
-                setStatus("Could not clear hidden posts.");
-              }
-            }
-          )
-        );
-      }
-      return rows;
     };
     const save = async (message) => {
       setStatus("Saving...");

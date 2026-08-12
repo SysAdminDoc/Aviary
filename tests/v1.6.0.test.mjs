@@ -221,7 +221,7 @@ test("hidden posts feature collapses the virtualizer cell and is registered at b
   // Sections are declared in the panel's registry rather than inlined into one long render.
   assert.match(
     controlCenter,
-    /id:\s*"hidden",\s*title:\s*"Hidden posts",\s*group:\s*"\w+",[\s\S]*?build:\s*hiddenPostRows/
+    /id:\s*"hidden",\s*title:\s*"Hidden posts",\s*group:\s*"\w+",[\s\S]*?build:\s*\(\)\s*=>\s*buildHiddenPostRows\(panelContext\)/
   );
 });
 
