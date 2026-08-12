@@ -11,6 +11,7 @@ import { captureExportRecordMedia } from "../media/downloader";
 import { CheckpointStore } from "./jobs";
 import { formatExport } from "./formatters";
 import { discoverQueryIds, type QueryRegistry } from "./query-discovery";
+import { buildExportViewer } from "./viewer";
 import { buildStoreZip, type ZipFileEntry } from "./zip-store";
 import type { ExportFormat, ExportRecord } from "./types";
 
@@ -128,30 +129,31 @@ export async function runExportOfVisibleTweets(ctx: FeatureContext): Promise<Exp
     const initialRecords = collectExportRecords(document, ctx.route.surface);
     await checkpointStore.append(jobId, initialRecords);
 
-    let records = checkpointStore.records(jobId);
+    const records = checkpointStore.records(jobId);
+    let packageRecords = records;
     if (ctx.settings.export.captureMediaBytes) {
-      records = await captureExportMedia(records);
+      packageRecords = await captureExportMedia(records);
     }
-    await checkpointStore.updateProgress(jobId, { completed: records.length, total: records.length });
+    await checkpointStore.updateProgress(jobId, { completed: packageRecords.length, total: packageRecords.length });
     // Handing the user an empty ZIP is worse than telling them nothing was captured.
     const artifacts =
       records.length === 0
         ? []
         : buildExportZipChunks(
-            records,
+            packageRecords,
             formats,
             ctx.settings.media.lastSaveFolder,
             ctx.settings.media.zipChunkSize
           );
     await checkpointStore.finish(jobId);
-    ctx.diagnostics.info("Export completed", { records: records.length, formats });
-    void ctx.auditLog.record("export.complete", { jobId, records: records.length, formats });
+    ctx.diagnostics.info("Export completed", { records: packageRecords.length, formats });
+    void ctx.auditLog.record("export.complete", { jobId, records: packageRecords.length, formats });
     if (ctx.settings.integrations.semanticSearch.autoIndex) {
-      void autoIndexExport(ctx, records);
+      void autoIndexExport(ctx, packageRecords);
     }
     return {
       jobId,
-      records: records.length,
+      records: packageRecords.length,
       artifacts,
       filename: artifacts[0]?.filename ?? zipFilename(ctx.settings.media.lastSaveFolder)
     };
@@ -240,6 +242,17 @@ export function buildExportZip(
       sha256: sha256Hex(asset.data)
     });
   }
+
+  const viewer = buildExportViewer(prepared.records);
+  const viewerPath = packagePath(safeFolder, "viewer.html");
+  entries.push({ filename: viewerPath, data: viewer });
+  packageFiles.push({
+    path: viewerPath,
+    kind: "artifact",
+    contentType: "text/html",
+    byteLength: viewer.byteLength,
+    sha256: sha256Hex(viewer)
+  });
 
   const manifestPath = packagePath(safeFolder, "manifest.json");
   const manifest = buildExportPackageManifest(prepared.records, packageFiles, safeFolder);

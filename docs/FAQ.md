@@ -78,7 +78,8 @@ local external targets such as Markdown, Obsidian, Notion, and raw JSON. Media e
 remote references; the output should not be treated as a byte-complete offline replay unless the
 entry says it was captured. Enable **Capture media bytes in export** when you want the export action
 to fetch bounded media bodies into the package; failures remain retryable references in
-`manifest.json`. Aviary does not silently fetch X when an exported file is opened.
+`manifest.json`. Extract the ZIP and open `viewer.html` for local search, sorting, thread grouping,
+and media-status filtering. Aviary does not silently fetch X when an exported file is opened.
 
 ## What is XLSX, and is it still future work?
 

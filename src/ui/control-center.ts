@@ -467,7 +467,9 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   const handleModalFocusIn = (event: FocusEvent): void => {
     if (!open) return;
     const target = event.target;
-    if (target instanceof Node && panel.contains(target)) return;
+    // Document-level focus events are retargeted to the shadow host. Use the composed path so
+    // focusing a rebuilt action inside the modal is not mistaken for focus leaving the dialog.
+    if (event.composedPath().includes(panel) || (target instanceof Node && panel.contains(target))) return;
     event.stopPropagation();
     panel.focus({ preventScroll: true });
   };
@@ -542,6 +544,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
   /** Disabled buttons lose focus in Chromium, so remember the action row across a refresh. */
   let pendingActionFocus: string | null = null;
+  let pendingActionLabel: string | null = null;
 
   /**
    * A row's identity across rebuilds: its section title, its label, and its position among the
@@ -574,6 +577,15 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     return null;
   };
 
+  const findActionButton = (label: string): HTMLButtonElement | null => {
+    const expected = t(label);
+    return (
+      Array.from(body.querySelectorAll<HTMLButtonElement>("button")).find(
+        (candidate) => candidate.textContent === expected && !candidate.disabled
+      ) ?? null
+    );
+  };
+
   /**
    * All action rows share one rejection boundary. A handler may still catch an expected failure
    * itself when it has more useful copy, but a new action cannot leak an unhandled rejection or
@@ -603,11 +615,17 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       },
       (button) => {
         pendingActionFocus = focusIdentity(button);
+        pendingActionLabel = label;
       },
       (button) => {
-        if (pendingActionFocus && !shadow.activeElement && button.isConnected) {
-          button.focus({ preventScroll: true });
+        if (pendingActionFocus && (!shadow.activeElement || shadow.activeElement === panel)) {
+          const target = button.isConnected
+            ? button
+            : findByIdentity(pendingActionFocus) ?? (pendingActionLabel ? findActionButton(pendingActionLabel) : null);
+          if (!target) return;
+          target.focus({ preventScroll: true });
           pendingActionFocus = null;
+          pendingActionLabel = null;
         }
       }
     );
@@ -655,12 +673,13 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     }
 
     body.scrollTop = scrollTop;
-    if (identity) {
-      const target = findByIdentity(identity);
+    if (identity || pendingActionLabel) {
+      const target = (identity ? findByIdentity(identity) : null) ?? (pendingActionLabel ? findActionButton(pendingActionLabel) : null);
       if (target) {
         target.focus({ preventScroll: true });
         restoreSelection(target, selection);
         pendingActionFocus = null;
+        pendingActionLabel = null;
       }
     }
   };

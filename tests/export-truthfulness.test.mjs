@@ -84,6 +84,7 @@ test("export ZIPs include a checksum manifest and package media without silent n
     ]
   })], ["json", "html"], "archive");
   const entries = readStoreZip(archive);
+  assert.ok(entries.some((entry) => entry.filename === "archive/viewer.html"));
   const manifestEntry = entries.find((entry) => entry.filename === "archive/manifest.json");
   assert.ok(manifestEntry);
   const manifest = JSON.parse(new TextDecoder().decode(manifestEntry.data));

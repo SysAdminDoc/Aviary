@@ -9,6 +9,11 @@
   successful bodies in the ZIP/WARC and preserves failed items as retryable references; HTML,
   Markdown, CSV, XLSX, JSON, external targets, and WARC output no longer imply that a live URL is
   an offline asset.
+- Export ZIPs now include a standalone `viewer.html` with embedded local data, virtualized large-list
+  rendering, search/sort/thread/media-status views, safe captured-media links, and built-in locale/
+  RTL labels without remote script execution.
+- Modal action focus now survives shadow-DOM re-renders reliably, including asynchronous snapshot
+  capture and clear operations.
 - Library search now uses one bounded offline query model for posts, likes, bookmarks, notes,
   snapshots, archive metadata, and semantic-index records, with Unicode-safe ranking and
   deterministic source/account/date/tag/folder/media filters. The Library section exposes the

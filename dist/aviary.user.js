@@ -6226,7 +6226,7 @@ html.av-reduce-motion *::after {
     const handleModalFocusIn = (event) => {
       if (!open) return;
       const target = event.target;
-      if (target instanceof Node && panel.contains(target)) return;
+      if (event.composedPath().includes(panel) || target instanceof Node && panel.contains(target)) return;
       event.stopPropagation();
       panel.focus({ preventScroll: true });
     };
@@ -6286,6 +6286,7 @@ html.av-reduce-motion *::after {
       status.textContent = formatCopy(t(source), lastStatusValues);
     };
     let pendingActionFocus = null;
+    let pendingActionLabel = null;
     const focusIdentity = (node) => {
       if (!node || !body.contains(node)) {
         return null;
@@ -6310,6 +6311,12 @@ html.av-reduce-motion *::after {
       }
       return null;
     };
+    const findActionButton = (label) => {
+      const expected = t(label);
+      return Array.from(body.querySelectorAll("button")).find(
+        (candidate) => candidate.textContent === expected && !candidate.disabled
+      ) ?? null;
+    };
     const actionRow = (label, description, onClick, failureMessage = "Action failed.") => buildActionRow(
       label,
       description,
@@ -6327,11 +6334,15 @@ html.av-reduce-motion *::after {
       },
       (button2) => {
         pendingActionFocus = focusIdentity(button2);
+        pendingActionLabel = label;
       },
       (button2) => {
-        if (pendingActionFocus && !shadow.activeElement && button2.isConnected) {
-          button2.focus({ preventScroll: true });
+        if (pendingActionFocus && (!shadow.activeElement || shadow.activeElement === panel)) {
+          const target = button2.isConnected ? button2 : findByIdentity(pendingActionFocus) ?? (pendingActionLabel ? findActionButton(pendingActionLabel) : null);
+          if (!target) return;
+          target.focus({ preventScroll: true });
           pendingActionFocus = null;
+          pendingActionLabel = null;
         }
       }
     );
@@ -6364,12 +6375,13 @@ html.av-reduce-motion *::after {
         coverage.textContent = coverageSummary();
       }
       body.scrollTop = scrollTop;
-      if (identity) {
-        const target = findByIdentity(identity);
+      if (identity || pendingActionLabel) {
+        const target = (identity ? findByIdentity(identity) : null) ?? (pendingActionLabel ? findActionButton(pendingActionLabel) : null);
         if (target) {
           target.focus({ preventScroll: true });
           restoreSelection(target, selection);
           pendingActionFocus = null;
+          pendingActionLabel = null;
         }
       }
     };
@@ -12973,6 +12985,553 @@ ${sections.join("\n\n---\n\n")}
     }
   }
 
+  // src/features/export/viewer.ts
+  var VIEWER_LABELS = {
+    en: {
+      name: "English",
+      title: "Aviary archive",
+      subtitle: "Local archive viewer \u2014 remote references are never fetched automatically.",
+      language: "Language",
+      search: "Search records",
+      status: "Media status",
+      all: "All media",
+      captured: "Captured bytes",
+      remote: "Remote reference",
+      missing: "Missing",
+      sort: "Sort",
+      newest: "Newest first",
+      oldest: "Oldest first",
+      handle: "Handle",
+      thread: "Thread view",
+      media: "Media",
+      records: "records",
+      shown: "shown",
+      noResults: "No matching records.",
+      source: "source",
+      bytes: "bytes",
+      checksum: "SHA-256",
+      openSource: "Open source URL",
+      threadPosts: "posts",
+      offline: "offline-ready",
+      network: "network may be required"
+    },
+    es: {
+      name: "Espa\xF1ol",
+      title: "Archivo de Aviary",
+      subtitle: "Visor de archivo local \u2014 las referencias remotas nunca se descargan autom\xE1ticamente.",
+      language: "Idioma",
+      search: "Buscar registros",
+      status: "Estado multimedia",
+      all: "Todo el contenido",
+      captured: "Bytes capturados",
+      remote: "Referencia remota",
+      missing: "Faltante",
+      sort: "Ordenar",
+      newest: "M\xE1s recientes primero",
+      oldest: "M\xE1s antiguos primero",
+      handle: "Usuario",
+      thread: "Vista de hilos",
+      media: "Contenido multimedia",
+      records: "registros",
+      shown: "mostrados",
+      noResults: "No hay registros coincidentes.",
+      source: "origen",
+      bytes: "bytes",
+      checksum: "SHA-256",
+      openSource: "Abrir URL de origen",
+      threadPosts: "publicaciones",
+      offline: "listo sin conexi\xF3n",
+      network: "puede requerir red"
+    },
+    pt: {
+      name: "Portugu\xEAs",
+      title: "Arquivo Aviary",
+      subtitle: "Visualizador de arquivo local \u2014 refer\xEAncias remotas nunca s\xE3o buscadas automaticamente.",
+      language: "Idioma",
+      search: "Pesquisar registros",
+      status: "Status da m\xEDdia",
+      all: "Todas as m\xEDdias",
+      captured: "Bytes capturados",
+      remote: "Refer\xEAncia remota",
+      missing: "Ausente",
+      sort: "Ordenar",
+      newest: "Mais recentes primeiro",
+      oldest: "Mais antigas primeiro",
+      handle: "Usu\xE1rio",
+      thread: "Visualiza\xE7\xE3o de t\xF3picos",
+      media: "M\xEDdia",
+      records: "registros",
+      shown: "exibidos",
+      noResults: "Nenhum registro correspondente.",
+      source: "origem",
+      bytes: "bytes",
+      checksum: "SHA-256",
+      openSource: "Abrir URL de origem",
+      threadPosts: "publica\xE7\xF5es",
+      offline: "pronto off-line",
+      network: "a rede pode ser necess\xE1ria"
+    },
+    fr: {
+      name: "Fran\xE7ais",
+      title: "Archive Aviary",
+      subtitle: "Lecteur d\u2019archive local \u2014 les r\xE9f\xE9rences distantes ne sont jamais r\xE9cup\xE9r\xE9es automatiquement.",
+      language: "Langue",
+      search: "Rechercher des entr\xE9es",
+      status: "\xC9tat des m\xE9dias",
+      all: "Tous les m\xE9dias",
+      captured: "Octets captur\xE9s",
+      remote: "R\xE9f\xE9rence distante",
+      missing: "Manquant",
+      sort: "Trier",
+      newest: "Plus r\xE9cent d\u2019abord",
+      oldest: "Plus ancien d\u2019abord",
+      handle: "Compte",
+      thread: "Vue des fils",
+      media: "M\xE9dias",
+      records: "entr\xE9es",
+      shown: "affich\xE9es",
+      noResults: "Aucune entr\xE9e correspondante.",
+      source: "source",
+      bytes: "octets",
+      checksum: "SHA-256",
+      openSource: "Ouvrir l\u2019URL source",
+      threadPosts: "publications",
+      offline: "pr\xEAt hors ligne",
+      network: "r\xE9seau potentiellement n\xE9cessaire"
+    },
+    de: {
+      name: "Deutsch",
+      title: "Aviary-Archiv",
+      subtitle: "Lokaler Archiv-Viewer \u2014 Remote-Referenzen werden niemals automatisch abgerufen.",
+      language: "Sprache",
+      search: "Eintr\xE4ge durchsuchen",
+      status: "Medienstatus",
+      all: "Alle Medien",
+      captured: "Erfasste Bytes",
+      remote: "Remote-Referenz",
+      missing: "Fehlt",
+      sort: "Sortieren",
+      newest: "Neueste zuerst",
+      oldest: "\xC4lteste zuerst",
+      handle: "Handle",
+      thread: "Thread-Ansicht",
+      media: "Medien",
+      records: "Eintr\xE4ge",
+      shown: "angezeigt",
+      noResults: "Keine passenden Eintr\xE4ge.",
+      source: "Quelle",
+      bytes: "Bytes",
+      checksum: "SHA-256",
+      openSource: "Quell-URL \xF6ffnen",
+      threadPosts: "Beitr\xE4ge",
+      offline: "offline-fertig",
+      network: "Netzwerk eventuell erforderlich"
+    },
+    ja: {
+      name: "\u65E5\u672C\u8A9E",
+      title: "Aviary \u30A2\u30FC\u30AB\u30A4\u30D6",
+      subtitle: "\u30ED\u30FC\u30AB\u30EB\u30A2\u30FC\u30AB\u30A4\u30D6\u30D3\u30E5\u30FC\u30A2\u30FC \u2014 \u30EA\u30E2\u30FC\u30C8\u53C2\u7167\u306F\u81EA\u52D5\u53D6\u5F97\u3055\u308C\u307E\u305B\u3093\u3002",
+      language: "\u8A00\u8A9E",
+      search: "\u30EC\u30B3\u30FC\u30C9\u3092\u691C\u7D22",
+      status: "\u30E1\u30C7\u30A3\u30A2\u72B6\u614B",
+      all: "\u3059\u3079\u3066\u306E\u30E1\u30C7\u30A3\u30A2",
+      captured: "\u30AD\u30E3\u30D7\u30C1\u30E3\u6E08\u307F\u30D0\u30A4\u30C8",
+      remote: "\u30EA\u30E2\u30FC\u30C8\u53C2\u7167",
+      missing: "\u6B20\u843D",
+      sort: "\u4E26\u3079\u66FF\u3048",
+      newest: "\u65B0\u3057\u3044\u9806",
+      oldest: "\u53E4\u3044\u9806",
+      handle: "\u30CF\u30F3\u30C9\u30EB",
+      thread: "\u30B9\u30EC\u30C3\u30C9\u8868\u793A",
+      media: "\u30E1\u30C7\u30A3\u30A2",
+      records: "\u4EF6",
+      shown: "\u8868\u793A",
+      noResults: "\u4E00\u81F4\u3059\u308B\u30EC\u30B3\u30FC\u30C9\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+      source: "\u30BD\u30FC\u30B9",
+      bytes: "\u30D0\u30A4\u30C8",
+      checksum: "SHA-256",
+      openSource: "\u30BD\u30FC\u30B9URL\u3092\u958B\u304F",
+      threadPosts: "\u4EF6\u306E\u6295\u7A3F",
+      offline: "\u30AA\u30D5\u30E9\u30A4\u30F3\u5BFE\u5FDC",
+      network: "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u304C\u5FC5\u8981\u306A\u5834\u5408\u304C\u3042\u308A\u307E\u3059"
+    },
+    ko: {
+      name: "\uD55C\uAD6D\uC5B4",
+      title: "Aviary \uC544\uCE74\uC774\uBE0C",
+      subtitle: "\uB85C\uCEEC \uC544\uCE74\uC774\uBE0C \uBDF0\uC5B4 \u2014 \uC6D0\uACA9 \uCC38\uC870\uB97C \uC790\uB3D9\uC73C\uB85C \uAC00\uC838\uC624\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+      language: "\uC5B8\uC5B4",
+      search: "\uB808\uCF54\uB4DC \uAC80\uC0C9",
+      status: "\uBBF8\uB514\uC5B4 \uC0C1\uD0DC",
+      all: "\uBAA8\uB4E0 \uBBF8\uB514\uC5B4",
+      captured: "\uCEA1\uCC98\uB41C \uBC14\uC774\uD2B8",
+      remote: "\uC6D0\uACA9 \uCC38\uC870",
+      missing: "\uB204\uB77D\uB428",
+      sort: "\uC815\uB82C",
+      newest: "\uCD5C\uC2E0\uC21C",
+      oldest: "\uC624\uB798\uB41C \uC21C",
+      handle: "\uD578\uB4E4",
+      thread: "\uC2A4\uB808\uB4DC \uBCF4\uAE30",
+      media: "\uBBF8\uB514\uC5B4",
+      records: "\uAC1C \uB808\uCF54\uB4DC",
+      shown: "\uD45C\uC2DC\uB428",
+      noResults: "\uC77C\uCE58\uD558\uB294 \uB808\uCF54\uB4DC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+      source: "\uCD9C\uCC98",
+      bytes: "\uBC14\uC774\uD2B8",
+      checksum: "SHA-256",
+      openSource: "\uCD9C\uCC98 URL \uC5F4\uAE30",
+      threadPosts: "\uAC1C \uAC8C\uC2DC\uBB3C",
+      offline: "\uC624\uD504\uB77C\uC778 \uC900\uBE44\uB428",
+      network: "\uB124\uD2B8\uC6CC\uD06C\uAC00 \uD544\uC694\uD560 \uC218 \uC788\uC74C"
+    },
+    ar: {
+      name: "\u0627\u0644\u0639\u0631\u0628\u064A\u0629",
+      title: "\u0623\u0631\u0634\u064A\u0641 Aviary",
+      subtitle: "\u0639\u0627\u0631\u0636 \u0623\u0631\u0634\u064A\u0641 \u0645\u062D\u0644\u064A \u2014 \u0644\u0627 \u064A\u062A\u0645 \u062C\u0644\u0628 \u0627\u0644\u0645\u0631\u0627\u062C\u0639 \u0627\u0644\u0628\u0639\u064A\u062F\u0629 \u062A\u0644\u0642\u0627\u0626\u064A\u0627\u064B.",
+      language: "\u0627\u0644\u0644\u063A\u0629",
+      search: "\u0627\u0644\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0633\u062C\u0644\u0627\u062A",
+      status: "\u062D\u0627\u0644\u0629 \u0627\u0644\u0648\u0633\u0627\u0626\u0637",
+      all: "\u0643\u0644 \u0627\u0644\u0648\u0633\u0627\u0626\u0637",
+      captured: "\u0627\u0644\u0628\u0627\u064A\u062A\u0627\u062A \u0627\u0644\u0645\u0644\u062A\u0642\u0637\u0629",
+      remote: "\u0645\u0631\u062C\u0639 \u0628\u0639\u064A\u062F",
+      missing: "\u0645\u0641\u0642\u0648\u062F",
+      sort: "\u0627\u0644\u062A\u0631\u062A\u064A\u0628",
+      newest: "\u0627\u0644\u0623\u062D\u062F\u062B \u0623\u0648\u0644\u0627\u064B",
+      oldest: "\u0627\u0644\u0623\u0642\u062F\u0645 \u0623\u0648\u0644\u0627\u064B",
+      handle: "\u0627\u0644\u0645\u0639\u0631\u0651\u0641",
+      thread: "\u0639\u0631\u0636 \u0633\u0644\u0627\u0633\u0644 \u0627\u0644\u0645\u062D\u0627\u062F\u062B\u0629",
+      media: "\u0627\u0644\u0648\u0633\u0627\u0626\u0637",
+      records: "\u0633\u062C\u0644\u0627\u062A",
+      shown: "\u0645\u0639\u0631\u0648\u0636\u0629",
+      noResults: "\u0644\u0627 \u062A\u0648\u062C\u062F \u0633\u062C\u0644\u0627\u062A \u0645\u0637\u0627\u0628\u0642\u0629.",
+      source: "\u0627\u0644\u0645\u0635\u062F\u0631",
+      bytes: "\u0628\u0627\u064A\u062A",
+      checksum: "SHA-256",
+      openSource: "\u0641\u062A\u062D \u0639\u0646\u0648\u0627\u0646 \u0627\u0644\u0645\u0635\u062F\u0631",
+      threadPosts: "\u0645\u0646\u0634\u0648\u0631\u0627\u062A",
+      offline: "\u062C\u0627\u0647\u0632 \u0644\u0644\u0639\u0645\u0644 \u062F\u0648\u0646 \u0627\u062A\u0635\u0627\u0644",
+      network: "\u0642\u062F \u062A\u062A\u0637\u0644\u0628 \u0627\u0644\u0634\u0628\u0643\u0629"
+    },
+    he: {
+      name: "\u05E2\u05D1\u05E8\u05D9\u05EA",
+      title: "\u05D0\u05E8\u05DB\u05D9\u05D5\u05DF Aviary",
+      subtitle: "\u05DE\u05E6\u05D9\u05D2 \u05D0\u05E8\u05DB\u05D9\u05D5\u05DF \u05DE\u05E7\u05D5\u05DE\u05D9 \u2014 \u05D4\u05E4\u05E0\u05D9\u05D5\u05EA \u05DE\u05E8\u05D5\u05D7\u05E7\u05D5\u05EA \u05DC\u05E2\u05D5\u05DC\u05DD \u05DC\u05D0 \u05E0\u05D8\u05E2\u05E0\u05D5\u05EA \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA.",
+      language: "\u05E9\u05E4\u05D4",
+      search: "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA",
+      status: "\u05DE\u05E6\u05D1 \u05DE\u05D3\u05D9\u05D4",
+      all: "\u05DB\u05DC \u05D4\u05DE\u05D3\u05D9\u05D4",
+      captured: "\u05D1\u05EA\u05D9\u05DD \u05E9\u05E0\u05DC\u05DB\u05D3\u05D5",
+      remote: "\u05D4\u05E4\u05E0\u05D9\u05D4 \u05DE\u05E8\u05D5\u05D7\u05E7\u05EA",
+      missing: "\u05D7\u05E1\u05E8",
+      sort: "\u05DE\u05D9\u05D5\u05DF",
+      newest: "\u05D4\u05D7\u05D3\u05E9\u05D5\u05EA \u05EA\u05D7\u05D9\u05DC\u05D4",
+      oldest: "\u05D4\u05D9\u05E9\u05E0\u05D5\u05EA \u05EA\u05D7\u05D9\u05DC\u05D4",
+      handle: "\u05DE\u05D6\u05D4\u05D4",
+      thread: "\u05EA\u05E6\u05D5\u05D2\u05EA \u05E9\u05E8\u05E9\u05D5\u05E8\u05D9\u05DD",
+      media: "\u05DE\u05D3\u05D9\u05D4",
+      records: "\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA",
+      shown: "\u05DE\u05D5\u05E6\u05D2\u05D5\u05EA",
+      noResults: "\u05D0\u05D9\u05DF \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05EA\u05D5\u05D0\u05DE\u05D5\u05EA.",
+      source: "\u05DE\u05E7\u05D5\u05E8",
+      bytes: "\u05D1\u05EA\u05D9\u05DD",
+      checksum: "SHA-256",
+      openSource: "\u05E4\u05EA\u05D9\u05D7\u05EA \u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05DE\u05E7\u05D5\u05E8",
+      threadPosts: "\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD",
+      offline: "\u05DE\u05D5\u05DB\u05DF \u05DC\u05DC\u05D0 \u05D7\u05D9\u05D1\u05D5\u05E8",
+      network: "\u05D9\u05D9\u05EA\u05DB\u05DF \u05E9\u05E0\u05D3\u05E8\u05E9 \u05D7\u05D9\u05D1\u05D5\u05E8 \u05E8\u05E9\u05EA"
+    }
+  };
+  function buildExportViewer(records) {
+    const data = safeJson(serializeExportRecords(records));
+    const labels = safeJson(VIEWER_LABELS);
+    const script = viewerScript(labels);
+    const html = `<!doctype html>
+<html lang="en" dir="ltr"><head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Aviary archive</title>
+<style>${VIEWER_STYLES}</style>
+</head><body>
+<main id="app">
+  <header class="hero">
+    <div><h1 id="title">Aviary archive</h1><p id="subtitle"></p></div>
+    <label class="locale"><span id="language-label">Language</span><select id="locale"></select></label>
+  </header>
+  <section class="toolbar" aria-labelledby="search-label">
+    <label><span id="search-label">Search records</span><input id="search" type="search" autocomplete="off" /></label>
+    <label><span id="status-label">Media status</span><select id="status"></select></label>
+    <label><span id="sort-label">Sort</span><select id="sort"></select></label>
+    <label class="check"><input id="thread" type="checkbox" /><span id="thread-label">Thread view</span></label>
+  </section>
+  <p id="summary" class="summary" role="status"></p>
+  <p id="empty" class="empty" hidden></p>
+  <div id="records" class="records" role="region" aria-live="polite" aria-label="Aviary records">
+    <div id="canvas" class="canvas"><div id="top-spacer"></div><div id="list"></div><div id="bottom-spacer"></div></div>
+  </div>
+</main>
+<script type="application/json" id="records-data">${data}<\/script>
+<script>${script}<\/script>
+</body></html>`;
+    return new TextEncoder().encode(html);
+  }
+  function safeJson(value) {
+    return JSON.stringify(value).replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
+  }
+  function viewerScript(labels) {
+    return `(function () {
+  "use strict";
+  const LABELS = ${labels};
+  const RECORDS = JSON.parse(document.getElementById("records-data").textContent || "[]");
+  const LOCALES = ["en", "es", "pt", "fr", "de", "ja", "ko", "ar", "he"];
+  const RTL = new Set(["ar", "he"]);
+  const state = { locale: localeFromBrowser(), query: "", status: "all", sort: "newest", thread: false };
+  const rowHeight = 190;
+  const overscan = 4;
+  const viewport = document.getElementById("records");
+  const list = document.getElementById("list");
+  const topSpacer = document.getElementById("top-spacer");
+  const bottomSpacer = document.getElementById("bottom-spacer");
+  const empty = document.getElementById("empty");
+  const summary = document.getElementById("summary");
+  const queryInput = document.getElementById("search");
+  const statusSelect = document.getElementById("status");
+  const sortSelect = document.getElementById("sort");
+  const threadInput = document.getElementById("thread");
+  const localeSelect = document.getElementById("locale");
+  const text = (tag, value, className) => {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    node.textContent = value;
+    return node;
+  };
+  const clear = (node) => { while (node.firstChild) node.removeChild(node.firstChild); };
+  const currentLabels = () => LABELS[state.locale] || LABELS.en;
+  const interpolate = (value, replacements) => Object.entries(replacements).reduce(
+    (result, entry) => result.replaceAll("{" + entry[0] + "}", String(entry[1])), value
+  );
+  const captureOf = (media) => media && media.capture ? media.capture : {
+    status: media && media.url ? "remote-reference" : "missing",
+    sourceUrl: media && media.url ? media.url : "",
+    capturedAt: null,
+    byteLength: null,
+    sha256: null,
+    retryable: Boolean(media && media.url)
+  };
+  const statusLabel = (status) => {
+    const labels = currentLabels();
+    return status === "captured-bytes" ? labels.captured : status === "remote-reference" ? labels.remote : labels.missing;
+  };
+  const mediaStatuses = (record) => new Set((record.media || []).map((media) => captureOf(media).status));
+  const recordText = (record) => [record.handle, record.displayName, record.text, record.permalink]
+    .filter(Boolean).join(" ").toLocaleLowerCase();
+  function localeFromBrowser() {
+    const candidate = (navigator.language || "en").slice(0, 2).toLowerCase();
+    return LOCALES.includes(candidate) ? candidate : "en";
+  }
+  function populateSelect(select, options, selected) {
+    clear(select);
+    options.forEach((option) => {
+      const item = document.createElement("option");
+      item.value = option[0];
+      item.textContent = option[1];
+      item.selected = option[0] === selected;
+      select.append(item);
+    });
+  }
+  function applyLabels() {
+    const labels = currentLabels();
+    document.documentElement.lang = state.locale;
+    document.documentElement.dir = RTL.has(state.locale) ? "rtl" : "ltr";
+    document.title = labels.title;
+    document.getElementById("title").textContent = labels.title;
+    document.getElementById("subtitle").textContent = labels.subtitle;
+    document.getElementById("language-label").textContent = labels.language;
+    document.getElementById("search-label").textContent = labels.search;
+    document.getElementById("status-label").textContent = labels.status;
+    document.getElementById("sort-label").textContent = labels.sort;
+    document.getElementById("thread-label").textContent = labels.thread;
+    queryInput.setAttribute("aria-label", labels.search);
+    statusSelect.setAttribute("aria-label", labels.status);
+    sortSelect.setAttribute("aria-label", labels.sort);
+    threadInput.setAttribute("aria-label", labels.thread);
+    populateSelect(localeSelect, LOCALES.map((code) => [code, LABELS[code].name]), state.locale);
+    populateSelect(statusSelect, [["all", labels.all], ["captured-bytes", labels.captured], ["remote-reference", labels.remote], ["missing", labels.missing]], state.status);
+    populateSelect(sortSelect, [["newest", labels.newest], ["oldest", labels.oldest], ["handle", labels.handle]], state.sort);
+    render();
+  }
+  function filteredRecords() {
+    const query = state.query.trim().toLocaleLowerCase();
+    const filtered = RECORDS.filter((record) => {
+      if (query && !recordText(record).includes(query)) return false;
+      if (state.status !== "all" && !mediaStatuses(record).has(state.status)) return false;
+      return true;
+    });
+    filtered.sort((left, right) => {
+      if (state.sort === "handle") return String(left.handle || "").localeCompare(String(right.handle || ""));
+      const leftDate = Date.parse(left.capturedAt || "") || 0;
+      const rightDate = Date.parse(right.capturedAt || "") || 0;
+      return state.sort === "newest" ? rightDate - leftDate : leftDate - rightDate;
+    });
+    return state.thread ? threadGroups(filtered) : filtered.map((record) => [record]);
+  }
+  function threadGroups(records) {
+    const groups = new Map();
+    records.forEach((record) => {
+      const key = record.conversationId || record.threadId || (record.handle ? "handle:" + record.handle : "record:" + (record.tweetId || "unknown"));
+      const group = groups.get(key) || [];
+      group.push(record);
+      groups.set(key, group);
+    });
+    return Array.from(groups.values());
+  }
+  function appendMedia(card, group) {
+    const labels = currentLabels();
+    const media = group.flatMap((record) => record.media || []);
+    if (media.length === 0) return;
+    const section = document.createElement("section");
+    section.className = "media";
+    section.append(text("h3", labels.media));
+    media.slice(0, 24).forEach((entry) => {
+      const capture = captureOf(entry);
+      const item = document.createElement("div");
+      item.className = "media-item status-" + capture.status;
+      item.append(text("strong", entry.kind + " \u2014 " + statusLabel(capture.status)));
+      if (capture.status === "captured-bytes" && capture.packagePath && /^(?:[a-z0-9._-]+\\/)*[a-z0-9._/-]+$/i.test(capture.packagePath)) {
+        if (/^image\\//i.test(entry.type || "")) {
+          const image = document.createElement("img");
+          image.src = capture.packagePath;
+          image.loading = "lazy";
+          image.alt = entry.altText || entry.kind;
+          item.append(image);
+        }
+        const link = document.createElement("a");
+        link.href = capture.packagePath;
+        link.textContent = labels.captured;
+        item.append(link);
+      } else if (capture.status === "remote-reference" && /^https?:\\/\\//i.test(capture.sourceUrl || "")) {
+        const link = document.createElement("a");
+        link.href = capture.sourceUrl;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = labels.openSource;
+        item.append(link);
+      } else {
+        item.append(text("span", labels.missing));
+      }
+      const details = [
+        capture.capturedAt || "",
+        capture.byteLength === null || capture.byteLength === undefined ? "" : capture.byteLength + " " + labels.bytes,
+        capture.sha256 ? labels.checksum + " " + capture.sha256 : ""
+      ].filter(Boolean).join(" \xB7 ");
+      if (details) item.append(text("small", details));
+      if (capture.status === "remote-reference" && capture.sourceUrl) item.append(text("small", labels.source + ": " + capture.sourceUrl, "source"));
+      section.append(item);
+    });
+    if (media.length > 24) section.append(text("small", "+" + (media.length - 24) + " " + labels.media));
+    card.append(section);
+  }
+  function appendCard(group) {
+    const record = group[0];
+    const card = document.createElement("article");
+    card.className = "record-card";
+    const heading = document.createElement("div");
+    heading.className = "record-heading";
+    heading.append(text("h2", record.displayName || (record.handle ? "@" + record.handle : "Unknown")));
+    if (record.handle) heading.append(text("span", "@" + record.handle, "handle"));
+    if (group.length > 1) heading.append(text("span", group.length + " " + currentLabels().threadPosts, "thread-count"));
+    heading.append(text("time", record.capturedAt || "", "date"));
+    card.append(heading);
+    group.slice(0, 12).forEach((entry) => {
+      const body = text("p", entry.text || "", "body");
+      card.append(body);
+    });
+    if (group.length > 12) card.append(text("p", "+" + (group.length - 12) + " " + currentLabels().threadPosts));
+    appendMedia(card, group);
+    if (record.permalink && /^https?:\\/\\//i.test(record.permalink)) {
+      const link = document.createElement("a");
+      link.href = record.permalink;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = record.permalink;
+      card.append(link);
+    }
+    return card;
+  }
+  function render() {
+    const groups = filteredRecords();
+    const labels = currentLabels();
+    const totalRecords = groups.reduce((sum, group) => sum + group.length, 0);
+    summary.textContent = totalRecords + " " + labels.records + " \xB7 " + groups.length + " " + labels.shown + (state.status === "all" ? "" : " \xB7 " + statusLabel(state.status));
+    empty.hidden = groups.length !== 0;
+    empty.textContent = labels.noResults;
+    if (groups.length === 0) {
+      clear(list);
+      topSpacer.style.height = "0px";
+      bottomSpacer.style.height = "0px";
+      return;
+    }
+    const start = Math.max(0, Math.floor(viewport.scrollTop / rowHeight) - overscan);
+    const end = Math.min(groups.length, Math.ceil((viewport.scrollTop + viewport.clientHeight) / rowHeight) + overscan);
+    topSpacer.style.height = start * rowHeight + "px";
+    bottomSpacer.style.height = Math.max(0, (groups.length - end) * rowHeight) + "px";
+    clear(list);
+    for (let index = start; index < end; index += 1) list.append(appendCard(groups[index]));
+  }
+  queryInput.addEventListener("input", () => { state.query = queryInput.value; viewport.scrollTop = 0; render(); });
+  statusSelect.addEventListener("change", () => { state.status = statusSelect.value; viewport.scrollTop = 0; render(); });
+  sortSelect.addEventListener("change", () => { state.sort = sortSelect.value; viewport.scrollTop = 0; render(); });
+  threadInput.addEventListener("change", () => { state.thread = threadInput.checked; viewport.scrollTop = 0; render(); });
+  localeSelect.addEventListener("change", () => { state.locale = localeSelect.value; applyLabels(); });
+  viewport.addEventListener("scroll", render, { passive: true });
+  applyLabels();
+})();`;
+  }
+  var VIEWER_STYLES = `
+:root { color-scheme: dark; font-family: system-ui, sans-serif; background: #0b1014; color: #e7e9ea; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; background: #0b1014; }
+main { width: min(100%, 1080px); margin: 0 auto; padding: 20px; }
+.hero { display: flex; gap: 16px; align-items: start; justify-content: space-between; border-bottom: 1px solid #38444d; padding-bottom: 16px; }
+h1 { margin: 0; font-size: clamp(1.45rem, 5vw, 2.3rem); }
+.hero p { color: #9aa6af; margin: 6px 0 0; max-width: 60ch; }
+label { display: grid; gap: 6px; color: #9aa6af; font-size: .82rem; }
+select, input { min-height: 42px; border: 1px solid #53636f; border-radius: 8px; background: #15202b; color: #e7e9ea; padding: 8px 10px; font-family: inherit; font-size: 1rem; }
+.locale { min-width: 130px; }
+.toolbar { display: grid; grid-template-columns: minmax(180px, 2fr) repeat(2, minmax(130px, 1fr)) auto; gap: 10px; padding: 16px 0; }
+.check { display: flex; align-items: end; gap: 8px; min-height: 42px; padding-bottom: 10px; white-space: nowrap; }
+.check input { min-height: 20px; width: 20px; }
+.summary { color: #9aa6af; margin: 0 0 12px; }
+.empty { padding: 30px 12px; border: 1px dashed #53636f; border-radius: 12px; color: #9aa6af; }
+.records { height: min(70vh, 720px); min-height: 300px; overflow: auto; border: 1px solid #38444d; border-radius: 12px; contain: strict; }
+.canvas { min-height: 100%; }
+.record-card { min-height: 160px; margin: 12px; padding: 14px; border: 1px solid #38444d; border-radius: 12px; background: #111820; overflow-wrap: anywhere; }
+.record-heading { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+h2 { font-size: 1rem; margin: 0; }
+.handle, .date, small { color: #9aa6af; font-size: .78rem; }
+.date { margin-inline-start: auto; }
+.thread-count { color: #8ecdf1; font-size: .78rem; }
+.body { white-space: pre-wrap; line-height: 1.45; margin: 12px 0 0; }
+.media { display: grid; gap: 8px; margin-top: 12px; }
+.media h3 { margin: 0; font-size: .85rem; }
+.media-item { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 8px; padding: 8px; border-radius: 8px; background: #18232d; }
+.media-item img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; grid-row: span 2; }
+.media-item a { color: #8ecdf1; overflow-wrap: anywhere; }
+.media-item small { grid-column: 1 / -1; }
+.status-captured-bytes { border-inline-start: 3px solid #35c759; }
+.status-remote-reference { border-inline-start: 3px solid #f0b44d; }
+.status-missing { border-inline-start: 3px solid #f15c6d; }
+a { color: #8ecdf1; }
+@media (max-width: 620px) {
+  main { padding: 12px; }
+  .hero { display: grid; }
+  .toolbar { grid-template-columns: 1fr 1fr; }
+  .toolbar label:first-child { grid-column: 1 / -1; }
+  .check { align-items: center; padding: 0; }
+  .records { min-height: 360px; }
+  .media-item { grid-template-columns: 1fr; }
+  .media-item img { width: 100%; height: 150px; grid-row: auto; }
+}
+`;
+
   // src/features/export/export-feature.ts
   var checkpointStore;
   var queryRegistry;
@@ -13051,26 +13610,27 @@ ${sections.join("\n\n---\n\n")}
     try {
       const initialRecords = collectExportRecords(document, ctx.route.surface);
       await checkpointStore.append(jobId, initialRecords);
-      let records = checkpointStore.records(jobId);
+      const records = checkpointStore.records(jobId);
+      let packageRecords = records;
       if (ctx.settings.export.captureMediaBytes) {
-        records = await captureExportMedia(records);
+        packageRecords = await captureExportMedia(records);
       }
-      await checkpointStore.updateProgress(jobId, { completed: records.length, total: records.length });
+      await checkpointStore.updateProgress(jobId, { completed: packageRecords.length, total: packageRecords.length });
       const artifacts = records.length === 0 ? [] : buildExportZipChunks(
-        records,
+        packageRecords,
         formats,
         ctx.settings.media.lastSaveFolder,
         ctx.settings.media.zipChunkSize
       );
       await checkpointStore.finish(jobId);
-      ctx.diagnostics.info("Export completed", { records: records.length, formats });
-      void ctx.auditLog.record("export.complete", { jobId, records: records.length, formats });
+      ctx.diagnostics.info("Export completed", { records: packageRecords.length, formats });
+      void ctx.auditLog.record("export.complete", { jobId, records: packageRecords.length, formats });
       if (ctx.settings.integrations.semanticSearch.autoIndex) {
-        void autoIndexExport(ctx, records);
+        void autoIndexExport(ctx, packageRecords);
       }
       return {
         jobId,
-        records: records.length,
+        records: packageRecords.length,
         artifacts,
         filename: artifacts[0]?.filename ?? zipFilename(ctx.settings.media.lastSaveFolder)
       };
@@ -13145,6 +13705,16 @@ ${sections.join("\n\n---\n\n")}
         sha256: sha256Hex(asset.data)
       });
     }
+    const viewer = buildExportViewer(prepared.records);
+    const viewerPath = packagePath(safeFolder, "viewer.html");
+    entries.push({ filename: viewerPath, data: viewer });
+    packageFiles.push({
+      path: viewerPath,
+      kind: "artifact",
+      contentType: "text/html",
+      byteLength: viewer.byteLength,
+      sha256: sha256Hex(viewer)
+    });
     const manifestPath = packagePath(safeFolder, "manifest.json");
     const manifest = buildExportPackageManifest(prepared.records, packageFiles, safeFolder);
     entries.push({

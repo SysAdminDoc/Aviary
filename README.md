@@ -36,7 +36,7 @@ its job.
 - Filter engine and predicates: `src/features/filtering/filter-engine.ts`, `src/features/filtering/predicates.ts`
 - Hidden posts: `src/features/filtering/hidden-posts.ts` (store), `src/features/filtering/hidden-posts-feature.ts` (Hide button + collapse)
 - Media downloads: `src/features/media/` (`media-buttons.ts`, `urls.ts`, `template.ts`, `history.ts`, `queue.ts`, `downloader.ts`, `extract.ts`, `video-extract.ts`, `media-presentation.ts`, `batch-downloader.ts`)
-- Export core: `src/features/export/` (`export-feature.ts`, `collector.ts`, `formatters.ts`, `assets.ts`, `zip-store.ts`, `zip-reader.ts`, `jobs.ts`, `query-discovery.ts`, `network-capture.ts`, `xlsx.ts`, `warc.ts`, `external-targets.ts`, `types.ts`)
+- Export core: `src/features/export/` (`export-feature.ts`, `collector.ts`, `formatters.ts`, `assets.ts`, `viewer.ts`, `zip-store.ts`, `zip-reader.ts`, `jobs.ts`, `query-discovery.ts`, `network-capture.ts`, `xlsx.ts`, `warc.ts`, `external-targets.ts`, `types.ts`)
 - AI: `src/features/ai/command-menu.ts` (local prompt builder; optionally runs through `features/integrations/ai-provider.ts` when the user supplies an API key)
 - Integrations: `src/features/integrations/` (`aria2.ts`, `crosspost.ts`, `ai-provider.ts`, `semantic-search.ts`)
 - Library: `src/features/library/` (`user-notes.ts`, `link-unshorten.ts`, `snapshots.ts`, `snapshots-feature.ts`, `archive-import.ts`, `cleanup-preview.ts`, `cleanup-queue.ts`, `reports.ts`, `local-search.ts`, `bookmarks.ts`, `bookmarks-feature.ts`)
@@ -134,6 +134,9 @@ The Control Center "Export" section exposes:
 - Save folder hint that becomes both the ZIP filename prefix and the root path inside the archive.
 - "Export visible tweets" — bundles the configured formats into a STORE-only ZIP, adds a
   `manifest.json` with per-file checksums and media capture status, and triggers a download.
+- Extract the ZIP and open `viewer.html` for a responsive local viewer with virtualized scrolling,
+  search, sort, thread grouping, media-status filters, and built-in locale/RTL labels. It loads no
+  remote script and only activates a remote media URL after an explicit link click.
 - "Copy diagnostics" — copies the Aviary diagnostic log (version, route, recent events) to the clipboard.
 
 Tweets are gathered passively from the DOM; no auth headers, cookies, or session tokens are ever read or persisted.
