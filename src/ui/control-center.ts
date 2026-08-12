@@ -307,6 +307,13 @@ interface PanelSection {
   build: () => HTMLElement[];
 }
 
+type LocalizedCopy =
+  | string
+  | {
+      source: string;
+      values: Record<string, string | number>;
+    };
+
 type SectionIcon =
   | "presets"
   | "appearance"
@@ -570,7 +577,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
    */
   const actionRow = (
     label: string,
-    description: string,
+    description: LocalizedCopy,
     onClick: () => Promise<void>,
     failureMessage = "Action failed."
   ): HTMLElement =>
@@ -1167,11 +1174,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       rows.push(
         dataRow(
           "Snapshots stored",
-          `${status.total} entries${
-            status.latestAt
-              ? ` · latest ${status.latestKind} of ${status.latestCount} @ ${status.latestAt}`
-              : ""
-          }`
+          status.latestAt
+            ? localizedCopy("{count} entries · latest {kind} of {latestCount} @ {at}", {
+                count: status.total,
+                kind: status.latestKind ?? "snapshot",
+                latestCount: status.latestCount,
+                at: status.latestAt
+              })
+            : localizedCopy("{count} entries", { count: status.total })
         )
       );
     }
@@ -1245,7 +1255,18 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       rows.push(
         dataRow(
           "Imported collections",
-          `${archiveLibraryStatus.authoredPosts} posts · ${archiveLibraryStatus.likes} likes · ${archiveLibraryStatus.directMessages} direct messages (kept out of public search) · ${archiveLibraryStatus.media} media refs · ${archiveLibraryStatus.followers} followers · ${archiveLibraryStatus.following} following · ${archiveLibraryStatus.lists} lists`
+          localizedCopy(
+            "{posts} posts · {likes} likes · {messages} direct messages (kept out of public search) · {media} media refs · {followers} followers · {following} following · {lists} lists",
+            {
+              posts: archiveLibraryStatus.authoredPosts,
+              likes: archiveLibraryStatus.likes,
+              messages: archiveLibraryStatus.directMessages,
+              media: archiveLibraryStatus.media,
+              followers: archiveLibraryStatus.followers,
+              following: archiveLibraryStatus.following,
+              lists: archiveLibraryStatus.lists
+            }
+          )
         )
       );
     }
@@ -1254,12 +1275,18 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         rows.push(
           dataRow(
             "Archive import",
-            `${job.status} · ${job.filename} · ${job.recordCount} records · ${job.filesParsed} files · ${job.warningCount} warnings${job.error ? ` · ${job.error}` : ""}`
+            `${localizedCopy("{status} · {filename} · {records} records · {files} files · {warnings} warnings", {
+              status: job.status,
+              filename: job.filename,
+              records: job.recordCount,
+              files: job.filesParsed,
+              warnings: job.warningCount
+            })}${job.error ? ` · ${job.error}` : ""}`
           )
         );
         if (job.status === "running" && options.pauseArchiveImport) {
           rows.push(
-            actionRow("Pause archive import", `Pause ${job.filename}.`, async () => {
+            actionRow("Pause archive import", { source: "Pause {filename}.", values: { filename: job.filename } }, async () => {
               const result = await options.pauseArchiveImport!(job.jobId);
               if (!result.ok) throw new Error(result.error ?? "Archive import could not be paused");
               render();
@@ -1269,7 +1296,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         }
         if ((job.status === "paused" || job.status === "queued") && options.resumeArchiveImport) {
           rows.push(
-            actionRow("Resume archive import", `Resume ${job.filename}.`, async () => {
+            actionRow("Resume archive import", { source: "Resume {filename}.", values: { filename: job.filename } }, async () => {
               const result = await options.resumeArchiveImport!(job.jobId);
               if (!result.ok) throw new Error(result.error ?? "Archive import could not be resumed");
               render();
@@ -1282,7 +1309,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           options.cancelArchiveImport
         ) {
           rows.push(
-            actionRow("Cancel archive import", `Cancel ${job.filename}.`, async () => {
+            actionRow("Cancel archive import", { source: "Cancel {filename}.", values: { filename: job.filename } }, async () => {
               const result = await options.cancelArchiveImport!(job.jobId);
               if (!result.ok) throw new Error(result.error ?? "Archive import could not be cancelled");
               render();
@@ -1292,7 +1319,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         }
         if ((job.status === "failed" || job.status === "cancelled") && options.retryArchiveImport) {
           rows.push(
-            actionRow("Retry archive import", `Retry ${job.filename}.`, async () => {
+            actionRow("Retry archive import", { source: "Retry {filename}.", values: { filename: job.filename } }, async () => {
               const result = await options.retryArchiveImport!(job.jobId);
               if (!result.ok) throw new Error(result.error ?? "Archive import could not be retried");
               render();
@@ -1424,7 +1451,12 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       rows.push(
         dataRow(
           "Cleanup review queue",
-          `${queueStatus.total} items · queued ${queueStatus.queued} · approved ${queueStatus.approved} · skipped ${queueStatus.skipped}`
+          localizedCopy("{total} items · queued {queued} · approved {approved} · skipped {skipped}", {
+            total: queueStatus.total,
+            queued: queueStatus.queued,
+            approved: queueStatus.approved,
+            skipped: queueStatus.skipped
+          })
         )
       );
       rows.push(
@@ -1564,7 +1596,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             const total = job.totalLength > 0 ? `${Math.round((job.completedLength / job.totalLength) * 100)}%` : "?";
             item.append(
               el("span", "av-row-label", `${job.path || job.gid} · ${total}`),
-              el("span", "av-row-description", `gid ${job.gid} · ${job.status}`)
+              el("span", "av-row-description", localizedCopy("gid {gid} · {status}", { gid: job.gid, status: job.status }))
             );
             const cancel = el("button", "av-button av-button-secondary", t("Cancel")) as HTMLButtonElement;
             cancel.type = "button";
@@ -2069,7 +2101,12 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       rows.push(
         dataRow(
           "Local bookmarks",
-          `${status.total} saved · ${status.due} due · ${status.tags.length} tags · ${status.folders.length} folders`
+          localizedCopy("{saved} saved · {due} due · {tags} tags · {folders} folders", {
+            saved: status.total,
+            due: status.due,
+            tags: status.tags.length,
+            folders: status.folders.length
+          })
         )
       );
 
@@ -2101,7 +2138,11 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           const item = el("div", "av-search-hit av-bookmark-hit");
           item.setAttribute("role", "listitem");
           const head = el("span", "av-row-label", `@${entry.handle ?? "anon"} · ${entry.tweetId ?? entry.id}`);
-          const body = el("span", "av-row-description", entry.text.slice(0, 180) || entry.url || "(no text)");
+          const body = el(
+            "span",
+            "av-row-description",
+            entry.text.slice(0, 180) || entry.url || t("(no text)")
+          );
           item.append(head, body);
 
           const editor = el("div", "av-bookmark-editor");
@@ -2458,19 +2499,26 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       rows.push(
         dataRow(
           "Export status",
-          `${status.jobCount} jobs tracked · ${status.knownQueries} GraphQL IDs cached`
+          localizedCopy("{jobs} jobs tracked · {queries} GraphQL IDs cached", {
+            jobs: status.jobCount,
+            queries: status.knownQueries
+          })
         )
       );
       for (const job of (status.jobs ?? []).slice(-3)) {
         rows.push(
           dataRow(
             "Export job",
-            `${job.status} · ${job.recordCount} records · ${job.surface}${job.error ? ` · ${job.error}` : ""}`
+            `${localizedCopy("{status} · {records} records · {surface}", {
+              status: job.status,
+              records: job.recordCount,
+              surface: job.surface
+            })}${job.error ? ` · ${job.error}` : ""}`
           )
         );
         if (job.status === "running" && options.pauseExportJob) {
           rows.push(
-            actionRow("Pause export job", `Pause ${job.jobId}.`, async () => {
+            actionRow("Pause export job", { source: "Pause {jobId}.", values: { jobId: job.jobId } }, async () => {
               const result = await options.pauseExportJob!(job.jobId);
               if (!result.ok) throw new Error(result.error ?? "Export job could not be paused");
               render();
@@ -2480,7 +2528,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         }
         if (job.status === "paused" && options.resumeExportJob) {
           rows.push(
-            actionRow("Resume export job", `Resume ${job.jobId}.`, async () => {
+            actionRow("Resume export job", { source: "Resume {jobId}.", values: { jobId: job.jobId } }, async () => {
               const result = await options.resumeExportJob!(job.jobId);
               if (!result.ok) throw new Error(result.error ?? "Export job could not be resumed");
               render();
@@ -2490,7 +2538,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         }
         if ((job.status === "running" || job.status === "paused" || job.status === "queued") && options.cancelExportJob) {
           rows.push(
-            actionRow("Cancel export job", `Cancel ${job.jobId}.`, async () => {
+            actionRow("Cancel export job", { source: "Cancel {jobId}.", values: { jobId: job.jobId } }, async () => {
               const result = await options.cancelExportJob!(job.jobId);
               if (!result.ok) throw new Error(result.error ?? "Export job could not be cancelled");
               render();
@@ -2509,13 +2557,25 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
             const result = await options.runExport!();
             render();
             const files = result.files ?? 1;
-            setStatus(
-              result.records === 0
-                ? "No posts found on this view. Scroll the timeline to load some, then export again."
-                : files > 1
-                  ? `Exported ${result.records} records across ${files} ZIPs → ${result.filename}`
-                  : `Exported ${result.records} record${result.records === 1 ? "" : "s"} → ${result.filename}`
-            );
+            if (result.records === 0) {
+              setStatus("No posts found on this view. Scroll the timeline to load some, then export again.");
+            } else if (files > 1) {
+              setStatusCopy("Exported {records} records across {files} ZIPs → {filename}", {
+                records: result.records,
+                files,
+                filename: result.filename
+              });
+            } else if (result.records === 1) {
+              setStatusCopy("Exported {records} record → {filename}", {
+                records: result.records,
+                filename: result.filename
+              });
+            } else {
+              setStatusCopy("Exported {records} records → {filename}", {
+                records: result.records,
+                filename: result.filename
+              });
+            }
           } catch (error) {
             options.onError("Export failed", error);
             setStatus("Export failed. See diagnostics.");
@@ -2569,11 +2629,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
           actionRow(target.label, target.description, async () => {
             try {
               const result = await options.exportToTarget!(target.id);
-              setStatus(
-                result.copied
-                  ? `Copied ${result.records} records to clipboard.`
-                  : `Exported ${result.records} records → ${target.label.toLowerCase()}.`
-              );
+              if (result.copied) {
+                setStatusCopy("Copied {records} records to clipboard.", { records: result.records });
+              } else {
+                setStatusCopy("Exported {records} records to {target}.", {
+                  records: result.records,
+                  target: t(target.label)
+                });
+              }
             } catch (error) {
               options.onError("External export failed", error);
               setStatus("External export failed.");
@@ -3376,6 +3439,10 @@ function formatCopy(template: string, values: Record<string, string | number>): 
   );
 }
 
+function localizedCopy(source: string, values: Record<string, string | number>): string {
+  return formatCopy(t(source), values);
+}
+
 interface CapturedSelection {
   start: number | null;
   end: number | null;
@@ -3697,7 +3764,7 @@ function integerInputRow(
 
 function buildActionRow(
   label: string,
-  description: string,
+  description: LocalizedCopy,
   onClick: () => Promise<void>,
   onReject?: (error: unknown) => void,
   onStart?: (button: HTMLButtonElement) => void,
@@ -3705,7 +3772,14 @@ function buildActionRow(
 ): HTMLElement {
   const row = el("div", "av-row");
   const copy = el("span", "av-row-copy");
-  copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
+  copy.append(
+    el("span", "av-row-label", t(label)),
+    el(
+      "span",
+      "av-row-description",
+      typeof description === "string" ? t(description) : localizedCopy(description.source, description.values)
+    )
+  );
   row.append(copy);
 
   const button = el("button", "av-button av-button-secondary", t(label)) as HTMLButtonElement;

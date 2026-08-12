@@ -425,5 +425,20 @@ function harvestPanelLiterals(source) {
   for (const match of source.matchAll(/\bt\(\s*"((?:[^"\\]|\\.)*)"\s*\)/g)) {
     found.push(JSON.parse(`"${match[1]}"`));
   }
+  // Dynamic rows use a stable template plus runtime values so the final text remains localized.
+  // Harvest both helper calls and action-row copy objects; neither reaches the literal-only t()
+  // scan above.
+  for (const match of source.matchAll(/\blocalizedCopy\(\s*"((?:[^"\\]|\\.)*)"/g)) {
+    found.push(JSON.parse(`"${match[1]}"`));
+  }
+  for (const match of source.matchAll(/\bsource:\s*"((?:[^"\\]|\\.)*)"/g)) {
+    found.push(JSON.parse(`"${match[1]}"`));
+  }
+  // Row helpers translate their label through a function parameter, so an unavailable callback
+  // can hide the label from the browser render. Keep those labels in the manifest as source copy
+  // too; otherwise a conditional data row can ship in English while coverage still reports full.
+  for (const match of source.matchAll(/\b(?:dataRow|readonlyRow|actionRow|toggleRow|selectRow|textInputRow)\(\s*"((?:[^"\\]|\\.)*)"/g)) {
+    found.push(JSON.parse(`"${match[1]}"`));
+  }
   return [...new Set(found)];
 }

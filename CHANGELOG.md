@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Secondary Control Center rows now translate dynamic archive, bookmark, export, and media-job
+  labels and values across all supported locales, including data that only appears when optional
+  integrations are present.
 - The Control Center now behaves as a real modal: its backdrop consumes pointer input, the page
   is inert while it is open, focus stays inside with Tab/Shift+Tab wrapping, Escape closes it, and
   the localized launcher regains focus on close.

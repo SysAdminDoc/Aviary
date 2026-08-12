@@ -238,6 +238,7 @@ html.av-reduce-motion *::after {
       "Aviary": "Aviary",
       "Local controls for a quieter X.": "Controles locales para una X m\xE1s tranquila.",
       "Close": "Cerrar",
+      "Aviary settings": "Ajustes de Aviary",
       "Search settings": "Buscar ajustes",
       "Saved locally": "Guardado localmente",
       "Settings sections": "Secciones de ajustes",
@@ -383,6 +384,7 @@ html.av-reduce-motion *::after {
       "Scan loaded scripts for X GraphQL operation IDs and cache them locally.": "Analiza los scripts cargados en busca de ID de operaciones GraphQL de X y los guarda localmente.",
       "Save folder hint": "Sugerencia de carpeta de guardado",
       "Folder name (or path) used as the export ZIP root and download prefix.": "Nombre de carpeta (o ruta) usado como ra\xEDz del ZIP de exportaci\xF3n y prefijo de descarga.",
+      "{jobs} jobs tracked \xB7 {queries} GraphQL IDs cached": "{jobs} trabajos seguidos \xB7 {queries} IDs de GraphQL en cach\xE9",
       "Export status": "Estado de la exportaci\xF3n",
       "Export visible tweets": "Exportar publicaciones visibles",
       "Collect the currently rendered tweets and download a ZIP.": "Recopila las publicaciones visibles y descarga un ZIP.",
@@ -419,6 +421,7 @@ html.av-reduce-motion *::after {
       "Composer snippets": "Fragmentos del redactor",
       "One snippet per line. Reusable replies / templates insert from the composer toolbar.": "Un fragmento por l\xEDnea. Respuestas y plantillas reutilizables que se insertan desde la barra del compositor.",
       "Save, search, organize, and revisit posts in a local bookmark library.": "Guarda, busca, organiza y vuelve a visitar publicaciones en una biblioteca local de marcadores.",
+      "{count} entries \xB7 latest {kind} of {latestCount} @ {at}": "{count} entradas \xB7 \xFAltimo {kind}: {latestCount} a las {at}",
       "Snapshots stored": "Instant\xE1neas guardadas",
       "Capture followers from this view": "Capturar seguidores desde esta vista",
       "Walks UserCell rows on the current page. Open a /handle/followers view first.": "Recorre las filas UserCell de la p\xE1gina actual. Abre primero una vista /usuario/followers.",
@@ -434,6 +437,7 @@ html.av-reduce-motion *::after {
       "Type to search the records captured by export runs.": "Escribe para buscar los registros capturados por las ejecuciones de exportaci\xF3n.",
       "Download Markdown report": "Descargar informe en Markdown",
       "Audit log + snapshot diff + cleanup preview.": "Registro de auditor\xEDa, comparaci\xF3n de instant\xE1neas y vista previa de limpieza.",
+      "{total} items \xB7 queued {queued} \xB7 approved {approved} \xB7 skipped {skipped}": "{total} elementos \xB7 en cola {queued} \xB7 aprobados {approved} \xB7 omitidos {skipped}",
       "Cleanup review queue": "Cola de revisi\xF3n de limpieza",
       "Destructive actions": "Acciones destructivas",
       "Aviary never deletes posts, likes, or follows. The queue is a review list; approving or skipping only writes to the audit log.": "Aviary nunca elimina publicaciones, me gusta ni seguimientos. La cola es una lista de revisi\xF3n; aprobar u omitir solo escribe en el registro de auditor\xEDa.",
@@ -687,12 +691,17 @@ html.av-reduce-motion *::after {
       "Export job cancelled.": "Trabajo de exportaci\xF3n cancelado.",
       "Collecting visible posts\u2026": "Recopilando las publicaciones visibles\u2026",
       "No posts found on this view. Scroll the timeline to load some, then export again.": "No se encontraron publicaciones en esta vista. Desplaza la cronolog\xEDa para cargar algunas y vuelve a exportar.",
+      "Exported {records} records across {files} ZIPs \u2192 {filename}": "Se exportaron {records} registros en {files} ZIP \xB7 {filename}",
+      "Exported {records} record \u2192 {filename}": "Se export\xF3 {records} registro \xB7 {filename}",
+      "Exported {records} records \u2192 {filename}": "Se exportaron {records} registros \xB7 {filename}",
       "Export failed. See diagnostics.": "La exportaci\xF3n fall\xF3. Consulta el diagn\xF3stico.",
       "Diagnostics copied to clipboard.": "Diagn\xF3stico copiado al portapapeles.",
       "Could not copy diagnostics.": "No se pudo copiar el diagn\xF3stico.",
       "Building WARC archive\u2026": "Generando el archivo WARC\u2026",
       "WARC downloaded ({records} records).": "WARC descargado ({records} registros).",
       "WARC export failed.": "Error en la exportaci\xF3n WARC.",
+      "Copied {records} records to clipboard.": "Se copiaron {records} registros al portapapeles.",
+      "Exported {records} records to {target}.": "Se exportaron {records} registros a {target}.",
       "External export failed.": "La exportaci\xF3n externa fall\xF3.",
       "Records per ZIP saved": "Registros por ZIP guardados",
       "Export job retention saved": "Retenci\xF3n de trabajos guardada",
@@ -733,7 +742,6 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "No se pudieron borrar las publicaciones ocultas.",
       "Saving...": "Guardando...",
       "Could not save settings. Try again.": "No se pudieron guardar los ajustes. Int\xE9ntalo de nuevo.",
-      "Aviary settings": "Ajustes de Aviary",
       "Nothing matches that search.": "Nada coincide con esa b\xFAsqueda.",
       "Try a shorter word, or pick a section on the left.": "Prueba con una palabra m\xE1s corta o elige una secci\xF3n a la izquierda.",
       "No captured records match \u201C{query}\u201D.": "No hay registros capturados que coincidan con \xAB{query}\xBB.",
@@ -744,6 +752,7 @@ html.av-reduce-motion *::after {
       "Search saved posts by text, handle, tags, folder, or ID.": "Busca publicaciones guardadas por texto, usuario, etiquetas, carpeta o ID.",
       "Search local bookmarks": "Buscar marcadores locales",
       "No local bookmarks match this search.": "Ning\xFAn marcador local coincide con esta b\xFAsqueda.",
+      "(no text)": "(sin texto)",
       "Notes": "Notas",
       "Bookmark notes": "Notas del marcador",
       "Remove": "Eliminar",
@@ -756,6 +765,38 @@ html.av-reduce-motion *::after {
       "Fallback selectors in use": "Selectores alternativos en uso",
       "Affected features": "Funciones afectadas",
       "Last selector transition": "\xDAltima transici\xF3n de selectores",
+      "{count} entries": "{count} entradas",
+      "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "{posts} publicaciones \xB7 {likes} me gusta \xB7 {messages} mensajes directos (fuera de la b\xFAsqueda p\xFAblica) \xB7 {media} referencias multimedia \xB7 {followers} seguidores \xB7 {following} seguidos \xB7 {lists} listas",
+      "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} registros \xB7 {files} archivos \xB7 {warnings} advertencias",
+      "gid {gid} \xB7 {status}": "ID {gid} \xB7 {status}",
+      "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} guardados \xB7 {due} pendientes \xB7 {tags} etiquetas \xB7 {folders} carpetas",
+      "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} registros \xB7 {surface}",
+      "Pause {filename}.": "Pausar {filename}.",
+      "Resume {filename}.": "Reanudar {filename}.",
+      "Cancel {filename}.": "Cancelar {filename}.",
+      "Retry {filename}.": "Reintentar {filename}.",
+      "Pause {jobId}.": "Pausar {jobId}.",
+      "Resume {jobId}.": "Reanudar {jobId}.",
+      "Cancel {jobId}.": "Cancelar {jobId}.",
+      "Active profile": "Perfil activo",
+      "Switch profile": "Cambiar perfil",
+      "Assign legacy data here": "Asignar aqu\xED datos heredados",
+      "New profile": "Nuevo perfil",
+      "Imported collections": "Colecciones importadas",
+      "Archive import": "Importaci\xF3n de archivo",
+      "Pause archive import": "Pausar importaci\xF3n del archivo",
+      "Resume archive import": "Reanudar importaci\xF3n del archivo",
+      "Cancel archive import": "Cancelar importaci\xF3n del archivo",
+      "Retry archive import": "Reintentar importaci\xF3n del archivo",
+      "Local bookmarks": "Marcadores locales",
+      "Clear local bookmarks": "Borrar marcadores locales",
+      "Export job": "Trabajo de exportaci\xF3n",
+      "Pause export job": "Pausar trabajo de exportaci\xF3n",
+      "Resume export job": "Reanudar trabajo de exportaci\xF3n",
+      "Cancel export job": "Cancelar trabajo de exportaci\xF3n",
+      "Active media batch": "Lote multimedia activo",
+      "Resume queued media": "Reanudar medios en cola",
+      "Retry failed media": "Reintentar medios fallidos",
       "Open Aviary AI command menu": "Abrir el men\xFA de comandos de IA de Aviary",
       "Aviary AI commands (offline prompt builder)": "Comandos de IA de Aviary (generador de prompts sin conexi\xF3n)",
       "Run with provider": "Ejecutar con el proveedor",
@@ -851,6 +892,7 @@ html.av-reduce-motion *::after {
       "Aviary": "Aviary",
       "Local controls for a quieter X.": "Controles locais para um X mais tranquilo.",
       "Close": "Fechar",
+      "Aviary settings": "Defini\xE7\xF5es do Aviary",
       "Search settings": "Pesquisar defini\xE7\xF5es",
       "Saved locally": "Guardado localmente",
       "Settings sections": "Sec\xE7\xF5es de defini\xE7\xF5es",
@@ -996,6 +1038,7 @@ html.av-reduce-motion *::after {
       "Scan loaded scripts for X GraphQL operation IDs and cache them locally.": "Varre os scripts carregados em busca de IDs de opera\xE7\xF5es GraphQL do X e os guarda localmente.",
       "Save folder hint": "Sugest\xE3o de pasta de destino",
       "Folder name (or path) used as the export ZIP root and download prefix.": "Nome da pasta (ou caminho) usado como raiz do ZIP de exporta\xE7\xE3o e prefixo de download.",
+      "{jobs} jobs tracked \xB7 {queries} GraphQL IDs cached": "{jobs} trabalhos acompanhados \xB7 {queries} IDs GraphQL em cache",
       "Export status": "Estado da exporta\xE7\xE3o",
       "Export visible tweets": "Exportar publica\xE7\xF5es vis\xEDveis",
       "Collect the currently rendered tweets and download a ZIP.": "Re\xFAne as publica\xE7\xF5es vis\xEDveis e transfere um ZIP.",
@@ -1032,6 +1075,7 @@ html.av-reduce-motion *::after {
       "Composer snippets": "Trechos do editor",
       "One snippet per line. Reusable replies / templates insert from the composer toolbar.": "Um trecho por linha. Respostas e modelos reutiliz\xE1veis inseridos pela barra de ferramentas do compositor.",
       "Save, search, organize, and revisit posts in a local bookmark library.": "Guarde, pesquise, organize e reveja publica\xE7\xF5es numa biblioteca local de marcadores.",
+      "{count} entries \xB7 latest {kind} of {latestCount} @ {at}": "{count} entradas \xB7 mais recente: {kind}, {latestCount} em {at}",
       "Snapshots stored": "Instant\xE2neos guardados",
       "Capture followers from this view": "Capturar seguidores a partir desta vista",
       "Walks UserCell rows on the current page. Open a /handle/followers view first.": "Percorre as linhas UserCell da p\xE1gina atual. Abra primeiro uma vista /utilizador/followers.",
@@ -1047,6 +1091,7 @@ html.av-reduce-motion *::after {
       "Type to search the records captured by export runs.": "Escreva para pesquisar os registos capturados pelas execu\xE7\xF5es de exporta\xE7\xE3o.",
       "Download Markdown report": "Transferir relat\xF3rio em Markdown",
       "Audit log + snapshot diff + cleanup preview.": "Registo de auditoria, compara\xE7\xE3o de instant\xE2neos e pr\xE9-visualiza\xE7\xE3o de limpeza.",
+      "{total} items \xB7 queued {queued} \xB7 approved {approved} \xB7 skipped {skipped}": "{total} itens \xB7 em fila {queued} \xB7 aprovados {approved} \xB7 ignorados {skipped}",
       "Cleanup review queue": "Fila de revis\xE3o de limpeza",
       "Destructive actions": "A\xE7\xF5es destrutivas",
       "Aviary never deletes posts, likes, or follows. The queue is a review list; approving or skipping only writes to the audit log.": "O Aviary nunca elimina publica\xE7\xF5es, gostos ou seguimentos. A fila \xE9 uma lista de revis\xE3o; aprovar ou ignorar apenas escreve no registo de auditoria.",
@@ -1300,12 +1345,17 @@ html.av-reduce-motion *::after {
       "Export job cancelled.": "Trabalho de exporta\xE7\xE3o cancelado.",
       "Collecting visible posts\u2026": "A reunir as publica\xE7\xF5es vis\xEDveis\u2026",
       "No posts found on this view. Scroll the timeline to load some, then export again.": "N\xE3o foram encontradas publica\xE7\xF5es nesta vista. Percorre a cronologia para carregar algumas e exporta de novo.",
+      "Exported {records} records across {files} ZIPs \u2192 {filename}": "{records} registos exportados em {files} ZIPs \u2192 {filename}",
+      "Exported {records} record \u2192 {filename}": "{records} registo exportado \u2192 {filename}",
+      "Exported {records} records \u2192 {filename}": "{records} registos exportados \u2192 {filename}",
       "Export failed. See diagnostics.": "A exporta\xE7\xE3o falhou. Consulte o diagn\xF3stico.",
       "Diagnostics copied to clipboard.": "Diagn\xF3stico copiado para a \xE1rea de transfer\xEAncia.",
       "Could not copy diagnostics.": "N\xE3o foi poss\xEDvel copiar o diagn\xF3stico.",
       "Building WARC archive\u2026": "A gerar o arquivo WARC\u2026",
       "WARC downloaded ({records} records).": "WARC descarregado ({records} registos).",
       "WARC export failed.": "Falha na exporta\xE7\xE3o WARC.",
+      "Copied {records} records to clipboard.": "{records} registos copiados para a \xE1rea de transfer\xEAncia.",
+      "Exported {records} records to {target}.": "{records} registos exportados para {target}.",
       "External export failed.": "A exporta\xE7\xE3o externa falhou.",
       "Records per ZIP saved": "Registos por ZIP guardados",
       "Export job retention saved": "Reten\xE7\xE3o de trabalhos guardada",
@@ -1346,7 +1396,6 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "N\xE3o foi poss\xEDvel limpar as publica\xE7\xF5es ocultas.",
       "Saving...": "A guardar...",
       "Could not save settings. Try again.": "N\xE3o foi poss\xEDvel guardar as defini\xE7\xF5es. Tente novamente.",
-      "Aviary settings": "Defini\xE7\xF5es do Aviary",
       "Nothing matches that search.": "Nada corresponde a essa pesquisa.",
       "Try a shorter word, or pick a section on the left.": "Tenta uma palavra mais curta ou escolhe uma sec\xE7\xE3o \xE0 esquerda.",
       "No captured records match \u201C{query}\u201D.": "Nenhum registo capturado corresponde a \xAB{query}\xBB.",
@@ -1357,6 +1406,7 @@ html.av-reduce-motion *::after {
       "Search saved posts by text, handle, tags, folder, or ID.": "Pesquise publica\xE7\xF5es guardadas por texto, utilizador, etiquetas, pasta ou ID.",
       "Search local bookmarks": "Pesquisar marcadores locais",
       "No local bookmarks match this search.": "Nenhum marcador local corresponde a esta pesquisa.",
+      "(no text)": "(sem texto)",
       "Notes": "Notas",
       "Bookmark notes": "Notas do marcador",
       "Remove": "Remover",
@@ -1369,6 +1419,38 @@ html.av-reduce-motion *::after {
       "Fallback selectors in use": "Seletores alternativos em uso",
       "Affected features": "Funcionalidades afetadas",
       "Last selector transition": "\xDAltima transi\xE7\xE3o de seletores",
+      "{count} entries": "{count} entradas",
+      "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "{posts} publica\xE7\xF5es \xB7 {likes} gostos \xB7 {messages} mensagens diretas (fora da pesquisa p\xFAblica) \xB7 {media} refer\xEAncias multim\xE9dia \xB7 {followers} seguidores \xB7 {following} a seguir \xB7 {lists} listas",
+      "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} registos \xB7 {files} ficheiros \xB7 {warnings} avisos",
+      "gid {gid} \xB7 {status}": "ID {gid} \xB7 {status}",
+      "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} guardados \xB7 {due} pendentes \xB7 {tags} etiquetas \xB7 {folders} pastas",
+      "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} registos \xB7 {surface}",
+      "Pause {filename}.": "Pausar {filename}.",
+      "Resume {filename}.": "Retomar {filename}.",
+      "Cancel {filename}.": "Cancelar {filename}.",
+      "Retry {filename}.": "Tentar novamente {filename}.",
+      "Pause {jobId}.": "Pausar {jobId}.",
+      "Resume {jobId}.": "Retomar {jobId}.",
+      "Cancel {jobId}.": "Cancelar {jobId}.",
+      "Active profile": "Perfil ativo",
+      "Switch profile": "Trocar perfil",
+      "Assign legacy data here": "Atribuir dados legados aqui",
+      "New profile": "Novo perfil",
+      "Imported collections": "Cole\xE7\xF5es importadas",
+      "Archive import": "Importa\xE7\xE3o de arquivo",
+      "Pause archive import": "Pausar importa\xE7\xE3o do arquivo",
+      "Resume archive import": "Retomar importa\xE7\xE3o do arquivo",
+      "Cancel archive import": "Cancelar importa\xE7\xE3o do arquivo",
+      "Retry archive import": "Tentar novamente a importa\xE7\xE3o do arquivo",
+      "Local bookmarks": "Marcadores locais",
+      "Clear local bookmarks": "Limpar marcadores locais",
+      "Export job": "Tarefa de exporta\xE7\xE3o",
+      "Pause export job": "Pausar tarefa de exporta\xE7\xE3o",
+      "Resume export job": "Retomar tarefa de exporta\xE7\xE3o",
+      "Cancel export job": "Cancelar tarefa de exporta\xE7\xE3o",
+      "Active media batch": "Lote de m\xEDdia ativo",
+      "Resume queued media": "Retomar m\xEDdia na fila",
+      "Retry failed media": "Tentar novamente m\xEDdias com falha",
       "Open Aviary AI command menu": "Abrir o menu de comandos de IA do Aviary",
       "Aviary AI commands (offline prompt builder)": "Comandos de IA do Aviary (gerador de prompts offline)",
       "Run with provider": "Executar com o fornecedor",
@@ -1464,6 +1546,7 @@ html.av-reduce-motion *::after {
       "Aviary": "Aviary",
       "Local controls for a quieter X.": "Des commandes locales pour un X plus calme.",
       "Close": "Fermer",
+      "Aviary settings": "Param\xE8tres d\u2019Aviary",
       "Search settings": "Rechercher un r\xE9glage",
       "Saved locally": "Enregistr\xE9 localement",
       "Settings sections": "Sections des r\xE9glages",
@@ -1609,6 +1692,7 @@ html.av-reduce-motion *::after {
       "Scan loaded scripts for X GraphQL operation IDs and cache them locally.": "Analyse les scripts charg\xE9s pour y trouver les ID d'op\xE9rations GraphQL de X et les met en cache localement.",
       "Save folder hint": "Dossier d'enregistrement sugg\xE9r\xE9",
       "Folder name (or path) used as the export ZIP root and download prefix.": "Nom de dossier (ou chemin) utilis\xE9 comme racine du ZIP d'export et pr\xE9fixe de t\xE9l\xE9chargement.",
+      "{jobs} jobs tracked \xB7 {queries} GraphQL IDs cached": "{jobs} t\xE2ches suivies \xB7 {queries} identifiants GraphQL en cache",
       "Export status": "\xC9tat de l'export",
       "Export visible tweets": "Exporter les publications visibles",
       "Collect the currently rendered tweets and download a ZIP.": "Rassemble les publications affich\xE9es et t\xE9l\xE9charge une archive ZIP.",
@@ -1645,6 +1729,7 @@ html.av-reduce-motion *::after {
       "Composer snippets": "Extraits du r\xE9dacteur",
       "One snippet per line. Reusable replies / templates insert from the composer toolbar.": "Un extrait par ligne. R\xE9ponses et mod\xE8les r\xE9utilisables \xE0 ins\xE9rer depuis la barre d\u2019outils du composeur.",
       "Save, search, organize, and revisit posts in a local bookmark library.": "Enregistrez, recherchez, organisez et retrouvez vos publications dans une biblioth\xE8que locale de marque-pages.",
+      "{count} entries \xB7 latest {kind} of {latestCount} @ {at}": "{count} entr\xE9es \xB7 dernier {kind} de {latestCount} \xE0 {at}",
       "Snapshots stored": "Instantan\xE9s enregistr\xE9s",
       "Capture followers from this view": "Capturer les abonn\xE9s depuis cette vue",
       "Walks UserCell rows on the current page. Open a /handle/followers view first.": "Parcourt les lignes UserCell de la page actuelle. Ouvrez d'abord une vue /identifiant/followers.",
@@ -1660,6 +1745,7 @@ html.av-reduce-motion *::after {
       "Type to search the records captured by export runs.": "Saisissez votre recherche dans les enregistrements captur\xE9s par les exports.",
       "Download Markdown report": "T\xE9l\xE9charger le rapport Markdown",
       "Audit log + snapshot diff + cleanup preview.": "Journal d'audit, comparaison d'instantan\xE9s et aper\xE7u du nettoyage.",
+      "{total} items \xB7 queued {queued} \xB7 approved {approved} \xB7 skipped {skipped}": "{total} \xE9l\xE9ments \xB7 en attente {queued} \xB7 approuv\xE9s {approved} \xB7 ignor\xE9s {skipped}",
       "Cleanup review queue": "File de revue du nettoyage",
       "Destructive actions": "Actions destructrices",
       "Aviary never deletes posts, likes, or follows. The queue is a review list; approving or skipping only writes to the audit log.": "Aviary ne supprime jamais de publications, de mentions J'aime ni d'abonnements. La file est une liste de revue ; approuver ou ignorer n'\xE9crit que dans le journal d'audit.",
@@ -1913,12 +1999,17 @@ html.av-reduce-motion *::after {
       "Export job cancelled.": "T\xE2che d\u2019exportation annul\xE9e.",
       "Collecting visible posts\u2026": "Collecte des publications visibles\u2026",
       "No posts found on this view. Scroll the timeline to load some, then export again.": "Aucun post trouv\xE9 sur cette vue. Faites d\xE9filer le fil pour en charger, puis relancez l'export.",
+      "Exported {records} records across {files} ZIPs \u2192 {filename}": "{records} enregistrements export\xE9s dans {files} ZIP \u2192 {filename}",
+      "Exported {records} record \u2192 {filename}": "{records} enregistrement export\xE9 \u2192 {filename}",
+      "Exported {records} records \u2192 {filename}": "{records} enregistrements export\xE9s \u2192 {filename}",
       "Export failed. See diagnostics.": "L'export a \xE9chou\xE9. Consultez le diagnostic.",
       "Diagnostics copied to clipboard.": "Diagnostic copi\xE9 dans le presse-papiers.",
       "Could not copy diagnostics.": "Impossible de copier le diagnostic.",
       "Building WARC archive\u2026": "G\xE9n\xE9ration de l'archive WARC\u2026",
       "WARC downloaded ({records} records).": "WARC t\xE9l\xE9charg\xE9 ({records} enregistrements).",
       "WARC export failed.": "\xC9chec de l'export WARC.",
+      "Copied {records} records to clipboard.": "{records} enregistrements copi\xE9s dans le presse-papiers.",
+      "Exported {records} records to {target}.": "{records} enregistrements export\xE9s vers {target}.",
       "External export failed.": "L'export externe a \xE9chou\xE9.",
       "Records per ZIP saved": "Enregistrements par ZIP enregistr\xE9s",
       "Export job retention saved": "R\xE9tention des t\xE2ches enregistr\xE9e",
@@ -1959,7 +2050,6 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "Impossible d'effacer les publications masqu\xE9es.",
       "Saving...": "Enregistrement...",
       "Could not save settings. Try again.": "Impossible d'enregistrer les r\xE9glages. R\xE9essayez.",
-      "Aviary settings": "Param\xE8tres d\u2019Aviary",
       "Nothing matches that search.": "Aucun r\xE9sultat pour cette recherche.",
       "Try a shorter word, or pick a section on the left.": "Essayez un mot plus court ou choisissez une section \xE0 gauche.",
       "No captured records match \u201C{query}\u201D.": "Aucun enregistrement captur\xE9 ne correspond \xE0 \xAB {query} \xBB.",
@@ -1970,6 +2060,7 @@ html.av-reduce-motion *::after {
       "Search saved posts by text, handle, tags, folder, or ID.": "Recherchez les publications enregistr\xE9es par texte, identifiant, tags, dossier ou ID.",
       "Search local bookmarks": "Rechercher dans les marque-pages locaux",
       "No local bookmarks match this search.": "Aucun marque-page local ne correspond \xE0 cette recherche.",
+      "(no text)": "(sans texte)",
       "Notes": "Annotations",
       "Bookmark notes": "Notes du marque-page",
       "Remove": "Supprimer",
@@ -1982,6 +2073,38 @@ html.av-reduce-motion *::after {
       "Fallback selectors in use": "S\xE9lecteurs de secours utilis\xE9s",
       "Affected features": "Fonctionnalit\xE9s concern\xE9es",
       "Last selector transition": "Derni\xE8re transition de s\xE9lecteur",
+      "{count} entries": "{count} entr\xE9es",
+      "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "{posts} publications \xB7 {likes} mentions J\u2019aime \xB7 {messages} messages directs (exclus de la recherche publique) \xB7 {media} r\xE9f\xE9rences multim\xE9dias \xB7 {followers} abonn\xE9s \xB7 {following} abonnements \xB7 {lists} listes",
+      "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} enregistrements \xB7 {files} fichiers \xB7 {warnings} avertissements",
+      "gid {gid} \xB7 {status}": "ID {gid} \xB7 {status}",
+      "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} enregistr\xE9s \xB7 {due} \xE0 traiter \xB7 {tags} tags \xB7 {folders} dossiers",
+      "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} enregistrements \xB7 {surface}",
+      "Pause {filename}.": "Mettre {filename} en pause.",
+      "Resume {filename}.": "Reprendre {filename}.",
+      "Cancel {filename}.": "Annuler {filename}.",
+      "Retry {filename}.": "R\xE9essayer {filename}.",
+      "Pause {jobId}.": "Mettre {jobId} en pause.",
+      "Resume {jobId}.": "Reprendre {jobId}.",
+      "Cancel {jobId}.": "Annuler {jobId}.",
+      "Active profile": "Profil actif",
+      "Switch profile": "Changer de profil",
+      "Assign legacy data here": "Attribuer ici les donn\xE9es h\xE9rit\xE9es",
+      "New profile": "Nouveau profil",
+      "Imported collections": "Collections import\xE9es",
+      "Archive import": "Importation d\u2019archive",
+      "Pause archive import": "Mettre en pause l\u2019importation de l\u2019archive",
+      "Resume archive import": "Reprendre l\u2019importation de l\u2019archive",
+      "Cancel archive import": "Annuler l\u2019importation de l\u2019archive",
+      "Retry archive import": "R\xE9essayer l\u2019importation de l\u2019archive",
+      "Local bookmarks": "Signets locaux",
+      "Clear local bookmarks": "Effacer les signets locaux",
+      "Export job": "T\xE2che d\u2019exportation",
+      "Pause export job": "Mettre en pause la t\xE2che d\u2019exportation",
+      "Resume export job": "Reprendre la t\xE2che d\u2019exportation",
+      "Cancel export job": "Annuler la t\xE2che d\u2019exportation",
+      "Active media batch": "Lot de m\xE9dias actif",
+      "Resume queued media": "Reprendre les m\xE9dias en file",
+      "Retry failed media": "R\xE9essayer les m\xE9dias \xE9chou\xE9s",
       "Open Aviary AI command menu": "Ouvrir le menu de commandes IA d'Aviary",
       "Aviary AI commands (offline prompt builder)": "Commandes IA d'Aviary (g\xE9n\xE9rateur de prompts hors ligne)",
       "Run with provider": "Ex\xE9cuter avec le fournisseur",
@@ -2077,6 +2200,7 @@ html.av-reduce-motion *::after {
       "Aviary": "Aviary",
       "Local controls for a quieter X.": "Lokale Steuerung f\xFCr ein ruhigeres X.",
       "Close": "Schlie\xDFen",
+      "Aviary settings": "Aviary-Einstellungen",
       "Search settings": "Einstellungen durchsuchen",
       "Saved locally": "Lokal gespeichert",
       "Settings sections": "Einstellungsbereiche",
@@ -2222,6 +2346,7 @@ html.av-reduce-motion *::after {
       "Scan loaded scripts for X GraphQL operation IDs and cache them locally.": "Durchsucht geladene Skripte nach GraphQL-Operations-IDs von X und legt sie lokal ab.",
       "Save folder hint": "Zielordner-Hinweis",
       "Folder name (or path) used as the export ZIP root and download prefix.": "Ordnername (oder Pfad) als Wurzel des Export-ZIP und Download-Pr\xE4fix.",
+      "{jobs} jobs tracked \xB7 {queries} GraphQL IDs cached": "{jobs} Jobs verfolgt \xB7 {queries} GraphQL-IDs im Cache",
       "Export status": "Export-Status",
       "Export visible tweets": "Sichtbare Beitr\xE4ge exportieren",
       "Collect the currently rendered tweets and download a ZIP.": "Sammelt die aktuell angezeigten Beitr\xE4ge und l\xE4dt eine ZIP-Datei herunter.",
@@ -2258,6 +2383,7 @@ html.av-reduce-motion *::after {
       "Composer snippets": "Verfasser-Textbausteine",
       "One snippet per line. Reusable replies / templates insert from the composer toolbar.": "Ein Baustein pro Zeile. Wiederverwendbare Antworten und Vorlagen, die \xFCber die Composer-Leiste eingef\xFCgt werden.",
       "Save, search, organize, and revisit posts in a local bookmark library.": "Beitr\xE4ge in einer lokalen Lesezeichenbibliothek speichern, suchen, organisieren und wiederfinden.",
+      "{count} entries \xB7 latest {kind} of {latestCount} @ {at}": "{count} Eintr\xE4ge \xB7 zuletzt {kind} mit {latestCount} am {at}",
       "Snapshots stored": "Gespeicherte Momentaufnahmen",
       "Capture followers from this view": "Follower aus dieser Ansicht erfassen",
       "Walks UserCell rows on the current page. Open a /handle/followers view first.": "Durchl\xE4uft die UserCell-Zeilen der aktuellen Seite. \xD6ffne zuerst eine /name/followers-Ansicht.",
@@ -2273,6 +2399,7 @@ html.av-reduce-motion *::after {
       "Type to search the records captured by export runs.": "Gib einen Suchbegriff f\xFCr die von Exportl\xE4ufen erfassten Datens\xE4tze ein.",
       "Download Markdown report": "Markdown-Bericht herunterladen",
       "Audit log + snapshot diff + cleanup preview.": "Pr\xFCfprotokoll, Momentaufnahmen-Vergleich und Bereinigungsvorschau.",
+      "{total} items \xB7 queued {queued} \xB7 approved {approved} \xB7 skipped {skipped}": "{total} Elemente \xB7 in Warteschlange {queued} \xB7 genehmigt {approved} \xB7 \xFCbersprungen {skipped}",
       "Cleanup review queue": "Pr\xFCfliste f\xFCr die Bereinigung",
       "Destructive actions": "Destruktive Aktionen",
       "Aviary never deletes posts, likes, or follows. The queue is a review list; approving or skipping only writes to the audit log.": "Aviary l\xF6scht niemals Beitr\xE4ge, Likes oder Follows. Die Liste dient nur der Pr\xFCfung; Zustimmen oder \xDCberspringen schreibt lediglich ins Pr\xFCfprotokoll.",
@@ -2526,12 +2653,17 @@ html.av-reduce-motion *::after {
       "Export job cancelled.": "Exportauftrag abgebrochen.",
       "Collecting visible posts\u2026": "Sichtbare Beitr\xE4ge werden gesammelt\u2026",
       "No posts found on this view. Scroll the timeline to load some, then export again.": "In dieser Ansicht wurden keine Beitr\xE4ge gefunden. Scrolle die Timeline, um welche zu laden, und exportiere erneut.",
+      "Exported {records} records across {files} ZIPs \u2192 {filename}": "{records} Datens\xE4tze in {files} ZIPs exportiert \u2192 {filename}",
+      "Exported {records} record \u2192 {filename}": "{records} Datensatz exportiert \u2192 {filename}",
+      "Exported {records} records \u2192 {filename}": "{records} Datens\xE4tze exportiert \u2192 {filename}",
       "Export failed. See diagnostics.": "Export fehlgeschlagen. Siehe Diagnose.",
       "Diagnostics copied to clipboard.": "Diagnose in die Zwischenablage kopiert.",
       "Could not copy diagnostics.": "Diagnose konnte nicht kopiert werden.",
       "Building WARC archive\u2026": "WARC-Archiv wird erstellt\u2026",
       "WARC downloaded ({records} records).": "WARC heruntergeladen ({records} Datens\xE4tze).",
       "WARC export failed.": "WARC-Export fehlgeschlagen.",
+      "Copied {records} records to clipboard.": "{records} Datens\xE4tze in die Zwischenablage kopiert.",
+      "Exported {records} records to {target}.": "{records} Datens\xE4tze nach {target} exportiert.",
       "External export failed.": "Externer Export fehlgeschlagen.",
       "Records per ZIP saved": "Datens\xE4tze pro ZIP gespeichert",
       "Export job retention saved": "Aufbewahrung der Export-Auftr\xE4ge gespeichert",
@@ -2572,7 +2704,6 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "Ausgeblendete Beitr\xE4ge konnten nicht gel\xF6scht werden.",
       "Saving...": "Wird gespeichert...",
       "Could not save settings. Try again.": "Einstellungen konnten nicht gespeichert werden. Bitte erneut versuchen.",
-      "Aviary settings": "Aviary-Einstellungen",
       "Nothing matches that search.": "Nichts passt zu dieser Suche.",
       "Try a shorter word, or pick a section on the left.": "Versuche ein k\xFCrzeres Wort oder w\xE4hle links einen Bereich.",
       "No captured records match \u201C{query}\u201D.": "Keine erfassten Datens\xE4tze entsprechen \u201E{query}\u201C.",
@@ -2583,6 +2714,7 @@ html.av-reduce-motion *::after {
       "Search saved posts by text, handle, tags, folder, or ID.": "Gespeicherte Beitr\xE4ge nach Text, Handle, Tags, Ordner oder ID suchen.",
       "Search local bookmarks": "Lokale Lesezeichen durchsuchen",
       "No local bookmarks match this search.": "Keine lokalen Lesezeichen passen zu dieser Suche.",
+      "(no text)": "(kein Text)",
       "Notes": "Notizen",
       "Bookmark notes": "Lesezeichen-Notizen",
       "Remove": "Entfernen",
@@ -2595,6 +2727,38 @@ html.av-reduce-motion *::after {
       "Fallback selectors in use": "Ersatzselektoren in Verwendung",
       "Affected features": "Betroffene Funktionen",
       "Last selector transition": "Letzter Selektor\xFCbergang",
+      "{count} entries": "{count} Eintr\xE4ge",
+      "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "{posts} Beitr\xE4ge \xB7 {likes} Likes \xB7 {messages} Direktnachrichten (nicht in der \xF6ffentlichen Suche) \xB7 {media} Medienverweise \xB7 {followers} Follower \xB7 {following} gefolgt \xB7 {lists} Listen",
+      "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} Datens\xE4tze \xB7 {files} Dateien \xB7 {warnings} Warnungen",
+      "gid {gid} \xB7 {status}": "GID {gid} \xB7 {status}",
+      "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} gespeichert \xB7 {due} f\xE4llig \xB7 {tags} Tags \xB7 {folders} Ordner",
+      "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} Datens\xE4tze \xB7 {surface}",
+      "Pause {filename}.": "{filename} pausieren.",
+      "Resume {filename}.": "{filename} fortsetzen.",
+      "Cancel {filename}.": "{filename} abbrechen.",
+      "Retry {filename}.": "{filename} erneut versuchen.",
+      "Pause {jobId}.": "{jobId} pausieren.",
+      "Resume {jobId}.": "{jobId} fortsetzen.",
+      "Cancel {jobId}.": "{jobId} abbrechen.",
+      "Active profile": "Aktives Profil",
+      "Switch profile": "Profil wechseln",
+      "Assign legacy data here": "Alte Daten hier zuweisen",
+      "New profile": "Neues Profil",
+      "Imported collections": "Importierte Sammlungen",
+      "Archive import": "Archivimport",
+      "Pause archive import": "Archivimport pausieren",
+      "Resume archive import": "Archivimport fortsetzen",
+      "Cancel archive import": "Archivimport abbrechen",
+      "Retry archive import": "Archivimport erneut versuchen",
+      "Local bookmarks": "Lokale Lesezeichen",
+      "Clear local bookmarks": "Lokale Lesezeichen l\xF6schen",
+      "Export job": "Exportauftrag",
+      "Pause export job": "Exportauftrag pausieren",
+      "Resume export job": "Exportauftrag fortsetzen",
+      "Cancel export job": "Exportauftrag abbrechen",
+      "Active media batch": "Aktiver Medienbatch",
+      "Resume queued media": "Wartende Medien fortsetzen",
+      "Retry failed media": "Fehlgeschlagene Medien erneut versuchen",
       "Open Aviary AI command menu": "Aviarys KI-Befehlsmen\xFC \xF6ffnen",
       "Aviary AI commands (offline prompt builder)": "Aviary-KI-Befehle (Prompt-Baukasten ohne Netz)",
       "Run with provider": "Mit Anbieter ausf\xFChren",
@@ -2690,6 +2854,7 @@ html.av-reduce-motion *::after {
       "Aviary": "Aviary",
       "Local controls for a quieter X.": "\u9759\u304B\u306A X \u306E\u305F\u3081\u306E\u30ED\u30FC\u30AB\u30EB\u8A2D\u5B9A\u3002",
       "Close": "\u9589\u3058\u308B",
+      "Aviary settings": "Aviary\u306E\u8A2D\u5B9A",
       "Search settings": "\u8A2D\u5B9A\u3092\u691C\u7D22",
       "Saved locally": "\u30ED\u30FC\u30AB\u30EB\u306B\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Settings sections": "\u8A2D\u5B9A\u306E\u30BB\u30AF\u30B7\u30E7\u30F3",
@@ -2835,6 +3000,7 @@ html.av-reduce-motion *::after {
       "Scan loaded scripts for X GraphQL operation IDs and cache them locally.": "\u8AAD\u307F\u8FBC\u307E\u308C\u305F\u30B9\u30AF\u30EA\u30D7\u30C8\u304B\u3089 X \u306E GraphQL \u64CD\u4F5C ID \u3092\u63A2\u3057\u3001\u30ED\u30FC\u30AB\u30EB\u306B\u4FDD\u5B58\u3057\u307E\u3059\u3002",
       "Save folder hint": "\u4FDD\u5B58\u5148\u30D5\u30A9\u30EB\u30C0",
       "Folder name (or path) used as the export ZIP root and download prefix.": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8 ZIP \u306E\u30EB\u30FC\u30C8\u304A\u3088\u3073\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u540D\u306E\u63A5\u982D\u8F9E\u306B\u4F7F\u3046\u30D5\u30A9\u30EB\u30C0\u540D\uFF08\u307E\u305F\u306F\u30D1\u30B9\uFF09\u3002",
+      "{jobs} jobs tracked \xB7 {queries} GraphQL IDs cached": "{jobs}\u4EF6\u306E\u30B8\u30E7\u30D6\u3092\u8FFD\u8DE1 \xB7 GraphQL ID {queries}\u4EF6\u3092\u30AD\u30E3\u30C3\u30B7\u30E5",
       "Export status": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u306E\u72B6\u614B",
       "Export visible tweets": "\u8868\u793A\u4E2D\u306E\u6295\u7A3F\u3092\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8",
       "Collect the currently rendered tweets and download a ZIP.": "\u8868\u793A\u4E2D\u306E\u6295\u7A3F\u3092\u96C6\u3081\u3066 ZIP \u3067\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3057\u307E\u3059\u3002",
@@ -2871,6 +3037,7 @@ html.av-reduce-motion *::after {
       "Composer snippets": "\u5B9A\u578B\u6587",
       "One snippet per line. Reusable replies / templates insert from the composer toolbar.": "1\u884C\u306B1\u3064\u3002\u4F5C\u6210\u753B\u9762\u306E\u30C4\u30FC\u30EB\u30D0\u30FC\u304B\u3089\u633F\u5165\u3067\u304D\u308B\u518D\u5229\u7528\u53EF\u80FD\u306A\u8FD4\u4FE1\u30FB\u30C6\u30F3\u30D7\u30EC\u30FC\u30C8\u3002",
       "Save, search, organize, and revisit posts in a local bookmark library.": "\u6295\u7A3F\u3092\u30ED\u30FC\u30AB\u30EB\u306E\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u30E9\u30A4\u30D6\u30E9\u30EA\u306B\u4FDD\u5B58\u3057\u3001\u691C\u7D22\u3001\u6574\u7406\u3001\u518D\u8A2A\u3067\u304D\u307E\u3059\u3002",
+      "{count} entries \xB7 latest {kind} of {latestCount} @ {at}": "{count}\u4EF6 \xB7 \u6700\u65B0: {kind} {latestCount}\u4EF6 @ {at}",
       "Snapshots stored": "\u4FDD\u5B58\u3055\u308C\u305F\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8",
       "Capture followers from this view": "\u3053\u306E\u753B\u9762\u304B\u3089\u30D5\u30A9\u30ED\u30EF\u30FC\u3092\u53D6\u5F97",
       "Walks UserCell rows on the current page. Open a /handle/followers view first.": "\u73FE\u5728\u306E\u30DA\u30FC\u30B8\u306E UserCell \u884C\u3092\u8D70\u67FB\u3057\u307E\u3059\u3002\u5148\u306B /\u30A2\u30AB\u30A6\u30F3\u30C8\u540D/followers \u3092\u958B\u3044\u3066\u304F\u3060\u3055\u3044\u3002",
@@ -2886,6 +3053,7 @@ html.av-reduce-motion *::after {
       "Type to search the records captured by export runs.": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u5B9F\u884C\u3067\u53D6\u5F97\u3057\u305F\u30EC\u30B3\u30FC\u30C9\u3092\u691C\u7D22\u3059\u308B\u306B\u306F\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
       "Download Markdown report": "Markdown \u30EC\u30DD\u30FC\u30C8\u3092\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9",
       "Audit log + snapshot diff + cleanup preview.": "\u76E3\u67FB\u30ED\u30B0\u30FB\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8\u306E\u5DEE\u5206\u30FB\u6574\u7406\u306E\u30D7\u30EC\u30D3\u30E5\u30FC\u3002",
+      "{total} items \xB7 queued {queued} \xB7 approved {approved} \xB7 skipped {skipped}": "{total}\u4EF6 \xB7 \u30AD\u30E5\u30FC {queued} \xB7 \u627F\u8A8D\u6E08\u307F {approved} \xB7 \u30B9\u30AD\u30C3\u30D7 {skipped}",
       "Cleanup review queue": "\u6574\u7406\u306E\u78BA\u8A8D\u30AD\u30E5\u30FC",
       "Destructive actions": "\u7834\u58CA\u7684\u306A\u64CD\u4F5C",
       "Aviary never deletes posts, likes, or follows. The queue is a review list; approving or skipping only writes to the audit log.": "Aviary \u306F\u6295\u7A3F\u30FB\u3044\u3044\u306D\u30FB\u30D5\u30A9\u30ED\u30FC\u3092\u524A\u9664\u3057\u307E\u305B\u3093\u3002\u3053\u306E\u30AD\u30E5\u30FC\u306F\u78BA\u8A8D\u7528\u306E\u4E00\u89A7\u3067\u3001\u627F\u8A8D\u3084\u30B9\u30AD\u30C3\u30D7\u306F\u76E3\u67FB\u30ED\u30B0\u306B\u8A18\u9332\u3055\u308C\u308B\u3060\u3051\u3067\u3059\u3002",
@@ -3139,12 +3307,17 @@ html.av-reduce-motion *::after {
       "Export job cancelled.": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6\u3092\u30AD\u30E3\u30F3\u30BB\u30EB\u3057\u307E\u3057\u305F\u3002",
       "Collecting visible posts\u2026": "\u8868\u793A\u4E2D\u306E\u6295\u7A3F\u3092\u53CE\u96C6\u4E2D\u2026",
       "No posts found on this view. Scroll the timeline to load some, then export again.": "\u3053\u306E\u30D3\u30E5\u30FC\u3067\u306F\u6295\u7A3F\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u3092\u30B9\u30AF\u30ED\u30FC\u30EB\u3057\u3066\u8AAD\u307F\u8FBC\u3093\u3067\u304B\u3089\u3001\u3082\u3046\u4E00\u5EA6\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+      "Exported {records} records across {files} ZIPs \u2192 {filename}": "{records}\u4EF6\u3092{files}\u500B\u306EZIP\u306B\u66F8\u304D\u51FA\u3057\u307E\u3057\u305F \u2192 {filename}",
+      "Exported {records} record \u2192 {filename}": "{records}\u4EF6\u3092\u66F8\u304D\u51FA\u3057\u307E\u3057\u305F \u2192 {filename}",
+      "Exported {records} records \u2192 {filename}": "{records}\u4EF6\u3092\u66F8\u304D\u51FA\u3057\u307E\u3057\u305F \u2192 {filename}",
       "Export failed. See diagnostics.": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u8A3A\u65AD\u60C5\u5831\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
       "Diagnostics copied to clipboard.": "\u8A3A\u65AD\u60C5\u5831\u3092\u30AF\u30EA\u30C3\u30D7\u30DC\u30FC\u30C9\u306B\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F\u3002",
       "Could not copy diagnostics.": "\u8A3A\u65AD\u60C5\u5831\u3092\u30B3\u30D4\u30FC\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "Building WARC archive\u2026": "WARC \u30A2\u30FC\u30AB\u30A4\u30D6\u3092\u4F5C\u6210\u4E2D\u2026",
       "WARC downloaded ({records} records).": "WARC\u3092\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3057\u307E\u3057\u305F\uFF08{records}\u4EF6\uFF09\u3002",
       "WARC export failed.": "WARC \u306E\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
+      "Copied {records} records to clipboard.": "{records}\u4EF6\u3092\u30AF\u30EA\u30C3\u30D7\u30DC\u30FC\u30C9\u306B\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F\u3002",
+      "Exported {records} records to {target}.": "{records}\u4EF6\u3092{target}\u306B\u66F8\u304D\u51FA\u3057\u307E\u3057\u305F\u3002",
       "External export failed.": "\u5916\u90E8\u3078\u306E\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
       "Records per ZIP saved": "ZIP \u3042\u305F\u308A\u306E\u4EF6\u6570\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Export job retention saved": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6\u306E\u4FDD\u6301\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
@@ -3185,7 +3358,6 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "\u975E\u8868\u793A\u306E\u6295\u7A3F\u3092\u6D88\u53BB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "Saving...": "\u4FDD\u5B58\u4E2D...",
       "Could not save settings. Try again.": "\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
-      "Aviary settings": "Aviary\u306E\u8A2D\u5B9A",
       "Nothing matches that search.": "\u305D\u306E\u691C\u7D22\u306B\u4E00\u81F4\u3059\u308B\u3082\u306E\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
       "Try a shorter word, or pick a section on the left.": "\u77ED\u3044\u8A9E\u3067\u8A66\u3059\u304B\u3001\u5DE6\u306E\u30BB\u30AF\u30B7\u30E7\u30F3\u3092\u9078\u3093\u3067\u304F\u3060\u3055\u3044\u3002",
       "No captured records match \u201C{query}\u201D.": "\u300C{query}\u300D\u306B\u4E00\u81F4\u3059\u308B\u53D6\u5F97\u6E08\u307F\u30EC\u30B3\u30FC\u30C9\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
@@ -3196,6 +3368,7 @@ html.av-reduce-motion *::after {
       "Search saved posts by text, handle, tags, folder, or ID.": "\u4FDD\u5B58\u3057\u305F\u6295\u7A3F\u3092\u672C\u6587\u3001\u30CF\u30F3\u30C9\u30EB\u3001\u30BF\u30B0\u3001\u30D5\u30A9\u30EB\u30C0\u30FC\u3001ID\u3067\u691C\u7D22\u3057\u307E\u3059\u3002",
       "Search local bookmarks": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u691C\u7D22",
       "No local bookmarks match this search.": "\u3053\u306E\u691C\u7D22\u306B\u4E00\u81F4\u3059\u308B\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+      "(no text)": "(\u30C6\u30AD\u30B9\u30C8\u306A\u3057)",
       "Notes": "\u30E1\u30E2",
       "Bookmark notes": "\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u306E\u30E1\u30E2",
       "Remove": "\u524A\u9664",
@@ -3208,6 +3381,38 @@ html.av-reduce-motion *::after {
       "Fallback selectors in use": "\u30D5\u30A9\u30FC\u30EB\u30D0\u30C3\u30AF\u30BB\u30EC\u30AF\u30BF\u30FC\u3092\u4F7F\u7528\u4E2D",
       "Affected features": "\u5F71\u97FF\u3092\u53D7\u3051\u308B\u6A5F\u80FD",
       "Last selector transition": "\u6700\u5F8C\u306E\u30BB\u30EC\u30AF\u30BF\u30FC\u9077\u79FB",
+      "{count} entries": "{count}\u4EF6",
+      "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "\u6295\u7A3F{posts}\u4EF6 \xB7 \u3044\u3044\u306D{likes}\u4EF6 \xB7 \u30C0\u30A4\u30EC\u30AF\u30C8\u30E1\u30C3\u30BB\u30FC\u30B8{messages}\u4EF6\uFF08\u516C\u958B\u691C\u7D22\u5BFE\u8C61\u5916\uFF09 \xB7 \u30E1\u30C7\u30A3\u30A2\u53C2\u7167{media}\u4EF6 \xB7 \u30D5\u30A9\u30ED\u30EF\u30FC{followers}\u4EF6 \xB7 \u30D5\u30A9\u30ED\u30FC\u4E2D{following}\u4EF6 \xB7 \u30EA\u30B9\u30C8{lists}\u4EF6",
+      "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records}\u4EF6 \xB7 {files}\u30D5\u30A1\u30A4\u30EB \xB7 \u8B66\u544A{warnings}\u4EF6",
+      "gid {gid} \xB7 {status}": "\u8B58\u5225\u5B50 {gid} \xB7 {status}",
+      "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "\u4FDD\u5B58\u6E08\u307F{saved}\u4EF6 \xB7 \u671F\u9650{due}\u4EF6 \xB7 \u30BF\u30B0{tags}\u4EF6 \xB7 \u30D5\u30A9\u30EB\u30C0\u30FC{folders}\u4EF6",
+      "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records}\u4EF6 \xB7 {surface}",
+      "Pause {filename}.": "{filename}\u3092\u4E00\u6642\u505C\u6B62\u3002",
+      "Resume {filename}.": "{filename}\u3092\u518D\u958B\u3002",
+      "Cancel {filename}.": "{filename}\u3092\u30AD\u30E3\u30F3\u30BB\u30EB\u3002",
+      "Retry {filename}.": "{filename}\u3092\u518D\u8A66\u884C\u3002",
+      "Pause {jobId}.": "{jobId}\u3092\u4E00\u6642\u505C\u6B62\u3002",
+      "Resume {jobId}.": "{jobId}\u3092\u518D\u958B\u3002",
+      "Cancel {jobId}.": "{jobId}\u3092\u30AD\u30E3\u30F3\u30BB\u30EB\u3002",
+      "Active profile": "\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB",
+      "Switch profile": "\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u3092\u5207\u308A\u66FF\u3048",
+      "Assign legacy data here": "\u3053\u3053\u306B\u65E7\u30C7\u30FC\u30BF\u3092\u5272\u308A\u5F53\u3066",
+      "New profile": "\u65B0\u3057\u3044\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB",
+      "Imported collections": "\u30A4\u30F3\u30DD\u30FC\u30C8\u6E08\u307F\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3",
+      "Archive import": "\u30A2\u30FC\u30AB\u30A4\u30D6\u306E\u30A4\u30F3\u30DD\u30FC\u30C8",
+      "Pause archive import": "\u30A2\u30FC\u30AB\u30A4\u30D6\u306E\u30A4\u30F3\u30DD\u30FC\u30C8\u3092\u4E00\u6642\u505C\u6B62",
+      "Resume archive import": "\u30A2\u30FC\u30AB\u30A4\u30D6\u306E\u30A4\u30F3\u30DD\u30FC\u30C8\u3092\u518D\u958B",
+      "Cancel archive import": "\u30A2\u30FC\u30AB\u30A4\u30D6\u306E\u30A4\u30F3\u30DD\u30FC\u30C8\u3092\u30AD\u30E3\u30F3\u30BB\u30EB",
+      "Retry archive import": "\u30A2\u30FC\u30AB\u30A4\u30D6\u306E\u30A4\u30F3\u30DD\u30FC\u30C8\u3092\u518D\u8A66\u884C",
+      "Local bookmarks": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF",
+      "Clear local bookmarks": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u524A\u9664",
+      "Export job": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6",
+      "Pause export job": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6\u3092\u4E00\u6642\u505C\u6B62",
+      "Resume export job": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6\u3092\u518D\u958B",
+      "Cancel export job": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6\u3092\u30AD\u30E3\u30F3\u30BB\u30EB",
+      "Active media batch": "\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30E1\u30C7\u30A3\u30A2\u30D0\u30C3\u30C1",
+      "Resume queued media": "\u30AD\u30E5\u30FC\u5185\u306E\u30E1\u30C7\u30A3\u30A2\u3092\u518D\u958B",
+      "Retry failed media": "\u5931\u6557\u3057\u305F\u30E1\u30C7\u30A3\u30A2\u3092\u518D\u8A66\u884C",
       "Open Aviary AI command menu": "Aviary \u306E AI \u30B3\u30DE\u30F3\u30C9\u30E1\u30CB\u30E5\u30FC\u3092\u958B\u304F",
       "Aviary AI commands (offline prompt builder)": "Aviary \u306E AI \u30B3\u30DE\u30F3\u30C9\uFF08\u30AA\u30D5\u30E9\u30A4\u30F3\u306E\u30D7\u30ED\u30F3\u30D7\u30C8\u4F5C\u6210\uFF09",
       "Run with provider": "\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u3067\u5B9F\u884C",
@@ -3303,6 +3508,7 @@ html.av-reduce-motion *::after {
       "Aviary": "Aviary",
       "Local controls for a quieter X.": "\uC870\uC6A9\uD55C X\uB97C \uC704\uD55C \uB85C\uCEEC \uC124\uC815.",
       "Close": "\uB2EB\uAE30",
+      "Aviary settings": "Aviary \uC124\uC815",
       "Search settings": "\uC124\uC815 \uAC80\uC0C9",
       "Saved locally": "\uB85C\uCEEC\uC5D0 \uC800\uC7A5\uB428",
       "Settings sections": "\uC124\uC815 \uC139\uC158",
@@ -3448,6 +3654,7 @@ html.av-reduce-motion *::after {
       "Scan loaded scripts for X GraphQL operation IDs and cache them locally.": "\uBD88\uB7EC\uC628 \uC2A4\uD06C\uB9BD\uD2B8\uC5D0\uC11C X\uC758 GraphQL \uC791\uC5C5 ID\uB97C \uCC3E\uC544 \uB85C\uCEEC\uC5D0 \uC800\uC7A5\uD569\uB2C8\uB2E4.",
       "Save folder hint": "\uC800\uC7A5 \uD3F4\uB354",
       "Folder name (or path) used as the export ZIP root and download prefix.": "\uB0B4\uBCF4\uB0B4\uAE30 ZIP\uC758 \uCD5C\uC0C1\uC704 \uD3F4\uB354\uC774\uC790 \uB2E4\uC6B4\uB85C\uB4DC \uC774\uB984 \uC55E\uC5D0 \uBD99\uC77C \uD3F4\uB354 \uC774\uB984(\uB610\uB294 \uACBD\uB85C).",
+      "{jobs} jobs tracked \xB7 {queries} GraphQL IDs cached": "{jobs}\uAC1C \uC791\uC5C5 \uCD94\uC801 \xB7 GraphQL ID {queries}\uAC1C \uCE90\uC2DC\uB428",
       "Export status": "\uB0B4\uBCF4\uB0B4\uAE30 \uC0C1\uD0DC",
       "Export visible tweets": "\uD45C\uC2DC\uB41C \uAC8C\uC2DC\uBB3C \uB0B4\uBCF4\uB0B4\uAE30",
       "Collect the currently rendered tweets and download a ZIP.": "\uD604\uC7AC \uD45C\uC2DC\uB41C \uAC8C\uC2DC\uBB3C\uC744 \uBAA8\uC544 ZIP\uC73C\uB85C \uB0B4\uB824\uBC1B\uC2B5\uB2C8\uB2E4.",
@@ -3484,6 +3691,7 @@ html.av-reduce-motion *::after {
       "Composer snippets": "\uC0C1\uC6A9\uAD6C",
       "One snippet per line. Reusable replies / templates insert from the composer toolbar.": "\uD55C \uC904\uC5D0 \uD558\uB098\uC529. \uC791\uC131\uAE30 \uB3C4\uAD6C \uBAA8\uC74C\uC5D0\uC11C \uC0BD\uC785\uD560 \uC218 \uC788\uB294 \uC7AC\uC0AC\uC6A9 \uAC00\uB2A5\uD55C \uB2F5\uAE00\xB7\uD15C\uD50C\uB9BF\uC785\uB2C8\uB2E4.",
       "Save, search, organize, and revisit posts in a local bookmark library.": "\uAC8C\uC2DC\uBB3C\uC744 \uB85C\uCEEC \uBD81\uB9C8\uD06C \uB77C\uC774\uBE0C\uB7EC\uB9AC\uC5D0 \uC800\uC7A5\uD558\uACE0 \uAC80\uC0C9\uD558\uBA70 \uC815\uB9AC\uD558\uACE0 \uB2E4\uC2DC \uBCFC \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+      "{count} entries \xB7 latest {kind} of {latestCount} @ {at}": "{count}\uAC1C \xB7 \uCD5C\uADFC {kind} {latestCount}\uAC1C @ {at}",
       "Snapshots stored": "\uC800\uC7A5\uB41C \uC2A4\uB0C5\uC0F7",
       "Capture followers from this view": "\uC774 \uD654\uBA74\uC5D0\uC11C \uD314\uB85C\uC6CC \uC218\uC9D1",
       "Walks UserCell rows on the current page. Open a /handle/followers view first.": "\uD604\uC7AC \uD398\uC774\uC9C0\uC758 UserCell \uD589\uC744 \uD6D1\uC2B5\uB2C8\uB2E4. \uBA3C\uC800 /\uACC4\uC815/followers \uD654\uBA74\uC744 \uC5EC\uC138\uC694.",
@@ -3499,6 +3707,7 @@ html.av-reduce-motion *::after {
       "Type to search the records captured by export runs.": "\uB0B4\uBCF4\uB0B4\uAE30 \uC2E4\uD589\uC5D0\uC11C \uCEA1\uCC98\uD55C \uB808\uCF54\uB4DC\uB97C \uAC80\uC0C9\uD558\uB824\uBA74 \uC785\uB825\uD558\uC138\uC694.",
       "Download Markdown report": "Markdown \uBCF4\uACE0\uC11C \uB0B4\uB824\uBC1B\uAE30",
       "Audit log + snapshot diff + cleanup preview.": "\uAC10\uC0AC \uB85C\uADF8, \uC2A4\uB0C5\uC0F7 \uBE44\uAD50, \uC815\uB9AC \uBBF8\uB9AC\uBCF4\uAE30.",
+      "{total} items \xB7 queued {queued} \xB7 approved {approved} \xB7 skipped {skipped}": "{total}\uAC1C \xB7 \uB300\uAE30 {queued} \xB7 \uC2B9\uC778 {approved} \xB7 \uAC74\uB108\uB700 {skipped}",
       "Cleanup review queue": "\uC815\uB9AC \uAC80\uD1A0 \uB300\uAE30\uC5F4",
       "Destructive actions": "\uD30C\uAD34\uC801\uC778 \uC791\uC5C5",
       "Aviary never deletes posts, likes, or follows. The queue is a review list; approving or skipping only writes to the audit log.": "Aviary\uB294 \uAC8C\uC2DC\uBB3C\xB7\uB9C8\uC74C\uC5D0 \uB4E4\uC5B4\uC694\xB7\uD314\uB85C\uC6B0\uB97C \uC0AD\uC81C\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. \uC774 \uB300\uAE30\uC5F4\uC740 \uAC80\uD1A0\uC6A9 \uBAA9\uB85D\uC774\uBA70, \uC2B9\uC778\uD558\uAC70\uB098 \uAC74\uB108\uB6F0\uC5B4\uB3C4 \uAC10\uC0AC \uB85C\uADF8\uC5D0\uB9CC \uAE30\uB85D\uB429\uB2C8\uB2E4.",
@@ -3752,12 +3961,17 @@ html.av-reduce-motion *::after {
       "Export job cancelled.": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5\uC774 \uCDE8\uC18C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
       "Collecting visible posts\u2026": "\uD45C\uC2DC\uB41C \uAC8C\uC2DC\uBB3C\uC744 \uBAA8\uC73C\uB294 \uC911\u2026",
       "No posts found on this view. Scroll the timeline to load some, then export again.": "\uC774 \uD654\uBA74\uC5D0\uC11C \uAC8C\uC2DC\uBB3C\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. \uD0C0\uC784\uB77C\uC778\uC744 \uC2A4\uD06C\uB864\uD574 \uBD88\uB7EC\uC628 \uB4A4 \uB2E4\uC2DC \uB0B4\uBCF4\uB0B4\uC138\uC694.",
+      "Exported {records} records across {files} ZIPs \u2192 {filename}": "{records}\uAC1C \uB808\uCF54\uB4DC\uB97C {files}\uAC1C ZIP\uC73C\uB85C \uB0B4\uBCF4\uB0C4 \u2192 {filename}",
+      "Exported {records} record \u2192 {filename}": "{records}\uAC1C \uB808\uCF54\uB4DC \uB0B4\uBCF4\uB0C4 \u2192 {filename}",
+      "Exported {records} records \u2192 {filename}": "{records}\uAC1C \uB808\uCF54\uB4DC \uB0B4\uBCF4\uB0C4 \u2192 {filename}",
       "Export failed. See diagnostics.": "\uB0B4\uBCF4\uB0B4\uAE30\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4. \uC9C4\uB2E8 \uC815\uBCF4\uB97C \uD655\uC778\uD558\uC138\uC694.",
       "Diagnostics copied to clipboard.": "\uC9C4\uB2E8 \uC815\uBCF4\uB97C \uD074\uB9BD\uBCF4\uB4DC\uC5D0 \uBCF5\uC0AC\uD588\uC2B5\uB2C8\uB2E4.",
       "Could not copy diagnostics.": "\uC9C4\uB2E8 \uC815\uBCF4\uB97C \uBCF5\uC0AC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "Building WARC archive\u2026": "WARC \uBCF4\uAD00 \uD30C\uC77C\uC744 \uB9CC\uB4DC\uB294 \uC911\u2026",
       "WARC downloaded ({records} records).": "WARC\uB97C \uB2E4\uC6B4\uB85C\uB4DC\uD588\uC2B5\uB2C8\uB2E4({records}\uAC1C \uB808\uCF54\uB4DC).",
       "WARC export failed.": "WARC \uB0B4\uBCF4\uB0B4\uAE30\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
+      "Copied {records} records to clipboard.": "{records}\uAC1C \uB808\uCF54\uB4DC\uB97C \uD074\uB9BD\uBCF4\uB4DC\uC5D0 \uBCF5\uC0AC\uD568.",
+      "Exported {records} records to {target}.": "{records}\uAC1C \uB808\uCF54\uB4DC\uB97C {target}(\uC73C)\uB85C \uB0B4\uBCF4\uB0C4.",
       "External export failed.": "\uC678\uBD80 \uB0B4\uBCF4\uB0B4\uAE30\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
       "Records per ZIP saved": "ZIP\uB2F9 \uAE30\uB85D \uC218\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Export job retention saved": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5 \uBCF4\uAD00 \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
@@ -3798,7 +4012,6 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "\uC228\uAE34 \uAC8C\uC2DC\uBB3C\uC744 \uC9C0\uC6B0\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "Saving...": "\uC800\uC7A5 \uC911...",
       "Could not save settings. Try again.": "\uC124\uC815\uC744 \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
-      "Aviary settings": "Aviary \uC124\uC815",
       "Nothing matches that search.": "\uAC80\uC0C9\uACFC \uC77C\uCE58\uD558\uB294 \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
       "Try a shorter word, or pick a section on the left.": "\uB354 \uC9E7\uC740 \uB2E8\uC5B4\uB85C \uAC80\uC0C9\uD558\uAC70\uB098 \uC67C\uCABD\uC5D0\uC11C \uC139\uC158\uC744 \uC120\uD0DD\uD558\uC138\uC694.",
       "No captured records match \u201C{query}\u201D.": "\u201C{query}\u201D\uC640 \uC77C\uCE58\uD558\uB294 \uCEA1\uCC98\uD55C \uB808\uCF54\uB4DC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
@@ -3809,6 +4022,7 @@ html.av-reduce-motion *::after {
       "Search saved posts by text, handle, tags, folder, or ID.": "\uC800\uC7A5\uD55C \uAC8C\uC2DC\uBB3C\uC744 \uBCF8\uBB38, \uD578\uB4E4, \uD0DC\uADF8, \uD3F4\uB354 \uB610\uB294 ID\uB85C \uAC80\uC0C9\uD569\uB2C8\uB2E4.",
       "Search local bookmarks": "\uB85C\uCEEC \uBD81\uB9C8\uD06C \uAC80\uC0C9",
       "No local bookmarks match this search.": "\uC774 \uAC80\uC0C9\uACFC \uC77C\uCE58\uD558\uB294 \uB85C\uCEEC \uBD81\uB9C8\uD06C\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+      "(no text)": "(\uD14D\uC2A4\uD2B8 \uC5C6\uC74C)",
       "Notes": "\uBA54\uBAA8",
       "Bookmark notes": "\uBD81\uB9C8\uD06C \uBA54\uBAA8",
       "Remove": "\uC0AD\uC81C",
@@ -3821,6 +4035,38 @@ html.av-reduce-motion *::after {
       "Fallback selectors in use": "\uB300\uCCB4 \uC120\uD0DD\uC790 \uC0AC\uC6A9 \uC911",
       "Affected features": "\uC601\uD5A5\uBC1B\uB294 \uAE30\uB2A5",
       "Last selector transition": "\uB9C8\uC9C0\uB9C9 \uC120\uD0DD\uC790 \uC804\uD658",
+      "{count} entries": "{count}\uAC1C \uD56D\uBAA9",
+      "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "\uAC8C\uC2DC\uBB3C {posts}\uAC1C \xB7 \uC88B\uC544\uC694 {likes}\uAC1C \xB7 \uCABD\uC9C0 {messages}\uAC1C(\uACF5\uAC1C \uAC80\uC0C9 \uC81C\uC678) \xB7 \uBBF8\uB514\uC5B4 \uCC38\uC870 {media}\uAC1C \xB7 \uD314\uB85C\uC6CC {followers}\uBA85 \xB7 \uD314\uB85C\uC789 {following}\uBA85 \xB7 \uBAA9\uB85D {lists}\uAC1C",
+      "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 \uB808\uCF54\uB4DC {records}\uAC1C \xB7 \uD30C\uC77C {files}\uAC1C \xB7 \uACBD\uACE0 {warnings}\uAC1C",
+      "gid {gid} \xB7 {status}": "\uC2DD\uBCC4\uC790 {gid} \xB7 {status}",
+      "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "\uC800\uC7A5 {saved}\uAC1C \xB7 \uC608\uC815 {due}\uAC1C \xB7 \uD0DC\uADF8 {tags}\uAC1C \xB7 \uD3F4\uB354 {folders}\uAC1C",
+      "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 \uB808\uCF54\uB4DC {records}\uAC1C \xB7 {surface}",
+      "Pause {filename}.": "{filename} \uC77C\uC2DC \uC911\uC9C0.",
+      "Resume {filename}.": "{filename} \uC7AC\uAC1C.",
+      "Cancel {filename}.": "{filename} \uCDE8\uC18C.",
+      "Retry {filename}.": "{filename} \uC7AC\uC2DC\uB3C4.",
+      "Pause {jobId}.": "{jobId} \uC77C\uC2DC \uC911\uC9C0.",
+      "Resume {jobId}.": "{jobId} \uC7AC\uAC1C.",
+      "Cancel {jobId}.": "{jobId} \uCDE8\uC18C.",
+      "Active profile": "\uD65C\uC131 \uD504\uB85C\uD544",
+      "Switch profile": "\uD504\uB85C\uD544 \uC804\uD658",
+      "Assign legacy data here": "\uC5EC\uAE30\uC5D0 \uC774\uC804 \uB370\uC774\uD130 \uD560\uB2F9",
+      "New profile": "\uC0C8 \uD504\uB85C\uD544",
+      "Imported collections": "\uAC00\uC838\uC628 \uCEEC\uB809\uC158",
+      "Archive import": "\uC544\uCE74\uC774\uBE0C \uAC00\uC838\uC624\uAE30",
+      "Pause archive import": "\uC544\uCE74\uC774\uBE0C \uAC00\uC838\uC624\uAE30 \uC77C\uC2DC \uC911\uC9C0",
+      "Resume archive import": "\uC544\uCE74\uC774\uBE0C \uAC00\uC838\uC624\uAE30 \uC7AC\uAC1C",
+      "Cancel archive import": "\uC544\uCE74\uC774\uBE0C \uAC00\uC838\uC624\uAE30 \uCDE8\uC18C",
+      "Retry archive import": "\uC544\uCE74\uC774\uBE0C \uAC00\uC838\uC624\uAE30 \uB2E4\uC2DC \uC2DC\uB3C4",
+      "Local bookmarks": "\uB85C\uCEEC \uBD81\uB9C8\uD06C",
+      "Clear local bookmarks": "\uB85C\uCEEC \uBD81\uB9C8\uD06C \uC0AD\uC81C",
+      "Export job": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5",
+      "Pause export job": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5 \uC77C\uC2DC \uC911\uC9C0",
+      "Resume export job": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5 \uC7AC\uAC1C",
+      "Cancel export job": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5 \uCDE8\uC18C",
+      "Active media batch": "\uD65C\uC131 \uBBF8\uB514\uC5B4 \uBC30\uCE58",
+      "Resume queued media": "\uB300\uAE30 \uC911\uC778 \uBBF8\uB514\uC5B4 \uC7AC\uAC1C",
+      "Retry failed media": "\uC2E4\uD328\uD55C \uBBF8\uB514\uC5B4 \uB2E4\uC2DC \uC2DC\uB3C4",
       "Open Aviary AI command menu": "Aviary AI \uBA85\uB839 \uBA54\uB274 \uC5F4\uAE30",
       "Aviary AI commands (offline prompt builder)": "Aviary AI \uBA85\uB839 (\uC624\uD504\uB77C\uC778 \uD504\uB86C\uD504\uD2B8 \uC791\uC131\uAE30)",
       "Run with provider": "\uC81C\uACF5\uC790\uB85C \uC2E4\uD589",
@@ -3916,6 +4162,7 @@ html.av-reduce-motion *::after {
       "Aviary": "Aviary",
       "Local controls for a quieter X.": "\u0623\u062F\u0648\u0627\u062A \u0645\u062D\u0644\u064A\u0629 \u0644\u062A\u062C\u0631\u0628\u0629 \u0623\u0647\u062F\u0623 \u0639\u0644\u0649 X.",
       "Close": "\u0625\u063A\u0644\u0627\u0642",
+      "Aviary settings": "\u0625\u0639\u062F\u0627\u062F\u0627\u062A Aviary",
       "Search settings": "\u0627\u0644\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A",
       "Saved locally": "\u062A\u0645 \u0627\u0644\u062D\u0641\u0638 \u0645\u062D\u0644\u064A\u064B\u0627",
       "Settings sections": "\u0623\u0642\u0633\u0627\u0645 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A",
@@ -4061,6 +4308,7 @@ html.av-reduce-motion *::after {
       "Scan loaded scripts for X GraphQL operation IDs and cache them locally.": "\u064A\u0641\u062D\u0635 \u0627\u0644\u0633\u0643\u0631\u0628\u062A\u0627\u062A \u0627\u0644\u0645\u062D\u0645\u0651\u0644\u0629 \u0628\u062D\u062B\u064B\u0627 \u0639\u0646 \u0645\u0639\u0631\u0651\u0641\u0627\u062A \u0639\u0645\u0644\u064A\u0627\u062A GraphQL \u0641\u064A X \u0648\u064A\u062E\u0632\u0651\u0646\u0647\u0627 \u0645\u062D\u0644\u064A\u064B\u0627.",
       "Save folder hint": "\u0645\u062C\u0644\u062F \u0627\u0644\u062D\u0641\u0638",
       "Folder name (or path) used as the export ZIP root and download prefix.": "\u0627\u0633\u0645 \u0627\u0644\u0645\u062C\u0644\u062F (\u0623\u0648 \u0627\u0644\u0645\u0633\u0627\u0631) \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0643\u062C\u0630\u0631 \u0644\u0645\u0644\u0641 ZIP \u0648\u0643\u0628\u0627\u062F\u0626\u0629 \u0644\u0644\u062A\u0646\u0632\u064A\u0644.",
+      "{jobs} jobs tracked \xB7 {queries} GraphQL IDs cached": "\u062A\u0645 \u062A\u062A\u0628\u0639 {jobs} \u0645\u0646 \u0627\u0644\u0645\u0647\u0627\u0645 \xB7 \u062A\u0645 \u062A\u062E\u0632\u064A\u0646 {queries} \u0645\u0646 \u0645\u0639\u0631\u0651\u0641\u0627\u062A GraphQL \u0645\u0624\u0642\u062A\u064B\u0627",
       "Export status": "\u062D\u0627\u0644\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631",
       "Export visible tweets": "\u062A\u0635\u062F\u064A\u0631 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0638\u0627\u0647\u0631\u0629",
       "Collect the currently rendered tweets and download a ZIP.": "\u064A\u062C\u0645\u0639 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u0639\u0631\u0648\u0636\u0629 \u062D\u0627\u0644\u064A\u064B\u0627 \u0648\u064A\u0646\u0632\u0651\u0644\u0647\u0627 \u0643\u0645\u0644\u0641 ZIP.",
@@ -4097,6 +4345,7 @@ html.av-reduce-motion *::after {
       "Composer snippets": "\u0627\u0644\u0646\u0635\u0648\u0635 \u0627\u0644\u062C\u0627\u0647\u0632\u0629",
       "One snippet per line. Reusable replies / templates insert from the composer toolbar.": "\u0645\u0642\u062A\u0637\u0641 \u0648\u0627\u062D\u062F \u0641\u064A \u0643\u0644 \u0633\u0637\u0631. \u0631\u062F\u0648\u062F \u0648\u0642\u0648\u0627\u0644\u0628 \u0642\u0627\u0628\u0644\u0629 \u0644\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u062A\u064F\u062F\u0631\u062C \u0645\u0646 \u0634\u0631\u064A\u0637 \u0623\u062F\u0648\u0627\u062A \u0627\u0644\u0645\u062D\u0631\u0631.",
       "Save, search, organize, and revisit posts in a local bookmark library.": "\u0627\u062D\u0641\u0638 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0648\u0627\u0628\u062D\u062B \u0639\u0646\u0647\u0627 \u0648\u0646\u0638\u0651\u0645\u0647\u0627 \u0648\u0639\u062F \u0625\u0644\u064A\u0647\u0627 \u0641\u064A \u0645\u0643\u062A\u0628\u0629 \u0625\u0634\u0627\u0631\u0627\u062A \u0645\u0631\u062C\u0639\u064A\u0629 \u0645\u062D\u0644\u064A\u0629.",
+      "{count} entries \xB7 latest {kind} of {latestCount} @ {at}": "{count} \u0645\u0646 \u0627\u0644\u0625\u062F\u062E\u0627\u0644\u0627\u062A \xB7 \u0627\u0644\u0623\u062D\u062F\u062B {kind} \u0648\u0639\u062F\u062F\u0647 {latestCount} \u0641\u064A {at}",
       "Snapshots stored": "\u0627\u0644\u0644\u0642\u0637\u0627\u062A \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629",
       "Capture followers from this view": "\u062C\u0645\u0639 \u0627\u0644\u0645\u062A\u0627\u0628\u0650\u0639\u064A\u0646 \u0645\u0646 \u0647\u0630\u0647 \u0627\u0644\u0635\u0641\u062D\u0629",
       "Walks UserCell rows on the current page. Open a /handle/followers view first.": "\u064A\u0645\u0631\u0651 \u0639\u0644\u0649 \u0635\u0641\u0648\u0641 UserCell \u0641\u064A \u0627\u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u062D\u0627\u0644\u064A\u0629. \u0627\u0641\u062A\u062D \u0623\u0648\u0644\u064B\u0627 \u0635\u0641\u062D\u0629 \u200E/\u0627\u0644\u062D\u0633\u0627\u0628/followers\u200E.",
@@ -4112,6 +4361,7 @@ html.av-reduce-motion *::after {
       "Type to search the records captured by export runs.": "\u0627\u0643\u062A\u0628 \u0644\u0644\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0627\u0644\u062A\u064A \u0627\u0644\u062A\u0642\u0637\u062A\u0647\u0627 \u0639\u0645\u0644\u064A\u0627\u062A \u0627\u0644\u062A\u0635\u062F\u064A\u0631.",
       "Download Markdown report": "\u062A\u0646\u0632\u064A\u0644 \u062A\u0642\u0631\u064A\u0631 Markdown",
       "Audit log + snapshot diff + cleanup preview.": "\u0633\u062C\u0644 \u0627\u0644\u062A\u062F\u0642\u064A\u0642 \u0648\u0645\u0642\u0627\u0631\u0646\u0629 \u0627\u0644\u0644\u0642\u0637\u0627\u062A \u0648\u0645\u0639\u0627\u064A\u0646\u0629 \u0627\u0644\u062A\u0646\u0638\u064A\u0641.",
+      "{total} items \xB7 queued {queued} \xB7 approved {approved} \xB7 skipped {skipped}": "{total} \u0645\u0646 \u0627\u0644\u0639\u0646\u0627\u0635\u0631 \xB7 \u0641\u064A \u0627\u0644\u0627\u0646\u062A\u0638\u0627\u0631 {queued} \xB7 \u0645\u0639\u062A\u0645\u062F\u0629 {approved} \xB7 \u0645\u062A\u062E\u0637\u0627\u0629 {skipped}",
       "Cleanup review queue": "\u0642\u0627\u0626\u0645\u0629 \u0645\u0631\u0627\u062C\u0639\u0629 \u0627\u0644\u062A\u0646\u0638\u064A\u0641",
       "Destructive actions": "\u0627\u0644\u0625\u062C\u0631\u0627\u0621\u0627\u062A \u0627\u0644\u0645\u062F\u0645\u0651\u0631\u0629",
       "Aviary never deletes posts, likes, or follows. The queue is a review list; approving or skipping only writes to the audit log.": "\u0644\u0627 \u064A\u062D\u0630\u0641 Aviary \u0623\u064A \u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0623\u0648 \u0625\u0639\u062C\u0627\u0628\u0627\u062A \u0623\u0648 \u0645\u062A\u0627\u0628\u0639\u0627\u062A. \u0627\u0644\u0642\u0627\u0626\u0645\u0629 \u0644\u0644\u0645\u0631\u0627\u062C\u0639\u0629 \u0641\u0642\u0637\u061B \u0648\u0627\u0644\u0645\u0648\u0627\u0641\u0642\u0629 \u0623\u0648 \u0627\u0644\u062A\u062E\u0637\u064A \u064A\u064F\u0633\u062C\u064E\u0651\u0644\u0627\u0646 \u0641\u064A \u0633\u062C\u0644 \u0627\u0644\u062A\u062F\u0642\u064A\u0642 \u0644\u0627 \u0623\u0643\u062B\u0631.",
@@ -4365,12 +4615,17 @@ html.av-reduce-motion *::after {
       "Export job cancelled.": "\u062A\u0645 \u0625\u0644\u063A\u0627\u0621 \u0645\u0647\u0645\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631.",
       "Collecting visible posts\u2026": "\u062C\u0627\u0631\u064D \u062C\u0645\u0639 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0638\u0627\u0647\u0631\u0629\u2026",
       "No posts found on this view. Scroll the timeline to load some, then export again.": "\u0644\u0645 \u064A\u062A\u0645 \u0627\u0644\u0639\u062B\u0648\u0631 \u0639\u0644\u0649 \u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0641\u064A \u0647\u0630\u0627 \u0627\u0644\u0639\u0631\u0636. \u0645\u0631\u0651\u0631 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \u0644\u062A\u062D\u0645\u064A\u0644 \u0628\u0639\u0636\u0647\u0627 \u062B\u0645 \u0635\u062F\u0651\u0631 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649.",
+      "Exported {records} records across {files} ZIPs \u2192 {filename}": "\u062A\u0645 \u062A\u0635\u062F\u064A\u0631 {records} \u0645\u0646 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0641\u064A {files} \u0645\u0646 \u0645\u0644\u0641\u0627\u062A ZIP \u2190 {filename}",
+      "Exported {records} record \u2192 {filename}": "\u062A\u0645 \u062A\u0635\u062F\u064A\u0631 \u0633\u062C\u0644 \u0648\u0627\u062D\u062F ({records}) \u2190 {filename}",
+      "Exported {records} records \u2192 {filename}": "\u062A\u0645 \u062A\u0635\u062F\u064A\u0631 {records} \u0645\u0646 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u2190 {filename}",
       "Export failed. See diagnostics.": "\u0641\u0634\u0644 \u0627\u0644\u062A\u0635\u062F\u064A\u0631. \u0631\u0627\u062C\u0639 \u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0627\u0644\u062A\u0634\u062E\u064A\u0635.",
       "Diagnostics copied to clipboard.": "\u062A\u0645 \u0646\u0633\u062E \u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0627\u0644\u062A\u0634\u062E\u064A\u0635 \u0625\u0644\u0649 \u0627\u0644\u062D\u0627\u0641\u0638\u0629.",
       "Could not copy diagnostics.": "\u062A\u0639\u0630\u0651\u0631 \u0646\u0633\u062E \u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0627\u0644\u062A\u0634\u062E\u064A\u0635.",
       "Building WARC archive\u2026": "\u062C\u0627\u0631\u064D \u0625\u0646\u0634\u0627\u0621 \u0623\u0631\u0634\u064A\u0641 WARC\u2026",
       "WARC downloaded ({records} records).": "\u062A\u0645 \u062A\u0646\u0632\u064A\u0644 WARC ({records} \u0645\u0646 \u0627\u0644\u0633\u062C\u0644\u0627\u062A).",
       "WARC export failed.": "\u0641\u0634\u0644 \u062A\u0635\u062F\u064A\u0631 WARC.",
+      "Copied {records} records to clipboard.": "\u062A\u0645 \u0646\u0633\u062E {records} \u0645\u0646 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0625\u0644\u0649 \u0627\u0644\u062D\u0627\u0641\u0638\u0629.",
+      "Exported {records} records to {target}.": "\u062A\u0645 \u062A\u0635\u062F\u064A\u0631 {records} \u0645\u0646 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0625\u0644\u0649 {target}.",
       "External export failed.": "\u0641\u0634\u0644 \u0627\u0644\u062A\u0635\u062F\u064A\u0631 \u0627\u0644\u062E\u0627\u0631\u062C\u064A.",
       "Records per ZIP saved": "\u062A\u0645 \u062D\u0641\u0638 \u0639\u062F\u062F \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0644\u0643\u0644 ZIP",
       "Export job retention saved": "\u062A\u0645 \u062D\u0641\u0638 \u0645\u062F\u0629 \u0627\u0644\u0627\u062D\u062A\u0641\u0627\u0638 \u0628\u0645\u0647\u0627\u0645 \u0627\u0644\u062A\u0635\u062F\u064A\u0631",
@@ -4411,7 +4666,6 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "\u062A\u0639\u0630\u0651\u0631 \u0645\u0633\u062D \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u062E\u0641\u064A\u0629.",
       "Saving...": "\u062C\u0627\u0631\u064D \u0627\u0644\u062D\u0641\u0638...",
       "Could not save settings. Try again.": "\u062A\u0639\u0630\u0651\u0631 \u062D\u0641\u0638 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A. \u062D\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649.",
-      "Aviary settings": "\u0625\u0639\u062F\u0627\u062F\u0627\u062A Aviary",
       "Nothing matches that search.": "\u0644\u0627 \u064A\u0648\u062C\u062F \u0645\u0627 \u064A\u0637\u0627\u0628\u0642 \u0647\u0630\u0627 \u0627\u0644\u0628\u062D\u062B.",
       "Try a shorter word, or pick a section on the left.": "\u062C\u0631\u0651\u0628 \u0643\u0644\u0645\u0629 \u0623\u0642\u0635\u0631\u060C \u0623\u0648 \u0627\u062E\u062A\u0631 \u0642\u0633\u0645\u064B\u0627 \u0645\u0646 \u0627\u0644\u064A\u0645\u064A\u0646.",
       "No captured records match \u201C{query}\u201D.": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0633\u062C\u0644\u0627\u062A \u0645\u0644\u062A\u0642\u0637\u0629 \u062A\u0637\u0627\u0628\u0642 \xAB{query}\xBB.",
@@ -4422,6 +4676,7 @@ html.av-reduce-motion *::after {
       "Search saved posts by text, handle, tags, folder, or ID.": "\u0627\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629 \u0628\u0627\u0644\u0646\u0635 \u0623\u0648 \u0627\u0644\u0645\u0639\u0631\u0651\u0641 \u0623\u0648 \u0627\u0644\u0648\u0633\u0648\u0645 \u0623\u0648 \u0627\u0644\u0645\u062C\u0644\u062F \u0623\u0648 \u0627\u0644\u0631\u0642\u0645.",
       "Search local bookmarks": "\u0627\u0644\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
       "No local bookmarks match this search.": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0625\u0634\u0627\u0631\u0627\u062A \u0645\u0631\u062C\u0639\u064A\u0629 \u0645\u062D\u0644\u064A\u0629 \u062A\u0637\u0627\u0628\u0642 \u0647\u0630\u0627 \u0627\u0644\u0628\u062D\u062B.",
+      "(no text)": "(\u0628\u0644\u0627 \u0646\u0635)",
       "Notes": "\u0645\u0644\u0627\u062D\u0638\u0627\u062A",
       "Bookmark notes": "\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0625\u0634\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629",
       "Remove": "\u0625\u0632\u0627\u0644\u0629",
@@ -4434,6 +4689,38 @@ html.av-reduce-motion *::after {
       "Fallback selectors in use": "\u0627\u0644\u0645\u062D\u062F\u062F\u0627\u062A \u0627\u0644\u0628\u062F\u064A\u0644\u0629 \u0642\u064A\u062F \u0627\u0644\u0627\u0633\u062A\u062E\u062F\u0627\u0645",
       "Affected features": "\u0627\u0644\u0645\u064A\u0632\u0627\u062A \u0627\u0644\u0645\u062A\u0623\u062B\u0631\u0629",
       "Last selector transition": "\u0622\u062E\u0631 \u0627\u0646\u062A\u0642\u0627\u0644 \u0644\u0644\u0645\u062D\u062F\u062F",
+      "{count} entries": "{count} \u0645\u0646 \u0627\u0644\u0625\u062F\u062E\u0627\u0644\u0627\u062A",
+      "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "{posts} \u0645\u0646 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \xB7 {likes} \u0645\u0646 \u0627\u0644\u0625\u0639\u062C\u0627\u0628\u0627\u062A \xB7 {messages} \u0645\u0646 \u0627\u0644\u0631\u0633\u0627\u0626\u0644 \u0627\u0644\u0645\u0628\u0627\u0634\u0631\u0629 (\u062E\u0627\u0631\u062C \u0627\u0644\u0628\u062D\u062B \u0627\u0644\u0639\u0627\u0645) \xB7 {media} \u0645\u0646 \u0645\u0631\u0627\u062C\u0639 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \xB7 {followers} \u0645\u0646 \u0627\u0644\u0645\u062A\u0627\u0628\u0639\u064A\u0646 \xB7 {following} \u0645\u0645\u0646 \u062A\u062A\u0627\u0628\u0639\u0647\u0645 \xB7 {lists} \u0645\u0646 \u0627\u0644\u0642\u0648\u0627\u0626\u0645",
+      "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} \u0645\u0646 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \xB7 {files} \u0645\u0646 \u0627\u0644\u0645\u0644\u0641\u0627\u062A \xB7 {warnings} \u0645\u0646 \u0627\u0644\u062A\u062D\u0630\u064A\u0631\u0627\u062A",
+      "gid {gid} \xB7 {status}": "\u0627\u0644\u0645\u0639\u0631\u0651\u0641 {gid} \xB7 {status}",
+      "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} \u0645\u062D\u0641\u0648\u0638\u0629 \xB7 {due} \u0645\u0633\u062A\u062D\u0642\u0629 \xB7 {tags} \u0645\u0646 \u0627\u0644\u0648\u0633\u0648\u0645 \xB7 {folders} \u0645\u0646 \u0627\u0644\u0645\u062C\u0644\u062F\u0627\u062A",
+      "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} \u0645\u0646 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \xB7 {surface}",
+      "Pause {filename}.": "\u0625\u064A\u0642\u0627\u0641 {filename} \u0645\u0624\u0642\u062A\u064B\u0627.",
+      "Resume {filename}.": "\u0627\u0633\u062A\u0626\u0646\u0627\u0641 {filename}.",
+      "Cancel {filename}.": "\u0625\u0644\u063A\u0627\u0621 {filename}.",
+      "Retry {filename}.": "\u0625\u0639\u0627\u062F\u0629 \u0645\u062D\u0627\u0648\u0644\u0629 {filename}.",
+      "Pause {jobId}.": "\u0625\u064A\u0642\u0627\u0641 {jobId} \u0645\u0624\u0642\u062A\u064B\u0627.",
+      "Resume {jobId}.": "\u0627\u0633\u062A\u0626\u0646\u0627\u0641 {jobId}.",
+      "Cancel {jobId}.": "\u0625\u0644\u063A\u0627\u0621 {jobId}.",
+      "Active profile": "\u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A \u0627\u0644\u0646\u0634\u0637",
+      "Switch profile": "\u062A\u0628\u062F\u064A\u0644 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A",
+      "Assign legacy data here": "\u062A\u0639\u064A\u064A\u0646 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0642\u062F\u064A\u0645\u0629 \u0647\u0646\u0627",
+      "New profile": "\u0645\u0644\u0641 \u0634\u062E\u0635\u064A \u062C\u062F\u064A\u062F",
+      "Imported collections": "\u0627\u0644\u0645\u062C\u0645\u0648\u0639\u0627\u062A \u0627\u0644\u0645\u0633\u062A\u0648\u0631\u062F\u0629",
+      "Archive import": "\u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0623\u0631\u0634\u064A\u0641",
+      "Pause archive import": "\u0625\u064A\u0642\u0627\u0641 \u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0623\u0631\u0634\u064A\u0641 \u0645\u0624\u0642\u062A\u064B\u0627",
+      "Resume archive import": "\u0627\u0633\u062A\u0626\u0646\u0627\u0641 \u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0623\u0631\u0634\u064A\u0641",
+      "Cancel archive import": "\u0625\u0644\u063A\u0627\u0621 \u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0623\u0631\u0634\u064A\u0641",
+      "Retry archive import": "\u0625\u0639\u0627\u062F\u0629 \u0645\u062D\u0627\u0648\u0644\u0629 \u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0623\u0631\u0634\u064A\u0641",
+      "Local bookmarks": "\u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
+      "Clear local bookmarks": "\u0645\u0633\u062D \u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
+      "Export job": "\u0645\u0647\u0645\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631",
+      "Pause export job": "\u0625\u064A\u0642\u0627\u0641 \u0645\u0647\u0645\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631 \u0645\u0624\u0642\u062A\u064B\u0627",
+      "Resume export job": "\u0627\u0633\u062A\u0626\u0646\u0627\u0641 \u0645\u0647\u0645\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631",
+      "Cancel export job": "\u0625\u0644\u063A\u0627\u0621 \u0645\u0647\u0645\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631",
+      "Active media batch": "\u062F\u0641\u0639\u0629 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u0646\u0634\u0637\u0629",
+      "Resume queued media": "\u0627\u0633\u062A\u0626\u0646\u0627\u0641 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0641\u064A \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0627\u0646\u062A\u0638\u0627\u0631",
+      "Retry failed media": "\u0625\u0639\u0627\u062F\u0629 \u0645\u062D\u0627\u0648\u0644\u0629 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u0641\u0627\u0634\u0644\u0629",
       "Open Aviary AI command menu": "\u0641\u062A\u062D \u0642\u0627\u0626\u0645\u0629 \u0623\u0648\u0627\u0645\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0641\u064A Aviary",
       "Aviary AI commands (offline prompt builder)": "\u0623\u0648\u0627\u0645\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0641\u064A Aviary (\u0645\u0646\u0634\u0626 \u0645\u0637\u0627\u0644\u0628\u0627\u062A \u062F\u0648\u0646 \u0627\u062A\u0635\u0627\u0644)",
       "Run with provider": "\u0627\u0644\u062A\u0634\u063A\u064A\u0644 \u0639\u0628\u0631 \u0627\u0644\u0645\u0632\u0648\u0651\u062F",
@@ -4529,6 +4816,7 @@ html.av-reduce-motion *::after {
       "Aviary": "Aviary",
       "Local controls for a quieter X.": "\u05DB\u05DC\u05D9\u05DD \u05DE\u05E7\u05D5\u05DE\u05D9\u05D9\u05DD \u05DC\u2011X \u05E9\u05E7\u05D8 \u05D9\u05D5\u05EA\u05E8.",
       "Close": "\u05E1\u05D2\u05D9\u05E8\u05D4",
+      "Aviary settings": "\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA Aviary",
       "Search settings": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA",
       "Saved locally": "\u05E0\u05E9\u05DE\u05E8 \u05DE\u05E7\u05D5\u05DE\u05D9\u05EA",
       "Settings sections": "\u05DE\u05E7\u05D8\u05E2\u05D9 \u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA",
@@ -4674,6 +4962,7 @@ html.av-reduce-motion *::after {
       "Scan loaded scripts for X GraphQL operation IDs and cache them locally.": "\u05E1\u05D5\u05E8\u05E7 \u05D0\u05EA \u05D4\u05E1\u05E7\u05E8\u05D9\u05E4\u05D8\u05D9\u05DD \u05E9\u05E0\u05D8\u05E2\u05E0\u05D5 \u05DC\u05D0\u05D9\u05EA\u05D5\u05E8 \u05DE\u05D6\u05D4\u05D9 \u05E4\u05E2\u05D5\u05DC\u05D5\u05EA GraphQL \u05E9\u05DC X \u05D5\u05E9\u05D5\u05DE\u05E8 \u05D0\u05D5\u05EA\u05DD \u05DE\u05E7\u05D5\u05DE\u05D9\u05EA.",
       "Save folder hint": "\u05EA\u05D9\u05E7\u05D9\u05D9\u05EA \u05E9\u05DE\u05D9\u05E8\u05D4",
       "Folder name (or path) used as the export ZIP root and download prefix.": "\u05E9\u05DD \u05D4\u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 (\u05D0\u05D5 \u05D4\u05E0\u05EA\u05D9\u05D1) \u05E9\u05D9\u05E9\u05DE\u05E9 \u05DB\u05E9\u05D5\u05E8\u05E9 \u05E7\u05D5\u05D1\u05E5 \u05D4\u2011ZIP \u05D5\u05DB\u05EA\u05D7\u05D9\u05DC\u05D9\u05EA \u05DC\u05D4\u05D5\u05E8\u05D3\u05D5\u05EA.",
+      "{jobs} jobs tracked \xB7 {queries} GraphQL IDs cached": "{jobs} \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D1\u05DE\u05E2\u05E7\u05D1 \xB7 {queries} \u05DE\u05D6\u05D4\u05D9 GraphQL \u05D1\u05DE\u05D8\u05DE\u05D5\u05DF",
       "Export status": "\u05DE\u05E6\u05D1 \u05D4\u05D9\u05D9\u05E6\u05D5\u05D0",
       "Export visible tweets": "\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D4\u05DE\u05D5\u05E6\u05D2\u05D9\u05DD",
       "Collect the currently rendered tweets and download a ZIP.": "\u05D0\u05D5\u05E1\u05E3 \u05D0\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D4\u05DE\u05D5\u05E6\u05D2\u05D9\u05DD \u05D5\u05DE\u05D5\u05E8\u05D9\u05D3 \u05E7\u05D5\u05D1\u05E5 ZIP.",
@@ -4710,6 +4999,7 @@ html.av-reduce-motion *::after {
       "Composer snippets": "\u05E7\u05D8\u05E2\u05D9 \u05D8\u05E7\u05E1\u05D8",
       "One snippet per line. Reusable replies / templates insert from the composer toolbar.": "\u05E7\u05D8\u05E2 \u05D0\u05D7\u05D3 \u05D1\u05DB\u05DC \u05E9\u05D5\u05E8\u05D4. \u05EA\u05D2\u05D5\u05D1\u05D5\u05EA \u05D5\u05EA\u05D1\u05E0\u05D9\u05D5\u05EA \u05DC\u05E9\u05D9\u05DE\u05D5\u05E9 \u05D7\u05D5\u05D6\u05E8 \u05E9\u05E0\u05D9\u05EA\u05DF \u05DC\u05D4\u05D5\u05E1\u05D9\u05E3 \u05DE\u05E1\u05E8\u05D2\u05DC \u05D4\u05DB\u05DC\u05D9\u05DD \u05E9\u05DC \u05D4\u05E2\u05D5\u05E8\u05DA.",
       "Save, search, organize, and revisit posts in a local bookmark library.": "\u05E9\u05DE\u05D9\u05E8\u05EA \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD, \u05D7\u05D9\u05E4\u05D5\u05E9, \u05D0\u05E8\u05D2\u05D5\u05DF \u05D5\u05D7\u05D6\u05E8\u05D4 \u05D0\u05DC\u05D9\u05D4\u05DD \u05D1\u05E1\u05E4\u05E8\u05D9\u05D9\u05EA \u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9\u05EA.",
+      "{count} entries \xB7 latest {kind} of {latestCount} @ {at}": "{count} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \xB7 \u05D4\u05D0\u05D7\u05E8\u05D5\u05DF {kind}, {latestCount} \u05D1\u05BE{at}",
       "Snapshots stored": "\u05EA\u05E6\u05DC\u05D5\u05DE\u05D9 \u05DE\u05E6\u05D1 \u05E9\u05E0\u05E9\u05DE\u05E8\u05D5",
       "Capture followers from this view": "\u05D0\u05D9\u05E1\u05D5\u05E3 \u05E2\u05D5\u05E7\u05D1\u05D9\u05DD \u05DE\u05D4\u05E2\u05DE\u05D5\u05D3 \u05D4\u05D6\u05D4",
       "Walks UserCell rows on the current page. Open a /handle/followers view first.": "\u05E2\u05D5\u05D1\u05E8 \u05E2\u05DC \u05E9\u05D5\u05E8\u05D5\u05EA UserCell \u05D1\u05E2\u05DE\u05D5\u05D3 \u05D4\u05E0\u05D5\u05DB\u05D7\u05D9. \u05E4\u05EA\u05D7 \u05EA\u05D7\u05D9\u05DC\u05D4 \u05E2\u05DE\u05D5\u05D3 \u200E/\u05D7\u05E9\u05D1\u05D5\u05DF/followers\u200E.",
@@ -4725,6 +5015,7 @@ html.av-reduce-motion *::after {
       "Type to search the records captured by export runs.": "\u05D4\u05E7\u05DC\u05D3 \u05DB\u05D3\u05D9 \u05DC\u05D7\u05E4\u05E9 \u05D1\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05E0\u05DC\u05DB\u05D3\u05D5 \u05D1\u05D4\u05E8\u05E6\u05D5\u05EA \u05D4\u05D9\u05D9\u05E6\u05D5\u05D0.",
       "Download Markdown report": "\u05D4\u05D5\u05E8\u05D3\u05EA \u05D3\u05D5\u05D7 Markdown",
       "Audit log + snapshot diff + cleanup preview.": "\u05D9\u05D5\u05DE\u05DF \u05D1\u05D9\u05E7\u05D5\u05E8\u05EA, \u05D4\u05E9\u05D5\u05D5\u05D0\u05EA \u05EA\u05E6\u05DC\u05D5\u05DE\u05D9 \u05DE\u05E6\u05D1 \u05D5\u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05E9\u05DC \u05E0\u05D9\u05E7\u05D5\u05D9.",
+      "{total} items \xB7 queued {queued} \xB7 approved {approved} \xB7 skipped {skipped}": "{total} \u05E4\u05E8\u05D9\u05D8\u05D9\u05DD \xB7 \u05D1\u05EA\u05D5\u05E8 {queued} \xB7 \u05D0\u05D5\u05E9\u05E8\u05D5 {approved} \xB7 \u05D3\u05D5\u05DC\u05D2\u05D5 {skipped}",
       "Cleanup review queue": "\u05EA\u05D5\u05E8 \u05DC\u05D1\u05D3\u05D9\u05E7\u05EA \u05E0\u05D9\u05E7\u05D5\u05D9",
       "Destructive actions": "\u05E4\u05E2\u05D5\u05DC\u05D5\u05EA \u05D4\u05E8\u05E1\u05E0\u05D9\u05D5\u05EA",
       "Aviary never deletes posts, likes, or follows. The queue is a review list; approving or skipping only writes to the audit log.": "\u200FAviary \u05DC\u05E2\u05D5\u05DC\u05DD \u05D0\u05D9\u05E0\u05D5 \u05DE\u05D5\u05D7\u05E7 \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD, \u05DC\u05D9\u05D9\u05E7\u05D9\u05DD \u05D0\u05D5 \u05E2\u05D5\u05E7\u05D1\u05D9\u05DD. \u05D4\u05EA\u05D5\u05E8 \u05D4\u05D5\u05D0 \u05E8\u05E9\u05D9\u05DE\u05EA \u05D1\u05D3\u05D9\u05E7\u05D4 \u05D1\u05DC\u05D1\u05D3; \u05D0\u05D9\u05E9\u05D5\u05E8 \u05D0\u05D5 \u05D3\u05D9\u05DC\u05D5\u05D2 \u05E0\u05E8\u05E9\u05DE\u05D9\u05DD \u05E8\u05E7 \u05D1\u05D9\u05D5\u05DE\u05DF \u05D4\u05D1\u05D9\u05E7\u05D5\u05E8\u05EA.",
@@ -4978,12 +5269,17 @@ html.av-reduce-motion *::after {
       "Export job cancelled.": "\u05DE\u05E9\u05D9\u05DE\u05EA \u05D4\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D1\u05D5\u05D8\u05DC\u05D4.",
       "Collecting visible posts\u2026": "\u05D0\u05D5\u05E1\u05E3 \u05D0\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D4\u05DE\u05D5\u05E6\u05D2\u05D9\u05DD\u2026",
       "No posts found on this view. Scroll the timeline to load some, then export again.": "\u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0\u05D5 \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D1\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D4\u05D6\u05D5. \u05D2\u05DC\u05D5\u05DC \u05D1\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF \u05DB\u05D3\u05D9 \u05DC\u05D8\u05E2\u05D5\u05DF \u05DB\u05DE\u05D4, \u05D5\u05D0\u05D6 \u05D9\u05D9\u05E6\u05D0 \u05E9\u05D5\u05D1.",
+      "Exported {records} records across {files} ZIPs \u2192 {filename}": "\u05D9\u05D5\u05E6\u05D0\u05D5 {records} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05DC\u05BE{files} \u05E7\u05D5\u05D1\u05E6\u05D9 ZIP \u2192 {filename}",
+      "Exported {records} record \u2192 {filename}": "\u05D9\u05D5\u05E6\u05D0\u05D4 \u05E8\u05E9\u05D5\u05DE\u05D4 {records} \u2192 {filename}",
+      "Exported {records} records \u2192 {filename}": "\u05D9\u05D5\u05E6\u05D0\u05D5 {records} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u2192 {filename}",
       "Export failed. See diagnostics.": "\u05D4\u05D9\u05D9\u05E6\u05D5\u05D0 \u05E0\u05DB\u05E9\u05DC. \u05E2\u05D9\u05D9\u05DF \u05D1\u05E0\u05EA\u05D5\u05E0\u05D9 \u05D4\u05D0\u05D1\u05D7\u05D5\u05DF.",
       "Diagnostics copied to clipboard.": "\u05E0\u05EA\u05D5\u05E0\u05D9 \u05D4\u05D0\u05D1\u05D7\u05D5\u05DF \u05D4\u05D5\u05E2\u05EA\u05E7\u05D5 \u05DC\u05DC\u05D5\u05D7.",
       "Could not copy diagnostics.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05D4\u05E2\u05EA\u05D9\u05E7 \u05D0\u05EA \u05E0\u05EA\u05D5\u05E0\u05D9 \u05D4\u05D0\u05D1\u05D7\u05D5\u05DF.",
       "Building WARC archive\u2026": "\u05D1\u05D5\u05E0\u05D4 \u05D0\u05E8\u05DB\u05D9\u05D5\u05DF WARC\u2026",
       "WARC downloaded ({records} records).": "WARC \u05D4\u05D5\u05E8\u05D3 ({records} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA).",
       "WARC export failed.": "\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D4\u2011WARC \u05E0\u05DB\u05E9\u05DC.",
+      "Copied {records} records to clipboard.": "{records} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05D4\u05D5\u05E2\u05EA\u05E7\u05D5 \u05DC\u05DC\u05D5\u05D7.",
+      "Exported {records} records to {target}.": "\u05D9\u05D5\u05E6\u05D0\u05D5 {records} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05D0\u05DC {target}.",
       "External export failed.": "\u05D4\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D4\u05D7\u05D9\u05E6\u05D5\u05E0\u05D9 \u05E0\u05DB\u05E9\u05DC.",
       "Records per ZIP saved": "\u05DE\u05E1\u05E4\u05E8 \u05D4\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05DC\u05DB\u05DC ZIP \u05E0\u05E9\u05DE\u05E8",
       "Export job retention saved": "\u05E9\u05DE\u05D9\u05E8\u05EA \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D4\u05D9\u05D9\u05E6\u05D5\u05D0 \u05D4\u05D5\u05D2\u05D3\u05E8\u05D4",
@@ -5024,7 +5320,6 @@ html.av-reduce-motion *::after {
       "Could not clear hidden posts.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E0\u05E7\u05D5\u05EA \u05D0\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D4\u05DE\u05D5\u05E1\u05EA\u05E8\u05D9\u05DD.",
       "Saving...": "\u05E9\u05D5\u05DE\u05E8...",
       "Could not save settings. Try again.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D0\u05EA \u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA. \u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1.",
-      "Aviary settings": "\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA Aviary",
       "Nothing matches that search.": "\u05D0\u05D9\u05DF \u05EA\u05D5\u05E6\u05D0\u05D5\u05EA \u05DC\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D4\u05D6\u05D4.",
       "Try a shorter word, or pick a section on the left.": "\u05E0\u05E1\u05D4 \u05DE\u05D9\u05DC\u05D4 \u05E7\u05E6\u05E8\u05D4 \u05D9\u05D5\u05EA\u05E8, \u05D0\u05D5 \u05D1\u05D7\u05E8 \u05DE\u05E7\u05D8\u05E2 \u05DE\u05D9\u05DE\u05D9\u05DF.",
       "No captured records match \u201C{query}\u201D.": "\u05D0\u05D9\u05DF \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05E0\u05DC\u05DB\u05D3\u05D5 \u05D4\u05EA\u05D5\u05D0\u05DE\u05D5\u05EA \u05DC\u05BE\u201E{query}\u201D.",
@@ -5035,6 +5330,7 @@ html.av-reduce-motion *::after {
       "Search saved posts by text, handle, tags, folder, or ID.": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05DE\u05D5\u05E8\u05D9\u05DD \u05DC\u05E4\u05D9 \u05D8\u05E7\u05E1\u05D8, \u05D9\u05D3\u05D9\u05EA, \u05EA\u05D2\u05D9\u05D5\u05EA, \u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D0\u05D5 \u05DE\u05D6\u05D4\u05D4.",
       "Search local bookmarks": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D1\u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA",
       "No local bookmarks match this search.": "\u05D0\u05D9\u05DF \u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA \u05E9\u05EA\u05D5\u05D0\u05DE\u05D5\u05EA \u05DC\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D4\u05D6\u05D4.",
+      "(no text)": "(\u05DC\u05DC\u05D0 \u05D8\u05E7\u05E1\u05D8)",
       "Notes": "\u05D4\u05E2\u05E8\u05D5\u05EA",
       "Bookmark notes": "\u05D4\u05E2\u05E8\u05D5\u05EA \u05D4\u05E1\u05D9\u05DE\u05E0\u05D9\u05D9\u05D4",
       "Remove": "\u05D4\u05E1\u05E8\u05D4",
@@ -5047,6 +5343,38 @@ html.av-reduce-motion *::after {
       "Fallback selectors in use": "\u05D1\u05D5\u05E8\u05E8\u05D9 \u05D2\u05D9\u05D1\u05D5\u05D9 \u05D1\u05E9\u05D9\u05DE\u05D5\u05E9",
       "Affected features": "\u05EA\u05DB\u05D5\u05E0\u05D5\u05EA \u05DE\u05D5\u05E9\u05E4\u05E2\u05D5\u05EA",
       "Last selector transition": "\u05DE\u05E2\u05D1\u05E8 \u05D4\u05D1\u05D5\u05E8\u05E8 \u05D4\u05D0\u05D7\u05E8\u05D5\u05DF",
+      "{count} entries": "{count} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA",
+      "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "{posts} \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \xB7 {likes} \u05DC\u05D9\u05D9\u05E7\u05D9\u05DD \xB7 {messages} \u05D4\u05D5\u05D3\u05E2\u05D5\u05EA \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA (\u05DE\u05D7\u05D5\u05E5 \u05DC\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D4\u05E6\u05D9\u05D1\u05D5\u05E8\u05D9) \xB7 {media} \u05D4\u05E4\u05E0\u05D9\u05D5\u05EA \u05DE\u05D3\u05D9\u05D4 \xB7 {followers} \u05E2\u05D5\u05E7\u05D1\u05D9\u05DD \xB7 {following} \u05D1\u05DE\u05E2\u05E7\u05D1 \xB7 {lists} \u05E8\u05E9\u05D9\u05DE\u05D5\u05EA",
+      "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \xB7 {files} \u05E7\u05D1\u05E6\u05D9\u05DD \xB7 {warnings} \u05D0\u05D6\u05D4\u05E8\u05D5\u05EA",
+      "gid {gid} \xB7 {status}": "\u05DE\u05D6\u05D4\u05D4 {gid} \xB7 {status}",
+      "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} \u05E0\u05E9\u05DE\u05E8\u05D5 \xB7 {due} \u05DC\u05EA\u05D6\u05DB\u05D5\u05E8\u05EA \xB7 {tags} \u05EA\u05D2\u05D9\u05D5\u05EA \xB7 {folders} \u05EA\u05D9\u05E7\u05D9\u05D5\u05EA",
+      "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \xB7 {surface}",
+      "Pause {filename}.": "\u05D4\u05E9\u05D4\u05D4 \u05D0\u05EA {filename}.",
+      "Resume {filename}.": "\u05D7\u05D3\u05E9 \u05D0\u05EA {filename}.",
+      "Cancel {filename}.": "\u05D1\u05D8\u05DC \u05D0\u05EA {filename}.",
+      "Retry {filename}.": "\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1 \u05D0\u05EA {filename}.",
+      "Pause {jobId}.": "\u05D4\u05E9\u05D4\u05D4 \u05D0\u05EA {jobId}.",
+      "Resume {jobId}.": "\u05D7\u05D3\u05E9 \u05D0\u05EA {jobId}.",
+      "Cancel {jobId}.": "\u05D1\u05D8\u05DC \u05D0\u05EA {jobId}.",
+      "Active profile": "\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05E4\u05E2\u05D9\u05DC",
+      "Switch profile": "\u05D4\u05D7\u05DC\u05E4\u05EA \u05E4\u05E8\u05D5\u05E4\u05D9\u05DC",
+      "Assign legacy data here": "\u05D4\u05E7\u05E6\u05D0\u05EA \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D9\u05E9\u05E0\u05D9\u05DD \u05DB\u05D0\u05DF",
+      "New profile": "\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05D7\u05D3\u05E9",
+      "Imported collections": "\u05D0\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05D9\u05D5\u05D1\u05D0\u05D5",
+      "Archive import": "\u05D9\u05D9\u05D1\u05D5\u05D0 \u05D0\u05E8\u05DB\u05D9\u05D5\u05DF",
+      "Pause archive import": "\u05D4\u05E9\u05D4\u05D9\u05D9\u05EA \u05D9\u05D9\u05D1\u05D5\u05D0 \u05D0\u05E8\u05DB\u05D9\u05D5\u05DF",
+      "Resume archive import": "\u05D7\u05D9\u05D3\u05D5\u05E9 \u05D9\u05D9\u05D1\u05D5\u05D0 \u05D0\u05E8\u05DB\u05D9\u05D5\u05DF",
+      "Cancel archive import": "\u05D1\u05D9\u05D8\u05D5\u05DC \u05D9\u05D9\u05D1\u05D5\u05D0 \u05D0\u05E8\u05DB\u05D9\u05D5\u05DF",
+      "Retry archive import": "\u05E0\u05D9\u05E1\u05D9\u05D5\u05DF \u05D7\u05D5\u05D6\u05E8 \u05DC\u05D9\u05D9\u05D1\u05D5\u05D0 \u05D0\u05E8\u05DB\u05D9\u05D5\u05DF",
+      "Local bookmarks": "\u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA",
+      "Clear local bookmarks": "\u05E0\u05D9\u05E7\u05D5\u05D9 \u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA",
+      "Export job": "\u05DE\u05E9\u05D9\u05DE\u05EA \u05D9\u05D9\u05E6\u05D5\u05D0",
+      "Pause export job": "\u05D4\u05E9\u05D4\u05D9\u05D9\u05EA \u05DE\u05E9\u05D9\u05DE\u05EA \u05D9\u05D9\u05E6\u05D5\u05D0",
+      "Resume export job": "\u05D7\u05D9\u05D3\u05D5\u05E9 \u05DE\u05E9\u05D9\u05DE\u05EA \u05D9\u05D9\u05E6\u05D5\u05D0",
+      "Cancel export job": "\u05D1\u05D9\u05D8\u05D5\u05DC \u05DE\u05E9\u05D9\u05DE\u05EA \u05D9\u05D9\u05E6\u05D5\u05D0",
+      "Active media batch": "\u05D0\u05E6\u05D5\u05D5\u05D4 \u05E4\u05E2\u05D9\u05DC\u05D4 \u05E9\u05DC \u05DE\u05D3\u05D9\u05D4",
+      "Resume queued media": "\u05D7\u05D9\u05D3\u05D5\u05E9 \u05DE\u05D3\u05D9\u05D4 \u05D1\u05EA\u05D5\u05E8",
+      "Retry failed media": "\u05E0\u05D9\u05E1\u05D9\u05D5\u05DF \u05D7\u05D5\u05D6\u05E8 \u05DC\u05DE\u05D3\u05D9\u05D4 \u05E9\u05E0\u05DB\u05E9\u05DC\u05D4",
       "Open Aviary AI command menu": "\u05E4\u05EA\u05D9\u05D7\u05EA \u05EA\u05E4\u05E8\u05D9\u05D8 \u05E4\u05E7\u05D5\u05D3\u05D5\u05EA \u05D4-AI \u05E9\u05DC Aviary",
       "Aviary AI commands (offline prompt builder)": "\u05E4\u05E7\u05D5\u05D3\u05D5\u05EA \u05D4-AI \u05E9\u05DC Aviary (\u05D1\u05D5\u05E0\u05D4 \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8\u05D9\u05DD \u05DC\u05DC\u05D0 \u05E8\u05E9\u05EA)",
       "Run with provider": "\u05D4\u05E8\u05E6\u05D4 \u05DE\u05D5\u05DC \u05D4\u05E1\u05E4\u05E7",
@@ -6412,7 +6740,12 @@ html.av-reduce-motion *::after {
         rows.push(
           dataRow(
             "Snapshots stored",
-            `${status2.total} entries${status2.latestAt ? ` \xB7 latest ${status2.latestKind} of ${status2.latestCount} @ ${status2.latestAt}` : ""}`
+            status2.latestAt ? localizedCopy("{count} entries \xB7 latest {kind} of {latestCount} @ {at}", {
+              count: status2.total,
+              kind: status2.latestKind ?? "snapshot",
+              latestCount: status2.latestCount,
+              at: status2.latestAt
+            }) : localizedCopy("{count} entries", { count: status2.total })
           )
         );
       }
@@ -6483,7 +6816,18 @@ html.av-reduce-motion *::after {
         rows.push(
           dataRow(
             "Imported collections",
-            `${archiveLibraryStatus.authoredPosts} posts \xB7 ${archiveLibraryStatus.likes} likes \xB7 ${archiveLibraryStatus.directMessages} direct messages (kept out of public search) \xB7 ${archiveLibraryStatus.media} media refs \xB7 ${archiveLibraryStatus.followers} followers \xB7 ${archiveLibraryStatus.following} following \xB7 ${archiveLibraryStatus.lists} lists`
+            localizedCopy(
+              "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists",
+              {
+                posts: archiveLibraryStatus.authoredPosts,
+                likes: archiveLibraryStatus.likes,
+                messages: archiveLibraryStatus.directMessages,
+                media: archiveLibraryStatus.media,
+                followers: archiveLibraryStatus.followers,
+                following: archiveLibraryStatus.following,
+                lists: archiveLibraryStatus.lists
+              }
+            )
           )
         );
       }
@@ -6492,12 +6836,18 @@ html.av-reduce-motion *::after {
           rows.push(
             dataRow(
               "Archive import",
-              `${job.status} \xB7 ${job.filename} \xB7 ${job.recordCount} records \xB7 ${job.filesParsed} files \xB7 ${job.warningCount} warnings${job.error ? ` \xB7 ${job.error}` : ""}`
+              `${localizedCopy("{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings", {
+                status: job.status,
+                filename: job.filename,
+                records: job.recordCount,
+                files: job.filesParsed,
+                warnings: job.warningCount
+              })}${job.error ? ` \xB7 ${job.error}` : ""}`
             )
           );
           if (job.status === "running" && options.pauseArchiveImport) {
             rows.push(
-              actionRow("Pause archive import", `Pause ${job.filename}.`, async () => {
+              actionRow("Pause archive import", { source: "Pause {filename}.", values: { filename: job.filename } }, async () => {
                 const result = await options.pauseArchiveImport(job.jobId);
                 if (!result.ok) throw new Error(result.error ?? "Archive import could not be paused");
                 render();
@@ -6507,7 +6857,7 @@ html.av-reduce-motion *::after {
           }
           if ((job.status === "paused" || job.status === "queued") && options.resumeArchiveImport) {
             rows.push(
-              actionRow("Resume archive import", `Resume ${job.filename}.`, async () => {
+              actionRow("Resume archive import", { source: "Resume {filename}.", values: { filename: job.filename } }, async () => {
                 const result = await options.resumeArchiveImport(job.jobId);
                 if (!result.ok) throw new Error(result.error ?? "Archive import could not be resumed");
                 render();
@@ -6517,7 +6867,7 @@ html.av-reduce-motion *::after {
           }
           if ((job.status === "running" || job.status === "paused" || job.status === "queued") && options.cancelArchiveImport) {
             rows.push(
-              actionRow("Cancel archive import", `Cancel ${job.filename}.`, async () => {
+              actionRow("Cancel archive import", { source: "Cancel {filename}.", values: { filename: job.filename } }, async () => {
                 const result = await options.cancelArchiveImport(job.jobId);
                 if (!result.ok) throw new Error(result.error ?? "Archive import could not be cancelled");
                 render();
@@ -6527,7 +6877,7 @@ html.av-reduce-motion *::after {
           }
           if ((job.status === "failed" || job.status === "cancelled") && options.retryArchiveImport) {
             rows.push(
-              actionRow("Retry archive import", `Retry ${job.filename}.`, async () => {
+              actionRow("Retry archive import", { source: "Retry {filename}.", values: { filename: job.filename } }, async () => {
                 const result = await options.retryArchiveImport(job.jobId);
                 if (!result.ok) throw new Error(result.error ?? "Archive import could not be retried");
                 render();
@@ -6653,7 +7003,12 @@ html.av-reduce-motion *::after {
         rows.push(
           dataRow(
             "Cleanup review queue",
-            `${queueStatus.total} items \xB7 queued ${queueStatus.queued} \xB7 approved ${queueStatus.approved} \xB7 skipped ${queueStatus.skipped}`
+            localizedCopy("{total} items \xB7 queued {queued} \xB7 approved {approved} \xB7 skipped {skipped}", {
+              total: queueStatus.total,
+              queued: queueStatus.queued,
+              approved: queueStatus.approved,
+              skipped: queueStatus.skipped
+            })
           )
         );
         rows.push(
@@ -6786,7 +7141,7 @@ html.av-reduce-motion *::after {
               const total = job.totalLength > 0 ? `${Math.round(job.completedLength / job.totalLength * 100)}%` : "?";
               item.append(
                 el("span", "av-row-label", `${job.path || job.gid} \xB7 ${total}`),
-                el("span", "av-row-description", `gid ${job.gid} \xB7 ${job.status}`)
+                el("span", "av-row-description", localizedCopy("gid {gid} \xB7 {status}", { gid: job.gid, status: job.status }))
               );
               const cancel = el("button", "av-button av-button-secondary", t("Cancel"));
               cancel.type = "button";
@@ -7260,7 +7615,12 @@ html.av-reduce-motion *::after {
         rows.push(
           dataRow(
             "Local bookmarks",
-            `${status2.total} saved \xB7 ${status2.due} due \xB7 ${status2.tags.length} tags \xB7 ${status2.folders.length} folders`
+            localizedCopy("{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders", {
+              saved: status2.total,
+              due: status2.due,
+              tags: status2.tags.length,
+              folders: status2.folders.length
+            })
           )
         );
         const bookmarkRow = el("div", "av-row av-row-stack");
@@ -7290,7 +7650,11 @@ html.av-reduce-motion *::after {
             const item = el("div", "av-search-hit av-bookmark-hit");
             item.setAttribute("role", "listitem");
             const head = el("span", "av-row-label", `@${entry.handle ?? "anon"} \xB7 ${entry.tweetId ?? entry.id}`);
-            const body2 = el("span", "av-row-description", entry.text.slice(0, 180) || entry.url || "(no text)");
+            const body2 = el(
+              "span",
+              "av-row-description",
+              entry.text.slice(0, 180) || entry.url || t("(no text)")
+            );
             item.append(head, body2);
             const editor = el("div", "av-bookmark-editor");
             const tags = bookmarkField("Bookmark tags", entry.tags.join(", "), "Tags, comma-separated");
@@ -7611,19 +7975,26 @@ html.av-reduce-motion *::after {
         rows.push(
           dataRow(
             "Export status",
-            `${status2.jobCount} jobs tracked \xB7 ${status2.knownQueries} GraphQL IDs cached`
+            localizedCopy("{jobs} jobs tracked \xB7 {queries} GraphQL IDs cached", {
+              jobs: status2.jobCount,
+              queries: status2.knownQueries
+            })
           )
         );
         for (const job of (status2.jobs ?? []).slice(-3)) {
           rows.push(
             dataRow(
               "Export job",
-              `${job.status} \xB7 ${job.recordCount} records \xB7 ${job.surface}${job.error ? ` \xB7 ${job.error}` : ""}`
+              `${localizedCopy("{status} \xB7 {records} records \xB7 {surface}", {
+                status: job.status,
+                records: job.recordCount,
+                surface: job.surface
+              })}${job.error ? ` \xB7 ${job.error}` : ""}`
             )
           );
           if (job.status === "running" && options.pauseExportJob) {
             rows.push(
-              actionRow("Pause export job", `Pause ${job.jobId}.`, async () => {
+              actionRow("Pause export job", { source: "Pause {jobId}.", values: { jobId: job.jobId } }, async () => {
                 const result = await options.pauseExportJob(job.jobId);
                 if (!result.ok) throw new Error(result.error ?? "Export job could not be paused");
                 render();
@@ -7633,7 +8004,7 @@ html.av-reduce-motion *::after {
           }
           if (job.status === "paused" && options.resumeExportJob) {
             rows.push(
-              actionRow("Resume export job", `Resume ${job.jobId}.`, async () => {
+              actionRow("Resume export job", { source: "Resume {jobId}.", values: { jobId: job.jobId } }, async () => {
                 const result = await options.resumeExportJob(job.jobId);
                 if (!result.ok) throw new Error(result.error ?? "Export job could not be resumed");
                 render();
@@ -7643,7 +8014,7 @@ html.av-reduce-motion *::after {
           }
           if ((job.status === "running" || job.status === "paused" || job.status === "queued") && options.cancelExportJob) {
             rows.push(
-              actionRow("Cancel export job", `Cancel ${job.jobId}.`, async () => {
+              actionRow("Cancel export job", { source: "Cancel {jobId}.", values: { jobId: job.jobId } }, async () => {
                 const result = await options.cancelExportJob(job.jobId);
                 if (!result.ok) throw new Error(result.error ?? "Export job could not be cancelled");
                 render();
@@ -7661,9 +8032,25 @@ html.av-reduce-motion *::after {
               const result = await options.runExport();
               render();
               const files = result.files ?? 1;
-              setStatus(
-                result.records === 0 ? "No posts found on this view. Scroll the timeline to load some, then export again." : files > 1 ? `Exported ${result.records} records across ${files} ZIPs \u2192 ${result.filename}` : `Exported ${result.records} record${result.records === 1 ? "" : "s"} \u2192 ${result.filename}`
-              );
+              if (result.records === 0) {
+                setStatus("No posts found on this view. Scroll the timeline to load some, then export again.");
+              } else if (files > 1) {
+                setStatusCopy("Exported {records} records across {files} ZIPs \u2192 {filename}", {
+                  records: result.records,
+                  files,
+                  filename: result.filename
+                });
+              } else if (result.records === 1) {
+                setStatusCopy("Exported {records} record \u2192 {filename}", {
+                  records: result.records,
+                  filename: result.filename
+                });
+              } else {
+                setStatusCopy("Exported {records} records \u2192 {filename}", {
+                  records: result.records,
+                  filename: result.filename
+                });
+              }
             } catch (error) {
               options.onError("Export failed", error);
               setStatus("Export failed. See diagnostics.");
@@ -7714,9 +8101,14 @@ html.av-reduce-motion *::after {
             actionRow(target.label, target.description, async () => {
               try {
                 const result = await options.exportToTarget(target.id);
-                setStatus(
-                  result.copied ? `Copied ${result.records} records to clipboard.` : `Exported ${result.records} records \u2192 ${target.label.toLowerCase()}.`
-                );
+                if (result.copied) {
+                  setStatusCopy("Copied {records} records to clipboard.", { records: result.records });
+                } else {
+                  setStatusCopy("Exported {records} records to {target}.", {
+                    records: result.records,
+                    target: t(target.label)
+                  });
+                }
               } catch (error) {
                 options.onError("External export failed", error);
                 setStatus("External export failed.");
@@ -8395,6 +8787,9 @@ html.av-reduce-motion *::after {
       template
     );
   }
+  function localizedCopy(source, values) {
+    return formatCopy(t(source), values);
+  }
   function captureSelection(node) {
     if (!isTextField(node)) {
       return null;
@@ -8633,7 +9028,14 @@ html.av-reduce-motion *::after {
   function buildActionRow(label, description, onClick, onReject, onStart, onFinish) {
     const row = el("div", "av-row");
     const copy = el("span", "av-row-copy");
-    copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
+    copy.append(
+      el("span", "av-row-label", t(label)),
+      el(
+        "span",
+        "av-row-description",
+        typeof description === "string" ? t(description) : localizedCopy(description.source, description.values)
+      )
+    );
     row.append(copy);
     const button2 = el("button", "av-button av-button-secondary", t(label));
     button2.type = "button";
