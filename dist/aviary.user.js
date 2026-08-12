@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/aviary-x
-// @version      1.16.0
+// @version      1.17.0
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       Aviary contributors
 // @match        https://x.com/*
@@ -6148,7 +6148,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/platform/build-version.ts
-  var AVIARY_VERSION = false ? "dev" : "1.16.0";
+  var AVIARY_VERSION = false ? "dev" : "1.17.0";
 
   // src/platform/settings.ts
   var SETTINGS_KEY = "aviary.settings.v1";
@@ -9242,7 +9242,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION2 = false ? "dev" : "1.16.0";
+  var AVIARY_VERSION2 = false ? "dev" : "1.17.0";
   function mountControlCenter(options) {
     const existing = document.getElementById("av-control-center");
     existing?.remove();

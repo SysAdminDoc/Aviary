@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.17.0 - 2026-08-12
+
 ### Added
 
 - AI and embedding integrations now disclose their provider, endpoint, fields, retention, and
