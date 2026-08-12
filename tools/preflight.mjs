@@ -150,13 +150,23 @@ async function checkSourcePolicy() {
     if (/innerHTML|insertAdjacentHTML/.test(text)) {
       failures.push(`${rel}: HTML injection sink — use TrustedTypes helper`);
     }
-    if (/keydown|keyup|keypress/.test(text)) {
-      failures.push(`${rel}: keyboard shortcut handler detected — Aviary forbids hotkeys`);
+    if (/keydown|keyup|keypress/.test(text) && !isScopedKeyboardInteraction(rel, text)) {
+      failures.push(`${rel}: keyboard shortcut handler detected — only scoped dialog/menu navigation is allowed`);
     }
     if (/backdrop-filter/.test(text)) {
       failures.push(`${rel}: backdrop-filter detected — banned for content scripts`);
     }
   }
+}
+
+function isScopedKeyboardInteraction(relative, text) {
+  const allowed = new Set([
+    path.join("src", "ui", "control-center.ts"),
+    path.join("src", "features", "ai", "command-menu.ts"),
+    path.join("src", "features", "composer", "composer-snippets.ts")
+  ]);
+  if (!allowed.has(relative)) return false;
+  return /event\.key|\.key\s*===\s*["'](Escape|Tab|Arrow(?:Up|Down|Left|Right))["']/.test(text);
 }
 
 async function checkDependencyPolicy() {

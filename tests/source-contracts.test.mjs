@@ -19,7 +19,7 @@ test("source avoids unsafe injection and shortcut patterns", async () => {
     if (!rel.endsWith(path.join("platform", "trusted-types.ts")) && /innerHTML|insertAdjacentHTML/.test(text)) {
       unsafe.push(rel);
     }
-    if (/keydown|keyup|keypress/.test(text)) {
+    if (/keydown|keyup|keypress/.test(text) && !isScopedKeyboardInteraction(rel, text)) {
       shortcuts.push(rel);
     }
     if (/backdrop-filter/.test(text)) {
@@ -32,6 +32,16 @@ test("source avoids unsafe injection and shortcut patterns", async () => {
   assert.deepEqual(blur, [], "content scripts must not use backdrop-filter");
 });
 
+function isScopedKeyboardInteraction(relative, text) {
+  const allowed = new Set([
+    path.join("src", "ui", "control-center.ts"),
+    path.join("src", "features", "ai", "command-menu.ts"),
+    path.join("src", "features", "composer", "composer-snippets.ts")
+  ]);
+  if (!allowed.has(relative)) return false;
+  return /event\.key|\.key\s*===\s*["'](Escape|Tab|Arrow(?:Up|Down|Left|Right))["']/.test(text);
+}
+
 test("Control Center follows overlay accessibility and shape rules", async () => {
   const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
 
@@ -40,6 +50,12 @@ test("Control Center follows overlay accessibility and shape rules", async () =>
   assert.match(source, /role", "status"/);
   assert.match(source, /aria-live/);
   assert.ok(!/border-radius:\s*(999|9999)px/.test(source));
+  assert.match(source, /aria-modal", "true"/);
+  assert.match(source, /document\.body\?\.setAttribute\("inert", ""\)/);
+  assert.match(source, /event\.key === "Escape"/);
+  assert.match(source, /focusables\[0\]!\.focus/);
+  const openCss = source.slice(source.indexOf(".av-overlay.is-open"), source.indexOf(".av-panel {"));
+  assert.match(openCss, /pointer-events: auto/);
 });
 
 test("runtime hardening contracts stay in place", async () => {

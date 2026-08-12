@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- The Control Center now behaves as a real modal: its backdrop consumes pointer input, the page
+  is inert while it is open, focus stays inside with Tab/Shift+Tab wrapping, Escape closes it, and
+  the localized launcher regains focus on close.
 - Versioned local stores now migrate into a browser-native IndexedDB repository when available,
   retain the legacy copy until the transaction commits, fall back visibly when IndexedDB cannot
   open, and expose schema, usage, quota, and migration status in Trust.

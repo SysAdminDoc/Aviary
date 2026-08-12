@@ -360,12 +360,15 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   panel.id = "av-control-panel";
   panel.setAttribute("role", "dialog");
   panel.setAttribute("aria-label", t("Aviary settings"));
+  panel.setAttribute("aria-modal", "true");
   panel.tabIndex = -1;
 
   const header = el("header", "av-panel-header");
   const titleWrap = el("div", "av-title-wrap");
   const titleRow = el("div", "av-title-row");
   const title = el("h2", "av-title", t("Aviary"));
+  title.id = "av-control-title";
+  panel.setAttribute("aria-labelledby", title.id);
   // Data, not copy: never routed through t(), and never counted against locale coverage.
   const version = el("span", "av-version", `v${AVIARY_VERSION}`);
   version.title = "Aviary version";
@@ -412,8 +415,64 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   /** English source of whatever the status line shows, so a locale change can re-translate it. */
   let lastStatusEnglish = "Saved locally";
   let lastStatusValues: Record<string, string | number> = {};
+  let bodyWasInert = false;
+  let focusTrapAttached = false;
+
+  const modalFocusables = (): HTMLElement[] =>
+    Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter((node) => {
+      if (node.hasAttribute("disabled") || node.getAttribute("aria-hidden") === "true") {
+        return false;
+      }
+      return node.getClientRects().length > 0;
+    });
+
+  const handlePanelKeyDown = (event: KeyboardEvent): void => {
+    if (!open) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setOpen(false);
+      return;
+    }
+    if (event.key !== "Tab") return;
+
+    const focusables = modalFocusables();
+    if (focusables.length === 0) {
+      event.preventDefault();
+      panel.focus({ preventScroll: true });
+      return;
+    }
+
+    const active = shadow.activeElement as HTMLElement | null;
+    const index = active ? focusables.indexOf(active) : -1;
+    if (event.shiftKey && (active === panel || index <= 0)) {
+      event.preventDefault();
+      focusables[focusables.length - 1]!.focus({ preventScroll: true });
+    } else if (!event.shiftKey && (active === panel || index === focusables.length - 1 || index < 0)) {
+      event.preventDefault();
+      focusables[0]!.focus({ preventScroll: true });
+    }
+  };
+
+  const handleModalFocusIn = (event: FocusEvent): void => {
+    if (!open) return;
+    const target = event.target;
+    if (target instanceof Node && panel.contains(target)) return;
+    event.stopPropagation();
+    panel.focus({ preventScroll: true });
+  };
+
+  panel.addEventListener("keydown", handlePanelKeyDown);
+  overlay.addEventListener("click", (event) => {
+    if (open && event.target === overlay) {
+      setOpen(false);
+    }
+  });
 
   const setOpen = (value: boolean): void => {
+    if (open === value) {
+      if (value) panel.focus({ preventScroll: true });
+      return;
+    }
     open = value;
     launcher.setAttribute("aria-expanded", String(open));
     overlay.classList.toggle("is-open", open);
@@ -422,6 +481,10 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     // keyboard user would tab through ~137 invisible fields inside an aria-hidden container.
     overlay.toggleAttribute("inert", !open);
     if (open) {
+      bodyWasInert = document.body?.hasAttribute("inert") ?? false;
+      document.body?.setAttribute("inert", "");
+      document.addEventListener("focusin", handleModalFocusIn, true);
+      focusTrapAttached = true;
       // Repaint anything that went stale while the panel was closed.
       if (dirtyWhileBusy) {
         dirtyWhileBusy = false;
@@ -429,6 +492,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       }
       panel.focus({ preventScroll: true });
     } else {
+      if (document.body) {
+        if (bodyWasInert) document.body.setAttribute("inert", "");
+        else document.body.removeAttribute("inert");
+      }
+      if (focusTrapAttached) {
+        document.removeEventListener("focusin", handleModalFocusIn, true);
+        focusTrapAttached = false;
+      }
       launcher.focus({ preventScroll: true });
     }
   };
@@ -546,6 +617,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     subtitle.textContent = t("Local controls for a quieter X.");
     close.textContent = t("Close");
     launcher.textContent = t("Aviary");
+    panel.setAttribute("aria-label", t("Aviary settings"));
     // Chrome outside `body` survives the re-render, which is the point — but that also means
     // nothing repaints it on a locale change unless it is done here.
     search.placeholder = t("Search settings");
@@ -3235,6 +3307,11 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
   return {
     destroy() {
+      if (open) setOpen(false);
+      if (focusTrapAttached) {
+        document.removeEventListener("focusin", handleModalFocusIn, true);
+        focusTrapAttached = false;
+      }
       host.remove();
     },
     refresh() {
@@ -3872,7 +3949,7 @@ input:focus-visible {
 
 .av-overlay.is-open {
   opacity: 1;
-  pointer-events: none;
+  pointer-events: auto;
   visibility: visible;
   transform: translateY(0);
   transition: opacity 160ms ease, transform 160ms ease, visibility 0s;

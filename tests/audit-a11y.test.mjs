@@ -20,6 +20,12 @@ test("the closed panel is removed from the tab order, not just faded out", async
   assert.match(overlayCss, /visibility: visible/);
   // The fade must still run, so visibility is delayed rather than instant on close.
   assert.match(overlayCss, /visibility 0s linear 160ms/);
+  assert.match(source, /aria-modal", "true"/);
+  assert.match(source, /document\.body\?\.setAttribute\("inert", ""\)/);
+  assert.match(source, /event\.key === "Escape"/);
+  assert.match(source, /focusables\[0\]!\.focus/);
+  const openCss = source.slice(source.indexOf(".av-overlay.is-open"), source.indexOf(".av-panel {"));
+  assert.match(openCss, /pointer-events: auto/);
 });
 
 test("hiding engagement counts keeps the buttons and their labels", async () => {
