@@ -57,8 +57,12 @@ export const composerSnippetsFeature: FeatureModule = {
 };
 
 let openPaletteDismiss: ((event: Event) => void) | undefined;
+let openPaletteKeydown: ((event: KeyboardEvent) => void) | undefined;
+let openPaletteNode: HTMLElement | undefined;
+let openPaletteTrigger: HTMLElement | undefined;
 let openPaletteDismissTimer: ReturnType<typeof setTimeout> | undefined;
 let appliedSnippetsSignature: string | undefined;
+let paletteSequence = 0;
 
 function clearDecorations(): void {
   closePalettes();
@@ -72,17 +76,28 @@ function clearDecorations(): void {
   }
 }
 
-function closePalettes(): void {
+function closePalettes(restoreFocus = true): void {
   if (openPaletteDismiss) {
     document.removeEventListener("click", openPaletteDismiss, true);
     openPaletteDismiss = undefined;
+  }
+  if (openPaletteKeydown && openPaletteNode) {
+    openPaletteNode.removeEventListener("keydown", openPaletteKeydown);
+    openPaletteKeydown = undefined;
   }
   if (openPaletteDismissTimer !== undefined) {
     clearTimeout(openPaletteDismissTimer);
     openPaletteDismissTimer = undefined;
   }
+  const trigger = openPaletteTrigger;
+  trigger?.setAttribute("aria-expanded", "false");
+  openPaletteTrigger = undefined;
   for (const palette of Array.from(document.querySelectorAll(`[${PALETTE_ATTR}="popover"]`))) {
     palette.remove();
+  }
+  openPaletteNode = undefined;
+  if (restoreFocus && trigger?.isConnected) {
+    trigger.focus({ preventScroll: true });
   }
 }
 
@@ -105,6 +120,7 @@ function decorate(ctx: FeatureContext, root: ParentNode | Element): void {
     if (toolbar.getAttribute(TOOLBAR_ATTR) === "1") {
       const trigger = toolbar.querySelector<HTMLElement>(`[${PALETTE_ATTR}="trigger"]`);
       if (trigger) {
+        configureTrigger(trigger);
         trigger.textContent = ft(ctx, "Snippets");
         trigger.setAttribute("aria-label", ft(ctx, "Open Aviary composer snippets"));
       }
@@ -114,6 +130,7 @@ function decorate(ctx: FeatureContext, root: ParentNode | Element): void {
     button.type = "button";
     button.className = "av-snippet-trigger";
     button.setAttribute(PALETTE_ATTR, "trigger");
+    configureTrigger(button);
     button.textContent = ft(ctx, "Snippets");
     button.setAttribute("aria-label", ft(ctx, "Open Aviary composer snippets"));
     button.addEventListener("click", (event) => {
@@ -126,6 +143,16 @@ function decorate(ctx: FeatureContext, root: ParentNode | Element): void {
   }
 }
 
+function configureTrigger(trigger: HTMLElement): void {
+  if (!trigger.id) {
+    const sequence = ++paletteSequence;
+    trigger.id = `av-snippet-trigger-${sequence}`;
+    trigger.setAttribute("aria-controls", `av-snippet-menu-${sequence}`);
+  }
+  trigger.setAttribute("aria-haspopup", "menu");
+  trigger.setAttribute("aria-expanded", "false");
+}
+
 function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
   // Close any existing palette before opening a new one (idempotent).
   closePalettes();
@@ -135,6 +162,11 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
   popover.setAttribute(PALETTE_ATTR, "popover");
   popover.className = "av-snippet-popover";
   popover.setAttribute("role", "menu");
+  popover.tabIndex = -1;
+  popover.id = trigger.getAttribute("aria-controls") ?? `av-snippet-menu-${++paletteSequence}`;
+  popover.setAttribute("aria-labelledby", trigger.id);
+  trigger.setAttribute("aria-expanded", "true");
+  openPaletteTrigger = trigger;
 
   if (snippets.length === 0) {
     const empty = document.createElement("div");
@@ -148,6 +180,7 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
       option.className = "av-snippet-option";
       option.textContent = snippet.length > 80 ? `${snippet.slice(0, 77)}…` : snippet;
       option.setAttribute("role", "menuitem");
+      option.tabIndex = -1;
       option.title = snippet;
       option.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -164,7 +197,7 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
             ctx
           });
         }
-        popover.remove();
+        closePalettes();
       });
       popover.append(option);
     }
@@ -172,14 +205,59 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
 
   positionPopover(popover, trigger);
   document.body.append(popover);
+  openPaletteNode = popover;
+  const menuItems = (): HTMLButtonElement[] =>
+    Array.from(popover.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));
+  const focusMenuItem = (index: number): void => {
+    const items = menuItems();
+    if (items.length === 0) {
+      popover.focus({ preventScroll: true });
+      return;
+    }
+    const next = (index + items.length) % items.length;
+    items[next]?.focus({ preventScroll: true });
+  };
+  const keydown = (event: KeyboardEvent): void => {
+    const items = menuItems();
+    const current = items.indexOf(document.activeElement as HTMLButtonElement);
+    if (event.key === "Escape" || event.key === "Tab") {
+      event.preventDefault();
+      event.stopPropagation();
+      closePalettes();
+      return;
+    }
+    if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+      event.preventDefault();
+      focusMenuItem(current + 1);
+      return;
+    }
+    if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+      event.preventDefault();
+      focusMenuItem(current - 1);
+      return;
+    }
+    if (event.key === "Home") {
+      event.preventDefault();
+      focusMenuItem(0);
+      return;
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      focusMenuItem(items.length - 1);
+      return;
+    }
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      items[current]?.click();
+    }
+  };
+  openPaletteKeydown = keydown;
+  popover.addEventListener("keydown", keydown);
+  focusMenuItem(0);
 
   const dismiss = (event: Event): void => {
     if (!popover.contains(event.target as Node) && event.target !== trigger) {
-      popover.remove();
-      document.removeEventListener("click", dismiss, true);
-      if (openPaletteDismiss === dismiss) {
-        openPaletteDismiss = undefined;
-      }
+      closePalettes();
     }
   };
   // Defer so the click that opened the palette doesn't dismiss it.

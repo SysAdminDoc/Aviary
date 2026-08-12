@@ -166,7 +166,7 @@ function isScopedKeyboardInteraction(relative, text) {
     path.join("src", "features", "composer", "composer-snippets.ts")
   ]);
   if (!allowed.has(relative)) return false;
-  return /event\.key|\.key\s*===\s*["'](Escape|Tab|Arrow(?:Up|Down|Left|Right))["']/.test(text);
+  return /\.key\s*===\s*["'](?:Escape|Tab|Arrow(?:Up|Down|Left|Right)|Home|End|Enter|\s)["']/.test(text);
 }
 
 async function checkDependencyPolicy() {

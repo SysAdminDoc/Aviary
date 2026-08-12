@@ -68,12 +68,14 @@ function prefersReducedMotion(ctx: FeatureContext): boolean {
 function ensureHost(): ShadowRoot {
   const existing = document.getElementById(TOAST_HOST_ID);
   if (existing?.shadowRoot) {
+    existing.dir = document.documentElement.dir || "ltr";
     return existing.shadowRoot;
   }
 
   const host = document.createElement("div");
   host.id = TOAST_HOST_ID;
   host.dataset.avOwned = "true";
+  host.dir = document.documentElement.dir || "ltr";
   document.documentElement.append(host);
 
   const shadow = host.attachShadow({ mode: "open" });
@@ -97,7 +99,7 @@ function ensureHost(): ShadowRoot {
 const TOAST_CSS = `
 .av-ftoast {
   position: fixed;
-  right: 16px;
+  inset-inline-end: 16px;
   bottom: 132px;
   z-index: 2147483000;
   display: flex;
@@ -105,7 +107,7 @@ const TOAST_CSS = `
   max-width: 340px;
   padding: 10px 12px;
   border: 1px solid var(--av-border, rgb(47, 51, 54));
-  border-left: 3px solid var(--av-accent, rgb(29, 155, 240));
+  border-inline-start: 3px solid var(--av-accent, rgb(29, 155, 240));
   border-radius: 10px;
   background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 97%, black);
   color: var(--av-text, rgb(239, 243, 244));
@@ -122,7 +124,7 @@ const TOAST_CSS = `
 
 /* Tone is carried by the accent rule AND the wording, never by colour alone. */
 .av-ftoast[data-tone="error"] {
-  border-left-color: rgb(220, 110, 110);
+  border-inline-start-color: rgb(220, 110, 110);
 }
 
 .av-ftoast.is-open {

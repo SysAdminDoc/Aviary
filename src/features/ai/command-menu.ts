@@ -128,6 +128,12 @@ function decorate(ctx: FeatureContext, root: ParentNode | Element): void {
     trigger.type = "button";
     trigger.className = "av-ai-trigger";
     trigger.setAttribute(TRIGGER_ATTR, "1");
+    const triggerId = `av-ai-trigger-${++menuSequence}`;
+    const menuId = `av-ai-menu-${menuSequence}`;
+    trigger.id = triggerId;
+    trigger.setAttribute("aria-haspopup", "menu");
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.setAttribute("aria-controls", menuId);
     trigger.setAttribute("aria-label", ft(ctx, "Open Aviary AI command menu"));
     trigger.title = ft(ctx, "Aviary AI commands (offline prompt builder)");
     trigger.textContent = "AI";
@@ -144,16 +150,29 @@ function decorate(ctx: FeatureContext, root: ParentNode | Element): void {
 /** The menu is appended to <body>, so destroy() has to be able to reach it. */
 let openMenuNode: HTMLElement | undefined;
 let openMenuDismiss: ((event: Event) => void) | undefined;
+let openMenuKeydown: ((event: KeyboardEvent) => void) | undefined;
+let openMenuTrigger: HTMLElement | undefined;
+let menuSequence = 0;
 
-function closeOpenMenu(): void {
+function closeOpenMenu(restoreFocus = true): void {
   if (openMenuDismiss) {
     document.removeEventListener("click", openMenuDismiss, true);
     openMenuDismiss = undefined;
   }
+  if (openMenuKeydown && openMenuNode) {
+    openMenuNode.removeEventListener("keydown", openMenuKeydown);
+    openMenuKeydown = undefined;
+  }
+  const trigger = openMenuTrigger;
+  trigger?.setAttribute("aria-expanded", "false");
+  openMenuTrigger = undefined;
   openMenuNode?.remove();
   openMenuNode = undefined;
   for (const stray of Array.from(document.querySelectorAll(".av-ai-menu"))) {
     stray.remove();
+  }
+  if (restoreFocus && trigger?.isConnected) {
+    trigger.focus({ preventScroll: true });
   }
 }
 
@@ -162,6 +181,10 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
   const menu = document.createElement("div");
   menu.className = "av-ai-menu";
   menu.setAttribute("role", "menu");
+  menu.id = trigger.getAttribute("aria-controls") ?? `av-ai-menu-${++menuSequence}`;
+  menu.setAttribute("aria-labelledby", trigger.id);
+  trigger.setAttribute("aria-expanded", "true");
+  openMenuTrigger = trigger;
   const text = (article.querySelector('[data-testid="tweetText"]')?.textContent ?? article.textContent ?? "").trim();
   const aiEnabled = ctx.settings.integrations.ai.enabled && ctx.settings.integrations.ai.apiKey.length > 0;
   for (const command of AI_COMMANDS) {
@@ -169,6 +192,7 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
     item.type = "button";
     item.className = "av-ai-option";
     item.setAttribute("role", "menuitem");
+    item.tabIndex = -1;
     item.title = ft(ctx, command.hint);
     item.textContent = aiEnabled
       ? `${ft(ctx, command.label)} — ${ft(ctx, "Run with provider")}`
@@ -244,6 +268,51 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
   // Measured after insertion: the flip decision needs the menu's real height.
   positionMenu(menu, trigger);
   openMenuNode = menu;
+  const menuItems = (): HTMLButtonElement[] =>
+    Array.from(menu.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));
+  const focusMenuItem = (index: number): void => {
+    const items = menuItems();
+    if (items.length === 0) return;
+    const next = (index + items.length) % items.length;
+    items[next]?.focus({ preventScroll: true });
+  };
+  const keydown = (event: KeyboardEvent): void => {
+    const items = menuItems();
+    const current = items.indexOf(document.activeElement as HTMLButtonElement);
+    if (event.key === "Escape" || event.key === "Tab") {
+      event.preventDefault();
+      event.stopPropagation();
+      closeOpenMenu();
+      return;
+    }
+    if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+      event.preventDefault();
+      focusMenuItem(current + 1);
+      return;
+    }
+    if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+      event.preventDefault();
+      focusMenuItem(current - 1);
+      return;
+    }
+    if (event.key === "Home") {
+      event.preventDefault();
+      focusMenuItem(0);
+      return;
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      focusMenuItem(items.length - 1);
+      return;
+    }
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      items[current]?.click();
+    }
+  };
+  openMenuKeydown = keydown;
+  menu.addEventListener("keydown", keydown);
+  focusMenuItem(0);
   const dismiss = (event: Event): void => {
     if (!menu.contains(event.target as Node) && event.target !== trigger) {
       closeOpenMenu();

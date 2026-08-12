@@ -4,6 +4,11 @@
 
 ### Fixed
 
+- AI and composer-snippet popovers now expose controlled menu state, focus their first option,
+  support arrow/Home/End/Escape navigation, and restore trigger focus on dismissal.
+- Injected Hide, media, bookmark, AI, and snippet controls now receive 44px coarse-pointer hit
+  targets with AI/snippet affordances visible without hover; injected toasts and Hide spacing use
+  logical RTL-aware placement and direction.
 - Secondary file, search, semantic-search, and crosspost-thread controls now expose localized
   visible labels through explicit `aria-labelledby` associations.
 - Secondary Control Center rows now translate dynamic archive, bookmark, export, and media-job

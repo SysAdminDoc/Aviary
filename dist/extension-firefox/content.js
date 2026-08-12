@@ -13006,11 +13006,13 @@ ${record.text}${mediaList}`;
   function ensureToastHost() {
     const existing = document.getElementById(TOAST_HOST_ID);
     if (existing?.shadowRoot) {
+      existing.dir = document.documentElement.dir || "ltr";
       return existing.shadowRoot;
     }
     const host = document.createElement("div");
     host.id = TOAST_HOST_ID;
     host.dataset.avOwned = "true";
+    host.dir = document.documentElement.dir || "ltr";
     document.documentElement.append(host);
     const shadow = host.attachShadow({ mode: "open" });
     const style = document.createElement("style");
@@ -13052,7 +13054,7 @@ html.av-hide-posts-enabled [${HIDDEN_ATTR}="1"] {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
-  margin-right: 4px;
+  margin-inline-end: 4px;
   padding: 2px 8px;
   border: 1px solid color-mix(in srgb, var(--av-muted, rgb(132, 139, 145)) 55%, transparent);
   border-radius: 6px;
@@ -13099,7 +13101,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   var TOAST_CSS = `
 .av-toast {
   position: fixed;
-  right: 16px;
+  inset-inline-end: 16px;
   bottom: 76px;
   z-index: 2147483000;
   display: flex;
@@ -19159,11 +19161,13 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
   function ensureHost() {
     const existing = document.getElementById(TOAST_HOST_ID2);
     if (existing?.shadowRoot) {
+      existing.dir = document.documentElement.dir || "ltr";
       return existing.shadowRoot;
     }
     const host = document.createElement("div");
     host.id = TOAST_HOST_ID2;
     host.dataset.avOwned = "true";
+    host.dir = document.documentElement.dir || "ltr";
     document.documentElement.append(host);
     const shadow = host.attachShadow({ mode: "open" });
     const style = document.createElement("style");
@@ -19181,7 +19185,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
   var TOAST_CSS2 = `
 .av-ftoast {
   position: fixed;
-  right: 16px;
+  inset-inline-end: 16px;
   bottom: 132px;
   z-index: 2147483000;
   display: flex;
@@ -19189,7 +19193,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
   max-width: 340px;
   padding: 10px 12px;
   border: 1px solid var(--av-border, rgb(47, 51, 54));
-  border-left: 3px solid var(--av-accent, rgb(29, 155, 240));
+  border-inline-start: 3px solid var(--av-accent, rgb(29, 155, 240));
   border-radius: 10px;
   background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 97%, black);
   color: var(--av-text, rgb(239, 243, 244));
@@ -19206,7 +19210,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
 
 /* Tone is carried by the accent rule AND the wording, never by colour alone. */
 .av-ftoast[data-tone="error"] {
-  border-left-color: rgb(220, 110, 110);
+  border-inline-start-color: rgb(220, 110, 110);
 }
 
 .av-ftoast.is-open {
@@ -19334,6 +19338,12 @@ ${text}`
       trigger.type = "button";
       trigger.className = "av-ai-trigger";
       trigger.setAttribute(TRIGGER_ATTR, "1");
+      const triggerId = `av-ai-trigger-${++menuSequence}`;
+      const menuId = `av-ai-menu-${menuSequence}`;
+      trigger.id = triggerId;
+      trigger.setAttribute("aria-haspopup", "menu");
+      trigger.setAttribute("aria-expanded", "false");
+      trigger.setAttribute("aria-controls", menuId);
       trigger.setAttribute("aria-label", ft(ctx, "Open Aviary AI command menu"));
       trigger.title = ft(ctx, "Aviary AI commands (offline prompt builder)");
       trigger.textContent = "AI";
@@ -19348,15 +19358,28 @@ ${text}`
   }
   var openMenuNode;
   var openMenuDismiss;
-  function closeOpenMenu() {
+  var openMenuKeydown;
+  var openMenuTrigger;
+  var menuSequence = 0;
+  function closeOpenMenu(restoreFocus = true) {
     if (openMenuDismiss) {
       document.removeEventListener("click", openMenuDismiss, true);
       openMenuDismiss = void 0;
     }
+    if (openMenuKeydown && openMenuNode) {
+      openMenuNode.removeEventListener("keydown", openMenuKeydown);
+      openMenuKeydown = void 0;
+    }
+    const trigger = openMenuTrigger;
+    trigger?.setAttribute("aria-expanded", "false");
+    openMenuTrigger = void 0;
     openMenuNode?.remove();
     openMenuNode = void 0;
     for (const stray of Array.from(document.querySelectorAll(".av-ai-menu"))) {
       stray.remove();
+    }
+    if (restoreFocus && trigger?.isConnected) {
+      trigger.focus({ preventScroll: true });
     }
   }
   function openMenu(article, trigger, ctx) {
@@ -19364,6 +19387,10 @@ ${text}`
     const menu = document.createElement("div");
     menu.className = "av-ai-menu";
     menu.setAttribute("role", "menu");
+    menu.id = trigger.getAttribute("aria-controls") ?? `av-ai-menu-${++menuSequence}`;
+    menu.setAttribute("aria-labelledby", trigger.id);
+    trigger.setAttribute("aria-expanded", "true");
+    openMenuTrigger = trigger;
     const text = (article.querySelector('[data-testid="tweetText"]')?.textContent ?? article.textContent ?? "").trim();
     const aiEnabled = ctx.settings.integrations.ai.enabled && ctx.settings.integrations.ai.apiKey.length > 0;
     for (const command of AI_COMMANDS) {
@@ -19371,6 +19398,7 @@ ${text}`
       item.type = "button";
       item.className = "av-ai-option";
       item.setAttribute("role", "menuitem");
+      item.tabIndex = -1;
       item.title = ft(ctx, command.hint);
       item.textContent = aiEnabled ? `${ft(ctx, command.label)} \u2014 ${ft(ctx, "Run with provider")}` : ft(ctx, command.label);
       item.addEventListener("click", async (event) => {
@@ -19443,6 +19471,50 @@ ${text}`
     document.body.append(menu);
     positionMenu(menu, trigger);
     openMenuNode = menu;
+    const menuItems = () => Array.from(menu.querySelectorAll('[role="menuitem"]'));
+    const focusMenuItem = (index) => {
+      const items = menuItems();
+      if (items.length === 0) return;
+      const next = (index + items.length) % items.length;
+      items[next]?.focus({ preventScroll: true });
+    };
+    const keydown = (event) => {
+      const items = menuItems();
+      const current = items.indexOf(document.activeElement);
+      if (event.key === "Escape" || event.key === "Tab") {
+        event.preventDefault();
+        event.stopPropagation();
+        closeOpenMenu();
+        return;
+      }
+      if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+        event.preventDefault();
+        focusMenuItem(current + 1);
+        return;
+      }
+      if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+        event.preventDefault();
+        focusMenuItem(current - 1);
+        return;
+      }
+      if (event.key === "Home") {
+        event.preventDefault();
+        focusMenuItem(0);
+        return;
+      }
+      if (event.key === "End") {
+        event.preventDefault();
+        focusMenuItem(items.length - 1);
+        return;
+      }
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        items[current]?.click();
+      }
+    };
+    openMenuKeydown = keydown;
+    menu.addEventListener("keydown", keydown);
+    focusMenuItem(0);
     const dismiss = (event) => {
       if (!menu.contains(event.target) && event.target !== trigger) {
         closeOpenMenu();
@@ -19585,8 +19657,12 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     }
   };
   var openPaletteDismiss;
+  var openPaletteKeydown;
+  var openPaletteNode;
+  var openPaletteTrigger;
   var openPaletteDismissTimer;
   var appliedSnippetsSignature;
+  var paletteSequence = 0;
   function clearDecorations5() {
     closePalettes();
     removeFeatureToast();
@@ -19598,17 +19674,28 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       trigger.remove();
     }
   }
-  function closePalettes() {
+  function closePalettes(restoreFocus = true) {
     if (openPaletteDismiss) {
       document.removeEventListener("click", openPaletteDismiss, true);
       openPaletteDismiss = void 0;
+    }
+    if (openPaletteKeydown && openPaletteNode) {
+      openPaletteNode.removeEventListener("keydown", openPaletteKeydown);
+      openPaletteKeydown = void 0;
     }
     if (openPaletteDismissTimer !== void 0) {
       clearTimeout(openPaletteDismissTimer);
       openPaletteDismissTimer = void 0;
     }
+    const trigger = openPaletteTrigger;
+    trigger?.setAttribute("aria-expanded", "false");
+    openPaletteTrigger = void 0;
     for (const palette of Array.from(document.querySelectorAll(`[${PALETTE_ATTR}="popover"]`))) {
       palette.remove();
+    }
+    openPaletteNode = void 0;
+    if (restoreFocus && trigger?.isConnected) {
+      trigger.focus({ preventScroll: true });
     }
   }
   function snippetsSignature(ctx) {
@@ -19623,6 +19710,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       if (toolbar.getAttribute(TOOLBAR_ATTR) === "1") {
         const trigger = toolbar.querySelector(`[${PALETTE_ATTR}="trigger"]`);
         if (trigger) {
+          configureTrigger(trigger);
           trigger.textContent = ft(ctx, "Snippets");
           trigger.setAttribute("aria-label", ft(ctx, "Open Aviary composer snippets"));
         }
@@ -19632,6 +19720,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       button2.type = "button";
       button2.className = "av-snippet-trigger";
       button2.setAttribute(PALETTE_ATTR, "trigger");
+      configureTrigger(button2);
       button2.textContent = ft(ctx, "Snippets");
       button2.setAttribute("aria-label", ft(ctx, "Open Aviary composer snippets"));
       button2.addEventListener("click", (event) => {
@@ -19643,6 +19732,15 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       toolbar.setAttribute(TOOLBAR_ATTR, "1");
     }
   }
+  function configureTrigger(trigger) {
+    if (!trigger.id) {
+      const sequence = ++paletteSequence;
+      trigger.id = `av-snippet-trigger-${sequence}`;
+      trigger.setAttribute("aria-controls", `av-snippet-menu-${sequence}`);
+    }
+    trigger.setAttribute("aria-haspopup", "menu");
+    trigger.setAttribute("aria-expanded", "false");
+  }
   function openPalette(trigger, ctx) {
     closePalettes();
     const snippets = ctx.settings.composer.snippets;
@@ -19650,6 +19748,11 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     popover.setAttribute(PALETTE_ATTR, "popover");
     popover.className = "av-snippet-popover";
     popover.setAttribute("role", "menu");
+    popover.tabIndex = -1;
+    popover.id = trigger.getAttribute("aria-controls") ?? `av-snippet-menu-${++paletteSequence}`;
+    popover.setAttribute("aria-labelledby", trigger.id);
+    trigger.setAttribute("aria-expanded", "true");
+    openPaletteTrigger = trigger;
     if (snippets.length === 0) {
       const empty = document.createElement("div");
       empty.className = "av-snippet-empty";
@@ -19662,6 +19765,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
         option.className = "av-snippet-option";
         option.textContent = snippet2.length > 80 ? `${snippet2.slice(0, 77)}\u2026` : snippet2;
         option.setAttribute("role", "menuitem");
+        option.tabIndex = -1;
         option.title = snippet2;
         option.addEventListener("click", (event) => {
           event.stopPropagation();
@@ -19676,20 +19780,64 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
               ctx
             });
           }
-          popover.remove();
+          closePalettes();
         });
         popover.append(option);
       }
     }
     positionPopover(popover, trigger);
     document.body.append(popover);
+    openPaletteNode = popover;
+    const menuItems = () => Array.from(popover.querySelectorAll('[role="menuitem"]'));
+    const focusMenuItem = (index) => {
+      const items = menuItems();
+      if (items.length === 0) {
+        popover.focus({ preventScroll: true });
+        return;
+      }
+      const next = (index + items.length) % items.length;
+      items[next]?.focus({ preventScroll: true });
+    };
+    const keydown = (event) => {
+      const items = menuItems();
+      const current = items.indexOf(document.activeElement);
+      if (event.key === "Escape" || event.key === "Tab") {
+        event.preventDefault();
+        event.stopPropagation();
+        closePalettes();
+        return;
+      }
+      if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+        event.preventDefault();
+        focusMenuItem(current + 1);
+        return;
+      }
+      if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+        event.preventDefault();
+        focusMenuItem(current - 1);
+        return;
+      }
+      if (event.key === "Home") {
+        event.preventDefault();
+        focusMenuItem(0);
+        return;
+      }
+      if (event.key === "End") {
+        event.preventDefault();
+        focusMenuItem(items.length - 1);
+        return;
+      }
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        items[current]?.click();
+      }
+    };
+    openPaletteKeydown = keydown;
+    popover.addEventListener("keydown", keydown);
+    focusMenuItem(0);
     const dismiss = (event) => {
       if (!popover.contains(event.target) && event.target !== trigger) {
-        popover.remove();
-        document.removeEventListener("click", dismiss, true);
-        if (openPaletteDismiss === dismiss) {
-          openPaletteDismiss = void 0;
-        }
+        closePalettes();
       }
     };
     openPaletteDismiss = dismiss;
@@ -19895,14 +20043,44 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
   }
   var MOBILE_CSS = `
 html.av-touch [${"data-av-hide-button"}] {
-  min-height: 40px;
-  padding: 6px 12px;
+  min-width: 44px;
+  min-height: 44px;
+  margin-inline-end: 4px;
+  padding: 8px 12px;
 }
 
 html.av-touch [${"data-av-media-button"}] {
-  min-height: 40px;
-  padding: 6px 12px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 12px;
   font-size: 12px;
+}
+
+html.av-touch [data-av-local-bookmark],
+html.av-touch .av-ai-trigger,
+html.av-touch [data-av-snippet-palette="trigger"] {
+  min-width: 44px;
+  min-height: 44px;
+  margin-block: 2px;
+  padding: 8px 10px;
+}
+
+/* Hover is not a discovery mechanism on a coarse pointer. Keep both prompt affordances visible
+   and give their options the same target size without enlarging the surrounding timeline. */
+html.av-touch .av-ai-trigger {
+  opacity: 1;
+}
+
+html.av-touch .av-ai-menu,
+html.av-touch .av-snippet-popover {
+  gap: 8px;
+}
+
+html.av-touch .av-ai-option,
+html.av-touch .av-snippet-option {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px 12px;
 }
 
 html.av-mobile [data-testid="primaryColumn"] {

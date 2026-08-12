@@ -51,14 +51,44 @@ function ensureMobileStyle(): void {
 // own stylesheet (src/ui/control-center.ts). Only page DOM can be styled from here.
 const MOBILE_CSS = `
 html.av-touch [${"data-av-hide-button"}] {
-  min-height: 40px;
-  padding: 6px 12px;
+  min-width: 44px;
+  min-height: 44px;
+  margin-inline-end: 4px;
+  padding: 8px 12px;
 }
 
 html.av-touch [${"data-av-media-button"}] {
-  min-height: 40px;
-  padding: 6px 12px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 12px;
   font-size: 12px;
+}
+
+html.av-touch [data-av-local-bookmark],
+html.av-touch .av-ai-trigger,
+html.av-touch [data-av-snippet-palette="trigger"] {
+  min-width: 44px;
+  min-height: 44px;
+  margin-block: 2px;
+  padding: 8px 10px;
+}
+
+/* Hover is not a discovery mechanism on a coarse pointer. Keep both prompt affordances visible
+   and give their options the same target size without enlarging the surrounding timeline. */
+html.av-touch .av-ai-trigger {
+  opacity: 1;
+}
+
+html.av-touch .av-ai-menu,
+html.av-touch .av-snippet-popover {
+  gap: 8px;
+}
+
+html.av-touch .av-ai-option,
+html.av-touch .av-snippet-option {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px 12px;
 }
 
 html.av-mobile [data-testid="primaryColumn"] {

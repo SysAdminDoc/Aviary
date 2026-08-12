@@ -425,12 +425,14 @@ function scheduleToastDismiss(card: HTMLElement, delay: number): void {
 function ensureToastHost(): ShadowRoot {
   const existing = document.getElementById(TOAST_HOST_ID);
   if (existing?.shadowRoot) {
+    existing.dir = document.documentElement.dir || "ltr";
     return existing.shadowRoot;
   }
 
   const host = document.createElement("div");
   host.id = TOAST_HOST_ID;
   host.dataset.avOwned = "true";
+  host.dir = document.documentElement.dir || "ltr";
   document.documentElement.append(host);
 
   const shadow = host.attachShadow({ mode: "open" });
@@ -481,7 +483,7 @@ html.av-hide-posts-enabled [${HIDDEN_ATTR}="1"] {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
-  margin-right: 4px;
+  margin-inline-end: 4px;
   padding: 2px 8px;
   border: 1px solid color-mix(in srgb, var(--av-muted, rgb(132, 139, 145)) 55%, transparent);
   border-radius: 6px;
@@ -531,7 +533,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
 const TOAST_CSS = `
 .av-toast {
   position: fixed;
-  right: 16px;
+  inset-inline-end: 16px;
   bottom: 76px;
   z-index: 2147483000;
   display: flex;

@@ -30,6 +30,9 @@ before(async () => {
     [
       `export { mediaButtonsFeature } from ${JSON.stringify(abs("src/features/media/media-buttons.ts"))};`,
       `export { aiCommandMenuFeature } from ${JSON.stringify(abs("src/features/ai/command-menu.ts"))};`,
+      `export { composerSnippetsFeature } from ${JSON.stringify(abs("src/features/composer/composer-snippets.ts"))};`,
+      `export { mobileTouchFeature } from ${JSON.stringify(abs("src/features/core/mobile-touch.ts"))};`,
+      `export { showFeatureToast, removeFeatureToast } from ${JSON.stringify(abs("src/features/core/feature-toast.ts"))};`,
       `export { userNotesFeature } from ${JSON.stringify(abs("src/features/library/user-notes.ts"))};`,
       `export { hiddenPostsFeature } from ${JSON.stringify(abs("src/features/filtering/hidden-posts-feature.ts"))};`,
       `export { readComposerText } from ${JSON.stringify(abs("src/features/integrations/crosspost.ts"))};`
@@ -132,6 +135,260 @@ test("injected controls render at their declared size and inherit the page famil
   assert.equal(computed.noteBadge.size, "10px");
   assert.equal(computed.noteBadge.weight, "700");
   assert.match(computed.noteBadge.family, /Georgia/);
+});
+
+test("AI and snippet popovers expose controlled menus and restore focus", async () => {
+  const state = await page.evaluate(() => {
+    document.body.replaceChildren();
+    const context = globalThis.__ctx;
+
+    const article = document.createElement("article");
+    article.setAttribute("data-testid", "tweet");
+    const toolbar = document.createElement("div");
+    toolbar.setAttribute("role", "group");
+    toolbar.setAttribute("aria-label", "actions");
+    const tweetText = document.createElement("div");
+    tweetText.setAttribute("data-testid", "tweetText");
+    tweetText.textContent = "A post for the menu test";
+    article.append(tweetText, toolbar);
+
+    const composerToolbar = document.createElement("div");
+    composerToolbar.setAttribute("data-testid", "toolBar");
+    document.body.append(article, composerToolbar);
+    Aviary.aiCommandMenuFeature.apply(context, document);
+    Aviary.composerSnippetsFeature.apply(context, document);
+
+    const aiTrigger = document.querySelector("[data-av-ai-trigger]");
+    const snippetTrigger = document.querySelector('[data-av-snippet-palette="trigger"]');
+    if (!aiTrigger || !snippetTrigger) throw new Error("menu triggers did not render");
+
+    aiTrigger.click();
+    const aiMenu = document.getElementById(aiTrigger.getAttribute("aria-controls"));
+    if (!aiMenu) throw new Error("AI menu did not render");
+    const aiOpen = {
+      expanded: aiTrigger.getAttribute("aria-expanded"),
+      controls: aiMenu.id === aiTrigger.getAttribute("aria-controls"),
+      role: aiMenu.getAttribute("role"),
+      focus: document.activeElement?.className
+    };
+    aiMenu.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    const aiMoved = document.activeElement?.className;
+    aiMenu.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    const aiClosed = {
+      menu: Boolean(document.getElementById(aiMenu.id)),
+      expanded: aiTrigger.getAttribute("aria-expanded"),
+      focus: document.activeElement === aiTrigger
+    };
+
+    snippetTrigger.click();
+    const snippetMenu = document.getElementById(snippetTrigger.getAttribute("aria-controls"));
+    if (!snippetMenu) throw new Error("snippet menu did not render");
+    const snippetOpen = {
+      expanded: snippetTrigger.getAttribute("aria-expanded"),
+      controls: snippetMenu.id === snippetTrigger.getAttribute("aria-controls"),
+      role: snippetMenu.getAttribute("role"),
+      focus: document.activeElement?.className
+    };
+    snippetMenu.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    const snippetMoved = document.activeElement?.className;
+    snippetMenu.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    const snippetClosed = {
+      menu: Boolean(document.getElementById(snippetMenu.id)),
+      expanded: snippetTrigger.getAttribute("aria-expanded"),
+      focus: document.activeElement === snippetTrigger
+    };
+
+    Aviary.aiCommandMenuFeature.destroy(context);
+    Aviary.composerSnippetsFeature.destroy(context);
+    return { aiOpen, aiMoved, aiClosed, snippetOpen, snippetMoved, snippetClosed };
+  });
+
+  assert.deepEqual(state.aiOpen, {
+    expanded: "true",
+    controls: true,
+    role: "menu",
+    focus: "av-ai-option"
+  });
+  assert.equal(state.aiMoved, "av-ai-option");
+  assert.deepEqual(state.aiClosed, { menu: false, expanded: "false", focus: true });
+  assert.deepEqual(state.snippetOpen, {
+    expanded: "true",
+    controls: true,
+    role: "menu",
+    focus: "av-snippet-option"
+  });
+  assert.equal(state.snippetMoved, "av-snippet-option");
+  assert.deepEqual(state.snippetClosed, { menu: false, expanded: "false", focus: true });
+});
+
+test("coarse-pointer page controls keep 44px hit targets and visible prompts", async () => {
+  const measured = await page.evaluate(() => {
+    document.body.replaceChildren();
+    document.documentElement.classList.remove("av-touch", "av-mobile");
+    const nativeMatchMedia = window.matchMedia;
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: (query) => ({
+        matches: query === "(pointer: coarse)",
+        media: query,
+        onchange: null,
+        addListener() {},
+        removeListener() {},
+        addEventListener() {},
+        removeEventListener() {},
+        dispatchEvent() { return false; }
+      })
+    });
+
+    const context = globalThis.__ctx;
+    Aviary.mediaButtonsFeature.apply(context, document);
+    Aviary.aiCommandMenuFeature.apply(context, document);
+    Aviary.composerSnippetsFeature.apply(context, document);
+    Aviary.mobileTouchFeature.init(context);
+
+    const add = (tag, attrs, text) => {
+      const node = document.createElement(tag);
+      for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+      node.textContent = text;
+      document.body.append(node);
+      return node;
+    };
+    add("button", { "data-av-hide-button": "1" }, "Hide");
+    add("button", { "data-av-media-button": "video" }, "Video");
+    add("button", { "data-av-local-bookmark": "1" }, "Save");
+    add("button", { "data-av-ai-trigger": "1", class: "av-ai-trigger" }, "AI");
+    add("button", { "data-av-snippet-palette": "trigger", class: "av-snippet-trigger" }, "Snippets");
+    add("button", { class: "av-ai-option" }, "Explain");
+    add("button", { class: "av-snippet-option" }, "Snippet");
+
+    const selectors = [
+      '[data-av-hide-button]',
+      '[data-av-media-button]',
+      '[data-av-local-bookmark]',
+      '[data-av-ai-trigger]',
+      '[data-av-snippet-palette="trigger"]',
+      ".av-ai-option",
+      ".av-snippet-option"
+    ];
+    const boxes = Object.fromEntries(
+      selectors.map((selector) => {
+        const rect = document.querySelector(selector).getBoundingClientRect();
+        return [selector, { width: rect.width, height: rect.height }];
+      })
+    );
+    const aiOpacity = getComputedStyle(document.querySelector('[data-av-ai-trigger]')).opacity;
+    Aviary.mobileTouchFeature.destroy(context);
+    Aviary.aiCommandMenuFeature.destroy(context);
+    Aviary.composerSnippetsFeature.destroy(context);
+    Aviary.mediaButtonsFeature.destroy(context);
+    Object.defineProperty(window, "matchMedia", { configurable: true, value: nativeMatchMedia });
+    return {
+      coarse: window.matchMedia("(pointer: coarse)").matches,
+      boxes,
+      aiOpacity
+    };
+  });
+
+  assert.equal(measured.coarse, false, "the native media query should be restored after the probe");
+  for (const [selector, box] of Object.entries(measured.boxes)) {
+    assert.ok(box.width >= 44, `${selector} width is ${box.width}px`);
+    assert.ok(box.height >= 44, `${selector} height is ${box.height}px`);
+  }
+  assert.equal(measured.aiOpacity, "1", "AI must remain discoverable without hover");
+});
+
+test("injected toasts and hide spacing follow the document direction", async () => {
+  const results = await page.evaluate(async () => {
+    const results = {};
+    for (const direction of ["ltr", "rtl"]) {
+      document.body.replaceChildren();
+      document.documentElement.dir = direction;
+      Aviary.removeFeatureToast();
+
+      const values = new Map();
+      const context = {
+        settings: {
+          hidden: { enabled: true, buttons: true, surfaces: ["home"], maxEntries: 10 },
+          i18n: { locale: direction === "rtl" ? "ar" : "en" },
+          accessibility: { reduceMotion: "never" }
+        },
+        route: { surface: "home", href: "https://x.com/home", path: "/home" },
+        storage: {
+          get: async (key, fallback) => values.get(key) ?? fallback,
+          set: async (key, value) => values.set(key, value)
+        },
+        diagnostics: { info() {}, warn() {}, error() {} },
+        auditLog: { record() {} },
+        requestApply() {}
+      };
+
+      const article = document.createElement("article");
+      article.setAttribute("data-testid", "tweet");
+      const user = document.createElement("div");
+      user.setAttribute("data-testid", "User-Name");
+      const profile = document.createElement("a");
+      profile.href = "/alice";
+      user.append(profile);
+      const caret = document.createElement("button");
+      caret.setAttribute("data-testid", "caret");
+      const status = document.createElement("a");
+      status.href = "/alice/status/123";
+      article.append(user, status, caret);
+      document.body.append(article);
+
+      await Aviary.hiddenPostsFeature.init(context);
+      Aviary.showFeatureToast("Feature error", { tone: "error" });
+      const hideButton = document.querySelector("[data-av-hide-button]");
+      if (!hideButton) throw new Error("hide button did not render");
+      const hideMargin = getComputedStyle(hideButton).marginInlineEnd;
+      hideButton.click();
+      await new Promise((resolve) => setTimeout(resolve, 25));
+
+      const featureHost = document.getElementById("av-feature-toast");
+      const hiddenHost = document.getElementById("av-hidden-toast");
+      const featureCard = featureHost?.shadowRoot?.querySelector(".av-ftoast");
+      const hiddenCard = hiddenHost?.shadowRoot?.querySelector(".av-toast");
+      results[direction] = {
+        featureHostDir: featureHost?.dir,
+        hiddenHostDir: hiddenHost?.dir,
+        feature: {
+          insetInlineEnd: getComputedStyle(featureCard).insetInlineEnd,
+          borderInlineStart: getComputedStyle(featureCard).borderInlineStartWidth,
+          left: Math.round(featureCard.getBoundingClientRect().left),
+          right: Math.round(window.innerWidth - featureCard.getBoundingClientRect().right)
+        },
+        hidden: {
+          insetInlineEnd: getComputedStyle(hiddenCard).insetInlineEnd,
+          left: Math.round(hiddenCard.getBoundingClientRect().left),
+          right: Math.round(window.innerWidth - hiddenCard.getBoundingClientRect().right)
+        },
+        hideMargin
+      };
+
+      await Aviary.hiddenPostsFeature.destroy(context);
+      Aviary.removeFeatureToast();
+    }
+    document.documentElement.dir = "";
+    return results;
+  });
+
+  assert.equal(results.ltr.featureHostDir, "ltr");
+  assert.equal(results.ltr.hiddenHostDir, "ltr");
+  assert.equal(results.ltr.feature.insetInlineEnd, "16px");
+  assert.equal(results.ltr.hidden.insetInlineEnd, "16px");
+  assert.equal(results.ltr.feature.right, 16);
+  assert.equal(results.ltr.hidden.right, 16);
+  assert.equal(results.ltr.feature.borderInlineStart, "3px");
+  assert.equal(results.ltr.hideMargin, "4px");
+
+  assert.equal(results.rtl.featureHostDir, "rtl");
+  assert.equal(results.rtl.hiddenHostDir, "rtl");
+  assert.equal(results.rtl.feature.insetInlineEnd, "16px");
+  assert.equal(results.rtl.hidden.insetInlineEnd, "16px");
+  assert.equal(results.rtl.feature.left, 16);
+  assert.equal(results.rtl.hidden.left, 16);
+  assert.equal(results.rtl.feature.borderInlineStart, "3px");
+  assert.equal(results.rtl.hideMargin, "4px");
 });
 
 test("a media button becomes visible on hover over every container that can host one", async () => {
