@@ -62,10 +62,21 @@ import { clearUserNotes, getUserNotes, setUserNote } from "../library/user-notes
 import {
   bookmarkStatus,
   clearBookmarks,
+  getBookmarks,
   removeBookmark,
   searchBookmarks,
   updateBookmark
 } from "../library/bookmarks-feature";
+import {
+  documentFromBookmark,
+  documentFromExportRecord,
+  documentFromNote,
+  documentFromSemanticEntry,
+  documentFromSnapshot,
+  documentsFromArchiveLibrary,
+  OfflineQueryIndex,
+  type OfflineQueryHit
+} from "../library/query-model";
 import { getMediaHistory, getMediaQueue } from "../media/media-buttons";
 import { getLastDownload } from "../media/last-download";
 import type { FeatureContext, FeatureModule } from "../registry";
@@ -321,6 +332,24 @@ export const controlCenterFeature: FeatureModule = {
       },
       searchBookmarks(query) {
         return searchBookmarks(query);
+      },
+      offlineSearch(query) {
+        return searchOfflineLibrary(query);
+      },
+      async offlineSemanticSearch(query) {
+        if (!semanticIndex) return [];
+        const hits = await semanticIndex.search(
+          ctx.settings.integrations.semanticSearch,
+          query,
+          30
+        );
+        return hits.map((hit) => ({
+          document: documentFromSemanticEntry(hit.entry),
+          score: hit.score,
+          matchedTerms: [],
+          snippet: hit.entry.text.slice(0, 220),
+          mode: "semantic" as const
+        }));
       },
       async updateBookmark(id, input) {
         const entry = await updateBookmark(id, input);
@@ -951,6 +980,25 @@ function hasArchiveCollections(collections: import("../library/archive-types").A
 function rebuildSearchIndex(): void {
   const store = getCheckpointStore();
   searchIndex.rebuild(collectAllRecords(store));
+}
+
+function searchOfflineLibrary(query: string): OfflineQueryHit[] {
+  const index = new OfflineQueryIndex();
+  const documents = collectOfflineDocuments();
+  index.rebuild(documents);
+  return index.search(query, { limit: 30 });
+}
+
+function collectOfflineDocuments() {
+  const documents = collectAllRecords(getCheckpointStore()).map(documentFromExportRecord);
+  documents.push(...getBookmarks().map(documentFromBookmark));
+  documents.push(...Object.entries(getUserNotes()).map(([handle, note]) => documentFromNote(handle, note)));
+  documents.push(...(getSnapshotStore()?.list() ?? []).map(documentFromSnapshot));
+  documents.push(...(semanticIndex?.list() ?? []).map(documentFromSemanticEntry));
+  if (archiveLibrary) {
+    documents.push(...documentsFromArchiveLibrary(archiveLibrary.snapshot()));
+  }
+  return documents;
 }
 
 function collectAllRecords(

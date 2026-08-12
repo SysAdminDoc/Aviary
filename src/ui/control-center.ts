@@ -11,6 +11,7 @@ import { FILTER_MEDIA_KEYS, FILTER_SURFACES, isThemeId } from "../platform/setti
 import { hasTranslation, localeDirection, translateText } from "../platform/i18n";
 import type { RetentionPolicy } from "../features/export/jobs";
 import type { BookmarkInput, BookmarkRecord } from "../features/library/bookmarks";
+import type { OfflineQueryHit } from "../features/library/query-model";
 
 /**
  * Stamped in by `tools/build.mjs` so a reload shows at a glance which build is running.
@@ -171,6 +172,8 @@ export interface ControlCenterOptions {
   clearUserNotes?: () => Promise<void>;
   getBookmarkStatus?: () => BookmarkStatus;
   searchBookmarks?: (query: string) => BookmarkRecord[];
+  offlineSearch?: (query: string) => OfflineQueryHit[];
+  offlineSemanticSearch?: (query: string) => Promise<OfflineQueryHit[]>;
   updateBookmark?: (id: string, input: BookmarkInput) => Promise<BookmarkRecord | null>;
   removeBookmark?: (id: string) => Promise<boolean>;
   clearBookmarks?: () => Promise<void>;
@@ -419,6 +422,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   let searchQuery = "";
   /** Search state for the local bookmark library survives panel refreshes and settings saves. */
   let bookmarkQuery = "";
+  let unifiedSemantic = false;
   /** English source of whatever the status line shows, so a locale change can re-translate it. */
   let lastStatusEnglish = "Saved locally";
   let lastStatusValues: Record<string, string | number> = {};
@@ -2107,6 +2111,74 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
   const libraryRows = (): HTMLElement[] => {
     const rows: HTMLElement[] = [];
+
+    if (options.offlineSearch) {
+      const row = el("div", "av-row av-row-stack");
+      const copy = el("span", "av-row-copy");
+      copy.append(
+        el("span", "av-row-label", t("Search all local collections")),
+        el(
+          "span",
+          "av-row-description",
+          t("Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.")
+        )
+      );
+      const input = document.createElement("input");
+      input.type = "search";
+      input.className = "av-text-input";
+      input.placeholder = t("Search local library (source:, account:, tag:, from:, to:, has:media)");
+      input.setAttribute("aria-label", t("Search all local collections"));
+      input.spellcheck = false;
+      const semanticToggle = document.createElement("input");
+      semanticToggle.type = "checkbox";
+      semanticToggle.checked = unifiedSemantic;
+      semanticToggle.setAttribute("aria-label", t("Use semantic ranking (optional)"));
+      const semanticCopy = el("span", "av-row-description", t("Use semantic ranking (optional)"));
+      const semanticRow = el("label", "av-inline-controls");
+      semanticRow.append(semanticToggle, semanticCopy);
+      const results = el("div", "av-search-results");
+      results.setAttribute("role", "list");
+      results.setAttribute("aria-live", "polite");
+      let searchSequence = 0;
+
+      const renderUnified = async (): Promise<void> => {
+        const sequence = ++searchSequence;
+        const query = input.value.trim();
+        results.replaceChildren();
+        if (query.length === 0) {
+          results.append(el("div", "av-row-description", t("Try source:bookmarks, tag:reading, or has:media.")));
+          return;
+        }
+        const matches = unifiedSemantic && options.offlineSemanticSearch
+          ? await options.offlineSemanticSearch(query)
+          : options.offlineSearch!(query);
+        if (sequence !== searchSequence) return;
+        if (matches.length === 0) {
+          results.append(el("div", "av-row-description", t("No local collections match this search.")));
+          return;
+        }
+        for (const hit of matches.slice(0, 30)) {
+          const item = el("div", "av-search-hit");
+          item.setAttribute("role", "listitem");
+          const account = hit.document.account ? `@${hit.document.account}` : "local";
+          const mode = hit.mode === "semantic" ? " · semantic" : "";
+          item.append(
+            el("span", "av-row-label", `${hit.document.collection}${mode} · ${account}`),
+            el("span", "av-row-description", hit.snippet || t("(no text)"))
+          );
+          results.append(item);
+        }
+      };
+
+      input.addEventListener("input", () => void renderUnified());
+      semanticToggle.addEventListener("change", () => {
+        unifiedSemantic = semanticToggle.checked;
+        void renderUnified();
+      });
+      results.append(el("div", "av-row-description", t("Try source:bookmarks, tag:reading, or has:media.")));
+      row.append(copy, input, semanticRow, results);
+      rows.push(row);
+    }
 
     if (options.getBookmarkStatus && options.searchBookmarks && options.updateBookmark && options.removeBookmark) {
       const status = options.getBookmarkStatus();

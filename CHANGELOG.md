@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- Library search now uses one bounded offline query model for posts, likes, bookmarks, notes,
+  snapshots, archive metadata, and semantic-index records, with Unicode-safe ranking and
+  deterministic source/account/date/tag/folder/media filters. The Library section exposes the
+  unified search surface and an optional semantic-ranking path.
 - Privacy, installation, and FAQ documentation now match v1.16.0 permissions, opt-in network
   integrations, local storage keys, export formats, options-page grants, and uninstall limits;
   a consistency test guards those claims against future release drift.

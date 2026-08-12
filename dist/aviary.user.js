@@ -772,11 +772,17 @@ html.av-reduce-motion *::after {
       "No active downloads.": "No hay descargas activas.",
       "Cancel": "Cancelar",
       "No matches (or integration disabled).": "No hay coincidencias (o la integraci\xF3n est\xE1 desactivada).",
+      "Search all local collections": "Buscar en todas las colecciones locales",
+      "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "Buscar publicaciones, Me gusta, marcadores, notas, etiquetas, carpetas e instant\xE1neas con filtros.",
+      "Search local library (source:, account:, tag:, from:, to:, has:media)": "Buscar en la biblioteca local (source:, account:, tag:, from:, to:, has:media)",
+      "Use semantic ranking (optional)": "Usar clasificaci\xF3n sem\xE1ntica (opcional)",
+      "Try source:bookmarks, tag:reading, or has:media.": "Prueba source:bookmarks, tag:reading o has:media.",
+      "No local collections match this search.": "Ninguna colecci\xF3n local coincide con esta b\xFAsqueda.",
+      "(no text)": "(sin texto)",
       "Find local bookmarks": "Buscar marcadores locales",
       "Search saved posts by text, handle, tags, folder, or ID.": "Busca publicaciones guardadas por texto, usuario, etiquetas, carpeta o ID.",
       "Search local bookmarks": "Buscar marcadores locales",
       "No local bookmarks match this search.": "Ning\xFAn marcador local coincide con esta b\xFAsqueda.",
-      "(no text)": "(sin texto)",
       "Notes": "Notas",
       "Bookmark notes": "Notas del marcador",
       "Remove": "Eliminar",
@@ -1426,11 +1432,17 @@ html.av-reduce-motion *::after {
       "No active downloads.": "N\xE3o existem transfer\xEAncias ativas.",
       "Cancel": "Cancelar",
       "No matches (or integration disabled).": "Sem correspond\xEAncias (ou a integra\xE7\xE3o est\xE1 desativada).",
+      "Search all local collections": "Pesquisar todas as cole\xE7\xF5es locais",
+      "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "Pesquisar publica\xE7\xF5es, gostos, marcadores, notas, etiquetas, pastas e instant\xE2neos com filtros.",
+      "Search local library (source:, account:, tag:, from:, to:, has:media)": "Pesquisar na biblioteca local (source:, account:, tag:, from:, to:, has:media)",
+      "Use semantic ranking (optional)": "Usar classifica\xE7\xE3o sem\xE2ntica (opcional)",
+      "Try source:bookmarks, tag:reading, or has:media.": "Experimente source:bookmarks, tag:reading ou has:media.",
+      "No local collections match this search.": "Nenhuma cole\xE7\xE3o local corresponde a esta pesquisa.",
+      "(no text)": "(sem texto)",
       "Find local bookmarks": "Encontrar marcadores locais",
       "Search saved posts by text, handle, tags, folder, or ID.": "Pesquise publica\xE7\xF5es guardadas por texto, utilizador, etiquetas, pasta ou ID.",
       "Search local bookmarks": "Pesquisar marcadores locais",
       "No local bookmarks match this search.": "Nenhum marcador local corresponde a esta pesquisa.",
-      "(no text)": "(sem texto)",
       "Notes": "Notas",
       "Bookmark notes": "Notas do marcador",
       "Remove": "Remover",
@@ -2080,11 +2092,17 @@ html.av-reduce-motion *::after {
       "No active downloads.": "Aucun t\xE9l\xE9chargement actif.",
       "Cancel": "Annuler",
       "No matches (or integration disabled).": "Aucun r\xE9sultat (ou int\xE9gration d\xE9sactiv\xE9e).",
+      "Search all local collections": "Rechercher dans toutes les collections locales",
+      "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "Rechercher des publications, mentions J\u2019aime, signets, notes, tags, dossiers et instantan\xE9s avec des filtres.",
+      "Search local library (source:, account:, tag:, from:, to:, has:media)": "Rechercher dans la biblioth\xE8que locale (source:, account:, tag:, from:, to:, has:media)",
+      "Use semantic ranking (optional)": "Utiliser le classement s\xE9mantique (facultatif)",
+      "Try source:bookmarks, tag:reading, or has:media.": "Essayez source:bookmarks, tag:reading ou has:media.",
+      "No local collections match this search.": "Aucune collection locale ne correspond \xE0 cette recherche.",
+      "(no text)": "(sans texte)",
       "Find local bookmarks": "Trouver les marque-pages locaux",
       "Search saved posts by text, handle, tags, folder, or ID.": "Recherchez les publications enregistr\xE9es par texte, identifiant, tags, dossier ou ID.",
       "Search local bookmarks": "Rechercher dans les marque-pages locaux",
       "No local bookmarks match this search.": "Aucun marque-page local ne correspond \xE0 cette recherche.",
-      "(no text)": "(sans texte)",
       "Notes": "Annotations",
       "Bookmark notes": "Notes du marque-page",
       "Remove": "Supprimer",
@@ -2734,11 +2752,17 @@ html.av-reduce-motion *::after {
       "No active downloads.": "Keine aktiven Downloads.",
       "Cancel": "Abbrechen",
       "No matches (or integration disabled).": "Keine Treffer (oder Integration deaktiviert).",
+      "Search all local collections": "Alle lokalen Sammlungen durchsuchen",
+      "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "Beitr\xE4ge, Likes, Lesezeichen, Notizen, Tags, Ordner und Momentaufnahmen mit Filtern durchsuchen.",
+      "Search local library (source:, account:, tag:, from:, to:, has:media)": "Lokale Bibliothek durchsuchen (source:, account:, tag:, from:, to:, has:media)",
+      "Use semantic ranking (optional)": "Semantische Sortierung verwenden (optional)",
+      "Try source:bookmarks, tag:reading, or has:media.": "Versuche source:bookmarks, tag:reading oder has:media.",
+      "No local collections match this search.": "Keine lokalen Sammlungen entsprechen dieser Suche.",
+      "(no text)": "(kein Text)",
       "Find local bookmarks": "Lokale Lesezeichen finden",
       "Search saved posts by text, handle, tags, folder, or ID.": "Gespeicherte Beitr\xE4ge nach Text, Handle, Tags, Ordner oder ID suchen.",
       "Search local bookmarks": "Lokale Lesezeichen durchsuchen",
       "No local bookmarks match this search.": "Keine lokalen Lesezeichen passen zu dieser Suche.",
-      "(no text)": "(kein Text)",
       "Notes": "Notizen",
       "Bookmark notes": "Lesezeichen-Notizen",
       "Remove": "Entfernen",
@@ -3388,11 +3412,17 @@ html.av-reduce-motion *::after {
       "No active downloads.": "\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
       "Cancel": "\u30AD\u30E3\u30F3\u30BB\u30EB",
       "No matches (or integration disabled).": "\u4E00\u81F4\u3059\u308B\u7D50\u679C\u304C\u3042\u308A\u307E\u305B\u3093\uFF08\u7D71\u5408\u304C\u7121\u52B9\u306B\u306A\u3063\u3066\u3044\u308B\u53EF\u80FD\u6027\u304C\u3042\u308A\u307E\u3059\uFF09\u3002",
+      "Search all local collections": "\u3059\u3079\u3066\u306E\u30ED\u30FC\u30AB\u30EB\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3\u3092\u691C\u7D22",
+      "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "\u30D5\u30A3\u30EB\u30BF\u30FC\u3092\u4F7F\u3063\u3066\u6295\u7A3F\u3001\u3044\u3044\u306D\u3001\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3001\u30E1\u30E2\u3001\u30BF\u30B0\u3001\u30D5\u30A9\u30EB\u30C0\u30FC\u3001\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8\u3092\u691C\u7D22\u3057\u307E\u3059\u3002",
+      "Search local library (source:, account:, tag:, from:, to:, has:media)": "\u30ED\u30FC\u30AB\u30EB\u30E9\u30A4\u30D6\u30E9\u30EA\u3092\u691C\u7D22 (source:, account:, tag:, from:, to:, has:media)",
+      "Use semantic ranking (optional)": "\u30BB\u30DE\u30F3\u30C6\u30A3\u30C3\u30AF\u30E9\u30F3\u30AD\u30F3\u30B0\u3092\u4F7F\u3046 (\u4EFB\u610F)",
+      "Try source:bookmarks, tag:reading, or has:media.": "source:bookmarks\u3001tag:reading\u3001has:media \u3092\u8A66\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+      "No local collections match this search.": "\u4E00\u81F4\u3059\u308B\u30ED\u30FC\u30AB\u30EB\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+      "(no text)": "(\u30C6\u30AD\u30B9\u30C8\u306A\u3057)",
       "Find local bookmarks": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u63A2\u3059",
       "Search saved posts by text, handle, tags, folder, or ID.": "\u4FDD\u5B58\u3057\u305F\u6295\u7A3F\u3092\u672C\u6587\u3001\u30CF\u30F3\u30C9\u30EB\u3001\u30BF\u30B0\u3001\u30D5\u30A9\u30EB\u30C0\u30FC\u3001ID\u3067\u691C\u7D22\u3057\u307E\u3059\u3002",
       "Search local bookmarks": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u691C\u7D22",
       "No local bookmarks match this search.": "\u3053\u306E\u691C\u7D22\u306B\u4E00\u81F4\u3059\u308B\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
-      "(no text)": "(\u30C6\u30AD\u30B9\u30C8\u306A\u3057)",
       "Notes": "\u30E1\u30E2",
       "Bookmark notes": "\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u306E\u30E1\u30E2",
       "Remove": "\u524A\u9664",
@@ -4042,11 +4072,17 @@ html.av-reduce-motion *::after {
       "No active downloads.": "\uD65C\uC131 \uB2E4\uC6B4\uB85C\uB4DC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
       "Cancel": "\uCDE8\uC18C",
       "No matches (or integration disabled).": "\uC77C\uCE58\uD558\uB294 \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4(\uD1B5\uD569\uC774 \uBE44\uD65C\uC131\uD654\uB418\uC5C8\uAC70\uB098 \uC9C0\uC6D0\uB418\uC9C0 \uC54A\uC74C).",
+      "Search all local collections": "\uBAA8\uB4E0 \uB85C\uCEEC \uCEEC\uB809\uC158 \uAC80\uC0C9",
+      "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "\uD544\uD130\uB85C \uAC8C\uC2DC\uBB3C, \uB9C8\uC74C\uC5D0 \uB4E4\uC5B4\uC694, \uBD81\uB9C8\uD06C, \uBA54\uBAA8, \uD0DC\uADF8, \uD3F4\uB354, \uC2A4\uB0C5\uC0F7\uC744 \uAC80\uC0C9\uD569\uB2C8\uB2E4.",
+      "Search local library (source:, account:, tag:, from:, to:, has:media)": "\uB85C\uCEEC \uB77C\uC774\uBE0C\uB7EC\uB9AC \uAC80\uC0C9 (source:, account:, tag:, from:, to:, has:media)",
+      "Use semantic ranking (optional)": "\uC2DC\uB9E8\uD2F1 \uC21C\uC704 \uC0AC\uC6A9 (\uC120\uD0DD \uC0AC\uD56D)",
+      "Try source:bookmarks, tag:reading, or has:media.": "source:bookmarks, tag:reading \uB610\uB294 has:media\uB97C \uC0AC\uC6A9\uD574 \uBCF4\uC138\uC694.",
+      "No local collections match this search.": "\uC77C\uCE58\uD558\uB294 \uB85C\uCEEC \uCEEC\uB809\uC158\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
+      "(no text)": "(\uD14D\uC2A4\uD2B8 \uC5C6\uC74C)",
       "Find local bookmarks": "\uB85C\uCEEC \uBD81\uB9C8\uD06C \uCC3E\uAE30",
       "Search saved posts by text, handle, tags, folder, or ID.": "\uC800\uC7A5\uD55C \uAC8C\uC2DC\uBB3C\uC744 \uBCF8\uBB38, \uD578\uB4E4, \uD0DC\uADF8, \uD3F4\uB354 \uB610\uB294 ID\uB85C \uAC80\uC0C9\uD569\uB2C8\uB2E4.",
       "Search local bookmarks": "\uB85C\uCEEC \uBD81\uB9C8\uD06C \uAC80\uC0C9",
       "No local bookmarks match this search.": "\uC774 \uAC80\uC0C9\uACFC \uC77C\uCE58\uD558\uB294 \uB85C\uCEEC \uBD81\uB9C8\uD06C\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
-      "(no text)": "(\uD14D\uC2A4\uD2B8 \uC5C6\uC74C)",
       "Notes": "\uBA54\uBAA8",
       "Bookmark notes": "\uBD81\uB9C8\uD06C \uBA54\uBAA8",
       "Remove": "\uC0AD\uC81C",
@@ -4696,11 +4732,17 @@ html.av-reduce-motion *::after {
       "No active downloads.": "\u0644\u0627 \u062A\u0648\u062C\u062F \u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0646\u0634\u0637\u0629.",
       "Cancel": "\u0625\u0644\u063A\u0627\u0621",
       "No matches (or integration disabled).": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0646\u062A\u0627\u0626\u062C \u0645\u0637\u0627\u0628\u0642\u0629 (\u0623\u0648 \u0623\u0646 \u0627\u0644\u062A\u0643\u0627\u0645\u0644 \u0645\u0639\u0637\u0651\u0644).",
+      "Search all local collections": "\u0627\u0644\u0628\u062D\u062B \u0641\u064A \u0643\u0644 \u0627\u0644\u0645\u062C\u0645\u0648\u0639\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
+      "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "\u0627\u0644\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0648\u0627\u0644\u0625\u0639\u062C\u0627\u0628\u0627\u062A \u0648\u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0648\u0627\u0644\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0648\u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062A \u0648\u0627\u0644\u0645\u062C\u0644\u062F\u0627\u062A \u0648\u0627\u0644\u0644\u0642\u0637\u0627\u062A \u0628\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0639\u0648\u0627\u0645\u0644 \u0627\u0644\u062A\u0635\u0641\u064A\u0629.",
+      "Search local library (source:, account:, tag:, from:, to:, has:media)": "\u0627\u0644\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0645\u0643\u062A\u0628\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629 (source:, account:, tag:, from:, to:, has:media)",
+      "Use semantic ranking (optional)": "\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0627\u0644\u062A\u0631\u062A\u064A\u0628 \u0627\u0644\u062F\u0644\u0627\u0644\u064A (\u0627\u062E\u062A\u064A\u0627\u0631\u064A)",
+      "Try source:bookmarks, tag:reading, or has:media.": "\u062C\u0631\u0651\u0628 source:bookmarks \u0623\u0648 tag:reading \u0623\u0648 has:media.",
+      "No local collections match this search.": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u062C\u0645\u0648\u0639\u0627\u062A \u0645\u062D\u0644\u064A\u0629 \u062A\u0637\u0627\u0628\u0642 \u0647\u0630\u0627 \u0627\u0644\u0628\u062D\u062B.",
+      "(no text)": "(\u0628\u0644\u0627 \u0646\u0635)",
       "Find local bookmarks": "\u0627\u0644\u0639\u062B\u0648\u0631 \u0639\u0644\u0649 \u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
       "Search saved posts by text, handle, tags, folder, or ID.": "\u0627\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629 \u0628\u0627\u0644\u0646\u0635 \u0623\u0648 \u0627\u0644\u0645\u0639\u0631\u0651\u0641 \u0623\u0648 \u0627\u0644\u0648\u0633\u0648\u0645 \u0623\u0648 \u0627\u0644\u0645\u062C\u0644\u062F \u0623\u0648 \u0627\u0644\u0631\u0642\u0645.",
       "Search local bookmarks": "\u0627\u0644\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
       "No local bookmarks match this search.": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0625\u0634\u0627\u0631\u0627\u062A \u0645\u0631\u062C\u0639\u064A\u0629 \u0645\u062D\u0644\u064A\u0629 \u062A\u0637\u0627\u0628\u0642 \u0647\u0630\u0627 \u0627\u0644\u0628\u062D\u062B.",
-      "(no text)": "(\u0628\u0644\u0627 \u0646\u0635)",
       "Notes": "\u0645\u0644\u0627\u062D\u0638\u0627\u062A",
       "Bookmark notes": "\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0625\u0634\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629",
       "Remove": "\u0625\u0632\u0627\u0644\u0629",
@@ -5350,11 +5392,17 @@ html.av-reduce-motion *::after {
       "No active downloads.": "\u05D0\u05D9\u05DF \u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA.",
       "Cancel": "\u05D1\u05D9\u05D8\u05D5\u05DC",
       "No matches (or integration disabled).": "\u05D0\u05D9\u05DF \u05D4\u05EA\u05D0\u05DE\u05D5\u05EA (\u05D0\u05D5 \u05E9\u05D4\u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D4 \u05DE\u05D5\u05E9\u05D1\u05EA\u05EA).",
+      "Search all local collections": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D1\u05DB\u05DC \u05D4\u05D0\u05D5\u05E1\u05E4\u05D9\u05DD \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9\u05D9\u05DD",
+      "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D1\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD, \u05DC\u05D9\u05D9\u05E7\u05D9\u05DD, \u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA, \u05D4\u05E2\u05E8\u05D5\u05EA, \u05EA\u05D2\u05D9\u05DD, \u05EA\u05D9\u05E7\u05D9\u05D5\u05EA \u05D5\u05EA\u05E6\u05DC\u05D5\u05DE\u05D9 \u05DE\u05E6\u05D1 \u05E2\u05DD \u05DE\u05E1\u05E0\u05E0\u05D9\u05DD.",
+      "Search local library (source:, account:, tag:, from:, to:, has:media)": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D1\u05E1\u05E4\u05E8\u05D9\u05D9\u05D4 \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9\u05EA (source:, account:, tag:, from:, to:, has:media)",
+      "Use semantic ranking (optional)": "\u05E9\u05D9\u05DE\u05D5\u05E9 \u05D1\u05D3\u05D9\u05E8\u05D5\u05D2 \u05E1\u05DE\u05E0\u05D8\u05D9 (\u05D0\u05D5\u05E4\u05E6\u05D9\u05D5\u05E0\u05DC\u05D9)",
+      "Try source:bookmarks, tag:reading, or has:media.": "\u05E0\u05E1\u05D5 source:bookmarks, tag:reading \u05D0\u05D5 has:media.",
+      "No local collections match this search.": "\u05D0\u05D9\u05DF \u05D0\u05D5\u05E1\u05E4\u05D9\u05DD \u05DE\u05E7\u05D5\u05DE\u05D9\u05D9\u05DD \u05D4\u05EA\u05D5\u05D0\u05DE\u05D9\u05DD \u05DC\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D4\u05D6\u05D4.",
+      "(no text)": "(\u05DC\u05DC\u05D0 \u05D8\u05E7\u05E1\u05D8)",
       "Find local bookmarks": "\u05DE\u05E6\u05D9\u05D0\u05EA \u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA",
       "Search saved posts by text, handle, tags, folder, or ID.": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05DE\u05D5\u05E8\u05D9\u05DD \u05DC\u05E4\u05D9 \u05D8\u05E7\u05E1\u05D8, \u05D9\u05D3\u05D9\u05EA, \u05EA\u05D2\u05D9\u05D5\u05EA, \u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D0\u05D5 \u05DE\u05D6\u05D4\u05D4.",
       "Search local bookmarks": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D1\u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA",
       "No local bookmarks match this search.": "\u05D0\u05D9\u05DF \u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA \u05E9\u05EA\u05D5\u05D0\u05DE\u05D5\u05EA \u05DC\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D4\u05D6\u05D4.",
-      "(no text)": "(\u05DC\u05DC\u05D0 \u05D8\u05E7\u05E1\u05D8)",
       "Notes": "\u05D4\u05E2\u05E8\u05D5\u05EA",
       "Bookmark notes": "\u05D4\u05E2\u05E8\u05D5\u05EA \u05D4\u05E1\u05D9\u05DE\u05E0\u05D9\u05D9\u05D4",
       "Remove": "\u05D4\u05E1\u05E8\u05D4",
@@ -6103,6 +6151,7 @@ html.av-reduce-motion *::after {
     let activeSectionId = "presets";
     let searchQuery = "";
     let bookmarkQuery = "";
+    let unifiedSemantic = false;
     let lastStatusEnglish = "Saved locally";
     let lastStatusValues = {};
     let bodyWasInert = false;
@@ -7646,6 +7695,69 @@ html.av-reduce-motion *::after {
     };
     const libraryRows = () => {
       const rows = [];
+      if (options.offlineSearch) {
+        const row = el("div", "av-row av-row-stack");
+        const copy = el("span", "av-row-copy");
+        copy.append(
+          el("span", "av-row-label", t("Search all local collections")),
+          el(
+            "span",
+            "av-row-description",
+            t("Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.")
+          )
+        );
+        const input = document.createElement("input");
+        input.type = "search";
+        input.className = "av-text-input";
+        input.placeholder = t("Search local library (source:, account:, tag:, from:, to:, has:media)");
+        input.setAttribute("aria-label", t("Search all local collections"));
+        input.spellcheck = false;
+        const semanticToggle = document.createElement("input");
+        semanticToggle.type = "checkbox";
+        semanticToggle.checked = unifiedSemantic;
+        semanticToggle.setAttribute("aria-label", t("Use semantic ranking (optional)"));
+        const semanticCopy = el("span", "av-row-description", t("Use semantic ranking (optional)"));
+        const semanticRow = el("label", "av-inline-controls");
+        semanticRow.append(semanticToggle, semanticCopy);
+        const results = el("div", "av-search-results");
+        results.setAttribute("role", "list");
+        results.setAttribute("aria-live", "polite");
+        let searchSequence = 0;
+        const renderUnified = async () => {
+          const sequence = ++searchSequence;
+          const query = input.value.trim();
+          results.replaceChildren();
+          if (query.length === 0) {
+            results.append(el("div", "av-row-description", t("Try source:bookmarks, tag:reading, or has:media.")));
+            return;
+          }
+          const matches = unifiedSemantic && options.offlineSemanticSearch ? await options.offlineSemanticSearch(query) : options.offlineSearch(query);
+          if (sequence !== searchSequence) return;
+          if (matches.length === 0) {
+            results.append(el("div", "av-row-description", t("No local collections match this search.")));
+            return;
+          }
+          for (const hit of matches.slice(0, 30)) {
+            const item = el("div", "av-search-hit");
+            item.setAttribute("role", "listitem");
+            const account = hit.document.account ? `@${hit.document.account}` : "local";
+            const mode = hit.mode === "semantic" ? " \xB7 semantic" : "";
+            item.append(
+              el("span", "av-row-label", `${hit.document.collection}${mode} \xB7 ${account}`),
+              el("span", "av-row-description", hit.snippet || t("(no text)"))
+            );
+            results.append(item);
+          }
+        };
+        input.addEventListener("input", () => void renderUnified());
+        semanticToggle.addEventListener("change", () => {
+          unifiedSemantic = semanticToggle.checked;
+          void renderUnified();
+        });
+        results.append(el("div", "av-row-description", t("Try source:bookmarks, tag:reading, or has:media.")));
+        row.append(copy, input, semanticRow, results);
+        rows.push(row);
+      }
       if (options.getBookmarkStatus && options.searchBookmarks && options.updateBookmark && options.removeBookmark) {
         const status2 = options.getBookmarkStatus();
         rows.push(
@@ -10772,6 +10884,9 @@ input[type="checkbox"] {
     }
     model() {
       return this.#state.model;
+    }
+    list() {
+      return this.#state.entries.map((entry) => ({ ...entry, vector: [...entry.vector] }));
     }
     async embedAndIndex(config, records) {
       if (!config.enabled || !config.endpoint || !config.apiKey || !config.model) {
@@ -16591,78 +16706,148 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     return "mp4";
   }
 
-  // src/features/library/local-search.ts
-  var LocalSearchIndex = class {
-    #postings = /* @__PURE__ */ new Map();
-    #records = [];
-    rebuild(records) {
-      this.#postings.clear();
-      this.#records.length = 0;
-      for (const record of records) {
-        this.add(record);
+  // src/features/library/query-model.ts
+  var OFFLINE_QUERY_MAX_LENGTH = 512;
+  var EMPTY_FILTERS = () => ({
+    collections: [],
+    account: null,
+    tag: null,
+    folder: null,
+    from: null,
+    to: null,
+    hasMedia: null
+  });
+  var COLLECTION_ALIASES = {
+    post: "posts",
+    posts: "posts",
+    tweet: "posts",
+    tweets: "posts",
+    like: "likes",
+    likes: "likes",
+    bookmark: "bookmarks",
+    bookmarks: "bookmarks",
+    note: "notes",
+    notes: "notes",
+    snapshot: "snapshots",
+    snapshots: "snapshots",
+    semantic: "semantic",
+    archive: "archive"
+  };
+  function parseOfflineQuery(input) {
+    const raw = typeof input === "string" ? input.normalize("NFC") : "";
+    const truncated = raw.length > OFFLINE_QUERY_MAX_LENGTH;
+    const query = raw.slice(0, OFFLINE_QUERY_MAX_LENGTH);
+    const filters = EMPTY_FILTERS();
+    const errors = [];
+    const terms = [];
+    const filterPattern = /(^|\s)(source|type|account|tag|folder|from|to|after|before|has):("([^"]*)"|([^\s]+))/giu;
+    let freeText = query;
+    for (const match of query.matchAll(filterPattern)) {
+      const key = match[2].toLowerCase();
+      const value = (match[4] ?? match[5] ?? "").trim();
+      freeText = freeText.replace(match[0], " ");
+      if (!value) {
+        errors.push(`${key} requires a value`);
+        continue;
+      }
+      if (key === "source" || key === "type") {
+        const collection = COLLECTION_ALIASES[value.toLowerCase()];
+        if (!collection) {
+          errors.push(`unknown collection: ${value}`);
+        } else if (!filters.collections.includes(collection)) {
+          filters.collections.push(collection);
+        }
+        continue;
+      }
+      if (key === "account") {
+        filters.account = value.replace(/^@/, "").toLocaleLowerCase();
+        continue;
+      }
+      if (key === "tag") {
+        filters.tag = value.replace(/^#/, "").toLocaleLowerCase();
+        continue;
+      }
+      if (key === "folder") {
+        filters.folder = value.toLocaleLowerCase();
+        continue;
+      }
+      if (key === "has") {
+        if (value.toLocaleLowerCase() !== "media") {
+          errors.push(`unsupported has filter: ${value}`);
+        } else {
+          filters.hasMedia = true;
+        }
+        continue;
+      }
+      const timestamp = parseDateFilter(value, key === "to" || key === "before");
+      if (timestamp === null) {
+        errors.push(`invalid date: ${value}`);
+      } else if (key === "from" || key === "after") {
+        filters.from = timestamp;
+      } else {
+        filters.to = timestamp;
       }
     }
-    add(record) {
-      const id = this.#records.push(record) - 1;
-      for (const token of tokensFor(record)) {
-        let posting = this.#postings.get(token);
-        if (!posting) {
-          posting = /* @__PURE__ */ new Set();
-          this.#postings.set(token, posting);
-        }
-        posting.add(id);
-      }
+    terms.push(...tokenizeSearchText(freeText));
+    if (truncated) errors.push(`query exceeds ${OFFLINE_QUERY_MAX_LENGTH} characters`);
+    return {
+      text: freeText.replace(/\s+/g, " ").trim(),
+      terms: [...new Set(terms)],
+      filters,
+      errors,
+      truncated
+    };
+  }
+  var OfflineQueryIndex = class {
+    #documents = [];
+    #tokens = /* @__PURE__ */ new Map();
+    rebuild(documents) {
+      this.#documents.length = 0;
+      this.#tokens.clear();
+      for (const document2 of documents) this.add(document2);
+    }
+    add(document2) {
+      const normalized = normalizeDocument(document2);
+      this.#documents.push(normalized);
+      this.#tokens.set(normalized.id, new Set(tokenizeSearchText(searchableText(normalized))));
     }
     size() {
-      return this.#records.length;
+      return this.#documents.length;
     }
     termCount() {
-      return this.#postings.size;
+      const terms = /* @__PURE__ */ new Set();
+      for (const tokens of this.#tokens.values()) {
+        for (const token of tokens) terms.add(token);
+      }
+      return terms.size;
     }
     search(query, options = {}) {
-      const tokens = tokenize(query);
-      if (tokens.length === 0) return [];
-      const limit = options.limit ?? 50;
-      const docScores = /* @__PURE__ */ new Map();
-      for (const term of tokens) {
-        const posting = this.#postings.get(term);
-        if (!posting) continue;
-        for (const id of posting) {
-          const existing = docScores.get(id);
-          if (existing) {
-            existing.score += 1;
-            existing.matched.add(term);
-          } else {
-            docScores.set(id, { score: 1, matched: /* @__PURE__ */ new Set([term]) });
-          }
-        }
+      const parsed = typeof query === "string" ? parseOfflineQuery(query) : query;
+      if (parsed.errors.length > 0) return [];
+      if (parsed.terms.length === 0 && !hasFilter(parsed.filters)) return [];
+      const limit = Math.max(1, Math.min(100, options.limit ?? 50));
+      const hits = [];
+      for (const document2 of this.#documents) {
+        if (!matchesFilters(document2, parsed.filters)) continue;
+        const indexed = this.#tokens.get(document2.id) ?? /* @__PURE__ */ new Set();
+        const matchedTerms = parsed.terms.filter((term) => indexed.has(term));
+        if (parsed.terms.length > 0 && matchedTerms.length === 0) continue;
+        const score = matchedTerms.length * 2 + fieldBoost(document2, parsed.terms);
+        hits.push({
+          document: document2,
+          score,
+          matchedTerms,
+          snippet: snippetFor(document2.text),
+          mode: options.mode ?? "lexical"
+        });
       }
-      const sorted = [...docScores.entries()].map(([id, { score, matched }]) => {
-        const record = this.#records[id];
-        if (!record) {
-          return null;
-        }
-        return {
-          record,
-          score: score + matched.size,
-          matchedTerms: [...matched].sort()
-        };
-      }).filter((hit) => hit !== null).sort((a, b) => b.score - a.score).slice(0, limit);
-      return sorted;
+      return hits.sort(
+        (a, b) => b.score - a.score || timestampValue(b.document.capturedAt) - timestampValue(a.document.capturedAt) || a.document.id.localeCompare(b.document.id)
+      ).slice(0, limit);
     }
   };
-  function tokensFor(record) {
-    const haystack = [
-      record.text,
-      record.handle ?? "",
-      record.displayName ?? "",
-      record.surface,
-      ...record.media.map((media) => media.url)
-    ].join(" ");
-    return new Set(tokenize(haystack));
-  }
-  function tokenize(value) {
-    const normalized = value.normalize("NFC").toLowerCase();
+  function tokenizeSearchText(value) {
+    const normalized = value.normalize("NFC").toLocaleLowerCase();
     const words = normalized.split(/[^\p{L}\p{N}_@]+/u).map((token) => token.replace(/^@/, "")).filter((token) => token.length > 0 && token.length <= 40);
     const tokens = [];
     for (const word of words) {
@@ -16671,18 +16856,223 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           tokens.push(word);
           continue;
         }
-        for (let i = 0; i < word.length - 1; i++) {
-          tokens.push(word.slice(i, i + 2));
-        }
+        for (let i = 0; i < word.length - 1; i++) tokens.push(word.slice(i, i + 2));
         continue;
       }
-      if (word.length >= 2) {
-        tokens.push(word);
-      }
+      if (word.length >= 2) tokens.push(word);
     }
     return tokens;
   }
+  function documentFromExportRecord(record) {
+    const collection = record.surface.includes("likes") ? "likes" : "posts";
+    return {
+      id: `record:${record.tweetId ?? `${record.capturedAt}:${record.text.slice(0, 48)}`}`,
+      collection,
+      account: normalizeAccount(record.handle),
+      text: [
+        record.text,
+        record.handle ?? "",
+        record.displayName ?? "",
+        record.permalink ?? "",
+        ...record.media.map((media) => `${media.url} ${media.altText ?? ""}`),
+        record.quote?.text ?? "",
+        record.article?.title ?? ""
+      ].join(" "),
+      tags: [],
+      folder: null,
+      capturedAt: record.capturedAt,
+      mediaCount: record.media.length,
+      payload: record
+    };
+  }
+  function documentFromBookmark(bookmark) {
+    return {
+      id: `bookmark:${bookmark.id}`,
+      collection: "bookmarks",
+      account: normalizeAccount(bookmark.handle),
+      text: [bookmark.text, bookmark.handle ?? "", bookmark.url ?? "", bookmark.notes].join(" "),
+      tags: bookmark.tags,
+      folder: bookmark.folder,
+      capturedAt: bookmark.updatedAt || bookmark.capturedAt,
+      // Bookmark.url is the post permalink, not a captured media asset.
+      mediaCount: 0,
+      payload: bookmark
+    };
+  }
+  function documentFromNote(handle, note) {
+    return {
+      id: `note:${handle}`,
+      collection: "notes",
+      account: normalizeAccount(handle),
+      text: note,
+      tags: [],
+      folder: null,
+      capturedAt: null,
+      mediaCount: 0,
+      payload: { handle, note }
+    };
+  }
+  function documentFromSnapshot(snapshot) {
+    return {
+      id: `snapshot:${snapshot.kind}:${snapshot.handle}:${snapshot.capturedAt}`,
+      collection: "snapshots",
+      account: normalizeAccount(snapshot.handle),
+      text: [snapshot.handle, snapshot.kind, ...snapshot.accounts].join(" "),
+      tags: [snapshot.kind, snapshot.source],
+      folder: null,
+      capturedAt: snapshot.capturedAt,
+      mediaCount: 0,
+      payload: snapshot
+    };
+  }
+  function documentFromSemanticEntry(entry) {
+    return {
+      id: `semantic:${entry.id}`,
+      collection: "semantic",
+      account: normalizeAccount(entry.handle),
+      text: entry.text,
+      tags: [],
+      folder: null,
+      capturedAt: entry.embeddedAt,
+      mediaCount: 0,
+      payload: entry
+    };
+  }
+  function documentsFromArchiveLibrary(snapshot) {
+    const documents = [];
+    if (snapshot.profile) {
+      documents.push({
+        id: "archive:profile",
+        collection: "archive",
+        account: normalizeAccount(snapshot.profile.handle),
+        text: [snapshot.profile.handle, snapshot.profile.displayName, snapshot.profile.bio, snapshot.profile.location, snapshot.profile.website].filter(Boolean).join(" "),
+        tags: ["profile"],
+        folder: null,
+        capturedAt: snapshot.updatedAt,
+        mediaCount: 0,
+        payload: snapshot.profile
+      });
+    }
+    for (const entry of [...snapshot.followers, ...snapshot.following]) {
+      documents.push({
+        id: `archive:account:${entry.id ?? entry.handle ?? entry.sourceFile}`,
+        collection: "archive",
+        account: normalizeAccount(entry.handle),
+        text: [entry.handle, entry.displayName, entry.sourceFile].filter(Boolean).join(" "),
+        tags: ["account"],
+        folder: null,
+        capturedAt: snapshot.updatedAt,
+        mediaCount: 0,
+        payload: entry
+      });
+    }
+    for (const entry of snapshot.lists) {
+      documents.push({
+        id: `archive:list:${entry.id ?? entry.name ?? entry.description ?? "unknown"}`,
+        collection: "archive",
+        account: null,
+        text: [entry.name, entry.description, ...entry.memberIds, ...entry.subscriberIds].filter(Boolean).join(" "),
+        tags: ["list"],
+        folder: null,
+        capturedAt: snapshot.updatedAt,
+        mediaCount: 0,
+        payload: entry
+      });
+    }
+    for (const entry of snapshot.media) {
+      documents.push({
+        id: `archive:media:${entry.id ?? entry.tweetId ?? entry.url ?? entry.sourceFile}`,
+        collection: "archive",
+        account: null,
+        text: [entry.tweetId, entry.url, entry.filename, entry.mimeType, entry.sourceFile].filter(Boolean).join(" "),
+        tags: ["media"],
+        folder: null,
+        capturedAt: snapshot.updatedAt,
+        mediaCount: 1,
+        payload: entry
+      });
+    }
+    return documents;
+  }
+  function normalizeDocument(document2) {
+    return {
+      ...document2,
+      account: normalizeAccount(document2.account),
+      text: String(document2.text ?? "").normalize("NFC").slice(0, 1e5),
+      tags: document2.tags.map((tag) => String(tag).trim().toLocaleLowerCase()).filter(Boolean).slice(0, 64),
+      folder: document2.folder ? String(document2.folder).trim().toLocaleLowerCase().slice(0, 128) : null,
+      mediaCount: Number.isFinite(document2.mediaCount) ? Math.max(0, Math.floor(document2.mediaCount)) : 0
+    };
+  }
+  function searchableText(document2) {
+    return [document2.text, document2.account ?? "", document2.collection, ...document2.tags, document2.folder ?? ""].join(" ");
+  }
+  function fieldBoost(document2, terms) {
+    const accountTerms = new Set(tokenizeSearchText(document2.account ?? ""));
+    const tagTerms = new Set(tokenizeSearchText(document2.tags.join(" ")));
+    return terms.reduce((score, term) => score + (accountTerms.has(term) ? 2 : 0) + (tagTerms.has(term) ? 1 : 0), 0);
+  }
+  function matchesFilters(document2, filters) {
+    if (filters.collections.length > 0 && !filters.collections.includes(document2.collection)) return false;
+    if (filters.account && document2.account !== filters.account) return false;
+    if (filters.tag && !document2.tags.includes(filters.tag)) return false;
+    if (filters.folder && document2.folder !== filters.folder) return false;
+    const date = timestampValue(document2.capturedAt);
+    if (filters.from !== null && (date === 0 || date < filters.from)) return false;
+    if (filters.to !== null && (date === 0 || date > filters.to)) return false;
+    if (filters.hasMedia === true && document2.mediaCount < 1) return false;
+    return true;
+  }
+  function hasFilter(filters) {
+    return filters.collections.length > 0 || Boolean(filters.account || filters.tag || filters.folder) || filters.from !== null || filters.to !== null || filters.hasMedia !== null;
+  }
+  function parseDateFilter(value, endOfDay) {
+    const timestamp = Date.parse(value);
+    if (!Number.isFinite(timestamp)) return null;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !endOfDay) return timestamp;
+    return timestamp + 86399999;
+  }
+  function timestampValue(value) {
+    if (!value) return 0;
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  function normalizeAccount(value) {
+    const normalized = typeof value === "string" ? value.trim().replace(/^@/, "").toLocaleLowerCase() : "";
+    return normalized || null;
+  }
+  function snippetFor(text) {
+    const normalized = text.replace(/\s+/g, " ").trim();
+    return normalized.length > 220 ? `${normalized.slice(0, 217)}\u2026` : normalized;
+  }
   var UNSPACED_SCRIPT = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+
+  // src/features/library/local-search.ts
+  var LocalSearchIndex = class {
+    #index = new OfflineQueryIndex();
+    rebuild(records) {
+      this.#index.rebuild(records.map(documentFromExportRecord));
+    }
+    add(record) {
+      this.#index.add(documentFromExportRecord(record));
+    }
+    size() {
+      return this.#index.size();
+    }
+    termCount() {
+      return this.#index.termCount();
+    }
+    search(query, options = {}) {
+      const queryOptions = options.limit === void 0 ? {} : { limit: options.limit };
+      return this.#index.search(query, queryOptions).flatMap((hit) => {
+        const record = hit.document.payload;
+        return isExportRecord(record) ? [{ record, score: hit.score, matchedTerms: hit.matchedTerms }] : [];
+      });
+    }
+  };
+  function isExportRecord(value) {
+    return typeof value === "object" && value !== null && typeof value.text === "string";
+  }
 
   // src/features/library/reports.ts
   function buildMarkdownReport(input) {
@@ -17873,6 +18263,24 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         searchBookmarks(query) {
           return searchBookmarks(query);
         },
+        offlineSearch(query) {
+          return searchOfflineLibrary(query);
+        },
+        async offlineSemanticSearch(query) {
+          if (!semanticIndex) return [];
+          const hits = await semanticIndex.search(
+            ctx.settings.integrations.semanticSearch,
+            query,
+            30
+          );
+          return hits.map((hit) => ({
+            document: documentFromSemanticEntry(hit.entry),
+            score: hit.score,
+            matchedTerms: [],
+            snippet: hit.entry.text.slice(0, 220),
+            mode: "semantic"
+          }));
+        },
         async updateBookmark(id, input) {
           const entry = await updateBookmark(id, input);
           if (entry) {
@@ -18451,6 +18859,23 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   function rebuildSearchIndex() {
     const store4 = getCheckpointStore();
     searchIndex.rebuild(collectAllRecords(store4));
+  }
+  function searchOfflineLibrary(query) {
+    const index = new OfflineQueryIndex();
+    const documents = collectOfflineDocuments();
+    index.rebuild(documents);
+    return index.search(query, { limit: 30 });
+  }
+  function collectOfflineDocuments() {
+    const documents = collectAllRecords(getCheckpointStore()).map(documentFromExportRecord);
+    documents.push(...getBookmarks().map(documentFromBookmark));
+    documents.push(...Object.entries(getUserNotes()).map(([handle, note]) => documentFromNote(handle, note)));
+    documents.push(...(getSnapshotStore()?.list() ?? []).map(documentFromSnapshot));
+    documents.push(...(semanticIndex?.list() ?? []).map(documentFromSemanticEntry));
+    if (archiveLibrary) {
+      documents.push(...documentsFromArchiveLibrary(archiveLibrary.snapshot()));
+    }
+    return documents;
   }
   function collectAllRecords(store4) {
     if (!store4) return [];

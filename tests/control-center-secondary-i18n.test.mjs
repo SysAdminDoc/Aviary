@@ -98,6 +98,8 @@ test("secondary Control Center sections render stable copy through every locale"
         recentIntegrationErrors: () => [],
         getBookmarkStatus: () => ({ total: 3, due: 1, tags: ["one"], folders: ["folder"] }),
         searchBookmarks: () => [],
+        offlineSearch: () => [],
+        offlineSemanticSearch: async () => [],
         updateBookmark: async () => null,
         removeBookmark: async () => true,
         clearBookmarks: async () => {},
@@ -160,6 +162,7 @@ test("secondary Control Center sections render stable copy through every locale"
   assert.match(English.text.integrations, /Aria2 active downloads/);
   assert.match(English.text.export, /2 jobs tracked · 5 GraphQL IDs cached/);
   assert.match(English.text.library, /3 saved · 1 due/);
+  assert.match(English.text.library, /Search all local collections/);
   const expectedControlNames = {
     "av-import-archive": "Import official X archive",
     "av-search-archive": "Search captured records",
@@ -183,7 +186,11 @@ test("secondary Control Center sections render stable copy through every locale"
     "Local bookmarks",
     "2 entries · latest followers of 3",
     "2 jobs tracked · 5 GraphQL IDs cached",
-    "3 saved · 1 due · 1 tags · 1 folders"
+    "3 saved · 1 due · 1 tags · 1 folders",
+    "Search all local collections",
+    "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.",
+    "Use semantic ranking (optional)",
+    "Try source:bookmarks, tag:reading, or has:media."
   ];
   for (const locale of locales.slice(1)) {
     assert.notEqual(results[locale].dialog, "Aviary settings", `${locale} dialog label stayed English`);

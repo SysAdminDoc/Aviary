@@ -75,6 +75,10 @@ export class SemanticIndex {
     return this.#state.model;
   }
 
+  list(): SemanticEntry[] {
+    return this.#state.entries.map((entry) => ({ ...entry, vector: [...entry.vector] }));
+  }
+
   async embedAndIndex(
     config: IntegrationSettings["semanticSearch"],
     records: readonly ExportRecord[]
