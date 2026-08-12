@@ -260,7 +260,6 @@ type ViewerLocale = keyof typeof VIEWER_LABELS;
 type ViewerLabels = (typeof VIEWER_LABELS)[ViewerLocale];
 
 const LOCALE_ORDER: ViewerLocale[] = ["en", "es", "pt", "fr", "de", "ja", "ko", "ar", "he"];
-const RTL_LOCALES = new Set<ViewerLocale>(["ar", "he"]);
 
 export function buildExportViewer(records: readonly ExportRecord[]): Uint8Array {
   const data = safeJson(serializeExportRecords(records));

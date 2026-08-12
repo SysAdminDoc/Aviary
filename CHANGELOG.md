@@ -7,6 +7,8 @@
 - AI and embedding integrations now disclose their provider, endpoint, fields, retention, and
   request size before external work; configurable per-request and daily UTF-8 byte budgets stop
   further calls, while profile-scoped usage history stores counters only and remains backup-safe.
+- Release verification now includes pinned ESLint static analysis across source, tests, and tooling;
+  generated bundles and captured fixtures stay outside the lint target.
 
 ### Fixed
 

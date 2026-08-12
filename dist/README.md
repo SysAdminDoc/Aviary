@@ -184,7 +184,7 @@ Setup paths (userscript, Chromium dev-load, Firefox temporary-load) and uninstal
 
 ## Build & preflight
 
-`npm run verify` chains TypeScript checking, the full test suite, an esbuild bundle, and `tools/preflight.mjs`. The preflight gate enforces:
+`npm run verify` chains TypeScript checking, pinned ESLint static analysis, the full test suite, an esbuild bundle, and `tools/preflight.mjs`. The lint stage covers source, tests, and tooling while ignoring generated bundles and captured fixtures. The preflight gate enforces:
 
 - Manifest version equals `package.json` version.
 - `manifest_version` is 3 and `host_permissions` is not `<all_urls>`.

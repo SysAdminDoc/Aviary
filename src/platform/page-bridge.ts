@@ -144,7 +144,9 @@ export function createPageBridge(options: {
     }
   }
 
-  let send: (envelope: PageAgentEnvelope) => void = () => {};
+  let send: (envelope: PageAgentEnvelope) => void = () => {
+    // No page-scope transport is available until a supported source is installed below.
+  };
 
   if (options.source === "userscript") {
     const target = pageWindowFromSandbox();

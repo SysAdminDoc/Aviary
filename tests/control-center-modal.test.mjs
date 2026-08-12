@@ -48,7 +48,7 @@ after(async () => {
 test("Control Center behaves as a modal and restores launcher focus", async () => {
   const result = await page.evaluate(() => {
     const settings = AviaryModal.cloneSettings(AviaryModal.DEFAULT_SETTINGS);
-    const handle = AviaryModal.mountControlCenter({
+    AviaryModal.mountControlCenter({
       settings,
       diagnostics: () => [],
       onChange: async () => {},

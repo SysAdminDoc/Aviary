@@ -21,6 +21,8 @@ test("install + FAQ docs exist and reference the right primitives", async () => 
 
 test("preflight script and build script are wired into package.json", async () => {
   const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
+  assert.equal(typeof pkg.scripts.lint, "string");
+  assert.ok(pkg.scripts.verify.includes("lint"));
   assert.equal(typeof pkg.scripts.preflight, "string");
   assert.ok(pkg.scripts.verify.includes("preflight"));
   assert.ok((await stat(path.join(root, "tools/preflight.mjs"))).isFile());

@@ -255,7 +255,6 @@ export function buildAiDisclosure(
   usage: UsageSnapshot | undefined,
   networkAllowed: boolean
 ): AiDisclosure {
-  const body = aiRequestBody(config, request);
   const text = [request.systemPrompt ?? "", request.prompt].join("\n");
   const budget = defaultAiBudget(config);
   const requestBytes = estimateAiRequestBytes(config, request);

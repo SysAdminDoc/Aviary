@@ -8,14 +8,14 @@ import {
   SETTINGS_KEY,
   type AviarySettings
 } from "../../platform/settings";
-import type {
-  ControlCenterHandle,
-  ExportStatus,
-  HiddenPostsStatus,
-  MediaStatus,
-  IntegrationUsageStatus as ControlCenterUsageStatus
+import {
+  type ControlCenterHandle,
+  type ExportStatus,
+  type HiddenPostsStatus,
+  type MediaStatus,
+  type IntegrationUsageStatus as ControlCenterUsageStatus,
+  mountControlCenter
 } from "../../ui/control-center";
-import { mountControlCenter } from "../../ui/control-center";
 import { pageHookCounters } from "../privacy/page-hooks";
 import { getSelectorHealthSnapshot } from "./selector-health";
 import { applyPreset, describePresetDelta, getPreset, listPresets } from "./presets";

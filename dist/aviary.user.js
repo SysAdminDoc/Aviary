@@ -11915,7 +11915,6 @@ input[type="checkbox"] {
     };
   }
   function buildAiDisclosure(config, request, usage, networkAllowed) {
-    const body = aiRequestBody(config, request);
     const text = [request.systemPrompt ?? "", request.prompt].join("\n");
     const budget = defaultAiBudget(config);
     const requestBytes = estimateAiRequestBytes(config, request);
@@ -18865,7 +18864,9 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
   async function waitForBatch(control) {
     while (control.status === "paused" && !control.cancelled) {
-      await new Promise((resolve) => control.waiters.add(resolve));
+      await new Promise((resolve) => {
+        control.waiters.add(resolve);
+      });
     }
   }
   function wakeBatch(control) {

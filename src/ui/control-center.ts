@@ -1,13 +1,15 @@
-import type {
-  AviarySettings,
-  FilterAction,
-  FilterMediaKey,
-  FilterSurface,
-  MediaLayout,
-  RateLimitMode,
-  ReduceMotionMode,
+import {
+  type AviarySettings,
+  type FilterAction,
+  type FilterMediaKey,
+  type FilterSurface,
+  type MediaLayout,
+  type RateLimitMode,
+  type ReduceMotionMode,
+  FILTER_MEDIA_KEYS,
+  FILTER_SURFACES,
+  isThemeId
 } from "../platform/settings";
-import { FILTER_MEDIA_KEYS, FILTER_SURFACES, isThemeId } from "../platform/settings";
 import { hasTranslation, localeDirection, translateText } from "../platform/i18n";
 import type { RetentionPolicy } from "../features/export/jobs";
 import type { BookmarkInput, BookmarkRecord } from "../features/library/bookmarks";

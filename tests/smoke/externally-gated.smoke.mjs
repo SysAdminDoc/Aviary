@@ -383,17 +383,6 @@ async function clickAction(page, section, label) {
   }, label);
 }
 
-async function rowText(page, section, label) {
-  await openSection(page, section);
-  return page.evaluate((label) => {
-    const host = document.querySelector("#av-control-center");
-    const row = [...(host?.shadowRoot?.querySelectorAll(".av-row") ?? [])].find(
-      (candidate) => candidate.querySelector(".av-row-label")?.textContent === label
-    );
-    return row?.textContent ?? "";
-  }, label);
-}
-
 async function waitStatus(page, text) {
   try {
     await page.waitForFunction((needle) => {

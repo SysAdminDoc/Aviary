@@ -139,7 +139,7 @@ test("crosspost reports configured-but-disabled gracefully and forwards bluesky 
 
   const originalFetch = globalThis.fetch;
   let sequence = 0;
-  globalThis.fetch = async (url) => {
+  globalThis.fetch = async (_url) => {
     sequence += 1;
     if (sequence === 1) {
       return new Response(JSON.stringify({ accessJwt: "jwt", did: "did:plc:1234" }), {

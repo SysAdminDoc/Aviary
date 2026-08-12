@@ -1,5 +1,5 @@
 import { renderFilename } from "./template";
-import { extractTweet } from "./extract";
+import { extractTweet, type ExtractedTweet, type ExtractedMedia } from "./extract";
 import {
   createDownloader,
   DownloadPermissionError,
@@ -9,7 +9,6 @@ import {
 } from "./downloader";
 import { getMediaHistory, getMediaQueue } from "./media-buttons";
 import { isSaveableVariantUrl } from "./video-extract";
-import type { ExtractedTweet, ExtractedMedia } from "./extract";
 import type { DownloadJob } from "./queue";
 import type { FeatureContext } from "../registry";
 
@@ -349,7 +348,9 @@ function beginBatch(total: number, progress: BatchProgress): ActiveBatch {
 
 async function waitForBatch(control: ActiveBatch): Promise<void> {
   while (control.status === "paused" && !control.cancelled) {
-    await new Promise<void>((resolve) => control.waiters.add(resolve));
+    await new Promise<void>((resolve) => {
+      control.waiters.add(resolve);
+    });
   }
 }
 

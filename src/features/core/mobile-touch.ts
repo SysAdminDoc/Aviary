@@ -1,4 +1,4 @@
-import type { FeatureContext, FeatureModule } from "../registry";
+import type { FeatureModule } from "../registry";
 
 const STYLE_ID = "av-mobile-touch";
 
