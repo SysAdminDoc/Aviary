@@ -31,7 +31,19 @@ try {
 }
 
 const fixtureHtml = await readFile(fixturePath, "utf8");
-const fixtureDocumentPaths = new Set(["/home", "/alice_fixture", "/search", "/alice_fixture/status/123456789", "/selector-degraded"]);
+const fixtureDocumentPaths = new Set([
+  "/home",
+  "/alice_fixture",
+  "/alice_fixture/followers",
+  "/alice_fixture/following",
+  "/alice_fixture/verified_followers",
+  "/search",
+  "/notifications",
+  "/messages",
+  "/alice_fixture/status/123456789",
+  "/i/media_viewer",
+  "/selector-degraded"
+]);
 const degradedFixtureHtml = fixtureHtml.replace(/<main data-testid="primaryColumn">[\s\S]*?<\/main>/, "");
 const mseMetadata = JSON.stringify({
   data: {
@@ -155,6 +167,33 @@ async function navigateSmokeRoute(page, nextPath) {
     { timeout: 15_000 }
   );
   await page.waitForTimeout(120);
+}
+
+async function runFixtureRouteMatrix(page) {
+  const routes = [
+    "/home",
+    "/home?tab=following",
+    "/alice_fixture",
+    "/alice_fixture/followers",
+    "/alice_fixture/following",
+    "/alice_fixture/verified_followers",
+    "/notifications",
+    "/messages",
+    "/search?q=aviary",
+    "/alice_fixture/status/123456789",
+    "/i/media_viewer?url=https%3A%2F%2Fpbs.twimg.com%2Fmedia%2Ffixture"
+  ];
+  for (const route of routes) {
+    await navigateSmokeRoute(page, route);
+    const anchors = await page.evaluate(() => ({
+      ready: document.documentElement.dataset.avReady === "true",
+      panel: Boolean(document.querySelector("#av-control-center")?.shadowRoot?.querySelector(".av-launcher")),
+      primary: Boolean(document.querySelector('[data-testid="primaryColumn"]'))
+    }));
+    expect(Object.values(anchors).every(Boolean), `fixture route did not boot: ${route} ${JSON.stringify(anchors)}`);
+  }
+  await navigateSmokeRoute(page, "/home");
+  console.log(`[smoke] deterministic fixture route matrix passed (${routes.length} routes, including profile subroutes, Notifications, Messages, Search, status, and media viewer).`);
 }
 
 async function runPageHookMatrix(page) {
@@ -416,6 +455,8 @@ try {
     grok: Boolean(document.querySelector('a[href="/i/grok"]'))
   }));
   expect(Object.values(anchors).every(Boolean), `current-X fixture anchors missing: ${JSON.stringify(anchors)}`);
+
+  await runFixtureRouteMatrix(page);
 
   await page.evaluate(() => {
     const host = document.querySelector("#av-control-center");

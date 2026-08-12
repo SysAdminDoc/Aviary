@@ -614,6 +614,8 @@ try {
     if (!(option instanceof HTMLElement)) throw new Error("AI summarize option missing");
     option.click();
   });
+  await page.waitForSelector(".av-ai-review-send");
+  await page.click(".av-ai-review-send");
   try {
     await page.waitForFunction(
       () => document.querySelector("#av-feature-toast")?.shadowRoot?.querySelector(".av-ftoast-text")?.textContent?.includes("result copied"),
@@ -632,6 +634,8 @@ try {
   await page.evaluate(() => document.querySelector('[data-av-ai-trigger="1"]')?.click());
   await page.waitForSelector(".av-ai-menu");
   await page.evaluate(() => document.querySelector(".av-ai-option")?.click());
+  await page.waitForSelector(".av-ai-review-send");
+  await page.click(".av-ai-review-send");
   await page.waitForFunction(
     () => document.querySelector("#av-feature-toast")?.shadowRoot?.querySelector(".av-ftoast-text")?.textContent?.includes("Provider HTTP 503"),
     null,

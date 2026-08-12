@@ -60,6 +60,10 @@ npm run verify
 - `dist/extension-chrome/`
 - `dist/extension-firefox/`
 
+`npm run test:matrix` runs the deterministic release matrix separately: every supported route,
+locale, theme, keyboard/coarse-pointer mode, malformed input class, provider response class, and
+subscription lifecycle is reported in CI before the headed smoke lanes.
+
 ## Privacy Model
 
 Aviary is designed to keep account data local. It sends no telemetry, never reads or exports cookies or auth headers, and loads no remote code. Credentials you enter for optional integrations are stored locally and are redacted when you export settings.

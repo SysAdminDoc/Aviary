@@ -9,6 +9,7 @@ on:
       - "package.json"
       - "package-lock.json"
       - "src/**"
+      - "tests/release-matrix.test.mjs"
       - "tests/smoke/**"
       - "tools/build.mjs"
 
@@ -34,6 +35,9 @@ jobs:
 
       - name: Run static analysis
         run: npm run lint
+
+      - name: Run deterministic release matrix
+        run: npm run test:matrix
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4

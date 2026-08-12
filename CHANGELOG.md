@@ -12,6 +12,10 @@
 - Control Center section builders now live under `src/ui/control-center/sections/` behind a typed
   `PanelContext`; focused architecture coverage keeps translation, persistence, action, and
   accessibility helpers on the shared contract while the mount module remains orchestration-only.
+- Release verification now includes a deterministic route, locale, theme, input, provider, ZIP,
+  and lifecycle matrix plus fixture smoke coverage for profile subroutes, Notifications, Messages,
+  Search, status, and the media viewer; externally gated smoke requests now approve the explicit
+  AI review dialog before exercising provider success and failure paths.
 
 ### Fixed
 
