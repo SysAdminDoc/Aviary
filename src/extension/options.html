@@ -7,48 +7,91 @@
     <link rel="stylesheet" href="options.css" />
   </head>
   <body>
-    <main class="shell">
-      <header class="head">
+    <header class="topbar">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2v20M2 12h20M5 5l14 14M19 5 5 19" />
+        </svg>
         <h1>Aviary</h1>
         <p class="version" id="version">extension</p>
-      </header>
+      </div>
+      <div class="page-name">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3Z" />
+          <path d="M9 12l2 2 4-4" />
+        </svg>
+        <span data-i18n="Permissions">Permissions</span>
+      </div>
+    </header>
 
-      <p class="lede" data-i18n="Aviary ships with the narrowest permission set that still works. Everything below is optional, granted only by you, and revocable from this page at any time. Nothing on this page sends data anywhere.">
-        Aviary ships with the narrowest permission set that still works. Everything below is
-        optional, granted only by you, and revocable from this page at any time. Nothing on this
-        page sends data anywhere.
-      </p>
-
-      <section class="card" id="downloads-card">
-        <div class="card-head">
-          <h2 data-i18n="Save media to disk">Save media to disk</h2>
-          <span class="state" id="downloads-state" data-i18n="checking…">checking…</span>
-        </div>
-        <p data-i18n="Lets the Save and Thumb buttons write files through the browser's download manager, with your filename template and duplicate history. Without it the browser opens media in a tab instead of saving it.">
-          Lets the Save and Thumb buttons write files through the browser's download manager, with
-          your filename template and duplicate history. Without it the browser opens media in a tab
-          instead of saving it, because <code>&lt;a download&gt;</code> is ignored for
-          <code>pbs.twimg.com</code> URLs.
+    <main class="shell">
+      <section class="intro" aria-labelledby="permissions-title">
+        <h2 id="permissions-title" data-i18n="Optional permissions">Optional permissions</h2>
+        <p class="lede" data-i18n="Aviary ships with the narrowest permission set that still works. Everything below is optional, granted only by you, and revocable from this page at any time. Nothing on this page sends data anywhere.">
+          Aviary ships with the narrowest permission set that still works. Everything below is
+          optional, granted only by you, and revocable from this page at any time. Nothing on this
+          page sends data anywhere.
         </p>
-        <div class="actions">
-          <button type="button" id="downloads-grant" data-i18n="Grant download access">Grant download access</button>
-          <button type="button" class="ghost" id="downloads-revoke" data-i18n="Revoke">Revoke</button>
-        </div>
       </section>
 
-      <section class="card" id="media-card">
-        <div class="card-head">
-          <h2 data-i18n="Read media hosts directly">Read media hosts directly</h2>
-          <span class="state" id="media-state" data-i18n="checking…">checking…</span>
+      <section class="permission-health" aria-labelledby="permission-health-title">
+        <div class="health-title">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3Z" />
+            <path d="M12 8v5M12 17h.01" />
+          </svg>
+          <strong id="permission-health-title" data-i18n="Permission health">Permission health</strong>
         </div>
-        <p data-i18n="Adds the media hosts so large files can be fetched without a page round-trip. Optional — media buttons work without it.">
-          Adds <code>pbs.twimg.com</code> and <code>video.twimg.com</code> so large media can be
-          fetched without a page round-trip. Optional — media buttons work without it.
-        </p>
-        <div class="actions">
-          <button type="button" id="media-grant" data-i18n="Grant media hosts">Grant media hosts</button>
-          <button type="button" class="ghost" id="media-revoke" data-i18n="Revoke">Revoke</button>
-        </div>
+        <div class="health-metric"><strong id="granted-count">0</strong><span data-i18n="granted">granted</span></div>
+        <div class="health-metric"><strong>2</strong><span data-i18n="optional">optional</span></div>
+        <p id="health-message" data-i18n="All optional. You're in control.">All optional. You're in control.</p>
+      </section>
+
+      <section class="permission-list" aria-label="Optional permissions">
+        <article class="card permission-row" id="downloads-card">
+          <div class="permission-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14" /></svg>
+          </div>
+          <div class="card-copy">
+            <div class="card-head">
+              <h3 data-i18n="Save media to disk">Save media to disk</h3>
+              <span class="state" id="downloads-state" data-i18n="checking…">checking…</span>
+            </div>
+            <p data-i18n="Lets the Save and Thumb buttons write files through the browser's download manager, with your filename template and duplicate history. Without it the browser opens media in a tab instead of saving it.">
+              Lets the Save and Thumb buttons write files through the browser's download manager,
+              with your filename template and duplicate history. Without it the browser opens media
+              in a tab instead of saving it.
+            </p>
+          </div>
+          <div class="actions">
+            <button type="button" id="downloads-grant" data-i18n="Grant download access">Grant download access</button>
+            <button type="button" class="ghost" id="downloads-revoke" data-i18n="Revoke">Revoke</button>
+          </div>
+        </article>
+
+        <article class="card permission-row" id="media-card">
+          <div class="permission-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3 4 6 4 9s-1 6-4 9c-3-3-4-6-4-9s1-6 4-9Z" /></svg>
+          </div>
+          <div class="card-copy">
+            <div class="card-head">
+              <h3 data-i18n="Read media hosts directly">Read media hosts directly</h3>
+              <span class="state" id="media-state" data-i18n="checking…">checking…</span>
+            </div>
+            <p data-i18n="Adds the media hosts so large files can be fetched without a page round-trip. Optional — media buttons work without it.">
+              Adds the media hosts so large files can be fetched without a page round-trip.
+              Optional — media buttons work without it.
+            </p>
+            <div class="host-chips" aria-label="Media hosts">
+              <code>pbs.twimg.com</code>
+              <code>video.twimg.com</code>
+            </div>
+          </div>
+          <div class="actions">
+            <button type="button" id="media-grant" data-i18n="Grant media hosts">Grant media hosts</button>
+            <button type="button" class="ghost" id="media-revoke" data-i18n="Revoke">Revoke</button>
+          </div>
+        </article>
       </section>
 
       <p class="status" id="status" role="status" aria-live="polite"></p>

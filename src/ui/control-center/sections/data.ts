@@ -939,6 +939,7 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
 
 export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
   const rows: HTMLElement[] = [];
+  ctx.t("The download preference applies to every media control.");
   rows.push(
     ctx.toggleRow(
       "Show download buttons",
@@ -959,6 +960,14 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.media.preferOriginalImages = checked;
         await ctx.save("Original quality preference saved");
       }
+    )
+  );
+  rows.push(
+    ctx.readonlyRow(
+      "Original quality status",
+      ctx.options.settings.media.buttons
+        ? "The download preference applies to every media control."
+        : "Original quality is applied when download controls are enabled."
     )
   );
   rows.push(
@@ -1163,4 +1172,3 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
 
   return rows;
 }
-

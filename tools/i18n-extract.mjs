@@ -246,7 +246,7 @@ const copy = a.strings.filter((s) => inB.has(s) && !endonyms.has(s));
 const dropped = a.strings.filter((s) => !inB.has(s) || endonyms.has(s));
 
 // Status and toast copy sits in branches a render cannot reach.
-const src = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+const src = (await readUiSources()).join("\n");
 const statusLiterals = harvestStatusLiterals(src);
 // Copy inside rows a render cannot reach (see harvestPanelLiterals).
 const panelLiterals = harvestPanelLiterals(src);
@@ -285,6 +285,17 @@ async function readFeatureSources() {
   };
   for (const dir of roots) await walk(dir);
   return Promise.all(files.map((file) => readFile(file, "utf8")));
+}
+
+async function readUiSources() {
+  const { readdir } = await import("node:fs/promises");
+  const uiRoot = path.join(root, "src/ui");
+  const names = await readdir(uiRoot, { recursive: true });
+  return Promise.all(
+    names
+      .filter((name) => name.endsWith(".ts"))
+      .map((name) => readFile(path.join(uiRoot, name), "utf8"))
+  );
 }
 
 /**

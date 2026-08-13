@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/aviary-x
-// @version      1.17.0
+// @version      1.18.0
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       Aviary contributors
 // @match        https://x.com/*
@@ -988,7 +988,68 @@ html.av-reduce-motion *::after {
       "Working \u2014 every change has been written.": "Correcto: se han guardado todos los cambios.",
       "Monitoring active": "Supervisi\xF3n activa",
       "Preset packs unavailable in this build.": "Los paquetes predefinidos no est\xE1n disponibles en esta compilaci\xF3n.",
-      "Hidden post store unavailable in this build.": "El almac\xE9n de publicaciones ocultas no est\xE1 disponible en esta compilaci\xF3n."
+      "Hidden post store unavailable in this build.": "El almac\xE9n de publicaciones ocultas no est\xE1 disponible en esta compilaci\xF3n.",
+      "Preset packs": "Paquetes de preajustes",
+      "Language": "Idioma",
+      "Display": "Pantalla",
+      "Accessibility": "Accesibilidad",
+      "Ad-free mode": "Modo sin anuncios",
+      "Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery.": "Oculta publicaciones patrocinadas, colaboraciones pagadas, tendencias promocionadas, anuncios propios y pre-rolls visibles. Aviary tambi\xE9n rechaza la llamada separada de registro de contenido promocionado de X sin bloquear la entrega del timeline.",
+      "Ad protection status": "Estado de la protecci\xF3n contra anuncios",
+      "Ad protection": "Protecci\xF3n contra anuncios",
+      "Page chrome": "Elementos de la p\xE1gina",
+      "Reading flow": "Flujo de lectura",
+      "Navigation": "Navegaci\xF3n",
+      "Rules are active on the selected routes.": "Las reglas est\xE1n activas en las rutas seleccionadas.",
+      "Rule status": "Estado de las reglas",
+      "Inactive until filters are enabled. You can edit rules before turning them on.": "Inactivo hasta que se habiliten los filtros. Puedes editar las reglas antes de activarlos.",
+      "Filter status": "Estado de los filtros",
+      "Rules": "Reglas",
+      "Content types": "Tipos de contenido",
+      "Routes": "Rutas",
+      "Hide buttons follow the setting above.": "Los botones Ocultar siguen el ajuste anterior.",
+      "Hide button status": "Estado de los botones Ocultar",
+      "Activates when Hide dismissed posts is on.": "Se activa cuando Ocultar publicaciones descartadas est\xE1 habilitado.",
+      "Coverage": "Cobertura",
+      "Retention": "Retenci\xF3n",
+      "Recovery": "Recuperaci\xF3n",
+      "Playback": "Reproducci\xF3n",
+      "The download preference applies to every media control.": "La preferencia de descarga se aplica a todos los controles multimedia.",
+      "Original quality status": "Estado de calidad original",
+      "Original quality is applied when download controls are enabled.": "La calidad original se aplica cuando los controles de descarga est\xE1n habilitados.",
+      "On-post controls": "Controles en publicaciones",
+      "File naming": "Nombres de archivo",
+      "Batch behavior": "Comportamiento por lotes",
+      "Queue status": "Estado de la cola",
+      "Capture": "Captura",
+      "Package": "Paquete",
+      "Destination": "Destino",
+      "Jobs": "Tareas",
+      "Post tools": "Herramientas de publicaciones",
+      "Writing tools": "Herramientas de escritura",
+      "Live snapshots": "Instant\xE1neas activas",
+      "Connections": "Conexiones",
+      "Intelligence": "Inteligencia",
+      "Reset all preferences": "Restablecer todas las preferencias",
+      "Restores Aviary's defaults: ad-free mode stays on and every other visual or behavior control returns to off. Saved posts, notes, bookmarks, and download history are kept.": "Restaura los valores predeterminados de Aviary: el modo sin anuncios permanece activado y los dem\xE1s controles visuales o de comportamiento vuelven a desactivarse. Se conservan las publicaciones, notas, marcadores y el historial de descargas.",
+      "Preferences": "Preferencias",
+      "Library backup": "Copia de seguridad de la biblioteca",
+      "Audit history": "Historial de auditor\xEDa",
+      "Privacy boundary": "L\xEDmite de privacidad",
+      "Page hooks": "Integraciones de p\xE1gina",
+      "Local data": "Datos locales",
+      "Compatibility": "Compatibilidad",
+      "Unsaved changes": "Cambios sin guardar",
+      "Save or revert your changes before leaving this section.": "Guarda o revierte los cambios antes de salir de esta secci\xF3n.",
+      "Preferences reset. Ad-free mode is on.": "Preferencias restablecidas. El modo sin anuncios est\xE1 activado.",
+      "Ad-free mode on": "Modo sin anuncios activado",
+      "Ad-free mode off": "Modo sin anuncios desactivado",
+      "Protection starts at document load.": "La protecci\xF3n comienza al cargar el documento.",
+      "Permissions": "Permisos",
+      "Optional permissions": "Permisos opcionales",
+      "Permission health": "Estado de los permisos",
+      "optional": "opcionales",
+      "All optional. You're in control.": "Todo es opcional. T\xFA tienes el control."
     },
     pt: {
       "Aviary": "Aviary",
@@ -1720,7 +1781,68 @@ html.av-reduce-motion *::after {
       "Working \u2014 every change has been written.": "Tudo certo: todas as altera\xE7\xF5es foram gravadas.",
       "Monitoring active": "Monitoramento ativo",
       "Preset packs unavailable in this build.": "Pacotes de predefini\xE7\xF5es indispon\xEDveis nesta compila\xE7\xE3o.",
-      "Hidden post store unavailable in this build.": "Armazenamento de posts ocultos indispon\xEDvel nesta compila\xE7\xE3o."
+      "Hidden post store unavailable in this build.": "Armazenamento de posts ocultos indispon\xEDvel nesta compila\xE7\xE3o.",
+      "Preset packs": "Pacotes de predefini\xE7\xF5es",
+      "Language": "Idioma",
+      "Display": "Ecr\xE3",
+      "Accessibility": "Acessibilidade",
+      "Ad-free mode": "Modo sem an\xFAncios",
+      "Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery.": "Oculta posts patrocinados, parcerias pagas, tend\xEAncias promovidas, promo\xE7\xF5es da pr\xF3pria plataforma e an\xFAncios de pr\xE9-reprodu\xE7\xE3o vis\xEDveis. O Aviary tamb\xE9m recusa a chamada separada de registo de conte\xFAdo promovido do X sem bloquear a entrega da cronologia.",
+      "Ad protection status": "Estado da prote\xE7\xE3o contra an\xFAncios",
+      "Ad protection": "Prote\xE7\xE3o contra an\xFAncios",
+      "Page chrome": "Elementos da p\xE1gina",
+      "Reading flow": "Fluxo de leitura",
+      "Navigation": "Navega\xE7\xE3o",
+      "Rules are active on the selected routes.": "As regras est\xE3o ativas nas rotas selecionadas.",
+      "Rule status": "Estado das regras",
+      "Inactive until filters are enabled. You can edit rules before turning them on.": "Inativo at\xE9 os filtros serem ativados. Podes editar as regras antes de as ligares.",
+      "Filter status": "Estado dos filtros",
+      "Rules": "Regras",
+      "Content types": "Tipos de conte\xFAdo",
+      "Routes": "Rotas",
+      "Hide buttons follow the setting above.": "Os bot\xF5es Ocultar seguem a defini\xE7\xE3o acima.",
+      "Hide button status": "Estado dos bot\xF5es Ocultar",
+      "Activates when Hide dismissed posts is on.": "Ativa quando Ocultar posts dispensados est\xE1 ligado.",
+      "Coverage": "Cobertura",
+      "Retention": "Reten\xE7\xE3o",
+      "Recovery": "Recupera\xE7\xE3o",
+      "Playback": "Reprodu\xE7\xE3o",
+      "The download preference applies to every media control.": "A prefer\xEAncia de transfer\xEAncia aplica-se a todos os controlos de multim\xE9dia.",
+      "Original quality status": "Estado da qualidade original",
+      "Original quality is applied when download controls are enabled.": "A qualidade original \xE9 aplicada quando os controlos de transfer\xEAncia est\xE3o ativados.",
+      "On-post controls": "Controlos nos posts",
+      "File naming": "Nomes de ficheiros",
+      "Batch behavior": "Comportamento em lote",
+      "Queue status": "Estado da fila",
+      "Capture": "Captura",
+      "Package": "Pacote",
+      "Destination": "Destino",
+      "Jobs": "Tarefas",
+      "Post tools": "Ferramentas de posts",
+      "Writing tools": "Ferramentas de escrita",
+      "Live snapshots": "Instant\xE2neos ativos",
+      "Connections": "Liga\xE7\xF5es",
+      "Intelligence": "Intelig\xEAncia",
+      "Reset all preferences": "Repor todas as prefer\xEAncias",
+      "Restores Aviary's defaults: ad-free mode stays on and every other visual or behavior control returns to off. Saved posts, notes, bookmarks, and download history are kept.": "Restaura as predefini\xE7\xF5es do Aviary: o modo sem an\xFAncios permanece ligado e todos os outros controlos visuais ou de comportamento voltam a ficar desligados. Os posts, notas, marcadores e hist\xF3rico de transfer\xEAncias s\xE3o mantidos.",
+      "Preferences": "Prefer\xEAncias",
+      "Library backup": "C\xF3pia de seguran\xE7a da biblioteca",
+      "Audit history": "Hist\xF3rico de auditoria",
+      "Privacy boundary": "Limite de privacidade",
+      "Page hooks": "Integra\xE7\xF5es da p\xE1gina",
+      "Local data": "Dados locais",
+      "Compatibility": "Compatibilidade",
+      "Unsaved changes": "Altera\xE7\xF5es n\xE3o guardadas",
+      "Save or revert your changes before leaving this section.": "Guarda ou reverte as altera\xE7\xF5es antes de sair desta sec\xE7\xE3o.",
+      "Preferences reset. Ad-free mode is on.": "Prefer\xEAncias repostas. O modo sem an\xFAncios est\xE1 ligado.",
+      "Ad-free mode on": "Modo sem an\xFAncios ligado",
+      "Ad-free mode off": "Modo sem an\xFAncios desligado",
+      "Protection starts at document load.": "A prote\xE7\xE3o come\xE7a ao carregar o documento.",
+      "Permissions": "Permiss\xF5es",
+      "Optional permissions": "Permiss\xF5es opcionais",
+      "Permission health": "Estado das permiss\xF5es",
+      "optional": "opcionais",
+      "All optional. You're in control.": "Tudo \xE9 opcional. Tu mant\xE9ns o controlo."
     },
     fr: {
       "Aviary": "Aviary",
@@ -1740,7 +1862,7 @@ html.av-reduce-motion *::after {
       "Performance": "Performances",
       "Data": "Donn\xE9es",
       "Media": "M\xE9dias",
-      "Export": "Export",
+      "Export": "Exportation",
       "Library": "Biblioth\xE8que",
       "Snapshots & Archive": "Instantan\xE9s et archive",
       "Advanced": "Avanc\xE9",
@@ -1756,7 +1878,7 @@ html.av-reduce-motion *::after {
       "Off (X's own theme)": "D\xE9sactiv\xE9 (th\xE8me natif de X)",
       "Dim": "Sombre",
       "Lights out": "Extinction des feux",
-      "Graphite": "Graphite",
+      "Graphite": "Gris graphite",
       "Plum": "Prune",
       "Midnight": "Minuit",
       "Dense mode": "Mode dense",
@@ -1814,8 +1936,8 @@ html.av-reduce-motion *::after {
       "Status": "Publication",
       "Profile": "Profil",
       "Search": "Recherche",
-      "Notifications": "Notifications",
-      "Messages": "Messages",
+      "Notifications": "Alertes",
+      "Messages": "Messagerie",
       "Blocked accounts / self-reposts": "Comptes bloqu\xE9s / republications de soi",
       "Pending an authenticated fixture; controls stay disabled.": "En attente d'une capture authentifi\xE9e ; les contr\xF4les restent d\xE9sactiv\xE9s.",
       "Hide dismissed posts": "Masquer les publications \xE9cart\xE9es",
@@ -2392,7 +2514,7 @@ html.av-reduce-motion *::after {
       "Export capture on, JSON+CSV+HTML+MD formats, auto-discover query IDs, raw payloads.": "Capture pour l'export activ\xE9e, formats JSON+CSV+HTML+MD, d\xE9tection des ID de requ\xEAte, donn\xE9es brutes.",
       "Classic": "Classique",
       "Restore dim, keep sidebar, hide Grok only, no premium filtering.": "R\xE9tablit le th\xE8me att\xE9nu\xE9, garde la barre lat\xE9rale, masque seulement Grok, sans filtre premium.",
-      "Minimal": "Minimal",
+      "Minimal": "Minimaliste",
       "Maximum declutter: no counts, no borders, no trends, big text safe zones.": "\xC9puration maximale : pas de compteurs, pas de bordures, pas de tendances, zones s\xFBres pour le grand texte.",
       "Hide this post \u2014 Aviary keeps it hidden on future visits": "Masquer ce post \u2014 Aviary le gardera masqu\xE9 lors des prochaines visites",
       "Hide this post": "Masquer ce post",
@@ -2403,7 +2525,7 @@ html.av-reduce-motion *::after {
       "Bookmark failed": "\xC9chec de l\u2019enregistrement du marque-page.",
       "Save locally": "Enregistrer localement",
       "Remove local bookmark": "Supprimer le marque-page local",
-      "Note": "Note",
+      "Note": "Annotation",
       "Unavailable": "Indisponible",
       "Saved": "Enregistr\xE9",
       "Queued": "En file",
@@ -2452,7 +2574,68 @@ html.av-reduce-motion *::after {
       "Working \u2014 every change has been written.": "Tout va bien : chaque modification a \xE9t\xE9 enregistr\xE9e.",
       "Monitoring active": "Surveillance active",
       "Preset packs unavailable in this build.": "Packs de pr\xE9r\xE9glages indisponibles dans cette version.",
-      "Hidden post store unavailable in this build.": "Stock des publications masqu\xE9es indisponible dans cette version."
+      "Hidden post store unavailable in this build.": "Stock des publications masqu\xE9es indisponible dans cette version.",
+      "Preset packs": "Packs de pr\xE9r\xE9glages",
+      "Language": "Langue",
+      "Display": "Affichage",
+      "Accessibility": "Accessibilit\xE9",
+      "Ad-free mode": "Mode sans publicit\xE9",
+      "Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery.": "Masque les publications sponsoris\xE9es, partenariats r\xE9mun\xE9r\xE9s, tendances promues, promotions internes et pr\xE9-rolls visibles. Aviary refuse aussi l'appel s\xE9par\xE9 de journalisation du contenu promu de X sans bloquer la livraison du fil.",
+      "Ad protection status": "\xC9tat de la protection publicitaire",
+      "Ad protection": "Protection publicitaire",
+      "Page chrome": "\xC9l\xE9ments de la page",
+      "Reading flow": "Flux de lecture",
+      "Navigation": "Parcours",
+      "Rules are active on the selected routes.": "Les r\xE8gles sont actives sur les routes s\xE9lectionn\xE9es.",
+      "Rule status": "\xC9tat des r\xE8gles",
+      "Inactive until filters are enabled. You can edit rules before turning them on.": "Inactif tant que les filtres ne sont pas activ\xE9s. Vous pouvez modifier les r\xE8gles avant de les activer.",
+      "Filter status": "\xC9tat des filtres",
+      "Rules": "R\xE8gles",
+      "Content types": "Types de contenu",
+      "Routes": "Pages",
+      "Hide buttons follow the setting above.": "Les boutons Masquer suivent le r\xE9glage ci-dessus.",
+      "Hide button status": "\xC9tat des boutons Masquer",
+      "Activates when Hide dismissed posts is on.": "S'active lorsque Masquer les publications ignor\xE9es est activ\xE9.",
+      "Coverage": "Couverture",
+      "Retention": "R\xE9tention",
+      "Recovery": "R\xE9cup\xE9ration",
+      "Playback": "Lecture",
+      "The download preference applies to every media control.": "La pr\xE9f\xE9rence de t\xE9l\xE9chargement s'applique \xE0 chaque contr\xF4le multim\xE9dia.",
+      "Original quality status": "\xC9tat de la qualit\xE9 d'origine",
+      "Original quality is applied when download controls are enabled.": "La qualit\xE9 d'origine est appliqu\xE9e lorsque les contr\xF4les de t\xE9l\xE9chargement sont activ\xE9s.",
+      "On-post controls": "Contr\xF4les sur les publications",
+      "File naming": "Nommage des fichiers",
+      "Batch behavior": "Comportement par lot",
+      "Queue status": "\xC9tat de la file",
+      "Capture": "Collecte",
+      "Package": "Paquet",
+      "Destination": "Cible",
+      "Jobs": "T\xE2ches",
+      "Post tools": "Outils de publication",
+      "Writing tools": "Outils d'\xE9criture",
+      "Live snapshots": "Instantan\xE9s actifs",
+      "Connections": "Connexions",
+      "Intelligence": "Intelligence artificielle",
+      "Reset all preferences": "R\xE9initialiser toutes les pr\xE9f\xE9rences",
+      "Restores Aviary's defaults: ad-free mode stays on and every other visual or behavior control returns to off. Saved posts, notes, bookmarks, and download history are kept.": "Restaure les valeurs par d\xE9faut d'Aviary : le mode sans publicit\xE9 reste activ\xE9 et tous les autres contr\xF4les visuels ou de comportement sont d\xE9sactiv\xE9s. Les publications, notes, favoris et l'historique de t\xE9l\xE9chargement sont conserv\xE9s.",
+      "Preferences": "Pr\xE9f\xE9rences",
+      "Library backup": "Sauvegarde de la biblioth\xE8que",
+      "Audit history": "Historique d'audit",
+      "Privacy boundary": "P\xE9rim\xE8tre de confidentialit\xE9",
+      "Page hooks": "Int\xE9grations de page",
+      "Local data": "Donn\xE9es locales",
+      "Compatibility": "Compatibilit\xE9",
+      "Unsaved changes": "Modifications non enregistr\xE9es",
+      "Save or revert your changes before leaving this section.": "Enregistrez ou annulez vos modifications avant de quitter cette section.",
+      "Preferences reset. Ad-free mode is on.": "Pr\xE9f\xE9rences r\xE9initialis\xE9es. Le mode sans publicit\xE9 est activ\xE9.",
+      "Ad-free mode on": "Mode sans publicit\xE9 activ\xE9",
+      "Ad-free mode off": "Mode sans publicit\xE9 d\xE9sactiv\xE9",
+      "Protection starts at document load.": "La protection d\xE9marre au chargement du document.",
+      "Permissions": "Autorisations",
+      "Optional permissions": "Autorisations facultatives",
+      "Permission health": "\xC9tat des autorisations",
+      "optional": "facultatives",
+      "All optional. You're in control.": "Tout est facultatif. Vous gardez le contr\xF4le."
     },
     de: {
       "Aviary": "Aviary",
@@ -2462,17 +2645,17 @@ html.av-reduce-motion *::after {
       "Search settings": "Einstellungen durchsuchen",
       "Saved locally": "Lokal gespeichert",
       "Settings sections": "Einstellungsbereiche",
-      "Start": "Start",
+      "Start": "Einstieg",
       "Presets": "Voreinstellungen",
       "Reading": "Lesen",
       "Appearance": "Darstellung",
-      "Layout": "Layout",
+      "Layout": "Anordnung",
       "Filtering": "Filter",
       "Hidden posts": "Ausgeblendete Beitr\xE4ge",
       "Performance": "Leistung",
       "Data": "Daten",
       "Media": "Medien",
-      "Export": "Export",
+      "Export": "Exportieren",
       "Library": "Bibliothek",
       "Snapshots & Archive": "Momentaufnahmen & Archiv",
       "Advanced": "Erweitert",
@@ -3118,13 +3301,13 @@ html.av-reduce-motion *::after {
       "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.": "Blendet Trends, Zeilenrahmen und Interaktionszahlen aus, dimmt Premium-Beitr\xE4ge, bereinigt t.co, dichtes und gedimmtes Design.",
       "Media Archivist": "Medienarchiv",
       "Original-quality downloads, deterministic filenames, dedup history, stacked media.": "Downloads in Originalqualit\xE4t, deterministische Dateinamen, Verlauf ohne Duplikate, gestapelte Medien.",
-      "Creator": "Creator",
+      "Creator": "Inhaltserstellung",
       "Writer mode, composer snippets, share-button cleanup, sidebar and trends hidden.": "Schreibmodus, Textbausteine im Editor, bereinigte Teilen-Schaltfl\xE4che, Seitenleiste und Trends ausgeblendet.",
       "Researcher": "Recherche",
       "Export capture on, JSON+CSV+HTML+MD formats, auto-discover query IDs, raw payloads.": "Export-Erfassung an, Formate JSON+CSV+HTML+MD, Query-IDs automatisch erkennen, Rohdaten.",
       "Classic": "Klassisch",
       "Restore dim, keep sidebar, hide Grok only, no premium filtering.": "Stellt das gedimmte Thema wieder her, beh\xE4lt die Seitenleiste, blendet nur Grok aus, kein Premium-Filter.",
-      "Minimal": "Minimal",
+      "Minimal": "Minimalistisch",
       "Maximum declutter: no counts, no borders, no trends, big text safe zones.": "Maximal aufger\xE4umt: keine Zahlen, keine Rahmen, keine Trends, sichere Zonen f\xFCr gro\xDFe Schrift.",
       "Hide this post \u2014 Aviary keeps it hidden on future visits": "Diesen Beitrag ausblenden \u2014 Aviary h\xE4lt ihn auch bei sp\xE4teren Besuchen ausgeblendet",
       "Hide this post": "Diesen Beitrag ausblenden",
@@ -3184,7 +3367,68 @@ html.av-reduce-motion *::after {
       "Working \u2014 every change has been written.": "Alles in Ordnung \u2013 jede \xC4nderung wurde gespeichert.",
       "Monitoring active": "\xDCberwachung aktiv",
       "Preset packs unavailable in this build.": "Voreinstellungspakete stehen in diesem Build nicht zur Verf\xFCgung.",
-      "Hidden post store unavailable in this build.": "Speicher f\xFCr ausgeblendete Beitr\xE4ge steht in diesem Build nicht zur Verf\xFCgung."
+      "Hidden post store unavailable in this build.": "Speicher f\xFCr ausgeblendete Beitr\xE4ge steht in diesem Build nicht zur Verf\xFCgung.",
+      "Preset packs": "Voreinstellungspakete",
+      "Language": "Sprache",
+      "Display": "Anzeige",
+      "Accessibility": "Barrierefreiheit",
+      "Ad-free mode": "Werbefreier Modus",
+      "Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery.": "Blendet gesponserte Beitr\xE4ge, bezahlte Partnerschaften, beworbene Trends, Eigenwerbung und sichtbare Pre-Rolls aus. Aviary verweigert au\xDFerdem den separaten Protokollierungsaufruf f\xFCr beworbene Inhalte von X, ohne die Timeline-Auslieferung zu blockieren.",
+      "Ad protection status": "Status des Werbeschutzes",
+      "Ad protection": "Werbeschutz",
+      "Page chrome": "Seitenelemente",
+      "Reading flow": "Lesefluss",
+      "Navigation": "Navigationselemente",
+      "Rules are active on the selected routes.": "Die Regeln sind auf den ausgew\xE4hlten Routen aktiv.",
+      "Rule status": "Regelstatus",
+      "Inactive until filters are enabled. You can edit rules before turning them on.": "Inaktiv, bis Filter aktiviert werden. Du kannst die Regeln vor dem Einschalten bearbeiten.",
+      "Filter status": "Filterstatus",
+      "Rules": "Regeln",
+      "Content types": "Inhaltstypen",
+      "Routes": "Routen",
+      "Hide buttons follow the setting above.": "Die Ausblenden-Schaltfl\xE4chen folgen der Einstellung oben.",
+      "Hide button status": "Status der Ausblenden-Schaltfl\xE4chen",
+      "Activates when Hide dismissed posts is on.": "Wird aktiv, wenn Verworfene Beitr\xE4ge ausblenden eingeschaltet ist.",
+      "Coverage": "Abdeckung",
+      "Retention": "Aufbewahrung",
+      "Recovery": "Wiederherstellung",
+      "Playback": "Wiedergabe",
+      "The download preference applies to every media control.": "Die Download-Einstellung gilt f\xFCr jedes Mediensteuerelement.",
+      "Original quality status": "Status der Originalqualit\xE4t",
+      "Original quality is applied when download controls are enabled.": "Originalqualit\xE4t wird angewendet, wenn die Download-Steuerelemente aktiviert sind.",
+      "On-post controls": "Steuerelemente an Beitr\xE4gen",
+      "File naming": "Dateibenennung",
+      "Batch behavior": "Stapelverhalten",
+      "Queue status": "Warteschlangenstatus",
+      "Capture": "Erfassung",
+      "Package": "Paket",
+      "Destination": "Ziel",
+      "Jobs": "Auftr\xE4ge",
+      "Post tools": "Beitragswerkzeuge",
+      "Writing tools": "Schreibwerkzeuge",
+      "Live snapshots": "Aktive Snapshots",
+      "Connections": "Verbindungen",
+      "Intelligence": "Intelligenz",
+      "Reset all preferences": "Alle Einstellungen zur\xFCcksetzen",
+      "Restores Aviary's defaults: ad-free mode stays on and every other visual or behavior control returns to off. Saved posts, notes, bookmarks, and download history are kept.": "Stellt Aviarys Standardwerte wieder her: Der werbefreie Modus bleibt aktiv, alle anderen visuellen oder Verhaltenssteuerungen werden deaktiviert. Gespeicherte Beitr\xE4ge, Notizen, Lesezeichen und der Download-Verlauf bleiben erhalten.",
+      "Preferences": "Einstellungen",
+      "Library backup": "Bibliothekssicherung",
+      "Audit history": "Pr\xFCfverlauf",
+      "Privacy boundary": "Datenschutzgrenze",
+      "Page hooks": "Seitenanbindungen",
+      "Local data": "Lokale Daten",
+      "Compatibility": "Kompatibilit\xE4t",
+      "Unsaved changes": "Ungespeicherte \xC4nderungen",
+      "Save or revert your changes before leaving this section.": "Speichere oder verwirf deine \xC4nderungen, bevor du diesen Abschnitt verl\xE4sst.",
+      "Preferences reset. Ad-free mode is on.": "Einstellungen zur\xFCckgesetzt. Der werbefreie Modus ist aktiv.",
+      "Ad-free mode on": "Werbefreier Modus aktiviert",
+      "Ad-free mode off": "Werbefreier Modus deaktiviert",
+      "Protection starts at document load.": "Der Schutz beginnt beim Laden des Dokuments.",
+      "Permissions": "Berechtigungen",
+      "Optional permissions": "Optionale Berechtigungen",
+      "Permission health": "Berechtigungsstatus",
+      "optional": "freiwillig",
+      "All optional. You're in control.": "Alles ist optional. Du beh\xE4ltst die Kontrolle."
     },
     ja: {
       "Aviary": "Aviary",
@@ -3916,7 +4160,68 @@ html.av-reduce-motion *::after {
       "Working \u2014 every change has been written.": "\u6B63\u5E38\u3067\u3059\u3002\u3059\u3079\u3066\u306E\u5909\u66F4\u304C\u4FDD\u5B58\u3055\u308C\u3066\u3044\u307E\u3059\u3002",
       "Monitoring active": "\u76E3\u8996\u4E2D",
       "Preset packs unavailable in this build.": "\u3053\u306E\u30D3\u30EB\u30C9\u3067\u306F\u30D7\u30EA\u30BB\u30C3\u30C8\u3092\u5229\u7528\u3067\u304D\u307E\u305B\u3093\u3002",
-      "Hidden post store unavailable in this build.": "\u3053\u306E\u30D3\u30EB\u30C9\u3067\u306F\u975E\u8868\u793A\u6295\u7A3F\u306E\u4FDD\u5B58\u6A5F\u80FD\u3092\u5229\u7528\u3067\u304D\u307E\u305B\u3093\u3002"
+      "Hidden post store unavailable in this build.": "\u3053\u306E\u30D3\u30EB\u30C9\u3067\u306F\u975E\u8868\u793A\u6295\u7A3F\u306E\u4FDD\u5B58\u6A5F\u80FD\u3092\u5229\u7528\u3067\u304D\u307E\u305B\u3093\u3002",
+      "Preset packs": "\u30D7\u30EA\u30BB\u30C3\u30C8\u30D1\u30C3\u30AF",
+      "Language": "\u8A00\u8A9E",
+      "Display": "\u8868\u793A",
+      "Accessibility": "\u30A2\u30AF\u30BB\u30B7\u30D3\u30EA\u30C6\u30A3",
+      "Ad-free mode": "\u5E83\u544A\u306A\u3057\u30E2\u30FC\u30C9",
+      "Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery.": "\u30B9\u30DD\u30F3\u30B5\u30FC\u6295\u7A3F\u3001\u6709\u6599\u30D1\u30FC\u30C8\u30CA\u30FC\u30B7\u30C3\u30D7\u3001\u30D7\u30ED\u30E2\u30FC\u30B7\u30E7\u30F3\u4E2D\u306E\u30C8\u30EC\u30F3\u30C9\u3001\u81EA\u793E\u30D7\u30ED\u30E2\u30FC\u30B7\u30E7\u30F3\u3001\u8868\u793A\u4E2D\u306E\u30D7\u30EC\u30ED\u30FC\u30EB\u5E83\u544A\u3092\u6298\u308A\u305F\u305F\u307F\u307E\u3059\u3002Aviary \u306F\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u914D\u4FE1\u3092\u59A8\u3052\u305A\u306B\u3001X \u306E\u30D7\u30ED\u30E2\u30FC\u30B7\u30E7\u30F3\u30B3\u30F3\u30C6\u30F3\u30C4\u7528\u306E\u5225\u500B\u306E\u8A18\u9332\u30EA\u30AF\u30A8\u30B9\u30C8\u3082\u62D2\u5426\u3057\u307E\u3059\u3002",
+      "Ad protection status": "\u5E83\u544A\u4FDD\u8B77\u306E\u72B6\u614B",
+      "Ad protection": "\u5E83\u544A\u4FDD\u8B77",
+      "Page chrome": "\u30DA\u30FC\u30B8\u8981\u7D20",
+      "Reading flow": "\u95B2\u89A7\u30D5\u30ED\u30FC",
+      "Navigation": "\u30CA\u30D3\u30B2\u30FC\u30B7\u30E7\u30F3",
+      "Rules are active on the selected routes.": "\u9078\u629E\u3057\u305F\u30EB\u30FC\u30C8\u3067\u30EB\u30FC\u30EB\u304C\u6709\u52B9\u3067\u3059\u3002",
+      "Rule status": "\u30EB\u30FC\u30EB\u306E\u72B6\u614B",
+      "Inactive until filters are enabled. You can edit rules before turning them on.": "\u30D5\u30A3\u30EB\u30BF\u30FC\u3092\u6709\u52B9\u306B\u3059\u308B\u307E\u3067\u7121\u52B9\u3067\u3059\u3002\u6709\u52B9\u306B\u3059\u308B\u524D\u306B\u30EB\u30FC\u30EB\u3092\u7DE8\u96C6\u3067\u304D\u307E\u3059\u3002",
+      "Filter status": "\u30D5\u30A3\u30EB\u30BF\u30FC\u306E\u72B6\u614B",
+      "Rules": "\u30EB\u30FC\u30EB",
+      "Content types": "\u30B3\u30F3\u30C6\u30F3\u30C4\u306E\u7A2E\u985E",
+      "Routes": "\u30EB\u30FC\u30C8",
+      "Hide buttons follow the setting above.": "\u975E\u8868\u793A\u30DC\u30BF\u30F3\u306F\u4E0A\u306E\u8A2D\u5B9A\u306B\u5F93\u3044\u307E\u3059\u3002",
+      "Hide button status": "\u975E\u8868\u793A\u30DC\u30BF\u30F3\u306E\u72B6\u614B",
+      "Activates when Hide dismissed posts is on.": "\u300C\u9589\u3058\u305F\u6295\u7A3F\u3092\u975E\u8868\u793A\u300D\u304C\u30AA\u30F3\u306B\u306A\u308B\u3068\u6709\u52B9\u306B\u306A\u308A\u307E\u3059\u3002",
+      "Coverage": "\u5BFE\u8C61\u7BC4\u56F2",
+      "Retention": "\u4FDD\u6301",
+      "Recovery": "\u5FA9\u65E7",
+      "Playback": "\u518D\u751F",
+      "The download preference applies to every media control.": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u8A2D\u5B9A\u306F\u3059\u3079\u3066\u306E\u30E1\u30C7\u30A3\u30A2\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u306B\u9069\u7528\u3055\u308C\u307E\u3059\u3002",
+      "Original quality status": "\u30AA\u30EA\u30B8\u30CA\u30EB\u753B\u8CEA\u306E\u72B6\u614B",
+      "Original quality is applied when download controls are enabled.": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u3092\u6709\u52B9\u306B\u3059\u308B\u3068\u30AA\u30EA\u30B8\u30CA\u30EB\u753B\u8CEA\u304C\u9069\u7528\u3055\u308C\u307E\u3059\u3002",
+      "On-post controls": "\u6295\u7A3F\u4E0A\u306E\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB",
+      "File naming": "\u30D5\u30A1\u30A4\u30EB\u540D",
+      "Batch behavior": "\u4E00\u62EC\u51E6\u7406",
+      "Queue status": "\u30AD\u30E5\u30FC\u306E\u72B6\u614B",
+      "Capture": "\u30AD\u30E3\u30D7\u30C1\u30E3",
+      "Package": "\u30D1\u30C3\u30B1\u30FC\u30B8",
+      "Destination": "\u4FDD\u5B58\u5148",
+      "Jobs": "\u30B8\u30E7\u30D6",
+      "Post tools": "\u6295\u7A3F\u30C4\u30FC\u30EB",
+      "Writing tools": "\u57F7\u7B46\u30C4\u30FC\u30EB",
+      "Live snapshots": "\u30E9\u30A4\u30D6\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8",
+      "Connections": "\u63A5\u7D9A",
+      "Intelligence": "\u30A4\u30F3\u30C6\u30EA\u30B8\u30A7\u30F3\u30B9",
+      "Reset all preferences": "\u3059\u3079\u3066\u306E\u8A2D\u5B9A\u3092\u30EA\u30BB\u30C3\u30C8",
+      "Restores Aviary's defaults: ad-free mode stays on and every other visual or behavior control returns to off. Saved posts, notes, bookmarks, and download history are kept.": "Aviary \u306E\u65E2\u5B9A\u5024\u306B\u623B\u3057\u307E\u3059\u3002\u5E83\u544A\u306A\u3057\u30E2\u30FC\u30C9\u306F\u30AA\u30F3\u306E\u307E\u307E\u3001\u305D\u306E\u4ED6\u306E\u8868\u793A\u30FB\u52D5\u4F5C\u8A2D\u5B9A\u306F\u3059\u3079\u3066\u30AA\u30D5\u306B\u623B\u308A\u307E\u3059\u3002\u4FDD\u5B58\u3057\u305F\u6295\u7A3F\u3001\u30E1\u30E2\u3001\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3001\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u5C65\u6B74\u306F\u4FDD\u6301\u3055\u308C\u307E\u3059\u3002",
+      "Preferences": "\u8A2D\u5B9A",
+      "Library backup": "\u30E9\u30A4\u30D6\u30E9\u30EA\u306E\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7",
+      "Audit history": "\u76E3\u67FB\u5C65\u6B74",
+      "Privacy boundary": "\u30D7\u30E9\u30A4\u30D0\u30B7\u30FC\u5883\u754C",
+      "Page hooks": "\u30DA\u30FC\u30B8\u30D5\u30C3\u30AF",
+      "Local data": "\u30ED\u30FC\u30AB\u30EB\u30C7\u30FC\u30BF",
+      "Compatibility": "\u4E92\u63DB\u6027",
+      "Unsaved changes": "\u672A\u4FDD\u5B58\u306E\u5909\u66F4",
+      "Save or revert your changes before leaving this section.": "\u3053\u306E\u30BB\u30AF\u30B7\u30E7\u30F3\u3092\u96E2\u308C\u308B\u524D\u306B\u3001\u5909\u66F4\u3092\u4FDD\u5B58\u3059\u308B\u304B\u5143\u306B\u623B\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+      "Preferences reset. Ad-free mode is on.": "\u8A2D\u5B9A\u3092\u30EA\u30BB\u30C3\u30C8\u3057\u307E\u3057\u305F\u3002\u5E83\u544A\u306A\u3057\u30E2\u30FC\u30C9\u306F\u30AA\u30F3\u3067\u3059\u3002",
+      "Ad-free mode on": "\u5E83\u544A\u306A\u3057\u30E2\u30FC\u30C9\uFF1A\u30AA\u30F3",
+      "Ad-free mode off": "\u5E83\u544A\u306A\u3057\u30E2\u30FC\u30C9\uFF1A\u30AA\u30D5",
+      "Protection starts at document load.": "\u30C9\u30AD\u30E5\u30E1\u30F3\u30C8\u306E\u8AAD\u307F\u8FBC\u307F\u6642\u304B\u3089\u4FDD\u8B77\u3092\u958B\u59CB\u3057\u307E\u3059\u3002",
+      "Permissions": "\u6A29\u9650",
+      "Optional permissions": "\u4EFB\u610F\u306E\u6A29\u9650",
+      "Permission health": "\u6A29\u9650\u306E\u72B6\u614B",
+      "optional": "\u4EFB\u610F",
+      "All optional. You're in control.": "\u3059\u3079\u3066\u4EFB\u610F\u3067\u3059\u3002\u7BA1\u7406\u3059\u308B\u306E\u306F\u3042\u306A\u305F\u3067\u3059\u3002"
     },
     ko: {
       "Aviary": "Aviary",
@@ -4648,7 +4953,68 @@ html.av-reduce-motion *::after {
       "Working \u2014 every change has been written.": "\uC815\uC0C1\uC785\uB2C8\uB2E4. \uBAA8\uB4E0 \uBCC0\uACBD \uC0AC\uD56D\uC774 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
       "Monitoring active": "\uBAA8\uB2C8\uD130\uB9C1 \uC911",
       "Preset packs unavailable in this build.": "\uC774 \uBE4C\uB4DC\uC5D0\uC11C\uB294 \uD504\uB9AC\uC14B\uC744 \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
-      "Hidden post store unavailable in this build.": "\uC774 \uBE4C\uB4DC\uC5D0\uC11C\uB294 \uC228\uAE34 \uAC8C\uC2DC\uBB3C \uC800\uC7A5\uC18C\uB97C \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
+      "Hidden post store unavailable in this build.": "\uC774 \uBE4C\uB4DC\uC5D0\uC11C\uB294 \uC228\uAE34 \uAC8C\uC2DC\uBB3C \uC800\uC7A5\uC18C\uB97C \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+      "Preset packs": "\uD504\uB9AC\uC14B \uBAA8\uC74C",
+      "Language": "\uC5B8\uC5B4",
+      "Display": "\uD45C\uC2DC",
+      "Accessibility": "\uC811\uADFC\uC131",
+      "Ad-free mode": "\uAD11\uACE0 \uC5C6\uB294 \uBAA8\uB4DC",
+      "Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery.": "\uC2A4\uD3F0\uC11C \uAC8C\uC2DC\uBB3C, \uC720\uB8CC \uD30C\uD2B8\uB108\uC2ED, \uD504\uB85C\uBAA8\uC158 \uD2B8\uB80C\uB4DC, \uC790\uCCB4 \uD504\uB85C\uBAA8\uC158, \uD45C\uC2DC\uB418\uB294 \uD504\uB9AC\uB864 \uAD11\uACE0\uB97C \uC811\uC2B5\uB2C8\uB2E4. Aviary\uB294 \uD0C0\uC784\uB77C\uC778 \uC804\uC1A1\uC744 \uCC28\uB2E8\uD558\uC9C0 \uC54A\uC73C\uBA74\uC11C X\uC758 \uBCC4\uB3C4 \uD504\uB85C\uBAA8\uC158 \uCF58\uD150\uCE20 \uAE30\uB85D \uC694\uCCAD\uB3C4 \uAC70\uBD80\uD569\uB2C8\uB2E4.",
+      "Ad protection status": "\uAD11\uACE0 \uCC28\uB2E8 \uC0C1\uD0DC",
+      "Ad protection": "\uAD11\uACE0 \uCC28\uB2E8",
+      "Page chrome": "\uD398\uC774\uC9C0 \uC694\uC18C",
+      "Reading flow": "\uC77D\uAE30 \uD750\uB984",
+      "Navigation": "\uD0D0\uC0C9",
+      "Rules are active on the selected routes.": "\uC120\uD0DD\uD55C \uACBD\uB85C\uC5D0\uC11C \uADDC\uCE59\uC774 \uD65C\uC131\uD654\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.",
+      "Rule status": "\uADDC\uCE59 \uC0C1\uD0DC",
+      "Inactive until filters are enabled. You can edit rules before turning them on.": "\uD544\uD130\uB97C \uCF24 \uB54C\uAE4C\uC9C0 \uBE44\uD65C\uC131 \uC0C1\uD0DC\uC785\uB2C8\uB2E4. \uCF1C\uAE30 \uC804\uC5D0 \uADDC\uCE59\uC744 \uD3B8\uC9D1\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+      "Filter status": "\uD544\uD130 \uC0C1\uD0DC",
+      "Rules": "\uADDC\uCE59",
+      "Content types": "\uCF58\uD150\uCE20 \uC720\uD615",
+      "Routes": "\uACBD\uB85C",
+      "Hide buttons follow the setting above.": "\uC228\uAE30\uAE30 \uBC84\uD2BC\uC740 \uC704 \uC124\uC815\uC744 \uB530\uB985\uB2C8\uB2E4.",
+      "Hide button status": "\uC228\uAE30\uAE30 \uBC84\uD2BC \uC0C1\uD0DC",
+      "Activates when Hide dismissed posts is on.": "'\uB2EB\uC740 \uAC8C\uC2DC\uBB3C \uC228\uAE30\uAE30'\uB97C \uCF1C\uBA74 \uD65C\uC131\uD654\uB429\uB2C8\uB2E4.",
+      "Coverage": "\uC801\uC6A9 \uBC94\uC704",
+      "Retention": "\uBCF4\uC874",
+      "Recovery": "\uBCF5\uAD6C",
+      "Playback": "\uC7AC\uC0DD",
+      "The download preference applies to every media control.": "\uB2E4\uC6B4\uB85C\uB4DC \uD658\uACBD\uC124\uC815\uC740 \uBAA8\uB4E0 \uBBF8\uB514\uC5B4 \uCEE8\uD2B8\uB864\uC5D0 \uC801\uC6A9\uB429\uB2C8\uB2E4.",
+      "Original quality status": "\uC6D0\uBCF8 \uD654\uC9C8 \uC0C1\uD0DC",
+      "Original quality is applied when download controls are enabled.": "\uB2E4\uC6B4\uB85C\uB4DC \uCEE8\uD2B8\uB864\uC744 \uCF1C\uBA74 \uC6D0\uBCF8 \uD654\uC9C8\uC774 \uC801\uC6A9\uB429\uB2C8\uB2E4.",
+      "On-post controls": "\uAC8C\uC2DC\uBB3C \uCEE8\uD2B8\uB864",
+      "File naming": "\uD30C\uC77C \uC774\uB984",
+      "Batch behavior": "\uC77C\uAD04 \uCC98\uB9AC",
+      "Queue status": "\uB300\uAE30\uC5F4 \uC0C1\uD0DC",
+      "Capture": "\uCEA1\uCC98",
+      "Package": "\uD328\uD0A4\uC9C0",
+      "Destination": "\uB300\uC0C1",
+      "Jobs": "\uC791\uC5C5",
+      "Post tools": "\uAC8C\uC2DC\uBB3C \uB3C4\uAD6C",
+      "Writing tools": "\uAE00\uC4F0\uAE30 \uB3C4\uAD6C",
+      "Live snapshots": "\uC2E4\uC2DC\uAC04 \uC2A4\uB0C5\uC0F7",
+      "Connections": "\uC5F0\uACB0",
+      "Intelligence": "\uC778\uD154\uB9AC\uC804\uC2A4",
+      "Reset all preferences": "\uBAA8\uB4E0 \uD658\uACBD\uC124\uC815 \uCD08\uAE30\uD654",
+      "Restores Aviary's defaults: ad-free mode stays on and every other visual or behavior control returns to off. Saved posts, notes, bookmarks, and download history are kept.": "Aviary \uAE30\uBCF8\uAC12\uC73C\uB85C \uBCF5\uC6D0\uD569\uB2C8\uB2E4. \uAD11\uACE0 \uC5C6\uB294 \uBAA8\uB4DC\uB294 \uCF1C\uC9C4 \uC0C1\uD0DC\uB85C \uC720\uC9C0\uB418\uACE0 \uB2E4\uB978 \uBAA8\uB4E0 \uC2DC\uAC01 \uBC0F \uB3D9\uC791 \uCEE8\uD2B8\uB864\uC740 \uAEBC\uC9D1\uB2C8\uB2E4. \uC800\uC7A5\uD55C \uAC8C\uC2DC\uBB3C, \uBA54\uBAA8, \uBD81\uB9C8\uD06C \uBC0F \uB2E4\uC6B4\uB85C\uB4DC \uAE30\uB85D\uC740 \uC720\uC9C0\uB429\uB2C8\uB2E4.",
+      "Preferences": "\uD658\uACBD\uC124\uC815",
+      "Library backup": "\uB77C\uC774\uBE0C\uB7EC\uB9AC \uBC31\uC5C5",
+      "Audit history": "\uAC10\uC0AC \uAE30\uB85D",
+      "Privacy boundary": "\uAC1C\uC778\uC815\uBCF4 \uACBD\uACC4",
+      "Page hooks": "\uD398\uC774\uC9C0 \uD6C4\uD06C",
+      "Local data": "\uB85C\uCEEC \uB370\uC774\uD130",
+      "Compatibility": "\uD638\uD658\uC131",
+      "Unsaved changes": "\uC800\uC7A5\uD558\uC9C0 \uC54A\uC740 \uBCC0\uACBD\uC0AC\uD56D",
+      "Save or revert your changes before leaving this section.": "\uC774 \uC139\uC158\uC744 \uB098\uAC00\uAE30 \uC804\uC5D0 \uBCC0\uACBD\uC0AC\uD56D\uC744 \uC800\uC7A5\uD558\uAC70\uB098 \uB418\uB3CC\uB9AC\uC138\uC694.",
+      "Preferences reset. Ad-free mode is on.": "\uD658\uACBD\uC124\uC815\uC744 \uCD08\uAE30\uD654\uD588\uC2B5\uB2C8\uB2E4. \uAD11\uACE0 \uC5C6\uB294 \uBAA8\uB4DC\uAC00 \uCF1C\uC838 \uC788\uC2B5\uB2C8\uB2E4.",
+      "Ad-free mode on": "\uAD11\uACE0 \uC5C6\uB294 \uBAA8\uB4DC \uCF1C\uC9D0",
+      "Ad-free mode off": "\uAD11\uACE0 \uC5C6\uB294 \uBAA8\uB4DC \uAEBC\uC9D0",
+      "Protection starts at document load.": "\uBB38\uC11C\uB97C \uBD88\uB7EC\uC62C \uB54C\uBD80\uD130 \uBCF4\uD638\uAC00 \uC2DC\uC791\uB429\uB2C8\uB2E4.",
+      "Permissions": "\uAD8C\uD55C",
+      "Optional permissions": "\uC120\uD0DD\uC801 \uAD8C\uD55C",
+      "Permission health": "\uAD8C\uD55C \uC0C1\uD0DC",
+      "optional": "\uC120\uD0DD \uC0AC\uD56D",
+      "All optional. You're in control.": "\uBAA8\uB450 \uC120\uD0DD \uC0AC\uD56D\uC774\uBA70 \uC0AC\uC6A9\uC790\uAC00 \uC81C\uC5B4\uD569\uB2C8\uB2E4."
     },
     ar: {
       "Aviary": "Aviary",
@@ -5380,7 +5746,68 @@ html.av-reduce-motion *::after {
       "Working \u2014 every change has been written.": "\u064A\u0639\u0645\u0644 \u0628\u0634\u0643\u0644 \u0633\u0644\u064A\u0645 \u2014 \u062A\u0645 \u062D\u0641\u0638 \u0643\u0644 \u0627\u0644\u062A\u063A\u064A\u064A\u0631\u0627\u062A.",
       "Monitoring active": "\u0627\u0644\u0645\u0631\u0627\u0642\u0628\u0629 \u0646\u0634\u0637\u0629",
       "Preset packs unavailable in this build.": "\u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u062C\u0627\u0647\u0632\u0629 \u063A\u064A\u0631 \u0645\u062A\u0648\u0641\u0631\u0629 \u0641\u064A \u0647\u0630\u0647 \u0627\u0644\u0646\u0633\u062E\u0629.",
-      "Hidden post store unavailable in this build.": "\u0645\u062E\u0632\u0646 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u062E\u0641\u064A\u0629 \u063A\u064A\u0631 \u0645\u062A\u0648\u0641\u0631 \u0641\u064A \u0647\u0630\u0647 \u0627\u0644\u0646\u0633\u062E\u0629."
+      "Hidden post store unavailable in this build.": "\u0645\u062E\u0632\u0646 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u062E\u0641\u064A\u0629 \u063A\u064A\u0631 \u0645\u062A\u0648\u0641\u0631 \u0641\u064A \u0647\u0630\u0647 \u0627\u0644\u0646\u0633\u062E\u0629.",
+      "Preset packs": "\u062D\u0632\u0645 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u062C\u0627\u0647\u0632\u0629",
+      "Language": "\u0627\u0644\u0644\u063A\u0629",
+      "Display": "\u0627\u0644\u0639\u0631\u0636",
+      "Accessibility": "\u0625\u0645\u0643\u0627\u0646\u064A\u0629 \u0627\u0644\u0648\u0635\u0648\u0644",
+      "Ad-free mode": "\u0648\u0636\u0639 \u0628\u0644\u0627 \u0625\u0639\u0644\u0627\u0646\u0627\u062A",
+      "Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery.": "\u064A\u0637\u0648\u064A \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u0645\u0648\u0651\u0644\u0629 \u0648\u0627\u0644\u0634\u0631\u0627\u0643\u0627\u062A \u0627\u0644\u0645\u062F\u0641\u0648\u0639\u0629 \u0648\u0627\u0644\u0645\u0648\u0627\u0636\u064A\u0639 \u0627\u0644\u0631\u0627\u0626\u062C\u0629 \u0627\u0644\u0645\u0631\u0648\u0651\u062C\u0629 \u0648\u0627\u0644\u0639\u0631\u0648\u0636 \u0627\u0644\u062F\u0627\u062E\u0644\u064A\u0629 \u0648\u0625\u0639\u0644\u0627\u0646\u0627\u062A \u0645\u0627 \u0642\u0628\u0644 \u0627\u0644\u062A\u0634\u063A\u064A\u0644 \u0627\u0644\u0638\u0627\u0647\u0631\u0629. \u064A\u0631\u0641\u0636 Aviary \u0623\u064A\u0636\u064B\u0627 \u0637\u0644\u0628 \u0627\u0644\u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u0645\u0646\u0641\u0635\u0644 \u0644\u0644\u0645\u062D\u062A\u0648\u0649 \u0627\u0644\u0645\u0631\u0648\u0651\u062C \u0645\u0646 X \u0645\u0646 \u062F\u0648\u0646 \u062D\u0638\u0631 \u062A\u062D\u0645\u064A\u0644 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A.",
+      "Ad protection status": "\u062D\u0627\u0644\u0629 \u0627\u0644\u062D\u0645\u0627\u064A\u0629 \u0645\u0646 \u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A",
+      "Ad protection": "\u0627\u0644\u062D\u0645\u0627\u064A\u0629 \u0645\u0646 \u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A",
+      "Page chrome": "\u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u0635\u0641\u062D\u0629",
+      "Reading flow": "\u062A\u062F\u0641\u0642 \u0627\u0644\u0642\u0631\u0627\u0621\u0629",
+      "Navigation": "\u0627\u0644\u062A\u0646\u0642\u0644",
+      "Rules are active on the selected routes.": "\u0627\u0644\u0642\u0648\u0627\u0639\u062F \u0646\u0634\u0637\u0629 \u0641\u064A \u0627\u0644\u0645\u0633\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u062D\u062F\u062F\u0629.",
+      "Rule status": "\u062D\u0627\u0644\u0629 \u0627\u0644\u0642\u0648\u0627\u0639\u062F",
+      "Inactive until filters are enabled. You can edit rules before turning them on.": "\u063A\u064A\u0631 \u0646\u0634\u0637 \u062D\u062A\u0649 \u062A\u0641\u0639\u064A\u0644 \u0639\u0648\u0627\u0645\u0644 \u0627\u0644\u062A\u0635\u0641\u064A\u0629. \u064A\u0645\u0643\u0646\u0643 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0642\u0648\u0627\u0639\u062F \u0642\u0628\u0644 \u062A\u0634\u063A\u064A\u0644\u0647\u0627.",
+      "Filter status": "\u062D\u0627\u0644\u0629 \u0639\u0648\u0627\u0645\u0644 \u0627\u0644\u062A\u0635\u0641\u064A\u0629",
+      "Rules": "\u0627\u0644\u0642\u0648\u0627\u0639\u062F",
+      "Content types": "\u0623\u0646\u0648\u0627\u0639 \u0627\u0644\u0645\u062D\u062A\u0648\u0649",
+      "Routes": "\u0627\u0644\u0645\u0633\u0627\u0631\u0627\u062A",
+      "Hide buttons follow the setting above.": "\u062A\u062A\u0628\u0639 \u0623\u0632\u0631\u0627\u0631 \u0627\u0644\u0625\u062E\u0641\u0627\u0621 \u0627\u0644\u0625\u0639\u062F\u0627\u062F \u0623\u0639\u0644\u0627\u0647.",
+      "Hide button status": "\u062D\u0627\u0644\u0629 \u0623\u0632\u0631\u0627\u0631 \u0627\u0644\u0625\u062E\u0641\u0627\u0621",
+      "Activates when Hide dismissed posts is on.": "\u064A\u062A\u0641\u0639\u0651\u0644 \u0639\u0646\u062F \u062A\u0634\u063A\u064A\u0644 \u0625\u062E\u0641\u0627\u0621 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u0633\u062A\u0628\u0639\u062F\u0629.",
+      "Coverage": "\u0627\u0644\u062A\u063A\u0637\u064A\u0629",
+      "Retention": "\u0627\u0644\u0627\u062D\u062A\u0641\u0627\u0638",
+      "Recovery": "\u0627\u0644\u0627\u0633\u062A\u0631\u062F\u0627\u062F",
+      "Playback": "\u0627\u0644\u062A\u0634\u063A\u064A\u0644",
+      "The download preference applies to every media control.": "\u064A\u0646\u0637\u0628\u0642 \u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u062A\u0646\u0632\u064A\u0644 \u0639\u0644\u0649 \u0643\u0644 \u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062A\u062D\u0643\u0645 \u0641\u064A \u0627\u0644\u0648\u0633\u0627\u0626\u0637.",
+      "Original quality status": "\u062D\u0627\u0644\u0629 \u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629",
+      "Original quality is applied when download controls are enabled.": "\u062A\u064F\u0637\u0628\u0651\u0642 \u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629 \u0639\u0646\u062F \u062A\u0641\u0639\u064A\u0644 \u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062A\u062D\u0643\u0645 \u0641\u064A \u0627\u0644\u062A\u0646\u0632\u064A\u0644.",
+      "On-post controls": "\u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062A\u062D\u0643\u0645 \u0641\u064A \u0627\u0644\u0645\u0646\u0634\u0648\u0631",
+      "File naming": "\u062A\u0633\u0645\u064A\u0629 \u0627\u0644\u0645\u0644\u0641\u0627\u062A",
+      "Batch behavior": "\u0633\u0644\u0648\u0643 \u0627\u0644\u062F\u064F\u0641\u0639\u0627\u062A",
+      "Queue status": "\u062D\u0627\u0644\u0629 \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0627\u0646\u062A\u0638\u0627\u0631",
+      "Capture": "\u0627\u0644\u0627\u0644\u062A\u0642\u0627\u0637",
+      "Package": "\u0627\u0644\u062D\u0632\u0645\u0629",
+      "Destination": "\u0627\u0644\u0648\u062C\u0647\u0629",
+      "Jobs": "\u0627\u0644\u0645\u0647\u0627\u0645",
+      "Post tools": "\u0623\u062F\u0648\u0627\u062A \u0627\u0644\u0645\u0646\u0634\u0648\u0631",
+      "Writing tools": "\u0623\u062F\u0648\u0627\u062A \u0627\u0644\u0643\u062A\u0627\u0628\u0629",
+      "Live snapshots": "\u0627\u0644\u0644\u0642\u0637\u0627\u062A \u0627\u0644\u062D\u064A\u0629",
+      "Connections": "\u0627\u0644\u0627\u062A\u0635\u0627\u0644\u0627\u062A",
+      "Intelligence": "\u0627\u0644\u0630\u0643\u0627\u0621",
+      "Reset all preferences": "\u0625\u0639\u0627\u062F\u0629 \u0636\u0628\u0637 \u0643\u0644 \u0627\u0644\u062A\u0641\u0636\u064A\u0644\u0627\u062A",
+      "Restores Aviary's defaults: ad-free mode stays on and every other visual or behavior control returns to off. Saved posts, notes, bookmarks, and download history are kept.": "\u064A\u0639\u064A\u062F \u0625\u0639\u062F\u0627\u062F\u0627\u062A Aviary \u0627\u0644\u0627\u0641\u062A\u0631\u0627\u0636\u064A\u0629: \u064A\u0628\u0642\u0649 \u0648\u0636\u0639 \u0628\u0644\u0627 \u0625\u0639\u0644\u0627\u0646\u0627\u062A \u0645\u0641\u0639\u0651\u0644\u064B\u0627 \u0648\u062A\u0639\u0648\u062F \u0643\u0644 \u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062A\u062D\u0643\u0645 \u0627\u0644\u0645\u0631\u0626\u064A\u0629 \u0623\u0648 \u0627\u0644\u0633\u0644\u0648\u0643\u064A\u0629 \u0627\u0644\u0623\u062E\u0631\u0649 \u0625\u0644\u0649 \u0627\u0644\u0625\u064A\u0642\u0627\u0641. \u062A\u0628\u0642\u0649 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0648\u0627\u0644\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0648\u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0648\u0633\u062C\u0644 \u0627\u0644\u062A\u0646\u0632\u064A\u0644 \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629.",
+      "Preferences": "\u0627\u0644\u062A\u0641\u0636\u064A\u0644\u0627\u062A",
+      "Library backup": "\u0646\u0633\u062E\u0629 \u0627\u062D\u062A\u064A\u0627\u0637\u064A\u0629 \u0644\u0644\u0645\u0643\u062A\u0628\u0629",
+      "Audit history": "\u0633\u062C\u0644 \u0627\u0644\u062A\u062F\u0642\u064A\u0642",
+      "Privacy boundary": "\u062D\u062F\u0648\u062F \u0627\u0644\u062E\u0635\u0648\u0635\u064A\u0629",
+      "Page hooks": "\u0627\u0631\u062A\u0628\u0627\u0637\u0627\u062A \u0627\u0644\u0635\u0641\u062D\u0629",
+      "Local data": "\u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
+      "Compatibility": "\u0627\u0644\u062A\u0648\u0627\u0641\u0642",
+      "Unsaved changes": "\u062A\u063A\u064A\u064A\u0631\u0627\u062A \u063A\u064A\u0631 \u0645\u062D\u0641\u0648\u0638\u0629",
+      "Save or revert your changes before leaving this section.": "\u0627\u062D\u0641\u0638 \u062A\u063A\u064A\u064A\u0631\u0627\u062A\u0643 \u0623\u0648 \u062A\u0631\u0627\u062C\u0639 \u0639\u0646\u0647\u0627 \u0642\u0628\u0644 \u0645\u063A\u0627\u062F\u0631\u0629 \u0647\u0630\u0627 \u0627\u0644\u0642\u0633\u0645.",
+      "Preferences reset. Ad-free mode is on.": "\u062A\u0645\u062A \u0625\u0639\u0627\u062F\u0629 \u0636\u0628\u0637 \u0627\u0644\u062A\u0641\u0636\u064A\u0644\u0627\u062A. \u0648\u0636\u0639 \u0628\u0644\u0627 \u0625\u0639\u0644\u0627\u0646\u0627\u062A \u0645\u0641\u0639\u0651\u0644.",
+      "Ad-free mode on": "\u0648\u0636\u0639 \u0628\u0644\u0627 \u0625\u0639\u0644\u0627\u0646\u0627\u062A \u0645\u0641\u0639\u0651\u0644",
+      "Ad-free mode off": "\u0648\u0636\u0639 \u0628\u0644\u0627 \u0625\u0639\u0644\u0627\u0646\u0627\u062A \u0645\u062A\u0648\u0642\u0641",
+      "Protection starts at document load.": "\u062A\u0628\u062F\u0623 \u0627\u0644\u062D\u0645\u0627\u064A\u0629 \u0639\u0646\u062F \u062A\u062D\u0645\u064A\u0644 \u0627\u0644\u0645\u0633\u062A\u0646\u062F.",
+      "Permissions": "\u0627\u0644\u0623\u0630\u0648\u0646\u0627\u062A",
+      "Optional permissions": "\u0623\u0630\u0648\u0646\u0627\u062A \u0627\u062E\u062A\u064A\u0627\u0631\u064A\u0629",
+      "Permission health": "\u062D\u0627\u0644\u0629 \u0627\u0644\u0623\u0630\u0648\u0646\u0627\u062A",
+      "optional": "\u0627\u062E\u062A\u064A\u0627\u0631\u064A",
+      "All optional. You're in control.": "\u0643\u0644\u0647\u0627 \u0627\u062E\u062A\u064A\u0627\u0631\u064A\u0629. \u0623\u0646\u062A \u0627\u0644\u0645\u062A\u062D\u0643\u0645."
     },
     he: {
       "Aviary": "Aviary",
@@ -6112,7 +6539,68 @@ html.av-reduce-motion *::after {
       "Working \u2014 every change has been written.": "\u05EA\u05E7\u05D9\u05DF \u2014 \u05DB\u05DC \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05E0\u05E9\u05DE\u05E8\u05D5.",
       "Monitoring active": "\u05D4\u05E0\u05D9\u05D8\u05D5\u05E8 \u05E4\u05E2\u05D9\u05DC",
       "Preset packs unavailable in this build.": "\u05D4\u05E2\u05E8\u05DB\u05D5\u05EA \u05D4\u05DE\u05D5\u05DB\u05E0\u05D5\u05EA \u05D0\u05D9\u05E0\u05DF \u05D6\u05DE\u05D9\u05E0\u05D5\u05EA \u05D1\u05D2\u05E8\u05E1\u05D4 \u05D6\u05D5.",
-      "Hidden post store unavailable in this build.": "\u05DE\u05D0\u05D2\u05E8 \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D4\u05DE\u05D5\u05E1\u05EA\u05E8\u05D9\u05DD \u05D0\u05D9\u05E0\u05D5 \u05D6\u05DE\u05D9\u05DF \u05D1\u05D2\u05E8\u05E1\u05D4 \u05D6\u05D5."
+      "Hidden post store unavailable in this build.": "\u05DE\u05D0\u05D2\u05E8 \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D4\u05DE\u05D5\u05E1\u05EA\u05E8\u05D9\u05DD \u05D0\u05D9\u05E0\u05D5 \u05D6\u05DE\u05D9\u05DF \u05D1\u05D2\u05E8\u05E1\u05D4 \u05D6\u05D5.",
+      "Preset packs": "\u05E2\u05E8\u05DB\u05D5\u05EA \u05DE\u05D5\u05DB\u05E0\u05D5\u05EA",
+      "Language": "\u05E9\u05E4\u05D4",
+      "Display": "\u05EA\u05E6\u05D5\u05D2\u05D4",
+      "Accessibility": "\u05E0\u05D2\u05D9\u05E9\u05D5\u05EA",
+      "Ad-free mode": "\u05DE\u05E6\u05D1 \u05DC\u05DC\u05D0 \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA",
+      "Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery.": "\u05DE\u05DB\u05D5\u05D5\u05E5 \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05DE\u05DE\u05D5\u05DE\u05E0\u05D9\u05DD, \u05E9\u05D5\u05EA\u05E4\u05D5\u05D9\u05D5\u05EA \u05D1\u05EA\u05E9\u05DC\u05D5\u05DD, \u05DE\u05D2\u05DE\u05D5\u05EA \u05DE\u05E7\u05D5\u05D3\u05DE\u05D5\u05EA, \u05E7\u05D9\u05D3\u05D5\u05DD \u05E4\u05E0\u05D9\u05DE\u05D9 \u05D5\u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA \u05E7\u05D3\u05DD\u05BE\u05D5\u05D9\u05D3\u05D0\u05D5 \u05D2\u05DC\u05D5\u05D9\u05D5\u05EA. Aviary \u05D2\u05DD \u05DE\u05E1\u05E8\u05D1 \u05DC\u05D1\u05E7\u05E9\u05EA \u05D4\u05E8\u05D9\u05E9\u05D5\u05DD \u05D4\u05E0\u05E4\u05E8\u05D3\u05EA \u05E9\u05DC X \u05DC\u05EA\u05D5\u05DB\u05DF \u05DE\u05E7\u05D5\u05D3\u05DD \u05D1\u05DC\u05D9 \u05DC\u05D7\u05E1\u05D5\u05DD \u05D0\u05EA \u05D8\u05E2\u05D9\u05E0\u05EA \u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF.",
+      "Ad protection status": "\u05DE\u05E6\u05D1 \u05D4\u05D4\u05D2\u05E0\u05D4 \u05DE\u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA",
+      "Ad protection": "\u05D4\u05D2\u05E0\u05D4 \u05DE\u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA",
+      "Page chrome": "\u05E8\u05DB\u05D9\u05D1\u05D9 \u05D4\u05D3\u05E3",
+      "Reading flow": "\u05D6\u05E8\u05D9\u05DE\u05EA \u05E7\u05E8\u05D9\u05D0\u05D4",
+      "Navigation": "\u05E0\u05D9\u05D5\u05D5\u05D8",
+      "Rules are active on the selected routes.": "\u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05E4\u05E2\u05D9\u05DC\u05D9\u05DD \u05D1\u05E0\u05EA\u05D9\u05D1\u05D9\u05DD \u05E9\u05E0\u05D1\u05D7\u05E8\u05D5.",
+      "Rule status": "\u05DE\u05E6\u05D1 \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD",
+      "Inactive until filters are enabled. You can edit rules before turning them on.": "\u05DC\u05D0 \u05E4\u05E2\u05D9\u05DC \u05E2\u05D3 \u05DC\u05D4\u05E4\u05E2\u05DC\u05EA \u05D4\u05DE\u05E1\u05E0\u05E0\u05D9\u05DD. \u05D0\u05E4\u05E9\u05E8 \u05DC\u05E2\u05E8\u05D5\u05DA \u05D0\u05EA \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05DC\u05E4\u05E0\u05D9 \u05E9\u05DE\u05E4\u05E2\u05D9\u05DC\u05D9\u05DD \u05D0\u05D5\u05EA\u05DD.",
+      "Filter status": "\u05DE\u05E6\u05D1 \u05D4\u05DE\u05E1\u05E0\u05E0\u05D9\u05DD",
+      "Rules": "\u05DB\u05DC\u05DC\u05D9\u05DD",
+      "Content types": "\u05E1\u05D5\u05D2\u05D9 \u05EA\u05D5\u05DB\u05DF",
+      "Routes": "\u05E0\u05EA\u05D9\u05D1\u05D9\u05DD",
+      "Hide buttons follow the setting above.": "\u05DB\u05E4\u05EA\u05D5\u05E8\u05D9 \u05D4\u05D4\u05E1\u05EA\u05E8\u05D4 \u05E4\u05D5\u05E2\u05DC\u05D9\u05DD \u05DC\u05E4\u05D9 \u05D4\u05D4\u05D2\u05D3\u05E8\u05D4 \u05E9\u05DC\u05DE\u05E2\u05DC\u05D4.",
+      "Hide button status": "\u05DE\u05E6\u05D1 \u05DB\u05E4\u05EA\u05D5\u05E8\u05D9 \u05D4\u05D4\u05E1\u05EA\u05E8\u05D4",
+      "Activates when Hide dismissed posts is on.": "\u05DE\u05D5\u05E4\u05E2\u05DC \u05DB\u05D0\u05E9\u05E8 \u05D4\u05E1\u05EA\u05E8\u05EA \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05E0\u05D3\u05D7\u05D5 \u05E4\u05E2\u05D9\u05DC\u05D4.",
+      "Coverage": "\u05DB\u05D9\u05E1\u05D5\u05D9",
+      "Retention": "\u05E9\u05DE\u05D9\u05E8\u05D4",
+      "Recovery": "\u05E9\u05D7\u05D6\u05D5\u05E8",
+      "Playback": "\u05D4\u05E4\u05E2\u05DC\u05D4",
+      "The download preference applies to every media control.": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05D7\u05DC\u05D4 \u05E2\u05DC \u05DB\u05DC \u05E4\u05E7\u05D3\u05D9 \u05D4\u05DE\u05D3\u05D9\u05D4.",
+      "Original quality status": "\u05DE\u05E6\u05D1 \u05D4\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05E8\u05D9\u05EA",
+      "Original quality is applied when download controls are enabled.": "\u05D4\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05E8\u05D9\u05EA \u05D7\u05DC\u05D4 \u05DB\u05D0\u05E9\u05E8 \u05E4\u05E7\u05D3\u05D9 \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05DE\u05D5\u05E4\u05E2\u05DC\u05D9\u05DD.",
+      "On-post controls": "\u05E4\u05E7\u05D3\u05D9\u05DD \u05D1\u05E4\u05D5\u05E1\u05D8",
+      "File naming": "\u05E9\u05DE\u05D5\u05EA \u05E7\u05D1\u05E6\u05D9\u05DD",
+      "Batch behavior": "\u05D4\u05EA\u05E0\u05D4\u05D2\u05D5\u05EA \u05D0\u05E6\u05D5\u05D5\u05D4",
+      "Queue status": "\u05DE\u05E6\u05D1 \u05D4\u05EA\u05D5\u05E8",
+      "Capture": "\u05DC\u05DB\u05D9\u05D3\u05D4",
+      "Package": "\u05D7\u05D1\u05D9\u05DC\u05D4",
+      "Destination": "\u05D9\u05E2\u05D3",
+      "Jobs": "\u05DE\u05E9\u05D9\u05DE\u05D5\u05EA",
+      "Post tools": "\u05DB\u05DC\u05D9 \u05E4\u05D5\u05E1\u05D8",
+      "Writing tools": "\u05DB\u05DC\u05D9 \u05DB\u05EA\u05D9\u05D1\u05D4",
+      "Live snapshots": "\u05EA\u05E6\u05DC\u05D5\u05DE\u05D9 \u05DE\u05E6\u05D1 \u05D7\u05D9\u05D9\u05DD",
+      "Connections": "\u05D7\u05D9\u05D1\u05D5\u05E8\u05D9\u05DD",
+      "Intelligence": "\u05D1\u05D9\u05E0\u05D4",
+      "Reset all preferences": "\u05D0\u05D9\u05E4\u05D5\u05E1 \u05DB\u05DC \u05D4\u05D4\u05E2\u05D3\u05E4\u05D5\u05EA",
+      "Restores Aviary's defaults: ad-free mode stays on and every other visual or behavior control returns to off. Saved posts, notes, bookmarks, and download history are kept.": "\u05DE\u05E9\u05D7\u05D6\u05E8 \u05D0\u05EA \u05D1\u05E8\u05D9\u05E8\u05D5\u05EA \u05D4\u05DE\u05D7\u05D3\u05DC \u05E9\u05DC Aviary: \u05DE\u05E6\u05D1 \u05DC\u05DC\u05D0 \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA \u05E0\u05E9\u05D0\u05E8 \u05E4\u05E2\u05D9\u05DC \u05D5\u05DB\u05DC \u05E9\u05D0\u05E8 \u05E4\u05E7\u05D3\u05D9 \u05D4\u05EA\u05E6\u05D5\u05D2\u05D4 \u05D0\u05D5 \u05D4\u05D4\u05EA\u05E0\u05D4\u05D2\u05D5\u05EA \u05D7\u05D5\u05D6\u05E8\u05D9\u05DD \u05DC\u05DE\u05E6\u05D1 \u05DB\u05D1\u05D5\u05D9. \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD, \u05D4\u05E2\u05E8\u05D5\u05EA, \u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05D5\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05E9\u05E0\u05E9\u05DE\u05E8\u05D5 \u05E0\u05E9\u05D0\u05E8\u05D9\u05DD.",
+      "Preferences": "\u05D4\u05E2\u05D3\u05E4\u05D5\u05EA",
+      "Library backup": "\u05D2\u05D9\u05D1\u05D5\u05D9 \u05D4\u05E1\u05E4\u05E8\u05D9\u05D9\u05D4",
+      "Audit history": "\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05D1\u05D9\u05E7\u05D5\u05E8\u05EA",
+      "Privacy boundary": "\u05D2\u05D1\u05D5\u05DC \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA",
+      "Page hooks": "\u05D7\u05D9\u05D1\u05D5\u05E8\u05D9 \u05D3\u05E3",
+      "Local data": "\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05DE\u05E7\u05D5\u05DE\u05D9\u05D9\u05DD",
+      "Compatibility": "\u05EA\u05D0\u05D9\u05DE\u05D5\u05EA",
+      "Unsaved changes": "\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05E9\u05DC\u05D0 \u05E0\u05E9\u05DE\u05E8\u05D5",
+      "Save or revert your changes before leaving this section.": "\u05D9\u05E9 \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D0\u05D5 \u05DC\u05D1\u05D8\u05DC \u05D0\u05EA \u05D4\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05DC\u05E4\u05E0\u05D9 \u05E9\u05D9\u05D5\u05E6\u05D0\u05D9\u05DD \u05DE\u05D4\u05D7\u05DC\u05E7 \u05D4\u05D6\u05D4.",
+      "Preferences reset. Ad-free mode is on.": "\u05D4\u05D4\u05E2\u05D3\u05E4\u05D5\u05EA \u05D0\u05D5\u05E4\u05E1\u05D5. \u05DE\u05E6\u05D1 \u05DC\u05DC\u05D0 \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC.",
+      "Ad-free mode on": "\u05DE\u05E6\u05D1 \u05DC\u05DC\u05D0 \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC",
+      "Ad-free mode off": "\u05DE\u05E6\u05D1 \u05DC\u05DC\u05D0 \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA \u05DB\u05D1\u05D5\u05D9",
+      "Protection starts at document load.": "\u05D4\u05D4\u05D2\u05E0\u05D4 \u05DE\u05EA\u05D7\u05D9\u05DC\u05D4 \u05D1\u05E2\u05EA \u05D8\u05E2\u05D9\u05E0\u05EA \u05D4\u05DE\u05E1\u05DE\u05DA.",
+      "Permissions": "\u05D4\u05E8\u05E9\u05D0\u05D5\u05EA",
+      "Optional permissions": "\u05D4\u05E8\u05E9\u05D0\u05D5\u05EA \u05D0\u05D5\u05E4\u05E6\u05D9\u05D5\u05E0\u05DC\u05D9\u05D5\u05EA",
+      "Permission health": "\u05DE\u05E6\u05D1 \u05D4\u05D4\u05E8\u05E9\u05D0\u05D5\u05EA",
+      "optional": "\u05D0\u05D5\u05E4\u05E6\u05D9\u05D5\u05E0\u05DC\u05D9",
+      "All optional. You're in control.": "\u05D4\u05DB\u05D5\u05DC \u05D0\u05D5\u05E4\u05E6\u05D9\u05D5\u05E0\u05DC\u05D9. \u05D4\u05E9\u05DC\u05D9\u05D8\u05D4 \u05D1\u05D9\u05D3\u05D9\u05DA."
     }
   };
 
@@ -6148,7 +6636,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/platform/build-version.ts
-  var AVIARY_VERSION = false ? "dev" : "1.17.0";
+  var AVIARY_VERSION = false ? "dev" : "1.18.0";
 
   // src/platform/settings.ts
   var SETTINGS_KEY = "aviary.settings.v1";
@@ -7462,12 +7950,12 @@ html.av-reduce-motion *::after {
     if (ctx.options.resetSettings) {
       rows.push(
         ctx.actionRow(
-          "Reset everything to plain X",
-          "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept \u2014 this only resets preferences.",
+          "Reset all preferences",
+          "Restores Aviary's defaults: ad-free mode stays on and every other visual or behavior control returns to off. Saved posts, notes, bookmarks, and download history are kept.",
           async () => {
             try {
               await ctx.options.resetSettings();
-              ctx.setStatus("Everything reset. X is untouched again.");
+              ctx.setStatus("Preferences reset. Ad-free mode is on.");
             } catch (error) {
               ctx.options.onError("Could not reset settings", error);
               ctx.setStatus("Could not reset settings.");
@@ -8588,6 +9076,7 @@ html.av-reduce-motion *::after {
   }
   function buildMediaRows(ctx) {
     const rows = [];
+    ctx.t("The download preference applies to every media control.");
     rows.push(
       ctx.toggleRow(
         "Show download buttons",
@@ -8608,6 +9097,12 @@ html.av-reduce-motion *::after {
           ctx.options.settings.media.preferOriginalImages = checked;
           await ctx.save("Original quality preference saved");
         }
+      )
+    );
+    rows.push(
+      ctx.readonlyRow(
+        "Original quality status",
+        ctx.options.settings.media.buttons ? "The download preference applies to every media control." : "Original quality is applied when download controls are enabled."
       )
     );
     rows.push(
@@ -8880,6 +9375,7 @@ html.av-reduce-motion *::after {
   }
   function buildLayoutRows(ctx) {
     const hooks = ctx.options.getPageHooks?.();
+    ctx.t("Protection starts at document load.");
     const rows = [
       ctx.toggleRow(
         "Ad-free mode",
@@ -8890,10 +9386,10 @@ html.av-reduce-motion *::after {
           await ctx.save(checked ? "Ad-free mode on" : "Ad-free mode off");
         }
       ),
-      ctx.readonlyRow(
+      hooks ? ctx.dataRow(
         "Ad protection status",
-        hooks ? `${hooks.hiddenPlacements} placements removed \xB7 ${hooks.blockedAdRequests} logging calls refused${hooks.suppressedVideoAds > 0 ? ` \xB7 ${hooks.suppressedVideoAds} pre-rolls suppressed` : ""}` : "Protection starts at document load."
-      ),
+        `${hooks.hiddenPlacements} placements removed \xB7 ${hooks.blockedAdRequests} logging calls refused${hooks.suppressedVideoAds > 0 ? ` \xB7 ${hooks.suppressedVideoAds} pre-rolls suppressed` : ""}`
+      ) : ctx.readonlyRow("Ad protection status", "Protection starts at document load."),
       ctx.toggleRow("Hide right sidebar", "Reduce trends, recommendations, and footer noise.", ctx.options.settings.layout.hideRightSidebar, async (checked) => {
         ctx.options.settings.layout.hideRightSidebar = checked;
         await ctx.save("Sidebar preference saved");
@@ -8968,6 +9464,7 @@ html.av-reduce-motion *::after {
   }
   function buildFilterRows(ctx) {
     const rows = [];
+    ctx.t("Rules are active on the selected routes.");
     rows.push(
       ctx.toggleRow(
         "Enable filters",
@@ -8977,6 +9474,12 @@ html.av-reduce-motion *::after {
           ctx.options.settings.filter.enabled = checked;
           await ctx.save(checked ? "Filters enabled" : "Filters disabled");
         }
+      )
+    );
+    rows.push(
+      ctx.readonlyRow(
+        "Rule status",
+        ctx.options.settings.filter.enabled ? "Rules are active on the selected routes." : "Inactive until filters are enabled. You can edit rules before turning them on."
       )
     );
     rows.push(
@@ -9064,6 +9567,7 @@ html.av-reduce-motion *::after {
   }
   function buildHiddenPostRows(ctx) {
     const rows = [];
+    ctx.t("Hide buttons follow the setting above.");
     rows.push(
       ctx.toggleRow(
         "Hide dismissed posts",
@@ -9084,6 +9588,12 @@ html.av-reduce-motion *::after {
           ctx.options.settings.hidden.buttons = checked;
           await ctx.save(checked ? "Hide buttons on" : "Hide buttons off");
         }
+      )
+    );
+    rows.push(
+      ctx.readonlyRow(
+        "Hide button status",
+        ctx.options.settings.hidden.enabled ? "Hide buttons follow the setting above." : "Activates when Hide dismissed posts is on."
       )
     );
     rows.push(
@@ -9198,6 +9708,7 @@ html.av-reduce-motion *::after {
     for (const preset of ctx.options.listPresets()) {
       const row = ctx.el("div", "av-row av-row-stack av-preset-card");
       row.dataset.avPreset = preset.id;
+      row.dataset.avLabel = preset.label;
       const cardHeader = ctx.el("div", "av-preset-header");
       const copy = ctx.el("span", "av-row-copy");
       copy.append(
@@ -9261,7 +9772,75 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION2 = false ? "dev" : "1.17.0";
+  var AVIARY_VERSION2 = false ? "dev" : "1.18.0";
+  var SECTION_GROUP_BREAKS = {
+    presets: [
+      { before: "Quiet Reader", title: "Preset packs" },
+      { before: "Locale", title: "Language" }
+    ],
+    appearance: [
+      { before: "Theme", title: "Display" },
+      { before: "High contrast", title: "Accessibility" }
+    ],
+    layout: [
+      { before: "Ad-free mode", title: "Ad protection" },
+      { before: "Hide right sidebar", title: "Page chrome" },
+      { before: "Open Following instead of For you", title: "Reading flow" },
+      { before: "Hide navigation items", title: "Navigation" }
+    ],
+    filtering: [
+      { before: "Enable filters", title: "Filter status" },
+      { before: "Keyword rules", title: "Rules" },
+      { before: "Premium / verified posts", title: "Content types" },
+      { before: "Active on", title: "Routes" }
+    ],
+    hidden: [
+      { before: "Hide dismissed posts", title: "Status" },
+      { before: "Active on", title: "Coverage" },
+      { before: "Maximum remembered posts", title: "Retention" },
+      { before: "Hidden posts stored", title: "Recovery" }
+    ],
+    performance: [{ before: "Pause video that scrolls out of view", title: "Playback" }],
+    media: [
+      { before: "Show download buttons", title: "On-post controls" },
+      { before: "Filename template", title: "File naming" },
+      { before: "Duplicate history", title: "Batch behavior" },
+      { before: "Download status", title: "Queue status" }
+    ],
+    export: [
+      { before: "Capture visible tweets", title: "Capture" },
+      { before: "Export formats", title: "Package" },
+      { before: "Save folder hint", title: "Destination" },
+      { before: "Export visible tweets", title: "Jobs" }
+    ],
+    library: [
+      { before: "Search all local collections", title: "Universal search" },
+      { before: "Local bookmarks", title: "Bookmarks" },
+      { before: "Show the AI button on posts", title: "Post tools" },
+      { before: "Account notes", title: "Writing tools" }
+    ],
+    snapshots: [
+      { before: "Snapshots stored", title: "Live snapshots" },
+      { before: "Imported collections", title: "Official archive" },
+      { before: "Search captured records", title: "Search & reports" }
+    ],
+    integrations: [
+      { before: "Aria2 handoff", title: "Connections" },
+      { before: "AI provider", title: "Intelligence" },
+      { before: "Recent integration errors", title: "Health" }
+    ],
+    backup: [
+      { before: "Reset all preferences", title: "Preferences" },
+      { before: "Export full library backup", title: "Library backup" },
+      { before: "Keep a local action log", title: "Audit history" }
+    ],
+    trust: [
+      { before: "Storage", title: "Privacy boundary" },
+      { before: "Page access", title: "Page hooks" },
+      { before: "Telemetry", title: "Local data" },
+      { before: "Panel language", title: "Compatibility" }
+    ]
+  };
   function mountControlCenter(options) {
     const existing = document.getElementById("av-control-center");
     existing?.remove();
@@ -9305,6 +9884,8 @@ html.av-reduce-motion *::after {
     const status = el("div", "av-status", t("Saved locally"));
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
+    status.dataset.state = "saved";
+    host.dataset.avSaveState = "saved";
     const searchBar = el("div", "av-searchbar");
     const search = document.createElement("input");
     search.type = "search";
@@ -9312,7 +9893,7 @@ html.av-reduce-motion *::after {
     search.placeholder = t("Search settings");
     search.setAttribute("aria-label", t("Search settings"));
     search.spellcheck = false;
-    searchBar.append(search);
+    searchBar.append(searchIcon(), search);
     header.append(titleWrap, searchBar, close);
     const body = el("div", "av-panel-body");
     panel.append(header, body, status);
@@ -9331,6 +9912,7 @@ html.av-reduce-motion *::after {
       libraryRestoreRunning: false,
       libraryRestoreAbort: null
     };
+    const dirtyControls = /* @__PURE__ */ new Set();
     let lastStatusEnglish = "Saved locally";
     let lastStatusValues = {};
     let bodyWasInert = false;
@@ -9411,6 +9993,9 @@ html.av-reduce-motion *::after {
       }
     };
     const isBusy = () => {
+      if (dirtyControls.size > 0) {
+        return true;
+      }
       const active = shadow.activeElement;
       if (!active) {
         return false;
@@ -9421,11 +10006,37 @@ html.av-reduce-motion *::after {
       lastStatusEnglish = message;
       lastStatusValues = {};
       status.textContent = t(message);
+      status.dataset.state = statusState(message);
+      host.dataset.avSaveState = status.dataset.state;
     };
     const setStatusCopy = (source, values) => {
       lastStatusEnglish = source;
       lastStatusValues = { ...values };
       status.textContent = formatCopy(t(source), lastStatusValues);
+      status.dataset.state = statusState(source);
+      host.dataset.avSaveState = status.dataset.state;
+    };
+    const statusState = (source) => {
+      if (source === "Saving...") return "saving";
+      if (source === "Unsaved changes" || source.startsWith("Save or revert")) return "dirty";
+      if (/could not|failed|error/i.test(source)) return "error";
+      return "saved";
+    };
+    const draftHooks = {
+      update(control, dirty) {
+        if (dirty) dirtyControls.add(control);
+        else dirtyControls.delete(control);
+        setStatus(dirtyControls.size > 0 ? "Unsaved changes" : "Saved locally");
+      },
+      commit(control) {
+        dirtyControls.delete(control);
+      }
+    };
+    const holdDirtyDraft = () => {
+      if (dirtyControls.size === 0) return false;
+      setStatus("Save or revert your changes before leaving this section.");
+      [...dirtyControls][0]?.focus({ preventScroll: true });
+      return true;
     };
     let pendingActionFocus = null;
     let pendingActionLabel = null;
@@ -9543,10 +10154,10 @@ html.av-reduce-motion *::after {
       selectRow,
       readonlyRow,
       dataRow,
-      textInputRow,
-      secretInputRow,
-      integerInputRow,
-      textareaRow,
+      textInputRow: (label, description, value, onChange) => textInputRow(label, description, value, onChange, draftHooks),
+      secretInputRow: (label, description, value, onChange) => secretInputRow(label, description, value, onChange, draftHooks),
+      integerInputRow: (label, description, value, onChange, bounds) => integerInputRow(label, description, value, onChange, bounds, draftHooks),
+      textareaRow: (label, description, lines, onChange, actionLabel) => textareaRow(label, description, lines, onChange, actionLabel, draftHooks),
       surfaceRow,
       bookmarkField,
       splitBookmarkTags,
@@ -9705,6 +10316,7 @@ html.av-reduce-motion *::after {
         item.classList.toggle("is-active", selected);
         item.setAttribute("aria-current", selected ? "true" : "false");
         item.addEventListener("click", () => {
+          if (holdDirtyDraft()) return;
           activeSectionId = entry.id;
           searchQuery = "";
           search.value = "";
@@ -9750,8 +10362,12 @@ html.av-reduce-motion *::after {
       setStatus("Saving...");
       try {
         await options.onChange();
-        render();
-        setStatus(message);
+        if (dirtyControls.size === 0) {
+          render();
+          setStatus(message);
+        } else {
+          setStatus("Unsaved changes");
+        }
       } catch (error) {
         options.onError("Control Center could not save settings", error);
         setStatus("Could not save settings. Try again.");
@@ -9894,6 +10510,10 @@ html.av-reduce-motion *::after {
     launcher.addEventListener("click", () => setOpen(!open));
     close.addEventListener("click", () => setOpen(false));
     search.addEventListener("input", () => {
+      if (holdDirtyDraft()) {
+        search.value = searchQuery;
+        return;
+      }
       searchQuery = search.value;
       render();
     });
@@ -9996,9 +10616,33 @@ html.av-reduce-motion *::after {
     );
     heading.append(sectionIcon(entry.icon), headingCopy);
     const grid = el("div", "av-page-grid");
-    grid.append(...rows);
+    const breaks = new Map(
+      (SECTION_GROUP_BREAKS[entry.id] ?? []).map((group) => [group.before, group.title])
+    );
+    for (const row of rows) {
+      const groupTitle = row.dataset.avLabel ? breaks.get(row.dataset.avLabel) : void 0;
+      if (groupTitle) {
+        grid.append(el("h4", "av-group-title", t(groupTitle)));
+      }
+      grid.append(row);
+    }
     node.append(heading, grid);
     return node;
+  }
+  function searchIcon() {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.classList.add("av-search-icon");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", "11");
+    circle.setAttribute("cy", "11");
+    circle.setAttribute("r", "6");
+    const handle = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    handle.setAttribute("d", "m16 16 4 4");
+    svg.append(circle, handle);
+    return svg;
   }
   function sectionIcon(icon) {
     const paths = {
@@ -10051,6 +10695,7 @@ html.av-reduce-motion *::after {
   }
   function toggleRow(label, description, checked, onChange) {
     const row = el("label", "av-row");
+    row.dataset.avLabel = label;
     const copy = el("span", "av-row-copy");
     copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
     const input = document.createElement("input");
@@ -10068,6 +10713,7 @@ html.av-reduce-motion *::after {
   }
   function selectRow(label, value, options, onChange, description, translateOptions = true) {
     const row = el("label", "av-row");
+    row.dataset.avLabel = label;
     if (description) {
       const copy = el("span", "av-row-copy");
       copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
@@ -10092,11 +10738,13 @@ html.av-reduce-motion *::after {
   }
   function readonlyRow(label, value) {
     const row = el("div", "av-row av-row-readonly");
+    row.dataset.avLabel = label;
     row.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(value)));
     return row;
   }
   function dataRow(label, value) {
     const row = el("div", "av-row av-row-readonly");
+    row.dataset.avLabel = label;
     row.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", value));
     return row;
   }
@@ -10108,8 +10756,9 @@ html.av-reduce-motion *::after {
   function defaultAiEndpoint(provider) {
     return provider === "anthropic" ? "https://api.anthropic.com/v1/messages" : "https://api.openai.com/v1/chat/completions";
   }
-  function textInputRow(label, description, value, onChange) {
+  function textInputRow(label, description, value, onChange, drafts) {
     const row = el("div", "av-row av-row-stack");
+    row.dataset.avLabel = label;
     const copy = el("span", "av-row-copy");
     copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
     row.append(copy);
@@ -10119,16 +10768,19 @@ html.av-reduce-motion *::after {
     input.value = value;
     input.spellcheck = false;
     input.setAttribute("aria-label", t(label));
+    input.addEventListener("input", () => drafts?.update(input, input.value !== value));
     const apply = el("button", "av-button av-button-secondary", t("Save"));
     apply.type = "button";
     apply.addEventListener("click", () => {
+      drafts?.commit(input);
       void onChange(input.value.trim());
     });
     row.append(input, apply);
     return row;
   }
-  function secretInputRow(label, description, value, onChange) {
+  function secretInputRow(label, description, value, onChange, drafts) {
     const row = el("div", "av-row av-row-stack");
+    row.dataset.avLabel = label;
     const copy = el("span", "av-row-copy");
     copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
     row.append(copy);
@@ -10139,6 +10791,7 @@ html.av-reduce-motion *::after {
     input.spellcheck = false;
     input.autocomplete = "off";
     input.setAttribute("aria-label", t(label));
+    input.addEventListener("input", () => drafts?.update(input, input.value !== value));
     const controls = el("div", "av-inline-controls");
     const reveal2 = el("button", "av-button av-button-secondary", t("Show"));
     reveal2.type = "button";
@@ -10154,14 +10807,16 @@ html.av-reduce-motion *::after {
     const apply = el("button", "av-button av-button-secondary", t("Save"));
     apply.type = "button";
     apply.addEventListener("click", () => {
+      drafts?.commit(input);
       void onChange(input.value.trim());
     });
     controls.append(reveal2, apply);
     row.append(input, controls);
     return row;
   }
-  function integerInputRow(label, description, value, onChange, bounds = {}) {
+  function integerInputRow(label, description, value, onChange, bounds = {}, drafts) {
     const row = el("div", "av-row av-row-stack");
+    row.dataset.avLabel = label;
     const copy = el("span", "av-row-copy");
     copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
     row.append(copy);
@@ -10175,9 +10830,11 @@ html.av-reduce-motion *::after {
     input.className = "av-text-input";
     input.value = String(value);
     input.setAttribute("aria-label", t(label));
+    input.addEventListener("input", () => drafts?.update(input, input.value !== String(value)));
     const apply = el("button", "av-button av-button-secondary", t("Save"));
     apply.type = "button";
     apply.addEventListener("click", () => {
+      drafts?.commit(input);
       const parsed = Number.parseInt(input.value, 10);
       void onChange(Number.isFinite(parsed) ? parsed : 0);
     });
@@ -10186,6 +10843,7 @@ html.av-reduce-motion *::after {
   }
   function buildActionRow(label, description, onClick, onReject, onStart, onFinish) {
     const row = el("div", "av-row");
+    row.dataset.avLabel = label;
     const copy = el("span", "av-row-copy");
     copy.append(
       el("span", "av-row-label", t(label)),
@@ -10214,8 +10872,9 @@ html.av-reduce-motion *::after {
     row.append(button2);
     return row;
   }
-  function textareaRow(label, description, lines, onChange, actionLabel = "Save list") {
+  function textareaRow(label, description, lines, onChange, actionLabel = "Save list", drafts) {
     const row = el("div", "av-row av-row-stack");
+    row.dataset.avLabel = label;
     const copy = el("span", "av-row-copy");
     copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
     row.append(copy);
@@ -10225,9 +10884,12 @@ html.av-reduce-motion *::after {
     textarea.spellcheck = false;
     textarea.rows = 4;
     textarea.setAttribute("aria-label", t(label));
+    const initialValue = lines.join("\n");
+    textarea.addEventListener("input", () => drafts?.update(textarea, textarea.value !== initialValue));
     const apply = el("button", "av-button av-button-secondary", t(actionLabel));
     apply.type = "button";
     apply.addEventListener("click", () => {
+      drafts?.commit(textarea);
       const next = textarea.value.split(/\r?\n/).map((line) => line.trim()).filter((line, index, array) => line.length > 0 && array.indexOf(line) === index);
       void onChange(next);
     });
@@ -10263,6 +10925,7 @@ html.av-reduce-motion *::after {
   }
   function surfaceRow(label, description, selected, onChange) {
     const row = el("div", "av-row av-row-stack");
+    row.dataset.avLabel = label;
     const copy = el("span", "av-row-copy");
     copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
     row.append(copy);
@@ -10400,14 +11063,16 @@ input:focus-visible {
 }
 
 .av-panel {
-  width: min(1180px, calc(100vw - 48px));
-  height: min(820px, calc(100vh - 48px));
+  width: min(1200px, calc(100vw - 48px));
+  height: min(840px, calc(100vh - 48px));
   overflow: hidden;
   display: flex;
   flex-direction: column;
   border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 82%, var(--av-text, rgb(239, 243, 244)) 18%);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
+  background:
+    radial-gradient(circle at 82% 0%, color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 5%, transparent), transparent 36%),
+    color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
   box-shadow: 0 28px 88px rgba(0, 0, 0, 0.64);
   pointer-events: auto;
 }
@@ -10421,11 +11086,11 @@ input:focus-visible {
 
 .av-panel-header {
   display: grid;
-  grid-template-columns: minmax(180px, auto) minmax(260px, 460px) auto;
+  grid-template-columns: 220px minmax(320px, 520px) minmax(80px, 1fr);
   align-items: center;
   gap: 20px;
-  min-height: 70px;
-  padding: 13px 18px;
+  min-height: 76px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 90%, black);
 }
@@ -10502,13 +11167,29 @@ input:focus-visible {
 }
 
 .av-searchbar {
+  position: relative;
   min-width: 0;
+}
+
+.av-search-icon {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 13px;
+  width: 17px;
+  height: 17px;
+  transform: translateY(-50%);
+  fill: none;
+  stroke: var(--av-muted, rgb(113, 118, 123));
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  pointer-events: none;
 }
 
 .av-search-input {
   width: 100%;
   height: 38px;
-  padding: 0 14px;
+  padding-block: 0;
+  padding-inline: 40px 14px;
   border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 78%, var(--av-text, rgb(239, 243, 244)) 22%);
   border-radius: 8px;
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 82%, black);
@@ -10531,7 +11212,7 @@ input:focus-visible {
    moving through a long section never scrolls the section list out of reach. */
 .av-panel-body {
   display: grid;
-  grid-template-columns: 178px minmax(0, 1fr);
+  grid-template-columns: 220px minmax(0, 1fr);
   min-height: 0;
   flex: 1;
   overflow: hidden;
@@ -10541,7 +11222,7 @@ input:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  padding: 12px 8px;
+  padding: 16px 12px;
   overflow-y: auto;
   /* Reserved so the list does not reflow the moment it becomes scrollable. */
   scrollbar-gutter: stable;
@@ -10575,8 +11256,8 @@ input:focus-visible {
 .av-nav-group {
   /* The rail is sized so all twelve sections fit without scrolling at the default panel
      height; a sliced-in-half last item reads as a rendering bug rather than as "more below". */
-  margin: 8px 0 3px;
-  padding: 0 10px;
+  margin: 14px 0 5px;
+  padding: 0 12px;
   color: var(--av-muted, rgb(113, 118, 123));
   font-size: 10px;
   font-weight: 800;
@@ -10591,15 +11272,15 @@ input:focus-visible {
 
 .av-nav-item {
   position: relative;
-  min-height: 28px;
+  min-height: 32px;
   padding-block: 0;
-  padding-inline: 14px 10px;
+  padding-inline: 18px 12px;
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: color-mix(in srgb, var(--av-text, rgb(239, 243, 244)) 70%, var(--av-muted, rgb(113, 118, 123)));
   font-weight: 600;
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.2;
   font-family: inherit;
   text-align: start;
@@ -10635,8 +11316,8 @@ input:focus-visible {
 .av-content {
   display: grid;
   align-content: start;
-  gap: 20px;
-  padding: 24px 26px 28px;
+  gap: 18px;
+  padding: 22px 28px 30px;
   overflow-y: auto;
   min-height: 0;
   scrollbar-gutter: stable;
@@ -10664,7 +11345,7 @@ input:focus-visible {
 
 .av-section {
   display: grid;
-  gap: 20px;
+  gap: 14px;
   min-width: 0;
 }
 
@@ -10672,16 +11353,16 @@ input:focus-visible {
   display: flex;
   align-items: center;
   gap: 16px;
-  min-height: 62px;
-  padding-bottom: 18px;
+  min-height: 68px;
+  padding-bottom: 16px;
   border-bottom: 1px solid color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 24%, var(--av-border, rgb(47, 51, 54)));
 }
 
 .av-page-icon {
   flex: 0 0 auto;
-  width: 44px;
-  height: 44px;
-  padding: 5px;
+  width: 38px;
+  height: 38px;
+  padding: 4px;
   fill: none;
   stroke: var(--av-page-accent, rgb(77, 199, 255));
   stroke-width: 1.65;
@@ -10697,13 +11378,7 @@ input:focus-visible {
 }
 
 .av-page-kicker {
-  margin: 0;
-  color: var(--av-page-accent, rgb(77, 199, 255));
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1.2;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
+  display: none;
 }
 
 .av-section-title {
@@ -10720,28 +11395,49 @@ input:focus-visible {
   color: var(--av-muted, rgb(113, 118, 123));
   font-size: 12px;
   line-height: 1.35;
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
+  max-width: 760px;
+  overflow-wrap: anywhere;
 }
 
 .av-page-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   align-items: stretch;
-  gap: 10px;
+  gap: 0;
   min-width: 0;
 }
 
 .av-section[data-av-section="presets"] .av-page-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
 }
 
 .av-section[data-av-section="presets"] .av-page-grid > .av-row:not(.av-preset-card) {
   grid-column: 1 / -1;
   min-height: 52px;
   padding: 8px 12px;
+}
+
+.av-section[data-av-section="appearance"] .av-page-grid,
+.av-section[data-av-section="hidden"] .av-page-grid,
+.av-section[data-av-section="performance"] .av-page-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.av-group-title {
+  grid-column: 1 / -1;
+  margin: 18px 2px 7px;
+  color: var(--av-page-accent, rgb(77, 199, 255));
+  font-size: 10px;
+  font-weight: 820;
+  line-height: 1.2;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.av-group-title:first-child {
+  margin-top: 0;
 }
 
 .av-section[data-av-section="presets"] .av-page-grid > .av-row:not(.av-preset-card) .av-row-description {
@@ -10757,20 +11453,43 @@ input:focus-visible {
   justify-content: space-between;
   gap: 16px;
   min-width: 0;
-  min-height: 82px;
-  padding: 14px;
+  min-height: 62px;
+  padding: 11px 14px;
   box-sizing: border-box;
   /* The border token alone sits near 1.4:1 against the row fill, which reads as no border at
      all across ~100 rows. Lifted toward the text token so grouping is actually visible. */
   border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)), var(--av-text, rgb(239, 243, 244)) 18%);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 62%, transparent);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 48%, transparent);
   transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
 }
 
 .av-row:hover {
-  border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 34%, var(--av-border, rgb(47, 51, 54)));
-  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 78%, transparent);
+  border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 26%, var(--av-border, rgb(47, 51, 54)));
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 66%, transparent);
+}
+
+.av-page-grid > .av-row + .av-row {
+  margin-top: -1px;
+}
+
+.av-group-title + .av-row,
+.av-page-grid > .av-row:first-child {
+  border-start-start-radius: 9px;
+  border-start-end-radius: 9px;
+}
+
+.av-row:has(+ .av-group-title),
+.av-page-grid > .av-row:last-child {
+  border-end-start-radius: 9px;
+  border-end-end-radius: 9px;
+}
+
+.av-section[data-av-section="appearance"] .av-row,
+.av-section[data-av-section="hidden"] .av-row,
+.av-section[data-av-section="performance"] .av-row {
+  margin-top: 0;
+  border-radius: 9px;
 }
 
 .av-page-grid > .av-row-stack:not(.av-preset-card),
@@ -10787,12 +11506,33 @@ input:focus-visible {
   gap: 8px;
 }
 
+.av-row-stack:has(> .av-text-input),
+.av-row-stack:has(> .av-textarea),
+.av-row-stack:has(> .av-file-input) {
+  display: grid;
+  grid-template-columns: minmax(210px, 0.75fr) minmax(280px, 1.25fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.av-row-stack:has(> .av-textarea) {
+  align-items: start;
+}
+
+.av-row-stack:has(> .av-textarea) > .av-button {
+  margin-top: 2px;
+}
+
 .av-preset-card {
   position: relative;
-  min-height: 140px;
-  gap: 6px;
-  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: minmax(260px, 1.15fr) minmax(300px, 1fr) auto;
+  align-items: center;
+  min-height: 72px;
+  gap: 16px;
+  padding: 10px 12px 10px 18px;
   overflow: hidden;
+  border-radius: 9px;
 }
 
 .av-preset-card::before {
@@ -10837,34 +11577,32 @@ input:focus-visible {
 }
 
 .av-preset-card .av-row-description {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
+  display: block;
+  overflow: visible;
 }
 
 .av-preset-highlights {
-  display: grid;
-  gap: 2px;
-  padding-top: 5px;
-  border-top: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 82%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 10px;
+  padding: 0;
+  border: 0;
 }
 
 .av-preset-highlight {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: flex-start;
+  gap: 4px;
   min-width: 0;
   font-size: 10px;
   line-height: 1.2;
 }
 
 .av-preset-highlight-label {
-  overflow: hidden;
   color: var(--av-muted, rgb(113, 118, 123));
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .av-preset-highlight-value {
@@ -10874,10 +11612,10 @@ input:focus-visible {
 }
 
 .av-row-stack.av-preset-card > .av-button {
-  margin-top: auto;
-  width: 100%;
-  min-width: 0;
-  min-height: 28px;
+  margin-top: 0;
+  width: auto;
+  min-width: 84px;
+  min-height: 34px;
 }
 
 /* Text fields and textareas want the full row width; an action button does not. At the old
@@ -10900,12 +11638,12 @@ input:focus-visible {
 }
 
 .av-textarea {
-  min-height: 96px;
+  min-height: 76px;
   resize: vertical;
 }
 
 .av-text-input {
-  height: 34px;
+  height: 38px;
 }
 
 .av-file-input {
@@ -10998,14 +11736,14 @@ input:focus-visible {
 
 .av-row-label {
   color: var(--av-text, rgb(239, 243, 244));
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 720;
   line-height: 1.25;
 }
 
 .av-row-description {
   color: var(--av-muted, rgb(113, 118, 123));
-  font-size: 12px;
+  font-size: 11.75px;
   line-height: 1.35;
 }
 
@@ -11083,8 +11821,8 @@ input[type="checkbox"] {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 37px;
-  padding: 9px 18px;
+  min-height: 42px;
+  padding: 10px 20px;
   border-top: 1px solid var(--av-border, rgb(47, 51, 54));
   color: var(--av-muted, rgb(113, 118, 123));
   font-size: 12px;
@@ -11099,6 +11837,29 @@ input[type="checkbox"] {
   border-radius: 50%;
   background: rgb(72, 211, 147);
   box-shadow: 0 0 9px rgba(72, 211, 147, 0.45);
+}
+
+.av-status[data-state="dirty"] {
+  color: rgb(247, 183, 73);
+}
+
+.av-status[data-state="dirty"]::before {
+  background: rgb(247, 183, 73);
+  box-shadow: 0 0 9px rgba(247, 183, 73, 0.42);
+}
+
+.av-status[data-state="saving"]::before {
+  background: var(--av-page-accent, rgb(77, 199, 255));
+  box-shadow: 0 0 9px color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 55%, transparent);
+}
+
+.av-status[data-state="error"] {
+  color: rgb(255, 120, 128);
+}
+
+.av-status[data-state="error"]::before {
+  background: rgb(255, 95, 109);
+  box-shadow: 0 0 9px rgba(255, 95, 109, 0.42);
 }
 
 /* Touch and viewport rules must live in this stylesheet: a sheet in document.head cannot
@@ -11139,16 +11900,20 @@ input[type="checkbox"] {
   }
 
   .av-panel-body {
-    grid-template-columns: 166px minmax(0, 1fr);
+    grid-template-columns: 190px minmax(0, 1fr);
   }
 
   .av-content {
     padding-inline: 20px;
   }
 
-  .av-page-grid,
-  .av-section[data-av-section="presets"] .av-page-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .av-preset-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .av-preset-highlights {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
   }
 }
 
@@ -11239,6 +12004,23 @@ input[type="checkbox"] {
   .av-page-grid,
   .av-section[data-av-section="presets"] .av-page-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .av-section[data-av-section="appearance"] .av-page-grid,
+  .av-section[data-av-section="hidden"] .av-page-grid,
+  .av-section[data-av-section="performance"] .av-page-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .av-preset-card,
+  .av-row-stack:has(> .av-text-input),
+  .av-row-stack:has(> .av-textarea),
+  .av-row-stack:has(> .av-file-input) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .av-preset-highlights {
+    grid-column: auto;
   }
 
   .av-row,

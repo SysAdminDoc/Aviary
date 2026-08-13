@@ -1,6 +1,6 @@
 {
   "name": "aviary-x-enhancer",
-  "version": "1.17.0",
+  "version": "1.18.0",
   "private": true,
   "type": "module",
   "description": "Local-first X/Twitter enhancer delivered as a readable userscript and MV3 extension.",
@@ -10,6 +10,7 @@
   },
   "scripts": {
     "build": "node tools/build.mjs",
+    "capture:settings": "node tools/capture-settings.mjs",
     "lint": "eslint \"src/**/*.ts\" \"tests/**/*.mjs\" \"tools/**/*.mjs\" \"eslint.config.mjs\"",
     "preflight": "node tools/preflight.mjs",
     "test": "node --test tests/*.test.mjs",

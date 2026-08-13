@@ -1,23 +1,23 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.17.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.18.0-2f81f7)
 
-Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.17.0: a redesigned 13-page Control Center, foundation primitives, fixture-backed selector checks, theme + layout controls, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
+Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.18.0: default-on desktop ad protection, a redesigned 13-page Control Center and extension-permissions cockpit, fixture-backed selector checks, theme + layout controls, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
 
-## Vanilla by default
+## Ad-free, otherwise vanilla by default
 
-Installing Aviary changes nothing about X. Every setting that alters what X looks like or how it
-behaves — themes, hiding the sidebar or trends, the Hide and media buttons, filtering, pausing
-offscreen video, refusing analytics beacons — starts off. Only what you switch on applies. The
-one thing Aviary adds unasked is its own launcher button, because without it there is nothing to
-switch anything on with.
+Fresh installs remove advertising by default. Every elective setting that changes ordinary X
+content or styling — themes, sidebar/trend declutter, Hide and media buttons, filters, offscreen
+video pausing, and general analytics refusal — still starts off. Aviary otherwise adds only its
+launcher, because that is how the remaining features are enabled.
 
 `tests/vanilla-by-default.test.mjs` measures this rather than asserting it: with default settings
-it mounts the real theme code against the captured timeline and requires the computed styles to
-come back byte-identical.
+it mounts the real theme code against an organic captured timeline and requires non-ad computed
+styles to come back byte-identical. Ad-specific fixtures separately verify structural removal.
 
 Already configured it and want to start over? **Trust → Reset everything to plain X**. That resets
-preferences only; saved posts, notes, bookmarks and download history are kept.
+preferences to Aviary's minimal ad-free baseline; saved posts, notes, bookmarks and download
+history are kept.
 
 Aviary does not touch sensitive media. It has no setting for it, because it cannot tell sensitive
 posts from any other post — X's own filter is the only thing here that knows, and it is left to do
@@ -30,6 +30,8 @@ its job.
 - MV3 background entry: `src/entrypoints/extension-background.ts`
 - MV3 page-world entry: `src/entrypoints/extension-page.ts` (declared `"world": "MAIN"`; the userscript reaches the same place through `unsafeWindow`)
 - Page bridge and agent: `src/platform/page-bridge.ts`, `src/page/page-agent.ts`
+- Document-start ad protection: `src/features/privacy/ad-protection.ts` plus the page-agent's exact
+  promoted-content logger guard
 - Stable selector registry: `src/platform/selectors.ts`
 - Settings/storage foundations: `src/platform/settings.ts`, `src/platform/storage.ts`
 - Layout declutter and theme foundations: `src/features/layout/declutter.ts`, `src/features/appearance/theme.ts`
@@ -43,9 +45,17 @@ its job.
 - Composer: `src/features/composer/composer-snippets.ts`
 - i18n: `src/platform/i18n.ts` + `src/features/core/i18n-feature.ts`
 - Presets: `src/features/core/presets.ts`
-- Mobile/touch: `src/features/core/mobile-touch.ts`
 - Core utilities: `src/features/core/` (`control-center.ts`, `selector-health.ts`, `audit-log.ts`, `settings-migration.ts`, `library-backup.ts`)
 - Fixture tests: `tests/*.test.mjs`
+
+## Desktop settings
+
+All 13 Control Center destinations and the extension permissions page share one desktop cockpit
+system with a fixed rail, grouped navigation, flat control rows, explicit dependencies, visible
+draft state, keyboard focus treatment, and reduced-motion support. The primary verification
+viewport is 1440×900, with a 1920×1080 wide check.
+
+![Aviary Control Center presets page](docs/mockups/control-center-presets-implemented.png)
 
 ## Development
 
@@ -73,7 +83,23 @@ notice, network status, and budget before provider work begins. Per-request and 
 limits are configurable in Integrations; profile-scoped usage history stores counters only, never
 API keys or raw prompts. Local-only mode and disabled integrations make zero provider requests.
 
-Aviary can also refuse X's own analytics beacons — the tracking pings sent as you scroll, click and pause. It is off by default, because refusing them changes how the site behaves and that is your call rather than a default. Only the analytics endpoints are matched; timeline, media and login traffic is untouched, and the panel reports how many have actually been refused so an idle hook is visibly different from a broken one.
+Aviary can also refuse X's general analytics beacons — the tracking pings sent as you scroll,
+click and pause. That broader privacy control is off by default. Ad protection is separate: it
+answers only X's exact promoted-content logger locally at document start, while timeline, media,
+login, and unrelated analytics traffic stay untouched.
+
+## Desktop ad protection
+
+- Starts at document start in both the userscript and MV3 builds and is enabled by default.
+- Prevents the separable `/i/api/1.1/promoted_content/log.json` event from reaching the network
+  through page `fetch`, XHR, or `sendBeacon`.
+- Removes native `Ad` units, paid partnerships, promoted trends, Grok/Premium house promos, and
+  visible video-ad containers, then collapses the owning timeline cell so no reserved gap remains.
+- Re-runs after client-side navigation and delayed timeline insertion, and reverses cleanly when
+  disabled.
+- Does not block HomeTimeline. X delivers native sponsored records in the same essential
+  first-party response as ordinary posts, so those bytes are inseparable and only their rendering
+  can be suppressed safely.
 
 Aviary does not encrypt its local data, and deliberately offers no setting that claims to. Its vault sits in the same browser profile as X's own session cookie, auth token and cached media — none of which Aviary can encrypt, all of which are more sensitive than its copy. Use full-disk encryption, which covers all of it.
 
@@ -199,11 +225,12 @@ Setup paths (userscript, Chromium dev-load, Firefox temporary-load) and uninstal
 
 The build also produces `dist/extension-chrome-v<version>.zip` and `dist/extension-firefox-v<version>.zip` as store-ready archives.
 
-## Presets, i18n, mobile, cleanup, bookmarks, snippets, capture
+## Presets, i18n, desktop interaction, cleanup, bookmarks, snippets, capture
 
 - **Presets** — Quiet Reader, Media Archivist, Creator, Researcher, Classic, Minimal. The Control Center "Presets" section applies any preset in one click and reports the exact deltas in the status line.
 - **i18n + RTL** — 9-locale translation table with English fallback, `av-rtl`/`av-ltr` HTML classes, and Arabic/Hebrew bidi-safe tweet text.
-- **Mobile/touch** — `(pointer: coarse)` and `(max-width: 760px)` media queries expand action targets to 44 px and widen the Control Center panel.
+- **Desktop interaction** — visible focus states, modal focus containment, reduced-motion support,
+  and mouse/keyboard-friendly controls are verified at the supported desktop widths.
 - **Hide row borders** — drops the 1px divider under each timeline post and the primary column's side rules. The rule anchors on `[data-testid="cellInnerDiv"] > div`, not on X's generated `r-*` class names, so a rename does not silently disable it.
 - **Writer mode** — while focus is inside the composer, the sidebar and the timeline behind it fade back; everything returns the moment focus leaves, and hovering a faded row restores it. Driven by `focusin`/`focusout` only — Aviary registers no key handlers.
 - **Snapshots & Archive** — capture follower / following lists from the active page; import official X archive ZIPs into the CheckpointStore; search captured records; download a Markdown report.
@@ -233,10 +260,10 @@ The Integrations panel also surfaces a "Recent integration errors" readout that 
 
 ## Roadmap
 
-The working plan is in [ROADMAP.md](ROADMAP.md). v1.17.0 is the current release; the latest batch
-adds deterministic release-matrix coverage, route-aware selector health, live-toggle reconciliation,
-local bookmarks, and scoped original-quality image rewriting. F032/F033 remain blocked until
-authenticated `_decoded/` captures are available.
+The working plan is in [ROADMAP.md](ROADMAP.md). v1.18.0 is the current release; the latest batch
+adds document-start ad protection, current-X route repairs, a complete desktop settings redesign,
+explicit settings draft state, and a 14-surface capture gate. F032/F033 remain blocked until
+privacy-safe authenticated fixtures containing those exact states are available.
 
 `npm run smoke` runs both Playwright lanes: current-X compatibility coverage and a side-effect-free
 externally gated-action flow. Chromium's new headless mode keeps the MV3 service worker and real

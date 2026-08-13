@@ -140,7 +140,7 @@ export interface ControlCenterOptions {
     payload: string,
     options: { dryRun: boolean; signal: AbortSignal }
   ) => Promise<LibraryBackupRestoreResult>;
-  /** Puts every setting back to "Aviary changes nothing about X". */
+  /** Restores Aviary's defaults without touching saved local collections. */
   resetSettings?: () => Promise<void>;
   importSettings?: (payload: string) => Promise<{ applied: boolean; warnings: string[]; errors: string[] }>;
   getAuditSize?: () => number;
@@ -322,6 +322,81 @@ type SectionIcon =
   | "backup"
   | "trust";
 
+interface DraftHooks {
+  update(control: HTMLInputElement | HTMLTextAreaElement, dirty: boolean): void;
+  commit(control: HTMLInputElement | HTMLTextAreaElement): void;
+}
+
+/** English row labels are stable identifiers; visible group titles still pass through t(). */
+const SECTION_GROUP_BREAKS: Record<string, Array<{ before: string; title: string }>> = {
+  presets: [
+    { before: "Quiet Reader", title: "Preset packs" },
+    { before: "Locale", title: "Language" }
+  ],
+  appearance: [
+    { before: "Theme", title: "Display" },
+    { before: "High contrast", title: "Accessibility" }
+  ],
+  layout: [
+    { before: "Ad-free mode", title: "Ad protection" },
+    { before: "Hide right sidebar", title: "Page chrome" },
+    { before: "Open Following instead of For you", title: "Reading flow" },
+    { before: "Hide navigation items", title: "Navigation" }
+  ],
+  filtering: [
+    { before: "Enable filters", title: "Filter status" },
+    { before: "Keyword rules", title: "Rules" },
+    { before: "Premium / verified posts", title: "Content types" },
+    { before: "Active on", title: "Routes" }
+  ],
+  hidden: [
+    { before: "Hide dismissed posts", title: "Status" },
+    { before: "Active on", title: "Coverage" },
+    { before: "Maximum remembered posts", title: "Retention" },
+    { before: "Hidden posts stored", title: "Recovery" }
+  ],
+  performance: [{ before: "Pause video that scrolls out of view", title: "Playback" }],
+  media: [
+    { before: "Show download buttons", title: "On-post controls" },
+    { before: "Filename template", title: "File naming" },
+    { before: "Duplicate history", title: "Batch behavior" },
+    { before: "Download status", title: "Queue status" }
+  ],
+  export: [
+    { before: "Capture visible tweets", title: "Capture" },
+    { before: "Export formats", title: "Package" },
+    { before: "Save folder hint", title: "Destination" },
+    { before: "Export visible tweets", title: "Jobs" }
+  ],
+  library: [
+    { before: "Search all local collections", title: "Universal search" },
+    { before: "Local bookmarks", title: "Bookmarks" },
+    { before: "Show the AI button on posts", title: "Post tools" },
+    { before: "Account notes", title: "Writing tools" }
+  ],
+  snapshots: [
+    { before: "Snapshots stored", title: "Live snapshots" },
+    { before: "Imported collections", title: "Official archive" },
+    { before: "Search captured records", title: "Search & reports" }
+  ],
+  integrations: [
+    { before: "Aria2 handoff", title: "Connections" },
+    { before: "AI provider", title: "Intelligence" },
+    { before: "Recent integration errors", title: "Health" }
+  ],
+  backup: [
+    { before: "Reset all preferences", title: "Preferences" },
+    { before: "Export full library backup", title: "Library backup" },
+    { before: "Keep a local action log", title: "Audit history" }
+  ],
+  trust: [
+    { before: "Storage", title: "Privacy boundary" },
+    { before: "Page access", title: "Page hooks" },
+    { before: "Telemetry", title: "Local data" },
+    { before: "Panel language", title: "Compatibility" }
+  ]
+};
+
 export interface ControlCenterHandle {
   destroy(): void;
   refresh(): void;
@@ -382,6 +457,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   const status = el("div", "av-status", t("Saved locally"));
   status.setAttribute("role", "status");
   status.setAttribute("aria-live", "polite");
+  status.dataset.state = "saved";
+  host.dataset.avSaveState = "saved";
 
   /**
    * The search field lives in the chrome rather than the body. `render()` replaces the body
@@ -395,7 +472,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   search.placeholder = t("Search settings");
   search.setAttribute("aria-label", t("Search settings"));
   search.spellcheck = false;
-  searchBar.append(search);
+  searchBar.append(searchIcon(), search);
   header.append(titleWrap, searchBar, close);
 
   const body = el("div", "av-panel-body");
@@ -419,6 +496,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     libraryRestoreRunning: false,
     libraryRestoreAbort: null
   };
+  const dirtyControls = new Set<HTMLInputElement | HTMLTextAreaElement>();
   /** English source of whatever the status line shows, so a locale change can re-translate it. */
   let lastStatusEnglish = "Saved locally";
   let lastStatusValues: Record<string, string | number> = {};
@@ -519,6 +597,9 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
    * panel is closed or focused is deferred until it is safe.
    */
   const isBusy = (): boolean => {
+    if (dirtyControls.size > 0) {
+      return true;
+    }
     const active = shadow.activeElement;
     if (!active) {
       return false;
@@ -530,12 +611,41 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     lastStatusEnglish = message;
     lastStatusValues = {};
     status.textContent = t(message);
+    status.dataset.state = statusState(message);
+    host.dataset.avSaveState = status.dataset.state;
   };
 
   const setStatusCopy = (source: string, values: Record<string, string | number>): void => {
     lastStatusEnglish = source;
     lastStatusValues = { ...values };
     status.textContent = formatCopy(t(source), lastStatusValues);
+    status.dataset.state = statusState(source);
+    host.dataset.avSaveState = status.dataset.state;
+  };
+
+  const statusState = (source: string): "saved" | "dirty" | "saving" | "error" => {
+    if (source === "Saving...") return "saving";
+    if (source === "Unsaved changes" || source.startsWith("Save or revert")) return "dirty";
+    if (/could not|failed|error/i.test(source)) return "error";
+    return "saved";
+  };
+
+  const draftHooks: DraftHooks = {
+    update(control, dirty) {
+      if (dirty) dirtyControls.add(control);
+      else dirtyControls.delete(control);
+      setStatus(dirtyControls.size > 0 ? "Unsaved changes" : "Saved locally");
+    },
+    commit(control) {
+      dirtyControls.delete(control);
+    }
+  };
+
+  const holdDirtyDraft = (): boolean => {
+    if (dirtyControls.size === 0) return false;
+    setStatus("Save or revert your changes before leaving this section.");
+    [...dirtyControls][0]?.focus({ preventScroll: true });
+    return true;
   };
 
   /** Disabled buttons lose focus in Chromium, so remember the action row across a refresh. */
@@ -696,10 +806,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     selectRow,
     readonlyRow,
     dataRow,
-    textInputRow,
-    secretInputRow,
-    integerInputRow,
-    textareaRow,
+    textInputRow: (label, description, value, onChange) =>
+      textInputRow(label, description, value, onChange, draftHooks),
+    secretInputRow: (label, description, value, onChange) =>
+      secretInputRow(label, description, value, onChange, draftHooks),
+    integerInputRow: (label, description, value, onChange, bounds) =>
+      integerInputRow(label, description, value, onChange, bounds, draftHooks),
+    textareaRow: (label, description, lines, onChange, actionLabel) =>
+      textareaRow(label, description, lines, onChange, actionLabel, draftHooks),
     surfaceRow,
     bookmarkField,
     splitBookmarkTags,
@@ -871,6 +985,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       // A rail of buttons is a tablist in behaviour; say so rather than leaving it to guesswork.
       item.setAttribute("aria-current", selected ? "true" : "false");
       item.addEventListener("click", () => {
+        if (holdDirtyDraft()) return;
         activeSectionId = entry.id;
         // Choosing a section is an explicit "show me this", so drop any active filter.
         searchQuery = "";
@@ -938,8 +1053,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     setStatus("Saving...");
     try {
       await options.onChange();
-      render();
-      setStatus(message);
+      if (dirtyControls.size === 0) {
+        render();
+        setStatus(message);
+      } else {
+        // Another field still contains a draft. Do not rebuild the section and destroy it just
+        // because this row was saved first.
+        setStatus("Unsaved changes");
+      }
     } catch (error) {
       options.onError("Control Center could not save settings", error);
       setStatus("Could not save settings. Try again.");
@@ -1127,6 +1248,10 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   // `input` covers typing and the native clear affordance alike. The field is outside `body`,
   // so the re-render below cannot steal the caret back.
   search.addEventListener("input", () => {
+    if (holdDirtyDraft()) {
+      search.value = searchQuery;
+      return;
+    }
     searchQuery = search.value;
     render();
   });
@@ -1272,9 +1397,34 @@ function section(entry: PanelSection, rows: HTMLElement[]): HTMLElement {
   heading.append(sectionIcon(entry.icon), headingCopy);
 
   const grid = el("div", "av-page-grid");
-  grid.append(...rows);
+  const breaks = new Map(
+    (SECTION_GROUP_BREAKS[entry.id] ?? []).map((group) => [group.before, group.title])
+  );
+  for (const row of rows) {
+    const groupTitle = row.dataset.avLabel ? breaks.get(row.dataset.avLabel) : undefined;
+    if (groupTitle) {
+      grid.append(el("h4", "av-group-title", t(groupTitle)));
+    }
+    grid.append(row);
+  }
   node.append(heading, grid);
   return node;
+}
+
+function searchIcon(): SVGSVGElement {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.classList.add("av-search-icon");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  circle.setAttribute("cx", "11");
+  circle.setAttribute("cy", "11");
+  circle.setAttribute("r", "6");
+  const handle = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  handle.setAttribute("d", "m16 16 4 4");
+  svg.append(circle, handle);
+  return svg;
 }
 
 function sectionIcon(icon: SectionIcon): SVGSVGElement {
@@ -1335,6 +1485,7 @@ function toggleRow(
   onChange: (checked: boolean) => Promise<void>
 ): HTMLElement {
   const row = el("label", "av-row");
+  row.dataset.avLabel = label;
   const copy = el("span", "av-row-copy");
   copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
 
@@ -1367,6 +1518,7 @@ function selectRow(
   translateOptions = true
 ): HTMLElement {
   const row = el("label", "av-row");
+  row.dataset.avLabel = label;
   if (description) {
     const copy = el("span", "av-row-copy");
     copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
@@ -1394,6 +1546,7 @@ function selectRow(
 
 function readonlyRow(label: string, value: string): HTMLElement {
   const row = el("div", "av-row av-row-readonly");
+  row.dataset.avLabel = label;
   row.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(value)));
   return row;
 }
@@ -1406,6 +1559,7 @@ function readonlyRow(label: string, value: string): HTMLElement {
  */
 function dataRow(label: string, value: string): HTMLElement {
   const row = el("div", "av-row av-row-readonly");
+  row.dataset.avLabel = label;
   row.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", value));
   return row;
 }
@@ -1426,9 +1580,11 @@ function textInputRow(
   label: string,
   description: string,
   value: string,
-  onChange: (value: string) => Promise<void>
+  onChange: (value: string) => Promise<void>,
+  drafts?: DraftHooks
 ): HTMLElement {
   const row = el("div", "av-row av-row-stack");
+  row.dataset.avLabel = label;
   const copy = el("span", "av-row-copy");
   copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
   row.append(copy);
@@ -1439,10 +1595,12 @@ function textInputRow(
   input.value = value;
   input.spellcheck = false;
   input.setAttribute("aria-label", t(label));
+  input.addEventListener("input", () => drafts?.update(input, input.value !== value));
 
   const apply = el("button", "av-button av-button-secondary", t("Save")) as HTMLButtonElement;
   apply.type = "button";
   apply.addEventListener("click", () => {
+    drafts?.commit(input);
     void onChange(input.value.trim());
   });
 
@@ -1458,9 +1616,11 @@ function secretInputRow(
   label: string,
   description: string,
   value: string,
-  onChange: (value: string) => Promise<void>
+  onChange: (value: string) => Promise<void>,
+  drafts?: DraftHooks
 ): HTMLElement {
   const row = el("div", "av-row av-row-stack");
+  row.dataset.avLabel = label;
   const copy = el("span", "av-row-copy");
   copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
   row.append(copy);
@@ -1472,6 +1632,7 @@ function secretInputRow(
   input.spellcheck = false;
   input.autocomplete = "off";
   input.setAttribute("aria-label", t(label));
+  input.addEventListener("input", () => drafts?.update(input, input.value !== value));
 
   const controls = el("div", "av-inline-controls");
 
@@ -1490,6 +1651,7 @@ function secretInputRow(
   const apply = el("button", "av-button av-button-secondary", t("Save")) as HTMLButtonElement;
   apply.type = "button";
   apply.addEventListener("click", () => {
+    drafts?.commit(input);
     void onChange(input.value.trim());
   });
 
@@ -1503,9 +1665,11 @@ function integerInputRow(
   description: string,
   value: number,
   onChange: (value: number) => Promise<void>,
-  bounds: { min?: number; max?: number } = {}
+  bounds: { min?: number; max?: number } = {},
+  drafts?: DraftHooks
 ): HTMLElement {
   const row = el("div", "av-row av-row-stack");
+  row.dataset.avLabel = label;
   const copy = el("span", "av-row-copy");
   copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
   row.append(copy);
@@ -1520,10 +1684,12 @@ function integerInputRow(
   input.className = "av-text-input";
   input.value = String(value);
   input.setAttribute("aria-label", t(label));
+  input.addEventListener("input", () => drafts?.update(input, input.value !== String(value)));
 
   const apply = el("button", "av-button av-button-secondary", t("Save")) as HTMLButtonElement;
   apply.type = "button";
   apply.addEventListener("click", () => {
+    drafts?.commit(input);
     const parsed = Number.parseInt(input.value, 10);
     void onChange(Number.isFinite(parsed) ? parsed : 0);
   });
@@ -1541,6 +1707,7 @@ function buildActionRow(
   onFinish?: (button: HTMLButtonElement) => void
 ): HTMLElement {
   const row = el("div", "av-row");
+  row.dataset.avLabel = label;
   const copy = el("span", "av-row-copy");
   copy.append(
     el("span", "av-row-label", t(label)),
@@ -1580,9 +1747,11 @@ function textareaRow(
   description: string,
   lines: string[],
   onChange: (lines: string[]) => Promise<void>,
-  actionLabel = "Save list"
+  actionLabel = "Save list",
+  drafts?: DraftHooks
 ): HTMLElement {
   const row = el("div", "av-row av-row-stack");
+  row.dataset.avLabel = label;
   const copy = el("span", "av-row-copy");
   copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
   row.append(copy);
@@ -1593,10 +1762,13 @@ function textareaRow(
   textarea.spellcheck = false;
   textarea.rows = 4;
   textarea.setAttribute("aria-label", t(label));
+  const initialValue = lines.join("\n");
+  textarea.addEventListener("input", () => drafts?.update(textarea, textarea.value !== initialValue));
 
   const apply = el("button", "av-button av-button-secondary", t(actionLabel)) as HTMLButtonElement;
   apply.type = "button";
   apply.addEventListener("click", () => {
+    drafts?.commit(textarea);
     const next = textarea.value
       .split(/\r?\n/)
       .map((line) => line.trim())
@@ -1649,6 +1821,7 @@ function surfaceRow(
   onChange: (next: FilterSurface[]) => Promise<void>
 ): HTMLElement {
   const row = el("div", "av-row av-row-stack");
+  row.dataset.avLabel = label;
   const copy = el("span", "av-row-copy");
   copy.append(el("span", "av-row-label", t(label)), el("span", "av-row-description", t(description)));
   row.append(copy);
@@ -1800,14 +1973,16 @@ input:focus-visible {
 }
 
 .av-panel {
-  width: min(1180px, calc(100vw - 48px));
-  height: min(820px, calc(100vh - 48px));
+  width: min(1200px, calc(100vw - 48px));
+  height: min(840px, calc(100vh - 48px));
   overflow: hidden;
   display: flex;
   flex-direction: column;
   border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 82%, var(--av-text, rgb(239, 243, 244)) 18%);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
+  background:
+    radial-gradient(circle at 82% 0%, color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 5%, transparent), transparent 36%),
+    color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
   box-shadow: 0 28px 88px rgba(0, 0, 0, 0.64);
   pointer-events: auto;
 }
@@ -1821,11 +1996,11 @@ input:focus-visible {
 
 .av-panel-header {
   display: grid;
-  grid-template-columns: minmax(180px, auto) minmax(260px, 460px) auto;
+  grid-template-columns: 220px minmax(320px, 520px) minmax(80px, 1fr);
   align-items: center;
   gap: 20px;
-  min-height: 70px;
-  padding: 13px 18px;
+  min-height: 76px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 90%, black);
 }
@@ -1902,13 +2077,29 @@ input:focus-visible {
 }
 
 .av-searchbar {
+  position: relative;
   min-width: 0;
+}
+
+.av-search-icon {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 13px;
+  width: 17px;
+  height: 17px;
+  transform: translateY(-50%);
+  fill: none;
+  stroke: var(--av-muted, rgb(113, 118, 123));
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  pointer-events: none;
 }
 
 .av-search-input {
   width: 100%;
   height: 38px;
-  padding: 0 14px;
+  padding-block: 0;
+  padding-inline: 40px 14px;
   border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 78%, var(--av-text, rgb(239, 243, 244)) 22%);
   border-radius: 8px;
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 82%, black);
@@ -1931,7 +2122,7 @@ input:focus-visible {
    moving through a long section never scrolls the section list out of reach. */
 .av-panel-body {
   display: grid;
-  grid-template-columns: 178px minmax(0, 1fr);
+  grid-template-columns: 220px minmax(0, 1fr);
   min-height: 0;
   flex: 1;
   overflow: hidden;
@@ -1941,7 +2132,7 @@ input:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  padding: 12px 8px;
+  padding: 16px 12px;
   overflow-y: auto;
   /* Reserved so the list does not reflow the moment it becomes scrollable. */
   scrollbar-gutter: stable;
@@ -1975,8 +2166,8 @@ input:focus-visible {
 .av-nav-group {
   /* The rail is sized so all twelve sections fit without scrolling at the default panel
      height; a sliced-in-half last item reads as a rendering bug rather than as "more below". */
-  margin: 8px 0 3px;
-  padding: 0 10px;
+  margin: 14px 0 5px;
+  padding: 0 12px;
   color: var(--av-muted, rgb(113, 118, 123));
   font-size: 10px;
   font-weight: 800;
@@ -1991,15 +2182,15 @@ input:focus-visible {
 
 .av-nav-item {
   position: relative;
-  min-height: 28px;
+  min-height: 32px;
   padding-block: 0;
-  padding-inline: 14px 10px;
+  padding-inline: 18px 12px;
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: color-mix(in srgb, var(--av-text, rgb(239, 243, 244)) 70%, var(--av-muted, rgb(113, 118, 123)));
   font-weight: 600;
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.2;
   font-family: inherit;
   text-align: start;
@@ -2035,8 +2226,8 @@ input:focus-visible {
 .av-content {
   display: grid;
   align-content: start;
-  gap: 20px;
-  padding: 24px 26px 28px;
+  gap: 18px;
+  padding: 22px 28px 30px;
   overflow-y: auto;
   min-height: 0;
   scrollbar-gutter: stable;
@@ -2064,7 +2255,7 @@ input:focus-visible {
 
 .av-section {
   display: grid;
-  gap: 20px;
+  gap: 14px;
   min-width: 0;
 }
 
@@ -2072,16 +2263,16 @@ input:focus-visible {
   display: flex;
   align-items: center;
   gap: 16px;
-  min-height: 62px;
-  padding-bottom: 18px;
+  min-height: 68px;
+  padding-bottom: 16px;
   border-bottom: 1px solid color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 24%, var(--av-border, rgb(47, 51, 54)));
 }
 
 .av-page-icon {
   flex: 0 0 auto;
-  width: 44px;
-  height: 44px;
-  padding: 5px;
+  width: 38px;
+  height: 38px;
+  padding: 4px;
   fill: none;
   stroke: var(--av-page-accent, rgb(77, 199, 255));
   stroke-width: 1.65;
@@ -2097,13 +2288,7 @@ input:focus-visible {
 }
 
 .av-page-kicker {
-  margin: 0;
-  color: var(--av-page-accent, rgb(77, 199, 255));
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1.2;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
+  display: none;
 }
 
 .av-section-title {
@@ -2120,28 +2305,49 @@ input:focus-visible {
   color: var(--av-muted, rgb(113, 118, 123));
   font-size: 12px;
   line-height: 1.35;
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
+  max-width: 760px;
+  overflow-wrap: anywhere;
 }
 
 .av-page-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   align-items: stretch;
-  gap: 10px;
+  gap: 0;
   min-width: 0;
 }
 
 .av-section[data-av-section="presets"] .av-page-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
 }
 
 .av-section[data-av-section="presets"] .av-page-grid > .av-row:not(.av-preset-card) {
   grid-column: 1 / -1;
   min-height: 52px;
   padding: 8px 12px;
+}
+
+.av-section[data-av-section="appearance"] .av-page-grid,
+.av-section[data-av-section="hidden"] .av-page-grid,
+.av-section[data-av-section="performance"] .av-page-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.av-group-title {
+  grid-column: 1 / -1;
+  margin: 18px 2px 7px;
+  color: var(--av-page-accent, rgb(77, 199, 255));
+  font-size: 10px;
+  font-weight: 820;
+  line-height: 1.2;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.av-group-title:first-child {
+  margin-top: 0;
 }
 
 .av-section[data-av-section="presets"] .av-page-grid > .av-row:not(.av-preset-card) .av-row-description {
@@ -2157,20 +2363,43 @@ input:focus-visible {
   justify-content: space-between;
   gap: 16px;
   min-width: 0;
-  min-height: 82px;
-  padding: 14px;
+  min-height: 62px;
+  padding: 11px 14px;
   box-sizing: border-box;
   /* The border token alone sits near 1.4:1 against the row fill, which reads as no border at
      all across ~100 rows. Lifted toward the text token so grouping is actually visible. */
   border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)), var(--av-text, rgb(239, 243, 244)) 18%);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 62%, transparent);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 48%, transparent);
   transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
 }
 
 .av-row:hover {
-  border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 34%, var(--av-border, rgb(47, 51, 54)));
-  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 78%, transparent);
+  border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 26%, var(--av-border, rgb(47, 51, 54)));
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 66%, transparent);
+}
+
+.av-page-grid > .av-row + .av-row {
+  margin-top: -1px;
+}
+
+.av-group-title + .av-row,
+.av-page-grid > .av-row:first-child {
+  border-start-start-radius: 9px;
+  border-start-end-radius: 9px;
+}
+
+.av-row:has(+ .av-group-title),
+.av-page-grid > .av-row:last-child {
+  border-end-start-radius: 9px;
+  border-end-end-radius: 9px;
+}
+
+.av-section[data-av-section="appearance"] .av-row,
+.av-section[data-av-section="hidden"] .av-row,
+.av-section[data-av-section="performance"] .av-row {
+  margin-top: 0;
+  border-radius: 9px;
 }
 
 .av-page-grid > .av-row-stack:not(.av-preset-card),
@@ -2187,12 +2416,33 @@ input:focus-visible {
   gap: 8px;
 }
 
+.av-row-stack:has(> .av-text-input),
+.av-row-stack:has(> .av-textarea),
+.av-row-stack:has(> .av-file-input) {
+  display: grid;
+  grid-template-columns: minmax(210px, 0.75fr) minmax(280px, 1.25fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.av-row-stack:has(> .av-textarea) {
+  align-items: start;
+}
+
+.av-row-stack:has(> .av-textarea) > .av-button {
+  margin-top: 2px;
+}
+
 .av-preset-card {
   position: relative;
-  min-height: 140px;
-  gap: 6px;
-  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: minmax(260px, 1.15fr) minmax(300px, 1fr) auto;
+  align-items: center;
+  min-height: 72px;
+  gap: 16px;
+  padding: 10px 12px 10px 18px;
   overflow: hidden;
+  border-radius: 9px;
 }
 
 .av-preset-card::before {
@@ -2237,34 +2487,32 @@ input:focus-visible {
 }
 
 .av-preset-card .av-row-description {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
+  display: block;
+  overflow: visible;
 }
 
 .av-preset-highlights {
-  display: grid;
-  gap: 2px;
-  padding-top: 5px;
-  border-top: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 82%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 10px;
+  padding: 0;
+  border: 0;
 }
 
 .av-preset-highlight {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: flex-start;
+  gap: 4px;
   min-width: 0;
   font-size: 10px;
   line-height: 1.2;
 }
 
 .av-preset-highlight-label {
-  overflow: hidden;
   color: var(--av-muted, rgb(113, 118, 123));
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .av-preset-highlight-value {
@@ -2274,10 +2522,10 @@ input:focus-visible {
 }
 
 .av-row-stack.av-preset-card > .av-button {
-  margin-top: auto;
-  width: 100%;
-  min-width: 0;
-  min-height: 28px;
+  margin-top: 0;
+  width: auto;
+  min-width: 84px;
+  min-height: 34px;
 }
 
 /* Text fields and textareas want the full row width; an action button does not. At the old
@@ -2300,12 +2548,12 @@ input:focus-visible {
 }
 
 .av-textarea {
-  min-height: 96px;
+  min-height: 76px;
   resize: vertical;
 }
 
 .av-text-input {
-  height: 34px;
+  height: 38px;
 }
 
 .av-file-input {
@@ -2398,14 +2646,14 @@ input:focus-visible {
 
 .av-row-label {
   color: var(--av-text, rgb(239, 243, 244));
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 720;
   line-height: 1.25;
 }
 
 .av-row-description {
   color: var(--av-muted, rgb(113, 118, 123));
-  font-size: 12px;
+  font-size: 11.75px;
   line-height: 1.35;
 }
 
@@ -2483,8 +2731,8 @@ input[type="checkbox"] {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 37px;
-  padding: 9px 18px;
+  min-height: 42px;
+  padding: 10px 20px;
   border-top: 1px solid var(--av-border, rgb(47, 51, 54));
   color: var(--av-muted, rgb(113, 118, 123));
   font-size: 12px;
@@ -2499,6 +2747,29 @@ input[type="checkbox"] {
   border-radius: 50%;
   background: rgb(72, 211, 147);
   box-shadow: 0 0 9px rgba(72, 211, 147, 0.45);
+}
+
+.av-status[data-state="dirty"] {
+  color: rgb(247, 183, 73);
+}
+
+.av-status[data-state="dirty"]::before {
+  background: rgb(247, 183, 73);
+  box-shadow: 0 0 9px rgba(247, 183, 73, 0.42);
+}
+
+.av-status[data-state="saving"]::before {
+  background: var(--av-page-accent, rgb(77, 199, 255));
+  box-shadow: 0 0 9px color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 55%, transparent);
+}
+
+.av-status[data-state="error"] {
+  color: rgb(255, 120, 128);
+}
+
+.av-status[data-state="error"]::before {
+  background: rgb(255, 95, 109);
+  box-shadow: 0 0 9px rgba(255, 95, 109, 0.42);
 }
 
 /* Touch and viewport rules must live in this stylesheet: a sheet in document.head cannot
@@ -2539,16 +2810,20 @@ input[type="checkbox"] {
   }
 
   .av-panel-body {
-    grid-template-columns: 166px minmax(0, 1fr);
+    grid-template-columns: 190px minmax(0, 1fr);
   }
 
   .av-content {
     padding-inline: 20px;
   }
 
-  .av-page-grid,
-  .av-section[data-av-section="presets"] .av-page-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .av-preset-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .av-preset-highlights {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
   }
 }
 
@@ -2639,6 +2914,23 @@ input[type="checkbox"] {
   .av-page-grid,
   .av-section[data-av-section="presets"] .av-page-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .av-section[data-av-section="appearance"] .av-page-grid,
+  .av-section[data-av-section="hidden"] .av-page-grid,
+  .av-section[data-av-section="performance"] .av-page-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .av-preset-card,
+  .av-row-stack:has(> .av-text-input),
+  .av-row-stack:has(> .av-textarea),
+  .av-row-stack:has(> .av-file-input) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .av-preset-highlights {
+    grid-column: auto;
   }
 
   .av-row,

@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+## 1.18.0 - 2026-08-13
+
+### Added
+
+- Default-on desktop ad protection now starts at document start. It prevents the separable
+  `promoted_content/log.json` request across page `fetch`, XHR, and `sendBeacon`, then removes
+  native sponsored posts, paid-partnership cards, promoted trends, X/Grok/Premium house promos,
+  and visible video-ad containers without leaving virtualized timeline gaps.
+- A deterministic settings-capture lane renders all 13 Control Center destinations plus the MV3
+  permissions page at 1440×900 or 1920×1080 and fails on clipped controls, horizontal overflow,
+  or panels extending outside the desktop viewport.
+
+### Changed
+
+- Every settings destination now uses one desktop operations-cockpit system: a stable 220 px rail,
+  grouped navigation, flatter control rows, page accents, clearer dependency states, restrained
+  density, and a permission-health summary on the extension options page.
+- Settings edits now expose explicit unsaved state, preserve independent drafts while navigating
+  related controls, and block search or section changes until the current edit is saved or
+  discarded. Reset copy now states that ad protection remains enabled.
+- The i18n extractor follows split Control Center section modules recursively; all 791 catalog
+  strings are present in Spanish, Portuguese, French, German, Japanese, Korean, Arabic, and Hebrew.
+
+### Fixed
+
+- Current X route detection recognizes `/i/chat`, profile collection tabs, and settings pages that
+  intentionally omit `primaryColumn`, preventing false degraded-state reports on live 2026 routes.
+- Ad detection no longer treats `placementTracking` as proof of sponsorship; current organic media
+  uses that attribute too. Detection instead requires bounded label, policy-link, tracking-link,
+  trend, house-promo, or video-ad evidence and remains SPA-idempotent and reversible.
+- Saving one Control Center row no longer clears an unrelated row's draft indicator.
+
 ## 1.17.0 - 2026-08-12
 
 ### Added

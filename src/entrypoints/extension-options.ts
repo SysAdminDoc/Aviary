@@ -174,7 +174,16 @@ async function refresh(card: CardWiring): Promise<boolean> {
   }
   if (grant) grant.disabled = granted;
   if (revoke) revoke.disabled = !granted;
+  updatePermissionHealth();
   return granted;
+}
+
+function updatePermissionHealth(): void {
+  const target = document.getElementById("granted-count");
+  if (!target) return;
+  target.textContent = String(
+    document.querySelectorAll<HTMLElement>('.state[data-granted="true"]').length
+  );
 }
 
 function setStatus(message: string): void {

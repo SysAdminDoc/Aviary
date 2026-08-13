@@ -774,12 +774,12 @@ export function buildBackupRows(ctx: PanelContext): HTMLElement[] {
   if (ctx.options.resetSettings) {
     rows.push(
       ctx.actionRow(
-        "Reset everything to plain X",
-        "Puts every setting back to its default, which is to change nothing about X at all. Your saved posts, notes, bookmarks and download history are kept — this only resets preferences.",
+        "Reset all preferences",
+        "Restores Aviary's defaults: ad-free mode stays on and every other visual or behavior control returns to off. Saved posts, notes, bookmarks, and download history are kept.",
         async () => {
           try {
             await ctx.options.resetSettings!();
-            ctx.setStatus("Everything reset. X is untouched again.");
+            ctx.setStatus("Preferences reset. Ad-free mode is on.");
           } catch (error) {
             ctx.options.onError("Could not reset settings", error);
             ctx.setStatus("Could not reset settings.");

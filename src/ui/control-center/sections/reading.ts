@@ -85,6 +85,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
 
 export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
   const hooks = ctx.options.getPageHooks?.();
+  ctx.t("Protection starts at document load.");
   const rows = [
       ctx.toggleRow(
         "Ad-free mode",
@@ -95,12 +96,12 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
           await ctx.save(checked ? "Ad-free mode on" : "Ad-free mode off");
         }
       ),
-      ctx.readonlyRow(
-        "Ad protection status",
-        hooks
-          ? `${hooks.hiddenPlacements} placements removed · ${hooks.blockedAdRequests} logging calls refused${hooks.suppressedVideoAds > 0 ? ` · ${hooks.suppressedVideoAds} pre-rolls suppressed` : ""}`
-          : "Protection starts at document load."
-      ),
+      hooks
+        ? ctx.dataRow(
+            "Ad protection status",
+            `${hooks.hiddenPlacements} placements removed · ${hooks.blockedAdRequests} logging calls refused${hooks.suppressedVideoAds > 0 ? ` · ${hooks.suppressedVideoAds} pre-rolls suppressed` : ""}`
+          )
+        : ctx.readonlyRow("Ad protection status", "Protection starts at document load."),
       ctx.toggleRow("Hide right sidebar", "Reduce trends, recommendations, and footer noise.", ctx.options.settings.layout.hideRightSidebar, async (checked) => {
         ctx.options.settings.layout.hideRightSidebar = checked;
         await ctx.save("Sidebar preference saved");
@@ -182,6 +183,7 @@ export function buildPerformanceRows(ctx: PanelContext): HTMLElement[] {
 
 export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
   const rows: HTMLElement[] = [];
+  ctx.t("Rules are active on the selected routes.");
   rows.push(
     ctx.toggleRow(
       "Enable filters",
@@ -191,6 +193,15 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.filter.enabled = checked;
         await ctx.save(checked ? "Filters enabled" : "Filters disabled");
       }
+    )
+  );
+
+  rows.push(
+    ctx.readonlyRow(
+      "Rule status",
+      ctx.options.settings.filter.enabled
+        ? "Rules are active on the selected routes."
+        : "Inactive until filters are enabled. You can edit rules before turning them on."
     )
   );
 
@@ -292,6 +303,7 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
 
 export function buildHiddenPostRows(ctx: PanelContext): HTMLElement[] {
   const rows: HTMLElement[] = [];
+  ctx.t("Hide buttons follow the setting above.");
 
   rows.push(
     ctx.toggleRow(
@@ -314,6 +326,15 @@ export function buildHiddenPostRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.hidden.buttons = checked;
         await ctx.save(checked ? "Hide buttons on" : "Hide buttons off");
       }
+    )
+  );
+
+  rows.push(
+    ctx.readonlyRow(
+      "Hide button status",
+      ctx.options.settings.hidden.enabled
+        ? "Hide buttons follow the setting above."
+        : "Activates when Hide dismissed posts is on."
     )
   );
 

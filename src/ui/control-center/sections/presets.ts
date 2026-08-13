@@ -8,6 +8,7 @@ export function buildPresetRows(ctx: PanelContext): HTMLElement[] {
   for (const preset of ctx.options.listPresets()) {
     const row = ctx.el("div", "av-row av-row-stack av-preset-card");
     row.dataset.avPreset = preset.id;
+    row.dataset.avLabel = preset.label;
     const cardHeader = ctx.el("div", "av-preset-header");
     const copy = ctx.el("span", "av-row-copy");
     copy.append(
@@ -74,4 +75,3 @@ export function buildPresetRows(ctx: PanelContext): HTMLElement[] {
   }
   return rows;
 }
-
