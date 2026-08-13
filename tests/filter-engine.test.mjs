@@ -138,11 +138,19 @@ test("profile collection subroutes keep profile-scoped features active", async (
     "/alice/",
     "/alice/followers",
     "/alice/following",
-    "/alice/verified_followers"
+    "/alice/verified_followers",
+    "/alice/with_replies",
+    "/alice/media",
+    "/alice/likes",
+    "/alice/highlights",
+    "/alice/articles"
   ]) {
     assert.equal(readRoute({ href: `https://x.com${pathname}`, pathname }).surface, "profile", pathname);
   }
-  assert.equal(readRoute({ href: "https://x.com/alice/likes", pathname: "/alice/likes" }).surface, "unknown");
+  assert.equal(readRoute({ href: "https://x.com/alice/communities", pathname: "/alice/communities" }).surface, "unknown");
+  for (const pathname of ["/messages", "/i/chat", "/i/chat/pin/recovery", "/i/chat/123-456"]) {
+    assert.equal(readRoute({ href: `https://x.com${pathname}`, pathname }).surface, "messages", pathname);
+  }
 });
 
 test("filter engine source registers the expected hooks and CSS class", async () => {

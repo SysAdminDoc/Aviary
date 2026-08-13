@@ -9,18 +9,17 @@ import { build } from "esbuild";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
- * Out of the box, Aviary must change nothing about X.
+ * Out of the box, Aviary leaves organic X content alone and removes ads.
  *
  * Until v1.13.0 a fresh install hid the right sidebar, hid trends, hid Grok, repainted the page
  * with the "dim" theme, forced `color-scheme: dark` over X's own setting, added a Hide button and
  * two media buttons to every post, rewrote share buttons and paused video that scrolled offscreen.
  * None of that was asked for; it was simply what the defaults happened to be.
  *
- * The rule is now: anything that changes what X looks like or how it behaves is off until the
- * user turns it on. Local-only bookkeeping that nobody can see (the audit log, selector health,
- * the local-only network guard) stays on, because it changes nothing about the page.
+ * The rule is now: ads are the one visible default-on exception. Every theme, layout, filtering,
+ * media, and integration control stays opt-in; local bookkeeping remains on.
  */
-test("no default setting changes what X looks like or how it behaves", async () => {
+test("default settings change only ad delivery and presentation", async () => {
   const { DEFAULT_SETTINGS } = await importBundledModule("src/platform/settings.ts");
   const s = DEFAULT_SETTINGS;
 
@@ -58,6 +57,7 @@ test("no default setting changes what X looks like or how it behaves", async () 
   assert.equal(s.media.layout, "default");
   assert.equal(s.performance.pauseOffscreenVideo, false);
   assert.equal(s.performance.forceVideoQuality, false);
+  assert.equal(s.privacy.blockAds, true);
   assert.equal(s.privacy.blockAnalyticsBeacons, false);
   assert.equal(s.export.preserveRawPayloads, false);
 
@@ -75,11 +75,10 @@ test("no default setting changes what X looks like or how it behaves", async () 
 });
 
 /**
- * The measurable half of the same claim: with default settings, the CSS Aviary injects must not
- * match anything in a real timeline. A default that is "off" in the schema but still paints
- * through an always-on selector would pass the test above and fail the user.
+ * The measurable half of the same claim: default CSS must leave organic timeline surfaces alone
+ * while a structurally sponsored cell is collapsed.
  */
-test("with default settings, Aviary's own stylesheets change nothing in the timeline", async () => {
+test("default styles leave organic timeline surfaces unchanged and collapse ads", async () => {
   const { chromium } = await import("playwright");
   const { DEFAULT_SETTINGS } = await importBundledModule("src/platform/settings.ts");
 
@@ -104,9 +103,26 @@ test("with default settings, Aviary's own stylesheets change nothing in the time
       mod.applyTheme(settings);
       document.documentElement.classList.add(`av-media-layout-${settings.media.layout}`);
     }, DEFAULT_SETTINGS);
+    await page.addScriptTag({ content: await bundleToText("src/features/privacy/ad-protection.ts") });
+    await page.evaluate(() => globalThis.__mod.installEarlyAdShield());
 
     const after = await snapshot(page);
-    assert.deepEqual(after, before, "default settings must leave the timeline exactly as X drew it");
+    assert.deepEqual(after, before, "default settings must leave organic timeline surfaces exactly as X drew them");
+
+    const adDisplay = await page.evaluate(() => {
+      const cell = document.createElement("div");
+      cell.setAttribute("data-testid", "cellInnerDiv");
+      const article = document.createElement("article");
+      article.setAttribute("data-testid", "tweet");
+      const placement = document.createElement("div");
+      placement.setAttribute("data-testid", "placementTracking");
+      placement.textContent = "Ad";
+      article.append(placement);
+      cell.append(article);
+      document.body.append(cell);
+      return getComputedStyle(cell).display;
+    });
+    assert.equal(adDisplay, "none");
   } finally {
     await browser.close();
   }

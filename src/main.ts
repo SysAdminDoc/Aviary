@@ -24,6 +24,7 @@ import { mediaPresentationFeature } from "./features/media/media-presentation";
 import { FeatureRegistry, type FeatureContext } from "./features/registry";
 import { setLocalOnlyPolicy } from "./features/integrations/network-policy";
 import { pageHooksFeature } from "./features/privacy/page-hooks";
+import { adProtectionFeature, installEarlyAdShield } from "./features/privacy/ad-protection";
 import { Diagnostics } from "./platform/diagnostics";
 import { createPageBridge } from "./platform/page-bridge";
 import { observeAddedElements } from "./platform/observer";
@@ -70,6 +71,9 @@ export function boot(options: BootOptions): Promise<AviaryApp | undefined> {
 }
 
 async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined> {
+  // Default-on ad protection is the sole visible startup change. Install its structural CSS
+  // before the first await so sponsored cells cannot win the first paint.
+  installEarlyAdShield();
   // Anti-FOUC only applies when a theme is actually going to be painted. The default is "off",
   // which means Aviary leaves X's appearance alone, so there is nothing to pre-empt.
   if (DEFAULT_SETTINGS.appearance.theme !== "off") {
@@ -77,9 +81,19 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   }
   document.documentElement.dataset.avReady = "booting";
 
+  const diagnostics = new Diagnostics();
+  // Connect while the document is still starting, before storage opens. The page agent itself
+  // starts with the same default-on ad guard, then this config is replaced by persisted settings.
+  const pageBridge = createPageBridge({ source: options.source, diagnostics });
+  pageBridge.configure({
+    blockAds: DEFAULT_SETTINGS.privacy.blockAds,
+    blockBeacons: false,
+    captureGraphql: false,
+    captureMediaMetadata: false,
+    forceVideoQuality: false
+  });
   const legacyStorage = createStorageGateway("aviary");
   const durableStorage = createDurableStorageGateway(legacyStorage);
-  const diagnostics = new Diagnostics();
   // Every failed write reaches diagnostics, including the ones individual stores swallow.
   setStorageErrorSink((key, error, op) => {
     diagnostics.error(
@@ -132,6 +146,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   registry.register(themeFeature);
   registry.register(i18nFeature);
   registry.register(selectorHealthFeature);
+  registry.register(adProtectionFeature);
   registry.register(layoutDeclutterFeature);
   registry.register(filterEngineFeature);
   registry.register(hiddenPostsFeature);
@@ -155,10 +170,6 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   // Registered last so its first paint reads stores that are already loaded — features
   // initialize in registration order, and the panel reports their counts.
   registry.register(controlCenterFeature);
-
-  // The only route to the page's own fetch. Created before features initialize so the first
-  // config push happens during init rather than a frame later.
-  const pageBridge = createPageBridge({ source: options.source, diagnostics });
 
   const context: FeatureContext = {
     route: readRoute(),

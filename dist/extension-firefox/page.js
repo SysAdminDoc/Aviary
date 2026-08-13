@@ -43,6 +43,17 @@
     }
     return TELEMETRY_PATTERNS.some((pattern) => pattern.test(url));
   }
+  function isAdRequestUrl(rawUrl) {
+    if (!rawUrl) {
+      return false;
+    }
+    try {
+      const url = new URL(rawUrl, "https://x.com");
+      return X_GRAPHQL_HOSTNAMES.has(url.hostname.toLowerCase()) && url.pathname === "/i/api/1.1/promoted_content/log.json";
+    } catch {
+      return false;
+    }
+  }
   function isGraphqlUrl(url) {
     return parseGraphqlRoute(url) !== null;
   }
@@ -112,7 +123,10 @@
   function isPlaylistUrl(url) {
     return /\.m3u8(?:$|\?)/i.test(url);
   }
-  var DISABLED = {
+  var INITIAL_CONFIG = {
+    // Page scripts run at document_start. The default-on ad guard must be active before the
+    // isolated world finishes opening storage; a persisted opt-out replaces this during config.
+    blockAds: true,
     blockBeacons: false,
     captureGraphql: false,
     captureMediaMetadata: false,
@@ -165,7 +179,7 @@
       }
     };
     state = {
-      config: { ...DISABLED },
+      config: { ...INITIAL_CONFIG },
       peerNonce: void 0,
       target,
       originalFetch,
@@ -180,8 +194,9 @@
     if (originalSendBeacon && target.navigator) {
       target.navigator.sendBeacon = function patchedSendBeacon(url, data) {
         try {
-          if (state?.config.blockBeacons && isTelemetryUrl(String(url))) {
-            emit("blocked", { url: String(url), via: "sendBeacon", at: now() });
+          const category = blockedRequestCategory(state?.config ?? INITIAL_CONFIG, String(url));
+          if (category) {
+            emit("blocked", { url: String(url), via: "sendBeacon", at: now(), category });
             return true;
           }
         } catch {
@@ -202,8 +217,9 @@
       xhrProto.send = function patchedSend(...args) {
         try {
           const url = String(this.__aviaryUrl ?? "");
-          if (state?.config.blockBeacons && isTelemetryUrl(url)) {
-            emit("blocked", { url, via: "xhr", at: now() });
+          const category = blockedRequestCategory(state?.config ?? INITIAL_CONFIG, url);
+          if (category) {
+            emit("blocked", { url, via: "xhr", at: now(), category });
             return;
           }
         } catch {
@@ -238,9 +254,10 @@
       } catch {
         return originalFetch(input, init);
       }
-      const config = state?.config ?? DISABLED;
-      if (config.blockBeacons && isTelemetryUrl(url)) {
-        emit("blocked", { url, via: "fetch", at: now() });
+      const config = state?.config ?? INITIAL_CONFIG;
+      const blockedCategory = blockedRequestCategory(config, url);
+      if (blockedCategory) {
+        emit("blocked", { url, via: "fetch", at: now(), category: blockedCategory });
         return new Response(null, { status: 204, statusText: "No Content" });
       }
       const response = await originalFetch(input, init);
@@ -327,11 +344,21 @@
   function normalizeConfig(payload) {
     const value = payload ?? {};
     return {
+      blockAds: value.blockAds === true,
       blockBeacons: value.blockBeacons === true,
       captureGraphql: value.captureGraphql === true,
       captureMediaMetadata: value.captureMediaMetadata === true,
       forceVideoQuality: value.forceVideoQuality === true
     };
+  }
+  function blockedRequestCategory(config, url) {
+    if (config.blockAds && isAdRequestUrl(url)) {
+      return "ad";
+    }
+    if (config.blockBeacons && isTelemetryUrl(url)) {
+      return "analytics";
+    }
+    return null;
   }
   function emit(kind, payload) {
     if (!state) {

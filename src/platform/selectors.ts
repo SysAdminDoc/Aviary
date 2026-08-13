@@ -137,8 +137,13 @@ const CONTENT_SURFACES = new Set<RouteSurface>([
 ]);
 
 function selectorRelevance(surface: string, route: RouteSurface): SelectorRelevance {
-  if (surface === "App root" || surface === "Primary column" || surface === "Navigation") {
+  if (surface === "App root" || surface === "Navigation") {
     return "required";
+  }
+  // Current /settings pages keep the app shell and navigation but no longer mount the timeline's
+  // primaryColumn anchor. Treating it as required turned a healthy settings page red.
+  if (surface === "Primary column") {
+    return route === "settings" ? "inapplicable" : "required";
   }
   if (surface === "Grok") {
     return route === "grok" ? "required" : "optional";

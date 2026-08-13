@@ -78,11 +78,17 @@ function detectSurface(path: string): RouteSurface {
   if (path === "/home") return "home";
   if (/\/status\/\d+/.test(path)) return "status";
   if (path.startsWith("/notifications")) return "notifications";
-  if (path.startsWith("/messages")) return "messages";
+  // X moved Direct Messages from /messages to /i/chat in 2026. Keep both contracts so saved
+  // links and older fixtures remain valid while current nested recovery/conversation routes work.
+  if (path.startsWith("/messages") || path.startsWith("/i/chat")) return "messages";
   if (path.startsWith("/settings")) return "settings";
   if (path.startsWith("/search")) return "search";
   if (path.startsWith("/i/grok")) return "grok";
-  if (/^\/[^/]+(?:\/(?:followers|following|verified_followers))\/?$/.test(path)) {
+  if (
+    /^\/[^/]+(?:\/(?:followers|following|verified_followers|with_replies|media|likes|highlights|articles))\/?$/.test(
+      path
+    )
+  ) {
     return "profile";
   }
   if (/^\/[^/]+\/?$/.test(path)) return "profile";

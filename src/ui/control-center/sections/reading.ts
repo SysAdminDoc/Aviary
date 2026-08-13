@@ -84,7 +84,23 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
 }
 
 export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
+  const hooks = ctx.options.getPageHooks?.();
   const rows = [
+      ctx.toggleRow(
+        "Ad-free mode",
+        "Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery.",
+        ctx.options.settings.privacy.blockAds,
+        async (checked) => {
+          ctx.options.settings.privacy.blockAds = checked;
+          await ctx.save(checked ? "Ad-free mode on" : "Ad-free mode off");
+        }
+      ),
+      ctx.readonlyRow(
+        "Ad protection status",
+        hooks
+          ? `${hooks.hiddenPlacements} placements removed · ${hooks.blockedAdRequests} logging calls refused${hooks.suppressedVideoAds > 0 ? ` · ${hooks.suppressedVideoAds} pre-rolls suppressed` : ""}`
+          : "Protection starts at document load."
+      ),
       ctx.toggleRow("Hide right sidebar", "Reduce trends, recommendations, and footer noise.", ctx.options.settings.layout.hideRightSidebar, async (checked) => {
         ctx.options.settings.layout.hideRightSidebar = checked;
         await ctx.save("Sidebar preference saved");
@@ -416,4 +432,3 @@ export function buildHiddenPostRows(ctx: PanelContext): HTMLElement[] {
 
   return rows;
 }
-

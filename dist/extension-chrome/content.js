@@ -6234,6 +6234,10 @@ html.av-reduce-motion *::after {
     privacy: {
       localOnly: true,
       telemetry: false,
+      // Ads are the one visible exception to Aviary's otherwise opt-in defaults. Native sponsored
+      // records share X's timeline response, so the safe default is to collapse those placements
+      // before paint and refuse only the separable promoted-content logging endpoint.
+      blockAds: true,
       // Off by default. Aviary sends no telemetry of its own either way; this refuses X's, which
       // is a change to how the site behaves and is the user's call to make, not a default.
       blockAnalyticsBeacons: false,
@@ -6405,6 +6409,7 @@ html.av-reduce-motion *::after {
       privacy: {
         localOnly: anyIntegrationEnabled ? false : booleanValue(privacy.localOnly, DEFAULT_SETTINGS.privacy.localOnly),
         telemetry: false,
+        blockAds: booleanValue(privacy.blockAds, DEFAULT_SETTINGS.privacy.blockAds),
         blockAnalyticsBeacons: booleanValue(
           privacy.blockAnalyticsBeacons,
           DEFAULT_SETTINGS.privacy.blockAnalyticsBeacons
@@ -8850,7 +8855,21 @@ html.av-reduce-motion *::after {
     ];
   }
   function buildLayoutRows(ctx) {
+    const hooks = ctx.options.getPageHooks?.();
     const rows = [
+      ctx.toggleRow(
+        "Ad-free mode",
+        "Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery.",
+        ctx.options.settings.privacy.blockAds,
+        async (checked) => {
+          ctx.options.settings.privacy.blockAds = checked;
+          await ctx.save(checked ? "Ad-free mode on" : "Ad-free mode off");
+        }
+      ),
+      ctx.readonlyRow(
+        "Ad protection status",
+        hooks ? `${hooks.hiddenPlacements} placements removed \xB7 ${hooks.blockedAdRequests} logging calls refused${hooks.suppressedVideoAds > 0 ? ` \xB7 ${hooks.suppressedVideoAds} pre-rolls suppressed` : ""}` : "Protection starts at document load."
+      ),
       ctx.toggleRow("Hide right sidebar", "Reduce trends, recommendations, and footer noise.", ctx.options.settings.layout.hideRightSidebar, async (checked) => {
         ctx.options.settings.layout.hideRightSidebar = checked;
         await ctx.save("Sidebar preference saved");
@@ -9768,6 +9787,15 @@ html.av-reduce-motion *::after {
       ];
       if (hooks.reachable && options.settings.privacy.blockAnalyticsBeacons) {
         rows.push(dataRow("Beacons refused", String(hooks.blockedBeacons)));
+      }
+      if (options.settings.privacy.blockAds) {
+        const prerolls = hooks.suppressedVideoAds > 0 ? ` \xB7 ${hooks.suppressedVideoAds} pre-rolls suppressed` : "";
+        rows.push(
+          dataRow(
+            "Ad protection",
+            `${hooks.hiddenPlacements} placements removed \xB7 ${hooks.blockedAdRequests} logging calls refused${prerolls}`
+          )
+        );
       }
       return rows;
     };
@@ -11214,6 +11242,7 @@ input[type="checkbox"] {
 
   // src/features/privacy/page-hooks.ts
   var blockedBeacons = 0;
+  var blockedAdRequests = 0;
   var rewrittenPlaylists = 0;
   var bridgeStatus = "connecting";
   var bridgeReason = "";
@@ -11233,8 +11262,16 @@ input[type="checkbox"] {
       if (subscribedBridge !== bridge) {
         subscribedBridge = bridge;
         bridge.on("blocked", (payload) => {
-          blockedBeacons += 1;
           const blocked = payload;
+          if (blocked?.category === "ad") {
+            blockedAdRequests += 1;
+            ctx.diagnostics.info("Promoted-content logging call refused", {
+              via: blocked?.via,
+              url: blocked?.url
+            });
+            return;
+          }
+          blockedBeacons += 1;
           ctx.diagnostics.info("Analytics beacon refused", {
             via: blocked?.via,
             url: blocked?.url
@@ -11255,12 +11292,14 @@ input[type="checkbox"] {
     },
     destroy(ctx) {
       ctx.pageBridge?.configure({
+        blockAds: false,
         blockBeacons: false,
         captureGraphql: false,
         captureMediaMetadata: false,
         forceVideoQuality: false
       });
       blockedBeacons = 0;
+      blockedAdRequests = 0;
       rewrittenPlaylists = 0;
       if (subscribedBridge === ctx.pageBridge) {
         subscribedBridge = void 0;
@@ -11277,6 +11316,9 @@ input[type="checkbox"] {
         return { ok: true, message: "Connecting to the page\u2026" };
       }
       const parts = [];
+      if (blockedAdRequests > 0) {
+        parts.push(`${blockedAdRequests} ad call${blockedAdRequests === 1 ? "" : "s"} refused`);
+      }
       if (blockedBeacons > 0) {
         parts.push(`${blockedBeacons} beacon${blockedBeacons === 1 ? "" : "s"} refused`);
       }
@@ -11299,6 +11341,7 @@ input[type="checkbox"] {
     bridgeStatus = bridge.status();
     bridgeReason = bridge.reason();
     bridge.configure({
+      blockAds: ctx.settings.privacy.blockAds,
       blockBeacons: ctx.settings.privacy.blockAnalyticsBeacons,
       captureGraphql: ctx.settings.export.preserveRawPayloads,
       captureMediaMetadata: ctx.settings.media.buttons,
@@ -11306,8 +11349,225 @@ input[type="checkbox"] {
     });
   }
   function pageHookCounters() {
-    return { blockedBeacons, rewrittenPlaylists };
+    return { blockedBeacons, blockedAdRequests, rewrittenPlaylists };
   }
+
+  // src/features/privacy/ad-protection.ts
+  var STYLE_ID2 = "av-ad-protection";
+  var HIDDEN_ATTRIBUTE = "data-av-ad-hidden";
+  var ARTICLE_SELECTOR = 'article[data-testid="tweet"]';
+  var TREND_SELECTOR = '[data-testid="trend"]';
+  var VIDEO_SELECTOR = '[data-testid="videoPlayer"], [data-testid="videoComponent"]';
+  var HOUSE_PROMO_SELECTOR = [
+    'aside[aria-label="Subscribe to Premium"]',
+    '[data-testid^="super-upsell"]',
+    'aside[role="complementary"]:has(a[href*="grok.com"])'
+  ].join(", ");
+  var AD_LABELS = /* @__PURE__ */ new Set([
+    "Ad",
+    "Promoted",
+    "Sponsored",
+    "Paid partnership",
+    "Anuncio",
+    "Promocionado",
+    "Patrocinado",
+    "Colaboraci\xF3n pagada",
+    "Publicit\xE9",
+    "Sponsoris\xE9",
+    "Partenariat r\xE9mun\xE9r\xE9",
+    "Anzeige",
+    "Gesponsert",
+    "Bezahlte Partnerschaft",
+    "\u5E83\u544A",
+    "\u30D7\u30ED\u30E2\u30FC\u30B7\u30E7\u30F3",
+    "\u30BF\u30A4\u30A2\u30C3\u30D7",
+    "\uAD11\uACE0",
+    "\uD504\uB85C\uBAA8\uC158",
+    "\uC720\uB8CC \uD30C\uD2B8\uB108\uC2ED",
+    "An\xFAncio",
+    "Promovido",
+    "Parceria paga",
+    "\u0625\u0639\u0644\u0627\u0646",
+    "\u0645\u064F\u0631\u0648\u064E\u0651\u062C",
+    "\u0634\u0631\u0627\u0643\u0629 \u0645\u062F\u0641\u0648\u0639\u0629",
+    "\u05DE\u05D5\u05D3\u05E2\u05D4",
+    "\u05DE\u05E7\u05D5\u05D3\u05DD",
+    "\u05E9\u05D5\u05EA\u05E4\u05D5\u05EA \u05D1\u05EA\u05E9\u05DC\u05D5\u05DD"
+  ]);
+  var PROMOTED_TREND_PREFIXES = [
+    "Promoted by",
+    "Sponsored by",
+    "Promocionado por",
+    "Patrocinado por",
+    "Sponsoris\xE9 par",
+    "Gesponsert von",
+    "\u30D7\u30ED\u30E2\u30FC\u30B7\u30E7\u30F3",
+    "\uD504\uB85C\uBAA8\uC158",
+    "Promovido por",
+    "\u0645\u064F\u0631\u0648\u064E\u0651\u062C \u0628\u0648\u0627\u0633\u0637\u0629",
+    "\u05DE\u05E7\u05D5\u05D3\u05DD \u05E2\u05DC \u05D9\u05D3\u05D9"
+  ];
+  var VIDEO_AD_MARKERS = [
+    /Video will play after ad/i,
+    /Skip Ad(?: in \d+ seconds?)?/i,
+    /Ad will end in \d+ seconds?/i
+  ];
+  var hiddenPlacements = 0;
+  var suppressedVideoAds = 0;
+  function installEarlyAdShield() {
+    if (typeof document === "undefined") return;
+    document.documentElement.classList.add("av-block-ads");
+    ensureStyle();
+  }
+  var adProtectionFeature = {
+    id: "privacy.adProtection",
+    title: "Ad protection",
+    category: "privacy",
+    defaultEnabled: true,
+    init(ctx) {
+      ensureStyle();
+      applyAdProtection(ctx, document);
+    },
+    apply(ctx, root, addedNodes) {
+      ensureStyle();
+      applyAdProtection(ctx, root, addedNodes);
+    },
+    destroy(ctx) {
+      document.documentElement.classList.remove("av-block-ads");
+      clearMarked(document);
+      document.getElementById(STYLE_ID2)?.remove();
+      hiddenPlacements = 0;
+      suppressedVideoAds = 0;
+      ctx.diagnostics.info("Ad protection destroyed");
+    },
+    getStatus() {
+      const parts = [`${hiddenPlacements} placement${hiddenPlacements === 1 ? "" : "s"} removed`];
+      if (suppressedVideoAds > 0) {
+        parts.push(`${suppressedVideoAds} pre-roll${suppressedVideoAds === 1 ? "" : "s"} suppressed`);
+      }
+      return { ok: true, message: parts.join(" \xB7 ") };
+    }
+  };
+  function adProtectionCounters() {
+    return { hiddenPlacements, suppressedVideoAds };
+  }
+  function applyAdProtection(ctx, root, addedNodes) {
+    const enabled = ctx.settings.privacy.blockAds;
+    document.documentElement.classList.toggle("av-block-ads", enabled);
+    if (!enabled) {
+      clearMarked(document);
+      return;
+    }
+    const scopes = addedNodes && addedNodes.length > 0 ? addedNodes : [root];
+    for (const scope of scopes) {
+      for (const article of candidates(scope, ARTICLE_SELECTOR)) {
+        if (isSponsoredArticle(article)) {
+          hidePlacement(article, "post");
+        }
+      }
+      for (const trend of candidates(scope, TREND_SELECTOR)) {
+        if (isPromotedTrend(trend)) {
+          hidePlacement(trend, "trend");
+        }
+      }
+      for (const promo of candidates(scope, HOUSE_PROMO_SELECTOR)) {
+        hidePlacement(promo, "house");
+      }
+      for (const video of candidates(scope, VIDEO_SELECTOR)) {
+        const hasAd = containsVideoAdMarker(video);
+        if (hasAd) {
+          hidePlacement(video, "video");
+        } else if (video.getAttribute(HIDDEN_ATTRIBUTE) === "video") {
+          video.removeAttribute(HIDDEN_ATTRIBUTE);
+        }
+      }
+    }
+  }
+  function candidates(root, selector) {
+    const found = /* @__PURE__ */ new Set();
+    if (root instanceof Element) {
+      try {
+        if (root.matches(selector)) found.add(root);
+        const ancestor = root.closest(selector);
+        if (ancestor) found.add(ancestor);
+      } catch {
+      }
+    }
+    try {
+      for (const element of Array.from(root.querySelectorAll(selector))) found.add(element);
+    } catch {
+    }
+    return [...found];
+  }
+  function isSponsoredArticle(article) {
+    if (article.querySelector(
+      'a[href*="twclid="], a[href*="ad.doubleclick.net"], a[href*="/rules-and-policies/paid-partnerships-policy"]'
+    )) {
+      return true;
+    }
+    const structuralPlacement = article.querySelector('[data-testid="placementTracking"]') !== null;
+    const lacksTimestamp = article.querySelector("time") === null;
+    return (structuralPlacement || lacksTimestamp) && containsExactLabel(article, AD_LABELS);
+  }
+  function isPromotedTrend(trend) {
+    const lines = textLines(trend);
+    return lines.some((line) => PROMOTED_TREND_PREFIXES.some((prefix) => line.startsWith(prefix)));
+  }
+  function containsExactLabel(root, labels) {
+    if (labels.has((root.textContent ?? "").trim())) return true;
+    for (const node of Array.from(root.querySelectorAll("span, div"))) {
+      if (labels.has((node.textContent ?? "").trim())) return true;
+    }
+    return false;
+  }
+  function containsVideoAdMarker(video) {
+    return textLines(video).some((line) => VIDEO_AD_MARKERS.some((pattern) => pattern.test(line)));
+  }
+  function textLines(root) {
+    return (root.innerText || root.textContent || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  }
+  function hidePlacement(element, kind) {
+    const target = kind === "post" ? element.closest('[data-testid="cellInnerDiv"]') ?? element : element;
+    if (target.hasAttribute(HIDDEN_ATTRIBUTE)) return;
+    target.setAttribute(HIDDEN_ATTRIBUTE, kind);
+    if (kind === "video") suppressedVideoAds += 1;
+    else hiddenPlacements += 1;
+  }
+  function clearMarked(root) {
+    if (root instanceof Element && root.hasAttribute(HIDDEN_ATTRIBUTE)) {
+      root.removeAttribute(HIDDEN_ATTRIBUTE);
+    }
+    for (const element of Array.from(root.querySelectorAll(`[${HIDDEN_ATTRIBUTE}]`))) {
+      element.removeAttribute(HIDDEN_ATTRIBUTE);
+    }
+  }
+  function ensureStyle() {
+    if (document.getElementById(STYLE_ID2)) return;
+    const style = document.createElement("style");
+    style.id = STYLE_ID2;
+    style.textContent = AD_PROTECTION_CSS;
+    (document.head ?? document.documentElement).append(style);
+  }
+  var AD_PROTECTION_CSS = `
+html.av-block-ads [${HIDDEN_ATTRIBUTE}] {
+  display: none !important;
+}
+
+/* Collapse the virtualizer cell, not just its article, so an ad cannot leave a feed-sized gap. */
+html.av-block-ads [data-testid="cellInnerDiv"]:has(${ARTICLE_SELECTOR} a[href*="twclid="]),
+html.av-block-ads [data-testid="cellInnerDiv"]:has(${ARTICLE_SELECTOR} a[href*="ad.doubleclick.net"]),
+html.av-block-ads [data-testid="cellInnerDiv"]:has(${ARTICLE_SELECTOR} a[href*="/rules-and-policies/paid-partnerships-policy"]),
+html.av-block-ads [data-testid="cellInnerDiv"]:has(${ARTICLE_SELECTOR} [data-testid="placementTracking"]):not(:has(${ARTICLE_SELECTOR} time)),
+html.av-block-ads ${ARTICLE_SELECTOR}:has(a[href*="twclid="]),
+html.av-block-ads ${ARTICLE_SELECTOR}:has(a[href*="ad.doubleclick.net"]),
+html.av-block-ads ${ARTICLE_SELECTOR}:has(a[href*="/rules-and-policies/paid-partnerships-policy"]),
+html.av-block-ads ${ARTICLE_SELECTOR}:not(:has(time)):has([data-testid="placementTracking"]),
+html.av-block-ads aside[aria-label="Subscribe to Premium"],
+html.av-block-ads [data-testid^="super-upsell"],
+html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
+  display: none !important;
+}
+`;
 
   // src/platform/selectors.ts
   var SURFACE_SELECTORS = [
@@ -11410,8 +11670,11 @@ input[type="checkbox"] {
     "search"
   ]);
   function selectorRelevance(surface, route) {
-    if (surface === "App root" || surface === "Primary column" || surface === "Navigation") {
+    if (surface === "App root" || surface === "Navigation") {
       return "required";
+    }
+    if (surface === "Primary column") {
+      return route === "settings" ? "inapplicable" : "required";
     }
     if (surface === "Grok") {
       return route === "grok" ? "required" : "optional";
@@ -15424,9 +15687,9 @@ ${record.text}${mediaList}`;
   }
 
   // src/features/filtering/hidden-posts-feature.ts
-  var STYLE_ID2 = "av-hidden-posts";
+  var STYLE_ID3 = "av-hidden-posts";
   var TOAST_HOST_ID = "av-hidden-toast";
-  var ARTICLE_SELECTOR = 'article[data-testid="tweet"]';
+  var ARTICLE_SELECTOR2 = 'article[data-testid="tweet"]';
   var CELL_SELECTOR = '[data-testid="cellInnerDiv"]';
   var BUTTON_ATTR = "data-av-hide-button";
   var HIDDEN_ATTR = "data-av-hidden";
@@ -15452,14 +15715,14 @@ ${record.text}${mediaList}`;
         ctx.diagnostics.error("Hidden posts failed to load", errorDetails2(error));
       }
       if (ctx.settings.hidden.enabled) {
-        ensureStyle();
+        ensureStyle2();
       }
       applyRootClass(ctx);
       scan(document, ctx);
       ctx.diagnostics.info("Hidden posts initialized", { hidden: store.size() });
     },
     apply(ctx, root, addedNodes) {
-      ensureStyle();
+      ensureStyle2();
       applyRootClass(ctx);
       if (!store) {
         return;
@@ -15525,7 +15788,7 @@ ${record.text}${mediaList}`;
   }
   function clearDecorations() {
     const hadHiddenRows = document.querySelector(`[${HIDDEN_ATTR}]`) !== null;
-    document.getElementById(STYLE_ID2)?.remove();
+    document.getElementById(STYLE_ID3)?.remove();
     document.getElementById(TOAST_HOST_ID)?.remove();
     document.documentElement.classList.remove("av-hide-posts-enabled");
     for (const button2 of Array.from(document.querySelectorAll(`[${BUTTON_ATTR}]`))) {
@@ -15564,11 +15827,11 @@ ${record.text}${mediaList}`;
   }
   function collectArticles(root) {
     const found = [];
-    if (root instanceof Element && root.matches(ARTICLE_SELECTOR)) {
+    if (root instanceof Element && root.matches(ARTICLE_SELECTOR2)) {
       found.push(root);
     }
     if ("querySelectorAll" in root) {
-      for (const article of Array.from(root.querySelectorAll(ARTICLE_SELECTOR))) {
+      for (const article of Array.from(root.querySelectorAll(ARTICLE_SELECTOR2))) {
         found.push(article);
       }
     }
@@ -15793,12 +16056,12 @@ ${record.text}${mediaList}`;
     shadow.append(style, card);
     return shadow;
   }
-  function ensureStyle() {
-    if (document.getElementById(STYLE_ID2)) {
+  function ensureStyle2() {
+    if (document.getElementById(STYLE_ID3)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID2;
+    style.id = STYLE_ID3;
     style.textContent = HIDDEN_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -16768,12 +17031,12 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       const media = unwrapRecord(entry, ["media", "mediaEntity", "uploadMedia"]);
       const url = stringField(media, "url", "mediaUrl", "media_url");
       const urls = stringArrayField(media, "urls", "mediaUrls", "media_urls");
-      const candidates = [url, ...urls].filter((candidate) => Boolean(candidate));
-      if (candidates.length === 0 && !stringField(media, "id", "id_str")) continue;
+      const candidates2 = [url, ...urls].filter((candidate) => Boolean(candidate));
+      if (candidates2.length === 0 && !stringField(media, "id", "id_str")) continue;
       out.push({
         id: stringField(media, "id", "id_str", "mediaId"),
         tweetId: stringField(media, "tweetId", "tweet_id", "statusId"),
-        url: candidates.find(isHttpUrl) ?? null,
+        url: candidates2.find(isHttpUrl) ?? null,
         filename: stringField(media, "filename", "name"),
         mimeType: stringField(media, "mimeType", "mime_type", "type"),
         sourceFile
@@ -17363,7 +17626,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       bookmarks: 0
     };
     let protectedCount = 0;
-    const candidates = [];
+    const candidates2 = [];
     for (const record of records) {
       const bucket = classify(record, options.bucketHint);
       if (!bucket) continue;
@@ -17373,7 +17636,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         protectedCount += 1;
       }
       byBucket[bucket] += 1;
-      candidates.push({
+      candidates2.push({
         bucket,
         tweetId: record.tweetId,
         handle: record.handle,
@@ -17385,7 +17648,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     }
     return {
       generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
-      candidates,
+      candidates: candidates2,
       byBucket,
       protectedCount
     };
@@ -17447,10 +17710,10 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       };
       this.#loaded = true;
     }
-    async enqueue(candidates) {
+    async enqueue(candidates2) {
       await this.load();
       let added = 0;
-      for (const candidate of candidates) {
+      for (const candidate of candidates2) {
         if (candidate.protected) continue;
         this.#state.items.push({
           ...candidate,
@@ -18194,7 +18457,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
 
   // src/features/media/media-buttons.ts
-  var STYLE_ID3 = "av-media-buttons";
+  var STYLE_ID4 = "av-media-buttons";
   var BUTTON_ATTR2 = "data-av-media-button";
   var PROCESSED_ATTR = "data-av-media-processed";
   var downloader;
@@ -18327,7 +18590,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     );
   }
   function clearDecorations2() {
-    document.getElementById(STYLE_ID3)?.remove();
+    document.getElementById(STYLE_ID4)?.remove();
     document.documentElement.classList.remove("av-media-buttons-enabled");
     for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR}]`))) {
       article.removeAttribute(PROCESSED_ATTR);
@@ -18576,11 +18839,11 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     return { message: String(error) };
   }
   function ensureMediaStyle() {
-    if (document.getElementById(STYLE_ID3)) {
+    if (document.getElementById(STYLE_ID4)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID3;
+    style.id = STYLE_ID4;
     style.textContent = MEDIA_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -19555,7 +19818,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
 
   // src/features/library/user-notes.ts
   var USER_NOTES_KEY = "aviary.userNotes.v1";
-  var STYLE_ID4 = "av-user-notes";
+  var STYLE_ID5 = "av-user-notes";
   var BADGE_ATTR = "data-av-note-badge";
   var ARTICLE_ATTR = "data-av-note-processed";
   var cache;
@@ -19567,13 +19830,13 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     defaultEnabled: true,
     async init(ctx) {
       activeStorage = ctx.storage;
-      ensureStyle2();
+      ensureStyle3();
       cache = await load(ctx.storage);
       decorate(ctx, document);
       ctx.diagnostics.info("User notes initialized", { count: Object.keys(cache.notes).length });
     },
     apply(ctx, root, addedNodes) {
-      ensureStyle2();
+      ensureStyle3();
       if (!cache) {
         return;
       }
@@ -19586,7 +19849,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       }
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID4)?.remove();
+      document.getElementById(STYLE_ID5)?.remove();
       for (const article of Array.from(document.querySelectorAll(`[${ARTICLE_ATTR}]`))) {
         article.removeAttribute(ARTICLE_ATTR);
       }
@@ -19708,12 +19971,12 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     const cleaned = value.replace(/^@/, "").trim().toLowerCase();
     return /^[a-z0-9_]{1,15}$/.test(cleaned) ? cleaned : null;
   }
-  function ensureStyle2() {
-    if (document.getElementById(STYLE_ID4)) {
+  function ensureStyle3() {
+    if (document.getElementById(STYLE_ID5)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID4;
+    style.id = STYLE_ID5;
     style.textContent = NOTE_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -19949,7 +20212,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
 
   // src/features/library/bookmarks-feature.ts
-  var STYLE_ID5 = "av-local-bookmarks";
+  var STYLE_ID6 = "av-local-bookmarks";
   var BUTTON_ATTR3 = "data-av-local-bookmark";
   var ARTICLE_ATTR2 = "data-av-local-bookmark-processed";
   var store3;
@@ -19961,12 +20224,12 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     async init(ctx) {
       store3 = new BookmarkStore(ctx.storage);
       await store3.load();
-      ensureStyle3();
+      ensureStyle4();
       scan2(ctx, document);
       ctx.diagnostics.info("Local bookmarks initialized", { count: store3.size() });
     },
     apply(ctx, root, addedNodes) {
-      ensureStyle3();
+      ensureStyle4();
       if (!addedNodes || addedNodes.length === 0) {
         scan2(ctx, root);
         return;
@@ -19976,7 +20239,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       }
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID5)?.remove();
+      document.getElementById(STYLE_ID6)?.remove();
       for (const article of Array.from(document.querySelectorAll(`[${ARTICLE_ATTR2}]`))) {
         article.removeAttribute(ARTICLE_ATTR2);
       }
@@ -20149,10 +20412,10 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
     return `https://x.com/i/status/${tweetId}`;
   }
-  function ensureStyle3() {
-    if (document.getElementById(STYLE_ID5)) return;
+  function ensureStyle4() {
+    if (document.getElementById(STYLE_ID6)) return;
     const style = document.createElement("style");
-    style.id = STYLE_ID5;
+    style.id = STYLE_ID6;
     style.textContent = BOOKMARK_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -21119,10 +21382,15 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         },
         getPageHooks() {
           const bridge = ctx.pageBridge;
+          const hooks = pageHookCounters();
+          const ads = adProtectionCounters();
           return {
             reachable: bridge ? bridge.status() !== "unavailable" : false,
             reason: bridge?.reason() ?? "",
-            blockedBeacons: pageHookCounters().blockedBeacons
+            blockedBeacons: hooks.blockedBeacons,
+            blockedAdRequests: hooks.blockedAdRequests,
+            hiddenPlacements: ads.hiddenPlacements,
+            suppressedVideoAds: ads.suppressedVideoAds
           };
         },
         getSelectorHealth() {
@@ -21381,9 +21649,9 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           const preview = previewCleanup(records, {
             whitelistHandles: ctx.settings.filter.whitelist
           });
-          const candidates = preview.candidates;
-          const protectedCount = candidates.filter((candidate) => candidate.protected).length;
-          const added = await cleanupQueue?.enqueue(candidates) ?? 0;
+          const candidates2 = preview.candidates;
+          const protectedCount = candidates2.filter((candidate) => candidate.protected).length;
+          const added = await cleanupQueue?.enqueue(candidates2) ?? 0;
           void ctx.auditLog.record("cleanup.enqueue", {
             enqueued: added,
             protected: protectedCount
@@ -21992,8 +22260,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
 
   // src/features/filtering/filter-engine.ts
-  var STYLE_ID6 = "av-filter-engine";
-  var ARTICLE_SELECTOR2 = 'article[data-testid="tweet"]';
+  var STYLE_ID7 = "av-filter-engine";
+  var ARTICLE_SELECTOR3 = 'article[data-testid="tweet"]';
   var CELL_SELECTOR2 = '[data-testid="cellInnerDiv"]';
   var PROCESSED_ATTR2 = "data-av-filter-processed";
   var RESULT_ATTR = "data-av-filter-result";
@@ -22043,7 +22311,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       compiledSignature = "";
       generation = 0;
       clearDecorations3();
-      document.getElementById(STYLE_ID6)?.remove();
+      document.getElementById(STYLE_ID7)?.remove();
       ctx.diagnostics.info("Filter engine destroyed");
     },
     getStatus() {
@@ -22101,11 +22369,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
   function collectArticles4(root) {
     const results = [];
-    if (root instanceof Element && root.matches(ARTICLE_SELECTOR2)) {
+    if (root instanceof Element && root.matches(ARTICLE_SELECTOR3)) {
       results.push(root);
     }
     if ("querySelectorAll" in root) {
-      for (const article of Array.from(root.querySelectorAll(ARTICLE_SELECTOR2))) {
+      for (const article of Array.from(root.querySelectorAll(ARTICLE_SELECTOR3))) {
         results.push(article);
       }
     }
@@ -22142,7 +22410,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       return;
     }
     const hasHiddenArticle = cell.querySelector(
-      `${ARTICLE_SELECTOR2}[${RESULT_ATTR}="hide"]`
+      `${ARTICLE_SELECTOR3}[${RESULT_ATTR}="hide"]`
     ) !== null;
     cell.toggleAttribute(CELL_RESULT_ATTR, hasHiddenArticle);
   }
@@ -22157,11 +22425,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     };
   }
   function ensureFilterStyle() {
-    if (document.getElementById(STYLE_ID6)) {
+    if (document.getElementById(STYLE_ID7)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID6;
+    style.id = STYLE_ID7;
     style.textContent = FILTER_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -22188,7 +22456,7 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
 `;
 
   // src/features/layout/declutter.ts
-  var STYLE_ID7 = "av-layout-declutter";
+  var STYLE_ID8 = "av-layout-declutter";
   var COMPOSER_SELECTOR = [
     '[data-testid^="tweetTextarea_"]',
     '[data-testid="toolBar"]',
@@ -22212,7 +22480,7 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
       applyLayoutClasses(ctx);
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID7)?.remove();
+      document.getElementById(STYLE_ID8)?.remove();
       unbindWriterListeners();
       document.documentElement.classList.remove(
         "av-hide-right-sidebar",
@@ -22296,11 +22564,11 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
     document.documentElement.classList.remove("av-writing");
   }
   function ensureLayoutStyle() {
-    if (document.getElementById(STYLE_ID7)) {
+    if (document.getElementById(STYLE_ID8)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID7;
+    style.id = STYLE_ID8;
     style.textContent = LAYOUT_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -22571,7 +22839,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
 `;
 
   // src/features/ai/command-menu.ts
-  var STYLE_ID8 = "av-ai-command-menu";
+  var STYLE_ID9 = "av-ai-command-menu";
   var TRIGGER_ATTR = "data-av-ai-trigger";
   var PROCESSED_ATTR3 = "data-av-ai-processed";
   var AI_COMMANDS = [
@@ -22617,7 +22885,7 @@ ${text}`
       if (!ctx.settings.ai.commandMenu) {
         return;
       }
-      ensureStyle4();
+      ensureStyle5();
       decorate2(ctx, document);
       ctx.diagnostics.info("AI command menu ready");
     },
@@ -22626,7 +22894,7 @@ ${text}`
         clearDecorations4();
         return;
       }
-      ensureStyle4();
+      ensureStyle5();
       if (!addedNodes || addedNodes.length === 0) {
         decorate2(ctx, root);
         return;
@@ -22648,7 +22916,7 @@ ${text}`
     closeAiReview?.(false);
     closeAiReview = void 0;
     removeFeatureToast();
-    document.getElementById(STYLE_ID8)?.remove();
+    document.getElementById(STYLE_ID9)?.remove();
     for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR3}]`))) {
       article.removeAttribute(PROCESSED_ATTR3);
     }
@@ -22981,12 +23249,12 @@ ${text}`
     }
     throw new Error("Clipboard API unavailable");
   }
-  function ensureStyle4() {
-    if (document.getElementById(STYLE_ID8)) {
+  function ensureStyle5() {
+    if (document.getElementById(STYLE_ID9)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID8;
+    style.id = STYLE_ID9;
     style.textContent = AI_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -23131,7 +23399,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 `;
 
   // src/features/composer/composer-snippets.ts
-  var STYLE_ID9 = "av-composer-snippets";
+  var STYLE_ID10 = "av-composer-snippets";
   var TOOLBAR_ATTR = "data-av-composer-mounted";
   var PALETTE_ATTR = "data-av-snippet-palette";
   var composerSnippetsFeature = {
@@ -23187,7 +23455,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   function clearDecorations5() {
     closePalettes();
     removeFeatureToast();
-    document.getElementById(STYLE_ID9)?.remove();
+    document.getElementById(STYLE_ID10)?.remove();
     for (const toolbar of Array.from(document.querySelectorAll(`[${TOOLBAR_ATTR}]`))) {
       toolbar.removeAttribute(TOOLBAR_ATTR);
     }
@@ -23388,11 +23656,11 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     popover.style.maxWidth = "320px";
   }
   function ensureComposerStyle() {
-    if (document.getElementById(STYLE_ID9)) {
+    if (document.getElementById(STYLE_ID10)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID9;
+    style.id = STYLE_ID10;
     style.textContent = COMPOSER_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -23452,7 +23720,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 `;
 
   // src/features/core/i18n-feature.ts
-  var STYLE_ID10 = "av-i18n";
+  var STYLE_ID11 = "av-i18n";
   var i18nFeature = {
     id: "core.i18n",
     title: "Internationalization",
@@ -23468,7 +23736,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       applyLocaleClasses(ctx);
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID10)?.remove();
+      document.getElementById(STYLE_ID11)?.remove();
       const root = document.documentElement;
       root.classList.remove("av-rtl", "av-ltr");
       delete root.dataset.avLocale;
@@ -23485,11 +23753,11 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     document.getElementById("av-control-center")?.setAttribute("dir", direction);
   }
   function ensureI18nStyle() {
-    if (document.getElementById(STYLE_ID10)) {
+    if (document.getElementById(STYLE_ID11)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID10;
+    style.id = STYLE_ID11;
     style.textContent = I18N_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -23522,7 +23790,7 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
 `;
 
   // src/features/core/mobile-touch.ts
-  var STYLE_ID11 = "av-mobile-touch";
+  var STYLE_ID12 = "av-mobile-touch";
   var mobileTouchFeature = {
     id: "core.mobileTouch",
     title: "Mobile & touch ergonomics",
@@ -23538,7 +23806,7 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
       applyMobileClasses();
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID11)?.remove();
+      document.getElementById(STYLE_ID12)?.remove();
       document.documentElement.classList.remove("av-mobile", "av-touch");
       ctx.diagnostics.info("Mobile/touch destroyed");
     }
@@ -23554,11 +23822,11 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
     root.classList.toggle("av-mobile", narrow);
   }
   function ensureMobileStyle() {
-    if (document.getElementById(STYLE_ID11)) {
+    if (document.getElementById(STYLE_ID12)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID11;
+    style.id = STYLE_ID12;
     style.textContent = MOBILE_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -23690,6 +23958,17 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
     return TELEMETRY_PATTERNS.some((pattern) => pattern.test(url));
   }
+  function isAdRequestUrl(rawUrl) {
+    if (!rawUrl) {
+      return false;
+    }
+    try {
+      const url = new URL(rawUrl, "https://x.com");
+      return X_GRAPHQL_HOSTNAMES.has(url.hostname.toLowerCase()) && url.pathname === "/i/api/1.1/promoted_content/log.json";
+    } catch {
+      return false;
+    }
+  }
   function isGraphqlUrl(url) {
     return parseGraphqlRoute(url) !== null;
   }
@@ -23759,7 +24038,10 @@ html.av-mobile [data-testid="primaryColumn"] {
   function isPlaylistUrl(url) {
     return /\.m3u8(?:$|\?)/i.test(url);
   }
-  var DISABLED = {
+  var INITIAL_CONFIG = {
+    // Page scripts run at document_start. The default-on ad guard must be active before the
+    // isolated world finishes opening storage; a persisted opt-out replaces this during config.
+    blockAds: true,
     blockBeacons: false,
     captureGraphql: false,
     captureMediaMetadata: false,
@@ -23812,7 +24094,7 @@ html.av-mobile [data-testid="primaryColumn"] {
       }
     };
     state = {
-      config: { ...DISABLED },
+      config: { ...INITIAL_CONFIG },
       peerNonce: void 0,
       target,
       originalFetch,
@@ -23827,8 +24109,9 @@ html.av-mobile [data-testid="primaryColumn"] {
     if (originalSendBeacon && target.navigator) {
       target.navigator.sendBeacon = function patchedSendBeacon(url, data) {
         try {
-          if (state?.config.blockBeacons && isTelemetryUrl(String(url))) {
-            emit("blocked", { url: String(url), via: "sendBeacon", at: now() });
+          const category = blockedRequestCategory(state?.config ?? INITIAL_CONFIG, String(url));
+          if (category) {
+            emit("blocked", { url: String(url), via: "sendBeacon", at: now(), category });
             return true;
           }
         } catch {
@@ -23849,8 +24132,9 @@ html.av-mobile [data-testid="primaryColumn"] {
       xhrProto.send = function patchedSend(...args) {
         try {
           const url = String(this.__aviaryUrl ?? "");
-          if (state?.config.blockBeacons && isTelemetryUrl(url)) {
-            emit("blocked", { url, via: "xhr", at: now() });
+          const category = blockedRequestCategory(state?.config ?? INITIAL_CONFIG, url);
+          if (category) {
+            emit("blocked", { url, via: "xhr", at: now(), category });
             return;
           }
         } catch {
@@ -23885,9 +24169,10 @@ html.av-mobile [data-testid="primaryColumn"] {
       } catch {
         return originalFetch(input, init);
       }
-      const config = state?.config ?? DISABLED;
-      if (config.blockBeacons && isTelemetryUrl(url)) {
-        emit("blocked", { url, via: "fetch", at: now() });
+      const config = state?.config ?? INITIAL_CONFIG;
+      const blockedCategory = blockedRequestCategory(config, url);
+      if (blockedCategory) {
+        emit("blocked", { url, via: "fetch", at: now(), category: blockedCategory });
         return new Response(null, { status: 204, statusText: "No Content" });
       }
       const response = await originalFetch(input, init);
@@ -23974,11 +24259,21 @@ html.av-mobile [data-testid="primaryColumn"] {
   function normalizeConfig(payload) {
     const value = payload ?? {};
     return {
+      blockAds: value.blockAds === true,
       blockBeacons: value.blockBeacons === true,
       captureGraphql: value.captureGraphql === true,
       captureMediaMetadata: value.captureMediaMetadata === true,
       forceVideoQuality: value.forceVideoQuality === true
     };
+  }
+  function blockedRequestCategory(config, url) {
+    if (config.blockAds && isAdRequestUrl(url)) {
+      return "ad";
+    }
+    if (config.blockBeacons && isTelemetryUrl(url)) {
+      return "analytics";
+    }
+    return null;
   }
   function emit(kind, payload) {
     if (!state) {
@@ -24663,7 +24958,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   }
 
   // src/features/library/link-unshorten.ts
-  var STYLE_ID12 = "av-link-unshorten";
+  var STYLE_ID13 = "av-link-unshorten";
   var PROCESSED_ATTR7 = "data-av-link-clean";
   var ORIGINAL_TITLE_PRESENT = "avOriginalTitlePresent";
   var linkUnshortenFeature = {
@@ -24675,17 +24970,17 @@ html.av-mobile [data-testid="primaryColumn"] {
       if (!ctx.settings.links.expandTco) {
         return;
       }
-      ensureStyle5();
+      ensureStyle6();
       scan5(document);
       ctx.diagnostics.info("Link unshortening initialized");
     },
     apply(ctx, root, addedNodes) {
       if (!ctx.settings.links.expandTco) {
         restoreProcessedLinks2();
-        document.getElementById(STYLE_ID12)?.remove();
+        document.getElementById(STYLE_ID13)?.remove();
         return;
       }
-      ensureStyle5();
+      ensureStyle6();
       if (!addedNodes || addedNodes.length === 0) {
         scan5(root);
         return;
@@ -24696,7 +24991,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     },
     destroy(ctx) {
       restoreProcessedLinks2();
-      document.getElementById(STYLE_ID12)?.remove();
+      document.getElementById(STYLE_ID13)?.remove();
       ctx.diagnostics.info("Link unshortening destroyed");
     }
   };
@@ -24752,13 +25047,13 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
   }
   function resolveDestination(anchor) {
-    const candidates = [
+    const candidates2 = [
       anchor.getAttribute("aria-label") ?? "",
       anchor.getAttribute("data-expanded-url") ?? "",
       anchor.title,
       anchor.textContent ?? ""
     ];
-    for (const candidate of candidates) {
+    for (const candidate of candidates2) {
       const match = /https?:\/\/[^\s]+/i.exec(candidate);
       if (match && !/^https?:\/\/t\.co\//i.test(match[0])) {
         return match[0];
@@ -24766,12 +25061,12 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
     return null;
   }
-  function ensureStyle5() {
-    if (document.getElementById(STYLE_ID12)) {
+  function ensureStyle6() {
+    if (document.getElementById(STYLE_ID13)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID12;
+    style.id = STYLE_ID13;
     style.textContent = LINK_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -24783,7 +25078,7 @@ a.av-link-clean {
 `;
 
   // src/features/media/media-presentation.ts
-  var STYLE_ID13 = "av-media-presentation";
+  var STYLE_ID14 = "av-media-presentation";
   var mediaPresentationFeature = {
     id: "media.presentation",
     title: "Media presentation",
@@ -24801,7 +25096,7 @@ a.av-link-clean {
       applyPresentationClasses(ctx);
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID13)?.remove();
+      document.getElementById(STYLE_ID14)?.remove();
       const root = document.documentElement;
       for (const className of [
         "av-media-layout-default",
@@ -24825,11 +25120,11 @@ a.av-link-clean {
     root.classList.add(`av-media-layout-${ctx.settings.media.layout}`);
   }
   function ensurePresentationStyle() {
-    if (document.getElementById(STYLE_ID13)) {
+    if (document.getElementById(STYLE_ID14)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID13;
+    style.id = STYLE_ID14;
     style.textContent = PRESENTATION_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -25317,11 +25612,13 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     if (path === "/home") return "home";
     if (/\/status\/\d+/.test(path)) return "status";
     if (path.startsWith("/notifications")) return "notifications";
-    if (path.startsWith("/messages")) return "messages";
+    if (path.startsWith("/messages") || path.startsWith("/i/chat")) return "messages";
     if (path.startsWith("/settings")) return "settings";
     if (path.startsWith("/search")) return "search";
     if (path.startsWith("/i/grok")) return "grok";
-    if (/^\/[^/]+(?:\/(?:followers|following|verified_followers))\/?$/.test(path)) {
+    if (/^\/[^/]+(?:\/(?:followers|following|verified_followers|with_replies|media|likes|highlights|articles))\/?$/.test(
+      path
+    )) {
       return "profile";
     }
     if (/^\/[^/]+\/?$/.test(path)) return "profile";
@@ -25918,13 +26215,22 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     return bootingApp;
   }
   async function bootInternal(options) {
+    installEarlyAdShield();
     if (DEFAULT_SETTINGS.appearance.theme !== "off") {
       document.documentElement.dataset.avTheme = DEFAULT_SETTINGS.appearance.theme;
     }
     document.documentElement.dataset.avReady = "booting";
+    const diagnostics = new Diagnostics();
+    const pageBridge = createPageBridge({ source: options.source, diagnostics });
+    pageBridge.configure({
+      blockAds: DEFAULT_SETTINGS.privacy.blockAds,
+      blockBeacons: false,
+      captureGraphql: false,
+      captureMediaMetadata: false,
+      forceVideoQuality: false
+    });
     const legacyStorage = createStorageGateway("aviary");
     const durableStorage = createDurableStorageGateway(legacyStorage);
-    const diagnostics = new Diagnostics();
     setStorageErrorSink((key, error, op) => {
       diagnostics.error(
         op === "read" ? `Storage could not read ${key}` : `Storage write failed to save ${key}`,
@@ -25969,6 +26275,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     registry.register(themeFeature);
     registry.register(i18nFeature);
     registry.register(selectorHealthFeature);
+    registry.register(adProtectionFeature);
     registry.register(layoutDeclutterFeature);
     registry.register(filterEngineFeature);
     registry.register(hiddenPostsFeature);
@@ -25989,7 +26296,6 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     registry.register(networkCaptureFeature);
     registry.register(aiCommandMenuFeature);
     registry.register(controlCenterFeature);
-    const pageBridge = createPageBridge({ source: options.source, diagnostics });
     const context = {
       route: readRoute(),
       settings,

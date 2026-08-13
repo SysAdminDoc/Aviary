@@ -162,6 +162,7 @@ export interface AviarySettings {
   privacy: {
     localOnly: boolean;
     telemetry: false;
+    blockAds: boolean;
     blockAnalyticsBeacons: boolean;
     auditLog: boolean;
   };
@@ -257,6 +258,10 @@ export const DEFAULT_SETTINGS: AviarySettings = {
   privacy: {
     localOnly: true,
     telemetry: false,
+    // Ads are the one visible exception to Aviary's otherwise opt-in defaults. Native sponsored
+    // records share X's timeline response, so the safe default is to collapse those placements
+    // before paint and refuse only the separable promoted-content logging endpoint.
+    blockAds: true,
     // Off by default. Aviary sends no telemetry of its own either way; this refuses X's, which
     // is a change to how the site behaves and is the user's call to make, not a default.
     blockAnalyticsBeacons: false,
@@ -437,6 +442,7 @@ export function normalizeSettings(input: unknown): AviarySettings {
         ? false
         : booleanValue(privacy.localOnly, DEFAULT_SETTINGS.privacy.localOnly),
       telemetry: false,
+      blockAds: booleanValue(privacy.blockAds, DEFAULT_SETTINGS.privacy.blockAds),
       blockAnalyticsBeacons: booleanValue(
         privacy.blockAnalyticsBeacons,
         DEFAULT_SETTINGS.privacy.blockAnalyticsBeacons

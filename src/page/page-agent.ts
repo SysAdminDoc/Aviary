@@ -29,6 +29,7 @@ export type PageAgentKind =
   | "teardown";
 
 export interface PageAgentConfig {
+  blockAds: boolean;
   blockBeacons: boolean;
   captureGraphql: boolean;
   captureMediaMetadata: boolean;
@@ -60,6 +61,7 @@ export interface BlockedBeaconPayload {
   url: string;
   via: "fetch" | "xhr" | "sendBeacon";
   at: string;
+  category: "ad" | "analytics";
 }
 
 export interface PlaylistRewritePayload {
@@ -176,6 +178,29 @@ export function isTelemetryUrl(url: string): boolean {
   return TELEMETRY_PATTERNS.some((pattern) => pattern.test(url));
 }
 
+/**
+ * The only ad request live recon proved separable from timeline delivery.
+ *
+ * Sponsored records themselves arrive inside HomeTimeline GraphQL responses, so blocking that
+ * transport would blank organic content too. X sends impression/click bookkeeping separately to
+ * this exact first-party endpoint; refusing it cannot intercept login, timeline, media, or action
+ * traffic. Keep this matcher deliberately narrower than the DOM detector.
+ */
+export function isAdRequestUrl(rawUrl: string): boolean {
+  if (!rawUrl) {
+    return false;
+  }
+  try {
+    const url = new URL(rawUrl, "https://x.com");
+    return (
+      X_GRAPHQL_HOSTNAMES.has(url.hostname.toLowerCase()) &&
+      url.pathname === "/i/api/1.1/promoted_content/log.json"
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function isGraphqlUrl(url: string): boolean {
   return parseGraphqlRoute(url) !== null;
 }
@@ -290,7 +315,10 @@ export interface PageAgentTarget {
   location?: { origin?: string };
 }
 
-const DISABLED: PageAgentConfig = {
+const INITIAL_CONFIG: PageAgentConfig = {
+  // Page scripts run at document_start. The default-on ad guard must be active before the
+  // isolated world finishes opening storage; a persisted opt-out replaces this during config.
+  blockAds: true,
   blockBeacons: false,
   captureGraphql: false,
   captureMediaMetadata: false,
@@ -384,7 +412,7 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
   };
 
   state = {
-    config: { ...DISABLED },
+    config: { ...INITIAL_CONFIG },
     peerNonce: undefined,
     target,
     originalFetch,
@@ -401,8 +429,9 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
   if (originalSendBeacon && target.navigator) {
     target.navigator.sendBeacon = function patchedSendBeacon(url: string, data?: unknown): boolean {
       try {
-        if (state?.config.blockBeacons && isTelemetryUrl(String(url))) {
-          emit("blocked", { url: String(url), via: "sendBeacon", at: now() });
+        const category = blockedRequestCategory(state?.config ?? INITIAL_CONFIG, String(url));
+        if (category) {
+          emit("blocked", { url: String(url), via: "sendBeacon", at: now(), category });
           // Report success: a refused beacon must look delivered, or X's client retries it.
           return true;
         }
@@ -427,8 +456,9 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
     xhrProto.send = function patchedSend(this: Record<string, unknown>, ...args: unknown[]): void {
       try {
         const url = String(this.__aviaryUrl ?? "");
-        if (state?.config.blockBeacons && isTelemetryUrl(url)) {
-          emit("blocked", { url, via: "xhr", at: now() });
+        const category = blockedRequestCategory(state?.config ?? INITIAL_CONFIG, url);
+        if (category) {
+          emit("blocked", { url, via: "xhr", at: now(), category });
           return;
         }
       } catch {
@@ -472,10 +502,11 @@ function makePatchedFetch(originalFetch: typeof fetch, baseOrigin?: string): typ
       return originalFetch(input, init);
     }
 
-    const config = state?.config ?? DISABLED;
+    const config = state?.config ?? INITIAL_CONFIG;
 
-    if (config.blockBeacons && isTelemetryUrl(url)) {
-      emit("blocked", { url, via: "fetch", at: now() });
+    const blockedCategory = blockedRequestCategory(config, url);
+    if (blockedCategory) {
+      emit("blocked", { url, via: "fetch", at: now(), category: blockedCategory });
       // 204 rather than a rejection: a thrown fetch surfaces in X's own error reporting, which is
       // both noisy and itself a telemetry call.
       return new Response(null, { status: 204, statusText: "No Content" });
@@ -579,11 +610,25 @@ function parseGraphqlRoute(
 function normalizeConfig(payload: unknown): PageAgentConfig {
   const value = (payload ?? {}) as Partial<PageAgentConfig>;
   return {
+    blockAds: value.blockAds === true,
     blockBeacons: value.blockBeacons === true,
     captureGraphql: value.captureGraphql === true,
     captureMediaMetadata: value.captureMediaMetadata === true,
     forceVideoQuality: value.forceVideoQuality === true
   };
+}
+
+function blockedRequestCategory(
+  config: PageAgentConfig,
+  url: string
+): "ad" | "analytics" | null {
+  if (config.blockAds && isAdRequestUrl(url)) {
+    return "ad";
+  }
+  if (config.blockBeacons && isTelemetryUrl(url)) {
+    return "analytics";
+  }
+  return null;
 }
 
 function emit(kind: PageAgentKind, payload?: unknown): void {

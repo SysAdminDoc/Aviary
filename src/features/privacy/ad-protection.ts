@@ -1,0 +1,262 @@
+import type { FeatureContext, FeatureModule, FeatureStatus } from "../registry";
+
+const STYLE_ID = "av-ad-protection";
+const HIDDEN_ATTRIBUTE = "data-av-ad-hidden";
+const ARTICLE_SELECTOR = 'article[data-testid="tweet"]';
+const TREND_SELECTOR = '[data-testid="trend"]';
+const VIDEO_SELECTOR = '[data-testid="videoPlayer"], [data-testid="videoComponent"]';
+const HOUSE_PROMO_SELECTOR = [
+  'aside[aria-label="Subscribe to Premium"]',
+  '[data-testid^="super-upsell"]',
+  'aside[role="complementary"]:has(a[href*="grok.com"])'
+].join(", ");
+
+const AD_LABELS = new Set([
+  "Ad",
+  "Promoted",
+  "Sponsored",
+  "Paid partnership",
+  "Anuncio",
+  "Promocionado",
+  "Patrocinado",
+  "Colaboración pagada",
+  "Publicité",
+  "Sponsorisé",
+  "Partenariat rémunéré",
+  "Anzeige",
+  "Gesponsert",
+  "Bezahlte Partnerschaft",
+  "広告",
+  "プロモーション",
+  "タイアップ",
+  "광고",
+  "프로모션",
+  "유료 파트너십",
+  "Anúncio",
+  "Promovido",
+  "Parceria paga",
+  "إعلان",
+  "مُروَّج",
+  "شراكة مدفوعة",
+  "מודעה",
+  "מקודם",
+  "שותפות בתשלום"
+]);
+
+const PROMOTED_TREND_PREFIXES = [
+  "Promoted by",
+  "Sponsored by",
+  "Promocionado por",
+  "Patrocinado por",
+  "Sponsorisé par",
+  "Gesponsert von",
+  "プロモーション",
+  "프로모션",
+  "Promovido por",
+  "مُروَّج بواسطة",
+  "מקודם על ידי"
+];
+
+const VIDEO_AD_MARKERS = [
+  /Video will play after ad/i,
+  /Skip Ad(?: in \d+ seconds?)?/i,
+  /Ad will end in \d+ seconds?/i
+];
+
+let hiddenPlacements = 0;
+let suppressedVideoAds = 0;
+
+/**
+ * Installs the paint-time half before storage or the feature registry can yield.
+ *
+ * Structural links and placement metadata are available in the same DOM insertion as the ad, so
+ * modern :has() selectors can collapse those nodes in the first style calculation. The runtime
+ * scanner below handles exact localized labels, counters, SPA reinsertion, and reversible opt-out.
+ */
+export function installEarlyAdShield(): void {
+  if (typeof document === "undefined") return;
+  document.documentElement.classList.add("av-block-ads");
+  ensureStyle();
+}
+
+export const adProtectionFeature: FeatureModule = {
+  id: "privacy.adProtection",
+  title: "Ad protection",
+  category: "privacy",
+  defaultEnabled: true,
+
+  init(ctx) {
+    ensureStyle();
+    applyAdProtection(ctx, document);
+  },
+
+  apply(ctx, root, addedNodes) {
+    ensureStyle();
+    applyAdProtection(ctx, root, addedNodes);
+  },
+
+  destroy(ctx) {
+    document.documentElement.classList.remove("av-block-ads");
+    clearMarked(document);
+    document.getElementById(STYLE_ID)?.remove();
+    hiddenPlacements = 0;
+    suppressedVideoAds = 0;
+    ctx.diagnostics.info("Ad protection destroyed");
+  },
+
+  getStatus(): FeatureStatus {
+    const parts = [`${hiddenPlacements} placement${hiddenPlacements === 1 ? "" : "s"} removed`];
+    if (suppressedVideoAds > 0) {
+      parts.push(`${suppressedVideoAds} pre-roll${suppressedVideoAds === 1 ? "" : "s"} suppressed`);
+    }
+    return { ok: true, message: parts.join(" · ") };
+  }
+};
+
+export function adProtectionCounters(): {
+  hiddenPlacements: number;
+  suppressedVideoAds: number;
+} {
+  return { hiddenPlacements, suppressedVideoAds };
+}
+
+function applyAdProtection(
+  ctx: FeatureContext,
+  root: ParentNode,
+  addedNodes?: Element[]
+): void {
+  const enabled = ctx.settings.privacy.blockAds;
+  document.documentElement.classList.toggle("av-block-ads", enabled);
+  if (!enabled) {
+    clearMarked(document);
+    return;
+  }
+
+  const scopes: ParentNode[] = addedNodes && addedNodes.length > 0 ? addedNodes : [root];
+  for (const scope of scopes) {
+    for (const article of candidates(scope, ARTICLE_SELECTOR)) {
+      if (isSponsoredArticle(article)) {
+        hidePlacement(article, "post");
+      }
+    }
+    for (const trend of candidates(scope, TREND_SELECTOR)) {
+      if (isPromotedTrend(trend)) {
+        hidePlacement(trend, "trend");
+      }
+    }
+    for (const promo of candidates(scope, HOUSE_PROMO_SELECTOR)) {
+      hidePlacement(promo, "house");
+    }
+    for (const video of candidates(scope, VIDEO_SELECTOR)) {
+      const hasAd = containsVideoAdMarker(video);
+      if (hasAd) {
+        hidePlacement(video, "video");
+      } else if (video.getAttribute(HIDDEN_ATTRIBUTE) === "video") {
+        video.removeAttribute(HIDDEN_ATTRIBUTE);
+      }
+    }
+  }
+}
+
+function candidates(root: ParentNode, selector: string): Element[] {
+  const found = new Set<Element>();
+  if (root instanceof Element) {
+    try {
+      if (root.matches(selector)) found.add(root);
+      const ancestor = root.closest(selector);
+      if (ancestor) found.add(ancestor);
+    } catch {
+      // A browser without :has() still gets every non-house detector below.
+    }
+  }
+  try {
+    for (const element of Array.from(root.querySelectorAll(selector))) found.add(element);
+  } catch {
+    // Selector support is best-effort; an unsupported house-promo selector must not stop posts.
+  }
+  return [...found];
+}
+
+function isSponsoredArticle(article: Element): boolean {
+  if (
+    article.querySelector(
+      'a[href*="twclid="], a[href*="ad.doubleclick.net"], a[href*="/rules-and-policies/paid-partnerships-policy"]'
+    )
+  ) {
+    return true;
+  }
+  const structuralPlacement = article.querySelector('[data-testid="placementTracking"]') !== null;
+  const lacksTimestamp = article.querySelector("time") === null;
+  return (structuralPlacement || lacksTimestamp) && containsExactLabel(article, AD_LABELS);
+}
+
+function isPromotedTrend(trend: Element): boolean {
+  const lines = textLines(trend);
+  return lines.some((line) => PROMOTED_TREND_PREFIXES.some((prefix) => line.startsWith(prefix)));
+}
+
+function containsExactLabel(root: Element, labels: ReadonlySet<string>): boolean {
+  if (labels.has((root.textContent ?? "").trim())) return true;
+  for (const node of Array.from(root.querySelectorAll("span, div"))) {
+    if (labels.has((node.textContent ?? "").trim())) return true;
+  }
+  return false;
+}
+
+function containsVideoAdMarker(video: Element): boolean {
+  return textLines(video).some((line) => VIDEO_AD_MARKERS.some((pattern) => pattern.test(line)));
+}
+
+function textLines(root: Element): string[] {
+  return ((root as HTMLElement).innerText || root.textContent || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function hidePlacement(element: Element, kind: "post" | "trend" | "house" | "video"): void {
+  const target =
+    kind === "post" ? element.closest('[data-testid="cellInnerDiv"]') ?? element : element;
+  if (target.hasAttribute(HIDDEN_ATTRIBUTE)) return;
+  target.setAttribute(HIDDEN_ATTRIBUTE, kind);
+  if (kind === "video") suppressedVideoAds += 1;
+  else hiddenPlacements += 1;
+}
+
+function clearMarked(root: ParentNode): void {
+  if (root instanceof Element && root.hasAttribute(HIDDEN_ATTRIBUTE)) {
+    root.removeAttribute(HIDDEN_ATTRIBUTE);
+  }
+  for (const element of Array.from(root.querySelectorAll(`[${HIDDEN_ATTRIBUTE}]`))) {
+    element.removeAttribute(HIDDEN_ATTRIBUTE);
+  }
+}
+
+function ensureStyle(): void {
+  if (document.getElementById(STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = STYLE_ID;
+  style.textContent = AD_PROTECTION_CSS;
+  (document.head ?? document.documentElement).append(style);
+}
+
+export const AD_PROTECTION_CSS = `
+html.av-block-ads [${HIDDEN_ATTRIBUTE}] {
+  display: none !important;
+}
+
+/* Collapse the virtualizer cell, not just its article, so an ad cannot leave a feed-sized gap. */
+html.av-block-ads [data-testid="cellInnerDiv"]:has(${ARTICLE_SELECTOR} a[href*="twclid="]),
+html.av-block-ads [data-testid="cellInnerDiv"]:has(${ARTICLE_SELECTOR} a[href*="ad.doubleclick.net"]),
+html.av-block-ads [data-testid="cellInnerDiv"]:has(${ARTICLE_SELECTOR} a[href*="/rules-and-policies/paid-partnerships-policy"]),
+html.av-block-ads [data-testid="cellInnerDiv"]:has(${ARTICLE_SELECTOR} [data-testid="placementTracking"]):not(:has(${ARTICLE_SELECTOR} time)),
+html.av-block-ads ${ARTICLE_SELECTOR}:has(a[href*="twclid="]),
+html.av-block-ads ${ARTICLE_SELECTOR}:has(a[href*="ad.doubleclick.net"]),
+html.av-block-ads ${ARTICLE_SELECTOR}:has(a[href*="/rules-and-policies/paid-partnerships-policy"]),
+html.av-block-ads ${ARTICLE_SELECTOR}:not(:has(time)):has([data-testid="placementTracking"]),
+html.av-block-ads aside[aria-label="Subscribe to Premium"],
+html.av-block-ads [data-testid^="super-upsell"],
+html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
+  display: none !important;
+}
+`;

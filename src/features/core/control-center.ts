@@ -17,6 +17,7 @@ import {
   mountControlCenter
 } from "../../ui/control-center";
 import { pageHookCounters } from "../privacy/page-hooks";
+import { adProtectionCounters } from "../privacy/ad-protection";
 import { getSelectorHealthSnapshot } from "./selector-health";
 import { applyPreset, describePresetDelta, getPreset, listPresets } from "./presets";
 import {
@@ -328,10 +329,15 @@ export const controlCenterFeature: FeatureModule = {
       },
       getPageHooks() {
         const bridge = ctx.pageBridge;
+        const hooks = pageHookCounters();
+        const ads = adProtectionCounters();
         return {
           reachable: bridge ? bridge.status() !== "unavailable" : false,
           reason: bridge?.reason() ?? "",
-          blockedBeacons: pageHookCounters().blockedBeacons
+          blockedBeacons: hooks.blockedBeacons,
+          blockedAdRequests: hooks.blockedAdRequests,
+          hiddenPlacements: ads.hiddenPlacements,
+          suppressedVideoAds: ads.suppressedVideoAds
         };
       },
       getSelectorHealth() {

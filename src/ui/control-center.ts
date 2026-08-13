@@ -149,7 +149,14 @@ export interface ControlCenterOptions {
    * there. The counts matter as much as the toggle: an installed hook that never fires looks
    * exactly like a hook that does not work.
    */
-  getPageHooks?: () => { reachable: boolean; reason: string; blockedBeacons: number };
+  getPageHooks?: () => {
+    reachable: boolean;
+    reason: string;
+    blockedBeacons: number;
+    blockedAdRequests: number;
+    hiddenPlacements: number;
+    suppressedVideoAds: number;
+  };
   getSelectorHealth?: () => SelectorHealthStatus;
   clearAuditLog?: () => Promise<void>;
   getRetentionPolicy?: () => RetentionPolicy;
@@ -1017,6 +1024,16 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     ];
     if (hooks.reachable && options.settings.privacy.blockAnalyticsBeacons) {
       rows.push(dataRow("Beacons refused", String(hooks.blockedBeacons)));
+    }
+    if (options.settings.privacy.blockAds) {
+      const prerolls =
+        hooks.suppressedVideoAds > 0 ? ` · ${hooks.suppressedVideoAds} pre-rolls suppressed` : "";
+      rows.push(
+        dataRow(
+          "Ad protection",
+          `${hooks.hiddenPlacements} placements removed · ${hooks.blockedAdRequests} logging calls refused${prerolls}`
+        )
+      );
     }
     return rows;
   };

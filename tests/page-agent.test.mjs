@@ -77,8 +77,8 @@ const MASTER_PLAYLIST = [
   ""
 ].join("\n");
 
-test("the telemetry matcher cannot match a GraphQL request", async () => {
-  const { isTelemetryUrl, isGraphqlUrl } = await importBundledModule("src/page/page-agent.ts");
+test("request guards cannot match timeline, media, login, or action traffic", async () => {
+  const { isTelemetryUrl, isAdRequestUrl, isGraphqlUrl } = await importBundledModule("src/page/page-agent.ts");
 
   // The direction that matters. A matcher one character too greedy would not fail loudly here --
   // it would blank the timeline on live X, where nothing in this repo can observe it.
@@ -94,6 +94,7 @@ test("the telemetry matcher cannot match a GraphQL request", async () => {
   ];
   for (const url of timelineUrls) {
     assert.equal(isTelemetryUrl(url), false, `must not treat as telemetry: ${url}`);
+    assert.equal(isAdRequestUrl(url), false, `must not treat as ad logging: ${url}`);
   }
 
   const telemetryUrls = [
@@ -108,6 +109,10 @@ test("the telemetry matcher cannot match a GraphQL request", async () => {
 
   assert.equal(isGraphqlUrl("https://x.com/i/api/graphql/abc123/HomeTimeline"), true);
   assert.equal(isGraphqlUrl("https://x.com/i/api/1.1/jot/client_event.json"), false);
+  assert.equal(isAdRequestUrl("https://x.com/i/api/1.1/promoted_content/log.json"), true);
+  assert.equal(isAdRequestUrl("/i/api/1.1/promoted_content/log.json?event=impression"), true);
+  assert.equal(isAdRequestUrl("https://evil.example/i/api/1.1/promoted_content/log.json"), false);
+  assert.equal(isAdRequestUrl("https://x.com/i/api/1.1/promoted_content/content.json"), false);
 });
 
 test("the isolated GraphQL boundary rejects forged, inconsistent, oversized, and malformed events", async () => {
@@ -163,7 +168,7 @@ test("the isolated GraphQL boundary rejects forged, inconsistent, oversized, and
   );
 });
 
-test("installing the agent patches nothing until a config enables a hook", async () => {
+test("startup refuses only the exact ad logger while optional hooks remain off", async () => {
   const { installPageAgent } = await importBundledModule("src/page/page-agent.ts");
   const target = fakeWindow();
 
@@ -176,6 +181,9 @@ test("installing the agent patches nothing until a config enables a hook", async
 
     assert.equal(target.navigator.sendBeacon("https://x.com/i/api/1.1/jot/client_event.json"), true);
     assert.equal(target.calls.beacon.length, 1, "the original sendBeacon must have run");
+
+    const adLog = await target.fetch("https://x.com/i/api/1.1/promoted_content/log.json");
+    assert.equal(adLog.status, 204, "the default-on guard must beat the first promoted log call");
   } finally {
     uninstall();
   }
@@ -190,6 +198,7 @@ test("an enabled beacon hook refuses telemetry and reports it, without disturbin
 
   try {
     sendConfig(target, PAGE_CHANNEL, {
+      blockAds: false,
       blockBeacons: true,
       captureGraphql: false,
       forceVideoQuality: false
@@ -214,6 +223,55 @@ test("an enabled beacon hook refuses telemetry and reports it, without disturbin
       blockedEvents.map((event) => event.payload.via).sort(),
       ["fetch", "sendBeacon"]
     );
+    assert.ok(blockedEvents.every((event) => event.payload.category === "analytics"));
+  } finally {
+    uninstall();
+  }
+});
+
+test("ad protection refuses promoted logging across fetch, XHR, and sendBeacon only", async () => {
+  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+  const target = fakeWindow(async (input) => new Response(`served:${String(input)}`, { status: 200 }));
+  const events = [];
+  const uninstall = installPageAgent(target, (envelope) => events.push(envelope));
+
+  try {
+    sendConfig(target, PAGE_CHANNEL, {
+      blockAds: true,
+      blockBeacons: false,
+      captureGraphql: false,
+      captureMediaMetadata: false,
+      forceVideoQuality: false
+    });
+
+    assert.equal(
+      (await target.fetch("https://x.com/i/api/1.1/promoted_content/log.json?event=impression")).status,
+      204
+    );
+    assert.equal(
+      await (await target.fetch("https://x.com/i/api/graphql/abc/HomeTimeline")).text(),
+      "served:https://x.com/i/api/graphql/abc/HomeTimeline"
+    );
+    assert.equal(
+      await (await target.fetch("https://x.com/i/api/1.1/promoted_content/content.json")).text(),
+      "served:https://x.com/i/api/1.1/promoted_content/content.json"
+    );
+
+    const xhr = Object.create(target.XMLHttpRequest.prototype);
+    xhr.open("POST", "https://x.com/i/api/1.1/promoted_content/log.json");
+    xhr.send("payload");
+    assert.equal(target.calls.xhrSend.length, 0);
+
+    assert.equal(
+      target.navigator.sendBeacon("https://x.com/i/api/1.1/promoted_content/log.json", "payload"),
+      true
+    );
+    assert.equal(target.calls.beacon.length, 0);
+
+    const blocked = events.filter((event) => event.kind === "blocked");
+    assert.equal(blocked.length, 3);
+    assert.ok(blocked.every((event) => event.payload.category === "ad"));
+    assert.deepEqual(blocked.map((event) => event.payload.via).sort(), ["fetch", "sendBeacon", "xhr"]);
   } finally {
     uninstall();
   }

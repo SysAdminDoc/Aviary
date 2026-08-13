@@ -19,6 +19,7 @@ before(async () => {
     entry,
     [
       `export { selectorHealthFeature, getSelectorHealthSnapshot } from ${JSON.stringify(path.join(root, "src/features/core/selector-health.ts").replace(/\\/g, "/"))};`,
+      `export { getSelectorHealthForRoute } from ${JSON.stringify(path.join(root, "src/platform/selectors.ts").replace(/\\/g, "/"))};`,
       `export { mountControlCenter } from ${JSON.stringify(path.join(root, "src/ui/control-center.ts").replace(/\\/g, "/"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(path.join(root, "src/platform/settings.ts").replace(/\\/g, "/"))};`
     ].join("\n"),
@@ -134,4 +135,26 @@ test("Trust shows current selector matches and clears a required-surface warning
   assert.match(result.restored.summary, /Healthy · home/);
   assert.equal(result.restored.snapshot.lastTransition.from, "degraded");
   assert.equal(result.restored.snapshot.lastTransition.to, "healthy");
+});
+
+test("current settings pages do not require the timeline-only primary column", async () => {
+  const result = await page.evaluate(() => {
+    document.body.replaceChildren();
+    const app = document.createElement("div");
+    app.id = "react-root";
+    const nav = document.createElement("nav");
+    const link = document.createElement("a");
+    link.setAttribute("data-testid", "AppTabBar_Home_Link");
+    nav.append(link);
+    app.append(nav);
+    document.body.append(app);
+    return AviarySelectorHealth.getSelectorHealthForRoute(document, "settings");
+  });
+
+  const primary = result.find((item) => item.surface === "Primary column");
+  const appRoot = result.find((item) => item.surface === "App root");
+  const navigation = result.find((item) => item.surface === "Navigation");
+  assert.equal(primary.relevance, "inapplicable");
+  assert.equal(appRoot.relevance, "required");
+  assert.equal(navigation.relevance, "required");
 });
