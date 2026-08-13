@@ -23778,6 +23778,15 @@ html.av-hide-right-sidebar [data-testid="sidebarColumn"] {
   display: none !important;
 }
 
+/* Once the discovery rail is gone, current X leaves its 820px reading column pinned to the
+   rail's old edge inside a wider main canvas. Center it on full desktop layouts so the empty
+   space becomes an intentional gutter on both sides instead of a stranded right-hand void. */
+@media (min-width: 1200px) {
+  html.av-hide-right-sidebar main[role="main"] div:has(> [data-testid="primaryColumn"]) {
+    justify-content: center !important;
+  }
+}
+
 /* Current X puts a zero-height news_sidebar marker beside the visible news card and nests
    trends inside an unlabelled region. Collapse the semantic module boundaries so headings and
    empty card chrome do not survive after their rows disappear. Keep the leaf selectors as a

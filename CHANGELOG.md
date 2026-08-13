@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed
+
+- Hiding the discovery rail now centers the comfortable reading column on full desktop layouts,
+  turning the released space into balanced gutters instead of a stranded right-side void.
+
 ## 1.20.0 - 2026-08-13
 
 ### Added

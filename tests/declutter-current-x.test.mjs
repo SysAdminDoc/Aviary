@@ -58,13 +58,17 @@ test("current Home declutter controls collapse complete modules and restore ever
         <a id="studio" href="/i/jf/creators/studio">Creator Studio</a>
         <a id="premium" data-testid="premium-signup-tab" href="/i/premium_sign_up">Premium</a>
       </nav>
-      <main data-testid="primaryColumn">
-        <div aria-label="Home timeline">
-          <div id="home-composer">
-            <div data-testid="tweetTextarea_0" role="textbox"></div>
-            <div data-testid="toolBar"><button data-testid="tweetButtonInline">Post</button></div>
+      <main role="main">
+        <div id="reading-frame" style="display:flex;width:990px;justify-content:space-between">
+          <div data-testid="primaryColumn" style="flex:0 0 820px;width:820px">
+            <div aria-label="Home timeline">
+              <div id="home-composer">
+                <div data-testid="tweetTextarea_0" role="textbox"></div>
+                <div data-testid="toolBar"><button data-testid="tweetButtonInline">Post</button></div>
+              </div>
+              <section id="organic-feed"><article data-testid="tweet">Organic post</article></section>
+            </div>
           </div>
-          <section id="organic-feed"><article data-testid="tweet">Organic post</article></section>
         </div>
       </main>
       <aside data-testid="sidebarColumn">
@@ -87,7 +91,7 @@ test("current Home declutter controls collapse complete modules and restore ever
 
     const settings = AviaryDeclutter.normalizeSettings({
       layout: {
-        hideRightSidebar: false,
+        hideRightSidebar: true,
         hideTrends: true,
         hideFollowSuggestions: true,
         hideHomeComposer: true,
@@ -124,6 +128,12 @@ test("current Home declutter controls collapse complete modules and restore ever
         "organic-feed"
       ].map((id) => [id, display(id)])
     );
+    const frameRect = document.getElementById("reading-frame").getBoundingClientRect();
+    const primaryRect = document.querySelector('[data-testid="primaryColumn"]').getBoundingClientRect();
+    const balance = {
+      left: Math.round(primaryRect.left - frameRect.left),
+      right: Math.round(frameRect.right - primaryRect.right)
+    };
 
     context.route = { href: "https://x.com/fixture/status/1", path: "/fixture/status/1", surface: "status" };
     feature.apply(context, document);
@@ -131,6 +141,7 @@ test("current Home declutter controls collapse complete modules and restore ever
 
     Object.assign(settings.layout, {
       hideTrends: false,
+      hideRightSidebar: false,
       hideFollowSuggestions: false,
       hideHomeComposer: false,
       hideGrok: false,
@@ -163,6 +174,7 @@ test("current Home declutter controls collapse complete modules and restore ever
         hideHomeComposer: AviaryDeclutter.DEFAULT_SETTINGS.layout.hideHomeComposer
       },
       hidden,
+      balance,
       composerOnStatus,
       restored,
       teardown: {
@@ -173,6 +185,7 @@ test("current Home declutter controls collapse complete modules and restore ever
   });
 
   assert.deepEqual(result.defaults, { hideFollowSuggestions: false, hideHomeComposer: false });
+  assert.deepEqual(result.balance, { left: 85, right: 85 }, "focused Home should center its reading column");
   for (const id of [
     "news-module",
     "trends-module",
