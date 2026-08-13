@@ -6,7 +6,8 @@ Updated: 2026-08-13 · release 1.20.0
 
 Aviary is local-first. The default build sends no telemetry, loads no remote code, exports no
 cookies or authentication headers, and makes no provider request. Default-on ad protection answers
-X's exact `/i/api/1.1/promoted_content/log.json` event locally before a request is issued; it does
+X's exact `/i/api/1.1/promoted_content/log.json` event locally in the userscript and blocks it with
+a host-scoped dynamic request rule in the extension before a network connection; it does
 not block HomeTimeline, media, login, or unrelated analytics traffic. Native sponsored records are
 delivered inside the same first-party timeline response as ordinary posts, so Aviary suppresses
 their rendering but cannot truthfully claim those bytes were absent. Optional page-world capture
@@ -28,7 +29,10 @@ Every integration is disabled by default and requires an explicit setting, endpo
 and (for actions) a user gesture. Local prompt building works without an AI key. The options page
 grant/revoke controls are local extension UI and do not send data.
 
-The extension's optional permissions are `downloads` and direct media-host access for
+The extension's required permissions are `storage` and
+`declarativeNetRequestWithHostAccess`. The latter is bounded by the existing X/Twitter host list
+and owns only the exact promoted logger rule; shipped builds omit diagnostic feedback, broad
+`webRequest`, and `<all_urls>` access. Optional permissions are `downloads` and direct media-host access for
 `pbs.twimg.com` and `video.twimg.com`. They are requested only from the options page and can be
 revoked there; the userscript declares the equivalent `GM_download`/`@connect` surfaces in its
 metadata.

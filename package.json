@@ -17,7 +17,7 @@
     "test": "node --test tests/*.test.mjs",
     "test:matrix": "node --test tests/release-matrix.test.mjs",
     "typecheck": "tsc --noEmit",
-    "smoke": "node tests/smoke/aviary.smoke.mjs && node tests/smoke/externally-gated.smoke.mjs",
+    "smoke": "node tests/smoke/dnr-chromium.smoke.mjs && node tests/smoke/dnr-firefox.smoke.mjs && node tests/smoke/aviary.smoke.mjs && node tests/smoke/externally-gated.smoke.mjs",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run preflight"
   },
   "devDependencies": {

@@ -405,10 +405,22 @@ test("smoke spec scaffold ships with explicit setup instructions", async () => {
   assert.match(external, /Crosspost composer/);
   assert.match(external, /provider\.server\.close/);
   assert.match(external, /rm\(tempProfile/);
+  const [dnrChromium, dnrFirefox] = await Promise.all([
+    readFile(path.join(root, "tests/smoke/dnr-chromium.smoke.mjs"), "utf8"),
+    readFile(path.join(root, "tests/smoke/dnr-firefox.smoke.mjs"), "utf8")
+  ]);
+  for (const source of [dnrChromium, dnrFirefox]) {
+    assert.match(source, /testMatchOutcome/);
+    assert.match(source, /AVIARY_SYNC_AD_RULE/);
+    assert.match(source, /HomeTimeline/);
+    assert.match(source, /promoted_content\/log/);
+  }
+  assert.match(dnrChromium, /routeHits/);
+  assert.match(dnrFirefox, /CONNECT x\.com:443/);
   const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
   assert.equal(
     pkg.scripts.smoke,
-    "node tests/smoke/aviary.smoke.mjs && node tests/smoke/externally-gated.smoke.mjs"
+    "node tests/smoke/dnr-chromium.smoke.mjs && node tests/smoke/dnr-firefox.smoke.mjs && node tests/smoke/aviary.smoke.mjs && node tests/smoke/externally-gated.smoke.mjs"
   );
 });
 
@@ -417,6 +429,8 @@ test("Playwright smoke workflow caches browsers and stays separate from verify",
   assert.match(workflow, /actions\/cache@v4/);
   assert.match(workflow, /ms-playwright/);
   assert.match(workflow, /playwright install --with-deps chromium/);
+  assert.match(workflow, /packages\.mozilla\.org/);
+  assert.match(workflow, /apt-get install -y firefox/);
   assert.match(workflow, /npm run smoke/);
   assert.doesNotMatch(workflow, /npm run verify/);
   const smoke = await readFile(path.join(root, "tests/smoke/aviary.smoke.mjs"), "utf8");

@@ -45,11 +45,21 @@ jobs:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
 
-      - name: Install Chromium and Linux dependencies
-        run: npx playwright install --with-deps chromium
+      - name: Install Chromium and Mozilla Firefox
+        shell: bash
+        run: |
+          npx playwright install --with-deps chromium
+          sudo install -d -m 0755 /etc/apt/keyrings
+          wget -q https://packages.mozilla.org/apt/repo-signing-key.gpg -O /tmp/mozilla.asc
+          test "$(gpg --show-keys --with-colons /tmp/mozilla.asc | awk -F: '$1 == "fpr" { print $10; exit }')" = "35BAA0B33E9EB396F59CA838C0BA5CE6DC6315A3"
+          sudo mv /tmp/mozilla.asc /etc/apt/keyrings/packages.mozilla.org.asc
+          echo "deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main" | sudo tee /etc/apt/sources.list.d/mozilla.list > /dev/null
+          printf 'Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000\n' | sudo tee /etc/apt/preferences.d/mozilla > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y firefox
 
       - name: Build extension
         run: npm run build
 
-      - name: Run isolated smoke test
+      - name: Run isolated cross-browser smoke tests
         run: xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" npm run smoke

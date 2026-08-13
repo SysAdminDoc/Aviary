@@ -38,6 +38,9 @@ declare global {
       getManifest?: () => { name?: string; version?: string };
       openOptionsPage?: () => Promise<void>;
       onInstalled?: {
+        addListener(listener: (details?: { reason?: string }) => void): void;
+      };
+      onStartup?: {
         addListener(listener: () => void): void;
       };
       onMessage?: {
@@ -57,6 +60,17 @@ declare global {
         set(items: Record<string, unknown>): Promise<void>;
         remove(keys: string | string[]): Promise<void>;
       };
+    };
+    declarativeNetRequest?: {
+      updateDynamicRules(options: {
+        removeRuleIds: number[];
+        addRules: Array<{
+          id: number;
+          priority: number;
+          action: { type: "block" };
+          condition: { regexFilter: string; requestDomains: string[]; resourceTypes: string[] };
+        }>;
+      }): Promise<void>;
     };
     downloads?: {
       download(options: { url: string; filename?: string; conflictAction?: "uniquify" | "overwrite" | "prompt" }): Promise<number>;

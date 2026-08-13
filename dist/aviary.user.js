@@ -27432,6 +27432,39 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     };
   }
 
+  // src/extension/ad-rule.ts
+  var AD_RULE_SYNC_MESSAGE = "AVIARY_SYNC_AD_RULE";
+  async function requestExtensionAdRuleSync(source, enabled) {
+    if (source !== "extension") {
+      return { ok: true, enabled, skipped: true };
+    }
+    const api = globalThis.chrome;
+    const sendMessage = api?.runtime?.sendMessage;
+    if (typeof sendMessage !== "function") {
+      return { ok: false, enabled, error: "extension messaging is unavailable" };
+    }
+    try {
+      const response = await sendMessage({ type: AD_RULE_SYNC_MESSAGE, enabled });
+      if (!response || typeof response !== "object") {
+        return { ok: false, enabled, error: "background returned no ad-rule status" };
+      }
+      const result = response;
+      if (result.ok === true && result.enabled === enabled) {
+        return { ok: true, enabled };
+      }
+      return {
+        ok: false,
+        enabled,
+        error: typeof result.error === "string" ? result.error : "background rejected the ad-rule state"
+      };
+    } catch (error) {
+      return { ok: false, enabled, error: errorMessage2(error) };
+    }
+  }
+  function errorMessage2(error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+
   // src/main.ts
   var activeApp;
   var bootingApp;
@@ -27485,6 +27518,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     const integrationUsage = new IntegrationUsageLedger(storage);
     await integrationUsage.load();
     const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
+    await reconcileExtensionAdRule(options.source, settings.privacy.blockAds, diagnostics);
     setLocalOnlyPolicy(() => settings.privacy.localOnly);
     const limiter = settings.jobs.rateLimitMode === "conservative" ? new TokenBucket(4, 1) : new TokenBucket(8, 4);
     let appliedRateLimitMode = settings.jobs.rateLimitMode;
@@ -27544,6 +27578,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       pageBridge,
       async saveSettings() {
         await storage.set(SETTINGS_KEY, normalizeSettings(cloneSettings(settings)));
+        await reconcileExtensionAdRule(options.source, settings.privacy.blockAds, diagnostics);
         diagnostics.info("Settings saved", { key: SETTINGS_KEY });
       },
       requestApply() {
@@ -27596,6 +27631,12 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       await registry.destroyAll(context);
       pageBridge.destroy();
       throw error;
+    }
+  }
+  async function reconcileExtensionAdRule(source, enabled, diagnostics) {
+    const result = await requestExtensionAdRuleSync(source, enabled);
+    if (!result.ok) {
+      diagnostics.warn("Extension ad rule failed to sync", { error: result.error ?? "unknown" });
     }
   }
   function errorDetails6(error) {

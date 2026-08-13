@@ -36,6 +36,7 @@ import { createDurableStorageGateway, DURABLE_STORAGE_KEYS } from "./platform/du
 import { createProfileStorageGateway, ProfileManager } from "./platform/profile";
 import { createTrustedHtmlPolicy } from "./platform/trusted-types";
 import { IntegrationUsageLedger } from "./features/integrations/usage";
+import { requestExtensionAdRuleSync } from "./extension/ad-rule";
 
 export interface BootOptions {
   source: "userscript" | "extension";
@@ -113,6 +114,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   const integrationUsage = new IntegrationUsageLedger(storage);
   await integrationUsage.load();
   const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
+  await reconcileExtensionAdRule(options.source, settings.privacy.blockAds, diagnostics);
   // Read fresh on every outbound call, so toggling local-only mode applies at once.
   setLocalOnlyPolicy(() => settings.privacy.localOnly);
   // Burst covers an ordinary page of media without any wait; the refill rate is what paces a
@@ -185,6 +187,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
       // Normalized here so persistence has one choke point with one guarantee. Panel handlers
       // wrote whatever was in memory while import/preset/locale wrote normalized values.
       await storage.set(SETTINGS_KEY, normalizeSettings(cloneSettings(settings)));
+      await reconcileExtensionAdRule(options.source, settings.privacy.blockAds, diagnostics);
       diagnostics.info("Settings saved", { key: SETTINGS_KEY });
     },
     requestApply() {
@@ -246,6 +249,17 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     await registry.destroyAll(context);
     pageBridge.destroy();
     throw error;
+  }
+}
+
+async function reconcileExtensionAdRule(
+  source: BootOptions["source"],
+  enabled: boolean,
+  diagnostics: Diagnostics
+): Promise<void> {
+  const result = await requestExtensionAdRuleSync(source, enabled);
+  if (!result.ok) {
+    diagnostics.warn("Extension ad rule failed to sync", { error: result.error ?? "unknown" });
   }
 }
 

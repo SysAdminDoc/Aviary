@@ -2,10 +2,23 @@
 
 ## Unreleased
 
+### Added
+
+- Chrome and Firefox packages now install one host-scoped dynamic request rule for X's exact
+  promoted-content logger. It follows the active `Block ads` setting, survives browser/background
+  restarts, and is verified against real browser-owned match and loopback-network behavior without
+  intercepting HomeTimeline, media, authentication-shaped, or unrelated requests.
+
 ### Changed
 
 - Hiding the discovery rail now centers the comfortable reading column on full desktop layouts,
   turning the released space into balanced gutters instead of a stranded right-side void.
+
+### Fixed
+
+- Firefox now runs the shared MV3 background bundle as a supported event page, restoring lifecycle,
+  options, downloads, and ad-rule message handling. An enabled empty static ruleset preserves
+  dynamic-rule behavior on Firefox 128–132 without broadening what Aviary blocks.
 
 ## 1.20.0 - 2026-08-13
 

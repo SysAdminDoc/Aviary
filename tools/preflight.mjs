@@ -63,6 +63,12 @@ async function checkManifests() {
     if (!Array.isArray(manifest.permissions) || !manifest.permissions.includes("storage")) {
       failures.push(`${target}: missing required permission 'storage'`);
     }
+    if (!manifest.permissions?.includes("declarativeNetRequestWithHostAccess")) {
+      failures.push(`${target}: missing narrow declarativeNetRequestWithHostAccess permission`);
+    }
+    if (manifest.permissions?.includes("declarativeNetRequestFeedback")) {
+      failures.push(`${target}: test-only declarativeNetRequestFeedback must not ship`);
+    }
     const optional = manifest.optional_permissions ?? [];
     if (!optional.includes("downloads")) {
       warnings.push(`${target}: optional permission 'downloads' missing (used by media buttons)`);
@@ -75,6 +81,30 @@ async function checkManifests() {
     const optionsPage = manifest.options_ui?.page;
     if (optionsPage !== "options.html") {
       failures.push(`${target}: options_ui.page must be options.html (optional permissions need a grant surface)`);
+    }
+    if (target === "extension-chrome" && manifest.background?.service_worker !== "background.js") {
+      failures.push(`${target}: MV3 background service worker is missing`);
+    }
+    if (target === "extension-firefox") {
+      if (!manifest.background?.scripts?.includes("background.js")) {
+        failures.push(`${target}: Firefox event-page background script is missing`);
+      }
+      const resources = manifest.declarative_net_request?.rule_resources ?? [];
+      const compat = resources.find((resource) => resource.id === "aviary_dynamic_compat");
+      if (!compat?.enabled || compat.path !== "dnr-empty-rules.json") {
+        failures.push(`${target}: enabled dynamic-rule compatibility ruleset is missing`);
+      } else {
+        try {
+          const rules = JSON.parse(
+            await readFile(path.join(root, "dist", target, compat.path), "utf8")
+          );
+          if (!Array.isArray(rules) || rules.length !== 0) {
+            failures.push(`${target}: compatibility ruleset must stay empty`);
+          }
+        } catch (error) {
+          failures.push(`${target}: compatibility ruleset is unreadable (${error.message})`);
+        }
+      }
     }
   }
 }

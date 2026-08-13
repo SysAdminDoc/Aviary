@@ -22,8 +22,9 @@ recent errors; [PRIVACY.md](PRIVACY.md) lists the data sent by each path.
 
 ## How does ad protection work?
 
-Aviary starts its narrow ad guard at document start. It prevents X's separable
-`/i/api/1.1/promoted_content/log.json` event, then removes evidenced native sponsored posts,
+Aviary starts its narrow ad guard at document start. The userscript answers X's separable
+`/i/api/1.1/promoted_content/log.json` event locally, and the extension blocks that same exact URL
+through a host-scoped dynamic request rule before a connection. It then removes evidenced native sponsored posts,
 paid-partnership cards, promoted trends, house promos, and visible video-ad containers without
 leaving an empty virtualized row. It does not block HomeTimeline: X includes native sponsored
 records in the same essential first-party response as organic posts, so blocking that request
@@ -32,7 +33,10 @@ limitation even though the unit is not rendered.
 
 ## What permissions does the extension need?
 
-The required extension permission is `storage`. `downloads` and direct access to
+The required extension permissions are `storage` and `declarativeNetRequestWithHostAccess`. The
+second permission can act only on Aviary's declared X/Twitter hosts and powers the exact
+promoted-logger rule; Aviary does not request `<all_urls>`, `webRequest`, or the diagnostic feedback
+permission in a shipped package. `downloads` and direct access to
 `pbs.twimg.com`/`video.twimg.com` are optional. Open the dedicated extension **Options** page to
 grant or revoke each one. A grant is requested only after its button is clicked there; declining
 does not disable the rest of Aviary.

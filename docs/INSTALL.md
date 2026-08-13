@@ -30,8 +30,11 @@ Control Center.
 3. Pin Aviary if you want the extension entry point visible. The Control Center launcher itself
    appears on matching X pages.
 
-The base permission is `storage`. `downloads` is optional and is requested only from the options
-page after you click **Grant download access**. Optional media-host access for
+The base permissions are `storage` and host-scoped `declarativeNetRequestWithHostAccess`. The
+latter lets the extension block only X's exact promoted-content logger under the already declared
+X/Twitter host access; it does not add `<all_urls>` or the warning-bearing feedback permission.
+`downloads` is optional and is requested only from the options page after you click **Grant
+download access**. Optional media-host access for
 `pbs.twimg.com` and `video.twimg.com` is requested separately by **Grant media hosts**. Both can be
 revoked from the same page. Media buttons remain available without either optional grant; without
 `downloads`, a cross-origin anchor may open the media instead of claiming it was saved.
@@ -51,7 +54,9 @@ Firefox 128 or newer is required because the extension uses a Manifest V3 page-w
 4. Refresh an `x.com` page.
 
 The Firefox build has the same base, optional, and options-page permission flow as the Chromium
-build. Temporary add-ons disappear when Firefox restarts.
+build. Its background runs as a Firefox MV3 event page and keeps an empty enabled ruleset solely for
+Firefox 128–132 dynamic-rule restart compatibility. Temporary add-ons disappear when Firefox
+restarts.
 
 ## Updating
 

@@ -1,10 +1,33 @@
+import {
+  isAdRuleSyncMessage,
+  restoreDynamicAdRule,
+  syncDynamicAdRule,
+  type ExtensionAdRuleApi
+} from "../extension/ad-rule";
+
 const runtime = globalThis.chrome?.runtime;
+const extensionApi = globalThis.chrome as unknown as ExtensionAdRuleApi | undefined;
 
 /** Returned to the content script when `downloads` has not been granted yet. */
 export const DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
 
-runtime?.onInstalled?.addListener(() => {
-  // Service worker stays stateless; durable work belongs in storage-backed queues.
+runtime?.onInstalled?.addListener((details) => {
+  // Fresh installs inherit the product's default-on ad protection before the first X tab opens.
+  // Updates preserve the content script's last mirrored choice; an older build has no mirror, so
+  // its document-start page guard remains the safe parity path until the first content boot.
+  const task =
+    details?.reason === "install" && extensionApi
+      ? syncDynamicAdRule(extensionApi, true)
+      : extensionApi
+        ? restoreDynamicAdRule(extensionApi)
+        : Promise.resolve(null);
+  settleBackgroundTask(task, "install/update");
+});
+
+runtime?.onStartup?.addListener(() => {
+  if (extensionApi) {
+    settleBackgroundTask(restoreDynamicAdRule(extensionApi), "startup");
+  }
 });
 
 // No popup: the toolbar button opens the options page, which is the only surface
@@ -14,6 +37,18 @@ globalThis.chrome?.action?.onClicked?.addListener(() => {
 });
 
 runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
+  if (isAdRuleSyncMessage(message)) {
+    if (!extensionApi) {
+      sendResponse({ ok: false, enabled: message.enabled, error: "extension APIs unavailable" });
+      return false;
+    }
+    syncDynamicAdRule(extensionApi, message.enabled).then(
+      () => sendResponse({ ok: true, enabled: message.enabled }),
+      (error: unknown) =>
+        sendResponse({ ok: false, enabled: message.enabled, error: errorMessage(error) })
+    );
+    return true;
+  }
   if (isType(message, "AVIARY_PING")) {
     sendResponse({ ok: true, product: "aviary" });
     return false;
@@ -117,4 +152,10 @@ function errorMessage(error: unknown): string {
     return error.message;
   }
   return String(error);
+}
+
+function settleBackgroundTask(task: Promise<unknown>, lifecycle: string): void {
+  void task.catch((error: unknown) => {
+    console.warn(`Aviary could not reconcile its ad rule during ${lifecycle}: ${errorMessage(error)}`);
+  });
 }

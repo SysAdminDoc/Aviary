@@ -17,7 +17,8 @@
     "open_in_tab": true
   },
   "permissions": [
-    "storage"
+    "storage",
+    "declarativeNetRequestWithHostAccess"
   ],
   "optional_permissions": [
     "downloads"
@@ -34,8 +35,19 @@
     "https://video.twimg.com/*"
   ],
   "background": {
-    "service_worker": "background.js",
+    "scripts": [
+      "background.js"
+    ],
     "type": "module"
+  },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "aviary_dynamic_compat",
+        "enabled": true,
+        "path": "dnr-empty-rules.json"
+      }
+    ]
   },
   "content_scripts": [
     {

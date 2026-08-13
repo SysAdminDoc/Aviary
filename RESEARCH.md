@@ -77,15 +77,16 @@ contract. Ad labels are matched through a bounded locale list and structural own
 | Promoted trend | Home complementary sidebar | First-party sidebar data | Matching `[data-testid="trend"]` row suppressed | Direct authenticated build injection unavailable |
 | Grok/Premium house promo | Home complementary rail | First-party product content | Bounded promo aside/card suppressed; ordinary navigation remains | New product URLs need selector-health visibility |
 | Video pre-roll | Video player inside timeline/article | Request hostname/initiator not safely correlated in this pass | Visible ad owner suppressed | UNVERIFIED whether creative transport is separable; broad media-host blocking is unsafe |
-| Promoted-content event logger | Home; XHR after sponsored exposure | `x.com/i/api/1.1/promoted_content/log.json` | `fetch`, XHR, and `sendBeacon` receive a successful empty local response before network dispatch | Extension DNR parity is prioritized for defense in depth |
+| Promoted-content event logger | Home; XHR after sponsored exposure | `x.com/i/api/1.1/promoted_content/log.json` | Userscript `fetch`/XHR/`sendBeacon` receive an empty local response; extension DNR blocks the exact request before connection | Browser-owned Chrome and Firefox loopback probes pass |
 | Tracking/affiliate destinations | Link inside sponsored article (`twclid`, observed DoubleClick target) | Navigation target, not observed page-load resource | Removed with the sponsored owner; no broad host block | Do not claim a third-party request was loaded without network evidence |
 
-The exact logger guard installs before persisted settings resolve so a cold page cannot win a race.
-The structural feature is reversible and MutationObserver/route safe. Fixture tests verify that
-organic `placementTracking` content survives and that no empty cell remains. A direct authenticated
-before/after run of the built userscript or extension is `UNVERIFIED`: the isolated in-app browser
-cannot side-load an unpacked extension or expose a safe userscript-manager lane, while exporting its
-authenticated session into Playwright is prohibited.
+The exact page-world logger guard installs before persisted settings resolve so a cold page cannot
+win a race. The extension now adds a second, browser-owned boundary: one dynamic rule whose cheap
+path regex is constrained by exact X/Twitter request domains and synchronized to `privacy.blockAds`.
+Disposable Chrome and Firefox builds add the feedback permission only in the test profile; both
+real runtimes prove the exact logger match, four negative controls, disable/re-enable persistence,
+and that a blocked logger never reaches a loopback network endpoint. The structural feature remains
+reversible and MutationObserver/route safe.
 
 ## Platform and security assessment
 
@@ -93,15 +94,17 @@ authenticated session into Playwright is prohibited.
   DOM construction, which is the earliest common userscript/MV3 layer used here. See
   [Chrome content scripts](https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts)
   (accessed 2026-08-13).
-- Manifest V3 `declarativeNetRequest` is the browser-level defense-in-depth option for the extension
-  build. It requires explicit rule/permission design and cross-browser verification, so it remains
-  Next work rather than an untested broad rule. See
+- Manifest V3 `declarativeNetRequest` now supplies browser-level defense in depth for extension
+  builds. Aviary uses `declarativeNetRequestWithHostAccess`, an exact path regex plus request-domain
+  constraints, and no shipped feedback permission. See
   [Chrome DNR](https://developer.chrome.com/docs/extensions/reference/api/declarativeNetRequest)
   and [MDN DNR](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/declarativeNetRequest)
   (accessed 2026-08-13).
-- Base extension permission remains `storage`; downloads and media hosts remain optional. No
-  `<all_urls>`, `webRequest`, remote code, telemetry, credential export, or private-body fixture was
-  added. Chrome's current permission guidance favors the narrowest required declarations:
+- Base extension permissions are `storage` and host-scoped
+  `declarativeNetRequestWithHostAccess`; downloads and media hosts remain optional. No `<all_urls>`,
+  `webRequest`, remote code, telemetry, credential export, or private-body fixture was added.
+  Firefox uses a supported MV3 event page and an enabled empty static ruleset for Firefox 128–132's
+  documented dynamic-rule persistence edge. Chrome's current permission guidance favors the narrowest required declarations:
   [Declare permissions](https://developer.chrome.com/docs/extensions/develop/concepts/declare-permissions)
   (accessed 2026-08-13).
 - The page-world bridge remains a hostile-input boundary. Existing URL/operation/body limits,

@@ -28,6 +28,8 @@ its job.
 - Userscript entry: `src/entrypoints/userscript.ts`
 - MV3 content entry: `src/entrypoints/extension-content.ts`
 - MV3 background entry: `src/entrypoints/extension-background.ts`
+- MV3 promoted-logger rule: `src/extension/ad-rule.ts` (dynamic, synchronized to
+  `privacy.blockAds`; Firefox uses an event-page background plus an empty static compatibility set)
 - MV3 page-world entry: `src/entrypoints/extension-page.ts` (declared `"world": "MAIN"`; the userscript reaches the same place through `unsafeWindow`)
 - Page bridge and agent: `src/platform/page-bridge.ts`, `src/page/page-agent.ts`
 - Document-start ad protection: `src/features/privacy/ad-protection.ts` plus the page-agent's exact
@@ -111,9 +113,11 @@ limits are configurable in Integrations; profile-scoped usage history stores cou
 API keys or raw prompts. Local-only mode and disabled integrations make zero provider requests.
 
 Aviary can also refuse X's general analytics beacons — the tracking pings sent as you scroll,
-click and pause. That broader privacy control is off by default. Ad protection is separate: it
-answers only X's exact promoted-content logger locally at document start, while timeline, media,
-login, and unrelated analytics traffic stay untouched.
+click and pause. That broader privacy control is off by default. Ad protection is separate: the
+userscript answers only X's exact promoted-content logger locally at document start, while the
+extension blocks the same URL before a connection through one host-scoped dynamic request rule.
+Timeline, media, login, and unrelated analytics traffic stay untouched. Turning off **Block ads**
+removes the dynamic rule immediately; turning it back on restores it, including after restart.
 
 ## Desktop ad protection
 
@@ -246,7 +250,8 @@ Setup paths (userscript, Chromium dev-load, Firefox temporary-load) and uninstal
 - Manifest version equals `package.json` version.
 - `manifest_version` is 3 and `host_permissions` is not `<all_urls>`.
 - CSP / bundles never include `unsafe-eval`, `wasm-eval`, raw `eval()`, or `new Function()` constructors.
-- `permissions` includes `storage`; `optional_permissions` includes `downloads`.
+- `permissions` includes `storage` plus host-scoped `declarativeNetRequestWithHostAccess`, excludes
+  test-only DNR feedback, and `optional_permissions` includes `downloads`.
 - All devDependencies are exact-pinned.
 - No `innerHTML` / `insertAdjacentHTML` / `keydown` / `keyup` / `keypress` / `backdrop-filter` outside the TrustedTypes helper.
 
@@ -293,11 +298,14 @@ theme validation at both desktop sizes, and deterministic capture for every auth
 F032/F033 remain blocked
 until privacy-safe authenticated fixtures containing those exact states are available.
 
-`npm run smoke` runs both Playwright lanes: current-X compatibility coverage and a side-effect-free
-externally gated-action flow. Chromium's new headless mode keeps the MV3 service worker and real
-options page loaded without opening a physical browser window; all provider calls go to local
-stubs and all profiles/downloads are temporary. The CI workflow caches Chromium and runs the same
-command in its isolated job. For local use, install the pinned runner and browser:
+`npm run smoke` runs the current-X compatibility and side-effect-free externally gated-action
+lanes, plus packaged-extension request-rule probes in Chromium and Mozilla Firefox. The DNR probes
+temporarily add the feedback permission only to disposable build copies, exercise the real Chrome
+service worker and Firefox event page, and prove the exact logger is blocked before a loopback
+request while HomeTimeline, media, authentication-shaped, and unrelated requests remain eligible.
+All provider calls go to local stubs and all profiles/downloads are temporary. CI installs both
+browsers and runs the same command in its isolated job. For local use, install Mozilla Firefox plus
+the pinned Chromium runner:
 
 ```bash
 npm ci
@@ -306,4 +314,6 @@ npm run build
 npm run smoke
 ```
 
-Without the Chromium binary the script exits with Playwright's setup message; it always uses a fresh temporary profile and cleans it up after the run.
+Without Chromium or a regular Mozilla Firefox installation, the corresponding script exits with a
+setup message. Set `AVIARY_FIREFOX_BINARY` when Firefox is installed in a nonstandard location.
+Every lane uses a fresh temporary profile and cleans it up after the run.

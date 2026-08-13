@@ -6,14 +6,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Actionable Items
 
-### P1 — Add extension-level request blocking for the promoted-content logger
-
-Mirror the exact `*/i/api/1.1/promoted_content/log.json*` page-world guard with a dynamic
-Manifest V3 `declarativeNetRequest` rule controlled by `privacy.blockAds`. Keep the userscript
-document-start guard as its parity path, add only the narrow permission required, and verify
-enable/disable synchronization plus `testMatchOutcome`/loopback request behavior in Chrome and
-Firefox without blocking HomeTimeline, media, authentication, or ordinary analytics controls.
-
 ### P1 — Maintain a privacy-safe current-X advertising regression corpus
 
 Create minimal sanitized fixtures for each 2026-08-13 contract: native `Ad`, paid partnership,

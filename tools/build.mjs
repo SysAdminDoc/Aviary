@@ -167,6 +167,15 @@ for (const target of ["extension-chrome", "extension-firefox"]) {
   for (const asset of ["options.html", "options.css"]) {
     await copyFile(path.join(root, "src/extension", asset), path.join(targetDir, asset));
   }
+  if (target === "extension-firefox") {
+    // Firefox 128-132 can reject or forget dynamic-rule updates after restart unless an enabled
+    // static ruleset exists. The empty set is a compatibility anchor; the setting-controlled
+    // promoted-content rule remains dynamic in background.js.
+    await copyFile(
+      path.join(root, "src/extension/dnr-empty-rules.json"),
+      path.join(targetDir, "dnr-empty-rules.json")
+    );
+  }
 
   const manifestName = target === "extension-chrome" ? "manifest.chrome.json" : "manifest.firefox.json";
   const manifest = JSON.parse(await readFile(path.join(root, "src/extension", manifestName), "utf8"));
