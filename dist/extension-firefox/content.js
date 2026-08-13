@@ -928,6 +928,8 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "Balizas de anal\xEDtica permitidas",
       "Selector health monitoring on": "Supervisi\xF3n del estado de selectores activada",
       "Selector health monitoring off": "Supervisi\xF3n del estado de selectores desactivada",
+      "Ad observations reset.": "Observaciones de anuncios restablecidas.",
+      "Could not reset ad observations.": "No se pudieron restablecer las observaciones de anuncios.",
       "Profile switched. Reloading\u2026": "Perfil cambiado. Recargando\u2026",
       "Profile switch failed.": "No se pudo cambiar el perfil.",
       "Assigned {moved} stores; {skipped} already existed.": "Se asignaron {moved} almacenes; {skipped} ya exist\xEDan.",
@@ -1149,6 +1151,14 @@ html.av-reduce-motion *::after {
       "Fallback selectors in use": "Selectores alternativos en uso",
       "Affected features": "Funciones afectadas",
       "Last selector transition": "\xDAltima transici\xF3n de selectores",
+      "Ad observations": "Observaciones de anuncios",
+      "Ad marker counts": "Recuentos de marcadores de anuncios",
+      "Ad contract drift": "Desviaci\xF3n del contrato de anuncios",
+      "Retained ad observations": "Observaciones de anuncios conservadas",
+      "Native": "Nativo",
+      "Trend": "Tendencia",
+      "House promo": "Promoci\xF3n propia",
+      "Video": "V\xEDdeo",
       "No active downloads.": "No hay descargas activas.",
       "Cancel": "Cancelar",
       "Blocked by local-only mode": "Bloqueado por el modo solo local",
@@ -1169,12 +1179,14 @@ html.av-reduce-motion *::after {
       "Notes": "Notas",
       "Bookmark notes": "Notas del marcador",
       "Remove": "Eliminar",
+      "Formerly observed markers are no longer detected: {markers}.": "Ya no se detectan marcadores observados anteriormente: {markers}.",
       "gid {gid} \xB7 {status}": "ID {gid} \xB7 {status}",
       "{count} entries": "{count} entradas",
       "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "{posts} publicaciones \xB7 {likes} me gusta \xB7 {messages} mensajes directos (fuera de la b\xFAsqueda p\xFAblica) \xB7 {media} referencias multimedia \xB7 {followers} seguidores \xB7 {following} seguidos \xB7 {lists} listas",
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} registros \xB7 {files} archivos \xB7 {warnings} advertencias",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} guardados \xB7 {due} pendientes \xB7 {tags} etiquetas \xB7 {folders} carpetas",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} registros \xB7 {surface}",
+      "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "Borra el historial local limitado de marcadores y su aviso de desviaci\xF3n. Aqu\xED no se almacenan textos de publicaciones, nombres de usuario, URL ni cuerpos de respuesta.",
       "Pause {filename}.": "Pausar {filename}.",
       "Resume {filename}.": "Reanudar {filename}.",
       "Cancel {filename}.": "Cancelar {filename}.",
@@ -1182,6 +1194,7 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "Pausar {jobId}.",
       "Resume {jobId}.": "Reanudar {jobId}.",
       "Cancel {jobId}.": "Cancelar {jobId}.",
+      "Reset ad observations": "Restablecer observaciones de anuncios",
       "Active profile": "Perfil activo",
       "Switch profile": "Cambiar perfil",
       "Assign legacy data here": "Asignar aqu\xED datos heredados",
@@ -1731,6 +1744,8 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "Sinalizadores de an\xE1lise permitidos",
       "Selector health monitoring on": "Monitoramento da sa\xFAde dos seletores ativado",
       "Selector health monitoring off": "Monitoramento da sa\xFAde dos seletores desativado",
+      "Ad observations reset.": "Observa\xE7\xF5es de an\xFAncios redefinidas.",
+      "Could not reset ad observations.": "N\xE3o foi poss\xEDvel redefinir as observa\xE7\xF5es de an\xFAncios.",
       "Profile switched. Reloading\u2026": "Perfil alterado. A recarregar\u2026",
       "Profile switch failed.": "N\xE3o foi poss\xEDvel alterar o perfil.",
       "Assigned {moved} stores; {skipped} already existed.": "Foram atribu\xEDdos {moved} armazenamentos; {skipped} j\xE1 existiam.",
@@ -1952,6 +1967,14 @@ html.av-reduce-motion *::after {
       "Fallback selectors in use": "Seletores alternativos em uso",
       "Affected features": "Funcionalidades afetadas",
       "Last selector transition": "\xDAltima transi\xE7\xE3o de seletores",
+      "Ad observations": "Observa\xE7\xF5es de an\xFAncios",
+      "Ad marker counts": "Contagens de marcadores de an\xFAncios",
+      "Ad contract drift": "Desvio do contrato de an\xFAncios",
+      "Retained ad observations": "Observa\xE7\xF5es de an\xFAncios mantidas",
+      "Native": "Nativo",
+      "Trend": "Tend\xEAncia",
+      "House promo": "Promo\xE7\xE3o interna",
+      "Video": "V\xEDdeo",
       "No active downloads.": "N\xE3o existem transfer\xEAncias ativas.",
       "Cancel": "Cancelar",
       "Blocked by local-only mode": "Bloqueado pelo modo somente local",
@@ -1972,12 +1995,14 @@ html.av-reduce-motion *::after {
       "Notes": "Notas",
       "Bookmark notes": "Notas do marcador",
       "Remove": "Remover",
+      "Formerly observed markers are no longer detected: {markers}.": "Marcadores observados anteriormente n\xE3o s\xE3o mais detectados: {markers}.",
       "gid {gid} \xB7 {status}": "ID {gid} \xB7 {status}",
       "{count} entries": "{count} entradas",
       "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "{posts} publica\xE7\xF5es \xB7 {likes} gostos \xB7 {messages} mensagens diretas (fora da pesquisa p\xFAblica) \xB7 {media} refer\xEAncias multim\xE9dia \xB7 {followers} seguidores \xB7 {following} a seguir \xB7 {lists} listas",
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} registos \xB7 {files} ficheiros \xB7 {warnings} avisos",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} guardados \xB7 {due} pendentes \xB7 {tags} etiquetas \xB7 {folders} pastas",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} registos \xB7 {surface}",
+      "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "Limpe o hist\xF3rico local limitado de marcadores e seu aviso de desvio. Nenhum texto de publica\xE7\xE3o, nome de usu\xE1rio, URL ou corpo de resposta \xE9 armazenado aqui.",
       "Pause {filename}.": "Pausar {filename}.",
       "Resume {filename}.": "Retomar {filename}.",
       "Cancel {filename}.": "Cancelar {filename}.",
@@ -1985,6 +2010,7 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "Pausar {jobId}.",
       "Resume {jobId}.": "Retomar {jobId}.",
       "Cancel {jobId}.": "Cancelar {jobId}.",
+      "Reset ad observations": "Redefinir observa\xE7\xF5es de an\xFAncios",
       "Active profile": "Perfil ativo",
       "Switch profile": "Trocar perfil",
       "Assign legacy data here": "Atribuir dados legados aqui",
@@ -2534,6 +2560,8 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "Balises d'analyse autoris\xE9es",
       "Selector health monitoring on": "Surveillance de l\u2019\xE9tat des s\xE9lecteurs activ\xE9e",
       "Selector health monitoring off": "Surveillance de l\u2019\xE9tat des s\xE9lecteurs d\xE9sactiv\xE9e",
+      "Ad observations reset.": "Observations publicitaires r\xE9initialis\xE9es.",
+      "Could not reset ad observations.": "Impossible de r\xE9initialiser les observations publicitaires.",
       "Profile switched. Reloading\u2026": "Profil chang\xE9. Rechargement\u2026",
       "Profile switch failed.": "\xC9chec du changement de profil.",
       "Assigned {moved} stores; {skipped} already existed.": "Stockages attribu\xE9s : {moved} ; {skipped} existaient d\xE9j\xE0.",
@@ -2755,6 +2783,14 @@ html.av-reduce-motion *::after {
       "Fallback selectors in use": "S\xE9lecteurs de secours utilis\xE9s",
       "Affected features": "Fonctionnalit\xE9s concern\xE9es",
       "Last selector transition": "Derni\xE8re transition de s\xE9lecteur",
+      "Ad observations": "Observations publicitaires",
+      "Ad marker counts": "Nombre de marqueurs publicitaires",
+      "Ad contract drift": "D\xE9rive du contrat publicitaire",
+      "Retained ad observations": "Observations publicitaires conserv\xE9es",
+      "Native": "Native",
+      "Trend": "Tendance",
+      "House promo": "Promotion interne",
+      "Video": "Vid\xE9o",
       "No active downloads.": "Aucun t\xE9l\xE9chargement actif.",
       "Cancel": "Annuler",
       "Blocked by local-only mode": "Bloqu\xE9 par le mode local uniquement",
@@ -2775,12 +2811,14 @@ html.av-reduce-motion *::after {
       "Notes": "Annotations",
       "Bookmark notes": "Notes du marque-page",
       "Remove": "Supprimer",
+      "Formerly observed markers are no longer detected: {markers}.": "Les marqueurs pr\xE9c\xE9demment observ\xE9s ne sont plus d\xE9tect\xE9s : {markers}.",
       "gid {gid} \xB7 {status}": "ID {gid} \xB7 {status}",
       "{count} entries": "{count} entr\xE9es",
       "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "{posts} publications \xB7 {likes} mentions J\u2019aime \xB7 {messages} messages directs (exclus de la recherche publique) \xB7 {media} r\xE9f\xE9rences multim\xE9dias \xB7 {followers} abonn\xE9s \xB7 {following} abonnements \xB7 {lists} listes",
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} enregistrements \xB7 {files} fichiers \xB7 {warnings} avertissements",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} enregistr\xE9s \xB7 {due} \xE0 traiter \xB7 {tags} tags \xB7 {folders} dossiers",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} enregistrements \xB7 {surface}",
+      "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "Effacez l\u2019historique local limit\xE9 des marqueurs et son avertissement de d\xE9rive. Aucun texte de publication, identifiant, URL ou corps de r\xE9ponse n\u2019est stock\xE9 ici.",
       "Pause {filename}.": "Mettre {filename} en pause.",
       "Resume {filename}.": "Reprendre {filename}.",
       "Cancel {filename}.": "Annuler {filename}.",
@@ -2788,6 +2826,7 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "Mettre {jobId} en pause.",
       "Resume {jobId}.": "Reprendre {jobId}.",
       "Cancel {jobId}.": "Annuler {jobId}.",
+      "Reset ad observations": "R\xE9initialiser les observations publicitaires",
       "Active profile": "Profil actif",
       "Switch profile": "Changer de profil",
       "Assign legacy data here": "Attribuer ici les donn\xE9es h\xE9rit\xE9es",
@@ -3337,6 +3376,8 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "Analyse-Beacons zugelassen",
       "Selector health monitoring on": "\xDCberwachung des Selektorstatus aktiviert",
       "Selector health monitoring off": "\xDCberwachung des Selektorstatus deaktiviert",
+      "Ad observations reset.": "Werbebeobachtungen zur\xFCckgesetzt.",
+      "Could not reset ad observations.": "Werbebeobachtungen konnten nicht zur\xFCckgesetzt werden.",
       "Profile switched. Reloading\u2026": "Profil gewechselt. Wird neu geladen\u2026",
       "Profile switch failed.": "Profilwechsel fehlgeschlagen.",
       "Assigned {moved} stores; {skipped} already existed.": "{moved} Speicher zugewiesen; {skipped} waren bereits vorhanden.",
@@ -3558,6 +3599,14 @@ html.av-reduce-motion *::after {
       "Fallback selectors in use": "Ersatzselektoren in Verwendung",
       "Affected features": "Betroffene Funktionen",
       "Last selector transition": "Letzter Selektor\xFCbergang",
+      "Ad observations": "Werbebeobachtungen",
+      "Ad marker counts": "Anzahl der Werbemarker",
+      "Ad contract drift": "Abweichung der Werbeerkennung",
+      "Retained ad observations": "Beibehaltene Werbebeobachtungen",
+      "Native": "Nativ",
+      "Trend": "Trend",
+      "House promo": "Eigenwerbung",
+      "Video": "Video",
       "No active downloads.": "Keine aktiven Downloads.",
       "Cancel": "Abbrechen",
       "Blocked by local-only mode": "Durch den Nur-lokal-Modus blockiert",
@@ -3578,12 +3627,14 @@ html.av-reduce-motion *::after {
       "Notes": "Notizen",
       "Bookmark notes": "Lesezeichen-Notizen",
       "Remove": "Entfernen",
+      "Formerly observed markers are no longer detected: {markers}.": "Zuvor beobachtete Marker werden nicht mehr erkannt: {markers}.",
       "gid {gid} \xB7 {status}": "GID {gid} \xB7 {status}",
       "{count} entries": "{count} Eintr\xE4ge",
       "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "{posts} Beitr\xE4ge \xB7 {likes} Likes \xB7 {messages} Direktnachrichten (nicht in der \xF6ffentlichen Suche) \xB7 {media} Medienverweise \xB7 {followers} Follower \xB7 {following} gefolgt \xB7 {lists} Listen",
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} Datens\xE4tze \xB7 {files} Dateien \xB7 {warnings} Warnungen",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} gespeichert \xB7 {due} f\xE4llig \xB7 {tags} Tags \xB7 {folders} Ordner",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} Datens\xE4tze \xB7 {surface}",
+      "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "L\xF6scht den begrenzten lokalen Markerverlauf und seine Abweichungswarnung. Beitragstexte, Handles, URLs oder Antwortinhalte werden hier nicht gespeichert.",
       "Pause {filename}.": "{filename} pausieren.",
       "Resume {filename}.": "{filename} fortsetzen.",
       "Cancel {filename}.": "{filename} abbrechen.",
@@ -3591,6 +3642,7 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "{jobId} pausieren.",
       "Resume {jobId}.": "{jobId} fortsetzen.",
       "Cancel {jobId}.": "{jobId} abbrechen.",
+      "Reset ad observations": "Werbebeobachtungen zur\xFCcksetzen",
       "Active profile": "Aktives Profil",
       "Switch profile": "Profil wechseln",
       "Assign legacy data here": "Alte Daten hier zuweisen",
@@ -4140,6 +4192,8 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "\u89E3\u6790\u30D3\u30FC\u30B3\u30F3\u3092\u8A31\u53EF\u3057\u307E\u3057\u305F",
       "Selector health monitoring on": "\u30BB\u30EC\u30AF\u30BF\u30FC\u72B6\u614B\u306E\u76E3\u8996\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
       "Selector health monitoring off": "\u30BB\u30EC\u30AF\u30BF\u30FC\u72B6\u614B\u306E\u76E3\u8996\u3092\u30AA\u30D5\u306B\u3057\u307E\u3057\u305F",
+      "Ad observations reset.": "\u5E83\u544A\u89B3\u6E2C\u3092\u30EA\u30BB\u30C3\u30C8\u3057\u307E\u3057\u305F\u3002",
+      "Could not reset ad observations.": "\u5E83\u544A\u89B3\u6E2C\u3092\u30EA\u30BB\u30C3\u30C8\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "Profile switched. Reloading\u2026": "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u5207\u308A\u66FF\u3048\u307E\u3057\u305F\u3002\u518D\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
       "Profile switch failed.": "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u306E\u5207\u308A\u66FF\u3048\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
       "Assigned {moved} stores; {skipped} already existed.": "{moved}\u500B\u306E\u30B9\u30C8\u30A2\u3092\u5272\u308A\u5F53\u3066\u307E\u3057\u305F\u3002\u65E2\u5B58: {skipped}\u500B\u3002",
@@ -4361,6 +4415,14 @@ html.av-reduce-motion *::after {
       "Fallback selectors in use": "\u30D5\u30A9\u30FC\u30EB\u30D0\u30C3\u30AF\u30BB\u30EC\u30AF\u30BF\u30FC\u3092\u4F7F\u7528\u4E2D",
       "Affected features": "\u5F71\u97FF\u3092\u53D7\u3051\u308B\u6A5F\u80FD",
       "Last selector transition": "\u6700\u5F8C\u306E\u30BB\u30EC\u30AF\u30BF\u30FC\u9077\u79FB",
+      "Ad observations": "\u5E83\u544A\u89B3\u6E2C",
+      "Ad marker counts": "\u5E83\u544A\u30DE\u30FC\u30AB\u30FC\u6570",
+      "Ad contract drift": "\u5E83\u544A\u30B3\u30F3\u30C8\u30E9\u30AF\u30C8\u306E\u5909\u5316",
+      "Retained ad observations": "\u4FDD\u6301\u4E2D\u306E\u5E83\u544A\u89B3\u6E2C",
+      "Native": "\u30CD\u30A4\u30C6\u30A3\u30D6",
+      "Trend": "\u30C8\u30EC\u30F3\u30C9",
+      "House promo": "\u81EA\u793E\u30D7\u30ED\u30E2",
+      "Video": "\u52D5\u753B",
       "No active downloads.": "\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
       "Cancel": "\u30AD\u30E3\u30F3\u30BB\u30EB",
       "Blocked by local-only mode": "\u30ED\u30FC\u30AB\u30EB\u306E\u307F\u30E2\u30FC\u30C9\u3067\u30D6\u30ED\u30C3\u30AF",
@@ -4381,12 +4443,14 @@ html.av-reduce-motion *::after {
       "Notes": "\u30E1\u30E2",
       "Bookmark notes": "\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u306E\u30E1\u30E2",
       "Remove": "\u524A\u9664",
+      "Formerly observed markers are no longer detected: {markers}.": "\u4EE5\u524D\u306B\u89B3\u6E2C\u3055\u308C\u305F\u30DE\u30FC\u30AB\u30FC\u304C\u691C\u51FA\u3055\u308C\u306A\u304F\u306A\u308A\u307E\u3057\u305F: {markers}\u3002",
       "gid {gid} \xB7 {status}": "\u8B58\u5225\u5B50 {gid} \xB7 {status}",
       "{count} entries": "{count}\u4EF6",
       "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "\u6295\u7A3F{posts}\u4EF6 \xB7 \u3044\u3044\u306D{likes}\u4EF6 \xB7 \u30C0\u30A4\u30EC\u30AF\u30C8\u30E1\u30C3\u30BB\u30FC\u30B8{messages}\u4EF6\uFF08\u516C\u958B\u691C\u7D22\u5BFE\u8C61\u5916\uFF09 \xB7 \u30E1\u30C7\u30A3\u30A2\u53C2\u7167{media}\u4EF6 \xB7 \u30D5\u30A9\u30ED\u30EF\u30FC{followers}\u4EF6 \xB7 \u30D5\u30A9\u30ED\u30FC\u4E2D{following}\u4EF6 \xB7 \u30EA\u30B9\u30C8{lists}\u4EF6",
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records}\u4EF6 \xB7 {files}\u30D5\u30A1\u30A4\u30EB \xB7 \u8B66\u544A{warnings}\u4EF6",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "\u4FDD\u5B58\u6E08\u307F{saved}\u4EF6 \xB7 \u671F\u9650{due}\u4EF6 \xB7 \u30BF\u30B0{tags}\u4EF6 \xB7 \u30D5\u30A9\u30EB\u30C0\u30FC{folders}\u4EF6",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records}\u4EF6 \xB7 {surface}",
+      "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "\u4E0A\u9650\u4ED8\u304D\u306E\u30ED\u30FC\u30AB\u30EB\u306A\u30DE\u30FC\u30AB\u30FC\u5C65\u6B74\u3068\u5909\u5316\u8B66\u544A\u3092\u6D88\u53BB\u3057\u307E\u3059\u3002\u6295\u7A3F\u672C\u6587\u3001\u30CF\u30F3\u30C9\u30EB\u540D\u3001URL\u3001\u30EC\u30B9\u30DD\u30F3\u30B9\u672C\u6587\u306F\u3053\u3053\u306B\u306F\u4FDD\u5B58\u3055\u308C\u307E\u305B\u3093\u3002",
       "Pause {filename}.": "{filename}\u3092\u4E00\u6642\u505C\u6B62\u3002",
       "Resume {filename}.": "{filename}\u3092\u518D\u958B\u3002",
       "Cancel {filename}.": "{filename}\u3092\u30AD\u30E3\u30F3\u30BB\u30EB\u3002",
@@ -4394,6 +4458,7 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "{jobId}\u3092\u4E00\u6642\u505C\u6B62\u3002",
       "Resume {jobId}.": "{jobId}\u3092\u518D\u958B\u3002",
       "Cancel {jobId}.": "{jobId}\u3092\u30AD\u30E3\u30F3\u30BB\u30EB\u3002",
+      "Reset ad observations": "\u5E83\u544A\u89B3\u6E2C\u3092\u30EA\u30BB\u30C3\u30C8",
       "Active profile": "\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB",
       "Switch profile": "\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u3092\u5207\u308A\u66FF\u3048",
       "Assign legacy data here": "\u3053\u3053\u306B\u65E7\u30C7\u30FC\u30BF\u3092\u5272\u308A\u5F53\u3066",
@@ -4943,6 +5008,8 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "\uBD84\uC11D \uBE44\uCF58\uC744 \uD5C8\uC6A9\uD588\uC2B5\uB2C8\uB2E4",
       "Selector health monitoring on": "\uC120\uD0DD\uC790 \uC0C1\uD0DC \uBAA8\uB2C8\uD130\uB9C1 \uCF2C",
       "Selector health monitoring off": "\uC120\uD0DD\uC790 \uC0C1\uD0DC \uBAA8\uB2C8\uD130\uB9C1 \uB054",
+      "Ad observations reset.": "\uAD11\uACE0 \uAD00\uCC30 \uAE30\uB85D\uC744 \uCD08\uAE30\uD654\uD588\uC2B5\uB2C8\uB2E4.",
+      "Could not reset ad observations.": "\uAD11\uACE0 \uAD00\uCC30 \uAE30\uB85D\uC744 \uCD08\uAE30\uD654\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "Profile switched. Reloading\u2026": "\uD504\uB85C\uD544\uC774 \uC804\uD658\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uB85C\uB4DC\uD558\uB294 \uC911\u2026",
       "Profile switch failed.": "\uD504\uB85C\uD544 \uC804\uD658\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
       "Assigned {moved} stores; {skipped} already existed.": "\uC2A4\uD1A0\uC5B4 {moved}\uAC1C\uB97C \uD560\uB2F9\uD588\uC2B5\uB2C8\uB2E4. \uC774\uBBF8 \uC874\uC7AC: {skipped}\uAC1C.",
@@ -5164,6 +5231,14 @@ html.av-reduce-motion *::after {
       "Fallback selectors in use": "\uB300\uCCB4 \uC120\uD0DD\uC790 \uC0AC\uC6A9 \uC911",
       "Affected features": "\uC601\uD5A5\uBC1B\uB294 \uAE30\uB2A5",
       "Last selector transition": "\uB9C8\uC9C0\uB9C9 \uC120\uD0DD\uC790 \uC804\uD658",
+      "Ad observations": "\uAD11\uACE0 \uAD00\uCC30",
+      "Ad marker counts": "\uAD11\uACE0 \uB9C8\uCEE4 \uC218",
+      "Ad contract drift": "\uAD11\uACE0 \uD0D0\uC9C0 \uACC4\uC57D \uBCC0\uD654",
+      "Retained ad observations": "\uBCF4\uAD00\uB41C \uAD11\uACE0 \uAD00\uCC30",
+      "Native": "\uB124\uC774\uD2F0\uBE0C",
+      "Trend": "\uD2B8\uB80C\uB4DC",
+      "House promo": "\uC790\uCCB4 \uD504\uB85C\uBAA8\uC158",
+      "Video": "\uB3D9\uC601\uC0C1",
       "No active downloads.": "\uD65C\uC131 \uB2E4\uC6B4\uB85C\uB4DC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
       "Cancel": "\uCDE8\uC18C",
       "Blocked by local-only mode": "\uB85C\uCEEC \uC804\uC6A9 \uBAA8\uB4DC\uB85C \uCC28\uB2E8\uB428",
@@ -5184,12 +5259,14 @@ html.av-reduce-motion *::after {
       "Notes": "\uBA54\uBAA8",
       "Bookmark notes": "\uBD81\uB9C8\uD06C \uBA54\uBAA8",
       "Remove": "\uC0AD\uC81C",
+      "Formerly observed markers are no longer detected: {markers}.": "\uC774\uC804\uC5D0 \uAD00\uCC30\uB41C \uB9C8\uCEE4\uAC00 \uB354 \uC774\uC0C1 \uAC10\uC9C0\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4: {markers}.",
       "gid {gid} \xB7 {status}": "\uC2DD\uBCC4\uC790 {gid} \xB7 {status}",
       "{count} entries": "{count}\uAC1C \uD56D\uBAA9",
       "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "\uAC8C\uC2DC\uBB3C {posts}\uAC1C \xB7 \uC88B\uC544\uC694 {likes}\uAC1C \xB7 \uCABD\uC9C0 {messages}\uAC1C(\uACF5\uAC1C \uAC80\uC0C9 \uC81C\uC678) \xB7 \uBBF8\uB514\uC5B4 \uCC38\uC870 {media}\uAC1C \xB7 \uD314\uB85C\uC6CC {followers}\uBA85 \xB7 \uD314\uB85C\uC789 {following}\uBA85 \xB7 \uBAA9\uB85D {lists}\uAC1C",
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 \uB808\uCF54\uB4DC {records}\uAC1C \xB7 \uD30C\uC77C {files}\uAC1C \xB7 \uACBD\uACE0 {warnings}\uAC1C",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "\uC800\uC7A5 {saved}\uAC1C \xB7 \uC608\uC815 {due}\uAC1C \xB7 \uD0DC\uADF8 {tags}\uAC1C \xB7 \uD3F4\uB354 {folders}\uAC1C",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 \uB808\uCF54\uB4DC {records}\uAC1C \xB7 {surface}",
+      "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "\uC81C\uD55C\uB41C \uB85C\uCEEC \uB9C8\uCEE4 \uAE30\uB85D\uACFC \uBCC0\uD654 \uACBD\uACE0\uB97C \uC9C0\uC6C1\uB2C8\uB2E4. \uAC8C\uC2DC\uBB3C \uD14D\uC2A4\uD2B8, \uD578\uB4E4, URL \uB610\uB294 \uC751\uB2F5 \uBCF8\uBB38\uC740 \uC5EC\uAE30\uC5D0 \uC800\uC7A5\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
       "Pause {filename}.": "{filename} \uC77C\uC2DC \uC911\uC9C0.",
       "Resume {filename}.": "{filename} \uC7AC\uAC1C.",
       "Cancel {filename}.": "{filename} \uCDE8\uC18C.",
@@ -5197,6 +5274,7 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "{jobId} \uC77C\uC2DC \uC911\uC9C0.",
       "Resume {jobId}.": "{jobId} \uC7AC\uAC1C.",
       "Cancel {jobId}.": "{jobId} \uCDE8\uC18C.",
+      "Reset ad observations": "\uAD11\uACE0 \uAD00\uCC30 \uCD08\uAE30\uD654",
       "Active profile": "\uD65C\uC131 \uD504\uB85C\uD544",
       "Switch profile": "\uD504\uB85C\uD544 \uC804\uD658",
       "Assign legacy data here": "\uC5EC\uAE30\uC5D0 \uC774\uC804 \uB370\uC774\uD130 \uD560\uB2F9",
@@ -5746,6 +5824,8 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "\u062A\u0645 \u0627\u0644\u0633\u0645\u0627\u062D \u0628\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A",
       "Selector health monitoring on": "\u062A\u0645 \u062A\u0634\u063A\u064A\u0644 \u0645\u0631\u0627\u0642\u0628\u0629 \u0635\u062D\u0629 \u0627\u0644\u0645\u062D\u062F\u062F\u0627\u062A",
       "Selector health monitoring off": "\u062A\u0645 \u0625\u064A\u0642\u0627\u0641 \u0645\u0631\u0627\u0642\u0628\u0629 \u0635\u062D\u0629 \u0627\u0644\u0645\u062D\u062F\u062F\u0627\u062A",
+      "Ad observations reset.": "\u062A\u0645\u062A \u0625\u0639\u0627\u062F\u0629 \u0636\u0628\u0637 \u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A.",
+      "Could not reset ad observations.": "\u062A\u0639\u0630\u0631\u062A \u0625\u0639\u0627\u062F\u0629 \u0636\u0628\u0637 \u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A.",
       "Profile switched. Reloading\u2026": "\u062A\u0645 \u062A\u0628\u062F\u064A\u0644 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A. \u062C\u0627\u0631\u064D \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u062A\u062D\u0645\u064A\u0644\u2026",
       "Profile switch failed.": "\u0641\u0634\u0644 \u062A\u0628\u062F\u064A\u0644 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A.",
       "Assigned {moved} stores; {skipped} already existed.": "\u062A\u0645 \u062A\u0639\u064A\u064A\u0646 {moved} \u0645\u062E\u0627\u0632\u0646\u061B {skipped} \u0645\u0648\u062C\u0648\u062F\u0629 \u0645\u0633\u0628\u0642\u0627\u064B.",
@@ -5967,6 +6047,14 @@ html.av-reduce-motion *::after {
       "Fallback selectors in use": "\u0627\u0644\u0645\u062D\u062F\u062F\u0627\u062A \u0627\u0644\u0628\u062F\u064A\u0644\u0629 \u0642\u064A\u062F \u0627\u0644\u0627\u0633\u062A\u062E\u062F\u0627\u0645",
       "Affected features": "\u0627\u0644\u0645\u064A\u0632\u0627\u062A \u0627\u0644\u0645\u062A\u0623\u062B\u0631\u0629",
       "Last selector transition": "\u0622\u062E\u0631 \u0627\u0646\u062A\u0642\u0627\u0644 \u0644\u0644\u0645\u062D\u062F\u062F",
+      "Ad observations": "\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A",
+      "Ad marker counts": "\u0623\u0639\u062F\u0627\u062F \u0639\u0644\u0627\u0645\u0627\u062A \u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A",
+      "Ad contract drift": "\u0627\u0646\u062D\u0631\u0627\u0641 \u0639\u0642\u062F \u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A",
+      "Retained ad observations": "\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u062D\u062A\u0641\u0638 \u0628\u0647\u0627",
+      "Native": "\u0645\u062F\u0645\u062C",
+      "Trend": "\u0631\u0627\u0626\u062C",
+      "House promo": "\u062A\u0631\u0648\u064A\u062C \u062F\u0627\u062E\u0644\u064A",
+      "Video": "\u0641\u064A\u062F\u064A\u0648",
       "No active downloads.": "\u0644\u0627 \u062A\u0648\u062C\u062F \u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0646\u0634\u0637\u0629.",
       "Cancel": "\u0625\u0644\u063A\u0627\u0621",
       "Blocked by local-only mode": "\u0645\u062D\u0638\u0648\u0631 \u0628\u0633\u0628\u0628 \u0648\u0636\u0639 \u0627\u0644\u0645\u062D\u0644\u064A \u0641\u0642\u0637",
@@ -5987,12 +6075,14 @@ html.av-reduce-motion *::after {
       "Notes": "\u0645\u0644\u0627\u062D\u0638\u0627\u062A",
       "Bookmark notes": "\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0625\u0634\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629",
       "Remove": "\u0625\u0632\u0627\u0644\u0629",
+      "Formerly observed markers are no longer detected: {markers}.": "\u0644\u0645 \u062A\u0639\u062F \u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062A \u0627\u0644\u062A\u064A \u062A\u0645\u062A \u0645\u0644\u0627\u062D\u0638\u062A\u0647\u0627 \u0633\u0627\u0628\u0642\u064B\u0627 \u0645\u0643\u062A\u0634\u0641\u0629: {markers}.",
       "gid {gid} \xB7 {status}": "\u0627\u0644\u0645\u0639\u0631\u0651\u0641 {gid} \xB7 {status}",
       "{count} entries": "{count} \u0645\u0646 \u0627\u0644\u0625\u062F\u062E\u0627\u0644\u0627\u062A",
       "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "{posts} \u0645\u0646 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \xB7 {likes} \u0645\u0646 \u0627\u0644\u0625\u0639\u062C\u0627\u0628\u0627\u062A \xB7 {messages} \u0645\u0646 \u0627\u0644\u0631\u0633\u0627\u0626\u0644 \u0627\u0644\u0645\u0628\u0627\u0634\u0631\u0629 (\u062E\u0627\u0631\u062C \u0627\u0644\u0628\u062D\u062B \u0627\u0644\u0639\u0627\u0645) \xB7 {media} \u0645\u0646 \u0645\u0631\u0627\u062C\u0639 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \xB7 {followers} \u0645\u0646 \u0627\u0644\u0645\u062A\u0627\u0628\u0639\u064A\u0646 \xB7 {following} \u0645\u0645\u0646 \u062A\u062A\u0627\u0628\u0639\u0647\u0645 \xB7 {lists} \u0645\u0646 \u0627\u0644\u0642\u0648\u0627\u0626\u0645",
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} \u0645\u0646 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \xB7 {files} \u0645\u0646 \u0627\u0644\u0645\u0644\u0641\u0627\u062A \xB7 {warnings} \u0645\u0646 \u0627\u0644\u062A\u062D\u0630\u064A\u0631\u0627\u062A",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} \u0645\u062D\u0641\u0648\u0638\u0629 \xB7 {due} \u0645\u0633\u062A\u062D\u0642\u0629 \xB7 {tags} \u0645\u0646 \u0627\u0644\u0648\u0633\u0648\u0645 \xB7 {folders} \u0645\u0646 \u0627\u0644\u0645\u062C\u0644\u062F\u0627\u062A",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} \u0645\u0646 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \xB7 {surface}",
+      "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "\u0627\u0645\u0633\u062D \u0633\u062C\u0644 \u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u064A \u0627\u0644\u0645\u062D\u062F\u0648\u062F \u0648\u062A\u062D\u0630\u064A\u0631 \u0627\u0644\u0627\u0646\u062D\u0631\u0627\u0641 \u0627\u0644\u062E\u0627\u0635 \u0628\u0647. \u0644\u0627 \u064A\u062A\u0645 \u062A\u062E\u0632\u064A\u0646 \u0646\u0635\u0648\u0635 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0623\u0648 \u0627\u0644\u0645\u0639\u0631\u0651\u0641\u0627\u062A \u0623\u0648 \u0639\u0646\u0627\u0648\u064A\u0646 URL \u0623\u0648 \u0646\u0635\u0648\u0635 \u0627\u0644\u0627\u0633\u062A\u062C\u0627\u0628\u0629 \u0647\u0646\u0627.",
       "Pause {filename}.": "\u0625\u064A\u0642\u0627\u0641 {filename} \u0645\u0624\u0642\u062A\u064B\u0627.",
       "Resume {filename}.": "\u0627\u0633\u062A\u0626\u0646\u0627\u0641 {filename}.",
       "Cancel {filename}.": "\u0625\u0644\u063A\u0627\u0621 {filename}.",
@@ -6000,6 +6090,7 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "\u0625\u064A\u0642\u0627\u0641 {jobId} \u0645\u0624\u0642\u062A\u064B\u0627.",
       "Resume {jobId}.": "\u0627\u0633\u062A\u0626\u0646\u0627\u0641 {jobId}.",
       "Cancel {jobId}.": "\u0625\u0644\u063A\u0627\u0621 {jobId}.",
+      "Reset ad observations": "\u0625\u0639\u0627\u062F\u0629 \u0636\u0628\u0637 \u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A",
       "Active profile": "\u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A \u0627\u0644\u0646\u0634\u0637",
       "Switch profile": "\u062A\u0628\u062F\u064A\u0644 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A",
       "Assign legacy data here": "\u062A\u0639\u064A\u064A\u0646 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0642\u062F\u064A\u0645\u0629 \u0647\u0646\u0627",
@@ -6549,6 +6640,8 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "\u05DE\u05E9\u05D5\u05D0\u05D5\u05EA \u05D4\u05E0\u05D9\u05EA\u05D5\u05D7 \u05DE\u05D5\u05EA\u05E8\u05D5\u05EA",
       "Selector health monitoring on": "\u05E0\u05D9\u05D8\u05D5\u05E8 \u05EA\u05E7\u05D9\u05E0\u05D5\u05EA \u05D4\u05D1\u05D5\u05E8\u05E8\u05D9\u05DD \u05D4\u05D5\u05E4\u05E2\u05DC",
       "Selector health monitoring off": "\u05E0\u05D9\u05D8\u05D5\u05E8 \u05EA\u05E7\u05D9\u05E0\u05D5\u05EA \u05D4\u05D1\u05D5\u05E8\u05E8\u05D9\u05DD \u05D4\u05D5\u05E9\u05D1\u05EA",
+      "Ad observations reset.": "\u05EA\u05E6\u05E4\u05D9\u05D5\u05EA \u05D4\u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA \u05D0\u05D5\u05E4\u05E1\u05D5.",
+      "Could not reset ad observations.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05D0\u05E4\u05E1 \u05D0\u05EA \u05EA\u05E6\u05E4\u05D9\u05D5\u05EA \u05D4\u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA.",
       "Profile switched. Reloading\u2026": "\u05D4\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05D4\u05D5\u05D7\u05DC\u05E3. \u05D8\u05D5\u05E2\u05DF \u05DE\u05D7\u05D3\u05E9\u2026",
       "Profile switch failed.": "\u05D4\u05D7\u05DC\u05E4\u05EA \u05D4\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05E0\u05DB\u05E9\u05DC\u05D4.",
       "Assigned {moved} stores; {skipped} already existed.": "\u05D4\u05D5\u05E7\u05E6\u05D5 {moved} \u05DE\u05D0\u05D2\u05E8\u05D9\u05DD; {skipped} \u05DB\u05D1\u05E8 \u05E7\u05D9\u05D9\u05DE\u05D9\u05DD.",
@@ -6770,6 +6863,14 @@ html.av-reduce-motion *::after {
       "Fallback selectors in use": "\u05D1\u05D5\u05E8\u05E8\u05D9 \u05D2\u05D9\u05D1\u05D5\u05D9 \u05D1\u05E9\u05D9\u05DE\u05D5\u05E9",
       "Affected features": "\u05EA\u05DB\u05D5\u05E0\u05D5\u05EA \u05DE\u05D5\u05E9\u05E4\u05E2\u05D5\u05EA",
       "Last selector transition": "\u05DE\u05E2\u05D1\u05E8 \u05D4\u05D1\u05D5\u05E8\u05E8 \u05D4\u05D0\u05D7\u05E8\u05D5\u05DF",
+      "Ad observations": "\u05EA\u05E6\u05E4\u05D9\u05D5\u05EA \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA",
+      "Ad marker counts": "\u05E1\u05E4\u05D9\u05E8\u05EA \u05E1\u05DE\u05E0\u05D9 \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA",
+      "Ad contract drift": "\u05E1\u05D8\u05D9\u05D9\u05D4 \u05D1\u05D7\u05D5\u05D6\u05D4 \u05D4\u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA",
+      "Retained ad observations": "\u05EA\u05E6\u05E4\u05D9\u05D5\u05EA \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA \u05E9\u05E0\u05E9\u05DE\u05E8\u05D5",
+      "Native": "\u05DE\u05E7\u05D5\u05E8\u05D9",
+      "Trend": "\u05DE\u05D2\u05DE\u05D4",
+      "House promo": "\u05E7\u05D9\u05D3\u05D5\u05DD \u05E4\u05E0\u05D9\u05DE\u05D9",
+      "Video": "\u05D5\u05D9\u05D3\u05D0\u05D5",
       "No active downloads.": "\u05D0\u05D9\u05DF \u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA.",
       "Cancel": "\u05D1\u05D9\u05D8\u05D5\u05DC",
       "Blocked by local-only mode": "\u05E0\u05D7\u05E1\u05DD \u05D1\u05DE\u05E6\u05D1 \u05DE\u05E7\u05D5\u05DE\u05D9 \u05D1\u05DC\u05D1\u05D3",
@@ -6790,12 +6891,14 @@ html.av-reduce-motion *::after {
       "Notes": "\u05D4\u05E2\u05E8\u05D5\u05EA",
       "Bookmark notes": "\u05D4\u05E2\u05E8\u05D5\u05EA \u05D4\u05E1\u05D9\u05DE\u05E0\u05D9\u05D9\u05D4",
       "Remove": "\u05D4\u05E1\u05E8\u05D4",
+      "Formerly observed markers are no longer detected: {markers}.": "\u05E1\u05DE\u05E0\u05D9\u05DD \u05E9\u05E0\u05E6\u05E4\u05D5 \u05D1\u05E2\u05D1\u05E8 \u05D0\u05D9\u05E0\u05DD \u05DE\u05D6\u05D5\u05D4\u05D9\u05DD \u05E2\u05D5\u05D3: {markers}.",
       "gid {gid} \xB7 {status}": "\u05DE\u05D6\u05D4\u05D4 {gid} \xB7 {status}",
       "{count} entries": "{count} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA",
       "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "{posts} \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \xB7 {likes} \u05DC\u05D9\u05D9\u05E7\u05D9\u05DD \xB7 {messages} \u05D4\u05D5\u05D3\u05E2\u05D5\u05EA \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA (\u05DE\u05D7\u05D5\u05E5 \u05DC\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D4\u05E6\u05D9\u05D1\u05D5\u05E8\u05D9) \xB7 {media} \u05D4\u05E4\u05E0\u05D9\u05D5\u05EA \u05DE\u05D3\u05D9\u05D4 \xB7 {followers} \u05E2\u05D5\u05E7\u05D1\u05D9\u05DD \xB7 {following} \u05D1\u05DE\u05E2\u05E7\u05D1 \xB7 {lists} \u05E8\u05E9\u05D9\u05DE\u05D5\u05EA",
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \xB7 {files} \u05E7\u05D1\u05E6\u05D9\u05DD \xB7 {warnings} \u05D0\u05D6\u05D4\u05E8\u05D5\u05EA",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} \u05E0\u05E9\u05DE\u05E8\u05D5 \xB7 {due} \u05DC\u05EA\u05D6\u05DB\u05D5\u05E8\u05EA \xB7 {tags} \u05EA\u05D2\u05D9\u05D5\u05EA \xB7 {folders} \u05EA\u05D9\u05E7\u05D9\u05D5\u05EA",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \xB7 {surface}",
+      "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "\u05DE\u05D7\u05D9\u05E7\u05EA \u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05D4\u05E1\u05DE\u05E0\u05D9\u05DD \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9\u05EA \u05D5\u05D4\u05DE\u05D5\u05D2\u05D1\u05DC\u05EA \u05D5\u05D0\u05EA \u05D0\u05D6\u05D4\u05E8\u05EA \u05D4\u05E1\u05D8\u05D9\u05D9\u05D4 \u05E9\u05DC\u05D4. \u05D8\u05E7\u05E1\u05D8 \u05E9\u05DC \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD, \u05E9\u05DE\u05D5\u05EA \u05DE\u05E9\u05EA\u05DE\u05E9, \u05DB\u05EA\u05D5\u05D1\u05D5\u05EA URL \u05D5\u05D2\u05D5\u05E4\u05D9 \u05EA\u05D2\u05D5\u05D1\u05D4 \u05D0\u05D9\u05E0\u05DD \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05DB\u05D0\u05DF.",
       "Pause {filename}.": "\u05D4\u05E9\u05D4\u05D4 \u05D0\u05EA {filename}.",
       "Resume {filename}.": "\u05D7\u05D3\u05E9 \u05D0\u05EA {filename}.",
       "Cancel {filename}.": "\u05D1\u05D8\u05DC \u05D0\u05EA {filename}.",
@@ -6803,6 +6906,7 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "\u05D4\u05E9\u05D4\u05D4 \u05D0\u05EA {jobId}.",
       "Resume {jobId}.": "\u05D7\u05D3\u05E9 \u05D0\u05EA {jobId}.",
       "Cancel {jobId}.": "\u05D1\u05D8\u05DC \u05D0\u05EA {jobId}.",
+      "Reset ad observations": "\u05D0\u05D9\u05E4\u05D5\u05E1 \u05EA\u05E6\u05E4\u05D9\u05D5\u05EA \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA",
       "Active profile": "\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05E4\u05E2\u05D9\u05DC",
       "Switch profile": "\u05D4\u05D7\u05DC\u05E4\u05EA \u05E4\u05E8\u05D5\u05E4\u05D9\u05DC",
       "Assign legacy data here": "\u05D4\u05E7\u05E6\u05D0\u05EA \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D9\u05E9\u05E0\u05D9\u05DD \u05DB\u05D0\u05DF",
@@ -7596,6 +7700,27 @@ html.av-reduce-motion *::after {
       ctx.coverageRow(),
       ...ctx.selectorHealthRows()
     ];
+    if (ctx.options.clearAdObservations) {
+      rows.push(
+        ctx.actionRow(
+          "Reset ad observations",
+          {
+            source: "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.",
+            values: {}
+          },
+          async () => {
+            try {
+              await ctx.options.clearAdObservations();
+              ctx.render();
+              ctx.setStatus("Ad observations reset.");
+            } catch (error) {
+              ctx.options.onError("Could not reset ad observations", error);
+              ctx.setStatus("Could not reset ad observations.");
+            }
+          }
+        )
+      );
+    }
     const profile = ctx.options.getProfileStatus?.();
     if (profile) {
       rows.splice(
@@ -11007,6 +11132,14 @@ html.av-reduce-motion *::after {
       t("Fallback selectors in use");
       t("Affected features");
       t("Last selector transition");
+      t("Ad observations");
+      t("Ad marker counts");
+      t("Ad contract drift");
+      t("Retained ad observations");
+      t("Native");
+      t("Trend");
+      t("House promo");
+      t("Video");
       const rows = [
         dataRow(
           "Selector health",
@@ -11040,6 +11173,34 @@ html.av-reduce-motion *::after {
           dataRow(
             "Last selector transition",
             `${health.lastTransition.to} \xB7 ${health.lastTransition.route} \xB7 ${health.lastTransition.at}`
+          )
+        );
+      }
+      const ads = health.adObservations;
+      rows.push(
+        dataRow(
+          "Ad observations",
+          ads.lastObservedAt && ads.lastRoute ? `${ads.lastRoute} \xB7 ${ads.lastObservedAt}` : "None"
+        ),
+        dataRow(
+          "Ad marker counts",
+          `${t("Native")} ${ads.counts.native} \xB7 ${t("Trend")} ${ads.counts.trend} \xB7 ${t("House promo")} ${ads.counts.housePromo} \xB7 ${t("Video")} ${ads.counts.video}`
+        ),
+        dataRow("Retained ad observations", String(ads.retained))
+      );
+      if (ads.missingContracts.length > 0) {
+        const labels = {
+          native: t("Native"),
+          trend: t("Trend"),
+          housePromo: t("House promo"),
+          video: t("Video")
+        };
+        rows.push(
+          dataRow(
+            "Ad contract drift",
+            localizedCopy("Formerly observed markers are no longer detected: {markers}.", {
+              markers: ads.missingContracts.map((kind) => labels[kind]).join(", ")
+            })
           )
         );
       }
@@ -12898,6 +13059,15 @@ input[type="checkbox"] {
   function adProtectionCounters() {
     return { hiddenPlacements, suppressedVideoAds };
   }
+  function observeAdMarkers(root = document) {
+    const detected = detectPlacements(root);
+    return {
+      native: detected.native.length,
+      trend: detected.trend.length,
+      housePromo: detected.housePromo.length,
+      video: detected.video.length
+    };
+  }
   function applyAdProtection(ctx, root, addedNodes) {
     const enabled = ctx.settings.privacy.blockAds;
     document.documentElement.classList.toggle("av-block-ads", enabled);
@@ -12907,28 +13077,33 @@ input[type="checkbox"] {
     }
     const scopes = addedNodes && addedNodes.length > 0 ? addedNodes : [root];
     for (const scope of scopes) {
-      for (const article of candidates(scope, ARTICLE_SELECTOR)) {
-        if (isSponsoredArticle(article)) {
-          hidePlacement(article, "post");
-        }
+      const detected = detectPlacements(scope);
+      for (const article of detected.native) {
+        hidePlacement(article, "post");
       }
-      for (const trend of candidates(scope, TREND_SELECTOR)) {
-        if (isPromotedTrend(trend)) {
-          hidePlacement(trend, "trend");
-        }
+      for (const trend of detected.trend) {
+        hidePlacement(trend, "trend");
       }
-      for (const promo of candidates(scope, HOUSE_PROMO_SELECTOR)) {
+      for (const promo of detected.housePromo) {
         hidePlacement(promo, "house");
       }
+      for (const video of detected.video) {
+        hidePlacement(video, "video");
+      }
       for (const video of candidates(scope, VIDEO_SELECTOR)) {
-        const hasAd = containsVideoAdMarker(video);
-        if (hasAd) {
-          hidePlacement(video, "video");
-        } else if (video.getAttribute(HIDDEN_ATTRIBUTE) === "video") {
+        if (!detected.video.includes(video) && video.getAttribute(HIDDEN_ATTRIBUTE) === "video") {
           video.removeAttribute(HIDDEN_ATTRIBUTE);
         }
       }
     }
+  }
+  function detectPlacements(root) {
+    return {
+      native: candidates(root, ARTICLE_SELECTOR).filter(isSponsoredArticle),
+      trend: candidates(root, TREND_SELECTOR).filter(isPromotedTrend),
+      housePromo: candidates(root, HOUSE_PROMO_SELECTOR),
+      video: candidates(root, VIDEO_SELECTOR).filter(containsVideoAdMarker)
+    };
   }
   function candidates(root, selector) {
     const found = /* @__PURE__ */ new Set();
@@ -13152,6 +13327,154 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
   }
 
+  // src/features/core/ad-observations.ts
+  var AD_OBSERVATIONS_KEY = "aviary.adObservations.v1";
+  var AD_OBSERVATION_LIMIT = 64;
+  var AD_OBSERVATION_RETENTION_MS = 30 * 24 * 60 * 60 * 1e3;
+  var AD_OBSERVATION_REFRESH_MS = 15 * 60 * 1e3;
+  var MAX_MARKER_COUNT = 1e4;
+  var ROUTES = /* @__PURE__ */ new Set([
+    "home",
+    "status",
+    "profile",
+    "notifications",
+    "messages",
+    "settings",
+    "search",
+    "grok",
+    "unknown"
+  ]);
+  var MARKER_KINDS = ["native", "trend", "housePromo", "video"];
+  var AdObservationStore = class {
+    #storage;
+    #limit;
+    #now;
+    #observations = [];
+    constructor(storage, options = {}) {
+      this.#storage = storage;
+      this.#limit = Math.max(1, Math.min(AD_OBSERVATION_LIMIT, options.limit ?? AD_OBSERVATION_LIMIT));
+      this.#now = options.now ?? Date.now;
+    }
+    async load() {
+      const stored = await this.#storage.get(AD_OBSERVATIONS_KEY, {
+        version: 1,
+        observations: []
+      });
+      this.#observations = normalizeObservations(stored, this.#now(), this.#limit);
+      const normalized = {
+        version: 1,
+        observations: this.observations()
+      };
+      if (JSON.stringify(stored) !== JSON.stringify(normalized)) {
+        await this.#storage.set(AD_OBSERVATIONS_KEY, normalized);
+      }
+    }
+    async observe(route, counts) {
+      const now2 = this.#now();
+      const next = {
+        at: new Date(now2).toISOString(),
+        route: ROUTES.has(route) ? route : "unknown",
+        counts: normalizeCounts(counts)
+      };
+      const previous = this.#observations.at(-1);
+      const sameSample = previous && sameObservation(previous, next);
+      const previousAt = previous ? Date.parse(previous.at) : 0;
+      if (!sameSample || !Number.isFinite(previousAt) || now2 - previousAt >= AD_OBSERVATION_REFRESH_MS) {
+        this.#observations.push(next);
+        this.#observations = trimObservations(this.#observations, now2, this.#limit);
+        await this.#persist();
+      }
+      return this.snapshot();
+    }
+    snapshot() {
+      const last = this.#observations.at(-1);
+      if (!last) return emptyAdObservationSnapshot();
+      const priorForRoute = this.#observations.slice(0, -1).filter((entry) => entry.route === last.route);
+      const missingContracts = MARKER_KINDS.filter(
+        (kind) => last.counts[kind] === 0 && priorForRoute.some((entry) => entry.counts[kind] > 0)
+      );
+      return {
+        lastObservedAt: last.at,
+        lastRoute: last.route,
+        counts: { ...last.counts },
+        retained: this.#observations.length,
+        missingContracts,
+        degradedReason: missingContracts.length > 0 ? `Formerly observed ${missingContracts.join(", ")} ad markers are no longer detected on ${last.route}.` : null
+      };
+    }
+    observations() {
+      return this.#observations.map((entry) => ({
+        ...entry,
+        counts: { ...entry.counts }
+      }));
+    }
+    async clear() {
+      this.#observations = [];
+      await this.#storage.remove(AD_OBSERVATIONS_KEY);
+    }
+    async #persist() {
+      const payload = {
+        version: 1,
+        observations: this.observations()
+      };
+      await this.#storage.set(AD_OBSERVATIONS_KEY, payload);
+    }
+  };
+  function emptyAdObservationSnapshot() {
+    return {
+      lastObservedAt: null,
+      lastRoute: null,
+      counts: emptyCounts(),
+      retained: 0,
+      missingContracts: [],
+      degradedReason: null
+    };
+  }
+  function normalizeObservations(raw, now2, limit) {
+    const source = isRecord2(raw) && Array.isArray(raw.observations) ? raw.observations : [];
+    const cutoff = now2 - AD_OBSERVATION_RETENTION_MS;
+    const normalized = [];
+    for (const candidate of source) {
+      if (!isRecord2(candidate) || typeof candidate.at !== "string") continue;
+      const at = Date.parse(candidate.at);
+      if (!Number.isFinite(at) || at < cutoff || at > now2 + 6e4) continue;
+      const route = typeof candidate.route === "string" && ROUTES.has(candidate.route) ? candidate.route : "unknown";
+      normalized.push({
+        at: new Date(at).toISOString(),
+        route,
+        counts: normalizeCounts(candidate.counts)
+      });
+    }
+    normalized.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+    return normalized.slice(-limit);
+  }
+  function trimObservations(observations, now2, limit) {
+    const cutoff = now2 - AD_OBSERVATION_RETENTION_MS;
+    return observations.filter((entry) => Date.parse(entry.at) >= cutoff).slice(-limit);
+  }
+  function normalizeCounts(raw) {
+    const value = isRecord2(raw) ? raw : {};
+    return {
+      native: normalizeCount(value.native),
+      trend: normalizeCount(value.trend),
+      housePromo: normalizeCount(value.housePromo),
+      video: normalizeCount(value.video)
+    };
+  }
+  function normalizeCount(value) {
+    if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+    return Math.max(0, Math.min(MAX_MARKER_COUNT, Math.trunc(value)));
+  }
+  function sameObservation(a, b) {
+    return a.route === b.route && MARKER_KINDS.every((kind) => a.counts[kind] === b.counts[kind]);
+  }
+  function emptyCounts() {
+    return { native: 0, trend: 0, housePromo: 0, video: 0 };
+  }
+  function isRecord2(value) {
+    return typeof value === "object" && value !== null;
+  }
+
   // src/features/core/selector-health.ts
   var CRITICAL_SURFACES = /* @__PURE__ */ new Set(["App root", "Primary column"]);
   var MIN_LOG_INTERVAL_MS = 5e3;
@@ -13160,43 +13483,54 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   var lastCriticalSignature = "";
   var previousState = null;
   var currentSnapshot = emptySnapshot();
+  var adObservations;
   var selectorHealthFeature = {
     id: "core.selectorHealth",
     title: "Selector health diagnostics",
     category: "core",
     defaultEnabled: true,
-    init(ctx) {
+    async init(ctx) {
       resetState();
       if (!ctx.settings.diagnostics.selectorHealth) {
         return;
       }
-      updateSnapshot(ctx);
+      await updateSnapshot(ctx);
       ctx.diagnostics.info("Selector health initialized", snapshotDetails(currentSnapshot));
     },
-    apply(ctx) {
+    async apply(ctx) {
       if (!ctx.settings.diagnostics.selectorHealth) {
         if (currentSnapshot.enabled) {
           resetState();
         }
         return;
       }
-      updateSnapshot(ctx);
+      await updateSnapshot(ctx);
       const missingCritical = currentSnapshot.surfaces.filter(
         (item) => item.relevance === "required" && !item.healthy && CRITICAL_SURFACES.has(item.surface)
       );
-      if (missingCritical.length === 0) {
+      const adDegradedReason = currentSnapshot.adObservations.degradedReason;
+      if (missingCritical.length === 0 && !adDegradedReason) {
         return;
       }
-      const signature = `${ctx.route.surface}:${missingCritical.map((item) => item.surface).join(",")}`;
+      const signature = [
+        ctx.route.surface,
+        missingCritical.map((item) => item.surface).join(","),
+        currentSnapshot.adObservations.missingContracts.join(",")
+      ].join(":");
       const now2 = Date.now();
       if (signature !== lastCriticalSignature || now2 - lastLogAt >= MIN_LOG_INTERVAL_MS) {
         lastCriticalSignature = signature;
         lastLogAt = now2;
-        ctx.diagnostics.warn("Critical selector health degraded", {
-          route: ctx.route.surface,
-          missing: missingCritical.map((item) => item.surface),
-          affectedFeatures: currentSnapshot.affectedFeatures
-        });
+        ctx.diagnostics.warn(
+          missingCritical.length > 0 ? "Critical selector health degraded" : "Ad contract health degraded",
+          {
+            route: ctx.route.surface,
+            missing: missingCritical.map((item) => item.surface),
+            missingAdContracts: currentSnapshot.adObservations.missingContracts,
+            degradedReason: adDegradedReason,
+            affectedFeatures: currentSnapshot.affectedFeatures
+          }
+        );
       }
     },
     destroy(ctx) {
@@ -13206,7 +13540,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     getStatus() {
       return {
         ok: currentSnapshot.state === "healthy",
-        message: `${currentSnapshot.requiredMatched}/${currentSnapshot.required} required selector surfaces detected`,
+        message: currentSnapshot.adObservations.degradedReason ?? `${currentSnapshot.requiredMatched}/${currentSnapshot.required} required selector surfaces detected`,
         details: snapshotDetails(currentSnapshot)
       };
     }
@@ -13219,10 +13553,40 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       fallbackMatches: currentSnapshot.fallbackMatches.map((entry) => ({ ...entry })),
       affectedFeatures: [...currentSnapshot.affectedFeatures],
       surfaces: currentSnapshot.surfaces.map((entry) => ({ ...entry })),
+      adObservations: {
+        ...currentSnapshot.adObservations,
+        counts: { ...currentSnapshot.adObservations.counts },
+        missingContracts: [...currentSnapshot.adObservations.missingContracts]
+      },
       lastTransition: currentSnapshot.lastTransition ? { ...currentSnapshot.lastTransition } : null
     };
   }
-  function updateSnapshot(ctx) {
+  async function clearAdObservations(storage) {
+    if (adObservations) {
+      await adObservations.clear();
+    } else if (storage) {
+      await storage.remove(AD_OBSERVATIONS_KEY);
+    }
+    const affectedFeatures = currentSnapshot.affectedFeatures.filter((feature) => feature !== "Ad protection");
+    const nextState = currentSnapshot.missingRequired.length === 0 ? "healthy" : "degraded";
+    const lastTransition = currentSnapshot.state === nextState ? currentSnapshot.lastTransition : {
+      at: (/* @__PURE__ */ new Date()).toISOString(),
+      from: currentSnapshot.state,
+      to: nextState,
+      route: currentSnapshot.route
+    };
+    previousState = nextState;
+    lastHealthSignature = "";
+    lastCriticalSignature = "";
+    currentSnapshot = {
+      ...currentSnapshot,
+      state: nextState,
+      affectedFeatures,
+      adObservations: emptyAdObservationSnapshot(),
+      lastTransition
+    };
+  }
+  async function updateSnapshot(ctx) {
     const surfaces = getSelectorHealthForRoute(document, ctx.route.surface);
     const required = surfaces.filter((item) => item.relevance === "required");
     const optional = surfaces.filter((item) => item.relevance === "optional");
@@ -13232,11 +13596,29 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     const affectedFeatures = [...new Set(
       surfaces.filter((item) => item.relevance !== "inapplicable" && !item.healthy).map((item) => item.feature)
     )];
-    const state2 = missingRequired.length === 0 ? "healthy" : "degraded";
+    if (!adObservations) {
+      adObservations = new AdObservationStore(ctx.storage);
+      await adObservations.load();
+    }
+    let adObservationSnapshot;
+    try {
+      adObservationSnapshot = await adObservations.observe(
+        ctx.route.surface,
+        observeAdMarkers(document)
+      );
+    } catch (error) {
+      adObservationSnapshot = adObservations.snapshot();
+      ctx.diagnostics.error("Ad observations failed to save", errorDetails(error));
+    }
+    if (adObservationSnapshot.degradedReason) {
+      affectedFeatures.push("Ad protection");
+    }
+    const state2 = missingRequired.length === 0 && !adObservationSnapshot.degradedReason ? "healthy" : "degraded";
     const signature = [
       ctx.route.surface,
       state2,
-      ...surfaces.map((item) => `${item.surface}:${item.relevance}:${item.matched}:${item.stableCount}:${item.fallbackCount}`)
+      ...surfaces.map((item) => `${item.surface}:${item.relevance}:${item.matched}:${item.stableCount}:${item.fallbackCount}`),
+      `ads:${adObservationSnapshot.lastRoute}:${adObservationSnapshot.counts.native}:${adObservationSnapshot.counts.trend}:${adObservationSnapshot.counts.housePromo}:${adObservationSnapshot.counts.video}:${adObservationSnapshot.missingContracts.join(",")}`
     ].join("|");
     let lastTransition = currentSnapshot.lastTransition;
     if (signature !== lastHealthSignature) {
@@ -13262,7 +13644,8 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       fallbackMatches,
       affectedFeatures,
       surfaces,
-      lastTransition
+      lastTransition,
+      adObservations: adObservationSnapshot
     };
   }
   function resetState() {
@@ -13270,6 +13653,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     lastHealthSignature = "";
     lastCriticalSignature = "";
     previousState = null;
+    adObservations = void 0;
     currentSnapshot = emptySnapshot();
   }
   function emptySnapshot() {
@@ -13286,7 +13670,8 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       fallbackMatches: [],
       affectedFeatures: [],
       surfaces: [],
-      lastTransition: null
+      lastTransition: null,
+      adObservations: emptyAdObservationSnapshot()
     };
   }
   function snapshotDetails(snapshot) {
@@ -13302,8 +13687,12 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       optionalMissing: snapshot.optionalMissing,
       fallbackMatches: snapshot.fallbackMatches,
       affectedFeatures: snapshot.affectedFeatures,
-      lastTransition: snapshot.lastTransition
+      lastTransition: snapshot.lastTransition,
+      adObservations: snapshot.adObservations
     };
+  }
+  function errorDetails(error) {
+    return error instanceof Error ? { name: error.name, message: error.message } : { message: String(error) };
   }
 
   // src/features/core/presets.ts
@@ -13738,18 +14127,18 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     return { day, ai: { requests: 0, bytes: 0 }, embedding: { requests: 0, records: 0, bytes: 0 } };
   }
   function normalizeState(value) {
-    if (!isRecord2(value) || value.schemaVersion !== INTEGRATION_USAGE_SCHEMA_VERSION || !Array.isArray(value.days)) {
+    if (!isRecord3(value) || value.schemaVersion !== INTEGRATION_USAGE_SCHEMA_VERSION || !Array.isArray(value.days)) {
       return { schemaVersion: 1, days: [] };
     }
     const days = value.days.map(normalizeDay).filter((day) => day !== null).sort((a, b) => a.day.localeCompare(b.day));
     return { schemaVersion: 1, days: days.slice(-USAGE_HISTORY_DAYS) };
   }
   function normalizeDay(value) {
-    if (!isRecord2(value) || typeof value.day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value.day)) {
+    if (!isRecord3(value) || typeof value.day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value.day)) {
       return null;
     }
-    const ai = isRecord2(value.ai) ? value.ai : {};
-    const embedding = isRecord2(value.embedding) ? value.embedding : {};
+    const ai = isRecord3(value.ai) ? value.ai : {};
+    const embedding = isRecord3(value.embedding) ? value.embedding : {};
     return {
       day: value.day,
       ai: {
@@ -13776,7 +14165,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       }))
     };
   }
-  function isRecord2(value) {
+  function isRecord3(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -16525,7 +16914,7 @@ a { color: #8ecdf1; }
       };
     } catch (error) {
       await checkpointStore.fail(jobId, error);
-      ctx.diagnostics.error("Export failed", errorDetails(error));
+      ctx.diagnostics.error("Export failed", errorDetails2(error));
       void ctx.auditLog.record("export.failed", { jobId, error: String(error?.message ?? error) });
       throw error;
     }
@@ -16698,7 +17087,7 @@ a { color: #8ecdf1; }
         count: Object.keys(queryRegistry.queries).length
       });
     } catch (error) {
-      ctx.diagnostics.warn("Query ID discovery failed", errorDetails(error));
+      ctx.diagnostics.warn("Query ID discovery failed", errorDetails2(error));
     }
   }
   async function startCaptureSession(ctx) {
@@ -16747,7 +17136,7 @@ a { color: #8ecdf1; }
       }
     }
   }
-  function errorDetails(error) {
+  function errorDetails2(error) {
     if (error instanceof Error) {
       return { name: error.name, message: error.message };
     }
@@ -16767,7 +17156,7 @@ a { color: #8ecdf1; }
         blocked: result.blocked
       });
     } catch (error) {
-      ctx.diagnostics.warn("Auto-embedding failed", errorDetails(error));
+      ctx.diagnostics.warn("Auto-embedding failed", errorDetails2(error));
     }
   }
   function actionResult(ok) {
@@ -16937,7 +17326,7 @@ ${record.text}${mediaList}`;
     return match?.[1] ? normalizeHandle(match[1]) : null;
   }
   function normalizeHiddenPosts(input, maxEntries) {
-    const record = isRecord3(input) ? input : {};
+    const record = isRecord4(input) ? input : {};
     const rawEntries = Array.isArray(record.entries) ? record.entries : [];
     const byKey = /* @__PURE__ */ new Map();
     for (const raw of rawEntries) {
@@ -17106,7 +17495,7 @@ ${record.text}${mediaList}`;
     }
   };
   function normalizeEntry(input) {
-    if (!isRecord3(input)) {
+    if (!isRecord4(input)) {
       return null;
     }
     const key = typeof input.key === "string" ? input.key.trim() : "";
@@ -17142,7 +17531,7 @@ ${record.text}${mediaList}`;
     const cleaned = value.trim();
     return /^\d{1,25}$/.test(cleaned) ? cleaned : null;
   }
-  function isRecord3(value) {
+  function isRecord4(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -17167,12 +17556,12 @@ ${record.text}${mediaList}`;
     defaultEnabled: true,
     async init(ctx) {
       store = new HiddenPostStore(ctx.storage, (error) => {
-        ctx.diagnostics.error("Hidden posts failed to save", errorDetails2(error));
+        ctx.diagnostics.error("Hidden posts failed to save", errorDetails3(error));
       });
       try {
         await store.load(ctx.settings.hidden.maxEntries);
       } catch (error) {
-        ctx.diagnostics.error("Hidden posts failed to load", errorDetails2(error));
+        ctx.diagnostics.error("Hidden posts failed to load", errorDetails3(error));
       }
       if (ctx.settings.hidden.enabled) {
         ensureStyle2();
@@ -17442,7 +17831,7 @@ ${record.text}${mediaList}`;
       }
     } catch (error) {
       button2.disabled = false;
-      ctx.diagnostics.error("Could not hide post", errorDetails2(error));
+      ctx.diagnostics.error("Could not hide post", errorDetails3(error));
       showToast(ft(ctx, "Could not save the hidden post. Storage rejected the write."), ctx);
     }
   }
@@ -17467,7 +17856,7 @@ ${record.text}${mediaList}`;
         text.textContent = ft(ctx, entry ? "Post restored." : "Nothing left to restore.");
         scheduleToastDismiss(card, 2500);
       }).catch((error) => {
-        ctx.diagnostics.error("Could not restore post", errorDetails2(error));
+        ctx.diagnostics.error("Could not restore post", errorDetails3(error));
         text.textContent = ft(ctx, "Could not restore that post.");
         scheduleToastDismiss(card, 4e3);
       });
@@ -17525,7 +17914,7 @@ ${record.text}${mediaList}`;
     style.textContent = HIDDEN_CSS;
     (document.head ?? document.documentElement).append(style);
   }
-  function errorDetails2(error) {
+  function errorDetails3(error) {
     if (error instanceof Error) {
       return { name: error.name, message: error.message };
     }
@@ -18003,7 +18392,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       throw new Error(`Bluesky media upload HTTP ${response.status}`);
     }
     const payload = await response.json();
-    if (!isRecord4(payload.blob)) {
+    if (!isRecord5(payload.blob)) {
       throw new Error("Bluesky media response was malformed");
     }
     return payload.blob;
@@ -18105,7 +18494,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     const cleaned = value.replace(/[\\/\u0000-\u001f]/g, "_").trim();
     return cleaned.slice(0, 160) || "aviary-media";
   }
-  function isRecord4(value) {
+  function isRecord5(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
   async function callBluesky(service, nsid, input, bearer) {
@@ -18555,7 +18944,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
   function arrayEntries(value) {
     if (Array.isArray(value)) return value;
-    if (isRecord5(value)) {
+    if (isRecord6(value)) {
       for (const candidate of Object.values(value)) {
         if (Array.isArray(candidate)) return candidate;
       }
@@ -18564,9 +18953,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     return [];
   }
   function unwrapRecord(value, keys) {
-    if (!isRecord5(value)) return {};
+    if (!isRecord6(value)) return {};
     for (const key of keys) {
-      if (isRecord5(value[key])) return value[key];
+      if (isRecord6(value[key])) return value[key];
     }
     return value;
   }
@@ -18576,7 +18965,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       if (!Array.isArray(value)) continue;
       return value.flatMap((entry) => {
         if (typeof entry === "string") return [entry];
-        if (isRecord5(entry)) return [stringField(entry, "id", "id_str", "url") ?? ""];
+        if (isRecord6(entry)) return [stringField(entry, "id", "id_str", "url") ?? ""];
         return [];
       }).filter((entry) => entry.length > 0).slice(0, 1e3);
     }
@@ -18607,8 +18996,8 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     const now2 = (/* @__PURE__ */ new Date()).toISOString();
     const out = [];
     for (const entry of parsed) {
-      const tweet = isRecord5(entry) && isRecord5(entry.tweet) ? entry.tweet : entry;
-      if (!isRecord5(tweet)) continue;
+      const tweet = isRecord6(entry) && isRecord6(entry.tweet) ? entry.tweet : entry;
+      if (!isRecord6(tweet)) continue;
       const id = stringField(tweet, "id_str", "id");
       const text = stringField(tweet, "full_text", "text") ?? "";
       const createdAt = stringField(tweet, "created_at") ?? now2;
@@ -18630,8 +19019,8 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     if (!Array.isArray(parsed)) return [];
     const out = [];
     for (const entry of parsed) {
-      const like = isRecord5(entry) && isRecord5(entry.like) ? entry.like : entry;
-      if (!isRecord5(like)) continue;
+      const like = isRecord6(entry) && isRecord6(entry.like) ? entry.like : entry;
+      if (!isRecord6(like)) continue;
       const id = stringField(like, "tweetId", "id");
       const text = stringField(like, "fullText", "text") ?? "";
       const record = {
@@ -18659,21 +19048,21 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
   function stringFromAuthor(tweet) {
     const user = tweet.user;
-    if (isRecord5(user)) {
+    if (isRecord6(user)) {
       const author = stringField(user, "screen_name", "username", "handle");
       if (author) {
         return author;
       }
     }
     const entities = tweet.entities;
-    if (!isRecord5(entities)) return null;
+    if (!isRecord6(entities)) return null;
     const userMentions = entities.user_mentions;
     if (!Array.isArray(userMentions) || userMentions.length === 0) return null;
     const first = userMentions[0];
-    if (!isRecord5(first)) return null;
+    if (!isRecord6(first)) return null;
     return stringField(first, "screen_name");
   }
-  function isRecord5(value) {
+  function isRecord6(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -19005,7 +19394,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     const raw = value;
     return {
       version: 1,
-      profile: isRecord6(raw.profile) ? {
+      profile: isRecord7(raw.profile) ? {
         handle: stringOrNull(raw.profile.handle),
         displayName: stringOrNull(raw.profile.displayName),
         bio: stringOrNull(raw.profile.bio),
@@ -19013,7 +19402,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         website: stringOrNull(raw.profile.website),
         joinedAt: stringOrNull(raw.profile.joinedAt)
       } : null,
-      account: isRecord6(raw.account) ? {
+      account: isRecord7(raw.account) ? {
         id: stringOrNull(raw.account.id),
         handle: stringOrNull(raw.account.handle),
         displayName: stringOrNull(raw.account.displayName),
@@ -19058,20 +19447,20 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   function stringOrNull(value) {
     return typeof value === "string" ? value : null;
   }
-  function isRecord6(value) {
+  function isRecord7(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
   function isDirectMessage(value) {
-    return isRecord6(value) && typeof value.text === "string" && Array.isArray(value.recipientIds) && Array.isArray(value.mediaUrls);
+    return isRecord7(value) && typeof value.text === "string" && Array.isArray(value.recipientIds) && Array.isArray(value.mediaUrls);
   }
   function isMediaReference(value) {
-    return isRecord6(value) && typeof value.sourceFile === "string";
+    return isRecord7(value) && typeof value.sourceFile === "string";
   }
   function isAccountRef(value) {
-    return isRecord6(value) && typeof value.sourceFile === "string";
+    return isRecord7(value) && typeof value.sourceFile === "string";
   }
   function isList(value) {
-    return isRecord6(value) && Array.isArray(value.memberIds) && Array.isArray(value.subscriberIds);
+    return isRecord7(value) && Array.isArray(value.memberIds) && Array.isArray(value.subscriberIds);
   }
 
   // src/features/library/cleanup-preview.ts
@@ -19439,10 +19828,10 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
   function isMediaRecord(record) {
     const type = typeof record.type === "string" ? record.type.toLowerCase() : "";
-    return type === "video" || type === "animated_gif" || isRecord7(record.video_info) || Boolean(record.preview_image_url || record.preview_image_url_https) && (type.includes("video") || type.includes("gif"));
+    return type === "video" || type === "animated_gif" || isRecord8(record.video_info) || Boolean(record.preview_image_url || record.preview_image_url_https) && (type.includes("video") || type.includes("gif"));
   }
   function readMediaMetadata(record, tweetId) {
-    const videoInfo = isRecord7(record.video_info) ? record.video_info : {};
+    const videoInfo = isRecord8(record.video_info) ? record.video_info : {};
     const variants = readVariants(videoInfo.variants);
     const poster = firstUrl(
       record.preview_image_url_https,
@@ -19464,7 +19853,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     const variants = [];
     const seen = /* @__PURE__ */ new Set();
     for (const entry of value) {
-      if (!isRecord7(entry)) {
+      if (!isRecord8(entry)) {
         continue;
       }
       const url = httpUrl(entry.url);
@@ -19588,7 +19977,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     }
     return { width: Number(match[1]), height: Number(match[2]) };
   }
-  function isRecord7(value) {
+  function isRecord8(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -19948,7 +20337,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
             secret: ctx.settings.integrations.aria2.secret
           });
         } catch (error) {
-          ctx.diagnostics.warn("Aria2 history reconcile skipped", errorDetails3(error));
+          ctx.diagnostics.warn("Aria2 history reconcile skipped", errorDetails4(error));
         }
       }
       downloader = createDownloader({
@@ -19957,16 +20346,16 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         onWarn: (message, details) => ctx.diagnostics.warn(message, details)
       });
       queue = new DownloadQueue(ctx.storage, (error) => {
-        ctx.diagnostics.error("Media queue failed to save", errorDetails3(error));
+        ctx.diagnostics.error("Media queue failed to save", errorDetails4(error));
       });
       await queue.load();
       history = new MediaHistory(ctx.storage, void 0, (error) => {
-        ctx.diagnostics.error("Media history failed to save", errorDetails3(error));
+        ctx.diagnostics.error("Media history failed to save", errorDetails4(error));
       });
       try {
         await history.load();
       } catch (error) {
-        ctx.diagnostics.warn("Media history failed to load", errorDetails3(error));
+        ctx.diagnostics.warn("Media history failed to load", errorDetails4(error));
       }
       applyToggleClass(ctx);
       appliedPreferOriginalImages = ctx.settings.media.preferOriginalImages;
@@ -20255,7 +20644,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
           void requestDownloadPermissionSurface();
         }
       }
-      ctx.diagnostics.error("Media download failed", errorDetails3(error));
+      ctx.diagnostics.error("Media download failed", errorDetails4(error));
       void ctx.auditLog.record("media.download.failed", {
         filename,
         kind: media.kind,
@@ -20292,7 +20681,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     if (media.kind === "video") return media.video?.isGif ? "GIF saved" : "Saved";
     return "Saved";
   }
-  function errorDetails3(error) {
+  function errorDetails4(error) {
     if (error instanceof Error) {
       return { name: error.name, message: error.message };
     }
@@ -21960,7 +22349,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       errors.push(`Invalid JSON: ${error.message}`);
       return { applied: false, errors, warnings, settings: normalizeSettings({}) };
     }
-    if (!isRecord8(parsed)) {
+    if (!isRecord9(parsed)) {
       errors.push("Top-level value must be an object.");
       return { applied: false, errors, warnings, settings: normalizeSettings({}) };
     }
@@ -21974,7 +22363,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         `Import version ${version} is newer than supported ${SETTINGS_EXPORT_VERSION}; unknown fields are dropped.`
       );
     }
-    const rawSettings = isRecord8(parsed.settings) ? parsed.settings : parsed;
+    const rawSettings = isRecord9(parsed.settings) ? parsed.settings : parsed;
     const normalized = normalizeSettings(rawSettings);
     let restored = 0;
     for (const [group, key] of SECRET_PATHS) {
@@ -21990,7 +22379,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
     return { applied: true, errors, warnings, settings: normalized };
   }
-  function isRecord8(value) {
+  function isRecord9(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -22141,7 +22530,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     } catch (error) {
       throw new LibraryBackupError(`Invalid backup JSON: ${errorMessage(error)}`);
     }
-    if (!isRecord9(raw)) {
+    if (!isRecord10(raw)) {
       throw new LibraryBackupError("Backup top-level value must be an object.");
     }
     if (raw.generator !== "Aviary") {
@@ -22166,7 +22555,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     const seen = /* @__PURE__ */ new Set();
     const collections = [];
     for (const candidate of raw.collections) {
-      if (!isRecord9(candidate)) {
+      if (!isRecord10(candidate)) {
         throw new LibraryBackupError("Backup contains an invalid collection entry.");
       }
       const definition = definitionFor(candidate.key);
@@ -22475,15 +22864,15 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
   function collectionCount(key, value) {
     if (key === SETTINGS_KEY || key === LAST_DOWNLOAD_KEY) return 1;
-    if (key === CHECKPOINT_KEY && isRecord9(value)) {
-      const records = isRecord9(value.records) ? value.records : {};
+    if (key === CHECKPOINT_KEY && isRecord10(value)) {
+      const records = isRecord10(value.records) ? value.records : {};
       return Object.values(records).reduce(
         (total, entries) => total + (Array.isArray(entries) ? entries.length : 0),
         0
       );
     }
     if (Array.isArray(value)) return value.length;
-    if (!isRecord9(value)) return 1;
+    if (!isRecord10(value)) return 1;
     const arrayKeys = [
       "entries",
       "items",
@@ -22501,8 +22890,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     const counts = arrayKeys.flatMap((name) => {
       const candidate = value[name];
       if (Array.isArray(candidate)) return [candidate.length];
-      if (name === "jobs" && isRecord9(candidate)) return [Object.keys(candidate).length];
-      if (name === "records" && isRecord9(candidate)) {
+      if (name === "jobs" && isRecord10(candidate)) return [Object.keys(candidate).length];
+      if (name === "records" && isRecord10(candidate)) {
         return [Object.values(candidate).reduce((total, entries) => total + (Array.isArray(entries) ? entries.length : 0), 0)];
       }
       return [];
@@ -22535,7 +22924,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
   function deserializeBackupValue(text) {
     return JSON.parse(text, (_key, current) => {
-      if (!isRecord9(current) || current.__aviaryType !== "Uint8Array") return current;
+      if (!isRecord10(current) || current.__aviaryType !== "Uint8Array") return current;
       if (typeof current.base64 !== "string") {
         throw new Error("Uint8Array value is missing base64 data");
       }
@@ -22562,7 +22951,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     return bytes;
   }
   function parseManifest(value) {
-    if (!isRecord9(value) || value.schemaVersion !== 1) {
+    if (!isRecord10(value) || value.schemaVersion !== 1) {
       throw new LibraryBackupError("Backup manifest is missing or unsupported.", "unsupported");
     }
     return {
@@ -22574,7 +22963,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
   function parseProfile(value) {
     if (value === null) return null;
-    if (!isRecord9(value) || typeof value.id !== "string" || typeof value.label !== "string") {
+    if (!isRecord10(value) || typeof value.id !== "string" || typeof value.label !== "string") {
       throw new LibraryBackupError("Backup profile metadata is invalid.");
     }
     return { id: value.id.slice(0, 120), label: value.label.slice(0, 120) };
@@ -22623,7 +23012,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   function errorMessage(error) {
     return error instanceof Error ? error.message : String(error);
   }
-  function isRecord9(value) {
+  function isRecord10(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -22674,7 +23063,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           ctx.requestApply();
         },
         onError(message, error) {
-          ctx.diagnostics.error(message, errorDetails4(error));
+          ctx.diagnostics.error(message, errorDetails5(error));
         },
         getProfileStatus() {
           return ctx.profile?.status() ?? {
@@ -22855,6 +23244,9 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         },
         getSelectorHealth() {
           return getSelectorHealthSnapshot();
+        },
+        async clearAdObservations() {
+          await clearAdObservations(ctx.storage);
         },
         async clearAuditLog() {
           await ctx.auditLog.clear();
@@ -23474,7 +23866,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
     return { ok: true };
   }
-  function errorDetails4(error) {
+  function errorDetails5(error) {
     if (error instanceof Error) {
       return {
         name: error.name,
@@ -25403,7 +25795,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   ]);
   var GRAPHQL_PATH_PATTERN = /^\/i\/api\/graphql\/([A-Za-z0-9_-]{1,200})\/([A-Za-z0-9_-]{1,100})$/;
   function isPageAgentEnvelope(value) {
-    if (!isRecord10(value) || value.channel !== PAGE_CHANNEL || typeof value.kind !== "string") {
+    if (!isRecord11(value) || value.channel !== PAGE_CHANNEL || typeof value.kind !== "string") {
       return false;
     }
     if (!PAGE_AGENT_KINDS.has(value.kind)) {
@@ -25412,7 +25804,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     return value.nonce === void 0 || typeof value.nonce === "string" && value.nonce.length >= 16 && value.nonce.length <= MAX_NONCE_LENGTH;
   }
   function sanitizeCapturedGraphqlPayload(value, expectedOrigin) {
-    if (!isRecord10(value)) {
+    if (!isRecord11(value)) {
       return null;
     }
     const url = typeof value.url === "string" ? value.url : "";
@@ -25799,7 +26191,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   function now() {
     return (/* @__PURE__ */ new Date()).toISOString();
   }
-  function isRecord10(value) {
+  function isRecord11(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -26672,7 +27064,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           this.#active.add(feature.id);
           ctx.diagnostics.info(`Feature initialized: ${feature.id}`);
         } catch (error) {
-          ctx.diagnostics.error(`Feature failed to initialize: ${feature.id}`, errorDetails5(error));
+          ctx.diagnostics.error(`Feature failed to initialize: ${feature.id}`, errorDetails6(error));
         }
       }
     }
@@ -26683,7 +27075,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           try {
             await feature.apply(ctx, root, addedNodes);
           } catch (error) {
-            ctx.diagnostics.error(`Feature failed to apply: ${id}`, errorDetails5(error));
+            ctx.diagnostics.error(`Feature failed to apply: ${id}`, errorDetails6(error));
           }
         }
       }
@@ -26696,7 +27088,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
             await feature.destroy(ctx);
           }
         } catch (error) {
-          ctx.diagnostics.error(`Feature failed to destroy: ${id}`, errorDetails5(error));
+          ctx.diagnostics.error(`Feature failed to destroy: ${id}`, errorDetails6(error));
         }
         this.#active.delete(id);
       }
@@ -26712,13 +27104,13 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           return {
             ok: false,
             message: `${feature.id} status failed`,
-            details: errorDetails5(error)
+            details: errorDetails6(error)
           };
         }
       });
     }
   };
-  function errorDetails5(error) {
+  function errorDetails6(error) {
     if (error instanceof Error) {
       return {
         name: error.name,
@@ -27769,7 +28161,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     setStorageErrorSink((key, error, op) => {
       diagnostics.error(
         op === "read" ? `Storage could not read ${key}` : `Storage write failed to save ${key}`,
-        errorDetails6(error)
+        errorDetails7(error)
       );
     });
     const storageStatus = await durableStorage.initialize(DURABLE_STORAGE_KEYS);
@@ -27803,15 +28195,15 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       storage,
       void 0,
       (error) => {
-        diagnostics.error("Audit log failed to save", errorDetails6(error));
+        diagnostics.error("Audit log failed to save", errorDetails7(error));
       },
       () => settings.privacy.auditLog
     );
     await auditLog.load();
     registry.register(themeFeature);
     registry.register(i18nFeature);
-    registry.register(selectorHealthFeature);
     registry.register(adProtectionFeature);
+    registry.register(selectorHealthFeature);
     registry.register(layoutDeclutterFeature);
     registry.register(filterEngineFeature);
     registry.register(hiddenPostsFeature);
@@ -27889,7 +28281,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       };
       return activeApp;
     } catch (error) {
-      diagnostics.error("Aviary boot failed", errorDetails6(error));
+      diagnostics.error("Aviary boot failed", errorDetails7(error));
       document.documentElement.dataset.avReady = "error";
       for (const stop of stops.reverse()) {
         stop();
@@ -27905,7 +28297,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       diagnostics.warn("Extension ad rule failed to sync", { error: result.error ?? "unknown" });
     }
   }
-  function errorDetails6(error) {
+  function errorDetails7(error) {
     if (error instanceof Error) {
       return {
         name: error.name,

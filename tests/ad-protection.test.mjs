@@ -152,7 +152,8 @@ test("runtime scanning covers delayed, virtualized, toggle, recovery, and SPA re
         ?.getAttribute("data-av-ad-hidden"),
       organicVideoMark: document.querySelector('[data-fixture-item="organic-video"]')
         ?.getAttribute("data-av-ad-hidden"),
-      counters: AviaryAds.adProtectionCounters()
+      counters: AviaryAds.adProtectionCounters(),
+      observations: AviaryAds.observeAdMarkers(document)
     }));
 
     assert.equal(active.nativeCellMark, "post", "the virtualizer cell must own the collapse");
@@ -167,6 +168,7 @@ test("runtime scanning covers delayed, virtualized, toggle, recovery, and SPA re
     assert.equal(active.organicAsideMark, null);
     assert.equal(active.organicVideoMark, null);
     assert.deepEqual(active.counters, { hiddenPlacements: 5, suppressedVideoAds: 1 });
+    assert.deepEqual(active.observations, { native: 2, trend: 1, housePromo: 2, video: 1 });
 
     const toggled = await page.evaluate(() => {
       const { settings, context } = globalThis.adFixtureState;

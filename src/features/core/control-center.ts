@@ -18,7 +18,10 @@ import {
 } from "../../ui/control-center";
 import { pageHookCounters } from "../privacy/page-hooks";
 import { adProtectionCounters } from "../privacy/ad-protection";
-import { getSelectorHealthSnapshot } from "./selector-health";
+import {
+  clearAdObservations as clearSelectorAdObservations,
+  getSelectorHealthSnapshot
+} from "./selector-health";
 import { applyPreset, describePresetDelta, getPreset, listPresets } from "./presets";
 import {
   getCheckpointStore,
@@ -342,6 +345,9 @@ export const controlCenterFeature: FeatureModule = {
       },
       getSelectorHealth() {
         return getSelectorHealthSnapshot();
+      },
+      async clearAdObservations() {
+        await clearSelectorAdObservations(ctx.storage);
       },
       async clearAuditLog() {
         await ctx.auditLog.clear();

@@ -121,6 +121,19 @@ export interface SelectorHealthStatus {
     to: "healthy" | "degraded";
     route: string;
   } | null;
+  adObservations: {
+    lastObservedAt: string | null;
+    lastRoute: string | null;
+    counts: {
+      native: number;
+      trend: number;
+      housePromo: number;
+      video: number;
+    };
+    retained: number;
+    missingContracts: Array<"native" | "trend" | "housePromo" | "video">;
+    degradedReason: string | null;
+  };
 }
 
 export interface ControlCenterOptions {
@@ -166,6 +179,7 @@ export interface ControlCenterOptions {
     suppressedVideoAds: number;
   };
   getSelectorHealth?: () => SelectorHealthStatus;
+  clearAdObservations?: () => Promise<void>;
   clearAuditLog?: () => Promise<void>;
   getRetentionPolicy?: () => RetentionPolicy;
   saveRetentionPolicy?: (policy: RetentionPolicy) => Promise<void>;
@@ -1370,6 +1384,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     t("Fallback selectors in use");
     t("Affected features");
     t("Last selector transition");
+    t("Ad observations");
+    t("Ad marker counts");
+    t("Ad contract drift");
+    t("Retained ad observations");
+    t("Native");
+    t("Trend");
+    t("House promo");
+    t("Video");
 
     const rows = [
       dataRow(
@@ -1407,6 +1429,36 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         dataRow(
           "Last selector transition",
           `${health.lastTransition.to} · ${health.lastTransition.route} · ${health.lastTransition.at}`
+        )
+      );
+    }
+    const ads = health.adObservations;
+    rows.push(
+      dataRow(
+        "Ad observations",
+        ads.lastObservedAt && ads.lastRoute
+          ? `${ads.lastRoute} · ${ads.lastObservedAt}`
+          : "None"
+      ),
+      dataRow(
+        "Ad marker counts",
+        `${t("Native")} ${ads.counts.native} · ${t("Trend")} ${ads.counts.trend} · ${t("House promo")} ${ads.counts.housePromo} · ${t("Video")} ${ads.counts.video}`
+      ),
+      dataRow("Retained ad observations", String(ads.retained))
+    );
+    if (ads.missingContracts.length > 0) {
+      const labels = {
+        native: t("Native"),
+        trend: t("Trend"),
+        housePromo: t("House promo"),
+        video: t("Video")
+      };
+      rows.push(
+        dataRow(
+          "Ad contract drift",
+          localizedCopy("Formerly observed markers are no longer detected: {markers}.", {
+            markers: ads.missingContracts.map((kind) => labels[kind]).join(", ")
+          })
         )
       );
     }

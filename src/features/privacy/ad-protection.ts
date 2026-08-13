@@ -66,6 +66,13 @@ const VIDEO_AD_MARKERS = [
 let hiddenPlacements = 0;
 let suppressedVideoAds = 0;
 
+export interface AdMarkerCounts {
+  native: number;
+  trend: number;
+  housePromo: number;
+  video: number;
+}
+
 /**
  * Installs the paint-time half before storage or the feature registry can yield.
  *
@@ -120,6 +127,23 @@ export function adProtectionCounters(): {
   return { hiddenPlacements, suppressedVideoAds };
 }
 
+/**
+ * Counts only the structural markers the blocker itself trusts.
+ *
+ * This deliberately returns numbers rather than matched nodes or evidence strings. Selector
+ * health can retain the result locally without retaining post text, handles, destination URLs,
+ * response bodies, or any other account content.
+ */
+export function observeAdMarkers(root: ParentNode = document): AdMarkerCounts {
+  const detected = detectPlacements(root);
+  return {
+    native: detected.native.length,
+    trend: detected.trend.length,
+    housePromo: detected.housePromo.length,
+    video: detected.video.length
+  };
+}
+
 function applyAdProtection(
   ctx: FeatureContext,
   root: ParentNode,
@@ -134,28 +158,39 @@ function applyAdProtection(
 
   const scopes: ParentNode[] = addedNodes && addedNodes.length > 0 ? addedNodes : [root];
   for (const scope of scopes) {
-    for (const article of candidates(scope, ARTICLE_SELECTOR)) {
-      if (isSponsoredArticle(article)) {
-        hidePlacement(article, "post");
-      }
+    const detected = detectPlacements(scope);
+    for (const article of detected.native) {
+      hidePlacement(article, "post");
     }
-    for (const trend of candidates(scope, TREND_SELECTOR)) {
-      if (isPromotedTrend(trend)) {
-        hidePlacement(trend, "trend");
-      }
+    for (const trend of detected.trend) {
+      hidePlacement(trend, "trend");
     }
-    for (const promo of candidates(scope, HOUSE_PROMO_SELECTOR)) {
+    for (const promo of detected.housePromo) {
       hidePlacement(promo, "house");
     }
+    for (const video of detected.video) {
+      hidePlacement(video, "video");
+    }
     for (const video of candidates(scope, VIDEO_SELECTOR)) {
-      const hasAd = containsVideoAdMarker(video);
-      if (hasAd) {
-        hidePlacement(video, "video");
-      } else if (video.getAttribute(HIDDEN_ATTRIBUTE) === "video") {
+      if (!detected.video.includes(video) && video.getAttribute(HIDDEN_ATTRIBUTE) === "video") {
         video.removeAttribute(HIDDEN_ATTRIBUTE);
       }
     }
   }
+}
+
+function detectPlacements(root: ParentNode): {
+  native: Element[];
+  trend: Element[];
+  housePromo: Element[];
+  video: Element[];
+} {
+  return {
+    native: candidates(root, ARTICLE_SELECTOR).filter(isSponsoredArticle),
+    trend: candidates(root, TREND_SELECTOR).filter(isPromotedTrend),
+    housePromo: candidates(root, HOUSE_PROMO_SELECTOR),
+    video: candidates(root, VIDEO_SELECTOR).filter(containsVideoAdMarker)
+  };
 }
 
 function candidates(root: ParentNode, selector: string): Element[] {

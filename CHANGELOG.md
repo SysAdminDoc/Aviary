@@ -12,6 +12,9 @@
   synthetic copy for native ads, paid partnerships, promoted trends, Grok/Premium promos, pre-roll,
   and organic negative controls. Browser tests cover cold paint, delayed insertion, virtualized
   cell collapse, disable/re-enable, marker recovery, and SPA reinsertion.
+- Selector health now retains a profile-local 64-entry/30-day ring containing only route, time,
+  and four ad-marker counts. Trust reports when a formerly observed contract disappears and can
+  reset the observations without retaining post text, handles, URLs, or response bodies.
 
 ### Changed
 

@@ -132,6 +132,10 @@ removes the dynamic rule immediately; turning it back on restores it, including 
   disabled.
 - A minimal synthetic corpus in `tests/fixtures/ad-corpus/` locks those structures without storing
   handles, post text, account/tweet ids, media, credentials, response bodies, or remote assets.
+- Trust keeps a local, profile-scoped ring of at most 64 ad-marker observations for 30 days. Each
+  entry contains only a route category, timestamp, and native/trend/house-promo/video counts. If a
+  marker previously seen on that route disappears, selector health reports the contract drift;
+  **Reset ad observations** clears the ring and warning.
 - Does not block HomeTimeline. X delivers native sponsored records in the same essential
   first-party response as ordinary posts, so those bytes are inseparable and only their rendering
   can be suppressed safely.

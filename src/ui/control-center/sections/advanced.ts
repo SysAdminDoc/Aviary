@@ -35,6 +35,27 @@ export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
       ctx.coverageRow(),
         ...ctx.selectorHealthRows()
   ];
+  if (ctx.options.clearAdObservations) {
+    rows.push(
+      ctx.actionRow(
+        "Reset ad observations",
+        {
+          source: "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.",
+          values: {}
+        },
+        async () => {
+          try {
+            await ctx.options.clearAdObservations!();
+            ctx.render();
+            ctx.setStatus("Ad observations reset.");
+          } catch (error) {
+            ctx.options.onError("Could not reset ad observations", error);
+            ctx.setStatus("Could not reset ad observations.");
+          }
+        }
+      )
+    );
+  }
   const profile = ctx.options.getProfileStatus?.();
   if (profile) {
     rows.splice(

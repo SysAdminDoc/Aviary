@@ -18,7 +18,7 @@ before(async () => {
   await writeFile(
     entry,
     [
-      `export { selectorHealthFeature, getSelectorHealthSnapshot } from ${JSON.stringify(path.join(root, "src/features/core/selector-health.ts").replace(/\\/g, "/"))};`,
+      `export { selectorHealthFeature, getSelectorHealthSnapshot, clearAdObservations } from ${JSON.stringify(path.join(root, "src/features/core/selector-health.ts").replace(/\\/g, "/"))};`,
       `export { getSelectorHealthForRoute } from ${JSON.stringify(path.join(root, "src/platform/selectors.ts").replace(/\\/g, "/"))};`,
       `export { mountControlCenter } from ${JSON.stringify(path.join(root, "src/ui/control-center.ts").replace(/\\/g, "/"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(path.join(root, "src/platform/settings.ts").replace(/\\/g, "/"))};`
@@ -65,10 +65,15 @@ test("Trust shows current selector matches and clears a required-surface warning
     const context = {
       route: { surface: "home" },
       settings,
+      storage: {
+        async get(_key, fallback) { return fallback; },
+        async set() {},
+        async remove() {}
+      },
       diagnostics: { info() {}, warn() {}, error() {} }
     };
-    AviarySelectorHealth.selectorHealthFeature.init(context);
-    AviarySelectorHealth.selectorHealthFeature.apply(context, document);
+    await AviarySelectorHealth.selectorHealthFeature.init(context);
+    await AviarySelectorHealth.selectorHealthFeature.apply(context, document);
     const panel = AviarySelectorHealth.mountControlCenter({
       settings,
       diagnostics: () => [],
@@ -92,7 +97,7 @@ test("Trust shows current selector matches and clears a required-surface warning
     };
 
     primary.remove();
-    AviarySelectorHealth.selectorHealthFeature.apply(context, document);
+    await AviarySelectorHealth.selectorHealthFeature.apply(context, document);
     shadow.querySelector(".av-panel").focus();
     panel.refresh();
     const degraded = {
@@ -103,7 +108,7 @@ test("Trust shows current selector matches and clears a required-surface warning
     };
 
     app.append(primary);
-    AviarySelectorHealth.selectorHealthFeature.apply(context, document);
+    await AviarySelectorHealth.selectorHealthFeature.apply(context, document);
     shadow.querySelector(".av-panel").focus();
     panel.refresh();
     const restored = {
@@ -135,6 +140,103 @@ test("Trust shows current selector matches and clears a required-surface warning
   assert.match(result.restored.summary, /Healthy · home/);
   assert.equal(result.restored.snapshot.lastTransition.from, "degraded");
   assert.equal(result.restored.snapshot.lastTransition.to, "healthy");
+});
+
+test("Trust surfaces content-free ad-contract drift and resets its bounded history", async () => {
+  const result = await page.evaluate(async () => {
+    document.body.replaceChildren();
+    const app = document.createElement("div");
+    app.id = "react-root";
+    app.innerHTML = `
+      <main data-testid="primaryColumn">
+        <div data-testid="cellInnerDiv" data-ad-fixture="native">
+          <article data-testid="tweet"><div data-testid="placementTracking"></div><span>Ad</span></article>
+        </div>
+        <div data-testid="videoPlayer" data-ad-fixture="video"><span>Video will play after ad</span></div>
+      </main>
+      <a data-testid="AppTabBar_Home"></a>
+      <div data-testid="trend" data-ad-fixture="trend"><span>Promoted by Example Sponsor</span></div>
+      <aside aria-label="Subscribe to Premium" data-ad-fixture="house"></aside>
+    `;
+    document.body.append(app);
+
+    const values = new Map();
+    const storage = {
+      async get(key, fallback) { return structuredClone(values.get(key) ?? fallback); },
+      async set(key, value) { values.set(key, structuredClone(value)); },
+      async remove(key) { values.delete(key); }
+    };
+    const settings = AviarySelectorHealth.cloneSettings(AviarySelectorHealth.DEFAULT_SETTINGS);
+    settings.i18n.locale = "en";
+    const warnings = [];
+    const context = {
+      route: { surface: "home" },
+      settings,
+      storage,
+      diagnostics: { info() {}, warn(message, detail) { warnings.push({ message, detail }); }, error() {} }
+    };
+    await AviarySelectorHealth.selectorHealthFeature.init(context);
+    const observed = AviarySelectorHealth.getSelectorHealthSnapshot();
+
+    for (const node of document.querySelectorAll("[data-ad-fixture]")) node.remove();
+    await AviarySelectorHealth.selectorHealthFeature.apply(context, document);
+    const missing = AviarySelectorHealth.getSelectorHealthSnapshot();
+
+    const panel = AviarySelectorHealth.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: () => {},
+      getSelectorHealth: () => AviarySelectorHealth.getSelectorHealthSnapshot(),
+      clearAdObservations: async () => AviarySelectorHealth.clearAdObservations(storage)
+    });
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    shadow.querySelector('[data-av-section="trust"]').click();
+    const read = (label) =>
+      [...shadow.querySelectorAll(".av-row")]
+        .find((row) => row.querySelector(".av-row-label")?.textContent === label)
+        ?.querySelector(".av-row-description")?.textContent ?? null;
+    const driftRow = read("Ad contract drift");
+    const countRow = read("Ad marker counts");
+    const resetRow = [...shadow.querySelectorAll(".av-row")]
+      .find((row) => row.querySelector(".av-row-label")?.textContent === "Reset ad observations");
+    resetRow.querySelector("button").click();
+    await new Promise((resolve) => setTimeout(resolve));
+    const reset = {
+      snapshot: AviarySelectorHealth.getSelectorHealthSnapshot(),
+      observations: read("Ad observations"),
+      retained: read("Retained ad observations"),
+      drift: read("Ad contract drift")
+    };
+    const persisted = JSON.stringify([...values.entries()]);
+    panel.destroy();
+    AviarySelectorHealth.selectorHealthFeature.destroy(context);
+    return { observed, missing, driftRow, countRow, reset, persisted, warnings };
+  });
+
+  assert.deepEqual(result.observed.adObservations.counts, {
+    native: 1,
+    trend: 1,
+    housePromo: 1,
+    video: 1
+  });
+  assert.equal(result.observed.state, "healthy");
+  assert.equal(result.missing.state, "degraded");
+  assert.deepEqual(result.missing.adObservations.missingContracts, [
+    "native",
+    "trend",
+    "housePromo",
+    "video"
+  ]);
+  assert.match(result.driftRow, /Native, Trend, House promo, Video/);
+  assert.match(result.countRow, /Native 0 · Trend 0 · House promo 0 · Video 0/);
+  assert.equal(result.warnings.at(-1).message, "Ad contract health degraded");
+  assert.equal(result.persisted, "[]");
+  assert.equal(result.reset.snapshot.state, "healthy");
+  assert.equal(result.reset.observations, "None");
+  assert.equal(result.reset.retained, "0");
+  assert.equal(result.reset.drift, null);
 });
 
 test("current settings pages do not require the timeline-only primary column", async () => {

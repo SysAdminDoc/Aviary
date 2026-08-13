@@ -147,8 +147,11 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
 
   registry.register(themeFeature);
   registry.register(i18nFeature);
-  registry.register(selectorHealthFeature);
+  // Ad protection goes first so a diagnostic storage read/write can never delay a placement
+  // collapse. Its markers remain in the DOM, so the health sample immediately after still sees
+  // the exact structural contracts without retaining any content.
   registry.register(adProtectionFeature);
+  registry.register(selectorHealthFeature);
   registry.register(layoutDeclutterFeature);
   registry.register(filterEngineFeature);
   registry.register(hiddenPostsFeature);
