@@ -15,6 +15,9 @@
 - Selector health now retains a profile-local 64-entry/30-day ring containing only route, time,
   and four ad-marker counts. Trust reports when a formerly observed contract disappears and can
   reset the observations without retaining post text, handles, URLs, or response bodies.
+- A committed 60-image desktop settings contract now covers every Control Center destination and
+  extension permissions at 1440×900 and 1920×1080 on dark/light hosts, plus keyboard focus,
+  invalid, saved, reduced-motion, and disabled states behind a reviewed 1% pixel threshold.
 
 ### Changed
 

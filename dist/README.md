@@ -101,9 +101,18 @@ npm run verify
 locale, theme, keyboard/coarse-pointer mode, malformed input class, provider response class, and
 subscription lifecycle is reported in CI before the headed smoke lanes.
 
+`npm run test:visual` rebuilds the extension and compares 60 desktop settings screenshots: all 13
+Control Center destinations plus extension permissions at 1440×900 and 1920×1080 on dark and light
+X hosts, with focused, invalid, saved, reduced-motion, and disabled-permission states. The reviewed
+limit ignores per-channel deltas up to 24 and allows at most 1% changed pixels, enough for glyph-edge
+antialiasing without accepting a moved card or missing footer. After intentionally reviewing a UI
+change, regenerate the committed baselines with `npm run test:visual:update`.
+
 `npm run capture:theme -- <output.png> <width> <height> <theme>` captures any authored palette;
 for example, `npm run capture:theme -- docs/audit/noir.png 1440 900 noir`. Supported theme ids are
 `dim`, `lightsOut`, `graphite`, `plum`, `midnight`, and `noir`.
+`npm run capture:settings -- <output-directory> <width> <height> <dark|light>` uses the same
+deterministic settings harness for ad-hoc captures.
 
 ## Privacy Model
 

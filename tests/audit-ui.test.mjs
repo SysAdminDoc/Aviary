@@ -120,7 +120,7 @@ test("Control Center implements the ImageGen page system across every menu secti
 });
 
 test("settings captures reject a stale versioned extension build", async () => {
-  const source = await readFile(path.join(root, "tools/capture-settings.mjs"), "utf8");
+  const source = await readFile(path.join(root, "tools/settings-visual-harness.mjs"), "utf8");
 
   assert.match(source, /path\.join\(root, "package\.json"\)/);
   assert.match(source, /path\.join\(extensionDir, "manifest\.json"\)/);
