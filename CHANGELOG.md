@@ -8,6 +8,10 @@
   promoted-content logger. It follows the active `Block ads` setting, survives browser/background
   restarts, and is verified against real browser-owned match and loopback-network behavior without
   intercepting HomeTimeline, media, authentication-shaped, or unrelated requests.
+- A dated, privacy-safe ad regression corpus preserves only the current structural contracts and
+  synthetic copy for native ads, paid partnerships, promoted trends, Grok/Premium promos, pre-roll,
+  and organic negative controls. Browser tests cover cold paint, delayed insertion, virtualized
+  cell collapse, disable/re-enable, marker recovery, and SPA reinsertion.
 
 ### Changed
 

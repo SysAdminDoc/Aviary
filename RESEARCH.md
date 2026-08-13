@@ -70,10 +70,10 @@ contract. Ad labels are matched through a bounded locale list and structural own
 
 ## Advertising surface and request map
 
-| Placement | Route / insertion | Request or transport | v1.18 behavior | Remaining proof |
+| Placement | Route / insertion | Request or transport | Current behavior | Remaining proof |
 |---|---|---|---|---|
 | Native sponsored timeline article | Home; delayed/virtualized and reinserted after SPA return | Record shares HomeTimeline GraphQL with organic content | Article and owning virtualizer cell are suppressed on cold fixture load and delayed/SPA insertion | Direct authenticated build injection is unavailable in the in-app browser |
-| Paid partnership | Timeline article | First-party record; policy link is the stable DOM discriminator | Owning article/cell suppressed | Additional locale/state corpus is Next work |
+| Paid partnership | Timeline article | First-party record; policy link is the stable DOM discriminator | Owning article/cell suppressed; minimized synthetic fixture is retained | Additional real locale/state captures remain operator-gated |
 | Promoted trend | Home complementary sidebar | First-party sidebar data | Matching `[data-testid="trend"]` row suppressed | Direct authenticated build injection unavailable |
 | Grok/Premium house promo | Home complementary rail | First-party product content | Bounded promo aside/card suppressed; ordinary navigation remains | New product URLs need selector-health visibility |
 | Video pre-roll | Video player inside timeline/article | Request hostname/initiator not safely correlated in this pass | Visible ad owner suppressed | UNVERIFIED whether creative transport is separable; broad media-host blocking is unsafe |
@@ -87,6 +87,13 @@ Disposable Chrome and Firefox builds add the feedback permission only in the tes
 real runtimes prove the exact logger match, four negative controls, disable/re-enable persistence,
 and that a blocked logger never reaches a loopback network endpoint. The structural feature remains
 reversible and MutationObserver/route safe.
+
+The dated fixture corpus under `tests/fixtures/ad-corpus/` is deliberately not a clipped production
+page. Five sub-1.5 KB documents retain only the structural selectors, exact contract labels, two
+allowlisted policy/product links, and synthetic copy. A static privacy gate rejects scripts, styles,
+resource URLs, credentials, handles, and account/tweet-shaped ids; Chromium then exercises cold
+paint, delayed insertion, virtualizer ownership, opt-out/re-enable, pre-roll recovery, and SPA
+reinsertion while proving organic `placementTracking`, trends, asides, and video remain visible.
 
 ## Platform and security assessment
 
@@ -198,11 +205,9 @@ filters, so no mature feature was removed merely because a similarly named nativ
 
 ### Next — active roadmap
 
-1. Exact dynamic DNR parity for the extension promoted-content logger.
-2. Privacy-safe current-X ad fixture corpus, including organic negative controls.
-3. Transactional page-level Save/Revert for Control Center edits.
-4. Local-only ad contract drift diagnostics with no content retention.
-5. Desktop visual-regression coverage across settings themes and material states.
+1. Transactional page-level Save/Revert for Control Center edits.
+2. Local-only ad contract drift diagnostics with no content retention.
+3. Desktop visual-regression coverage across settings themes and material states.
 
 ### Blocked / rejected
 

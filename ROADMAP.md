@@ -6,13 +6,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Actionable Items
 
-### P1 — Maintain a privacy-safe current-X advertising regression corpus
-
-Create minimal sanitized fixtures for each 2026-08-13 contract: native `Ad`, paid partnership,
-promoted trend, Grok/Premium house promo, and visible pre-roll markers. Preserve only the structural
-nodes and safe synthetic copy, prove organic `placementTracking` remains visible, and exercise cold
-load, delayed insertion, virtualized row collapse, disable/re-enable, and SPA reinsertion.
-
 ### P2 — Make each Control Center page transactional
 
 Replace per-row commit affordances with one sticky page-level Save/Revert bar while retaining the

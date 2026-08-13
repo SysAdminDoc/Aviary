@@ -128,6 +128,8 @@ removes the dynamic rule immediately; turning it back on restores it, including 
   visible video-ad containers, then collapses the owning timeline cell so no reserved gap remains.
 - Re-runs after client-side navigation and delayed timeline insertion, and reverses cleanly when
   disabled.
+- A minimal synthetic corpus in `tests/fixtures/ad-corpus/` locks those structures without storing
+  handles, post text, account/tweet ids, media, credentials, response bodies, or remote assets.
 - Does not block HomeTimeline. X delivers native sponsored records in the same essential
   first-party response as ordinary posts, so those bytes are inseparable and only their rendering
   can be suppressed safely.
