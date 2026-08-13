@@ -5,14 +5,22 @@ import {
   type MediaLayout,
   type ReduceMotionMode,
   FILTER_SURFACES,
-  isThemeId
+  isThemeId,
+  cloneSettings
 } from "../platform/settings";
 import { FILTER_SURFACE_LABELS } from "./control-center/constants";
 import { buildBackupRows, buildIntegrationRows, buildTrustRows } from "./control-center/sections/advanced";
 import { buildExportRows, buildLibraryRows, buildMediaRows, buildSnapshotRows } from "./control-center/sections/data";
 import { buildAppearanceRows, buildFilterRows, buildHiddenPostRows, buildLayoutRows, buildPerformanceRows } from "./control-center/sections/reading";
 import { buildPresetRows } from "./control-center/sections/presets";
-import type { LocalizedCopy, PanelContext, PanelState } from "./control-center/panel-context";
+import type {
+  DraftCommit,
+  DraftRollback,
+  LocalizedCopy,
+  PanelContext,
+  PanelState,
+  RowCommitMode
+} from "./control-center/panel-context";
 import { hasTranslation, localeDirection, translateText } from "../platform/i18n";
 import type { RetentionPolicy } from "../features/export/jobs";
 import type { BookmarkInput, BookmarkRecord } from "../features/library/bookmarks";
@@ -322,9 +330,13 @@ type SectionIcon =
   | "backup"
   | "trust";
 
+type DraftControl = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+
 interface DraftHooks {
-  update(control: HTMLInputElement | HTMLTextAreaElement, dirty: boolean): void;
-  commit(control: HTMLInputElement | HTMLTextAreaElement): void;
+  update(control: DraftControl, label: string, dirty: boolean): void;
+  register(control: DraftControl, label: string, commit: () => DraftCommit): void;
+  stage(change: () => Promise<void>): void;
+  guard(): boolean;
 }
 
 /** English row labels are stable identifiers; visible group titles still pass through t(). */
@@ -460,6 +472,17 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   status.dataset.state = "saved";
   host.dataset.avSaveState = "saved";
 
+  const transactionBar = el("footer", "av-transaction-bar");
+  const transactionActions = el("div", "av-transaction-actions");
+  const revertDraftButton = button("Revert", "av-button av-button-secondary av-transaction-revert");
+  revertDraftButton.type = "button";
+  revertDraftButton.disabled = true;
+  const saveDraftButton = button("Save", "av-button av-button-primary av-transaction-save");
+  saveDraftButton.type = "button";
+  saveDraftButton.disabled = true;
+  transactionActions.append(revertDraftButton, saveDraftButton);
+  transactionBar.append(status, transactionActions);
+
   /**
    * The search field lives in the chrome rather than the body. `render()` replaces the body
    * wholesale, so a field inside it would lose focus and its caret on every keystroke; keeping
@@ -476,7 +499,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   header.append(titleWrap, searchBar, close);
 
   const body = el("div", "av-panel-body");
-  panel.append(header, body, status);
+  panel.append(header, body, transactionBar);
   overlay.append(panel);
   shell.append(launcher, overlay);
   shadow.append(style, shell);
@@ -496,7 +519,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     libraryRestoreRunning: false,
     libraryRestoreAbort: null
   };
-  const dirtyControls = new Set<HTMLInputElement | HTMLTextAreaElement>();
+  const draftSettings = cloneSettings(options.settings);
+  const panelOptions: ControlCenterOptions = { ...options, settings: draftSettings };
+  const dirtyControls = new Set<DraftControl>();
+  const draftCommits = new Map<DraftControl, { label: string; commit: () => DraftCommit }>();
+  let stagingDepth = 0;
+  let transactionSaving = false;
+  let lastDraftMessage = "Saved locally";
+  let lastChangedLabel: string | null = null;
   /** English source of whatever the status line shows, so a locale change can re-translate it. */
   let lastStatusEnglish = "Saved locally";
   let lastStatusValues: Record<string, string | number> = {};
@@ -573,7 +603,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       document.addEventListener("focusin", handleModalFocusIn, true);
       focusTrapAttached = true;
       // Repaint anything that went stale while the panel was closed.
-      if (dirtyWhileBusy) {
+      if (dirtyWhileBusy && !transactionDirty() && !transactionSaving) {
         dirtyWhileBusy = false;
         render();
       }
@@ -596,8 +626,18 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
    * mutations must never do that to someone mid-edit, so a refresh requested while the
    * panel is closed or focused is deferred until it is safe.
    */
+  const transactionDirty = (): boolean => dirtyControls.size > 0;
+
+  const updateTransactionButtons = (): void => {
+    const disabled = !transactionDirty() || transactionSaving;
+    saveDraftButton.disabled = disabled;
+    revertDraftButton.disabled = disabled;
+    transactionBar.toggleAttribute("aria-busy", transactionSaving);
+    host.dataset.avDraftState = transactionSaving ? "saving" : transactionDirty() ? "dirty" : "clean";
+  };
+
   const isBusy = (): boolean => {
-    if (dirtyControls.size > 0) {
+    if (transactionDirty() || transactionSaving) {
       return true;
     }
     const active = shadow.activeElement;
@@ -613,6 +653,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     status.textContent = t(message);
     status.dataset.state = statusState(message);
     host.dataset.avSaveState = status.dataset.state;
+    updateTransactionButtons();
   };
 
   const setStatusCopy = (source: string, values: Record<string, string | number>): void => {
@@ -621,30 +662,55 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     status.textContent = formatCopy(t(source), lastStatusValues);
     status.dataset.state = statusState(source);
     host.dataset.avSaveState = status.dataset.state;
+    updateTransactionButtons();
   };
 
   const statusState = (source: string): "saved" | "dirty" | "saving" | "error" => {
     if (source === "Saving...") return "saving";
     if (source === "Unsaved changes" || source.startsWith("Save or revert")) return "dirty";
-    if (/could not|failed|error/i.test(source)) return "error";
+    if (/could not|failed|error|invalid/i.test(source)) return "error";
     return "saved";
   };
 
   const draftHooks: DraftHooks = {
-    update(control, dirty) {
-      if (dirty) dirtyControls.add(control);
-      else dirtyControls.delete(control);
-      setStatus(dirtyControls.size > 0 ? "Unsaved changes" : "Saved locally");
+    update(control, label, dirty) {
+      if (dirty) {
+        dirtyControls.add(control);
+        lastChangedLabel = label;
+      } else {
+        dirtyControls.delete(control);
+      }
+      setStatus(transactionDirty() ? "Unsaved changes" : "Saved locally");
     },
-    commit(control) {
-      dirtyControls.delete(control);
+    register(control, label, commit) {
+      draftCommits.set(control, { label, commit });
+    },
+    stage(change) {
+      stagingDepth += 1;
+      void change()
+        .catch((error: unknown) => {
+          try {
+            options.onError("Control Center could not stage settings", error);
+          } catch {
+            // A diagnostic sink cannot be allowed to strand the transaction controls.
+          }
+          setStatus("Could not save settings. Try again.");
+        })
+        .finally(() => {
+          stagingDepth = Math.max(0, stagingDepth - 1);
+          updateTransactionButtons();
+        });
+    },
+    guard() {
+      return holdDirtyDraft();
     }
   };
 
   const holdDirtyDraft = (): boolean => {
-    if (dirtyControls.size === 0) return false;
+    if (!transactionDirty() && !transactionSaving) return false;
     setStatus("Save or revert your changes before leaving this section.");
-    [...dirtyControls][0]?.focus({ preventScroll: true });
+    const firstDirty = [...dirtyControls].find((control) => control.isConnected);
+    (firstDirty ?? saveDraftButton).focus({ preventScroll: true });
     return true;
   };
 
@@ -706,7 +772,10 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     buildActionRow(
       label,
       description,
-      onClick,
+      async () => {
+        if (holdDirtyDraft()) return;
+        await onClick();
+      },
       (error) => {
         try {
           options.onError(`${label} failed`, error);
@@ -737,6 +806,11 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     );
 
   const render = (): void => {
+    if (!transactionDirty()) {
+      replaceSettings(draftSettings, options.settings);
+      draftCommits.clear();
+      dirtyWhileBusy = false;
+    }
     // Every render replaces every row, so the caret has to be put back deliberately —
     // otherwise saving a setting drops focus to the document.
     const active = shadow.activeElement as HTMLElement | null;
@@ -744,7 +818,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     const selection = captureSelection(active);
     const scrollTop = body.scrollTop;
 
-    panelLocale = options.settings.i18n.locale;
+    panelLocale = draftSettings.i18n.locale;
     host.dir = localeDirection(panelLocale);
     resetCoverageTally();
     // Chrome is built once at mount, so a locale change has to repaint it explicitly.
@@ -757,12 +831,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     // nothing repaints it on a locale change unless it is done here.
     search.placeholder = t("Search settings");
     search.setAttribute("aria-label", t("Search settings"));
+    revertDraftButton.textContent = t("Revert");
+    saveDraftButton.textContent = t("Save");
     // The status line keeps its English source so a locale change can re-translate whatever it
     // is currently showing, rather than stranding the last toast in the previous language.
     status.textContent = formatCopy(t(lastStatusEnglish), lastStatusValues);
 
     // Mirrored onto the host because shadow content cannot see the page-level motion class.
-    host.dataset.avMotion = prefersReducedMotion(options.settings) ? "reduce" : "full";
+    host.dataset.avMotion = prefersReducedMotion(draftSettings) ? "reduce" : "full";
     const registry = sectionRegistry();
     if (!registry.some((entry) => entry.id === activeSectionId)) {
       activeSectionId = registry[0]?.id ?? "presets";
@@ -791,8 +867,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   };
 
   const panelContext: PanelContext = {
-    options,
-    settings: options.settings,
+    options: panelOptions,
+    settings: draftSettings,
     state: panelState,
     t,
     formatCopy,
@@ -801,20 +877,24 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     setStatusCopy,
     save: (message) => save(message),
     render,
+    guardDraft: holdDirtyDraft,
     actionRow,
-    toggleRow,
-    selectRow,
+    toggleRow: (label, description, checked, onChange) =>
+      toggleRow(label, description, checked, onChange, draftHooks),
+    selectRow: (label, value, rowOptions, onChange, description, translateOptions, mode) =>
+      selectRow(label, value, rowOptions, onChange, description, translateOptions, draftHooks, mode),
     readonlyRow,
     dataRow,
-    textInputRow: (label, description, value, onChange) =>
-      textInputRow(label, description, value, onChange, draftHooks),
-    secretInputRow: (label, description, value, onChange) =>
-      secretInputRow(label, description, value, onChange, draftHooks),
-    integerInputRow: (label, description, value, onChange, bounds) =>
-      integerInputRow(label, description, value, onChange, bounds, draftHooks),
-    textareaRow: (label, description, lines, onChange, actionLabel) =>
-      textareaRow(label, description, lines, onChange, actionLabel, draftHooks),
-    surfaceRow,
+    textInputRow: (label, description, value, onChange, mode, actionLabel) =>
+      textInputRow(label, description, value, onChange, draftHooks, mode, actionLabel),
+    secretInputRow: (label, description, value, onChange, mode) =>
+      secretInputRow(label, description, value, onChange, draftHooks, mode),
+    integerInputRow: (label, description, value, onChange, bounds, mode, actionLabel) =>
+      integerInputRow(label, description, value, onChange, bounds, draftHooks, mode, actionLabel),
+    textareaRow: (label, description, lines, onChange, actionLabel, mode) =>
+      textareaRow(label, description, lines, onChange, actionLabel, draftHooks, mode),
+    surfaceRow: (label, description, selected, onChange) =>
+      surfaceRow(label, description, selected, onChange, draftHooks),
     bookmarkField,
     splitBookmarkTags,
     toDatetimeLocal,
@@ -1050,22 +1130,112 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
 
   const save = async (message: string): Promise<void> => {
+    if (stagingDepth > 0 || transactionSaving) {
+      lastDraftMessage = message;
+      return;
+    }
     setStatus("Saving...");
     try {
       await options.onChange();
-      if (dirtyControls.size === 0) {
-        render();
-        setStatus(message);
-      } else {
-        // Another field still contains a draft. Do not rebuild the section and destroy it just
-        // because this row was saved first.
-        setStatus("Unsaved changes");
-      }
+      render();
+      setStatus(message);
     } catch (error) {
-      options.onError("Control Center could not save settings", error);
+      try {
+        options.onError("Control Center could not save settings", error);
+      } catch {
+        // Keep the action recoverable even if diagnostics are unavailable.
+      }
       setStatus("Could not save settings. Try again.");
     }
   };
+
+  const focusChangedRow = (label: string | null): void => {
+    if (!label) return;
+    const row = Array.from(body.querySelectorAll<HTMLElement>(".av-row")).find(
+      (candidate) => candidate.dataset.avLabel === label
+    );
+    row?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR)?.focus({ preventScroll: true });
+  };
+
+  const commitDraft = async (): Promise<void> => {
+    if (!transactionDirty() || transactionSaving) return;
+
+    const controls = [...dirtyControls].filter((control) => control.isConnected);
+    const invalid = controls.find((control) => !control.checkValidity());
+    if (invalid) {
+      setStatus("Fix invalid values before saving.");
+      invalid.focus({ preventScroll: true });
+      invalid.reportValidity();
+      return;
+    }
+
+    const liveBefore = cloneSettings(options.settings);
+    const focusLabel = lastChangedLabel;
+    const rollbacks: DraftRollback[] = [];
+    transactionSaving = true;
+    setStatus("Saving...");
+
+    try {
+      for (const control of controls) {
+        const entry = draftCommits.get(control);
+        if (!entry) continue;
+        const rollback = await entry.commit();
+        if (typeof rollback === "function") rollbacks.push(rollback);
+      }
+
+      replaceSettings(options.settings, draftSettings);
+      await options.onChange();
+
+      dirtyControls.clear();
+      draftCommits.clear();
+      transactionSaving = false;
+      replaceSettings(draftSettings, options.settings);
+      render();
+      setStatus(lastDraftMessage);
+      focusChangedRow(focusLabel);
+      lastChangedLabel = null;
+      lastDraftMessage = "Saved locally";
+    } catch (error) {
+      replaceSettings(options.settings, liveBefore);
+      for (const rollback of rollbacks.reverse()) {
+        try {
+          await rollback();
+        } catch (rollbackError) {
+          try {
+            options.onError("Control Center could not roll back a failed page save", rollbackError);
+          } catch {
+            // Keep the original save failure visible even if diagnostic reporting also fails.
+          }
+        }
+      }
+      transactionSaving = false;
+      try {
+        options.onError("Control Center could not save settings", error);
+      } catch {
+        // The retry controls must recover even when diagnostic reporting is unavailable.
+      }
+      setStatus("Could not save settings. Try again.");
+      focusChangedRow(focusLabel);
+    }
+  };
+
+  const revertDraft = (): void => {
+    if (!transactionDirty() || transactionSaving) return;
+    const focusLabel = lastChangedLabel;
+    replaceSettings(draftSettings, options.settings);
+    dirtyControls.clear();
+    draftCommits.clear();
+    lastChangedLabel = null;
+    lastDraftMessage = "Saved locally";
+    render();
+    setStatus("Saved locally");
+    focusChangedRow(focusLabel);
+  };
+
+  saveDraftButton.addEventListener("click", () => {
+    void commitDraft();
+  });
+  revertDraftButton.addEventListener("click", revertDraft);
 
   const coverageRow = (): HTMLElement => {
     const row = dataRow("Panel language", "");
@@ -1256,6 +1426,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     render();
   });
   render();
+  updateTransactionButtons();
 
   return {
     destroy() {
@@ -1278,6 +1449,10 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
 const FOCUSABLE_SELECTOR = "button, input, select, textarea, a[href], [tabindex]:not([tabindex='-1'])";
 const COVERAGE_ROW_CLASS = "av-locale-coverage";
+
+function replaceSettings(target: AviarySettings, source: AviarySettings): void {
+  Object.assign(target, cloneSettings(source));
+}
 
 /**
  * Only one panel is mounted at a time, so the active locale can live at module scope. Every
@@ -1482,7 +1657,9 @@ function toggleRow(
   label: string,
   description: string,
   checked: boolean,
-  onChange: (checked: boolean) => Promise<void>
+  onChange: (checked: boolean) => Promise<void>,
+  drafts?: DraftHooks,
+  mode: RowCommitMode = "page"
 ): HTMLElement {
   const row = el("label", "av-row");
   row.dataset.avLabel = label;
@@ -1493,7 +1670,13 @@ function toggleRow(
   input.type = "checkbox";
   input.checked = checked;
   input.addEventListener("change", () => {
-    void onChange(input.checked);
+    if (mode === "page" && drafts) {
+      drafts.update(input, label, input.checked !== checked);
+      drafts.stage(() => onChange(input.checked));
+    } else {
+      if (drafts?.guard()) return;
+      void onChange(input.checked);
+    }
   });
 
   const toggleControl = el("span", "av-toggle-control");
@@ -1515,7 +1698,9 @@ function selectRow(
    * lists endonyms (Español, 日本語), which must never be translated and must never count
    * against a locale's coverage.
    */
-  translateOptions = true
+  translateOptions = true,
+  drafts?: DraftHooks,
+  mode: RowCommitMode = "page"
 ): HTMLElement {
   const row = el("label", "av-row");
   row.dataset.avLabel = label;
@@ -1537,7 +1722,16 @@ function selectRow(
     select.append(option);
   }
   select.addEventListener("change", () => {
-    void onChange(select.value);
+    if (mode === "page" && drafts) {
+      drafts.update(select, label, select.value !== value);
+      drafts.stage(() => onChange(select.value));
+    } else {
+      if (drafts?.guard()) {
+        select.value = value;
+        return;
+      }
+      void onChange(select.value);
+    }
   });
 
   row.append(select);
@@ -1580,8 +1774,10 @@ function textInputRow(
   label: string,
   description: string,
   value: string,
-  onChange: (value: string) => Promise<void>,
-  drafts?: DraftHooks
+  onChange: (value: string) => DraftCommit,
+  drafts?: DraftHooks,
+  mode: RowCommitMode = "page",
+  actionLabel = "Apply"
 ): HTMLElement {
   const row = el("div", "av-row av-row-stack");
   row.dataset.avLabel = label;
@@ -1595,16 +1791,19 @@ function textInputRow(
   input.value = value;
   input.spellcheck = false;
   input.setAttribute("aria-label", t(label));
-  input.addEventListener("input", () => drafts?.update(input, input.value !== value));
-
-  const apply = el("button", "av-button av-button-secondary", t("Save")) as HTMLButtonElement;
-  apply.type = "button";
-  apply.addEventListener("click", () => {
-    drafts?.commit(input);
-    void onChange(input.value.trim());
-  });
-
-  row.append(input, apply);
+  if (mode === "page" && drafts) {
+    drafts.register(input, label, () => onChange(input.value.trim()));
+    input.addEventListener("input", () => drafts.update(input, label, input.value !== value));
+    row.append(input);
+  } else {
+    const apply = el("button", "av-button av-button-secondary", t(actionLabel)) as HTMLButtonElement;
+    apply.type = "button";
+    apply.addEventListener("click", () => {
+      if (drafts?.guard()) return;
+      void onChange(input.value.trim());
+    });
+    row.append(input, apply);
+  }
   return row;
 }
 
@@ -1616,8 +1815,9 @@ function secretInputRow(
   label: string,
   description: string,
   value: string,
-  onChange: (value: string) => Promise<void>,
-  drafts?: DraftHooks
+  onChange: (value: string) => DraftCommit,
+  drafts?: DraftHooks,
+  mode: RowCommitMode = "page"
 ): HTMLElement {
   const row = el("div", "av-row av-row-stack");
   row.dataset.avLabel = label;
@@ -1632,7 +1832,10 @@ function secretInputRow(
   input.spellcheck = false;
   input.autocomplete = "off";
   input.setAttribute("aria-label", t(label));
-  input.addEventListener("input", () => drafts?.update(input, input.value !== value));
+  if (mode === "page" && drafts) {
+    drafts.register(input, label, () => onChange(input.value.trim()));
+    input.addEventListener("input", () => drafts.update(input, label, input.value !== value));
+  }
 
   const controls = el("div", "av-inline-controls");
 
@@ -1648,14 +1851,16 @@ function secretInputRow(
     reveal.setAttribute("aria-label", `${masked ? t("Hide") : t("Show")} ${t(label)}`);
   });
 
-  const apply = el("button", "av-button av-button-secondary", t("Save")) as HTMLButtonElement;
-  apply.type = "button";
-  apply.addEventListener("click", () => {
-    drafts?.commit(input);
-    void onChange(input.value.trim());
-  });
-
-  controls.append(reveal, apply);
+  controls.append(reveal);
+  if (mode === "action") {
+    const apply = el("button", "av-button av-button-secondary", t("Apply")) as HTMLButtonElement;
+    apply.type = "button";
+    apply.addEventListener("click", () => {
+      if (drafts?.guard()) return;
+      void onChange(input.value.trim());
+    });
+    controls.append(apply);
+  }
   row.append(input, controls);
   return row;
 }
@@ -1664,9 +1869,11 @@ function integerInputRow(
   label: string,
   description: string,
   value: number,
-  onChange: (value: number) => Promise<void>,
+  onChange: (value: number) => DraftCommit,
   bounds: { min?: number; max?: number } = {},
-  drafts?: DraftHooks
+  drafts?: DraftHooks,
+  mode: RowCommitMode = "page",
+  actionLabel = "Apply"
 ): HTMLElement {
   const row = el("div", "av-row av-row-stack");
   row.dataset.avLabel = label;
@@ -1684,17 +1891,23 @@ function integerInputRow(
   input.className = "av-text-input";
   input.value = String(value);
   input.setAttribute("aria-label", t(label));
-  input.addEventListener("input", () => drafts?.update(input, input.value !== String(value)));
-
-  const apply = el("button", "av-button av-button-secondary", t("Save")) as HTMLButtonElement;
-  apply.type = "button";
-  apply.addEventListener("click", () => {
-    drafts?.commit(input);
+  const commit = (): DraftCommit => {
     const parsed = Number.parseInt(input.value, 10);
-    void onChange(Number.isFinite(parsed) ? parsed : 0);
-  });
-
-  row.append(input, apply);
+    return onChange(Number.isFinite(parsed) ? parsed : 0);
+  };
+  if (mode === "page" && drafts) {
+    drafts.register(input, label, commit);
+    input.addEventListener("input", () => drafts.update(input, label, input.value !== String(value)));
+    row.append(input);
+  } else {
+    const apply = el("button", "av-button av-button-secondary", t(actionLabel)) as HTMLButtonElement;
+    apply.type = "button";
+    apply.addEventListener("click", () => {
+      if (drafts?.guard()) return;
+      void commit();
+    });
+    row.append(input, apply);
+  }
   return row;
 }
 
@@ -1746,9 +1959,10 @@ function textareaRow(
   label: string,
   description: string,
   lines: string[],
-  onChange: (lines: string[]) => Promise<void>,
+  onChange: (lines: string[]) => DraftCommit,
   actionLabel = "Save list",
-  drafts?: DraftHooks
+  drafts?: DraftHooks,
+  mode: RowCommitMode = "page"
 ): HTMLElement {
   const row = el("div", "av-row av-row-stack");
   row.dataset.avLabel = label;
@@ -1763,20 +1977,26 @@ function textareaRow(
   textarea.rows = 4;
   textarea.setAttribute("aria-label", t(label));
   const initialValue = lines.join("\n");
-  textarea.addEventListener("input", () => drafts?.update(textarea, textarea.value !== initialValue));
-
-  const apply = el("button", "av-button av-button-secondary", t(actionLabel)) as HTMLButtonElement;
-  apply.type = "button";
-  apply.addEventListener("click", () => {
-    drafts?.commit(textarea);
+  const commit = (): DraftCommit => {
     const next = textarea.value
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter((line, index, array) => line.length > 0 && array.indexOf(line) === index);
-    void onChange(next);
-  });
-
-  row.append(textarea, apply);
+    return onChange(next);
+  };
+  if (mode === "page" && drafts) {
+    drafts.register(textarea, label, commit);
+    textarea.addEventListener("input", () => drafts.update(textarea, label, textarea.value !== initialValue));
+    row.append(textarea);
+  } else {
+    const apply = el("button", "av-button av-button-secondary", t(actionLabel)) as HTMLButtonElement;
+    apply.type = "button";
+    apply.addEventListener("click", () => {
+      if (drafts?.guard()) return;
+      void commit();
+    });
+    row.append(textarea, apply);
+  }
   return row;
 }
 
@@ -1818,7 +2038,8 @@ function surfaceRow(
   label: string,
   description: string,
   selected: FilterSurface[],
-  onChange: (next: FilterSurface[]) => Promise<void>
+  onChange: (next: FilterSurface[]) => Promise<void>,
+  drafts?: DraftHooks
 ): HTMLElement {
   const row = el("div", "av-row av-row-stack");
   row.dataset.avLabel = label;
@@ -1845,7 +2066,12 @@ function surfaceRow(
       } else {
         state.delete(surface);
       }
-      void onChange(FILTER_SURFACES.filter((value) => state.has(value)));
+      drafts?.update(input, label, input.checked !== selected.includes(surface));
+      if (drafts) {
+        drafts.stage(() => onChange(FILTER_SURFACES.filter((value) => state.has(value))));
+      } else {
+        void onChange(FILTER_SURFACES.filter((value) => state.has(value)));
+      }
     });
     const text = el("span", "av-chip-label", t(FILTER_SURFACE_LABELS[surface]));
     chip.append(input, text);
@@ -2069,6 +2295,25 @@ input:focus-visible {
 .av-button:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 54%, transparent);
   background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 10%, var(--av-surface-raised, rgb(22, 24, 28)));
+}
+
+.av-button-primary {
+  border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 82%, white 18%);
+  background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 78%, white 8%);
+  color: rgb(5, 10, 15);
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 22%, transparent);
+}
+
+.av-button-primary:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 68%, white 32%);
+  background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 84%, white 12%);
+}
+
+.av-button-primary:disabled {
+  border-color: var(--av-border, rgb(47, 51, 54));
+  background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 24%, var(--av-surface-raised, rgb(22, 24, 28)));
+  color: var(--av-muted, rgb(113, 118, 123));
+  box-shadow: none;
 }
 
 .av-button:disabled {
@@ -2727,17 +2972,40 @@ input[type="checkbox"] {
   padding: 0 10px;
 }
 
+.av-transaction-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 58px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--av-border, rgb(47, 51, 54));
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 4%, transparent), transparent 42%),
+    color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 90%, black);
+  box-shadow: 0 -12px 34px rgba(0, 0, 0, 0.18);
+}
+
 .av-status {
   display: flex;
   align-items: center;
+  flex: 1 1 auto;
   gap: 8px;
-  min-height: 42px;
-  padding: 10px 20px;
-  border-top: 1px solid var(--av-border, rgb(47, 51, 54));
+  min-width: 0;
   color: var(--av-muted, rgb(113, 118, 123));
   font-size: 12px;
   line-height: 1.3;
-  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 90%, black);
+}
+
+.av-transaction-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.av-transaction-actions .av-button {
+  min-width: 82px;
 }
 
 .av-status::before {
@@ -2894,6 +3162,16 @@ input[type="checkbox"] {
 
   .av-content {
     padding: 18px 14px 22px;
+  }
+
+  .av-transaction-bar {
+    gap: 10px;
+    padding: 9px 12px;
+  }
+
+  .av-transaction-actions .av-button {
+    min-width: 72px;
+    padding-inline: 10px;
   }
 
   .av-page-header {

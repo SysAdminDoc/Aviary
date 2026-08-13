@@ -661,7 +661,7 @@ test("the settings search lives outside the re-rendered body", async () => {
   // render() calls body.replaceChildren(), so a search field inside `body` would lose focus
   // and its caret on every keystroke. It has to hang off the panel chrome instead.
   assert.match(source, /header\.append\(titleWrap, searchBar, close\)/);
-  assert.match(source, /panel\.append\(header, body, status\)/);
+  assert.match(source, /panel\.append\(header, body, transactionBar\)/);
   assert.ok(
     !/body\.append\([^)]*searchBar/.test(source),
     "the search bar must not be inside the re-rendered body"

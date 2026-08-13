@@ -15,6 +15,10 @@
 
 ### Changed
 
+- Every Control Center destination now stages settings in an isolated page draft and exposes one
+  persistent Save/Revert bar. A save validates the whole page and persists once; failed writes keep
+  the draft available for retry, while section/search navigation stays guarded until save or revert.
+  Profile switching, profile creation, imports, and other explicit actions remain immediate.
 - Hiding the discovery rail now centers the comfortable reading column on full desktop layouts,
   turning the released space into balanced gutters instead of a stranded right-side void.
 

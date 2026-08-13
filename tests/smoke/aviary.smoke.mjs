@@ -124,9 +124,26 @@ async function openSection(page, section) {
   await page.waitForTimeout(100);
 }
 
+async function commitSettings(page) {
+  const committed = await page.evaluate(() => {
+    const save = document
+      .querySelector("#av-control-center")
+      ?.shadowRoot?.querySelector(".av-transaction-save");
+    if (!(save instanceof HTMLElement) || save.hasAttribute("disabled")) return false;
+    save.click();
+    return true;
+  });
+  if (!committed) return;
+  await page.waitForFunction(
+    () => document.querySelector("#av-control-center")?.getAttribute("data-av-draft-state") === "clean",
+    null,
+    { timeout: 5_000 }
+  );
+}
+
 async function setToggle(page, section, label, checked, settleMs = 350) {
   await openSection(page, section);
-  await page.evaluate(({ label, checked }) => {
+  const changed = await page.evaluate(({ label, checked }) => {
     const host = document.querySelector("#av-control-center");
     const row = [...(host?.shadowRoot?.querySelectorAll(".av-row") ?? [])].find(
       (candidate) => candidate.querySelector(".av-row-label")?.textContent === label
@@ -138,8 +155,13 @@ async function setToggle(page, section, label, checked, settleMs = 350) {
     if (input.checked !== checked) {
       input.click();
       input.blur();
+      return true;
     }
+    return false;
   }, { label, checked });
+  if (changed) {
+    await commitSettings(page);
+  }
   await page.waitForTimeout(settleMs);
 }
 
@@ -291,7 +313,7 @@ async function runPageHookMatrix(page) {
 
 async function selectValue(page, section, label, value) {
   await openSection(page, section);
-  await page.evaluate(({ label, value }) => {
+  const changed = await page.evaluate(({ label, value }) => {
     const host = document.querySelector("#av-control-center");
     const row = [...(host?.shadowRoot?.querySelectorAll(".av-row") ?? [])].find(
       (candidate) => candidate.querySelector(".av-row-label")?.textContent === label
@@ -303,8 +325,11 @@ async function selectValue(page, section, label, value) {
     if (select.value !== value) {
       select.value = value;
       select.dispatchEvent(new Event("change", { bubbles: true }));
+      return true;
     }
+    return false;
   }, { label, value });
+  if (changed) await commitSettings(page);
   await page.waitForTimeout(450);
 }
 
@@ -316,19 +341,19 @@ async function setText(page, section, label, value) {
       (candidate) => candidate.querySelector(".av-row-label")?.textContent === label
     );
     const input = row?.querySelector('input[type="text"]');
-    const save = row?.querySelector("button");
-    if (!(input instanceof HTMLInputElement) || !(save instanceof HTMLElement)) {
+    if (!(input instanceof HTMLInputElement)) {
       throw new Error(`Text editor missing: ${label}`);
     }
     input.value = value;
-    save.click();
+    input.dispatchEvent(new Event("input", { bubbles: true }));
   }, { label, value });
+  await commitSettings(page);
   await page.waitForTimeout(450);
 }
 
 async function selectLocale(page, value) {
   await openSection(page, "presets");
-  await page.evaluate((value) => {
+  const changed = await page.evaluate((value) => {
     const host = document.querySelector("#av-control-center");
     const select = [...(host?.shadowRoot?.querySelectorAll("select") ?? [])].find((candidate) =>
       [...candidate.options].some((option) => option.value === value)
@@ -336,9 +361,12 @@ async function selectLocale(page, value) {
     if (!(select instanceof HTMLSelectElement)) {
       throw new Error(`Locale select missing: ${value}`);
     }
+    if (select.value === value) return false;
     select.value = value;
     select.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
   }, value);
+  if (changed) await commitSettings(page);
   await page.waitForTimeout(450);
 }
 

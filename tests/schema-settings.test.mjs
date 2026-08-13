@@ -47,7 +47,7 @@ after(async () => {
   await rm(temp, { recursive: true, force: true });
 });
 
-test("schema-only preferences have bounded Control Center editors and round-trip immediately", async () => {
+test("schema-only preferences have bounded Control Center editors and round-trip transactionally", async () => {
   const result = await page.evaluate(async () => {
     document.body.replaceChildren();
     const settings = AviarySchemaSettings.cloneSettings(AviarySchemaSettings.DEFAULT_SETTINGS);
@@ -71,26 +71,29 @@ test("schema-only preferences have bounded Control Center editors and round-trip
     shadow.querySelector('[data-av-section="layout"]').click();
     const navRow = row("Hide navigation items");
     navRow.querySelector("textarea").value = "home\nnot-a-real-nav-id\nprofile\nhome";
-    navRow.querySelector("button").click();
+    navRow.querySelector("textarea").dispatchEvent(new Event("input", { bubbles: true }));
+    shadow.querySelector(".av-transaction-save").click();
     await wait();
     const navItems = [...settings.layout.hideNavItems];
 
     shadow.querySelector('[data-av-section="media"]').click();
     const concurrencyRow = row("Concurrent downloads");
-    concurrencyRow.querySelector('input[type="number"]').value = "20";
-    concurrencyRow.querySelector("button").click();
-    await wait();
-    const concurrentDownloads = settings.jobs.concurrentDownloads;
+    const concurrency = concurrencyRow.querySelector('input[type="number"]');
+    concurrency.value = "6";
+    concurrency.dispatchEvent(new Event("input", { bubbles: true }));
 
     const pacing = row("Download pacing").querySelector("select");
     pacing.value = "balanced";
     pacing.dispatchEvent(new Event("change", { bubbles: true }));
+    shadow.querySelector(".av-transaction-save").click();
     await wait();
+    const concurrentDownloads = settings.jobs.concurrentDownloads;
     const rateLimitMode = settings.jobs.rateLimitMode;
 
     shadow.querySelector('[data-av-section="trust"]').click();
     const selectorToggle = row("Monitor selector health").querySelector('input[type="checkbox"]');
     selectorToggle.click();
+    shadow.querySelector(".av-transaction-save").click();
     await wait();
     const selectorHealth = settings.diagnostics.selectorHealth;
     panel.destroy();
@@ -112,5 +115,5 @@ test("schema-only preferences have bounded Control Center editors and round-trip
   assert.equal(result.selectorHealth, false);
   assert.equal(result.bucket.capacity, 8);
   assert.equal(result.bucket.refillPerSecond, 4);
-  assert.equal(result.saves, 4);
+  assert.equal(result.saves, 3);
 });

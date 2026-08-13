@@ -57,7 +57,8 @@ export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
           }
         },
         "A profile is an explicit local boundary for settings, credentials, library data, jobs, and search.",
-        false
+        false,
+        "action"
       )
     );
     if (profile.legacyDataAvailable && ctx.options.adoptLegacyProfileData) {
@@ -78,16 +79,23 @@ export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
     }
     if (ctx.options.createProfile) {
       rows.push(
-        ctx.textInputRow("New profile", "Create an empty offline profile before switching accounts or importing another archive.", "", async (label) => {
-          try {
-            const result = await ctx.options.createProfile!(label);
-            if (!result.ok) throw new Error(result.error ?? "Profile could not be created");
-            ctx.setStatus("Profile created. Reloading…");
-          } catch (error) {
-            ctx.options.onError("Profile creation failed", error);
-            ctx.setStatus("Profile creation failed.");
-          }
-        })
+        ctx.textInputRow(
+          "New profile",
+          "Create an empty offline profile before switching accounts or importing another archive.",
+          "",
+          async (label) => {
+            try {
+              const result = await ctx.options.createProfile!(label);
+              if (!result.ok) throw new Error(result.error ?? "Profile could not be created");
+              ctx.setStatus("Profile created. Reloading…");
+            } catch (error) {
+              ctx.options.onError("Profile creation failed", error);
+              ctx.setStatus("Profile creation failed.");
+            }
+          },
+          "action",
+          "Apply"
+        )
       );
     }
   }
@@ -779,6 +787,7 @@ export function buildBackupRows(ctx: PanelContext): HTMLElement[] {
         async () => {
           try {
             await ctx.options.resetSettings!();
+            ctx.render();
             ctx.setStatus("Preferences reset. Ad-free mode is on.");
           } catch (error) {
             ctx.options.onError("Could not reset settings", error);
@@ -814,6 +823,7 @@ export function buildBackupRows(ctx: PanelContext): HTMLElement[] {
           try {
             const report = await ctx.options.importSettings!(payload);
             if (report.applied) {
+              ctx.render();
               // Show what the warning actually said — a bare count tells the user nothing.
               const [first, ...rest] = report.warnings;
               const extra = rest.length > 0 ? ` (+${rest.length} more)` : "";
@@ -828,7 +838,8 @@ export function buildBackupRows(ctx: PanelContext): HTMLElement[] {
             ctx.setStatus("Could not import settings.");
           }
         },
-        "Import"
+        "Import",
+        "action"
       )
     );
   }

@@ -29,10 +29,12 @@ export function buildPresetRows(ctx: PanelContext): HTMLElement[] {
     const apply = ctx.el("button", "av-button av-button-secondary", ctx.t("Apply")) as HTMLButtonElement;
     apply.type = "button";
     apply.addEventListener("click", () => {
+      if (ctx.guardDraft()) return;
       apply.disabled = true;
       void ctx.options
         .applyPreset!(preset.id)
         .then((result) => {
+          ctx.render();
           if (result.applied) {
             ctx.setStatusCopy("Preset applied: {preset} ({changes})", {
               preset: ctx.t(preset.label),
@@ -57,14 +59,14 @@ export function buildPresetRows(ctx: PanelContext): HTMLElement[] {
     row.append(apply);
     rows.push(row);
   }
-  if (ctx.options.listLocales && ctx.options.setLocale) {
+  if (ctx.options.listLocales) {
     rows.push(
       ctx.selectRow(
         "Locale",
         ctx.options.settings.i18n.locale,
         ctx.options.listLocales().map((entry) => [entry.code, entry.label] as [string, string]),
         async (value) => {
-          await ctx.options.setLocale!(value);
+          ctx.options.settings.i18n.locale = value;
           const entry = ctx.options.listLocales?.().find((locale) => locale.code === value);
           await ctx.save(`Locale set to ${entry?.label ?? value}`);
         },

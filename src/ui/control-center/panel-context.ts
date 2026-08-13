@@ -15,6 +15,10 @@ export type LocalizedCopy =
       values: Record<string, string | number>;
     };
 
+export type DraftRollback = () => Promise<void>;
+export type DraftCommit = Promise<void> | Promise<DraftRollback>;
+export type RowCommitMode = "page" | "action";
+
 export interface PanelState {
   bookmarkQuery: string;
   unifiedSemantic: boolean;
@@ -35,6 +39,7 @@ export interface PanelContext {
   readonly setStatusCopy: (source: string, values: Record<string, string | number>) => void;
   readonly save: (message: string) => Promise<void>;
   readonly render: () => void;
+  readonly guardDraft: () => boolean;
   readonly actionRow: (
     label: string,
     description: LocalizedCopy,
@@ -53,7 +58,8 @@ export interface PanelContext {
     options: Array<[string, string]>,
     onChange: (value: string) => Promise<void>,
     description?: string,
-    translateOptions?: boolean
+    translateOptions?: boolean,
+    mode?: RowCommitMode
   ) => HTMLElement;
   readonly readonlyRow: (label: string, value: string) => HTMLElement;
   readonly dataRow: (label: string, value: string) => HTMLElement;
@@ -61,27 +67,33 @@ export interface PanelContext {
     label: string,
     description: string,
     value: string,
-    onChange: (value: string) => Promise<void>
+    onChange: (value: string) => DraftCommit,
+    mode?: RowCommitMode,
+    actionLabel?: string
   ) => HTMLElement;
   readonly secretInputRow: (
     label: string,
     description: string,
     value: string,
-    onChange: (value: string) => Promise<void>
+    onChange: (value: string) => DraftCommit,
+    mode?: RowCommitMode
   ) => HTMLElement;
   readonly integerInputRow: (
     label: string,
     description: string,
     value: number,
-    onChange: (value: number) => Promise<void>,
-    bounds?: { min?: number; max?: number }
+    onChange: (value: number) => DraftCommit,
+    bounds?: { min?: number; max?: number },
+    mode?: RowCommitMode,
+    actionLabel?: string
   ) => HTMLElement;
   readonly textareaRow: (
     label: string,
     description: string,
     lines: string[],
-    onChange: (lines: string[]) => Promise<void>,
-    actionLabel?: string
+    onChange: (lines: string[]) => DraftCommit,
+    actionLabel?: string,
+    mode?: RowCommitMode
   ) => HTMLElement;
   readonly surfaceRow: (
     label: string,

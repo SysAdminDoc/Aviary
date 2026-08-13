@@ -53,9 +53,11 @@ its job.
 ## Desktop settings
 
 All 13 Control Center destinations and the extension permissions page share one desktop cockpit
-system with a fixed rail, grouped navigation, flat control rows, explicit dependencies, visible
-draft state, keyboard focus treatment, and reduced-motion support. The primary verification
-viewport is 1440×900, with a 1920×1080 wide check.
+system with a fixed rail, grouped navigation, flat control rows, explicit dependencies, keyboard
+focus treatment, and reduced-motion support. Settings stay in an isolated page draft until the
+sticky Save control commits the whole page once; Revert restores the saved values, and navigation
+is guarded while a draft is open. The primary verification viewport is 1440×900, with a 1920×1080
+wide check.
 
 ![Aviary Control Center presets page](docs/mockups/control-center-presets-implemented.png)
 
@@ -214,7 +216,7 @@ Tweets are gathered passively from the DOM; no auth headers, cookies, or session
 The Control Center "Backup & Audit" section exposes:
 
 - **Export settings** — downloads a versioned JSON envelope with every Aviary preference. API keys and passwords are replaced with a placeholder so the file is safe to share; importing it keeps the credentials already saved on this machine.
-- **Import settings** — paste an envelope and press Save list. Settings are normalized, unsupported keys are dropped, and version mismatches are reported as warnings (never silent overwrites).
+- **Import settings** — paste an envelope and choose Import. Settings are normalized, unsupported keys are dropped, and version mismatches are reported as warnings (never silent overwrites).
 - **Export full library backup** — downloads one versioned JSON envelope for the active profile's
   local settings, bookmarks, notes, snapshots, archive collections, export jobs/records, media
   queues, indexes, usage counters, retention values, and other durable stores. Integration credentials are excluded

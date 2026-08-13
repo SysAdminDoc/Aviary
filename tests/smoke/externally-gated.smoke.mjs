@@ -320,9 +320,26 @@ async function openSection(page, section) {
   await page.waitForTimeout(100);
 }
 
+async function commitSettings(page) {
+  const committed = await page.evaluate(() => {
+    const save = document
+      .querySelector("#av-control-center")
+      ?.shadowRoot?.querySelector(".av-transaction-save");
+    if (!(save instanceof HTMLElement) || save.hasAttribute("disabled")) return false;
+    save.click();
+    return true;
+  });
+  if (!committed) return;
+  await page.waitForFunction(
+    () => document.querySelector("#av-control-center")?.getAttribute("data-av-draft-state") === "clean",
+    null,
+    { timeout: 5_000 }
+  );
+}
+
 async function setToggle(page, section, label, checked) {
   await openSection(page, section);
-  await page.evaluate(({ label, checked }) => {
+  const changed = await page.evaluate(({ label, checked }) => {
     const host = document.querySelector("#av-control-center");
     const row = [...(host?.shadowRoot?.querySelectorAll(".av-row") ?? [])].find(
       (candidate) => candidate.querySelector(".av-row-label")?.textContent === label
@@ -332,8 +349,11 @@ async function setToggle(page, section, label, checked) {
     if (input.checked !== checked) {
       input.click();
       input.blur();
+      return true;
     }
+    return false;
   }, { label, checked });
+  if (changed) await commitSettings(page);
   await page.waitForTimeout(500);
 }
 
@@ -345,13 +365,13 @@ async function setField(page, section, label, value) {
       (candidate) => candidate.querySelector(".av-row-label")?.textContent === label
     );
     const input = row?.querySelector("input, textarea");
-    const save = [...(row?.querySelectorAll("button") ?? [])].find((button) => button.textContent === "Save");
-    if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) || !(save instanceof HTMLElement)) {
+    if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) {
       throw new Error(`Field missing: ${label}`);
     }
     input.value = value;
-    save.click();
+    input.dispatchEvent(new Event("input", { bubbles: true }));
   }, { label, value });
+  await commitSettings(page);
   await page.waitForTimeout(500);
 }
 
@@ -367,6 +387,7 @@ async function selectValue(page, section, label, value) {
     select.value = value;
     select.dispatchEvent(new Event("change", { bubbles: true }));
   }, { label, value });
+  await commitSettings(page);
   await page.waitForTimeout(500);
 }
 

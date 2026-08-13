@@ -122,7 +122,7 @@ test("user-facing copy does not advertise shipped features as unavailable", asyn
 
   // Import affordance names its own action rather than another row's button.
   assert.ok(!/press Save list to apply/.test(ui));
-  assert.match(ui, /"Import"\n?\s*\)/);
+  assert.match(ui, /"Import",\n?\s*"action"\n?\s*\)/);
 });
 
 async function importBundledModule(relativePath) {

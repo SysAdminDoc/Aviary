@@ -600,23 +600,39 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
         "Format: handle: note. One per line. Empty notes remove the entry.",
         serialized,
         async (lines) => {
+          const before = { ...notes };
+          const restore = async (): Promise<void> => {
+            const current = ctx.options.getUserNotes?.() ?? {};
+            for (const handle of Object.keys(current)) {
+              if (!(handle in before)) await ctx.options.setUserNote!(handle, "");
+            }
+            for (const [handle, note] of Object.entries(before)) {
+              await ctx.options.setUserNote!(handle, note);
+            }
+          };
           const seen = new Set<string>();
-          for (const line of lines) {
-            const match = /^@?([A-Za-z0-9_]{1,15})\s*[:\-]\s*(.*)$/.exec(line);
-            if (!match) continue;
-            const [, handle, note] = match;
-            if (handle) {
-              seen.add(handle.toLowerCase());
-              await ctx.options.setUserNote!(handle, note ?? "");
+          try {
+            for (const line of lines) {
+              const match = /^@?([A-Za-z0-9_]{1,15})\s*[:\-]\s*(.*)$/.exec(line);
+              if (!match) continue;
+              const [, handle, note] = match;
+              if (handle) {
+                seen.add(handle.toLowerCase());
+                await ctx.options.setUserNote!(handle, note ?? "");
+              }
             }
-          }
-          // Remove notes the user wiped from the textarea.
-          for (const handle of Object.keys(notes)) {
-            if (!seen.has(handle)) {
-              await ctx.options.setUserNote!(handle, "");
+            // Remove notes the user wiped from the textarea.
+            for (const handle of Object.keys(notes)) {
+              if (!seen.has(handle)) {
+                await ctx.options.setUserNote!(handle, "");
+              }
             }
+          } catch (error) {
+            await restore();
+            throw error;
           }
           await ctx.save(`${seen.size} account note${seen.size === 1 ? "" : "s"} saved`);
+          return restore;
         }
       )
     );
@@ -902,9 +918,10 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
         "Keep the newest jobs. Use 0 for unlimited.",
         policy.maxJobs,
         async (value) => {
-          await ctx.options.saveRetentionPolicy!({ ...ctx.options.getRetentionPolicy!(), maxJobs: value });
-          ctx.render();
-          ctx.setStatus("Export job retention saved");
+          const before = ctx.options.getRetentionPolicy!();
+          await ctx.options.saveRetentionPolicy!({ ...before, maxJobs: value });
+          await ctx.save("Export job retention saved");
+          return async () => ctx.options.saveRetentionPolicy!(before);
         }
       )
     );
@@ -914,9 +931,10 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
         "Keep the newest records in each job. Use 0 for unlimited.",
         policy.maxRecordsPerJob,
         async (value) => {
-          await ctx.options.saveRetentionPolicy!({ ...ctx.options.getRetentionPolicy!(), maxRecordsPerJob: value });
-          ctx.render();
-          ctx.setStatus("Record retention saved");
+          const before = ctx.options.getRetentionPolicy!();
+          await ctx.options.saveRetentionPolicy!({ ...before, maxRecordsPerJob: value });
+          await ctx.save("Record retention saved");
+          return async () => ctx.options.saveRetentionPolicy!(before);
         }
       )
     );
@@ -926,9 +944,10 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
         "Remove older jobs at boot. Use 0 to disable age-based cleanup.",
         policy.maxAgeDays,
         async (value) => {
-          await ctx.options.saveRetentionPolicy!({ ...ctx.options.getRetentionPolicy!(), maxAgeDays: value });
-          ctx.render();
-          ctx.setStatus("Age-based retention saved");
+          const before = ctx.options.getRetentionPolicy!();
+          await ctx.options.saveRetentionPolicy!({ ...before, maxAgeDays: value });
+          await ctx.save("Age-based retention saved");
+          return async () => ctx.options.saveRetentionPolicy!(before);
         }
       )
     );
