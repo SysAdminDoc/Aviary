@@ -1,8 +1,8 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.19.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.20.0-2f81f7)
 
-Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.19.0: an opt-in premium Noir desktop skin, default-on desktop ad protection, a redesigned 13-page Control Center and extension-permissions cockpit, fixture-backed selector checks, theme + layout controls, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
+Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.20.0: an opt-in premium Noir desktop skin, focused Home controls for the composer, discovery rail, current navigation and recommendations, default-on desktop ad protection, a redesigned 13-page Control Center and extension-permissions cockpit, fixture-backed selector checks, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
 
 ## Ad-free, otherwise vanilla by default
 
@@ -66,6 +66,20 @@ semantic roles and stable X test ids rather than generated classes, avoids page-
 infinite timeline, and remains opt-in: choosing **Off (X's own theme)** removes every Aviary paint
 hook and restores the site's styling.
 
+All six authored dark palettes now repaint the semantic shell and readable timeline surfaces even
+when X itself is set to a light host theme. Automated coverage switches every palette across both
+host themes at 1440×900 and 1920×1080, checks text contrast and overflow, and proves that Off
+restores the host exactly.
+
+## Focused Home
+
+Layout now offers independent controls to hide Home's quick composer and Who to follow cards.
+Hide trends collapses the complete current news/trend cards instead of leaving headings or empty
+shells, Hide Grok also catches its sidebar promotion and floating Chat drawer, and navigation
+cleanup understands X's current Follow, Chat, Grok, History, Creator Studio and Premium destinations. The Minimal
+preset combines those reductions with a comfortable-width Noir timeline while keeping every
+choice reversible.
+
 ## Development
 
 ```powershell
@@ -82,6 +96,10 @@ npm run verify
 `npm run test:matrix` runs the deterministic release matrix separately: every supported route,
 locale, theme, keyboard/coarse-pointer mode, malformed input class, provider response class, and
 subscription lifecycle is reported in CI before the headed smoke lanes.
+
+`npm run capture:theme -- <output.png> <width> <height> <theme>` captures any authored palette;
+for example, `npm run capture:theme -- docs/audit/noir.png 1440 900 noir`. Supported theme ids are
+`dim`, `lightsOut`, `graphite`, `plum`, `midnight`, and `noir`.
 
 ## Privacy Model
 
@@ -269,9 +287,10 @@ The Integrations panel also surfaces a "Recent integration errors" readout that 
 
 ## Roadmap
 
-The working plan is in [ROADMAP.md](ROADMAP.md). v1.19.0 is the current release; the latest batch
-adds the premium opt-in Noir theme, a live-current-X semantic selector audit, deterministic theme
-capture, and a 2,268-combination release matrix across seven theme modes. F032/F033 remain blocked
+The working plan is in [ROADMAP.md](ROADMAP.md). v1.20.0 is the current release; the latest batch
+adds focused Home declutter controls, current-X module and navigation coverage, dark/light host
+theme validation at both desktop sizes, and deterministic capture for every authored palette.
+F032/F033 remain blocked
 until privacy-safe authenticated fixtures containing those exact states are available.
 
 `npm run smoke` runs both Playwright lanes: current-X compatibility coverage and a side-effect-free

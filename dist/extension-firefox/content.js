@@ -182,16 +182,56 @@ html[data-av-theme] {
 
 html[data-av-theme] body {
   background: var(--av-bg, rgb(0, 0, 0));
+  color: var(--av-text, rgb(239, 243, 244));
+}
+
+/* Every authored palette must survive X's own light or dark selection. These semantic anchors
+   repaint the shell and readable content without depending on generated atomic classes. Noir
+   layers its richer gradients and depth over the same foundation below. */
+html[data-av-theme] [data-testid="app-shell"],
+html[data-av-theme] nav:has([data-testid="AppTabBar_Home_Link"]),
+html[data-av-theme] [data-testid="sidebarColumn"] {
+  background-color: var(--av-bg, rgb(0, 0, 0));
+  color: var(--av-text, rgb(239, 243, 244));
+}
+
+html[data-av-theme] nav:has([data-testid="AppTabBar_Home_Link"]) a,
+html[data-av-theme] article[data-testid="tweet"],
+html[data-av-theme] article[data-testid="tweet"] [data-testid="User-Name"] a,
+html[data-av-theme] article[data-testid="tweet"] [data-testid="tweetText"],
+html[data-av-theme] [data-testid="primaryColumn"] [role="tab"],
+html[data-av-theme] [data-testid^="tweetTextarea_"],
+html[data-av-theme] [data-testid="SearchBox_Search_Input"] {
+  color: var(--av-text, rgb(239, 243, 244));
+}
+
+html[data-av-theme] article[data-testid="tweet"] [role="group"] button,
+html[data-av-theme] article[data-testid="tweet"] [role="group"] a {
+  color: var(--av-muted, rgb(132, 139, 145));
 }
 
 html[data-av-theme] [data-testid="primaryColumn"] {
   background: var(--av-bg, rgb(0, 0, 0));
+  border-color: var(--av-border, rgb(47, 51, 54));
+  color: var(--av-text, rgb(239, 243, 244));
+}
+
+html[data-av-theme] [data-testid="toolBar"],
+html[data-av-theme] form[role="search"]:has([data-testid="SearchBox_Search_Input"]),
+html[data-av-theme] [data-testid="GrokDrawer"],
+html[data-av-theme] [data-testid="chat-drawer-root"] {
+  border-color: var(--av-border, rgb(47, 51, 54));
+  background-color: var(--av-surface, rgb(15, 20, 25));
+  color: var(--av-text, rgb(239, 243, 244));
 }
 
 html[data-av-theme] [data-testid="sidebarColumn"] section,
+html[data-av-theme] [data-testid="sidebarColumn"] div:has(> [data-testid="news_sidebar"]),
+html[data-av-theme] [data-testid="sidebarColumn"] aside[role="complementary"],
 html[data-av-theme] [aria-label="Timeline: Trending now"] {
   background-color: color-mix(in srgb, var(--av-surface) 92%, transparent);
   border-color: var(--av-border);
+  color: var(--av-text, rgb(239, 243, 244));
 }
 
 /* Noir is Aviary's authored premium desktop skin. Keep every selector behind the explicit theme
@@ -439,7 +479,8 @@ html.av-hide-counts article[data-testid="tweet"] [data-testid="reply"] [data-tes
 html.av-hide-counts article[data-testid="tweet"] [data-testid="retweet"] [data-testid="app-text-transition-container"],
 html.av-hide-counts article[data-testid="tweet"] [data-testid="unretweet"] [data-testid="app-text-transition-container"],
 html.av-hide-counts article[data-testid="tweet"] [data-testid="like"] [data-testid="app-text-transition-container"],
-html.av-hide-counts article[data-testid="tweet"] [data-testid="unlike"] [data-testid="app-text-transition-container"] {
+html.av-hide-counts article[data-testid="tweet"] [data-testid="unlike"] [data-testid="app-text-transition-container"],
+html.av-hide-counts article[data-testid="tweet"] a[href$="/analytics"] [data-testid="app-text-transition-container"] {
   display: none !important;
 }
 
@@ -522,7 +563,7 @@ html.av-reduce-motion *::after {
       "Restore the Chirp font": "Restaurar la fuente Chirp",
       "Force X's own Chirp typeface where the site has fallen back to a system font.": "Fuerza la tipograf\xEDa Chirp de X donde el sitio ha vuelto a una fuente del sistema.",
       "Hide engagement counts": "Ocultar contadores de interacci\xF3n",
-      "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.": "Oculta los n\xFAmeros de respuestas, reposts y me gusta. Los botones siguen funcionando y los lectores de pantalla siguen anunciando los totales.",
+      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "Oculta los n\xFAmeros de respuestas, reposts, me gusta y visualizaciones. Los controles siguen funcionando y los lectores de pantalla siguen anunciando los totales.",
       "Hide row borders": "Ocultar bordes de fila",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "Elimina el divisor de 1 px bajo cada publicaci\xF3n y las l\xEDneas laterales de la columna principal.",
       "High contrast": "Alto contraste",
@@ -543,6 +584,12 @@ html.av-reduce-motion *::after {
       "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "Selecciona la segunda pesta\xF1a de inicio cada vez que llegas a la cronolog\xEDa. Si vuelves a Para ti, se queda ah\xED hasta que salgas de la p\xE1gina.",
       "Hide navigation items": "Ocultar elementos de navegaci\xF3n",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Un ID estable de navegaci\xF3n de X por l\xEDnea: home, explore, notifications, messages, profile, more o premium.",
+      "Hide follow suggestions": "Ocultar sugerencias de cuentas",
+      "Remove Who to follow cards without hiding the rest of the sidebar.": "Elimina las tarjetas \xABA qui\xE9n seguir\xBB sin ocultar el resto de la barra lateral.",
+      "Hide home composer": "Ocultar el editor de Inicio",
+      "Remove the quick-post composer from Home. The Post button still opens it when needed.": "Elimina el editor de publicaci\xF3n r\xE1pida de Inicio. El bot\xF3n Publicar sigue abri\xE9ndolo cuando lo necesites.",
+      "One stable X navigation id per line: home, explore, notifications, follow, chat, grok, history, studio, premium, profile, or more.": "Un ID estable de navegaci\xF3n de X por l\xEDnea: home, explore, notifications, follow, chat, grok, history, studio, premium, profile o more.",
+      "Layout preference saved": "Preferencia de dise\xF1o guardada",
       "Save list": "Guardar lista",
       "Enable filters": "Activar filtros",
       "Master switch for keyword, regex, premium, and media filters.": "Interruptor general de los filtros de palabras clave, expresiones regulares, Premium y multimedia.",
@@ -1317,7 +1364,7 @@ html.av-reduce-motion *::after {
       "Restore the Chirp font": "Repor o tipo de letra Chirp",
       "Force X's own Chirp typeface where the site has fallen back to a system font.": "For\xE7a o tipo de letra Chirp do X onde o site recorreu a um tipo de letra do sistema.",
       "Hide engagement counts": "Ocultar contadores de intera\xE7\xE3o",
-      "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.": "Oculta os n\xFAmeros de respostas, reposts e curtidas. Os bot\xF5es continuam funcionando e os leitores de tela ainda anunciam os totais.",
+      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "Oculta os n\xFAmeros de respostas, reposts, curtidas e visualiza\xE7\xF5es. Os controles continuam funcionando e os leitores de tela ainda anunciam os totais.",
       "Hide row borders": "Ocultar bordas das linhas",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "Remove o divisor de 1 px sob cada post e as linhas laterais da coluna principal.",
       "High contrast": "Alto contraste",
@@ -1338,6 +1385,12 @@ html.av-reduce-motion *::after {
       "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "Seleciona o segundo separador do in\xEDcio sempre que chegas \xE0 cronologia. Se voltares a Para ti, fica assim at\xE9 sa\xEDres da p\xE1gina.",
       "Hide navigation items": "Ocultar itens de navega\xE7\xE3o",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Um ID de navega\xE7\xE3o est\xE1vel do X por linha: home, explore, notifications, messages, profile, more ou premium.",
+      "Hide follow suggestions": "Ocultar sugest\xF5es de contas",
+      "Remove Who to follow cards without hiding the rest of the sidebar.": "Remove os cart\xF5es \xABQuem seguir\xBB sem ocultar o resto da barra lateral.",
+      "Hide home composer": "Ocultar o editor da p\xE1gina inicial",
+      "Remove the quick-post composer from Home. The Post button still opens it when needed.": "Remove o editor de publica\xE7\xE3o r\xE1pida da p\xE1gina inicial. O bot\xE3o Publicar continua a abri-lo quando necess\xE1rio.",
+      "One stable X navigation id per line: home, explore, notifications, follow, chat, grok, history, studio, premium, profile, or more.": "Um ID de navega\xE7\xE3o est\xE1vel do X por linha: home, explore, notifications, follow, chat, grok, history, studio, premium, profile ou more.",
+      "Layout preference saved": "Prefer\xEAncia de layout guardada",
       "Save list": "Salvar lista",
       "Enable filters": "Ativar filtros",
       "Master switch for keyword, regex, premium, and media filters.": "Chave geral dos filtros de palavra-chave, regex, Premium e m\xEDdia.",
@@ -2112,7 +2165,7 @@ html.av-reduce-motion *::after {
       "Restore the Chirp font": "R\xE9tablir la police Chirp",
       "Force X's own Chirp typeface where the site has fallen back to a system font.": "Impose la police Chirp de X l\xE0 o\xF9 le site est revenu \xE0 une police syst\xE8me.",
       "Hide engagement counts": "Masquer les compteurs d'engagement",
-      "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.": "Masque le nombre de r\xE9ponses, de republications et de j'aime. Les boutons fonctionnent toujours et les lecteurs d'\xE9cran annoncent encore les totaux.",
+      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "Masque le nombre de r\xE9ponses, de republications, de mentions J\u2019aime et de vues. Les contr\xF4les fonctionnent toujours et les lecteurs d\u2019\xE9cran annoncent encore les totaux.",
       "Hide row borders": "Masquer les bordures de ligne",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "Supprime le trait de 1 px sous chaque publication ainsi que les filets lat\xE9raux de la colonne principale.",
       "High contrast": "Contraste \xE9lev\xE9",
@@ -2133,6 +2186,12 @@ html.av-reduce-motion *::after {
       "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "S\xE9lectionne le deuxi\xE8me onglet d'accueil \xE0 chaque arriv\xE9e sur le fil. Si vous revenez \xE0 Pour vous, cela reste ainsi jusqu'\xE0 ce que vous quittiez la page.",
       "Hide navigation items": "Masquer les \xE9l\xE9ments de navigation",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Un identifiant de navigation X stable par ligne : home, explore, notifications, messages, profile, more ou premium.",
+      "Hide follow suggestions": "Masquer les suggestions de comptes",
+      "Remove Who to follow cards without hiding the rest of the sidebar.": "Supprime les cartes \xAB Qui suivre \xBB sans masquer le reste de la barre lat\xE9rale.",
+      "Hide home composer": "Masquer le r\xE9dacteur de l\u2019accueil",
+      "Remove the quick-post composer from Home. The Post button still opens it when needed.": "Supprime le r\xE9dacteur rapide de l\u2019accueil. Le bouton Publier permet toujours de l\u2019ouvrir au besoin.",
+      "One stable X navigation id per line: home, explore, notifications, follow, chat, grok, history, studio, premium, profile, or more.": "Un identifiant de navigation X stable par ligne : home, explore, notifications, follow, chat, grok, history, studio, premium, profile ou more.",
+      "Layout preference saved": "Pr\xE9f\xE9rence de mise en page enregistr\xE9e",
       "Save list": "Enregistrer la liste",
       "Enable filters": "Activer les filtres",
       "Master switch for keyword, regex, premium, and media filters.": "Interrupteur g\xE9n\xE9ral des filtres mots-cl\xE9s, regex, Premium et m\xE9dias.",
@@ -2907,7 +2966,7 @@ html.av-reduce-motion *::after {
       "Restore the Chirp font": "Chirp-Schrift wiederherstellen",
       "Force X's own Chirp typeface where the site has fallen back to a system font.": "Erzwingt X' eigene Chirp-Schrift dort, wo die Seite auf eine Systemschrift zur\xFCckgefallen ist.",
       "Hide engagement counts": "Interaktionszahlen ausblenden",
-      "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.": "Blendet die Zahlen f\xFCr Antworten, Reposts und Likes aus. Die Schaltfl\xE4chen funktionieren weiter, und Screenreader nennen die Summen weiterhin.",
+      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "Blendet die Zahlen f\xFCr Antworten, Reposts, Likes und Aufrufe aus. Die Bedienelemente funktionieren weiter, und Screenreader nennen die Summen weiterhin.",
       "Hide row borders": "Zeilentrenner ausblenden",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "Entfernt den 1-px-Trenner unter jedem Beitrag und die Seitenlinien der Hauptspalte.",
       "High contrast": "Hoher Kontrast",
@@ -2928,6 +2987,12 @@ html.av-reduce-motion *::after {
       "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "W\xE4hlt bei jedem Aufruf der Timeline den zweiten Start-Tab. Wechselst du zur\xFCck zu F\xFCr dich, bleibt es dabei, bis du die Seite verl\xE4sst.",
       "Hide navigation items": "Navigationselemente ausblenden",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Eine stabile X-Navigations-ID pro Zeile: home, explore, notifications, messages, profile, more oder premium.",
+      "Hide follow suggestions": "Kontovorschl\xE4ge ausblenden",
+      "Remove Who to follow cards without hiding the rest of the sidebar.": "Entfernt \u201EWem folgen?\u201C-Karten, ohne den Rest der Seitenleiste auszublenden.",
+      "Hide home composer": "Startseiten-Editor ausblenden",
+      "Remove the quick-post composer from Home. The Post button still opens it when needed.": "Entfernt den Schnellbeitrag-Editor auf der Startseite. \xDCber die Schaltfl\xE4che \u201EPosten\u201C l\xE4sst er sich bei Bedarf weiterhin \xF6ffnen.",
+      "One stable X navigation id per line: home, explore, notifications, follow, chat, grok, history, studio, premium, profile, or more.": "Eine stabile X-Navigations-ID pro Zeile: home, explore, notifications, follow, chat, grok, history, studio, premium, profile oder more.",
+      "Layout preference saved": "Layout-Einstellung gespeichert",
       "Save list": "Liste speichern",
       "Enable filters": "Filter aktivieren",
       "Master switch for keyword, regex, premium, and media filters.": "Hauptschalter f\xFCr Stichwort-, Regex-, Premium- und Medienfilter.",
@@ -3702,7 +3767,7 @@ html.av-reduce-motion *::after {
       "Restore the Chirp font": "Chirp \u30D5\u30A9\u30F3\u30C8\u3092\u5FA9\u5143",
       "Force X's own Chirp typeface where the site has fallen back to a system font.": "\u30B5\u30A4\u30C8\u304C\u30B7\u30B9\u30C6\u30E0\u30D5\u30A9\u30F3\u30C8\u306B\u623B\u3063\u3066\u3044\u308B\u7B87\u6240\u3067\u3001X \u672C\u6765\u306E Chirp \u66F8\u4F53\u3092\u9069\u7528\u3057\u307E\u3059\u3002",
       "Hide engagement counts": "\u30A8\u30F3\u30B2\u30FC\u30B8\u30E1\u30F3\u30C8\u6570\u3092\u975E\u8868\u793A",
-      "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.": "\u8FD4\u4FE1\u30FB\u30EA\u30DD\u30B9\u30C8\u30FB\u3044\u3044\u306D\u306E\u6570\u3092\u96A0\u3057\u307E\u3059\u3002\u30DC\u30BF\u30F3\u306F\u5F15\u304D\u7D9A\u304D\u6A5F\u80FD\u3057\u3001\u30B9\u30AF\u30EA\u30FC\u30F3\u30EA\u30FC\u30C0\u30FC\u306F\u5408\u8A08\u3092\u8AAD\u307F\u4E0A\u3052\u307E\u3059\u3002",
+      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "\u8FD4\u4FE1\u30FB\u30EA\u30DD\u30B9\u30C8\u30FB\u3044\u3044\u306D\u30FB\u8868\u793A\u56DE\u6570\u3092\u96A0\u3057\u307E\u3059\u3002\u64CD\u4F5C\u306F\u5F15\u304D\u7D9A\u304D\u6A5F\u80FD\u3057\u3001\u30B9\u30AF\u30EA\u30FC\u30F3\u30EA\u30FC\u30C0\u30FC\u306F\u5408\u8A08\u3092\u8AAD\u307F\u4E0A\u3052\u307E\u3059\u3002",
       "Hide row borders": "\u884C\u306E\u5883\u754C\u7DDA\u3092\u975E\u8868\u793A",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "\u5404\u6295\u7A3F\u306E\u4E0B\u306B\u3042\u308B 1px \u306E\u533A\u5207\u308A\u7DDA\u3068\u3001\u30E1\u30A4\u30F3\u30AB\u30E9\u30E0\u306E\u5DE6\u53F3\u306E\u7F6B\u7DDA\u3092\u6D88\u3057\u307E\u3059\u3002",
       "High contrast": "\u30CF\u30A4\u30B3\u30F3\u30C8\u30E9\u30B9\u30C8",
@@ -3723,6 +3788,12 @@ html.av-reduce-motion *::after {
       "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u3092\u958B\u304F\u305F\u3073\u306B\u30DB\u30FC\u30E0\u306E2\u756A\u76EE\u306E\u30BF\u30D6\u3092\u9078\u3073\u307E\u3059\u3002\u300C\u304A\u3059\u3059\u3081\u300D\u306B\u623B\u3057\u305F\u5834\u5408\u306F\u3001\u30DA\u30FC\u30B8\u3092\u96E2\u308C\u308B\u307E\u3067\u305D\u306E\u307E\u307E\u3067\u3059\u3002",
       "Hide navigation items": "\u30CA\u30D3\u30B2\u30FC\u30B7\u30E7\u30F3\u9805\u76EE\u3092\u975E\u8868\u793A",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "1\u884C\u306B1\u3064\u306E\u5B89\u5B9A\u3057\u305FX\u30CA\u30D3\u30B2\u30FC\u30B7\u30E7\u30F3ID\u3092\u5165\u529B\u3057\u307E\u3059: home\u3001explore\u3001notifications\u3001messages\u3001profile\u3001more\u3001premium\u3002",
+      "Hide follow suggestions": "\u304A\u3059\u3059\u3081\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u975E\u8868\u793A",
+      "Remove Who to follow cards without hiding the rest of the sidebar.": "\u30B5\u30A4\u30C9\u30D0\u30FC\u306E\u307B\u304B\u306E\u90E8\u5206\u306F\u6B8B\u3057\u305F\u307E\u307E\u3001\u300C\u304A\u3059\u3059\u3081\u30E6\u30FC\u30B6\u30FC\u300D\u30AB\u30FC\u30C9\u3092\u975E\u8868\u793A\u306B\u3057\u307E\u3059\u3002",
+      "Hide home composer": "\u30DB\u30FC\u30E0\u306E\u6295\u7A3F\u6B04\u3092\u975E\u8868\u793A",
+      "Remove the quick-post composer from Home. The Post button still opens it when needed.": "\u30DB\u30FC\u30E0\u306E\u30AF\u30A4\u30C3\u30AF\u6295\u7A3F\u6B04\u3092\u975E\u8868\u793A\u306B\u3057\u307E\u3059\u3002\u5FC5\u8981\u306A\u3068\u304D\u306F\u300C\u30DD\u30B9\u30C8\u300D\u30DC\u30BF\u30F3\u304B\u3089\u958B\u3051\u307E\u3059\u3002",
+      "One stable X navigation id per line: home, explore, notifications, follow, chat, grok, history, studio, premium, profile, or more.": "1\u884C\u306B\u3064\u304DX\u306E\u5B89\u5B9A\u3057\u305F\u30CA\u30D3\u30B2\u30FC\u30B7\u30E7\u30F3ID\u30921\u3064\u5165\u529B\u3057\u307E\u3059: home\u3001explore\u3001notifications\u3001follow\u3001chat\u3001grok\u3001history\u3001studio\u3001premium\u3001profile\u3001more\u3002",
+      "Layout preference saved": "\u30EC\u30A4\u30A2\u30A6\u30C8\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Save list": "\u30EA\u30B9\u30C8\u3092\u4FDD\u5B58",
       "Enable filters": "\u30D5\u30A3\u30EB\u30BF\u3092\u6709\u52B9\u306B\u3059\u308B",
       "Master switch for keyword, regex, premium, and media filters.": "\u30AD\u30FC\u30EF\u30FC\u30C9\u30FB\u6B63\u898F\u8868\u73FE\u30FB\u30D7\u30EC\u30DF\u30A2\u30E0\u30FB\u30E1\u30C7\u30A3\u30A2\u306E\u5404\u30D5\u30A3\u30EB\u30BF\u3092\u307E\u3068\u3081\u3066\u5207\u308A\u66FF\u3048\u307E\u3059\u3002",
@@ -4497,7 +4568,7 @@ html.av-reduce-motion *::after {
       "Restore the Chirp font": "Chirp \uAE00\uAF34 \uBCF5\uC6D0",
       "Force X's own Chirp typeface where the site has fallen back to a system font.": "\uC0AC\uC774\uD2B8\uAC00 \uC2DC\uC2A4\uD15C \uAE00\uAF34\uB85C \uB300\uCCB4\uB41C \uACF3\uC5D0 X \uACE0\uC720\uC758 Chirp \uC11C\uCCB4\uB97C \uC801\uC6A9\uD569\uB2C8\uB2E4.",
       "Hide engagement counts": "\uBC18\uC751 \uC218 \uC228\uAE30\uAE30",
-      "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.": "\uB2F5\uAE00\xB7\uC7AC\uAC8C\uC2DC\xB7\uB9C8\uC74C\uC5D0 \uB4E4\uC5B4\uC694 \uC218\uB97C \uC228\uAE41\uB2C8\uB2E4. \uBC84\uD2BC\uC740 \uADF8\uB300\uB85C \uC791\uB3D9\uD558\uACE0 \uC2A4\uD06C\uB9B0 \uB9AC\uB354\uB294 \uD569\uACC4\uB97C \uACC4\uC18D \uC77D\uC5B4 \uC90D\uB2C8\uB2E4.",
+      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "\uB2F5\uAE00\xB7\uC7AC\uAC8C\uC2DC\xB7\uB9C8\uC74C\uC5D0 \uB4E4\uC5B4\uC694\xB7\uC870\uD68C \uC218\uB97C \uC228\uAE41\uB2C8\uB2E4. \uCEE8\uD2B8\uB864\uC740 \uADF8\uB300\uB85C \uC791\uB3D9\uD558\uACE0 \uC2A4\uD06C\uB9B0 \uB9AC\uB354\uB294 \uD569\uACC4\uB97C \uACC4\uC18D \uC77D\uC5B4 \uC90D\uB2C8\uB2E4.",
       "Hide row borders": "\uD589 \uACBD\uACC4\uC120 \uC228\uAE30\uAE30",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "\uAC01 \uAC8C\uC2DC\uBB3C \uC544\uB798\uC758 1px \uAD6C\uBD84\uC120\uACFC \uAE30\uBCF8 \uCE7C\uB7FC\uC758 \uC88C\uC6B0 \uC120\uC744 \uC5C6\uC571\uB2C8\uB2E4.",
       "High contrast": "\uACE0\uB300\uBE44",
@@ -4518,6 +4589,12 @@ html.av-reduce-motion *::after {
       "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "\uD0C0\uC784\uB77C\uC778\uC5D0 \uB4E4\uC5B4\uC62C \uB54C\uB9C8\uB2E4 \uD648\uC758 \uB450 \uBC88\uC9F8 \uD0ED\uC744 \uC120\uD0DD\uD569\uB2C8\uB2E4. '\uCD94\uCC9C'\uC73C\uB85C \uB418\uB3CC\uB9AC\uBA74 \uD398\uC774\uC9C0\uB97C \uBC97\uC5B4\uB0A0 \uB54C\uAE4C\uC9C0 \uADF8\uB300\uB85C \uC720\uC9C0\uB429\uB2C8\uB2E4.",
       "Hide navigation items": "\uB0B4\uBE44\uAC8C\uC774\uC158 \uD56D\uBAA9 \uC228\uAE30\uAE30",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "\uC904\uB9C8\uB2E4 \uC548\uC815\uC801\uC778 X \uB0B4\uBE44\uAC8C\uC774\uC158 ID \uD558\uB098\uB97C \uC785\uB825\uD558\uC138\uC694: home, explore, notifications, messages, profile, more \uB610\uB294 premium.",
+      "Hide follow suggestions": "\uCD94\uCC9C \uACC4\uC815 \uC228\uAE30\uAE30",
+      "Remove Who to follow cards without hiding the rest of the sidebar.": "\uC0AC\uC774\uB4DC\uBC14\uC758 \uB098\uBA38\uC9C0\uB294 \uC720\uC9C0\uD558\uACE0 \uD314\uB85C\uC6B0 \uCD94\uCC9C \uCE74\uB4DC\uB9CC \uC228\uAE41\uB2C8\uB2E4.",
+      "Hide home composer": "\uD648 \uC791\uC131\uAE30 \uC228\uAE30\uAE30",
+      "Remove the quick-post composer from Home. The Post button still opens it when needed.": "\uD648\uC758 \uBE60\uB978 \uAC8C\uC2DC \uC791\uC131\uAE30\uB97C \uC228\uAE41\uB2C8\uB2E4. \uD544\uC694\uD560 \uB54C \uAC8C\uC2DC \uBC84\uD2BC\uC73C\uB85C \uACC4\uC18D \uC5F4 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+      "One stable X navigation id per line: home, explore, notifications, follow, chat, grok, history, studio, premium, profile, or more.": "\uC904\uB9C8\uB2E4 \uC548\uC815\uC801\uC778 X \uD0D0\uC0C9 ID \uD558\uB098\uB97C \uC785\uB825\uD558\uC138\uC694: home, explore, notifications, follow, chat, grok, history, studio, premium, profile \uB610\uB294 more.",
+      "Layout preference saved": "\uB808\uC774\uC544\uC6C3 \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Save list": "\uBAA9\uB85D \uC800\uC7A5",
       "Enable filters": "\uD544\uD130 \uC0AC\uC6A9",
       "Master switch for keyword, regex, premium, and media filters.": "\uD0A4\uC6CC\uB4DC\xB7\uC815\uADDC\uC2DD\xB7\uD504\uB9AC\uBBF8\uC5C4\xB7\uBBF8\uB514\uC5B4 \uD544\uD130\uB97C \uD55C\uAEBC\uBC88\uC5D0 \uCF1C\uACE0 \uB055\uB2C8\uB2E4.",
@@ -5292,7 +5369,7 @@ html.av-reduce-motion *::after {
       "Restore the Chirp font": "\u0627\u0633\u062A\u0639\u0627\u062F\u0629 \u062E\u0637 Chirp",
       "Force X's own Chirp typeface where the site has fallen back to a system font.": "\u064A\u0641\u0631\u0636 \u062E\u0637 Chirp \u0627\u0644\u062E\u0627\u0635 \u0628\u0640 X \u062D\u064A\u062B \u0639\u0627\u062F \u0627\u0644\u0645\u0648\u0642\u0639 \u0625\u0644\u0649 \u062E\u0637 \u0627\u0644\u0646\u0638\u0627\u0645.",
       "Hide engagement counts": "\u0625\u062E\u0641\u0627\u0621 \u0623\u0639\u062F\u0627\u062F \u0627\u0644\u062A\u0641\u0627\u0639\u0644",
-      "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.": "\u064A\u062E\u0641\u064A \u0623\u0639\u062F\u0627\u062F \u0627\u0644\u0631\u062F\u0648\u062F \u0648\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0646\u0634\u0631 \u0648\u0627\u0644\u0625\u0639\u062C\u0627\u0628\u0627\u062A. \u062A\u0638\u0644 \u0627\u0644\u0623\u0632\u0631\u0627\u0631 \u062A\u0639\u0645\u0644 \u0648\u062A\u0638\u0644 \u0642\u0627\u0631\u0626\u0627\u062A \u0627\u0644\u0634\u0627\u0634\u0629 \u062A\u0639\u0644\u0646 \u0627\u0644\u0625\u062C\u0645\u0627\u0644\u064A\u0627\u062A.",
+      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "\u064A\u062E\u0641\u064A \u0623\u0639\u062F\u0627\u062F \u0627\u0644\u0631\u062F\u0648\u062F \u0648\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0646\u0634\u0631 \u0648\u0627\u0644\u0625\u0639\u062C\u0627\u0628\u0627\u062A \u0648\u0627\u0644\u0645\u0634\u0627\u0647\u062F\u0627\u062A. \u062A\u0638\u0644 \u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062A\u062D\u0643\u0645 \u062A\u0639\u0645\u0644 \u0648\u062A\u0638\u0644 \u0642\u0627\u0631\u0626\u0627\u062A \u0627\u0644\u0634\u0627\u0634\u0629 \u062A\u0639\u0644\u0646 \u0627\u0644\u0625\u062C\u0645\u0627\u0644\u064A\u0627\u062A.",
       "Hide row borders": "\u0625\u062E\u0641\u0627\u0621 \u062D\u062F\u0648\u062F \u0627\u0644\u0635\u0641\u0648\u0641",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "\u064A\u0632\u064A\u0644 \u0627\u0644\u0641\u0627\u0635\u0644 \u0628\u0633\u0645\u0643 \u0628\u0643\u0633\u0644 \u0648\u0627\u062D\u062F \u0623\u0633\u0641\u0644 \u0643\u0644 \u0645\u0646\u0634\u0648\u0631\u060C \u0648\u0627\u0644\u062E\u0637\u0648\u0637 \u0627\u0644\u062C\u0627\u0646\u0628\u064A\u0629 \u0644\u0644\u0639\u0645\u0648\u062F \u0627\u0644\u0631\u0626\u064A\u0633\u064A.",
       "High contrast": "\u062A\u0628\u0627\u064A\u0646 \u0639\u0627\u0644\u064D",
@@ -5313,6 +5390,12 @@ html.av-reduce-motion *::after {
       "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": "\u064A\u062D\u062F\u062F \u0639\u0644\u0627\u0645\u0629 \u0627\u0644\u062A\u0628\u0648\u064A\u0628 \u0627\u0644\u062B\u0627\u0646\u064A\u0629 \u0641\u064A \u0627\u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629 \u0641\u064A \u0643\u0644 \u0645\u0631\u0629 \u062A\u0635\u0644 \u0641\u064A\u0647\u0627 \u0625\u0644\u0649 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A. \u0648\u0625\u0630\u0627 \u0639\u062F\u062A \u0625\u0644\u0649 \xAB\u0644\u0643\xBB \u0641\u0633\u064A\u0628\u0642\u0649 \u0643\u0630\u0644\u0643 \u062D\u062A\u0649 \u062A\u063A\u0627\u062F\u0631 \u0627\u0644\u0635\u0641\u062D\u0629.",
       "Hide navigation items": "\u0625\u062E\u0641\u0627\u0621 \u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062A\u0646\u0642\u0644",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "\u0645\u0639\u0631\u0651\u0641 \u062A\u0646\u0642\u0644 \u062B\u0627\u0628\u062A \u0648\u0627\u062D\u062F \u0641\u064A X \u0644\u0643\u0644 \u0633\u0637\u0631: home \u0623\u0648 explore \u0623\u0648 notifications \u0623\u0648 messages \u0623\u0648 profile \u0623\u0648 more \u0623\u0648 premium.",
+      "Hide follow suggestions": "\u0625\u062E\u0641\u0627\u0621 \u0627\u0642\u062A\u0631\u0627\u062D\u0627\u062A \u0627\u0644\u0645\u062A\u0627\u0628\u0639\u0629",
+      "Remove Who to follow cards without hiding the rest of the sidebar.": "\u064A\u0632\u064A\u0644 \u0628\u0637\u0627\u0642\u0627\u062A \xAB\u0645\u0646 \u062A\u062A\u0627\u0628\u0639\xBB \u0645\u0646 \u062F\u0648\u0646 \u0625\u062E\u0641\u0627\u0621 \u0628\u0642\u064A\u0629 \u0627\u0644\u0634\u0631\u064A\u0637 \u0627\u0644\u062C\u0627\u0646\u0628\u064A.",
+      "Hide home composer": "\u0625\u062E\u0641\u0627\u0621 \u0645\u062D\u0631\u0631 \u0627\u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629",
+      "Remove the quick-post composer from Home. The Post button still opens it when needed.": "\u064A\u0632\u064A\u0644 \u0645\u062D\u0631\u0631 \u0627\u0644\u0646\u0634\u0631 \u0627\u0644\u0633\u0631\u064A\u0639 \u0645\u0646 \u0627\u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629. \u064A\u0638\u0644 \u0632\u0631 \xAB\u0646\u0634\u0631\xBB \u0645\u062A\u0627\u062D\u064B\u0627 \u0644\u0641\u062A\u062D\u0647 \u0639\u0646\u062F \u0627\u0644\u062D\u0627\u062C\u0629.",
+      "One stable X navigation id per line: home, explore, notifications, follow, chat, grok, history, studio, premium, profile, or more.": "\u0645\u0639\u0631\u0651\u0641 \u062A\u0646\u0642\u0644 \u062B\u0627\u0628\u062A \u0648\u0627\u062D\u062F \u0641\u064A X \u0644\u0643\u0644 \u0633\u0637\u0631: home \u0623\u0648 explore \u0623\u0648 notifications \u0623\u0648 follow \u0623\u0648 chat \u0623\u0648 grok \u0623\u0648 history \u0623\u0648 studio \u0623\u0648 premium \u0623\u0648 profile \u0623\u0648 more.",
+      "Layout preference saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u062A\u062E\u0637\u064A\u0637",
       "Save list": "\u062D\u0641\u0638 \u0627\u0644\u0642\u0627\u0626\u0645\u0629",
       "Enable filters": "\u062A\u0641\u0639\u064A\u0644 \u0627\u0644\u0641\u0644\u0627\u062A\u0631",
       "Master switch for keyword, regex, premium, and media filters.": "\u0645\u0641\u062A\u0627\u062D \u0631\u0626\u064A\u0633\u064A \u0644\u0641\u0644\u0627\u062A\u0631 \u0627\u0644\u0643\u0644\u0645\u0627\u062A \u0627\u0644\u0645\u0641\u062A\u0627\u062D\u064A\u0629 \u0648\u0627\u0644\u062A\u0639\u0628\u064A\u0631\u0627\u062A \u0627\u0644\u0646\u0645\u0637\u064A\u0629 \u0648\u0627\u0644\u062D\u0633\u0627\u0628\u0627\u062A \u0627\u0644\u0645\u0645\u064A\u0632\u0629 \u0648\u0627\u0644\u0648\u0633\u0627\u0626\u0637.",
@@ -6087,7 +6170,7 @@ html.av-reduce-motion *::after {
       "Restore the Chirp font": "\u05E9\u05D7\u05D6\u05D5\u05E8 \u05D4\u05D2\u05D5\u05E4\u05DF Chirp",
       "Force X's own Chirp typeface where the site has fallen back to a system font.": "\u05DB\u05D5\u05E4\u05D4 \u05D0\u05EA \u05D4\u05D2\u05D5\u05E4\u05DF Chirp \u05E9\u05DC X \u05D1\u05DE\u05E7\u05D5\u05DE\u05D5\u05EA \u05E9\u05D1\u05D4\u05DD \u05D4\u05D0\u05EA\u05E8 \u05D7\u05D6\u05E8 \u05DC\u05D2\u05D5\u05E4\u05DF \u05DE\u05E2\u05E8\u05DB\u05EA.",
       "Hide engagement counts": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05DE\u05D5\u05E0\u05D9 \u05DE\u05E2\u05D5\u05E8\u05D1\u05D5\u05EA",
-      "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.": "\u05DE\u05E1\u05EA\u05D9\u05E8 \u05D0\u05EA \u05DE\u05E1\u05E4\u05E8\u05D9 \u05D4\u05EA\u05D2\u05D5\u05D1\u05D5\u05EA, \u05D4\u05E9\u05D9\u05EA\u05D5\u05E4\u05D9\u05DD \u05D5\u05D4\u05DC\u05D9\u05D9\u05E7\u05D9\u05DD. \u05D4\u05DB\u05E4\u05EA\u05D5\u05E8\u05D9\u05DD \u05DE\u05DE\u05E9\u05D9\u05DB\u05D9\u05DD \u05DC\u05E4\u05E2\u05D5\u05DC \u05D5\u05E7\u05D5\u05E8\u05D0\u05D9 \u05DE\u05E1\u05DA \u05DE\u05DE\u05E9\u05D9\u05DB\u05D9\u05DD \u05DC\u05D4\u05E7\u05E8\u05D9\u05D0 \u05D0\u05EA \u05D4\u05E1\u05DB\u05D5\u05DE\u05D9\u05DD.",
+      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "\u05DE\u05E1\u05EA\u05D9\u05E8 \u05D0\u05EA \u05DE\u05E1\u05E4\u05E8\u05D9 \u05D4\u05EA\u05D2\u05D5\u05D1\u05D5\u05EA, \u05D4\u05E9\u05D9\u05EA\u05D5\u05E4\u05D9\u05DD, \u05D4\u05DC\u05D9\u05D9\u05E7\u05D9\u05DD \u05D5\u05D4\u05E6\u05E4\u05D9\u05D5\u05EA. \u05D4\u05E4\u05E7\u05D3\u05D9\u05DD \u05DE\u05DE\u05E9\u05D9\u05DB\u05D9\u05DD \u05DC\u05E4\u05E2\u05D5\u05DC \u05D5\u05E7\u05D5\u05E8\u05D0\u05D9 \u05DE\u05E1\u05DA \u05DE\u05DE\u05E9\u05D9\u05DB\u05D9\u05DD \u05DC\u05D4\u05E7\u05E8\u05D9\u05D0 \u05D0\u05EA \u05D4\u05E1\u05DB\u05D5\u05DE\u05D9\u05DD.",
       "Hide row borders": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05D2\u05D1\u05D5\u05DC\u05D5\u05EA \u05E9\u05D5\u05E8\u05D5\u05EA",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "\u05DE\u05E1\u05D9\u05E8 \u05D0\u05EA \u05E7\u05D5 \u05D4\u05D4\u05E4\u05E8\u05D3\u05D4 \u05D1\u05E2\u05D5\u05D1\u05D9 \u05E4\u05D9\u05E7\u05E1\u05DC \u05DE\u05EA\u05D7\u05EA \u05DC\u05DB\u05DC \u05E4\u05D5\u05E1\u05D8, \u05D5\u05D0\u05EA \u05D4\u05E7\u05D5\u05D5\u05D9\u05DD \u05D1\u05E6\u05D3\u05D9 \u05D4\u05E2\u05DE\u05D5\u05D3\u05D4 \u05D4\u05E8\u05D0\u05E9\u05D9\u05EA.",
       "High contrast": "\u05E0\u05D9\u05D2\u05D5\u05D3\u05D9\u05D5\u05EA \u05D2\u05D1\u05D5\u05D4\u05D4",
@@ -6108,6 +6191,12 @@ html.av-reduce-motion *::after {
       "Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away.": '\u05D1\u05D5\u05D7\u05E8 \u05D0\u05EA \u05D4\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05D4\u05E9\u05E0\u05D9\u05D9\u05D4 \u05D1\u05D3\u05E3 \u05D4\u05D1\u05D9\u05EA \u05D1\u05DB\u05DC \u05DB\u05E0\u05D9\u05E1\u05D4 \u05DC\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF. \u05D0\u05DD \u05EA\u05D7\u05D6\u05D5\u05E8 \u05DC"\u05D1\u05E9\u05D1\u05D9\u05DC\u05DA", \u05D6\u05D4 \u05D9\u05D9\u05E9\u05D0\u05E8 \u05DB\u05DA \u05E2\u05D3 \u05E9\u05EA\u05E2\u05D6\u05D5\u05D1 \u05D0\u05EA \u05D4\u05D3\u05E3.',
       "Hide navigation items": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05E4\u05E8\u05D9\u05D8\u05D9 \u05E0\u05D9\u05D5\u05D5\u05D8",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "\u05DE\u05D6\u05D4\u05D4 \u05E0\u05D9\u05D5\u05D5\u05D8 \u05D9\u05E6\u05D9\u05D1 \u05D0\u05D7\u05D3 \u05E9\u05DC X \u05D1\u05DB\u05DC \u05E9\u05D5\u05E8\u05D4: home, explore, notifications, messages, profile, more \u05D0\u05D5 premium.",
+      "Hide follow suggestions": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05D4\u05E6\u05E2\u05D5\u05EA \u05DC\u05DE\u05E2\u05E7\u05D1",
+      "Remove Who to follow cards without hiding the rest of the sidebar.": "\u05DE\u05E1\u05D9\u05E8 \u05DB\u05E8\u05D8\u05D9\u05E1\u05D9 \u201E\u05D0\u05D7\u05E8\u05D9 \u05DE\u05D9 \u05DC\u05E2\u05E7\u05D5\u05D1\u201D \u05D1\u05DC\u05D9 \u05DC\u05D4\u05E1\u05EA\u05D9\u05E8 \u05D0\u05EA \u05E9\u05D0\u05E8 \u05E1\u05E8\u05D2\u05DC \u05D4\u05E6\u05D3.",
+      "Hide home composer": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05E2\u05D5\u05E8\u05DA \u05D4\u05D1\u05D9\u05EA",
+      "Remove the quick-post composer from Home. The Post button still opens it when needed.": "\u05DE\u05E1\u05D9\u05E8 \u05D0\u05EA \u05E2\u05D5\u05E8\u05DA \u05D4\u05E4\u05E8\u05E1\u05D5\u05DD \u05D4\u05DE\u05D4\u05D9\u05E8 \u05DE\u05D3\u05E3 \u05D4\u05D1\u05D9\u05EA. \u05D4\u05DB\u05E4\u05EA\u05D5\u05E8 \u201E\u05E4\u05E8\u05E1\u05D5\u05DD\u201D \u05E2\u05D3\u05D9\u05D9\u05DF \u05E4\u05D5\u05EA\u05D7 \u05D0\u05D5\u05EA\u05D5 \u05D1\u05E2\u05EA \u05D4\u05E6\u05D5\u05E8\u05DA.",
+      "One stable X navigation id per line: home, explore, notifications, follow, chat, grok, history, studio, premium, profile, or more.": "\u05DE\u05D6\u05D4\u05D4 \u05E0\u05D9\u05D5\u05D5\u05D8 \u05D9\u05E6\u05D9\u05D1 \u05D0\u05D7\u05D3 \u05E9\u05DC X \u05D1\u05DB\u05DC \u05E9\u05D5\u05E8\u05D4: home, explore, notifications, follow, chat, grok, history, studio, premium, profile \u05D0\u05D5 more.",
+      "Layout preference saved": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D4\u05E4\u05E8\u05D9\u05E1\u05D4 \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Save list": "\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05E8\u05E9\u05D9\u05DE\u05D4",
       "Enable filters": "\u05D4\u05E4\u05E2\u05DC\u05EA \u05DE\u05E1\u05E0\u05E0\u05D9\u05DD",
       "Master switch for keyword, regex, premium, and media filters.": "\u05DE\u05EA\u05D2 \u05E8\u05D0\u05E9\u05D9 \u05DC\u05DE\u05E1\u05E0\u05E0\u05D9 \u05DE\u05D9\u05DC\u05D5\u05EA \u05DE\u05E4\u05EA\u05D7, \u05D1\u05D9\u05D8\u05D5\u05D9\u05D9\u05DD \u05E8\u05D2\u05D5\u05DC\u05E8\u05D9\u05D9\u05DD, \u05E4\u05E8\u05D9\u05DE\u05D9\u05D5\u05DD \u05D5\u05DE\u05D3\u05D9\u05D4.",
@@ -6867,7 +6956,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/platform/build-version.ts
-  var AVIARY_VERSION = false ? "dev" : "1.19.0";
+  var AVIARY_VERSION = false ? "dev" : "1.20.0";
 
   // src/platform/settings.ts
   var SETTINGS_KEY = "aviary.settings.v1";
@@ -6911,6 +7000,8 @@ html.av-reduce-motion *::after {
       hideNavItems: [],
       hideRightSidebar: false,
       hideTrends: false,
+      hideFollowSuggestions: false,
+      hideHomeComposer: false,
       hideGrok: false,
       writerMode: false,
       forceFollowing: false
@@ -7069,6 +7160,11 @@ html.av-reduce-motion *::after {
         hideNavItems: stringArray(layout.hideNavItems, { maxItems: 24, maxLength: 48 }),
         hideRightSidebar: booleanValue(layout.hideRightSidebar, DEFAULT_SETTINGS.layout.hideRightSidebar),
         hideTrends: booleanValue(layout.hideTrends, DEFAULT_SETTINGS.layout.hideTrends),
+        hideFollowSuggestions: booleanValue(
+          layout.hideFollowSuggestions,
+          DEFAULT_SETTINGS.layout.hideFollowSuggestions
+        ),
+        hideHomeComposer: booleanValue(layout.hideHomeComposer, DEFAULT_SETTINGS.layout.hideHomeComposer),
         hideGrok: booleanValue(layout.hideGrok, DEFAULT_SETTINGS.layout.hideGrok),
         writerMode: booleanValue(layout.writerMode, DEFAULT_SETTINGS.layout.writerMode),
         forceFollowing: booleanValue(layout.forceFollowing, DEFAULT_SETTINGS.layout.forceFollowing)
@@ -7437,7 +7533,12 @@ html.av-reduce-motion *::after {
     "home",
     "explore",
     "notifications",
+    "follow",
+    "chat",
     "messages",
+    "grok",
+    "history",
+    "studio",
     "profile",
     "more"
   ]);
@@ -9570,7 +9671,7 @@ html.av-reduce-motion *::after {
       ),
       ctx.toggleRow(
         "Hide engagement counts",
-        "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.",
+        "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.",
         ctx.options.settings.appearance.hideCounts,
         async (checked) => {
           ctx.options.settings.appearance.hideCounts = checked;
@@ -9630,6 +9731,24 @@ html.av-reduce-motion *::after {
         ctx.options.settings.layout.hideTrends = checked;
         await ctx.save("Trend preference saved");
       }),
+      ctx.toggleRow(
+        "Hide follow suggestions",
+        "Remove Who to follow cards without hiding the rest of the sidebar.",
+        ctx.options.settings.layout.hideFollowSuggestions,
+        async (checked) => {
+          ctx.options.settings.layout.hideFollowSuggestions = checked;
+          await ctx.save("Layout preference saved");
+        }
+      ),
+      ctx.toggleRow(
+        "Hide home composer",
+        "Remove the quick-post composer from Home. The Post button still opens it when needed.",
+        ctx.options.settings.layout.hideHomeComposer,
+        async (checked) => {
+          ctx.options.settings.layout.hideHomeComposer = checked;
+          await ctx.save("Layout preference saved");
+        }
+      ),
       ctx.toggleRow("Hide Grok surfaces", "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.", ctx.options.settings.layout.hideGrok, async (checked) => {
         ctx.options.settings.layout.hideGrok = checked;
         await ctx.save("Grok preference saved");
@@ -9656,7 +9775,7 @@ html.av-reduce-motion *::after {
     rows.push(
       ctx.textareaRow(
         "Hide navigation items",
-        "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.",
+        "One stable X navigation id per line: home, explore, notifications, follow, chat, grok, history, studio, premium, profile, or more.",
         ctx.options.settings.layout.hideNavItems,
         async (lines) => {
           ctx.options.settings.layout.hideNavItems = [...new Set(
@@ -10004,7 +10123,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION2 = false ? "dev" : "1.19.0";
+  var AVIARY_VERSION2 = false ? "dev" : "1.20.0";
   var SECTION_GROUP_BREAKS = {
     presets: [
       { before: "Quiet Reader", title: "Preset packs" },
@@ -12997,12 +13116,25 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       description: "Maximum declutter: no counts, no borders, no trends, big text safe zones.",
       highlights: [
         { label: "Hide engagement counts", value: "Enabled" },
-        { label: "Hide row borders", value: "Enabled" },
-        { label: "Reduced motion", value: "Always reduce" }
+        { label: "Hide right sidebar", value: "Enabled" },
+        { label: "Theme", value: "Noir" }
       ],
       overrides: {
-        appearance: { theme: "lightsOut", denseMode: false, hideCounts: true, hideBorders: true },
-        layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
+        appearance: {
+          theme: "noir",
+          denseMode: false,
+          timelineWidth: "comfortable",
+          hideCounts: true,
+          hideBorders: true
+        },
+        layout: {
+          hideRightSidebar: true,
+          hideTrends: true,
+          hideFollowSuggestions: true,
+          hideHomeComposer: true,
+          hideGrok: true,
+          hideNavItems: ["follow", "grok", "history", "studio", "premium"]
+        },
         filter: { enabled: true, premiumRule: "hide" },
         accessibility: { reduceMotion: "always" }
       }
@@ -23523,6 +23655,8 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
       document.documentElement.classList.remove(
         "av-hide-right-sidebar",
         "av-hide-trends",
+        "av-hide-follow-suggestions",
+        "av-hide-home-composer",
         "av-hide-grok",
         "av-writer-mode",
         "av-writing"
@@ -23539,6 +23673,11 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
     const root = document.documentElement;
     root.classList.toggle("av-hide-right-sidebar", ctx.settings.layout.hideRightSidebar);
     root.classList.toggle("av-hide-trends", ctx.settings.layout.hideTrends);
+    root.classList.toggle("av-hide-follow-suggestions", ctx.settings.layout.hideFollowSuggestions === true);
+    root.classList.toggle(
+      "av-hide-home-composer",
+      ctx.settings.layout.hideHomeComposer === true && ctx.route?.surface === "home"
+    );
     root.classList.toggle("av-hide-grok", ctx.settings.layout.hideGrok);
     root.classList.toggle("av-writer-mode", ctx.settings.layout.writerMode);
     if (ctx.settings.layout.writerMode) {
@@ -23615,8 +23754,28 @@ html.av-hide-right-sidebar [data-testid="sidebarColumn"] {
   display: none !important;
 }
 
+/* Current X puts a zero-height news_sidebar marker beside the visible news card and nests
+   trends inside an unlabelled region. Collapse the semantic module boundaries so headings and
+   empty card chrome do not survive after their rows disappear. Keep the leaf selectors as a
+   compatibility path for older markup. */
+html.av-hide-trends [data-testid="sidebarColumn"] div:has(> [data-testid="news_sidebar"]),
+html.av-hide-trends [data-testid="sidebarColumn"] section:has([data-testid="trend"]),
 html.av-hide-trends [data-testid="news_sidebar"],
+html.av-hide-trends [data-testid^="news_sidebar_article_"],
 html.av-hide-trends [data-testid="trend"] {
+  display: none !important;
+}
+
+html.av-hide-follow-suggestions [data-testid="sidebarColumn"] aside[role="complementary"]:has(a[href^="/i/connect_people"]),
+html.av-hide-follow-suggestions [data-testid="sidebarColumn"] [data-testid="whoToFollowSspAd"] {
+  display: none !important;
+}
+
+/* Home's quick composer is the direct child of its labelled timeline shell in current X. The
+   direct toolbar selector keeps the sanitized/legacy fixture covered without reaching reply
+   composers on status pages. The route-aware root class is only present on Home. */
+html.av-hide-home-composer [data-testid="primaryColumn"] > [data-testid="toolBar"],
+html.av-hide-home-composer [data-testid="primaryColumn"] > * > *:has([data-testid^="tweetTextarea_"]) {
   display: none !important;
 }
 
@@ -23625,6 +23784,7 @@ html.av-hide-grok [data-testid="GrokDrawerHeader"],
 html.av-hide-grok [data-testid="chat-drawer-root"],
 html.av-hide-grok [data-testid="chat-drawer-main"],
 html.av-hide-grok [data-testid="grokImgGen"],
+html.av-hide-grok [data-testid="sidebarColumn"] aside[role="complementary"]:has(a[href*="grok.com/"]),
 html.av-hide-grok a[href="/i/grok"],
 html.av-hide-grok button[aria-label="Grok actions"] {
   display: none !important;
@@ -23657,7 +23817,12 @@ html.av-hide-nav-premium [data-testid="premium-signup-tab"],
 html.av-hide-nav-home [data-testid="AppTabBar_Home_Link"],
 html.av-hide-nav-explore [data-testid="AppTabBar_Explore_Link"],
 html.av-hide-nav-notifications [data-testid="AppTabBar_Notifications_Link"],
+html.av-hide-nav-follow [data-testid="AppTabBar_Follow_Link"],
 html.av-hide-nav-messages [data-testid="AppTabBar_DirectMessage_Link"],
+html.av-hide-nav-chat [data-testid="AppTabBar_DirectMessage_Link"],
+html.av-hide-nav-grok a[href="/i/grok"],
+html.av-hide-nav-history a[href="/i/history"],
+html.av-hide-nav-studio a[href="/i/jf/creators/studio"],
 html.av-hide-nav-profile [data-testid="AppTabBar_Profile_Link"],
 html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
   display: none !important;

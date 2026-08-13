@@ -41,6 +41,8 @@ export const layoutDeclutterFeature: FeatureModule = {
     document.documentElement.classList.remove(
       "av-hide-right-sidebar",
       "av-hide-trends",
+      "av-hide-follow-suggestions",
+      "av-hide-home-composer",
       "av-hide-grok",
       "av-writer-mode",
       "av-writing"
@@ -58,6 +60,11 @@ function applyLayoutClasses(ctx: FeatureContext): void {
   const root = document.documentElement;
   root.classList.toggle("av-hide-right-sidebar", ctx.settings.layout.hideRightSidebar);
   root.classList.toggle("av-hide-trends", ctx.settings.layout.hideTrends);
+  root.classList.toggle("av-hide-follow-suggestions", ctx.settings.layout.hideFollowSuggestions === true);
+  root.classList.toggle(
+    "av-hide-home-composer",
+    ctx.settings.layout.hideHomeComposer === true && ctx.route?.surface === "home"
+  );
   root.classList.toggle("av-hide-grok", ctx.settings.layout.hideGrok);
 
   root.classList.toggle("av-writer-mode", ctx.settings.layout.writerMode);
@@ -146,8 +153,28 @@ html.av-hide-right-sidebar [data-testid="sidebarColumn"] {
   display: none !important;
 }
 
+/* Current X puts a zero-height news_sidebar marker beside the visible news card and nests
+   trends inside an unlabelled region. Collapse the semantic module boundaries so headings and
+   empty card chrome do not survive after their rows disappear. Keep the leaf selectors as a
+   compatibility path for older markup. */
+html.av-hide-trends [data-testid="sidebarColumn"] div:has(> [data-testid="news_sidebar"]),
+html.av-hide-trends [data-testid="sidebarColumn"] section:has([data-testid="trend"]),
 html.av-hide-trends [data-testid="news_sidebar"],
+html.av-hide-trends [data-testid^="news_sidebar_article_"],
 html.av-hide-trends [data-testid="trend"] {
+  display: none !important;
+}
+
+html.av-hide-follow-suggestions [data-testid="sidebarColumn"] aside[role="complementary"]:has(a[href^="/i/connect_people"]),
+html.av-hide-follow-suggestions [data-testid="sidebarColumn"] [data-testid="whoToFollowSspAd"] {
+  display: none !important;
+}
+
+/* Home's quick composer is the direct child of its labelled timeline shell in current X. The
+   direct toolbar selector keeps the sanitized/legacy fixture covered without reaching reply
+   composers on status pages. The route-aware root class is only present on Home. */
+html.av-hide-home-composer [data-testid="primaryColumn"] > [data-testid="toolBar"],
+html.av-hide-home-composer [data-testid="primaryColumn"] > * > *:has([data-testid^="tweetTextarea_"]) {
   display: none !important;
 }
 
@@ -156,6 +183,7 @@ html.av-hide-grok [data-testid="GrokDrawerHeader"],
 html.av-hide-grok [data-testid="chat-drawer-root"],
 html.av-hide-grok [data-testid="chat-drawer-main"],
 html.av-hide-grok [data-testid="grokImgGen"],
+html.av-hide-grok [data-testid="sidebarColumn"] aside[role="complementary"]:has(a[href*="grok.com/"]),
 html.av-hide-grok a[href="/i/grok"],
 html.av-hide-grok button[aria-label="Grok actions"] {
   display: none !important;
@@ -188,7 +216,12 @@ html.av-hide-nav-premium [data-testid="premium-signup-tab"],
 html.av-hide-nav-home [data-testid="AppTabBar_Home_Link"],
 html.av-hide-nav-explore [data-testid="AppTabBar_Explore_Link"],
 html.av-hide-nav-notifications [data-testid="AppTabBar_Notifications_Link"],
+html.av-hide-nav-follow [data-testid="AppTabBar_Follow_Link"],
 html.av-hide-nav-messages [data-testid="AppTabBar_DirectMessage_Link"],
+html.av-hide-nav-chat [data-testid="AppTabBar_DirectMessage_Link"],
+html.av-hide-nav-grok a[href="/i/grok"],
+html.av-hide-nav-history a[href="/i/history"],
+html.av-hide-nav-studio a[href="/i/jf/creators/studio"],
 html.av-hide-nav-profile [data-testid="AppTabBar_Profile_Link"],
 html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
   display: none !important;

@@ -135,12 +135,25 @@ export const PRESETS: PresetDefinition[] = [
     description: "Maximum declutter: no counts, no borders, no trends, big text safe zones.",
     highlights: [
       { label: "Hide engagement counts", value: "Enabled" },
-      { label: "Hide row borders", value: "Enabled" },
-      { label: "Reduced motion", value: "Always reduce" }
+      { label: "Hide right sidebar", value: "Enabled" },
+      { label: "Theme", value: "Noir" }
     ],
     overrides: {
-      appearance: { theme: "lightsOut", denseMode: false, hideCounts: true, hideBorders: true },
-      layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
+      appearance: {
+        theme: "noir",
+        denseMode: false,
+        timelineWidth: "comfortable",
+        hideCounts: true,
+        hideBorders: true
+      },
+      layout: {
+        hideRightSidebar: true,
+        hideTrends: true,
+        hideFollowSuggestions: true,
+        hideHomeComposer: true,
+        hideGrok: true,
+        hideNavItems: ["follow", "grok", "history", "studio", "premium"]
+      },
       filter: { enabled: true, premiumRule: "hide" },
       accessibility: { reduceMotion: "always" }
     }

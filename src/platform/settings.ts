@@ -98,6 +98,8 @@ export interface AviarySettings {
     hideNavItems: string[];
     hideRightSidebar: boolean;
     hideTrends: boolean;
+    hideFollowSuggestions: boolean;
+    hideHomeComposer: boolean;
     hideGrok: boolean;
     writerMode: boolean;
     forceFollowing: boolean;
@@ -192,6 +194,8 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     hideNavItems: [],
     hideRightSidebar: false,
     hideTrends: false,
+    hideFollowSuggestions: false,
+    hideHomeComposer: false,
     hideGrok: false,
     writerMode: false,
     forceFollowing: false
@@ -357,6 +361,11 @@ export function normalizeSettings(input: unknown): AviarySettings {
       hideNavItems: stringArray(layout.hideNavItems, { maxItems: 24, maxLength: 48 }),
       hideRightSidebar: booleanValue(layout.hideRightSidebar, DEFAULT_SETTINGS.layout.hideRightSidebar),
       hideTrends: booleanValue(layout.hideTrends, DEFAULT_SETTINGS.layout.hideTrends),
+      hideFollowSuggestions: booleanValue(
+        layout.hideFollowSuggestions,
+        DEFAULT_SETTINGS.layout.hideFollowSuggestions
+      ),
+      hideHomeComposer: booleanValue(layout.hideHomeComposer, DEFAULT_SETTINGS.layout.hideHomeComposer),
       hideGrok: booleanValue(layout.hideGrok, DEFAULT_SETTINGS.layout.hideGrok),
       writerMode: booleanValue(layout.writerMode, DEFAULT_SETTINGS.layout.writerMode),
       forceFollowing: booleanValue(layout.forceFollowing, DEFAULT_SETTINGS.layout.forceFollowing)

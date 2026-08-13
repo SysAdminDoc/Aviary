@@ -215,16 +215,56 @@ html[data-av-theme] {
 
 html[data-av-theme] body {
   background: var(--av-bg, rgb(0, 0, 0));
+  color: var(--av-text, rgb(239, 243, 244));
+}
+
+/* Every authored palette must survive X's own light or dark selection. These semantic anchors
+   repaint the shell and readable content without depending on generated atomic classes. Noir
+   layers its richer gradients and depth over the same foundation below. */
+html[data-av-theme] [data-testid="app-shell"],
+html[data-av-theme] nav:has([data-testid="AppTabBar_Home_Link"]),
+html[data-av-theme] [data-testid="sidebarColumn"] {
+  background-color: var(--av-bg, rgb(0, 0, 0));
+  color: var(--av-text, rgb(239, 243, 244));
+}
+
+html[data-av-theme] nav:has([data-testid="AppTabBar_Home_Link"]) a,
+html[data-av-theme] article[data-testid="tweet"],
+html[data-av-theme] article[data-testid="tweet"] [data-testid="User-Name"] a,
+html[data-av-theme] article[data-testid="tweet"] [data-testid="tweetText"],
+html[data-av-theme] [data-testid="primaryColumn"] [role="tab"],
+html[data-av-theme] [data-testid^="tweetTextarea_"],
+html[data-av-theme] [data-testid="SearchBox_Search_Input"] {
+  color: var(--av-text, rgb(239, 243, 244));
+}
+
+html[data-av-theme] article[data-testid="tweet"] [role="group"] button,
+html[data-av-theme] article[data-testid="tweet"] [role="group"] a {
+  color: var(--av-muted, rgb(132, 139, 145));
 }
 
 html[data-av-theme] [data-testid="primaryColumn"] {
   background: var(--av-bg, rgb(0, 0, 0));
+  border-color: var(--av-border, rgb(47, 51, 54));
+  color: var(--av-text, rgb(239, 243, 244));
+}
+
+html[data-av-theme] [data-testid="toolBar"],
+html[data-av-theme] form[role="search"]:has([data-testid="SearchBox_Search_Input"]),
+html[data-av-theme] [data-testid="GrokDrawer"],
+html[data-av-theme] [data-testid="chat-drawer-root"] {
+  border-color: var(--av-border, rgb(47, 51, 54));
+  background-color: var(--av-surface, rgb(15, 20, 25));
+  color: var(--av-text, rgb(239, 243, 244));
 }
 
 html[data-av-theme] [data-testid="sidebarColumn"] section,
+html[data-av-theme] [data-testid="sidebarColumn"] div:has(> [data-testid="news_sidebar"]),
+html[data-av-theme] [data-testid="sidebarColumn"] aside[role="complementary"],
 html[data-av-theme] [aria-label="Timeline: Trending now"] {
   background-color: color-mix(in srgb, var(--av-surface) 92%, transparent);
   border-color: var(--av-border);
+  color: var(--av-text, rgb(239, 243, 244));
 }
 
 /* Noir is Aviary's authored premium desktop skin. Keep every selector behind the explicit theme
@@ -472,7 +512,8 @@ html.av-hide-counts article[data-testid="tweet"] [data-testid="reply"] [data-tes
 html.av-hide-counts article[data-testid="tweet"] [data-testid="retweet"] [data-testid="app-text-transition-container"],
 html.av-hide-counts article[data-testid="tweet"] [data-testid="unretweet"] [data-testid="app-text-transition-container"],
 html.av-hide-counts article[data-testid="tweet"] [data-testid="like"] [data-testid="app-text-transition-container"],
-html.av-hide-counts article[data-testid="tweet"] [data-testid="unlike"] [data-testid="app-text-transition-container"] {
+html.av-hide-counts article[data-testid="tweet"] [data-testid="unlike"] [data-testid="app-text-transition-container"],
+html.av-hide-counts article[data-testid="tweet"] a[href$="/analytics"] [data-testid="app-text-transition-container"] {
   display: none !important;
 }
 

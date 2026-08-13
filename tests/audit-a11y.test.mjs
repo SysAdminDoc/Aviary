@@ -35,6 +35,7 @@ test("hiding engagement counts keeps the buttons and their labels", async () => 
   assert.match(theme, /classList\.toggle\("av-hide-counts", settings\.appearance\.hideCounts\)/);
   // Only the number inside an action button is hidden — never the button itself.
   assert.match(theme, /\[data-testid="reply"\] \[data-testid="app-text-transition-container"\]/);
+  assert.match(theme, /a\[href\$="\/analytics"\] \[data-testid="app-text-transition-container"\]/);
   assert.ok(
     !/av-hide-counts[^{]*\[data-testid="reply"\]\s*\{/.test(theme),
     "the action button itself must stay visible"

@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+## 1.20.0 - 2026-08-13
+
+### Added
+
+- Layout controls can independently hide Home's quick composer and Who to follow cards without
+  removing the rest of the timeline or discovery rail.
+- A Playwright theme matrix exercises Dim, Lights out, Graphite, Plum, Midnight, and Noir against
+  both dark and light X host styles at 1440×900 and 1920×1080. It enforces text contrast, complete
+  shell paint, single-theme state, overflow safety, and exact Off restoration.
+- `npm run capture:theme` now accepts any authored theme id so every palette can use the same
+  deterministic desktop capture lane.
+
+### Changed
+
+- Minimal now applies Noir, a comfortable-width timeline, current Follow/Grok/History/Studio/Premium
+  navigation cleanup, and the new Home composer/recommendation controls alongside its existing
+  count, border, sidebar, filter, and reduced-motion choices.
+- Every authored dark palette now repaints semantic navigation, engagement actions, timeline text,
+  composer, search, sidebar, and drawer surfaces, so selecting one remains legible even when X's
+  host theme is light.
+- All six new Control Center strings are translated across Spanish, Portuguese, French, German,
+  Japanese, Korean, Arabic, and Hebrew; shipped locale coverage remains 100%.
+
+### Fixed
+
+- Hide trends now collapses current X's complete news and trend module boundaries instead of only
+  hiding the zero-height `news_sidebar` marker and individual trend rows.
+- Hide Grok now removes the current sidebar promotion, and navigation cleanup recognizes X's newer
+  Follow, Chat, Grok, History, and Creator Studio destinations while preserving older saved
+  `messages` settings.
+- Hide engagement counts now removes the current view metric as well as reply, repost, and like
+  numbers while preserving every control and its accessible total.
+
 ## 1.19.0 - 2026-08-13
 
 ### Added

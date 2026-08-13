@@ -8,20 +8,21 @@
       * { box-sizing: border-box; }
       html, body { margin: 0; min-height: 100%; background: #000; color: #e7e9ea; font: 15px system-ui, sans-serif; }
       #react-root { min-height: 100vh; }
-      [data-testid="app-shell"] { display: flex; min-height: 100vh; width: 100%; }
-      nav { width: 224px; padding: 12px; border-right: 1px solid #2f3336; }
-      nav a { display: block; padding: 12px; color: #e7e9ea; text-decoration: none; }
+      [data-testid="app-shell"] { display: flex; align-items: flex-start; min-height: 100vh; width: 100%; }
+      nav { position: sticky; top: 0; flex: 0 0 224px; min-height: 100vh; padding: 12px; border-right: 1px solid #2f3336; }
+      nav a { display: block; padding: 11px 12px; border-radius: 10px; color: #e7e9ea; text-decoration: none; }
+      nav button[data-testid="SideNav_NewTweet_Button"] { width: 176px; margin-top: 8px; padding: 11px 16px; border: 0; border-radius: 999px; }
       [data-testid="timeline-shell"] { display: flex; flex: 1 1 auto; min-width: 0; }
       [data-testid="primaryColumn"] {
         display: flex;
-        flex: 1 1 auto;
+        flex: 0 1 600px;
         flex-direction: column;
-        width: 677.77px;
+        width: 600px;
         min-width: 0;
         border-left: 1px solid #2f3336;
         border-right: 1px solid #2f3336;
       }
-      [data-testid="sidebarColumn"] { width: 320px; padding: 16px; }
+      [data-testid="sidebarColumn"] { flex: 0 0 350px; width: 350px; padding: 16px; }
       [data-testid="cellInnerDiv"] > div { min-height: 180px; padding: 16px; border-bottom: 1px solid #2f3336; }
       article[data-testid="tweet"] { min-height: 140px; }
       [data-testid="User-Name"] a { color: #1d9bf0; }
@@ -29,9 +30,13 @@
       [data-testid="tweetPhoto"], [data-testid="videoPlayer"] { position: relative; width: 420px; height: 220px; margin-top: 10px; overflow: hidden; border-radius: 12px; background: #16181c; }
       [data-testid="tweetPhoto"] img { display: block; width: 100%; height: 100%; object-fit: cover; }
       [data-testid="videoPlayer"] video { display: block; width: 100%; height: 100%; object-fit: cover; }
-      [data-testid="toolBar"] { padding: 18px; border-top: 1px solid #2f3336; }
+      [data-testid="tweet-actions"] { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+      [data-testid="tweet-actions"] :is(button, a) { padding: 4px 6px; border: 0; background: transparent; font: inherit; text-decoration: none; }
+      [data-testid="toolBar"] { padding: 18px; border-bottom: 1px solid #2f3336; }
       [data-testid="tweetTextarea_0"] { min-height: 40px; padding: 8px; border: 1px solid #536471; }
-      [data-testid="GrokDrawer"], [data-testid="grokImgGen"] { margin: 12px; padding: 12px; border: 1px solid #7856ff; }
+      [data-testid="GrokDrawer"], [data-testid="grokImgGen"] { position: fixed; right: 24px; z-index: 2; width: 220px; padding: 12px; border: 1px solid #7856ff; border-radius: 12px; background: #101419; }
+      [data-testid="GrokDrawer"] { bottom: 24px; }
+      [data-testid="grokImgGen"] { bottom: 84px; }
     </style>
   </head>
   <body>
@@ -41,14 +46,22 @@
           <a data-testid="AppTabBar_Home_Link" href="/home">Home</a>
           <a data-testid="AppTabBar_Explore_Link" href="/explore">Explore</a>
           <a data-testid="AppTabBar_Notifications_Link" href="/notifications">Notifications</a>
-          <a data-testid="AppTabBar_DirectMessage_Link" href="/messages">Messages</a>
+          <a data-testid="AppTabBar_Follow_Link" href="/i/connect_people">Follow</a>
+          <a data-testid="AppTabBar_DirectMessage_Link" href="/i/chat">Chat</a>
+          <a href="/i/grok">Grok</a>
+          <a href="/i/history">History</a>
+          <a href="/i/jf/creators/studio">Creator Studio</a>
+          <a data-testid="premium-signup-tab" href="/i/premium_sign_up">Premium</a>
           <a data-testid="AppTabBar_Profile_Link" href="/profile">Profile</a>
           <a data-testid="AppTabBar_More_Menu" href="/more">More</a>
-          <a href="/i/grok">Grok</a>
           <button data-testid="SideNav_NewTweet_Button" type="button">Post</button>
         </nav>
         <div data-testid="timeline-shell">
           <main data-testid="primaryColumn">
+            <div data-testid="toolBar">
+              <div data-testid="tweetTextarea_0" role="textbox" aria-label="Post text" contenteditable="true"></div>
+              <button data-testid="tweetButtonInline" type="button">Post</button>
+            </div>
             <div data-testid="cellInnerDiv">
               <div>
                 <article data-testid="tweet">
@@ -62,9 +75,11 @@
                     <video poster="https://pbs.twimg.com/media/456789?format=jpg&amp;name=small" src="blob:https://x.com/mse-player"></video>
                   </div>
                   <div data-testid="tweet-actions" role="group" aria-label="Post actions">
-                    <button data-testid="reply" type="button" aria-label="Reply">Reply</button>
-                    <button data-testid="retweet" type="button" aria-label="Repost">Repost</button>
-                    <button data-testid="like" type="button" aria-label="Like">Like</button>
+                    <button data-testid="reply" type="button" aria-label="3 Replies. Reply"><span data-testid="app-text-transition-container">3</span></button>
+                    <button data-testid="retweet" type="button" aria-label="8 reposts. Repost"><span data-testid="app-text-transition-container">8</span></button>
+                    <button data-testid="like" type="button" aria-label="21 Likes. Like"><span data-testid="app-text-transition-container">21</span></button>
+                    <a href="/aviary_test/status/123456789/analytics" aria-label="4200 views. View post analytics"><span data-testid="app-text-transition-container">4.2K</span></a>
+                    <button type="button" aria-label="Grok actions">Grok</button>
                     <button data-testid="caret" type="button" aria-label="More">More</button>
                   </div>
                 </article>
@@ -79,10 +94,6 @@
                 </article>
               </div>
             </div>
-            <div data-testid="toolBar">
-              <div data-testid="tweetTextarea_0" role="textbox" aria-label="Post text" contenteditable="true"></div>
-              <button data-testid="tweetButtonInline" type="button">Post</button>
-            </div>
           </main>
           <aside data-testid="sidebarColumn">
             <section data-testid="news_sidebar">Trending now</section>
@@ -92,7 +103,6 @@
         </div>
         <div data-testid="GrokDrawer">Grok drawer fixture</div>
         <div data-testid="grokImgGen">Image generation fixture</div>
-        <button type="button" aria-label="Grok actions">Grok actions</button>
       </div>
     </div>
   </body>

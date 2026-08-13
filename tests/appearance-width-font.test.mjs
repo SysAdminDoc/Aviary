@@ -187,6 +187,37 @@ test("restoreChirp applies the family name X actually registers", async () => {
   assert.notEqual(on.font, off.font, "the rule must change the computed font, not just a class");
 });
 
+test("hideCounts removes the view number without removing its accessible analytics link", async () => {
+  const result = await page.evaluate((nextSettings) => {
+    const article = document.createElement("article");
+    article.dataset.testid = "tweet";
+    const analytics = document.createElement("a");
+    analytics.href = "/fixture/status/1/analytics";
+    analytics.setAttribute("aria-label", "4200 views. View post analytics");
+    const count = document.createElement("span");
+    count.dataset.testid = "app-text-transition-container";
+    count.textContent = "4.2K";
+    analytics.append(count);
+    article.append(analytics);
+    document.body.append(article);
+
+    AviaryTheme.applyTheme(nextSettings);
+    const measured = {
+      count: getComputedStyle(count).display,
+      link: getComputedStyle(analytics).display,
+      label: analytics.getAttribute("aria-label")
+    };
+    article.remove();
+    return measured;
+  }, settings({ hideCounts: true }));
+
+  assert.deepEqual(result, {
+    count: "none",
+    link: "inline",
+    label: "4200 views. View post analytics"
+  });
+});
+
 test("destroy clears both new hooks off the document element", async () => {
   const after = await page.evaluate(() => {
     AviaryTheme.themeFeature.destroy({ diagnostics: { info() {}, error() {} } });

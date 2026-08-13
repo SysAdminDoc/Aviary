@@ -32,7 +32,12 @@ export const HIDE_NAV_ITEM_IDS = new Set([
   "home",
   "explore",
   "notifications",
+  "follow",
+  "chat",
   "messages",
+  "grok",
+  "history",
+  "studio",
   "profile",
   "more"
 ]);

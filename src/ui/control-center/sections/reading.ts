@@ -48,7 +48,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
       ),
       ctx.toggleRow(
         "Hide engagement counts",
-        "Hide reply, repost, and like numbers. The buttons still work and screen readers still announce the totals.",
+        "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.",
         ctx.options.settings.appearance.hideCounts,
         async (checked) => {
           ctx.options.settings.appearance.hideCounts = checked;
@@ -111,6 +111,24 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.layout.hideTrends = checked;
         await ctx.save("Trend preference saved");
       }),
+      ctx.toggleRow(
+        "Hide follow suggestions",
+        "Remove Who to follow cards without hiding the rest of the sidebar.",
+        ctx.options.settings.layout.hideFollowSuggestions,
+        async (checked) => {
+          ctx.options.settings.layout.hideFollowSuggestions = checked;
+          await ctx.save("Layout preference saved");
+        }
+      ),
+      ctx.toggleRow(
+        "Hide home composer",
+        "Remove the quick-post composer from Home. The Post button still opens it when needed.",
+        ctx.options.settings.layout.hideHomeComposer,
+        async (checked) => {
+          ctx.options.settings.layout.hideHomeComposer = checked;
+          await ctx.save("Layout preference saved");
+        }
+      ),
       ctx.toggleRow("Hide Grok surfaces", "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.", ctx.options.settings.layout.hideGrok, async (checked) => {
         ctx.options.settings.layout.hideGrok = checked;
         await ctx.save("Grok preference saved");
@@ -137,7 +155,7 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
   rows.push(
     ctx.textareaRow(
       "Hide navigation items",
-      "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.",
+      "One stable X navigation id per line: home, explore, notifications, follow, chat, grok, history, studio, premium, profile, or more.",
       ctx.options.settings.layout.hideNavItems,
       async (lines) => {
         ctx.options.settings.layout.hideNavItems = [...new Set(
