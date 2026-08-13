@@ -31,7 +31,7 @@ test("every theme's muted token meets AA on the Control Center row surface", asy
     }
     if (vars.muted) themes[match[1]] = vars;
   }
-  assert.equal(Object.keys(themes).length, 5, "all five themes must be parsed");
+  assert.equal(Object.keys(themes).length, 6, "all six dark themes must be parsed");
 
   for (const [name, vars] of Object.entries(themes)) {
     // Panel: color-mix(surface 96%, black); row: color-mix(surface-raised 62%, transparent).
@@ -117,6 +117,15 @@ test("Control Center implements the ImageGen page system across every menu secti
     const image = await readFile(path.join(root, "docs", "mockups", board));
     assert.ok(image.length > 100_000, `${board} must retain the generated design reference`);
   }
+});
+
+test("settings captures reject a stale versioned extension build", async () => {
+  const source = await readFile(path.join(root, "tools/capture-settings.mjs"), "utf8");
+
+  assert.match(source, /path\.join\(root, "package\.json"\)/);
+  assert.match(source, /path\.join\(extensionDir, "manifest\.json"\)/);
+  assert.match(source, /builtManifest\.version !== pkg\.version/);
+  assert.match(source, /The built extension is stale/);
 });
 
 test("credential fields are masked and offer an explicit reveal", async () => {

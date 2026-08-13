@@ -2,6 +2,7 @@ import type { FeatureModule } from "../registry";
 import type { AviarySettings, ThemeId } from "../../platform/settings";
 
 const STYLE_ID = "av-theme-foundation";
+const ACTIVE_NAV_ATTRIBUTE = "data-av-active-route";
 
 export const themeFeature: FeatureModule = {
   id: "appearance.theme",
@@ -24,7 +25,7 @@ export const themeFeature: FeatureModule = {
 
   destroy(ctx) {
     document.getElementById(STYLE_ID)?.remove();
-    for (const theme of ["dim", "lightsOut", "graphite", "plum", "midnight"]) {
+    for (const theme of ["dim", "lightsOut", "graphite", "plum", "midnight", "noir"]) {
       document.documentElement.classList.remove(`av-theme-${theme}`);
     }
     document.documentElement.classList.remove(
@@ -37,6 +38,7 @@ export const themeFeature: FeatureModule = {
     );
     delete document.documentElement.dataset.avTheme;
     delete document.documentElement.dataset.avWidth;
+    syncActiveNavigation(false);
     setColorScheme(document.documentElement, undefined);
     ctx.diagnostics.info("Theme foundation destroyed");
   }
@@ -46,7 +48,7 @@ export function applyTheme(settings: AviarySettings): void {
   const root = document.documentElement;
   const theme = settings.appearance.theme;
 
-  for (const value of ["dim", "lightsOut", "graphite", "plum", "midnight"]) {
+  for (const value of ["dim", "lightsOut", "graphite", "plum", "midnight", "noir"]) {
     root.classList.toggle(`av-theme-${value}`, value === theme);
   }
 
@@ -58,6 +60,7 @@ export function applyTheme(settings: AviarySettings): void {
   } else {
     root.dataset.avTheme = theme;
   }
+  syncActiveNavigation(theme === "noir");
   root.dataset.avWidth = settings.appearance.timelineWidth;
   root.classList.toggle("av-chirp", settings.appearance.restoreChirp);
   root.classList.toggle("av-dense", settings.appearance.denseMode);
@@ -93,6 +96,34 @@ function shouldReduceMotion(settings: AviarySettings): boolean {
   if (settings.accessibility.reduceMotion === "always") return true;
   if (settings.accessibility.reduceMotion === "never") return false;
   return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
+
+function syncActiveNavigation(enabled: boolean): void {
+  const currentPath = normalizePath(globalThis.location?.pathname ?? "/");
+  for (const candidate of Array.from(document.querySelectorAll<HTMLElement>('[data-testid^="AppTabBar_"]'))) {
+    const anchor = candidate instanceof HTMLAnchorElement ? candidate : candidate.closest("a");
+    let active = false;
+    if (enabled && anchor) {
+      try {
+        const target = new URL(anchor.href, globalThis.location?.href);
+        const targetPath = normalizePath(target.pathname);
+        active = target.origin === globalThis.location?.origin &&
+          (currentPath === targetPath || (targetPath !== "/" && currentPath.startsWith(`${targetPath}/`)));
+      } catch {
+        active = false;
+      }
+    }
+
+    if (active && candidate.getAttribute(ACTIVE_NAV_ATTRIBUTE) !== "1") {
+      candidate.setAttribute(ACTIVE_NAV_ATTRIBUTE, "1");
+    } else if (!active && candidate.hasAttribute(ACTIVE_NAV_ATTRIBUTE)) {
+      candidate.removeAttribute(ACTIVE_NAV_ATTRIBUTE);
+    }
+  }
+}
+
+function normalizePath(pathname: string): string {
+  return pathname.replace(/\/+$/, "") || "/";
 }
 
 function ensureThemeStyle(): void {
@@ -156,6 +187,16 @@ const themeVars: Record<Exclude<ThemeId, "off">, string> = {
     --av-text: rgb(239, 246, 252);
     --av-muted: rgb(139, 160, 178);
     --av-accent: rgb(68, 171, 255);
+  `,
+  noir: `
+    --av-bg: rgb(4, 7, 11);
+    --av-surface: rgb(9, 14, 21);
+    --av-surface-raised: rgb(14, 22, 32);
+    --av-border: rgb(39, 53, 68);
+    --av-text: rgb(245, 248, 250);
+    --av-muted: rgb(155, 169, 184);
+    --av-accent: rgb(92, 211, 255);
+    --av-accent-secondary: rgb(151, 128, 255);
   `
 };
 
@@ -166,6 +207,7 @@ html.av-theme-lightsOut { ${themeVars.lightsOut} }
 html.av-theme-graphite { ${themeVars.graphite} }
 html.av-theme-plum { ${themeVars.plum} }
 html.av-theme-midnight { ${themeVars.midnight} }
+html.av-theme-noir { ${themeVars.noir} }
 
 html[data-av-theme] {
   color-scheme: dark;
@@ -183,6 +225,207 @@ html[data-av-theme] [data-testid="sidebarColumn"] section,
 html[data-av-theme] [aria-label="Timeline: Trending now"] {
   background-color: color-mix(in srgb, var(--av-surface) 92%, transparent);
   border-color: var(--av-border);
+}
+
+/* Noir is Aviary's authored premium desktop skin. Keep every selector behind the explicit theme
+   class so choosing Off restores X exactly, and use stable semantic/test-id anchors rather than
+   generated atomic classes. The gradients are opaque paints with no page-wide compositor blur
+   on an infinite timeline. */
+html.av-theme-noir body {
+  background:
+    radial-gradient(circle at 12% -8%, rgba(92, 211, 255, 0.11), transparent 34rem),
+    radial-gradient(circle at 88% 2%, rgba(151, 128, 255, 0.1), transparent 38rem),
+    linear-gradient(180deg, rgb(5, 9, 14), var(--av-bg) 42rem) fixed;
+  color: var(--av-text);
+}
+
+html.av-theme-noir [data-testid="app-shell"] {
+  color: var(--av-text);
+}
+
+html.av-theme-noir header[role="banner"] > div > div:has(nav[aria-label="Primary"]) {
+  border-right: 1px solid color-mix(in srgb, var(--av-border) 72%, transparent);
+  background: linear-gradient(180deg, rgba(11, 18, 27, 0.97), rgba(5, 9, 14, 0.96));
+}
+
+html.av-theme-noir nav:has([data-testid="AppTabBar_Home_Link"]) {
+  border-color: color-mix(in srgb, var(--av-border) 82%, transparent);
+  background: linear-gradient(180deg, rgba(11, 18, 27, 0.96), rgba(5, 9, 14, 0.94));
+  box-shadow: 18px 0 54px rgba(0, 0, 0, 0.2);
+}
+
+html.av-theme-noir [data-testid^="AppTabBar_"] {
+  border-radius: 10px;
+  color: color-mix(in srgb, var(--av-text) 88%, var(--av-muted));
+  transition: color 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+
+html.av-theme-noir [data-testid^="AppTabBar_"]:hover {
+  background-color: color-mix(in srgb, var(--av-accent) 9%, var(--av-surface));
+  color: var(--av-text);
+  transform: translateX(2px);
+}
+
+html.av-theme-noir [data-testid^="AppTabBar_"][aria-current="page"],
+html.av-theme-noir [data-testid^="AppTabBar_"][data-av-active-route="1"] {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--av-accent) 15%, var(--av-surface)),
+    color-mix(in srgb, var(--av-accent-secondary) 8%, var(--av-surface))
+  );
+  box-shadow: inset 2px 0 0 var(--av-accent);
+  color: var(--av-text);
+}
+
+html.av-theme-noir [data-testid="SideNav_NewTweet_Button"],
+html.av-theme-noir [data-testid="tweetButtonInline"] {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: linear-gradient(135deg, var(--av-accent), var(--av-accent-secondary));
+  color: rgb(3, 7, 11);
+  box-shadow: 0 10px 28px rgba(92, 211, 255, 0.2), 0 5px 18px rgba(151, 128, 255, 0.16);
+  font-weight: 750;
+}
+
+html.av-theme-noir [data-testid="SideNav_NewTweet_Button"]:hover,
+html.av-theme-noir [data-testid="tweetButtonInline"]:hover {
+  box-shadow: 0 14px 34px rgba(92, 211, 255, 0.26), 0 7px 22px rgba(151, 128, 255, 0.22);
+  filter: saturate(1.08) brightness(1.05);
+}
+
+html.av-theme-noir [data-testid="SideNav_AccountSwitcher_Button"] {
+  border: 1px solid color-mix(in srgb, var(--av-border) 80%, transparent);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(14, 22, 32, 0.92), rgba(9, 14, 21, 0.94));
+}
+
+html.av-theme-noir [data-testid="primaryColumn"] {
+  border-color: color-mix(in srgb, var(--av-border) 86%, transparent);
+  background: rgba(6, 10, 16, 0.94);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+html.av-theme-noir [data-testid="primaryColumn"] [role="tablist"] {
+  border-bottom: 1px solid color-mix(in srgb, var(--av-border) 74%, transparent);
+  background: rgba(7, 12, 18, 0.96);
+}
+
+html.av-theme-noir [data-testid="primaryColumn"] [role="tab"] {
+  color: var(--av-muted);
+}
+
+html.av-theme-noir [data-testid="primaryColumn"] [role="tab"][aria-selected="true"] {
+  color: var(--av-text);
+  text-shadow: 0 0 18px rgba(92, 211, 255, 0.22);
+}
+
+html.av-theme-noir [data-testid="cellInnerDiv"] > div {
+  border-bottom-color: color-mix(in srgb, var(--av-border) 64%, transparent);
+}
+
+html.av-theme-noir article[data-testid="tweet"] {
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(16, 25, 36, 0.68), rgba(8, 13, 20, 0.62));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.028);
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+html.av-theme-noir article[data-testid="tweet"]:hover {
+  background-color: rgba(20, 31, 44, 0.72);
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--av-accent) 48%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+html.av-theme-noir article[data-testid="tweet"] [data-testid="User-Name"],
+html.av-theme-noir article[data-testid="tweet"] [data-testid="User-Name"] a,
+html.av-theme-noir article[data-testid="tweet"] [data-testid="tweetText"] {
+  color: var(--av-text);
+}
+
+html.av-theme-noir article[data-testid="tweet"] [role="group"] button {
+  color: var(--av-muted);
+  transition: color 140ms ease, background-color 140ms ease;
+}
+
+html.av-theme-noir article[data-testid="tweet"] [role="group"] button:hover {
+  background-color: color-mix(in srgb, var(--av-accent) 10%, transparent);
+  color: var(--av-accent);
+}
+
+html.av-theme-noir [data-testid="tweetPhoto"],
+html.av-theme-noir [data-testid="videoPlayer"],
+html.av-theme-noir [data-testid="videoComponent"] {
+  border: 1px solid color-mix(in srgb, var(--av-border) 82%, transparent);
+  border-radius: 14px;
+  background-color: var(--av-surface-raised);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+}
+
+html.av-theme-noir [data-testid="toolBar"] {
+  border-color: color-mix(in srgb, var(--av-border) 74%, transparent);
+  background: linear-gradient(180deg, rgba(11, 18, 27, 0.72), rgba(7, 12, 18, 0.88));
+}
+
+html.av-theme-noir [data-testid="tweetTextarea_0RichTextInputContainer"],
+html.av-theme-noir [data-testid="tweetTextarea_0"] {
+  border-color: color-mix(in srgb, var(--av-border) 82%, transparent);
+  border-radius: 10px;
+  background-color: color-mix(in srgb, var(--av-surface-raised) 76%, transparent);
+  color: var(--av-text);
+}
+
+html.av-theme-noir [data-testid="sidebarColumn"] {
+  color: var(--av-text);
+}
+
+html.av-theme-noir [data-testid="sidebarColumn"] div:has(> [data-testid="news_sidebar"]),
+html.av-theme-noir [data-testid="sidebarColumn"] section[data-testid="news_sidebar"],
+html.av-theme-noir [data-testid="sidebarColumn"] aside[role="complementary"],
+html.av-theme-noir [aria-label="Timeline: Trending now"] {
+  border: 1px solid color-mix(in srgb, var(--av-border) 78%, transparent);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(16, 25, 36, 0.86), rgba(8, 13, 20, 0.9));
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+html.av-theme-noir [aria-label="Timeline: Trending now"] > section {
+  border-color: transparent;
+  background: transparent;
+}
+
+html.av-theme-noir [data-testid="sidebarColumn"] [data-testid="UserCell"] {
+  background-color: transparent;
+  transition: background-color 140ms ease;
+}
+
+html.av-theme-noir [data-testid="sidebarColumn"] [data-testid="UserCell"]:hover {
+  background-color: color-mix(in srgb, var(--av-accent) 7%, transparent);
+}
+
+html.av-theme-noir form[role="search"]:has([data-testid="SearchBox_Search_Input"]) {
+  border: 1px solid color-mix(in srgb, var(--av-border) 82%, transparent);
+  border-radius: 999px;
+  background-color: rgba(14, 22, 32, 0.94);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+html.av-theme-noir [data-testid="SearchBox_Search_Input"] {
+  border: 0;
+  background-color: transparent;
+  color: var(--av-text);
+  box-shadow: none;
+}
+
+html.av-theme-noir form[role="search"]:has([data-testid="SearchBox_Search_Input"]):focus-within {
+  border-color: color-mix(in srgb, var(--av-accent) 72%, transparent);
+  box-shadow: 0 0 0 3px rgba(92, 211, 255, 0.12);
+  outline: none;
+}
+
+html.av-theme-noir [data-testid="GrokDrawer"],
+html.av-theme-noir [data-testid="grokImgGen"] {
+  border-color: color-mix(in srgb, var(--av-accent-secondary) 48%, var(--av-border));
+  background: linear-gradient(145deg, rgba(18, 22, 41, 0.94), rgba(9, 14, 24, 0.96));
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.3);
 }
 
 /* The primary column takes its width from its own box, not from a max-width -- measured on

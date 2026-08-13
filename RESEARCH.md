@@ -17,6 +17,17 @@ inside the essential HomeTimeline response, so Aviary suppresses their rendering
 their bytes were absent. The separately initiated promoted-content logger is prevented before its
 request is issued.
 
+The v1.19.0 follow-up adds Noir, an opt-in premium desktop skin. A local-only live preview on the
+authenticated Home route confirmed the current semantic anchors for the navigation rail, timeline,
+composer, media, search, news, recommendations, and Grok surfaces. Only Aviary's CSS and root theme
+marker were inserted for the preview; the page was restored afterward and no feed screenshot,
+cookie, token, response body, or private content was exported.
+
+Live Home also confirmed that the active AppTabBar link currently has no `aria-current` marker.
+Noir therefore derives its own `data-av-active-route` state from same-origin link paths on each
+feature pass and removes every marker when Off or destroyed; the authenticated preview measured
+the Home marker, active gradient, and unchanged horizontal geometry before restoring the page.
+
 ## Live snapshot
 
 Observed 2026-08-13 at 1440×900 in X dark theme with an authenticated account. Recon was read-only.
@@ -165,6 +176,13 @@ the local annotated library, truthful offline exports, profile-scoped backup, or
 filters, so no mature feature was removed merely because a similarly named native control exists.
 
 ## Priority disposition
+
+### Follow-up — shipped in 1.19.0
+
+1. Premium Noir desktop theme with semantic current-X anchors and reversible Off behavior.
+2. Search-shell and live news-card refinements measured against the authenticated Home DOM.
+3. Deterministic Noir capture and regression coverage at 1440×900 and 1920×1080.
+4. Seven-mode, nine-locale release-matrix coverage with full 793-string catalog parity.
 
 ### Now — shipped in 1.18.0
 

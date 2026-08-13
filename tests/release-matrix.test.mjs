@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { build } from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const THEMES = ["off", "dim", "lightsOut", "graphite", "plum", "midnight"];
+const THEMES = ["off", "dim", "lightsOut", "graphite", "plum", "midnight", "noir"];
 const INPUT_MODES = ["keyboard", "coarse-pointer"];
 const ROUTES = [
   ["/home", "home"],

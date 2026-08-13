@@ -1,6 +1,6 @@
 export const SETTINGS_KEY = "aviary.settings.v1";
 
-export type ThemeId = "off" | "dim" | "lightsOut" | "graphite" | "plum" | "midnight";
+export type ThemeId = "off" | "dim" | "lightsOut" | "graphite" | "plum" | "midnight" | "noir";
 export type RateLimitMode = "conservative" | "balanced";
 export type ReduceMotionMode = "system" | "always" | "never";
 export type FilterAction = "off" | "hide" | "dim";
@@ -13,7 +13,7 @@ export type FilterSurface =
   | "notifications"
   | "messages";
 
-const THEME_IDS: ThemeId[] = ["off", "dim", "lightsOut", "graphite", "plum", "midnight"];
+const THEME_IDS: ThemeId[] = ["off", "dim", "lightsOut", "graphite", "plum", "midnight", "noir"];
 const RATE_LIMIT_MODES: RateLimitMode[] = ["conservative", "balanced"];
 const REDUCE_MOTION_MODES: ReduceMotionMode[] = ["system", "always", "never"];
 const FILTER_ACTIONS: FilterAction[] = ["off", "hide", "dim"];

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/aviary-x
-// @version      1.18.0
+// @version      1.19.0
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       Aviary contributors
 // @match        https://x.com/*
@@ -26,6 +26,7 @@
 var Aviary = (() => {
   // src/features/appearance/theme.ts
   var STYLE_ID = "av-theme-foundation";
+  var ACTIVE_NAV_ATTRIBUTE = "data-av-active-route";
   var themeFeature = {
     id: "appearance.theme",
     title: "Theme foundation",
@@ -44,7 +45,7 @@ var Aviary = (() => {
     },
     destroy(ctx) {
       document.getElementById(STYLE_ID)?.remove();
-      for (const theme of ["dim", "lightsOut", "graphite", "plum", "midnight"]) {
+      for (const theme of ["dim", "lightsOut", "graphite", "plum", "midnight", "noir"]) {
         document.documentElement.classList.remove(`av-theme-${theme}`);
       }
       document.documentElement.classList.remove(
@@ -57,6 +58,7 @@ var Aviary = (() => {
       );
       delete document.documentElement.dataset.avTheme;
       delete document.documentElement.dataset.avWidth;
+      syncActiveNavigation(false);
       setColorScheme(document.documentElement, void 0);
       ctx.diagnostics.info("Theme foundation destroyed");
     }
@@ -64,7 +66,7 @@ var Aviary = (() => {
   function applyTheme(settings) {
     const root = document.documentElement;
     const theme = settings.appearance.theme;
-    for (const value of ["dim", "lightsOut", "graphite", "plum", "midnight"]) {
+    for (const value of ["dim", "lightsOut", "graphite", "plum", "midnight", "noir"]) {
       root.classList.toggle(`av-theme-${value}`, value === theme);
     }
     if (theme === "off") {
@@ -72,6 +74,7 @@ var Aviary = (() => {
     } else {
       root.dataset.avTheme = theme;
     }
+    syncActiveNavigation(theme === "noir");
     root.dataset.avWidth = settings.appearance.timelineWidth;
     root.classList.toggle("av-chirp", settings.appearance.restoreChirp);
     root.classList.toggle("av-dense", settings.appearance.denseMode);
@@ -96,6 +99,30 @@ var Aviary = (() => {
     if (settings.accessibility.reduceMotion === "always") return true;
     if (settings.accessibility.reduceMotion === "never") return false;
     return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  }
+  function syncActiveNavigation(enabled) {
+    const currentPath = normalizePath(globalThis.location?.pathname ?? "/");
+    for (const candidate of Array.from(document.querySelectorAll('[data-testid^="AppTabBar_"]'))) {
+      const anchor = candidate instanceof HTMLAnchorElement ? candidate : candidate.closest("a");
+      let active = false;
+      if (enabled && anchor) {
+        try {
+          const target = new URL(anchor.href, globalThis.location?.href);
+          const targetPath = normalizePath(target.pathname);
+          active = target.origin === globalThis.location?.origin && (currentPath === targetPath || targetPath !== "/" && currentPath.startsWith(`${targetPath}/`));
+        } catch {
+          active = false;
+        }
+      }
+      if (active && candidate.getAttribute(ACTIVE_NAV_ATTRIBUTE) !== "1") {
+        candidate.setAttribute(ACTIVE_NAV_ATTRIBUTE, "1");
+      } else if (!active && candidate.hasAttribute(ACTIVE_NAV_ATTRIBUTE)) {
+        candidate.removeAttribute(ACTIVE_NAV_ATTRIBUTE);
+      }
+    }
+  }
+  function normalizePath(pathname) {
+    return pathname.replace(/\/+$/, "") || "/";
   }
   function ensureThemeStyle() {
     if (document.getElementById(STYLE_ID)) {
@@ -153,6 +180,16 @@ var Aviary = (() => {
     --av-text: rgb(239, 246, 252);
     --av-muted: rgb(139, 160, 178);
     --av-accent: rgb(68, 171, 255);
+  `,
+    noir: `
+    --av-bg: rgb(4, 7, 11);
+    --av-surface: rgb(9, 14, 21);
+    --av-surface-raised: rgb(14, 22, 32);
+    --av-border: rgb(39, 53, 68);
+    --av-text: rgb(245, 248, 250);
+    --av-muted: rgb(155, 169, 184);
+    --av-accent: rgb(92, 211, 255);
+    --av-accent-secondary: rgb(151, 128, 255);
   `
   };
   var THEME_CSS = `
@@ -161,6 +198,7 @@ html.av-theme-lightsOut { ${themeVars.lightsOut} }
 html.av-theme-graphite { ${themeVars.graphite} }
 html.av-theme-plum { ${themeVars.plum} }
 html.av-theme-midnight { ${themeVars.midnight} }
+html.av-theme-noir { ${themeVars.noir} }
 
 html[data-av-theme] {
   color-scheme: dark;
@@ -178,6 +216,207 @@ html[data-av-theme] [data-testid="sidebarColumn"] section,
 html[data-av-theme] [aria-label="Timeline: Trending now"] {
   background-color: color-mix(in srgb, var(--av-surface) 92%, transparent);
   border-color: var(--av-border);
+}
+
+/* Noir is Aviary's authored premium desktop skin. Keep every selector behind the explicit theme
+   class so choosing Off restores X exactly, and use stable semantic/test-id anchors rather than
+   generated atomic classes. The gradients are opaque paints with no page-wide compositor blur
+   on an infinite timeline. */
+html.av-theme-noir body {
+  background:
+    radial-gradient(circle at 12% -8%, rgba(92, 211, 255, 0.11), transparent 34rem),
+    radial-gradient(circle at 88% 2%, rgba(151, 128, 255, 0.1), transparent 38rem),
+    linear-gradient(180deg, rgb(5, 9, 14), var(--av-bg) 42rem) fixed;
+  color: var(--av-text);
+}
+
+html.av-theme-noir [data-testid="app-shell"] {
+  color: var(--av-text);
+}
+
+html.av-theme-noir header[role="banner"] > div > div:has(nav[aria-label="Primary"]) {
+  border-right: 1px solid color-mix(in srgb, var(--av-border) 72%, transparent);
+  background: linear-gradient(180deg, rgba(11, 18, 27, 0.97), rgba(5, 9, 14, 0.96));
+}
+
+html.av-theme-noir nav:has([data-testid="AppTabBar_Home_Link"]) {
+  border-color: color-mix(in srgb, var(--av-border) 82%, transparent);
+  background: linear-gradient(180deg, rgba(11, 18, 27, 0.96), rgba(5, 9, 14, 0.94));
+  box-shadow: 18px 0 54px rgba(0, 0, 0, 0.2);
+}
+
+html.av-theme-noir [data-testid^="AppTabBar_"] {
+  border-radius: 10px;
+  color: color-mix(in srgb, var(--av-text) 88%, var(--av-muted));
+  transition: color 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+
+html.av-theme-noir [data-testid^="AppTabBar_"]:hover {
+  background-color: color-mix(in srgb, var(--av-accent) 9%, var(--av-surface));
+  color: var(--av-text);
+  transform: translateX(2px);
+}
+
+html.av-theme-noir [data-testid^="AppTabBar_"][aria-current="page"],
+html.av-theme-noir [data-testid^="AppTabBar_"][data-av-active-route="1"] {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--av-accent) 15%, var(--av-surface)),
+    color-mix(in srgb, var(--av-accent-secondary) 8%, var(--av-surface))
+  );
+  box-shadow: inset 2px 0 0 var(--av-accent);
+  color: var(--av-text);
+}
+
+html.av-theme-noir [data-testid="SideNav_NewTweet_Button"],
+html.av-theme-noir [data-testid="tweetButtonInline"] {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: linear-gradient(135deg, var(--av-accent), var(--av-accent-secondary));
+  color: rgb(3, 7, 11);
+  box-shadow: 0 10px 28px rgba(92, 211, 255, 0.2), 0 5px 18px rgba(151, 128, 255, 0.16);
+  font-weight: 750;
+}
+
+html.av-theme-noir [data-testid="SideNav_NewTweet_Button"]:hover,
+html.av-theme-noir [data-testid="tweetButtonInline"]:hover {
+  box-shadow: 0 14px 34px rgba(92, 211, 255, 0.26), 0 7px 22px rgba(151, 128, 255, 0.22);
+  filter: saturate(1.08) brightness(1.05);
+}
+
+html.av-theme-noir [data-testid="SideNav_AccountSwitcher_Button"] {
+  border: 1px solid color-mix(in srgb, var(--av-border) 80%, transparent);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(14, 22, 32, 0.92), rgba(9, 14, 21, 0.94));
+}
+
+html.av-theme-noir [data-testid="primaryColumn"] {
+  border-color: color-mix(in srgb, var(--av-border) 86%, transparent);
+  background: rgba(6, 10, 16, 0.94);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+html.av-theme-noir [data-testid="primaryColumn"] [role="tablist"] {
+  border-bottom: 1px solid color-mix(in srgb, var(--av-border) 74%, transparent);
+  background: rgba(7, 12, 18, 0.96);
+}
+
+html.av-theme-noir [data-testid="primaryColumn"] [role="tab"] {
+  color: var(--av-muted);
+}
+
+html.av-theme-noir [data-testid="primaryColumn"] [role="tab"][aria-selected="true"] {
+  color: var(--av-text);
+  text-shadow: 0 0 18px rgba(92, 211, 255, 0.22);
+}
+
+html.av-theme-noir [data-testid="cellInnerDiv"] > div {
+  border-bottom-color: color-mix(in srgb, var(--av-border) 64%, transparent);
+}
+
+html.av-theme-noir article[data-testid="tweet"] {
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(16, 25, 36, 0.68), rgba(8, 13, 20, 0.62));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.028);
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+html.av-theme-noir article[data-testid="tweet"]:hover {
+  background-color: rgba(20, 31, 44, 0.72);
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--av-accent) 48%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+html.av-theme-noir article[data-testid="tweet"] [data-testid="User-Name"],
+html.av-theme-noir article[data-testid="tweet"] [data-testid="User-Name"] a,
+html.av-theme-noir article[data-testid="tweet"] [data-testid="tweetText"] {
+  color: var(--av-text);
+}
+
+html.av-theme-noir article[data-testid="tweet"] [role="group"] button {
+  color: var(--av-muted);
+  transition: color 140ms ease, background-color 140ms ease;
+}
+
+html.av-theme-noir article[data-testid="tweet"] [role="group"] button:hover {
+  background-color: color-mix(in srgb, var(--av-accent) 10%, transparent);
+  color: var(--av-accent);
+}
+
+html.av-theme-noir [data-testid="tweetPhoto"],
+html.av-theme-noir [data-testid="videoPlayer"],
+html.av-theme-noir [data-testid="videoComponent"] {
+  border: 1px solid color-mix(in srgb, var(--av-border) 82%, transparent);
+  border-radius: 14px;
+  background-color: var(--av-surface-raised);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+}
+
+html.av-theme-noir [data-testid="toolBar"] {
+  border-color: color-mix(in srgb, var(--av-border) 74%, transparent);
+  background: linear-gradient(180deg, rgba(11, 18, 27, 0.72), rgba(7, 12, 18, 0.88));
+}
+
+html.av-theme-noir [data-testid="tweetTextarea_0RichTextInputContainer"],
+html.av-theme-noir [data-testid="tweetTextarea_0"] {
+  border-color: color-mix(in srgb, var(--av-border) 82%, transparent);
+  border-radius: 10px;
+  background-color: color-mix(in srgb, var(--av-surface-raised) 76%, transparent);
+  color: var(--av-text);
+}
+
+html.av-theme-noir [data-testid="sidebarColumn"] {
+  color: var(--av-text);
+}
+
+html.av-theme-noir [data-testid="sidebarColumn"] div:has(> [data-testid="news_sidebar"]),
+html.av-theme-noir [data-testid="sidebarColumn"] section[data-testid="news_sidebar"],
+html.av-theme-noir [data-testid="sidebarColumn"] aside[role="complementary"],
+html.av-theme-noir [aria-label="Timeline: Trending now"] {
+  border: 1px solid color-mix(in srgb, var(--av-border) 78%, transparent);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(16, 25, 36, 0.86), rgba(8, 13, 20, 0.9));
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+html.av-theme-noir [aria-label="Timeline: Trending now"] > section {
+  border-color: transparent;
+  background: transparent;
+}
+
+html.av-theme-noir [data-testid="sidebarColumn"] [data-testid="UserCell"] {
+  background-color: transparent;
+  transition: background-color 140ms ease;
+}
+
+html.av-theme-noir [data-testid="sidebarColumn"] [data-testid="UserCell"]:hover {
+  background-color: color-mix(in srgb, var(--av-accent) 7%, transparent);
+}
+
+html.av-theme-noir form[role="search"]:has([data-testid="SearchBox_Search_Input"]) {
+  border: 1px solid color-mix(in srgb, var(--av-border) 82%, transparent);
+  border-radius: 999px;
+  background-color: rgba(14, 22, 32, 0.94);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+html.av-theme-noir [data-testid="SearchBox_Search_Input"] {
+  border: 0;
+  background-color: transparent;
+  color: var(--av-text);
+  box-shadow: none;
+}
+
+html.av-theme-noir form[role="search"]:has([data-testid="SearchBox_Search_Input"]):focus-within {
+  border-color: color-mix(in srgb, var(--av-accent) 72%, transparent);
+  box-shadow: 0 0 0 3px rgba(92, 211, 255, 0.12);
+  outline: none;
+}
+
+html.av-theme-noir [data-testid="GrokDrawer"],
+html.av-theme-noir [data-testid="grokImgGen"] {
+  border-color: color-mix(in srgb, var(--av-accent-secondary) 48%, var(--av-border));
+  background: linear-gradient(145deg, rgba(18, 22, 41, 0.94), rgba(9, 14, 24, 0.96));
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.3);
 }
 
 /* The primary column takes its width from its own box, not from a max-width -- measured on
@@ -295,6 +534,8 @@ html.av-reduce-motion *::after {
       "Graphite": "Grafito",
       "Plum": "Ciruela",
       "Midnight": "Medianoche",
+      "Noir": "Noir",
+      "Noir adds Aviary's premium cyan-violet skin; Off leaves X's own styling untouched.": "Noir a\xF1ade el aspecto premium cian y violeta de Aviary; Desactivado deja intacto el estilo de X.",
       "Dense mode": "Modo denso",
       "Tighten timeline spacing for scanning.": "Comprime el espaciado de la cronolog\xEDa para leer m\xE1s r\xE1pido.",
       "Timeline width": "Ancho de la cronolog\xEDa",
@@ -1088,6 +1329,8 @@ html.av-reduce-motion *::after {
       "Graphite": "Grafite",
       "Plum": "Ameixa",
       "Midnight": "Meia-noite",
+      "Noir": "Noir",
+      "Noir adds Aviary's premium cyan-violet skin; Off leaves X's own styling untouched.": "Noir adiciona o visual premium em ciano e violeta da Aviary; Desativado mant\xE9m o estilo do X intacto.",
       "Dense mode": "Modo denso",
       "Tighten timeline spacing for scanning.": "Compacta o espa\xE7amento da linha do tempo para leitura r\xE1pida.",
       "Timeline width": "Largura da cronologia",
@@ -1881,6 +2124,8 @@ html.av-reduce-motion *::after {
       "Graphite": "Gris graphite",
       "Plum": "Prune",
       "Midnight": "Minuit",
+      "Noir": "Noir",
+      "Noir adds Aviary's premium cyan-violet skin; Off leaves X's own styling untouched.": "Noir applique l\u2019habillage premium cyan et violet d\u2019Aviary ; D\xE9sactiv\xE9 laisse le style de X intact.",
       "Dense mode": "Mode dense",
       "Tighten timeline spacing for scanning.": "Resserre l'espacement du fil pour parcourir plus vite.",
       "Timeline width": "Largeur du fil",
@@ -2674,6 +2919,8 @@ html.av-reduce-motion *::after {
       "Graphite": "Graphit",
       "Plum": "Pflaume",
       "Midnight": "Mitternacht",
+      "Noir": "Noir",
+      "Noir adds Aviary's premium cyan-violet skin; Off leaves X's own styling untouched.": "Noir aktiviert Aviarys hochwertiges Cyan-Violett-Design; Aus l\xE4sst das Styling von X unver\xE4ndert.",
       "Dense mode": "Kompaktmodus",
       "Tighten timeline spacing for scanning.": "Verdichtet die Abst\xE4nde der Timeline zum schnellen \xDCberfliegen.",
       "Timeline width": "Timeline-Breite",
@@ -3467,6 +3714,8 @@ html.av-reduce-motion *::after {
       "Graphite": "\u30B0\u30E9\u30D5\u30A1\u30A4\u30C8",
       "Plum": "\u30D7\u30E9\u30E0",
       "Midnight": "\u30DF\u30C3\u30C9\u30CA\u30A4\u30C8",
+      "Noir": "\u30CE\u30EF\u30FC\u30EB",
+      "Noir adds Aviary's premium cyan-violet skin; Off leaves X's own styling untouched.": "Noir \u306F Aviary \u306E\u4E0A\u8CEA\u306A\u30B7\u30A2\u30F3\uFF0F\u30D0\u30A4\u30AA\u30EC\u30C3\u30C8\u914D\u8272\u3092\u9069\u7528\u3057\u307E\u3059\u3002\u30AA\u30D5\u3067\u306F X \u672C\u6765\u306E\u8868\u793A\u3092\u5909\u66F4\u3057\u307E\u305B\u3093\u3002",
       "Dense mode": "\u9AD8\u5BC6\u5EA6\u30E2\u30FC\u30C9",
       "Tighten timeline spacing for scanning.": "\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u306E\u4F59\u767D\u3092\u8A70\u3081\u3066\u4E00\u89A7\u3057\u3084\u3059\u304F\u3057\u307E\u3059\u3002",
       "Timeline width": "\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u306E\u5E45",
@@ -4260,6 +4509,8 @@ html.av-reduce-motion *::after {
       "Graphite": "\uADF8\uB798\uD30C\uC774\uD2B8",
       "Plum": "\uD50C\uB7FC",
       "Midnight": "\uBBF8\uB4DC\uB098\uC774\uD2B8",
+      "Noir": "\uB204\uC544\uB974",
+      "Noir adds Aviary's premium cyan-violet skin; Off leaves X's own styling untouched.": "Noir\uB294 Aviary\uC758 \uD504\uB9AC\uBBF8\uC5C4 \uC2DC\uC548\xB7\uBC14\uC774\uC62C\uB81B \uC2A4\uD0C0\uC77C\uC744 \uC801\uC6A9\uD569\uB2C8\uB2E4. \uB044\uBA74 X\uC758 \uAE30\uBCF8 \uC2A4\uD0C0\uC77C\uC744 \uADF8\uB300\uB85C \uB461\uB2C8\uB2E4.",
       "Dense mode": "\uACE0\uBC00\uB3C4 \uBAA8\uB4DC",
       "Tighten timeline spacing for scanning.": "\uD0C0\uC784\uB77C\uC778 \uAC04\uACA9\uC744 \uC881\uD600 \uD6D1\uC5B4\uBCF4\uAE30 \uC27D\uAC8C \uD569\uB2C8\uB2E4.",
       "Timeline width": "\uD0C0\uC784\uB77C\uC778 \uB108\uBE44",
@@ -5053,6 +5304,8 @@ html.av-reduce-motion *::after {
       "Graphite": "\u062C\u0631\u0627\u0641\u064A\u062A",
       "Plum": "\u0628\u0631\u0642\u0648\u0642\u064A",
       "Midnight": "\u0645\u0646\u062A\u0635\u0641 \u0627\u0644\u0644\u064A\u0644",
+      "Noir": "\u0646\u0648\u0627\u0631",
+      "Noir adds Aviary's premium cyan-violet skin; Off leaves X's own styling untouched.": "\u064A\u0637\u0628\u0642 Noir \u0645\u0638\u0647\u0631 Aviary \u0627\u0644\u0641\u0627\u062E\u0631 \u0628\u0627\u0644\u0633\u0645\u0627\u0648\u064A \u0648\u0627\u0644\u0628\u0646\u0641\u0633\u062C\u064A\u061B \u0648\u064A\u062A\u0631\u0643 \u0627\u0644\u0625\u064A\u0642\u0627\u0641 \u062A\u0646\u0633\u064A\u0642 X \u0643\u0645\u0627 \u0647\u0648.",
       "Dense mode": "\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0645\u0643\u062B\u0641",
       "Tighten timeline spacing for scanning.": "\u064A\u0642\u0644\u0651\u0635 \u0627\u0644\u0645\u0633\u0627\u0641\u0627\u062A \u0641\u064A \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \u0644\u062A\u0635\u0641\u0651\u062D \u0623\u0633\u0631\u0639.",
       "Timeline width": "\u0639\u0631\u0636 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A",
@@ -5846,6 +6099,8 @@ html.av-reduce-motion *::after {
       "Graphite": "\u05D2\u05E8\u05E4\u05D9\u05D8",
       "Plum": "\u05E9\u05D6\u05D9\u05E3",
       "Midnight": "\u05D7\u05E6\u05D5\u05EA",
+      "Noir": "\u05E0\u05D5\u05D0\u05E8",
+      "Noir adds Aviary's premium cyan-violet skin; Off leaves X's own styling untouched.": "Noir \u05DE\u05D7\u05D9\u05DC \u05D0\u05EA \u05D4\u05DE\u05E8\u05D0\u05D4 \u05D4\u05D9\u05D5\u05E7\u05E8\u05EA\u05D9 \u05E9\u05DC Aviary \u05D1\u05E6\u05D9\u05D0\u05DF\u05BE\u05E1\u05D2\u05D5\u05DC; \u05DB\u05D1\u05D5\u05D9 \u05DE\u05E9\u05D0\u05D9\u05E8 \u05D0\u05EA \u05D4\u05E2\u05D9\u05E6\u05D5\u05D1 \u05E9\u05DC X \u05DC\u05DC\u05D0 \u05E9\u05D9\u05E0\u05D5\u05D9.",
       "Dense mode": "\u05DE\u05E6\u05D1 \u05E6\u05E4\u05D5\u05E3",
       "Tighten timeline spacing for scanning.": "\u05DE\u05E6\u05DE\u05E6\u05DD \u05D0\u05EA \u05D4\u05E8\u05D9\u05D5\u05D5\u05D7 \u05D1\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF \u05DC\u05E1\u05E8\u05D9\u05E7\u05D4 \u05DE\u05D4\u05D9\u05E8\u05D4.",
       "Timeline width": "\u05E8\u05D5\u05D7\u05D1 \u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF",
@@ -6636,11 +6891,11 @@ html.av-reduce-motion *::after {
   }
 
   // src/platform/build-version.ts
-  var AVIARY_VERSION = false ? "dev" : "1.18.0";
+  var AVIARY_VERSION = false ? "dev" : "1.19.0";
 
   // src/platform/settings.ts
   var SETTINGS_KEY = "aviary.settings.v1";
-  var THEME_IDS = ["off", "dim", "lightsOut", "graphite", "plum", "midnight"];
+  var THEME_IDS = ["off", "dim", "lightsOut", "graphite", "plum", "midnight", "noir"];
   var RATE_LIMIT_MODES = ["conservative", "balanced"];
   var REDUCE_MOTION_MODES = ["system", "always", "never"];
   var FILTER_ACTIONS = ["off", "hide", "dim"];
@@ -9300,7 +9555,8 @@ html.av-reduce-motion *::after {
         ["lightsOut", "Lights out"],
         ["graphite", "Graphite"],
         ["plum", "Plum"],
-        ["midnight", "Midnight"]
+        ["midnight", "Midnight"],
+        ["noir", "Noir"]
       ], async (value) => {
         if (!ctx.isThemeId(value)) {
           ctx.setStatus("Theme value is not supported.");
@@ -9308,7 +9564,7 @@ html.av-reduce-motion *::after {
         }
         ctx.options.settings.appearance.theme = value;
         await ctx.save("Theme updated");
-      }),
+      }, "Noir adds Aviary's premium cyan-violet skin; Off leaves X's own styling untouched."),
       ctx.toggleRow("Dense mode", "Tighten timeline spacing for scanning.", ctx.options.settings.appearance.denseMode, async (checked) => {
         ctx.options.settings.appearance.denseMode = checked;
         await ctx.save("Density updated");
@@ -9772,7 +10028,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION2 = false ? "dev" : "1.18.0";
+  var AVIARY_VERSION2 = false ? "dev" : "1.19.0";
   var SECTION_GROUP_BREAKS = {
     presets: [
       { before: "Quiet Reader", title: "Preset packs" },

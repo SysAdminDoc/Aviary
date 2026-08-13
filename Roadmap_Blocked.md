@@ -80,7 +80,7 @@ settle both items.
 
 The deterministic matrix is covered in `tests/release-matrix.test.mjs` and the fixture smoke lane:
 all supported routes (including profile collection subroutes, Notifications, Messages, Search,
-status, and the media viewer), nine locales, six themes, keyboard/coarse-pointer modes, malformed
+status, and the media viewer), nine locales, seven themes, keyboard/coarse-pointer modes, malformed
 state/provider bodies, Unicode byte caps, ZIP expansion limits, and route subscription teardown /
 reboot are exercised without credentials.
 

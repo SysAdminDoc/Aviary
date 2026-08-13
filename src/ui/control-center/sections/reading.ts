@@ -9,7 +9,8 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
         ["lightsOut", "Lights out"],
         ["graphite", "Graphite"],
         ["plum", "Plum"],
-        ["midnight", "Midnight"]
+        ["midnight", "Midnight"],
+        ["noir", "Noir"]
       ], async (value) => {
         if (!ctx.isThemeId(value)) {
           ctx.setStatus("Theme value is not supported.");
@@ -17,7 +18,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
         }
         ctx.options.settings.appearance.theme = value;
         await ctx.save("Theme updated");
-      }),
+      }, "Noir adds Aviary's premium cyan-violet skin; Off leaves X's own styling untouched."),
       ctx.toggleRow("Dense mode", "Tighten timeline spacing for scanning.", ctx.options.settings.appearance.denseMode, async (checked) => {
         ctx.options.settings.appearance.denseMode = checked;
         await ctx.save("Density updated");

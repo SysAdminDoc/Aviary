@@ -1,8 +1,8 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.18.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.19.0-2f81f7)
 
-Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.18.0: default-on desktop ad protection, a redesigned 13-page Control Center and extension-permissions cockpit, fixture-backed selector checks, theme + layout controls, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
+Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.19.0: an opt-in premium Noir desktop skin, default-on desktop ad protection, a redesigned 13-page Control Center and extension-permissions cockpit, fixture-backed selector checks, theme + layout controls, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
 
 ## Ad-free, otherwise vanilla by default
 
@@ -56,6 +56,15 @@ draft state, keyboard focus treatment, and reduced-motion support. The primary v
 viewport is 1440×900, with a 1920×1080 wide check.
 
 ![Aviary Control Center presets page](docs/mockups/control-center-presets-implemented.png)
+
+## Premium Noir theme
+
+Choose **Appearance → Theme → Noir** for Aviary's authored dark desktop skin. It gives the full X
+shell a near-black blue base, subtle cyan/violet light, elevated timeline cards, a continuous
+navigation rail, refined composer/search surfaces, and restrained action highlights. Noir uses
+semantic roles and stable X test ids rather than generated classes, avoids page-wide blur on the
+infinite timeline, and remains opt-in: choosing **Off (X's own theme)** removes every Aviary paint
+hook and restores the site's styling.
 
 ## Development
 
@@ -260,10 +269,10 @@ The Integrations panel also surfaces a "Recent integration errors" readout that 
 
 ## Roadmap
 
-The working plan is in [ROADMAP.md](ROADMAP.md). v1.18.0 is the current release; the latest batch
-adds document-start ad protection, current-X route repairs, a complete desktop settings redesign,
-explicit settings draft state, and a 14-surface capture gate. F032/F033 remain blocked until
-privacy-safe authenticated fixtures containing those exact states are available.
+The working plan is in [ROADMAP.md](ROADMAP.md). v1.19.0 is the current release; the latest batch
+adds the premium opt-in Noir theme, a live-current-X semantic selector audit, deterministic theme
+capture, and a 2,268-combination release matrix across seven theme modes. F032/F033 remain blocked
+until privacy-safe authenticated fixtures containing those exact states are available.
 
 `npm run smoke` runs both Playwright lanes: current-X compatibility coverage and a side-effect-free
 externally gated-action flow. Chromium's new headless mode keeps the MV3 service worker and real

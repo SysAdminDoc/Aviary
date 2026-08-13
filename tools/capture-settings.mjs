@@ -37,6 +37,17 @@ if (!existsSync(extensionDir)) {
   process.exit(2);
 }
 
+const [pkg, builtManifest] = await Promise.all([
+  readFile(path.join(root, "package.json"), "utf8").then(JSON.parse),
+  readFile(path.join(extensionDir, "manifest.json"), "utf8").then(JSON.parse)
+]);
+if (builtManifest.version !== pkg.version) {
+  console.error(
+    `The built extension is stale (${builtManifest.version ?? "unknown"}; expected ${pkg.version}). Run \`npm run build\` first.`
+  );
+  process.exit(5);
+}
+
 let chromium;
 try {
   ({ chromium } = await import("playwright"));

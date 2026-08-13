@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+## 1.19.0 - 2026-08-13
+
+### Added
+
+- **Noir** is a new opt-in premium desktop theme with a near-black blue foundation, restrained
+  cyan/violet lighting, a continuous navigation rail, elevated timeline and sidebar cards,
+  refined composer/search surfaces, and luminous primary actions.
+- A deterministic Playwright theme contract and `npm run capture:theme` lane mount the real theme
+  module on a sanitized current-X fixture at desktop sizes, reject generated-class dependencies,
+  compositor blur, horizontal overflow, incomplete paint, and irreversible Off behavior.
+
+### Changed
+
+- Theme coverage now spans seven modes across the 2,268-combination release matrix. Noir is
+  exposed in Appearance and translated across all nine supported locales; the default remains
+  **Off (X's own theme)** so ordinary X styling is unchanged unless selected.
+- Noir targets current semantic shell anchors for navigation, primary timeline, composer, media,
+  search, news, recommendations, and Grok surfaces while keeping long-feed paints opaque and
+  motion restrained.
+- The navigation rail now derives a reversible active marker from the current route because live
+  X no longer exposes `aria-current` on its active AppTabBar link.
+
+### Fixed
+
+- The live search field now paints its rounded search shell instead of the rectangular inner
+  input, and current-X's tiny news marker is no longer mistaken for the full sidebar card.
+- Settings captures now refuse to run when the packaged extension manifest is older than the
+  current source release, preventing stale versioned screenshots from passing the geometry gate.
+
 ## 1.18.0 - 2026-08-13
 
 ### Added
