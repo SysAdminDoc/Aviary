@@ -4,7 +4,8 @@
 
 By default, no. Aviary has no telemetry or remote-code loader, and local settings, exports,
 snapshots, bookmarks, notes, archive imports, and indexes stay in the browser. X still makes its
-own normal requests while you use the site.
+ordinary site requests while you use it, except that default-on ad protection answers the exact
+promoted-content logger locally before it reaches the network.
 
 An explicit opt-in or user action can make Aviary contact a destination you configured:
 
@@ -18,6 +19,16 @@ An explicit opt-in or user action can make Aviary contact a destination you conf
 
 These integrations are disabled by default. The Control Center shows their configuration and
 recent errors; [PRIVACY.md](PRIVACY.md) lists the data sent by each path.
+
+## How does ad protection work?
+
+Aviary starts its narrow ad guard at document start. It prevents X's separable
+`/i/api/1.1/promoted_content/log.json` event, then removes evidenced native sponsored posts,
+paid-partnership cards, promoted trends, house promos, and visible video-ad containers without
+leaving an empty virtualized row. It does not block HomeTimeline: X includes native sponsored
+records in the same essential first-party response as organic posts, so blocking that request
+would remove the feed. The ad bytes in that shared response are therefore an unavoidable transport
+limitation even though the unit is not rendered.
 
 ## What permissions does the extension need?
 
@@ -96,11 +107,13 @@ file is uploaded.
 
 ## I want to back up my settings. Is that a full backup?
 
-No. **Backup & Audit → Export settings** creates a versioned preferences envelope. It redacts API
-keys and passwords, and importing it preserves credentials already stored on the destination
-browser. It does not include bookmarks, snapshots, archive jobs, export checkpoints, semantic
-vectors, notes, or media files. Clear or copy those local collections separately before moving or
-retiring a profile.
+**Export settings** alone is not a full backup: it creates a versioned preferences envelope,
+redacts API keys/passwords, and preserves credentials already stored on the destination browser.
+Use **Backup & Audit → Export full library backup** for the active profile's local collections,
+jobs, notes, indexes, and settings. Restore first offers a checksum/conflict preview and dry run,
+then rolls earlier writes back if a later collection fails. Captured media bytes remain included
+only when they exist in a selected durable store/export package; live remote URLs are not silently
+converted into offline assets.
 
 ## What is stored locally?
 

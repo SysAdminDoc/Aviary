@@ -1,15 +1,14 @@
 # Aviary blocked roadmap
 
-Every item below waits on the same thing: evidence from a logged-in timeline that the public
-`_decoded/` fixtures do not contain.
+Each item below requires a state that is absent from the privacy-safe `_decoded/` fixtures.
+Read-only authenticated recon on 2026-08-13 resolved current promoted-post/trend/house-promo
+contracts without exporting session data, but the inspected routes did not expose blocked-author,
+self-repost, or sensitive-media examples. Those behaviors still cannot be built from a guess.
 
-Since v1.12.0 there is a second way to produce that evidence, and it is easier than capturing
-MHTML. Passive GraphQL capture now genuinely sees X's responses (it patched the wrong `fetch`
-before), so turning on "Keep raw payloads" in Export and scrolling a home timeline records the
-server's own description of each post -- including the fields that mark a promoted unit, a repost
-and a blocked author. That is strictly better evidence than DOM markup for these four items,
-because it does not move when X reskins the timeline. What none of them can be built against is
-a guess about the response shape.
+Passive GraphQL capture can produce better evidence than a full private-page screenshot: enabling
+"Keep raw payloads" in Export and scrolling a disposable test timeline records the server's own
+bounded post description. Any contributed fixture must be minimized and scrubbed before it enters
+the repository.
 
 ## F032 — Hide blocked accounts again
 
@@ -23,22 +22,6 @@ Blocked pending an authenticated `_decoded/` quote/thread capture containing the
 
 Re-entry condition: add the authenticated capture, verify the social-context selector, then implement and fixture-test self-repost detection without broad text heuristics.
 
-## Hide promoted posts and ad units
-
-Blocked pending a capture that actually contains a promoted post. The obvious anchor,
-`[data-testid="placementTracking"]`, is **not** a promoted marker: both instances in
-`_decoded/home.html` wrap organic content — one a quote-tweet video player, the other the
-`news_sidebar` module — and the string "Promoted" appears zero times in either fixture. Shipping
-a predicate on that selector would hide the news module and a quote tweet.
-
-Re-entry condition: add a `_decoded/` capture containing a real promoted unit, confirm what
-distinguishes it (a label node, an `aria-label`, or a wrapper attribute) against that evidence,
-then implement it in the filter engine as a `filter.promotedRule` FilterAction alongside
-`premiumRule`, and fixture-test that organic `placementTracking` content is untouched.
-
-Note: two preset descriptions claimed "no promoted" while nothing implemented it. That copy has
-been corrected rather than left promising a feature the build does not have.
-
 ## Hide all reposts
 
 Blocked on a fixture that contains a repost -- the roadmap entry that proposed this asserted the
@@ -47,8 +30,8 @@ appears 0 times in `_decoded/home.html` and `_decoded/status.html`, and so do th
 "reposted" and "retweeted" (case-insensitive). Neither capture contains a single repost, so there
 is nothing to build a predicate against and nothing to fixture-test it with.
 
-This is the same blocker as F033 (self-reposts) and hide-promoted-posts: one capture of a real
-logged-in timeline would unblock all three at once.
+This is the same blocker as F033 (self-reposts): one privacy-safe capture of a real repost would
+unblock both at once.
 
 Re-entry condition: add a `_decoded/` capture containing a repost, confirm the marker against it,
 then implement as a `filter.repostRule` FilterAction alongside `premiumRule`, and fixture-test
@@ -89,5 +72,37 @@ CHANGELOG.md for why). Two remain, both waiting on the same capture:
   `"off"` now, and `tests/settings-claims.test.mjs` fails any filter action that defaults to
   something active while nothing reads it.
 
-Re-entry condition for both: the same authenticated `_decoded/` capture that unblocks
-hide-promoted-posts and hide-all-reposts. One capture settles four items.
+Re-entry condition for both: an authenticated, privacy-safe `_decoded/` capture containing the
+blocked-author placeholder and self-repost attribution. One deliberately prepared fixture can
+settle both items.
+
+## Release matrix lanes requiring external environments
+
+The deterministic matrix is covered in `tests/release-matrix.test.mjs` and the fixture smoke lane:
+all supported routes (including profile collection subroutes, Notifications, Messages, Search,
+status, and the media viewer), nine locales, six themes, keyboard/coarse-pointer modes, malformed
+state/provider bodies, Unicode byte caps, ZIP expansion limits, and route subscription teardown /
+reboot are exercised without credentials.
+
+The following release lanes remain blocked and are intentionally not represented as green CI:
+
+- Direct execution of the built userscript/MV3 extension inside an authenticated X session, plus
+  real composer/crosspost attachment responses. The 2026-08-13 in-app browser session allowed
+  read-only DOM/route recon but cannot side-load an unpacked extension or export its session; the
+  isolated Playwright profile can load the build but is unauthenticated. Re-entry requires an
+  operator-authenticated disposable extension profile, without copying cookies or private bodies.
+- Video pre-roll request correlation. Visible pre-roll markers were observed on 2026-08-13 and
+  their owning containers are suppressed, but no privacy-safe trace proved whether the creative
+  uses a separable endpoint or the same first-party video transport as organic media. Re-entry
+  requires an operator trace containing hostname, resource type, and initiator with tokens and
+  response bodies omitted; broad `video.twimg.com` blocking is prohibited.
+- Tampermonkey and Violentmonkey page-world access, plus Firefox/Safari and screen-reader checks.
+  These require the named browser/manager combinations installed on an operator workstation.
+- A successful optional download-permission grant followed by revoke. The Chromium external lane
+  verifies the initial refusal and grant surface, but its temporary extension profile cannot claim
+  a user-approved grant/revoke result.
+
+Re-entry procedure: build with `npm run build`, run `npm run test:matrix`, then run `npm run smoke`
+with the disposable authenticated fixture/profile or the target browser manager. Capture the route,
+locale/theme, nested dialog/menu, permission state, and console/page-error result for each lane;
+promote a lane only after its evidence is checked into `_decoded/` or the external smoke fixture.

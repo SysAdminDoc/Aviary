@@ -1,13 +1,16 @@
 # Aviary Privacy Manifest
 
-Updated: 2026-08-12 · release 1.16.0
+Updated: 2026-08-13 · release 1.18.0
 
 ## Defaults and network boundaries
 
 Aviary is local-first. The default build sends no telemetry, loads no remote code, exports no
-cookies or authentication headers, and makes no provider request. X continues to make its own
-requests; Aviary's optional page-world capture only observes selected responses after you enable
-the relevant capture setting.
+cookies or authentication headers, and makes no provider request. Default-on ad protection answers
+X's exact `/i/api/1.1/promoted_content/log.json` event locally before a request is issued; it does
+not block HomeTimeline, media, login, or unrelated analytics traffic. Native sponsored records are
+delivered inside the same first-party timeline response as ordinary posts, so Aviary suppresses
+their rendering but cannot truthfully claim those bytes were absent. Optional page-world capture
+only observes selected responses after you enable the relevant capture setting.
 
 These are the only Aviary-triggered network paths:
 
