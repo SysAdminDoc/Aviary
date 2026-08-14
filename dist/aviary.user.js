@@ -7182,7 +7182,7 @@ html.av-reduce-motion *::after {
       maxEntries: 5e3
     },
     media: {
-      buttons: false,
+      buttons: true,
       preferOriginalImages: true,
       inlineOriginalImages: false,
       filenameTemplate: "{handle}_{tweetId}_{index}",

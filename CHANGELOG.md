@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Fresh installs now enable on-post media downloads by default, exposing image, thumbnail, and
+  direct Video/GIF controls while keeping every transfer user-initiated and fully reversible.
 - Aviary settings now opens from a native-sized row in X's primary left navigation instead of a
   standalone corner button. The row follows expanded and compact rails and remounts after X's SPA
   navigation swaps, with the old launcher retained only as a no-navigation fallback.

@@ -2,14 +2,15 @@
 
 ![Version](https://img.shields.io/badge/version-1.21.0-2f81f7)
 
-Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.21.0: an opt-in premium Noir desktop skin, focused Home controls for the composer, discovery rail, current navigation and recommendations, default-on desktop ad protection, transactional settings, local ad-contract drift diagnostics, a redesigned 13-page Control Center and extension-permissions cockpit, committed desktop visual coverage, fixture-backed selector checks, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
+Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.21.0: an opt-in premium Noir desktop skin, focused Home controls for the composer, discovery rail, current navigation and recommendations, default-on desktop ad protection and media download controls, transactional settings, local ad-contract drift diagnostics, a redesigned 13-page Control Center and extension-permissions cockpit, committed desktop visual coverage, fixture-backed selector checks, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
 
-## Ad-free, otherwise vanilla by default
+## Ad-free with media saves ready by default
 
-Fresh installs remove advertising by default. Every elective setting that changes ordinary X
-content or styling — themes, sidebar/trend declutter, Hide and media buttons, filters, offscreen
-video pausing, and general analytics refusal — still starts off. Aviary otherwise adds only its
-launcher to X's primary left navigation, because that is how the remaining features are enabled.
+Fresh installs remove advertising and enable on-post Save, Thumb, and eligible Video/GIF controls.
+The media controls act only after you click them and can be disabled from Media at any time. Every
+other elective setting that changes ordinary X content or styling — themes, sidebar/trend declutter,
+Hide buttons, filters, offscreen video pausing, and general analytics refusal — still starts off.
+Outside those download affordances, Aviary adds only its launcher to X's primary left navigation.
 
 `tests/vanilla-by-default.test.mjs` measures this rather than asserting it: with default settings
 it mounts the real theme code against an organic captured timeline and requires non-ad computed
@@ -182,7 +183,7 @@ Every post carries a **Hide** control next to its More menu. Clicking it records
 
 The Control Center "Media" section exposes:
 
-- Master toggle for tweet Save / Thumb buttons.
+- Default-on master toggle for tweet Save / Thumb / eligible Video and GIF buttons.
 - Original-quality preference (image URLs are rewritten to `name=orig`).
 - Filename template with `{handle}`, `{tweetId}`, `{mediaId}`, `{index}`, `{total}`, `{date}`, `{text}`, `{ext}` fields.
 - Duplicate history toggle and a "Clear download history" action.

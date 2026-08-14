@@ -16,10 +16,11 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
  * two media buttons to every post, rewrote share buttons and paused video that scrolled offscreen.
  * None of that was asked for; it was simply what the defaults happened to be.
  *
- * The rule is now: ads are the one visible default-on exception. Every theme, layout, filtering,
- * media, and integration control stays opt-in; local bookkeeping remains on.
+ * The rule is now: ads and user-invoked media saves are the two visible default-on exceptions.
+ * Every theme, layout, filtering, and integration control stays opt-in; local bookkeeping remains
+ * on.
  */
-test("default settings change only ad delivery and presentation", async () => {
+test("default settings enable only ad protection and user-invoked media saves", async () => {
   const { DEFAULT_SETTINGS } = await importBundledModule("src/platform/settings.ts");
   const s = DEFAULT_SETTINGS;
 
@@ -39,10 +40,10 @@ test("default settings change only ad delivery and presentation", async () => {
   assert.equal(s.layout.forceFollowing, false);
   assert.deepEqual(s.layout.hideNavItems, []);
 
-  // Nothing injected into a post. The AI button and the snippet trigger were the two that a
-  // schema-only check missed: both injected unconditionally, gated by no setting at all, and were
-  // only caught by counting real elements in a real timeline.
-  assert.equal(s.media.buttons, false);
+  // Media downloads are ready without setup, but remain user-invoked. No other post control is
+  // injected by default. The AI button and snippet trigger were the two a schema-only check once
+  // missed, so their explicit gates remain part of this contract.
+  assert.equal(s.media.buttons, true);
   assert.equal(s.hidden.enabled, false);
   // True, but unreachable while `enabled` is false, so nothing is injected either way.
   assert.equal(s.hidden.buttons, true);

@@ -23,7 +23,8 @@ before(async () => {
     [
       `export { MediaMetadataCache } from ${JSON.stringify(absoluteSource("src/features/media/media-metadata.ts"))};`,
       `export { extractTweet } from ${JSON.stringify(absoluteSource("src/features/media/extract.ts"))};`,
-      `export { mediaButtonsFeature, ingestMediaMetadata, mediaMetadataCacheSize } from ${JSON.stringify(absoluteSource("src/features/media/media-buttons.ts"))};`
+      `export { mediaButtonsFeature, ingestMediaMetadata, mediaMetadataCacheSize } from ${JSON.stringify(absoluteSource("src/features/media/media-buttons.ts"))};`,
+      `export { DEFAULT_SETTINGS } from ${JSON.stringify(absoluteSource("src/platform/settings.ts"))};`
     ].join("\n"),
     "utf8"
   );
@@ -239,4 +240,150 @@ test("media buttons reconcile a blob-only player when its direct variant arrives
     { kind: "thumbnail", text: "Thumb" }
   ]);
   assert.equal(result.off, 0);
+});
+
+test("default media controls transfer both image and direct video bytes", async () => {
+  await page.route("https://pbs.twimg.com/media/**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "image/jpeg",
+      headers: { "access-control-allow-origin": "*" },
+      body: Buffer.from([0xff, 0xd8, 0xff, 0xd9])
+    })
+  );
+  await page.route("https://video.twimg.com/**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "video/mp4",
+      headers: { "access-control-allow-origin": "*" },
+      body: Buffer.from("fixture-mp4")
+    })
+  );
+
+  try {
+    const result = await page.evaluate(async (body) => {
+      document.body.replaceChildren();
+      const transfers = [];
+      globalThis.GM_download = ({ url, name, onload, onerror }) => {
+        void fetch(url)
+          .then(async (response) => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const bytes = new Uint8Array(await response.arrayBuffer());
+            transfers.push({
+              url,
+              name,
+              byteLength: bytes.byteLength,
+              contentType: response.headers.get("content-type")
+            });
+            onload?.();
+          })
+          .catch((error) => onerror?.(error));
+      };
+
+      const appendIdentity = (article, handle, tweetId, text) => {
+        const userName = document.createElement("div");
+        userName.setAttribute("data-testid", "User-Name");
+        const profile = document.createElement("a");
+        profile.href = `/${handle}`;
+        userName.append(profile);
+        const status = document.createElement("a");
+        status.href = `/${handle}/status/${tweetId}`;
+        const copy = document.createElement("div");
+        copy.setAttribute("data-testid", "tweetText");
+        copy.textContent = text;
+        article.append(userName, status, copy);
+      };
+
+      const imageArticle = document.createElement("article");
+      imageArticle.id = "default-image-tweet";
+      imageArticle.setAttribute("data-testid", "tweet");
+      appendIdentity(imageArticle, "photographer", "22334455", "A default image save");
+      const photo = document.createElement("div");
+      photo.setAttribute("data-testid", "tweetPhoto");
+      const image = document.createElement("img");
+      image.src = "https://pbs.twimg.com/media/DefaultPhoto?format=jpg&name=small";
+      photo.append(image);
+      imageArticle.append(photo);
+
+      const videoArticle = document.createElement("article");
+      videoArticle.id = "default-video-tweet";
+      videoArticle.setAttribute("data-testid", "tweet");
+      appendIdentity(videoArticle, "videographer", "123456789", "A direct video save");
+      const player = document.createElement("div");
+      player.setAttribute("data-testid", "videoComponent");
+      const video = document.createElement("video");
+      video.poster = "https://pbs.twimg.com/media/456789?format=jpg&name=small";
+      video.src = "blob:https://x.com/default-media-player";
+      player.append(video);
+      videoArticle.append(player);
+      document.body.append(imageArticle, videoArticle);
+
+      const settings = structuredClone(AviaryMedia.DEFAULT_SETTINGS);
+      settings.media.downloadHistory = false;
+      const storage = {
+        async get(_key, fallback) {
+          return fallback;
+        },
+        async set() {}
+      };
+      const ctx = {
+        settings,
+        storage,
+        route: { surface: "home", path: "/home", href: "https://x.com/home" },
+        diagnostics: { info() {}, warn() {}, error() {} },
+        auditLog: { record() {} },
+        requestApply() {}
+      };
+
+      let output;
+      try {
+        AviaryMedia.ingestMediaMetadata({ body });
+        await AviaryMedia.mediaButtonsFeature.init(ctx);
+        const imageButton = imageArticle.querySelector('[data-av-media-button="photo"]');
+        const videoButton = videoArticle.querySelector('[data-av-media-button="video"]');
+        if (!(imageButton instanceof HTMLButtonElement)) throw new Error("Default image button missing");
+        if (!(videoButton instanceof HTMLButtonElement)) throw new Error("Default video button missing");
+
+        imageButton.click();
+        videoButton.click();
+        const deadline = performance.now() + 2_000;
+        while (transfers.length < 2 && performance.now() < deadline) {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+        if (transfers.length !== 2) throw new Error("Default media transfers did not finish");
+
+        output = {
+          defaultEnabled: settings.media.buttons,
+          imageButton: imageButton.textContent,
+          videoButton: videoButton.textContent,
+          transfers: transfers.sort((a, b) => a.url.localeCompare(b.url))
+        };
+      } finally {
+        await AviaryMedia.mediaButtonsFeature.destroy(ctx);
+        delete globalThis.GM_download;
+      }
+      return output;
+    }, metadataBody);
+
+    assert.equal(result.defaultEnabled, true);
+    assert.equal(result.imageButton, "Saved");
+    assert.equal(result.videoButton, "Saved");
+    assert.deepEqual(result.transfers, [
+      {
+        url: "https://pbs.twimg.com/media/DefaultPhoto?format=jpg&name=orig",
+        name: "photographer_22334455_01.jpg",
+        byteLength: 4,
+        contentType: "image/jpeg"
+      },
+      {
+        url: "https://video.twimg.com/ext_tw_video/123/pu/vid/1280x720/direct.mp4",
+        name: "videographer_123456789_01.mp4",
+        byteLength: 11,
+        contentType: "video/mp4"
+      }
+    ]);
+  } finally {
+    await page.unroute("https://pbs.twimg.com/media/**");
+    await page.unroute("https://video.twimg.com/**");
+  }
 });

@@ -223,7 +223,7 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     maxEntries: 5000
   },
   media: {
-    buttons: false,
+    buttons: true,
     preferOriginalImages: true,
     inlineOriginalImages: false,
     filenameTemplate: "{handle}_{tweetId}_{index}",
