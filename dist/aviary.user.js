@@ -27817,6 +27817,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       this.#tokens = capacity;
       this.#lastRefill = Date.now();
     }
+    capacity;
+    refillPerSecond;
     #tokens;
     #lastRefill;
     /** Reconcile a live settings change without discarding tokens already earned. */

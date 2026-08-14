@@ -8,15 +8,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions (2026-08-14)
 
-### P0 — broken today
-
-- [ ] F107 — P0 — Replace EOL toolchain pins
-  Why: ESLint 9 hit end-of-life 2026-08-06 — the pinned 9.27.0 is unmaintained; esbuild 0.28.2 and TypeScript 6.0 are low-risk companion bumps (@typescript-eslint 8.67.0 already supports ESLint 10; Playwright/globals already latest).
-  Evidence: https://endoflife.date/eslint; https://eslint.org/blog/2026/02/eslint-v10.0.0-released/; RESEARCH.md Security.
-  Touches: package.json, package-lock.json, eslint.config.mjs, tools/preflight.mjs (exact-pin list).
-  Acceptance: `npm run verify` green on eslint 10.8.1 + esbuild 0.28.2 + typescript 6.0.x with pins updated everywhere preflight checks.
-  Complexity: M
-
 ### P1 — trust, reliability, structural gaps
 
 - [ ] F108 — P1 — Anti-adblock exposure mitigation (DOM-only mode)

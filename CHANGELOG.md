@@ -12,6 +12,9 @@
 
 ### Changed
 
+- Build toolchain moved to ESLint 10.8.1 (ESLint 9 reached end of life on 2026-08-06), esbuild
+  0.28.2, and TypeScript 6.0.3. No source, lint-config, or compiler-option changes were required;
+  all 357 tests, the release matrix, the build, and preflight pass on the new pins.
 - Image, thumbnail, Video, and GIF controls now stay visible over their media with a download arrow,
   solid high-contrast surface, descriptive tooltip, and non-overlapping vertical placement.
 - Fresh installs now enable on-post media downloads by default, exposing image, thumbnail, and
