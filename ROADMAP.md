@@ -59,13 +59,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: each toggle flips one named flag before first paint, is individually reversible, reports drift when the flag name vanishes, and defaults off; verified on live X per flag before enabling in a release.
   Complexity: L
 
-- [ ] F116 — P1 — Hide "More From This Author" thread module
-  Why: X injects recommendation modules between replies (July 2026); CPFT shipped the toggle in v4.23.0 and r/uBlockOrigin threads hand-roll filters for it — direct fast-follow with existing declutter machinery.
-  Evidence: CPFT v4.23.0 changelog; r/uBlockOrigin 1v2gxir (2026-07-21).
-  Touches: src/features/layout/declutter.ts, selectors.ts, `_decoded/` capture of the module (evidence gate), i18n.
-  Acceptance: the module collapses with its owning cell on status pages; organic replies untouched; fixture-tested.
-  Complexity: S
-
 - [ ] F117 — P1 — Tab-title badge strip + per-metric count granularity
   Why: notification counts leaking into the tab title defeat every declutter mode (Minimal Twitter's top requests #242/#243); Aviary's `hideCounts` is all-or-nothing while CPFT offers per-metric control (replies/reposts/likes/views/bookmarks/followers).
   Evidence: minimal-twitter #242/#243; CPFT option catalog; RESEARCH.md Competitive.

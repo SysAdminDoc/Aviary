@@ -129,6 +129,15 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
           await ctx.save("Layout preference saved");
         }
       ),
+      ctx.toggleRow(
+        "Hide thread recommendations",
+        "Stop a conversation at its last real reply by collapsing the Discover more block and the suggested posts below it.",
+        ctx.options.settings.layout.hideThreadRecommendations,
+        async (checked) => {
+          ctx.options.settings.layout.hideThreadRecommendations = checked;
+          await ctx.save("Layout preference saved");
+        }
+      ),
       ctx.toggleRow("Hide Grok surfaces", "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.", ctx.options.settings.layout.hideGrok, async (checked) => {
         ctx.options.settings.layout.hideGrok = checked;
         await ctx.save("Grok preference saved");

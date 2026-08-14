@@ -4,6 +4,7 @@ import { selectorHealthFeature } from "./features/core/selector-health";
 import { filterEngineFeature } from "./features/filtering/filter-engine";
 import { hiddenPostsFeature } from "./features/filtering/hidden-posts-feature";
 import { layoutDeclutterFeature } from "./features/layout/declutter";
+import { threadRecommendationsFeature } from "./features/layout/thread-recommendations";
 import { AuditLog } from "./features/core/audit-log";
 import { aiCommandMenuFeature } from "./features/ai/command-menu";
 import { composerSnippetsFeature } from "./features/composer/composer-snippets";
@@ -153,6 +154,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   registry.register(adProtectionFeature);
   registry.register(selectorHealthFeature);
   registry.register(layoutDeclutterFeature);
+  registry.register(threadRecommendationsFeature);
   registry.register(filterEngineFeature);
   registry.register(hiddenPostsFeature);
   registry.register(mediaButtonsFeature);

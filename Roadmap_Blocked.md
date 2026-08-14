@@ -106,3 +106,25 @@ Re-entry procedure: build with `npm run build`, run `npm run test:matrix`, then 
 with the disposable authenticated fixture/profile or the target browser manager. Capture the route,
 locale/theme, nested dialog/menu, permission state, and console/page-error result for each lane;
 promote a lane only after its evidence is checked into `_decoded/` or the external smoke fixture.
+
+## Hide "More From This Author"
+
+X injects a "More From This Author" module between replies (reported July 2026; Control Panel for
+Twitter shipped a toggle for it in v4.23.0). The sibling module on the same routes — "Discover
+more" — is present in `_decoded/status.html` and is handled by
+`src/features/layout/thread-recommendations.ts`, which matches a bounded heading label inside a
+`cellInnerDiv` on a conversation route.
+
+Blocked because neither capture contains "More From This Author". Measured: the string appears 0
+times in `_decoded/home.html` and `_decoded/status.html`. Its heading text, its owning element, and
+whether it even uses the same `h2[role="heading"]` boundary shape as "Discover more" are all
+unknown, and a guess would be exactly the speculative selector this repository refuses to ship.
+
+Re-entry condition: add a `_decoded/` capture containing the module, confirm the heading element and
+its exact copy, then add the label to `HEADING_LABELS` in
+`src/features/layout/thread-recommendations.ts` and extend
+`tests/thread-recommendations.test.mjs` with the captured shape. If it does not use a heading
+boundary, the feature needs a second predicate rather than a new string.
+
+Localized heading labels have the same gate: only "Discover more" is verified, so other X UI
+languages currently keep the module. Each added locale needs a capture proving its copy.

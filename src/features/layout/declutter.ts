@@ -187,6 +187,12 @@ html.av-hide-home-composer [data-testid="primaryColumn"] > * > *:has([data-testi
   display: none !important;
 }
 
+/* Collapsed by features/layout/thread-recommendations.ts, which stamps the owning
+   timeline cells only after a bounded heading label matched on a conversation route. */
+[data-av-thread-recommendation="1"] {
+  display: none !important;
+}
+
 html.av-hide-grok [data-testid="GrokDrawer"],
 html.av-hide-grok [data-testid="GrokDrawerHeader"],
 html.av-hide-grok [data-testid="chat-drawer-root"],

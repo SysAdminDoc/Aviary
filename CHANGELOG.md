@@ -4,6 +4,10 @@
 
 ### Added
 
+- **Hide thread recommendations** (Layout, off by default) ends a conversation at its last real
+  reply by collapsing X's "Discover more" boundary and every suggested post below it. The boundary
+  is matched by an exact heading label inside a timeline cell on a conversation route, never by a
+  generated class or a loose text fragment, and replies are left untouched.
 - Aviary now ships an original cyan-and-violet bird/A logo across Chrome and Firefox toolbar,
   extension-management, permissions-tab, and store icon sizes.
 - Chrome and Firefox now expose **Download media with Aviary** in X's native right-click menu.
@@ -25,6 +29,8 @@
 
 ### Fixed
 
+- The five right-click media download messages added in this cycle were rendering in English in
+  every locale; they are now translated across all nine shipped locales (821/821 per locale).
 - README no longer describes the AI command menu as an always-present per-tweet button with no
   network calls. It is off by default, and its optional provider runner does POST once configured.
   The store-archive line no longer implies a store presence Aviary does not have while the Firefox

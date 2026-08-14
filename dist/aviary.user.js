@@ -624,6 +624,8 @@ html.av-reduce-motion *::after {
       "Remove Who to follow cards without hiding the rest of the sidebar.": "Elimina las tarjetas \xABA qui\xE9n seguir\xBB sin ocultar el resto de la barra lateral.",
       "Hide home composer": "Ocultar el editor de Inicio",
       "Remove the quick-post composer from Home. The Post button still opens it when needed.": "Elimina el editor de publicaci\xF3n r\xE1pida de Inicio. El bot\xF3n Publicar sigue abri\xE9ndolo cuando lo necesites.",
+      "Hide thread recommendations": "Ocultar recomendaciones del hilo",
+      "Stop a conversation at its last real reply by collapsing the Discover more block and the suggested posts below it.": "Termina la conversaci\xF3n en su \xFAltima respuesta real contrayendo el bloque Descubre m\xE1s y las publicaciones sugeridas debajo.",
       "Hide Grok surfaces": "Ocultar superficies de Grok",
       "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.": "Elimina el panel y el enlace de navegaci\xF3n de Grok, sus entradas de generaci\xF3n de im\xE1genes y las acciones por publicaci\xF3n.",
       "Writer mode": "Modo escritura",
@@ -700,7 +702,6 @@ html.av-reduce-motion *::after {
       "Prefer original quality": "Preferir calidad original",
       "Rewrite image URLs to name=orig before downloading.": "Reescribe las URL de imagen a name=orig antes de descargar.",
       "Original quality status": "Estado de calidad original",
-      "Original quality is applied when download controls are enabled.": "La calidad original se aplica cuando los controles de descarga est\xE1n habilitados.",
       "Show images at original quality": "Mostrar im\xE1genes en calidad original",
       "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "Carga las fotos de la cronolog\xEDa a tama\xF1o completo en lugar de la versi\xF3n que X elige para el hueco. M\xE1s n\xEDtidas, y varias veces m\xE1s datos.",
       "Filename template": "Plantilla de nombre de archivo",
@@ -1304,11 +1305,16 @@ html.av-reduce-motion *::after {
       "Save locally": "Guardar localmente",
       "Remove local bookmark": "Eliminar marcador local",
       "Note": "Nota",
+      "Download access was not granted. Open Aviary Options to enable browser downloads.": "No se concedi\xF3 el acceso de descarga. Abre las opciones de Aviary para habilitar las descargas del navegador.",
+      "Media download failed. Try the on-post button again.": "Fall\xF3 la descarga del contenido. Vuelve a intentarlo con el bot\xF3n de la publicaci\xF3n.",
+      "Right-click an image or video first, then choose Aviary download.": "Haz clic derecho en una imagen o un v\xEDdeo y luego elige la descarga de Aviary.",
       "Unavailable": "No disponible",
       "Saved": "Guardado",
       "Queued": "En cola",
       "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "Tu navegador abri\xF3 el archivo en lugar de guardarlo: concede a Aviary el permiso de descargas para guardarlo de verdad.",
       "Aviary needs the browser download permission. Opening its options page.": "Aviary necesita el permiso de descargas del navegador. Abriendo su p\xE1gina de opciones.",
+      "The direct video is still loading. Try again in a moment.": "El v\xEDdeo directo a\xFAn se est\xE1 cargando. Int\xE9ntalo de nuevo en un momento.",
+      "This image is not available to download.": "Esta imagen no est\xE1 disponible para descargar.",
       "Allow": "Permitir",
       "Retry": "Reintentar",
       "Permissions": "Permisos",
@@ -1334,6 +1340,7 @@ html.av-reduce-motion *::after {
       "not granted": "no concedido",
       "Granted. Media saves through the browser now.": "Concedido. Ahora los medios se guardan con el navegador.",
       "Granted. Aviary can read full-size media directly for exports now.": "Concedido. Ahora Aviary puede leer medios a tama\xF1o completo para las exportaciones.",
+      "Original quality is applied when download controls are enabled.": "La calidad original se aplica cuando los controles de descarga est\xE1n habilitados.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Un ID estable de navegaci\xF3n de X por l\xEDnea: home, explore, notifications, messages, profile, more o premium.",
       "Save list": "Guardar lista",
       "Reset everything to plain X": "Restablecer todo a X sin cambios",
@@ -1440,6 +1447,8 @@ html.av-reduce-motion *::after {
       "Remove Who to follow cards without hiding the rest of the sidebar.": "Remove os cart\xF5es \xABQuem seguir\xBB sem ocultar o resto da barra lateral.",
       "Hide home composer": "Ocultar o editor da p\xE1gina inicial",
       "Remove the quick-post composer from Home. The Post button still opens it when needed.": "Remove o editor de publica\xE7\xE3o r\xE1pida da p\xE1gina inicial. O bot\xE3o Publicar continua a abri-lo quando necess\xE1rio.",
+      "Hide thread recommendations": "Ocultar recomenda\xE7\xF5es da conversa",
+      "Stop a conversation at its last real reply by collapsing the Discover more block and the suggested posts below it.": "Encerra a conversa na \xFAltima resposta real, recolhendo o bloco Descobrir mais e as publica\xE7\xF5es sugeridas abaixo.",
       "Hide Grok surfaces": "Ocultar superf\xEDcies do Grok",
       "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.": "Remove o painel e o link de navega\xE7\xE3o do Grok, as entradas de gera\xE7\xE3o de imagens e as a\xE7\xF5es por publica\xE7\xE3o.",
       "Writer mode": "Modo escrita",
@@ -1516,7 +1525,6 @@ html.av-reduce-motion *::after {
       "Prefer original quality": "Preferir qualidade original",
       "Rewrite image URLs to name=orig before downloading.": "Reescreve as URLs de imagem para name=orig antes de baixar.",
       "Original quality status": "Estado da qualidade original",
-      "Original quality is applied when download controls are enabled.": "A qualidade original \xE9 aplicada quando os controlos de transfer\xEAncia est\xE3o ativados.",
       "Show images at original quality": "Mostrar imagens na qualidade original",
       "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "Carrega as fotos da cronologia em tamanho completo em vez da vers\xE3o que o X escolhe para o espa\xE7o. Mais n\xEDtidas, e v\xE1rias vezes mais dados.",
       "Filename template": "Modelo de nome de arquivo",
@@ -2120,11 +2128,16 @@ html.av-reduce-motion *::after {
       "Save locally": "Guardar localmente",
       "Remove local bookmark": "Remover marcador local",
       "Note": "Nota",
+      "Download access was not granted. Open Aviary Options to enable browser downloads.": "O acesso de download n\xE3o foi concedido. Abra as op\xE7\xF5es do Aviary para ativar os downloads do navegador.",
+      "Media download failed. Try the on-post button again.": "Falha ao baixar a m\xEDdia. Tente novamente pelo bot\xE3o na publica\xE7\xE3o.",
+      "Right-click an image or video first, then choose Aviary download.": "Clique com o bot\xE3o direito em uma imagem ou v\xEDdeo e escolha o download do Aviary.",
       "Unavailable": "Indispon\xEDvel",
       "Saved": "Guardado",
       "Queued": "Em fila",
       "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "O teu navegador abriu o ficheiro em vez de o guardar \u2014 concede ao Aviary a permiss\xE3o de transfer\xEAncias para guardar mesmo.",
       "Aviary needs the browser download permission. Opening its options page.": "O Aviary precisa da permiss\xE3o de transfer\xEAncias do navegador. A abrir a p\xE1gina de op\xE7\xF5es.",
+      "The direct video is still loading. Try again in a moment.": "O v\xEDdeo direto ainda est\xE1 carregando. Tente novamente em instantes.",
+      "This image is not available to download.": "Esta imagem n\xE3o est\xE1 dispon\xEDvel para download.",
       "Allow": "Permitir",
       "Retry": "Tentar de novo",
       "Permissions": "Permiss\xF5es",
@@ -2150,6 +2163,7 @@ html.av-reduce-motion *::after {
       "not granted": "n\xE3o concedido",
       "Granted. Media saves through the browser now.": "Concedido. A multim\xE9dia passa agora a ser guardada pelo navegador.",
       "Granted. Aviary can read full-size media directly for exports now.": "Concedido. O Aviary pode agora ler multim\xE9dia em tamanho completo para as exporta\xE7\xF5es.",
+      "Original quality is applied when download controls are enabled.": "A qualidade original \xE9 aplicada quando os controlos de transfer\xEAncia est\xE3o ativados.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Um ID de navega\xE7\xE3o est\xE1vel do X por linha: home, explore, notifications, messages, profile, more ou premium.",
       "Save list": "Salvar lista",
       "Reset everything to plain X": "Repor tudo para o X original",
@@ -2256,6 +2270,8 @@ html.av-reduce-motion *::after {
       "Remove Who to follow cards without hiding the rest of the sidebar.": "Supprime les cartes \xAB Qui suivre \xBB sans masquer le reste de la barre lat\xE9rale.",
       "Hide home composer": "Masquer le r\xE9dacteur de l\u2019accueil",
       "Remove the quick-post composer from Home. The Post button still opens it when needed.": "Supprime le r\xE9dacteur rapide de l\u2019accueil. Le bouton Publier permet toujours de l\u2019ouvrir au besoin.",
+      "Hide thread recommendations": "Masquer les recommandations du fil",
+      "Stop a conversation at its last real reply by collapsing the Discover more block and the suggested posts below it.": "Arr\xEAte la conversation \xE0 sa derni\xE8re vraie r\xE9ponse en repliant le bloc D\xE9couvrir plus et les posts sugg\xE9r\xE9s en dessous.",
       "Hide Grok surfaces": "Masquer les surfaces Grok",
       "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.": "Supprime le panneau et le lien de navigation Grok, les entr\xE9es de g\xE9n\xE9ration d\u2019images et les actions par publication.",
       "Writer mode": "Mode \xE9criture",
@@ -2332,7 +2348,6 @@ html.av-reduce-motion *::after {
       "Prefer original quality": "Pr\xE9f\xE9rer la qualit\xE9 d'origine",
       "Rewrite image URLs to name=orig before downloading.": "R\xE9\xE9crit les URL d'image en name=orig avant le t\xE9l\xE9chargement.",
       "Original quality status": "\xC9tat de la qualit\xE9 d'origine",
-      "Original quality is applied when download controls are enabled.": "La qualit\xE9 d'origine est appliqu\xE9e lorsque les contr\xF4les de t\xE9l\xE9chargement sont activ\xE9s.",
       "Show images at original quality": "Afficher les images en qualit\xE9 d'origine",
       "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "Charge les photos du fil en taille r\xE9elle plut\xF4t que la version choisie par X pour l'emplacement. Plus net, et plusieurs fois plus de donn\xE9es.",
       "Filename template": "Mod\xE8le de nom de fichier",
@@ -2936,11 +2951,16 @@ html.av-reduce-motion *::after {
       "Save locally": "Enregistrer localement",
       "Remove local bookmark": "Supprimer le marque-page local",
       "Note": "Annotation",
+      "Download access was not granted. Open Aviary Options to enable browser downloads.": "L'acc\xE8s au t\xE9l\xE9chargement n'a pas \xE9t\xE9 accord\xE9. Ouvrez les options d'Aviary pour activer les t\xE9l\xE9chargements du navigateur.",
+      "Media download failed. Try the on-post button again.": "\xC9chec du t\xE9l\xE9chargement du m\xE9dia. R\xE9essayez avec le bouton sur le post.",
+      "Right-click an image or video first, then choose Aviary download.": "Faites un clic droit sur une image ou une vid\xE9o, puis choisissez le t\xE9l\xE9chargement Aviary.",
       "Unavailable": "Indisponible",
       "Saved": "Enregistr\xE9",
       "Queued": "En file",
       "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "Votre navigateur a ouvert ce fichier au lieu de l'enregistrer \u2014 accordez \xE0 Aviary l'autorisation de t\xE9l\xE9chargement pour un vrai enregistrement.",
       "Aviary needs the browser download permission. Opening its options page.": "Aviary a besoin de l'autorisation de t\xE9l\xE9chargement du navigateur. Ouverture de sa page d'options.",
+      "The direct video is still loading. Try again in a moment.": "La vid\xE9o directe est encore en cours de chargement. R\xE9essayez dans un instant.",
+      "This image is not available to download.": "Cette image n'est pas disponible au t\xE9l\xE9chargement.",
       "Allow": "Autoriser",
       "Retry": "R\xE9essayer",
       "Permissions": "Autorisations",
@@ -2966,6 +2986,7 @@ html.av-reduce-motion *::after {
       "not granted": "non accord\xE9",
       "Granted. Media saves through the browser now.": "Accord\xE9. Les m\xE9dias sont d\xE9sormais enregistr\xE9s par le navigateur.",
       "Granted. Aviary can read full-size media directly for exports now.": "Accord\xE9. Aviary peut d\xE9sormais lire les m\xE9dias en taille r\xE9elle pour les exports.",
+      "Original quality is applied when download controls are enabled.": "La qualit\xE9 d'origine est appliqu\xE9e lorsque les contr\xF4les de t\xE9l\xE9chargement sont activ\xE9s.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Un identifiant de navigation X stable par ligne : home, explore, notifications, messages, profile, more ou premium.",
       "Save list": "Enregistrer la liste",
       "Reset everything to plain X": "Tout r\xE9initialiser au X d'origine",
@@ -3072,6 +3093,8 @@ html.av-reduce-motion *::after {
       "Remove Who to follow cards without hiding the rest of the sidebar.": "Entfernt \u201EWem folgen?\u201C-Karten, ohne den Rest der Seitenleiste auszublenden.",
       "Hide home composer": "Startseiten-Editor ausblenden",
       "Remove the quick-post composer from Home. The Post button still opens it when needed.": "Entfernt den Schnellbeitrag-Editor auf der Startseite. \xDCber die Schaltfl\xE4che \u201EPosten\u201C l\xE4sst er sich bei Bedarf weiterhin \xF6ffnen.",
+      "Hide thread recommendations": "Thread-Empfehlungen ausblenden",
+      "Stop a conversation at its last real reply by collapsing the Discover more block and the suggested posts below it.": "Beendet die Unterhaltung bei der letzten echten Antwort und blendet den Bereich \u201EMehr entdecken\u201C samt der vorgeschlagenen Beitr\xE4ge darunter aus.",
       "Hide Grok surfaces": "Grok-Oberfl\xE4chen ausblenden",
       "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.": "Blendet die Grok-Leiste und den Navigationslink, die Bildgenerierungseintr\xE4ge und die Aktionen pro Beitrag aus.",
       "Writer mode": "Schreibmodus",
@@ -3148,7 +3171,6 @@ html.av-reduce-motion *::after {
       "Prefer original quality": "Originalqualit\xE4t bevorzugen",
       "Rewrite image URLs to name=orig before downloading.": "Schreibt Bild-URLs vor dem Download auf name=orig um.",
       "Original quality status": "Status der Originalqualit\xE4t",
-      "Original quality is applied when download controls are enabled.": "Originalqualit\xE4t wird angewendet, wenn die Download-Steuerelemente aktiviert sind.",
       "Show images at original quality": "Bilder in Originalqualit\xE4t anzeigen",
       "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "L\xE4dt Timeline-Fotos in voller Gr\xF6\xDFe statt in der Version, die X f\xFCr den Platz ausw\xE4hlt. Sch\xE4rfer, und ein Vielfaches an Daten.",
       "Filename template": "Dateinamenvorlage",
@@ -3752,11 +3774,16 @@ html.av-reduce-motion *::after {
       "Save locally": "Lokal speichern",
       "Remove local bookmark": "Lokales Lesezeichen entfernen",
       "Note": "Notiz",
+      "Download access was not granted. Open Aviary Options to enable browser downloads.": "Der Download-Zugriff wurde nicht erteilt. \xD6ffne die Aviary-Optionen, um Browser-Downloads zu aktivieren.",
+      "Media download failed. Try the on-post button again.": "Medien-Download fehlgeschlagen. Versuche es erneut \xFCber die Schaltfl\xE4che am Beitrag.",
+      "Right-click an image or video first, then choose Aviary download.": "Klicke zuerst mit der rechten Maustaste auf ein Bild oder Video und w\xE4hle dann den Aviary-Download.",
       "Unavailable": "Nicht verf\xFCgbar",
       "Saved": "Gespeichert",
       "Queued": "In Warteschlange",
       "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "Dein Browser hat die Datei ge\xF6ffnet statt gespeichert \u2014 erteile Aviary die Download-Berechtigung f\xFCr ein echtes Speichern.",
       "Aviary needs the browser download permission. Opening its options page.": "Aviary ben\xF6tigt die Download-Berechtigung des Browsers. Die Optionsseite wird ge\xF6ffnet.",
+      "The direct video is still loading. Try again in a moment.": "Das direkte Video wird noch geladen. Versuche es gleich noch einmal.",
+      "This image is not available to download.": "Dieses Bild steht nicht zum Download zur Verf\xFCgung.",
       "Allow": "Zulassen",
       "Retry": "Erneut versuchen",
       "Permissions": "Berechtigungen",
@@ -3782,6 +3809,7 @@ html.av-reduce-motion *::after {
       "not granted": "nicht erteilt",
       "Granted. Media saves through the browser now.": "Erteilt. Medien werden jetzt \xFCber den Browser gespeichert.",
       "Granted. Aviary can read full-size media directly for exports now.": "Erteilt. Aviary kann Medien jetzt in voller Gr\xF6\xDFe f\xFCr Exporte lesen.",
+      "Original quality is applied when download controls are enabled.": "Originalqualit\xE4t wird angewendet, wenn die Download-Steuerelemente aktiviert sind.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Eine stabile X-Navigations-ID pro Zeile: home, explore, notifications, messages, profile, more oder premium.",
       "Save list": "Liste speichern",
       "Reset everything to plain X": "Alles auf das pure X zur\xFCcksetzen",
@@ -3888,6 +3916,8 @@ html.av-reduce-motion *::after {
       "Remove Who to follow cards without hiding the rest of the sidebar.": "\u30B5\u30A4\u30C9\u30D0\u30FC\u306E\u307B\u304B\u306E\u90E8\u5206\u306F\u6B8B\u3057\u305F\u307E\u307E\u3001\u300C\u304A\u3059\u3059\u3081\u30E6\u30FC\u30B6\u30FC\u300D\u30AB\u30FC\u30C9\u3092\u975E\u8868\u793A\u306B\u3057\u307E\u3059\u3002",
       "Hide home composer": "\u30DB\u30FC\u30E0\u306E\u6295\u7A3F\u6B04\u3092\u975E\u8868\u793A",
       "Remove the quick-post composer from Home. The Post button still opens it when needed.": "\u30DB\u30FC\u30E0\u306E\u30AF\u30A4\u30C3\u30AF\u6295\u7A3F\u6B04\u3092\u975E\u8868\u793A\u306B\u3057\u307E\u3059\u3002\u5FC5\u8981\u306A\u3068\u304D\u306F\u300C\u30DD\u30B9\u30C8\u300D\u30DC\u30BF\u30F3\u304B\u3089\u958B\u3051\u307E\u3059\u3002",
+      "Hide thread recommendations": "\u30B9\u30EC\u30C3\u30C9\u306E\u304A\u3059\u3059\u3081\u3092\u975E\u8868\u793A",
+      "Stop a conversation at its last real reply by collapsing the Discover more block and the suggested posts below it.": "\u300C\u305D\u306E\u4ED6\u306E\u304A\u3059\u3059\u3081\u300D\u30D6\u30ED\u30C3\u30AF\u3068\u305D\u306E\u4E0B\u306E\u95A2\u9023\u6295\u7A3F\u3092\u6298\u308A\u305F\u305F\u307F\u3001\u4F1A\u8A71\u3092\u6700\u5F8C\u306E\u5B9F\u969B\u306E\u8FD4\u4FE1\u3067\u7D42\u4E86\u3057\u307E\u3059\u3002",
       "Hide Grok surfaces": "Grok \u306E\u8981\u7D20\u3092\u975E\u8868\u793A",
       "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.": "Grok \u306E\u30C9\u30ED\u30EF\u30FC\u3068\u30CA\u30D3\u30B2\u30FC\u30B7\u30E7\u30F3\u30EA\u30F3\u30AF\u3001\u753B\u50CF\u751F\u6210\u306E\u5165\u53E3\u3001\u6295\u7A3F\u3054\u3068\u306E\u30A2\u30AF\u30B7\u30E7\u30F3\u3092\u975E\u8868\u793A\u306B\u3057\u307E\u3059\u3002",
       "Writer mode": "\u30E9\u30A4\u30BF\u30FC\u30E2\u30FC\u30C9",
@@ -3964,7 +3994,6 @@ html.av-reduce-motion *::after {
       "Prefer original quality": "\u30AA\u30EA\u30B8\u30CA\u30EB\u753B\u8CEA\u3092\u512A\u5148",
       "Rewrite image URLs to name=orig before downloading.": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u524D\u306B\u753B\u50CF URL \u3092 name=orig \u306B\u66F8\u304D\u63DB\u3048\u307E\u3059\u3002",
       "Original quality status": "\u30AA\u30EA\u30B8\u30CA\u30EB\u753B\u8CEA\u306E\u72B6\u614B",
-      "Original quality is applied when download controls are enabled.": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u3092\u6709\u52B9\u306B\u3059\u308B\u3068\u30AA\u30EA\u30B8\u30CA\u30EB\u753B\u8CEA\u304C\u9069\u7528\u3055\u308C\u307E\u3059\u3002",
       "Show images at original quality": "\u753B\u50CF\u3092\u30AA\u30EA\u30B8\u30CA\u30EB\u753B\u8CEA\u3067\u8868\u793A",
       "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u306E\u5199\u771F\u3092\u3001X \u304C\u67A0\u306B\u5408\u308F\u305B\u3066\u9078\u3093\u3060\u7248\u3067\u306F\u306A\u304F\u30D5\u30EB\u30B5\u30A4\u30BA\u3067\u8AAD\u307F\u8FBC\u307F\u307E\u3059\u3002\u3088\u308A\u9BAE\u660E\u3067\u3059\u304C\u3001\u901A\u4FE1\u91CF\u306F\u6570\u500D\u306B\u306A\u308A\u307E\u3059\u3002",
       "Filename template": "\u30D5\u30A1\u30A4\u30EB\u540D\u306E\u30C6\u30F3\u30D7\u30EC\u30FC\u30C8",
@@ -4568,11 +4597,16 @@ html.av-reduce-motion *::after {
       "Save locally": "\u30ED\u30FC\u30AB\u30EB\u306B\u4FDD\u5B58",
       "Remove local bookmark": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u524A\u9664",
       "Note": "\u30E1\u30E2",
+      "Download access was not granted. Open Aviary Options to enable browser downloads.": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306E\u30A2\u30AF\u30BB\u30B9\u304C\u8A31\u53EF\u3055\u308C\u307E\u305B\u3093\u3067\u3057\u305F\u3002Aviary \u306E\u30AA\u30D7\u30B7\u30E7\u30F3\u3092\u958B\u3044\u3066\u30D6\u30E9\u30A6\u30B6\u30FC\u306E\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3092\u6709\u52B9\u306B\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+      "Media download failed. Try the on-post button again.": "\u30E1\u30C7\u30A3\u30A2\u306E\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u6295\u7A3F\u4E0A\u306E\u30DC\u30BF\u30F3\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+      "Right-click an image or video first, then choose Aviary download.": "\u5148\u306B\u753B\u50CF\u307E\u305F\u306F\u52D5\u753B\u3092\u53F3\u30AF\u30EA\u30C3\u30AF\u3057\u3066\u304B\u3089\u3001Aviary \u306E\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
       "Unavailable": "\u5229\u7528\u3067\u304D\u307E\u305B\u3093",
       "Saved": "\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Queued": "\u5F85\u6A5F\u4E2D",
       "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "\u30D6\u30E9\u30A6\u30B6\u30FC\u304C\u30D5\u30A1\u30A4\u30EB\u3092\u4FDD\u5B58\u305B\u305A\u306B\u958B\u304D\u307E\u3057\u305F\u3002\u78BA\u5B9F\u306B\u4FDD\u5B58\u3059\u308B\u306B\u306F Aviary \u306B\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u6A29\u9650\u3092\u8A31\u53EF\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
       "Aviary needs the browser download permission. Opening its options page.": "Aviary \u306B\u306F\u30D6\u30E9\u30A6\u30B6\u30FC\u306E\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u6A29\u9650\u304C\u5FC5\u8981\u3067\u3059\u3002\u30AA\u30D7\u30B7\u30E7\u30F3\u30DA\u30FC\u30B8\u3092\u958B\u304D\u307E\u3059\u3002",
+      "The direct video is still loading. Try again in a moment.": "\u76F4\u63A5\u52D5\u753B\u3092\u307E\u3060\u8AAD\u307F\u8FBC\u307F\u4E2D\u3067\u3059\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+      "This image is not available to download.": "\u3053\u306E\u753B\u50CF\u306F\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3067\u304D\u307E\u305B\u3093\u3002",
       "Allow": "\u8A31\u53EF",
       "Retry": "\u518D\u8A66\u884C",
       "Permissions": "\u6A29\u9650",
@@ -4598,6 +4632,7 @@ html.av-reduce-motion *::after {
       "not granted": "\u672A\u8A31\u53EF",
       "Granted. Media saves through the browser now.": "\u8A31\u53EF\u3057\u307E\u3057\u305F\u3002\u4ECA\u5F8C\u306F\u30D6\u30E9\u30A6\u30B6\u30FC\u7D4C\u7531\u3067\u30E1\u30C7\u30A3\u30A2\u3092\u4FDD\u5B58\u3057\u307E\u3059\u3002",
       "Granted. Aviary can read full-size media directly for exports now.": "\u8A31\u53EF\u3057\u307E\u3057\u305F\u3002\u4ECA\u5F8C Aviary \u306F\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u7528\u306B\u30D5\u30EB\u30B5\u30A4\u30BA\u306E\u30E1\u30C7\u30A3\u30A2\u3092\u76F4\u63A5\u8AAD\u307F\u53D6\u308C\u307E\u3059\u3002",
+      "Original quality is applied when download controls are enabled.": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u3092\u6709\u52B9\u306B\u3059\u308B\u3068\u30AA\u30EA\u30B8\u30CA\u30EB\u753B\u8CEA\u304C\u9069\u7528\u3055\u308C\u307E\u3059\u3002",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "1\u884C\u306B1\u3064\u306E\u5B89\u5B9A\u3057\u305FX\u30CA\u30D3\u30B2\u30FC\u30B7\u30E7\u30F3ID\u3092\u5165\u529B\u3057\u307E\u3059: home\u3001explore\u3001notifications\u3001messages\u3001profile\u3001more\u3001premium\u3002",
       "Save list": "\u30EA\u30B9\u30C8\u3092\u4FDD\u5B58",
       "Reset everything to plain X": "\u3059\u3079\u3066\u3092\u7D20\u306E X \u306B\u623B\u3059",
@@ -4704,6 +4739,8 @@ html.av-reduce-motion *::after {
       "Remove Who to follow cards without hiding the rest of the sidebar.": "\uC0AC\uC774\uB4DC\uBC14\uC758 \uB098\uBA38\uC9C0\uB294 \uC720\uC9C0\uD558\uACE0 \uD314\uB85C\uC6B0 \uCD94\uCC9C \uCE74\uB4DC\uB9CC \uC228\uAE41\uB2C8\uB2E4.",
       "Hide home composer": "\uD648 \uC791\uC131\uAE30 \uC228\uAE30\uAE30",
       "Remove the quick-post composer from Home. The Post button still opens it when needed.": "\uD648\uC758 \uBE60\uB978 \uAC8C\uC2DC \uC791\uC131\uAE30\uB97C \uC228\uAE41\uB2C8\uB2E4. \uD544\uC694\uD560 \uB54C \uAC8C\uC2DC \uBC84\uD2BC\uC73C\uB85C \uACC4\uC18D \uC5F4 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+      "Hide thread recommendations": "\uC2A4\uB808\uB4DC \uCD94\uCC9C \uC228\uAE30\uAE30",
+      "Stop a conversation at its last real reply by collapsing the Discover more block and the suggested posts below it.": "'\uB354 \uBCF4\uAE30' \uBE14\uB85D\uACFC \uADF8 \uC544\uB798 \uCD94\uCC9C \uAC8C\uC2DC\uBB3C\uC744 \uC811\uC5B4 \uB300\uD654\uB97C \uB9C8\uC9C0\uB9C9 \uC2E4\uC81C \uB2F5\uAE00\uC5D0\uC11C \uB05D\uB0C5\uB2C8\uB2E4.",
       "Hide Grok surfaces": "Grok \uC694\uC18C \uC228\uAE30\uAE30",
       "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.": "Grok \uC11C\uB78D\uACFC \uD0D0\uC0C9 \uB9C1\uD06C, \uC774\uBBF8\uC9C0 \uC0DD\uC131 \uC9C4\uC785\uC810 \uBC0F \uAC8C\uC2DC\uBB3C\uBCC4 \uC791\uC5C5\uC744 \uC228\uAE41\uB2C8\uB2E4.",
       "Writer mode": "\uC9D1\uD544 \uBAA8\uB4DC",
@@ -4780,7 +4817,6 @@ html.av-reduce-motion *::after {
       "Prefer original quality": "\uC6D0\uBCF8 \uD654\uC9C8 \uC6B0\uC120",
       "Rewrite image URLs to name=orig before downloading.": "\uB0B4\uB824\uBC1B\uAE30 \uC804\uC5D0 \uC774\uBBF8\uC9C0 URL\uC744 name=orig\uB85C \uBC14\uAFC9\uB2C8\uB2E4.",
       "Original quality status": "\uC6D0\uBCF8 \uD654\uC9C8 \uC0C1\uD0DC",
-      "Original quality is applied when download controls are enabled.": "\uB2E4\uC6B4\uB85C\uB4DC \uCEE8\uD2B8\uB864\uC744 \uCF1C\uBA74 \uC6D0\uBCF8 \uD654\uC9C8\uC774 \uC801\uC6A9\uB429\uB2C8\uB2E4.",
       "Show images at original quality": "\uC774\uBBF8\uC9C0\uB97C \uC6D0\uBCF8 \uD654\uC9C8\uB85C \uD45C\uC2DC",
       "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "\uD0C0\uC784\uB77C\uC778 \uC0AC\uC9C4\uC744 X\uAC00 \uC790\uB9AC\uC5D0 \uB9DE\uCDB0 \uACE0\uB978 \uBC84\uC804 \uB300\uC2E0 \uC804\uCCB4 \uD06C\uAE30\uB85C \uBD88\uB7EC\uC635\uB2C8\uB2E4. \uB354 \uC120\uBA85\uD558\uC9C0\uB9CC \uB370\uC774\uD130 \uC0AC\uC6A9\uB7C9\uC740 \uBA87 \uBC30\uAC00 \uB429\uB2C8\uB2E4.",
       "Filename template": "\uD30C\uC77C \uC774\uB984 \uD15C\uD50C\uB9BF",
@@ -5384,11 +5420,16 @@ html.av-reduce-motion *::after {
       "Save locally": "\uB85C\uCEEC\uC5D0 \uC800\uC7A5",
       "Remove local bookmark": "\uB85C\uCEEC \uBD81\uB9C8\uD06C \uC0AD\uC81C",
       "Note": "\uBA54\uBAA8",
+      "Download access was not granted. Open Aviary Options to enable browser downloads.": "\uB2E4\uC6B4\uB85C\uB4DC \uAD8C\uD55C\uC774 \uD5C8\uC6A9\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4. Aviary \uC635\uC158\uC5D0\uC11C \uBE0C\uB77C\uC6B0\uC800 \uB2E4\uC6B4\uB85C\uB4DC\uB97C \uD65C\uC131\uD654\uD558\uC138\uC694.",
+      "Media download failed. Try the on-post button again.": "\uBBF8\uB514\uC5B4 \uB2E4\uC6B4\uB85C\uB4DC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4. \uAC8C\uC2DC\uBB3C\uC758 \uBC84\uD2BC\uC73C\uB85C \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+      "Right-click an image or video first, then choose Aviary download.": "\uBA3C\uC800 \uC774\uBBF8\uC9C0\uB098 \uB3D9\uC601\uC0C1\uC744 \uB9C8\uC6B0\uC2A4 \uC624\uB978\uCABD \uBC84\uD2BC\uC73C\uB85C \uD074\uB9AD\uD55C \uB2E4\uC74C Aviary \uB2E4\uC6B4\uB85C\uB4DC\uB97C \uC120\uD0DD\uD558\uC138\uC694.",
       "Unavailable": "\uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC74C",
       "Saved": "\uC800\uC7A5\uB428",
       "Queued": "\uB300\uAE30 \uC911",
       "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "\uBE0C\uB77C\uC6B0\uC800\uAC00 \uD30C\uC77C\uC744 \uC800\uC7A5\uD558\uC9C0 \uC54A\uACE0 \uC5F4\uC5C8\uC2B5\uB2C8\uB2E4. \uC2E4\uC81C\uB85C \uC800\uC7A5\uD558\uB824\uBA74 Aviary\uC5D0 \uB2E4\uC6B4\uB85C\uB4DC \uAD8C\uD55C\uC744 \uD5C8\uC6A9\uD558\uC138\uC694.",
       "Aviary needs the browser download permission. Opening its options page.": "Aviary\uC5D0\uB294 \uBE0C\uB77C\uC6B0\uC800 \uB2E4\uC6B4\uB85C\uB4DC \uAD8C\uD55C\uC774 \uD544\uC694\uD569\uB2C8\uB2E4. \uC635\uC158 \uD398\uC774\uC9C0\uB97C \uC5FD\uB2C8\uB2E4.",
+      "The direct video is still loading. Try again in a moment.": "\uC9C1\uC811 \uB3D9\uC601\uC0C1\uC744 \uC544\uC9C1 \uBD88\uB7EC\uC624\uB294 \uC911\uC785\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+      "This image is not available to download.": "\uC774 \uC774\uBBF8\uC9C0\uB294 \uB2E4\uC6B4\uB85C\uB4DC\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
       "Allow": "\uD5C8\uC6A9",
       "Retry": "\uB2E4\uC2DC \uC2DC\uB3C4",
       "Permissions": "\uAD8C\uD55C",
@@ -5414,6 +5455,7 @@ html.av-reduce-motion *::after {
       "not granted": "\uD5C8\uC6A9\uB418\uC9C0 \uC54A\uC74C",
       "Granted. Media saves through the browser now.": "\uD5C8\uC6A9\uD588\uC2B5\uB2C8\uB2E4. \uC774\uC81C \uBE0C\uB77C\uC6B0\uC800\uB97C \uD1B5\uD574 \uBBF8\uB514\uC5B4\uB97C \uC800\uC7A5\uD569\uB2C8\uB2E4.",
       "Granted. Aviary can read full-size media directly for exports now.": "\uD5C8\uC6A9\uD588\uC2B5\uB2C8\uB2E4. \uC774\uC81C Aviary\uAC00 \uB0B4\uBCF4\uB0B4\uAE30\uB97C \uC704\uD574 \uC6D0\uBCF8 \uD06C\uAE30 \uBBF8\uB514\uC5B4\uB97C \uC9C1\uC811 \uC77D\uC744 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+      "Original quality is applied when download controls are enabled.": "\uB2E4\uC6B4\uB85C\uB4DC \uCEE8\uD2B8\uB864\uC744 \uCF1C\uBA74 \uC6D0\uBCF8 \uD654\uC9C8\uC774 \uC801\uC6A9\uB429\uB2C8\uB2E4.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "\uC904\uB9C8\uB2E4 \uC548\uC815\uC801\uC778 X \uB0B4\uBE44\uAC8C\uC774\uC158 ID \uD558\uB098\uB97C \uC785\uB825\uD558\uC138\uC694: home, explore, notifications, messages, profile, more \uB610\uB294 premium.",
       "Save list": "\uBAA9\uB85D \uC800\uC7A5",
       "Reset everything to plain X": "\uBAA8\uB450 \uAE30\uBCF8 X \uC0C1\uD0DC\uB85C \uB418\uB3CC\uB9AC\uAE30",
@@ -5520,6 +5562,8 @@ html.av-reduce-motion *::after {
       "Remove Who to follow cards without hiding the rest of the sidebar.": "\u064A\u0632\u064A\u0644 \u0628\u0637\u0627\u0642\u0627\u062A \xAB\u0645\u0646 \u062A\u062A\u0627\u0628\u0639\xBB \u0645\u0646 \u062F\u0648\u0646 \u0625\u062E\u0641\u0627\u0621 \u0628\u0642\u064A\u0629 \u0627\u0644\u0634\u0631\u064A\u0637 \u0627\u0644\u062C\u0627\u0646\u0628\u064A.",
       "Hide home composer": "\u0625\u062E\u0641\u0627\u0621 \u0645\u062D\u0631\u0631 \u0627\u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629",
       "Remove the quick-post composer from Home. The Post button still opens it when needed.": "\u064A\u0632\u064A\u0644 \u0645\u062D\u0631\u0631 \u0627\u0644\u0646\u0634\u0631 \u0627\u0644\u0633\u0631\u064A\u0639 \u0645\u0646 \u0627\u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629. \u064A\u0638\u0644 \u0632\u0631 \xAB\u0646\u0634\u0631\xBB \u0645\u062A\u0627\u062D\u064B\u0627 \u0644\u0641\u062A\u062D\u0647 \u0639\u0646\u062F \u0627\u0644\u062D\u0627\u062C\u0629.",
+      "Hide thread recommendations": "\u0625\u062E\u0641\u0627\u0621 \u062A\u0648\u0635\u064A\u0627\u062A \u0627\u0644\u0645\u062D\u0627\u062F\u062B\u0629",
+      "Stop a conversation at its last real reply by collapsing the Discover more block and the suggested posts below it.": "\u064A\u0646\u0647\u064A \u0627\u0644\u0645\u062D\u0627\u062F\u062B\u0629 \u0639\u0646\u062F \u0622\u062E\u0631 \u0631\u062F \u062D\u0642\u064A\u0642\u064A \u0628\u0637\u064A \u0642\u0633\u0645 \u0627\u0643\u062A\u0634\u0641 \u0627\u0644\u0645\u0632\u064A\u062F \u0648\u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u0642\u062A\u0631\u062D\u0629 \u0623\u0633\u0641\u0644\u0647.",
       "Hide Grok surfaces": "\u0625\u062E\u0641\u0627\u0621 \u0648\u0627\u062C\u0647\u0627\u062A Grok",
       "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.": "\u064A\u0632\u064A\u0644 \u0644\u0648\u062D\u0629 Grok \u0648\u0631\u0627\u0628\u0637 \u0627\u0644\u062A\u0646\u0642\u0644 \u0648\u0645\u062F\u0627\u062E\u0644 \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u0635\u0648\u0631 \u0648\u0625\u062C\u0631\u0627\u0621\u0627\u062A \u0643\u0644 \u0645\u0646\u0634\u0648\u0631.",
       "Writer mode": "\u0648\u0636\u0639 \u0627\u0644\u0643\u062A\u0627\u0628\u0629",
@@ -5596,7 +5640,6 @@ html.av-reduce-motion *::after {
       "Prefer original quality": "\u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629",
       "Rewrite image URLs to name=orig before downloading.": "\u064A\u0639\u064A\u062F \u0643\u062A\u0627\u0628\u0629 \u0631\u0648\u0627\u0628\u0637 \u0627\u0644\u0635\u0648\u0631 \u0625\u0644\u0649 name=orig \u0642\u0628\u0644 \u0627\u0644\u062A\u0646\u0632\u064A\u0644.",
       "Original quality status": "\u062D\u0627\u0644\u0629 \u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629",
-      "Original quality is applied when download controls are enabled.": "\u062A\u064F\u0637\u0628\u0651\u0642 \u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629 \u0639\u0646\u062F \u062A\u0641\u0639\u064A\u0644 \u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062A\u062D\u0643\u0645 \u0641\u064A \u0627\u0644\u062A\u0646\u0632\u064A\u0644.",
       "Show images at original quality": "\u0639\u0631\u0636 \u0627\u0644\u0635\u0648\u0631 \u0628\u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629",
       "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "\u064A\u062D\u0645\u0651\u0644 \u0635\u0648\u0631 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \u0628\u0627\u0644\u062D\u062C\u0645 \u0627\u0644\u0643\u0627\u0645\u0644 \u0628\u062F\u0644\u064B\u0627 \u0645\u0646 \u0627\u0644\u0646\u0633\u062E\u0629 \u0627\u0644\u062A\u064A \u064A\u062E\u062A\u0627\u0631\u0647\u0627 X \u0644\u0644\u0645\u0633\u0627\u062D\u0629 \u0627\u0644\u0645\u062A\u0627\u062D\u0629. \u0623\u0648\u0636\u062D\u060C \u0644\u0643\u0646 \u0628\u0627\u0633\u062A\u0647\u0644\u0627\u0643 \u0628\u064A\u0627\u0646\u0627\u062A \u0623\u0643\u0628\u0631 \u0628\u0639\u062F\u0629 \u0623\u0636\u0639\u0627\u0641.",
       "Filename template": "\u0642\u0627\u0644\u0628 \u0627\u0633\u0645 \u0627\u0644\u0645\u0644\u0641",
@@ -6200,11 +6243,16 @@ html.av-reduce-motion *::after {
       "Save locally": "\u062D\u0641\u0638 \u0645\u062D\u0644\u064A\u064B\u0627",
       "Remove local bookmark": "\u0625\u0632\u0627\u0644\u0629 \u0627\u0644\u0625\u0634\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
       "Note": "\u0645\u0644\u0627\u062D\u0638\u0629",
+      "Download access was not granted. Open Aviary Options to enable browser downloads.": "\u0644\u0645 \u064A\u062A\u0645 \u0645\u0646\u062D \u0625\u0630\u0646 \u0627\u0644\u062A\u0646\u0632\u064A\u0644. \u0627\u0641\u062A\u062D \u062E\u064A\u0627\u0631\u0627\u062A Aviary \u0644\u062A\u0645\u0643\u064A\u0646 \u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0627\u0644\u0645\u062A\u0635\u0641\u062D.",
+      "Media download failed. Try the on-post button again.": "\u0641\u0634\u0644 \u062A\u0646\u0632\u064A\u0644 \u0627\u0644\u0648\u0633\u0627\u0626\u0637. \u062D\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649 \u0628\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0627\u0644\u0632\u0631 \u0627\u0644\u0645\u0648\u062C\u0648\u062F \u0639\u0644\u0649 \u0627\u0644\u0645\u0646\u0634\u0648\u0631.",
+      "Right-click an image or video first, then choose Aviary download.": "\u0627\u0646\u0642\u0631 \u0628\u0632\u0631 \u0627\u0644\u0645\u0627\u0648\u0633 \u0627\u0644\u0623\u064A\u0645\u0646 \u0639\u0644\u0649 \u0635\u0648\u0631\u0629 \u0623\u0648 \u0641\u064A\u062F\u064A\u0648 \u0623\u0648\u0644\u0627\u064B\u060C \u062B\u0645 \u0627\u062E\u062A\u0631 \u062A\u0646\u0632\u064A\u0644 Aviary.",
       "Unavailable": "\u063A\u064A\u0631 \u0645\u062A\u0627\u062D",
       "Saved": "\u062A\u0645 \u0627\u0644\u062D\u0641\u0638",
       "Queued": "\u0641\u064A \u0627\u0644\u0627\u0646\u062A\u0638\u0627\u0631",
       "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "\u0641\u062A\u062D \u0645\u062A\u0635\u0641\u062D\u0643 \u0627\u0644\u0645\u0644\u0641 \u0628\u062F\u0644 \u062D\u0641\u0638\u0647 \u2014 \u0627\u0645\u0646\u062D Aviary \u0625\u0630\u0646 \u0627\u0644\u062A\u0646\u0632\u064A\u0644 \u0644\u064A\u062D\u0641\u0638\u0647 \u0641\u0639\u0644\u064A\u064B\u0627.",
       "Aviary needs the browser download permission. Opening its options page.": "\u064A\u062D\u062A\u0627\u062C Aviary \u0625\u0644\u0649 \u0625\u0630\u0646 \u0627\u0644\u062A\u0646\u0632\u064A\u0644 \u0645\u0646 \u0627\u0644\u0645\u062A\u0635\u0641\u062D. \u064A\u062C\u0631\u064A \u0641\u062A\u062D \u0635\u0641\u062D\u0629 \u0627\u0644\u062E\u064A\u0627\u0631\u0627\u062A.",
+      "The direct video is still loading. Try again in a moment.": "\u0644\u0627 \u064A\u0632\u0627\u0644 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u0627\u0644\u0645\u0628\u0627\u0634\u0631 \u0642\u064A\u062F \u0627\u0644\u062A\u062D\u0645\u064A\u0644. \u062D\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649 \u0628\u0639\u062F \u0642\u0644\u064A\u0644.",
+      "This image is not available to download.": "\u0647\u0630\u0647 \u0627\u0644\u0635\u0648\u0631\u0629 \u063A\u064A\u0631 \u0645\u062A\u0627\u062D\u0629 \u0644\u0644\u062A\u0646\u0632\u064A\u0644.",
       "Allow": "\u0627\u0644\u0633\u0645\u0627\u062D",
       "Retry": "\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0645\u062D\u0627\u0648\u0644\u0629",
       "Permissions": "\u0627\u0644\u0623\u0630\u0648\u0646\u0627\u062A",
@@ -6230,6 +6278,7 @@ html.av-reduce-motion *::after {
       "not granted": "\u063A\u064A\u0631 \u0645\u0645\u0646\u0648\u062D",
       "Granted. Media saves through the browser now.": "\u062A\u0645 \u0627\u0644\u0645\u0646\u062D. \u062A\u064F\u062D\u0641\u0638 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u0622\u0646 \u0639\u0628\u0631 \u0627\u0644\u0645\u062A\u0635\u0641\u062D.",
       "Granted. Aviary can read full-size media directly for exports now.": "\u062A\u0645 \u0627\u0644\u0645\u0646\u062D. \u064A\u0645\u0643\u0646 \u0644\u0640 Aviary \u0627\u0644\u0622\u0646 \u0642\u0631\u0627\u0621\u0629 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0628\u0627\u0644\u062D\u062C\u0645 \u0627\u0644\u0643\u0627\u0645\u0644 \u0645\u0628\u0627\u0634\u0631\u0629\u064B \u0644\u0623\u063A\u0631\u0627\u0636 \u0627\u0644\u062A\u0635\u062F\u064A\u0631.",
+      "Original quality is applied when download controls are enabled.": "\u062A\u064F\u0637\u0628\u0651\u0642 \u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629 \u0639\u0646\u062F \u062A\u0641\u0639\u064A\u0644 \u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062A\u062D\u0643\u0645 \u0641\u064A \u0627\u0644\u062A\u0646\u0632\u064A\u0644.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "\u0645\u0639\u0631\u0651\u0641 \u062A\u0646\u0642\u0644 \u062B\u0627\u0628\u062A \u0648\u0627\u062D\u062F \u0641\u064A X \u0644\u0643\u0644 \u0633\u0637\u0631: home \u0623\u0648 explore \u0623\u0648 notifications \u0623\u0648 messages \u0623\u0648 profile \u0623\u0648 more \u0623\u0648 premium.",
       "Save list": "\u062D\u0641\u0638 \u0627\u0644\u0642\u0627\u0626\u0645\u0629",
       "Reset everything to plain X": "\u0625\u0639\u0627\u062F\u0629 \u0643\u0644 \u0634\u064A\u0621 \u0625\u0644\u0649 X \u0643\u0645\u0627 \u0647\u0648",
@@ -6336,6 +6385,8 @@ html.av-reduce-motion *::after {
       "Remove Who to follow cards without hiding the rest of the sidebar.": "\u05DE\u05E1\u05D9\u05E8 \u05DB\u05E8\u05D8\u05D9\u05E1\u05D9 \u201E\u05D0\u05D7\u05E8\u05D9 \u05DE\u05D9 \u05DC\u05E2\u05E7\u05D5\u05D1\u201D \u05D1\u05DC\u05D9 \u05DC\u05D4\u05E1\u05EA\u05D9\u05E8 \u05D0\u05EA \u05E9\u05D0\u05E8 \u05E1\u05E8\u05D2\u05DC \u05D4\u05E6\u05D3.",
       "Hide home composer": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05E2\u05D5\u05E8\u05DA \u05D4\u05D1\u05D9\u05EA",
       "Remove the quick-post composer from Home. The Post button still opens it when needed.": "\u05DE\u05E1\u05D9\u05E8 \u05D0\u05EA \u05E2\u05D5\u05E8\u05DA \u05D4\u05E4\u05E8\u05E1\u05D5\u05DD \u05D4\u05DE\u05D4\u05D9\u05E8 \u05DE\u05D3\u05E3 \u05D4\u05D1\u05D9\u05EA. \u05D4\u05DB\u05E4\u05EA\u05D5\u05E8 \u201E\u05E4\u05E8\u05E1\u05D5\u05DD\u201D \u05E2\u05D3\u05D9\u05D9\u05DF \u05E4\u05D5\u05EA\u05D7 \u05D0\u05D5\u05EA\u05D5 \u05D1\u05E2\u05EA \u05D4\u05E6\u05D5\u05E8\u05DA.",
+      "Hide thread recommendations": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05D4\u05DE\u05DC\u05E6\u05D5\u05EA \u05D1\u05E9\u05E8\u05E9\u05D5\u05E8",
+      "Stop a conversation at its last real reply by collapsing the Discover more block and the suggested posts below it.": '\u05DE\u05E1\u05D9\u05D9\u05DD \u05D0\u05EA \u05D4\u05E9\u05D9\u05D7\u05D4 \u05D1\u05EA\u05D2\u05D5\u05D1\u05D4 \u05D4\u05D0\u05DE\u05D9\u05EA\u05D9\u05EA \u05D4\u05D0\u05D7\u05E8\u05D5\u05E0\u05D4 \u05E2\u05DC \u05D9\u05D3\u05D9 \u05DB\u05D9\u05D5\u05D5\u05E5 \u05D1\u05DC\u05D5\u05E7 "\u05D2\u05DC\u05D4 \u05E2\u05D5\u05D3" \u05D5\u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D4\u05DE\u05D5\u05E6\u05E2\u05D9\u05DD \u05DE\u05EA\u05D7\u05EA\u05D9\u05D5.',
       "Hide Grok surfaces": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05E8\u05DB\u05D9\u05D1\u05D9 Grok",
       "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.": "\u05DE\u05E1\u05EA\u05D9\u05E8 \u05D0\u05EA \u05DE\u05D2\u05D9\u05E8\u05EA Grok \u05D5\u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05E0\u05D9\u05D5\u05D5\u05D8, \u05D0\u05EA \u05DB\u05E0\u05D9\u05E1\u05D5\u05EA \u05D9\u05E6\u05D9\u05E8\u05EA \u05D4\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D5\u05D0\u05EA \u05E4\u05E2\u05D5\u05DC\u05D5\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8.",
       "Writer mode": "\u05DE\u05E6\u05D1 \u05DB\u05EA\u05D9\u05D1\u05D4",
@@ -6412,7 +6463,6 @@ html.av-reduce-motion *::after {
       "Prefer original quality": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D0\u05D9\u05DB\u05D5\u05EA \u05DE\u05E7\u05D5\u05E8\u05D9\u05EA",
       "Rewrite image URLs to name=orig before downloading.": "\u05DE\u05E9\u05DB\u05EA\u05D1 \u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05EA\u05DE\u05D5\u05E0\u05D4 \u05DC\u2011name=orig \u05DC\u05E4\u05E0\u05D9 \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4.",
       "Original quality status": "\u05DE\u05E6\u05D1 \u05D4\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05E8\u05D9\u05EA",
-      "Original quality is applied when download controls are enabled.": "\u05D4\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05E8\u05D9\u05EA \u05D7\u05DC\u05D4 \u05DB\u05D0\u05E9\u05E8 \u05E4\u05E7\u05D3\u05D9 \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05DE\u05D5\u05E4\u05E2\u05DC\u05D9\u05DD.",
       "Show images at original quality": "\u05D4\u05E6\u05D2\u05EA \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D1\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05E8\u05D9\u05EA",
       "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "\u05D8\u05D5\u05E2\u05DF \u05D0\u05EA \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF \u05D1\u05D2\u05D5\u05D3\u05DC \u05DE\u05DC\u05D0 \u05D1\u05DE\u05E7\u05D5\u05DD \u05D1\u05D2\u05E8\u05E1\u05D4 \u05E9-X \u05D1\u05D5\u05D7\u05E8 \u05DC\u05DE\u05E7\u05D5\u05DD. \u05D7\u05D3 \u05D9\u05D5\u05EA\u05E8, \u05D5\u05E4\u05D9 \u05DB\u05DE\u05D4 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD.",
       "Filename template": "\u05EA\u05D1\u05E0\u05D9\u05EA \u05E9\u05DD \u05E7\u05D5\u05D1\u05E5",
@@ -7016,11 +7066,16 @@ html.av-reduce-motion *::after {
       "Save locally": "\u05E9\u05DE\u05D9\u05E8\u05D4 \u05DE\u05E7\u05D5\u05DE\u05D9\u05EA",
       "Remove local bookmark": "\u05D4\u05E1\u05E8\u05EA \u05E1\u05D9\u05DE\u05E0\u05D9\u05D9\u05D4 \u05DE\u05E7\u05D5\u05DE\u05D9\u05EA",
       "Note": "\u05D4\u05E2\u05E8\u05D4",
+      "Download access was not granted. Open Aviary Options to enable browser downloads.": "\u05D4\u05E8\u05E9\u05D0\u05EA \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05DC\u05D0 \u05E0\u05D9\u05EA\u05E0\u05D4. \u05E4\u05EA\u05D7 \u05D0\u05EA \u05D0\u05E4\u05E9\u05E8\u05D5\u05D9\u05D5\u05EA Aviary \u05DB\u05D3\u05D9 \u05DC\u05D0\u05E4\u05E9\u05E8 \u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF.",
+      "Media download failed. Try the on-post button again.": "\u05D4\u05D5\u05E8\u05D3\u05EA \u05D4\u05DE\u05D3\u05D9\u05D4 \u05E0\u05DB\u05E9\u05DC\u05D4. \u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1 \u05D1\u05D0\u05DE\u05E6\u05E2\u05D5\u05EA \u05D4\u05DB\u05E4\u05EA\u05D5\u05E8 \u05E9\u05D1\u05E4\u05D5\u05E1\u05D8.",
+      "Right-click an image or video first, then choose Aviary download.": "\u05DC\u05D7\u05E5 \u05EA\u05D7\u05D9\u05DC\u05D4 \u05DC\u05D7\u05D9\u05E6\u05D4 \u05D9\u05DE\u05E0\u05D9\u05EA \u05E2\u05DC \u05EA\u05DE\u05D5\u05E0\u05D4 \u05D0\u05D5 \u05D5\u05D9\u05D3\u05D0\u05D5, \u05D5\u05D0\u05D6 \u05D1\u05D7\u05E8 \u05D1\u05D4\u05D5\u05E8\u05D3\u05EA Aviary.",
       "Unavailable": "\u05DC\u05D0 \u05D6\u05DE\u05D9\u05DF",
       "Saved": "\u05E0\u05E9\u05DE\u05E8",
       "Queued": "\u05D1\u05EA\u05D5\u05E8",
       "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "\u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05E4\u05EA\u05D7 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D1\u05E5 \u05D1\u05DE\u05E7\u05D5\u05DD \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D0\u05D5\u05EA\u05D5 \u2014 \u05D4\u05E2\u05E0\u05E7 \u05DC-Aviary \u05D4\u05E8\u05E9\u05D0\u05EA \u05D4\u05D5\u05E8\u05D3\u05D4 \u05DB\u05D3\u05D9 \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D1\u05D0\u05DE\u05EA.",
       "Aviary needs the browser download permission. Opening its options page.": "\u05DC-Aviary \u05E0\u05D3\u05E8\u05E9\u05EA \u05D4\u05E8\u05E9\u05D0\u05EA \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05E9\u05DC \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF. \u05E0\u05E4\u05EA\u05D7 \u05D3\u05E3 \u05D4\u05D0\u05E4\u05E9\u05E8\u05D5\u05D9\u05D5\u05EA.",
+      "The direct video is still loading. Try again in a moment.": "\u05D4\u05D5\u05D5\u05D9\u05D3\u05D0\u05D5 \u05D4\u05D9\u05E9\u05D9\u05E8 \u05E2\u05D3\u05D9\u05D9\u05DF \u05E0\u05D8\u05E2\u05DF. \u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1 \u05D1\u05E2\u05D5\u05D3 \u05E8\u05D2\u05E2.",
+      "This image is not available to download.": "\u05D4\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D4\u05D6\u05D5 \u05D0\u05D9\u05E0\u05D4 \u05D6\u05DE\u05D9\u05E0\u05D4 \u05DC\u05D4\u05D5\u05E8\u05D3\u05D4.",
       "Allow": "\u05D0\u05D9\u05E9\u05D5\u05E8",
       "Retry": "\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1",
       "Permissions": "\u05D4\u05E8\u05E9\u05D0\u05D5\u05EA",
@@ -7046,6 +7101,7 @@ html.av-reduce-motion *::after {
       "not granted": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05E0\u05D4",
       "Granted. Media saves through the browser now.": "\u05E0\u05D9\u05EA\u05E0\u05D4 \u05D4\u05E8\u05E9\u05D0\u05D4. \u05DE\u05E2\u05DB\u05E9\u05D9\u05D5 \u05D4\u05DE\u05D3\u05D9\u05D4 \u05E0\u05E9\u05DE\u05E8\u05EA \u05D3\u05E8\u05DA \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF.",
       "Granted. Aviary can read full-size media directly for exports now.": "\u05E0\u05D9\u05EA\u05E0\u05D4 \u05D4\u05E8\u05E9\u05D0\u05D4. \u05DE\u05E2\u05DB\u05E9\u05D9\u05D5 Aviary \u05D9\u05DB\u05D5\u05DC \u05DC\u05E7\u05E8\u05D5\u05D0 \u05DE\u05D3\u05D9\u05D4 \u05D1\u05D2\u05D5\u05D3\u05DC \u05DE\u05DC\u05D0 \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA \u05E2\u05D1\u05D5\u05E8 \u05D9\u05D9\u05E6\u05D5\u05D0.",
+      "Original quality is applied when download controls are enabled.": "\u05D4\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05E8\u05D9\u05EA \u05D7\u05DC\u05D4 \u05DB\u05D0\u05E9\u05E8 \u05E4\u05E7\u05D3\u05D9 \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05DE\u05D5\u05E4\u05E2\u05DC\u05D9\u05DD.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "\u05DE\u05D6\u05D4\u05D4 \u05E0\u05D9\u05D5\u05D5\u05D8 \u05D9\u05E6\u05D9\u05D1 \u05D0\u05D7\u05D3 \u05E9\u05DC X \u05D1\u05DB\u05DC \u05E9\u05D5\u05E8\u05D4: home, explore, notifications, messages, profile, more \u05D0\u05D5 premium.",
       "Save list": "\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05E8\u05E9\u05D9\u05DE\u05D4",
       "Reset everything to plain X": "\u05DC\u05D0\u05E4\u05E1 \u05D4\u05DB\u05D5\u05DC \u05DC-X \u05E8\u05D2\u05D9\u05DC",
@@ -7156,6 +7212,7 @@ html.av-reduce-motion *::after {
       hideTrends: false,
       hideFollowSuggestions: false,
       hideHomeComposer: false,
+      hideThreadRecommendations: false,
       hideGrok: false,
       writerMode: false,
       forceFollowing: false
@@ -7319,6 +7376,10 @@ html.av-reduce-motion *::after {
           DEFAULT_SETTINGS.layout.hideFollowSuggestions
         ),
         hideHomeComposer: booleanValue(layout.hideHomeComposer, DEFAULT_SETTINGS.layout.hideHomeComposer),
+        hideThreadRecommendations: booleanValue(
+          layout.hideThreadRecommendations,
+          DEFAULT_SETTINGS.layout.hideThreadRecommendations
+        ),
         hideGrok: booleanValue(layout.hideGrok, DEFAULT_SETTINGS.layout.hideGrok),
         writerMode: booleanValue(layout.writerMode, DEFAULT_SETTINGS.layout.writerMode),
         forceFollowing: booleanValue(layout.forceFollowing, DEFAULT_SETTINGS.layout.forceFollowing)
@@ -9951,6 +10012,15 @@ html.av-reduce-motion *::after {
         ctx.options.settings.layout.hideHomeComposer,
         async (checked) => {
           ctx.options.settings.layout.hideHomeComposer = checked;
+          await ctx.save("Layout preference saved");
+        }
+      ),
+      ctx.toggleRow(
+        "Hide thread recommendations",
+        "Stop a conversation at its last real reply by collapsing the Discover more block and the suggested posts below it.",
+        ctx.options.settings.layout.hideThreadRecommendations,
+        async (checked) => {
+          ctx.options.settings.layout.hideThreadRecommendations = checked;
           await ctx.save("Layout preference saved");
         }
       ),
@@ -25003,6 +25073,12 @@ html.av-hide-home-composer [data-testid="primaryColumn"] > * > *:has([data-testi
   display: none !important;
 }
 
+/* Collapsed by features/layout/thread-recommendations.ts, which stamps the owning
+   timeline cells only after a bounded heading label matched on a conversation route. */
+[data-av-thread-recommendation="1"] {
+  display: none !important;
+}
+
 html.av-hide-grok [data-testid="GrokDrawer"],
 html.av-hide-grok [data-testid="GrokDrawerHeader"],
 html.av-hide-grok [data-testid="chat-drawer-root"],
@@ -25052,6 +25128,80 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
   display: none !important;
 }
 `;
+
+  // src/features/layout/thread-recommendations.ts
+  var MARKER = "data-av-thread-recommendation";
+  var HEADING_MARKER = "data-av-thread-recommendation-heading";
+  var HEADING_LABELS = /* @__PURE__ */ new Set([
+    // Verified in _decoded/status.html (2026-08-14 capture).
+    "discover more"
+  ]);
+  var threadRecommendationsFeature = {
+    id: "layout.threadRecommendations",
+    title: "Hide thread recommendations",
+    category: "layout",
+    defaultEnabled: true,
+    init(ctx) {
+      applyThreadRecommendations(ctx);
+    },
+    apply(ctx) {
+      applyThreadRecommendations(ctx);
+    },
+    destroy(ctx) {
+      restoreThreadRecommendations();
+      ctx.diagnostics.info("Thread recommendations restored");
+    }
+  };
+  function applyThreadRecommendations(ctx) {
+    if (!ctx.settings.layout.hideThreadRecommendations || ctx.route?.surface !== "status") {
+      restoreThreadRecommendations();
+      return;
+    }
+    const heading = findRecommendationHeading();
+    if (!heading) {
+      return;
+    }
+    const headingCell = heading.closest('[data-testid="cellInnerDiv"]');
+    if (!headingCell) {
+      return;
+    }
+    let hidden = 0;
+    let node = headingCell;
+    while (node) {
+      if (node instanceof HTMLElement && node.matches('[data-testid="cellInnerDiv"]')) {
+        node.setAttribute(MARKER, "1");
+        hidden += 1;
+      }
+      node = node.nextElementSibling;
+    }
+    headingCell.setAttribute(HEADING_MARKER, "1");
+    if (hidden > 0) {
+      ctx.diagnostics.info("Thread recommendations collapsed", { cells: hidden });
+    }
+  }
+  function findRecommendationHeading() {
+    const cells = Array.from(document.querySelectorAll('[data-testid="cellInnerDiv"]'));
+    for (const cell of cells) {
+      if (cell.querySelector('article[data-testid="tweet"]')) {
+        continue;
+      }
+      const heading = cell.querySelector('h2[role="heading"]');
+      if (!heading) {
+        continue;
+      }
+      const label = (heading.textContent ?? "").trim().toLowerCase();
+      if (HEADING_LABELS.has(label)) {
+        return heading;
+      }
+    }
+    return null;
+  }
+  function restoreThreadRecommendations() {
+    for (const node of Array.from(document.querySelectorAll(`[${MARKER}], [${HEADING_MARKER}]`))) {
+      node.removeAttribute(MARKER);
+      node.removeAttribute(HEADING_MARKER);
+    }
+  }
 
   // src/features/integrations/ai-provider.ts
   async function runAiPrompt(config, request, options = {}) {
@@ -28625,6 +28775,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     registry.register(adProtectionFeature);
     registry.register(selectorHealthFeature);
     registry.register(layoutDeclutterFeature);
+    registry.register(threadRecommendationsFeature);
     registry.register(filterEngineFeature);
     registry.register(hiddenPostsFeature);
     registry.register(mediaButtonsFeature);

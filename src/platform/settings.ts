@@ -100,6 +100,7 @@ export interface AviarySettings {
     hideTrends: boolean;
     hideFollowSuggestions: boolean;
     hideHomeComposer: boolean;
+    hideThreadRecommendations: boolean;
     hideGrok: boolean;
     writerMode: boolean;
     forceFollowing: boolean;
@@ -196,6 +197,7 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     hideTrends: false,
     hideFollowSuggestions: false,
     hideHomeComposer: false,
+    hideThreadRecommendations: false,
     hideGrok: false,
     writerMode: false,
     forceFollowing: false
@@ -366,6 +368,10 @@ export function normalizeSettings(input: unknown): AviarySettings {
         DEFAULT_SETTINGS.layout.hideFollowSuggestions
       ),
       hideHomeComposer: booleanValue(layout.hideHomeComposer, DEFAULT_SETTINGS.layout.hideHomeComposer),
+      hideThreadRecommendations: booleanValue(
+        layout.hideThreadRecommendations,
+        DEFAULT_SETTINGS.layout.hideThreadRecommendations
+      ),
       hideGrok: booleanValue(layout.hideGrok, DEFAULT_SETTINGS.layout.hideGrok),
       writerMode: booleanValue(layout.writerMode, DEFAULT_SETTINGS.layout.writerMode),
       forceFollowing: booleanValue(layout.forceFollowing, DEFAULT_SETTINGS.layout.forceFollowing)
