@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.21.0 - 2026-08-14
+
 ### Added
 
 - Chrome and Firefox packages now install one host-scoped dynamic request rule for X's exact

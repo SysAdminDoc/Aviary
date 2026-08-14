@@ -1,8 +1,8 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.20.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.21.0-2f81f7)
 
-Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.20.0: an opt-in premium Noir desktop skin, focused Home controls for the composer, discovery rail, current navigation and recommendations, default-on desktop ad protection, a redesigned 13-page Control Center and extension-permissions cockpit, fixture-backed selector checks, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
+Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.21.0: an opt-in premium Noir desktop skin, focused Home controls for the composer, discovery rail, current navigation and recommendations, default-on desktop ad protection, transactional settings, local ad-contract drift diagnostics, a redesigned 13-page Control Center and extension-permissions cockpit, committed desktop visual coverage, fixture-backed selector checks, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
 
 ## Ad-free, otherwise vanilla by default
 
@@ -309,9 +309,9 @@ The Integrations panel also surfaces a "Recent integration errors" readout that 
 
 ## Roadmap
 
-The working plan is in [ROADMAP.md](ROADMAP.md). v1.20.0 is the current release; the latest batch
-adds focused Home declutter controls, current-X module and navigation coverage, dark/light host
-theme validation at both desktop sizes, and deterministic capture for every authored palette.
+The working plan is in [ROADMAP.md](ROADMAP.md). v1.21.0 is the current release; the latest batch
+adds page-level transactional settings, privacy-safe ad-contract drift diagnostics, extension-level
+promoted-logger blocking, and a 60-image desktop settings regression contract.
 F032/F033 remain blocked
 until privacy-safe authenticated fixtures containing those exact states are available.
 

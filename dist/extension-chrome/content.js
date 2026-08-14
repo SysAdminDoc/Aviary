@@ -7076,7 +7076,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/platform/build-version.ts
-  var AVIARY_VERSION = false ? "dev" : "1.20.0";
+  var AVIARY_VERSION = false ? "dev" : "1.21.0";
 
   // src/platform/settings.ts
   var SETTINGS_KEY = "aviary.settings.v1";
@@ -10296,7 +10296,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION2 = false ? "dev" : "1.20.0";
+  var AVIARY_VERSION2 = false ? "dev" : "1.21.0";
   var SECTION_GROUP_BREAKS = {
     presets: [
       { before: "Quiet Reader", title: "Preset packs" },
