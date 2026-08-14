@@ -1,225 +1,212 @@
 # Research — Aviary for X
 
-Date: 2026-08-13 — replaces prior research.
+Date: 2026-08-14 — replaces all prior research (previous pass: 2026-08-13; its shipped conclusions are archived in CHANGELOG.md v1.18.0–v1.21.0).
 
-## Executive summary
+## Executive Summary
 
-Aviary is a local-first desktop X/Twitter userscript and Chrome/Firefox MV3 extension. This pass
-used a user-authenticated, isolated in-app browser session for read-only production reconnaissance,
-then exercised the built project against sanitized local fixtures. The session remained isolated;
-no cookies, tokens, private response bodies, handles, or feed screenshots were exported.
+Aviary is a local-first desktop X/Twitter enhancer shipping a readable userscript and an MV3
+extension (Chrome + Firefox) from one TypeScript source, at v1.21.0 with a fully drained roadmap.
+Its strongest shape is unmatched in the field: evidence-bounded ad suppression + WARC/XLSX/HTML
+export + annotated local library + fixture-gated reversible modules — no competitor combines these.
+The highest-value direction is (1) fixing distribution truth (the built userscript's auto-update
+URLs point at a repository that does not exist), (2) closing the one structural feature gap vs.
+every serious competitor (a rule-based filter engine), and (3) productizing feature-flag reversion
+of X's 2026 redesigns — a recurring, currently unserved demand that Aviary's document-start page
+agent is uniquely positioned to serve.
 
-The highest-impact confirmed gaps were advertising leakage, current-route drift, and a settings UI
-whose dense card grid obscured state and dependencies. v1.18.0 adds default-on document-start ad
-protection, repairs current route contracts, and rebuilds all 13 Control Center destinations plus
-the extension options page as one desktop operations cockpit. Native promoted records are delivered
-inside the essential HomeTimeline response, so Aviary suppresses their rendering but cannot claim
-their bytes were absent. The separately initiated promoted-content logger is prevented before its
-request is issued.
+Top opportunities in priority order:
+1. Repair the userscript `@updateURL`/`@downloadURL` (every install polls a dead repo) — P0.
+2. Correct stale README claims (AI button, ROADMAP pointer, "store-ready") — P0.
+3. Replace EOL toolchain (ESLint 9 died 2026-08-06) — P0.
+4. Mitigate X's July-2026 anti-adblock detection exposure (DNR rule + fetch stub are visible) — P1.
+5. Rule-based filter DSL with importable rule packs — the only table-stakes gap — P1.
+6. "Restore old X" feature-flag reversion pack (media grid, carousel, profile redesign) — P1 leapfrog.
+7. First-run onboarding + settings version envelope + persisted diagnostics (trust plumbing) — P1.
+8. Media download UX depth: downloaded-badges, text sidecars, batch-from-library — P2.
+9. Distribution decision: real AMO id, public release channel, update story — P2 (blocked on operator intent).
+10. Declutter fast-follows: "More From This Author", tab-title badge, absolute timestamps — P1/P2.
 
-The v1.19.0 follow-up adds Noir, an opt-in premium desktop skin. A local-only live preview on the
-authenticated Home route confirmed the current semantic anchors for the navigation rail, timeline,
-composer, media, search, news, recommendations, and Grok surfaces. Only Aviary's CSS and root theme
-marker were inserted for the preview; the page was restored afterward and no feed screenshot,
-cookie, token, response body, or private content was exported.
+## Product Map
 
-Live Home also confirmed that the active AppTabBar link currently has no `aria-current` marker.
-Noir therefore derives its own `data-av-active-route` state from same-origin link paths on each
-feature pass and removes every marker when Off or destroyed; the authenticated preview measured
-the Home marker, active gradient, and unchanged horizontal geometry before restoring the page.
+- Core workflows: (a) install → ads suppressed + media save buttons by default, everything else
+  off; (b) declutter/theme via Control Center (13 destinations, transactional Save/Revert);
+  (c) filter/hide posts with undo; (d) save media (on-post buttons + right-click, original
+  quality, direct MP4 via passive GraphQL capture); (e) capture-as-you-scroll → checkpointed
+  export (ZIP/JSON/CSV/HTML/MD/XLSX/WARC + standalone viewer); (f) local library (bookmarks,
+  notes, snapshots) with dry-run backup/restore.
+- Personas: privacy-first desktop power user (primary; matches the operator); archivist
+  (export/WARC pillar); declutter-only user (secondary).
+- Platforms: desktop Chrome + Firefox; MV3 extension primary on Chrome (Tampermonkey MV3 opt-in
+  friction), userscript first-class on Firefox/ScriptCat. Mobile intentionally out of scope.
+- Distribution today: private GitHub repo tracking `dist/`; manual install only; no store
+  presence; Firefox manifest id is a placeholder (`aviary@example.local`).
+- Integrations (all opt-in, disclosure-gated): aria2, AI providers (Anthropic/OpenAI), semantic
+  search embeddings, Obsidian/Notion export targets, crosspost (Mastodon/Bluesky).
 
-## Live snapshot
+## Competitive Landscape
 
-Observed 2026-08-13 at 1440×900 in X dark theme with an authenticated account. Recon was read-only.
+- **Control Panel for Twitter** (insin, 2.6k★, v4.23.0 2026-07-05) — category leader; ~100
+  toggles, 5 store targets incl. mobile Safari/Firefox Android, weekly churn-response releases.
+  Learn: fast-follow cadence on X regressions is how it earned its base; per-option screenshots.
+  Avoid: its permanent ~317-open-issue churn tax — Aviary should only add toggles a fixture can
+  defend. Its most-upvoted unshipped request is settings sync (#204) — Aviary's profile export
+  already serves this locally.
+- **OldTwitter** (dimden, 2.7k★, v1.9.8 2026-08-11) — full client replacement calling private
+  APIs. Learn: video download and customization demand. Avoid: its approach — the March 2026
+  "inauthentic behavior" ban wave hit its users (#1222, 152 comments; #1153). The market split is
+  "safe DOM-layer" vs "risky API-layer"; Aviary's passive-capture-only line is the moat. Never
+  originate bulk API calls.
+- **twitter-web-exporter** (prinsss, 2.7k★, v1.4.1 2026-07-29) — closest analog to the export
+  pillar; exports bookmarks past the 800-item API cap, followers/lists/search from GraphQL
+  interception. Learn: bookmark-cap-bypass framing; large-ZIP chunking failures (#137) validate
+  Aviary's existing `zipChunkSize`. Aviary already exceeds it on WARC/XLSX/viewer/checkpoints.
+- **TwitterMediaHarvest** (1.1k★, v4.5.7 2026-06-18) — media-saver benchmark. Its backlog is a
+  demand map: batch-download bookmarks (#137), richer filename tokens (#74), tweet-text sidecar
+  (#283), highlight already-downloaded media (#126). Its v4.5.7 fixed unbounded response-cache
+  growth — Aviary already caps capture (50/500/50MB, `network-capture.ts:11-13`).
+- **Twitter UI Customizer** (active, JP-first) — steal: reorder/add tweet action buttons,
+  no-confirm actions, sidebar reordering, logo/favicon replacement.
+- **Minimal Twitter** (Typefully, ~1k★, low maintenance) — cautionary: CSS that collaterally broke
+  Grok history (#249) and Lists nav (#183); vanity-metric hiding and tab-title badge removal are
+  its most-requested items (#242/#243).
+- **XKit Rewritten** (Tumblr; architecture twin) — steal: mutual-relationship badges, seen-post
+  dimming, absolute timestamps, per-post quick actions.
+- **Sink It for Reddit / RES** (adjacent) — steal: RES filteReddit rule engine (field+op+value),
+  per-user color tags, thread-depth color rails, focus/antiprocrastination mode, "zero data
+  recorded" marketing posture.
+- **rxliuli suite** (Mass Block Twitter, Feed Filter) — validates the rule-DSL demand and ships a
+  novel companion: AI-generated importable filter rules from pasted URLs.
+- **uBlock Origin X filters** — break exactly where Aviary is strong: localized "Ad" labels,
+  randomized classes, `placementTracking` false positives. Aviary's evidence-bounded contract +
+  drift diagnostics is unique in the field; keep it. Current uBO meta is hand-rewriting
+  `__INITIAL_STATE__.featureSwitch` flags per redesign — demand signal for F115.
+- **Commercial cluster** (X Filter Pro, Hide X.com Ads, XFeed Pro) — validates ad-hiding + focus
+  mode + AI summarization as paid features. TidyFeed/Better X (cited in the 2026-08-13 pass) have
+  no meaningful 2026 footprint — treat as negligible.
+- **GoodTwitter2** (dead) — died of maximal-reskin surface + single maintainer + no test harness
+  against continuous churn. Aviary's Noir-with-fixtures is the mitigations checklist GT2 lacked.
+- **x-feed-cleaner** (same operator, v2.7.0) — internal harvest source: rule-based muting,
+  hashtag/author mutes, quote-depth/stale-post filters, bookmark-first mode, thread collapse,
+  reading mode all proved demand in the sibling repo and are absent from Aviary.
 
-| Surface | Current pattern/state | Contract result |
-|---|---|---|
-| Home / Following | `/home`, tab state inside the route | Verified virtualized timeline, delayed insertion, native sponsored article, promoted trend, and house promo |
-| Profile | `/handle`, `/handle/with_replies`, `/media`, `/highlights`, `/articles` | Changed: current collection tabs are path segments; repaired route classification |
-| Status | `/handle/status/:id` | Verified article/detail surface and current primary column |
-| Search | `/search?q=…` | Verified SPA route and timeline results surface |
-| Notifications | `/notifications` | Verified SPA route and current primary column |
-| Chat | `/i/chat` and PIN-recovery child route | Changed from the historical messages assumption; repaired route classification |
-| Grok | `/i/grok` | Verified first-party product surface and house-promo links |
-| X settings | `/settings/account` | Changed: this page intentionally has no `primaryColumn`; health no longer treats that as failure |
+## Security, Privacy, and Reliability
 
-The production app is client-rendered and virtualizes timeline cells. Hard loads create the shell,
-then first-party data and placements arrive asynchronously. History/router navigation replaces
-route-specific subtrees without a document reload. Reliable features therefore need document-start
-setup plus idempotent observation and route reconciliation; a one-shot DOM scan is insufficient.
+- **Broken auto-update (Verified)**: `tools/build.mjs:347-348` writes
+  `@updateURL`/`@downloadURL` → `raw.githubusercontent.com/aviary-x/aviary/main/dist/aviary.user.js`
+  and `@namespace https://github.com/aviary-x`; the real remote is the private
+  `SysAdminDoc/Twitter_Userscript`. Every installed userscript polls a URL that cannot serve it.
+  `tools/preflight.mjs` does not validate these lines.
+- **Anti-adblock exposure (Likely)**: X began testing an "ad blocker is preventing Personalized
+  Timelines" warning (2026-07-10, PiunikaWeb; corroborated r/uBlockOrigin). It plausibly keys on
+  blocked telemetry — exactly what Aviary's DNR logger rule and page-world logger stub do.
+  DOM-hiding is detection-quiet. Needs: warning-surface detection, a DOM-only fallback mode, and
+  Trust copy stating the tradeoff. Whether Aviary's exact block trips it: Needs live validation.
+- **EOL toolchain (Verified)**: ESLint 9 hit end-of-life 2026-08-06; pinned 9.27.0 is
+  unmaintained. `@typescript-eslint` 8.67.0 already supports ESLint 10. esbuild 0.28.2 and
+  TypeScript 6.0 (bridge to Go-native 7.0) are low-risk upgrades. Playwright 1.62.1 is current
+  and clear of CVE-2025-59288 (<1.55.1 only).
+- **Settings payload has no version envelope**: `aviary.settings.v1` is a key name, not a
+  versioned envelope (`src/platform/settings.ts`); a future breaking rename has only
+  silent-fallback-to-default, no upgrade ladder. Durable storage has schema v1 + migration;
+  settings should match.
+- **Diagnostics are memory-only**: 200-event ring (`src/platform/diagnostics.ts`), lost on
+  reload; boot failure sets `data-av-ready="error"` with no user-visible message.
+- **CI gap**: `.github/workflows/smoke.yml` runs lint → matrix → build → visual → smoke but not
+  `npm test` (unit suite) or `npm run preflight` — the main gate is local-only.
+- **Ban-risk line (policy, evidence-backed)**: March 2026 ban waves hit API-originating tools
+  (OldTwitter #1222/#1153). Aviary's passive capture observes, never originates — every future
+  feature must stay on that side; batch features must consume already-captured records only.
+- **Supply-chain posture is validated**: zero runtime deps + exact pins + lockfile is exactly the
+  correct response to the 2025 npm chalk/debug and Shai-Hulud incidents. Consider
+  `--ignore-scripts` in install docs.
+- **Recovery**: library backup has dry-run/checksum/rollback (strong). Settings import lacks the
+  same preview treatment (minor).
 
-## Current DOM and data contract
+## Architecture Assessment
 
-| Contract | 2026-08-13 status and context | Consumer / decision |
-|---|---|---|
-| `article[data-testid="tweet"]` | Verified on Home, profile, status, and search | Bounded post owner for filters, controls, and native-ad removal |
-| `[data-testid="cellInnerDiv"]` | Verified around timeline articles | Collapse this owner to avoid an empty virtualized row |
-| `[data-testid="primaryColumn"]` | Verified on content routes; intentionally missing on X settings | Route-aware selector health, not a global requirement |
-| `[data-testid="trend"]` | Verified in the Home sidebar | A promoted label inside this owner identifies the removable trend row |
-| `[data-testid="placementTracking"]` | Changed meaning: also wraps organic media and a first-party module | Explicitly rejected as an advertising predicate |
-| Exact `Ad` label inside an article | Verified on a native sponsored Home record | One signal; bounded by the article and reinforced by tracking/policy links where present |
-| `twclid=` or `ad.doubleclick.net` link inside article | Verified on the native sponsored record | Strong tracking-link evidence; the observed DoubleClick value was a link target, not proof of a loaded third-party resource |
-| Paid-partnership policy link | Verified on a partnership record | Stable policy-link evidence without matching arbitrary post copy |
-| `aside[role="complementary"]` with Grok/Premium product links | Verified on Home | Bounded first-party house-promo owner |
-| Visible pre-roll copy (`Video will play after ad`, `Skip Ad…`) | Verified on a video state | Suppress the owning video/article container; transport remains operator-trace gated |
-| HomeTimeline GraphQL | Verified as essential first-party feed transport containing organic and sponsored records | Never block broadly; native-ad transport is inseparable |
-| `/i/api/1.1/promoted_content/log.json` | Verified successful first-party XHR before Aviary | Exact separable logger blocked by the document-start page agent |
+- **`FeatureModule.defaultEnabled` is a dead gate** — all 24 modules ship `true`; the
+  `registry.ts:62` skip branch is unreachable; `statuses()` reports 24 "registered" regardless of
+  user state. Remove or repurpose truthfully.
+- **`src/features/export/viewer.ts` carries a second hand-maintained 9-locale table** (lines
+  ~7-250) outside the extractor/catalog pipeline — a guaranteed drift path given the repo's
+  documented i18n-extraction breakage history (5 prior incidents in CLAUDE.md).
+- **Route detection monkey-patches history** — the Navigation API is Baseline as of Jan 2026
+  (Chrome, Firefox 147, Safari 26.2); feature-detect with fallback in `src/platform/route.ts`.
+- **Control Center file layout reflects the dead 4-section IA** (`sections/{presets,reading,data,advanced}.ts`
+  render 13 destinations); the 5 undated mockups at `docs/mockups/` root depict that dead IA.
+- **`performance.forceVideoQuality` is wired but unprovable** — MSE/`blob:` playback exposes no
+  variant list (CLAUDE.md 2026-08-07); either prove an effect or remove the claim-shaped setting.
+- **Test gaps**: `tests/audit-a11y.test.mjs` is largely source-regex, not runtime; no automated
+  contrast sweep in CI. i18n ad-label locale list should be audited against X's full UI-locale
+  set, not just Aviary's 9 panel locales.
+- **Docs**: README badge row is a single version badge (house rule expects license/platform);
+  README:307 and :325 are stale (see P0); `.github/` has no issue/PR templates.
+- **Repo hygiene**: two ~700KB `.mhtml` captures at root (reference fixtures per prior session —
+  relocate under `_decoded/` with the rest of the ground truth), tracked `work/` and 40KB
+  `PROJECT_STATE.md` from the gitignore-reversal commit `39d513c`.
 
-No generated `r-*` class, positional child chain, or localized free-form post text was promoted to a
-contract. Ad labels are matched through a bounded locale list and structural owner checks.
+## Rejected Ideas
 
-## Advertising surface and request map
+- Mass-block / mass-delete / bulk-unfollow (rxliuli, r/Twitter demand) — originates API calls;
+  the exact behavior behind the March 2026 ban waves. Keeps Aviary on the safe DOM/passive side.
+- Mobile/tablet support (CPFT's moat) — rejected by the desktop product scope (standing).
+- Settings cloud sync (CPFT #204) — local-first philosophy; profiles + settings export serve it.
+- Keyboard shortcuts (OldTwitter/RES parity) — standing house rule; preflight enforces.
+- x.com→twitter.com redirect (CPFT feature) — auth-loop breakage on CPFT (#909), low value.
+- Broad HomeTimeline/`pbs.twimg.com`/`video.twimg.com` blocking — breaks essential transport
+  (2026-08-13 pass, re-confirmed).
+- `placementTracking`-only ad selection — organic false positives (CLAUDE.md, uBO breakage).
+- Full client replacement (OldTwitter approach) — ban risk + GoodTwitter2 failure mode.
+- Hosted/subscription features (X Filter Pro model) — contradicts local-first identity.
+- `privacy.encryptVault` — key-beside-ciphertext theater; removed v1.12.0, stays removed.
+- AI summarization as default-on (X Filter Pro) — provider calls are disclosure-gated opt-in
+  by design; no change.
 
-| Placement | Route / insertion | Request or transport | Current behavior | Remaining proof |
-|---|---|---|---|---|
-| Native sponsored timeline article | Home; delayed/virtualized and reinserted after SPA return | Record shares HomeTimeline GraphQL with organic content | Article and owning virtualizer cell are suppressed on cold fixture load and delayed/SPA insertion | Direct authenticated build injection is unavailable in the in-app browser |
-| Paid partnership | Timeline article | First-party record; policy link is the stable DOM discriminator | Owning article/cell suppressed; minimized synthetic fixture is retained | Additional real locale/state captures remain operator-gated |
-| Promoted trend | Home complementary sidebar | First-party sidebar data | Matching `[data-testid="trend"]` row suppressed | Direct authenticated build injection unavailable |
-| Grok/Premium house promo | Home complementary rail | First-party product content | Bounded promo aside/card suppressed; ordinary navigation remains | New product URLs need selector-health visibility |
-| Video pre-roll | Video player inside timeline/article | Request hostname/initiator not safely correlated in this pass | Visible ad owner suppressed | UNVERIFIED whether creative transport is separable; broad media-host blocking is unsafe |
-| Promoted-content event logger | Home; XHR after sponsored exposure | `x.com/i/api/1.1/promoted_content/log.json` | Userscript `fetch`/XHR/`sendBeacon` receive an empty local response; extension DNR blocks the exact request before connection | Browser-owned Chrome and Firefox loopback probes pass |
-| Tracking/affiliate destinations | Link inside sponsored article (`twclid`, observed DoubleClick target) | Navigation target, not observed page-load resource | Removed with the sponsored owner; no broad host block | Do not claim a third-party request was loaded without network evidence |
+## Sources
 
-The exact page-world logger guard installs before persisted settings resolve so a cold page cannot
-win a race. The extension now adds a second, browser-owned boundary: one dynamic rule whose cheap
-path regex is constrained by exact X/Twitter request domains and synchronized to `privacy.blockAds`.
-Disposable Chrome and Firefox builds add the feedback permission only in the test profile; both
-real runtimes prove the exact logger match, four negative controls, disable/re-enable persistence,
-and that a blocked logger never reaches a loopback network endpoint. The structural feature remains
-reversible and MutationObserver/route safe.
+Competitors / OSS:
+- https://github.com/insin/control-panel-for-twitter (+issues #204 #909 #913 #915 #917 #918 #919)
+- https://github.com/dimdenGD/OldTwitter (+issues #1222 #1153 #1332)
+- https://github.com/prinsss/twitter-web-exporter (+issues #52 #92 #116 #133 #137)
+- https://github.com/EltonChou/TwitterMediaHarvest (+issues #74 #103 #126 #137 #283)
+- https://github.com/Ablaze-MIRAI/Twitter-UI-Customizer
+- https://github.com/typefully/minimal-twitter (+issues #183 #242 #243 #249)
+- https://github.com/AprilSylph/XKit-Rewritten
+- https://github.com/honestbleeps/Reddit-Enhancement-Suite · https://gosinkit.com/
+- https://github.com/rxliuli/mass-block-twitter · https://rxliuli.com/project/twitter-filter/
+- https://github.com/robonxt/CleanYourTwitter · https://github.com/Bl4Cc4t/GoodTwitter2
+- https://xfilterpro.com/ · https://chromewebstore.google.com/detail/hide-xcom-ads/bapmhjebfdbdpjjfafnkfidijkjlkakf
 
-The dated fixture corpus under `tests/fixtures/ad-corpus/` is deliberately not a clipped production
-page. Five sub-1.5 KB documents retain only the structural selectors, exact contract labels, two
-allowlisted policy/product links, and synthetic copy. A static privacy gate rejects scripts, styles,
-resource URLs, credentials, handles, and account/tweet-shaped ids; Chromium then exercises cold
-paint, delayed insertion, virtualizer ownership, opt-out/re-enable, pre-roll recovery, and SPA
-reinsertion while proving organic `placementTracking`, trends, asides, and video remain visible.
+Platform / standards:
+- https://developer.chrome.com/docs/extensions/develop/migrate/mv2-deprecation-timeline
+- https://developer.chrome.com/docs/extensions/reference/api/userScripts
+- https://developer.chrome.com/blog/cws-policy-updates-2026
+- https://blog.mozilla.org/addons/2026/07/23/firefox-153-webextensions-api-updates/
+- https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/userScripts (AMO restriction)
+- https://bugzil.la/1921353 (FF DNR persistence, fixed FF133)
+- https://web.dev/blog/baseline-navigation-api
+- https://eslint.org/blog/2026/02/eslint-v10.0.0-released/ · https://endoflife.date/eslint
+- https://github.com/evanw/esbuild/blob/main/CHANGELOG.md
+- https://devblogs.microsoft.com/typescript/announcing-typescript-6-0/
+- https://github.com/advisories/GHSA-7mvr-c777-76hp (Playwright, cleared)
 
-## Platform and security assessment
+X platform / community (sentiment unless noted):
+- https://piunikaweb.com/2026/07/10/x-ad-blocker-warning-browser-users/
+- https://www.reddit.com/r/uBlockOrigin/comments/1vob8nh (media-tab flag reversion, 2026-08-14)
+- https://www.reddit.com/r/uBlockOrigin/comments/1v2gxir ("More From This Author", 2026-07)
+- https://www.reddit.com/r/uBlockOrigin/comments/1v0psbz (video login wall, 2026-07)
+- https://www.reddit.com/r/Twitter/comments/1vev2k5 (ads unbearable even for Premium, 2026-08)
+- https://www.reddit.com/r/firefox/comments/1p8wfc2 (X CountryBadge, 591 pts, 2025-11)
+- https://www.reddit.com/r/Twitter/comments/1pvdf5u (art-to-gif Grok protection, 152 pts)
+- https://news.ycombinator.com/item?id=45916525 (Tweeks trust-objection thread)
+- https://scrapfly.io/blog/posts/how-to-scrape-twitter (GraphQL doc_id rotation)
 
-- Chrome's content-script model allows `document_start` execution before ordinary page scripts and
-  DOM construction, which is the earliest common userscript/MV3 layer used here. See
-  [Chrome content scripts](https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts)
-  (accessed 2026-08-13).
-- Manifest V3 `declarativeNetRequest` now supplies browser-level defense in depth for extension
-  builds. Aviary uses `declarativeNetRequestWithHostAccess`, an exact path regex plus request-domain
-  constraints, and no shipped feedback permission. See
-  [Chrome DNR](https://developer.chrome.com/docs/extensions/reference/api/declarativeNetRequest)
-  and [MDN DNR](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/declarativeNetRequest)
-  (accessed 2026-08-13).
-- Base extension permissions are `storage` and host-scoped
-  `declarativeNetRequestWithHostAccess`; downloads and media hosts remain optional. No `<all_urls>`,
-  `webRequest`, remote code, telemetry, credential export, or private-body fixture was added.
-  Firefox uses a supported MV3 event page and an enabled empty static ruleset for Firefox 128–132's
-  documented dynamic-rule persistence edge. Chrome's current permission guidance favors the narrowest required declarations:
-  [Declare permissions](https://developer.chrome.com/docs/extensions/develop/concepts/declare-permissions)
-  (accessed 2026-08-13).
-- The page-world bridge remains a hostile-input boundary. Existing URL/operation/body limits,
-  budgets, and redaction remain necessary; ad protection does not expand bridge data collection.
+## Open Questions
 
-## Settings-page matrix and selected ImageGen direction
-
-ImageGen produced a separate 1440×900 desktop `ui-mockup` for every destination using the same dark
-charcoal operations-cockpit system. Mockups are design references; the shipped interface is HTML,
-CSS, and TypeScript. Implemented screenshots were captured at 1440×900 and 1920×1080, with a
-geometry gate for viewport escape, horizontal overflow, and clipped controls. Overlay comparisons
-are stored under `docs/audit/2026-08-13/settings-parity/`.
-
-| Destination | Selected mockup | Implemented capture |
-|---|---|---|
-| Presets | `docs/mockups/2026-08-13/control-center-presets.png` | `settings-after/control-center-presets-1440x900.png` |
-| Appearance | `docs/mockups/2026-08-13/control-center-appearance.png` | `settings-after/control-center-appearance-1440x900.png` |
-| Layout | `docs/mockups/2026-08-13/control-center-layout.png` | `settings-after/control-center-layout-1440x900.png` |
-| Filtering | `docs/mockups/2026-08-13/control-center-filtering.png` | `settings-after/control-center-filtering-1440x900.png` |
-| Hidden posts | `docs/mockups/2026-08-13/control-center-hidden.png` | `settings-after/control-center-hidden-1440x900.png` |
-| Performance | `docs/mockups/2026-08-13/control-center-performance.png` | `settings-after/control-center-performance-1440x900.png` |
-| Media | `docs/mockups/2026-08-13/control-center-media.png` | `settings-after/control-center-media-1440x900.png` |
-| Export | `docs/mockups/2026-08-13/control-center-export.png` | `settings-after/control-center-export-1440x900.png` |
-| Library | `docs/mockups/2026-08-13/control-center-library.png` | `settings-after/control-center-library-1440x900.png` |
-| Snapshots | `docs/mockups/2026-08-13/control-center-snapshots.png` | `settings-after/control-center-snapshots-1440x900.png` |
-| Integrations | `docs/mockups/2026-08-13/control-center-integrations.png` | `settings-after/control-center-integrations-1440x900.png` |
-| Backup & Audit | `docs/mockups/2026-08-13/control-center-backup.png` | `settings-after/control-center-backup-1440x900.png` |
-| Trust | `docs/mockups/2026-08-13/control-center-trust.png` | `settings-after/control-center-trust-1440x900.png` |
-| Extension permissions | `docs/mockups/2026-08-13/extension-options.png` | `settings-after/extension-options-1440x900.png` |
-
-Real setting keys, defaults, permission buttons, validation, and action callbacks were preserved.
-The generated boards sometimes implied decorative row icons or a single page-level Save bar that
-the current behavior does not yet support; correct semantics and accessible native controls won.
-That remaining transactional improvement is recorded in ROADMAP rather than faked visually.
-
-## Desktop journey conclusions
-
-- Discovery: grouped rail headings and a persistent search affordance make 13 destinations easier
-  to scan than the old equal-weight card grid.
-- Editing: the footer now says when changes are unsaved; independent drafts remain visible, and
-  search/section changes cannot silently strand the active edit.
-- Dependencies: filters, hidden posts, original-quality media, and optional permissions explain
-  their disabled or grant-dependent state next to the control.
-- Recovery: Trust reset copy accurately preserves local libraries and returns to the default
-  ad-free baseline instead of promising literal untouched X.
-- Permission journey: the extension page summarizes granted/optional counts before listing the two
-  reversible permission groups, with explicit status and live region feedback.
-- Accessibility: modal focus containment, focus-visible states, semantic native controls, RTL
-  catalog coverage, and reduced-motion behavior remain in the automated contract. Mobile design
-  and mobile claims are intentionally outside this desktop pass.
-
-## Competitive and community evidence
-
-- [Hide X.com Ads](https://chromewebstore.google.com/detail/hide-xcom-ads/bapmhjebfdbdpjjfafnkfidijkjlkakf)
-  demonstrates demand for a narrowly focused promoted-post/upsell remover. Its store listing was
-  checked 2026-08-13; adoption/review values are time-sensitive and are not product guarantees.
-- [X Filter Pro](https://xfilterpro.com/) combines ad blocking, focus mode, and account/keyword/
-  engagement filtering. Aviary's advantage is a readable local-first build, reversible controls,
-  archive tooling, and explicit provider boundaries rather than a hosted subscription workflow.
-- [Better X](https://betterxtwitter.com/) and [TidyFeed](https://tidyfeed.app/home) reinforce demand
-  for calmer feeds and discoverable declutter controls. Their public feature pages were reviewed
-  2026-08-13; implementation claims were not treated as independent proof.
-- Current public discussion reports growing frustration with ad load even among paid users, but
-  community posts are sentiment only. Product decisions here are grounded in observed DOM/network
-  contracts, not anecdotes.
-- X documents promoted content as reportable advertising, confirming that native paid placements
-  are a first-class site concept: [Reporting X Ads](https://help.x.com/en/safety-and-security/reporting-x-ads)
-  (accessed 2026-08-13).
-
-No native X feature made an Aviary subsystem safely redundant. X bookmarks and lists do not replace
-the local annotated library, truthful offline exports, profile-scoped backup, or reversible local
-filters, so no mature feature was removed merely because a similarly named native control exists.
-
-## Priority disposition
-
-### Follow-up — shipped in 1.19.0
-
-1. Premium Noir desktop theme with semantic current-X anchors and reversible Off behavior.
-2. Search-shell and live news-card refinements measured against the authenticated Home DOM.
-3. Deterministic Noir capture and regression coverage at 1440×900 and 1920×1080.
-4. Seven-mode, nine-locale release-matrix coverage with full 793-string catalog parity.
-
-### Now — shipped in 1.18.0
-
-1. Document-start ad logger prevention and structural suppression of every evidenced desktop ad
-   surface; impact 5, effort M, hook risk medium.
-2. Current `/i/chat`, profile-tab, and settings-route repairs; impact 4, effort S, hook risk low.
-3. Complete 14-surface settings redesign and capture gate; impact 5, effort L, visual risk medium.
-4. Explicit draft/dependency/permission state and accurate reset copy; impact 4, effort M, risk low.
-5. Recursive UI i18n extraction with full nine-locale catalog parity; impact 4, effort S, risk low.
-
-### Next — active roadmap
-
-1. Transactional page-level Save/Revert for Control Center edits.
-2. Local-only ad contract drift diagnostics with no content retention.
-3. Desktop visual-regression coverage across settings themes and material states.
-
-### Blocked / rejected
-
-- Direct authenticated built-extension verification, video pre-roll request correlation,
-  blocked-author filtering, self-repost filtering, and sensitive-media scoping have explicit
-  re-entry evidence requirements in `Roadmap_Blocked.md`.
-- Broad HomeTimeline, `x.com`, `pbs.twimg.com`, or `video.twimg.com` blocking is rejected because it
-  would damage essential feed/media behavior.
-- `placementTracking`-only removal is rejected because current organic content uses it.
-- Mobile redesign, mobile navigation, and phone/tablet screenshot work are rejected by the desktop
-  product scope.
-
-The most likely next break is an X label/link/owner change that leaves native ads inside a normal
-tweet article. The hardening path is a minimized dated fixture corpus plus local selector-health
-telemetry, not a broader generated-class or text selector.
+1. **Publishing intent**: is Aviary meant to go public (greasyfork/AMO/CWS) or stay a private
+   personal build? F105's correct URL target and the whole F125 distribution item depend on it.
+   Until answered, F105 should point at the real private repo's raw dist path.
+2. **Does X's anti-adblock warning actually trigger on Aviary's exact logger block?** Needs an
+   operator-authenticated session in the warning-test cohort; cannot be answered from fixtures.
+3. Blocked-item captures (F032/F033, sensitive media, pre-roll correlation) remain
+   operator-gated as specified in `Roadmap_Blocked.md` — unchanged by this pass.
