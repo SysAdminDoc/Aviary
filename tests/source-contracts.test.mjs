@@ -85,7 +85,11 @@ test("MV3 manifests keep permissions narrow", async () => {
   for (const manifestPath of manifests) {
     const manifest = JSON.parse(await readFile(path.join(root, manifestPath), "utf8"));
     assert.equal(manifest.manifest_version, 3);
-    assert.deepEqual(manifest.permissions, ["storage", "declarativeNetRequestWithHostAccess"]);
+    assert.deepEqual(manifest.permissions, [
+      "storage",
+      "declarativeNetRequestWithHostAccess",
+      "contextMenus"
+    ]);
     assert.deepEqual(manifest.optional_permissions, ["downloads"]);
     assert.ok(!JSON.stringify(manifest).includes("<all_urls>"));
     assert.ok(!JSON.stringify(manifest).includes("tabs"));

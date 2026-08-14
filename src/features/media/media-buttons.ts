@@ -1,6 +1,11 @@
 import type { FeatureContext, FeatureModule } from "../registry";
 import { ft } from "../core/feature-i18n";
+import { showFeatureToast } from "../core/feature-toast";
 import { Aria2History } from "../integrations/aria2";
+import {
+  isMediaContextDownloadMessage,
+  isMediaContextPermissionDeniedMessage
+} from "../../extension/media-context-menu";
 import type { CapturedGraphqlPayload } from "../../page/page-agent";
 import type { PageBridge } from "../../platform/page-bridge";
 import {
@@ -11,7 +16,7 @@ import {
 } from "./downloader";
 import { extractTweet, type ExtractedMedia, type ExtractedTweet } from "./extract";
 import { MediaMetadataCache } from "./media-metadata";
-import { isSaveableVariantUrl } from "./video-extract";
+import { isSaveableVariantUrl, VIDEO_CONTAINER_SELECTOR } from "./video-extract";
 import { MediaHistory } from "./history";
 import { rememberLastDownload } from "./last-download";
 import { DownloadQueue } from "./queue";
@@ -20,6 +25,24 @@ import { renderFilename } from "./template";
 const STYLE_ID = "av-media-buttons";
 const BUTTON_ATTR = "data-av-media-button";
 const PROCESSED_ATTR = "data-av-media-processed";
+const MEDIA_HOST_SELECTOR =
+  '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="videoComponent"]';
+const MEDIA_MUTATION_SELECTOR =
+  '[data-testid="tweetPhoto"], [data-testid="tweetPhoto"] img, ' +
+  '[data-testid="videoPlayer"], [data-testid="videoComponent"], video, source';
+const CONTEXT_TARGET_MAX_AGE_MS = 30_000;
+
+type ExtensionMessageListener = (
+  message: unknown,
+  sender: unknown,
+  sendResponse: (response?: unknown) => void
+) => boolean | undefined;
+
+interface PendingContextTarget {
+  article: Element;
+  host: HTMLElement;
+  capturedAt: number;
+}
 
 let downloader: Downloader | undefined;
 let history: MediaHistory | undefined;
@@ -31,6 +54,9 @@ const mediaMetadataCache = new MediaMetadataCache();
 let subscribedBridge: PageBridge | undefined;
 /** The grant page is opened once per session, never once per failed button. */
 let permissionSurfaceOpened = false;
+let pendingContextTarget: PendingContextTarget | undefined;
+let contextMenuListener: ((event: MouseEvent) => void) | undefined;
+let extensionMessageListener: ExtensionMessageListener | undefined;
 
 export const mediaButtonsFeature: FeatureModule = {
   id: "media.buttons",
@@ -79,6 +105,7 @@ export const mediaButtonsFeature: FeatureModule = {
     } catch (error) {
       ctx.diagnostics.warn("Media history failed to load", errorDetails(error));
     }
+    installContextDownload(ctx);
     applyToggleClass(ctx);
     appliedPreferOriginalImages = ctx.settings.media.preferOriginalImages;
     appliedMetadataVersion = mediaMetadataCache.version;
@@ -90,6 +117,7 @@ export const mediaButtonsFeature: FeatureModule = {
     applyToggleClass(ctx);
     if (!ctx.settings.media.buttons) {
       clearDecorations();
+      pendingContextTarget = undefined;
       appliedPreferOriginalImages = undefined;
       appliedMetadataVersion = undefined;
       return;
@@ -118,11 +146,20 @@ export const mediaButtonsFeature: FeatureModule = {
       return;
     }
     for (const node of addedNodes) {
-      scanArticles(node, ctx);
+      // Our own button insertion is also observed. Skip that one mutation, but reconcile every
+      // X-owned addition: virtualized timeline cells keep the article element while replacing
+      // its media subtree, so a once-only processed marker cannot prove controls still exist.
+      if (node.hasAttribute(BUTTON_ATTR)) {
+        continue;
+      }
+      if (needsMutationReconcile(node)) {
+        scanArticles(node, ctx, true);
+      }
     }
   },
 
   async destroy(ctx) {
+    uninstallContextDownload();
     clearDecorations();
     downloader = undefined;
     history = undefined;
@@ -198,21 +235,172 @@ function clearDecorations(): void {
   }
 }
 
-function scanArticles(root: ParentNode | Element, ctx: FeatureContext): void {
+function installContextDownload(ctx: FeatureContext): void {
+  const runtime = globalThis.chrome?.runtime;
+  if (!runtime?.id || !runtime.onMessage || contextMenuListener || extensionMessageListener) {
+    return;
+  }
+
+  contextMenuListener = (event) => {
+    pendingContextTarget = ctx.settings.media.buttons
+      ? contextTarget(event.target)
+      : undefined;
+  };
+  document.addEventListener("contextmenu", contextMenuListener, true);
+
+  extensionMessageListener = (message, _sender, sendResponse) => {
+    if (isMediaContextPermissionDeniedMessage(message)) {
+      showFeatureToast(
+        ft(ctx, "Download access was not granted. Open Aviary Options to enable browser downloads."),
+        { tone: "error", ctx }
+      );
+      sendResponse({ ok: false, reason: "permission-denied" });
+      return false;
+    }
+    if (!isMediaContextDownloadMessage(message)) {
+      return false;
+    }
+
+    void downloadContextTarget(ctx).then(
+      (ok) => sendResponse({ ok }),
+      (error: unknown) => {
+        ctx.diagnostics.error("Context media download failed", errorDetails(error));
+        showFeatureToast(ft(ctx, "Media download failed. Try the on-post button again."), {
+          tone: "error",
+          ctx
+        });
+        sendResponse({ ok: false, error: error instanceof Error ? error.message : String(error) });
+      }
+    );
+    return true;
+  };
+  runtime.onMessage.addListener(extensionMessageListener);
+}
+
+function uninstallContextDownload(): void {
+  if (contextMenuListener) {
+    document.removeEventListener("contextmenu", contextMenuListener, true);
+    contextMenuListener = undefined;
+  }
+  const onMessage = globalThis.chrome?.runtime?.onMessage;
+  if (extensionMessageListener && onMessage?.removeListener) {
+    onMessage.removeListener(extensionMessageListener);
+  }
+  extensionMessageListener = undefined;
+  pendingContextTarget = undefined;
+}
+
+function contextTarget(rawTarget: EventTarget | null): PendingContextTarget | undefined {
+  if (!(rawTarget instanceof Element)) {
+    return undefined;
+  }
+  // X often places controls over the <video>, so prefer the semantic player ancestor over an
+  // inner poster/image wrapper. The native context-menu item is registered for all X contexts;
+  // this page-side target is what tells it which actual post media the user right-clicked.
+  const host =
+    rawTarget.closest<HTMLElement>(VIDEO_CONTAINER_SELECTOR) ??
+    rawTarget.closest<HTMLElement>('[data-testid="tweetPhoto"]');
+  const article = host?.closest('article[data-testid="tweet"]');
+  if (!host || !article) {
+    return undefined;
+  }
+  return { article, host, capturedAt: Date.now() };
+}
+
+async function downloadContextTarget(ctx: FeatureContext): Promise<boolean> {
+  const pending = pendingContextTarget;
+  pendingContextTarget = undefined;
+  if (
+    !ctx.settings.media.buttons ||
+    !pending ||
+    !pending.article.isConnected ||
+    !pending.host.isConnected ||
+    Date.now() - pending.capturedAt > CONTEXT_TARGET_MAX_AGE_MS
+  ) {
+    showFeatureToast(ft(ctx, "Right-click an image or video first, then choose Aviary download."), {
+      tone: "error",
+      ctx
+    });
+    return false;
+  }
+
+  const tweet = extractTweetForContext(pending.article, ctx);
+  const wantsVideo = pending.host.matches(VIDEO_CONTAINER_SELECTOR);
+  const index = tweet.media.findIndex((media) => {
+    if (wantsVideo) {
+      return (
+        media.kind === "video" &&
+        media.video?.container === pending.host &&
+        resolveTarget(media) !== null
+      );
+    }
+    return (
+      media.kind === "photo" &&
+      media.source.closest('[data-testid="tweetPhoto"]') === pending.host &&
+      resolveTarget(media) !== null
+    );
+  });
+  const media = tweet.media[index];
+  if (!media) {
+    showFeatureToast(
+      ft(
+        ctx,
+        wantsVideo
+          ? "The direct video is still loading. Try again in a moment."
+          : "This image is not available to download."
+      ),
+      { tone: "error", ctx }
+    );
+    return false;
+  }
+
+  const container = resolveContainer(media);
+  if (!container) {
+    return false;
+  }
+  let button = container.querySelector<HTMLButtonElement>(
+    `[${BUTTON_ATTR}="${media.kind}"]`
+  );
+  if (!button) {
+    button = buildButton(media, index, tweet, ctx);
+    container.append(button);
+    positionButton(button, container);
+  }
+  await handleDownload(media, index, tweet, ctx, button);
+  return true;
+}
+
+function extractTweetForContext(article: Element, ctx: FeatureContext): ExtractedTweet {
+  return extractTweet(article, {
+    preferOriginalImages: ctx.settings.media.preferOriginalImages,
+    mediaMetadata: ({ tweetId, mediaId, poster }) =>
+      mediaMetadataCache.find(tweetId, mediaId, poster)
+  });
+}
+
+function scanArticles(
+  root: ParentNode | Element,
+  ctx: FeatureContext,
+  force = false
+): void {
   if (!ctx.settings.media.buttons) {
     return;
   }
   const articles = collectArticles(root);
   for (const article of articles) {
-    if (article.getAttribute(PROCESSED_ATTR) === "1") {
-      continue;
+    if (!force && article.getAttribute(PROCESSED_ATTR) === "1") {
+      if (
+        article.querySelector(`[${BUTTON_ATTR}]`) ||
+        !article.querySelector(MEDIA_HOST_SELECTOR)
+      ) {
+        continue;
+      }
     }
-    const tweet = extractTweet(article, {
-      preferOriginalImages: ctx.settings.media.preferOriginalImages,
-      mediaMetadata: ({ tweetId, mediaId, poster }) =>
-        mediaMetadataCache.find(tweetId, mediaId, poster)
-    });
+    const tweet = extractTweetForContext(article, ctx);
     if (tweet.media.length === 0) {
+      // Mark text-only and still-building shells too. A later media-specific mutation forces a
+      // reconciliation, while ordinary reply/count/control churn no longer re-extracts a post.
+      article.setAttribute(PROCESSED_ATTR, "1");
       continue;
     }
     decorateArticle(tweet, ctx);
@@ -220,19 +408,38 @@ function scanArticles(root: ParentNode | Element, ctx: FeatureContext): void {
   }
 }
 
+function needsMutationReconcile(node: Element): boolean {
+  const closestArticle = node.closest('article[data-testid="tweet"]');
+  if (closestArticle && closestArticle.getAttribute(PROCESSED_ATTR) !== "1") {
+    return true;
+  }
+  if (node.matches('article[data-testid="tweet"]')) {
+    return (
+      node.getAttribute(PROCESSED_ATTR) !== "1" ||
+      (!node.querySelector(`[${BUTTON_ATTR}]`) && node.querySelector(MEDIA_HOST_SELECTOR) !== null)
+    );
+  }
+  return node.matches(MEDIA_MUTATION_SELECTOR) || node.querySelector(MEDIA_MUTATION_SELECTOR) !== null;
+}
+
 function collectArticles(root: ParentNode | Element): Element[] {
-  const found: Element[] = [];
-  if (root instanceof Element && root.matches('article[data-testid="tweet"]')) {
-    found.push(root);
+  const found = new Set<Element>();
+  if (root instanceof Element) {
+    const article = root.matches('article[data-testid="tweet"]')
+      ? root
+      : root.closest('article[data-testid="tweet"]');
+    if (article) {
+      found.add(article);
+    }
   }
   if ("querySelectorAll" in root) {
     for (const article of Array.from(
       root.querySelectorAll('article[data-testid="tweet"]')
     )) {
-      found.push(article);
+      found.add(article);
     }
   }
-  return found;
+  return [...found];
 }
 
 function decorateArticle(tweet: ExtractedTweet, ctx: FeatureContext): void {
@@ -266,16 +473,19 @@ function positionButton(button: HTMLElement, container: Element): void {
   const anchor = positionedAncestor(container);
   const media = container.getBoundingClientRect();
   const base = anchor?.getBoundingClientRect();
+  const siblings = Array.from(container.querySelectorAll(`[${BUTTON_ATTR}]`));
+  const slot = Math.max(0, siblings.indexOf(button));
+  const topOffset = 8 + slot * 40;
 
   // Fall back to the media box's own corner when there is nothing to measure against yet, or
   // nothing positioned above. Never remove the button: the article is marked processed once
   // decorated, so a button dropped here would never be offered again.
   if (!anchor || !base || media.width === 0 || media.height === 0) {
-    button.style.top = "8px";
+    button.style.top = `${topOffset}px`;
     button.style.right = "8px";
     return;
   }
-  button.style.top = `${Math.round(media.top - base.top + 8)}px`;
+  button.style.top = `${Math.round(media.top - base.top + topOffset)}px`;
   button.style.right = `${Math.round(base.right - media.right + 8)}px`;
 }
 
@@ -319,8 +529,10 @@ function buildButton(
   button.className = "av-media-button";
   button.setAttribute(BUTTON_ATTR, media.kind);
   button.dataset.kind = media.kind;
-  button.setAttribute("aria-label", ft(ctx, buttonAriaLabel(media)));
-  button.textContent = ft(ctx, buttonLabel(media));
+  const accessibleLabel = ft(ctx, buttonAriaLabel(media));
+  button.setAttribute("aria-label", accessibleLabel);
+  button.title = accessibleLabel;
+  button.textContent = `↓ ${ft(ctx, buttonLabel(media))}`;
 
   button.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -512,19 +724,24 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
 
 [${BUTTON_ATTR}] {
   position: absolute;
-  z-index: 2;
-  min-height: 28px;
-  padding: 4px 10px;
-  border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 60%, transparent);
-  border-radius: 6px;
-  background: color-mix(in srgb, rgb(0, 0, 0) 60%, transparent);
+  z-index: 12;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  min-height: 34px;
+  padding: 6px 11px;
+  border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 82%, white 8%);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(15, 20, 25)) 94%, black);
   color: var(--av-text, rgb(239, 243, 244));
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.52);
   cursor: pointer;
-  font: 700 11px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
+  font: 750 12px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  opacity: 0;
-  transition: opacity 120ms ease, border-color 120ms ease;
+  opacity: 1;
+  transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
 }
 
 /* Aviary no longer makes X's media containers the positioning context.
@@ -536,20 +753,15 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
    the moment it was switched off. positionButton() measures against whatever ancestor X has
    already positioned, which is the same box the photo itself resolves against. */
 
-/* The reveal list has to name every host container. It covered tweetPhoto only, so the button
-   on a video player rested at opacity 0 with no rule that could ever show it. */
-[data-testid="tweetPhoto"]:hover [${BUTTON_ATTR}],
-[data-testid="tweetPhoto"]:focus-within [${BUTTON_ATTR}],
-[data-testid="videoPlayer"]:hover [${BUTTON_ATTR}],
-[data-testid="videoPlayer"]:focus-within [${BUTTON_ATTR}],
-[data-testid="videoComponent"]:hover [${BUTTON_ATTR}],
-[data-testid="videoComponent"]:focus-within [${BUTTON_ATTR}],
-[${BUTTON_ATTR}]:focus-visible,
-[${BUTTON_ATTR}].is-active,
-[${BUTTON_ATTR}].is-success,
-[${BUTTON_ATTR}].is-error,
-[${BUTTON_ATTR}].is-duplicate {
-  opacity: 1;
+[${BUTTON_ATTR}]:hover {
+  border-color: var(--av-accent, rgb(29, 155, 240));
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(15, 20, 25)) 86%, var(--av-accent, rgb(29, 155, 240)));
+  transform: translateY(-1px);
+}
+
+[${BUTTON_ATTR}]:focus-visible {
+  outline: 2px solid var(--av-accent, rgb(29, 155, 240));
+  outline-offset: 2px;
 }
 
 [${BUTTON_ATTR}].is-success {
@@ -567,8 +779,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
   color: rgb(248, 200, 200);
 }
 
-[${BUTTON_ATTR}][data-kind="thumbnail"] {
-  top: 8px;
-  right: 76px;
+[${BUTTON_ATTR}]:disabled {
+  cursor: default;
+  transform: none;
 }
 `;

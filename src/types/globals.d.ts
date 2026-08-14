@@ -51,8 +51,16 @@ declare global {
             sendResponse: (response?: unknown) => void
           ) => boolean | void
         ): void;
+        removeListener(
+          listener: (
+            message: unknown,
+            sender: unknown,
+            sendResponse: (response?: unknown) => void
+          ) => boolean | void
+        ): void;
       };
       sendMessage?: (message: unknown) => Promise<unknown>;
+      lastError?: { message?: string };
     };
     storage?: {
       local?: {
@@ -84,6 +92,29 @@ declare global {
       onClicked?: {
         addListener(listener: () => void): void;
       };
+    };
+    contextMenus?: {
+      create(
+        properties: {
+          id: string;
+          title: string;
+          contexts?: string[];
+          documentUrlPatterns?: string[];
+        },
+        callback?: () => void
+      ): string | number;
+      removeAll(callback?: () => void): void | Promise<void>;
+      onClicked?: {
+        addListener(
+          listener: (
+            info: { menuItemId: string | number; mediaType?: string; srcUrl?: string },
+            tab?: { id?: number }
+          ) => void
+        ): void;
+      };
+    };
+    tabs?: {
+      sendMessage(tabId: number, message: unknown): Promise<unknown>;
     };
   } | undefined;
 }

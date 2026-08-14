@@ -23,11 +23,29 @@ export interface ExtractedVideo {
 export const VIDEO_CONTAINER_SELECTOR =
   '[data-testid="videoPlayer"], [data-testid="videoComponent"]';
 
+/**
+ * X nests `videoComponent` inside `videoPlayer` on current routes. Return the innermost matched
+ * container that owns each actual <video>, otherwise callers decorate the same player twice.
+ */
+export function videoContainers(root: Element): HTMLElement[] {
+  const candidates = Array.from(
+    root.querySelectorAll<HTMLElement>(VIDEO_CONTAINER_SELECTOR)
+  );
+  return candidates.filter((container) => {
+    const video = container.querySelector<HTMLVideoElement>("video");
+    if (!video) {
+      return false;
+    }
+    return !candidates.some(
+      (candidate) =>
+        candidate !== container && container.contains(candidate) && candidate.contains(video)
+    );
+  });
+}
+
 export function extractVideos(article: Element): ExtractedVideo[] {
   const results: ExtractedVideo[] = [];
-  for (const container of Array.from(
-    article.querySelectorAll<HTMLElement>(VIDEO_CONTAINER_SELECTOR)
-  )) {
+  for (const container of videoContainers(article)) {
     const extracted = extractVideo(container);
     if (extracted) {
       results.push(extracted);

@@ -66,6 +66,9 @@ async function checkManifests() {
     if (!manifest.permissions?.includes("declarativeNetRequestWithHostAccess")) {
       failures.push(`${target}: missing narrow declarativeNetRequestWithHostAccess permission`);
     }
+    if (!manifest.permissions?.includes("contextMenus")) {
+      failures.push(`${target}: missing contextMenus permission for right-click media downloads`);
+    }
     if (manifest.permissions?.includes("declarativeNetRequestFeedback")) {
       failures.push(`${target}: test-only declarativeNetRequestFeedback must not ship`);
     }
@@ -77,7 +80,8 @@ async function checkManifests() {
     if (hosts.length === 0) {
       failures.push(`${target}: host_permissions is empty`);
     }
-    // The options page is the only surface with a user gesture for permissions.request().
+    // The options page remains the durable grant/revoke surface even though the native media
+    // context-menu click can request download access inline.
     const optionsPage = manifest.options_ui?.page;
     if (optionsPage !== "options.html") {
       failures.push(`${target}: options_ui.page must be options.html (optional permissions need a grant surface)`);

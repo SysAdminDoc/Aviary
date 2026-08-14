@@ -391,7 +391,7 @@ test("injected toasts and hide spacing follow the document direction", async () 
   assert.equal(results.rtl.hideMargin, "4px");
 });
 
-test("a media button becomes visible on hover over every container that can host one", async () => {
+test("media download buttons remain obvious without hover on every host container", async () => {
   await page.evaluate(CTX_SETUP);
   await page.evaluate(() => {
     // Cleared so nothing from an earlier test overlaps the hover target.
@@ -417,25 +417,30 @@ test("a media button becomes visible on hover over every container that can host
 
   for (const testid of ["tweetPhoto", "videoPlayer", "videoComponent"]) {
     const before = await page.evaluate(
-      (id) => getComputedStyle(document.querySelector(`#host-${id} [data-av-media-button]`)).opacity,
+      (id) => {
+        const style = getComputedStyle(
+          document.querySelector(`#host-${id} [data-av-media-button]`)
+        );
+        return {
+          opacity: style.opacity,
+          minHeight: Number.parseFloat(style.minHeight),
+          background: style.backgroundColor,
+          shadow: style.boxShadow
+        };
+      },
       testid
     );
-    assert.equal(before, "0", `${testid}: the button should rest hidden`);
+    assert.equal(before.opacity, "1", `${testid}: the button must be visible without hover`);
+    assert.ok(before.minHeight >= 34, `${testid}: the button is too small to discover`);
+    assert.notEqual(before.background, "rgba(0, 0, 0, 0)", `${testid}: the button needs a solid surface`);
+    assert.notEqual(before.shadow, "none", `${testid}: the button needs separation from media`);
 
     await page.hover(`#host-${testid}`);
-    // The reveal is a 120ms transition, so an immediate read catches it mid-animation.
-    await page
-      .waitForFunction(
-        (id) => getComputedStyle(document.querySelector(`#host-${id} [data-av-media-button]`)).opacity === "1",
-        testid,
-        { timeout: 2000 }
-      )
-      .catch(() => undefined);
     const after = await page.evaluate(
       (id) => getComputedStyle(document.querySelector(`#host-${id} [data-av-media-button]`)).opacity,
       testid
     );
-    assert.equal(after, "1", `${testid}: hovering the container must reveal the button`);
+    assert.equal(after, "1", `${testid}: hover must not hide the persistent button`);
 
     // And the stylesheet must NOT have made the container a positioning context. Doing so
     // collapsed X's photo to zero height, because X keeps that box at height 0 and hangs the
@@ -535,7 +540,7 @@ test("timeline controls render in the reader's locale, not English", async () =>
 
   assert.deepEqual(rendered.en, {
     hide: "Hide",
-    save: "Save",
+    save: "↓ Save",
     ai: "Open Aviary AI command menu"
   });
 

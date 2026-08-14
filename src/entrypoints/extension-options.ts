@@ -1,9 +1,10 @@
 /**
  * Options page controller.
  *
- * `chrome.permissions.request` only resolves from a user gesture on an extension page, and the
- * content script is not one. This page is that surface: it reports what is granted and lets the
- * user grant or revoke each optional permission. No network calls, no storage writes.
+ * A content-script click cannot request extension permissions directly. This page is the durable
+ * management surface: it reports what is granted and lets the user grant or revoke each optional
+ * permission. The native media context-menu click can request download access inline as a second
+ * browser-owned gesture. No network calls, no storage writes.
  */
 
 export const MEDIA_ORIGINS = ["https://pbs.twimg.com/*", "https://video.twimg.com/*"];

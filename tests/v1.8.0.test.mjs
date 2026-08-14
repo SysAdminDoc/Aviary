@@ -61,13 +61,18 @@ test("isCrossOrigin marks the anchor fallback degraded only when download is ign
   assert.equal(isCrossOrigin("not a url"), false);
 });
 
-test("background answers the capability probe and opens the grant surface", async () => {
+test("background answers the capability probe and wires the native media context menu", async () => {
   const source = await readFile(path.join(root, "src/entrypoints/extension-background.ts"), "utf8");
   assert.match(source, /AVIARY_DOWNLOAD_CAPABILITY/);
   assert.match(source, /AVIARY_OPEN_OPTIONS/);
   assert.match(source, /openOptionsPage/);
   assert.match(source, /permissions\.contains\(\{ permissions: \["downloads"\] \}\)/);
   assert.match(source, /action\?\.onClicked/);
+  assert.match(source, /MEDIA_CONTEXT_MENU_ID/);
+  assert.match(source, /contexts: \["all"\]/);
+  assert.match(source, /contextMenus\?\.onClicked/);
+  assert.match(source, /permissions\?\.request\(\{ permissions: \["downloads"\] \}\)/);
+  assert.match(source, /sendContextDownloadMessage/);
   assert.ok(
     source.includes("DOWNLOAD_PERMISSION_CODE"),
     "background must report the shared permission code so the content script can react"
@@ -91,6 +96,69 @@ test("both manifests declare the options page that hosts the permission grant", 
     const manifest = JSON.parse(await readFile(path.join(root, "src/extension", name), "utf8"));
     assert.deepEqual(manifest.options_ui, { page: "options.html", open_in_tab: true }, name);
     assert.ok(manifest.optional_permissions.includes("downloads"), name);
+    assert.ok(manifest.permissions.includes("contextMenus"), name);
+  }
+});
+
+test("native media context clicks request download access before messaging the selected X tab", async () => {
+  const originalChrome = globalThis.chrome;
+  const sent = [];
+  const requests = [];
+  const grants = [true, false];
+  let clicked;
+  let insideGesture = false;
+
+  globalThis.chrome = {
+    runtime: {
+      onInstalled: { addListener() {} },
+      onStartup: { addListener() {} },
+      onMessage: { addListener() {} }
+    },
+    action: { onClicked: { addListener() {} } },
+    contextMenus: {
+      create() { return "aviary-download-media"; },
+      removeAll(callback) { callback?.(); },
+      onClicked: { addListener(listener) { clicked = listener; } }
+    },
+    permissions: {
+      request(request) {
+        assert.equal(insideGesture, true, "permission request escaped the context-menu gesture");
+        requests.push(request);
+        return Promise.resolve(grants.shift());
+      }
+    },
+    tabs: {
+      async sendMessage(tabId, message) {
+        sent.push({ tabId, message });
+        return { ok: true };
+      }
+    }
+  };
+
+  try {
+    await importBundledModule("src/entrypoints/extension-background.ts");
+    assert.equal(typeof clicked, "function", "background did not register the context-menu action");
+
+    insideGesture = true;
+    clicked({ menuItemId: "aviary-download-media" }, { id: 91 });
+    insideGesture = false;
+    await waitFor(() => sent.length === 1);
+
+    insideGesture = true;
+    clicked({ menuItemId: "aviary-download-media" }, { id: 92 });
+    insideGesture = false;
+    await waitFor(() => sent.length === 2);
+
+    assert.deepEqual(requests, [
+      { permissions: ["downloads"] },
+      { permissions: ["downloads"] }
+    ]);
+    assert.deepEqual(sent, [
+      { tabId: 91, message: { type: "AVIARY_DOWNLOAD_CONTEXT_MEDIA" } },
+      { tabId: 92, message: { type: "AVIARY_CONTEXT_DOWNLOAD_PERMISSION_DENIED" } }
+    ]);
+  } finally {
+    globalThis.chrome = originalChrome;
   }
 });
 
@@ -204,6 +272,14 @@ async function importBundledModule(relativePath) {
   } finally {
     await rm(temp, { recursive: true, force: true });
   }
+}
+
+async function waitFor(predicate, timeoutMs = 1_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (!predicate() && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  assert.equal(predicate(), true, "timed out waiting for asynchronous background work");
 }
 
 test("a failed write reports to the persistence sink instead of vanishing", async () => {

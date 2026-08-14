@@ -169,6 +169,43 @@ test("MSE extraction keeps the real player as the video and thumbnail anchor", a
   ]);
 });
 
+test("current X nested video containers produce one set of controls", async () => {
+  const result = await page.evaluate((body) => {
+    const article = document.createElement("article");
+    article.setAttribute("data-testid", "tweet");
+    const status = document.createElement("a");
+    status.href = "/someone/status/123456789";
+    article.append(status);
+
+    const player = document.createElement("div");
+    player.setAttribute("data-testid", "videoPlayer");
+    const component = document.createElement("div");
+    component.setAttribute("data-testid", "videoComponent");
+    const video = document.createElement("video");
+    video.poster = "https://pbs.twimg.com/media/456789?format=jpg&name=small";
+    video.src = "blob:https://x.com/nested-mse-player";
+    component.append(video);
+    player.append(component);
+    article.append(player);
+
+    const cache = new AviaryMedia.MediaMetadataCache();
+    cache.ingest({ body });
+    const tweet = AviaryMedia.extractTweet(article, {
+      mediaMetadata: ({ tweetId, mediaId, poster }) => cache.find(tweetId, mediaId, poster)
+    });
+    return tweet.media.map((media) => ({
+      kind: media.kind,
+      sourceIsComponent: media.source === component,
+      sourceIsPlayer: media.source === player
+    }));
+  }, metadataBody);
+
+  assert.deepEqual(result, [
+    { kind: "video", sourceIsComponent: true, sourceIsPlayer: false },
+    { kind: "thumbnail", sourceIsComponent: true, sourceIsPlayer: false }
+  ]);
+});
+
 test("media buttons reconcile a blob-only player when its direct variant arrives", async () => {
   const result = await page.evaluate(async (body) => {
     const settings = {
@@ -217,14 +254,18 @@ test("media buttons reconcile a blob-only player when its direct variant arrives
     await AviaryMedia.mediaButtonsFeature.init(ctx);
     const before = [...document.querySelectorAll("[data-av-media-button]")].map((button) => ({
       kind: button.dataset.kind,
-      text: button.textContent
+      text: button.textContent,
+      top: button.style.top,
+      opacity: getComputedStyle(button).opacity
     }));
 
     AviaryMedia.ingestMediaMetadata({ body });
     await AviaryMedia.mediaButtonsFeature.apply(ctx, document);
     const during = [...document.querySelectorAll("[data-av-media-button]")].map((button) => ({
       kind: button.dataset.kind,
-      text: button.textContent
+      text: button.textContent,
+      top: button.style.top,
+      opacity: getComputedStyle(button).opacity
     }));
 
     settings.media.buttons = false;
@@ -234,12 +275,85 @@ test("media buttons reconcile a blob-only player when its direct variant arrives
     return { before, during, off };
   }, metadataBody);
 
-  assert.deepEqual(result.before, [{ kind: "thumbnail", text: "Thumb" }]);
+  assert.deepEqual(result.before, [
+    { kind: "thumbnail", text: "↓ Thumb", top: "8px", opacity: "1" }
+  ]);
   assert.deepEqual(result.during, [
-    { kind: "video", text: "Video" },
-    { kind: "thumbnail", text: "Thumb" }
+    { kind: "video", text: "↓ Video", top: "8px", opacity: "1" },
+    { kind: "thumbnail", text: "↓ Thumb", top: "48px", opacity: "1" }
   ]);
   assert.equal(result.off, 0);
+});
+
+test("media buttons reattach when X recycles a processed post's media subtree", async () => {
+  const result = await page.evaluate(async () => {
+    document.body.replaceChildren();
+    const article = document.createElement("article");
+    article.setAttribute("data-testid", "tweet");
+    const status = document.createElement("a");
+    status.href = "/photographer/status/99887766";
+    article.append(status);
+
+    const buildPhoto = (mediaId) => {
+      const photo = document.createElement("div");
+      photo.setAttribute("data-testid", "tweetPhoto");
+      const image = document.createElement("img");
+      image.src = `https://pbs.twimg.com/media/${mediaId}?format=jpg&name=small`;
+      photo.append(image);
+      return { photo, image };
+    };
+
+    const first = buildPhoto("FirstVirtualizedPhoto");
+    article.append(first.photo);
+    document.body.append(article);
+
+    const settings = structuredClone(AviaryMedia.DEFAULT_SETTINGS);
+    const storage = {
+      async get(_key, fallback) {
+        return fallback;
+      },
+      async set() {}
+    };
+    const ctx = {
+      settings,
+      storage,
+      route: { surface: "home", path: "/home", href: "https://x.com/home" },
+      diagnostics: { info() {}, warn() {}, error() {} },
+      auditLog: { record() {} },
+      requestApply() {}
+    };
+
+    await AviaryMedia.mediaButtonsFeature.init(ctx);
+    const initialButton = first.photo.querySelector('[data-av-media-button="photo"]');
+    const processedBefore = article.getAttribute("data-av-media-processed");
+
+    const replacement = buildPhoto("ReplacementVirtualizedPhoto");
+    first.photo.replaceWith(replacement.photo);
+    await AviaryMedia.mediaButtonsFeature.apply(ctx, document, [replacement.image]);
+
+    const replacementButton = replacement.photo.querySelector(
+      '[data-av-media-button="photo"]'
+    );
+    const output = {
+      initialText: initialButton?.textContent ?? null,
+      initialConnected: initialButton?.isConnected ?? null,
+      processedBefore,
+      replacementText: replacementButton?.textContent ?? null,
+      replacementContainer: replacementButton?.parentElement === replacement.photo,
+      buttonCount: article.querySelectorAll("[data-av-media-button]").length
+    };
+    await AviaryMedia.mediaButtonsFeature.destroy(ctx);
+    return output;
+  });
+
+  assert.deepEqual(result, {
+    initialText: "↓ Save",
+    initialConnected: false,
+    processedBefore: "1",
+    replacementText: "↓ Save",
+    replacementContainer: true,
+    buttonCount: 1
+  });
 });
 
 test("default media controls transfer both image and direct video bytes", async () => {
@@ -264,6 +378,23 @@ test("default media controls transfer both image and direct video bytes", async 
     const result = await page.evaluate(async (body) => {
       document.body.replaceChildren();
       const transfers = [];
+      let extensionMessageListener;
+      let listenerRemoved = false;
+      const chromeRoot = globalThis.chrome ?? {};
+      const originalRuntime = chromeRoot.runtime;
+      globalThis.chrome = chromeRoot;
+      chromeRoot.runtime = {
+        id: "fixture-extension",
+        onMessage: {
+          addListener(listener) {
+            extensionMessageListener = listener;
+          },
+          removeListener(listener) {
+            listenerRemoved = listener === extensionMessageListener;
+            if (listenerRemoved) extensionMessageListener = undefined;
+          }
+        }
+      };
       globalThis.GM_download = ({ url, name, onload, onerror }) => {
         void fetch(url)
           .then(async (response) => {
@@ -352,15 +483,41 @@ test("default media controls transfer both image and direct video bytes", async 
         }
         if (transfers.length !== 2) throw new Error("Default media transfers did not finish");
 
+        const buttonTransfers = structuredClone(transfers);
+        transfers.length = 0;
+        const invokeContextDownload = async (target) => {
+          const nativeMenuPreserved = target.dispatchEvent(
+            new MouseEvent("contextmenu", { bubbles: true, cancelable: true })
+          );
+          if (!extensionMessageListener) throw new Error("Context download listener missing");
+          const response = await new Promise((resolve) => {
+            const keptOpen = extensionMessageListener(
+              { type: "AVIARY_DOWNLOAD_CONTEXT_MEDIA" },
+              {},
+              resolve
+            );
+            if (keptOpen !== true) throw new Error("Context download response channel closed");
+          });
+          return { nativeMenuPreserved, response };
+        };
+
+        const videoContext = await invokeContextDownload(video);
+        const imageContext = await invokeContextDownload(image);
+        if (transfers.length !== 2) throw new Error("Context media transfers did not finish");
+
         output = {
           defaultEnabled: settings.media.buttons,
           imageButton: imageButton.textContent,
           videoButton: videoButton.textContent,
-          transfers: transfers.sort((a, b) => a.url.localeCompare(b.url))
+          buttonTransfers: buttonTransfers.sort((a, b) => a.url.localeCompare(b.url)),
+          contextTransfers: transfers.sort((a, b) => a.url.localeCompare(b.url)),
+          contextResults: { videoContext, imageContext }
         };
       } finally {
         await AviaryMedia.mediaButtonsFeature.destroy(ctx);
         delete globalThis.GM_download;
+        chromeRoot.runtime = originalRuntime;
+        output = { ...output, listenerRemoved };
       }
       return output;
     }, metadataBody);
@@ -368,7 +525,7 @@ test("default media controls transfer both image and direct video bytes", async 
     assert.equal(result.defaultEnabled, true);
     assert.equal(result.imageButton, "Saved");
     assert.equal(result.videoButton, "Saved");
-    assert.deepEqual(result.transfers, [
+    const expectedTransfers = [
       {
         url: "https://pbs.twimg.com/media/DefaultPhoto?format=jpg&name=orig",
         name: "photographer_22334455_01.jpg",
@@ -381,7 +538,14 @@ test("default media controls transfer both image and direct video bytes", async 
         byteLength: 11,
         contentType: "video/mp4"
       }
-    ]);
+    ];
+    assert.deepEqual(result.buttonTransfers, expectedTransfers);
+    assert.deepEqual(result.contextTransfers, expectedTransfers);
+    assert.deepEqual(result.contextResults, {
+      videoContext: { nativeMenuPreserved: true, response: { ok: true } },
+      imageContext: { nativeMenuPreserved: true, response: { ok: true } }
+    });
+    assert.equal(result.listenerRemoved, true);
   } finally {
     await page.unroute("https://pbs.twimg.com/media/**");
     await page.unroute("https://video.twimg.com/**");

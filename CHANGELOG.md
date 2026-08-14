@@ -2,8 +2,16 @@
 
 ## Unreleased
 
+### Added
+
+- Chrome and Firefox now expose **Download media with Aviary** in X's native right-click menu.
+  The command resolves the clicked image or player through the content script, requests the
+  optional download permission from that explicit gesture, and saves the captured direct variant.
+
 ### Changed
 
+- Image, thumbnail, Video, and GIF controls now stay visible over their media with a download arrow,
+  solid high-contrast surface, descriptive tooltip, and non-overlapping vertical placement.
 - Fresh installs now enable on-post media downloads by default, exposing image, thumbnail, and
   direct Video/GIF controls while keeping every transfer user-initiated and fully reversible.
 - Aviary settings now opens from a native-sized row in X's primary left navigation instead of a
@@ -12,6 +20,10 @@
 
 ### Fixed
 
+- Download controls now reattach when X recycles a processed post shell with a new media subtree,
+  while ignoring ordinary action/count churn that previously made broad reconciliation too costly.
+- Nested `videoPlayer` / `videoComponent` wrappers now resolve to one canonical player, preventing
+  duplicate overlapping Video or GIF buttons on current X posts.
 - Noir now paints its ambient gradient on one fixed root canvas instead of X's viewport-height
   body, eliminating the horizontal background split that appeared after scrolling on any route.
 

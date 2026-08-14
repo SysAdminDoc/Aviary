@@ -14919,6 +14919,20 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
 
   // src/features/media/video-extract.ts
   var VIDEO_CONTAINER_SELECTOR = '[data-testid="videoPlayer"], [data-testid="videoComponent"]';
+  function videoContainers(root) {
+    const candidates2 = Array.from(
+      root.querySelectorAll(VIDEO_CONTAINER_SELECTOR)
+    );
+    return candidates2.filter((container) => {
+      const video = container.querySelector("video");
+      if (!video) {
+        return false;
+      }
+      return !candidates2.some(
+        (candidate) => candidate !== container && container.contains(candidate) && candidate.contains(video)
+      );
+    });
+  }
   function extractVideo(container, metadata = {}) {
     const video = container.querySelector("video");
     if (!video) {
@@ -15030,9 +15044,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         media.push({ kind: "photo", source: img, image: normalized });
       }
     }
-    for (const container of Array.from(
-      article.querySelectorAll(VIDEO_CONTAINER_SELECTOR)
-    )) {
+    for (const container of videoContainers(article)) {
       const localPoster = container.querySelector("video")?.poster || null;
       const captured = options.mediaMetadata?.({
         tweetId,
@@ -19906,6 +19918,134 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     return `${y}-${m}-${d}`;
   }
 
+  // src/features/core/feature-toast.ts
+  var TOAST_HOST_ID2 = "av-feature-toast";
+  var DEFAULT_TIMEOUT_MS = 4e3;
+  var dismissTimer;
+  function showFeatureToast(message, options = {}) {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const shadow = ensureHost();
+    const host = document.getElementById(TOAST_HOST_ID2);
+    if (host && options.ctx) {
+      host.dataset.avMotion = prefersReducedMotion2(options.ctx) ? "reduce" : "full";
+    }
+    const card = shadow.querySelector(".av-ftoast");
+    const text = shadow.querySelector(".av-ftoast-text");
+    if (!(card instanceof HTMLElement) || !(text instanceof HTMLElement)) {
+      return;
+    }
+    text.textContent = message;
+    card.dataset.tone = options.tone ?? "info";
+    card.classList.add("is-open");
+    if (dismissTimer !== void 0) {
+      clearTimeout(dismissTimer);
+    }
+    dismissTimer = setTimeout(() => {
+      card.classList.remove("is-open");
+      dismissTimer = void 0;
+    }, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  }
+  function removeFeatureToast() {
+    if (dismissTimer !== void 0) {
+      clearTimeout(dismissTimer);
+      dismissTimer = void 0;
+    }
+    document.getElementById(TOAST_HOST_ID2)?.remove();
+  }
+  function prefersReducedMotion2(ctx) {
+    if (ctx.settings.accessibility.reduceMotion === "always") return true;
+    if (ctx.settings.accessibility.reduceMotion === "never") return false;
+    return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  }
+  function ensureHost() {
+    const existing = document.getElementById(TOAST_HOST_ID2);
+    if (existing?.shadowRoot) {
+      existing.dir = document.documentElement.dir || "ltr";
+      return existing.shadowRoot;
+    }
+    const host = document.createElement("div");
+    host.id = TOAST_HOST_ID2;
+    host.dataset.avOwned = "true";
+    host.dir = document.documentElement.dir || "ltr";
+    document.documentElement.append(host);
+    const shadow = host.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = TOAST_CSS2;
+    const card = document.createElement("div");
+    card.className = "av-ftoast";
+    card.setAttribute("role", "status");
+    card.setAttribute("aria-live", "polite");
+    const text = document.createElement("span");
+    text.className = "av-ftoast-text";
+    card.append(text);
+    shadow.append(style, card);
+    return shadow;
+  }
+  var TOAST_CSS2 = `
+.av-ftoast {
+  position: fixed;
+  inset-inline-end: 16px;
+  bottom: 132px;
+  z-index: 2147483000;
+  display: flex;
+  align-items: center;
+  max-width: 340px;
+  padding: 10px 12px;
+  border: 1px solid var(--av-border, rgb(47, 51, 54));
+  border-inline-start: 3px solid var(--av-accent, rgb(29, 155, 240));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 97%, black);
+  color: var(--av-text, rgb(239, 243, 244));
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.35;
+  font-family: TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+/* Tone is carried by the accent rule AND the wording, never by colour alone. */
+.av-ftoast[data-tone="error"] {
+  border-inline-start-color: rgb(220, 110, 110);
+}
+
+.av-ftoast.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .av-ftoast {
+    transition: none;
+    transform: none;
+  }
+}
+
+:host([data-av-motion="reduce"]) .av-ftoast {
+  transition: none;
+  transform: none;
+}
+`;
+
+  // src/extension/media-context-menu.ts
+  var MEDIA_CONTEXT_DOWNLOAD_MESSAGE = "AVIARY_DOWNLOAD_CONTEXT_MEDIA";
+  var MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE = "AVIARY_CONTEXT_DOWNLOAD_PERMISSION_DENIED";
+  function isMediaContextDownloadMessage(message) {
+    return isType(message, MEDIA_CONTEXT_DOWNLOAD_MESSAGE);
+  }
+  function isMediaContextPermissionDeniedMessage(message) {
+    return isType(message, MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE);
+  }
+  function isType(message, type) {
+    return typeof message === "object" && message !== null && message.type === type;
+  }
+
   // src/features/media/media-metadata.ts
   var MAX_BODY_CHARS = 15e5;
   var MAX_ENTRIES = 256;
@@ -20536,6 +20676,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   var STYLE_ID4 = "av-media-buttons";
   var BUTTON_ATTR2 = "data-av-media-button";
   var PROCESSED_ATTR = "data-av-media-processed";
+  var MEDIA_HOST_SELECTOR = '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="videoComponent"]';
+  var MEDIA_MUTATION_SELECTOR = '[data-testid="tweetPhoto"], [data-testid="tweetPhoto"] img, [data-testid="videoPlayer"], [data-testid="videoComponent"], video, source';
+  var CONTEXT_TARGET_MAX_AGE_MS = 3e4;
   var downloader;
   var history;
   var aria2History;
@@ -20545,6 +20688,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   var mediaMetadataCache = new MediaMetadataCache();
   var subscribedBridge2;
   var permissionSurfaceOpened = false;
+  var pendingContextTarget;
+  var contextMenuListener;
+  var extensionMessageListener;
   var mediaButtonsFeature = {
     id: "media.buttons",
     title: "One-click media",
@@ -20584,6 +20730,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       } catch (error) {
         ctx.diagnostics.warn("Media history failed to load", errorDetails4(error));
       }
+      installContextDownload(ctx);
       applyToggleClass(ctx);
       appliedPreferOriginalImages = ctx.settings.media.preferOriginalImages;
       appliedMetadataVersion = mediaMetadataCache.version;
@@ -20594,6 +20741,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       applyToggleClass(ctx);
       if (!ctx.settings.media.buttons) {
         clearDecorations2();
+        pendingContextTarget = void 0;
         appliedPreferOriginalImages = void 0;
         appliedMetadataVersion = void 0;
         return;
@@ -20612,10 +20760,16 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         return;
       }
       for (const node of addedNodes) {
-        scanArticles(node, ctx);
+        if (node.hasAttribute(BUTTON_ATTR2)) {
+          continue;
+        }
+        if (needsMutationReconcile(node)) {
+          scanArticles(node, ctx, true);
+        }
       }
     },
     async destroy(ctx) {
+      uninstallContextDownload();
       clearDecorations2();
       downloader = void 0;
       history = void 0;
@@ -20675,39 +20829,161 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       button2.remove();
     }
   }
-  function scanArticles(root, ctx) {
+  function installContextDownload(ctx) {
+    const runtime = globalThis.chrome?.runtime;
+    if (!runtime?.id || !runtime.onMessage || contextMenuListener || extensionMessageListener) {
+      return;
+    }
+    contextMenuListener = (event) => {
+      pendingContextTarget = ctx.settings.media.buttons ? contextTarget(event.target) : void 0;
+    };
+    document.addEventListener("contextmenu", contextMenuListener, true);
+    extensionMessageListener = (message, _sender, sendResponse) => {
+      if (isMediaContextPermissionDeniedMessage(message)) {
+        showFeatureToast(
+          ft(ctx, "Download access was not granted. Open Aviary Options to enable browser downloads."),
+          { tone: "error", ctx }
+        );
+        sendResponse({ ok: false, reason: "permission-denied" });
+        return false;
+      }
+      if (!isMediaContextDownloadMessage(message)) {
+        return false;
+      }
+      void downloadContextTarget(ctx).then(
+        (ok) => sendResponse({ ok }),
+        (error) => {
+          ctx.diagnostics.error("Context media download failed", errorDetails4(error));
+          showFeatureToast(ft(ctx, "Media download failed. Try the on-post button again."), {
+            tone: "error",
+            ctx
+          });
+          sendResponse({ ok: false, error: error instanceof Error ? error.message : String(error) });
+        }
+      );
+      return true;
+    };
+    runtime.onMessage.addListener(extensionMessageListener);
+  }
+  function uninstallContextDownload() {
+    if (contextMenuListener) {
+      document.removeEventListener("contextmenu", contextMenuListener, true);
+      contextMenuListener = void 0;
+    }
+    const onMessage = globalThis.chrome?.runtime?.onMessage;
+    if (extensionMessageListener && onMessage?.removeListener) {
+      onMessage.removeListener(extensionMessageListener);
+    }
+    extensionMessageListener = void 0;
+    pendingContextTarget = void 0;
+  }
+  function contextTarget(rawTarget) {
+    if (!(rawTarget instanceof Element)) {
+      return void 0;
+    }
+    const host = rawTarget.closest(VIDEO_CONTAINER_SELECTOR) ?? rawTarget.closest('[data-testid="tweetPhoto"]');
+    const article = host?.closest('article[data-testid="tweet"]');
+    if (!host || !article) {
+      return void 0;
+    }
+    return { article, host, capturedAt: Date.now() };
+  }
+  async function downloadContextTarget(ctx) {
+    const pending = pendingContextTarget;
+    pendingContextTarget = void 0;
+    if (!ctx.settings.media.buttons || !pending || !pending.article.isConnected || !pending.host.isConnected || Date.now() - pending.capturedAt > CONTEXT_TARGET_MAX_AGE_MS) {
+      showFeatureToast(ft(ctx, "Right-click an image or video first, then choose Aviary download."), {
+        tone: "error",
+        ctx
+      });
+      return false;
+    }
+    const tweet = extractTweetForContext(pending.article, ctx);
+    const wantsVideo = pending.host.matches(VIDEO_CONTAINER_SELECTOR);
+    const index = tweet.media.findIndex((media2) => {
+      if (wantsVideo) {
+        return media2.kind === "video" && media2.video?.container === pending.host && resolveTarget(media2) !== null;
+      }
+      return media2.kind === "photo" && media2.source.closest('[data-testid="tweetPhoto"]') === pending.host && resolveTarget(media2) !== null;
+    });
+    const media = tweet.media[index];
+    if (!media) {
+      showFeatureToast(
+        ft(
+          ctx,
+          wantsVideo ? "The direct video is still loading. Try again in a moment." : "This image is not available to download."
+        ),
+        { tone: "error", ctx }
+      );
+      return false;
+    }
+    const container = resolveContainer(media);
+    if (!container) {
+      return false;
+    }
+    let button2 = container.querySelector(
+      `[${BUTTON_ATTR2}="${media.kind}"]`
+    );
+    if (!button2) {
+      button2 = buildButton(media, index, tweet, ctx);
+      container.append(button2);
+      positionButton(button2, container);
+    }
+    await handleDownload(media, index, tweet, ctx, button2);
+    return true;
+  }
+  function extractTweetForContext(article, ctx) {
+    return extractTweet(article, {
+      preferOriginalImages: ctx.settings.media.preferOriginalImages,
+      mediaMetadata: ({ tweetId, mediaId, poster }) => mediaMetadataCache.find(tweetId, mediaId, poster)
+    });
+  }
+  function scanArticles(root, ctx, force = false) {
     if (!ctx.settings.media.buttons) {
       return;
     }
     const articles = collectArticles2(root);
     for (const article of articles) {
-      if (article.getAttribute(PROCESSED_ATTR) === "1") {
-        continue;
+      if (!force && article.getAttribute(PROCESSED_ATTR) === "1") {
+        if (article.querySelector(`[${BUTTON_ATTR2}]`) || !article.querySelector(MEDIA_HOST_SELECTOR)) {
+          continue;
+        }
       }
-      const tweet = extractTweet(article, {
-        preferOriginalImages: ctx.settings.media.preferOriginalImages,
-        mediaMetadata: ({ tweetId, mediaId, poster }) => mediaMetadataCache.find(tweetId, mediaId, poster)
-      });
+      const tweet = extractTweetForContext(article, ctx);
       if (tweet.media.length === 0) {
+        article.setAttribute(PROCESSED_ATTR, "1");
         continue;
       }
       decorateArticle(tweet, ctx);
       article.setAttribute(PROCESSED_ATTR, "1");
     }
   }
+  function needsMutationReconcile(node) {
+    const closestArticle = node.closest('article[data-testid="tweet"]');
+    if (closestArticle && closestArticle.getAttribute(PROCESSED_ATTR) !== "1") {
+      return true;
+    }
+    if (node.matches('article[data-testid="tweet"]')) {
+      return node.getAttribute(PROCESSED_ATTR) !== "1" || !node.querySelector(`[${BUTTON_ATTR2}]`) && node.querySelector(MEDIA_HOST_SELECTOR) !== null;
+    }
+    return node.matches(MEDIA_MUTATION_SELECTOR) || node.querySelector(MEDIA_MUTATION_SELECTOR) !== null;
+  }
   function collectArticles2(root) {
-    const found = [];
-    if (root instanceof Element && root.matches('article[data-testid="tweet"]')) {
-      found.push(root);
+    const found = /* @__PURE__ */ new Set();
+    if (root instanceof Element) {
+      const article = root.matches('article[data-testid="tweet"]') ? root : root.closest('article[data-testid="tweet"]');
+      if (article) {
+        found.add(article);
+      }
     }
     if ("querySelectorAll" in root) {
       for (const article of Array.from(
         root.querySelectorAll('article[data-testid="tweet"]')
       )) {
-        found.push(article);
+        found.add(article);
       }
     }
-    return found;
+    return [...found];
   }
   function decorateArticle(tweet, ctx) {
     tweet.media.forEach((media, index) => {
@@ -20727,12 +21003,15 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     const anchor = positionedAncestor(container);
     const media = container.getBoundingClientRect();
     const base = anchor?.getBoundingClientRect();
+    const siblings = Array.from(container.querySelectorAll(`[${BUTTON_ATTR2}]`));
+    const slot = Math.max(0, siblings.indexOf(button2));
+    const topOffset = 8 + slot * 40;
     if (!anchor || !base || media.width === 0 || media.height === 0) {
-      button2.style.top = "8px";
+      button2.style.top = `${topOffset}px`;
       button2.style.right = "8px";
       return;
     }
-    button2.style.top = `${Math.round(media.top - base.top + 8)}px`;
+    button2.style.top = `${Math.round(media.top - base.top + topOffset)}px`;
     button2.style.right = `${Math.round(base.right - media.right + 8)}px`;
   }
   function positionedAncestor(node) {
@@ -20763,8 +21042,10 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     button2.className = "av-media-button";
     button2.setAttribute(BUTTON_ATTR2, media.kind);
     button2.dataset.kind = media.kind;
-    button2.setAttribute("aria-label", ft(ctx, buttonAriaLabel(media)));
-    button2.textContent = ft(ctx, buttonLabel(media));
+    const accessibleLabel = ft(ctx, buttonAriaLabel(media));
+    button2.setAttribute("aria-label", accessibleLabel);
+    button2.title = accessibleLabel;
+    button2.textContent = `\u2193 ${ft(ctx, buttonLabel(media))}`;
     button2.addEventListener("click", (event) => {
       event.stopPropagation();
       event.preventDefault();
@@ -20930,19 +21211,24 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
 
 [${BUTTON_ATTR2}] {
   position: absolute;
-  z-index: 2;
-  min-height: 28px;
-  padding: 4px 10px;
-  border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 60%, transparent);
-  border-radius: 6px;
-  background: color-mix(in srgb, rgb(0, 0, 0) 60%, transparent);
+  z-index: 12;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  min-height: 34px;
+  padding: 6px 11px;
+  border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 82%, white 8%);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(15, 20, 25)) 94%, black);
   color: var(--av-text, rgb(239, 243, 244));
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.52);
   cursor: pointer;
-  font: 700 11px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
+  font: 750 12px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  opacity: 0;
-  transition: opacity 120ms ease, border-color 120ms ease;
+  opacity: 1;
+  transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
 }
 
 /* Aviary no longer makes X's media containers the positioning context.
@@ -20954,20 +21240,15 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
    the moment it was switched off. positionButton() measures against whatever ancestor X has
    already positioned, which is the same box the photo itself resolves against. */
 
-/* The reveal list has to name every host container. It covered tweetPhoto only, so the button
-   on a video player rested at opacity 0 with no rule that could ever show it. */
-[data-testid="tweetPhoto"]:hover [${BUTTON_ATTR2}],
-[data-testid="tweetPhoto"]:focus-within [${BUTTON_ATTR2}],
-[data-testid="videoPlayer"]:hover [${BUTTON_ATTR2}],
-[data-testid="videoPlayer"]:focus-within [${BUTTON_ATTR2}],
-[data-testid="videoComponent"]:hover [${BUTTON_ATTR2}],
-[data-testid="videoComponent"]:focus-within [${BUTTON_ATTR2}],
-[${BUTTON_ATTR2}]:focus-visible,
-[${BUTTON_ATTR2}].is-active,
-[${BUTTON_ATTR2}].is-success,
-[${BUTTON_ATTR2}].is-error,
-[${BUTTON_ATTR2}].is-duplicate {
-  opacity: 1;
+[${BUTTON_ATTR2}]:hover {
+  border-color: var(--av-accent, rgb(29, 155, 240));
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(15, 20, 25)) 86%, var(--av-accent, rgb(29, 155, 240)));
+  transform: translateY(-1px);
+}
+
+[${BUTTON_ATTR2}]:focus-visible {
+  outline: 2px solid var(--av-accent, rgb(29, 155, 240));
+  outline-offset: 2px;
 }
 
 [${BUTTON_ATTR2}].is-success {
@@ -20985,9 +21266,9 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   color: rgb(248, 200, 200);
 }
 
-[${BUTTON_ATTR2}][data-kind="thumbnail"] {
-  top: 8px;
-  right: 76px;
+[${BUTTON_ATTR2}]:disabled {
+  cursor: default;
+  transform: none;
 }
 `;
 
@@ -24843,121 +25124,6 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
     const text = payload?.choices?.[0]?.message?.content ?? "";
     return { ok: true, text };
   }
-
-  // src/features/core/feature-toast.ts
-  var TOAST_HOST_ID2 = "av-feature-toast";
-  var DEFAULT_TIMEOUT_MS = 4e3;
-  var dismissTimer;
-  function showFeatureToast(message, options = {}) {
-    if (typeof document === "undefined") {
-      return;
-    }
-    const shadow = ensureHost();
-    const host = document.getElementById(TOAST_HOST_ID2);
-    if (host && options.ctx) {
-      host.dataset.avMotion = prefersReducedMotion2(options.ctx) ? "reduce" : "full";
-    }
-    const card = shadow.querySelector(".av-ftoast");
-    const text = shadow.querySelector(".av-ftoast-text");
-    if (!(card instanceof HTMLElement) || !(text instanceof HTMLElement)) {
-      return;
-    }
-    text.textContent = message;
-    card.dataset.tone = options.tone ?? "info";
-    card.classList.add("is-open");
-    if (dismissTimer !== void 0) {
-      clearTimeout(dismissTimer);
-    }
-    dismissTimer = setTimeout(() => {
-      card.classList.remove("is-open");
-      dismissTimer = void 0;
-    }, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
-  }
-  function removeFeatureToast() {
-    if (dismissTimer !== void 0) {
-      clearTimeout(dismissTimer);
-      dismissTimer = void 0;
-    }
-    document.getElementById(TOAST_HOST_ID2)?.remove();
-  }
-  function prefersReducedMotion2(ctx) {
-    if (ctx.settings.accessibility.reduceMotion === "always") return true;
-    if (ctx.settings.accessibility.reduceMotion === "never") return false;
-    return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-  }
-  function ensureHost() {
-    const existing = document.getElementById(TOAST_HOST_ID2);
-    if (existing?.shadowRoot) {
-      existing.dir = document.documentElement.dir || "ltr";
-      return existing.shadowRoot;
-    }
-    const host = document.createElement("div");
-    host.id = TOAST_HOST_ID2;
-    host.dataset.avOwned = "true";
-    host.dir = document.documentElement.dir || "ltr";
-    document.documentElement.append(host);
-    const shadow = host.attachShadow({ mode: "open" });
-    const style = document.createElement("style");
-    style.textContent = TOAST_CSS2;
-    const card = document.createElement("div");
-    card.className = "av-ftoast";
-    card.setAttribute("role", "status");
-    card.setAttribute("aria-live", "polite");
-    const text = document.createElement("span");
-    text.className = "av-ftoast-text";
-    card.append(text);
-    shadow.append(style, card);
-    return shadow;
-  }
-  var TOAST_CSS2 = `
-.av-ftoast {
-  position: fixed;
-  inset-inline-end: 16px;
-  bottom: 132px;
-  z-index: 2147483000;
-  display: flex;
-  align-items: center;
-  max-width: 340px;
-  padding: 10px 12px;
-  border: 1px solid var(--av-border, rgb(47, 51, 54));
-  border-inline-start: 3px solid var(--av-accent, rgb(29, 155, 240));
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 97%, black);
-  color: var(--av-text, rgb(239, 243, 244));
-  font-weight: 500;
-  font-size: 13px;
-  line-height: 1.35;
-  font-family: TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(8px);
-  transition: opacity 140ms ease, transform 140ms ease;
-}
-
-/* Tone is carried by the accent rule AND the wording, never by colour alone. */
-.av-ftoast[data-tone="error"] {
-  border-inline-start-color: rgb(220, 110, 110);
-}
-
-.av-ftoast.is-open {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .av-ftoast {
-    transition: none;
-    transform: none;
-  }
-}
-
-:host([data-av-motion="reduce"]) .av-ftoast {
-  transition: none;
-  transform: none;
-}
-`;
 
   // src/features/ai/command-menu.ts
   var STYLE_ID9 = "av-ai-command-menu";

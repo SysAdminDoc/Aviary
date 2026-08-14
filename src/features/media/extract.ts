@@ -2,7 +2,7 @@ import { normalizeImageUrl, tweetIdFromHref, type NormalizedImage } from "./urls
 import type { CapturedMediaMetadata } from "./media-metadata";
 import {
   extractVideo,
-  VIDEO_CONTAINER_SELECTOR,
+  videoContainers,
   type ExtractedVideo
 } from "./video-extract";
 
@@ -48,9 +48,7 @@ export function extractTweet(article: Element, options: ExtractTweetOptions = {}
     }
   }
 
-  for (const container of Array.from(
-    article.querySelectorAll<HTMLElement>(VIDEO_CONTAINER_SELECTOR)
-  )) {
+  for (const container of videoContainers(article)) {
     const localPoster = container.querySelector<HTMLVideoElement>("video")?.poster || null;
     const captured = options.mediaMetadata?.({
       tweetId,

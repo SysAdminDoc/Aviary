@@ -183,7 +183,7 @@ Every post carries a **Hide** control next to its More menu. Clicking it records
 
 The Control Center "Media" section exposes:
 
-- Default-on master toggle for tweet Save / Thumb / eligible Video and GIF buttons.
+- Default-on master toggle for persistent tweet Save / Thumb / eligible Video and GIF buttons.
 - Original-quality preference (image URLs are rewritten to `name=orig`).
 - Filename template with `{handle}`, `{tweetId}`, `{mediaId}`, `{index}`, `{total}`, `{date}`, `{text}`, `{ext}` fields.
 - Duplicate history toggle and a "Clear download history" action.
@@ -191,7 +191,18 @@ The Control Center "Media" section exposes:
 
 Downloads prefer `GM_download` in userscript managers, fall back to the extension service worker (`chrome.downloads` with `conflictAction: uniquify`), and finally use an anchor tag when no privileged downloader is available.
 
-In the MV3 build `downloads` is an optional permission. Until it is granted the service worker answers with `downloads-permission-missing`, the button reads **Allow** instead of claiming a save, and Aviary opens its options page once so the permission can be granted with a real user gesture. The options page (toolbar icon, or Extensions → Aviary → Options) shows the live grant state for `downloads` and for the `pbs.twimg.com` / `video.twimg.com` media hosts, and can revoke either. On the rare path where the anchor fallback still runs for a cross-origin URL, the button reads **Opened**, not Saved. The userscript build is unaffected.
+The on-post controls are solid, always visible, and carry a download arrow plus a precise accessible
+label. The MV3 build also adds **Download media with Aviary** to X's native right-click menu. The
+page-side handler maps the clicked player back to Aviary's captured direct variant, so X's
+MediaSource `blob:` playback handle is never mistaken for a file.
+
+In the MV3 build `downloads` remains an optional permission. Choosing the native right-click action
+requests it from that explicit browser gesture and immediately continues the save when granted.
+Until it is granted, an on-post button reads **Allow** instead of claiming a save and opens Aviary's
+options page. That page (toolbar icon, or Extensions → Aviary → Options) shows the live grant state
+for `downloads` and for the `pbs.twimg.com` / `video.twimg.com` media hosts, and can revoke either.
+On the rare path where the anchor fallback still runs for a cross-origin URL, the button reads
+**Opened**, not Saved. The userscript build is unaffected.
 
 Tweets with embedded video or GIF players expose a Video / GIF button when Aviary's page-world
 GraphQL capture finds a direct downloadable variant. X commonly gives timeline players a `blob:`
@@ -268,8 +279,9 @@ Setup paths (userscript, Chromium dev-load, Firefox temporary-load) and uninstal
 - Manifest version equals `package.json` version.
 - `manifest_version` is 3 and `host_permissions` is not `<all_urls>`.
 - CSP / bundles never include `unsafe-eval`, `wasm-eval`, raw `eval()`, or `new Function()` constructors.
-- `permissions` includes `storage` plus host-scoped `declarativeNetRequestWithHostAccess`, excludes
-  test-only DNR feedback, and `optional_permissions` includes `downloads`.
+- `permissions` includes `storage`, host-scoped `declarativeNetRequestWithHostAccess`, and the
+  X-scoped native `contextMenus` action; it excludes test-only DNR feedback, while
+  `optional_permissions` includes `downloads`.
 - All devDependencies are exact-pinned.
 - No `innerHTML` / `insertAdjacentHTML` / `keydown` / `keyup` / `keypress` / `backdrop-filter` outside the TrustedTypes helper.
 

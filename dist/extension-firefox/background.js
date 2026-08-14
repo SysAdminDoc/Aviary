@@ -56,21 +56,58 @@ async function restoreDynamicAdRule(api) {
   return enabled;
 }
 
+// src/extension/media-context-menu.ts
+var MEDIA_CONTEXT_MENU_ID = "aviary-download-media";
+var MEDIA_CONTEXT_MENU_TITLE = "Download media with Aviary";
+var MEDIA_CONTEXT_DOWNLOAD_MESSAGE = "AVIARY_DOWNLOAD_CONTEXT_MEDIA";
+var MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE = "AVIARY_CONTEXT_DOWNLOAD_PERMISSION_DENIED";
+var X_DOCUMENT_PATTERNS = [
+  "https://x.com/*",
+  "https://twitter.com/*",
+  "https://mobile.twitter.com/*",
+  "https://pro.x.com/*",
+  "https://tweetdeck.twitter.com/*"
+];
+
 // src/entrypoints/extension-background.ts
 var runtime = globalThis.chrome?.runtime;
 var extensionApi = globalThis.chrome;
+var contextMenus = globalThis.chrome?.contextMenus;
 var DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
 runtime?.onInstalled?.addListener((details) => {
   const task = details?.reason === "install" && extensionApi ? syncDynamicAdRule(extensionApi, true) : extensionApi ? restoreDynamicAdRule(extensionApi) : Promise.resolve(null);
   settleBackgroundTask(task, "install/update");
+  settleBackgroundTask(installMediaContextMenu(), "context-menu install/update");
 });
 runtime?.onStartup?.addListener(() => {
   if (extensionApi) {
     settleBackgroundTask(restoreDynamicAdRule(extensionApi), "startup");
   }
+  settleBackgroundTask(installMediaContextMenu(), "context-menu startup");
 });
 globalThis.chrome?.action?.onClicked?.addListener(() => {
   void openOptions();
+});
+contextMenus?.onClicked?.addListener((info, tab) => {
+  if (info.menuItemId !== MEDIA_CONTEXT_MENU_ID || typeof tab?.id !== "number") {
+    return;
+  }
+  const tabId = tab.id;
+  let permissionRequest;
+  try {
+    permissionRequest = globalThis.chrome?.permissions?.request({ permissions: ["downloads"] }) ?? Promise.resolve(false);
+  } catch {
+    permissionRequest = Promise.resolve(false);
+  }
+  settleBackgroundTask(
+    permissionRequest.then(
+      (granted) => sendContextDownloadMessage(
+        tabId,
+        granted ? MEDIA_CONTEXT_DOWNLOAD_MESSAGE : MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE
+      )
+    ),
+    "context-menu download"
+  );
 });
 runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
   if (isAdRuleSyncMessage(message)) {
@@ -113,6 +150,36 @@ runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
 });
 function isType(message, type) {
   return typeof message === "object" && message !== null && message.type === type;
+}
+async function installMediaContextMenu() {
+  if (!contextMenus) {
+    return;
+  }
+  await new Promise((resolve) => {
+    try {
+      contextMenus.removeAll(() => resolve());
+    } catch {
+      resolve();
+    }
+  });
+  contextMenus.create(
+    {
+      id: MEDIA_CONTEXT_MENU_ID,
+      title: MEDIA_CONTEXT_MENU_TITLE,
+      contexts: ["all"],
+      documentUrlPatterns: [...X_DOCUMENT_PATTERNS]
+    },
+    () => {
+      void runtime?.lastError;
+    }
+  );
+}
+async function sendContextDownloadMessage(tabId, type) {
+  const tabs = globalThis.chrome?.tabs;
+  if (!tabs?.sendMessage) {
+    return;
+  }
+  await tabs.sendMessage(tabId, { type });
 }
 function isDownload(message) {
   if (typeof message !== "object" || message === null) {
@@ -173,7 +240,7 @@ function errorMessage(error) {
 }
 function settleBackgroundTask(task, lifecycle) {
   void task.catch((error) => {
-    console.warn(`Aviary could not reconcile its ad rule during ${lifecycle}: ${errorMessage(error)}`);
+    console.warn(`Aviary background task failed during ${lifecycle}: ${errorMessage(error)}`);
   });
 }
 export {

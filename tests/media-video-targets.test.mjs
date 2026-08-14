@@ -60,18 +60,14 @@ test("resolveTarget refuses a blob-only video instead of reporting a save", asyn
   assert.equal(resolved.mediaId, "GkQxyz123");
 });
 
-test("the media stylesheet reveals and anchors buttons on every container it uses", async () => {
+test("the media stylesheet keeps download buttons visible and leaves X's anchors intact", async () => {
   const source = await readFile(path.join(root, "src/features/media/media-buttons.ts"), "utf8");
 
-  // resolveContainer returns the video player for video media, so the reveal and positioning
-  // rules have to name it. They named tweetPhoto only, leaving the button permanently invisible.
-  for (const testid of ["videoPlayer", "videoComponent"]) {
-    assert.match(
-      source,
-      new RegExp(`\\[data-testid="${testid}"\\]:hover \\[\\$\\{BUTTON_ATTR\\}\\]`),
-      `${testid} has no hover reveal rule`
-    );
-  }
+  const css = source.slice(source.indexOf("const MEDIA_CSS"));
+  assert.match(css, /opacity:\s*1/);
+  assert.doesNotMatch(css, /opacity:\s*0/);
+  assert.match(css, /min-height:\s*34px/);
+  assert.match(css, /box-shadow:/);
 
   // The positioning context is no longer taken from X. Making tweetPhoto the containing block
   // collapsed the photo it holds: X keeps that box at height 0 and hangs the picture off it with
@@ -81,7 +77,6 @@ test("the media stylesheet reveals and anchors buttons on every container it use
   assert.match(source, /function positionButton\(/);
   assert.match(source, /function positionedAncestor\(/);
 
-  const css = source.slice(source.indexOf("const MEDIA_CSS"));
   const forced = [...css.matchAll(/([^{}]+)\{([^{}]*position\s*:\s*relative[^{}]*)\}/g)]
     .map((m) => m[1].replace(/\s+/g, " ").trim())
     .filter((selector) => /data-testid=/.test(selector));

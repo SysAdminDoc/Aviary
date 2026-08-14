@@ -4,9 +4,17 @@ import {
   syncDynamicAdRule,
   type ExtensionAdRuleApi
 } from "../extension/ad-rule";
+import {
+  MEDIA_CONTEXT_DOWNLOAD_MESSAGE,
+  MEDIA_CONTEXT_MENU_ID,
+  MEDIA_CONTEXT_MENU_TITLE,
+  MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE,
+  X_DOCUMENT_PATTERNS
+} from "../extension/media-context-menu";
 
 const runtime = globalThis.chrome?.runtime;
 const extensionApi = globalThis.chrome as unknown as ExtensionAdRuleApi | undefined;
+const contextMenus = globalThis.chrome?.contextMenus;
 
 /** Returned to the content script when `downloads` has not been granted yet. */
 export const DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
@@ -22,18 +30,49 @@ runtime?.onInstalled?.addListener((details) => {
         ? restoreDynamicAdRule(extensionApi)
         : Promise.resolve(null);
   settleBackgroundTask(task, "install/update");
+  settleBackgroundTask(installMediaContextMenu(), "context-menu install/update");
 });
 
 runtime?.onStartup?.addListener(() => {
   if (extensionApi) {
     settleBackgroundTask(restoreDynamicAdRule(extensionApi), "startup");
   }
+  settleBackgroundTask(installMediaContextMenu(), "context-menu startup");
 });
 
-// No popup: the toolbar button opens the options page, which is the only surface
-// where `chrome.permissions.request` has the user gesture it requires.
+// No popup: the toolbar button opens the durable permission-management surface. The native media
+// context-menu action can also request download access from its own explicit user gesture.
 globalThis.chrome?.action?.onClicked?.addListener(() => {
   void openOptions();
+});
+
+contextMenus?.onClicked?.addListener((info, tab) => {
+  if (info.menuItemId !== MEDIA_CONTEXT_MENU_ID || typeof tab?.id !== "number") {
+    return;
+  }
+  const tabId = tab.id;
+
+  // `permissions.request()` has to begin inside a user gesture. Calling it synchronously from
+  // the native context-menu click preserves that gesture; checking first with an awaited
+  // `permissions.contains()` would lose it in some Chromium builds.
+  let permissionRequest: Promise<boolean>;
+  try {
+    permissionRequest =
+      globalThis.chrome?.permissions?.request({ permissions: ["downloads"] }) ??
+      Promise.resolve(false);
+  } catch {
+    permissionRequest = Promise.resolve(false);
+  }
+
+  settleBackgroundTask(
+    permissionRequest.then((granted) =>
+      sendContextDownloadMessage(
+        tabId,
+        granted ? MEDIA_CONTEXT_DOWNLOAD_MESSAGE : MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE
+      )
+    ),
+    "context-menu download"
+  );
 });
 
 runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
@@ -79,6 +118,45 @@ runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
 
 function isType<T extends string>(message: unknown, type: T): message is { type: T } {
   return typeof message === "object" && message !== null && (message as { type?: unknown }).type === type;
+}
+
+async function installMediaContextMenu(): Promise<void> {
+  if (!contextMenus) {
+    return;
+  }
+
+  // This extension owns one context-menu item. Clear first so unpacked reloads and updates cannot
+  // leave duplicate entries behind; the callback form works on the Chrome 116 minimum as well as
+  // Firefox, while newer Chromium also returns a Promise.
+  await new Promise<void>((resolve) => {
+    try {
+      contextMenus.removeAll(() => resolve());
+    } catch {
+      resolve();
+    }
+  });
+
+  contextMenus.create(
+    {
+      id: MEDIA_CONTEXT_MENU_ID,
+      title: MEDIA_CONTEXT_MENU_TITLE,
+      contexts: ["all"],
+      documentUrlPatterns: [...X_DOCUMENT_PATTERNS]
+    },
+    () => {
+      // Reading lastError suppresses Chrome's unchecked-error warning if a browser rejects a
+      // document pattern. The preflight and background tests still enforce the intended item.
+      void runtime?.lastError;
+    }
+  );
+}
+
+async function sendContextDownloadMessage(tabId: number, type: string): Promise<void> {
+  const tabs = globalThis.chrome?.tabs;
+  if (!tabs?.sendMessage) {
+    return;
+  }
+  await tabs.sendMessage(tabId, { type });
 }
 
 function isDownload(message: unknown): message is {
@@ -156,6 +234,6 @@ function errorMessage(error: unknown): string {
 
 function settleBackgroundTask(task: Promise<unknown>, lifecycle: string): void {
   void task.catch((error: unknown) => {
-    console.warn(`Aviary could not reconcile its ad rule during ${lifecycle}: ${errorMessage(error)}`);
+    console.warn(`Aviary background task failed during ${lifecycle}: ${errorMessage(error)}`);
   });
 }
