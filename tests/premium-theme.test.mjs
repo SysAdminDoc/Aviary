@@ -56,6 +56,7 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
 
     const noir = await page.evaluate(() => {
       const styleOf = (selector) => getComputedStyle(document.querySelector(selector));
+      const root = styleOf("html");
       const body = styleOf("body");
       const nav = styleOf('nav:has([data-testid="AppTabBar_Home_Link"])');
       const activeNav = styleOf('[data-testid="AppTabBar_Home_Link"]');
@@ -72,7 +73,10 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
         theme: document.documentElement.dataset.avTheme,
         className: document.documentElement.classList.contains("av-theme-noir"),
         activeNav: document.querySelector('[data-testid="AppTabBar_Home_Link"]')?.getAttribute("data-av-active-route"),
+        rootBackground: root.backgroundImage,
+        rootBackgroundAttachment: root.backgroundAttachment,
         bodyBackground: body.backgroundImage,
+        bodyBackgroundColor: body.backgroundColor,
         navBackground: nav.backgroundImage,
         activeNavBackground: activeNav.backgroundImage,
         primaryBackground: primary.backgroundColor,
@@ -98,7 +102,10 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
     assert.equal(noir.theme, "noir");
     assert.equal(noir.className, true);
     assert.equal(noir.activeNav, "1", "Noir must mark the current route without relying on X's aria-current");
-    assert.match(noir.bodyBackground, /radial-gradient/);
+    assert.match(noir.rootBackground, /radial-gradient/);
+    assert.equal(noir.rootBackgroundAttachment, "fixed, fixed, fixed");
+    assert.equal(noir.bodyBackground, "none", "the viewport-height body must not own the scrolling canvas");
+    assert.equal(noir.bodyBackgroundColor, "rgba(0, 0, 0, 0)");
     assert.match(noir.navBackground, /linear-gradient/);
     assert.match(noir.activeNavBackground, /linear-gradient/);
     assert.match(noir.primaryBackground, /rgba?\(/);
@@ -119,6 +126,35 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
     assert.ok(contrast(parseRgb(noir.buttonColor), [92, 211, 255]) >= 4.5);
     assert.ok(noir.scrollWidth <= beforeScrollWidth + 1, "the theme must not introduce horizontal overflow");
 
+    const scrolledCanvas = await page.evaluate(() => {
+      const overflow = document.createElement("div");
+      overflow.id = "av-noir-scroll-regression";
+      overflow.setAttribute("aria-hidden", "true");
+      overflow.style.cssText = "position:absolute;inset:0 auto auto 0;width:1px;height:2400px;pointer-events:none";
+      document.body.append(overflow);
+      window.scrollTo({ top: 800, behavior: "instant" });
+      const root = getComputedStyle(document.documentElement);
+      const body = getComputedStyle(document.body);
+      return {
+        scrollY: window.scrollY,
+        bodyBottom: document.body.getBoundingClientRect().bottom,
+        viewportHeight: window.innerHeight,
+        rootBackground: root.backgroundImage,
+        rootBackgroundAttachment: root.backgroundAttachment,
+        bodyBackground: body.backgroundImage,
+        bodyBackgroundColor: body.backgroundColor
+      };
+    });
+    assert.ok(scrolledCanvas.scrollY > 0, "the fixture must exercise a real scrolling canvas");
+    assert.ok(
+      scrolledCanvas.bodyBottom > 0 && scrolledCanvas.bodyBottom < scrolledCanvas.viewportHeight,
+      "the regression fixture must put X's viewport-height body edge inside the scrolled viewport"
+    );
+    assert.match(scrolledCanvas.rootBackground, /radial-gradient/);
+    assert.equal(scrolledCanvas.rootBackgroundAttachment, "fixed, fixed, fixed");
+    assert.equal(scrolledCanvas.bodyBackground, "none");
+    assert.equal(scrolledCanvas.bodyBackgroundColor, "rgba(0, 0, 0, 0)");
+
     await page.evaluate((offSettings) => globalThis.__mod.applyTheme(offSettings), DEFAULT_SETTINGS);
     const off = await page.evaluate(() => {
       const read = (selector) => {
@@ -129,6 +165,7 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
         theme: document.documentElement.dataset.avTheme ?? null,
         className: document.documentElement.classList.contains("av-theme-noir"),
         activeNav: document.querySelector('[data-testid="AppTabBar_Home_Link"]')?.hasAttribute("data-av-active-route"),
+        root: read("html"),
         body: read("body"),
         article: read('article[data-testid="tweet"]'),
         postButton: read('[data-testid="SideNav_NewTweet_Button"]')
@@ -137,6 +174,7 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
     assert.equal(off.theme, null);
     assert.equal(off.className, false);
     assert.equal(off.activeNav, false);
+    assert.equal(off.root.backgroundImage, "none");
     assert.equal(off.body.backgroundImage, "none");
     assert.equal(off.article.backgroundImage, "none");
     assert.equal(off.article.boxShadow, "none");

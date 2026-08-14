@@ -83,6 +83,9 @@ test("every authored dark theme survives dark and light X hosts at both desktop 
                 muted: token("--av-muted")
               },
               paint: {
+                rootBackground: rootStyle.backgroundColor,
+                rootImage: rootStyle.backgroundImage,
+                rootAttachment: rootStyle.backgroundAttachment,
                 bodyColor: body.color,
                 bodyBackground: body.backgroundColor,
                 bodyImage: body.backgroundImage,
@@ -110,7 +113,16 @@ test("every authored dark theme survives dark and light X hosts at both desktop 
           assert.equal(state.activeNav, theme === "noir" ? "1" : null, `${label}: active-route marker drifted`);
           assert.equal(state.paint.bodyColor, state.tokens.text, `${label}: host text colour leaked through`);
           assert.equal(state.paint.articleColor, state.tokens.text, `${label}: post text colour leaked through`);
-          assert.ok(hasPaint(state.paint.bodyBackground, state.paint.bodyImage), `${label}: body is transparent`);
+          assert.ok(
+            hasPaint(state.paint.bodyBackground, state.paint.bodyImage) ||
+              hasPaint(state.paint.rootBackground, state.paint.rootImage),
+            `${label}: scrolling canvas is transparent`
+          );
+          if (theme === "noir") {
+            assert.equal(state.paint.rootAttachment, "fixed, fixed, fixed", `${label}: canvas moves while scrolling`);
+            assert.equal(state.paint.bodyBackground, "rgba(0, 0, 0, 0)", `${label}: body masks the root canvas`);
+            assert.equal(state.paint.bodyImage, "none", `${label}: body paint can end at the viewport boundary`);
+          }
           assert.ok(hasPaint(state.paint.navBackground, state.paint.navImage), `${label}: navigation is transparent`);
           assert.notEqual(state.paint.primaryBackground, "rgba(0, 0, 0, 0)", `${label}: timeline is transparent`);
           assert.ok(
@@ -188,6 +200,7 @@ function readOffState() {
     activeNav: document
       .querySelector('[data-testid="AppTabBar_Home_Link"]')
       ?.getAttribute("data-av-active-route") ?? null,
+    root: read("html"),
     body: read("body"),
     nav: read("nav"),
     primary: read('[data-testid="primaryColumn"]'),

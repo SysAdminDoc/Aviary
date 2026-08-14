@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fixed
+
+- Noir now paints its ambient gradient on one fixed root canvas instead of X's viewport-height
+  body, eliminating the horizontal background split that appeared after scrolling on any route.
+
 ## 1.21.0 - 2026-08-14
 
 ### Added

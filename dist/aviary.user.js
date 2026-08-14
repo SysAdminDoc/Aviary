@@ -258,15 +258,24 @@ html[data-av-theme] [aria-label="Timeline: Trending now"] {
   color: var(--av-text, rgb(239, 243, 244));
 }
 
-/* Noir is Aviary's authored premium desktop skin. Keep every selector behind the explicit theme
-   class so choosing Off restores X exactly, and use stable semantic/test-id anchors rather than
-   generated atomic classes. The gradients are opaque paints with no page-wide compositor blur
-   on an infinite timeline. */
-html.av-theme-noir body {
-  background:
+/* Noir is Aviary's authored premium desktop skin. X keeps body and #react-root at one viewport
+   tall while the timeline overflows through descendants, so a body-owned background ends partway
+   down the viewport after scrolling. The root canvas owns one fully fixed paint instead: it covers
+   every route and scroll depth without moving the accent glows or exposing a second base colour. */
+html.av-theme-noir {
+  background-color: var(--av-bg);
+  background-image:
     radial-gradient(circle at 12% -8%, rgba(92, 211, 255, 0.11), transparent 34rem),
     radial-gradient(circle at 88% 2%, rgba(151, 128, 255, 0.1), transparent 38rem),
-    linear-gradient(180deg, rgb(5, 9, 14), var(--av-bg) 42rem) fixed;
+    linear-gradient(180deg, rgb(5, 9, 14), var(--av-bg) 42rem);
+  background-attachment: fixed, fixed, fixed;
+  background-position: 0 0, 0 0, 0 0;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+}
+
+html.av-theme-noir body {
+  background-color: transparent !important;
+  background-image: none;
   color: var(--av-text);
 }
 
