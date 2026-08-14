@@ -52,13 +52,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: viewer strings come from the catalog (or a generator), and a test fails when viewer copy and catalog diverge.
   Complexity: M
 
-- [ ] F114 — P1 — Close the CI validation gap
-  Why: smoke.yml runs lint/matrix/build/visual/smoke but never `npm test` (unit suite) or `npm run preflight` — the primary gate is local-only, so a bad push can be green in CI.
-  Evidence: .github/workflows/smoke.yml; RESEARCH.md Security. (Validation CI is allowed; no release binaries.)
-  Touches: .github/workflows/smoke.yml.
-  Acceptance: CI runs the full `verify` chain (typecheck, lint, unit tests, build, preflight) before the smoke lanes.
-  Complexity: S
-
 - [ ] F115 — P1 — "Restore old X" feature-flag reversion pack
   Why: users hand-write uBO filters monthly to rewrite `__INITIAL_STATE__.featureSwitch` (restore media grid vs Videos/Photos split, disable image carousel, disable profile redesign) — recurring demand no extension productizes; Aviary's document-start page agent is the right layer and no API calls are involved.
   Evidence: r/uBlockOrigin 1vob8nh (2026-08-14, `responsive_web_profile_redesign_enabled`), 1v2gxir comments (`rweb_media_carousel_enabled`); CPFT #917/#918; RESEARCH.md Executive Summary.
