@@ -51,11 +51,8 @@ body {
 }
 
 .brand-mark {
-  width: 28px;
-  height: 28px;
-  stroke: var(--av-accent);
-  stroke-width: 1.7;
-  stroke-linecap: round;
+  width: 32px;
+  height: 32px;
 }
 
 h1,

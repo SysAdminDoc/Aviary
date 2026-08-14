@@ -4,6 +4,10 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
+const extensionIconSizes = [16, 32, 48, 128];
+const expectedExtensionIcons = Object.fromEntries(
+  extensionIconSizes.map((size) => [String(size), `icons/icon-${size}.png`])
+);
 
 const failures = [];
 const warnings = [];
@@ -86,6 +90,29 @@ async function checkManifests() {
     if (optionsPage !== "options.html") {
       failures.push(`${target}: options_ui.page must be options.html (optional permissions need a grant surface)`);
     }
+    if (JSON.stringify(manifest.icons) !== JSON.stringify(expectedExtensionIcons)) {
+      failures.push(`${target}: manifest icons must declare the complete Aviary size set`);
+    }
+    if (JSON.stringify(manifest.action?.default_icon) !== JSON.stringify(expectedExtensionIcons)) {
+      failures.push(`${target}: action.default_icon must declare the complete Aviary size set`);
+    }
+    for (const size of extensionIconSizes) {
+      const iconPath = path.join(root, "dist", target, expectedExtensionIcons[String(size)]);
+      try {
+        const png = await readFile(iconPath);
+        const dimensions = readPngDimensions(png);
+        if (dimensions.width !== size || dimensions.height !== size) {
+          failures.push(
+            `${target}: icon-${size}.png PNG dimensions are ${dimensions.width}x${dimensions.height}`
+          );
+        }
+        if (dimensions.colorType !== 6) {
+          failures.push(`${target}: icon-${size}.png must retain RGBA transparency`);
+        }
+      } catch (error) {
+        failures.push(`${target}: icon-${size}.png missing or invalid (${error.message})`);
+      }
+    }
     if (target === "extension-chrome" && manifest.background?.service_worker !== "background.js") {
       failures.push(`${target}: MV3 background service worker is missing`);
     }
@@ -111,6 +138,21 @@ async function checkManifests() {
       }
     }
   }
+}
+
+function readPngDimensions(data) {
+  if (
+    data.length < 26 ||
+    data[0] !== 0x89 ||
+    data.subarray(1, 4).toString("ascii") !== "PNG"
+  ) {
+    throw new Error("not a PNG file");
+  }
+  return {
+    width: data.readUInt32BE(16),
+    height: data.readUInt32BE(20),
+    colorType: data[25]
+  };
 }
 
 async function checkBundles() {

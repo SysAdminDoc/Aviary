@@ -19,6 +19,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dist = path.join(root, "dist");
 const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
 const STORE_ZIP_DATE = new Date("1980-01-01T00:00:00.000Z");
+const extensionIconSizes = [16, 32, 48, 128];
 const matchLines = [
   "https://x.com/*",
   "https://twitter.com/*",
@@ -166,6 +167,14 @@ for (const target of ["extension-chrome", "extension-firefox"]) {
 
   for (const asset of ["options.html", "options.css"]) {
     await copyFile(path.join(root, "src/extension", asset), path.join(targetDir, asset));
+  }
+  const targetIcons = path.join(targetDir, "icons");
+  await mkdir(targetIcons, { recursive: true });
+  for (const size of extensionIconSizes) {
+    await copyFile(
+      path.join(root, "src/extension/icons", `icon-${size}.png`),
+      path.join(targetIcons, `icon-${size}.png`)
+    );
   }
   if (target === "extension-firefox") {
     // Firefox 128-132 can reject or forget dynamic-rule updates after restart unless an enabled

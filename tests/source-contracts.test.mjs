@@ -81,10 +81,18 @@ test("MV3 manifests keep permissions narrow", async () => {
     "src/extension/manifest.chrome.json",
     "src/extension/manifest.firefox.json"
   ];
+  const expectedIcons = {
+    16: "icons/icon-16.png",
+    32: "icons/icon-32.png",
+    48: "icons/icon-48.png",
+    128: "icons/icon-128.png"
+  };
 
   for (const manifestPath of manifests) {
     const manifest = JSON.parse(await readFile(path.join(root, manifestPath), "utf8"));
     assert.equal(manifest.manifest_version, 3);
+    assert.deepEqual(manifest.icons, expectedIcons);
+    assert.deepEqual(manifest.action.default_icon, expectedIcons);
     assert.deepEqual(manifest.permissions, [
       "storage",
       "declarativeNetRequestWithHostAccess",
@@ -95,6 +103,14 @@ test("MV3 manifests keep permissions narrow", async () => {
     assert.ok(!JSON.stringify(manifest).includes("tabs"));
     assert.ok(!manifest.permissions.includes("declarativeNetRequestFeedback"));
     assert.ok(!manifest.permissions.includes("webRequest"));
+  }
+
+  for (const size of [16, 32, 48, 128, 512]) {
+    const icon = await readFile(path.join(root, "src/extension/icons", `icon-${size}.png`));
+    assert.equal(icon.subarray(1, 4).toString("ascii"), "PNG", `icon-${size} is not a PNG`);
+    assert.equal(icon.readUInt32BE(16), size, `icon-${size} width drifted`);
+    assert.equal(icon.readUInt32BE(20), size, `icon-${size} height drifted`);
+    assert.equal(icon[25], 6, `icon-${size} must retain RGBA transparency`);
   }
 });
 

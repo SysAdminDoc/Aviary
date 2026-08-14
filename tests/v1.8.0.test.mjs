@@ -180,15 +180,19 @@ test("options page is CSP-clean and only touches the permissions API", async () 
   assert.ok(!/backdrop-filter/.test(css));
 });
 
-test("the build ships the options page into both extension targets", async () => {
+test("the build ships the options page and branded icons into both extension targets", async () => {
   const source = await readFile(path.join(root, "tools/build.mjs"), "utf8");
   assert.match(source, /extension-options\.ts/);
   assert.match(source, /options\.html/);
   assert.match(source, /options\.css/);
+  assert.match(source, /extensionIconSizes/);
+  assert.match(source, /src\/extension\/icons/);
 
   const preflight = await readFile(path.join(root, "tools/preflight.mjs"), "utf8");
   assert.match(preflight, /options_ui\?\.page/);
   assert.match(preflight, /options\.html contains inline script/);
+  assert.match(preflight, /default_icon/);
+  assert.match(preflight, /PNG dimensions/);
 });
 
 test("a Control Center render restores focus, caret and scroll", async () => {

@@ -4,6 +4,8 @@
 
 ### Added
 
+- Aviary now ships an original cyan-and-violet bird/A logo across Chrome and Firefox toolbar,
+  extension-management, permissions-tab, and store icon sizes.
 - Chrome and Firefox now expose **Download media with Aviary** in X's native right-click menu.
   The command resolves the clicked image or player through the content script, requests the
   optional download permission from that explicit gesture, and saves the captured direct variant.
