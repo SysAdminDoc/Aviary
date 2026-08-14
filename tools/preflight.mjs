@@ -2,6 +2,8 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { userscriptUrls } from "./userscript-meta.mjs";
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
 const extensionIconSizes = [16, 32, 48, 128];
@@ -155,6 +157,29 @@ function readPngDimensions(data) {
   };
 }
 
+function checkUserscriptUpdateUrls(source) {
+  let expected;
+  try {
+    expected = userscriptUrls(pkg);
+  } catch (error) {
+    failures.push(`userscript update metadata: ${(error).message}`);
+    return;
+  }
+  const read = (key) => source.match(new RegExp(`@${key}\\s+(\\S+)`))?.[1] ?? null;
+  for (const key of ["updateURL", "downloadURL"]) {
+    const value = read(key);
+    if (value !== expected.script) {
+      failures.push(
+        `userscript @${key} is "${value ?? "missing"}" but package.json repository resolves to "${expected.script}"`
+      );
+    }
+  }
+  const namespace = read("namespace");
+  if (namespace !== expected.namespace) {
+    failures.push(`userscript @namespace is "${namespace ?? "missing"}" but should be "${expected.namespace}"`);
+  }
+}
+
 async function checkBundles() {
   const userscriptPath = path.join(root, "dist", "aviary.user.js");
   let source;
@@ -173,6 +198,7 @@ async function checkBundles() {
   if (/eval\s*\(/.test(source)) {
     failures.push("userscript bundle contains eval() — drop it before publishing");
   }
+  checkUserscriptUpdateUrls(source);
 
   for (const target of ["extension-chrome", "extension-firefox"]) {
     const contentPath = path.join(root, "dist", target, "content.js");

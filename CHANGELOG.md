@@ -22,6 +22,10 @@
 
 ### Fixed
 
+- The userscript's `@updateURL`, `@downloadURL`, `@namespace`, and `@author` are now derived from
+  `package.json`'s declared repository instead of a placeholder organization that never hosted the
+  project, so installed copies poll the real location. Preflight fails the build whenever the
+  built metablock and the declared repository disagree.
 - Download controls now reattach when X recycles a processed post shell with a new media subtree,
   while ignoring ordinary action/count churn that previously made broad reconciliation too costly.
 - Nested `videoPlayer` / `videoComponent` wrappers now resolve to one canonical player, preventing

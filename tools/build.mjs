@@ -3,6 +3,8 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import esbuild from "esbuild";
 
+import { repositoryUrl, userscriptUrls } from "./userscript-meta.mjs";
+
 const CRC32_TABLE = (() => {
   const table = new Uint32Array(256);
   for (let i = 0; i < 256; i++) {
@@ -328,12 +330,14 @@ function buildStoreZip(entries) {
 
 function userscriptBanner(version) {
   const matches = matchLines.map((value) => `// @match        ${value}`).join("\n");
+  const urls = userscriptUrls(pkg);
   return `// ==UserScript==
 // @name         Aviary for X
-// @namespace    https://github.com/aviary-x
+// @namespace    ${urls.namespace}
 // @version      ${version}
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
-// @author       Aviary contributors
+// @author       ${pkg.author}
+// @homepage     ${repositoryUrl(pkg)}
 ${matches}
 // @run-at       document-start
 // @inject-into  content
@@ -344,8 +348,8 @@ ${matches}
 // @grant        unsafeWindow
 // @connect      pbs.twimg.com
 // @connect      video.twimg.com
-// @updateURL    https://raw.githubusercontent.com/aviary-x/aviary/main/dist/aviary.user.js
-// @downloadURL  https://raw.githubusercontent.com/aviary-x/aviary/main/dist/aviary.user.js
+// @updateURL    ${urls.script}
+// @downloadURL  ${urls.script}
 // ==/UserScript==
 `;
 }

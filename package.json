@@ -5,6 +5,12 @@
   "type": "module",
   "description": "Local-first X/Twitter enhancer delivered as a readable userscript and MV3 extension.",
   "license": "MIT",
+  "author": "SysAdminDoc",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SysAdminDoc/Twitter_Userscript.git"
+  },
+  "homepage": "https://github.com/SysAdminDoc/Twitter_Userscript",
   "engines": {
     "node": ">=22"
   },

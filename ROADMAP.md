@@ -10,13 +10,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ### P0 — broken today
 
-- [ ] F105 — P0 — Fix userscript auto-update URLs
-  Why: `@updateURL`/`@downloadURL` point at `raw.githubusercontent.com/aviary-x/aviary/...` — a repo that does not exist; every install polls a dead URL, and `@namespace` carries the same phantom org.
-  Evidence: tools/build.mjs:330-348 vs. real remote `SysAdminDoc/Twitter_Userscript` (CLAUDE.md); RESEARCH.md Security.
-  Touches: tools/build.mjs, tools/preflight.mjs (add a URL↔repo validation), docs/INSTALL.md.
-  Acceptance: built banner URLs resolve to the actual repo's raw dist path; preflight fails on any future mismatch.
-  Complexity: S
-
 - [ ] F106 — P0 — Correct stale README claims
   Why: README:307 says the AI button is unconditionally present with "no network calls" (it is default-off and the provider runner POSTs); README:325 calls empty ROADMAP.md "the working plan"; "MV3 store-ready ZIPs" overstates a build with a placeholder AMO id.
   Evidence: src/platform/settings.ts:260 (`ai.commandMenu: false`); src/extension/manifest.firefox.json (`aviary@example.local`); RESEARCH.md Architecture.

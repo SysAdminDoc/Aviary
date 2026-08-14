@@ -60,7 +60,11 @@ restarts.
 
 ## Updating
 
-- Userscript: reopen the newer `dist/aviary.user.js` or update the release URL in your manager.
+- Userscript: the metablock's `@updateURL`/`@downloadURL` are derived from `package.json`'s
+  `repository` field and point at that repository's `main` copy of `dist/aviary.user.js`. Manager
+  auto-update only reaches it once that repository is publicly readable; while the repository is
+  private the raw URL answers 404 and the manager silently reports no update. Until then, reopen the
+  newer `dist/aviary.user.js` to upgrade in place.
 - Extension: run `npm run verify`, then use the extension manager's reload button or reload the
   temporary add-on. Refresh open X tabs after updating the content script.
 
