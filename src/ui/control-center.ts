@@ -431,6 +431,7 @@ export interface ControlCenterHandle {
 export function mountControlCenter(options: ControlCenterOptions): ControlCenterHandle {
   const existing = document.getElementById("av-control-center");
   existing?.remove();
+  document.getElementById("av-control-center-nav")?.remove();
 
   // Set before any chrome is built, so the header is localized on the very first paint.
   panelLocale = options.settings.i18n.locale;
@@ -451,6 +452,29 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   launcher.type = "button";
   launcher.setAttribute("aria-expanded", "false");
   launcher.setAttribute("aria-controls", "av-control-panel");
+  launcher.setAttribute("aria-haspopup", "dialog");
+  // Avoid a bottom-corner flash while the current X navigation is being discovered.
+  launcher.hidden = true;
+
+  const navLauncherHost = document.createElement("div");
+  navLauncherHost.id = "av-control-center-nav";
+  navLauncherHost.dataset.avOwned = "true";
+  navLauncherHost.dir = localeDirection(panelLocale);
+  const navLauncherShadow = navLauncherHost.attachShadow({ mode: "open" });
+  const navLauncherStyle = document.createElement("style");
+  navLauncherStyle.textContent = NAV_LAUNCHER_CSS;
+  const navLauncher = document.createElement("button");
+  navLauncher.type = "button";
+  navLauncher.className = "av-nav-launcher";
+  navLauncher.setAttribute("aria-expanded", "false");
+  navLauncher.setAttribute("aria-haspopup", "dialog");
+  navLauncher.setAttribute("aria-label", t("Aviary settings"));
+  navLauncher.title = t("Aviary settings");
+  const navLauncherPill = el("span", "av-nav-launcher-pill");
+  const navLauncherLabel = el("span", "av-nav-launcher-label", t("Aviary"));
+  navLauncherPill.append(navLauncherIcon(), navLauncherLabel);
+  navLauncher.append(navLauncherPill);
+  navLauncherShadow.append(navLauncherStyle, navLauncher);
 
   const overlay = el("div", "av-overlay");
   overlay.setAttribute("aria-hidden", "true");
@@ -546,6 +570,76 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   let lastStatusValues: Record<string, string | number> = {};
   let bodyWasInert = false;
   let focusTrapAttached = false;
+  let mountedPrimaryNav: HTMLElement | null = null;
+  let launcherMountDestroyed = false;
+  let launcherReconcileQueued = false;
+
+  const findPrimaryNav = (): HTMLElement | null => {
+    const tab = document.querySelector<HTMLElement>('[data-testid^="AppTabBar_"]');
+    return tab?.closest<HTMLElement>("nav") ?? null;
+  };
+
+  const syncNavLauncherLayout = (nav: HTMLElement): void => {
+    const width = nav.getBoundingClientRect().width;
+    navLauncherHost.dataset.avCompact = String(width > 0 && width < 120);
+  };
+
+  const navResizeObserver = typeof ResizeObserver === "undefined"
+    ? undefined
+    : new ResizeObserver(() => {
+      if (mountedPrimaryNav?.isConnected) syncNavLauncherLayout(mountedPrimaryNav);
+    });
+
+  const destroyLauncherMount = (): void => {
+    if (launcherMountDestroyed) return;
+    launcherMountDestroyed = true;
+    launcherObserver?.disconnect();
+    navResizeObserver?.disconnect();
+    navLauncherHost.remove();
+    mountedPrimaryNav = null;
+  };
+
+  const reconcileLauncherMount = (): void => {
+    if (launcherMountDestroyed || !host.isConnected) return;
+    const nav = findPrimaryNav();
+    if (!nav) {
+      navResizeObserver?.disconnect();
+      navLauncherHost.remove();
+      mountedPrimaryNav = null;
+      launcher.hidden = false;
+      return;
+    }
+
+    launcher.hidden = true;
+    if (navLauncherHost.parentElement !== nav) {
+      navResizeObserver?.disconnect();
+      nav.append(navLauncherHost);
+      mountedPrimaryNav = nav;
+      navResizeObserver?.observe(nav);
+    }
+    syncNavLauncherLayout(nav);
+  };
+
+  const queueLauncherReconcile = (): void => {
+    if (launcherReconcileQueued || launcherMountDestroyed) return;
+    launcherReconcileQueued = true;
+    queueMicrotask(() => {
+      launcherReconcileQueued = false;
+      reconcileLauncherMount();
+    });
+  };
+
+  const launcherObserver = new MutationObserver(() => {
+    if (!host.isConnected) {
+      destroyLauncherMount();
+      return;
+    }
+    if (!navLauncherHost.isConnected) queueLauncherReconcile();
+  });
+  launcherObserver.observe(document.documentElement, { childList: true, subtree: true });
+
+  const launcherForFocus = (): HTMLButtonElement =>
+    navLauncherHost.isConnected ? navLauncher : launcher;
 
   const modalFocusables = (): HTMLElement[] =>
     Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter((node) => {
@@ -606,6 +700,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     }
     open = value;
     launcher.setAttribute("aria-expanded", String(open));
+    navLauncher.setAttribute("aria-expanded", String(open));
     overlay.classList.toggle("is-open", open);
     overlay.setAttribute("aria-hidden", String(!open));
     // opacity:0 hides the panel visually but leaves every control in the tab order, so a
@@ -631,7 +726,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         document.removeEventListener("focusin", handleModalFocusIn, true);
         focusTrapAttached = false;
       }
-      launcher.focus({ preventScroll: true });
+      launcherForFocus().focus({ preventScroll: true });
     }
   };
 
@@ -840,6 +935,10 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     subtitle.textContent = t("Local controls for a quieter X.");
     close.textContent = t("Close");
     launcher.textContent = t("Aviary");
+    navLauncherLabel.textContent = t("Aviary");
+    navLauncher.setAttribute("aria-label", t("Aviary settings"));
+    navLauncher.title = t("Aviary settings");
+    navLauncherHost.dir = localeDirection(panelLocale);
     panel.setAttribute("aria-label", t("Aviary settings"));
     // Chrome outside `body` survives the re-render, which is the point — but that also means
     // nothing repaints it on a locale change unless it is done here.
@@ -853,6 +952,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
     // Mirrored onto the host because shadow content cannot see the page-level motion class.
     host.dataset.avMotion = prefersReducedMotion(draftSettings) ? "reduce" : "full";
+    navLauncherHost.dataset.avMotion = host.dataset.avMotion;
+    reconcileLauncherMount();
     const registry = sectionRegistry();
     if (!registry.some((entry) => entry.id === activeSectionId)) {
       activeSectionId = registry[0]?.id ?? "presets";
@@ -1466,6 +1567,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   };
 
   launcher.addEventListener("click", () => setOpen(!open));
+  navLauncher.addEventListener("click", () => setOpen(!open));
   close.addEventListener("click", () => setOpen(false));
   // `input` covers typing and the native clear affordance alike. The field is outside `body`,
   // so the re-render below cannot steal the caret back.
@@ -1487,9 +1589,11 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         document.removeEventListener("focusin", handleModalFocusIn, true);
         focusTrapAttached = false;
       }
+      destroyLauncherMount();
       host.remove();
     },
     refresh() {
+      reconcileLauncherMount();
       if (!open || isBusy()) {
         dirtyWhileBusy = true;
         return;
@@ -1651,6 +1755,21 @@ function searchIcon(): SVGSVGElement {
   const handle = document.createElementNS("http://www.w3.org/2000/svg", "path");
   handle.setAttribute("d", "m16 16 4 4");
   svg.append(circle, handle);
+  return svg;
+}
+
+function navLauncherIcon(): SVGSVGElement {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.classList.add("av-nav-launcher-icon");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute(
+    "d",
+    "M21 4h-7M10 4H3M14 2v4M21 12h-9M8 12H3M8 10v4M21 20h-5M12 20H3M16 18v4"
+  );
+  svg.append(path);
   return svg;
 }
 
@@ -2166,6 +2285,117 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
+const NAV_LAUNCHER_CSS = `
+:host {
+  display: block;
+  width: 100%;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  font-style: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+.av-nav-launcher {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 58px;
+  margin: 0;
+  padding: 4px 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  font-style: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  text-align: start;
+}
+
+.av-nav-launcher-pill {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  min-width: 50px;
+  min-height: 50px;
+  padding: 12px;
+  border-radius: 25px;
+  transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+
+.av-nav-launcher-icon {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.av-nav-launcher-label {
+  margin-inline: 20px 16px;
+  overflow: hidden;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 24px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.av-nav-launcher:hover .av-nav-launcher-pill {
+  background-color: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.av-nav-launcher[aria-expanded="true"] .av-nav-launcher-pill {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 15%, transparent),
+    color-mix(in srgb, var(--av-accent-secondary, rgb(151, 128, 255)) 8%, transparent)
+  );
+  color: var(--av-text, currentColor);
+}
+
+.av-nav-launcher:focus-visible {
+  outline: none;
+}
+
+.av-nav-launcher:focus-visible .av-nav-launcher-pill {
+  outline: 2px solid var(--av-accent, rgb(29, 155, 240));
+  outline-offset: 2px;
+}
+
+:host([data-av-compact="true"]) .av-nav-launcher {
+  justify-content: center;
+}
+
+:host([data-av-compact="true"]) .av-nav-launcher-pill {
+  width: 50px;
+  justify-content: center;
+}
+
+:host([data-av-compact="true"]) .av-nav-launcher-label {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .av-nav-launcher-pill {
+    transition: none;
+  }
+}
+
+:host([data-av-motion="reduce"]) .av-nav-launcher-pill {
+  transition: none;
+}
+`;
+
 const CONTROL_CENTER_CSS = `
 :host {
   direction: ltr;
@@ -2212,6 +2442,10 @@ const CONTROL_CENTER_CSS = `
   letter-spacing: 0;
   pointer-events: auto;
   transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.av-launcher[hidden] {
+  display: none !important;
 }
 
 .av-launcher:hover {

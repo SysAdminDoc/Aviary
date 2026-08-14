@@ -87,14 +87,18 @@ export async function launchSettingsVisualHarness(viewport, hostTheme = "dark") 
       timeout: 15_000
     });
     await page.waitForFunction(
-      () => Boolean(document.querySelector("#av-control-center")?.shadowRoot?.querySelector(".av-launcher")),
+      () =>
+        Boolean(
+          document.querySelector("#av-control-center-nav")?.shadowRoot?.querySelector(".av-nav-launcher") ??
+            document.querySelector("#av-control-center")?.shadowRoot?.querySelector(".av-launcher")
+        ),
       null,
       { timeout: 15_000 }
     );
     await page.evaluate(() => {
-      const launcher = document
-        .querySelector("#av-control-center")
-        ?.shadowRoot?.querySelector(".av-launcher");
+      const launcher =
+        document.querySelector("#av-control-center-nav")?.shadowRoot?.querySelector(".av-nav-launcher") ??
+        document.querySelector("#av-control-center")?.shadowRoot?.querySelector(".av-launcher");
       if (!(launcher instanceof HTMLButtonElement)) throw new Error("Control Center launcher missing");
       launcher.click();
     });

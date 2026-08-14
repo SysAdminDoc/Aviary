@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Changed
+
+- Aviary settings now opens from a native-sized row in X's primary left navigation instead of a
+  standalone corner button. The row follows expanded and compact rails and remounts after X's SPA
+  navigation swaps, with the old launcher retained only as a no-navigation fallback.
+
 ### Fixed
 
 - Noir now paints its ambient gradient on one fixed root canvas instead of X's viewport-height

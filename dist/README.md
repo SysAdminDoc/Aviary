@@ -9,7 +9,7 @@ Aviary is a local-first X/Twitter enhancer delivered as a readable userscript fi
 Fresh installs remove advertising by default. Every elective setting that changes ordinary X
 content or styling — themes, sidebar/trend declutter, Hide and media buttons, filters, offscreen
 video pausing, and general analytics refusal — still starts off. Aviary otherwise adds only its
-launcher, because that is how the remaining features are enabled.
+launcher to X's primary left navigation, because that is how the remaining features are enabled.
 
 `tests/vanilla-by-default.test.mjs` measures this rather than asserting it: with default settings
 it mounts the real theme code against an organic captured timeline and requires non-ad computed

@@ -48,7 +48,7 @@ after(async () => {
 test("Control Center behaves as a modal and restores launcher focus", async () => {
   const result = await page.evaluate(() => {
     const settings = AviaryModal.cloneSettings(AviaryModal.DEFAULT_SETTINGS);
-    AviaryModal.mountControlCenter({
+    globalThis.__modalHandle = AviaryModal.mountControlCenter({
       settings,
       diagnostics: () => [],
       onChange: async () => {},
@@ -119,5 +119,130 @@ test("Control Center behaves as a modal and restores launcher focus", async () =
     await page.evaluate(() => document.querySelector("#av-control-center").shadowRoot.querySelector(".av-overlay").getAttribute("aria-hidden")),
     "true"
   );
-  await page.evaluate(() => document.querySelector("#av-control-center")?.remove());
+  await page.evaluate(() => {
+    globalThis.__modalHandle?.destroy();
+    delete globalThis.__modalHandle;
+  });
+});
+
+test("the launcher joins X's navigation, adapts to compact rails, and survives SPA replacement", async () => {
+  await page.setContent(`
+    <!doctype html>
+    <style>
+      nav { display: flex; flex-direction: column; width: 259px; color: rgb(231, 233, 234); }
+      nav > a, nav > button { min-height: 58px; }
+    </style>
+    <nav aria-label="Primary">
+      <a data-testid="AppTabBar_Home_Link" href="/home">Home</a>
+      <button data-testid="AppTabBar_More_Menu" type="button">More</button>
+    </nav>
+    <main>Page</main>
+  `);
+  await page.evaluate(() => {
+    globalThis.__modalHandle = AviaryModal.mountControlCenter({
+      settings: AviaryModal.cloneSettings(AviaryModal.DEFAULT_SETTINGS),
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: () => {}
+    });
+  });
+  await page.waitForFunction(() => document.querySelector('nav > #av-control-center-nav'));
+
+  const expanded = await page.evaluate(() => {
+    const host = document.querySelector("#av-control-center");
+    const fallback = host.shadowRoot.querySelector(".av-launcher");
+    const navHost = document.querySelector("#av-control-center-nav");
+    const launcher = navHost.shadowRoot.querySelector(".av-nav-launcher");
+    const label = navHost.shadowRoot.querySelector(".av-nav-launcher-label");
+    const rect = launcher.getBoundingClientRect();
+    return {
+      directChild: navHost.parentElement?.matches('nav[aria-label="Primary"]') ?? false,
+      lastChild: navHost.parentElement?.lastElementChild === navHost,
+      fallbackHidden: fallback.hidden,
+      label: label.textContent,
+      ariaLabel: launcher.getAttribute("aria-label"),
+      compact: navHost.dataset.avCompact,
+      labelDisplay: getComputedStyle(label).display,
+      width: rect.width,
+      height: rect.height
+    };
+  });
+  assert.deepEqual(expanded, {
+    directChild: true,
+    lastChild: true,
+    fallbackHidden: true,
+    label: "Aviary",
+    ariaLabel: "Aviary settings",
+    compact: "false",
+    labelDisplay: "block",
+    width: 259,
+    height: 58
+  });
+
+  await page.evaluate(() => {
+    document.querySelector("nav").style.width = "60px";
+  });
+  await page.waitForFunction(() => document.querySelector("#av-control-center-nav")?.dataset.avCompact === "true");
+  const compact = await page.evaluate(() => {
+    const host = document.querySelector("#av-control-center-nav");
+    const shadow = host.shadowRoot;
+    const rect = shadow.querySelector(".av-nav-launcher").getBoundingClientRect();
+    return {
+      labelDisplay: getComputedStyle(shadow.querySelector(".av-nav-launcher-label")).display,
+      width: rect.width,
+      height: rect.height
+    };
+  });
+  assert.deepEqual(compact, { labelDisplay: "none", width: 60, height: 58 });
+
+  await page.evaluate(() => {
+    document
+      .querySelector("#av-control-center-nav")
+      .shadowRoot.querySelector(".av-nav-launcher")
+      .click();
+  });
+  assert.equal(await page.evaluate(() => document.body.hasAttribute("inert")), true);
+  await page.keyboard.press("Escape");
+  const restored = await page.evaluate(() => {
+    const navHost = document.querySelector("#av-control-center-nav");
+    const launcher = navHost.shadowRoot.querySelector(".av-nav-launcher");
+    return {
+      documentFocus: document.activeElement === navHost,
+      shadowFocus: navHost.shadowRoot.activeElement === launcher,
+      expanded: launcher.getAttribute("aria-expanded")
+    };
+  });
+  assert.deepEqual(restored, { documentFocus: true, shadowFocus: true, expanded: "false" });
+
+  await page.evaluate(() => document.querySelector("nav").remove());
+  await page.waitForFunction(() => {
+    const host = document.querySelector("#av-control-center");
+    return host?.shadowRoot.querySelector(".av-launcher")?.hidden === false;
+  });
+  assert.equal(await page.evaluate(() => Boolean(document.querySelector("#av-control-center-nav")?.isConnected)), false);
+
+  await page.evaluate(() => {
+    const nav = document.createElement("nav");
+    nav.setAttribute("aria-label", "Primary");
+    nav.style.cssText = "display:flex;flex-direction:column;width:259px";
+    nav.innerHTML = '<a data-testid="AppTabBar_Home_Link" href="/home">Home</a>';
+    document.body.prepend(nav);
+  });
+  await page.waitForFunction(() => document.querySelector('nav > #av-control-center-nav'));
+  assert.equal(
+    await page.evaluate(() => document.querySelector("#av-control-center").shadowRoot.querySelector(".av-launcher").hidden),
+    true
+  );
+
+  await page.evaluate(() => {
+    globalThis.__modalHandle?.destroy();
+    delete globalThis.__modalHandle;
+  });
+  assert.deepEqual(
+    await page.evaluate(() => ({
+      panel: document.querySelector("#av-control-center"),
+      launcher: document.querySelector("#av-control-center-nav")
+    })),
+    { panel: null, launcher: null }
+  );
 });
