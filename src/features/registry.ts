@@ -1,5 +1,6 @@
 import type { AviarySettings } from "../platform/settings";
 import type { Diagnostics } from "../platform/diagnostics";
+import type { DiagnosticsStore } from "../platform/diagnostics-store";
 import type { PageBridge } from "../platform/page-bridge";
 import type { RouteState } from "../platform/route";
 import type { StorageGateway } from "../platform/storage";
@@ -18,6 +19,8 @@ export interface FeatureContext {
   profile?: ProfileManager;
   limiter: TokenBucket;
   diagnostics: Diagnostics;
+  /** Warnings and errors that survive a reload; absent in minimal unit-test contexts. */
+  diagnosticsStore?: DiagnosticsStore;
   auditLog: AuditLog;
   /**
    * Access to the page's own world. Absent when the host cannot provide it -- an old userscript

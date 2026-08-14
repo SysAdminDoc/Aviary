@@ -31,7 +31,8 @@ export type AuditAction =
   | "cleanup.enqueue"
   | "semantic.index"
   | "snippet.insert"
-  | "diagnostics.copy";
+  | "diagnostics.copy"
+  | "diagnostics.clear";
 
 export interface AuditEntry {
   at: string;

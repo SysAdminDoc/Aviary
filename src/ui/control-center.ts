@@ -180,6 +180,8 @@ export interface ControlCenterOptions {
   };
   getSelectorHealth?: () => SelectorHealthStatus;
   clearAdObservations?: () => Promise<void>;
+  getSavedDiagnostics?: () => { total: number; errors: number; newestAt: string | null };
+  clearSavedDiagnostics?: () => Promise<void>;
   clearAuditLog?: () => Promise<void>;
   getRetentionPolicy?: () => RetentionPolicy;
   saveRetentionPolicy?: (policy: RetentionPolicy) => Promise<void>;

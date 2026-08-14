@@ -38,13 +38,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: persisted payload carries a schema version; an old payload upgrades through explicit steps with a test per step; unknown-future version is preserved untouched with a Trust notice.
   Complexity: M
 
-- [ ] F112 — P1 — Persist diagnostics + surface boot failure
-  Why: the 200-event diagnostics ring is memory-only and a boot failure writes `data-av-ready="error"` with nothing user-visible — failures on real pages evaporate before anyone can copy them.
-  Evidence: src/platform/diagnostics.ts (41 lines, in-memory); src/main.ts boot path; RESEARCH.md Security.
-  Touches: src/platform/diagnostics.ts, durable-storage keys, Trust section (view/copy/clear), boot error toast.
-  Acceptance: last N diagnostic events survive reload per profile (bounded, content-free); a boot failure shows a visible one-line notice with a copyable reason.
-  Complexity: M
-
 - [ ] F113 — P1 — Fold viewer.ts inline locale table into the i18n pipeline
   Why: src/features/export/viewer.ts carries a second hand-maintained 9-locale table outside the extractor/catalog — the repo has hit five separate i18n-extraction blind spots already; this one is guaranteed drift.
   Evidence: viewer.ts lines ~7-250; CLAUDE.md Learned (i18n incidents 2026-08-06/07); RESEARCH.md Architecture.

@@ -27,6 +27,8 @@ import { setLocalOnlyPolicy } from "./features/integrations/network-policy";
 import { pageHooksFeature } from "./features/privacy/page-hooks";
 import { adProtectionFeature, installEarlyAdShield } from "./features/privacy/ad-protection";
 import { Diagnostics } from "./platform/diagnostics";
+import { DiagnosticsStore } from "./platform/diagnostics-store";
+import { showBootFailureNotice } from "./platform/boot-notice";
 import { createPageBridge } from "./platform/page-bridge";
 import { observeAddedElements } from "./platform/observer";
 import { TokenBucket } from "./platform/rate-limit";
@@ -112,6 +114,11 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   const profileManager = new ProfileManager(durableStorage);
   await profileManager.load();
   const storage = createProfileStorageGateway(durableStorage, profileManager.activeId);
+  // Warnings and errors outlive the page from here on; the in-memory ring is lost on reload,
+  // which is exactly when a user needs to report what failed.
+  const diagnosticsStore = new DiagnosticsStore(storage);
+  await diagnosticsStore.load();
+  diagnostics.setSink((event) => diagnosticsStore.record(event));
   const integrationUsage = new IntegrationUsageLedger(storage);
   await integrationUsage.load();
   const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
@@ -186,6 +193,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     profile: profileManager,
     limiter,
     diagnostics,
+    diagnosticsStore,
     auditLog,
     pageBridge,
     async saveSettings() {
@@ -248,6 +256,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   } catch (error) {
     diagnostics.error("Aviary boot failed", errorDetails(error));
     document.documentElement.dataset.avReady = "error";
+    showBootFailureNotice(error instanceof Error ? error.message : String(error));
     for (const stop of stops.reverse()) {
       stop();
     }

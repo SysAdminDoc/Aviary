@@ -35,6 +35,39 @@ export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
       ctx.coverageRow(),
         ...ctx.selectorHealthRows()
   ];
+  if (ctx.options.getSavedDiagnostics) {
+    const saved = ctx.options.getSavedDiagnostics();
+    rows.push(
+      ctx.dataRow(
+        "Saved warnings",
+        saved.total === 0
+          ? "None"
+          : `${saved.total} kept · ${saved.errors} error(s) · newest ${saved.newestAt ?? "unknown"}`
+      )
+    );
+    if (ctx.options.clearSavedDiagnostics && saved.total > 0) {
+      rows.push(
+        ctx.actionRow(
+          "Clear saved warnings",
+          {
+            source:
+              "Forget the stored warnings and errors. Only Aviary's own message text, the time, and the names of its detail fields are ever written here.",
+            values: {}
+          },
+          async () => {
+            try {
+              await ctx.options.clearSavedDiagnostics!();
+              ctx.render();
+              ctx.setStatus("Saved warnings cleared.");
+            } catch (error) {
+              ctx.options.onError("Could not clear saved warnings", error);
+              ctx.setStatus("Could not clear saved warnings.");
+            }
+          }
+        )
+      );
+    }
+  }
   if (ctx.options.clearAdObservations) {
     rows.push(
       ctx.actionRow(

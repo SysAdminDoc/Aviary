@@ -55,6 +55,7 @@ schema, migration, usage, and quota status.
 | `aviary.media.queue.v1` | Queued, paused, failed, and completed media jobs | Resume/retry media work; completed history is separately clearable. |
 | `aviary.media.last-download.v1` | Metadata for the last successful download | Make an explicitly enabled crosspost-media attachment possible. |
 | `aviary.audit.v1` | Capped local action log | Review activity; **Clear audit log** removes it. |
+| `aviary.diagnostics.v1` | Last 50 warnings/errors for 7 days: Aviary's own message text, the time, and the *names* of its detail fields. Detail values are never written, so no post text, handle, or URL is retained. | Trust shows the count; **Clear saved warnings** removes it. |
 | `aviary.export.checkpoints.v1` | Export jobs, captured records, and checkpoints | Resume capture/export and local search; retention limits can remove old jobs. |
 | `aviary.retention.maxJobs`, `aviary.retention.maxRecordsPerJob`, `aviary.retention.maxAgeDays` | Export retention limits | Bound checkpoint storage; zero disables the corresponding limit. |
 | `aviary.queryIds.v1` | GraphQL operation ids discovered in loaded X scripts | Keep export parsing resilient as X changes. |

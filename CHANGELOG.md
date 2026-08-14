@@ -4,6 +4,13 @@
 
 ### Added
 
+- Warnings and errors now survive a reload. A bounded 50-entry, 7-day, profile-scoped ring keeps
+  Aviary's own message text, the time, and the *names* of a message's detail fields — never their
+  values, so no post text, handle, or URL is retained. Trust reports the count and can clear it,
+  and **Copy diagnostics** now includes the entries from earlier page loads.
+- A boot failure is now visible instead of silent. Where Aviary previously only set
+  `data-av-ready="error"` on `<html>`, it now shows a dismissible notice naming the reason and
+  stating that X itself is unaffected. It mounts even when the failure precedes `<body>`.
 - **Hide thread recommendations** (Layout, off by default) ends a conversation at its last real
   reply by collapsing X's "Discover more" boundary and every suggested post below it. The boundary
   is matched by an exact heading label inside a timeline cell on a conversation route, never by a

@@ -349,6 +349,18 @@ export const controlCenterFeature: FeatureModule = {
       async clearAdObservations() {
         await clearSelectorAdObservations(ctx.storage);
       },
+      getSavedDiagnostics() {
+        const saved = ctx.diagnosticsStore?.snapshot() ?? [];
+        return {
+          total: saved.length,
+          errors: saved.filter((entry) => entry.level === "error").length,
+          newestAt: saved.length > 0 ? (saved[saved.length - 1]?.at ?? null) : null
+        };
+      },
+      async clearSavedDiagnostics() {
+        await ctx.diagnosticsStore?.clear();
+        void ctx.auditLog.record("diagnostics.clear");
+      },
       async clearAuditLog() {
         await ctx.auditLog.clear();
       },
@@ -1137,6 +1149,7 @@ function downloadBlob(data: Uint8Array, filename: string, contentType = "applica
 
 interface DiagnosticsContext {
   diagnostics: { snapshot(): unknown };
+  diagnosticsStore?: { snapshot(): unknown[] };
   route: { surface: string; href: string };
   settings: { i18n: { locale: string } };
 }
@@ -1150,7 +1163,9 @@ function buildDiagnosticsPayload(ctx: DiagnosticsContext): string {
     href: ctx.route.href,
     locale: ctx.settings.i18n.locale,
     userAgent: globalThis.navigator?.userAgent ?? "unknown",
-    events
+    events,
+    // Warnings and errors from earlier page loads, which the in-memory ring above cannot hold.
+    persisted: ctx.diagnosticsStore?.snapshot() ?? []
   };
   return JSON.stringify(payload, null, 2);
 }

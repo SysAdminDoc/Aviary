@@ -938,6 +938,8 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "Balizas de anal\xEDtica permitidas",
       "Selector health monitoring on": "Supervisi\xF3n del estado de selectores activada",
       "Selector health monitoring off": "Supervisi\xF3n del estado de selectores desactivada",
+      "Saved warnings cleared.": "Avisos guardados borrados.",
+      "Could not clear saved warnings.": "No se pudieron borrar los avisos guardados.",
       "Ad observations reset.": "Observaciones de anuncios restablecidas.",
       "Could not reset ad observations.": "No se pudieron restablecer las observaciones de anuncios.",
       "Profile switched. Reloading\u2026": "Perfil cambiado. Recargando\u2026",
@@ -1196,6 +1198,7 @@ html.av-reduce-motion *::after {
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} registros \xB7 {files} archivos \xB7 {warnings} advertencias",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} guardados \xB7 {due} pendientes \xB7 {tags} etiquetas \xB7 {folders} carpetas",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} registros \xB7 {surface}",
+      "Forget the stored warnings and errors. Only Aviary's own message text, the time, and the names of its detail fields are ever written here.": "Olvida los avisos y errores almacenados. Aqu\xED solo se escriben el texto de los mensajes de Aviary, la hora y los nombres de sus campos de detalle.",
       "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "Borra el historial local limitado de marcadores y su aviso de desviaci\xF3n. Aqu\xED no se almacenan textos de publicaciones, nombres de usuario, URL ni cuerpos de respuesta.",
       "Pause {filename}.": "Pausar {filename}.",
       "Resume {filename}.": "Reanudar {filename}.",
@@ -1204,6 +1207,8 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "Pausar {jobId}.",
       "Resume {jobId}.": "Reanudar {jobId}.",
       "Cancel {jobId}.": "Cancelar {jobId}.",
+      "Saved warnings": "Avisos guardados",
+      "Clear saved warnings": "Borrar avisos guardados",
       "Reset ad observations": "Restablecer observaciones de anuncios",
       "Active profile": "Perfil activo",
       "Switch profile": "Cambiar perfil",
@@ -1761,6 +1766,8 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "Sinalizadores de an\xE1lise permitidos",
       "Selector health monitoring on": "Monitoramento da sa\xFAde dos seletores ativado",
       "Selector health monitoring off": "Monitoramento da sa\xFAde dos seletores desativado",
+      "Saved warnings cleared.": "Avisos salvos limpos.",
+      "Could not clear saved warnings.": "N\xE3o foi poss\xEDvel limpar os avisos salvos.",
       "Ad observations reset.": "Observa\xE7\xF5es de an\xFAncios redefinidas.",
       "Could not reset ad observations.": "N\xE3o foi poss\xEDvel redefinir as observa\xE7\xF5es de an\xFAncios.",
       "Profile switched. Reloading\u2026": "Perfil alterado. A recarregar\u2026",
@@ -2019,6 +2026,7 @@ html.av-reduce-motion *::after {
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} registos \xB7 {files} ficheiros \xB7 {warnings} avisos",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} guardados \xB7 {due} pendentes \xB7 {tags} etiquetas \xB7 {folders} pastas",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} registos \xB7 {surface}",
+      "Forget the stored warnings and errors. Only Aviary's own message text, the time, and the names of its detail fields are ever written here.": "Esquece os avisos e erros armazenados. Aqui s\xE3o gravados apenas o texto das mensagens do Aviary, o hor\xE1rio e os nomes dos seus campos de detalhe.",
       "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "Limpe o hist\xF3rico local limitado de marcadores e seu aviso de desvio. Nenhum texto de publica\xE7\xE3o, nome de usu\xE1rio, URL ou corpo de resposta \xE9 armazenado aqui.",
       "Pause {filename}.": "Pausar {filename}.",
       "Resume {filename}.": "Retomar {filename}.",
@@ -2027,6 +2035,8 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "Pausar {jobId}.",
       "Resume {jobId}.": "Retomar {jobId}.",
       "Cancel {jobId}.": "Cancelar {jobId}.",
+      "Saved warnings": "Avisos salvos",
+      "Clear saved warnings": "Limpar avisos salvos",
       "Reset ad observations": "Redefinir observa\xE7\xF5es de an\xFAncios",
       "Active profile": "Perfil ativo",
       "Switch profile": "Trocar perfil",
@@ -2584,6 +2594,8 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "Balises d'analyse autoris\xE9es",
       "Selector health monitoring on": "Surveillance de l\u2019\xE9tat des s\xE9lecteurs activ\xE9e",
       "Selector health monitoring off": "Surveillance de l\u2019\xE9tat des s\xE9lecteurs d\xE9sactiv\xE9e",
+      "Saved warnings cleared.": "Avertissements enregistr\xE9s effac\xE9s.",
+      "Could not clear saved warnings.": "Impossible d'effacer les avertissements enregistr\xE9s.",
       "Ad observations reset.": "Observations publicitaires r\xE9initialis\xE9es.",
       "Could not reset ad observations.": "Impossible de r\xE9initialiser les observations publicitaires.",
       "Profile switched. Reloading\u2026": "Profil chang\xE9. Rechargement\u2026",
@@ -2842,6 +2854,7 @@ html.av-reduce-motion *::after {
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} enregistrements \xB7 {files} fichiers \xB7 {warnings} avertissements",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} enregistr\xE9s \xB7 {due} \xE0 traiter \xB7 {tags} tags \xB7 {folders} dossiers",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} enregistrements \xB7 {surface}",
+      "Forget the stored warnings and errors. Only Aviary's own message text, the time, and the names of its detail fields are ever written here.": "Oublie les avertissements et erreurs stock\xE9s. Seuls le texte des messages d'Aviary, l'heure et les noms de ses champs de d\xE9tail sont \xE9crits ici.",
       "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "Effacez l\u2019historique local limit\xE9 des marqueurs et son avertissement de d\xE9rive. Aucun texte de publication, identifiant, URL ou corps de r\xE9ponse n\u2019est stock\xE9 ici.",
       "Pause {filename}.": "Mettre {filename} en pause.",
       "Resume {filename}.": "Reprendre {filename}.",
@@ -2850,6 +2863,8 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "Mettre {jobId} en pause.",
       "Resume {jobId}.": "Reprendre {jobId}.",
       "Cancel {jobId}.": "Annuler {jobId}.",
+      "Saved warnings": "Avertissements enregistr\xE9s",
+      "Clear saved warnings": "Effacer les avertissements enregistr\xE9s",
       "Reset ad observations": "R\xE9initialiser les observations publicitaires",
       "Active profile": "Profil actif",
       "Switch profile": "Changer de profil",
@@ -3407,6 +3422,8 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "Analyse-Beacons zugelassen",
       "Selector health monitoring on": "\xDCberwachung des Selektorstatus aktiviert",
       "Selector health monitoring off": "\xDCberwachung des Selektorstatus deaktiviert",
+      "Saved warnings cleared.": "Gespeicherte Warnungen gel\xF6scht.",
+      "Could not clear saved warnings.": "Gespeicherte Warnungen konnten nicht gel\xF6scht werden.",
       "Ad observations reset.": "Werbebeobachtungen zur\xFCckgesetzt.",
       "Could not reset ad observations.": "Werbebeobachtungen konnten nicht zur\xFCckgesetzt werden.",
       "Profile switched. Reloading\u2026": "Profil gewechselt. Wird neu geladen\u2026",
@@ -3665,6 +3682,7 @@ html.av-reduce-motion *::after {
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} Datens\xE4tze \xB7 {files} Dateien \xB7 {warnings} Warnungen",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} gespeichert \xB7 {due} f\xE4llig \xB7 {tags} Tags \xB7 {folders} Ordner",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} Datens\xE4tze \xB7 {surface}",
+      "Forget the stored warnings and errors. Only Aviary's own message text, the time, and the names of its detail fields are ever written here.": "Verwirft die gespeicherten Warnungen und Fehler. Hier werden nur Aviarys eigener Meldungstext, die Uhrzeit und die Namen seiner Detailfelder abgelegt.",
       "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "L\xF6scht den begrenzten lokalen Markerverlauf und seine Abweichungswarnung. Beitragstexte, Handles, URLs oder Antwortinhalte werden hier nicht gespeichert.",
       "Pause {filename}.": "{filename} pausieren.",
       "Resume {filename}.": "{filename} fortsetzen.",
@@ -3673,6 +3691,8 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "{jobId} pausieren.",
       "Resume {jobId}.": "{jobId} fortsetzen.",
       "Cancel {jobId}.": "{jobId} abbrechen.",
+      "Saved warnings": "Gespeicherte Warnungen",
+      "Clear saved warnings": "Gespeicherte Warnungen l\xF6schen",
       "Reset ad observations": "Werbebeobachtungen zur\xFCcksetzen",
       "Active profile": "Aktives Profil",
       "Switch profile": "Profil wechseln",
@@ -4230,6 +4250,8 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "\u89E3\u6790\u30D3\u30FC\u30B3\u30F3\u3092\u8A31\u53EF\u3057\u307E\u3057\u305F",
       "Selector health monitoring on": "\u30BB\u30EC\u30AF\u30BF\u30FC\u72B6\u614B\u306E\u76E3\u8996\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
       "Selector health monitoring off": "\u30BB\u30EC\u30AF\u30BF\u30FC\u72B6\u614B\u306E\u76E3\u8996\u3092\u30AA\u30D5\u306B\u3057\u307E\u3057\u305F",
+      "Saved warnings cleared.": "\u4FDD\u5B58\u3055\u308C\u305F\u8B66\u544A\u3092\u6D88\u53BB\u3057\u307E\u3057\u305F\u3002",
+      "Could not clear saved warnings.": "\u4FDD\u5B58\u3055\u308C\u305F\u8B66\u544A\u3092\u6D88\u53BB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "Ad observations reset.": "\u5E83\u544A\u89B3\u6E2C\u3092\u30EA\u30BB\u30C3\u30C8\u3057\u307E\u3057\u305F\u3002",
       "Could not reset ad observations.": "\u5E83\u544A\u89B3\u6E2C\u3092\u30EA\u30BB\u30C3\u30C8\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "Profile switched. Reloading\u2026": "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u5207\u308A\u66FF\u3048\u307E\u3057\u305F\u3002\u518D\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
@@ -4488,6 +4510,7 @@ html.av-reduce-motion *::after {
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records}\u4EF6 \xB7 {files}\u30D5\u30A1\u30A4\u30EB \xB7 \u8B66\u544A{warnings}\u4EF6",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "\u4FDD\u5B58\u6E08\u307F{saved}\u4EF6 \xB7 \u671F\u9650{due}\u4EF6 \xB7 \u30BF\u30B0{tags}\u4EF6 \xB7 \u30D5\u30A9\u30EB\u30C0\u30FC{folders}\u4EF6",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records}\u4EF6 \xB7 {surface}",
+      "Forget the stored warnings and errors. Only Aviary's own message text, the time, and the names of its detail fields are ever written here.": "\u4FDD\u5B58\u3055\u308C\u305F\u8B66\u544A\u3068\u30A8\u30E9\u30FC\u3092\u7834\u68C4\u3057\u307E\u3059\u3002\u3053\u3053\u306B\u66F8\u304D\u8FBC\u307E\u308C\u308B\u306E\u306F Aviary \u81EA\u8EAB\u306E\u30E1\u30C3\u30BB\u30FC\u30B8\u6587\u3001\u6642\u523B\u3001\u8A73\u7D30\u30D5\u30A3\u30FC\u30EB\u30C9\u306E\u540D\u524D\u3060\u3051\u3067\u3059\u3002",
       "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "\u4E0A\u9650\u4ED8\u304D\u306E\u30ED\u30FC\u30AB\u30EB\u306A\u30DE\u30FC\u30AB\u30FC\u5C65\u6B74\u3068\u5909\u5316\u8B66\u544A\u3092\u6D88\u53BB\u3057\u307E\u3059\u3002\u6295\u7A3F\u672C\u6587\u3001\u30CF\u30F3\u30C9\u30EB\u540D\u3001URL\u3001\u30EC\u30B9\u30DD\u30F3\u30B9\u672C\u6587\u306F\u3053\u3053\u306B\u306F\u4FDD\u5B58\u3055\u308C\u307E\u305B\u3093\u3002",
       "Pause {filename}.": "{filename}\u3092\u4E00\u6642\u505C\u6B62\u3002",
       "Resume {filename}.": "{filename}\u3092\u518D\u958B\u3002",
@@ -4496,6 +4519,8 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "{jobId}\u3092\u4E00\u6642\u505C\u6B62\u3002",
       "Resume {jobId}.": "{jobId}\u3092\u518D\u958B\u3002",
       "Cancel {jobId}.": "{jobId}\u3092\u30AD\u30E3\u30F3\u30BB\u30EB\u3002",
+      "Saved warnings": "\u4FDD\u5B58\u3055\u308C\u305F\u8B66\u544A",
+      "Clear saved warnings": "\u4FDD\u5B58\u3055\u308C\u305F\u8B66\u544A\u3092\u6D88\u53BB",
       "Reset ad observations": "\u5E83\u544A\u89B3\u6E2C\u3092\u30EA\u30BB\u30C3\u30C8",
       "Active profile": "\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB",
       "Switch profile": "\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u3092\u5207\u308A\u66FF\u3048",
@@ -5053,6 +5078,8 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "\uBD84\uC11D \uBE44\uCF58\uC744 \uD5C8\uC6A9\uD588\uC2B5\uB2C8\uB2E4",
       "Selector health monitoring on": "\uC120\uD0DD\uC790 \uC0C1\uD0DC \uBAA8\uB2C8\uD130\uB9C1 \uCF2C",
       "Selector health monitoring off": "\uC120\uD0DD\uC790 \uC0C1\uD0DC \uBAA8\uB2C8\uD130\uB9C1 \uB054",
+      "Saved warnings cleared.": "\uC800\uC7A5\uB41C \uACBD\uACE0\uB97C \uC9C0\uC6E0\uC2B5\uB2C8\uB2E4.",
+      "Could not clear saved warnings.": "\uC800\uC7A5\uB41C \uACBD\uACE0\uB97C \uC9C0\uC6B0\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "Ad observations reset.": "\uAD11\uACE0 \uAD00\uCC30 \uAE30\uB85D\uC744 \uCD08\uAE30\uD654\uD588\uC2B5\uB2C8\uB2E4.",
       "Could not reset ad observations.": "\uAD11\uACE0 \uAD00\uCC30 \uAE30\uB85D\uC744 \uCD08\uAE30\uD654\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "Profile switched. Reloading\u2026": "\uD504\uB85C\uD544\uC774 \uC804\uD658\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uB85C\uB4DC\uD558\uB294 \uC911\u2026",
@@ -5311,6 +5338,7 @@ html.av-reduce-motion *::after {
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 \uB808\uCF54\uB4DC {records}\uAC1C \xB7 \uD30C\uC77C {files}\uAC1C \xB7 \uACBD\uACE0 {warnings}\uAC1C",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "\uC800\uC7A5 {saved}\uAC1C \xB7 \uC608\uC815 {due}\uAC1C \xB7 \uD0DC\uADF8 {tags}\uAC1C \xB7 \uD3F4\uB354 {folders}\uAC1C",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 \uB808\uCF54\uB4DC {records}\uAC1C \xB7 {surface}",
+      "Forget the stored warnings and errors. Only Aviary's own message text, the time, and the names of its detail fields are ever written here.": "\uC800\uC7A5\uB41C \uACBD\uACE0\uC640 \uC624\uB958\uB97C \uC0AD\uC81C\uD569\uB2C8\uB2E4. \uC5EC\uAE30\uC5D0\uB294 Aviary \uC790\uCCB4 \uBA54\uC2DC\uC9C0 \uD14D\uC2A4\uD2B8, \uC2DC\uAC01, \uC138\uBD80 \uD544\uB4DC \uC774\uB984\uB9CC \uAE30\uB85D\uB429\uB2C8\uB2E4.",
       "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "\uC81C\uD55C\uB41C \uB85C\uCEEC \uB9C8\uCEE4 \uAE30\uB85D\uACFC \uBCC0\uD654 \uACBD\uACE0\uB97C \uC9C0\uC6C1\uB2C8\uB2E4. \uAC8C\uC2DC\uBB3C \uD14D\uC2A4\uD2B8, \uD578\uB4E4, URL \uB610\uB294 \uC751\uB2F5 \uBCF8\uBB38\uC740 \uC5EC\uAE30\uC5D0 \uC800\uC7A5\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
       "Pause {filename}.": "{filename} \uC77C\uC2DC \uC911\uC9C0.",
       "Resume {filename}.": "{filename} \uC7AC\uAC1C.",
@@ -5319,6 +5347,8 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "{jobId} \uC77C\uC2DC \uC911\uC9C0.",
       "Resume {jobId}.": "{jobId} \uC7AC\uAC1C.",
       "Cancel {jobId}.": "{jobId} \uCDE8\uC18C.",
+      "Saved warnings": "\uC800\uC7A5\uB41C \uACBD\uACE0",
+      "Clear saved warnings": "\uC800\uC7A5\uB41C \uACBD\uACE0 \uC9C0\uC6B0\uAE30",
       "Reset ad observations": "\uAD11\uACE0 \uAD00\uCC30 \uCD08\uAE30\uD654",
       "Active profile": "\uD65C\uC131 \uD504\uB85C\uD544",
       "Switch profile": "\uD504\uB85C\uD544 \uC804\uD658",
@@ -5876,6 +5906,8 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "\u062A\u0645 \u0627\u0644\u0633\u0645\u0627\u062D \u0628\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A",
       "Selector health monitoring on": "\u062A\u0645 \u062A\u0634\u063A\u064A\u0644 \u0645\u0631\u0627\u0642\u0628\u0629 \u0635\u062D\u0629 \u0627\u0644\u0645\u062D\u062F\u062F\u0627\u062A",
       "Selector health monitoring off": "\u062A\u0645 \u0625\u064A\u0642\u0627\u0641 \u0645\u0631\u0627\u0642\u0628\u0629 \u0635\u062D\u0629 \u0627\u0644\u0645\u062D\u062F\u062F\u0627\u062A",
+      "Saved warnings cleared.": "\u062A\u0645 \u0645\u0633\u062D \u0627\u0644\u062A\u062D\u0630\u064A\u0631\u0627\u062A \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629.",
+      "Could not clear saved warnings.": "\u062A\u0639\u0630\u0631 \u0645\u0633\u062D \u0627\u0644\u062A\u062D\u0630\u064A\u0631\u0627\u062A \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629.",
       "Ad observations reset.": "\u062A\u0645\u062A \u0625\u0639\u0627\u062F\u0629 \u0636\u0628\u0637 \u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A.",
       "Could not reset ad observations.": "\u062A\u0639\u0630\u0631\u062A \u0625\u0639\u0627\u062F\u0629 \u0636\u0628\u0637 \u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A.",
       "Profile switched. Reloading\u2026": "\u062A\u0645 \u062A\u0628\u062F\u064A\u0644 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A. \u062C\u0627\u0631\u064D \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u062A\u062D\u0645\u064A\u0644\u2026",
@@ -6134,6 +6166,7 @@ html.av-reduce-motion *::after {
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} \u0645\u0646 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \xB7 {files} \u0645\u0646 \u0627\u0644\u0645\u0644\u0641\u0627\u062A \xB7 {warnings} \u0645\u0646 \u0627\u0644\u062A\u062D\u0630\u064A\u0631\u0627\u062A",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} \u0645\u062D\u0641\u0648\u0638\u0629 \xB7 {due} \u0645\u0633\u062A\u062D\u0642\u0629 \xB7 {tags} \u0645\u0646 \u0627\u0644\u0648\u0633\u0648\u0645 \xB7 {folders} \u0645\u0646 \u0627\u0644\u0645\u062C\u0644\u062F\u0627\u062A",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} \u0645\u0646 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \xB7 {surface}",
+      "Forget the stored warnings and errors. Only Aviary's own message text, the time, and the names of its detail fields are ever written here.": "\u064A\u062A\u062C\u0627\u0647\u0644 \u0627\u0644\u062A\u062D\u0630\u064A\u0631\u0627\u062A \u0648\u0627\u0644\u0623\u062E\u0637\u0627\u0621 \u0627\u0644\u0645\u062E\u0632\u0646\u0629. \u0644\u0627 \u064A\u064F\u0643\u062A\u0628 \u0647\u0646\u0627 \u0633\u0648\u0649 \u0646\u0635 \u0631\u0633\u0627\u0626\u0644 Aviary \u0646\u0641\u0633\u0647 \u0648\u0627\u0644\u0648\u0642\u062A \u0648\u0623\u0633\u0645\u0627\u0621 \u062D\u0642\u0648\u0644 \u0627\u0644\u062A\u0641\u0627\u0635\u064A\u0644.",
       "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "\u0627\u0645\u0633\u062D \u0633\u062C\u0644 \u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u064A \u0627\u0644\u0645\u062D\u062F\u0648\u062F \u0648\u062A\u062D\u0630\u064A\u0631 \u0627\u0644\u0627\u0646\u062D\u0631\u0627\u0641 \u0627\u0644\u062E\u0627\u0635 \u0628\u0647. \u0644\u0627 \u064A\u062A\u0645 \u062A\u062E\u0632\u064A\u0646 \u0646\u0635\u0648\u0635 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0623\u0648 \u0627\u0644\u0645\u0639\u0631\u0651\u0641\u0627\u062A \u0623\u0648 \u0639\u0646\u0627\u0648\u064A\u0646 URL \u0623\u0648 \u0646\u0635\u0648\u0635 \u0627\u0644\u0627\u0633\u062A\u062C\u0627\u0628\u0629 \u0647\u0646\u0627.",
       "Pause {filename}.": "\u0625\u064A\u0642\u0627\u0641 {filename} \u0645\u0624\u0642\u062A\u064B\u0627.",
       "Resume {filename}.": "\u0627\u0633\u062A\u0626\u0646\u0627\u0641 {filename}.",
@@ -6142,6 +6175,8 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "\u0625\u064A\u0642\u0627\u0641 {jobId} \u0645\u0624\u0642\u062A\u064B\u0627.",
       "Resume {jobId}.": "\u0627\u0633\u062A\u0626\u0646\u0627\u0641 {jobId}.",
       "Cancel {jobId}.": "\u0625\u0644\u063A\u0627\u0621 {jobId}.",
+      "Saved warnings": "\u0627\u0644\u062A\u062D\u0630\u064A\u0631\u0627\u062A \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629",
+      "Clear saved warnings": "\u0645\u0633\u062D \u0627\u0644\u062A\u062D\u0630\u064A\u0631\u0627\u062A \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629",
       "Reset ad observations": "\u0625\u0639\u0627\u062F\u0629 \u0636\u0628\u0637 \u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A",
       "Active profile": "\u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A \u0627\u0644\u0646\u0634\u0637",
       "Switch profile": "\u062A\u0628\u062F\u064A\u0644 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A",
@@ -6699,6 +6734,8 @@ html.av-reduce-motion *::after {
       "Analytics beacons allowed": "\u05DE\u05E9\u05D5\u05D0\u05D5\u05EA \u05D4\u05E0\u05D9\u05EA\u05D5\u05D7 \u05DE\u05D5\u05EA\u05E8\u05D5\u05EA",
       "Selector health monitoring on": "\u05E0\u05D9\u05D8\u05D5\u05E8 \u05EA\u05E7\u05D9\u05E0\u05D5\u05EA \u05D4\u05D1\u05D5\u05E8\u05E8\u05D9\u05DD \u05D4\u05D5\u05E4\u05E2\u05DC",
       "Selector health monitoring off": "\u05E0\u05D9\u05D8\u05D5\u05E8 \u05EA\u05E7\u05D9\u05E0\u05D5\u05EA \u05D4\u05D1\u05D5\u05E8\u05E8\u05D9\u05DD \u05D4\u05D5\u05E9\u05D1\u05EA",
+      "Saved warnings cleared.": "\u05D4\u05D0\u05D6\u05D4\u05E8\u05D5\u05EA \u05D4\u05E9\u05DE\u05D5\u05E8\u05D5\u05EA \u05E0\u05DE\u05D7\u05E7\u05D5.",
+      "Could not clear saved warnings.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05D4\u05D9\u05D4 \u05DC\u05DE\u05D7\u05D5\u05E7 \u05D0\u05EA \u05D4\u05D0\u05D6\u05D4\u05E8\u05D5\u05EA \u05D4\u05E9\u05DE\u05D5\u05E8\u05D5\u05EA.",
       "Ad observations reset.": "\u05EA\u05E6\u05E4\u05D9\u05D5\u05EA \u05D4\u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA \u05D0\u05D5\u05E4\u05E1\u05D5.",
       "Could not reset ad observations.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05D0\u05E4\u05E1 \u05D0\u05EA \u05EA\u05E6\u05E4\u05D9\u05D5\u05EA \u05D4\u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA.",
       "Profile switched. Reloading\u2026": "\u05D4\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05D4\u05D5\u05D7\u05DC\u05E3. \u05D8\u05D5\u05E2\u05DF \u05DE\u05D7\u05D3\u05E9\u2026",
@@ -6957,6 +6994,7 @@ html.av-reduce-motion *::after {
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \xB7 {files} \u05E7\u05D1\u05E6\u05D9\u05DD \xB7 {warnings} \u05D0\u05D6\u05D4\u05E8\u05D5\u05EA",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} \u05E0\u05E9\u05DE\u05E8\u05D5 \xB7 {due} \u05DC\u05EA\u05D6\u05DB\u05D5\u05E8\u05EA \xB7 {tags} \u05EA\u05D2\u05D9\u05D5\u05EA \xB7 {folders} \u05EA\u05D9\u05E7\u05D9\u05D5\u05EA",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \xB7 {surface}",
+      "Forget the stored warnings and errors. Only Aviary's own message text, the time, and the names of its detail fields are ever written here.": "\u05DE\u05D5\u05D7\u05E7 \u05D0\u05EA \u05D4\u05D0\u05D6\u05D4\u05E8\u05D5\u05EA \u05D5\u05D4\u05E9\u05D2\u05D9\u05D0\u05D5\u05EA \u05D4\u05E9\u05DE\u05D5\u05E8\u05D5\u05EA. \u05E0\u05DB\u05EA\u05D1\u05D9\u05DD \u05DB\u05D0\u05DF \u05E8\u05E7 \u05D8\u05E7\u05E1\u05D8 \u05D4\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA \u05E9\u05DC Aviary \u05E2\u05E6\u05DE\u05D5, \u05D4\u05E9\u05E2\u05D4 \u05D5\u05E9\u05DE\u05D5\u05EA \u05E9\u05D3\u05D5\u05EA \u05D4\u05E4\u05D9\u05E8\u05D5\u05D8.",
       "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "\u05DE\u05D7\u05D9\u05E7\u05EA \u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05D4\u05E1\u05DE\u05E0\u05D9\u05DD \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9\u05EA \u05D5\u05D4\u05DE\u05D5\u05D2\u05D1\u05DC\u05EA \u05D5\u05D0\u05EA \u05D0\u05D6\u05D4\u05E8\u05EA \u05D4\u05E1\u05D8\u05D9\u05D9\u05D4 \u05E9\u05DC\u05D4. \u05D8\u05E7\u05E1\u05D8 \u05E9\u05DC \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD, \u05E9\u05DE\u05D5\u05EA \u05DE\u05E9\u05EA\u05DE\u05E9, \u05DB\u05EA\u05D5\u05D1\u05D5\u05EA URL \u05D5\u05D2\u05D5\u05E4\u05D9 \u05EA\u05D2\u05D5\u05D1\u05D4 \u05D0\u05D9\u05E0\u05DD \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05DB\u05D0\u05DF.",
       "Pause {filename}.": "\u05D4\u05E9\u05D4\u05D4 \u05D0\u05EA {filename}.",
       "Resume {filename}.": "\u05D7\u05D3\u05E9 \u05D0\u05EA {filename}.",
@@ -6965,6 +7003,8 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "\u05D4\u05E9\u05D4\u05D4 \u05D0\u05EA {jobId}.",
       "Resume {jobId}.": "\u05D7\u05D3\u05E9 \u05D0\u05EA {jobId}.",
       "Cancel {jobId}.": "\u05D1\u05D8\u05DC \u05D0\u05EA {jobId}.",
+      "Saved warnings": "\u05D0\u05D6\u05D4\u05E8\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA",
+      "Clear saved warnings": "\u05DE\u05D7\u05D9\u05E7\u05EA \u05D0\u05D6\u05D4\u05E8\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA",
       "Reset ad observations": "\u05D0\u05D9\u05E4\u05D5\u05E1 \u05EA\u05E6\u05E4\u05D9\u05D5\u05EA \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA",
       "Active profile": "\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05E4\u05E2\u05D9\u05DC",
       "Switch profile": "\u05D4\u05D7\u05DC\u05E4\u05EA \u05E4\u05E8\u05D5\u05E4\u05D9\u05DC",
@@ -7770,6 +7810,36 @@ html.av-reduce-motion *::after {
       ctx.coverageRow(),
       ...ctx.selectorHealthRows()
     ];
+    if (ctx.options.getSavedDiagnostics) {
+      const saved = ctx.options.getSavedDiagnostics();
+      rows.push(
+        ctx.dataRow(
+          "Saved warnings",
+          saved.total === 0 ? "None" : `${saved.total} kept \xB7 ${saved.errors} error(s) \xB7 newest ${saved.newestAt ?? "unknown"}`
+        )
+      );
+      if (ctx.options.clearSavedDiagnostics && saved.total > 0) {
+        rows.push(
+          ctx.actionRow(
+            "Clear saved warnings",
+            {
+              source: "Forget the stored warnings and errors. Only Aviary's own message text, the time, and the names of its detail fields are ever written here.",
+              values: {}
+            },
+            async () => {
+              try {
+                await ctx.options.clearSavedDiagnostics();
+                ctx.render();
+                ctx.setStatus("Saved warnings cleared.");
+              } catch (error) {
+                ctx.options.onError("Could not clear saved warnings", error);
+                ctx.setStatus("Could not clear saved warnings.");
+              }
+            }
+          )
+        );
+      }
+    }
     if (ctx.options.clearAdObservations) {
       rows.push(
         ctx.actionRow(
@@ -23826,6 +23896,18 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         async clearAdObservations() {
           await clearAdObservations(ctx.storage);
         },
+        getSavedDiagnostics() {
+          const saved = ctx.diagnosticsStore?.snapshot() ?? [];
+          return {
+            total: saved.length,
+            errors: saved.filter((entry) => entry.level === "error").length,
+            newestAt: saved.length > 0 ? saved[saved.length - 1]?.at ?? null : null
+          };
+        },
+        async clearSavedDiagnostics() {
+          await ctx.diagnosticsStore?.clear();
+          void ctx.auditLog.record("diagnostics.clear");
+        },
         async clearAuditLog() {
           await ctx.auditLog.clear();
         },
@@ -24557,7 +24639,9 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       href: ctx.route.href,
       locale: ctx.settings.i18n.locale,
       userAgent: globalThis.navigator?.userAgent ?? "unknown",
-      events
+      events,
+      // Warnings and errors from earlier page loads, which the in-memory ring above cannot hold.
+      persisted: ctx.diagnosticsStore?.snapshot() ?? []
     };
     return JSON.stringify(payload, null, 2);
   }
@@ -27668,6 +27752,14 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   // src/platform/diagnostics.ts
   var Diagnostics = class {
     #events = [];
+    #sink;
+    /**
+     * Mirror events to a persistent store. The sink runs inside `push`, so it must not throw and
+     * must not await: every caller of `info`/`warn`/`error` is on a feature's hot path.
+     */
+    setSink(sink) {
+      this.#sink = sink;
+    }
     info(message, details) {
       this.push("info", message, details);
     }
@@ -27691,8 +27783,212 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       if (this.#events.length > 200) {
         this.#events.shift();
       }
+      try {
+        this.#sink?.(event);
+      } catch {
+      }
     }
   };
+
+  // src/platform/diagnostics-store.ts
+  var DIAGNOSTICS_KEY = "aviary.diagnostics.v1";
+  var DIAGNOSTICS_LIMIT = 50;
+  var DIAGNOSTICS_RETENTION_MS = 7 * 24 * 60 * 60 * 1e3;
+  var MAX_REASON_LENGTH = 200;
+  function isPersistedLevel(level) {
+    return level === "warn" || level === "error";
+  }
+  function redactDiagnostic(event) {
+    if (!isPersistedLevel(event.level)) {
+      return null;
+    }
+    const details = event.details ?? {};
+    const detailKeys = Object.keys(details).slice(0, 12);
+    const rawReason = details.message ?? details.error ?? details.reason;
+    const record = {
+      at: event.at,
+      level: event.level,
+      message: String(event.message).slice(0, MAX_REASON_LENGTH),
+      detailKeys
+    };
+    if (typeof rawReason === "string" && rawReason.length > 0) {
+      record.reason = rawReason.slice(0, MAX_REASON_LENGTH);
+    }
+    return record;
+  }
+  function parse(raw) {
+    if (!raw || typeof raw !== "object") {
+      return [];
+    }
+    const events = raw.events;
+    if (!Array.isArray(events)) {
+      return [];
+    }
+    const cutoff = Date.now() - DIAGNOSTICS_RETENTION_MS;
+    const parsed = [];
+    for (const entry of events) {
+      if (!entry || typeof entry !== "object") {
+        continue;
+      }
+      const candidate = entry;
+      const at = typeof candidate.at === "string" ? candidate.at : null;
+      const level = candidate.level === "warn" || candidate.level === "error" ? candidate.level : null;
+      if (!at || !level || typeof candidate.message !== "string") {
+        continue;
+      }
+      const timestamp = Date.parse(at);
+      if (Number.isFinite(timestamp) && timestamp < cutoff) {
+        continue;
+      }
+      const record = {
+        at,
+        level,
+        message: candidate.message.slice(0, MAX_REASON_LENGTH),
+        detailKeys: Array.isArray(candidate.detailKeys) ? candidate.detailKeys.filter((key) => typeof key === "string").slice(0, 12) : []
+      };
+      if (typeof candidate.reason === "string" && candidate.reason.length > 0) {
+        record.reason = candidate.reason.slice(0, MAX_REASON_LENGTH);
+      }
+      parsed.push(record);
+    }
+    return parsed.slice(-DIAGNOSTICS_LIMIT);
+  }
+  var DiagnosticsStore = class {
+    #storage;
+    #events = [];
+    #loaded = false;
+    #tail = Promise.resolve();
+    constructor(storage) {
+      this.#storage = storage;
+    }
+    async load() {
+      if (this.#loaded) {
+        return this.snapshot();
+      }
+      try {
+        this.#events = parse(await this.#storage.get(DIAGNOSTICS_KEY, void 0));
+      } catch {
+        this.#events = [];
+      }
+      this.#loaded = true;
+      return this.snapshot();
+    }
+    snapshot() {
+      return [...this.#events];
+    }
+    /**
+     * Recording must never sit on a caller's path: a failing write is itself reported through
+     * diagnostics, so awaiting it here would recurse. Writes are serialized and their rejections
+     * swallowed; the in-memory ring stays authoritative for this page.
+     */
+    record(event) {
+      const record = redactDiagnostic(event);
+      if (!record) {
+        return;
+      }
+      this.#events.push(record);
+      if (this.#events.length > DIAGNOSTICS_LIMIT) {
+        this.#events = this.#events.slice(-DIAGNOSTICS_LIMIT);
+      }
+      this.#queue();
+    }
+    async clear() {
+      this.#events = [];
+      this.#loaded = true;
+      await this.#storage.set(DIAGNOSTICS_KEY, { version: 1, events: [] });
+    }
+    async flush() {
+      await this.#tail;
+    }
+    #queue() {
+      const payload = { version: 1, events: this.snapshot() };
+      this.#tail = this.#tail.then(() => this.#storage.set(DIAGNOSTICS_KEY, payload)).then(
+        () => void 0,
+        () => void 0
+      );
+    }
+  };
+
+  // src/platform/boot-notice.ts
+  var NOTICE_ID = "av-boot-notice";
+  function showBootFailureNotice(reason) {
+    if (typeof document === "undefined" || document.getElementById(NOTICE_ID)) {
+      return;
+    }
+    const parent = document.body ?? document.documentElement;
+    if (!parent) {
+      return;
+    }
+    const host = document.createElement("div");
+    host.id = NOTICE_ID;
+    host.style.position = "fixed";
+    host.style.zIndex = "2147483647";
+    host.style.insetInlineEnd = "16px";
+    host.style.insetBlockEnd = "16px";
+    const shadow = host.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = `
+    .card {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      max-width: 380px;
+      padding: 12px 14px;
+      border: 1px solid #f4212e;
+      border-radius: 12px;
+      background: #15181c;
+      color: #e7e9ea;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 13px;
+      line-height: 1.45;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+    .body { flex: 1; }
+    .title { font-weight: 700; margin-bottom: 2px; }
+    .reason {
+      margin-top: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      color: #8b98a5;
+      overflow-wrap: anywhere;
+    }
+    button {
+      flex: none;
+      min-width: 44px;
+      min-height: 28px;
+      border: 1px solid #536471;
+      border-radius: 999px;
+      background: transparent;
+      color: inherit;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:focus-visible { outline: 2px solid #1d9bf0; outline-offset: 2px; }
+  `;
+    const card = document.createElement("div");
+    card.className = "card";
+    card.setAttribute("role", "alert");
+    const body = document.createElement("div");
+    body.className = "body";
+    const title = document.createElement("div");
+    title.className = "title";
+    title.textContent = "Aviary failed to start";
+    const copy = document.createElement("div");
+    copy.textContent = "X is unaffected. Reload the page to try again.";
+    const detail = document.createElement("div");
+    detail.className = "reason";
+    detail.textContent = reason;
+    body.append(title, copy, detail);
+    const dismiss = document.createElement("button");
+    dismiss.type = "button";
+    dismiss.textContent = "Dismiss";
+    dismiss.addEventListener("click", () => host.remove());
+    card.append(body, dismiss);
+    shadow.append(style, card);
+    parent.append(host);
+  }
 
   // src/platform/page-bridge.ts
   var HANDSHAKE_TIMEOUT_MS = 3e3;
@@ -28718,6 +29014,9 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     const profileManager = new ProfileManager(durableStorage);
     await profileManager.load();
     const storage = createProfileStorageGateway(durableStorage, profileManager.activeId);
+    const diagnosticsStore = new DiagnosticsStore(storage);
+    await diagnosticsStore.load();
+    diagnostics.setSink((event) => diagnosticsStore.record(event));
     const integrationUsage = new IntegrationUsageLedger(storage);
     await integrationUsage.load();
     const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
@@ -28778,6 +29077,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       profile: profileManager,
       limiter,
       diagnostics,
+      diagnosticsStore,
       auditLog,
       pageBridge,
       async saveSettings() {
@@ -28829,6 +29129,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     } catch (error) {
       diagnostics.error("Aviary boot failed", errorDetails7(error));
       document.documentElement.dataset.avReady = "error";
+      showBootFailureNotice(error instanceof Error ? error.message : String(error));
       for (const stop of stops.reverse()) {
         stop();
       }
