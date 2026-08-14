@@ -10,13 +10,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ### P0 — broken today
 
-- [ ] F106 — P0 — Correct stale README claims
-  Why: README:307 says the AI button is unconditionally present with "no network calls" (it is default-off and the provider runner POSTs); README:325 calls empty ROADMAP.md "the working plan"; "MV3 store-ready ZIPs" overstates a build with a placeholder AMO id.
-  Evidence: src/platform/settings.ts:260 (`ai.commandMenu: false`); src/extension/manifest.firefox.json (`aviary@example.local`); RESEARCH.md Architecture.
-  Touches: README.md, tests/docs-consistency.test.mjs (pin default-state claims so this class recurs as a test failure).
-  Acceptance: README matches source defaults; docs-consistency fails if a "default" claim drifts from `DEFAULT_SETTINGS`.
-  Complexity: S
-
 - [ ] F107 — P0 — Replace EOL toolchain pins
   Why: ESLint 9 hit end-of-life 2026-08-06 — the pinned 9.27.0 is unmaintained; esbuild 0.28.2 and TypeScript 6.0 are low-risk companion bumps (@typescript-eslint 8.67.0 already supports ESLint 10; Playwright/globals already latest).
   Evidence: https://endoflife.date/eslint; https://eslint.org/blog/2026/02/eslint-v10.0.0-released/; RESEARCH.md Security.

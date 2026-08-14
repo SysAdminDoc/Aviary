@@ -22,6 +22,11 @@
 
 ### Fixed
 
+- README no longer describes the AI command menu as an always-present per-tweet button with no
+  network calls. It is off by default, and its optional provider runner does POST once configured.
+  The store-archive line no longer implies a store presence Aviary does not have while the Firefox
+  manifest still ships a placeholder add-on id. `tests/readme-claims.test.mjs` now fails the build
+  when a documented default drifts from `DEFAULT_SETTINGS`.
 - The userscript's `@updateURL`, `@downloadURL`, `@namespace`, and `@author` are now derived from
   `package.json`'s declared repository instead of a placeholder organization that never hosted the
   project, so installed copies poll the real location. Preflight fails the build whenever the

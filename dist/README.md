@@ -5,7 +5,7 @@
 <img width="1536" height="1024" alt="exec-86ea8b21-28c3-4eff-bc69-b1d8f9ab3e7c" src="https://github.com/user-attachments/assets/a36c2cdb-2b74-4fde-a934-3c0ada11bbac" />
 
 
-Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.21.0: an opt-in premium Noir desktop skin, focused Home controls for the composer, discovery rail, current navigation and recommendations, default-on desktop ad protection and media download controls, transactional settings, local ad-contract drift diagnostics, a redesigned 13-page Control Center and extension-permissions cockpit, committed desktop visual coverage, fixture-backed selector checks, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, MV3 store-ready ZIP archives, and isolated Playwright smoke CI.
+Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.21.0: an opt-in premium Noir desktop skin, focused Home controls for the composer, discovery rail, current navigation and recommendations, default-on desktop ad protection and media download controls, transactional settings, local ad-contract drift diagnostics, a redesigned 13-page Control Center and extension-permissions cockpit, committed desktop visual coverage, fixture-backed selector checks, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, reproducible MV3 ZIP archives, and isolated Playwright smoke CI.
 
 ## Ad-free with media saves ready by default
 
@@ -288,7 +288,10 @@ Setup paths (userscript, Chromium dev-load, Firefox temporary-load) and uninstal
 - All devDependencies are exact-pinned.
 - No `innerHTML` / `insertAdjacentHTML` / `keydown` / `keyup` / `keypress` / `backdrop-filter` outside the TrustedTypes helper.
 
-The build also produces `dist/extension-chrome-v<version>.zip` and `dist/extension-firefox-v<version>.zip` as store-ready archives.
+The build also produces `dist/extension-chrome-v<version>.zip` and
+`dist/extension-firefox-v<version>.zip` as reproducible STORE-only archives (fixed 1980-01-01
+timestamps). They are packaged for upload, but Aviary is not published to any store: the Firefox
+manifest still carries a placeholder add-on id, so an AMO submission needs a real one first.
 
 ## Presets, i18n, desktop interaction, cleanup, bookmarks, snippets, capture
 
@@ -307,7 +310,7 @@ The build also produces `dist/extension-chrome-v<version>.zip` and `dist/extensi
   becomes a response record; uncaptured media is an explicit metadata-only record. One file per run.
 - **External export targets** — Copy-as-Markdown, Obsidian (YAML frontmatter), Notion (heading-first), raw JSON. Pure local rendering; the clipboard variant never touches disk.
 - **Batch profile-media download** — "Download all visible media" in the Media section walks every rendered tweet and pipes photos / videos / GIFs / thumbnails through the existing queue with the configured concurrency cap and dedup history.
-- **Local AI command menu** — each tweet's action row gets an AI button. Choose Translate / Summarize / Explain / Fact-check prompt and Aviary builds a prompt and copies it to your clipboard. No network calls; no API keys involved.
+- **Local AI command menu (off by default)** — enable it in Integrations and each tweet's action row gains an AI button offering Translate / Summarize / Explain / Fact-check. On its own it only builds a prompt and copies it to your clipboard, with no network call and no API key. Configuring the separate AI provider runner below is what makes the same menu able to POST a prompt, and only after an explicit per-request disclosure.
 - **Passive GraphQL capture (opt-in)** — when "Preserve raw payloads" is on, Aviary records GraphQL response bodies under 1.5 MB into the CheckpointStore as a `capture-<operation>` job, scrubbing `ct0` and Bearer tokens on the way in. Toggle off and the wrapper uninstalls.
 - **Checkpoint retention (opt-in)** — cap jobs, records per job, or job age through the Export section. Zero disables each limit; the sweep runs at boot and after new jobs are created.
 
