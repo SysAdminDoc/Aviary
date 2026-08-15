@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.21.0`
+Version: `1.22.0`
 
 Actionable work only. Historical and completed roadmap material is archived in CHANGELOG.md; blocked work is kept in Roadmap_Blocked.md.
 
@@ -50,13 +50,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Evidence: RES tagging; XKit relationship badges; src/features/library/user-notes.ts.
   Touches: user-notes.ts (schema + badge render), library backup coverage, settings.
   Acceptance: a handle can carry a colored label visible on posts; included in backup/restore; reversible.
-  Complexity: M
-
-- [ ] F125 — P2 — Distribution decision + real Firefox id + update story
-  Why: Firefox manifest ships placeholder `aviary@example.local` (AMO-unpublishable); no update_url, no store presence, INSTALL's update story is "reopen the newer file"; community trust analysis says open distribution (AMO especially) is where this category earns users. Blocked on the operator's publish/stay-private decision (RESEARCH.md Open Questions #1).
-  Evidence: src/extension/manifest.firefox.json; docs/INSTALL.md; RESEARCH.md Product Map + Open Questions.
-  Touches: manifest.firefox.json, tools/build.mjs, docs/INSTALL.md, (if public) AMO/greasyfork listing assets.
-  Acceptance: a real stable extension id ships; userscript update URLs serve from the decided channel; INSTALL documents the real update path for both artifacts.
   Complexity: M
 
 - [ ] F128 — P2 — Empty states for library surfaces

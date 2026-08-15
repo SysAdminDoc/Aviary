@@ -175,3 +175,22 @@ and the flags for media grid / image carousel / profile redesign), confirm a wri
 X's first read actually changes the rendered layout, then add one toggle per verified flag with
 selector-health style drift reporting for a flag name that disappears. Each flag needs its own live
 verification; one working flag does not vouch for the next.
+
+## F125 — Distribution decision, real Firefox add-on id, update story
+
+The Firefox manifest ships `browser_specific_settings.gecko.id` as the placeholder
+`aviary@example.local`, which AMO will not accept, and neither manifest carries an `update_url`.
+The userscript's `@updateURL` now resolves to the declared repository (fixed 2026-08-14), but that
+repository is private, so the raw URL answers 404 and no installed copy can ever see an update.
+`docs/INSTALL.md` states this plainly rather than implying a working channel.
+
+Blocked on an operator decision, not on engineering: whether Aviary is published (AMO / Chrome Web
+Store / Greasy Fork) or stays a private personal build. That single answer determines the real
+add-on id, whether the repository becomes publicly readable, whether `@updateURL` should point at
+raw GitHub or a release asset, and whether store listing assets are needed at all. Choosing one and
+implementing it would be inventing a product decision.
+
+Re-entry condition: the operator states the intended distribution. Then mint a stable add-on id,
+point the update URLs at the decided channel, update `docs/INSTALL.md`'s update section, and — if
+public — prepare listing assets and confirm the privacy disclosures match the Chrome Web Store
+policy that took effect 2026-08-01.

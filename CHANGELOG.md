@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.22.0 - 2026-08-14
+
 ### Added
 
 - Engagement counts can now be hidden per metric — replies, reposts, likes and views each have
