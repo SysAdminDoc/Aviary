@@ -8,9 +8,9 @@
   "author": "SysAdminDoc",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SysAdminDoc/Twitter_Userscript.git"
+    "url": "git+https://github.com/SysAdminDoc/Aviary.git"
   },
-  "homepage": "https://github.com/SysAdminDoc/Twitter_Userscript",
+  "homepage": "https://github.com/SysAdminDoc/Aviary",
   "engines": {
     "node": ">=22"
   },

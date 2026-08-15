@@ -4,7 +4,7 @@
 // @version      1.23.0
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       SysAdminDoc
-// @homepage     https://github.com/SysAdminDoc/Twitter_Userscript
+// @homepage     https://github.com/SysAdminDoc/Aviary
 // @match        https://x.com/*
 // @match        https://twitter.com/*
 // @match        https://mobile.twitter.com/*
@@ -19,8 +19,8 @@
 // @grant        unsafeWindow
 // @connect      pbs.twimg.com
 // @connect      video.twimg.com
-// @updateURL    https://raw.githubusercontent.com/SysAdminDoc/Twitter_Userscript/main/dist/aviary.user.js
-// @downloadURL  https://raw.githubusercontent.com/SysAdminDoc/Twitter_Userscript/main/dist/aviary.user.js
+// @updateURL    https://raw.githubusercontent.com/SysAdminDoc/Aviary/main/dist/aviary.user.js
+// @downloadURL  https://raw.githubusercontent.com/SysAdminDoc/Aviary/main/dist/aviary.user.js
 // ==/UserScript==
 
 "use strict";

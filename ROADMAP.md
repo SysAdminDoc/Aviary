@@ -36,13 +36,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: a documented one-command path turns a saved MHTML into scrubbed `_decoded/*.html`; a test reads the capture date from the fixture set and fails once it exceeds a named ceiling — 90 days is the proposed default, with a warning at 30 — so the gate is a decision the repository states rather than a silent assumption; each blocked item's measurement is re-run against the refreshed capture and its entry updated with the new date and result, including the ones that stay blocked.
   Complexity: M
 
-- [ ] F152 — P0 — Follow the repository rename through to the update URLs
-  Why: the remote is now `SysAdminDoc/Aviary`, but `package.json` still declares `SysAdminDoc/Twitter_Userscript`, and `tools/build.mjs` derives the metablock from that field — so the built userscript's `@homepage`, `@updateURL` and `@downloadURL` all name the pre-rename path. `github.com` follows renames; `raw.githubusercontent.com` does not, which is precisely where the update URLs point. Nothing is broken while the repository is private (INSTALL.md already says the raw URL answers 404), but publishing under F125 would silently inherit a dead update channel — the same defect F105 fixed on 2026-08-14, returned by a different route.
-  Evidence: `git push` reported "This repository moved. Please use the new location: https://github.com/SysAdminDoc/Aviary.git" on 2026-08-15; `gh api repos/SysAdminDoc/Aviary` is canonical; package.json:11,13; `dist/aviary.user.js:7,22,23`.
-  Touches: package.json (`repository.url`, `homepage`), `tools/preflight.mjs`, `tools/userscript-meta.mjs`, README links, docs/INSTALL.md, rebuilt `dist/`.
-  Acceptance: the metablock names the current repository; preflight fails when the declared repository does not match the configured `origin` remote, so the next rename cannot pass silently; docs and README links follow in the same commit.
-  Complexity: S
-
 ### P1 — trust, reliability, and measured defects
 
 - [ ] F135 — P1 — Bind the documentation gate to the settings surface

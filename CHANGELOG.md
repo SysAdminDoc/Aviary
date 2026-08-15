@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Fixed
+
+- The userscript's update URLs now name the repository this project actually lives in. It was
+  renamed to `SysAdminDoc/Aviary`, and `package.json` still declared the old path that
+  `@updateURL`/`@downloadURL` are derived from. `github.com` follows a rename;
+  `raw.githubusercontent.com`, where those URLs point, does not — so every installed copy would
+  have polled a path that could never answer. Preflight now compares the declared repository
+  against the `origin` remote and fails on a mismatch, because the previous check validated the
+  URL's shape, which a rename passes cleanly.
+
 ## 1.23.0 - 2026-08-15
 
 ### Changed

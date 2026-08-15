@@ -1,8 +1,9 @@
+import { execFileSync } from "node:child_process";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { userscriptUrls } from "./userscript-meta.mjs";
+import { repositoryUrl, userscriptUrls } from "./userscript-meta.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
@@ -14,6 +15,7 @@ const expectedExtensionIcons = Object.fromEntries(
 const failures = [];
 const warnings = [];
 
+checkDeclaredRepository();
 await checkManifests();
 await checkBundles();
 await checkPermissions();
@@ -155,6 +157,53 @@ function readPngDimensions(data) {
     height: data.readUInt32BE(20),
     colorType: data[25]
   };
+}
+
+/**
+ * The userscript's `@updateURL` is derived from package.json's `repository`, and it resolves through
+ * `raw.githubusercontent.com` -- which, unlike github.com, does not follow a repository rename. So a
+ * rename that nobody carried into package.json leaves every installed copy polling a path that will
+ * never answer, and the only local signal is git printing "This repository moved" during a push.
+ *
+ * Comparing the declared repository against the `origin` remote catches the divergence, which is
+ * what a rename actually produces once either side is updated. It cannot catch a rename that nobody
+ * has reflected anywhere yet -- the two would still agree -- so the message says which question was
+ * answered rather than implying the URL was proved reachable.
+ */
+function checkDeclaredRepository() {
+  let declared;
+  try {
+    declared = repositoryUrl(pkg);
+  } catch (error) {
+    failures.push(`package.json repository: ${(error).message}`);
+    return;
+  }
+  let origin;
+  try {
+    origin = execFileSync("git", ["remote", "get-url", "origin"], {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"]
+    }).trim();
+  } catch {
+    // A source archive or a checkout with no remote cannot answer this. Say so rather than pass.
+    warnings.push(
+      "repository identity unchecked: no `origin` remote here, so a rename could not be compared against package.json"
+    );
+    return;
+  }
+  const normalized = origin
+    .replace(/^git\+/, "")
+    .replace(/^git@github\.com:/, "https://github.com/")
+    .replace(/\.git$/, "")
+    .replace(/\/+$/, "");
+  if (normalized !== declared) {
+    failures.push(
+      `package.json declares repository "${declared}" but the origin remote is "${normalized}" — ` +
+        "the userscript's @updateURL follows package.json, and raw.githubusercontent.com does not " +
+        "redirect after a rename"
+    );
+  }
 }
 
 function checkUserscriptUpdateUrls(source) {
