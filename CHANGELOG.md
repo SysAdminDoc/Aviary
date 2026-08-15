@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Added
+
+- The DOM captures every selector is proved against now carry a date and an expiry.
+  `_decoded/captures.json` records when each capture was taken, from which route, and what it does
+  and does not contain; preflight warns as it ages and fails past the declared ceiling. Without
+  that, a blocked item's "measured: 0 hits" silently meant "0 hits as X was on the capture date"
+  rather than "this does not exist" — which is how the evidence here reached three months old with
+  every gate still green. A waiver can defer the failure but carries its own expiry, so it cannot
+  become permanent.
+- `npm run capture:decode -- "<saved.mhtml>" <name>` turns a browser-saved capture into a scrubbed
+  fixture in one step, stripping `ct0`, Bearer and `auth_token`-shaped values in both cookie and
+  JSON form and refusing to write a file that still trips its own leak guard. Refreshing the
+  evidence was previously an undocumented manual chore, which is why it never happened.
+
 ### Fixed
 
 - The userscript's update URLs now name the repository this project actually lives in. It was

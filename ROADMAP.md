@@ -27,15 +27,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions (2026-08-15)
 
-### P0 — root cause
-
-- [ ] F134 — P0 — Refresh the capture set, and make fixture age a gate
-  Why: `_decoded/home.html` and `_decoded/status.html` are dated 2026-05-19 and are the only ground truth in the repository, so every "measured: 0 hits" conclusion in Roadmap_Blocked.md describes X as it was three months ago. X shipped a post-media redesign on or before 2026-08-11. Aviary structurally cannot see it, and nothing warns that the evidence is stale — this one item gates roughly eight blocked items.
-  Evidence: file dates and byte-identical `.mhtml` decode (RESEARCH.md Security); control-panel-for-twitter#917/#918/#919 opened 2026-08-11..13 (verified via GitHub API 2026-08-15); `tools/` contains no capture or decode script.
-  Touches: `_decoded/` (new capture generation), `tools/` (new decode/scrub script), a new age assertion in `tests/fixtures.test.mjs`, CLAUDE.md (the recipe), Roadmap_Blocked.md (re-measure every "0 hits" claim against the new capture).
-  Acceptance: a documented one-command path turns a saved MHTML into scrubbed `_decoded/*.html`; a test reads the capture date from the fixture set and fails once it exceeds a named ceiling — 90 days is the proposed default, with a warning at 30 — so the gate is a decision the repository states rather than a silent assumption; each blocked item's measurement is re-run against the refreshed capture and its entry updated with the new date and result, including the ones that stay blocked.
-  Complexity: M
-
 ### P1 — trust, reliability, and measured defects
 
 - [ ] F135 — P1 — Bind the documentation gate to the settings surface

@@ -16,6 +16,7 @@
   },
   "scripts": {
     "build": "node tools/build.mjs",
+    "capture:decode": "node tools/capture-decode.mjs",
     "capture:settings": "node tools/capture-settings.mjs",
     "capture:theme": "node tools/capture-theme.mjs",
     "lint": "eslint \"src/**/*.ts\" \"tests/**/*.mjs\" \"tools/**/*.mjs\" \"eslint.config.mjs\"",

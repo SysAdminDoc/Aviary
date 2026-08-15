@@ -10,6 +10,23 @@ Passive GraphQL capture can produce better evidence than a full private-page scr
 bounded post description. Any contributed fixture must be minimized and scrubbed before it enters
 the repository.
 
+## F134 (operator half) — produce a refreshed authenticated capture
+
+The tooling landed 2026-08-15: `npm run capture:decode` turns a saved MHTML into a scrubbed
+`_decoded/*.html`, `_decoded/captures.json` records each capture's date and provenance, and preflight
+warns then fails past the declared 90-day ceiling. What cannot be automated is the capture itself —
+it requires a signed-in X session, and nothing in this repository logs in or fetches.
+
+The current captures are dated **2026-05-19**. Everything below that says "measured: N hits" was
+measured against that date, and X shipped a media redesign on 2026-08-11/08-13 that no capture here
+contains. A single refreshed pair (Home plus a conversation route) would let every measurement in
+this file be re-run, and would likely settle several of them.
+
+Re-entry condition: the operator follows "Refreshing the capture set" in CLAUDE.md. Then re-run each
+measurement, record it with the new date, and move whatever the capture now supports back into
+ROADMAP.md. The waiver in `captures.json` expires 2026-09-30, after which preflight fails rather
+than warns — deliberately, so the deadline is real.
+
 ## F032 — Hide blocked accounts again
 
 Blocked pending an authenticated `_decoded/` home/status capture containing the current blocked-account markup. The existing public fixtures do not expose the required `[data-testid="userActions"]` blocked state, so shipping a predicate now would be speculative.

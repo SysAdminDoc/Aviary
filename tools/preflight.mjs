@@ -3,6 +3,7 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { captureAgeReport, readCaptureManifest } from "./capture-manifest.mjs";
 import { repositoryUrl, userscriptUrls } from "./userscript-meta.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -16,6 +17,7 @@ const failures = [];
 const warnings = [];
 
 checkDeclaredRepository();
+await checkCaptureFreshness();
 await checkManifests();
 await checkBundles();
 await checkPermissions();
@@ -157,6 +159,41 @@ function readPngDimensions(data) {
     height: data.readUInt32BE(20),
     colorType: data[25]
   };
+}
+
+/**
+ * Every selector this project ships is proved against a captured DOM, which makes the capture the
+ * authority — and an authority with no expiry is how "measured: 0 hits, blocked" quietly turns into
+ * a statement about a version of X that no longer exists. The ceiling and the waiver both live in
+ * `_decoded/captures.json`, so the repository states its own tolerance instead of drifting into one.
+ */
+async function checkCaptureFreshness() {
+  let manifest;
+  try {
+    manifest = await readCaptureManifest();
+  } catch (error) {
+    failures.push(`capture manifest: ${(error).message}`);
+    return;
+  }
+  const report = captureAgeReport(manifest);
+  const age = `${report.newest.ageDays} days old (captured ${report.newest.capturedOn})`;
+  if (report.blocking) {
+    failures.push(
+      `the newest DOM capture is ${age}, past the ${manifest.ceilingDays}-day ceiling this ` +
+        "repository declares. Refresh it — save an authenticated X page as MHTML, then " +
+        "`npm run capture:decode -- \"<saved.mhtml>\" <name>` — or record a dated " +
+        "acknowledgedStaleUntil in _decoded/captures.json saying why not."
+    );
+    return;
+  }
+  if (report.overCeiling) {
+    warnings.push(
+      `the newest DOM capture is ${age}, past the ${manifest.ceilingDays}-day ceiling; ` +
+        `waived until ${report.waiverUntil}, after which preflight fails`
+    );
+  } else if (report.overWarn) {
+    warnings.push(`the newest DOM capture is ${age}; the ceiling is ${manifest.ceilingDays} days`);
+  }
 }
 
 /**
