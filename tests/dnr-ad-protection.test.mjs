@@ -175,7 +175,12 @@ test("boot and every successful settings save synchronize the active profile cho
   // still pinning the order and the source of the flag.
   assert.match(
     main,
-    /const settings = (?:normalizeSettings|settingsEnvelope\.settings)[\s\S]{0,900}await reconcileExtensionAdRule\(options\.source, settings\.privacy\.blockAds, diagnostics\)/
+    /const settings = (?:normalizeSettings|settingsEnvelope\.settings)[\s\S]{0,900}await reconcileExtensionAdRule\(options\.source, networkShieldActive\(settings\), diagnostics\)/
+  );
+  // The rule follows both halves of the ad setting: the master switch and the network shield.
+  assert.match(
+    main,
+    /function networkShieldActive[\s\S]{0,240}settings\.privacy\.blockAds && settings\.privacy\.networkShield/
   );
   const saveBoundary = main.slice(main.indexOf("async saveSettings()"), main.indexOf("requestApply()"));
   assert.match(saveBoundary, /await storage\.set/);

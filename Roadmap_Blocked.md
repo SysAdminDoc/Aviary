@@ -128,3 +128,23 @@ boundary, the feature needs a second predicate rather than a new string.
 
 Localized heading labels have the same gate: only "Discover more" is verified, so other X UI
 languages currently keep the module. Each added locale needs a capture proving its copy.
+
+## Detect X's ad-blocker warning surface
+
+X began testing a warning in July 2026 that tells browser users an ad blocker is preventing
+"Personalized Timelines" and steers them off the For You tab. Aviary now separates the observable
+half of its ad protection behind `privacy.networkShield`, so a user who meets that warning can drop
+to structural-only hiding without losing ad suppression.
+
+What is blocked is the *automatic* part: detecting the warning and reporting it in Trust. The
+warning is behind a limited rollout, appears in no `_decoded/` capture, and its container, copy, and
+whether it carries any stable test id are all unknown. A selector written from a news screenshot is
+exactly the speculative contract this repository refuses.
+
+Re-entry condition: an operator-authenticated session that actually renders the warning, captured
+privacy-safely into `_decoded/`. Then add it to `SURFACE_SELECTORS`, report it through selector
+health beside the ad-contract observations, and offer the shield toggle from that notice.
+
+Also unverified: whether Aviary's exact promoted-logger block is what triggers the warning at all.
+It may key on uBlock-scale request blocking that Aviary does not do. Do not claim causation in UI
+copy without a session that demonstrates the warning appearing and disappearing with the toggle.

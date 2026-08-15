@@ -97,6 +97,15 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
           await ctx.save(checked ? "Ad-free mode on" : "Ad-free mode off");
         }
       ),
+      ctx.toggleRow(
+        "Refuse X's ad logging call",
+        "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.",
+        ctx.options.settings.privacy.networkShield,
+        async (checked) => {
+          ctx.options.settings.privacy.networkShield = checked;
+          await ctx.save(checked ? "Ad logging refused" : "Ad logging allowed");
+        }
+      ),
       hooks
         ? ctx.dataRow(
             "Ad protection status",

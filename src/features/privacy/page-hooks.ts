@@ -130,7 +130,8 @@ function pushConfig(ctx: FeatureContext): void {
   bridgeStatus = bridge.status();
   bridgeReason = bridge.reason();
   bridge.configure({
-    blockAds: ctx.settings.privacy.blockAds,
+    // The page-world logger stub is the network half; structural suppression is separate.
+    blockAds: ctx.settings.privacy.blockAds && ctx.settings.privacy.networkShield,
     blockBeacons: ctx.settings.privacy.blockAnalyticsBeacons,
     captureGraphql: ctx.settings.export.preserveRawPayloads,
     captureMediaMetadata: ctx.settings.media.buttons,

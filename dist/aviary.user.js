@@ -615,6 +615,8 @@ html.av-reduce-motion *::after {
       "Protection starts at document load.": "La protecci\xF3n comienza al cargar el documento.",
       "Ad-free mode": "Modo sin anuncios",
       "Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery.": "Oculta publicaciones patrocinadas, colaboraciones pagadas, tendencias promocionadas, anuncios propios y pre-rolls visibles. Aviary tambi\xE9n rechaza la llamada separada de registro de contenido promocionado de X sin bloquear la entrega del timeline.",
+      "Refuse X's ad logging call": "Rechazar la llamada de registro de anuncios de X",
+      "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "Solo se aplica mientras el modo sin anuncios est\xE1 activo. Aviary rechaza la solicitud de registro de contenido promocionado de X, la \xFAnica solicitud de anuncios que puede separarse de la propia cronolog\xEDa. Desact\xEDvalo si X se queja de un bloqueador de anuncios: las publicaciones patrocinadas siguen ocultas y Aviary deja de rechazar cualquier solicitud.",
       "Ad protection status": "Estado de la protecci\xF3n contra anuncios",
       "Hide right sidebar": "Ocultar barra lateral derecha",
       "Reduce trends, recommendations, and footer noise.": "Reduce el ruido de tendencias, recomendaciones y pie de p\xE1gina.",
@@ -1147,6 +1149,8 @@ html.av-reduce-motion *::after {
       "Motion preference saved": "Preferencia de movimiento guardada",
       "Ad-free mode on": "Modo sin anuncios activado",
       "Ad-free mode off": "Modo sin anuncios desactivado",
+      "Ad logging refused": "Registro de anuncios rechazado",
+      "Ad logging allowed": "Registro de anuncios permitido",
       "Sidebar preference saved": "Preferencia de barra lateral guardada",
       "Trend preference saved": "Preferencia de tendencias guardada",
       "Layout preference saved": "Preferencia de dise\xF1o guardada",
@@ -1443,6 +1447,8 @@ html.av-reduce-motion *::after {
       "Protection starts at document load.": "A prote\xE7\xE3o come\xE7a ao carregar o documento.",
       "Ad-free mode": "Modo sem an\xFAncios",
       "Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery.": "Oculta posts patrocinados, parcerias pagas, tend\xEAncias promovidas, promo\xE7\xF5es da pr\xF3pria plataforma e an\xFAncios de pr\xE9-reprodu\xE7\xE3o vis\xEDveis. O Aviary tamb\xE9m recusa a chamada separada de registo de conte\xFAdo promovido do X sem bloquear a entrega da cronologia.",
+      "Refuse X's ad logging call": "Recusar a chamada de registro de an\xFAncios do X",
+      "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "S\xF3 se aplica enquanto o modo sem an\xFAncios est\xE1 ativo. O Aviary recusa a requisi\xE7\xE3o separada de registro de conte\xFAdo promovido do X, a \xFAnica requisi\xE7\xE3o de an\xFAncio que pode ser separada da pr\xF3pria linha do tempo. Desative isto se o X reclamar de um bloqueador de an\xFAncios: as publica\xE7\xF5es patrocinadas continuam ocultas e o Aviary deixa de recusar qualquer requisi\xE7\xE3o.",
       "Ad protection status": "Estado da prote\xE7\xE3o contra an\xFAncios",
       "Hide right sidebar": "Ocultar barra lateral direita",
       "Reduce trends, recommendations, and footer noise.": "Reduz o ru\xEDdo de tend\xEAncias, recomenda\xE7\xF5es e rodap\xE9.",
@@ -1975,6 +1981,8 @@ html.av-reduce-motion *::after {
       "Motion preference saved": "Prefer\xEAncia de movimento guardada",
       "Ad-free mode on": "Modo sem an\xFAncios ligado",
       "Ad-free mode off": "Modo sem an\xFAncios desligado",
+      "Ad logging refused": "Registro de an\xFAncios recusado",
+      "Ad logging allowed": "Registro de an\xFAncios permitido",
       "Sidebar preference saved": "Prefer\xEAncia de barra lateral guardada",
       "Trend preference saved": "Prefer\xEAncia de tend\xEAncias guardada",
       "Layout preference saved": "Prefer\xEAncia de layout guardada",
@@ -2271,6 +2279,8 @@ html.av-reduce-motion *::after {
       "Protection starts at document load.": "La protection d\xE9marre au chargement du document.",
       "Ad-free mode": "Mode sans publicit\xE9",
       "Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery.": "Masque les publications sponsoris\xE9es, partenariats r\xE9mun\xE9r\xE9s, tendances promues, promotions internes et pr\xE9-rolls visibles. Aviary refuse aussi l'appel s\xE9par\xE9 de journalisation du contenu promu de X sans bloquer la livraison du fil.",
+      "Refuse X's ad logging call": "Refuser l'appel de journalisation publicitaire de X",
+      "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "Ne s'applique que si le mode sans publicit\xE9 est activ\xE9. Aviary refuse la requ\xEAte distincte de journalisation des contenus sponsoris\xE9s de X, la seule requ\xEAte publicitaire s\xE9parable du fil lui-m\xEAme. D\xE9sactivez ceci si X se plaint d'un bloqueur de publicit\xE9s : les posts sponsoris\xE9s restent masqu\xE9s et Aviary cesse de refuser la moindre requ\xEAte.",
       "Ad protection status": "\xC9tat de la protection publicitaire",
       "Hide right sidebar": "Masquer la colonne de droite",
       "Reduce trends, recommendations, and footer noise.": "R\xE9duit le bruit des tendances, des recommandations et du pied de page.",
@@ -2803,6 +2813,8 @@ html.av-reduce-motion *::after {
       "Motion preference saved": "Pr\xE9f\xE9rence d'animation enregistr\xE9e",
       "Ad-free mode on": "Mode sans publicit\xE9 activ\xE9",
       "Ad-free mode off": "Mode sans publicit\xE9 d\xE9sactiv\xE9",
+      "Ad logging refused": "Journalisation publicitaire refus\xE9e",
+      "Ad logging allowed": "Journalisation publicitaire autoris\xE9e",
       "Sidebar preference saved": "Pr\xE9f\xE9rence de barre lat\xE9rale enregistr\xE9e",
       "Trend preference saved": "Pr\xE9f\xE9rence de tendances enregistr\xE9e",
       "Layout preference saved": "Pr\xE9f\xE9rence de mise en page enregistr\xE9e",
@@ -3099,6 +3111,8 @@ html.av-reduce-motion *::after {
       "Protection starts at document load.": "Der Schutz beginnt beim Laden des Dokuments.",
       "Ad-free mode": "Werbefreier Modus",
       "Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery.": "Blendet gesponserte Beitr\xE4ge, bezahlte Partnerschaften, beworbene Trends, Eigenwerbung und sichtbare Pre-Rolls aus. Aviary verweigert au\xDFerdem den separaten Protokollierungsaufruf f\xFCr beworbene Inhalte von X, ohne die Timeline-Auslieferung zu blockieren.",
+      "Refuse X's ad logging call": "X' Werbe-Protokollaufruf ablehnen",
+      "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "Gilt nur, solange der werbefreie Modus aktiv ist. Aviary lehnt X' separate Protokollanfrage f\xFCr beworbene Inhalte ab \u2014 die einzige Werbeanfrage, die sich von der Timeline selbst trennen l\xE4sst. Schalte dies aus, wenn X einen Werbeblocker moniert: Gesponserte Beitr\xE4ge bleiben ausgeblendet, und Aviary lehnt \xFCberhaupt keine Anfrage mehr ab.",
       "Ad protection status": "Status des Werbeschutzes",
       "Hide right sidebar": "Rechte Seitenleiste ausblenden",
       "Reduce trends, recommendations, and footer noise.": "Reduziert L\xE4rm durch Trends, Empfehlungen und Fu\xDFzeile.",
@@ -3631,6 +3645,8 @@ html.av-reduce-motion *::after {
       "Motion preference saved": "Bewegungs-Einstellung gespeichert",
       "Ad-free mode on": "Werbefreier Modus aktiviert",
       "Ad-free mode off": "Werbefreier Modus deaktiviert",
+      "Ad logging refused": "Werbeprotokollierung abgelehnt",
+      "Ad logging allowed": "Werbeprotokollierung zugelassen",
       "Sidebar preference saved": "Seitenleisten-Einstellung gespeichert",
       "Trend preference saved": "Trend-Einstellung gespeichert",
       "Layout preference saved": "Layout-Einstellung gespeichert",
@@ -3927,6 +3943,8 @@ html.av-reduce-motion *::after {
       "Protection starts at document load.": "\u30C9\u30AD\u30E5\u30E1\u30F3\u30C8\u306E\u8AAD\u307F\u8FBC\u307F\u6642\u304B\u3089\u4FDD\u8B77\u3092\u958B\u59CB\u3057\u307E\u3059\u3002",
       "Ad-free mode": "\u5E83\u544A\u306A\u3057\u30E2\u30FC\u30C9",
       "Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery.": "\u30B9\u30DD\u30F3\u30B5\u30FC\u6295\u7A3F\u3001\u6709\u6599\u30D1\u30FC\u30C8\u30CA\u30FC\u30B7\u30C3\u30D7\u3001\u30D7\u30ED\u30E2\u30FC\u30B7\u30E7\u30F3\u4E2D\u306E\u30C8\u30EC\u30F3\u30C9\u3001\u81EA\u793E\u30D7\u30ED\u30E2\u30FC\u30B7\u30E7\u30F3\u3001\u8868\u793A\u4E2D\u306E\u30D7\u30EC\u30ED\u30FC\u30EB\u5E83\u544A\u3092\u6298\u308A\u305F\u305F\u307F\u307E\u3059\u3002Aviary \u306F\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u914D\u4FE1\u3092\u59A8\u3052\u305A\u306B\u3001X \u306E\u30D7\u30ED\u30E2\u30FC\u30B7\u30E7\u30F3\u30B3\u30F3\u30C6\u30F3\u30C4\u7528\u306E\u5225\u500B\u306E\u8A18\u9332\u30EA\u30AF\u30A8\u30B9\u30C8\u3082\u62D2\u5426\u3057\u307E\u3059\u3002",
+      "Refuse X's ad logging call": "X \u306E\u5E83\u544A\u30ED\u30B0\u9001\u4FE1\u3092\u62D2\u5426",
+      "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "\u5E83\u544A\u975E\u8868\u793A\u30E2\u30FC\u30C9\u304C\u6709\u52B9\u306A\u9593\u306E\u307F\u9069\u7528\u3055\u308C\u307E\u3059\u3002Aviary \u306F X \u306E\u30D7\u30ED\u30E2\u30FC\u30B7\u30E7\u30F3\u30B3\u30F3\u30C6\u30F3\u30C4\u7528\u30ED\u30B0\u9001\u4FE1\u30EA\u30AF\u30A8\u30B9\u30C8\u3092\u62D2\u5426\u3057\u307E\u3059\u3002\u3053\u308C\u306F\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u672C\u4F53\u304B\u3089\u5206\u96E2\u3067\u304D\u308B\u552F\u4E00\u306E\u5E83\u544A\u30EA\u30AF\u30A8\u30B9\u30C8\u3067\u3059\u3002X \u304C\u5E83\u544A\u30D6\u30ED\u30C3\u30AB\u30FC\u306B\u3064\u3044\u3066\u8B66\u544A\u3059\u308B\u5834\u5408\u306F\u3053\u308C\u3092\u30AA\u30D5\u306B\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u30B9\u30DD\u30F3\u30B5\u30FC\u6295\u7A3F\u306F\u5F15\u304D\u7D9A\u304D\u975E\u8868\u793A\u306E\u307E\u307E\u3001Aviary \u306F\u3044\u304B\u306A\u308B\u30EA\u30AF\u30A8\u30B9\u30C8\u3082\u62D2\u5426\u3057\u306A\u304F\u306A\u308A\u307E\u3059\u3002",
       "Ad protection status": "\u5E83\u544A\u4FDD\u8B77\u306E\u72B6\u614B",
       "Hide right sidebar": "\u53F3\u30B5\u30A4\u30C9\u30D0\u30FC\u3092\u975E\u8868\u793A",
       "Reduce trends, recommendations, and footer noise.": "\u30C8\u30EC\u30F3\u30C9\u30FB\u304A\u3059\u3059\u3081\u30FB\u30D5\u30C3\u30BF\u30FC\u306E\u30CE\u30A4\u30BA\u3092\u6E1B\u3089\u3057\u307E\u3059\u3002",
@@ -4459,6 +4477,8 @@ html.av-reduce-motion *::after {
       "Motion preference saved": "\u30E2\u30FC\u30B7\u30E7\u30F3\u306E\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Ad-free mode on": "\u5E83\u544A\u306A\u3057\u30E2\u30FC\u30C9\uFF1A\u30AA\u30F3",
       "Ad-free mode off": "\u5E83\u544A\u306A\u3057\u30E2\u30FC\u30C9\uFF1A\u30AA\u30D5",
+      "Ad logging refused": "\u5E83\u544A\u30ED\u30B0\u3092\u62D2\u5426\u3057\u307E\u3057\u305F",
+      "Ad logging allowed": "\u5E83\u544A\u30ED\u30B0\u3092\u8A31\u53EF\u3057\u307E\u3057\u305F",
       "Sidebar preference saved": "\u30B5\u30A4\u30C9\u30D0\u30FC\u306E\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Trend preference saved": "\u30C8\u30EC\u30F3\u30C9\u306E\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Layout preference saved": "\u30EC\u30A4\u30A2\u30A6\u30C8\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
@@ -4755,6 +4775,8 @@ html.av-reduce-motion *::after {
       "Protection starts at document load.": "\uBB38\uC11C\uB97C \uBD88\uB7EC\uC62C \uB54C\uBD80\uD130 \uBCF4\uD638\uAC00 \uC2DC\uC791\uB429\uB2C8\uB2E4.",
       "Ad-free mode": "\uAD11\uACE0 \uC5C6\uB294 \uBAA8\uB4DC",
       "Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery.": "\uC2A4\uD3F0\uC11C \uAC8C\uC2DC\uBB3C, \uC720\uB8CC \uD30C\uD2B8\uB108\uC2ED, \uD504\uB85C\uBAA8\uC158 \uD2B8\uB80C\uB4DC, \uC790\uCCB4 \uD504\uB85C\uBAA8\uC158, \uD45C\uC2DC\uB418\uB294 \uD504\uB9AC\uB864 \uAD11\uACE0\uB97C \uC811\uC2B5\uB2C8\uB2E4. Aviary\uB294 \uD0C0\uC784\uB77C\uC778 \uC804\uC1A1\uC744 \uCC28\uB2E8\uD558\uC9C0 \uC54A\uC73C\uBA74\uC11C X\uC758 \uBCC4\uB3C4 \uD504\uB85C\uBAA8\uC158 \uCF58\uD150\uCE20 \uAE30\uB85D \uC694\uCCAD\uB3C4 \uAC70\uBD80\uD569\uB2C8\uB2E4.",
+      "Refuse X's ad logging call": "X\uC758 \uAD11\uACE0 \uB85C\uAE45 \uD638\uCD9C \uAC70\uBD80",
+      "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "\uAD11\uACE0 \uC5C6\uB294 \uBAA8\uB4DC\uAC00 \uCF1C\uC838 \uC788\uC744 \uB54C\uB9CC \uC801\uC6A9\uB429\uB2C8\uB2E4. Aviary\uB294 X\uC758 \uBCC4\uB3C4 \uD64D\uBCF4 \uCF58\uD150\uCE20 \uB85C\uAE45 \uC694\uCCAD\uC744 \uAC70\uBD80\uD569\uB2C8\uB2E4. \uC774\uB294 \uD0C0\uC784\uB77C\uC778 \uC790\uCCB4\uC640 \uBD84\uB9AC\uD560 \uC218 \uC788\uB294 \uC720\uC77C\uD55C \uAD11\uACE0 \uC694\uCCAD\uC785\uB2C8\uB2E4. X\uAC00 \uAD11\uACE0 \uCC28\uB2E8\uAE30\uB97C \uBB38\uC81C \uC0BC\uC73C\uBA74 \uC774 \uC635\uC158\uC744 \uB044\uC138\uC694. \uC2A4\uD3F0\uC11C \uAC8C\uC2DC\uBB3C\uC740 \uACC4\uC18D \uC228\uACA8\uC9C0\uACE0 Aviary\uB294 \uC5B4\uB5A4 \uC694\uCCAD\uB3C4 \uAC70\uBD80\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
       "Ad protection status": "\uAD11\uACE0 \uCC28\uB2E8 \uC0C1\uD0DC",
       "Hide right sidebar": "\uC624\uB978\uCABD \uC0AC\uC774\uB4DC\uBC14 \uC228\uAE30\uAE30",
       "Reduce trends, recommendations, and footer noise.": "\uD2B8\uB80C\uB4DC, \uCD94\uCC9C, \uD558\uB2E8 \uC601\uC5ED\uC758 \uC7A1\uC74C\uC744 \uC904\uC785\uB2C8\uB2E4.",
@@ -5287,6 +5309,8 @@ html.av-reduce-motion *::after {
       "Motion preference saved": "\uBAA8\uC158 \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Ad-free mode on": "\uAD11\uACE0 \uC5C6\uB294 \uBAA8\uB4DC \uCF1C\uC9D0",
       "Ad-free mode off": "\uAD11\uACE0 \uC5C6\uB294 \uBAA8\uB4DC \uAEBC\uC9D0",
+      "Ad logging refused": "\uAD11\uACE0 \uB85C\uAE45\uC744 \uAC70\uBD80\uD568",
+      "Ad logging allowed": "\uAD11\uACE0 \uB85C\uAE45\uC744 \uD5C8\uC6A9\uD568",
       "Sidebar preference saved": "\uC0AC\uC774\uB4DC\uBC14 \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Trend preference saved": "\uD2B8\uB80C\uB4DC \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Layout preference saved": "\uB808\uC774\uC544\uC6C3 \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
@@ -5583,6 +5607,8 @@ html.av-reduce-motion *::after {
       "Protection starts at document load.": "\u062A\u0628\u062F\u0623 \u0627\u0644\u062D\u0645\u0627\u064A\u0629 \u0639\u0646\u062F \u062A\u062D\u0645\u064A\u0644 \u0627\u0644\u0645\u0633\u062A\u0646\u062F.",
       "Ad-free mode": "\u0648\u0636\u0639 \u0628\u0644\u0627 \u0625\u0639\u0644\u0627\u0646\u0627\u062A",
       "Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery.": "\u064A\u0637\u0648\u064A \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u0645\u0648\u0651\u0644\u0629 \u0648\u0627\u0644\u0634\u0631\u0627\u0643\u0627\u062A \u0627\u0644\u0645\u062F\u0641\u0648\u0639\u0629 \u0648\u0627\u0644\u0645\u0648\u0627\u0636\u064A\u0639 \u0627\u0644\u0631\u0627\u0626\u062C\u0629 \u0627\u0644\u0645\u0631\u0648\u0651\u062C\u0629 \u0648\u0627\u0644\u0639\u0631\u0648\u0636 \u0627\u0644\u062F\u0627\u062E\u0644\u064A\u0629 \u0648\u0625\u0639\u0644\u0627\u0646\u0627\u062A \u0645\u0627 \u0642\u0628\u0644 \u0627\u0644\u062A\u0634\u063A\u064A\u0644 \u0627\u0644\u0638\u0627\u0647\u0631\u0629. \u064A\u0631\u0641\u0636 Aviary \u0623\u064A\u0636\u064B\u0627 \u0637\u0644\u0628 \u0627\u0644\u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u0645\u0646\u0641\u0635\u0644 \u0644\u0644\u0645\u062D\u062A\u0648\u0649 \u0627\u0644\u0645\u0631\u0648\u0651\u062C \u0645\u0646 X \u0645\u0646 \u062F\u0648\u0646 \u062D\u0638\u0631 \u062A\u062D\u0645\u064A\u0644 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A.",
+      "Refuse X's ad logging call": "\u0631\u0641\u0636 \u0637\u0644\u0628 \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A \u0641\u064A X",
+      "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "\u064A\u0646\u0637\u0628\u0642 \u0641\u0642\u0637 \u0623\u062B\u0646\u0627\u0621 \u062A\u0641\u0639\u064A\u0644 \u0648\u0636\u0639 \u0628\u0644\u0627 \u0625\u0639\u0644\u0627\u0646\u0627\u062A. \u064A\u0631\u0641\u0636 Aviary \u0637\u0644\u0628 \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u0645\u062D\u062A\u0648\u0649 \u0627\u0644\u0645\u064F\u0645\u0648\u064E\u0651\u0644 \u0627\u0644\u0645\u0646\u0641\u0635\u0644 \u0641\u064A X\u060C \u0648\u0647\u0648 \u0637\u0644\u0628 \u0627\u0644\u0625\u0639\u0644\u0627\u0646 \u0627\u0644\u0648\u062D\u064A\u062F \u0627\u0644\u0630\u064A \u064A\u0645\u0643\u0646 \u0641\u0635\u0644\u0647 \u0639\u0646 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \u0646\u0641\u0633\u0647. \u0623\u0648\u0642\u0641 \u0647\u0630\u0627 \u0625\u0630\u0627 \u0627\u0634\u062A\u0643\u0649 X \u0645\u0646 \u0648\u062C\u0648\u062F \u0645\u0627\u0646\u0639 \u0625\u0639\u0644\u0627\u0646\u0627\u062A: \u062A\u0628\u0642\u0649 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u0645\u0648\u064E\u0651\u0644\u0629 \u0645\u062E\u0641\u064A\u0629 \u0648\u064A\u062A\u0648\u0642\u0641 Aviary \u0639\u0646 \u0631\u0641\u0636 \u0623\u064A \u0637\u0644\u0628 \u0639\u0644\u0649 \u0627\u0644\u0625\u0637\u0644\u0627\u0642.",
       "Ad protection status": "\u062D\u0627\u0644\u0629 \u0627\u0644\u062D\u0645\u0627\u064A\u0629 \u0645\u0646 \u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A",
       "Hide right sidebar": "\u0625\u062E\u0641\u0627\u0621 \u0627\u0644\u0634\u0631\u064A\u0637 \u0627\u0644\u062C\u0627\u0646\u0628\u064A",
       "Reduce trends, recommendations, and footer noise.": "\u064A\u0642\u0644\u0651\u0644 \u0636\u062C\u064A\u062C \u0627\u0644\u062A\u0631\u0646\u062F\u0627\u062A \u0648\u0627\u0644\u062A\u0648\u0635\u064A\u0627\u062A \u0648\u0627\u0644\u062A\u0630\u064A\u064A\u0644.",
@@ -6115,6 +6141,8 @@ html.av-reduce-motion *::after {
       "Motion preference saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u062D\u0631\u0643\u0629",
       "Ad-free mode on": "\u0648\u0636\u0639 \u0628\u0644\u0627 \u0625\u0639\u0644\u0627\u0646\u0627\u062A \u0645\u0641\u0639\u0651\u0644",
       "Ad-free mode off": "\u0648\u0636\u0639 \u0628\u0644\u0627 \u0625\u0639\u0644\u0627\u0646\u0627\u062A \u0645\u062A\u0648\u0642\u0641",
+      "Ad logging refused": "\u062A\u0645 \u0631\u0641\u0636 \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A",
+      "Ad logging allowed": "\u062A\u0645 \u0627\u0644\u0633\u0645\u0627\u062D \u0628\u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A",
       "Sidebar preference saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u0634\u0631\u064A\u0637 \u0627\u0644\u062C\u0627\u0646\u0628\u064A",
       "Trend preference saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u062A\u0631\u0646\u062F\u0627\u062A",
       "Layout preference saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u062A\u062E\u0637\u064A\u0637",
@@ -6411,6 +6439,8 @@ html.av-reduce-motion *::after {
       "Protection starts at document load.": "\u05D4\u05D4\u05D2\u05E0\u05D4 \u05DE\u05EA\u05D7\u05D9\u05DC\u05D4 \u05D1\u05E2\u05EA \u05D8\u05E2\u05D9\u05E0\u05EA \u05D4\u05DE\u05E1\u05DE\u05DA.",
       "Ad-free mode": "\u05DE\u05E6\u05D1 \u05DC\u05DC\u05D0 \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA",
       "Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery.": "\u05DE\u05DB\u05D5\u05D5\u05E5 \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05DE\u05DE\u05D5\u05DE\u05E0\u05D9\u05DD, \u05E9\u05D5\u05EA\u05E4\u05D5\u05D9\u05D5\u05EA \u05D1\u05EA\u05E9\u05DC\u05D5\u05DD, \u05DE\u05D2\u05DE\u05D5\u05EA \u05DE\u05E7\u05D5\u05D3\u05DE\u05D5\u05EA, \u05E7\u05D9\u05D3\u05D5\u05DD \u05E4\u05E0\u05D9\u05DE\u05D9 \u05D5\u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA \u05E7\u05D3\u05DD\u05BE\u05D5\u05D9\u05D3\u05D0\u05D5 \u05D2\u05DC\u05D5\u05D9\u05D5\u05EA. Aviary \u05D2\u05DD \u05DE\u05E1\u05E8\u05D1 \u05DC\u05D1\u05E7\u05E9\u05EA \u05D4\u05E8\u05D9\u05E9\u05D5\u05DD \u05D4\u05E0\u05E4\u05E8\u05D3\u05EA \u05E9\u05DC X \u05DC\u05EA\u05D5\u05DB\u05DF \u05DE\u05E7\u05D5\u05D3\u05DD \u05D1\u05DC\u05D9 \u05DC\u05D7\u05E1\u05D5\u05DD \u05D0\u05EA \u05D8\u05E2\u05D9\u05E0\u05EA \u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF.",
+      "Refuse X's ad logging call": "\u05D3\u05D7\u05D9\u05D9\u05EA \u05E7\u05E8\u05D9\u05D0\u05EA \u05E8\u05D9\u05E9\u05D5\u05DD \u05D4\u05DE\u05D5\u05D3\u05E2\u05D5\u05EA \u05E9\u05DC X",
+      "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "\u05D7\u05DC \u05E8\u05E7 \u05DB\u05D0\u05E9\u05E8 \u05DE\u05E6\u05D1 \u05DC\u05DC\u05D0 \u05DE\u05D5\u05D3\u05E2\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC. Aviary \u05D3\u05D5\u05D7\u05D4 \u05D0\u05EA \u05D1\u05E7\u05E9\u05EA \u05E8\u05D9\u05E9\u05D5\u05DD \u05D4\u05EA\u05D5\u05DB\u05DF \u05D4\u05DE\u05DE\u05D5\u05DE\u05DF \u05D4\u05E0\u05E4\u05E8\u05D3\u05EA \u05E9\u05DC X, \u05D1\u05E7\u05E9\u05EA \u05D4\u05DE\u05D5\u05D3\u05E2\u05D5\u05EA \u05D4\u05D9\u05D7\u05D9\u05D3\u05D4 \u05E9\u05E0\u05D9\u05EA\u05DF \u05DC\u05D4\u05E4\u05E8\u05D9\u05D3 \u05DE\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF \u05E2\u05E6\u05DE\u05D5. \u05DB\u05D1\u05D4 \u05D6\u05D0\u05EA \u05D0\u05DD X \u05DE\u05EA\u05DC\u05D5\u05E0\u05DF \u05E2\u05DC \u05D7\u05D5\u05E1\u05DD \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA: \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05DE\u05DE\u05D5\u05DE\u05E0\u05D9\u05DD \u05D9\u05D9\u05E9\u05D0\u05E8\u05D5 \u05DE\u05D5\u05E1\u05EA\u05E8\u05D9\u05DD \u05D5-Aviary \u05D9\u05E4\u05E1\u05D9\u05E7 \u05DC\u05D3\u05D7\u05D5\u05EA \u05DB\u05DC \u05D1\u05E7\u05E9\u05D4 \u05E9\u05D4\u05D9\u05D0.",
       "Ad protection status": "\u05DE\u05E6\u05D1 \u05D4\u05D4\u05D2\u05E0\u05D4 \u05DE\u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA",
       "Hide right sidebar": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05E1\u05E8\u05D2\u05DC \u05D4\u05E6\u05D3",
       "Reduce trends, recommendations, and footer noise.": "\u05DE\u05E4\u05D7\u05D9\u05EA \u05E8\u05E2\u05E9 \u05E9\u05DC \u05DE\u05D2\u05DE\u05D5\u05EA, \u05D4\u05DE\u05DC\u05E6\u05D5\u05EA \u05D5\u05DB\u05D5\u05EA\u05E8\u05EA \u05EA\u05D7\u05EA\u05D5\u05E0\u05D4.",
@@ -6943,6 +6973,8 @@ html.av-reduce-motion *::after {
       "Motion preference saved": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D4\u05EA\u05E0\u05D5\u05E2\u05D4 \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Ad-free mode on": "\u05DE\u05E6\u05D1 \u05DC\u05DC\u05D0 \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC",
       "Ad-free mode off": "\u05DE\u05E6\u05D1 \u05DC\u05DC\u05D0 \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA \u05DB\u05D1\u05D5\u05D9",
+      "Ad logging refused": "\u05E8\u05D9\u05E9\u05D5\u05DD \u05D4\u05DE\u05D5\u05D3\u05E2\u05D5\u05EA \u05E0\u05D3\u05D7\u05D4",
+      "Ad logging allowed": "\u05E8\u05D9\u05E9\u05D5\u05DD \u05D4\u05DE\u05D5\u05D3\u05E2\u05D5\u05EA \u05DE\u05D5\u05EA\u05E8",
       "Sidebar preference saved": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05E1\u05E8\u05D2\u05DC \u05D4\u05E6\u05D3 \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Trend preference saved": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D4\u05DE\u05D2\u05DE\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Layout preference saved": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D4\u05E4\u05E8\u05D9\u05E1\u05D4 \u05E0\u05E9\u05DE\u05E8\u05D4",
@@ -7326,6 +7358,10 @@ html.av-reduce-motion *::after {
       // records share X's timeline response, so the safe default is to collapse those placements
       // before paint and refuse only the separable promoted-content logging endpoint.
       blockAds: true,
+      // On by default: it is the stronger protection, and it is what shipped. X began testing an
+      // ad-blocker warning in July 2026 that appears to key on refused requests, so this exists to
+      // be turned off without giving up ad hiding.
+      networkShield: true,
       // Off by default. Aviary sends no telemetry of its own either way; this refuses X's, which
       // is a change to how the site behaves and is the user's call to make, not a default.
       blockAnalyticsBeacons: false,
@@ -7534,6 +7570,7 @@ html.av-reduce-motion *::after {
         localOnly: anyIntegrationEnabled ? false : booleanValue(privacy.localOnly, DEFAULT_SETTINGS.privacy.localOnly),
         telemetry: false,
         blockAds: booleanValue(privacy.blockAds, DEFAULT_SETTINGS.privacy.blockAds),
+        networkShield: booleanValue(privacy.networkShield, DEFAULT_SETTINGS.privacy.networkShield),
         blockAnalyticsBeacons: booleanValue(
           privacy.blockAnalyticsBeacons,
           DEFAULT_SETTINGS.privacy.blockAnalyticsBeacons
@@ -10083,6 +10120,15 @@ html.av-reduce-motion *::after {
         async (checked) => {
           ctx.options.settings.privacy.blockAds = checked;
           await ctx.save(checked ? "Ad-free mode on" : "Ad-free mode off");
+        }
+      ),
+      ctx.toggleRow(
+        "Refuse X's ad logging call",
+        "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.",
+        ctx.options.settings.privacy.networkShield,
+        async (checked) => {
+          ctx.options.settings.privacy.networkShield = checked;
+          await ctx.save(checked ? "Ad logging refused" : "Ad logging allowed");
         }
       ),
       hooks ? ctx.dataRow(
@@ -13371,7 +13417,8 @@ input[type="checkbox"] {
     bridgeStatus = bridge.status();
     bridgeReason = bridge.reason();
     bridge.configure({
-      blockAds: ctx.settings.privacy.blockAds,
+      // The page-world logger stub is the network half; structural suppression is separate.
+      blockAds: ctx.settings.privacy.blockAds && ctx.settings.privacy.networkShield,
       blockBeacons: ctx.settings.privacy.blockAnalyticsBeacons,
       captureGraphql: ctx.settings.export.preserveRawPayloads,
       captureMediaMetadata: ctx.settings.media.buttons,
@@ -29046,7 +29093,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     const diagnostics = new Diagnostics();
     const pageBridge = createPageBridge({ source: options.source, diagnostics });
     pageBridge.configure({
-      blockAds: DEFAULT_SETTINGS.privacy.blockAds,
+      blockAds: DEFAULT_SETTINGS.privacy.blockAds && DEFAULT_SETTINGS.privacy.networkShield,
       blockBeacons: false,
       captureGraphql: false,
       captureMediaMetadata: false,
@@ -29089,7 +29136,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         supported: SETTINGS_SCHEMA_VERSION
       });
     }
-    await reconcileExtensionAdRule(options.source, settings.privacy.blockAds, diagnostics);
+    await reconcileExtensionAdRule(options.source, networkShieldActive(settings), diagnostics);
     setLocalOnlyPolicy(() => settings.privacy.localOnly);
     const limiter = settings.jobs.rateLimitMode === "conservative" ? new TokenBucket(4, 1) : new TokenBucket(8, 4);
     let appliedRateLimitMode = settings.jobs.rateLimitMode;
@@ -29151,7 +29198,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       pageBridge,
       async saveSettings() {
         await storage.set(SETTINGS_KEY, normalizeSettings(cloneSettings(settings)));
-        await reconcileExtensionAdRule(options.source, settings.privacy.blockAds, diagnostics);
+        await reconcileExtensionAdRule(options.source, networkShieldActive(settings), diagnostics);
         diagnostics.info("Settings saved", { key: SETTINGS_KEY });
       },
       requestApply() {
@@ -29212,6 +29259,9 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     if (!result.ok) {
       diagnostics.warn("Extension ad rule failed to sync", { error: result.error ?? "unknown" });
     }
+  }
+  function networkShieldActive(settings) {
+    return settings.privacy.blockAds && settings.privacy.networkShield;
   }
   function errorDetails7(error) {
     if (error instanceof Error) {

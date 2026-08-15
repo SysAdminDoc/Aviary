@@ -97,7 +97,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   // starts with the same default-on ad guard, then this config is replaced by persisted settings.
   const pageBridge = createPageBridge({ source: options.source, diagnostics });
   pageBridge.configure({
-    blockAds: DEFAULT_SETTINGS.privacy.blockAds,
+    blockAds: DEFAULT_SETTINGS.privacy.blockAds && DEFAULT_SETTINGS.privacy.networkShield,
     blockBeacons: false,
     captureGraphql: false,
     captureMediaMetadata: false,
@@ -145,7 +145,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
       supported: SETTINGS_SCHEMA_VERSION
     });
   }
-  await reconcileExtensionAdRule(options.source, settings.privacy.blockAds, diagnostics);
+  await reconcileExtensionAdRule(options.source, networkShieldActive(settings), diagnostics);
   // Read fresh on every outbound call, so toggling local-only mode applies at once.
   setLocalOnlyPolicy(() => settings.privacy.localOnly);
   // Burst covers an ordinary page of media without any wait; the refill rate is what paces a
@@ -223,7 +223,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
       // Normalized here so persistence has one choke point with one guarantee. Panel handlers
       // wrote whatever was in memory while import/preset/locale wrote normalized values.
       await storage.set(SETTINGS_KEY, normalizeSettings(cloneSettings(settings)));
-      await reconcileExtensionAdRule(options.source, settings.privacy.blockAds, diagnostics);
+      await reconcileExtensionAdRule(options.source, networkShieldActive(settings), diagnostics);
       diagnostics.info("Settings saved", { key: SETTINGS_KEY });
     },
     requestApply() {
@@ -298,6 +298,17 @@ async function reconcileExtensionAdRule(
   if (!result.ok) {
     diagnostics.warn("Extension ad rule failed to sync", { error: result.error ?? "unknown" });
   }
+}
+
+/**
+ * Whether Aviary should refuse X's promoted-content logger at the network layer.
+ *
+ * Structural ad suppression is `privacy.blockAds` alone. This is the separable half that a site
+ * can observe, so it carries its own switch: turning it off leaves ads hidden while Aviary stops
+ * blocking any request.
+ */
+function networkShieldActive(settings: { privacy: { blockAds: boolean; networkShield: boolean } }): boolean {
+  return settings.privacy.blockAds && settings.privacy.networkShield;
 }
 
 function errorDetails(error: unknown): Record<string, unknown> {

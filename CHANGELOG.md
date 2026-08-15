@@ -4,6 +4,12 @@
 
 ### Added
 
+- **Refuse X's ad logging call** is a new sub-toggle of Ad-free mode (on by default, so nothing
+  changes for existing installs). It owns the observable half of ad protection — the page-world
+  logger stub and the extension's dynamic request rule — while structural suppression stays on
+  Ad-free mode alone. X began testing an ad-blocker warning in July 2026 that appears to key on
+  refused requests; turning this off keeps sponsored posts hidden while Aviary stops refusing any
+  request at all.
 - Persisted settings now carry an explicit `schemaVersion` and run through an upgrade ladder.
   `aviary.settings.v1` was a storage slot, not a schema: a renamed key would have been read as
   absent and quietly reset to its default. Settings written by a newer Aviary are detected and

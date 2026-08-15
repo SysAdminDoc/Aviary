@@ -200,6 +200,12 @@ export interface AviarySettings {
     localOnly: boolean;
     telemetry: false;
     blockAds: boolean;
+    /**
+     * The network half of ad protection: the page-world promoted-logger stub and the extension's
+     * dynamic request rule. Structural suppression stays on `blockAds` alone, so turning this off
+     * keeps ads hidden while making Aviary stop refusing any request.
+     */
+    networkShield: boolean;
     blockAnalyticsBeacons: boolean;
     auditLog: boolean;
   };
@@ -303,6 +309,10 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     // records share X's timeline response, so the safe default is to collapse those placements
     // before paint and refuse only the separable promoted-content logging endpoint.
     blockAds: true,
+    // On by default: it is the stronger protection, and it is what shipped. X began testing an
+    // ad-blocker warning in July 2026 that appears to key on refused requests, so this exists to
+    // be turned off without giving up ad hiding.
+    networkShield: true,
     // Off by default. Aviary sends no telemetry of its own either way; this refuses X's, which
     // is a change to how the site behaves and is the user's call to make, not a default.
     blockAnalyticsBeacons: false,
@@ -535,6 +545,7 @@ export function normalizeSettings(input: unknown): AviarySettings {
         : booleanValue(privacy.localOnly, DEFAULT_SETTINGS.privacy.localOnly),
       telemetry: false,
       blockAds: booleanValue(privacy.blockAds, DEFAULT_SETTINGS.privacy.blockAds),
+      networkShield: booleanValue(privacy.networkShield, DEFAULT_SETTINGS.privacy.networkShield),
       blockAnalyticsBeacons: booleanValue(
         privacy.blockAnalyticsBeacons,
         DEFAULT_SETTINGS.privacy.blockAnalyticsBeacons

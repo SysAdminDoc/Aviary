@@ -10,13 +10,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ### P1 — trust, reliability, structural gaps
 
-- [ ] F108 — P1 — Anti-adblock exposure mitigation (DOM-only mode)
-  Why: X is testing an "ad blocker is preventing Personalized Timelines" warning (2026-07) that plausibly keys on blocked telemetry — Aviary's DNR logger rule and page-world logger stub are its visible surface; structural DOM hiding is detection-quiet.
-  Evidence: https://piunikaweb.com/2026/07/10/x-ad-blocker-warning-browser-users/; r/uBlockOrigin corroboration; RESEARCH.md Security.
-  Touches: src/features/privacy/ad-protection.ts, src/features/privacy/page-hooks.ts, extension background (DNR rule toggle), Trust section copy, selector-health (detect the warning surface as a contract).
-  Acceptance: a `privacy.networkShield` sub-toggle disables the DNR rule + logger stub while keeping structural suppression; the warning surface, if present, is detected and reported in Trust with the tradeoff explained.
-  Complexity: M
-
 - [ ] F109 — P1 — First-run onboarding surface
   Why: a fresh install silently blocks ads and adds media buttons with no explanation and no pointer to the settings entry; zero onboarding exists (no first-run/welcome/hasSeen anywhere in src/).
   Evidence: repo recon (grep verified); RESEARCH.md Architecture; HN Tweeks thread trust-reflex (users demand to know what an enhancer does).
