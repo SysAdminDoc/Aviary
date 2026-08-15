@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -127,4 +127,88 @@ async function importBundledModule(relativePath) {
   } finally {
     await rm(temp, { force: true, recursive: true });
   }
+}
+
+// `aviary.seenPosts.v1` shipped in v1.23.0 and was in none of the three registries below, so it was
+// skipped by eager migration, legacy profile adoption, and the library backup — Backup claimed
+// completeness over a store it did not carry. Enumerating the declared keys is the only check that
+// notices the next one, because nothing else connects a `new Store(KEY)` to the registries.
+
+test("every durable store key declared in src is registered everywhere it must be", async () => {
+  const files = await collectSourceFiles(path.join(root, "src"));
+  const declared = new Map();
+  for (const file of files) {
+    const source = await readFile(file, "utf8");
+    // The shape a store declares itself with: `export const SOMETHING_KEY = "aviary.x.v1";`
+    for (const match of source.matchAll(/export const (\w*KEYS?)\s*=\s*"(aviary\.[\w.-]+)"/g)) {
+      declared.set(match[2], path.relative(root, file).replaceAll("\\", "/"));
+    }
+  }
+  assert.ok(declared.size >= 15, `expected the store keys, found ${declared.size}`);
+
+  const durable = await readFile(path.join(root, "src/platform/durable-storage.ts"), "utf8");
+  const profile = await readFile(path.join(root, "src/platform/profile.ts"), "utf8");
+  const backup = await readFile(path.join(root, "src/features/core/library-backup.ts"), "utf8");
+
+  const durableList = durable.slice(
+    durable.indexOf("DURABLE_STORAGE_KEYS"),
+    durable.indexOf("] as const", durable.indexOf("DURABLE_STORAGE_KEYS"))
+  );
+  const profileList = profile.slice(
+    profile.indexOf("PROFILE_MIGRATION_KEYS"),
+    profile.indexOf("] as const", profile.indexOf("PROFILE_MIGRATION_KEYS"))
+  );
+  const backupList = backup.slice(
+    backup.indexOf("LIBRARY_BACKUP_COLLECTIONS"),
+    backup.indexOf("] as const", backup.indexOf("LIBRARY_BACKUP_COLLECTIONS"))
+  );
+
+  // Not every key belongs in every registry. These are the deliberate exclusions, each naming the
+  // reason it is excluded from that specific registry — anything else missing is the seen-posts
+  // bug happening again. Adding a key here is a decision; forgetting one is the defect.
+  const exempt = {
+    // The registry of profiles cannot itself be profile-scoped, and it is what migration reads.
+    "aviary.profiles.v1": { durable: "is the profile registry", profile: "is the profile registry", backup: "profile plumbing, not user data" },
+    "aviary.profile.active.v1": { durable: "is profile selection", profile: "is profile selection", backup: "profile plumbing, not user data" },
+    // Lives in the extension service worker's chrome.storage, not the page StorageGateway, and is
+    // derived from settings — it mirrors whether one DNR rule is installed.
+    "aviary.runtime.adLoggerRule.v1": { durable: "extension realm, not the page gateway", profile: "extension realm, not the page gateway", backup: "derived runtime state, rebuilt from settings" },
+    // Bounded diagnostic observations (64 entries / 30 days) that regenerate as you browse.
+    "aviary.adObservations.v1": { backup: "regenerable diagnostics, not user data" },
+    // A one-time dismissal flag. A restored backup landing on a fresh profile should show the
+    // first-run notice, so carrying the dismissal across would be the wrong behaviour.
+    "aviary.firstRun.v1": { backup: "UI dismissal flag, deliberately not carried" },
+    // Warnings and errors from earlier page loads; bounded, profile-scoped, and about this
+    // install rather than about the user's library.
+    "aviary.diagnostics.v1": { backup: "install diagnostics, not user data" }
+  };
+
+  const gaps = [];
+  for (const [key, file] of declared) {
+    const excused = exempt[key] ?? {};
+    if (!excused.durable && !durableList.includes(`"${key}"`)) {
+      gaps.push(`${key} (${file}) missing from DURABLE_STORAGE_KEYS`);
+    }
+    if (!excused.profile && !profileList.includes(`"${key}"`)) {
+      gaps.push(`${key} (${file}) missing from PROFILE_MIGRATION_KEYS`);
+    }
+    // The backup list refers to keys by their imported constant, so match on the constant's name.
+    const constant = [...(await readFile(path.join(root, file), "utf8")).matchAll(
+      /export const (\w*KEYS?)\s*=\s*"(aviary\.[\w.-]+)"/g
+    )].find((entry) => entry[2] === key)?.[1];
+    if (!excused.backup && constant && !backupList.includes(`${constant},`) && !backupList.includes(`${constant} `)) {
+      gaps.push(`${key} (${constant}) missing from LIBRARY_BACKUP_COLLECTIONS`);
+    }
+  }
+  assert.deepEqual(gaps, [], `durable stores are not registered everywhere:\n  ${gaps.join("\n  ")}`);
+});
+
+async function collectSourceFiles(dir) {
+  const out = [];
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...(await collectSourceFiles(full)));
+    else if (entry.name.endsWith(".ts")) out.push(full);
+  }
+  return out;
 }

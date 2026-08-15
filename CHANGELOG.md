@@ -4,6 +4,19 @@
 
 ### Fixed
 
+- Four local stores were invisible to the machinery that is supposed to know about every store.
+  Seen posts, ad-contract observations, persisted diagnostics, and the first-run flag were each
+  missing from the durable-storage migration list and the profile-adoption list, and seen posts
+  was additionally missing from the library backup — so **Backup claimed completeness over a store
+  it did not carry**. All four are registered now, and the privacy data map documents what each
+  one holds.
+- A new test enumerates every `aviary.*.v1` key declared in the source and fails when one is
+  absent from a registry it belongs in. Each deliberate exclusion is listed with the reason it is
+  excluded from that specific registry — the extension's DNR-rule mirror lives in a different
+  storage realm, and diagnostics, ad observations and the first-run flag are not user data. This
+  is the only check that connects a store's declaration to the registries; nothing else did, which
+  is why four accumulated.
+
 - The capture decoder no longer mangles non-ASCII text. Quoted-printable carries bytes, not
   characters, and the first version mapped each octet through `String.fromCharCode` before writing
   UTF-8 back out — so `=E2=80=94` became mojibake instead of an em-dash, and every display name,

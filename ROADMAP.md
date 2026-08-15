@@ -119,13 +119,6 @@ Internal audit of the subsystems no prior pass had examined, plus the code added
   Acceptance: a simulated mid-session backend failure leaves the session usable and its writes recoverable — on the next boot, legacy values written after migration reconcile into the backend rather than being shadowed; Trust reports a fallback session in plain words while it is happening; a test drives the fault and proves the write survives the round trip.
   Complexity: M
 
-- [ ] F157 — P1 — Register the seen-posts store in the three registries that don't know it exists
-  Why: `aviary.seenPosts.v1` is absent from `DURABLE_STORAGE_KEYS`, `PROFILE_MIGRATION_KEYS`, and `LIBRARY_BACKUP_COLLECTIONS`, so it is skipped by eager migration accounting, legacy profile adoption, and the library backup — Backup claims completeness over a store it does not carry.
-  Evidence: `src/features/filtering/seen-posts.ts:3` vs `src/platform/durable-storage.ts:6-26`, `src/platform/profile.ts:7-28`, `src/features/core/library-backup.ts:48-69`; grep-verified 0 matches in all three, 2026-08-15.
-  Touches: those three registries, plus a completeness test that scans `src/` for `aviary.*.v1` literals and fails when one is missing from the registries — so the next new store cannot repeat this.
-  Acceptance: seen posts survive backup/restore and profile adoption; the scan test fails when fed a store key the registries lack (bait-verified); backup docs still honestly describe what travels.
-  Complexity: S
-
 ### P2 — reliability
 
 - [ ] F158 — P2 — CI must trigger on the files its gates read
