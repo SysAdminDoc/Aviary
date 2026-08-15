@@ -10,13 +10,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ### P1 — trust, reliability, structural gaps
 
-- [ ] F109 — P1 — First-run onboarding surface
-  Why: a fresh install silently blocks ads and adds media buttons with no explanation and no pointer to the settings entry; zero onboarding exists (no first-run/welcome/hasSeen anywhere in src/).
-  Evidence: repo recon (grep verified); RESEARCH.md Architecture; HN Tweeks thread trust-reflex (users demand to know what an enhancer does).
-  Touches: new src/features/core/first-run.ts, storage key, Control Center, i18n catalog.
-  Acceptance: first boot on a profile shows a dismissible, reduced-motion-safe notice naming the two default-on behaviors and linking the nav settings entry; never reappears after dismissal; fixture-tested.
-  Complexity: M
-
 - [ ] F110 — P1 — Rule-based filter DSL with importable rule packs
   Why: field+operator+value filtering (author, handle pattern, keyword/regex, media type, age, engagement) is table stakes in CPFT/RES/rxliuli and the sibling x-feed-cleaner — it is Aviary's only structural feature gap; importable/exportable rule packs are the differentiator.
   Evidence: RES filteReddit; https://rxliuli.com/project/twitter-filter/; x-feed-cleaner v2.7.0 (same operator); RESEARCH.md Competitive.

@@ -21,6 +21,8 @@ export interface FeatureContext {
   diagnostics: Diagnostics;
   /** Warnings and errors that survive a reload; absent in minimal unit-test contexts. */
   diagnosticsStore?: DiagnosticsStore;
+  /** True when this profile had no stored settings at boot, i.e. Aviary has never run here. */
+  freshInstall?: boolean;
   auditLog: AuditLog;
   /**
    * Access to the page's own world. Absent when the host cannot provide it -- an old userscript

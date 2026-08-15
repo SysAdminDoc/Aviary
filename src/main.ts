@@ -1,5 +1,6 @@
 import { themeFeature } from "./features/appearance/theme";
 import { controlCenterFeature } from "./features/core/control-center";
+import { firstRunFeature } from "./features/core/first-run";
 import { selectorHealthFeature } from "./features/core/selector-health";
 import { filterEngineFeature } from "./features/filtering/filter-engine";
 import { hiddenPostsFeature } from "./features/filtering/hidden-posts-feature";
@@ -128,7 +129,11 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   diagnostics.setSink((event) => diagnosticsStore.record(event));
   const integrationUsage = new IntegrationUsageLedger(storage);
   await integrationUsage.load();
-  const settingsEnvelope = readSettingsEnvelope(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
+  // A profile with no stored settings has never run Aviary. That is what distinguishes a fresh
+  // install from an upgrade, and an upgrade must not be shown a "here is what changed" first run.
+  const storedSettings = await storage.get<unknown>(SETTINGS_KEY, undefined);
+  const freshInstall = storedSettings === undefined;
+  const settingsEnvelope = readSettingsEnvelope(storedSettings ?? DEFAULT_SETTINGS);
   const settings = settingsEnvelope.settings;
   if (settingsEnvelope.applied.length > 0) {
     diagnostics.info("Settings schema upgraded", {
@@ -207,6 +212,8 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   // Registered last so its first paint reads stores that are already loaded — features
   // initialize in registration order, and the panel reports their counts.
   registry.register(controlCenterFeature);
+  // Last: the notice points at the navigation row the Control Center feature mounts.
+  registry.register(firstRunFeature);
 
   const context: FeatureContext = {
     route: readRoute(),
@@ -217,6 +224,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     limiter,
     diagnostics,
     diagnosticsStore,
+    freshInstall,
     auditLog,
     pageBridge,
     async saveSettings() {

@@ -4,6 +4,10 @@
 
 ### Added
 
+- A fresh install now says what it already changed. A one-time dismissible notice names the two
+  default-on behaviours — hidden ads and the click-only media controls — and points at the Aviary
+  row in X's left navigation. It appears only for a profile that has never stored settings, so an
+  upgrade never sees it, and it respects the reduced-motion preference.
 - **Refuse X's ad logging call** is a new sub-toggle of Ad-free mode (on by default, so nothing
   changes for existing installs). It owns the observable half of ad protection — the page-world
   logger stub and the extension's dynamic request rule — while structural suppression stays on

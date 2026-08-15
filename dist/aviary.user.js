@@ -1293,6 +1293,12 @@ html.av-reduce-motion *::after {
       "Open Aviary composer snippets": "Abrir los fragmentos del redactor de Aviary",
       "No snippets yet. Add some in the Control Center \u2192 Library.": "A\xFAn no hay fragmentos. A\xF1\xE1delos en el Centro de control \u2192 Biblioteca.",
       "Click into the composer first, then pick a snippet.": "Haz clic en el redactor y luego elige un fragmento.",
+      "Aviary is on": "Aviary est\xE1 activo",
+      "Two things are enabled from the start. Everything else stays off until you turn it on.": "Dos cosas est\xE1n activadas desde el principio. Todo lo dem\xE1s permanece desactivado hasta que t\xFA lo actives.",
+      "Sponsored posts, promoted trends and pre-rolls are hidden.": "Las publicaciones patrocinadas, las tendencias promocionadas y los anuncios previos est\xE1n ocultos.",
+      "Photos and videos get a save control that only acts when you click it.": "Las fotos y los v\xEDdeos reciben un control de guardado que solo act\xFAa cuando haces clic en \xE9l.",
+      "Open Aviary from the last row of X's left navigation to change any of it.": "Abre Aviary desde la \xFAltima fila de la navegaci\xF3n izquierda de X para cambiar cualquiera de estas opciones.",
+      "Got it": "Entendido",
       "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.": "Oculta tendencias, bordes de fila y contadores de interacci\xF3n, aten\xFAa las publicaciones premium, limpia t.co, tema denso y tenue.",
       "Media Archivist": "Archivo de medios",
       "Original-quality downloads, deterministic filenames, dedup history, stacked media.": "Descargas con calidad original, nombres de archivo deterministas, historial sin duplicados, medios apilados.",
@@ -2125,6 +2131,12 @@ html.av-reduce-motion *::after {
       "Open Aviary composer snippets": "Abrir os excertos do editor do Aviary",
       "No snippets yet. Add some in the Control Center \u2192 Library.": "Ainda n\xE3o h\xE1 excertos. Adiciona alguns no Centro de Controlo \u2192 Biblioteca.",
       "Click into the composer first, then pick a snippet.": "Clica primeiro no editor e depois escolhe um excerto.",
+      "Aviary is on": "O Aviary est\xE1 ativo",
+      "Two things are enabled from the start. Everything else stays off until you turn it on.": "Duas coisas ficam ativadas desde o in\xEDcio. Todo o restante permanece desligado at\xE9 voc\xEA ativar.",
+      "Sponsored posts, promoted trends and pre-rolls are hidden.": "Publica\xE7\xF5es patrocinadas, tend\xEAncias promovidas e an\xFAncios pr\xE9-v\xEDdeo ficam ocultos.",
+      "Photos and videos get a save control that only acts when you click it.": "Fotos e v\xEDdeos ganham um controle de salvar que s\xF3 age quando voc\xEA clica nele.",
+      "Open Aviary from the last row of X's left navigation to change any of it.": "Abra o Aviary na \xFAltima linha da navega\xE7\xE3o esquerda do X para alterar qualquer uma dessas op\xE7\xF5es.",
+      "Got it": "Entendi",
       "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.": "Oculta tend\xEAncias, limites de linha e contadores de intera\xE7\xE3o, atenua publica\xE7\xF5es premium, limpa t.co, tema denso e esbatido.",
       "Media Archivist": "Arquivo de multim\xE9dia",
       "Original-quality downloads, deterministic filenames, dedup history, stacked media.": "Transfer\xEAncias com qualidade original, nomes de ficheiro determin\xEDsticos, hist\xF3rico sem duplicados, multim\xE9dia empilhada.",
@@ -2957,6 +2969,12 @@ html.av-reduce-motion *::after {
       "Open Aviary composer snippets": "Ouvrir les extraits du compositeur Aviary",
       "No snippets yet. Add some in the Control Center \u2192 Library.": "Aucun extrait pour l'instant. Ajoutez-en dans le Centre de contr\xF4le \u2192 Biblioth\xE8que.",
       "Click into the composer first, then pick a snippet.": "Cliquez d'abord dans le compositeur, puis choisissez un extrait.",
+      "Aviary is on": "Aviary est actif",
+      "Two things are enabled from the start. Everything else stays off until you turn it on.": "Deux choses sont activ\xE9es d\xE8s le d\xE9part. Tout le reste reste d\xE9sactiv\xE9 jusqu'\xE0 ce que vous l'activiez.",
+      "Sponsored posts, promoted trends and pre-rolls are hidden.": "Les posts sponsoris\xE9s, les tendances promues et les pre-rolls sont masqu\xE9s.",
+      "Photos and videos get a save control that only acts when you click it.": "Les photos et vid\xE9os re\xE7oivent un bouton d'enregistrement qui n'agit que lorsque vous cliquez dessus.",
+      "Open Aviary from the last row of X's left navigation to change any of it.": "Ouvrez Aviary depuis la derni\xE8re ligne de la navigation gauche de X pour modifier tout cela.",
+      "Got it": "Compris",
       "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.": "Masque les tendances, les bordures de ligne et les compteurs d'interaction, att\xE9nue les posts premium, nettoie t.co, th\xE8me dense et sombre.",
       "Media Archivist": "Archiviste m\xE9dia",
       "Original-quality downloads, deterministic filenames, dedup history, stacked media.": "T\xE9l\xE9chargements en qualit\xE9 d'origine, noms de fichiers d\xE9terministes, historique d\xE9dupliqu\xE9, m\xE9dias empil\xE9s.",
@@ -3789,6 +3807,12 @@ html.av-reduce-motion *::after {
       "Open Aviary composer snippets": "Aviarys Textbausteine im Editor \xF6ffnen",
       "No snippets yet. Add some in the Control Center \u2192 Library.": "Noch keine Textbausteine. Lege welche im Control Center \u2192 Bibliothek an.",
       "Click into the composer first, then pick a snippet.": "Klicke erst in den Editor und w\xE4hle dann einen Textbaustein.",
+      "Aviary is on": "Aviary ist aktiv",
+      "Two things are enabled from the start. Everything else stays off until you turn it on.": "Zwei Dinge sind von Anfang an aktiv. Alles andere bleibt aus, bis du es einschaltest.",
+      "Sponsored posts, promoted trends and pre-rolls are hidden.": "Gesponserte Beitr\xE4ge, beworbene Trends und Pre-Rolls sind ausgeblendet.",
+      "Photos and videos get a save control that only acts when you click it.": "Fotos und Videos erhalten eine Speichern-Schaltfl\xE4che, die erst auf deinen Klick hin etwas tut.",
+      "Open Aviary from the last row of X's left navigation to change any of it.": "\xD6ffne Aviary \xFCber die letzte Zeile in X' linker Navigation, um daran etwas zu \xE4ndern.",
+      "Got it": "Verstanden",
       "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.": "Blendet Trends, Zeilenrahmen und Interaktionszahlen aus, dimmt Premium-Beitr\xE4ge, bereinigt t.co, dichtes und gedimmtes Design.",
       "Media Archivist": "Medienarchiv",
       "Original-quality downloads, deterministic filenames, dedup history, stacked media.": "Downloads in Originalqualit\xE4t, deterministische Dateinamen, Verlauf ohne Duplikate, gestapelte Medien.",
@@ -4621,6 +4645,12 @@ html.av-reduce-motion *::after {
       "Open Aviary composer snippets": "Aviary \u306E\u5B9A\u578B\u6587\u3092\u958B\u304F",
       "No snippets yet. Add some in the Control Center \u2192 Library.": "\u5B9A\u578B\u6587\u304C\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u30BB\u30F3\u30BF\u30FC \u2192 \u30E9\u30A4\u30D6\u30E9\u30EA\u3067\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
       "Click into the composer first, then pick a snippet.": "\u5148\u306B\u5165\u529B\u6B04\u3092\u30AF\u30EA\u30C3\u30AF\u3057\u3066\u304B\u3089\u5B9A\u578B\u6587\u3092\u9078\u3093\u3067\u304F\u3060\u3055\u3044\u3002",
+      "Aviary is on": "Aviary \u306F\u6709\u52B9\u3067\u3059",
+      "Two things are enabled from the start. Everything else stays off until you turn it on.": "\u6700\u521D\u304B\u3089 2 \u3064\u306E\u6A5F\u80FD\u304C\u6709\u52B9\u306B\u306A\u3063\u3066\u3044\u307E\u3059\u3002\u305D\u308C\u4EE5\u5916\u306F\u3059\u3079\u3066\u3001\u3042\u306A\u305F\u304C\u6709\u52B9\u306B\u3059\u308B\u307E\u3067\u30AA\u30D5\u306E\u307E\u307E\u3067\u3059\u3002",
+      "Sponsored posts, promoted trends and pre-rolls are hidden.": "\u30B9\u30DD\u30F3\u30B5\u30FC\u6295\u7A3F\u3001\u30D7\u30ED\u30E2\u30FC\u30B7\u30E7\u30F3\u30C8\u30EC\u30F3\u30C9\u3001\u30D7\u30EA\u30ED\u30FC\u30EB\u5E83\u544A\u306F\u975E\u8868\u793A\u3067\u3059\u3002",
+      "Photos and videos get a save control that only acts when you click it.": "\u5199\u771F\u3068\u52D5\u753B\u306B\u4FDD\u5B58\u30DC\u30BF\u30F3\u304C\u8FFD\u52A0\u3055\u308C\u307E\u3059\u3002\u30AF\u30EA\u30C3\u30AF\u3057\u305F\u3068\u304D\u3060\u3051\u52D5\u4F5C\u3057\u307E\u3059\u3002",
+      "Open Aviary from the last row of X's left navigation to change any of it.": "\u8A2D\u5B9A\u3092\u5909\u66F4\u3059\u308B\u306B\u306F\u3001X \u306E\u5DE6\u30CA\u30D3\u30B2\u30FC\u30B7\u30E7\u30F3\u6700\u4E0B\u90E8\u306E\u884C\u304B\u3089 Aviary \u3092\u958B\u3044\u3066\u304F\u3060\u3055\u3044\u3002",
+      "Got it": "\u4E86\u89E3",
       "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.": "\u30C8\u30EC\u30F3\u30C9\u30FB\u884C\u306E\u5883\u754C\u7DDA\u30FB\u30A8\u30F3\u30B2\u30FC\u30B8\u30E1\u30F3\u30C8\u6570\u3092\u96A0\u3057\u3001\u30D7\u30EC\u30DF\u30A2\u30E0\u6295\u7A3F\u3092\u6697\u304F\u3057\u3001t.co \u3092\u6574\u7406\u3059\u308B\u9AD8\u5BC6\u5EA6\u306E\u30C0\u30FC\u30AF\u30C6\u30FC\u30DE\u3002",
       "Media Archivist": "\u30E1\u30C7\u30A3\u30A2\u4FDD\u5B58",
       "Original-quality downloads, deterministic filenames, dedup history, stacked media.": "\u539F\u5BF8\u3067\u306E\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3001\u898F\u5247\u7684\u306A\u30D5\u30A1\u30A4\u30EB\u540D\u3001\u91CD\u8907\u3092\u9664\u304F\u5C65\u6B74\u3001\u7E26\u7A4D\u307F\u306E\u30E1\u30C7\u30A3\u30A2\u8868\u793A\u3002",
@@ -5453,6 +5483,12 @@ html.av-reduce-motion *::after {
       "Open Aviary composer snippets": "Aviary \uC791\uC131\uAE30 \uC2A4\uB2C8\uD3AB \uC5F4\uAE30",
       "No snippets yet. Add some in the Control Center \u2192 Library.": "\uC544\uC9C1 \uC2A4\uB2C8\uD3AB\uC774 \uC5C6\uC2B5\uB2C8\uB2E4. \uC81C\uC5B4\uD310 \u2192 \uB77C\uC774\uBE0C\uB7EC\uB9AC\uC5D0\uC11C \uCD94\uAC00\uD558\uC138\uC694.",
       "Click into the composer first, then pick a snippet.": "\uBA3C\uC800 \uC791\uC131\uAE30\uB97C \uD074\uB9AD\uD55C \uB4A4 \uC2A4\uB2C8\uD3AB\uC744 \uACE0\uB974\uC138\uC694.",
+      "Aviary is on": "Aviary\uAC00 \uCF1C\uC838 \uC788\uC2B5\uB2C8\uB2E4",
+      "Two things are enabled from the start. Everything else stays off until you turn it on.": "\uCC98\uC74C\uBD80\uD130 \uB450 \uAC00\uC9C0\uAC00 \uCF1C\uC838 \uC788\uC2B5\uB2C8\uB2E4. \uADF8 \uC678\uC5D0\uB294 \uC9C1\uC811 \uCF1C\uAE30 \uC804\uAE4C\uC9C0 \uBAA8\uB450 \uAEBC\uC9C4 \uC0C1\uD0DC\uB85C \uC720\uC9C0\uB429\uB2C8\uB2E4.",
+      "Sponsored posts, promoted trends and pre-rolls are hidden.": "\uC2A4\uD3F0\uC11C \uAC8C\uC2DC\uBB3C, \uD64D\uBCF4 \uD2B8\uB80C\uB4DC, \uD504\uB9AC\uB864 \uAD11\uACE0\uAC00 \uC228\uACA8\uC9D1\uB2C8\uB2E4.",
+      "Photos and videos get a save control that only acts when you click it.": "\uC0AC\uC9C4\uACFC \uB3D9\uC601\uC0C1\uC5D0 \uC800\uC7A5 \uBC84\uD2BC\uC774 \uCD94\uAC00\uB418\uBA70, \uD074\uB9AD\uD560 \uB54C\uB9CC \uB3D9\uC791\uD569\uB2C8\uB2E4.",
+      "Open Aviary from the last row of X's left navigation to change any of it.": "\uC124\uC815\uC744 \uBC14\uAFB8\uB824\uBA74 X \uC67C\uCABD \uB0B4\uBE44\uAC8C\uC774\uC158\uC758 \uB9C8\uC9C0\uB9C9 \uD589\uC5D0\uC11C Aviary\uB97C \uC5EC\uC138\uC694.",
+      "Got it": "\uD655\uC778",
       "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.": "\uD2B8\uB80C\uB4DC\xB7\uD589 \uACBD\uACC4\uC120\xB7\uBC18\uC751 \uC218\uB97C \uC228\uAE30\uACE0, \uD504\uB9AC\uBBF8\uC5C4 \uAC8C\uC2DC\uBB3C\uC744 \uD750\uB9AC\uAC8C \uD558\uBA70, t.co\uB97C \uC815\uB9AC\uD558\uB294 \uC870\uBC00\uD558\uACE0 \uC5B4\uB450\uC6B4 \uD14C\uB9C8.",
       "Media Archivist": "\uBBF8\uB514\uC5B4 \uBCF4\uAD00",
       "Original-quality downloads, deterministic filenames, dedup history, stacked media.": "\uC6D0\uBCF8 \uD654\uC9C8 \uB2E4\uC6B4\uB85C\uB4DC, \uADDC\uCE59\uC801\uC778 \uD30C\uC77C \uC774\uB984, \uC911\uBCF5 \uC5C6\uB294 \uAE30\uB85D, \uC138\uB85C\uB85C \uC313\uC778 \uBBF8\uB514\uC5B4.",
@@ -6285,6 +6321,12 @@ html.av-reduce-motion *::after {
       "Open Aviary composer snippets": "\u0641\u062A\u062D \u0645\u0642\u062A\u0637\u0641\u0627\u062A \u0645\u062D\u0631\u0651\u0631 Aviary",
       "No snippets yet. Add some in the Control Center \u2192 Library.": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u0642\u062A\u0637\u0641\u0627\u062A \u0628\u0639\u062F. \u0623\u0636\u0650\u0641\u0647\u0627 \u0645\u0646 \u0645\u0631\u0643\u0632 \u0627\u0644\u062A\u062D\u0643\u0645 \u2190 \u0627\u0644\u0645\u0643\u062A\u0628\u0629.",
       "Click into the composer first, then pick a snippet.": "\u0627\u0646\u0642\u0631 \u062F\u0627\u062E\u0644 \u0627\u0644\u0645\u062D\u0631\u0651\u0631 \u0623\u0648\u0644\u064B\u0627\u060C \u062B\u0645 \u0627\u062E\u062A\u0631 \u0645\u0642\u062A\u0637\u0641\u064B\u0627.",
+      "Aviary is on": "Aviary \u0645\u064F\u0641\u0639\u064E\u0651\u0644",
+      "Two things are enabled from the start. Everything else stays off until you turn it on.": "\u0647\u0646\u0627\u0643 \u0623\u0645\u0631\u0627\u0646 \u0645\u064F\u0641\u0639\u064E\u0651\u0644\u0627\u0646 \u0645\u0646\u0630 \u0627\u0644\u0628\u062F\u0627\u064A\u0629. \u064A\u0628\u0642\u0649 \u0643\u0644 \u0645\u0627 \u0639\u062F\u0627\u0647\u0645\u0627 \u0645\u062A\u0648\u0642\u0641\u064B\u0627 \u062D\u062A\u0649 \u062A\u064F\u0641\u0639\u0650\u0651\u0644\u0647 \u0628\u0646\u0641\u0633\u0643.",
+      "Sponsored posts, promoted trends and pre-rolls are hidden.": "\u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u0645\u0648\u064E\u0651\u0644\u0629 \u0648\u0627\u0644\u0627\u062A\u062C\u0627\u0647\u0627\u062A \u0627\u0644\u0645\u064F\u0631\u0648\u064E\u0651\u062C\u0629 \u0648\u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A \u0627\u0644\u062A\u0645\u0647\u064A\u062F\u064A\u0629 \u0645\u062E\u0641\u064A\u0629.",
+      "Photos and videos get a save control that only acts when you click it.": "\u062A\u062D\u0635\u0644 \u0627\u0644\u0635\u0648\u0631 \u0648\u0645\u0642\u0627\u0637\u0639 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u0639\u0644\u0649 \u0632\u0631 \u062D\u0641\u0638 \u0644\u0627 \u064A\u0639\u0645\u0644 \u0625\u0644\u0627 \u0639\u0646\u062F \u0627\u0644\u0646\u0642\u0631 \u0639\u0644\u064A\u0647.",
+      "Open Aviary from the last row of X's left navigation to change any of it.": "\u0627\u0641\u062A\u062D Aviary \u0645\u0646 \u0622\u062E\u0631 \u0635\u0641 \u0641\u064A \u0634\u0631\u064A\u0637 \u0627\u0644\u062A\u0646\u0642\u0644 \u0627\u0644\u0623\u064A\u0633\u0631 \u0641\u064A X \u0644\u062A\u063A\u064A\u064A\u0631 \u0623\u064A \u0645\u0646 \u0630\u0644\u0643.",
+      "Got it": "\u062D\u0633\u0646\u064B\u0627",
       "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.": "\u064A\u062E\u0641\u064A \u0627\u0644\u0627\u062A\u062C\u0627\u0647\u0627\u062A \u0648\u062D\u062F\u0648\u062F \u0627\u0644\u0635\u0641\u0648\u0641 \u0648\u0623\u0639\u062F\u0627\u062F \u0627\u0644\u062A\u0641\u0627\u0639\u0644\u060C \u0648\u064A\u0639\u062A\u0651\u0645 \u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0628\u0631\u064A\u0645\u064A\u0648\u0645\u060C \u0648\u064A\u0646\u0638\u0651\u0641 \u0631\u0648\u0627\u0628\u0637 t.co\u060C \u0628\u0633\u0645\u0629 \u062F\u0627\u0643\u0646\u0629 \u0648\u0645\u0643\u062B\u0641\u0629.",
       "Media Archivist": "\u0623\u0631\u0634\u0641\u0629 \u0627\u0644\u0648\u0633\u0627\u0626\u0637",
       "Original-quality downloads, deterministic filenames, dedup history, stacked media.": "\u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0628\u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629\u060C \u0623\u0633\u0645\u0627\u0621 \u0645\u0644\u0641\u0627\u062A \u062B\u0627\u0628\u062A\u0629\u060C \u0633\u062C\u0644 \u0628\u0644\u0627 \u062A\u0643\u0631\u0627\u0631\u060C \u0648\u0633\u0627\u0626\u0637 \u0645\u0631\u062A\u0628\u0629 \u0639\u0645\u0648\u062F\u064A\u064B\u0627.",
@@ -7117,6 +7159,12 @@ html.av-reduce-motion *::after {
       "Open Aviary composer snippets": "\u05E4\u05EA\u05D9\u05D7\u05EA \u05E7\u05D8\u05E2\u05D9 \u05D4\u05D8\u05E7\u05E1\u05D8 \u05E9\u05DC \u05D4\u05E2\u05D5\u05E8\u05DA \u05D1-Aviary",
       "No snippets yet. Add some in the Control Center \u2192 Library.": "\u05D0\u05D9\u05DF \u05E2\u05D3\u05D9\u05D9\u05DF \u05E7\u05D8\u05E2\u05D9 \u05D8\u05E7\u05E1\u05D8. \u05D4\u05D5\u05E1\u05E3 \u05D0\u05D5\u05EA\u05DD \u05D1\u05DE\u05E8\u05DB\u05D6 \u05D4\u05D1\u05E7\u05E8\u05D4 \u2190 \u05E1\u05E4\u05E8\u05D9\u05D9\u05D4.",
       "Click into the composer first, then pick a snippet.": "\u05DC\u05D7\u05E5 \u05E7\u05D5\u05D3\u05DD \u05D1\u05EA\u05D5\u05DA \u05D4\u05E2\u05D5\u05E8\u05DA, \u05D5\u05D0\u05D6 \u05D1\u05D7\u05E8 \u05E7\u05D8\u05E2 \u05D8\u05E7\u05E1\u05D8.",
+      "Aviary is on": "Aviary \u05E4\u05E2\u05D9\u05DC",
+      "Two things are enabled from the start. Everything else stays off until you turn it on.": "\u05E9\u05E0\u05D9 \u05D3\u05D1\u05E8\u05D9\u05DD \u05DE\u05D5\u05E4\u05E2\u05DC\u05D9\u05DD \u05DE\u05DC\u05DB\u05EA\u05D7\u05D9\u05DC\u05D4. \u05DB\u05DC \u05D4\u05E9\u05D0\u05E8 \u05E0\u05E9\u05D0\u05E8 \u05DB\u05D1\u05D5\u05D9 \u05E2\u05D3 \u05E9\u05EA\u05E4\u05E2\u05D9\u05DC \u05D0\u05D5\u05EA\u05D5.",
+      "Sponsored posts, promoted trends and pre-rolls are hidden.": "\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05DE\u05DE\u05D5\u05DE\u05E0\u05D9\u05DD, \u05DE\u05D2\u05DE\u05D5\u05EA \u05DE\u05E7\u05D5\u05D3\u05DE\u05D5\u05EA \u05D5\u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA \u05E4\u05EA\u05D9\u05D7 \u05DE\u05D5\u05E1\u05EA\u05E8\u05D9\u05DD.",
+      "Photos and videos get a save control that only acts when you click it.": "\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D5\u05E1\u05E8\u05D8\u05D5\u05E0\u05D9\u05DD \u05DE\u05E7\u05D1\u05DC\u05D9\u05DD \u05DB\u05E4\u05EA\u05D5\u05E8 \u05E9\u05DE\u05D9\u05E8\u05D4 \u05E9\u05E4\u05D5\u05E2\u05DC \u05E8\u05E7 \u05DB\u05E9\u05DC\u05D5\u05D7\u05E6\u05D9\u05DD \u05E2\u05DC\u05D9\u05D5.",
+      "Open Aviary from the last row of X's left navigation to change any of it.": "\u05E4\u05EA\u05D7 \u05D0\u05EA Aviary \u05DE\u05D4\u05E9\u05D5\u05E8\u05D4 \u05D4\u05D0\u05D7\u05E8\u05D5\u05E0\u05D4 \u05D1\u05E0\u05D9\u05D5\u05D5\u05D8 \u05D4\u05E9\u05DE\u05D0\u05DC\u05D9 \u05E9\u05DC X \u05DB\u05D3\u05D9 \u05DC\u05E9\u05E0\u05D5\u05EA \u05DB\u05DC \u05D0\u05D7\u05D3 \u05DE\u05D4\u05DD.",
+      "Got it": "\u05D4\u05D1\u05E0\u05EA\u05D9",
       "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.": "\u05DE\u05E1\u05EA\u05D9\u05E8 \u05DE\u05D2\u05DE\u05D5\u05EA, \u05D2\u05D1\u05D5\u05DC\u05D5\u05EA \u05E9\u05D5\u05E8\u05D4 \u05D5\u05DE\u05D5\u05E0\u05D9 \u05DE\u05E2\u05D5\u05E8\u05D1\u05D5\u05EA, \u05DE\u05E2\u05DE\u05E2\u05DD \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05DC \u05E4\u05E8\u05D9\u05DE\u05D9\u05D5\u05DD, \u05DE\u05E0\u05E7\u05D4 \u05E7\u05D9\u05E9\u05D5\u05E8\u05D9 t.co, \u05E2\u05E8\u05DB\u05D4 \u05E6\u05E4\u05D5\u05E4\u05D4 \u05D5\u05DB\u05D4\u05D4.",
       "Media Archivist": "\u05D0\u05E8\u05DB\u05D9\u05D5\u05DF \u05DE\u05D3\u05D9\u05D4",
       "Original-quality downloads, deterministic filenames, dedup history, stacked media.": "\u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05D1\u05D0\u05D9\u05DB\u05D5\u05EA \u05DE\u05E7\u05D5\u05E8\u05D9\u05EA, \u05E9\u05DE\u05D5\u05EA \u05E7\u05D1\u05E6\u05D9\u05DD \u05E2\u05E7\u05D1\u05D9\u05D9\u05DD, \u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05DC\u05DC\u05D0 \u05DB\u05E4\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA, \u05DE\u05D3\u05D9\u05D4 \u05D1\u05E4\u05E8\u05D9\u05E1\u05D4 \u05DE\u05D5\u05E2\u05E8\u05DE\u05EA.",
@@ -24756,6 +24804,139 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     throw new Error("Clipboard API unavailable in this context");
   }
 
+  // src/features/core/first-run.ts
+  var FIRST_RUN_KEY = "aviary.firstRun.v1";
+  var HOST_ID = "av-first-run";
+  var shown = false;
+  var firstRunFeature = {
+    id: "core.firstRun",
+    title: "First run notice",
+    category: "core",
+    defaultEnabled: true,
+    async init(ctx) {
+      if (!ctx.freshInstall || shown || typeof document === "undefined") {
+        return;
+      }
+      let state2;
+      try {
+        state2 = await ctx.storage.get(FIRST_RUN_KEY, void 0);
+      } catch {
+        shown = true;
+        return;
+      }
+      if (state2?.acknowledged) {
+        shown = true;
+        return;
+      }
+      shown = true;
+      mountNotice(ctx);
+    },
+    destroy() {
+      document.getElementById(HOST_ID)?.remove();
+    }
+  };
+  function mountNotice(ctx) {
+    if (document.getElementById(HOST_ID)) {
+      return;
+    }
+    const parent = document.body ?? document.documentElement;
+    if (!parent) {
+      return;
+    }
+    const reduceMotion2 = prefersReducedMotion3(ctx);
+    const host = document.createElement("div");
+    host.id = HOST_ID;
+    host.style.position = "fixed";
+    host.style.zIndex = "2147483000";
+    host.style.insetInlineStart = "16px";
+    host.style.insetBlockEnd = "16px";
+    const shadow = host.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = `
+    .card {
+      max-width: 360px;
+      padding: 14px 16px;
+      border: 1px solid #2f3336;
+      border-radius: 14px;
+      background: #16181c;
+      color: #e7e9ea;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+      ${reduceMotion2 ? "" : "animation: rise 160ms ease-out;"}
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: none; }
+    }
+    .title { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+    ul { margin: 8px 0 0; padding-inline-start: 18px; }
+    li { margin-bottom: 4px; }
+    .actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+    button {
+      min-height: 32px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 999px;
+      background: #1d9bf0;
+      color: #fff;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:focus-visible { outline: 2px solid #e7e9ea; outline-offset: 2px; }
+  `;
+    const card = document.createElement("div");
+    card.className = "card";
+    card.setAttribute("role", "status");
+    const title = document.createElement("div");
+    title.className = "title";
+    title.textContent = ft(ctx, "Aviary is on");
+    const intro = document.createElement("div");
+    intro.textContent = ft(ctx, "Two things are enabled from the start. Everything else stays off until you turn it on.");
+    const list = document.createElement("ul");
+    for (const line of [
+      ft(ctx, "Sponsored posts, promoted trends and pre-rolls are hidden."),
+      ft(ctx, "Photos and videos get a save control that only acts when you click it.")
+    ]) {
+      const item = document.createElement("li");
+      item.textContent = line;
+      list.append(item);
+    }
+    const where = document.createElement("div");
+    where.style.marginTop = "8px";
+    where.textContent = ft(ctx, "Open Aviary from the last row of X's left navigation to change any of it.");
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    const dismiss = document.createElement("button");
+    dismiss.type = "button";
+    dismiss.textContent = ft(ctx, "Got it");
+    dismiss.addEventListener("click", () => {
+      host.remove();
+      void acknowledge(ctx);
+    });
+    actions.append(dismiss);
+    card.append(title, intro, list, where, actions);
+    shadow.append(style, card);
+    parent.append(host);
+  }
+  async function acknowledge(ctx) {
+    try {
+      await ctx.storage.set(FIRST_RUN_KEY, { version: 1, acknowledged: true });
+    } catch (error) {
+      ctx.diagnostics.warn("First-run acknowledgement could not be saved", {
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+  function prefersReducedMotion3(ctx) {
+    if (ctx.settings.accessibility.reduceMotion === "always") return true;
+    if (ctx.settings.accessibility.reduceMotion === "never") return false;
+    return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+  }
+
   // src/features/filtering/predicates.ts
   function compileFilters(input) {
     const keywords = input.keywords.map((value) => value.trim().toLowerCase()).filter((value) => value.length > 0);
@@ -29121,7 +29302,9 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     diagnostics.setSink((event) => diagnosticsStore.record(event));
     const integrationUsage = new IntegrationUsageLedger(storage);
     await integrationUsage.load();
-    const settingsEnvelope = readSettingsEnvelope(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
+    const storedSettings = await storage.get(SETTINGS_KEY, void 0);
+    const freshInstall = storedSettings === void 0;
+    const settingsEnvelope = readSettingsEnvelope(storedSettings ?? DEFAULT_SETTINGS);
     const settings = settingsEnvelope.settings;
     if (settingsEnvelope.applied.length > 0) {
       diagnostics.info("Settings schema upgraded", {
@@ -29185,6 +29368,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     registry.register(networkCaptureFeature);
     registry.register(aiCommandMenuFeature);
     registry.register(controlCenterFeature);
+    registry.register(firstRunFeature);
     const context = {
       route: readRoute(),
       settings,
@@ -29194,6 +29378,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       limiter,
       diagnostics,
       diagnosticsStore,
+      freshInstall,
       auditLog,
       pageBridge,
       async saveSettings() {
