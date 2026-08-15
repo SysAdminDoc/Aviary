@@ -21554,6 +21554,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
 
   // src/features/library/archive-import-jobs.ts
   var ARCHIVE_IMPORT_JOBS_KEY = "aviary.archive.imports.v1";
+  var archiveSourceKey = (jobId) => `aviary.archive.import.source.${jobId}`;
   var MAX_RETAINED_JOBS = 12;
   var MAX_SOURCE_BYTES = 256 * 1024 * 1024;
   var EMPTY4 = { jobs: {}, sequence: 0 };
@@ -21608,18 +21609,21 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         createdAt: now2,
         updatedAt: now2,
         resumeOnBoot: true,
-        source: encodeBase64(source)
+        source: ""
       };
       this.#state.jobs[job.jobId] = job;
-      this.#trim();
+      await this.#storage.set(archiveSourceKey(job.jobId), encodeBase64(source));
+      await this.#trim();
       await this.#persist();
       return cloneJob(job);
     }
-    source(jobId) {
+    async source(jobId) {
       const job = this.#state.jobs[jobId];
       if (!job) return null;
+      const encoded = job.source || await this.#storage.get(archiveSourceKey(jobId), "");
+      if (!encoded) return null;
       try {
-        const bytes = decodeBase64(job.source);
+        const bytes = decodeBase64(encoded);
         return bytes.byteLength === job.sourceBytes ? bytes : null;
       } catch {
         return null;
@@ -21645,7 +21649,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       });
     }
     async complete(jobId, update) {
-      return this.#set(jobId, (job) => {
+      const released = await this.#set(jobId, (job) => {
         if (job.status === "cancelled") return false;
         job.status = "completed";
         job.resumeOnBoot = false;
@@ -21657,6 +21661,21 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         delete job.error;
         return true;
       });
+      if (released) {
+        await this.#releaseSource(jobId);
+      }
+      return released;
+    }
+    /**
+     * Drops an archive's bytes. Failed and cancelled imports deliberately keep theirs, because
+     * `retry` replays from exactly this payload -- releasing on every terminal state would quietly
+     * delete a shipped feature. Eviction below is what bounds the space instead.
+     */
+    async #releaseSource(jobId) {
+      try {
+        await this.#storage.remove(archiveSourceKey(jobId));
+      } catch {
+      }
     }
     async pause(jobId) {
       return this.#action(jobId, (job) => {
@@ -21686,9 +21705,11 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       });
     }
     async retry(jobId) {
+      await this.load();
+      const available2 = await this.source(jobId) !== null;
       return this.#action(jobId, (job) => {
         if (job.status !== "failed" && job.status !== "cancelled") return "Import is not failed or cancelled";
-        if (job.source.length === 0) return "The original archive source is no longer available";
+        if (!available2) return "The original archive source is no longer available";
         job.status = "queued";
         job.resumeOnBoot = true;
         delete job.error;
@@ -21725,10 +21746,11 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     async #persist() {
       await this.#storage.set(ARCHIVE_IMPORT_JOBS_KEY, this.#state);
     }
-    #trim() {
+    async #trim() {
       const jobs = Object.values(this.#state.jobs).sort(compareJobs2);
       for (const job of jobs.slice(0, Math.max(0, jobs.length - MAX_RETAINED_JOBS))) {
         delete this.#state.jobs[job.jobId];
+        await this.#releaseSource(job.jobId);
       }
     }
   };
@@ -26610,7 +26632,7 @@ ${COLOR_CSS}`;
     }
   };
   async function processArchiveImport(ctx, jobs, jobId) {
-    const source = jobs.source(jobId);
+    const source = await jobs.source(jobId);
     if (!source) {
       const message = "The durable archive source is unavailable or corrupted.";
       await jobs.fail(jobId, message);

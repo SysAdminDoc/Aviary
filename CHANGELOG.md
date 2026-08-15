@@ -4,6 +4,14 @@
 
 ### Fixed
 
+- Importing an X archive no longer rewrites the whole archive on every progress tick. The job
+  record carried the file's bytes inline — a 250 MiB import becomes roughly 333 MiB of base64 —
+  and the record is re-serialised each time progress moves, along with every other retained job's
+  copy. Measured on a 2 MiB fixture, a single tick wrote 2.8 MB; the payload now lives under its
+  own key and a tick writes only progress. Failed and cancelled imports deliberately keep their
+  archive, because **Retry** replays from exactly those bytes; completing or evicting a job
+  releases it.
+
 - A refused ad-logging request sent over XHR now completes as a network error instead of never
   finishing at all. Aviary's other two refusal paths deliberately fake benign completion — the
   fetch path answers 204, the beacon path returns true — specifically so X's client does not sit

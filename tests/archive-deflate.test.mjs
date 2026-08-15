@@ -282,14 +282,14 @@ test("archive import jobs rehydrate interrupted source and release it after comp
 
   const jobs = new ArchiveImportJobStore(storage);
   const started = await jobs.start("fixture.zip", source);
-  assert.deepEqual(jobs.source(started.jobId), source);
+  assert.deepEqual(await jobs.source(started.jobId), source);
   await jobs.markRunning(started.jobId);
 
   const reloaded = new ArchiveImportJobStore(storage);
   await reloaded.load();
   assert.equal(reloaded.get(started.jobId)?.status, "paused");
   assert.equal(reloaded.get(started.jobId)?.resumeOnBoot, true);
-  assert.deepEqual(reloaded.source(started.jobId), source);
+  assert.deepEqual(await reloaded.source(started.jobId), source);
 
   assert.deepEqual(await reloaded.resume(started.jobId), { ok: true });
   assert.deepEqual(await reloaded.cancel(started.jobId), { ok: true });
@@ -306,7 +306,7 @@ test("archive import jobs rehydrate interrupted source and release it after comp
     warningCount: 0,
     errorCount: 0
   }), true);
-  assert.equal(reloaded.source(started.jobId), null, "completed imports must release their ZIP source");
+  assert.equal(await reloaded.source(started.jobId), null, "completed imports must release their ZIP source");
 
   const second = await reloaded.start("done.zip", source);
   assert.equal(await reloaded.complete(second.jobId, {
@@ -315,7 +315,7 @@ test("archive import jobs rehydrate interrupted source and release it after comp
     warningCount: 0,
     errorCount: 0
   }), true);
-  assert.equal(reloaded.source(second.jobId), null, "completed imports must release their ZIP source");
+  assert.equal(await reloaded.source(second.jobId), null, "completed imports must release their ZIP source");
   assert.ok(store.has(ARCHIVE_IMPORT_JOBS_KEY));
 });
 
@@ -415,3 +415,46 @@ async function importBundledModule(relativePath) {
     await rm(temp, { recursive: true, force: true });
   }
 }
+
+test("a progress tick no longer rewrites the archive it is reporting on", async () => {
+  const { ArchiveImportJobStore, ARCHIVE_IMPORT_JOBS_KEY } = await importBundledModule(
+    "src/features/library/archive-import-jobs.ts"
+  );
+
+  // A 2 MiB archive is enough to make the difference unmistakable without slowing the suite.
+  const source = new Uint8Array(2 * 1024 * 1024);
+  source.fill(7);
+
+  let bytesWritten = 0;
+  const values = new Map();
+  const storage = {
+    async get(key, fallback) {
+      return values.has(key) ? structuredClone(values.get(key)) : fallback;
+    },
+    async set(key, value) {
+      bytesWritten += JSON.stringify(value).length;
+      values.set(key, structuredClone(value));
+    },
+    async remove(key) {
+      values.delete(key);
+    }
+  };
+
+  const jobs = new ArchiveImportJobStore(storage);
+  const started = await jobs.start("archive.zip", source);
+
+  const afterStart = bytesWritten;
+  for (let tick = 1; tick <= 10; tick += 1) {
+    await jobs.updateProgress(started.jobId, { filesParsed: tick, recordCount: tick * 100 });
+  }
+  const perTick = (bytesWritten - afterStart) / 10;
+
+  assert.ok(
+    perTick < source.byteLength / 10,
+    `each progress tick wrote ${Math.round(perTick)} bytes; the archive is ${source.byteLength}`
+  );
+  // And the record itself must not be carrying the payload around.
+  const record = values.get(ARCHIVE_IMPORT_JOBS_KEY);
+  assert.equal(record.jobs[started.jobId].source, "", "the job record must not hold the archive");
+  assert.deepEqual(await jobs.source(started.jobId), source, "the archive is still retrievable");
+});

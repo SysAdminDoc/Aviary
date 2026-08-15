@@ -112,13 +112,6 @@ Internal audit of the subsystems no prior pass had examined, plus the code added
 
 ### P2 — reliability
 
-- [ ] F160 — P2 — Stop persisting a failed import's full archive, and stop rewriting it per tick
-  Why: each archive-import job records the entire base64 source (up to ~341 MB) inside the job store, `#persist` rewrites all retained jobs' state on every progress tick, and only `complete()` drops the source — failed, paused, and cancelled jobs pin their full copies until 12 newer jobs push them out. Multi-hundred-MB writes per tick, guaranteed quota failure on the fallback backends.
-  Evidence: `src/features/library/archive-import-jobs.ts:100` (source in record), `:237-246` (full-state persist per tick); confirmed 2026-08-15.
-  Touches: `src/features/library/archive-import-jobs.ts`, archive-import tests.
-  Acceptance: the source is stored once under its own key and deleted on every terminal state, not only success; progress ticks write progress, not the archive; a failed 250 MB import leaves no orphaned source; resume still works.
-  Complexity: M
-
 - [ ] F161 — P2 — Harden page-agent nonce adoption against a first-hello squatter
   Why: the agent adopts the first well-formed `hello` nonce and rejects later ones, and the winning nonce rides every envelope where any page script can read it — so a script that races the bridge owns the agent: the real bridge's `ready` never validates, features report agent-absent, and the squatter can `config` off the default-on ad guard or tear the agent down. The isolated world stays protected; what is lost silently is ad protection.
   Evidence: `src/page/page-agent.ts:386-398` (first-wins adoption), `src/platform/page-bridge.ts:108` (bridge drops mismatched nonces); mechanism confirmed 2026-08-15, a live race needs a runtime check.

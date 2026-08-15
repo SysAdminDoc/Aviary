@@ -1,6 +1,15 @@
 import type { StorageGateway } from "../../platform/storage";
 
 export const ARCHIVE_IMPORT_JOBS_KEY = "aviary.archive.imports.v1";
+
+/**
+ * Each archive's bytes live under their own key rather than inside the job record. The record is
+ * rewritten on every progress tick, and a 250 MiB import carries a ~333 MiB base64 string -- so
+ * keeping the two together meant re-serialising the whole archive (and every other retained job's
+ * archive) several times a second. Unversioned on purpose: these are transient payloads, not a
+ * durable store, and they must not be swept into migration or backup.
+ */
+export const archiveSourceKey = (jobId: string): string => `aviary.archive.import.source.${jobId}`;
 const MAX_RETAINED_JOBS = 12;
 const MAX_SOURCE_BYTES = 256 * 1024 * 1024;
 
@@ -97,19 +106,23 @@ export class ArchiveImportJobStore {
       createdAt: now,
       updatedAt: now,
       resumeOnBoot: true,
-      source: encodeBase64(source)
+      source: ""
     };
     this.#state.jobs[job.jobId] = job;
-    this.#trim();
+    await this.#storage.set(archiveSourceKey(job.jobId), encodeBase64(source));
+    await this.#trim();
     await this.#persist();
     return cloneJob(job);
   }
 
-  source(jobId: string): Uint8Array | null {
+  async source(jobId: string): Promise<Uint8Array | null> {
     const job = this.#state.jobs[jobId];
     if (!job) return null;
+    // Pre-split records carried the payload inline; read it from wherever it actually is.
+    const encoded = job.source || (await this.#storage.get<string>(archiveSourceKey(jobId), ""));
+    if (!encoded) return null;
     try {
-      const bytes = decodeBase64(job.source);
+      const bytes = decodeBase64(encoded);
       return bytes.byteLength === job.sourceBytes ? bytes : null;
     } catch {
       return null;
@@ -144,7 +157,7 @@ export class ArchiveImportJobStore {
     jobId: string,
     update: Pick<ArchiveImportJob, "filesParsed" | "recordCount" | "warningCount" | "errorCount">
   ): Promise<boolean> {
-    return this.#set(jobId, (job) => {
+    const released = await this.#set(jobId, (job) => {
       if (job.status === "cancelled") return false;
       job.status = "completed";
       job.resumeOnBoot = false;
@@ -158,6 +171,23 @@ export class ArchiveImportJobStore {
       delete job.error;
       return true;
     });
+    if (released) {
+      await this.#releaseSource(jobId);
+    }
+    return released;
+  }
+
+  /**
+   * Drops an archive's bytes. Failed and cancelled imports deliberately keep theirs, because
+   * `retry` replays from exactly this payload -- releasing on every terminal state would quietly
+   * delete a shipped feature. Eviction below is what bounds the space instead.
+   */
+  async #releaseSource(jobId: string): Promise<void> {
+    try {
+      await this.#storage.remove(archiveSourceKey(jobId));
+    } catch {
+      // A stranded payload is wasteful, not incorrect; the job record is already authoritative.
+    }
   }
 
   async pause(jobId: string): Promise<ArchiveImportJobActionResult> {
@@ -191,9 +221,13 @@ export class ArchiveImportJobStore {
   }
 
   async retry(jobId: string): Promise<ArchiveImportJobActionResult> {
+    await this.load();
+    // The payload lives under its own key now, so availability is a storage question rather than a
+    // field on the record. Ask before promising a retry that would immediately fail.
+    const available = (await this.source(jobId)) !== null;
     return this.#action(jobId, (job) => {
       if (job.status !== "failed" && job.status !== "cancelled") return "Import is not failed or cancelled";
-      if (job.source.length === 0) return "The original archive source is no longer available";
+      if (!available) return "The original archive source is no longer available";
       job.status = "queued";
       job.resumeOnBoot = true;
       delete job.error;
@@ -238,10 +272,12 @@ export class ArchiveImportJobStore {
     await this.#storage.set(ARCHIVE_IMPORT_JOBS_KEY, this.#state);
   }
 
-  #trim(): void {
+  async #trim(): Promise<void> {
     const jobs = Object.values(this.#state.jobs).sort(compareJobs);
     for (const job of jobs.slice(0, Math.max(0, jobs.length - MAX_RETAINED_JOBS))) {
       delete this.#state.jobs[job.jobId];
+      // The payload outlives the record unless it is removed with it.
+      await this.#releaseSource(job.jobId);
     }
   }
 }

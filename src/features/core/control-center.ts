@@ -934,7 +934,7 @@ async function processArchiveImport(
   skippedFiles: number;
   malformedFiles: number;
 }> {
-  const source = jobs.source(jobId);
+  const source = await jobs.source(jobId);
   if (!source) {
     const message = "The durable archive source is unavailable or corrupted.";
     await jobs.fail(jobId, message);
