@@ -62,6 +62,10 @@
 
 ### Fixed
 
+- **Absolute timestamps** (Appearance, off by default) replaces X's relative post times with the
+  exact date and time, formatted in the panel's locale. The value already exists in each post's
+  `datetime` attribute, and Off restores the original text X wrote rather than a relative string
+  Aviary invented.
 - SPA route changes now come from the Navigation API where the browser has one, instead of
   patching `history.pushState`. The History patch stays as the fallback for engines below the
   January 2026 baseline, and a `navigation` global that cannot be listened to is not mistaken for

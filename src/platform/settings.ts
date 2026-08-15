@@ -136,6 +136,8 @@ export interface AviarySettings {
     countMetrics: Record<CountMetric, boolean>;
     /** Strip X's unread "(3) " prefix from the browser tab title. */
     hideTitleBadge: boolean;
+    /** Render post timestamps as an exact date/time instead of X's relative text. */
+    absoluteTimestamps: boolean;
     restoreChirp: boolean;
   };
   layout: {
@@ -244,6 +246,7 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     hideCounts: false,
     countMetrics: { replies: true, reposts: true, likes: true, views: true },
     hideTitleBadge: false,
+    absoluteTimestamps: false,
     restoreChirp: false
   },
   layout: {
@@ -472,6 +475,10 @@ export function normalizeSettings(input: unknown): AviarySettings {
       hideTitleBadge: booleanValue(
         appearance.hideTitleBadge,
         DEFAULT_SETTINGS.appearance.hideTitleBadge
+      ),
+      absoluteTimestamps: booleanValue(
+        appearance.absoluteTimestamps,
+        DEFAULT_SETTINGS.appearance.absoluteTimestamps
       ),
       restoreChirp: booleanValue(appearance.restoreChirp, DEFAULT_SETTINGS.appearance.restoreChirp)
     },

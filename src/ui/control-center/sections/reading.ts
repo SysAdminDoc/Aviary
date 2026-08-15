@@ -113,6 +113,15 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
         }
       ),
       ctx.toggleRow(
+        "Absolute timestamps",
+        "Show the exact date and time on every post instead of X's relative text.",
+        ctx.options.settings.appearance.absoluteTimestamps,
+        async (checked) => {
+          ctx.options.settings.appearance.absoluteTimestamps = checked;
+          await ctx.save(checked ? "Absolute timestamps on" : "Absolute timestamps off");
+        }
+      ),
+      ctx.toggleRow(
         "Hide row borders",
         "Remove the 1px divider under each timeline post and the primary column's side rules.",
         ctx.options.settings.appearance.hideBorders,

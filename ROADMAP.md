@@ -17,13 +17,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: previously saved media shows a subtle marker; optional .json/.txt sidecar per save; "download all captured media for this collection" works checkpointed with zero originated GraphQL calls.
   Complexity: L
 
-- [ ] F119 — P2 — Absolute timestamps option
-  Why: relative timestamps hide when things happened; XKit/OldTwitter both ship it; cheap and fixture-testable against existing captures.
-  Evidence: XKit Rewritten; OldTwitter feature list.
-  Touches: new small feature module, selectors (time elements), settings + i18n.
-  Acceptance: timeline/status timestamps render absolute (locale-aware) with exact time on hover; reversible.
-  Complexity: S
-
 - [ ] F120 — P2 — Focus mode (time-boxed access)
   Why: antiprocrastination is table stakes across Sink It / X Filter Pro / feed-blocker class; fits Aviary's declutter identity as a scheduled, reversible gate.
   Evidence: https://gosinkit.com/; xfilterpro.com Focus Mode; r/Twitter Unhook-for-X demand (1t5gnh5).
