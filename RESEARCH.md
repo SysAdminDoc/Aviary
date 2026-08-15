@@ -1,212 +1,258 @@
 # Research — Aviary for X
 
-Date: 2026-08-14 — replaces all prior research (previous pass: 2026-08-13; its shipped conclusions are archived in CHANGELOG.md v1.18.0–v1.21.0).
+Date: 2026-08-15 — replaces all prior research (previous pass: 2026-08-14, whose conclusions were
+drained into v1.22.0–v1.23.0 and are archived in CHANGELOG.md).
 
 ## Executive Summary
 
-Aviary is a local-first desktop X/Twitter enhancer shipping a readable userscript and an MV3
-extension (Chrome + Firefox) from one TypeScript source, at v1.21.0 with a fully drained roadmap.
-Its strongest shape is unmatched in the field: evidence-bounded ad suppression + WARC/XLSX/HTML
-export + annotated local library + fixture-gated reversible modules — no competitor combines these.
-The highest-value direction is (1) fixing distribution truth (the built userscript's auto-update
-URLs point at a repository that does not exist), (2) closing the one structural feature gap vs.
-every serious competitor (a rule-based filter engine), and (3) productizing feature-flag reversion
-of X's 2026 redesigns — a recurring, currently unserved demand that Aviary's document-start page
-agent is uniquely positioned to serve.
+Aviary is a local-first desktop X enhancer shipping a readable userscript and an MV3 extension
+(Chrome + Firefox) from one 40k-line TypeScript source with zero runtime dependencies, at v1.23.0
+with a two-item roadmap. Its discipline — a selector ships only if it can be proved against a
+captured DOM fixture — is the strongest thing about it and is now also its binding constraint: the
+only ground truth in the repository, `_decoded/home.html` and `_decoded/status.html`, is dated
+**2026-05-19**, and X shipped a post-media redesign on or before **2026-08-11**
+(control-panel-for-twitter#917/#918/#919, opened 2026-08-11 to 08-13). The project cannot see the
+current X. Nothing warns that the fixture is stale, and no tooling or documented procedure exists to
+refresh it. That is the highest-value work available, because it is what gates roughly eight blocked
+items and every response to X's ongoing churn.
+
+Beneath that, this pass found three measured engineering defects that no previous pass caught: the
+translation catalog is **54.3% of a 1.86 MB bundle parsed at `document-start` on every X page**; the
+ZIP writer emits **STORE (uncompressed) archives assembled whole in memory** while the ZIP *reader*
+already uses the browser's own DEFLATE; and README/FAQ document **nothing** added in v1.22.0 or
+v1.23.0 because the docs gate only checks version strings.
 
 Top opportunities in priority order:
-1. Repair the userscript `@updateURL`/`@downloadURL` (every install polls a dead repo) — P0.
-2. Correct stale README claims (AI button, ROADMAP pointer, "store-ready") — P0.
-3. Replace EOL toolchain (ESLint 9 died 2026-08-06) — P0.
-4. Mitigate X's July-2026 anti-adblock detection exposure (DNR rule + fetch stub are visible) — P1.
-5. Rule-based filter DSL with importable rule packs — the only table-stakes gap — P1.
-6. "Restore old X" feature-flag reversion pack (media grid, carousel, profile redesign) — P1 leapfrog.
-7. First-run onboarding + settings version envelope + persisted diagnostics (trust plumbing) — P1.
-8. Media download UX depth: downloaded-badges, text sidecars, batch-from-library — P2.
-9. Distribution decision: real AMO id, public release channel, update story — P2 (blocked on operator intent).
-10. Declutter fast-follows: "More From This Author", tab-title badge, absolute timestamps — P1/P2.
+1. Refresh the capture set and make its age a gate — P0, unblocks a family of items.
+2. Bind the docs gate to the settings surface; README/FAQ are two releases behind — P1.
+3. Extend selector health from 10 surfaces to every selector a feature depends on — P1.
+4. DEFLATE the ZIP writer via `CompressionStream` (reader half already exists) — P1.
+5. Move the i18n catalog off the `document-start` parse path — P1.
+6. Restore what X's August 2026 redesign changed, while the category leader is 41 days idle — P1.
+7. Replace source-regex accessibility assertions with a rendered pass — P1.
+8. Show *why* a post was filtered, and make rules portable — P2.
+9. WACZ as the archival container, for Webrecorder-ecosystem replay — P2.
+10. Catch-up digest over the seen-post store shipped in v1.23.0 — P2.
 
 ## Product Map
 
-- Core workflows: (a) install → ads suppressed + media save buttons by default, everything else
-  off; (b) declutter/theme via Control Center (13 destinations, transactional Save/Revert);
-  (c) filter/hide posts with undo; (d) save media (on-post buttons + right-click, original
-  quality, direct MP4 via passive GraphQL capture); (e) capture-as-you-scroll → checkpointed
-  export (ZIP/JSON/CSV/HTML/MD/XLSX/WARC + standalone viewer); (f) local library (bookmarks,
-  notes, snapshots) with dry-run backup/restore.
-- Personas: privacy-first desktop power user (primary; matches the operator); archivist
-  (export/WARC pillar); declutter-only user (secondary).
-- Platforms: desktop Chrome + Firefox; MV3 extension primary on Chrome (Tampermonkey MV3 opt-in
-  friction), userscript first-class on Firefox/ScriptCat. Mobile intentionally out of scope.
-- Distribution today: private GitHub repo tracking `dist/`; manual install only; no store
-  presence; Firefox manifest id is a placeholder (`aviary@example.local`).
-- Integrations (all opt-in, disclosure-gated): aria2, AI providers (Anthropic/OpenAI), semantic
-  search embeddings, Obsidian/Notion export targets, crosspost (Mastodon/Bluesky).
+- Core workflows: (a) install → ads suppressed and media save buttons live, everything else off;
+  (b) declutter/theme through a 13-page Control Center with transactional Save/Revert; (c) filter
+  and hide posts, now including a rule DSL and second-pass dimming; (d) save media at original
+  quality; (e) capture-as-you-scroll → checkpointed export (ZIP/JSON/CSV/HTML/MD/XLSX/WARC plus a
+  standalone viewer); (f) local library — bookmarks, notes, per-account colour tags, snapshots —
+  with dry-run backup/restore.
+- Personas: privacy-first desktop power user (primary); archivist (export/WARC pillar);
+  declutter-only user (secondary).
+- Platforms: desktop Chrome + Firefox. Mobile intentionally out of scope.
+- Distribution: private GitHub repo tracking `dist/`; manual install; no store presence; Firefox
+  add-on id is still the placeholder `aviary@example.local` (F125, operator-gated).
+- Integrations, all opt-in and disclosure-gated: aria2, AI providers, embeddings, Obsidian/Notion,
+  Mastodon/Bluesky crosspost.
 
 ## Competitive Landscape
 
-- **Control Panel for Twitter** (insin, 2.6k★, v4.23.0 2026-07-05) — category leader; ~100
-  toggles, 5 store targets incl. mobile Safari/Firefox Android, weekly churn-response releases.
-  Learn: fast-follow cadence on X regressions is how it earned its base; per-option screenshots.
-  Avoid: its permanent ~317-open-issue churn tax — Aviary should only add toggles a fixture can
-  defend. Its most-upvoted unshipped request is settings sync (#204) — Aviary's profile export
-  already serves this locally.
-- **OldTwitter** (dimden, 2.7k★, v1.9.8 2026-08-11) — full client replacement calling private
-  APIs. Learn: video download and customization demand. Avoid: its approach — the March 2026
-  "inauthentic behavior" ban wave hit its users (#1222, 152 comments; #1153). The market split is
-  "safe DOM-layer" vs "risky API-layer"; Aviary's passive-capture-only line is the moat. Never
-  originate bulk API calls.
-- **twitter-web-exporter** (prinsss, 2.7k★, v1.4.1 2026-07-29) — closest analog to the export
-  pillar; exports bookmarks past the 800-item API cap, followers/lists/search from GraphQL
-  interception. Learn: bookmark-cap-bypass framing; large-ZIP chunking failures (#137) validate
-  Aviary's existing `zipChunkSize`. Aviary already exceeds it on WARC/XLSX/viewer/checkpoints.
-- **TwitterMediaHarvest** (1.1k★, v4.5.7 2026-06-18) — media-saver benchmark. Its backlog is a
-  demand map: batch-download bookmarks (#137), richer filename tokens (#74), tweet-text sidecar
-  (#283), highlight already-downloaded media (#126). Its v4.5.7 fixed unbounded response-cache
-  growth — Aviary already caps capture (50/500/50MB, `network-capture.ts:11-13`).
-- **Twitter UI Customizer** (active, JP-first) — steal: reorder/add tweet action buttons,
-  no-confirm actions, sidebar reordering, logo/favicon replacement.
-- **Minimal Twitter** (Typefully, ~1k★, low maintenance) — cautionary: CSS that collaterally broke
-  Grok history (#249) and Lists nav (#183); vanity-metric hiding and tab-title badge removal are
-  its most-requested items (#242/#243).
-- **XKit Rewritten** (Tumblr; architecture twin) — steal: mutual-relationship badges, seen-post
-  dimming, absolute timestamps, per-post quick actions.
-- **Sink It for Reddit / RES** (adjacent) — steal: RES filteReddit rule engine (field+op+value),
-  per-user color tags, thread-depth color rails, focus/antiprocrastination mode, "zero data
-  recorded" marketing posture.
-- **rxliuli suite** (Mass Block Twitter, Feed Filter) — validates the rule-DSL demand and ships a
-  novel companion: AI-generated importable filter rules from pasted URLs.
-- **uBlock Origin X filters** — break exactly where Aviary is strong: localized "Ad" labels,
-  randomized classes, `placementTracking` false positives. Aviary's evidence-bounded contract +
-  drift diagnostics is unique in the field; keep it. Current uBO meta is hand-rewriting
-  `__INITIAL_STATE__.featureSwitch` flags per redesign — demand signal for F115.
-- **Commercial cluster** (X Filter Pro, Hide X.com Ads, XFeed Pro) — validates ad-hiding + focus
-  mode + AI summarization as paid features. TidyFeed/Better X (cited in the 2026-08-13 pass) have
-  no meaningful 2026 footprint — treat as negligible.
-- **GoodTwitter2** (dead) — died of maximal-reskin surface + single maintainer + no test harness
-  against continuous churn. Aviary's Noir-with-fixtures is the mitigations checklist GT2 lacked.
-- **x-feed-cleaner** (same operator, v2.7.0) — internal harvest source: rule-based muting,
-  hashtag/author mutes, quote-depth/stale-post filters, bookmark-first mode, thread collapse,
-  reading mode all proved demand in the sibling repo and are absent from Aviary.
+Only projects carrying signal that changed since 2026-08-14, plus classes the prior pass missed.
+
+- **Control Panel for Twitter** (insin, ★2584) — last push **2026-07-05**, 41 days before this pass,
+  while three issues opened 2026-08-11..13 report a new X image-carousel and post layout (#918 👍6,
+  #917 👍2, #919 👍9 "Remove all new changes"). Verified via GitHub API 2026-08-15. Learn: this is
+  the demand window, and it is exactly the structural-restoration work Aviary does. Avoid: nothing
+  new; its issue-churn tax stands. Its most-demanded unmet issue remains #204 settings sync (👍16,
+  open since 2023) — Aviary's settings export already answers the local half.
+- **twitter-web-exporter** (prinsss) — v1.4.1 2026-07-29 added DB import from an exported JSON dump
+  with migrations, property-path filename patterns, byte-accurate filename truncation; a 2026-08-13
+  commit adapts to profile-page API changes. Its #137 ("over 500 media items breaks ZIP export") is
+  independent corroboration of Aviary's own in-memory archive ceiling. #143 wants Article capture —
+  same surface Aviary has blocked for want of a fixture.
+- **TwitterMediaHarvest** — no feature work since v4.5.7 (2026-06-18); July–August is dependency
+  bumps only. Its backlog stays the media demand map: #137 batch-from-bookmarks, #74 filename
+  tokens, #283 text sidecar, #126 downloaded-media highlighting (all already scoped as F118), plus
+  #336 subtitles, #103 audio-only, #316 group-by-account, #323 history export by date range.
+  **#54 asks for a self-diagnostic that tells the user whether the extension still works** — Aviary
+  has that machinery internally and does not expose it. Learn: productize selector health.
+- **XKit Rewritten** (architecture twin) — #1664 "Show tags on filtered posts" (👍4). Learn:
+  a filtered post should say *why* it was filtered. Aviary's v1.23.0 rule DSL makes this cheap and
+  it is the single best trust affordance a filter engine can have.
+- **Webrecorder stack — the class the prior pass missed.** `archiveweb.page` (★1540, pushed
+  2026-08-12) and `replayweb.page` (★969, pushed 2026-08-11) have standardized browser-side
+  archiving on **WACZ**, with `wabac.js` doing fully client-side replay. Aviary emits raw
+  uncompressed WARC. Learn: WACZ as the container buys replay in every Webrecorder tool for a
+  packaging change, not a capture change. Avoid: full-fidelity WACZ capture as the *primary* path —
+  it multiplies per-timeline storage and would cost Aviary the lightweight library that
+  differentiates it. Opt-in export tier only.
+- **Personal-archive search — a live rival class.** `Dicklesworthstone/xf` (★99, pushed 2026-08-14)
+  does sub-millisecond FTS over an official X archive from the CLI; `TheExGenesis/community-archive`
+  (★121, pushed 2026-08-15) publishes an open tweet-archive schema others build on;
+  `timhutton/twitter-archive-parser` (★2438) is the canonical official-export parser and has been
+  dormant since 2022. Learn: adopt the community-archive schema as an interop export and inherit its
+  ecosystem; the dormant parser is an opening for Aviary's existing archive importer.
+- **phanpy** (cheeaun, ★1478, Mastodon) — its "Catch-up" digest, a bounded time window grouped by
+  author with visible filter reasons, is the best reading-mode idea in the adjacent field. Aviary
+  shipped the seen-post store in v1.23.0, which is the hard half of it.
+- **news-feed-eradicator** (★1483) — scheduled feed suppression. Aviary's v1.23.0 focus mode
+  already reaches parity; no further action.
+- **utags** (★367) — user-defined tags on arbitrary links with a merge model worth reading before
+  extending account colours into free-form tags.
+- **Distribution note**: `awesome-scripts/awesome-userscripts` (★3471, pushed 2026-08-13) is active
+  and lists no X/Twitter enhancer of this class — a channel that exists the moment F125 is decided.
 
 ## Security, Privacy, and Reliability
 
-- **Broken auto-update (Verified)**: `tools/build.mjs:347-348` writes
-  `@updateURL`/`@downloadURL` → `raw.githubusercontent.com/aviary-x/aviary/main/dist/aviary.user.js`
-  and `@namespace https://github.com/aviary-x`; the real remote is the private
-  `SysAdminDoc/Twitter_Userscript`. Every installed userscript polls a URL that cannot serve it.
-  `tools/preflight.mjs` does not validate these lines.
-- **Anti-adblock exposure (Likely)**: X began testing an "ad blocker is preventing Personalized
-  Timelines" warning (2026-07-10, PiunikaWeb; corroborated r/uBlockOrigin). It plausibly keys on
-  blocked telemetry — exactly what Aviary's DNR logger rule and page-world logger stub do.
-  DOM-hiding is detection-quiet. Needs: warning-surface detection, a DOM-only fallback mode, and
-  Trust copy stating the tradeoff. Whether Aviary's exact block trips it: Needs live validation.
-- **EOL toolchain (Verified)**: ESLint 9 hit end-of-life 2026-08-06; pinned 9.27.0 is
-  unmaintained. `@typescript-eslint` 8.67.0 already supports ESLint 10. esbuild 0.28.2 and
-  TypeScript 6.0 (bridge to Go-native 7.0) are low-risk upgrades. Playwright 1.62.1 is current
-  and clear of CVE-2025-59288 (<1.55.1 only).
-- **Settings payload has no version envelope**: `aviary.settings.v1` is a key name, not a
-  versioned envelope (`src/platform/settings.ts`); a future breaking rename has only
-  silent-fallback-to-default, no upgrade ladder. Durable storage has schema v1 + migration;
-  settings should match.
-- **Diagnostics are memory-only**: 200-event ring (`src/platform/diagnostics.ts`), lost on
-  reload; boot failure sets `data-av-ready="error"` with no user-visible message.
-- **CI gap**: `.github/workflows/smoke.yml` runs lint → matrix → build → visual → smoke but not
-  `npm test` (unit suite) or `npm run preflight` — the main gate is local-only.
-- **Ban-risk line (policy, evidence-backed)**: March 2026 ban waves hit API-originating tools
-  (OldTwitter #1222/#1153). Aviary's passive capture observes, never originates — every future
-  feature must stay on that side; batch features must consume already-captured records only.
-- **Supply-chain posture is validated**: zero runtime deps + exact pins + lockfile is exactly the
-  correct response to the 2025 npm chalk/debug and Shai-Hulud incidents. Consider
-  `--ignore-scripts` in install docs.
-- **Recovery**: library backup has dry-run/checksum/rollback (strong). Settings import lacks the
-  same preview treatment (minor).
+- **The evidence base is three months old (Verified).** `_decoded/home.html` (2026-05-19, 315 KB)
+  and `_decoded/status.html` (2026-05-19, 263 KB) are the whole ground truth; the two root `.mhtml`
+  files decode to byte-equivalent content, so there is one capture generation, not two. Every
+  "measured: 0 hits" conclusion in `Roadmap_Blocked.md` — Articles, relationship badges, reposts,
+  sensitive media, "More From This Author" — is a statement about X as it was in May. X's August
+  redesign is invisible here. There is no capture tooling in `tools/`, no documented refresh recipe,
+  and no test that fails or warns on fixture age.
+- **Uncompressed, in-memory archives (Verified).** `src/features/export/zip-store.ts:78` writes
+  `method = STORE`; `buildStoreZip()` returns a single `Uint8Array` holding the whole archive; the
+  file's own comments record hard ceilings of 65,535 entries and 4 GB per entry with no ZIP64.
+  Meanwhile `src/features/export/zip-reader.ts:113-115` already uses
+  `DecompressionStream("deflate-raw")`. The write side is asymmetric for no reason:
+  `CompressionStream("deflate-raw")` is Baseline (Chrome 103 / Firefox 113 / Safari 16.4). WARC is
+  emitted as plain uncompressed bytes rather than the `.warc.gz` the archival ecosystem expects.
+  Corroborated externally by twitter-web-exporter#137.
+- **Documentation claims are two releases behind (Verified).** README.md and docs/FAQ.md contain
+  zero occurrences of focus mode, seen-post dimming, account colours, or the tab icon — every
+  v1.23.0 feature. README's "the latest batch adds …" sentence was last edited 2026-08-09 (commit
+  b9fec4f) and still describes the v1.18-era batch while the paragraph claims to describe v1.23.0.
+  Root cause: `tests/docs-consistency.test.mjs` asserts only that PRIVACY.md and INSTALL.md carry
+  the current version string, plus a blocklist of retired phrases. Nothing connects the settings
+  surface to the prose, so a version bump passes while feature docs rot. For a project whose whole
+  posture is "never claim what you cannot back", this is the highest-severity trust defect found.
+- **Selector drift is watched for 10 surfaces out of 56 (Verified).** `SURFACE_SELECTORS` in
+  `src/platform/selectors.ts` covers App root, Primary column, Sidebar, Tweet, Tweet text, Composer,
+  Media photo, Video, Navigation, Grok. Features and UI reference **56 distinct `data-testid`
+  selectors**, including `news_sidebar`, `GrokDrawer`, `trend`, `placementTracking`, `videoComponent`,
+  `UserCell`, `toolBar`, `AppTabBar_Home_Link` and `app-text-transition-container`. A rename in any
+  of the ~46 unwatched selectors silently disables its owning feature with no diagnostic — the exact
+  failure the fixture discipline exists to prevent, occurring outside the fixture's reach.
+- **Accessibility is asserted against source text, not behaviour (Verified).**
+  `tests/audit-a11y.test.mjs` matches literal source strings such as
+  `overlay.toggleAttribute("inert", !open)` in `src/ui/control-center.ts`. A rename breaks the test
+  without a behaviour change; a real regression that preserves the string passes. Correcting the
+  2026-08-14 pass: colour contrast **is** computed and gated in CI, in
+  `tests/theme-matrix.test.mjs:134-138` (7:1 text, 4.5:1 muted) and `tests/audit-ui.test.mjs:16`.
+  The gap is interaction and semantics, not contrast.
+- **Toolchain and supply chain (Verified).** `engines.node` is `">=22"`, loose enough to admit
+  releases superseded by the Node security releases of 2026-06-18 and 2026-07-29 (23 CVEs, 5 HIGH;
+  fixed lines 22.23.2 / 24.18.1 / 26.5.1). Every major 2026 npm compromise — axios, keyv/cacheable,
+  the node-gyp worm — executed through install scripts, and with zero runtime dependencies
+  `npm ci --ignore-scripts` costs Aviary nothing and closes the class; it appears nowhere in CI or
+  docs. esbuild 0.28.2, ESLint 10.8.1, @typescript-eslint 8.67.0 and Playwright 1.62.1 are current
+  and clear. TypeScript **7.0** is GA (2026-07-08, Go-native, 8–12× faster) but ships no programmatic
+  API until 7.1, so typescript-eslint cannot run on it — `npm run typecheck` is pure `tsc --noEmit`
+  and can move to `tsgo` while TypeScript 6 stays installed for the lint parser.
+- **Manager-ecosystem changes that touch the install path (Likely — vendor changelogs).**
+  Tampermonkey 5.5.0 (2026-05-08) requires the Chrome 138+ "Allow user scripts" toggle before a
+  script runs, and `GM_download` now prompts for the browser downloads permission unless the manager
+  is in Native mode — a denial path `src/features/media/downloader.ts` should handle explicitly.
+  Violentmonkey 2.46+ offers an opt-in "Alternative page mode" because default MV3 Violentmonkey
+  does **not** deliver true `document-start`; Aviary's page agent depends on that timing. Needs live
+  validation against `src/page/page-agent.ts`.
+- **Dead match targets (Likely).** Both manifests and the userscript metablock match
+  `mobile.twitter.com` and `tweetdeck.twitter.com`, surfaces X retired in 2023. They widen the
+  install permission prompt and match nothing.
+- **Ban-risk line unchanged (policy).** Passive observation only; batch features consume already
+  captured records. Every item below respects it.
 
 ## Architecture Assessment
 
-- **`FeatureModule.defaultEnabled` is a dead gate** — all 24 modules ship `true`; the
-  `registry.ts:62` skip branch is unreachable; `statuses()` reports 24 "registered" regardless of
-  user state. Remove or repurpose truthfully.
-- **`src/features/export/viewer.ts` carries a second hand-maintained 9-locale table** (lines
-  ~7-250) outside the extractor/catalog pipeline — a guaranteed drift path given the repo's
-  documented i18n-extraction breakage history (5 prior incidents in CLAUDE.md).
-- **Route detection monkey-patches history** — the Navigation API is Baseline as of Jan 2026
-  (Chrome, Firefox 147, Safari 26.2); feature-detect with fallback in `src/platform/route.ts`.
-- **Control Center file layout reflects the dead 4-section IA** (`sections/{presets,reading,data,advanced}.ts`
-  render 13 destinations); the 5 undated mockups at `docs/mockups/` root depict that dead IA.
-- **`performance.forceVideoQuality` is wired but unprovable** — MSE/`blob:` playback exposes no
-  variant list (CLAUDE.md 2026-08-07); either prove an effect or remove the claim-shaped setting.
-- **Test gaps**: `tests/audit-a11y.test.mjs` is largely source-regex, not runtime; no automated
-  contrast sweep in CI. i18n ad-label locale list should be audited against X's full UI-locale
-  set, not just Aviary's 9 panel locales.
-- **Docs**: README badge row is a single version badge (house rule expects license/platform);
-  README:307 and :325 are stale (see P0); `.github/` has no issue/PR templates.
-- **Repo hygiene**: two ~700KB `.mhtml` captures at root (reference fixtures per prior session —
-  relocate under `_decoded/` with the rest of the ground truth), tracked `work/` and 40KB
-  `PROJECT_STATE.md` from the gitignore-reversal commit `39d513c`.
+- **The `document-start` bundle is majority translation table (Verified).** The built userscript is
+  1,862,668 characters; `src/platform/i18n-catalog.ts` accounts for **1,011,863 of them — 54.3%**.
+  Control Center UI adds a further ~11%. So roughly two thirds of what every X page load parses
+  before first paint exists to render a settings panel that is usually never opened, and all nine
+  locales ship to every user. Deferring the catalog (a lazily parsed JSON string, or a
+  web-accessible chunk in the extension build) is the largest single performance lever available and
+  touches one module boundary.
+- **`src/ui/control-center.ts` is 3,529 lines** beside a partially extracted
+  `src/ui/control-center/sections/{presets,reading,data,advanced}.ts`. The four section files still
+  carry the dead 4-destination IA while the panel renders 13 destinations — the split was started
+  and abandoned. Naming the files after what they render is the cheap half; finishing the extraction
+  is the expensive half and is not urgent.
+- **Build artifacts are committed on every commit, not every release (Verified).** `dist/` blobs
+  total **542.6 MB** across history (93.4 MiB packed), of which 277.9 MB is 230 versioned extension
+  ZIP blobs — incompressible, and rebuilt by `npm run verify` on each feature commit.
+  `dist/aviary.user.js` must stay tracked because `@downloadURL` points at it; the ZIPs are release
+  artifacts and need not be.
+- **Test gaps**: no runtime accessibility pass (above); no fixture-age gate; `tools/` has no capture
+  or capture-decode script, so refreshing ground truth is an undocumented manual chore.
+- **Platform capabilities available and unused** (all Baseline unless noted, MDN compat data):
+  `CompressionStream` (above), Web Locks (Chrome 69 / FF 96 / Safari 15.4 — no code
+  coordinates two open X tabs writing the collector or DNR rules), `content-visibility`
+  (Chrome 85 / FF 125 / Safari 18 — long library and timeline lists), CSS `@scope`
+  (Chrome 118 / FF 146 / Safari 26.4 — real scoping for F129 instead of attribute prefixes), OPFS
+  for streaming large exports. The extension-only wins — `chrome.userScripts` (whose `USER_SCRIPT`
+  world is exempt from page CSP and is the only store-compliant route for user-supplied CSS/JS), the
+  `browser` namespace alias in Chrome 148, DNR `topDomains` — all require raising
+  `minimum_chrome_version` from 116 and gecko `strict_min_version` from 128 by 20–30 releases, and
+  should wait for the F125 distribution decision.
 
 ## Rejected Ideas
 
-- Mass-block / mass-delete / bulk-unfollow (rxliuli, r/Twitter demand) — originates API calls;
-  the exact behavior behind the March 2026 ban waves. Keeps Aviary on the safe DOM/passive side.
-- Mobile/tablet support (CPFT's moat) — rejected by the desktop product scope (standing).
-- Settings cloud sync (CPFT #204) — local-first philosophy; profiles + settings export serve it.
-- Keyboard shortcuts (OldTwitter/RES parity) — standing house rule; preflight enforces.
-- x.com→twitter.com redirect (CPFT feature) — auth-loop breakage on CPFT (#909), low value.
-- Broad HomeTimeline/`pbs.twimg.com`/`video.twimg.com` blocking — breaks essential transport
-  (2026-08-13 pass, re-confirmed).
-- `placementTracking`-only ad selection — organic false positives (CLAUDE.md, uBO breakage).
-- Full client replacement (OldTwitter approach) — ban risk + GoodTwitter2 failure mode.
-- Hosted/subscription features (X Filter Pro model) — contradicts local-first identity.
-- `privacy.encryptVault` — key-beside-ciphertext theater; removed v1.12.0, stays removed.
-- AI summarization as default-on (X Filter Pro) — provider calls are disclosure-gated opt-in
-  by design; no change.
+- **WACZ as the primary capture format** (webrecorder) — full-fidelity capture multiplies per-timeline
+  storage; ship WACZ as an opt-in export container over the existing store instead.
+- **Bluesky/Mastodon feed enhancement** (twitter-web-exporter#123, TwitterMediaHarvest#195) — Aviary
+  crossposts to them; enhancing their timelines is a different product.
+- **Settings cloud sync** (cpft#204) — local-first; settings export serves it. Unchanged.
+- **Mass block / mass delete / bulk unfollow** (rxliuli) — originates API calls; the March 2026 ban
+  wave behaviour. Unchanged.
+- **Keyboard shortcuts** (bluesky-shortcuts, OldTwitter) — standing house rule; preflight enforces.
+- **Numeric engagement-threshold filtering** (cpft#850) — the rule DSL could express it, but Aviary
+  can also *hide* those counts per metric, so a threshold read from the DOM is unreliable exactly
+  when a user has configured it. Revisit only from a captured payload, not the rendered count.
+- **Timer-driven filtering** (Twitter-UI-Customizer#229/#239/#278 report lag from it) — Aviary's
+  observer-and-generation model is correct; do not add polling.
+- **`x.com` → alternate-frontend redirection** — link *copying* as an alternate front-end is fine
+  (below); redirecting the user's own session is the auth-loop breakage CPFT hit in #909.
+- **Storage Buckets API** — Chromium-only with no Firefox signal; the dual-ship rules it out.
+- **Firefox DNR smoke rewrite** — investigated and dropped: `tests/smoke/dnr-firefox.smoke.mjs:91`
+  uses `declarativeNetRequest.testMatchOutcome`, which Firefox implements, and backs it with a real
+  blocked request. No defect. Recorded so it is not re-investigated.
 
 ## Sources
 
-Competitors / OSS:
-- https://github.com/insin/control-panel-for-twitter (+issues #204 #909 #913 #915 #917 #918 #919)
-- https://github.com/dimdenGD/OldTwitter (+issues #1222 #1153 #1332)
-- https://github.com/prinsss/twitter-web-exporter (+issues #52 #92 #116 #133 #137)
-- https://github.com/EltonChou/TwitterMediaHarvest (+issues #74 #103 #126 #137 #283)
-- https://github.com/Ablaze-MIRAI/Twitter-UI-Customizer
-- https://github.com/typefully/minimal-twitter (+issues #183 #242 #243 #249)
-- https://github.com/AprilSylph/XKit-Rewritten
-- https://github.com/honestbleeps/Reddit-Enhancement-Suite · https://gosinkit.com/
-- https://github.com/rxliuli/mass-block-twitter · https://rxliuli.com/project/twitter-filter/
-- https://github.com/robonxt/CleanYourTwitter · https://github.com/Bl4Cc4t/GoodTwitter2
-- https://xfilterpro.com/ · https://chromewebstore.google.com/detail/hide-xcom-ads/bapmhjebfdbdpjjfafnkfidijkjlkakf
+Competitors / OSS (verified via GitHub API 2026-08-15 where numbered):
+- https://github.com/insin/control-panel-for-twitter (issues #204 #430 #492 #522 #530 #605 #653 #850 #864 #875 #916 #917 #918 #919)
+- https://github.com/prinsss/twitter-web-exporter (issues #52 #118 #123 #133 #137 #142 #143)
+- https://github.com/EltonChou/TwitterMediaHarvest (issues #54 #74 #103 #126 #137 #167 #283 #316 #323 #336)
+- https://github.com/AprilSylph/XKit-Rewritten (issues #1664 #2241)
+- https://github.com/typefully/minimal-twitter · https://github.com/Ablaze-MIRAI/Twitter-UI-Customizer
+- https://github.com/webrecorder/archiveweb.page · https://github.com/webrecorder/replayweb.page · https://github.com/webrecorder/wabac.js
+- https://github.com/TheExGenesis/community-archive · https://github.com/Dicklesworthstone/xf · https://github.com/timhutton/twitter-archive-parser
+- https://github.com/cheeaun/phanpy · https://github.com/jordwest/news-feed-eradicator · https://github.com/utags/utags
+- https://github.com/harvard-lil/scoop · https://github.com/gildas-lormeau/SingleFile · https://github.com/ArchiveBox/archivebox-browser-extension
+- https://github.com/awesome-scripts/awesome-userscripts · https://github.com/iipc/awesome-web-archiving
 
-Platform / standards:
-- https://developer.chrome.com/docs/extensions/develop/migrate/mv2-deprecation-timeline
-- https://developer.chrome.com/docs/extensions/reference/api/userScripts
-- https://developer.chrome.com/blog/cws-policy-updates-2026
-- https://blog.mozilla.org/addons/2026/07/23/firefox-153-webextensions-api-updates/
-- https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/userScripts (AMO restriction)
-- https://bugzil.la/1921353 (FF DNR persistence, fixed FF133)
-- https://web.dev/blog/baseline-navigation-api
-- https://eslint.org/blog/2026/02/eslint-v10.0.0-released/ · https://endoflife.date/eslint
-- https://github.com/evanw/esbuild/blob/main/CHANGELOG.md
-- https://devblogs.microsoft.com/typescript/announcing-typescript-6-0/
-- https://github.com/advisories/GHSA-7mvr-c777-76hp (Playwright, cleared)
+Platform / standards / toolchain:
+- https://developer.mozilla.org/en-US/docs/Web/API/CompressionStream · https://github.com/mdn/browser-compat-data
+- https://developer.chrome.com/docs/extensions/reference/api/userScripts · https://developer.chrome.com/docs/extensions/whatsnew
+- https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/userScripts
+- https://developer.chrome.com/blog/cws-policy-updates-2026 · https://extensionworkshop.com/documentation/publish/add-on-policies/
+- https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/ · https://github.com/typescript-eslint/typescript-eslint/issues/10940
+- https://github.com/evanw/esbuild/blob/main/CHANGELOG.md · https://github.com/eslint/eslint/releases · https://playwright.dev/docs/release-notes
+- https://www.iso.org/standard/68004.html (WARC/1.1) · https://specs.webrecorder.net/wacz/latest/
 
-X platform / community (sentiment unless noted):
-- https://piunikaweb.com/2026/07/10/x-ad-blocker-warning-browser-users/
-- https://www.reddit.com/r/uBlockOrigin/comments/1vob8nh (media-tab flag reversion, 2026-08-14)
-- https://www.reddit.com/r/uBlockOrigin/comments/1v2gxir ("More From This Author", 2026-07)
-- https://www.reddit.com/r/uBlockOrigin/comments/1v0psbz (video login wall, 2026-07)
-- https://www.reddit.com/r/Twitter/comments/1vev2k5 (ads unbearable even for Premium, 2026-08)
-- https://www.reddit.com/r/firefox/comments/1p8wfc2 (X CountryBadge, 591 pts, 2025-11)
-- https://www.reddit.com/r/Twitter/comments/1pvdf5u (art-to-gif Grok protection, 152 pts)
-- https://news.ycombinator.com/item?id=45916525 (Tweeks trust-objection thread)
-- https://scrapfly.io/blog/posts/how-to-scrape-twitter (GraphQL doc_id rotation)
+Security:
+- https://nodejs.org/en/blog/vulnerability/june-2026-security-releases · https://nodejs.org/en/blog/vulnerability/july-2026-security-releases
+- https://www.cisa.gov/news-events/alerts/2026/04/20/supply-chain-compromise-impacts-axios-node-package-manager
+- https://www.wiz.io/blog/keyv-and-cacheable-npm-supply-chain-attack · https://snyk.io/blog/node-gyp-supply-chain-compromise-self-propagating-npm-worm-binding-gyp/
+- https://github.com/evanw/esbuild/security/advisories/GHSA-g7r4-m6w7-qqqr
+
+Userscript managers:
+- https://www.tampermonkey.net/changelog.php · https://github.com/violentmonkey/violentmonkey/releases · https://github.com/scriptscat/scriptcat/releases
 
 ## Open Questions
 
-1. **Publishing intent**: is Aviary meant to go public (greasyfork/AMO/CWS) or stay a private
-   personal build? F105's correct URL target and the whole F125 distribution item depend on it.
-   Until answered, F105 should point at the real private repo's raw dist path.
-2. **Does X's anti-adblock warning actually trigger on Aviary's exact logger block?** Needs an
-   operator-authenticated session in the warning-test cohort; cannot be answered from fixtures.
-3. Blocked-item captures (F032/F033, sensitive media, pre-roll correlation) remain
-   operator-gated as specified in `Roadmap_Blocked.md` — unchanged by this pass.
+1. **Can the operator produce a refreshed authenticated capture?** F134 is written to be doable
+   from an ordinary logged-in session with save-as-MHTML, but every downstream blocked item
+   (Articles, reposts, sensitive media, relationship badges, "More From This Author", the August
+   carousel) depends on which states that session happens to contain. If it cannot be produced,
+   Aviary is frozen at May 2026's X and that should be stated in the README rather than implied.
+2. **Publishing intent** (F125, unchanged from 2026-08-14) — it now also gates whether the manifest
+   floors can rise far enough to use `chrome.userScripts`, and whether the awesome-userscripts
+   listing is worth pursuing.
+3. **Does default-mode Violentmonkey give Aviary true `document-start`?** If not, page-agent hooks
+   install after X's first fetches in that manager, and the userscript build should say so.
