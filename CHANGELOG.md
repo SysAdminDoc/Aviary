@@ -18,6 +18,12 @@
 
 ### Changed
 
+- The packaged extension ZIPs are no longer tracked in git. `npm run verify` rebuilds them on every
+  commit that touches `src/`, so each commit was adding roughly 3.9 MB of incompressible binary
+  that nothing can delta-compress — 230 blobs and 277.9 MB of the pack by 2026-08-15, for files
+  that are release artifacts. They are still built by the same command and still validated by
+  preflight. `dist/aviary.user.js` stays tracked, because `@downloadURL` resolves to it and it is
+  therefore the update channel itself.
 - Dependencies now install with `npm ci --ignore-scripts`, in CI and in the documented setup.
   Aviary has zero runtime dependencies, so nothing it ships needs an install script — and every
   major npm compromise of 2026 executed through one. Verified rather than assumed: esbuild's

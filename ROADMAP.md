@@ -65,13 +65,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: the panel is mounted and driven — focus order, `inert` on close, Escape, focus return, modal semantics, and every control's accessible name are read from the live accessibility tree; the source-regex assertions are deleted, not kept alongside.
   Complexity: M
 
-- [ ] F142 — P1 — Stop committing build artifacts on every commit
-  Why: `dist/` blobs total 542.6 MB across history (93.4 MiB packed), of which 277.9 MB is 230 versioned extension-ZIP blobs — incompressible, and rebuilt by `npm run verify` on every feature commit rather than every release.
-  Evidence: measured over `git rev-list --objects --all` 2026-08-15; `git count-objects -vH` size-pack 93.42 MiB.
-  Touches: .gitignore, `tools/preflight.mjs` or the release recipe in CLAUDE.md.
-  Acceptance: `dist/extension-*-v*.zip` is untracked and produced at release time; `dist/aviary.user.js` stays tracked because `@downloadURL` resolves to it, but is refreshed on release commits rather than every commit; the release recipe states where the ZIPs go. History rewriting is explicitly out of this item.
-  Complexity: S
-
 ### P2 — features
 
 - [ ] F144 — P2 — Say why a post was filtered
