@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Changed
+
+- The video-quality setting no longer promises an outcome it cannot guarantee. It is now **Pin
+  video playlists to their best rendition** and reports how many playlists were actually rewritten
+  this session. Aviary can only act on a playlist it sees, and a player fetching one inside a
+  worker never reaches it — so the setting states what it does instead of claiming a result.
+
 ### Added
 
 - **Dim posts you have already seen** (Filtering, off by default) fades a post the second time it
