@@ -24,15 +24,16 @@ v1.23.0 because the docs gate only checks version strings.
 
 Top opportunities in priority order:
 1. Refresh the capture set and make its age a gate — P0, unblocks a family of items.
-2. Bind the docs gate to the settings surface; README/FAQ are two releases behind — P1.
-3. Extend selector health from 10 surfaces to every selector a feature depends on — P1.
-4. DEFLATE the ZIP writer via `CompressionStream` (reader half already exists) — P1.
-5. Move the i18n catalog off the `document-start` parse path — P1.
-6. Restore what X's August 2026 redesign changed, while the category leader is 41 days idle — P1.
-7. Replace source-regex accessibility assertions with a rendered pass — P1.
-8. Show *why* a post was filtered, and make rules portable — P2.
-9. WACZ as the archival container, for Webrecorder-ecosystem replay — P2.
-10. Catch-up digest over the seen-post store shipped in v1.23.0 — P2.
+2. Point the update URLs at the renamed repository, and gate that against `origin` — P0.
+3. Bind the docs gate to the settings surface; README/FAQ are two releases behind — P1.
+4. Extend selector health from 10 surfaces to every selector a feature depends on — P1.
+5. DEFLATE the ZIP writer via `CompressionStream` (reader half already exists) — P1.
+6. Move the i18n catalog off the `document-start` parse path — P1.
+7. Restore what X's August 2026 redesign changed, while the category leader is 41 days idle — P1.
+8. Replace source-regex accessibility assertions with a rendered pass — P1.
+9. Show *why* a post was filtered, and make rules portable — P2.
+10. WACZ as the archival container, for Webrecorder-ecosystem replay — P2.
+11. Catch-up digest over the seen-post store shipped in v1.23.0 — P2.
 
 ## Product Map
 
@@ -152,6 +153,15 @@ Only projects carrying signal that changed since 2026-08-14, plus classes the pr
   Violentmonkey 2.46+ offers an opt-in "Alternative page mode" because default MV3 Violentmonkey
   does **not** deliver true `document-start`; Aviary's page agent depends on that timing. Needs live
   validation against `src/page/page-agent.ts`.
+- **The repository was renamed and the update URLs did not follow (Verified).** Pushing on
+  2026-08-15 returned "This repository moved. Please use the new location:
+  https://github.com/SysAdminDoc/Aviary.git", and `gh api` confirms `SysAdminDoc/Aviary` is
+  canonical. `package.json:11,13` still declares `SysAdminDoc/Twitter_Userscript`, and
+  `tools/build.mjs` derives the metablock from that field, so `dist/aviary.user.js:7,22,23` name the
+  pre-rename path. `github.com` follows renames; `raw.githubusercontent.com` — where `@updateURL`
+  and `@downloadURL` point — does not. Harmless while the repository is private, and a dead update
+  channel the moment F125 makes it public: the same defect F105 fixed on 2026-08-14, arriving by a
+  different route because preflight validates the URL's shape but not that it matches `origin`.
 - **Dead match targets (Likely).** Both manifests and the userscript metablock match
   `mobile.twitter.com` and `tweetdeck.twitter.com`, surfaces X retired in 2023. They widen the
   install permission prompt and match nothing.
