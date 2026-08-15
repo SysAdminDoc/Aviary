@@ -73,13 +73,13 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: the document-start payload drops by at least half; panel copy still resolves on first open with no visible delay; the i18n extract/sync pipeline and the drift tests still pass unchanged; the userscript remains a single readable file.
   Complexity: L
 
-- [ ] F139 — P1 — Restore what X's August 2026 redesign changed
-  Why: three issues opened 2026-08-11..13 against the category leader report a new image carousel and post layout (👍9 on "Remove all new changes"), and that project has not pushed since 2026-07-05. This is the demand window, and structural restoration is exactly what Aviary does.
-  Evidence: control-panel-for-twitter#917, #918, #919 (verified via GitHub API 2026-08-15); repository last push 2026-07-05.
-  Touches: `src/features/layout/`, settings, `_decoded/` fixtures, feature tests.
-  Acceptance: each restored behaviour is matched against the refreshed capture from F134 and fixture-tested; anything the capture does not contain goes to Roadmap_Blocked.md with its measurement rather than shipping on a guess.
-  Depends on: F134.
-  Complexity: M
+- [ ] F139 — P1 — Restore what X's August 2026 media redesign changed
+  Why: X replaced the 2x2 multi-image grid with an Instagram-style carousel (2026-08-11) and removed the desktop profile media grid, defaulting the Media tab to Videos and moving Likes into a dropdown (2026-08-13). These are the two highest-engagement X-UI complaint threads of the window — 235 points/82 comments and 61 points/17 comments — both carrying explicit unmet demand ("trying to find an extension to revert this", "waiting for some hero on Greasyfork/Github"), and the category leader has not pushed since 2026-07-05. The carousel additionally fails to render media on Firefox 153, which nothing currently fixes.
+  Evidence: control-panel-for-twitter#917/#918/#919 (GitHub API, 2026-08-15); r/Twitter 1vng9ak and 1vlugpd (2026-08-13, 2026-08-11); Firefox render break corroborated 2026-08-14 (RESEARCH.md Sources). Working community fixes name the flags: `rweb_media_carousel_enabled` (uBO scriptlet) and `responsive_web_profile_redesign_enabled` (a trusted `$replace=` filter most users cannot enable — an in-page flip is strictly better).
+  Touches: `src/features/layout/`, the page agent (flag write before X's first read), settings, `_decoded/` fixtures, feature tests, Roadmap_Blocked.md F115.
+  Acceptance: each restored behaviour is verified against the refreshed capture from F134 and fixture-tested; flag names live in a data file that can be updated without a rebuild, never compiled into a feature; a flag that no longer exists degrades loudly through selector health rather than silently doing nothing; anything the capture does not contain goes to Roadmap_Blocked.md with its measurement rather than shipping on a guess.
+  Depends on: F134, F115's re-entry condition.
+  Complexity: L
 
 - [ ] F140 — P1 — Test accessibility by rendering, not by reading source
   Why: `tests/audit-a11y.test.mjs` asserts literal source strings such as `overlay.toggleAttribute("inert", !open)`, so a rename fails a passing behaviour and a real regression that keeps the string passes. Contrast is already gated properly in `theme-matrix.test.mjs`; interaction and semantics are not.
@@ -107,6 +107,13 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Evidence: `src/extension/manifest.chrome.json`, `manifest.firefox.json`, `tools/build.mjs` metablock; `dist/aviary.user.js` header.
   Touches: both manifests, the metablock in `tools/build.mjs`, `tests/release-matrix.test.mjs` route list, docs/INSTALL.md, docs/PRIVACY.md.
   Acceptance: each declared host is confirmed to still serve an X surface before the list is trimmed; the permission prompt shrinks accordingly; route tests cover only surviving hosts.
+  Complexity: S
+
+- [ ] F153 — P1 — Prove Aviary's refusals exclude X's detection probes, and say so
+  Why: the community fix for X's ad-blocker notice is not to hide anything — it is to stop blocking two XHRs, `x.com/i/api/1.1/flow/viewer.json` and `x.com/i/api/*/viewer_context.json`. The reported trigger is a probe request *failing*, not an ad rendering, and the reported symptom is often not the banner at all but "An error has occurred but it's not your fault", a blank feed, or search returning nothing — which users misread as an X outage. Aviary's `privacy.networkShield` refuses exactly one logger, so it should be provably clear of both probes; that is worth asserting rather than assuming, because it is the difference between "safe by design" and "safe by luck".
+  Evidence: r/Twitter 1uya7kz and 1uz8yjf (2026-07-16/17), including the allowlist comment; PiunikaWeb 2026-07-10. Community claim — the endpoint behaviour needs one devtools session to confirm.
+  Touches: `src/features/privacy/ad-protection.ts`, the DNR rule set, `tests/dnr-ad-protection.test.mjs`, Trust copy.
+  Acceptance: a test names both probe URLs and asserts neither is matched by any Aviary rule or page-world stub, in both builds; Trust states which single request Aviary refuses and which it deliberately does not; the co-installed-blocker case is documented, since a second blocker was the actual cause in at least one report.
   Complexity: S
 
 ### P2 — features
@@ -154,6 +161,13 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Touches: post action row or the existing per-post menu, settings (chosen host, off by default).
   Acceptance: a copy action yields the same post's URL on a user-configured host; the default is X's own URL; nothing rewrites links X rendered and no navigation is redirected.
   Complexity: S
+
+- [ ] F154 — P2 — Mirror bookmarks locally as they render, and export them in bulk
+  Why: bookmarks are the clearest unserved need in the archiving communities — users report collections shrinking from hundreds to about twenty, and the standing explanation is that X does not delete them server-side, they simply stop being rendered (one third-party client listed five digits of bookmarks the UI would not show). Aviary already has a bookmark library and passive GraphQL capture, so mirroring what X hands the page needs no originated call.
+  Evidence: r/Twitter 1uyh6kw (2026-07-16), 1vbkkzr (2026-07-31), 1vlyntp (2026-08-12); r/DataHoarder 1vo86y2 (2026-08-14); twitter-web-exporter's bookmark-cap bypass is the same mechanism.
+  Touches: `src/features/export/network-capture.ts` (bookmark operations), `src/features/library/`, export formats, Library panel.
+  Acceptance: bookmarks seen in a captured payload are mirrored into the local library with their timestamp, survive disappearing from X's UI, and export in bulk; the mirror records only what X sent to the page, with zero originated requests; the panel states plainly that it can only hold what has been scrolled past.
+  Complexity: M
 
 - [ ] F150 — P2 — Media follow-ons beyond F118
   Why: the media backlog of the benchmark saver names four things Aviary can serve from records it already holds, without a single originated call.

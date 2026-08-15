@@ -149,6 +149,18 @@ Also unverified: whether Aviary's exact promoted-logger block is what triggers t
 It may key on uBlock-scale request blocking that Aviary does not do. Do not claim causation in UI
 copy without a session that demonstrates the warning appearing and disappearing with the toggle.
 
+Updated 2026-08-15 — a testable hypothesis now exists. The fix that propagated through the July 2026
+reports does not hide anything; it *allowlists* two XHRs, `x.com/i/api/1.1/flow/viewer.json` and
+`x.com/i/api/*/viewer_context.json`. If that is right, the trigger is a probe request failing rather
+than an ad rendering, which would put Aviary's single-logger refusal outside it. Two further details
+worth carrying into the session: the detection does not always present as the banner — the same
+reports describe "An error has occurred but it's not your fault", a blank feed, and search returning
+nothing, all of which read as an X outage — and it appears account-scoped rather than universal,
+so one account seeing nothing proves nothing. In at least one report the actual cause was a second
+content blocker installed alongside the first. All community claim; one devtools session settles it.
+ROADMAP.md F153 covers the half that can be proved without the warning: that Aviary refuses neither
+probe.
+
 ## F115 — "Restore old X" feature-flag reversion
 
 X ships UI experiments behind bootstrap feature flags, and through 2026 the uBlock Origin community
@@ -176,6 +188,17 @@ X's first read actually changes the rendered layout, then add one toggle per ver
 selector-health style drift reporting for a flag name that disappears. Each flag needs its own live
 verification; one working flag does not vouch for the next.
 
+Updated 2026-08-15: two flag names are no longer unknown. Working community fixes for X's August
+2026 redesign name `rweb_media_carousel_enabled` (a uBO scriptlet setting it false under both
+`defaultConfig` and `user.config`, restoring the 2x2 image grid) and
+`responsive_web_profile_redesign_enabled` (a trusted `$replace=` filter restoring the desktop
+profile media grid). That moves the remaining unknown from *discovery* to *verification*: the
+container's real name and nesting still need one authenticated session, and third-party scriptlets
+are not evidence this repository accepts on their own. Note the second one requires uBO's "Allow
+trusted filters", which most users will never enable — an in-page flip is a materially better answer
+than the workaround the community currently has, which is the strongest argument for finishing this
+item. See ROADMAP.md F139.
+
 ## F125 — Distribution decision, real Firefox add-on id, update story
 
 The Firefox manifest ships `browser_specific_settings.gecko.id` as the placeholder
@@ -194,6 +217,17 @@ Re-entry condition: the operator states the intended distribution. Then mint a s
 point the update URLs at the decided channel, update `docs/INSTALL.md`'s update section, and — if
 public — prepare listing assets and confirm the privacy disclosures match the Chrome Web Store
 policy that took effect 2026-08-01.
+
+Updated 2026-08-15: three constraints to plan for rather than discover at submission. AMO caps the
+manifest `name` at 50 characters and Edge at 45 (Chrome does not enforce one), and AMO now requires
+an explicit `data-collection-permissions` declaration — verify both against MDN before writing the
+listing, since the developer report they come from corrected itself once. Chrome additionally offers
+to skip review for updates that only change *safe static* `declarativeNetRequest` rules, which is an
+argument for expressing ad suppression as static rules where it can be. Separately, ROADMAP.md F152
+must land first: the repository was renamed and the update URLs still name the old path, so
+publishing before that fix ships a dead update channel. `awesome-scripts/awesome-userscripts` is
+active and lists no enhancer of this class, so a listing there is available the moment this is
+decided.
 
 ## Proving the video-quality setting actually changes delivered quality
 

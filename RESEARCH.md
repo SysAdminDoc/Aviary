@@ -10,8 +10,9 @@ Aviary is a local-first desktop X enhancer shipping a readable userscript and an
 with a two-item roadmap. Its discipline — a selector ships only if it can be proved against a
 captured DOM fixture — is the strongest thing about it and is now also its binding constraint: the
 only ground truth in the repository, `_decoded/home.html` and `_decoded/status.html`, is dated
-**2026-05-19**, and X shipped a post-media redesign on or before **2026-08-11**
-(control-panel-for-twitter#917/#918/#919, opened 2026-08-11 to 08-13). The project cannot see the
+**2026-05-19**, and X shipped a post-media redesign on or before **2026-08-11** — the 2x2 image grid replaced by a
+carousel, and the desktop profile media grid removed — the two highest-engagement X-UI complaint
+threads of the window, both with explicit unmet demand for an extension that reverts them. The project cannot see the
 current X. Nothing warns that the fixture is stale, and no tooling or documented procedure exists to
 refresh it. That is the highest-value work available, because it is what gates roughly eight blocked
 items and every response to X's ongoing churn.
@@ -95,6 +96,12 @@ Only projects carrying signal that changed since 2026-08-14, plus classes the pr
   already reaches parity; no further action.
 - **utags** (★367) — user-defined tags on arbitrary links with a merge model worth reading before
   extending account colours into free-form tags.
+- **The August 2026 window is open and unanswered.** Every incumbent surveyed is idle or in
+  maintenance: CPFT last pushed 2026-07-05, TwitterMediaHarvest has shipped only dependency bumps
+  since 2026-06-18, Twitter-UI-Customizer has no release since 2026-05-17, Minimal Twitter is dead
+  (last push 2025-12-18). The only answer offered in the busiest complaint thread was OldTwitter,
+  which a commenter reports does not restore the grid on Firefox and which is currently getting
+  accounts suspended. No project is serving this demand.
 - **Distribution note**: `awesome-scripts/awesome-userscripts` (★3471, pushed 2026-08-13) is active
   and lists no X/Twitter enhancer of this class — a channel that exists the moment F125 is decided.
 
@@ -165,6 +172,23 @@ Only projects carrying signal that changed since 2026-08-14, plus classes the pr
 - **Dead match targets (Likely).** Both manifests and the userscript metablock match
   `mobile.twitter.com` and `tweetdeck.twitter.com`, surfaces X retired in 2023. They widen the
   install permission prompt and match nothing.
+- **X's anti-adblock detection looks like a failed probe, not a rendered ad (Community claim).**
+  The fix that propagated through the July 2026 reports allowlists two XHRs —
+  `x.com/i/api/1.1/flow/viewer.json` and `x.com/i/api/*/viewer_context.json` — rather than hiding
+  anything, and the reporter notes that other circulating fixes blank the feed entirely. If that is
+  right, the trigger is a probe failing, which puts Aviary's single-logger refusal outside it. Two
+  details matter for any test session: the detection often presents not as the banner but as "An
+  error has occurred but it's not your fault", a blank feed, or search returning nothing — read by
+  users as an X outage — and it appears account-scoped, so one clean account proves nothing. In at
+  least one report the real cause was a second content blocker installed alongside the first, which
+  is a live concern because Aviary will usually be installed next to one.
+- **The ban line is enforced on unsigned originated requests (Verified, primary).** OldTwitter
+  issues #824, #828 and #706 and OldTweetDeck #455/#457 report suspensions and account locks for
+  "inauthentic behavior", and OldTwitter #1126 records X responding *"OldTwitter doesn't allow
+  unsigned requests anymore for your account security"*. The enforcement mechanism is therefore
+  request signing / non-official client origin — precisely the behaviour Aviary refuses by design.
+  This is now a documented differentiator rather than a cautious policy, and README should say it
+  plainly.
 - **Ban-risk line unchanged (policy).** Passive observation only; batch features consume already
   captured records. Every item below respects it.
 
@@ -244,6 +268,18 @@ Platform / standards / toolchain:
 - https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/ · https://github.com/typescript-eslint/typescript-eslint/issues/10940
 - https://github.com/evanw/esbuild/blob/main/CHANGELOG.md · https://github.com/eslint/eslint/releases · https://playwright.dev/docs/release-notes
 - https://www.iso.org/standard/68004.html (WARC/1.1) · https://specs.webrecorder.net/wacz/latest/
+
+X platform / community (sentiment unless marked; corroborating primary sources named):
+- https://www.reddit.com/r/Twitter/comments/1vng9ak/ (profile media grid removed, 235 pts, 2026-08-13)
+- https://www.reddit.com/r/Twitter/comments/1vlugpd/ (2x2 grid -> carousel, 61 pts, 2026-08-11)
+- https://www.reddit.com/r/Twitter/comments/1uya7kz/ · https://www.reddit.com/r/Twitter/comments/1uz8yjf/ (anti-adblock probes, 2026-07-16/17)
+- https://www.reddit.com/r/uBlockOrigin/comments/1vob8nh/ (profile-redesign flag reversion, 2026-08-14)
+- https://www.reddit.com/r/Twitter/comments/1uyh6kw/ · https://www.reddit.com/r/Twitter/comments/1vbkkzr/ (bookmarks disappearing)
+- https://www.reddit.com/r/DataHoarder/comments/1vo86y2/ · https://www.reddit.com/r/DataHoarder/comments/1vdz79y/ (archiving X media)
+- https://www.reddit.com/r/chrome_extensions/comments/1vebpo6/ (AMO/Edge/Chrome store validator constraints)
+- https://github.com/dimdenGD/OldTwitter/issues/824 · /828 · /1126 · https://github.com/dimdenGD/OldTweetDeck/issues/455
+- https://www.neowin.net/news/elon-musks-x-starts-suspending-people-using-third-party-apps-like-oldtweetdeck/
+- https://piunikaweb.com/2026/07/10/x-ad-blocker-warning-browser-users/ · https://piunikaweb.com/2026/05/25/x-replaces-media-tab-with-videos/
 
 Security:
 - https://nodejs.org/en/blog/vulnerability/june-2026-security-releases · https://nodejs.org/en/blog/vulnerability/july-2026-security-releases
