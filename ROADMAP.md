@@ -68,13 +68,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: badge renders only from passively available data; feature ships only after a `_decoded/` capture proves the marker; otherwise stays blocked-style gated.
   Complexity: M
 
-- [ ] F131 — P3 — Logo/favicon replacement option
-  Why: TUIC/CPFT both ship it; pairs with Aviary's new brand mark and Noir; trivially reversible.
-  Evidence: TUIC feature list; CPFT option catalog.
-  Touches: small appearance module (favicon link swap + header logo CSS), settings.
-  Acceptance: X's logo/favicon can show the classic bird or Aviary mark; exact restore on Off.
-  Complexity: S
-
 - [ ] F132 — P3 — Ad-label locale audit beyond the 9 panel locales
   Why: uBO filters break exactly on ad-label localization; Aviary's bounded label list should be audited against X's full UI-locale set (X ships ~30+ UI languages), not just Aviary's 9 panel locales — a user browsing X in Italian still deserves ad suppression.
   Evidence: uBO breakage history (mrod.space analysis); src ad-label locale list; RESEARCH.md Competitive.

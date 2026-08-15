@@ -68,6 +68,7 @@ var Aviary = (() => {
       countMetrics: { replies: true, reposts: true, likes: true, views: true },
       hideTitleBadge: false,
       absoluteTimestamps: false,
+      replaceFavicon: false,
       restoreChirp: false
     },
     layout: {
@@ -277,6 +278,10 @@ var Aviary = (() => {
         absoluteTimestamps: booleanValue(
           appearance.absoluteTimestamps,
           DEFAULT_SETTINGS.appearance.absoluteTimestamps
+        ),
+        replaceFavicon: booleanValue(
+          appearance.replaceFavicon,
+          DEFAULT_SETTINGS.appearance.replaceFavicon
         ),
         restoreChirp: booleanValue(appearance.restoreChirp, DEFAULT_SETTINGS.appearance.restoreChirp)
       },
@@ -1301,6 +1306,88 @@ html.av-reduce-motion *::after {
     }
   }
 
+  // src/features/appearance/favicon.ts
+  var MARKER2 = "data-av-favicon";
+  var ORIGINAL2 = "data-av-favicon-original";
+  var ICON_REL = /(^|\s)(shortcut\s+)?icon(\s|$)/i;
+  var AVIARY_MARK = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#8b5cf6"/>
+</linearGradient></defs>
+<rect width="64" height="64" rx="14" fill="#0b0e12"/>
+<path d="M32 12 L46 46 H38.5 L35.6 38.5 H28.4 L25.5 46 H18 Z M32 24.5 L29.9 32.5 H34.1 Z" fill="url(#g)"/>
+<circle cx="45" cy="20" r="4" fill="url(#g)"/>
+</svg>`;
+  function markUrl() {
+    return `data:image/svg+xml,${encodeURIComponent(AVIARY_MARK.replace(/\n/g, ""))}`;
+  }
+  var observer2;
+  var faviconFeature = {
+    id: "appearance.favicon",
+    title: "Replace the X favicon",
+    category: "appearance",
+    init(ctx) {
+      applyFavicon(ctx);
+    },
+    apply(ctx) {
+      applyFavicon(ctx);
+    },
+    destroy(ctx) {
+      stop2();
+      restoreFavicons();
+      ctx.diagnostics.info("Favicon restored");
+    }
+  };
+  function applyFavicon(ctx) {
+    if (!ctx.settings.appearance.replaceFavicon) {
+      stop2();
+      restoreFavicons();
+      return;
+    }
+    swap();
+    if (observer2 || typeof MutationObserver === "undefined") {
+      return;
+    }
+    const head = document.head;
+    if (!head) {
+      return;
+    }
+    observer2 = new MutationObserver(() => swap());
+    observer2.observe(head, { childList: true, subtree: true, attributes: true, attributeFilter: ["href"] });
+  }
+  function iconLinks() {
+    return Array.from(document.querySelectorAll("link[rel]")).filter(
+      (link) => ICON_REL.test(link.getAttribute("rel") ?? "")
+    );
+  }
+  function swap() {
+    const url = markUrl();
+    for (const link of iconLinks()) {
+      if (link.getAttribute("href") === url) {
+        continue;
+      }
+      if (!link.hasAttribute(ORIGINAL2)) {
+        link.setAttribute(ORIGINAL2, link.getAttribute("href") ?? "");
+      }
+      link.setAttribute("href", url);
+      link.setAttribute(MARKER2, "1");
+    }
+  }
+  function restoreFavicons() {
+    for (const link of Array.from(document.querySelectorAll(`link[${MARKER2}]`))) {
+      const original = link.getAttribute(ORIGINAL2);
+      if (original) {
+        link.setAttribute("href", original);
+      }
+      link.removeAttribute(MARKER2);
+      link.removeAttribute(ORIGINAL2);
+    }
+  }
+  function stop2() {
+    observer2?.disconnect();
+    observer2 = void 0;
+  }
+
   // src/platform/i18n-catalog.ts
   var PANEL_CATALOG = {
     es: {
@@ -1367,6 +1454,8 @@ html.av-reduce-motion *::after {
       "Remove X's unread count from the browser tab title, so a hidden notification badge is not restored by the tab.": "Elimina el contador de no le\xEDdos de X del t\xEDtulo de la pesta\xF1a, para que la pesta\xF1a no devuelva un aviso que ya hab\xEDas ocultado.",
       "Absolute timestamps": "Marcas de tiempo absolutas",
       "Show the exact date and time on every post instead of X's relative text.": "Muestra la fecha y la hora exactas en cada publicaci\xF3n en lugar del texto relativo de X.",
+      "Use Aviary's tab icon": "Usar el icono de pesta\xF1a de Aviary",
+      "Replace X's favicon with Aviary's mark so its tabs are easy to pick out. Restores X's own icon when off.": "Sustituye el favicon de X por la marca de Aviary para distinguir sus pesta\xF1as de un vistazo. Al desactivarlo se restaura el icono propio de X.",
       "Hide row borders": "Ocultar bordes de fila",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "Elimina el divisor de 1 px bajo cada publicaci\xF3n y las l\xEDneas laterales de la columna principal.",
       "High contrast": "Alto contraste",
@@ -1915,6 +2004,8 @@ html.av-reduce-motion *::after {
       "Tab title badge shown": "Contador de la pesta\xF1a visible",
       "Absolute timestamps on": "Marcas de tiempo absolutas activadas",
       "Absolute timestamps off": "Marcas de tiempo absolutas desactivadas",
+      "Aviary tab icon on": "Icono de pesta\xF1a de Aviary activado",
+      "X tab icon restored": "Icono de pesta\xF1a de X restaurado",
       "Row borders hidden": "Bordes de fila ocultos",
       "Row borders restored": "Bordes de fila restaurados",
       "Contrast preference saved": "Preferencia de contraste guardada",
@@ -2255,6 +2346,8 @@ html.av-reduce-motion *::after {
       "Remove X's unread count from the browser tab title, so a hidden notification badge is not restored by the tab.": "Remove a contagem de n\xE3o lidos do X do t\xEDtulo da aba, para que a aba n\xE3o traga de volta um aviso que voc\xEA j\xE1 ocultou.",
       "Absolute timestamps": "Carimbos de data/hora absolutos",
       "Show the exact date and time on every post instead of X's relative text.": "Mostra a data e a hora exatas em cada publica\xE7\xE3o em vez do texto relativo do X.",
+      "Use Aviary's tab icon": "Usar o \xEDcone de aba do Aviary",
+      "Replace X's favicon with Aviary's mark so its tabs are easy to pick out. Restores X's own icon when off.": "Substitui o favicon do X pela marca do Aviary para identificar suas abas rapidamente. Ao desativar, restaura o \xEDcone original do X.",
       "Hide row borders": "Ocultar bordas das linhas",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "Remove o divisor de 1 px sob cada post e as linhas laterais da coluna principal.",
       "High contrast": "Alto contraste",
@@ -2803,6 +2896,8 @@ html.av-reduce-motion *::after {
       "Tab title badge shown": "Contador da aba vis\xEDvel",
       "Absolute timestamps on": "Carimbos absolutos ativados",
       "Absolute timestamps off": "Carimbos absolutos desativados",
+      "Aviary tab icon on": "\xCDcone de aba do Aviary ativado",
+      "X tab icon restored": "\xCDcone de aba do X restaurado",
       "Row borders hidden": "Limites das linhas ocultos",
       "Row borders restored": "Limites das linhas repostos",
       "Contrast preference saved": "Prefer\xEAncia de contraste guardada",
@@ -3143,6 +3238,8 @@ html.av-reduce-motion *::after {
       "Remove X's unread count from the browser tab title, so a hidden notification badge is not restored by the tab.": "Retire le compteur de non-lus de X du titre de l'onglet, pour que l'onglet ne ram\xE8ne pas une notification que vous aviez masqu\xE9e.",
       "Absolute timestamps": "Horodatages absolus",
       "Show the exact date and time on every post instead of X's relative text.": "Affiche la date et l'heure exactes sur chaque post au lieu du texte relatif de X.",
+      "Use Aviary's tab icon": "Utiliser l'ic\xF4ne d'onglet d'Aviary",
+      "Replace X's favicon with Aviary's mark so its tabs are easy to pick out. Restores X's own icon when off.": "Remplace le favicon de X par la marque d'Aviary pour rep\xE9rer ses onglets d'un coup d'\u0153il. D\xE9sactiv\xE9, l'ic\xF4ne d'origine de X revient.",
       "Hide row borders": "Masquer les bordures de ligne",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "Supprime le trait de 1 px sous chaque publication ainsi que les filets lat\xE9raux de la colonne principale.",
       "High contrast": "Contraste \xE9lev\xE9",
@@ -3691,6 +3788,8 @@ html.av-reduce-motion *::after {
       "Tab title badge shown": "Compteur d'onglet affich\xE9",
       "Absolute timestamps on": "Horodatages absolus activ\xE9s",
       "Absolute timestamps off": "Horodatages absolus d\xE9sactiv\xE9s",
+      "Aviary tab icon on": "Ic\xF4ne d'onglet Aviary activ\xE9e",
+      "X tab icon restored": "Ic\xF4ne d'onglet de X restaur\xE9e",
       "Row borders hidden": "Bordures de ligne masqu\xE9es",
       "Row borders restored": "Bordures de ligne r\xE9tablies",
       "Contrast preference saved": "Pr\xE9f\xE9rence de contraste enregistr\xE9e",
@@ -4031,6 +4130,8 @@ html.av-reduce-motion *::after {
       "Remove X's unread count from the browser tab title, so a hidden notification badge is not restored by the tab.": "Entfernt X' Ungelesen-Z\xE4hler aus dem Tab-Titel, damit der Tab keinen Hinweis zur\xFCckbringt, den du bereits ausgeblendet hast.",
       "Absolute timestamps": "Absolute Zeitstempel",
       "Show the exact date and time on every post instead of X's relative text.": "Zeigt auf jedem Beitrag das genaue Datum und die genaue Uhrzeit statt X' relativer Angabe.",
+      "Use Aviary's tab icon": "Aviarys Tab-Symbol verwenden",
+      "Replace X's favicon with Aviary's mark so its tabs are easy to pick out. Restores X's own icon when off.": "Ersetzt X' Favicon durch Aviarys Marke, damit sich dessen Tabs leicht herausgreifen lassen. Ausgeschaltet kehrt X' eigenes Symbol zur\xFCck.",
       "Hide row borders": "Zeilentrenner ausblenden",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "Entfernt den 1-px-Trenner unter jedem Beitrag und die Seitenlinien der Hauptspalte.",
       "High contrast": "Hoher Kontrast",
@@ -4579,6 +4680,8 @@ html.av-reduce-motion *::after {
       "Tab title badge shown": "Tab-Z\xE4hler sichtbar",
       "Absolute timestamps on": "Absolute Zeitstempel an",
       "Absolute timestamps off": "Absolute Zeitstempel aus",
+      "Aviary tab icon on": "Aviary-Tab-Symbol an",
+      "X tab icon restored": "X-Tab-Symbol wiederhergestellt",
       "Row borders hidden": "Zeilenrahmen ausgeblendet",
       "Row borders restored": "Zeilenrahmen wiederhergestellt",
       "Contrast preference saved": "Kontrast-Einstellung gespeichert",
@@ -4919,6 +5022,8 @@ html.av-reduce-motion *::after {
       "Remove X's unread count from the browser tab title, so a hidden notification badge is not restored by the tab.": "\u30D6\u30E9\u30A6\u30B6\u30FC\u306E\u30BF\u30D6\u30BF\u30A4\u30C8\u30EB\u304B\u3089 X \u306E\u672A\u8AAD\u6570\u3092\u53D6\u308A\u9664\u304D\u3001\u975E\u8868\u793A\u306B\u3057\u305F\u901A\u77E5\u30D0\u30C3\u30B8\u304C\u30BF\u30D6\u304B\u3089\u623B\u3089\u306A\u3044\u3088\u3046\u306B\u3057\u307E\u3059\u3002",
       "Absolute timestamps": "\u7D76\u5BFE\u6642\u523B\u8868\u793A",
       "Show the exact date and time on every post instead of X's relative text.": "X \u306E\u76F8\u5BFE\u8868\u8A18\u306E\u4EE3\u308F\u308A\u306B\u3001\u5404\u6295\u7A3F\u3078\u6B63\u78BA\u306A\u65E5\u4ED8\u3068\u6642\u523B\u3092\u8868\u793A\u3057\u307E\u3059\u3002",
+      "Use Aviary's tab icon": "Aviary \u306E\u30BF\u30D6\u30A2\u30A4\u30B3\u30F3\u3092\u4F7F\u3046",
+      "Replace X's favicon with Aviary's mark so its tabs are easy to pick out. Restores X's own icon when off.": "X \u306E\u30D5\u30A1\u30D3\u30B3\u30F3\u3092 Aviary \u306E\u30DE\u30FC\u30AF\u306B\u7F6E\u304D\u63DB\u3048\u3001\u30BF\u30D6\u3092\u898B\u5206\u3051\u3084\u3059\u304F\u3057\u307E\u3059\u3002\u30AA\u30D5\u306B\u3059\u308B\u3068 X \u672C\u6765\u306E\u30A2\u30A4\u30B3\u30F3\u306B\u623B\u308A\u307E\u3059\u3002",
       "Hide row borders": "\u884C\u306E\u5883\u754C\u7DDA\u3092\u975E\u8868\u793A",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "\u5404\u6295\u7A3F\u306E\u4E0B\u306B\u3042\u308B 1px \u306E\u533A\u5207\u308A\u7DDA\u3068\u3001\u30E1\u30A4\u30F3\u30AB\u30E9\u30E0\u306E\u5DE6\u53F3\u306E\u7F6B\u7DDA\u3092\u6D88\u3057\u307E\u3059\u3002",
       "High contrast": "\u30CF\u30A4\u30B3\u30F3\u30C8\u30E9\u30B9\u30C8",
@@ -5467,6 +5572,8 @@ html.av-reduce-motion *::after {
       "Tab title badge shown": "\u30BF\u30D6\u306E\u901A\u77E5\u6570\u3092\u8868\u793A\u3057\u307E\u3057\u305F",
       "Absolute timestamps on": "\u7D76\u5BFE\u6642\u523B\u8868\u793A\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
       "Absolute timestamps off": "\u7D76\u5BFE\u6642\u523B\u8868\u793A\u3092\u30AA\u30D5\u306B\u3057\u307E\u3057\u305F",
+      "Aviary tab icon on": "Aviary \u306E\u30BF\u30D6\u30A2\u30A4\u30B3\u30F3\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
+      "X tab icon restored": "X \u306E\u30BF\u30D6\u30A2\u30A4\u30B3\u30F3\u3092\u5FA9\u5143\u3057\u307E\u3057\u305F",
       "Row borders hidden": "\u884C\u306E\u5883\u754C\u7DDA\u3092\u975E\u8868\u793A\u306B\u3057\u307E\u3057\u305F",
       "Row borders restored": "\u884C\u306E\u5883\u754C\u7DDA\u3092\u623B\u3057\u307E\u3057\u305F",
       "Contrast preference saved": "\u30B3\u30F3\u30C8\u30E9\u30B9\u30C8\u306E\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
@@ -5807,6 +5914,8 @@ html.av-reduce-motion *::after {
       "Remove X's unread count from the browser tab title, so a hidden notification badge is not restored by the tab.": "\uBE0C\uB77C\uC6B0\uC800 \uD0ED \uC81C\uBAA9\uC5D0\uC11C X\uC758 \uC77D\uC9C0 \uC54A\uC740 \uC54C\uB9BC \uC218\uB97C \uC81C\uAC70\uD574, \uC228\uAE34 \uC54C\uB9BC \uBC30\uC9C0\uAC00 \uD0ED\uC744 \uD1B5\uD574 \uB2E4\uC2DC \uB098\uD0C0\uB098\uC9C0 \uC54A\uB3C4\uB85D \uD569\uB2C8\uB2E4.",
       "Absolute timestamps": "\uC808\uB300 \uC2DC\uAC04 \uD45C\uC2DC",
       "Show the exact date and time on every post instead of X's relative text.": "X\uC758 \uC0C1\uB300 \uD45C\uAE30 \uB300\uC2E0 \uAC01 \uAC8C\uC2DC\uBB3C\uC5D0 \uC815\uD655\uD55C \uB0A0\uC9DC\uC640 \uC2DC\uAC01\uC744 \uD45C\uC2DC\uD569\uB2C8\uB2E4.",
+      "Use Aviary's tab icon": "Aviary \uD0ED \uC544\uC774\uCF58 \uC0AC\uC6A9",
+      "Replace X's favicon with Aviary's mark so its tabs are easy to pick out. Restores X's own icon when off.": "X\uC758 \uD30C\uBE44\uCF58\uC744 Aviary \uB9C8\uD06C\uB85C \uBC14\uAFD4 \uD0ED\uC744 \uC27D\uAC8C \uAD6C\uBD84\uD560 \uC218 \uC788\uAC8C \uD569\uB2C8\uB2E4. \uB044\uBA74 X\uC758 \uC6D0\uB798 \uC544\uC774\uCF58\uC774 \uBCF5\uC6D0\uB429\uB2C8\uB2E4.",
       "Hide row borders": "\uD589 \uACBD\uACC4\uC120 \uC228\uAE30\uAE30",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "\uAC01 \uAC8C\uC2DC\uBB3C \uC544\uB798\uC758 1px \uAD6C\uBD84\uC120\uACFC \uAE30\uBCF8 \uCE7C\uB7FC\uC758 \uC88C\uC6B0 \uC120\uC744 \uC5C6\uC571\uB2C8\uB2E4.",
       "High contrast": "\uACE0\uB300\uBE44",
@@ -6355,6 +6464,8 @@ html.av-reduce-motion *::after {
       "Tab title badge shown": "\uD0ED \uC54C\uB9BC \uC218\uB97C \uD45C\uC2DC\uD569\uB2C8\uB2E4",
       "Absolute timestamps on": "\uC808\uB300 \uC2DC\uAC04 \uD45C\uC2DC\uB97C \uCF30\uC2B5\uB2C8\uB2E4",
       "Absolute timestamps off": "\uC808\uB300 \uC2DC\uAC04 \uD45C\uC2DC\uB97C \uAED0\uC2B5\uB2C8\uB2E4",
+      "Aviary tab icon on": "Aviary \uD0ED \uC544\uC774\uCF58\uC744 \uCF30\uC2B5\uB2C8\uB2E4",
+      "X tab icon restored": "X \uD0ED \uC544\uC774\uCF58\uC744 \uBCF5\uC6D0\uD588\uC2B5\uB2C8\uB2E4",
       "Row borders hidden": "\uD589 \uD14C\uB450\uB9AC \uC228\uAE40",
       "Row borders restored": "\uD589 \uD14C\uB450\uB9AC \uBCF5\uC6D0",
       "Contrast preference saved": "\uB300\uBE44 \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
@@ -6695,6 +6806,8 @@ html.av-reduce-motion *::after {
       "Remove X's unread count from the browser tab title, so a hidden notification badge is not restored by the tab.": "\u064A\u0632\u064A\u0644 \u0639\u062F\u062F \u063A\u064A\u0631 \u0627\u0644\u0645\u0642\u0631\u0648\u0621 \u0641\u064A X \u0645\u0646 \u0639\u0646\u0648\u0627\u0646 \u062A\u0628\u0648\u064A\u0628 \u0627\u0644\u0645\u062A\u0635\u0641\u062D\u060C \u062D\u062A\u0649 \u0644\u0627 \u064A\u0639\u064A\u062F \u0627\u0644\u062A\u0628\u0648\u064A\u0628 \u0625\u0634\u0639\u0627\u0631\u064B\u0627 \u0633\u0628\u0642 \u0623\u0646 \u0623\u062E\u0641\u064A\u062A\u0647.",
       "Absolute timestamps": "\u0637\u0648\u0627\u0628\u0639 \u0632\u0645\u0646\u064A\u0629 \u0645\u0637\u0644\u0642\u0629",
       "Show the exact date and time on every post instead of X's relative text.": "\u064A\u0639\u0631\u0636 \u0627\u0644\u062A\u0627\u0631\u064A\u062E \u0648\u0627\u0644\u0648\u0642\u062A \u0627\u0644\u062F\u0642\u064A\u0642\u064A\u0646 \u0639\u0644\u0649 \u0643\u0644 \u0645\u0646\u0634\u0648\u0631 \u0628\u062F\u0644\u064B\u0627 \u0645\u0646 \u0627\u0644\u0646\u0635 \u0627\u0644\u0646\u0633\u0628\u064A \u0641\u064A X.",
+      "Use Aviary's tab icon": "\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0623\u064A\u0642\u0648\u0646\u0629 \u062A\u0628\u0648\u064A\u0628 Aviary",
+      "Replace X's favicon with Aviary's mark so its tabs are easy to pick out. Restores X's own icon when off.": "\u064A\u0633\u062A\u0628\u062F\u0644 \u0623\u064A\u0642\u0648\u0646\u0629 X \u0627\u0644\u0645\u0641\u0636\u0651\u0644\u0629 \u0628\u0639\u0644\u0627\u0645\u0629 Aviary \u0644\u062A\u0645\u064A\u064A\u0632 \u062A\u0628\u0648\u064A\u0628\u0627\u062A\u0647\u0627 \u0628\u0633\u0647\u0648\u0644\u0629. \u0648\u0639\u0646\u062F \u0627\u0644\u0625\u064A\u0642\u0627\u0641 \u062A\u0639\u0648\u062F \u0623\u064A\u0642\u0648\u0646\u0629 X \u0627\u0644\u0623\u0635\u0644\u064A\u0629.",
       "Hide row borders": "\u0625\u062E\u0641\u0627\u0621 \u062D\u062F\u0648\u062F \u0627\u0644\u0635\u0641\u0648\u0641",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "\u064A\u0632\u064A\u0644 \u0627\u0644\u0641\u0627\u0635\u0644 \u0628\u0633\u0645\u0643 \u0628\u0643\u0633\u0644 \u0648\u0627\u062D\u062F \u0623\u0633\u0641\u0644 \u0643\u0644 \u0645\u0646\u0634\u0648\u0631\u060C \u0648\u0627\u0644\u062E\u0637\u0648\u0637 \u0627\u0644\u062C\u0627\u0646\u0628\u064A\u0629 \u0644\u0644\u0639\u0645\u0648\u062F \u0627\u0644\u0631\u0626\u064A\u0633\u064A.",
       "High contrast": "\u062A\u0628\u0627\u064A\u0646 \u0639\u0627\u0644\u064D",
@@ -7243,6 +7356,8 @@ html.av-reduce-motion *::after {
       "Tab title badge shown": "\u062A\u0645 \u0625\u0638\u0647\u0627\u0631 \u0639\u062F\u0651\u0627\u062F \u0627\u0644\u062A\u0628\u0648\u064A\u0628",
       "Absolute timestamps on": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0627\u0644\u0637\u0648\u0627\u0628\u0639 \u0627\u0644\u0632\u0645\u0646\u064A\u0629 \u0627\u0644\u0645\u0637\u0644\u0642\u0629",
       "Absolute timestamps off": "\u062A\u0645 \u0625\u064A\u0642\u0627\u0641 \u0627\u0644\u0637\u0648\u0627\u0628\u0639 \u0627\u0644\u0632\u0645\u0646\u064A\u0629 \u0627\u0644\u0645\u0637\u0644\u0642\u0629",
+      "Aviary tab icon on": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0623\u064A\u0642\u0648\u0646\u0629 \u062A\u0628\u0648\u064A\u0628 Aviary",
+      "X tab icon restored": "\u062A\u0645\u062A \u0627\u0633\u062A\u0639\u0627\u062F\u0629 \u0623\u064A\u0642\u0648\u0646\u0629 \u062A\u0628\u0648\u064A\u0628 X",
       "Row borders hidden": "\u062A\u0645 \u0625\u062E\u0641\u0627\u0621 \u062D\u062F\u0648\u062F \u0627\u0644\u0635\u0641\u0648\u0641",
       "Row borders restored": "\u062A\u0645\u062A \u0627\u0633\u062A\u0639\u0627\u062F\u0629 \u062D\u062F\u0648\u062F \u0627\u0644\u0635\u0641\u0648\u0641",
       "Contrast preference saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u062A\u0628\u0627\u064A\u0646",
@@ -7583,6 +7698,8 @@ html.av-reduce-motion *::after {
       "Remove X's unread count from the browser tab title, so a hidden notification badge is not restored by the tab.": "\u05DE\u05E1\u05D9\u05E8 \u05D0\u05EA \u05DE\u05D5\u05E0\u05D4 \u05D4\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA \u05E9\u05DC\u05D0 \u05E0\u05E7\u05E8\u05D0\u05D5 \u05E9\u05DC X \u05DE\u05DB\u05D5\u05EA\u05E8\u05EA \u05D4\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA, \u05DB\u05D3\u05D9 \u05E9\u05D4\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05DC\u05D0 \u05EA\u05D7\u05D6\u05D9\u05E8 \u05D4\u05EA\u05E8\u05D0\u05D4 \u05E9\u05DB\u05D1\u05E8 \u05D4\u05E1\u05EA\u05E8\u05EA.",
       "Absolute timestamps": "\u05D7\u05D5\u05EA\u05DE\u05D5\u05EA \u05D6\u05DE\u05DF \u05DE\u05D5\u05D7\u05DC\u05D8\u05D5\u05EA",
       "Show the exact date and time on every post instead of X's relative text.": "\u05DE\u05E6\u05D9\u05D2 \u05D1\u05DB\u05DC \u05E4\u05D5\u05E1\u05D8 \u05D0\u05EA \u05D4\u05EA\u05D0\u05E8\u05D9\u05DA \u05D5\u05D4\u05E9\u05E2\u05D4 \u05D4\u05DE\u05D3\u05D5\u05D9\u05E7\u05D9\u05DD \u05D1\u05DE\u05E7\u05D5\u05DD \u05D4\u05D8\u05E7\u05E1\u05D8 \u05D4\u05D9\u05D7\u05E1\u05D9 \u05E9\u05DC X.",
+      "Use Aviary's tab icon": "\u05E9\u05D9\u05DE\u05D5\u05E9 \u05D1\u05E1\u05DE\u05DC \u05D4\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05E9\u05DC Aviary",
+      "Replace X's favicon with Aviary's mark so its tabs are easy to pick out. Restores X's own icon when off.": "\u05DE\u05D7\u05DC\u05D9\u05E3 \u05D0\u05EA \u05E1\u05DE\u05DC \u05D4\u05D0\u05EA\u05E8 \u05E9\u05DC X \u05D1\u05E1\u05D9\u05DE\u05DF \u05E9\u05DC Aviary \u05DB\u05D3\u05D9 \u05DC\u05D6\u05D4\u05D5\u05EA \u05D0\u05EA \u05D4\u05DC\u05E9\u05D5\u05E0\u05D9\u05D5\u05EA \u05E9\u05DC\u05D5 \u05D1\u05E7\u05DC\u05D5\u05EA. \u05D1\u05DB\u05D9\u05D1\u05D5\u05D9 \u05D4\u05E1\u05DE\u05DC \u05D4\u05DE\u05E7\u05D5\u05E8\u05D9 \u05E9\u05DC X \u05D7\u05D5\u05D6\u05E8.",
       "Hide row borders": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05D2\u05D1\u05D5\u05DC\u05D5\u05EA \u05E9\u05D5\u05E8\u05D5\u05EA",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "\u05DE\u05E1\u05D9\u05E8 \u05D0\u05EA \u05E7\u05D5 \u05D4\u05D4\u05E4\u05E8\u05D3\u05D4 \u05D1\u05E2\u05D5\u05D1\u05D9 \u05E4\u05D9\u05E7\u05E1\u05DC \u05DE\u05EA\u05D7\u05EA \u05DC\u05DB\u05DC \u05E4\u05D5\u05E1\u05D8, \u05D5\u05D0\u05EA \u05D4\u05E7\u05D5\u05D5\u05D9\u05DD \u05D1\u05E6\u05D3\u05D9 \u05D4\u05E2\u05DE\u05D5\u05D3\u05D4 \u05D4\u05E8\u05D0\u05E9\u05D9\u05EA.",
       "High contrast": "\u05E0\u05D9\u05D2\u05D5\u05D3\u05D9\u05D5\u05EA \u05D2\u05D1\u05D5\u05D4\u05D4",
@@ -8131,6 +8248,8 @@ html.av-reduce-motion *::after {
       "Tab title badge shown": "\u05DE\u05D5\u05E0\u05D4 \u05D4\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05DE\u05D5\u05E6\u05D2",
       "Absolute timestamps on": "\u05D7\u05D5\u05EA\u05DE\u05D5\u05EA \u05D6\u05DE\u05DF \u05DE\u05D5\u05D7\u05DC\u05D8\u05D5\u05EA \u05D4\u05D5\u05E4\u05E2\u05DC\u05D5",
       "Absolute timestamps off": "\u05D7\u05D5\u05EA\u05DE\u05D5\u05EA \u05D6\u05DE\u05DF \u05DE\u05D5\u05D7\u05DC\u05D8\u05D5\u05EA \u05DB\u05D5\u05D1\u05D5",
+      "Aviary tab icon on": "\u05E1\u05DE\u05DC \u05D4\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05E9\u05DC Aviary \u05D4\u05D5\u05E4\u05E2\u05DC",
+      "X tab icon restored": "\u05E1\u05DE\u05DC \u05D4\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05E9\u05DC X \u05E9\u05D5\u05D7\u05D6\u05E8",
       "Row borders hidden": "\u05D2\u05D1\u05D5\u05DC\u05D5\u05EA \u05D4\u05E9\u05D5\u05E8\u05D5\u05EA \u05D4\u05D5\u05E1\u05EA\u05E8\u05D5",
       "Row borders restored": "\u05D2\u05D1\u05D5\u05DC\u05D5\u05EA \u05D4\u05E9\u05D5\u05E8\u05D5\u05EA \u05E9\u05D5\u05D7\u05D6\u05E8\u05D5",
       "Contrast preference saved": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D4\u05E0\u05D9\u05D2\u05D5\u05D3\u05D9\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D4",
@@ -10787,6 +10906,15 @@ html.av-reduce-motion *::after {
         async (checked) => {
           ctx.options.settings.appearance.absoluteTimestamps = checked;
           await ctx.save(checked ? "Absolute timestamps on" : "Absolute timestamps off");
+        }
+      ),
+      ctx.toggleRow(
+        "Use Aviary's tab icon",
+        "Replace X's favicon with Aviary's mark so its tabs are easy to pick out. Restores X's own icon when off.",
+        ctx.options.settings.appearance.replaceFavicon,
+        async (checked) => {
+          ctx.options.settings.appearance.replaceFavicon = checked;
+          await ctx.save(checked ? "Aviary tab icon on" : "X tab icon restored");
         }
       ),
       ctx.toggleRow(
@@ -26117,7 +26245,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
 `;
 
   // src/features/layout/thread-recommendations.ts
-  var MARKER2 = "data-av-thread-recommendation";
+  var MARKER3 = "data-av-thread-recommendation";
   var HEADING_MARKER = "data-av-thread-recommendation-heading";
   var HEADING_LABELS = /* @__PURE__ */ new Set([
     // Verified in _decoded/status.html (2026-08-14 capture).
@@ -26155,7 +26283,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
     let node = headingCell;
     while (node) {
       if (node instanceof HTMLElement && node.matches('[data-testid="cellInnerDiv"]')) {
-        node.setAttribute(MARKER2, "1");
+        node.setAttribute(MARKER3, "1");
         hidden += 1;
       }
       node = node.nextElementSibling;
@@ -26183,8 +26311,8 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
     return null;
   }
   function restoreThreadRecommendations() {
-    for (const node of Array.from(document.querySelectorAll(`[${MARKER2}], [${HEADING_MARKER}]`))) {
-      node.removeAttribute(MARKER2);
+    for (const node of Array.from(document.querySelectorAll(`[${MARKER3}], [${HEADING_MARKER}]`))) {
+      node.removeAttribute(MARKER3);
       node.removeAttribute(HEADING_MARKER);
     }
   }
@@ -29107,7 +29235,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         onAdded(batch, root);
       }
     };
-    const observer2 = new MutationObserver((mutations) => {
+    const observer3 = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         for (const node of Array.from(mutation.addedNodes)) {
           if (!(node instanceof Element)) {
@@ -29128,13 +29256,13 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         timer = setTimeout(flush, FLUSH_DELAY_MS);
       }
     });
-    observer2.observe(root, {
+    observer3.observe(root, {
       childList: true,
       subtree: true
     });
     return () => {
       stopped = true;
-      observer2.disconnect();
+      observer3.disconnect();
       if (timer !== void 0) {
         clearTimeout(timer);
         timer = void 0;
@@ -29997,6 +30125,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     registry.register(themeFeature);
     registry.register(titleBadgeFeature);
     registry.register(absoluteTimeFeature);
+    registry.register(faviconFeature);
     registry.register(i18nFeature);
     registry.register(adProtectionFeature);
     registry.register(selectorHealthFeature);
@@ -30069,8 +30198,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         context,
         registry,
         async destroy() {
-          for (const stop2 of stops.reverse()) {
-            stop2();
+          for (const stop3 of stops.reverse()) {
+            stop3();
           }
           await registry.destroyAll(context);
           pageBridge.destroy();
@@ -30084,8 +30213,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       diagnostics.error("Aviary boot failed", errorDetails7(error));
       document.documentElement.dataset.avReady = "error";
       showBootFailureNotice(error instanceof Error ? error.message : String(error));
-      for (const stop2 of stops.reverse()) {
-        stop2();
+      for (const stop3 of stops.reverse()) {
+        stop3();
       }
       await registry.destroyAll(context);
       pageBridge.destroy();

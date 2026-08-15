@@ -138,6 +138,8 @@ export interface AviarySettings {
     hideTitleBadge: boolean;
     /** Render post timestamps as an exact date/time instead of X's relative text. */
     absoluteTimestamps: boolean;
+    /** Swap X's tab icon for Aviary's own mark. */
+    replaceFavicon: boolean;
     restoreChirp: boolean;
   };
   layout: {
@@ -247,6 +249,7 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     countMetrics: { replies: true, reposts: true, likes: true, views: true },
     hideTitleBadge: false,
     absoluteTimestamps: false,
+    replaceFavicon: false,
     restoreChirp: false
   },
   layout: {
@@ -479,6 +482,10 @@ export function normalizeSettings(input: unknown): AviarySettings {
       absoluteTimestamps: booleanValue(
         appearance.absoluteTimestamps,
         DEFAULT_SETTINGS.appearance.absoluteTimestamps
+      ),
+      replaceFavicon: booleanValue(
+        appearance.replaceFavicon,
+        DEFAULT_SETTINGS.appearance.replaceFavicon
       ),
       restoreChirp: booleanValue(appearance.restoreChirp, DEFAULT_SETTINGS.appearance.restoreChirp)
     },

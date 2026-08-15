@@ -122,6 +122,15 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
         }
       ),
       ctx.toggleRow(
+        "Use Aviary's tab icon",
+        "Replace X's favicon with Aviary's mark so its tabs are easy to pick out. Restores X's own icon when off.",
+        ctx.options.settings.appearance.replaceFavicon,
+        async (checked) => {
+          ctx.options.settings.appearance.replaceFavicon = checked;
+          await ctx.save(checked ? "Aviary tab icon on" : "X tab icon restored");
+        }
+      ),
+      ctx.toggleRow(
         "Hide row borders",
         "Remove the 1px divider under each timeline post and the primary column's side rules.",
         ctx.options.settings.appearance.hideBorders,

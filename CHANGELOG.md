@@ -4,6 +4,10 @@
 
 ### Added
 
+- **Use Aviary's tab icon** (Appearance, off by default) swaps X's favicon for Aviary's own mark so
+  its tabs are easy to pick out, and restores X's exact icon when turned off. The mark is inlined,
+  so it needs no network request and works in the userscript build too. Only Aviary's mark is
+  offered: X's bird is their trademark, and a lookalike would be no better.
 - Empty library surfaces now say how to fill them. Snapshots, account notes, and export jobs each
   show one guiding sentence when they hold nothing, and an empty bookmark library is distinguished
   from a search that simply found no match — different problems that had shown identical copy.
