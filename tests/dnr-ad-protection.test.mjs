@@ -209,3 +209,36 @@ async function importBundledModule(relativePath) {
     await rm(temp, { recursive: true, force: true });
   }
 }
+
+// X's ad-blocker notice appears to key on a *failed probe* rather than a rendered ad: the community
+// remedy that propagated through the July 2026 reports allowlists two XHRs instead of hiding
+// anything, and reports describe the symptom as "An error has occurred but it's not your fault", a
+// blank feed, or empty search — read by users as an X outage. Aviary refuses exactly one request,
+// so it should be provably clear of both probes. Asserting that is the difference between safe by
+// design and safe by luck.
+const DETECTION_PROBES = [
+  "https://x.com/i/api/1.1/flow/viewer.json",
+  "https://x.com/i/api/1.1/flow/viewer.json?flow_name=login",
+  "https://x.com/i/api/2/viewer_context.json",
+  "https://x.com/i/api/1.1/viewer_context.json?include_ext_sharing=true",
+  "https://twitter.com/i/api/2/viewer_context.json"
+];
+
+test("the request rule never matches X's own detection probes", async () => {
+  const mod = await importBundledModule("src/extension/ad-rule.ts");
+  const matcher = new RegExp(mod.AD_LOGGER_RULE.condition.regexFilter);
+  const requestDomains = new Set(mod.AD_LOGGER_RULE.condition.requestDomains);
+  for (const url of DETECTION_PROBES) {
+    const matched = matcher.test(url) && requestDomains.has(new URL(url).hostname);
+    assert.equal(matched, false, `the ad rule would block a detection probe: ${url}`);
+  }
+});
+
+test("the page-world stub never refuses X's own detection probes", async () => {
+  const mod = await importBundledModule("src/page/page-agent.ts");
+  for (const url of DETECTION_PROBES) {
+    assert.equal(mod.isAdRequestUrl(url), false, `the page agent would refuse a detection probe: ${url}`);
+  }
+  // The one request Aviary does refuse, so this pair states the whole boundary rather than half.
+  assert.equal(mod.isAdRequestUrl("https://x.com/i/api/1.1/promoted_content/log.json"), true);
+});

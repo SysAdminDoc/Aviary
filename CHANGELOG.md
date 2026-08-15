@@ -18,6 +18,12 @@
 
 ### Changed
 
+- Trust now states the ad shield's boundary in both directions. **Refuse X's ad logging call** says
+  that Aviary refuses exactly one request and nothing else — including the checks X uses to notice
+  an ad blocker. Reports of X's ad-blocker notice point at a *failed probe* rather than a rendered
+  ad as the trigger, and the symptom is often not the banner at all but an error, a blank feed, or
+  empty search. Tests now assert that neither the request rule nor the page-world stub matches
+  those probes, so "Aviary is not what tripped it" is proved rather than assumed.
 - Aviary no longer asks for `mobile.twitter.com` or `tweetdeck.twitter.com`. X retired both in
   2023, and measuring them confirms neither serves a document — `mobile.twitter.com` redirects to
   `twitter.com`, and `tweetdeck.twitter.com` redirects to `pro.twitter.com`, a host Aviary never

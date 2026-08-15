@@ -179,7 +179,7 @@ Every control Aviary offers, by Control Center page. 71 controls across 12 pages
 | Control | What it does |
 | --- | --- |
 | Ad-free mode | Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery. |
-| Refuse X's ad logging call | Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all. |
+| Refuse X's ad logging call | Only applies while Ad-free mode is on. Aviary refuses exactly one request — X's separate promoted-content logging call — and nothing else, including the checks X uses to notice an ad blocker. Turn this off if X complains anyway: sponsored posts stay hidden and Aviary stops refusing any request at all. |
 | Hide right sidebar | Reduce trends, recommendations, and footer noise. |
 | Hide trends | Remove trending topics and news modules. |
 | Hide follow suggestions | Remove Who to follow cards without hiding the rest of the sidebar. |
