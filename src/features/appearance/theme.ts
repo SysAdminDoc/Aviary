@@ -1,5 +1,5 @@
 import type { FeatureModule } from "../registry";
-import type { AviarySettings, ThemeId } from "../../platform/settings";
+import { COUNT_METRICS, type AviarySettings, type ThemeId } from "../../platform/settings";
 
 const STYLE_ID = "av-theme-foundation";
 const ACTIVE_NAV_ATTRIBUTE = "data-av-active-route";
@@ -31,6 +31,7 @@ export const themeFeature: FeatureModule = {
     document.documentElement.classList.remove(
       "av-dense",
       "av-hide-counts",
+      ...COUNT_METRICS.map((metric) => `av-hide-count-${metric}`),
       "av-hide-borders",
       "av-high-contrast",
       "av-reduce-motion",
@@ -65,6 +66,15 @@ export function applyTheme(settings: AviarySettings): void {
   root.classList.toggle("av-chirp", settings.appearance.restoreChirp);
   root.classList.toggle("av-dense", settings.appearance.denseMode);
   root.classList.toggle("av-hide-counts", settings.appearance.hideCounts);
+  // A settings object without countMetrics predates the per-metric split, and its meaning was
+  // "hide all four". Absent must keep hiding what it hid, never quietly stop.
+  const metrics = settings.appearance.countMetrics;
+  for (const metric of COUNT_METRICS) {
+    root.classList.toggle(
+      `av-hide-count-${metric}`,
+      settings.appearance.hideCounts && (metrics ? metrics[metric] === true : true)
+    );
+  }
   root.classList.toggle("av-hide-borders", settings.appearance.hideBorders);
   root.classList.toggle("av-high-contrast", settings.accessibility.highContrast);
   root.classList.toggle("av-reduce-motion", shouldReduceMotion(settings));
@@ -516,13 +526,17 @@ html.av-dense article[data-testid="tweet"] {
 }
 
 /* Engagement counts inside the action bar only — the buttons themselves stay operable and
-   keep their aria-labels, which carry the number for screen readers. */
-html.av-hide-counts article[data-testid="tweet"] [data-testid="reply"] [data-testid="app-text-transition-container"],
-html.av-hide-counts article[data-testid="tweet"] [data-testid="retweet"] [data-testid="app-text-transition-container"],
-html.av-hide-counts article[data-testid="tweet"] [data-testid="unretweet"] [data-testid="app-text-transition-container"],
-html.av-hide-counts article[data-testid="tweet"] [data-testid="like"] [data-testid="app-text-transition-container"],
-html.av-hide-counts article[data-testid="tweet"] [data-testid="unlike"] [data-testid="app-text-transition-container"],
-html.av-hide-counts article[data-testid="tweet"] a[href$="/analytics"] [data-testid="app-text-transition-container"] {
+   keep their aria-labels, which carry the number for screen readers.
+
+   Split per metric so each can be hidden on its own. The view total is the odd one out: it lives
+   in an analytics link rather than an action button, so it is matched by href. Bookmarks are
+   absent because no capture shows a bookmark count element to scope a rule to. */
+html.av-hide-count-replies article[data-testid="tweet"] [data-testid="reply"] [data-testid="app-text-transition-container"],
+html.av-hide-count-reposts article[data-testid="tweet"] [data-testid="retweet"] [data-testid="app-text-transition-container"],
+html.av-hide-count-reposts article[data-testid="tweet"] [data-testid="unretweet"] [data-testid="app-text-transition-container"],
+html.av-hide-count-likes article[data-testid="tweet"] [data-testid="like"] [data-testid="app-text-transition-container"],
+html.av-hide-count-likes article[data-testid="tweet"] [data-testid="unlike"] [data-testid="app-text-transition-container"],
+html.av-hide-count-views article[data-testid="tweet"] a[href$="/analytics"] [data-testid="app-text-transition-container"] {
   display: none !important;
 }
 

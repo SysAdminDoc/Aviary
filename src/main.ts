@@ -1,4 +1,5 @@
 import { themeFeature } from "./features/appearance/theme";
+import { titleBadgeFeature } from "./features/appearance/title-badge";
 import { controlCenterFeature } from "./features/core/control-center";
 import { firstRunFeature } from "./features/core/first-run";
 import { selectorHealthFeature } from "./features/core/selector-health";
@@ -182,6 +183,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   await auditLog.load();
 
   registry.register(themeFeature);
+  registry.register(titleBadgeFeature);
   registry.register(i18nFeature);
   // Ad protection goes first so a diagnostic storage read/write can never delay a placement
   // collapse. Its markers remain in the DOM, so the health sample immediately after still sees

@@ -24,13 +24,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: each toggle flips one named flag before first paint, is individually reversible, reports drift when the flag name vanishes, and defaults off; verified on live X per flag before enabling in a release.
   Complexity: L
 
-- [ ] F117 — P1 — Tab-title badge strip + per-metric count granularity
-  Why: notification counts leaking into the tab title defeat every declutter mode (Minimal Twitter's top requests #242/#243); Aviary's `hideCounts` is all-or-nothing while CPFT offers per-metric control (replies/reposts/likes/views/bookmarks/followers).
-  Evidence: minimal-twitter #242/#243; CPFT option catalog; RESEARCH.md Competitive.
-  Touches: src/features/appearance/theme.ts (counts CSS), new title-observer in a core module, settings schema (per-metric enum), Control Center Appearance.
-  Acceptance: title shows no "(n)" badge when enabled; each metric class hides independently; accessible totals preserved (existing `/analytics` pattern).
-  Complexity: M
-
 ### P2 — high-value features
 
 - [ ] F118 — P2 — Media download depth: downloaded badges, text sidecar, batch-from-library

@@ -58,6 +58,8 @@ export const FILTER_SURFACES: FilterSurface[] = [
   "messages"
 ];
 const MEDIA_LAYOUTS: MediaLayout[] = ["default", "stacked", "grid"];
+export const COUNT_METRICS = ["replies", "reposts", "likes", "views"] as const;
+export type CountMetric = (typeof COUNT_METRICS)[number];
 export const FILTER_MEDIA_KEYS = ["photo", "video", "gif"] as const;
 export type FilterMediaKey = (typeof FILTER_MEDIA_KEYS)[number];
 const EXPORT_FORMATS = ["json", "csv", "html", "markdown", "xlsx"] as const;
@@ -126,6 +128,14 @@ export interface AviarySettings {
     timelineWidth: "default" | "comfortable" | "wide";
     hideBorders: boolean;
     hideCounts: boolean;
+    /**
+     * Which metrics "Hide engagement counts" applies to. Every metric defaults on, so an install
+     * that had hideCounts before this existed keeps hiding exactly what it hid.
+     * Bookmarks are absent deliberately: no capture shows a bookmark count element to scope to.
+     */
+    countMetrics: Record<CountMetric, boolean>;
+    /** Strip X's unread "(3) " prefix from the browser tab title. */
+    hideTitleBadge: boolean;
     restoreChirp: boolean;
   };
   layout: {
@@ -230,6 +240,8 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     timelineWidth: "default",
     hideBorders: false,
     hideCounts: false,
+    countMetrics: { replies: true, reposts: true, likes: true, views: true },
+    hideTitleBadge: false,
     restoreChirp: false
   },
   layout: {
@@ -394,6 +406,15 @@ export function readSettingsEnvelope(input: unknown): SettingsEnvelope {
   };
 }
 
+function normalizeCountMetrics(input: unknown): Record<CountMetric, boolean> {
+  const record = asRecord(input);
+  const result = {} as Record<CountMetric, boolean>;
+  for (const metric of COUNT_METRICS) {
+    result[metric] = booleanValue(record[metric], DEFAULT_SETTINGS.appearance.countMetrics[metric]);
+  }
+  return result;
+}
+
 export function normalizeSettings(input: unknown): AviarySettings {
   const record = asRecord(input);
   const appearance = asRecord(record.appearance);
@@ -444,6 +465,11 @@ export function normalizeSettings(input: unknown): AviarySettings {
       ),
       hideBorders: booleanValue(appearance.hideBorders, DEFAULT_SETTINGS.appearance.hideBorders),
       hideCounts: booleanValue(appearance.hideCounts, DEFAULT_SETTINGS.appearance.hideCounts),
+      countMetrics: normalizeCountMetrics(appearance.countMetrics),
+      hideTitleBadge: booleanValue(
+        appearance.hideTitleBadge,
+        DEFAULT_SETTINGS.appearance.hideTitleBadge
+      ),
       restoreChirp: booleanValue(appearance.restoreChirp, DEFAULT_SETTINGS.appearance.restoreChirp)
     },
     layout: {

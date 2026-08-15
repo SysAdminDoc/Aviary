@@ -4,6 +4,13 @@
 
 ### Added
 
+- Engagement counts can now be hidden per metric — replies, reposts, likes and views each have
+  their own switch under the existing master toggle, which keeps hiding all four for anyone who had
+  it on. Bookmarks are deliberately absent: no capture shows a bookmark count element to scope a
+  rule to.
+- **Hide the tab title badge** removes X's unread count from the browser tab title, so a
+  notification badge hidden everywhere on the page is not handed back by the tab. It is a title
+  pattern transform, not a DOM contract: if X stops emitting a count, nothing happens.
 - The standalone export viewer no longer carries its own nine-locale translation table. Its copy
   now comes from the same catalog as everything else, resolved at generation time and inlined into
   the exported file, and the extractor harvests it so the sync step cannot drop it. Tests fail if a

@@ -48,11 +48,68 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
       ),
       ctx.toggleRow(
         "Hide engagement counts",
-        "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.",
+        "Master switch for the four numbers below. The controls still work and screen readers still announce the totals.",
         ctx.options.settings.appearance.hideCounts,
         async (checked) => {
           ctx.options.settings.appearance.hideCounts = checked;
           await ctx.save(checked ? "Engagement counts hidden" : "Engagement counts shown");
+        }
+      ),
+      ctx.toggleRow(
+        "Hide reply counts",
+        "Applies while Hide engagement counts is on.",
+        ctx.options.settings.appearance.countMetrics.replies,
+        async (checked) => {
+          ctx.options.settings.appearance.countMetrics = {
+            ...ctx.options.settings.appearance.countMetrics,
+            replies: checked
+          };
+          await ctx.save("Count preference saved");
+        }
+      ),
+      ctx.toggleRow(
+        "Hide repost counts",
+        "Applies while Hide engagement counts is on.",
+        ctx.options.settings.appearance.countMetrics.reposts,
+        async (checked) => {
+          ctx.options.settings.appearance.countMetrics = {
+            ...ctx.options.settings.appearance.countMetrics,
+            reposts: checked
+          };
+          await ctx.save("Count preference saved");
+        }
+      ),
+      ctx.toggleRow(
+        "Hide like counts",
+        "Applies while Hide engagement counts is on.",
+        ctx.options.settings.appearance.countMetrics.likes,
+        async (checked) => {
+          ctx.options.settings.appearance.countMetrics = {
+            ...ctx.options.settings.appearance.countMetrics,
+            likes: checked
+          };
+          await ctx.save("Count preference saved");
+        }
+      ),
+      ctx.toggleRow(
+        "Hide view counts",
+        "Applies while Hide engagement counts is on. The view total lives in an analytics link, not an action button.",
+        ctx.options.settings.appearance.countMetrics.views,
+        async (checked) => {
+          ctx.options.settings.appearance.countMetrics = {
+            ...ctx.options.settings.appearance.countMetrics,
+            views: checked
+          };
+          await ctx.save("Count preference saved");
+        }
+      ),
+      ctx.toggleRow(
+        "Hide the tab title badge",
+        "Remove X's unread count from the browser tab title, so a hidden notification badge is not restored by the tab.",
+        ctx.options.settings.appearance.hideTitleBadge,
+        async (checked) => {
+          ctx.options.settings.appearance.hideTitleBadge = checked;
+          await ctx.save(checked ? "Tab title badge hidden" : "Tab title badge shown");
         }
       ),
       ctx.toggleRow(

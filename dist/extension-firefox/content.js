@@ -1,5 +1,607 @@
 "use strict";
 (() => {
+  // src/platform/settings.ts
+  var SETTINGS_KEY = "aviary.settings.v1";
+  var SETTINGS_SCHEMA_VERSION = 1;
+  var SETTINGS_MIGRATIONS = {};
+  var THEME_IDS = ["off", "dim", "lightsOut", "graphite", "plum", "midnight", "noir"];
+  var RATE_LIMIT_MODES = ["conservative", "balanced"];
+  var REDUCE_MOTION_MODES = ["system", "always", "never"];
+  var FILTER_ACTIONS = ["off", "hide", "dim"];
+  var FILTER_SURFACES = [
+    "home",
+    "status",
+    "profile",
+    "search",
+    "notifications",
+    "messages"
+  ];
+  var MEDIA_LAYOUTS = ["default", "stacked", "grid"];
+  var COUNT_METRICS = ["replies", "reposts", "likes", "views"];
+  var FILTER_MEDIA_KEYS = ["photo", "video", "gif"];
+  var EXPORT_FORMATS = ["json", "csv", "html", "markdown", "xlsx"];
+  var BLOCKED_OBJECT_KEYS = /* @__PURE__ */ new Set(["__proto__", "prototype", "constructor"]);
+  var AI_PROVIDERS = [
+    "anthropic",
+    "openai",
+    "openai-compatible"
+  ];
+  var MASTODON_VISIBILITIES = [
+    "public",
+    "unlisted",
+    "private",
+    "direct"
+  ];
+  var DEFAULT_SETTINGS = {
+    schemaVersion: SETTINGS_SCHEMA_VERSION,
+    appearance: {
+      theme: "off",
+      denseMode: false,
+      timelineWidth: "default",
+      hideBorders: false,
+      hideCounts: false,
+      countMetrics: { replies: true, reposts: true, likes: true, views: true },
+      hideTitleBadge: false,
+      restoreChirp: false
+    },
+    layout: {
+      hideNavItems: [],
+      hideRightSidebar: false,
+      hideTrends: false,
+      hideFollowSuggestions: false,
+      hideHomeComposer: false,
+      hideThreadRecommendations: false,
+      hideGrok: false,
+      writerMode: false,
+      forceFollowing: false
+    },
+    filter: {
+      enabled: false,
+      keywordRules: [],
+      regexRules: [],
+      premiumRule: "off",
+      // "off" until something reads it. F032 needs an authenticated capture containing X's
+      // blocked-account markup before a predicate can be written; until then a default of "hide"
+      // is a filter the settings claim to apply and the engine never applies.
+      blockedAccounts: "off",
+      selfRepost: "off",
+      whitelist: [],
+      mediaTypes: { photo: false, video: false, gif: false },
+      surfaces: ["home", "status", "profile", "search"]
+    },
+    hidden: {
+      enabled: false,
+      // True, but gated by `enabled` above: turning the feature on should give you the button that
+      // operates it, not leave you hunting for a second switch.
+      buttons: true,
+      surfaces: ["home", "status", "profile", "search", "notifications"],
+      maxEntries: 5e3
+    },
+    media: {
+      buttons: true,
+      preferOriginalImages: true,
+      inlineOriginalImages: false,
+      filenameTemplate: "{handle}_{tweetId}_{index}",
+      downloadHistory: true,
+      zipChunkSize: 250,
+      layout: "default",
+      lastSaveFolder: ""
+    },
+    jobs: {
+      concurrentDownloads: 3,
+      rateLimitMode: "conservative"
+    },
+    export: {
+      enabled: false,
+      formats: ["json", "csv", "html"],
+      preserveRawPayloads: false,
+      autoDiscoverQueryIds: true,
+      captureMediaBytes: false
+    },
+    links: {
+      cleanShareButtons: false,
+      expandTco: false
+    },
+    performance: {
+      pauseOffscreenVideo: false,
+      // Off by default: it rewrites the playlist X's player fetches, so it changes how video is
+      // delivered rather than how it is displayed. New network-affecting capabilities opt in.
+      forceVideoQuality: false
+    },
+    composer: {
+      snippets: []
+    },
+    ai: {
+      commandMenu: false
+    },
+    privacy: {
+      localOnly: true,
+      telemetry: false,
+      // Ads are the one visible exception to Aviary's otherwise opt-in defaults. Native sponsored
+      // records share X's timeline response, so the safe default is to collapse those placements
+      // before paint and refuse only the separable promoted-content logging endpoint.
+      blockAds: true,
+      // On by default: it is the stronger protection, and it is what shipped. X began testing an
+      // ad-blocker warning in July 2026 that appears to key on refused requests, so this exists to
+      // be turned off without giving up ad hiding.
+      networkShield: true,
+      // Off by default. Aviary sends no telemetry of its own either way; this refuses X's, which
+      // is a change to how the site behaves and is the user's call to make, not a default.
+      blockAnalyticsBeacons: false,
+      auditLog: true
+    },
+    accessibility: {
+      reduceMotion: "system",
+      highContrast: false
+    },
+    i18n: {
+      locale: "en"
+    },
+    diagnostics: {
+      selectorHealth: true
+    },
+    integrations: {
+      aria2: { enabled: false, endpoint: "", secret: "", minBytes: 5e7 },
+      bluesky: { enabled: false, service: "https://bsky.social", handle: "", appPassword: "" },
+      mastodon: { enabled: false, instance: "", token: "", visibility: "public" },
+      ai: {
+        enabled: false,
+        provider: "anthropic",
+        endpoint: "",
+        apiKey: "",
+        model: "",
+        maxRequestBytes: 32e3,
+        dailyRequestBytes: 1e6
+      },
+      semanticSearch: {
+        enabled: false,
+        endpoint: "",
+        apiKey: "",
+        model: "",
+        autoIndex: false,
+        maxRecordBytes: 2e4,
+        dailyRecordBytes: 2e6
+      },
+      crosspost: { attachLastDownload: false }
+    }
+  };
+  function readSettingsEnvelope(input) {
+    const raw = asRecord(input);
+    const declared = typeof raw.schemaVersion === "number" && Number.isFinite(raw.schemaVersion) ? Math.floor(raw.schemaVersion) : null;
+    if (declared !== null && declared > SETTINGS_SCHEMA_VERSION) {
+      return { settings: normalizeSettings(raw), fromVersion: declared, fromFuture: true, applied: [] };
+    }
+    let working = { ...raw };
+    let version = declared ?? SETTINGS_SCHEMA_VERSION;
+    const applied = [];
+    while (version < SETTINGS_SCHEMA_VERSION) {
+      const step = SETTINGS_MIGRATIONS[version];
+      if (!step) {
+        break;
+      }
+      working = step(working);
+      applied.push(version);
+      version += 1;
+    }
+    return {
+      settings: normalizeSettings(working),
+      fromVersion: declared,
+      fromFuture: false,
+      applied
+    };
+  }
+  function normalizeCountMetrics(input) {
+    const record = asRecord(input);
+    const result = {};
+    for (const metric of COUNT_METRICS) {
+      result[metric] = booleanValue(record[metric], DEFAULT_SETTINGS.appearance.countMetrics[metric]);
+    }
+    return result;
+  }
+  function normalizeSettings(input) {
+    const record = asRecord(input);
+    const appearance = asRecord(record.appearance);
+    const layout = asRecord(record.layout);
+    const filter = asRecord(record.filter);
+    const hidden = asRecord(record.hidden);
+    const media = asRecord(record.media);
+    const jobs = asRecord(record.jobs);
+    const exportSettings = asRecord(record.export);
+    const links = asRecord(record.links);
+    const performance = asRecord(record.performance);
+    const composer = asRecord(record.composer);
+    const ai = asRecord(record.ai);
+    const privacy = asRecord(record.privacy);
+    const accessibility = asRecord(record.accessibility);
+    const i18n = asRecord(record.i18n);
+    const diagnostics = asRecord(record.diagnostics);
+    const integrations = asRecord(record.integrations);
+    const integrationsAria = asRecord(integrations.aria2);
+    const integrationsBluesky = asRecord(integrations.bluesky);
+    const integrationsMastodon = asRecord(integrations.mastodon);
+    const integrationsAi = asRecord(integrations.ai);
+    const integrationsSemantic = asRecord(integrations.semanticSearch);
+    const integrationsCrosspost = asRecord(integrations.crosspost);
+    const anyIntegrationEnabled = [
+      integrationsAria,
+      integrationsBluesky,
+      integrationsMastodon,
+      integrationsAi,
+      integrationsSemantic
+    ].some((entry) => entry.enabled === true);
+    return {
+      // Always stamped with this build's version, so the next read knows what it is looking at.
+      schemaVersion: SETTINGS_SCHEMA_VERSION,
+      appearance: {
+        theme: enumValue(appearance.theme, THEME_IDS, DEFAULT_SETTINGS.appearance.theme),
+        denseMode: booleanValue(appearance.denseMode, DEFAULT_SETTINGS.appearance.denseMode),
+        timelineWidth: enumValue(
+          appearance.timelineWidth,
+          ["default", "comfortable", "wide"],
+          DEFAULT_SETTINGS.appearance.timelineWidth
+        ),
+        hideBorders: booleanValue(appearance.hideBorders, DEFAULT_SETTINGS.appearance.hideBorders),
+        hideCounts: booleanValue(appearance.hideCounts, DEFAULT_SETTINGS.appearance.hideCounts),
+        countMetrics: normalizeCountMetrics(appearance.countMetrics),
+        hideTitleBadge: booleanValue(
+          appearance.hideTitleBadge,
+          DEFAULT_SETTINGS.appearance.hideTitleBadge
+        ),
+        restoreChirp: booleanValue(appearance.restoreChirp, DEFAULT_SETTINGS.appearance.restoreChirp)
+      },
+      layout: {
+        hideNavItems: stringArray(layout.hideNavItems, { maxItems: 24, maxLength: 48 }),
+        hideRightSidebar: booleanValue(layout.hideRightSidebar, DEFAULT_SETTINGS.layout.hideRightSidebar),
+        hideTrends: booleanValue(layout.hideTrends, DEFAULT_SETTINGS.layout.hideTrends),
+        hideFollowSuggestions: booleanValue(
+          layout.hideFollowSuggestions,
+          DEFAULT_SETTINGS.layout.hideFollowSuggestions
+        ),
+        hideHomeComposer: booleanValue(layout.hideHomeComposer, DEFAULT_SETTINGS.layout.hideHomeComposer),
+        hideThreadRecommendations: booleanValue(
+          layout.hideThreadRecommendations,
+          DEFAULT_SETTINGS.layout.hideThreadRecommendations
+        ),
+        hideGrok: booleanValue(layout.hideGrok, DEFAULT_SETTINGS.layout.hideGrok),
+        writerMode: booleanValue(layout.writerMode, DEFAULT_SETTINGS.layout.writerMode),
+        forceFollowing: booleanValue(layout.forceFollowing, DEFAULT_SETTINGS.layout.forceFollowing)
+      },
+      filter: {
+        enabled: booleanValue(filter.enabled, DEFAULT_SETTINGS.filter.enabled),
+        keywordRules: stringArray(filter.keywordRules, { maxItems: 200, maxLength: 180 }),
+        regexRules: stringArray(filter.regexRules, { maxItems: 100, maxLength: 240 }),
+        premiumRule: enumValue(filter.premiumRule, FILTER_ACTIONS, DEFAULT_SETTINGS.filter.premiumRule),
+        blockedAccounts: enumValue(
+          filter.blockedAccounts,
+          FILTER_ACTIONS,
+          DEFAULT_SETTINGS.filter.blockedAccounts
+        ),
+        selfRepost: enumValue(filter.selfRepost, FILTER_ACTIONS, DEFAULT_SETTINGS.filter.selfRepost),
+        whitelist: stringArray(filter.whitelist, { maxItems: 200, maxLength: 80 }),
+        mediaTypes: mediaTypeRecord(filter.mediaTypes),
+        surfaces: surfaceArray(filter.surfaces)
+      },
+      hidden: {
+        enabled: booleanValue(hidden.enabled, DEFAULT_SETTINGS.hidden.enabled),
+        buttons: booleanValue(hidden.buttons, DEFAULT_SETTINGS.hidden.buttons),
+        surfaces: surfaceArray(hidden.surfaces, DEFAULT_SETTINGS.hidden.surfaces),
+        maxEntries: integerValue(hidden.maxEntries, DEFAULT_SETTINGS.hidden.maxEntries, 100, 5e4)
+      },
+      media: {
+        buttons: booleanValue(media.buttons, DEFAULT_SETTINGS.media.buttons),
+        preferOriginalImages: booleanValue(media.preferOriginalImages, DEFAULT_SETTINGS.media.preferOriginalImages),
+        inlineOriginalImages: booleanValue(media.inlineOriginalImages, DEFAULT_SETTINGS.media.inlineOriginalImages),
+        filenameTemplate: stringValue(media.filenameTemplate, DEFAULT_SETTINGS.media.filenameTemplate, 160),
+        downloadHistory: booleanValue(media.downloadHistory, DEFAULT_SETTINGS.media.downloadHistory),
+        zipChunkSize: integerValue(media.zipChunkSize, DEFAULT_SETTINGS.media.zipChunkSize, 25, 1e3),
+        layout: enumValue(media.layout, MEDIA_LAYOUTS, DEFAULT_SETTINGS.media.layout),
+        lastSaveFolder: folderHintValue(media.lastSaveFolder, DEFAULT_SETTINGS.media.lastSaveFolder)
+      },
+      jobs: {
+        concurrentDownloads: integerValue(
+          jobs.concurrentDownloads,
+          DEFAULT_SETTINGS.jobs.concurrentDownloads,
+          1,
+          6
+        ),
+        rateLimitMode: enumValue(jobs.rateLimitMode, RATE_LIMIT_MODES, DEFAULT_SETTINGS.jobs.rateLimitMode)
+      },
+      export: {
+        enabled: booleanValue(exportSettings.enabled, DEFAULT_SETTINGS.export.enabled),
+        formats: exportFormatArray(exportSettings.formats),
+        preserveRawPayloads: booleanValue(
+          exportSettings.preserveRawPayloads,
+          DEFAULT_SETTINGS.export.preserveRawPayloads
+        ),
+        autoDiscoverQueryIds: booleanValue(
+          exportSettings.autoDiscoverQueryIds,
+          DEFAULT_SETTINGS.export.autoDiscoverQueryIds
+        ),
+        captureMediaBytes: booleanValue(
+          exportSettings.captureMediaBytes,
+          DEFAULT_SETTINGS.export.captureMediaBytes
+        )
+      },
+      links: {
+        cleanShareButtons: booleanValue(links.cleanShareButtons, DEFAULT_SETTINGS.links.cleanShareButtons),
+        expandTco: booleanValue(links.expandTco, DEFAULT_SETTINGS.links.expandTco)
+      },
+      performance: {
+        pauseOffscreenVideo: booleanValue(
+          performance.pauseOffscreenVideo,
+          DEFAULT_SETTINGS.performance.pauseOffscreenVideo
+        ),
+        forceVideoQuality: booleanValue(
+          performance.forceVideoQuality,
+          DEFAULT_SETTINGS.performance.forceVideoQuality
+        )
+      },
+      composer: {
+        snippets: stringArray(composer.snippets, { maxItems: 100, maxLength: 500 })
+      },
+      ai: {
+        commandMenu: booleanValue(ai.commandMenu, DEFAULT_SETTINGS.ai.commandMenu)
+      },
+      privacy: {
+        localOnly: anyIntegrationEnabled ? false : booleanValue(privacy.localOnly, DEFAULT_SETTINGS.privacy.localOnly),
+        telemetry: false,
+        blockAds: booleanValue(privacy.blockAds, DEFAULT_SETTINGS.privacy.blockAds),
+        networkShield: booleanValue(privacy.networkShield, DEFAULT_SETTINGS.privacy.networkShield),
+        blockAnalyticsBeacons: booleanValue(
+          privacy.blockAnalyticsBeacons,
+          DEFAULT_SETTINGS.privacy.blockAnalyticsBeacons
+        ),
+        auditLog: booleanValue(privacy.auditLog, DEFAULT_SETTINGS.privacy.auditLog)
+      },
+      accessibility: {
+        reduceMotion: enumValue(
+          accessibility.reduceMotion,
+          REDUCE_MOTION_MODES,
+          DEFAULT_SETTINGS.accessibility.reduceMotion
+        ),
+        highContrast: booleanValue(accessibility.highContrast, DEFAULT_SETTINGS.accessibility.highContrast)
+      },
+      i18n: {
+        locale: localeValue(i18n.locale, DEFAULT_SETTINGS.i18n.locale)
+      },
+      diagnostics: {
+        selectorHealth: booleanValue(diagnostics.selectorHealth, DEFAULT_SETTINGS.diagnostics.selectorHealth)
+      },
+      integrations: {
+        aria2: {
+          enabled: booleanValue(integrationsAria.enabled, DEFAULT_SETTINGS.integrations.aria2.enabled),
+          endpoint: urlValue(integrationsAria.endpoint, DEFAULT_SETTINGS.integrations.aria2.endpoint),
+          secret: secretValue(integrationsAria.secret, DEFAULT_SETTINGS.integrations.aria2.secret),
+          minBytes: integerValue(
+            integrationsAria.minBytes,
+            DEFAULT_SETTINGS.integrations.aria2.minBytes,
+            1e6,
+            5e9
+          )
+        },
+        bluesky: {
+          enabled: booleanValue(integrationsBluesky.enabled, DEFAULT_SETTINGS.integrations.bluesky.enabled),
+          service: urlValue(integrationsBluesky.service, DEFAULT_SETTINGS.integrations.bluesky.service),
+          handle: handleOrEmpty(integrationsBluesky.handle),
+          appPassword: secretValue(
+            integrationsBluesky.appPassword,
+            DEFAULT_SETTINGS.integrations.bluesky.appPassword
+          )
+        },
+        mastodon: {
+          enabled: booleanValue(
+            integrationsMastodon.enabled,
+            DEFAULT_SETTINGS.integrations.mastodon.enabled
+          ),
+          instance: urlValue(
+            integrationsMastodon.instance,
+            DEFAULT_SETTINGS.integrations.mastodon.instance
+          ),
+          token: secretValue(integrationsMastodon.token, DEFAULT_SETTINGS.integrations.mastodon.token),
+          visibility: enumValue(
+            integrationsMastodon.visibility,
+            MASTODON_VISIBILITIES,
+            DEFAULT_SETTINGS.integrations.mastodon.visibility
+          )
+        },
+        ai: {
+          enabled: booleanValue(integrationsAi.enabled, DEFAULT_SETTINGS.integrations.ai.enabled),
+          provider: enumValue(integrationsAi.provider, AI_PROVIDERS, DEFAULT_SETTINGS.integrations.ai.provider),
+          endpoint: urlValue(integrationsAi.endpoint, DEFAULT_SETTINGS.integrations.ai.endpoint),
+          apiKey: secretValue(integrationsAi.apiKey, DEFAULT_SETTINGS.integrations.ai.apiKey),
+          model: stringValue(integrationsAi.model, DEFAULT_SETTINGS.integrations.ai.model, 120),
+          maxRequestBytes: integerValue(
+            integrationsAi.maxRequestBytes,
+            DEFAULT_SETTINGS.integrations.ai.maxRequestBytes,
+            0,
+            5e6
+          ),
+          dailyRequestBytes: integerValue(
+            integrationsAi.dailyRequestBytes,
+            DEFAULT_SETTINGS.integrations.ai.dailyRequestBytes,
+            0,
+            1e8
+          )
+        },
+        semanticSearch: {
+          enabled: booleanValue(
+            integrationsSemantic.enabled,
+            DEFAULT_SETTINGS.integrations.semanticSearch.enabled
+          ),
+          endpoint: urlValue(
+            integrationsSemantic.endpoint,
+            DEFAULT_SETTINGS.integrations.semanticSearch.endpoint
+          ),
+          apiKey: secretValue(
+            integrationsSemantic.apiKey,
+            DEFAULT_SETTINGS.integrations.semanticSearch.apiKey
+          ),
+          model: stringValue(integrationsSemantic.model, DEFAULT_SETTINGS.integrations.semanticSearch.model, 120),
+          autoIndex: booleanValue(
+            integrationsSemantic.autoIndex,
+            DEFAULT_SETTINGS.integrations.semanticSearch.autoIndex
+          ),
+          maxRecordBytes: integerValue(
+            integrationsSemantic.maxRecordBytes,
+            DEFAULT_SETTINGS.integrations.semanticSearch.maxRecordBytes,
+            0,
+            5e6
+          ),
+          dailyRecordBytes: integerValue(
+            integrationsSemantic.dailyRecordBytes,
+            DEFAULT_SETTINGS.integrations.semanticSearch.dailyRecordBytes,
+            0,
+            1e8
+          )
+        },
+        crosspost: {
+          attachLastDownload: booleanValue(
+            integrationsCrosspost.attachLastDownload,
+            DEFAULT_SETTINGS.integrations.crosspost.attachLastDownload
+          )
+        }
+      }
+    };
+  }
+  function cloneSettings(settings) {
+    return JSON.parse(JSON.stringify(settings));
+  }
+  function isThemeId(value) {
+    return THEME_IDS.includes(value);
+  }
+  function asRecord(value) {
+    return isRecord(value) ? value : {};
+  }
+  function isRecord(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+  function booleanValue(value, fallback) {
+    return typeof value === "boolean" ? value : fallback;
+  }
+  function stringValue(value, fallback, maxLength = 500) {
+    if (typeof value !== "string") {
+      return fallback;
+    }
+    const normalized = value.replace(/[\u0000-\u001f\u007f]/g, "").trim();
+    return normalized.length > 0 ? normalized.slice(0, maxLength) : fallback;
+  }
+  function enumValue(value, allowed, fallback) {
+    return typeof value === "string" && allowed.includes(value) ? value : fallback;
+  }
+  function stringArray(value, options = {}) {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    const maxItems = options.maxItems ?? 100;
+    const maxLength = options.maxLength ?? 180;
+    const seen = /* @__PURE__ */ new Set();
+    const result = [];
+    for (const item of value) {
+      if (typeof item !== "string") {
+        continue;
+      }
+      const normalized = item.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, maxLength);
+      if (normalized.length === 0 || seen.has(normalized)) {
+        continue;
+      }
+      seen.add(normalized);
+      result.push(normalized);
+      if (result.length >= maxItems) {
+        break;
+      }
+    }
+    return result;
+  }
+  function booleanRecord(value) {
+    if (!isRecord(value)) {
+      return {};
+    }
+    const result = {};
+    for (const [key, enabled] of Object.entries(value)) {
+      if (!BLOCKED_OBJECT_KEYS.has(key) && /^[a-z0-9_-]{1,40}$/i.test(key) && typeof enabled === "boolean") {
+        result[key] = enabled;
+      }
+    }
+    return result;
+  }
+  function mediaTypeRecord(value) {
+    const record = booleanRecord(value);
+    const result = {};
+    for (const key of FILTER_MEDIA_KEYS) {
+      result[key] = record[key] ?? DEFAULT_SETTINGS.filter.mediaTypes[key] ?? false;
+    }
+    for (const [key, enabled] of Object.entries(record)) {
+      if (!(key in result)) {
+        result[key] = enabled;
+      }
+    }
+    return result;
+  }
+  function surfaceArray(value, fallback = DEFAULT_SETTINGS.filter.surfaces) {
+    if (!Array.isArray(value)) {
+      return [...fallback];
+    }
+    const seen = /* @__PURE__ */ new Set();
+    for (const item of value) {
+      if (typeof item === "string" && FILTER_SURFACES.includes(item)) {
+        seen.add(item);
+      }
+    }
+    return seen.size > 0 ? [...seen] : [...fallback];
+  }
+  function integerValue(value, fallback, min, max) {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      return fallback;
+    }
+    return Math.max(min, Math.min(max, Math.trunc(value)));
+  }
+  function exportFormatArray(value) {
+    if (!Array.isArray(value)) {
+      return [...DEFAULT_SETTINGS.export.formats];
+    }
+    const formats = value.filter((item) => {
+      return typeof item === "string" && EXPORT_FORMATS.includes(item);
+    });
+    return formats.length > 0 ? [...new Set(formats)] : [...DEFAULT_SETTINGS.export.formats];
+  }
+  function urlValue(value, fallback) {
+    if (typeof value !== "string") return fallback;
+    const trimmed = value.trim();
+    if (trimmed.length === 0) return fallback === "" ? "" : fallback;
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return fallback;
+      return parsed.toString().replace(/\/$/, "");
+    } catch {
+      return fallback;
+    }
+  }
+  function secretValue(value, fallback) {
+    if (typeof value !== "string") return fallback;
+    const cleaned = value.replace(/[\u0000-\u001f\u007f]/g, "").trim();
+    return cleaned.length === 0 ? fallback : cleaned.slice(0, 4096);
+  }
+  function handleOrEmpty(value) {
+    if (typeof value !== "string") return "";
+    const cleaned = value.replace(/^@/, "").trim();
+    if (cleaned.length === 0) return "";
+    return /^[A-Za-z0-9._-]{1,253}$/.test(cleaned) ? cleaned : "";
+  }
+  function folderHintValue(value, fallback) {
+    if (typeof value !== "string") {
+      return fallback;
+    }
+    const cleaned = value.replace(/[<>:"|?*\u0000-\u001f]/g, "").trim().slice(0, 120);
+    return cleaned;
+  }
+  function localeValue(value, fallback) {
+    if (typeof value !== "string") {
+      return fallback;
+    }
+    const normalized = value.trim();
+    return /^[a-z]{2,3}(-[A-Za-z0-9]{2,8}){0,2}$/.test(normalized) ? normalized : fallback;
+  }
+
   // src/features/appearance/theme.ts
   var STYLE_ID = "av-theme-foundation";
   var ACTIVE_NAV_ATTRIBUTE = "data-av-active-route";
@@ -27,6 +629,7 @@
       document.documentElement.classList.remove(
         "av-dense",
         "av-hide-counts",
+        ...COUNT_METRICS.map((metric) => `av-hide-count-${metric}`),
         "av-hide-borders",
         "av-high-contrast",
         "av-reduce-motion",
@@ -55,6 +658,13 @@
     root.classList.toggle("av-chirp", settings.appearance.restoreChirp);
     root.classList.toggle("av-dense", settings.appearance.denseMode);
     root.classList.toggle("av-hide-counts", settings.appearance.hideCounts);
+    const metrics = settings.appearance.countMetrics;
+    for (const metric of COUNT_METRICS) {
+      root.classList.toggle(
+        `av-hide-count-${metric}`,
+        settings.appearance.hideCounts && (metrics ? metrics[metric] === true : true)
+      );
+    }
     root.classList.toggle("av-hide-borders", settings.appearance.hideBorders);
     root.classList.toggle("av-high-contrast", settings.accessibility.highContrast);
     root.classList.toggle("av-reduce-motion", shouldReduceMotion(settings));
@@ -483,13 +1093,17 @@ html.av-dense article[data-testid="tweet"] {
 }
 
 /* Engagement counts inside the action bar only \u2014 the buttons themselves stay operable and
-   keep their aria-labels, which carry the number for screen readers. */
-html.av-hide-counts article[data-testid="tweet"] [data-testid="reply"] [data-testid="app-text-transition-container"],
-html.av-hide-counts article[data-testid="tweet"] [data-testid="retweet"] [data-testid="app-text-transition-container"],
-html.av-hide-counts article[data-testid="tweet"] [data-testid="unretweet"] [data-testid="app-text-transition-container"],
-html.av-hide-counts article[data-testid="tweet"] [data-testid="like"] [data-testid="app-text-transition-container"],
-html.av-hide-counts article[data-testid="tweet"] [data-testid="unlike"] [data-testid="app-text-transition-container"],
-html.av-hide-counts article[data-testid="tweet"] a[href$="/analytics"] [data-testid="app-text-transition-container"] {
+   keep their aria-labels, which carry the number for screen readers.
+
+   Split per metric so each can be hidden on its own. The view total is the odd one out: it lives
+   in an analytics link rather than an action button, so it is matched by href. Bookmarks are
+   absent because no capture shows a bookmark count element to scope a rule to. */
+html.av-hide-count-replies article[data-testid="tweet"] [data-testid="reply"] [data-testid="app-text-transition-container"],
+html.av-hide-count-reposts article[data-testid="tweet"] [data-testid="retweet"] [data-testid="app-text-transition-container"],
+html.av-hide-count-reposts article[data-testid="tweet"] [data-testid="unretweet"] [data-testid="app-text-transition-container"],
+html.av-hide-count-likes article[data-testid="tweet"] [data-testid="like"] [data-testid="app-text-transition-container"],
+html.av-hide-count-likes article[data-testid="tweet"] [data-testid="unlike"] [data-testid="app-text-transition-container"],
+html.av-hide-count-views article[data-testid="tweet"] a[href$="/analytics"] [data-testid="app-text-transition-container"] {
   display: none !important;
 }
 
@@ -520,6 +1134,59 @@ html.av-reduce-motion *::after {
   transition-duration: 0.001ms !important;
 }
 `;
+
+  // src/features/appearance/title-badge.ts
+  var BADGE = /^\(\d+\+?\)\s*/;
+  var observer;
+  var lastWritten;
+  var titleBadgeFeature = {
+    id: "appearance.titleBadge",
+    title: "Hide tab title badge",
+    category: "appearance",
+    defaultEnabled: true,
+    init(ctx) {
+      applyTitleBadge(ctx);
+    },
+    apply(ctx) {
+      applyTitleBadge(ctx);
+    },
+    destroy() {
+      stop();
+    }
+  };
+  function applyTitleBadge(ctx) {
+    if (!ctx.settings.appearance.hideTitleBadge) {
+      stop();
+      return;
+    }
+    strip();
+    if (observer || typeof MutationObserver === "undefined") {
+      return;
+    }
+    const titleElement = document.querySelector("title");
+    if (!titleElement) {
+      return;
+    }
+    observer = new MutationObserver(() => strip());
+    observer.observe(titleElement, { childList: true, characterData: true, subtree: true });
+  }
+  function strip() {
+    const current = document.title;
+    if (current === lastWritten) {
+      return;
+    }
+    const stripped = current.replace(BADGE, "");
+    if (stripped === current) {
+      return;
+    }
+    lastWritten = stripped;
+    document.title = stripped;
+  }
+  function stop() {
+    observer?.disconnect();
+    observer = void 0;
+    lastWritten = void 0;
+  }
 
   // src/platform/i18n-catalog.ts
   var PANEL_CATALOG = {
@@ -576,7 +1243,15 @@ html.av-reduce-motion *::after {
       "Restore the Chirp font": "Restaurar la fuente Chirp",
       "Force X's own Chirp typeface where the site has fallen back to a system font.": "Fuerza la tipograf\xEDa Chirp de X donde el sitio ha vuelto a una fuente del sistema.",
       "Hide engagement counts": "Ocultar contadores de interacci\xF3n",
-      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "Oculta los n\xFAmeros de respuestas, reposts, me gusta y visualizaciones. Los controles siguen funcionando y los lectores de pantalla siguen anunciando los totales.",
+      "Master switch for the four numbers below. The controls still work and screen readers still announce the totals.": "Interruptor principal de los cuatro n\xFAmeros siguientes. Los controles siguen funcionando y los lectores de pantalla siguen anunciando los totales.",
+      "Hide reply counts": "Ocultar el n\xFAmero de respuestas",
+      "Applies while Hide engagement counts is on.": "Se aplica mientras \xABOcultar recuentos de interacci\xF3n\xBB est\xE1 activo.",
+      "Hide repost counts": "Ocultar el n\xFAmero de republicaciones",
+      "Hide like counts": "Ocultar el n\xFAmero de me gusta",
+      "Hide view counts": "Ocultar el n\xFAmero de visualizaciones",
+      "Applies while Hide engagement counts is on. The view total lives in an analytics link, not an action button.": "Se aplica mientras \xABOcultar recuentos de interacci\xF3n\xBB est\xE1 activo. El total de visualizaciones est\xE1 en un enlace de anal\xEDticas, no en un bot\xF3n de acci\xF3n.",
+      "Hide the tab title badge": "Ocultar el contador en el t\xEDtulo de la pesta\xF1a",
+      "Remove X's unread count from the browser tab title, so a hidden notification badge is not restored by the tab.": "Elimina el contador de no le\xEDdos de X del t\xEDtulo de la pesta\xF1a, para que la pesta\xF1a no devuelva un aviso que ya hab\xEDas ocultado.",
       "Hide row borders": "Ocultar bordes de fila",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "Elimina el divisor de 1 px bajo cada publicaci\xF3n y las l\xEDneas laterales de la columna principal.",
       "High contrast": "Alto contraste",
@@ -1118,6 +1793,9 @@ html.av-reduce-motion *::after {
       "Chirp font off": "Fuente Chirp desactivada",
       "Engagement counts hidden": "Contadores de interacci\xF3n ocultos",
       "Engagement counts shown": "Contadores de interacci\xF3n visibles",
+      "Count preference saved": "Preferencia de recuentos guardada",
+      "Tab title badge hidden": "Contador de la pesta\xF1a oculto",
+      "Tab title badge shown": "Contador de la pesta\xF1a visible",
       "Row borders hidden": "Bordes de fila ocultos",
       "Row borders restored": "Bordes de fila restaurados",
       "Contrast preference saved": "Preferencia de contraste guardada",
@@ -1353,6 +2031,7 @@ html.av-reduce-motion *::after {
       "posts": "publicaciones",
       "offline-ready": "listo sin conexi\xF3n",
       "network may be required": "puede requerir red",
+      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "Oculta los n\xFAmeros de respuestas, reposts, me gusta y visualizaciones. Los controles siguen funcionando y los lectores de pantalla siguen anunciando los totales.",
       "Original quality is applied when download controls are enabled.": "La calidad original se aplica cuando los controles de descarga est\xE1n habilitados.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Un ID estable de navegaci\xF3n de X por l\xEDnea: home, explore, notifications, messages, profile, more o premium.",
       "Save list": "Guardar lista",
@@ -1437,7 +2116,15 @@ html.av-reduce-motion *::after {
       "Restore the Chirp font": "Repor o tipo de letra Chirp",
       "Force X's own Chirp typeface where the site has fallen back to a system font.": "For\xE7a o tipo de letra Chirp do X onde o site recorreu a um tipo de letra do sistema.",
       "Hide engagement counts": "Ocultar contadores de intera\xE7\xE3o",
-      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "Oculta os n\xFAmeros de respostas, reposts, curtidas e visualiza\xE7\xF5es. Os controles continuam funcionando e os leitores de tela ainda anunciam os totais.",
+      "Master switch for the four numbers below. The controls still work and screen readers still announce the totals.": "Interruptor principal dos quatro n\xFAmeros abaixo. Os controles continuam funcionando e os leitores de tela continuam anunciando os totais.",
+      "Hide reply counts": "Ocultar a contagem de respostas",
+      "Applies while Hide engagement counts is on.": 'Aplica-se enquanto "Ocultar contagens de intera\xE7\xE3o" estiver ativo.',
+      "Hide repost counts": "Ocultar a contagem de reposts",
+      "Hide like counts": "Ocultar a contagem de curtidas",
+      "Hide view counts": "Ocultar a contagem de visualiza\xE7\xF5es",
+      "Applies while Hide engagement counts is on. The view total lives in an analytics link, not an action button.": 'Aplica-se enquanto "Ocultar contagens de intera\xE7\xE3o" estiver ativo. O total de visualiza\xE7\xF5es fica em um link de an\xE1lises, n\xE3o em um bot\xE3o de a\xE7\xE3o.',
+      "Hide the tab title badge": "Ocultar o contador no t\xEDtulo da aba",
+      "Remove X's unread count from the browser tab title, so a hidden notification badge is not restored by the tab.": "Remove a contagem de n\xE3o lidos do X do t\xEDtulo da aba, para que a aba n\xE3o traga de volta um aviso que voc\xEA j\xE1 ocultou.",
       "Hide row borders": "Ocultar bordas das linhas",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "Remove o divisor de 1 px sob cada post e as linhas laterais da coluna principal.",
       "High contrast": "Alto contraste",
@@ -1979,6 +2666,9 @@ html.av-reduce-motion *::after {
       "Chirp font off": "Tipo de letra Chirp desativado",
       "Engagement counts hidden": "Contadores de intera\xE7\xE3o ocultos",
       "Engagement counts shown": "Contadores de intera\xE7\xE3o vis\xEDveis",
+      "Count preference saved": "Prefer\xEAncia de contagem salva",
+      "Tab title badge hidden": "Contador da aba oculto",
+      "Tab title badge shown": "Contador da aba vis\xEDvel",
       "Row borders hidden": "Limites das linhas ocultos",
       "Row borders restored": "Limites das linhas repostos",
       "Contrast preference saved": "Prefer\xEAncia de contraste guardada",
@@ -2214,6 +2904,7 @@ html.av-reduce-motion *::after {
       "posts": "publica\xE7\xF5es",
       "offline-ready": "pronto off-line",
       "network may be required": "a rede pode ser necess\xE1ria",
+      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "Oculta os n\xFAmeros de respostas, reposts, curtidas e visualiza\xE7\xF5es. Os controles continuam funcionando e os leitores de tela ainda anunciam os totais.",
       "Original quality is applied when download controls are enabled.": "A qualidade original \xE9 aplicada quando os controlos de transfer\xEAncia est\xE3o ativados.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Um ID de navega\xE7\xE3o est\xE1vel do X por linha: home, explore, notifications, messages, profile, more ou premium.",
       "Save list": "Salvar lista",
@@ -2298,7 +2989,15 @@ html.av-reduce-motion *::after {
       "Restore the Chirp font": "R\xE9tablir la police Chirp",
       "Force X's own Chirp typeface where the site has fallen back to a system font.": "Impose la police Chirp de X l\xE0 o\xF9 le site est revenu \xE0 une police syst\xE8me.",
       "Hide engagement counts": "Masquer les compteurs d'engagement",
-      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "Masque le nombre de r\xE9ponses, de republications, de mentions J\u2019aime et de vues. Les contr\xF4les fonctionnent toujours et les lecteurs d\u2019\xE9cran annoncent encore les totaux.",
+      "Master switch for the four numbers below. The controls still work and screen readers still announce the totals.": "Interrupteur principal des quatre nombres ci-dessous. Les contr\xF4les restent utilisables et les lecteurs d'\xE9cran annoncent toujours les totaux.",
+      "Hide reply counts": "Masquer le nombre de r\xE9ponses",
+      "Applies while Hide engagement counts is on.": "S'applique tant que \xAB Masquer les compteurs d'engagement \xBB est activ\xE9.",
+      "Hide repost counts": "Masquer le nombre de reposts",
+      "Hide like counts": "Masquer le nombre de j'aime",
+      "Hide view counts": "Masquer le nombre de vues",
+      "Applies while Hide engagement counts is on. The view total lives in an analytics link, not an action button.": "S'applique tant que \xAB Masquer les compteurs d'engagement \xBB est activ\xE9. Le total des vues se trouve dans un lien d'analyse, pas dans un bouton d'action.",
+      "Hide the tab title badge": "Masquer le compteur du titre d'onglet",
+      "Remove X's unread count from the browser tab title, so a hidden notification badge is not restored by the tab.": "Retire le compteur de non-lus de X du titre de l'onglet, pour que l'onglet ne ram\xE8ne pas une notification que vous aviez masqu\xE9e.",
       "Hide row borders": "Masquer les bordures de ligne",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "Supprime le trait de 1 px sous chaque publication ainsi que les filets lat\xE9raux de la colonne principale.",
       "High contrast": "Contraste \xE9lev\xE9",
@@ -2840,6 +3539,9 @@ html.av-reduce-motion *::after {
       "Chirp font off": "Police Chirp d\xE9sactiv\xE9e",
       "Engagement counts hidden": "Compteurs d'engagement masqu\xE9s",
       "Engagement counts shown": "Compteurs d'engagement affich\xE9s",
+      "Count preference saved": "Pr\xE9f\xE9rence de compteurs enregistr\xE9e",
+      "Tab title badge hidden": "Compteur d'onglet masqu\xE9",
+      "Tab title badge shown": "Compteur d'onglet affich\xE9",
       "Row borders hidden": "Bordures de ligne masqu\xE9es",
       "Row borders restored": "Bordures de ligne r\xE9tablies",
       "Contrast preference saved": "Pr\xE9f\xE9rence de contraste enregistr\xE9e",
@@ -3075,6 +3777,7 @@ html.av-reduce-motion *::after {
       "posts": "publications",
       "offline-ready": "pr\xEAt hors ligne",
       "network may be required": "r\xE9seau potentiellement n\xE9cessaire",
+      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "Masque le nombre de r\xE9ponses, de republications, de mentions J\u2019aime et de vues. Les contr\xF4les fonctionnent toujours et les lecteurs d\u2019\xE9cran annoncent encore les totaux.",
       "Original quality is applied when download controls are enabled.": "La qualit\xE9 d'origine est appliqu\xE9e lorsque les contr\xF4les de t\xE9l\xE9chargement sont activ\xE9s.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Un identifiant de navigation X stable par ligne : home, explore, notifications, messages, profile, more ou premium.",
       "Save list": "Enregistrer la liste",
@@ -3159,7 +3862,15 @@ html.av-reduce-motion *::after {
       "Restore the Chirp font": "Chirp-Schrift wiederherstellen",
       "Force X's own Chirp typeface where the site has fallen back to a system font.": "Erzwingt X' eigene Chirp-Schrift dort, wo die Seite auf eine Systemschrift zur\xFCckgefallen ist.",
       "Hide engagement counts": "Interaktionszahlen ausblenden",
-      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "Blendet die Zahlen f\xFCr Antworten, Reposts, Likes und Aufrufe aus. Die Bedienelemente funktionieren weiter, und Screenreader nennen die Summen weiterhin.",
+      "Master switch for the four numbers below. The controls still work and screen readers still announce the totals.": "Hauptschalter f\xFCr die vier Zahlen unten. Die Bedienelemente funktionieren weiterhin, und Screenreader nennen die Summen weiterhin.",
+      "Hide reply counts": "Antwortzahlen ausblenden",
+      "Applies while Hide engagement counts is on.": "Gilt, solange \u201EInteraktionszahlen ausblenden\u201C aktiv ist.",
+      "Hide repost counts": "Repost-Zahlen ausblenden",
+      "Hide like counts": "Gef\xE4llt-mir-Zahlen ausblenden",
+      "Hide view counts": "Aufrufzahlen ausblenden",
+      "Applies while Hide engagement counts is on. The view total lives in an analytics link, not an action button.": "Gilt, solange \u201EInteraktionszahlen ausblenden\u201C aktiv ist. Die Aufrufsumme steht in einem Analyse-Link, nicht in einer Aktionsschaltfl\xE4che.",
+      "Hide the tab title badge": "Z\xE4hler im Tab-Titel ausblenden",
+      "Remove X's unread count from the browser tab title, so a hidden notification badge is not restored by the tab.": "Entfernt X' Ungelesen-Z\xE4hler aus dem Tab-Titel, damit der Tab keinen Hinweis zur\xFCckbringt, den du bereits ausgeblendet hast.",
       "Hide row borders": "Zeilentrenner ausblenden",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "Entfernt den 1-px-Trenner unter jedem Beitrag und die Seitenlinien der Hauptspalte.",
       "High contrast": "Hoher Kontrast",
@@ -3701,6 +4412,9 @@ html.av-reduce-motion *::after {
       "Chirp font off": "Chirp-Schrift aus",
       "Engagement counts hidden": "Interaktionszahlen ausgeblendet",
       "Engagement counts shown": "Interaktionszahlen eingeblendet",
+      "Count preference saved": "Z\xE4hler-Einstellung gespeichert",
+      "Tab title badge hidden": "Tab-Z\xE4hler ausgeblendet",
+      "Tab title badge shown": "Tab-Z\xE4hler sichtbar",
       "Row borders hidden": "Zeilenrahmen ausgeblendet",
       "Row borders restored": "Zeilenrahmen wiederhergestellt",
       "Contrast preference saved": "Kontrast-Einstellung gespeichert",
@@ -3936,6 +4650,7 @@ html.av-reduce-motion *::after {
       "posts": "Beitr\xE4ge",
       "offline-ready": "offline-fertig",
       "network may be required": "Netzwerk eventuell erforderlich",
+      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "Blendet die Zahlen f\xFCr Antworten, Reposts, Likes und Aufrufe aus. Die Bedienelemente funktionieren weiter, und Screenreader nennen die Summen weiterhin.",
       "Original quality is applied when download controls are enabled.": "Originalqualit\xE4t wird angewendet, wenn die Download-Steuerelemente aktiviert sind.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Eine stabile X-Navigations-ID pro Zeile: home, explore, notifications, messages, profile, more oder premium.",
       "Save list": "Liste speichern",
@@ -4020,7 +4735,15 @@ html.av-reduce-motion *::after {
       "Restore the Chirp font": "Chirp \u30D5\u30A9\u30F3\u30C8\u3092\u5FA9\u5143",
       "Force X's own Chirp typeface where the site has fallen back to a system font.": "\u30B5\u30A4\u30C8\u304C\u30B7\u30B9\u30C6\u30E0\u30D5\u30A9\u30F3\u30C8\u306B\u623B\u3063\u3066\u3044\u308B\u7B87\u6240\u3067\u3001X \u672C\u6765\u306E Chirp \u66F8\u4F53\u3092\u9069\u7528\u3057\u307E\u3059\u3002",
       "Hide engagement counts": "\u30A8\u30F3\u30B2\u30FC\u30B8\u30E1\u30F3\u30C8\u6570\u3092\u975E\u8868\u793A",
-      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "\u8FD4\u4FE1\u30FB\u30EA\u30DD\u30B9\u30C8\u30FB\u3044\u3044\u306D\u30FB\u8868\u793A\u56DE\u6570\u3092\u96A0\u3057\u307E\u3059\u3002\u64CD\u4F5C\u306F\u5F15\u304D\u7D9A\u304D\u6A5F\u80FD\u3057\u3001\u30B9\u30AF\u30EA\u30FC\u30F3\u30EA\u30FC\u30C0\u30FC\u306F\u5408\u8A08\u3092\u8AAD\u307F\u4E0A\u3052\u307E\u3059\u3002",
+      "Master switch for the four numbers below. The controls still work and screen readers still announce the totals.": "\u4E0B\u306E 4 \u3064\u306E\u6570\u5024\u3092\u307E\u3068\u3081\u3066\u5207\u308A\u66FF\u3048\u307E\u3059\u3002\u30DC\u30BF\u30F3\u306F\u5F15\u304D\u7D9A\u304D\u4F7F\u7528\u3067\u304D\u3001\u30B9\u30AF\u30EA\u30FC\u30F3\u30EA\u30FC\u30C0\u30FC\u3082\u5408\u8A08\u3092\u8AAD\u307F\u4E0A\u3052\u307E\u3059\u3002",
+      "Hide reply counts": "\u8FD4\u4FE1\u6570\u3092\u975E\u8868\u793A",
+      "Applies while Hide engagement counts is on.": "\u300C\u30A8\u30F3\u30B2\u30FC\u30B8\u30E1\u30F3\u30C8\u6570\u3092\u975E\u8868\u793A\u300D\u304C\u6709\u52B9\u306A\u9593\u306B\u9069\u7528\u3055\u308C\u307E\u3059\u3002",
+      "Hide repost counts": "\u30EA\u30DD\u30B9\u30C8\u6570\u3092\u975E\u8868\u793A",
+      "Hide like counts": "\u3044\u3044\u306D\u6570\u3092\u975E\u8868\u793A",
+      "Hide view counts": "\u8868\u793A\u56DE\u6570\u3092\u975E\u8868\u793A",
+      "Applies while Hide engagement counts is on. The view total lives in an analytics link, not an action button.": "\u300C\u30A8\u30F3\u30B2\u30FC\u30B8\u30E1\u30F3\u30C8\u6570\u3092\u975E\u8868\u793A\u300D\u304C\u6709\u52B9\u306A\u9593\u306B\u9069\u7528\u3055\u308C\u307E\u3059\u3002\u8868\u793A\u56DE\u6570\u306E\u5408\u8A08\u306F\u30A2\u30AF\u30B7\u30E7\u30F3\u30DC\u30BF\u30F3\u3067\u306F\u306A\u304F\u3001\u30A2\u30CA\u30EA\u30C6\u30A3\u30AF\u30B9\u306E\u30EA\u30F3\u30AF\u5185\u306B\u3042\u308A\u307E\u3059\u3002",
+      "Hide the tab title badge": "\u30BF\u30D6\u30BF\u30A4\u30C8\u30EB\u306E\u901A\u77E5\u6570\u3092\u975E\u8868\u793A",
+      "Remove X's unread count from the browser tab title, so a hidden notification badge is not restored by the tab.": "\u30D6\u30E9\u30A6\u30B6\u30FC\u306E\u30BF\u30D6\u30BF\u30A4\u30C8\u30EB\u304B\u3089 X \u306E\u672A\u8AAD\u6570\u3092\u53D6\u308A\u9664\u304D\u3001\u975E\u8868\u793A\u306B\u3057\u305F\u901A\u77E5\u30D0\u30C3\u30B8\u304C\u30BF\u30D6\u304B\u3089\u623B\u3089\u306A\u3044\u3088\u3046\u306B\u3057\u307E\u3059\u3002",
       "Hide row borders": "\u884C\u306E\u5883\u754C\u7DDA\u3092\u975E\u8868\u793A",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "\u5404\u6295\u7A3F\u306E\u4E0B\u306B\u3042\u308B 1px \u306E\u533A\u5207\u308A\u7DDA\u3068\u3001\u30E1\u30A4\u30F3\u30AB\u30E9\u30E0\u306E\u5DE6\u53F3\u306E\u7F6B\u7DDA\u3092\u6D88\u3057\u307E\u3059\u3002",
       "High contrast": "\u30CF\u30A4\u30B3\u30F3\u30C8\u30E9\u30B9\u30C8",
@@ -4562,6 +5285,9 @@ html.av-reduce-motion *::after {
       "Chirp font off": "Chirp \u30D5\u30A9\u30F3\u30C8 \u30AA\u30D5",
       "Engagement counts hidden": "\u30A8\u30F3\u30B2\u30FC\u30B8\u30E1\u30F3\u30C8\u6570\u3092\u975E\u8868\u793A\u306B\u3057\u307E\u3057\u305F",
       "Engagement counts shown": "\u30A8\u30F3\u30B2\u30FC\u30B8\u30E1\u30F3\u30C8\u6570\u3092\u8868\u793A\u3057\u307E\u3057\u305F",
+      "Count preference saved": "\u30AB\u30A6\u30F3\u30C8\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
+      "Tab title badge hidden": "\u30BF\u30D6\u306E\u901A\u77E5\u6570\u3092\u975E\u8868\u793A\u306B\u3057\u307E\u3057\u305F",
+      "Tab title badge shown": "\u30BF\u30D6\u306E\u901A\u77E5\u6570\u3092\u8868\u793A\u3057\u307E\u3057\u305F",
       "Row borders hidden": "\u884C\u306E\u5883\u754C\u7DDA\u3092\u975E\u8868\u793A\u306B\u3057\u307E\u3057\u305F",
       "Row borders restored": "\u884C\u306E\u5883\u754C\u7DDA\u3092\u623B\u3057\u307E\u3057\u305F",
       "Contrast preference saved": "\u30B3\u30F3\u30C8\u30E9\u30B9\u30C8\u306E\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
@@ -4797,6 +5523,7 @@ html.av-reduce-motion *::after {
       "posts": "\u4EF6\u306E\u6295\u7A3F",
       "offline-ready": "\u30AA\u30D5\u30E9\u30A4\u30F3\u5BFE\u5FDC",
       "network may be required": "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u304C\u5FC5\u8981\u306A\u5834\u5408\u304C\u3042\u308A\u307E\u3059",
+      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "\u8FD4\u4FE1\u30FB\u30EA\u30DD\u30B9\u30C8\u30FB\u3044\u3044\u306D\u30FB\u8868\u793A\u56DE\u6570\u3092\u96A0\u3057\u307E\u3059\u3002\u64CD\u4F5C\u306F\u5F15\u304D\u7D9A\u304D\u6A5F\u80FD\u3057\u3001\u30B9\u30AF\u30EA\u30FC\u30F3\u30EA\u30FC\u30C0\u30FC\u306F\u5408\u8A08\u3092\u8AAD\u307F\u4E0A\u3052\u307E\u3059\u3002",
       "Original quality is applied when download controls are enabled.": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u3092\u6709\u52B9\u306B\u3059\u308B\u3068\u30AA\u30EA\u30B8\u30CA\u30EB\u753B\u8CEA\u304C\u9069\u7528\u3055\u308C\u307E\u3059\u3002",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "1\u884C\u306B1\u3064\u306E\u5B89\u5B9A\u3057\u305FX\u30CA\u30D3\u30B2\u30FC\u30B7\u30E7\u30F3ID\u3092\u5165\u529B\u3057\u307E\u3059: home\u3001explore\u3001notifications\u3001messages\u3001profile\u3001more\u3001premium\u3002",
       "Save list": "\u30EA\u30B9\u30C8\u3092\u4FDD\u5B58",
@@ -4881,7 +5608,15 @@ html.av-reduce-motion *::after {
       "Restore the Chirp font": "Chirp \uAE00\uAF34 \uBCF5\uC6D0",
       "Force X's own Chirp typeface where the site has fallen back to a system font.": "\uC0AC\uC774\uD2B8\uAC00 \uC2DC\uC2A4\uD15C \uAE00\uAF34\uB85C \uB300\uCCB4\uB41C \uACF3\uC5D0 X \uACE0\uC720\uC758 Chirp \uC11C\uCCB4\uB97C \uC801\uC6A9\uD569\uB2C8\uB2E4.",
       "Hide engagement counts": "\uBC18\uC751 \uC218 \uC228\uAE30\uAE30",
-      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "\uB2F5\uAE00\xB7\uC7AC\uAC8C\uC2DC\xB7\uB9C8\uC74C\uC5D0 \uB4E4\uC5B4\uC694\xB7\uC870\uD68C \uC218\uB97C \uC228\uAE41\uB2C8\uB2E4. \uCEE8\uD2B8\uB864\uC740 \uADF8\uB300\uB85C \uC791\uB3D9\uD558\uACE0 \uC2A4\uD06C\uB9B0 \uB9AC\uB354\uB294 \uD569\uACC4\uB97C \uACC4\uC18D \uC77D\uC5B4 \uC90D\uB2C8\uB2E4.",
+      "Master switch for the four numbers below. The controls still work and screen readers still announce the totals.": "\uC544\uB798 \uB124 \uAC00\uC9C0 \uC22B\uC790\uB97C \uD55C \uBC88\uC5D0 \uCF1C\uACE0 \uB055\uB2C8\uB2E4. \uBC84\uD2BC\uC740 \uACC4\uC18D \uC791\uB3D9\uD558\uBA70 \uC2A4\uD06C\uB9B0 \uB9AC\uB354\uB3C4 \uCD1D\uACC4\uB97C \uC77D\uC5B4 \uC90D\uB2C8\uB2E4.",
+      "Hide reply counts": "\uB2F5\uAE00 \uC218 \uC228\uAE30\uAE30",
+      "Applies while Hide engagement counts is on.": "'\uCC38\uC5EC \uC218 \uC228\uAE30\uAE30'\uAC00 \uCF1C\uC838 \uC788\uC744 \uB54C \uC801\uC6A9\uB429\uB2C8\uB2E4.",
+      "Hide repost counts": "\uB9AC\uD3EC\uC2A4\uD2B8 \uC218 \uC228\uAE30\uAE30",
+      "Hide like counts": "\uC88B\uC544\uC694 \uC218 \uC228\uAE30\uAE30",
+      "Hide view counts": "\uC870\uD68C \uC218 \uC228\uAE30\uAE30",
+      "Applies while Hide engagement counts is on. The view total lives in an analytics link, not an action button.": "'\uCC38\uC5EC \uC218 \uC228\uAE30\uAE30'\uAC00 \uCF1C\uC838 \uC788\uC744 \uB54C \uC801\uC6A9\uB429\uB2C8\uB2E4. \uC870\uD68C \uCD1D\uACC4\uB294 \uC561\uC158 \uBC84\uD2BC\uC774 \uC544\uB2C8\uB77C \uBD84\uC11D \uB9C1\uD06C \uC548\uC5D0 \uC788\uC2B5\uB2C8\uB2E4.",
+      "Hide the tab title badge": "\uD0ED \uC81C\uBAA9\uC758 \uC54C\uB9BC \uC218 \uC228\uAE30\uAE30",
+      "Remove X's unread count from the browser tab title, so a hidden notification badge is not restored by the tab.": "\uBE0C\uB77C\uC6B0\uC800 \uD0ED \uC81C\uBAA9\uC5D0\uC11C X\uC758 \uC77D\uC9C0 \uC54A\uC740 \uC54C\uB9BC \uC218\uB97C \uC81C\uAC70\uD574, \uC228\uAE34 \uC54C\uB9BC \uBC30\uC9C0\uAC00 \uD0ED\uC744 \uD1B5\uD574 \uB2E4\uC2DC \uB098\uD0C0\uB098\uC9C0 \uC54A\uB3C4\uB85D \uD569\uB2C8\uB2E4.",
       "Hide row borders": "\uD589 \uACBD\uACC4\uC120 \uC228\uAE30\uAE30",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "\uAC01 \uAC8C\uC2DC\uBB3C \uC544\uB798\uC758 1px \uAD6C\uBD84\uC120\uACFC \uAE30\uBCF8 \uCE7C\uB7FC\uC758 \uC88C\uC6B0 \uC120\uC744 \uC5C6\uC571\uB2C8\uB2E4.",
       "High contrast": "\uACE0\uB300\uBE44",
@@ -5423,6 +6158,9 @@ html.av-reduce-motion *::after {
       "Chirp font off": "Chirp \uAE00\uAF34 \uB054",
       "Engagement counts hidden": "\uCC38\uC5EC \uC218 \uC228\uAE40",
       "Engagement counts shown": "\uCC38\uC5EC \uC218 \uD45C\uC2DC",
+      "Count preference saved": "\uCE74\uC6B4\uD2B8 \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
+      "Tab title badge hidden": "\uD0ED \uC54C\uB9BC \uC218\uB97C \uC228\uACBC\uC2B5\uB2C8\uB2E4",
+      "Tab title badge shown": "\uD0ED \uC54C\uB9BC \uC218\uB97C \uD45C\uC2DC\uD569\uB2C8\uB2E4",
       "Row borders hidden": "\uD589 \uD14C\uB450\uB9AC \uC228\uAE40",
       "Row borders restored": "\uD589 \uD14C\uB450\uB9AC \uBCF5\uC6D0",
       "Contrast preference saved": "\uB300\uBE44 \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
@@ -5658,6 +6396,7 @@ html.av-reduce-motion *::after {
       "posts": "\uAC1C \uAC8C\uC2DC\uBB3C",
       "offline-ready": "\uC624\uD504\uB77C\uC778 \uC900\uBE44\uB428",
       "network may be required": "\uB124\uD2B8\uC6CC\uD06C\uAC00 \uD544\uC694\uD560 \uC218 \uC788\uC74C",
+      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "\uB2F5\uAE00\xB7\uC7AC\uAC8C\uC2DC\xB7\uB9C8\uC74C\uC5D0 \uB4E4\uC5B4\uC694\xB7\uC870\uD68C \uC218\uB97C \uC228\uAE41\uB2C8\uB2E4. \uCEE8\uD2B8\uB864\uC740 \uADF8\uB300\uB85C \uC791\uB3D9\uD558\uACE0 \uC2A4\uD06C\uB9B0 \uB9AC\uB354\uB294 \uD569\uACC4\uB97C \uACC4\uC18D \uC77D\uC5B4 \uC90D\uB2C8\uB2E4.",
       "Original quality is applied when download controls are enabled.": "\uB2E4\uC6B4\uB85C\uB4DC \uCEE8\uD2B8\uB864\uC744 \uCF1C\uBA74 \uC6D0\uBCF8 \uD654\uC9C8\uC774 \uC801\uC6A9\uB429\uB2C8\uB2E4.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "\uC904\uB9C8\uB2E4 \uC548\uC815\uC801\uC778 X \uB0B4\uBE44\uAC8C\uC774\uC158 ID \uD558\uB098\uB97C \uC785\uB825\uD558\uC138\uC694: home, explore, notifications, messages, profile, more \uB610\uB294 premium.",
       "Save list": "\uBAA9\uB85D \uC800\uC7A5",
@@ -5742,7 +6481,15 @@ html.av-reduce-motion *::after {
       "Restore the Chirp font": "\u0627\u0633\u062A\u0639\u0627\u062F\u0629 \u062E\u0637 Chirp",
       "Force X's own Chirp typeface where the site has fallen back to a system font.": "\u064A\u0641\u0631\u0636 \u062E\u0637 Chirp \u0627\u0644\u062E\u0627\u0635 \u0628\u0640 X \u062D\u064A\u062B \u0639\u0627\u062F \u0627\u0644\u0645\u0648\u0642\u0639 \u0625\u0644\u0649 \u062E\u0637 \u0627\u0644\u0646\u0638\u0627\u0645.",
       "Hide engagement counts": "\u0625\u062E\u0641\u0627\u0621 \u0623\u0639\u062F\u0627\u062F \u0627\u0644\u062A\u0641\u0627\u0639\u0644",
-      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "\u064A\u062E\u0641\u064A \u0623\u0639\u062F\u0627\u062F \u0627\u0644\u0631\u062F\u0648\u062F \u0648\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0646\u0634\u0631 \u0648\u0627\u0644\u0625\u0639\u062C\u0627\u0628\u0627\u062A \u0648\u0627\u0644\u0645\u0634\u0627\u0647\u062F\u0627\u062A. \u062A\u0638\u0644 \u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062A\u062D\u0643\u0645 \u062A\u0639\u0645\u0644 \u0648\u062A\u0638\u0644 \u0642\u0627\u0631\u0626\u0627\u062A \u0627\u0644\u0634\u0627\u0634\u0629 \u062A\u0639\u0644\u0646 \u0627\u0644\u0625\u062C\u0645\u0627\u0644\u064A\u0627\u062A.",
+      "Master switch for the four numbers below. The controls still work and screen readers still announce the totals.": "\u0645\u0641\u062A\u0627\u062D \u0631\u0626\u064A\u0633\u064A \u0644\u0644\u0623\u0631\u0642\u0627\u0645 \u0627\u0644\u0623\u0631\u0628\u0639\u0629 \u0623\u062F\u0646\u0627\u0647. \u062A\u0638\u0644 \u0627\u0644\u0623\u0632\u0631\u0627\u0631 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0648\u064A\u0633\u062A\u0645\u0631 \u0642\u0627\u0631\u0626 \u0627\u0644\u0634\u0627\u0634\u0629 \u0641\u064A \u0627\u0644\u0625\u0639\u0644\u0627\u0646 \u0639\u0646 \u0627\u0644\u0625\u062C\u0645\u0627\u0644\u064A\u0627\u062A.",
+      "Hide reply counts": "\u0625\u062E\u0641\u0627\u0621 \u0639\u062F\u062F \u0627\u0644\u0631\u062F\u0648\u062F",
+      "Applies while Hide engagement counts is on.": "\u064A\u064F\u0637\u0628\u064E\u0651\u0642 \u0623\u062B\u0646\u0627\u0621 \u062A\u0641\u0639\u064A\u0644 \xAB\u0625\u062E\u0641\u0627\u0621 \u0623\u0639\u062F\u0627\u062F \u0627\u0644\u062A\u0641\u0627\u0639\u0644\xBB.",
+      "Hide repost counts": "\u0625\u062E\u0641\u0627\u0621 \u0639\u062F\u062F \u0625\u0639\u0627\u062F\u0627\u062A \u0627\u0644\u0646\u0634\u0631",
+      "Hide like counts": "\u0625\u062E\u0641\u0627\u0621 \u0639\u062F\u062F \u0627\u0644\u0625\u0639\u062C\u0627\u0628\u0627\u062A",
+      "Hide view counts": "\u0625\u062E\u0641\u0627\u0621 \u0639\u062F\u062F \u0627\u0644\u0645\u0634\u0627\u0647\u062F\u0627\u062A",
+      "Applies while Hide engagement counts is on. The view total lives in an analytics link, not an action button.": "\u064A\u064F\u0637\u0628\u064E\u0651\u0642 \u0623\u062B\u0646\u0627\u0621 \u062A\u0641\u0639\u064A\u0644 \xAB\u0625\u062E\u0641\u0627\u0621 \u0623\u0639\u062F\u0627\u062F \u0627\u0644\u062A\u0641\u0627\u0639\u0644\xBB. \u064A\u0648\u062C\u062F \u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0645\u0634\u0627\u0647\u062F\u0627\u062A \u062F\u0627\u062E\u0644 \u0631\u0627\u0628\u0637 \u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A \u0648\u0644\u064A\u0633 \u0641\u064A \u0632\u0631 \u0625\u062C\u0631\u0627\u0621.",
+      "Hide the tab title badge": "\u0625\u062E\u0641\u0627\u0621 \u0627\u0644\u0639\u062F\u0651\u0627\u062F \u0641\u064A \u0639\u0646\u0648\u0627\u0646 \u0627\u0644\u062A\u0628\u0648\u064A\u0628",
+      "Remove X's unread count from the browser tab title, so a hidden notification badge is not restored by the tab.": "\u064A\u0632\u064A\u0644 \u0639\u062F\u062F \u063A\u064A\u0631 \u0627\u0644\u0645\u0642\u0631\u0648\u0621 \u0641\u064A X \u0645\u0646 \u0639\u0646\u0648\u0627\u0646 \u062A\u0628\u0648\u064A\u0628 \u0627\u0644\u0645\u062A\u0635\u0641\u062D\u060C \u062D\u062A\u0649 \u0644\u0627 \u064A\u0639\u064A\u062F \u0627\u0644\u062A\u0628\u0648\u064A\u0628 \u0625\u0634\u0639\u0627\u0631\u064B\u0627 \u0633\u0628\u0642 \u0623\u0646 \u0623\u062E\u0641\u064A\u062A\u0647.",
       "Hide row borders": "\u0625\u062E\u0641\u0627\u0621 \u062D\u062F\u0648\u062F \u0627\u0644\u0635\u0641\u0648\u0641",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "\u064A\u0632\u064A\u0644 \u0627\u0644\u0641\u0627\u0635\u0644 \u0628\u0633\u0645\u0643 \u0628\u0643\u0633\u0644 \u0648\u0627\u062D\u062F \u0623\u0633\u0641\u0644 \u0643\u0644 \u0645\u0646\u0634\u0648\u0631\u060C \u0648\u0627\u0644\u062E\u0637\u0648\u0637 \u0627\u0644\u062C\u0627\u0646\u0628\u064A\u0629 \u0644\u0644\u0639\u0645\u0648\u062F \u0627\u0644\u0631\u0626\u064A\u0633\u064A.",
       "High contrast": "\u062A\u0628\u0627\u064A\u0646 \u0639\u0627\u0644\u064D",
@@ -6284,6 +7031,9 @@ html.av-reduce-motion *::after {
       "Chirp font off": "\u062E\u0637 Chirp \u0645\u0639\u0637\u0651\u0644",
       "Engagement counts hidden": "\u062A\u0645 \u0625\u062E\u0641\u0627\u0621 \u0623\u0639\u062F\u0627\u062F \u0627\u0644\u062A\u0641\u0627\u0639\u0644",
       "Engagement counts shown": "\u062A\u0645 \u0625\u0638\u0647\u0627\u0631 \u0623\u0639\u062F\u0627\u062F \u0627\u0644\u062A\u0641\u0627\u0639\u0644",
+      "Count preference saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u0623\u0639\u062F\u0627\u062F",
+      "Tab title badge hidden": "\u062A\u0645 \u0625\u062E\u0641\u0627\u0621 \u0639\u062F\u0651\u0627\u062F \u0627\u0644\u062A\u0628\u0648\u064A\u0628",
+      "Tab title badge shown": "\u062A\u0645 \u0625\u0638\u0647\u0627\u0631 \u0639\u062F\u0651\u0627\u062F \u0627\u0644\u062A\u0628\u0648\u064A\u0628",
       "Row borders hidden": "\u062A\u0645 \u0625\u062E\u0641\u0627\u0621 \u062D\u062F\u0648\u062F \u0627\u0644\u0635\u0641\u0648\u0641",
       "Row borders restored": "\u062A\u0645\u062A \u0627\u0633\u062A\u0639\u0627\u062F\u0629 \u062D\u062F\u0648\u062F \u0627\u0644\u0635\u0641\u0648\u0641",
       "Contrast preference saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u062A\u0628\u0627\u064A\u0646",
@@ -6519,6 +7269,7 @@ html.av-reduce-motion *::after {
       "posts": "\u0645\u0646\u0634\u0648\u0631\u0627\u062A",
       "offline-ready": "\u062C\u0627\u0647\u0632 \u0644\u0644\u0639\u0645\u0644 \u062F\u0648\u0646 \u0627\u062A\u0635\u0627\u0644",
       "network may be required": "\u0642\u062F \u062A\u062A\u0637\u0644\u0628 \u0627\u0644\u0634\u0628\u0643\u0629",
+      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "\u064A\u062E\u0641\u064A \u0623\u0639\u062F\u0627\u062F \u0627\u0644\u0631\u062F\u0648\u062F \u0648\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0646\u0634\u0631 \u0648\u0627\u0644\u0625\u0639\u062C\u0627\u0628\u0627\u062A \u0648\u0627\u0644\u0645\u0634\u0627\u0647\u062F\u0627\u062A. \u062A\u0638\u0644 \u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062A\u062D\u0643\u0645 \u062A\u0639\u0645\u0644 \u0648\u062A\u0638\u0644 \u0642\u0627\u0631\u0626\u0627\u062A \u0627\u0644\u0634\u0627\u0634\u0629 \u062A\u0639\u0644\u0646 \u0627\u0644\u0625\u062C\u0645\u0627\u0644\u064A\u0627\u062A.",
       "Original quality is applied when download controls are enabled.": "\u062A\u064F\u0637\u0628\u0651\u0642 \u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629 \u0639\u0646\u062F \u062A\u0641\u0639\u064A\u0644 \u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062A\u062D\u0643\u0645 \u0641\u064A \u0627\u0644\u062A\u0646\u0632\u064A\u0644.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "\u0645\u0639\u0631\u0651\u0641 \u062A\u0646\u0642\u0644 \u062B\u0627\u0628\u062A \u0648\u0627\u062D\u062F \u0641\u064A X \u0644\u0643\u0644 \u0633\u0637\u0631: home \u0623\u0648 explore \u0623\u0648 notifications \u0623\u0648 messages \u0623\u0648 profile \u0623\u0648 more \u0623\u0648 premium.",
       "Save list": "\u062D\u0641\u0638 \u0627\u0644\u0642\u0627\u0626\u0645\u0629",
@@ -6603,7 +7354,15 @@ html.av-reduce-motion *::after {
       "Restore the Chirp font": "\u05E9\u05D7\u05D6\u05D5\u05E8 \u05D4\u05D2\u05D5\u05E4\u05DF Chirp",
       "Force X's own Chirp typeface where the site has fallen back to a system font.": "\u05DB\u05D5\u05E4\u05D4 \u05D0\u05EA \u05D4\u05D2\u05D5\u05E4\u05DF Chirp \u05E9\u05DC X \u05D1\u05DE\u05E7\u05D5\u05DE\u05D5\u05EA \u05E9\u05D1\u05D4\u05DD \u05D4\u05D0\u05EA\u05E8 \u05D7\u05D6\u05E8 \u05DC\u05D2\u05D5\u05E4\u05DF \u05DE\u05E2\u05E8\u05DB\u05EA.",
       "Hide engagement counts": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05DE\u05D5\u05E0\u05D9 \u05DE\u05E2\u05D5\u05E8\u05D1\u05D5\u05EA",
-      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "\u05DE\u05E1\u05EA\u05D9\u05E8 \u05D0\u05EA \u05DE\u05E1\u05E4\u05E8\u05D9 \u05D4\u05EA\u05D2\u05D5\u05D1\u05D5\u05EA, \u05D4\u05E9\u05D9\u05EA\u05D5\u05E4\u05D9\u05DD, \u05D4\u05DC\u05D9\u05D9\u05E7\u05D9\u05DD \u05D5\u05D4\u05E6\u05E4\u05D9\u05D5\u05EA. \u05D4\u05E4\u05E7\u05D3\u05D9\u05DD \u05DE\u05DE\u05E9\u05D9\u05DB\u05D9\u05DD \u05DC\u05E4\u05E2\u05D5\u05DC \u05D5\u05E7\u05D5\u05E8\u05D0\u05D9 \u05DE\u05E1\u05DA \u05DE\u05DE\u05E9\u05D9\u05DB\u05D9\u05DD \u05DC\u05D4\u05E7\u05E8\u05D9\u05D0 \u05D0\u05EA \u05D4\u05E1\u05DB\u05D5\u05DE\u05D9\u05DD.",
+      "Master switch for the four numbers below. The controls still work and screen readers still announce the totals.": "\u05DE\u05EA\u05D2 \u05E8\u05D0\u05E9\u05D9 \u05DC\u05D0\u05E8\u05D1\u05E2\u05EA \u05D4\u05DE\u05E1\u05E4\u05E8\u05D9\u05DD \u05E9\u05DC\u05D4\u05DC\u05DF. \u05D4\u05E4\u05E7\u05D3\u05D9\u05DD \u05DE\u05DE\u05E9\u05D9\u05DB\u05D9\u05DD \u05DC\u05E4\u05E2\u05D5\u05DC \u05D5\u05E7\u05D5\u05E8\u05D0\u05D9 \u05DE\u05E1\u05DA \u05DE\u05DE\u05E9\u05D9\u05DB\u05D9\u05DD \u05DC\u05D4\u05DB\u05E8\u05D9\u05D6 \u05E2\u05DC \u05D4\u05E1\u05DB\u05D5\u05DE\u05D9\u05DD.",
+      "Hide reply counts": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05DE\u05E1\u05E4\u05E8 \u05D4\u05EA\u05D2\u05D5\u05D1\u05D5\u05EA",
+      "Applies while Hide engagement counts is on.": '\u05D7\u05DC \u05DB\u05D0\u05E9\u05E8 "\u05D4\u05E1\u05EA\u05E8\u05EA \u05DE\u05D5\u05E0\u05D9 \u05DE\u05E2\u05D5\u05E8\u05D1\u05D5\u05EA" \u05E4\u05E2\u05D9\u05DC.',
+      "Hide repost counts": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05DE\u05E1\u05E4\u05E8 \u05D4\u05E9\u05D9\u05EA\u05D5\u05E4\u05D9\u05DD",
+      "Hide like counts": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05DE\u05E1\u05E4\u05E8 \u05D4\u05DC\u05D9\u05D9\u05E7\u05D9\u05DD",
+      "Hide view counts": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05DE\u05E1\u05E4\u05E8 \u05D4\u05E6\u05E4\u05D9\u05D5\u05EA",
+      "Applies while Hide engagement counts is on. The view total lives in an analytics link, not an action button.": '\u05D7\u05DC \u05DB\u05D0\u05E9\u05E8 "\u05D4\u05E1\u05EA\u05E8\u05EA \u05DE\u05D5\u05E0\u05D9 \u05DE\u05E2\u05D5\u05E8\u05D1\u05D5\u05EA" \u05E4\u05E2\u05D9\u05DC. \u05E1\u05DA \u05D4\u05E6\u05E4\u05D9\u05D5\u05EA \u05E0\u05DE\u05E6\u05D0 \u05D1\u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05E0\u05D9\u05EA\u05D5\u05D7\u05D9\u05DD \u05D5\u05DC\u05D0 \u05D1\u05DB\u05E4\u05EA\u05D5\u05E8 \u05E4\u05E2\u05D5\u05DC\u05D4.',
+      "Hide the tab title badge": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05D4\u05DE\u05D5\u05E0\u05D4 \u05D1\u05DB\u05D5\u05EA\u05E8\u05EA \u05D4\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA",
+      "Remove X's unread count from the browser tab title, so a hidden notification badge is not restored by the tab.": "\u05DE\u05E1\u05D9\u05E8 \u05D0\u05EA \u05DE\u05D5\u05E0\u05D4 \u05D4\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA \u05E9\u05DC\u05D0 \u05E0\u05E7\u05E8\u05D0\u05D5 \u05E9\u05DC X \u05DE\u05DB\u05D5\u05EA\u05E8\u05EA \u05D4\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA, \u05DB\u05D3\u05D9 \u05E9\u05D4\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05DC\u05D0 \u05EA\u05D7\u05D6\u05D9\u05E8 \u05D4\u05EA\u05E8\u05D0\u05D4 \u05E9\u05DB\u05D1\u05E8 \u05D4\u05E1\u05EA\u05E8\u05EA.",
       "Hide row borders": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05D2\u05D1\u05D5\u05DC\u05D5\u05EA \u05E9\u05D5\u05E8\u05D5\u05EA",
       "Remove the 1px divider under each timeline post and the primary column's side rules.": "\u05DE\u05E1\u05D9\u05E8 \u05D0\u05EA \u05E7\u05D5 \u05D4\u05D4\u05E4\u05E8\u05D3\u05D4 \u05D1\u05E2\u05D5\u05D1\u05D9 \u05E4\u05D9\u05E7\u05E1\u05DC \u05DE\u05EA\u05D7\u05EA \u05DC\u05DB\u05DC \u05E4\u05D5\u05E1\u05D8, \u05D5\u05D0\u05EA \u05D4\u05E7\u05D5\u05D5\u05D9\u05DD \u05D1\u05E6\u05D3\u05D9 \u05D4\u05E2\u05DE\u05D5\u05D3\u05D4 \u05D4\u05E8\u05D0\u05E9\u05D9\u05EA.",
       "High contrast": "\u05E0\u05D9\u05D2\u05D5\u05D3\u05D9\u05D5\u05EA \u05D2\u05D1\u05D5\u05D4\u05D4",
@@ -7145,6 +7904,9 @@ html.av-reduce-motion *::after {
       "Chirp font off": "\u05D4\u05D2\u05D5\u05E4\u05DF Chirp \u05DB\u05D1\u05D5\u05D9",
       "Engagement counts hidden": "\u05DE\u05D5\u05E0\u05D9 \u05D4\u05DE\u05E2\u05D5\u05E8\u05D1\u05D5\u05EA \u05D4\u05D5\u05E1\u05EA\u05E8\u05D5",
       "Engagement counts shown": "\u05DE\u05D5\u05E0\u05D9 \u05D4\u05DE\u05E2\u05D5\u05E8\u05D1\u05D5\u05EA \u05DE\u05D5\u05E6\u05D2\u05D9\u05DD",
+      "Count preference saved": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D4\u05DE\u05D5\u05E0\u05D9\u05DD \u05E0\u05E9\u05DE\u05E8\u05D4",
+      "Tab title badge hidden": "\u05DE\u05D5\u05E0\u05D4 \u05D4\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05DE\u05D5\u05E1\u05EA\u05E8",
+      "Tab title badge shown": "\u05DE\u05D5\u05E0\u05D4 \u05D4\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05DE\u05D5\u05E6\u05D2",
       "Row borders hidden": "\u05D2\u05D1\u05D5\u05DC\u05D5\u05EA \u05D4\u05E9\u05D5\u05E8\u05D5\u05EA \u05D4\u05D5\u05E1\u05EA\u05E8\u05D5",
       "Row borders restored": "\u05D2\u05D1\u05D5\u05DC\u05D5\u05EA \u05D4\u05E9\u05D5\u05E8\u05D5\u05EA \u05E9\u05D5\u05D7\u05D6\u05E8\u05D5",
       "Contrast preference saved": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D4\u05E0\u05D9\u05D2\u05D5\u05D3\u05D9\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D4",
@@ -7380,6 +8142,7 @@ html.av-reduce-motion *::after {
       "posts": "\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD",
       "offline-ready": "\u05DE\u05D5\u05DB\u05DF \u05DC\u05DC\u05D0 \u05D7\u05D9\u05D1\u05D5\u05E8",
       "network may be required": "\u05D9\u05D9\u05EA\u05DB\u05DF \u05E9\u05E0\u05D3\u05E8\u05E9 \u05D7\u05D9\u05D1\u05D5\u05E8 \u05E8\u05E9\u05EA",
+      "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "\u05DE\u05E1\u05EA\u05D9\u05E8 \u05D0\u05EA \u05DE\u05E1\u05E4\u05E8\u05D9 \u05D4\u05EA\u05D2\u05D5\u05D1\u05D5\u05EA, \u05D4\u05E9\u05D9\u05EA\u05D5\u05E4\u05D9\u05DD, \u05D4\u05DC\u05D9\u05D9\u05E7\u05D9\u05DD \u05D5\u05D4\u05E6\u05E4\u05D9\u05D5\u05EA. \u05D4\u05E4\u05E7\u05D3\u05D9\u05DD \u05DE\u05DE\u05E9\u05D9\u05DB\u05D9\u05DD \u05DC\u05E4\u05E2\u05D5\u05DC \u05D5\u05E7\u05D5\u05E8\u05D0\u05D9 \u05DE\u05E1\u05DA \u05DE\u05DE\u05E9\u05D9\u05DB\u05D9\u05DD \u05DC\u05D4\u05E7\u05E8\u05D9\u05D0 \u05D0\u05EA \u05D4\u05E1\u05DB\u05D5\u05DE\u05D9\u05DD.",
       "Original quality is applied when download controls are enabled.": "\u05D4\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05E8\u05D9\u05EA \u05D7\u05DC\u05D4 \u05DB\u05D0\u05E9\u05E8 \u05E4\u05E7\u05D3\u05D9 \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05DE\u05D5\u05E4\u05E2\u05DC\u05D9\u05DD.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "\u05DE\u05D6\u05D4\u05D4 \u05E0\u05D9\u05D5\u05D5\u05D8 \u05D9\u05E6\u05D9\u05D1 \u05D0\u05D7\u05D3 \u05E9\u05DC X \u05D1\u05DB\u05DC \u05E9\u05D5\u05E8\u05D4: home, explore, notifications, messages, profile, more \u05D0\u05D5 premium.",
       "Save list": "\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05E8\u05E9\u05D9\u05DE\u05D4",
@@ -7446,592 +8209,6 @@ html.av-reduce-motion *::after {
 
   // src/platform/build-version.ts
   var AVIARY_VERSION = false ? "dev" : "1.21.0";
-
-  // src/platform/settings.ts
-  var SETTINGS_KEY = "aviary.settings.v1";
-  var SETTINGS_SCHEMA_VERSION = 1;
-  var SETTINGS_MIGRATIONS = {};
-  var THEME_IDS = ["off", "dim", "lightsOut", "graphite", "plum", "midnight", "noir"];
-  var RATE_LIMIT_MODES = ["conservative", "balanced"];
-  var REDUCE_MOTION_MODES = ["system", "always", "never"];
-  var FILTER_ACTIONS = ["off", "hide", "dim"];
-  var FILTER_SURFACES = [
-    "home",
-    "status",
-    "profile",
-    "search",
-    "notifications",
-    "messages"
-  ];
-  var MEDIA_LAYOUTS = ["default", "stacked", "grid"];
-  var FILTER_MEDIA_KEYS = ["photo", "video", "gif"];
-  var EXPORT_FORMATS = ["json", "csv", "html", "markdown", "xlsx"];
-  var BLOCKED_OBJECT_KEYS = /* @__PURE__ */ new Set(["__proto__", "prototype", "constructor"]);
-  var AI_PROVIDERS = [
-    "anthropic",
-    "openai",
-    "openai-compatible"
-  ];
-  var MASTODON_VISIBILITIES = [
-    "public",
-    "unlisted",
-    "private",
-    "direct"
-  ];
-  var DEFAULT_SETTINGS = {
-    schemaVersion: SETTINGS_SCHEMA_VERSION,
-    appearance: {
-      theme: "off",
-      denseMode: false,
-      timelineWidth: "default",
-      hideBorders: false,
-      hideCounts: false,
-      restoreChirp: false
-    },
-    layout: {
-      hideNavItems: [],
-      hideRightSidebar: false,
-      hideTrends: false,
-      hideFollowSuggestions: false,
-      hideHomeComposer: false,
-      hideThreadRecommendations: false,
-      hideGrok: false,
-      writerMode: false,
-      forceFollowing: false
-    },
-    filter: {
-      enabled: false,
-      keywordRules: [],
-      regexRules: [],
-      premiumRule: "off",
-      // "off" until something reads it. F032 needs an authenticated capture containing X's
-      // blocked-account markup before a predicate can be written; until then a default of "hide"
-      // is a filter the settings claim to apply and the engine never applies.
-      blockedAccounts: "off",
-      selfRepost: "off",
-      whitelist: [],
-      mediaTypes: { photo: false, video: false, gif: false },
-      surfaces: ["home", "status", "profile", "search"]
-    },
-    hidden: {
-      enabled: false,
-      // True, but gated by `enabled` above: turning the feature on should give you the button that
-      // operates it, not leave you hunting for a second switch.
-      buttons: true,
-      surfaces: ["home", "status", "profile", "search", "notifications"],
-      maxEntries: 5e3
-    },
-    media: {
-      buttons: true,
-      preferOriginalImages: true,
-      inlineOriginalImages: false,
-      filenameTemplate: "{handle}_{tweetId}_{index}",
-      downloadHistory: true,
-      zipChunkSize: 250,
-      layout: "default",
-      lastSaveFolder: ""
-    },
-    jobs: {
-      concurrentDownloads: 3,
-      rateLimitMode: "conservative"
-    },
-    export: {
-      enabled: false,
-      formats: ["json", "csv", "html"],
-      preserveRawPayloads: false,
-      autoDiscoverQueryIds: true,
-      captureMediaBytes: false
-    },
-    links: {
-      cleanShareButtons: false,
-      expandTco: false
-    },
-    performance: {
-      pauseOffscreenVideo: false,
-      // Off by default: it rewrites the playlist X's player fetches, so it changes how video is
-      // delivered rather than how it is displayed. New network-affecting capabilities opt in.
-      forceVideoQuality: false
-    },
-    composer: {
-      snippets: []
-    },
-    ai: {
-      commandMenu: false
-    },
-    privacy: {
-      localOnly: true,
-      telemetry: false,
-      // Ads are the one visible exception to Aviary's otherwise opt-in defaults. Native sponsored
-      // records share X's timeline response, so the safe default is to collapse those placements
-      // before paint and refuse only the separable promoted-content logging endpoint.
-      blockAds: true,
-      // On by default: it is the stronger protection, and it is what shipped. X began testing an
-      // ad-blocker warning in July 2026 that appears to key on refused requests, so this exists to
-      // be turned off without giving up ad hiding.
-      networkShield: true,
-      // Off by default. Aviary sends no telemetry of its own either way; this refuses X's, which
-      // is a change to how the site behaves and is the user's call to make, not a default.
-      blockAnalyticsBeacons: false,
-      auditLog: true
-    },
-    accessibility: {
-      reduceMotion: "system",
-      highContrast: false
-    },
-    i18n: {
-      locale: "en"
-    },
-    diagnostics: {
-      selectorHealth: true
-    },
-    integrations: {
-      aria2: { enabled: false, endpoint: "", secret: "", minBytes: 5e7 },
-      bluesky: { enabled: false, service: "https://bsky.social", handle: "", appPassword: "" },
-      mastodon: { enabled: false, instance: "", token: "", visibility: "public" },
-      ai: {
-        enabled: false,
-        provider: "anthropic",
-        endpoint: "",
-        apiKey: "",
-        model: "",
-        maxRequestBytes: 32e3,
-        dailyRequestBytes: 1e6
-      },
-      semanticSearch: {
-        enabled: false,
-        endpoint: "",
-        apiKey: "",
-        model: "",
-        autoIndex: false,
-        maxRecordBytes: 2e4,
-        dailyRecordBytes: 2e6
-      },
-      crosspost: { attachLastDownload: false }
-    }
-  };
-  function readSettingsEnvelope(input) {
-    const raw = asRecord(input);
-    const declared = typeof raw.schemaVersion === "number" && Number.isFinite(raw.schemaVersion) ? Math.floor(raw.schemaVersion) : null;
-    if (declared !== null && declared > SETTINGS_SCHEMA_VERSION) {
-      return { settings: normalizeSettings(raw), fromVersion: declared, fromFuture: true, applied: [] };
-    }
-    let working = { ...raw };
-    let version = declared ?? SETTINGS_SCHEMA_VERSION;
-    const applied = [];
-    while (version < SETTINGS_SCHEMA_VERSION) {
-      const step = SETTINGS_MIGRATIONS[version];
-      if (!step) {
-        break;
-      }
-      working = step(working);
-      applied.push(version);
-      version += 1;
-    }
-    return {
-      settings: normalizeSettings(working),
-      fromVersion: declared,
-      fromFuture: false,
-      applied
-    };
-  }
-  function normalizeSettings(input) {
-    const record = asRecord(input);
-    const appearance = asRecord(record.appearance);
-    const layout = asRecord(record.layout);
-    const filter = asRecord(record.filter);
-    const hidden = asRecord(record.hidden);
-    const media = asRecord(record.media);
-    const jobs = asRecord(record.jobs);
-    const exportSettings = asRecord(record.export);
-    const links = asRecord(record.links);
-    const performance = asRecord(record.performance);
-    const composer = asRecord(record.composer);
-    const ai = asRecord(record.ai);
-    const privacy = asRecord(record.privacy);
-    const accessibility = asRecord(record.accessibility);
-    const i18n = asRecord(record.i18n);
-    const diagnostics = asRecord(record.diagnostics);
-    const integrations = asRecord(record.integrations);
-    const integrationsAria = asRecord(integrations.aria2);
-    const integrationsBluesky = asRecord(integrations.bluesky);
-    const integrationsMastodon = asRecord(integrations.mastodon);
-    const integrationsAi = asRecord(integrations.ai);
-    const integrationsSemantic = asRecord(integrations.semanticSearch);
-    const integrationsCrosspost = asRecord(integrations.crosspost);
-    const anyIntegrationEnabled = [
-      integrationsAria,
-      integrationsBluesky,
-      integrationsMastodon,
-      integrationsAi,
-      integrationsSemantic
-    ].some((entry) => entry.enabled === true);
-    return {
-      // Always stamped with this build's version, so the next read knows what it is looking at.
-      schemaVersion: SETTINGS_SCHEMA_VERSION,
-      appearance: {
-        theme: enumValue(appearance.theme, THEME_IDS, DEFAULT_SETTINGS.appearance.theme),
-        denseMode: booleanValue(appearance.denseMode, DEFAULT_SETTINGS.appearance.denseMode),
-        timelineWidth: enumValue(
-          appearance.timelineWidth,
-          ["default", "comfortable", "wide"],
-          DEFAULT_SETTINGS.appearance.timelineWidth
-        ),
-        hideBorders: booleanValue(appearance.hideBorders, DEFAULT_SETTINGS.appearance.hideBorders),
-        hideCounts: booleanValue(appearance.hideCounts, DEFAULT_SETTINGS.appearance.hideCounts),
-        restoreChirp: booleanValue(appearance.restoreChirp, DEFAULT_SETTINGS.appearance.restoreChirp)
-      },
-      layout: {
-        hideNavItems: stringArray(layout.hideNavItems, { maxItems: 24, maxLength: 48 }),
-        hideRightSidebar: booleanValue(layout.hideRightSidebar, DEFAULT_SETTINGS.layout.hideRightSidebar),
-        hideTrends: booleanValue(layout.hideTrends, DEFAULT_SETTINGS.layout.hideTrends),
-        hideFollowSuggestions: booleanValue(
-          layout.hideFollowSuggestions,
-          DEFAULT_SETTINGS.layout.hideFollowSuggestions
-        ),
-        hideHomeComposer: booleanValue(layout.hideHomeComposer, DEFAULT_SETTINGS.layout.hideHomeComposer),
-        hideThreadRecommendations: booleanValue(
-          layout.hideThreadRecommendations,
-          DEFAULT_SETTINGS.layout.hideThreadRecommendations
-        ),
-        hideGrok: booleanValue(layout.hideGrok, DEFAULT_SETTINGS.layout.hideGrok),
-        writerMode: booleanValue(layout.writerMode, DEFAULT_SETTINGS.layout.writerMode),
-        forceFollowing: booleanValue(layout.forceFollowing, DEFAULT_SETTINGS.layout.forceFollowing)
-      },
-      filter: {
-        enabled: booleanValue(filter.enabled, DEFAULT_SETTINGS.filter.enabled),
-        keywordRules: stringArray(filter.keywordRules, { maxItems: 200, maxLength: 180 }),
-        regexRules: stringArray(filter.regexRules, { maxItems: 100, maxLength: 240 }),
-        premiumRule: enumValue(filter.premiumRule, FILTER_ACTIONS, DEFAULT_SETTINGS.filter.premiumRule),
-        blockedAccounts: enumValue(
-          filter.blockedAccounts,
-          FILTER_ACTIONS,
-          DEFAULT_SETTINGS.filter.blockedAccounts
-        ),
-        selfRepost: enumValue(filter.selfRepost, FILTER_ACTIONS, DEFAULT_SETTINGS.filter.selfRepost),
-        whitelist: stringArray(filter.whitelist, { maxItems: 200, maxLength: 80 }),
-        mediaTypes: mediaTypeRecord(filter.mediaTypes),
-        surfaces: surfaceArray(filter.surfaces)
-      },
-      hidden: {
-        enabled: booleanValue(hidden.enabled, DEFAULT_SETTINGS.hidden.enabled),
-        buttons: booleanValue(hidden.buttons, DEFAULT_SETTINGS.hidden.buttons),
-        surfaces: surfaceArray(hidden.surfaces, DEFAULT_SETTINGS.hidden.surfaces),
-        maxEntries: integerValue(hidden.maxEntries, DEFAULT_SETTINGS.hidden.maxEntries, 100, 5e4)
-      },
-      media: {
-        buttons: booleanValue(media.buttons, DEFAULT_SETTINGS.media.buttons),
-        preferOriginalImages: booleanValue(media.preferOriginalImages, DEFAULT_SETTINGS.media.preferOriginalImages),
-        inlineOriginalImages: booleanValue(media.inlineOriginalImages, DEFAULT_SETTINGS.media.inlineOriginalImages),
-        filenameTemplate: stringValue(media.filenameTemplate, DEFAULT_SETTINGS.media.filenameTemplate, 160),
-        downloadHistory: booleanValue(media.downloadHistory, DEFAULT_SETTINGS.media.downloadHistory),
-        zipChunkSize: integerValue(media.zipChunkSize, DEFAULT_SETTINGS.media.zipChunkSize, 25, 1e3),
-        layout: enumValue(media.layout, MEDIA_LAYOUTS, DEFAULT_SETTINGS.media.layout),
-        lastSaveFolder: folderHintValue(media.lastSaveFolder, DEFAULT_SETTINGS.media.lastSaveFolder)
-      },
-      jobs: {
-        concurrentDownloads: integerValue(
-          jobs.concurrentDownloads,
-          DEFAULT_SETTINGS.jobs.concurrentDownloads,
-          1,
-          6
-        ),
-        rateLimitMode: enumValue(jobs.rateLimitMode, RATE_LIMIT_MODES, DEFAULT_SETTINGS.jobs.rateLimitMode)
-      },
-      export: {
-        enabled: booleanValue(exportSettings.enabled, DEFAULT_SETTINGS.export.enabled),
-        formats: exportFormatArray(exportSettings.formats),
-        preserveRawPayloads: booleanValue(
-          exportSettings.preserveRawPayloads,
-          DEFAULT_SETTINGS.export.preserveRawPayloads
-        ),
-        autoDiscoverQueryIds: booleanValue(
-          exportSettings.autoDiscoverQueryIds,
-          DEFAULT_SETTINGS.export.autoDiscoverQueryIds
-        ),
-        captureMediaBytes: booleanValue(
-          exportSettings.captureMediaBytes,
-          DEFAULT_SETTINGS.export.captureMediaBytes
-        )
-      },
-      links: {
-        cleanShareButtons: booleanValue(links.cleanShareButtons, DEFAULT_SETTINGS.links.cleanShareButtons),
-        expandTco: booleanValue(links.expandTco, DEFAULT_SETTINGS.links.expandTco)
-      },
-      performance: {
-        pauseOffscreenVideo: booleanValue(
-          performance.pauseOffscreenVideo,
-          DEFAULT_SETTINGS.performance.pauseOffscreenVideo
-        ),
-        forceVideoQuality: booleanValue(
-          performance.forceVideoQuality,
-          DEFAULT_SETTINGS.performance.forceVideoQuality
-        )
-      },
-      composer: {
-        snippets: stringArray(composer.snippets, { maxItems: 100, maxLength: 500 })
-      },
-      ai: {
-        commandMenu: booleanValue(ai.commandMenu, DEFAULT_SETTINGS.ai.commandMenu)
-      },
-      privacy: {
-        localOnly: anyIntegrationEnabled ? false : booleanValue(privacy.localOnly, DEFAULT_SETTINGS.privacy.localOnly),
-        telemetry: false,
-        blockAds: booleanValue(privacy.blockAds, DEFAULT_SETTINGS.privacy.blockAds),
-        networkShield: booleanValue(privacy.networkShield, DEFAULT_SETTINGS.privacy.networkShield),
-        blockAnalyticsBeacons: booleanValue(
-          privacy.blockAnalyticsBeacons,
-          DEFAULT_SETTINGS.privacy.blockAnalyticsBeacons
-        ),
-        auditLog: booleanValue(privacy.auditLog, DEFAULT_SETTINGS.privacy.auditLog)
-      },
-      accessibility: {
-        reduceMotion: enumValue(
-          accessibility.reduceMotion,
-          REDUCE_MOTION_MODES,
-          DEFAULT_SETTINGS.accessibility.reduceMotion
-        ),
-        highContrast: booleanValue(accessibility.highContrast, DEFAULT_SETTINGS.accessibility.highContrast)
-      },
-      i18n: {
-        locale: localeValue(i18n.locale, DEFAULT_SETTINGS.i18n.locale)
-      },
-      diagnostics: {
-        selectorHealth: booleanValue(diagnostics.selectorHealth, DEFAULT_SETTINGS.diagnostics.selectorHealth)
-      },
-      integrations: {
-        aria2: {
-          enabled: booleanValue(integrationsAria.enabled, DEFAULT_SETTINGS.integrations.aria2.enabled),
-          endpoint: urlValue(integrationsAria.endpoint, DEFAULT_SETTINGS.integrations.aria2.endpoint),
-          secret: secretValue(integrationsAria.secret, DEFAULT_SETTINGS.integrations.aria2.secret),
-          minBytes: integerValue(
-            integrationsAria.minBytes,
-            DEFAULT_SETTINGS.integrations.aria2.minBytes,
-            1e6,
-            5e9
-          )
-        },
-        bluesky: {
-          enabled: booleanValue(integrationsBluesky.enabled, DEFAULT_SETTINGS.integrations.bluesky.enabled),
-          service: urlValue(integrationsBluesky.service, DEFAULT_SETTINGS.integrations.bluesky.service),
-          handle: handleOrEmpty(integrationsBluesky.handle),
-          appPassword: secretValue(
-            integrationsBluesky.appPassword,
-            DEFAULT_SETTINGS.integrations.bluesky.appPassword
-          )
-        },
-        mastodon: {
-          enabled: booleanValue(
-            integrationsMastodon.enabled,
-            DEFAULT_SETTINGS.integrations.mastodon.enabled
-          ),
-          instance: urlValue(
-            integrationsMastodon.instance,
-            DEFAULT_SETTINGS.integrations.mastodon.instance
-          ),
-          token: secretValue(integrationsMastodon.token, DEFAULT_SETTINGS.integrations.mastodon.token),
-          visibility: enumValue(
-            integrationsMastodon.visibility,
-            MASTODON_VISIBILITIES,
-            DEFAULT_SETTINGS.integrations.mastodon.visibility
-          )
-        },
-        ai: {
-          enabled: booleanValue(integrationsAi.enabled, DEFAULT_SETTINGS.integrations.ai.enabled),
-          provider: enumValue(integrationsAi.provider, AI_PROVIDERS, DEFAULT_SETTINGS.integrations.ai.provider),
-          endpoint: urlValue(integrationsAi.endpoint, DEFAULT_SETTINGS.integrations.ai.endpoint),
-          apiKey: secretValue(integrationsAi.apiKey, DEFAULT_SETTINGS.integrations.ai.apiKey),
-          model: stringValue(integrationsAi.model, DEFAULT_SETTINGS.integrations.ai.model, 120),
-          maxRequestBytes: integerValue(
-            integrationsAi.maxRequestBytes,
-            DEFAULT_SETTINGS.integrations.ai.maxRequestBytes,
-            0,
-            5e6
-          ),
-          dailyRequestBytes: integerValue(
-            integrationsAi.dailyRequestBytes,
-            DEFAULT_SETTINGS.integrations.ai.dailyRequestBytes,
-            0,
-            1e8
-          )
-        },
-        semanticSearch: {
-          enabled: booleanValue(
-            integrationsSemantic.enabled,
-            DEFAULT_SETTINGS.integrations.semanticSearch.enabled
-          ),
-          endpoint: urlValue(
-            integrationsSemantic.endpoint,
-            DEFAULT_SETTINGS.integrations.semanticSearch.endpoint
-          ),
-          apiKey: secretValue(
-            integrationsSemantic.apiKey,
-            DEFAULT_SETTINGS.integrations.semanticSearch.apiKey
-          ),
-          model: stringValue(integrationsSemantic.model, DEFAULT_SETTINGS.integrations.semanticSearch.model, 120),
-          autoIndex: booleanValue(
-            integrationsSemantic.autoIndex,
-            DEFAULT_SETTINGS.integrations.semanticSearch.autoIndex
-          ),
-          maxRecordBytes: integerValue(
-            integrationsSemantic.maxRecordBytes,
-            DEFAULT_SETTINGS.integrations.semanticSearch.maxRecordBytes,
-            0,
-            5e6
-          ),
-          dailyRecordBytes: integerValue(
-            integrationsSemantic.dailyRecordBytes,
-            DEFAULT_SETTINGS.integrations.semanticSearch.dailyRecordBytes,
-            0,
-            1e8
-          )
-        },
-        crosspost: {
-          attachLastDownload: booleanValue(
-            integrationsCrosspost.attachLastDownload,
-            DEFAULT_SETTINGS.integrations.crosspost.attachLastDownload
-          )
-        }
-      }
-    };
-  }
-  function cloneSettings(settings) {
-    return JSON.parse(JSON.stringify(settings));
-  }
-  function isThemeId(value) {
-    return THEME_IDS.includes(value);
-  }
-  function asRecord(value) {
-    return isRecord(value) ? value : {};
-  }
-  function isRecord(value) {
-    return typeof value === "object" && value !== null && !Array.isArray(value);
-  }
-  function booleanValue(value, fallback) {
-    return typeof value === "boolean" ? value : fallback;
-  }
-  function stringValue(value, fallback, maxLength = 500) {
-    if (typeof value !== "string") {
-      return fallback;
-    }
-    const normalized = value.replace(/[\u0000-\u001f\u007f]/g, "").trim();
-    return normalized.length > 0 ? normalized.slice(0, maxLength) : fallback;
-  }
-  function enumValue(value, allowed, fallback) {
-    return typeof value === "string" && allowed.includes(value) ? value : fallback;
-  }
-  function stringArray(value, options = {}) {
-    if (!Array.isArray(value)) {
-      return [];
-    }
-    const maxItems = options.maxItems ?? 100;
-    const maxLength = options.maxLength ?? 180;
-    const seen = /* @__PURE__ */ new Set();
-    const result = [];
-    for (const item of value) {
-      if (typeof item !== "string") {
-        continue;
-      }
-      const normalized = item.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, maxLength);
-      if (normalized.length === 0 || seen.has(normalized)) {
-        continue;
-      }
-      seen.add(normalized);
-      result.push(normalized);
-      if (result.length >= maxItems) {
-        break;
-      }
-    }
-    return result;
-  }
-  function booleanRecord(value) {
-    if (!isRecord(value)) {
-      return {};
-    }
-    const result = {};
-    for (const [key, enabled] of Object.entries(value)) {
-      if (!BLOCKED_OBJECT_KEYS.has(key) && /^[a-z0-9_-]{1,40}$/i.test(key) && typeof enabled === "boolean") {
-        result[key] = enabled;
-      }
-    }
-    return result;
-  }
-  function mediaTypeRecord(value) {
-    const record = booleanRecord(value);
-    const result = {};
-    for (const key of FILTER_MEDIA_KEYS) {
-      result[key] = record[key] ?? DEFAULT_SETTINGS.filter.mediaTypes[key] ?? false;
-    }
-    for (const [key, enabled] of Object.entries(record)) {
-      if (!(key in result)) {
-        result[key] = enabled;
-      }
-    }
-    return result;
-  }
-  function surfaceArray(value, fallback = DEFAULT_SETTINGS.filter.surfaces) {
-    if (!Array.isArray(value)) {
-      return [...fallback];
-    }
-    const seen = /* @__PURE__ */ new Set();
-    for (const item of value) {
-      if (typeof item === "string" && FILTER_SURFACES.includes(item)) {
-        seen.add(item);
-      }
-    }
-    return seen.size > 0 ? [...seen] : [...fallback];
-  }
-  function integerValue(value, fallback, min, max) {
-    if (typeof value !== "number" || !Number.isFinite(value)) {
-      return fallback;
-    }
-    return Math.max(min, Math.min(max, Math.trunc(value)));
-  }
-  function exportFormatArray(value) {
-    if (!Array.isArray(value)) {
-      return [...DEFAULT_SETTINGS.export.formats];
-    }
-    const formats = value.filter((item) => {
-      return typeof item === "string" && EXPORT_FORMATS.includes(item);
-    });
-    return formats.length > 0 ? [...new Set(formats)] : [...DEFAULT_SETTINGS.export.formats];
-  }
-  function urlValue(value, fallback) {
-    if (typeof value !== "string") return fallback;
-    const trimmed = value.trim();
-    if (trimmed.length === 0) return fallback === "" ? "" : fallback;
-    try {
-      const parsed = new URL(trimmed);
-      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return fallback;
-      return parsed.toString().replace(/\/$/, "");
-    } catch {
-      return fallback;
-    }
-  }
-  function secretValue(value, fallback) {
-    if (typeof value !== "string") return fallback;
-    const cleaned = value.replace(/[\u0000-\u001f\u007f]/g, "").trim();
-    return cleaned.length === 0 ? fallback : cleaned.slice(0, 4096);
-  }
-  function handleOrEmpty(value) {
-    if (typeof value !== "string") return "";
-    const cleaned = value.replace(/^@/, "").trim();
-    if (cleaned.length === 0) return "";
-    return /^[A-Za-z0-9._-]{1,253}$/.test(cleaned) ? cleaned : "";
-  }
-  function folderHintValue(value, fallback) {
-    if (typeof value !== "string") {
-      return fallback;
-    }
-    const cleaned = value.replace(/[<>:"|?*\u0000-\u001f]/g, "").trim().slice(0, 120);
-    return cleaned;
-  }
-  function localeValue(value, fallback) {
-    if (typeof value !== "string") {
-      return fallback;
-    }
-    const normalized = value.trim();
-    return /^[a-z]{2,3}(-[A-Za-z0-9]{2,8}){0,2}$/.test(normalized) ? normalized : fallback;
-  }
 
   // src/ui/control-center/constants.ts
   var MEDIA_LAYOUT_OPTIONS = [
@@ -10281,11 +10458,68 @@ html.av-reduce-motion *::after {
       ),
       ctx.toggleRow(
         "Hide engagement counts",
-        "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.",
+        "Master switch for the four numbers below. The controls still work and screen readers still announce the totals.",
         ctx.options.settings.appearance.hideCounts,
         async (checked) => {
           ctx.options.settings.appearance.hideCounts = checked;
           await ctx.save(checked ? "Engagement counts hidden" : "Engagement counts shown");
+        }
+      ),
+      ctx.toggleRow(
+        "Hide reply counts",
+        "Applies while Hide engagement counts is on.",
+        ctx.options.settings.appearance.countMetrics.replies,
+        async (checked) => {
+          ctx.options.settings.appearance.countMetrics = {
+            ...ctx.options.settings.appearance.countMetrics,
+            replies: checked
+          };
+          await ctx.save("Count preference saved");
+        }
+      ),
+      ctx.toggleRow(
+        "Hide repost counts",
+        "Applies while Hide engagement counts is on.",
+        ctx.options.settings.appearance.countMetrics.reposts,
+        async (checked) => {
+          ctx.options.settings.appearance.countMetrics = {
+            ...ctx.options.settings.appearance.countMetrics,
+            reposts: checked
+          };
+          await ctx.save("Count preference saved");
+        }
+      ),
+      ctx.toggleRow(
+        "Hide like counts",
+        "Applies while Hide engagement counts is on.",
+        ctx.options.settings.appearance.countMetrics.likes,
+        async (checked) => {
+          ctx.options.settings.appearance.countMetrics = {
+            ...ctx.options.settings.appearance.countMetrics,
+            likes: checked
+          };
+          await ctx.save("Count preference saved");
+        }
+      ),
+      ctx.toggleRow(
+        "Hide view counts",
+        "Applies while Hide engagement counts is on. The view total lives in an analytics link, not an action button.",
+        ctx.options.settings.appearance.countMetrics.views,
+        async (checked) => {
+          ctx.options.settings.appearance.countMetrics = {
+            ...ctx.options.settings.appearance.countMetrics,
+            views: checked
+          };
+          await ctx.save("Count preference saved");
+        }
+      ),
+      ctx.toggleRow(
+        "Hide the tab title badge",
+        "Remove X's unread count from the browser tab title, so a hidden notification badge is not restored by the tab.",
+        ctx.options.settings.appearance.hideTitleBadge,
+        async (checked) => {
+          ctx.options.settings.appearance.hideTitleBadge = checked;
+          await ctx.save(checked ? "Tab title badge hidden" : "Tab title badge shown");
         }
       ),
       ctx.toggleRow(
@@ -28421,7 +28655,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         onAdded(batch, root);
       }
     };
-    const observer = new MutationObserver((mutations) => {
+    const observer2 = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         for (const node of Array.from(mutation.addedNodes)) {
           if (!(node instanceof Element)) {
@@ -28442,13 +28676,13 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         timer = setTimeout(flush, FLUSH_DELAY_MS);
       }
     });
-    observer.observe(root, {
+    observer2.observe(root, {
       childList: true,
       subtree: true
     });
     return () => {
       stopped = true;
-      observer.disconnect();
+      observer2.disconnect();
       if (timer !== void 0) {
         clearTimeout(timer);
         timer = void 0;
@@ -29288,6 +29522,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     );
     await auditLog.load();
     registry.register(themeFeature);
+    registry.register(titleBadgeFeature);
     registry.register(i18nFeature);
     registry.register(adProtectionFeature);
     registry.register(selectorHealthFeature);
@@ -29360,8 +29595,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         context,
         registry,
         async destroy() {
-          for (const stop of stops.reverse()) {
-            stop();
+          for (const stop2 of stops.reverse()) {
+            stop2();
           }
           await registry.destroyAll(context);
           pageBridge.destroy();
@@ -29375,8 +29610,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       diagnostics.error("Aviary boot failed", errorDetails7(error));
       document.documentElement.dataset.avReady = "error";
       showBootFailureNotice(error instanceof Error ? error.message : String(error));
-      for (const stop of stops.reverse()) {
-        stop();
+      for (const stop2 of stops.reverse()) {
+        stop2();
       }
       await registry.destroyAll(context);
       pageBridge.destroy();
