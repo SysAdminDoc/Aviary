@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.24.0`
+Version: `1.25.0`
 
 Actionable work only. Historical and completed roadmap material is archived in CHANGELOG.md; blocked work is kept in Roadmap_Blocked.md.
 
@@ -46,7 +46,7 @@ Actionable work only. Historical and completed roadmap material is archived in C
 ### P2 — features
 
 - [ ] F144 — P2 — Say why a post was filtered
-  Why: a filter that hides silently is indistinguishable from a bug, and the v1.24.0 rule DSL already knows which condition matched. It is the single best trust affordance a filter engine can add, and the same request is open against the closest architectural twin.
+  Why: a filter that hides silently is indistinguishable from a bug, and the v1.25.0 rule DSL already knows which condition matched. It is the single best trust affordance a filter engine can add, and the same request is open against the closest architectural twin.
   Evidence: XKit-Rewritten#1664 (👍4). Corrected 2026-08-15 (second pass): `FilterDecision` is a bare `"show" | "hide" | "dim"` union (`src/features/filtering/predicates.ts:16`) and `evaluateRules` (`rules.ts:185`) returns it directly — the deciding rule is NOT currently exposed. First step is widening the decision to carry its source (rule line / predicate name) without breaking `decide()`'s callers.
   Touches: `src/features/filtering/rules.ts`, `filter-engine.ts`, `hidden-posts-feature.ts`, the dim/hide affordance, Filtering panel.
   Acceptance: a hidden or dimmed post names the rule or predicate that caught it, in text, on hover or reveal; the reason is derived from the decision rather than recomputed; nothing is stored per post.
@@ -68,7 +68,7 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Complexity: L
 
 - [ ] F148 — P2 — Catch-up digest over the seen-post store
-  Why: v1.24.0 shipped the hard half — a bounded record of which posts have already gone past — and the best reading-mode idea in the adjacent field is what sits on top of it: a time-bounded digest of what is new, grouped by author.
+  Why: v1.25.0 shipped the hard half — a bounded record of which posts have already gone past — and the best reading-mode idea in the adjacent field is what sits on top of it: a time-bounded digest of what is new, grouped by author.
   Evidence: `src/features/filtering/seen-posts.ts`; cheeaun/phanpy Catch-up (★1478).
   Touches: `src/features/filtering/seen-posts.ts`, a new reading surface, Layout settings.
   Acceptance: a digest built only from the local seen record and already-rendered posts — zero originated requests — groups unseen posts by author over a chosen window, respects active filters, and shows filter reasons from F144 where a post was suppressed.

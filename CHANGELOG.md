@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.25.0 - 2026-08-15
+
 ### Fixed
 
 - An archive entry that is plain JSON rather than X's `window.YTD.… =` form is no longer mangled.
