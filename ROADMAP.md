@@ -29,13 +29,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ### P1 — trust, reliability, and measured defects
 
-- [ ] F135 — P1 — Bind the documentation gate to the settings surface
-  Why: README.md and docs/FAQ.md contain zero mentions of focus mode, seen-post dimming, account colours, or the tab icon — every v1.23.0 feature — and README's "the latest batch adds …" sentence still describes the v1.18-era batch while the surrounding paragraph claims v1.23.0. The gate only checks version strings, so a version bump passes while the prose rots.
-  Evidence: `tests/docs-consistency.test.mjs:19-23`; README.md commit b9fec4f (2026-08-09); zero-match grep of both docs against the v1.22/v1.23 feature names. Tracked `PROJECT_STATE.md` is the same failure in older form — 320 lines stamped "Updated: 2026-05-19", enumerating completed v1.4.0 batch work that CHANGELOG.md already owns.
-  Touches: `tests/docs-consistency.test.mjs`, README.md, docs/FAQ.md, PROJECT_STATE.md.
-  Acceptance: the test enumerates user-visible settings (or Control Center row labels) and fails when one is absent from README or FAQ; both documents are brought current in the same commit; the "latest batch" sentence is derived from or checked against CHANGELOG's newest heading; PROJECT_STATE.md is either deleted in favour of CHANGELOG or reduced to something the gate can keep honest.
-  Complexity: M
-
 - [ ] F136 — P1 — Watch every selector a feature depends on, and show the user
   Why: selector health watches 10 surfaces while features reference 56 distinct `data-testid` selectors, so a rename in any of the ~46 unwatched ones silently disables its owning feature. It is also the most-requested thing in a rival's backlog: a way for the user to check whether the tool still works.
   Evidence: `src/platform/selectors.ts` SURFACE_SELECTORS (10 entries) vs 56 distinct testids across `src/features` and `src/ui`; TwitterMediaHarvest#54.

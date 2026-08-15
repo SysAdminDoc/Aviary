@@ -328,11 +328,12 @@ The Integrations panel also surfaces a "Recent integration errors" readout that 
 
 ## Roadmap
 
-The working plan is in [ROADMAP.md](ROADMAP.md). v1.23.0 is the current release; the latest batch
-adds page-level transactional settings, privacy-safe ad-contract drift diagnostics, extension-level
-promoted-logger blocking, and a 60-image desktop settings regression contract.
-F032/F033 remain blocked
-until privacy-safe authenticated fixtures containing those exact states are available.
+The working plan is in [ROADMAP.md](ROADMAP.md), and what each release actually changed is in
+[CHANGELOG.md](CHANGELOG.md) — this section deliberately does not restate it, because a
+hand-maintained summary of "the latest batch" is exactly what went three releases stale.
+Work that needs a capture or an operator decision before it can be built is tracked in
+Roadmap_Blocked.md, including F032/F033, which wait on privacy-safe authenticated fixtures
+containing those exact states.
 
 `npm run smoke` runs the current-X compatibility and side-effect-free externally gated-action
 lanes, plus packaged-extension request-rule probes in Chromium and Mozilla Firefox. The DNR probes

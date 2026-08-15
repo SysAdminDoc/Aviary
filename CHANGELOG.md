@@ -18,6 +18,16 @@
 
 ### Fixed
 
+- The documentation gate now checks what the panel actually offers, not just version strings.
+  README and docs/FAQ.md had reached v1.23.0 without mentioning a single feature added in v1.22.0
+  or v1.23.0 — focus mode, seen-post dimming, account colours, the tab icon — because the only
+  assertion was that two files carried the current version number. The FAQ now ends with a
+  generated reference to all 71 controls across the Control Center's 12 pages, and the suite fails
+  when a control is added or renamed without regenerating it (`npm run docs:settings`).
+- README's Roadmap section no longer restates what the latest release added. That summary had been
+  describing the v1.18 batch for three releases while claiming to be current; it now points at the
+  changelog, which cannot drift from itself. `PROJECT_STATE.md` is gone for the same reason — 320
+  lines stamped "Updated: 2026-05-19", enumerating completed work the changelog already owns.
 - The userscript's update URLs now name the repository this project actually lives in. It was
   renamed to `SysAdminDoc/Aviary`, and `package.json` still declared the old path that
   `@updateURL`/`@downloadURL` are derived from. `github.com` follows a rename;
