@@ -39,7 +39,73 @@ const FLAG_UTF8_NAMES = 0x0800;
 const MAX_UINT16 = 0xffff;
 const MAX_UINT32 = 0xffffffff;
 
+const METHOD_STORE = 0;
+const METHOD_DEFLATE = 8;
+
+/**
+ * The reader has inflated `deflate-raw` since archive import shipped; the writer never deflated,
+ * so every export left the browser several times larger than it needed to be. `CompressionStream`
+ * is Baseline (Chrome 103 / Firefox 113 / Safari 16.4) and needs no dependency, which is the whole
+ * reason this project could not justify a DEFLATE implementation before.
+ */
+async function deflateRaw(data: Uint8Array): Promise<Uint8Array | null> {
+  const Compression = (globalThis as { CompressionStream?: typeof CompressionStream }).CompressionStream;
+  if (typeof Compression !== "function") {
+    return null;
+  }
+  try {
+    const stream = new Blob([data as BlobPart]).stream().pipeThrough(new Compression("deflate-raw"));
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    const reader = stream.getReader();
+    for (;;) {
+      const next = await reader.read();
+      if (next.done) break;
+      const chunk = next.value as Uint8Array;
+      chunks.push(chunk);
+      total += chunk.length;
+    }
+    const output = new Uint8Array(total);
+    let at = 0;
+    for (const chunk of chunks) {
+      output.set(chunk, at);
+      at += chunk.length;
+    }
+    return output;
+  } catch {
+    // A compression failure must never cost the user their export; STORE still produces a valid zip.
+    return null;
+  }
+}
+
+/**
+ * Builds a zip, deflating each entry that gets smaller for it. Already-compressed payloads — the
+ * captured JPEGs and MP4s that dominate a media export — usually grow under DEFLATE, so each entry
+ * keeps whichever form is smaller and records the matching method. Async because
+ * `CompressionStream` is; `buildStoreZip` stays for the synchronous callers.
+ */
+export async function buildZip(entries: ZipFileEntry[]): Promise<Uint8Array> {
+  const compressed: ZipFileEntry[] = [];
+  const methods: number[] = [];
+  for (const entry of entries) {
+    const deflated = entry.data.length > 0 ? await deflateRaw(entry.data) : null;
+    if (deflated && deflated.length < entry.data.length) {
+      compressed.push({ ...entry, data: deflated });
+      methods.push(METHOD_DEFLATE);
+    } else {
+      compressed.push(entry);
+      methods.push(METHOD_STORE);
+    }
+  }
+  // The CRC and the uncompressed size must describe the original bytes, not the deflated ones.
+  return writeZip(compressed, methods, entries.map((entry) => entry.data));
+}
+
 export function buildStoreZip(entries: ZipFileEntry[]): Uint8Array {
+  return writeZip(entries, entries.map(() => METHOD_STORE), entries.map((entry) => entry.data));
+}
+
+function writeZip(entries: ZipFileEntry[], methods: number[], originals: Uint8Array[]): Uint8Array {
   const encoder = new TextEncoder();
   const localBlocks: Uint8Array[] = [];
   const centralBlocks: Uint8Array[] = [];
@@ -50,22 +116,25 @@ export function buildStoreZip(entries: ZipFileEntry[]): Uint8Array {
   // caller (an export run) can surface the message.
   if (entries.length > MAX_UINT16) {
     throw new RangeError(
-      `A STORE zip holds at most ${MAX_UINT16} entries without ZIP64; got ${entries.length}.`
+      `A zip holds at most ${MAX_UINT16} entries without ZIP64; got ${entries.length}.`
     );
   }
 
-  for (const entry of entries) {
-    if (entry.data.length > MAX_UINT32) {
+  for (const [index, entry] of entries.entries()) {
+    const method = methods[index] ?? METHOD_STORE;
+    const original = originals[index] ?? entry.data;
+    if (original.length > MAX_UINT32) {
       throw new RangeError(
-        `"${entry.filename}" is ${entry.data.length} bytes; a STORE zip entry cannot exceed ${MAX_UINT32} without ZIP64.`
+        `"${entry.filename}" is ${entry.data.length} bytes; a zip entry cannot exceed ${MAX_UINT32} without ZIP64.`
       );
     }
     const nameBytes = encoder.encode(entry.filename);
     if (nameBytes.length > MAX_UINT16) {
       throw new RangeError(`"${entry.filename}" has a name longer than ${MAX_UINT16} bytes.`);
     }
-    const crc = crc32(entry.data);
-    const size = entry.data.length;
+    const crc = crc32(original);
+    const size = original.length;
+    const stored = entry.data.length;
     const date = entry.date ?? new Date();
     const dosDate = toDosDate(date);
     const dosTime = toDosTime(date);
@@ -75,12 +144,12 @@ export function buildStoreZip(entries: ZipFileEntry[]): Uint8Array {
     lhView.setUint32(0, 0x04034b50, true);
     lhView.setUint16(4, 20, true); // version
     lhView.setUint16(6, FLAG_UTF8_NAMES, true); // flags
-    lhView.setUint16(8, 0, true); // method = STORE
+    lhView.setUint16(8, method, true);
     lhView.setUint16(10, dosTime, true);
     lhView.setUint16(12, dosDate, true);
     lhView.setUint32(14, crc, true);
-    lhView.setUint32(18, size, true);
-    lhView.setUint32(22, size, true);
+    lhView.setUint32(18, stored, true); // compressed size
+    lhView.setUint32(22, size, true); // uncompressed size
     lhView.setUint16(26, nameBytes.length, true);
     lhView.setUint16(28, 0, true);
     const localHeaderBytes = new Uint8Array(localHeader);
@@ -94,12 +163,12 @@ export function buildStoreZip(entries: ZipFileEntry[]): Uint8Array {
     chView.setUint16(4, 20, true); // version made by
     chView.setUint16(6, 20, true); // version needed
     chView.setUint16(8, FLAG_UTF8_NAMES, true); // flags
-    chView.setUint16(10, 0, true); // STORE
+    chView.setUint16(10, method, true);
     chView.setUint16(12, dosTime, true);
     chView.setUint16(14, dosDate, true);
     chView.setUint32(16, crc, true);
-    chView.setUint32(20, size, true);
-    chView.setUint32(24, size, true);
+    chView.setUint32(20, stored, true); // compressed size
+    chView.setUint32(24, size, true); // uncompressed size
     chView.setUint16(28, nameBytes.length, true);
     chView.setUint16(30, 0, true);
     chView.setUint16(32, 0, true);

@@ -17636,28 +17636,79 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   var FLAG_UTF8_NAMES = 2048;
   var MAX_UINT16 = 65535;
   var MAX_UINT32 = 4294967295;
+  var METHOD_STORE = 0;
+  var METHOD_DEFLATE = 8;
+  async function deflateRaw(data) {
+    const Compression = globalThis.CompressionStream;
+    if (typeof Compression !== "function") {
+      return null;
+    }
+    try {
+      const stream = new Blob([data]).stream().pipeThrough(new Compression("deflate-raw"));
+      const chunks = [];
+      let total = 0;
+      const reader = stream.getReader();
+      for (; ; ) {
+        const next = await reader.read();
+        if (next.done) break;
+        const chunk = next.value;
+        chunks.push(chunk);
+        total += chunk.length;
+      }
+      const output = new Uint8Array(total);
+      let at = 0;
+      for (const chunk of chunks) {
+        output.set(chunk, at);
+        at += chunk.length;
+      }
+      return output;
+    } catch {
+      return null;
+    }
+  }
+  async function buildZip(entries) {
+    const compressed = [];
+    const methods = [];
+    for (const entry of entries) {
+      const deflated = entry.data.length > 0 ? await deflateRaw(entry.data) : null;
+      if (deflated && deflated.length < entry.data.length) {
+        compressed.push({ ...entry, data: deflated });
+        methods.push(METHOD_DEFLATE);
+      } else {
+        compressed.push(entry);
+        methods.push(METHOD_STORE);
+      }
+    }
+    return writeZip(compressed, methods, entries.map((entry) => entry.data));
+  }
   function buildStoreZip(entries) {
+    return writeZip(entries, entries.map(() => METHOD_STORE), entries.map((entry) => entry.data));
+  }
+  function writeZip(entries, methods, originals) {
     const encoder = new TextEncoder();
     const localBlocks = [];
     const centralBlocks = [];
     let offset = 0;
     if (entries.length > MAX_UINT16) {
       throw new RangeError(
-        `A STORE zip holds at most ${MAX_UINT16} entries without ZIP64; got ${entries.length}.`
+        `A zip holds at most ${MAX_UINT16} entries without ZIP64; got ${entries.length}.`
       );
     }
-    for (const entry of entries) {
-      if (entry.data.length > MAX_UINT32) {
+    for (const [index, entry] of entries.entries()) {
+      const method = methods[index] ?? METHOD_STORE;
+      const original = originals[index] ?? entry.data;
+      if (original.length > MAX_UINT32) {
         throw new RangeError(
-          `"${entry.filename}" is ${entry.data.length} bytes; a STORE zip entry cannot exceed ${MAX_UINT32} without ZIP64.`
+          `"${entry.filename}" is ${entry.data.length} bytes; a zip entry cannot exceed ${MAX_UINT32} without ZIP64.`
         );
       }
       const nameBytes = encoder.encode(entry.filename);
       if (nameBytes.length > MAX_UINT16) {
         throw new RangeError(`"${entry.filename}" has a name longer than ${MAX_UINT16} bytes.`);
       }
-      const crc = crc32(entry.data);
-      const size = entry.data.length;
+      const crc = crc32(original);
+      const size = original.length;
+      const stored = entry.data.length;
       const date = entry.date ?? /* @__PURE__ */ new Date();
       const dosDate = toDosDate(date);
       const dosTime = toDosTime(date);
@@ -17666,11 +17717,11 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       lhView.setUint32(0, 67324752, true);
       lhView.setUint16(4, 20, true);
       lhView.setUint16(6, FLAG_UTF8_NAMES, true);
-      lhView.setUint16(8, 0, true);
+      lhView.setUint16(8, method, true);
       lhView.setUint16(10, dosTime, true);
       lhView.setUint16(12, dosDate, true);
       lhView.setUint32(14, crc, true);
-      lhView.setUint32(18, size, true);
+      lhView.setUint32(18, stored, true);
       lhView.setUint32(22, size, true);
       lhView.setUint16(26, nameBytes.length, true);
       lhView.setUint16(28, 0, true);
@@ -17684,11 +17735,11 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       chView.setUint16(4, 20, true);
       chView.setUint16(6, 20, true);
       chView.setUint16(8, FLAG_UTF8_NAMES, true);
-      chView.setUint16(10, 0, true);
+      chView.setUint16(10, method, true);
       chView.setUint16(12, dosTime, true);
       chView.setUint16(14, dosDate, true);
       chView.setUint32(16, crc, true);
-      chView.setUint32(20, size, true);
+      chView.setUint32(20, stored, true);
       chView.setUint32(24, size, true);
       chView.setUint16(28, nameBytes.length, true);
       chView.setUint16(30, 0, true);
@@ -18483,7 +18534,7 @@ a { color: #8ecdf1; }
         packageRecords = await captureExportMedia(records);
       }
       await checkpointStore.updateProgress(jobId, { completed: packageRecords.length, total: packageRecords.length });
-      const artifacts = records.length === 0 ? [] : buildExportZipChunks(
+      const artifacts = records.length === 0 ? [] : await buildExportZipChunks(
         packageRecords,
         formats,
         ctx.settings.media.lastSaveFolder,
@@ -18541,7 +18592,7 @@ a { color: #8ecdf1; }
     }
     return actionResult(ok);
   }
-  function buildExportZip(records, formats, folder) {
+  async function buildExportZip(records, formats, folder) {
     const entries = [];
     const safeFolder = sanitizeFolder(folder);
     const prepared = prepareExportPackage(records);
@@ -18588,23 +18639,23 @@ a { color: #8ecdf1; }
       filename: manifestPath,
       data: new TextEncoder().encode(JSON.stringify(manifest, null, 2))
     });
-    return buildStoreZip(entries);
+    return buildZip(entries);
   }
-  function buildExportZipChunks(records, formats, folder, chunkSize) {
+  async function buildExportZipChunks(records, formats, folder, chunkSize) {
     if (records.length === 0) {
       return [];
     }
     const size = Math.max(1, Math.trunc(chunkSize) || records.length);
     const base = zipFilename(folder);
     if (records.length <= size) {
-      return [{ data: buildExportZip(records, formats, folder), filename: base }];
+      return [{ data: await buildExportZip(records, formats, folder), filename: base }];
     }
     const total = Math.ceil(records.length / size);
     const artifacts = [];
     for (let index = 0; index < total; index += 1) {
       const slice = records.slice(index * size, (index + 1) * size);
       artifacts.push({
-        data: buildExportZip(slice, formats, folder),
+        data: await buildExportZip(slice, formats, folder),
         filename: base.replace(/\.zip$/, `-part${index + 1}of${total}.zip`)
       });
     }
@@ -20905,8 +20956,8 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   var CENTRAL_HEADER = 33639248;
   var EOCD_SIGNATURE = 101010256;
   var ZIP64_LOCATOR = 117853008;
-  var METHOD_STORE = 0;
-  var METHOD_DEFLATE = 8;
+  var METHOD_STORE2 = 0;
+  var METHOD_DEFLATE2 = 8;
   var ZIP_LIMITS = {
     maxEntries: 4096,
     maxEntryUncompressedBytes: 25 * 1024 * 1024,
@@ -20929,7 +20980,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     const results = [];
     let totalUncompressed = 0;
     for (const entry of parseEntries(data)) {
-      if (entry.method === METHOD_STORE) {
+      if (entry.method === METHOD_STORE2) {
         totalUncompressed += entry.raw.length;
         if (totalUncompressed > ZIP_LIMITS.maxTotalUncompressedBytes) {
           throw new ZipLimitError("ZIP expands beyond the 100 MiB archive limit.");
@@ -20937,7 +20988,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         results.push(finish(entry, entry.raw));
         continue;
       }
-      if (entry.method !== METHOD_DEFLATE) {
+      if (entry.method !== METHOD_DEFLATE2) {
         throw new UnsupportedZipMethodError(entry.method, entry.filename);
       }
       const remaining = ZIP_LIMITS.maxTotalUncompressedBytes - totalUncompressed;
@@ -20956,7 +21007,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
   async function inflateRaw(bytes, filename, maxBytes) {
     if (!canInflate()) {
-      throw new UnsupportedZipMethodError(METHOD_DEFLATE, filename);
+      throw new UnsupportedZipMethodError(METHOD_DEFLATE2, filename);
     }
     const stream = new Blob([new Uint8Array(bytes)]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
     const reader = stream.getReader();

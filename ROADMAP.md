@@ -36,26 +36,11 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: every selector a feature relies on is registered with its owning feature id and relevance; Trust lists which features are healthy, degraded, and why, on the live page; a deliberately broken selector shows up there and in `getStatus()` rather than failing silently.
   Complexity: M
 
-- [ ] F137 — P1 — Compress archives with the browser's own DEFLATE
-  Why: `zip-store.ts` writes `method = STORE` and assembles the whole archive as one `Uint8Array`, while `zip-reader.ts` already inflates with `DecompressionStream("deflate-raw")`. The write side is asymmetric for no reason; text-heavy exports (JSON/CSV/HTML/WARC/XLSX) compress several-fold, and the in-memory ceiling is a real reported failure in the closest analog.
-  Evidence: `src/features/export/zip-store.ts:78`, `src/features/export/zip-reader.ts:113-115`; `CompressionStream("deflate-raw")` Baseline (Chrome 103 / Firefox 113 / Safari 16.4); twitter-web-exporter#137 ("over 500 media items breaks ZIP export").
-  Touches: `src/features/export/zip-store.ts`, `xlsx.ts`, `export-feature.ts`, `warc.ts` (`.warc.gz` via `CompressionStream("gzip")`), `tests/export.test.mjs`.
-  Acceptance: archives round-trip through Aviary's own reader and an external unzip; XLSX still opens in Excel; a size assertion proves compression on a text-heavy fixture; the entry/size ceilings either gain ZIP64 or report the limit before the run rather than throwing part-way.
-  Complexity: M
-
 - [ ] F138 — P1 — Take the translation catalog off the document-start path
   Why: the built userscript is 1,862,668 characters and `src/platform/i18n-catalog.ts` is 1,011,863 of them — 54.3% — parsed synchronously on every X page load before first paint, to serve a settings panel that is usually never opened. All nine locales ship to every user.
   Evidence: measured against `dist/aviary.user.js` 2026-08-15 (module-boundary sizes in RESEARCH.md Architecture); `@run-at document-start` in the metablock and `run_at: document_start` in both manifests.
   Touches: `src/platform/i18n-catalog.ts`, `src/platform/i18n.ts`, `tools/build.mjs` (emit the catalog as a deferred payload — a lazily parsed JSON string in the userscript, a web-accessible chunk in the extension), boot path.
   Acceptance: the document-start payload drops by at least half; panel copy still resolves on first open with no visible delay; the i18n extract/sync pipeline and the drift tests still pass unchanged; the userscript remains a single readable file.
-  Complexity: L
-
-- [ ] F139 — P1 — Restore what X's August 2026 media redesign changed
-  Why: X replaced the 2x2 multi-image grid with an Instagram-style carousel (2026-08-11) and removed the desktop profile media grid, defaulting the Media tab to Videos and moving Likes into a dropdown (2026-08-13). These are the two highest-engagement X-UI complaint threads of the window — 235 points/82 comments and 61 points/17 comments — both carrying explicit unmet demand ("trying to find an extension to revert this", "waiting for some hero on Greasyfork/Github"), and the category leader has not pushed since 2026-07-05. The carousel additionally fails to render media on Firefox 153, which nothing currently fixes.
-  Evidence: control-panel-for-twitter#917/#918/#919 (GitHub API, 2026-08-15); r/Twitter 1vng9ak and 1vlugpd (2026-08-13, 2026-08-11); Firefox render break corroborated 2026-08-14 (RESEARCH.md Sources). Working community fixes name the flags: `rweb_media_carousel_enabled` (uBO scriptlet) and `responsive_web_profile_redesign_enabled` (a trusted `$replace=` filter most users cannot enable — an in-page flip is strictly better).
-  Touches: `src/features/layout/`, the page agent (flag write before X's first read), settings, `_decoded/` fixtures, feature tests, Roadmap_Blocked.md F115.
-  Acceptance: each restored behaviour is verified against the refreshed capture from F134 and fixture-tested; flag names live in a data file that can be updated without a rebuild, never compiled into a feature; a flag that no longer exists degrades loudly through selector health rather than silently doing nothing; anything the capture does not contain goes to Roadmap_Blocked.md with its measurement rather than shipping on a guess.
-  Depends on: F134, F115's re-entry condition.
   Complexity: L
 
 - [ ] F140 — P1 — Test accessibility by rendering, not by reading source

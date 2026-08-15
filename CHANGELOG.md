@@ -18,6 +18,15 @@
 
 ### Changed
 
+- Export archives are compressed now. The ZIP writer emitted STORE — no compression at all — while
+  the ZIP *reader* had been inflating `deflate-raw` since archive import shipped, so the two halves
+  disagreed for no reason: text-heavy exports (JSON, CSV, HTML, WARC, Markdown) left the browser
+  several times larger than they needed to be. `CompressionStream` is built into every supported
+  browser, so this costs no dependency. Each entry keeps whichever form is smaller, so captured
+  photos and video — which grow under DEFLATE — are still stored as-is, and an archive still builds
+  if compression is unavailable or fails. XLSX still uses the plain writer; it is a few kilobytes
+  of XML and making it async would ripple through the synchronous formatter dispatch for no
+  meaningful saving.
 - The packaged extension ZIPs are no longer tracked in git. `npm run verify` rebuilds them on every
   commit that touches `src/`, so each commit was adding roughly 3.9 MB of incompressible binary
   that nothing can delta-compress — 230 blobs and 277.9 MB of the pack by 2026-08-15, for files

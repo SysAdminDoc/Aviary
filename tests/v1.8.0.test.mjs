@@ -380,29 +380,35 @@ test("media.zipChunkSize splits a long export into several archives", async () =
     capturedAt: "2026-08-06T00:00:00Z"
   }));
 
-  const one = buildExportZipChunks(records, ["json"], "", 1000);
+  const one = await buildExportZipChunks(records, ["json"], "", 1000);
   assert.equal(one.length, 1, "a run that fits must stay a single archive");
   assert.doesNotMatch(one[0].filename, /part/, "an unsplit run keeps the plain name");
 
-  const many = buildExportZipChunks(records, ["json"], "", 100);
+  const many = await buildExportZipChunks(records, ["json"], "", 100);
   assert.equal(many.length, 3, "250 records at 100 per ZIP is three archives");
   assert.match(many[0].filename, /-part1of3\.zip$/);
   assert.match(many[2].filename, /-part3of3\.zip$/);
   assert.equal(new Set(many.map((a) => a.filename)).size, 3, "chunk names must be unique");
 
   // Every record has to land in exactly one archive -- a chunker that drops the tail is worse
-  // than no chunking at all, and a plain length check would not catch it.
+  // than no chunking at all, and a plain length check would not catch it. Read the archives
+  // properly rather than scanning raw bytes: entries are DEFLATE now, so a substring search over
+  // the container would find nothing and quietly pass once the assertion was relaxed.
+  const { readZip } = await importBundledModule("src/features/export/zip-reader.ts");
+  const decoder = new TextDecoder();
   const seen = new Set();
   for (const artifact of many) {
     assert.ok(artifact.data.byteLength > 0);
-    const text = new TextDecoder().decode(artifact.data);
-    for (let i = 0; i < 250; i += 1) {
-      if (text.includes(`"post ${i}"`)) seen.add(i);
+    for (const entry of await readZip(artifact.data)) {
+      const text = decoder.decode(entry.data);
+      for (let i = 0; i < 250; i += 1) {
+        if (text.includes(`"post ${i}"`)) seen.add(i);
+      }
     }
   }
-  assert.equal(seen.size, 250, "every record must appear in some chunk");
+  assert.equal(seen.size, 250, "every record must survive compression into some chunk");
 
-  assert.equal(buildExportZipChunks([], ["json"], "", 100).length, 0, "no records, no archive");
+  assert.equal((await buildExportZipChunks([], ["json"], "", 100)).length, 0, "no records, no archive");
 });
 
 test("cleanShareButtons strips tracking parameters without breaking links", async () => {

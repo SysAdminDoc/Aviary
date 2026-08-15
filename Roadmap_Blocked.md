@@ -27,6 +27,26 @@ measurement, record it with the new date, and move whatever the capture now supp
 ROADMAP.md. The waiver in `captures.json` expires 2026-09-30, after which preflight fails rather
 than warns — deliberately, so the deadline is real.
 
+## F139 — Restore what X's August 2026 media redesign changed
+
+X replaced the 2x2 multi-image grid with a carousel (2026-08-11) and removed the desktop profile
+media grid, defaulting the Media tab to Videos and moving Likes into a dropdown (2026-08-13). These
+are the two highest-engagement X-UI complaint threads of that window -- 235 points/82 comments and
+61 points/17 comments -- both explicitly asking for an extension that reverts them, and every
+incumbent is idle or in maintenance. The carousel additionally fails to render media on Firefox 153,
+which nothing currently fixes.
+
+Blocked on the same capture as everything else here: no fixture in this repository postdates
+2026-05-19, so the containers, markers and heading shapes of the new layout are all unknown. Working
+community fixes name two flags -- `rweb_media_carousel_enabled` and
+`responsive_web_profile_redesign_enabled` -- which moves F115 from discovery to verification but
+does not make a third-party scriptlet into evidence this project accepts.
+
+Re-entry condition: the refreshed capture (see F134's operator half), then verify each flag write
+applies before X's first read and actually changes the rendered layout. Flag names belong in a data
+file that can be updated without a rebuild, never compiled into a feature, and a flag that no longer
+exists must degrade loudly through selector health rather than silently doing nothing.
+
 ## F032 — Hide blocked accounts again
 
 Blocked pending an authenticated `_decoded/` home/status capture containing the current blocked-account markup. The existing public fixtures do not expose the required `[data-testid="userActions"]` blocked state, so shipping a predicate now would be speculative.

@@ -314,3 +314,65 @@ async function importBundledModule(relativePath) {
     await rm(temp, { force: true, recursive: true });
   }
 }
+
+test("buildZip deflates text and leaves incompressible bytes alone", async () => {
+  const { buildZip, buildStoreZip } = await importBundledModule("src/features/export/zip-store.ts");
+  const { readZip } = await importBundledModule("src/features/export/zip-reader.ts");
+  const encoder = new TextEncoder();
+
+  // Text an export actually produces: repetitive JSON, which is where the win is.
+  const json = encoder.encode(
+    JSON.stringify(
+      Array.from({ length: 400 }, (_, i) => ({
+        tweetId: String(i),
+        handle: "someone",
+        text: "the same sentence over and over again",
+        capturedAt: "2026-08-15T00:00:00Z"
+      })),
+      null,
+      2
+    )
+  );
+  // Already-compressed bytes: DEFLATE makes these bigger, so the writer must keep STORE per entry.
+  // Real randomness, not an arithmetic sequence — a `(i * prime) % 251` ramp looks scrambled but
+  // deflates to a fraction of its size, which made this assertion measure nothing.
+  const incompressible = new Uint8Array(4096);
+  globalThis.crypto.getRandomValues(incompressible);
+
+  const entries = [
+    { filename: "archive/tweets.json", data: json },
+    { filename: "archive/media/photo.jpg", data: incompressible }
+  ];
+  const deflated = await buildZip(entries);
+  const stored = buildStoreZip(entries);
+
+  assert.ok(
+    deflated.length < stored.length * 0.6,
+    `expected a real saving, got ${deflated.length} vs ${stored.length} bytes`
+  );
+  assert.ok(
+    deflated.length > incompressible.length,
+    "the incompressible entry must still be present at roughly its own size"
+  );
+
+  // The archive has to survive the round trip, which is the only thing the user cares about.
+  const read = await readZip(deflated);
+  assert.deepEqual(
+    read.map((entry) => entry.filename).sort(),
+    ["archive/media/photo.jpg", "archive/tweets.json"]
+  );
+  const roundTripped = read.find((entry) => entry.filename === "archive/tweets.json");
+  assert.deepEqual([...roundTripped.data], [...json], "deflated text must inflate back byte for byte");
+  const media = read.find((entry) => entry.filename === "archive/media/photo.jpg");
+  assert.deepEqual([...media.data], [...incompressible], "stored bytes must come back unchanged");
+});
+
+test("an empty entry and a zero-record archive still produce a readable zip", async () => {
+  const { buildZip } = await importBundledModule("src/features/export/zip-store.ts");
+  const { readZip } = await importBundledModule("src/features/export/zip-reader.ts");
+  const empty = await buildZip([{ filename: "empty.txt", data: new Uint8Array(0) }]);
+  const read = await readZip(empty);
+  assert.equal(read.length, 1);
+  assert.equal(read[0].data.length, 0);
+  assert.ok((await buildZip([])).length > 0, "an archive with no entries is still a valid zip");
+});

@@ -74,16 +74,18 @@ test("WARC stores captured bytes as responses and remote media as metadata-only"
 
 test("export ZIPs include a checksum manifest and package media without silent network fetches", async () => {
   const { buildExportZip } = await importBundledModule("src/features/export/export-feature.ts");
-  const { readStoreZip } = await importBundledModule("src/features/export/zip-reader.ts");
+  // readZip, not readStoreZip: export archives are DEFLATE now, and the STORE-only reader
+  // correctly refuses method 8.
+  const { readZip } = await importBundledModule("src/features/export/zip-reader.ts");
   const bytes = new TextEncoder().encode("offline image");
-  const archive = buildExportZip([sampleRecord({
+  const archive = await buildExportZip([sampleRecord({
     media: [
       { kind: "photo", url: "https://pbs.twimg.com/media/e.jpg", bytes, type: "image/jpeg" },
       { kind: "photo", url: "https://pbs.twimg.com/media/f.jpg" },
       { kind: "video", url: "", captureStatus: "missing" }
     ]
   })], ["json", "html"], "archive");
-  const entries = readStoreZip(archive);
+  const entries = await readZip(archive);
   assert.ok(entries.some((entry) => entry.filename === "archive/viewer.html"));
   const manifestEntry = entries.find((entry) => entry.filename === "archive/manifest.json");
   assert.ok(manifestEntry);

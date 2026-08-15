@@ -12,7 +12,7 @@ import { CheckpointStore } from "./jobs";
 import { formatExport } from "./formatters";
 import { discoverQueryIds, type QueryRegistry } from "./query-discovery";
 import { buildExportViewer } from "./viewer";
-import { buildStoreZip, type ZipFileEntry } from "./zip-store";
+import { buildZip, type ZipFileEntry } from "./zip-store";
 import type { ExportFormat, ExportRecord } from "./types";
 
 let checkpointStore: CheckpointStore | undefined;
@@ -138,7 +138,7 @@ export async function runExportOfVisibleTweets(ctx: FeatureContext): Promise<Exp
     const artifacts =
       records.length === 0
         ? []
-        : buildExportZipChunks(
+        : await buildExportZipChunks(
             packageRecords,
             formats,
             ctx.settings.media.lastSaveFolder,
@@ -204,11 +204,11 @@ export async function cancelExportJob(jobId: string): Promise<ExportJobActionRes
   return actionResult(ok);
 }
 
-export function buildExportZip(
+export async function buildExportZip(
   records: ExportRecord[],
   formats: readonly ExportFormat[],
   folder: string
-): Uint8Array {
+): Promise<Uint8Array> {
   const entries: ZipFileEntry[] = [];
   const safeFolder = sanitizeFolder(folder);
   const prepared = prepareExportPackage(records);
@@ -259,7 +259,7 @@ export function buildExportZip(
     filename: manifestPath,
     data: new TextEncoder().encode(JSON.stringify(manifest, null, 2))
   });
-  return buildStoreZip(entries);
+  return buildZip(entries);
 }
 
 /**
@@ -270,19 +270,19 @@ export function buildExportZip(
  * A run that fits in one chunk keeps the plain single-file name, so the common case is
  * unchanged; only a split run gets `-part1of3` suffixes.
  */
-export function buildExportZipChunks(
+export async function buildExportZipChunks(
   records: ExportRecord[],
   formats: readonly ExportFormat[],
   folder: string,
   chunkSize: number
-): ExportArtifact[] {
+): Promise<ExportArtifact[]> {
   if (records.length === 0) {
     return [];
   }
   const size = Math.max(1, Math.trunc(chunkSize) || records.length);
   const base = zipFilename(folder);
   if (records.length <= size) {
-    return [{ data: buildExportZip(records, formats, folder), filename: base }];
+    return [{ data: await buildExportZip(records, formats, folder), filename: base }];
   }
 
   const total = Math.ceil(records.length / size);
@@ -290,7 +290,7 @@ export function buildExportZipChunks(
   for (let index = 0; index < total; index += 1) {
     const slice = records.slice(index * size, (index + 1) * size);
     artifacts.push({
-      data: buildExportZip(slice, formats, folder),
+      data: await buildExportZip(slice, formats, folder),
       filename: base.replace(/\.zip$/, `-part${index + 1}of${total}.zip`)
     });
   }
