@@ -7,9 +7,7 @@
 // @homepage     https://github.com/SysAdminDoc/Aviary
 // @match        https://x.com/*
 // @match        https://twitter.com/*
-// @match        https://mobile.twitter.com/*
 // @match        https://pro.x.com/*
-// @match        https://tweetdeck.twitter.com/*
 // @run-at       document-start
 // @inject-into  content
 // @grant        GM_getValue
@@ -28440,9 +28438,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     "www.x.com",
     "twitter.com",
     "www.twitter.com",
-    "mobile.twitter.com",
-    "pro.x.com",
-    "tweetdeck.twitter.com"
+    "pro.x.com"
   ]);
   var GRAPHQL_PATH_PATTERN = /^\/i\/api\/graphql\/([A-Za-z0-9_-]{1,200})\/([A-Za-z0-9_-]{1,100})$/;
   function isPageAgentEnvelope(value) {

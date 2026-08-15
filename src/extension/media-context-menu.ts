@@ -8,9 +8,7 @@ export const MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE =
 export const X_DOCUMENT_PATTERNS = [
   "https://x.com/*",
   "https://twitter.com/*",
-  "https://mobile.twitter.com/*",
   "https://pro.x.com/*",
-  "https://tweetdeck.twitter.com/*"
 ] as const;
 
 export function isMediaContextDownloadMessage(

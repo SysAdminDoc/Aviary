@@ -61,9 +61,7 @@ export const AD_LOGGER_RULE: DynamicNetRequestRule = {
       "www.x.com",
       "twitter.com",
       "www.twitter.com",
-      "mobile.twitter.com",
       "pro.x.com",
-      "tweetdeck.twitter.com"
     ],
     resourceTypes: ["xmlhttprequest", "ping", "other"]
   }

@@ -16,6 +16,15 @@
   JSON form and refusing to write a file that still trips its own leak guard. Refreshing the
   evidence was previously an undocumented manual chore, which is why it never happened.
 
+### Changed
+
+- Aviary no longer asks for `mobile.twitter.com` or `tweetdeck.twitter.com`. X retired both in
+  2023, and measuring them confirms neither serves a document — `mobile.twitter.com` redirects to
+  `twitter.com`, and `tweetdeck.twitter.com` redirects to `pro.twitter.com`, a host Aviary never
+  matched at all. They only widened the permission prompt, which is the thing that makes people
+  decline an extension. `twitter.com` stays despite also redirecting: it is the canonical legacy
+  origin, and a reversal there would silently disable Aviary everywhere.
+
 ### Fixed
 
 - The documentation gate now checks what the panel actually offers, not just version strings.

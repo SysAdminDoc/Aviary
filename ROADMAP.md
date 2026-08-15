@@ -79,13 +79,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: `dist/extension-*-v*.zip` is untracked and produced at release time; `dist/aviary.user.js` stays tracked because `@downloadURL` resolves to it, but is refreshed on release commits rather than every commit; the release recipe states where the ZIPs go. History rewriting is explicitly out of this item.
   Complexity: S
 
-- [ ] F143 — P1 — Drop the match targets X retired
-  Why: both manifests and the userscript metablock match `mobile.twitter.com` and `tweetdeck.twitter.com`, surfaces X retired in 2023. They widen the install permission prompt — the thing that scares users off an extension — and match nothing.
-  Evidence: `src/extension/manifest.chrome.json`, `manifest.firefox.json`, `tools/build.mjs` metablock; `dist/aviary.user.js` header.
-  Touches: both manifests, the metablock in `tools/build.mjs`, `tests/release-matrix.test.mjs` route list, docs/INSTALL.md, docs/PRIVACY.md.
-  Acceptance: each declared host is confirmed to still serve an X surface before the list is trimmed; the permission prompt shrinks accordingly; route tests cover only surviving hosts.
-  Complexity: S
-
 - [ ] F153 — P1 — Prove Aviary's refusals exclude X's detection probes, and say so
   Why: the community fix for X's ad-blocker notice is not to hide anything — it is to stop blocking two XHRs, `x.com/i/api/1.1/flow/viewer.json` and `x.com/i/api/*/viewer_context.json`. The reported trigger is a probe request *failing*, not an ad rendering, and the reported symptom is often not the banner at all but "An error has occurred but it's not your fault", a blank feed, or search returning nothing — which users misread as an X outage. Aviary's `privacy.networkShield` refuses exactly one logger, so it should be provably clear of both probes; that is worth asserting rather than assuming, because it is the difference between "safe by design" and "safe by luck".
   Evidence: r/Twitter 1uya7kz and 1uz8yjf (2026-07-16/17), including the allowlist comment; PiunikaWeb 2026-07-10. Community claim — the endpoint behaviour needs one devtools session to confirm.

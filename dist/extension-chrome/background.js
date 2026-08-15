@@ -13,9 +13,7 @@ var AD_LOGGER_RULE = {
       "www.x.com",
       "twitter.com",
       "www.twitter.com",
-      "mobile.twitter.com",
-      "pro.x.com",
-      "tweetdeck.twitter.com"
+      "pro.x.com"
     ],
     resourceTypes: ["xmlhttprequest", "ping", "other"]
   }
@@ -64,9 +62,7 @@ var MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE = "AVIARY_CONTEXT_DOWNLOAD_PERMISSIO
 var X_DOCUMENT_PATTERNS = [
   "https://x.com/*",
   "https://twitter.com/*",
-  "https://mobile.twitter.com/*",
-  "https://pro.x.com/*",
-  "https://tweetdeck.twitter.com/*"
+  "https://pro.x.com/*"
 ];
 
 // src/entrypoints/extension-background.ts

@@ -18,9 +18,7 @@ test("the dynamic rule matches only the separable promoted-content logger", asyn
     "https://x.com/i/api/1.1/promoted_content/log.json",
     "https://www.x.com/i/api/1.1/promoted_content/log.json?event=impression",
     "https://twitter.com/i/api/1.1/promoted_content/log.json?event=click&item=1",
-    "https://mobile.twitter.com/i/api/1.1/promoted_content/log.json",
-    "https://pro.x.com/i/api/1.1/promoted_content/log.json",
-    "https://tweetdeck.twitter.com/i/api/1.1/promoted_content/log.json"
+    "https://pro.x.com/i/api/1.1/promoted_content/log.json"
   ]) {
     assert.equal(matches(url), true, url);
   }
@@ -32,7 +30,11 @@ test("the dynamic rule matches only the separable promoted-content logger", asyn
     "https://x.com/i/api/1.1/promoted_content/log.json.bak",
     "https://x.com/i/api/1.1/promoted_content/content.json",
     "https://x.com/i/api/graphql/query/HomeTimeline",
-    "https://video.twimg.com/ext_tw_video/fixture.mp4"
+    "https://video.twimg.com/ext_tw_video/fixture.mp4",
+    // Retired by X in 2023: both are redirect-only hosts that never serve a document, so a
+    // rule naming them widens the install prompt for a request that cannot happen.
+    "https://mobile.twitter.com/i/api/1.1/promoted_content/log.json",
+    "https://tweetdeck.twitter.com/i/api/1.1/promoted_content/log.json"
   ]) {
     assert.equal(matches(url), false, url);
   }
@@ -43,9 +45,7 @@ test("the dynamic rule matches only the separable promoted-content logger", asyn
     "www.x.com",
     "twitter.com",
     "www.twitter.com",
-    "mobile.twitter.com",
-    "pro.x.com",
-    "tweetdeck.twitter.com"
+    "pro.x.com"
   ]);
 });
 

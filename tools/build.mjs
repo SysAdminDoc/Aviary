@@ -25,9 +25,7 @@ const extensionIconSizes = [16, 32, 48, 128];
 const matchLines = [
   "https://x.com/*",
   "https://twitter.com/*",
-  "https://mobile.twitter.com/*",
   "https://pro.x.com/*",
-  "https://tweetdeck.twitter.com/*"
 ];
 
 /**

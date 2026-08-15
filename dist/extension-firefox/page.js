@@ -18,9 +18,7 @@
     "www.x.com",
     "twitter.com",
     "www.twitter.com",
-    "mobile.twitter.com",
-    "pro.x.com",
-    "tweetdeck.twitter.com"
+    "pro.x.com"
   ]);
   var GRAPHQL_PATH_PATTERN = /^\/i\/api\/graphql\/([A-Za-z0-9_-]{1,200})\/([A-Za-z0-9_-]{1,100})$/;
   function isPageAgentEnvelope(value) {

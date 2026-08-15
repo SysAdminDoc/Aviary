@@ -36,7 +36,7 @@ test("handleFromHref reads root-relative and absolute profile links", async () =
   assert.equal(handleFromHref("/JuvyWicks"), "juvywicks");
   assert.equal(handleFromHref("/JuvyWicks/status/123"), "juvywicks");
   assert.equal(handleFromHref("https://x.com/JuvyWicks"), "juvywicks");
-  assert.equal(handleFromHref("https://mobile.twitter.com/JuvyWicks/photo"), "juvywicks");
+  assert.equal(handleFromHref("https://twitter.com/JuvyWicks/photo"), "juvywicks");
   assert.equal(handleFromHref("https://evil.example/JuvyWicks"), null);
   assert.equal(handleFromHref("/i/grok"), "i");
   assert.equal(handleFromHref(null), null);

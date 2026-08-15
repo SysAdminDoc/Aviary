@@ -30,7 +30,8 @@ Control Center.
 3. Pin Aviary if you want the extension entry point visible. The Control Center launcher itself
    appears on matching X pages.
 
-The base permissions are `storage` and host-scoped `declarativeNetRequestWithHostAccess`. The
+Aviary asks for three hosts: `x.com`, `twitter.com`, and `pro.x.com`. The base permissions are
+`storage` and host-scoped `declarativeNetRequestWithHostAccess`. The
 latter lets the extension block only X's exact promoted-content logger under the already declared
 X/Twitter host access; it does not add `<all_urls>` or the warning-bearing feedback permission.
 `downloads` is optional and is requested only from the options page after you click **Grant
