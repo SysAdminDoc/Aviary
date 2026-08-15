@@ -177,6 +177,7 @@ export interface ControlCenterOptions {
     blockedAdRequests: number;
     hiddenPlacements: number;
     suppressedVideoAds: number;
+    rewrittenPlaylists: number;
   };
   getSelectorHealth?: () => SelectorHealthStatus;
   clearAdObservations?: () => Promise<void>;

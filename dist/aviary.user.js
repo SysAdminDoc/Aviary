@@ -133,6 +133,8 @@ var Aviary = (() => {
     },
     performance: {
       pauseOffscreenVideo: false,
+      keepVideoPlaying: false,
+      loopVideos: false,
       // Off by default: it rewrites the playlist X's player fetches, so it changes how video is
       // delivered rather than how it is displayed. New network-affecting capabilities opt in.
       forceVideoQuality: false
@@ -370,6 +372,11 @@ var Aviary = (() => {
           performance.pauseOffscreenVideo,
           DEFAULT_SETTINGS.performance.pauseOffscreenVideo
         ),
+        keepVideoPlaying: booleanValue(
+          performance.keepVideoPlaying,
+          DEFAULT_SETTINGS.performance.keepVideoPlaying
+        ),
+        loopVideos: booleanValue(performance.loopVideos, DEFAULT_SETTINGS.performance.loopVideos),
         forceVideoQuality: booleanValue(
           performance.forceVideoQuality,
           DEFAULT_SETTINGS.performance.forceVideoQuality
@@ -1555,8 +1562,12 @@ html.av-reduce-motion *::after {
       "Recovery": "Recuperaci\xF3n",
       "Pause video that scrolls out of view": "Pausar el v\xEDdeo que sale de la pantalla",
       "Stops decoding timeline video once it leaves the screen, and resumes it when it comes back. A video you paused yourself stays paused.": "Deja de decodificar el v\xEDdeo de la cronolog\xEDa cuando sale de la pantalla y lo reanuda al volver. Un v\xEDdeo que hayas pausado t\xFA permanece en pausa.",
-      "Always play video at the highest quality": "Reproducir siempre el v\xEDdeo con la m\xE1xima calidad",
-      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X elige una calidad de v\xEDdeo acorde a tu conexi\xF3n y, en conexiones r\xE1pidas, suele quedarse por debajo de la mejor disponible. Esto fija cada v\xEDdeo en su m\xE1xima resoluci\xF3n. Consume m\xE1s datos.",
+      "Keep video playing when the tab loses focus": "Seguir reproduciendo el v\xEDdeo al cambiar de pesta\xF1a",
+      "X stops a playing video when you switch tabs. This resumes it when you come back. A video you paused yourself stays paused.": "X detiene el v\xEDdeo en reproducci\xF3n cuando cambias de pesta\xF1a. Esto lo reanuda al volver. Un v\xEDdeo que pausaste t\xFA sigue en pausa.",
+      "Loop videos": "Repetir los v\xEDdeos",
+      "Restart a video when it reaches the end instead of stopping.": "Reinicia el v\xEDdeo al llegar al final en lugar de detenerlo.",
+      "Pin video playlists to their best rendition": "Fijar las listas de reproducci\xF3n a su mejor versi\xF3n",
+      "When X hands Aviary a playlist listing several qualities, keep only the highest. X often settles below the best available on a fast connection. This uses more data, and it can only act on playlists Aviary sees.": "Cuando X entrega a Aviary una lista con varias calidades, conserva solo la m\xE1s alta. Con una conexi\xF3n r\xE1pida, X suele quedarse por debajo de la mejor disponible. Consume m\xE1s datos y solo puede actuar sobre las listas que Aviary ve.",
       "Playback": "Reproducci\xF3n",
       "The download preference applies to every media control.": "La preferencia de descarga se aplica a todos los controles multimedia.",
       "Show download buttons": "Mostrar botones de descarga",
@@ -2029,8 +2040,12 @@ html.av-reduce-motion *::after {
       "Navigation visibility saved": "Visibilidad de navegaci\xF3n guardada",
       "Offscreen video paused": "V\xEDdeo fuera de pantalla en pausa",
       "Offscreen video left playing": "V\xEDdeo fuera de pantalla sigue reproduci\xE9ndose",
-      "Best video quality on": "M\xE1xima calidad de v\xEDdeo activada",
-      "Video quality left to X": "Calidad de v\xEDdeo a criterio de X",
+      "Video keeps playing": "El v\xEDdeo sigue reproduci\xE9ndose",
+      "Video pauses with the tab": "El v\xEDdeo se pausa con la pesta\xF1a",
+      "Video looping on": "Repetici\xF3n de v\xEDdeo activada",
+      "Video looping off": "Repetici\xF3n de v\xEDdeo desactivada",
+      "Playlist pinning on": "Fijaci\xF3n de listas activada",
+      "Playlist pinning off": "Fijaci\xF3n de listas desactivada",
       "Filters enabled": "Filtros activados",
       "Filters disabled": "Filtros desactivados",
       "Seen-post dimming on": "Atenuaci\xF3n de publicaciones vistas activada",
@@ -2103,6 +2118,7 @@ html.av-reduce-motion *::after {
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} registros \xB7 {files} archivos \xB7 {warnings} advertencias",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} guardados \xB7 {due} pendientes \xB7 {tags} etiquetas \xB7 {folders} carpetas",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} registros \xB7 {surface}",
+      "{count} this session": "{count} en esta sesi\xF3n",
       "Forget the stored warnings and errors. Only Aviary's own message text, the time, and the names of its detail fields are ever written here.": "Olvida los avisos y errores almacenados. Aqu\xED solo se escriben el texto de los mensajes de Aviary, la hora y los nombres de sus campos de detalle.",
       "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "Borra el historial local limitado de marcadores y su aviso de desviaci\xF3n. Aqu\xED no se almacenan textos de publicaciones, nombres de usuario, URL ni cuerpos de respuesta.",
       "Pause {filename}.": "Pausar {filename}.",
@@ -2145,6 +2161,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "Lote multimedia activo",
       "Resume queued media": "Reanudar medios en cola",
       "Retry failed media": "Reintentar medios fallidos",
+      "Playlists rewritten": "Listas reescritas",
       "Forget seen posts": "Olvidar las publicaciones vistas",
       "Rules that could not be read": "Reglas que no se pudieron leer",
       "Open Aviary AI command menu": "Abrir el men\xFA de comandos de IA de Aviary",
@@ -2259,6 +2276,10 @@ html.av-reduce-motion *::after {
       "posts": "publicaciones",
       "offline-ready": "listo sin conexi\xF3n",
       "network may be required": "puede requerir red",
+      "Always play video at the highest quality": "Reproducir siempre el v\xEDdeo con la m\xE1xima calidad",
+      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X elige una calidad de v\xEDdeo acorde a tu conexi\xF3n y, en conexiones r\xE1pidas, suele quedarse por debajo de la mejor disponible. Esto fija cada v\xEDdeo en su m\xE1xima resoluci\xF3n. Consume m\xE1s datos.",
+      "Best video quality on": "M\xE1xima calidad de v\xEDdeo activada",
+      "Video quality left to X": "Calidad de v\xEDdeo a criterio de X",
       "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "Oculta los n\xFAmeros de respuestas, reposts, me gusta y visualizaciones. Los controles siguen funcionando y los lectores de pantalla siguen anunciando los totales.",
       "Original quality is applied when download controls are enabled.": "La calidad original se aplica cuando los controles de descarga est\xE1n habilitados.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Un ID estable de navegaci\xF3n de X por l\xEDnea: home, explore, notifications, messages, profile, more o premium.",
@@ -2454,8 +2475,12 @@ html.av-reduce-motion *::after {
       "Recovery": "Recupera\xE7\xE3o",
       "Pause video that scrolls out of view": "Pausar v\xEDdeo que sai do ecr\xE3",
       "Stops decoding timeline video once it leaves the screen, and resumes it when it comes back. A video you paused yourself stays paused.": "Deixa de descodificar o v\xEDdeo da cronologia quando este sai do ecr\xE3 e retoma-o quando regressa. Um v\xEDdeo que tenhas pausado permanece em pausa.",
-      "Always play video at the highest quality": "Reproduzir sempre o v\xEDdeo na m\xE1xima qualidade",
-      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "O X escolhe uma qualidade de v\xEDdeo adequada \xE0 tua liga\xE7\xE3o e, numa liga\xE7\xE3o r\xE1pida, fica muitas vezes abaixo da melhor dispon\xEDvel. Isto fixa cada v\xEDdeo na sua resolu\xE7\xE3o m\xE1xima. Consome mais dados.",
+      "Keep video playing when the tab loses focus": "Manter o v\xEDdeo tocando ao trocar de aba",
+      "X stops a playing video when you switch tabs. This resumes it when you come back. A video you paused yourself stays paused.": "O X interrompe o v\xEDdeo em reprodu\xE7\xE3o quando voc\xEA troca de aba. Isto o retoma quando voc\xEA volta. Um v\xEDdeo que voc\xEA mesmo pausou continua pausado.",
+      "Loop videos": "Repetir v\xEDdeos",
+      "Restart a video when it reaches the end instead of stopping.": "Reinicia o v\xEDdeo ao chegar ao fim em vez de parar.",
+      "Pin video playlists to their best rendition": "Fixar as playlists de v\xEDdeo na melhor vers\xE3o",
+      "When X hands Aviary a playlist listing several qualities, keep only the highest. X often settles below the best available on a fast connection. This uses more data, and it can only act on playlists Aviary sees.": "Quando o X entrega ao Aviary uma playlist com v\xE1rias qualidades, mant\xE9m apenas a mais alta. Em conex\xF5es r\xE1pidas, o X frequentemente fica abaixo da melhor dispon\xEDvel. Isto consome mais dados e s\xF3 age sobre playlists que o Aviary v\xEA.",
       "Playback": "Reprodu\xE7\xE3o",
       "The download preference applies to every media control.": "A prefer\xEAncia de transfer\xEAncia aplica-se a todos os controlos de multim\xE9dia.",
       "Show download buttons": "Mostrar bot\xF5es de download",
@@ -2928,8 +2953,12 @@ html.av-reduce-motion *::after {
       "Navigation visibility saved": "Visibilidade da navega\xE7\xE3o salva",
       "Offscreen video paused": "V\xEDdeo fora do ecr\xE3 em pausa",
       "Offscreen video left playing": "V\xEDdeo fora do ecr\xE3 continua a reproduzir",
-      "Best video quality on": "M\xE1xima qualidade de v\xEDdeo ativada",
-      "Video quality left to X": "Qualidade de v\xEDdeo ao crit\xE9rio do X",
+      "Video keeps playing": "O v\xEDdeo continua tocando",
+      "Video pauses with the tab": "O v\xEDdeo pausa junto com a aba",
+      "Video looping on": "Repeti\xE7\xE3o de v\xEDdeo ativada",
+      "Video looping off": "Repeti\xE7\xE3o de v\xEDdeo desativada",
+      "Playlist pinning on": "Fixa\xE7\xE3o de playlists ativada",
+      "Playlist pinning off": "Fixa\xE7\xE3o de playlists desativada",
       "Filters enabled": "Filtros ativados",
       "Filters disabled": "Filtros desativados",
       "Seen-post dimming on": "Esmaecimento de publica\xE7\xF5es vistas ativado",
@@ -3002,6 +3031,7 @@ html.av-reduce-motion *::after {
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} registos \xB7 {files} ficheiros \xB7 {warnings} avisos",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} guardados \xB7 {due} pendentes \xB7 {tags} etiquetas \xB7 {folders} pastas",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} registos \xB7 {surface}",
+      "{count} this session": "{count} nesta sess\xE3o",
       "Forget the stored warnings and errors. Only Aviary's own message text, the time, and the names of its detail fields are ever written here.": "Esquece os avisos e erros armazenados. Aqui s\xE3o gravados apenas o texto das mensagens do Aviary, o hor\xE1rio e os nomes dos seus campos de detalhe.",
       "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "Limpe o hist\xF3rico local limitado de marcadores e seu aviso de desvio. Nenhum texto de publica\xE7\xE3o, nome de usu\xE1rio, URL ou corpo de resposta \xE9 armazenado aqui.",
       "Pause {filename}.": "Pausar {filename}.",
@@ -3044,6 +3074,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "Lote de m\xEDdia ativo",
       "Resume queued media": "Retomar m\xEDdia na fila",
       "Retry failed media": "Tentar novamente m\xEDdias com falha",
+      "Playlists rewritten": "Playlists reescritas",
       "Forget seen posts": "Esquecer publica\xE7\xF5es vistas",
       "Rules that could not be read": "Regras que n\xE3o puderam ser lidas",
       "Open Aviary AI command menu": "Abrir o menu de comandos de IA do Aviary",
@@ -3158,6 +3189,10 @@ html.av-reduce-motion *::after {
       "posts": "publica\xE7\xF5es",
       "offline-ready": "pronto off-line",
       "network may be required": "a rede pode ser necess\xE1ria",
+      "Always play video at the highest quality": "Reproduzir sempre o v\xEDdeo na m\xE1xima qualidade",
+      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "O X escolhe uma qualidade de v\xEDdeo adequada \xE0 tua liga\xE7\xE3o e, numa liga\xE7\xE3o r\xE1pida, fica muitas vezes abaixo da melhor dispon\xEDvel. Isto fixa cada v\xEDdeo na sua resolu\xE7\xE3o m\xE1xima. Consome mais dados.",
+      "Best video quality on": "M\xE1xima qualidade de v\xEDdeo ativada",
+      "Video quality left to X": "Qualidade de v\xEDdeo ao crit\xE9rio do X",
       "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "Oculta os n\xFAmeros de respostas, reposts, curtidas e visualiza\xE7\xF5es. Os controles continuam funcionando e os leitores de tela ainda anunciam os totais.",
       "Original quality is applied when download controls are enabled.": "A qualidade original \xE9 aplicada quando os controlos de transfer\xEAncia est\xE3o ativados.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Um ID de navega\xE7\xE3o est\xE1vel do X por linha: home, explore, notifications, messages, profile, more ou premium.",
@@ -3353,8 +3388,12 @@ html.av-reduce-motion *::after {
       "Recovery": "R\xE9cup\xE9ration",
       "Pause video that scrolls out of view": "Mettre en pause la vid\xE9o qui sort de l'\xE9cran",
       "Stops decoding timeline video once it leaves the screen, and resumes it when it comes back. A video you paused yourself stays paused.": "Arr\xEAte le d\xE9codage de la vid\xE9o du fil d\xE8s qu'elle quitte l'\xE9cran, et la relance \xE0 son retour. Une vid\xE9o que vous avez mise en pause vous-m\xEAme le reste.",
-      "Always play video at the highest quality": "Toujours lire les vid\xE9os en qualit\xE9 maximale",
-      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X choisit une qualit\xE9 vid\xE9o adapt\xE9e \xE0 votre connexion et, sur une connexion rapide, reste souvent en de\xE7\xE0 de la meilleure disponible. Cette option fixe chaque vid\xE9o sur sa d\xE9finition la plus \xE9lev\xE9e. Elle consomme plus de donn\xE9es.",
+      "Keep video playing when the tab loses focus": "Continuer la lecture quand l'onglet perd le focus",
+      "X stops a playing video when you switch tabs. This resumes it when you come back. A video you paused yourself stays paused.": "X arr\xEAte la vid\xE9o en cours quand vous changez d'onglet. Ceci la relance \xE0 votre retour. Une vid\xE9o que vous avez mise en pause le reste.",
+      "Loop videos": "Lire les vid\xE9os en boucle",
+      "Restart a video when it reaches the end instead of stopping.": "Relance la vid\xE9o \xE0 la fin au lieu de l'arr\xEAter.",
+      "Pin video playlists to their best rendition": "Fixer les playlists vid\xE9o sur leur meilleure version",
+      "When X hands Aviary a playlist listing several qualities, keep only the highest. X often settles below the best available on a fast connection. This uses more data, and it can only act on playlists Aviary sees.": "Quand X transmet \xE0 Aviary une playlist listant plusieurs qualit\xE9s, ne garder que la plus \xE9lev\xE9e. Sur une connexion rapide, X se contente souvent d'une qualit\xE9 inf\xE9rieure \xE0 la meilleure disponible. Cela consomme plus de donn\xE9es et n'agit que sur les playlists qu'Aviary voit.",
       "Playback": "Lecture",
       "The download preference applies to every media control.": "La pr\xE9f\xE9rence de t\xE9l\xE9chargement s'applique \xE0 chaque contr\xF4le multim\xE9dia.",
       "Show download buttons": "Afficher les boutons de t\xE9l\xE9chargement",
@@ -3827,8 +3866,12 @@ html.av-reduce-motion *::after {
       "Navigation visibility saved": "Visibilit\xE9 de la navigation enregistr\xE9e",
       "Offscreen video paused": "Vid\xE9o hors \xE9cran mise en pause",
       "Offscreen video left playing": "Vid\xE9o hors \xE9cran laiss\xE9e en lecture",
-      "Best video quality on": "Qualit\xE9 vid\xE9o maximale activ\xE9e",
-      "Video quality left to X": "Qualit\xE9 vid\xE9o laiss\xE9e \xE0 X",
+      "Video keeps playing": "La vid\xE9o continue",
+      "Video pauses with the tab": "La vid\xE9o se met en pause avec l'onglet",
+      "Video looping on": "Lecture en boucle activ\xE9e",
+      "Video looping off": "Lecture en boucle d\xE9sactiv\xE9e",
+      "Playlist pinning on": "Fixation des playlists activ\xE9e",
+      "Playlist pinning off": "Fixation des playlists d\xE9sactiv\xE9e",
       "Filters enabled": "Filtres activ\xE9s",
       "Filters disabled": "Filtres d\xE9sactiv\xE9s",
       "Seen-post dimming on": "Att\xE9nuation des posts vus activ\xE9e",
@@ -3901,6 +3944,7 @@ html.av-reduce-motion *::after {
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} enregistrements \xB7 {files} fichiers \xB7 {warnings} avertissements",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} enregistr\xE9s \xB7 {due} \xE0 traiter \xB7 {tags} tags \xB7 {folders} dossiers",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} enregistrements \xB7 {surface}",
+      "{count} this session": "{count} durant cette session",
       "Forget the stored warnings and errors. Only Aviary's own message text, the time, and the names of its detail fields are ever written here.": "Oublie les avertissements et erreurs stock\xE9s. Seuls le texte des messages d'Aviary, l'heure et les noms de ses champs de d\xE9tail sont \xE9crits ici.",
       "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "Effacez l\u2019historique local limit\xE9 des marqueurs et son avertissement de d\xE9rive. Aucun texte de publication, identifiant, URL ou corps de r\xE9ponse n\u2019est stock\xE9 ici.",
       "Pause {filename}.": "Mettre {filename} en pause.",
@@ -3943,6 +3987,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "Lot de m\xE9dias actif",
       "Resume queued media": "Reprendre les m\xE9dias en file",
       "Retry failed media": "R\xE9essayer les m\xE9dias \xE9chou\xE9s",
+      "Playlists rewritten": "Playlists r\xE9\xE9crites",
       "Forget seen posts": "Oublier les posts vus",
       "Rules that could not be read": "R\xE8gles illisibles",
       "Open Aviary AI command menu": "Ouvrir le menu de commandes IA d'Aviary",
@@ -4057,6 +4102,10 @@ html.av-reduce-motion *::after {
       "posts": "publications",
       "offline-ready": "pr\xEAt hors ligne",
       "network may be required": "r\xE9seau potentiellement n\xE9cessaire",
+      "Always play video at the highest quality": "Toujours lire les vid\xE9os en qualit\xE9 maximale",
+      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X choisit une qualit\xE9 vid\xE9o adapt\xE9e \xE0 votre connexion et, sur une connexion rapide, reste souvent en de\xE7\xE0 de la meilleure disponible. Cette option fixe chaque vid\xE9o sur sa d\xE9finition la plus \xE9lev\xE9e. Elle consomme plus de donn\xE9es.",
+      "Best video quality on": "Qualit\xE9 vid\xE9o maximale activ\xE9e",
+      "Video quality left to X": "Qualit\xE9 vid\xE9o laiss\xE9e \xE0 X",
       "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "Masque le nombre de r\xE9ponses, de republications, de mentions J\u2019aime et de vues. Les contr\xF4les fonctionnent toujours et les lecteurs d\u2019\xE9cran annoncent encore les totaux.",
       "Original quality is applied when download controls are enabled.": "La qualit\xE9 d'origine est appliqu\xE9e lorsque les contr\xF4les de t\xE9l\xE9chargement sont activ\xE9s.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Un identifiant de navigation X stable par ligne : home, explore, notifications, messages, profile, more ou premium.",
@@ -4252,8 +4301,12 @@ html.av-reduce-motion *::after {
       "Recovery": "Wiederherstellung",
       "Pause video that scrolls out of view": "Video pausieren, das aus dem Bild scrollt",
       "Stops decoding timeline video once it leaves the screen, and resumes it when it comes back. A video you paused yourself stays paused.": "Beendet das Dekodieren von Timeline-Videos, sobald sie aus dem Bild scrollen, und setzt sie bei der R\xFCckkehr fort. Ein selbst pausiertes Video bleibt pausiert.",
-      "Always play video at the highest quality": "Videos immer in h\xF6chster Qualit\xE4t abspielen",
-      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X w\xE4hlt eine Videoqualit\xE4t passend zu deiner Verbindung und bleibt bei schnellen Verbindungen oft unter der bestm\xF6glichen. Dies legt jedes Video auf seine h\xF6chste Aufl\xF6sung fest. Es verbraucht mehr Daten.",
+      "Keep video playing when the tab loses focus": "Video weiterlaufen lassen, wenn der Tab den Fokus verliert",
+      "X stops a playing video when you switch tabs. This resumes it when you come back. A video you paused yourself stays paused.": "X stoppt ein laufendes Video, wenn du den Tab wechselst. Dies setzt es bei deiner R\xFCckkehr fort. Ein Video, das du selbst pausiert hast, bleibt pausiert.",
+      "Loop videos": "Videos wiederholen",
+      "Restart a video when it reaches the end instead of stopping.": "Startet ein Video am Ende neu, statt es anzuhalten.",
+      "Pin video playlists to their best rendition": "Video-Playlists auf ihre beste Fassung festlegen",
+      "When X hands Aviary a playlist listing several qualities, keep only the highest. X often settles below the best available on a fast connection. This uses more data, and it can only act on playlists Aviary sees.": "Wenn X eine Playlist mit mehreren Qualit\xE4ten \xFCbergibt, nur die h\xF6chste behalten. Bei schneller Verbindung bleibt X oft unter der besten verf\xFCgbaren. Das verbraucht mehr Daten und wirkt nur auf Playlists, die Aviary zu sehen bekommt.",
       "Playback": "Wiedergabe",
       "The download preference applies to every media control.": "Die Download-Einstellung gilt f\xFCr jedes Mediensteuerelement.",
       "Show download buttons": "Download-Schaltfl\xE4chen anzeigen",
@@ -4726,8 +4779,12 @@ html.av-reduce-motion *::after {
       "Navigation visibility saved": "Sichtbarkeit der Navigation gespeichert",
       "Offscreen video paused": "Video au\xDFerhalb des Bilds pausiert",
       "Offscreen video left playing": "Video au\xDFerhalb des Bilds l\xE4uft weiter",
-      "Best video quality on": "Beste Videoqualit\xE4t an",
-      "Video quality left to X": "Videoqualit\xE4t bleibt X \xFCberlassen",
+      "Video keeps playing": "Video l\xE4uft weiter",
+      "Video pauses with the tab": "Video pausiert mit dem Tab",
+      "Video looping on": "Videowiederholung an",
+      "Video looping off": "Videowiederholung aus",
+      "Playlist pinning on": "Playlist-Festlegung an",
+      "Playlist pinning off": "Playlist-Festlegung aus",
       "Filters enabled": "Filter aktiviert",
       "Filters disabled": "Filter deaktiviert",
       "Seen-post dimming on": "Abblenden gesehener Beitr\xE4ge an",
@@ -4800,6 +4857,7 @@ html.av-reduce-motion *::after {
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} Datens\xE4tze \xB7 {files} Dateien \xB7 {warnings} Warnungen",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} gespeichert \xB7 {due} f\xE4llig \xB7 {tags} Tags \xB7 {folders} Ordner",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} Datens\xE4tze \xB7 {surface}",
+      "{count} this session": "{count} in dieser Sitzung",
       "Forget the stored warnings and errors. Only Aviary's own message text, the time, and the names of its detail fields are ever written here.": "Verwirft die gespeicherten Warnungen und Fehler. Hier werden nur Aviarys eigener Meldungstext, die Uhrzeit und die Namen seiner Detailfelder abgelegt.",
       "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "L\xF6scht den begrenzten lokalen Markerverlauf und seine Abweichungswarnung. Beitragstexte, Handles, URLs oder Antwortinhalte werden hier nicht gespeichert.",
       "Pause {filename}.": "{filename} pausieren.",
@@ -4842,6 +4900,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "Aktiver Medienbatch",
       "Resume queued media": "Wartende Medien fortsetzen",
       "Retry failed media": "Fehlgeschlagene Medien erneut versuchen",
+      "Playlists rewritten": "Umgeschriebene Playlists",
       "Forget seen posts": "Gesehene Beitr\xE4ge vergessen",
       "Rules that could not be read": "Nicht lesbare Regeln",
       "Open Aviary AI command menu": "Aviarys KI-Befehlsmen\xFC \xF6ffnen",
@@ -4956,6 +5015,10 @@ html.av-reduce-motion *::after {
       "posts": "Beitr\xE4ge",
       "offline-ready": "offline-fertig",
       "network may be required": "Netzwerk eventuell erforderlich",
+      "Always play video at the highest quality": "Videos immer in h\xF6chster Qualit\xE4t abspielen",
+      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X w\xE4hlt eine Videoqualit\xE4t passend zu deiner Verbindung und bleibt bei schnellen Verbindungen oft unter der bestm\xF6glichen. Dies legt jedes Video auf seine h\xF6chste Aufl\xF6sung fest. Es verbraucht mehr Daten.",
+      "Best video quality on": "Beste Videoqualit\xE4t an",
+      "Video quality left to X": "Videoqualit\xE4t bleibt X \xFCberlassen",
       "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "Blendet die Zahlen f\xFCr Antworten, Reposts, Likes und Aufrufe aus. Die Bedienelemente funktionieren weiter, und Screenreader nennen die Summen weiterhin.",
       "Original quality is applied when download controls are enabled.": "Originalqualit\xE4t wird angewendet, wenn die Download-Steuerelemente aktiviert sind.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "Eine stabile X-Navigations-ID pro Zeile: home, explore, notifications, messages, profile, more oder premium.",
@@ -5151,8 +5214,12 @@ html.av-reduce-motion *::after {
       "Recovery": "\u5FA9\u65E7",
       "Pause video that scrolls out of view": "\u753B\u9762\u5916\u306B\u51FA\u305F\u52D5\u753B\u3092\u4E00\u6642\u505C\u6B62",
       "Stops decoding timeline video once it leaves the screen, and resumes it when it comes back. A video you paused yourself stays paused.": "\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u306E\u52D5\u753B\u304C\u753B\u9762\u5916\u306B\u51FA\u308B\u3068\u30C7\u30B3\u30FC\u30C9\u3092\u505C\u6B62\u3057\u3001\u623B\u308B\u3068\u518D\u958B\u3057\u307E\u3059\u3002\u81EA\u5206\u3067\u4E00\u6642\u505C\u6B62\u3057\u305F\u52D5\u753B\u306F\u305D\u306E\u307E\u307E\u3067\u3059\u3002",
-      "Always play video at the highest quality": "\u52D5\u753B\u3092\u5E38\u306B\u6700\u9AD8\u753B\u8CEA\u3067\u518D\u751F\u3059\u308B",
-      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X \u306F\u63A5\u7D9A\u72B6\u6CC1\u306B\u5408\u308F\u305B\u3066\u753B\u8CEA\u3092\u9078\u3076\u305F\u3081\u3001\u9AD8\u901F\u306A\u56DE\u7DDA\u3067\u3082\u5229\u7528\u53EF\u80FD\u306A\u6700\u9AD8\u753B\u8CEA\u3088\u308A\u4F4E\u304F\u843D\u3061\u7740\u304F\u3053\u3068\u304C\u3088\u304F\u3042\u308A\u307E\u3059\u3002\u3053\u306E\u8A2D\u5B9A\u306F\u3059\u3079\u3066\u306E\u52D5\u753B\u3092\u6700\u9AD8\u753B\u8CEA\u306B\u56FA\u5B9A\u3057\u307E\u3059\u3002\u901A\u4FE1\u91CF\u306F\u5897\u3048\u307E\u3059\u3002",
+      "Keep video playing when the tab loses focus": "\u30BF\u30D6\u304C\u975E\u30A2\u30AF\u30C6\u30A3\u30D6\u3067\u3082\u52D5\u753B\u3092\u518D\u751F\u3057\u7D9A\u3051\u308B",
+      "X stops a playing video when you switch tabs. This resumes it when you come back. A video you paused yourself stays paused.": "X \u306F\u30BF\u30D6\u3092\u5207\u308A\u66FF\u3048\u308B\u3068\u518D\u751F\u4E2D\u306E\u52D5\u753B\u3092\u505C\u6B62\u3057\u307E\u3059\u3002\u3053\u308C\u306F\u623B\u3063\u305F\u3068\u304D\u306B\u518D\u958B\u3057\u307E\u3059\u3002\u81EA\u5206\u3067\u4E00\u6642\u505C\u6B62\u3057\u305F\u52D5\u753B\u306F\u505C\u6B62\u3057\u305F\u307E\u307E\u3067\u3059\u3002",
+      "Loop videos": "\u52D5\u753B\u3092\u30EB\u30FC\u30D7\u518D\u751F",
+      "Restart a video when it reaches the end instead of stopping.": "\u52D5\u753B\u304C\u7D42\u308F\u3063\u305F\u3089\u505C\u6B62\u305B\u305A\u306B\u6700\u521D\u304B\u3089\u518D\u751F\u3057\u307E\u3059\u3002",
+      "Pin video playlists to their best rendition": "\u52D5\u753B\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u3092\u6700\u9AD8\u753B\u8CEA\u306B\u56FA\u5B9A",
+      "When X hands Aviary a playlist listing several qualities, keep only the highest. X often settles below the best available on a fast connection. This uses more data, and it can only act on playlists Aviary sees.": "\u8907\u6570\u306E\u753B\u8CEA\u3092\u542B\u3080\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u304C Aviary \u306B\u6E21\u3055\u308C\u305F\u5834\u5408\u3001\u6700\u3082\u9AD8\u3044\u753B\u8CEA\u3060\u3051\u3092\u6B8B\u3057\u307E\u3059\u3002\u9AD8\u901F\u56DE\u7DDA\u3067\u3082 X \u306F\u6700\u9AD8\u753B\u8CEA\u3088\u308A\u4F4E\u3044\u753B\u8CEA\u3092\u9078\u3076\u3053\u3068\u304C\u3088\u304F\u3042\u308A\u307E\u3059\u3002\u30C7\u30FC\u30BF\u4F7F\u7528\u91CF\u304C\u5897\u3048\u3001Aviary \u304C\u5B9F\u969B\u306B\u898B\u305F\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u306B\u3057\u304B\u4F5C\u7528\u3057\u307E\u305B\u3093\u3002",
       "Playback": "\u518D\u751F",
       "The download preference applies to every media control.": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u8A2D\u5B9A\u306F\u3059\u3079\u3066\u306E\u30E1\u30C7\u30A3\u30A2\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u306B\u9069\u7528\u3055\u308C\u307E\u3059\u3002",
       "Show download buttons": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u30DC\u30BF\u30F3\u3092\u8868\u793A",
@@ -5625,8 +5692,12 @@ html.av-reduce-motion *::after {
       "Navigation visibility saved": "\u30CA\u30D3\u30B2\u30FC\u30B7\u30E7\u30F3\u8868\u793A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Offscreen video paused": "\u753B\u9762\u5916\u306E\u52D5\u753B\u3092\u4E00\u6642\u505C\u6B62\u3057\u307E\u3057\u305F",
       "Offscreen video left playing": "\u753B\u9762\u5916\u306E\u52D5\u753B\u306F\u518D\u751F\u3057\u305F\u307E\u307E\u306B\u3057\u307E\u3059",
-      "Best video quality on": "\u6700\u9AD8\u753B\u8CEA\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
-      "Video quality left to X": "\u753B\u8CEA\u306F X \u306B\u4EFB\u305B\u307E\u3059",
+      "Video keeps playing": "\u52D5\u753B\u306E\u518D\u751F\u3092\u7D99\u7D9A\u3057\u307E\u3059",
+      "Video pauses with the tab": "\u30BF\u30D6\u306B\u5408\u308F\u305B\u3066\u52D5\u753B\u3092\u4E00\u6642\u505C\u6B62\u3057\u307E\u3059",
+      "Video looping on": "\u52D5\u753B\u306E\u30EB\u30FC\u30D7\u518D\u751F\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
+      "Video looping off": "\u52D5\u753B\u306E\u30EB\u30FC\u30D7\u518D\u751F\u3092\u30AA\u30D5\u306B\u3057\u307E\u3057\u305F",
+      "Playlist pinning on": "\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u56FA\u5B9A\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
+      "Playlist pinning off": "\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8\u56FA\u5B9A\u3092\u30AA\u30D5\u306B\u3057\u307E\u3057\u305F",
       "Filters enabled": "\u30D5\u30A3\u30EB\u30BF\u30FC\u3092\u6709\u52B9\u306B\u3057\u307E\u3057\u305F",
       "Filters disabled": "\u30D5\u30A3\u30EB\u30BF\u30FC\u3092\u7121\u52B9\u306B\u3057\u307E\u3057\u305F",
       "Seen-post dimming on": "\u65E2\u8AAD\u6295\u7A3F\u306E\u6E1B\u5149\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
@@ -5699,6 +5770,7 @@ html.av-reduce-motion *::after {
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records}\u4EF6 \xB7 {files}\u30D5\u30A1\u30A4\u30EB \xB7 \u8B66\u544A{warnings}\u4EF6",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "\u4FDD\u5B58\u6E08\u307F{saved}\u4EF6 \xB7 \u671F\u9650{due}\u4EF6 \xB7 \u30BF\u30B0{tags}\u4EF6 \xB7 \u30D5\u30A9\u30EB\u30C0\u30FC{folders}\u4EF6",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records}\u4EF6 \xB7 {surface}",
+      "{count} this session": "\u3053\u306E\u30BB\u30C3\u30B7\u30E7\u30F3\u3067 {count} \u4EF6",
       "Forget the stored warnings and errors. Only Aviary's own message text, the time, and the names of its detail fields are ever written here.": "\u4FDD\u5B58\u3055\u308C\u305F\u8B66\u544A\u3068\u30A8\u30E9\u30FC\u3092\u7834\u68C4\u3057\u307E\u3059\u3002\u3053\u3053\u306B\u66F8\u304D\u8FBC\u307E\u308C\u308B\u306E\u306F Aviary \u81EA\u8EAB\u306E\u30E1\u30C3\u30BB\u30FC\u30B8\u6587\u3001\u6642\u523B\u3001\u8A73\u7D30\u30D5\u30A3\u30FC\u30EB\u30C9\u306E\u540D\u524D\u3060\u3051\u3067\u3059\u3002",
       "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "\u4E0A\u9650\u4ED8\u304D\u306E\u30ED\u30FC\u30AB\u30EB\u306A\u30DE\u30FC\u30AB\u30FC\u5C65\u6B74\u3068\u5909\u5316\u8B66\u544A\u3092\u6D88\u53BB\u3057\u307E\u3059\u3002\u6295\u7A3F\u672C\u6587\u3001\u30CF\u30F3\u30C9\u30EB\u540D\u3001URL\u3001\u30EC\u30B9\u30DD\u30F3\u30B9\u672C\u6587\u306F\u3053\u3053\u306B\u306F\u4FDD\u5B58\u3055\u308C\u307E\u305B\u3093\u3002",
       "Pause {filename}.": "{filename}\u3092\u4E00\u6642\u505C\u6B62\u3002",
@@ -5741,6 +5813,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30E1\u30C7\u30A3\u30A2\u30D0\u30C3\u30C1",
       "Resume queued media": "\u30AD\u30E5\u30FC\u5185\u306E\u30E1\u30C7\u30A3\u30A2\u3092\u518D\u958B",
       "Retry failed media": "\u5931\u6557\u3057\u305F\u30E1\u30C7\u30A3\u30A2\u3092\u518D\u8A66\u884C",
+      "Playlists rewritten": "\u66F8\u304D\u63DB\u3048\u305F\u30D7\u30EC\u30A4\u30EA\u30B9\u30C8",
       "Forget seen posts": "\u65E2\u8AAD\u306E\u6295\u7A3F\u3092\u5FD8\u308C\u308B",
       "Rules that could not be read": "\u8AAD\u307F\u53D6\u308C\u306A\u304B\u3063\u305F\u30EB\u30FC\u30EB",
       "Open Aviary AI command menu": "Aviary \u306E AI \u30B3\u30DE\u30F3\u30C9\u30E1\u30CB\u30E5\u30FC\u3092\u958B\u304F",
@@ -5855,6 +5928,10 @@ html.av-reduce-motion *::after {
       "posts": "\u4EF6\u306E\u6295\u7A3F",
       "offline-ready": "\u30AA\u30D5\u30E9\u30A4\u30F3\u5BFE\u5FDC",
       "network may be required": "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u304C\u5FC5\u8981\u306A\u5834\u5408\u304C\u3042\u308A\u307E\u3059",
+      "Always play video at the highest quality": "\u52D5\u753B\u3092\u5E38\u306B\u6700\u9AD8\u753B\u8CEA\u3067\u518D\u751F\u3059\u308B",
+      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X \u306F\u63A5\u7D9A\u72B6\u6CC1\u306B\u5408\u308F\u305B\u3066\u753B\u8CEA\u3092\u9078\u3076\u305F\u3081\u3001\u9AD8\u901F\u306A\u56DE\u7DDA\u3067\u3082\u5229\u7528\u53EF\u80FD\u306A\u6700\u9AD8\u753B\u8CEA\u3088\u308A\u4F4E\u304F\u843D\u3061\u7740\u304F\u3053\u3068\u304C\u3088\u304F\u3042\u308A\u307E\u3059\u3002\u3053\u306E\u8A2D\u5B9A\u306F\u3059\u3079\u3066\u306E\u52D5\u753B\u3092\u6700\u9AD8\u753B\u8CEA\u306B\u56FA\u5B9A\u3057\u307E\u3059\u3002\u901A\u4FE1\u91CF\u306F\u5897\u3048\u307E\u3059\u3002",
+      "Best video quality on": "\u6700\u9AD8\u753B\u8CEA\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
+      "Video quality left to X": "\u753B\u8CEA\u306F X \u306B\u4EFB\u305B\u307E\u3059",
       "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "\u8FD4\u4FE1\u30FB\u30EA\u30DD\u30B9\u30C8\u30FB\u3044\u3044\u306D\u30FB\u8868\u793A\u56DE\u6570\u3092\u96A0\u3057\u307E\u3059\u3002\u64CD\u4F5C\u306F\u5F15\u304D\u7D9A\u304D\u6A5F\u80FD\u3057\u3001\u30B9\u30AF\u30EA\u30FC\u30F3\u30EA\u30FC\u30C0\u30FC\u306F\u5408\u8A08\u3092\u8AAD\u307F\u4E0A\u3052\u307E\u3059\u3002",
       "Original quality is applied when download controls are enabled.": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u3092\u6709\u52B9\u306B\u3059\u308B\u3068\u30AA\u30EA\u30B8\u30CA\u30EB\u753B\u8CEA\u304C\u9069\u7528\u3055\u308C\u307E\u3059\u3002",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "1\u884C\u306B1\u3064\u306E\u5B89\u5B9A\u3057\u305FX\u30CA\u30D3\u30B2\u30FC\u30B7\u30E7\u30F3ID\u3092\u5165\u529B\u3057\u307E\u3059: home\u3001explore\u3001notifications\u3001messages\u3001profile\u3001more\u3001premium\u3002",
@@ -6050,8 +6127,12 @@ html.av-reduce-motion *::after {
       "Recovery": "\uBCF5\uAD6C",
       "Pause video that scrolls out of view": "\uD654\uBA74 \uBC16\uC73C\uB85C \uB098\uAC04 \uB3D9\uC601\uC0C1 \uC77C\uC2DC\uC815\uC9C0",
       "Stops decoding timeline video once it leaves the screen, and resumes it when it comes back. A video you paused yourself stays paused.": "\uD0C0\uC784\uB77C\uC778 \uB3D9\uC601\uC0C1\uC774 \uD654\uBA74 \uBC16\uC73C\uB85C \uB098\uAC00\uBA74 \uB514\uCF54\uB529\uC744 \uBA48\uCD94\uACE0, \uB2E4\uC2DC \uBCF4\uC774\uBA74 \uC7AC\uC0DD\uD569\uB2C8\uB2E4. \uC9C1\uC811 \uC77C\uC2DC\uC815\uC9C0\uD55C \uB3D9\uC601\uC0C1\uC740 \uADF8\uB300\uB85C \uC720\uC9C0\uB429\uB2C8\uB2E4.",
-      "Always play video at the highest quality": "\uD56D\uC0C1 \uCD5C\uACE0 \uD654\uC9C8\uB85C \uB3D9\uC601\uC0C1 \uC7AC\uC0DD",
-      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X\uB294 \uC5F0\uACB0 \uC0C1\uD0DC\uC5D0 \uB9DE\uCDB0 \uD654\uC9C8\uC744 \uACE0\uB974\uAE30 \uB54C\uBB38\uC5D0, \uBE60\uB978 \uD68C\uC120\uC5D0\uC11C\uB3C4 \uC0AC\uC6A9\uD560 \uC218 \uC788\uB294 \uCD5C\uACE0 \uD654\uC9C8\uBCF4\uB2E4 \uB0AE\uAC8C \uBA38\uBB34\uB294 \uACBD\uC6B0\uAC00 \uB9CE\uC2B5\uB2C8\uB2E4. \uC774 \uC124\uC815\uC740 \uBAA8\uB4E0 \uB3D9\uC601\uC0C1\uC744 \uCD5C\uACE0 \uD654\uC9C8\uB85C \uACE0\uC815\uD569\uB2C8\uB2E4. \uB370\uC774\uD130\uB97C \uB354 \uC0AC\uC6A9\uD569\uB2C8\uB2E4.",
+      "Keep video playing when the tab loses focus": "\uD0ED\uC774 \uBE44\uD65C\uC131\uD654\uB418\uC5B4\uB3C4 \uB3D9\uC601\uC0C1 \uACC4\uC18D \uC7AC\uC0DD",
+      "X stops a playing video when you switch tabs. This resumes it when you come back. A video you paused yourself stays paused.": "X\uB294 \uD0ED\uC744 \uC804\uD658\uD558\uBA74 \uC7AC\uC0DD \uC911\uC778 \uB3D9\uC601\uC0C1\uC744 \uBA48\uCDA5\uB2C8\uB2E4. \uC774 \uC124\uC815\uC740 \uB3CC\uC544\uC654\uC744 \uB54C \uB2E4\uC2DC \uC7AC\uC0DD\uD569\uB2C8\uB2E4. \uC9C1\uC811 \uC77C\uC2DC\uC815\uC9C0\uD55C \uB3D9\uC601\uC0C1\uC740 \uADF8\uB300\uB85C \uBA48\uCDB0 \uC788\uC2B5\uB2C8\uB2E4.",
+      "Loop videos": "\uB3D9\uC601\uC0C1 \uBC18\uBCF5 \uC7AC\uC0DD",
+      "Restart a video when it reaches the end instead of stopping.": "\uB3D9\uC601\uC0C1\uC774 \uB05D\uB098\uBA74 \uBA48\uCD94\uC9C0 \uC54A\uACE0 \uCC98\uC74C\uBD80\uD130 \uB2E4\uC2DC \uC7AC\uC0DD\uD569\uB2C8\uB2E4.",
+      "Pin video playlists to their best rendition": "\uB3D9\uC601\uC0C1 \uC7AC\uC0DD\uBAA9\uB85D\uC744 \uCD5C\uACE0 \uD654\uC9C8\uB85C \uACE0\uC815",
+      "When X hands Aviary a playlist listing several qualities, keep only the highest. X often settles below the best available on a fast connection. This uses more data, and it can only act on playlists Aviary sees.": "\uC5EC\uB7EC \uD654\uC9C8\uC774 \uB2F4\uAE34 \uC7AC\uC0DD\uBAA9\uB85D\uC774 Aviary\uC5D0 \uC804\uB2EC\uB418\uBA74 \uAC00\uC7A5 \uB192\uC740 \uD654\uC9C8\uB9CC \uB0A8\uAE41\uB2C8\uB2E4. \uBE60\uB978 \uC5F0\uACB0\uC5D0\uC11C\uB3C4 X\uB294 \uCD5C\uACE0 \uD654\uC9C8\uBCF4\uB2E4 \uB0AE\uC740 \uAC12\uC744 \uC120\uD0DD\uD558\uB294 \uACBD\uC6B0\uAC00 \uB9CE\uC2B5\uB2C8\uB2E4. \uB370\uC774\uD130 \uC0AC\uC6A9\uB7C9\uC774 \uB298\uC5B4\uB098\uBA70, Aviary\uAC00 \uC2E4\uC81C\uB85C \uBCF8 \uC7AC\uC0DD\uBAA9\uB85D\uC5D0\uB9CC \uC801\uC6A9\uB429\uB2C8\uB2E4.",
       "Playback": "\uC7AC\uC0DD",
       "The download preference applies to every media control.": "\uB2E4\uC6B4\uB85C\uB4DC \uD658\uACBD\uC124\uC815\uC740 \uBAA8\uB4E0 \uBBF8\uB514\uC5B4 \uCEE8\uD2B8\uB864\uC5D0 \uC801\uC6A9\uB429\uB2C8\uB2E4.",
       "Show download buttons": "\uB2E4\uC6B4\uB85C\uB4DC \uBC84\uD2BC \uD45C\uC2DC",
@@ -6524,8 +6605,12 @@ html.av-reduce-motion *::after {
       "Navigation visibility saved": "\uB0B4\uBE44\uAC8C\uC774\uC158 \uD45C\uC2DC\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Offscreen video paused": "\uD654\uBA74 \uBC16 \uB3D9\uC601\uC0C1\uC744 \uC77C\uC2DC\uC815\uC9C0\uD568",
       "Offscreen video left playing": "\uD654\uBA74 \uBC16 \uB3D9\uC601\uC0C1\uC744 \uACC4\uC18D \uC7AC\uC0DD\uD568",
-      "Best video quality on": "\uCD5C\uACE0 \uD654\uC9C8\uC744 \uCF30\uC2B5\uB2C8\uB2E4",
-      "Video quality left to X": "\uD654\uC9C8\uC740 X\uC5D0 \uB9E1\uAE41\uB2C8\uB2E4",
+      "Video keeps playing": "\uB3D9\uC601\uC0C1\uC774 \uACC4\uC18D \uC7AC\uC0DD\uB429\uB2C8\uB2E4",
+      "Video pauses with the tab": "\uD0ED\uACFC \uD568\uAED8 \uB3D9\uC601\uC0C1\uC774 \uBA48\uCDA5\uB2C8\uB2E4",
+      "Video looping on": "\uB3D9\uC601\uC0C1 \uBC18\uBCF5 \uC7AC\uC0DD\uC744 \uCF30\uC2B5\uB2C8\uB2E4",
+      "Video looping off": "\uB3D9\uC601\uC0C1 \uBC18\uBCF5 \uC7AC\uC0DD\uC744 \uAED0\uC2B5\uB2C8\uB2E4",
+      "Playlist pinning on": "\uC7AC\uC0DD\uBAA9\uB85D \uACE0\uC815\uC744 \uCF30\uC2B5\uB2C8\uB2E4",
+      "Playlist pinning off": "\uC7AC\uC0DD\uBAA9\uB85D \uACE0\uC815\uC744 \uAED0\uC2B5\uB2C8\uB2E4",
       "Filters enabled": "\uD544\uD130\uB97C \uCF30\uC2B5\uB2C8\uB2E4",
       "Filters disabled": "\uD544\uD130\uB97C \uAED0\uC2B5\uB2C8\uB2E4",
       "Seen-post dimming on": "\uBCF8 \uAC8C\uC2DC\uBB3C \uD750\uB9AC\uAC8C \uD45C\uC2DC\uB97C \uCF30\uC2B5\uB2C8\uB2E4",
@@ -6598,6 +6683,7 @@ html.av-reduce-motion *::after {
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 \uB808\uCF54\uB4DC {records}\uAC1C \xB7 \uD30C\uC77C {files}\uAC1C \xB7 \uACBD\uACE0 {warnings}\uAC1C",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "\uC800\uC7A5 {saved}\uAC1C \xB7 \uC608\uC815 {due}\uAC1C \xB7 \uD0DC\uADF8 {tags}\uAC1C \xB7 \uD3F4\uB354 {folders}\uAC1C",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 \uB808\uCF54\uB4DC {records}\uAC1C \xB7 {surface}",
+      "{count} this session": "\uC774\uBC88 \uC138\uC158\uC5D0\uC11C {count}\uAC1C",
       "Forget the stored warnings and errors. Only Aviary's own message text, the time, and the names of its detail fields are ever written here.": "\uC800\uC7A5\uB41C \uACBD\uACE0\uC640 \uC624\uB958\uB97C \uC0AD\uC81C\uD569\uB2C8\uB2E4. \uC5EC\uAE30\uC5D0\uB294 Aviary \uC790\uCCB4 \uBA54\uC2DC\uC9C0 \uD14D\uC2A4\uD2B8, \uC2DC\uAC01, \uC138\uBD80 \uD544\uB4DC \uC774\uB984\uB9CC \uAE30\uB85D\uB429\uB2C8\uB2E4.",
       "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "\uC81C\uD55C\uB41C \uB85C\uCEEC \uB9C8\uCEE4 \uAE30\uB85D\uACFC \uBCC0\uD654 \uACBD\uACE0\uB97C \uC9C0\uC6C1\uB2C8\uB2E4. \uAC8C\uC2DC\uBB3C \uD14D\uC2A4\uD2B8, \uD578\uB4E4, URL \uB610\uB294 \uC751\uB2F5 \uBCF8\uBB38\uC740 \uC5EC\uAE30\uC5D0 \uC800\uC7A5\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
       "Pause {filename}.": "{filename} \uC77C\uC2DC \uC911\uC9C0.",
@@ -6640,6 +6726,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "\uD65C\uC131 \uBBF8\uB514\uC5B4 \uBC30\uCE58",
       "Resume queued media": "\uB300\uAE30 \uC911\uC778 \uBBF8\uB514\uC5B4 \uC7AC\uAC1C",
       "Retry failed media": "\uC2E4\uD328\uD55C \uBBF8\uB514\uC5B4 \uB2E4\uC2DC \uC2DC\uB3C4",
+      "Playlists rewritten": "\uB2E4\uC2DC \uC791\uC131\uB41C \uC7AC\uC0DD\uBAA9\uB85D",
       "Forget seen posts": "\uBCF8 \uAC8C\uC2DC\uBB3C \uAE30\uB85D \uC9C0\uC6B0\uAE30",
       "Rules that could not be read": "\uC77D\uC744 \uC218 \uC5C6\uB294 \uADDC\uCE59",
       "Open Aviary AI command menu": "Aviary AI \uBA85\uB839 \uBA54\uB274 \uC5F4\uAE30",
@@ -6754,6 +6841,10 @@ html.av-reduce-motion *::after {
       "posts": "\uAC1C \uAC8C\uC2DC\uBB3C",
       "offline-ready": "\uC624\uD504\uB77C\uC778 \uC900\uBE44\uB428",
       "network may be required": "\uB124\uD2B8\uC6CC\uD06C\uAC00 \uD544\uC694\uD560 \uC218 \uC788\uC74C",
+      "Always play video at the highest quality": "\uD56D\uC0C1 \uCD5C\uACE0 \uD654\uC9C8\uB85C \uB3D9\uC601\uC0C1 \uC7AC\uC0DD",
+      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X\uB294 \uC5F0\uACB0 \uC0C1\uD0DC\uC5D0 \uB9DE\uCDB0 \uD654\uC9C8\uC744 \uACE0\uB974\uAE30 \uB54C\uBB38\uC5D0, \uBE60\uB978 \uD68C\uC120\uC5D0\uC11C\uB3C4 \uC0AC\uC6A9\uD560 \uC218 \uC788\uB294 \uCD5C\uACE0 \uD654\uC9C8\uBCF4\uB2E4 \uB0AE\uAC8C \uBA38\uBB34\uB294 \uACBD\uC6B0\uAC00 \uB9CE\uC2B5\uB2C8\uB2E4. \uC774 \uC124\uC815\uC740 \uBAA8\uB4E0 \uB3D9\uC601\uC0C1\uC744 \uCD5C\uACE0 \uD654\uC9C8\uB85C \uACE0\uC815\uD569\uB2C8\uB2E4. \uB370\uC774\uD130\uB97C \uB354 \uC0AC\uC6A9\uD569\uB2C8\uB2E4.",
+      "Best video quality on": "\uCD5C\uACE0 \uD654\uC9C8\uC744 \uCF30\uC2B5\uB2C8\uB2E4",
+      "Video quality left to X": "\uD654\uC9C8\uC740 X\uC5D0 \uB9E1\uAE41\uB2C8\uB2E4",
       "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "\uB2F5\uAE00\xB7\uC7AC\uAC8C\uC2DC\xB7\uB9C8\uC74C\uC5D0 \uB4E4\uC5B4\uC694\xB7\uC870\uD68C \uC218\uB97C \uC228\uAE41\uB2C8\uB2E4. \uCEE8\uD2B8\uB864\uC740 \uADF8\uB300\uB85C \uC791\uB3D9\uD558\uACE0 \uC2A4\uD06C\uB9B0 \uB9AC\uB354\uB294 \uD569\uACC4\uB97C \uACC4\uC18D \uC77D\uC5B4 \uC90D\uB2C8\uB2E4.",
       "Original quality is applied when download controls are enabled.": "\uB2E4\uC6B4\uB85C\uB4DC \uCEE8\uD2B8\uB864\uC744 \uCF1C\uBA74 \uC6D0\uBCF8 \uD654\uC9C8\uC774 \uC801\uC6A9\uB429\uB2C8\uB2E4.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "\uC904\uB9C8\uB2E4 \uC548\uC815\uC801\uC778 X \uB0B4\uBE44\uAC8C\uC774\uC158 ID \uD558\uB098\uB97C \uC785\uB825\uD558\uC138\uC694: home, explore, notifications, messages, profile, more \uB610\uB294 premium.",
@@ -6949,8 +7040,12 @@ html.av-reduce-motion *::after {
       "Recovery": "\u0627\u0644\u0627\u0633\u062A\u0631\u062F\u0627\u062F",
       "Pause video that scrolls out of view": "\u0625\u064A\u0642\u0627\u0641 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u0645\u0624\u0642\u062A\u064B\u0627 \u0639\u0646\u062F \u062E\u0631\u0648\u062C\u0647 \u0645\u0646 \u0627\u0644\u0634\u0627\u0634\u0629",
       "Stops decoding timeline video once it leaves the screen, and resumes it when it comes back. A video you paused yourself stays paused.": "\u064A\u0648\u0642\u0641 \u0641\u0643 \u062A\u0631\u0645\u064A\u0632 \u0641\u064A\u062F\u064A\u0648 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \u0639\u0646\u062F \u062E\u0631\u0648\u062C\u0647 \u0645\u0646 \u0627\u0644\u0634\u0627\u0634\u0629\u060C \u0648\u064A\u0633\u062A\u0623\u0646\u0641\u0647 \u0639\u0646\u062F \u0639\u0648\u062F\u062A\u0647. \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u0627\u0644\u0630\u064A \u0623\u0648\u0642\u0641\u062A\u0647 \u0628\u0646\u0641\u0633\u0643 \u064A\u0628\u0642\u0649 \u0645\u062A\u0648\u0642\u0641\u064B\u0627.",
-      "Always play video at the highest quality": "\u062A\u0634\u063A\u064A\u0644 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u062F\u0627\u0626\u0645\u064B\u0627 \u0628\u0623\u0639\u0644\u0649 \u062C\u0648\u062F\u0629",
-      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "\u064A\u062E\u062A\u0627\u0631 X \u062C\u0648\u062F\u0629 \u0641\u064A\u062F\u064A\u0648 \u062A\u0646\u0627\u0633\u0628 \u0627\u062A\u0635\u0627\u0644\u0643\u060C \u0648\u0639\u0644\u0649 \u0627\u0644\u0627\u062A\u0635\u0627\u0644\u0627\u062A \u0627\u0644\u0633\u0631\u064A\u0639\u0629 \u0643\u062B\u064A\u0631\u064B\u0627 \u0645\u0627 \u064A\u0633\u062A\u0642\u0631 \u062F\u0648\u0646 \u0623\u0641\u0636\u0644 \u062C\u0648\u062F\u0629 \u0645\u062A\u0627\u062D\u0629. \u064A\u062B\u0628\u0651\u062A \u0647\u0630\u0627 \u0627\u0644\u062E\u064A\u0627\u0631 \u0643\u0644 \u0641\u064A\u062F\u064A\u0648 \u0639\u0644\u0649 \u0623\u0639\u0644\u0649 \u062C\u0648\u062F\u0629 \u0644\u0647. \u0648\u064A\u0633\u062A\u0647\u0644\u0643 \u0628\u064A\u0627\u0646\u0627\u062A \u0623\u0643\u062B\u0631.",
+      "Keep video playing when the tab loses focus": "\u0645\u062A\u0627\u0628\u0639\u0629 \u062A\u0634\u063A\u064A\u0644 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u0639\u0646\u062F \u0641\u0642\u062F\u0627\u0646 \u0627\u0644\u062A\u0628\u0648\u064A\u0628 \u0644\u0644\u062A\u0631\u0643\u064A\u0632",
+      "X stops a playing video when you switch tabs. This resumes it when you come back. A video you paused yourself stays paused.": "\u064A\u0648\u0642\u0641 X \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u0642\u064A\u062F \u0627\u0644\u062A\u0634\u063A\u064A\u0644 \u0639\u0646\u062F \u062A\u0628\u062F\u064A\u0644 \u0627\u0644\u062A\u0628\u0648\u064A\u0628\u0627\u062A. \u064A\u0633\u062A\u0623\u0646\u0641\u0647 \u0647\u0630\u0627 \u0627\u0644\u062E\u064A\u0627\u0631 \u0639\u0646\u062F \u0639\u0648\u062F\u062A\u0643. \u0623\u0645\u0627 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u0627\u0644\u0630\u064A \u0623\u0648\u0642\u0641\u062A\u0647 \u0628\u0646\u0641\u0633\u0643 \u0641\u064A\u0628\u0642\u0649 \u0645\u062A\u0648\u0642\u0641\u064B\u0627.",
+      "Loop videos": "\u062A\u0643\u0631\u0627\u0631 \u0627\u0644\u0641\u064A\u062F\u064A\u0648\u0647\u0627\u062A",
+      "Restart a video when it reaches the end instead of stopping.": "\u064A\u0639\u064A\u062F \u062A\u0634\u063A\u064A\u0644 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u0639\u0646\u062F \u0648\u0635\u0648\u0644\u0647 \u0625\u0644\u0649 \u0627\u0644\u0646\u0647\u0627\u064A\u0629 \u0628\u062F\u0644\u064B\u0627 \u0645\u0646 \u0627\u0644\u062A\u0648\u0642\u0641.",
+      "Pin video playlists to their best rendition": "\u062A\u062B\u0628\u064A\u062A \u0642\u0648\u0627\u0626\u0645 \u062A\u0634\u063A\u064A\u0644 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u0639\u0644\u0649 \u0623\u0641\u0636\u0644 \u062C\u0648\u062F\u0629",
+      "When X hands Aviary a playlist listing several qualities, keep only the highest. X often settles below the best available on a fast connection. This uses more data, and it can only act on playlists Aviary sees.": "\u0639\u0646\u062F\u0645\u0627 \u064A\u0633\u0644\u0651\u0645 X \u0625\u0644\u0649 Aviary \u0642\u0627\u0626\u0645\u0629 \u062A\u0634\u063A\u064A\u0644 \u062A\u0636\u0645 \u0639\u062F\u0629 \u062C\u0648\u062F\u0627\u062A\u060C \u064A\u064F\u0628\u0642\u064A \u0639\u0644\u0649 \u0627\u0644\u0623\u0639\u0644\u0649 \u0641\u0642\u0637. \u063A\u0627\u0644\u0628\u064B\u0627 \u0645\u0627 \u064A\u0643\u062A\u0641\u064A X \u0628\u062C\u0648\u062F\u0629 \u0623\u0642\u0644 \u0645\u0646 \u0627\u0644\u0623\u0641\u0636\u0644 \u0627\u0644\u0645\u062A\u0627\u062D\u0629 \u062D\u062A\u0649 \u0639\u0644\u0649 \u0627\u062A\u0635\u0627\u0644 \u0633\u0631\u064A\u0639. \u064A\u0633\u062A\u0647\u0644\u0643 \u0647\u0630\u0627 \u0628\u064A\u0627\u0646\u0627\u062A \u0623\u0643\u062B\u0631\u060C \u0648\u0644\u0627 \u064A\u0639\u0645\u0644 \u0625\u0644\u0627 \u0639\u0644\u0649 \u0627\u0644\u0642\u0648\u0627\u0626\u0645 \u0627\u0644\u062A\u064A \u064A\u0631\u0627\u0647\u0627 Aviary.",
       "Playback": "\u0627\u0644\u062A\u0634\u063A\u064A\u0644",
       "The download preference applies to every media control.": "\u064A\u0646\u0637\u0628\u0642 \u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u062A\u0646\u0632\u064A\u0644 \u0639\u0644\u0649 \u0643\u0644 \u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062A\u062D\u0643\u0645 \u0641\u064A \u0627\u0644\u0648\u0633\u0627\u0626\u0637.",
       "Show download buttons": "\u0625\u0638\u0647\u0627\u0631 \u0623\u0632\u0631\u0627\u0631 \u0627\u0644\u062A\u0646\u0632\u064A\u0644",
@@ -7423,8 +7518,12 @@ html.av-reduce-motion *::after {
       "Navigation visibility saved": "\u062A\u0645 \u062D\u0641\u0638 \u0631\u0624\u064A\u0629 \u0627\u0644\u062A\u0646\u0642\u0644",
       "Offscreen video paused": "\u062A\u0645 \u0625\u064A\u0642\u0627\u0641 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u062E\u0627\u0631\u062C \u0627\u0644\u0634\u0627\u0634\u0629 \u0645\u0624\u0642\u062A\u064B\u0627",
       "Offscreen video left playing": "\u062A\u064F\u0631\u0643 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u062E\u0627\u0631\u062C \u0627\u0644\u0634\u0627\u0634\u0629 \u0642\u064A\u062F \u0627\u0644\u062A\u0634\u063A\u064A\u0644",
-      "Best video quality on": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0623\u0639\u0644\u0649 \u062C\u0648\u062F\u0629 \u0641\u064A\u062F\u064A\u0648",
-      "Video quality left to X": "\u062C\u0648\u062F\u0629 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u0645\u062A\u0631\u0648\u0643\u0629 \u0644\u0640 X",
+      "Video keeps playing": "\u064A\u0633\u062A\u0645\u0631 \u062A\u0634\u063A\u064A\u0644 \u0627\u0644\u0641\u064A\u062F\u064A\u0648",
+      "Video pauses with the tab": "\u064A\u062A\u0648\u0642\u0641 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u0645\u0639 \u0627\u0644\u062A\u0628\u0648\u064A\u0628",
+      "Video looping on": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u062A\u0643\u0631\u0627\u0631 \u0627\u0644\u0641\u064A\u062F\u064A\u0648",
+      "Video looping off": "\u062A\u0645 \u0625\u064A\u0642\u0627\u0641 \u062A\u0643\u0631\u0627\u0631 \u0627\u0644\u0641\u064A\u062F\u064A\u0648",
+      "Playlist pinning on": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u062A\u062B\u0628\u064A\u062A \u0642\u0648\u0627\u0626\u0645 \u0627\u0644\u062A\u0634\u063A\u064A\u0644",
+      "Playlist pinning off": "\u062A\u0645 \u0625\u064A\u0642\u0627\u0641 \u062A\u062B\u0628\u064A\u062A \u0642\u0648\u0627\u0626\u0645 \u0627\u0644\u062A\u0634\u063A\u064A\u0644",
       "Filters enabled": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0639\u0648\u0627\u0645\u0644 \u0627\u0644\u062A\u0635\u0641\u064A\u0629",
       "Filters disabled": "\u062A\u0645 \u062A\u0639\u0637\u064A\u0644 \u0639\u0648\u0627\u0645\u0644 \u0627\u0644\u062A\u0635\u0641\u064A\u0629",
       "Seen-post dimming on": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u062A\u0639\u062A\u064A\u0645 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u0642\u0631\u0648\u0621\u0629",
@@ -7497,6 +7596,7 @@ html.av-reduce-motion *::after {
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} \u0645\u0646 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \xB7 {files} \u0645\u0646 \u0627\u0644\u0645\u0644\u0641\u0627\u062A \xB7 {warnings} \u0645\u0646 \u0627\u0644\u062A\u062D\u0630\u064A\u0631\u0627\u062A",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} \u0645\u062D\u0641\u0648\u0638\u0629 \xB7 {due} \u0645\u0633\u062A\u062D\u0642\u0629 \xB7 {tags} \u0645\u0646 \u0627\u0644\u0648\u0633\u0648\u0645 \xB7 {folders} \u0645\u0646 \u0627\u0644\u0645\u062C\u0644\u062F\u0627\u062A",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} \u0645\u0646 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \xB7 {surface}",
+      "{count} this session": "{count} \u0641\u064A \u0647\u0630\u0647 \u0627\u0644\u062C\u0644\u0633\u0629",
       "Forget the stored warnings and errors. Only Aviary's own message text, the time, and the names of its detail fields are ever written here.": "\u064A\u062A\u062C\u0627\u0647\u0644 \u0627\u0644\u062A\u062D\u0630\u064A\u0631\u0627\u062A \u0648\u0627\u0644\u0623\u062E\u0637\u0627\u0621 \u0627\u0644\u0645\u062E\u0632\u0646\u0629. \u0644\u0627 \u064A\u064F\u0643\u062A\u0628 \u0647\u0646\u0627 \u0633\u0648\u0649 \u0646\u0635 \u0631\u0633\u0627\u0626\u0644 Aviary \u0646\u0641\u0633\u0647 \u0648\u0627\u0644\u0648\u0642\u062A \u0648\u0623\u0633\u0645\u0627\u0621 \u062D\u0642\u0648\u0644 \u0627\u0644\u062A\u0641\u0627\u0635\u064A\u0644.",
       "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "\u0627\u0645\u0633\u062D \u0633\u062C\u0644 \u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u064A \u0627\u0644\u0645\u062D\u062F\u0648\u062F \u0648\u062A\u062D\u0630\u064A\u0631 \u0627\u0644\u0627\u0646\u062D\u0631\u0627\u0641 \u0627\u0644\u062E\u0627\u0635 \u0628\u0647. \u0644\u0627 \u064A\u062A\u0645 \u062A\u062E\u0632\u064A\u0646 \u0646\u0635\u0648\u0635 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0623\u0648 \u0627\u0644\u0645\u0639\u0631\u0651\u0641\u0627\u062A \u0623\u0648 \u0639\u0646\u0627\u0648\u064A\u0646 URL \u0623\u0648 \u0646\u0635\u0648\u0635 \u0627\u0644\u0627\u0633\u062A\u062C\u0627\u0628\u0629 \u0647\u0646\u0627.",
       "Pause {filename}.": "\u0625\u064A\u0642\u0627\u0641 {filename} \u0645\u0624\u0642\u062A\u064B\u0627.",
@@ -7539,6 +7639,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "\u062F\u0641\u0639\u0629 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u0646\u0634\u0637\u0629",
       "Resume queued media": "\u0627\u0633\u062A\u0626\u0646\u0627\u0641 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0641\u064A \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0627\u0646\u062A\u0638\u0627\u0631",
       "Retry failed media": "\u0625\u0639\u0627\u062F\u0629 \u0645\u062D\u0627\u0648\u0644\u0629 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u0641\u0627\u0634\u0644\u0629",
+      "Playlists rewritten": "\u0642\u0648\u0627\u0626\u0645 \u0627\u0644\u062A\u0634\u063A\u064A\u0644 \u0627\u0644\u0645\u0639\u0627\u062F \u0643\u062A\u0627\u0628\u062A\u0647\u0627",
       "Forget seen posts": "\u0646\u0633\u064A\u0627\u0646 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u0642\u0631\u0648\u0621\u0629",
       "Rules that could not be read": "\u0642\u0648\u0627\u0639\u062F \u062A\u0639\u0630\u0651\u0631\u062A \u0642\u0631\u0627\u0621\u062A\u0647\u0627",
       "Open Aviary AI command menu": "\u0641\u062A\u062D \u0642\u0627\u0626\u0645\u0629 \u0623\u0648\u0627\u0645\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0641\u064A Aviary",
@@ -7653,6 +7754,10 @@ html.av-reduce-motion *::after {
       "posts": "\u0645\u0646\u0634\u0648\u0631\u0627\u062A",
       "offline-ready": "\u062C\u0627\u0647\u0632 \u0644\u0644\u0639\u0645\u0644 \u062F\u0648\u0646 \u0627\u062A\u0635\u0627\u0644",
       "network may be required": "\u0642\u062F \u062A\u062A\u0637\u0644\u0628 \u0627\u0644\u0634\u0628\u0643\u0629",
+      "Always play video at the highest quality": "\u062A\u0634\u063A\u064A\u0644 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u062F\u0627\u0626\u0645\u064B\u0627 \u0628\u0623\u0639\u0644\u0649 \u062C\u0648\u062F\u0629",
+      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "\u064A\u062E\u062A\u0627\u0631 X \u062C\u0648\u062F\u0629 \u0641\u064A\u062F\u064A\u0648 \u062A\u0646\u0627\u0633\u0628 \u0627\u062A\u0635\u0627\u0644\u0643\u060C \u0648\u0639\u0644\u0649 \u0627\u0644\u0627\u062A\u0635\u0627\u0644\u0627\u062A \u0627\u0644\u0633\u0631\u064A\u0639\u0629 \u0643\u062B\u064A\u0631\u064B\u0627 \u0645\u0627 \u064A\u0633\u062A\u0642\u0631 \u062F\u0648\u0646 \u0623\u0641\u0636\u0644 \u062C\u0648\u062F\u0629 \u0645\u062A\u0627\u062D\u0629. \u064A\u062B\u0628\u0651\u062A \u0647\u0630\u0627 \u0627\u0644\u062E\u064A\u0627\u0631 \u0643\u0644 \u0641\u064A\u062F\u064A\u0648 \u0639\u0644\u0649 \u0623\u0639\u0644\u0649 \u062C\u0648\u062F\u0629 \u0644\u0647. \u0648\u064A\u0633\u062A\u0647\u0644\u0643 \u0628\u064A\u0627\u0646\u0627\u062A \u0623\u0643\u062B\u0631.",
+      "Best video quality on": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0623\u0639\u0644\u0649 \u062C\u0648\u062F\u0629 \u0641\u064A\u062F\u064A\u0648",
+      "Video quality left to X": "\u062C\u0648\u062F\u0629 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u0645\u062A\u0631\u0648\u0643\u0629 \u0644\u0640 X",
       "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "\u064A\u062E\u0641\u064A \u0623\u0639\u062F\u0627\u062F \u0627\u0644\u0631\u062F\u0648\u062F \u0648\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0646\u0634\u0631 \u0648\u0627\u0644\u0625\u0639\u062C\u0627\u0628\u0627\u062A \u0648\u0627\u0644\u0645\u0634\u0627\u0647\u062F\u0627\u062A. \u062A\u0638\u0644 \u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062A\u062D\u0643\u0645 \u062A\u0639\u0645\u0644 \u0648\u062A\u0638\u0644 \u0642\u0627\u0631\u0626\u0627\u062A \u0627\u0644\u0634\u0627\u0634\u0629 \u062A\u0639\u0644\u0646 \u0627\u0644\u0625\u062C\u0645\u0627\u0644\u064A\u0627\u062A.",
       "Original quality is applied when download controls are enabled.": "\u062A\u064F\u0637\u0628\u0651\u0642 \u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629 \u0639\u0646\u062F \u062A\u0641\u0639\u064A\u0644 \u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062A\u062D\u0643\u0645 \u0641\u064A \u0627\u0644\u062A\u0646\u0632\u064A\u0644.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "\u0645\u0639\u0631\u0651\u0641 \u062A\u0646\u0642\u0644 \u062B\u0627\u0628\u062A \u0648\u0627\u062D\u062F \u0641\u064A X \u0644\u0643\u0644 \u0633\u0637\u0631: home \u0623\u0648 explore \u0623\u0648 notifications \u0623\u0648 messages \u0623\u0648 profile \u0623\u0648 more \u0623\u0648 premium.",
@@ -7848,8 +7953,12 @@ html.av-reduce-motion *::after {
       "Recovery": "\u05E9\u05D7\u05D6\u05D5\u05E8",
       "Pause video that scrolls out of view": "\u05D4\u05E9\u05D4\u05D9\u05D9\u05EA \u05D5\u05D9\u05D3\u05D0\u05D5 \u05E9\u05D9\u05D5\u05E6\u05D0 \u05DE\u05D4\u05DE\u05E1\u05DA",
       "Stops decoding timeline video once it leaves the screen, and resumes it when it comes back. A video you paused yourself stays paused.": "\u05DE\u05E4\u05E1\u05D9\u05E7 \u05DC\u05E4\u05E2\u05E0\u05D7 \u05D5\u05D9\u05D3\u05D0\u05D5 \u05D1\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF \u05DB\u05E9\u05D4\u05D5\u05D0 \u05D9\u05D5\u05E6\u05D0 \u05DE\u05D4\u05DE\u05E1\u05DA, \u05D5\u05DE\u05DE\u05E9\u05D9\u05DA \u05D0\u05D5\u05EA\u05D5 \u05DB\u05E9\u05D4\u05D5\u05D0 \u05D7\u05D5\u05D6\u05E8. \u05D5\u05D9\u05D3\u05D0\u05D5 \u05E9\u05D4\u05E9\u05D4\u05D9\u05EA \u05D1\u05E2\u05E6\u05DE\u05DA \u05E0\u05E9\u05D0\u05E8 \u05DE\u05D5\u05E9\u05D4\u05D4.",
-      "Always play video at the highest quality": "\u05DC\u05E0\u05D2\u05DF \u05D5\u05D9\u05D3\u05D0\u05D5 \u05EA\u05DE\u05D9\u05D3 \u05D1\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8",
-      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "\u200FX \u05D1\u05D5\u05D7\u05E8 \u05D0\u05D9\u05DB\u05D5\u05EA \u05D5\u05D9\u05D3\u05D0\u05D5 \u05E9\u05DE\u05EA\u05D0\u05D9\u05DE\u05D4 \u05DC\u05D7\u05D9\u05D1\u05D5\u05E8 \u05E9\u05DC\u05DA, \u05D5\u05D1\u05D7\u05D9\u05D1\u05D5\u05E8 \u05DE\u05D4\u05D9\u05E8 \u05D4\u05D5\u05D0 \u05DC\u05E8\u05D5\u05D1 \u05E0\u05E2\u05E6\u05E8 \u05DE\u05EA\u05D7\u05EA \u05DC\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D8\u05D5\u05D1\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8 \u05D4\u05D6\u05DE\u05D9\u05E0\u05D4. \u05D4\u05D0\u05E4\u05E9\u05E8\u05D5\u05EA \u05D4\u05D6\u05D5 \u05DE\u05E7\u05D1\u05E2\u05EA \u05DB\u05DC \u05E1\u05E8\u05D8\u05D5\u05DF \u05DC\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8 \u05E9\u05DC\u05D5. \u05D4\u05D9\u05D0 \u05E6\u05D5\u05E8\u05DB\u05EA \u05D9\u05D5\u05EA\u05E8 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD.",
+      "Keep video playing when the tab loses focus": "\u05D4\u05DE\u05E9\u05DA \u05E0\u05D9\u05D2\u05D5\u05DF \u05D5\u05D9\u05D3\u05D0\u05D5 \u05DB\u05E9\u05D4\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA \u05DE\u05D0\u05D1\u05D3\u05EA \u05DE\u05D9\u05E7\u05D5\u05D3",
+      "X stops a playing video when you switch tabs. This resumes it when you come back. A video you paused yourself stays paused.": "X \u05E2\u05D5\u05E6\u05E8 \u05D5\u05D9\u05D3\u05D0\u05D5 \u05DE\u05EA\u05E0\u05D2\u05DF \u05DB\u05E9\u05E2\u05D5\u05D1\u05E8\u05D9\u05DD \u05DC\u05E9\u05D5\u05E0\u05D9\u05EA. \u05D0\u05E4\u05E9\u05E8\u05D5\u05EA \u05D6\u05D5 \u05DE\u05D7\u05D3\u05E9\u05EA \u05D0\u05D5\u05EA\u05D5 \u05D1\u05D7\u05D6\u05E8\u05D4. \u05D5\u05D9\u05D3\u05D0\u05D5 \u05E9\u05D4\u05E9\u05D4\u05D9\u05EA \u05D1\u05E2\u05E6\u05DE\u05DA \u05D9\u05D9\u05E9\u05D0\u05E8 \u05DE\u05D5\u05E9\u05D4\u05D4.",
+      "Loop videos": "\u05E0\u05D9\u05D2\u05D5\u05DF \u05D7\u05D5\u05D6\u05E8 \u05E9\u05DC \u05E1\u05E8\u05D8\u05D5\u05E0\u05D9\u05DD",
+      "Restart a video when it reaches the end instead of stopping.": "\u05DE\u05E4\u05E2\u05D9\u05DC \u05D0\u05EA \u05D4\u05E1\u05E8\u05D8\u05D5\u05DF \u05DE\u05D7\u05D3\u05E9 \u05D1\u05E1\u05D9\u05D5\u05DE\u05D5 \u05D1\u05DE\u05E7\u05D5\u05DD \u05DC\u05E2\u05E6\u05D5\u05E8.",
+      "Pin video playlists to their best rendition": "\u05E7\u05D9\u05D1\u05D5\u05E2 \u05E8\u05E9\u05D9\u05DE\u05D5\u05EA \u05D4\u05E0\u05D9\u05D2\u05D5\u05DF \u05DC\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D8\u05D5\u05D1\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8",
+      "When X hands Aviary a playlist listing several qualities, keep only the highest. X often settles below the best available on a fast connection. This uses more data, and it can only act on playlists Aviary sees.": "\u05DB\u05D0\u05E9\u05E8 X \u05DE\u05D5\u05E1\u05E8 \u05DC-Aviary \u05E8\u05E9\u05D9\u05DE\u05EA \u05E0\u05D9\u05D2\u05D5\u05DF \u05E2\u05DD \u05DB\u05DE\u05D4 \u05D0\u05D9\u05DB\u05D5\u05D9\u05D5\u05EA, \u05E0\u05E9\u05DE\u05E8\u05EA \u05E8\u05E7 \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8. \u05D2\u05DD \u05D1\u05D7\u05D9\u05D1\u05D5\u05E8 \u05DE\u05D4\u05D9\u05E8 X \u05DE\u05E1\u05EA\u05E4\u05E7 \u05DC\u05D0 \u05E4\u05E2\u05DD \u05D1\u05D0\u05D9\u05DB\u05D5\u05EA \u05E0\u05DE\u05D5\u05DB\u05D4 \u05DE\u05D4\u05D6\u05DE\u05D9\u05E0\u05D4. \u05D4\u05D3\u05D1\u05E8 \u05E6\u05D5\u05E8\u05DA \u05D9\u05D5\u05EA\u05E8 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD, \u05D5\u05E4\u05D5\u05E2\u05DC \u05E8\u05E7 \u05E2\u05DC \u05E8\u05E9\u05D9\u05DE\u05D5\u05EA \u05E9-Aviary \u05D0\u05DB\u05DF \u05E8\u05D5\u05D0\u05D4.",
       "Playback": "\u05D4\u05E4\u05E2\u05DC\u05D4",
       "The download preference applies to every media control.": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05D7\u05DC\u05D4 \u05E2\u05DC \u05DB\u05DC \u05E4\u05E7\u05D3\u05D9 \u05D4\u05DE\u05D3\u05D9\u05D4.",
       "Show download buttons": "\u05D4\u05E6\u05D2\u05EA \u05DB\u05E4\u05EA\u05D5\u05E8\u05D9 \u05D4\u05D5\u05E8\u05D3\u05D4",
@@ -8322,8 +8431,12 @@ html.av-reduce-motion *::after {
       "Navigation visibility saved": "\u05E0\u05E8\u05D0\u05D5\u05EA \u05D4\u05E0\u05D9\u05D5\u05D5\u05D8 \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Offscreen video paused": "\u05D5\u05D9\u05D3\u05D0\u05D5 \u05DE\u05D7\u05D5\u05E5 \u05DC\u05DE\u05E1\u05DA \u05D4\u05D5\u05E9\u05D4\u05D4",
       "Offscreen video left playing": "\u05D5\u05D9\u05D3\u05D0\u05D5 \u05DE\u05D7\u05D5\u05E5 \u05DC\u05DE\u05E1\u05DA \u05DE\u05DE\u05E9\u05D9\u05DA \u05DC\u05E4\u05E2\u05D5\u05DC",
-      "Best video quality on": "\u05D4\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8 \u05D4\u05D5\u05E4\u05E2\u05DC\u05D4",
-      "Video quality left to X": "\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D5\u05D5\u05D9\u05D3\u05D0\u05D5 \u05E0\u05EA\u05D5\u05E0\u05D4 \u05DC-X",
+      "Video keeps playing": "\u05D4\u05D5\u05D5\u05D9\u05D3\u05D0\u05D5 \u05DE\u05DE\u05E9\u05D9\u05DA \u05DC\u05E0\u05D2\u05DF",
+      "Video pauses with the tab": "\u05D4\u05D5\u05D5\u05D9\u05D3\u05D0\u05D5 \u05DE\u05D5\u05E9\u05D4\u05D4 \u05D9\u05D7\u05D3 \u05E2\u05DD \u05D4\u05DC\u05E9\u05D5\u05E0\u05D9\u05EA",
+      "Video looping on": "\u05E0\u05D9\u05D2\u05D5\u05DF \u05D7\u05D5\u05D6\u05E8 \u05D4\u05D5\u05E4\u05E2\u05DC",
+      "Video looping off": "\u05E0\u05D9\u05D2\u05D5\u05DF \u05D7\u05D5\u05D6\u05E8 \u05DB\u05D5\u05D1\u05D4",
+      "Playlist pinning on": "\u05E7\u05D9\u05D1\u05D5\u05E2 \u05E8\u05E9\u05D9\u05DE\u05D5\u05EA \u05D4\u05E0\u05D9\u05D2\u05D5\u05DF \u05D4\u05D5\u05E4\u05E2\u05DC",
+      "Playlist pinning off": "\u05E7\u05D9\u05D1\u05D5\u05E2 \u05E8\u05E9\u05D9\u05DE\u05D5\u05EA \u05D4\u05E0\u05D9\u05D2\u05D5\u05DF \u05DB\u05D5\u05D1\u05D4",
       "Filters enabled": "\u05D4\u05DE\u05E1\u05E0\u05E0\u05D9\u05DD \u05D4\u05D5\u05E4\u05E2\u05DC\u05D5",
       "Filters disabled": "\u05D4\u05DE\u05E1\u05E0\u05E0\u05D9\u05DD \u05DB\u05D5\u05D1\u05D5",
       "Seen-post dimming on": "\u05E2\u05DE\u05E2\u05D5\u05DD \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05E0\u05E8\u05D0\u05D5 \u05D4\u05D5\u05E4\u05E2\u05DC",
@@ -8396,6 +8509,7 @@ html.av-reduce-motion *::after {
       "{status} \xB7 {filename} \xB7 {records} records \xB7 {files} files \xB7 {warnings} warnings": "{status} \xB7 {filename} \xB7 {records} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \xB7 {files} \u05E7\u05D1\u05E6\u05D9\u05DD \xB7 {warnings} \u05D0\u05D6\u05D4\u05E8\u05D5\u05EA",
       "{saved} saved \xB7 {due} due \xB7 {tags} tags \xB7 {folders} folders": "{saved} \u05E0\u05E9\u05DE\u05E8\u05D5 \xB7 {due} \u05DC\u05EA\u05D6\u05DB\u05D5\u05E8\u05EA \xB7 {tags} \u05EA\u05D2\u05D9\u05D5\u05EA \xB7 {folders} \u05EA\u05D9\u05E7\u05D9\u05D5\u05EA",
       "{status} \xB7 {records} records \xB7 {surface}": "{status} \xB7 {records} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \xB7 {surface}",
+      "{count} this session": "{count} \u05D1\u05D4\u05E4\u05E2\u05DC\u05D4 \u05D6\u05D5",
       "Forget the stored warnings and errors. Only Aviary's own message text, the time, and the names of its detail fields are ever written here.": "\u05DE\u05D5\u05D7\u05E7 \u05D0\u05EA \u05D4\u05D0\u05D6\u05D4\u05E8\u05D5\u05EA \u05D5\u05D4\u05E9\u05D2\u05D9\u05D0\u05D5\u05EA \u05D4\u05E9\u05DE\u05D5\u05E8\u05D5\u05EA. \u05E0\u05DB\u05EA\u05D1\u05D9\u05DD \u05DB\u05D0\u05DF \u05E8\u05E7 \u05D8\u05E7\u05E1\u05D8 \u05D4\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA \u05E9\u05DC Aviary \u05E2\u05E6\u05DE\u05D5, \u05D4\u05E9\u05E2\u05D4 \u05D5\u05E9\u05DE\u05D5\u05EA \u05E9\u05D3\u05D5\u05EA \u05D4\u05E4\u05D9\u05E8\u05D5\u05D8.",
       "Clear the bounded local marker history and its drift warning. No post text, handles, URLs, or response bodies are stored here.": "\u05DE\u05D7\u05D9\u05E7\u05EA \u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05D4\u05E1\u05DE\u05E0\u05D9\u05DD \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9\u05EA \u05D5\u05D4\u05DE\u05D5\u05D2\u05D1\u05DC\u05EA \u05D5\u05D0\u05EA \u05D0\u05D6\u05D4\u05E8\u05EA \u05D4\u05E1\u05D8\u05D9\u05D9\u05D4 \u05E9\u05DC\u05D4. \u05D8\u05E7\u05E1\u05D8 \u05E9\u05DC \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD, \u05E9\u05DE\u05D5\u05EA \u05DE\u05E9\u05EA\u05DE\u05E9, \u05DB\u05EA\u05D5\u05D1\u05D5\u05EA URL \u05D5\u05D2\u05D5\u05E4\u05D9 \u05EA\u05D2\u05D5\u05D1\u05D4 \u05D0\u05D9\u05E0\u05DD \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05DB\u05D0\u05DF.",
       "Pause {filename}.": "\u05D4\u05E9\u05D4\u05D4 \u05D0\u05EA {filename}.",
@@ -8438,6 +8552,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "\u05D0\u05E6\u05D5\u05D5\u05D4 \u05E4\u05E2\u05D9\u05DC\u05D4 \u05E9\u05DC \u05DE\u05D3\u05D9\u05D4",
       "Resume queued media": "\u05D7\u05D9\u05D3\u05D5\u05E9 \u05DE\u05D3\u05D9\u05D4 \u05D1\u05EA\u05D5\u05E8",
       "Retry failed media": "\u05E0\u05D9\u05E1\u05D9\u05D5\u05DF \u05D7\u05D5\u05D6\u05E8 \u05DC\u05DE\u05D3\u05D9\u05D4 \u05E9\u05E0\u05DB\u05E9\u05DC\u05D4",
+      "Playlists rewritten": "\u05E8\u05E9\u05D9\u05DE\u05D5\u05EA \u05E0\u05D9\u05D2\u05D5\u05DF \u05E9\u05E0\u05DB\u05EA\u05D1\u05D5 \u05DE\u05D7\u05D3\u05E9",
       "Forget seen posts": "\u05E9\u05DB\u05D7 \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05E0\u05E8\u05D0\u05D5",
       "Rules that could not be read": "\u05DB\u05DC\u05DC\u05D9\u05DD \u05E9\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05D4\u05D9\u05D4 \u05DC\u05E7\u05E8\u05D5\u05D0",
       "Open Aviary AI command menu": "\u05E4\u05EA\u05D9\u05D7\u05EA \u05EA\u05E4\u05E8\u05D9\u05D8 \u05E4\u05E7\u05D5\u05D3\u05D5\u05EA \u05D4-AI \u05E9\u05DC Aviary",
@@ -8552,6 +8667,10 @@ html.av-reduce-motion *::after {
       "posts": "\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD",
       "offline-ready": "\u05DE\u05D5\u05DB\u05DF \u05DC\u05DC\u05D0 \u05D7\u05D9\u05D1\u05D5\u05E8",
       "network may be required": "\u05D9\u05D9\u05EA\u05DB\u05DF \u05E9\u05E0\u05D3\u05E8\u05E9 \u05D7\u05D9\u05D1\u05D5\u05E8 \u05E8\u05E9\u05EA",
+      "Always play video at the highest quality": "\u05DC\u05E0\u05D2\u05DF \u05D5\u05D9\u05D3\u05D0\u05D5 \u05EA\u05DE\u05D9\u05D3 \u05D1\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8",
+      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "\u200FX \u05D1\u05D5\u05D7\u05E8 \u05D0\u05D9\u05DB\u05D5\u05EA \u05D5\u05D9\u05D3\u05D0\u05D5 \u05E9\u05DE\u05EA\u05D0\u05D9\u05DE\u05D4 \u05DC\u05D7\u05D9\u05D1\u05D5\u05E8 \u05E9\u05DC\u05DA, \u05D5\u05D1\u05D7\u05D9\u05D1\u05D5\u05E8 \u05DE\u05D4\u05D9\u05E8 \u05D4\u05D5\u05D0 \u05DC\u05E8\u05D5\u05D1 \u05E0\u05E2\u05E6\u05E8 \u05DE\u05EA\u05D7\u05EA \u05DC\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D8\u05D5\u05D1\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8 \u05D4\u05D6\u05DE\u05D9\u05E0\u05D4. \u05D4\u05D0\u05E4\u05E9\u05E8\u05D5\u05EA \u05D4\u05D6\u05D5 \u05DE\u05E7\u05D1\u05E2\u05EA \u05DB\u05DC \u05E1\u05E8\u05D8\u05D5\u05DF \u05DC\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8 \u05E9\u05DC\u05D5. \u05D4\u05D9\u05D0 \u05E6\u05D5\u05E8\u05DB\u05EA \u05D9\u05D5\u05EA\u05E8 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD.",
+      "Best video quality on": "\u05D4\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8 \u05D4\u05D5\u05E4\u05E2\u05DC\u05D4",
+      "Video quality left to X": "\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D5\u05D5\u05D9\u05D3\u05D0\u05D5 \u05E0\u05EA\u05D5\u05E0\u05D4 \u05DC-X",
       "Hide reply, repost, like, and view numbers. The controls still work and screen readers still announce the totals.": "\u05DE\u05E1\u05EA\u05D9\u05E8 \u05D0\u05EA \u05DE\u05E1\u05E4\u05E8\u05D9 \u05D4\u05EA\u05D2\u05D5\u05D1\u05D5\u05EA, \u05D4\u05E9\u05D9\u05EA\u05D5\u05E4\u05D9\u05DD, \u05D4\u05DC\u05D9\u05D9\u05E7\u05D9\u05DD \u05D5\u05D4\u05E6\u05E4\u05D9\u05D5\u05EA. \u05D4\u05E4\u05E7\u05D3\u05D9\u05DD \u05DE\u05DE\u05E9\u05D9\u05DB\u05D9\u05DD \u05DC\u05E4\u05E2\u05D5\u05DC \u05D5\u05E7\u05D5\u05E8\u05D0\u05D9 \u05DE\u05E1\u05DA \u05DE\u05DE\u05E9\u05D9\u05DB\u05D9\u05DD \u05DC\u05D4\u05E7\u05E8\u05D9\u05D0 \u05D0\u05EA \u05D4\u05E1\u05DB\u05D5\u05DE\u05D9\u05DD.",
       "Original quality is applied when download controls are enabled.": "\u05D4\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05E8\u05D9\u05EA \u05D7\u05DC\u05D4 \u05DB\u05D0\u05E9\u05E8 \u05E4\u05E7\u05D3\u05D9 \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05DE\u05D5\u05E4\u05E2\u05DC\u05D9\u05DD.",
       "One stable X navigation id per line: home, explore, notifications, messages, profile, more, or premium.": "\u05DE\u05D6\u05D4\u05D4 \u05E0\u05D9\u05D5\u05D5\u05D8 \u05D9\u05E6\u05D9\u05D1 \u05D0\u05D7\u05D3 \u05E9\u05DC X \u05D1\u05DB\u05DC \u05E9\u05D5\u05E8\u05D4: home, explore, notifications, messages, profile, more \u05D0\u05D5 premium.",
@@ -11117,15 +11236,46 @@ html.av-reduce-motion *::after {
     );
     rows.push(
       ctx.toggleRow(
-        "Always play video at the highest quality",
-        "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.",
-        ctx.options.settings.performance.forceVideoQuality,
+        "Keep video playing when the tab loses focus",
+        "X stops a playing video when you switch tabs. This resumes it when you come back. A video you paused yourself stays paused.",
+        ctx.options.settings.performance.keepVideoPlaying,
         async (checked) => {
-          ctx.options.settings.performance.forceVideoQuality = checked;
-          await ctx.save(checked ? "Best video quality on" : "Video quality left to X");
+          ctx.options.settings.performance.keepVideoPlaying = checked;
+          await ctx.save(checked ? "Video keeps playing" : "Video pauses with the tab");
         }
       )
     );
+    rows.push(
+      ctx.toggleRow(
+        "Loop videos",
+        "Restart a video when it reaches the end instead of stopping.",
+        ctx.options.settings.performance.loopVideos,
+        async (checked) => {
+          ctx.options.settings.performance.loopVideos = checked;
+          await ctx.save(checked ? "Video looping on" : "Video looping off");
+        }
+      )
+    );
+    rows.push(
+      ctx.toggleRow(
+        "Pin video playlists to their best rendition",
+        "When X hands Aviary a playlist listing several qualities, keep only the highest. X often settles below the best available on a fast connection. This uses more data, and it can only act on playlists Aviary sees.",
+        ctx.options.settings.performance.forceVideoQuality,
+        async (checked) => {
+          ctx.options.settings.performance.forceVideoQuality = checked;
+          await ctx.save(checked ? "Playlist pinning on" : "Playlist pinning off");
+        }
+      )
+    );
+    const hooks = ctx.options.getPageHooks?.();
+    if (hooks && ctx.options.settings.performance.forceVideoQuality) {
+      rows.push(
+        ctx.dataRow(
+          "Playlists rewritten",
+          ctx.localizedCopy("{count} this session", { count: hooks.rewrittenPlaylists })
+        )
+      );
+    }
     return rows;
   }
   function buildFilterRows(ctx) {
@@ -25454,7 +25604,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
             blockedBeacons: hooks.blockedBeacons,
             blockedAdRequests: hooks.blockedAdRequests,
             hiddenPlacements: ads.hiddenPlacements,
-            suppressedVideoAds: ads.suppressedVideoAds
+            suppressedVideoAds: ads.suppressedVideoAds,
+            rewrittenPlaylists: hooks.rewrittenPlaylists
           };
         },
         getSelectorHealth() {
@@ -28699,6 +28850,109 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
   };
 
+  // src/features/performance/video-playback.ts
+  var MARKER5 = "data-av-video-playback";
+  var LOOP_ORIGINAL = "data-av-loop-original";
+  var VIDEO_SELECTOR2 = "video";
+  var listenersBound = false;
+  var visibilityBound = false;
+  var pausedByBlur = /* @__PURE__ */ new WeakSet();
+  var videoPlaybackFeature = {
+    id: "performance.videoPlayback",
+    title: "Video playback preferences",
+    category: "media",
+    init(ctx) {
+      applyVideoPlayback(ctx, document);
+    },
+    apply(ctx, root) {
+      applyVideoPlayback(ctx, root);
+    },
+    destroy(ctx) {
+      teardown2();
+      ctx.diagnostics.info("Video playback preferences removed");
+    }
+  };
+  function applyVideoPlayback(ctx, root) {
+    const keepPlaying = ctx.settings.performance.keepVideoPlaying;
+    const loop = ctx.settings.performance.loopVideos;
+    if (!keepPlaying && !loop) {
+      teardown2();
+      return;
+    }
+    for (const video of collectVideos(root)) {
+      if (loop) {
+        if (!video.hasAttribute(LOOP_ORIGINAL)) {
+          video.setAttribute(LOOP_ORIGINAL, video.loop ? "1" : "0");
+        }
+        video.loop = true;
+      } else if (video.hasAttribute(LOOP_ORIGINAL)) {
+        video.loop = video.getAttribute(LOOP_ORIGINAL) === "1";
+        video.removeAttribute(LOOP_ORIGINAL);
+      }
+      video.setAttribute(MARKER5, "1");
+    }
+    if (keepPlaying) {
+      bindVisibility();
+    } else {
+      unbindVisibility();
+    }
+    listenersBound = keepPlaying || loop;
+  }
+  function collectVideos(root) {
+    const found = [];
+    if (root instanceof Element && root.matches(VIDEO_SELECTOR2)) {
+      found.push(root);
+    }
+    if ("querySelectorAll" in root) {
+      for (const video of Array.from(root.querySelectorAll(VIDEO_SELECTOR2))) {
+        found.push(video);
+      }
+    }
+    return found;
+  }
+  function onVisibilityChange() {
+    const hidden = document.visibilityState === "hidden";
+    for (const video of collectVideos(document)) {
+      if (hidden) {
+        if (!video.paused && !video.ended) {
+          pausedByBlur.add(video);
+        }
+        continue;
+      }
+      if (pausedByBlur.has(video)) {
+        pausedByBlur.delete(video);
+        if (video.paused && !video.ended) {
+          void video.play().catch(() => void 0);
+        }
+      }
+    }
+  }
+  function bindVisibility() {
+    if (visibilityBound) {
+      return;
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    visibilityBound = true;
+  }
+  function unbindVisibility() {
+    if (!visibilityBound) {
+      return;
+    }
+    document.removeEventListener("visibilitychange", onVisibilityChange);
+    visibilityBound = false;
+  }
+  function teardown2() {
+    unbindVisibility();
+    listenersBound = false;
+    for (const video of Array.from(document.querySelectorAll(`[${MARKER5}]`))) {
+      if (video.hasAttribute(LOOP_ORIGINAL)) {
+        video.loop = video.getAttribute(LOOP_ORIGINAL) === "1";
+        video.removeAttribute(LOOP_ORIGINAL);
+      }
+      video.removeAttribute(MARKER5);
+    }
+  }
+
   // src/features/layout/force-following.ts
   var TABLIST = '[role="tablist"][data-testid="ScrollSnap-List"]';
   var TABLIST_FALLBACK = '[role="tablist"]';
@@ -30479,6 +30733,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     registry.register(linkUnshortenFeature);
     registry.register(cleanShareLinksFeature);
     registry.register(pauseOffscreenVideoFeature);
+    registry.register(videoPlaybackFeature);
     registry.register(forceFollowingFeature);
     registry.register(inlineOriginalImagesFeature);
     registry.register(snapshotsFeature);

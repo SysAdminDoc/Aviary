@@ -201,6 +201,17 @@ export interface AviarySettings {
   };
   performance: {
     pauseOffscreenVideo: boolean;
+    /** Resume a video that X paused because the tab lost focus. */
+    keepVideoPlaying: boolean;
+    /** Loop videos instead of stopping at the end. */
+    loopVideos: boolean;
+    /**
+     * Rewrite an HLS master playlist to its highest rendition when Aviary sees one.
+     *
+     * Whether X's player fetches such a playlist through a path this can reach is unverified —
+     * a player fetching inside a worker bypasses the page agent entirely. The Media section
+     * therefore reports how many playlists were actually rewritten rather than claiming an effect.
+     */
     forceVideoQuality: boolean;
   };
   composer: {
@@ -316,6 +327,8 @@ export const DEFAULT_SETTINGS: AviarySettings = {
   },
   performance: {
     pauseOffscreenVideo: false,
+    keepVideoPlaying: false,
+    loopVideos: false,
     // Off by default: it rewrites the playlist X's player fetches, so it changes how video is
     // delivered rather than how it is displayed. New network-affecting capabilities opt in.
     forceVideoQuality: false
@@ -576,6 +589,11 @@ export function normalizeSettings(input: unknown): AviarySettings {
         performance.pauseOffscreenVideo,
         DEFAULT_SETTINGS.performance.pauseOffscreenVideo
       ),
+      keepVideoPlaying: booleanValue(
+        performance.keepVideoPlaying,
+        DEFAULT_SETTINGS.performance.keepVideoPlaying
+      ),
+      loopVideos: booleanValue(performance.loopVideos, DEFAULT_SETTINGS.performance.loopVideos),
       forceVideoQuality: booleanValue(
         performance.forceVideoQuality,
         DEFAULT_SETTINGS.performance.forceVideoQuality

@@ -31,13 +31,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: article-card units hide/collapse per the filter action; organic posts with links unaffected; fixture-tested.
   Complexity: M
 
-- [ ] F122 — P2 — Video QoL: auto-pause fix + loop; resolve forceVideoQuality
-  Why: X pauses video on scroll/blur — active greasyfork/Reddit demand (Aug 2026); meanwhile `performance.forceVideoQuality` is wired but unprovable against MSE playback — prove an effect or remove the claim-shaped setting (settings-claims policy).
-  Evidence: r/userscripts 1vgl7ix (2026-08-05); CLAUDE.md 2026-08-07 (MSE, no variant list); tests/settings-claims.test.mjs precedent.
-  Touches: src/features/performance/*, page-agent (only if evidence shows a separable quality signal), settings.
-  Acceptance: opt-in keeps videos playing on blur/scroll-return and can loop; forceVideoQuality either demonstrably changes delivered quality in a headed test or is removed with migration.
-  Complexity: M
-
 - [ ] F124 — P2 — Per-user color tags on accounts
   Why: RES-style user tagging is proven in the adjacent domain; Aviary's user-notes already stores per-handle data — color labels are the missing visible layer.
   Evidence: RES tagging; XKit relationship badges; src/features/library/user-notes.ts.

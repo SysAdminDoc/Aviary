@@ -341,7 +341,8 @@ export const controlCenterFeature: FeatureModule = {
           blockedBeacons: hooks.blockedBeacons,
           blockedAdRequests: hooks.blockedAdRequests,
           hiddenPlacements: ads.hiddenPlacements,
-          suppressedVideoAds: ads.suppressedVideoAds
+          suppressedVideoAds: ads.suppressedVideoAds,
+          rewrittenPlaylists: hooks.rewrittenPlaylists
         };
       },
       getSelectorHealth() {

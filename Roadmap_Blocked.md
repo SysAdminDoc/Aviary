@@ -194,3 +194,26 @@ Re-entry condition: the operator states the intended distribution. Then mint a s
 point the update URLs at the decided channel, update `docs/INSTALL.md`'s update section, and — if
 public — prepare listing assets and confirm the privacy disclosures match the Chrome Web Store
 policy that took effect 2026-08-01.
+
+## Proving the video-quality setting actually changes delivered quality
+
+`performance.forceVideoQuality` rewrites an HLS master playlist to its highest rendition. The
+rewrite itself is well covered — master-vs-media playlists, AVERAGE-BANDWIDTH ranking, single-variant
+pass-through — and the counter it increments is now shown in Media, so a user can see whether it
+ever fires for them.
+
+What remains unproven is whether X's player hands Aviary such a playlist at all. The page agent
+patches `fetch`, `XMLHttpRequest`, and `sendBeacon` in the page world; a player that fetches its
+manifest inside a worker never passes through any of them, which is exactly how Kick's IVS player
+behaves. No capture in this repository contains an `.m3u8` request, because the `_decoded/` fixtures
+are DOM without network traffic.
+
+Rather than delete a mechanism that may work or keep a label that promised an outcome, the row was
+renamed to describe the action ("Pin video playlists to their best rendition") and now reports
+`Playlists rewritten: N this session`. A user can answer the question for their own browser even
+while this repository cannot.
+
+Re-entry condition: an operator session on live X with a video post open and the setting on. If the
+counter stays at zero, X is not routing playlists through a path Aviary can reach and the setting
+should be removed with a migration. If it rises, record the request shape in `## Learned` and the
+claim can be strengthened to name the effect.

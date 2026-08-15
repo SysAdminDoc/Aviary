@@ -280,15 +280,53 @@ export function buildPerformanceRows(ctx: PanelContext): HTMLElement[] {
 
   rows.push(
     ctx.toggleRow(
-      "Always play video at the highest quality",
-      "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.",
-      ctx.options.settings.performance.forceVideoQuality,
+      "Keep video playing when the tab loses focus",
+      "X stops a playing video when you switch tabs. This resumes it when you come back. A video you paused yourself stays paused.",
+      ctx.options.settings.performance.keepVideoPlaying,
       async (checked) => {
-        ctx.options.settings.performance.forceVideoQuality = checked;
-        await ctx.save(checked ? "Best video quality on" : "Video quality left to X");
+        ctx.options.settings.performance.keepVideoPlaying = checked;
+        await ctx.save(checked ? "Video keeps playing" : "Video pauses with the tab");
       }
     )
   );
+
+  rows.push(
+    ctx.toggleRow(
+      "Loop videos",
+      "Restart a video when it reaches the end instead of stopping.",
+      ctx.options.settings.performance.loopVideos,
+      async (checked) => {
+        ctx.options.settings.performance.loopVideos = checked;
+        await ctx.save(checked ? "Video looping on" : "Video looping off");
+      }
+    )
+  );
+
+  // This row used to promise that every video played at the highest quality. Aviary can only
+  // rewrite an HLS master playlist it actually sees, and a player that fetches one inside a worker
+  // never passes through the page agent, so the outcome was never guaranteed. The readout below
+  // reports how many playlists were rewritten this session: it states rather than promises.
+  rows.push(
+    ctx.toggleRow(
+      "Pin video playlists to their best rendition",
+      "When X hands Aviary a playlist listing several qualities, keep only the highest. X often settles below the best available on a fast connection. This uses more data, and it can only act on playlists Aviary sees.",
+      ctx.options.settings.performance.forceVideoQuality,
+      async (checked) => {
+        ctx.options.settings.performance.forceVideoQuality = checked;
+        await ctx.save(checked ? "Playlist pinning on" : "Playlist pinning off");
+      }
+    )
+  );
+
+  const hooks = ctx.options.getPageHooks?.();
+  if (hooks && ctx.options.settings.performance.forceVideoQuality) {
+    rows.push(
+      ctx.dataRow(
+        "Playlists rewritten",
+        ctx.localizedCopy("{count} this session", { count: hooks.rewrittenPlaylists })
+      )
+    );
+  }
 
   return rows;
 }
