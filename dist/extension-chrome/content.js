@@ -55,7 +55,10 @@
       hideThreadRecommendations: false,
       hideGrok: false,
       writerMode: false,
-      forceFollowing: false
+      forceFollowing: false,
+      focusMode: false,
+      focusStart: "09:00",
+      focusEnd: "18:00"
     },
     filter: {
       enabled: false,
@@ -204,6 +207,9 @@
     }
     return result;
   }
+  function timeValue(input, fallback) {
+    return typeof input === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(input.trim()) ? input.trim() : fallback;
+  }
   function normalizeSettings(input) {
     const record = asRecord(input);
     const appearance = asRecord(record.appearance);
@@ -278,7 +284,10 @@
         ),
         hideGrok: booleanValue(layout.hideGrok, DEFAULT_SETTINGS.layout.hideGrok),
         writerMode: booleanValue(layout.writerMode, DEFAULT_SETTINGS.layout.writerMode),
-        forceFollowing: booleanValue(layout.forceFollowing, DEFAULT_SETTINGS.layout.forceFollowing)
+        forceFollowing: booleanValue(layout.forceFollowing, DEFAULT_SETTINGS.layout.forceFollowing),
+        focusMode: booleanValue(layout.focusMode, DEFAULT_SETTINGS.layout.focusMode),
+        focusStart: timeValue(layout.focusStart, DEFAULT_SETTINGS.layout.focusStart),
+        focusEnd: timeValue(layout.focusEnd, DEFAULT_SETTINGS.layout.focusEnd)
       },
       filter: {
         enabled: booleanValue(filter.enabled, DEFAULT_SETTINGS.filter.enabled),
@@ -1468,6 +1477,12 @@ html.av-reduce-motion *::after {
       "Stop a conversation at its last real reply by collapsing the Discover more block and the suggested posts below it.": "Termina la conversaci\xF3n en su \xFAltima respuesta real contrayendo el bloque Descubre m\xE1s y las publicaciones sugeridas debajo.",
       "Hide Grok surfaces": "Ocultar superficies de Grok",
       "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.": "Elimina el panel y el enlace de navegaci\xF3n de Grok, sus entradas de generaci\xF3n de im\xE1genes y las acciones por publicaci\xF3n.",
+      "Focus mode": "Modo concentraci\xF3n",
+      "Outside the hours below, cover the reading column with a calm local panel. Navigation stays usable and a five-minute override is one click away. Nothing is blocked and nothing leaves this device.": "Fuera del horario indicado abajo, cubre la columna de lectura con un panel local discreto. La navegaci\xF3n sigue disponible y una excepci\xF3n de cinco minutos est\xE1 a un clic. No se bloquea nada y nada sale de este dispositivo.",
+      "Reading hours start": "Inicio del horario de lectura",
+      "24-hour time, for example 09:00.": "Hora en formato de 24 horas, por ejemplo 09:00.",
+      "Reading hours end": "Fin del horario de lectura",
+      "24-hour time. An end before the start wraps past midnight.": "Hora en formato de 24 horas. Si el fin es anterior al inicio, el intervalo cruza la medianoche.",
       "Writer mode": "Modo escritura",
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "Mientras el foco est\xE1 en el redactor, aten\xFAa la barra lateral y la cronolog\xEDa detr\xE1s. Todo vuelve en cuanto haces clic fuera.",
       "Open Following instead of For you": "Abrir Siguiendo en lugar de Para ti",
@@ -2011,6 +2026,9 @@ html.av-reduce-motion *::after {
       "Trend preference saved": "Preferencia de tendencias guardada",
       "Layout preference saved": "Preferencia de dise\xF1o guardada",
       "Grok preference saved": "Preferencia de Grok guardada",
+      "Focus mode on": "Modo concentraci\xF3n activado",
+      "Focus mode off": "Modo concentraci\xF3n desactivado",
+      "Reading hours saved": "Horario de lectura guardado",
       "Writer mode on": "Modo escritura activado",
       "Writer mode off": "Modo escritura desactivado",
       "Following timeline on": "Cronolog\xEDa Siguiendo activada",
@@ -2192,6 +2210,9 @@ html.av-reduce-motion *::after {
       "Could not save the hidden post. Storage rejected the write.": "No se pudo guardar la publicaci\xF3n oculta. El almacenamiento rechaz\xF3 la escritura.",
       "Undo": "Deshacer",
       "Could not restore that post.": "No se pudo restaurar esa publicaci\xF3n.",
+      "Outside your reading hours": "Fuera de tu horario de lectura",
+      "Aviary is covering the timeline until your next window. Nothing is blocked and nothing left this device.": "Aviary cubre la cronolog\xEDa hasta tu pr\xF3ximo intervalo. No se bloquea nada y nada sali\xF3 de este dispositivo.",
+      "Let me through for five minutes": "D\xE9jame pasar cinco minutos",
       "Bookmark failed": "Error al guardar el marcador.",
       "Save locally": "Guardar localmente",
       "Remove local bookmark": "Eliminar marcador local",
@@ -2385,6 +2406,12 @@ html.av-reduce-motion *::after {
       "Stop a conversation at its last real reply by collapsing the Discover more block and the suggested posts below it.": "Encerra a conversa na \xFAltima resposta real, recolhendo o bloco Descobrir mais e as publica\xE7\xF5es sugeridas abaixo.",
       "Hide Grok surfaces": "Ocultar superf\xEDcies do Grok",
       "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.": "Remove o painel e o link de navega\xE7\xE3o do Grok, as entradas de gera\xE7\xE3o de imagens e as a\xE7\xF5es por publica\xE7\xE3o.",
+      "Focus mode": "Modo foco",
+      "Outside the hours below, cover the reading column with a calm local panel. Navigation stays usable and a five-minute override is one click away. Nothing is blocked and nothing leaves this device.": "Fora do hor\xE1rio abaixo, cobre a coluna de leitura com um painel local discreto. A navega\xE7\xE3o continua utiliz\xE1vel e uma exce\xE7\xE3o de cinco minutos fica a um clique. Nada \xE9 bloqueado e nada sai deste dispositivo.",
+      "Reading hours start": "In\xEDcio do hor\xE1rio de leitura",
+      "24-hour time, for example 09:00.": "Hora no formato de 24 horas, por exemplo 09:00.",
+      "Reading hours end": "Fim do hor\xE1rio de leitura",
+      "24-hour time. An end before the start wraps past midnight.": "Hora no formato de 24 horas. Se o fim vier antes do in\xEDcio, o intervalo atravessa a meia-noite.",
       "Writer mode": "Modo escrita",
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "Enquanto o foco est\xE1 no editor, esmaece a barra lateral e a linha do tempo atr\xE1s dele. Tudo volta assim que voc\xEA clica fora.",
       "Open Following instead of For you": "Abrir A seguir em vez de Para ti",
@@ -2928,6 +2955,9 @@ html.av-reduce-motion *::after {
       "Trend preference saved": "Prefer\xEAncia de tend\xEAncias guardada",
       "Layout preference saved": "Prefer\xEAncia de layout guardada",
       "Grok preference saved": "Prefer\xEAncia do Grok guardada",
+      "Focus mode on": "Modo foco ativado",
+      "Focus mode off": "Modo foco desativado",
+      "Reading hours saved": "Hor\xE1rio de leitura salvo",
       "Writer mode on": "Modo de escrita ativado",
       "Writer mode off": "Modo de escrita desativado",
       "Following timeline on": "Cronologia A seguir ativada",
@@ -3109,6 +3139,9 @@ html.av-reduce-motion *::after {
       "Could not save the hidden post. Storage rejected the write.": "N\xE3o foi poss\xEDvel guardar a publica\xE7\xE3o oculta. O armazenamento rejeitou a escrita.",
       "Undo": "Anular",
       "Could not restore that post.": "N\xE3o foi poss\xEDvel restaurar essa publica\xE7\xE3o.",
+      "Outside your reading hours": "Fora do seu hor\xE1rio de leitura",
+      "Aviary is covering the timeline until your next window. Nothing is blocked and nothing left this device.": "O Aviary est\xE1 cobrindo a linha do tempo at\xE9 o seu pr\xF3ximo intervalo. Nada \xE9 bloqueado e nada saiu deste dispositivo.",
+      "Let me through for five minutes": "Deixe-me passar por cinco minutos",
       "Bookmark failed": "Falha ao guardar o marcador.",
       "Save locally": "Guardar localmente",
       "Remove local bookmark": "Remover marcador local",
@@ -3302,6 +3335,12 @@ html.av-reduce-motion *::after {
       "Stop a conversation at its last real reply by collapsing the Discover more block and the suggested posts below it.": "Arr\xEAte la conversation \xE0 sa derni\xE8re vraie r\xE9ponse en repliant le bloc D\xE9couvrir plus et les posts sugg\xE9r\xE9s en dessous.",
       "Hide Grok surfaces": "Masquer les surfaces Grok",
       "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.": "Supprime le panneau et le lien de navigation Grok, les entr\xE9es de g\xE9n\xE9ration d\u2019images et les actions par publication.",
+      "Focus mode": "Mode concentration",
+      "Outside the hours below, cover the reading column with a calm local panel. Navigation stays usable and a five-minute override is one click away. Nothing is blocked and nothing leaves this device.": "En dehors des heures ci-dessous, couvre la colonne de lecture par un panneau local discret. La navigation reste utilisable et une d\xE9rogation de cinq minutes est \xE0 un clic. Rien n'est bloqu\xE9 et rien ne quitte cet appareil.",
+      "Reading hours start": "D\xE9but des heures de lecture",
+      "24-hour time, for example 09:00.": "Heure au format 24 h, par exemple 09:00.",
+      "Reading hours end": "Fin des heures de lecture",
+      "24-hour time. An end before the start wraps past midnight.": "Heure au format 24 h. Une fin ant\xE9rieure au d\xE9but franchit minuit.",
       "Writer mode": "Mode \xE9criture",
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "Tant que le focus est dans le r\xE9dacteur, la colonne lat\xE9rale et le fil s'estompent. Tout revient d\xE8s que vous cliquez ailleurs.",
       "Open Following instead of For you": "Ouvrir Abonnements plut\xF4t que Pour vous",
@@ -3845,6 +3884,9 @@ html.av-reduce-motion *::after {
       "Trend preference saved": "Pr\xE9f\xE9rence de tendances enregistr\xE9e",
       "Layout preference saved": "Pr\xE9f\xE9rence de mise en page enregistr\xE9e",
       "Grok preference saved": "Pr\xE9f\xE9rence Grok enregistr\xE9e",
+      "Focus mode on": "Mode concentration activ\xE9",
+      "Focus mode off": "Mode concentration d\xE9sactiv\xE9",
+      "Reading hours saved": "Heures de lecture enregistr\xE9es",
       "Writer mode on": "Mode \xE9criture activ\xE9",
       "Writer mode off": "Mode \xE9criture d\xE9sactiv\xE9",
       "Following timeline on": "Fil Abonnements activ\xE9",
@@ -4026,6 +4068,9 @@ html.av-reduce-motion *::after {
       "Could not save the hidden post. Storage rejected the write.": "Impossible d'enregistrer le post masqu\xE9. Le stockage a refus\xE9 l'\xE9criture.",
       "Undo": "Annuler",
       "Could not restore that post.": "Impossible de restaurer ce post.",
+      "Outside your reading hours": "En dehors de vos heures de lecture",
+      "Aviary is covering the timeline until your next window. Nothing is blocked and nothing left this device.": "Aviary masque le fil jusqu'\xE0 votre prochaine plage. Rien n'est bloqu\xE9 et rien n'a quitt\xE9 cet appareil.",
+      "Let me through for five minutes": "Laisse-moi passer cinq minutes",
       "Bookmark failed": "\xC9chec de l\u2019enregistrement du marque-page.",
       "Save locally": "Enregistrer localement",
       "Remove local bookmark": "Supprimer le marque-page local",
@@ -4219,6 +4264,12 @@ html.av-reduce-motion *::after {
       "Stop a conversation at its last real reply by collapsing the Discover more block and the suggested posts below it.": "Beendet die Unterhaltung bei der letzten echten Antwort und blendet den Bereich \u201EMehr entdecken\u201C samt der vorgeschlagenen Beitr\xE4ge darunter aus.",
       "Hide Grok surfaces": "Grok-Oberfl\xE4chen ausblenden",
       "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.": "Blendet die Grok-Leiste und den Navigationslink, die Bildgenerierungseintr\xE4ge und die Aktionen pro Beitrag aus.",
+      "Focus mode": "Fokusmodus",
+      "Outside the hours below, cover the reading column with a calm local panel. Navigation stays usable and a five-minute override is one click away. Nothing is blocked and nothing leaves this device.": "Au\xDFerhalb der Zeiten unten wird die Lesespalte mit einem ruhigen lokalen Feld abgedeckt. Die Navigation bleibt nutzbar, und eine Ausnahme von f\xFCnf Minuten ist einen Klick entfernt. Nichts wird blockiert, und nichts verl\xE4sst dieses Ger\xE4t.",
+      "Reading hours start": "Beginn der Lesezeit",
+      "24-hour time, for example 09:00.": "Uhrzeit im 24-Stunden-Format, zum Beispiel 09:00.",
+      "Reading hours end": "Ende der Lesezeit",
+      "24-hour time. An end before the start wraps past midnight.": "Uhrzeit im 24-Stunden-Format. Ein Ende vor dem Beginn l\xE4uft \xFCber Mitternacht.",
       "Writer mode": "Schreibmodus",
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "Solange der Fokus im Verfasser liegt, treten Seitenleiste und Timeline dahinter zur\xFCck. Alles kehrt zur\xFCck, sobald Sie daneben klicken.",
       "Open Following instead of For you": "Folge ich statt F\xFCr dich \xF6ffnen",
@@ -4762,6 +4813,9 @@ html.av-reduce-motion *::after {
       "Trend preference saved": "Trend-Einstellung gespeichert",
       "Layout preference saved": "Layout-Einstellung gespeichert",
       "Grok preference saved": "Grok-Einstellung gespeichert",
+      "Focus mode on": "Fokusmodus an",
+      "Focus mode off": "Fokusmodus aus",
+      "Reading hours saved": "Lesezeit gespeichert",
       "Writer mode on": "Schreibmodus an",
       "Writer mode off": "Schreibmodus aus",
       "Following timeline on": "Timeline \u201EFolge ich\u201C an",
@@ -4943,6 +4997,9 @@ html.av-reduce-motion *::after {
       "Could not save the hidden post. Storage rejected the write.": "Der ausgeblendete Beitrag konnte nicht gespeichert werden. Der Speicher hat den Schreibvorgang abgelehnt.",
       "Undo": "R\xFCckg\xE4ngig",
       "Could not restore that post.": "Dieser Beitrag konnte nicht wiederhergestellt werden.",
+      "Outside your reading hours": "Au\xDFerhalb deiner Lesezeit",
+      "Aviary is covering the timeline until your next window. Nothing is blocked and nothing left this device.": "Aviary deckt die Timeline bis zu deinem n\xE4chsten Zeitfenster ab. Nichts wird blockiert, und nichts hat dieses Ger\xE4t verlassen.",
+      "Let me through for five minutes": "Lass mich f\xFCnf Minuten durch",
       "Bookmark failed": "Lesezeichen konnte nicht gespeichert werden.",
       "Save locally": "Lokal speichern",
       "Remove local bookmark": "Lokales Lesezeichen entfernen",
@@ -5136,6 +5193,12 @@ html.av-reduce-motion *::after {
       "Stop a conversation at its last real reply by collapsing the Discover more block and the suggested posts below it.": "\u300C\u305D\u306E\u4ED6\u306E\u304A\u3059\u3059\u3081\u300D\u30D6\u30ED\u30C3\u30AF\u3068\u305D\u306E\u4E0B\u306E\u95A2\u9023\u6295\u7A3F\u3092\u6298\u308A\u305F\u305F\u307F\u3001\u4F1A\u8A71\u3092\u6700\u5F8C\u306E\u5B9F\u969B\u306E\u8FD4\u4FE1\u3067\u7D42\u4E86\u3057\u307E\u3059\u3002",
       "Hide Grok surfaces": "Grok \u306E\u8981\u7D20\u3092\u975E\u8868\u793A",
       "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.": "Grok \u306E\u30C9\u30ED\u30EF\u30FC\u3068\u30CA\u30D3\u30B2\u30FC\u30B7\u30E7\u30F3\u30EA\u30F3\u30AF\u3001\u753B\u50CF\u751F\u6210\u306E\u5165\u53E3\u3001\u6295\u7A3F\u3054\u3068\u306E\u30A2\u30AF\u30B7\u30E7\u30F3\u3092\u975E\u8868\u793A\u306B\u3057\u307E\u3059\u3002",
+      "Focus mode": "\u96C6\u4E2D\u30E2\u30FC\u30C9",
+      "Outside the hours below, cover the reading column with a calm local panel. Navigation stays usable and a five-minute override is one click away. Nothing is blocked and nothing leaves this device.": "\u4E0B\u8A18\u306E\u6642\u9593\u5E2F\u4EE5\u5916\u306F\u3001\u95B2\u89A7\u7528\u306E\u5217\u3092\u843D\u3061\u7740\u3044\u305F\u30ED\u30FC\u30AB\u30EB\u30D1\u30CD\u30EB\u3067\u8986\u3044\u307E\u3059\u3002\u30CA\u30D3\u30B2\u30FC\u30B7\u30E7\u30F3\u306F\u305D\u306E\u307E\u307E\u4F7F\u3048\u30015 \u5206\u9593\u306E\u4E00\u6642\u89E3\u9664\u306F\u30EF\u30F3\u30AF\u30EA\u30C3\u30AF\u3067\u3059\u3002\u4F55\u3082\u30D6\u30ED\u30C3\u30AF\u3055\u308C\u305A\u3001\u3053\u306E\u7AEF\u672B\u304B\u3089\u4F55\u3082\u9001\u4FE1\u3055\u308C\u307E\u305B\u3093\u3002",
+      "Reading hours start": "\u95B2\u89A7\u6642\u9593\u306E\u958B\u59CB",
+      "24-hour time, for example 09:00.": "24 \u6642\u9593\u8868\u8A18\u306E\u6642\u523B\uFF08\u4F8B: 09:00\uFF09\u3002",
+      "Reading hours end": "\u95B2\u89A7\u6642\u9593\u306E\u7D42\u4E86",
+      "24-hour time. An end before the start wraps past midnight.": "24 \u6642\u9593\u8868\u8A18\u306E\u6642\u523B\u3002\u7D42\u4E86\u304C\u958B\u59CB\u3088\u308A\u524D\u306E\u5834\u5408\u306F\u6DF1\u591C\u3092\u307E\u305F\u304E\u307E\u3059\u3002",
       "Writer mode": "\u30E9\u30A4\u30BF\u30FC\u30E2\u30FC\u30C9",
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "\u6295\u7A3F\u6B04\u306B\u30D5\u30A9\u30FC\u30AB\u30B9\u304C\u3042\u308B\u9593\u3001\u30B5\u30A4\u30C9\u30D0\u30FC\u3068\u80CC\u5F8C\u306E\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u3092\u8584\u304F\u3057\u307E\u3059\u3002\u5225\u306E\u5834\u6240\u3092\u30AF\u30EA\u30C3\u30AF\u3059\u308C\u3070\u3059\u3050\u5143\u306B\u623B\u308A\u307E\u3059\u3002",
       "Open Following instead of For you": "\u300C\u304A\u3059\u3059\u3081\u300D\u3067\u306F\u306A\u304F\u300C\u30D5\u30A9\u30ED\u30FC\u4E2D\u300D\u3092\u958B\u304F",
@@ -5679,6 +5742,9 @@ html.av-reduce-motion *::after {
       "Trend preference saved": "\u30C8\u30EC\u30F3\u30C9\u306E\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Layout preference saved": "\u30EC\u30A4\u30A2\u30A6\u30C8\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Grok preference saved": "Grok \u306E\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
+      "Focus mode on": "\u96C6\u4E2D\u30E2\u30FC\u30C9\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
+      "Focus mode off": "\u96C6\u4E2D\u30E2\u30FC\u30C9\u3092\u30AA\u30D5\u306B\u3057\u307E\u3057\u305F",
+      "Reading hours saved": "\u95B2\u89A7\u6642\u9593\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Writer mode on": "\u30E9\u30A4\u30BF\u30FC\u30E2\u30FC\u30C9 \u30AA\u30F3",
       "Writer mode off": "\u30E9\u30A4\u30BF\u30FC\u30E2\u30FC\u30C9 \u30AA\u30D5",
       "Following timeline on": "\u300C\u30D5\u30A9\u30ED\u30FC\u4E2D\u300D\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3 \u30AA\u30F3",
@@ -5860,6 +5926,9 @@ html.av-reduce-motion *::after {
       "Could not save the hidden post. Storage rejected the write.": "\u975E\u8868\u793A\u306E\u6295\u7A3F\u3092\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u30B9\u30C8\u30EC\u30FC\u30B8\u304C\u66F8\u304D\u8FBC\u307F\u3092\u62D2\u5426\u3057\u307E\u3057\u305F\u3002",
       "Undo": "\u5143\u306B\u623B\u3059",
       "Could not restore that post.": "\u305D\u306E\u6295\u7A3F\u3092\u5FA9\u5143\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+      "Outside your reading hours": "\u95B2\u89A7\u6642\u9593\u5916\u3067\u3059",
+      "Aviary is covering the timeline until your next window. Nothing is blocked and nothing left this device.": "\u6B21\u306E\u6642\u9593\u5E2F\u307E\u3067 Aviary \u304C\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u3092\u8986\u3063\u3066\u3044\u307E\u3059\u3002\u4F55\u3082\u30D6\u30ED\u30C3\u30AF\u3055\u308C\u3066\u304A\u3089\u305A\u3001\u3053\u306E\u7AEF\u672B\u304B\u3089\u4F55\u3082\u9001\u4FE1\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002",
+      "Let me through for five minutes": "5 \u5206\u3060\u3051\u8868\u793A\u3059\u308B",
       "Bookmark failed": "\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u306E\u4FDD\u5B58\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
       "Save locally": "\u30ED\u30FC\u30AB\u30EB\u306B\u4FDD\u5B58",
       "Remove local bookmark": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u524A\u9664",
@@ -6053,6 +6122,12 @@ html.av-reduce-motion *::after {
       "Stop a conversation at its last real reply by collapsing the Discover more block and the suggested posts below it.": "'\uB354 \uBCF4\uAE30' \uBE14\uB85D\uACFC \uADF8 \uC544\uB798 \uCD94\uCC9C \uAC8C\uC2DC\uBB3C\uC744 \uC811\uC5B4 \uB300\uD654\uB97C \uB9C8\uC9C0\uB9C9 \uC2E4\uC81C \uB2F5\uAE00\uC5D0\uC11C \uB05D\uB0C5\uB2C8\uB2E4.",
       "Hide Grok surfaces": "Grok \uC694\uC18C \uC228\uAE30\uAE30",
       "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.": "Grok \uC11C\uB78D\uACFC \uD0D0\uC0C9 \uB9C1\uD06C, \uC774\uBBF8\uC9C0 \uC0DD\uC131 \uC9C4\uC785\uC810 \uBC0F \uAC8C\uC2DC\uBB3C\uBCC4 \uC791\uC5C5\uC744 \uC228\uAE41\uB2C8\uB2E4.",
+      "Focus mode": "\uC9D1\uC911 \uBAA8\uB4DC",
+      "Outside the hours below, cover the reading column with a calm local panel. Navigation stays usable and a five-minute override is one click away. Nothing is blocked and nothing leaves this device.": "\uC544\uB798 \uC2DC\uAC04\uB300\uB97C \uBC97\uC5B4\uB098\uBA74 \uC77D\uAE30 \uC601\uC5ED\uC744 \uCC28\uBD84\uD55C \uB85C\uCEEC \uD328\uB110\uB85C \uB36E\uC2B5\uB2C8\uB2E4. \uB0B4\uBE44\uAC8C\uC774\uC158\uC740 \uACC4\uC18D \uC0AC\uC6A9\uD560 \uC218 \uC788\uACE0 5\uBD84 \uC784\uC2DC \uD574\uC81C\uB294 \uD074\uB9AD \uD55C \uBC88\uC774\uBA74 \uB429\uB2C8\uB2E4. \uC544\uBB34\uAC83\uB3C4 \uCC28\uB2E8\uB418\uC9C0 \uC54A\uC73C\uBA70 \uC774 \uAE30\uAE30\uB97C \uBC97\uC5B4\uB098\uB294 \uAC83\uB3C4 \uC5C6\uC2B5\uB2C8\uB2E4.",
+      "Reading hours start": "\uC77D\uAE30 \uC2DC\uAC04 \uC2DC\uC791",
+      "24-hour time, for example 09:00.": "24\uC2DC\uAC04 \uD615\uC2DD\uC758 \uC2DC\uAC01\uC785\uB2C8\uB2E4. \uC608: 09:00.",
+      "Reading hours end": "\uC77D\uAE30 \uC2DC\uAC04 \uC885\uB8CC",
+      "24-hour time. An end before the start wraps past midnight.": "24\uC2DC\uAC04 \uD615\uC2DD\uC758 \uC2DC\uAC01\uC785\uB2C8\uB2E4. \uC885\uB8CC\uAC00 \uC2DC\uC791\uBCF4\uB2E4 \uC774\uB974\uBA74 \uC790\uC815\uC744 \uB118\uAE41\uB2C8\uB2E4.",
       "Writer mode": "\uC9D1\uD544 \uBAA8\uB4DC",
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "\uC791\uC131\uCC3D\uC5D0 \uD3EC\uCEE4\uC2A4\uAC00 \uC788\uB294 \uB3D9\uC548 \uC0AC\uC774\uB4DC\uBC14\uC640 \uB4A4\uCABD \uD0C0\uC784\uB77C\uC778\uC744 \uD750\uB9AC\uAC8C \uD569\uB2C8\uB2E4. \uB2E4\uB978 \uACF3\uC744 \uD074\uB9AD\uD558\uBA74 \uC989\uC2DC \uB3CC\uC544\uC635\uB2C8\uB2E4.",
       "Open Following instead of For you": "'\uCD94\uCC9C' \uB300\uC2E0 '\uD314\uB85C\uC6B0 \uC911' \uC5F4\uAE30",
@@ -6596,6 +6671,9 @@ html.av-reduce-motion *::after {
       "Trend preference saved": "\uD2B8\uB80C\uB4DC \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Layout preference saved": "\uB808\uC774\uC544\uC6C3 \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Grok preference saved": "Grok \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
+      "Focus mode on": "\uC9D1\uC911 \uBAA8\uB4DC\uB97C \uCF30\uC2B5\uB2C8\uB2E4",
+      "Focus mode off": "\uC9D1\uC911 \uBAA8\uB4DC\uB97C \uAED0\uC2B5\uB2C8\uB2E4",
+      "Reading hours saved": "\uC77D\uAE30 \uC2DC\uAC04\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Writer mode on": "\uC791\uC131 \uBAA8\uB4DC \uCF2C",
       "Writer mode off": "\uC791\uC131 \uBAA8\uB4DC \uB054",
       "Following timeline on": "'\uD314\uB85C\uC6B0 \uC911' \uD0C0\uC784\uB77C\uC778 \uCF2C",
@@ -6777,6 +6855,9 @@ html.av-reduce-motion *::after {
       "Could not save the hidden post. Storage rejected the write.": "\uC228\uAE34 \uAC8C\uC2DC\uBB3C\uC744 \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uC800\uC7A5\uC18C\uAC00 \uC4F0\uAE30\uB97C \uAC70\uBD80\uD588\uC2B5\uB2C8\uB2E4.",
       "Undo": "\uC2E4\uD589 \uCDE8\uC18C",
       "Could not restore that post.": "\uADF8 \uAC8C\uC2DC\uBB3C\uC744 \uBCF5\uC6D0\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
+      "Outside your reading hours": "\uC77D\uAE30 \uC2DC\uAC04\uC774 \uC544\uB2D9\uB2C8\uB2E4",
+      "Aviary is covering the timeline until your next window. Nothing is blocked and nothing left this device.": "\uB2E4\uC74C \uC2DC\uAC04\uB300\uAE4C\uC9C0 Aviary\uAC00 \uD0C0\uC784\uB77C\uC778\uC744 \uB36E\uACE0 \uC788\uC2B5\uB2C8\uB2E4. \uC544\uBB34\uAC83\uB3C4 \uCC28\uB2E8\uB418\uC9C0 \uC54A\uC558\uACE0 \uC774 \uAE30\uAE30\uB97C \uBC97\uC5B4\uB09C \uAC83\uB3C4 \uC5C6\uC2B5\uB2C8\uB2E4.",
+      "Let me through for five minutes": "5\uBD84\uB9CC \uBCF4\uAE30",
       "Bookmark failed": "\uBD81\uB9C8\uD06C \uC800\uC7A5\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
       "Save locally": "\uB85C\uCEEC\uC5D0 \uC800\uC7A5",
       "Remove local bookmark": "\uB85C\uCEEC \uBD81\uB9C8\uD06C \uC0AD\uC81C",
@@ -6970,6 +7051,12 @@ html.av-reduce-motion *::after {
       "Stop a conversation at its last real reply by collapsing the Discover more block and the suggested posts below it.": "\u064A\u0646\u0647\u064A \u0627\u0644\u0645\u062D\u0627\u062F\u062B\u0629 \u0639\u0646\u062F \u0622\u062E\u0631 \u0631\u062F \u062D\u0642\u064A\u0642\u064A \u0628\u0637\u064A \u0642\u0633\u0645 \u0627\u0643\u062A\u0634\u0641 \u0627\u0644\u0645\u0632\u064A\u062F \u0648\u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u0642\u062A\u0631\u062D\u0629 \u0623\u0633\u0641\u0644\u0647.",
       "Hide Grok surfaces": "\u0625\u062E\u0641\u0627\u0621 \u0648\u0627\u062C\u0647\u0627\u062A Grok",
       "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.": "\u064A\u0632\u064A\u0644 \u0644\u0648\u062D\u0629 Grok \u0648\u0631\u0627\u0628\u0637 \u0627\u0644\u062A\u0646\u0642\u0644 \u0648\u0645\u062F\u0627\u062E\u0644 \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u0635\u0648\u0631 \u0648\u0625\u062C\u0631\u0627\u0621\u0627\u062A \u0643\u0644 \u0645\u0646\u0634\u0648\u0631.",
+      "Focus mode": "\u0648\u0636\u0639 \u0627\u0644\u062A\u0631\u0643\u064A\u0632",
+      "Outside the hours below, cover the reading column with a calm local panel. Navigation stays usable and a five-minute override is one click away. Nothing is blocked and nothing leaves this device.": "\u062E\u0627\u0631\u062C \u0627\u0644\u0623\u0648\u0642\u0627\u062A \u0623\u062F\u0646\u0627\u0647\u060C \u064A\u063A\u0637\u064A \u0639\u0645\u0648\u062F \u0627\u0644\u0642\u0631\u0627\u0621\u0629 \u0628\u0644\u0648\u062D\u0629 \u0645\u062D\u0644\u064A\u0629 \u0647\u0627\u062F\u0626\u0629. \u064A\u0628\u0642\u0649 \u0627\u0644\u062A\u0646\u0642\u0644 \u0645\u062A\u0627\u062D\u064B\u0627\u060C \u0648\u064A\u0643\u0641\u064A \u0646\u0642\u0631\u0629 \u0648\u0627\u062D\u062F\u0629 \u0644\u062A\u062C\u0627\u0648\u0632 \u0645\u0624\u0642\u062A \u0644\u062E\u0645\u0633 \u062F\u0642\u0627\u0626\u0642. \u0644\u0627 \u064A\u064F\u062D\u062C\u0628 \u0634\u064A\u0621 \u0648\u0644\u0627 \u064A\u063A\u0627\u062F\u0631 \u0634\u064A\u0621 \u0647\u0630\u0627 \u0627\u0644\u062C\u0647\u0627\u0632.",
+      "Reading hours start": "\u0628\u062F\u0627\u064A\u0629 \u0633\u0627\u0639\u0627\u062A \u0627\u0644\u0642\u0631\u0627\u0621\u0629",
+      "24-hour time, for example 09:00.": "\u0627\u0644\u0648\u0642\u062A \u0628\u0646\u0638\u0627\u0645 24 \u0633\u0627\u0639\u0629\u060C \u0645\u062B\u0644 09:00.",
+      "Reading hours end": "\u0646\u0647\u0627\u064A\u0629 \u0633\u0627\u0639\u0627\u062A \u0627\u0644\u0642\u0631\u0627\u0621\u0629",
+      "24-hour time. An end before the start wraps past midnight.": "\u0627\u0644\u0648\u0642\u062A \u0628\u0646\u0638\u0627\u0645 24 \u0633\u0627\u0639\u0629. \u0625\u0630\u0627 \u0633\u0628\u0642\u062A \u0627\u0644\u0646\u0647\u0627\u064A\u0629\u064F \u0627\u0644\u0628\u062F\u0627\u064A\u0629\u064E \u0641\u0625\u0646 \u0627\u0644\u0645\u062F\u0629 \u062A\u0645\u062A\u062F \u0639\u0628\u0631 \u0645\u0646\u062A\u0635\u0641 \u0627\u0644\u0644\u064A\u0644.",
       "Writer mode": "\u0648\u0636\u0639 \u0627\u0644\u0643\u062A\u0627\u0628\u0629",
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "\u0623\u062B\u0646\u0627\u0621 \u0627\u0644\u062A\u0631\u0643\u064A\u0632 \u0639\u0644\u0649 \u0645\u062D\u0631\u0631 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u060C \u064A\u062E\u0641\u062A \u0627\u0644\u0634\u0631\u064A\u0637 \u0627\u0644\u062C\u0627\u0646\u0628\u064A \u0648\u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \u062E\u0644\u0641\u0647. \u064A\u0639\u0648\u062F \u0643\u0644 \u0634\u064A\u0621 \u0628\u0645\u062C\u0631\u062F \u0627\u0644\u0646\u0642\u0631 \u062E\u0627\u0631\u062C\u0647.",
       "Open Following instead of For you": "\u0641\u062A\u062D \xAB\u0627\u0644\u0645\u062A\u0627\u0628\u064E\u0639\u0648\u0646\xBB \u0628\u062F\u0644\u064B\u0627 \u0645\u0646 \xAB\u0644\u0643\xBB",
@@ -7513,6 +7600,9 @@ html.av-reduce-motion *::after {
       "Trend preference saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u062A\u0631\u0646\u062F\u0627\u062A",
       "Layout preference saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u062A\u062E\u0637\u064A\u0637",
       "Grok preference saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 Grok",
+      "Focus mode on": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0648\u0636\u0639 \u0627\u0644\u062A\u0631\u0643\u064A\u0632",
+      "Focus mode off": "\u062A\u0645 \u0625\u064A\u0642\u0627\u0641 \u0648\u0636\u0639 \u0627\u0644\u062A\u0631\u0643\u064A\u0632",
+      "Reading hours saved": "\u062A\u0645 \u062D\u0641\u0638 \u0633\u0627\u0639\u0627\u062A \u0627\u0644\u0642\u0631\u0627\u0621\u0629",
       "Writer mode on": "\u0648\u0636\u0639 \u0627\u0644\u0643\u062A\u0627\u0628\u0629 \u0645\u0641\u0639\u0651\u0644",
       "Writer mode off": "\u0648\u0636\u0639 \u0627\u0644\u0643\u062A\u0627\u0628\u0629 \u0645\u0639\u0637\u0651\u0644",
       "Following timeline on": "\u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \xAB\u0627\u0644\u0645\u062A\u0627\u0628\u064E\u0639\u0648\u0646\xBB \u0645\u0641\u0639\u0651\u0644",
@@ -7694,6 +7784,9 @@ html.av-reduce-motion *::after {
       "Could not save the hidden post. Storage rejected the write.": "\u062A\u0639\u0630\u0651\u0631 \u062D\u0641\u0638 \u0627\u0644\u0645\u0646\u0634\u0648\u0631 \u0627\u0644\u0645\u062E\u0641\u064A. \u0631\u0641\u0636 \u0627\u0644\u062A\u062E\u0632\u064A\u0646 \u0639\u0645\u0644\u064A\u0629 \u0627\u0644\u0643\u062A\u0627\u0628\u0629.",
       "Undo": "\u062A\u0631\u0627\u062C\u0639",
       "Could not restore that post.": "\u062A\u0639\u0630\u0651\u0631\u062A \u0627\u0633\u062A\u0639\u0627\u062F\u0629 \u0630\u0644\u0643 \u0627\u0644\u0645\u0646\u0634\u0648\u0631.",
+      "Outside your reading hours": "\u062E\u0627\u0631\u062C \u0633\u0627\u0639\u0627\u062A \u0627\u0644\u0642\u0631\u0627\u0621\u0629 \u0627\u0644\u062E\u0627\u0635\u0629 \u0628\u0643",
+      "Aviary is covering the timeline until your next window. Nothing is blocked and nothing left this device.": "\u064A\u063A\u0637\u064A Aviary \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \u062D\u062A\u0649 \u0641\u062A\u0631\u062A\u0643 \u0627\u0644\u062A\u0627\u0644\u064A\u0629. \u0644\u0645 \u064A\u064F\u062D\u062C\u0628 \u0634\u064A\u0621 \u0648\u0644\u0645 \u064A\u063A\u0627\u062F\u0631 \u0634\u064A\u0621 \u0647\u0630\u0627 \u0627\u0644\u062C\u0647\u0627\u0632.",
+      "Let me through for five minutes": "\u062F\u0639\u0646\u064A \u0623\u0645\u0631\u0651 \u0644\u062E\u0645\u0633 \u062F\u0642\u0627\u0626\u0642",
       "Bookmark failed": "\u0641\u0634\u0644 \u062D\u0641\u0638 \u0627\u0644\u0625\u0634\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629.",
       "Save locally": "\u062D\u0641\u0638 \u0645\u062D\u0644\u064A\u064B\u0627",
       "Remove local bookmark": "\u0625\u0632\u0627\u0644\u0629 \u0627\u0644\u0625\u0634\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
@@ -7887,6 +7980,12 @@ html.av-reduce-motion *::after {
       "Stop a conversation at its last real reply by collapsing the Discover more block and the suggested posts below it.": '\u05DE\u05E1\u05D9\u05D9\u05DD \u05D0\u05EA \u05D4\u05E9\u05D9\u05D7\u05D4 \u05D1\u05EA\u05D2\u05D5\u05D1\u05D4 \u05D4\u05D0\u05DE\u05D9\u05EA\u05D9\u05EA \u05D4\u05D0\u05D7\u05E8\u05D5\u05E0\u05D4 \u05E2\u05DC \u05D9\u05D3\u05D9 \u05DB\u05D9\u05D5\u05D5\u05E5 \u05D1\u05DC\u05D5\u05E7 "\u05D2\u05DC\u05D4 \u05E2\u05D5\u05D3" \u05D5\u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D4\u05DE\u05D5\u05E6\u05E2\u05D9\u05DD \u05DE\u05EA\u05D7\u05EA\u05D9\u05D5.',
       "Hide Grok surfaces": "\u05D4\u05E1\u05EA\u05E8\u05EA \u05E8\u05DB\u05D9\u05D1\u05D9 Grok",
       "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.": "\u05DE\u05E1\u05EA\u05D9\u05E8 \u05D0\u05EA \u05DE\u05D2\u05D9\u05E8\u05EA Grok \u05D5\u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05E0\u05D9\u05D5\u05D5\u05D8, \u05D0\u05EA \u05DB\u05E0\u05D9\u05E1\u05D5\u05EA \u05D9\u05E6\u05D9\u05E8\u05EA \u05D4\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D5\u05D0\u05EA \u05E4\u05E2\u05D5\u05DC\u05D5\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8.",
+      "Focus mode": "\u05DE\u05E6\u05D1 \u05E8\u05D9\u05DB\u05D5\u05D6",
+      "Outside the hours below, cover the reading column with a calm local panel. Navigation stays usable and a five-minute override is one click away. Nothing is blocked and nothing leaves this device.": "\u05DE\u05D7\u05D5\u05E5 \u05DC\u05E9\u05E2\u05D5\u05EA \u05E9\u05DC\u05D4\u05DC\u05DF, \u05DE\u05DB\u05E1\u05D4 \u05D0\u05EA \u05E2\u05DE\u05D5\u05D3\u05EA \u05D4\u05E7\u05E8\u05D9\u05D0\u05D4 \u05D1\u05DC\u05D5\u05D7 \u05DE\u05E7\u05D5\u05DE\u05D9 \u05E8\u05D2\u05D5\u05E2. \u05D4\u05E0\u05D9\u05D5\u05D5\u05D8 \u05E0\u05E9\u05D0\u05E8 \u05D6\u05DE\u05D9\u05DF \u05D5\u05D7\u05E8\u05D9\u05D2\u05D4 \u05E9\u05DC \u05D7\u05DE\u05E9 \u05D3\u05E7\u05D5\u05EA \u05DE\u05E8\u05D5\u05D7\u05E7\u05EA \u05E7\u05DC\u05D9\u05E7 \u05D0\u05D7\u05D3. \u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05E0\u05D7\u05E1\u05DD \u05D5\u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05D9\u05D5\u05E6\u05D0 \u05DE\u05D4\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D4\u05D6\u05D4.",
+      "Reading hours start": "\u05EA\u05D7\u05D9\u05DC\u05EA \u05E9\u05E2\u05D5\u05EA \u05D4\u05E7\u05E8\u05D9\u05D0\u05D4",
+      "24-hour time, for example 09:00.": "\u05E9\u05E2\u05D4 \u05D1\u05E4\u05D5\u05E8\u05DE\u05D8 24 \u05E9\u05E2\u05D5\u05EA, \u05DC\u05DE\u05E9\u05DC 09:00.",
+      "Reading hours end": "\u05E1\u05D9\u05D5\u05DD \u05E9\u05E2\u05D5\u05EA \u05D4\u05E7\u05E8\u05D9\u05D0\u05D4",
+      "24-hour time. An end before the start wraps past midnight.": "\u05E9\u05E2\u05D4 \u05D1\u05E4\u05D5\u05E8\u05DE\u05D8 24 \u05E9\u05E2\u05D5\u05EA. \u05E1\u05D9\u05D5\u05DD \u05DE\u05D5\u05E7\u05D3\u05DD \u05DE\u05D4\u05D4\u05EA\u05D7\u05DC\u05D4 \u05D7\u05D5\u05E6\u05D4 \u05D0\u05EA \u05D7\u05E6\u05D5\u05EA.",
       "Writer mode": "\u05DE\u05E6\u05D1 \u05DB\u05EA\u05D9\u05D1\u05D4",
       "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.": "\u05DB\u05DC \u05E2\u05D5\u05D3 \u05D4\u05DE\u05D9\u05E7\u05D5\u05D3 \u05D1\u05D7\u05DC\u05D5\u05DF \u05D4\u05DB\u05EA\u05D9\u05D1\u05D4, \u05E1\u05E8\u05D2\u05DC \u05D4\u05E6\u05D3 \u05D5\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF \u05E9\u05DE\u05D0\u05D7\u05D5\u05E8\u05D9\u05D5 \u05DE\u05EA\u05E2\u05DE\u05E2\u05DE\u05D9\u05DD. \u05D4\u05DB\u05D5\u05DC \u05D7\u05D5\u05D6\u05E8 \u05D1\u05E8\u05D2\u05E2 \u05E9\u05DC\u05D5\u05D7\u05E6\u05D9\u05DD \u05D1\u05DE\u05E7\u05D5\u05DD \u05D0\u05D7\u05E8.",
       "Open Following instead of For you": '\u05DC\u05E4\u05EA\u05D5\u05D7 \u05D0\u05EA "\u05E2\u05D5\u05E7\u05D1" \u05D1\u05DE\u05E7\u05D5\u05DD "\u05D1\u05E9\u05D1\u05D9\u05DC\u05DA"',
@@ -8430,6 +8529,9 @@ html.av-reduce-motion *::after {
       "Trend preference saved": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D4\u05DE\u05D2\u05DE\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Layout preference saved": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D4\u05E4\u05E8\u05D9\u05E1\u05D4 \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Grok preference saved": "\u05D4\u05E2\u05D3\u05E4\u05EA Grok \u05E0\u05E9\u05DE\u05E8\u05D4",
+      "Focus mode on": "\u05DE\u05E6\u05D1 \u05E8\u05D9\u05DB\u05D5\u05D6 \u05D4\u05D5\u05E4\u05E2\u05DC",
+      "Focus mode off": "\u05DE\u05E6\u05D1 \u05E8\u05D9\u05DB\u05D5\u05D6 \u05DB\u05D5\u05D1\u05D4",
+      "Reading hours saved": "\u05E9\u05E2\u05D5\u05EA \u05D4\u05E7\u05E8\u05D9\u05D0\u05D4 \u05E0\u05E9\u05DE\u05E8\u05D5",
       "Writer mode on": "\u05DE\u05E6\u05D1 \u05DB\u05EA\u05D9\u05D1\u05D4 \u05E4\u05E2\u05D9\u05DC",
       "Writer mode off": "\u05DE\u05E6\u05D1 \u05DB\u05EA\u05D9\u05D1\u05D4 \u05DB\u05D1\u05D5\u05D9",
       "Following timeline on": '\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF "\u05E2\u05D5\u05E7\u05D1" \u05E4\u05E2\u05D9\u05DC',
@@ -8611,6 +8713,9 @@ html.av-reduce-motion *::after {
       "Could not save the hidden post. Storage rejected the write.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05D4\u05D9\u05D4 \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D0\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8 \u05D4\u05DE\u05D5\u05E1\u05EA\u05E8. \u05D4\u05D0\u05D7\u05E1\u05D5\u05DF \u05D3\u05D7\u05D4 \u05D0\u05EA \u05D4\u05DB\u05EA\u05D9\u05D1\u05D4.",
       "Undo": "\u05D1\u05D9\u05D8\u05D5\u05DC",
       "Could not restore that post.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05D4\u05D9\u05D4 \u05DC\u05E9\u05D7\u05D6\u05E8 \u05D0\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8 \u05D4\u05D6\u05D4.",
+      "Outside your reading hours": "\u05DE\u05D7\u05D5\u05E5 \u05DC\u05E9\u05E2\u05D5\u05EA \u05D4\u05E7\u05E8\u05D9\u05D0\u05D4 \u05E9\u05DC\u05DA",
+      "Aviary is covering the timeline until your next window. Nothing is blocked and nothing left this device.": "Aviary \u05DE\u05DB\u05E1\u05D4 \u05D0\u05EA \u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF \u05E2\u05D3 \u05D4\u05D7\u05DC\u05D5\u05DF \u05D4\u05D1\u05D0 \u05E9\u05DC\u05DA. \u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05E0\u05D7\u05E1\u05DD \u05D5\u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05D9\u05E6\u05D0 \u05DE\u05D4\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D4\u05D6\u05D4.",
+      "Let me through for five minutes": "\u05EA\u05DF \u05DC\u05D9 \u05DC\u05E2\u05D1\u05D5\u05E8 \u05DC\u05D7\u05DE\u05E9 \u05D3\u05E7\u05D5\u05EA",
       "Bookmark failed": "\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05E1\u05D9\u05DE\u05E0\u05D9\u05D9\u05D4 \u05E0\u05DB\u05E9\u05DC\u05D4.",
       "Save locally": "\u05E9\u05DE\u05D9\u05E8\u05D4 \u05DE\u05E7\u05D5\u05DE\u05D9\u05EA",
       "Remove local bookmark": "\u05D4\u05E1\u05E8\u05EA \u05E1\u05D9\u05DE\u05E0\u05D9\u05D9\u05D4 \u05DE\u05E7\u05D5\u05DE\u05D9\u05EA",
@@ -11223,6 +11328,33 @@ html.av-reduce-motion *::after {
         ctx.options.settings.layout.hideGrok = checked;
         await ctx.save("Grok preference saved");
       }),
+      ctx.toggleRow(
+        "Focus mode",
+        "Outside the hours below, cover the reading column with a calm local panel. Navigation stays usable and a five-minute override is one click away. Nothing is blocked and nothing leaves this device.",
+        ctx.options.settings.layout.focusMode,
+        async (checked) => {
+          ctx.options.settings.layout.focusMode = checked;
+          await ctx.save(checked ? "Focus mode on" : "Focus mode off");
+        }
+      ),
+      ctx.textInputRow(
+        "Reading hours start",
+        "24-hour time, for example 09:00.",
+        ctx.options.settings.layout.focusStart,
+        async (value) => {
+          ctx.options.settings.layout.focusStart = value;
+          await ctx.save("Reading hours saved");
+        }
+      ),
+      ctx.textInputRow(
+        "Reading hours end",
+        "24-hour time. An end before the start wraps past midnight.",
+        ctx.options.settings.layout.focusEnd,
+        async (value) => {
+          ctx.options.settings.layout.focusEnd = value;
+          await ctx.save("Reading hours saved");
+        }
+      ),
       ctx.toggleRow(
         "Writer mode",
         "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.",
@@ -15475,10 +15607,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   async function withNetworkTimeout(operation, timeoutMs) {
     const deadline = Math.max(1, Math.trunc(timeoutMs));
     const controller = new AbortController();
-    let timer;
+    let timer2;
     let timedOut = false;
     const timeout = new Promise((_, reject) => {
-      timer = setTimeout(() => {
+      timer2 = setTimeout(() => {
         timedOut = true;
         controller.abort();
         reject(new NetworkTimeoutError(deadline));
@@ -15493,7 +15625,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       }
       throw error;
     } finally {
-      if (timer !== void 0) clearTimeout(timer);
+      if (timer2 !== void 0) clearTimeout(timer2);
       if (timedOut) controller.abort();
     }
   }
@@ -26907,6 +27039,192 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
     }
   }
 
+  // src/features/layout/focus-mode.ts
+  var HOST_ID2 = "av-focus-mode";
+  var STYLE_ID10 = "av-focus-mode-style";
+  var OVERRIDE_MINUTES = 5;
+  function minutesOfDay(date) {
+    return date.getHours() * 60 + date.getMinutes();
+  }
+  function withinWindow(now2, startMinute, endMinute) {
+    if (startMinute === endMinute) {
+      return true;
+    }
+    return startMinute < endMinute ? now2 >= startMinute && now2 < endMinute : now2 >= startMinute || now2 < endMinute;
+  }
+  function parseTime(value) {
+    const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+    if (!match) {
+      return null;
+    }
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (!Number.isInteger(hours) || !Number.isInteger(minutes) || hours > 23 || minutes > 59) {
+      return null;
+    }
+    return hours * 60 + minutes;
+  }
+  var overrideUntil = 0;
+  var timer;
+  var focusModeFeature = {
+    id: "layout.focusMode",
+    title: "Focus mode",
+    category: "layout",
+    init(ctx) {
+      applyFocusMode(ctx);
+    },
+    apply(ctx) {
+      applyFocusMode(ctx);
+    },
+    destroy(ctx) {
+      teardown2();
+      ctx.diagnostics.info("Focus mode removed");
+    },
+    getStatus() {
+      return {
+        ok: true,
+        message: document.getElementById(HOST_ID2) ? "Focus mode covering the timeline" : "Focus mode clear"
+      };
+    }
+  };
+  function applyFocusMode(ctx) {
+    const settings = ctx.settings.layout;
+    if (!settings.focusMode) {
+      teardown2();
+      return;
+    }
+    const start = parseTime(settings.focusStart);
+    const end = parseTime(settings.focusEnd);
+    if (start === null || end === null) {
+      teardown2();
+      ctx.diagnostics.warn("Focus mode window could not be read", {
+        start: settings.focusStart,
+        end: settings.focusEnd
+      });
+      return;
+    }
+    const now2 = Date.now();
+    if (now2 < overrideUntil) {
+      hidePanel();
+      scheduleRecheck(ctx);
+      return;
+    }
+    if (withinWindow(minutesOfDay(new Date(now2)), start, end)) {
+      hidePanel();
+    } else {
+      showPanel(ctx);
+    }
+    scheduleRecheck(ctx);
+  }
+  function scheduleRecheck(ctx) {
+    if (timer !== void 0) {
+      return;
+    }
+    timer = setInterval(() => applyFocusMode(ctx), 3e4);
+  }
+  function showPanel(ctx) {
+    ensureStyle6();
+    if (document.getElementById(HOST_ID2)) {
+      return;
+    }
+    const parent = document.body ?? document.documentElement;
+    if (!parent) {
+      return;
+    }
+    const host = document.createElement("div");
+    host.id = HOST_ID2;
+    const shadow = host.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = PANEL_CSS;
+    const card = document.createElement("div");
+    card.className = "card";
+    card.setAttribute("role", "status");
+    const title = document.createElement("h2");
+    title.textContent = ft(ctx, "Outside your reading hours");
+    const copy = document.createElement("p");
+    copy.textContent = ft(
+      ctx,
+      "Aviary is covering the timeline until your next window. Nothing is blocked and nothing left this device."
+    );
+    const window_ = document.createElement("p");
+    window_.className = "window";
+    window_.textContent = `${ctx.settings.layout.focusStart} \u2013 ${ctx.settings.layout.focusEnd}`;
+    const button2 = document.createElement("button");
+    button2.type = "button";
+    button2.textContent = ft(ctx, "Let me through for five minutes");
+    button2.addEventListener("click", () => {
+      overrideUntil = Date.now() + OVERRIDE_MINUTES * 6e4;
+      hidePanel();
+    });
+    card.append(title, copy, window_, button2);
+    shadow.append(style, card);
+    parent.append(host);
+    document.documentElement.classList.add("av-focus-active");
+  }
+  function hidePanel() {
+    document.getElementById(HOST_ID2)?.remove();
+    document.documentElement.classList.remove("av-focus-active");
+  }
+  function ensureStyle6() {
+    if (document.getElementById(STYLE_ID10)) {
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = STYLE_ID10;
+    style.textContent = `
+html.av-focus-active [data-testid="primaryColumn"] > * {
+  filter: blur(9px);
+  pointer-events: none;
+  user-select: none;
+}
+`;
+    (document.head ?? document.documentElement).append(style);
+  }
+  var PANEL_CSS = `
+:host { all: initial; }
+.card {
+  position: fixed;
+  inset-block-start: 96px;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  z-index: 2147482000;
+  max-width: 380px;
+  padding: 20px 22px;
+  border: 1px solid #2f3336;
+  border-radius: 16px;
+  background: #16181c;
+  color: #e7e9ea;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  text-align: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+h2 { margin: 0 0 8px; font-size: 17px; }
+p { margin: 0 0 8px; font-size: 13px; line-height: 1.5; color: #c9cdd1; }
+.window { font-variant-numeric: tabular-nums; font-weight: 700; color: #e7e9ea; }
+button {
+  margin-top: 8px;
+  min-height: 34px;
+  padding: 0 16px;
+  border: 1px solid #536471;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:focus-visible { outline: 2px solid #1d9bf0; outline-offset: 2px; }
+`;
+  function teardown2() {
+    hidePanel();
+    document.getElementById(STYLE_ID10)?.remove();
+    if (timer !== void 0) {
+      clearInterval(timer);
+      timer = void 0;
+    }
+  }
+
   // src/features/integrations/ai-provider.ts
   async function runAiPrompt(config, request, options = {}) {
     if (!config.enabled) return { ok: false, error: "AI provider integration disabled" };
@@ -27005,7 +27323,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
   }
 
   // src/features/ai/command-menu.ts
-  var STYLE_ID10 = "av-ai-command-menu";
+  var STYLE_ID11 = "av-ai-command-menu";
   var TRIGGER_ATTR = "data-av-ai-trigger";
   var PROCESSED_ATTR3 = "data-av-ai-processed";
   var AI_COMMANDS = [
@@ -27050,7 +27368,7 @@ ${text}`
       if (!ctx.settings.ai.commandMenu) {
         return;
       }
-      ensureStyle6();
+      ensureStyle7();
       decorate2(ctx, document);
       ctx.diagnostics.info("AI command menu ready");
     },
@@ -27059,7 +27377,7 @@ ${text}`
         clearDecorations4();
         return;
       }
-      ensureStyle6();
+      ensureStyle7();
       if (!addedNodes || addedNodes.length === 0) {
         decorate2(ctx, root);
         return;
@@ -27081,7 +27399,7 @@ ${text}`
     closeAiReview?.(false);
     closeAiReview = void 0;
     removeFeatureToast();
-    document.getElementById(STYLE_ID10)?.remove();
+    document.getElementById(STYLE_ID11)?.remove();
     for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR3}]`))) {
       article.removeAttribute(PROCESSED_ATTR3);
     }
@@ -27414,12 +27732,12 @@ ${text}`
     }
     throw new Error("Clipboard API unavailable");
   }
-  function ensureStyle6() {
-    if (document.getElementById(STYLE_ID10)) {
+  function ensureStyle7() {
+    if (document.getElementById(STYLE_ID11)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID10;
+    style.id = STYLE_ID11;
     style.textContent = AI_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -27564,7 +27882,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 `;
 
   // src/features/composer/composer-snippets.ts
-  var STYLE_ID11 = "av-composer-snippets";
+  var STYLE_ID12 = "av-composer-snippets";
   var TOOLBAR_ATTR = "data-av-composer-mounted";
   var PALETTE_ATTR = "data-av-snippet-palette";
   var composerSnippetsFeature = {
@@ -27619,7 +27937,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   function clearDecorations5() {
     closePalettes();
     removeFeatureToast();
-    document.getElementById(STYLE_ID11)?.remove();
+    document.getElementById(STYLE_ID12)?.remove();
     for (const toolbar of Array.from(document.querySelectorAll(`[${TOOLBAR_ATTR}]`))) {
       toolbar.removeAttribute(TOOLBAR_ATTR);
     }
@@ -27820,11 +28138,11 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     popover.style.maxWidth = "320px";
   }
   function ensureComposerStyle() {
-    if (document.getElementById(STYLE_ID11)) {
+    if (document.getElementById(STYLE_ID12)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID11;
+    style.id = STYLE_ID12;
     style.textContent = COMPOSER_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -27884,7 +28202,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 `;
 
   // src/features/core/i18n-feature.ts
-  var STYLE_ID12 = "av-i18n";
+  var STYLE_ID13 = "av-i18n";
   var i18nFeature = {
     id: "core.i18n",
     title: "Internationalization",
@@ -27899,7 +28217,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       applyLocaleClasses(ctx);
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID12)?.remove();
+      document.getElementById(STYLE_ID13)?.remove();
       const root = document.documentElement;
       root.classList.remove("av-rtl", "av-ltr");
       delete root.dataset.avLocale;
@@ -27916,11 +28234,11 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     document.getElementById("av-control-center")?.setAttribute("dir", direction);
   }
   function ensureI18nStyle() {
-    if (document.getElementById(STYLE_ID12)) {
+    if (document.getElementById(STYLE_ID13)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID12;
+    style.id = STYLE_ID13;
     style.textContent = I18N_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -27953,7 +28271,7 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
 `;
 
   // src/features/core/mobile-touch.ts
-  var STYLE_ID13 = "av-mobile-touch";
+  var STYLE_ID14 = "av-mobile-touch";
   var mobileTouchFeature = {
     id: "core.mobileTouch",
     title: "Mobile & touch ergonomics",
@@ -27968,7 +28286,7 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
       applyMobileClasses();
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID13)?.remove();
+      document.getElementById(STYLE_ID14)?.remove();
       document.documentElement.classList.remove("av-mobile", "av-touch");
       ctx.diagnostics.info("Mobile/touch destroyed");
     }
@@ -27984,11 +28302,11 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
     root.classList.toggle("av-mobile", narrow);
   }
   function ensureMobileStyle() {
-    if (document.getElementById(STYLE_ID13)) {
+    if (document.getElementById(STYLE_ID14)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID13;
+    style.id = STYLE_ID14;
     style.textContent = MOBILE_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -28970,7 +29288,7 @@ html.av-mobile [data-testid="primaryColumn"] {
       applyVideoPlayback(ctx, root);
     },
     destroy(ctx) {
-      teardown2();
+      teardown3();
       ctx.diagnostics.info("Video playback preferences removed");
     }
   };
@@ -28978,7 +29296,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     const keepPlaying = ctx.settings.performance.keepVideoPlaying;
     const loop = ctx.settings.performance.loopVideos;
     if (!keepPlaying && !loop) {
-      teardown2();
+      teardown3();
       return;
     }
     for (const video of collectVideos(root)) {
@@ -29043,7 +29361,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     document.removeEventListener("visibilitychange", onVisibilityChange);
     visibilityBound = false;
   }
-  function teardown2() {
+  function teardown3() {
     unbindVisibility();
     listenersBound = false;
     for (const video of Array.from(document.querySelectorAll(`[${MARKER5}]`))) {
@@ -29218,7 +29536,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   }
 
   // src/features/library/link-unshorten.ts
-  var STYLE_ID14 = "av-link-unshorten";
+  var STYLE_ID15 = "av-link-unshorten";
   var PROCESSED_ATTR7 = "data-av-link-clean";
   var ORIGINAL_TITLE_PRESENT = "avOriginalTitlePresent";
   var linkUnshortenFeature = {
@@ -29229,17 +29547,17 @@ html.av-mobile [data-testid="primaryColumn"] {
       if (!ctx.settings.links.expandTco) {
         return;
       }
-      ensureStyle7();
+      ensureStyle8();
       scan6(document);
       ctx.diagnostics.info("Link unshortening initialized");
     },
     apply(ctx, root, addedNodes) {
       if (!ctx.settings.links.expandTco) {
         restoreProcessedLinks2();
-        document.getElementById(STYLE_ID14)?.remove();
+        document.getElementById(STYLE_ID15)?.remove();
         return;
       }
-      ensureStyle7();
+      ensureStyle8();
       if (!addedNodes || addedNodes.length === 0) {
         scan6(root);
         return;
@@ -29250,7 +29568,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     },
     destroy(ctx) {
       restoreProcessedLinks2();
-      document.getElementById(STYLE_ID14)?.remove();
+      document.getElementById(STYLE_ID15)?.remove();
       ctx.diagnostics.info("Link unshortening destroyed");
     }
   };
@@ -29320,12 +29638,12 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
     return null;
   }
-  function ensureStyle7() {
-    if (document.getElementById(STYLE_ID14)) {
+  function ensureStyle8() {
+    if (document.getElementById(STYLE_ID15)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID14;
+    style.id = STYLE_ID15;
     style.textContent = LINK_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -29337,7 +29655,7 @@ a.av-link-clean {
 `;
 
   // src/features/media/media-presentation.ts
-  var STYLE_ID15 = "av-media-presentation";
+  var STYLE_ID16 = "av-media-presentation";
   var mediaPresentationFeature = {
     id: "media.presentation",
     title: "Media presentation",
@@ -29354,7 +29672,7 @@ a.av-link-clean {
       applyPresentationClasses(ctx);
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID15)?.remove();
+      document.getElementById(STYLE_ID16)?.remove();
       const root = document.documentElement;
       for (const className of [
         "av-media-layout-default",
@@ -29378,11 +29696,11 @@ a.av-link-clean {
     root.classList.add(`av-media-layout-${ctx.settings.media.layout}`);
   }
   function ensurePresentationStyle() {
-    if (document.getElementById(STYLE_ID15)) {
+    if (document.getElementById(STYLE_ID16)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID15;
+    style.id = STYLE_ID16;
     style.textContent = PRESENTATION_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -29908,11 +30226,11 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   var MAX_BATCH_NODES = 400;
   function observeAddedElements(root, onAdded) {
     let pending = /* @__PURE__ */ new Set();
-    let timer;
+    let timer2;
     let overflowed = false;
     let stopped = false;
     const flush = () => {
-      timer = void 0;
+      timer2 = void 0;
       if (stopped) {
         return;
       }
@@ -29945,8 +30263,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       if (pending.size === 0 && !overflowed) {
         return;
       }
-      if (timer === void 0) {
-        timer = setTimeout(flush, FLUSH_DELAY_MS2);
+      if (timer2 === void 0) {
+        timer2 = setTimeout(flush, FLUSH_DELAY_MS2);
       }
     });
     observer3.observe(root, {
@@ -29956,9 +30274,9 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     return () => {
       stopped = true;
       observer3.disconnect();
-      if (timer !== void 0) {
-        clearTimeout(timer);
-        timer = void 0;
+      if (timer2 !== void 0) {
+        clearTimeout(timer2);
+        timer2 = void 0;
       }
       pending = /* @__PURE__ */ new Set();
     };
@@ -30824,6 +31142,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     registry.register(selectorHealthFeature);
     registry.register(layoutDeclutterFeature);
     registry.register(threadRecommendationsFeature);
+    registry.register(focusModeFeature);
     registry.register(filterEngineFeature);
     registry.register(seenPostsFeature);
     registry.register(hiddenPostsFeature);

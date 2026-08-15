@@ -227,6 +227,33 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         await ctx.save("Grok preference saved");
       }),
       ctx.toggleRow(
+        "Focus mode",
+        "Outside the hours below, cover the reading column with a calm local panel. Navigation stays usable and a five-minute override is one click away. Nothing is blocked and nothing leaves this device.",
+        ctx.options.settings.layout.focusMode,
+        async (checked) => {
+          ctx.options.settings.layout.focusMode = checked;
+          await ctx.save(checked ? "Focus mode on" : "Focus mode off");
+        }
+      ),
+      ctx.textInputRow(
+        "Reading hours start",
+        "24-hour time, for example 09:00.",
+        ctx.options.settings.layout.focusStart,
+        async (value) => {
+          ctx.options.settings.layout.focusStart = value;
+          await ctx.save("Reading hours saved");
+        }
+      ),
+      ctx.textInputRow(
+        "Reading hours end",
+        "24-hour time. An end before the start wraps past midnight.",
+        ctx.options.settings.layout.focusEnd,
+        async (value) => {
+          ctx.options.settings.layout.focusEnd = value;
+          await ctx.save("Reading hours saved");
+        }
+      ),
+      ctx.toggleRow(
         "Writer mode",
         "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.",
         ctx.options.settings.layout.writerMode,

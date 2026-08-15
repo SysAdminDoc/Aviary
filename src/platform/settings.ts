@@ -152,6 +152,12 @@ export interface AviarySettings {
     hideGrok: boolean;
     writerMode: boolean;
     forceFollowing: boolean;
+    /** Cover the reading column outside the window below. Local only; nothing is blocked. */
+    focusMode: boolean;
+    /** Start of the allowed reading window, "HH:MM" local time. */
+    focusStart: string;
+    /** End of the allowed reading window. An end before the start wraps midnight. */
+    focusEnd: string;
   };
   filter: {
     enabled: boolean;
@@ -274,7 +280,10 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     hideThreadRecommendations: false,
     hideGrok: false,
     writerMode: false,
-    forceFollowing: false
+    forceFollowing: false,
+    focusMode: false,
+    focusStart: "09:00",
+    focusEnd: "18:00"
   },
   filter: {
     enabled: false,
@@ -440,6 +449,13 @@ function normalizeCountMetrics(input: unknown): Record<CountMetric, boolean> {
   return result;
 }
 
+/** An unreadable time falls back to the default rather than locking someone out of X. */
+function timeValue(input: unknown, fallback: string): string {
+  return typeof input === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(input.trim())
+    ? input.trim()
+    : fallback;
+}
+
 export function normalizeSettings(input: unknown): AviarySettings {
   const record = asRecord(input);
   const appearance = asRecord(record.appearance);
@@ -520,7 +536,10 @@ export function normalizeSettings(input: unknown): AviarySettings {
       ),
       hideGrok: booleanValue(layout.hideGrok, DEFAULT_SETTINGS.layout.hideGrok),
       writerMode: booleanValue(layout.writerMode, DEFAULT_SETTINGS.layout.writerMode),
-      forceFollowing: booleanValue(layout.forceFollowing, DEFAULT_SETTINGS.layout.forceFollowing)
+      forceFollowing: booleanValue(layout.forceFollowing, DEFAULT_SETTINGS.layout.forceFollowing),
+      focusMode: booleanValue(layout.focusMode, DEFAULT_SETTINGS.layout.focusMode),
+      focusStart: timeValue(layout.focusStart, DEFAULT_SETTINGS.layout.focusStart),
+      focusEnd: timeValue(layout.focusEnd, DEFAULT_SETTINGS.layout.focusEnd)
     },
     filter: {
       enabled: booleanValue(filter.enabled, DEFAULT_SETTINGS.filter.enabled),

@@ -17,6 +17,11 @@
 
 ### Added
 
+- **Focus mode** covers the reading column outside a daily window you set, with a five-minute
+  override one click away. Navigation stays usable, so the rest of X remains reachable — it is a
+  reading gate, not a site block. Entirely local: nothing is blocked at the network layer and
+  nothing leaves the device. A window whose end precedes its start wraps midnight, and an
+  unreadable time falls back to the default rather than locking anyone out.
 - **Account colours** tag a handle with one of six colours, shown as a badge beside that account's
   posts. A colour works with or without a note, travels with the existing library backup, and the
   badge keeps visible text and names the colour in its accessible label — colour is never the only
