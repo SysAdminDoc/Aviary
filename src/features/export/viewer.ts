@@ -1,269 +1,68 @@
+import { supportedLocales, translateText } from "../../platform/i18n";
 import { serializeExportRecords } from "./assets";
 import type { ExportRecord } from "./types";
 
-const VIEWER_LABELS = {
-  en: {
-    name: "English",
-    title: "Aviary archive",
-    subtitle: "Local archive viewer — remote references are never fetched automatically.",
-    language: "Language",
-    search: "Search records",
-    status: "Media status",
-    all: "All media",
-    captured: "Captured bytes",
-    remote: "Remote reference",
-    missing: "Missing",
-    sort: "Sort",
-    newest: "Newest first",
-    oldest: "Oldest first",
-    handle: "Handle",
-    thread: "Thread view",
-    media: "Media",
-    records: "records",
-    shown: "shown",
-    noResults: "No matching records.",
-    source: "source",
-    bytes: "bytes",
-    checksum: "SHA-256",
-    openSource: "Open source URL",
-    threadPosts: "posts",
-    offline: "offline-ready",
-    network: "network may be required"
-  },
-  es: {
-    name: "Español",
-    title: "Archivo de Aviary",
-    subtitle: "Visor de archivo local — las referencias remotas nunca se descargan automáticamente.",
-    language: "Idioma",
-    search: "Buscar registros",
-    status: "Estado multimedia",
-    all: "Todo el contenido",
-    captured: "Bytes capturados",
-    remote: "Referencia remota",
-    missing: "Faltante",
-    sort: "Ordenar",
-    newest: "Más recientes primero",
-    oldest: "Más antiguos primero",
-    handle: "Usuario",
-    thread: "Vista de hilos",
-    media: "Contenido multimedia",
-    records: "registros",
-    shown: "mostrados",
-    noResults: "No hay registros coincidentes.",
-    source: "origen",
-    bytes: "bytes",
-    checksum: "SHA-256",
-    openSource: "Abrir URL de origen",
-    threadPosts: "publicaciones",
-    offline: "listo sin conexión",
-    network: "puede requerir red"
-  },
-  pt: {
-    name: "Português",
-    title: "Arquivo Aviary",
-    subtitle: "Visualizador de arquivo local — referências remotas nunca são buscadas automaticamente.",
-    language: "Idioma",
-    search: "Pesquisar registros",
-    status: "Status da mídia",
-    all: "Todas as mídias",
-    captured: "Bytes capturados",
-    remote: "Referência remota",
-    missing: "Ausente",
-    sort: "Ordenar",
-    newest: "Mais recentes primeiro",
-    oldest: "Mais antigas primeiro",
-    handle: "Usuário",
-    thread: "Visualização de tópicos",
-    media: "Mídia",
-    records: "registros",
-    shown: "exibidos",
-    noResults: "Nenhum registro correspondente.",
-    source: "origem",
-    bytes: "bytes",
-    checksum: "SHA-256",
-    openSource: "Abrir URL de origem",
-    threadPosts: "publicações",
-    offline: "pronto off-line",
-    network: "a rede pode ser necessária"
-  },
-  fr: {
-    name: "Français",
-    title: "Archive Aviary",
-    subtitle: "Lecteur d’archive local — les références distantes ne sont jamais récupérées automatiquement.",
-    language: "Langue",
-    search: "Rechercher des entrées",
-    status: "État des médias",
-    all: "Tous les médias",
-    captured: "Octets capturés",
-    remote: "Référence distante",
-    missing: "Manquant",
-    sort: "Trier",
-    newest: "Plus récent d’abord",
-    oldest: "Plus ancien d’abord",
-    handle: "Compte",
-    thread: "Vue des fils",
-    media: "Médias",
-    records: "entrées",
-    shown: "affichées",
-    noResults: "Aucune entrée correspondante.",
-    source: "source",
-    bytes: "octets",
-    checksum: "SHA-256",
-    openSource: "Ouvrir l’URL source",
-    threadPosts: "publications",
-    offline: "prêt hors ligne",
-    network: "réseau potentiellement nécessaire"
-  },
-  de: {
-    name: "Deutsch",
-    title: "Aviary-Archiv",
-    subtitle: "Lokaler Archiv-Viewer — Remote-Referenzen werden niemals automatisch abgerufen.",
-    language: "Sprache",
-    search: "Einträge durchsuchen",
-    status: "Medienstatus",
-    all: "Alle Medien",
-    captured: "Erfasste Bytes",
-    remote: "Remote-Referenz",
-    missing: "Fehlt",
-    sort: "Sortieren",
-    newest: "Neueste zuerst",
-    oldest: "Älteste zuerst",
-    handle: "Handle",
-    thread: "Thread-Ansicht",
-    media: "Medien",
-    records: "Einträge",
-    shown: "angezeigt",
-    noResults: "Keine passenden Einträge.",
-    source: "Quelle",
-    bytes: "Bytes",
-    checksum: "SHA-256",
-    openSource: "Quell-URL öffnen",
-    threadPosts: "Beiträge",
-    offline: "offline-fertig",
-    network: "Netzwerk eventuell erforderlich"
-  },
-  ja: {
-    name: "日本語",
-    title: "Aviary アーカイブ",
-    subtitle: "ローカルアーカイブビューアー — リモート参照は自動取得されません。",
-    language: "言語",
-    search: "レコードを検索",
-    status: "メディア状態",
-    all: "すべてのメディア",
-    captured: "キャプチャ済みバイト",
-    remote: "リモート参照",
-    missing: "欠落",
-    sort: "並べ替え",
-    newest: "新しい順",
-    oldest: "古い順",
-    handle: "ハンドル",
-    thread: "スレッド表示",
-    media: "メディア",
-    records: "件",
-    shown: "表示",
-    noResults: "一致するレコードはありません。",
-    source: "ソース",
-    bytes: "バイト",
-    checksum: "SHA-256",
-    openSource: "ソースURLを開く",
-    threadPosts: "件の投稿",
-    offline: "オフライン対応",
-    network: "ネットワークが必要な場合があります"
-  },
-  ko: {
-    name: "한국어",
-    title: "Aviary 아카이브",
-    subtitle: "로컬 아카이브 뷰어 — 원격 참조를 자동으로 가져오지 않습니다.",
-    language: "언어",
-    search: "레코드 검색",
-    status: "미디어 상태",
-    all: "모든 미디어",
-    captured: "캡처된 바이트",
-    remote: "원격 참조",
-    missing: "누락됨",
-    sort: "정렬",
-    newest: "최신순",
-    oldest: "오래된 순",
-    handle: "핸들",
-    thread: "스레드 보기",
-    media: "미디어",
-    records: "개 레코드",
-    shown: "표시됨",
-    noResults: "일치하는 레코드가 없습니다.",
-    source: "출처",
-    bytes: "바이트",
-    checksum: "SHA-256",
-    openSource: "출처 URL 열기",
-    threadPosts: "개 게시물",
-    offline: "오프라인 준비됨",
-    network: "네트워크가 필요할 수 있음"
-  },
-  ar: {
-    name: "العربية",
-    title: "أرشيف Aviary",
-    subtitle: "عارض أرشيف محلي — لا يتم جلب المراجع البعيدة تلقائياً.",
-    language: "اللغة",
-    search: "البحث في السجلات",
-    status: "حالة الوسائط",
-    all: "كل الوسائط",
-    captured: "البايتات الملتقطة",
-    remote: "مرجع بعيد",
-    missing: "مفقود",
-    sort: "الترتيب",
-    newest: "الأحدث أولاً",
-    oldest: "الأقدم أولاً",
-    handle: "المعرّف",
-    thread: "عرض سلاسل المحادثة",
-    media: "الوسائط",
-    records: "سجلات",
-    shown: "معروضة",
-    noResults: "لا توجد سجلات مطابقة.",
-    source: "المصدر",
-    bytes: "بايت",
-    checksum: "SHA-256",
-    openSource: "فتح عنوان المصدر",
-    threadPosts: "منشورات",
-    offline: "جاهز للعمل دون اتصال",
-    network: "قد تتطلب الشبكة"
-  },
-  he: {
-    name: "עברית",
-    title: "ארכיון Aviary",
-    subtitle: "מציג ארכיון מקומי — הפניות מרוחקות לעולם לא נטענות אוטומטית.",
-    language: "שפה",
-    search: "חיפוש רשומות",
-    status: "מצב מדיה",
-    all: "כל המדיה",
-    captured: "בתים שנלכדו",
-    remote: "הפניה מרוחקת",
-    missing: "חסר",
-    sort: "מיון",
-    newest: "החדשות תחילה",
-    oldest: "הישנות תחילה",
-    handle: "מזהה",
-    thread: "תצוגת שרשורים",
-    media: "מדיה",
-    records: "רשומות",
-    shown: "מוצגות",
-    noResults: "אין רשומות תואמות.",
-    source: "מקור",
-    bytes: "בתים",
-    checksum: "SHA-256",
-    openSource: "פתיחת כתובת המקור",
-    threadPosts: "פוסטים",
-    offline: "מוכן ללא חיבור",
-    network: "ייתכן שנדרש חיבור רשת"
-  }
+/**
+ * The viewer's copy, in English, keyed by the id its markup uses.
+ *
+ * The exported viewer is a standalone file, so its strings have to be inlined into the
+ * generated HTML rather than looked up at runtime. They used to be inlined as a second,
+ * hand-maintained nine-locale table living outside the catalog and outside the extractor —
+ * a table nothing could keep honest, in a repository that has already lost five separate
+ * rounds of copy to i18n blind spots.
+ *
+ * Now only the English source lives here and every translation is resolved from the one
+ * catalog at generation time. A viewer string is a catalog string like any other.
+ */
+const VIEWER_COPY = {
+  title: "Aviary archive",
+  subtitle: "Local archive viewer — remote references are never fetched automatically.",
+  language: "Language",
+  search: "Search records",
+  status: "Media status",
+  all: "All media",
+  captured: "Captured bytes",
+  remote: "Remote reference",
+  missing: "Missing",
+  sort: "Sort",
+  newest: "Newest first",
+  oldest: "Oldest first",
+  handle: "Handle",
+  thread: "Thread view",
+  media: "Media",
+  records: "records",
+  shown: "shown",
+  noResults: "No matching records.",
+  source: "source",
+  bytes: "bytes",
+  checksum: "SHA-256",
+  openSource: "Open source URL",
+  threadPosts: "posts",
+  offline: "offline-ready",
+  network: "network may be required",
 } as const;
 
-type ViewerLocale = keyof typeof VIEWER_LABELS;
-type ViewerLabels = (typeof VIEWER_LABELS)[ViewerLocale];
+type ViewerCopyKey = keyof typeof VIEWER_COPY;
+export type ViewerLabels = Record<ViewerCopyKey | "name", string>;
 
-const LOCALE_ORDER: ViewerLocale[] = ["en", "es", "pt", "fr", "de", "ja", "ko", "ar", "he"];
+/** Resolve every viewer string for every shipped locale, from the shared catalog. */
+function buildViewerLabels(): Record<string, ViewerLabels> {
+  const table: Record<string, ViewerLabels> = {};
+  for (const locale of supportedLocales()) {
+    const entry = { name: locale.label } as ViewerLabels;
+    for (const [key, english] of Object.entries(VIEWER_COPY)) {
+      entry[key as ViewerCopyKey] = translateText(locale.code, english);
+    }
+    table[locale.code] = entry;
+  }
+  return table;
+}
+
+const LOCALE_ORDER: string[] = supportedLocales().map((locale) => locale.code);
 
 export function buildExportViewer(records: readonly ExportRecord[]): Uint8Array {
   const data = safeJson(serializeExportRecords(records));
-  const labels = safeJson(VIEWER_LABELS);
+  const labels = safeJson(buildViewerLabels());
   const script = viewerScript(labels);
   const html = `<!doctype html>
 <html lang="en" dir="ltr"><head>
@@ -561,5 +360,4 @@ a { color: #8ecdf1; }
 }
 `;
 
-export const viewerLocales: readonly ViewerLocale[] = LOCALE_ORDER;
-export type { ViewerLabels };
+export const viewerLocales: readonly string[] = LOCALE_ORDER;

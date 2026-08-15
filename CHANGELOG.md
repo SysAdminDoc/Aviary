@@ -4,6 +4,10 @@
 
 ### Added
 
+- The standalone export viewer no longer carries its own nine-locale translation table. Its copy
+  now comes from the same catalog as everything else, resolved at generation time and inlined into
+  the exported file, and the extractor harvests it so the sync step cannot drop it. Tests fail if a
+  viewer string is missing from the catalog or a second table reappears.
 - A fresh install now says what it already changed. A one-time dismissible notice names the two
   default-on behaviours — hidden ads and the click-only media controls — and points at the Aviary
   row in X's left navigation. It appears only for a profile that has never stored settings, so an

@@ -17,13 +17,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: rules combine (AND/OR), apply per-surface, round-trip through export/import, and are fixture-tested against `_decoded/` captures; no rule can originate a network request.
   Complexity: L
 
-- [ ] F113 — P1 — Fold viewer.ts inline locale table into the i18n pipeline
-  Why: src/features/export/viewer.ts carries a second hand-maintained 9-locale table outside the extractor/catalog — the repo has hit five separate i18n-extraction blind spots already; this one is guaranteed drift.
-  Evidence: viewer.ts lines ~7-250; CLAUDE.md Learned (i18n incidents 2026-08-06/07); RESEARCH.md Architecture.
-  Touches: src/features/export/viewer.ts, tools/i18n-extract.mjs (or a dedicated sync gate test).
-  Acceptance: viewer strings come from the catalog (or a generator), and a test fails when viewer copy and catalog diverge.
-  Complexity: M
-
 - [ ] F115 — P1 — "Restore old X" feature-flag reversion pack
   Why: users hand-write uBO filters monthly to rewrite `__INITIAL_STATE__.featureSwitch` (restore media grid vs Videos/Photos split, disable image carousel, disable profile redesign) — recurring demand no extension productizes; Aviary's document-start page agent is the right layer and no API calls are involved.
   Evidence: r/uBlockOrigin 1vob8nh (2026-08-14, `responsive_web_profile_redesign_enabled`), 1v2gxir comments (`rweb_media_carousel_enabled`); CPFT #917/#918; RESEARCH.md Executive Summary.

@@ -30,6 +30,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const write = process.argv.includes("--write");
+const LITERAL_RE = /^\s+\w+: "((?:[^"\\]|\\.)*)",?$/gm;
 const abs = (p) => path.resolve(root, p).replace(/\\/g, "/");
 
 const temp = await mkdtemp(path.join(tmpdir(), "aviary-i18n-"));
@@ -264,6 +265,12 @@ const optionsHtml = await readFile(path.join(root, "src/extension/options.html")
 const optionsController = await readFile(path.join(root, "src/entrypoints/extension-options.ts"), "utf8");
 const optionsLiterals = harvestOptionsLiterals(optionsHtml, optionsController);
 
+// The standalone export viewer inlines its own copy into a generated HTML file, so its strings
+// never pass through a panel render or an ft() call. They are declared in one English map and
+// resolved from the catalog at generation time; harvest that map so they reach this manifest.
+const viewerSource = await readFile(path.join(root, "src/features/export/viewer.ts"), "utf8");
+const viewerLiterals = harvestViewerLiterals(viewerSource);
+
 /**
  * Collects every string literal inside a `setStatus(...)`, `setStatusCopy(...)`, or `save(...)` call.
  *
@@ -272,6 +279,27 @@ const optionsLiterals = harvestOptionsLiterals(optionsHtml, optionsController);
  * those confirmations were shipping in English regardless of locale. Scanning to the matching
  * close paren instead catches both arms, and any future shape.
  */
+/**
+ * The English sources declared in the export viewer's VIEWER_COPY map. A viewer string is a
+ * catalog string like any other; without this harvest the sync step, which rewrites the catalog in
+ * manifest order, would silently drop every one of them.
+ */
+function harvestViewerLiterals(source) {
+  const start = source.indexOf("const VIEWER_COPY = {");
+  if (start === -1) {
+    throw new Error("VIEWER_COPY was not found in viewer.ts; the viewer i18n harvest is broken");
+  }
+  const block = source.slice(start, source.indexOf("} as const;", start));
+  const literals = [];
+  for (const match of block.matchAll(LITERAL_RE)) {
+    literals.push(JSON.parse('"' + match[1] + '"'));
+  }
+  if (literals.length === 0) {
+    throw new Error("VIEWER_COPY harvested no strings; the viewer i18n harvest is broken");
+  }
+  return literals;
+}
+
 async function readFeatureSources() {
   const { readdir } = await import("node:fs/promises");
   const roots = [path.join(root, "src/features"), path.join(root, "src/ui")];
@@ -420,6 +448,7 @@ for (const s of [
   ...panelLiterals,
   ...featureLiterals,
   ...optionsLiterals,
+  ...viewerLiterals,
   ...previous
 ]) {
   const v = s.trim();
@@ -435,6 +464,7 @@ console.log(`setStatus:       ${statusLiterals.length}`);
 console.log(`panel t():       ${panelLiterals.length}`);
 console.log(`ft() + presets:  ${featureLiterals.length}`);
 console.log(`options page:    ${optionsLiterals.length}`);
+console.log(`export viewer:   ${viewerLiterals.length}`);
 console.log(`MANIFEST:        ${manifest.length}`);
 
 const catOut = path.join(temp, "catalog.mjs");
