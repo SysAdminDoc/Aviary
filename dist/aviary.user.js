@@ -15056,6 +15056,97 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       fallback: 'div[id*="grok" i]',
       churnRisk: "High",
       note: "Drawer, navigation, image-generation, and per-post Grok surfaces change frequently; isolate all tweaks."
+    },
+    // Below: the selectors features actually depend on. Watching only the ten foundational surfaces
+    // meant a rename anywhere else silently disabled its owning feature with no diagnostic -- the
+    // exact failure the fixture discipline exists to prevent, happening outside the fixture's reach.
+    {
+      surface: "Timeline cell",
+      stable: '[data-testid="cellInnerDiv"]',
+      fallback: 'section[role="region"] > div > div',
+      churnRisk: "High",
+      note: "The hide/dim boundary and the thread-recommendation cut both anchor here.",
+      feature: "Filtering, hidden posts, thread recommendations"
+    },
+    {
+      surface: "Post actions",
+      stable: '[data-testid="toolBar"]',
+      fallback: 'article[data-testid="tweet"] [role="group"]',
+      churnRisk: "High",
+      note: "Where the media, AI and snippet controls mount.",
+      feature: "Media buttons, AI menu, composer snippets"
+    },
+    {
+      surface: "Engagement counts",
+      stable: '[data-testid="app-text-transition-container"]',
+      fallback: 'article[data-testid="tweet"] [role="group"] span',
+      churnRisk: "High",
+      note: "The per-metric count hiding scopes to this container.",
+      feature: "Hide engagement counts"
+    },
+    {
+      surface: "Author name",
+      stable: '[data-testid="User-Name"]',
+      fallback: 'article[data-testid="tweet"] a[role="link"] time',
+      churnRisk: "Medium",
+      note: "Handle extraction for notes, colours, whitelists and filter rules.",
+      feature: "Account notes, colours, handle rules"
+    },
+    {
+      surface: "Video component",
+      stable: '[data-testid="videoComponent"]',
+      fallback: 'article[data-testid="tweet"] video',
+      churnRisk: "Medium",
+      note: "Offscreen pause, keep-playing and loop all scope to this container.",
+      feature: "Video playback preferences"
+    },
+    {
+      surface: "Trends",
+      stable: '[data-testid="trend"]',
+      fallback: '[aria-label*="Trending"]',
+      churnRisk: "High",
+      note: "Trend declutter hides these rows.",
+      feature: "Hide trends"
+    },
+    {
+      surface: "News sidebar",
+      stable: '[data-testid="news_sidebar"]',
+      fallback: '[data-testid="sidebarColumn"] section',
+      churnRisk: "High",
+      note: "The right-rail news module.",
+      feature: "Sidebar declutter"
+    },
+    {
+      surface: "Who to follow",
+      stable: '[data-testid="UserCell"]',
+      fallback: '[data-testid="sidebarColumn"] [role="button"] img',
+      churnRisk: "Medium",
+      note: "Follow-suggestion rows in the rail and between timeline cells.",
+      feature: "Hide follow suggestions"
+    },
+    {
+      surface: "Home tab link",
+      stable: '[data-testid="AppTabBar_Home_Link"]',
+      fallback: 'nav[role="navigation"] a[href="/home"]',
+      churnRisk: "Medium",
+      note: "Navigation declutter and the Following-first behaviour both need it.",
+      feature: "Navigation declutter, open Following first"
+    },
+    {
+      surface: "Search box",
+      stable: '[data-testid="SearchBox_Search_Input"]',
+      fallback: 'input[role="combobox"]',
+      churnRisk: "Medium",
+      note: "Present on every route that carries the rail.",
+      feature: "Sidebar declutter"
+    },
+    {
+      surface: "Promoted placement",
+      stable: '[data-testid="placementTracking"]',
+      fallback: 'article[data-testid="tweet"] [data-testid="placementTracking"]',
+      churnRisk: "High",
+      note: "Observed for ad-contract drift only -- never used alone to hide a post.",
+      feature: "Ad contract observations"
     }
   ];
   function getSelectorHealthForRoute(root = document, route = "unknown") {
@@ -15086,6 +15177,11 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     "search"
   ]);
   function selectorRelevance(surface, route) {
+    const entry = SURFACE_SELECTORS.find((item) => item.surface === surface);
+    if (entry?.requiredOn) {
+      if (entry.requiredOn.includes(route)) return "required";
+      return CONTENT_SURFACES.has(route) ? "optional" : "inapplicable";
+    }
     if (surface === "App root" || surface === "Navigation") {
       return "required";
     }
@@ -15104,6 +15200,8 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     return "optional";
   }
   function featureForSurface(surface) {
+    const declared = SURFACE_SELECTORS.find((entry) => entry.surface === surface)?.feature;
+    if (declared) return declared;
     if (surface === "App root" || surface === "Primary column") return "Boot and timeline scope";
     if (surface === "Sidebar" || surface === "Navigation") return "Layout declutter";
     if (surface === "Tweet" || surface === "Tweet text") return "Filtering and export";

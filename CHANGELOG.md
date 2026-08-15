@@ -18,6 +18,14 @@
 
 ### Changed
 
+- Selector drift is watched across the surfaces features actually use, not just the ten
+  foundational ones. Aviary referenced 56 distinct X test ids while monitoring 10, so a rename in
+  any of the rest silently disabled its owning feature with no diagnostic — the exact failure the
+  fixture discipline exists to prevent, happening outside the fixture's reach. Timeline cells, the
+  post action bar, engagement counts, author names, the video container, trends, the news rail,
+  follow suggestions, the Home tab link, the search box and the promoted-placement marker are all
+  registered now, each naming the feature that stops working without it. Every registered test id
+  must appear in a capture, so the registry cannot grow a selector nobody can point at.
 - Export archives are compressed now. The ZIP writer emitted STORE — no compression at all — while
   the ZIP *reader* had been inflating `deflate-raw` since archive import shipped, so the two halves
   disagreed for no reason: text-heavy exports (JSON, CSV, HTML, WARC, Markdown) left the browser

@@ -29,13 +29,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ### P1 — trust, reliability, and measured defects
 
-- [ ] F136 — P1 — Watch every selector a feature depends on, and show the user
-  Why: selector health watches 10 surfaces while features reference 56 distinct `data-testid` selectors, so a rename in any of the ~46 unwatched ones silently disables its owning feature. It is also the most-requested thing in a rival's backlog: a way for the user to check whether the tool still works.
-  Evidence: `src/platform/selectors.ts` SURFACE_SELECTORS (10 entries) vs 56 distinct testids across `src/features` and `src/ui`; TwitterMediaHarvest#54.
-  Touches: `src/platform/selectors.ts`, `src/features/core/selector-health.ts`, the Trust page, per-feature `getStatus()`.
-  Acceptance: every selector a feature relies on is registered with its owning feature id and relevance; Trust lists which features are healthy, degraded, and why, on the live page; a deliberately broken selector shows up there and in `getStatus()` rather than failing silently.
-  Complexity: M
-
 - [ ] F138 — P1 — Take the translation catalog off the document-start path
   Why: the built userscript is 1,862,668 characters and `src/platform/i18n-catalog.ts` is 1,011,863 of them — 54.3% — parsed synchronously on every X page load before first paint, to serve a settings panel that is usually never opened. All nine locales ship to every user.
   Evidence: measured against `dist/aviary.user.js` 2026-08-15 (module-boundary sizes in RESEARCH.md Architecture); `@run-at document-start` in the metablock and `run_at: document_start` in both manifests.

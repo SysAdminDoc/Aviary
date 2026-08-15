@@ -123,3 +123,45 @@ test("the capture decoder extracts and scrubs a real saved MHTML", async () => {
   assert.ok(!cleaned.includes("abcdef0123456789abcdef"), "ct0 value survived the scrub");
   assert.ok(!cleaned.includes("deadbeefdeadbeef"), "auth_token survived the scrub");
 });
+
+// Watching only the ten foundational surfaces meant a rename anywhere else silently disabled its
+// owning feature with no diagnostic — the exact failure the fixture discipline exists to prevent,
+// happening outside the fixture's reach. These keep the expanded registry honest without a browser:
+// the health pass itself is exercised against a live DOM in the Trust selector-health tests.
+
+test("every registered selector declares a fallback, a note, and what breaks without it", async () => {
+  const source = await readFile(path.join(root, "src/platform/selectors.ts"), "utf8");
+  const registry = source.slice(
+    source.indexOf("export const SURFACE_SELECTORS"),
+    source.indexOf("export function getSelectorHealth")
+  );
+  const entries = [...registry.matchAll(/surface: "([^"]+)"/g)].map((match) => match[1]);
+  assert.ok(entries.length >= 20, `expected the expanded registry, saw ${entries.length} surfaces`);
+
+  for (const block of registry.split("  {").slice(1)) {
+    const name = block.match(/surface: "([^"]+)"/)?.[1];
+    if (!name) continue;
+    assert.match(block, /stable:/, `${name} has no stable selector`);
+    assert.match(block, /fallback:/, `${name} has no fallback selector`);
+    assert.match(block, /note:/, `${name} has no note explaining its churn`);
+  }
+});
+
+test("the selectors features depend on are present in a capture, not invented", async () => {
+  const source = await readFile(path.join(root, "src/platform/selectors.ts"), "utf8");
+  const home = await readFile(path.join(root, "_decoded/home.html"), "utf8");
+  const status = await readFile(path.join(root, "_decoded/status.html"), "utf8");
+  const captures = home + status;
+
+  // Every test id the registry claims as a stable anchor has to exist in the ground truth. A
+  // selector nobody can point at in a capture is exactly what this project refuses to ship.
+  const testIds = new Set(
+    [...source.matchAll(/data-testid="([A-Za-z0-9_-]+)"/g)].map((match) => match[1])
+  );
+  const missing = [...testIds].filter((id) => !captures.includes(`data-testid="${id}"`));
+  assert.deepEqual(
+    missing,
+    [],
+    `selectors.ts claims test ids no capture contains: ${missing.join(", ")}`
+  );
+});
