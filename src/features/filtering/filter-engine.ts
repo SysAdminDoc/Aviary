@@ -7,6 +7,7 @@ import {
   type CompiledFilters,
   type FilterDecision
 } from "./predicates";
+import { compileRules, type RuleParseError } from "./rules";
 
 const STYLE_ID = "av-filter-engine";
 const ARTICLE_SELECTOR = 'article[data-testid="tweet"]';
@@ -16,6 +17,12 @@ const RESULT_ATTR = "data-av-filter-result";
 const CELL_RESULT_ATTR = "data-av-filter-cell-hidden";
 
 let generation = 0;
+let ruleErrors: RuleParseError[] = [];
+
+/** Parse failures from the last compile, for the Control Center to surface. */
+export function filterRuleErrors(): RuleParseError[] {
+  return [...ruleErrors];
+}
 let compiled: CompiledFilters | undefined;
 /** Serialised filter inputs behind the current `compiled`, so an unchanged apply is free. */
 let compiledSignature = "";
@@ -104,7 +111,17 @@ function refreshCompiled(ctx: FeatureContext): void {
   }
   compiledSignature = signature;
   generation += 1;
+  const ruleSet = compileRules(ctx.settings.filter.rules);
+  ruleErrors = ruleSet.errors;
+  if (ruleErrors.length > 0) {
+    // A rule that cannot be parsed must be visible, not a filter that silently never matches.
+    ctx.diagnostics.warn("Filter rules could not be parsed", {
+      count: ruleErrors.length,
+      firstLine: ruleErrors[0]?.line ?? 0
+    });
+  }
   compiled = compileFilters({
+    rules: ruleSet.rules,
     keywords: ctx.settings.filter.keywordRules,
     regex: ctx.settings.filter.regexRules,
     whitelist: ctx.settings.filter.whitelist,
@@ -117,6 +134,7 @@ function refreshCompiled(ctx: FeatureContext): void {
 function filterSignature(ctx: FeatureContext): string {
   const filter = ctx.settings.filter;
   return JSON.stringify([
+    filter.rules,
     filter.keywordRules,
     filter.regexRules,
     filter.whitelist,

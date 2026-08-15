@@ -151,6 +151,8 @@ export interface AviarySettings {
   };
   filter: {
     enabled: boolean;
+    /** Field/operator/value rules, one expression per line. See features/filtering/rules.ts. */
+    rules: string[];
     keywordRules: string[];
     regexRules: string[];
     premiumRule: FilterAction;
@@ -257,6 +259,7 @@ export const DEFAULT_SETTINGS: AviarySettings = {
   },
   filter: {
     enabled: false,
+    rules: [],
     keywordRules: [],
     regexRules: [],
     premiumRule: "off",
@@ -491,6 +494,7 @@ export function normalizeSettings(input: unknown): AviarySettings {
     },
     filter: {
       enabled: booleanValue(filter.enabled, DEFAULT_SETTINGS.filter.enabled),
+      rules: stringArray(filter.rules, { maxItems: 100, maxLength: 400 }),
       keywordRules: stringArray(filter.keywordRules, { maxItems: 200, maxLength: 180 }),
       regexRules: stringArray(filter.regexRules, { maxItems: 100, maxLength: 240 }),
       premiumRule: enumValue(filter.premiumRule, FILTER_ACTIONS, DEFAULT_SETTINGS.filter.premiumRule),

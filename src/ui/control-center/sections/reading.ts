@@ -301,6 +301,28 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
 
   rows.push(
     ctx.textareaRow(
+      "Filter rules",
+      "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo",
+      ctx.options.settings.filter.rules,
+      async (lines) => {
+        ctx.options.settings.filter.rules = lines.slice(0, 100);
+        await ctx.save("Filter rules saved");
+      }
+    )
+  );
+
+  const ruleProblems = ctx.options.getFilterRuleErrors?.() ?? [];
+  if (ruleProblems.length > 0) {
+    rows.push(
+      ctx.dataRow(
+        "Rules that could not be read",
+        ruleProblems.map((problem) => `line ${problem.line}: ${problem.message}`).join(" · ")
+      )
+    );
+  }
+
+  rows.push(
+    ctx.textareaRow(
       "Keyword rules",
       "One keyword or phrase per line. Case-insensitive substring match.",
       ctx.options.settings.filter.keywordRules,

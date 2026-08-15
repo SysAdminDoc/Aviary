@@ -57,6 +57,7 @@
     },
     filter: {
       enabled: false,
+      rules: [],
       keywordRules: [],
       regexRules: [],
       premiumRule: "off",
@@ -268,6 +269,7 @@
       },
       filter: {
         enabled: booleanValue(filter.enabled, DEFAULT_SETTINGS.filter.enabled),
+        rules: stringArray(filter.rules, { maxItems: 100, maxLength: 400 }),
         keywordRules: stringArray(filter.keywordRules, { maxItems: 200, maxLength: 180 }),
         regexRules: stringArray(filter.regexRules, { maxItems: 100, maxLength: 240 }),
         premiumRule: enumValue(filter.premiumRule, FILTER_ACTIONS, DEFAULT_SETTINGS.filter.premiumRule),
@@ -1295,6 +1297,8 @@ html.av-reduce-motion *::after {
       "Master switch for keyword, regex, premium, and media filters.": "Interruptor general de los filtros de palabras clave, expresiones regulares, Premium y multimedia.",
       "Rule status": "Estado de las reglas",
       "Inactive until filters are enabled. You can edit rules before turning them on.": "Inactivo hasta que se habiliten los filtros. Puedes editar las reglas antes de activarlos.",
+      "Filter rules": "Reglas de filtrado",
+      "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo": "Una regla por l\xEDnea: campo, \xABnot\xBB opcional, operador y valor. Los campos son text, handle, media, verified y link; los operadores son contains, is, starts, ends y matches. \xDAnelos con \xABand\xBB u \xABor\xBB, y antep\xF3n \xABdim:\xBB para atenuar en lugar de ocultar. Ejemplo: dim: text contains sale and media is photo",
       "Keyword rules": "Reglas de palabras clave",
       "One keyword or phrase per line. Case-insensitive substring match.": "Una palabra clave o frase por l\xEDnea. Coincidencia parcial sin distinguir may\xFAsculas.",
       "Regex rules": "Reglas de expresiones regulares",
@@ -1819,6 +1823,7 @@ html.av-reduce-motion *::after {
       "Video quality left to X": "Calidad de v\xEDdeo a criterio de X",
       "Filters enabled": "Filtros activados",
       "Filters disabled": "Filtros desactivados",
+      "Filter rules saved": "Reglas de filtrado guardadas",
       "Premium filter saved": "Filtro Premium guardado",
       "Filters off on every route": "Filtros desactivados en todas las rutas",
       "Hidden posts applied": "Publicaciones ocultas aplicadas",
@@ -1919,6 +1924,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "Lote multimedia activo",
       "Resume queued media": "Reanudar medios en cola",
       "Retry failed media": "Reintentar medios fallidos",
+      "Rules that could not be read": "Reglas que no se pudieron leer",
       "Open Aviary AI command menu": "Abrir el men\xFA de comandos de IA de Aviary",
       "Aviary AI commands (offline prompt builder)": "Comandos de IA de Aviary (generador de prompts sin conexi\xF3n)",
       "Run with provider": "Ejecutar con el proveedor",
@@ -2168,6 +2174,8 @@ html.av-reduce-motion *::after {
       "Master switch for keyword, regex, premium, and media filters.": "Chave geral dos filtros de palavra-chave, regex, Premium e m\xEDdia.",
       "Rule status": "Estado das regras",
       "Inactive until filters are enabled. You can edit rules before turning them on.": "Inativo at\xE9 os filtros serem ativados. Podes editar as regras antes de as ligares.",
+      "Filter rules": "Regras de filtragem",
+      "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo": 'Uma regra por linha: campo, "not" opcional, operador e valor. Os campos s\xE3o text, handle, media, verified e link; os operadores s\xE3o contains, is, starts, ends e matches. Combine com "and" ou "or" e use o prefixo "dim:" para esmaecer em vez de ocultar. Exemplo: dim: text contains sale and media is photo',
       "Keyword rules": "Regras de palavras-chave",
       "One keyword or phrase per line. Case-insensitive substring match.": "Uma palavra-chave ou frase por linha. Correspond\xEAncia parcial sem diferenciar mai\xFAsculas.",
       "Regex rules": "Regras de express\xF5es regulares",
@@ -2692,6 +2700,7 @@ html.av-reduce-motion *::after {
       "Video quality left to X": "Qualidade de v\xEDdeo ao crit\xE9rio do X",
       "Filters enabled": "Filtros ativados",
       "Filters disabled": "Filtros desativados",
+      "Filter rules saved": "Regras de filtragem salvas",
       "Premium filter saved": "Filtro Premium salvo",
       "Filters off on every route": "Filtros desativados em todas as rotas",
       "Hidden posts applied": "Publica\xE7\xF5es ocultas aplicadas",
@@ -2792,6 +2801,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "Lote de m\xEDdia ativo",
       "Resume queued media": "Retomar m\xEDdia na fila",
       "Retry failed media": "Tentar novamente m\xEDdias com falha",
+      "Rules that could not be read": "Regras que n\xE3o puderam ser lidas",
       "Open Aviary AI command menu": "Abrir o menu de comandos de IA do Aviary",
       "Aviary AI commands (offline prompt builder)": "Comandos de IA do Aviary (gerador de prompts offline)",
       "Run with provider": "Executar com o fornecedor",
@@ -3041,6 +3051,8 @@ html.av-reduce-motion *::after {
       "Master switch for keyword, regex, premium, and media filters.": "Interrupteur g\xE9n\xE9ral des filtres mots-cl\xE9s, regex, Premium et m\xE9dias.",
       "Rule status": "\xC9tat des r\xE8gles",
       "Inactive until filters are enabled. You can edit rules before turning them on.": "Inactif tant que les filtres ne sont pas activ\xE9s. Vous pouvez modifier les r\xE8gles avant de les activer.",
+      "Filter rules": "R\xE8gles de filtrage",
+      "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo": "Une r\xE8gle par ligne : champ, \xAB not \xBB facultatif, op\xE9rateur, valeur. Les champs sont text, handle, media, verified et link ; les op\xE9rateurs sont contains, is, starts, ends et matches. Reliez-les par \xAB and \xBB ou \xAB or \xBB, et pr\xE9fixez par \xAB dim: \xBB pour att\xE9nuer au lieu de masquer. Exemple : dim: text contains sale and media is photo",
       "Keyword rules": "R\xE8gles de mots-cl\xE9s",
       "One keyword or phrase per line. Case-insensitive substring match.": "Un mot-cl\xE9 ou une expression par ligne. Correspondance partielle, insensible \xE0 la casse.",
       "Regex rules": "R\xE8gles d'expressions r\xE9guli\xE8res",
@@ -3565,6 +3577,7 @@ html.av-reduce-motion *::after {
       "Video quality left to X": "Qualit\xE9 vid\xE9o laiss\xE9e \xE0 X",
       "Filters enabled": "Filtres activ\xE9s",
       "Filters disabled": "Filtres d\xE9sactiv\xE9s",
+      "Filter rules saved": "R\xE8gles de filtrage enregistr\xE9es",
       "Premium filter saved": "Filtre Premium enregistr\xE9",
       "Filters off on every route": "Filtres d\xE9sactiv\xE9s sur toutes les routes",
       "Hidden posts applied": "Posts masqu\xE9s appliqu\xE9s",
@@ -3665,6 +3678,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "Lot de m\xE9dias actif",
       "Resume queued media": "Reprendre les m\xE9dias en file",
       "Retry failed media": "R\xE9essayer les m\xE9dias \xE9chou\xE9s",
+      "Rules that could not be read": "R\xE8gles illisibles",
       "Open Aviary AI command menu": "Ouvrir le menu de commandes IA d'Aviary",
       "Aviary AI commands (offline prompt builder)": "Commandes IA d'Aviary (g\xE9n\xE9rateur de prompts hors ligne)",
       "Run with provider": "Ex\xE9cuter avec le fournisseur",
@@ -3914,6 +3928,8 @@ html.av-reduce-motion *::after {
       "Master switch for keyword, regex, premium, and media filters.": "Hauptschalter f\xFCr Stichwort-, Regex-, Premium- und Medienfilter.",
       "Rule status": "Regelstatus",
       "Inactive until filters are enabled. You can edit rules before turning them on.": "Inaktiv, bis Filter aktiviert werden. Du kannst die Regeln vor dem Einschalten bearbeiten.",
+      "Filter rules": "Filterregeln",
+      "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo": "Eine Regel pro Zeile: Feld, optionales \u201Enot\u201C, Operator, Wert. Felder sind text, handle, media, verified und link; Operatoren sind contains, is, starts, ends und matches. Verbinde sie mit \u201Eand\u201C oder \u201Eor\u201C und stelle \u201Edim:\u201C voran, um abzublenden statt auszublenden. Beispiel: dim: text contains sale and media is photo",
       "Keyword rules": "Stichwortregeln",
       "One keyword or phrase per line. Case-insensitive substring match.": "Ein Stichwort oder eine Wendung pro Zeile. Teiltreffer ohne Beachtung der Gro\xDF-/Kleinschreibung.",
       "Regex rules": "Regex-Regeln",
@@ -4438,6 +4454,7 @@ html.av-reduce-motion *::after {
       "Video quality left to X": "Videoqualit\xE4t bleibt X \xFCberlassen",
       "Filters enabled": "Filter aktiviert",
       "Filters disabled": "Filter deaktiviert",
+      "Filter rules saved": "Filterregeln gespeichert",
       "Premium filter saved": "Premium-Filter gespeichert",
       "Filters off on every route": "Filter auf allen Routen aus",
       "Hidden posts applied": "Ausgeblendete Beitr\xE4ge angewendet",
@@ -4538,6 +4555,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "Aktiver Medienbatch",
       "Resume queued media": "Wartende Medien fortsetzen",
       "Retry failed media": "Fehlgeschlagene Medien erneut versuchen",
+      "Rules that could not be read": "Nicht lesbare Regeln",
       "Open Aviary AI command menu": "Aviarys KI-Befehlsmen\xFC \xF6ffnen",
       "Aviary AI commands (offline prompt builder)": "Aviary-KI-Befehle (Prompt-Baukasten ohne Netz)",
       "Run with provider": "Mit Anbieter ausf\xFChren",
@@ -4787,6 +4805,8 @@ html.av-reduce-motion *::after {
       "Master switch for keyword, regex, premium, and media filters.": "\u30AD\u30FC\u30EF\u30FC\u30C9\u30FB\u6B63\u898F\u8868\u73FE\u30FB\u30D7\u30EC\u30DF\u30A2\u30E0\u30FB\u30E1\u30C7\u30A3\u30A2\u306E\u5404\u30D5\u30A3\u30EB\u30BF\u3092\u307E\u3068\u3081\u3066\u5207\u308A\u66FF\u3048\u307E\u3059\u3002",
       "Rule status": "\u30EB\u30FC\u30EB\u306E\u72B6\u614B",
       "Inactive until filters are enabled. You can edit rules before turning them on.": "\u30D5\u30A3\u30EB\u30BF\u30FC\u3092\u6709\u52B9\u306B\u3059\u308B\u307E\u3067\u7121\u52B9\u3067\u3059\u3002\u6709\u52B9\u306B\u3059\u308B\u524D\u306B\u30EB\u30FC\u30EB\u3092\u7DE8\u96C6\u3067\u304D\u307E\u3059\u3002",
+      "Filter rules": "\u30D5\u30A3\u30EB\u30BF\u30FC\u30EB\u30FC\u30EB",
+      "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo": "1 \u884C\u306B 1 \u30EB\u30FC\u30EB\u3002\u30D5\u30A3\u30FC\u30EB\u30C9\u3001\u4EFB\u610F\u306E not\u3001\u6F14\u7B97\u5B50\u3001\u5024\u306E\u9806\u3067\u3059\u3002\u30D5\u30A3\u30FC\u30EB\u30C9\u306F text\u3001handle\u3001media\u3001verified\u3001link\u3001\u6F14\u7B97\u5B50\u306F contains\u3001is\u3001starts\u3001ends\u3001matches \u3067\u3059\u3002and / or \u3067\u3064\u306A\u304E\u3001\u975E\u8868\u793A\u3067\u306F\u306A\u304F\u6DE1\u8272\u5316\u3057\u305F\u3044\u5834\u5408\u306F dim: \u3092\u5148\u982D\u306B\u4ED8\u3051\u307E\u3059\u3002\u4F8B: dim: text contains sale and media is photo",
       "Keyword rules": "\u30AD\u30FC\u30EF\u30FC\u30C9\u306E\u30EB\u30FC\u30EB",
       "One keyword or phrase per line. Case-insensitive substring match.": "1 \u884C\u306B 1 \u3064\u306E\u30AD\u30FC\u30EF\u30FC\u30C9\u307E\u305F\u306F\u30D5\u30EC\u30FC\u30BA\u3002\u5927\u6587\u5B57\u5C0F\u6587\u5B57\u3092\u533A\u5225\u3057\u306A\u3044\u90E8\u5206\u4E00\u81F4\u3067\u3059\u3002",
       "Regex rules": "\u6B63\u898F\u8868\u73FE\u306E\u30EB\u30FC\u30EB",
@@ -5311,6 +5331,7 @@ html.av-reduce-motion *::after {
       "Video quality left to X": "\u753B\u8CEA\u306F X \u306B\u4EFB\u305B\u307E\u3059",
       "Filters enabled": "\u30D5\u30A3\u30EB\u30BF\u30FC\u3092\u6709\u52B9\u306B\u3057\u307E\u3057\u305F",
       "Filters disabled": "\u30D5\u30A3\u30EB\u30BF\u30FC\u3092\u7121\u52B9\u306B\u3057\u307E\u3057\u305F",
+      "Filter rules saved": "\u30D5\u30A3\u30EB\u30BF\u30FC\u30EB\u30FC\u30EB\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Premium filter saved": "\u30D7\u30EC\u30DF\u30A2\u30E0\u30D5\u30A3\u30EB\u30BF\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Filters off on every route": "\u3059\u3079\u3066\u306E\u30EB\u30FC\u30C8\u3067\u30D5\u30A3\u30EB\u30BF\u30FC\u3092\u30AA\u30D5\u306B\u3057\u307E\u3057\u305F",
       "Hidden posts applied": "\u975E\u8868\u793A\u306E\u6295\u7A3F\u3092\u9069\u7528\u3057\u307E\u3057\u305F",
@@ -5411,6 +5432,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30E1\u30C7\u30A3\u30A2\u30D0\u30C3\u30C1",
       "Resume queued media": "\u30AD\u30E5\u30FC\u5185\u306E\u30E1\u30C7\u30A3\u30A2\u3092\u518D\u958B",
       "Retry failed media": "\u5931\u6557\u3057\u305F\u30E1\u30C7\u30A3\u30A2\u3092\u518D\u8A66\u884C",
+      "Rules that could not be read": "\u8AAD\u307F\u53D6\u308C\u306A\u304B\u3063\u305F\u30EB\u30FC\u30EB",
       "Open Aviary AI command menu": "Aviary \u306E AI \u30B3\u30DE\u30F3\u30C9\u30E1\u30CB\u30E5\u30FC\u3092\u958B\u304F",
       "Aviary AI commands (offline prompt builder)": "Aviary \u306E AI \u30B3\u30DE\u30F3\u30C9\uFF08\u30AA\u30D5\u30E9\u30A4\u30F3\u306E\u30D7\u30ED\u30F3\u30D7\u30C8\u4F5C\u6210\uFF09",
       "Run with provider": "\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u3067\u5B9F\u884C",
@@ -5660,6 +5682,8 @@ html.av-reduce-motion *::after {
       "Master switch for keyword, regex, premium, and media filters.": "\uD0A4\uC6CC\uB4DC\xB7\uC815\uADDC\uC2DD\xB7\uD504\uB9AC\uBBF8\uC5C4\xB7\uBBF8\uB514\uC5B4 \uD544\uD130\uB97C \uD55C\uAEBC\uBC88\uC5D0 \uCF1C\uACE0 \uB055\uB2C8\uB2E4.",
       "Rule status": "\uADDC\uCE59 \uC0C1\uD0DC",
       "Inactive until filters are enabled. You can edit rules before turning them on.": "\uD544\uD130\uB97C \uCF24 \uB54C\uAE4C\uC9C0 \uBE44\uD65C\uC131 \uC0C1\uD0DC\uC785\uB2C8\uB2E4. \uCF1C\uAE30 \uC804\uC5D0 \uADDC\uCE59\uC744 \uD3B8\uC9D1\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+      "Filter rules": "\uD544\uD130 \uADDC\uCE59",
+      "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo": "\uD55C \uC904\uC5D0 \uADDC\uCE59 \uD558\uB098: \uD544\uB4DC, \uC120\uD0DD\uC801 not, \uC5F0\uC0B0\uC790, \uAC12 \uC21C\uC11C\uC785\uB2C8\uB2E4. \uD544\uB4DC\uB294 text, handle, media, verified, link\uC774\uACE0 \uC5F0\uC0B0\uC790\uB294 contains, is, starts, ends, matches\uC785\uB2C8\uB2E4. and \uB610\uB294 or\uB85C \uC5F0\uACB0\uD558\uACE0, \uC228\uAE30\uB294 \uB300\uC2E0 \uD750\uB9AC\uAC8C \uD558\uB824\uBA74 \uC55E\uC5D0 dim:\uC744 \uBD99\uC774\uC138\uC694. \uC608: dim: text contains sale and media is photo",
       "Keyword rules": "\uD0A4\uC6CC\uB4DC \uADDC\uCE59",
       "One keyword or phrase per line. Case-insensitive substring match.": "\uD55C \uC904\uC5D0 \uD0A4\uC6CC\uB4DC\uB098 \uBB38\uAD6C \uD558\uB098\uC529. \uB300\uC18C\uBB38\uC790\uB97C \uAD6C\uBD84\uD558\uC9C0 \uC54A\uB294 \uBD80\uBD84 \uC77C\uCE58\uC785\uB2C8\uB2E4.",
       "Regex rules": "\uC815\uADDC\uC2DD \uADDC\uCE59",
@@ -6184,6 +6208,7 @@ html.av-reduce-motion *::after {
       "Video quality left to X": "\uD654\uC9C8\uC740 X\uC5D0 \uB9E1\uAE41\uB2C8\uB2E4",
       "Filters enabled": "\uD544\uD130\uB97C \uCF30\uC2B5\uB2C8\uB2E4",
       "Filters disabled": "\uD544\uD130\uB97C \uAED0\uC2B5\uB2C8\uB2E4",
+      "Filter rules saved": "\uD544\uD130 \uADDC\uCE59\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Premium filter saved": "\uD504\uB9AC\uBBF8\uC5C4 \uD544\uD130\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Filters off on every route": "\uBAA8\uB4E0 \uACBD\uB85C\uC5D0\uC11C \uD544\uD130\uB97C \uAED0\uC2B5\uB2C8\uB2E4",
       "Hidden posts applied": "\uC228\uAE34 \uAC8C\uC2DC\uBB3C\uC744 \uC801\uC6A9\uD588\uC2B5\uB2C8\uB2E4",
@@ -6284,6 +6309,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "\uD65C\uC131 \uBBF8\uB514\uC5B4 \uBC30\uCE58",
       "Resume queued media": "\uB300\uAE30 \uC911\uC778 \uBBF8\uB514\uC5B4 \uC7AC\uAC1C",
       "Retry failed media": "\uC2E4\uD328\uD55C \uBBF8\uB514\uC5B4 \uB2E4\uC2DC \uC2DC\uB3C4",
+      "Rules that could not be read": "\uC77D\uC744 \uC218 \uC5C6\uB294 \uADDC\uCE59",
       "Open Aviary AI command menu": "Aviary AI \uBA85\uB839 \uBA54\uB274 \uC5F4\uAE30",
       "Aviary AI commands (offline prompt builder)": "Aviary AI \uBA85\uB839 (\uC624\uD504\uB77C\uC778 \uD504\uB86C\uD504\uD2B8 \uC791\uC131\uAE30)",
       "Run with provider": "\uC81C\uACF5\uC790\uB85C \uC2E4\uD589",
@@ -6533,6 +6559,8 @@ html.av-reduce-motion *::after {
       "Master switch for keyword, regex, premium, and media filters.": "\u0645\u0641\u062A\u0627\u062D \u0631\u0626\u064A\u0633\u064A \u0644\u0641\u0644\u0627\u062A\u0631 \u0627\u0644\u0643\u0644\u0645\u0627\u062A \u0627\u0644\u0645\u0641\u062A\u0627\u062D\u064A\u0629 \u0648\u0627\u0644\u062A\u0639\u0628\u064A\u0631\u0627\u062A \u0627\u0644\u0646\u0645\u0637\u064A\u0629 \u0648\u0627\u0644\u062D\u0633\u0627\u0628\u0627\u062A \u0627\u0644\u0645\u0645\u064A\u0632\u0629 \u0648\u0627\u0644\u0648\u0633\u0627\u0626\u0637.",
       "Rule status": "\u062D\u0627\u0644\u0629 \u0627\u0644\u0642\u0648\u0627\u0639\u062F",
       "Inactive until filters are enabled. You can edit rules before turning them on.": "\u063A\u064A\u0631 \u0646\u0634\u0637 \u062D\u062A\u0649 \u062A\u0641\u0639\u064A\u0644 \u0639\u0648\u0627\u0645\u0644 \u0627\u0644\u062A\u0635\u0641\u064A\u0629. \u064A\u0645\u0643\u0646\u0643 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0642\u0648\u0627\u0639\u062F \u0642\u0628\u0644 \u062A\u0634\u063A\u064A\u0644\u0647\u0627.",
+      "Filter rules": "\u0642\u0648\u0627\u0639\u062F \u0627\u0644\u062A\u0635\u0641\u064A\u0629",
+      "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo": "\u0642\u0627\u0639\u062F\u0629 \u0648\u0627\u062D\u062F\u0629 \u0641\u064A \u0643\u0644 \u0633\u0637\u0631: \u0627\u0644\u062D\u0642\u0644\u060C \u062B\u0645 not \u0627\u062E\u062A\u064A\u0627\u0631\u064A\u0629\u060C \u062B\u0645 \u0627\u0644\u0645\u0639\u0627\u0645\u0644\u060C \u062B\u0645 \u0627\u0644\u0642\u064A\u0645\u0629. \u0627\u0644\u062D\u0642\u0648\u0644 \u0647\u064A text \u0648handle \u0648media \u0648verified \u0648link\u060C \u0648\u0627\u0644\u0645\u0639\u0627\u0645\u0644\u0627\u062A \u0647\u064A contains \u0648is \u0648starts \u0648ends \u0648matches. \u0627\u0631\u0628\u0637\u0647\u0627 \u0628\u0640 and \u0623\u0648 or\u060C \u0648\u0627\u0628\u062F\u0623 \u0628\u0640 dim: \u0644\u0644\u062A\u0639\u062A\u064A\u0645 \u0628\u062F\u0644\u064B\u0627 \u0645\u0646 \u0627\u0644\u0625\u062E\u0641\u0627\u0621. \u0645\u062B\u0627\u0644: dim: text contains sale and media is photo",
       "Keyword rules": "\u0642\u0648\u0627\u0639\u062F \u0627\u0644\u0643\u0644\u0645\u0627\u062A \u0627\u0644\u0645\u0641\u062A\u0627\u062D\u064A\u0629",
       "One keyword or phrase per line. Case-insensitive substring match.": "\u0643\u0644\u0645\u0629 \u0623\u0648 \u0639\u0628\u0627\u0631\u0629 \u0648\u0627\u062D\u062F\u0629 \u0641\u064A \u0643\u0644 \u0633\u0637\u0631. \u0627\u0644\u0645\u0637\u0627\u0628\u0642\u0629 \u062C\u0632\u0626\u064A\u0629 \u0648\u0644\u0627 \u062A\u0645\u064A\u0651\u0632 \u0628\u064A\u0646 \u0627\u0644\u0623\u062D\u0631\u0641 \u0627\u0644\u0643\u0628\u064A\u0631\u0629 \u0648\u0627\u0644\u0635\u063A\u064A\u0631\u0629.",
       "Regex rules": "\u0642\u0648\u0627\u0639\u062F \u0627\u0644\u062A\u0639\u0628\u064A\u0631\u0627\u062A \u0627\u0644\u0646\u0645\u0637\u064A\u0629",
@@ -7057,6 +7085,7 @@ html.av-reduce-motion *::after {
       "Video quality left to X": "\u062C\u0648\u062F\u0629 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u0645\u062A\u0631\u0648\u0643\u0629 \u0644\u0640 X",
       "Filters enabled": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0639\u0648\u0627\u0645\u0644 \u0627\u0644\u062A\u0635\u0641\u064A\u0629",
       "Filters disabled": "\u062A\u0645 \u062A\u0639\u0637\u064A\u0644 \u0639\u0648\u0627\u0645\u0644 \u0627\u0644\u062A\u0635\u0641\u064A\u0629",
+      "Filter rules saved": "\u062A\u0645 \u062D\u0641\u0638 \u0642\u0648\u0627\u0639\u062F \u0627\u0644\u062A\u0635\u0641\u064A\u0629",
       "Premium filter saved": "\u062A\u0645 \u062D\u0641\u0638 \u0641\u0644\u062A\u0631 Premium",
       "Filters off on every route": "\u0639\u0648\u0627\u0645\u0644 \u0627\u0644\u062A\u0635\u0641\u064A\u0629 \u0645\u0639\u0637\u0651\u0644\u0629 \u0641\u064A \u0643\u0644 \u0627\u0644\u0645\u0633\u0627\u0631\u0627\u062A",
       "Hidden posts applied": "\u062A\u0645 \u062A\u0637\u0628\u064A\u0642 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u062E\u0641\u064A\u0629",
@@ -7157,6 +7186,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "\u062F\u0641\u0639\u0629 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u0646\u0634\u0637\u0629",
       "Resume queued media": "\u0627\u0633\u062A\u0626\u0646\u0627\u0641 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0641\u064A \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0627\u0646\u062A\u0638\u0627\u0631",
       "Retry failed media": "\u0625\u0639\u0627\u062F\u0629 \u0645\u062D\u0627\u0648\u0644\u0629 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u0641\u0627\u0634\u0644\u0629",
+      "Rules that could not be read": "\u0642\u0648\u0627\u0639\u062F \u062A\u0639\u0630\u0651\u0631\u062A \u0642\u0631\u0627\u0621\u062A\u0647\u0627",
       "Open Aviary AI command menu": "\u0641\u062A\u062D \u0642\u0627\u0626\u0645\u0629 \u0623\u0648\u0627\u0645\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0641\u064A Aviary",
       "Aviary AI commands (offline prompt builder)": "\u0623\u0648\u0627\u0645\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0641\u064A Aviary (\u0645\u0646\u0634\u0626 \u0645\u0637\u0627\u0644\u0628\u0627\u062A \u062F\u0648\u0646 \u0627\u062A\u0635\u0627\u0644)",
       "Run with provider": "\u0627\u0644\u062A\u0634\u063A\u064A\u0644 \u0639\u0628\u0631 \u0627\u0644\u0645\u0632\u0648\u0651\u062F",
@@ -7406,6 +7436,8 @@ html.av-reduce-motion *::after {
       "Master switch for keyword, regex, premium, and media filters.": "\u05DE\u05EA\u05D2 \u05E8\u05D0\u05E9\u05D9 \u05DC\u05DE\u05E1\u05E0\u05E0\u05D9 \u05DE\u05D9\u05DC\u05D5\u05EA \u05DE\u05E4\u05EA\u05D7, \u05D1\u05D9\u05D8\u05D5\u05D9\u05D9\u05DD \u05E8\u05D2\u05D5\u05DC\u05E8\u05D9\u05D9\u05DD, \u05E4\u05E8\u05D9\u05DE\u05D9\u05D5\u05DD \u05D5\u05DE\u05D3\u05D9\u05D4.",
       "Rule status": "\u05DE\u05E6\u05D1 \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD",
       "Inactive until filters are enabled. You can edit rules before turning them on.": "\u05DC\u05D0 \u05E4\u05E2\u05D9\u05DC \u05E2\u05D3 \u05DC\u05D4\u05E4\u05E2\u05DC\u05EA \u05D4\u05DE\u05E1\u05E0\u05E0\u05D9\u05DD. \u05D0\u05E4\u05E9\u05E8 \u05DC\u05E2\u05E8\u05D5\u05DA \u05D0\u05EA \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05DC\u05E4\u05E0\u05D9 \u05E9\u05DE\u05E4\u05E2\u05D9\u05DC\u05D9\u05DD \u05D0\u05D5\u05EA\u05DD.",
+      "Filter rules": "\u05DB\u05DC\u05DC\u05D9 \u05E1\u05D9\u05E0\u05D5\u05DF",
+      "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo": "\u05DB\u05DC\u05DC \u05D0\u05D7\u05D3 \u05D1\u05DB\u05DC \u05E9\u05D5\u05E8\u05D4: \u05E9\u05D3\u05D4, not \u05D0\u05D5\u05E4\u05E6\u05D9\u05D5\u05E0\u05DC\u05D9, \u05D0\u05D5\u05E4\u05E8\u05D8\u05D5\u05E8 \u05D5\u05E2\u05E8\u05DA. \u05D4\u05E9\u05D3\u05D5\u05EA \u05D4\u05DD text, handle, media, verified \u05D5-link; \u05D4\u05D0\u05D5\u05E4\u05E8\u05D8\u05D5\u05E8\u05D9\u05DD \u05D4\u05DD contains, is, starts, ends \u05D5-matches. \u05D7\u05D1\u05E8 \u05D0\u05D5\u05EA\u05DD \u05E2\u05DD and \u05D0\u05D5 or, \u05D5\u05D4\u05D5\u05E1\u05E3 dim: \u05D1\u05EA\u05D7\u05D9\u05DC\u05D4 \u05DB\u05D3\u05D9 \u05DC\u05E2\u05DE\u05E2\u05DD \u05D1\u05DE\u05E7\u05D5\u05DD \u05DC\u05D4\u05E1\u05EA\u05D9\u05E8. \u05D3\u05D5\u05D2\u05DE\u05D4: dim: text contains sale and media is photo",
       "Keyword rules": "\u05DB\u05DC\u05DC\u05D9 \u05DE\u05D9\u05DC\u05D5\u05EA \u05DE\u05E4\u05EA\u05D7",
       "One keyword or phrase per line. Case-insensitive substring match.": "\u05DE\u05D9\u05DC\u05D4 \u05D0\u05D5 \u05D1\u05D9\u05D8\u05D5\u05D9 \u05D0\u05D7\u05D3 \u05D1\u05DB\u05DC \u05E9\u05D5\u05E8\u05D4. \u05D4\u05EA\u05D0\u05DE\u05D4 \u05D7\u05DC\u05E7\u05D9\u05EA \u05DC\u05DC\u05D0 \u05D4\u05D1\u05D7\u05E0\u05D4 \u05D1\u05D9\u05DF \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA \u05D2\u05D3\u05D5\u05DC\u05D5\u05EA \u05DC\u05E7\u05D8\u05E0\u05D5\u05EA.",
       "Regex rules": "\u05DB\u05DC\u05DC\u05D9 \u05D1\u05D9\u05D8\u05D5\u05D9\u05D9\u05DD \u05E8\u05D2\u05D5\u05DC\u05E8\u05D9\u05D9\u05DD",
@@ -7930,6 +7962,7 @@ html.av-reduce-motion *::after {
       "Video quality left to X": "\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D5\u05D5\u05D9\u05D3\u05D0\u05D5 \u05E0\u05EA\u05D5\u05E0\u05D4 \u05DC-X",
       "Filters enabled": "\u05D4\u05DE\u05E1\u05E0\u05E0\u05D9\u05DD \u05D4\u05D5\u05E4\u05E2\u05DC\u05D5",
       "Filters disabled": "\u05D4\u05DE\u05E1\u05E0\u05E0\u05D9\u05DD \u05DB\u05D5\u05D1\u05D5",
+      "Filter rules saved": "\u05DB\u05DC\u05DC\u05D9 \u05D4\u05E1\u05D9\u05E0\u05D5\u05DF \u05E0\u05E9\u05DE\u05E8\u05D5",
       "Premium filter saved": "\u05DE\u05E1\u05E0\u05DF \u05D4\u05E4\u05E8\u05D9\u05DE\u05D9\u05D5\u05DD \u05E0\u05E9\u05DE\u05E8",
       "Filters off on every route": "\u05D4\u05DE\u05E1\u05E0\u05E0\u05D9\u05DD \u05DB\u05D1\u05D5\u05D9\u05D9\u05DD \u05D1\u05DB\u05DC \u05D4\u05DE\u05E1\u05DC\u05D5\u05DC\u05D9\u05DD",
       "Hidden posts applied": "\u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D4\u05DE\u05D5\u05E1\u05EA\u05E8\u05D9\u05DD \u05D4\u05D5\u05D7\u05DC\u05D5",
@@ -8030,6 +8063,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "\u05D0\u05E6\u05D5\u05D5\u05D4 \u05E4\u05E2\u05D9\u05DC\u05D4 \u05E9\u05DC \u05DE\u05D3\u05D9\u05D4",
       "Resume queued media": "\u05D7\u05D9\u05D3\u05D5\u05E9 \u05DE\u05D3\u05D9\u05D4 \u05D1\u05EA\u05D5\u05E8",
       "Retry failed media": "\u05E0\u05D9\u05E1\u05D9\u05D5\u05DF \u05D7\u05D5\u05D6\u05E8 \u05DC\u05DE\u05D3\u05D9\u05D4 \u05E9\u05E0\u05DB\u05E9\u05DC\u05D4",
+      "Rules that could not be read": "\u05DB\u05DC\u05DC\u05D9\u05DD \u05E9\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05D4\u05D9\u05D4 \u05DC\u05E7\u05E8\u05D5\u05D0",
       "Open Aviary AI command menu": "\u05E4\u05EA\u05D9\u05D7\u05EA \u05EA\u05E4\u05E8\u05D9\u05D8 \u05E4\u05E7\u05D5\u05D3\u05D5\u05EA \u05D4-AI \u05E9\u05DC Aviary",
       "Aviary AI commands (offline prompt builder)": "\u05E4\u05E7\u05D5\u05D3\u05D5\u05EA \u05D4-AI \u05E9\u05DC Aviary (\u05D1\u05D5\u05E0\u05D4 \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8\u05D9\u05DD \u05DC\u05DC\u05D0 \u05E8\u05E9\u05EA)",
       "Run with provider": "\u05D4\u05E8\u05E6\u05D4 \u05DE\u05D5\u05DC \u05D4\u05E1\u05E4\u05E7",
@@ -9666,13 +9700,13 @@ html.av-reduce-motion *::after {
           results.append(ctx.el("div", "av-row-description", ctx.t("Try source:bookmarks, tag:reading, or has:media.")));
           return;
         }
-        const matches = ctx.state.unifiedSemantic && ctx.options.offlineSemanticSearch ? await ctx.options.offlineSemanticSearch(query) : ctx.options.offlineSearch(query);
+        const matches2 = ctx.state.unifiedSemantic && ctx.options.offlineSemanticSearch ? await ctx.options.offlineSemanticSearch(query) : ctx.options.offlineSearch(query);
         if (sequence !== searchSequence) return;
-        if (matches.length === 0) {
+        if (matches2.length === 0) {
           results.append(ctx.el("div", "av-row-description", ctx.t("No local collections match this search.")));
           return;
         }
-        for (const hit of matches.slice(0, 30)) {
+        for (const hit of matches2.slice(0, 30)) {
           const item = ctx.el("div", "av-search-hit");
           item.setAttribute("role", "listitem");
           const account = hit.document.account ? `@${hit.document.account}` : "local";
@@ -9724,12 +9758,12 @@ html.av-reduce-motion *::after {
       bookmarkResults.setAttribute("aria-live", "polite");
       const renderBookmarks = () => {
         bookmarkResults.replaceChildren();
-        const matches = ctx.options.searchBookmarks(ctx.state.bookmarkQuery).slice(0, 30);
-        if (matches.length === 0) {
+        const matches2 = ctx.options.searchBookmarks(ctx.state.bookmarkQuery).slice(0, 30);
+        if (matches2.length === 0) {
           bookmarkResults.append(ctx.el("div", "av-row-description", ctx.t("No local bookmarks match this search.")));
           return;
         }
-        for (const entry of matches) {
+        for (const entry of matches2) {
           const item = ctx.el("div", "av-search-hit av-bookmark-hit");
           item.setAttribute("role", "listitem");
           const head = ctx.el("span", "av-row-label", `@${entry.handle ?? "anon"} \xB7 ${entry.tweetId ?? entry.id}`);
@@ -10695,6 +10729,26 @@ html.av-reduce-motion *::after {
         ctx.options.settings.filter.enabled ? "Rules are active on the selected routes." : "Inactive until filters are enabled. You can edit rules before turning them on."
       )
     );
+    rows.push(
+      ctx.textareaRow(
+        "Filter rules",
+        "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo",
+        ctx.options.settings.filter.rules,
+        async (lines) => {
+          ctx.options.settings.filter.rules = lines.slice(0, 100);
+          await ctx.save("Filter rules saved");
+        }
+      )
+    );
+    const ruleProblems = ctx.options.getFilterRuleErrors?.() ?? [];
+    if (ruleProblems.length > 0) {
+      rows.push(
+        ctx.dataRow(
+          "Rules that could not be read",
+          ruleProblems.map((problem) => `line ${problem.line}: ${problem.message}`).join(" \xB7 ")
+        )
+      );
+    }
     rows.push(
       ctx.textareaRow(
         "Keyword rules",
@@ -11700,16 +11754,16 @@ html.av-reduce-motion *::after {
     const searchResults = (registry) => {
       const needle = searchQuery.trim().toLowerCase();
       const out = [];
-      let matches = 0;
+      let matches2 = 0;
       for (const entry of registry) {
         const hits = entry.build().filter((row) => (row.textContent ?? "").toLowerCase().includes(needle));
         if (hits.length === 0) {
           continue;
         }
-        matches += hits.length;
+        matches2 += hits.length;
         out.push(section(entry, hits));
       }
-      if (matches === 0) {
+      if (matches2 === 0) {
         const empty = el("div", "av-empty");
         empty.append(
           el("p", "av-empty-title", t("Nothing matches that search.")),
@@ -17991,11 +18045,6 @@ ${record.text}${mediaList}`;
     return value.replace(/\\/g, "%5C").replace(/\)/g, "%29").replace(/\s/g, "%20");
   }
 
-  // src/features/core/feature-i18n.ts
-  function ft(ctx, english) {
-    return translateText(ctx.settings.i18n.locale, english);
-  }
-
   // src/features/filtering/hidden-posts.ts
   var HIDDEN_POSTS_KEY = "aviary.hiddenPosts.v1";
   var TEXT_SNIPPET_LENGTH = 80;
@@ -18242,11 +18291,518 @@ ${record.text}${mediaList}`;
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
-  // src/features/filtering/hidden-posts-feature.ts
-  var STYLE_ID3 = "av-hidden-posts";
-  var TOAST_HOST_ID = "av-hidden-toast";
+  // src/features/filtering/rules.ts
+  var RULE_FIELDS = ["text", "handle", "media", "verified", "link"];
+  var RULE_OPERATORS = ["contains", "is", "starts", "ends", "matches"];
+  var MEDIA_VALUES = /* @__PURE__ */ new Set(["photo", "video", "gif"]);
+  var BOOLEAN_FIELDS = /* @__PURE__ */ new Set(["verified", "link"]);
+  var MAX_RULES = 100;
+  function compileRules(lines) {
+    const rules = [];
+    const errors = [];
+    lines.slice(0, MAX_RULES).forEach((raw, index) => {
+      const source = raw.trim();
+      if (source.length === 0 || source.startsWith("#")) {
+        return;
+      }
+      try {
+        rules.push(parseRule(source));
+      } catch (error) {
+        errors.push({
+          source,
+          line: index + 1,
+          message: error instanceof Error ? error.message : String(error)
+        });
+      }
+    });
+    return { rules, errors };
+  }
+  function parseRule(source) {
+    let body = source;
+    let action = "hide";
+    const prefix = /^(hide|dim)\s*:\s*/i.exec(body);
+    if (prefix?.[1]) {
+      action = prefix[1].toLowerCase() === "dim" ? "dim" : "hide";
+      body = body.slice(prefix[0].length);
+    }
+    const parts = splitOnConnective(body);
+    const conditions = parts.clauses.map((clause) => parseCondition(clause));
+    if (conditions.length === 0) {
+      throw new Error("a rule needs at least one condition");
+    }
+    return { source, action, combinator: parts.combinator, conditions };
+  }
+  function splitOnConnective(body) {
+    const tokens = body.split(/\s+(and|or)\s+/i);
+    const clauses = [];
+    const connectives = [];
+    tokens.forEach((token, index) => {
+      if (index % 2 === 0) clauses.push(token);
+      else connectives.push(token.toLowerCase());
+    });
+    const unique = new Set(connectives);
+    if (unique.size > 1) {
+      throw new Error("mixing 'and' with 'or' needs two separate rules");
+    }
+    return { clauses, combinator: connectives[0] === "or" ? "or" : "and" };
+  }
+  function parseCondition(clause) {
+    const trimmed = clause.trim();
+    if (trimmed.length === 0) {
+      throw new Error("empty condition");
+    }
+    const match = /^(\w+)\s+(?:(not)\s+)?(\w+)\s+(.+)$/i.exec(trimmed);
+    if (!match) {
+      throw new Error(`could not read "${trimmed}"; expected: field [not] operator value`);
+    }
+    const [, rawField, negate, rawOperator, rawValue] = match;
+    const field = String(rawField).toLowerCase();
+    if (!RULE_FIELDS.includes(field)) {
+      throw new Error(`unknown field "${rawField}"; use one of ${RULE_FIELDS.join(", ")}`);
+    }
+    const operator = String(rawOperator).toLowerCase();
+    if (!RULE_OPERATORS.includes(operator)) {
+      throw new Error(`unknown operator "${rawOperator}"; use one of ${RULE_OPERATORS.join(", ")}`);
+    }
+    const value = unquote(String(rawValue).trim());
+    if (value.length === 0) {
+      throw new Error("a condition needs a value");
+    }
+    const condition = { field, operator, value, negate: Boolean(negate) };
+    if (field === "media" && !MEDIA_VALUES.has(value.toLowerCase())) {
+      throw new Error(`media takes photo, video, or gif \u2014 not "${value}"`);
+    }
+    if (BOOLEAN_FIELDS.has(field) && !["true", "false"].includes(value.toLowerCase())) {
+      throw new Error(`${field} takes true or false \u2014 not "${value}"`);
+    }
+    if (operator === "matches") {
+      condition.pattern = compilePattern(value);
+    }
+    return condition;
+  }
+  function unquote(value) {
+    const quoted = /^"(.*)"$/.exec(value) ?? /^'(.*)'$/.exec(value);
+    return quoted?.[1] ?? value;
+  }
+  function compilePattern(value) {
+    const delimited = /^\/(.+)\/([a-z]*)$/i.exec(value);
+    const body = delimited?.[1] ?? value;
+    const rawFlags = delimited?.[2] ?? "";
+    const flags = /* @__PURE__ */ new Set(["i"]);
+    for (const flag of rawFlags.toLowerCase()) {
+      if (["i", "m", "s", "u"].includes(flag)) flags.add(flag);
+    }
+    try {
+      return new RegExp(body, [...flags].join(""));
+    } catch {
+      throw new Error(`"${value}" is not a valid regular expression`);
+    }
+  }
+  function evaluateRules(signal, rules) {
+    let decision = "show";
+    for (const rule of rules) {
+      const results = rule.conditions.map((condition) => matches(signal, condition));
+      const matched = rule.combinator === "and" ? results.every(Boolean) : results.some(Boolean);
+      if (!matched) {
+        continue;
+      }
+      if (rule.action === "hide") {
+        return "hide";
+      }
+      decision = "dim";
+    }
+    return decision;
+  }
+  function matches(signal, condition) {
+    const result = evaluateCondition(signal, condition);
+    return condition.negate ? !result : result;
+  }
+  function evaluateCondition(signal, condition) {
+    if (condition.field === "media") {
+      const key = condition.value.toLowerCase();
+      return signal.media[key] === true;
+    }
+    if (condition.field === "verified") {
+      return signal.premium === (condition.value.toLowerCase() === "true");
+    }
+    if (condition.field === "link") {
+      return signal.hasLink === (condition.value.toLowerCase() === "true");
+    }
+    const haystack = condition.field === "handle" ? signal.handle ?? "" : signal.text;
+    if (condition.field === "handle" && signal.handle === null) {
+      return false;
+    }
+    return compare(haystack, condition);
+  }
+  function compare(haystack, condition) {
+    if (condition.operator === "matches") {
+      const pattern = condition.pattern;
+      if (!pattern) return false;
+      pattern.lastIndex = 0;
+      return pattern.test(haystack);
+    }
+    const value = condition.value.toLowerCase();
+    const subject = haystack.toLowerCase().replace(/^@/, "");
+    switch (condition.operator) {
+      case "contains":
+        return subject.includes(value);
+      case "is":
+        return subject === value.replace(/^@/, "");
+      case "starts":
+        return subject.startsWith(value);
+      case "ends":
+        return subject.endsWith(value);
+      default:
+        return false;
+    }
+  }
+
+  // src/features/filtering/predicates.ts
+  function compileFilters(input) {
+    const keywords = input.keywords.map((value) => value.trim().toLowerCase()).filter((value) => value.length > 0);
+    const patterns = [];
+    for (const source of input.regex) {
+      const compiled2 = tryCompileRegex(source);
+      if (compiled2) {
+        patterns.push(compiled2);
+      }
+    }
+    const whitelist = /* @__PURE__ */ new Set();
+    for (const handle of input.whitelist) {
+      const normalized = normalizeHandle2(handle);
+      if (normalized) {
+        whitelist.add(normalized);
+      }
+    }
+    return {
+      rules: input.rules ?? [],
+      keywords,
+      patterns,
+      whitelist,
+      premium: input.premium,
+      media: {
+        photo: Boolean(input.media.photo),
+        video: Boolean(input.media.video),
+        gif: Boolean(input.media.gif)
+      },
+      generation: input.generation
+    };
+  }
+  function decide(signal, filters) {
+    if (signal.handle && filters.whitelist.has(signal.handle)) {
+      return "show";
+    }
+    if (filters.rules.length > 0) {
+      const ruled = evaluateRules({ ...signal, hasLink: signal.hasLink === true }, filters.rules);
+      if (ruled !== "show") {
+        return ruled;
+      }
+    }
+    const text = signal.text.toLowerCase();
+    for (const keyword of filters.keywords) {
+      if (text.includes(keyword)) {
+        return "hide";
+      }
+    }
+    for (const pattern of filters.patterns) {
+      pattern.lastIndex = 0;
+      if (pattern.test(signal.text)) {
+        return "hide";
+      }
+    }
+    for (const key of ["photo", "video", "gif"]) {
+      if (filters.media[key] && signal.media[key]) {
+        return "hide";
+      }
+    }
+    if (filters.premium !== "off" && signal.premium) {
+      return filters.premium;
+    }
+    return "show";
+  }
+  function extractTweetSignal(article) {
+    const textNodes = article.querySelectorAll('[data-testid="tweetText"]');
+    const text = textNodes.length > 0 ? Array.from(textNodes).map((node) => node.textContent ?? "").join("\n") : article.textContent ?? "";
+    const handle = readHandle2(article);
+    const premium = article.querySelector('[data-testid="icon-verified"], [aria-label*="Verified" i]') !== null;
+    const media = {
+      photo: article.querySelector('[data-testid="tweetPhoto"] img[src*="pbs.twimg.com/media"]') !== null,
+      video: article.querySelector('[data-testid="videoPlayer"], [data-testid="videoComponent"]') !== null,
+      gif: article.querySelector('[data-testid="videoComponent"][aria-label*="GIF" i], [aria-label="Embedded video"][data-testid*="gif" i]') !== null
+    };
+    if (media.gif) {
+      media.video = true;
+    }
+    const textNode = article.querySelector('[data-testid="tweetText"]');
+    const hasLink = (textNode ?? article).querySelector('a[href^="http"], a[href^="/t.co/"], a[href*="t.co/"]') !== null;
+    return { text, handle, premium, media, hasLink };
+  }
+  function readHandle2(article) {
+    const userName = article.querySelector('[data-testid="User-Name"]');
+    const links = userName?.querySelectorAll("a[href]") ?? [];
+    for (const link of Array.from(links)) {
+      const candidate = handleFromHref(link.getAttribute("href"));
+      if (candidate) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+  function normalizeHandle2(value) {
+    const cleaned = value.replace(/^@/, "").trim().toLowerCase();
+    return /^[a-z0-9_]{1,15}$/.test(cleaned) ? cleaned : null;
+  }
+  function tryCompileRegex(source) {
+    const trimmed = source.trim();
+    if (trimmed.length === 0) {
+      return null;
+    }
+    try {
+      const match = /^\/(.+)\/([a-z]*)$/i.exec(trimmed);
+      const body = match?.[1];
+      const flags = match?.[2] ?? "";
+      if (match && body) {
+        return new RegExp(body, sanitizeFlags(flags));
+      }
+      return new RegExp(trimmed, "i");
+    } catch {
+      return null;
+    }
+  }
+  function sanitizeFlags(input) {
+    const allowed = /* @__PURE__ */ new Set(["i", "m", "s", "u"]);
+    const flags = [];
+    for (const flag of input.toLowerCase()) {
+      if (allowed.has(flag) && !flags.includes(flag)) {
+        flags.push(flag);
+      }
+    }
+    if (!flags.includes("i")) {
+      flags.push("i");
+    }
+    return flags.join("");
+  }
+
+  // src/features/filtering/filter-engine.ts
+  var STYLE_ID3 = "av-filter-engine";
   var ARTICLE_SELECTOR2 = 'article[data-testid="tweet"]';
   var CELL_SELECTOR = '[data-testid="cellInnerDiv"]';
+  var PROCESSED_ATTR = "data-av-filter-processed";
+  var RESULT_ATTR = "data-av-filter-result";
+  var CELL_RESULT_ATTR = "data-av-filter-cell-hidden";
+  var generation = 0;
+  var ruleErrors = [];
+  function filterRuleErrors() {
+    return [...ruleErrors];
+  }
+  var compiled;
+  var compiledSignature = "";
+  var filterActive = false;
+  var filterEngineFeature = {
+    id: "filtering.engine",
+    title: "Filter engine",
+    category: "filtering",
+    defaultEnabled: true,
+    init(ctx) {
+      ensureFilterStyle();
+      refreshCompiled(ctx);
+      filterActive = ctx.settings.filter.enabled && surfaceMatches(ctx);
+      applyRootClasses(ctx);
+      if (filterActive) {
+        scanRoot(document, ctx);
+      }
+      ctx.diagnostics.info("Filter engine initialized", filterSummary(ctx));
+    },
+    apply(ctx, root, addedNodes) {
+      ensureFilterStyle();
+      applyRootClasses(ctx);
+      refreshCompiled(ctx);
+      const active = ctx.settings.filter.enabled && surfaceMatches(ctx);
+      if (!active) {
+        if (filterActive) {
+          clearDecorations();
+        }
+        filterActive = false;
+        return;
+      }
+      filterActive = true;
+      if (!addedNodes || addedNodes.length === 0) {
+        scanRoot(root, ctx);
+        return;
+      }
+      for (const node of addedNodes) {
+        scanRoot(node, ctx);
+      }
+    },
+    destroy(ctx) {
+      compiled = void 0;
+      compiledSignature = "";
+      generation = 0;
+      clearDecorations();
+      document.getElementById(STYLE_ID3)?.remove();
+      ctx.diagnostics.info("Filter engine destroyed");
+    },
+    getStatus() {
+      return {
+        ok: true,
+        message: compiled ? `Filters: ${compiled.keywords.length} keyword, ${compiled.patterns.length} regex` : "Filters idle"
+      };
+    }
+  };
+  function applyRootClasses(ctx) {
+    document.documentElement.classList.toggle(
+      "av-filter-enabled",
+      ctx.settings.filter.enabled && surfaceMatches(ctx)
+    );
+  }
+  function surfaceMatches(ctx) {
+    const surfaces = ctx.settings.filter.surfaces;
+    return surfaces.includes(ctx.route.surface);
+  }
+  function refreshCompiled(ctx) {
+    const signature = filterSignature(ctx);
+    if (compiled && signature === compiledSignature) {
+      return;
+    }
+    compiledSignature = signature;
+    generation += 1;
+    const ruleSet = compileRules(ctx.settings.filter.rules);
+    ruleErrors = ruleSet.errors;
+    if (ruleErrors.length > 0) {
+      ctx.diagnostics.warn("Filter rules could not be parsed", {
+        count: ruleErrors.length,
+        firstLine: ruleErrors[0]?.line ?? 0
+      });
+    }
+    compiled = compileFilters({
+      rules: ruleSet.rules,
+      keywords: ctx.settings.filter.keywordRules,
+      regex: ctx.settings.filter.regexRules,
+      whitelist: ctx.settings.filter.whitelist,
+      premium: ctx.settings.filter.premiumRule,
+      media: ctx.settings.filter.mediaTypes,
+      generation
+    });
+  }
+  function filterSignature(ctx) {
+    const filter = ctx.settings.filter;
+    return JSON.stringify([
+      filter.rules,
+      filter.keywordRules,
+      filter.regexRules,
+      filter.whitelist,
+      filter.premiumRule,
+      filter.mediaTypes,
+      filter.enabled
+    ]);
+  }
+  function scanRoot(root, ctx) {
+    if (!compiled || !ctx.settings.filter.enabled || !surfaceMatches(ctx)) {
+      return;
+    }
+    const articles = collectArticles(root);
+    for (const article of articles) {
+      processArticle(article, compiled);
+    }
+  }
+  function collectArticles(root) {
+    const results = [];
+    if (root instanceof Element && root.matches(ARTICLE_SELECTOR2)) {
+      results.push(root);
+    }
+    if ("querySelectorAll" in root) {
+      for (const article of Array.from(root.querySelectorAll(ARTICLE_SELECTOR2))) {
+        results.push(article);
+      }
+    }
+    return results;
+  }
+  function processArticle(article, filters) {
+    if (article.getAttribute(PROCESSED_ATTR) === String(filters.generation)) {
+      return;
+    }
+    const signal = extractTweetSignal(article);
+    const decision = decide(signal, filters);
+    article.setAttribute(PROCESSED_ATTR, String(filters.generation));
+    if (decision === "show") {
+      article.removeAttribute(RESULT_ATTR);
+    } else {
+      article.setAttribute(RESULT_ATTR, decision);
+    }
+    syncCollapsedCell(article);
+  }
+  function clearDecorations() {
+    document.documentElement.classList.remove("av-filter-enabled");
+    for (const node of Array.from(
+      document.querySelectorAll(`[${PROCESSED_ATTR}], [${RESULT_ATTR}], [${CELL_RESULT_ATTR}]`)
+    )) {
+      node.removeAttribute(PROCESSED_ATTR);
+      node.removeAttribute(RESULT_ATTR);
+      node.removeAttribute(CELL_RESULT_ATTR);
+    }
+    filterActive = false;
+  }
+  function syncCollapsedCell(article) {
+    const cell = article.closest(CELL_SELECTOR);
+    if (!cell || cell === article) {
+      return;
+    }
+    const hasHiddenArticle = cell.querySelector(
+      `${ARTICLE_SELECTOR2}[${RESULT_ATTR}="hide"]`
+    ) !== null;
+    cell.toggleAttribute(CELL_RESULT_ATTR, hasHiddenArticle);
+  }
+  function filterSummary(ctx) {
+    return {
+      enabled: ctx.settings.filter.enabled,
+      keywords: ctx.settings.filter.keywordRules.length,
+      regex: ctx.settings.filter.regexRules.length,
+      premium: ctx.settings.filter.premiumRule,
+      media: Object.entries(ctx.settings.filter.mediaTypes).filter(([, value]) => value).map(([key]) => key),
+      surfaces: ctx.settings.filter.surfaces
+    };
+  }
+  function ensureFilterStyle() {
+    if (document.getElementById(STYLE_ID3)) {
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = STYLE_ID3;
+    style.textContent = FILTER_CSS;
+    (document.head ?? document.documentElement).append(style);
+  }
+  var FILTER_CSS = `
+html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="hide"] {
+  display: none !important;
+}
+
+html.av-filter-enabled [${CELL_RESULT_ATTR}="1"] {
+  display: none !important;
+}
+
+html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"] {
+  opacity: 0.36;
+  filter: grayscale(0.5);
+  transition: opacity 120ms ease, filter 120ms ease;
+}
+
+html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:hover,
+html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-within {
+  opacity: 1;
+  filter: none;
+}
+`;
+
+  // src/features/core/feature-i18n.ts
+  function ft(ctx, english) {
+    return translateText(ctx.settings.i18n.locale, english);
+  }
+
+  // src/features/filtering/hidden-posts-feature.ts
+  var STYLE_ID4 = "av-hidden-posts";
+  var TOAST_HOST_ID = "av-hidden-toast";
+  var ARTICLE_SELECTOR3 = 'article[data-testid="tweet"]';
+  var CELL_SELECTOR2 = '[data-testid="cellInnerDiv"]';
   var BUTTON_ATTR = "data-av-hide-button";
   var HIDDEN_ATTR = "data-av-hidden";
   var KEY_ATTR = "data-av-post-key";
@@ -18283,8 +18839,8 @@ ${record.text}${mediaList}`;
       if (!store) {
         return;
       }
-      if (!ctx.settings.hidden.enabled || !surfaceMatches(ctx)) {
-        clearDecorations();
+      if (!ctx.settings.hidden.enabled || !surfaceMatches2(ctx)) {
+        clearDecorations2();
         return;
       }
       if (store.version() !== lastAppliedVersion) {
@@ -18301,7 +18857,7 @@ ${record.text}${mediaList}`;
       }
     },
     destroy(ctx) {
-      clearDecorations();
+      clearDecorations2();
       store = void 0;
       lastAppliedVersion = -1;
       ctx.diagnostics.info("Hidden posts destroyed");
@@ -18342,9 +18898,9 @@ ${record.text}${mediaList}`;
       ctx.settings.hidden.enabled
     );
   }
-  function clearDecorations() {
+  function clearDecorations2() {
     const hadHiddenRows = document.querySelector(`[${HIDDEN_ATTR}]`) !== null;
-    document.getElementById(STYLE_ID3)?.remove();
+    document.getElementById(STYLE_ID4)?.remove();
     document.getElementById(TOAST_HOST_ID)?.remove();
     document.documentElement.classList.remove("av-hide-posts-enabled");
     for (const button2 of Array.from(document.querySelectorAll(`[${BUTTON_ATTR}]`))) {
@@ -18369,31 +18925,31 @@ ${record.text}${mediaList}`;
       nudgeReflow();
     }
   }
-  function surfaceMatches(ctx) {
+  function surfaceMatches2(ctx) {
     const surfaces = ctx.settings.hidden.surfaces;
     return surfaces.includes(ctx.route.surface);
   }
   function scan(root, ctx) {
-    if (!store || !ctx.settings.hidden.enabled || !surfaceMatches(ctx)) {
+    if (!store || !ctx.settings.hidden.enabled || !surfaceMatches2(ctx)) {
       return;
     }
-    for (const article of collectArticles(root)) {
-      processArticle(article, ctx);
+    for (const article of collectArticles2(root)) {
+      processArticle2(article, ctx);
     }
   }
-  function collectArticles(root) {
+  function collectArticles2(root) {
     const found = [];
-    if (root instanceof Element && root.matches(ARTICLE_SELECTOR2)) {
+    if (root instanceof Element && root.matches(ARTICLE_SELECTOR3)) {
       found.push(root);
     }
     if ("querySelectorAll" in root) {
-      for (const article of Array.from(root.querySelectorAll(ARTICLE_SELECTOR2))) {
+      for (const article of Array.from(root.querySelectorAll(ARTICLE_SELECTOR3))) {
         found.push(article);
       }
     }
     return found;
   }
-  function processArticle(article, ctx) {
+  function processArticle2(article, ctx) {
     if (!store) {
       return;
     }
@@ -18438,7 +18994,7 @@ ${record.text}${mediaList}`;
   function readIdentity(article) {
     return {
       tweetId: readTweetId2(article),
-      handle: readHandle2(article),
+      handle: readHandle3(article),
       text: readText2(article)
     };
   }
@@ -18451,7 +19007,7 @@ ${record.text}${mediaList}`;
     }
     return null;
   }
-  function readHandle2(article) {
+  function readHandle3(article) {
     const userName = article.querySelector('[data-testid="User-Name"]');
     for (const link of Array.from(userName?.querySelectorAll("a[href]") ?? [])) {
       const handle = handleFromHref(link.getAttribute("href"));
@@ -18469,7 +19025,7 @@ ${record.text}${mediaList}`;
     return article.textContent ?? "";
   }
   function collapseTarget(article) {
-    return article.closest(CELL_SELECTOR) ?? article;
+    return article.closest(CELL_SELECTOR2) ?? article;
   }
   function collapse(article) {
     const target = collapseTarget(article);
@@ -18613,11 +19169,11 @@ ${record.text}${mediaList}`;
     return shadow;
   }
   function ensureStyle2() {
-    if (document.getElementById(STYLE_ID3)) {
+    if (document.getElementById(STYLE_ID4)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID3;
+    style.id = STYLE_ID4;
     style.textContent = HIDDEN_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -21141,9 +21697,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
 
   // src/features/media/media-buttons.ts
-  var STYLE_ID4 = "av-media-buttons";
+  var STYLE_ID5 = "av-media-buttons";
   var BUTTON_ATTR2 = "data-av-media-button";
-  var PROCESSED_ATTR = "data-av-media-processed";
+  var PROCESSED_ATTR2 = "data-av-media-processed";
   var MEDIA_HOST_SELECTOR = '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="videoComponent"]';
   var MEDIA_MUTATION_SELECTOR = '[data-testid="tweetPhoto"], [data-testid="tweetPhoto"] img, [data-testid="videoPlayer"], [data-testid="videoComponent"], video, source';
   var CONTEXT_TARGET_MAX_AGE_MS = 3e4;
@@ -21208,17 +21764,17 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     apply(ctx, root, addedNodes) {
       applyToggleClass(ctx);
       if (!ctx.settings.media.buttons) {
-        clearDecorations2();
+        clearDecorations3();
         pendingContextTarget = void 0;
         appliedPreferOriginalImages = void 0;
         appliedMetadataVersion = void 0;
         return;
       }
       if (appliedPreferOriginalImages !== void 0 && appliedPreferOriginalImages !== ctx.settings.media.preferOriginalImages) {
-        clearDecorations2();
+        clearDecorations3();
       }
       if (appliedMetadataVersion !== void 0 && appliedMetadataVersion !== mediaMetadataCache.version) {
-        clearDecorations2();
+        clearDecorations3();
       }
       appliedPreferOriginalImages = ctx.settings.media.preferOriginalImages;
       appliedMetadataVersion = mediaMetadataCache.version;
@@ -21238,7 +21794,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     },
     async destroy(ctx) {
       uninstallContextDownload();
-      clearDecorations2();
+      clearDecorations3();
       downloader = void 0;
       history = void 0;
       aria2History = void 0;
@@ -21287,11 +21843,11 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       ctx.settings.media.buttons
     );
   }
-  function clearDecorations2() {
-    document.getElementById(STYLE_ID4)?.remove();
+  function clearDecorations3() {
+    document.getElementById(STYLE_ID5)?.remove();
     document.documentElement.classList.remove("av-media-buttons-enabled");
-    for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR}]`))) {
-      article.removeAttribute(PROCESSED_ATTR);
+    for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR2}]`))) {
+      article.removeAttribute(PROCESSED_ATTR2);
     }
     for (const button2 of Array.from(document.querySelectorAll(`[${BUTTON_ATTR2}]`))) {
       button2.remove();
@@ -21410,33 +21966,33 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     if (!ctx.settings.media.buttons) {
       return;
     }
-    const articles = collectArticles2(root);
+    const articles = collectArticles3(root);
     for (const article of articles) {
-      if (!force && article.getAttribute(PROCESSED_ATTR) === "1") {
+      if (!force && article.getAttribute(PROCESSED_ATTR2) === "1") {
         if (article.querySelector(`[${BUTTON_ATTR2}]`) || !article.querySelector(MEDIA_HOST_SELECTOR)) {
           continue;
         }
       }
       const tweet = extractTweetForContext(article, ctx);
       if (tweet.media.length === 0) {
-        article.setAttribute(PROCESSED_ATTR, "1");
+        article.setAttribute(PROCESSED_ATTR2, "1");
         continue;
       }
       decorateArticle(tweet, ctx);
-      article.setAttribute(PROCESSED_ATTR, "1");
+      article.setAttribute(PROCESSED_ATTR2, "1");
     }
   }
   function needsMutationReconcile(node) {
     const closestArticle = node.closest('article[data-testid="tweet"]');
-    if (closestArticle && closestArticle.getAttribute(PROCESSED_ATTR) !== "1") {
+    if (closestArticle && closestArticle.getAttribute(PROCESSED_ATTR2) !== "1") {
       return true;
     }
     if (node.matches('article[data-testid="tweet"]')) {
-      return node.getAttribute(PROCESSED_ATTR) !== "1" || !node.querySelector(`[${BUTTON_ATTR2}]`) && node.querySelector(MEDIA_HOST_SELECTOR) !== null;
+      return node.getAttribute(PROCESSED_ATTR2) !== "1" || !node.querySelector(`[${BUTTON_ATTR2}]`) && node.querySelector(MEDIA_HOST_SELECTOR) !== null;
     }
     return node.matches(MEDIA_MUTATION_SELECTOR) || node.querySelector(MEDIA_MUTATION_SELECTOR) !== null;
   }
-  function collectArticles2(root) {
+  function collectArticles3(root) {
     const found = /* @__PURE__ */ new Set();
     if (root instanceof Element) {
       const article = root.matches('article[data-testid="tweet"]') ? root : root.closest('article[data-testid="tweet"]');
@@ -21664,11 +22220,11 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     return { message: String(error) };
   }
   function ensureMediaStyle() {
-    if (document.getElementById(STYLE_ID4)) {
+    if (document.getElementById(STYLE_ID5)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID4;
+    style.id = STYLE_ID5;
     style.textContent = MEDIA_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -21789,7 +22345,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     const concurrency = Math.max(1, Math.min(ctx.settings.jobs.concurrentDownloads, 6));
     const max = Math.max(1, options.maxItems ?? 200);
     const filterKind = options.filterKind ?? "all";
-    const tweets = collectArticles3(document, options.surface, {
+    const tweets = collectArticles4(document, options.surface, {
       preferOriginalImages: ctx.settings.media.preferOriginalImages
     });
     const tasks = [];
@@ -22007,7 +22563,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       activeBatch = void 0;
     }
   }
-  function collectArticles3(root, surface = "active", extractOptions = {}) {
+  function collectArticles4(root, surface = "active", extractOptions = {}) {
     const articles = root instanceof Element && root.matches('article[data-testid="tweet"]') ? [root] : Array.from(root.querySelectorAll('article[data-testid="tweet"]'));
     const seen = /* @__PURE__ */ new Set();
     const tweets = [];
@@ -22502,7 +23058,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       const stored = {
         ...entry,
         capturedAt: (/* @__PURE__ */ new Date()).toISOString(),
-        accounts: Array.from(new Set(entry.accounts.map(normalizeHandle2).filter((value) => value !== null))).sort()
+        accounts: Array.from(new Set(entry.accounts.map(normalizeHandle3).filter((value) => value !== null))).sort()
       };
       this.#state.entries.push(stored);
       while (this.#state.entries.length > this.#limit) {
@@ -22578,7 +23134,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       const match = /^\/([A-Za-z0-9_]{1,15})(?:[/?#]|$)/.exec(href);
       const candidate = match?.[1];
       if (candidate) {
-        const normalized = normalizeHandle2(candidate);
+        const normalized = normalizeHandle3(candidate);
         if (normalized) handles.add(normalized);
       }
     }
@@ -22589,7 +23145,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     const candidate = value;
     return (candidate.kind === "followers" || candidate.kind === "following") && typeof candidate.handle === "string" && typeof candidate.capturedAt === "string" && Array.isArray(candidate.accounts) && candidate.accounts.every((entry) => typeof entry === "string");
   }
-  function normalizeHandle2(value) {
+  function normalizeHandle3(value) {
     const cleaned = value.replace(/^@/, "").trim().toLowerCase();
     return /^[a-z0-9_]{1,15}$/.test(cleaned) ? cleaned : null;
   }
@@ -22643,7 +23199,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
 
   // src/features/library/user-notes.ts
   var USER_NOTES_KEY = "aviary.userNotes.v1";
-  var STYLE_ID5 = "av-user-notes";
+  var STYLE_ID6 = "av-user-notes";
   var BADGE_ATTR = "data-av-note-badge";
   var ARTICLE_ATTR = "data-av-note-processed";
   var cache;
@@ -22674,7 +23230,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       }
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID5)?.remove();
+      document.getElementById(STYLE_ID6)?.remove();
       for (const article of Array.from(document.querySelectorAll(`[${ARTICLE_ATTR}]`))) {
         article.removeAttribute(ARTICLE_ATTR);
       }
@@ -22696,7 +23252,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     return { ...cache?.notes ?? {} };
   }
   async function setUserNote(handle, note) {
-    const normalized = normalizeHandle3(handle);
+    const normalized = normalizeHandle4(handle);
     if (!normalized || !activeStorage) {
       return;
     }
@@ -22728,7 +23284,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     const notes = stored?.notes ?? {};
     const sanitized = {};
     for (const [handle, note] of Object.entries(notes)) {
-      const normalized = normalizeHandle3(handle);
+      const normalized = normalizeHandle4(handle);
       if (normalized && typeof note === "string" && note.trim().length > 0) {
         sanitized[normalized] = note.slice(0, 280);
       }
@@ -22743,7 +23299,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
   }
   function reconcileArticle(article, ctx) {
-    const handle = readHandle3(article);
+    const handle = readHandle4(article);
     const note = handle ? cache?.notes[handle] : void 0;
     const userName = article.querySelector('[data-testid="User-Name"]');
     const badges = Array.from(article.querySelectorAll(`[${BADGE_ATTR}]`));
@@ -22779,7 +23335,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     badge.title = note;
     badge.setAttribute("aria-label", `${label} @${handle}: ${note}`);
   }
-  function readHandle3(article) {
+  function readHandle4(article) {
     const userName = article.querySelector('[data-testid="User-Name"]');
     const links = userName?.querySelectorAll('a[href^="/"]') ?? [];
     for (const link of Array.from(links)) {
@@ -22787,21 +23343,21 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       const match = /^\/([A-Za-z0-9_]{1,15})(?:[/?#]|$)/.exec(href);
       const candidate = match?.[1];
       if (candidate) {
-        return normalizeHandle3(candidate);
+        return normalizeHandle4(candidate);
       }
     }
     return null;
   }
-  function normalizeHandle3(value) {
+  function normalizeHandle4(value) {
     const cleaned = value.replace(/^@/, "").trim().toLowerCase();
     return /^[a-z0-9_]{1,15}$/.test(cleaned) ? cleaned : null;
   }
   function ensureStyle3() {
-    if (document.getElementById(STYLE_ID5)) {
+    if (document.getElementById(STYLE_ID6)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID5;
+    style.id = STYLE_ID6;
     style.textContent = NOTE_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -22868,7 +23424,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       const entry = {
         id: `bm-${Date.now()}-${this.#sequence += 1}`,
         tweetId,
-        handle: normalizeHandle4(input.handle),
+        handle: normalizeHandle5(input.handle),
         text: normalizeText(input.text),
         url: normalizeUrl(input.url),
         tags: dedupeTags(input.tags ?? []),
@@ -22972,7 +23528,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     return {
       id: entry.id.trim().slice(0, 96),
       tweetId: normalizeId(entry.tweetId),
-      handle: normalizeHandle4(entry.handle),
+      handle: normalizeHandle5(entry.handle),
       text: normalizeText(entry.text),
       url: normalizeUrl(entry.url),
       tags: dedupeTags(Array.isArray(entry.tags) ? entry.tags : []),
@@ -22987,7 +23543,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
   function applyInput(entry, input) {
     if ("tweetId" in input) entry.tweetId = normalizeId(input.tweetId);
-    if ("handle" in input) entry.handle = normalizeHandle4(input.handle);
+    if ("handle" in input) entry.handle = normalizeHandle5(input.handle);
     if ("text" in input) entry.text = normalizeText(input.text);
     if ("url" in input) entry.url = normalizeUrl(input.url);
     if ("tags" in input) entry.tags = dedupeTags(input.tags ?? []);
@@ -22999,7 +23555,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     const cleaned = typeof value === "string" ? value.trim() : "";
     return cleaned.length > 0 ? cleaned.slice(0, 64) : null;
   }
-  function normalizeHandle4(value) {
+  function normalizeHandle5(value) {
     const cleaned = typeof value === "string" ? value.replace(/^@/, "").trim().toLowerCase() : "";
     return /^[a-z0-9_]{1,15}$/.test(cleaned) ? cleaned : null;
   }
@@ -23037,7 +23593,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
 
   // src/features/library/bookmarks-feature.ts
-  var STYLE_ID6 = "av-local-bookmarks";
+  var STYLE_ID7 = "av-local-bookmarks";
   var BUTTON_ATTR3 = "data-av-local-bookmark";
   var ARTICLE_ATTR2 = "data-av-local-bookmark-processed";
   var store3;
@@ -23064,7 +23620,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       }
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID6)?.remove();
+      document.getElementById(STYLE_ID7)?.remove();
       for (const article of Array.from(document.querySelectorAll(`[${ARTICLE_ATTR2}]`))) {
         article.removeAttribute(ARTICLE_ATTR2);
       }
@@ -23238,9 +23794,9 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     return `https://x.com/i/status/${tweetId}`;
   }
   function ensureStyle4() {
-    if (document.getElementById(STYLE_ID6)) return;
+    if (document.getElementById(STYLE_ID7)) return;
     const style = document.createElement("style");
-    style.id = STYLE_ID6;
+    style.id = STYLE_ID7;
     style.textContent = BOOKMARK_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -24224,6 +24780,12 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         async clearAdObservations() {
           await clearAdObservations(ctx.storage);
         },
+        getFilterRuleErrors() {
+          return filterRuleErrors().map((problem) => ({
+            line: problem.line,
+            message: problem.message
+          }));
+        },
         getSavedDiagnostics() {
           const saved = ctx.diagnosticsStore?.snapshot() ?? [];
           return {
@@ -25114,321 +25676,6 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     if (ctx.settings.accessibility.reduceMotion === "never") return false;
     return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
   }
-
-  // src/features/filtering/predicates.ts
-  function compileFilters(input) {
-    const keywords = input.keywords.map((value) => value.trim().toLowerCase()).filter((value) => value.length > 0);
-    const patterns = [];
-    for (const source of input.regex) {
-      const compiled2 = tryCompileRegex(source);
-      if (compiled2) {
-        patterns.push(compiled2);
-      }
-    }
-    const whitelist = /* @__PURE__ */ new Set();
-    for (const handle of input.whitelist) {
-      const normalized = normalizeHandle5(handle);
-      if (normalized) {
-        whitelist.add(normalized);
-      }
-    }
-    return {
-      keywords,
-      patterns,
-      whitelist,
-      premium: input.premium,
-      media: {
-        photo: Boolean(input.media.photo),
-        video: Boolean(input.media.video),
-        gif: Boolean(input.media.gif)
-      },
-      generation: input.generation
-    };
-  }
-  function decide(signal, filters) {
-    if (signal.handle && filters.whitelist.has(signal.handle)) {
-      return "show";
-    }
-    const text = signal.text.toLowerCase();
-    for (const keyword of filters.keywords) {
-      if (text.includes(keyword)) {
-        return "hide";
-      }
-    }
-    for (const pattern of filters.patterns) {
-      pattern.lastIndex = 0;
-      if (pattern.test(signal.text)) {
-        return "hide";
-      }
-    }
-    for (const key of ["photo", "video", "gif"]) {
-      if (filters.media[key] && signal.media[key]) {
-        return "hide";
-      }
-    }
-    if (filters.premium !== "off" && signal.premium) {
-      return filters.premium;
-    }
-    return "show";
-  }
-  function extractTweetSignal(article) {
-    const textNodes = article.querySelectorAll('[data-testid="tweetText"]');
-    const text = textNodes.length > 0 ? Array.from(textNodes).map((node) => node.textContent ?? "").join("\n") : article.textContent ?? "";
-    const handle = readHandle4(article);
-    const premium = article.querySelector('[data-testid="icon-verified"], [aria-label*="Verified" i]') !== null;
-    const media = {
-      photo: article.querySelector('[data-testid="tweetPhoto"] img[src*="pbs.twimg.com/media"]') !== null,
-      video: article.querySelector('[data-testid="videoPlayer"], [data-testid="videoComponent"]') !== null,
-      gif: article.querySelector('[data-testid="videoComponent"][aria-label*="GIF" i], [aria-label="Embedded video"][data-testid*="gif" i]') !== null
-    };
-    if (media.gif) {
-      media.video = true;
-    }
-    return { text, handle, premium, media };
-  }
-  function readHandle4(article) {
-    const userName = article.querySelector('[data-testid="User-Name"]');
-    const links = userName?.querySelectorAll('a[href^="/"]') ?? [];
-    for (const link of Array.from(links)) {
-      const href = link.getAttribute("href") ?? "";
-      const match = /^\/([A-Za-z0-9_]{1,15})(?:[/?#]|$)/.exec(href);
-      const candidate = match?.[1];
-      if (candidate) {
-        return normalizeHandle5(candidate);
-      }
-    }
-    return null;
-  }
-  function normalizeHandle5(value) {
-    const cleaned = value.replace(/^@/, "").trim().toLowerCase();
-    return /^[a-z0-9_]{1,15}$/.test(cleaned) ? cleaned : null;
-  }
-  function tryCompileRegex(source) {
-    const trimmed = source.trim();
-    if (trimmed.length === 0) {
-      return null;
-    }
-    try {
-      const match = /^\/(.+)\/([a-z]*)$/i.exec(trimmed);
-      const body = match?.[1];
-      const flags = match?.[2] ?? "";
-      if (match && body) {
-        return new RegExp(body, sanitizeFlags(flags));
-      }
-      return new RegExp(trimmed, "i");
-    } catch {
-      return null;
-    }
-  }
-  function sanitizeFlags(input) {
-    const allowed = /* @__PURE__ */ new Set(["i", "m", "s", "u"]);
-    const flags = [];
-    for (const flag of input.toLowerCase()) {
-      if (allowed.has(flag) && !flags.includes(flag)) {
-        flags.push(flag);
-      }
-    }
-    if (!flags.includes("i")) {
-      flags.push("i");
-    }
-    return flags.join("");
-  }
-
-  // src/features/filtering/filter-engine.ts
-  var STYLE_ID7 = "av-filter-engine";
-  var ARTICLE_SELECTOR3 = 'article[data-testid="tweet"]';
-  var CELL_SELECTOR2 = '[data-testid="cellInnerDiv"]';
-  var PROCESSED_ATTR2 = "data-av-filter-processed";
-  var RESULT_ATTR = "data-av-filter-result";
-  var CELL_RESULT_ATTR = "data-av-filter-cell-hidden";
-  var generation = 0;
-  var compiled;
-  var compiledSignature = "";
-  var filterActive = false;
-  var filterEngineFeature = {
-    id: "filtering.engine",
-    title: "Filter engine",
-    category: "filtering",
-    defaultEnabled: true,
-    init(ctx) {
-      ensureFilterStyle();
-      refreshCompiled(ctx);
-      filterActive = ctx.settings.filter.enabled && surfaceMatches2(ctx);
-      applyRootClasses(ctx);
-      if (filterActive) {
-        scanRoot(document, ctx);
-      }
-      ctx.diagnostics.info("Filter engine initialized", filterSummary(ctx));
-    },
-    apply(ctx, root, addedNodes) {
-      ensureFilterStyle();
-      applyRootClasses(ctx);
-      refreshCompiled(ctx);
-      const active = ctx.settings.filter.enabled && surfaceMatches2(ctx);
-      if (!active) {
-        if (filterActive) {
-          clearDecorations3();
-        }
-        filterActive = false;
-        return;
-      }
-      filterActive = true;
-      if (!addedNodes || addedNodes.length === 0) {
-        scanRoot(root, ctx);
-        return;
-      }
-      for (const node of addedNodes) {
-        scanRoot(node, ctx);
-      }
-    },
-    destroy(ctx) {
-      compiled = void 0;
-      compiledSignature = "";
-      generation = 0;
-      clearDecorations3();
-      document.getElementById(STYLE_ID7)?.remove();
-      ctx.diagnostics.info("Filter engine destroyed");
-    },
-    getStatus() {
-      return {
-        ok: true,
-        message: compiled ? `Filters: ${compiled.keywords.length} keyword, ${compiled.patterns.length} regex` : "Filters idle"
-      };
-    }
-  };
-  function applyRootClasses(ctx) {
-    document.documentElement.classList.toggle(
-      "av-filter-enabled",
-      ctx.settings.filter.enabled && surfaceMatches2(ctx)
-    );
-  }
-  function surfaceMatches2(ctx) {
-    const surfaces = ctx.settings.filter.surfaces;
-    return surfaces.includes(ctx.route.surface);
-  }
-  function refreshCompiled(ctx) {
-    const signature = filterSignature(ctx);
-    if (compiled && signature === compiledSignature) {
-      return;
-    }
-    compiledSignature = signature;
-    generation += 1;
-    compiled = compileFilters({
-      keywords: ctx.settings.filter.keywordRules,
-      regex: ctx.settings.filter.regexRules,
-      whitelist: ctx.settings.filter.whitelist,
-      premium: ctx.settings.filter.premiumRule,
-      media: ctx.settings.filter.mediaTypes,
-      generation
-    });
-  }
-  function filterSignature(ctx) {
-    const filter = ctx.settings.filter;
-    return JSON.stringify([
-      filter.keywordRules,
-      filter.regexRules,
-      filter.whitelist,
-      filter.premiumRule,
-      filter.mediaTypes,
-      filter.enabled
-    ]);
-  }
-  function scanRoot(root, ctx) {
-    if (!compiled || !ctx.settings.filter.enabled || !surfaceMatches2(ctx)) {
-      return;
-    }
-    const articles = collectArticles4(root);
-    for (const article of articles) {
-      processArticle2(article, compiled);
-    }
-  }
-  function collectArticles4(root) {
-    const results = [];
-    if (root instanceof Element && root.matches(ARTICLE_SELECTOR3)) {
-      results.push(root);
-    }
-    if ("querySelectorAll" in root) {
-      for (const article of Array.from(root.querySelectorAll(ARTICLE_SELECTOR3))) {
-        results.push(article);
-      }
-    }
-    return results;
-  }
-  function processArticle2(article, filters) {
-    if (article.getAttribute(PROCESSED_ATTR2) === String(filters.generation)) {
-      return;
-    }
-    const signal = extractTweetSignal(article);
-    const decision = decide(signal, filters);
-    article.setAttribute(PROCESSED_ATTR2, String(filters.generation));
-    if (decision === "show") {
-      article.removeAttribute(RESULT_ATTR);
-    } else {
-      article.setAttribute(RESULT_ATTR, decision);
-    }
-    syncCollapsedCell(article);
-  }
-  function clearDecorations3() {
-    document.documentElement.classList.remove("av-filter-enabled");
-    for (const node of Array.from(
-      document.querySelectorAll(`[${PROCESSED_ATTR2}], [${RESULT_ATTR}], [${CELL_RESULT_ATTR}]`)
-    )) {
-      node.removeAttribute(PROCESSED_ATTR2);
-      node.removeAttribute(RESULT_ATTR);
-      node.removeAttribute(CELL_RESULT_ATTR);
-    }
-    filterActive = false;
-  }
-  function syncCollapsedCell(article) {
-    const cell = article.closest(CELL_SELECTOR2);
-    if (!cell || cell === article) {
-      return;
-    }
-    const hasHiddenArticle = cell.querySelector(
-      `${ARTICLE_SELECTOR3}[${RESULT_ATTR}="hide"]`
-    ) !== null;
-    cell.toggleAttribute(CELL_RESULT_ATTR, hasHiddenArticle);
-  }
-  function filterSummary(ctx) {
-    return {
-      enabled: ctx.settings.filter.enabled,
-      keywords: ctx.settings.filter.keywordRules.length,
-      regex: ctx.settings.filter.regexRules.length,
-      premium: ctx.settings.filter.premiumRule,
-      media: Object.entries(ctx.settings.filter.mediaTypes).filter(([, value]) => value).map(([key]) => key),
-      surfaces: ctx.settings.filter.surfaces
-    };
-  }
-  function ensureFilterStyle() {
-    if (document.getElementById(STYLE_ID7)) {
-      return;
-    }
-    const style = document.createElement("style");
-    style.id = STYLE_ID7;
-    style.textContent = FILTER_CSS;
-    (document.head ?? document.documentElement).append(style);
-  }
-  var FILTER_CSS = `
-html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="hide"] {
-  display: none !important;
-}
-
-html.av-filter-enabled [${CELL_RESULT_ATTR}="1"] {
-  display: none !important;
-}
-
-html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"] {
-  opacity: 0.36;
-  filter: grayscale(0.5);
-  transition: opacity 120ms ease, filter 120ms ease;
-}
-
-html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:hover,
-html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-within {
-  opacity: 1;
-  filter: none;
-}
-`;
 
   // src/features/layout/declutter.ts
   var STYLE_ID8 = "av-layout-declutter";

@@ -39,6 +39,7 @@ import {
   type RetentionPolicy
 } from "../export/jobs";
 import { renderForExternalTarget } from "../export/external-targets";
+import { filterRuleErrors } from "../filtering/filter-engine";
 import {
   clearHiddenPosts,
   getHiddenPostStore,
@@ -348,6 +349,12 @@ export const controlCenterFeature: FeatureModule = {
       },
       async clearAdObservations() {
         await clearSelectorAdObservations(ctx.storage);
+      },
+      getFilterRuleErrors() {
+        return filterRuleErrors().map((problem) => ({
+          line: problem.line,
+          message: problem.message
+        }));
       },
       getSavedDiagnostics() {
         const saved = ctx.diagnosticsStore?.snapshot() ?? [];

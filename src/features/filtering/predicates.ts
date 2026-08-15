@@ -1,6 +1,10 @@
 import type { FilterAction, FilterMediaKey } from "../../platform/settings";
+import { handleFromHref } from "./hidden-posts";
+import { evaluateRules, type CompiledRule } from "./rules";
 
 export interface CompiledFilters {
+  /** Parsed field/operator/value rules; see ./rules.ts. */
+  rules: CompiledRule[];
   keywords: string[];
   patterns: RegExp[];
   whitelist: Set<string>;
@@ -16,6 +20,8 @@ export interface FilterInput {
   handle: string | null;
   premium: boolean;
   media: Record<FilterMediaKey, boolean>;
+  /** Whether the post text carries an outbound link. Absent on older callers. */
+  hasLink?: boolean;
 }
 
 export interface TweetSignal {
@@ -23,9 +29,11 @@ export interface TweetSignal {
   handle: string | null;
   premium: boolean;
   media: Record<FilterMediaKey, boolean>;
+  hasLink: boolean;
 }
 
 export function compileFilters(input: {
+  rules?: CompiledRule[];
   keywords: string[];
   regex: string[];
   whitelist: string[];
@@ -54,6 +62,7 @@ export function compileFilters(input: {
   }
 
   return {
+    rules: input.rules ?? [],
     keywords,
     patterns,
     whitelist,
@@ -70,6 +79,13 @@ export function compileFilters(input: {
 export function decide(signal: FilterInput, filters: CompiledFilters): FilterDecision {
   if (signal.handle && filters.whitelist.has(signal.handle)) {
     return "show";
+  }
+
+  if (filters.rules.length > 0) {
+    const ruled = evaluateRules({ ...signal, hasLink: signal.hasLink === true }, filters.rules);
+    if (ruled !== "show") {
+      return ruled;
+    }
   }
 
   const text = signal.text.toLowerCase();
@@ -122,18 +138,25 @@ export function extractTweetSignal(article: Element): TweetSignal {
     media.video = true;
   }
 
-  return { text, handle, premium, media };
+  // Only links inside the post's own text; the action bar and quoted chrome are not the author's.
+  const textNode = article.querySelector('[data-testid="tweetText"]');
+  const hasLink =
+    (textNode ?? article).querySelector('a[href^="http"], a[href^="/t.co/"], a[href*="t.co/"]') !==
+    null;
+
+  return { text, handle, premium, media, hasLink };
 }
 
 function readHandle(article: Element): string | null {
   const userName = article.querySelector('[data-testid="User-Name"]');
-  const links = userName?.querySelectorAll('a[href^="/"]') ?? [];
+  // Every profile link, not just relative ones: the saved captures rewrite hrefs to absolute
+  // URLs, so a relative-only selector reads every author as unknown when tested against them.
+  // handleFromHref strips the origin first and is the same reader the hide feature uses.
+  const links = userName?.querySelectorAll("a[href]") ?? [];
   for (const link of Array.from(links)) {
-    const href = link.getAttribute("href") ?? "";
-    const match = /^\/([A-Za-z0-9_]{1,15})(?:[/?#]|$)/.exec(href);
-    const candidate = match?.[1];
+    const candidate = handleFromHref(link.getAttribute("href"));
     if (candidate) {
-      return normalizeHandle(candidate);
+      return candidate;
     }
   }
   return null;
