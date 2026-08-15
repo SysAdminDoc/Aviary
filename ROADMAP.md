@@ -38,13 +38,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: opt-in keeps videos playing on blur/scroll-return and can loop; forceVideoQuality either demonstrably changes delivered quality in a headed test or is removed with migration.
   Complexity: M
 
-- [ ] F123 — P2 — Seen-post dimming (local read tracking)
-  Why: XKit's most distinctive reading aid; pairs naturally with Aviary's local stores and virtualizer-safe cell handling.
-  Evidence: XKit Rewritten seen-posts module.
-  Touches: new feature module + bounded durable store (id-only ring), filtering CSS, settings.
-  Acceptance: previously seen post ids dim on revisit; store is bounded and content-free; reversible; off by default.
-  Complexity: M
-
 - [ ] F124 — P2 — Per-user color tags on accounts
   Why: RES-style user tagging is proven in the adjacent domain; Aviary's user-notes already stores per-handle data — color labels are the missing visible layer.
   Evidence: RES tagging; XKit relationship badges; src/features/library/user-notes.ts.

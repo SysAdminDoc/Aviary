@@ -4,6 +4,11 @@
 
 ### Added
 
+- **Dim posts you have already seen** (Filtering, off by default) fades a post the second time it
+  scrolls past, so a return trip down the timeline shows what is new. A post is never faded while
+  you are first reading it, hovering one brings it back, and **Forget seen posts** clears the
+  record. The store holds post IDs and timestamps only — no text, handle, or URL — capped at 4,000
+  entries and 30 days.
 - **Use Aviary's tab icon** (Appearance, off by default) swaps X's favicon for Aviary's own mark so
   its tabs are easy to pick out, and restores X's exact icon when turned off. The mark is inlined,
   so it needs no network request and works in the userscript build too. Only Aviary's mark is

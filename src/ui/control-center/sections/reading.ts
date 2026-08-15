@@ -318,6 +318,36 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
   );
 
   rows.push(
+    ctx.toggleRow(
+      "Dim posts you have already seen",
+      "Fade a post the second time it scrolls past, so a return trip down the timeline shows what is new. Hovering a faded post brings it back. Only post IDs are stored.",
+      ctx.options.settings.filter.dimSeenPosts,
+      async (checked) => {
+        ctx.options.settings.filter.dimSeenPosts = checked;
+        await ctx.save(checked ? "Seen-post dimming on" : "Seen-post dimming off");
+      }
+    )
+  );
+
+  if (ctx.options.clearSeenPosts) {
+    rows.push(
+      ctx.actionRow(
+        "Forget seen posts",
+        "Clear the stored post IDs so everything reads as unseen again.",
+        async () => {
+          try {
+            await ctx.options.clearSeenPosts!();
+            ctx.setStatus("Seen posts forgotten.");
+          } catch (error) {
+            ctx.options.onError("Could not clear seen posts", error);
+            ctx.setStatus("Could not clear seen posts.");
+          }
+        }
+      )
+    );
+  }
+
+  rows.push(
     ctx.textareaRow(
       "Filter rules",
       "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo",

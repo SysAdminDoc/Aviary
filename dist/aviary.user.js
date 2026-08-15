@@ -95,6 +95,7 @@ var Aviary = (() => {
       selfRepost: "off",
       whitelist: [],
       mediaTypes: { photo: false, video: false, gif: false },
+      dimSeenPosts: false,
       surfaces: ["home", "status", "profile", "search"]
     },
     hidden: {
@@ -305,6 +306,7 @@ var Aviary = (() => {
       filter: {
         enabled: booleanValue(filter.enabled, DEFAULT_SETTINGS.filter.enabled),
         rules: stringArray(filter.rules, { maxItems: 100, maxLength: 400 }),
+        dimSeenPosts: booleanValue(filter.dimSeenPosts, DEFAULT_SETTINGS.filter.dimSeenPosts),
         keywordRules: stringArray(filter.keywordRules, { maxItems: 200, maxLength: 180 }),
         regexRules: stringArray(filter.regexRules, { maxItems: 100, maxLength: 240 }),
         premiumRule: enumValue(filter.premiumRule, FILTER_ACTIONS, DEFAULT_SETTINGS.filter.premiumRule),
@@ -1499,6 +1501,8 @@ html.av-reduce-motion *::after {
       "Master switch for keyword, regex, premium, and media filters.": "Interruptor general de los filtros de palabras clave, expresiones regulares, Premium y multimedia.",
       "Rule status": "Estado de las reglas",
       "Inactive until filters are enabled. You can edit rules before turning them on.": "Inactivo hasta que se habiliten los filtros. Puedes editar las reglas antes de activarlos.",
+      "Dim posts you have already seen": "Atenuar las publicaciones que ya has visto",
+      "Fade a post the second time it scrolls past, so a return trip down the timeline shows what is new. Hovering a faded post brings it back. Only post IDs are stored.": "Aten\xFAa una publicaci\xF3n la segunda vez que pasa por pantalla, de modo que al recorrer de nuevo la cronolog\xEDa se vea lo nuevo. Al pasar el cursor sobre una publicaci\xF3n atenuada vuelve a su estado normal. Solo se guardan los ID de las publicaciones.",
       "Filter rules": "Reglas de filtrado",
       "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo": "Una regla por l\xEDnea: campo, \xABnot\xBB opcional, operador y valor. Los campos son text, handle, media, verified y link; los operadores son contains, is, starts, ends y matches. \xDAnelos con \xABand\xBB u \xABor\xBB, y antep\xF3n \xABdim:\xBB para atenuar en lugar de ocultar. Ejemplo: dim: text contains sale and media is photo",
       "Keyword rules": "Reglas de palabras clave",
@@ -2029,6 +2033,10 @@ html.av-reduce-motion *::after {
       "Video quality left to X": "Calidad de v\xEDdeo a criterio de X",
       "Filters enabled": "Filtros activados",
       "Filters disabled": "Filtros desactivados",
+      "Seen-post dimming on": "Atenuaci\xF3n de publicaciones vistas activada",
+      "Seen-post dimming off": "Atenuaci\xF3n de publicaciones vistas desactivada",
+      "Seen posts forgotten.": "Se olvidaron las publicaciones vistas.",
+      "Could not clear seen posts.": "No se pudieron borrar las publicaciones vistas.",
       "Filter rules saved": "Reglas de filtrado guardadas",
       "Premium filter saved": "Filtro Premium guardado",
       "Filters off on every route": "Filtros desactivados en todas las rutas",
@@ -2137,6 +2145,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "Lote multimedia activo",
       "Resume queued media": "Reanudar medios en cola",
       "Retry failed media": "Reintentar medios fallidos",
+      "Forget seen posts": "Olvidar las publicaciones vistas",
       "Rules that could not be read": "Reglas que no se pudieron leer",
       "Open Aviary AI command menu": "Abrir el men\xFA de comandos de IA de Aviary",
       "Aviary AI commands (offline prompt builder)": "Comandos de IA de Aviary (generador de prompts sin conexi\xF3n)",
@@ -2391,6 +2400,8 @@ html.av-reduce-motion *::after {
       "Master switch for keyword, regex, premium, and media filters.": "Chave geral dos filtros de palavra-chave, regex, Premium e m\xEDdia.",
       "Rule status": "Estado das regras",
       "Inactive until filters are enabled. You can edit rules before turning them on.": "Inativo at\xE9 os filtros serem ativados. Podes editar as regras antes de as ligares.",
+      "Dim posts you have already seen": "Esmaecer publica\xE7\xF5es que voc\xEA j\xE1 viu",
+      "Fade a post the second time it scrolls past, so a return trip down the timeline shows what is new. Hovering a faded post brings it back. Only post IDs are stored.": "Esmaece uma publica\xE7\xE3o na segunda vez que ela passa pela tela, para que uma nova descida pela linha do tempo mostre o que \xE9 novo. Passar o cursor sobre uma publica\xE7\xE3o esmaecida a restaura. Somente os IDs das publica\xE7\xF5es s\xE3o armazenados.",
       "Filter rules": "Regras de filtragem",
       "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo": 'Uma regra por linha: campo, "not" opcional, operador e valor. Os campos s\xE3o text, handle, media, verified e link; os operadores s\xE3o contains, is, starts, ends e matches. Combine com "and" ou "or" e use o prefixo "dim:" para esmaecer em vez de ocultar. Exemplo: dim: text contains sale and media is photo',
       "Keyword rules": "Regras de palavras-chave",
@@ -2921,6 +2932,10 @@ html.av-reduce-motion *::after {
       "Video quality left to X": "Qualidade de v\xEDdeo ao crit\xE9rio do X",
       "Filters enabled": "Filtros ativados",
       "Filters disabled": "Filtros desativados",
+      "Seen-post dimming on": "Esmaecimento de publica\xE7\xF5es vistas ativado",
+      "Seen-post dimming off": "Esmaecimento de publica\xE7\xF5es vistas desativado",
+      "Seen posts forgotten.": "Publica\xE7\xF5es vistas esquecidas.",
+      "Could not clear seen posts.": "N\xE3o foi poss\xEDvel limpar as publica\xE7\xF5es vistas.",
       "Filter rules saved": "Regras de filtragem salvas",
       "Premium filter saved": "Filtro Premium salvo",
       "Filters off on every route": "Filtros desativados em todas as rotas",
@@ -3029,6 +3044,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "Lote de m\xEDdia ativo",
       "Resume queued media": "Retomar m\xEDdia na fila",
       "Retry failed media": "Tentar novamente m\xEDdias com falha",
+      "Forget seen posts": "Esquecer publica\xE7\xF5es vistas",
       "Rules that could not be read": "Regras que n\xE3o puderam ser lidas",
       "Open Aviary AI command menu": "Abrir o menu de comandos de IA do Aviary",
       "Aviary AI commands (offline prompt builder)": "Comandos de IA do Aviary (gerador de prompts offline)",
@@ -3283,6 +3299,8 @@ html.av-reduce-motion *::after {
       "Master switch for keyword, regex, premium, and media filters.": "Interrupteur g\xE9n\xE9ral des filtres mots-cl\xE9s, regex, Premium et m\xE9dias.",
       "Rule status": "\xC9tat des r\xE8gles",
       "Inactive until filters are enabled. You can edit rules before turning them on.": "Inactif tant que les filtres ne sont pas activ\xE9s. Vous pouvez modifier les r\xE8gles avant de les activer.",
+      "Dim posts you have already seen": "Att\xE9nuer les posts d\xE9j\xE0 vus",
+      "Fade a post the second time it scrolls past, so a return trip down the timeline shows what is new. Hovering a faded post brings it back. Only post IDs are stored.": "Att\xE9nue un post la deuxi\xE8me fois qu'il d\xE9file, pour qu'un nouveau passage dans le fil montre ce qui est nouveau. Le survol d'un post att\xE9nu\xE9 le r\xE9tablit. Seuls les identifiants des posts sont conserv\xE9s.",
       "Filter rules": "R\xE8gles de filtrage",
       "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo": "Une r\xE8gle par ligne : champ, \xAB not \xBB facultatif, op\xE9rateur, valeur. Les champs sont text, handle, media, verified et link ; les op\xE9rateurs sont contains, is, starts, ends et matches. Reliez-les par \xAB and \xBB ou \xAB or \xBB, et pr\xE9fixez par \xAB dim: \xBB pour att\xE9nuer au lieu de masquer. Exemple : dim: text contains sale and media is photo",
       "Keyword rules": "R\xE8gles de mots-cl\xE9s",
@@ -3813,6 +3831,10 @@ html.av-reduce-motion *::after {
       "Video quality left to X": "Qualit\xE9 vid\xE9o laiss\xE9e \xE0 X",
       "Filters enabled": "Filtres activ\xE9s",
       "Filters disabled": "Filtres d\xE9sactiv\xE9s",
+      "Seen-post dimming on": "Att\xE9nuation des posts vus activ\xE9e",
+      "Seen-post dimming off": "Att\xE9nuation des posts vus d\xE9sactiv\xE9e",
+      "Seen posts forgotten.": "Posts vus oubli\xE9s.",
+      "Could not clear seen posts.": "Impossible d'effacer les posts vus.",
       "Filter rules saved": "R\xE8gles de filtrage enregistr\xE9es",
       "Premium filter saved": "Filtre Premium enregistr\xE9",
       "Filters off on every route": "Filtres d\xE9sactiv\xE9s sur toutes les routes",
@@ -3921,6 +3943,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "Lot de m\xE9dias actif",
       "Resume queued media": "Reprendre les m\xE9dias en file",
       "Retry failed media": "R\xE9essayer les m\xE9dias \xE9chou\xE9s",
+      "Forget seen posts": "Oublier les posts vus",
       "Rules that could not be read": "R\xE8gles illisibles",
       "Open Aviary AI command menu": "Ouvrir le menu de commandes IA d'Aviary",
       "Aviary AI commands (offline prompt builder)": "Commandes IA d'Aviary (g\xE9n\xE9rateur de prompts hors ligne)",
@@ -4175,6 +4198,8 @@ html.av-reduce-motion *::after {
       "Master switch for keyword, regex, premium, and media filters.": "Hauptschalter f\xFCr Stichwort-, Regex-, Premium- und Medienfilter.",
       "Rule status": "Regelstatus",
       "Inactive until filters are enabled. You can edit rules before turning them on.": "Inaktiv, bis Filter aktiviert werden. Du kannst die Regeln vor dem Einschalten bearbeiten.",
+      "Dim posts you have already seen": "Bereits gesehene Beitr\xE4ge abblenden",
+      "Fade a post the second time it scrolls past, so a return trip down the timeline shows what is new. Hovering a faded post brings it back. Only post IDs are stored.": "Blendet einen Beitrag beim zweiten Vorbeiscrollen ab, damit ein erneuter Durchgang durch die Timeline zeigt, was neu ist. Wer mit dem Zeiger dar\xFCberf\xE4hrt, holt ihn zur\xFCck. Gespeichert werden nur Beitrags-IDs.",
       "Filter rules": "Filterregeln",
       "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo": "Eine Regel pro Zeile: Feld, optionales \u201Enot\u201C, Operator, Wert. Felder sind text, handle, media, verified und link; Operatoren sind contains, is, starts, ends und matches. Verbinde sie mit \u201Eand\u201C oder \u201Eor\u201C und stelle \u201Edim:\u201C voran, um abzublenden statt auszublenden. Beispiel: dim: text contains sale and media is photo",
       "Keyword rules": "Stichwortregeln",
@@ -4705,6 +4730,10 @@ html.av-reduce-motion *::after {
       "Video quality left to X": "Videoqualit\xE4t bleibt X \xFCberlassen",
       "Filters enabled": "Filter aktiviert",
       "Filters disabled": "Filter deaktiviert",
+      "Seen-post dimming on": "Abblenden gesehener Beitr\xE4ge an",
+      "Seen-post dimming off": "Abblenden gesehener Beitr\xE4ge aus",
+      "Seen posts forgotten.": "Gesehene Beitr\xE4ge vergessen.",
+      "Could not clear seen posts.": "Gesehene Beitr\xE4ge konnten nicht gel\xF6scht werden.",
       "Filter rules saved": "Filterregeln gespeichert",
       "Premium filter saved": "Premium-Filter gespeichert",
       "Filters off on every route": "Filter auf allen Routen aus",
@@ -4813,6 +4842,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "Aktiver Medienbatch",
       "Resume queued media": "Wartende Medien fortsetzen",
       "Retry failed media": "Fehlgeschlagene Medien erneut versuchen",
+      "Forget seen posts": "Gesehene Beitr\xE4ge vergessen",
       "Rules that could not be read": "Nicht lesbare Regeln",
       "Open Aviary AI command menu": "Aviarys KI-Befehlsmen\xFC \xF6ffnen",
       "Aviary AI commands (offline prompt builder)": "Aviary-KI-Befehle (Prompt-Baukasten ohne Netz)",
@@ -5067,6 +5097,8 @@ html.av-reduce-motion *::after {
       "Master switch for keyword, regex, premium, and media filters.": "\u30AD\u30FC\u30EF\u30FC\u30C9\u30FB\u6B63\u898F\u8868\u73FE\u30FB\u30D7\u30EC\u30DF\u30A2\u30E0\u30FB\u30E1\u30C7\u30A3\u30A2\u306E\u5404\u30D5\u30A3\u30EB\u30BF\u3092\u307E\u3068\u3081\u3066\u5207\u308A\u66FF\u3048\u307E\u3059\u3002",
       "Rule status": "\u30EB\u30FC\u30EB\u306E\u72B6\u614B",
       "Inactive until filters are enabled. You can edit rules before turning them on.": "\u30D5\u30A3\u30EB\u30BF\u30FC\u3092\u6709\u52B9\u306B\u3059\u308B\u307E\u3067\u7121\u52B9\u3067\u3059\u3002\u6709\u52B9\u306B\u3059\u308B\u524D\u306B\u30EB\u30FC\u30EB\u3092\u7DE8\u96C6\u3067\u304D\u307E\u3059\u3002",
+      "Dim posts you have already seen": "\u65E2\u8AAD\u306E\u6295\u7A3F\u3092\u8584\u304F\u8868\u793A",
+      "Fade a post the second time it scrolls past, so a return trip down the timeline shows what is new. Hovering a faded post brings it back. Only post IDs are stored.": "2 \u56DE\u76EE\u306B\u753B\u9762\u3092\u901A\u904E\u3057\u305F\u6295\u7A3F\u3092\u8584\u304F\u8868\u793A\u3057\u3001\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u3092\u305F\u3069\u308A\u76F4\u3057\u305F\u3068\u304D\u306B\u65B0\u7740\u304C\u5206\u304B\u308B\u3088\u3046\u306B\u3057\u307E\u3059\u3002\u8584\u304F\u306A\u3063\u305F\u6295\u7A3F\u306B\u30AB\u30FC\u30BD\u30EB\u3092\u5408\u308F\u305B\u308B\u3068\u5143\u306B\u623B\u308A\u307E\u3059\u3002\u4FDD\u5B58\u3055\u308C\u308B\u306E\u306F\u6295\u7A3F ID \u306E\u307F\u3067\u3059\u3002",
       "Filter rules": "\u30D5\u30A3\u30EB\u30BF\u30FC\u30EB\u30FC\u30EB",
       "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo": "1 \u884C\u306B 1 \u30EB\u30FC\u30EB\u3002\u30D5\u30A3\u30FC\u30EB\u30C9\u3001\u4EFB\u610F\u306E not\u3001\u6F14\u7B97\u5B50\u3001\u5024\u306E\u9806\u3067\u3059\u3002\u30D5\u30A3\u30FC\u30EB\u30C9\u306F text\u3001handle\u3001media\u3001verified\u3001link\u3001\u6F14\u7B97\u5B50\u306F contains\u3001is\u3001starts\u3001ends\u3001matches \u3067\u3059\u3002and / or \u3067\u3064\u306A\u304E\u3001\u975E\u8868\u793A\u3067\u306F\u306A\u304F\u6DE1\u8272\u5316\u3057\u305F\u3044\u5834\u5408\u306F dim: \u3092\u5148\u982D\u306B\u4ED8\u3051\u307E\u3059\u3002\u4F8B: dim: text contains sale and media is photo",
       "Keyword rules": "\u30AD\u30FC\u30EF\u30FC\u30C9\u306E\u30EB\u30FC\u30EB",
@@ -5597,6 +5629,10 @@ html.av-reduce-motion *::after {
       "Video quality left to X": "\u753B\u8CEA\u306F X \u306B\u4EFB\u305B\u307E\u3059",
       "Filters enabled": "\u30D5\u30A3\u30EB\u30BF\u30FC\u3092\u6709\u52B9\u306B\u3057\u307E\u3057\u305F",
       "Filters disabled": "\u30D5\u30A3\u30EB\u30BF\u30FC\u3092\u7121\u52B9\u306B\u3057\u307E\u3057\u305F",
+      "Seen-post dimming on": "\u65E2\u8AAD\u6295\u7A3F\u306E\u6E1B\u5149\u3092\u30AA\u30F3\u306B\u3057\u307E\u3057\u305F",
+      "Seen-post dimming off": "\u65E2\u8AAD\u6295\u7A3F\u306E\u6E1B\u5149\u3092\u30AA\u30D5\u306B\u3057\u307E\u3057\u305F",
+      "Seen posts forgotten.": "\u65E2\u8AAD\u306E\u6295\u7A3F\u3092\u5FD8\u308C\u307E\u3057\u305F\u3002",
+      "Could not clear seen posts.": "\u65E2\u8AAD\u306E\u6295\u7A3F\u3092\u6D88\u53BB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "Filter rules saved": "\u30D5\u30A3\u30EB\u30BF\u30FC\u30EB\u30FC\u30EB\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Premium filter saved": "\u30D7\u30EC\u30DF\u30A2\u30E0\u30D5\u30A3\u30EB\u30BF\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Filters off on every route": "\u3059\u3079\u3066\u306E\u30EB\u30FC\u30C8\u3067\u30D5\u30A3\u30EB\u30BF\u30FC\u3092\u30AA\u30D5\u306B\u3057\u307E\u3057\u305F",
@@ -5705,6 +5741,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30E1\u30C7\u30A3\u30A2\u30D0\u30C3\u30C1",
       "Resume queued media": "\u30AD\u30E5\u30FC\u5185\u306E\u30E1\u30C7\u30A3\u30A2\u3092\u518D\u958B",
       "Retry failed media": "\u5931\u6557\u3057\u305F\u30E1\u30C7\u30A3\u30A2\u3092\u518D\u8A66\u884C",
+      "Forget seen posts": "\u65E2\u8AAD\u306E\u6295\u7A3F\u3092\u5FD8\u308C\u308B",
       "Rules that could not be read": "\u8AAD\u307F\u53D6\u308C\u306A\u304B\u3063\u305F\u30EB\u30FC\u30EB",
       "Open Aviary AI command menu": "Aviary \u306E AI \u30B3\u30DE\u30F3\u30C9\u30E1\u30CB\u30E5\u30FC\u3092\u958B\u304F",
       "Aviary AI commands (offline prompt builder)": "Aviary \u306E AI \u30B3\u30DE\u30F3\u30C9\uFF08\u30AA\u30D5\u30E9\u30A4\u30F3\u306E\u30D7\u30ED\u30F3\u30D7\u30C8\u4F5C\u6210\uFF09",
@@ -5959,6 +5996,8 @@ html.av-reduce-motion *::after {
       "Master switch for keyword, regex, premium, and media filters.": "\uD0A4\uC6CC\uB4DC\xB7\uC815\uADDC\uC2DD\xB7\uD504\uB9AC\uBBF8\uC5C4\xB7\uBBF8\uB514\uC5B4 \uD544\uD130\uB97C \uD55C\uAEBC\uBC88\uC5D0 \uCF1C\uACE0 \uB055\uB2C8\uB2E4.",
       "Rule status": "\uADDC\uCE59 \uC0C1\uD0DC",
       "Inactive until filters are enabled. You can edit rules before turning them on.": "\uD544\uD130\uB97C \uCF24 \uB54C\uAE4C\uC9C0 \uBE44\uD65C\uC131 \uC0C1\uD0DC\uC785\uB2C8\uB2E4. \uCF1C\uAE30 \uC804\uC5D0 \uADDC\uCE59\uC744 \uD3B8\uC9D1\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+      "Dim posts you have already seen": "\uC774\uBBF8 \uBCF8 \uAC8C\uC2DC\uBB3C \uD750\uB9AC\uAC8C \uD45C\uC2DC",
+      "Fade a post the second time it scrolls past, so a return trip down the timeline shows what is new. Hovering a faded post brings it back. Only post IDs are stored.": "\uAC8C\uC2DC\uBB3C\uC774 \uB450 \uBC88\uC9F8\uB85C \uD654\uBA74\uC744 \uC9C0\uB0A0 \uB54C \uD750\uB9AC\uAC8C \uD45C\uC2DC\uD574, \uD0C0\uC784\uB77C\uC778\uC744 \uB2E4\uC2DC \uB0B4\uB824\uAC08 \uB54C \uC0C8 \uAE00\uC774 \uB4DC\uB7EC\uB098\uB3C4\uB85D \uD569\uB2C8\uB2E4. \uD750\uB824\uC9C4 \uAC8C\uC2DC\uBB3C\uC5D0 \uB9C8\uC6B0\uC2A4\uB97C \uC62C\uB9AC\uBA74 \uC6D0\uB798\uB300\uB85C \uB3CC\uC544\uC635\uB2C8\uB2E4. \uAC8C\uC2DC\uBB3C ID\uB9CC \uC800\uC7A5\uB429\uB2C8\uB2E4.",
       "Filter rules": "\uD544\uD130 \uADDC\uCE59",
       "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo": "\uD55C \uC904\uC5D0 \uADDC\uCE59 \uD558\uB098: \uD544\uB4DC, \uC120\uD0DD\uC801 not, \uC5F0\uC0B0\uC790, \uAC12 \uC21C\uC11C\uC785\uB2C8\uB2E4. \uD544\uB4DC\uB294 text, handle, media, verified, link\uC774\uACE0 \uC5F0\uC0B0\uC790\uB294 contains, is, starts, ends, matches\uC785\uB2C8\uB2E4. and \uB610\uB294 or\uB85C \uC5F0\uACB0\uD558\uACE0, \uC228\uAE30\uB294 \uB300\uC2E0 \uD750\uB9AC\uAC8C \uD558\uB824\uBA74 \uC55E\uC5D0 dim:\uC744 \uBD99\uC774\uC138\uC694. \uC608: dim: text contains sale and media is photo",
       "Keyword rules": "\uD0A4\uC6CC\uB4DC \uADDC\uCE59",
@@ -6489,6 +6528,10 @@ html.av-reduce-motion *::after {
       "Video quality left to X": "\uD654\uC9C8\uC740 X\uC5D0 \uB9E1\uAE41\uB2C8\uB2E4",
       "Filters enabled": "\uD544\uD130\uB97C \uCF30\uC2B5\uB2C8\uB2E4",
       "Filters disabled": "\uD544\uD130\uB97C \uAED0\uC2B5\uB2C8\uB2E4",
+      "Seen-post dimming on": "\uBCF8 \uAC8C\uC2DC\uBB3C \uD750\uB9AC\uAC8C \uD45C\uC2DC\uB97C \uCF30\uC2B5\uB2C8\uB2E4",
+      "Seen-post dimming off": "\uBCF8 \uAC8C\uC2DC\uBB3C \uD750\uB9AC\uAC8C \uD45C\uC2DC\uB97C \uAED0\uC2B5\uB2C8\uB2E4",
+      "Seen posts forgotten.": "\uBCF8 \uAC8C\uC2DC\uBB3C \uAE30\uB85D\uC744 \uC9C0\uC6E0\uC2B5\uB2C8\uB2E4.",
+      "Could not clear seen posts.": "\uBCF8 \uAC8C\uC2DC\uBB3C \uAE30\uB85D\uC744 \uC9C0\uC6B0\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "Filter rules saved": "\uD544\uD130 \uADDC\uCE59\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Premium filter saved": "\uD504\uB9AC\uBBF8\uC5C4 \uD544\uD130\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Filters off on every route": "\uBAA8\uB4E0 \uACBD\uB85C\uC5D0\uC11C \uD544\uD130\uB97C \uAED0\uC2B5\uB2C8\uB2E4",
@@ -6597,6 +6640,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "\uD65C\uC131 \uBBF8\uB514\uC5B4 \uBC30\uCE58",
       "Resume queued media": "\uB300\uAE30 \uC911\uC778 \uBBF8\uB514\uC5B4 \uC7AC\uAC1C",
       "Retry failed media": "\uC2E4\uD328\uD55C \uBBF8\uB514\uC5B4 \uB2E4\uC2DC \uC2DC\uB3C4",
+      "Forget seen posts": "\uBCF8 \uAC8C\uC2DC\uBB3C \uAE30\uB85D \uC9C0\uC6B0\uAE30",
       "Rules that could not be read": "\uC77D\uC744 \uC218 \uC5C6\uB294 \uADDC\uCE59",
       "Open Aviary AI command menu": "Aviary AI \uBA85\uB839 \uBA54\uB274 \uC5F4\uAE30",
       "Aviary AI commands (offline prompt builder)": "Aviary AI \uBA85\uB839 (\uC624\uD504\uB77C\uC778 \uD504\uB86C\uD504\uD2B8 \uC791\uC131\uAE30)",
@@ -6851,6 +6895,8 @@ html.av-reduce-motion *::after {
       "Master switch for keyword, regex, premium, and media filters.": "\u0645\u0641\u062A\u0627\u062D \u0631\u0626\u064A\u0633\u064A \u0644\u0641\u0644\u0627\u062A\u0631 \u0627\u0644\u0643\u0644\u0645\u0627\u062A \u0627\u0644\u0645\u0641\u062A\u0627\u062D\u064A\u0629 \u0648\u0627\u0644\u062A\u0639\u0628\u064A\u0631\u0627\u062A \u0627\u0644\u0646\u0645\u0637\u064A\u0629 \u0648\u0627\u0644\u062D\u0633\u0627\u0628\u0627\u062A \u0627\u0644\u0645\u0645\u064A\u0632\u0629 \u0648\u0627\u0644\u0648\u0633\u0627\u0626\u0637.",
       "Rule status": "\u062D\u0627\u0644\u0629 \u0627\u0644\u0642\u0648\u0627\u0639\u062F",
       "Inactive until filters are enabled. You can edit rules before turning them on.": "\u063A\u064A\u0631 \u0646\u0634\u0637 \u062D\u062A\u0649 \u062A\u0641\u0639\u064A\u0644 \u0639\u0648\u0627\u0645\u0644 \u0627\u0644\u062A\u0635\u0641\u064A\u0629. \u064A\u0645\u0643\u0646\u0643 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0642\u0648\u0627\u0639\u062F \u0642\u0628\u0644 \u062A\u0634\u063A\u064A\u0644\u0647\u0627.",
+      "Dim posts you have already seen": "\u062A\u0639\u062A\u064A\u0645 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u062A\u064A \u0631\u0623\u064A\u062A\u0647\u0627",
+      "Fade a post the second time it scrolls past, so a return trip down the timeline shows what is new. Hovering a faded post brings it back. Only post IDs are stored.": "\u064A\u0639\u062A\u0651\u0645 \u0627\u0644\u0645\u0646\u0634\u0648\u0631 \u0641\u064A \u0627\u0644\u0645\u0631\u0629 \u0627\u0644\u062B\u0627\u0646\u064A\u0629 \u0627\u0644\u062A\u064A \u064A\u0645\u0631 \u0641\u064A\u0647\u0627 \u0639\u0644\u0649 \u0627\u0644\u0634\u0627\u0634\u0629\u060C \u062D\u062A\u0649 \u062A\u064F\u0638\u0647\u0631 \u062C\u0648\u0644\u0629 \u0623\u062E\u0631\u0649 \u0641\u064A \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \u0645\u0627 \u0647\u0648 \u062C\u062F\u064A\u062F. \u062A\u0645\u0631\u064A\u0631 \u0627\u0644\u0645\u0624\u0634\u0631 \u0641\u0648\u0642 \u0645\u0646\u0634\u0648\u0631 \u0645\u0639\u062A\u064E\u0651\u0645 \u064A\u0639\u064A\u062F\u0647 \u0643\u0645\u0627 \u0643\u0627\u0646. \u0644\u0627 \u062A\u064F\u062D\u0641\u0638 \u0633\u0648\u0649 \u0645\u0639\u0631\u0651\u0641\u0627\u062A \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A.",
       "Filter rules": "\u0642\u0648\u0627\u0639\u062F \u0627\u0644\u062A\u0635\u0641\u064A\u0629",
       "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo": "\u0642\u0627\u0639\u062F\u0629 \u0648\u0627\u062D\u062F\u0629 \u0641\u064A \u0643\u0644 \u0633\u0637\u0631: \u0627\u0644\u062D\u0642\u0644\u060C \u062B\u0645 not \u0627\u062E\u062A\u064A\u0627\u0631\u064A\u0629\u060C \u062B\u0645 \u0627\u0644\u0645\u0639\u0627\u0645\u0644\u060C \u062B\u0645 \u0627\u0644\u0642\u064A\u0645\u0629. \u0627\u0644\u062D\u0642\u0648\u0644 \u0647\u064A text \u0648handle \u0648media \u0648verified \u0648link\u060C \u0648\u0627\u0644\u0645\u0639\u0627\u0645\u0644\u0627\u062A \u0647\u064A contains \u0648is \u0648starts \u0648ends \u0648matches. \u0627\u0631\u0628\u0637\u0647\u0627 \u0628\u0640 and \u0623\u0648 or\u060C \u0648\u0627\u0628\u062F\u0623 \u0628\u0640 dim: \u0644\u0644\u062A\u0639\u062A\u064A\u0645 \u0628\u062F\u0644\u064B\u0627 \u0645\u0646 \u0627\u0644\u0625\u062E\u0641\u0627\u0621. \u0645\u062B\u0627\u0644: dim: text contains sale and media is photo",
       "Keyword rules": "\u0642\u0648\u0627\u0639\u062F \u0627\u0644\u0643\u0644\u0645\u0627\u062A \u0627\u0644\u0645\u0641\u062A\u0627\u062D\u064A\u0629",
@@ -7381,6 +7427,10 @@ html.av-reduce-motion *::after {
       "Video quality left to X": "\u062C\u0648\u062F\u0629 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u0645\u062A\u0631\u0648\u0643\u0629 \u0644\u0640 X",
       "Filters enabled": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0639\u0648\u0627\u0645\u0644 \u0627\u0644\u062A\u0635\u0641\u064A\u0629",
       "Filters disabled": "\u062A\u0645 \u062A\u0639\u0637\u064A\u0644 \u0639\u0648\u0627\u0645\u0644 \u0627\u0644\u062A\u0635\u0641\u064A\u0629",
+      "Seen-post dimming on": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u062A\u0639\u062A\u064A\u0645 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u0642\u0631\u0648\u0621\u0629",
+      "Seen-post dimming off": "\u062A\u0645 \u0625\u064A\u0642\u0627\u0641 \u062A\u0639\u062A\u064A\u0645 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u0642\u0631\u0648\u0621\u0629",
+      "Seen posts forgotten.": "\u062A\u0645 \u0646\u0633\u064A\u0627\u0646 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u0642\u0631\u0648\u0621\u0629.",
+      "Could not clear seen posts.": "\u062A\u0639\u0630\u0651\u0631 \u0645\u0633\u062D \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u0642\u0631\u0648\u0621\u0629.",
       "Filter rules saved": "\u062A\u0645 \u062D\u0641\u0638 \u0642\u0648\u0627\u0639\u062F \u0627\u0644\u062A\u0635\u0641\u064A\u0629",
       "Premium filter saved": "\u062A\u0645 \u062D\u0641\u0638 \u0641\u0644\u062A\u0631 Premium",
       "Filters off on every route": "\u0639\u0648\u0627\u0645\u0644 \u0627\u0644\u062A\u0635\u0641\u064A\u0629 \u0645\u0639\u0637\u0651\u0644\u0629 \u0641\u064A \u0643\u0644 \u0627\u0644\u0645\u0633\u0627\u0631\u0627\u062A",
@@ -7489,6 +7539,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "\u062F\u0641\u0639\u0629 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u0646\u0634\u0637\u0629",
       "Resume queued media": "\u0627\u0633\u062A\u0626\u0646\u0627\u0641 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0641\u064A \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0627\u0646\u062A\u0638\u0627\u0631",
       "Retry failed media": "\u0625\u0639\u0627\u062F\u0629 \u0645\u062D\u0627\u0648\u0644\u0629 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u0641\u0627\u0634\u0644\u0629",
+      "Forget seen posts": "\u0646\u0633\u064A\u0627\u0646 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u0642\u0631\u0648\u0621\u0629",
       "Rules that could not be read": "\u0642\u0648\u0627\u0639\u062F \u062A\u0639\u0630\u0651\u0631\u062A \u0642\u0631\u0627\u0621\u062A\u0647\u0627",
       "Open Aviary AI command menu": "\u0641\u062A\u062D \u0642\u0627\u0626\u0645\u0629 \u0623\u0648\u0627\u0645\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0641\u064A Aviary",
       "Aviary AI commands (offline prompt builder)": "\u0623\u0648\u0627\u0645\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0641\u064A Aviary (\u0645\u0646\u0634\u0626 \u0645\u0637\u0627\u0644\u0628\u0627\u062A \u062F\u0648\u0646 \u0627\u062A\u0635\u0627\u0644)",
@@ -7743,6 +7794,8 @@ html.av-reduce-motion *::after {
       "Master switch for keyword, regex, premium, and media filters.": "\u05DE\u05EA\u05D2 \u05E8\u05D0\u05E9\u05D9 \u05DC\u05DE\u05E1\u05E0\u05E0\u05D9 \u05DE\u05D9\u05DC\u05D5\u05EA \u05DE\u05E4\u05EA\u05D7, \u05D1\u05D9\u05D8\u05D5\u05D9\u05D9\u05DD \u05E8\u05D2\u05D5\u05DC\u05E8\u05D9\u05D9\u05DD, \u05E4\u05E8\u05D9\u05DE\u05D9\u05D5\u05DD \u05D5\u05DE\u05D3\u05D9\u05D4.",
       "Rule status": "\u05DE\u05E6\u05D1 \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD",
       "Inactive until filters are enabled. You can edit rules before turning them on.": "\u05DC\u05D0 \u05E4\u05E2\u05D9\u05DC \u05E2\u05D3 \u05DC\u05D4\u05E4\u05E2\u05DC\u05EA \u05D4\u05DE\u05E1\u05E0\u05E0\u05D9\u05DD. \u05D0\u05E4\u05E9\u05E8 \u05DC\u05E2\u05E8\u05D5\u05DA \u05D0\u05EA \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD \u05DC\u05E4\u05E0\u05D9 \u05E9\u05DE\u05E4\u05E2\u05D9\u05DC\u05D9\u05DD \u05D0\u05D5\u05EA\u05DD.",
+      "Dim posts you have already seen": "\u05E2\u05DE\u05E2\u05D5\u05DD \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05DB\u05D1\u05E8 \u05E8\u05D0\u05D9\u05EA",
+      "Fade a post the second time it scrolls past, so a return trip down the timeline shows what is new. Hovering a faded post brings it back. Only post IDs are stored.": "\u05DE\u05E2\u05DE\u05E2\u05DD \u05E4\u05D5\u05E1\u05D8 \u05D1\u05E4\u05E2\u05DD \u05D4\u05E9\u05E0\u05D9\u05D9\u05D4 \u05E9\u05D4\u05D5\u05D0 \u05D7\u05D5\u05DC\u05E3 \u05E2\u05DC \u05D4\u05DE\u05E1\u05DA, \u05DB\u05DA \u05E9\u05DE\u05E2\u05D1\u05E8 \u05E0\u05D5\u05E1\u05E3 \u05D1\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF \u05D9\u05E8\u05D0\u05D4 \u05DE\u05D4 \u05D7\u05D3\u05E9. \u05E8\u05D9\u05D7\u05D5\u05E3 \u05DE\u05E2\u05DC \u05E4\u05D5\u05E1\u05D8 \u05DE\u05E2\u05D5\u05DE\u05E2\u05DD \u05DE\u05D7\u05D6\u05D9\u05E8 \u05D0\u05D5\u05EA\u05D5. \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05E8\u05E7 \u05DE\u05D6\u05D4\u05D9 \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD.",
       "Filter rules": "\u05DB\u05DC\u05DC\u05D9 \u05E1\u05D9\u05E0\u05D5\u05DF",
       "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo": "\u05DB\u05DC\u05DC \u05D0\u05D7\u05D3 \u05D1\u05DB\u05DC \u05E9\u05D5\u05E8\u05D4: \u05E9\u05D3\u05D4, not \u05D0\u05D5\u05E4\u05E6\u05D9\u05D5\u05E0\u05DC\u05D9, \u05D0\u05D5\u05E4\u05E8\u05D8\u05D5\u05E8 \u05D5\u05E2\u05E8\u05DA. \u05D4\u05E9\u05D3\u05D5\u05EA \u05D4\u05DD text, handle, media, verified \u05D5-link; \u05D4\u05D0\u05D5\u05E4\u05E8\u05D8\u05D5\u05E8\u05D9\u05DD \u05D4\u05DD contains, is, starts, ends \u05D5-matches. \u05D7\u05D1\u05E8 \u05D0\u05D5\u05EA\u05DD \u05E2\u05DD and \u05D0\u05D5 or, \u05D5\u05D4\u05D5\u05E1\u05E3 dim: \u05D1\u05EA\u05D7\u05D9\u05DC\u05D4 \u05DB\u05D3\u05D9 \u05DC\u05E2\u05DE\u05E2\u05DD \u05D1\u05DE\u05E7\u05D5\u05DD \u05DC\u05D4\u05E1\u05EA\u05D9\u05E8. \u05D3\u05D5\u05D2\u05DE\u05D4: dim: text contains sale and media is photo",
       "Keyword rules": "\u05DB\u05DC\u05DC\u05D9 \u05DE\u05D9\u05DC\u05D5\u05EA \u05DE\u05E4\u05EA\u05D7",
@@ -8273,6 +8326,10 @@ html.av-reduce-motion *::after {
       "Video quality left to X": "\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D5\u05D5\u05D9\u05D3\u05D0\u05D5 \u05E0\u05EA\u05D5\u05E0\u05D4 \u05DC-X",
       "Filters enabled": "\u05D4\u05DE\u05E1\u05E0\u05E0\u05D9\u05DD \u05D4\u05D5\u05E4\u05E2\u05DC\u05D5",
       "Filters disabled": "\u05D4\u05DE\u05E1\u05E0\u05E0\u05D9\u05DD \u05DB\u05D5\u05D1\u05D5",
+      "Seen-post dimming on": "\u05E2\u05DE\u05E2\u05D5\u05DD \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05E0\u05E8\u05D0\u05D5 \u05D4\u05D5\u05E4\u05E2\u05DC",
+      "Seen-post dimming off": "\u05E2\u05DE\u05E2\u05D5\u05DD \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05E0\u05E8\u05D0\u05D5 \u05DB\u05D5\u05D1\u05D4",
+      "Seen posts forgotten.": "\u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05E0\u05E8\u05D0\u05D5 \u05E0\u05E9\u05DB\u05D7\u05D5.",
+      "Could not clear seen posts.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05D4\u05D9\u05D4 \u05DC\u05E0\u05E7\u05D5\u05EA \u05D0\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05E0\u05E8\u05D0\u05D5.",
       "Filter rules saved": "\u05DB\u05DC\u05DC\u05D9 \u05D4\u05E1\u05D9\u05E0\u05D5\u05DF \u05E0\u05E9\u05DE\u05E8\u05D5",
       "Premium filter saved": "\u05DE\u05E1\u05E0\u05DF \u05D4\u05E4\u05E8\u05D9\u05DE\u05D9\u05D5\u05DD \u05E0\u05E9\u05DE\u05E8",
       "Filters off on every route": "\u05D4\u05DE\u05E1\u05E0\u05E0\u05D9\u05DD \u05DB\u05D1\u05D5\u05D9\u05D9\u05DD \u05D1\u05DB\u05DC \u05D4\u05DE\u05E1\u05DC\u05D5\u05DC\u05D9\u05DD",
@@ -8381,6 +8438,7 @@ html.av-reduce-motion *::after {
       "Active media batch": "\u05D0\u05E6\u05D5\u05D5\u05D4 \u05E4\u05E2\u05D9\u05DC\u05D4 \u05E9\u05DC \u05DE\u05D3\u05D9\u05D4",
       "Resume queued media": "\u05D7\u05D9\u05D3\u05D5\u05E9 \u05DE\u05D3\u05D9\u05D4 \u05D1\u05EA\u05D5\u05E8",
       "Retry failed media": "\u05E0\u05D9\u05E1\u05D9\u05D5\u05DF \u05D7\u05D5\u05D6\u05E8 \u05DC\u05DE\u05D3\u05D9\u05D4 \u05E9\u05E0\u05DB\u05E9\u05DC\u05D4",
+      "Forget seen posts": "\u05E9\u05DB\u05D7 \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05E0\u05E8\u05D0\u05D5",
       "Rules that could not be read": "\u05DB\u05DC\u05DC\u05D9\u05DD \u05E9\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05D4\u05D9\u05D4 \u05DC\u05E7\u05E8\u05D5\u05D0",
       "Open Aviary AI command menu": "\u05E4\u05EA\u05D9\u05D7\u05EA \u05EA\u05E4\u05E8\u05D9\u05D8 \u05E4\u05E7\u05D5\u05D3\u05D5\u05EA \u05D4-AI \u05E9\u05DC Aviary",
       "Aviary AI commands (offline prompt builder)": "\u05E4\u05E7\u05D5\u05D3\u05D5\u05EA \u05D4-AI \u05E9\u05DC Aviary (\u05D1\u05D5\u05E0\u05D4 \u05E4\u05E8\u05D5\u05DE\u05E4\u05D8\u05D9\u05DD \u05DC\u05DC\u05D0 \u05E8\u05E9\u05EA)",
@@ -11090,6 +11148,34 @@ html.av-reduce-motion *::after {
         ctx.options.settings.filter.enabled ? "Rules are active on the selected routes." : "Inactive until filters are enabled. You can edit rules before turning them on."
       )
     );
+    rows.push(
+      ctx.toggleRow(
+        "Dim posts you have already seen",
+        "Fade a post the second time it scrolls past, so a return trip down the timeline shows what is new. Hovering a faded post brings it back. Only post IDs are stored.",
+        ctx.options.settings.filter.dimSeenPosts,
+        async (checked) => {
+          ctx.options.settings.filter.dimSeenPosts = checked;
+          await ctx.save(checked ? "Seen-post dimming on" : "Seen-post dimming off");
+        }
+      )
+    );
+    if (ctx.options.clearSeenPosts) {
+      rows.push(
+        ctx.actionRow(
+          "Forget seen posts",
+          "Clear the stored post IDs so everything reads as unseen again.",
+          async () => {
+            try {
+              await ctx.options.clearSeenPosts();
+              ctx.setStatus("Seen posts forgotten.");
+            } catch (error) {
+              ctx.options.onError("Could not clear seen posts", error);
+              ctx.setStatus("Could not clear seen posts.");
+            }
+          }
+        )
+      );
+    }
     rows.push(
       ctx.textareaRow(
         "Filter rules",
@@ -19149,13 +19235,260 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
 }
 `;
 
+  // src/features/filtering/seen-posts.ts
+  var SEEN_POSTS_KEY = "aviary.seenPosts.v1";
+  var SEEN_POSTS_LIMIT = 4e3;
+  var SEEN_POSTS_RETENTION_MS = 30 * 24 * 60 * 60 * 1e3;
+  var TWEET_ID = /^\d{1,25}$/;
+  var SeenPostStore = class {
+    #storage;
+    #seen = /* @__PURE__ */ new Map();
+    #loaded = false;
+    #tail = Promise.resolve();
+    #dirty = false;
+    constructor(storage) {
+      this.#storage = storage;
+    }
+    async load() {
+      if (this.#loaded) {
+        return;
+      }
+      this.#loaded = true;
+      try {
+        this.#seen = parse(await this.#storage.get(SEEN_POSTS_KEY, void 0));
+      } catch {
+        this.#seen = /* @__PURE__ */ new Map();
+      }
+    }
+    has(id) {
+      return this.#seen.has(id);
+    }
+    get size() {
+      return this.#seen.size;
+    }
+    /**
+     * Record a post as seen. Returns true when this is the first time, so callers can tell a
+     * first sighting from a revisit without a second lookup.
+     */
+    mark(id, now2) {
+      if (!TWEET_ID.test(id) || this.#seen.has(id)) {
+        return false;
+      }
+      this.#seen.set(id, now2);
+      this.#dirty = true;
+      return true;
+    }
+    /** Persist pending marks. Called on a cadence rather than per post: a timeline scroll can mark dozens. */
+    flush(now2) {
+      if (!this.#dirty) {
+        return;
+      }
+      this.#dirty = false;
+      this.#prune(now2);
+      const payload = { version: 1, seen: Object.fromEntries(this.#seen) };
+      this.#tail = this.#tail.then(() => this.#storage.set(SEEN_POSTS_KEY, payload)).then(
+        () => void 0,
+        () => void 0
+      );
+    }
+    async settled() {
+      await this.#tail;
+    }
+    async clear() {
+      this.#seen = /* @__PURE__ */ new Map();
+      this.#dirty = false;
+      this.#loaded = true;
+      await this.#storage.set(SEEN_POSTS_KEY, { version: 1, seen: {} });
+    }
+    #prune(now2) {
+      const cutoff = now2 - SEEN_POSTS_RETENTION_MS;
+      for (const [id, at] of this.#seen) {
+        if (at < cutoff) {
+          this.#seen.delete(id);
+        }
+      }
+      if (this.#seen.size <= SEEN_POSTS_LIMIT) {
+        return;
+      }
+      const excess = this.#seen.size - SEEN_POSTS_LIMIT;
+      let dropped = 0;
+      for (const id of this.#seen.keys()) {
+        if (dropped >= excess) break;
+        this.#seen.delete(id);
+        dropped += 1;
+      }
+    }
+  };
+  function parse(raw) {
+    const result = /* @__PURE__ */ new Map();
+    if (!raw || typeof raw !== "object") {
+      return result;
+    }
+    const seen = raw.seen;
+    if (!seen || typeof seen !== "object") {
+      return result;
+    }
+    const cutoff = Date.now() - SEEN_POSTS_RETENTION_MS;
+    for (const [id, at] of Object.entries(seen)) {
+      if (!TWEET_ID.test(id) || typeof at !== "number" || !Number.isFinite(at) || at < cutoff) {
+        continue;
+      }
+      result.set(id, at);
+    }
+    return result;
+  }
+
+  // src/features/filtering/seen-posts-feature.ts
+  var STYLE_ID4 = "av-seen-posts";
+  var MARKER3 = "data-av-seen";
+  var FLUSH_DELAY_MS = 1500;
+  var store;
+  var flushTimer;
+  var seenPostsFeature = {
+    id: "filtering.seenPosts",
+    title: "Dim already-seen posts",
+    category: "filtering",
+    async init(ctx) {
+      if (!ctx.settings.filter.dimSeenPosts) {
+        teardown();
+        return;
+      }
+      ensureStyle2();
+      if (!store) {
+        store = new SeenPostStore(ctx.storage);
+        await store.load();
+      }
+      scan(ctx, document);
+    },
+    apply(ctx, root, addedNodes) {
+      if (!ctx.settings.filter.dimSeenPosts) {
+        teardown();
+        return;
+      }
+      ensureStyle2();
+      if (!store) {
+        return;
+      }
+      if (!addedNodes || addedNodes.length === 0) {
+        scan(ctx, root);
+        return;
+      }
+      for (const node of addedNodes) {
+        scan(ctx, node);
+      }
+    },
+    destroy(ctx) {
+      teardown();
+      ctx.diagnostics.info("Seen-post dimming removed");
+    },
+    getStatus() {
+      return {
+        ok: true,
+        message: store ? `Seen posts tracked: ${store.size}` : "Seen-post tracking idle"
+      };
+    }
+  };
+  function scan(ctx, root) {
+    const articles = collect(root);
+    if (articles.length === 0) {
+      return;
+    }
+    const now2 = Date.now();
+    let marked = false;
+    for (const article of articles) {
+      const id = readTweetId2(article);
+      if (!id) {
+        continue;
+      }
+      if (store.has(id)) {
+        article.setAttribute(MARKER3, "1");
+        continue;
+      }
+      if (store.mark(id, now2)) {
+        marked = true;
+      }
+      article.removeAttribute(MARKER3);
+    }
+    if (marked) {
+      scheduleFlush(now2);
+    }
+  }
+  function collect(root) {
+    const selector = 'article[data-testid="tweet"]';
+    const found = [];
+    if (root instanceof Element && root.matches(selector)) {
+      found.push(root);
+    }
+    if ("querySelectorAll" in root) {
+      for (const article of Array.from(root.querySelectorAll(selector))) {
+        found.push(article);
+      }
+    }
+    return found;
+  }
+  function readTweetId2(article) {
+    for (const link of Array.from(article.querySelectorAll('a[href*="/status/"]'))) {
+      const match = /\/status\/(\d{1,25})/.exec(link.getAttribute("href") ?? "");
+      if (match?.[1]) {
+        return match[1];
+      }
+    }
+    return null;
+  }
+  function scheduleFlush(now2) {
+    if (flushTimer !== void 0) {
+      return;
+    }
+    flushTimer = setTimeout(() => {
+      flushTimer = void 0;
+      store?.flush(now2);
+    }, FLUSH_DELAY_MS);
+  }
+  function ensureStyle2() {
+    if (document.getElementById(STYLE_ID4)) {
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = STYLE_ID4;
+    style.textContent = `
+article[data-testid="tweet"][${MARKER3}="1"] {
+  opacity: 0.55;
+  transition: opacity 120ms ease;
+}
+
+/* Reading a faded post should bring it back rather than forcing a setting change. */
+article[data-testid="tweet"][${MARKER3}="1"]:hover,
+article[data-testid="tweet"][${MARKER3}="1"]:focus-within {
+  opacity: 1;
+}
+
+html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
+  transition: none;
+}
+`;
+    (document.head ?? document.documentElement).append(style);
+  }
+  function teardown() {
+    document.getElementById(STYLE_ID4)?.remove();
+    for (const article of Array.from(document.querySelectorAll(`[${MARKER3}]`))) {
+      article.removeAttribute(MARKER3);
+    }
+    if (flushTimer !== void 0) {
+      clearTimeout(flushTimer);
+      flushTimer = void 0;
+    }
+  }
+  function getSeenPostStore() {
+    return store;
+  }
+
   // src/features/core/feature-i18n.ts
   function ft(ctx, english) {
     return translateText(ctx.settings.i18n.locale, english);
   }
 
   // src/features/filtering/hidden-posts-feature.ts
-  var STYLE_ID4 = "av-hidden-posts";
+  var STYLE_ID5 = "av-hidden-posts";
   var TOAST_HOST_ID = "av-hidden-toast";
   var ARTICLE_SELECTOR3 = 'article[data-testid="tweet"]';
   var CELL_SELECTOR2 = '[data-testid="cellInnerDiv"]';
@@ -19164,7 +19497,7 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
   var KEY_ATTR = "data-av-post-key";
   var STATE_ATTR = "data-av-hide-state";
   var TOAST_TIMEOUT_MS = 8e3;
-  var store;
+  var store2;
   var lastAppliedVersion = -1;
   var toastTimer;
   var reflowHandle;
@@ -19173,65 +19506,65 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
     title: "Hide posts",
     category: "filtering",
     async init(ctx) {
-      store = new HiddenPostStore(ctx.storage, (error) => {
+      store2 = new HiddenPostStore(ctx.storage, (error) => {
         ctx.diagnostics.error("Hidden posts failed to save", errorDetails3(error));
       });
       try {
-        await store.load(ctx.settings.hidden.maxEntries);
+        await store2.load(ctx.settings.hidden.maxEntries);
       } catch (error) {
         ctx.diagnostics.error("Hidden posts failed to load", errorDetails3(error));
       }
       if (ctx.settings.hidden.enabled) {
-        ensureStyle2();
+        ensureStyle3();
       }
       applyRootClass(ctx);
-      scan(document, ctx);
-      ctx.diagnostics.info("Hidden posts initialized", { hidden: store.size() });
+      scan2(document, ctx);
+      ctx.diagnostics.info("Hidden posts initialized", { hidden: store2.size() });
     },
     apply(ctx, root, addedNodes) {
-      ensureStyle2();
+      ensureStyle3();
       applyRootClass(ctx);
-      if (!store) {
+      if (!store2) {
         return;
       }
       if (!ctx.settings.hidden.enabled || !surfaceMatches2(ctx)) {
         clearDecorations2();
         return;
       }
-      if (store.version() !== lastAppliedVersion) {
-        lastAppliedVersion = store.version();
-        scan(document, ctx);
+      if (store2.version() !== lastAppliedVersion) {
+        lastAppliedVersion = store2.version();
+        scan2(document, ctx);
         return;
       }
       if (!addedNodes || addedNodes.length === 0) {
-        scan(root, ctx);
+        scan2(root, ctx);
         return;
       }
       for (const node of addedNodes) {
-        scan(node, ctx);
+        scan2(node, ctx);
       }
     },
     destroy(ctx) {
       clearDecorations2();
-      store = void 0;
+      store2 = void 0;
       lastAppliedVersion = -1;
       ctx.diagnostics.info("Hidden posts destroyed");
     },
     getStatus() {
       return {
         ok: true,
-        message: store ? `${store.size()} posts hidden` : "Hidden posts idle"
+        message: store2 ? `${store2.size()} posts hidden` : "Hidden posts idle"
       };
     }
   };
   function getHiddenPostStore() {
-    return store;
+    return store2;
   }
   async function undoLastHide(ctx) {
-    if (!store) {
+    if (!store2) {
       return null;
     }
-    const entry = await store.undoLast();
+    const entry = await store2.undoLast();
     if (entry) {
       ctx.requestApply();
       void ctx.auditLog.record("post.unhide", { key: entry.key });
@@ -19239,10 +19572,10 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
     return entry;
   }
   async function clearHiddenPosts(ctx) {
-    if (!store) {
+    if (!store2) {
       return 0;
     }
-    const removed = await store.clear();
+    const removed = await store2.clear();
     ctx.requestApply();
     void ctx.auditLog.record("post.hide.cleared", { removed });
     return removed;
@@ -19255,7 +19588,7 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
   }
   function clearDecorations2() {
     const hadHiddenRows = document.querySelector(`[${HIDDEN_ATTR}]`) !== null;
-    document.getElementById(STYLE_ID4)?.remove();
+    document.getElementById(STYLE_ID5)?.remove();
     document.getElementById(TOAST_HOST_ID)?.remove();
     document.documentElement.classList.remove("av-hide-posts-enabled");
     for (const button2 of Array.from(document.querySelectorAll(`[${BUTTON_ATTR}]`))) {
@@ -19284,8 +19617,8 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
     const surfaces = ctx.settings.hidden.surfaces;
     return surfaces.includes(ctx.route.surface);
   }
-  function scan(root, ctx) {
-    if (!store || !ctx.settings.hidden.enabled || !surfaceMatches2(ctx)) {
+  function scan2(root, ctx) {
+    if (!store2 || !ctx.settings.hidden.enabled || !surfaceMatches2(ctx)) {
       return;
     }
     for (const article of collectArticles2(root)) {
@@ -19305,16 +19638,16 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
     return found;
   }
   function processArticle2(article, ctx) {
-    if (!store) {
+    if (!store2) {
       return;
     }
-    const stateStamp = String(store.version());
+    const stateStamp = String(store2.version());
     if (article.getAttribute(STATE_ATTR) === stateStamp) {
       const key2 = resolvePostKey(article);
       if (!key2) {
         return;
       }
-      if (ctx.settings.hidden.buttons && !store.has(key2)) {
+      if (ctx.settings.hidden.buttons && !store2.has(key2)) {
         ensureButton(article, key2, ctx);
       } else if (!ctx.settings.hidden.buttons) {
         article.querySelector(`[${BUTTON_ATTR}]`)?.remove();
@@ -19326,7 +19659,7 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
     if (!key) {
       return;
     }
-    if (store.has(key)) {
+    if (store2.has(key)) {
       collapse(article);
       return;
     }
@@ -19348,12 +19681,12 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
   }
   function readIdentity(article) {
     return {
-      tweetId: readTweetId2(article),
+      tweetId: readTweetId3(article),
       handle: readHandle3(article),
       text: readText2(article)
     };
   }
-  function readTweetId2(article) {
+  function readTweetId3(article) {
     for (const link of Array.from(article.querySelectorAll('a[href*="/status/"]'))) {
       const match = /\/status\/(\d{1,25})/.exec(link.getAttribute("href") ?? "");
       if (match?.[1]) {
@@ -19433,19 +19766,19 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
     article.prepend(button2);
   }
   async function hidePost(article, key, button2, ctx) {
-    if (!store) {
+    if (!store2) {
       return;
     }
     button2.disabled = true;
     const identity = readIdentity(article);
     try {
-      const entry = await store.hide({ ...identity, key }, ctx.settings.hidden.maxEntries);
-      lastAppliedVersion = store.version();
+      const entry = await store2.hide({ ...identity, key }, ctx.settings.hidden.maxEntries);
+      lastAppliedVersion = store2.version();
       collapse(article);
       if (entry) {
         ctx.diagnostics.info("Post hidden", { key, handle: entry.handle });
         void ctx.auditLog.record("post.hide", { key });
-        showToast(`${ft(ctx, "Post hidden")} \u2014 ${store.size()}`, ctx);
+        showToast(`${ft(ctx, "Post hidden")} \u2014 ${store2.size()}`, ctx);
       }
     } catch (error) {
       button2.disabled = false;
@@ -19523,12 +19856,12 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
     shadow.append(style, card);
     return shadow;
   }
-  function ensureStyle2() {
-    if (document.getElementById(STYLE_ID4)) {
+  function ensureStyle3() {
+    if (document.getElementById(STYLE_ID5)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID4;
+    style.id = STYLE_ID5;
     style.textContent = HIDDEN_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -21547,7 +21880,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       return;
     }
     const record = value;
-    const tweetId = isMediaRecord(record) ? inheritedTweetId : readTweetId3(record) ?? inheritedTweetId;
+    const tweetId = isMediaRecord(record) ? inheritedTweetId : readTweetId4(record) ?? inheritedTweetId;
     if (isMediaRecord(record)) {
       const metadata = readMediaMetadata(record, tweetId);
       if (metadata) {
@@ -21561,7 +21894,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       }
     }
   }
-  function readTweetId3(record) {
+  function readTweetId4(record) {
     const restId = cleanId(record.rest_id);
     if (restId && looksLikeTweet(record)) {
       return restId;
@@ -22052,7 +22385,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
 
   // src/features/media/media-buttons.ts
-  var STYLE_ID5 = "av-media-buttons";
+  var STYLE_ID6 = "av-media-buttons";
   var BUTTON_ATTR2 = "data-av-media-button";
   var PROCESSED_ATTR2 = "data-av-media-processed";
   var MEDIA_HOST_SELECTOR = '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="videoComponent"]';
@@ -22198,7 +22531,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     );
   }
   function clearDecorations3() {
-    document.getElementById(STYLE_ID5)?.remove();
+    document.getElementById(STYLE_ID6)?.remove();
     document.documentElement.classList.remove("av-media-buttons-enabled");
     for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR2}]`))) {
       article.removeAttribute(PROCESSED_ATTR2);
@@ -22574,11 +22907,11 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     return { message: String(error) };
   }
   function ensureMediaStyle() {
-    if (document.getElementById(STYLE_ID5)) {
+    if (document.getElementById(STYLE_ID6)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID5;
+    style.id = STYLE_ID6;
     style.textContent = MEDIA_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -23505,38 +23838,38 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
 
   // src/features/library/snapshots-feature.ts
-  var store2;
+  var store3;
   var snapshotsFeature = {
     id: "library.snapshots",
     title: "Follower / following snapshots",
     category: "core",
     async init(ctx) {
-      store2 = new SnapshotStore(ctx.storage);
-      await store2.load();
-      ctx.diagnostics.info("Snapshots initialized", { entries: store2.size() });
+      store3 = new SnapshotStore(ctx.storage);
+      await store3.load();
+      ctx.diagnostics.info("Snapshots initialized", { entries: store3.size() });
     },
     destroy(ctx) {
-      store2 = void 0;
+      store3 = void 0;
       ctx.diagnostics.info("Snapshots destroyed");
     },
     getStatus() {
       return {
         ok: true,
-        message: store2 ? `${store2.size()} snapshots stored` : "Snapshots idle"
+        message: store3 ? `${store3.size()} snapshots stored` : "Snapshots idle"
       };
     }
   };
   function getSnapshotStore() {
-    return store2;
+    return store3;
   }
   async function captureSnapshotFromDom(ctx, kind, profileHandle) {
-    if (!store2) return null;
+    if (!store3) return null;
     const accounts = collectAccountsFromDom(document);
     if (accounts.length === 0) {
       ctx.diagnostics.warn("Snapshot skipped \u2014 no UserCell rows in DOM");
       return null;
     }
-    const entry = await store2.record({
+    const entry = await store3.record({
       kind,
       handle: profileHandle.toLowerCase(),
       source: "dom",
@@ -23552,7 +23885,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
 
   // src/features/library/user-notes.ts
   var USER_NOTES_KEY = "aviary.userNotes.v1";
-  var STYLE_ID6 = "av-user-notes";
+  var STYLE_ID7 = "av-user-notes";
   var BADGE_ATTR = "data-av-note-badge";
   var ARTICLE_ATTR = "data-av-note-processed";
   var cache;
@@ -23563,13 +23896,13 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     category: "core",
     async init(ctx) {
       activeStorage = ctx.storage;
-      ensureStyle3();
+      ensureStyle4();
       cache = await load(ctx.storage);
       decorate(ctx, document);
       ctx.diagnostics.info("User notes initialized", { count: Object.keys(cache.notes).length });
     },
     apply(ctx, root, addedNodes) {
-      ensureStyle3();
+      ensureStyle4();
       if (!cache) {
         return;
       }
@@ -23582,7 +23915,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       }
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID6)?.remove();
+      document.getElementById(STYLE_ID7)?.remove();
       for (const article of Array.from(document.querySelectorAll(`[${ARTICLE_ATTR}]`))) {
         article.removeAttribute(ARTICLE_ATTR);
       }
@@ -23704,12 +24037,12 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     const cleaned = value.replace(/^@/, "").trim().toLowerCase();
     return /^[a-z0-9_]{1,15}$/.test(cleaned) ? cleaned : null;
   }
-  function ensureStyle3() {
-    if (document.getElementById(STYLE_ID6)) {
+  function ensureStyle4() {
+    if (document.getElementById(STYLE_ID7)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID6;
+    style.id = STYLE_ID7;
     style.textContent = NOTE_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -23945,55 +24278,55 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
 
   // src/features/library/bookmarks-feature.ts
-  var STYLE_ID7 = "av-local-bookmarks";
+  var STYLE_ID8 = "av-local-bookmarks";
   var BUTTON_ATTR3 = "data-av-local-bookmark";
   var ARTICLE_ATTR2 = "data-av-local-bookmark-processed";
-  var store3;
+  var store4;
   var bookmarksFeature = {
     id: "library.bookmarks",
     title: "Local bookmarks",
     category: "core",
     async init(ctx) {
-      store3 = new BookmarkStore(ctx.storage);
-      await store3.load();
-      ensureStyle4();
-      scan2(ctx, document);
-      ctx.diagnostics.info("Local bookmarks initialized", { count: store3.size() });
+      store4 = new BookmarkStore(ctx.storage);
+      await store4.load();
+      ensureStyle5();
+      scan3(ctx, document);
+      ctx.diagnostics.info("Local bookmarks initialized", { count: store4.size() });
     },
     apply(ctx, root, addedNodes) {
-      ensureStyle4();
+      ensureStyle5();
       if (!addedNodes || addedNodes.length === 0) {
-        scan2(ctx, root);
+        scan3(ctx, root);
         return;
       }
       for (const node of addedNodes) {
-        scan2(ctx, node);
+        scan3(ctx, node);
       }
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID7)?.remove();
+      document.getElementById(STYLE_ID8)?.remove();
       for (const article of Array.from(document.querySelectorAll(`[${ARTICLE_ATTR2}]`))) {
         article.removeAttribute(ARTICLE_ATTR2);
       }
       for (const button2 of Array.from(document.querySelectorAll(`[${BUTTON_ATTR3}]`))) {
         button2.remove();
       }
-      store3 = void 0;
+      store4 = void 0;
       ctx.diagnostics.info("Local bookmarks destroyed");
     },
     getStatus() {
-      if (!store3) {
+      if (!store4) {
         return { ok: true, message: "Bookmarks idle" };
       }
-      const due = store3.dueReminders().length;
+      const due = store4.dueReminders().length;
       return {
         ok: true,
-        message: `${store3.size()} local bookmark${store3.size() === 1 ? "" : "s"}${due > 0 ? ` \xB7 ${due} due` : ""}`
+        message: `${store4.size()} local bookmark${store4.size() === 1 ? "" : "s"}${due > 0 ? ` \xB7 ${due} due` : ""}`
       };
     }
   };
   function getBookmarks() {
-    return store3?.list() ?? [];
+    return store4?.list() ?? [];
   }
   function searchBookmarks(query) {
     const needle = query.trim().toLocaleLowerCase();
@@ -24012,28 +24345,28 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
   function bookmarkStatus() {
     return {
-      total: store3?.size() ?? 0,
-      due: store3?.dueReminders().length ?? 0,
-      tags: store3?.tags() ?? [],
-      folders: store3?.folders() ?? []
+      total: store4?.size() ?? 0,
+      due: store4?.dueReminders().length ?? 0,
+      tags: store4?.tags() ?? [],
+      folders: store4?.folders() ?? []
     };
   }
   async function updateBookmark(id, input) {
-    return await store3?.update(id, input) ?? null;
+    return await store4?.update(id, input) ?? null;
   }
   async function removeBookmark(id) {
-    const existing = store3?.get(id);
-    if (!existing || !store3) {
+    const existing = store4?.get(id);
+    if (!existing || !store4) {
       return false;
     }
-    await store3.remove(id);
+    await store4.remove(id);
     return true;
   }
   async function clearBookmarks() {
-    await store3?.clear();
+    await store4?.clear();
   }
-  function scan2(ctx, root) {
-    if (!store3) {
+  function scan3(ctx, root) {
+    if (!store4) {
       return;
     }
     const articles = root instanceof Element && root.matches('article[data-testid="tweet"]') ? [root] : Array.from(root.querySelectorAll('article[data-testid="tweet"]'));
@@ -24042,7 +24375,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
   }
   function reconcileArticle2(ctx, article) {
-    if (!store3) return;
+    if (!store4) return;
     const tweet = extractTweet(article);
     const buttons = Array.from(article.querySelectorAll(`[${BUTTON_ATTR3}]`));
     const existing = buttons[0];
@@ -24060,7 +24393,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       article.removeAttribute(ARTICLE_ATTR2);
       return;
     }
-    const saved = store3.findByTweetId(tweet.tweetId);
+    const saved = store4.findByTweetId(tweet.tweetId);
     const button2 = existing ?? buildButton2(ctx, article);
     if (!existing) {
       anchor.append(button2);
@@ -24084,18 +24417,18 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     return button2;
   }
   async function toggleBookmark(ctx, article, button2) {
-    if (!store3) return;
+    if (!store4) return;
     const tweet = extractTweet(article);
     if (!tweet.tweetId) return;
     button2.disabled = true;
     try {
-      const existing = store3.findByTweetId(tweet.tweetId);
+      const existing = store4.findByTweetId(tweet.tweetId);
       if (existing) {
-        await store3.remove(existing.id);
+        await store4.remove(existing.id);
         void ctx.auditLog.record("bookmark.remove", { tweetId: tweet.tweetId });
         ctx.diagnostics.info("Local bookmark removed", { tweetId: tweet.tweetId });
       } else {
-        const entry = await store3.upsert({
+        const entry = await store4.upsert({
           tweetId: tweet.tweetId,
           handle: tweet.handle,
           text: tweet.text,
@@ -24144,10 +24477,10 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
     return `https://x.com/i/status/${tweetId}`;
   }
-  function ensureStyle4() {
-    if (document.getElementById(STYLE_ID7)) return;
+  function ensureStyle5() {
+    if (document.getElementById(STYLE_ID8)) return;
     const style = document.createElement("style");
-    style.id = STYLE_ID7;
+    style.id = STYLE_ID8;
     style.textContent = BOOKMARK_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -24998,12 +25331,12 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           await getMediaHistory()?.clear();
         },
         getExportStatus() {
-          const store4 = getCheckpointStore();
+          const store5 = getCheckpointStore();
           const queries = getDiscoveredQueries();
           return {
-            jobCount: store4?.list().length ?? 0,
+            jobCount: store5?.list().length ?? 0,
             knownQueries: queries ? Object.keys(queries.queries).length : 0,
-            jobs: (store4?.list() ?? []).map((job) => ({
+            jobs: (store5?.list() ?? []).map((job) => ({
               jobId: job.jobId,
               status: job.status,
               recordCount: job.recordCount,
@@ -25136,6 +25469,10 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
             message: problem.message
           }));
         },
+        async clearSeenPosts() {
+          await getSeenPostStore()?.clear();
+          ctx.requestApply();
+        },
         getSavedDiagnostics() {
           const saved = ctx.diagnosticsStore?.snapshot() ?? [];
           return {
@@ -25259,8 +25596,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           return { count: result.totalAccounts, handle: result.entry.handle };
         },
         getSnapshotStatus() {
-          const store4 = getSnapshotStore();
-          const entries = store4?.list() ?? [];
+          const store5 = getSnapshotStore();
+          const entries = store5?.list() ?? [];
           const latest = entries[entries.length - 1];
           return {
             total: entries.length,
@@ -25396,8 +25733,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         },
         async enqueueCleanupReview() {
           rebuildSearchIndex();
-          const store4 = getCheckpointStore();
-          const records = collectAllRecords(store4);
+          const store5 = getCheckpointStore();
+          const records = collectAllRecords(store5);
           const preview = previewCleanup(records, {
             whitelistHandles: ctx.settings.filter.whitelist
           });
@@ -25484,8 +25821,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
             await semanticIndex.load();
           }
           rebuildSearchIndex();
-          const store4 = getCheckpointStore();
-          const records = collectAllRecords(store4);
+          const store5 = getCheckpointStore();
+          const records = collectAllRecords(store5);
           const result = await semanticIndex.embedAndIndex(
             ctx.settings.integrations.semanticSearch,
             records
@@ -25601,8 +25938,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         },
         async downloadWarc() {
           rebuildSearchIndex();
-          const store4 = getCheckpointStore();
-          const records = collectAllRecords(store4);
+          const store5 = getCheckpointStore();
+          const records = collectAllRecords(store5);
           const artifact = buildWarcArchive(records);
           downloadBlob(artifact.data, artifact.filename, artifact.contentType);
           void ctx.auditLog.record("export.complete", { format: "warc", records: records.length });
@@ -25610,8 +25947,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         },
         async exportToTarget(target) {
           rebuildSearchIndex();
-          const store4 = getCheckpointStore();
-          const records = collectAllRecords(store4);
+          const store5 = getCheckpointStore();
+          const records = collectAllRecords(store5);
           const rendered = renderForExternalTarget(target, records);
           if (rendered.payload !== void 0) {
             await writeClipboard(rendered.payload);
@@ -25627,8 +25964,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         },
         async downloadReport() {
           rebuildSearchIndex();
-          const store4 = getCheckpointStore();
-          const records = collectAllRecords(store4);
+          const store5 = getCheckpointStore();
+          const records = collectAllRecords(store5);
           const cleanup = previewCleanup(records, {
             whitelistHandles: ctx.settings.filter.whitelist
           });
@@ -25711,15 +26048,15 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       if (archiveLibrary && hasArchiveCollections(result.collections)) {
         await archiveLibrary.merge(result.collections, jobId);
       }
-      const store4 = getCheckpointStore();
-      if (result.records.length > 0 && store4) {
-        if (!store4.list().some((job) => job.jobId === jobId)) {
-          await store4.start(jobId, "archive", ["json"], false);
+      const store5 = getCheckpointStore();
+      if (result.records.length > 0 && store5) {
+        if (!store5.list().some((job) => job.jobId === jobId)) {
+          await store5.start(jobId, "archive", ["json"], false);
         } else {
-          await store4.resume(jobId);
+          await store5.resume(jobId);
         }
-        await store4.append(jobId, result.records);
-        await store4.finish(jobId);
+        await store5.append(jobId, result.records);
+        await store5.finish(jobId);
         rebuildSearchIndex();
       }
       if (result.records.length > 0 || hasArchiveCollections(result.collections)) {
@@ -25752,9 +26089,9 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       };
     } catch (error) {
       await jobs.fail(jobId, error);
-      const store4 = getCheckpointStore();
-      if (store4?.list().some((job) => job.jobId === jobId)) {
-        await store4.fail(jobId, error);
+      const store5 = getCheckpointStore();
+      if (store5?.list().some((job) => job.jobId === jobId)) {
+        await store5.fail(jobId, error);
       }
       throw error;
     }
@@ -25797,19 +26134,19 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     const match = /^\/([A-Za-z0-9_]{1,15})(?:\/(?:followers|following|verified_followers))?/.exec(path);
     return match?.[1]?.toLowerCase() ?? null;
   }
-  function countStoredRecords(store4) {
-    if (!store4) return 0;
+  function countStoredRecords(store5) {
+    if (!store5) return 0;
     let total = 0;
-    for (const job of store4.list()) {
-      total += store4.records(job.jobId).length;
+    for (const job of store5.list()) {
+      total += store5.records(job.jobId).length;
     }
     return total;
   }
-  function countRecordsForSurface(store4, surface) {
-    if (!store4) return 0;
+  function countRecordsForSurface(store5, surface) {
+    if (!store5) return 0;
     let total = 0;
-    for (const job of store4.list()) {
-      total += store4.records(job.jobId).filter((record) => record.surface === surface).length;
+    for (const job of store5.list()) {
+      total += store5.records(job.jobId).filter((record) => record.surface === surface).length;
     }
     return total;
   }
@@ -25819,8 +26156,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     );
   }
   function rebuildSearchIndex() {
-    const store4 = getCheckpointStore();
-    searchIndex.rebuild(collectAllRecords(store4));
+    const store5 = getCheckpointStore();
+    searchIndex.rebuild(collectAllRecords(store5));
   }
   function searchOfflineLibrary(query) {
     const index = new OfflineQueryIndex();
@@ -25839,11 +26176,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
     return documents;
   }
-  function collectAllRecords(store4) {
-    if (!store4) return [];
+  function collectAllRecords(store5) {
+    if (!store5) return [];
     const all = [];
-    for (const job of store4.list()) {
-      all.push(...store4.records(job.jobId));
+    for (const job of store5.list()) {
+      all.push(...store5.records(job.jobId));
     }
     return all;
   }
@@ -26027,7 +26364,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   }
 
   // src/features/layout/declutter.ts
-  var STYLE_ID8 = "av-layout-declutter";
+  var STYLE_ID9 = "av-layout-declutter";
   var COMPOSER_SELECTOR = [
     '[data-testid^="tweetTextarea_"]',
     '[data-testid="toolBar"]',
@@ -26050,7 +26387,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       applyLayoutClasses(ctx);
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID8)?.remove();
+      document.getElementById(STYLE_ID9)?.remove();
       unbindWriterListeners();
       document.documentElement.classList.remove(
         "av-hide-right-sidebar",
@@ -26141,11 +26478,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     document.documentElement.classList.remove("av-writing");
   }
   function ensureLayoutStyle() {
-    if (document.getElementById(STYLE_ID8)) {
+    if (document.getElementById(STYLE_ID9)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID8;
+    style.id = STYLE_ID9;
     style.textContent = LAYOUT_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -26245,7 +26582,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
 `;
 
   // src/features/layout/thread-recommendations.ts
-  var MARKER3 = "data-av-thread-recommendation";
+  var MARKER4 = "data-av-thread-recommendation";
   var HEADING_MARKER = "data-av-thread-recommendation-heading";
   var HEADING_LABELS = /* @__PURE__ */ new Set([
     // Verified in _decoded/status.html (2026-08-14 capture).
@@ -26283,7 +26620,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
     let node = headingCell;
     while (node) {
       if (node instanceof HTMLElement && node.matches('[data-testid="cellInnerDiv"]')) {
-        node.setAttribute(MARKER3, "1");
+        node.setAttribute(MARKER4, "1");
         hidden += 1;
       }
       node = node.nextElementSibling;
@@ -26311,8 +26648,8 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
     return null;
   }
   function restoreThreadRecommendations() {
-    for (const node of Array.from(document.querySelectorAll(`[${MARKER3}], [${HEADING_MARKER}]`))) {
-      node.removeAttribute(MARKER3);
+    for (const node of Array.from(document.querySelectorAll(`[${MARKER4}], [${HEADING_MARKER}]`))) {
+      node.removeAttribute(MARKER4);
       node.removeAttribute(HEADING_MARKER);
     }
   }
@@ -26415,7 +26752,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
   }
 
   // src/features/ai/command-menu.ts
-  var STYLE_ID9 = "av-ai-command-menu";
+  var STYLE_ID10 = "av-ai-command-menu";
   var TRIGGER_ATTR = "data-av-ai-trigger";
   var PROCESSED_ATTR3 = "data-av-ai-processed";
   var AI_COMMANDS = [
@@ -26460,7 +26797,7 @@ ${text}`
       if (!ctx.settings.ai.commandMenu) {
         return;
       }
-      ensureStyle5();
+      ensureStyle6();
       decorate2(ctx, document);
       ctx.diagnostics.info("AI command menu ready");
     },
@@ -26469,7 +26806,7 @@ ${text}`
         clearDecorations4();
         return;
       }
-      ensureStyle5();
+      ensureStyle6();
       if (!addedNodes || addedNodes.length === 0) {
         decorate2(ctx, root);
         return;
@@ -26491,7 +26828,7 @@ ${text}`
     closeAiReview?.(false);
     closeAiReview = void 0;
     removeFeatureToast();
-    document.getElementById(STYLE_ID9)?.remove();
+    document.getElementById(STYLE_ID10)?.remove();
     for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR3}]`))) {
       article.removeAttribute(PROCESSED_ATTR3);
     }
@@ -26824,12 +27161,12 @@ ${text}`
     }
     throw new Error("Clipboard API unavailable");
   }
-  function ensureStyle5() {
-    if (document.getElementById(STYLE_ID9)) {
+  function ensureStyle6() {
+    if (document.getElementById(STYLE_ID10)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID9;
+    style.id = STYLE_ID10;
     style.textContent = AI_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -26974,7 +27311,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 `;
 
   // src/features/composer/composer-snippets.ts
-  var STYLE_ID10 = "av-composer-snippets";
+  var STYLE_ID11 = "av-composer-snippets";
   var TOOLBAR_ATTR = "data-av-composer-mounted";
   var PALETTE_ATTR = "data-av-snippet-palette";
   var composerSnippetsFeature = {
@@ -27029,7 +27366,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   function clearDecorations5() {
     closePalettes();
     removeFeatureToast();
-    document.getElementById(STYLE_ID10)?.remove();
+    document.getElementById(STYLE_ID11)?.remove();
     for (const toolbar of Array.from(document.querySelectorAll(`[${TOOLBAR_ATTR}]`))) {
       toolbar.removeAttribute(TOOLBAR_ATTR);
     }
@@ -27230,11 +27567,11 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     popover.style.maxWidth = "320px";
   }
   function ensureComposerStyle() {
-    if (document.getElementById(STYLE_ID10)) {
+    if (document.getElementById(STYLE_ID11)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID10;
+    style.id = STYLE_ID11;
     style.textContent = COMPOSER_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -27294,7 +27631,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 `;
 
   // src/features/core/i18n-feature.ts
-  var STYLE_ID11 = "av-i18n";
+  var STYLE_ID12 = "av-i18n";
   var i18nFeature = {
     id: "core.i18n",
     title: "Internationalization",
@@ -27309,7 +27646,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       applyLocaleClasses(ctx);
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID11)?.remove();
+      document.getElementById(STYLE_ID12)?.remove();
       const root = document.documentElement;
       root.classList.remove("av-rtl", "av-ltr");
       delete root.dataset.avLocale;
@@ -27326,11 +27663,11 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     document.getElementById("av-control-center")?.setAttribute("dir", direction);
   }
   function ensureI18nStyle() {
-    if (document.getElementById(STYLE_ID11)) {
+    if (document.getElementById(STYLE_ID12)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID11;
+    style.id = STYLE_ID12;
     style.textContent = I18N_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -27363,7 +27700,7 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
 `;
 
   // src/features/core/mobile-touch.ts
-  var STYLE_ID12 = "av-mobile-touch";
+  var STYLE_ID13 = "av-mobile-touch";
   var mobileTouchFeature = {
     id: "core.mobileTouch",
     title: "Mobile & touch ergonomics",
@@ -27378,7 +27715,7 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
       applyMobileClasses();
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID12)?.remove();
+      document.getElementById(STYLE_ID13)?.remove();
       document.documentElement.classList.remove("av-mobile", "av-touch");
       ctx.diagnostics.info("Mobile/touch destroyed");
     }
@@ -27394,11 +27731,11 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
     root.classList.toggle("av-mobile", narrow);
   }
   function ensureMobileStyle() {
-    if (document.getElementById(STYLE_ID12)) {
+    if (document.getElementById(STYLE_ID13)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID12;
+    style.id = STYLE_ID13;
     style.textContent = MOBILE_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -28041,14 +28378,14 @@ html.av-mobile [data-testid="primaryColumn"] {
     if (epoch !== captureEpoch || activeContext !== ctx) {
       return;
     }
-    const store4 = getCheckpointStore();
-    if (!store4) return;
+    const store5 = getCheckpointStore();
+    if (!store5) return;
     const jobId = `capture-${operationName}`;
-    if (store4.list().every((entry) => entry.jobId !== jobId)) {
-      await store4.start(jobId, "capture", ["json"], true);
+    if (store5.list().every((entry) => entry.jobId !== jobId)) {
+      await store5.start(jobId, "capture", ["json"], true);
     }
     const scrubbed = truncateUtf8(scrubAuth(body), MAX_GRAPHQL_PAYLOAD_BYTES);
-    await store4.append(jobId, [
+    await store5.append(jobId, [
       {
         tweetId: null,
         handle: null,
@@ -28103,7 +28440,7 @@ html.av-mobile [data-testid="primaryColumn"] {
       if (!ctx.settings.links.cleanShareButtons) {
         return;
       }
-      scan3(document);
+      scan4(document);
       ctx.diagnostics.info("Share link cleaning initialized");
     },
     apply(ctx, root, addedNodes) {
@@ -28112,11 +28449,11 @@ html.av-mobile [data-testid="primaryColumn"] {
         return;
       }
       if (!addedNodes || addedNodes.length === 0) {
-        scan3(root);
+        scan4(root);
         return;
       }
       for (const node of addedNodes) {
-        scan3(node);
+        scan4(node);
       }
     },
     destroy(ctx) {
@@ -28136,7 +28473,7 @@ html.av-mobile [data-testid="primaryColumn"] {
       anchor.removeAttribute(PROCESSED_ATTR4);
     }
   }
-  function scan3(root) {
+  function scan4(root) {
     const anchors = root instanceof HTMLAnchorElement ? [root] : Array.from(root.querySelectorAll("a[href]"));
     for (const anchor of anchors) {
       if (anchor.getAttribute(PROCESSED_ATTR4) === "1") {
@@ -28470,7 +28807,7 @@ html.av-mobile [data-testid="primaryColumn"] {
       if (!ctx.settings.media.inlineOriginalImages) {
         return;
       }
-      scan4(document);
+      scan5(document);
       ctx.diagnostics.info("Original-quality images initialized");
     },
     apply(ctx, root, addedNodes) {
@@ -28479,11 +28816,11 @@ html.av-mobile [data-testid="primaryColumn"] {
         return;
       }
       if (!addedNodes || addedNodes.length === 0) {
-        scan4(root);
+        scan5(root);
         return;
       }
       for (const node of addedNodes) {
-        scan4(node);
+        scan5(node);
       }
     },
     destroy(ctx) {
@@ -28498,7 +28835,7 @@ html.av-mobile [data-testid="primaryColumn"] {
       }
     }
   }
-  function scan4(root) {
+  function scan5(root) {
     restoreStaleImages(root);
     const rootElement = root instanceof Element ? root : null;
     const images = rootElement?.matches(IMAGE_SELECTOR) ? [root] : Array.from(root.querySelectorAll(IMAGE_SELECTOR));
@@ -28525,7 +28862,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   }
 
   // src/features/library/link-unshorten.ts
-  var STYLE_ID13 = "av-link-unshorten";
+  var STYLE_ID14 = "av-link-unshorten";
   var PROCESSED_ATTR7 = "data-av-link-clean";
   var ORIGINAL_TITLE_PRESENT = "avOriginalTitlePresent";
   var linkUnshortenFeature = {
@@ -28536,28 +28873,28 @@ html.av-mobile [data-testid="primaryColumn"] {
       if (!ctx.settings.links.expandTco) {
         return;
       }
-      ensureStyle6();
-      scan5(document);
+      ensureStyle7();
+      scan6(document);
       ctx.diagnostics.info("Link unshortening initialized");
     },
     apply(ctx, root, addedNodes) {
       if (!ctx.settings.links.expandTco) {
         restoreProcessedLinks2();
-        document.getElementById(STYLE_ID13)?.remove();
+        document.getElementById(STYLE_ID14)?.remove();
         return;
       }
-      ensureStyle6();
+      ensureStyle7();
       if (!addedNodes || addedNodes.length === 0) {
-        scan5(root);
+        scan6(root);
         return;
       }
       for (const node of addedNodes) {
-        scan5(node);
+        scan6(node);
       }
     },
     destroy(ctx) {
       restoreProcessedLinks2();
-      document.getElementById(STYLE_ID13)?.remove();
+      document.getElementById(STYLE_ID14)?.remove();
       ctx.diagnostics.info("Link unshortening destroyed");
     }
   };
@@ -28583,7 +28920,7 @@ html.av-mobile [data-testid="primaryColumn"] {
       link.removeAttribute(PROCESSED_ATTR7);
     }
   }
-  function scan5(root) {
+  function scan6(root) {
     const anchors = root instanceof HTMLAnchorElement ? [root] : Array.from(root.querySelectorAll("a"));
     for (const anchor of anchors) {
       if (anchor.getAttribute(PROCESSED_ATTR7) === "1") {
@@ -28627,12 +28964,12 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
     return null;
   }
-  function ensureStyle6() {
-    if (document.getElementById(STYLE_ID13)) {
+  function ensureStyle7() {
+    if (document.getElementById(STYLE_ID14)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID13;
+    style.id = STYLE_ID14;
     style.textContent = LINK_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -28644,7 +28981,7 @@ a.av-link-clean {
 `;
 
   // src/features/media/media-presentation.ts
-  var STYLE_ID14 = "av-media-presentation";
+  var STYLE_ID15 = "av-media-presentation";
   var mediaPresentationFeature = {
     id: "media.presentation",
     title: "Media presentation",
@@ -28661,7 +28998,7 @@ a.av-link-clean {
       applyPresentationClasses(ctx);
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID14)?.remove();
+      document.getElementById(STYLE_ID15)?.remove();
       const root = document.documentElement;
       for (const className of [
         "av-media-layout-default",
@@ -28685,11 +29022,11 @@ a.av-link-clean {
     root.classList.add(`av-media-layout-${ctx.settings.media.layout}`);
   }
   function ensurePresentationStyle() {
-    if (document.getElementById(STYLE_ID14)) {
+    if (document.getElementById(STYLE_ID15)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID14;
+    style.id = STYLE_ID15;
     style.textContent = PRESENTATION_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -28857,7 +29194,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     }
     return record;
   }
-  function parse(raw) {
+  function parse2(raw) {
     if (!raw || typeof raw !== "object") {
       return [];
     }
@@ -28907,7 +29244,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         return this.snapshot();
       }
       try {
-        this.#events = parse(await this.#storage.get(DIAGNOSTICS_KEY, void 0));
+        this.#events = parse2(await this.#storage.get(DIAGNOSTICS_KEY, void 0));
       } catch {
         this.#events = [];
       }
@@ -29211,7 +29548,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   }
 
   // src/platform/observer.ts
-  var FLUSH_DELAY_MS = 120;
+  var FLUSH_DELAY_MS2 = 120;
   var MAX_BATCH_NODES = 400;
   function observeAddedElements(root, onAdded) {
     let pending = /* @__PURE__ */ new Set();
@@ -29253,7 +29590,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         return;
       }
       if (timer === void 0) {
-        timer = setTimeout(flush, FLUSH_DELAY_MS);
+        timer = setTimeout(flush, FLUSH_DELAY_MS2);
       }
     });
     observer3.observe(root, {
@@ -29724,14 +30061,14 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     }
     async put(key, value) {
       const database = await this.#database;
-      await idbTransaction(database, "readwrite", (store4) => {
-        store4.put({ key, value, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
+      await idbTransaction(database, "readwrite", (store5) => {
+        store5.put({ key, value, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
       });
     }
     async remove(key) {
       const database = await this.#database;
-      await idbTransaction(database, "readwrite", (store4) => {
-        store4.delete(key);
+      await idbTransaction(database, "readwrite", (store5) => {
+        store5.delete(key);
       });
     }
     async getMeta() {
@@ -29740,11 +30077,11 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     }
     async putMany(entries, meta) {
       const database = await this.#database;
-      await idbTransaction(database, "readwrite", (store4) => {
+      await idbTransaction(database, "readwrite", (store5) => {
         for (const [key, value] of entries) {
-          store4.put({ key, value, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
+          store5.put({ key, value, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
         }
-        store4.put({ key: META_KEY, value: meta, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
+        store5.put({ key: META_KEY, value: meta, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
       });
     }
     async estimate() {
@@ -29774,9 +30111,9 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   function idbTransaction(database, mode, action) {
     return new Promise((resolve, reject) => {
       const transaction = database.transaction(OBJECT_STORE, mode);
-      const store4 = transaction.objectStore(OBJECT_STORE);
+      const store5 = transaction.objectStore(OBJECT_STORE);
       try {
-        action(store4);
+        action(store5);
       } catch (error) {
         transaction.abort();
         reject(error);
@@ -30132,6 +30469,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     registry.register(layoutDeclutterFeature);
     registry.register(threadRecommendationsFeature);
     registry.register(filterEngineFeature);
+    registry.register(seenPostsFeature);
     registry.register(hiddenPostsFeature);
     registry.register(mediaButtonsFeature);
     registry.register(mediaPresentationFeature);

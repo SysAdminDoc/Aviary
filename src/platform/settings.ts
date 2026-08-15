@@ -165,6 +165,8 @@ export interface AviarySettings {
     whitelist: string[];
     mediaTypes: Record<string, boolean>;
     surfaces: FilterSurface[];
+    /** Fade posts that have already scrolled past once. Stores post ids only. */
+    dimSeenPosts: boolean;
   };
   hidden: {
     enabled: boolean;
@@ -276,6 +278,7 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     selfRepost: "off",
     whitelist: [],
     mediaTypes: { photo: false, video: false, gif: false },
+    dimSeenPosts: false,
     surfaces: ["home", "status", "profile", "search"]
   },
   hidden: {
@@ -509,6 +512,7 @@ export function normalizeSettings(input: unknown): AviarySettings {
     filter: {
       enabled: booleanValue(filter.enabled, DEFAULT_SETTINGS.filter.enabled),
       rules: stringArray(filter.rules, { maxItems: 100, maxLength: 400 }),
+      dimSeenPosts: booleanValue(filter.dimSeenPosts, DEFAULT_SETTINGS.filter.dimSeenPosts),
       keywordRules: stringArray(filter.keywordRules, { maxItems: 200, maxLength: 180 }),
       regexRules: stringArray(filter.regexRules, { maxItems: 100, maxLength: 240 }),
       premiumRule: enumValue(filter.premiumRule, FILTER_ACTIONS, DEFAULT_SETTINGS.filter.premiumRule),

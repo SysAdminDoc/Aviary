@@ -40,6 +40,7 @@ import {
 } from "../export/jobs";
 import { renderForExternalTarget } from "../export/external-targets";
 import { filterRuleErrors } from "../filtering/filter-engine";
+import { getSeenPostStore } from "../filtering/seen-posts-feature";
 import {
   clearHiddenPosts,
   getHiddenPostStore,
@@ -354,6 +355,10 @@ export const controlCenterFeature: FeatureModule = {
           line: problem.line,
           message: problem.message
         }));
+      },
+      async clearSeenPosts() {
+        await getSeenPostStore()?.clear();
+        ctx.requestApply();
       },
       getSavedDiagnostics() {
         const saved = ctx.diagnosticsStore?.snapshot() ?? [];
