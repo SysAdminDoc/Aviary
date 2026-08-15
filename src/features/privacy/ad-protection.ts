@@ -43,6 +43,29 @@ const AD_LABELS = new Set([
   "שותפות בתשלום"
 ]);
 
+/**
+ * The X UI languages whose ad labels are covered above.
+ *
+ * X ships far more UI languages than this. In an uncovered one, the label test can never match and
+ * native sponsored posts are simply not suppressed — silently, which is the failure mode this
+ * project keeps finding and fixing. `adLabelLanguageSupported` lets Trust say so out loud instead.
+ *
+ * Adding a language means adding its exact labels, and those cannot be invented: a guessed string
+ * either never matches or matches ordinary prose. See Roadmap_Blocked.md.
+ */
+const LABELLED_LANGUAGES = new Set(["en", "es", "fr", "de", "ja", "ko", "pt", "ar", "he"]);
+
+/** The X UI language, from the document element X itself sets. */
+export function documentLanguage(): string {
+  const raw = document.documentElement.getAttribute("lang") ?? "";
+  return raw.trim().toLowerCase().split("-")[0] ?? "";
+}
+
+export function adLabelLanguageSupported(language = documentLanguage()): boolean {
+  // An absent lang attribute is not evidence of an unsupported language; do not cry wolf.
+  return language.length === 0 || LABELLED_LANGUAGES.has(language);
+}
+
 const PROMOTED_TREND_PREFIXES = [
   "Promoted by",
   "Sponsored by",

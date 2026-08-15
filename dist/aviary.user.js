@@ -2133,6 +2133,7 @@ html.av-reduce-motion *::after {
       "Add one below as handle: note. Notes appear beside that account's posts.": "A\xF1ade una abajo con el formato usuario: nota. Las notas aparecen junto a las publicaciones de esa cuenta.",
       "Turn Capture on, scroll a timeline, then export. Jobs and their records appear here.": "Activa la captura, despl\xE1zate por una cronolog\xEDa y luego exporta. Los trabajos y sus registros aparecer\xE1n aqu\xED.",
       "Formerly observed markers are no longer detected: {markers}.": "Ya no se detectan marcadores observados anteriormente: {markers}.",
+      "X is in {language}, which Aviary has no ad labels for. Sponsored posts are not suppressed by label here.": "X est\xE1 en {language}, un idioma para el que Aviary no tiene etiquetas de anuncios. Aqu\xED las publicaciones patrocinadas no se ocultan por etiqueta.",
       "gid {gid} \xB7 {status}": "ID {gid} \xB7 {status}",
       "{count} entries": "{count} entradas",
       "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "{posts} publicaciones \xB7 {likes} me gusta \xB7 {messages} mensajes directos (fuera de la b\xFAsqueda p\xFAblica) \xB7 {media} referencias multimedia \xB7 {followers} seguidores \xB7 {following} seguidos \xB7 {lists} listas",
@@ -2149,6 +2150,7 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "Pausar {jobId}.",
       "Resume {jobId}.": "Reanudar {jobId}.",
       "Cancel {jobId}.": "Cancelar {jobId}.",
+      "Ad labels for this language": "Etiquetas de anuncios para este idioma",
       "Saved warnings": "Avisos guardados",
       "Clear saved warnings": "Borrar avisos guardados",
       "Reset ad observations": "Restablecer observaciones de anuncios",
@@ -3062,6 +3064,7 @@ html.av-reduce-motion *::after {
       "Add one below as handle: note. Notes appear beside that account's posts.": "Adicione uma abaixo no formato usu\xE1rio: nota. As notas aparecem ao lado das publica\xE7\xF5es dessa conta.",
       "Turn Capture on, scroll a timeline, then export. Jobs and their records appear here.": "Ative a captura, percorra uma linha do tempo e depois exporte. Os trabalhos e seus registros aparecem aqui.",
       "Formerly observed markers are no longer detected: {markers}.": "Marcadores observados anteriormente n\xE3o s\xE3o mais detectados: {markers}.",
+      "X is in {language}, which Aviary has no ad labels for. Sponsored posts are not suppressed by label here.": "O X est\xE1 em {language}, um idioma para o qual o Aviary n\xE3o tem r\xF3tulos de an\xFAncio. Aqui as publica\xE7\xF5es patrocinadas n\xE3o s\xE3o ocultadas por r\xF3tulo.",
       "gid {gid} \xB7 {status}": "ID {gid} \xB7 {status}",
       "{count} entries": "{count} entradas",
       "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "{posts} publica\xE7\xF5es \xB7 {likes} gostos \xB7 {messages} mensagens diretas (fora da pesquisa p\xFAblica) \xB7 {media} refer\xEAncias multim\xE9dia \xB7 {followers} seguidores \xB7 {following} a seguir \xB7 {lists} listas",
@@ -3078,6 +3081,7 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "Pausar {jobId}.",
       "Resume {jobId}.": "Retomar {jobId}.",
       "Cancel {jobId}.": "Cancelar {jobId}.",
+      "Ad labels for this language": "R\xF3tulos de an\xFAncio para este idioma",
       "Saved warnings": "Avisos salvos",
       "Clear saved warnings": "Limpar avisos salvos",
       "Reset ad observations": "Redefinir observa\xE7\xF5es de an\xFAncios",
@@ -3991,6 +3995,7 @@ html.av-reduce-motion *::after {
       "Add one below as handle: note. Notes appear beside that account's posts.": "Ajoutez-en une ci-dessous au format identifiant : note. Les notes apparaissent \xE0 c\xF4t\xE9 des posts de ce compte.",
       "Turn Capture on, scroll a timeline, then export. Jobs and their records appear here.": "Activez la capture, faites d\xE9filer un fil, puis exportez. Les t\xE2ches et leurs enregistrements apparaissent ici.",
       "Formerly observed markers are no longer detected: {markers}.": "Les marqueurs pr\xE9c\xE9demment observ\xE9s ne sont plus d\xE9tect\xE9s : {markers}.",
+      "X is in {language}, which Aviary has no ad labels for. Sponsored posts are not suppressed by label here.": "X est en {language}, une langue pour laquelle Aviary n'a pas d'\xE9tiquettes publicitaires. Ici, les posts sponsoris\xE9s ne sont pas masqu\xE9s par \xE9tiquette.",
       "gid {gid} \xB7 {status}": "ID {gid} \xB7 {status}",
       "{count} entries": "{count} entr\xE9es",
       "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "{posts} publications \xB7 {likes} mentions J\u2019aime \xB7 {messages} messages directs (exclus de la recherche publique) \xB7 {media} r\xE9f\xE9rences multim\xE9dias \xB7 {followers} abonn\xE9s \xB7 {following} abonnements \xB7 {lists} listes",
@@ -4007,6 +4012,7 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "Mettre {jobId} en pause.",
       "Resume {jobId}.": "Reprendre {jobId}.",
       "Cancel {jobId}.": "Annuler {jobId}.",
+      "Ad labels for this language": "\xC9tiquettes publicitaires pour cette langue",
       "Saved warnings": "Avertissements enregistr\xE9s",
       "Clear saved warnings": "Effacer les avertissements enregistr\xE9s",
       "Reset ad observations": "R\xE9initialiser les observations publicitaires",
@@ -4920,6 +4926,7 @@ html.av-reduce-motion *::after {
       "Add one below as handle: note. Notes appear beside that account's posts.": "F\xFCge unten eine im Format Name: Notiz hinzu. Notizen erscheinen neben den Beitr\xE4gen dieses Kontos.",
       "Turn Capture on, scroll a timeline, then export. Jobs and their records appear here.": "Schalte die Erfassung ein, scrolle durch eine Timeline und exportiere dann. Auftr\xE4ge und ihre Datens\xE4tze erscheinen hier.",
       "Formerly observed markers are no longer detected: {markers}.": "Zuvor beobachtete Marker werden nicht mehr erkannt: {markers}.",
+      "X is in {language}, which Aviary has no ad labels for. Sponsored posts are not suppressed by label here.": "X l\xE4uft auf {language}, einer Sprache, f\xFCr die Aviary keine Werbekennzeichnungen hat. Gesponserte Beitr\xE4ge werden hier nicht \xFCber die Kennzeichnung ausgeblendet.",
       "gid {gid} \xB7 {status}": "GID {gid} \xB7 {status}",
       "{count} entries": "{count} Eintr\xE4ge",
       "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "{posts} Beitr\xE4ge \xB7 {likes} Likes \xB7 {messages} Direktnachrichten (nicht in der \xF6ffentlichen Suche) \xB7 {media} Medienverweise \xB7 {followers} Follower \xB7 {following} gefolgt \xB7 {lists} Listen",
@@ -4936,6 +4943,7 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "{jobId} pausieren.",
       "Resume {jobId}.": "{jobId} fortsetzen.",
       "Cancel {jobId}.": "{jobId} abbrechen.",
+      "Ad labels for this language": "Werbekennzeichnungen f\xFCr diese Sprache",
       "Saved warnings": "Gespeicherte Warnungen",
       "Clear saved warnings": "Gespeicherte Warnungen l\xF6schen",
       "Reset ad observations": "Werbebeobachtungen zur\xFCcksetzen",
@@ -5849,6 +5857,7 @@ html.av-reduce-motion *::after {
       "Add one below as handle: note. Notes appear beside that account's posts.": "\u4E0B\u306B\u300C\u30E6\u30FC\u30B6\u30FC\u540D: \u30E1\u30E2\u300D\u306E\u5F62\u5F0F\u3067\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u30E1\u30E2\u306F\u305D\u306E\u30A2\u30AB\u30A6\u30F3\u30C8\u306E\u6295\u7A3F\u306E\u6A2A\u306B\u8868\u793A\u3055\u308C\u307E\u3059\u3002",
       "Turn Capture on, scroll a timeline, then export. Jobs and their records appear here.": "\u30AD\u30E3\u30D7\u30C1\u30E3\u3092\u30AA\u30F3\u306B\u3057\u3066\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u3092\u30B9\u30AF\u30ED\u30FC\u30EB\u3057\u3001\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u30B8\u30E7\u30D6\u3068\u305D\u306E\u8A18\u9332\u304C\u3053\u3053\u306B\u8868\u793A\u3055\u308C\u307E\u3059\u3002",
       "Formerly observed markers are no longer detected: {markers}.": "\u4EE5\u524D\u306B\u89B3\u6E2C\u3055\u308C\u305F\u30DE\u30FC\u30AB\u30FC\u304C\u691C\u51FA\u3055\u308C\u306A\u304F\u306A\u308A\u307E\u3057\u305F: {markers}\u3002",
+      "X is in {language}, which Aviary has no ad labels for. Sponsored posts are not suppressed by label here.": "X \u306E\u8868\u793A\u8A00\u8A9E\u306F {language} \u3067\u3001Aviary \u306F\u3053\u306E\u8A00\u8A9E\u306E\u5E83\u544A\u30E9\u30D9\u30EB\u3092\u6301\u3063\u3066\u3044\u307E\u305B\u3093\u3002\u3053\u3053\u3067\u306F\u30B9\u30DD\u30F3\u30B5\u30FC\u6295\u7A3F\u304C\u30E9\u30D9\u30EB\u306B\u3088\u3063\u3066\u975E\u8868\u793A\u306B\u306A\u308A\u307E\u305B\u3093\u3002",
       "gid {gid} \xB7 {status}": "\u8B58\u5225\u5B50 {gid} \xB7 {status}",
       "{count} entries": "{count}\u4EF6",
       "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "\u6295\u7A3F{posts}\u4EF6 \xB7 \u3044\u3044\u306D{likes}\u4EF6 \xB7 \u30C0\u30A4\u30EC\u30AF\u30C8\u30E1\u30C3\u30BB\u30FC\u30B8{messages}\u4EF6\uFF08\u516C\u958B\u691C\u7D22\u5BFE\u8C61\u5916\uFF09 \xB7 \u30E1\u30C7\u30A3\u30A2\u53C2\u7167{media}\u4EF6 \xB7 \u30D5\u30A9\u30ED\u30EF\u30FC{followers}\u4EF6 \xB7 \u30D5\u30A9\u30ED\u30FC\u4E2D{following}\u4EF6 \xB7 \u30EA\u30B9\u30C8{lists}\u4EF6",
@@ -5865,6 +5874,7 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "{jobId}\u3092\u4E00\u6642\u505C\u6B62\u3002",
       "Resume {jobId}.": "{jobId}\u3092\u518D\u958B\u3002",
       "Cancel {jobId}.": "{jobId}\u3092\u30AD\u30E3\u30F3\u30BB\u30EB\u3002",
+      "Ad labels for this language": "\u3053\u306E\u8A00\u8A9E\u306E\u5E83\u544A\u30E9\u30D9\u30EB",
       "Saved warnings": "\u4FDD\u5B58\u3055\u308C\u305F\u8B66\u544A",
       "Clear saved warnings": "\u4FDD\u5B58\u3055\u308C\u305F\u8B66\u544A\u3092\u6D88\u53BB",
       "Reset ad observations": "\u5E83\u544A\u89B3\u6E2C\u3092\u30EA\u30BB\u30C3\u30C8",
@@ -6778,6 +6788,7 @@ html.av-reduce-motion *::after {
       "Add one below as handle: note. Notes appear beside that account's posts.": "\uC544\uB798\uC5D0 \uC0AC\uC6A9\uC790\uBA85: \uBA54\uBAA8 \uD615\uC2DD\uC73C\uB85C \uCD94\uAC00\uD558\uC138\uC694. \uBA54\uBAA8\uB294 \uD574\uB2F9 \uACC4\uC815\uC758 \uAC8C\uC2DC\uBB3C \uC606\uC5D0 \uD45C\uC2DC\uB429\uB2C8\uB2E4.",
       "Turn Capture on, scroll a timeline, then export. Jobs and their records appear here.": "\uCEA1\uCC98\uB97C \uCF1C\uACE0 \uD0C0\uC784\uB77C\uC778\uC744 \uC2A4\uD06C\uB864\uD55C \uB2E4\uC74C \uB0B4\uBCF4\uB0B4\uC138\uC694. \uC791\uC5C5\uACFC \uD574\uB2F9 \uB808\uCF54\uB4DC\uAC00 \uC5EC\uAE30\uC5D0 \uD45C\uC2DC\uB429\uB2C8\uB2E4.",
       "Formerly observed markers are no longer detected: {markers}.": "\uC774\uC804\uC5D0 \uAD00\uCC30\uB41C \uB9C8\uCEE4\uAC00 \uB354 \uC774\uC0C1 \uAC10\uC9C0\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4: {markers}.",
+      "X is in {language}, which Aviary has no ad labels for. Sponsored posts are not suppressed by label here.": "X\uAC00 {language}(\uC73C)\uB85C \uD45C\uC2DC\uB418\uACE0 \uC788\uC73C\uBA70, Aviary\uC5D0\uB294 \uC774 \uC5B8\uC5B4\uC758 \uAD11\uACE0 \uB77C\uBCA8\uC774 \uC5C6\uC2B5\uB2C8\uB2E4. \uC5EC\uAE30\uC11C\uB294 \uC2A4\uD3F0\uC11C \uAC8C\uC2DC\uBB3C\uC774 \uB77C\uBCA8\uB85C \uC228\uACA8\uC9C0\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
       "gid {gid} \xB7 {status}": "\uC2DD\uBCC4\uC790 {gid} \xB7 {status}",
       "{count} entries": "{count}\uAC1C \uD56D\uBAA9",
       "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "\uAC8C\uC2DC\uBB3C {posts}\uAC1C \xB7 \uC88B\uC544\uC694 {likes}\uAC1C \xB7 \uCABD\uC9C0 {messages}\uAC1C(\uACF5\uAC1C \uAC80\uC0C9 \uC81C\uC678) \xB7 \uBBF8\uB514\uC5B4 \uCC38\uC870 {media}\uAC1C \xB7 \uD314\uB85C\uC6CC {followers}\uBA85 \xB7 \uD314\uB85C\uC789 {following}\uBA85 \xB7 \uBAA9\uB85D {lists}\uAC1C",
@@ -6794,6 +6805,7 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "{jobId} \uC77C\uC2DC \uC911\uC9C0.",
       "Resume {jobId}.": "{jobId} \uC7AC\uAC1C.",
       "Cancel {jobId}.": "{jobId} \uCDE8\uC18C.",
+      "Ad labels for this language": "\uC774 \uC5B8\uC5B4\uC758 \uAD11\uACE0 \uB77C\uBCA8",
       "Saved warnings": "\uC800\uC7A5\uB41C \uACBD\uACE0",
       "Clear saved warnings": "\uC800\uC7A5\uB41C \uACBD\uACE0 \uC9C0\uC6B0\uAE30",
       "Reset ad observations": "\uAD11\uACE0 \uAD00\uCC30 \uCD08\uAE30\uD654",
@@ -7707,6 +7719,7 @@ html.av-reduce-motion *::after {
       "Add one below as handle: note. Notes appear beside that account's posts.": "\u0623\u0636\u0641 \u0648\u0627\u062D\u062F\u0629 \u0623\u062F\u0646\u0627\u0647 \u0628\u0635\u064A\u063A\u0629 \u0627\u0644\u0645\u0639\u0631\u0651\u0641: \u0645\u0644\u0627\u062D\u0638\u0629. \u062A\u0638\u0647\u0631 \u0627\u0644\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0628\u062C\u0648\u0627\u0631 \u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0630\u0644\u0643 \u0627\u0644\u062D\u0633\u0627\u0628.",
       "Turn Capture on, scroll a timeline, then export. Jobs and their records appear here.": "\u0641\u0639\u0651\u0644 \u0627\u0644\u0627\u0644\u062A\u0642\u0627\u0637\u060C \u0648\u0645\u0631\u0651\u0631 \u0639\u0628\u0631 \u062E\u0637 \u0632\u0645\u0646\u064A\u060C \u062B\u0645 \u0635\u062F\u0651\u0631. \u0633\u062A\u0638\u0647\u0631 \u0627\u0644\u0645\u0647\u0627\u0645 \u0648\u0633\u062C\u0644\u0627\u062A\u0647\u0627 \u0647\u0646\u0627.",
       "Formerly observed markers are no longer detected: {markers}.": "\u0644\u0645 \u062A\u0639\u062F \u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062A \u0627\u0644\u062A\u064A \u062A\u0645\u062A \u0645\u0644\u0627\u062D\u0638\u062A\u0647\u0627 \u0633\u0627\u0628\u0642\u064B\u0627 \u0645\u0643\u062A\u0634\u0641\u0629: {markers}.",
+      "X is in {language}, which Aviary has no ad labels for. Sponsored posts are not suppressed by label here.": "\u064A\u0639\u0645\u0644 X \u0628\u0627\u0644\u0644\u063A\u0629 {language}\u060C \u0648\u0647\u064A \u0644\u063A\u0629 \u0644\u0627 \u064A\u0645\u0644\u0643 Aviary \u062A\u0633\u0645\u064A\u0627\u062A \u0625\u0639\u0644\u0627\u0646\u0627\u062A \u0644\u0647\u0627. \u0644\u0627 \u062A\u064F\u062E\u0641\u0649 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u0645\u0648\u064E\u0651\u0644\u0629 \u0647\u0646\u0627 \u0627\u0639\u062A\u0645\u0627\u062F\u064B\u0627 \u0639\u0644\u0649 \u0627\u0644\u062A\u0633\u0645\u064A\u0629.",
       "gid {gid} \xB7 {status}": "\u0627\u0644\u0645\u0639\u0631\u0651\u0641 {gid} \xB7 {status}",
       "{count} entries": "{count} \u0645\u0646 \u0627\u0644\u0625\u062F\u062E\u0627\u0644\u0627\u062A",
       "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "{posts} \u0645\u0646 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \xB7 {likes} \u0645\u0646 \u0627\u0644\u0625\u0639\u062C\u0627\u0628\u0627\u062A \xB7 {messages} \u0645\u0646 \u0627\u0644\u0631\u0633\u0627\u0626\u0644 \u0627\u0644\u0645\u0628\u0627\u0634\u0631\u0629 (\u062E\u0627\u0631\u062C \u0627\u0644\u0628\u062D\u062B \u0627\u0644\u0639\u0627\u0645) \xB7 {media} \u0645\u0646 \u0645\u0631\u0627\u062C\u0639 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \xB7 {followers} \u0645\u0646 \u0627\u0644\u0645\u062A\u0627\u0628\u0639\u064A\u0646 \xB7 {following} \u0645\u0645\u0646 \u062A\u062A\u0627\u0628\u0639\u0647\u0645 \xB7 {lists} \u0645\u0646 \u0627\u0644\u0642\u0648\u0627\u0626\u0645",
@@ -7723,6 +7736,7 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "\u0625\u064A\u0642\u0627\u0641 {jobId} \u0645\u0624\u0642\u062A\u064B\u0627.",
       "Resume {jobId}.": "\u0627\u0633\u062A\u0626\u0646\u0627\u0641 {jobId}.",
       "Cancel {jobId}.": "\u0625\u0644\u063A\u0627\u0621 {jobId}.",
+      "Ad labels for this language": "\u062A\u0633\u0645\u064A\u0627\u062A \u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A \u0644\u0647\u0630\u0647 \u0627\u0644\u0644\u063A\u0629",
       "Saved warnings": "\u0627\u0644\u062A\u062D\u0630\u064A\u0631\u0627\u062A \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629",
       "Clear saved warnings": "\u0645\u0633\u062D \u0627\u0644\u062A\u062D\u0630\u064A\u0631\u0627\u062A \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629",
       "Reset ad observations": "\u0625\u0639\u0627\u062F\u0629 \u0636\u0628\u0637 \u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0625\u0639\u0644\u0627\u0646\u0627\u062A",
@@ -8636,6 +8650,7 @@ html.av-reduce-motion *::after {
       "Add one below as handle: note. Notes appear beside that account's posts.": "\u05D4\u05D5\u05E1\u05E3 \u05D0\u05D7\u05EA \u05DC\u05DE\u05D8\u05D4 \u05D1\u05E4\u05D5\u05E8\u05DE\u05D8 \u05E9\u05DD \u05DE\u05E9\u05EA\u05DE\u05E9: \u05D4\u05E2\u05E8\u05D4. \u05D4\u05D4\u05E2\u05E8\u05D5\u05EA \u05DE\u05D5\u05E4\u05D9\u05E2\u05D5\u05EA \u05DC\u05E6\u05D3 \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05DC \u05D0\u05D5\u05EA\u05D5 \u05D7\u05E9\u05D1\u05D5\u05DF.",
       "Turn Capture on, scroll a timeline, then export. Jobs and their records appear here.": "\u05D4\u05E4\u05E2\u05DC \u05DC\u05DB\u05D9\u05D3\u05D4, \u05D2\u05DC\u05D5\u05DC \u05D1\u05E6\u05D9\u05E8 \u05D6\u05DE\u05DF \u05D5\u05D0\u05D6 \u05D9\u05D9\u05E6\u05D0. \u05D4\u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D5\u05D4\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05DC\u05D4\u05DF \u05D9\u05D5\u05E4\u05D9\u05E2\u05D5 \u05DB\u05D0\u05DF.",
       "Formerly observed markers are no longer detected: {markers}.": "\u05E1\u05DE\u05E0\u05D9\u05DD \u05E9\u05E0\u05E6\u05E4\u05D5 \u05D1\u05E2\u05D1\u05E8 \u05D0\u05D9\u05E0\u05DD \u05DE\u05D6\u05D5\u05D4\u05D9\u05DD \u05E2\u05D5\u05D3: {markers}.",
+      "X is in {language}, which Aviary has no ad labels for. Sponsored posts are not suppressed by label here.": "X \u05DE\u05D5\u05E6\u05D2 \u05D1\u05E9\u05E4\u05D4 {language}, \u05E9\u05E2\u05D1\u05D5\u05E8\u05D4 \u05D0\u05D9\u05DF \u05DC-Aviary \u05EA\u05D5\u05D5\u05D9\u05D5\u05EA \u05DE\u05D5\u05D3\u05E2\u05D5\u05EA. \u05DB\u05D0\u05DF \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05DE\u05DE\u05D5\u05DE\u05E0\u05D9\u05DD \u05D0\u05D9\u05E0\u05DD \u05DE\u05D5\u05E1\u05EA\u05E8\u05D9\u05DD \u05DC\u05E4\u05D9 \u05EA\u05D5\u05D5\u05D9\u05EA.",
       "gid {gid} \xB7 {status}": "\u05DE\u05D6\u05D4\u05D4 {gid} \xB7 {status}",
       "{count} entries": "{count} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA",
       "{posts} posts \xB7 {likes} likes \xB7 {messages} direct messages (kept out of public search) \xB7 {media} media refs \xB7 {followers} followers \xB7 {following} following \xB7 {lists} lists": "{posts} \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \xB7 {likes} \u05DC\u05D9\u05D9\u05E7\u05D9\u05DD \xB7 {messages} \u05D4\u05D5\u05D3\u05E2\u05D5\u05EA \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA (\u05DE\u05D7\u05D5\u05E5 \u05DC\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D4\u05E6\u05D9\u05D1\u05D5\u05E8\u05D9) \xB7 {media} \u05D4\u05E4\u05E0\u05D9\u05D5\u05EA \u05DE\u05D3\u05D9\u05D4 \xB7 {followers} \u05E2\u05D5\u05E7\u05D1\u05D9\u05DD \xB7 {following} \u05D1\u05DE\u05E2\u05E7\u05D1 \xB7 {lists} \u05E8\u05E9\u05D9\u05DE\u05D5\u05EA",
@@ -8652,6 +8667,7 @@ html.av-reduce-motion *::after {
       "Pause {jobId}.": "\u05D4\u05E9\u05D4\u05D4 \u05D0\u05EA {jobId}.",
       "Resume {jobId}.": "\u05D7\u05D3\u05E9 \u05D0\u05EA {jobId}.",
       "Cancel {jobId}.": "\u05D1\u05D8\u05DC \u05D0\u05EA {jobId}.",
+      "Ad labels for this language": "\u05EA\u05D5\u05D5\u05D9\u05D5\u05EA \u05DE\u05D5\u05D3\u05E2\u05D5\u05EA \u05E2\u05D1\u05D5\u05E8 \u05E9\u05E4\u05D4 \u05D6\u05D5",
       "Saved warnings": "\u05D0\u05D6\u05D4\u05E8\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA",
       "Clear saved warnings": "\u05DE\u05D7\u05D9\u05E7\u05EA \u05D0\u05D6\u05D4\u05E8\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA",
       "Reset ad observations": "\u05D0\u05D9\u05E4\u05D5\u05E1 \u05EA\u05E6\u05E4\u05D9\u05D5\u05EA \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA",
@@ -8952,6 +8968,18 @@ html.av-reduce-motion *::after {
       ctx.coverageRow(),
       ...ctx.selectorHealthRows()
     ];
+    const adLanguage = ctx.options.getAdLabelLanguage?.();
+    if (adLanguage && !adLanguage.supported) {
+      rows.push(
+        ctx.dataRow(
+          "Ad labels for this language",
+          ctx.localizedCopy(
+            "X is in {language}, which Aviary has no ad labels for. Sponsored posts are not suppressed by label here.",
+            { language: adLanguage.language }
+          )
+        )
+      );
+    }
     if (ctx.options.getSavedDiagnostics) {
       const saved = ctx.options.getSavedDiagnostics();
       rows.push(
@@ -14755,6 +14783,14 @@ input[type="checkbox"] {
     "\u05DE\u05E7\u05D5\u05D3\u05DD",
     "\u05E9\u05D5\u05EA\u05E4\u05D5\u05EA \u05D1\u05EA\u05E9\u05DC\u05D5\u05DD"
   ]);
+  var LABELLED_LANGUAGES = /* @__PURE__ */ new Set(["en", "es", "fr", "de", "ja", "ko", "pt", "ar", "he"]);
+  function documentLanguage() {
+    const raw = document.documentElement.getAttribute("lang") ?? "";
+    return raw.trim().toLowerCase().split("-")[0] ?? "";
+  }
+  function adLabelLanguageSupported(language = documentLanguage()) {
+    return language.length === 0 || LABELLED_LANGUAGES.has(language);
+  }
   var PROMOTED_TREND_PREFIXES = [
     "Promoted by",
     "Sponsored by",
@@ -25872,6 +25908,10 @@ ${COLOR_CSS}`;
             line: problem.line,
             message: problem.message
           }));
+        },
+        getAdLabelLanguage() {
+          const language = documentLanguage();
+          return { language, supported: adLabelLanguageSupported(language) };
         },
         getUserColors() {
           return getUserColors();

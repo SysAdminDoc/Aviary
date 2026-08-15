@@ -35,6 +35,19 @@ export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
       ctx.coverageRow(),
         ...ctx.selectorHealthRows()
   ];
+  const adLanguage = ctx.options.getAdLabelLanguage?.();
+  if (adLanguage && !adLanguage.supported) {
+    rows.push(
+      ctx.dataRow(
+        "Ad labels for this language",
+        ctx.localizedCopy(
+          "X is in {language}, which Aviary has no ad labels for. Sponsored posts are not suppressed by label here.",
+          { language: adLanguage.language }
+        )
+      )
+    );
+  }
+
   if (ctx.options.getSavedDiagnostics) {
     const saved = ctx.options.getSavedDiagnostics();
     rows.push(

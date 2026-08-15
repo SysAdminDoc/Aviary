@@ -17,7 +17,11 @@ import {
   mountControlCenter
 } from "../../ui/control-center";
 import { pageHookCounters } from "../privacy/page-hooks";
-import { adProtectionCounters } from "../privacy/ad-protection";
+import {
+  adLabelLanguageSupported,
+  adProtectionCounters,
+  documentLanguage
+} from "../privacy/ad-protection";
 import {
   clearAdObservations as clearSelectorAdObservations,
   getSelectorHealthSnapshot
@@ -363,6 +367,10 @@ export const controlCenterFeature: FeatureModule = {
           line: problem.line,
           message: problem.message
         }));
+      },
+      getAdLabelLanguage() {
+        const language = documentLanguage();
+        return { language, supported: adLabelLanguageSupported(language) };
       },
       getUserColors() {
         return getUserColors();

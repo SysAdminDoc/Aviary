@@ -182,6 +182,7 @@ export interface ControlCenterOptions {
   getSelectorHealth?: () => SelectorHealthStatus;
   clearAdObservations?: () => Promise<void>;
   clearSeenPosts?: () => Promise<void>;
+  getAdLabelLanguage?: () => { language: string; supported: boolean };
   getUserColors?: () => Record<string, string>;
   setUserColor?: (handle: string, color: string) => Promise<void>;
   getFilterRuleErrors?: () => Array<{ line: number; message: string }>;

@@ -237,3 +237,34 @@ Re-entry condition: add a `_decoded/` capture containing an Article in a timelin
 owning cell and its marker, then expose it as a rule field (`kind is article`) so it composes with
 the existing rule language rather than becoming a separate toggle. Fixture-test that an ordinary
 post carrying a link is untouched.
+
+## F130 — Relationship badges (follows you / mutual)
+
+Blocked on evidence. Measured: "follows you" appears 0 times in `_decoded/home.html` and
+`_decoded/status.html`. The only follow-related test ids in either capture are `<userId>-follow`,
+which mark the Follow *button* — an action, not a relationship. Inferring "you do not follow this
+account" from the presence of that button is wrong twice over: the button also appears inside
+Who-to-follow modules, and its absence has several causes.
+
+Re-entry condition: a capture containing X's own relationship indicator on a post or hovercard,
+or the relationship field inside a captured timeline payload. Either is passively available and so
+stays on the safe side of the ban-risk line — but neither exists here today.
+
+## F132 — Ad labels beyond the nine covered languages
+
+X ships far more UI languages than the nine Aviary has ad labels for. In an uncovered language the
+exact-label test can never match, so native sponsored posts are simply not suppressed.
+
+The silent half of that is fixed: `adLabelLanguageSupported()` reads the `lang` attribute X sets on
+the document, and Trust now states plainly when the current UI language has no labels, rather than
+leaving the user to assume protection they do not have.
+
+Adding the languages themselves is blocked. X's exact ad-label strings cannot be invented: a guessed
+translation either never matches, or — worse — matches ordinary prose, since the test is an exact
+full-text comparison against a span. No capture in this repository shows X's interface in any
+language other than English.
+
+Re-entry condition: for each language, a capture of X in that UI language containing a sponsored
+post, or X's own published localization strings. Add the label, add a fixture to the ad corpus, and
+extend `LABELLED_LANGUAGES` in the same commit — the test that pairs the two lists will fail if a
+language is claimed as covered without a label to back it.

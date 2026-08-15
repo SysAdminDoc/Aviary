@@ -17,6 +17,9 @@
 
 ### Added
 
+- Trust now states when X's interface language has no ad labels. Aviary matches sponsored posts by
+  an exact localized label, so in an uncovered language native ads are simply not suppressed — a
+  gap users previously had no way to notice.
 - **Focus mode** covers the reading column outside a daily window you set, with a five-minute
   override one click away. Navigation stays usable, so the rest of X remains reachable — it is a
   reading gate, not a site block. Entirely local: nothing is blocked at the network layer and
