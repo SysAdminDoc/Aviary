@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.23.0 - 2026-08-15
+
 ### Changed
 
 - The video-quality setting no longer promises an outcome it cannot guarantee. It is now **Pin

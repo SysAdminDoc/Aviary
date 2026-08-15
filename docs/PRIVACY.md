@@ -1,6 +1,6 @@
 # Aviary Privacy Manifest
 
-Updated: 2026-08-14 · release 1.22.0
+Updated: 2026-08-14 · release 1.23.0
 
 ## Defaults and network boundaries
 

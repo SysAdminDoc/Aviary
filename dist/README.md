@@ -1,11 +1,11 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.22.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.23.0-2f81f7)
 
 <img width="1536" height="1024" alt="exec-86ea8b21-28c3-4eff-bc69-b1d8f9ab3e7c" src="https://github.com/user-attachments/assets/a36c2cdb-2b74-4fde-a934-3c0ada11bbac" />
 
 
-Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.22.0: an opt-in premium Noir desktop skin, focused Home controls for the composer, discovery rail, current navigation and recommendations, default-on desktop ad protection and media download controls, transactional settings, local ad-contract drift diagnostics, a redesigned 13-page Control Center and extension-permissions cockpit, committed desktop visual coverage, fixture-backed selector checks, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, reproducible MV3 ZIP archives, and isolated Playwright smoke CI.
+Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.23.0: an opt-in premium Noir desktop skin, focused Home controls for the composer, discovery rail, current navigation and recommendations, default-on desktop ad protection and media download controls, transactional settings, local ad-contract drift diagnostics, a redesigned 13-page Control Center and extension-permissions cockpit, committed desktop visual coverage, fixture-backed selector checks, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, reproducible MV3 ZIP archives, and isolated Playwright smoke CI.
 
 ## Ad-free with media saves ready by default
 
@@ -328,7 +328,7 @@ The Integrations panel also surfaces a "Recent integration errors" readout that 
 
 ## Roadmap
 
-The working plan is in [ROADMAP.md](ROADMAP.md). v1.22.0 is the current release; the latest batch
+The working plan is in [ROADMAP.md](ROADMAP.md). v1.23.0 is the current release; the latest batch
 adds page-level transactional settings, privacy-safe ad-contract drift diagnostics, extension-level
 promoted-logger blocking, and a 60-image desktop settings regression contract.
 F032/F033 remain blocked
