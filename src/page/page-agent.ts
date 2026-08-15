@@ -199,6 +199,45 @@ export function isAdRequestUrl(rawUrl: string): boolean {
   }
 }
 
+/**
+ * Finishes a refused XMLHttpRequest the way a failed network request finishes: readyState DONE,
+ * status 0, then `readystatechange`, `error`, and `loadend`. Every field is written defensively --
+ * a real XHR's readyState and status are read-only accessors, so this defines them on the instance
+ * and gives up quietly if the object refuses, which is no worse than the previous behaviour.
+ */
+function completeAsNetworkError(xhr: Record<string, unknown>): void {
+  const define = (name: string, value: unknown): void => {
+    try {
+      Object.defineProperty(xhr, name, { configurable: true, value });
+    } catch {
+      // A frozen or exotic XHR keeps whatever it had; the events below still fire.
+    }
+  };
+  define("readyState", 4);
+  define("status", 0);
+  define("statusText", "");
+  define("responseText", "");
+  define("response", "");
+
+  const dispatch = (type: string): void => {
+    try {
+      const handler = xhr[`on${type}`];
+      if (typeof handler === "function") {
+        (handler as (event: unknown) => void).call(xhr, { type, target: xhr });
+      }
+      const dispatchEvent = xhr.dispatchEvent;
+      if (typeof dispatchEvent === "function" && typeof ProgressEvent === "function") {
+        (dispatchEvent as (event: unknown) => boolean).call(xhr, new ProgressEvent(type));
+      }
+    } catch {
+      // One listener throwing must not stop the remaining events.
+    }
+  };
+  dispatch("readystatechange");
+  dispatch("error");
+  dispatch("loadend");
+}
+
 export function isGraphqlUrl(url: string): boolean {
   return parseGraphqlRoute(url) !== null;
 }
@@ -457,6 +496,12 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
         const category = blockedRequestCategory(state?.config ?? INITIAL_CONFIG, url);
         if (category) {
           emit("blocked", { url, via: "xhr", at: now(), category });
+          completeAsNetworkError(this);
+          // A refused request still has to finish. The fetch path answers 204 and the beacon path
+          // returns true precisely so X's client sees a completed call; returning here left the
+          // XHR in state OPENED forever, so any caller waiting on completion -- a retry queue, a
+          // promise wrapper -- would wait for good. Present it the way an offline request does:
+          // DONE with status 0, then error and loadend.
           return;
         }
       } catch {

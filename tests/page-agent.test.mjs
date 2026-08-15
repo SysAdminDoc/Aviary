@@ -512,3 +512,74 @@ function sendConfig(target, channel, config) {
   target.postMessage({ channel, kind: "hello", nonce });
   target.postMessage({ channel, kind: "config", nonce, payload: config });
 }
+
+// A refused XHR used to just return: no readystatechange, no error, no loadend, readyState stuck
+// at OPENED. The sibling paths deliberately fake benign completion — fetch answers 204, sendBeacon
+// returns true — precisely so X's client does not sit waiting or retry. The XHR path did neither,
+// so anything gating a retry queue on completion would have waited for good.
+
+test("a refused XHR completes as a network error instead of hanging", async () => {
+  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+  const target = fakeWindow(async (input) => new Response(`served:${String(input)}`, { status: 200 }));
+  const uninstall = installPageAgent(target);
+
+  try {
+    sendConfig(target, PAGE_CHANNEL, {
+      blockAds: true,
+      blockBeacons: false,
+      captureGraphql: false,
+      captureMediaMetadata: false,
+      forceVideoQuality: false
+    });
+
+    const events = [];
+    const xhr = Object.create(target.XMLHttpRequest.prototype);
+    xhr.onreadystatechange = () => events.push(`readystatechange:${xhr.readyState}`);
+    xhr.onerror = () => events.push("error");
+    xhr.onloadend = () => events.push("loadend");
+
+    xhr.open("POST", "https://x.com/i/api/1.1/promoted_content/log.json");
+    xhr.send("event=impression");
+
+    assert.equal(target.calls.xhrSend.length, 0, "the request itself must never leave");
+    assert.equal(xhr.readyState, 4, "a refused request must reach DONE, not sit at OPENED");
+    assert.equal(xhr.status, 0, "status 0 is how an offline request presents");
+    assert.deepEqual(
+      events,
+      ["readystatechange:4", "error", "loadend"],
+      "the completion sequence must match a failed network request"
+    );
+  } finally {
+    uninstall();
+  }
+});
+
+test("a listener throwing during refusal does not stop the remaining completion events", async () => {
+  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+  const target = fakeWindow(async () => new Response("", { status: 200 }));
+  const uninstall = installPageAgent(target);
+
+  try {
+    sendConfig(target, PAGE_CHANNEL, {
+      blockAds: true,
+      blockBeacons: false,
+      captureGraphql: false,
+      captureMediaMetadata: false,
+      forceVideoQuality: false
+    });
+
+    const seen = [];
+    const xhr = Object.create(target.XMLHttpRequest.prototype);
+    xhr.onreadystatechange = () => {
+      throw new Error("a page handler that throws");
+    };
+    xhr.onerror = () => seen.push("error");
+    xhr.onloadend = () => seen.push("loadend");
+
+    xhr.open("POST", "https://x.com/i/api/1.1/promoted_content/log.json");
+    assert.doesNotThrow(() => xhr.send("event=impression"), "the refusal must not surface as a throw");
+    assert.deepEqual(seen, ["error", "loadend"], "later events still have to fire");
+  } finally {
+    uninstall();
+  }
+});

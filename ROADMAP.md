@@ -112,20 +112,6 @@ Internal audit of the subsystems no prior pass had examined, plus the code added
 
 ### P2 — reliability
 
-- [ ] F158 — P2 — CI must trigger on the files its gates read
-  Why: the workflow's paths filter lists `src/**`, `tests/**`, `tools/**` and configs, but not `_decoded/**` or `docs/**` — so a capture refresh (the highest-priority operator action) or a docs edit that breaks the FAQ settings reference never runs the workflow that gates them.
-  Evidence: `.github/workflows/smoke.yml:7-15`, read 2026-08-15.
-  Touches: `.github/workflows/smoke.yml`.
-  Acceptance: pushes touching only `_decoded/**` or `docs/**` trigger the workflow; the paths list carries a comment naming which gate reads each entry.
-  Complexity: S
-
-- [ ] F159 — P2 — A blocked XHR must complete as an error, not vanish
-  Why: the page agent's `patchedSend` returns without dispatching any completion event for a refused logger call, while the sibling fetch and sendBeacon paths deliberately fake benign completion — an X callback gating a retry queue on XHR completion would hang or back up.
-  Evidence: `src/page/page-agent.ts:454-466` vs the fetch (204) and sendBeacon (`true`) paths; asymmetry confirmed 2026-08-15.
-  Touches: `src/page/page-agent.ts`, page-agent tests.
-  Acceptance: a refused XHR fires `readystatechange` to DONE with a network-error shape (status 0), consistent with how an offline request presents; the fetch and beacon behaviours are unchanged; a test drives an XHR through the patched path and observes completion.
-  Complexity: S
-
 - [ ] F160 — P2 — Stop persisting a failed import's full archive, and stop rewriting it per tick
   Why: each archive-import job records the entire base64 source (up to ~341 MB) inside the job store, `#persist` rewrites all retained jobs' state on every progress tick, and only `complete()` drops the source — failed, paused, and cancelled jobs pin their full copies until 12 newer jobs push them out. Multi-hundred-MB writes per tick, guaranteed quota failure on the fallback backends.
   Evidence: `src/features/library/archive-import-jobs.ts:100` (source in record), `:237-246` (full-state persist per tick); confirmed 2026-08-15.

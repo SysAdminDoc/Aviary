@@ -4,6 +4,18 @@
 
 ### Fixed
 
+- A refused ad-logging request sent over XHR now completes as a network error instead of never
+  finishing at all. Aviary's other two refusal paths deliberately fake benign completion — the
+  fetch path answers 204, the beacon path returns true — specifically so X's client does not sit
+  waiting or retry. The XHR path did neither: it returned, leaving the request stuck at OPENED, so
+  anything gating a retry queue on completion would have waited indefinitely. It now reaches DONE
+  with status 0 and fires `readystatechange`, `error`, and `loadend`, exactly as an offline request
+  does, and one throwing listener no longer stops the rest.
+- Continuous integration now runs on changes to `_decoded/`, `docs/`, and the README. Its gates
+  already read all three — the fixture tests, the capture-age ceiling, the selector-evidence check,
+  the FAQ settings reference, and the privacy data map — but the paths filter listed only source,
+  tests, tools, and configs, so refreshing a capture skipped the workflow that checks it.
+
 - A transient storage failure no longer costs you the session. When an IndexedDB transaction fails,
   Aviary drops to the older storage path for the rest of that session — but migration had already
   emptied it, and the next healthy start preferred the durable copy and skipped any key it already

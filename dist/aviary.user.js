@@ -28670,6 +28670,35 @@ html.av-mobile [data-testid="primaryColumn"] {
       return false;
     }
   }
+  function completeAsNetworkError(xhr) {
+    const define = (name, value) => {
+      try {
+        Object.defineProperty(xhr, name, { configurable: true, value });
+      } catch {
+      }
+    };
+    define("readyState", 4);
+    define("status", 0);
+    define("statusText", "");
+    define("responseText", "");
+    define("response", "");
+    const dispatch = (type) => {
+      try {
+        const handler = xhr[`on${type}`];
+        if (typeof handler === "function") {
+          handler.call(xhr, { type, target: xhr });
+        }
+        const dispatchEvent = xhr.dispatchEvent;
+        if (typeof dispatchEvent === "function" && typeof ProgressEvent === "function") {
+          dispatchEvent.call(xhr, new ProgressEvent(type));
+        }
+      } catch {
+      }
+    };
+    dispatch("readystatechange");
+    dispatch("error");
+    dispatch("loadend");
+  }
   function isGraphqlUrl(url) {
     return parseGraphqlRoute(url) !== null;
   }
@@ -28836,6 +28865,7 @@ html.av-mobile [data-testid="primaryColumn"] {
           const category = blockedRequestCategory(state?.config ?? INITIAL_CONFIG, url);
           if (category) {
             emit("blocked", { url, via: "xhr", at: now(), category });
+            completeAsNetworkError(this);
             return;
           }
         } catch {

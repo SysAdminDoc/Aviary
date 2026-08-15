@@ -4,6 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+    # Every path a gate reads belongs here. `_decoded/**` and `docs/**` were missing, so a capture
+    # refresh -- the highest-value change anyone can make to this repository -- and any docs edit
+    # that breaks the generated settings reference both skipped the workflow that checks them.
     paths:
       - ".github/workflows/smoke.yml"
       - "package.json"
@@ -13,6 +16,12 @@ on:
       - "src/**"
       - "tests/**"
       - "tools/**"
+      # Fixture ground truth: fixture tests, the capture-age gate, and the selector-evidence check.
+      - "_decoded/**"
+      # docs-consistency asserts the FAQ settings reference and the PRIVACY durable-store map.
+      - "docs/**"
+      # The same docs gate reads the README badge and its Roadmap section.
+      - "README.md"
 
 permissions:
   contents: read
