@@ -32,7 +32,11 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        # Aviary has zero runtime dependencies, so no install script is needed to build or test it.
+        # Every major npm compromise of 2026 -- axios, keyv/cacheable, the node-gyp worm -- executed
+        # through one, so refusing them closes the whole class at no cost. Verified: esbuild's
+        # postinstall is a validation step, and a clean --ignore-scripts install still builds.
+        run: npm ci --ignore-scripts
 
       - name: Check types
         run: npm run typecheck

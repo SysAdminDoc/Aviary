@@ -65,13 +65,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: the panel is mounted and driven — focus order, `inert` on close, Escape, focus return, modal semantics, and every control's accessible name are read from the live accessibility tree; the source-regex assertions are deleted, not kept alongside.
   Complexity: M
 
-- [ ] F141 — P1 — Close the install-script supply-chain class and pin the Node floor
-  Why: every major 2026 npm compromise executed through install scripts, and with zero runtime dependencies `--ignore-scripts` costs nothing. `engines.node` is `">=22"`, loose enough to admit releases superseded by the June and July 2026 Node security releases.
-  Evidence: package.json:14-16; Node security releases 2026-06-18 and 2026-07-29; CISA axios alert 2026-04-20; keyv/cacheable and node-gyp worm write-ups (RESEARCH.md Sources).
-  Touches: package.json, `.github/workflows/smoke.yml`, docs/INSTALL.md, README development section.
-  Acceptance: CI installs with `npm ci --ignore-scripts` and still passes the full verify chain; `engines.node` names a patched floor; the contributor docs say why.
-  Complexity: S
-
 - [ ] F142 — P1 — Stop committing build artifacts on every commit
   Why: `dist/` blobs total 542.6 MB across history (93.4 MiB packed), of which 277.9 MB is 230 versioned extension-ZIP blobs — incompressible, and rebuilt by `npm run verify` on every feature commit rather than every release.
   Evidence: measured over `git rev-list --objects --all` 2026-08-15; `git count-objects -vH` size-pack 93.42 MiB.

@@ -91,9 +91,15 @@ choice reversible.
 ## Development
 
 ```powershell
-npm install
+npm ci --ignore-scripts
 npm run verify
 ```
+
+Aviary has zero runtime dependencies, so nothing it ships needs an install script to build or run —
+and every major npm compromise of 2026 (axios, keyv/cacheable, the node-gyp worm) executed through
+one. `--ignore-scripts` closes that class at no cost here; the build and the full test suite pass on
+a clean install without them. Node 22.23.2 or newer is required, the first line clear of the June
+and July 2026 Node security releases.
 
 `npm run verify` type-checks the TypeScript source, runs fixture/source contract tests, and builds:
 

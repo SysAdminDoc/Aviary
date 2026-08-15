@@ -18,6 +18,12 @@
 
 ### Changed
 
+- Dependencies now install with `npm ci --ignore-scripts`, in CI and in the documented setup.
+  Aviary has zero runtime dependencies, so nothing it ships needs an install script — and every
+  major npm compromise of 2026 executed through one. Verified rather than assumed: esbuild's
+  postinstall is a validation step, and a clean `--ignore-scripts` install still builds and passes
+  the suite. `engines.node` now names 22.23.2, the first line clear of the June and July 2026 Node
+  security releases, instead of any 22.
 - Trust now states the ad shield's boundary in both directions. **Refuse X's ad logging call** says
   that Aviary refuses exactly one request and nothing else — including the checks X uses to notice
   an ad blocker. Reports of X's ad-blocker notice point at a *failed probe* rather than a rendered
