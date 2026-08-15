@@ -28980,7 +28980,28 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       surface: detectSurface(path)
     };
   }
+  function navigationApi() {
+    const candidate = globalThis.navigation;
+    if (!candidate || typeof candidate !== "object") {
+      return void 0;
+    }
+    const nav = candidate;
+    return typeof nav.addEventListener === "function" && typeof nav.removeEventListener === "function" ? candidate : void 0;
+  }
   function watchRoute(onRoute) {
+    const navigation = navigationApi();
+    if (navigation) {
+      let lastHref2 = globalThis.location.href;
+      const onNavigate = () => {
+        if (globalThis.location.href === lastHref2) {
+          return;
+        }
+        lastHref2 = globalThis.location.href;
+        onRoute(readRoute());
+      };
+      navigation.addEventListener("navigatesuccess", onNavigate);
+      return () => navigation.removeEventListener("navigatesuccess", onNavigate);
+    }
     const history2 = globalThis.history;
     const originalPush = history2.pushState;
     const originalReplace = history2.replaceState;

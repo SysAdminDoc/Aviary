@@ -62,6 +62,10 @@
 
 ### Fixed
 
+- SPA route changes now come from the Navigation API where the browser has one, instead of
+  patching `history.pushState`. The History patch stays as the fallback for engines below the
+  January 2026 baseline, and a `navigation` global that cannot be listened to is not mistaken for
+  the real API.
 - `FeatureModule.defaultEnabled` is gone. Every one of the 27 modules declared it `true`, so the
   registry branch that skipped a disabled module was unreachable and the flag described nothing:
   enablement is decided at runtime by each feature reading its own setting.

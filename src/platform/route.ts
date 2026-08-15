@@ -24,7 +24,43 @@ export function readRoute(location: Location = globalThis.location): RouteState 
   };
 }
 
+interface NavigationLike {
+  addEventListener(type: "navigatesuccess", listener: () => void): void;
+  removeEventListener(type: "navigatesuccess", listener: () => void): void;
+}
+
+/**
+ * The Navigation API reports SPA route changes directly, so nothing has to be monkey-patched.
+ * It reached Baseline in January 2026 (Chrome, Firefox 147, Safari 26.2), but this build still
+ * ships to browsers below that, and a userscript manager can run in an older engine — so the
+ * History patch stays as the fallback rather than being replaced.
+ */
+function navigationApi(): NavigationLike | undefined {
+  const candidate = (globalThis as { navigation?: unknown }).navigation;
+  if (!candidate || typeof candidate !== "object") {
+    return undefined;
+  }
+  const nav = candidate as Partial<NavigationLike>;
+  return typeof nav.addEventListener === "function" && typeof nav.removeEventListener === "function"
+    ? (candidate as NavigationLike)
+    : undefined;
+}
+
 export function watchRoute(onRoute: (route: RouteState) => void): () => void {
+  const navigation = navigationApi();
+  if (navigation) {
+    let lastHref = globalThis.location.href;
+    const onNavigate = (): void => {
+      if (globalThis.location.href === lastHref) {
+        return;
+      }
+      lastHref = globalThis.location.href;
+      onRoute(readRoute());
+    };
+    navigation.addEventListener("navigatesuccess", onNavigate);
+    return () => navigation.removeEventListener("navigatesuccess", onNavigate);
+  }
+
   const history = globalThis.history;
   const originalPush = history.pushState;
   const originalReplace = history.replaceState;

@@ -66,13 +66,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: a real stable extension id ships; userscript update URLs serve from the decided channel; INSTALL documents the real update path for both artifacts.
   Complexity: M
 
-- [ ] F126 — P2 — Navigation API route detection (with fallback)
-  Why: history monkey-patching is the legacy path; the Navigation API is Baseline (Chrome, Firefox 147+, Jan 2026) and gives cleaner SPA route events on x.com.
-  Evidence: https://web.dev/blog/baseline-navigation-api; src/platform/route.ts.
-  Touches: src/platform/route.ts (feature-detect, keep patch fallback), tests.
-  Acceptance: route changes fire from `navigation` events when available, patch fallback otherwise; matrix lanes unchanged.
-  Complexity: S
-
 - [ ] F128 — P2 — Empty states for library surfaces
   Why: only 4 empty states exist (snippets, viewer, hidden posts, options); bookmarks, notes, snapshots, export jobs, integration errors, and settings search show nothing when empty — weak first-use UX for the library pillar.
   Evidence: repo recon grep; RESEARCH.md Architecture.
