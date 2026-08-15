@@ -148,3 +148,30 @@ health beside the ad-contract observations, and offer the shield toggle from tha
 Also unverified: whether Aviary's exact promoted-logger block is what triggers the warning at all.
 It may key on uBlock-scale request blocking that Aviary does not do. Do not claim causation in UI
 copy without a session that demonstrates the warning appearing and disappearing with the toggle.
+
+## F115 — "Restore old X" feature-flag reversion
+
+X ships UI experiments behind bootstrap feature flags, and through 2026 the uBlock Origin community
+has been rewriting them by hand to undo each redesign — restoring the profile media grid, disabling
+the image carousel, turning off the profile redesign. Nobody productizes it, and Aviary's page-world
+agent is architecturally the right layer: the extension declares `"world": "MAIN"` for `page.js`, so
+it can reach page globals before first paint, and rewriting a bootstrap flag issues no request and
+so stays on the safe side of the ban-risk line.
+
+Blocked on evidence, not on design. Measured: `__INITIAL_STATE__` and `featureSwitch` appear 0 times
+in `_decoded/home.html`, `_decoded/status.html`, and the root `.mhtml` captures — those captures are
+decoded DOM without page scripts. So the container's real name, its shape, whether it is writable
+before X reads it, and the exact flag names are all unknown here. The flag names circulating in
+community threads are third-party reports, not something this repository can verify, and a wrong
+write to bootstrap state breaks the application rather than degrading gracefully the way a missed
+CSS selector does.
+
+Shipping the mechanism with an empty verified-flag list is also rejected: a toggle that claims to
+restore a layout while matching nothing is exactly the false-claim class `tests/settings-claims.test.mjs`
+exists to prevent.
+
+Re-entry condition: capture the bootstrap state object from an authenticated session (name, nesting,
+and the flags for media grid / image carousel / profile redesign), confirm a write applied before
+X's first read actually changes the rendered layout, then add one toggle per verified flag with
+selector-health style drift reporting for a flag name that disappears. Each flag needs its own live
+verification; one working flag does not vouch for the next.

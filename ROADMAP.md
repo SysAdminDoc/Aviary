@@ -8,15 +8,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ## Research-Driven Additions (2026-08-14)
 
-### P1 — trust, reliability, structural gaps
-
-- [ ] F115 — P1 — "Restore old X" feature-flag reversion pack
-  Why: users hand-write uBO filters monthly to rewrite `__INITIAL_STATE__.featureSwitch` (restore media grid vs Videos/Photos split, disable image carousel, disable profile redesign) — recurring demand no extension productizes; Aviary's document-start page agent is the right layer and no API calls are involved.
-  Evidence: r/uBlockOrigin 1vob8nh (2026-08-14, `responsive_web_profile_redesign_enabled`), 1v2gxir comments (`rweb_media_carousel_enabled`); CPFT #917/#918; RESEARCH.md Executive Summary.
-  Touches: src/page/page-agent.ts (bootstrap-state hook), new feature module + settings group, selector-health (flag-name drift detection), Roadmap_Blocked-style evidence gate per flag.
-  Acceptance: each toggle flips one named flag before first paint, is individually reversible, reports drift when the flag name vanishes, and defaults off; verified on live X per flag before enabling in a release.
-  Complexity: L
-
 ### P2 — high-value features
 
 - [ ] F118 — P2 — Media download depth: downloaded badges, text sidecar, batch-from-library
