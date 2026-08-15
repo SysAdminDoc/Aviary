@@ -47,7 +47,7 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 - [ ] F144 — P2 — Say why a post was filtered
   Why: a filter that hides silently is indistinguishable from a bug, and the v1.24.0 rule DSL already knows which condition matched. It is the single best trust affordance a filter engine can add, and the same request is open against the closest architectural twin.
-  Evidence: XKit-Rewritten#1664 (👍4); `src/features/filtering/rules.ts` `evaluateRules` already returns the deciding rule.
+  Evidence: XKit-Rewritten#1664 (👍4). Corrected 2026-08-15 (second pass): `FilterDecision` is a bare `"show" | "hide" | "dim"` union (`src/features/filtering/predicates.ts:16`) and `evaluateRules` (`rules.ts:185`) returns it directly — the deciding rule is NOT currently exposed. First step is widening the decision to carry its source (rule line / predicate name) without breaking `decide()`'s callers.
   Touches: `src/features/filtering/rules.ts`, `filter-engine.ts`, `hidden-posts-feature.ts`, the dim/hide affordance, Filtering panel.
   Acceptance: a hidden or dimmed post names the rule or predicate that caught it, in text, on hover or reveal; the reason is derived from the decision rather than recomputed; nothing is stored per post.
   Complexity: M
@@ -61,10 +61,10 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 - [ ] F147 — P2 — WACZ export and self-replay
   Why: Aviary emits raw uncompressed WARC while the browser-side archiving ecosystem has standardized on WACZ, whose client-side replay engine means an Aviary archive would open in every Webrecorder tool for a packaging change rather than a capture change.
-  Evidence: webrecorder/archiveweb.page (★1540) and replayweb.page (★969), both pushed within days of 2026-08-15; WACZ spec (RESEARCH.md Sources); `src/features/export/warc.ts` writes plain records.
-  Touches: `src/features/export/warc.ts`, a new WACZ packager over the ZIP writer, export format list, docs/FAQ.md.
-  Acceptance: the WACZ validates against the published spec, contains the CDXJ index and datapackage, opens in replayweb.page, and is an opt-in format beside WARC rather than a replacement; storage cost is stated in the panel before the run.
-  Depends on: F137 (the ZIP writer it packages with).
+  Evidence: WACZ 1.1.1 + CDXJ 0.1.0 specs, read 2026-08-15 — implementable from this item without re-research. Layout: `archive/` (>=1 WARC), `indexes/` (>=1 CDXJ), `pages/pages.jsonl`, `datapackage.json` (`profile: "data-package"`, `wacz_version: "1.1.1"`, `resources[]` each name/path/hash/bytes with `sha256:` prefix), plus `datapackage-digest.json` `{path, hash-of-datapackage.json}`. CDXJ line = `<SURT> <YYYYMMDDHHMMSS> <JSON: url,digest,mime,status,filename,offset,length>`, lines sorted in LC_ALL=C byte order; SURT = lowercased host reversed comma-form (`com,example)/path`). pages.jsonl header `{"format":"json-pages-1.0","id":"pages","title":"All Pages"}`, entries need `url` + RFC3339 `ts`. Plain uncompressed `.warc` is spec-valid — gzip is optional, and if ever added it must be per-record so offset/length address one member.
+  Touches: `src/features/export/warc.ts`, a new WACZ packager, export format list, docs/FAQ.md.
+  Acceptance: the WACZ validates against the spec and opens in replayweb.page; opt-in beside WARC; storage cost stated before the run. CRITICAL: the `archive/` and `indexes/` members must go through `buildStoreZip` (STORE), not the F137 DEFLATE path — replay reads records by offset/length inside the member, which a deflated member cannot serve. Do not vendor wabac.js (AGPLv3): self-replay means linking to replayweb.page, not embedding the engine.
+  Depends on: F137 (shipped 2026-08-15 — the writer now exposes both `buildZip` and `buildStoreZip`; this item needs the STORE path).
   Complexity: L
 
 - [ ] F148 — P2 — Catch-up digest over the seen-post store
@@ -84,7 +84,7 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 - [ ] F154 — P2 — Mirror bookmarks locally as they render, and export them in bulk
   Why: bookmarks are the clearest unserved need in the archiving communities — users report collections shrinking from hundreds to about twenty, and the standing explanation is that X does not delete them server-side, they simply stop being rendered (one third-party client listed five digits of bookmarks the UI would not show). Aviary already has a bookmark library and passive GraphQL capture, so mirroring what X hands the page needs no originated call.
-  Evidence: r/Twitter 1uyh6kw (2026-07-16), 1vbkkzr (2026-07-31), 1vlyntp (2026-08-12); r/DataHoarder 1vo86y2 (2026-08-14); twitter-web-exporter's bookmark-cap bypass is the same mechanism.
+  Evidence: r/Twitter 1uyh6kw (2026-07-16), 1vbkkzr (2026-07-31), 1vlyntp (2026-08-12); r/DataHoarder 1vo86y2 (2026-08-14); HN 47697679 (2026-04-08 — a Show HN bookmark-export one-off, people build this themselves); twitter-web-exporter's bookmark-cap bypass is the same mechanism. Verified 2026-08-15: `network-capture.ts` persists any GraphQL operation when `preserveRawPayloads` is on, so bookmark payloads already reach the store — this is a reader over captured data, not a new capture path.
   Touches: `src/features/export/network-capture.ts` (bookmark operations), `src/features/library/`, export formats, Library panel.
   Acceptance: bookmarks seen in a captured payload are mirrored into the local library with their timestamp, survive disappearing from X's UI, and export in bulk; the mirror records only what X sent to the page, with zero originated requests; the panel states plainly that it can only hold what has been scrolled past.
   Complexity: M
@@ -104,4 +104,93 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Evidence: TypeScript 7.0 GA 2026-07-08; typescript-eslint#10940; package.json scripts.
   Touches: package.json (`typecheck` script, devDependency), `.github/workflows/smoke.yml`, tsconfig defaults that changed in 7.0.
   Acceptance: `npm run typecheck` runs on the native compiler and reports the same diagnostics as the TypeScript 6 pin on a deliberately broken file; lint still runs on the TypeScript 6 parser; CI time drops measurably.
+  Complexity: S
+
+## Research-Driven Additions (2026-08-15, second pass)
+
+Internal audit of the subsystems no prior pass had examined, plus the code added earlier on 2026-08-15. Findings verified against source before listing; file:line cited on each.
+
+### P0 — must land before the operator refreshes the captures
+
+- [ ] F155 — P0 — Fix the capture decoder's scrub gap and multibyte corruption
+  Why: two defects in `tools/capture-decode.mjs` (shipped 2026-08-15) poison the one operator action everything else waits on. (1) The cookie-shape scrub pattern omits `ct0` — it lists `auth_token|kdt|twid|guest_id|personalization_id`, so a `ct0=<value>` cookie string passes both the scrub and `assertScrubbed`, and the CSRF token would enter a tracked fixture. (2) Quoted-printable decoding maps each byte through `String.fromCharCode`, so every UTF-8 multibyte character decodes as mojibake (reproduced: `=E2=80=94` becomes `â€"` instead of an em-dash) — display names, non-English posts, and the exact localized ad-label strings the fixtures exist to measure would all be wrong in refreshed ground truth.
+  Evidence: `tools/capture-decode.mjs:25-31` (pattern list), `:76-86` (leak guard); mojibake reproduced under node 2026-08-15. The committed fixtures are unaffected — they predate this tool.
+  Touches: `tools/capture-decode.mjs`, `tests/fixtures.test.mjs` (decoder tests).
+  Acceptance: `ct0=`, `oauth_token=`, and `access_token=` cookie shapes are scrubbed and the leak guard catches each when planted; QP decoding accumulates bytes and decodes once as UTF-8, proven by a round-trip test containing an em-dash, CJK, and an Arabic string; the existing planted-token and round-trip tests still pass.
+  Complexity: S
+
+### P1 — data safety
+
+- [ ] F156 — P1 — A transient IndexedDB failure must not silently shed a session's writes
+  Why: `#fallback()` is sticky for the session: one failed transaction flips every later read to the legacy store — which migration already emptied, so the library reads as blank — and writes made during that session land in legacy, where the next healthy boot ignores them forever (`initialize` skips any key the backend already holds, and reads prefer the backend). Data written during a fallback session is silently reverted.
+  Evidence: `src/platform/durable-storage.ts:261-266` (`#fallback`), `:108-119` (migration skips existing backend keys), `:128-134` (legacy copies deleted after migration); paths read and confirmed 2026-08-15.
+  Touches: `src/platform/durable-storage.ts`, Trust status copy, `tests/durable-storage.test.mjs`.
+  Acceptance: a simulated mid-session backend failure leaves the session usable and its writes recoverable — on the next boot, legacy values written after migration reconcile into the backend rather than being shadowed; Trust reports a fallback session in plain words while it is happening; a test drives the fault and proves the write survives the round trip.
+  Complexity: M
+
+- [ ] F157 — P1 — Register the seen-posts store in the three registries that don't know it exists
+  Why: `aviary.seenPosts.v1` is absent from `DURABLE_STORAGE_KEYS`, `PROFILE_MIGRATION_KEYS`, and `LIBRARY_BACKUP_COLLECTIONS`, so it is skipped by eager migration accounting, legacy profile adoption, and the library backup — Backup claims completeness over a store it does not carry.
+  Evidence: `src/features/filtering/seen-posts.ts:3` vs `src/platform/durable-storage.ts:6-26`, `src/platform/profile.ts:7-28`, `src/features/core/library-backup.ts:48-69`; grep-verified 0 matches in all three, 2026-08-15.
+  Touches: those three registries, plus a completeness test that scans `src/` for `aviary.*.v1` literals and fails when one is missing from the registries — so the next new store cannot repeat this.
+  Acceptance: seen posts survive backup/restore and profile adoption; the scan test fails when fed a store key the registries lack (bait-verified); backup docs still honestly describe what travels.
+  Complexity: S
+
+### P2 — reliability
+
+- [ ] F158 — P2 — CI must trigger on the files its gates read
+  Why: the workflow's paths filter lists `src/**`, `tests/**`, `tools/**` and configs, but not `_decoded/**` or `docs/**` — so a capture refresh (the highest-priority operator action) or a docs edit that breaks the FAQ settings reference never runs the workflow that gates them.
+  Evidence: `.github/workflows/smoke.yml:7-15`, read 2026-08-15.
+  Touches: `.github/workflows/smoke.yml`.
+  Acceptance: pushes touching only `_decoded/**` or `docs/**` trigger the workflow; the paths list carries a comment naming which gate reads each entry.
+  Complexity: S
+
+- [ ] F159 — P2 — A blocked XHR must complete as an error, not vanish
+  Why: the page agent's `patchedSend` returns without dispatching any completion event for a refused logger call, while the sibling fetch and sendBeacon paths deliberately fake benign completion — an X callback gating a retry queue on XHR completion would hang or back up.
+  Evidence: `src/page/page-agent.ts:454-466` vs the fetch (204) and sendBeacon (`true`) paths; asymmetry confirmed 2026-08-15.
+  Touches: `src/page/page-agent.ts`, page-agent tests.
+  Acceptance: a refused XHR fires `readystatechange` to DONE with a network-error shape (status 0), consistent with how an offline request presents; the fetch and beacon behaviours are unchanged; a test drives an XHR through the patched path and observes completion.
+  Complexity: S
+
+- [ ] F160 — P2 — Stop persisting a failed import's full archive, and stop rewriting it per tick
+  Why: each archive-import job records the entire base64 source (up to ~341 MB) inside the job store, `#persist` rewrites all retained jobs' state on every progress tick, and only `complete()` drops the source — failed, paused, and cancelled jobs pin their full copies until 12 newer jobs push them out. Multi-hundred-MB writes per tick, guaranteed quota failure on the fallback backends.
+  Evidence: `src/features/library/archive-import-jobs.ts:100` (source in record), `:237-246` (full-state persist per tick); confirmed 2026-08-15.
+  Touches: `src/features/library/archive-import-jobs.ts`, archive-import tests.
+  Acceptance: the source is stored once under its own key and deleted on every terminal state, not only success; progress ticks write progress, not the archive; a failed 250 MB import leaves no orphaned source; resume still works.
+  Complexity: M
+
+- [ ] F161 — P2 — Harden page-agent nonce adoption against a first-hello squatter
+  Why: the agent adopts the first well-formed `hello` nonce and rejects later ones, and the winning nonce rides every envelope where any page script can read it — so a script that races the bridge owns the agent: the real bridge's `ready` never validates, features report agent-absent, and the squatter can `config` off the default-on ad guard or tear the agent down. The isolated world stays protected; what is lost silently is ad protection.
+  Evidence: `src/page/page-agent.ts:386-398` (first-wins adoption), `src/platform/page-bridge.ts:108` (bridge drops mismatched nonces); mechanism confirmed 2026-08-15, a live race needs a runtime check.
+  Touches: `src/page/page-agent.ts`, `src/platform/page-bridge.ts`, their tests.
+  Acceptance: a `hello` arriving after the genuine bridge's cannot displace it, and a squatter arriving first is at minimum visible — the bridge detects an unadoptable agent and reports it through selector health / Trust instead of silently showing agent-absent; the design note states plainly that the boundary is not cryptographic and what it does and does not defend.
+  Complexity: M
+
+- [ ] F162 — P2 — Coordinate the stores two X tabs share
+  Why: every whole-state store (hidden posts, seen posts, aria2 history, semantic index, usage ledger, archive jobs) loads once and persists full snapshots — two tabs are last-writer-wins, so a hide in tab A and a hide in tab B keep only one; the integration usage ledger's reserve step is a cross-tab TOCTOU that lets the daily AI byte budget be spent N times over; the backup snapshot/rollback window can clobber a second tab's writes. Web Locks is Baseline (Chrome 69 / Firefox 96 / Safari 15.4) and costs no dependency.
+  Evidence: audit 2026-08-15 across `hidden-posts.ts`, `seen-posts.ts`, aria2 history, `semantic-search.ts`, `usage.ts:156-206`, `library-backup.ts:395-491`; RESEARCH.md platform table (Web Locks).
+  Touches: `src/platform/storage.ts` (a lock-wrapping write path), the stores above, `library-backup.ts`.
+  Acceptance: with two simulated writers, both writes survive (merge-on-write under a lock, or read-modify-write inside one); the usage ledger cannot exceed its budget across writers; backup restore holds the lock across snapshot, write, and verify; single-tab behaviour and performance are unchanged.
+  Complexity: L
+
+### P3 — small measured defects
+
+- [ ] F163 — P3 — Gate every capture's age, and expire the waiver in local-day terms
+  Why: the age gate reads only the newest capture, so one fresh `home.html` masks an arbitrarily stale `status.html`; and the waiver compares local time against a UTC day-end, expiring early evening of its stated day in US timezones.
+  Evidence: `tools/capture-manifest.mjs:66-75`; confirmed 2026-08-15.
+  Touches: `tools/capture-manifest.mjs`, `tests/fixtures.test.mjs`.
+  Acceptance: the report carries per-capture over-ceiling state and preflight names each stale capture, not just the newest; the waiver covers the whole stated day in local time; the existing waiver tests pin both.
+  Complexity: S
+
+- [ ] F164 — P3 — Small-defect sweep, each verified at the cited line
+  Why: four small defects from the 2026-08-15 audit, none worth a solo item, all cheap while the files are open.
+  Evidence: `src/features/library/archive-import.ts:327-331` — `stripPrefix` eats everything to the first `=` anywhere, destroying un-prefixed pure-JSON input containing `=` (base64 padding, query strings); `src/features/filtering/seen-posts-feature.ts:54-57,156-165` — `destroy` clears the flush timer without flushing (up to 1.5 s of marks dropped) and leaves the module-level store populated; `src/features/filtering/hidden-posts-feature.ts:49-58` — every apply pass while disabled appends then removes a style element (DOM churn per mutation batch); `src/platform/profile.ts:103` — a `Date.now()`-plus-count id, the same collision pattern the repo's Learned notes fixed in bookmarks.
+  Touches: those four files and their tests.
+  Acceptance: each fix carries a test or a tightened assertion; `stripPrefix` only strips a leading `window.YTD`-shaped prefix; destroy flushes before clearing; the disabled path exits before touching the DOM; ids use `crypto.randomUUID()`.
+  Complexity: S
+
+- [ ] F165 — P3 — Uninstall the page agent's patches only if they are still Aviary's
+  Why: teardown restores `window.fetch` and the XHR prototype by assignment, so a wrapper installed after Aviary's (X's own instrumentation, another extension) is silently destroyed with it.
+  Evidence: `src/page/page-agent.ts:479-488`; mechanism confirmed 2026-08-15.
+  Touches: `src/page/page-agent.ts`, page-agent tests.
+  Acceptance: teardown restores the original only when the current value is Aviary's wrapper; otherwise it flips the wrapper inert and leaves the chain intact, and diagnostics say which path was taken.
   Complexity: S
