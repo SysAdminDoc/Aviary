@@ -72,7 +72,12 @@ test("the age report fails past the declared ceiling, and a waiver only defers i
     warnDays: 30,
     captures: [{ file: "a.html", capturedOn: "2026-01-01" }]
   };
-  const day = (iso) => Date.parse(`${iso}T00:00:00Z`);
+  // Local, not UTC: the waiver covers the whole of its stated day where the reader is, so a UTC
+  // instant would express a different question in every timezone but one.
+  const day = (iso) => {
+    const [year, month, date] = iso.split("-").map(Number);
+    return new Date(year, month - 1, date, 12, 0, 0, 0).getTime();
+  };
 
   const fresh = captureAgeReport(manifest, day("2026-01-20"));
   assert.equal(fresh.overWarn, false);
@@ -89,10 +94,28 @@ test("the age report fails past the declared ceiling, and a waiver only defers i
   const waived = { ...manifest, acknowledgedStaleUntil: "2026-06-01" };
   assert.equal(captureAgeReport(waived, day("2026-05-01")).blocking, false, "an unexpired waiver defers");
   assert.equal(
+    captureAgeReport(waived, day("2026-06-01")).blocking,
+    false,
+    "the waiver covers the whole of its stated day, in the reader's own timezone"
+  );
+  assert.equal(
     captureAgeReport(waived, day("2026-06-02")).blocking,
     true,
     "an expired waiver must not keep deferring — that is how a gate becomes decorative"
   );
+
+  // One fresh capture used to mask a stale sibling, because only the newest was measured.
+  const mixed = {
+    ceilingDays: 90,
+    captures: [
+      { file: "fresh.html", capturedOn: "2026-05-01" },
+      { file: "stale.html", capturedOn: "2026-01-01" }
+    ]
+  };
+  const report = captureAgeReport(mixed, day("2026-05-10"));
+  assert.equal(report.newest.file, "fresh.html");
+  assert.equal(report.blocking, true, "a stale sibling must block even beside a fresh capture");
+  assert.deepEqual(report.stale.map((item) => item.file), ["stale.html"], "and be named");
 });
 
 test("a capture manifest missing its dates or ceiling is rejected", async () => {

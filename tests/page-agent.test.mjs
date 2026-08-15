@@ -583,3 +583,42 @@ test("a listener throwing during refusal does not stop the remaining completion 
     uninstall();
   }
 });
+
+test("teardown leaves a wrapper installed after Aviary's alone", async () => {
+  const { installPageAgent, uninstallPageAgent, getLastUninstallOutcomes } =
+    await importBundledModule("src/page/page-agent.ts");
+  const target = fakeWindow(async () => new Response("", { status: 200 }));
+  const originalFetch = target.fetch;
+
+  installPageAgent(target);
+  const aviaryFetch = target.fetch;
+  assert.notEqual(aviaryFetch, originalFetch, "the agent must have wrapped fetch");
+
+  // Somebody else wraps fetch after we did — X's own instrumentation, or another extension.
+  const laterCalls = [];
+  const laterWrapper = async (input, init) => {
+    laterCalls.push(String(input));
+    return aviaryFetch(input, init);
+  };
+  target.fetch = laterWrapper;
+
+  uninstallPageAgent();
+
+  assert.equal(target.fetch, laterWrapper, "teardown must not delete a later wrapper");
+  assert.equal(getLastUninstallOutcomes().fetch, "wrapped-by-another", "and must say so");
+  await target.fetch("https://x.com/i/api/graphql/abc/HomeTimeline");
+  assert.equal(laterCalls.length, 1, "the later wrapper must still be in the chain");
+});
+
+test("teardown restores fetch when it is still ours", async () => {
+  const { installPageAgent, uninstallPageAgent, getLastUninstallOutcomes } =
+    await importBundledModule("src/page/page-agent.ts");
+  const target = fakeWindow(async () => new Response("", { status: 200 }));
+  const originalFetch = target.fetch;
+
+  installPageAgent(target);
+  uninstallPageAgent();
+
+  assert.equal(target.fetch, originalFetch, "the ordinary path must restore exactly");
+  assert.equal(getLastUninstallOutcomes().fetch, "restored");
+});

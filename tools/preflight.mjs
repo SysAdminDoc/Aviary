@@ -176,10 +176,15 @@ async function checkCaptureFreshness() {
     return;
   }
   const report = captureAgeReport(manifest);
-  const age = `${report.newest.ageDays} days old (captured ${report.newest.capturedOn})`;
+  // Name the captures that are actually stale rather than only the newest -- one fresh capture
+  // used to mask an arbitrarily old sibling, and a selector proved against the old one is exactly
+  // as speculative as one proved against nothing.
+  const describe = (items) =>
+    items.map((item) => `${item.file} ${item.ageDays}d (captured ${item.capturedOn})`).join(", ");
+  const age = report.stale.length > 0 ? describe(report.stale) : describe([report.newest]);
   if (report.blocking) {
     failures.push(
-      `the newest DOM capture is ${age}, past the ${manifest.ceilingDays}-day ceiling this ` +
+      `stale DOM captures: ${age}, past the ${manifest.ceilingDays}-day ceiling this ` +
         "repository declares. Refresh it — save an authenticated X page as MHTML, then " +
         "`npm run capture:decode -- \"<saved.mhtml>\" <name>` — or record a dated " +
         "acknowledgedStaleUntil in _decoded/captures.json saying why not."
@@ -188,11 +193,14 @@ async function checkCaptureFreshness() {
   }
   if (report.overCeiling) {
     warnings.push(
-      `the newest DOM capture is ${age}, past the ${manifest.ceilingDays}-day ceiling; ` +
+      `stale DOM captures: ${age}, past the ${manifest.ceilingDays}-day ceiling; ` +
         `waived until ${report.waiverUntil}, after which preflight fails`
     );
   } else if (report.overWarn) {
-    warnings.push(`the newest DOM capture is ${age}; the ceiling is ${manifest.ceilingDays} days`);
+    warnings.push(
+      `ageing DOM captures: ${describe(report.ages.filter((item) => item.overWarn))}; ` +
+        `the ceiling is ${manifest.ceilingDays} days`
+    );
   }
 }
 

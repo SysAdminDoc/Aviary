@@ -4,6 +4,17 @@
 
 ### Fixed
 
+- Turning the page agent off no longer removes somebody else's work. Teardown restored `fetch` and
+  the XHR methods by assignment, so if X's own instrumentation — or another extension — had wrapped
+  them *after* Aviary did, that layer was deleted along with Aviary's. It now restores only while
+  the current value is still the wrapper Aviary installed, and otherwise leaves the chain intact
+  and reports which path it took.
+- The capture-age gate reads every capture, not just the newest. One fresh capture used to mask an
+  arbitrarily stale sibling — and a selector proved against the stale one is exactly as speculative
+  as one proved against nothing. Preflight now names each stale capture with its own age. The
+  stale-capture waiver also covers the whole of its stated day in the reader's own timezone; it had
+  been compared against a UTC day-end, so it expired early evening of that day in the Americas.
+
 - Importing an X archive no longer rewrites the whole archive on every progress tick. The job
   record carried the file's bytes inline — a 250 MiB import becomes roughly 333 MiB of base64 —
   and the record is re-serialised each time progress moves, along with every other retained job's

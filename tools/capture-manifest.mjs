@@ -58,29 +58,50 @@ export async function listFixtureFiles() {
  * @param {number} [now] epoch ms, injectable so tests are not a function of the wall clock
  */
 export function captureAgeReport(manifest, now = Date.now()) {
-  const ages = manifest.captures.map((capture) => ({
-    file: capture.file,
-    capturedOn: capture.capturedOn,
-    ageDays: Math.floor((now - parseDay(capture.capturedOn, capture.file)) / DAY_MS)
-  }));
-  // The newest capture is what bounds what the repository can currently prove.
+  const ages = manifest.captures.map((capture) => {
+    const ageDays = Math.floor((now - parseDay(capture.capturedOn, capture.file)) / DAY_MS);
+    return {
+      file: capture.file,
+      capturedOn: capture.capturedOn,
+      ageDays,
+      // Per capture, not just the newest: one fresh home.html used to mask an arbitrarily stale
+      // status.html, and a selector proved against the stale one is exactly as speculative.
+      overCeiling: ageDays > manifest.ceilingDays,
+      overWarn: typeof manifest.warnDays === "number" && ageDays > manifest.warnDays
+    };
+  });
   const newest = ages.reduce((best, item) => (item.ageDays < best.ageDays ? item : best), ages[0]);
-  const waiverUntil =
-    manifest.acknowledgedStaleUntil === undefined
-      ? null
-      : parseDay(manifest.acknowledgedStaleUntil, "acknowledgedStaleUntil");
-  // The waiver covers through the end of its stated day; the day after, it is expired. Using
-  // `<=` here kept it alive for one extra day, which is the wrong direction for an expiry.
-  const waiverActive = waiverUntil !== null && now < waiverUntil + DAY_MS;
-  const overCeiling = newest.ageDays > manifest.ceilingDays;
+  const oldest = ages.reduce((worst, item) => (item.ageDays > worst.ageDays ? item : worst), ages[0]);
+  const stale = ages.filter((item) => item.overCeiling);
+
+  const waiverActive = isWaiverActive(manifest.acknowledgedStaleUntil, now);
+  const overCeiling = stale.length > 0;
   return {
     ages,
     newest,
+    oldest,
+    stale,
     overCeiling,
-    overWarn: typeof manifest.warnDays === "number" && newest.ageDays > manifest.warnDays,
+    overWarn: ages.some((item) => item.overWarn),
     waiverActive,
     waiverUntil: manifest.acknowledgedStaleUntil ?? null,
     // A waiver defers the failure; it never removes it, because it carries its own expiry.
     blocking: overCeiling && !waiverActive
   };
+}
+
+/**
+ * The waiver covers the whole of its stated day *where the reader is*. Comparing a local clock
+ * against a UTC day-end expired it early evening of that day in the Americas, which is a silent
+ * shortening of a deadline someone chose deliberately.
+ */
+function isWaiverActive(acknowledgedStaleUntil, now) {
+  if (acknowledgedStaleUntil === undefined) {
+    return false;
+  }
+  parseDay(acknowledgedStaleUntil, "acknowledgedStaleUntil");
+  const [year, month, day] = acknowledgedStaleUntil.split("-").map(Number);
+  // Local midnight at the start of the day *after* the waiver's last day.
+  const expiresAt = new Date(year, month - 1, day + 1, 0, 0, 0, 0).getTime();
+  return now < expiresAt;
 }

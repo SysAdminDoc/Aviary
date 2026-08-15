@@ -372,6 +372,15 @@ interface AgentState {
   originalXhrSend: ((...args: unknown[]) => void) | undefined;
   messageListener: (event: unknown) => void;
   sink: PageAgentSink | undefined;
+  /**
+   * The wrappers this agent installed. Teardown compares against these so it restores only what is
+   * still ours -- assigning the original back over someone else's later wrapper would delete their
+   * layer along with ours.
+   */
+  patchedFetch?: typeof fetch;
+  patchedSendBeacon?: (url: string, data?: unknown) => boolean;
+  patchedXhrOpen?: (...args: unknown[]) => void;
+  patchedXhrSend?: (...args: unknown[]) => void;
 }
 
 /**
@@ -462,6 +471,7 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
 
   target.addEventListener("message", messageListener);
   target.fetch = makePatchedFetch(originalFetch, target.location?.origin);
+  state.patchedFetch = target.fetch;
 
   if (originalSendBeacon && target.navigator) {
     target.navigator.sendBeacon = function patchedSendBeacon(url: string, data?: unknown): boolean {
@@ -477,6 +487,7 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
       }
       return originalSendBeacon.call(target.navigator, url, data);
     };
+    state.patchedSendBeacon = target.navigator.sendBeacon;
   }
 
   if (xhrProto && state.originalXhrOpen && state.originalXhrSend) {
@@ -509,6 +520,8 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
       }
       return originalSend.apply(this, args);
     };
+    state.patchedXhrOpen = xhrProto.open;
+    state.patchedXhrSend = xhrProto.send;
   }
 
   return () => uninstallPageAgent();
@@ -522,15 +535,65 @@ export function uninstallPageAgent(): void {
   state = undefined;
 
   current.target.removeEventListener("message", current.messageListener);
-  current.target.fetch = current.originalFetch;
-  if (current.originalSendBeacon && current.target.navigator) {
-    current.target.navigator.sendBeacon = current.originalSendBeacon;
-  }
-  const xhrProto = current.target.XMLHttpRequest?.prototype;
-  if (xhrProto && current.originalXhrOpen && current.originalXhrSend) {
-    xhrProto.open = current.originalXhrOpen;
-    xhrProto.send = current.originalXhrSend;
-  }
+
+  // Restore by assignment only while the current value is still the wrapper this agent installed.
+  // If X's own instrumentation -- or another extension -- wrapped fetch *after* Aviary did, then
+  // assigning the original back would delete that layer along with ours. In that case the honest
+  // move is to leave the chain intact and make our own wrapper inert, which the config reset above
+  // has already done: with no state, every hook falls through to the original it captured.
+  const restore = (
+    owner: Record<string, unknown> | undefined,
+    key: string,
+    patched: unknown,
+    original: unknown
+  ): string => {
+    if (!owner || !original) {
+      return "absent";
+    }
+    if (owner[key] !== patched) {
+      return "wrapped-by-another";
+    }
+    owner[key] = original;
+    return "restored";
+  };
+
+  const outcomes = {
+    fetch: restore(
+      current.target as unknown as Record<string, unknown>,
+      "fetch",
+      current.patchedFetch,
+      current.originalFetch
+    ),
+    sendBeacon: restore(
+      current.target.navigator as unknown as Record<string, unknown> | undefined,
+      "sendBeacon",
+      current.patchedSendBeacon,
+      current.originalSendBeacon
+    ),
+    xhrOpen: restore(
+      current.target.XMLHttpRequest?.prototype as Record<string, unknown> | undefined,
+      "open",
+      current.patchedXhrOpen,
+      current.originalXhrOpen
+    ),
+    xhrSend: restore(
+      current.target.XMLHttpRequest?.prototype as Record<string, unknown> | undefined,
+      "send",
+      current.patchedXhrSend,
+      current.originalXhrSend
+    )
+  };
+  lastUninstallOutcomes = outcomes;
+}
+
+/**
+ * What the last teardown was able to restore, so a caller can say which path was taken rather than
+ * assume the page was left exactly as found.
+ */
+let lastUninstallOutcomes: Record<string, string> | undefined;
+
+export function getLastUninstallOutcomes(): Record<string, string> | undefined {
+  return lastUninstallOutcomes ? { ...lastUninstallOutcomes } : undefined;
 }
 
 function makePatchedFetch(originalFetch: typeof fetch, baseOrigin?: string): typeof fetch {

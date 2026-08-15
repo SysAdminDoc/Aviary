@@ -218,6 +218,7 @@
     };
     target.addEventListener("message", messageListener);
     target.fetch = makePatchedFetch(originalFetch, target.location?.origin);
+    state.patchedFetch = target.fetch;
     if (originalSendBeacon && target.navigator) {
       target.navigator.sendBeacon = function patchedSendBeacon(url, data) {
         try {
@@ -230,6 +231,7 @@
         }
         return originalSendBeacon.call(target.navigator, url, data);
       };
+      state.patchedSendBeacon = target.navigator.sendBeacon;
     }
     if (xhrProto && state.originalXhrOpen && state.originalXhrSend) {
       const originalOpen = state.originalXhrOpen;
@@ -254,6 +256,8 @@
         }
         return originalSend.apply(this, args);
       };
+      state.patchedXhrOpen = xhrProto.open;
+      state.patchedXhrSend = xhrProto.send;
     }
     return () => uninstallPageAgent();
   }
@@ -264,16 +268,45 @@
     const current = state;
     state = void 0;
     current.target.removeEventListener("message", current.messageListener);
-    current.target.fetch = current.originalFetch;
-    if (current.originalSendBeacon && current.target.navigator) {
-      current.target.navigator.sendBeacon = current.originalSendBeacon;
-    }
-    const xhrProto = current.target.XMLHttpRequest?.prototype;
-    if (xhrProto && current.originalXhrOpen && current.originalXhrSend) {
-      xhrProto.open = current.originalXhrOpen;
-      xhrProto.send = current.originalXhrSend;
-    }
+    const restore = (owner, key, patched, original) => {
+      if (!owner || !original) {
+        return "absent";
+      }
+      if (owner[key] !== patched) {
+        return "wrapped-by-another";
+      }
+      owner[key] = original;
+      return "restored";
+    };
+    const outcomes = {
+      fetch: restore(
+        current.target,
+        "fetch",
+        current.patchedFetch,
+        current.originalFetch
+      ),
+      sendBeacon: restore(
+        current.target.navigator,
+        "sendBeacon",
+        current.patchedSendBeacon,
+        current.originalSendBeacon
+      ),
+      xhrOpen: restore(
+        current.target.XMLHttpRequest?.prototype,
+        "open",
+        current.patchedXhrOpen,
+        current.originalXhrOpen
+      ),
+      xhrSend: restore(
+        current.target.XMLHttpRequest?.prototype,
+        "send",
+        current.patchedXhrSend,
+        current.originalXhrSend
+      )
+    };
+    lastUninstallOutcomes = outcomes;
   }
+  var lastUninstallOutcomes;
   function makePatchedFetch(originalFetch, baseOrigin) {
     return async function patchedFetch(input, init) {
       let url = "";

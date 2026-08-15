@@ -128,13 +128,6 @@ Internal audit of the subsystems no prior pass had examined, plus the code added
 
 ### P3 — small measured defects
 
-- [ ] F163 — P3 — Gate every capture's age, and expire the waiver in local-day terms
-  Why: the age gate reads only the newest capture, so one fresh `home.html` masks an arbitrarily stale `status.html`; and the waiver compares local time against a UTC day-end, expiring early evening of its stated day in US timezones.
-  Evidence: `tools/capture-manifest.mjs:66-75`; confirmed 2026-08-15.
-  Touches: `tools/capture-manifest.mjs`, `tests/fixtures.test.mjs`.
-  Acceptance: the report carries per-capture over-ceiling state and preflight names each stale capture, not just the newest; the waiver covers the whole stated day in local time; the existing waiver tests pin both.
-  Complexity: S
-
 - [ ] F164 — P3 — Small-defect sweep, each verified at the cited line
   Why: four small defects from the 2026-08-15 audit, none worth a solo item, all cheap while the files are open.
   Evidence: `src/features/library/archive-import.ts:327-331` — `stripPrefix` eats everything to the first `=` anywhere, destroying un-prefixed pure-JSON input containing `=` (base64 padding, query strings); `src/features/filtering/seen-posts-feature.ts:54-57,156-165` — `destroy` clears the flush timer without flushing (up to 1.5 s of marks dropped) and leaves the module-level store populated; `src/features/filtering/hidden-posts-feature.ts:49-58` — every apply pass while disabled appends then removes a style element (DOM churn per mutation batch); `src/platform/profile.ts:103` — a `Date.now()`-plus-count id, the same collision pattern the repo's Learned notes fixed in bookmarks.
@@ -142,9 +135,3 @@ Internal audit of the subsystems no prior pass had examined, plus the code added
   Acceptance: each fix carries a test or a tightened assertion; `stripPrefix` only strips a leading `window.YTD`-shaped prefix; destroy flushes before clearing; the disabled path exits before touching the DOM; ids use `crypto.randomUUID()`.
   Complexity: S
 
-- [ ] F165 — P3 — Uninstall the page agent's patches only if they are still Aviary's
-  Why: teardown restores `window.fetch` and the XHR prototype by assignment, so a wrapper installed after Aviary's (X's own instrumentation, another extension) is silently destroyed with it.
-  Evidence: `src/page/page-agent.ts:479-488`; mechanism confirmed 2026-08-15.
-  Touches: `src/page/page-agent.ts`, page-agent tests.
-  Acceptance: teardown restores the original only when the current value is Aviary's wrapper; otherwise it flips the wrapper inert and leaves the chain intact, and diagnostics say which path was taken.
-  Complexity: S
