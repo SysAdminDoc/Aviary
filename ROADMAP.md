@@ -24,15 +24,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: outside allowed windows the timeline is replaced by a calm local screen with an explicit override; no data leaves the machine; off by default.
   Complexity: M
 
-- [ ] F121 — P2 — Articles / longform engagement-bait filter
-  Why: X "Articles" AI-slop fatigue is a named community demand with no server; fits the filter engine as a surface-scoped action.
-  Evidence: r/Twitter 1s37w8z (2026-03); RESEARCH.md Competitive.
-  Touches: filter-engine predicates, `_decoded/` capture of an article card (evidence gate), settings.
-  Acceptance: article-card units hide/collapse per the filter action; organic posts with links unaffected; fixture-tested.
-  Complexity: M
-
-### P3 — polish and larger bets
-
 - [ ] F129 — P3 — Per-module custom CSS escape hatch
   Why: table stakes in OldTwitter/TUIC/GT2 lineage for power users; bounded per-module scoping keeps it reversible and off the support path.
   Evidence: TUIC CSS packs; OldTwitter custom CSS; RESEARCH.md Competitive.

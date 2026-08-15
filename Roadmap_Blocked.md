@@ -217,3 +217,23 @@ Re-entry condition: an operator session on live X with a video post open and the
 counter stays at zero, X is not routing playlists through a path Aviary can reach and the setting
 should be removed with a migration. If it rises, record the request shape in `## Learned` and the
 claim can be strengthened to name the effect.
+
+## F121 — Articles / longform filter
+
+X's Articles surface draws steady complaint as an AI-slop vector, and the filter rule language
+added in v1.23 is the natural home for it: one more field, or one predicate the rules can name.
+
+Blocked on evidence. Measured: `twitterArticle`, `/i/article`, `article_card`, and `longform` each
+appear 0 times in `_decoded/home.html` and `_decoded/status.html`. The only `article`-bearing test
+ids in either capture are `news_sidebar_article_*`, which belong to the right-rail news module —
+a different surface, already covered by Hide trends. So the container, the marker, and whether an
+Article even renders as a timeline cell are all unknown here.
+
+Filtering on the word "article" in post text is explicitly rejected: it would hide ordinary posts
+that happen to discuss articles, which is the broad-text-fragment failure the ad contracts already
+refuse.
+
+Re-entry condition: add a `_decoded/` capture containing an Article in a timeline, identify the
+owning cell and its marker, then expose it as a rule field (`kind is article`) so it composes with
+the existing rule language rather than becoming a separate toggle. Fixture-test that an ordinary
+post carrying a link is untouched.
