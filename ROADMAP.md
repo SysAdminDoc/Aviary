@@ -17,13 +17,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: previously saved media shows a subtle marker; optional .json/.txt sidecar per save; "download all captured media for this collection" works checkpointed with zero originated GraphQL calls.
   Complexity: L
 
-- [ ] F120 — P2 — Focus mode (time-boxed access)
-  Why: antiprocrastination is table stakes across Sink It / X Filter Pro / feed-blocker class; fits Aviary's declutter identity as a scheduled, reversible gate.
-  Evidence: https://gosinkit.com/; xfilterpro.com Focus Mode; r/Twitter Unhook-for-X demand (1t5gnh5).
-  Touches: new feature module (schedule + soft-block overlay), settings, Control Center.
-  Acceptance: outside allowed windows the timeline is replaced by a calm local screen with an explicit override; no data leaves the machine; off by default.
-  Complexity: M
-
 - [ ] F129 — P3 — Per-module custom CSS escape hatch
   Why: table stakes in OldTwitter/TUIC/GT2 lineage for power users; bounded per-module scoping keeps it reversible and off the support path.
   Evidence: TUIC CSS packs; OldTwitter custom CSS; RESEARCH.md Competitive.
