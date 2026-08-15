@@ -52,13 +52,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: a handle can carry a colored label visible on posts; included in backup/restore; reversible.
   Complexity: M
 
-- [ ] F128 — P2 — Empty states for library surfaces
-  Why: only 4 empty states exist (snippets, viewer, hidden posts, options); bookmarks, notes, snapshots, export jobs, integration errors, and settings search show nothing when empty — weak first-use UX for the library pillar.
-  Evidence: repo recon grep; RESEARCH.md Architecture.
-  Touches: Control Center sections (library/snapshots/export), i18n catalog.
-  Acceptance: each empty collection shows one guiding sentence (translated, extractor-reachable per the two-render rule); no layout shift.
-  Complexity: S
-
 ### P3 — polish and larger bets
 
 - [ ] F129 — P3 — Per-module custom CSS escape hatch

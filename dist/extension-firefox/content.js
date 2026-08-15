@@ -1953,6 +1953,7 @@ html.av-reduce-motion *::after {
       "Blocked by local-only mode": "Bloqueado por el modo solo local",
       "unlimited": "ilimitado",
       "No matches (or integration disabled).": "No hay coincidencias (o la integraci\xF3n est\xE1 desactivada).",
+      "Open a profile's followers or following list, then use Capture snapshot to record it.": "Abre la lista de seguidores o seguidos de un perfil y usa \xABCapturar instant\xE1nea\xBB para registrarla.",
       "No captured records match \u201C{query}\u201D.": "No hay registros capturados que coincidan con \xAB{query}\xBB.",
       "Search all local collections": "Buscar en todas las colecciones locales",
       "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "Buscar publicaciones, Me gusta, marcadores, notas, etiquetas, carpetas e instant\xE1neas con filtros.",
@@ -1964,10 +1965,13 @@ html.av-reduce-motion *::after {
       "Find local bookmarks": "Buscar marcadores locales",
       "Search saved posts by text, handle, tags, folder, or ID.": "Busca publicaciones guardadas por texto, usuario, etiquetas, carpeta o ID.",
       "Search local bookmarks": "Buscar marcadores locales",
+      "Nothing saved yet. Use Save locally on any post to keep a copy here.": "A\xFAn no has guardado nada. Usa \xABGuardar localmente\xBB en cualquier publicaci\xF3n para conservar una copia aqu\xED.",
       "No local bookmarks match this search.": "Ning\xFAn marcador local coincide con esta b\xFAsqueda.",
       "Notes": "Notas",
       "Bookmark notes": "Notas del marcador",
       "Remove": "Eliminar",
+      "Add one below as handle: note. Notes appear beside that account's posts.": "A\xF1ade una abajo con el formato usuario: nota. Las notas aparecen junto a las publicaciones de esa cuenta.",
+      "Turn Capture on, scroll a timeline, then export. Jobs and their records appear here.": "Activa la captura, despl\xE1zate por una cronolog\xEDa y luego exporta. Los trabajos y sus registros aparecer\xE1n aqu\xED.",
       "Formerly observed markers are no longer detected: {markers}.": "Ya no se detectan marcadores observados anteriormente: {markers}.",
       "gid {gid} \xB7 {status}": "ID {gid} \xB7 {status}",
       "{count} entries": "{count} entradas",
@@ -1999,6 +2003,7 @@ html.av-reduce-motion *::after {
       "Cancel restore": "Cancelar restauraci\xF3n",
       "Dry-run restore": "Simular restauraci\xF3n",
       "Restore this library backup": "Restaurar esta copia de la biblioteca",
+      "No snapshots yet": "A\xFAn no hay instant\xE1neas",
       "Imported collections": "Colecciones importadas",
       "Archive import": "Importaci\xF3n de archivo",
       "Pause archive import": "Pausar importaci\xF3n del archivo",
@@ -2007,6 +2012,8 @@ html.av-reduce-motion *::after {
       "Retry archive import": "Reintentar importaci\xF3n del archivo",
       "Local bookmarks": "Marcadores locales",
       "Clear local bookmarks": "Borrar marcadores locales",
+      "No account notes yet": "A\xFAn no hay notas de cuentas",
+      "No export jobs yet": "A\xFAn no hay trabajos de exportaci\xF3n",
       "Export job": "Trabajo de exportaci\xF3n",
       "Pause export job": "Pausar trabajo de exportaci\xF3n",
       "Resume export job": "Reanudar trabajo de exportaci\xF3n",
@@ -2834,6 +2841,7 @@ html.av-reduce-motion *::after {
       "Blocked by local-only mode": "Bloqueado pelo modo somente local",
       "unlimited": "ilimitado",
       "No matches (or integration disabled).": "Sem correspond\xEAncias (ou a integra\xE7\xE3o est\xE1 desativada).",
+      "Open a profile's followers or following list, then use Capture snapshot to record it.": 'Abra a lista de seguidores ou de quem um perfil segue e use "Capturar instant\xE2neo" para registr\xE1-la.',
       "No captured records match \u201C{query}\u201D.": "Nenhum registo capturado corresponde a \xAB{query}\xBB.",
       "Search all local collections": "Pesquisar todas as cole\xE7\xF5es locais",
       "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "Pesquisar publica\xE7\xF5es, gostos, marcadores, notas, etiquetas, pastas e instant\xE2neos com filtros.",
@@ -2845,10 +2853,13 @@ html.av-reduce-motion *::after {
       "Find local bookmarks": "Encontrar marcadores locais",
       "Search saved posts by text, handle, tags, folder, or ID.": "Pesquise publica\xE7\xF5es guardadas por texto, utilizador, etiquetas, pasta ou ID.",
       "Search local bookmarks": "Pesquisar marcadores locais",
+      "Nothing saved yet. Use Save locally on any post to keep a copy here.": 'Nada salvo ainda. Use "Salvar localmente" em qualquer publica\xE7\xE3o para manter uma c\xF3pia aqui.',
       "No local bookmarks match this search.": "Nenhum marcador local corresponde a esta pesquisa.",
       "Notes": "Notas",
       "Bookmark notes": "Notas do marcador",
       "Remove": "Remover",
+      "Add one below as handle: note. Notes appear beside that account's posts.": "Adicione uma abaixo no formato usu\xE1rio: nota. As notas aparecem ao lado das publica\xE7\xF5es dessa conta.",
+      "Turn Capture on, scroll a timeline, then export. Jobs and their records appear here.": "Ative a captura, percorra uma linha do tempo e depois exporte. Os trabalhos e seus registros aparecem aqui.",
       "Formerly observed markers are no longer detected: {markers}.": "Marcadores observados anteriormente n\xE3o s\xE3o mais detectados: {markers}.",
       "gid {gid} \xB7 {status}": "ID {gid} \xB7 {status}",
       "{count} entries": "{count} entradas",
@@ -2880,6 +2891,7 @@ html.av-reduce-motion *::after {
       "Cancel restore": "Cancelar restaura\xE7\xE3o",
       "Dry-run restore": "Simular restaura\xE7\xE3o",
       "Restore this library backup": "Restaurar este backup da biblioteca",
+      "No snapshots yet": "Ainda n\xE3o h\xE1 instant\xE2neos",
       "Imported collections": "Cole\xE7\xF5es importadas",
       "Archive import": "Importa\xE7\xE3o de arquivo",
       "Pause archive import": "Pausar importa\xE7\xE3o do arquivo",
@@ -2888,6 +2900,8 @@ html.av-reduce-motion *::after {
       "Retry archive import": "Tentar novamente a importa\xE7\xE3o do arquivo",
       "Local bookmarks": "Marcadores locais",
       "Clear local bookmarks": "Limpar marcadores locais",
+      "No account notes yet": "Ainda n\xE3o h\xE1 notas de contas",
+      "No export jobs yet": "Ainda n\xE3o h\xE1 trabalhos de exporta\xE7\xE3o",
       "Export job": "Tarefa de exporta\xE7\xE3o",
       "Pause export job": "Pausar tarefa de exporta\xE7\xE3o",
       "Resume export job": "Retomar tarefa de exporta\xE7\xE3o",
@@ -3715,6 +3729,7 @@ html.av-reduce-motion *::after {
       "Blocked by local-only mode": "Bloqu\xE9 par le mode local uniquement",
       "unlimited": "illimit\xE9",
       "No matches (or integration disabled).": "Aucun r\xE9sultat (ou int\xE9gration d\xE9sactiv\xE9e).",
+      "Open a profile's followers or following list, then use Capture snapshot to record it.": "Ouvrez la liste des abonn\xE9s ou des abonnements d'un profil, puis utilisez \xAB Capturer un instantan\xE9 \xBB pour l'enregistrer.",
       "No captured records match \u201C{query}\u201D.": "Aucun enregistrement captur\xE9 ne correspond \xE0 \xAB {query} \xBB.",
       "Search all local collections": "Rechercher dans toutes les collections locales",
       "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "Rechercher des publications, mentions J\u2019aime, signets, notes, tags, dossiers et instantan\xE9s avec des filtres.",
@@ -3726,10 +3741,13 @@ html.av-reduce-motion *::after {
       "Find local bookmarks": "Trouver les marque-pages locaux",
       "Search saved posts by text, handle, tags, folder, or ID.": "Recherchez les publications enregistr\xE9es par texte, identifiant, tags, dossier ou ID.",
       "Search local bookmarks": "Rechercher dans les marque-pages locaux",
+      "Nothing saved yet. Use Save locally on any post to keep a copy here.": "Rien d'enregistr\xE9 pour l'instant. Utilisez \xAB Enregistrer localement \xBB sur un post pour en garder une copie ici.",
       "No local bookmarks match this search.": "Aucun marque-page local ne correspond \xE0 cette recherche.",
       "Notes": "Annotations",
       "Bookmark notes": "Notes du marque-page",
       "Remove": "Supprimer",
+      "Add one below as handle: note. Notes appear beside that account's posts.": "Ajoutez-en une ci-dessous au format identifiant : note. Les notes apparaissent \xE0 c\xF4t\xE9 des posts de ce compte.",
+      "Turn Capture on, scroll a timeline, then export. Jobs and their records appear here.": "Activez la capture, faites d\xE9filer un fil, puis exportez. Les t\xE2ches et leurs enregistrements apparaissent ici.",
       "Formerly observed markers are no longer detected: {markers}.": "Les marqueurs pr\xE9c\xE9demment observ\xE9s ne sont plus d\xE9tect\xE9s : {markers}.",
       "gid {gid} \xB7 {status}": "ID {gid} \xB7 {status}",
       "{count} entries": "{count} entr\xE9es",
@@ -3761,6 +3779,7 @@ html.av-reduce-motion *::after {
       "Cancel restore": "Annuler la restauration",
       "Dry-run restore": "Simuler la restauration",
       "Restore this library backup": "Restaurer cette sauvegarde de biblioth\xE8que",
+      "No snapshots yet": "Aucun instantan\xE9 pour l'instant",
       "Imported collections": "Collections import\xE9es",
       "Archive import": "Importation d\u2019archive",
       "Pause archive import": "Mettre en pause l\u2019importation de l\u2019archive",
@@ -3769,6 +3788,8 @@ html.av-reduce-motion *::after {
       "Retry archive import": "R\xE9essayer l\u2019importation de l\u2019archive",
       "Local bookmarks": "Signets locaux",
       "Clear local bookmarks": "Effacer les signets locaux",
+      "No account notes yet": "Aucune note de compte pour l'instant",
+      "No export jobs yet": "Aucune t\xE2che d'export pour l'instant",
       "Export job": "T\xE2che d\u2019exportation",
       "Pause export job": "Mettre en pause la t\xE2che d\u2019exportation",
       "Resume export job": "Reprendre la t\xE2che d\u2019exportation",
@@ -4596,6 +4617,7 @@ html.av-reduce-motion *::after {
       "Blocked by local-only mode": "Durch den Nur-lokal-Modus blockiert",
       "unlimited": "unbegrenzt",
       "No matches (or integration disabled).": "Keine Treffer (oder Integration deaktiviert).",
+      "Open a profile's followers or following list, then use Capture snapshot to record it.": "\xD6ffne die Follower- oder Gefolgt-Liste eines Profils und nutze \u201EMomentaufnahme erfassen\u201C, um sie festzuhalten.",
       "No captured records match \u201C{query}\u201D.": "Keine erfassten Datens\xE4tze entsprechen \u201E{query}\u201C.",
       "Search all local collections": "Alle lokalen Sammlungen durchsuchen",
       "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "Beitr\xE4ge, Likes, Lesezeichen, Notizen, Tags, Ordner und Momentaufnahmen mit Filtern durchsuchen.",
@@ -4607,10 +4629,13 @@ html.av-reduce-motion *::after {
       "Find local bookmarks": "Lokale Lesezeichen finden",
       "Search saved posts by text, handle, tags, folder, or ID.": "Gespeicherte Beitr\xE4ge nach Text, Handle, Tags, Ordner oder ID suchen.",
       "Search local bookmarks": "Lokale Lesezeichen durchsuchen",
+      "Nothing saved yet. Use Save locally on any post to keep a copy here.": "Noch nichts gespeichert. Nutze \u201ELokal speichern\u201C an einem Beitrag, um hier eine Kopie zu behalten.",
       "No local bookmarks match this search.": "Keine lokalen Lesezeichen passen zu dieser Suche.",
       "Notes": "Notizen",
       "Bookmark notes": "Lesezeichen-Notizen",
       "Remove": "Entfernen",
+      "Add one below as handle: note. Notes appear beside that account's posts.": "F\xFCge unten eine im Format Name: Notiz hinzu. Notizen erscheinen neben den Beitr\xE4gen dieses Kontos.",
+      "Turn Capture on, scroll a timeline, then export. Jobs and their records appear here.": "Schalte die Erfassung ein, scrolle durch eine Timeline und exportiere dann. Auftr\xE4ge und ihre Datens\xE4tze erscheinen hier.",
       "Formerly observed markers are no longer detected: {markers}.": "Zuvor beobachtete Marker werden nicht mehr erkannt: {markers}.",
       "gid {gid} \xB7 {status}": "GID {gid} \xB7 {status}",
       "{count} entries": "{count} Eintr\xE4ge",
@@ -4642,6 +4667,7 @@ html.av-reduce-motion *::after {
       "Cancel restore": "Wiederherstellung abbrechen",
       "Dry-run restore": "Wiederherstellung simulieren",
       "Restore this library backup": "Diese Bibliothekssicherung wiederherstellen",
+      "No snapshots yet": "Noch keine Momentaufnahmen",
       "Imported collections": "Importierte Sammlungen",
       "Archive import": "Archivimport",
       "Pause archive import": "Archivimport pausieren",
@@ -4650,6 +4676,8 @@ html.av-reduce-motion *::after {
       "Retry archive import": "Archivimport erneut versuchen",
       "Local bookmarks": "Lokale Lesezeichen",
       "Clear local bookmarks": "Lokale Lesezeichen l\xF6schen",
+      "No account notes yet": "Noch keine Kontonotizen",
+      "No export jobs yet": "Noch keine Exportauftr\xE4ge",
       "Export job": "Exportauftrag",
       "Pause export job": "Exportauftrag pausieren",
       "Resume export job": "Exportauftrag fortsetzen",
@@ -5477,6 +5505,7 @@ html.av-reduce-motion *::after {
       "Blocked by local-only mode": "\u30ED\u30FC\u30AB\u30EB\u306E\u307F\u30E2\u30FC\u30C9\u3067\u30D6\u30ED\u30C3\u30AF",
       "unlimited": "\u7121\u5236\u9650",
       "No matches (or integration disabled).": "\u4E00\u81F4\u3059\u308B\u7D50\u679C\u304C\u3042\u308A\u307E\u305B\u3093\uFF08\u7D71\u5408\u304C\u7121\u52B9\u306B\u306A\u3063\u3066\u3044\u308B\u53EF\u80FD\u6027\u304C\u3042\u308A\u307E\u3059\uFF09\u3002",
+      "Open a profile's followers or following list, then use Capture snapshot to record it.": "\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u306E\u30D5\u30A9\u30ED\u30EF\u30FC\u307E\u305F\u306F\u30D5\u30A9\u30ED\u30FC\u4E2D\u306E\u4E00\u89A7\u3092\u958B\u304D\u3001\u300C\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8\u3092\u53D6\u5F97\u300D\u3067\u8A18\u9332\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
       "No captured records match \u201C{query}\u201D.": "\u300C{query}\u300D\u306B\u4E00\u81F4\u3059\u308B\u53D6\u5F97\u6E08\u307F\u30EC\u30B3\u30FC\u30C9\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
       "Search all local collections": "\u3059\u3079\u3066\u306E\u30ED\u30FC\u30AB\u30EB\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3\u3092\u691C\u7D22",
       "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "\u30D5\u30A3\u30EB\u30BF\u30FC\u3092\u4F7F\u3063\u3066\u6295\u7A3F\u3001\u3044\u3044\u306D\u3001\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3001\u30E1\u30E2\u3001\u30BF\u30B0\u3001\u30D5\u30A9\u30EB\u30C0\u30FC\u3001\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8\u3092\u691C\u7D22\u3057\u307E\u3059\u3002",
@@ -5488,10 +5517,13 @@ html.av-reduce-motion *::after {
       "Find local bookmarks": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u63A2\u3059",
       "Search saved posts by text, handle, tags, folder, or ID.": "\u4FDD\u5B58\u3057\u305F\u6295\u7A3F\u3092\u672C\u6587\u3001\u30CF\u30F3\u30C9\u30EB\u3001\u30BF\u30B0\u3001\u30D5\u30A9\u30EB\u30C0\u30FC\u3001ID\u3067\u691C\u7D22\u3057\u307E\u3059\u3002",
       "Search local bookmarks": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u691C\u7D22",
+      "Nothing saved yet. Use Save locally on any post to keep a copy here.": "\u307E\u3060\u4F55\u3082\u4FDD\u5B58\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002\u4EFB\u610F\u306E\u6295\u7A3F\u3067\u300C\u30ED\u30FC\u30AB\u30EB\u306B\u4FDD\u5B58\u300D\u3092\u4F7F\u3046\u3068\u3001\u3053\u3053\u306B\u63A7\u3048\u304C\u6B8B\u308A\u307E\u3059\u3002",
       "No local bookmarks match this search.": "\u3053\u306E\u691C\u7D22\u306B\u4E00\u81F4\u3059\u308B\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
       "Notes": "\u30E1\u30E2",
       "Bookmark notes": "\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u306E\u30E1\u30E2",
       "Remove": "\u524A\u9664",
+      "Add one below as handle: note. Notes appear beside that account's posts.": "\u4E0B\u306B\u300C\u30E6\u30FC\u30B6\u30FC\u540D: \u30E1\u30E2\u300D\u306E\u5F62\u5F0F\u3067\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u30E1\u30E2\u306F\u305D\u306E\u30A2\u30AB\u30A6\u30F3\u30C8\u306E\u6295\u7A3F\u306E\u6A2A\u306B\u8868\u793A\u3055\u308C\u307E\u3059\u3002",
+      "Turn Capture on, scroll a timeline, then export. Jobs and their records appear here.": "\u30AD\u30E3\u30D7\u30C1\u30E3\u3092\u30AA\u30F3\u306B\u3057\u3066\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u3092\u30B9\u30AF\u30ED\u30FC\u30EB\u3057\u3001\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u30B8\u30E7\u30D6\u3068\u305D\u306E\u8A18\u9332\u304C\u3053\u3053\u306B\u8868\u793A\u3055\u308C\u307E\u3059\u3002",
       "Formerly observed markers are no longer detected: {markers}.": "\u4EE5\u524D\u306B\u89B3\u6E2C\u3055\u308C\u305F\u30DE\u30FC\u30AB\u30FC\u304C\u691C\u51FA\u3055\u308C\u306A\u304F\u306A\u308A\u307E\u3057\u305F: {markers}\u3002",
       "gid {gid} \xB7 {status}": "\u8B58\u5225\u5B50 {gid} \xB7 {status}",
       "{count} entries": "{count}\u4EF6",
@@ -5523,6 +5555,7 @@ html.av-reduce-motion *::after {
       "Cancel restore": "\u5FA9\u5143\u3092\u30AD\u30E3\u30F3\u30BB\u30EB",
       "Dry-run restore": "\u5FA9\u5143\u3092\u30C9\u30E9\u30A4\u30E9\u30F3",
       "Restore this library backup": "\u3053\u306E\u30E9\u30A4\u30D6\u30E9\u30EA\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3092\u5FA9\u5143",
+      "No snapshots yet": "\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093",
       "Imported collections": "\u30A4\u30F3\u30DD\u30FC\u30C8\u6E08\u307F\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3",
       "Archive import": "\u30A2\u30FC\u30AB\u30A4\u30D6\u306E\u30A4\u30F3\u30DD\u30FC\u30C8",
       "Pause archive import": "\u30A2\u30FC\u30AB\u30A4\u30D6\u306E\u30A4\u30F3\u30DD\u30FC\u30C8\u3092\u4E00\u6642\u505C\u6B62",
@@ -5531,6 +5564,8 @@ html.av-reduce-motion *::after {
       "Retry archive import": "\u30A2\u30FC\u30AB\u30A4\u30D6\u306E\u30A4\u30F3\u30DD\u30FC\u30C8\u3092\u518D\u8A66\u884C",
       "Local bookmarks": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF",
       "Clear local bookmarks": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u524A\u9664",
+      "No account notes yet": "\u30A2\u30AB\u30A6\u30F3\u30C8\u306E\u30E1\u30E2\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093",
+      "No export jobs yet": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093",
       "Export job": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6",
       "Pause export job": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6\u3092\u4E00\u6642\u505C\u6B62",
       "Resume export job": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u30B8\u30E7\u30D6\u3092\u518D\u958B",
@@ -6358,6 +6393,7 @@ html.av-reduce-motion *::after {
       "Blocked by local-only mode": "\uB85C\uCEEC \uC804\uC6A9 \uBAA8\uB4DC\uB85C \uCC28\uB2E8\uB428",
       "unlimited": "\uBB34\uC81C\uD55C",
       "No matches (or integration disabled).": "\uC77C\uCE58\uD558\uB294 \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4(\uD1B5\uD569\uC774 \uBE44\uD65C\uC131\uD654\uB418\uC5C8\uAC70\uB098 \uC9C0\uC6D0\uB418\uC9C0 \uC54A\uC74C).",
+      "Open a profile's followers or following list, then use Capture snapshot to record it.": "\uD504\uB85C\uD544\uC758 \uD314\uB85C\uC6CC \uB610\uB294 \uD314\uB85C\uC789 \uBAA9\uB85D\uC744 \uC5F0 \uB2E4\uC74C '\uC2A4\uB0C5\uC0F7 \uCEA1\uCC98'\uB85C \uAE30\uB85D\uD558\uC138\uC694.",
       "No captured records match \u201C{query}\u201D.": "\u201C{query}\u201D\uC640 \uC77C\uCE58\uD558\uB294 \uCEA1\uCC98\uD55C \uB808\uCF54\uB4DC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
       "Search all local collections": "\uBAA8\uB4E0 \uB85C\uCEEC \uCEEC\uB809\uC158 \uAC80\uC0C9",
       "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "\uD544\uD130\uB85C \uAC8C\uC2DC\uBB3C, \uB9C8\uC74C\uC5D0 \uB4E4\uC5B4\uC694, \uBD81\uB9C8\uD06C, \uBA54\uBAA8, \uD0DC\uADF8, \uD3F4\uB354, \uC2A4\uB0C5\uC0F7\uC744 \uAC80\uC0C9\uD569\uB2C8\uB2E4.",
@@ -6369,10 +6405,13 @@ html.av-reduce-motion *::after {
       "Find local bookmarks": "\uB85C\uCEEC \uBD81\uB9C8\uD06C \uCC3E\uAE30",
       "Search saved posts by text, handle, tags, folder, or ID.": "\uC800\uC7A5\uD55C \uAC8C\uC2DC\uBB3C\uC744 \uBCF8\uBB38, \uD578\uB4E4, \uD0DC\uADF8, \uD3F4\uB354 \uB610\uB294 ID\uB85C \uAC80\uC0C9\uD569\uB2C8\uB2E4.",
       "Search local bookmarks": "\uB85C\uCEEC \uBD81\uB9C8\uD06C \uAC80\uC0C9",
+      "Nothing saved yet. Use Save locally on any post to keep a copy here.": "\uC544\uC9C1 \uC800\uC7A5\uB41C \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4. \uC544\uBB34 \uAC8C\uC2DC\uBB3C\uC5D0\uC11C '\uB85C\uCEEC\uC5D0 \uC800\uC7A5'\uC744 \uC0AC\uC6A9\uD558\uBA74 \uC0AC\uBCF8\uC774 \uC5EC\uAE30\uC5D0 \uBCF4\uAD00\uB429\uB2C8\uB2E4.",
       "No local bookmarks match this search.": "\uC774 \uAC80\uC0C9\uACFC \uC77C\uCE58\uD558\uB294 \uB85C\uCEEC \uBD81\uB9C8\uD06C\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
       "Notes": "\uBA54\uBAA8",
       "Bookmark notes": "\uBD81\uB9C8\uD06C \uBA54\uBAA8",
       "Remove": "\uC0AD\uC81C",
+      "Add one below as handle: note. Notes appear beside that account's posts.": "\uC544\uB798\uC5D0 \uC0AC\uC6A9\uC790\uBA85: \uBA54\uBAA8 \uD615\uC2DD\uC73C\uB85C \uCD94\uAC00\uD558\uC138\uC694. \uBA54\uBAA8\uB294 \uD574\uB2F9 \uACC4\uC815\uC758 \uAC8C\uC2DC\uBB3C \uC606\uC5D0 \uD45C\uC2DC\uB429\uB2C8\uB2E4.",
+      "Turn Capture on, scroll a timeline, then export. Jobs and their records appear here.": "\uCEA1\uCC98\uB97C \uCF1C\uACE0 \uD0C0\uC784\uB77C\uC778\uC744 \uC2A4\uD06C\uB864\uD55C \uB2E4\uC74C \uB0B4\uBCF4\uB0B4\uC138\uC694. \uC791\uC5C5\uACFC \uD574\uB2F9 \uB808\uCF54\uB4DC\uAC00 \uC5EC\uAE30\uC5D0 \uD45C\uC2DC\uB429\uB2C8\uB2E4.",
       "Formerly observed markers are no longer detected: {markers}.": "\uC774\uC804\uC5D0 \uAD00\uCC30\uB41C \uB9C8\uCEE4\uAC00 \uB354 \uC774\uC0C1 \uAC10\uC9C0\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4: {markers}.",
       "gid {gid} \xB7 {status}": "\uC2DD\uBCC4\uC790 {gid} \xB7 {status}",
       "{count} entries": "{count}\uAC1C \uD56D\uBAA9",
@@ -6404,6 +6443,7 @@ html.av-reduce-motion *::after {
       "Cancel restore": "\uBCF5\uC6D0 \uCDE8\uC18C",
       "Dry-run restore": "\uBCF5\uC6D0 \uC2DC\uD5D8 \uC2E4\uD589",
       "Restore this library backup": "\uC774 \uB77C\uC774\uBE0C\uB7EC\uB9AC \uBC31\uC5C5 \uBCF5\uC6D0",
+      "No snapshots yet": "\uC544\uC9C1 \uC2A4\uB0C5\uC0F7\uC774 \uC5C6\uC2B5\uB2C8\uB2E4",
       "Imported collections": "\uAC00\uC838\uC628 \uCEEC\uB809\uC158",
       "Archive import": "\uC544\uCE74\uC774\uBE0C \uAC00\uC838\uC624\uAE30",
       "Pause archive import": "\uC544\uCE74\uC774\uBE0C \uAC00\uC838\uC624\uAE30 \uC77C\uC2DC \uC911\uC9C0",
@@ -6412,6 +6452,8 @@ html.av-reduce-motion *::after {
       "Retry archive import": "\uC544\uCE74\uC774\uBE0C \uAC00\uC838\uC624\uAE30 \uB2E4\uC2DC \uC2DC\uB3C4",
       "Local bookmarks": "\uB85C\uCEEC \uBD81\uB9C8\uD06C",
       "Clear local bookmarks": "\uB85C\uCEEC \uBD81\uB9C8\uD06C \uC0AD\uC81C",
+      "No account notes yet": "\uC544\uC9C1 \uACC4\uC815 \uBA54\uBAA8\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4",
+      "No export jobs yet": "\uC544\uC9C1 \uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5\uC774 \uC5C6\uC2B5\uB2C8\uB2E4",
       "Export job": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5",
       "Pause export job": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5 \uC77C\uC2DC \uC911\uC9C0",
       "Resume export job": "\uB0B4\uBCF4\uB0B4\uAE30 \uC791\uC5C5 \uC7AC\uAC1C",
@@ -7239,6 +7281,7 @@ html.av-reduce-motion *::after {
       "Blocked by local-only mode": "\u0645\u062D\u0638\u0648\u0631 \u0628\u0633\u0628\u0628 \u0648\u0636\u0639 \u0627\u0644\u0645\u062D\u0644\u064A \u0641\u0642\u0637",
       "unlimited": "\u063A\u064A\u0631 \u0645\u062D\u062F\u0648\u062F",
       "No matches (or integration disabled).": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0646\u062A\u0627\u0626\u062C \u0645\u0637\u0627\u0628\u0642\u0629 (\u0623\u0648 \u0623\u0646 \u0627\u0644\u062A\u0643\u0627\u0645\u0644 \u0645\u0639\u0637\u0651\u0644).",
+      "Open a profile's followers or following list, then use Capture snapshot to record it.": "\u0627\u0641\u062A\u062D \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0645\u062A\u0627\u0628\u0650\u0639\u064A\u0646 \u0623\u0648 \u0627\u0644\u0645\u062A\u0627\u0628\u064E\u0639\u064A\u0646 \u0644\u0623\u062D\u062F \u0627\u0644\u0645\u0644\u0641\u0627\u062A \u0627\u0644\u0634\u062E\u0635\u064A\u0629\u060C \u062B\u0645 \u0627\u0633\u062A\u062E\u062F\u0645 \xAB\u0627\u0644\u062A\u0642\u0627\u0637 \u0644\u0642\u0637\u0629\xBB \u0644\u062A\u0633\u062C\u064A\u0644\u0647\u0627.",
       "No captured records match \u201C{query}\u201D.": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0633\u062C\u0644\u0627\u062A \u0645\u0644\u062A\u0642\u0637\u0629 \u062A\u0637\u0627\u0628\u0642 \xAB{query}\xBB.",
       "Search all local collections": "\u0627\u0644\u0628\u062D\u062B \u0641\u064A \u0643\u0644 \u0627\u0644\u0645\u062C\u0645\u0648\u0639\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
       "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "\u0627\u0644\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0648\u0627\u0644\u0625\u0639\u062C\u0627\u0628\u0627\u062A \u0648\u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0648\u0627\u0644\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0648\u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062A \u0648\u0627\u0644\u0645\u062C\u0644\u062F\u0627\u062A \u0648\u0627\u0644\u0644\u0642\u0637\u0627\u062A \u0628\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0639\u0648\u0627\u0645\u0644 \u0627\u0644\u062A\u0635\u0641\u064A\u0629.",
@@ -7250,10 +7293,13 @@ html.av-reduce-motion *::after {
       "Find local bookmarks": "\u0627\u0644\u0639\u062B\u0648\u0631 \u0639\u0644\u0649 \u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
       "Search saved posts by text, handle, tags, folder, or ID.": "\u0627\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629 \u0628\u0627\u0644\u0646\u0635 \u0623\u0648 \u0627\u0644\u0645\u0639\u0631\u0651\u0641 \u0623\u0648 \u0627\u0644\u0648\u0633\u0648\u0645 \u0623\u0648 \u0627\u0644\u0645\u062C\u0644\u062F \u0623\u0648 \u0627\u0644\u0631\u0642\u0645.",
       "Search local bookmarks": "\u0627\u0644\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
+      "Nothing saved yet. Use Save locally on any post to keep a copy here.": "\u0644\u0645 \u064A\u064F\u062D\u0641\u0638 \u0634\u064A\u0621 \u0628\u0639\u062F. \u0627\u0633\u062A\u062E\u062F\u0645 \xAB\u062D\u0641\u0638 \u0645\u062D\u0644\u064A\u064B\u0627\xBB \u0639\u0644\u0649 \u0623\u064A \u0645\u0646\u0634\u0648\u0631 \u0644\u0644\u0627\u062D\u062A\u0641\u0627\u0638 \u0628\u0646\u0633\u062E\u0629 \u0647\u0646\u0627.",
       "No local bookmarks match this search.": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0625\u0634\u0627\u0631\u0627\u062A \u0645\u0631\u062C\u0639\u064A\u0629 \u0645\u062D\u0644\u064A\u0629 \u062A\u0637\u0627\u0628\u0642 \u0647\u0630\u0627 \u0627\u0644\u0628\u062D\u062B.",
       "Notes": "\u0645\u0644\u0627\u062D\u0638\u0627\u062A",
       "Bookmark notes": "\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0625\u0634\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629",
       "Remove": "\u0625\u0632\u0627\u0644\u0629",
+      "Add one below as handle: note. Notes appear beside that account's posts.": "\u0623\u0636\u0641 \u0648\u0627\u062D\u062F\u0629 \u0623\u062F\u0646\u0627\u0647 \u0628\u0635\u064A\u063A\u0629 \u0627\u0644\u0645\u0639\u0631\u0651\u0641: \u0645\u0644\u0627\u062D\u0638\u0629. \u062A\u0638\u0647\u0631 \u0627\u0644\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0628\u062C\u0648\u0627\u0631 \u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0630\u0644\u0643 \u0627\u0644\u062D\u0633\u0627\u0628.",
+      "Turn Capture on, scroll a timeline, then export. Jobs and their records appear here.": "\u0641\u0639\u0651\u0644 \u0627\u0644\u0627\u0644\u062A\u0642\u0627\u0637\u060C \u0648\u0645\u0631\u0651\u0631 \u0639\u0628\u0631 \u062E\u0637 \u0632\u0645\u0646\u064A\u060C \u062B\u0645 \u0635\u062F\u0651\u0631. \u0633\u062A\u0638\u0647\u0631 \u0627\u0644\u0645\u0647\u0627\u0645 \u0648\u0633\u062C\u0644\u0627\u062A\u0647\u0627 \u0647\u0646\u0627.",
       "Formerly observed markers are no longer detected: {markers}.": "\u0644\u0645 \u062A\u0639\u062F \u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062A \u0627\u0644\u062A\u064A \u062A\u0645\u062A \u0645\u0644\u0627\u062D\u0638\u062A\u0647\u0627 \u0633\u0627\u0628\u0642\u064B\u0627 \u0645\u0643\u062A\u0634\u0641\u0629: {markers}.",
       "gid {gid} \xB7 {status}": "\u0627\u0644\u0645\u0639\u0631\u0651\u0641 {gid} \xB7 {status}",
       "{count} entries": "{count} \u0645\u0646 \u0627\u0644\u0625\u062F\u062E\u0627\u0644\u0627\u062A",
@@ -7285,6 +7331,7 @@ html.av-reduce-motion *::after {
       "Cancel restore": "\u0625\u0644\u063A\u0627\u0621 \u0627\u0644\u0627\u0633\u062A\u0631\u062C\u0627\u0639",
       "Dry-run restore": "\u0645\u062D\u0627\u0643\u0627\u0629 \u0627\u0644\u0627\u0633\u062A\u0631\u062C\u0627\u0639",
       "Restore this library backup": "\u0627\u0633\u062A\u0631\u062C\u0627\u0639 \u0646\u0633\u062E\u0629 \u0627\u0644\u0645\u0643\u062A\u0628\u0629 \u0647\u0630\u0647",
+      "No snapshots yet": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0644\u0642\u0637\u0627\u062A \u0628\u0639\u062F",
       "Imported collections": "\u0627\u0644\u0645\u062C\u0645\u0648\u0639\u0627\u062A \u0627\u0644\u0645\u0633\u062A\u0648\u0631\u062F\u0629",
       "Archive import": "\u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0623\u0631\u0634\u064A\u0641",
       "Pause archive import": "\u0625\u064A\u0642\u0627\u0641 \u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0623\u0631\u0634\u064A\u0641 \u0645\u0624\u0642\u062A\u064B\u0627",
@@ -7293,6 +7340,8 @@ html.av-reduce-motion *::after {
       "Retry archive import": "\u0625\u0639\u0627\u062F\u0629 \u0645\u062D\u0627\u0648\u0644\u0629 \u0627\u0633\u062A\u064A\u0631\u0627\u062F \u0627\u0644\u0623\u0631\u0634\u064A\u0641",
       "Local bookmarks": "\u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
       "Clear local bookmarks": "\u0645\u0633\u062D \u0627\u0644\u0625\u0634\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
+      "No account notes yet": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u0644\u0627\u062D\u0638\u0627\u062A \u062D\u0633\u0627\u0628\u0627\u062A \u0628\u0639\u062F",
+      "No export jobs yet": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u0647\u0627\u0645 \u062A\u0635\u062F\u064A\u0631 \u0628\u0639\u062F",
       "Export job": "\u0645\u0647\u0645\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631",
       "Pause export job": "\u0625\u064A\u0642\u0627\u0641 \u0645\u0647\u0645\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631 \u0645\u0624\u0642\u062A\u064B\u0627",
       "Resume export job": "\u0627\u0633\u062A\u0626\u0646\u0627\u0641 \u0645\u0647\u0645\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631",
@@ -8120,6 +8169,7 @@ html.av-reduce-motion *::after {
       "Blocked by local-only mode": "\u05E0\u05D7\u05E1\u05DD \u05D1\u05DE\u05E6\u05D1 \u05DE\u05E7\u05D5\u05DE\u05D9 \u05D1\u05DC\u05D1\u05D3",
       "unlimited": "\u05DC\u05DC\u05D0 \u05D4\u05D2\u05D1\u05DC\u05D4",
       "No matches (or integration disabled).": "\u05D0\u05D9\u05DF \u05D4\u05EA\u05D0\u05DE\u05D5\u05EA (\u05D0\u05D5 \u05E9\u05D4\u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D4 \u05DE\u05D5\u05E9\u05D1\u05EA\u05EA).",
+      "Open a profile's followers or following list, then use Capture snapshot to record it.": '\u05E4\u05EA\u05D7 \u05D0\u05EA \u05E8\u05E9\u05D9\u05DE\u05EA \u05D4\u05E2\u05D5\u05E7\u05D1\u05D9\u05DD \u05D0\u05D5 \u05D4\u05E0\u05E2\u05E7\u05D1\u05D9\u05DD \u05E9\u05DC \u05E4\u05E8\u05D5\u05E4\u05D9\u05DC, \u05D5\u05D0\u05D6 \u05D4\u05E9\u05EA\u05DE\u05E9 \u05D1"\u05DC\u05DB\u05D9\u05D3\u05EA \u05EA\u05DE\u05D5\u05E0\u05EA \u05DE\u05E6\u05D1" \u05DB\u05D3\u05D9 \u05DC\u05EA\u05E2\u05D3 \u05D0\u05D5\u05EA\u05D4.',
       "No captured records match \u201C{query}\u201D.": "\u05D0\u05D9\u05DF \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05E0\u05DC\u05DB\u05D3\u05D5 \u05D4\u05EA\u05D5\u05D0\u05DE\u05D5\u05EA \u05DC\u05BE\u201E{query}\u201D.",
       "Search all local collections": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D1\u05DB\u05DC \u05D4\u05D0\u05D5\u05E1\u05E4\u05D9\u05DD \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9\u05D9\u05DD",
       "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D1\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD, \u05DC\u05D9\u05D9\u05E7\u05D9\u05DD, \u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA, \u05D4\u05E2\u05E8\u05D5\u05EA, \u05EA\u05D2\u05D9\u05DD, \u05EA\u05D9\u05E7\u05D9\u05D5\u05EA \u05D5\u05EA\u05E6\u05DC\u05D5\u05DE\u05D9 \u05DE\u05E6\u05D1 \u05E2\u05DD \u05DE\u05E1\u05E0\u05E0\u05D9\u05DD.",
@@ -8131,10 +8181,13 @@ html.av-reduce-motion *::after {
       "Find local bookmarks": "\u05DE\u05E6\u05D9\u05D0\u05EA \u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA",
       "Search saved posts by text, handle, tags, folder, or ID.": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05DE\u05D5\u05E8\u05D9\u05DD \u05DC\u05E4\u05D9 \u05D8\u05E7\u05E1\u05D8, \u05D9\u05D3\u05D9\u05EA, \u05EA\u05D2\u05D9\u05D5\u05EA, \u05EA\u05D9\u05E7\u05D9\u05D9\u05D4 \u05D0\u05D5 \u05DE\u05D6\u05D4\u05D4.",
       "Search local bookmarks": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D1\u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA",
+      "Nothing saved yet. Use Save locally on any post to keep a copy here.": '\u05E2\u05D3\u05D9\u05D9\u05DF \u05DC\u05D0 \u05E0\u05E9\u05DE\u05E8 \u05D3\u05D1\u05E8. \u05D4\u05E9\u05EA\u05DE\u05E9 \u05D1"\u05E9\u05DE\u05D9\u05E8\u05D4 \u05DE\u05E7\u05D5\u05DE\u05D9\u05EA" \u05D1\u05DB\u05DC \u05E4\u05D5\u05E1\u05D8 \u05DB\u05D3\u05D9 \u05DC\u05E9\u05DE\u05D5\u05E8 \u05DB\u05D0\u05DF \u05E2\u05D5\u05EA\u05E7.',
       "No local bookmarks match this search.": "\u05D0\u05D9\u05DF \u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA \u05E9\u05EA\u05D5\u05D0\u05DE\u05D5\u05EA \u05DC\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D4\u05D6\u05D4.",
       "Notes": "\u05D4\u05E2\u05E8\u05D5\u05EA",
       "Bookmark notes": "\u05D4\u05E2\u05E8\u05D5\u05EA \u05D4\u05E1\u05D9\u05DE\u05E0\u05D9\u05D9\u05D4",
       "Remove": "\u05D4\u05E1\u05E8\u05D4",
+      "Add one below as handle: note. Notes appear beside that account's posts.": "\u05D4\u05D5\u05E1\u05E3 \u05D0\u05D7\u05EA \u05DC\u05DE\u05D8\u05D4 \u05D1\u05E4\u05D5\u05E8\u05DE\u05D8 \u05E9\u05DD \u05DE\u05E9\u05EA\u05DE\u05E9: \u05D4\u05E2\u05E8\u05D4. \u05D4\u05D4\u05E2\u05E8\u05D5\u05EA \u05DE\u05D5\u05E4\u05D9\u05E2\u05D5\u05EA \u05DC\u05E6\u05D3 \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05E9\u05DC \u05D0\u05D5\u05EA\u05D5 \u05D7\u05E9\u05D1\u05D5\u05DF.",
+      "Turn Capture on, scroll a timeline, then export. Jobs and their records appear here.": "\u05D4\u05E4\u05E2\u05DC \u05DC\u05DB\u05D9\u05D3\u05D4, \u05D2\u05DC\u05D5\u05DC \u05D1\u05E6\u05D9\u05E8 \u05D6\u05DE\u05DF \u05D5\u05D0\u05D6 \u05D9\u05D9\u05E6\u05D0. \u05D4\u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D5\u05D4\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05DC\u05D4\u05DF \u05D9\u05D5\u05E4\u05D9\u05E2\u05D5 \u05DB\u05D0\u05DF.",
       "Formerly observed markers are no longer detected: {markers}.": "\u05E1\u05DE\u05E0\u05D9\u05DD \u05E9\u05E0\u05E6\u05E4\u05D5 \u05D1\u05E2\u05D1\u05E8 \u05D0\u05D9\u05E0\u05DD \u05DE\u05D6\u05D5\u05D4\u05D9\u05DD \u05E2\u05D5\u05D3: {markers}.",
       "gid {gid} \xB7 {status}": "\u05DE\u05D6\u05D4\u05D4 {gid} \xB7 {status}",
       "{count} entries": "{count} \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA",
@@ -8166,6 +8219,7 @@ html.av-reduce-motion *::after {
       "Cancel restore": "\u05D1\u05D9\u05D8\u05D5\u05DC \u05D4\u05E9\u05D7\u05D6\u05D5\u05E8",
       "Dry-run restore": "\u05D4\u05E8\u05E6\u05D4 \u05D9\u05D1\u05E9\u05D4 \u05E9\u05DC \u05E9\u05D7\u05D6\u05D5\u05E8",
       "Restore this library backup": "\u05E9\u05D7\u05D6\u05D5\u05E8 \u05D2\u05D9\u05D1\u05D5\u05D9 \u05D4\u05E1\u05E4\u05E8\u05D9\u05D9\u05D4 \u05D4\u05D6\u05D4",
+      "No snapshots yet": "\u05D0\u05D9\u05DF \u05E2\u05D3\u05D9\u05D9\u05DF \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05DE\u05E6\u05D1",
       "Imported collections": "\u05D0\u05D5\u05E1\u05E4\u05D9\u05DD \u05E9\u05D9\u05D5\u05D1\u05D0\u05D5",
       "Archive import": "\u05D9\u05D9\u05D1\u05D5\u05D0 \u05D0\u05E8\u05DB\u05D9\u05D5\u05DF",
       "Pause archive import": "\u05D4\u05E9\u05D4\u05D9\u05D9\u05EA \u05D9\u05D9\u05D1\u05D5\u05D0 \u05D0\u05E8\u05DB\u05D9\u05D5\u05DF",
@@ -8174,6 +8228,8 @@ html.av-reduce-motion *::after {
       "Retry archive import": "\u05E0\u05D9\u05E1\u05D9\u05D5\u05DF \u05D7\u05D5\u05D6\u05E8 \u05DC\u05D9\u05D9\u05D1\u05D5\u05D0 \u05D0\u05E8\u05DB\u05D9\u05D5\u05DF",
       "Local bookmarks": "\u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA",
       "Clear local bookmarks": "\u05E0\u05D9\u05E7\u05D5\u05D9 \u05E1\u05D9\u05DE\u05E0\u05D9\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA",
+      "No account notes yet": "\u05D0\u05D9\u05DF \u05E2\u05D3\u05D9\u05D9\u05DF \u05D4\u05E2\u05E8\u05D5\u05EA \u05E2\u05DC \u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA",
+      "No export jobs yet": "\u05D0\u05D9\u05DF \u05E2\u05D3\u05D9\u05D9\u05DF \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D9\u05D9\u05E6\u05D5\u05D0",
       "Export job": "\u05DE\u05E9\u05D9\u05DE\u05EA \u05D9\u05D9\u05E6\u05D5\u05D0",
       "Pause export job": "\u05D4\u05E9\u05D4\u05D9\u05D9\u05EA \u05DE\u05E9\u05D9\u05DE\u05EA \u05D9\u05D9\u05E6\u05D5\u05D0",
       "Resume export job": "\u05D7\u05D9\u05D3\u05D5\u05E9 \u05DE\u05E9\u05D9\u05DE\u05EA \u05D9\u05D9\u05E6\u05D5\u05D0",
@@ -9467,6 +9523,14 @@ html.av-reduce-motion *::after {
           }) : ctx.localizedCopy("{count} entries", { count: status.total })
         )
       );
+      if (status.total === 0) {
+        rows.push(
+          ctx.readonlyRow(
+            "No snapshots yet",
+            ctx.t("Open a profile's followers or following list, then use Capture snapshot to record it.")
+          )
+        );
+      }
     }
     if (ctx.options.captureSnapshot) {
       rows.push(
@@ -9878,7 +9942,8 @@ html.av-reduce-motion *::after {
         bookmarkResults.replaceChildren();
         const matches2 = ctx.options.searchBookmarks(ctx.state.bookmarkQuery).slice(0, 30);
         if (matches2.length === 0) {
-          bookmarkResults.append(ctx.el("div", "av-row-description", ctx.t("No local bookmarks match this search.")));
+          const copy = status.total === 0 ? ctx.t("Nothing saved yet. Use Save locally on any post to keep a copy here.") : ctx.t("No local bookmarks match this search.");
+          bookmarkResults.append(ctx.el("div", "av-row-description", copy));
           return;
         }
         for (const entry of matches2) {
@@ -10001,6 +10066,14 @@ html.av-reduce-motion *::after {
     );
     if (ctx.options.getUserNotes && ctx.options.setUserNote) {
       const notes = ctx.options.getUserNotes();
+      if (Object.keys(notes).length === 0) {
+        rows.push(
+          ctx.readonlyRow(
+            "No account notes yet",
+            ctx.t("Add one below as handle: note. Notes appear beside that account's posts.")
+          )
+        );
+      }
       const serialized = Object.entries(notes).map(([handle, note]) => `${handle}: ${note}`).sort();
       rows.push(
         ctx.textareaRow(
@@ -10154,6 +10227,14 @@ html.av-reduce-motion *::after {
           })
         )
       );
+      if (status.jobCount === 0) {
+        rows.push(
+          ctx.readonlyRow(
+            "No export jobs yet",
+            ctx.t("Turn Capture on, scroll a timeline, then export. Jobs and their records appear here.")
+          )
+        );
+      }
       for (const job of (status.jobs ?? []).slice(-3)) {
         rows.push(
           ctx.dataRow(

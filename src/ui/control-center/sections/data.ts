@@ -19,6 +19,14 @@ export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
           : ctx.localizedCopy("{count} entries", { count: status.total })
       )
     );
+    if (status.total === 0) {
+      rows.push(
+        ctx.readonlyRow(
+          "No snapshots yet",
+          ctx.t("Open a profile's followers or following list, then use Capture snapshot to record it.")
+        )
+      );
+    }
   }
 
   if (ctx.options.captureSnapshot) {
@@ -454,7 +462,13 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
       bookmarkResults.replaceChildren();
       const matches = ctx.options.searchBookmarks!(ctx.state.bookmarkQuery).slice(0, 30);
       if (matches.length === 0) {
-        bookmarkResults.append(ctx.el("div", "av-row-description", ctx.t("No local bookmarks match this search.")));
+        // An empty library and an unmatched search are different problems and need different
+        // guidance: one tells you how to start, the other only that this query found nothing.
+        const copy =
+          status.total === 0
+            ? ctx.t("Nothing saved yet. Use Save locally on any post to keep a copy here.")
+            : ctx.t("No local bookmarks match this search.");
+        bookmarkResults.append(ctx.el("div", "av-row-description", copy));
         return;
       }
       for (const entry of matches) {
@@ -591,6 +605,14 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
 
   if (ctx.options.getUserNotes && ctx.options.setUserNote) {
     const notes = ctx.options.getUserNotes();
+    if (Object.keys(notes).length === 0) {
+      rows.push(
+        ctx.readonlyRow(
+          "No account notes yet",
+          ctx.t("Add one below as handle: note. Notes appear beside that account's posts.")
+        )
+      );
+    }
     const serialized = Object.entries(notes)
       .map(([handle, note]) => `${handle}: ${note}`)
       .sort();
@@ -758,6 +780,14 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
         })
       )
     );
+    if (status.jobCount === 0) {
+      rows.push(
+        ctx.readonlyRow(
+          "No export jobs yet",
+          ctx.t("Turn Capture on, scroll a timeline, then export. Jobs and their records appear here.")
+        )
+      );
+    }
     for (const job of (status.jobs ?? []).slice(-3)) {
       rows.push(
         ctx.dataRow(

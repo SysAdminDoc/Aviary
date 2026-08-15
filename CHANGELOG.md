@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Added
+
+- Empty library surfaces now say how to fill them. Snapshots, account notes, and export jobs each
+  show one guiding sentence when they hold nothing, and an empty bookmark library is distinguished
+  from a search that simply found no match — different problems that had shown identical copy.
+
 ## 1.22.0 - 2026-08-14
 
 ### Added
