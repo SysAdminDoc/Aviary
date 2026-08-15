@@ -9,8 +9,21 @@
   this session. Aviary can only act on a playlist it sees, and a player fetching one inside a
   worker never reaches it — so the setting states what it does instead of claiming a result.
 
+### Fixed
+
+- Account notes now recognise absolute profile links as well as relative ones. Like the filter
+  engine before it, the notes reader accepted only relative hrefs, so every author read as unknown
+  against the saved captures.
+
 ### Added
 
+- **Account colours** tag a handle with one of six colours, shown as a badge beside that account's
+  posts. A colour works with or without a note, travels with the existing library backup, and the
+  badge keeps visible text and names the colour in its accessible label — colour is never the only
+  thing carrying the meaning.
+- **Keep video playing when the tab loses focus** resumes a video X stopped because you switched
+  tabs, and leaves a video you paused yourself alone. **Loop videos** restarts one at the end. Both
+  off by default, and both separate from the offscreen-pause setting, which is about scrolling.
 - **Dim posts you have already seen** (Filtering, off by default) fades a post the second time it
   scrolls past, so a return trip down the timeline shows what is new. A post is never faded while
   you are first reading it, hovering one brings it back, and **Forget seen posts** clears the
