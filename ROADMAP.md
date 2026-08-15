@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.23.0`
+Version: `1.24.0`
 
 Actionable work only. Historical and completed roadmap material is archived in CHANGELOG.md; blocked work is kept in Roadmap_Blocked.md.
 
@@ -46,7 +46,7 @@ Actionable work only. Historical and completed roadmap material is archived in C
 ### P2 — features
 
 - [ ] F144 — P2 — Say why a post was filtered
-  Why: a filter that hides silently is indistinguishable from a bug, and the v1.23.0 rule DSL already knows which condition matched. It is the single best trust affordance a filter engine can add, and the same request is open against the closest architectural twin.
+  Why: a filter that hides silently is indistinguishable from a bug, and the v1.24.0 rule DSL already knows which condition matched. It is the single best trust affordance a filter engine can add, and the same request is open against the closest architectural twin.
   Evidence: XKit-Rewritten#1664 (👍4); `src/features/filtering/rules.ts` `evaluateRules` already returns the deciding rule.
   Touches: `src/features/filtering/rules.ts`, `filter-engine.ts`, `hidden-posts-feature.ts`, the dim/hide affordance, Filtering panel.
   Acceptance: a hidden or dimmed post names the rule or predicate that caught it, in text, on hover or reveal; the reason is derived from the decision rather than recomputed; nothing is stored per post.
@@ -59,13 +59,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: a rule set exports to and imports from a documented plain-text or JSON form, reports parse errors per line before applying, previews what a paste would add or replace, and rides the existing backup.
   Complexity: M
 
-- [ ] F146 — P2 — Search the Control Center
-  Why: 13 destinations and well over a hundred controls, with no way to find one by name; asking for settings search is a standing request against the comparable panel.
-  Evidence: control-panel-for-twitter#430; `src/ui/control-center.ts` renders 13 destinations.
-  Touches: `src/ui/control-center.ts`, `src/ui/control-center/sections/*`, i18n catalog.
-  Acceptance: typing filters rows across every destination by label and description, states which destination each match lives in, is reachable without a keyboard shortcut, and clears back to the full panel.
-  Complexity: M
-
 - [ ] F147 — P2 — WACZ export and self-replay
   Why: Aviary emits raw uncompressed WARC while the browser-side archiving ecosystem has standardized on WACZ, whose client-side replay engine means an Aviary archive would open in every Webrecorder tool for a packaging change rather than a capture change.
   Evidence: webrecorder/archiveweb.page (★1540) and replayweb.page (★969), both pushed within days of 2026-08-15; WACZ spec (RESEARCH.md Sources); `src/features/export/warc.ts` writes plain records.
@@ -75,7 +68,7 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Complexity: L
 
 - [ ] F148 — P2 — Catch-up digest over the seen-post store
-  Why: v1.23.0 shipped the hard half — a bounded record of which posts have already gone past — and the best reading-mode idea in the adjacent field is what sits on top of it: a time-bounded digest of what is new, grouped by author.
+  Why: v1.24.0 shipped the hard half — a bounded record of which posts have already gone past — and the best reading-mode idea in the adjacent field is what sits on top of it: a time-bounded digest of what is new, grouped by author.
   Evidence: `src/features/filtering/seen-posts.ts`; cheeaun/phanpy Catch-up (★1478).
   Touches: `src/features/filtering/seen-posts.ts`, a new reading surface, Layout settings.
   Acceptance: a digest built only from the local seen record and already-rendered posts — zero originated requests — groups unseen posts by author over a chosen window, respects active filters, and shows filter reasons from F144 where a post was suppressed.

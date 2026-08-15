@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.24.0 - 2026-08-15
+
 ### Added
 
 - The DOM captures every selector is proved against now carry a date and an expiry.
