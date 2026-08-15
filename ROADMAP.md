@@ -31,13 +31,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: article-card units hide/collapse per the filter action; organic posts with links unaffected; fixture-tested.
   Complexity: M
 
-- [ ] F124 — P2 — Per-user color tags on accounts
-  Why: RES-style user tagging is proven in the adjacent domain; Aviary's user-notes already stores per-handle data — color labels are the missing visible layer.
-  Evidence: RES tagging; XKit relationship badges; src/features/library/user-notes.ts.
-  Touches: user-notes.ts (schema + badge render), library backup coverage, settings.
-  Acceptance: a handle can carry a colored label visible on posts; included in backup/restore; reversible.
-  Complexity: M
-
 ### P3 — polish and larger bets
 
 - [ ] F129 — P3 — Per-module custom CSS escape hatch

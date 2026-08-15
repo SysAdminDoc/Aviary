@@ -1647,6 +1647,8 @@ html.av-reduce-motion *::after {
       "Replace short `t.co` redirects with the destination from aria-labels and titles.": "Sustituye las redirecciones cortas `t.co` por el destino que aparece en aria-labels y t\xEDtulos.",
       "Clean tracking from links": "Limpiar el rastreo de los enlaces",
       "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.": "Elimina los tokens para compartir y los par\xE1metros de campa\xF1a (utm_*, fbclid y los propios t/s de X) de los enlaces del cronograma, de modo que lo que copias es la direcci\xF3n limpia.",
+      "Account colours": "Colores de cuentas",
+      "Format: handle: colour. One per line. Colours are amber, rose, violet, sky, green, or slate. An empty line removes the tag.": "Formato: usuario: color. Uno por l\xEDnea. Los colores son amber, rose, violet, sky, green o slate. Una l\xEDnea vac\xEDa elimina la etiqueta.",
       "Account notes": "Notas de cuentas",
       "Format: handle: note. One per line. Empty notes remove the entry.": "Formato: usuario: nota. Una por l\xEDnea. Las notas vac\xEDas eliminan la entrada.",
       "Clear all account notes": "Borrar todas las notas de cuentas",
@@ -1957,6 +1959,7 @@ html.av-reduce-motion *::after {
       "Unshorten off": "Expansi\xF3n de enlaces desactivada",
       "Link cleaning on": "Limpieza de enlaces activada",
       "Link cleaning off": "Limpieza de enlaces desactivada",
+      "Account colours saved": "Colores de cuentas guardados",
       "Account notes cleared": "Notas de cuentas borradas",
       "Could not clear notes.": "No se pudieron borrar las notas.",
       "Export capture on": "Captura para exportaci\xF3n activada",
@@ -2218,6 +2221,7 @@ html.av-reduce-motion *::after {
       "Save locally": "Guardar localmente",
       "Remove local bookmark": "Eliminar marcador local",
       "Note": "Nota",
+      "Tag": "Etiqueta",
       "Download access was not granted. Open Aviary Options to enable browser downloads.": "No se concedi\xF3 el acceso de descarga. Abre las opciones de Aviary para habilitar las descargas del navegador.",
       "Media download failed. Try the on-post button again.": "Fall\xF3 la descarga del contenido. Vuelve a intentarlo con el bot\xF3n de la publicaci\xF3n.",
       "Right-click an image or video first, then choose Aviary download.": "Haz clic derecho en una imagen o un v\xEDdeo y luego elige la descarga de Aviary.",
@@ -2560,6 +2564,8 @@ html.av-reduce-motion *::after {
       "Replace short `t.co` redirects with the destination from aria-labels and titles.": "Substitui os redirecionamentos curtos `t.co` pelo destino obtido de aria-labels e t\xEDtulos.",
       "Clean tracking from links": "Limpar o rastreio dos liga\xE7\xF5es",
       "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.": "Remove os tokens de partilha e os par\xE2metros de campanha (utm_*, fbclid e os pr\xF3prios t/s do X) das liga\xE7\xF5es na cronologia, para que o que copia seja o endere\xE7o simples.",
+      "Account colours": "Cores de contas",
+      "Format: handle: colour. One per line. Colours are amber, rose, violet, sky, green, or slate. An empty line removes the tag.": "Formato: usu\xE1rio: cor. Uma por linha. As cores s\xE3o amber, rose, violet, sky, green ou slate. Uma linha vazia remove a etiqueta.",
       "Account notes": "Notas de contas",
       "Format: handle: note. One per line. Empty notes remove the entry.": "Formato: utilizador: nota. Uma por linha. Notas vazias removem a entrada.",
       "Clear all account notes": "Limpar todas as notas de contas",
@@ -2870,6 +2876,7 @@ html.av-reduce-motion *::after {
       "Unshorten off": "Expans\xE3o de liga\xE7\xF5es desativada",
       "Link cleaning on": "Limpeza de liga\xE7\xF5es ativada",
       "Link cleaning off": "Limpeza de liga\xE7\xF5es desativada",
+      "Account colours saved": "Cores de contas salvas",
       "Account notes cleared": "Notas de contas limpas",
       "Could not clear notes.": "N\xE3o foi poss\xEDvel limpar as notas.",
       "Export capture on": "Captura para exporta\xE7\xE3o ativada",
@@ -3131,6 +3138,7 @@ html.av-reduce-motion *::after {
       "Save locally": "Guardar localmente",
       "Remove local bookmark": "Remover marcador local",
       "Note": "Nota",
+      "Tag": "Etiqueta",
       "Download access was not granted. Open Aviary Options to enable browser downloads.": "O acesso de download n\xE3o foi concedido. Abra as op\xE7\xF5es do Aviary para ativar os downloads do navegador.",
       "Media download failed. Try the on-post button again.": "Falha ao baixar a m\xEDdia. Tente novamente pelo bot\xE3o na publica\xE7\xE3o.",
       "Right-click an image or video first, then choose Aviary download.": "Clique com o bot\xE3o direito em uma imagem ou v\xEDdeo e escolha o download do Aviary.",
@@ -3473,6 +3481,8 @@ html.av-reduce-motion *::after {
       "Replace short `t.co` redirects with the destination from aria-labels and titles.": "Remplace les redirections courtes `t.co` par la destination lue dans les aria-labels et les titres.",
       "Clean tracking from links": "Nettoyer le suivi des liens",
       "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.": "Supprime les jetons de partage et les param\xE8tres de campagne (utm_*, fbclid et les t/s propres \xE0 X) des liens du fil, pour que ce que vous copiez soit l'adresse brute.",
+      "Account colours": "Couleurs de comptes",
+      "Format: handle: colour. One per line. Colours are amber, rose, violet, sky, green, or slate. An empty line removes the tag.": "Format : identifiant : couleur. Une par ligne. Les couleurs sont amber, rose, violet, sky, green ou slate. Une ligne vide retire l'\xE9tiquette.",
       "Account notes": "Notes de comptes",
       "Format: handle: note. One per line. Empty notes remove the entry.": "Format : identifiant : note. Une par ligne. Une note vide supprime l'entr\xE9e.",
       "Clear all account notes": "Effacer toutes les notes de comptes",
@@ -3783,6 +3793,7 @@ html.av-reduce-motion *::after {
       "Unshorten off": "D\xE9veloppement des liens d\xE9sactiv\xE9",
       "Link cleaning on": "Nettoyage des liens activ\xE9",
       "Link cleaning off": "Nettoyage des liens d\xE9sactiv\xE9",
+      "Account colours saved": "Couleurs de comptes enregistr\xE9es",
       "Account notes cleared": "Notes de comptes effac\xE9es",
       "Could not clear notes.": "Impossible d'effacer les notes.",
       "Export capture on": "Capture pour l'export activ\xE9e",
@@ -4044,6 +4055,7 @@ html.av-reduce-motion *::after {
       "Save locally": "Enregistrer localement",
       "Remove local bookmark": "Supprimer le marque-page local",
       "Note": "Annotation",
+      "Tag": "\xC9tiquette",
       "Download access was not granted. Open Aviary Options to enable browser downloads.": "L'acc\xE8s au t\xE9l\xE9chargement n'a pas \xE9t\xE9 accord\xE9. Ouvrez les options d'Aviary pour activer les t\xE9l\xE9chargements du navigateur.",
       "Media download failed. Try the on-post button again.": "\xC9chec du t\xE9l\xE9chargement du m\xE9dia. R\xE9essayez avec le bouton sur le post.",
       "Right-click an image or video first, then choose Aviary download.": "Faites un clic droit sur une image ou une vid\xE9o, puis choisissez le t\xE9l\xE9chargement Aviary.",
@@ -4386,6 +4398,8 @@ html.av-reduce-motion *::after {
       "Replace short `t.co` redirects with the destination from aria-labels and titles.": "Ersetzt kurze `t.co`-Weiterleitungen durch das Ziel aus aria-labels und Titeln.",
       "Clean tracking from links": "Tracking aus Links entfernen",
       "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.": "Entfernt Share-Tokens und Kampagnenparameter (utm_*, fbclid und X' eigene t/s) aus Links in der Timeline, sodass du die blanke Adresse kopierst.",
+      "Account colours": "Kontofarben",
+      "Format: handle: colour. One per line. Colours are amber, rose, violet, sky, green, or slate. An empty line removes the tag.": "Format: Name: Farbe. Eine pro Zeile. Farben sind amber, rose, violet, sky, green oder slate. Eine leere Zeile entfernt die Markierung.",
       "Account notes": "Konto-Notizen",
       "Format: handle: note. One per line. Empty notes remove the entry.": "Format: Name: Notiz. Eine pro Zeile. Leere Notizen entfernen den Eintrag.",
       "Clear all account notes": "Alle Konto-Notizen l\xF6schen",
@@ -4696,6 +4710,7 @@ html.av-reduce-motion *::after {
       "Unshorten off": "Linkaufl\xF6sung aus",
       "Link cleaning on": "Linkbereinigung an",
       "Link cleaning off": "Linkbereinigung aus",
+      "Account colours saved": "Kontofarben gespeichert",
       "Account notes cleared": "Konto-Notizen gel\xF6scht",
       "Could not clear notes.": "Notizen konnten nicht gel\xF6scht werden.",
       "Export capture on": "Export-Erfassung an",
@@ -4957,6 +4972,7 @@ html.av-reduce-motion *::after {
       "Save locally": "Lokal speichern",
       "Remove local bookmark": "Lokales Lesezeichen entfernen",
       "Note": "Notiz",
+      "Tag": "Markierung",
       "Download access was not granted. Open Aviary Options to enable browser downloads.": "Der Download-Zugriff wurde nicht erteilt. \xD6ffne die Aviary-Optionen, um Browser-Downloads zu aktivieren.",
       "Media download failed. Try the on-post button again.": "Medien-Download fehlgeschlagen. Versuche es erneut \xFCber die Schaltfl\xE4che am Beitrag.",
       "Right-click an image or video first, then choose Aviary download.": "Klicke zuerst mit der rechten Maustaste auf ein Bild oder Video und w\xE4hle dann den Aviary-Download.",
@@ -5299,6 +5315,8 @@ html.av-reduce-motion *::after {
       "Replace short `t.co` redirects with the destination from aria-labels and titles.": "\u77ED\u7E2E\u3055\u308C\u305F `t.co` \u306E\u30EA\u30F3\u30AF\u3092\u3001aria-label \u3084 title \u306B\u3042\u308B\u5B9F\u969B\u306E URL \u306B\u7F6E\u304D\u63DB\u3048\u307E\u3059\u3002",
       "Clean tracking from links": "\u30EA\u30F3\u30AF\u304B\u3089\u30C8\u30E9\u30C3\u30AD\u30F3\u30B0\u3092\u9664\u53BB",
       "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.": "\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u306E\u30EA\u30F3\u30AF\u304B\u3089\u5171\u6709\u30C8\u30FC\u30AF\u30F3\u3068\u30AD\u30E3\u30F3\u30DA\u30FC\u30F3\u7528\u30D1\u30E9\u30E1\u30FC\u30BF\uFF08utm_*\u3001fbclid\u3001X \u72EC\u81EA\u306E t/s\uFF09\u3092\u53D6\u308A\u9664\u304D\u3001\u30B3\u30D4\u30FC\u3057\u305F\u5185\u5BB9\u304C\u7D20\u306E\u30A2\u30C9\u30EC\u30B9\u306B\u306A\u308B\u3088\u3046\u306B\u3057\u307E\u3059\u3002",
+      "Account colours": "\u30A2\u30AB\u30A6\u30F3\u30C8\u306E\u8272",
+      "Format: handle: colour. One per line. Colours are amber, rose, violet, sky, green, or slate. An empty line removes the tag.": "\u5F62\u5F0F: \u30E6\u30FC\u30B6\u30FC\u540D: \u8272\u30021 \u884C\u306B 1 \u4EF6\u3002\u8272\u306F amber\u3001rose\u3001violet\u3001sky\u3001green\u3001slate \u3067\u3059\u3002\u7A7A\u884C\u306B\u3059\u308B\u3068\u30BF\u30B0\u3092\u524A\u9664\u3057\u307E\u3059\u3002",
       "Account notes": "\u30A2\u30AB\u30A6\u30F3\u30C8\u306E\u30E1\u30E2",
       "Format: handle: note. One per line. Empty notes remove the entry.": "\u5F62\u5F0F: \u30A2\u30AB\u30A6\u30F3\u30C8\u540D: \u30E1\u30E2\u30021 \u884C\u306B 1 \u3064\u3002\u30E1\u30E2\u3092\u7A7A\u306B\u3059\u308B\u3068\u524A\u9664\u3055\u308C\u307E\u3059\u3002",
       "Clear all account notes": "\u30A2\u30AB\u30A6\u30F3\u30C8\u306E\u30E1\u30E2\u3092\u3059\u3079\u3066\u6D88\u53BB",
@@ -5609,6 +5627,7 @@ html.av-reduce-motion *::after {
       "Unshorten off": "\u77ED\u7E2E\u30EA\u30F3\u30AF\u306E\u5C55\u958B \u30AA\u30D5",
       "Link cleaning on": "\u30EA\u30F3\u30AF\u306E\u30AF\u30EA\u30FC\u30CB\u30F3\u30B0 \u30AA\u30F3",
       "Link cleaning off": "\u30EA\u30F3\u30AF\u306E\u30AF\u30EA\u30FC\u30CB\u30F3\u30B0 \u30AA\u30D5",
+      "Account colours saved": "\u30A2\u30AB\u30A6\u30F3\u30C8\u306E\u8272\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Account notes cleared": "\u30A2\u30AB\u30A6\u30F3\u30C8\u306E\u30E1\u30E2\u3092\u6D88\u53BB\u3057\u307E\u3057\u305F",
       "Could not clear notes.": "\u30E1\u30E2\u3092\u6D88\u53BB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
       "Export capture on": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u7528\u30AD\u30E3\u30D7\u30C1\u30E3 \u30AA\u30F3",
@@ -5870,6 +5889,7 @@ html.av-reduce-motion *::after {
       "Save locally": "\u30ED\u30FC\u30AB\u30EB\u306B\u4FDD\u5B58",
       "Remove local bookmark": "\u30ED\u30FC\u30AB\u30EB\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u3092\u524A\u9664",
       "Note": "\u30E1\u30E2",
+      "Tag": "\u30BF\u30B0",
       "Download access was not granted. Open Aviary Options to enable browser downloads.": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306E\u30A2\u30AF\u30BB\u30B9\u304C\u8A31\u53EF\u3055\u308C\u307E\u305B\u3093\u3067\u3057\u305F\u3002Aviary \u306E\u30AA\u30D7\u30B7\u30E7\u30F3\u3092\u958B\u3044\u3066\u30D6\u30E9\u30A6\u30B6\u30FC\u306E\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3092\u6709\u52B9\u306B\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
       "Media download failed. Try the on-post button again.": "\u30E1\u30C7\u30A3\u30A2\u306E\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u6295\u7A3F\u4E0A\u306E\u30DC\u30BF\u30F3\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
       "Right-click an image or video first, then choose Aviary download.": "\u5148\u306B\u753B\u50CF\u307E\u305F\u306F\u52D5\u753B\u3092\u53F3\u30AF\u30EA\u30C3\u30AF\u3057\u3066\u304B\u3089\u3001Aviary \u306E\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
@@ -6212,6 +6232,8 @@ html.av-reduce-motion *::after {
       "Replace short `t.co` redirects with the destination from aria-labels and titles.": "\uC9E7\uC740 `t.co` \uB9C1\uD06C\uB97C aria-label\uACFC title\uC5D0 \uC788\uB294 \uC2E4\uC81C \uC8FC\uC18C\uB85C \uBC14\uAFC9\uB2C8\uB2E4.",
       "Clean tracking from links": "\uB9C1\uD06C\uC5D0\uC11C \uCD94\uC801 \uC815\uBCF4 \uC81C\uAC70",
       "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.": "\uD0C0\uC784\uB77C\uC778 \uB9C1\uD06C\uC5D0\uC11C \uACF5\uC720 \uD1A0\uD070\uACFC \uCEA0\uD398\uC778 \uB9E4\uAC1C\uBCC0\uC218(utm_*, fbclid, X \uC790\uCCB4\uC758 t/s)\uB97C \uC81C\uAC70\uD574 \uBCF5\uC0AC\uD55C \uB0B4\uC6A9\uC774 \uC21C\uC218\uD55C \uC8FC\uC18C\uAC00 \uB418\uB3C4\uB85D \uD569\uB2C8\uB2E4.",
+      "Account colours": "\uACC4\uC815 \uC0C9\uC0C1",
+      "Format: handle: colour. One per line. Colours are amber, rose, violet, sky, green, or slate. An empty line removes the tag.": "\uD615\uC2DD: \uC0AC\uC6A9\uC790\uBA85: \uC0C9\uC0C1. \uD55C \uC904\uC5D0 \uD558\uB098\uC529. \uC0C9\uC0C1\uC740 amber, rose, violet, sky, green, slate\uC785\uB2C8\uB2E4. \uBE48 \uC904\uB85C \uB450\uBA74 \uD0DC\uADF8\uAC00 \uC0AD\uC81C\uB429\uB2C8\uB2E4.",
       "Account notes": "\uACC4\uC815 \uBA54\uBAA8",
       "Format: handle: note. One per line. Empty notes remove the entry.": "\uD615\uC2DD: \uACC4\uC815: \uBA54\uBAA8. \uD55C \uC904\uC5D0 \uD558\uB098\uC529. \uBA54\uBAA8\uB97C \uBE44\uC6B0\uBA74 \uC0AD\uC81C\uB429\uB2C8\uB2E4.",
       "Clear all account notes": "\uACC4\uC815 \uBA54\uBAA8 \uBAA8\uB450 \uC9C0\uC6B0\uAE30",
@@ -6522,6 +6544,7 @@ html.av-reduce-motion *::after {
       "Unshorten off": "\uB9C1\uD06C \uD3BC\uCE58\uAE30 \uB054",
       "Link cleaning on": "\uB9C1\uD06C \uC815\uB9AC \uCF2C",
       "Link cleaning off": "\uB9C1\uD06C \uC815\uB9AC \uB054",
+      "Account colours saved": "\uACC4\uC815 \uC0C9\uC0C1\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Account notes cleared": "\uACC4\uC815 \uBA54\uBAA8\uB97C \uC9C0\uC6E0\uC2B5\uB2C8\uB2E4",
       "Could not clear notes.": "\uBA54\uBAA8\uB97C \uC9C0\uC6B0\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       "Export capture on": "\uB0B4\uBCF4\uB0B4\uAE30 \uCEA1\uCC98 \uCF2C",
@@ -6783,6 +6806,7 @@ html.av-reduce-motion *::after {
       "Save locally": "\uB85C\uCEEC\uC5D0 \uC800\uC7A5",
       "Remove local bookmark": "\uB85C\uCEEC \uBD81\uB9C8\uD06C \uC0AD\uC81C",
       "Note": "\uBA54\uBAA8",
+      "Tag": "\uD0DC\uADF8",
       "Download access was not granted. Open Aviary Options to enable browser downloads.": "\uB2E4\uC6B4\uB85C\uB4DC \uAD8C\uD55C\uC774 \uD5C8\uC6A9\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4. Aviary \uC635\uC158\uC5D0\uC11C \uBE0C\uB77C\uC6B0\uC800 \uB2E4\uC6B4\uB85C\uB4DC\uB97C \uD65C\uC131\uD654\uD558\uC138\uC694.",
       "Media download failed. Try the on-post button again.": "\uBBF8\uB514\uC5B4 \uB2E4\uC6B4\uB85C\uB4DC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4. \uAC8C\uC2DC\uBB3C\uC758 \uBC84\uD2BC\uC73C\uB85C \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
       "Right-click an image or video first, then choose Aviary download.": "\uBA3C\uC800 \uC774\uBBF8\uC9C0\uB098 \uB3D9\uC601\uC0C1\uC744 \uB9C8\uC6B0\uC2A4 \uC624\uB978\uCABD \uBC84\uD2BC\uC73C\uB85C \uD074\uB9AD\uD55C \uB2E4\uC74C Aviary \uB2E4\uC6B4\uB85C\uB4DC\uB97C \uC120\uD0DD\uD558\uC138\uC694.",
@@ -7125,6 +7149,8 @@ html.av-reduce-motion *::after {
       "Replace short `t.co` redirects with the destination from aria-labels and titles.": "\u064A\u0633\u062A\u0628\u062F\u0644 \u0631\u0648\u0627\u0628\u0637 `t.co` \u0627\u0644\u0645\u062E\u062A\u0635\u0631\u0629 \u0628\u0627\u0644\u0648\u062C\u0647\u0629 \u0627\u0644\u0645\u0623\u062E\u0648\u0630\u0629 \u0645\u0646 aria-label \u0648\u0627\u0644\u0639\u0646\u0627\u0648\u064A\u0646.",
       "Clean tracking from links": "\u0625\u0632\u0627\u0644\u0629 \u0627\u0644\u062A\u062A\u0628\u0651\u0639 \u0645\u0646 \u0627\u0644\u0631\u0648\u0627\u0628\u0637",
       "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.": "\u064A\u0632\u064A\u0644 \u0631\u0645\u0648\u0632 \u0627\u0644\u0645\u0634\u0627\u0631\u0643\u0629 \u0648\u0645\u0639\u0627\u0645\u0644\u0627\u062A \u0627\u0644\u062D\u0645\u0644\u0627\u062A (utm_* \u0648fbclid \u0648\u0645\u0639\u0627\u0645\u0644\u0627\u062A t/s \u0627\u0644\u062E\u0627\u0635\u0629 \u0628\u0640 X) \u0645\u0646 \u0631\u0648\u0627\u0628\u0637 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A\u060C \u0641\u064A\u0635\u0628\u062D \u0645\u0627 \u062A\u0646\u0633\u062E\u0647 \u0647\u0648 \u0627\u0644\u0639\u0646\u0648\u0627\u0646 \u0627\u0644\u0645\u062C\u0631\u0651\u062F.",
+      "Account colours": "\u0623\u0644\u0648\u0627\u0646 \u0627\u0644\u062D\u0633\u0627\u0628\u0627\u062A",
+      "Format: handle: colour. One per line. Colours are amber, rose, violet, sky, green, or slate. An empty line removes the tag.": "\u0627\u0644\u0635\u064A\u063A\u0629: \u0627\u0644\u0645\u0639\u0631\u0651\u0641: \u0627\u0644\u0644\u0648\u0646. \u0648\u0627\u062D\u062F \u0641\u064A \u0643\u0644 \u0633\u0637\u0631. \u0627\u0644\u0623\u0644\u0648\u0627\u0646 \u0647\u064A amber \u0648rose \u0648violet \u0648sky \u0648green \u0648slate. \u0627\u0644\u0633\u0637\u0631 \u0627\u0644\u0641\u0627\u0631\u063A \u064A\u0632\u064A\u0644 \u0627\u0644\u0648\u0633\u0645.",
       "Account notes": "\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u062D\u0633\u0627\u0628\u0627\u062A",
       "Format: handle: note. One per line. Empty notes remove the entry.": "\u0627\u0644\u0635\u064A\u063A\u0629: \u0627\u0644\u062D\u0633\u0627\u0628: \u0627\u0644\u0645\u0644\u0627\u062D\u0638\u0629. \u0648\u0627\u062D\u062F\u0629 \u0641\u064A \u0643\u0644 \u0633\u0637\u0631. \u0627\u0644\u0645\u0644\u0627\u062D\u0638\u0629 \u0627\u0644\u0641\u0627\u0631\u063A\u0629 \u062A\u062D\u0630\u0641 \u0627\u0644\u0639\u0646\u0635\u0631.",
       "Clear all account notes": "\u0645\u0633\u062D \u0643\u0644 \u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u062D\u0633\u0627\u0628\u0627\u062A",
@@ -7435,6 +7461,7 @@ html.av-reduce-motion *::after {
       "Unshorten off": "\u062A\u0648\u0633\u064A\u0639 \u0627\u0644\u0631\u0648\u0627\u0628\u0637 \u0645\u0639\u0637\u0651\u0644",
       "Link cleaning on": "\u062A\u0646\u0638\u064A\u0641 \u0627\u0644\u0631\u0648\u0627\u0628\u0637 \u0645\u0641\u0639\u0651\u0644",
       "Link cleaning off": "\u062A\u0646\u0638\u064A\u0641 \u0627\u0644\u0631\u0648\u0627\u0628\u0637 \u0645\u0639\u0637\u0651\u0644",
+      "Account colours saved": "\u062A\u0645 \u062D\u0641\u0638 \u0623\u0644\u0648\u0627\u0646 \u0627\u0644\u062D\u0633\u0627\u0628\u0627\u062A",
       "Account notes cleared": "\u062A\u0645 \u0645\u0633\u062D \u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u062D\u0633\u0627\u0628\u0627\u062A",
       "Could not clear notes.": "\u062A\u0639\u0630\u0651\u0631 \u0645\u0633\u062D \u0627\u0644\u0645\u0644\u0627\u062D\u0638\u0627\u062A.",
       "Export capture on": "\u0627\u0644\u062A\u0642\u0627\u0637 \u0627\u0644\u062A\u0635\u062F\u064A\u0631 \u0645\u0641\u0639\u0651\u0644",
@@ -7696,6 +7723,7 @@ html.av-reduce-motion *::after {
       "Save locally": "\u062D\u0641\u0638 \u0645\u062D\u0644\u064A\u064B\u0627",
       "Remove local bookmark": "\u0625\u0632\u0627\u0644\u0629 \u0627\u0644\u0625\u0634\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062C\u0639\u064A\u0629 \u0627\u0644\u0645\u062D\u0644\u064A\u0629",
       "Note": "\u0645\u0644\u0627\u062D\u0638\u0629",
+      "Tag": "\u0648\u0633\u0645",
       "Download access was not granted. Open Aviary Options to enable browser downloads.": "\u0644\u0645 \u064A\u062A\u0645 \u0645\u0646\u062D \u0625\u0630\u0646 \u0627\u0644\u062A\u0646\u0632\u064A\u0644. \u0627\u0641\u062A\u062D \u062E\u064A\u0627\u0631\u0627\u062A Aviary \u0644\u062A\u0645\u0643\u064A\u0646 \u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0627\u0644\u0645\u062A\u0635\u0641\u062D.",
       "Media download failed. Try the on-post button again.": "\u0641\u0634\u0644 \u062A\u0646\u0632\u064A\u0644 \u0627\u0644\u0648\u0633\u0627\u0626\u0637. \u062D\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649 \u0628\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0627\u0644\u0632\u0631 \u0627\u0644\u0645\u0648\u062C\u0648\u062F \u0639\u0644\u0649 \u0627\u0644\u0645\u0646\u0634\u0648\u0631.",
       "Right-click an image or video first, then choose Aviary download.": "\u0627\u0646\u0642\u0631 \u0628\u0632\u0631 \u0627\u0644\u0645\u0627\u0648\u0633 \u0627\u0644\u0623\u064A\u0645\u0646 \u0639\u0644\u0649 \u0635\u0648\u0631\u0629 \u0623\u0648 \u0641\u064A\u062F\u064A\u0648 \u0623\u0648\u0644\u0627\u064B\u060C \u062B\u0645 \u0627\u062E\u062A\u0631 \u062A\u0646\u0632\u064A\u0644 Aviary.",
@@ -8038,6 +8066,8 @@ html.av-reduce-motion *::after {
       "Replace short `t.co` redirects with the destination from aria-labels and titles.": "\u05DE\u05D7\u05DC\u05D9\u05E3 \u05E7\u05D9\u05E9\u05D5\u05E8\u05D9 `t.co` \u05DE\u05E7\u05D5\u05E6\u05E8\u05D9\u05DD \u05D1\u05D9\u05E2\u05D3 \u05E9\u05DE\u05D5\u05E4\u05D9\u05E2 \u05D1\u2011aria-label \u05D5\u05D1\u05DB\u05D5\u05EA\u05E8\u05D5\u05EA.",
       "Clean tracking from links": "\u05E0\u05D9\u05E7\u05D5\u05D9 \u05DE\u05E2\u05E7\u05D1 \u05DE\u05E7\u05D9\u05E9\u05D5\u05E8\u05D9\u05DD",
       "Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address.": "\u05DE\u05E1\u05D9\u05E8 \u05D0\u05E1\u05D9\u05DE\u05D5\u05E0\u05D9 \u05E9\u05D9\u05EA\u05D5\u05E3 \u05D5\u05E4\u05E8\u05DE\u05D8\u05E8\u05D9 \u05E7\u05DE\u05E4\u05D9\u05D9\u05DF (utm_*, fbclid, \u05D5\u05D4\u2011t/s \u05E9\u05DC X \u05E2\u05E6\u05DE\u05D4) \u05DE\u05E7\u05D9\u05E9\u05D5\u05E8\u05D9\u05DD \u05D1\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF, \u05DB\u05DA \u05E9\u05DE\u05D4 \u05E9\u05EA\u05E2\u05EA\u05D9\u05E7 \u05D4\u05D5\u05D0 \u05D4\u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05E0\u05E7\u05D9\u05D9\u05D4.",
+      "Account colours": "\u05E6\u05D1\u05E2\u05D9 \u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA",
+      "Format: handle: colour. One per line. Colours are amber, rose, violet, sky, green, or slate. An empty line removes the tag.": "\u05EA\u05D1\u05E0\u05D9\u05EA: \u05E9\u05DD \u05DE\u05E9\u05EA\u05DE\u05E9: \u05E6\u05D1\u05E2. \u05D0\u05D7\u05D3 \u05D1\u05DB\u05DC \u05E9\u05D5\u05E8\u05D4. \u05D4\u05E6\u05D1\u05E2\u05D9\u05DD \u05D4\u05DD amber, rose, violet, sky, green \u05D0\u05D5 slate. \u05E9\u05D5\u05E8\u05D4 \u05E8\u05D9\u05E7\u05D4 \u05DE\u05E1\u05D9\u05E8\u05D4 \u05D0\u05EA \u05D4\u05EA\u05D2\u05D9\u05EA.",
       "Account notes": "\u05D4\u05E2\u05E8\u05D5\u05EA \u05E2\u05DC \u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA",
       "Format: handle: note. One per line. Empty notes remove the entry.": "\u05DE\u05D1\u05E0\u05D4: \u05D7\u05E9\u05D1\u05D5\u05DF: \u05D4\u05E2\u05E8\u05D4. \u05D0\u05D7\u05EA \u05D1\u05DB\u05DC \u05E9\u05D5\u05E8\u05D4. \u05D4\u05E2\u05E8\u05D4 \u05E8\u05D9\u05E7\u05D4 \u05DE\u05D5\u05D7\u05E7\u05EA \u05D0\u05EA \u05D4\u05E8\u05E9\u05D5\u05DE\u05D4.",
       "Clear all account notes": "\u05E0\u05D9\u05E7\u05D5\u05D9 \u05DB\u05DC \u05D4\u05D4\u05E2\u05E8\u05D5\u05EA",
@@ -8348,6 +8378,7 @@ html.av-reduce-motion *::after {
       "Unshorten off": "\u05E4\u05EA\u05D9\u05D7\u05EA \u05E7\u05D9\u05E9\u05D5\u05E8\u05D9\u05DD \u05DE\u05E7\u05D5\u05E6\u05E8\u05D9\u05DD \u05DB\u05D1\u05D5\u05D9\u05D4",
       "Link cleaning on": "\u05E0\u05D9\u05E7\u05D5\u05D9 \u05E7\u05D9\u05E9\u05D5\u05E8\u05D9\u05DD \u05E4\u05E2\u05D9\u05DC",
       "Link cleaning off": "\u05E0\u05D9\u05E7\u05D5\u05D9 \u05E7\u05D9\u05E9\u05D5\u05E8\u05D9\u05DD \u05DB\u05D1\u05D5\u05D9",
+      "Account colours saved": "\u05E6\u05D1\u05E2\u05D9 \u05D4\u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D5",
       "Account notes cleared": "\u05D4\u05D4\u05E2\u05E8\u05D5\u05EA \u05E2\u05DC \u05D4\u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA \u05E0\u05D5\u05E7\u05D5",
       "Could not clear notes.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E0\u05E7\u05D5\u05EA \u05D0\u05EA \u05D4\u05D4\u05E2\u05E8\u05D5\u05EA.",
       "Export capture on": "\u05DC\u05DB\u05D9\u05D3\u05D4 \u05DC\u05D9\u05D9\u05E6\u05D5\u05D0 \u05E4\u05E2\u05D9\u05DC\u05D4",
@@ -8609,6 +8640,7 @@ html.av-reduce-motion *::after {
       "Save locally": "\u05E9\u05DE\u05D9\u05E8\u05D4 \u05DE\u05E7\u05D5\u05DE\u05D9\u05EA",
       "Remove local bookmark": "\u05D4\u05E1\u05E8\u05EA \u05E1\u05D9\u05DE\u05E0\u05D9\u05D9\u05D4 \u05DE\u05E7\u05D5\u05DE\u05D9\u05EA",
       "Note": "\u05D4\u05E2\u05E8\u05D4",
+      "Tag": "\u05EA\u05D2\u05D9\u05EA",
       "Download access was not granted. Open Aviary Options to enable browser downloads.": "\u05D4\u05E8\u05E9\u05D0\u05EA \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05DC\u05D0 \u05E0\u05D9\u05EA\u05E0\u05D4. \u05E4\u05EA\u05D7 \u05D0\u05EA \u05D0\u05E4\u05E9\u05E8\u05D5\u05D9\u05D5\u05EA Aviary \u05DB\u05D3\u05D9 \u05DC\u05D0\u05E4\u05E9\u05E8 \u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF.",
       "Media download failed. Try the on-post button again.": "\u05D4\u05D5\u05E8\u05D3\u05EA \u05D4\u05DE\u05D3\u05D9\u05D4 \u05E0\u05DB\u05E9\u05DC\u05D4. \u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1 \u05D1\u05D0\u05DE\u05E6\u05E2\u05D5\u05EA \u05D4\u05DB\u05E4\u05EA\u05D5\u05E8 \u05E9\u05D1\u05E4\u05D5\u05E1\u05D8.",
       "Right-click an image or video first, then choose Aviary download.": "\u05DC\u05D7\u05E5 \u05EA\u05D7\u05D9\u05DC\u05D4 \u05DC\u05D7\u05D9\u05E6\u05D4 \u05D9\u05DE\u05E0\u05D9\u05EA \u05E2\u05DC \u05EA\u05DE\u05D5\u05E0\u05D4 \u05D0\u05D5 \u05D5\u05D9\u05D3\u05D0\u05D5, \u05D5\u05D0\u05D6 \u05D1\u05D7\u05E8 \u05D1\u05D4\u05D5\u05E8\u05D3\u05EA Aviary.",
@@ -10385,6 +10417,35 @@ html.av-reduce-motion *::after {
         }
       )
     );
+    if (ctx.options.getUserColors && ctx.options.setUserColor) {
+      const colors = ctx.options.getUserColors();
+      const serializedColors = Object.entries(colors).map(([handle, color]) => `${handle}: ${color}`).sort();
+      rows.push(
+        ctx.textareaRow(
+          "Account colours",
+          "Format: handle: colour. One per line. Colours are amber, rose, violet, sky, green, or slate. An empty line removes the tag.",
+          serializedColors,
+          async (lines) => {
+            const seen = /* @__PURE__ */ new Set();
+            for (const line of lines) {
+              const match = /^@?([A-Za-z0-9_]{1,15})\s*[:\-]\s*(\w*)$/.exec(line.trim());
+              if (!match) continue;
+              const [, handle, color] = match;
+              if (!handle) continue;
+              seen.add(handle.toLowerCase());
+              await ctx.options.setUserColor(handle, (color ?? "").toLowerCase());
+            }
+            for (const handle of Object.keys(colors)) {
+              if (!seen.has(handle)) {
+                await ctx.options.setUserColor(handle, "");
+              }
+            }
+            ctx.render();
+            await ctx.save("Account colours saved");
+          }
+        )
+      );
+    }
     if (ctx.options.getUserNotes && ctx.options.setUserNote) {
       const notes = ctx.options.getUserNotes();
       if (Object.keys(notes).length === 0) {
@@ -24038,6 +24099,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   var STYLE_ID7 = "av-user-notes";
   var BADGE_ATTR = "data-av-note-badge";
   var ARTICLE_ATTR = "data-av-note-processed";
+  var USER_COLORS = ["amber", "rose", "violet", "sky", "green", "slate"];
   var cache;
   var activeStorage;
   var userNotesFeature = {
@@ -24105,16 +24167,40 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     } catch {
     }
   }
+  function getUserColors() {
+    return { ...cache?.colors ?? {} };
+  }
+  async function setUserColor(handle, color) {
+    const normalized = normalizeHandle4(handle);
+    if (!normalized || !activeStorage) {
+      return;
+    }
+    if (!cache) {
+      cache = await load(activeStorage);
+    }
+    if (color === "") {
+      delete cache.colors[normalized];
+    } else if (isUserColor(color)) {
+      cache.colors[normalized] = color;
+    } else {
+      return;
+    }
+    cache.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+    try {
+      await activeStorage.set(USER_NOTES_KEY, cache);
+    } catch {
+    }
+  }
   async function clearUserNotes() {
     if (!activeStorage) return;
-    cache = { notes: {}, updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
+    cache = { notes: {}, colors: {}, updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
     try {
       await activeStorage.set(USER_NOTES_KEY, cache);
     } catch {
     }
   }
   async function load(storage) {
-    const fallback = { notes: {}, updatedAt: null };
+    const fallback = { notes: {}, colors: {}, updatedAt: null };
     const stored = await storage.get(USER_NOTES_KEY, fallback);
     const notes = stored?.notes ?? {};
     const sanitized = {};
@@ -24124,7 +24210,17 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
         sanitized[normalized] = note.slice(0, 280);
       }
     }
-    return { notes: sanitized, updatedAt: stored?.updatedAt ?? null };
+    const colors = {};
+    for (const [handle, color] of Object.entries(stored?.colors ?? {})) {
+      const normalized = normalizeHandle4(handle);
+      if (normalized && isUserColor(color)) {
+        colors[normalized] = color;
+      }
+    }
+    return { notes: sanitized, colors, updatedAt: stored?.updatedAt ?? null };
+  }
+  function isUserColor(value) {
+    return typeof value === "string" && USER_COLORS.includes(value);
   }
   function decorate(ctx, root) {
     if (!cache) return;
@@ -24136,9 +24232,10 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   function reconcileArticle(article, ctx) {
     const handle = readHandle4(article);
     const note = handle ? cache?.notes[handle] : void 0;
+    const color = handle ? cache?.colors[handle] : void 0;
     const userName = article.querySelector('[data-testid="User-Name"]');
     const badges = Array.from(article.querySelectorAll(`[${BADGE_ATTR}]`));
-    if (!handle || !note || !userName) {
+    if (!handle || !note && !color || !userName) {
       for (const badge2 of badges) {
         badge2.remove();
       }
@@ -24152,7 +24249,7 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
       }
     }
     if (badge instanceof HTMLElement) {
-      updateBadge(badge, handle, note, ctx);
+      updateBadge(badge, handle, note, color, ctx);
       article.setAttribute(ARTICLE_ATTR, "1");
       return;
     }
@@ -24160,21 +24257,30 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     nextBadge.setAttribute(BADGE_ATTR, "1");
     nextBadge.className = "av-note-badge";
     nextBadge.setAttribute("role", "note");
-    updateBadge(nextBadge, handle, note, ctx);
+    updateBadge(nextBadge, handle, note, color, ctx);
     userName.append(nextBadge);
     article.setAttribute(ARTICLE_ATTR, "1");
   }
-  function updateBadge(badge, handle, note, ctx) {
-    const label = ft(ctx, "Note");
+  function updateBadge(badge, handle, note, color, ctx) {
+    const label = note ? ft(ctx, "Note") : ft(ctx, "Tag");
     badge.textContent = label;
-    badge.title = note;
-    badge.setAttribute("aria-label", `${label} @${handle}: ${note}`);
+    badge.title = note ?? "";
+    const description = note ? `${label} @${handle}: ${note}` : `${label} @${handle}: ${color}`;
+    badge.setAttribute("aria-label", description);
+    if (color) {
+      badge.setAttribute("data-av-note-color", color);
+    } else {
+      badge.removeAttribute("data-av-note-color");
+    }
   }
   function readHandle4(article) {
     const userName = article.querySelector('[data-testid="User-Name"]');
-    const links = userName?.querySelectorAll('a[href^="/"]') ?? [];
+    const links = userName?.querySelectorAll("a[href]") ?? [];
     for (const link of Array.from(links)) {
-      const href = link.getAttribute("href") ?? "";
+      const href = (link.getAttribute("href") ?? "").replace(
+        /^https?:\/\/(?:www\.|mobile\.|pro\.)?(?:x|twitter)\.com/i,
+        ""
+      );
       const match = /^\/([A-Za-z0-9_]{1,15})(?:[/?#]|$)/.exec(href);
       const candidate = match?.[1];
       if (candidate) {
@@ -24193,9 +24299,24 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     }
     const style = document.createElement("style");
     style.id = STYLE_ID7;
-    style.textContent = NOTE_CSS;
+    style.textContent = `${NOTE_CSS}
+${COLOR_CSS}`;
     (document.head ?? document.documentElement).append(style);
   }
+  var COLOR_CSS = USER_COLORS.map((color) => {
+    const tint = {
+      amber: "245, 158, 11",
+      rose: "244, 63, 94",
+      violet: "139, 92, 246",
+      sky: "56, 189, 248",
+      green: "34, 197, 94",
+      slate: "148, 163, 184"
+    }[color];
+    return `.av-note-badge[data-av-note-color="${color}"] {
+  border-color: rgba(${tint}, 0.85);
+  background: rgba(${tint}, 0.22);
+}`;
+  }).join("\n");
   var NOTE_CSS = `
 .av-note-badge {
   display: inline-flex;
@@ -25619,6 +25740,12 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
             line: problem.line,
             message: problem.message
           }));
+        },
+        getUserColors() {
+          return getUserColors();
+        },
+        async setUserColor(handle, color) {
+          await setUserColor(handle, isUserColor(color) ? color : "");
         },
         async clearSeenPosts() {
           await getSeenPostStore()?.clear();

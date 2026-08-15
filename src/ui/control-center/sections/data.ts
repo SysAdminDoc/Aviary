@@ -603,6 +603,39 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
     )
   );
 
+  if (ctx.options.getUserColors && ctx.options.setUserColor) {
+    const colors = ctx.options.getUserColors();
+    const serializedColors = Object.entries(colors)
+      .map(([handle, color]) => `${handle}: ${color}`)
+      .sort();
+    rows.push(
+      ctx.textareaRow(
+        "Account colours",
+        "Format: handle: colour. One per line. Colours are amber, rose, violet, sky, green, or slate. An empty line removes the tag.",
+        serializedColors,
+        async (lines) => {
+          const seen = new Set<string>();
+          for (const line of lines) {
+            const match = /^@?([A-Za-z0-9_]{1,15})\s*[:\-]\s*(\w*)$/.exec(line.trim());
+            if (!match) continue;
+            const [, handle, color] = match;
+            if (!handle) continue;
+            seen.add(handle.toLowerCase());
+            await ctx.options.setUserColor!(handle, (color ?? "").toLowerCase());
+          }
+          // A handle dropped from the textarea loses its tag.
+          for (const handle of Object.keys(colors)) {
+            if (!seen.has(handle)) {
+              await ctx.options.setUserColor!(handle, "");
+            }
+          }
+          ctx.render();
+          await ctx.save("Account colours saved");
+        }
+      )
+    );
+  }
+
   if (ctx.options.getUserNotes && ctx.options.setUserNote) {
     const notes = ctx.options.getUserNotes();
     if (Object.keys(notes).length === 0) {

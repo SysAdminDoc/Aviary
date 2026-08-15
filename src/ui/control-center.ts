@@ -182,6 +182,8 @@ export interface ControlCenterOptions {
   getSelectorHealth?: () => SelectorHealthStatus;
   clearAdObservations?: () => Promise<void>;
   clearSeenPosts?: () => Promise<void>;
+  getUserColors?: () => Record<string, string>;
+  setUserColor?: (handle: string, color: string) => Promise<void>;
   getFilterRuleErrors?: () => Array<{ line: number; message: string }>;
   getSavedDiagnostics?: () => { total: number; errors: number; newestAt: string | null };
   clearSavedDiagnostics?: () => Promise<void>;

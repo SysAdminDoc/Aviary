@@ -73,7 +73,14 @@ import {
 import { LocalSearchIndex } from "../library/local-search";
 import { buildMarkdownReport } from "../library/reports";
 import { captureSnapshotFromDom, getSnapshotStore } from "../library/snapshots-feature";
-import { clearUserNotes, getUserNotes, setUserNote } from "../library/user-notes";
+import {
+  clearUserNotes,
+  getUserColors,
+  getUserNotes,
+  isUserColor,
+  setUserColor,
+  setUserNote
+} from "../library/user-notes";
 import {
   bookmarkStatus,
   clearBookmarks,
@@ -356,6 +363,13 @@ export const controlCenterFeature: FeatureModule = {
           line: problem.line,
           message: problem.message
         }));
+      },
+      getUserColors() {
+        return getUserColors();
+      },
+      async setUserColor(handle: string, color: string) {
+        // An unknown colour clears rather than storing a value no stylesheet can render.
+        await setUserColor(handle, isUserColor(color) ? color : "");
       },
       async clearSeenPosts() {
         await getSeenPostStore()?.clear();

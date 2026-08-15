@@ -87,6 +87,10 @@ function stubs(variant) {
   getRetentionPolicy: () => ({ maxJobs: ${v ? 10 : 20}, maxRecordsPerJob: ${v ? 100 : 200}, maxAgeDays: ${v ? 30 : 60} }),
   saveRetentionPolicy: async () => {},
   getUserNotes: () => ({ ${v ? "someone" : "another"}: "a note" }),
+  // Row labels are literals passed to the row builders, not to t(), so only a render can see
+  // them. A conditional row needs its option supplied here or its copy never reaches the manifest.
+  getUserColors: () => ({ ${v ? "someone" : "another"}: "${v ? "violet" : "sky"}" }),
+  setUserColor: async () => {},
   setUserNote: async () => {},
   clearUserNotes: async () => {},
   // Real preset copy: a stub phrase here would enter the manifest and give translators a
