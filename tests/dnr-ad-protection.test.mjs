@@ -170,9 +170,12 @@ test("boot and every successful settings save synchronize the active profile cho
   );
   const buildSource = await readFile(path.join(root, "tools/build.mjs"), "utf8");
 
+  // The rule must be reconciled from the settings boot just resolved, before anything can await
+  // on a slower path. Schema-version reporting sits between the two reads, so allow for it while
+  // still pinning the order and the source of the flag.
   assert.match(
     main,
-    /const settings = normalizeSettings[\s\S]{0,180}await reconcileExtensionAdRule\(options\.source, settings\.privacy\.blockAds, diagnostics\)/
+    /const settings = (?:normalizeSettings|settingsEnvelope\.settings)[\s\S]{0,900}await reconcileExtensionAdRule\(options\.source, settings\.privacy\.blockAds, diagnostics\)/
   );
   const saveBoundary = main.slice(main.indexOf("async saveSettings()"), main.indexOf("requestApply()"));
   assert.match(saveBoundary, /await storage\.set/);

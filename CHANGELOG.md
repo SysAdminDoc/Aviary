@@ -4,6 +4,11 @@
 
 ### Added
 
+- Persisted settings now carry an explicit `schemaVersion` and run through an upgrade ladder.
+  `aviary.settings.v1` was a storage slot, not a schema: a renamed key would have been read as
+  absent and quietly reset to its default. Settings written by a newer Aviary are detected and
+  reported rather than silently rewritten into this build's narrower shape, and a test fails the
+  build if the version is bumped without the migration step that performs it.
 - Warnings and errors now survive a reload. A bounded 50-entry, 7-day, profile-scoped ring keeps
   Aviary's own message text, the time, and the *names* of a message's detail fields — never their
   values, so no post text, handle, or URL is retained. Trust reports the count and can clear it,

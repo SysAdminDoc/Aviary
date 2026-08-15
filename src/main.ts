@@ -33,7 +33,14 @@ import { createPageBridge } from "./platform/page-bridge";
 import { observeAddedElements } from "./platform/observer";
 import { TokenBucket } from "./platform/rate-limit";
 import { readRoute, watchRoute } from "./platform/route";
-import { cloneSettings, DEFAULT_SETTINGS, normalizeSettings, SETTINGS_KEY } from "./platform/settings";
+import {
+  cloneSettings,
+  DEFAULT_SETTINGS,
+  normalizeSettings,
+  readSettingsEnvelope,
+  SETTINGS_KEY,
+  SETTINGS_SCHEMA_VERSION
+} from "./platform/settings";
 import { createStorageGateway, setStorageErrorSink } from "./platform/storage";
 import { createDurableStorageGateway, DURABLE_STORAGE_KEYS } from "./platform/durable-storage";
 import { createProfileStorageGateway, ProfileManager } from "./platform/profile";
@@ -121,7 +128,23 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   diagnostics.setSink((event) => diagnosticsStore.record(event));
   const integrationUsage = new IntegrationUsageLedger(storage);
   await integrationUsage.load();
-  const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
+  const settingsEnvelope = readSettingsEnvelope(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
+  const settings = settingsEnvelope.settings;
+  if (settingsEnvelope.applied.length > 0) {
+    diagnostics.info("Settings schema upgraded", {
+      from: settingsEnvelope.fromVersion,
+      to: SETTINGS_SCHEMA_VERSION,
+      steps: settingsEnvelope.applied
+    });
+  }
+  if (settingsEnvelope.fromFuture) {
+    // Written by a newer Aviary. Run with normalized values, but never write this build's
+    // narrower shape back over settings it cannot represent.
+    diagnostics.warn("Settings were written by a newer Aviary", {
+      found: settingsEnvelope.fromVersion,
+      supported: SETTINGS_SCHEMA_VERSION
+    });
+  }
   await reconcileExtensionAdRule(options.source, settings.privacy.blockAds, diagnostics);
   // Read fresh on every outbound call, so toggling local-only mode applies at once.
   setLocalOnlyPolicy(() => settings.privacy.localOnly);

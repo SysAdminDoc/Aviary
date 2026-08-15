@@ -31,13 +31,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: rules combine (AND/OR), apply per-surface, round-trip through export/import, and are fixture-tested against `_decoded/` captures; no rule can originate a network request.
   Complexity: L
 
-- [ ] F111 — P1 — Settings version envelope + upgrade ladder
-  Why: `aviary.settings.v1` is a key name, not a versioned payload — a future breaking schema change has only silent-fallback-to-default; durable storage already has schema versioning, settings should match.
-  Evidence: src/platform/settings.ts (no version field); src/platform/durable-storage.ts:1 (schema v1 precedent); RESEARCH.md Security.
-  Touches: src/platform/settings.ts, settings-migration.ts, tests.
-  Acceptance: persisted payload carries a schema version; an old payload upgrades through explicit steps with a test per step; unknown-future version is preserved untouched with a Trust notice.
-  Complexity: M
-
 - [ ] F113 — P1 — Fold viewer.ts inline locale table into the i18n pipeline
   Why: src/features/export/viewer.ts carries a second hand-maintained 9-locale table outside the extractor/catalog — the repo has hit five separate i18n-extraction blind spots already; this one is guaranteed drift.
   Evidence: viewer.ts lines ~7-250; CLAUDE.md Learned (i18n incidents 2026-08-06/07); RESEARCH.md Architecture.

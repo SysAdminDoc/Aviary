@@ -1,5 +1,37 @@
 export const SETTINGS_KEY = "aviary.settings.v1";
 
+/**
+ * The shape version of the persisted settings payload.
+ *
+ * `SETTINGS_KEY` names a storage slot, not a schema: for six releases the only thing standing
+ * between an old payload and the current code was `normalizeSettings`, which silently replaces
+ * anything it does not recognise with a default. That is correct for a stray key and wrong for a
+ * rename — a value that moved would be read as absent and quietly reset.
+ *
+ * Bump this when a change cannot be expressed by normalization alone (a renamed or split key, a
+ * changed unit, a value whose meaning inverted) and add the matching step to `SETTINGS_MIGRATIONS`.
+ * Adding a new key with a default needs no bump; the normalizer already handles it.
+ */
+export const SETTINGS_SCHEMA_VERSION = 1;
+
+type SettingsRecord = Record<string, unknown>;
+
+/**
+ * Ordered upgrade steps. Key `n` migrates a payload written at version `n` to version `n + 1`.
+ * Steps run in sequence, so each only has to understand the shape immediately before it.
+ */
+const SETTINGS_MIGRATIONS: Record<number, (record: SettingsRecord) => SettingsRecord> = {};
+
+export interface SettingsEnvelope {
+  settings: AviarySettings;
+  /** Version the payload was written at; `null` when it predates versioning or was absent. */
+  fromVersion: number | null;
+  /** True when the payload was written by a newer Aviary than this build understands. */
+  fromFuture: boolean;
+  /** Migration steps applied to reach the current version. */
+  applied: number[];
+}
+
 export type ThemeId = "off" | "dim" | "lightsOut" | "graphite" | "plum" | "midnight" | "noir";
 export type RateLimitMode = "conservative" | "balanced";
 export type ReduceMotionMode = "system" | "always" | "never";
@@ -86,6 +118,8 @@ const MASTODON_VISIBILITIES: IntegrationSettings["mastodon"]["visibility"][] = [
 ];
 
 export interface AviarySettings {
+  /** Shape version of this payload; see SETTINGS_SCHEMA_VERSION. */
+  schemaVersion: number;
   appearance: {
     theme: ThemeId;
     denseMode: boolean;
@@ -183,6 +217,7 @@ export interface AviarySettings {
 }
 
 export const DEFAULT_SETTINGS: AviarySettings = {
+  schemaVersion: SETTINGS_SCHEMA_VERSION,
   appearance: {
     theme: "off",
     denseMode: false,
@@ -309,6 +344,46 @@ export const DEFAULT_SETTINGS: AviarySettings = {
   }
 };
 
+/**
+ * Run the upgrade ladder over a raw persisted payload.
+ *
+ * A payload from a *newer* build is never downgraded: unknown keys are left in the record and
+ * `fromFuture` is set so the caller can avoid writing this build's shape back over settings it
+ * does not understand. Normalization still runs, because the running code needs valid values.
+ */
+export function readSettingsEnvelope(input: unknown): SettingsEnvelope {
+  const raw = asRecord(input);
+  const declared = typeof raw.schemaVersion === "number" && Number.isFinite(raw.schemaVersion)
+    ? Math.floor(raw.schemaVersion)
+    : null;
+  if (declared !== null && declared > SETTINGS_SCHEMA_VERSION) {
+    // Never migrate a shape this build has not seen. Normalize for runtime use and say so.
+    return { settings: normalizeSettings(raw), fromVersion: declared, fromFuture: true, applied: [] };
+  }
+
+  // An unversioned payload predates versioning, which is version 1's shape by definition.
+  let working: SettingsRecord = { ...raw };
+  let version = declared ?? SETTINGS_SCHEMA_VERSION;
+  const applied: number[] = [];
+  while (version < SETTINGS_SCHEMA_VERSION) {
+    const step = SETTINGS_MIGRATIONS[version];
+    if (!step) {
+      // A gap in the ladder must not spin; normalization still produces usable settings.
+      break;
+    }
+    working = step(working);
+    applied.push(version);
+    version += 1;
+  }
+
+  return {
+    settings: normalizeSettings(working),
+    fromVersion: declared,
+    fromFuture: false,
+    applied
+  };
+}
+
 export function normalizeSettings(input: unknown): AviarySettings {
   const record = asRecord(input);
   const appearance = asRecord(record.appearance);
@@ -347,6 +422,8 @@ export function normalizeSettings(input: unknown): AviarySettings {
   ].some((entry) => entry.enabled === true);
 
   return {
+    // Always stamped with this build's version, so the next read knows what it is looking at.
+    schemaVersion: SETTINGS_SCHEMA_VERSION,
     appearance: {
       theme: enumValue(appearance.theme, THEME_IDS, DEFAULT_SETTINGS.appearance.theme),
       denseMode: booleanValue(appearance.denseMode, DEFAULT_SETTINGS.appearance.denseMode),

@@ -7210,6 +7210,8 @@ html.av-reduce-motion *::after {
 
   // src/platform/settings.ts
   var SETTINGS_KEY = "aviary.settings.v1";
+  var SETTINGS_SCHEMA_VERSION = 1;
+  var SETTINGS_MIGRATIONS = {};
   var THEME_IDS = ["off", "dim", "lightsOut", "graphite", "plum", "midnight", "noir"];
   var RATE_LIMIT_MODES = ["conservative", "balanced"];
   var REDUCE_MOTION_MODES = ["system", "always", "never"];
@@ -7238,6 +7240,7 @@ html.av-reduce-motion *::after {
     "direct"
   ];
   var DEFAULT_SETTINGS = {
+    schemaVersion: SETTINGS_SCHEMA_VERSION,
     appearance: {
       theme: "off",
       denseMode: false,
@@ -7363,6 +7366,31 @@ html.av-reduce-motion *::after {
       crosspost: { attachLastDownload: false }
     }
   };
+  function readSettingsEnvelope(input) {
+    const raw = asRecord(input);
+    const declared = typeof raw.schemaVersion === "number" && Number.isFinite(raw.schemaVersion) ? Math.floor(raw.schemaVersion) : null;
+    if (declared !== null && declared > SETTINGS_SCHEMA_VERSION) {
+      return { settings: normalizeSettings(raw), fromVersion: declared, fromFuture: true, applied: [] };
+    }
+    let working = { ...raw };
+    let version = declared ?? SETTINGS_SCHEMA_VERSION;
+    const applied = [];
+    while (version < SETTINGS_SCHEMA_VERSION) {
+      const step = SETTINGS_MIGRATIONS[version];
+      if (!step) {
+        break;
+      }
+      working = step(working);
+      applied.push(version);
+      version += 1;
+    }
+    return {
+      settings: normalizeSettings(working),
+      fromVersion: declared,
+      fromFuture: false,
+      applied
+    };
+  }
   function normalizeSettings(input) {
     const record = asRecord(input);
     const appearance = asRecord(record.appearance);
@@ -7395,6 +7423,8 @@ html.av-reduce-motion *::after {
       integrationsSemantic
     ].some((entry) => entry.enabled === true);
     return {
+      // Always stamped with this build's version, so the next read knows what it is looking at.
+      schemaVersion: SETTINGS_SCHEMA_VERSION,
       appearance: {
         theme: enumValue(appearance.theme, THEME_IDS, DEFAULT_SETTINGS.appearance.theme),
         denseMode: booleanValue(appearance.denseMode, DEFAULT_SETTINGS.appearance.denseMode),
@@ -29044,7 +29074,21 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     diagnostics.setSink((event) => diagnosticsStore.record(event));
     const integrationUsage = new IntegrationUsageLedger(storage);
     await integrationUsage.load();
-    const settings = normalizeSettings(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
+    const settingsEnvelope = readSettingsEnvelope(await storage.get(SETTINGS_KEY, DEFAULT_SETTINGS));
+    const settings = settingsEnvelope.settings;
+    if (settingsEnvelope.applied.length > 0) {
+      diagnostics.info("Settings schema upgraded", {
+        from: settingsEnvelope.fromVersion,
+        to: SETTINGS_SCHEMA_VERSION,
+        steps: settingsEnvelope.applied
+      });
+    }
+    if (settingsEnvelope.fromFuture) {
+      diagnostics.warn("Settings were written by a newer Aviary", {
+        found: settingsEnvelope.fromVersion,
+        supported: SETTINGS_SCHEMA_VERSION
+      });
+    }
     await reconcileExtensionAdRule(options.source, settings.privacy.blockAds, diagnostics);
     setLocalOnlyPolicy(() => settings.privacy.localOnly);
     const limiter = settings.jobs.rateLimitMode === "conservative" ? new TokenBucket(4, 1) : new TokenBucket(8, 4);
