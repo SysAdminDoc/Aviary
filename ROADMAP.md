@@ -128,10 +128,3 @@ Internal audit of the subsystems no prior pass had examined, plus the code added
 
 ### P3 — small measured defects
 
-- [ ] F164 — P3 — Small-defect sweep, each verified at the cited line
-  Why: four small defects from the 2026-08-15 audit, none worth a solo item, all cheap while the files are open.
-  Evidence: `src/features/library/archive-import.ts:327-331` — `stripPrefix` eats everything to the first `=` anywhere, destroying un-prefixed pure-JSON input containing `=` (base64 padding, query strings); `src/features/filtering/seen-posts-feature.ts:54-57,156-165` — `destroy` clears the flush timer without flushing (up to 1.5 s of marks dropped) and leaves the module-level store populated; `src/features/filtering/hidden-posts-feature.ts:49-58` — every apply pass while disabled appends then removes a style element (DOM churn per mutation batch); `src/platform/profile.ts:103` — a `Date.now()`-plus-count id, the same collision pattern the repo's Learned notes fixed in bookmarks.
-  Touches: those four files and their tests.
-  Acceptance: each fix carries a test or a tightened assertion; `stripPrefix` only strips a leading `window.YTD`-shaped prefix; destroy flushes before clearing; the disabled path exits before touching the DOM; ids use `crypto.randomUUID()`.
-  Complexity: S
-

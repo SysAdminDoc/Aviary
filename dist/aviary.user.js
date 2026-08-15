@@ -19912,7 +19912,8 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
         scan(ctx, node);
       }
     },
-    destroy(ctx) {
+    async destroy(ctx) {
+      await store?.flush(Date.now());
       teardown();
       ctx.diagnostics.info("Seen-post dimming removed");
     },
@@ -20057,13 +20058,14 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
       ctx.diagnostics.info("Hidden posts initialized", { hidden: store2.size() });
     },
     apply(ctx, root, addedNodes) {
+      if (!ctx.settings.hidden.enabled || !surfaceMatches2(ctx)) {
+        applyRootClass(ctx);
+        clearDecorations2();
+        return;
+      }
       ensureStyle3();
       applyRootClass(ctx);
       if (!store2) {
-        return;
-      }
-      if (!ctx.settings.hidden.enabled || !surfaceMatches2(ctx)) {
-        clearDecorations2();
         return;
       }
       if (store2.version() !== lastAppliedVersion) {
@@ -21474,7 +21476,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     }
   }
   function stripPrefix(text) {
-    const match = /^[^=]*=\s*/.exec(text);
+    const match = /^\s*(?:window\.)?YTD(?:\.[A-Za-z0-9_$]+)*\s*=\s*/.exec(text);
     return match ? text.slice(match[0].length) : text;
   }
   function mapTweets(parsed, surface) {
@@ -31221,6 +31223,15 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     "aviary.retention.maxAgeDays"
   ];
   var DEFAULT_PROFILE_ID = "offline-default";
+  function randomId() {
+    const uuid = globalThis.crypto?.randomUUID?.();
+    if (uuid) {
+      return uuid;
+    }
+    const bytes = new Uint8Array(8);
+    globalThis.crypto?.getRandomValues?.(bytes);
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
   var EMPTY8 = { profiles: [] };
   var ProfileManager = class {
     #base;
@@ -31267,7 +31278,9 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       const cleanLabel = label.trim().slice(0, 80) || "Offline library";
       const now2 = (/* @__PURE__ */ new Date()).toISOString();
       const profile = {
-        id: `${kind === "x-account" ? "account" : "offline"}-${Date.now()}-${this.#state.profiles.length + 1}`,
+        // `Date.now()` plus a count is the collision pattern already fixed once in bookmarks:
+        // two profiles created in the same millisecond after a deletion can collide.
+        id: `${kind === "x-account" ? "account" : "offline"}-${randomId()}`,
         label: cleanLabel,
         kind,
         createdAt: now2,

@@ -51,7 +51,10 @@ export const seenPostsFeature: FeatureModule = {
     }
   },
 
-  destroy(ctx) {
+  async destroy(ctx) {
+    // The flush is coalesced on a 1.5s timer, so tearing down without it discarded up to that much
+    // of what the user had just scrolled past.
+    await store?.flush(Date.now());
     teardown();
     ctx.diagnostics.info("Seen-post dimming removed");
   },

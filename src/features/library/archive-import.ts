@@ -325,8 +325,11 @@ function safeDecode(data: Uint8Array, errors: string[], filename: string): strin
 }
 
 function stripPrefix(text: string): string {
-  // X archives prefix entries with `window.YTD.tweets.partN = ` to make the file a valid JS expression.
-  const match = /^[^=]*=\s*/.exec(text);
+  // X archives prefix entries with `window.YTD.tweets.partN = ` to make the file a valid JS
+  // expression. Anchored to that shape on purpose: `^[^=]*=` consumed everything up to the first
+  // `=` anywhere in the file, so an un-prefixed pure-JSON export containing base64 padding or a
+  // query string had its opening destroyed and was then reported as malformed.
+  const match = /^\s*(?:window\.)?YTD(?:\.[A-Za-z0-9_$]+)*\s*=\s*/.exec(text);
   return match ? text.slice(match[0].length) : text;
 }
 

@@ -90,7 +90,7 @@ async function run({ enabled = true } = {}) {
       feature.apply(ctx, document);
       const secondPass = { a: opacityOf("111"), b: opacityOf("222"), fresh: opacityOf("333") };
 
-      feature.destroy(ctx);
+      await feature.destroy(ctx);
       const afterDestroy = {
         a: opacityOf("111"),
         marked: document.querySelectorAll("[data-av-seen]").length

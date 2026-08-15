@@ -46,14 +46,17 @@ export const hiddenPostsFeature: FeatureModule = {
   },
 
   apply(ctx, root, addedNodes) {
-    ensureStyle();
-    applyRootClass(ctx);
-    if (!store) {
+    // Off, or on a surface this does not cover: clear once and leave. Calling ensureStyle first
+    // appended a stylesheet that clearDecorations then removed, on every mutation batch.
+    if (!ctx.settings.hidden.enabled || !surfaceMatches(ctx)) {
+      applyRootClass(ctx);
+      clearDecorations();
       return;
     }
 
-    if (!ctx.settings.hidden.enabled || !surfaceMatches(ctx)) {
-      clearDecorations();
+    ensureStyle();
+    applyRootClass(ctx);
+    if (!store) {
       return;
     }
 

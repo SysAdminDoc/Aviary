@@ -33,6 +33,17 @@ export const PROFILE_MIGRATION_KEYS = [
 
 const DEFAULT_PROFILE_ID = "offline-default";
 
+/** `crypto.randomUUID` where the host has it; a bounded random fallback where it does not. */
+function randomId(): string {
+  const uuid = globalThis.crypto?.randomUUID?.();
+  if (uuid) {
+    return uuid;
+  }
+  const bytes = new Uint8Array(8);
+  globalThis.crypto?.getRandomValues?.(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 export interface ProfileRecord {
   id: string;
   label: string;
@@ -104,7 +115,9 @@ export class ProfileManager {
     const cleanLabel = label.trim().slice(0, 80) || "Offline library";
     const now = new Date().toISOString();
     const profile: ProfileRecord = {
-      id: `${kind === "x-account" ? "account" : "offline"}-${Date.now()}-${this.#state.profiles.length + 1}`,
+      // `Date.now()` plus a count is the collision pattern already fixed once in bookmarks:
+      // two profiles created in the same millisecond after a deletion can collide.
+      id: `${kind === "x-account" ? "account" : "offline"}-${randomId()}`,
       label: cleanLabel,
       kind,
       createdAt: now,

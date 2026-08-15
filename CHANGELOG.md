@@ -4,6 +4,17 @@
 
 ### Fixed
 
+- An archive entry that is plain JSON rather than X's `window.YTD.… =` form is no longer mangled.
+  The prefix stripper matched everything up to the first `=` anywhere in the file, so an entry
+  containing base64 padding or a link with a query string had its opening cut off and was then
+  reported as malformed. It is anchored to the actual prefix shape now.
+- Seen-post marks are no longer lost when the feature is switched off. Writes are coalesced on a
+  1.5-second timer, and teardown cleared that timer without running it.
+- The hidden-posts pass stops appending and immediately removing a stylesheet on every mutation
+  batch while the feature is off.
+- New profile ids come from `crypto.randomUUID()` instead of a timestamp plus a count — the same
+  collision shape already fixed once in bookmarks.
+
 - Turning the page agent off no longer removes somebody else's work. Teardown restored `fetch` and
   the XHR methods by assignment, so if X's own instrumentation — or another extension — had wrapped
   them *after* Aviary did, that layer was deleted along with Aviary's. It now restores only while

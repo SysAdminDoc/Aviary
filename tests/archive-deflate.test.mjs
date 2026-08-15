@@ -458,3 +458,20 @@ test("a progress tick no longer rewrites the archive it is reporting on", async 
   assert.equal(record.jobs[started.jobId].source, "", "the job record must not hold the archive");
   assert.deepEqual(await jobs.source(started.jobId), source, "the archive is still retrievable");
 });
+
+test("an un-prefixed archive entry containing '=' is not destroyed by prefix stripping", async () => {
+  const { importOfficialArchive } = await importBundledModule("src/features/library/archive-import.ts");
+  const { buildStoreZip } = await importBundledModule("src/features/export/zip-store.ts");
+  const encoder = new TextEncoder();
+
+  // Pure JSON, no `window.YTD` prefix, carrying base64 padding and a query string. The old
+  // `^[^=]*=` pattern ate everything up to the first `=` anywhere, so this arrived as malformed.
+  const tweets = JSON.stringify([
+    { tweet: { id_str: "1", full_text: "media aGVsbG8= and https://x.com/i?a=b", created_at: "Wed Aug 12 00:00:00 +0000 2026" } }
+  ]);
+  const archive = buildStoreZip([{ filename: "data/tweets.js", data: encoder.encode(tweets) }]);
+
+  const result = await importOfficialArchive(archive, "archive");
+  assert.equal(result.records.length, 1, "the entry must parse rather than be reported malformed");
+  assert.match(result.records[0].text, /aGVsbG8=/, "its content must survive intact");
+});
