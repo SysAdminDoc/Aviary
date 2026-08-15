@@ -62,6 +62,9 @@
 
 ### Fixed
 
+- Author matching now reads absolute profile links as well as relative ones. The filter engine's
+  handle reader accepted only relative hrefs, so every author read as unknown against the saved
+  captures — the reason handle-based filtering had never been exercised against real markup.
 - The five right-click media download messages added in this cycle were rendering in English in
   every locale; they are now translated across all nine shipped locales (821/821 per locale).
 - README no longer describes the AI command menu as an always-present per-tweet button with no
