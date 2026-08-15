@@ -181,6 +181,7 @@ export function createProfileStorageGateway(base: StorageGateway, profileId: str
         migratedKeys: 0,
         usageBytes: null,
         quotaBytes: null,
+        pendingWrites: 0,
         lastError: null
       };
     }

@@ -173,6 +173,10 @@ test("every durable store key declared in src is registered everywhere it must b
     // Lives in the extension service worker's chrome.storage, not the page StorageGateway, and is
     // derived from settings — it mirrors whether one DNR rule is installed.
     "aviary.runtime.adLoggerRule.v1": { durable: "extension realm, not the page gateway", profile: "extension realm, not the page gateway", backup: "derived runtime state, rebuilt from settings" },
+    // The gateway's own reconciliation ledger. Unversioned and legacy-resident on purpose --
+    // it records which keys a fallback session wrote, so it cannot live in the backend that
+    // failed, and it is consumed and deleted on the next healthy boot.
+    "aviary.durable.pending": { durable: "gateway plumbing, legacy realm", profile: "gateway plumbing, legacy realm", backup: "transient reconciliation ledger" },
     // Bounded diagnostic observations (64 entries / 30 days) that regenerate as you browse.
     "aviary.adObservations.v1": { backup: "regenerable diagnostics, not user data" },
     // A one-time dismissal flag. A restored backup landing on a fresh profile should show the
@@ -212,3 +216,106 @@ async function collectSourceFiles(dir) {
   }
   return out;
 }
+
+// A transient backend failure used to cost the user that whole session's work. `#fallback()` is
+// sticky, so every later write went to legacy — but migration had already emptied legacy, and the
+// next healthy boot prefers the backend and skips any key it already holds. The fallback session's
+// writes were therefore shadowed by the pre-failure values, forever, with no error anywhere.
+
+class FlakyBackend extends MemoryBackend {
+  failing = false;
+
+  #guard() {
+    if (this.failing) {
+      throw new Error("simulated IndexedDB transaction failure");
+    }
+  }
+
+  async get(key) {
+    this.#guard();
+    return super.get(key);
+  }
+
+  async put(key, value) {
+    this.#guard();
+    return super.put(key, value);
+  }
+
+  async remove(key) {
+    this.#guard();
+    return super.remove(key);
+  }
+
+  async getMeta() {
+    this.#guard();
+    return super.getMeta();
+  }
+
+  async putMany(entries, meta) {
+    this.#guard();
+    return super.putMany(entries, meta);
+  }
+}
+
+test("writes made during a backend failure survive the next healthy boot", async () => {
+  const { createDurableStorageGateway, PENDING_WRITES_KEY } =
+    await importBundledModule("src/platform/durable-storage.ts");
+
+  const legacy = memoryStorage();
+  const backend = new FlakyBackend();
+
+  // Session one, healthy: the value lands in the backend.
+  const first = createDurableStorageGateway(legacy, { backend });
+  await first.initialize(["aviary.userNotes.v1"]);
+  await first.set("aviary.userNotes.v1", { alice: "before" });
+  assert.deepEqual(await first.get("aviary.userNotes.v1", null), { alice: "before" });
+
+  // The backend starts failing mid-session; the gateway drops to legacy for the rest of it.
+  backend.failing = true;
+  await first.set("aviary.userNotes.v1", { alice: "written during the outage" });
+  assert.equal(first.getStatus().backend, "indexeddb-fallback");
+  assert.equal(first.getStatus().pendingWrites, 1, "the write must be recorded for reconciliation");
+  assert.ok(
+    (await legacy.get(PENDING_WRITES_KEY, [])).includes("aviary.userNotes.v1"),
+    "the ledger belongs in legacy, because the backend is what failed"
+  );
+
+  // Session two, healthy again — a fresh gateway over the same stores, as a reload would build.
+  backend.failing = false;
+  const second = createDurableStorageGateway(legacy, { backend });
+  await second.initialize(["aviary.userNotes.v1"]);
+
+  assert.deepEqual(
+    await second.get("aviary.userNotes.v1", null),
+    { alice: "written during the outage" },
+    "the outage write must win — it is the newer one"
+  );
+  assert.equal(second.getStatus().pendingWrites, 0, "the ledger must be cleared once folded in");
+  assert.equal(
+    await legacy.get(PENDING_WRITES_KEY, "gone"),
+    "gone",
+    "a consumed ledger must not linger"
+  );
+});
+
+test("a removal made during a backend failure is not resurrected", async () => {
+  const { createDurableStorageGateway } = await importBundledModule("src/platform/durable-storage.ts");
+  const legacy = memoryStorage();
+  const backend = new FlakyBackend();
+
+  const first = createDurableStorageGateway(legacy, { backend });
+  await first.initialize(["aviary.snapshots.v1"]);
+  await first.set("aviary.snapshots.v1", ["kept"]);
+
+  backend.failing = true;
+  await first.remove("aviary.snapshots.v1");
+
+  backend.failing = false;
+  const second = createDurableStorageGateway(legacy, { backend });
+  await second.initialize(["aviary.snapshots.v1"]);
+  assert.equal(
+    await second.get("aviary.snapshots.v1", "absent"),
+    "absent",
+    "a delete during the outage must travel too, or the stale copy comes back"
+  );
+});

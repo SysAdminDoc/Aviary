@@ -4,6 +4,14 @@
 
 ### Fixed
 
+- A transient storage failure no longer costs you the session. When an IndexedDB transaction fails,
+  Aviary drops to the older storage path for the rest of that session — but migration had already
+  emptied it, and the next healthy start preferred the durable copy and skipped any key it already
+  held. Everything written during the outage was therefore shadowed by the pre-failure values,
+  permanently, with no error anywhere. Writes and deletions made while the backend is down are now
+  recorded in a small ledger, folded back in on the next healthy start, and reported in Trust as
+  "N changes waiting for the next reload" while they wait.
+
 - Four local stores were invisible to the machinery that is supposed to know about every store.
   Seen posts, ad-contract observations, persisted diagnostics, and the first-run flag were each
   missing from the durable-storage migration list and the profile-adoption list, and seen posts

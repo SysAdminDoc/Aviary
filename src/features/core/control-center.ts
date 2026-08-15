@@ -159,6 +159,7 @@ export const controlCenterFeature: FeatureModule = {
         migratedKeys: 0,
         usageBytes: null,
         quotaBytes: null,
+        pendingWrites: 0,
         lastError: null
       },
       async onChange() {

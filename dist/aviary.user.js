@@ -12728,9 +12728,10 @@ html.av-reduce-motion *::after {
       const usage = status2.usageBytes === null ? "usage unavailable" : `${formatBytes(status2.usageBytes)} used`;
       const quota = status2.quotaBytes === null ? "quota unavailable" : `${formatBytes(status2.quotaBytes)} available`;
       const error = status2.lastError ? ` \xB7 ${status2.lastError}` : "";
+      const pending = status2.pendingWrites > 0 ? ` \xB7 ${status2.pendingWrites} change${status2.pendingWrites === 1 ? "" : "s"} waiting for the next reload` : "";
       return dataRow(
         "Storage",
-        `${backend} \xB7 schema v${status2.schemaVersion} \xB7 ${usage} \xB7 ${quota} \xB7 ${status2.migratedKeys} stores migrated${error}`
+        `${backend} \xB7 schema v${status2.schemaVersion} \xB7 ${usage} \xB7 ${quota} \xB7 ${status2.migratedKeys} stores migrated${pending}${error}`
       );
     };
     const beaconRows = () => {
@@ -25866,6 +25867,7 @@ ${COLOR_CSS}`;
           migratedKeys: 0,
           usageBytes: null,
           quotaBytes: null,
+          pendingWrites: 0,
           lastError: null
         },
         async onChange() {
@@ -30728,6 +30730,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
 
   // src/platform/durable-storage.ts
   var DURABLE_STORAGE_SCHEMA_VERSION = 1;
+  var PENDING_WRITES_KEY = "aviary.durable.pending";
   var DURABLE_STORAGE_KEYS = [
     "aviary.profiles.v1",
     "aviary.profile.active.v1",
@@ -30768,6 +30771,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       migratedKeys: 0,
       usageBytes: null,
       quotaBytes: null,
+      pendingWrites: 0,
       lastError: null
     };
     constructor(legacy, backend, namespace = "aviary") {
@@ -30786,6 +30790,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       if (!this.#backend) {
         return this.getStatus();
       }
+      await this.#reconcilePendingWrites();
       try {
         const previous = await this.#backend.getMeta();
         const migratedKeys = new Set(previous?.migratedKeys ?? []);
@@ -30878,6 +30883,9 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       await this.#ensureInitialized();
       if (!this.#backend || !this.#usable) {
         await this.#legacy.set(key, value);
+        if (this.#backend) {
+          await this.#markPending(key);
+        }
         return;
       }
       const scopedKey = this.#scope(key);
@@ -30892,6 +30900,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       } catch (error) {
         this.#fallback(error);
         await this.#legacy.set(key, value);
+        await this.#markPending(key);
       }
     }
     async remove(key) {
@@ -30902,6 +30911,9 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       await this.#ensureInitialized();
       if (!this.#backend || !this.#usable) {
         await this.#legacy.remove(key);
+        if (this.#backend) {
+          await this.#markPending(key);
+        }
         return;
       }
       const scopedKey = this.#scope(key);
@@ -30912,6 +30924,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       } catch (error) {
         this.#fallback(error);
         await this.#legacy.remove(key);
+        await this.#markPending(key);
       }
     }
     async #ensureInitialized() {
@@ -30934,6 +30947,69 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       this.#status.backend = "indexeddb-fallback";
       this.#status.lastError = error instanceof Error ? error.message : String(error);
       reportStorageError("aviary.durable", error, "write");
+    }
+    /**
+     * Records that `key` was written (or removed) into legacy while the backend was unavailable, so
+     * the next healthy boot knows legacy holds the newer value. Kept in the legacy store on purpose:
+     * the backend is the thing that just failed.
+     */
+    async #markPending(key) {
+      try {
+        const pending = await this.#legacy.get(PENDING_WRITES_KEY, []);
+        if (!pending.includes(key)) {
+          pending.push(key);
+          await this.#legacy.set(PENDING_WRITES_KEY, pending);
+        }
+        this.#status.pendingWrites = pending.length;
+      } catch (error) {
+        reportStorageError(PENDING_WRITES_KEY, error, "write");
+      }
+    }
+    /**
+     * Folds a previous fallback session's writes back into the backend. Legacy wins here -- and only
+     * here -- because a key reaches this list only by being written while the backend was down.
+     */
+    async #reconcilePendingWrites() {
+      if (!this.#backend) {
+        return;
+      }
+      let pending;
+      try {
+        pending = await this.#legacy.get(PENDING_WRITES_KEY, []);
+      } catch (error) {
+        reportStorageError(PENDING_WRITES_KEY, error, "read");
+        return;
+      }
+      if (pending.length === 0) {
+        this.#status.pendingWrites = 0;
+        return;
+      }
+      const unresolved = [];
+      for (const key of pending) {
+        try {
+          const legacyValue = await this.#legacy.get(key, void 0);
+          const scopedKey = this.#scope(key);
+          if (legacyValue === void 0) {
+            await this.#backend.remove(scopedKey);
+          } else {
+            await this.#backend.put(scopedKey, legacyValue);
+            await this.#legacy.remove(key);
+          }
+        } catch (error) {
+          reportStorageError(key, error, "write");
+          unresolved.push(key);
+        }
+      }
+      try {
+        if (unresolved.length > 0) {
+          await this.#legacy.set(PENDING_WRITES_KEY, unresolved);
+        } else {
+          await this.#legacy.remove(PENDING_WRITES_KEY);
+        }
+      } catch (error) {
+        reportStorageError(PENDING_WRITES_KEY, error, "write");
+      }
+      this.#status.pendingWrites = unresolved.length;
     }
   };
   function createDurableStorageGateway(legacy, options = {}) {
@@ -31177,6 +31253,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           migratedKeys: 0,
           usageBytes: null,
           quotaBytes: null,
+          pendingWrites: 0,
           lastError: null
         };
       }

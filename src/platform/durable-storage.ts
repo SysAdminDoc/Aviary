@@ -2,6 +2,14 @@ import { reportStorageError, type StorageGateway, type StorageStatus } from "./s
 
 export const DURABLE_STORAGE_SCHEMA_VERSION = 1;
 
+/**
+ * Keys written into the legacy store while the durable backend was unavailable. Lives in legacy
+ * rather than the backend for the obvious reason: the backend is what failed.
+ */
+// Deliberately unversioned: `#isDurable` routes any `aviary.*.vN` key to the backend, and this
+// one must stay in the legacy realm. The name says which realm it belongs to.
+export const PENDING_WRITES_KEY = "aviary.durable.pending";
+
 /** Every current versioned store is migrated before the first feature reads it. */
 export const DURABLE_STORAGE_KEYS = [
   "aviary.profiles.v1",
@@ -82,6 +90,7 @@ export class DurableStorageGateway implements StorageGateway {
     migratedKeys: 0,
     usageBytes: null,
     quotaBytes: null,
+    pendingWrites: 0,
     lastError: null
   };
 
@@ -102,6 +111,12 @@ export class DurableStorageGateway implements StorageGateway {
     if (!this.#backend) {
       return this.getStatus();
     }
+
+    // Writes made during a previous fallback session live only in legacy, and the migration below
+    // deliberately refuses to overwrite a key the backend already holds -- which is correct for a
+    // first migration and exactly wrong here, because those legacy values are the *newer* ones.
+    // Reconciling them first is what stops a fallback session from being silently reverted.
+    await this.#reconcilePendingWrites();
 
     try {
       const previous = await this.#backend.getMeta();
@@ -204,6 +219,12 @@ export class DurableStorageGateway implements StorageGateway {
     await this.#ensureInitialized();
     if (!this.#backend || !this.#usable) {
       await this.#legacy.set(key, value);
+      // With a backend configured but unusable, this value is newer than whatever the backend
+      // still holds. Without the marker, the next healthy boot would read the stale backend copy
+      // and this write would be silently reverted.
+      if (this.#backend) {
+        await this.#markPending(key);
+      }
       return;
     }
 
@@ -219,6 +240,7 @@ export class DurableStorageGateway implements StorageGateway {
     } catch (error) {
       this.#fallback(error);
       await this.#legacy.set(key, value);
+      await this.#markPending(key);
     }
   }
 
@@ -230,6 +252,10 @@ export class DurableStorageGateway implements StorageGateway {
     await this.#ensureInitialized();
     if (!this.#backend || !this.#usable) {
       await this.#legacy.remove(key);
+      // A removal has to travel too, or the next boot resurrects the backend's stale copy.
+      if (this.#backend) {
+        await this.#markPending(key);
+      }
       return;
     }
 
@@ -241,6 +267,7 @@ export class DurableStorageGateway implements StorageGateway {
     } catch (error) {
       this.#fallback(error);
       await this.#legacy.remove(key);
+      await this.#markPending(key);
     }
   }
 
@@ -267,6 +294,76 @@ export class DurableStorageGateway implements StorageGateway {
     this.#status.backend = "indexeddb-fallback";
     this.#status.lastError = error instanceof Error ? error.message : String(error);
     reportStorageError("aviary.durable", error, "write");
+  }
+
+  /**
+   * Records that `key` was written (or removed) into legacy while the backend was unavailable, so
+   * the next healthy boot knows legacy holds the newer value. Kept in the legacy store on purpose:
+   * the backend is the thing that just failed.
+   */
+  async #markPending(key: string): Promise<void> {
+    try {
+      const pending = await this.#legacy.get<string[]>(PENDING_WRITES_KEY, []);
+      if (!pending.includes(key)) {
+        pending.push(key);
+        await this.#legacy.set(PENDING_WRITES_KEY, pending);
+      }
+      this.#status.pendingWrites = pending.length;
+    } catch (error) {
+      // If even this cannot be recorded the write is still in legacy; it just will not be
+      // reconciled automatically. Say so rather than pretend.
+      reportStorageError(PENDING_WRITES_KEY, error, "write");
+    }
+  }
+
+  /**
+   * Folds a previous fallback session's writes back into the backend. Legacy wins here -- and only
+   * here -- because a key reaches this list only by being written while the backend was down.
+   */
+  async #reconcilePendingWrites(): Promise<void> {
+    if (!this.#backend) {
+      return;
+    }
+    let pending: string[];
+    try {
+      pending = await this.#legacy.get<string[]>(PENDING_WRITES_KEY, []);
+    } catch (error) {
+      reportStorageError(PENDING_WRITES_KEY, error, "read");
+      return;
+    }
+    if (pending.length === 0) {
+      this.#status.pendingWrites = 0;
+      return;
+    }
+
+    const unresolved: string[] = [];
+    for (const key of pending) {
+      try {
+        const legacyValue = await this.#legacy.get<unknown | undefined>(key, undefined);
+        const scopedKey = this.#scope(key);
+        if (legacyValue === undefined) {
+          // The fallback session removed it, so the removal has to travel too.
+          await this.#backend.remove(scopedKey);
+        } else {
+          await this.#backend.put(scopedKey, legacyValue);
+          await this.#legacy.remove(key);
+        }
+      } catch (error) {
+        reportStorageError(key, error, "write");
+        unresolved.push(key);
+      }
+    }
+
+    try {
+      if (unresolved.length > 0) {
+        await this.#legacy.set(PENDING_WRITES_KEY, unresolved);
+      } else {
+        await this.#legacy.remove(PENDING_WRITES_KEY);
+      }
+    } catch (error) {
+      reportStorageError(PENDING_WRITES_KEY, error, "write");
+    }
+    this.#status.pendingWrites = unresolved.length;
   }
 }
 

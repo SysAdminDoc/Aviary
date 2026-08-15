@@ -110,15 +110,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 Internal audit of the subsystems no prior pass had examined, plus the code added earlier on 2026-08-15. Findings verified against source before listing; file:line cited on each.
 
-### P1 — data safety
-
-- [ ] F156 — P1 — A transient IndexedDB failure must not silently shed a session's writes
-  Why: `#fallback()` is sticky for the session: one failed transaction flips every later read to the legacy store — which migration already emptied, so the library reads as blank — and writes made during that session land in legacy, where the next healthy boot ignores them forever (`initialize` skips any key the backend already holds, and reads prefer the backend). Data written during a fallback session is silently reverted.
-  Evidence: `src/platform/durable-storage.ts:261-266` (`#fallback`), `:108-119` (migration skips existing backend keys), `:128-134` (legacy copies deleted after migration); paths read and confirmed 2026-08-15.
-  Touches: `src/platform/durable-storage.ts`, Trust status copy, `tests/durable-storage.test.mjs`.
-  Acceptance: a simulated mid-session backend failure leaves the session usable and its writes recoverable — on the next boot, legacy values written after migration reconcile into the backend rather than being shadowed; Trust reports a fallback session in plain words while it is happening; a test drives the fault and proves the write survives the round trip.
-  Complexity: M
-
 ### P2 — reliability
 
 - [ ] F158 — P2 — CI must trigger on the files its gates read

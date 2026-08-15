@@ -12,6 +12,11 @@ export interface StorageStatus {
   usageBytes: number | null;
   quotaBytes: number | null;
   lastError: string | null;
+  /**
+   * Writes made while the durable backend was unavailable, still waiting to be folded back in on
+   * the next healthy boot. Non-zero means this session's changes live only in the legacy store.
+   */
+  pendingWrites: number;
 }
 
 type GlobalWithUserscriptStorage = typeof globalThis & {

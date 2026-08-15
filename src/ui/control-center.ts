@@ -1412,9 +1412,16 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     const usage = status.usageBytes === null ? "usage unavailable" : `${formatBytes(status.usageBytes)} used`;
     const quota = status.quotaBytes === null ? "quota unavailable" : `${formatBytes(status.quotaBytes)} available`;
     const error = status.lastError ? ` · ${status.lastError}` : "";
+    // A fallback session's writes live only in the legacy store until the next healthy boot
+    // folds them in. Saying so is the difference between "storage looks odd" and knowing
+    // that this session's changes are waiting on a reload.
+    const pending =
+      status.pendingWrites > 0
+        ? ` · ${status.pendingWrites} change${status.pendingWrites === 1 ? "" : "s"} waiting for the next reload`
+        : "";
     return dataRow(
       "Storage",
-      `${backend} · schema v${status.schemaVersion} · ${usage} · ${quota} · ${status.migratedKeys} stores migrated${error}`
+      `${backend} · schema v${status.schemaVersion} · ${usage} · ${quota} · ${status.migratedKeys} stores migrated${pending}${error}`
     );
   };
 
