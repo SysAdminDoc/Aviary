@@ -136,7 +136,6 @@ export const pauseOffscreenVideoFeature: FeatureModule = {
   id: "performance.pauseOffscreenVideo",
   title: "Pause offscreen video",
   category: "media",
-  defaultEnabled: true,
 
   init(ctx: FeatureContext) {
     if (!ctx.settings.performance.pauseOffscreenVideo) {

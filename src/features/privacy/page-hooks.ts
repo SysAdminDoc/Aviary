@@ -30,7 +30,6 @@ export const pageHooksFeature: FeatureModule = {
   id: "privacy.pageHooks",
   title: "Page-world hooks",
   category: "privacy",
-  defaultEnabled: true,
 
   init(ctx) {
     const bridge = ctx.pageBridge;

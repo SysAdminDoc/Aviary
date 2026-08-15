@@ -7,7 +7,6 @@ export const snapshotsFeature: FeatureModule = {
   id: "library.snapshots",
   title: "Follower / following snapshots",
   category: "core",
-  defaultEnabled: true,
 
   async init(ctx) {
     store = new SnapshotStore(ctx.storage);

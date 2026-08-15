@@ -62,7 +62,6 @@ export const mediaButtonsFeature: FeatureModule = {
   id: "media.buttons",
   title: "One-click media",
   category: "media",
-  defaultEnabled: true,
 
   async init(ctx) {
     subscribeToMediaMetadata(ctx);

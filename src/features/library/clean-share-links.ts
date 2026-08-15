@@ -33,7 +33,6 @@ export const cleanShareLinksFeature: FeatureModule = {
   id: "library.cleanShareLinks",
   title: "Clean share links",
   category: "core",
-  defaultEnabled: true,
 
   init(ctx) {
     if (!ctx.settings.links.cleanShareButtons) {

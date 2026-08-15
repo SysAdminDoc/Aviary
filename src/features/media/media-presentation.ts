@@ -19,7 +19,6 @@ export const mediaPresentationFeature: FeatureModule = {
   id: "media.presentation",
   title: "Media presentation",
   category: "media",
-  defaultEnabled: true,
 
   init(ctx) {
     ensurePresentationStyle();

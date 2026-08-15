@@ -32,7 +32,6 @@ export const filterEngineFeature: FeatureModule = {
   id: "filtering.engine",
   title: "Filter engine",
   category: "filtering",
-  defaultEnabled: true,
 
   init(ctx) {
     ensureFilterStyle();

@@ -17,7 +17,6 @@ export const bookmarksFeature: FeatureModule = {
   id: "library.bookmarks",
   title: "Local bookmarks",
   category: "core",
-  defaultEnabled: true,
 
   async init(ctx) {
     store = new BookmarkStore(ctx.storage);

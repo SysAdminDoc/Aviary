@@ -119,7 +119,6 @@ export const controlCenterFeature: FeatureModule = {
   id: "core.controlCenter",
   title: "Control Center",
   category: "core",
-  defaultEnabled: true,
 
   async init(ctx) {
     if (!cleanupQueue) {

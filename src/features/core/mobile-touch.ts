@@ -6,7 +6,6 @@ export const mobileTouchFeature: FeatureModule = {
   id: "core.mobileTouch",
   title: "Mobile & touch ergonomics",
   category: "accessibility",
-  defaultEnabled: true,
 
   init(ctx) {
     ensureMobileStyle();

@@ -90,7 +90,6 @@ export const adProtectionFeature: FeatureModule = {
   id: "privacy.adProtection",
   title: "Ad protection",
   category: "privacy",
-  defaultEnabled: true,
 
   init(ctx) {
     ensureStyle();

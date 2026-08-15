@@ -62,6 +62,9 @@
 
 ### Fixed
 
+- `FeatureModule.defaultEnabled` is gone. Every one of the 27 modules declared it `true`, so the
+  registry branch that skipped a disabled module was unreachable and the flag described nothing:
+  enablement is decided at runtime by each feature reading its own setting.
 - Author matching now reads absolute profile links as well as relative ones. The filter engine's
   handle reader accepted only relative hrefs, so every author read as unknown against the saved
   captures — the reason handle-based filtering had never been exercised against real markup.

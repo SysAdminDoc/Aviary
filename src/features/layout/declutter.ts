@@ -22,7 +22,6 @@ export const layoutDeclutterFeature: FeatureModule = {
   id: "layout.declutter",
   title: "Layout declutter",
   category: "layout",
-  defaultEnabled: true,
 
   init(ctx) {
     ensureLayoutStyle();

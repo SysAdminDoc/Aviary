@@ -26,7 +26,6 @@ export const threadRecommendationsFeature: FeatureModule = {
   id: "layout.threadRecommendations",
   title: "Hide thread recommendations",
   category: "layout",
-  defaultEnabled: true,
 
   init(ctx) {
     applyThreadRecommendations(ctx);

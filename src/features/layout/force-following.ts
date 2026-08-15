@@ -35,7 +35,6 @@ export const forceFollowingFeature: FeatureModule = {
   id: "layout.forceFollowing",
   title: "Open Following instead of For you",
   category: "layout",
-  defaultEnabled: true,
 
   init(ctx: FeatureContext) {
     assertedForHref = null;

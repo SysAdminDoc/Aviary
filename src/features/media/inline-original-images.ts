@@ -72,7 +72,6 @@ export const inlineOriginalImagesFeature: FeatureModule = {
   id: "media.inlineOriginalImages",
   title: "Show images at original quality",
   category: "media",
-  defaultEnabled: true,
 
   init(ctx: FeatureContext) {
     if (!ctx.settings.media.inlineOriginalImages) {

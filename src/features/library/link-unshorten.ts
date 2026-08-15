@@ -8,7 +8,6 @@ export const linkUnshortenFeature: FeatureModule = {
   id: "library.linkUnshorten",
   title: "Direct link unshortening",
   category: "core",
-  defaultEnabled: true,
 
   init(ctx) {
     if (!ctx.settings.links.expandTco) {

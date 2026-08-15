@@ -50,7 +50,6 @@ export const selectorHealthFeature: FeatureModule = {
   id: "core.selectorHealth",
   title: "Selector health diagnostics",
   category: "core",
-  defaultEnabled: true,
 
   async init(ctx) {
     resetState();

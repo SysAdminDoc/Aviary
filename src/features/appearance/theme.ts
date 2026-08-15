@@ -8,7 +8,6 @@ export const themeFeature: FeatureModule = {
   id: "appearance.theme",
   title: "Theme foundation",
   category: "appearance",
-  defaultEnabled: true,
 
   init(ctx) {
     ensureThemeStyle();

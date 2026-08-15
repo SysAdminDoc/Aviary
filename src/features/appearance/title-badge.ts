@@ -18,7 +18,6 @@ export const titleBadgeFeature: FeatureModule = {
   id: "appearance.titleBadge",
   title: "Hide tab title badge",
   category: "appearance",
-  defaultEnabled: true,
 
   init(ctx) {
     applyTitleBadge(ctx);

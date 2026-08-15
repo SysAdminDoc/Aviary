@@ -19,7 +19,6 @@ export const userNotesFeature: FeatureModule = {
   id: "library.userNotes",
   title: "Account notes",
   category: "core",
-  defaultEnabled: true,
 
   async init(ctx) {
     activeStorage = ctx.storage;

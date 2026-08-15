@@ -27,7 +27,6 @@ export const hiddenPostsFeature: FeatureModule = {
   id: "filtering.hiddenPosts",
   title: "Hide posts",
   category: "filtering",
-  defaultEnabled: true,
 
   async init(ctx) {
     store = new HiddenPostStore(ctx.storage, (error) => {

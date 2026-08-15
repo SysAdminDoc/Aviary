@@ -44,7 +44,6 @@ export interface FeatureModule {
   id: string;
   title: string;
   category: "core" | "appearance" | "layout" | "filtering" | "media" | "export" | "privacy" | "accessibility";
-  defaultEnabled: boolean;
   init(ctx: FeatureContext): void | Promise<void>;
   apply?(ctx: FeatureContext, root: ParentNode, addedNodes?: Element[]): void | Promise<void>;
   destroy(ctx: FeatureContext): void | Promise<void>;
@@ -64,9 +63,6 @@ export class FeatureRegistry {
 
   async initAll(ctx: FeatureContext): Promise<void> {
     for (const feature of this.#features.values()) {
-      if (!feature.defaultEnabled) {
-        continue;
-      }
       try {
         await feature.init(ctx);
         this.#active.add(feature.id);

@@ -611,7 +611,6 @@
     id: "appearance.theme",
     title: "Theme foundation",
     category: "appearance",
-    defaultEnabled: true,
     init(ctx) {
       ensureThemeStyle();
       applyTheme(ctx.settings);
@@ -1145,7 +1144,6 @@ html.av-reduce-motion *::after {
     id: "appearance.titleBadge",
     title: "Hide tab title badge",
     category: "appearance",
-    defaultEnabled: true,
     init(ctx) {
       applyTitleBadge(ctx);
     },
@@ -13822,7 +13820,6 @@ input[type="checkbox"] {
     id: "privacy.pageHooks",
     title: "Page-world hooks",
     category: "privacy",
-    defaultEnabled: true,
     init(ctx) {
       const bridge = ctx.pageBridge;
       if (!bridge) {
@@ -13995,7 +13992,6 @@ input[type="checkbox"] {
     id: "privacy.adProtection",
     title: "Ad protection",
     category: "privacy",
-    defaultEnabled: true,
     init(ctx) {
       ensureStyle();
       applyAdProtection(ctx, document);
@@ -14452,7 +14448,6 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     id: "core.selectorHealth",
     title: "Selector health diagnostics",
     category: "core",
-    defaultEnabled: true,
     async init(ctx) {
       resetState();
       if (!ctx.settings.diagnostics.selectorHealth) {
@@ -17584,7 +17579,6 @@ a { color: #8ecdf1; }
     id: "export.core",
     title: "Export core",
     category: "export",
-    defaultEnabled: true,
     async init(ctx) {
       activeJobId = void 0;
       queryRegistry = void 0;
@@ -18602,7 +18596,6 @@ ${record.text}${mediaList}`;
     id: "filtering.engine",
     title: "Filter engine",
     category: "filtering",
-    defaultEnabled: true,
     init(ctx) {
       ensureFilterStyle();
       refreshCompiled(ctx);
@@ -18816,7 +18809,6 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
     id: "filtering.hiddenPosts",
     title: "Hide posts",
     category: "filtering",
-    defaultEnabled: true,
     async init(ctx) {
       store = new HiddenPostStore(ctx.storage, (error) => {
         ctx.diagnostics.error("Hidden posts failed to save", errorDetails3(error));
@@ -21719,7 +21711,6 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     id: "media.buttons",
     title: "One-click media",
     category: "media",
-    defaultEnabled: true,
     async init(ctx) {
       subscribeToMediaMetadata(ctx);
       if (ctx.settings.media.buttons) {
@@ -23156,7 +23147,6 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     id: "library.snapshots",
     title: "Follower / following snapshots",
     category: "core",
-    defaultEnabled: true,
     async init(ctx) {
       store2 = new SnapshotStore(ctx.storage);
       await store2.load();
@@ -23208,7 +23198,6 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     id: "library.userNotes",
     title: "Account notes",
     category: "core",
-    defaultEnabled: true,
     async init(ctx) {
       activeStorage = ctx.storage;
       ensureStyle3();
@@ -23601,7 +23590,6 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     id: "library.bookmarks",
     title: "Local bookmarks",
     category: "core",
-    defaultEnabled: true,
     async init(ctx) {
       store3 = new BookmarkStore(ctx.storage);
       await store3.load();
@@ -24560,7 +24548,6 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     id: "core.controlCenter",
     title: "Control Center",
     category: "core",
-    defaultEnabled: true,
     async init(ctx) {
       if (!cleanupQueue) {
         cleanupQueue = new CleanupQueue(ctx.storage);
@@ -25552,7 +25539,6 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     id: "core.firstRun",
     title: "First run notice",
     category: "core",
-    defaultEnabled: true,
     async init(ctx) {
       if (!ctx.freshInstall || shown || typeof document === "undefined") {
         return;
@@ -25691,7 +25677,6 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
     id: "layout.declutter",
     title: "Layout declutter",
     category: "layout",
-    defaultEnabled: true,
     init(ctx) {
       ensureLayoutStyle();
       applyLayoutClasses(ctx);
@@ -25907,7 +25892,6 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
     id: "layout.threadRecommendations",
     title: "Hide thread recommendations",
     category: "layout",
-    defaultEnabled: true,
     init(ctx) {
       applyThreadRecommendations(ctx);
     },
@@ -26109,7 +26093,6 @@ ${text}`
     id: "ai.commandMenu",
     title: "AI command menu (local prompt builder)",
     category: "core",
-    defaultEnabled: true,
     init(ctx) {
       if (!ctx.settings.ai.commandMenu) {
         return;
@@ -26635,7 +26618,6 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     id: "composer.snippets",
     title: "Composer snippets",
     category: "core",
-    defaultEnabled: true,
     init(ctx) {
       appliedSnippetsSignature = snippetsSignature(ctx);
       if (ctx.settings.composer.snippets.length === 0) {
@@ -26954,7 +26936,6 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     id: "core.i18n",
     title: "Internationalization",
     category: "core",
-    defaultEnabled: true,
     init(ctx) {
       ensureI18nStyle();
       applyLocaleClasses(ctx);
@@ -27024,7 +27005,6 @@ html.av-ltr [data-testid="tweetText"][lang^="he"] {
     id: "core.mobileTouch",
     title: "Mobile & touch ergonomics",
     category: "accessibility",
-    defaultEnabled: true,
     init(ctx) {
       ensureMobileStyle();
       applyMobileClasses();
@@ -27550,7 +27530,6 @@ html.av-mobile [data-testid="primaryColumn"] {
     id: "export.networkCapture",
     title: "Passive GraphQL capture",
     category: "export",
-    defaultEnabled: true,
     init(ctx) {
       const previousContext = activeContext;
       activeContext = ctx;
@@ -27757,7 +27736,6 @@ html.av-mobile [data-testid="primaryColumn"] {
     id: "library.cleanShareLinks",
     title: "Clean share links",
     category: "core",
-    defaultEnabled: true,
     init(ctx) {
       if (!ctx.settings.links.cleanShareButtons) {
         return;
@@ -27970,7 +27948,6 @@ html.av-mobile [data-testid="primaryColumn"] {
     id: "performance.pauseOffscreenVideo",
     title: "Pause offscreen video",
     category: "media",
-    defaultEnabled: true,
     init(ctx) {
       if (!ctx.settings.performance.pauseOffscreenVideo) {
         return;
@@ -28044,7 +28021,6 @@ html.av-mobile [data-testid="primaryColumn"] {
     id: "layout.forceFollowing",
     title: "Open Following instead of For you",
     category: "layout",
-    defaultEnabled: true,
     init(ctx) {
       assertedForHref = null;
       if (ctx.settings.layout.forceFollowing) {
@@ -28127,7 +28103,6 @@ html.av-mobile [data-testid="primaryColumn"] {
     id: "media.inlineOriginalImages",
     title: "Show images at original quality",
     category: "media",
-    defaultEnabled: true,
     init(ctx) {
       if (!ctx.settings.media.inlineOriginalImages) {
         return;
@@ -28194,7 +28169,6 @@ html.av-mobile [data-testid="primaryColumn"] {
     id: "library.linkUnshorten",
     title: "Direct link unshortening",
     category: "core",
-    defaultEnabled: true,
     init(ctx) {
       if (!ctx.settings.links.expandTco) {
         return;
@@ -28312,7 +28286,6 @@ a.av-link-clean {
     id: "media.presentation",
     title: "Media presentation",
     category: "media",
-    defaultEnabled: true,
     init(ctx) {
       ensurePresentationStyle();
       applyPresentationClasses(ctx);
@@ -28391,9 +28364,6 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     }
     async initAll(ctx) {
       for (const feature of this.#features.values()) {
-        if (!feature.defaultEnabled) {
-          continue;
-        }
         try {
           await feature.init(ctx);
           this.#active.add(feature.id);

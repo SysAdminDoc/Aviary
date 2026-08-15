@@ -41,7 +41,6 @@ export const networkCaptureFeature: FeatureModule = {
   id: "export.networkCapture",
   title: "Passive GraphQL capture",
   category: "export",
-  defaultEnabled: true,
 
   init(ctx) {
     const previousContext = activeContext;

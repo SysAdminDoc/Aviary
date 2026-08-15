@@ -10,7 +10,6 @@ export const composerSnippetsFeature: FeatureModule = {
   id: "composer.snippets",
   title: "Composer snippets",
   category: "core",
-  defaultEnabled: true,
 
   init(ctx) {
     appliedSnippetsSignature = snippetsSignature(ctx);

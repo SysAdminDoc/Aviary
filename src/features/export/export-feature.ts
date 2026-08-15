@@ -28,7 +28,6 @@ export const exportFeature: FeatureModule = {
   id: "export.core",
   title: "Export core",
   category: "export",
-  defaultEnabled: true,
 
   async init(ctx) {
     // init() is followed by the first apply() pass. Keep the prior capture state explicitly off

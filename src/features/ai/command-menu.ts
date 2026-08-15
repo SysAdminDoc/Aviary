@@ -52,7 +52,6 @@ export const aiCommandMenuFeature: FeatureModule = {
   id: "ai.commandMenu",
   title: "AI command menu (local prompt builder)",
   category: "core",
-  defaultEnabled: true,
 
   init(ctx) {
     if (!ctx.settings.ai.commandMenu) {

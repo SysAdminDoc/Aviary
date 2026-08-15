@@ -73,13 +73,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Acceptance: route changes fire from `navigation` events when available, patch fallback otherwise; matrix lanes unchanged.
   Complexity: S
 
-- [ ] F127 — P2 — Remove the dead `defaultEnabled` gate
-  Why: all 24 modules ship `defaultEnabled: true`, the registry skip branch is unreachable, and `statuses()` reports 24 "registered" regardless of user state — a vestigial switch that misdescribes reality.
-  Evidence: src/features/registry.ts:62; repo recon grep (0 modules false).
-  Touches: registry.ts, all module literals, any status display.
-  Acceptance: the contract expresses only what exists (runtime settings gating); statuses reflect actual enablement; tests updated.
-  Complexity: S
-
 - [ ] F128 — P2 — Empty states for library surfaces
   Why: only 4 empty states exist (snippets, viewer, hidden posts, options); bookmarks, notes, snapshots, export jobs, integration errors, and settings search show nothing when empty — weak first-use UX for the library pillar.
   Evidence: repo recon grep; RESEARCH.md Architecture.

@@ -26,7 +26,6 @@ export const firstRunFeature: FeatureModule = {
   id: "core.firstRun",
   title: "First run notice",
   category: "core",
-  defaultEnabled: true,
 
   async init(ctx) {
     if (!ctx.freshInstall || shown || typeof document === "undefined") {

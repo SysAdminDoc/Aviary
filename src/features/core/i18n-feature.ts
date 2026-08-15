@@ -7,7 +7,6 @@ export const i18nFeature: FeatureModule = {
   id: "core.i18n",
   title: "Internationalization",
   category: "core",
-  defaultEnabled: true,
 
   init(ctx) {
     ensureI18nStyle();
