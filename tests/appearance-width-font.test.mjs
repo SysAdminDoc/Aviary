@@ -70,7 +70,7 @@ before(async () => {
   });
 
   currentPage = await browser.newPage({ viewport: { width: 1400, height: 900 } });
-  const currentCapture = decodeMhtml(await readFile(path.join(root, "Home _ X.mhtml"), "utf8"));
+  const currentCapture = decodeMhtml(await readFile(path.join(root, "_decoded", "Home _ X.mhtml"), "utf8"));
   await currentPage.setContent(currentCapture.html);
   for (const css of currentCapture.css) {
     await currentPage.addStyleTag({ content: css });

@@ -1,0 +1,59 @@
+name: Bug report
+description: Something Aviary does on X is wrong, or stopped working.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        X changes its markup frequently, so a broken feature is usually a selector that no longer
+        matches. The Control Center's **Trust** section reports selector health and saved warnings —
+        **Copy diagnostics** there gathers everything below except the description.
+
+        Please do not paste post text, handles, URLs, cookies, or tokens. Aviary's diagnostics
+        deliberately contain none of those, and an issue does not need them either.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: Which X surface — Home, a conversation, a profile, Notifications, Messages, Search.
+      placeholder: Home timeline
+    validations:
+      required: true
+  - type: dropdown
+    id: build
+    attributes:
+      label: Build
+      options:
+        - Userscript
+        - Chrome / Edge / Brave extension
+        - Firefox extension
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Aviary version
+      description: Shown in the Control Center header and in the userscript metadata.
+      placeholder: 1.22.0
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Output of Trust → Copy diagnostics. Content-free by design; check before pasting.
+      render: json
+  - type: checkboxes
+    id: isolated
+    attributes:
+      label: Isolation
+      options:
+        - label: I checked whether the problem persists with Aviary's settings reset to defaults.
+        - label: I checked whether another extension or userscript also touches X.

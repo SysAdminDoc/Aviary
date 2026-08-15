@@ -114,7 +114,9 @@ test("Control Center implements the ImageGen page system across every menu secti
     "control-center-data.png",
     "control-center-advanced.png"
   ]) {
-    const image = await readFile(path.join(root, "docs", "mockups", board));
+    // Archived 2026-08-14: these boards depict the retired four-section IA. They stay as the
+    // generated design reference for the page system, just not beside the current mockups.
+    const image = await readFile(path.join(root, "docs", "mockups", "archive-pre-2026-08-13", board));
     assert.ok(image.length > 100_000, `${board} must retain the generated design reference`);
   }
 });

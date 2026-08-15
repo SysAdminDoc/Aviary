@@ -1,0 +1,37 @@
+name: Feature request
+description: Suggest something Aviary should be able to do.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Aviary is deliberately narrow: it changes nothing about X except what you enable, it makes
+        no request X did not already make, and it never issues its own API calls — that last one is
+        what keeps it out of the ban waves that hit client-replacement tools.
+
+        Requests that need Aviary to call X's API on your behalf (bulk delete, mass block, mass
+        unfollow) are out of scope for that reason, not because they are hard.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do that X makes difficult?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What Aviary could do
+      description: The behaviour you want. If a similar tool does it well, name it.
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Does this need Aviary to send anything to X?
+      options:
+        - "No — it only changes what the page shows me"
+        - "Yes — it would act on my account (post, block, follow, delete)"
+        - "Not sure"
+    validations:
+      required: true

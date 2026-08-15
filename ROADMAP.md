@@ -81,10 +81,3 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Touches: ad-protection label table, ad-corpus fixtures (one per added locale), tests.
   Acceptance: label table covers X's supported UI locales with a fixture-backed test per label shape; drift diagnostics count unchanged.
   Complexity: M
-
-- [ ] F133 — P3 — Repo hygiene: relocate root captures, refresh stale mockups
-  Why: two ~700KB .mhtml reference fixtures sit at repo root instead of beside `_decoded/`; 5 undated mockups depict the dead 4-section IA; `.github/` lacks issue/PR templates.
-  Evidence: repo root listing; docs/mockups/ root files; RESEARCH.md Architecture.
-  Touches: repo root, docs/mockups/, .github/.
-  Acceptance: captures live under `_decoded/` (paths updated where referenced), stale mockups moved to a dated archive folder or deleted, templates added.
-  Complexity: S
