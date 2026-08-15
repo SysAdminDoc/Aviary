@@ -20,21 +20,75 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
  * Values that must never enter a tracked fixture. A capture is taken from a real signed-in session,
  * so the scrub is the thing standing between "useful evidence" and "published credentials".
  */
+/**
+ * Every secret name, in one place, so the scrub and the leak guard below cannot drift apart. The
+ * first version listed `ct0` only in its JSON form, so a `ct0=<value>` cookie string passed the
+ * scrub *and* the guard that exists to catch exactly that.
+ */
+const SECRET_NAMES = [
+  "ct0",
+  "auth_token",
+  "oauth_token",
+  "access_token",
+  "session_token",
+  "csrf_token",
+  "kdt",
+  "twid",
+  "guest_id",
+  "personalization_id"
+];
+
+const SECRET_ALTERNATION = SECRET_NAMES.join("|");
+
+/** Cookie/query shape: `name=value`. */
+const COOKIE_SHAPE = new RegExp(`\\b(${SECRET_ALTERNATION})=([^;"'\\s&]+)`, "g");
+/** JSON shape: `"name": "value"`. */
+const JSON_SHAPE = new RegExp(`("(?:${SECRET_ALTERNATION})"\\s*:\\s*")[^"]*(")`, "g");
+
 const SCRUB_PATTERNS = [
-  // Auth material X puts in the document for its own bootstrap.
-  [/("ct0"\s*:\s*")[^"]*(")/g, "$1SCRUBBED$2"],
-  [/(Bearer\s+)[A-Za-z0-9%\-._~+/]+=*/g, "$1SCRUBBED"],
-  [/((?:auth_token|kdt|twid|guest_id|personalization_id)=)[^;"'\s&]+/g, "$1SCRUBBED"],
   // Both shapes occur: a cookie string, and the same names as JSON keys in X's bootstrap.
-  [/("(?:oauth_token|access_token|session_token|csrf_token|auth_token|kdt|twid|guest_id)"\s*:\s*")[^"]*(")/g, "$1SCRUBBED$2"],
+  [COOKIE_SHAPE, "$1=SCRUBBED"],
+  [JSON_SHAPE, "$1SCRUBBED$2"],
+  [/(Bearer\s+)[A-Za-z0-9%\-._~+/]+=*/g, "$1SCRUBBED"],
   // Long opaque bearer-shaped literals that appear inline in X's bootstrap scripts.
   [/AAAAAAAAA[A-Za-z0-9%\-._~+/]{40,}=*/g, "SCRUBBED_BEARER"]
 ];
 
+/**
+ * Quoted-printable carries bytes, not characters: `=E2=80=94` is one em-dash in three octets. The
+ * first version mapped each octet through `String.fromCharCode` and wrote the result back as UTF-8,
+ * so every non-ASCII character in a capture came out as mojibake -- display names, non-English
+ * posts, and the localized ad labels the fixtures exist to measure. Decode to bytes, then decode
+ * those bytes once as UTF-8.
+ */
 function decodeQuotedPrintable(body) {
-  return body
-    .replace(/=\r?\n/g, "")
-    .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  const unfolded = body.replace(/=\r?\n/g, "");
+  const encoder = new TextEncoder();
+  const chunks = [];
+  const escape = /=([0-9A-Fa-f]{2})/g;
+  let last = 0;
+  let match;
+  while ((match = escape.exec(unfolded)) !== null) {
+    if (match.index > last) {
+      chunks.push(encoder.encode(unfolded.slice(last, match.index)));
+    }
+    chunks.push(Uint8Array.of(parseInt(match[1], 16)));
+    last = escape.lastIndex;
+  }
+  if (last < unfolded.length) {
+    chunks.push(encoder.encode(unfolded.slice(last)));
+  }
+  let total = 0;
+  for (const chunk of chunks) {
+    total += chunk.length;
+  }
+  const bytes = new Uint8Array(total);
+  let at = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, at);
+    at += chunk.length;
+  }
+  return new TextDecoder("utf-8").decode(bytes);
 }
 
 /**
@@ -72,16 +126,27 @@ export function scrub(html) {
   return { html: output, removed };
 }
 
-/** Fails loudly rather than writing a fixture that still carries a token. */
+/**
+ * Fails loudly rather than writing a fixture that still carries a token. Built from the same
+ * `SECRET_NAMES` list as the scrub, so a name can never be scrubbed-but-unchecked or the reverse.
+ */
 export function assertScrubbed(html) {
   const leaks = [
-    [/"ct0"\s*:\s*"(?!SCRUBBED)[^"]{8,}"/, "ct0 cookie value"],
-    [/Bearer\s+(?!SCRUBBED)[A-Za-z0-9%\-._~+/]{20,}/, "Bearer token"],
-    [/auth_token=(?!SCRUBBED)[^;"'\s&]{8,}/, "auth_token cookie"]
+    [
+      new RegExp(`\\b(?:${SECRET_ALTERNATION})=(?!SCRUBBED)[^;"'\\s&]{8,}`),
+      "credential in cookie form"
+    ],
+    [
+      new RegExp(`"(?:${SECRET_ALTERNATION})"\\s*:\\s*"(?!SCRUBBED)[^"]{8,}"`),
+      "credential in JSON form"
+    ],
+    [/Bearer\s+(?!SCRUBBED)[A-Za-z0-9%\-._~+/]{20,}/, "Bearer token"]
   ];
   for (const [pattern, label] of leaks) {
-    if (pattern.test(html)) {
-      throw new Error(`refusing to write the fixture: it still contains a ${label}`);
+    const found = html.match(pattern);
+    if (found) {
+      const name = found[0].split(/[=:]/)[0].replace(/"/g, "").trim();
+      throw new Error(`refusing to write the fixture: it still contains a ${label} (${name})`);
     }
   }
 }

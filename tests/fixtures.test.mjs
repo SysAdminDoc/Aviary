@@ -165,3 +165,56 @@ test("the selectors features depend on are present in a capture, not invented", 
     `selectors.ts claims test ids no capture contains: ${missing.join(", ")}`
   );
 });
+
+// --- capture decoder: the two defects that would have poisoned a refreshed capture ------------
+// Quoted-printable carries bytes, not characters, and the first version mapped each octet through
+// String.fromCharCode before writing UTF-8 back out. Every non-ASCII character in a capture would
+// have arrived as mojibake — including the localized ad labels the fixtures exist to measure.
+
+test("quoted-printable decoding survives multibyte text", () => {
+  const body = [
+    "Content-Type: text/html",
+    "Content-Transfer-Encoding: quoted-printable",
+    "",
+    "<html><body>an em=E2=80=94dash, =E6=97=A5=E6=9C=AC=E8=AA=9E, =D8=B9=D8=B1=D8=A8=D9=8A</body></html>"
+  ].join("\r\n");
+  const mhtml = `Content-Type: multipart/related; boundary="B"; type="text/html"\r\n\r\n--B\r\n${body}\r\n--B--`;
+
+  const html = extractHtml(mhtml);
+  assert.match(html, /an em—dash/, "an em-dash must decode as one character, not three");
+  assert.match(html, /日本語/, "CJK must survive");
+  assert.match(html, /عربي/, "Arabic must survive");
+  assert.doesNotMatch(html, /â/, "mojibake signature must not appear");
+});
+
+test("a soft line break inside a multibyte escape sequence still decodes", () => {
+  // Quoted-printable wraps at 76 columns, so an octet run can be split by `=\r\n` mid-character.
+  const body = [
+    "Content-Type: text/html",
+    "Content-Transfer-Encoding: quoted-printable",
+    "",
+    "<p>=E2=80=",
+    "=94</p>"
+  ].join("\r\n");
+  const mhtml = `Content-Type: multipart/related; boundary="B"; type="text/html"\r\n\r\n--B\r\n${body}\r\n--B--`;
+  assert.match(extractHtml(mhtml), /<p>—<\/p>/);
+});
+
+test("every secret name is scrubbed in both cookie and JSON form, and caught in both", () => {
+  const names = ["ct0", "auth_token", "oauth_token", "access_token", "session_token", "csrf_token"];
+  for (const name of names) {
+    for (const planted of [
+      `<script>document.cookie="${name}=abcdef0123456789abcdef"</script>`,
+      `<script>window.__x={"${name}":"abcdef0123456789abcdef"}</script>`
+    ]) {
+      assert.throws(
+        () => assertScrubbed(planted),
+        /still contains/,
+        `the leak guard missed ${name} in ${planted.includes("cookie") ? "cookie" : "JSON"} form`
+      );
+      const { html } = scrub(planted);
+      assert.ok(!html.includes("abcdef0123456789abcdef"), `${name} survived the scrub`);
+      assert.doesNotThrow(() => assertScrubbed(html), `${name} scrubbed but still trips the guard`);
+    }
+  }
+});

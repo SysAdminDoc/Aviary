@@ -110,15 +110,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 Internal audit of the subsystems no prior pass had examined, plus the code added earlier on 2026-08-15. Findings verified against source before listing; file:line cited on each.
 
-### P0 — must land before the operator refreshes the captures
-
-- [ ] F155 — P0 — Fix the capture decoder's scrub gap and multibyte corruption
-  Why: two defects in `tools/capture-decode.mjs` (shipped 2026-08-15) poison the one operator action everything else waits on. (1) The cookie-shape scrub pattern omits `ct0` — it lists `auth_token|kdt|twid|guest_id|personalization_id`, so a `ct0=<value>` cookie string passes both the scrub and `assertScrubbed`, and the CSRF token would enter a tracked fixture. (2) Quoted-printable decoding maps each byte through `String.fromCharCode`, so every UTF-8 multibyte character decodes as mojibake (reproduced: `=E2=80=94` becomes `â€"` instead of an em-dash) — display names, non-English posts, and the exact localized ad-label strings the fixtures exist to measure would all be wrong in refreshed ground truth.
-  Evidence: `tools/capture-decode.mjs:25-31` (pattern list), `:76-86` (leak guard); mojibake reproduced under node 2026-08-15. The committed fixtures are unaffected — they predate this tool.
-  Touches: `tools/capture-decode.mjs`, `tests/fixtures.test.mjs` (decoder tests).
-  Acceptance: `ct0=`, `oauth_token=`, and `access_token=` cookie shapes are scrubbed and the leak guard catches each when planted; QP decoding accumulates bytes and decodes once as UTF-8, proven by a round-trip test containing an em-dash, CJK, and an Arabic string; the existing planted-token and round-trip tests still pass.
-  Complexity: S
-
 ### P1 — data safety
 
 - [ ] F156 — P1 — A transient IndexedDB failure must not silently shed a session's writes

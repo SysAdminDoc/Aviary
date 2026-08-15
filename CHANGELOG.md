@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Fixed
+
+- The capture decoder no longer mangles non-ASCII text. Quoted-printable carries bytes, not
+  characters, and the first version mapped each octet through `String.fromCharCode` before writing
+  UTF-8 back out — so `=E2=80=94` became mojibake instead of an em-dash, and every display name,
+  non-English post, and localized ad label in a refreshed capture would have been wrong. It decodes
+  to bytes now and decodes those once as UTF-8, including across the soft line breaks that split an
+  escape sequence mid-character.
+- A `ct0=` cookie value could pass both the capture scrub and the leak guard that exists to catch
+  it: `ct0` was listed only in its JSON form. Both the scrub and the guard are now generated from
+  one list of secret names, so a name cannot be scrubbed-but-unchecked or the reverse, and the
+  guard names which credential it found.
+
 ## 1.24.0 - 2026-08-15
 
 ### Added
