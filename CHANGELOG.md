@@ -23,6 +23,8 @@
   as completed video downloads.
 - Media controls have a clearer action-row hierarchy, explicit focus and status treatments, and a
   44-pixel narrow-screen target. A deterministic feed capture documents the shipped layout.
+- Build, test, and smoke verification now run locally only; the legacy hosted build workflow was
+  removed while the same `npm run smoke` browser matrix remains available for release checks.
 
 ### Fixed
 

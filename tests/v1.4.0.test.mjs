@@ -424,15 +424,11 @@ test("smoke spec scaffold ships with explicit setup instructions", async () => {
   );
 });
 
-test("Playwright smoke workflow caches browsers and stays separate from verify", async () => {
-  const workflow = await readFile(path.join(root, ".github/workflows/smoke.yml"), "utf8");
-  assert.match(workflow, /actions\/cache@v4/);
-  assert.match(workflow, /ms-playwright/);
-  assert.match(workflow, /playwright install --with-deps chromium/);
-  assert.match(workflow, /packages\.mozilla\.org/);
-  assert.match(workflow, /apt-get install -y firefox/);
-  assert.match(workflow, /npm run smoke/);
-  assert.doesNotMatch(workflow, /npm run verify/);
+test("Playwright smoke stays local and leaves no hosted build workflow", async () => {
+  await assert.rejects(
+    readFile(path.join(root, ".github/workflows/smoke.yml"), "utf8"),
+    (error) => error?.code === "ENOENT"
+  );
   const smoke = await readFile(path.join(root, "tests/smoke/aviary.smoke.mjs"), "utf8");
   assert.doesNotMatch(smoke, /MouseEvent|HTMLButtonElement/);
   assert.match(smoke, /rm\(userDataDir/);

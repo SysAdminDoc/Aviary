@@ -102,8 +102,8 @@ Actionable work only. Historical and completed roadmap material is archived in C
 - [ ] F151 — P3 — Typecheck on the native TypeScript compiler
   Why: `npm run typecheck` is pure `tsc --noEmit` — nothing consumes the programmatic API — so it can move to the Go-native compiler for an 8–12× faster gate while TypeScript 6 stays installed for the lint parser, which cannot run on 7.0 until 7.1 restores the API.
   Evidence: TypeScript 7.0 GA 2026-07-08; typescript-eslint#10940; package.json scripts.
-  Touches: package.json (`typecheck` script, devDependency), `.github/workflows/smoke.yml`, tsconfig defaults that changed in 7.0.
-  Acceptance: `npm run typecheck` runs on the native compiler and reports the same diagnostics as the TypeScript 6 pin on a deliberately broken file; lint still runs on the TypeScript 6 parser; CI time drops measurably.
+  Touches: package.json (`typecheck` script, devDependency), tsconfig defaults that changed in 7.0.
+  Acceptance: `npm run typecheck` runs on the native compiler and reports the same diagnostics as the TypeScript 6 pin on a deliberately broken file; lint still runs on the TypeScript 6 parser; local verification time drops measurably.
   Complexity: S
 
 ## Research-Driven Additions (2026-08-15, second pass)

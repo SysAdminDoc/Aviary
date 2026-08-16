@@ -112,7 +112,7 @@ and July 2026 Node security releases.
 
 `npm run test:matrix` runs the deterministic release matrix separately: every supported route,
 locale, theme, keyboard/coarse-pointer mode, malformed input class, provider response class, and
-subscription lifecycle is reported in CI before the headed smoke lanes.
+subscription lifecycle is reported locally before the headed smoke lanes.
 
 `npm run test:visual` rebuilds the extension and compares 60 desktop settings screenshots: all 13
 Control Center destinations plus extension permissions at 1440×900 and 1920×1080 on dark and light
@@ -360,9 +360,8 @@ lanes, plus packaged-extension request-rule probes in Chromium and Mozilla Firef
 temporarily add the feedback permission only to disposable build copies, exercise the real Chrome
 service worker and Firefox event page, and prove the exact logger is blocked before a loopback
 request while HomeTimeline, media, authentication-shaped, and unrelated requests remain eligible.
-All provider calls go to local stubs and all profiles/downloads are temporary. CI installs both
-browsers and runs the same command in its isolated job. For local use, install Mozilla Firefox plus
-the pinned Chromium runner:
+All provider calls go to local stubs and all profiles/downloads are temporary. Verification and
+release builds run locally; install Mozilla Firefox plus the pinned Chromium runner:
 
 ```bash
 npm ci
