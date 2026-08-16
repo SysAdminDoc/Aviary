@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Changed
+
+- Extension download setup now makes the browser-download grant the primary action, announces
+  permission checks and results, reports download readiness in the health summary, and remains
+  usable in narrow browser windows. Media layout now stays with the on-post controls it affects
+  instead of appearing under batch behavior.
+
 ### Fixed
 
 - Direct video downloads now capture MP4 variants from the first timeline response. Media controls

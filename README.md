@@ -211,7 +211,9 @@ In the MV3 build `downloads` remains an optional permission. Choosing the native
 requests it from that explicit browser gesture and immediately continues the save when granted.
 Until it is granted, an on-post button reads **Allow** instead of claiming a save and opens Aviary's
 options page. That page (toolbar icon, or Extensions → Aviary → Options) shows the live grant state
-for `downloads` and for the `pbs.twimg.com` / `video.twimg.com` media hosts, and can revoke either.
+for `downloads` and for the `pbs.twimg.com` / `video.twimg.com` media hosts, makes download access
+the recommended first step, and can revoke either. Permission checks and results are announced,
+and the setup remains usable in compact extension windows.
 On the rare path where the anchor fallback still runs for a cross-origin URL, the button reads
 **Opened**, not Saved. The userscript build is unaffected.
 

@@ -1064,6 +1064,17 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
     )
   );
   rows.push(
+    ctx.selectRow(
+      "Media layout",
+      ctx.options.settings.media.layout,
+      MEDIA_LAYOUT_OPTIONS,
+      async (value) => {
+        ctx.options.settings.media.layout = ctx.coerceLayout(value);
+        await ctx.save("Media layout saved");
+      }
+    )
+  );
+  rows.push(
     ctx.textInputRow(
       "Filename template",
       "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
@@ -1082,17 +1093,6 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
       async (checked) => {
         ctx.options.settings.media.downloadHistory = checked;
         await ctx.save(checked ? "Duplicate history on" : "Duplicate history off");
-      }
-    )
-  );
-  rows.push(
-    ctx.selectRow(
-      "Media layout",
-      ctx.options.settings.media.layout,
-      MEDIA_LAYOUT_OPTIONS,
-      async (value) => {
-        ctx.options.settings.media.layout = ctx.coerceLayout(value);
-        await ctx.save("Media layout saved");
       }
     )
   );

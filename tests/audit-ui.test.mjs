@@ -62,6 +62,24 @@ test("Control Center ships its own touch and viewport rules", async () => {
   }
 });
 
+test("extension download setup remains usable and announced in narrow windows", async () => {
+  const [html, css, controller] = await Promise.all([
+    readFile(path.join(root, "src/extension/options.html"), "utf8"),
+    readFile(path.join(root, "src/extension/options.css"), "utf8"),
+    readFile(path.join(root, "src/entrypoints/extension-options.ts"), "utf8")
+  ]);
+
+  assert.match(html, /id="downloads-card"[^>]+data-priority="recommended"/);
+  assert.match(html, /id="downloads-state"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
+  assert.match(html, /id="downloads-grant"[^>]+aria-describedby="downloads-description"/);
+  assert.match(css, /min-width:\s*320px/);
+  assert.match(css, /@media \(max-width: 560px\)/);
+  assert.match(css, /\.permission-row\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+  assert.match(controller, /function setBusy\(/);
+  assert.match(controller, /state\.setAttribute\("aria-busy", "false"\)/);
+  assert.match(controller, /downloadsReady \? "Granted\. Media saves through the browser now\." : "Grant download access"/);
+});
+
 test("Control Center implements the ImageGen page system across every menu section", async () => {
   const source = (
     await Promise.all([

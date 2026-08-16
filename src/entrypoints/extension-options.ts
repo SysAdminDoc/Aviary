@@ -135,9 +135,10 @@ function wireCard(card: CardWiring): void {
 async function run(card: CardWiring, action: "request" | "remove"): Promise<void> {
   const permissions = globalThis.chrome?.permissions;
   if (!permissions) {
-    setStatus(translate("This browser did not expose the permissions API."));
+    setStatus(translate("This browser did not expose the permissions API."), "error");
     return;
   }
+  setBusy(card, true);
   try {
     const changed =
       action === "request"
@@ -145,13 +146,32 @@ async function run(card: CardWiring, action: "request" | "remove"): Promise<void
         : await permissions.remove(card.request);
     const granted = await refresh(card);
     if (action === "request") {
-      setStatus(granted ? translate(card.grantedMessage) : translate("Request dismissed — nothing changed."));
+      setStatus(
+        granted ? translate(card.grantedMessage) : translate("Request dismissed — nothing changed."),
+        granted ? "success" : "info"
+      );
     } else {
-      setStatus(changed && !granted ? translate("Revoked.") : translate("Nothing to revoke."));
+      setStatus(
+        changed && !granted ? translate("Revoked.") : translate("Nothing to revoke."),
+        changed && !granted ? "success" : "info"
+      );
     }
   } catch (error) {
-    setStatus(error instanceof Error ? error.message : String(error));
+    setStatus(error instanceof Error ? error.message : String(error), "error");
+  } finally {
+    setBusy(card, false);
+    await refresh(card);
   }
+}
+
+function setBusy(card: CardWiring, busy: boolean): void {
+  const state = document.getElementById(card.stateId);
+  const grant = document.getElementById(card.grantId) as HTMLButtonElement | null;
+  const revoke = document.getElementById(card.revokeId) as HTMLButtonElement | null;
+  state?.setAttribute("aria-busy", String(busy));
+  if (busy && state) state.textContent = translate("checking…");
+  if (grant) grant.disabled = busy || grant.disabled;
+  if (revoke) revoke.disabled = busy || revoke.disabled;
 }
 
 async function refresh(card: CardWiring): Promise<boolean> {
@@ -172,6 +192,7 @@ async function refresh(card: CardWiring): Promise<boolean> {
   if (state) {
     state.textContent = translate(granted ? card.grantedLabel : card.missingLabel);
     state.setAttribute("data-granted", String(granted));
+    state.setAttribute("aria-busy", "false");
   }
   if (grant) grant.disabled = granted;
   if (revoke) revoke.disabled = !granted;
@@ -182,14 +203,21 @@ async function refresh(card: CardWiring): Promise<boolean> {
 function updatePermissionHealth(): void {
   const target = document.getElementById("granted-count");
   if (!target) return;
-  target.textContent = String(
-    document.querySelectorAll<HTMLElement>('.state[data-granted="true"]').length
-  );
+  const grantedCount = document.querySelectorAll<HTMLElement>('.state[data-granted="true"]').length;
+  target.textContent = String(grantedCount);
+  const downloadsReady = document.getElementById("downloads-state")?.dataset.granted === "true";
+  const message = document.getElementById("health-message");
+  if (message) {
+    message.textContent = translate(
+      downloadsReady ? "Granted. Media saves through the browser now." : "Grant download access"
+    );
+  }
 }
 
-function setStatus(message: string): void {
+function setStatus(message: string, tone: "info" | "success" | "error" = "info"): void {
   const status = document.getElementById("status");
   if (status) {
     status.textContent = message;
+    status.dataset.tone = tone;
   }
 }
