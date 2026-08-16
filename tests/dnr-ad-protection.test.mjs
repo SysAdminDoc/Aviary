@@ -221,6 +221,7 @@ const DETECTION_PROBES = [
   "https://x.com/i/api/1.1/flow/viewer.json?flow_name=login",
   "https://x.com/i/api/2/viewer_context.json",
   "https://x.com/i/api/1.1/viewer_context.json?include_ext_sharing=true",
+  "https://x.com/i/api/1.1/graphql/viewer_context.json",
   "https://twitter.com/i/api/2/viewer_context.json"
 ];
 

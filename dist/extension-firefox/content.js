@@ -8905,7 +8905,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/platform/build-version.ts
-  var AVIARY_VERSION = false ? "dev" : "1.27.0";
+  var AVIARY_VERSION = false ? "dev" : "1.27.1";
 
   // src/ui/control-center/constants.ts
   var MEDIA_LAYOUT_OPTIONS = [
@@ -11874,7 +11874,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION2 = false ? "dev" : "1.27.0";
+  var AVIARY_VERSION2 = false ? "dev" : "1.27.1";
   var SECTION_GROUP_BREAKS = {
     presets: [
       { before: "Quiet Reader", title: "Preset packs" },
@@ -29314,7 +29314,7 @@ html.av-mobile [data-testid="primaryColumn"] {
       const originalSend = state.originalXhrSend;
       xhrProto.open = function patchedOpen(...args) {
         try {
-          this.__aviaryUrl = String(args[1] ?? "");
+          this.__aviaryUrl = requestUrl(String(args[1] ?? ""), target.location?.origin);
         } catch {
         }
         return originalOpen.apply(this, args);
@@ -29322,12 +29322,14 @@ html.av-mobile [data-testid="primaryColumn"] {
       xhrProto.send = function patchedSend(...args) {
         try {
           const url = String(this.__aviaryUrl ?? "");
-          const category = blockedRequestCategory(state?.config ?? INITIAL_CONFIG, url);
+          const config = state?.config ?? INITIAL_CONFIG;
+          const category = blockedRequestCategory(config, url);
           if (category) {
             emit("blocked", { url, via: "xhr", at: now(), category });
             completeAsNetworkError(this);
             return;
           }
+          armXhrGraphqlCapture(this, url, config);
         } catch {
         }
         return originalSend.apply(this, args);
@@ -29418,21 +29420,52 @@ html.av-mobile [data-testid="primaryColumn"] {
         try {
           const cloned = response.clone();
           void cloned.text().then((body) => {
-            const bytes = new TextEncoder().encode(body).byteLength;
-            emit("graphql", {
-              url,
-              operation: graphqlOperationName(url),
-              status: response.status,
-              bytes,
-              at: now(),
-              body: bytes <= MAX_GRAPHQL_PAYLOAD_BYTES ? body : void 0
-            });
+            emitCapturedGraphql(url, response.status, body);
           });
         } catch {
         }
       }
       return response;
     };
+  }
+  function armXhrGraphqlCapture(xhr, url, config) {
+    if (!(config.captureGraphql || config.captureMediaMetadata) || !isGraphqlUrl(url)) {
+      return;
+    }
+    const addEventListener = xhr.addEventListener;
+    if (typeof addEventListener !== "function") {
+      return;
+    }
+    const capture = () => {
+      try {
+        const responseType = String(xhr.responseType ?? "").toLowerCase();
+        let body;
+        if (responseType === "" || responseType === "text") {
+          body = typeof xhr.responseText === "string" ? xhr.responseText : typeof xhr.response === "string" ? xhr.response : void 0;
+        } else if (responseType === "json") {
+          body = typeof xhr.response === "string" ? xhr.response : xhr.response === void 0 ? void 0 : JSON.stringify(xhr.response);
+        }
+        if (typeof body !== "string" || body.length === 0) {
+          return;
+        }
+        const numericStatus = Number(xhr.status);
+        const status = Number.isFinite(numericStatus) ? numericStatus : 0;
+        emitCapturedGraphql(url, status, body);
+      } catch {
+      }
+    };
+    addEventListener.call(xhr, "loadend", capture, { once: true });
+  }
+  function emitCapturedGraphql(url, status, body) {
+    const bytes = new TextEncoder().encode(body).byteLength;
+    emit("graphql", {
+      url,
+      operation: graphqlOperationName(url),
+      status,
+      bytes,
+      at: now(),
+      body: bytes <= MAX_GRAPHQL_PAYLOAD_BYTES ? body : void 0
+    });
   }
   function requestUrl(input, baseOrigin) {
     let raw = "";

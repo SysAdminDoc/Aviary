@@ -499,7 +499,7 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
     const originalSend = state.originalXhrSend;
     xhrProto.open = function patchedOpen(this: Record<string, unknown>, ...args: unknown[]): void {
       try {
-        this.__aviaryUrl = String(args[1] ?? "");
+        this.__aviaryUrl = requestUrl(String(args[1] ?? ""), target.location?.origin);
       } catch {
         // a frozen XHR instance is not worth failing the request over
       }
@@ -508,7 +508,8 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
     xhrProto.send = function patchedSend(this: Record<string, unknown>, ...args: unknown[]): void {
       try {
         const url = String(this.__aviaryUrl ?? "");
-        const category = blockedRequestCategory(state?.config ?? INITIAL_CONFIG, url);
+        const config = state?.config ?? INITIAL_CONFIG;
+        const category = blockedRequestCategory(config, url);
         if (category) {
           emit("blocked", { url, via: "xhr", at: now(), category });
           completeAsNetworkError(this);
@@ -519,6 +520,7 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
           // DONE with status 0, then error and loadend.
           return;
         }
+        armXhrGraphqlCapture(this, url, config);
       } catch {
         // fall through to the original
       }
@@ -649,15 +651,7 @@ function makePatchedFetch(originalFetch: typeof fetch, baseOrigin?: string): typ
       try {
         const cloned = response.clone();
         void cloned.text().then((body) => {
-          const bytes = new TextEncoder().encode(body).byteLength;
-          emit("graphql", {
-            url,
-            operation: graphqlOperationName(url),
-            status: response.status,
-            bytes,
-            at: now(),
-            body: bytes <= MAX_GRAPHQL_PAYLOAD_BYTES ? body : undefined
-          });
+          emitCapturedGraphql(url, response.status, body);
         });
       } catch {
         // capture is best-effort and must never affect the response the page receives
@@ -666,6 +660,72 @@ function makePatchedFetch(originalFetch: typeof fetch, baseOrigin?: string): typ
 
     return response;
   } as typeof fetch;
+}
+
+/**
+ * Arms a one-shot observer before an XHR is sent, then reads its already-buffered response after
+ * the page has finished receiving it. X currently delivers HomeTimeline through XMLHttpRequest,
+ * while older builds used fetch; supporting both transports keeps direct MP4 variants available
+ * after the player replaces them with a MediaSource blob.
+ */
+function armXhrGraphqlCapture(
+  xhr: Record<string, unknown>,
+  url: string,
+  config: PageAgentConfig
+): void {
+  if (!(config.captureGraphql || config.captureMediaMetadata) || !isGraphqlUrl(url)) {
+    return;
+  }
+  const addEventListener = xhr.addEventListener;
+  if (typeof addEventListener !== "function") {
+    return;
+  }
+
+  const capture = (): void => {
+    try {
+      const responseType = String(xhr.responseType ?? "").toLowerCase();
+      let body: string | undefined;
+      if (responseType === "" || responseType === "text") {
+        body = typeof xhr.responseText === "string"
+          ? xhr.responseText
+          : typeof xhr.response === "string"
+            ? xhr.response
+            : undefined;
+      } else if (responseType === "json") {
+        body = typeof xhr.response === "string"
+          ? xhr.response
+          : xhr.response === undefined
+            ? undefined
+            : JSON.stringify(xhr.response);
+      }
+      if (typeof body !== "string" || body.length === 0) {
+        return;
+      }
+      const numericStatus = Number(xhr.status);
+      const status = Number.isFinite(numericStatus) ? numericStatus : 0;
+      emitCapturedGraphql(url, status, body);
+    } catch {
+      // Reading responseText can throw for an unsupported responseType; the page still proceeds.
+    }
+  };
+
+  (addEventListener as (
+    type: string,
+    listener: () => void,
+    options?: { once: boolean }
+  ) => void).call(xhr, "loadend", capture, { once: true });
+}
+
+function emitCapturedGraphql(url: string, status: number, body: string): void {
+  const bytes = new TextEncoder().encode(body).byteLength;
+  emit("graphql", {
+    url,
+    operation: graphqlOperationName(url),
+    status,
+    bytes,
+    at: now(),
+    body: bytes <= MAX_GRAPHQL_PAYLOAD_BYTES ? body : undefined
+  });
 }
 
 function requestUrl(input: RequestInfo | URL, baseOrigin?: string): string {

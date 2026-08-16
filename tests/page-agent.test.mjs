@@ -492,6 +492,100 @@ test("media metadata capture shares GraphQL delivery without enabling raw export
   }
 });
 
+test("media metadata capture observes XHR GraphQL without changing the page response", async () => {
+  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+
+  const responseValue = { data: { tweet: { rest_id: "123", video_info: { variants: [] } } } };
+  const body = JSON.stringify(responseValue);
+  const target = fakeWindow();
+  const events = [];
+  const uninstall = installPageAgent(target, (envelope) => events.push(envelope));
+
+  try {
+    sendConfig(target, PAGE_CHANNEL, {
+      blockBeacons: false,
+      captureGraphql: false,
+      captureMediaMetadata: true,
+      forceVideoQuality: false
+    });
+
+    const listeners = new Map();
+    const xhr = Object.create(target.XMLHttpRequest.prototype);
+    xhr.status = 200;
+    xhr.responseType = "json";
+    xhr.response = responseValue;
+    xhr.addEventListener = (type, listener) => {
+      const entries = listeners.get(type) ?? [];
+      entries.push(listener);
+      listeners.set(type, entries);
+    };
+
+    xhr.open("POST", "https://x.com/i/api/graphql/live123/HomeTimeline");
+    xhr.send("variables={}");
+    for (const listener of listeners.get("loadend") ?? []) {
+      listener.call(xhr, { type: "loadend", target: xhr });
+    }
+
+    assert.equal(target.calls.xhrSend.length, 1, "the page request must still reach X");
+    assert.equal(xhr.response, responseValue, "capture must not replace or consume the page response");
+    const captured = events.filter((event) => event.kind === "graphql");
+    assert.equal(captured.length, 1);
+    assert.equal(captured[0].payload.operation, "HomeTimeline");
+    assert.equal(captured[0].payload.status, 200);
+    assert.equal(captured[0].payload.body, body);
+  } finally {
+    uninstall();
+  }
+});
+
+test("XHR capture accepts text responses and ignores non-GraphQL API traffic", async () => {
+  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+
+  const body = JSON.stringify({ data: { tweet: { rest_id: "456" } } });
+  const target = fakeWindow();
+  const events = [];
+  const uninstall = installPageAgent(target, (envelope) => events.push(envelope));
+
+  try {
+    sendConfig(target, PAGE_CHANNEL, {
+      blockAds: true,
+      blockBeacons: true,
+      captureGraphql: false,
+      captureMediaMetadata: true,
+      forceVideoQuality: false
+    });
+
+    const complete = (url) => {
+      const listeners = [];
+      const xhr = Object.create(target.XMLHttpRequest.prototype);
+      xhr.status = 200;
+      xhr.responseType = "";
+      xhr.responseText = body;
+      xhr.response = body;
+      xhr.addEventListener = (type, listener) => {
+        if (type === "loadend") listeners.push(listener);
+      };
+      xhr.open("POST", url);
+      xhr.send("payload");
+      for (const listener of listeners) listener.call(xhr, { type: "loadend", target: xhr });
+      return xhr;
+    };
+
+    const timeline = complete("https://x.com/i/api/graphql/live456/HomeTimeline");
+    const viewer = complete("https://x.com/i/api/1.1/graphql/viewer_context.json");
+
+    assert.equal(timeline.responseText, body);
+    assert.equal(viewer.responseText, body);
+    assert.equal(target.calls.xhrSend.length, 2, "both first-party requests must pass through");
+    const captured = events.filter((event) => event.kind === "graphql");
+    assert.equal(captured.length, 1, "viewer_context is not a timeline GraphQL route");
+    assert.equal(captured[0].payload.body, body);
+    assert.equal(events.filter((event) => event.kind === "blocked").length, 0);
+  } finally {
+    uninstall();
+  }
+});
+
 test("teardown restores the exact references it replaced", async () => {
   const { installPageAgent } = await importBundledModule("src/page/page-agent.ts");
   const target = fakeWindow();

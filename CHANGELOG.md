@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 1.27.1 - 2026-08-16
+
+### Fixed
+
+- Direct video and GIF downloads now resolve from X's current `XMLHttpRequest`-delivered timeline
+  responses as well as its earlier `fetch` transport. Capture remains one-shot, bounded, and
+  non-consuming, so the native page receives the exact response object it requested.
+- X's current `/i/api/1.1/graphql/viewer_context.json` detection probe is covered by the explicit
+  request-pass-through contract and can never be mistaken for timeline GraphQL or ad logging.
+
 ## 1.27.0 - 2026-08-16
 
 ### Added

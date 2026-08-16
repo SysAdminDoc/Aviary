@@ -548,7 +548,9 @@ try {
   console.log("[smoke] current Grok drawer, image-generation, nav, and action anchors toggle cleanly.");
 
   // MediaSource players begin with a blob URL and only gain a Video control after page-world
-  // GraphQL metadata arrives. The same setting is cycled off and back on to catch stale buttons.
+  // GraphQL metadata arrives. Current X delivers HomeTimeline through XHR, so this must exercise
+  // that transport rather than the older fetch-only path. The same setting is cycled off and back
+  // on to catch stale buttons.
   await setToggle(page, "media", "Show download buttons", true);
   await page.waitForFunction(
     () => document.querySelectorAll("[data-av-media-button]").length >= 2,
@@ -558,13 +560,28 @@ try {
   const beforeMetadata = await page.evaluate(() =>
     [...document.querySelectorAll("[data-av-media-button]")].map((button) => button.getAttribute("data-av-media-button")).sort()
   );
-  await page.evaluate(async () => {
-    const response = await fetch("/i/api/graphql/fixture/HomeTimeline");
-    if (!response.ok) throw new Error(`fixture GraphQL failed: ${response.status}`);
-    await response.json();
+  const beforePostAction = await page.evaluate(() => {
+    const button = document.querySelector("[data-av-media-action]");
+    return button && "disabled" in button ? Boolean(button.disabled) : null;
+  });
+  await page.evaluate(() => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/i/api/graphql/fixture/HomeTimeline");
+      xhr.responseType = "json";
+      xhr.onload = () => xhr.status === 200
+        ? resolve(xhr.response)
+        : reject(new Error(`fixture GraphQL failed: ${xhr.status}`));
+      xhr.onerror = () => reject(new Error("fixture GraphQL XHR failed"));
+      xhr.send("variables={}");
+    });
   });
   await page.waitForFunction(
-    () => Boolean(document.querySelector('[data-av-media-button="video"]')),
+    () => {
+      const video = document.querySelector('[data-av-media-button="video"]');
+      const action = document.querySelector('[data-av-media-action]:not(:disabled)');
+      return Boolean(video && action);
+    },
     null,
     { timeout: 8_000 }
   );
@@ -572,6 +589,7 @@ try {
     [...document.querySelectorAll("[data-av-media-button]")].map((button) => button.getAttribute("data-av-media-button")).sort()
   );
   expect(beforeMetadata.includes("thumbnail") && !beforeMetadata.includes("video"), `blob player exposed an invalid control: ${beforeMetadata}`);
+  expect(beforePostAction === true, `blob player action was not initially resolving: ${beforePostAction}`);
   expect(afterMetadata.includes("thumbnail") && afterMetadata.includes("video"), `MSE metadata did not add Video: ${afterMetadata}`);
   await setToggle(page, "media", "Show download buttons", false);
   await page.waitForFunction(() => document.querySelectorAll("[data-av-media-button]").length === 0, null, { timeout: 8_000 });

@@ -1,6 +1,6 @@
 # Aviary Privacy Manifest
 
-Updated: 2026-08-16 · release 1.27.0
+Updated: 2026-08-16 · release 1.27.1
 
 ## Defaults and network boundaries
 
@@ -11,7 +11,8 @@ a host-scoped dynamic request rule in the extension before a network connection;
 not block HomeTimeline, media, login, or unrelated analytics traffic. Native sponsored records are
 delivered inside the same first-party timeline response as ordinary posts, so Aviary suppresses
 their rendering but cannot truthfully claim those bytes were absent. Optional page-world capture
-only observes selected responses after you enable the relevant capture setting.
+only observes bounded first-party GraphQL responses across X's `fetch` and `XMLHttpRequest`
+transports after you enable the relevant capture setting.
 
 These are the only Aviary-triggered network paths:
 
