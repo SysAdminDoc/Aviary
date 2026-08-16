@@ -1,203 +1,208 @@
-# Research — Aviary for X
+# Research — Feed Media Downloads
 
-Date: 2026-08-15 (second pass, post-v1.24.0) — replaces all prior research, including the earlier
-2026-08-15 pass, whose P0/P1 conclusions were drained into v1.24.0 the same day and are archived in
-CHANGELOG.md.
+Date: 2026-08-16. This replaces the 2026-08-15 general product research after the earlier findings
+were implemented or transferred to the roadmap. This pass examined 46 distinct primary sources:
+current source, releases, issue reports, store listings, and official browser/userscript APIs.
 
 ## Executive Summary
 
-Aviary is a local-first desktop X enhancer shipping a readable userscript and an MV3 extension
-(Chrome + Firefox) from one TypeScript source with zero runtime dependencies, at v1.24.0 with 482
-passing tests. The morning pass established that the stale capture set (2026-05-19) is the binding
-constraint and v1.24.0 gave it a dated manifest, an expiring gate, and a one-command refresh. This
-pass audited what no pass had ever examined — the storage layer, library backup, integrations, the
-page agent, and the code shipped earlier the same day — and the headline is that **the capture
-decoder itself has two defects that would poison the refreshed ground truth**: quoted-printable
-decoding mangles every UTF-8 multibyte character (reproduced), and a cookie-shape `ct0=` value
-passes both the scrub and its own leak guard. The operator capture everything waits on must not be
-run until F155 lands. Beneath that, the audit found one genuine data-loss path (a transient
-IndexedDB failure silently reverts a session's writes), one completeness hole (the seen-posts store
-is invisible to migration, profiles, and backup), and a systemic cross-tab last-writer-wins hazard.
-The external field did not move in the intervening hours — verified, not assumed.
+Aviary v1.26.0 already owns the difficult half of reliable X media downloading: it captures the
+GraphQL responses X has already requested at document start, associates direct media metadata with
+rendered posts, rewrites attached-image URLs to original quality, rejects MediaSource `blob:`
+handles, and ranks captured video variants. The remaining product gap is the feed interaction.
+Controls are split across media tiles, and a video plus its poster can produce separate Video and
+Thumb buttons. Established downloaders instead make one post-level action the primary path.
 
-Top opportunities in priority order:
-1. Fix the capture decoder before the operator uses it (scrub gap + mojibake) — P0, F155.
-2. Stop a transient IndexedDB failure from silently shedding a session's writes — P1, F156.
-3. Register the seen-posts store in migration/profiles/backup — P1, F157.
-4. Trigger CI on `_decoded/**` and `docs/**`, which its gates read — P2, F158.
-5. Complete refused XHRs as errors; stop persisting failed imports' full archives; harden nonce
-   adoption — P2, F159–F161.
-6. Coordinate cross-tab store writes with Web Locks — P2, F162.
-7. The carry-forward P1s: i18n catalog off the document-start path (54.4% of the v1.24.0 bundle,
-   re-measured), rendered accessibility tests — F138, F140.
-8. WACZ export — now fully specified in F147, no re-research needed; requires the STORE zip path.
+The recommended change is a persistent **Download** action in every media post's native action row.
+One click should download all primary media in that post: every photo at `name=orig`, and every
+video/GIF as the highest-bitrate direct MP4. Per-tile controls should remain for choosing one item
+or a video thumbnail. The post action must show resolving, saving, partial-failure, success,
+duplicate, permission, and retry states without disappearing.
+
+This approach is both easier and safer than the alternatives. TwitterMediaHarvest (100,000 Chrome
+users) clones a native action-row control and downloads the whole post. Two newer userscripts and a
+small MV3 downloader independently converged on the same action-row pattern. All mature extractors
+converge on original image URLs and progressive MP4 bitrate ranking. Aviary should borrow those
+interaction and selection contracts while keeping its stronger passive-capture architecture: no
+cookie access, token extraction, or new authenticated X requests.
 
 ## Product Map
 
-- Core workflows: (a) install → ads suppressed, media save buttons live, everything else off;
-  (b) declutter/theme via a 13-page Control Center with transactional Save/Revert and settings
-  search; (c) filter with a rule DSL, per-post hide, seen-post dimming; (d) save media at original
-  quality; (e) capture-as-you-scroll → checkpointed export (ZIP/JSON/CSV/HTML/MD/XLSX/WARC, DEFLATE
-  since v1.24.0, standalone viewer); (f) local library (bookmarks, notes, colour tags, snapshots)
-  with dry-run backup/restore.
-- Personas: privacy-first desktop power user (primary); archivist; declutter-only user.
-- Platforms: desktop Chrome + Firefox. Mobile out of scope.
-- Distribution: private GitHub repo `SysAdminDoc/Aviary` (renamed 2026-08-15; update URLs and a
-  preflight origin-match gate followed the same day). No store presence; Firefox id placeholder;
-  all gated on the F125 operator decision.
-- Integrations (opt-in, disclosure-gated): aria2, AI providers, embeddings, Obsidian/Notion,
-  Mastodon/Bluesky crosspost.
+- Primary workflow: scroll Home, Following, Search, Bookmarks, Lists, Profiles, or a conversation;
+  see one persistent Download action on a media post; click once; receive the best directly
+  downloadable file for each attached image/video/GIF.
+- Secondary workflow: use the existing tile-level Save, Video/GIF, or Thumb action when only one
+  asset is wanted.
+- Quality contract: attached photos use the original image endpoint; videos/GIFs use the highest
+  bitrate progressive MP4 in the captured response; `blob:` and playlist manifests are never
+  presented as completed video files.
+- Delivery contract: userscripts prefer `GM_download`; MV3 uses the optional browser downloads
+  permission; Aria2 remains optional; filenames and duplicate history stay local.
+- Trust boundary: reuse responses X already loaded. Do not read cookies, export tokens, scrape a
+  bearer token, or originate tweet-detail calls just to resolve a button.
 
 ## Competitive Landscape
 
-- **The August window is still open and still unanswered (Verified 2026-08-15).** Freshness check
-  across control-panel-for-twitter, twitter-web-exporter, TwitterMediaHarvest, OldTwitter: no
-  release dated 2026-08-14/15. CPFT last pushed 2026-07-05 while its own issues #917/#918/#919
-  (the carousel and profile-grid complaints) accumulate. The carousel actively breaks media
-  rendering on Firefox 153 with no shipped fix anywhere. Blocked in this repo only by the capture
-  (F139 in Roadmap_Blocked.md).
-- **X Filter Pro** (CWS, v2.3.1 updated 2026-07-11, 12 users) — now markets itself "local-first"
-  while paywalling AI summaries, engagement filters, and cloud sync at $2/mo. Direct positioning
-  collision with Aviary's language; its user count says the label alone sells nothing. Learn: the
-  paid tier across the whole field is AI + sync + filters — **export/archiving remains an
-  uncontested axis**. Hide X.com Ads (10k users) abandoned since June 2024; XFeed Pro shipped
-  nothing since 2026-06-19.
-- **Extension-trust climate (HN, Verified):** "Chrome extensions spying on users" (474 pts,
-  2026-02-11), ModHeader exfiltration (2026-07-12), and the xcancel-redirect thread (259 pts,
-  2026-01-07) where several users say they refuse single-purpose extensions and write their own
-  userscripts instead. Zero runtime deps + local-only + readable userscript is a marketable
-  differentiator now, not hygiene — F125's listing copy should lead with specifics ("no backend,
-  no proxy, no cloud"), since the generic label is already co-opted.
-- **Bookmark demand keeps corroborating (Verified):** HN Show "export your X bookmarks and
-  categorize them" (2026-04-08) joins the Reddit threads about silently shrinking bookmark
-  collections. F154 is the matching item; its premise was verified against `network-capture.ts` —
-  capture is operation-agnostic, so it is a reader over captured data, not a new capture path.
-- **Webrecorder / WACZ** — the container question is settled at spec level (F147 now carries the
-  full layout): plain uncompressed WARC is spec-valid, the CDXJ index must be C-collation sorted,
-  and replay addresses records by offset/length — so the WACZ members must be STORED in the ZIP,
-  deliberately bypassing the v1.24.0 DEFLATE path. wabac.js is AGPLv3: link, never vendor.
-- **phanpy / XKit** — unchanged: Catch-up digest (F148) and filter-reason chips (F144) remain the
-  best adjacent-field ideas. F144's sketch was corrected this pass: `FilterDecision` is a bare
-  string union (`predicates.ts:16`), so the deciding rule is not yet exposed.
+### 1. TwitterMediaHarvest
+
+The strongest adoption signal is TwitterMediaHarvest: its Chrome listing reports 100,000 users and
+4.5 stars. It finds the post action group, clones the reply control so the addition inherits X's
+layout, swaps in a download icon, and downloads all available media in the post. Its parser filters
+video variants to `video/mp4` and chooses the greatest bitrate; image files are converted to their
+`orig` variant. Downloaded-state history, custom filenames, video thumbnails, and Aria2 are proven
+adjacent features.
+
+Its issue history also defines failure modes Aviary should avoid: action controls disappearing or
+moving after X UI changes, styling collisions, request/auth failures, X anti-extension incidents,
+large-history startup delays, and spinner states that never settle. Its active requests for saved
+badges, bookmark batches, text sidecars, audio, and subtitles remain useful follow-ons, but the
+current feed interaction should stay single-purpose.
+
+### 2. Twitter Click'n'Save
+
+This maintained userscript uses highly visible per-tile controls, download history, progress, and
+careful image fallback. It tries `orig`, then `4096x4096`, then successively smaller served sizes;
+it also probes JPG/PNG when the encoded format is ambiguous. Its API parser ignores HLS entries and
+selects the largest numeric bitrate. The implementation proves the current Aviary tile controls are
+valuable as a secondary precision tool, but its open button-overlap report and hover-led design
+support moving Aviary's main action into the stable action row.
+
+### 3. Twitter/X Media Downloader
+
+This newer MIT userscript clones the last native action, downloads every media entity in a post,
+uses `:orig` for photos, and chooses the highest-bitrate MP4 for video. It adds HEAD-based size
+reporting and a local history panel. Its main lesson is convergence: one post action is simpler
+than making a user identify whether a visible tile represents the actual video or only its poster.
+
+### 4. Twitter-X-Media-Copy-Download
+
+This actively maintained userscript appends media and link controls to the post action row and
+supports copying, previewing, downloading, history, groups, and extensive gesture customization.
+It validates the placement and multi-media workflow, but its click/long-press/middle-click/
+right-click matrix is too opaque for Aviary. Aviary should retain one obvious left-click action,
+explicit accessible text, and the existing native context-menu alternative.
+
+### 5. X Video Downloader
+
+This small MV3 extension uses a visible action-row Download button and highest-bitrate MP4
+selection. Its direct streaming handoff to `chrome.downloads` is correct and avoids loading large
+videos into memory. Its authentication design is not: it requests cookie access, reads the CSRF
+token and all X cookies, extracts a bearer token, and originates v1.1/GraphQL requests. Aviary's
+passive response capture achieves the same quality selection without expanding the credential or
+account-action surface.
+
+### 6. yt-dlp, gallery-dl, and cobalt
+
+These are the extraction references. yt-dlp enumerates both progressive variants and HLS
+renditions because it can merge/remux with a desktop media pipeline. gallery-dl defaults photos to
+`orig`, falls back through `4096x4096` and smaller sizes, and can delegate videos to yt-dlp. cobalt
+selects the largest progressive MP4 for direct output, uses HLS only for subtitle discovery, and
+remuxes server-side when necessary. Aviary has no media transcoder, so its truthful browser-native
+contract is the highest-bitrate progressive MP4 rather than an HLS master playlist.
+
+### 7. Browser and userscript delivery APIs
+
+Chrome's downloads API is the correct MV3 primitive and supports unique filenames, but it requires
+the downloads permission. Chrome's own guidance recommends optional permissions requested from a
+clear user gesture. `GM_download` is the correct userscript path, though manager behavior varies:
+Violentmonkey documents both anchor-backed and browser-download modes. An HTML `download` attribute
+cannot prove a save will happen, so Aviary must keep treating its cross-origin anchor path as
+degraded.
 
 ## Security, Privacy, and Reliability
 
-Internal audit of previously unexamined subsystems (2026-08-15; every listed finding re-verified
-against source, and the top three additionally reproduced or grep-confirmed):
-
-- **Capture decoder corrupts multibyte text (Verified, reproduced).** `tools/capture-decode.mjs`
-  decodes quoted-printable through per-byte `String.fromCharCode` over an already-UTF-8-decoded
-  string: `=E2=80=94` becomes mojibake, so display names, non-English posts, and localized ad
-  labels — the strings fixtures exist to measure — would be wrong in any refreshed capture. And the
-  cookie-shape scrub omits `ct0=` (only the JSON shape is covered), so the CSRF token passes the
-  scrub *and* the leak guard. Both must land before the operator refresh (F155). The committed
-  fixtures predate the tool and are unaffected.
-- **Sticky storage fallback silently reverts a session's writes (Verified against source).** One
-  failed IndexedDB transaction flips the gateway to legacy for the whole session
-  (`durable-storage.ts:261-266`) — but migration already emptied legacy, so the library reads
-  blank, and writes made during the fallback session land where the next healthy boot never looks
-  (`initialize` skips keys the backend already holds, `:108-119`). F156.
-- **The seen-posts store is in none of the three registries (Verified, grep).**
-  `aviary.seenPosts.v1` is absent from `DURABLE_STORAGE_KEYS`, `PROFILE_MIGRATION_KEYS`, and
-  `LIBRARY_BACKUP_COLLECTIONS` — Backup claims completeness over a store it does not carry. F157,
-  plus a scan test so the next store cannot repeat it.
-- **Cross-tab writes are last-writer-wins everywhere (Verified, architectural).** Whole-state
-  stores behind a load-once latch; the integration usage ledger's reserve step is a cross-tab
-  TOCTOU (daily budget spendable N× with N tabs); the backup snapshot/rollback window can clobber
-  a second tab. Web Locks is Baseline and unused. F162.
-- **Page agent (Likely/Verified mix):** a refused XHR never completes — fetch fakes 204 and
-  sendBeacon returns true, but `patchedSend` just returns, so an X retry queue gated on completion
-  hangs (F159). Nonce adoption is first-hello-wins with an observable nonce, so a racing page
-  script can own the agent and silently disable ad protection — a documented non-cryptographic
-  boundary, but the failure should at least be visible (F161). Teardown restores `fetch` by
-  assignment, destroying any wrapper installed after Aviary's (F165).
-- **Archive import persists the full base64 source inside each job and rewrites the whole state
-  per progress tick (Verified).** A failed 250 MB import pins ~333 MB in the value store until 12
-  newer jobs evict it; multi-hundred-MB writes per tick. F160.
-- **Clean results, recorded so nobody re-audits them:** the v1.24.0 DEFLATE writer is correct
-  (method flags, CRC-over-originals, overflow guards); the ZIP reader's zip-bomb limits are real
-  (25 MiB/entry, 100 MiB total, inflate capped at declared-vs-remaining); credential handling
-  leaks nothing into backup (five secret paths redacted), diagnostics, or the audit log; crosspost
-  attachment reads are byte-bounded and shape-checked.
-- **Carried forward, still true:** X's anti-adblock detection looks like a failed probe
-  (`flow/viewer.json`, `viewer_context.json` — Aviary provably refuses neither, tested since
-  v1.24.0); the ban line is enforced on unsigned originated requests (OldTwitter #1126); Node
-  floor pinned and `--ignore-scripts` shipped 2026-08-15.
+- Keep GraphQL capture passive. The competitor incidents cluster around authenticated API calls,
+  token rotation, rate limits, and X detecting request behavior. Aviary already gets the required
+  `extended_entities`/`video_info.variants` from responses X requested for the visible feed.
+- Define “best video” precisely as the highest-bitrate saveable progressive MP4. An HLS master may
+  describe more renditions or subtitles, but saving `.m3u8` does not produce a standalone video.
+- Prefer original photos with `format=<source-format>&name=orig`. Preserve the encoded format and
+  add a bounded fallback to `4096x4096`; do not silently turn a failed original into an unrelated
+  thumbnail.
+- Stream URL downloads through the browser API or userscript manager. Do not buffer whole videos
+  into blobs/base64; one competitor documented tens of gigabytes of memory growth during batches.
+- Use one action per post, not one primary action per representation. A video poster is useful, but
+  it must stay an explicitly secondary Thumb download.
+- Keep controls persistent and stateful. Open-source issue reports repeatedly identify vanished,
+  overlapping, misplaced, or indefinitely spinning buttons as the dominant usability failures.
+- Request optional download access from an explicit gesture and explain the grant. Aviary's
+  dedicated options surface already does this; the post action must route permission failures
+  there rather than opening the CDN and claiming success.
 
 ## Architecture Assessment
 
-- **i18n catalog is 54.4% of the built userscript** (1,020,588 of 1,876,871 chars, re-measured on
-  the v1.24.0 bundle) parsed at `document-start` on every X page load. F138 remains the largest
-  performance lever, unchanged in shape.
-- **Accessibility is still asserted against source text** (`tests/audit-a11y.test.mjs`, six
-  source-regex assertions; contrast is properly gated elsewhere). F140.
-- **CI paths filter omits `_decoded/**` and `docs/**`** (`.github/workflows/smoke.yml:7-15`) while
-  v1.24.0 added gates that read both — a capture refresh or a docs edit never triggers the
-  workflow. F158.
-- **The capture-age gate reads only the newest capture** (`tools/capture-manifest.mjs:66-75`), so
-  one fresh capture masks a stale sibling; the waiver also expires against UTC day-end. F163.
-- **`src/ui/control-center.ts` is 3,529 lines** beside a partially extracted sections/ directory —
-  unchanged, not urgent.
-- **Settings-reference residual risks** (noted, not defects): `SECTION_FILES` is a hardcoded list
-  (a fifth section file would drop silently), and the 43 `actionRow` buttons sit outside the
-  "every control" claim.
+- `media-metadata.ts` is the correct source of truth. It bounds captured bodies/nodes/depth,
+  merges variants, and keys by media/tweet/poster without storing credentials.
+- `video-extract.ts` currently ranks every saveable URL together. It should rank direct MP4 above
+  HLS/manifests, then bitrate, then dimensions. That matches the browser's actual deliverable.
+- `extract.ts` already produces a post-level media collection. A post action can filter it to
+  primary assets (`photo`, `video`) while leaving `thumbnail` to the tile control.
+- `media-buttons.ts` has reusable queue, history, filename, permission, audit, and feedback logic,
+  but the download operation is coupled to one tile button. Extracting a result-returning operation
+  will let tile and post controls share the same truth without programmatically clicking controls.
+- Current X captures prove the action group through a stable relationship: a post's
+  `[data-testid="reply"]` lives inside its `[role="group"]`. Locating the group from the reply
+  control is narrower than selecting the first arbitrary role group.
+- The MutationObserver reconciliation already handles virtualized posts and late media metadata.
+  The post action should use the same lifecycle markers and teardown path.
 
 ## Rejected Ideas
 
-- Settings search (cpft#430) — **already implemented** (`av-search-input`, tested); proposed by the
-  morning pass without checking, caught during the drain. Do not re-propose.
-- WACZ as the primary capture format — storage multiplication; opt-in export tier only (standing).
-- Vendoring wabac.js for self-replay — AGPLv3; link to replayweb.page instead (this pass).
-- Mass block/delete/unfollow; mobile; cloud sync; keyboard shortcuts; x.com→twitter.com redirect;
-  broad transport blocking; `placementTracking`-only ad selection; full client replacement; hosted
-  subscriptions; `privacy.encryptVault`; AI summarization default-on — all standing rejections.
-- Numeric engagement-threshold filtering (cpft#850) — unreliable exactly when count-hiding is on;
-  revisit only from a captured payload (standing).
-- Timer-driven filtering (TUIC lag reports) — the observer/generation model is correct (standing).
-- Firefox DNR smoke rewrite — investigated 2026-08-15 (first pass): not a defect;
-  `testMatchOutcome` is implemented by Firefox. Recorded so it is not re-investigated.
-- Storage Buckets API — Chromium-only (standing).
+- Originating tweet-detail API calls, scraping bearer tokens, or reading session cookies — proven
+  functional elsewhere, but materially worse for privacy, rate limits, and account safety.
+- Saving an HLS master as the “best video” — it is a playlist, not a standalone video file.
+- Fetching complete videos into memory before invoking the download manager — unnecessary and
+  unsafe for large files or batches.
+- Hiding the only download action until hover — reduces discovery and conflicts with touch use.
+- Gesture multiplexing on one icon — powerful but undiscoverable; keep left click obvious and the
+  context menu explicit.
+- Removing tile controls — they remain the cleanest way to save one photo or a video poster.
+- Sending post URLs to hosted downloader services — adds disclosure, availability, and privacy
+  costs while Aviary already possesses the direct CDN metadata locally.
 
 ## Sources
 
-Audit (internal, verified against source 2026-08-15): `tools/capture-decode.mjs`,
-`tools/capture-manifest.mjs`, `src/platform/durable-storage.ts`, `src/platform/profile.ts`,
-`src/features/core/library-backup.ts`, `src/features/integrations/usage.ts`,
-`src/page/page-agent.ts`, `src/platform/page-bridge.ts`,
-`src/features/library/archive-import.ts` and `archive-import-jobs.ts`,
-`src/features/filtering/*`, `src/features/export/zip-store.ts` and `zip-reader.ts`.
+Reference implementations and field evidence:
+- https://github.com/EltonChou/TwitterMediaHarvest
+- https://github.com/EltonChou/TwitterMediaHarvest/blob/main/src/contentScript/core/Harvester.ts
+- https://github.com/EltonChou/TwitterMediaHarvest/blob/main/src/libs/XApi/parsers/tweetMedia.ts
+- https://github.com/EltonChou/TwitterMediaHarvest/releases/tag/v4.5.7
+- https://github.com/EltonChou/TwitterMediaHarvest/issues/146
+- https://github.com/EltonChou/TwitterMediaHarvest/issues/120
+- https://github.com/EltonChou/TwitterMediaHarvest/issues/293
+- https://github.com/EltonChou/TwitterMediaHarvest/issues/137
+- https://github.com/EltonChou/TwitterMediaHarvest/issues/126
+- https://github.com/EltonChou/TwitterMediaHarvest/issues/336
+- https://github.com/AlttiRi/twitter-click-and-save
+- https://github.com/AlttiRi/twitter-click-and-save/blob/master/twitter-click-and-save.user.js
+- https://github.com/AlttiRi/twitter-click-and-save/issues/20
+- https://github.com/AlttiRi/twitter-click-and-save/issues/49
+- https://github.com/AlttiRi/twitter-click-and-save/issues/57
+- https://github.com/ShanksSU/twitter-media-downloader
+- https://github.com/Startanuki07/Twitter-X-Media-Copy-Download
+- https://github.com/Teylersf/x-video-downloader
+- https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/extractor/twitter.py
+- https://github.com/mikf/gallery-dl/blob/master/gallery_dl/extractor/twitter.py
+- https://github.com/imputnet/cobalt/blob/main/api/src/processing/services/twitter.js
+- https://chromewebstore.google.com/detail/media-harvest-x-twitter-m/hpcgabhdlnapolkkjpejieegfpehfdok
+- https://greasyfork.org/en/scripts/430132-twitter-click-n-save
+- https://github.com/FxEmbed/FxEmbed/issues/1282
 
-Specs / platform:
-- https://specs.webrecorder.net/wacz/1.1.1/ · https://specs.webrecorder.net/cdxj/0.1.0/
-- https://github.com/webrecorder/wabac.js (AGPLv3)
-- https://docs.x.com/changelog (2026-07-21 mute/block events; 2026-08-13 video_total_views redefinition)
-
-Competitors / field:
-- https://github.com/insin/control-panel-for-twitter (#917 #918 #919; last push 2026-07-05)
-- https://xfilterpro.com/ · https://chromewebstore.google.com/detail/x-filter-pro-%E2%80%94-ad-blocker/loggddhjkdbjmaeoklbihailihhbjibo
-- https://addons.mozilla.org/en-US/firefox/addon/xfeed-pro/versions/ · https://chromewebstore.google.com/detail/hide-xcom-ads/bapmhjebfdbdpjjfafnkfidijkjlkakf
-- https://github.com/prinsss/twitter-web-exporter · https://github.com/EltonChou/TwitterMediaHarvest · https://github.com/dimdenGD/OldTwitter
-
-Community (sentiment; corroborating primaries in CHANGELOG entries):
-- https://news.ycombinator.com/item?id=46524873 (xcancel redirect, 259 pts, extension trust)
-- https://news.ycombinator.com/item?id=46973083 (287 spying extensions, 474 pts)
-- https://news.ycombinator.com/item?id=47697679 (bookmark export Show HN, 2026-04-08)
-- https://news.ycombinator.com/item?id=49189113 (X product-lead change 2026-08-05, selector-churn risk)
-- https://timelessdimension7.wordpress.com/2026/08/14/ (carousel breaks Firefox 153)
-- https://www.heyorca.com/blog/x-twitter-social-news · https://socialbee.com/blog/twitter-updates/ (July/Aug X UI roundups)
-
-Prior-pass sources (Reddit signal, platform APIs, dependency and CVE detail, userscript managers,
-Webrecorder landscape): carried from the 2026-08-15 first pass — see this file's git history and
-CHANGELOG.md v1.24.0; not re-fetched, because the freshness check above came back empty.
+Platform contracts:
+- https://developer.chrome.com/docs/extensions/reference/api/downloads
+- https://developer.chrome.com/docs/extensions/reference/api/permissions
+- https://developer.chrome.com/docs/extensions/develop/security-privacy/user-privacy
+- https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/download
+- https://www.tampermonkey.net/documentation.php
+- https://violentmonkey.github.io/api/gm/
 
 ## Open Questions
 
-1. **The operator capture** — unchanged as the gate for ~9 blocked items, with one amendment from
-   this pass: do not run `npm run capture:decode` until F155 lands, or the refreshed fixtures will
-   carry mojibake and possibly a live `ct0`. The waiver in `_decoded/captures.json` still expires
-   2026-09-30.
-2. **Publishing intent (F125)** — unchanged; now also determines whether the extension-trust
-   positioning (HN evidence above) becomes listing copy.
-3. **Does default-mode Violentmonkey give the userscript true `document-start`?** Unchanged;
-   runtime-only; determines whether the userscript build should disclose weaker page-agent timing
-   under that manager.
+1. Does the CDN ever reject `name=orig` while accepting `4096x4096` for a currently visible feed
+   image in the extension path? Userscript evidence says yes; an authenticated browser run should
+   retain the fallback and record which candidate completed.
+2. Chrome's download promise confirms dispatch, not completion. A later pass should decide whether
+   the on-post final label says Started or whether the background tracks `downloads.onChanged` to
+   completion across service-worker suspension.
+3. Quote posts, article cards, and “From @user” embedded media need ownership fixtures before their
+   filenames can always name the original media author rather than the outer post author.
