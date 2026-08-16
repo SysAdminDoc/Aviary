@@ -560,8 +560,15 @@ try {
     chrome.runtime.sendMessage({ type: "AVIARY_DOWNLOAD", url: "https://pbs.twimg.com/media/fixture", filename: "fixture.png" }, resolve);
   }));
   expect(missingPermission?.code === "downloads-permission-missing", "background refused download without the optional permission");
+  await optionsPage.evaluate(() => {
+    chrome.permissions.request = async () => false;
+  });
   await optionsPage.locator("#downloads-grant").click();
-  await optionsPage.waitForTimeout(500);
+  await optionsPage.waitForFunction(
+    () => document.querySelector("#downloads-state")?.textContent !== "checking…",
+    null,
+    { timeout: 5_000 }
+  );
   expect((await optionsPage.locator("#downloads-state").textContent()) === "not granted", "permission refusal changed the profile");
 
   const archive = buildStoreZip([{ name: "data/tweets.js", content: TWEETS_JS }]);

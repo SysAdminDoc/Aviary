@@ -1,7 +1,7 @@
 // Real Firefox MV3 event-page and declarativeNetRequest proof.
 //
-// Playwright cannot temporarily install an unpacked Firefox add-on, so this uses Firefox's own
-// temporary-add-on protocol for installation and WebDriver BiDi for the extension-page checks.
+// Playwright cannot temporarily install an unpacked Firefox add-on, so this uses WebDriver BiDi's
+// extension installer with Firefox's DevTools protocol as a compatibility fallback and runtime.
 // All HTTPS traffic is pointed at a refusing loopback proxy: a blocked request never reaches it,
 // while a disabled rule produces one observable CONNECT and cannot escape to the public network.
 
@@ -18,13 +18,13 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const builtExtension = path.join(root, "dist", "extension-firefox");
 const extensionId = "aviary@example.local";
-const extensionUuid = "7f45ec9e-80b2-49f5-82ad-e57b547ca6fe";
 async function main() {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "aviary-dnr-firefox-"));
   const extensionDir = path.join(tempRoot, "extension");
   const profileDir = path.join(tempRoot, "profile");
   let firefoxProcess;
   let bidi;
+  let extensionRdp;
   let proxy;
 
   try {
@@ -51,36 +51,53 @@ async function main() {
   bidi = await Bidi.connect(launched.bidiUrl);
   const capabilities = await bidi.must("session.new", { capabilities: {} });
 
-  const rdp = await Rdp.connect(rdpPort);
-  await rdp.next();
-  const rootActor = await rdp.request({ to: "root", type: "getRoot" });
-  const installed = await rdp.request({
-    to: rootActor.addonsActor,
-    type: "installTemporaryAddon",
-    addonPath: extensionDir,
-    openDevTools: false
-  });
-  rdp.socket.destroy();
-  assert.equal(installed.error, undefined, installed.message ?? "Firefox refused the add-on");
-  assert.equal(installed.addon?.id, extensionId);
-
-  const { context: optionsContext } = await bidi.must("browsingContext.create", { type: "tab" });
-  await bidi.must("browsingContext.navigate", {
-    context: optionsContext,
-    url: `moz-extension://${extensionUuid}/options.html`,
-    wait: "complete"
-  });
+  let installedExtensionId;
+  try {
+    const installed = await bidi.must("webExtension.install", {
+      extensionData: { type: "path", path: extensionDir }
+    });
+    installedExtensionId = installed.extension;
+  } catch (error) {
+    if (!/unknown command|unsupported operation/i.test(String(error))) throw error;
+    const rdp = await Rdp.connect(rdpPort);
+    await rdp.next();
+    const rootActor = await rdp.request({ to: "root", type: "getRoot" });
+    const installed = await rdp.request({
+      to: rootActor.addonsActor,
+      type: "installTemporaryAddon",
+      addonPath: extensionDir,
+      openDevTools: false
+    });
+    rdp.close();
+    assert.equal(installed.error, undefined, installed.message ?? "Firefox refused the add-on");
+    installedExtensionId = installed.addon?.id;
+  }
+  assert.equal(installedExtensionId, extensionId);
+  extensionRdp = await Rdp.connect(rdpPort);
+  await extensionRdp.next();
+  const backgroundTarget = await findExtensionBackground(extensionRdp);
+  const extensionClient = new RdpExtensionContext(extensionRdp, backgroundTarget.consoleActor);
+  const extensionContext = null;
+  await extensionClient.evaluate(extensionContext, () =>
+    chrome.tabs.create({ url: chrome.runtime.getURL("options.html") }).then((tab) => tab.id)
+  );
+  const optionsTarget = await waitForExtensionTarget(
+    extensionRdp,
+    (target) => target.url?.endsWith("/options.html"),
+    "Firefox did not open Aviary's options page"
+  );
+  const messageClient = new RdpExtensionContext(extensionRdp, optionsTarget.consoleActor);
 
   await waitFor(
-    bidi,
-    optionsContext,
+    extensionClient,
+    extensionContext,
     () => chrome.declarativeNetRequest.getDynamicRules().then((rules) =>
       rules.some((rule) => rule.id === 73001)
     ),
     "default-on dynamic rule was not installed"
   );
 
-  const outcomes = await bidi.evaluate(optionsContext, () => Promise.all([
+  const outcomes = await extensionClient.evaluate(extensionContext, () => Promise.all([
     "https://x.com/i/api/1.1/promoted_content/log.json?event=impression",
     "https://x.com/i/api/graphql/query/HomeTimeline",
     "https://x.com/i/api/1.1/promoted_content/content.json",
@@ -101,45 +118,45 @@ async function main() {
   }
 
   const connectsBefore = xConnectCount(proxy.seen);
-  const enabledRequest = await requestLogger(bidi, optionsContext);
+  const enabledRequest = await requestLogger(extensionClient, extensionContext);
   assert.equal(enabledRequest.ok, false);
   await delay(250);
   assert.equal(xConnectCount(proxy.seen), connectsBefore, "enabled logger reached the proxy");
 
-  const disabled = await bidi.evaluate(optionsContext, () =>
+  const disabled = await messageClient.evaluate(extensionContext, () =>
     chrome.runtime.sendMessage({ type: "AVIARY_SYNC_AD_RULE", enabled: false })
   );
   assert.deepEqual(disabled, { ok: true, enabled: false });
   await waitFor(
-    bidi,
-    optionsContext,
+    extensionClient,
+    extensionContext,
     () => chrome.declarativeNetRequest.getDynamicRules().then((rules) =>
       rules.every((rule) => rule.id !== 73001)
     ),
     "dynamic rule did not disable"
   );
 
-  const disabledRequest = await requestLogger(bidi, optionsContext);
+  const disabledRequest = await requestLogger(extensionClient, extensionContext);
   assert.equal(disabledRequest.ok, false, "the refusing proxy should make the control request fail");
   await waitForValue(
     () => xConnectCount(proxy.seen) === connectsBefore + 1,
     "disabled logger never reached the loopback proxy"
   );
 
-  const enabled = await bidi.evaluate(optionsContext, () =>
+  const enabled = await messageClient.evaluate(extensionContext, () =>
     chrome.runtime.sendMessage({ type: "AVIARY_SYNC_AD_RULE", enabled: true })
   );
   assert.deepEqual(enabled, { ok: true, enabled: true });
   await waitFor(
-    bidi,
-    optionsContext,
+    extensionClient,
+    extensionContext,
     () => chrome.declarativeNetRequest.getDynamicRules().then((rules) =>
       rules.some((rule) => rule.id === 73001)
     ),
     "dynamic rule did not re-enable"
   );
 
-  const reenabledRequest = await requestLogger(bidi, optionsContext);
+  const reenabledRequest = await requestLogger(extensionClient, extensionContext);
   assert.equal(reenabledRequest.ok, false);
   await delay(250);
   assert.equal(
@@ -148,7 +165,7 @@ async function main() {
     "re-enabled logger escaped to the proxy"
   );
   assert.equal(
-    await bidi.evaluate(optionsContext, () =>
+    await extensionClient.evaluate(extensionContext, () =>
       chrome.storage.local.get("aviary.runtime.adLoggerRule.v1").then((state) =>
         state["aviary.runtime.adLoggerRule.v1"]
       )
@@ -160,6 +177,11 @@ async function main() {
     `[dnr-firefox] Firefox ${capabilities.capabilities.browserVersion}: event page, exact match, four negative controls, enable/disable persistence, and pre-network loopback blocking passed.`
   );
   } finally {
+    try {
+      extensionRdp?.close();
+    } catch {
+      // process cleanup below is authoritative
+    }
     try {
       bidi?.socket.close();
     } catch {
@@ -240,7 +262,6 @@ function writeFirefoxProfile(directory, proxyPort, rdpPort) {
     ["browser.region.network.url", '""'],
     ["services.settings.server", '""'],
     ["extensions.getAddons.cache.enabled", false],
-    ["extensions.webextensions.uuids", JSON.stringify(JSON.stringify({ [extensionId]: extensionUuid }))],
     ["browser.shell.checkDefaultBrowser", false],
     ["datareporting.policy.dataSubmissionEnabled", false],
     ["datareporting.healthreport.uploadEnabled", false],
@@ -299,14 +320,108 @@ function launchFirefox(binary, profile, rdpPort) {
   });
 }
 
+async function findExtensionBackground(rdp) {
+  const addons = await rdp.request({ to: "root", type: "listAddons" });
+  const aviaryAddon = addons.addons?.find((addon) => addon.id === extensionId);
+  assert.ok(aviaryAddon?.actor, "Firefox did not expose Aviary's extension descriptor");
+  const watcher = await rdp.request({ to: aviaryAddon.actor, type: "getWatcher" });
+  const packets = [];
+  await rdp.request(
+    { to: watcher.actor, type: "watchTargets", targetType: "frame" },
+    packets
+  );
+  const hasBackground = () => packets.some(
+    (packet) => packet.target?.url?.includes("_generated_background_page.html")
+  );
+  while (!hasBackground()) packets.push(await rdp.next());
+  return packets.find(
+    (packet) => packet.target?.url?.includes("_generated_background_page.html")
+  ).target;
+}
+
+async function waitForExtensionTarget(rdp, predicate, message, timeout = 15_000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const index = rdp.events.findIndex((packet) => predicate(packet.target ?? {}));
+    if (index >= 0) return rdp.events.splice(index, 1)[0].target;
+    const remaining = deadline - Date.now();
+    const packet = await Promise.race([
+      rdp.next(),
+      delay(remaining).then(() => null)
+    ]);
+    if (!packet) break;
+    if (predicate(packet.target ?? {})) return packet.target;
+    rdp.events.push(packet);
+  }
+  throw new Error(message);
+}
+
+class RdpExtensionContext {
+  constructor(rdp, consoleActor) {
+    this.rdp = rdp;
+    this.consoleActor = consoleActor;
+    this.evaluationId = 0;
+  }
+
+  async evaluate(_context, fn) {
+    const key = `__aviarySmokeResult${++this.evaluationId}`;
+    const encodedKey = JSON.stringify(key);
+    const text = `globalThis[${encodedKey}] = undefined; Promise.resolve((${String(fn)})()).then(`
+      + `(value) => { globalThis[${encodedKey}] = JSON.stringify({ ok: true, value }); }, `
+      + `(error) => { globalThis[${encodedKey}] = JSON.stringify({ ok: false, error: String(error) }); })`;
+    await this.#evaluateRaw(text);
+    const deadline = Date.now() + 15_000;
+    let result;
+    while (Date.now() < deadline) {
+      result = await this.#evaluateRaw(`globalThis[${encodedKey}]`);
+      if (typeof result === "string") break;
+      await delay(25);
+    }
+    await this.#evaluateRaw(`delete globalThis[${encodedKey}]`);
+    if (typeof result !== "string") throw new Error("Firefox extension evaluation timed out");
+    const envelope = JSON.parse(result);
+    if (!envelope.ok) throw new Error(envelope.error);
+    return envelope.value;
+  }
+
+  async #evaluateRaw(text) {
+    const started = await this.rdp.request({
+      to: this.consoleActor,
+      type: "evaluateJSAsync",
+      text
+    });
+    if (started.error) throw new Error(started.message ?? started.error);
+    let completed;
+    do {
+      completed = await this.rdp.next();
+      if (completed.type !== "evaluationResult" || completed.resultID !== started.resultID) {
+        this.rdp.events.push(completed);
+      }
+    } while (completed.type !== "evaluationResult" || completed.resultID !== started.resultID);
+    if (completed.hasException) {
+      throw new Error(completed.exceptionMessage ?? "Firefox extension evaluation failed");
+    }
+    return completed.result;
+  }
+}
+
 class Rdp {
   constructor(socket) {
     this.socket = socket;
     this.buffer = Buffer.alloc(0);
+    this.events = [];
+    this.inbox = [];
     this.waiters = [];
+    this.error = null;
+    this.closed = false;
     socket.on("data", (data) => {
       this.buffer = Buffer.concat([this.buffer, data]);
       this.drain();
+    });
+    socket.on("error", (error) => {
+      if (this.closed) return;
+      this.error = error;
+      for (const waiter of this.waiters.splice(0)) waiter.reject(error);
     });
   }
 
@@ -320,19 +435,31 @@ class Rdp {
         this.buffer.subarray(colon + 1, colon + 1 + length).toString("utf8")
       );
       this.buffer = this.buffer.subarray(colon + 1 + length);
-      this.waiters.shift()?.(packet);
+      const waiter = this.waiters.shift();
+      if (waiter) waiter.resolve(packet);
+      else this.inbox.push(packet);
     }
   }
 
   next() {
-    return new Promise((resolve) => this.waiters.push(resolve));
+    if (this.error) return Promise.reject(this.error);
+    if (this.inbox.length > 0) return Promise.resolve(this.inbox.shift());
+    return new Promise((resolve, reject) => this.waiters.push({ resolve, reject }));
   }
 
-  request(packet) {
-    const response = this.next();
+  close() {
+    this.closed = true;
+    this.socket.destroy();
+  }
+
+  async request(packet, events = this.events) {
     const body = JSON.stringify(packet);
     this.socket.write(`${Buffer.byteLength(body)}:${body}`);
-    return response;
+    for (;;) {
+      const response = await this.next();
+      if (response.from === packet.to && !response.type) return response;
+      events.push(response);
+    }
   }
 
   static connect(port, timeout = 45_000) {

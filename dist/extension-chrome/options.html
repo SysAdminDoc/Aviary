@@ -43,41 +43,41 @@
         </div>
         <div class="health-metric"><strong id="granted-count">0</strong><span data-i18n="granted">granted</span></div>
         <div class="health-metric"><strong>2</strong><span data-i18n="optional">optional</span></div>
-        <p id="health-message" data-i18n="All optional. You're in control.">All optional. You're in control.</p>
+        <p id="health-message" aria-live="polite" aria-atomic="true" data-i18n="All optional. You're in control.">All optional. You're in control.</p>
       </section>
 
       <section class="permission-list" aria-label="Optional permissions">
-        <article class="card permission-row" id="downloads-card">
+        <article class="card permission-row" id="downloads-card" data-priority="recommended" aria-labelledby="downloads-title">
           <div class="permission-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14" /></svg>
           </div>
           <div class="card-copy">
             <div class="card-head">
-              <h3 data-i18n="Save media to disk">Save media to disk</h3>
-              <span class="state" id="downloads-state" data-i18n="checking…">checking…</span>
+              <h3 id="downloads-title" data-i18n="Save media to disk">Save media to disk</h3>
+              <span class="state" id="downloads-state" aria-live="polite" aria-atomic="true" data-i18n="checking…">checking…</span>
             </div>
-            <p data-i18n="Lets the Save and Thumb buttons write files through the browser's download manager, with your filename template and duplicate history. Without it the browser opens media in a tab instead of saving it.">
+            <p id="downloads-description" data-i18n="Lets the Save and Thumb buttons write files through the browser's download manager, with your filename template and duplicate history. Without it the browser opens media in a tab instead of saving it.">
               Lets the Save and Thumb buttons write files through the browser's download manager,
               with your filename template and duplicate history. Without it the browser opens media
               in a tab instead of saving it.
             </p>
           </div>
           <div class="actions">
-            <button type="button" id="downloads-grant" data-i18n="Grant download access">Grant download access</button>
-            <button type="button" class="ghost" id="downloads-revoke" data-i18n="Revoke">Revoke</button>
+            <button type="button" id="downloads-grant" aria-describedby="downloads-description" data-i18n="Grant download access">Grant download access</button>
+            <button type="button" class="ghost" id="downloads-revoke" aria-describedby="downloads-description" data-i18n="Revoke">Revoke</button>
           </div>
         </article>
 
-        <article class="card permission-row" id="media-card">
+        <article class="card permission-row" id="media-card" aria-labelledby="media-title">
           <div class="permission-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3 4 6 4 9s-1 6-4 9c-3-3-4-6-4-9s1-6 4-9Z" /></svg>
           </div>
           <div class="card-copy">
             <div class="card-head">
-              <h3 data-i18n="Read media hosts directly">Read media hosts directly</h3>
-              <span class="state" id="media-state" data-i18n="checking…">checking…</span>
+              <h3 id="media-title" data-i18n="Read media hosts directly">Read media hosts directly</h3>
+              <span class="state" id="media-state" aria-live="polite" aria-atomic="true" data-i18n="checking…">checking…</span>
             </div>
-            <p data-i18n="Adds the media hosts so large files can be fetched without a page round-trip. Optional — media buttons work without it.">
+            <p id="media-description" data-i18n="Adds the media hosts so large files can be fetched without a page round-trip. Optional — media buttons work without it.">
               Adds the media hosts so large files can be fetched without a page round-trip.
               Optional — media buttons work without it.
             </p>
@@ -87,13 +87,13 @@
             </div>
           </div>
           <div class="actions">
-            <button type="button" id="media-grant" data-i18n="Grant media hosts">Grant media hosts</button>
-            <button type="button" class="ghost" id="media-revoke" data-i18n="Revoke">Revoke</button>
+            <button type="button" id="media-grant" aria-describedby="media-description" data-i18n="Grant media hosts">Grant media hosts</button>
+            <button type="button" class="ghost" id="media-revoke" aria-describedby="media-description" data-i18n="Revoke">Revoke</button>
           </div>
         </article>
       </section>
 
-      <p class="status" id="status" role="status" aria-live="polite"></p>
+      <p class="status" id="status" role="status" aria-live="polite" aria-atomic="true"></p>
 
       <footer class="foot" data-i18n="Settings, filters, notes and archives live in the Control Center on x.com. This page only manages browser permissions.">
         Settings, filters, notes and archives live in the Control Center on x.com. This page only

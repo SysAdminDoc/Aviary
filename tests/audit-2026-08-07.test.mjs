@@ -172,7 +172,7 @@ test("each options-page permission card explains its own grant", async () => {
   assert.match(source, /grantedMessage: "Granted\. Media saves through the browser now\."/);
   assert.match(source, /grantedMessage: "Granted\. Aviary can read full-size media directly for exports now\."/);
   // Routed through translate() since the page was localized, but still per-card.
-  assert.match(source, /setStatus\(granted \? translate\(card\.grantedMessage\)/);
+  assert.match(source, /setStatus\(\s*granted \? translate\(card\.grantedMessage\)/);
 });
 
 test("aria2 routes by size, so the threshold finally means something", async () => {

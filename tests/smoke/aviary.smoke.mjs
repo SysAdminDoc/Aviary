@@ -169,7 +169,7 @@ const pageHookControls = [
   { section: "trust", label: "Refuse X's analytics beacons", key: "blockBeacons" },
   { section: "export", label: "Preserve raw payloads", key: "captureGraphql" },
   { section: "media", label: "Show download buttons", key: "captureMediaMetadata" },
-  { section: "performance", label: "Always play video at the highest quality", key: "forceVideoQuality" }
+  { section: "performance", label: "Pin video playlists to their best rendition", key: "forceVideoQuality" }
 ];
 
 async function setPageHookConfiguration(page, config) {

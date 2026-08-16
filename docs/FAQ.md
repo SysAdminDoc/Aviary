@@ -246,8 +246,8 @@ Every control Aviary offers, by Control Center page. 71 controls across 12 pages
 | Show download buttons | Inject Save and Thumb buttons over tweet photos and video thumbnails. |
 | Prefer original quality | Rewrite image URLs to name=orig before downloading. |
 | Show images at original quality | Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes. |
+| Media layout | A choice control. |
 | Duplicate history | Skip downloads of media you have already saved from this browser. |
-| Media layout | Choose one: Conservative, Balanced. |
 | Download pacing | Choose one: Conservative, Balanced. |
 
 #### Trust

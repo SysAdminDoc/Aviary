@@ -151,12 +151,14 @@
     return /\.m3u8(?:$|\?)/i.test(url);
   }
   var INITIAL_CONFIG = {
-    // Page scripts run at document_start. The default-on ad guard must be active before the
-    // isolated world finishes opening storage; a persisted opt-out replaces this during config.
+    // Page scripts run at document_start. Default-on work must be active before the isolated world
+    // finishes opening storage; persisted opt-outs replace these values during config. In
+    // particular, X's first timeline response contains the direct MP4 variants and then leaves only
+    // a MediaSource `blob:` URL in the DOM, so starting media capture later cannot recover it.
     blockAds: true,
     blockBeacons: false,
     captureGraphql: false,
-    captureMediaMetadata: false,
+    captureMediaMetadata: true,
     forceVideoQuality: false
   };
   var state;

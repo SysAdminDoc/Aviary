@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.26.0 - 2026-08-16
+
 ### Changed
 
 - Extension download setup now makes the browser-download grant the primary action, announces

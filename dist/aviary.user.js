@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/SysAdminDoc
-// @version      1.25.0
+// @version      1.26.0
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       SysAdminDoc
 // @homepage     https://github.com/SysAdminDoc/Aviary
@@ -8896,7 +8896,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/platform/build-version.ts
-  var AVIARY_VERSION = false ? "dev" : "1.25.0";
+  var AVIARY_VERSION = false ? "dev" : "1.26.0";
 
   // src/ui/control-center/constants.ts
   var MEDIA_LAYOUT_OPTIONS = [
@@ -10990,6 +10990,17 @@ html.av-reduce-motion *::after {
       )
     );
     rows.push(
+      ctx.selectRow(
+        "Media layout",
+        ctx.options.settings.media.layout,
+        MEDIA_LAYOUT_OPTIONS,
+        async (value) => {
+          ctx.options.settings.media.layout = ctx.coerceLayout(value);
+          await ctx.save("Media layout saved");
+        }
+      )
+    );
+    rows.push(
       ctx.textInputRow(
         "Filename template",
         "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
@@ -11008,17 +11019,6 @@ html.av-reduce-motion *::after {
         async (checked) => {
           ctx.options.settings.media.downloadHistory = checked;
           await ctx.save(checked ? "Duplicate history on" : "Duplicate history off");
-        }
-      )
-    );
-    rows.push(
-      ctx.selectRow(
-        "Media layout",
-        ctx.options.settings.media.layout,
-        MEDIA_LAYOUT_OPTIONS,
-        async (value) => {
-          ctx.options.settings.media.layout = ctx.coerceLayout(value);
-          await ctx.save("Media layout saved");
         }
       )
     );
@@ -11865,7 +11865,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION2 = false ? "dev" : "1.25.0";
+  var AVIARY_VERSION2 = false ? "dev" : "1.26.0";
   var SECTION_GROUP_BREAKS = {
     presets: [
       { before: "Quiet Reader", title: "Preset packs" },
@@ -22962,6 +22962,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   var pendingContextTarget;
   var contextMenuListener;
   var extensionMessageListener;
+  var buttonResetTimers = /* @__PURE__ */ new WeakMap();
   var mediaButtonsFeature = {
     id: "media.buttons",
     title: "One-click media",
@@ -23313,9 +23314,22 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     button2.setAttribute(BUTTON_ATTR2, media.kind);
     button2.dataset.kind = media.kind;
     const accessibleLabel = ft(ctx, buttonAriaLabel(media));
+    const idleLabel = ft(ctx, buttonLabel(media));
     button2.setAttribute("aria-label", accessibleLabel);
+    button2.setAttribute("aria-live", "polite");
+    button2.setAttribute("aria-busy", "false");
     button2.title = accessibleLabel;
+    button2.dataset.idleLabel = idleLabel;
+    button2.dataset.idleAriaLabel = accessibleLabel;
     button2.textContent = `\u2193 ${ft(ctx, buttonLabel(media))}`;
+    const icon = document.createElement("span");
+    icon.className = "av-media-button-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = "\u2193 ";
+    const label = document.createElement("span");
+    label.className = "av-media-button-label";
+    label.textContent = idleLabel;
+    button2.replaceChildren(icon, label);
     button2.addEventListener("click", (event) => {
       event.stopPropagation();
       event.preventDefault();
@@ -23347,9 +23361,12 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     }
     const target = resolveTarget(media);
     if (!target) {
-      button2.textContent = ft(ctx, "Unavailable");
-      button2.disabled = true;
-      button2.classList.add("is-error");
+      setButtonFeedback(button2, {
+        label: ft(ctx, "Unavailable"),
+        icon: "!",
+        className: "is-error",
+        disabled: true
+      });
       ctx.diagnostics.warn("Media target unavailable", { kind: media.kind });
       return;
     }
@@ -23367,23 +23384,35 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     if (ctx.settings.media.downloadHistory && history.has(dedupeKey)) {
       const job2 = queue.enqueue({ url: target.url, filename });
       queue.mark(job2.id, "duplicate");
-      button2.textContent = ft(ctx, "Saved");
-      button2.classList.add("is-duplicate");
+      setButtonFeedback(button2, {
+        label: ft(ctx, "Saved"),
+        icon: "\u2713",
+        className: "is-duplicate"
+      });
+      scheduleButtonRestore(button2);
       ctx.diagnostics.info("Media skipped \u2014 already in history", { dedupeKey });
       void ctx.auditLog.record("media.download.duplicate", { dedupeKey });
       return;
     }
     const job = queue.enqueue({ url: target.url, filename });
     queue.mark(job.id, "running");
-    button2.classList.add("is-active");
-    button2.disabled = true;
+    setButtonFeedback(button2, {
+      label: ft(ctx, "Saving..."),
+      icon: "\u21BB",
+      className: "is-active",
+      disabled: true,
+      busy: true
+    });
     try {
       const result = await downloader({ url: target.url, filename });
       if (result.deduplicated) {
         queue.mark(job.id, "duplicate");
-        button2.textContent = ft(ctx, "Queued");
-        button2.classList.remove("is-active");
-        button2.classList.add("is-duplicate");
+        setButtonFeedback(button2, {
+          label: ft(ctx, "Queued"),
+          icon: "\u2713",
+          className: "is-duplicate"
+        });
+        scheduleButtonRestore(button2);
         ctx.diagnostics.info("Media skipped \u2014 already queued in Aria2 history", { url: target.url });
         void ctx.auditLog.record("media.download.duplicate", {
           dedupeKey,
@@ -23400,21 +23429,25 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       if (ctx.settings.media.downloadHistory) {
         await history.record(dedupeKey);
       }
-      button2.textContent = ft(ctx, result.degraded ? "Opened" : successLabel(media));
-      button2.classList.remove("is-active");
-      button2.classList.add("is-success");
+      setButtonFeedback(button2, {
+        label: ft(ctx, result.degraded ? "Opened" : successLabel(media)),
+        icon: result.degraded ? "\u2197" : "\u2713",
+        className: "is-success"
+      });
       if (result.degraded) {
         button2.title = ft(ctx, "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.");
       }
+      scheduleButtonRestore(button2);
       ctx.diagnostics.info("Media saved", { filename, kind: media.kind, degraded: result.degraded === true });
       void ctx.auditLog.record("media.download", { filename, kind: media.kind, via: result.via });
     } catch (error) {
       const needsPermission = error instanceof DownloadPermissionError;
       queue.mark(job.id, "failed", String(error?.message ?? error));
-      button2.textContent = ft(ctx, needsPermission ? "Allow" : "Retry");
-      button2.classList.remove("is-active");
-      button2.classList.add("is-error");
-      button2.disabled = false;
+      setButtonFeedback(button2, {
+        label: ft(ctx, needsPermission ? "Allow" : "Retry"),
+        icon: needsPermission ? "\u2197" : "!",
+        className: "is-error"
+      });
       if (needsPermission) {
         button2.title = ft(ctx, "Aviary needs the browser download permission. Opening its options page.");
         if (!permissionSurfaceOpened) {
@@ -23429,6 +23462,50 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         ...needsPermission ? { reason: "downloads-permission-missing" } : {}
       });
     }
+  }
+  function setButtonFeedback(button2, feedback) {
+    clearButtonRestore(button2);
+    button2.classList.remove("is-active", "is-success", "is-duplicate", "is-error");
+    button2.classList.add(feedback.className);
+    button2.dataset.state = feedback.className.slice(3);
+    button2.disabled = feedback.disabled === true;
+    button2.setAttribute("aria-busy", String(feedback.busy === true));
+    const icon = button2.querySelector(".av-media-button-icon");
+    const label = button2.querySelector(".av-media-button-label");
+    if (icon) icon.textContent = `${feedback.icon} `;
+    if (label) label.textContent = feedback.label;
+    button2.setAttribute("aria-label", feedback.label);
+    button2.title = feedback.label;
+  }
+  function scheduleButtonRestore(button2) {
+    clearButtonRestore(button2);
+    const timer2 = setTimeout(() => {
+      buttonResetTimers.delete(button2);
+      if (button2.isConnected) {
+        restoreIdleButton(button2);
+      }
+    }, 2200);
+    buttonResetTimers.set(button2, timer2);
+  }
+  function clearButtonRestore(button2) {
+    const timer2 = buttonResetTimers.get(button2);
+    if (timer2 !== void 0) {
+      clearTimeout(timer2);
+      buttonResetTimers.delete(button2);
+    }
+  }
+  function restoreIdleButton(button2) {
+    button2.classList.remove("is-active", "is-success", "is-duplicate", "is-error");
+    delete button2.dataset.state;
+    button2.disabled = false;
+    button2.setAttribute("aria-busy", "false");
+    const icon = button2.querySelector(".av-media-button-icon");
+    const label = button2.querySelector(".av-media-button-label");
+    if (icon) icon.textContent = "\u2193 ";
+    if (label) label.textContent = button2.dataset.idleLabel ?? "";
+    const accessibleLabel = button2.dataset.idleAriaLabel ?? button2.dataset.idleLabel ?? "";
+    button2.setAttribute("aria-label", accessibleLabel);
+    button2.title = accessibleLabel;
   }
   function resolveTarget(media) {
     if (media.kind === "video" && media.video?.preferred) {
@@ -23485,8 +23562,9 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   min-width: 72px;
-  min-height: 34px;
+  min-height: 36px;
   padding: 6px 11px;
   border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 82%, white 8%);
   border-radius: 8px;
@@ -23498,7 +23576,20 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   letter-spacing: 0.02em;
   text-transform: uppercase;
   opacity: 1;
-  transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
+  transition: transform 140ms ease, border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+[${BUTTON_ATTR2}] .av-media-button-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  font-size: 15px;
+  line-height: 1;
+}
+
+[${BUTTON_ATTR2}] .av-media-button-label {
+  min-width: 0;
 }
 
 /* Aviary no longer makes X's media containers the positioning context.
@@ -23522,8 +23613,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
 }
 
 [${BUTTON_ATTR2}].is-success {
-  border-color: rgb(120, 200, 130);
-  color: rgb(206, 240, 210);
+  border-color: var(--av-media-success, rgb(120, 200, 130));
+  color: var(--av-media-success-text, rgb(206, 240, 210));
 }
 
 [${BUTTON_ATTR2}].is-duplicate {
@@ -23532,13 +23623,40 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
 }
 
 [${BUTTON_ATTR2}].is-error {
-  border-color: rgb(220, 110, 110);
-  color: rgb(248, 200, 200);
+  border-color: var(--av-media-error, rgb(220, 110, 110));
+  color: var(--av-media-error-text, rgb(248, 200, 200));
+}
+
+[${BUTTON_ATTR2}].is-active {
+  border-color: var(--av-accent, rgb(29, 155, 240));
+  cursor: progress;
+}
+
+[${BUTTON_ATTR2}].is-active .av-media-button-icon {
+  animation: av-media-spin 700ms linear infinite;
 }
 
 [${BUTTON_ATTR2}]:disabled {
-  cursor: default;
   transform: none;
+}
+
+[${BUTTON_ATTR2}]:disabled:not(.is-active) {
+  cursor: default;
+  opacity: 0.68;
+}
+
+@keyframes av-media-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [${BUTTON_ATTR2}] {
+    transition: none;
+  }
+
+  [${BUTTON_ATTR2}].is-active .av-media-button-icon {
+    animation: none;
+  }
 }
 `;
 
@@ -28793,12 +28911,14 @@ html.av-mobile [data-testid="primaryColumn"] {
     return /\.m3u8(?:$|\?)/i.test(url);
   }
   var INITIAL_CONFIG = {
-    // Page scripts run at document_start. The default-on ad guard must be active before the
-    // isolated world finishes opening storage; a persisted opt-out replaces this during config.
+    // Page scripts run at document_start. Default-on work must be active before the isolated world
+    // finishes opening storage; persisted opt-outs replace these values during config. In
+    // particular, X's first timeline response contains the direct MP4 variants and then leaves only
+    // a MediaSource `blob:` URL in the DOM, so starting media capture later cannot recover it.
     blockAds: true,
     blockBeacons: false,
     captureGraphql: false,
-    captureMediaMetadata: false,
+    captureMediaMetadata: true,
     forceVideoQuality: false
   };
   var state;
@@ -31469,7 +31589,10 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       blockAds: DEFAULT_SETTINGS.privacy.blockAds && DEFAULT_SETTINGS.privacy.networkShield,
       blockBeacons: false,
       captureGraphql: false,
-      captureMediaMetadata: false,
+      // Media controls are on by default, so direct video variants must be captured from the first
+      // timeline response. Waiting for storage to open misses the response that built the visible
+      // MediaSource players; all the DOM can expose afterward is a tab-local `blob:` handle.
+      captureMediaMetadata: DEFAULT_SETTINGS.media.buttons,
       forceVideoQuality: false
     });
     const legacyStorage = createStorageGateway("aviary");

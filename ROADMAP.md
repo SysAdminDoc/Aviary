@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.25.0`
+Version: `1.26.0`
 
 Actionable work only. Historical and completed roadmap material is archived in CHANGELOG.md; blocked work is kept in Roadmap_Blocked.md.
 
@@ -127,4 +127,3 @@ Internal audit of the subsystems no prior pass had examined, plus the code added
   Complexity: L
 
 ### P3 — small measured defects
-

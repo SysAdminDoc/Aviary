@@ -1,11 +1,11 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.25.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.26.0-2f81f7)
 
 <img width="1536" height="1024" alt="exec-86ea8b21-28c3-4eff-bc69-b1d8f9ab3e7c" src="https://github.com/user-attachments/assets/a36c2cdb-2b74-4fde-a934-3c0ada11bbac" />
 
 
-Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.25.0: an opt-in premium Noir desktop skin, focused Home controls for the composer, discovery rail, current navigation and recommendations, default-on desktop ad protection and media download controls, transactional settings, local ad-contract drift diagnostics, a redesigned 13-page Control Center and extension-permissions cockpit, committed desktop visual coverage, fixture-backed selector checks, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, reproducible MV3 ZIP archives, and isolated Playwright smoke CI.
+Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.26.0: an opt-in premium Noir desktop skin, focused Home controls for the composer, discovery rail, current navigation and recommendations, default-on desktop ad protection and direct video download controls, transactional settings, local ad-contract drift diagnostics, a redesigned 13-page Control Center and responsive extension-permissions cockpit, committed desktop visual coverage, fixture-backed selector checks, reversible filtering, per-post hide-and-remember, one-click media, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, reproducible MV3 ZIP archives, and isolated Playwright smoke CI.
 
 ## Ad-free with media saves ready by default
 
@@ -201,7 +201,9 @@ The Control Center "Media" section exposes:
 Downloads prefer `GM_download` in userscript managers, fall back to the extension service worker (`chrome.downloads` with `conflictAction: uniquify`), and finally use an anchor tag when no privileged downloader is available.
 
 The on-post controls are solid, always visible, and carry a download arrow plus a precise accessible
-label. The MV3 build also adds **Download media with Aviary** to X's native right-click menu. The
+label. Each one reports Saving, Saved, Queued, Allow, or Retry in place, exposes its busy state to
+assistive technology, and returns to the original action after feedback so downloads can be run
+again. The MV3 build also adds **Download media with Aviary** to X's native right-click menu. The
 page-side handler maps the clicked player back to Aviary's captured direct variant, so X's
 MediaSource `blob:` playback handle is never mistaken for a file.
 
@@ -209,7 +211,9 @@ In the MV3 build `downloads` remains an optional permission. Choosing the native
 requests it from that explicit browser gesture and immediately continues the save when granted.
 Until it is granted, an on-post button reads **Allow** instead of claiming a save and opens Aviary's
 options page. That page (toolbar icon, or Extensions → Aviary → Options) shows the live grant state
-for `downloads` and for the `pbs.twimg.com` / `video.twimg.com` media hosts, and can revoke either.
+for `downloads` and for the `pbs.twimg.com` / `video.twimg.com` media hosts, makes download access
+the recommended first step, and can revoke either. Permission checks and results are announced,
+and the setup remains usable in compact extension windows.
 On the rare path where the anchor fallback still runs for a cross-origin URL, the button reads
 **Opened**, not Saved. The userscript build is unaffected.
 
@@ -217,8 +221,10 @@ Tweets with embedded video or GIF players expose a Video / GIF button when Aviar
 GraphQL capture finds a direct downloadable variant. X commonly gives timeline players a `blob:`
 MediaSource URL, so blob-only players intentionally have no video control; a known poster still
 gets its Thumb control. Aviary keeps only bounded media metadata, matches it to the tweet/media,
-and picks the highest-bitrate variant it can save. When `tweet_video/` URLs or loop+muted players
-are detected, the button labels itself "GIF" and the dedup history scopes by media kind.
+and picks the highest-bitrate variant it can save. Capture starts at document load so the first
+visible timeline videos are covered before X replaces their direct variants with tab-local blob
+handles. When `tweet_video/` URLs or loop+muted players are detected, the button labels itself
+"GIF" and the dedup history scopes by media kind.
 
 ## Media layout
 
