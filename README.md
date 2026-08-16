@@ -201,7 +201,9 @@ The Control Center "Media" section exposes:
 Downloads prefer `GM_download` in userscript managers, fall back to the extension service worker (`chrome.downloads` with `conflictAction: uniquify`), and finally use an anchor tag when no privileged downloader is available.
 
 The on-post controls are solid, always visible, and carry a download arrow plus a precise accessible
-label. The MV3 build also adds **Download media with Aviary** to X's native right-click menu. The
+label. Each one reports Saving, Saved, Queued, Allow, or Retry in place, exposes its busy state to
+assistive technology, and returns to the original action after feedback so downloads can be run
+again. The MV3 build also adds **Download media with Aviary** to X's native right-click menu. The
 page-side handler maps the clicked player back to Aviary's captured direct variant, so X's
 MediaSource `blob:` playback handle is never mistaken for a file.
 

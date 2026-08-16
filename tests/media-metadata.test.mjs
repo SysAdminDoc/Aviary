@@ -477,11 +477,35 @@ test("default media controls transfer both image and direct video bytes", async 
 
         imageButton.click();
         videoButton.click();
+        const runningState = {
+          text: videoButton.textContent,
+          busy: videoButton.getAttribute("aria-busy"),
+          disabled: videoButton.disabled,
+          state: videoButton.dataset.state
+        };
         const deadline = performance.now() + 2_000;
         while (transfers.length < 2 && performance.now() < deadline) {
           await new Promise((resolve) => setTimeout(resolve, 10));
         }
         if (transfers.length !== 2) throw new Error("Default media transfers did not finish");
+
+        const completedState = {
+          text: videoButton.textContent,
+          busy: videoButton.getAttribute("aria-busy"),
+          disabled: videoButton.disabled,
+          state: videoButton.dataset.state
+        };
+        videoButton.click();
+        const repeatRunningState = {
+          text: videoButton.textContent,
+          busy: videoButton.getAttribute("aria-busy"),
+          disabled: videoButton.disabled
+        };
+        const repeatDeadline = performance.now() + 2_000;
+        while (transfers.length < 3 && performance.now() < repeatDeadline) {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+        if (transfers.length !== 3) throw new Error("Repeat video transfer did not finish");
 
         const buttonTransfers = structuredClone(transfers);
         transfers.length = 0;
@@ -509,6 +533,9 @@ test("default media controls transfer both image and direct video bytes", async 
           defaultEnabled: settings.media.buttons,
           imageButton: imageButton.textContent,
           videoButton: videoButton.textContent,
+          runningState,
+          completedState,
+          repeatRunningState,
           buttonTransfers: buttonTransfers.sort((a, b) => a.url.localeCompare(b.url)),
           contextTransfers: transfers.sort((a, b) => a.url.localeCompare(b.url)),
           contextResults: { videoContext, imageContext }
@@ -523,8 +550,25 @@ test("default media controls transfer both image and direct video bytes", async 
     }, metadataBody);
 
     assert.equal(result.defaultEnabled, true);
-    assert.equal(result.imageButton, "Saved");
-    assert.equal(result.videoButton, "Saved");
+    assert.equal(result.imageButton, "✓ Saved");
+    assert.equal(result.videoButton, "✓ Saved");
+    assert.deepEqual(result.runningState, {
+      text: "↻ Saving...",
+      busy: "true",
+      disabled: true,
+      state: "active"
+    });
+    assert.deepEqual(result.completedState, {
+      text: "✓ Saved",
+      busy: "false",
+      disabled: false,
+      state: "success"
+    });
+    assert.deepEqual(result.repeatRunningState, {
+      text: "↻ Saving...",
+      busy: "true",
+      disabled: true
+    });
     const expectedTransfers = [
       {
         url: "https://pbs.twimg.com/media/DefaultPhoto?format=jpg&name=orig",
@@ -537,10 +581,16 @@ test("default media controls transfer both image and direct video bytes", async 
         name: "videographer_123456789_01.mp4",
         byteLength: 11,
         contentType: "video/mp4"
+      },
+      {
+        url: "https://video.twimg.com/ext_tw_video/123/pu/vid/1280x720/direct.mp4",
+        name: "videographer_123456789_01.mp4",
+        byteLength: 11,
+        contentType: "video/mp4"
       }
     ];
     assert.deepEqual(result.buttonTransfers, expectedTransfers);
-    assert.deepEqual(result.contextTransfers, expectedTransfers);
+    assert.deepEqual(result.contextTransfers, expectedTransfers.slice(0, 2));
     assert.deepEqual(result.contextResults, {
       videoContext: { nativeMenuPreserved: true, response: { ok: true } },
       imageContext: { nativeMenuPreserved: true, response: { ok: true } }

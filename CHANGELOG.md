@@ -10,6 +10,11 @@
   MediaSource handles by then, leaving visible videos with no downloadable target and no Video
   control. The boot configuration now mirrors the default-on media setting; a persisted opt-out
   still disables capture as soon as settings load.
+- Media buttons no longer become one-use controls. A successful browser or aria2 handoff left the
+  button disabled for the lifetime of X's recycled post shell, so saving the same file again was
+  impossible even with duplicate history switched off. Buttons now show explicit busy, success,
+  duplicate, permission, and retry states; announce progress to assistive technology; return to
+  their original action after feedback; and remain reusable after a completed handoff.
 
 ## 1.25.0 - 2026-08-15
 

@@ -65,8 +65,12 @@ test("the media stylesheet keeps download buttons visible and leaves X's anchors
 
   const css = source.slice(source.indexOf("const MEDIA_CSS"));
   assert.match(css, /opacity:\s*1/);
-  assert.doesNotMatch(css, /opacity:\s*0/);
-  assert.match(css, /min-height:\s*34px/);
+  assert.doesNotMatch(
+    css,
+    /\]:hover\s*\{[^}]*opacity:\s*0/s,
+    "hover must not hide a persistent media action"
+  );
+  assert.match(css, /min-height:\s*36px/);
   assert.match(css, /box-shadow:/);
 
   // The positioning context is no longer taken from X. Making tweetPhoto the containing block

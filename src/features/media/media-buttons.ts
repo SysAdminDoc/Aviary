@@ -57,6 +57,7 @@ let permissionSurfaceOpened = false;
 let pendingContextTarget: PendingContextTarget | undefined;
 let contextMenuListener: ((event: MouseEvent) => void) | undefined;
 let extensionMessageListener: ExtensionMessageListener | undefined;
+const buttonResetTimers = new WeakMap<HTMLButtonElement, ReturnType<typeof setTimeout>>();
 
 export const mediaButtonsFeature: FeatureModule = {
   id: "media.buttons",
@@ -529,9 +530,23 @@ function buildButton(
   button.setAttribute(BUTTON_ATTR, media.kind);
   button.dataset.kind = media.kind;
   const accessibleLabel = ft(ctx, buttonAriaLabel(media));
+  const idleLabel = ft(ctx, buttonLabel(media));
   button.setAttribute("aria-label", accessibleLabel);
+  button.setAttribute("aria-live", "polite");
+  button.setAttribute("aria-busy", "false");
   button.title = accessibleLabel;
+  button.dataset.idleLabel = idleLabel;
+  button.dataset.idleAriaLabel = accessibleLabel;
   button.textContent = `↓ ${ft(ctx, buttonLabel(media))}`;
+
+  const icon = document.createElement("span");
+  icon.className = "av-media-button-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = "↓ ";
+  const label = document.createElement("span");
+  label.className = "av-media-button-label";
+  label.textContent = idleLabel;
+  button.replaceChildren(icon, label);
 
   button.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -575,9 +590,12 @@ async function handleDownload(
 
   const target = resolveTarget(media);
   if (!target) {
-    button.textContent = ft(ctx, "Unavailable");
-    button.disabled = true;
-    button.classList.add("is-error");
+    setButtonFeedback(button, {
+      label: ft(ctx, "Unavailable"),
+      icon: "!",
+      className: "is-error",
+      disabled: true
+    });
     ctx.diagnostics.warn("Media target unavailable", { kind: media.kind });
     return;
   }
@@ -598,8 +616,12 @@ async function handleDownload(
   if (ctx.settings.media.downloadHistory && history.has(dedupeKey)) {
     const job = queue.enqueue({ url: target.url, filename });
     queue.mark(job.id, "duplicate");
-    button.textContent = ft(ctx, "Saved");
-    button.classList.add("is-duplicate");
+    setButtonFeedback(button, {
+      label: ft(ctx, "Saved"),
+      icon: "✓",
+      className: "is-duplicate"
+    });
+    scheduleButtonRestore(button);
     ctx.diagnostics.info("Media skipped — already in history", { dedupeKey });
     void ctx.auditLog.record("media.download.duplicate", { dedupeKey });
     return;
@@ -607,16 +629,24 @@ async function handleDownload(
 
   const job = queue.enqueue({ url: target.url, filename });
   queue.mark(job.id, "running");
-  button.classList.add("is-active");
-  button.disabled = true;
+  setButtonFeedback(button, {
+    label: ft(ctx, "Saving..."),
+    icon: "↻",
+    className: "is-active",
+    disabled: true,
+    busy: true
+  });
 
   try {
     const result = await downloader({ url: target.url, filename });
     if (result.deduplicated) {
       queue.mark(job.id, "duplicate");
-      button.textContent = ft(ctx, "Queued");
-      button.classList.remove("is-active");
-      button.classList.add("is-duplicate");
+      setButtonFeedback(button, {
+        label: ft(ctx, "Queued"),
+        icon: "✓",
+        className: "is-duplicate"
+      });
+      scheduleButtonRestore(button);
       ctx.diagnostics.info("Media skipped — already queued in Aria2 history", { url: target.url });
       void ctx.auditLog.record("media.download.duplicate", {
         dedupeKey,
@@ -633,21 +663,25 @@ async function handleDownload(
     if (ctx.settings.media.downloadHistory) {
       await history.record(dedupeKey);
     }
-    button.textContent = ft(ctx, result.degraded ? "Opened" : successLabel(media));
-    button.classList.remove("is-active");
-    button.classList.add("is-success");
+    setButtonFeedback(button, {
+      label: ft(ctx, result.degraded ? "Opened" : successLabel(media)),
+      icon: result.degraded ? "↗" : "✓",
+      className: "is-success"
+    });
     if (result.degraded) {
       button.title = ft(ctx, "Your browser opened this file instead of saving it — grant Aviary the download permission for a real save.");
     }
+    scheduleButtonRestore(button);
     ctx.diagnostics.info("Media saved", { filename, kind: media.kind, degraded: result.degraded === true });
     void ctx.auditLog.record("media.download", { filename, kind: media.kind, via: result.via });
   } catch (error) {
     const needsPermission = error instanceof DownloadPermissionError;
     queue.mark(job.id, "failed", String((error as Error)?.message ?? error));
-    button.textContent = ft(ctx, needsPermission ? "Allow" : "Retry");
-    button.classList.remove("is-active");
-    button.classList.add("is-error");
-    button.disabled = false;
+    setButtonFeedback(button, {
+      label: ft(ctx, needsPermission ? "Allow" : "Retry"),
+      icon: needsPermission ? "↗" : "!",
+      className: "is-error"
+    });
     if (needsPermission) {
       button.title = ft(ctx, "Aviary needs the browser download permission. Opening its options page.");
       if (!permissionSurfaceOpened) {
@@ -662,6 +696,62 @@ async function handleDownload(
       ...(needsPermission ? { reason: "downloads-permission-missing" } : {})
     });
   }
+}
+
+interface ButtonFeedback {
+  label: string;
+  icon: string;
+  className: "is-active" | "is-success" | "is-duplicate" | "is-error";
+  disabled?: boolean;
+  busy?: boolean;
+}
+
+function setButtonFeedback(button: HTMLButtonElement, feedback: ButtonFeedback): void {
+  clearButtonRestore(button);
+  button.classList.remove("is-active", "is-success", "is-duplicate", "is-error");
+  button.classList.add(feedback.className);
+  button.dataset.state = feedback.className.slice(3);
+  button.disabled = feedback.disabled === true;
+  button.setAttribute("aria-busy", String(feedback.busy === true));
+  const icon = button.querySelector<HTMLElement>(".av-media-button-icon");
+  const label = button.querySelector<HTMLElement>(".av-media-button-label");
+  if (icon) icon.textContent = `${feedback.icon} `;
+  if (label) label.textContent = feedback.label;
+  button.setAttribute("aria-label", feedback.label);
+  button.title = feedback.label;
+}
+
+function scheduleButtonRestore(button: HTMLButtonElement): void {
+  clearButtonRestore(button);
+  const timer = setTimeout(() => {
+    buttonResetTimers.delete(button);
+    if (button.isConnected) {
+      restoreIdleButton(button);
+    }
+  }, 2200);
+  buttonResetTimers.set(button, timer);
+}
+
+function clearButtonRestore(button: HTMLButtonElement): void {
+  const timer = buttonResetTimers.get(button);
+  if (timer !== undefined) {
+    clearTimeout(timer);
+    buttonResetTimers.delete(button);
+  }
+}
+
+function restoreIdleButton(button: HTMLButtonElement): void {
+  button.classList.remove("is-active", "is-success", "is-duplicate", "is-error");
+  delete button.dataset.state;
+  button.disabled = false;
+  button.setAttribute("aria-busy", "false");
+  const icon = button.querySelector<HTMLElement>(".av-media-button-icon");
+  const label = button.querySelector<HTMLElement>(".av-media-button-label");
+  if (icon) icon.textContent = "↓ ";
+  if (label) label.textContent = button.dataset.idleLabel ?? "";
+  const accessibleLabel = button.dataset.idleAriaLabel ?? button.dataset.idleLabel ?? "";
+  button.setAttribute("aria-label", accessibleLabel);
+  button.title = accessibleLabel;
 }
 
 function resolveTarget(
@@ -727,8 +817,9 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   min-width: 72px;
-  min-height: 34px;
+  min-height: 36px;
   padding: 6px 11px;
   border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 82%, white 8%);
   border-radius: 8px;
@@ -740,7 +831,20 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
   letter-spacing: 0.02em;
   text-transform: uppercase;
   opacity: 1;
-  transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
+  transition: transform 140ms ease, border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+[${BUTTON_ATTR}] .av-media-button-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  font-size: 15px;
+  line-height: 1;
+}
+
+[${BUTTON_ATTR}] .av-media-button-label {
+  min-width: 0;
 }
 
 /* Aviary no longer makes X's media containers the positioning context.
@@ -764,8 +868,8 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
 }
 
 [${BUTTON_ATTR}].is-success {
-  border-color: rgb(120, 200, 130);
-  color: rgb(206, 240, 210);
+  border-color: var(--av-media-success, rgb(120, 200, 130));
+  color: var(--av-media-success-text, rgb(206, 240, 210));
 }
 
 [${BUTTON_ATTR}].is-duplicate {
@@ -774,12 +878,39 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
 }
 
 [${BUTTON_ATTR}].is-error {
-  border-color: rgb(220, 110, 110);
-  color: rgb(248, 200, 200);
+  border-color: var(--av-media-error, rgb(220, 110, 110));
+  color: var(--av-media-error-text, rgb(248, 200, 200));
+}
+
+[${BUTTON_ATTR}].is-active {
+  border-color: var(--av-accent, rgb(29, 155, 240));
+  cursor: progress;
+}
+
+[${BUTTON_ATTR}].is-active .av-media-button-icon {
+  animation: av-media-spin 700ms linear infinite;
 }
 
 [${BUTTON_ATTR}]:disabled {
-  cursor: default;
   transform: none;
+}
+
+[${BUTTON_ATTR}]:disabled:not(.is-active) {
+  cursor: default;
+  opacity: 0.68;
+}
+
+@keyframes av-media-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [${BUTTON_ATTR}] {
+    transition: none;
+  }
+
+  [${BUTTON_ATTR}].is-active .av-media-button-icon {
+    animation: none;
+  }
 }
 `;
