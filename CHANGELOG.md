@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Fixed
+
+- Direct video downloads now capture MP4 variants from the first timeline response. Media controls
+  are enabled by default, but the document-start page agent previously kept metadata capture off
+  until durable settings finished loading. X had already replaced those variants with `blob:`
+  MediaSource handles by then, leaving visible videos with no downloadable target and no Video
+  control. The boot configuration now mirrors the default-on media setting; a persisted opt-out
+  still disables capture as soon as settings load.
+
 ## 1.25.0 - 2026-08-15
 
 ### Fixed

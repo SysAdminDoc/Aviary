@@ -217,8 +217,10 @@ Tweets with embedded video or GIF players expose a Video / GIF button when Aviar
 GraphQL capture finds a direct downloadable variant. X commonly gives timeline players a `blob:`
 MediaSource URL, so blob-only players intentionally have no video control; a known poster still
 gets its Thumb control. Aviary keeps only bounded media metadata, matches it to the tweet/media,
-and picks the highest-bitrate variant it can save. When `tweet_video/` URLs or loop+muted players
-are detected, the button labels itself "GIF" and the dedup history scopes by media kind.
+and picks the highest-bitrate variant it can save. Capture starts at document load so the first
+visible timeline videos are covered before X replaces their direct variants with tab-local blob
+handles. When `tweet_video/` URLs or loop+muted players are detected, the button labels itself
+"GIF" and the dedup history scopes by media kind.
 
 ## Media layout
 

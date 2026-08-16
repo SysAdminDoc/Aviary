@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -7,6 +7,15 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { build } from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+test("boot configuration enables default media capture before storage opens", async () => {
+  const source = await readFile(path.join(root, "src/main.ts"), "utf8");
+  assert.match(
+    source,
+    /captureMediaMetadata:\s*DEFAULT_SETTINGS\.media\.buttons/,
+    "the initial bridge config must not switch off first-response video capture"
+  );
+});
 
 /**
  * A stand-in for the page's window.
@@ -168,13 +177,14 @@ test("the isolated GraphQL boundary rejects forged, inconsistent, oversized, and
   );
 });
 
-test("startup refuses only the exact ad logger while optional hooks remain off", async () => {
-  const { installPageAgent } = await importBundledModule("src/page/page-agent.ts");
+test("startup captures direct video metadata while elective hooks remain off", async () => {
+  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
   const target = fakeWindow();
+  const events = [];
 
-  const uninstall = installPageAgent(target);
+  const uninstall = installPageAgent(target, (envelope) => events.push(envelope));
   try {
-    // Installed, but every hook is off: a telemetry call still reaches the original fetch.
+    // Analytics refusal remains elective: a telemetry call still reaches the original fetch.
     const response = await target.fetch("https://x.com/i/api/1.1/jot/client_event.json");
     assert.equal(response.status, 200);
     assert.equal(await response.text(), "original");
@@ -184,6 +194,18 @@ test("startup refuses only the exact ad logger while optional hooks remain off",
 
     const adLog = await target.fetch("https://x.com/i/api/1.1/promoted_content/log.json");
     assert.equal(adLog.status, 204, "the default-on guard must beat the first promoted log call");
+
+    // Media controls are also default-on. Capture must beat the first timeline response because
+    // X replaces its direct MP4 variants with a MediaSource blob in the mounted player.
+    const nonce = "startup-media-nonce-1234";
+    target.postMessage({ channel: PAGE_CHANNEL, kind: "hello", nonce });
+    const timeline = await target.fetch("https://x.com/i/api/graphql/abc/HomeTimeline");
+    assert.equal(await timeline.text(), "original");
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const captured = events.filter((event) => event.kind === "graphql");
+    assert.equal(captured.length, 1);
+    assert.equal(captured[0].payload.operation, "HomeTimeline");
+    assert.equal(captured[0].payload.body, "original");
   } finally {
     uninstall();
   }

@@ -107,7 +107,10 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     blockAds: DEFAULT_SETTINGS.privacy.blockAds && DEFAULT_SETTINGS.privacy.networkShield,
     blockBeacons: false,
     captureGraphql: false,
-    captureMediaMetadata: false,
+    // Media controls are on by default, so direct video variants must be captured from the first
+    // timeline response. Waiting for storage to open misses the response that built the visible
+    // MediaSource players; all the DOM can expose afterward is a tab-local `blob:` handle.
+    captureMediaMetadata: DEFAULT_SETTINGS.media.buttons,
     forceVideoQuality: false
   });
   const legacyStorage = createStorageGateway("aviary");

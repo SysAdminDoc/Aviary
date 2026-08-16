@@ -13,8 +13,10 @@
  *   - extension: a second content script declared with `"world": "MAIN"`, patching its own `window`
  *   - userscript: the sandbox patching `unsafeWindow`, a live reference to the page's window
  *
- * Every hook is off until the isolated world asks for it, every hook falls through to the original
- * on any internal error, and `uninstallPageAgent` restores the exact references it replaced.
+ * Default-on protections and media metadata capture start immediately; persisted settings replace
+ * that boot configuration as soon as the isolated world connects. Every hook falls through to the
+ * original on any internal error, and `uninstallPageAgent` restores the exact references it
+ * replaced.
  */
 
 export const PAGE_CHANNEL = "aviary.page.v1";
@@ -353,12 +355,14 @@ export interface PageAgentTarget {
 }
 
 const INITIAL_CONFIG: PageAgentConfig = {
-  // Page scripts run at document_start. The default-on ad guard must be active before the
-  // isolated world finishes opening storage; a persisted opt-out replaces this during config.
+  // Page scripts run at document_start. Default-on work must be active before the isolated world
+  // finishes opening storage; persisted opt-outs replace these values during config. In
+  // particular, X's first timeline response contains the direct MP4 variants and then leaves only
+  // a MediaSource `blob:` URL in the DOM, so starting media capture later cannot recover it.
   blockAds: true,
   blockBeacons: false,
   captureGraphql: false,
-  captureMediaMetadata: false,
+  captureMediaMetadata: true,
   forceVideoQuality: false
 };
 
@@ -399,9 +403,9 @@ let state: AgentState | undefined;
 /**
  * Installs the agent on `target` and returns a teardown function.
  *
- * Installation alone patches nothing observable: every hook checks the current config first, and
- * the config starts fully disabled. The isolated world turns individual hooks on by posting a
- * `config` envelope, so a user who enables nothing pays only an extra function call per request.
+ * Installation patches the request functions, but each path checks the current configuration
+ * before doing work. The isolated world replaces the boot defaults by posting a `config` envelope,
+ * so persisted opt-outs take effect as soon as settings finish loading.
  */
 export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink): () => void {
   if (state) {
