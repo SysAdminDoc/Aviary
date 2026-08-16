@@ -82,6 +82,14 @@ declare global {
     };
     downloads?: {
       download(options: { url: string; filename?: string; conflictAction?: "uniquify" | "overwrite" | "prompt" }): Promise<number>;
+      onChanged?: {
+        addListener(
+          listener: (delta: {
+            id: number;
+            state?: { current?: "in_progress" | "interrupted" | "complete" };
+          }) => void
+        ): void;
+      };
     };
     permissions?: {
       contains(permissions: { permissions?: string[]; origins?: string[] }): Promise<boolean>;

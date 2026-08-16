@@ -1,6 +1,6 @@
 # Aviary Privacy Manifest
 
-Updated: 2026-08-16 · release 1.26.0
+Updated: 2026-08-16 · release 1.27.0
 
 ## Defaults and network boundaries
 
@@ -73,6 +73,12 @@ schema, migration, usage, and quota status.
 | `aviary.semanticIndex.v1` | Embedding vectors and record metadata | Local semantic search; **Clear semantic index** removes it. |
 | `aviary.archive.imports.v1` | Official X archive import jobs and checkpoints | Pause/resume/retry imports and preserve progress. |
 | `aviary.archive.library.v1` | Imported archive collections, including typed account/media/list data | Keep archive data separate from public-post search. |
+
+The extension background also uses `aviary.downloadFallbacks.v1` as short-lived runtime state. It
+contains only the browser download id, requested filename, and remaining X media candidate URLs
+for an active original-image download. The entry is removed when the download completes, when an
+interruption advances to the next candidate, or when no candidate remains; it is not included in
+profiles or library backups.
 
 Selector health and other transient DOM diagnostics are in memory unless an action is explicitly
 written to the audit log. Imported media bytes are not retained after a completed archive import;

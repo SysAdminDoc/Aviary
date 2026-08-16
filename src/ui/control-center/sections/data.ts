@@ -1025,7 +1025,7 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
   rows.push(
     ctx.toggleRow(
       "Show download buttons",
-      "Inject Save and Thumb buttons over tweet photos and video thumbnails.",
+      "Add one Download action to each media post, plus per-asset controls.",
       ctx.options.settings.media.buttons,
       async (checked) => {
         ctx.options.settings.media.buttons = checked;
@@ -1036,7 +1036,7 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
   rows.push(
     ctx.toggleRow(
       "Prefer original quality",
-      "Rewrite image URLs to name=orig before downloading.",
+      "Try source-format name=orig first, then 4096x4096 if it fails.",
       ctx.options.settings.media.preferOriginalImages,
       async (checked) => {
         ctx.options.settings.media.preferOriginalImages = checked;

@@ -134,6 +134,12 @@ test("MSE extraction keeps the real player as the video and thumbnail anchor", a
     const status = document.createElement("a");
     status.href = "/someone/status/123456789";
     article.append(status);
+    const actions = document.createElement("div");
+    actions.setAttribute("role", "group");
+    const reply = document.createElement("button");
+    reply.setAttribute("data-testid", "reply");
+    actions.append(reply);
+    article.append(actions);
 
     const player = document.createElement("div");
     player.setAttribute("data-testid", "videoPlayer");
@@ -242,6 +248,12 @@ test("media buttons reconcile a blob-only player when its direct variant arrives
     const status = document.createElement("a");
     status.href = "/someone/status/123456789";
     article.append(status);
+    const actions = document.createElement("div");
+    actions.setAttribute("role", "group");
+    const reply = document.createElement("button");
+    reply.setAttribute("data-testid", "reply");
+    actions.append(reply);
+    article.append(actions);
     const player = document.createElement("div");
     player.setAttribute("data-testid", "videoComponent");
     const video = document.createElement("video");
@@ -252,6 +264,7 @@ test("media buttons reconcile a blob-only player when its direct variant arrives
     document.body.append(article);
 
     await AviaryMedia.mediaButtonsFeature.init(ctx);
+    const actionBefore = article.querySelector("[data-av-media-action]");
     const before = [...document.querySelectorAll("[data-av-media-button]")].map((button) => ({
       kind: button.dataset.kind,
       text: button.textContent,
@@ -261,6 +274,7 @@ test("media buttons reconcile a blob-only player when its direct variant arrives
 
     AviaryMedia.ingestMediaMetadata({ body });
     await AviaryMedia.mediaButtonsFeature.apply(ctx, document);
+    const actionDuring = article.querySelector("[data-av-media-action]");
     const during = [...document.querySelectorAll("[data-av-media-button]")].map((button) => ({
       kind: button.dataset.kind,
       text: button.textContent,
@@ -271,8 +285,22 @@ test("media buttons reconcile a blob-only player when its direct variant arrives
     settings.media.buttons = false;
     await AviaryMedia.mediaButtonsFeature.apply(ctx, document);
     const off = document.querySelectorAll("[data-av-media-button]").length;
+    const actionOff = document.querySelectorAll("[data-av-media-action]").length;
     await AviaryMedia.mediaButtonsFeature.destroy(ctx);
-    return { before, during, off };
+    return {
+      before,
+      during,
+      off,
+      actionBefore: {
+        text: actionBefore?.textContent ?? null,
+        disabled: actionBefore instanceof HTMLButtonElement ? actionBefore.disabled : null
+      },
+      actionDuring: {
+        text: actionDuring?.textContent ?? null,
+        disabled: actionDuring instanceof HTMLButtonElement ? actionDuring.disabled : null
+      },
+      actionOff
+    };
   }, metadataBody);
 
   assert.deepEqual(result.before, [
@@ -283,6 +311,9 @@ test("media buttons reconcile a blob-only player when its direct variant arrives
     { kind: "thumbnail", text: "↓ Thumb", top: "48px", opacity: "1" }
   ]);
   assert.equal(result.off, 0);
+  assert.deepEqual(result.actionBefore, { text: "↓ Download", disabled: true });
+  assert.deepEqual(result.actionDuring, { text: "↓ Download", disabled: false });
+  assert.equal(result.actionOff, 0);
 });
 
 test("media buttons reattach when X recycles a processed post's media subtree", async () => {
@@ -293,6 +324,17 @@ test("media buttons reattach when X recycles a processed post's media subtree", 
     const status = document.createElement("a");
     status.href = "/photographer/status/99887766";
     article.append(status);
+
+    const buildActions = () => {
+      const actions = document.createElement("div");
+      actions.setAttribute("role", "group");
+      const reply = document.createElement("button");
+      reply.setAttribute("data-testid", "reply");
+      actions.append(reply);
+      return actions;
+    };
+    const firstActions = buildActions();
+    article.append(firstActions);
 
     const buildPhoto = (mediaId) => {
       const photo = document.createElement("div");
@@ -325,11 +367,14 @@ test("media buttons reattach when X recycles a processed post's media subtree", 
 
     await AviaryMedia.mediaButtonsFeature.init(ctx);
     const initialButton = first.photo.querySelector('[data-av-media-button="photo"]');
+    const initialAction = firstActions.querySelector("[data-av-media-action]");
     const processedBefore = article.getAttribute("data-av-media-processed");
 
     const replacement = buildPhoto("ReplacementVirtualizedPhoto");
+    const replacementActions = buildActions();
     first.photo.replaceWith(replacement.photo);
-    await AviaryMedia.mediaButtonsFeature.apply(ctx, document, [replacement.image]);
+    firstActions.replaceWith(replacementActions);
+    await AviaryMedia.mediaButtonsFeature.apply(ctx, document, [replacement.image, replacementActions]);
 
     const replacementButton = replacement.photo.querySelector(
       '[data-av-media-button="photo"]'
@@ -340,7 +385,11 @@ test("media buttons reattach when X recycles a processed post's media subtree", 
       processedBefore,
       replacementText: replacementButton?.textContent ?? null,
       replacementContainer: replacementButton?.parentElement === replacement.photo,
-      buttonCount: article.querySelectorAll("[data-av-media-button]").length
+      buttonCount: article.querySelectorAll("[data-av-media-button]").length,
+      initialActionConnected: initialAction?.isConnected ?? null,
+      replacementActionText:
+        replacementActions.querySelector("[data-av-media-action]")?.textContent ?? null,
+      actionCount: article.querySelectorAll("[data-av-media-action]").length
     };
     await AviaryMedia.mediaButtonsFeature.destroy(ctx);
     return output;
@@ -352,7 +401,10 @@ test("media buttons reattach when X recycles a processed post's media subtree", 
     processedBefore: "1",
     replacementText: "↓ Save",
     replacementContainer: true,
-    buttonCount: 1
+    buttonCount: 1,
+    initialActionConnected: false,
+    replacementActionText: "↓ Download",
+    actionCount: 1
   });
 });
 
@@ -422,7 +474,12 @@ test("default media controls transfer both image and direct video bytes", async 
         const copy = document.createElement("div");
         copy.setAttribute("data-testid", "tweetText");
         copy.textContent = text;
-        article.append(userName, status, copy);
+        const actions = document.createElement("div");
+        actions.setAttribute("role", "group");
+        const reply = document.createElement("button");
+        reply.setAttribute("data-testid", "reply");
+        actions.append(reply);
+        article.append(userName, status, copy, actions);
       };
 
       const imageArticle = document.createElement("article");
@@ -470,10 +527,12 @@ test("default media controls transfer both image and direct video bytes", async 
       try {
         AviaryMedia.ingestMediaMetadata({ body });
         await AviaryMedia.mediaButtonsFeature.init(ctx);
-        const imageButton = imageArticle.querySelector('[data-av-media-button="photo"]');
-        const videoButton = videoArticle.querySelector('[data-av-media-button="video"]');
+        const imageButton = imageArticle.querySelector("[data-av-media-action]");
+        const videoButton = videoArticle.querySelector("[data-av-media-action]");
+        const directVideoButton = videoArticle.querySelector('[data-av-media-button="video"]');
         if (!(imageButton instanceof HTMLButtonElement)) throw new Error("Default image button missing");
         if (!(videoButton instanceof HTMLButtonElement)) throw new Error("Default video button missing");
+        if (!(directVideoButton instanceof HTMLButtonElement)) throw new Error("Direct video button missing");
 
         imageButton.click();
         videoButton.click();
@@ -495,11 +554,11 @@ test("default media controls transfer both image and direct video bytes", async 
           disabled: videoButton.disabled,
           state: videoButton.dataset.state
         };
-        videoButton.click();
+        directVideoButton.click();
         const repeatRunningState = {
-          text: videoButton.textContent,
-          busy: videoButton.getAttribute("aria-busy"),
-          disabled: videoButton.disabled
+          text: directVideoButton.textContent,
+          busy: directVideoButton.getAttribute("aria-busy"),
+          disabled: directVideoButton.disabled
         };
         const repeatDeadline = performance.now() + 2_000;
         while (transfers.length < 3 && performance.now() < repeatDeadline) {

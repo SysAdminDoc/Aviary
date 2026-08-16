@@ -10,6 +10,8 @@ import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network";
 
 export interface DownloadRequest {
   url: string;
+  /** Ordered lower-quality candidates used only when the preferred transfer fails. */
+  fallbackUrls?: string[];
   filename: string;
   estimatedBytes?: number | null;
 }
@@ -261,19 +263,25 @@ async function tryGmDownload(request: DownloadRequest): Promise<boolean> {
     return false;
   }
 
-  return await new Promise<boolean>((resolve) => {
-    try {
-      globals.GM_download?.({
-        url: request.url,
-        name: request.filename,
-        onload: () => resolve(true),
-        onerror: () => resolve(false),
-        ontimeout: () => resolve(false)
-      });
-    } catch {
-      resolve(false);
+  for (const url of downloadCandidates(request)) {
+    const saved = await new Promise<boolean>((resolve) => {
+      try {
+        globals.GM_download?.({
+          url,
+          name: request.filename,
+          onload: () => resolve(true),
+          onerror: () => resolve(false),
+          ontimeout: () => resolve(false)
+        });
+      } catch {
+        resolve(false);
+      }
+    });
+    if (saved) {
+      return true;
     }
-  });
+  }
+  return false;
 }
 
 async function tryExtensionDownload(request: DownloadRequest): Promise<ExtensionAttempt> {
@@ -286,6 +294,7 @@ async function tryExtensionDownload(request: DownloadRequest): Promise<Extension
     const response = (await runtime.sendMessage({
       type: "AVIARY_DOWNLOAD",
       url: request.url,
+      fallbackUrls: request.fallbackUrls,
       filename: request.filename
     })) as { ok?: boolean; code?: string; error?: string } | undefined;
     if (response?.ok === true) {
@@ -302,6 +311,12 @@ async function tryExtensionDownload(request: DownloadRequest): Promise<Extension
   } catch {
     return { status: "unavailable" };
   }
+}
+
+function downloadCandidates(request: DownloadRequest): string[] {
+  return [request.url, ...(request.fallbackUrls ?? [])]
+    .filter((url, index, all) => /^https?:\/\//i.test(url) && all.indexOf(url) === index)
+    .slice(0, 4);
 }
 
 /** Asks the background worker to open the options page, where the grant button lives. */

@@ -29,6 +29,48 @@ test("isSaveableVariantUrl rejects blob handles and accepts real media URLs", as
   assert.equal(isSaveableVariantUrl("blob:https://x.com/9a1f"), false);
   assert.equal(isSaveableVariantUrl("BLOB:https://x.com/9a1f"), false, "scheme is case-insensitive");
   assert.equal(isSaveableVariantUrl("https://video.twimg.com/tweet_video/abc.mp4"), true);
+  assert.equal(isSaveableVariantUrl("https://video.twimg.com/live/abc.m3u8"), false);
+  assert.equal(isSaveableVariantUrl("https://video.twimg.com/chunk/abc.m4s"), false);
+  assert.equal(
+    isSaveableVariantUrl("https://video.twimg.com/live/playlist", "application/x-mpegURL"),
+    false
+  );
+});
+
+test("the best progressive MP4 wins over a higher-bitrate streaming manifest", async () => {
+  const { extractVideo } = await importBundledModule("src/features/media/video-extract.ts");
+  const container = fakeContainer([]);
+  const extracted = extractVideo(container, {
+    variants: [
+      {
+        url: "https://video.twimg.com/amplify_video/1/pl/playlist.m3u8",
+        type: "application/x-mpegURL",
+        width: 1920,
+        height: 1080,
+        bitrate: 12_000_000
+      },
+      {
+        url: "https://video.twimg.com/amplify_video/1/vid/1280x720/best.mp4",
+        type: "video/mp4",
+        width: 1280,
+        height: 720,
+        bitrate: 2_176_000
+      },
+      {
+        url: "https://video.twimg.com/amplify_video/1/vid/640x360/small.mp4",
+        type: "video/mp4",
+        width: 640,
+        height: 360,
+        bitrate: 832_000
+      }
+    ]
+  });
+
+  assert.ok(extracted, "no video extracted");
+  assert.equal(
+    extracted.preferred.url,
+    "https://video.twimg.com/amplify_video/1/vid/1280x720/best.mp4"
+  );
 });
 
 test("resolveTarget refuses a blob-only video instead of reporting a save", async () => {
@@ -58,6 +100,19 @@ test("resolveTarget refuses a blob-only video instead of reporting a save", asyn
   assert.ok(resolved, "a direct tweet_video URL must still resolve");
   assert.equal(resolved.ext, "mp4");
   assert.equal(resolved.mediaId, "GkQxyz123");
+
+  const manifestOnly = {
+    kind: "video",
+    source: {},
+    video: {
+      isGif: false,
+      preferred: {
+        url: "https://video.twimg.com/live/playlist.m3u8",
+        type: "application/x-mpegURL"
+      }
+    }
+  };
+  assert.equal(resolveTarget(manifestOnly), null, "a playlist is not a downloadable video file");
 });
 
 test("the media stylesheet keeps download buttons visible and leaves X's anchors intact", async () => {

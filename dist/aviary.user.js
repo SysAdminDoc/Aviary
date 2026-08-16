@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/SysAdminDoc
-// @version      1.26.0
+// @version      1.27.0
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       SysAdminDoc
 // @homepage     https://github.com/SysAdminDoc/Aviary
@@ -1584,20 +1584,20 @@ html.av-reduce-motion *::after {
       "Playback": "Reproducci\xF3n",
       "The download preference applies to every media control.": "La preferencia de descarga se aplica a todos los controles multimedia.",
       "Show download buttons": "Mostrar botones de descarga",
-      "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "A\xF1ade botones Guardar y Miniatura sobre las fotos y las miniaturas de v\xEDdeo.",
+      "Add one Download action to each media post, plus per-asset controls.": "A\xF1ade una acci\xF3n Descargar a cada publicaci\xF3n con contenido multimedia, adem\xE1s de controles por recurso.",
       "Prefer original quality": "Preferir calidad original",
-      "Rewrite image URLs to name=orig before downloading.": "Reescribe las URL de imagen a name=orig antes de descargar.",
+      "Try source-format name=orig first, then 4096x4096 if it fails.": "Prueba primero name=orig en el formato de origen y, si falla, 4096x4096.",
       "Original quality status": "Estado de calidad original",
       "Show images at original quality": "Mostrar im\xE1genes en calidad original",
       "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "Carga las fotos de la cronolog\xEDa a tama\xF1o completo en lugar de la versi\xF3n que X elige para el hueco. M\xE1s n\xEDtidas, y varias veces m\xE1s datos.",
-      "Filename template": "Plantilla de nombre de archivo",
-      "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "Campos: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
-      "Duplicate history": "Historial de duplicados",
-      "Skip downloads of media you have already saved from this browser.": "Omite las descargas de contenido que ya guardaste desde este navegador.",
       "Media layout": "Disposici\xF3n multimedia",
       "Default grid": "Cuadr\xEDcula predeterminada",
       "Stacked": "Apilado",
       "Strict grid": "Cuadr\xEDcula estricta",
+      "Filename template": "Plantilla de nombre de archivo",
+      "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "Campos: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
+      "Duplicate history": "Historial de duplicados",
+      "Skip downloads of media you have already saved from this browser.": "Omite las descargas de contenido que ya guardaste desde este navegador.",
       "Concurrent downloads": "Descargas simult\xE1neas",
       "Maximum media downloads in flight during a batch (1-6).": "M\xE1ximo de descargas multimedia simult\xE1neas durante un lote (1-6).",
       "Download pacing": "Ritmo de descarga",
@@ -1610,6 +1610,7 @@ html.av-reduce-motion *::after {
       "Reset the local dedup index.": "Reinicia el \xEDndice local de duplicados.",
       "Download all visible media": "Descargar todo el contenido visible",
       "Walks every tweet rendered on the current page and queues every photo/video/GIF/thumbnail through the existing download pipeline.": "Recorre cada publicaci\xF3n de la p\xE1gina actual y encola cada foto, v\xEDdeo, GIF y miniatura en la cola de descargas existente.",
+      "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "A\xF1ade botones Guardar y Miniatura sobre las fotos y las miniaturas de v\xEDdeo.",
       "On-post controls": "Controles en publicaciones",
       "File naming": "Nombres de archivo",
       "Batch behavior": "Comportamiento por lotes",
@@ -2008,10 +2009,10 @@ html.av-reduce-motion *::after {
       "Original quality preference saved": "Preferencia de calidad original guardada",
       "Full-size images on": "Im\xE1genes a tama\xF1o completo activadas",
       "Full-size images off": "Im\xE1genes a tama\xF1o completo desactivadas",
+      "Media layout saved": "Disposici\xF3n multimedia guardada",
       "Filename template saved": "Plantilla de nombre de archivo guardada",
       "Duplicate history on": "Historial de duplicados activado",
       "Duplicate history off": "Historial de duplicados desactivado",
-      "Media layout saved": "Disposici\xF3n multimedia guardada",
       "Concurrent download limit saved": "L\xEDmite de descargas simult\xE1neas guardado",
       "Download pacing saved": "Ritmo de descarga guardado",
       "History cleared": "Historial borrado",
@@ -2246,13 +2247,15 @@ html.av-reduce-motion *::after {
       "Download access was not granted. Open Aviary Options to enable browser downloads.": "No se concedi\xF3 el acceso de descarga. Abre las opciones de Aviary para habilitar las descargas del navegador.",
       "Media download failed. Try the on-post button again.": "Fall\xF3 la descarga del contenido. Vuelve a intentarlo con el bot\xF3n de la publicaci\xF3n.",
       "Right-click an image or video first, then choose Aviary download.": "Haz clic derecho en una imagen o un v\xEDdeo y luego elige la descarga de Aviary.",
+      "Download": "Descargar",
+      "Download all media in this post": "Descargar todo el contenido multimedia de esta publicaci\xF3n",
+      "The direct video is still loading. Try again in a moment.": "El v\xEDdeo directo a\xFAn se est\xE1 cargando. Int\xE9ntalo de nuevo en un momento.",
       "Unavailable": "No disponible",
-      "Saved": "Guardado",
-      "Queued": "En cola",
       "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "Tu navegador abri\xF3 el archivo en lugar de guardarlo: concede a Aviary el permiso de descargas para guardarlo de verdad.",
       "Aviary needs the browser download permission. Opening its options page.": "Aviary necesita el permiso de descargas del navegador. Abriendo su p\xE1gina de opciones.",
-      "The direct video is still loading. Try again in a moment.": "El v\xEDdeo directo a\xFAn se est\xE1 cargando. Int\xE9ntalo de nuevo en un momento.",
       "This image is not available to download.": "Esta imagen no est\xE1 disponible para descargar.",
+      "Queued": "En cola",
+      "Saved": "Guardado",
       "Allow": "Permitir",
       "Retry": "Reintentar",
       "Permissions": "Permisos",
@@ -2301,6 +2304,7 @@ html.av-reduce-motion *::after {
       "posts": "publicaciones",
       "offline-ready": "listo sin conexi\xF3n",
       "network may be required": "puede requerir red",
+      "Rewrite image URLs to name=orig before downloading.": "Reescribe las URL de imagen a name=orig antes de descargar.",
       "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "Solo se aplica mientras el modo sin anuncios est\xE1 activo. Aviary rechaza la solicitud de registro de contenido promocionado de X, la \xFAnica solicitud de anuncios que puede separarse de la propia cronolog\xEDa. Desact\xEDvalo si X se queja de un bloqueador de anuncios: las publicaciones patrocinadas siguen ocultas y Aviary deja de rechazar cualquier solicitud.",
       "Always play video at the highest quality": "Reproducir siempre el v\xEDdeo con la m\xE1xima calidad",
       "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X elige una calidad de v\xEDdeo acorde a tu conexi\xF3n y, en conexiones r\xE1pidas, suele quedarse por debajo de la mejor disponible. Esto fija cada v\xEDdeo en su m\xE1xima resoluci\xF3n. Consume m\xE1s datos.",
@@ -2516,20 +2520,20 @@ html.av-reduce-motion *::after {
       "Playback": "Reprodu\xE7\xE3o",
       "The download preference applies to every media control.": "A prefer\xEAncia de transfer\xEAncia aplica-se a todos os controlos de multim\xE9dia.",
       "Show download buttons": "Mostrar bot\xF5es de download",
-      "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "Insere bot\xF5es Salvar e Miniatura sobre as fotos e miniaturas de v\xEDdeo.",
+      "Add one Download action to each media post, plus per-asset controls.": "Adicione uma a\xE7\xE3o Transferir a cada publica\xE7\xE3o com m\xEDdia, al\xE9m de controles por item.",
       "Prefer original quality": "Preferir qualidade original",
-      "Rewrite image URLs to name=orig before downloading.": "Reescreve as URLs de imagem para name=orig antes de baixar.",
+      "Try source-format name=orig first, then 4096x4096 if it fails.": "Tente primeiro name=orig no formato de origem e, se falhar, 4096x4096.",
       "Original quality status": "Estado da qualidade original",
       "Show images at original quality": "Mostrar imagens na qualidade original",
       "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "Carrega as fotos da cronologia em tamanho completo em vez da vers\xE3o que o X escolhe para o espa\xE7o. Mais n\xEDtidas, e v\xE1rias vezes mais dados.",
-      "Filename template": "Modelo de nome de arquivo",
-      "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "Campos: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
-      "Duplicate history": "Hist\xF3rico de duplicados",
-      "Skip downloads of media you have already saved from this browser.": "Ignora downloads de m\xEDdia que voc\xEA j\xE1 salvou neste navegador.",
       "Media layout": "Layout de m\xEDdia",
       "Default grid": "Grade padr\xE3o",
       "Stacked": "Empilhado",
       "Strict grid": "Grade estrita",
+      "Filename template": "Modelo de nome de arquivo",
+      "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "Campos: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
+      "Duplicate history": "Hist\xF3rico de duplicados",
+      "Skip downloads of media you have already saved from this browser.": "Ignora downloads de m\xEDdia que voc\xEA j\xE1 salvou neste navegador.",
       "Concurrent downloads": "Downloads simult\xE2neos",
       "Maximum media downloads in flight during a batch (1-6).": "M\xE1ximo de downloads de m\xEDdia simult\xE2neos durante um lote (1-6).",
       "Download pacing": "Ritmo de download",
@@ -2542,6 +2546,7 @@ html.av-reduce-motion *::after {
       "Reset the local dedup index.": "Reinicia o \xEDndice local de duplicados.",
       "Download all visible media": "Transferir toda a m\xE9dia vis\xEDvel",
       "Walks every tweet rendered on the current page and queues every photo/video/GIF/thumbnail through the existing download pipeline.": "Percorre cada publica\xE7\xE3o da p\xE1gina atual e coloca cada foto, v\xEDdeo, GIF e miniatura na fila de transfer\xEAncias existente.",
+      "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "Insere bot\xF5es Salvar e Miniatura sobre as fotos e miniaturas de v\xEDdeo.",
       "On-post controls": "Controlos nos posts",
       "File naming": "Nomes de ficheiros",
       "Batch behavior": "Comportamento em lote",
@@ -2940,10 +2945,10 @@ html.av-reduce-motion *::after {
       "Original quality preference saved": "Prefer\xEAncia de qualidade original guardada",
       "Full-size images on": "Imagens em tamanho completo ativadas",
       "Full-size images off": "Imagens em tamanho completo desativadas",
+      "Media layout saved": "Layout de m\xEDdia salvo",
       "Filename template saved": "Modelo de nome de ficheiro guardado",
       "Duplicate history on": "Hist\xF3rico de duplicados ativado",
       "Duplicate history off": "Hist\xF3rico de duplicados desativado",
-      "Media layout saved": "Layout de m\xEDdia salvo",
       "Concurrent download limit saved": "Limite de downloads simult\xE2neos salvo",
       "Download pacing saved": "Ritmo de download salvo",
       "History cleared": "Hist\xF3rico limpo",
@@ -3178,13 +3183,15 @@ html.av-reduce-motion *::after {
       "Download access was not granted. Open Aviary Options to enable browser downloads.": "O acesso de download n\xE3o foi concedido. Abra as op\xE7\xF5es do Aviary para ativar os downloads do navegador.",
       "Media download failed. Try the on-post button again.": "Falha ao baixar a m\xEDdia. Tente novamente pelo bot\xE3o na publica\xE7\xE3o.",
       "Right-click an image or video first, then choose Aviary download.": "Clique com o bot\xE3o direito em uma imagem ou v\xEDdeo e escolha o download do Aviary.",
+      "Download": "Transferir",
+      "Download all media in this post": "Transferir toda a m\xEDdia desta publica\xE7\xE3o",
+      "The direct video is still loading. Try again in a moment.": "O v\xEDdeo direto ainda est\xE1 carregando. Tente novamente em instantes.",
       "Unavailable": "Indispon\xEDvel",
-      "Saved": "Guardado",
-      "Queued": "Em fila",
       "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "O teu navegador abriu o ficheiro em vez de o guardar \u2014 concede ao Aviary a permiss\xE3o de transfer\xEAncias para guardar mesmo.",
       "Aviary needs the browser download permission. Opening its options page.": "O Aviary precisa da permiss\xE3o de transfer\xEAncias do navegador. A abrir a p\xE1gina de op\xE7\xF5es.",
-      "The direct video is still loading. Try again in a moment.": "O v\xEDdeo direto ainda est\xE1 carregando. Tente novamente em instantes.",
       "This image is not available to download.": "Esta imagem n\xE3o est\xE1 dispon\xEDvel para download.",
+      "Queued": "Em fila",
+      "Saved": "Guardado",
       "Allow": "Permitir",
       "Retry": "Tentar de novo",
       "Permissions": "Permiss\xF5es",
@@ -3233,6 +3240,7 @@ html.av-reduce-motion *::after {
       "posts": "publica\xE7\xF5es",
       "offline-ready": "pronto off-line",
       "network may be required": "a rede pode ser necess\xE1ria",
+      "Rewrite image URLs to name=orig before downloading.": "Reescreve as URLs de imagem para name=orig antes de baixar.",
       "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "S\xF3 se aplica enquanto o modo sem an\xFAncios est\xE1 ativo. O Aviary recusa a requisi\xE7\xE3o separada de registro de conte\xFAdo promovido do X, a \xFAnica requisi\xE7\xE3o de an\xFAncio que pode ser separada da pr\xF3pria linha do tempo. Desative isto se o X reclamar de um bloqueador de an\xFAncios: as publica\xE7\xF5es patrocinadas continuam ocultas e o Aviary deixa de recusar qualquer requisi\xE7\xE3o.",
       "Always play video at the highest quality": "Reproduzir sempre o v\xEDdeo na m\xE1xima qualidade",
       "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "O X escolhe uma qualidade de v\xEDdeo adequada \xE0 tua liga\xE7\xE3o e, numa liga\xE7\xE3o r\xE1pida, fica muitas vezes abaixo da melhor dispon\xEDvel. Isto fixa cada v\xEDdeo na sua resolu\xE7\xE3o m\xE1xima. Consome mais dados.",
@@ -3448,20 +3456,20 @@ html.av-reduce-motion *::after {
       "Playback": "Lecture",
       "The download preference applies to every media control.": "La pr\xE9f\xE9rence de t\xE9l\xE9chargement s'applique \xE0 chaque contr\xF4le multim\xE9dia.",
       "Show download buttons": "Afficher les boutons de t\xE9l\xE9chargement",
-      "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "Ajoute des boutons Enregistrer et Vignette sur les photos et les vignettes vid\xE9o.",
+      "Add one Download action to each media post, plus per-asset controls.": "Ajoute une action T\xE9l\xE9charger \xE0 chaque publication multim\xE9dia, ainsi que des commandes par \xE9l\xE9ment.",
       "Prefer original quality": "Pr\xE9f\xE9rer la qualit\xE9 d'origine",
-      "Rewrite image URLs to name=orig before downloading.": "R\xE9\xE9crit les URL d'image en name=orig avant le t\xE9l\xE9chargement.",
+      "Try source-format name=orig first, then 4096x4096 if it fails.": "Essaie d\u2019abord name=orig dans le format source, puis 4096x4096 en cas d\u2019\xE9chec.",
       "Original quality status": "\xC9tat de la qualit\xE9 d'origine",
       "Show images at original quality": "Afficher les images en qualit\xE9 d'origine",
       "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "Charge les photos du fil en taille r\xE9elle plut\xF4t que la version choisie par X pour l'emplacement. Plus net, et plusieurs fois plus de donn\xE9es.",
-      "Filename template": "Mod\xE8le de nom de fichier",
-      "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "Champs : {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
-      "Duplicate history": "Historique des doublons",
-      "Skip downloads of media you have already saved from this browser.": "Ignore les t\xE9l\xE9chargements de m\xE9dias d\xE9j\xE0 enregistr\xE9s depuis ce navigateur.",
       "Media layout": "Disposition des m\xE9dias",
       "Default grid": "Grille par d\xE9faut",
       "Stacked": "Empil\xE9",
       "Strict grid": "Grille stricte",
+      "Filename template": "Mod\xE8le de nom de fichier",
+      "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "Champs : {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
+      "Duplicate history": "Historique des doublons",
+      "Skip downloads of media you have already saved from this browser.": "Ignore les t\xE9l\xE9chargements de m\xE9dias d\xE9j\xE0 enregistr\xE9s depuis ce navigateur.",
       "Concurrent downloads": "T\xE9l\xE9chargements simultan\xE9s",
       "Maximum media downloads in flight during a batch (1-6).": "Nombre maximal de t\xE9l\xE9chargements multim\xE9dias simultan\xE9s pendant un lot (1-6).",
       "Download pacing": "Cadence des t\xE9l\xE9chargements",
@@ -3474,6 +3482,7 @@ html.av-reduce-motion *::after {
       "Reset the local dedup index.": "R\xE9initialise l'index local de doublons.",
       "Download all visible media": "T\xE9l\xE9charger tous les m\xE9dias visibles",
       "Walks every tweet rendered on the current page and queues every photo/video/GIF/thumbnail through the existing download pipeline.": "Parcourt chaque publication affich\xE9e sur la page et place chaque photo, vid\xE9o, GIF et miniature dans la file de t\xE9l\xE9chargement existante.",
+      "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "Ajoute des boutons Enregistrer et Vignette sur les photos et les vignettes vid\xE9o.",
       "On-post controls": "Contr\xF4les sur les publications",
       "File naming": "Nommage des fichiers",
       "Batch behavior": "Comportement par lot",
@@ -3872,10 +3881,10 @@ html.av-reduce-motion *::after {
       "Original quality preference saved": "Pr\xE9f\xE9rence de qualit\xE9 d'origine enregistr\xE9e",
       "Full-size images on": "Images en taille r\xE9elle activ\xE9es",
       "Full-size images off": "Images en taille r\xE9elle d\xE9sactiv\xE9es",
+      "Media layout saved": "Disposition des m\xE9dias enregistr\xE9e",
       "Filename template saved": "Mod\xE8le de nom de fichier enregistr\xE9",
       "Duplicate history on": "Historique des doublons activ\xE9",
       "Duplicate history off": "Historique des doublons d\xE9sactiv\xE9",
-      "Media layout saved": "Disposition des m\xE9dias enregistr\xE9e",
       "Concurrent download limit saved": "Limite de t\xE9l\xE9chargements simultan\xE9s enregistr\xE9e",
       "Download pacing saved": "Cadence des t\xE9l\xE9chargements enregistr\xE9e",
       "History cleared": "Historique effac\xE9",
@@ -4110,13 +4119,15 @@ html.av-reduce-motion *::after {
       "Download access was not granted. Open Aviary Options to enable browser downloads.": "L'acc\xE8s au t\xE9l\xE9chargement n'a pas \xE9t\xE9 accord\xE9. Ouvrez les options d'Aviary pour activer les t\xE9l\xE9chargements du navigateur.",
       "Media download failed. Try the on-post button again.": "\xC9chec du t\xE9l\xE9chargement du m\xE9dia. R\xE9essayez avec le bouton sur le post.",
       "Right-click an image or video first, then choose Aviary download.": "Faites un clic droit sur une image ou une vid\xE9o, puis choisissez le t\xE9l\xE9chargement Aviary.",
+      "Download": "T\xE9l\xE9charger",
+      "Download all media in this post": "T\xE9l\xE9charger tous les m\xE9dias de cette publication",
+      "The direct video is still loading. Try again in a moment.": "La vid\xE9o directe est encore en cours de chargement. R\xE9essayez dans un instant.",
       "Unavailable": "Indisponible",
-      "Saved": "Enregistr\xE9",
-      "Queued": "En file",
       "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "Votre navigateur a ouvert ce fichier au lieu de l'enregistrer \u2014 accordez \xE0 Aviary l'autorisation de t\xE9l\xE9chargement pour un vrai enregistrement.",
       "Aviary needs the browser download permission. Opening its options page.": "Aviary a besoin de l'autorisation de t\xE9l\xE9chargement du navigateur. Ouverture de sa page d'options.",
-      "The direct video is still loading. Try again in a moment.": "La vid\xE9o directe est encore en cours de chargement. R\xE9essayez dans un instant.",
       "This image is not available to download.": "Cette image n'est pas disponible au t\xE9l\xE9chargement.",
+      "Queued": "En file",
+      "Saved": "Enregistr\xE9",
       "Allow": "Autoriser",
       "Retry": "R\xE9essayer",
       "Permissions": "Autorisations",
@@ -4165,6 +4176,7 @@ html.av-reduce-motion *::after {
       "posts": "publications",
       "offline-ready": "pr\xEAt hors ligne",
       "network may be required": "r\xE9seau potentiellement n\xE9cessaire",
+      "Rewrite image URLs to name=orig before downloading.": "R\xE9\xE9crit les URL d'image en name=orig avant le t\xE9l\xE9chargement.",
       "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "Ne s'applique que si le mode sans publicit\xE9 est activ\xE9. Aviary refuse la requ\xEAte distincte de journalisation des contenus sponsoris\xE9s de X, la seule requ\xEAte publicitaire s\xE9parable du fil lui-m\xEAme. D\xE9sactivez ceci si X se plaint d'un bloqueur de publicit\xE9s : les posts sponsoris\xE9s restent masqu\xE9s et Aviary cesse de refuser la moindre requ\xEAte.",
       "Always play video at the highest quality": "Toujours lire les vid\xE9os en qualit\xE9 maximale",
       "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X choisit une qualit\xE9 vid\xE9o adapt\xE9e \xE0 votre connexion et, sur une connexion rapide, reste souvent en de\xE7\xE0 de la meilleure disponible. Cette option fixe chaque vid\xE9o sur sa d\xE9finition la plus \xE9lev\xE9e. Elle consomme plus de donn\xE9es.",
@@ -4380,20 +4392,20 @@ html.av-reduce-motion *::after {
       "Playback": "Wiedergabe",
       "The download preference applies to every media control.": "Die Download-Einstellung gilt f\xFCr jedes Mediensteuerelement.",
       "Show download buttons": "Download-Schaltfl\xE4chen anzeigen",
-      "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "Blendet Speichern- und Vorschaubild-Schaltfl\xE4chen \xFCber Fotos und Video-Vorschaubildern ein.",
+      "Add one Download action to each media post, plus per-asset controls.": "F\xFCgt jedem Medienbeitrag eine Herunterladen-Aktion sowie Steuerelemente pro Datei hinzu.",
       "Prefer original quality": "Originalqualit\xE4t bevorzugen",
-      "Rewrite image URLs to name=orig before downloading.": "Schreibt Bild-URLs vor dem Download auf name=orig um.",
+      "Try source-format name=orig first, then 4096x4096 if it fails.": "Versucht zuerst name=orig im Quellformat und bei einem Fehler 4096x4096.",
       "Original quality status": "Status der Originalqualit\xE4t",
       "Show images at original quality": "Bilder in Originalqualit\xE4t anzeigen",
       "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "L\xE4dt Timeline-Fotos in voller Gr\xF6\xDFe statt in der Version, die X f\xFCr den Platz ausw\xE4hlt. Sch\xE4rfer, und ein Vielfaches an Daten.",
-      "Filename template": "Dateinamenvorlage",
-      "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "Felder: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
-      "Duplicate history": "Duplikatverlauf",
-      "Skip downloads of media you have already saved from this browser.": "\xDCberspringt Downloads von Medien, die Sie in diesem Browser bereits gespeichert haben.",
       "Media layout": "Medienlayout",
       "Default grid": "Standardraster",
       "Stacked": "Gestapelt",
       "Strict grid": "Striktes Raster",
+      "Filename template": "Dateinamenvorlage",
+      "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "Felder: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
+      "Duplicate history": "Duplikatverlauf",
+      "Skip downloads of media you have already saved from this browser.": "\xDCberspringt Downloads von Medien, die Sie in diesem Browser bereits gespeichert haben.",
       "Concurrent downloads": "Gleichzeitige Downloads",
       "Maximum media downloads in flight during a batch (1-6).": "Maximale Anzahl gleichzeitig laufender Mediendownloads w\xE4hrend eines Stapels (1\u20136).",
       "Download pacing": "Download-Taktung",
@@ -4406,6 +4418,7 @@ html.av-reduce-motion *::after {
       "Reset the local dedup index.": "Setzt den lokalen Duplikat-Index zur\xFCck.",
       "Download all visible media": "Alle sichtbaren Medien herunterladen",
       "Walks every tweet rendered on the current page and queues every photo/video/GIF/thumbnail through the existing download pipeline.": "Durchl\xE4uft jeden Beitrag auf der aktuellen Seite und stellt jedes Foto, Video, GIF und Vorschaubild in die bestehende Download-Warteschlange.",
+      "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "Blendet Speichern- und Vorschaubild-Schaltfl\xE4chen \xFCber Fotos und Video-Vorschaubildern ein.",
       "On-post controls": "Steuerelemente an Beitr\xE4gen",
       "File naming": "Dateibenennung",
       "Batch behavior": "Stapelverhalten",
@@ -4804,10 +4817,10 @@ html.av-reduce-motion *::after {
       "Original quality preference saved": "Einstellung f\xFCr Originalqualit\xE4t gespeichert",
       "Full-size images on": "Bilder in voller Gr\xF6\xDFe an",
       "Full-size images off": "Bilder in voller Gr\xF6\xDFe aus",
+      "Media layout saved": "Medienlayout gespeichert",
       "Filename template saved": "Dateinamen-Vorlage gespeichert",
       "Duplicate history on": "Duplikatverlauf an",
       "Duplicate history off": "Duplikatverlauf aus",
-      "Media layout saved": "Medienlayout gespeichert",
       "Concurrent download limit saved": "Limit f\xFCr gleichzeitige Downloads gespeichert",
       "Download pacing saved": "Download-Taktung gespeichert",
       "History cleared": "Verlauf geleert",
@@ -5042,13 +5055,15 @@ html.av-reduce-motion *::after {
       "Download access was not granted. Open Aviary Options to enable browser downloads.": "Der Download-Zugriff wurde nicht erteilt. \xD6ffne die Aviary-Optionen, um Browser-Downloads zu aktivieren.",
       "Media download failed. Try the on-post button again.": "Medien-Download fehlgeschlagen. Versuche es erneut \xFCber die Schaltfl\xE4che am Beitrag.",
       "Right-click an image or video first, then choose Aviary download.": "Klicke zuerst mit der rechten Maustaste auf ein Bild oder Video und w\xE4hle dann den Aviary-Download.",
+      "Download": "Herunterladen",
+      "Download all media in this post": "Alle Medien in diesem Beitrag herunterladen",
+      "The direct video is still loading. Try again in a moment.": "Das direkte Video wird noch geladen. Versuche es gleich noch einmal.",
       "Unavailable": "Nicht verf\xFCgbar",
-      "Saved": "Gespeichert",
-      "Queued": "In Warteschlange",
       "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "Dein Browser hat die Datei ge\xF6ffnet statt gespeichert \u2014 erteile Aviary die Download-Berechtigung f\xFCr ein echtes Speichern.",
       "Aviary needs the browser download permission. Opening its options page.": "Aviary ben\xF6tigt die Download-Berechtigung des Browsers. Die Optionsseite wird ge\xF6ffnet.",
-      "The direct video is still loading. Try again in a moment.": "Das direkte Video wird noch geladen. Versuche es gleich noch einmal.",
       "This image is not available to download.": "Dieses Bild steht nicht zum Download zur Verf\xFCgung.",
+      "Queued": "In Warteschlange",
+      "Saved": "Gespeichert",
       "Allow": "Zulassen",
       "Retry": "Erneut versuchen",
       "Permissions": "Berechtigungen",
@@ -5097,6 +5112,7 @@ html.av-reduce-motion *::after {
       "posts": "Beitr\xE4ge",
       "offline-ready": "offline-fertig",
       "network may be required": "Netzwerk eventuell erforderlich",
+      "Rewrite image URLs to name=orig before downloading.": "Schreibt Bild-URLs vor dem Download auf name=orig um.",
       "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "Gilt nur, solange der werbefreie Modus aktiv ist. Aviary lehnt X' separate Protokollanfrage f\xFCr beworbene Inhalte ab \u2014 die einzige Werbeanfrage, die sich von der Timeline selbst trennen l\xE4sst. Schalte dies aus, wenn X einen Werbeblocker moniert: Gesponserte Beitr\xE4ge bleiben ausgeblendet, und Aviary lehnt \xFCberhaupt keine Anfrage mehr ab.",
       "Always play video at the highest quality": "Videos immer in h\xF6chster Qualit\xE4t abspielen",
       "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X w\xE4hlt eine Videoqualit\xE4t passend zu deiner Verbindung und bleibt bei schnellen Verbindungen oft unter der bestm\xF6glichen. Dies legt jedes Video auf seine h\xF6chste Aufl\xF6sung fest. Es verbraucht mehr Daten.",
@@ -5312,20 +5328,20 @@ html.av-reduce-motion *::after {
       "Playback": "\u518D\u751F",
       "The download preference applies to every media control.": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u8A2D\u5B9A\u306F\u3059\u3079\u3066\u306E\u30E1\u30C7\u30A3\u30A2\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u306B\u9069\u7528\u3055\u308C\u307E\u3059\u3002",
       "Show download buttons": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u30DC\u30BF\u30F3\u3092\u8868\u793A",
-      "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "\u6295\u7A3F\u306E\u5199\u771F\u3068\u52D5\u753B\u30B5\u30E0\u30CD\u30A4\u30EB\u306E\u4E0A\u306B\u300C\u4FDD\u5B58\u300D\u300C\u30B5\u30E0\u30CD\u300D\u30DC\u30BF\u30F3\u3092\u8FFD\u52A0\u3057\u307E\u3059\u3002",
+      "Add one Download action to each media post, plus per-asset controls.": "\u5404\u30E1\u30C7\u30A3\u30A2\u30DD\u30B9\u30C8\u306B\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u64CD\u4F5C\u3068\u500B\u5225\u30E1\u30C7\u30A3\u30A2\u7528\u306E\u64CD\u4F5C\u3092\u8FFD\u52A0\u3057\u307E\u3059\u3002",
       "Prefer original quality": "\u30AA\u30EA\u30B8\u30CA\u30EB\u753B\u8CEA\u3092\u512A\u5148",
-      "Rewrite image URLs to name=orig before downloading.": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u524D\u306B\u753B\u50CF URL \u3092 name=orig \u306B\u66F8\u304D\u63DB\u3048\u307E\u3059\u3002",
+      "Try source-format name=orig first, then 4096x4096 if it fails.": "\u6700\u521D\u306B\u5143\u5F62\u5F0F\u306E name=orig \u3092\u8A66\u3057\u3001\u5931\u6557\u3057\u305F\u5834\u5408\u306F 4096x4096 \u3092\u8A66\u3057\u307E\u3059\u3002",
       "Original quality status": "\u30AA\u30EA\u30B8\u30CA\u30EB\u753B\u8CEA\u306E\u72B6\u614B",
       "Show images at original quality": "\u753B\u50CF\u3092\u30AA\u30EA\u30B8\u30CA\u30EB\u753B\u8CEA\u3067\u8868\u793A",
       "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u306E\u5199\u771F\u3092\u3001X \u304C\u67A0\u306B\u5408\u308F\u305B\u3066\u9078\u3093\u3060\u7248\u3067\u306F\u306A\u304F\u30D5\u30EB\u30B5\u30A4\u30BA\u3067\u8AAD\u307F\u8FBC\u307F\u307E\u3059\u3002\u3088\u308A\u9BAE\u660E\u3067\u3059\u304C\u3001\u901A\u4FE1\u91CF\u306F\u6570\u500D\u306B\u306A\u308A\u307E\u3059\u3002",
-      "Filename template": "\u30D5\u30A1\u30A4\u30EB\u540D\u306E\u30C6\u30F3\u30D7\u30EC\u30FC\u30C8",
-      "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "\u4F7F\u7528\u3067\u304D\u308B\u9805\u76EE: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}\u3002",
-      "Duplicate history": "\u91CD\u8907\u306E\u5C65\u6B74",
-      "Skip downloads of media you have already saved from this browser.": "\u3053\u306E\u30D6\u30E9\u30A6\u30B6\u3067\u4FDD\u5B58\u6E08\u307F\u306E\u30E1\u30C7\u30A3\u30A2\u306F\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3057\u307E\u305B\u3093\u3002",
       "Media layout": "\u30E1\u30C7\u30A3\u30A2\u306E\u30EC\u30A4\u30A2\u30A6\u30C8",
       "Default grid": "\u30C7\u30D5\u30A9\u30EB\u30C8\u306E\u30B0\u30EA\u30C3\u30C9",
       "Stacked": "\u7E26\u7A4D\u307F",
       "Strict grid": "\u5747\u7B49\u30B0\u30EA\u30C3\u30C9",
+      "Filename template": "\u30D5\u30A1\u30A4\u30EB\u540D\u306E\u30C6\u30F3\u30D7\u30EC\u30FC\u30C8",
+      "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "\u4F7F\u7528\u3067\u304D\u308B\u9805\u76EE: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}\u3002",
+      "Duplicate history": "\u91CD\u8907\u306E\u5C65\u6B74",
+      "Skip downloads of media you have already saved from this browser.": "\u3053\u306E\u30D6\u30E9\u30A6\u30B6\u3067\u4FDD\u5B58\u6E08\u307F\u306E\u30E1\u30C7\u30A3\u30A2\u306F\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3057\u307E\u305B\u3093\u3002",
       "Concurrent downloads": "\u540C\u6642\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u6570",
       "Maximum media downloads in flight during a batch (1-6).": "\u30D0\u30C3\u30C1\u4E2D\u306B\u540C\u6642\u5B9F\u884C\u3059\u308B\u30E1\u30C7\u30A3\u30A2\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306E\u6700\u5927\u6570\uFF081\uFF5E6\uFF09\u3002",
       "Download pacing": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u30DA\u30FC\u30B9",
@@ -5338,6 +5354,7 @@ html.av-reduce-motion *::after {
       "Reset the local dedup index.": "\u30ED\u30FC\u30AB\u30EB\u306E\u91CD\u8907\u5224\u5B9A\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9\u3092\u521D\u671F\u5316\u3057\u307E\u3059\u3002",
       "Download all visible media": "\u8868\u793A\u4E2D\u306E\u30E1\u30C7\u30A3\u30A2\u3092\u3059\u3079\u3066\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9",
       "Walks every tweet rendered on the current page and queues every photo/video/GIF/thumbnail through the existing download pipeline.": "\u73FE\u5728\u306E\u30DA\u30FC\u30B8\u306B\u8868\u793A\u3055\u308C\u3066\u3044\u308B\u6295\u7A3F\u3092\u3059\u3079\u3066\u8D70\u67FB\u3057\u3001\u5199\u771F\u30FB\u52D5\u753B\u30FBGIF\u30FB\u30B5\u30E0\u30CD\u30A4\u30EB\u3092\u65E2\u5B58\u306E\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u30AD\u30E5\u30FC\u306B\u8FFD\u52A0\u3057\u307E\u3059\u3002",
+      "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "\u6295\u7A3F\u306E\u5199\u771F\u3068\u52D5\u753B\u30B5\u30E0\u30CD\u30A4\u30EB\u306E\u4E0A\u306B\u300C\u4FDD\u5B58\u300D\u300C\u30B5\u30E0\u30CD\u300D\u30DC\u30BF\u30F3\u3092\u8FFD\u52A0\u3057\u307E\u3059\u3002",
       "On-post controls": "\u6295\u7A3F\u4E0A\u306E\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB",
       "File naming": "\u30D5\u30A1\u30A4\u30EB\u540D",
       "Batch behavior": "\u4E00\u62EC\u51E6\u7406",
@@ -5736,10 +5753,10 @@ html.av-reduce-motion *::after {
       "Original quality preference saved": "\u30AA\u30EA\u30B8\u30CA\u30EB\u753B\u8CEA\u306E\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Full-size images on": "\u30D5\u30EB\u30B5\u30A4\u30BA\u753B\u50CF \u30AA\u30F3",
       "Full-size images off": "\u30D5\u30EB\u30B5\u30A4\u30BA\u753B\u50CF \u30AA\u30D5",
+      "Media layout saved": "\u30E1\u30C7\u30A3\u30A2\u306E\u30EC\u30A4\u30A2\u30A6\u30C8\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Filename template saved": "\u30D5\u30A1\u30A4\u30EB\u540D\u306E\u30C6\u30F3\u30D7\u30EC\u30FC\u30C8\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Duplicate history on": "\u91CD\u8907\u5C65\u6B74 \u30AA\u30F3",
       "Duplicate history off": "\u91CD\u8907\u5C65\u6B74 \u30AA\u30D5",
-      "Media layout saved": "\u30E1\u30C7\u30A3\u30A2\u306E\u30EC\u30A4\u30A2\u30A6\u30C8\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Concurrent download limit saved": "\u540C\u6642\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u4E0A\u9650\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Download pacing saved": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u30DA\u30FC\u30B9\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "History cleared": "\u5C65\u6B74\u3092\u6D88\u53BB\u3057\u307E\u3057\u305F",
@@ -5974,13 +5991,15 @@ html.av-reduce-motion *::after {
       "Download access was not granted. Open Aviary Options to enable browser downloads.": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306E\u30A2\u30AF\u30BB\u30B9\u304C\u8A31\u53EF\u3055\u308C\u307E\u305B\u3093\u3067\u3057\u305F\u3002Aviary \u306E\u30AA\u30D7\u30B7\u30E7\u30F3\u3092\u958B\u3044\u3066\u30D6\u30E9\u30A6\u30B6\u30FC\u306E\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3092\u6709\u52B9\u306B\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
       "Media download failed. Try the on-post button again.": "\u30E1\u30C7\u30A3\u30A2\u306E\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u6295\u7A3F\u4E0A\u306E\u30DC\u30BF\u30F3\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
       "Right-click an image or video first, then choose Aviary download.": "\u5148\u306B\u753B\u50CF\u307E\u305F\u306F\u52D5\u753B\u3092\u53F3\u30AF\u30EA\u30C3\u30AF\u3057\u3066\u304B\u3089\u3001Aviary \u306E\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+      "Download": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9",
+      "Download all media in this post": "\u3053\u306E\u30DD\u30B9\u30C8\u306E\u30E1\u30C7\u30A3\u30A2\u3092\u3059\u3079\u3066\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9",
+      "The direct video is still loading. Try again in a moment.": "\u76F4\u63A5\u52D5\u753B\u3092\u307E\u3060\u8AAD\u307F\u8FBC\u307F\u4E2D\u3067\u3059\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
       "Unavailable": "\u5229\u7528\u3067\u304D\u307E\u305B\u3093",
-      "Saved": "\u4FDD\u5B58\u3057\u307E\u3057\u305F",
-      "Queued": "\u5F85\u6A5F\u4E2D",
       "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "\u30D6\u30E9\u30A6\u30B6\u30FC\u304C\u30D5\u30A1\u30A4\u30EB\u3092\u4FDD\u5B58\u305B\u305A\u306B\u958B\u304D\u307E\u3057\u305F\u3002\u78BA\u5B9F\u306B\u4FDD\u5B58\u3059\u308B\u306B\u306F Aviary \u306B\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u6A29\u9650\u3092\u8A31\u53EF\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
       "Aviary needs the browser download permission. Opening its options page.": "Aviary \u306B\u306F\u30D6\u30E9\u30A6\u30B6\u30FC\u306E\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u6A29\u9650\u304C\u5FC5\u8981\u3067\u3059\u3002\u30AA\u30D7\u30B7\u30E7\u30F3\u30DA\u30FC\u30B8\u3092\u958B\u304D\u307E\u3059\u3002",
-      "The direct video is still loading. Try again in a moment.": "\u76F4\u63A5\u52D5\u753B\u3092\u307E\u3060\u8AAD\u307F\u8FBC\u307F\u4E2D\u3067\u3059\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
       "This image is not available to download.": "\u3053\u306E\u753B\u50CF\u306F\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3067\u304D\u307E\u305B\u3093\u3002",
+      "Queued": "\u5F85\u6A5F\u4E2D",
+      "Saved": "\u4FDD\u5B58\u3057\u307E\u3057\u305F",
       "Allow": "\u8A31\u53EF",
       "Retry": "\u518D\u8A66\u884C",
       "Permissions": "\u6A29\u9650",
@@ -6029,6 +6048,7 @@ html.av-reduce-motion *::after {
       "posts": "\u4EF6\u306E\u6295\u7A3F",
       "offline-ready": "\u30AA\u30D5\u30E9\u30A4\u30F3\u5BFE\u5FDC",
       "network may be required": "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u304C\u5FC5\u8981\u306A\u5834\u5408\u304C\u3042\u308A\u307E\u3059",
+      "Rewrite image URLs to name=orig before downloading.": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u524D\u306B\u753B\u50CF URL \u3092 name=orig \u306B\u66F8\u304D\u63DB\u3048\u307E\u3059\u3002",
       "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "\u5E83\u544A\u975E\u8868\u793A\u30E2\u30FC\u30C9\u304C\u6709\u52B9\u306A\u9593\u306E\u307F\u9069\u7528\u3055\u308C\u307E\u3059\u3002Aviary \u306F X \u306E\u30D7\u30ED\u30E2\u30FC\u30B7\u30E7\u30F3\u30B3\u30F3\u30C6\u30F3\u30C4\u7528\u30ED\u30B0\u9001\u4FE1\u30EA\u30AF\u30A8\u30B9\u30C8\u3092\u62D2\u5426\u3057\u307E\u3059\u3002\u3053\u308C\u306F\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u672C\u4F53\u304B\u3089\u5206\u96E2\u3067\u304D\u308B\u552F\u4E00\u306E\u5E83\u544A\u30EA\u30AF\u30A8\u30B9\u30C8\u3067\u3059\u3002X \u304C\u5E83\u544A\u30D6\u30ED\u30C3\u30AB\u30FC\u306B\u3064\u3044\u3066\u8B66\u544A\u3059\u308B\u5834\u5408\u306F\u3053\u308C\u3092\u30AA\u30D5\u306B\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u30B9\u30DD\u30F3\u30B5\u30FC\u6295\u7A3F\u306F\u5F15\u304D\u7D9A\u304D\u975E\u8868\u793A\u306E\u307E\u307E\u3001Aviary \u306F\u3044\u304B\u306A\u308B\u30EA\u30AF\u30A8\u30B9\u30C8\u3082\u62D2\u5426\u3057\u306A\u304F\u306A\u308A\u307E\u3059\u3002",
       "Always play video at the highest quality": "\u52D5\u753B\u3092\u5E38\u306B\u6700\u9AD8\u753B\u8CEA\u3067\u518D\u751F\u3059\u308B",
       "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X \u306F\u63A5\u7D9A\u72B6\u6CC1\u306B\u5408\u308F\u305B\u3066\u753B\u8CEA\u3092\u9078\u3076\u305F\u3081\u3001\u9AD8\u901F\u306A\u56DE\u7DDA\u3067\u3082\u5229\u7528\u53EF\u80FD\u306A\u6700\u9AD8\u753B\u8CEA\u3088\u308A\u4F4E\u304F\u843D\u3061\u7740\u304F\u3053\u3068\u304C\u3088\u304F\u3042\u308A\u307E\u3059\u3002\u3053\u306E\u8A2D\u5B9A\u306F\u3059\u3079\u3066\u306E\u52D5\u753B\u3092\u6700\u9AD8\u753B\u8CEA\u306B\u56FA\u5B9A\u3057\u307E\u3059\u3002\u901A\u4FE1\u91CF\u306F\u5897\u3048\u307E\u3059\u3002",
@@ -6244,20 +6264,20 @@ html.av-reduce-motion *::after {
       "Playback": "\uC7AC\uC0DD",
       "The download preference applies to every media control.": "\uB2E4\uC6B4\uB85C\uB4DC \uD658\uACBD\uC124\uC815\uC740 \uBAA8\uB4E0 \uBBF8\uB514\uC5B4 \uCEE8\uD2B8\uB864\uC5D0 \uC801\uC6A9\uB429\uB2C8\uB2E4.",
       "Show download buttons": "\uB2E4\uC6B4\uB85C\uB4DC \uBC84\uD2BC \uD45C\uC2DC",
-      "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "\uAC8C\uC2DC\uBB3C\uC758 \uC0AC\uC9C4\uACFC \uB3D9\uC601\uC0C1 \uC378\uB124\uC77C \uC704\uC5D0 \uC800\uC7A5\xB7\uC378\uB124\uC77C \uBC84\uD2BC\uC744 \uCD94\uAC00\uD569\uB2C8\uB2E4.",
+      "Add one Download action to each media post, plus per-asset controls.": "\uAC01 \uBBF8\uB514\uC5B4 \uAC8C\uC2DC\uBB3C\uC5D0 \uB2E4\uC6B4\uB85C\uB4DC \uB3D9\uC791\uACFC \uAC1C\uBCC4 \uBBF8\uB514\uC5B4 \uC81C\uC5B4\uB97C \uCD94\uAC00\uD569\uB2C8\uB2E4.",
       "Prefer original quality": "\uC6D0\uBCF8 \uD654\uC9C8 \uC6B0\uC120",
-      "Rewrite image URLs to name=orig before downloading.": "\uB0B4\uB824\uBC1B\uAE30 \uC804\uC5D0 \uC774\uBBF8\uC9C0 URL\uC744 name=orig\uB85C \uBC14\uAFC9\uB2C8\uB2E4.",
+      "Try source-format name=orig first, then 4096x4096 if it fails.": "\uBA3C\uC800 \uC6D0\uBCF8 \uD615\uC2DD\uC758 name=orig\uB97C \uC2DC\uB3C4\uD558\uACE0 \uC2E4\uD328\uD558\uBA74 4096x4096\uC744 \uC2DC\uB3C4\uD569\uB2C8\uB2E4.",
       "Original quality status": "\uC6D0\uBCF8 \uD654\uC9C8 \uC0C1\uD0DC",
       "Show images at original quality": "\uC774\uBBF8\uC9C0\uB97C \uC6D0\uBCF8 \uD654\uC9C8\uB85C \uD45C\uC2DC",
       "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "\uD0C0\uC784\uB77C\uC778 \uC0AC\uC9C4\uC744 X\uAC00 \uC790\uB9AC\uC5D0 \uB9DE\uCDB0 \uACE0\uB978 \uBC84\uC804 \uB300\uC2E0 \uC804\uCCB4 \uD06C\uAE30\uB85C \uBD88\uB7EC\uC635\uB2C8\uB2E4. \uB354 \uC120\uBA85\uD558\uC9C0\uB9CC \uB370\uC774\uD130 \uC0AC\uC6A9\uB7C9\uC740 \uBA87 \uBC30\uAC00 \uB429\uB2C8\uB2E4.",
-      "Filename template": "\uD30C\uC77C \uC774\uB984 \uD15C\uD50C\uB9BF",
-      "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "\uC0AC\uC6A9 \uAC00\uB2A5\uD55C \uD56D\uBAA9: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
-      "Duplicate history": "\uC911\uBCF5 \uAE30\uB85D",
-      "Skip downloads of media you have already saved from this browser.": "\uC774 \uBE0C\uB77C\uC6B0\uC800\uC5D0\uC11C \uC774\uBBF8 \uC800\uC7A5\uD55C \uBBF8\uB514\uC5B4\uB294 \uB0B4\uB824\uBC1B\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
       "Media layout": "\uBBF8\uB514\uC5B4 \uBC30\uCE58",
       "Default grid": "\uAE30\uBCF8 \uADF8\uB9AC\uB4DC",
       "Stacked": "\uC138\uB85C \uC313\uAE30",
       "Strict grid": "\uADE0\uC77C \uADF8\uB9AC\uB4DC",
+      "Filename template": "\uD30C\uC77C \uC774\uB984 \uD15C\uD50C\uB9BF",
+      "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "\uC0AC\uC6A9 \uAC00\uB2A5\uD55C \uD56D\uBAA9: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
+      "Duplicate history": "\uC911\uBCF5 \uAE30\uB85D",
+      "Skip downloads of media you have already saved from this browser.": "\uC774 \uBE0C\uB77C\uC6B0\uC800\uC5D0\uC11C \uC774\uBBF8 \uC800\uC7A5\uD55C \uBBF8\uB514\uC5B4\uB294 \uB0B4\uB824\uBC1B\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
       "Concurrent downloads": "\uB3D9\uC2DC \uB2E4\uC6B4\uB85C\uB4DC",
       "Maximum media downloads in flight during a batch (1-6).": "\uBC30\uCE58 \uC911 \uB3D9\uC2DC\uC5D0 \uC9C4\uD589\uB418\uB294 \uBBF8\uB514\uC5B4 \uB2E4\uC6B4\uB85C\uB4DC \uCD5C\uB300 \uC218(1-6).",
       "Download pacing": "\uB2E4\uC6B4\uB85C\uB4DC \uC18D\uB3C4 \uC870\uC808",
@@ -6270,6 +6290,7 @@ html.av-reduce-motion *::after {
       "Reset the local dedup index.": "\uB85C\uCEEC \uC911\uBCF5 \uD310\uBCC4 \uC0C9\uC778\uC744 \uCD08\uAE30\uD654\uD569\uB2C8\uB2E4.",
       "Download all visible media": "\uD45C\uC2DC\uB41C \uBBF8\uB514\uC5B4 \uBAA8\uB450 \uB0B4\uB824\uBC1B\uAE30",
       "Walks every tweet rendered on the current page and queues every photo/video/GIF/thumbnail through the existing download pipeline.": "\uD604\uC7AC \uD398\uC774\uC9C0\uC5D0 \uD45C\uC2DC\uB41C \uAC8C\uC2DC\uBB3C\uC744 \uBAA8\uB450 \uD6D1\uC5B4 \uC0AC\uC9C4\xB7\uB3D9\uC601\uC0C1\xB7GIF\xB7\uC378\uB124\uC77C\uC744 \uAE30\uC874 \uB2E4\uC6B4\uB85C\uB4DC \uB300\uAE30\uC5F4\uC5D0 \uB123\uC2B5\uB2C8\uB2E4.",
+      "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "\uAC8C\uC2DC\uBB3C\uC758 \uC0AC\uC9C4\uACFC \uB3D9\uC601\uC0C1 \uC378\uB124\uC77C \uC704\uC5D0 \uC800\uC7A5\xB7\uC378\uB124\uC77C \uBC84\uD2BC\uC744 \uCD94\uAC00\uD569\uB2C8\uB2E4.",
       "On-post controls": "\uAC8C\uC2DC\uBB3C \uCEE8\uD2B8\uB864",
       "File naming": "\uD30C\uC77C \uC774\uB984",
       "Batch behavior": "\uC77C\uAD04 \uCC98\uB9AC",
@@ -6668,10 +6689,10 @@ html.av-reduce-motion *::after {
       "Original quality preference saved": "\uC6D0\uBCF8 \uD654\uC9C8 \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Full-size images on": "\uC6D0\uBCF8 \uD06C\uAE30 \uC774\uBBF8\uC9C0 \uCF2C",
       "Full-size images off": "\uC6D0\uBCF8 \uD06C\uAE30 \uC774\uBBF8\uC9C0 \uB054",
+      "Media layout saved": "\uBBF8\uB514\uC5B4 \uBC30\uCE58\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Filename template saved": "\uD30C\uC77C \uC774\uB984 \uD15C\uD50C\uB9BF\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Duplicate history on": "\uC911\uBCF5 \uAE30\uB85D \uCF2C",
       "Duplicate history off": "\uC911\uBCF5 \uAE30\uB85D \uB054",
-      "Media layout saved": "\uBBF8\uB514\uC5B4 \uBC30\uCE58\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Concurrent download limit saved": "\uB3D9\uC2DC \uB2E4\uC6B4\uB85C\uB4DC \uC81C\uD55C\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "Download pacing saved": "\uB2E4\uC6B4\uB85C\uB4DC \uC18D\uB3C4\uB97C \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4",
       "History cleared": "\uAE30\uB85D\uC744 \uC9C0\uC6E0\uC2B5\uB2C8\uB2E4",
@@ -6906,13 +6927,15 @@ html.av-reduce-motion *::after {
       "Download access was not granted. Open Aviary Options to enable browser downloads.": "\uB2E4\uC6B4\uB85C\uB4DC \uAD8C\uD55C\uC774 \uD5C8\uC6A9\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4. Aviary \uC635\uC158\uC5D0\uC11C \uBE0C\uB77C\uC6B0\uC800 \uB2E4\uC6B4\uB85C\uB4DC\uB97C \uD65C\uC131\uD654\uD558\uC138\uC694.",
       "Media download failed. Try the on-post button again.": "\uBBF8\uB514\uC5B4 \uB2E4\uC6B4\uB85C\uB4DC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4. \uAC8C\uC2DC\uBB3C\uC758 \uBC84\uD2BC\uC73C\uB85C \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
       "Right-click an image or video first, then choose Aviary download.": "\uBA3C\uC800 \uC774\uBBF8\uC9C0\uB098 \uB3D9\uC601\uC0C1\uC744 \uB9C8\uC6B0\uC2A4 \uC624\uB978\uCABD \uBC84\uD2BC\uC73C\uB85C \uD074\uB9AD\uD55C \uB2E4\uC74C Aviary \uB2E4\uC6B4\uB85C\uB4DC\uB97C \uC120\uD0DD\uD558\uC138\uC694.",
+      "Download": "\uB2E4\uC6B4\uB85C\uB4DC",
+      "Download all media in this post": "\uC774 \uAC8C\uC2DC\uBB3C\uC758 \uBAA8\uB4E0 \uBBF8\uB514\uC5B4 \uB2E4\uC6B4\uB85C\uB4DC",
+      "The direct video is still loading. Try again in a moment.": "\uC9C1\uC811 \uB3D9\uC601\uC0C1\uC744 \uC544\uC9C1 \uBD88\uB7EC\uC624\uB294 \uC911\uC785\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
       "Unavailable": "\uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC74C",
-      "Saved": "\uC800\uC7A5\uB428",
-      "Queued": "\uB300\uAE30 \uC911",
       "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "\uBE0C\uB77C\uC6B0\uC800\uAC00 \uD30C\uC77C\uC744 \uC800\uC7A5\uD558\uC9C0 \uC54A\uACE0 \uC5F4\uC5C8\uC2B5\uB2C8\uB2E4. \uC2E4\uC81C\uB85C \uC800\uC7A5\uD558\uB824\uBA74 Aviary\uC5D0 \uB2E4\uC6B4\uB85C\uB4DC \uAD8C\uD55C\uC744 \uD5C8\uC6A9\uD558\uC138\uC694.",
       "Aviary needs the browser download permission. Opening its options page.": "Aviary\uC5D0\uB294 \uBE0C\uB77C\uC6B0\uC800 \uB2E4\uC6B4\uB85C\uB4DC \uAD8C\uD55C\uC774 \uD544\uC694\uD569\uB2C8\uB2E4. \uC635\uC158 \uD398\uC774\uC9C0\uB97C \uC5FD\uB2C8\uB2E4.",
-      "The direct video is still loading. Try again in a moment.": "\uC9C1\uC811 \uB3D9\uC601\uC0C1\uC744 \uC544\uC9C1 \uBD88\uB7EC\uC624\uB294 \uC911\uC785\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
       "This image is not available to download.": "\uC774 \uC774\uBBF8\uC9C0\uB294 \uB2E4\uC6B4\uB85C\uB4DC\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+      "Queued": "\uB300\uAE30 \uC911",
+      "Saved": "\uC800\uC7A5\uB428",
       "Allow": "\uD5C8\uC6A9",
       "Retry": "\uB2E4\uC2DC \uC2DC\uB3C4",
       "Permissions": "\uAD8C\uD55C",
@@ -6961,6 +6984,7 @@ html.av-reduce-motion *::after {
       "posts": "\uAC1C \uAC8C\uC2DC\uBB3C",
       "offline-ready": "\uC624\uD504\uB77C\uC778 \uC900\uBE44\uB428",
       "network may be required": "\uB124\uD2B8\uC6CC\uD06C\uAC00 \uD544\uC694\uD560 \uC218 \uC788\uC74C",
+      "Rewrite image URLs to name=orig before downloading.": "\uB0B4\uB824\uBC1B\uAE30 \uC804\uC5D0 \uC774\uBBF8\uC9C0 URL\uC744 name=orig\uB85C \uBC14\uAFC9\uB2C8\uB2E4.",
       "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "\uAD11\uACE0 \uC5C6\uB294 \uBAA8\uB4DC\uAC00 \uCF1C\uC838 \uC788\uC744 \uB54C\uB9CC \uC801\uC6A9\uB429\uB2C8\uB2E4. Aviary\uB294 X\uC758 \uBCC4\uB3C4 \uD64D\uBCF4 \uCF58\uD150\uCE20 \uB85C\uAE45 \uC694\uCCAD\uC744 \uAC70\uBD80\uD569\uB2C8\uB2E4. \uC774\uB294 \uD0C0\uC784\uB77C\uC778 \uC790\uCCB4\uC640 \uBD84\uB9AC\uD560 \uC218 \uC788\uB294 \uC720\uC77C\uD55C \uAD11\uACE0 \uC694\uCCAD\uC785\uB2C8\uB2E4. X\uAC00 \uAD11\uACE0 \uCC28\uB2E8\uAE30\uB97C \uBB38\uC81C \uC0BC\uC73C\uBA74 \uC774 \uC635\uC158\uC744 \uB044\uC138\uC694. \uC2A4\uD3F0\uC11C \uAC8C\uC2DC\uBB3C\uC740 \uACC4\uC18D \uC228\uACA8\uC9C0\uACE0 Aviary\uB294 \uC5B4\uB5A4 \uC694\uCCAD\uB3C4 \uAC70\uBD80\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
       "Always play video at the highest quality": "\uD56D\uC0C1 \uCD5C\uACE0 \uD654\uC9C8\uB85C \uB3D9\uC601\uC0C1 \uC7AC\uC0DD",
       "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "X\uB294 \uC5F0\uACB0 \uC0C1\uD0DC\uC5D0 \uB9DE\uCDB0 \uD654\uC9C8\uC744 \uACE0\uB974\uAE30 \uB54C\uBB38\uC5D0, \uBE60\uB978 \uD68C\uC120\uC5D0\uC11C\uB3C4 \uC0AC\uC6A9\uD560 \uC218 \uC788\uB294 \uCD5C\uACE0 \uD654\uC9C8\uBCF4\uB2E4 \uB0AE\uAC8C \uBA38\uBB34\uB294 \uACBD\uC6B0\uAC00 \uB9CE\uC2B5\uB2C8\uB2E4. \uC774 \uC124\uC815\uC740 \uBAA8\uB4E0 \uB3D9\uC601\uC0C1\uC744 \uCD5C\uACE0 \uD654\uC9C8\uB85C \uACE0\uC815\uD569\uB2C8\uB2E4. \uB370\uC774\uD130\uB97C \uB354 \uC0AC\uC6A9\uD569\uB2C8\uB2E4.",
@@ -7176,20 +7200,20 @@ html.av-reduce-motion *::after {
       "Playback": "\u0627\u0644\u062A\u0634\u063A\u064A\u0644",
       "The download preference applies to every media control.": "\u064A\u0646\u0637\u0628\u0642 \u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u062A\u0646\u0632\u064A\u0644 \u0639\u0644\u0649 \u0643\u0644 \u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062A\u062D\u0643\u0645 \u0641\u064A \u0627\u0644\u0648\u0633\u0627\u0626\u0637.",
       "Show download buttons": "\u0625\u0638\u0647\u0627\u0631 \u0623\u0632\u0631\u0627\u0631 \u0627\u0644\u062A\u0646\u0632\u064A\u0644",
-      "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "\u064A\u0636\u064A\u0641 \u0632\u0631\u064E\u0651\u064A \u0627\u0644\u062D\u0641\u0638 \u0648\u0627\u0644\u0645\u0635\u063A\u0651\u0631\u0629 \u0641\u0648\u0642 \u0635\u0648\u0631 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0648\u0645\u0635\u063A\u0651\u0631\u0627\u062A \u0627\u0644\u0641\u064A\u062F\u064A\u0648.",
+      "Add one Download action to each media post, plus per-asset controls.": "\u0623\u0636\u0641 \u0625\u062C\u0631\u0627\u0621 \u062A\u0646\u0632\u064A\u0644 \u0625\u0644\u0649 \u0643\u0644 \u0645\u0646\u0634\u0648\u0631 \u0648\u0633\u0627\u0626\u0637\u060C \u0645\u0639 \u0639\u0646\u0627\u0635\u0631 \u062A\u062D\u0643\u0645 \u0644\u0643\u0644 \u0645\u0644\u0641.",
       "Prefer original quality": "\u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629",
-      "Rewrite image URLs to name=orig before downloading.": "\u064A\u0639\u064A\u062F \u0643\u062A\u0627\u0628\u0629 \u0631\u0648\u0627\u0628\u0637 \u0627\u0644\u0635\u0648\u0631 \u0625\u0644\u0649 name=orig \u0642\u0628\u0644 \u0627\u0644\u062A\u0646\u0632\u064A\u0644.",
+      "Try source-format name=orig first, then 4096x4096 if it fails.": "\u062C\u0631\u0651\u0628 name=orig \u0628\u062A\u0646\u0633\u064A\u0642 \u0627\u0644\u0645\u0635\u062F\u0631 \u0623\u0648\u0644\u0627\u064B\u060C \u062B\u0645 4096x4096 \u0625\u0630\u0627 \u0641\u0634\u0644.",
       "Original quality status": "\u062D\u0627\u0644\u0629 \u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629",
       "Show images at original quality": "\u0639\u0631\u0636 \u0627\u0644\u0635\u0648\u0631 \u0628\u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629",
       "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "\u064A\u062D\u0645\u0651\u0644 \u0635\u0648\u0631 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \u0628\u0627\u0644\u062D\u062C\u0645 \u0627\u0644\u0643\u0627\u0645\u0644 \u0628\u062F\u0644\u064B\u0627 \u0645\u0646 \u0627\u0644\u0646\u0633\u062E\u0629 \u0627\u0644\u062A\u064A \u064A\u062E\u062A\u0627\u0631\u0647\u0627 X \u0644\u0644\u0645\u0633\u0627\u062D\u0629 \u0627\u0644\u0645\u062A\u0627\u062D\u0629. \u0623\u0648\u0636\u062D\u060C \u0644\u0643\u0646 \u0628\u0627\u0633\u062A\u0647\u0644\u0627\u0643 \u0628\u064A\u0627\u0646\u0627\u062A \u0623\u0643\u0628\u0631 \u0628\u0639\u062F\u0629 \u0623\u0636\u0639\u0627\u0641.",
-      "Filename template": "\u0642\u0627\u0644\u0628 \u0627\u0633\u0645 \u0627\u0644\u0645\u0644\u0641",
-      "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "\u0627\u0644\u062D\u0642\u0648\u0644: {handle}\u060C {tweetId}\u060C {mediaId}\u060C {index}\u060C {total}\u060C {date}\u060C {text}\u060C {ext}.",
-      "Duplicate history": "\u0633\u062C\u0644 \u0627\u0644\u062A\u0643\u0631\u0627\u0631\u0627\u062A",
-      "Skip downloads of media you have already saved from this browser.": "\u064A\u062A\u062E\u0637\u0649 \u062A\u0646\u0632\u064A\u0644 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u062A\u064A \u0633\u0628\u0642 \u062D\u0641\u0638\u0647\u0627 \u0645\u0646 \u0647\u0630\u0627 \u0627\u0644\u0645\u062A\u0635\u0641\u062D.",
       "Media layout": "\u062A\u062E\u0637\u064A\u0637 \u0627\u0644\u0648\u0633\u0627\u0626\u0637",
       "Default grid": "\u0627\u0644\u0634\u0628\u0643\u0629 \u0627\u0644\u0627\u0641\u062A\u0631\u0627\u0636\u064A\u0629",
       "Stacked": "\u0645\u062A\u0631\u0627\u0635",
       "Strict grid": "\u0634\u0628\u0643\u0629 \u0645\u0646\u062A\u0638\u0645\u0629",
+      "Filename template": "\u0642\u0627\u0644\u0628 \u0627\u0633\u0645 \u0627\u0644\u0645\u0644\u0641",
+      "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "\u0627\u0644\u062D\u0642\u0648\u0644: {handle}\u060C {tweetId}\u060C {mediaId}\u060C {index}\u060C {total}\u060C {date}\u060C {text}\u060C {ext}.",
+      "Duplicate history": "\u0633\u062C\u0644 \u0627\u0644\u062A\u0643\u0631\u0627\u0631\u0627\u062A",
+      "Skip downloads of media you have already saved from this browser.": "\u064A\u062A\u062E\u0637\u0649 \u062A\u0646\u0632\u064A\u0644 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u062A\u064A \u0633\u0628\u0642 \u062D\u0641\u0638\u0647\u0627 \u0645\u0646 \u0647\u0630\u0627 \u0627\u0644\u0645\u062A\u0635\u0641\u062D.",
       "Concurrent downloads": "\u0627\u0644\u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0627\u0644\u0645\u062A\u0632\u0627\u0645\u0646\u0629",
       "Maximum media downloads in flight during a batch (1-6).": "\u0627\u0644\u062D\u062F \u0627\u0644\u0623\u0642\u0635\u0649 \u0644\u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u062C\u0627\u0631\u064A\u0629 \u0623\u062B\u0646\u0627\u0621 \u0627\u0644\u062F\u0641\u0639\u0629 (1-6).",
       "Download pacing": "\u0648\u062A\u064A\u0631\u0629 \u0627\u0644\u062A\u0646\u0632\u064A\u0644",
@@ -7202,6 +7226,7 @@ html.av-reduce-motion *::after {
       "Reset the local dedup index.": "\u064A\u0639\u064A\u062F \u0636\u0628\u0637 \u0641\u0647\u0631\u0633 \u0627\u0644\u062A\u0643\u0631\u0627\u0631\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u064A.",
       "Download all visible media": "\u062A\u0646\u0632\u064A\u0644 \u0643\u0644 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0627\u0644\u0638\u0627\u0647\u0631\u0629",
       "Walks every tweet rendered on the current page and queues every photo/video/GIF/thumbnail through the existing download pipeline.": "\u064A\u0645\u0631\u0651 \u0639\u0644\u0649 \u0643\u0644 \u0645\u0646\u0634\u0648\u0631 \u0645\u0639\u0631\u0648\u0636 \u0641\u064A \u0627\u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u062D\u0627\u0644\u064A\u0629 \u0648\u064A\u0636\u064A\u0641 \u0643\u0644 \u0635\u0648\u0631\u0629 \u0648\u0641\u064A\u062F\u064A\u0648 \u0648GIF \u0648\u0645\u0635\u063A\u0651\u0631\u0629 \u0625\u0644\u0649 \u0637\u0627\u0628\u0648\u0631 \u0627\u0644\u062A\u0646\u0632\u064A\u0644 \u0627\u0644\u062D\u0627\u0644\u064A.",
+      "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "\u064A\u0636\u064A\u0641 \u0632\u0631\u064E\u0651\u064A \u0627\u0644\u062D\u0641\u0638 \u0648\u0627\u0644\u0645\u0635\u063A\u0651\u0631\u0629 \u0641\u0648\u0642 \u0635\u0648\u0631 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0648\u0645\u0635\u063A\u0651\u0631\u0627\u062A \u0627\u0644\u0641\u064A\u062F\u064A\u0648.",
       "On-post controls": "\u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062A\u062D\u0643\u0645 \u0641\u064A \u0627\u0644\u0645\u0646\u0634\u0648\u0631",
       "File naming": "\u062A\u0633\u0645\u064A\u0629 \u0627\u0644\u0645\u0644\u0641\u0627\u062A",
       "Batch behavior": "\u0633\u0644\u0648\u0643 \u0627\u0644\u062F\u064F\u0641\u0639\u0627\u062A",
@@ -7600,10 +7625,10 @@ html.av-reduce-motion *::after {
       "Original quality preference saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644 \u0627\u0644\u062C\u0648\u062F\u0629 \u0627\u0644\u0623\u0635\u0644\u064A\u0629",
       "Full-size images on": "\u0627\u0644\u0635\u0648\u0631 \u0628\u0627\u0644\u062D\u062C\u0645 \u0627\u0644\u0643\u0627\u0645\u0644 \u0645\u0641\u0639\u0651\u0644\u0629",
       "Full-size images off": "\u0627\u0644\u0635\u0648\u0631 \u0628\u0627\u0644\u062D\u062C\u0645 \u0627\u0644\u0643\u0627\u0645\u0644 \u0645\u0639\u0637\u0651\u0644\u0629",
+      "Media layout saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u062E\u0637\u064A\u0637 \u0627\u0644\u0648\u0633\u0627\u0626\u0637",
       "Filename template saved": "\u062A\u0645 \u062D\u0641\u0638 \u0642\u0627\u0644\u0628 \u0627\u0633\u0645 \u0627\u0644\u0645\u0644\u0641",
       "Duplicate history on": "\u0633\u062C\u0644 \u0627\u0644\u062A\u0643\u0631\u0627\u0631\u0627\u062A \u0645\u0641\u0639\u0651\u0644",
       "Duplicate history off": "\u0633\u062C\u0644 \u0627\u0644\u062A\u0643\u0631\u0627\u0631\u0627\u062A \u0645\u0639\u0637\u0651\u0644",
-      "Media layout saved": "\u062A\u0645 \u062D\u0641\u0638 \u062A\u062E\u0637\u064A\u0637 \u0627\u0644\u0648\u0633\u0627\u0626\u0637",
       "Concurrent download limit saved": "\u062A\u0645 \u062D\u0641\u0638 \u062D\u062F \u0627\u0644\u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0627\u0644\u0645\u062A\u0632\u0627\u0645\u0646\u0629",
       "Download pacing saved": "\u062A\u0645 \u062D\u0641\u0638 \u0648\u062A\u064A\u0631\u0629 \u0627\u0644\u062A\u0646\u0632\u064A\u0644",
       "History cleared": "\u062A\u0645 \u0645\u0633\u062D \u0627\u0644\u0633\u062C\u0644",
@@ -7838,13 +7863,15 @@ html.av-reduce-motion *::after {
       "Download access was not granted. Open Aviary Options to enable browser downloads.": "\u0644\u0645 \u064A\u062A\u0645 \u0645\u0646\u062D \u0625\u0630\u0646 \u0627\u0644\u062A\u0646\u0632\u064A\u0644. \u0627\u0641\u062A\u062D \u062E\u064A\u0627\u0631\u0627\u062A Aviary \u0644\u062A\u0645\u0643\u064A\u0646 \u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0627\u0644\u0645\u062A\u0635\u0641\u062D.",
       "Media download failed. Try the on-post button again.": "\u0641\u0634\u0644 \u062A\u0646\u0632\u064A\u0644 \u0627\u0644\u0648\u0633\u0627\u0626\u0637. \u062D\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649 \u0628\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0627\u0644\u0632\u0631 \u0627\u0644\u0645\u0648\u062C\u0648\u062F \u0639\u0644\u0649 \u0627\u0644\u0645\u0646\u0634\u0648\u0631.",
       "Right-click an image or video first, then choose Aviary download.": "\u0627\u0646\u0642\u0631 \u0628\u0632\u0631 \u0627\u0644\u0645\u0627\u0648\u0633 \u0627\u0644\u0623\u064A\u0645\u0646 \u0639\u0644\u0649 \u0635\u0648\u0631\u0629 \u0623\u0648 \u0641\u064A\u062F\u064A\u0648 \u0623\u0648\u0644\u0627\u064B\u060C \u062B\u0645 \u0627\u062E\u062A\u0631 \u062A\u0646\u0632\u064A\u0644 Aviary.",
+      "Download": "\u062A\u0646\u0632\u064A\u0644",
+      "Download all media in this post": "\u062A\u0646\u0632\u064A\u0644 \u0643\u0644 \u0627\u0644\u0648\u0633\u0627\u0626\u0637 \u0641\u064A \u0647\u0630\u0627 \u0627\u0644\u0645\u0646\u0634\u0648\u0631",
+      "The direct video is still loading. Try again in a moment.": "\u0644\u0627 \u064A\u0632\u0627\u0644 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u0627\u0644\u0645\u0628\u0627\u0634\u0631 \u0642\u064A\u062F \u0627\u0644\u062A\u062D\u0645\u064A\u0644. \u062D\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649 \u0628\u0639\u062F \u0642\u0644\u064A\u0644.",
       "Unavailable": "\u063A\u064A\u0631 \u0645\u062A\u0627\u062D",
-      "Saved": "\u062A\u0645 \u0627\u0644\u062D\u0641\u0638",
-      "Queued": "\u0641\u064A \u0627\u0644\u0627\u0646\u062A\u0638\u0627\u0631",
       "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "\u0641\u062A\u062D \u0645\u062A\u0635\u0641\u062D\u0643 \u0627\u0644\u0645\u0644\u0641 \u0628\u062F\u0644 \u062D\u0641\u0638\u0647 \u2014 \u0627\u0645\u0646\u062D Aviary \u0625\u0630\u0646 \u0627\u0644\u062A\u0646\u0632\u064A\u0644 \u0644\u064A\u062D\u0641\u0638\u0647 \u0641\u0639\u0644\u064A\u064B\u0627.",
       "Aviary needs the browser download permission. Opening its options page.": "\u064A\u062D\u062A\u0627\u062C Aviary \u0625\u0644\u0649 \u0625\u0630\u0646 \u0627\u0644\u062A\u0646\u0632\u064A\u0644 \u0645\u0646 \u0627\u0644\u0645\u062A\u0635\u0641\u062D. \u064A\u062C\u0631\u064A \u0641\u062A\u062D \u0635\u0641\u062D\u0629 \u0627\u0644\u062E\u064A\u0627\u0631\u0627\u062A.",
-      "The direct video is still loading. Try again in a moment.": "\u0644\u0627 \u064A\u0632\u0627\u0644 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u0627\u0644\u0645\u0628\u0627\u0634\u0631 \u0642\u064A\u062F \u0627\u0644\u062A\u062D\u0645\u064A\u0644. \u062D\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649 \u0628\u0639\u062F \u0642\u0644\u064A\u0644.",
       "This image is not available to download.": "\u0647\u0630\u0647 \u0627\u0644\u0635\u0648\u0631\u0629 \u063A\u064A\u0631 \u0645\u062A\u0627\u062D\u0629 \u0644\u0644\u062A\u0646\u0632\u064A\u0644.",
+      "Queued": "\u0641\u064A \u0627\u0644\u0627\u0646\u062A\u0638\u0627\u0631",
+      "Saved": "\u062A\u0645 \u0627\u0644\u062D\u0641\u0638",
       "Allow": "\u0627\u0644\u0633\u0645\u0627\u062D",
       "Retry": "\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0645\u062D\u0627\u0648\u0644\u0629",
       "Permissions": "\u0627\u0644\u0623\u0630\u0648\u0646\u0627\u062A",
@@ -7893,6 +7920,7 @@ html.av-reduce-motion *::after {
       "posts": "\u0645\u0646\u0634\u0648\u0631\u0627\u062A",
       "offline-ready": "\u062C\u0627\u0647\u0632 \u0644\u0644\u0639\u0645\u0644 \u062F\u0648\u0646 \u0627\u062A\u0635\u0627\u0644",
       "network may be required": "\u0642\u062F \u062A\u062A\u0637\u0644\u0628 \u0627\u0644\u0634\u0628\u0643\u0629",
+      "Rewrite image URLs to name=orig before downloading.": "\u064A\u0639\u064A\u062F \u0643\u062A\u0627\u0628\u0629 \u0631\u0648\u0627\u0628\u0637 \u0627\u0644\u0635\u0648\u0631 \u0625\u0644\u0649 name=orig \u0642\u0628\u0644 \u0627\u0644\u062A\u0646\u0632\u064A\u0644.",
       "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "\u064A\u0646\u0637\u0628\u0642 \u0641\u0642\u0637 \u0623\u062B\u0646\u0627\u0621 \u062A\u0641\u0639\u064A\u0644 \u0648\u0636\u0639 \u0628\u0644\u0627 \u0625\u0639\u0644\u0627\u0646\u0627\u062A. \u064A\u0631\u0641\u0636 Aviary \u0637\u0644\u0628 \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u0645\u062D\u062A\u0648\u0649 \u0627\u0644\u0645\u064F\u0645\u0648\u064E\u0651\u0644 \u0627\u0644\u0645\u0646\u0641\u0635\u0644 \u0641\u064A X\u060C \u0648\u0647\u0648 \u0637\u0644\u0628 \u0627\u0644\u0625\u0639\u0644\u0627\u0646 \u0627\u0644\u0648\u062D\u064A\u062F \u0627\u0644\u0630\u064A \u064A\u0645\u0643\u0646 \u0641\u0635\u0644\u0647 \u0639\u0646 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \u0646\u0641\u0633\u0647. \u0623\u0648\u0642\u0641 \u0647\u0630\u0627 \u0625\u0630\u0627 \u0627\u0634\u062A\u0643\u0649 X \u0645\u0646 \u0648\u062C\u0648\u062F \u0645\u0627\u0646\u0639 \u0625\u0639\u0644\u0627\u0646\u0627\u062A: \u062A\u0628\u0642\u0649 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u0645\u0648\u064E\u0651\u0644\u0629 \u0645\u062E\u0641\u064A\u0629 \u0648\u064A\u062A\u0648\u0642\u0641 Aviary \u0639\u0646 \u0631\u0641\u0636 \u0623\u064A \u0637\u0644\u0628 \u0639\u0644\u0649 \u0627\u0644\u0625\u0637\u0644\u0627\u0642.",
       "Always play video at the highest quality": "\u062A\u0634\u063A\u064A\u0644 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u062F\u0627\u0626\u0645\u064B\u0627 \u0628\u0623\u0639\u0644\u0649 \u062C\u0648\u062F\u0629",
       "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "\u064A\u062E\u062A\u0627\u0631 X \u062C\u0648\u062F\u0629 \u0641\u064A\u062F\u064A\u0648 \u062A\u0646\u0627\u0633\u0628 \u0627\u062A\u0635\u0627\u0644\u0643\u060C \u0648\u0639\u0644\u0649 \u0627\u0644\u0627\u062A\u0635\u0627\u0644\u0627\u062A \u0627\u0644\u0633\u0631\u064A\u0639\u0629 \u0643\u062B\u064A\u0631\u064B\u0627 \u0645\u0627 \u064A\u0633\u062A\u0642\u0631 \u062F\u0648\u0646 \u0623\u0641\u0636\u0644 \u062C\u0648\u062F\u0629 \u0645\u062A\u0627\u062D\u0629. \u064A\u062B\u0628\u0651\u062A \u0647\u0630\u0627 \u0627\u0644\u062E\u064A\u0627\u0631 \u0643\u0644 \u0641\u064A\u062F\u064A\u0648 \u0639\u0644\u0649 \u0623\u0639\u0644\u0649 \u062C\u0648\u062F\u0629 \u0644\u0647. \u0648\u064A\u0633\u062A\u0647\u0644\u0643 \u0628\u064A\u0627\u0646\u0627\u062A \u0623\u0643\u062B\u0631.",
@@ -8108,20 +8136,20 @@ html.av-reduce-motion *::after {
       "Playback": "\u05D4\u05E4\u05E2\u05DC\u05D4",
       "The download preference applies to every media control.": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05D7\u05DC\u05D4 \u05E2\u05DC \u05DB\u05DC \u05E4\u05E7\u05D3\u05D9 \u05D4\u05DE\u05D3\u05D9\u05D4.",
       "Show download buttons": "\u05D4\u05E6\u05D2\u05EA \u05DB\u05E4\u05EA\u05D5\u05E8\u05D9 \u05D4\u05D5\u05E8\u05D3\u05D4",
-      "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "\u05DE\u05D5\u05E1\u05D9\u05E3 \u05DB\u05E4\u05EA\u05D5\u05E8\u05D9 \u05E9\u05DE\u05D9\u05E8\u05D4 \u05D5\u05EA\u05DE\u05D5\u05E0\u05D4 \u05DE\u05DE\u05D5\u05D6\u05E2\u05E8\u05EA \u05DE\u05E2\u05DC \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D5\u05EA\u05E7\u05E6\u05D9\u05E8\u05D9 \u05D4\u05D5\u05D5\u05D9\u05D3\u05D0\u05D5.",
+      "Add one Download action to each media post, plus per-asset controls.": "\u05D4\u05D5\u05E1\u05E4\u05EA \u05E4\u05E2\u05D5\u05DC\u05EA \u05D4\u05D5\u05E8\u05D3\u05D4 \u05DC\u05DB\u05DC \u05E4\u05D5\u05E1\u05D8 \u05DE\u05D3\u05D9\u05D4, \u05D9\u05D7\u05D3 \u05E2\u05DD \u05E4\u05E7\u05D3\u05D9\u05DD \u05DC\u05DB\u05DC \u05E7\u05D5\u05D1\u05E5.",
       "Prefer original quality": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D0\u05D9\u05DB\u05D5\u05EA \u05DE\u05E7\u05D5\u05E8\u05D9\u05EA",
-      "Rewrite image URLs to name=orig before downloading.": "\u05DE\u05E9\u05DB\u05EA\u05D1 \u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05EA\u05DE\u05D5\u05E0\u05D4 \u05DC\u2011name=orig \u05DC\u05E4\u05E0\u05D9 \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4.",
+      "Try source-format name=orig first, then 4096x4096 if it fails.": "\u05D9\u05E9 \u05DC\u05E0\u05E1\u05D5\u05EA \u05EA\u05D7\u05D9\u05DC\u05D4 name=orig \u05D1\u05E4\u05D5\u05E8\u05DE\u05D8 \u05D4\u05DE\u05E7\u05D5\u05E8, \u05D5\u05D0\u05DD \u05D4\u05E4\u05E2\u05D5\u05DC\u05D4 \u05E0\u05DB\u05E9\u05DC\u05EA \u05DC\u05E0\u05E1\u05D5\u05EA 4096x4096.",
       "Original quality status": "\u05DE\u05E6\u05D1 \u05D4\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05E8\u05D9\u05EA",
       "Show images at original quality": "\u05D4\u05E6\u05D2\u05EA \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D1\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05E8\u05D9\u05EA",
       "Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes.": "\u05D8\u05D5\u05E2\u05DF \u05D0\u05EA \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF \u05D1\u05D2\u05D5\u05D3\u05DC \u05DE\u05DC\u05D0 \u05D1\u05DE\u05E7\u05D5\u05DD \u05D1\u05D2\u05E8\u05E1\u05D4 \u05E9-X \u05D1\u05D5\u05D7\u05E8 \u05DC\u05DE\u05E7\u05D5\u05DD. \u05D7\u05D3 \u05D9\u05D5\u05EA\u05E8, \u05D5\u05E4\u05D9 \u05DB\u05DE\u05D4 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD.",
-      "Filename template": "\u05EA\u05D1\u05E0\u05D9\u05EA \u05E9\u05DD \u05E7\u05D5\u05D1\u05E5",
-      "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "\u05E9\u05D3\u05D5\u05EA: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
-      "Duplicate history": "\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05DB\u05E4\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA",
-      "Skip downloads of media you have already saved from this browser.": "\u05DE\u05D3\u05DC\u05D2 \u05E2\u05DC \u05D4\u05D5\u05E8\u05D3\u05EA \u05DE\u05D3\u05D9\u05D4 \u05E9\u05DB\u05D1\u05E8 \u05E0\u05E9\u05DE\u05E8\u05D4 \u05DE\u05D3\u05E4\u05D3\u05E4\u05DF \u05D6\u05D4.",
       "Media layout": "\u05E4\u05E8\u05D9\u05E1\u05EA \u05DE\u05D3\u05D9\u05D4",
       "Default grid": "\u05E8\u05E9\u05EA \u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC",
       "Stacked": "\u05DE\u05D5\u05E2\u05E8\u05DD",
       "Strict grid": "\u05E8\u05E9\u05EA \u05D0\u05D7\u05D9\u05D3\u05D4",
+      "Filename template": "\u05EA\u05D1\u05E0\u05D9\u05EA \u05E9\u05DD \u05E7\u05D5\u05D1\u05E5",
+      "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.": "\u05E9\u05D3\u05D5\u05EA: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
+      "Duplicate history": "\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05DB\u05E4\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA",
+      "Skip downloads of media you have already saved from this browser.": "\u05DE\u05D3\u05DC\u05D2 \u05E2\u05DC \u05D4\u05D5\u05E8\u05D3\u05EA \u05DE\u05D3\u05D9\u05D4 \u05E9\u05DB\u05D1\u05E8 \u05E0\u05E9\u05DE\u05E8\u05D4 \u05DE\u05D3\u05E4\u05D3\u05E4\u05DF \u05D6\u05D4.",
       "Concurrent downloads": "\u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05D1\u05DE\u05E7\u05D1\u05D9\u05DC",
       "Maximum media downloads in flight during a batch (1-6).": "\u05D4\u05DE\u05E1\u05E4\u05E8 \u05D4\u05DE\u05E8\u05D1\u05D9 \u05E9\u05DC \u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05DE\u05D3\u05D9\u05D4 \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA \u05D1\u05D0\u05E6\u05D5\u05D5\u05D4 (1\u20136).",
       "Download pacing": "\u05E7\u05E6\u05D1 \u05D4\u05D5\u05E8\u05D3\u05D4",
@@ -8134,6 +8162,7 @@ html.av-reduce-motion *::after {
       "Reset the local dedup index.": "\u05DE\u05D0\u05E4\u05E1 \u05D0\u05EA \u05D0\u05D9\u05E0\u05D3\u05E7\u05E1 \u05D4\u05DB\u05E4\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9.",
       "Download all visible media": "\u05D4\u05D5\u05E8\u05D3\u05EA \u05DB\u05DC \u05D4\u05DE\u05D3\u05D9\u05D4 \u05D4\u05DE\u05D5\u05E6\u05D2\u05EA",
       "Walks every tweet rendered on the current page and queues every photo/video/GIF/thumbnail through the existing download pipeline.": "\u05E2\u05D5\u05D1\u05E8 \u05E2\u05DC \u05DB\u05DC \u05E4\u05D5\u05E1\u05D8 \u05E9\u05DE\u05D5\u05E6\u05D2 \u05D1\u05E2\u05DE\u05D5\u05D3 \u05D4\u05E0\u05D5\u05DB\u05D7\u05D9 \u05D5\u05DE\u05D5\u05E1\u05D9\u05E3 \u05DB\u05DC \u05EA\u05DE\u05D5\u05E0\u05D4, \u05E1\u05E8\u05D8\u05D5\u05DF, GIF \u05D5\u05EA\u05DE\u05D5\u05E0\u05D4 \u05DE\u05DE\u05D5\u05D6\u05E2\u05E8\u05EA \u05DC\u05EA\u05D5\u05E8 \u05D4\u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05D4\u05E7\u05D9\u05D9\u05DD.",
+      "Inject Save and Thumb buttons over tweet photos and video thumbnails.": "\u05DE\u05D5\u05E1\u05D9\u05E3 \u05DB\u05E4\u05EA\u05D5\u05E8\u05D9 \u05E9\u05DE\u05D9\u05E8\u05D4 \u05D5\u05EA\u05DE\u05D5\u05E0\u05D4 \u05DE\u05DE\u05D5\u05D6\u05E2\u05E8\u05EA \u05DE\u05E2\u05DC \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D4\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05D5\u05EA\u05E7\u05E6\u05D9\u05E8\u05D9 \u05D4\u05D5\u05D5\u05D9\u05D3\u05D0\u05D5.",
       "On-post controls": "\u05E4\u05E7\u05D3\u05D9\u05DD \u05D1\u05E4\u05D5\u05E1\u05D8",
       "File naming": "\u05E9\u05DE\u05D5\u05EA \u05E7\u05D1\u05E6\u05D9\u05DD",
       "Batch behavior": "\u05D4\u05EA\u05E0\u05D4\u05D2\u05D5\u05EA \u05D0\u05E6\u05D5\u05D5\u05D4",
@@ -8532,10 +8561,10 @@ html.av-reduce-motion *::after {
       "Original quality preference saved": "\u05D4\u05E2\u05D3\u05E4\u05EA \u05D4\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05DE\u05E7\u05D5\u05E8\u05D9\u05EA \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Full-size images on": "\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D1\u05D2\u05D5\u05D3\u05DC \u05DE\u05DC\u05D0 \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA",
       "Full-size images off": "\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D1\u05D2\u05D5\u05D3\u05DC \u05DE\u05DC\u05D0 \u05DB\u05D1\u05D5\u05D9\u05D5\u05EA",
+      "Media layout saved": "\u05E4\u05E8\u05D9\u05E1\u05EA \u05D4\u05DE\u05D3\u05D9\u05D4 \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Filename template saved": "\u05EA\u05D1\u05E0\u05D9\u05EA \u05E9\u05DD \u05D4\u05E7\u05D5\u05D1\u05E5 \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Duplicate history on": "\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05DB\u05E4\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC\u05D4",
       "Duplicate history off": "\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05DB\u05E4\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA \u05DB\u05D1\u05D5\u05D9\u05D4",
-      "Media layout saved": "\u05E4\u05E8\u05D9\u05E1\u05EA \u05D4\u05DE\u05D3\u05D9\u05D4 \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Concurrent download limit saved": "\u05DE\u05D2\u05D1\u05DC\u05EA \u05D4\u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05D1\u05DE\u05E7\u05D1\u05D9\u05DC \u05E0\u05E9\u05DE\u05E8\u05D4",
       "Download pacing saved": "\u05E7\u05E6\u05D1 \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05E0\u05E9\u05DE\u05E8",
       "History cleared": "\u05D4\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4 \u05E0\u05D5\u05E7\u05EA\u05D4",
@@ -8770,13 +8799,15 @@ html.av-reduce-motion *::after {
       "Download access was not granted. Open Aviary Options to enable browser downloads.": "\u05D4\u05E8\u05E9\u05D0\u05EA \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05DC\u05D0 \u05E0\u05D9\u05EA\u05E0\u05D4. \u05E4\u05EA\u05D7 \u05D0\u05EA \u05D0\u05E4\u05E9\u05E8\u05D5\u05D9\u05D5\u05EA Aviary \u05DB\u05D3\u05D9 \u05DC\u05D0\u05E4\u05E9\u05E8 \u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05D1\u05D3\u05E4\u05D3\u05E4\u05DF.",
       "Media download failed. Try the on-post button again.": "\u05D4\u05D5\u05E8\u05D3\u05EA \u05D4\u05DE\u05D3\u05D9\u05D4 \u05E0\u05DB\u05E9\u05DC\u05D4. \u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1 \u05D1\u05D0\u05DE\u05E6\u05E2\u05D5\u05EA \u05D4\u05DB\u05E4\u05EA\u05D5\u05E8 \u05E9\u05D1\u05E4\u05D5\u05E1\u05D8.",
       "Right-click an image or video first, then choose Aviary download.": "\u05DC\u05D7\u05E5 \u05EA\u05D7\u05D9\u05DC\u05D4 \u05DC\u05D7\u05D9\u05E6\u05D4 \u05D9\u05DE\u05E0\u05D9\u05EA \u05E2\u05DC \u05EA\u05DE\u05D5\u05E0\u05D4 \u05D0\u05D5 \u05D5\u05D9\u05D3\u05D0\u05D5, \u05D5\u05D0\u05D6 \u05D1\u05D7\u05E8 \u05D1\u05D4\u05D5\u05E8\u05D3\u05EA Aviary.",
+      "Download": "\u05D4\u05D5\u05E8\u05D3\u05D4",
+      "Download all media in this post": "\u05D4\u05D5\u05E8\u05D3\u05EA \u05DB\u05DC \u05D4\u05DE\u05D3\u05D9\u05D4 \u05D1\u05E4\u05D5\u05E1\u05D8 \u05D4\u05D6\u05D4",
+      "The direct video is still loading. Try again in a moment.": "\u05D4\u05D5\u05D5\u05D9\u05D3\u05D0\u05D5 \u05D4\u05D9\u05E9\u05D9\u05E8 \u05E2\u05D3\u05D9\u05D9\u05DF \u05E0\u05D8\u05E2\u05DF. \u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1 \u05D1\u05E2\u05D5\u05D3 \u05E8\u05D2\u05E2.",
       "Unavailable": "\u05DC\u05D0 \u05D6\u05DE\u05D9\u05DF",
-      "Saved": "\u05E0\u05E9\u05DE\u05E8",
-      "Queued": "\u05D1\u05EA\u05D5\u05E8",
       "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.": "\u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05E4\u05EA\u05D7 \u05D0\u05EA \u05D4\u05E7\u05D5\u05D1\u05E5 \u05D1\u05DE\u05E7\u05D5\u05DD \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D0\u05D5\u05EA\u05D5 \u2014 \u05D4\u05E2\u05E0\u05E7 \u05DC-Aviary \u05D4\u05E8\u05E9\u05D0\u05EA \u05D4\u05D5\u05E8\u05D3\u05D4 \u05DB\u05D3\u05D9 \u05DC\u05E9\u05DE\u05D5\u05E8 \u05D1\u05D0\u05DE\u05EA.",
       "Aviary needs the browser download permission. Opening its options page.": "\u05DC-Aviary \u05E0\u05D3\u05E8\u05E9\u05EA \u05D4\u05E8\u05E9\u05D0\u05EA \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4 \u05E9\u05DC \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF. \u05E0\u05E4\u05EA\u05D7 \u05D3\u05E3 \u05D4\u05D0\u05E4\u05E9\u05E8\u05D5\u05D9\u05D5\u05EA.",
-      "The direct video is still loading. Try again in a moment.": "\u05D4\u05D5\u05D5\u05D9\u05D3\u05D0\u05D5 \u05D4\u05D9\u05E9\u05D9\u05E8 \u05E2\u05D3\u05D9\u05D9\u05DF \u05E0\u05D8\u05E2\u05DF. \u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1 \u05D1\u05E2\u05D5\u05D3 \u05E8\u05D2\u05E2.",
       "This image is not available to download.": "\u05D4\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D4\u05D6\u05D5 \u05D0\u05D9\u05E0\u05D4 \u05D6\u05DE\u05D9\u05E0\u05D4 \u05DC\u05D4\u05D5\u05E8\u05D3\u05D4.",
+      "Queued": "\u05D1\u05EA\u05D5\u05E8",
+      "Saved": "\u05E0\u05E9\u05DE\u05E8",
       "Allow": "\u05D0\u05D9\u05E9\u05D5\u05E8",
       "Retry": "\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1",
       "Permissions": "\u05D4\u05E8\u05E9\u05D0\u05D5\u05EA",
@@ -8825,6 +8856,7 @@ html.av-reduce-motion *::after {
       "posts": "\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD",
       "offline-ready": "\u05DE\u05D5\u05DB\u05DF \u05DC\u05DC\u05D0 \u05D7\u05D9\u05D1\u05D5\u05E8",
       "network may be required": "\u05D9\u05D9\u05EA\u05DB\u05DF \u05E9\u05E0\u05D3\u05E8\u05E9 \u05D7\u05D9\u05D1\u05D5\u05E8 \u05E8\u05E9\u05EA",
+      "Rewrite image URLs to name=orig before downloading.": "\u05DE\u05E9\u05DB\u05EA\u05D1 \u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05EA\u05DE\u05D5\u05E0\u05D4 \u05DC\u2011name=orig \u05DC\u05E4\u05E0\u05D9 \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4.",
       "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "\u05D7\u05DC \u05E8\u05E7 \u05DB\u05D0\u05E9\u05E8 \u05DE\u05E6\u05D1 \u05DC\u05DC\u05D0 \u05DE\u05D5\u05D3\u05E2\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC. Aviary \u05D3\u05D5\u05D7\u05D4 \u05D0\u05EA \u05D1\u05E7\u05E9\u05EA \u05E8\u05D9\u05E9\u05D5\u05DD \u05D4\u05EA\u05D5\u05DB\u05DF \u05D4\u05DE\u05DE\u05D5\u05DE\u05DF \u05D4\u05E0\u05E4\u05E8\u05D3\u05EA \u05E9\u05DC X, \u05D1\u05E7\u05E9\u05EA \u05D4\u05DE\u05D5\u05D3\u05E2\u05D5\u05EA \u05D4\u05D9\u05D7\u05D9\u05D3\u05D4 \u05E9\u05E0\u05D9\u05EA\u05DF \u05DC\u05D4\u05E4\u05E8\u05D9\u05D3 \u05DE\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF \u05E2\u05E6\u05DE\u05D5. \u05DB\u05D1\u05D4 \u05D6\u05D0\u05EA \u05D0\u05DD X \u05DE\u05EA\u05DC\u05D5\u05E0\u05DF \u05E2\u05DC \u05D7\u05D5\u05E1\u05DD \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA: \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05DE\u05DE\u05D5\u05DE\u05E0\u05D9\u05DD \u05D9\u05D9\u05E9\u05D0\u05E8\u05D5 \u05DE\u05D5\u05E1\u05EA\u05E8\u05D9\u05DD \u05D5-Aviary \u05D9\u05E4\u05E1\u05D9\u05E7 \u05DC\u05D3\u05D7\u05D5\u05EA \u05DB\u05DC \u05D1\u05E7\u05E9\u05D4 \u05E9\u05D4\u05D9\u05D0.",
       "Always play video at the highest quality": "\u05DC\u05E0\u05D2\u05DF \u05D5\u05D9\u05D3\u05D0\u05D5 \u05EA\u05DE\u05D9\u05D3 \u05D1\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8",
       "X picks a video quality to suit your connection, and on a fast connection it often settles below the best one available. This pins every video to its highest rendition. It uses more data.": "\u200FX \u05D1\u05D5\u05D7\u05E8 \u05D0\u05D9\u05DB\u05D5\u05EA \u05D5\u05D9\u05D3\u05D0\u05D5 \u05E9\u05DE\u05EA\u05D0\u05D9\u05DE\u05D4 \u05DC\u05D7\u05D9\u05D1\u05D5\u05E8 \u05E9\u05DC\u05DA, \u05D5\u05D1\u05D7\u05D9\u05D1\u05D5\u05E8 \u05DE\u05D4\u05D9\u05E8 \u05D4\u05D5\u05D0 \u05DC\u05E8\u05D5\u05D1 \u05E0\u05E2\u05E6\u05E8 \u05DE\u05EA\u05D7\u05EA \u05DC\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D8\u05D5\u05D1\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8 \u05D4\u05D6\u05DE\u05D9\u05E0\u05D4. \u05D4\u05D0\u05E4\u05E9\u05E8\u05D5\u05EA \u05D4\u05D6\u05D5 \u05DE\u05E7\u05D1\u05E2\u05EA \u05DB\u05DC \u05E1\u05E8\u05D8\u05D5\u05DF \u05DC\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8 \u05E9\u05DC\u05D5. \u05D4\u05D9\u05D0 \u05E6\u05D5\u05E8\u05DB\u05EA \u05D9\u05D5\u05EA\u05E8 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD.",
@@ -8896,7 +8928,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/platform/build-version.ts
-  var AVIARY_VERSION = false ? "dev" : "1.26.0";
+  var AVIARY_VERSION = false ? "dev" : "1.27.0";
 
   // src/ui/control-center/constants.ts
   var MEDIA_LAYOUT_OPTIONS = [
@@ -10953,7 +10985,7 @@ html.av-reduce-motion *::after {
     rows.push(
       ctx.toggleRow(
         "Show download buttons",
-        "Inject Save and Thumb buttons over tweet photos and video thumbnails.",
+        "Add one Download action to each media post, plus per-asset controls.",
         ctx.options.settings.media.buttons,
         async (checked) => {
           ctx.options.settings.media.buttons = checked;
@@ -10964,7 +10996,7 @@ html.av-reduce-motion *::after {
     rows.push(
       ctx.toggleRow(
         "Prefer original quality",
-        "Rewrite image URLs to name=orig before downloading.",
+        "Try source-format name=orig first, then 4096x4096 if it fails.",
         ctx.options.settings.media.preferOriginalImages,
         async (checked) => {
           ctx.options.settings.media.preferOriginalImages = checked;
@@ -11865,7 +11897,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION2 = false ? "dev" : "1.26.0";
+  var AVIARY_VERSION2 = false ? "dev" : "1.27.0";
   var SECTION_GROUP_BREAKS = {
     presets: [
       { before: "Quiet Reader", title: "Preset packs" },
@@ -16558,14 +16590,22 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     const requestedFormat = (params.get("format") ?? "").toLowerCase();
     const format = FORMAT_PRIORITY.includes(requestedFormat) ? requestedFormat : "jpg";
     params.set("format", format);
-    if (options.preferOriginal ?? true) {
+    const preferOriginal = options.preferOriginal ?? true;
+    if (preferOriginal) {
       params.set("name", "orig");
     } else if (!params.has("name")) {
       params.set("name", "large");
     }
     const mediaId = mediaIdFromPath(parsed.pathname);
+    const fallbackUrls = [];
+    if (preferOriginal) {
+      const fallbackParams = new URLSearchParams(params);
+      fallbackParams.set("name", "4096x4096");
+      fallbackUrls.push(`${parsed.origin}${parsed.pathname}?${fallbackParams.toString()}`);
+    }
     return {
       url: `${parsed.origin}${parsed.pathname}?${params.toString()}`,
+      fallbackUrls,
       format,
       mediaId
     };
@@ -16657,14 +16697,24 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       bitrate: parsePositiveInt(bitrate)
     });
   }
-  function isSaveableVariantUrl(url) {
-    return !/^blob:/i.test(url);
+  function isSaveableVariantUrl(url, type = "") {
+    if (!/^https?:\/\//i.test(url)) {
+      return false;
+    }
+    if (/\.(?:m3u8|mpd|m4s)(?:[?#]|$)/i.test(url)) {
+      return false;
+    }
+    return !/(?:mpegurl|dash\+xml)/i.test(type);
   }
   function pickPreferred(variants) {
     const sorted = [...variants].sort((a, b) => {
-      const saveableDiff = Number(isSaveableVariantUrl(b.url)) - Number(isSaveableVariantUrl(a.url));
+      const saveableDiff = Number(isSaveableVariantUrl(b.url, b.type)) - Number(isSaveableVariantUrl(a.url, a.type));
       if (saveableDiff !== 0) {
         return saveableDiff;
+      }
+      const mp4Diff = Number(isProgressiveMp4(b)) - Number(isProgressiveMp4(a));
+      if (mp4Diff !== 0) {
+        return mp4Diff;
       }
       const bitrateDiff = (b.bitrate ?? 0) - (a.bitrate ?? 0);
       if (bitrateDiff !== 0) {
@@ -16675,6 +16725,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       return bPixels - aPixels;
     });
     return sorted[0] ?? variants[0];
+  }
+  function isProgressiveMp4(variant) {
+    return /video\/mp4/i.test(variant.type) || /\.mp4(?:[?#]|$)/i.test(variant.url);
   }
   function looksLikeGif(container, video, variants) {
     if (video.loop && video.muted) {
@@ -17309,19 +17362,25 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     if (typeof globals.GM_download !== "function") {
       return false;
     }
-    return await new Promise((resolve) => {
-      try {
-        globals.GM_download?.({
-          url: request.url,
-          name: request.filename,
-          onload: () => resolve(true),
-          onerror: () => resolve(false),
-          ontimeout: () => resolve(false)
-        });
-      } catch {
-        resolve(false);
+    for (const url of downloadCandidates(request)) {
+      const saved = await new Promise((resolve) => {
+        try {
+          globals.GM_download?.({
+            url,
+            name: request.filename,
+            onload: () => resolve(true),
+            onerror: () => resolve(false),
+            ontimeout: () => resolve(false)
+          });
+        } catch {
+          resolve(false);
+        }
+      });
+      if (saved) {
+        return true;
       }
-    });
+    }
+    return false;
   }
   async function tryExtensionDownload(request) {
     const runtime = globalThis.chrome?.runtime;
@@ -17332,6 +17391,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       const response = await runtime.sendMessage({
         type: "AVIARY_DOWNLOAD",
         url: request.url,
+        fallbackUrls: request.fallbackUrls,
         filename: request.filename
       });
       if (response?.ok === true) {
@@ -17347,6 +17407,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     } catch {
       return { status: "unavailable" };
     }
+  }
+  function downloadCandidates(request) {
+    return [request.url, ...request.fallbackUrls ?? []].filter((url, index, all) => /^https?:\/\//i.test(url) && all.indexOf(url) === index).slice(0, 4);
   }
   async function requestDownloadPermissionSurface() {
     const runtime = globalThis.chrome?.runtime;
@@ -22946,9 +23009,11 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   // src/features/media/media-buttons.ts
   var STYLE_ID6 = "av-media-buttons";
   var BUTTON_ATTR2 = "data-av-media-button";
+  var ACTION_ATTR = "data-av-media-action";
+  var ACTION_SLOT_ATTR = "data-av-media-action-slot";
   var PROCESSED_ATTR2 = "data-av-media-processed";
   var MEDIA_HOST_SELECTOR = '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="videoComponent"]';
-  var MEDIA_MUTATION_SELECTOR = '[data-testid="tweetPhoto"], [data-testid="tweetPhoto"] img, [data-testid="videoPlayer"], [data-testid="videoComponent"], video, source';
+  var MEDIA_MUTATION_SELECTOR = '[data-testid="tweetPhoto"], [data-testid="tweetPhoto"] img, [data-testid="videoPlayer"], [data-testid="videoComponent"], video, source, [role="group"], [data-testid="reply"]';
   var CONTEXT_TARGET_MAX_AGE_MS = 3e4;
   var downloader;
   var history;
@@ -23031,7 +23096,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         return;
       }
       for (const node of addedNodes) {
-        if (node.hasAttribute(BUTTON_ATTR2)) {
+        if (node.hasAttribute(BUTTON_ATTR2) || node.hasAttribute(ACTION_SLOT_ATTR)) {
           continue;
         }
         if (needsMutationReconcile(node)) {
@@ -23098,6 +23163,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     }
     for (const button2 of Array.from(document.querySelectorAll(`[${BUTTON_ATTR2}]`))) {
       button2.remove();
+    }
+    for (const slot of Array.from(document.querySelectorAll(`[${ACTION_SLOT_ATTR}]`))) {
+      slot.remove();
     }
   }
   function installContextDownload(ctx) {
@@ -23216,7 +23284,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     const articles = collectArticles3(root);
     for (const article of articles) {
       if (!force && article.getAttribute(PROCESSED_ATTR2) === "1") {
-        if (article.querySelector(`[${BUTTON_ATTR2}]`) || !article.querySelector(MEDIA_HOST_SELECTOR)) {
+        if (article.querySelector(`[${BUTTON_ATTR2}]`) && (article.querySelector(`[${ACTION_ATTR}]`) || !findActionGroup(article)) || !article.querySelector(MEDIA_HOST_SELECTOR)) {
           continue;
         }
       }
@@ -23235,7 +23303,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       return true;
     }
     if (node.matches('article[data-testid="tweet"]')) {
-      return node.getAttribute(PROCESSED_ATTR2) !== "1" || !node.querySelector(`[${BUTTON_ATTR2}]`) && node.querySelector(MEDIA_HOST_SELECTOR) !== null;
+      return node.getAttribute(PROCESSED_ATTR2) !== "1" || (!node.querySelector(`[${BUTTON_ATTR2}]`) || findActionGroup(node) !== null && !node.querySelector(`[${ACTION_ATTR}]`)) && node.querySelector(MEDIA_HOST_SELECTOR) !== null;
     }
     return node.matches(MEDIA_MUTATION_SELECTOR) || node.querySelector(MEDIA_MUTATION_SELECTOR) !== null;
   }
@@ -23257,6 +23325,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     return [...found];
   }
   function decorateArticle(tweet, ctx) {
+    decoratePostAction(tweet, ctx);
     tweet.media.forEach((media, index) => {
       const container = resolveContainer(media);
       if (!container || hasOwnButton(container, media.kind)) {
@@ -23269,6 +23338,75 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       container.append(button2);
       positionButton(button2, container);
     });
+  }
+  function decoratePostAction(tweet, ctx) {
+    const group = findActionGroup(tweet.article);
+    if (!group || group.querySelector(`[${ACTION_ATTR}]`)) {
+      return;
+    }
+    const assets = primaryDownloadAssets(tweet);
+    const hasPendingVideo = tweet.media.some((media) => media.kind === "video" && resolveTarget(media) === null) || tweet.article.querySelector(VIDEO_CONTAINER_SELECTOR) !== null && !tweet.media.some((media) => media.kind === "video");
+    if (assets.length === 0 && !hasPendingVideo) {
+      return;
+    }
+    const slot = document.createElement("div");
+    slot.className = "av-media-action-slot";
+    slot.setAttribute(ACTION_SLOT_ATTR, "1");
+    const button2 = buildPostAction(tweet, hasPendingVideo ? [] : assets, ctx);
+    slot.append(button2);
+    group.append(slot);
+  }
+  function findActionGroup(article) {
+    const reply = article.querySelector('[data-testid="reply"]');
+    const group = reply?.closest('[role="group"]') ?? null;
+    return group && article.contains(group) ? group : null;
+  }
+  function primaryDownloadAssets(tweet) {
+    const assets = [];
+    tweet.media.forEach((media, index) => {
+      if (media.kind !== "photo" && media.kind !== "video") {
+        return;
+      }
+      const target = resolveTarget(media);
+      if (target) {
+        assets.push({ media, index, target });
+      }
+    });
+    return assets;
+  }
+  function buildPostAction(tweet, assets, ctx) {
+    const button2 = document.createElement("button");
+    button2.type = "button";
+    button2.className = "av-media-action";
+    button2.setAttribute(ACTION_ATTR, "1");
+    const idleLabel = ft(ctx, "Download");
+    const accessibleLabel = ft(ctx, "Download all media in this post");
+    button2.dataset.idleLabel = idleLabel;
+    button2.dataset.idleAriaLabel = accessibleLabel;
+    button2.setAttribute("aria-label", accessibleLabel);
+    button2.setAttribute("aria-live", "polite");
+    button2.setAttribute("aria-busy", "false");
+    button2.title = accessibleLabel;
+    const icon = document.createElement("span");
+    icon.className = "av-media-action-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = "\u2193 ";
+    const label = document.createElement("span");
+    label.className = "av-media-action-label";
+    label.textContent = idleLabel;
+    button2.append(icon, label);
+    if (assets.length === 0) {
+      button2.disabled = true;
+      button2.title = ft(ctx, "The direct video is still loading. Try again in a moment.");
+      return button2;
+    }
+    const completed = /* @__PURE__ */ new Set();
+    button2.addEventListener("click", (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+      void handlePostDownload(tweet, assets, completed, ctx, button2);
+    });
+    return button2;
   }
   function positionButton(button2, container) {
     const anchor = positionedAncestor(container);
@@ -23370,6 +23508,86 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       ctx.diagnostics.warn("Media target unavailable", { kind: media.kind });
       return;
     }
+    setButtonFeedback(button2, {
+      label: ft(ctx, "Saving..."),
+      icon: "\u21BB",
+      className: "is-active",
+      disabled: true,
+      busy: true
+    });
+    try {
+      const outcome = await performMediaDownload(media, index, tweet, target, ctx);
+      setButtonFeedback(button2, {
+        label: ft(
+          ctx,
+          outcome.degraded ? "Opened" : outcome.status === "aria2-duplicate" ? "Queued" : successLabel(media)
+        ),
+        icon: outcome.degraded ? "\u2197" : "\u2713",
+        className: outcome.status === "completed" ? "is-success" : "is-duplicate"
+      });
+      if (outcome.degraded) {
+        button2.title = ft(ctx, "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.");
+      }
+      scheduleButtonRestore(button2);
+    } catch (error) {
+      showDownloadError(button2, error, ctx);
+    }
+  }
+  async function handlePostDownload(tweet, assets, completed, ctx, button2) {
+    if (!downloader || !queue || !history) {
+      return;
+    }
+    setButtonFeedback(button2, {
+      label: ft(ctx, "Saving..."),
+      icon: "\u21BB",
+      className: "is-active",
+      disabled: true,
+      busy: true
+    });
+    const outcomes = [];
+    let firstError;
+    for (const asset of assets) {
+      const key = primaryAssetKey(asset);
+      if (completed.has(key)) {
+        continue;
+      }
+      try {
+        outcomes.push(
+          await performMediaDownload(asset.media, asset.index, tweet, asset.target, ctx)
+        );
+        completed.add(key);
+      } catch (error) {
+        firstError ??= error;
+        if (error instanceof DownloadPermissionError) {
+          break;
+        }
+      }
+    }
+    if (firstError) {
+      showDownloadError(button2, firstError, ctx);
+      return;
+    }
+    completed.clear();
+    const degraded = outcomes.some((outcome) => outcome.degraded);
+    const aria2Duplicate = outcomes.length > 0 && outcomes.every((outcome) => outcome.status === "aria2-duplicate");
+    const allDuplicate = outcomes.length > 0 && outcomes.every((outcome) => outcome.status !== "completed");
+    setButtonFeedback(button2, {
+      label: ft(ctx, degraded ? "Opened" : aria2Duplicate ? "Queued" : "Saved"),
+      icon: degraded ? "\u2197" : "\u2713",
+      className: allDuplicate ? "is-duplicate" : "is-success"
+    });
+    if (degraded) {
+      button2.title = ft(ctx, "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.");
+    }
+    scheduleButtonRestore(button2);
+  }
+  function primaryAssetKey(asset) {
+    return `${asset.index}:${asset.media.kind}:${asset.target.mediaId ?? asset.target.url}`;
+  }
+  async function performMediaDownload(media, index, tweet, target, ctx) {
+    if (!downloader || !queue || !history) {
+      throw new Error("Media downloader is not ready.");
+    }
     const filename = renderFilename(ctx.settings.media.filenameTemplate, {
       handle: tweet.handle,
       tweetId: tweet.tweetId,
@@ -23382,43 +23600,30 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     });
     const dedupeKey = `${tweet.tweetId ?? "0"}:${target.mediaId ?? target.url}:${index}:${media.kind}`;
     if (ctx.settings.media.downloadHistory && history.has(dedupeKey)) {
-      const job2 = queue.enqueue({ url: target.url, filename });
-      queue.mark(job2.id, "duplicate");
-      setButtonFeedback(button2, {
-        label: ft(ctx, "Saved"),
-        icon: "\u2713",
-        className: "is-duplicate"
-      });
-      scheduleButtonRestore(button2);
+      const duplicate = queue.enqueue({ url: target.url, filename });
+      queue.mark(duplicate.id, "duplicate");
       ctx.diagnostics.info("Media skipped \u2014 already in history", { dedupeKey });
       void ctx.auditLog.record("media.download.duplicate", { dedupeKey });
-      return;
+      return { status: "history-duplicate", degraded: false };
     }
     const job = queue.enqueue({ url: target.url, filename });
     queue.mark(job.id, "running");
-    setButtonFeedback(button2, {
-      label: ft(ctx, "Saving..."),
-      icon: "\u21BB",
-      className: "is-active",
-      disabled: true,
-      busy: true
-    });
     try {
-      const result = await downloader({ url: target.url, filename });
+      const result = await downloader({
+        url: target.url,
+        ...target.fallbackUrls ? { fallbackUrls: target.fallbackUrls } : {},
+        filename
+      });
       if (result.deduplicated) {
         queue.mark(job.id, "duplicate");
-        setButtonFeedback(button2, {
-          label: ft(ctx, "Queued"),
-          icon: "\u2713",
-          className: "is-duplicate"
+        ctx.diagnostics.info("Media skipped \u2014 already queued in Aria2 history", {
+          url: target.url
         });
-        scheduleButtonRestore(button2);
-        ctx.diagnostics.info("Media skipped \u2014 already queued in Aria2 history", { url: target.url });
         void ctx.auditLog.record("media.download.duplicate", {
           dedupeKey,
           source: "aria2-history"
         });
-        return;
+        return { status: "aria2-duplicate", degraded: false };
       }
       queue.mark(job.id, "completed");
       await rememberLastDownload(ctx.storage, {
@@ -23429,38 +23634,42 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       if (ctx.settings.media.downloadHistory) {
         await history.record(dedupeKey);
       }
-      setButtonFeedback(button2, {
-        label: ft(ctx, result.degraded ? "Opened" : successLabel(media)),
-        icon: result.degraded ? "\u2197" : "\u2713",
-        className: "is-success"
+      ctx.diagnostics.info("Media saved", {
+        filename,
+        kind: media.kind,
+        degraded: result.degraded === true
       });
-      if (result.degraded) {
-        button2.title = ft(ctx, "Your browser opened this file instead of saving it \u2014 grant Aviary the download permission for a real save.");
-      }
-      scheduleButtonRestore(button2);
-      ctx.diagnostics.info("Media saved", { filename, kind: media.kind, degraded: result.degraded === true });
-      void ctx.auditLog.record("media.download", { filename, kind: media.kind, via: result.via });
+      void ctx.auditLog.record("media.download", {
+        filename,
+        kind: media.kind,
+        via: result.via
+      });
+      return { status: "completed", degraded: result.degraded === true };
     } catch (error) {
       const needsPermission = error instanceof DownloadPermissionError;
       queue.mark(job.id, "failed", String(error?.message ?? error));
-      setButtonFeedback(button2, {
-        label: ft(ctx, needsPermission ? "Allow" : "Retry"),
-        icon: needsPermission ? "\u2197" : "!",
-        className: "is-error"
-      });
-      if (needsPermission) {
-        button2.title = ft(ctx, "Aviary needs the browser download permission. Opening its options page.");
-        if (!permissionSurfaceOpened) {
-          permissionSurfaceOpened = true;
-          void requestDownloadPermissionSurface();
-        }
-      }
       ctx.diagnostics.error("Media download failed", errorDetails4(error));
       void ctx.auditLog.record("media.download.failed", {
         filename,
         kind: media.kind,
         ...needsPermission ? { reason: "downloads-permission-missing" } : {}
       });
+      throw error;
+    }
+  }
+  function showDownloadError(button2, error, ctx) {
+    const needsPermission = error instanceof DownloadPermissionError;
+    setButtonFeedback(button2, {
+      label: ft(ctx, needsPermission ? "Allow" : "Retry"),
+      icon: needsPermission ? "\u2197" : "!",
+      className: "is-error"
+    });
+    if (needsPermission) {
+      button2.title = ft(ctx, "Aviary needs the browser download permission. Opening its options page.");
+      if (!permissionSurfaceOpened) {
+        permissionSurfaceOpened = true;
+        void requestDownloadPermissionSurface();
+      }
     }
   }
   function setButtonFeedback(button2, feedback) {
@@ -23470,8 +23679,12 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     button2.dataset.state = feedback.className.slice(3);
     button2.disabled = feedback.disabled === true;
     button2.setAttribute("aria-busy", String(feedback.busy === true));
-    const icon = button2.querySelector(".av-media-button-icon");
-    const label = button2.querySelector(".av-media-button-label");
+    const icon = button2.querySelector(
+      ".av-media-button-icon, .av-media-action-icon"
+    );
+    const label = button2.querySelector(
+      ".av-media-button-label, .av-media-action-label"
+    );
     if (icon) icon.textContent = `${feedback.icon} `;
     if (label) label.textContent = feedback.label;
     button2.setAttribute("aria-label", feedback.label);
@@ -23499,8 +23712,12 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     delete button2.dataset.state;
     button2.disabled = false;
     button2.setAttribute("aria-busy", "false");
-    const icon = button2.querySelector(".av-media-button-icon");
-    const label = button2.querySelector(".av-media-button-label");
+    const icon = button2.querySelector(
+      ".av-media-button-icon, .av-media-action-icon"
+    );
+    const label = button2.querySelector(
+      ".av-media-button-label, .av-media-action-label"
+    );
     if (icon) icon.textContent = "\u2193 ";
     if (label) label.textContent = button2.dataset.idleLabel ?? "";
     const accessibleLabel = button2.dataset.idleAriaLabel ?? button2.dataset.idleLabel ?? "";
@@ -23510,13 +23727,18 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   function resolveTarget(media) {
     if (media.kind === "video" && media.video?.preferred) {
       const url = media.video.preferred.url;
-      if (!isSaveableVariantUrl(url)) {
+      if (!isSaveableVariantUrl(url, media.video.preferred.type)) {
         return null;
       }
       return { url, mediaId: mediaIdFromVideo(url), ext: extensionForVideo(media.video.preferred.type, url) };
     }
     if (media.image) {
-      return { url: media.image.url, mediaId: media.image.mediaId, ext: media.image.format };
+      return {
+        url: media.image.url,
+        fallbackUrls: media.image.fallbackUrls,
+        mediaId: media.image.mediaId,
+        ext: media.image.format
+      };
     }
     return null;
   }
@@ -23552,8 +23774,89 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     (document.head ?? document.documentElement).append(style);
   }
   var MEDIA_CSS = `
-html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
+html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}],
+html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   display: none !important;
+}
+
+[${ACTION_SLOT_ATTR}] {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 104px;
+  margin-inline-start: 4px;
+}
+
+[${ACTION_ATTR}] {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 100px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 55%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, transparent);
+  color: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 88%, white 12%);
+  cursor: pointer;
+  font: 700 13px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
+  white-space: nowrap;
+  transition: transform 140ms ease, border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+[${ACTION_ATTR}] .av-media-action-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  font-size: 17px;
+  line-height: 1;
+}
+
+[${ACTION_ATTR}]:hover:not(:disabled) {
+  border-color: var(--av-accent, rgb(29, 155, 240));
+  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 20%, transparent);
+  transform: translateY(-1px);
+}
+
+[${ACTION_ATTR}]:focus-visible {
+  outline: 2px solid var(--av-accent, rgb(29, 155, 240));
+  outline-offset: 2px;
+}
+
+[${ACTION_ATTR}].is-success {
+  border-color: var(--av-media-success, rgb(120, 200, 130));
+  color: var(--av-media-success-text, rgb(206, 240, 210));
+  background: color-mix(in srgb, var(--av-media-success, rgb(120, 200, 130)) 14%, transparent);
+}
+
+[${ACTION_ATTR}].is-duplicate {
+  border-color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(113, 118, 123));
+}
+
+[${ACTION_ATTR}].is-error {
+  border-color: var(--av-media-error, rgb(220, 110, 110));
+  color: var(--av-media-error-text, rgb(248, 200, 200));
+  background: color-mix(in srgb, var(--av-media-error, rgb(220, 110, 110)) 12%, transparent);
+}
+
+[${ACTION_ATTR}].is-active {
+  border-color: var(--av-accent, rgb(29, 155, 240));
+  cursor: progress;
+}
+
+[${ACTION_ATTR}].is-active .av-media-action-icon {
+  animation: av-media-spin 700ms linear infinite;
+}
+
+[${ACTION_ATTR}]:disabled {
+  cursor: wait;
+  opacity: 0.62;
+  transform: none;
 }
 
 [${BUTTON_ATTR2}] {
@@ -23649,12 +23952,37 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   to { transform: rotate(360deg); }
 }
 
+@media (pointer: coarse) {
+  [${ACTION_ATTR}] {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 520px) {
+  [${ACTION_SLOT_ATTR}] {
+    min-width: 44px;
+    margin-inline-start: 0;
+  }
+
+  [${ACTION_ATTR}] {
+    min-width: 44px;
+    width: 44px;
+    padding-inline: 8px;
+  }
+
+  [${ACTION_ATTR}] .av-media-action-label {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  [${BUTTON_ATTR2}] {
+  [${BUTTON_ATTR2}],
+  [${ACTION_ATTR}] {
     transition: none;
   }
 
-  [${BUTTON_ATTR2}].is-active .av-media-button-icon {
+  [${BUTTON_ATTR2}].is-active .av-media-button-icon,
+  [${ACTION_ATTR}].is-active .av-media-action-icon {
     animation: none;
   }
 }
@@ -23781,7 +24109,11 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
           }
           progress.enqueued += 1;
           try {
-            const result = await downloader2({ url: task.target.url, filename });
+            const result = await downloader2({
+              url: task.target.url,
+              ...task.target.fallbackUrls ? { fallbackUrls: task.target.fallbackUrls } : {},
+              filename
+            });
             if (job) queue2?.mark(job.id, "completed");
             if (ctx.settings.media.downloadHistory && history2) {
               await history2.record(dedupeKey);
@@ -23943,13 +24275,18 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR2}] {
   function resolveTarget2(media) {
     if (media.kind === "video" && media.video?.preferred) {
       const url = media.video.preferred.url;
-      if (!isSaveableVariantUrl(url)) {
+      if (!isSaveableVariantUrl(url, media.video.preferred.type)) {
         return null;
       }
       return { url, mediaId: mediaIdFromVideo2(url), ext: extensionForVideo2(media.video.preferred.type, url) };
     }
     if (media.image) {
-      return { url: media.image.url, mediaId: media.image.mediaId, ext: media.image.format };
+      return {
+        url: media.image.url,
+        fallbackUrls: media.image.fallbackUrls,
+        mediaId: media.image.mediaId,
+        ext: media.image.format
+      };
     }
     return null;
   }

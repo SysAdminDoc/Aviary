@@ -43,7 +43,12 @@ export interface BatchActionResult {
   error?: string;
 }
 
-type ResolvedTarget = { url: string; mediaId: string | null; ext: string };
+type ResolvedTarget = {
+  url: string;
+  fallbackUrls?: string[];
+  mediaId: string | null;
+  ext: string;
+};
 
 interface ActiveBatch {
   id: string;
@@ -205,7 +210,13 @@ async function runTasks(
         progress.enqueued += 1;
 
         try {
-          const result: DownloaderResult = await downloader({ url: task.target.url, filename });
+          const result: DownloaderResult = await downloader({
+            url: task.target.url,
+            ...(task.target.fallbackUrls
+              ? { fallbackUrls: task.target.fallbackUrls }
+              : {}),
+            filename
+          });
           if (job) queue?.mark(job.id, "completed");
           if (ctx.settings.media.downloadHistory && history) {
             await history.record(dedupeKey);
@@ -394,13 +405,18 @@ export function resolveTarget(media: ExtractedMedia): ResolvedTarget | null {
     const url = media.video.preferred.url;
     // A MediaSource blob cannot be handed to any downloader; skipping it keeps the batch
     // counters honest instead of recording saves that never happened.
-    if (!isSaveableVariantUrl(url)) {
+    if (!isSaveableVariantUrl(url, media.video.preferred.type)) {
       return null;
     }
     return { url, mediaId: mediaIdFromVideo(url), ext: extensionForVideo(media.video.preferred.type, url) };
   }
   if (media.image) {
-    return { url: media.image.url, mediaId: media.image.mediaId, ext: media.image.format };
+    return {
+      url: media.image.url,
+      fallbackUrls: media.image.fallbackUrls,
+      mediaId: media.image.mediaId,
+      ext: media.image.format
+    };
   }
   return null;
 }

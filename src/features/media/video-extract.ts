@@ -138,19 +138,31 @@ function pushVariant(
 }
 
 /**
- * A `blob:` source is X's MediaSource handle, not a file: it cannot be fetched or saved, so any
- * real URL beats it however low its bitrate. Ranking is only a preference here — when the blob is
- * the only variant it still wins, and callers that need a saveable target check {@link isSaveableVariantUrl}.
+ * Only complete, direct video files are browser-download targets. X also exposes MediaSource
+ * handles and streaming manifests/segments; saving those produces an unusable blob, playlist, or
+ * fragment instead of the video the person asked for.
  */
-export function isSaveableVariantUrl(url: string): boolean {
-  return !/^blob:/i.test(url);
+export function isSaveableVariantUrl(url: string, type = ""): boolean {
+  if (!/^https?:\/\//i.test(url)) {
+    return false;
+  }
+  if (/\.(?:m3u8|mpd|m4s)(?:[?#]|$)/i.test(url)) {
+    return false;
+  }
+  return !/(?:mpegurl|dash\+xml)/i.test(type);
 }
 
 function pickPreferred(variants: VideoVariant[]): VideoVariant {
   const sorted = [...variants].sort((a, b) => {
-    const saveableDiff = Number(isSaveableVariantUrl(b.url)) - Number(isSaveableVariantUrl(a.url));
+    const saveableDiff =
+      Number(isSaveableVariantUrl(b.url, b.type)) -
+      Number(isSaveableVariantUrl(a.url, a.type));
     if (saveableDiff !== 0) {
       return saveableDiff;
+    }
+    const mp4Diff = Number(isProgressiveMp4(b)) - Number(isProgressiveMp4(a));
+    if (mp4Diff !== 0) {
+      return mp4Diff;
     }
     const bitrateDiff = (b.bitrate ?? 0) - (a.bitrate ?? 0);
     if (bitrateDiff !== 0) {
@@ -161,6 +173,10 @@ function pickPreferred(variants: VideoVariant[]): VideoVariant {
     return bPixels - aPixels;
   });
   return sorted[0] ?? variants[0]!;
+}
+
+function isProgressiveMp4(variant: VideoVariant): boolean {
+  return /video\/mp4/i.test(variant.type) || /\.mp4(?:[?#]|$)/i.test(variant.url);
 }
 
 function looksLikeGif(

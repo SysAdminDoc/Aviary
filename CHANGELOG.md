@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+## 1.27.0 - 2026-08-16
+
+### Added
+
+- Every media post now has one persistent **Download** action in X's native action row. One click
+  saves all primary photos and direct videos/GIFs while excluding video thumbnails; per-asset
+  overlays remain available for selective saves. The action exposes resolving, busy, success,
+  duplicate, permission, partial-failure, and retry states, survives virtualized row replacement,
+  and is translated across all eight non-English locales.
+- Original-image downloads now carry a bounded quality fallback: source-format `name=orig` first,
+  then `4096x4096` only after the preferred transfer fails. Userscript retries follow transfer
+  callbacks; extension retries are persisted across service-worker suspension and resume from a
+  `chrome.downloads.onChanged` interruption.
+
+### Changed
+
+- Video selection now ranks complete progressive MP4 files before streaming manifests, then uses
+  bitrate and pixel count. Blob handles, HLS/DASH manifests, and media segments are never presented
+  as completed video downloads.
+- Media controls have a clearer action-row hierarchy, explicit focus and status treatments, and a
+  44-pixel narrow-screen target. A deterministic feed capture documents the shipped layout.
+
+### Fixed
+
+- Mixed photo/video posts wait for the direct video target instead of silently downloading only
+  the already-resolved photos. A same-control retry skips assets that completed before a partial
+  failure.
+
 ## 1.26.0 - 2026-08-16
 
 ### Changed

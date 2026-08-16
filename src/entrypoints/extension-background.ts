@@ -15,6 +15,14 @@ import {
 const runtime = globalThis.chrome?.runtime;
 const extensionApi = globalThis.chrome as unknown as ExtensionAdRuleApi | undefined;
 const contextMenus = globalThis.chrome?.contextMenus;
+const DOWNLOAD_FALLBACK_KEY = "aviary.downloadFallbacks.v1";
+
+interface PendingDownloadFallback {
+  fallbackUrls: string[];
+  filename: string;
+}
+
+const pendingDownloadFallbacks = new Map<number, PendingDownloadFallback>();
 
 /** Returned to the content script when `downloads` has not been granted yet. */
 export const DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
@@ -73,6 +81,14 @@ contextMenus?.onClicked?.addListener((info, tab) => {
     ),
     "context-menu download"
   );
+});
+
+globalThis.chrome?.downloads?.onChanged?.addListener((delta) => {
+  if (delta.state?.current === "complete") {
+    settleBackgroundTask(clearDownloadFallback(delta.id), "download completion");
+  } else if (delta.state?.current === "interrupted") {
+    settleBackgroundTask(retryDownloadFallback(delta.id), "download fallback");
+  }
 });
 
 runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
@@ -162,15 +178,25 @@ async function sendContextDownloadMessage(tabId: number, type: string): Promise<
 function isDownload(message: unknown): message is {
   type: "AVIARY_DOWNLOAD";
   url: string;
+  fallbackUrls?: string[];
   filename: string;
 } {
   if (typeof message !== "object" || message === null) {
     return false;
   }
-  const candidate = message as { type?: unknown; url?: unknown; filename?: unknown };
+  const candidate = message as {
+    type?: unknown;
+    url?: unknown;
+    fallbackUrls?: unknown;
+    filename?: unknown;
+  };
   return (
     candidate.type === "AVIARY_DOWNLOAD" &&
     typeof candidate.url === "string" &&
+    (candidate.fallbackUrls === undefined ||
+      (Array.isArray(candidate.fallbackUrls) &&
+        candidate.fallbackUrls.length <= 3 &&
+        candidate.fallbackUrls.every((url) => typeof url === "string"))) &&
     typeof candidate.filename === "string"
   );
 }
@@ -200,6 +226,7 @@ async function openOptions(): Promise<boolean> {
 
 async function handleDownload(message: {
   url: string;
+  fallbackUrls?: string[];
   filename: string;
 }): Promise<{ ok: boolean; id?: number; error?: string; code?: string }> {
   if (!(await hasDownloadPermission())) {
@@ -213,16 +240,142 @@ async function handleDownload(message: {
   if (!downloads) {
     return { ok: false, code: DOWNLOAD_PERMISSION_CODE, error: "downloads permission not granted" };
   }
-  try {
-    const id = await downloads.download({
-      url: message.url,
-      filename: message.filename,
-      conflictAction: "uniquify"
-    });
-    return { ok: true, id };
-  } catch (error) {
-    return { ok: false, error: errorMessage(error) };
+  const candidates = [message.url, ...(message.fallbackUrls ?? [])]
+    .filter((url, index, all) => /^https?:\/\//i.test(url) && all.indexOf(url) === index)
+    .slice(0, 4);
+  let lastError = "download failed";
+  for (let index = 0; index < candidates.length; index += 1) {
+    const url = candidates[index]!;
+    try {
+      const id = await downloads.download({
+        url,
+        filename: message.filename,
+        conflictAction: "uniquify"
+      });
+      await rememberDownloadFallback(id, {
+        fallbackUrls: candidates.slice(index + 1),
+        filename: message.filename
+      });
+      return { ok: true, id };
+    } catch (error) {
+      lastError = errorMessage(error);
+    }
   }
+  return { ok: false, error: lastError };
+}
+
+async function retryDownloadFallback(downloadId: number): Promise<void> {
+  const pending = await readDownloadFallback(downloadId);
+  await clearDownloadFallback(downloadId);
+  const downloads = globalThis.chrome?.downloads;
+  if (!pending || !downloads) {
+    return;
+  }
+
+  for (let index = 0; index < pending.fallbackUrls.length; index += 1) {
+    const url = pending.fallbackUrls[index]!;
+    try {
+      const id = await downloads.download({
+        url,
+        filename: pending.filename,
+        conflictAction: "uniquify"
+      });
+      await rememberDownloadFallback(id, {
+        fallbackUrls: pending.fallbackUrls.slice(index + 1),
+        filename: pending.filename
+      });
+      return;
+    } catch {
+      // Try the next bounded candidate. The original candidate order is quality order.
+    }
+  }
+}
+
+async function rememberDownloadFallback(
+  downloadId: number,
+  pending: PendingDownloadFallback
+): Promise<void> {
+  if (pending.fallbackUrls.length === 0) {
+    return;
+  }
+  pendingDownloadFallbacks.set(downloadId, pending);
+  const storage = globalThis.chrome?.storage?.local;
+  if (!storage) {
+    return;
+  }
+  try {
+    const stored = await readStoredDownloadFallbacks();
+    stored[String(downloadId)] = pending;
+    await storage.set({ [DOWNLOAD_FALLBACK_KEY]: stored });
+  } catch {
+    // The in-memory entry still covers the current service-worker lifetime.
+  }
+}
+
+async function readDownloadFallback(
+  downloadId: number
+): Promise<PendingDownloadFallback | undefined> {
+  const local = pendingDownloadFallbacks.get(downloadId);
+  if (local) {
+    return local;
+  }
+  try {
+    const stored = await readStoredDownloadFallbacks();
+    const pending = stored[String(downloadId)];
+    if (pending) {
+      pendingDownloadFallbacks.set(downloadId, pending);
+    }
+    return pending;
+  } catch {
+    return undefined;
+  }
+}
+
+async function clearDownloadFallback(downloadId: number): Promise<void> {
+  pendingDownloadFallbacks.delete(downloadId);
+  const storage = globalThis.chrome?.storage?.local;
+  if (!storage) {
+    return;
+  }
+  try {
+    const stored = await readStoredDownloadFallbacks();
+    if (stored[String(downloadId)] === undefined) {
+      return;
+    }
+    delete stored[String(downloadId)];
+    await storage.set({ [DOWNLOAD_FALLBACK_KEY]: stored });
+  } catch {
+    // Cleanup is best effort; entries are bounded by explicit user downloads.
+  }
+}
+
+async function readStoredDownloadFallbacks(): Promise<
+  Record<string, PendingDownloadFallback>
+> {
+  const stored = await globalThis.chrome?.storage?.local?.get(DOWNLOAD_FALLBACK_KEY);
+  const raw = stored?.[DOWNLOAD_FALLBACK_KEY];
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    return {};
+  }
+  const valid: Record<string, PendingDownloadFallback> = {};
+  for (const [id, value] of Object.entries(raw)) {
+    const candidate = value as Partial<PendingDownloadFallback>;
+    if (
+      /^\d+$/.test(id) &&
+      typeof candidate.filename === "string" &&
+      Array.isArray(candidate.fallbackUrls) &&
+      candidate.fallbackUrls.length <= 3 &&
+      candidate.fallbackUrls.every(
+        (url) => typeof url === "string" && /^https?:\/\//i.test(url)
+      )
+    ) {
+      valid[id] = {
+        filename: candidate.filename,
+        fallbackUrls: candidate.fallbackUrls
+      };
+    }
+  }
+  return valid;
 }
 
 function errorMessage(error: unknown): string {

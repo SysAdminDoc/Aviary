@@ -52,6 +52,39 @@ test("downloader surfaces a background failure rather than silently navigating",
   }
 });
 
+test("extension downloads receive the ordered original-image fallback candidates", async () => {
+  const { createDownloader } = await importBundledModule("src/features/media/downloader.ts");
+  const originalChrome = globalThis.chrome;
+  const sent = [];
+  globalThis.chrome = {
+    runtime: {
+      sendMessage: async (message) => {
+        sent.push(message);
+        return { ok: true };
+      }
+    }
+  };
+
+  try {
+    const result = await createDownloader()({
+      url: "https://pbs.twimg.com/media/x?format=jpg&name=orig",
+      fallbackUrls: ["https://pbs.twimg.com/media/x?format=jpg&name=4096x4096"],
+      filename: "x.jpg"
+    });
+    assert.deepEqual(result, { ok: true, via: "extension" });
+    assert.deepEqual(sent, [
+      {
+        type: "AVIARY_DOWNLOAD",
+        url: "https://pbs.twimg.com/media/x?format=jpg&name=orig",
+        fallbackUrls: ["https://pbs.twimg.com/media/x?format=jpg&name=4096x4096"],
+        filename: "x.jpg"
+      }
+    ]);
+  } finally {
+    globalThis.chrome = originalChrome;
+  }
+});
+
 test("isCrossOrigin marks the anchor fallback degraded only when download is ignored", async () => {
   const { isCrossOrigin } = await importBundledModule("src/features/media/downloader.ts");
   assert.equal(isCrossOrigin("blob:https://x.com/abc"), false);
@@ -73,6 +106,7 @@ test("background answers the capability probe and wires the native media context
   assert.match(source, /contextMenus\?\.onClicked/);
   assert.match(source, /permissions\?\.request\(\{ permissions: \["downloads"\] \}\)/);
   assert.match(source, /sendContextDownloadMessage/);
+  assert.match(source, /\.\.\.\(message\.fallbackUrls \?\? \[\]\)/);
   assert.ok(
     source.includes("DOWNLOAD_PERMISSION_CODE"),
     "background must report the shared permission code so the content script can react"
@@ -84,7 +118,7 @@ test("media buttons and batch downloads react to a missing download permission",
   assert.match(buttons, /DownloadPermissionError/);
   assert.match(buttons, /requestDownloadPermissionSurface/);
   assert.match(buttons, /permissionSurfaceOpened/, "the grant page must open at most once per session");
-  assert.match(buttons, /result\.degraded \? "Opened"/, "a navigated anchor must not read as saved");
+  assert.match(buttons, /outcome\.degraded[\s\S]*"Opened"/, "a navigated anchor must not read as saved");
 
   const batch = await readFile(path.join(root, "src/features/media/batch-downloader.ts"), "utf8");
   assert.match(batch, /needsDownloadPermission/);
@@ -157,6 +191,65 @@ test("native media context clicks request download access before messaging the s
       { tabId: 91, message: { type: "AVIARY_DOWNLOAD_CONTEXT_MEDIA" } },
       { tabId: 92, message: { type: "AVIARY_CONTEXT_DOWNLOAD_PERMISSION_DENIED" } }
     ]);
+  } finally {
+    globalThis.chrome = originalChrome;
+  }
+});
+
+test("an interrupted original-image download resumes from the persisted quality fallback", async () => {
+  const originalChrome = globalThis.chrome;
+  const calls = [];
+  const stored = {};
+  let onMessage;
+  let onDownloadChanged;
+  let nextId = 40;
+  globalThis.chrome = {
+    runtime: {
+      onInstalled: { addListener() {} },
+      onStartup: { addListener() {} },
+      onMessage: { addListener(listener) { onMessage = listener; } }
+    },
+    permissions: { async contains() { return true; } },
+    storage: {
+      local: {
+        async get(key) { return { [key]: stored[key] }; },
+        async set(items) { Object.assign(stored, structuredClone(items)); }
+      }
+    },
+    downloads: {
+      async download(options) {
+        calls.push(options);
+        return nextId++;
+      },
+      onChanged: { addListener(listener) { onDownloadChanged = listener; } }
+    }
+  };
+
+  try {
+    await importBundledModule("src/entrypoints/extension-background.ts");
+    const response = await new Promise((resolve) => {
+      const keptOpen = onMessage(
+        {
+          type: "AVIARY_DOWNLOAD",
+          url: "https://pbs.twimg.com/media/x?format=jpg&name=orig",
+          fallbackUrls: ["https://pbs.twimg.com/media/x?format=jpg&name=4096x4096"],
+          filename: "x.jpg"
+        },
+        {},
+        resolve
+      );
+      assert.equal(keptOpen, true);
+    });
+    assert.deepEqual(response, { ok: true, id: 40 });
+    assert.equal(typeof onDownloadChanged, "function");
+
+    onDownloadChanged({ id: 40, state: { current: "interrupted" } });
+    await waitFor(() => calls.length === 2);
+    assert.deepEqual(calls.map((call) => call.url), [
+      "https://pbs.twimg.com/media/x?format=jpg&name=orig",
+      "https://pbs.twimg.com/media/x?format=jpg&name=4096x4096"
+    ]);
+    assert.deepEqual(stored["aviary.downloadFallbacks.v1"], {});
   } finally {
     globalThis.chrome = originalChrome;
   }

@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.26.0`
+Version: `1.27.0`
 
 Actionable work only. Historical and completed roadmap material is archived in CHANGELOG.md; blocked work is kept in Roadmap_Blocked.md.
 
@@ -131,44 +131,6 @@ Internal audit of the subsystems no prior pass had examined, plus the code added
 ## Research-Driven Additions (2026-08-16)
 
 Focused comparison of 46 primary sources for feed image/video download behavior. See RESEARCH.md.
-
-### P1 — feed media download contract
-
-- [ ] F166 — P1 — Add one persistent post-level Download action
-  Why: the dominant interaction across the highest-adoption extension and newer userscripts is one
-  action in the native post row which downloads every primary media asset. Aviary currently asks a
-  user to distinguish Save, Video/GIF, and Thumb overlays.
-  Evidence: TwitterMediaHarvest `Harvester.ts`; ShanksSU `script.js`; Teylersf content script;
-  current `_decoded/home.html` and `_decoded/status.html` prove reply → role-group ownership.
-  Touches: `src/features/media/media-buttons.ts`, media browser tests, i18n catalog.
-  Acceptance: every rendered media post has one always-visible Download action beside X's native
-  actions; one click saves all photos and direct videos/GIFs but not video thumbnails; the action
-  reports resolving, saving, saved/duplicate, partial failure, permission, and retry states; it
-  reattaches after virtualization and fully tears down when disabled.
-  Complexity: M
-
-- [ ] F167 — P1 — Make the video quality selector progressive and explicit
-  Why: `pickPreferred()` ranks all saveable URLs together, so an HLS manifest can outrank a direct
-  MP4 even though a browser download of the manifest is not a standalone video. Every browser
-  downloader benchmark filters to `video/mp4` before bitrate ranking.
-  Evidence: TwitterMediaHarvest `tweetMedia.ts`; Twitter Click'n'Save API parser; cobalt Twitter
-  service; yt-dlp shows HLS needs a media pipeline rather than a raw file handoff.
-  Touches: `src/features/media/video-extract.ts`, media target tests, UI quality copy.
-  Acceptance: direct progressive MP4 beats blob, HLS, and unknown variants; the greatest MP4
-  bitrate wins with dimensions as a tie-breaker; GIF MP4s retain their GIF label; when only HLS is
-  known the UI resolves rather than claiming a completed video download.
-  Complexity: S
-
-- [ ] F168 — P1 — Add original-image candidate fallback
-  Why: mature downloaders request `name=orig` first and retry `4096x4096` when the original endpoint
-  rejects the request. Aviary generates only one URL, so the browser path has no bounded recovery.
-  Evidence: Twitter Click'n'Save original/fallback sequence; gallery-dl Twitter `_init_sizes()`;
-  FxEmbed#1282 confirms the visible quality difference from the original endpoint.
-  Touches: `src/features/media/urls.ts`, `downloader.ts`, extension background protocol, media tests.
-  Acceptance: attached photos request source-format `name=orig` first and retry `4096x4096` only on
-  transfer failure; a smaller served image is never called original; filename extensions continue
-  to match the actual encoded format.
-  Complexity: M
 
 ### P2 — download truth and edge coverage
 

@@ -74,7 +74,12 @@ posts**. It never changes the post on X.
 
 ## How do I save media, and why did it open instead?
 
-The Media section enables **Save**, **Thumb**, and eligible **Video/GIF** controls. In an extension,
+The Media section adds one **Download** action to every media post, plus **Save**, **Thumb**, and
+eligible **Video/GIF** controls for individual assets. The post action saves all attached photos
+and direct videos/GIFs, never the video thumbnail. Images request their source format at
+`name=orig` first and fall back to `4096x4096` only when that transfer fails. Videos use the
+highest-bitrate complete progressive MP4 Aviary captured; a `blob:` handle or streaming manifest
+is not presented as a video file. In an extension,
 grant `downloads` from the options page for deterministic browser-managed saves. Without it, the
 cross-origin anchor fallback can open the media in a tab; Aviary labels that path **Opened** rather
 than falsely claiming **Saved**. In a userscript, a manager with `GM_download` provides the
@@ -243,8 +248,8 @@ Every control Aviary offers, by Control Center page. 71 controls across 12 pages
 
 | Control | What it does |
 | --- | --- |
-| Show download buttons | Inject Save and Thumb buttons over tweet photos and video thumbnails. |
-| Prefer original quality | Rewrite image URLs to name=orig before downloading. |
+| Show download buttons | Add one Download action to each media post, plus per-asset controls. |
+| Prefer original quality | Try source-format name=orig first, then 4096x4096 if it fails. |
 | Show images at original quality | Loads timeline photos at full size instead of the version X picks for the slot. Sharper, and several times the bytes. |
 | Media layout | A choice control. |
 | Duplicate history | Skip downloads of media you have already saved from this browser. |

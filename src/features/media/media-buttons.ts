@@ -24,12 +24,15 @@ import { renderFilename } from "./template";
 
 const STYLE_ID = "av-media-buttons";
 const BUTTON_ATTR = "data-av-media-button";
+const ACTION_ATTR = "data-av-media-action";
+const ACTION_SLOT_ATTR = "data-av-media-action-slot";
 const PROCESSED_ATTR = "data-av-media-processed";
 const MEDIA_HOST_SELECTOR =
   '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="videoComponent"]';
 const MEDIA_MUTATION_SELECTOR =
   '[data-testid="tweetPhoto"], [data-testid="tweetPhoto"] img, ' +
-  '[data-testid="videoPlayer"], [data-testid="videoComponent"], video, source';
+  '[data-testid="videoPlayer"], [data-testid="videoComponent"], video, source, ' +
+  '[role="group"], [data-testid="reply"]';
 const CONTEXT_TARGET_MAX_AGE_MS = 30_000;
 
 type ExtensionMessageListener = (
@@ -42,6 +45,19 @@ interface PendingContextTarget {
   article: Element;
   host: HTMLElement;
   capturedAt: number;
+}
+
+interface ResolvedTarget {
+  url: string;
+  fallbackUrls?: string[];
+  mediaId: string | null;
+  ext: string;
+}
+
+interface PrimaryDownloadAsset {
+  media: ExtractedMedia;
+  index: number;
+  target: ResolvedTarget;
 }
 
 let downloader: Downloader | undefined;
@@ -149,7 +165,7 @@ export const mediaButtonsFeature: FeatureModule = {
       // Our own button insertion is also observed. Skip that one mutation, but reconcile every
       // X-owned addition: virtualized timeline cells keep the article element while replacing
       // its media subtree, so a once-only processed marker cannot prove controls still exist.
-      if (node.hasAttribute(BUTTON_ATTR)) {
+      if (node.hasAttribute(BUTTON_ATTR) || node.hasAttribute(ACTION_SLOT_ATTR)) {
         continue;
       }
       if (needsMutationReconcile(node)) {
@@ -232,6 +248,9 @@ function clearDecorations(): void {
   }
   for (const button of Array.from(document.querySelectorAll(`[${BUTTON_ATTR}]`))) {
     button.remove();
+  }
+  for (const slot of Array.from(document.querySelectorAll(`[${ACTION_SLOT_ATTR}]`))) {
+    slot.remove();
   }
 }
 
@@ -390,7 +409,8 @@ function scanArticles(
   for (const article of articles) {
     if (!force && article.getAttribute(PROCESSED_ATTR) === "1") {
       if (
-        article.querySelector(`[${BUTTON_ATTR}]`) ||
+        (article.querySelector(`[${BUTTON_ATTR}]`) &&
+          (article.querySelector(`[${ACTION_ATTR}]`) || !findActionGroup(article))) ||
         !article.querySelector(MEDIA_HOST_SELECTOR)
       ) {
         continue;
@@ -416,7 +436,9 @@ function needsMutationReconcile(node: Element): boolean {
   if (node.matches('article[data-testid="tweet"]')) {
     return (
       node.getAttribute(PROCESSED_ATTR) !== "1" ||
-      (!node.querySelector(`[${BUTTON_ATTR}]`) && node.querySelector(MEDIA_HOST_SELECTOR) !== null)
+      ((!node.querySelector(`[${BUTTON_ATTR}]`) ||
+        (findActionGroup(node) !== null && !node.querySelector(`[${ACTION_ATTR}]`))) &&
+        node.querySelector(MEDIA_HOST_SELECTOR) !== null)
     );
   }
   return node.matches(MEDIA_MUTATION_SELECTOR) || node.querySelector(MEDIA_MUTATION_SELECTOR) !== null;
@@ -443,6 +465,7 @@ function collectArticles(root: ParentNode | Element): Element[] {
 }
 
 function decorateArticle(tweet: ExtractedTweet, ctx: FeatureContext): void {
+  decoratePostAction(tweet, ctx);
   tweet.media.forEach((media, index) => {
     const container = resolveContainer(media);
     if (!container || hasOwnButton(container, media.kind)) {
@@ -459,6 +482,93 @@ function decorateArticle(tweet: ExtractedTweet, ctx: FeatureContext): void {
     container.append(button);
     positionButton(button, container);
   });
+}
+
+function decoratePostAction(tweet: ExtractedTweet, ctx: FeatureContext): void {
+  const group = findActionGroup(tweet.article);
+  if (!group || group.querySelector(`[${ACTION_ATTR}]`)) {
+    return;
+  }
+
+  const assets = primaryDownloadAssets(tweet);
+  const hasPendingVideo =
+    tweet.media.some((media) => media.kind === "video" && resolveTarget(media) === null) ||
+    (tweet.article.querySelector(VIDEO_CONTAINER_SELECTOR) !== null &&
+      !tweet.media.some((media) => media.kind === "video"));
+  if (assets.length === 0 && !hasPendingVideo) {
+    return;
+  }
+
+  const slot = document.createElement("div");
+  slot.className = "av-media-action-slot";
+  slot.setAttribute(ACTION_SLOT_ATTR, "1");
+  // Do not silently save only the photos from a mixed post while its direct video is still
+  // resolving. Metadata arrival rebuilds this control with the complete primary-asset set.
+  const button = buildPostAction(tweet, hasPendingVideo ? [] : assets, ctx);
+  slot.append(button);
+  group.append(slot);
+}
+
+function findActionGroup(article: Element): HTMLElement | null {
+  const reply = article.querySelector<HTMLElement>('[data-testid="reply"]');
+  const group = reply?.closest<HTMLElement>('[role="group"]') ?? null;
+  return group && article.contains(group) ? group : null;
+}
+
+function primaryDownloadAssets(tweet: ExtractedTweet): PrimaryDownloadAsset[] {
+  const assets: PrimaryDownloadAsset[] = [];
+  tweet.media.forEach((media, index) => {
+    if (media.kind !== "photo" && media.kind !== "video") {
+      return;
+    }
+    const target = resolveTarget(media);
+    if (target) {
+      assets.push({ media, index, target });
+    }
+  });
+  return assets;
+}
+
+function buildPostAction(
+  tweet: ExtractedTweet,
+  assets: PrimaryDownloadAsset[],
+  ctx: FeatureContext
+): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "av-media-action";
+  button.setAttribute(ACTION_ATTR, "1");
+  const idleLabel = ft(ctx, "Download");
+  const accessibleLabel = ft(ctx, "Download all media in this post");
+  button.dataset.idleLabel = idleLabel;
+  button.dataset.idleAriaLabel = accessibleLabel;
+  button.setAttribute("aria-label", accessibleLabel);
+  button.setAttribute("aria-live", "polite");
+  button.setAttribute("aria-busy", "false");
+  button.title = accessibleLabel;
+
+  const icon = document.createElement("span");
+  icon.className = "av-media-action-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = "↓ ";
+  const label = document.createElement("span");
+  label.className = "av-media-action-label";
+  label.textContent = idleLabel;
+  button.append(icon, label);
+
+  if (assets.length === 0) {
+    button.disabled = true;
+    button.title = ft(ctx, "The direct video is still loading. Try again in a moment.");
+    return button;
+  }
+
+  const completed = new Set<string>();
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    void handlePostDownload(tweet, assets, completed, ctx, button);
+  });
+  return button;
 }
 
 /**
@@ -599,7 +709,116 @@ async function handleDownload(
     ctx.diagnostics.warn("Media target unavailable", { kind: media.kind });
     return;
   }
+  setButtonFeedback(button, {
+    label: ft(ctx, "Saving..."),
+    icon: "↻",
+    className: "is-active",
+    disabled: true,
+    busy: true
+  });
 
+  try {
+    const outcome = await performMediaDownload(media, index, tweet, target, ctx);
+    setButtonFeedback(button, {
+      label: ft(
+        ctx,
+        outcome.degraded
+          ? "Opened"
+          : outcome.status === "aria2-duplicate"
+            ? "Queued"
+            : successLabel(media)
+      ),
+      icon: outcome.degraded ? "↗" : "✓",
+      className: outcome.status === "completed" ? "is-success" : "is-duplicate"
+    });
+    if (outcome.degraded) {
+      button.title = ft(ctx, "Your browser opened this file instead of saving it — grant Aviary the download permission for a real save.");
+    }
+    scheduleButtonRestore(button);
+  } catch (error) {
+    showDownloadError(button, error, ctx);
+  }
+}
+
+interface MediaDownloadOutcome {
+  status: "completed" | "history-duplicate" | "aria2-duplicate";
+  degraded: boolean;
+}
+
+async function handlePostDownload(
+  tweet: ExtractedTweet,
+  assets: PrimaryDownloadAsset[],
+  completed: Set<string>,
+  ctx: FeatureContext,
+  button: HTMLButtonElement
+): Promise<void> {
+  if (!downloader || !queue || !history) {
+    return;
+  }
+  setButtonFeedback(button, {
+    label: ft(ctx, "Saving..."),
+    icon: "↻",
+    className: "is-active",
+    disabled: true,
+    busy: true
+  });
+
+  const outcomes: MediaDownloadOutcome[] = [];
+  let firstError: unknown;
+  for (const asset of assets) {
+    const key = primaryAssetKey(asset);
+    if (completed.has(key)) {
+      continue;
+    }
+    try {
+      outcomes.push(
+        await performMediaDownload(asset.media, asset.index, tweet, asset.target, ctx)
+      );
+      completed.add(key);
+    } catch (error) {
+      firstError ??= error;
+      if (error instanceof DownloadPermissionError) {
+        break;
+      }
+    }
+  }
+
+  if (firstError) {
+    showDownloadError(button, firstError, ctx);
+    return;
+  }
+
+  completed.clear();
+  const degraded = outcomes.some((outcome) => outcome.degraded);
+  const aria2Duplicate =
+    outcomes.length > 0 && outcomes.every((outcome) => outcome.status === "aria2-duplicate");
+  const allDuplicate =
+    outcomes.length > 0 && outcomes.every((outcome) => outcome.status !== "completed");
+  setButtonFeedback(button, {
+    label: ft(ctx, degraded ? "Opened" : aria2Duplicate ? "Queued" : "Saved"),
+    icon: degraded ? "↗" : "✓",
+    className: allDuplicate ? "is-duplicate" : "is-success"
+  });
+  if (degraded) {
+    button.title = ft(ctx, "Your browser opened this file instead of saving it — grant Aviary the download permission for a real save.");
+  }
+  scheduleButtonRestore(button);
+}
+
+function primaryAssetKey(asset: PrimaryDownloadAsset): string {
+  return `${asset.index}:${asset.media.kind}:${asset.target.mediaId ?? asset.target.url}`;
+}
+
+async function performMediaDownload(
+  media: ExtractedMedia,
+  index: number,
+  tweet: ExtractedTweet,
+  target: ResolvedTarget,
+  ctx: FeatureContext
+): Promise<MediaDownloadOutcome> {
+  if (!downloader || !queue || !history) {
+    throw new Error("Media downloader is not ready.");
+  }
   const filename = renderFilename(ctx.settings.media.filenameTemplate, {
     handle: tweet.handle,
     tweetId: tweet.tweetId,
@@ -610,50 +829,36 @@ async function handleDownload(
     text: tweet.text,
     mediaId: target.mediaId
   });
-
   const dedupeKey = `${tweet.tweetId ?? "0"}:${target.mediaId ?? target.url}:${index}:${media.kind}`;
 
   if (ctx.settings.media.downloadHistory && history.has(dedupeKey)) {
-    const job = queue.enqueue({ url: target.url, filename });
-    queue.mark(job.id, "duplicate");
-    setButtonFeedback(button, {
-      label: ft(ctx, "Saved"),
-      icon: "✓",
-      className: "is-duplicate"
-    });
-    scheduleButtonRestore(button);
+    const duplicate = queue.enqueue({ url: target.url, filename });
+    queue.mark(duplicate.id, "duplicate");
     ctx.diagnostics.info("Media skipped — already in history", { dedupeKey });
     void ctx.auditLog.record("media.download.duplicate", { dedupeKey });
-    return;
+    return { status: "history-duplicate", degraded: false };
   }
 
   const job = queue.enqueue({ url: target.url, filename });
   queue.mark(job.id, "running");
-  setButtonFeedback(button, {
-    label: ft(ctx, "Saving..."),
-    icon: "↻",
-    className: "is-active",
-    disabled: true,
-    busy: true
-  });
-
   try {
-    const result = await downloader({ url: target.url, filename });
+    const result = await downloader({
+      url: target.url,
+      ...(target.fallbackUrls ? { fallbackUrls: target.fallbackUrls } : {}),
+      filename
+    });
     if (result.deduplicated) {
       queue.mark(job.id, "duplicate");
-      setButtonFeedback(button, {
-        label: ft(ctx, "Queued"),
-        icon: "✓",
-        className: "is-duplicate"
+      ctx.diagnostics.info("Media skipped — already queued in Aria2 history", {
+        url: target.url
       });
-      scheduleButtonRestore(button);
-      ctx.diagnostics.info("Media skipped — already queued in Aria2 history", { url: target.url });
       void ctx.auditLog.record("media.download.duplicate", {
         dedupeKey,
         source: "aria2-history"
       });
-      return;
+      return { status: "aria2-duplicate", degraded: false };
     }
+
     queue.mark(job.id, "completed");
     await rememberLastDownload(ctx.storage, {
       url: target.url,
@@ -663,38 +868,47 @@ async function handleDownload(
     if (ctx.settings.media.downloadHistory) {
       await history.record(dedupeKey);
     }
-    setButtonFeedback(button, {
-      label: ft(ctx, result.degraded ? "Opened" : successLabel(media)),
-      icon: result.degraded ? "↗" : "✓",
-      className: "is-success"
+    ctx.diagnostics.info("Media saved", {
+      filename,
+      kind: media.kind,
+      degraded: result.degraded === true
     });
-    if (result.degraded) {
-      button.title = ft(ctx, "Your browser opened this file instead of saving it — grant Aviary the download permission for a real save.");
-    }
-    scheduleButtonRestore(button);
-    ctx.diagnostics.info("Media saved", { filename, kind: media.kind, degraded: result.degraded === true });
-    void ctx.auditLog.record("media.download", { filename, kind: media.kind, via: result.via });
+    void ctx.auditLog.record("media.download", {
+      filename,
+      kind: media.kind,
+      via: result.via
+    });
+    return { status: "completed", degraded: result.degraded === true };
   } catch (error) {
     const needsPermission = error instanceof DownloadPermissionError;
     queue.mark(job.id, "failed", String((error as Error)?.message ?? error));
-    setButtonFeedback(button, {
-      label: ft(ctx, needsPermission ? "Allow" : "Retry"),
-      icon: needsPermission ? "↗" : "!",
-      className: "is-error"
-    });
-    if (needsPermission) {
-      button.title = ft(ctx, "Aviary needs the browser download permission. Opening its options page.");
-      if (!permissionSurfaceOpened) {
-        permissionSurfaceOpened = true;
-        void requestDownloadPermissionSurface();
-      }
-    }
     ctx.diagnostics.error("Media download failed", errorDetails(error));
     void ctx.auditLog.record("media.download.failed", {
       filename,
       kind: media.kind,
       ...(needsPermission ? { reason: "downloads-permission-missing" } : {})
     });
+    throw error;
+  }
+}
+
+function showDownloadError(
+  button: HTMLButtonElement,
+  error: unknown,
+  ctx: FeatureContext
+): void {
+  const needsPermission = error instanceof DownloadPermissionError;
+  setButtonFeedback(button, {
+    label: ft(ctx, needsPermission ? "Allow" : "Retry"),
+    icon: needsPermission ? "↗" : "!",
+    className: "is-error"
+  });
+  if (needsPermission) {
+    button.title = ft(ctx, "Aviary needs the browser download permission. Opening its options page.");
+    if (!permissionSurfaceOpened) {
+      permissionSurfaceOpened = true;
+      void requestDownloadPermissionSurface();
+    }
   }
 }
 
@@ -713,8 +927,12 @@ function setButtonFeedback(button: HTMLButtonElement, feedback: ButtonFeedback):
   button.dataset.state = feedback.className.slice(3);
   button.disabled = feedback.disabled === true;
   button.setAttribute("aria-busy", String(feedback.busy === true));
-  const icon = button.querySelector<HTMLElement>(".av-media-button-icon");
-  const label = button.querySelector<HTMLElement>(".av-media-button-label");
+  const icon = button.querySelector<HTMLElement>(
+    ".av-media-button-icon, .av-media-action-icon"
+  );
+  const label = button.querySelector<HTMLElement>(
+    ".av-media-button-label, .av-media-action-label"
+  );
   if (icon) icon.textContent = `${feedback.icon} `;
   if (label) label.textContent = feedback.label;
   button.setAttribute("aria-label", feedback.label);
@@ -745,8 +963,12 @@ function restoreIdleButton(button: HTMLButtonElement): void {
   delete button.dataset.state;
   button.disabled = false;
   button.setAttribute("aria-busy", "false");
-  const icon = button.querySelector<HTMLElement>(".av-media-button-icon");
-  const label = button.querySelector<HTMLElement>(".av-media-button-label");
+  const icon = button.querySelector<HTMLElement>(
+    ".av-media-button-icon, .av-media-action-icon"
+  );
+  const label = button.querySelector<HTMLElement>(
+    ".av-media-button-label, .av-media-action-label"
+  );
   if (icon) icon.textContent = "↓ ";
   if (label) label.textContent = button.dataset.idleLabel ?? "";
   const accessibleLabel = button.dataset.idleAriaLabel ?? button.dataset.idleLabel ?? "";
@@ -754,18 +976,21 @@ function restoreIdleButton(button: HTMLButtonElement): void {
   button.title = accessibleLabel;
 }
 
-function resolveTarget(
-  media: ExtractedMedia
-): { url: string; mediaId: string | null; ext: string } | null {
+function resolveTarget(media: ExtractedMedia): ResolvedTarget | null {
   if (media.kind === "video" && media.video?.preferred) {
     const url = media.video.preferred.url;
-    if (!isSaveableVariantUrl(url)) {
+    if (!isSaveableVariantUrl(url, media.video.preferred.type)) {
       return null;
     }
     return { url, mediaId: mediaIdFromVideo(url), ext: extensionForVideo(media.video.preferred.type, url) };
   }
   if (media.image) {
-    return { url: media.image.url, mediaId: media.image.mediaId, ext: media.image.format };
+    return {
+      url: media.image.url,
+      fallbackUrls: media.image.fallbackUrls,
+      mediaId: media.image.mediaId,
+      ext: media.image.format
+    };
   }
   return null;
 }
@@ -807,8 +1032,89 @@ function ensureMediaStyle(): void {
 }
 
 const MEDIA_CSS = `
-html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
+html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}],
+html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   display: none !important;
+}
+
+[${ACTION_SLOT_ATTR}] {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 104px;
+  margin-inline-start: 4px;
+}
+
+[${ACTION_ATTR}] {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 100px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 55%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, transparent);
+  color: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 88%, white 12%);
+  cursor: pointer;
+  font: 700 13px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
+  white-space: nowrap;
+  transition: transform 140ms ease, border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+[${ACTION_ATTR}] .av-media-action-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  font-size: 17px;
+  line-height: 1;
+}
+
+[${ACTION_ATTR}]:hover:not(:disabled) {
+  border-color: var(--av-accent, rgb(29, 155, 240));
+  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 20%, transparent);
+  transform: translateY(-1px);
+}
+
+[${ACTION_ATTR}]:focus-visible {
+  outline: 2px solid var(--av-accent, rgb(29, 155, 240));
+  outline-offset: 2px;
+}
+
+[${ACTION_ATTR}].is-success {
+  border-color: var(--av-media-success, rgb(120, 200, 130));
+  color: var(--av-media-success-text, rgb(206, 240, 210));
+  background: color-mix(in srgb, var(--av-media-success, rgb(120, 200, 130)) 14%, transparent);
+}
+
+[${ACTION_ATTR}].is-duplicate {
+  border-color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(113, 118, 123));
+}
+
+[${ACTION_ATTR}].is-error {
+  border-color: var(--av-media-error, rgb(220, 110, 110));
+  color: var(--av-media-error-text, rgb(248, 200, 200));
+  background: color-mix(in srgb, var(--av-media-error, rgb(220, 110, 110)) 12%, transparent);
+}
+
+[${ACTION_ATTR}].is-active {
+  border-color: var(--av-accent, rgb(29, 155, 240));
+  cursor: progress;
+}
+
+[${ACTION_ATTR}].is-active .av-media-action-icon {
+  animation: av-media-spin 700ms linear infinite;
+}
+
+[${ACTION_ATTR}]:disabled {
+  cursor: wait;
+  opacity: 0.62;
+  transform: none;
 }
 
 [${BUTTON_ATTR}] {
@@ -904,12 +1210,37 @@ html:not(.av-media-buttons-enabled) [${BUTTON_ATTR}] {
   to { transform: rotate(360deg); }
 }
 
+@media (pointer: coarse) {
+  [${ACTION_ATTR}] {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 520px) {
+  [${ACTION_SLOT_ATTR}] {
+    min-width: 44px;
+    margin-inline-start: 0;
+  }
+
+  [${ACTION_ATTR}] {
+    min-width: 44px;
+    width: 44px;
+    padding-inline: 8px;
+  }
+
+  [${ACTION_ATTR}] .av-media-action-label {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  [${BUTTON_ATTR}] {
+  [${BUTTON_ATTR}],
+  [${ACTION_ATTR}] {
     transition: none;
   }
 
-  [${BUTTON_ATTR}].is-active .av-media-button-icon {
+  [${BUTTON_ATTR}].is-active .av-media-button-icon,
+  [${ACTION_ATTR}].is-active .av-media-action-icon {
     animation: none;
   }
 }

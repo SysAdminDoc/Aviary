@@ -6,7 +6,7 @@ current source, releases, issue reports, store listings, and official browser/us
 
 ## Executive Summary
 
-Aviary v1.26.0 already owns the difficult half of reliable X media downloading: it captures the
+Before this release, Aviary v1.26.0 already owned the difficult half of reliable X media downloading: it captured the
 GraphQL responses X has already requested at document start, associates direct media metadata with
 rendered posts, rewrites attached-image URLs to original quality, rejects MediaSource `blob:`
 handles, and ranks captured video variants. The remaining product gap is the feed interaction.

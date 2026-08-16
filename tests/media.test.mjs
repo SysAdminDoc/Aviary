@@ -15,6 +15,9 @@ test("normalizeImageUrl forces name=orig and preserves format", async () => {
     "https://pbs.twimg.com/media/AbCdEfGh.jpg?format=jpg&name=small"
   );
   assert.equal(small?.url, "https://pbs.twimg.com/media/AbCdEfGh.jpg?format=jpg&name=orig");
+  assert.deepEqual(small?.fallbackUrls, [
+    "https://pbs.twimg.com/media/AbCdEfGh.jpg?format=jpg&name=4096x4096"
+  ]);
   assert.equal(small?.format, "jpg");
   assert.equal(small?.mediaId, "AbCdEfGh");
 
@@ -24,6 +27,13 @@ test("normalizeImageUrl forces name=orig and preserves format", async () => {
 
   const webp = normalizeImageUrl("https://pbs.twimg.com/media/qqqqq?format=webp");
   assert.equal(webp?.format, "webp");
+
+  const served = normalizeImageUrl(
+    "https://pbs.twimg.com/media/served?format=jpg&name=medium",
+    { preferOriginal: false }
+  );
+  assert.equal(served?.url, "https://pbs.twimg.com/media/served?format=jpg&name=medium");
+  assert.deepEqual(served?.fallbackUrls, []);
 
   assert.equal(normalizeImageUrl("https://example.com/foo.png"), null);
   assert.equal(normalizeImageUrl("not a url"), null);
@@ -315,6 +325,42 @@ test("Aria2 downloader history prevents the same URL from requeueing", async () 
     assert.equal(addCalls, 1);
   } finally {
     globalThis.fetch = originalFetch;
+  }
+});
+
+test("userscript downloads try the original image before the bounded fallback", async () => {
+  const { createDownloader } = await importBundledModule("src/features/media/downloader.ts");
+  const attempted = [];
+  const originalDownload = globalThis.GM_download;
+  globalThis.GM_download = (options) => {
+    attempted.push(options.url);
+    if (options.url.includes("name=orig")) {
+      options.onerror?.(new Error("original unavailable"));
+    } else {
+      options.onload?.();
+    }
+  };
+
+  try {
+    const downloader = createDownloader();
+    const result = await downloader({
+      url: "https://pbs.twimg.com/media/AbCdEfGh?format=jpg&name=orig",
+      fallbackUrls: [
+        "https://pbs.twimg.com/media/AbCdEfGh?format=jpg&name=4096x4096"
+      ],
+      filename: "AbCdEfGh.jpg"
+    });
+    assert.deepEqual(result, { ok: true, via: "gm" });
+    assert.deepEqual(attempted, [
+      "https://pbs.twimg.com/media/AbCdEfGh?format=jpg&name=orig",
+      "https://pbs.twimg.com/media/AbCdEfGh?format=jpg&name=4096x4096"
+    ]);
+  } finally {
+    if (originalDownload === undefined) {
+      delete globalThis.GM_download;
+    } else {
+      globalThis.GM_download = originalDownload;
+    }
   }
 });
 

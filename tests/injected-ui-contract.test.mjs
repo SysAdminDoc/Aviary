@@ -456,6 +456,32 @@ test("media download buttons remain obvious without hover on every host containe
       `${testid}: Aviary must not restyle X's media container`
     );
   }
+
+  await page.evaluate(() => {
+    const slot = document.createElement("div");
+    slot.setAttribute("data-av-media-action-slot", "1");
+    const action = document.createElement("button");
+    action.setAttribute("data-av-media-action", "1");
+    action.textContent = "↓ Download";
+    slot.append(action);
+    document.body.append(slot);
+  });
+  const action = await page.evaluate(() => {
+    const button = document.querySelector("[data-av-media-action]");
+    const style = getComputedStyle(button);
+    return {
+      display: style.display,
+      minHeight: Number.parseFloat(style.minHeight),
+      minWidth: Number.parseFloat(style.minWidth),
+      borderRadius: Number.parseFloat(style.borderRadius),
+      background: style.backgroundColor
+    };
+  });
+  assert.equal(action.display, "flex");
+  assert.ok(action.minHeight >= 36);
+  assert.ok(action.minWidth >= 96);
+  assert.ok(action.borderRadius <= 8, "the primary action must not become a pill");
+  assert.notEqual(action.background, "rgba(0, 0, 0, 0)");
 });
 
 test("readComposerText preserves paragraph breaks in a Draft.js-shaped composer", async () => {

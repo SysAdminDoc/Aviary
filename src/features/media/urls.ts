@@ -1,5 +1,6 @@
 export interface NormalizedImage {
   url: string;
+  fallbackUrls: string[];
   format: "jpg" | "png" | "webp";
   mediaId: string | null;
 }
@@ -37,15 +38,23 @@ export function normalizeImageUrl(
     : "jpg";
 
   params.set("format", format);
-  if (options.preferOriginal ?? true) {
+  const preferOriginal = options.preferOriginal ?? true;
+  if (preferOriginal) {
     params.set("name", "orig");
   } else if (!params.has("name")) {
     params.set("name", "large");
   }
 
   const mediaId = mediaIdFromPath(parsed.pathname);
+  const fallbackUrls: string[] = [];
+  if (preferOriginal) {
+    const fallbackParams = new URLSearchParams(params);
+    fallbackParams.set("name", "4096x4096");
+    fallbackUrls.push(`${parsed.origin}${parsed.pathname}?${fallbackParams.toString()}`);
+  }
   return {
     url: `${parsed.origin}${parsed.pathname}?${params.toString()}`,
+    fallbackUrls,
     format,
     mediaId
   };
