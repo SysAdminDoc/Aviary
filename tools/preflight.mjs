@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -13,6 +13,24 @@ const expectedExtensionIcons = Object.fromEntries(
   extensionIconSizes.map((size) => [String(size), `icons/icon-${size}.png`])
 );
 
+/**
+ * Delivery size is a shipped contract, so it gets a gate like every other one.
+ *
+ * Nothing here measured it. The userscript grew 27 KB across two days in August 2026 with no
+ * signal, and it is the artifact most sensitive to growth: a userscript manager re-downloads the
+ * whole file on every update, and Tampermonkey has a reported ceiling on the update path that a
+ * fresh install does not hit. The ceilings below are deliberately close to current size -- the
+ * point is to make growth a decision someone makes on purpose, not a thing that happens.
+ *
+ * Raising one is fine. Raising one without saying why in the commit is not.
+ */
+const DELIVERY_BUDGETS = [
+  { file: "aviary.user.js", maxBytes: 2_100_000 },
+  { file: "aviary.meta.js", maxBytes: 4_000 },
+  { file: "extension-chrome/content.js", maxBytes: 2_100_000 },
+  { file: "extension-firefox/content.js", maxBytes: 2_100_000 }
+];
+
 const failures = [];
 const warnings = [];
 
@@ -24,6 +42,7 @@ await checkPermissions();
 await checkSourcePolicy();
 await checkDependencyPolicy();
 await checkReleaseMetadata();
+await checkDeliverySize();
 
 if (failures.length > 0) {
   console.error("Preflight failed:");
@@ -260,17 +279,49 @@ function checkUserscriptUpdateUrls(source) {
     return;
   }
   const read = (key) => source.match(new RegExp(`@${key}\\s+(\\S+)`))?.[1] ?? null;
-  for (const key of ["updateURL", "downloadURL"]) {
+  // @updateURL is polled on a schedule and must resolve to the metadata-only companion; @downloadURL
+  // is fetched only once a newer version is seen and must resolve to the full script. Pointing both
+  // at the full script made every poll pull the entire bundle to read one line.
+  for (const [key, want] of [["updateURL", expected.meta], ["downloadURL", expected.script]]) {
     const value = read(key);
-    if (value !== expected.script) {
+    if (value !== want) {
       failures.push(
-        `userscript @${key} is "${value ?? "missing"}" but package.json repository resolves to "${expected.script}"`
+        `userscript @${key} is "${value ?? "missing"}" but package.json repository resolves to "${want}"`
       );
     }
   }
   const namespace = read("namespace");
   if (namespace !== expected.namespace) {
     failures.push(`userscript @namespace is "${namespace ?? "missing"}" but should be "${expected.namespace}"`);
+  }
+}
+
+/**
+ * A userscript manager reads `@version` from the poll target and again from the download target. If
+ * they disagree it either re-installs in a loop or never updates at all, so the two files have to
+ * carry the same metablock byte for byte -- not merely the same version number.
+ */
+async function checkUserscriptMetaCompanion(fullSource) {
+  const metaPath = path.join(root, "dist", "aviary.meta.js");
+  let meta;
+  try {
+    meta = await readFile(metaPath, "utf8");
+  } catch {
+    failures.push("dist/aviary.meta.js: missing, so @updateURL polls a file that does not exist");
+    return;
+  }
+  const block = (source) => source.match(/\/\/ ==UserScript==[\s\S]*?\/\/ ==\/UserScript==/)?.[0] ?? null;
+  const fullBlock = block(fullSource);
+  const metaBlock = block(meta);
+  if (!metaBlock) {
+    failures.push("dist/aviary.meta.js: no userscript metablock");
+    return;
+  }
+  if (metaBlock !== fullBlock) {
+    failures.push("dist/aviary.meta.js: metablock differs from dist/aviary.user.js");
+  }
+  if (meta.trim() !== metaBlock.trim()) {
+    failures.push("dist/aviary.meta.js: must contain the metablock and nothing else");
   }
 }
 
@@ -293,6 +344,7 @@ async function checkBundles() {
     failures.push("userscript bundle contains eval() — drop it before publishing");
   }
   checkUserscriptUpdateUrls(source);
+  await checkUserscriptMetaCompanion(source);
 
   for (const target of ["extension-chrome", "extension-firefox"]) {
     const contentPath = path.join(root, "dist", target, "content.js");
@@ -435,6 +487,37 @@ async function checkReleaseMetadata() {
   if (!userscript.includes("AVIARY_VERSION") || !userscript.includes('"' + pkg.version + '"')) {
     failures.push("dist/aviary.user.js: Control Center/build version stamp " + pkg.version + " is missing");
   }
+}
+
+
+async function checkDeliverySize() {
+  const sizes = [];
+  for (const budget of DELIVERY_BUDGETS) {
+    const target = path.join(root, "dist", budget.file);
+    let bytes;
+    try {
+      bytes = (await stat(target)).size;
+    } catch {
+      failures.push(`dist/${budget.file}: missing, so its size budget cannot be checked`);
+      continue;
+    }
+    sizes.push(`${budget.file} ${formatBytes(bytes)}`);
+    if (bytes > budget.maxBytes) {
+      failures.push(
+        `dist/${budget.file} is ${formatBytes(bytes)}, over its ${formatBytes(budget.maxBytes)} budget. ` +
+          "Shrink it, or raise the budget in tools/preflight.mjs and say why."
+      );
+    }
+  }
+  if (sizes.length > 0) {
+    console.log(`Delivery size: ${sizes.join(" · ")}`);
+  }
+}
+
+function formatBytes(bytes) {
+  return bytes >= 1_000_000
+    ? `${(bytes / 1_000_000).toFixed(2)} MB`
+    : `${(bytes / 1_000).toFixed(1)} kB`;
 }
 
 async function listFiles(directory, suffix) {

@@ -593,38 +593,6 @@ below were read at the cited line. See RESEARCH.md.
 
 ### P1 — delivery integrity
 
-- [ ] F197 — P1 — Poll for updates with metadata, not the whole bundle
-  Why: `@updateURL` and `@downloadURL` both point at `dist/aviary.user.js`, and no `.meta.js` is emitted
-  anywhere, so every update check transfers 1.9 MB instead of roughly a kilobyte of metadata. Userscript
-  managers exist to poll that URL on a schedule. Tampermonkey additionally reports "Message length
-  exceeded maximum allowed length" on script *update* where a fresh install succeeds, apparently
-  size-linked — so an oversized update payload is a plausible silent-update-failure mode as well as
-  waste.
-  Evidence: metablock in `dist/aviary.user.js`; no `.meta` emission in `tools/build.mjs` or
-  `tools/userscript-meta.mjs` (checked 2026-08-17); Tampermonkey#2285 (Likely — one report, worth
-  reproducing against the real bundle).
-  Touches: `tools/userscript-meta.mjs`, `tools/build.mjs`, `tools/preflight.mjs`, `docs/INSTALL.md`.
-  Acceptance: the build emits `dist/aviary.meta.js` containing only the metablock; `@updateURL` points
-  at it while `@downloadURL` points at the full script; both declare a byte-identical `@version`, and
-  preflight fails if they diverge; version strings stay free of zero-padded segments, which Tampermonkey
-  is documented to compare incorrectly.
-  Depends on: coordinate with F183 — both concern the same metablock, and neither needs F125's decision.
-  Complexity: S
-
-- [ ] F198 — P1 — Give delivery size a budget, like every other invariant here
-  Why: nothing in `tools/preflight.mjs` or `tools/build.mjs` asserts any size limit, and the userscript
-  grew 1,876,875 -> 1,903,859 bytes between 2026-08-15 and 2026-08-16 with no signal. This repo gates
-  version strings, manifest shape, CSP, `innerHTML`, capture age and dependency pinning; delivery size
-  is the one unguarded axis, and it is the axis the update path is most sensitive to.
-  Evidence: no size assertion found in either tool (checked 2026-08-17); sizes measured across the last
-  12 commits touching `dist/aviary.user.js`.
-  Touches: `tools/preflight.mjs`, `tools/build.mjs`.
-  Acceptance: preflight reports the built userscript and extension bundle sizes on every run and fails
-  past a declared ceiling recorded in-repo with its reasoning; the failure message names the largest
-  contributing modules so the next reader does not have to re-derive that the i18n catalog is 53.9% of
-  it (F138).
-  Complexity: S
-
 ### P1 — breakage response
 
 - [ ] F199 — P1 — Name the feature that broke, using ownership the registry already declares
@@ -800,34 +768,6 @@ below were read at the cited line. See RESEARCH.md.
   seeing an ad-protection row that claims to be on. A test asserts the declared inject mode matches what
   the docs promise.
   Complexity: M
-
-- [ ] F209 — P1 — Say what `--ignore-scripts` actually defends against
-  Why: README states that "every major npm compromise of 2026 (axios, keyv/cacheable, the node-gyp worm)
-  executed through" an install script and that `--ignore-scripts` "closes that class". The first half is
-  not true of the 2026 record: chalk/debug (2025-09), @redhat-cloud-services (2026-06, which passed SLSA
-  attestation) and AsyncAPI (2026-07) all delivered their payload from the **module body**, which
-  `--ignore-scripts` does not touch. This repo fails builds over settings that claim what nothing
-  implements; the same standard should apply to its own security claims.
-  Evidence: README.md:101-105; incident survey 2026-08-18 — install-hook delivery blocked in 7 of 12
-  surveyed incidents, module-body delivery in 3, mixed in 2. The genuinely load-bearing defences here are
-  **zero runtime dependencies** and `npm ci` against a committed lockfile, both of which Aviary has.
-  Touches: README.md, `tests/readme-claims.test.mjs`.
-  Acceptance: the paragraph claims only what the flag does — blocking the install-hook family — and names
-  zero-runtime-deps plus lockfile pinning as what covers module-body attacks; the wording is specific
-  enough that a future incident of either class does not make it false again.
-  Complexity: S
-
-- [ ] F210 — P1 — Stop `engines` from accepting end-of-life Node
-  Why: `"node": ">=22.23.2"` is satisfied by Node 25.x, which reached end of life 2026-06-01 and receives
-  no security patches, and by pre-LTS 26.x. The floor was chosen deliberately to clear the June and July
-  2026 Node security releases, so admitting an unpatched line defeats the reason the floor exists.
-  Evidence: `package.json` engines; https://github.com/nodejs/Release (Node 20 EOL 2026-04-30, Node 25 EOL
-  2026-06-01, Node 24 → maintenance 2026-10-20, Node 22 EOL 2027-04-30). Verified 2026-08-18.
-  Touches: `package.json`, `docs/INSTALL.md`, `tools/preflight.mjs` if the range is asserted.
-  Acceptance: the range admits only supported lines (`^22.23.2 || ^24.18.1 || >=26.5.1` or equivalent) and
-  is stated once with its reasoning; a comment or preflight note records the next date the range must be
-  revisited, so it does not silently rot.
-  Complexity: S
 
 - [ ] F211 — P2 — Import the sources under test instead of bundling them first
   Why: 82 of 91 test files bundle through esbuild and import the result, which puts a build step between

@@ -113,6 +113,10 @@ await esbuild.build({
   }
 });
 
+// The metadata-only companion userscript managers poll. Byte-identical to the banner the full
+// script carries, so a manager cannot see one version here and another there.
+await writeFile(path.join(dist, "aviary.meta.js"), userscriptBanner(pkg.version));
+
 for (const target of ["extension-chrome", "extension-firefox"]) {
   const targetDir = path.join(dist, target);
   await mkdir(targetDir, { recursive: true });
@@ -346,7 +350,7 @@ ${matches}
 // @grant        unsafeWindow
 // @connect      pbs.twimg.com
 // @connect      video.twimg.com
-// @updateURL    ${urls.script}
+// @updateURL    ${urls.meta}
 // @downloadURL  ${urls.script}
 // ==/UserScript==
 `;

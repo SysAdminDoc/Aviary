@@ -17,7 +17,7 @@
 // @grant        unsafeWindow
 // @connect      pbs.twimg.com
 // @connect      video.twimg.com
-// @updateURL    https://raw.githubusercontent.com/SysAdminDoc/Aviary/main/dist/aviary.user.js
+// @updateURL    https://raw.githubusercontent.com/SysAdminDoc/Aviary/main/dist/aviary.meta.js
 // @downloadURL  https://raw.githubusercontent.com/SysAdminDoc/Aviary/main/dist/aviary.user.js
 // ==/UserScript==
 

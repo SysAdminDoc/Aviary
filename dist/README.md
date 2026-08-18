@@ -98,11 +98,21 @@ npm ci --ignore-scripts
 npm run verify
 ```
 
-Aviary has zero runtime dependencies, so nothing it ships needs an install script to build or run —
-and every major npm compromise of 2026 (axios, keyv/cacheable, the node-gyp worm) executed through
-one. `--ignore-scripts` closes that class at no cost here; the build and the full test suite pass on
-a clean install without them. Node 22.23.2 or newer is required, the first line clear of the June
-and July 2026 Node security releases.
+Aviary has zero runtime dependencies, so nothing it ships needs an install script to build or run.
+`--ignore-scripts` closes the install-hook attack class at no cost here — the build and the full
+test suite pass on a clean install without them — and that class is a real one: the 2026-08-04
+ChainDrop worm poisoned `keyv`, `flat-cache` and `file-entry-cache`, which are exactly the packages
+ESLint pulls in here. It ran from a `preinstall` hook, and this repository resolves all three whole
+major versions below the poisoned releases.
+
+It is not blanket protection, and claiming otherwise would be the kind of statement this project
+fails its own build over. Several 2026 compromises — chalk/debug among them — put the payload in the
+module body, where no install flag reaches. What covers those is having no runtime dependencies at
+all and installing from a committed lockfile with `npm ci`.
+
+Node 22.23.2 or newer is required, the first line clear of the June and July 2026 Node security
+releases. The `engines` range names supported lines explicitly rather than an open `>=`, which would
+also admit Node 25.x — end of life since 2026-06-01 and receiving no patches.
 
 `npm run verify` type-checks the TypeScript source, runs fixture/source contract tests, and builds:
 

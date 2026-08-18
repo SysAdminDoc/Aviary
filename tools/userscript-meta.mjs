@@ -20,6 +20,10 @@ export function userscriptUrls(manifest) {
   const owner = slug.split("/")[0];
   return {
     namespace: `https://github.com/${owner}`,
-    script: `https://raw.githubusercontent.com/${slug}/main/dist/aviary.user.js`
+    script: `https://raw.githubusercontent.com/${slug}/main/dist/aviary.user.js`,
+    // A manager polls @updateURL on a schedule and only fetches @downloadURL when the version moved.
+    // Pointing both at the full script made every check pull the whole bundle -- currently ~1.9 MB,
+    // most of it the translation catalog -- to read one `@version` line.
+    meta: `https://raw.githubusercontent.com/${slug}/main/dist/aviary.meta.js`
   };
 }

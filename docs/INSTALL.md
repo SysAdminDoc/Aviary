@@ -62,11 +62,14 @@ restarts.
 
 ## Updating
 
-- Userscript: the metablock's `@updateURL`/`@downloadURL` are derived from `package.json`'s
-  `repository` field and point at that repository's `main` copy of `dist/aviary.user.js`. Manager
-  auto-update only reaches it once that repository is publicly readable; while the repository is
-  private the raw URL answers 404 and the manager silently reports no update. Until then, reopen the
-  newer `dist/aviary.user.js` to upgrade in place.
+- Userscript: the metablock's update URLs are derived from `package.json`'s `repository` field and
+  point at that repository's `main` branch. `@updateURL` resolves to `dist/aviary.meta.js`, a
+  metadata-only companion carrying the same metablock byte for byte, so a scheduled poll transfers
+  under a kilobyte instead of the whole ~1.9 MB script; `@downloadURL` resolves to
+  `dist/aviary.user.js` and is fetched only once a newer `@version` is seen. Manager auto-update
+  only reaches either one once that repository is publicly readable; while the repository is private
+  both raw URLs answer 404 and the manager silently reports no update. Until then, reopen the newer
+  `dist/aviary.user.js` to upgrade in place.
 - Extension: run `npm run verify`, then use the extension manager's reload button or reload the
   temporary add-on. Refresh open X tabs after updating the content script.
 

@@ -2,8 +2,22 @@
 
 ## Unreleased
 
+### Added
+
+- The build emits `dist/aviary.meta.js`, a metadata-only companion carrying the same metablock byte
+  for byte. `@updateURL` now points at it, so a userscript manager's scheduled poll transfers under
+  a kilobyte instead of the whole ~1.9 MB script; `@downloadURL` still resolves to the full file and
+  is fetched only when a newer version is seen. Preflight fails if the two metablocks diverge.
+- Preflight reports the size of every shipped artifact and fails past a declared budget. Nothing
+  measured delivery size before, and it is the one axis the update path is most sensitive to.
+
 ### Changed
 
+- The `engines` range names supported Node lines explicitly instead of an open `>=22.23.2`, which
+  also admitted Node 25.x — end of life and unpatched since 2026-06-01.
+- README no longer claims `--ignore-scripts` covers every 2026 npm compromise. It blocks the
+  install-hook class, and would have blocked ChainDrop on this exact dependency chain, but several
+  2026 attacks ran from the module body where no install flag reaches.
 - A provider budget of `0` now means zero. It previously meant "no bound", so the one value a
   cautious user is most likely to type on a spending control was the value that removed the
   ceiling. Settings written before this are migrated: a stored `0` becomes the schema's maximum, so
