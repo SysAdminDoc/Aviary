@@ -272,3 +272,66 @@ test("clean share links strips tracking parameters and puts the original href ba
   assert.equal(result.afterOff.tracked, "https://x.com/user/status/1?t=abc123&s=20", "turning it off restores");
   assert.equal(result.afterDestroy.tracked, "https://x.com/user/status/1?t=abc123&s=20", "destroy restores");
 });
+
+test("each declutter switch adds only its own class, and destroy removes them all", async () => {
+  const result = await page.evaluate(() => {
+    window.reset();
+    document.body.innerHTML = `
+      <main data-testid="primaryColumn"><div data-testid="cellInnerDiv">post</div></main>
+      <aside data-testid="sidebarColumn">
+        <div data-testid="trend">trend</div>
+        <div data-testid="sidebarColumn-grok">grok</div>
+      </aside>`;
+    const html = document.documentElement;
+    const avClasses = () => [...html.classList].filter((name) => name.startsWith("av-"));
+
+    const cases = {
+      hideRightSidebar: "av-hide-right-sidebar",
+      hideTrends: "av-hide-trends",
+      hideGrok: "av-hide-grok",
+      hideFollowSuggestions: "av-hide-follow-suggestions"
+    };
+
+    const seen = {};
+    for (const [setting, className] of Object.entries(cases)) {
+      const ctx = window.ctx((settings) => {
+        settings.layout[setting] = true;
+      });
+      AviaryLifecycle.layoutDeclutterFeature.init(ctx);
+      seen[setting] = { classes: avClasses(), expected: className };
+      AviaryLifecycle.layoutDeclutterFeature.destroy(ctx);
+      seen[setting].afterDestroy = avClasses();
+    }
+
+    // A nav item name is user input; it becomes part of a class name, so it has to be sanitised.
+    const navCtx = window.ctx((settings) => {
+      settings.layout.hideNavItems = ["Messages", 'evil"><script>', "Explore"];
+    });
+    AviaryLifecycle.layoutDeclutterFeature.init(navCtx);
+    const nav = avClasses().filter((name) => name.startsWith("av-hide-nav-"));
+    AviaryLifecycle.layoutDeclutterFeature.destroy(navCtx);
+
+    return { seen, nav, afterNavDestroy: avClasses() };
+  });
+
+  for (const [setting, entry] of Object.entries(result.seen)) {
+    assert.deepEqual(
+      entry.classes,
+      [entry.expected],
+      `${setting} added ${JSON.stringify(entry.classes)} instead of only ${entry.expected}`
+    );
+    assert.deepEqual(entry.afterDestroy, [], `${setting} left classes behind after destroy`);
+  }
+
+  assert.ok(
+    result.nav.includes("av-hide-nav-messages") && result.nav.includes("av-hide-nav-explore"),
+    `the two real nav items must be hidden: ${JSON.stringify(result.nav)}`
+  );
+  // The hostile entry is not rejected, it is stripped to the characters a class name may hold —
+  // which is the point: nothing from the settings file can close the attribute or open a tag.
+  assert.ok(
+    !result.nav.some((name) => /[^a-z0-9-]/.test(name)),
+    `a nav item name reached the class list unsanitised: ${JSON.stringify(result.nav)}`
+  );
+  assert.deepEqual(result.afterNavDestroy, [], "per-item nav classes must be removed too");
+});

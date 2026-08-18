@@ -42,13 +42,19 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const extensionDir = path.join(root, "dist", "extension-chrome");
 const fixturePath = path.join(root, "tests", "smoke", "current-x-home.html");
 
-export async function assertCurrentExtensionBuild() {
-  if (!existsSync(extensionDir)) {
+/**
+ * Refuses to capture against a build that is not the current one.
+ *
+ * `dir` exists so the gate can be exercised without writing a stale version into the real
+ * `dist/`, which other tests read concurrently.
+ */
+export async function assertCurrentExtensionBuild(dir = extensionDir) {
+  if (!existsSync(dir)) {
     throw new Error("Build the extension first: `npm run build`.");
   }
   const [pkg, builtManifest] = await Promise.all([
     readFile(path.join(root, "package.json"), "utf8").then(JSON.parse),
-    readFile(path.join(extensionDir, "manifest.json"), "utf8").then(JSON.parse)
+    readFile(path.join(dir, "manifest.json"), "utf8").then(JSON.parse)
   ]);
   if (builtManifest.version !== pkg.version) {
     throw new Error(

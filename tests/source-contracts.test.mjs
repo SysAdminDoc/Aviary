@@ -6,6 +6,21 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+/**
+ * The bans.
+ *
+ * This is the one file that asserts on source text, and it does so only for claims of the form
+ * "this pattern must not appear anywhere": no `innerHTML`, no `eval`, no keyboard shortcuts, no
+ * `<all_urls>`, no unpinned devDependency, no page-level selector reaching into a shadow root.
+ * A ban is the single claim a source scan states exactly — there is no behaviour to drive,
+ * because the whole point is that the behaviour does not exist.
+ *
+ * Everything else belongs in a test that runs the code. If you are reaching for
+ * `assert.match(source, /.../)` to check that something *works*, it goes elsewhere: the panel is
+ * driven in a11y-behaviour, panel-appearance-contract and control-center-render; features in
+ * feature-lifecycle and boot-registration; hardening guarantees in runtime-hardening.
+ */
+
 test("source avoids unsafe injection and shortcut patterns", async () => {
   const files = await listFiles(path.join(root, "src"), ".ts");
   const unsafe = [];
@@ -86,40 +101,6 @@ test("no stylesheet tries to reach the Control Center through a page-level class
   ].map((match) => match[0]);
 
   assert.deepEqual(dead, [], "these selectors cannot cross the shadow boundary");
-});
-
-test("Control Center follows overlay accessibility and shape rules", async () => {
-  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
-
-  assert.match(source, /pointer-events:\s*none/);
-  assert.match(source, /aria-controls/);
-  assert.match(source, /role", "status"/);
-  assert.match(source, /aria-live/);
-  assert.ok(!/border-radius:\s*(999|9999)px/.test(source));
-  assert.match(source, /aria-modal", "true"/);
-  assert.match(source, /document\.body\?\.setAttribute\("inert", ""\)/);
-  assert.match(source, /event\.key === "Escape"/);
-  assert.match(source, /focusables\[0\]!\.focus/);
-  const openCss = source.slice(source.indexOf(".av-overlay.is-open"), source.indexOf(".av-panel {"));
-  assert.match(openCss, /pointer-events: auto/);
-});
-
-test("runtime hardening contracts stay in place", async () => {
-  const settings = await readFile(path.join(root, "src/platform/settings.ts"), "utf8");
-  const storage = await readFile(path.join(root, "src/platform/storage.ts"), "utf8");
-  const selectors = await readFile(path.join(root, "src/platform/selectors.ts"), "utf8");
-  const selectorHealth = await readFile(path.join(root, "src/features/core/selector-health.ts"), "utf8");
-  const route = await readFile(path.join(root, "src/platform/route.ts"), "utf8");
-  const main = await readFile(path.join(root, "src/main.ts"), "utf8");
-
-  assert.match(settings, /BLOCKED_OBJECT_KEYS/);
-  assert.match(settings, /telemetry:\s*false/);
-  assert.match(storage, /No storage backend is available/);
-  assert.match(selectors, /root instanceof Element && root\.matches/);
-  assert.match(selectorHealth, /CRITICAL_SURFACES/);
-  assert.match(selectorHealth, /MIN_LOG_INTERVAL_MS/);
-  assert.match(route, /history\.pushState = originalPush/);
-  assert.match(main, /cloneSettings\(settings\)/);
 });
 
 test("MV3 manifests keep permissions narrow", async () => {
@@ -203,16 +184,6 @@ test("release metadata and removed UI claims stay synchronized", async () => {
   assert.doesNotMatch(panel, /insertion landing in a later release/i);
   assert.match(panel, /declare const __AVIARY_VERSION__/);
   assert.match(panel, /av-version/);
-});
-
-test("layout declutter is class-scoped and reversible", async () => {
-  const source = await readFile(path.join(root, "src/features/layout/declutter.ts"), "utf8");
-
-  assert.match(source, /av-hide-right-sidebar/);
-  assert.match(source, /av-hide-trends/);
-  assert.match(source, /av-hide-grok/);
-  assert.match(source, /destroy/);
-  assert.ok(!/querySelectorAll\(['"]\*\s*['"]\)/.test(source));
 });
 
 test("no stylesheet uses the font shorthand with an inherited family", async () => {

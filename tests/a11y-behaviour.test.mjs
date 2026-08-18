@@ -216,3 +216,71 @@ test("every control the panel draws has an accessible name", async () => {
 
   assert.deepEqual(unnamed, [], "controls without an accessible name are unusable by screen reader");
 });
+
+test("the launcher says what it controls, and the status line announces itself", async () => {
+  await mount();
+
+  const wiring = await page.evaluate(async () => {
+    const root = document.getElementById("av-control-center").shadowRoot;
+    const launcher = root.querySelector(".av-launcher");
+    const controls = launcher.getAttribute("aria-controls");
+    const before = launcher.getAttribute("aria-expanded");
+    launcher.click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const status = root.querySelector(".av-status");
+    return {
+      controls,
+      // The id has to resolve inside the same root, or the relationship is decorative.
+      target: controls ? Boolean(root.getElementById?.(controls) ?? root.querySelector(`#${CSS.escape(controls)}`)) : false,
+      collapsed: before,
+      expanded: launcher.getAttribute("aria-expanded"),
+      statusRole: status?.getAttribute("role") ?? null,
+      statusLive: status?.getAttribute("aria-live") ?? status?.getAttribute("role") ?? null
+    };
+  });
+
+  assert.ok(wiring.controls, "the launcher must name the region it opens");
+  assert.equal(wiring.target, true, `aria-controls points at ${wiring.controls}, which is not in this root`);
+  assert.equal(wiring.collapsed, "false");
+  assert.equal(wiring.expanded, "true", "the launcher must report its own state");
+  // Saving is asynchronous and its only feedback is this line; without a live role a screen
+  // reader user gets no confirmation that a setting was written.
+  assert.ok(
+    wiring.statusRole === "status" || wiring.statusLive === "polite",
+    `the status line is neither role=status nor aria-live=polite (role ${wiring.statusRole})`
+  );
+});
+
+test("the status line actually announces the result of a save", async () => {
+  await mount();
+
+  const announced = await page.evaluate(async () => {
+    const root = document.getElementById("av-control-center").shadowRoot;
+    root.querySelector(".av-launcher").click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    // Presets is the landing destination and has no toggles; Appearance is the first that does.
+    root.querySelector('.av-nav-item[data-av-section="appearance"]').click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const status = root.querySelector(".av-status");
+    const before = status.textContent;
+    const box = root.querySelector('.av-row input[type="checkbox"]');
+    box.checked = !box.checked;
+    box.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const staged = status.textContent;
+
+    root.querySelector(".av-transaction-save").click();
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    return { before, staged, saved: status.textContent };
+  });
+
+  assert.notEqual(announced.staged, announced.before, "staging a change must be announced");
+  assert.match(announced.staged, /Unsaved/i);
+  // Each control names its own outcome ("Density updated"), so the assertion is that the line
+  // changed again and stopped warning about unsaved work — not that it says one fixed word.
+  assert.notEqual(announced.saved, announced.staged, "the save must be announced too");
+  assert.ok(!/Unsaved/i.test(announced.saved), `the panel still reads "${announced.saved}" after saving`);
+});

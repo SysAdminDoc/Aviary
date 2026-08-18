@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -13,26 +12,29 @@ test("the visual harness refuses to capture against a stale extension build", as
   const { assertCurrentExtensionBuild } = await import(
     pathToFileURL(path.join(root, "tools/settings-visual-harness.mjs")).href
   );
-  const manifestPath = path.join(root, "dist", "extension-chrome", "manifest.json");
-  if (!existsSync(manifestPath)) {
-    // `npm run verify` builds after it tests, so a first-ever run has no dist to check against.
-    // The gate is what matters, and it fires on the missing directory too.
-    await assert.rejects(() => assertCurrentExtensionBuild(), /Build the extension first/);
-    return;
-  }
+  const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
 
-  const original = await readFile(manifestPath, "utf8");
+  // A scratch build directory rather than the real dist/, which other tests read while this runs.
+  const dir = await mkdtemp(path.join(tmpdir(), "aviary-stale-build-"));
   try {
-    const stale = { ...JSON.parse(original), version: "0.0.1" };
-    await writeFile(manifestPath, JSON.stringify(stale, null, 2), "utf8");
-    // Capturing from a stale build produces baselines for code nobody is running, which is worse
-    // than not capturing: the diff looks clean and describes the previous release.
-    await assert.rejects(() => assertCurrentExtensionBuild(), /The built extension is stale \(0\.0\.1/);
-  } finally {
-    await writeFile(manifestPath, original, "utf8");
-  }
+    await assert.rejects(
+      () => assertCurrentExtensionBuild(path.join(dir, "never-built")),
+      /Build the extension first/
+    );
 
-  await assert.doesNotReject(() => assertCurrentExtensionBuild(), "a current build must pass the gate");
+    // Capturing from a stale build produces baselines for code nobody is running: the diff looks
+    // clean and describes the previous release.
+    await writeFile(path.join(dir, "manifest.json"), JSON.stringify({ version: "0.0.1" }), "utf8");
+    await assert.rejects(
+      () => assertCurrentExtensionBuild(dir),
+      /The built extension is stale \(0\.0\.1/
+    );
+
+    await writeFile(path.join(dir, "manifest.json"), JSON.stringify({ version: pkg.version }), "utf8");
+    await assert.doesNotReject(() => assertCurrentExtensionBuild(dir), "a current build must pass the gate");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });
 
 test("credential fields are masked and offer an explicit reveal", async () => {
