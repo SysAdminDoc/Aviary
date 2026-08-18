@@ -6,6 +6,17 @@ the extensions also provide a dedicated options page for optional browser permis
 ## Userscript (recommended for quick setup)
 
 1. Install [Tampermonkey](https://www.tampermonkey.net/), [Violentmonkey](https://violentmonkey.github.io/), or another compatible manager.
+
+   The metablock declares `@inject-into content`, which keeps Aviary out of the page's own scope.
+   Under Violentmonkey that mode also means `unsafeWindow` refers to the content script's global
+   rather than the page's, so Aviary's page-world observer cannot install there. Everything that
+   works from the isolated world is unaffected — structural ad removal, themes, layout, filtering,
+   hiding, exports, the library — but the observer's own contributions are not available: refusing
+   X's promoted-content logging call before it reaches the network, refusing analytics beacons, and
+   discovering direct video variants for the Video/GIF download controls. Aviary says so rather than
+   claiming otherwise: Trust reports "This userscript manager does not give Aviary access to the
+   page itself." The extension build is unaffected, because it declares a `"world": "MAIN"` content
+   script instead.
 2. Open `dist/aviary.user.js` from this repository, or the raw file from a release, in the manager.
 3. Review and confirm the install prompt.
 

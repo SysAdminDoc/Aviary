@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
@@ -666,3 +666,22 @@ async function launcherCss() {
   // `position: fixed` would take it out of flow and give it a zero box in this harness.
   return source.slice(start, end).replace("position: fixed;", "position: static;");
 }
+
+test("the declared injection mode matches what the install guide promises", async () => {
+  const buildScript = await readFile(path.join(root, "tools/build.mjs"), "utf8");
+  const install = await readFile(path.join(root, "docs/INSTALL.md"), "utf8");
+
+  const declared = /@inject-into\s+(\S+)/.exec(buildScript)?.[1];
+  assert.equal(declared, "content", "Aviary stays out of the page's own scope by design");
+
+  // `content` is what makes unsafeWindow useless under Violentmonkey, so the page-world observer
+  // cannot install there. That is a real difference between managers and the guide has to name it,
+  // or a user reads "compatible manager" and expects the network half to work.
+  assert.match(install, /@inject-into content/);
+  assert.match(install, /unsafeWindow/);
+  assert.match(install, /Violentmonkey/);
+
+  // And the panel must own a sentence for the state, rather than leaving it to the docs.
+  const panel = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+  assert.match(panel, /does not give Aviary access to the page itself/);
+});

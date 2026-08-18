@@ -604,26 +604,6 @@ below were read at the cited line. See RESEARCH.md.
 
 ### P1 — toolchain and claims (added 2026-08-18, second pass)
 
-- [ ] F208 — P1 — Ad protection is inert under Violentmonkey, which the docs list as supported
-  Why: the metablock ships `@inject-into content`, and Violentmonkey documents that under that mode
-  `unsafeWindow` references the content script's own global rather than the page `window`.
-  `pageWindowFromSandbox()` correctly detects this and returns `undefined` — so the page agent never
-  installs, and with it the userscript's half of the default-on ad guard. The comment directly above that
-  function already names the failure it is guarding against: "a feature that installs cleanly, reports
-  itself healthy, and never sees a single request." That is what a Violentmonkey user gets today, while
-  `docs/INSTALL.md` and README both name Violentmonkey as a supported manager.
-  Evidence: `dist/aviary.user.js:12` (`@inject-into content`); `src/platform/page-bridge.ts:62-77` (the
-  `unsafeWindow === globalThis` guard); https://violentmonkey.github.io/api/metadata-block/ . The
-  extension build is unaffected — it declares `"world": "MAIN"`. Verified 2026-08-18.
-  Touches: `tools/userscript-meta.mjs` (`@inject-into`), `src/platform/page-bridge.ts`, `docs/INSTALL.md`,
-  `docs/FAQ.md`, README's manager list.
-  Acceptance: either `@inject-into auto` is adopted so page injection is used where CSP permits and
-  content is the fallback, or the docs state plainly which managers get the page agent and which do not —
-  and in both cases a user whose page agent is unavailable is told so where they would look, rather than
-  seeing an ad-protection row that claims to be on. A test asserts the declared inject mode matches what
-  the docs promise.
-  Complexity: M
-
 - [ ] F211 — P2 — Import the sources under test instead of bundling them first
   Why: 82 of 91 test files bundle through esbuild and import the result, which puts a build step between
   every assertion and the code it describes — and is part of why so many tests fell back to regexing
