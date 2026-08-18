@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+## 1.31.0 - 2026-08-18
+
+### Fixed
+
+- A Control Center section that fails to build no longer takes the whole panel with it. The rail
+  item appeared to do nothing: the destination had already changed, the previous section stayed on
+  screen, and the status line still read "Saved locally". A failed section now renders a row
+  carrying the reason and reports to diagnostics, and the rest of the panel keeps working.
+- Media layout classes are removed by prefix rather than from a hardcoded list of three names. The
+  class is built from the setting, so a fourth layout would have been applied and then left behind
+  on teardown.
+
+### Changed
+
+- The test suite no longer contains a single behavioural claim written as a regex over the source
+  that implements it. Roughly 350 such assertions have become tests that boot the app, mount the
+  panel, apply a feature to a fixture, or read an exported value -- and several found defects the
+  regex form was hiding. `tests/source-contracts.test.mjs` holds what is left and says in its own
+  docstring what belongs there: bans, of the form "this pattern must not appear anywhere".
+  Everything else that still reads a file reads structured data -- the MV3 manifests, the README,
+  the shipped options assets, the i18n manifest.
+- `FeatureRegistry` gained `ids()` and `isActive()`, and `SETTINGS_MIGRATIONS` is exported, so the
+  running app can be asked what it registered and which upgrade steps it carries.
+
 ## 1.30.0 - 2026-08-18
 
 ### Fixed
