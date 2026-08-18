@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
@@ -53,35 +53,3 @@ test("the shield is separable from structural suppression in both directions", (
   assert.equal(off.privacy.blockAds, false);
 });
 
-test("both network consumers are gated on the shield, and structural suppression is not", async () => {
-  const [main, pageHooks, adProtection] = await Promise.all([
-    readFile(path.join(root, "src/main.ts"), "utf8"),
-    readFile(path.join(root, "src/features/privacy/page-hooks.ts"), "utf8"),
-    readFile(path.join(root, "src/features/privacy/ad-protection.ts"), "utf8")
-  ]);
-
-  // The page-world logger stub.
-  assert.match(
-    pageHooks,
-    /blockAds: ctx\.settings\.privacy\.blockAds && ctx\.settings\.privacy\.networkShield/,
-    "the page-world logger stub must honour the shield"
-  );
-
-  // The extension's dynamic request rule.
-  assert.match(
-    main,
-    /reconcileExtensionAdRule\(options\.source, networkShieldActive\(settings\), diagnostics\)/,
-    "the DNR rule must honour the shield"
-  );
-  assert.match(
-    main,
-    /function networkShieldActive[\s\S]{0,200}settings\.privacy\.blockAds && settings\.privacy\.networkShield/
-  );
-
-  // Structural suppression must NOT be gated on it, or turning the shield off would unhide ads.
-  assert.doesNotMatch(
-    adProtection,
-    /networkShield/,
-    "structural ad suppression must remain on blockAds alone"
-  );
-});

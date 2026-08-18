@@ -260,3 +260,57 @@ test("destroy leaves no filter attribute behind on any post or cell", async () =
   assert.ok(leftovers.during > 0, "the engine must have marked the timeline for this to prove anything");
   assert.equal(leftovers.after, 0, "every feature must reverse itself completely");
 });
+
+test("a filter action nothing reads cannot default to anything but off", async () => {
+  // The old form sliced DEFAULT_SETTINGS out of settings.ts, pulled the action keys out with a
+  // regex anchored on four-space indentation, and decided "is it read?" by grepping the features
+  // directory for `settings.filter.<key>`. A key reached through a computed property, a helper,
+  // or a destructure would read as unread and the test would demand it default to off for the
+  // wrong reason. This asks the engine instead: set the action to "hide" and see whether the
+  // timeline changes.
+  const audit = await page.evaluate(async () => {
+    const snapshot = () =>
+      [...document.querySelectorAll('article[data-testid="tweet"]')]
+        .map((article) => article.getAttribute("data-av-filter-result") ?? "")
+        .join(",");
+
+    const render = (mutate) => {
+      const ctx = window.makeCtx(mutate);
+      AviaryFilter.filterEngineFeature.init(ctx);
+      const shot = snapshot();
+      AviaryFilter.filterEngineFeature.destroy(ctx);
+      return shot;
+    };
+
+    const ACTIONS = ["off", "hide", "dim"];
+    const keys = Object.entries(AviaryFilter.DEFAULT_SETTINGS.filter)
+      .filter(([, value]) => typeof value === "string" && ACTIONS.includes(value))
+      .map(([key, value]) => ({ key, declaredDefault: value }));
+
+    const baseline = render(() => {});
+    return keys.map((entry) => ({
+      ...entry,
+      // Every action the engine consults must be able to change the page from the same baseline.
+      drivesSomething: ACTIONS.some((action) => action !== entry.declaredDefault && render((s) => {
+        s.filter[entry.key] = action;
+      }) !== baseline)
+    }));
+  });
+
+  assert.ok(audit.length >= 3, `expected several filter actions, found ${audit.length}`);
+  // Control: premiumRule is demonstrably consulted. Without this, a broken probe would report
+  // every key as unread and the whole test would pass for the wrong reason.
+  const premium = audit.find((entry) => entry.key === "premiumRule");
+  assert.ok(premium, "premiumRule is no longer a filter action");
+  assert.equal(premium.drivesSomething, true, "control failed — the engine does read premiumRule");
+
+  for (const entry of audit) {
+    if (entry.drivesSomething) continue;
+    assert.equal(
+      entry.declaredDefault,
+      "off",
+      `filter.${entry.key} defaults to "${entry.declaredDefault}" but changes nothing — ` +
+        "the setting claims a filter the engine never applies"
+    );
+  }
+});
