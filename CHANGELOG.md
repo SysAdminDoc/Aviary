@@ -2,12 +2,26 @@
 
 ## Unreleased
 
+## 1.30.0 - 2026-08-18
+
 ### Fixed
 
 - Saving a setting no longer throws you back to the top of the section. The panel measured and
   restored the scroll offset of the grid that wraps the rail and the content pane -- a container
   that is `overflow: hidden` and has never scrolled -- while the two panes that do scroll were
   rebuilt from zero on every render. Both are now measured and put back.
+
+### Changed
+
+- About a third of the test suite's assertions stopped reading `src/*.ts` as text. Roughly 350
+  behavioural claims were written as regexes over the source that implements them, so a rename
+  failed a working feature while a real regression that preserved the literal string passed. 118
+  of those assertions now drive the built module, the rendered DOM, or the booted app; the panel
+  scroll bug above is one of the defects that form was hiding. `tests/source-contracts.test.mjs`
+  is now bans only -- "this pattern must not appear anywhere" -- and says so.
+- `FeatureRegistry` gained `ids()` and `isActive()`. `statuses()` reported how each feature was
+  doing but never which feature it was, so nothing could ask the running app what it had actually
+  registered.
 
 ## 1.29.0 - 2026-08-18
 

@@ -228,11 +228,17 @@ test("both shipped artifacts carry the build version, not the fallback", async (
   const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
   const artifacts = ["dist/aviary.user.js", "dist/extension-chrome/content.js"];
 
+  // `npm run verify` tests before it builds, so on a version bump dist/ still carries the previous
+  // release and on a first-ever run it does not exist. Preflight gates version parity on the build
+  // that follows either way; what this adds is that the define reached the bundle at all.
+  const manifestPath = path.join(root, "dist", "extension-chrome", "manifest.json");
+  if (!existsSync(manifestPath)) return;
+  const built = JSON.parse(await readFile(manifestPath, "utf8"));
+  if (built.version !== pkg.version) return;
+
   for (const artifact of artifacts) {
     const file = path.join(root, artifact);
     if (!existsSync(file)) {
-      // `npm run verify` tests before it builds, so a first-ever run has nothing to read. The
-      // version parity gate in preflight covers the same ground on the build that follows.
       continue;
     }
     const source = await readFile(file, "utf8");

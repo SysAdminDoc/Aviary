@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.29.0`
+Version: `1.30.0`
 
 Actionable work only. Historical and completed roadmap material is archived in CHANGELOG.md; blocked work is kept in Roadmap_Blocked.md.
 
@@ -225,6 +225,20 @@ confirmed a second time. See RESEARCH.md.
   the deletion is stated in the commit; the remaining source-text tests are only ban checks and are
   named as such in one place.
   Depends on: F140 (same technique, smaller surface — land it first as the pattern).
+  Note (2026-08-18): partly drained. Converted, in the order this item asked for: every
+  version-named audit file, `audit-ui.test.mjs`, `audit-2026-08-07.test.mjs`,
+  `audit-correctness.test.mjs`, and the behavioural halves of `audit-a11y.test.mjs`,
+  `audit-ux.test.mjs` and `source-contracts.test.mjs`. `source-contracts.test.mjs` is now bans
+  only and opens with a docstring saying so and naming where everything else lives. New driven
+  files: `control-center-render`, `feature-lifecycle`, `boot-registration`, `media-batch-pacing`,
+  `extension-background-api`, `extension-options-page`, `report-download`,
+  `panel-appearance-contract`, `filter-engine-work`, `export-capture-session`,
+  `settings-choke-point`, `runtime-hardening`, `observer-batching`. Measured 2026-08-18 before
+  and after: 68 source-text blocks and 26 mixed became 34 and 15; roughly 350 such assertions
+  became 232. Remaining, largest first: `fixtures.test.mjs` (3),
+  `media-video-targets.test.mjs` (2+1), `dnr-ad-protection.test.mjs` (1+1), `i18n.test.mjs` (2
+  mixed), `injected-ui-contract.test.mjs` (1+1), `v0.9.0` (2), `v1.2.0` (1+1), and a long tail of
+  single-block files. The three left in `source-contracts.test.mjs` are bans and stay.
   Complexity: L
 
 ### P2 — platform primitives that delete hand-rolled code
