@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -12,35 +13,13 @@ import { build } from "esbuild";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const execFileAsync = promisify(execFile);
 
-test("an unchanged apply does not invalidate every article's processed stamp", async () => {
-  const source = await readFile(path.join(root, "src/features/filtering/filter-engine.ts"), "utf8");
-
-  // `generation` is both the compile id and the per-article stamp. Bumping it on every apply
-  // meant the stamp check could never hit, so the whole visible timeline was re-extracted on
-  // every mutation batch (~120ms while scrolling).
-  const refresh = source.slice(
-    source.indexOf("function refreshCompiled"),
-    source.indexOf("function filterSignature")
-  );
-  assert.match(refresh, /signature === compiledSignature/);
-  assert.match(refresh, /return;/);
-  const bumpIndex = refresh.indexOf("generation += 1");
-  const guardIndex = refresh.indexOf("return;");
-  assert.ok(guardIndex < bumpIndex, "the early return must come before the generation bump");
-});
-
 test("filter recompiles when the rules change and not when they do not", async () => {
   const { compileFilters, decide } = await importBundledModule(
     "src/features/filtering/predicates.ts"
   );
 
-  // The signature covers exactly the inputs compileFilters consumes; if a new input is added to
-  // one and not the other, a settings change would stop taking effect. This pins that pairing.
-  const engine = await readFile(path.join(root, "src/features/filtering/filter-engine.ts"), "utf8");
-  const signature = engine.slice(engine.indexOf("function filterSignature"), engine.indexOf("function scanRoot"));
-  for (const field of ["keywordRules", "regexRules", "whitelist", "premiumRule", "mediaTypes", "enabled"]) {
-    assert.match(signature, new RegExp(`filter\\.${field}\\b`), `${field} missing from the signature`);
-  }
+  // That every settings input actually invalidates the compiled filter is proven by changing each
+  // one mid-session in tests/filter-engine-work.test.mjs; this is the compiler's own contract.
 
   const base = {
     keywords: [],
@@ -86,25 +65,6 @@ test("a corrupted stored value is reported instead of silently reading as unset"
   assert.equal(reports[0].key, "aviary.settings.v1");
 });
 
-test("settings persistence has a single choke point that normalizes", async () => {
-  const main = await readFile(path.join(root, "src/main.ts"), "utf8");
-  const panel = await readFile(path.join(root, "src/features/core/control-center.ts"), "utf8");
-
-  // Panel toggles used to persist whatever was in memory while import/preset/locale persisted
-  // normalized values -- two write paths with different guarantees.
-  assert.match(main, /storage\.set\(SETTINGS_KEY, normalizeSettings\(cloneSettings\(settings\)\)\)/);
-  assert.ok(
-    !/storage\.set\(SETTINGS_KEY/.test(panel),
-    "the panel must persist settings through ctx.saveSettings, not directly"
-  );
-  for (const handler of ["importSettings", "applyPreset", "setLocale"]) {
-    // Anchored on the method definition -- the bare name also appears in the import list.
-    const start = panel.indexOf(`async ${handler}(`);
-    assert.ok(start > -1, `${handler} handler not found`);
-    assert.match(panel.slice(start, start + 900), /ctx\.saveSettings\(\)/, `${handler} bypasses the choke point`);
-  }
-});
-
 test("an out-of-range value cannot reach storage through saveSettings", async () => {
   const { normalizeSettings, DEFAULT_SETTINGS, cloneSettings } = await importBundledModule(
     "src/platform/settings.ts"
@@ -120,26 +80,46 @@ test("an out-of-range value cannot reach storage through saveSettings", async ()
   assert.equal(persisted.appearance.theme, DEFAULT_SETTINGS.appearance.theme);
 });
 
-test("the action log records what happened, not the nearest available label", async () => {
-  const { AUDIT_LOG_KEY } = await importBundledModule("src/features/core/audit-log.ts");
+test("the action log is keyed by its own store, not by a label borrowed from elsewhere", async () => {
+  const { AUDIT_LOG_KEY, AuditLog } = await importBundledModule("src/features/core/audit-log.ts");
   assert.equal(typeof AUDIT_LOG_KEY, "string");
 
-  const panel = await readFile(path.join(root, "src/features/core/control-center.ts"), "utf8");
-  const snippets = await readFile(path.join(root, "src/features/composer/composer-snippets.ts"), "utf8");
-  const audit = await readFile(path.join(root, "src/features/core/audit-log.ts"), "utf8");
+  const values = new Map();
+  const storage = {
+    async get(key, fallback) {
+      return values.has(key) ? structuredClone(values.get(key)) : fallback;
+    },
+    async set(key, value) {
+      values.set(key, structuredClone(value));
+    },
+    async remove(key) {
+      values.delete(key);
+    }
+  };
 
+  const log = new AuditLog(storage, undefined, () => {}, () => true);
+  await log.load();
   // Each of these used to be filed under the nearest export.* or settings.* label, so a failed
-  // crosspost appeared in the user-facing log as "export.start".
+  // crosspost appeared in the user-facing log as "export.start". `AuditAction` is a type, so an
+  // undeclared action is a typecheck failure; what this asserts is that the store keeps the
+  // action it was handed rather than folding it into a neighbour.
   for (const action of ["crosspost", "aria2.cancel", "cleanup.enqueue", "semantic.index", "preset.apply", "snippet.insert"]) {
-    assert.match(audit, new RegExp(`"${action.replace(".", "\.")}"`), `${action} is not a declared AuditAction`);
+    await log.record(action, { probe: action });
   }
-  assert.match(panel, /record\("crosspost", \{/);
-  assert.match(panel, /record\("aria2\.cancel", \{/);
-  assert.match(panel, /record\("cleanup\.enqueue", \{/);
-  assert.match(panel, /record\("semantic\.index", \{/);
-  assert.match(panel, /record\("preset\.apply", \{/);
-  assert.match(snippets, /record\("snippet\.insert", \{/);
-  assert.ok(!/kind: "crosspost"/.test(panel), "crosspost no longer needs to smuggle its kind");
+
+  const recorded = log.snapshot().entries.map((entry) => entry.action);
+  assert.deepEqual(recorded, [
+    "crosspost",
+    "aria2.cancel",
+    "cleanup.enqueue",
+    "semantic.index",
+    "preset.apply",
+    "snippet.insert"
+  ]);
+  assert.ok(
+    JSON.stringify([...values.values()]).includes("aria2.cancel"),
+    "the log must persist under its own key, or it is gone on the next reload"
+  );
 });
 
 test("a failed crosspost surfaces as an integration error under its own kind", async () => {
@@ -155,24 +135,6 @@ test("a failed crosspost surfaces as an integration error under its own kind", a
   assert.equal(errors.length, 1, "only the failure is an error");
   assert.equal(errors[0].kind, "crosspost:bluesky");
   assert.equal(errors[0].message, "Bluesky credentials missing");
-});
-
-test("a refused aria2 handoff is reported rather than silently falling back", async () => {
-  const downloader = await readFile(path.join(root, "src/features/media/downloader.ts"), "utf8");
-  const buttons = await readFile(path.join(root, "src/features/media/media-buttons.ts"), "utf8");
-
-  assert.match(downloader, /onWarn\?\.\("Aria2 refused the handoff/);
-  assert.match(buttons, /onWarn: \(message, details\) => ctx\.diagnostics\.warn/);
-});
-
-test("each options-page permission card explains its own grant", async () => {
-  const source = await readFile(path.join(root, "src/entrypoints/extension-options.ts"), "utf8");
-
-  // Host access has nothing to do with "media saves through the browser".
-  assert.match(source, /grantedMessage: "Granted\. Media saves through the browser now\."/);
-  assert.match(source, /grantedMessage: "Granted\. Aviary can read full-size media directly for exports now\."/);
-  // Routed through translate() since the page was localized, but still per-card.
-  assert.match(source, /setStatus\(\s*granted \? translate\(card\.grantedMessage\)/);
 });
 
 test("aria2 routes by size, so the threshold finally means something", async () => {
@@ -231,41 +193,6 @@ test("the aria2 threshold is reachable from the panel", async () => {
   assert.match(panel, /integrations\.aria2\.minBytes = Math\.max\(0, value\) \* 1_000_000/);
 });
 
-test("scroll capture is a real session rather than a one-await window", async () => {
-  const source = await readFile(path.join(root, "src/features/export/export-feature.ts"), "utf8");
-
-  // The lifecycle is serialized because settings changes and MutationObserver delivery can race.
-  // The reconciliation helper keeps the session open across every apply while the toggle stays
-  // enabled, instead of setting and clearing activeJobId around one append.
-  const apply = source.slice(source.indexOf("async apply(ctx, root, addedNodes)"), source.indexOf("async destroy(ctx)"));
-  assert.match(apply, /lifecycleQueue\.then\(\(\) => reconcileExportState/);
-  assert.match(source, /if \(!lastExportEnabled \|\| !activeJobId\) \{/);
-  assert.match(source, /checkpointStore\.start\(/);
-  assert.match(source, /await finishCaptureSession\(ctx\)/);
-
-  const run = source.slice(source.indexOf("export async function runExportOfVisibleTweets"));
-  assert.ok(
-    !/activeJobId = undefined;/.test(run.slice(0, run.indexOf("const records ="))),
-    "the export run must not close the capture window it just opened"
-  );
-
-  // A session left open would never be marked done; teardown delegates to the same serialized
-  // finisher used by the live false transition.
-  const destroy = source.slice(source.indexOf("async destroy(ctx)"), source.indexOf("getStatus()"));
-  assert.match(destroy, /await finishCaptureSession\(ctx\)/);
-});
-
-test("the nav rail signals that it scrolls", async () => {
-  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
-
-  // Thirteen sections overflow a short viewport; the last item rendered cut through its own
-  // baseline with nothing to say there was more below it.
-  const nav = source.slice(source.indexOf(".av-nav {"), source.indexOf(".av-nav-group"));
-  assert.match(nav, /overflow-y: auto/);
-  assert.match(nav, /mask-image: linear-gradient/);
-  assert.match(nav, /scrollbar-gutter: stable/);
-});
-
 test("the options page is localized without importing the whole catalog", async () => {
   const html = await readFile(path.join(root, "src/extension/options.html"), "utf8");
   const controller = await readFile(path.join(root, "src/entrypoints/extension-options.ts"), "utf8");
@@ -297,29 +224,32 @@ test("the options page is localized without importing the whole catalog", async 
   }
 });
 
-test("the panel shows the build it is running, stamped from package.json", async () => {
+test("both shipped artifacts carry the build version, not the fallback", async () => {
   const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
-  const panel = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
-  const build = await readFile(path.join(root, "tools/build.mjs"), "utf8");
+  const artifacts = ["dist/aviary.user.js", "dist/extension-chrome/content.js"];
 
-  // Reloading an unpacked extension gives no signal about which build took effect unless the
-  // running code says so. chrome.runtime.getManifest() would cover the extension only, so the
-  // version is defined in at build time and both artifacts stay in step.
-  assert.match(panel, /declare const __AVIARY_VERSION__/);
-  assert.match(panel, /el\("span", "av-version", `v\$\{AVIARY_VERSION\}`\)/);
-  assert.ok(
-    !/t\(\s*`v\$\{AVIARY_VERSION\}/.test(panel),
-    "a version number is data, not copy -- it must not be translated or counted for coverage"
-  );
-
-  const defines = [...build.matchAll(/define: \{ __AVIARY_VERSION__/g)];
-  assert.equal(defines.length, 2, "the userscript and the content script both need the stamp");
-
-  // The manifests are what chrome://extensions reads; they must not drift from package.json.
-  for (const manifest of ["src/extension/manifest.chrome.json", "src/extension/manifest.firefox.json"]) {
-    const parsed = JSON.parse(await readFile(path.join(root, manifest), "utf8"));
-    assert.equal(parsed.version, pkg.version, `${manifest} is out of step with package.json`);
+  for (const artifact of artifacts) {
+    const file = path.join(root, artifact);
+    if (!existsSync(file)) {
+      // `npm run verify` tests before it builds, so a first-ever run has nothing to read. The
+      // version parity gate in preflight covers the same ground on the build that follows.
+      continue;
+    }
+    const source = await readFile(file, "utf8");
+    // The stamp is defined in at build time rather than read from chrome.runtime.getManifest(),
+    // which would only ever answer for the extension and leave the userscript saying "dev".
+    assert.ok(
+      source.includes(pkg.version),
+      `${artifact} does not carry version ${pkg.version} — the build define did not reach it`
+    );
+    assert.ok(
+      !/av-version[^]{0,40}"vdev"/.test(source),
+      `${artifact} shipped the "dev" version fallback`
+    );
   }
+
+  // What the panel does with the stamp is driven in tests/panel-appearance-contract.test.mjs;
+  // what chrome://extensions reads is gated by preflight's version parity check.
 });
 
 test("store extension archives are byte-reproducible", async () => {

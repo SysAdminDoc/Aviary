@@ -20,6 +20,8 @@ import { chromium } from "playwright";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const abs = (file) => path.resolve(root, file).replace(/\\/g, "/");
 
+const BUILD_VERSION = "9.9.9-panel";
+
 /** The six painted themes. `off` leaves X's appearance alone and has no tokens of its own. */
 const THEMES = ["dim", "lightsOut", "graphite", "plum", "midnight", "noir"];
 
@@ -50,7 +52,10 @@ before(async () => {
     globalName: "AviaryLook",
     platform: "browser",
     target: "es2022",
-    logLevel: "silent"
+    logLevel: "silent",
+    // The same define the real build applies. Without it the version reads "dev" and the stamp
+    // assertion below would be checking the fallback rather than the build.
+    define: { __AVIARY_VERSION__: JSON.stringify(BUILD_VERSION) }
   });
 
   browser = await chromium.launch({ headless: true });
@@ -531,5 +536,65 @@ test("row-heavy destinations use a two-column board, and collapse when narrow", 
   }
   for (const [id, columns] of Object.entries(narrow)) {
     assert.equal(columns, 1, `${id} still renders in ${columns} columns at 700px`);
+  }
+});
+
+test("a nav rail that overflows says so, and can still be scrolled", async () => {
+  // Thirteen destinations overflow a short viewport. The last item rendered used to cut through
+  // its own baseline with nothing to say there was more below it.
+  const { context, page } = await openPage({ viewport: { width: 1280, height: 420 } });
+  try {
+    const rail = await page.evaluate((mount) => {
+      const shadow = eval(mount);
+      const nav = shadow.querySelector(".av-nav");
+      const style = getComputedStyle(nav);
+      const before = nav.scrollTop;
+      nav.scrollTop = nav.scrollHeight;
+      return {
+        overflows: nav.scrollHeight > nav.clientHeight + 1,
+        overflowY: style.overflowY,
+        mask: style.maskImage || style.webkitMaskImage,
+        gutter: style.scrollbarGutter,
+        scrolledFrom: before,
+        scrolledTo: nav.scrollTop
+      };
+    }, MOUNT("(settings) => { settings.appearance.theme = 'dim'; }"));
+
+    assert.equal(rail.overflows, true, "the rail must actually overflow at this height");
+    assert.equal(rail.overflowY, "auto", "an overflowing rail that cannot scroll strands its last items");
+    assert.match(rail.mask, /linear-gradient/, "a fade is what tells the reader there is more below");
+    assert.equal(rail.gutter, "stable", "the rail must not reflow the moment it becomes scrollable");
+    assert.ok(rail.scrolledTo > rail.scrolledFrom, "the rail did not scroll");
+  } finally {
+    await context.close();
+  }
+});
+
+test("the panel says which build it is running, as data rather than copy", async () => {
+  const { context, page } = await openPage();
+  try {
+    const stamp = await page.evaluate(
+      ({ english, japanese }) => {
+        const read = (mount) => {
+          document.getElementById("av-control-center")?.remove();
+          const shadow = eval(mount);
+          return shadow.querySelector(".av-version")?.textContent ?? null;
+        };
+        return { en: read(english), ja: read(japanese) };
+      },
+      {
+        english: MOUNT('(settings) => { settings.i18n.locale = "en"; }'),
+        japanese: MOUNT('(settings) => { settings.i18n.locale = "ja"; }')
+      }
+    );
+
+    // Reloading an unpacked extension gives no signal about which build took effect unless the
+    // running code says so.
+    assert.equal(stamp.en, `v${BUILD_VERSION}`, `the panel shows "${stamp.en}" instead of the build version`);
+    // A version number is data. Routing it through the translator would put it in the coverage
+    // tally and invite a locale to "translate" it.
+    assert.equal(stamp.ja, stamp.en, "the version must not change with the panel language");
+  } finally {
+    await context.close();
   }
 });

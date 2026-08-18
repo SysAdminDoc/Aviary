@@ -288,3 +288,19 @@ test("a narrow window stacks the permission cards instead of clipping them", asy
     await page.setViewportSize({ width: 900, height: 900 });
   }
 });
+
+test("each card explains its own grant rather than borrowing the other's", async () => {
+  const messages = {};
+  for (const card of ["downloads", "media"]) {
+    await mountOptions();
+    await page.click(`#${card}-grant`);
+    await page.waitForTimeout(60);
+    messages[card] = await page.evaluate(() => document.getElementById("status").textContent);
+  }
+
+  // Host access has nothing to do with "media saves through the browser"; both cards used to
+  // report the same sentence, so granting the wrong one looked like it had worked.
+  assert.match(messages.downloads, /Media saves through the browser/);
+  assert.match(messages.media, /full-size media directly/);
+  assert.notEqual(messages.downloads, messages.media, "the two grants must not share one message");
+});

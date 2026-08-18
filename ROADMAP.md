@@ -520,3 +520,12 @@ below were read at the cited line. See RESEARCH.md.
   regress. Do this for directness, not speed — the suite is already ~4.5s.
   Depends on: sequence before F182, which is easier to do well once tests can import real modules.
   Complexity: L
+
+## Discovered while draining (2026-08-18)
+
+- [ ] F212 — P2 — A section that throws takes the whole panel render with it
+  Why: `render()` builds the active section inline, so a builder that throws leaves the panel showing the previous section with no error and no way to reach the broken one. Found while driving the Control Center in tests: an incomplete `ctx.auditLog` made the Backup destination silently unreachable, and the panel reported "Saved locally" throughout. A user hitting this sees a nav item that does nothing.
+  Evidence: measured 2026-08-18 — clicking `[data-av-section="backup"]` with a context missing `auditLog.size` leaves `activeSectionId` unchanged and renders no error; `FeatureRegistry` already isolates per-feature failures, the panel does not isolate per-section ones.
+  Touches: `src/ui/control-center.ts` (`buildContent`, `section`), the section builders under `src/ui/control-center/sections/`.
+  Acceptance: a section builder that throws renders an in-panel error row naming the section and reports through `options.onError`; the rest of the panel stays usable; a test mounts the panel with a builder rigged to throw and asserts both.
+  Complexity: S

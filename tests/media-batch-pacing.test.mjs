@@ -44,7 +44,7 @@ before(async () => {
     entry,
     [
       `export { runMediaBatch } from ${JSON.stringify(abs("src/features/media/batch-downloader.ts"))};`,
-      `export { DownloadPermissionError } from ${JSON.stringify(abs("src/features/media/downloader.ts"))};`,
+      `export { DownloadPermissionError, createDownloader } from ${JSON.stringify(abs("src/features/media/downloader.ts"))};`,
       `export { TokenBucket } from ${JSON.stringify(abs("src/platform/rate-limit.ts"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};`
     ].join("\n"),
@@ -169,4 +169,39 @@ test("changing the mode reconfigures a bucket that is already running", async ()
   });
 
   assert.ok(waited > 400, `a reconfigured bucket must pace at the new rate, waited ${waited}ms`);
+});
+
+test("a refused aria2 handoff is reported before falling back to the browser", async () => {
+  const result = await page.evaluate(async () => {
+    const warnings = [];
+    const sent = [];
+    globalThis.chrome = {
+      runtime: {
+        async sendMessage(message) {
+          sent.push(message.url);
+          return { ok: true };
+        }
+      }
+    };
+    // Aria2 answers, and answers no. Falling back is right; falling back silently is not — the
+    // user configured a downloader and has no way to notice it stopped being used.
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ error: { code: 1, message: "Unauthorized" } }), { status: 200 });
+
+    const downloader = AviaryBatch.createDownloader({
+      integrations: {
+        aria2: { enabled: true, endpoint: "http://127.0.0.1:6800/jsonrpc", secret: "", dir: "" }
+      },
+      onWarn: (message, details) => warnings.push({ message, details })
+    });
+
+    const outcome = await downloader({ url: "https://video.twimg.com/a.mp4", filename: "a.mp4" });
+    return { outcome, warnings, sent };
+  });
+
+  assert.equal(result.outcome.ok, true, "the download must still happen");
+  assert.equal(result.outcome.via, "extension", "and must fall back to the browser");
+  assert.equal(result.sent.length, 1, "the fallback must actually reach the download path");
+  assert.equal(result.warnings.length, 1, "the refusal must be reported exactly once");
+  assert.match(result.warnings[0].message, /Aria2 refused the handoff/);
 });

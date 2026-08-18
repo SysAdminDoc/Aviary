@@ -49,7 +49,8 @@ before(async () => {
       `export { boot } from ${JSON.stringify(abs("src/main.ts"))};`,
       // Same bundle on purpose: the local-only policy is module-scope state, so importing it here
       // proves main.ts and this test share one instance the way a real build does.
-      `export { assertOutboundAllowed, LocalOnlyError } from ${JSON.stringify(abs("src/features/integrations/network-policy.ts"))};`
+      `export { assertOutboundAllowed, LocalOnlyError } from ${JSON.stringify(abs("src/features/integrations/network-policy.ts"))};`,
+      `export { SETTINGS_KEY } from ${JSON.stringify(abs("src/platform/settings.ts"))};`
     ].join("\n"),
     "utf8"
   );
@@ -158,6 +159,33 @@ test("local-only mode reads the live setting the app booted with, not a snapshot
 
   assert.equal(result.allowed, null, "outbound calls are permitted while local-only is off");
   assert.equal(result.blocked, "local-only", "turning local-only on must block without a reload");
+});
+
+test("the one path that persists settings normalizes them on the way through", async () => {
+  const stored = await page.evaluate(async () => {
+    const context = window.__boot.app.context;
+    const settings = context.settings;
+
+    // Values a panel handler could hold in memory but must never reach storage: out of range,
+    // negative, and an enum member that does not exist.
+    settings.hidden.maxEntries = 10_000_000;
+    settings.jobs.concurrentDownloads = -4;
+    settings.appearance.theme = "chartreuse";
+
+    await context.saveSettings();
+
+    // Read back through the gateway the app writes with, not from the in-memory object.
+    const written = await context.storage.get(AviaryBoot.SETTINGS_KEY, undefined);
+    return { written: JSON.stringify(written), inMemory: settings.appearance.theme };
+  });
+
+  assert.ok(stored.written && stored.written !== "undefined", "settings were not persisted at all");
+  // Normalization happens on the way to storage; the in-memory object is deliberately left as the
+  // caller set it, which is why the choke point has to be the write and not the setter.
+  assert.equal(stored.inMemory, "chartreuse");
+  assert.ok(!stored.written.includes("chartreuse"), "an unknown theme reached storage");
+  assert.ok(!stored.written.includes("10000000"), "an out-of-range retention limit reached storage");
+  assert.ok(!/"concurrentDownloads":-/.test(stored.written), "a negative concurrency reached storage");
 });
 
 test("destroy puts the page back and leaves nothing registered as active", async () => {
