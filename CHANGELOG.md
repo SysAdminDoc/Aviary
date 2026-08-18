@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.32.0 - 2026-08-18
+
 ### Added
 
 - **Trust -> Find the feature breaking this page.** A binary search over the features that are
