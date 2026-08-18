@@ -23,13 +23,13 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
  * and a `send` that drives the message listener the way `chrome.runtime.sendMessage` does.
  */
 async function loadBackground(overrides = {}) {
-  const registered = { message: null, action: null, contextMenu: null };
+  const registered = { message: null, action: null, contextMenu: null, installed: null, startup: null };
   const calls = { openOptions: 0, downloads: [], permissionQueries: [] };
 
   const chrome = {
     runtime: {
-      onInstalled: { addListener() {} },
-      onStartup: { addListener() {} },
+      onInstalled: { addListener(listener) { registered.installed = listener; } },
+      onStartup: { addListener(listener) { registered.startup = listener; } },
       onMessage: { addListener(listener) { registered.message = listener; } },
       async openOptionsPage() { calls.openOptions++; },
       ...overrides.runtime
@@ -233,3 +233,86 @@ async function importBundledModule(relativePath) {
     setTimeout(() => void rm(dir, { recursive: true, force: true }), 0);
   }
 }
+
+/** A `chrome` stub that records DNR rule changes and remembers the mirrored choice. */
+function dnrStub({ mirrored } = {}) {
+  const state = { rules: [], updates: [], stored: mirrored === undefined ? {} : { "aviary.runtime.adLoggerRule.v1": mirrored } };
+  return {
+    state,
+    declarativeNetRequest: {
+      async getDynamicRules() {
+        return state.rules;
+      },
+      async updateDynamicRules(update) {
+        state.updates.push({
+          added: (update.addRules ?? []).map((rule) => rule.id),
+          removed: update.removeRuleIds ?? []
+        });
+        const removed = new Set(update.removeRuleIds ?? []);
+        state.rules = [...state.rules.filter((rule) => !removed.has(rule.id)), ...(update.addRules ?? [])];
+      }
+    },
+    storage: {
+      local: {
+        async get(key) {
+          const name = typeof key === "string" ? key : Object.keys(key ?? {})[0];
+          return name in state.stored ? { [name]: state.stored[name] } : {};
+        },
+        async set(values) {
+          Object.assign(state.stored, values);
+        },
+        async remove(key) {
+          delete state.stored[key];
+        }
+      }
+    }
+  };
+}
+
+test("a fresh install turns the request rule on before the first X tab opens", async () => {
+  const dnr = dnrStub();
+  const background = await loadBackground({ chrome: dnr });
+
+  assert.equal(typeof background.registered.installed, "function", "no onInstalled listener");
+  background.registered.installed({ reason: "install" });
+  await new Promise((resolve) => setTimeout(resolve, 30));
+
+  // Default-on ad protection has to hold from the moment the extension is installed; waiting for
+  // the first content boot leaves the first page load unprotected.
+  assert.equal(dnr.state.rules.length, 1, "the install did not add the rule");
+  assert.equal(dnr.state.stored["aviary.runtime.adLoggerRule.v1"], true, "the choice must be mirrored for the next start");
+});
+
+test("an update restores the choice the user last made rather than re-enabling", async () => {
+  const dnr = dnrStub({ mirrored: false });
+  const background = await loadBackground({ chrome: dnr });
+
+  background.registered.installed({ reason: "update" });
+  await new Promise((resolve) => setTimeout(resolve, 30));
+
+  // Re-enabling on every update would silently undo a user who turned ad protection off.
+  assert.deepEqual(dnr.state.rules, [], "an update turned the rule back on");
+});
+
+test("the content script can turn the rule on and off through the background", async () => {
+  const dnr = dnrStub();
+  const background = await loadBackground({ chrome: dnr });
+
+  const on = await background.send({ type: "AVIARY_SYNC_AD_RULE", enabled: true });
+  assert.deepEqual(on, { ok: true, enabled: true });
+  assert.equal(dnr.state.rules.length, 1);
+
+  const off = await background.send({ type: "AVIARY_SYNC_AD_RULE", enabled: false });
+  assert.deepEqual(off, { ok: true, enabled: false });
+  assert.deepEqual(dnr.state.rules, [], "turning it off must remove the rule, not leave it installed");
+  assert.equal(dnr.state.stored["aviary.runtime.adLoggerRule.v1"], false);
+});
+
+test("a background with no declarativeNetRequest reports the failure instead of claiming success", async () => {
+  const background = await loadBackground({ chrome: { declarativeNetRequest: undefined } });
+  const response = await background.send({ type: "AVIARY_SYNC_AD_RULE", enabled: true });
+
+  assert.equal(response.ok, false);
+  assert.equal(response.enabled, true, "the answer must name the state that was asked for");
+  assert.ok(response.error, "a refusal must carry a reason");
+});

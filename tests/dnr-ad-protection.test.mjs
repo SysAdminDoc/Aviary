@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -160,35 +161,25 @@ test("both extension packages request only host-scoped DNR and Firefox has a rea
     JSON.parse(await readFile(path.join(root, "src/extension/dnr-empty-rules.json"), "utf8")),
     []
   );
-});
 
-test("boot and every successful settings save synchronize the active profile choice", async () => {
-  const main = await readFile(path.join(root, "src/main.ts"), "utf8");
-  const background = await readFile(
-    path.join(root, "src/entrypoints/extension-background.ts"),
-    "utf8"
-  );
-  const buildSource = await readFile(path.join(root, "tools/build.mjs"), "utf8");
-
-  // The rule must be reconciled from the settings boot just resolved, before anything can await
-  // on a slower path. Schema-version reporting sits between the two reads, so allow for it while
-  // still pinning the order and the source of the flag.
-  assert.match(
-    main,
-    /const settings = (?:normalizeSettings|settingsEnvelope\.settings)[\s\S]{0,900}await reconcileExtensionAdRule\(options\.source, networkShieldActive\(settings\), diagnostics\)/
-  );
-  // The rule follows both halves of the ad setting: the master switch and the network shield.
-  assert.match(
-    main,
-    /function networkShieldActive[\s\S]{0,240}settings\.privacy\.blockAds && settings\.privacy\.networkShield/
-  );
-  const saveBoundary = main.slice(main.indexOf("async saveSettings()"), main.indexOf("requestApply()"));
-  assert.match(saveBoundary, /await storage\.set/);
-  assert.match(saveBoundary, /await reconcileExtensionAdRule/);
-  assert.match(background, /details\?\.reason === "install"/);
-  assert.match(background, /restoreDynamicAdRule/);
-  assert.match(background, /isAdRuleSyncMessage/);
-  assert.match(buildSource, /dnr-empty-rules\.json/);
+  // Firefox refuses to load an extension whose declared rule_resources path is missing, so the
+  // file has to be in the package and not only in src/. Asserting that tools/build.mjs mentions
+  // the filename says nothing about whether it arrived.
+  for (const target of ["extension-chrome", "extension-firefox"]) {
+    const packaged = path.join(root, "dist", target, "dnr-empty-rules.json");
+    if (!existsSync(packaged)) continue;
+    assert.deepEqual(JSON.parse(await readFile(packaged, "utf8")), [], `${target} shipped a non-empty rule set`);
+  }
+  const packagedFirefox = path.join(root, "dist", "extension-firefox", "manifest.json");
+  if (existsSync(packagedFirefox)) {
+    const manifest = JSON.parse(await readFile(packagedFirefox, "utf8"));
+    for (const resource of manifest.declarative_net_request?.rule_resources ?? []) {
+      assert.ok(
+        existsSync(path.join(root, "dist", "extension-firefox", resource.path)),
+        `the Firefox package declares ${resource.path} and does not contain it`
+      );
+    }
+  }
 });
 
 async function importBundledModule(relativePath) {

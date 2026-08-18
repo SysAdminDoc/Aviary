@@ -63,6 +63,28 @@ function isScopedKeyboardInteraction(relative, text) {
  * source scan states exactly -- so they live here. What the page *does* is driven in
  * tests/extension-options-page.test.mjs.
  */
+test("no stylesheet targets one of X's generated class names", async () => {
+  const files = await listFiles(path.join(root, "src"), ".ts");
+  const offenders = [];
+
+  for (const file of files) {
+    const relative = path.relative(root, file).split(path.sep).join("/");
+    const text = await readFile(file, "utf8");
+    for (const line of text.split(/\r?\n/)) {
+      if (!/[.#]r-[a-z0-9-]{5,}/.test(line)) continue;
+      // `selectors.ts` declares a handful as documented *fallbacks*, used only once the stable
+      // selector stops matching and reported as degraded when they are. That is the opposite of
+      // depending on them.
+      if (relative === "src/platform/selectors.ts" && /^\s*fallback:/.test(line)) continue;
+      offenders.push(`${relative}: ${line.trim().slice(0, 80)}`);
+    }
+  }
+
+  // `.r-150rngu` is emitted by X's build and changes without notice. A rule that depends on one
+  // stops applying silently — the feature looks enabled and does nothing.
+  assert.deepEqual(offenders, [], "these depend on class names X regenerates");
+});
+
 test("the shipped options page carries no inline script, handler, or pill styling", async () => {
   const html = await readFile(path.join(root, "src/extension/options.html"), "utf8");
   assert.ok(
