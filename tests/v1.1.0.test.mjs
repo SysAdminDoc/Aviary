@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -111,26 +111,120 @@ test("BookmarkStore.dueReminders selects entries past the cutoff", async () => {
   assert.ok(!due.find((entry) => entry.id === future.id));
 });
 
-test("network-capture source guards GraphQL routing, payload bounds, and auth scrubbing", async () => {
-  const source = await readFile(
-    path.join(root, "src/features/export/network-capture.ts"),
-    "utf8"
-  );
-  for (const marker of [
-    "MAX_GRAPHQL_PAYLOAD_BYTES",
-    "TextEncoder",
-    "captureTail",
-    "preserveRawPayloads",
-    "scrubAuth",
-    "ct0",
-    "Bearer"
-  ]) {
-    assert.ok(source.includes(marker), `network-capture missing ${marker}`);
+test("a captured payload is scrubbed of session tokens and truncated to its byte cap", async () => {
+  // The scrub happens on the way into the checkpoint store, so the store is where it is visible.
+  // The recent-payload list carries metadata only, which the last assertion here pins.
+  // One bundle for both: `getCheckpointStore` is module-level state, so bundling the two
+  // separately would give network-capture its own copy and persist nothing anywhere the export
+  // feature could see -- a green test against a capture path that stores nothing.
+  const bundled = await importBundledEntry([
+    "src/features/export/network-capture.ts",
+    "src/features/export/export-feature.ts"
+  ]);
+  const capture = bundled;
+  const exportFeature = { exportFeature: bundled.exportFeature };
+
+  const values = new Map();
+  const storage = {
+    async get(key, fallback) {
+      return values.has(key) ? structuredClone(values.get(key)) : fallback;
+    },
+    async set(key, value) {
+      values.set(key, structuredClone(value));
+    },
+    async remove(key) {
+      values.delete(key);
+    }
+  };
+  const bridge = fakeBridge();
+  const context = {
+    pageBridge: bridge,
+    route: { href: "https://x.com/home", surface: "home", path: "/home" },
+    settings: {
+      export: { preserveRawPayloads: true, enabled: false, autoDiscoverQueryIds: false, formats: ["json"] }
+    },
+    storage,
+    diagnostics: { info() {}, warn() {}, error() {} },
+    auditLog: { record: async () => {} }
+  };
+
+  await exportFeature.exportFeature.init(context);
+  capture.networkCaptureFeature.init(context);
+
+  const secrets = JSON.stringify({
+    ct0: "0123456789abcdef",
+    auth_token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    guest_id: "v1%3A123456789",
+    csrf_token: "deadbeefdeadbeef",
+    header: "Bearer abcdefghijklmnopqrstuvwxyz",
+    data: { home: { instructions: [] } }
+  });
+  bridge.emit("graphql", {
+    url: "https://x.com/i/api/graphql/abc/HomeTimeline",
+    operation: "HomeTimeline",
+    status: 200,
+    bytes: secrets.length,
+    at: new Date().toISOString(),
+    body: secrets
+  });
+  // A response past the 1.5 MB cap: capture is a debugging aid, not a mirror of the session.
+  const huge = JSON.stringify({ pad: "x".repeat(2_000_000) });
+  bridge.emit("graphql", {
+    url: "https://x.com/i/api/graphql/abc/UserTweets",
+    operation: "UserTweets",
+    status: 200,
+    bytes: huge.length,
+    at: new Date().toISOString(),
+    body: huge
+  });
+  await new Promise((resolve) => setTimeout(resolve, 60));
+
+  const stored = JSON.stringify([...values.values()]);
+  assert.ok(stored.includes("graphql:HomeTimeline"), "the payload was not persisted at all");
+  for (const secret of ["0123456789abcdef", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "v1%3A123456789", "deadbeefdeadbeef"]) {
+    assert.ok(!stored.includes(secret), `a session token survived capture: ${secret}`);
+  }
+  assert.ok(!/Bearer\s+abcdefghij/.test(stored), "a bearer header survived capture");
+  assert.ok(stored.includes("<scrubbed>"), "the scrub must leave a marker, not delete the field");
+  // Refused outright here rather than truncated, which is the stricter of the two acceptable
+  // outcomes; what must never happen is a 2 MB response body landing in local storage.
+  assert.ok(!stored.includes("x".repeat(100_000)), "a payload past the 1.5 MB cap reached storage");
+  assert.ok(!stored.includes("graphql:UserTweets"), "an oversized payload was persisted anyway");
+
+  // The in-memory list the Trust panel reads is metadata only; a body there would put response
+  // content into every diagnostics copy.
+  for (const entry of capture.getRecentCapturedPayloads()) {
+    assert.deepEqual(Object.keys(entry).sort(), ["at", "bytes", "status", "url"]);
   }
 
-  // GraphQL routing moved to the page world in v1.12.0; this module no longer matches URLs at all.
-  const agent = await readFile(path.join(root, "src/page/page-agent.ts"), "utf8");
-  assert.ok(agent.includes("api\\/graphql"), "page-agent must route GraphQL");
+  capture.networkCaptureFeature.destroy(context);
+  await exportFeature.exportFeature.destroy(context);
+});
+
+test("network capture never patches the fetch it can reach, because it is the wrong one", async () => {
+  const { networkCaptureFeature } = await importBundledModule("src/features/export/network-capture.ts");
+  const bridge = fakeBridge();
+  const context = {
+    pageBridge: bridge,
+    route: { href: "https://x.com/home" },
+    settings: { export: { preserveRawPayloads: true } },
+    diagnostics: { info() {}, warn() {}, error() {} },
+    auditLog: { record: async () => {} }
+  };
+
+  // Until v1.12.0 this module wrapped `globalThis.fetch` — Aviary's own, not the page's, because
+  // the content script runs in the isolated world. It saw none of X's traffic.
+  const originalFetch = globalThis.fetch;
+  const originalXhr = globalThis.XMLHttpRequest?.prototype?.open;
+  networkCaptureFeature.init(context);
+  networkCaptureFeature.apply(context);
+  const patchedFetch = globalThis.fetch !== originalFetch;
+  const patchedXhr = globalThis.XMLHttpRequest?.prototype?.open !== originalXhr;
+  networkCaptureFeature.destroy(context);
+
+  assert.equal(patchedFetch, false, "network-capture patched fetch");
+  assert.equal(patchedXhr, false, "network-capture patched XMLHttpRequest");
+  assert.equal(bridge.count("graphql"), 1, "payloads must arrive from the page bridge instead");
 });
 
 test("network capture rejects forged payloads and bounds a burst before persistence", async () => {
@@ -235,6 +329,34 @@ async function importBundledModule(relativePath) {
   try {
     await build({
       entryPoints: [path.join(root, relativePath)],
+      outfile,
+      bundle: true,
+      format: "esm",
+      platform: "browser",
+      target: "es2022",
+      logLevel: "silent"
+    });
+    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
+  } finally {
+    await rm(temp, { force: true, recursive: true });
+  }
+}
+
+/** Bundles several modules into one graph so their module-level state is genuinely shared. */
+async function importBundledEntry(relativePaths) {
+  const temp = await mkdtemp(path.join(tmpdir(), "aviary-v11x-multi-"));
+  const entry = path.join(temp, "entry.ts");
+  const outfile = path.join(temp, "module.mjs");
+  try {
+    await writeFile(
+      entry,
+      relativePaths
+        .map((relative) => `export * from ${JSON.stringify(path.resolve(root, relative).split(path.sep).join("/"))};`)
+        .join(";\n"),
+      "utf8"
+    );
+    await build({
+      entryPoints: [entry],
       outfile,
       bundle: true,
       format: "esm",

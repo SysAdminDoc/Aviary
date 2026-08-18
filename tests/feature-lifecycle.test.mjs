@@ -35,6 +35,7 @@ before(async () => {
       `export { themeFeature, THEME_CSS } from ${JSON.stringify(abs("src/features/appearance/theme.ts"))};`,
       `export { layoutDeclutterFeature } from ${JSON.stringify(abs("src/features/layout/declutter.ts"))};`,
       `export { cleanShareLinksFeature, cleanUrl } from ${JSON.stringify(abs("src/features/library/clean-share-links.ts"))};`,
+      `export { linkUnshortenFeature } from ${JSON.stringify(abs("src/features/library/link-unshorten.ts"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};`
     ].join("\n"),
     "utf8"
@@ -334,4 +335,53 @@ test("each declutter switch adds only its own class, and destroy removes them al
     `a nav item name reached the class list unsanitised: ${JSON.stringify(result.nav)}`
   );
   assert.deepEqual(result.afterNavDestroy, [], "per-item nav classes must be removed too");
+});
+
+test("link unshortening restores the title and class it replaced", async () => {
+  const result = await page.evaluate(async () => {
+    window.reset();
+    document.body.innerHTML = `
+      <article data-testid="tweet">
+        <div data-testid="tweetText">
+          <a href="https://t.co/abcd1234" title="t.co/abcd1234"
+             aria-label="https://example.com/article">https://t.co/abcd1234</a>
+          <a href="https://example.org/plain" title="original title">plain</a>
+        </div>
+      </article>`;
+    const read = () =>
+      [...document.querySelectorAll("a")].map((anchor) => ({
+        title: anchor.getAttribute("title"),
+        clean: anchor.classList.contains("av-link-clean"),
+        classes: anchor.className
+      }));
+
+    const before = read();
+    const ctx = window.ctx((settings) => {
+      settings.links.expandTco = true;
+    });
+    await AviaryLifecycle.linkUnshortenFeature.init(ctx);
+    await AviaryLifecycle.linkUnshortenFeature.apply(ctx, document);
+    const during = read();
+
+    await AviaryLifecycle.linkUnshortenFeature.destroy(ctx);
+    return { before, during, after: read() };
+  });
+
+  assert.ok(
+    result.during.some((entry) => entry.clean),
+    "the feature marked nothing — the fixture no longer matches what it looks for"
+  );
+  // Reversibility is the whole contract: the class goes, and a title the page set itself comes
+  // back exactly, rather than being left as whatever the feature wrote over it.
+  assert.deepEqual(
+    result.after.map((entry) => entry.title),
+    result.before.map((entry) => entry.title),
+    "destroy did not restore the original titles"
+  );
+  assert.ok(!result.after.some((entry) => entry.clean), "destroy left the av-link-clean class behind");
+  assert.deepEqual(
+    result.after.map((entry) => entry.classes),
+    result.before.map((entry) => entry.classes),
+    "destroy left a class list the page did not start with"
+  );
 });

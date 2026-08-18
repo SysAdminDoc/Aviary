@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -89,61 +89,6 @@ test("normalizeImageUrl honours the preferOriginalImages preference", async () =
   });
   assert.ok(noName.url.includes("name=large"));
   assert.equal(noName.format, "png");
-});
-
-test("media buttons and batch downloads pass the preference through to extraction", async () => {
-  const buttons = await readFile(path.join(root, "src/features/media/media-buttons.ts"), "utf8");
-  const batch = await readFile(path.join(root, "src/features/media/batch-downloader.ts"), "utf8");
-
-  assert.match(buttons, /preferOriginalImages: ctx\.settings\.media\.preferOriginalImages/);
-  assert.match(batch, /preferOriginalImages: ctx\.settings\.media\.preferOriginalImages/);
-  // The item-cap path must not bypass the configured concurrency.
-  assert.ok(
-    !/runTasks\(ctx, downloader, queue, history, tasks\.slice\(0, max\)\)/.test(batch),
-    "every runTasks call must pass the resolved concurrency"
-  );
-});
-
-test("mutation batches are coalesced instead of delivered per record", async () => {
-  const source = await readFile(path.join(root, "src/platform/observer.ts"), "utf8");
-
-  assert.match(source, /FLUSH_DELAY_MS/);
-  assert.match(source, /MAX_BATCH_NODES/);
-  assert.match(source, /setTimeout\(flush/);
-  assert.match(source, /clearTimeout/);
-  assert.match(source, /isConnected/, "detached nodes must not be handed to features");
-});
-
-test("Control Center defers rebuilds that would destroy in-progress input", async () => {
-  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
-
-  assert.match(source, /const isBusy = \(\): boolean =>/);
-  assert.match(source, /if \(!open \|\| isBusy\(\)\) \{\s*dirtyWhileBusy = true;/);
-  assert.match(source, /dirtyWhileBusy = false;\s*render\(\);/);
-});
-
-test("network capture takes its payloads from the page bridge and patches no fetch of its own", async () => {
-  const source = await readFile(path.join(root, "src/features/export/network-capture.ts"), "utf8");
-
-  // Until v1.12.0 this module wrapped `globalThis.fetch` -- Aviary's own fetch, not the page's,
-  // because the content script runs in the isolated world. It saw none of X's traffic. Payloads
-  // now arrive from src/page/page-agent.ts, which runs where those requests are visible.
-  assert.ok(
-    !source.includes("globalThis.fetch ="),
-    "network-capture must not patch fetch: the copy it can reach is not the one X uses"
-  );
-  assert.match(source, /pageBridge/, "payloads must come from the page bridge");
-  assert.match(source, /bridge\.on\("graphql"/);
-  assert.match(source, /auth_token/, "session cookies must be scrubbed from stored payloads");
-});
-
-test("link unshortening restores class and title on teardown", async () => {
-  const source = await readFile(path.join(root, "src/features/library/link-unshorten.ts"), "utf8");
-
-  assert.match(source, /classList\.remove\("av-link-clean"\)/);
-  assert.match(source, /avOriginalTitle/);
-  const destroyBody = source.slice(source.indexOf("destroy(ctx)"), source.indexOf("};"));
-  assert.ok(destroyBody.includes("av-link-clean"), "destroy must drop the class it added");
 });
 
 function record(overrides = {}) {

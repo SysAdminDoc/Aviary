@@ -205,3 +205,46 @@ test("a refused aria2 handoff is reported before falling back to the browser", a
   assert.equal(result.warnings.length, 1, "the refusal must be reported exactly once");
   assert.match(result.warnings[0].message, /Aria2 refused the handoff/);
 });
+
+test("the original-image preference reaches the URL the batch actually asks for", async () => {
+  const urls = async (preferOriginalImages) =>
+    page.evaluate(async (prefer) => {
+      const settings = AviaryBatch.cloneSettings(AviaryBatch.DEFAULT_SETTINGS);
+      settings.media.downloadHistory = false;
+      settings.media.preferOriginalImages = prefer;
+
+      const requested = [];
+      globalThis.chrome = {
+        runtime: {
+          async sendMessage(message) {
+            requested.push(message.url);
+            return { ok: true };
+          }
+        }
+      };
+
+      await AviaryBatch.runMediaBatch({
+        settings,
+        route: { surface: "home", path: "/home" },
+        limiter: { async waitForToken() {} },
+        auditLog: { async record() {} },
+        diagnostics: { info() {}, warn() {}, error() {} }
+      });
+      return requested;
+    }, preferOriginalImages);
+
+  const original = await urls(true);
+  const asRendered = await urls(false);
+
+  assert.ok(original.length > 0 && asRendered.length > 0, "the fixture must offer media both ways");
+  // The setting is only meaningful if it changes what is fetched; the fixture's `name=small`
+  // thumbnails are exactly what "prefer original" is supposed to replace.
+  assert.ok(
+    original.every((url) => /name=orig/.test(url)),
+    `preferOriginalImages did not reach extraction: ${original[0]}`
+  );
+  assert.ok(
+    asRendered.every((url) => !/name=orig/.test(url)),
+    `turning it off still requested originals: ${asRendered[0]}`
+  );
+});
