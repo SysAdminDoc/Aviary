@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.33.0 - 2026-08-18
+
 ### Fixed
 
 - **Two X tabs no longer erase each other's work.** Every whole-state store loaded once into memory

@@ -1,4 +1,4 @@
-# Install Aviary 1.32.0
+# Install Aviary 1.33.0
 
 Aviary ships as a readable userscript and as Manifest V3 extensions. Both builds run on X pages;
 the extensions also provide a dedicated options page for optional browser permissions.
@@ -34,7 +34,7 @@ Control Center.
 ## Chrome, Edge, or Brave (developer load)
 
 1. Run `npm run verify`. The build emits `dist/extension-chrome/` and
-   `dist/extension-chrome-v1.32.0.zip`. The ZIPs are build output and are not carried in git —
+   `dist/extension-chrome-v1.33.0.zip`. The ZIPs are build output and are not carried in git —
    build them, or take them from a release.
 2. Open `chrome://extensions/` (or the equivalent extensions page), enable **Developer mode**, and
    choose **Load unpacked** with `dist/extension-chrome/`. A ZIP is a release artifact; Chromium
