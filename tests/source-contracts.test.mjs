@@ -70,6 +70,24 @@ test("the shipped options page carries no inline script, handler, or pill stylin
   assert.ok(!/backdrop-filter/.test(css), "forced-colors and older engines drop it to nothing");
 });
 
+/**
+ * A page-level class cannot style a shadow descendant. Rules written that way are inert CSS that
+ * reads as working styling, so they are banned rather than tested for -- what the panel actually
+ * does under a coarse pointer is measured in tests/panel-appearance-contract.test.mjs.
+ */
+test("no stylesheet tries to reach the Control Center through a page-level class", async () => {
+  const mobile = await readFile(path.join(root, "src/features/core/mobile-touch.ts"), "utf8");
+
+  // Only the panel's own class names: the AI trigger, snippet popover and hide button live in the
+  // light DOM, where a page-level class is exactly the right tool.
+  const PANEL_ONLY = "shell|overlay|panel|launcher|nav|content|section|row|searchbar|toggle|transaction|status";
+  const dead = [
+    ...mobile.matchAll(new RegExp(String.raw`html\.av-(?:touch|mobile)\s+\.av-(?:${PANEL_ONLY})[a-z-]*`, "g"))
+  ].map((match) => match[0]);
+
+  assert.deepEqual(dead, [], "these selectors cannot cross the shadow boundary");
+});
+
 test("Control Center follows overlay accessibility and shape rules", async () => {
   const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
 

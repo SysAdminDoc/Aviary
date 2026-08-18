@@ -79,3 +79,19 @@ test("README defers release detail to CHANGELOG instead of restating it", async 
   const roadmapSection = readme.slice(readme.indexOf("## Roadmap"));
   assert.match(roadmapSection, /CHANGELOG\.md/, "the Roadmap section must point at the changelog");
 });
+
+test("the archived design boards for the page system are still on disk", async () => {
+  // Archived 2026-08-14: these depict the retired four-section IA and stay as the generated
+  // design reference for the page system, just not beside the current mockups. A truncated or
+  // placeholder file would leave the reference silently gone.
+  for (const board of [
+    "control-center-presets.png",
+    "control-center-reading.png",
+    "control-center-data.png",
+    "control-center-advanced.png"
+  ]) {
+    const image = await readFile(path.join(root, "docs", "mockups", "archive-pre-2026-08-13", board));
+    assert.ok(image.length > 100_000, `${board} is ${image.length} bytes — the reference is gone`);
+    assert.equal(image.subarray(0, 8).toString("hex"), "89504e470d0a1a0a", `${board} is not a PNG`);
+  }
+});

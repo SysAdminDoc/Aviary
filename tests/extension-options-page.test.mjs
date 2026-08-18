@@ -43,11 +43,13 @@ before(async () => {
     logLevel: "silent"
   });
   optionsHtml = await readFile(path.join(root, "src/extension/options.html"), "utf8");
-  // The page loads its own script and stylesheet by relative path; neither exists in the harness,
-  // and the controller is injected explicitly after the chrome stub is in place.
+  const optionsCss = await readFile(path.join(root, "src/extension/options.css"), "utf8");
+  // Both are loaded by relative path, which resolves to nothing under `setContent`. The script is
+  // injected explicitly after the chrome stub is in place; the stylesheet is inlined, because
+  // dropping it would leave every layout assertion measuring an unstyled document.
   optionsHtml = optionsHtml
     .replace(/<script[^>]*src="options\.js"[^>]*>\s*<\/script>/i, "")
-    .replace(/<link[^>]*href="options\.css"[^>]*>/i, "");
+    .replace(/<link[^>]*href="options\.css"[^>]*>/i, `<style>${optionsCss}</style>`);
   await writeFile(path.join(temp, "options.html"), optionsHtml, "utf8");
 
   browser = await chromium.launch({ headless: true });
@@ -208,4 +210,81 @@ test("the page shows the build it is part of", async () => {
   await mountOptions();
   const version = await page.evaluate(() => document.getElementById("version").textContent);
   assert.equal(version, "v9.9.9", "the version comes from the manifest, not from a hardcoded string");
+});
+
+test("a permission card announces its own state change to assistive technology", async () => {
+  await mountOptions();
+
+  const wiring = await page.evaluate(() => {
+    const state = document.getElementById("downloads-state");
+    const grant = document.getElementById("downloads-grant");
+    const card = document.getElementById("downloads-card");
+    return {
+      live: state.getAttribute("aria-live"),
+      atomic: state.getAttribute("aria-atomic"),
+      describedBy: grant.getAttribute("aria-describedby"),
+      describedByExists: Boolean(document.getElementById(grant.getAttribute("aria-describedby"))),
+      priority: card.dataset.priority
+    };
+  });
+
+  // The state label is the only thing that changes when a grant resolves; if it is not a live
+  // region, a screen-reader user gets no confirmation that anything happened.
+  assert.equal(wiring.live, "polite");
+  assert.equal(wiring.atomic, "true");
+  assert.equal(wiring.describedByExists, true, `aria-describedby points at ${wiring.describedBy}, which is not there`);
+  assert.equal(wiring.priority, "recommended", "downloads is the card that makes media saving work");
+});
+
+test("the card marks itself busy while a grant is in flight, and clears it after", async () => {
+  await page.setContent(optionsHtml);
+  await page.evaluate(() => {
+    window.__resolve = null;
+    globalThis.chrome = {
+      runtime: { getManifest: () => ({ version: "9.9.9" }) },
+      permissions: {
+        async contains() { return false; },
+        request() {
+          // Held open so the in-flight state is observable rather than a frame that never lands.
+          return new Promise((resolve) => { window.__resolve = resolve; });
+        },
+        async remove() { return true; }
+      }
+    };
+  });
+  await page.addScriptTag({ path: bundlePath });
+  await page.waitForTimeout(60);
+
+  await page.click("#downloads-grant");
+  await page.waitForTimeout(30);
+  const during = await cardState("downloads-state");
+
+  await page.evaluate(() => window.__resolve(true));
+  await page.waitForTimeout(60);
+  const settled = await cardState("downloads-state");
+
+  assert.equal(during.busy, "true", "an in-flight request must be announced as busy");
+  assert.equal(settled.busy, "false", "and must stop being busy once it resolves");
+});
+
+test("a narrow window stacks the permission cards instead of clipping them", async () => {
+  await page.setViewportSize({ width: 420, height: 900 });
+  try {
+    await mountOptions();
+    const layout = await page.evaluate(() => {
+      const card = document.querySelector(".permission-row");
+      const style = getComputedStyle(card);
+      return {
+        columns: style.gridTemplateColumns.split(" ").length,
+        overflows: document.documentElement.scrollWidth > window.innerWidth + 1,
+        buttonWidth: document.getElementById("downloads-grant").getBoundingClientRect().width
+      };
+    });
+
+    assert.equal(layout.columns, 1, `a 420px window lays a card out in ${layout.columns} columns`);
+    assert.equal(layout.overflows, false, "the page must not scroll sideways");
+    assert.ok(layout.buttonWidth > 0, "the grant button must still be on screen");
+  } finally {
+    await page.setViewportSize({ width: 900, height: 900 });
+  }
 });
