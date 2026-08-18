@@ -185,9 +185,13 @@ function processArticle(article: Element, ctx: FeatureContext): void {
     return;
   }
 
+  // Identity first, deliberately. `resolvePostKey` is what notices the virtualizer has swapped a
+  // different post into this element, and it clears the processed stamp when it does -- so reading
+  // the stamp before resolving would take the already-processed fast path on a node describing a
+  // post that is no longer there, and skip the reveal it now needs.
+  const key = resolvePostKey(article);
   const stateStamp = String(store.version());
   if (article.getAttribute(STATE_ATTR) === stateStamp) {
-    const key = resolvePostKey(article);
     if (!key) {
       return;
     }
@@ -199,7 +203,6 @@ function processArticle(article: Element, ctx: FeatureContext): void {
     return;
   }
 
-  const key = resolvePostKey(article);
   article.setAttribute(STATE_ATTR, stateStamp);
   if (!key) {
     return;
@@ -216,11 +219,31 @@ function processArticle(article: Element, ctx: FeatureContext): void {
   }
 }
 
-/** Cached on the node — the key never changes for a given rendered article. */
+/**
+ * Cached on the node, and revalidated against it.
+ *
+ * The key never changes for a given *post*, but X's virtualizer reuses the article element itself
+ * and swaps the post inside it. A cache that trusted the attribute therefore let a recycled node
+ * carry the previous post's key — and since a stored key collapses on sight, an unrelated post
+ * would vanish. Deriving a tweet id is one `a[href*="/status/"]` read, so confirming the cached key
+ * still belongs to what is rendered costs little against hiding the wrong thing.
+ *
+ * Posts with no `/status/` link fall back to a handle+text signature, which cannot be checked this
+ * cheaply; those keep the cached value, and re-deriving the full signature on every pass would cost
+ * more than the case is worth.
+ */
 function resolvePostKey(article: Element): string | null {
   const cached = article.getAttribute(KEY_ATTR);
   if (cached) {
-    return cached;
+    const tweetId = readTweetId(article);
+    if (!tweetId || cached === derivePostKey({ tweetId, handle: null, text: "" })) {
+      return cached;
+    }
+    // The node now holds a different post, so every per-node cache on it is stale -- including the
+    // processed stamp, whose fast path would otherwise skip the reveal this article now needs and
+    // leave the previous post's collapse in place.
+    article.removeAttribute(KEY_ATTR);
+    article.removeAttribute(STATE_ATTR);
   }
 
   const key = derivePostKey(readIdentity(article));
@@ -284,9 +307,16 @@ function collapseTarget(article: Element): Element {
 
 function collapse(article: Element): void {
   const target = collapseTarget(article);
+  // Only nudge on the transition. `apply` re-collapses every stored-hidden article on every pass,
+  // and the nudge dispatches a resize the virtualizer answers with childList mutations -- which
+  // drive the next apply. Nudging unconditionally therefore fed itself for as long as any hidden
+  // post was on screen. `reveal` has always had this guard; collapse did not.
+  const changed = target.getAttribute(HIDDEN_ATTR) !== "1";
   target.setAttribute(HIDDEN_ATTR, "1");
   article.querySelector(`[${BUTTON_ATTR}]`)?.remove();
-  nudgeReflow();
+  if (changed) {
+    nudgeReflow();
+  }
 }
 
 function reveal(article: Element): void {

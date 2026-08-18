@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Fixed
+
+- Hiding a post no longer drives a feedback loop. The collapse dispatched a synthetic `resize` on
+  every pass so X's virtualizer could close the row, but the virtualizer answers that resize with
+  mutations that drive the next pass — so it fed itself for as long as a hidden post was on screen.
+  The nudge now fires only when a row actually changes state.
+- A recycled timeline row can no longer inherit the previous post's identity. X reuses article
+  elements for different posts, and both the cached post key and the processed stamp were trusted
+  from the element rather than checked against what it now holds — so an unrelated post could
+  silently disappear into a collapse meant for another one.
+
 ## 1.28.0 - 2026-08-18
 
 ### Added

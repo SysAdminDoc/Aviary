@@ -20532,20 +20532,19 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
     if (!store2) {
       return;
     }
+    const key = resolvePostKey(article);
     const stateStamp = String(store2.version());
     if (article.getAttribute(STATE_ATTR) === stateStamp) {
-      const key2 = resolvePostKey(article);
-      if (!key2) {
+      if (!key) {
         return;
       }
-      if (ctx.settings.hidden.buttons && !store2.has(key2)) {
-        ensureButton(article, key2, ctx);
+      if (ctx.settings.hidden.buttons && !store2.has(key)) {
+        ensureButton(article, key, ctx);
       } else if (!ctx.settings.hidden.buttons) {
         article.querySelector(`[${BUTTON_ATTR}]`)?.remove();
       }
       return;
     }
-    const key = resolvePostKey(article);
     article.setAttribute(STATE_ATTR, stateStamp);
     if (!key) {
       return;
@@ -20562,7 +20561,12 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
   function resolvePostKey(article) {
     const cached = article.getAttribute(KEY_ATTR);
     if (cached) {
-      return cached;
+      const tweetId = readTweetId3(article);
+      if (!tweetId || cached === derivePostKey({ tweetId, handle: null, text: "" })) {
+        return cached;
+      }
+      article.removeAttribute(KEY_ATTR);
+      article.removeAttribute(STATE_ATTR);
     }
     const key = derivePostKey(readIdentity(article));
     if (key) {
@@ -20608,9 +20612,12 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
   }
   function collapse(article) {
     const target = collapseTarget(article);
+    const changed = target.getAttribute(HIDDEN_ATTR) !== "1";
     target.setAttribute(HIDDEN_ATTR, "1");
     article.querySelector(`[${BUTTON_ATTR}]`)?.remove();
-    nudgeReflow();
+    if (changed) {
+      nudgeReflow();
+    }
   }
   function reveal(article) {
     const target = collapseTarget(article);

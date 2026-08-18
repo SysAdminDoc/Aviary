@@ -247,19 +247,6 @@ confirmed a second time. See RESEARCH.md.
   build depends on `postMessage`, which narrows the fix surface.
   Complexity: M
 
-- [ ] F175 — P1 — Break the hide/reflow loop and stop trusting a recycled article's cached key
-  Why: two defects in the same file. `nudgeReflow()` dispatches a synthetic global `resize`, X's
-  virtualizer relayouts, the resulting childList mutations drive `applyAll` → `collapse()` → another
-  `resize`, and the cycle sustains itself while any hidden post is on screen. Separately the derived
-  key is cached on `data-av-post-key`, and X reuses article nodes, so a recycled article can carry a
-  previous post's key and collapse an unrelated post.
-  Evidence: `src/features/filtering/hidden-posts-feature.ts:304-312` (nudge), `:220-231` (key cache).
-  Touches: `src/features/filtering/hidden-posts-feature.ts`, hidden-post fixture tests.
-  Acceptance: the nudge fires only when the collapsed-row count actually changed and is debounced past
-  the observer's 120 ms flush, with a test that counts dispatches over a steady-state batch; a cached
-  key is revalidated against the article's current `/status/<id>` before use.
-  Complexity: M
-
 ### P1 — trust and verification
 
 - [ ] F182 — P1 — Retire behavioural assertions written as source-text regexes
