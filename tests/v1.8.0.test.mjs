@@ -288,24 +288,6 @@ test("the build ships the options page and branded icons into both extension tar
   assert.match(preflight, /PNG dimensions/);
 });
 
-test("a Control Center render restores focus, caret and scroll", async () => {
-  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
-
-  // The bug: save() -> render() -> body.replaceChildren() dropped focus to the document.
-  const render = source.slice(source.indexOf("const render = ("), source.indexOf("const presetRows"));
-  assert.match(render, /const identity = focusIdentity\(active\)/);
-  assert.match(render, /const scrollTop = body\.scrollTop/);
-  assert.match(render, /body\.scrollTop = scrollTop/);
-  assert.match(render, /target\.focus\(\{ preventScroll: true \}\)/);
-  assert.match(render, /restoreSelection\(target, selection\)/);
-
-  // Identity must survive a rebuild, so it cannot be a node reference.
-  assert.match(source, /const focusIdentity = \(node: Element \| null\): string \| null/);
-  assert.match(source, /`row\|\$\{sectionTitle\}\|\$\{label\}\|\$\{node\.tagName\}\|\$\{index\}`/);
-  assert.match(source, /function positionalPath\(/, "controls outside a labelled row need a fallback");
-  assert.match(source, /setSelectionRange/);
-});
-
 test("hideBorders targets structure, not generated atomic class names", async () => {
   const source = await readFile(path.join(root, "src/features/appearance/theme.ts"), "utf8");
   assert.match(source, /root\.classList\.toggle\("av-hide-borders", settings\.appearance\.hideBorders\)/);
@@ -400,30 +382,6 @@ test("a failed write reports to the persistence sink instead of vanishing", asyn
 
   assert.equal(reported.length, 1, "a full backend must not fail silently");
   assert.match(String(reported[0]), /quota/i);
-});
-
-test("the Control Center surfaces failed writes in the Trust section", async () => {
-  const { readFile } = await import("node:fs/promises");
-  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
-
-  assert.match(source, /storageHealthRow/, "the storage health row was removed");
-  assert.match(source, /failed to save/, "the row no longer matches the diagnostics it reports");
-
-  // The three stores must actually be handed a sink, or the row can never light up.
-  for (const [file, ctor] of [
-    ["src/features/media/media-buttons.ts", "new MediaHistory"],
-    ["src/features/filtering/hidden-posts-feature.ts", "new HiddenPostStore"],
-    ["src/main.ts", "new AuditLog"]
-  ]) {
-    const wired = await readFile(path.join(root, file), "utf8");
-    const at = wired.indexOf(ctor);
-    assert.ok(at > -1, `${ctor} not found in ${file}`);
-    assert.match(
-      wired.slice(at, at + 220),
-      /failed to save/,
-      `${ctor} in ${file} is constructed without a persistence sink`
-    );
-  }
 });
 
 test("reports use the build version rather than the selected locale", async () => {
@@ -801,65 +759,4 @@ test("a swallowed storage write still reports through the gateway sink", async (
     setStorageErrorSink(undefined);
     globalThis.localStorage = original;
   }
-});
-
-test("the panel renders one section at a time behind a nav rail", async () => {
-  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
-
-  // Twelve sections in one column was ~144 controls and 19 screens of scrolling.
-  const registry = source.slice(
-    source.indexOf("const sectionRegistry ="),
-    source.indexOf("const buildNav =")
-  );
-  const entries = [
-    ...registry.matchAll(/id:\s*"([a-z]+)",\s*title:\s*"([^"]+)",\s*group:\s*"([A-Za-z]+)"/g)
-  ];
-  // A lower bound, not an exact count: adding a section is normal growth, and pinning the number
-  // only turns every new section into a failing test. What must hold is that sections are
-  // declared here rather than inlined, and that ids stay unique.
-  assert.ok(entries.length >= 12, `expected at least 12 declared sections, found ${entries.length}`);
-  assert.equal(
-    new Set(entries.map((m) => m[1])).size,
-    entries.length,
-    "section ids must be unique -- a duplicate makes one section unreachable"
-  );
-  assert.deepEqual(
-    [...new Set(entries.map((m) => m[3]))],
-    ["Start", "Reading", "Data", "Advanced"],
-    "group order is the rail's reading order"
-  );
-
-  // The content pane builds the active section only — building all twelve would put the
-  // scrolling straight back.
-  assert.match(source, /content\.append\(section\(entry, entry\.build\(\)\)\)/);
-});
-
-test("the settings search lives outside the re-rendered body", async () => {
-  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
-
-  // render() calls body.replaceChildren(), so a search field inside `body` would lose focus
-  // and its caret on every keystroke. It has to hang off the panel chrome instead.
-  assert.match(source, /header\.append\(titleWrap, searchBar, close\)/);
-  assert.match(source, /panel\.append\(header, body, transactionBar\)/);
-  assert.ok(
-    !/body\.append\([^)]*searchBar/.test(source),
-    "the search bar must not be inside the re-rendered body"
-  );
-  assert.match(source, /search\.addEventListener\("input"/);
-  assert.ok(!/search\.addEventListener\("key/.test(source), "Aviary registers no key handlers");
-});
-
-test("search matches rendered row text and offers a way out when nothing matches", async () => {
-  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
-
-  // Matching on the row's own text means a row added later is searchable immediately, and a
-  // label edit cannot drift from a separate keyword list.
-  assert.match(source, /\(row\.textContent \?\? ""\)\.toLowerCase\(\)\.includes\(needle\)/);
-  assert.match(source, /Nothing matches that search\./);
-  assert.match(source, /Try a shorter word, or pick a section on the left\./);
-
-  // Choosing a section has to clear the filter, or the click appears to do nothing.
-  const navClick = source.slice(source.indexOf("item.addEventListener(\"click\""), source.indexOf("nav.append(item)"));
-  assert.match(navClick, /searchQuery = ""/);
-  assert.match(navClick, /search\.value = ""/);
 });

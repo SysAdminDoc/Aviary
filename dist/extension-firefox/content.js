@@ -4920,7 +4920,8 @@ html.av-reduce-motion *::after {
       const active = shadow.activeElement;
       const identity = focusIdentity(active) ?? pendingActionFocus;
       const selection = captureSelection(active);
-      const scrollTop = body.scrollTop;
+      const contentScrollTop = body.querySelector(".av-content")?.scrollTop ?? 0;
+      const navScrollTop = body.querySelector(".av-nav")?.scrollTop ?? 0;
       panelLocale = draftSettings.i18n.locale;
       host.dir = localeDirection(panelLocale);
       resetCoverageTally();
@@ -4952,7 +4953,10 @@ html.av-reduce-motion *::after {
       if (coverage) {
         coverage.textContent = coverageSummary();
       }
-      body.scrollTop = scrollTop;
+      const content = body.querySelector(".av-content");
+      if (content) content.scrollTop = contentScrollTop;
+      const rail = body.querySelector(".av-nav");
+      if (rail) rail.scrollTop = navScrollTop;
       if (identity || pendingActionLabel) {
         const target = (identity ? findByIdentity(identity) : null) ?? (pendingActionLabel ? findActionButton(pendingActionLabel) : null);
         if (target) {

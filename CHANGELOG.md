@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Fixed
+
+- Saving a setting no longer throws you back to the top of the section. The panel measured and
+  restored the scroll offset of the grid that wraps the rail and the content pane -- a container
+  that is `overflow: hidden` and has never scrolled -- while the two panes that do scroll were
+  rebuilt from zero on every render. Both are now measured and put back.
+
 ## 1.29.0 - 2026-08-18
 
 ### Security

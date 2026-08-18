@@ -939,7 +939,11 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     const active = shadow.activeElement as HTMLElement | null;
     const identity = focusIdentity(active) ?? pendingActionFocus;
     const selection = captureSelection(active);
-    const scrollTop = body.scrollTop;
+    // `body` is the grid that holds the rail and the content pane; it is `overflow: hidden` and
+    // never scrolls, so reading its scrollTop restored nothing. Both children scroll, and both
+    // are replaced below, so both have to be measured here and put back afterwards.
+    const contentScrollTop = body.querySelector(".av-content")?.scrollTop ?? 0;
+    const navScrollTop = body.querySelector(".av-nav")?.scrollTop ?? 0;
 
     panelLocale = draftSettings.i18n.locale;
     host.dir = localeDirection(panelLocale);
@@ -983,7 +987,12 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       coverage.textContent = coverageSummary();
     }
 
-    body.scrollTop = scrollTop;
+    // Restored onto the freshly built panes, not the container: saving a setting halfway down a
+    // long section used to throw the reader back to its first row.
+    const content = body.querySelector(".av-content");
+    if (content) content.scrollTop = contentScrollTop;
+    const rail = body.querySelector(".av-nav");
+    if (rail) rail.scrollTop = navScrollTop;
     if (identity || pendingActionLabel) {
       const target = (identity ? findByIdentity(identity) : null) ?? (pendingActionLabel ? findActionButton(pendingActionLabel) : null);
       if (target) {
