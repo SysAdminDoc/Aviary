@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.28.0 - 2026-08-18
+
 ### Added
 
 - The build emits `dist/aviary.meta.js`, a metadata-only companion carrying the same metablock byte
