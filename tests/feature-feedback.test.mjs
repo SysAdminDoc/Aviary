@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
+
+import { readI18nManifest } from "./helpers/i18n-manifest.mjs";
 import { chromium } from "playwright";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -317,7 +319,7 @@ test("every outcome the AI menu and snippets can reach is copy the user will act
   // translator never receives, in which case it ships in English for every locale. The extractor
   // walks the rendered surfaces and records what reached `ft()`, so requiring each outcome to be
   // in its manifest is the claim that matters -- reachable, translatable copy.
-  const manifest = JSON.parse(await readFile(path.join(root, "tools/i18n-manifest.json"), "utf8"));
+  const manifest = await readI18nManifest(root);
 
   const OUTCOMES = [
     "result copied to the clipboard.",

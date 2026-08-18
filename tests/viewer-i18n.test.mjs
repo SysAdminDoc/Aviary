@@ -6,6 +6,8 @@ import { after, before, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { build } from "esbuild";
 
+import { readI18nManifest } from "./helpers/i18n-manifest.mjs";
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const abs = (file) => path.resolve(root, file).replace(/\\/g, "/");
 
@@ -80,27 +82,84 @@ test("the generated viewer inlines translated copy, not just English", () => {
 test("the extractor harvests viewer copy, or the sync step would drop it", async () => {
   // i18n-sync rewrites the catalog in manifest order. A viewer string absent from the manifest is
   // deleted from the catalog on the next sync, so the harvest is load-bearing, not decorative.
-  const extractor = await readFile(path.join(root, "tools/i18n-extract.mjs"), "utf8");
-  assert.match(extractor, /harvestViewerLiterals/);
-  assert.match(extractor, /\.\.\.viewerLiterals,/);
-
-  // The manifest is generated and gitignored, so a clean checkout (CI) simply has no file to
-  // check. The harvest assertions above are the part that must hold everywhere.
-  let manifest;
-  try {
-    manifest = JSON.parse(await readFile(path.join(root, "tools/i18n-manifest.json"), "utf8"));
-  } catch {
-    return;
-  }
+  // The two regexes that used to sit here -- `/harvestViewerLiterals/` and `/\.\.\.viewerLiterals,/`
+  // -- are subsumed by the loop below: if the harvest stopped running, every viewer string would
+  // be gone from the manifest and every iteration would fail. The manifest is generated rather
+  // than skipped when absent, so this holds on a fresh clone too.
+  const manifest = await readI18nManifest(root);
   const entries = new Set(manifest.manifest ?? manifest);
   for (const english of await viewerCopySources()) {
     assert.ok(entries.has(english), `viewer string missing from the i18n manifest: ${english}`);
   }
 });
 
-test("there is no second locale table left in the viewer", async () => {
-  const source = await readFile(path.join(root, "src/features/export/viewer.ts"), "utf8");
-  assert.doesNotMatch(source, /VIEWER_LABELS/, "the hand-maintained nine-locale table must be gone");
-  // The endonym is the one string that must not be translated; it comes from the locale registry.
-  assert.match(source, /name: locale\.label/);
+test("the viewer's locale list comes from the shared registry, not a table of its own", async () => {
+  // Before: `doesNotMatch(/VIEWER_LABELS/)` plus `match(/name: locale\.label/)`. Neither can see
+  // what the generated viewer contains -- a second table under any other name would satisfy both.
+  const { buildExportViewer, supportedLocales } = await importBundledEntry([
+    "src/features/export/viewer.ts",
+    "src/platform/i18n.ts"
+  ]);
+
+  const html = new TextDecoder().decode(
+    buildExportViewer([
+      {
+        tweetId: "1",
+        handle: "alice",
+        displayName: "Alice",
+        text: "hello",
+        capturedAt: "2026-08-18T10:00:00.000Z",
+        surface: "home",
+        media: [],
+        permalink: "https://x.com/alice/status/1"
+      }
+    ])
+  );
+
+  const registry = supportedLocales();
+  assert.ok(registry.length >= 8, `the locale registry looks truncated: ${registry.length}`);
+
+  for (const locale of registry) {
+    // The endonym is the one string that must never be translated; it comes from the registry.
+    assert.ok(
+      html.includes(`"name":${JSON.stringify(locale.label)}`),
+      `the viewer does not carry ${locale.code}'s own name for itself (${locale.label})`
+    );
+  }
+
+  // And nothing beyond it: a hand-maintained table would drift the moment a locale is added.
+  const names = [...html.matchAll(/"name":("(?:[^"\\]|\\.)*")/g)].map((match) => JSON.parse(match[1]));
+  assert.deepEqual(
+    [...new Set(names)].sort(),
+    registry.map((locale) => locale.label).sort(),
+    "the viewer ships a locale list that is not the registry's"
+  );
 });
+
+/** Bundles several modules into one graph so their shared state is genuinely shared. */
+async function importBundledEntry(relativePaths) {
+  const temp = await mkdtemp(path.join(tmpdir(), "aviary-viewer-multi-"));
+  const entry = path.join(temp, "entry.ts");
+  const outfile = path.join(temp, "module.mjs");
+  try {
+    await writeFile(
+      entry,
+      relativePaths
+        .map((relative) => `export * from ${JSON.stringify(path.resolve(root, relative).split(path.sep).join("/"))}`)
+        .join(";\n"),
+      "utf8"
+    );
+    await build({
+      entryPoints: [entry],
+      outfile,
+      bundle: true,
+      format: "esm",
+      platform: "neutral",
+      target: "es2022",
+      logLevel: "silent"
+    });
+    return await import(`${pathToFileURL(outfile).href}?v=${Date.now()}-${Math.random()}`);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+}

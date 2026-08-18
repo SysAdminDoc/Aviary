@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
@@ -135,21 +135,3 @@ test("looping is applied and exactly restored on destroy", async () => {
   assert.equal(result.markersLeft, 0, "no marker may survive destroy");
 });
 
-test("the quality setting no longer claims an outcome it cannot guarantee", async () => {
-  const source = await readFile(
-    path.join(root, "src/ui/control-center/sections/reading.ts"),
-    "utf8"
-  );
-  // The old label promised every video would play at the highest quality. Aviary can only rewrite
-  // a playlist it actually sees, and a player fetching one inside a worker never reaches it.
-  // Match the rendered label, not the comment that records why it was renamed — the same class
-  // of false positive the generated-class policy check hit on a historical comment.
-  assert.doesNotMatch(source, /"Always play video at the highest quality"/);
-  assert.match(source, /Pin video playlists to their best rendition/);
-  assert.match(source, /Playlists rewritten/, "the real effect must be reported, not assumed");
-});
-
-test("the settings type records why the quality claim is bounded", async () => {
-  const source = await readFile(path.join(root, "src/platform/settings.ts"), "utf8");
-  assert.match(source, /worker bypasses the page agent/i);
-});

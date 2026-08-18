@@ -6,6 +6,8 @@ import { test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { build } from "esbuild";
 
+import { readI18nManifest } from "./helpers/i18n-manifest.mjs";
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const LOCALES = ["es", "pt", "fr", "de", "ja", "ko", "ar", "he"];
 
@@ -169,7 +171,7 @@ test("the extractor reaches every panel section and every status branch", async 
   // step consumes, and the failure being guarded is a manifest that shrank, not a line that
   // disappeared. When the nav rail landed, a single render reported only the default section and
   // the harvest silently fell from 254 strings to 26.
-  const manifest = JSON.parse(await readFile(path.join(root, "tools/i18n-manifest.json"), "utf8"));
+  const manifest = await readI18nManifest(root);
   assert.ok(
     manifest.manifest.length > 400,
     `the harvest collapsed to ${manifest.manifest.length} strings; it must reach every section`

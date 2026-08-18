@@ -626,15 +626,57 @@ test("no rendered copy advertises a shipped feature as unavailable", async () =>
       /press Save list to apply/i,
       /coming soon/i,
       /not (?:yet )?implemented/i,
-      /nothing implements it yet/i
+      /nothing implements it yet/i,
+      // Aviary can only rewrite a playlist it actually sees; a player fetching one inside a worker
+      // never reaches it, so promising every video is an outcome the build cannot guarantee.
+      /Always play video at the highest quality/i
     ];
     const offenders = copy.filter((line) => stale.some((pattern) => pattern.test(line)));
     assert.deepEqual(offenders, [], "the panel is advertising shipped features as unavailable");
+
+    // Copy that describes a bounded effect has to be there in place of the promise it replaced.
+    assert.ok(
+      copy.some((line) => line.includes("Pin video playlists to their best rendition")),
+      "the bounded video-quality label is gone"
+    );
 
     // A version number anywhere in translated copy is the same failure in a different shape: it
     // gets counted for locale coverage and invites a translator to change it.
     const versioned = copy.filter((line) => /\bv\d+\.\d+\.\d+\b/.test(line));
     assert.deepEqual(versioned, [], "a version number reached translated copy");
+  } finally {
+    await context.close();
+  }
+});
+
+test("turning on video quality reports what it actually rewrote", async () => {
+  const { context, page } = await openPage();
+  try {
+    const row = await page.evaluate(() => {
+      const settings = AviaryLook.cloneSettings(AviaryLook.DEFAULT_SETTINGS);
+      settings.i18n.locale = "en";
+      settings.performance.forceVideoQuality = true;
+      AviaryLook.mountControlCenter({
+        settings,
+        diagnostics: () => [],
+        onChange: async () => {},
+        onError: () => {},
+        getPageHooks: () => ({ rewrittenPlaylists: 3, blockedBeacons: 0, blockedAdRequests: 0 })
+      });
+      const shadow = document.getElementById("av-control-center").shadowRoot;
+      shadow.querySelector(".av-launcher").click();
+      shadow.querySelector('.av-nav-item[data-av-section="performance"]').click();
+      const found = [...shadow.querySelectorAll(".av-row")].find(
+        (candidate) => candidate.dataset.avLabel === "Playlists rewritten"
+      );
+      return found?.querySelector(".av-row-description")?.textContent ?? null;
+    });
+
+    // The setting used to promise every video would play at its best quality. Aviary can only
+    // rewrite a playlist it actually sees, and a player fetching one inside a worker never
+    // reaches it -- so the panel reports the count instead of asserting the outcome.
+    assert.ok(row, "the panel does not report how many playlists were rewritten");
+    assert.match(row, /3/, `the count is not the one the page hooks reported: ${row}`);
   } finally {
     await context.close();
   }
