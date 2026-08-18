@@ -56,10 +56,39 @@ To manage permissions later, open the extension's **Options** page from the exte
 the Aviary options link). The page reports live grant state and never writes settings or makes a
 network request.
 
+## Browser floors
+
+Both floors are declared once, in `src/extension/browser-floors.ts`, and preflight fails the build
+if either manifest disagrees with it.
+
+| Build | Floor | Why |
+| --- | --- | --- |
+| Chromium | **116** | The `"world": "MAIN"` content script Aviary uses to observe X's own loaded network responses. |
+| Firefox | **128** | The same declaration, plus MV3 event-page backgrounds — and 128 is an ESR line. Aviary is sideloaded rather than distributed through a store, and the people most likely to sideload a local-first tool are the people most likely to be on ESR. |
+
+The floor is what decides whether a platform feature can be used directly. A feature is used
+directly only when it is available at **both** floors; anything newer carries a runtime detection
+branch and a fallback. `PLATFORM_FEATURE_FLOORS` in the same module records which of the two is
+true for each feature, so the answer is looked up rather than re-derived:
+
+| Feature | Chrome | Firefox | At both floors |
+| --- | --- | --- | --- |
+| `:has()` | 105 | 121 | yes |
+| Popover API | 116 | 125 | yes |
+| Web Locks | 69 | 96 | yes |
+| `content-visibility` | 85 | 130 | no — needs a branch |
+| `RegExp.escape` | 136 | 134 | no — needs a branch |
+| `URLPattern` | 95 | 142 | no — needs a branch |
+| `@scope` | 118 | 146 | no — needs a branch |
+| Navigation API | 102 | 147 | no — needs a branch |
+
+Raising the Firefox floor to pick up the last three would buy a few lines of detection branch at
+the cost of excluding ESR users, which is the wrong trade for a sideloaded tool. Versions verified
+against webstatus.dev and MDN on 2026-08-17.
+
 ## Firefox (temporary load)
 
-Firefox 128 or newer is required because the extension uses a Manifest V3 page-world content script
-(`"world": "MAIN"`) to observe X's own loaded network responses. Build the extension, then:
+Build the extension, then:
 
 1. Open `about:debugging#/runtime/this-firefox`.
 2. Select **Load Temporary Add-on…**.

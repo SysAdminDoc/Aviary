@@ -206,21 +206,6 @@ confirmed a second time. See RESEARCH.md.
   predicate lands on the right side; measured mutation-batch work drops on the fixture timeline.
   Complexity: M
 
-- [ ] F187 — P2 — Decide the Firefox floor
-  Why: `strict_min_version: 128.0` is what forces a detection branch around Navigation API (FF147),
-  `URLPattern` (FF142), `@scope` (FF146), `content-visibility` (FF130) and `RegExp.escape` (FF134) — and
-  a fallback branch for each partly defeats the point of adopting them. With zero installs the bump
-  costs nothing today; it stops being free the moment F125 resolves toward publication, so the decision
-  is cheapest now.
-  Evidence: version data verified against webstatus.dev/MDN/caniuse 2026-08-17; current
-  `src/extension/manifest.firefox.json`. F129's note already assumes `@scope`.
-  Touches: `src/extension/manifest.firefox.json`, `docs/INSTALL.md`, `tools/preflight.mjs` if the floor
-  is asserted, and whichever of F129/F186 depend on it.
-  Acceptance: the floor is stated with its reason in one place; every platform feature adopted after it
-  either sits under the floor or carries a detection branch, and which one is true is written down
-  rather than rediscovered.
-  Complexity: S
-
 ### P2 — archive fidelity
 
 - [ ] F188 — P2 — Sign and self-describe archive packages

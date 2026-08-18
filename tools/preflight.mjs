@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { captureAgeReport, readCaptureManifest } from "./capture-manifest.mjs";
+import { browserFloorFailures, readBrowserFloors } from "./browser-floors.mjs";
 import { repositoryUrl, userscriptUrls } from "./userscript-meta.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -67,6 +68,7 @@ if (warnings.length > 0) {
 }
 
 async function checkManifests() {
+  const floors = await readBrowserFloors();
   for (const target of ["extension-chrome", "extension-firefox"]) {
     const manifestPath = path.join(root, "dist", target, "manifest.json");
     let manifest;
@@ -82,6 +84,9 @@ async function checkManifests() {
     if (manifest.version !== pkg.version) {
       failures.push(`${target}: manifest.version (${manifest.version}) != package.json (${pkg.version})`);
     }
+    // The floor decides whether a platform feature needs a detection branch, so it cannot be
+    // changed by editing one manifest. src/extension/browser-floors.ts is the declaration.
+    failures.push(...browserFloorFailures(target, manifest, floors));
     const text = JSON.stringify(manifest);
     if (text.includes("<all_urls>")) {
       failures.push(`${target}: manifest must not request <all_urls>`);

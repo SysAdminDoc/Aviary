@@ -56,6 +56,15 @@
 
 ### Changed
 
+- **The browser floors are declared once, with their reason.** They lived in three places that did
+  not know about each other -- a number in each manifest and a sentence in `docs/INSTALL.md` -- and
+  the floor is what decides whether a platform feature can be used directly or needs a detection
+  branch. `src/extension/browser-floors.ts` now declares both, records per-feature which of the two
+  is true, and preflight fails the build if either manifest disagrees. The decision itself: Firefox
+  stays at **128**. It is an ESR line, Aviary is sideloaded rather than distributed through a store,
+  and raising the floor to pick up `URLPattern`, `@scope` or the Navigation API without a branch
+  would exclude the users most likely to be running ESR.
+
 - `FeatureRegistry` gained `suspend`/`resume`, and now runs `apply` in registration order rather
   than initialization order -- the two differ only once a feature has been suspended and resumed,
   and ad protection is registered first precisely so it runs before anything that reads the
