@@ -216,13 +216,20 @@ The Control Center "Media" section exposes:
 - Default-on master toggle for one persistent post-level Download action plus per-asset Save / Thumb / eligible Video and GIF buttons.
 - Original-quality preference (`name=orig` first, then `4096x4096` only if the original transfer fails).
 - Filename template with `{handle}`, `{tweetId}`, `{mediaId}`, `{index}`, `{total}`, `{date}`, `{text}`, `{ext}` fields.
+  `{handle}`, `{text}` and `{tweetId}` follow the media's owner, so a photo saved out of a quoted
+  post carries the quoted account's handle and text. Where X renders no permalink inside the quote
+  card and no captured record supplies its id, `{tweetId}` falls back to the post the asset was
+  found in -- the handle is the ownership claim, and it is never the wrong one.
 - Duplicate history toggle and a "Clear download history" action.
 - Live status readout (running / completed / duplicate / failed) and the size of the dedup index.
 
 Downloads prefer `GM_download` in userscript managers, fall back to the extension service worker (`chrome.downloads` with `conflictAction: uniquify`), and finally use an anchor tag when no privileged downloader is available. Image candidates stay in quality order; the extension persists the bounded fallback while a download is active so an interrupted `orig` transfer can resume at `4096x4096` after its service worker wakes again.
 
 The post action sits beside X's native controls and downloads every attached photo and direct
-video/GIF in one click, excluding video thumbnails. It remains labeled on desktop and contracts to
+video/GIF in one click, excluding video thumbnails and anything that is not the post's own media.
+A quoted post's photos and a link card's preview belong to somebody else: each keeps its own Save
+control, saved under the account that actually published it, and the post action says in its
+accessible label that it is saving only the post's own media. It remains labeled on desktop and contracts to
 a 44-pixel icon action on narrow touch screens. The per-asset overlay remains for selective saves.
 Both controls report resolving, Saving, Saved, Queued, Allow, or Retry in place, expose busy state
 to assistive technology, preserve completed assets across a partial retry, and return to their

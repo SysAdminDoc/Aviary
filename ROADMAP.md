@@ -189,16 +189,6 @@ Focused comparison of 46 primary sources for feed image/video download behavior.
   suspension; a failed transfer exposes Retry and never enters duplicate history.
   Complexity: M
 
-- [ ] F170 — P2 — Preserve media ownership for quotes, cards, and attributed embeds
-  Why: feed downloaders repeatedly report missing or misnamed quote/media-card downloads. Aviary's
-  DOM extractor currently assigns every discovered descendant to the outer post identity.
-  Evidence: Twitter Click'n'Save#7/#45; Twitter-X-Media-Copy-Download documented attributed-video
-  limitation; quote structure in `_decoded/home.html`.
-  Touches: `src/features/media/extract.ts`, captured metadata association, filename tests.
-  Acceptance: quote/card media is either attributed to its own captured post identity or clearly
-  excluded; the outer Download action never silently names another author's media as its own.
-  Complexity: M
-
 ## Research-Driven Additions (2026-08-17)
 
 General pass over the subsystems no prior research examined (the 2026-08-16 pass was media-only).

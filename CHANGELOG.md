@@ -14,6 +14,24 @@
   throughout and can never be named. The outcome travels in **Copy diagnostics** as one
   content-free line, and the bug report template has a field for it.
 
+### Fixed
+
+- **Media inside a quoted post is the quoted account's, not the account that quoted them.** The
+  extractor walked the whole `article` subtree and filed every photo and player it found under the
+  outer post's handle and id, so saving a photo out of a quote wrote it as if the quoting account
+  had published it. Each asset now carries its owner. A quoted post's media is saved under the
+  quoted account's handle, its own text, and its own post id where the DOM or a captured record
+  supplies one; the post-level **Download** saves only the post's own media and says so, and every
+  excluded asset still has its own Save control. Export records mark quoted and card media with
+  whose it is instead of listing it among the account's own.
+- A post with no permalink of its own -- a reply shell still building, or a quote-only post -- no
+  longer adopts the quoted post's id, handle, or text. The article's identity is read from outside
+  the quote it carries.
+- The exporter's "this is a quoted post" test and the media extractor's are now one definition.
+  They disagreed: the exporter looked only for two named test ids while X's current Home renders a
+  quote as a focusable `div` with no test id, so a record could carry a quoted photo with no note
+  that a quote existed at all.
+
 ### Changed
 
 - `FeatureRegistry` gained `suspend`/`resume`, and now runs `apply` in registration order rather

@@ -25,6 +25,11 @@ export interface ExportMedia {
   sha256?: string;
   captureStatus?: MediaCaptureStatus;
   captureError?: string;
+  /**
+   * Present when the asset was inside the post but is not the post's own: a quoted post's media,
+   * or a link card's preview. Absent means the record's own account published it.
+   */
+  attribution?: { scope: "quote" | "card"; handle: string | null };
   /** Transient bytes supplied to package/WARC builders; never serialized as a JSON object. */
   bytes?: Uint8Array;
   /** Relative path assigned by the package builder when `bytes` are present. */

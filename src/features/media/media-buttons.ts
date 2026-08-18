@@ -14,7 +14,7 @@ import {
   requestDownloadPermissionSurface,
   type Downloader
 } from "./downloader";
-import { extractTweet, type ExtractedMedia, type ExtractedTweet } from "./extract";
+import { extractTweet, mediaIdentity, type ExtractedMedia, type ExtractedTweet } from "./extract";
 import { MediaMetadataCache } from "./media-metadata";
 import { isSaveableVariantUrl, VIDEO_CONTAINER_SELECTOR } from "./video-extract";
 import { MediaHistory } from "./history";
@@ -515,10 +515,20 @@ function findActionGroup(article: Element): HTMLElement | null {
   return group && article.contains(group) ? group : null;
 }
 
+/**
+ * What the post-level Download action saves: the post's own media, and nothing else.
+ *
+ * A quoted post's photos and a link card's preview are somebody else's assets sitting inside this
+ * article's subtree. Saving them from here is what named another author's media after the account
+ * that quoted them. Each still carries its own Save control, attributed correctly.
+ */
 function primaryDownloadAssets(tweet: ExtractedTweet): PrimaryDownloadAsset[] {
   const assets: PrimaryDownloadAsset[] = [];
   tweet.media.forEach((media, index) => {
     if (media.kind !== "photo" && media.kind !== "video") {
+      return;
+    }
+    if (media.owner.scope !== "post") {
       return;
     }
     const target = resolveTarget(media);
@@ -539,7 +549,11 @@ function buildPostAction(
   button.className = "av-media-action";
   button.setAttribute(ACTION_ATTR, "1");
   const idleLabel = ft(ctx, "Download");
-  const accessibleLabel = ft(ctx, "Download all media in this post");
+  // Say so rather than quietly saving fewer files than the post appears to hold. The excluded
+  // assets are a quoted post's or a link card's, and each keeps its own Save control.
+  const accessibleLabel = tweet.media.some((media) => media.owner.scope !== "post")
+    ? ft(ctx, "Download this post's own media. Quoted and card media has its own Save button.")
+    : ft(ctx, "Download all media in this post");
   button.dataset.idleLabel = idleLabel;
   button.dataset.idleAriaLabel = accessibleLabel;
   button.setAttribute("aria-label", accessibleLabel);
@@ -819,17 +833,21 @@ async function performMediaDownload(
   if (!downloader || !queue || !history) {
     throw new Error("Media downloader is not ready.");
   }
+  // `index` and `total` stay article-wide: they describe the position of the asset in the post
+  // being looked at, which is what a reader counting thumbnails sees. Only the identity follows
+  // the owner.
+  const identity = mediaIdentity(tweet, media);
   const filename = renderFilename(ctx.settings.media.filenameTemplate, {
-    handle: tweet.handle,
-    tweetId: tweet.tweetId,
+    handle: identity.handle,
+    tweetId: identity.tweetId,
     index,
     total: tweet.media.length,
     date: new Date(),
     ext: target.ext,
-    text: tweet.text,
+    text: identity.text,
     mediaId: target.mediaId
   });
-  const dedupeKey = `${tweet.tweetId ?? "0"}:${target.mediaId ?? target.url}:${index}:${media.kind}`;
+  const dedupeKey = `${identity.tweetId ?? "0"}:${target.mediaId ?? target.url}:${index}:${media.kind}`;
 
   if (ctx.settings.media.downloadHistory && history.has(dedupeKey)) {
     const duplicate = queue.enqueue({ url: target.url, filename });

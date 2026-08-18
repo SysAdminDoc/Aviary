@@ -1,4 +1,4 @@
-import { extractTweet } from "../media/extract";
+import { extractTweet, quotedPost } from "../media/extract";
 import { isSaveableVariantUrl } from "../media/video-extract";
 import { tweetIdFromHref } from "../media/urls";
 import type {
@@ -53,6 +53,15 @@ export function collectExportRecords(root: ParentNode, surface: string): ExportR
           entry.altText = item.source.alt;
         }
         media.push(entry);
+      } else {
+        continue;
+      }
+      // A record that lists a quoted post's photo among its own media claims the account authored
+      // it. Say whose it is instead of dropping it: the asset was on the page, and a reader of the
+      // export can tell the two apart.
+      const attributed = media.at(-1);
+      if (attributed && item.owner.scope !== "post") {
+        attributed.attribution = { scope: item.owner.scope, handle: item.owner.handle };
       }
     }
 
@@ -141,7 +150,11 @@ function readPoll(article: Element): ExportPoll | null {
 }
 
 function readQuote(article: Element): ExportQuoteSummary | null {
-  const quote = article.querySelector('[data-testid="quoteTweet"], [aria-labelledby="quoted"]');
+  // One definition of "this is a quoted post", shared with the media extractor. They used to
+  // disagree: this looked only for the two named test ids, while X's current Home renders the
+  // quote as a focusable div with no test id at all -- so a record could carry the quoted post's
+  // photo with no note that a quote existed.
+  const quote = quotedPost(article);
   if (!quote) {
     return null;
   }

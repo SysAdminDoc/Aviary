@@ -1,5 +1,5 @@
 import { renderFilename } from "./template";
-import { extractTweet, type ExtractedTweet, type ExtractedMedia } from "./extract";
+import { extractTweet, mediaIdentity, type ExtractedTweet, type ExtractedMedia } from "./extract";
 import {
   createDownloader,
   DownloadPermissionError,
@@ -172,15 +172,16 @@ async function runTasks(
         const index = cursor++;
         if (index >= tasks.length) return;
         const task = tasks[index]!;
-        const dedupeKey = `${task.tweet.tweetId ?? "0"}:${task.target.mediaId ?? task.target.url}:${task.index}:${task.media.kind}`;
+        const identity = mediaIdentity(task.tweet, task.media);
+        const dedupeKey = `${identity.tweetId ?? "0"}:${task.target.mediaId ?? task.target.url}:${task.index}:${task.media.kind}`;
         const filename = renderFilename(ctx.settings.media.filenameTemplate, {
-          handle: task.tweet.handle,
-          tweetId: task.tweet.tweetId,
+          handle: identity.handle,
+          tweetId: identity.tweetId,
           index: task.index,
           total: task.tweet.media.length,
           date: new Date(),
           ext: task.target.ext,
-          text: task.tweet.text,
+          text: identity.text,
           mediaId: task.target.mediaId
         });
 
