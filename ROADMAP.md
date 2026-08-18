@@ -360,26 +360,6 @@ below were read at the cited line. See RESEARCH.md.
 
 ### P1 — delivery integrity
 
-### P1 — breakage response
-
-- [ ] F200 — P1 — A "which Aviary feature is breaking this page?" bisect
-  Why: when X changes markup, the support question is always "which of ~27 features did this". A binary
-  search over enabled features answers it in about five rounds instead of a linear hunt, and produces a
-  feature id that feeds a prefilled report. VS Code ships exactly this for extensions; no site enhancer
-  in this lineage has built it over its own features, so it is a genuine first. It is fully local, needs
-  no network, registers no key handlers, and uses the existing reversible init/destroy contract.
-  Evidence: VS Code Extension Bisect (https://code.visualstudio.com/blogs/2021/02/16/extension-bisect);
-  survey of RES / CPFT / Vencord / Dark Reader / uBO found no equivalent; `src/features/registry.ts`
-  already isolates and can enable/disable features individually.
-  Touches: `src/features/registry.ts`, a Trust panel flow, `src/features/core/audit-log.ts`,
-  `.github/ISSUE_TEMPLATE/bug_report.yml`.
-  Acceptance: a Trust action disables half the enabled features, prompts "still wrong?" / "fixed", halves
-  again, and names the culprit; the original settings are restored exactly whatever the user does,
-  including abandoning midway; the result plus the existing content-free diagnostics compose a prefilled
-  bug report; no confirmation dialogs, no shortcuts.
-  Depends on: F199 (selector health should answer the common case first; bisect is for what it cannot).
-  Complexity: M
-
 ### P2 — leapfrog
 
 - [ ] F202 — P2 — Read X's "Under the Hood" export locally

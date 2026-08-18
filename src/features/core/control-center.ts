@@ -27,6 +27,7 @@ import {
   getSelectorHealthSnapshot
 } from "./selector-health";
 import { applyPreset, describePresetDelta, getPreset, listPresets } from "./presets";
+import { describeBisectResult, FeatureBisect, type BisectVerdict } from "./feature-bisect";
 import {
   getCheckpointStore,
   getDiscoveredQueries,
@@ -126,6 +127,8 @@ let semanticIndex: SemanticIndex | undefined;
 let retentionPolicy: RetentionPolicy | undefined;
 let archiveImportJobs: ArchiveImportJobStore | undefined;
 let archiveLibrary: ArchiveLibraryStore | undefined;
+// One search per page, so the panel can be closed and reopened mid-round without losing it.
+const bisect = new FeatureBisect();
 
 export const controlCenterFeature: FeatureModule = {
   id: "core.controlCenter",
@@ -359,6 +362,24 @@ export const controlCenterFeature: FeatureModule = {
       },
       getSelectorHealth() {
         return getSelectorHealthSnapshot();
+      },
+      getBisectStatus() {
+        return bisect.status();
+      },
+      async startBisect() {
+        return bisect.start(ctx);
+      },
+      async answerBisect(verdict: BisectVerdict) {
+        return bisect.answer(ctx, verdict);
+      },
+      async cancelBisect() {
+        return bisect.cancel(ctx);
+      },
+      describeBisect() {
+        return describeBisectResult(bisect.status());
+      },
+      featureTitle(featureId: string) {
+        return ctx.registry?.title(featureId) ?? featureId;
       },
       async clearAdObservations() {
         await clearSelectorAdObservations(ctx.storage);
@@ -911,6 +932,10 @@ export const controlCenterFeature: FeatureModule = {
   },
 
   destroy(ctx) {
+    // A search in flight is dropped rather than resumed: the registry holding its suspended
+    // features is being torn down in the same pass, so putting them back would leave features
+    // running that nothing is left to destroy.
+    bisect.forget();
     controlCenter?.destroy();
     controlCenter = undefined;
     cleanupQueue = undefined;
@@ -1198,6 +1223,9 @@ function buildDiagnosticsPayload(ctx: DiagnosticsContext): string {
     href: ctx.route.href,
     locale: ctx.settings.i18n.locale,
     userAgent: globalThis.navigator?.userAgent ?? "unknown",
+    // One content-free line naming the feature the bisect landed on, so a report carries the
+    // answer to "which feature" alongside the warnings that led to the question.
+    featureBisect: describeBisectResult(bisect.status()),
     events,
     // Warnings and errors from earlier page loads, which the in-memory ring above cannot hold.
     persisted: ctx.diagnosticsStore?.snapshot() ?? []

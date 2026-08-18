@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Added
+
+- **Trust -> Find the feature breaking this page.** A binary search over the features that are
+  actually running: it turns them all off, then back on in halves, asking after each round whether
+  the page is still wrong, and names the one responsible in about five rounds instead of a linear
+  hunt through thirty-odd settings. Turning a feature off runs its own `destroy` rather than
+  writing a setting, so reloading restores everything however you stop -- including abandoning
+  mid-round. The first round turns everything off, so "this is not Aviary" is a result the search
+  can reach rather than a feature named at random. The Control Center and its locale stay on
+  throughout and can never be named. The outcome travels in **Copy diagnostics** as one
+  content-free line, and the bug report template has a field for it.
+
+### Changed
+
+- `FeatureRegistry` gained `suspend`/`resume`, and now runs `apply` in registration order rather
+  than initialization order -- the two differ only once a feature has been suspended and resumed,
+  and ad protection is registered first precisely so it runs before anything that reads the
+  timeline.
+
 ## 1.31.0 - 2026-08-18
 
 ### Fixed

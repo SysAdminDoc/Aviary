@@ -41,6 +41,7 @@ import type { StorageStatus } from "../platform/storage";
 import type { ProfileStatus } from "../platform/profile";
 import type { LibraryBackupPreview, LibraryBackupRestoreResult } from "../features/core/library-backup";
 import type { IntegrationUsageStatus } from "../features/integrations/usage";
+import type { BisectStatus, BisectVerdict } from "../features/core/feature-bisect";
 
 export interface MediaStatus {
   historySize: number;
@@ -300,6 +301,17 @@ export interface ControlCenterOptions {
   retryArchiveImport?: (jobId: string) => Promise<{ ok: boolean; error?: string }>;
   searchArchive?: (query: string) => Array<{ handle: string | null; tweetId: string | null; text: string; score: number }>;
   downloadReport?: () => Promise<void>;
+  /**
+   * The feature bisect: turn features off in halves until the one breaking the page is named.
+   * Absent when the host cannot reach the registry, in which case the Trust section says nothing
+   * about it rather than offering an action that cannot run.
+   */
+  getBisectStatus?: () => BisectStatus;
+  startBisect?: () => Promise<BisectStatus>;
+  answerBisect?: (verdict: BisectVerdict) => Promise<BisectStatus>;
+  cancelBisect?: () => Promise<BisectStatus>;
+  describeBisect?: () => string;
+  featureTitle?: (featureId: string) => string;
   getHiddenPostsStatus?: () => HiddenPostsStatus;
   undoLastHide?: () => Promise<{ restored: boolean; handle: string | null }>;
   unhidePost?: (key: string) => Promise<boolean>;

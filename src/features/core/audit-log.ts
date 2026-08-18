@@ -32,7 +32,9 @@ export type AuditAction =
   | "semantic.index"
   | "snippet.insert"
   | "diagnostics.copy"
-  | "diagnostics.clear";
+  | "diagnostics.clear"
+  | "bisect.start"
+  | "bisect.result";
 
 export interface AuditEntry {
   at: string;

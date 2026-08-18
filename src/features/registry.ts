@@ -30,6 +30,14 @@ export interface FeatureContext {
    * absence rather than assume the hooks are live.
    */
   pageBridge?: PageBridge;
+  /**
+   * The registry running this context, so a feature can ask what else is wired up.
+   *
+   * Only the bisect flow needs it: answering "which feature is breaking this page?" means
+   * turning features off and on again, which nothing outside the registry can do. Absent in
+   * minimal unit-test contexts, like every other optional field here.
+   */
+  registry?: FeatureRegistry;
   saveSettings(): Promise<void>;
   requestApply(): void;
 }
@@ -53,6 +61,13 @@ export interface FeatureModule {
 export class FeatureRegistry {
   readonly #features = new Map<string, FeatureModule>();
   readonly #active = new Set<string>();
+  /**
+   * Features the bisect flow turned off, in the order they were registered.
+   *
+   * Kept apart from `#active` so an abandoned bisect can put back exactly what it took away and
+   * nothing else -- a feature that was already off because its own setting is off must stay off.
+   */
+  readonly #suspended = new Set<string>();
 
   register(feature: FeatureModule): void {
     if (this.#features.has(feature.id)) {
@@ -73,9 +88,77 @@ export class FeatureRegistry {
     return [...this.#features.keys()];
   }
 
+  /** A registered feature's human-readable title, for reporting one by id. */
+  title(id: string): string | undefined {
+    return this.#features.get(id)?.title;
+  }
+
   /** Whether a registered feature's `init` completed without throwing. */
   isActive(id: string): boolean {
     return this.#active.has(id);
+  }
+
+  /** Features currently held off by `suspend`, in registration order. */
+  suspendedIds(): string[] {
+    return this.ids().filter((id) => this.#suspended.has(id));
+  }
+
+  /**
+   * Turns active features off through their own `destroy`, so the page returns to what X renders.
+   *
+   * This is the same teardown a full `destroyAll` performs, applied to a subset: nothing is
+   * written to settings, so a reload restores everything regardless of what the caller does next.
+   * Returns the ids that were actually turned off -- a feature that was never active, or is
+   * already suspended, is not one of them.
+   */
+  async suspend(ctx: FeatureContext, ids: Iterable<string>): Promise<string[]> {
+    const wanted = new Set(ids);
+    // Reverse registration order, mirroring destroyAll: later features may lean on earlier ones.
+    const targets = this.ids()
+      .filter((id) => wanted.has(id) && this.#active.has(id))
+      .reverse();
+    for (const id of targets) {
+      const feature = this.#features.get(id);
+      try {
+        await feature?.destroy(ctx);
+      } catch (error) {
+        ctx.diagnostics.error(`Feature failed to destroy: ${id}`, errorDetails(error));
+      }
+      this.#active.delete(id);
+      this.#suspended.add(id);
+    }
+    return targets.reverse();
+  }
+
+  /**
+   * Puts suspended features back through their own `init`, in registration order.
+   *
+   * Only features this registry suspended are eligible; passing an id it never took away is a
+   * no-op rather than a second init of a feature that is already running.
+   */
+  async resume(ctx: FeatureContext, ids?: Iterable<string>): Promise<string[]> {
+    const wanted = ids === undefined ? undefined : new Set(ids);
+    const targets = this.ids().filter(
+      (id) => this.#suspended.has(id) && (wanted === undefined || wanted.has(id))
+    );
+    const resumed: string[] = [];
+    for (const id of targets) {
+      const feature = this.#features.get(id);
+      if (!feature) {
+        this.#suspended.delete(id);
+        continue;
+      }
+      try {
+        await feature.init(ctx);
+        this.#active.add(id);
+        resumed.push(id);
+        ctx.diagnostics.info(`Feature resumed: ${id}`);
+      } catch (error) {
+        ctx.diagnostics.error(`Feature failed to resume: ${id}`, errorDetails(error));
+      }
+      this.#suspended.delete(id);
+    }
+    return resumed;
   }
 
   async initAll(ctx: FeatureContext): Promise<void> {
@@ -137,7 +220,11 @@ export class FeatureRegistry {
   }
 
   async #runApply(ctx: FeatureContext, root: ParentNode, addedNodes?: Element[]): Promise<void> {
-    for (const id of this.#active) {
+    // Registration order, not init order. They are the same until a feature is suspended and
+    // resumed, after which init order would put the resumed feature last -- and ad protection is
+    // registered first precisely so it runs before anything that reads the timeline.
+    for (const id of this.ids()) {
+      if (!this.#active.has(id)) continue;
       const feature = this.#features.get(id);
       if (feature?.apply) {
         try {
@@ -150,7 +237,7 @@ export class FeatureRegistry {
   }
 
   async destroyAll(ctx: FeatureContext): Promise<void> {
-    for (const id of [...this.#active].reverse()) {
+    for (const id of this.ids().filter((id) => this.#active.has(id)).reverse()) {
       const feature = this.#features.get(id);
       try {
         if (feature) {
@@ -161,6 +248,9 @@ export class FeatureRegistry {
       }
       this.#active.delete(id);
     }
+    // Suspended features were already destroyed on the way in; the record of them goes with the
+    // rest of the teardown so a later boot does not inherit a half-finished search.
+    this.#suspended.clear();
   }
 
   statuses(): FeatureStatus[] {

@@ -310,6 +310,23 @@ The Control Center "Library" section exposes:
 - **Composer snippets** — reusable replies / templates edited in Library and inserted into the focused
   composer from the Snippets toolbar button.
 
+## When something breaks
+
+X changes its markup often, and when it does the symptom is "something on Home is wrong" rather
+than which of Aviary's thirty-odd features caused it. **Trust -> Find the feature breaking this
+page** answers that by binary search: it turns every feature off, then back on in halves, asking
+after each round whether the page is still wrong, and names the one responsible in about five
+rounds.
+
+- Turning a feature off means running its own `destroy`, the same teardown a full unload performs.
+  Nothing is written to settings, so reloading restores everything however you stop -- including
+  closing the tab mid-round.
+- The first round turns *everything* off. If the page is still wrong there, the search says so
+  instead of naming whichever feature the halving happened to end on.
+- The Control Center and its locale stay on throughout, so neither can be named as the culprit.
+- The result rides along in **Copy diagnostics** as one content-free line, and the bug report
+  template has a field for it.
+
 ## Install & FAQ
 
 Setup paths (userscript, Chromium dev-load, Firefox temporary-load) and uninstall steps live in [docs/INSTALL.md](docs/INSTALL.md). Privacy promises, selector-regression workflow, hotkey policy, and export tips live in [docs/FAQ.md](docs/FAQ.md).

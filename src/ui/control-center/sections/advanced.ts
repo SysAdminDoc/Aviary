@@ -167,6 +167,165 @@ export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
       );
     }
   }
+  rows.push(...buildBisectRows(ctx));
+  return rows;
+}
+
+/**
+ * The feature bisect, rendered as whatever question the search is currently asking.
+ *
+ * There is no dialog and no separate screen: the rows the section draws *are* the state, so
+ * closing the panel mid-round loses nothing and reopening it resumes on the same question.
+ */
+function buildBisectRows(ctx: PanelContext): HTMLElement[] {
+  const read = ctx.options.getBisectStatus;
+  const start = ctx.options.startBisect;
+  const answer = ctx.options.answerBisect;
+  const stop = ctx.options.cancelBisect;
+  if (!read || !start || !answer || !stop) {
+    return [];
+  }
+  const status = read();
+  const rows: HTMLElement[] = [];
+  const name = (id: string): string => ctx.options.featureTitle?.(id) ?? id;
+
+  const respond = (verdict: "still-wrong" | "fixed") => async (): Promise<void> => {
+    try {
+      await answer(verdict);
+      ctx.render();
+      ctx.setStatus("Answer recorded.");
+    } catch (error) {
+      ctx.options.onError("The feature search could not continue", error);
+      ctx.setStatus("The feature search could not continue.");
+    }
+  };
+
+  if (status.phase === "idle") {
+    rows.push(
+      ctx.actionRow(
+        "Find the feature breaking this page",
+        {
+          source:
+            "Turns every Aviary feature off, then back on in halves, asking after each round whether the page is still wrong. It names the one responsible in about five rounds. Nothing is written to your settings, so reloading restores everything whatever you do — including stopping halfway. The Control Center and its language stay on throughout, so neither can be named.",
+          values: {}
+        },
+        async () => {
+          await start();
+          ctx.render();
+          ctx.setStatus("Every feature is off. Is the page still wrong?");
+        },
+        "The feature search could not start."
+      )
+    );
+    return rows;
+  }
+
+  if (status.phase === "done") {
+    const result = status.result;
+    if (result?.kind === "culprit") {
+      rows.push(
+        ctx.dataRow(
+          "Feature search",
+          ctx.localizedCopy(
+            "{feature} is what changed this page, found in {rounds} round(s). Every feature is running again — turn that one off with its own setting if you want it to stay off.",
+            { feature: name(result.featureId), rounds: status.round }
+          )
+        )
+      );
+    } else if (result?.kind === "not-aviary") {
+      rows.push(
+        ctx.dataRow(
+          "Feature search",
+          ctx.t(
+            "The page was still wrong with every Aviary feature off, so nothing Aviary does is causing it. Another extension, a userscript, or X itself is the place to look next."
+          )
+        )
+      );
+    } else {
+      rows.push(
+        ctx.dataRow(
+          "Feature search",
+          ctx.t("No Aviary features were running, so there was nothing to search.")
+        )
+      );
+    }
+    rows.push(
+      ctx.actionRow(
+        "Search again",
+        { source: "Start over from every feature off.", values: {} },
+        async () => {
+          await start();
+          ctx.render();
+          ctx.setStatus("Every feature is off. Is the page still wrong?");
+        },
+        "The feature search could not start."
+      ),
+      ctx.actionRow(
+        "Clear the result",
+        { source: "Put the search away. Nothing changes; every feature is already back on.", values: {} },
+        async () => {
+          await stop();
+          ctx.render();
+          ctx.setStatus("Feature search cleared.");
+        },
+        "The feature search could not be cleared."
+      )
+    );
+    return rows;
+  }
+
+  rows.push(
+    ctx.dataRow(
+      "Feature search",
+      status.phase === "confirming"
+        ? ctx.localizedCopy("Round {round} of {total}. All {off} features are off.", {
+            round: status.round,
+            total: status.totalRounds,
+            off: status.disabled.length
+          })
+        : ctx.localizedCopy(
+            "Round {round} of {total}. {off} of the {suspect} features still suspected are off.",
+            {
+              round: status.round,
+              total: status.totalRounds,
+              off: status.disabled.length,
+              suspect: status.remaining.length
+            }
+          )
+    )
+  );
+  if (status.remaining.length <= 4) {
+    // Near the end the list is short enough to be worth reading, and seeing it is what makes the
+    // last answer confident rather than a guess.
+    rows.push(
+      ctx.dataRow(
+        "Still suspected",
+        status.remaining.map((id) => name(id)).join(", ")
+      )
+    );
+  }
+  rows.push(
+    ctx.actionRow(
+      "The page is still wrong",
+      { source: "The problem survives with these features off, so it is one of the others.", values: {} },
+      respond("still-wrong")
+    ),
+    ctx.actionRow(
+      "The page looks right now",
+      { source: "The problem went away with these features off, so it is one of them.", values: {} },
+      respond("fixed")
+    ),
+    ctx.actionRow(
+      "Stop the search",
+      { source: "Turn every feature back on and forget the search. No answer is recorded.", values: {} },
+      async () => {
+        await stop();
+        ctx.render();
+        ctx.setStatus("Feature search stopped; every feature is back on.");
+      },
+      "The feature search could not be stopped."
+    )
+  );
   return rows;
 }
 

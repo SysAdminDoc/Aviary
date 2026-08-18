@@ -242,6 +242,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     freshInstall,
     auditLog,
     pageBridge,
+    registry,
     async saveSettings() {
       // Normalized here so persistence has one choke point with one guarantee. Panel handlers
       // wrote whatever was in memory while import/preset/locale wrote normalized values.

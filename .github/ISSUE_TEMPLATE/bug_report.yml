@@ -9,6 +9,10 @@ body:
         matches. The Control Center's **Trust** section reports selector health and saved warnings —
         **Copy diagnostics** there gathers everything below except the description.
 
+        If you do not know which feature is at fault, run **Trust → Find the feature breaking this
+        page** first. It turns Aviary's features off and on in halves and names the one responsible
+        in about five rounds, without changing any of your settings.
+
         Please do not paste post text, handles, URLs, cookies, or tokens. Aviary's diagnostics
         deliberately contain none of those, and an issue does not need them either.
   - type: textarea
@@ -44,6 +48,14 @@ body:
       placeholder: 1.22.0
     validations:
       required: true
+  - type: input
+    id: bisect
+    attributes:
+      label: Feature search result
+      description: >-
+        Trust -> "Find the feature breaking this page" turns Aviary's features off in halves and
+        names the one responsible. Paste the sentence it ends on, or leave blank if you did not run it.
+      placeholder: "media.buttons is what changed this page"
   - type: textarea
     id: diagnostics
     attributes:
