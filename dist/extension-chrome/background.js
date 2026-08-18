@@ -30,15 +30,15 @@ async function syncDynamicAdRule(api, enabled) {
   if (!dnr?.updateDynamicRules) {
     throw new Error("declarativeNetRequest is unavailable");
   }
-  await dnr.updateDynamicRules({
-    removeRuleIds: [AD_LOGGER_RULE_ID],
-    addRules: enabled ? [AD_LOGGER_RULE] : []
-  });
   const storage = api.storage?.local;
   if (!storage?.set) {
     throw new Error("extension storage is unavailable");
   }
   await storage.set({ [AD_LOGGER_STATE_KEY]: enabled });
+  await dnr.updateDynamicRules({
+    removeRuleIds: [AD_LOGGER_RULE_ID],
+    addRules: enabled ? [AD_LOGGER_RULE] : []
+  });
 }
 async function restoreDynamicAdRule(api) {
   const storage = api.storage?.local;

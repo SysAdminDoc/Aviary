@@ -274,19 +274,6 @@ confirmed a second time. See RESEARCH.md.
   (Baseline 2025-05-01) is used for the literal-keyword path.
   Complexity: M
 
-- [ ] F178 — P1 — Require TLS for credentialed integration endpoints
-  Why: both provider paths accept any `http:` or `https:` URL and send `x-api-key` / `Bearer` to it, so
-  a typo'd `http://` endpoint transmits the user's API key in cleartext. Aviary redacts these same
-  credentials on export; accepting a plaintext destination undoes that care.
-  Evidence: `src/features/integrations/ai-provider.ts:68-76,106-110`,
-  `src/features/integrations/semantic-search.ts:216-221`, `src/platform/settings.ts:880-891` (`urlValue`).
-  Touches: `src/platform/settings.ts` (`urlValue` gains a scheme requirement for credentialed fields),
-  the Integrations validation copy, settings tests.
-  Acceptance: a credentialed endpoint that is not `https:` is rejected at save time with a stated
-  reason and no request is made; a loopback host stays permitted for self-hosted providers if that is
-  the decision, and the exception is written down.
-  Complexity: S
-
 - [ ] F179 — P1 — Serialize applyAll
   Why: three callers fire `void registry.applyAll(...)` with no coordination, and `applyAll` awaits each
   feature, so two passes interleave at microtask boundaries. Module-level guards such as
@@ -299,31 +286,6 @@ confirmed a second time. See RESEARCH.md.
   test that triggers three overlapping applies observes each feature applied to the final state and no
   guard-skipped rescan.
   Complexity: M
-
-- [ ] F180 — P1 — Write the ad-rule mirror before the rule it mirrors
-  Why: the dynamic DNR rule is committed first and the persisted mirror second, so a failing
-  `storage.set` leaves the rule applied while the caller reports failure and the mirror still holds the
-  previous value — and the next `restoreDynamicAdRule` reverts a rule the user actually enabled. Ad
-  protection is default-on, so this fails toward less protection than the user asked for.
-  Evidence: `src/extension/ad-rule.ts:87-96` with `src/main.ts:315-324`.
-  Touches: `src/extension/ad-rule.ts`, `tests/dnr-ad-protection.test.mjs`.
-  Acceptance: mirror and rule cannot disagree after any single failure — either the mirror is written
-  first or the rule is rolled back when the mirror write fails; a test injects a failing storage write
-  and asserts the post-restart state matches what the user chose.
-  Complexity: S
-
-- [ ] F181 — P1 — Localize the extension options page
-  Why: the options page reads `chrome.storage.local.get("aviary.settings.v1")`, but settings are written
-  through the profile gateway as `aviary.profile.<id>.settings.v1` into the durable IndexedDB backend.
-  The lookup always misses and falls back to English, so the chosen locale never reaches the page — in a
-  project that ships a 9-locale catalog and tests catalog drift.
-  Evidence: `src/entrypoints/extension-options.ts:36` vs `src/platform/profile.ts:175-186`
-  (re-checked 2026-08-17).
-  Touches: `src/entrypoints/extension-options.ts`, a permissions-page locale test.
-  Acceptance: choosing a non-English locale in the Control Center changes the options page on next
-  open, including RTL direction; a test drives the real storage path rather than asserting the key
-  string.
-  Complexity: S
 
 ### P1 — trust and verification
 

@@ -737,7 +737,10 @@ export function normalizeSettings(input: unknown): AviarySettings {
       ai: {
         enabled: booleanValue(integrationsAi.enabled, DEFAULT_SETTINGS.integrations.ai.enabled),
         provider: enumValue(integrationsAi.provider, AI_PROVIDERS, DEFAULT_SETTINGS.integrations.ai.provider),
-        endpoint: urlValue(integrationsAi.endpoint, DEFAULT_SETTINGS.integrations.ai.endpoint),
+        endpoint: credentialedUrlValue(
+          integrationsAi.endpoint,
+          DEFAULT_SETTINGS.integrations.ai.endpoint
+        ),
         apiKey: secretValue(integrationsAi.apiKey, DEFAULT_SETTINGS.integrations.ai.apiKey),
         model: stringValue(integrationsAi.model, DEFAULT_SETTINGS.integrations.ai.model, 120),
         maxRequestBytes: integerValue(
@@ -758,7 +761,7 @@ export function normalizeSettings(input: unknown): AviarySettings {
           integrationsSemantic.enabled,
           DEFAULT_SETTINGS.integrations.semanticSearch.enabled
         ),
-        endpoint: urlValue(
+        endpoint: credentialedUrlValue(
           integrationsSemantic.endpoint,
           DEFAULT_SETTINGS.integrations.semanticSearch.endpoint
         ),
@@ -934,6 +937,41 @@ function urlValue(value: unknown, fallback: string): string {
   } catch {
     return fallback;
   }
+}
+
+/** Hosts that never leave the machine, so plaintext to them is not a transport exposure. */
+function isLoopbackHost(hostname: string): boolean {
+  const host = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  return (
+    host === "localhost" ||
+    host === "::1" ||
+    host.endsWith(".localhost") ||
+    /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)
+  );
+}
+
+/**
+ * A URL that will carry a credential, so plaintext is refused.
+ *
+ * Aviary redacts these same API keys when it exports settings, which makes accepting an endpoint
+ * that transmits one in the clear an odd place to stop caring. A mistyped `http://` on a remote
+ * provider hands the key to anything on the path.
+ *
+ * Loopback stays allowed on purpose: a self-hosted provider on `http://127.0.0.1` never puts the
+ * key on a network, and refusing it would break the local-first setup this project exists to serve.
+ */
+function credentialedUrlValue(value: unknown, fallback: string): string {
+  const resolved = urlValue(value, fallback);
+  if (resolved.length === 0) return resolved;
+  try {
+    const parsed = new URL(resolved);
+    if (parsed.protocol === "https:" || isLoopbackHost(parsed.hostname)) {
+      return resolved;
+    }
+  } catch {
+    return fallback;
+  }
+  return fallback;
 }
 
 function secretValue(value: unknown, fallback: string): string {

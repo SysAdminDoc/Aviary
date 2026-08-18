@@ -498,7 +498,10 @@ var Aviary = (() => {
         ai: {
           enabled: booleanValue(integrationsAi.enabled, DEFAULT_SETTINGS.integrations.ai.enabled),
           provider: enumValue(integrationsAi.provider, AI_PROVIDERS, DEFAULT_SETTINGS.integrations.ai.provider),
-          endpoint: urlValue(integrationsAi.endpoint, DEFAULT_SETTINGS.integrations.ai.endpoint),
+          endpoint: credentialedUrlValue(
+            integrationsAi.endpoint,
+            DEFAULT_SETTINGS.integrations.ai.endpoint
+          ),
           apiKey: secretValue(integrationsAi.apiKey, DEFAULT_SETTINGS.integrations.ai.apiKey),
           model: stringValue(integrationsAi.model, DEFAULT_SETTINGS.integrations.ai.model, 120),
           maxRequestBytes: integerValue(
@@ -519,7 +522,7 @@ var Aviary = (() => {
             integrationsSemantic.enabled,
             DEFAULT_SETTINGS.integrations.semanticSearch.enabled
           ),
-          endpoint: urlValue(
+          endpoint: credentialedUrlValue(
             integrationsSemantic.endpoint,
             DEFAULT_SETTINGS.integrations.semanticSearch.endpoint
           ),
@@ -666,6 +669,23 @@ var Aviary = (() => {
     } catch {
       return fallback;
     }
+  }
+  function isLoopbackHost(hostname) {
+    const host = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+    return host === "localhost" || host === "::1" || host.endsWith(".localhost") || /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host);
+  }
+  function credentialedUrlValue(value, fallback) {
+    const resolved = urlValue(value, fallback);
+    if (resolved.length === 0) return resolved;
+    try {
+      const parsed = new URL(resolved);
+      if (parsed.protocol === "https:" || isLoopbackHost(parsed.hostname)) {
+        return resolved;
+      }
+    } catch {
+      return fallback;
+    }
+    return fallback;
   }
   function secretValue(value, fallback) {
     if (typeof value !== "string") return fallback;

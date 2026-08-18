@@ -243,3 +243,37 @@ test("the page-world stub never refuses X's own detection probes", async () => {
   // The one request Aviary does refuse, so this pair states the whole boundary rather than half.
   assert.equal(mod.isAdRequestUrl("https://x.com/i/api/1.1/promoted_content/log.json"), true);
 });
+
+test("a failed mirror write cannot leave the rule and its record disagreeing", async () => {
+  const { syncDynamicAdRule, restoreDynamicAdRule } =
+    await importBundledModule("src/extension/ad-rule.ts");
+
+  const applied = [];
+  const mirror = new Map();
+  const api = {
+    declarativeNetRequest: {
+      async updateDynamicRules(update) {
+        applied.push(update.addRules.length > 0);
+      }
+    },
+    storage: {
+      local: {
+        async set() {
+          throw new Error("quota exceeded");
+        },
+        async get(key) {
+          return mirror.has(key) ? { [key]: mirror.get(key) } : {};
+        }
+      }
+    }
+  };
+
+  // Ad protection is on by default, so the failure direction matters. Committing the rule first and
+  // then failing the write left the rule applied while the mirror still held the old value -- and
+  // the next restore after a restart reverted a rule the user had actually enabled.
+  await assert.rejects(() => syncDynamicAdRule(api, true), /quota exceeded/);
+  assert.deepEqual(applied, [], "no rule may be committed once its record cannot be written");
+
+  const restored = await restoreDynamicAdRule(api);
+  assert.notEqual(restored, false, "a failed sync must not be recorded as a deliberate disable");
+});

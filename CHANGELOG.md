@@ -40,6 +40,14 @@
 - Turning on **Dim already-seen posts** now takes effect immediately. The store was built only at
   boot, so enabling the setting later left the feature reporting itself healthy while marking
   nothing until the page was reloaded.
+- The extension options page now shows the locale you chose. It read a storage key nothing has ever
+  written, so it fell back to English regardless of the setting.
+- An AI or embedding endpoint carrying an API key must now be `https:`. A mistyped `http://` would
+  have sent the key in the clear. Loopback addresses stay allowed, so a self-hosted provider on
+  `127.0.0.1` still works.
+- The ad-protection rule and its persisted record can no longer disagree. The rule was committed
+  before the record, so a failed write left the rule applied while the record kept the old value —
+  and the next restore after a restart reverted a rule the user had enabled.
 - Tearing down seen-post dimming now waits for its pending write. The flush was queued rather than
   awaited, so up to 1.5 seconds of what you had just scrolled past could be lost.
 

@@ -84,16 +84,23 @@ export async function syncDynamicAdRule(
   if (!dnr?.updateDynamicRules) {
     throw new Error("declarativeNetRequest is unavailable");
   }
-  await dnr.updateDynamicRules({
-    removeRuleIds: [AD_LOGGER_RULE_ID],
-    addRules: enabled ? [AD_LOGGER_RULE] : []
-  });
-
   const storage = api.storage?.local;
   if (!storage?.set) {
     throw new Error("extension storage is unavailable");
   }
+
+  // The mirror is written first on purpose. Committing the rule and then failing the write left the
+  // rule applied while the caller reported failure and the mirror still held the previous value --
+  // so the next restore after a restart reverted a rule the user had actually enabled. Ad protection
+  // is on by default, so that failure direction silently removed protection.
+  //
+  // Writing the mirror first inverts the failure into the safe direction: a mirror that ran ahead of
+  // a rule that never applied is corrected by the very next restore, which re-applies it.
   await storage.set({ [AD_LOGGER_STATE_KEY]: enabled });
+  await dnr.updateDynamicRules({
+    removeRuleIds: [AD_LOGGER_RULE_ID],
+    addRules: enabled ? [AD_LOGGER_RULE] : []
+  });
 }
 
 /** Re-applies the last content-script decision after a browser or event-page restart. */

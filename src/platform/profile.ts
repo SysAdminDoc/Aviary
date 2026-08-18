@@ -31,7 +31,8 @@ export const PROFILE_MIGRATION_KEYS = [
   "aviary.retention.maxAgeDays"
 ] as const;
 
-const DEFAULT_PROFILE_ID = "offline-default";
+/** The profile every install starts in, before the user creates a named one. */
+export const DEFAULT_PROFILE_ID = "offline-default";
 
 /** `crypto.randomUUID` where the host has it; a bounded random fallback where it does not. */
 function randomId(): string {

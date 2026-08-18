@@ -7,6 +7,11 @@
  * browser-owned gesture. No network calls, no storage writes.
  */
 
+import { createStorageGateway } from "../platform/storage";
+import { createDurableStorageGateway } from "../platform/durable-storage";
+import { ACTIVE_PROFILE_KEY, DEFAULT_PROFILE_ID, createProfileStorageGateway } from "../platform/profile";
+import { SETTINGS_KEY } from "../platform/settings";
+
 export const MEDIA_ORIGINS = ["https://pbs.twimg.com/*", "https://video.twimg.com/*"];
 
 /**
@@ -30,11 +35,21 @@ function translate(english: string): string {
 
 const RTL_LOCALES = new Set(["ar", "he"]);
 
-/** Reads the locale the Control Center saved, through whichever backend this build has. */
+/**
+ * Reads the locale the Control Center saved, through the storage stack that actually wrote it.
+ *
+ * This used to read `chrome.storage.local` for a bare `aviary.settings.v1`. Nothing has ever
+ * written that key: settings go through the profile gateway as `aviary.profile.<id>.settings.v1`,
+ * and any `aviary.*.vN` key is routed to the durable IndexedDB backend. The lookup therefore missed
+ * every time and this page fell back to English no matter what the user had chosen — in a build
+ * that ships a nine-locale catalog and tests it for drift.
+ */
 async function readLocale(): Promise<string> {
   try {
-    const stored = await globalThis.chrome?.storage?.local?.get("aviary.settings.v1");
-    const settings = stored?.["aviary.settings.v1"] as { i18n?: { locale?: unknown } } | undefined;
+    const durable = createDurableStorageGateway(createStorageGateway("aviary"));
+    const activeId = await durable.get<string | null>(ACTIVE_PROFILE_KEY, null);
+    const scoped = createProfileStorageGateway(durable, activeId ?? DEFAULT_PROFILE_ID);
+    const settings = await scoped.get<{ i18n?: { locale?: unknown } } | null>(SETTINGS_KEY, null);
     const code = settings?.i18n?.locale;
     return typeof code === "string" && code.length > 0 ? code : "en";
   } catch {

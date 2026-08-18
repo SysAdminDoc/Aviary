@@ -95,3 +95,31 @@ test("a settings file from an older build imports without its removed keys", asy
   assert.equal(normalized.privacy.localOnly, false, "surrounding values must still be honoured");
   assert.equal(normalized.privacy.auditLog, false);
 });
+
+test("a credentialed endpoint must be https, except on loopback", async () => {
+  const { normalizeSettings } = await import(await bundleSettings());
+
+  const withEndpoints = (ai, semantic) =>
+    normalizeSettings({
+      integrations: {
+        ai: { endpoint: ai, apiKey: "sk-secret" },
+        semanticSearch: { endpoint: semantic, apiKey: "sk-secret" }
+      }
+    }).integrations;
+
+  // Aviary redacts these keys on export, so accepting a destination that puts one on the wire in
+  // the clear is the wrong place to stop caring. A typo'd http:// is the realistic case.
+  const plaintext = withEndpoints("http://provider.example/v1/chat", "http://provider.example/v1/embed");
+  assert.notEqual(plaintext.ai.endpoint, "http://provider.example/v1/chat");
+  assert.notEqual(plaintext.semanticSearch.endpoint, "http://provider.example/v1/embed");
+
+  const secure = withEndpoints("https://provider.example/v1/chat", "https://provider.example/v1/embed");
+  assert.equal(secure.ai.endpoint, "https://provider.example/v1/chat");
+  assert.equal(secure.semanticSearch.endpoint, "https://provider.example/v1/embed");
+
+  // A self-hosted provider on loopback never puts the key on a network, and refusing it would
+  // break exactly the local-first setup this project exists to serve.
+  for (const host of ["http://localhost:11434/v1/chat", "http://127.0.0.1:8080/v1/chat"]) {
+    assert.equal(withEndpoints(host, "https://provider.example/e").ai.endpoint, host);
+  }
+});
