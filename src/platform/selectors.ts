@@ -11,11 +11,16 @@ export interface SurfaceSelector {
   churnRisk: ChurnRisk;
   note: string;
   /**
-   * The feature that stops working when this selector stops matching. Declared on the entry so a
-   * new surface cannot be added without naming its owner -- the older if-chain silently answered
-   * "Aviary surface" for anything it had not been taught about.
+   * The feature that stops working when this selector stops matching.
+   *
+   * Required, not optional. It was declared optional with an if-chain behind it that answered for
+   * whatever the field omitted -- so the field could be skipped and the chain, ending in a generic
+   * "Aviary surface", would answer instead. That is the arrangement the comment here claimed to
+   * have replaced. Making it required means a new surface cannot compile without naming what breaks
+   * when it stops matching, which is the whole point: Trust reports these names to a user trying to
+   * find out which feature X just broke.
    */
-  feature?: string;
+  feature: string;
   /** Routes where this selector must be present. Absent means "content routes, optional". */
   requiredOn?: readonly RouteSurface[];
 }
@@ -40,63 +45,72 @@ export const SURFACE_SELECTORS: SurfaceSelector[] = [
     stable: "#react-root",
     fallback: "body > div:first-child",
     churnRisk: "Medium",
-    note: "Readiness anchor only; do not use as the scan scope after boot."
+    note: "Readiness anchor only; do not use as the scan scope after boot.",
+    feature: "Boot and timeline scope"
   },
   {
     surface: "Primary column",
     stable: '[data-testid="primaryColumn"]',
     fallback: ".r-150rngu.r-16y2uox",
     churnRisk: "Medium",
-    note: "Main observer scope for timeline pages."
+    note: "Main observer scope for timeline pages.",
+    feature: "Boot and timeline scope"
   },
   {
     surface: "Sidebar",
     stable: '[data-testid="sidebarColumn"]',
     fallback: ".r-1ifxtd0.r-1udh08x",
     churnRisk: "High",
-    note: "Optional because the sidebar collapses by viewport."
+    note: "Optional because the sidebar collapses by viewport.",
+    feature: "Layout declutter"
   },
   {
     surface: "Tweet",
     stable: 'article[data-testid="tweet"]',
     fallback: "article .css-175oi2r",
     churnRisk: "High",
-    note: "Process added articles only and mark processed nodes."
+    note: "Process added articles only and mark processed nodes.",
+    feature: "Filtering and export"
   },
   {
     surface: "Tweet text",
     stable: '[data-testid="tweetText"]',
     fallback: 'article div[lang] span',
     churnRisk: "Medium",
-    note: "Text extraction source with article textContent fallback."
+    note: "Text extraction source with article textContent fallback.",
+    feature: "Filtering and export"
   },
   {
     surface: "Composer",
     stable: '[data-testid="tweetTextarea_0"]',
     fallback: 'div[role="textbox"][aria-label]',
     churnRisk: "High",
-    note: "Draft.js-aware insertion required for later composer features."
+    note: "Draft.js-aware insertion required for later composer features.",
+    feature: "Composer and crosspost"
   },
   {
     surface: "Media photo",
     stable: '[data-testid="tweetPhoto"] img[src*="pbs.twimg.com/media"]',
     fallback: 'img[src*="format="]',
     churnRisk: "Medium",
-    note: "Normalize image URLs to original quality before download."
+    note: "Normalize image URLs to original quality before download.",
+    feature: "Media controls"
   },
   {
     surface: "Video",
     stable: '[data-testid="videoPlayer"], [data-testid="videoComponent"]',
     fallback: 'video[src], div[aria-label*="Video"]',
     churnRisk: "High",
-    note: "Network capture is required for complete video variants."
+    note: "Network capture is required for complete video variants.",
+    feature: "Media controls"
   },
   {
     surface: "Navigation",
     stable: '[data-testid^="AppTabBar_"], [data-testid="SideNav_NewTweet_Button"]',
     fallback: 'nav[aria-label] a[role="link"]',
     churnRisk: "High",
-    note: "Support full, compact, and mobile navigation."
+    note: "Support full, compact, and mobile navigation.",
+    feature: "Layout declutter"
   },
   {
     surface: "Grok",
@@ -104,7 +118,8 @@ export const SURFACE_SELECTORS: SurfaceSelector[] = [
       '[data-testid="GrokDrawer"], [data-testid="grokImgGen"], a[href="/i/grok"], button[aria-label="Grok actions"]',
     fallback: 'div[id*="grok" i]',
     churnRisk: "High",
-    note: "Drawer, navigation, image-generation, and per-post Grok surfaces change frequently; isolate all tweaks."
+    note: "Drawer, navigation, image-generation, and per-post Grok surfaces change frequently; isolate all tweaks.",
+    feature: "Grok declutter"
   },
   // Below: the selectors features actually depend on. Watching only the ten foundational surfaces
   // meant a rename anywhere else silently disabled its owning feature with no diagnostic -- the
@@ -222,7 +237,7 @@ export function getSelectorHealthForRoute(
       relevance: selectorRelevance(entry.surface, route),
       matched,
       matchedSelector: matched === "stable" ? entry.stable : matched === "fallback" ? entry.fallback : null,
-      feature: featureForSurface(entry.surface)
+      feature: entry.feature
     };
   });
 }
@@ -261,17 +276,6 @@ function selectorRelevance(surface: string, route: RouteSurface): SelectorReleva
   return "optional";
 }
 
-function featureForSurface(surface: string): string {
-  const declared = SURFACE_SELECTORS.find((entry) => entry.surface === surface)?.feature;
-  if (declared) return declared;
-  if (surface === "App root" || surface === "Primary column") return "Boot and timeline scope";
-  if (surface === "Sidebar" || surface === "Navigation") return "Layout declutter";
-  if (surface === "Tweet" || surface === "Tweet text") return "Filtering and export";
-  if (surface === "Composer") return "Composer and crosspost";
-  if (surface === "Media photo" || surface === "Video") return "Media controls";
-  if (surface === "Grok") return "Grok declutter";
-  return "Aviary surface";
-}
 
 function countMatches(root: ParentNode, selector: string): number {
   try {

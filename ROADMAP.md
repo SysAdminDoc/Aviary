@@ -466,22 +466,6 @@ below were read at the cited line. See RESEARCH.md.
 
 ### P1 — breakage response
 
-- [ ] F199 — P1 — Name the feature that broke, using ownership the registry already declares
-  Why: X DOM churn is this project's dominant recurring failure, and the two halves of the answer already
-  exist without ever being joined. `selectors.ts` declares `feature?: string` — "the feature that stops
-  working when this selector stops matching" — and `selector-health.ts` already computes per-selector
-  match state, yet a user with a broken feature is told only that health is "degraded". Refined GitHub
-  ships the equivalent as a remote CSV; Aviary can do it from local data with no network at all.
-  Evidence: `src/platform/selectors.ts` — 13 of 26 entries declare `feature:`, and `requiredOn` is
-  declared in the interface but used zero times; `src/features/core/selector-health.ts` computes
-  healthy/degraded and renders Trust rows only. Counted 2026-08-17.
-  Touches: `src/platform/selectors.ts` (complete the ownership map), `src/features/core/selector-health.ts`,
-  the Trust panel, the affected feature rows.
-  Acceptance: every selector declares its owning feature and a test fails when one does not; Trust lists
-  the specific features currently degraded rather than a global state; the row for a degraded feature says
-  so in place, in the section where the user would look for it; nothing is fetched.
-  Complexity: M
-
 - [ ] F200 — P1 — A "which Aviary feature is breaking this page?" bisect
   Why: when X changes markup, the support question is always "which of ~27 features did this". A binary
   search over enabled features answers it in about five rounds instead of a linear hunt, and produces a

@@ -19,7 +19,7 @@ before(async () => {
     entry,
     [
       `export { selectorHealthFeature, getSelectorHealthSnapshot, clearAdObservations } from ${JSON.stringify(path.join(root, "src/features/core/selector-health.ts").replace(/\\/g, "/"))};`,
-      `export { getSelectorHealthForRoute } from ${JSON.stringify(path.join(root, "src/platform/selectors.ts").replace(/\\/g, "/"))};`,
+      `export { getSelectorHealthForRoute, SURFACE_SELECTORS } from ${JSON.stringify(path.join(root, "src/platform/selectors.ts").replace(/\\/g, "/"))};`,
       `export { mountControlCenter } from ${JSON.stringify(path.join(root, "src/ui/control-center.ts").replace(/\\/g, "/"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(path.join(root, "src/platform/settings.ts").replace(/\\/g, "/"))};`
     ].join("\n"),
@@ -259,4 +259,26 @@ test("current settings pages do not require the timeline-only primary column", a
   assert.equal(primary.relevance, "inapplicable");
   assert.equal(appRoot.relevance, "required");
   assert.equal(navigation.relevance, "required");
+});
+
+test("every selector names the feature that breaks when it stops matching", async () => {
+  const SURFACE_SELECTORS = await page.evaluate(() => window.AviarySelectorHealth.SURFACE_SELECTORS);
+
+  // Trust reports these names to a user trying to find out which feature X just broke, so a
+  // selector without one leaves them with "something is degraded" and nowhere to go. The field was
+  // optional with an if-chain behind it that answered a generic "Aviary surface" for anything the
+  // field omitted -- the arrangement its own comment claimed to have replaced.
+  const unowned = SURFACE_SELECTORS.filter(
+    (entry) => typeof entry.feature !== "string" || entry.feature.trim().length === 0
+  );
+  assert.deepEqual(
+    unowned.map((entry) => entry.surface),
+    [],
+    "every surface selector must declare its owning feature"
+  );
+
+  assert.ok(
+    !SURFACE_SELECTORS.some((entry) => entry.feature === "Aviary surface"),
+    "the generic fallback label must not survive as a declared value"
+  );
 });
