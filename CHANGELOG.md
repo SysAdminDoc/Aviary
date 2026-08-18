@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.29.0 - 2026-08-18
+
 ### Security
 
 - A page script can no longer switch ad protection off or uninstall Aviary's page-world observer.
