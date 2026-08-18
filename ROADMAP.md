@@ -209,38 +209,6 @@ confirmed a second time. See RESEARCH.md.
 
 ### P1 — trust and verification
 
-- [ ] F182 — P1 — Retire behavioural assertions written as source-text regexes
-  Why: 33 of 91 test files read `src/*.ts` as text and assert with regex — roughly 350 assertions, so a
-  rename fails a working feature while a real regression that preserves the literal string passes. The
-  suite's 502-test count is worth materially less than it reads. F140 fixes only the a11y file; this is
-  the systemic half. Note the legitimate exception: `source-contracts.test.mjs` enforces bans ("no
-  `innerHTML` anywhere") and must stay source-text — the target is behavioural claims written as
-  source regexes.
-  Evidence: measured 2026-08-17 — `v1.8.0.test.mjs` (87 such assertions), `audit-ui.test.mjs` (40),
-  `audit-2026-08-07.test.mjs` (32), `source-contracts.test.mjs` (23, exempt), `audit-a11y.test.mjs` (20,
-  covered by F140). Four are frozen version-named audits at a project now on 1.27.1.
-  Touches: the version-named audit files first, then `audit-ui.test.mjs` and `audit-2026-08-07.test.mjs`.
-  Acceptance: each converted assertion drives the built module or the rendered DOM; assertions that
-  encoded a frozen implementation detail rather than a contract are deleted rather than translated, and
-  the deletion is stated in the commit; the remaining source-text tests are only ban checks and are
-  named as such in one place.
-  Depends on: F140 (same technique, smaller surface — land it first as the pattern).
-  Note (2026-08-18): partly drained. Converted, in the order this item asked for: every
-  version-named audit file, `audit-ui.test.mjs`, `audit-2026-08-07.test.mjs`,
-  `audit-correctness.test.mjs`, and the behavioural halves of `audit-a11y.test.mjs`,
-  `audit-ux.test.mjs` and `source-contracts.test.mjs`. `source-contracts.test.mjs` is now bans
-  only and opens with a docstring saying so and naming where everything else lives. New driven
-  files: `control-center-render`, `feature-lifecycle`, `boot-registration`, `media-batch-pacing`,
-  `extension-background-api`, `extension-options-page`, `report-download`,
-  `panel-appearance-contract`, `filter-engine-work`, `export-capture-session`,
-  `settings-choke-point`, `runtime-hardening`, `observer-batching`. Measured 2026-08-18 before
-  and after: 68 source-text blocks and 26 mixed became 34 and 15; roughly 350 such assertions
-  became 232. Remaining, largest first: `fixtures.test.mjs` (3),
-  `media-video-targets.test.mjs` (2+1), `dnr-ad-protection.test.mjs` (1+1), `i18n.test.mjs` (2
-  mixed), `injected-ui-contract.test.mjs` (1+1), `v0.9.0` (2), `v1.2.0` (1+1), and a long tail of
-  single-block files. The three left in `source-contracts.test.mjs` are bans and stay.
-  Complexity: L
-
 ### P2 — platform primitives that delete hand-rolled code
 
 - [ ] F185 — P2 — Move menus, toasts and the panel to the Popover API
@@ -532,14 +500,8 @@ below were read at the cited line. See RESEARCH.md.
   Acceptance: tests import the modules they describe with no bundling step; the esbuild harness is deleted
   rather than left beside the new path; the build itself still bundles as before; suite runtime does not
   regress. Do this for directness, not speed — the suite is already ~4.5s.
-  Depends on: sequence before F182, which is easier to do well once tests can import real modules.
+  Note (2026-08-18): F182 landed first, so this no longer blocks it. The 13 driven test files it
+  added all bundle through esbuild, which is more surface for this to convert but also a clearer one:
+  every new file uses the same helper shape.
   Complexity: L
 
-## Discovered while draining (2026-08-18)
-
-- [ ] F212 — P2 — A section that throws takes the whole panel render with it
-  Why: `render()` builds the active section inline, so a builder that throws leaves the panel showing the previous section with no error and no way to reach the broken one. Found while driving the Control Center in tests: an incomplete `ctx.auditLog` made the Backup destination silently unreachable, and the panel reported "Saved locally" throughout. A user hitting this sees a nav item that does nothing.
-  Evidence: measured 2026-08-18 — clicking `[data-av-section="backup"]` with a context missing `auditLog.size` leaves `activeSectionId` unchanged and renders no error; `FeatureRegistry` already isolates per-feature failures, the panel does not isolate per-section ones.
-  Touches: `src/ui/control-center.ts` (`buildContent`, `section`), the section builders under `src/ui/control-center/sections/`.
-  Acceptance: a section builder that throws renders an in-panel error row naming the section and reports through `options.onError`; the rest of the panel stays usable; a test mounts the panel with a builder rigged to throw and asserts both.
-  Complexity: S

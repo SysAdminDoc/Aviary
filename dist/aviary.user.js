@@ -5179,6 +5179,23 @@ html.av-reduce-motion *::after {
       }
       return nav;
     };
+    const buildSection = (entry) => {
+      try {
+        return section(entry, entry.build());
+      } catch (error) {
+        try {
+          options.onError(`Control Center could not draw the ${entry.title} section`, error);
+        } catch {
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        return section(entry, [
+          dataRow(
+            "This section could not be drawn",
+            `${t("The rest of the panel still works. Reported to diagnostics.")} ${message}`
+          )
+        ]);
+      }
+    };
     const buildContent = (registry) => {
       const content = el("div", "av-content");
       if (searchQuery.length > 0) {
@@ -5186,7 +5203,7 @@ html.av-reduce-motion *::after {
         return content;
       }
       const entry = registry.find((candidate) => candidate.id === activeSectionId) ?? registry[0];
-      content.append(section(entry, entry.build()));
+      content.append(buildSection(entry));
       return content;
     };
     const searchResults = (registry) => {
@@ -5194,7 +5211,13 @@ html.av-reduce-motion *::after {
       const out = [];
       let matches2 = 0;
       for (const entry of registry) {
-        const hits = entry.build().filter((row) => (row.textContent ?? "").toLowerCase().includes(needle));
+        let rows;
+        try {
+          rows = entry.build();
+        } catch {
+          continue;
+        }
+        const hits = rows.filter((row) => (row.textContent ?? "").toLowerCase().includes(needle));
         if (hits.length === 0) {
           continue;
         }

@@ -1215,6 +1215,34 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     return nav;
   };
 
+  /**
+   * Builds one section's rows, and turns a builder that throws into a row saying so.
+   *
+   * `FeatureRegistry` has always isolated per-feature failures; the panel did not isolate
+   * per-section ones. A builder that threw took the whole render with it, so the rail item
+   * appeared to do nothing: `activeSectionId` had already moved, the previous section stayed on
+   * screen, and the status line still read "Saved locally". A destination that cannot be reached
+   * and does not say why is worse than one that is visibly broken.
+   */
+  const buildSection = (entry: PanelSection): HTMLElement => {
+    try {
+      return section(entry, entry.build());
+    } catch (error) {
+      try {
+        options.onError(`Control Center could not draw the ${entry.title} section`, error);
+      } catch {
+        // A diagnostic sink must never be the reason the panel cannot report a broken section.
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      return section(entry, [
+        dataRow(
+          "This section could not be drawn",
+          `${t("The rest of the panel still works. Reported to diagnostics.")} ${message}`
+        )
+      ]);
+    }
+  };
+
   const buildContent = (registry: PanelSection[]): HTMLElement => {
     const content = el("div", "av-content");
     if (searchQuery.length > 0) {
@@ -1222,7 +1250,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       return content;
     }
     const entry = registry.find((candidate) => candidate.id === activeSectionId) ?? registry[0]!;
-    content.append(section(entry, entry.build()));
+    content.append(buildSection(entry));
     return content;
   };
 
@@ -1238,7 +1266,15 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     let matches = 0;
 
     for (const entry of registry) {
-      const hits = entry.build().filter((row) => (row.textContent ?? "").toLowerCase().includes(needle));
+      let rows: HTMLElement[];
+      try {
+        rows = entry.build();
+      } catch {
+        // Reported when the section is opened; a search must not be the thing that surfaces it,
+        // and must not stop at the first section that cannot be built.
+        continue;
+      }
+      const hits = rows.filter((row) => (row.textContent ?? "").toLowerCase().includes(needle));
       if (hits.length === 0) {
         continue;
       }

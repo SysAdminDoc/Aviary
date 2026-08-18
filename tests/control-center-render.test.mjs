@@ -355,3 +355,70 @@ test("Trust reports a failed write rather than letting it vanish", async () => {
   assert.match(broken, /QuotaExceededError/, "and must carry the reason, not just a generic apology");
   assert.match(broken, /\(1\)/, "only the write failures count — the warning is not one");
 });
+
+test("a section that cannot be drawn says so and leaves the rest of the panel usable", async () => {
+  // FeatureRegistry has always isolated per-feature failures; the panel did not isolate
+  // per-section ones. A builder that threw took the whole render with it, so the rail item
+  // appeared to do nothing -- activeSectionId had moved, the previous section stayed on screen,
+  // and the status line still read "Saved locally".
+  const result = await page.evaluate(async () => {
+    window.__panel?.destroy?.();
+    const settings = AviaryCC.cloneSettings(AviaryCC.DEFAULT_SETTINGS);
+    settings.i18n.locale = "en";
+    const errors = [];
+
+    window.__panel = AviaryCC.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: (message) => errors.push(message),
+      // Reached only by the Trust section, so building Trust throws and nothing else does.
+      getSelectorHealth() {
+        throw new Error("selector health blew up");
+      }
+    });
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    shadow.querySelector('.av-nav-item[data-av-section="trust"]').click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const broken = {
+      rendered: shadow.querySelector(".av-content .av-section")?.dataset.avSection ?? null,
+      current: [...shadow.querySelectorAll(".av-nav-item")]
+        .filter((item) => item.getAttribute("aria-current") === "true")
+        .map((item) => item.dataset.avSection),
+      copy: shadow.querySelector(".av-content")?.textContent ?? ""
+    };
+
+    // Every other destination must still work.
+    shadow.querySelector('.av-nav-item[data-av-section="appearance"]').click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const recovered = {
+      rendered: shadow.querySelector(".av-content .av-section")?.dataset.avSection ?? null,
+      rows: shadow.querySelectorAll(".av-content .av-row").length
+    };
+
+    // And a search across every section must not stop at the one that cannot be built.
+    const input = shadow.querySelector(".av-search-input");
+    input.value = "theme";
+    input.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const searched = shadow.querySelectorAll(".av-content .av-row").length;
+
+    return { broken, recovered, searched, errors };
+  });
+
+  assert.equal(result.broken.rendered, "trust", "the chosen section must render, not the previous one");
+  assert.deepEqual(result.broken.current, ["trust"], "and the rail must show it as current");
+  assert.match(result.broken.copy, /could not be drawn/, "the panel must say the section is broken");
+  assert.match(result.broken.copy, /selector health blew up/, "and must carry the reason");
+  assert.ok(
+    result.errors.some((message) => /could not draw the Trust section/i.test(message)),
+    `the failure must reach diagnostics, saw ${JSON.stringify(result.errors)}`
+  );
+
+  assert.equal(result.recovered.rendered, "appearance", "the rest of the panel must still work");
+  assert.ok(result.recovered.rows > 0);
+  assert.ok(result.searched > 0, "a search must not stop at the section that cannot be built");
+});
