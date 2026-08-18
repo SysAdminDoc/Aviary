@@ -43,7 +43,16 @@ let temp;
 before(async () => {
   temp = await mkdtemp(path.join(tmpdir(), "aviary-boot-"));
   const entry = path.join(temp, "entry.ts");
-  await writeFile(entry, `export { boot } from ${JSON.stringify(abs("src/main.ts"))};`, "utf8");
+  await writeFile(
+    entry,
+    [
+      `export { boot } from ${JSON.stringify(abs("src/main.ts"))};`,
+      // Same bundle on purpose: the local-only policy is module-scope state, so importing it here
+      // proves main.ts and this test share one instance the way a real build does.
+      `export { assertOutboundAllowed, LocalOnlyError } from ${JSON.stringify(abs("src/features/integrations/network-policy.ts"))};`
+    ].join("\n"),
+    "utf8"
+  );
   const bundle = path.join(temp, "bundle.js");
   await build({
     entryPoints: [entry],
@@ -123,6 +132,32 @@ test("the only feature reporting a problem is the one this harness cannot give a
   // manager without `@inject-into page`, and the reason that status exists. Anything else here
   // is a feature that came up broken on a clean boot.
   assert.deepEqual(bad, ["no-page-scope"]);
+});
+
+test("local-only mode reads the live setting the app booted with, not a snapshot of it", async () => {
+  const result = await page.evaluate(() => {
+    const settings = window.__boot.app.context.settings;
+    const attempt = () => {
+      try {
+        AviaryBoot.assertOutboundAllowed("A request");
+        return null;
+      } catch (error) {
+        return error instanceof AviaryBoot.LocalOnlyError ? "local-only" : String(error);
+      }
+    };
+
+    const before = settings.privacy.localOnly;
+    settings.privacy.localOnly = false;
+    const allowed = attempt();
+    // Flipping the switch has to apply at once; a policy captured at boot would need a reload.
+    settings.privacy.localOnly = true;
+    const blocked = attempt();
+    settings.privacy.localOnly = before;
+    return { allowed, blocked };
+  });
+
+  assert.equal(result.allowed, null, "outbound calls are permitted while local-only is off");
+  assert.equal(result.blocked, "local-only", "turning local-only on must block without a reload");
 });
 
 test("destroy puts the page back and leaves nothing registered as active", async () => {

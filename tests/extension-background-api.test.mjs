@@ -1,0 +1,235 @@
+import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { after, test } from "node:test";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "esbuild";
+
+/**
+ * The background service worker's message surface, driven through a stubbed `chrome`.
+ *
+ * These claims were twelve regexes over `extension-background.ts` — `/AVIARY_DOWNLOAD_CAPABILITY/`,
+ * `/openOptionsPage/`, `/action\?\.onClicked/`, `/\.\.\.\(message\.fallbackUrls \?\? \[\]\)/`. A
+ * mention of an identifier is not a working handler: every one of them passes for a listener that
+ * is registered but never answers, or answers with the wrong shape. Each test below registers the
+ * listener the way Chrome does and sends it a message.
+ */
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+/**
+ * Loads the background worker against a stubbed `chrome`, returning the listeners it registered
+ * and a `send` that drives the message listener the way `chrome.runtime.sendMessage` does.
+ */
+async function loadBackground(overrides = {}) {
+  const registered = { message: null, action: null, contextMenu: null };
+  const calls = { openOptions: 0, downloads: [], permissionQueries: [] };
+
+  const chrome = {
+    runtime: {
+      onInstalled: { addListener() {} },
+      onStartup: { addListener() {} },
+      onMessage: { addListener(listener) { registered.message = listener; } },
+      async openOptionsPage() { calls.openOptions++; },
+      ...overrides.runtime
+    },
+    action: { onClicked: { addListener(listener) { registered.action = listener; } } },
+    contextMenus: {
+      create() { return "aviary-download-media"; },
+      removeAll(callback) { callback?.(); },
+      onClicked: { addListener(listener) { registered.contextMenu = listener; } }
+    },
+    permissions: {
+      async contains(request) {
+        calls.permissionQueries.push(request);
+        return overrides.granted ?? true;
+      },
+      async request() { return overrides.granted ?? true; }
+    },
+    downloads: overrides.downloads ?? {
+      async download(options) {
+        calls.downloads.push(options);
+        return calls.downloads.length;
+      },
+      onChanged: { addListener() {} }
+    },
+    storage: {
+      local: {
+        async get() { return {}; },
+        async set() {},
+        async remove() {}
+      }
+    },
+    ...overrides.chrome
+  };
+
+  // Left installed for the life of the test: the worker reads `globalThis.chrome` at call time,
+  // not at import time, so restoring it here would leave every handler talking to nothing --
+  // which is exactly how a "permission missing" assertion passes without a permission check.
+  globalThis.chrome = chrome;
+  {
+    const module = await importBundledModule("src/entrypoints/extension-background.ts");
+    assert.equal(typeof registered.message, "function", "the background registered no message listener");
+
+    /** Resolves with whatever the listener passes to `sendResponse`. */
+    const send = (message) =>
+      new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error(`no response to ${JSON.stringify(message)}`)), 2000);
+        const async = registered.message(message, { id: "test" }, (response) => {
+          clearTimeout(timer);
+          resolve(response);
+        });
+        if (async === false) {
+          clearTimeout(timer);
+          resolve(undefined);
+        }
+      });
+
+    return { module, registered, calls, send };
+  }
+}
+
+after(() => {
+  delete globalThis.chrome;
+});
+
+test("the capability probe answers with what the browser actually granted", async () => {
+  const granted = await loadBackground({ granted: true });
+  assert.deepEqual(await granted.send({ type: "AVIARY_DOWNLOAD_CAPABILITY" }), { ok: true, granted: true });
+  assert.deepEqual(
+    granted.calls.permissionQueries.at(-1),
+    { permissions: ["downloads"] },
+    "the probe must ask about the downloads permission specifically"
+  );
+
+  const refused = await loadBackground({ granted: false });
+  assert.deepEqual(await refused.send({ type: "AVIARY_DOWNLOAD_CAPABILITY" }), { ok: true, granted: false });
+});
+
+test("the content script can open the options page, and the toolbar button does too", async () => {
+  const background = await loadBackground();
+
+  assert.deepEqual(await background.send({ type: "AVIARY_OPEN_OPTIONS" }), { ok: true });
+  assert.equal(background.calls.openOptions, 1, "the grant surface must actually open");
+
+  // No popup: the toolbar button is the durable route to the permission surface.
+  assert.equal(typeof background.registered.action, "function", "the toolbar button does nothing");
+  background.registered.action({ id: 1 });
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(background.calls.openOptions, 2);
+});
+
+test("a download without the permission reports the shared code the content script reacts to", async () => {
+  const background = await loadBackground({ granted: false });
+
+  const response = await background.send({
+    type: "AVIARY_DOWNLOAD",
+    url: "https://pbs.twimg.com/media/a.jpg",
+    filename: "a.jpg"
+  });
+
+  assert.equal(response.ok, false);
+  assert.equal(
+    response.code,
+    background.module.DOWNLOAD_PERMISSION_CODE,
+    "the content script keys its 'Allow' surface off this exact code"
+  );
+  assert.equal(background.calls.downloads.length, 0, "a refused permission must not reach downloads");
+});
+
+test("fallback candidates are walked in order, deduplicated, and filtered by scheme", async () => {
+  const attempted = [];
+  const background = await loadBackground({
+    downloads: {
+      async download(options) {
+        attempted.push(options.url);
+        // Every candidate but the last fails, so the walk down the list is observable.
+        if (attempted.length < 2) throw new Error("404");
+        return 7;
+      },
+      onChanged: { addListener() {} }
+    }
+  });
+
+  const response = await background.send({
+    type: "AVIARY_DOWNLOAD",
+    url: "https://pbs.twimg.com/media/a?name=orig",
+    fallbackUrls: [
+      // A repeat of the primary, which must not be attempted twice.
+      "https://pbs.twimg.com/media/a?name=orig",
+      "https://pbs.twimg.com/media/a?name=4096x4096",
+      "javascript:alert(1)"
+    ],
+    filename: "a.jpg"
+  });
+
+  assert.deepEqual(response, { ok: true, id: 7 });
+  assert.deepEqual(attempted, [
+    "https://pbs.twimg.com/media/a?name=orig",
+    "https://pbs.twimg.com/media/a?name=4096x4096"
+  ]);
+  assert.ok(
+    !attempted.some((url) => url.startsWith("javascript:")),
+    "only http(s) candidates may reach the downloads API"
+  );
+});
+
+test("an over-long fallback list is refused outright, not quietly trimmed", async () => {
+  const background = await loadBackground();
+
+  // A content script asking for more than three retries is not the content script this build
+  // ships; the message is rejected rather than partially honoured.
+  const response = await background.send({
+    type: "AVIARY_DOWNLOAD",
+    url: "https://pbs.twimg.com/media/a?name=orig",
+    fallbackUrls: [
+      "https://pbs.twimg.com/media/a?name=4096x4096",
+      "https://pbs.twimg.com/media/a?name=large",
+      "https://pbs.twimg.com/media/a?name=medium",
+      "https://pbs.twimg.com/media/a?name=small"
+    ],
+    filename: "a.jpg"
+  });
+
+  assert.equal(response, undefined, "an unrecognised message must go unanswered");
+  assert.equal(background.calls.downloads.length, 0, "and must not reach the downloads API");
+});
+
+test("a download that exhausts every candidate reports the last failure rather than success", async () => {
+  const background = await loadBackground({
+    downloads: {
+      async download() { throw new Error("disk full"); },
+      onChanged: { addListener() {} }
+    }
+  });
+
+  const response = await background.send({
+    type: "AVIARY_DOWNLOAD",
+    url: "https://pbs.twimg.com/media/a.jpg",
+    filename: "a.jpg"
+  });
+
+  assert.equal(response.ok, false);
+  assert.match(response.error, /disk full/);
+});
+
+let bundleId = 0;
+async function importBundledModule(relativePath) {
+  const dir = await mkdtemp(path.join(tmpdir(), "aviary-bg-"));
+  const outfile = path.join(dir, `mod-${bundleId++}.mjs`);
+  await build({
+    entryPoints: [path.join(root, relativePath)],
+    outfile,
+    bundle: true,
+    format: "esm",
+    platform: "neutral",
+    target: "es2022",
+    logLevel: "silent"
+  });
+  try {
+    return await import(`${pathToFileURL(outfile).href}?v=${bundleId}`);
+  } finally {
+    setTimeout(() => void rm(dir, { recursive: true, force: true }), 0);
+  }
+}

@@ -42,6 +42,34 @@ function isScopedKeyboardInteraction(relative, text) {
   return /\.key\s*===\s*["'](?:Escape|Tab|Arrow(?:Up|Down|Left|Right)|Home|End|Enter|\s)["']/.test(text);
 }
 
+/**
+ * The options page ships as static assets loaded under the MV3 page CSP, which blocks inline
+ * script outright. These are bans on what the shipped files may contain -- the only claim a
+ * source scan states exactly -- so they live here. What the page *does* is driven in
+ * tests/extension-options-page.test.mjs.
+ */
+test("the shipped options page carries no inline script, handler, or pill styling", async () => {
+  const html = await readFile(path.join(root, "src/extension/options.html"), "utf8");
+  assert.ok(
+    !/<script(?![^>]*src=)[^>]*>[\s\S]*?\S[\s\S]*?<\/script>/i.test(html),
+    "MV3 page CSP blocks inline script"
+  );
+  assert.ok(!/\son[a-z]+\s*=/i.test(html), "no inline event handlers");
+  assert.match(html, /src="options\.js"/, "the controller must load as a separate file");
+  assert.match(html, /href="options\.css"/);
+
+  const controller = await readFile(path.join(root, "src/entrypoints/extension-options.ts"), "utf8");
+  assert.ok(!/fetch\s*\(/.test(controller), "the options page must not make network calls");
+  assert.ok(!/innerHTML/.test(controller), "no HTML injection sink");
+
+  const css = await readFile(path.join(root, "src/extension/options.css"), "utf8");
+  assert.ok(
+    !/border-radius:\s*(999|9999)px|border-radius:\s*50%/.test(css),
+    "no pill backdrops"
+  );
+  assert.ok(!/backdrop-filter/.test(css), "forced-colors and older engines drop it to nothing");
+});
+
 test("Control Center follows overlay accessibility and shape rules", async () => {
   const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
 

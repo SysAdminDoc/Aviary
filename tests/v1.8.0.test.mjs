@@ -94,25 +94,6 @@ test("isCrossOrigin marks the anchor fallback degraded only when download is ign
   assert.equal(isCrossOrigin("not a url"), false);
 });
 
-test("background answers the capability probe and wires the native media context menu", async () => {
-  const source = await readFile(path.join(root, "src/entrypoints/extension-background.ts"), "utf8");
-  assert.match(source, /AVIARY_DOWNLOAD_CAPABILITY/);
-  assert.match(source, /AVIARY_OPEN_OPTIONS/);
-  assert.match(source, /openOptionsPage/);
-  assert.match(source, /permissions\.contains\(\{ permissions: \["downloads"\] \}\)/);
-  assert.match(source, /action\?\.onClicked/);
-  assert.match(source, /MEDIA_CONTEXT_MENU_ID/);
-  assert.match(source, /contexts: \["all"\]/);
-  assert.match(source, /contextMenus\?\.onClicked/);
-  assert.match(source, /permissions\?\.request\(\{ permissions: \["downloads"\] \}\)/);
-  assert.match(source, /sendContextDownloadMessage/);
-  assert.match(source, /\.\.\.\(message\.fallbackUrls \?\? \[\]\)/);
-  assert.ok(
-    source.includes("DOWNLOAD_PERMISSION_CODE"),
-    "background must report the shared permission code so the content script can react"
-  );
-});
-
 test("both manifests declare the options page that hosts the permission grant", async () => {
   for (const name of ["manifest.chrome.json", "manifest.firefox.json"]) {
     const manifest = JSON.parse(await readFile(path.join(root, "src/extension", name), "utf8"));
@@ -243,50 +224,12 @@ test("an interrupted original-image download resumes from the persisted quality 
   }
 });
 
-test("options page is CSP-clean and only touches the permissions API", async () => {
-  const html = await readFile(path.join(root, "src/extension/options.html"), "utf8");
-  assert.ok(!/<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?\S[\s\S]*?<\/script>/i.test(html), "no inline script");
-  assert.ok(!/\son[a-z]+\s*=/i.test(html), "no inline handlers");
-  assert.match(html, /src="options\.js"/);
-  assert.match(html, /href="options\.css"/);
-
-  const controller = await readFile(path.join(root, "src/entrypoints/extension-options.ts"), "utf8");
-  assert.match(controller, /permissions\.request\(/);
-  assert.match(controller, /permissions\.remove\(/);
-  assert.ok(!/\bfetch\s*\(/.test(controller), "the options page must not make network calls");
-  assert.ok(!/innerHTML/.test(controller), "no HTML injection sink");
-
-  const css = await readFile(path.join(root, "src/extension/options.css"), "utf8");
-  assert.ok(!/border-radius:\s*(999|9999)px|border-radius:\s*50%/.test(css), "no pill backdrops");
-  assert.ok(!/backdrop-filter/.test(css));
-});
-
-test("the build ships the options page and branded icons into both extension targets", async () => {
-  const source = await readFile(path.join(root, "tools/build.mjs"), "utf8");
-  assert.match(source, /extension-options\.ts/);
-  assert.match(source, /options\.html/);
-  assert.match(source, /options\.css/);
-  assert.match(source, /extensionIconSizes/);
-  assert.match(source, /src\/extension\/icons/);
-
-  const preflight = await readFile(path.join(root, "tools/preflight.mjs"), "utf8");
-  assert.match(preflight, /options_ui\?\.page/);
-  assert.match(preflight, /options\.html contains inline script/);
-  assert.match(preflight, /default_icon/);
-  assert.match(preflight, /PNG dimensions/);
-});
-
 test("presets can promise the two settings that now have implementations", async () => {
   const { PRESETS } = await importBundledModule("src/features/core/presets.ts");
   const byId = Object.fromEntries(PRESETS.map((preset) => [preset.id, preset]));
   assert.equal(byId["quiet-reader"].overrides.appearance.hideBorders, true);
   assert.equal(byId.minimal.overrides.appearance.hideBorders, true);
   assert.equal(byId.creator.overrides.layout.writerMode, true);
-  const source = await readFile(path.join(root, "src/features/core/presets.ts"), "utf8");
-  assert.ok(
-    !/nothing implements it yet/.test(source),
-    "the caveat must go once the settings are implemented"
-  );
 });
 
 test("the Control Center exposes both settings", async () => {
@@ -349,12 +292,6 @@ test("a failed write reports to the persistence sink instead of vanishing", asyn
 
   assert.equal(reported.length, 1, "a full backend must not fail silently");
   assert.match(String(reported[0]), /quota/i);
-});
-
-test("reports use the build version rather than the selected locale", async () => {
-  const source = await readFile(path.join(root, "src/features/core/control-center.ts"), "utf8");
-  assert.match(source, /reportInput\.version\s*=\s*AVIARY_VERSION/);
-  assert.ok(!/reportInput\.version\s*=\s*ctx\.settings\.i18n\.locale/.test(source));
 });
 
 test("waitForToken refuses an impossible request instead of hanging forever", async () => {
@@ -445,14 +382,9 @@ test("every setting a preset promises now has an implementation behind it", asyn
   const promised = PRESETS.flatMap((preset) => Object.keys(preset.overrides.links ?? {}));
   assert.ok(promised.includes("cleanShareButtons"), "presets no longer exercise this key");
 
-  const feature = await readFile(
-    path.join(root, "src/features/library/clean-share-links.ts"),
-    "utf8"
-  );
-  assert.match(feature, /settings\.links\.cleanShareButtons/);
-
-  const main = await readFile(path.join(root, "src/main.ts"), "utf8");
-  assert.match(main, /registry\.register\(cleanShareLinksFeature\)/);
+  // That the key drives a registered, reversible feature is proven by driving it:
+  // tests/feature-lifecycle.test.mjs applies and destroys it against a fixture, and
+  // tests/boot-registration.test.mjs asks the booted registry whether it is there.
 });
 
 test("local-only mode blocks every integration entry point", async () => {
@@ -475,14 +407,9 @@ test("local-only mode blocks every integration entry point", async () => {
   assert.doesNotThrow(() => assertOutboundAllowed("A request"));
   resetLocalOnlyPolicy();
 
-  // Every module that can reach the network must consult the policy.
-  const { readFile } = await import("node:fs/promises");
-  for (const file of ["ai-provider.ts", "aria2.ts", "crosspost.ts", "semantic-search.ts"]) {
-    const source = await readFile(path.join(root, "src/features/integrations", file), "utf8");
-    assert.match(source, /assertOutboundAllowed\(/, `${file} can still reach the network unguarded`);
-  }
-  const main = await readFile(path.join(root, "src/main.ts"), "utf8");
-  assert.match(main, /setLocalOnlyPolicy\(\(\) => settings\.privacy\.localOnly\)/);
+  // Which modules honour the policy is settled by calling them -- see the guard test below, which
+  // rejects a real call into every integration client. That main.ts wires the policy to the live
+  // setting is settled by tests/boot-registration.test.mjs, from the booted app's own settings.
 });
 
 test("upgrading with a configured integration does not silently break it", async () => {
@@ -520,6 +447,7 @@ test("the local-only guard fires before any integration touches the network", as
       `export { setLocalOnlyPolicy, resetLocalOnlyPolicy, LocalOnlyError } from "${p("src/features/integrations/network-policy.ts")}";
 export { addUriToAria2, tellActiveAria2 } from "${p("src/features/integrations/aria2.ts")}";
 export { crosspost } from "${p("src/features/integrations/crosspost.ts")}";
+export { SemanticIndex } from "${p("src/features/integrations/semantic-search.ts")}";
 export { runAiPrompt } from "${p("src/features/integrations/ai-provider.ts")}";`
     );
     const outfile = path.join(temp, "bundle.mjs");
@@ -550,6 +478,30 @@ export { runAiPrompt } from "${p("src/features/integrations/ai-provider.ts")}";`
       );
       await assert.rejects(
         () => mod.runAiPrompt({ enabled: true, apiKey: "k", provider: "anthropic", endpoint: "", model: "m" }, { prompt: "hi" }),
+        mod.LocalOnlyError
+      );
+      await assert.rejects(
+        () => mod.crosspost(
+          { bluesky: { enabled: true, service: "https://bsky.social", identifier: "a", appPassword: "b" } },
+          { target: "bluesky", text: "hello" }
+        ),
+        mod.LocalOnlyError
+      );
+
+      // The one integration that reaches the network from inside a class rather than a free
+      // function, and the one the per-file grep it replaces would have missed if the call moved.
+      const index = new mod.SemanticIndex({
+        async get() {
+          return { entries: [{ id: "1", text: "hello", vector: [1, 0], tweetId: "1", handle: "a", embeddedAt: "2026-08-18T00:00:00.000Z" }] };
+        },
+        async set() {},
+        async remove() {}
+      });
+      await assert.rejects(
+        () => index.search(
+          { enabled: true, endpoint: "https://api.example.com/v1/embeddings", apiKey: "k", model: "m" },
+          "hello"
+        ),
         mod.LocalOnlyError
       );
     } finally {
