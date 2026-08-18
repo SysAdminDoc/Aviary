@@ -61,6 +61,23 @@ export class FeatureRegistry {
     this.#features.set(feature.id, feature);
   }
 
+  /**
+   * What is registered, in registration order.
+   *
+   * `statuses()` reports how each feature is doing but not which feature it is, so nothing could
+   * ask the running app what it had actually wired up — the question was answered by grepping
+   * `main.ts` for `registry.register(...)` instead, which cannot see a registration that never
+   * ran.
+   */
+  ids(): string[] {
+    return [...this.#features.keys()];
+  }
+
+  /** Whether a registered feature's `init` completed without throwing. */
+  isActive(id: string): boolean {
+    return this.#active.has(id);
+  }
+
   async initAll(ctx: FeatureContext): Promise<void> {
     for (const feature of this.#features.values()) {
       try {

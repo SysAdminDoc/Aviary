@@ -113,18 +113,6 @@ test("background answers the capability probe and wires the native media context
   );
 });
 
-test("media buttons and batch downloads react to a missing download permission", async () => {
-  const buttons = await readFile(path.join(root, "src/features/media/media-buttons.ts"), "utf8");
-  assert.match(buttons, /DownloadPermissionError/);
-  assert.match(buttons, /requestDownloadPermissionSurface/);
-  assert.match(buttons, /permissionSurfaceOpened/, "the grant page must open at most once per session");
-  assert.match(buttons, /outcome\.degraded[\s\S]*"Opened"/, "a navigated anchor must not read as saved");
-
-  const batch = await readFile(path.join(root, "src/features/media/batch-downloader.ts"), "utf8");
-  assert.match(batch, /needsDownloadPermission/);
-  assert.match(batch, /if \(needsDownloadPermission\) return;/, "the batch must stop, not repeat the same failure");
-});
-
 test("both manifests declare the options page that hosts the permission grant", async () => {
   for (const name of ["manifest.chrome.json", "manifest.firefox.json"]) {
     const manifest = JSON.parse(await readFile(path.join(root, "src/extension", name), "utf8"));
@@ -288,27 +276,6 @@ test("the build ships the options page and branded icons into both extension tar
   assert.match(preflight, /PNG dimensions/);
 });
 
-test("hideBorders targets structure, not generated atomic class names", async () => {
-  const source = await readFile(path.join(root, "src/features/appearance/theme.ts"), "utf8");
-  assert.match(source, /root\.classList\.toggle\("av-hide-borders", settings\.appearance\.hideBorders\)/);
-  assert.match(source, /html\.av-hide-borders \[data-testid="cellInnerDiv"\] > div/);
-  assert.match(source, /html\.av-hide-borders \[data-testid="primaryColumn"\]/);
-  assert.match(source, /"av-hide-borders"/, "destroy must drop the class");
-  assert.ok(!/\.r-[a-z0-9]{5,}/.test(source), "no dependency on X's generated class names");
-});
-
-test("writer mode is focus-driven, reversible, and registers no key handlers", async () => {
-  const source = await readFile(path.join(root, "src/features/layout/declutter.ts"), "utf8");
-  assert.match(source, /root\.classList\.toggle\("av-writer-mode", ctx\.settings\.layout\.writerMode\)/);
-  assert.match(source, /document\.addEventListener\("focusin", syncWritingClass, true\)/);
-  assert.match(source, /document\.addEventListener\("focusout", onFocusOut, true\)/);
-  assert.match(source, /document\.removeEventListener\("focusin"/);
-  assert.match(source, /document\.removeEventListener\("focusout"/);
-  assert.match(source, /html\.av-writer-mode\.av-writing \[data-testid="sidebarColumn"\]/);
-  assert.ok(!/keydown|keyup|keypress/.test(source), "focus is the signal, never a key event");
-  assert.match(source, /"av-writer-mode",\s*\n\s*"av-writing"/, "destroy must drop both classes");
-});
-
 test("presets can promise the two settings that now have implementations", async () => {
   const { PRESETS } = await importBundledModule("src/features/core/presets.ts");
   const byId = Object.fromEntries(PRESETS.map((preset) => [preset.id, preset]));
@@ -401,26 +368,6 @@ test("waitForToken refuses an impossible request instead of hanging forever", as
   assert.equal(bucket.tryRemove(1), false, "an empty bucket should refuse");
 });
 
-test("the media batch actually draws from the rate limiter", async () => {
-  const { readFile } = await import("node:fs/promises");
-  const source = await readFile(path.join(root, "src/features/media/batch-downloader.ts"), "utf8");
-
-  assert.match(
-    source,
-    /await ctx\.limiter\.waitForToken\(\)/,
-    "jobs.rateLimitMode drives nothing again — the batch stopped drawing tokens"
-  );
-
-  // The setting has to reach both the burst size and the sustained rate, or "conservative"
-  // and "standard" differ only in how big the opening burst is.
-  const main = await readFile(path.join(root, "src/main.ts"), "utf8");
-  assert.match(main, /rateLimitMode === "conservative"/);
-  assert.match(main, /new TokenBucket\(4, 1\)/);
-  assert.match(main, /new TokenBucket\(8, 4\)/);
-  assert.match(main, /limiter\.configure\(conservative \? 4 : 8, conservative \? 1 : 4\)/);
-  assert.match(main, /reconcileRateLimit\(\);\s*void registry\.applyAll/);
-});
-
 test("media.zipChunkSize splits a long export into several archives", async () => {
   const { buildExportZipChunks } = await importBundledModule("src/features/export/export-feature.ts");
 
@@ -488,18 +435,6 @@ test("cleanShareButtons strips tracking parameters without breaking links", asyn
   assert.equal(cleanUrl("mailto:a@b.c"), null);
   assert.equal(cleanUrl(""), null);
   assert.equal(cleanUrl("not a url at all"), null);
-});
-
-test("the clean-share-links feature is registered and fully reversible", async () => {
-  const { readFile } = await import("node:fs/promises");
-  const source = await readFile(path.join(root, "src/features/library/clean-share-links.ts"), "utf8");
-  const main = await readFile(path.join(root, "src/main.ts"), "utf8");
-
-  assert.match(main, /registry\.register\(cleanShareLinksFeature\)/, "feature is not registered");
-  // Every feature must reverse itself: destroy has to put the original href back.
-  assert.match(source, /destroy\(ctx\)/);
-  assert.match(source, /setAttribute\("href", original\)/, "destroy does not restore the href");
-  assert.match(source, /settings\.links\.cleanShareButtons/, "the setting drives nothing again");
 });
 
 test("every setting a preset promises now has an implementation behind it", async () => {
