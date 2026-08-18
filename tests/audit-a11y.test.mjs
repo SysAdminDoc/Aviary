@@ -8,26 +8,16 @@ import { build } from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-test("the closed panel is removed from the tab order, not just faded out", async () => {
-  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
-
-  // aria-hidden with focusable descendants is the failure being guarded against.
-  assert.match(source, /overlay\.toggleAttribute\("inert", !open\)/);
-  assert.match(source, /overlay\.toggleAttribute\("inert", true\)/, "closed at mount too");
-
-  const overlayCss = source.slice(source.indexOf(".av-overlay {"), source.indexOf(".av-panel {"));
-  assert.match(overlayCss, /visibility: hidden/);
-  assert.match(overlayCss, /visibility: visible/);
-  // The fade must still run, so visibility is delayed rather than instant on close.
-  assert.match(overlayCss, /visibility 0s linear 160ms/);
-  assert.match(source, /aria-modal", "true"/);
-  assert.match(source, /document\.body\?\.setAttribute\("inert", ""\)/);
-  assert.match(source, /event\.key === "Escape"/);
-  assert.match(source, /focusables\[0\]!\.focus/);
-  const openCss = source.slice(source.indexOf(".av-overlay.is-open"), source.indexOf(".av-panel {"));
-  assert.match(openCss, /pointer-events: auto/);
-});
-
+/**
+ * This one stays source-text on purpose. It is a contract about the *shape* of a CSS selector --
+ * that the rule scopes to the count container inside an action and never to the action itself --
+ * which is a claim about the stylesheet, not about rendered behaviour. Aviary's own rule cannot be
+ * exercised against the panel, because it targets X's timeline; `tests/theme-matrix.test.mjs` is
+ * where a rendered check would belong if one is ever added.
+ *
+ * The panel's accessibility assertions that used to live beside it were behavioural claims written
+ * as source regexes, and they are now driven in `tests/a11y-behaviour.test.mjs`.
+ */
 test("hiding engagement counts keeps the buttons and their labels", async () => {
   const theme = await readFile(path.join(root, "src/features/appearance/theme.ts"), "utf8");
 

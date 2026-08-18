@@ -10,6 +10,14 @@
   port cannot be read from the page or posted to without the reference, so catching an envelope no
   longer reveals anything replayable. A second handshake cannot displace a standing channel either.
 
+### Changed
+
+- The Control Center's accessibility contract is now verified by driving the panel instead of
+  matching strings in its source. Focus entry and return, `inert` on the page behind an open modal,
+  Escape, focus containment, modal semantics, and an accessible name on every control are read from
+  the rendered result — the previous assertions matched literal source text, which fails on a rename
+  and passes through a real regression.
+
 ### Fixed
 
 - Hiding a post no longer drives a feedback loop. The collapse dispatched a synthetic `resize` on

@@ -44,13 +44,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   parse time.
   Complexity: L
 
-- [ ] F140 — P1 — Test accessibility by rendering, not by reading source
-  Why: `tests/audit-a11y.test.mjs` asserts literal source strings such as `overlay.toggleAttribute("inert", !open)`, so a rename fails a passing behaviour and a real regression that keeps the string passes. Contrast is already gated properly in `theme-matrix.test.mjs`; interaction and semantics are not.
-  Evidence: `tests/audit-a11y.test.mjs:11-28`; `tests/theme-matrix.test.mjs:134-138`.
-  Touches: `tests/audit-a11y.test.mjs`, the existing Playwright harness under `tests/visual/`.
-  Acceptance: the panel is mounted and driven — focus order, `inert` on close, Escape, focus return, modal semantics, and every control's accessible name are read from the live accessibility tree; the source-regex assertions are deleted, not kept alongside.
-  Complexity: M
-
 ### P2 — features
 
 - [ ] F144 — P2 — Say why a post was filtered
