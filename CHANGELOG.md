@@ -32,6 +32,11 @@
   mode, and rows, buttons, the selected destination and the Save/Revert footer keep explicit edges
   where tints and shadows used to carry them. The extension options page gets the same treatment;
   MV3 removed `options_ui.browser_style`, so none of it comes for free.
+- Feature passes no longer interleave. Boot, the mutation observer, route changes and settings saves
+  all requested one without coordinating, so two could run at once and the guard markers features
+  use to skip redundant work would make one pass skip the rescan the other had been started for —
+  surfacing as a feature that quietly failed to re-apply after a settings change. Passes now run one
+  at a time, and redundant whole-document passes collapse.
 - A filter pattern can no longer freeze the page. Patterns run against every post in every batch and
   JavaScript cannot abort a running match, so a shape like `/(a+)+b/` — reachable by accident while
   writing a rule — hung the tab. Repeated groups that already repeat, oversized repetition counts,

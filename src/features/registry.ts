@@ -73,7 +73,53 @@ export class FeatureRegistry {
     }
   }
 
-  async applyAll(ctx: FeatureContext, root: ParentNode, addedNodes?: Element[]): Promise<void> {
+  /**
+   * Runs one pass at a time.
+   *
+   * Boot, the mutation observer, route changes and `requestApply` all fire `void applyAll(...)`
+   * with no coordination, and `applyAll` awaits each feature — so two passes interleaved at every
+   * await boundary. Features guard their work with module-level markers (`lastAppliedVersion`,
+   * `compiledSignature`), and one pass would set a marker that made the other skip the rescan it
+   * had been started for. The symptom was a feature that quietly failed to re-apply after a
+   * settings change, which is hard to attribute and easy to blame on X.
+   *
+   * A whole-document pass supersedes another whole-document pass, so those coalesce. A pass
+   * carrying `addedNodes` describes specific new nodes and is never merged away — dropping one
+   * would leave those nodes unprocessed, which is the bug this is meant to prevent, not cause.
+   */
+  #applyChain: Promise<void> = Promise.resolve();
+  #pendingFullPass: Promise<void> | undefined;
+
+  applyAll(ctx: FeatureContext, root: ParentNode, addedNodes?: Element[]): Promise<void> {
+    const isFullPass = addedNodes === undefined || addedNodes.length === 0;
+    if (isFullPass && this.#pendingFullPass) {
+      // An identical pass is already queued behind the running one; its result is ours.
+      return this.#pendingFullPass;
+    }
+
+    const run = this.#applyChain.then(() => this.#runApply(ctx, root, addedNodes));
+    // The chain must not reject or every later pass inherits the rejection; #runApply already
+    // reports per-feature failures, so this only guards against an unexpected throw.
+    this.#applyChain = run.then(
+      () => undefined,
+      () => undefined
+    );
+
+    if (isFullPass) {
+      this.#pendingFullPass = run;
+      void run.then(
+        () => {
+          if (this.#pendingFullPass === run) this.#pendingFullPass = undefined;
+        },
+        () => {
+          if (this.#pendingFullPass === run) this.#pendingFullPass = undefined;
+        }
+      );
+    }
+    return run;
+  }
+
+  async #runApply(ctx: FeatureContext, root: ParentNode, addedNodes?: Element[]): Promise<void> {
     for (const id of this.#active) {
       const feature = this.#features.get(id);
       if (feature?.apply) {

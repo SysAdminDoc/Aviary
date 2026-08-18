@@ -30861,7 +30861,46 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         }
       }
     }
-    async applyAll(ctx, root, addedNodes) {
+    /**
+     * Runs one pass at a time.
+     *
+     * Boot, the mutation observer, route changes and `requestApply` all fire `void applyAll(...)`
+     * with no coordination, and `applyAll` awaits each feature — so two passes interleaved at every
+     * await boundary. Features guard their work with module-level markers (`lastAppliedVersion`,
+     * `compiledSignature`), and one pass would set a marker that made the other skip the rescan it
+     * had been started for. The symptom was a feature that quietly failed to re-apply after a
+     * settings change, which is hard to attribute and easy to blame on X.
+     *
+     * A whole-document pass supersedes another whole-document pass, so those coalesce. A pass
+     * carrying `addedNodes` describes specific new nodes and is never merged away — dropping one
+     * would leave those nodes unprocessed, which is the bug this is meant to prevent, not cause.
+     */
+    #applyChain = Promise.resolve();
+    #pendingFullPass;
+    applyAll(ctx, root, addedNodes) {
+      const isFullPass = addedNodes === void 0 || addedNodes.length === 0;
+      if (isFullPass && this.#pendingFullPass) {
+        return this.#pendingFullPass;
+      }
+      const run = this.#applyChain.then(() => this.#runApply(ctx, root, addedNodes));
+      this.#applyChain = run.then(
+        () => void 0,
+        () => void 0
+      );
+      if (isFullPass) {
+        this.#pendingFullPass = run;
+        void run.then(
+          () => {
+            if (this.#pendingFullPass === run) this.#pendingFullPass = void 0;
+          },
+          () => {
+            if (this.#pendingFullPass === run) this.#pendingFullPass = void 0;
+          }
+        );
+      }
+      return run;
+    }
+    async #runApply(ctx, root, addedNodes) {
       for (const id of this.#active) {
         const feature = this.#features.get(id);
         if (feature?.apply) {

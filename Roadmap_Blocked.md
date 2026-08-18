@@ -339,3 +339,44 @@ Re-entry condition: for each language, a capture of X in that UI language contai
 post, or X's own published localization strings. Add the label, add a fixture to the ad corpus, and
 extend `LABELLED_LANGUAGES` in the same commit — the test that pairs the two lists will fail if a
 language is claimed as covered without a label to back it.
+
+## F183 — Stop advertising an update channel that answers 404
+
+The bandwidth half shipped 2026-08-18: the build now emits `dist/aviary.meta.js` and `@updateURL`
+points at it, so a poll transfers under a kilobyte instead of the whole script (F197). What remains
+is that both raw URLs answer 404 because the repository is private, and neither remaining option is
+an engineering call. Omitting the update URLs entirely asserts that Aviary has no update channel;
+having preflight verify reachability puts a network request inside a gate that is otherwise fully
+offline, and would fail every local run until the repository is readable.
+
+Re-entry condition: F125's distribution decision. If Aviary is published, the URLs start resolving
+and nothing needs doing. If it stays private, decide whether the metablock should omit them and say
+so in `docs/INSTALL.md`, which already states the 404 plainly.
+
+## F184 — Remove real-user captures from the fixture set and its history
+
+`_decoded/` is tracked and contains a full MHTML capture of a named account's post, handle and body
+text, against the standard this repository enforces on its own synthetic fixtures. The scrub itself
+is ordinary work, but it is in history, so removing it means a `git-filter-repo` rewrite and a force
+push over branch protection on the only copy of the project's history — and the selectors currently
+proved against those files have to be re-proved against a replacement capture that does not exist
+yet.
+
+Re-entry condition: sequence with F134's operator capture session. Scrub `tools/capture-decode.mjs`
+first so a fresh capture cannot reintroduce identifying content, take the new capture, re-prove the
+selectors against it, and only then rewrite history — one rewrite rather than two.
+
+## F201 — Re-verify batch media download against X's Photos/Videos split
+
+X split the profile Media tab into Photos and Videos and dropped the 3-column grid around
+2026-08-13..16. Competing downloaders report this broke batch collection specifically, and Media
+Harvest reports its Likes-tab button broke when Likes moved into History. Aviary's "Download all
+visible media" walks rendered tweets, so it is exposed to the same change.
+
+No fixture can answer it: every capture in `_decoded/` predates the redesign, which is the same
+blocker as F134. Guessing at the new structure would ship exactly the speculative selector this
+repository refuses.
+
+Re-entry condition: verify during F134's authenticated capture session rather than booking a second
+one — open the current Photos and Videos tabs with the built artifact loaded and exercise the batch
+action.

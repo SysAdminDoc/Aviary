@@ -260,19 +260,6 @@ confirmed a second time. See RESEARCH.md.
   key is revalidated against the article's current `/status/<id>` before use.
   Complexity: M
 
-- [ ] F179 — P1 — Serialize applyAll
-  Why: three callers fire `void registry.applyAll(...)` with no coordination, and `applyAll` awaits each
-  feature, so two passes interleave at microtask boundaries. Module-level guards such as
-  `lastAppliedVersion` and `compiledSignature` are then set by one pass and make the other skip the
-  rescan it needed — a whole class of "the feature did not re-apply after a settings change" bugs.
-  Evidence: `src/main.ts:252-255,269-271,275-279` with `src/features/registry.ts:76-87`; guards at
-  `src/features/filtering/hidden-posts-feature.ts:64-68`, `src/features/filtering/filter-engine.ts:108-111`.
-  Touches: `src/features/registry.ts`, `src/main.ts`.
-  Acceptance: concurrent requests coalesce into one in-flight pass plus at most one trailing run; a
-  test that triggers three overlapping applies observes each feature applied to the final state and no
-  guard-skipped rescan.
-  Complexity: M
-
 ### P1 — trust and verification
 
 - [ ] F182 — P1 — Retire behavioural assertions written as source-text regexes
@@ -292,39 +279,6 @@ confirmed a second time. See RESEARCH.md.
   named as such in one place.
   Depends on: F140 (same technique, smaller surface — land it first as the pattern).
   Complexity: L
-
-- [ ] F183 — P1 — Stop advertising an update channel that answers 404
-  Why: the shipped metablock declares `@updateURL`/`@downloadURL` at
-  `raw.githubusercontent.com/SysAdminDoc/Aviary/main/dist/aviary.user.js`, and both that URL and the
-  repository page return HTTP 404 because the repository is private. Every installed copy polls a path
-  that will never answer, and preflight cannot see it: it checks that the declared repository agrees
-  with the `origin` remote, which it does. Agreement is not reachability. This is the engineering half
-  of F125 and does not need the distribution decision — a metablock that omits an update channel is
-  honest, one that names a dead one is not.
-  Evidence: `curl` against both URLs returned 404 on 2026-08-17; `dist/aviary.user.js` metablock;
-  `tools/preflight.mjs:207-215` (origin-agreement check only). Cross-reference F125 for the decision.
-  Touches: `tools/userscript-meta.mjs`, `tools/preflight.mjs`, `docs/INSTALL.md`.
-  Acceptance: either the metablock omits `@updateURL`/`@downloadURL` until a channel exists, or
-  preflight verifies the declared URL actually resolves and fails when it does not; `docs/INSTALL.md`
-  matches whichever is true.
-  Complexity: S
-
-- [ ] F184 — P1 — Remove real-user captures from the fixture set and its history
-  Why: `_decoded/` is tracked and contains a full MHTML capture of a named account's post, handle and
-  body text, plus a captured Home timeline. The repository enforces the opposite standard on its own
-  synthetic fixtures, which store "no handles, post text, account/tweet ids, media, credentials,
-  response bodies, or remote assets". Because it is in history, deleting the files does not remove it —
-  so this is a hard prerequisite on the "make the repository public" branch of F125, and it should be
-  done before that decision rather than during it.
-  Evidence: `git ls-files _decoded` (26 files, 2026-08-17), `_decoded/captures.json` provenance block,
-  `tests/fixtures/ad-corpus/` policy quoted in README.
-  Touches: `_decoded/`, `_decoded/captures.json`, `tools/capture-decode.mjs` (scrub on decode),
-  `.gitignore`, and a history rewrite.
-  Acceptance: the tracked capture set carries no handle, display name, post body, avatar, or tweet id;
-  the decode tool scrubs these on the way in so a future capture cannot reintroduce them; the selectors
-  currently proved against these files are still proved; history no longer contains the originals.
-  Depends on: sequence with F134's refreshed capture — scrub the tool first, then capture once, cleanly.
-  Complexity: M
 
 ### P2 — platform primitives that delete hand-rolled code
 
@@ -545,22 +499,6 @@ below were read at the cited line. See RESEARCH.md.
   bug report; no confirmation dialogs, no shortcuts.
   Depends on: F199 (selector health should answer the common case first; bisect is for what it cannot).
   Complexity: M
-
-- [ ] F201 — P1 — Re-verify batch media download against X's Photos/Videos split
-  Why: X split the profile Media tab into Photos and Videos and replaced the 3-column grid around
-  2026-08-13..16. Competing downloaders report this broke batch collection specifically — "since Twitter
-  separated media into videos and images, batch downloading no longer works efficiently... only process
-  individual tweets one at a time" — and Media Harvest reports its Likes-tab download button broke when
-  Likes moved into History. Aviary's "Download all visible media" walks rendered tweets, so it is exposed
-  to the same change, and no fixture can answer it because every capture predates the redesign.
-  Evidence: Greasy Fork discussion 2026-08-17; Media Harvest store review 2026-08-17; capture dates in
-  `_decoded/captures.json` (2026-05-19). Needs live validation.
-  Touches: `src/features/media/batch-downloader.ts`, `extract.ts`, the Media panel status readout.
-  Acceptance: batch download is exercised on the current Photos and Videos tabs and either works or is
-  fixed; where a surface genuinely cannot be enumerated, the control says so instead of silently
-  collecting nothing; the finding is recorded against the capture set so the next redesign has a baseline.
-  Depends on: F134's capture session — verify this while signed in rather than booking a second session.
-  Complexity: S
 
 ### P2 — leapfrog
 
