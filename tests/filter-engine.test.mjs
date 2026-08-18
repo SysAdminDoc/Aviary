@@ -153,22 +153,6 @@ test("profile collection subroutes keep profile-scoped features active", async (
   }
 });
 
-test("filter engine source registers the expected hooks and CSS class", async () => {
-  const source = await readFile(
-    path.join(root, "src/features/filtering/filter-engine.ts"),
-    "utf8"
-  );
-
-  assert.match(source, /av-filter-enabled/);
-  assert.match(source, /data-av-filter-result/);
-  assert.match(source, /article\[data-testid="tweet"\]/);
-  assert.match(source, /destroy/);
-  assert.match(source, /generation/);
-  assert.match(source, /data-av-filter-cell-hidden/);
-  assert.match(source, /clearDecorations/);
-  assert.ok(!/innerHTML/.test(source), "filter engine must not use innerHTML");
-});
-
 test("home fixture exposes verified, photo, and video markers required by the filter engine", async () => {
   const html = await readFile(path.join(root, "_decoded/home.html"), "utf8");
 

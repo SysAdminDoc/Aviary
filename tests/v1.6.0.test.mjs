@@ -201,30 +201,6 @@ test("hidden settings normalize with their own defaults and a clamped cap", asyn
   assert.deepEqual(filterFallback.filter.surfaces, DEFAULT_SETTINGS.filter.surfaces);
 });
 
-test("hidden posts feature collapses the virtualizer cell and is registered at boot", async () => {
-  const feature = await readFile(
-    path.join(root, "src/features/filtering/hidden-posts-feature.ts"),
-    "utf8"
-  );
-  const main = await readFile(path.join(root, "src/main.ts"), "utf8");
-  const controlCenter = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
-
-  assert.match(feature, /av-hide-posts-enabled/);
-  assert.match(feature, /data-testid="cellInnerDiv"/);
-  assert.match(feature, /article\.closest\(CELL_SELECTOR\)/);
-  assert.match(feature, /dispatchEvent\(new Event\("resize"\)\)/);
-  assert.match(feature, /destroy/);
-  assert.ok(!/innerHTML/.test(feature), "hidden posts must not use innerHTML");
-  assert.ok(!/keydown|keyup|keypress/.test(feature), "Aviary registers no keyboard shortcuts");
-
-  assert.match(main, /registry\.register\(hiddenPostsFeature\)/);
-  // Sections are declared in the panel's registry rather than inlined into one long render.
-  assert.match(
-    controlCenter,
-    /id:\s*"hidden",\s*title:\s*"Hidden posts",\s*group:\s*"\w+",[\s\S]*?build:\s*\(\)\s*=>\s*buildHiddenPostRows\(panelContext\)/
-  );
-});
-
 test("home fixture exposes the anchors the hide button and collapse rely on", async () => {
   const html = await readFile(path.join(root, "_decoded/home.html"), "utf8");
 

@@ -57,12 +57,6 @@ function isScopedKeyboardInteraction(relative, text) {
   return /\.key\s*===\s*["'](?:Escape|Tab|Arrow(?:Up|Down|Left|Right)|Home|End|Enter|\s)["']/.test(text);
 }
 
-/**
- * The options page ships as static assets loaded under the MV3 page CSP, which blocks inline
- * script outright. These are bans on what the shipped files may contain -- the only claim a
- * source scan states exactly -- so they live here. What the page *does* is driven in
- * tests/extension-options-page.test.mjs.
- */
 test("no stylesheet targets one of X's generated class names", async () => {
   const files = await listFiles(path.join(root, "src"), ".ts");
   const offenders = [];
@@ -85,6 +79,12 @@ test("no stylesheet targets one of X's generated class names", async () => {
   assert.deepEqual(offenders, [], "these depend on class names X regenerates");
 });
 
+/**
+ * The options page ships as static assets loaded under the MV3 page CSP, which blocks inline
+ * script outright. These are bans on what the shipped files may contain -- the only claim a
+ * source scan states exactly -- so they live here. What the page *does* is driven in
+ * tests/extension-options-page.test.mjs.
+ */
 test("the shipped options page carries no inline script, handler, or pill styling", async () => {
   const html = await readFile(path.join(root, "src/extension/options.html"), "utf8");
   assert.ok(
@@ -105,6 +105,40 @@ test("the shipped options page carries no inline script, handler, or pill stylin
     "no pill backdrops"
   );
   assert.ok(!/backdrop-filter/.test(css), "forced-colors and older engines drop it to nothing");
+});
+
+/**
+ * The Control Center's section files reach everything through the `PanelContext` they are handed.
+ * Calling a shared row helper directly, or touching `options` instead of `ctx.options`, works
+ * until the panel needs to intercept one -- draft staging, the coverage tally and the locale
+ * repaint all hang off going through the context. That the builders exist with the right
+ * signature is already a typecheck failure if it stops being true, so only the bans are here.
+ */
+test("Control Center section files reach the panel only through their context", async () => {
+  const SECTION_FILES = ["advanced.ts", "data.ts", "presets.ts", "reading.ts"];
+  const SHARED_HELPERS = [
+    "actionRow", "toggleRow", "selectRow", "readonlyRow", "dataRow", "textInputRow",
+    "secretInputRow", "integerInputRow", "textareaRow", "surfaceRow", "setStatus", "setStatusCopy",
+    "save", "render", "formatCopy", "localizedCopy", "t", "el", "button", "presetIcon"
+  ];
+
+  const offenders = [];
+  for (const filename of SECTION_FILES) {
+    const source = await readFile(
+      path.join(root, "src/ui/control-center/sections", filename),
+      "utf8"
+    );
+    for (const helper of SHARED_HELPERS) {
+      if (new RegExp(String.raw`(?<![\w.])${helper}\(`).test(source)) {
+        offenders.push(`${filename}: calls ${helper}() directly`);
+      }
+    }
+    if (/(?<![\w.])options\s*\./.test(source)) {
+      offenders.push(`${filename}: reaches options directly instead of ctx.options`);
+    }
+  }
+
+  assert.deepEqual(offenders, []);
 });
 
 /**

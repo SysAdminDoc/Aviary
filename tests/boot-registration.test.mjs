@@ -30,6 +30,8 @@ const PROMISED_FEATURE_IDS = [
   "library.cleanShareLinks",
   "filtering.engine",
   "filtering.hiddenPosts",
+  "filtering.seenPosts",
+  "media.presentation",
   "media.buttons",
   "core.selectorHealth",
   "core.controlCenter"

@@ -1,19 +1,20 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "esbuild";
 import { collectRows, currentReference, readFaq } from "../tools/settings-reference.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("privacy, install, and FAQ docs match the current release surface", async () => {
   const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
-  const [privacy, install, faq, durable] = await Promise.all([
+  const [privacy, install, faq] = await Promise.all([
     readFile(path.join(root, "docs/PRIVACY.md"), "utf8"),
     readFile(path.join(root, "docs/INSTALL.md"), "utf8"),
-    readFile(path.join(root, "docs/FAQ.md"), "utf8"),
-    readFile(path.join(root, "src/platform/durable-storage.ts"), "utf8")
+    readFile(path.join(root, "docs/FAQ.md"), "utf8")
   ]);
   const docs = `${privacy}\n${install}\n${faq}`;
 
@@ -24,8 +25,13 @@ test("privacy, install, and FAQ docs match the current release surface", async (
   assert.doesNotMatch(docs, /optional permissions are not requested or used/i);
   assert.doesNotMatch(docs, /the only outbound traffic Aviary triggers is fetching image/i);
 
-  for (const match of durable.matchAll(/^\s+"(aviary\.[^"]+)"/gm)) {
-    assert.ok(privacy.includes(match[1]), `privacy docs omit durable key ${match[1]}`);
+  // Read from the exported list rather than regexed out of the file that declares it: a key
+  // added in a differently-indented block, or built from a template literal, would be silently
+  // missed by the pattern and its absence from the privacy manifest would go unnoticed.
+  const { DURABLE_STORAGE_KEYS } = await importBundledModule("src/platform/durable-storage.ts");
+  assert.ok(DURABLE_STORAGE_KEYS.length > 0, "the durable key list is empty");
+  for (const key of DURABLE_STORAGE_KEYS) {
+    assert.ok(privacy.includes(key), `privacy docs omit durable key ${key}`);
   }
 
   for (const phrase of [
@@ -95,3 +101,22 @@ test("the archived design boards for the page system are still on disk", async (
     assert.equal(image.subarray(0, 8).toString("hex"), "89504e470d0a1a0a", `${board} is not a PNG`);
   }
 });
+
+async function importBundledModule(relativePath) {
+  const temp = await mkdtemp(path.join(tmpdir(), "aviary-docs-"));
+  const outfile = path.join(temp, "module.mjs");
+  try {
+    await build({
+      entryPoints: [path.join(root, relativePath)],
+      outfile,
+      bundle: true,
+      format: "esm",
+      platform: "neutral",
+      target: "es2022",
+      logLevel: "silent"
+    });
+    return await import(`${pathToFileURL(outfile).href}?v=${Date.now()}-${Math.random()}`);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+}
