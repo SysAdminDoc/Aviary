@@ -20,6 +20,14 @@
 - `toggleAttribute` is now restricted by lint to attributes whose presence alone means true. Both
   defects above were the same mistake, and neither could be caught by the source-text assertions
   that were supposed to cover them.
+- Offscreen video pausing now releases videos X has removed from the page. Every `<video>` ever
+  scanned was held for the whole session, so a long scroll retained detached media elements, their
+  decoders, and a listener each.
+- Turning on **Dim already-seen posts** now takes effect immediately. The store was built only at
+  boot, so enabling the setting later left the feature reporting itself healthy while marking
+  nothing until the page was reloaded.
+- Tearing down seen-post dimming now waits for its pending write. The flush was queued rather than
+  awaited, so up to 1.5 seconds of what you had just scrolled past could be lost.
 
 ## 1.27.1 - 2026-08-16
 

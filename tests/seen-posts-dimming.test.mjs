@@ -87,7 +87,7 @@ async function run({ enabled = true } = {}) {
 
       // Second pass: the same two return alongside one genuinely new post.
       document.body.innerHTML = second;
-      feature.apply(ctx, document);
+      await feature.apply(ctx, document);
       const secondPass = { a: opacityOf("111"), b: opacityOf("222"), fresh: opacityOf("333") };
 
       await feature.destroy(ctx);
@@ -122,4 +122,89 @@ test("the feature is inert while off", async () => {
   const { firstPass, secondPass } = await run({ enabled: false });
   assert.equal(firstPass.a, "1");
   assert.equal(secondPass.a, "1", "nothing may fade while the setting is off");
+});
+
+test("enabling the setting after boot starts working without a reload", async () => {
+  const result = await page.evaluate(
+    async ({ first, second }) => {
+      AviarySeen.resetSeenPostsState();
+      const values = new Map();
+      const storage = {
+        async get(key, fallback) {
+          return values.has(key) ? values.get(key) : fallback;
+        },
+        async set(key, value) {
+          values.set(key, JSON.parse(JSON.stringify(value)));
+        }
+      };
+      // Boot with the setting off, which is the default -- init returns before building the store.
+      const settings = AviarySeen.normalizeSettings({ filter: { dimSeenPosts: false } });
+      const ctx = {
+        settings,
+        storage,
+        route: { href: "https://x.com/home", path: "/home", surface: "home" },
+        diagnostics: { info() {}, warn() {}, error() {} }
+      };
+      const feature = AviarySeen.seenPostsFeature;
+      document.body.innerHTML = first;
+      await feature.init(ctx);
+
+      // The user turns it on mid-session. The store was only ever built in init, so apply used to
+      // hit `if (!store) return` for the rest of the session and mark nothing.
+      settings.filter.dimSeenPosts = true;
+      await feature.apply(ctx, document);
+      const trackedAfterEnable = AviarySeen.getSeenPostStore()?.size ?? 0;
+
+      document.body.innerHTML = second;
+      await feature.apply(ctx, document);
+      const opacityOf = (id) => {
+        const node = document.getElementById(`post-${id}`);
+        return node ? getComputedStyle(node).opacity : "absent";
+      };
+      const returning = opacityOf("111");
+      await feature.destroy(ctx);
+      return { trackedAfterEnable, returning };
+    },
+    { first: TIMELINE(["111", "222"]), second: TIMELINE(["111", "222", "333"]) }
+  );
+
+  assert.ok(result.trackedAfterEnable > 0, "turning the setting on must build the store");
+  assert.notEqual(result.returning, "1", "and a returning post must then fade");
+});
+
+test("destroy waits for the pending write instead of resolving ahead of it", async () => {
+  const persisted = await page.evaluate(
+    async ({ first }) => {
+      AviarySeen.resetSeenPostsState();
+      const values = new Map();
+      const storage = {
+        async get(key, fallback) {
+          return values.has(key) ? values.get(key) : fallback;
+        },
+        async set(key, value) {
+          // A real backend does not settle in the same tick, which is what made the missing await
+          // invisible: `flush` returns void, so `await flush()` awaited undefined.
+          await new Promise((resolve) => setTimeout(resolve, 5));
+          values.set(key, JSON.parse(JSON.stringify(value)));
+        }
+      };
+      const settings = AviarySeen.normalizeSettings({ filter: { dimSeenPosts: true } });
+      const ctx = {
+        settings,
+        storage,
+        route: { href: "https://x.com/home", path: "/home", surface: "home" },
+        diagnostics: { info() {}, warn() {}, error() {} }
+      };
+      document.body.innerHTML = first;
+      await AviarySeen.seenPostsFeature.init(ctx);
+      await AviarySeen.seenPostsFeature.destroy(ctx);
+
+      // Read the store the moment destroy resolves. Anything marked must already be on disk.
+      const stored = values.get("aviary.seenPosts.v1");
+      return Object.keys(stored?.seen ?? {}).length;
+    },
+    { first: TIMELINE(["111", "222"]) }
+  );
+
+  assert.equal(persisted, 2, "every post marked before teardown must be persisted by the time destroy resolves");
 });

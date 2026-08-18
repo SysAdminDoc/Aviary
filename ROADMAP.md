@@ -247,17 +247,6 @@ confirmed a second time. See RESEARCH.md.
   build depends on `postMessage`, which narrows the fix surface.
   Complexity: M
 
-- [ ] F174 — P1 — Release offscreen videos when they leave the DOM
-  Why: `#tracked` and `#resumable` hold strong references to every `<video>` ever scanned and are
-  cleared only in `stop()`. There is no `isConnected` check, no `delete`, and no `unobserve` anywhere
-  in the file, so an infinite-scroll session retains every detached media element until teardown.
-  Evidence: `src/features/performance/pause-offscreen-video.ts:16,72,89` (re-checked 2026-08-17).
-  Touches: `src/features/performance/pause-offscreen-video.ts`, `tests/performance.test.mjs`.
-  Acceptance: scanning N videos and removing them from the document leaves `trackedCount` at zero
-  without calling `stop()`; the observer unobserves what it drops; resume behaviour for still-attached
-  videos is unchanged.
-  Complexity: S
-
 - [ ] F175 — P1 — Break the hide/reflow loop and stop trusting a recycled article's cached key
   Why: two defects in the same file. `nudgeReflow()` dispatches a synthetic global `resize`, X's
   virtualizer relayouts, the resulting childList mutations drive `applyAll` → `collapse()` → another
@@ -284,21 +273,6 @@ confirmed a second time. See RESEARCH.md.
   is covered by a test that asserts the rule is refused, not that it completes; `RegExp.escape`
   (Baseline 2025-05-01) is used for the literal-keyword path.
   Complexity: M
-
-- [ ] F177 — P1 — Make the seen-post store work after boot and actually flush on destroy
-  Why: two defects. The store is constructed only inside `init`, so enabling `filter.dimSeenPosts`
-  after boot leaves `apply` returning early forever until a reload — the setting silently does nothing.
-  And `await store?.flush(…)` awaits `undefined`, because `flush` returns `void` and only queues onto a
-  private tail chain, so `destroy` resolves before the write lands — which is precisely the data loss
-  the comment above it claims to prevent.
-  Evidence: `src/features/filtering/seen-posts-feature.ts:29-32,42-44` (construction), `:57` with
-  `src/features/filtering/seen-posts.ts:67-84` (flush).
-  Touches: `src/features/filtering/seen-posts-feature.ts`, `seen-posts.ts` (expose a settled/awaitable
-  completion), the seen-post tests.
-  Acceptance: toggling the setting on at runtime starts dimming without a reload; `destroy` resolves
-  only after the pending write has landed, proven by a test that reads the store back after awaiting
-  destroy.
-  Complexity: S
 
 - [ ] F178 — P1 — Require TLS for credentialed integration endpoints
   Why: both provider paths accept any `http:` or `https:` URL and send `x-api-key` / `Bearer` to it, so

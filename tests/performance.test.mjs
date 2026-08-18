@@ -20,6 +20,9 @@ class FakeVideo {
     this.attributes = new Map();
     this.listeners = new Map();
     this.playCalls = 0;
+    // The pauser reconciles against this, so a stub without it would model a video X has already
+    // torn out of the document -- and every test would silently exercise the detached path.
+    this.isConnected = true;
   }
 
   setAttribute(name, value) {
@@ -82,13 +85,16 @@ function fakeRoot(videos) {
 
 /** Captures the observer callback so the test can drive intersection changes directly. */
 function fakeView() {
-  const state = { callback: null, observed: [], disconnected: 0 };
+  const state = { callback: null, observed: [], unobserved: [], disconnected: 0 };
   state.IntersectionObserver = class {
     constructor(callback) {
       state.callback = callback;
     }
     observe(target) {
       state.observed.push(target);
+    }
+    unobserve(target) {
+      state.unobserved.push(target);
     }
     disconnect() {
       state.disconnected += 1;
@@ -212,6 +218,39 @@ test("scanning twice does not double-observe the same video", async () => {
 
   assert.equal(view.observed.length, 1);
   assert.equal((video.listeners.get("pause") ?? []).length, 1);
+});
+
+test("videos X removes from the page stop being tracked", async () => {
+  const { OffscreenVideoPauser } = await importBundledModule(
+    "src/features/performance/pause-offscreen-video.ts"
+  );
+  const view = fakeView();
+  const pauser = new OffscreenVideoPauser();
+  pauser.start(view);
+
+  const kept = new FakeVideo();
+  const recycled = new FakeVideo();
+  pauser.scan(fakeRoot([kept, recycled]));
+  assert.equal(pauser.trackedCount, 2);
+
+  // Park one offscreen first, so the resume ledger has an entry to leak too.
+  view.callback([{ target: recycled, isIntersecting: false }]);
+  await settled();
+  assert.equal(pauser.pausedCount, 1);
+
+  // X's virtualizer drops the row. Nothing removed the entry before `stop()`, so an infinite
+  // scroll retained every video it had ever shown for the whole session.
+  recycled.isConnected = false;
+  pauser.scan(fakeRoot([kept]));
+
+  assert.equal(pauser.trackedCount, 1, "a detached video must not stay tracked");
+  assert.equal(pauser.pausedCount, 0, "its resume debt must go with it");
+  assert.ok(view.unobserved.includes(recycled), "and it must be unobserved, not just forgotten");
+  assert.equal(recycled.listeners.get("pause")?.length ?? 0, 0, "its pause listener must be released");
+
+  // The video still on the page is untouched by the sweep.
+  assert.equal(kept.getAttribute("data-av-perf-video"), "1");
+  pauser.stop();
 });
 
 test("the feature reports unavailable rather than throwing without IntersectionObserver", async () => {

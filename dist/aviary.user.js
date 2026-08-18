@@ -20042,7 +20042,26 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
   var MARKER3 = "data-av-seen";
   var FLUSH_DELAY_MS = 1500;
   var store;
+  var storeLoading;
   var flushTimer;
+  async function ensureStore(ctx) {
+    if (store) {
+      return;
+    }
+    if (!storeLoading) {
+      const pending = new SeenPostStore(ctx.storage);
+      storeLoading = pending.load().then(
+        () => {
+          store = pending;
+        },
+        (error) => {
+          storeLoading = void 0;
+          throw error;
+        }
+      );
+    }
+    await storeLoading;
+  }
   var seenPostsFeature = {
     id: "filtering.seenPosts",
     title: "Dim already-seen posts",
@@ -20053,18 +20072,16 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
         return;
       }
       ensureStyle2();
-      if (!store) {
-        store = new SeenPostStore(ctx.storage);
-        await store.load();
-      }
+      await ensureStore(ctx);
       scan(ctx, document);
     },
-    apply(ctx, root, addedNodes) {
+    async apply(ctx, root, addedNodes) {
       if (!ctx.settings.filter.dimSeenPosts) {
         teardown();
         return;
       }
       ensureStyle2();
+      await ensureStore(ctx);
       if (!store) {
         return;
       }
@@ -20077,7 +20094,8 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
       }
     },
     async destroy(ctx) {
-      await store?.flush(Date.now());
+      store?.flush(Date.now());
+      await store?.settled();
       teardown();
       ctx.diagnostics.info("Seen-post dimming removed");
     },
@@ -20169,6 +20187,9 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
     (document.head ?? document.documentElement).append(style);
   }
   function teardown() {
+    if (flushTimer !== void 0) {
+      store?.flush(Date.now());
+    }
     document.getElementById(STYLE_ID4)?.remove();
     for (const article of Array.from(document.querySelectorAll(`[${MARKER3}]`))) {
       article.removeAttribute(MARKER3);
@@ -30045,10 +30066,34 @@ html.av-mobile [data-testid="primaryColumn"] {
       });
       return true;
     }
+    /**
+     * Drops videos X's virtualizer has already torn out of the document.
+     *
+     * `#tracked` and `#resumable` hold strong references, and nothing removed an entry until
+     * `stop()`, so an infinite-scrolled timeline retained every `<video>` it had ever shown --
+     * detached media elements, their decoders, and a `pause` listener each, for the whole session.
+     * Reconciling on scan keeps the cost proportional to what is actually on the page.
+     */
+    #pruneDetached() {
+      for (const video of [...this.#tracked]) {
+        if (video.isConnected) {
+          continue;
+        }
+        const listener = this.#listeners.get(video);
+        if (listener) {
+          video.removeEventListener("pause", listener);
+          this.#listeners.delete(video);
+        }
+        this.#observer?.unobserve(video);
+        this.#tracked.delete(video);
+        this.#resumable.delete(video);
+      }
+    }
     scan(root) {
       if (!this.#observer) {
         return;
       }
+      this.#pruneDetached();
       const videos = isVideo(root) ? [root] : Array.from(root.querySelectorAll("video"));
       for (const video of videos) {
         if (video.getAttribute(PROCESSED_ATTR5) === "1") {

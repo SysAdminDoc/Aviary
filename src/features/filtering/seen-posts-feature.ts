@@ -6,7 +6,36 @@ const MARKER = "data-av-seen";
 const FLUSH_DELAY_MS = 1500;
 
 let store: SeenPostStore | undefined;
+let storeLoading: Promise<void> | undefined;
 let flushTimer: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * Builds and loads the store on first need, whichever entry point gets there first.
+ *
+ * It used to be built only in `init`, which runs once at boot and returns early when the setting is
+ * off — so enabling the setting later left `apply` hitting `if (!store) return` for the rest of the
+ * session. The feature reported itself healthy and marked nothing until the page was reloaded.
+ * Concurrent applies share the one load rather than racing two reads of the same key.
+ */
+async function ensureStore(ctx: FeatureContext): Promise<void> {
+  if (store) {
+    return;
+  }
+  if (!storeLoading) {
+    const pending = new SeenPostStore(ctx.storage);
+    storeLoading = pending.load().then(
+      () => {
+        store = pending;
+      },
+      (error) => {
+        // A failed read must not wedge the feature: clear the latch so the next apply retries.
+        storeLoading = undefined;
+        throw error;
+      }
+    );
+  }
+  await storeLoading;
+}
 
 /**
  * Fades posts that already scrolled past once, so a second pass down the timeline reads as
@@ -26,19 +55,17 @@ export const seenPostsFeature: FeatureModule = {
       return;
     }
     ensureStyle();
-    if (!store) {
-      store = new SeenPostStore(ctx.storage);
-      await store.load();
-    }
+    await ensureStore(ctx);
     scan(ctx, document);
   },
 
-  apply(ctx, root, addedNodes) {
+  async apply(ctx, root, addedNodes) {
     if (!ctx.settings.filter.dimSeenPosts) {
       teardown();
       return;
     }
     ensureStyle();
+    await ensureStore(ctx);
     if (!store) {
       return;
     }
@@ -53,8 +80,11 @@ export const seenPostsFeature: FeatureModule = {
 
   async destroy(ctx) {
     // The flush is coalesced on a 1.5s timer, so tearing down without it discarded up to that much
-    // of what the user had just scrolled past.
-    await store?.flush(Date.now());
+    // of what the user had just scrolled past. `flush` only queues the write onto its own tail and
+    // returns void, so awaiting it awaited `undefined` and resolved before the write landed --
+    // exactly the loss this was meant to prevent. `settled()` is the part worth waiting for.
+    store?.flush(Date.now());
+    await store?.settled();
     teardown();
     ctx.diagnostics.info("Seen-post dimming removed");
   },
@@ -157,6 +187,10 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER}="1"] {
 }
 
 function teardown(): void {
+  // Turning the setting off also drops the pending timer, so push what it was holding first.
+  if (flushTimer !== undefined) {
+    store?.flush(Date.now());
+  }
   document.getElementById(STYLE_ID)?.remove();
   for (const article of Array.from(document.querySelectorAll(`[${MARKER}]`))) {
     article.removeAttribute(MARKER);
@@ -175,4 +209,5 @@ export function getSeenPostStore(): SeenPostStore | undefined {
 export function resetSeenPostsState(): void {
   teardown();
   store = undefined;
+  storeLoading = undefined;
 }

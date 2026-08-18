@@ -49,10 +49,35 @@ export class OffscreenVideoPauser {
     return true;
   }
 
+  /**
+   * Drops videos X's virtualizer has already torn out of the document.
+   *
+   * `#tracked` and `#resumable` hold strong references, and nothing removed an entry until
+   * `stop()`, so an infinite-scrolled timeline retained every `<video>` it had ever shown --
+   * detached media elements, their decoders, and a `pause` listener each, for the whole session.
+   * Reconciling on scan keeps the cost proportional to what is actually on the page.
+   */
+  #pruneDetached(): void {
+    for (const video of [...this.#tracked]) {
+      if (video.isConnected) {
+        continue;
+      }
+      const listener = this.#listeners.get(video);
+      if (listener) {
+        video.removeEventListener("pause", listener);
+        this.#listeners.delete(video);
+      }
+      this.#observer?.unobserve(video);
+      this.#tracked.delete(video);
+      this.#resumable.delete(video);
+    }
+  }
+
   scan(root: ParentNode | Element): void {
     if (!this.#observer) {
       return;
     }
+    this.#pruneDetached();
     // Matched on tag name rather than `instanceof HTMLVideoElement`: a node handed over from
     // another realm is a video without being an instance of *this* realm's constructor.
     const videos: HTMLVideoElement[] = isVideo(root)
