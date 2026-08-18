@@ -19302,6 +19302,73 @@ ${record.text}${mediaList}`;
     return value.replace(/\\/g, "%5C").replace(/\)/g, "%29").replace(/\s/g, "%20");
   }
 
+  // src/features/filtering/regex-budget.ts
+  var MAX_PATTERN_LENGTH = 400;
+  var MAX_REPETITION = 200;
+  var UNBOUNDED_QUANTIFIER = /[*+]|\{\s*\d*\s*,\s*\}/;
+  function hasNestedQuantifier(pattern) {
+    const openStack = [];
+    let inClass = false;
+    for (let index = 0; index < pattern.length; index += 1) {
+      const char = pattern[index];
+      if (char === "\\") {
+        index += 1;
+        continue;
+      }
+      if (inClass) {
+        if (char === "]") inClass = false;
+        continue;
+      }
+      if (char === "[") {
+        inClass = true;
+        continue;
+      }
+      if (char === "(") {
+        openStack.push(index);
+        continue;
+      }
+      if (char !== ")") {
+        continue;
+      }
+      const start = openStack.pop();
+      if (start === void 0) {
+        continue;
+      }
+      const after = pattern.slice(index + 1).replace(/^[?]/, "");
+      const groupIsRepeated = UNBOUNDED_QUANTIFIER.test(after.slice(0, 1)) || /^\{\s*\d*\s*,\s*\}/.test(after);
+      if (!groupIsRepeated) {
+        continue;
+      }
+      const body = pattern.slice(start + 1, index);
+      if (UNBOUNDED_QUANTIFIER.test(body)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  function checkRegexBudget(pattern) {
+    if (pattern.length > MAX_PATTERN_LENGTH) {
+      return {
+        reason: `pattern is ${pattern.length} characters, over the ${MAX_PATTERN_LENGTH}-character limit`
+      };
+    }
+    for (const match of pattern.matchAll(/\{\s*(\d+)\s*(?:,\s*(\d+)?\s*)?\}/g)) {
+      const lower = Number(match[1]);
+      const upper = match[2] === void 0 ? lower : Number(match[2]);
+      if (Math.max(lower, upper) > MAX_REPETITION) {
+        return {
+          reason: `repetition {${match[1]}${match[2] === void 0 ? "" : `,${match[2]}`}} is over the ${MAX_REPETITION} limit`
+        };
+      }
+    }
+    if (hasNestedQuantifier(pattern)) {
+      return {
+        reason: "a repeated group that already repeats can backtrack badly enough to freeze the page"
+      };
+    }
+    return { reason: null };
+  }
+
   // src/features/filtering/hidden-posts.ts
   var HIDDEN_POSTS_KEY = "aviary.hiddenPosts.v1";
   var TEXT_SNIPPET_LENGTH = 80;
@@ -19649,6 +19716,10 @@ ${record.text}${mediaList}`;
     for (const flag of rawFlags.toLowerCase()) {
       if (["i", "m", "s", "u"].includes(flag)) flags.add(flag);
     }
+    const budget = checkRegexBudget(body);
+    if (budget.reason !== null) {
+      throw new Error(`"${value}" is refused: ${budget.reason}`);
+    }
     try {
       return new RegExp(body, [...flags].join(""));
     } catch {
@@ -19818,6 +19889,9 @@ ${record.text}${mediaList}`;
       const match = /^\/(.+)\/([a-z]*)$/i.exec(trimmed);
       const body = match?.[1];
       const flags = match?.[2] ?? "";
+      if (checkRegexBudget(body ?? trimmed).reason !== null) {
+        return null;
+      }
       if (match && body) {
         return new RegExp(body, sanitizeFlags(flags));
       }

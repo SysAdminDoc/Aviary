@@ -1,3 +1,4 @@
+import { checkRegexBudget } from "./regex-budget";
 import type { FilterMediaKey } from "../../platform/settings";
 import type { FilterDecision, FilterInput } from "./predicates";
 
@@ -169,6 +170,10 @@ function compilePattern(value: string): RegExp {
   const flags = new Set(["i"]);
   for (const flag of rawFlags.toLowerCase()) {
     if (["i", "m", "s", "u"].includes(flag)) flags.add(flag);
+  }
+  const budget = checkRegexBudget(body);
+  if (budget.reason !== null) {
+    throw new Error(`"${value}" is refused: ${budget.reason}`);
   }
   try {
     return new RegExp(body, [...flags].join(""));

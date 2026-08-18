@@ -1,3 +1,4 @@
+import { checkRegexBudget } from "./regex-budget";
 import type { FilterAction, FilterMediaKey } from "../../platform/settings";
 import { handleFromHref } from "./hidden-posts";
 import { evaluateRules, type CompiledRule } from "./rules";
@@ -177,6 +178,11 @@ function tryCompileRegex(source: string): RegExp | null {
     const match = /^\/(.+)\/([a-z]*)$/i.exec(trimmed);
     const body = match?.[1];
     const flags = match?.[2] ?? "";
+    // Bounded before compiling: these run against every article in every batch, and JavaScript
+    // offers no way to abort a match once it is away.
+    if (checkRegexBudget(body ?? trimmed).reason !== null) {
+      return null;
+    }
     if (match && body) {
       return new RegExp(body, sanitizeFlags(flags));
     }

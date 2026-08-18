@@ -260,20 +260,6 @@ confirmed a second time. See RESEARCH.md.
   key is revalidated against the article's current `/status/<id>` before use.
   Complexity: M
 
-- [ ] F176 — P1 — Bound user-supplied regex before it runs on every post
-  Why: both rule paths compile user input with a bare `new RegExp(…)` and then `.test()` it
-  synchronously for every article in every mutation batch. A pattern like `/(a+)+b/` freezes the tab on
-  the first long post — a user can lock up X with a typo in their own filter list.
-  Evidence: `src/features/filtering/predicates.ts:170-187` (used at `:98-103`),
-  `src/features/filtering/rules.ts:165-178` (used at `:227-233`).
-  Touches: one shared guarded compiler used by both files, the Filtering panel's per-line error
-  reporting, `tests/filter-rules.test.mjs`.
-  Acceptance: a pattern over a declared complexity or length budget is rejected at compile time and
-  named in the panel's existing per-line error list rather than applied; a known catastrophic pattern
-  is covered by a test that asserts the rule is refused, not that it completes; `RegExp.escape`
-  (Baseline 2025-05-01) is used for the literal-keyword path.
-  Complexity: M
-
 - [ ] F179 — P1 — Serialize applyAll
   Why: three callers fire `void registry.applyAll(...)` with no coordination, and `applyAll` awaits each
   feature, so two passes interleave at microtask boundaries. Module-level guards such as

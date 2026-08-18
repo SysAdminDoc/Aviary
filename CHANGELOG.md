@@ -32,6 +32,11 @@
   mode, and rows, buttons, the selected destination and the Save/Revert footer keep explicit edges
   where tints and shadows used to carry them. The extension options page gets the same treatment;
   MV3 removed `options_ui.browser_style`, so none of it comes for free.
+- A filter pattern can no longer freeze the page. Patterns run against every post in every batch and
+  JavaScript cannot abort a running match, so a shape like `/(a+)+b/` — reachable by accident while
+  writing a rule — hung the tab. Repeated groups that already repeat, oversized repetition counts,
+  and very long patterns are now refused before they compile: the keyword list drops them, and the
+  rule DSL names the offending line in the errors it already reports.
 - Filtering a post now collapses the timeline row that owns it, not only the post itself. The cell
   marker was written as a bare presence flag while the stylesheet selected on its value, so every
   hidden post left a full-height blank gap where the next post should have moved up.
