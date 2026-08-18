@@ -36,6 +36,7 @@ before(async () => {
       `export { layoutDeclutterFeature } from ${JSON.stringify(abs("src/features/layout/declutter.ts"))};`,
       `export { cleanShareLinksFeature, cleanUrl } from ${JSON.stringify(abs("src/features/library/clean-share-links.ts"))};`,
       `export { linkUnshortenFeature } from ${JSON.stringify(abs("src/features/library/link-unshorten.ts"))};`,
+      `export { PRESETS } from ${JSON.stringify(abs("src/features/core/presets.ts"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};`
     ].join("\n"),
     "utf8"
@@ -384,4 +385,118 @@ test("link unshortening restores the title and class it replaced", async () => {
     result.before.map((entry) => entry.classes),
     "destroy left a class list the page did not start with"
   );
+});
+
+test("hiding engagement counts hides the numbers and keeps the buttons", async () => {
+  const result = await page.evaluate(() => {
+    window.reset();
+    document.body.innerHTML = `
+      <article data-testid="tweet">
+        <button data-testid="reply"><span data-testid="app-text-transition-container">12</span></button>
+        <button data-testid="retweet"><span data-testid="app-text-transition-container">34</span></button>
+        <button data-testid="like"><span data-testid="app-text-transition-container">56</span></button>
+        <a href="/alice/status/1/analytics"><span data-testid="app-text-transition-container">78</span></a>
+      </article>`;
+    const shown = (selector) => {
+      const node = document.querySelector(selector);
+      const style = getComputedStyle(node);
+      return style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity) > 0;
+    };
+    const snapshot = () => ({
+      replyButton: shown('[data-testid="reply"]'),
+      replyCount: shown('[data-testid="reply"] [data-testid="app-text-transition-container"]'),
+      likeCount: shown('[data-testid="like"] [data-testid="app-text-transition-container"]'),
+      analyticsCount: shown('a[href$="/analytics"] [data-testid="app-text-transition-container"]')
+    });
+
+    const off = window.ctx();
+    const on = window.ctx((settings) => {
+      settings.appearance.hideCounts = true;
+    });
+
+    AviaryLifecycle.themeFeature.init(off);
+    const before = snapshot();
+    AviaryLifecycle.themeFeature.apply(on);
+    const during = snapshot();
+    AviaryLifecycle.themeFeature.destroy(on);
+    return { before, during, after: snapshot() };
+  });
+
+  assert.equal(result.before.replyCount, true, "the fixture must start with visible counts");
+  assert.equal(result.during.replyCount, false, "the reply count must go");
+  assert.equal(result.during.likeCount, false);
+  assert.equal(result.during.analyticsCount, false, "the analytics count is a count too");
+  // Hiding the button as well would remove the ability to reply, which is not what was asked for.
+  assert.equal(result.during.replyButton, true, "the action button itself must stay usable");
+  assert.equal(result.after.replyCount, true, "destroy must bring the counts back");
+});
+
+test("every appearance and layout key a preset writes changes the page", async () => {
+  const unimplemented = await page.evaluate(() => {
+    window.reset();
+    // A fixture carrying every surface the appearance and layout features target, so a key that
+    // drives nothing is visible as a page that did not change.
+    document.body.innerHTML = `
+      <main data-testid="primaryColumn">
+        <div data-testid="cellInnerDiv"><article data-testid="tweet">
+          <button data-testid="reply"><span data-testid="app-text-transition-container">12</span></button>
+        </article></div>
+        <div data-testid="tweetTextarea_0RichTextInputContainer">
+          <div contenteditable="true" data-testid="tweetTextarea_0" tabindex="0"></div>
+        </div>
+      </main>
+      <aside data-testid="sidebarColumn">
+        <div data-testid="trend">trend</div>
+        <div data-testid="sidebarColumn-grok">grok</div>
+        <div data-testid="UserCell">who to follow</div>
+      </aside>
+      <nav>
+        <a data-testid="AppTabBar_Home_Link">home</a>
+        <a data-testid="AppTabBar_Explore_Link">explore</a>
+      </nav>`;
+
+    const fingerprint = () =>
+      JSON.stringify([
+        [...document.documentElement.classList].sort(),
+        document.documentElement.dataset.avTheme ?? null,
+        document.documentElement.dataset.avWidth ?? null,
+        [...document.querySelectorAll("[data-testid]")].map((node) => {
+          const style = getComputedStyle(node);
+          return [style.display, style.visibility, style.opacity, style.width];
+        })
+      ]);
+
+    const misses = [];
+    for (const preset of AviaryLifecycle.PRESETS) {
+      for (const group of ["appearance", "layout"]) {
+        for (const [key, value] of Object.entries(preset.overrides[group] ?? {})) {
+          // The question is whether the key drives anything, not whether this preset's value
+          // happens to differ from the default — several presets set a boolean to false that is
+          // already false, which is a no-op by design rather than an unimplemented key.
+          const other = typeof value === "boolean" ? !value : AviaryLifecycle.DEFAULT_SETTINGS[group][key];
+          if (other === value) continue;
+
+          const render = (setting) => {
+            const ctx = window.ctx((settings) => {
+              settings[group][key] = setting;
+            });
+            AviaryLifecycle.themeFeature.init(ctx);
+            AviaryLifecycle.layoutDeclutterFeature.init(ctx);
+            const shot = fingerprint();
+            AviaryLifecycle.themeFeature.destroy(ctx);
+            AviaryLifecycle.layoutDeclutterFeature.destroy(ctx);
+            return shot;
+          };
+
+          if (render(value) === render(other)) {
+            misses.push(`${group}.${key} (${JSON.stringify(value)} vs ${JSON.stringify(other)})`);
+          }
+        }
+      }
+    }
+    return [...new Set(misses)];
+  });
+
+  // A preset that flips a key nothing reads reports a change it cannot deliver.
+  assert.deepEqual(unimplemented, [], "these preset keys changed nothing on the page");
 });

@@ -35,7 +35,7 @@ before(async () => {
   await writeFile(
     entry,
     [
-      `export { mountControlCenter } from ${JSON.stringify(abs("src/ui/control-center.ts"))};`,
+      `export { mountControlCenter, renderedPanelStrings } from ${JSON.stringify(abs("src/ui/control-center.ts"))};`,
       `export { themeFeature } from ${JSON.stringify(abs("src/features/appearance/theme.ts"))};`,
       `export { controlCenterFeature } from ${JSON.stringify(abs("src/features/core/control-center.ts"))};`,
       `export { hiddenPostsFeature } from ${JSON.stringify(abs("src/features/filtering/hidden-posts-feature.ts"))};`,
@@ -594,6 +594,47 @@ test("the panel says which build it is running, as data rather than copy", async
     // A version number is data. Routing it through the translator would put it in the coverage
     // tally and invite a locale to "translate" it.
     assert.equal(stamp.ja, stamp.en, "the version must not change with the panel language");
+  } finally {
+    await context.close();
+  }
+});
+
+test("no rendered copy advertises a shipped feature as unavailable", async () => {
+  const { context, page } = await openPage();
+  try {
+    const copy = await page.evaluate(async (mount) => {
+      const shadow = await eval(mount);
+      // The tally resets on every render, so the strings have to be collected per destination
+      // and unioned; reading it once at the end would only ever see the last section's copy.
+      const seen = new Set();
+      for (const id of [...shadow.querySelectorAll(".av-nav-item")].map((item) => item.dataset.avSection)) {
+        shadow.querySelector(`.av-nav-item[data-av-section="${id}"]`).click();
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        for (const line of AviaryLook.renderedPanelStrings()) seen.add(line);
+      }
+      return [...seen];
+    }, MOUNT_FEATURE);
+
+    assert.ok(copy.length > 50, `only ${copy.length} strings were rendered; the sweep did not run`);
+
+    // Each of these described a state that stopped being true. Copy that names a version or an
+    // unfinished item goes stale silently — the feature ships and the label keeps apologising.
+    const stale = [
+      /xlsx is deferred/i,
+      /off until F\d+ lands/i,
+      /Disabled by policy in v\d+\.\d+\.\d+/i,
+      /press Save list to apply/i,
+      /coming soon/i,
+      /not (?:yet )?implemented/i,
+      /nothing implements it yet/i
+    ];
+    const offenders = copy.filter((line) => stale.some((pattern) => pattern.test(line)));
+    assert.deepEqual(offenders, [], "the panel is advertising shipped features as unavailable");
+
+    // A version number anywhere in translated copy is the same failure in a different shape: it
+    // gets counted for locale coverage and invites a translator to change it.
+    const versioned = copy.filter((line) => /\bv\d+\.\d+\.\d+\b/.test(line));
+    assert.deepEqual(versioned, [], "a version number reached translated copy");
   } finally {
     await context.close();
   }

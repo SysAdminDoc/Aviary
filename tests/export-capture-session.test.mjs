@@ -39,7 +39,7 @@ before(async () => {
   await writeFile(
     entry,
     [
-      `export { exportFeature, getCheckpointStore } from ${JSON.stringify(abs("src/features/export/export-feature.ts"))};`,
+      `export { exportFeature, getCheckpointStore, runExportOfVisibleTweets } from ${JSON.stringify(abs("src/features/export/export-feature.ts"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};`
     ].join("\n"),
     "utf8"
@@ -196,4 +196,31 @@ test("a session left open by capture is never abandoned in the running state", a
     !/"status":"running"/.test(leftover.persisted),
     "destroy left a capture session persisted as running"
   );
+});
+
+test("an export of a view with nothing on it produces no archive at all", async () => {
+  const result = await page.evaluate(async () => {
+    document.body.innerHTML = `<main data-testid="primaryColumn"></main>`;
+    const ctx = window.makeCtx(false);
+    await AviaryCapture.exportFeature.init(ctx);
+    const empty = await AviaryCapture.runExportOfVisibleTweets(ctx);
+
+    document.body.innerHTML = `<main data-testid="primaryColumn">${window.postTemplate(1)}${window.postTemplate(2)}</main>`;
+    const populated = await AviaryCapture.runExportOfVisibleTweets(ctx);
+    await AviaryCapture.exportFeature.destroy(ctx);
+
+    return {
+      emptyArtifacts: empty.artifacts?.length ?? null,
+      emptyRecords: empty.records ?? empty.recordCount ?? 0,
+      populatedArtifacts: populated.artifacts?.length ?? null,
+      populatedRecords: populated.records ?? populated.recordCount ?? 0
+    };
+  });
+
+  // An empty archive is worse than none: it downloads, opens, and contains nothing, which reads
+  // as a broken export rather than an empty view.
+  assert.equal(result.emptyArtifacts, 0, "an empty view produced an archive anyway");
+  assert.equal(result.emptyRecords, 0);
+  assert.ok(result.populatedArtifacts > 0, "a populated view must still produce one");
+  assert.ok(result.populatedRecords > 0);
 });

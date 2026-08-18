@@ -18,42 +18,6 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
  * The panel's accessibility assertions that used to live beside it were behavioural claims written
  * as source regexes, and they are now driven in `tests/a11y-behaviour.test.mjs`.
  */
-test("hiding engagement counts keeps the buttons and their labels", async () => {
-  const theme = await readFile(path.join(root, "src/features/appearance/theme.ts"), "utf8");
-
-  assert.match(theme, /av-hide-counts/);
-  assert.match(theme, /classList\.toggle\("av-hide-counts", settings\.appearance\.hideCounts\)/);
-  // Only the number inside an action button is hidden — never the button itself.
-  assert.match(theme, /\[data-testid="reply"\] \[data-testid="app-text-transition-container"\]/);
-  assert.match(theme, /a\[href\$="\/analytics"\] \[data-testid="app-text-transition-container"\]/);
-  assert.ok(
-    !/av-hide-counts[^{]*\[data-testid="reply"\]\s*\{/.test(theme),
-    "the action button itself must stay visible"
-  );
-  // Teardown drops the class it sets.
-  const destroy = theme.slice(theme.indexOf("destroy(ctx)"), theme.indexOf("export function applyTheme"));
-  assert.match(destroy, /av-hide-counts/);
-});
-
-test("presets do not promise settings that nothing implements", async () => {
-  const { PRESETS } = await importBundledModule("src/features/core/presets.ts");
-  const source = await readFile(path.join(root, "src/features/appearance/theme.ts"), "utf8");
-  const declutter = await readFile(path.join(root, "src/features/layout/declutter.ts"), "utf8");
-  const implemented = `${source}${declutter}`;
-
-  // Every appearance/layout key a preset writes must have something reading it.
-  const unimplemented = [];
-  for (const preset of PRESETS) {
-    for (const group of ["appearance", "layout"]) {
-      for (const key of Object.keys(preset.overrides[group] ?? {})) {
-        if (key === "theme") continue;
-        const applied = new RegExp(`settings\\.${group}\\.${key}\\b`).test(implemented);
-        if (!applied) unimplemented.push(`${preset.id}: ${group}.${key}`);
-      }
-    }
-  }
-  assert.deepEqual(unimplemented, [], "presets must not report changes they cannot deliver");
-});
 
 test("archive search debounces input and only rebuilds a stale index", async () => {
   const ui = (
