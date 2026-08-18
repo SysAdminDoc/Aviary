@@ -14585,6 +14585,105 @@ input[type="checkbox"] {
   }
 }
 
+/*
+ * Windows High Contrast and any other forced-colors mode.
+ *
+ * The UA overrides author colours, drops non-url() background-image to none, and drops box-shadow
+ * to none. This panel signalled a great deal through exactly those three, so before this block a
+ * forced-colors user got a settings cockpit whose controls were largely indistinguishable from each
+ * other -- worst of all the toggle, which carried its entire on/off state in a background colour
+ * and a background-coloured ::before knob.
+ *
+ * The toggle is the important case and the fix is to stop competing with the UA: the real checkbox
+ * is normally opacity:0 with appearance:none, so here it is handed back its native rendering and
+ * the painted track is hidden. The UA draws a checked box in system colours that are guaranteed to
+ * contrast, which no author styling can promise. System colours also follow *native* element
+ * semantics rather than ARIA roles, so a styled span could never have earned ButtonText here.
+ *
+ * Everywhere else, borders replace the shadows and tints that carried structure.
+ */
+@media (forced-colors: active) {
+  .av-toggle-control > input[type="checkbox"] {
+    opacity: 1;
+    appearance: auto;
+    inset: auto;
+    width: auto;
+    height: auto;
+    position: static;
+  }
+
+  .av-toggle {
+    display: none;
+  }
+
+  .av-toggle-control {
+    flex-basis: auto;
+    width: auto;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  /* Structure that was carried by elevation or tint needs an explicit edge. */
+  .av-panel,
+  .av-row,
+  .av-button,
+  .av-select,
+  .av-preset-card,
+  .av-transaction-bar,
+  .av-nav-launcher-pill,
+  input,
+  textarea {
+    border: 1px solid ButtonBorder;
+  }
+
+  .av-panel,
+  .av-row,
+  .av-preset-card {
+    background: Canvas;
+    color: CanvasText;
+  }
+
+  .av-button {
+    background: ButtonFace;
+    color: ButtonText;
+  }
+
+  /* A selected destination was distinguished only by its background tint. */
+  .av-nav-item[aria-current="page"],
+  .av-nav-item.is-active {
+    background: Highlight;
+    color: HighlightText;
+    forced-color-adjust: none;
+  }
+
+  /* The focus ring must not be the same colour as an ordinary border. */
+  .av-launcher:focus-visible,
+  .av-button:focus-visible,
+  .av-select:focus-visible,
+  .av-nav-item:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  /* Status tone was colour-only; keep the text and let the UA colour it. */
+  .av-status {
+    border: 1px solid ButtonBorder;
+  }
+
+  /*
+   * The sticky Save/Revert footer painted itself with a gradient and an upward shadow, both of
+   * which the UA discards -- leaving the one control that commits a page draft floating with no
+   * edge against the content above it.
+   */
+  .av-transaction-bar {
+    background: Canvas;
+    color: CanvasText;
+  }
+}
+
 @media (max-width: 1100px) {
   .av-panel {
     width: min(960px, calc(100vw - 32px));

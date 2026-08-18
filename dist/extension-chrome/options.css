@@ -500,3 +500,36 @@ button.ghost:hover:not(:disabled) {
     min-height: 44px;
   }
 }
+
+/*
+ * Forced colors (Windows High Contrast and equivalents).
+ *
+ * MV3 removed `options_ui.browser_style`, so nothing draws this page but this file — contrast,
+ * focus rings and high-contrast behaviour are entirely ours. The UA drops non-url()
+ * `background-image` and `box-shadow` to `none` and overrides author colours, which erases the
+ * "recommended" emphasis on the download-access row: it is carried by a tint plus an inset bar and
+ * nothing else, so the step a user is meant to take first becomes indistinguishable from the rest.
+ */
+@media (forced-colors: active) {
+  .permission-row[data-priority="recommended"] {
+    border-inline-start: 3px solid Highlight;
+  }
+
+  .permission-icon,
+  button {
+    border: 1px solid ButtonBorder;
+  }
+
+  button:focus-visible,
+  a:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  /* Grant state is reported in colour as well as in words; keep the words legible. */
+  [data-granted] {
+    forced-color-adjust: none;
+    color: CanvasText;
+    background: Canvas;
+  }
+}

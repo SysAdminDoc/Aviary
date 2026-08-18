@@ -25,6 +25,13 @@
 
 ### Fixed
 
+- The Control Center is usable in Windows High Contrast and other forced-colors modes. Settings
+  toggles carried their entire on/off state in author colours the browser overrides, over a real
+  checkbox hidden with `opacity: 0` and `appearance: none` — so the browser's own guaranteed-contrast
+  rendering was suppressed as well and on looked like off. The native control is handed back in that
+  mode, and rows, buttons, the selected destination and the Save/Revert footer keep explicit edges
+  where tints and shadows used to carry them. The extension options page gets the same treatment;
+  MV3 removed `options_ui.browser_style`, so none of it comes for free.
 - Filtering a post now collapses the timeline row that owns it, not only the post itself. The cell
   marker was written as a bare presence flag while the stylesheet selected on its value, so every
   hidden post left a full-height blank gap where the next post should have moved up.

@@ -489,37 +489,6 @@ below were read at the cited line. See RESEARCH.md.
 
 ### P1 — accessibility
 
-- [ ] F194 — P1 — Make the Control Center readable in forced-colors mode
-  Why: `.av-toggle` signals on/off through `border-color`, `background`, and a `::before` `background`
-  — all author colours the UA forces to system colours under `forced-colors: active` — while the real
-  `<input type="checkbox">` is `opacity: 0; appearance: none`, suppressing the UA's own high-contrast
-  checkbox rendering. The only surviving state cue is a 14px knob translating 16px. In Windows High
-  Contrast, on and off very likely render identically, across all 13 destinations.
-  Evidence: `src/ui/control-center.ts:3219-3229` (hidden input), `:3231-3262` (state styling); zero
-  matches for `forced-colors`/`ButtonText`/`Highlight` in `src`, `tests`, `tools`; `box-shadow` — which
-  the UA discards outright — used 11x in `control-center.ts`, 14x in `theme.ts` (measured 2026-08-17).
-  Touches: `src/ui/control-center.ts` styles, `tools/settings-visual-harness.mjs` (which already calls
-  `page.emulateMedia({reducedMotion})` at `:311`, so `forcedColors: "active"` slots into the same
-  parameterization), the committed baselines.
-  Acceptance: every control's state is distinguishable under `forced-colors: active` without relying on
-  author colour or `box-shadow` — borders in `ButtonText`/`Highlight`, or `mask-image` + `background-color`,
-  or the native control left visible; a visual lane covers the forced-colors state; the options page is
-  checked too, since MV3 dropped `options_ui.browser_style` and its contrast is entirely ours.
-  Note (2026-08-18): implementable today on the pinned Playwright — verified that
-  `emulateMedia({forcedColors: "active"})` on 1.62.1 applies the real palette, not just the media-query
-  flip: `background-color` and `color` repainted to system colours, the `ButtonBorder` keyword resolved,
-  and `background-image` computed to `none`. `forcedColors` is also accepted in `launchPersistentContext`
-  options, so it can be set at context level in the existing harness. The two rules that will bite this UI
-  are `background-image → none` unless the value contains `url()` (kills gradient-drawn affordances) and
-  `box-shadow`/`text-shadow` → `none` (kills glassmorphism depth and any shadow-based focus ring). One
-  trap: system colours follow **native element semantics, not ARIA roles**, so a `div role="button"` never
-  receives `ButtonText` — controls that must be visible in this mode need to be real `button`/`input`
-  elements. Assertions worth writing: the media query activated; panel colours actually changed (catches a
-  stray `forced-color-adjust: none`); `boxShadow === "none"`; every `backgroundImage` is `none` or contains
-  `url()`; buttons retain a non-transparent border. If any CSS still ships `-ms-high-contrast`, replace it —
-  it is deprecated and its MDN page now 404s.
-  Complexity: M
-
 - [ ] F196 — P1 — Assert accessibility by rendering, in the lane that already exists
   Why: a11y is currently verified by regexing source text (F140, F182), which cannot catch the two
   defects above. No major extension in this space — uBlock Origin, Dark Reader, Stylus, Refined GitHub
