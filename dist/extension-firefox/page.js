@@ -187,29 +187,34 @@
         if (nonce.length < 16) {
           return;
         }
+        if (state?.controlPort) {
+          return;
+        }
         if (state?.peerNonce && state.peerNonce !== nonce) {
           return;
         }
         if (state) {
           state.peerNonce = nonce;
+          const port = readTransferredPort(message);
+          if (port) {
+            adoptControlPort(port);
+          }
         }
         emit("ready");
+        return;
+      }
+      if (state?.controlPort) {
         return;
       }
       if (!state?.peerNonce || data.nonce !== state.peerNonce) {
         return;
       }
-      if (data.kind === "config") {
-        state && (state.config = normalizeConfig(data.payload));
-        return;
-      }
-      if (data.kind === "teardown") {
-        uninstallPageAgent();
-      }
+      handleControlEnvelope(data);
     };
     state = {
       config: { ...INITIAL_CONFIG },
       peerNonce: void 0,
+      controlPort: void 0,
       target,
       originalFetch,
       originalSendBeacon,
@@ -271,6 +276,13 @@
     }
     const current = state;
     state = void 0;
+    if (current.controlPort) {
+      current.controlPort.onmessage = null;
+      try {
+        current.controlPort.close();
+      } catch {
+      }
+    }
     current.target.removeEventListener("message", current.messageListener);
     const restore = (owner, key, patched, original) => {
       if (!owner || !original) {
@@ -456,6 +468,37 @@
     }
     return null;
   }
+  function handleControlEnvelope(data) {
+    if (data.kind === "config") {
+      if (state) {
+        state.config = normalizeConfig(data.payload);
+      }
+      return;
+    }
+    if (data.kind === "teardown") {
+      uninstallPageAgent();
+    }
+  }
+  function readTransferredPort(message) {
+    const ports = message.ports;
+    if (!Array.isArray(ports) && !(ports && typeof ports.length === "number")) {
+      return void 0;
+    }
+    const first = ports[0];
+    return first && typeof first.postMessage === "function" ? first : void 0;
+  }
+  function adoptControlPort(port) {
+    if (!state) {
+      return;
+    }
+    state.controlPort = port;
+    port.onmessage = (event) => {
+      if (isPageAgentEnvelope(event.data)) {
+        handleControlEnvelope(event.data);
+      }
+    };
+    port.start?.();
+  }
   function emit(kind, payload) {
     if (!state) {
       return;
@@ -467,6 +510,10 @@
         ...state.peerNonce === void 0 ? {} : { nonce: state.peerNonce },
         payload
       };
+      if (state.controlPort) {
+        state.controlPort.postMessage(envelope);
+        return;
+      }
       if (state.sink) {
         state.sink(envelope);
         return;

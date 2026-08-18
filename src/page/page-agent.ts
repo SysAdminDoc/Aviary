@@ -377,6 +377,16 @@ interface AgentState {
   messageListener: (event: unknown) => void;
   sink: PageAgentSink | undefined;
   /**
+   * The private control channel, once the isolated world has handed one over.
+   *
+   * The nonce was only ever a session correlation value, and it rides every envelope on a bus the
+   * page can read -- so any page script that caught one could replay `config` to switch the
+   * default-on ad guard off, or `teardown` to remove the agent outright. A transferred
+   * `MessagePort` is not readable or postable from the page at all, so once one is adopted the
+   * window is no longer accepted as a source of control messages.
+   */
+  controlPort: MessagePort | undefined;
+  /**
    * The wrappers this agent installed. Teardown compares against these so it restores only what is
    * still ours -- assigning the original back over someone else's later wrapper would delete their
    * layer along with ours.
@@ -417,7 +427,7 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
   const xhrProto = target.XMLHttpRequest?.prototype;
 
   const messageListener = (event: unknown): void => {
-    const message = event as { data?: unknown; source?: unknown; origin?: unknown };
+    const message = event as { data?: unknown; source?: unknown; origin?: unknown; ports?: unknown };
     if (message.source !== undefined && message.source !== target) {
       return;
     }
@@ -440,30 +450,39 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
       if (nonce.length < 16) {
         return;
       }
+      // A control port already stands, so this hello is either a duplicate or a squatter. Either
+      // way the standing channel is the one the isolated world holds; do not let a later hello
+      // replace it.
+      if (state?.controlPort) {
+        return;
+      }
       if (state?.peerNonce && state.peerNonce !== nonce) {
         return;
       }
       if (state) {
         state.peerNonce = nonce;
+        const port = readTransferredPort(message);
+        if (port) {
+          adoptControlPort(port);
+        }
       }
       emit("ready");
+      return;
+    }
+    // Once a private channel exists, the window is not a control surface any more.
+    if (state?.controlPort) {
       return;
     }
     if (!state?.peerNonce || data.nonce !== state.peerNonce) {
       return;
     }
-    if (data.kind === "config") {
-      state && (state.config = normalizeConfig(data.payload));
-      return;
-    }
-    if (data.kind === "teardown") {
-      uninstallPageAgent();
-    }
+    handleControlEnvelope(data);
   };
 
   state = {
     config: { ...INITIAL_CONFIG },
     peerNonce: undefined,
+    controlPort: undefined,
     target,
     originalFetch,
     originalSendBeacon,
@@ -533,12 +552,27 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
   return () => uninstallPageAgent();
 }
 
+/** Test seam: the configuration currently in force, or undefined when no agent is installed. */
+export function readAgentConfig(): PageAgentConfig | undefined {
+  return state ? { ...state.config } : undefined;
+}
+
 export function uninstallPageAgent(): void {
   if (!state) {
     return;
   }
   const current = state;
   state = undefined;
+
+  // Close the private channel first: nothing should be able to reach a torn-down agent.
+  if (current.controlPort) {
+    current.controlPort.onmessage = null;
+    try {
+      current.controlPort.close();
+    } catch {
+      // a closed or neutered port is already what we wanted
+    }
+  }
 
   current.target.removeEventListener("message", current.messageListener);
 
@@ -801,6 +835,44 @@ function blockedRequestCategory(
   return null;
 }
 
+/** Applies a control envelope that arrived over a channel we trust. */
+function handleControlEnvelope(data: PageAgentEnvelope): void {
+  if (data.kind === "config") {
+    if (state) {
+      state.config = normalizeConfig(data.payload);
+    }
+    return;
+  }
+  if (data.kind === "teardown") {
+    uninstallPageAgent();
+  }
+}
+
+/** The port the isolated world transferred with its hello, if the host supports transferables. */
+function readTransferredPort(message: { ports?: unknown }): MessagePort | undefined {
+  const ports = message.ports;
+  if (!Array.isArray(ports) && !(ports && typeof (ports as ArrayLike<unknown>).length === "number")) {
+    return undefined;
+  }
+  const first = (ports as ArrayLike<unknown>)[0];
+  return first && typeof (first as MessagePort).postMessage === "function"
+    ? (first as MessagePort)
+    : undefined;
+}
+
+function adoptControlPort(port: MessagePort): void {
+  if (!state) {
+    return;
+  }
+  state.controlPort = port;
+  port.onmessage = (event: MessageEvent): void => {
+    if (isPageAgentEnvelope(event.data)) {
+      handleControlEnvelope(event.data);
+    }
+  };
+  port.start?.();
+}
+
 function emit(kind: PageAgentKind, payload?: unknown): void {
   if (!state) {
     return;
@@ -812,6 +884,12 @@ function emit(kind: PageAgentKind, payload?: unknown): void {
       ...(state.peerNonce === undefined ? {} : { nonce: state.peerNonce }),
       payload
     };
+    // Prefer the private channel: an observer on the page window learns nothing from traffic that
+    // never goes there.
+    if (state.controlPort) {
+      state.controlPort.postMessage(envelope);
+      return;
+    }
     if (state.sink) {
       state.sink(envelope);
       return;

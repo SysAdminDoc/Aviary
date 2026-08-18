@@ -177,6 +177,13 @@ Internal audit of the subsystems no prior pass had examined, plus the code added
   Evidence: `src/page/page-agent.ts:386-398` (first-wins adoption), `src/platform/page-bridge.ts:108` (bridge drops mismatched nonces); mechanism confirmed 2026-08-15, a live race needs a runtime check.
   Touches: `src/page/page-agent.ts`, `src/platform/page-bridge.ts`, their tests.
   Acceptance: a `hello` arriving after the genuine bridge's cannot displace it, and a squatter arriving first is at minimum visible — the bridge detects an unadoptable agent and reports it through selector health / Trust instead of silently showing agent-absent; the design note states plainly that the boundary is not cryptographic and what it does and does not defend.
+  Note (2026-08-18): the displacement half landed with F173 — the `hello` now transfers a
+  `MessagePort`, and once one is adopted a later `hello` is refused outright, so a squatter cannot
+  take over a standing channel. What remains is the visibility half: a squatter that wins the very
+  first `hello` still leaves the bridge reporting `agent-absent`, which reads as "this browser did
+  not load Aviary's page script" rather than "something else answered". Note the practical reach is
+  narrow — Chrome runs `document_start` content scripts before any page script, so only another
+  extension's MAIN-world script can win that race.
   Complexity: M
 
 - [ ] F162 — P2 — Coordinate the stores two X tabs share
@@ -221,31 +228,6 @@ Every defect below was read at the cited line; the five marked (re-checked) were
 confirmed a second time. See RESEARCH.md.
 
 ### P1 — measured defects, root cause first
-
-- [ ] F173 — P1 — Stop the page from disabling ad protection or uninstalling the agent
-  Why: the bridge broadcasts its session nonce with `postMessage(envelope, "*")`, and the agent then
-  honours `config` and `teardown` from anyone who replays it — so a page script that listens for one
-  message can set `blockAds:false` or tear the agent down. This is distinct from and strictly worse
-  than F161: it works even when the genuine bridge wins the `hello` race, so the first-wins fix does
-  not close it. What is lost silently is the default-on ad guard.
-  Evidence: `src/platform/page-bridge.ts:161,236` (nonce broadcast), `src/page/page-agent.ts:438-461`
-  (config/teardown accepted on nonce match) (re-checked 2026-08-17).
-  Touches: `src/platform/page-bridge.ts`, `src/page/page-agent.ts`, a new `tests/page-bridge.test.mjs`
-  (the module currently has no direct test).
-  Acceptance: the control channel is a `MessageChannel` port transferred once, or an equivalent the
-  page cannot observe after handshake; a replayed envelope captured from the page world changes
-  nothing; `teardown` is not reachable from the page at all; the design note states plainly what the
-  boundary does and does not defend.
-  Depends on: coordinate with F161 — both touch the same handshake, land them together.
-  Note (2026-08-18): two refinements. The threat model is narrower than feared on one axis — Chrome
-  documents that `document_start` content scripts run "before any other DOM is constructed or any other
-  script is run", so the page's own inline scripts cannot win the first-`hello` race; what is unordered is
-  another *extension's* MAIN-world script. The replay half is unconditional and unaffected by that. Also,
-  `page-bridge.ts:161` posts with `targetOrigin: "*"` — tightening it to the page origin is free and
-  should land regardless of the channel redesign. Worth noting the userscript build already avoids the
-  window bus entirely via the `PageAgentSink` direct callback (`page-bridge.ts:157`); only the extension
-  build depends on `postMessage`, which narrows the fix surface.
-  Complexity: M
 
 ### P1 — trust and verification
 

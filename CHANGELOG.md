@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Security
+
+- A page script can no longer switch ad protection off or uninstall Aviary's page-world observer.
+  The handshake still starts on the window, because that is the only way to reach a page-world
+  script, but it now hands over a private `MessagePort` and everything after it travels there. A
+  port cannot be read from the page or posted to without the reference, so catching an envelope no
+  longer reveals anything replayable. A second handshake cannot displace a standing channel either.
+
 ### Fixed
 
 - Hiding a post no longer drives a feedback loop. The collapse dispatched a synthetic `resize` on
