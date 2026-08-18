@@ -16,6 +16,7 @@ import {
 } from "./downloader";
 import { extractTweet, mediaIdentity, type ExtractedMedia, type ExtractedTweet } from "./extract";
 import { MediaMetadataCache } from "./media-metadata";
+import { sharedDownloadWatcher } from "./download-watch";
 import { isSaveableVariantUrl, VIDEO_CONTAINER_SELECTOR } from "./video-extract";
 import { MediaHistory } from "./history";
 import { rememberLastDownload } from "./last-download";
@@ -61,6 +62,11 @@ interface PrimaryDownloadAsset {
 }
 
 let downloader: Downloader | undefined;
+/**
+ * One per page: the background reports a download's terminal state to the tab, not to a caller,
+ * so the listener has to outlive any single click.
+ */
+const downloadWatcher = sharedDownloadWatcher();
 let history: MediaHistory | undefined;
 let aria2History: Aria2History | undefined;
 let queue: DownloadQueue | undefined;
@@ -82,6 +88,7 @@ export const mediaButtonsFeature: FeatureModule = {
 
   async init(ctx) {
     subscribeToMediaMetadata(ctx);
+    downloadWatcher.start();
     // Only when the feature is on. This used to run unconditionally, so a user with media
     // buttons disabled still got `position: relative` forced onto every tweetPhoto -- which
     // collapses the image to zero height wherever X anchors it to a taller ancestor.
@@ -176,6 +183,7 @@ export const mediaButtonsFeature: FeatureModule = {
 
   async destroy(ctx) {
     uninstallContextDownload();
+    downloadWatcher.stop();
     clearDecorations();
     downloader = undefined;
     history = undefined;
@@ -732,7 +740,16 @@ async function handleDownload(
   });
 
   try {
-    const outcome = await performMediaDownload(media, index, tweet, target, ctx);
+    const outcome = await performMediaDownload(media, index, tweet, target, ctx, () => {
+      // Distinct from Saved on purpose: the browser has the request and the file is on its way.
+      setButtonFeedback(button, {
+        label: ft(ctx, "Started"),
+        icon: "↓",
+        className: "is-active",
+        disabled: true,
+        busy: true
+      });
+    });
     setButtonFeedback(button, {
       label: ft(
         ctx,
@@ -740,11 +757,19 @@ async function handleDownload(
           ? "Opened"
           : outcome.status === "aria2-duplicate"
             ? "Queued"
-            : successLabel(media)
+            : outcome.status === "started"
+              ? "Started"
+              : successLabel(media)
       ),
-      icon: outcome.degraded ? "↗" : "✓",
+      icon: outcome.degraded ? "↗" : outcome.status === "started" ? "↓" : "✓",
       className: outcome.status === "completed" ? "is-success" : "is-duplicate"
     });
+    if (outcome.status === "started") {
+      button.title = ft(
+        ctx,
+        "The browser is still transferring this file. Check your downloads for the result."
+      );
+    }
     if (outcome.degraded) {
       button.title = ft(ctx, "Your browser opened this file instead of saving it — grant Aviary the download permission for a real save.");
     }
@@ -755,7 +780,12 @@ async function handleDownload(
 }
 
 interface MediaDownloadOutcome {
-  status: "completed" | "history-duplicate" | "aria2-duplicate";
+  /**
+   * `started` means the browser took the request and the transfer had not finished by the time
+   * the wait gave up. It is deliberately not `completed`: nothing has proved the file is on disk,
+   * so it is neither reported as saved nor written to the duplicate history.
+   */
+  status: "completed" | "started" | "history-duplicate" | "aria2-duplicate";
   degraded: boolean;
 }
 
@@ -786,7 +816,15 @@ async function handlePostDownload(
     }
     try {
       outcomes.push(
-        await performMediaDownload(asset.media, asset.index, tweet, asset.target, ctx)
+        await performMediaDownload(asset.media, asset.index, tweet, asset.target, ctx, () => {
+          setButtonFeedback(button, {
+            label: ft(ctx, "Started"),
+            icon: "↓",
+            className: "is-active",
+            disabled: true,
+            busy: true
+          });
+        })
       );
       completed.add(key);
     } catch (error) {
@@ -806,11 +844,15 @@ async function handlePostDownload(
   const degraded = outcomes.some((outcome) => outcome.degraded);
   const aria2Duplicate =
     outcomes.length > 0 && outcomes.every((outcome) => outcome.status === "aria2-duplicate");
+  const anyStarted = outcomes.some((outcome) => outcome.status === "started");
   const allDuplicate =
     outcomes.length > 0 && outcomes.every((outcome) => outcome.status !== "completed");
   setButtonFeedback(button, {
-    label: ft(ctx, degraded ? "Opened" : aria2Duplicate ? "Queued" : "Saved"),
-    icon: degraded ? "↗" : "✓",
+    label: ft(
+      ctx,
+      degraded ? "Opened" : aria2Duplicate ? "Queued" : anyStarted ? "Started" : "Saved"
+    ),
+    icon: degraded ? "↗" : anyStarted ? "↓" : "✓",
     className: allDuplicate ? "is-duplicate" : "is-success"
   });
   if (degraded) {
@@ -828,7 +870,8 @@ async function performMediaDownload(
   index: number,
   tweet: ExtractedTweet,
   target: ResolvedTarget,
-  ctx: FeatureContext
+  ctx: FeatureContext,
+  onStarted?: () => void
 ): Promise<MediaDownloadOutcome> {
   if (!downloader || !queue || !history) {
     throw new Error("Media downloader is not ready.");
@@ -875,6 +918,25 @@ async function performMediaDownload(
         source: "aria2-history"
       });
       return { status: "aria2-duplicate", degraded: false };
+    }
+
+    // The extension build answers when the browser accepts the request, not when the bytes land.
+    // Reporting Saved there is what let an interrupted transfer both claim success and write the
+    // duplicate-history entry that then refused the retry.
+    if (result.pending && result.downloadId !== undefined) {
+      onStarted?.();
+      const terminal = await downloadWatcher.wait(result.downloadId);
+      if (terminal === "interrupted") {
+        queue.mark(job.id, "failed");
+        ctx.diagnostics.warn("Media transfer was interrupted", { filename, kind: media.kind });
+        void ctx.auditLog.record("media.download.failed", { filename, kind: media.kind });
+        throw new Error("The browser interrupted this transfer before it finished.");
+      }
+      if (terminal === "pending") {
+        // Still going. Leave the job running and say so rather than claiming either outcome.
+        ctx.diagnostics.info("Media transfer still running", { filename, kind: media.kind });
+        return { status: "started", degraded: false };
+      }
     }
 
     queue.mark(job.id, "completed");

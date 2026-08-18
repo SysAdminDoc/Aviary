@@ -164,7 +164,9 @@ test("fallback candidates are walked in order, deduplicated, and filtered by sch
     filename: "a.jpg"
   });
 
-  assert.deepEqual(response, { ok: true, id: 7 });
+  // `pending` is the contract: the browser took the request, and nothing yet knows whether the
+  // bytes arrive. The tab waits for the terminal state before it says Saved.
+  assert.deepEqual(response, { ok: true, id: 7, pending: true });
   assert.deepEqual(attempted, [
     "https://pbs.twimg.com/media/a?name=orig",
     "https://pbs.twimg.com/media/a?name=4096x4096"

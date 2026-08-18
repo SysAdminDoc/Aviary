@@ -54,6 +54,9 @@ async function restoreDynamicAdRule(api) {
   return enabled;
 }
 
+// src/extension/download-state.ts
+var DOWNLOAD_STATE_MESSAGE = "AVIARY_DOWNLOAD_STATE";
+
 // src/extension/media-context-menu.ts
 var MEDIA_CONTEXT_MENU_ID = "aviary-download-media";
 var MEDIA_CONTEXT_MENU_TITLE = "Download media with Aviary";
@@ -69,8 +72,9 @@ var X_DOCUMENT_PATTERNS = [
 var runtime = globalThis.chrome?.runtime;
 var extensionApi = globalThis.chrome;
 var contextMenus = globalThis.chrome?.contextMenus;
-var DOWNLOAD_FALLBACK_KEY = "aviary.downloadFallbacks.v1";
-var pendingDownloadFallbacks = /* @__PURE__ */ new Map();
+var DOWNLOAD_TRACKING_KEY = "aviary.downloadTracking.v2";
+var DOWNLOAD_TRACKING_LIMIT = 64;
+var trackedDownloads = /* @__PURE__ */ new Map();
 var DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
 runtime?.onInstalled?.addListener((details) => {
   const task = details?.reason === "install" && extensionApi ? syncDynamicAdRule(extensionApi, true) : extensionApi ? restoreDynamicAdRule(extensionApi) : Promise.resolve(null);
@@ -109,12 +113,15 @@ contextMenus?.onClicked?.addListener((info, tab) => {
 });
 globalThis.chrome?.downloads?.onChanged?.addListener((delta) => {
   if (delta.state?.current === "complete") {
-    settleBackgroundTask(clearDownloadFallback(delta.id), "download completion");
+    settleBackgroundTask(finishDownload(delta.id, "complete"), "download completion");
   } else if (delta.state?.current === "interrupted") {
-    settleBackgroundTask(retryDownloadFallback(delta.id), "download fallback");
+    settleBackgroundTask(
+      retryDownloadFallback(delta.id, delta.error?.current),
+      "download fallback"
+    );
   }
 });
-runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
+runtime?.onMessage?.addListener((message, sender, sendResponse) => {
   if (isAdRuleSyncMessage(message)) {
     if (!extensionApi) {
       sendResponse({ ok: false, enabled: message.enabled, error: "extension APIs unavailable" });
@@ -145,7 +152,7 @@ runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
     return true;
   }
   if (isDownload(message)) {
-    handleDownload(message).then(
+    handleDownload(message, tabIdOf(sender)).then(
       (result) => sendResponse(result),
       (error) => sendResponse({ ok: false, error: errorMessage(error) })
     );
@@ -214,7 +221,7 @@ async function openOptions() {
   await runtime.openOptionsPage();
   return true;
 }
-async function handleDownload(message) {
+async function handleDownload(message, tabId) {
   if (!await hasDownloadPermission()) {
     return {
       ok: false,
@@ -236,102 +243,145 @@ async function handleDownload(message) {
         filename: message.filename,
         conflictAction: "uniquify"
       });
-      await rememberDownloadFallback(id, {
+      await trackDownload(id, {
+        reportId: id,
+        tabId,
         fallbackUrls: candidates.slice(index + 1),
         filename: message.filename
       });
-      return { ok: true, id };
+      return { ok: true, id, pending: true };
     } catch (error) {
       lastError = errorMessage(error);
     }
   }
   return { ok: false, error: lastError };
 }
-async function retryDownloadFallback(downloadId) {
-  const pending = await readDownloadFallback(downloadId);
-  await clearDownloadFallback(downloadId);
+async function retryDownloadFallback(downloadId, error) {
+  const pending = await readTrackedDownload(downloadId);
+  await clearTrackedDownload(downloadId);
   const downloads = globalThis.chrome?.downloads;
-  if (!pending || !downloads) {
+  if (!pending) {
     return;
   }
-  for (let index = 0; index < pending.fallbackUrls.length; index += 1) {
-    const url = pending.fallbackUrls[index];
-    try {
-      const id = await downloads.download({
-        url,
-        filename: pending.filename,
-        conflictAction: "uniquify"
-      });
-      await rememberDownloadFallback(id, {
-        fallbackUrls: pending.fallbackUrls.slice(index + 1),
-        filename: pending.filename
-      });
-      return;
-    } catch {
+  if (downloads) {
+    for (let index = 0; index < pending.fallbackUrls.length; index += 1) {
+      const url = pending.fallbackUrls[index];
+      try {
+        const id = await downloads.download({
+          url,
+          filename: pending.filename,
+          conflictAction: "uniquify"
+        });
+        await trackDownload(id, {
+          reportId: pending.reportId,
+          tabId: pending.tabId,
+          fallbackUrls: pending.fallbackUrls.slice(index + 1),
+          filename: pending.filename
+        });
+        return;
+      } catch {
+      }
     }
   }
+  await reportDownloadState(pending, "interrupted", error);
 }
-async function rememberDownloadFallback(downloadId, pending) {
-  if (pending.fallbackUrls.length === 0) {
+async function finishDownload(downloadId, state) {
+  const tracked = await readTrackedDownload(downloadId);
+  await clearTrackedDownload(downloadId);
+  if (tracked) {
+    await reportDownloadState(tracked, state);
+  }
+}
+async function reportDownloadState(tracked, state, error) {
+  const tabs = globalThis.chrome?.tabs;
+  if (!tabs?.sendMessage || tracked.tabId === null) {
     return;
   }
-  pendingDownloadFallbacks.set(downloadId, pending);
+  try {
+    await tabs.sendMessage(tracked.tabId, {
+      type: DOWNLOAD_STATE_MESSAGE,
+      id: tracked.reportId,
+      state,
+      ...error ? { error } : {}
+    });
+  } catch {
+  }
+}
+function tabIdOf(sender) {
+  const tab = sender?.tab;
+  return typeof tab?.id === "number" ? tab.id : null;
+}
+async function trackDownload(downloadId, pending) {
+  trackedDownloads.set(downloadId, pending);
   const storage = globalThis.chrome?.storage?.local;
   if (!storage) {
     return;
   }
   try {
-    const stored = await readStoredDownloadFallbacks();
+    const stored = await readStoredDownloadTracking();
     stored[String(downloadId)] = pending;
-    await storage.set({ [DOWNLOAD_FALLBACK_KEY]: stored });
+    await storage.set({ [DOWNLOAD_TRACKING_KEY]: capTracking(stored) });
   } catch {
   }
 }
-async function readDownloadFallback(downloadId) {
-  const local = pendingDownloadFallbacks.get(downloadId);
+async function readTrackedDownload(downloadId) {
+  const local = trackedDownloads.get(downloadId);
   if (local) {
     return local;
   }
   try {
-    const stored = await readStoredDownloadFallbacks();
+    const stored = await readStoredDownloadTracking();
     const pending = stored[String(downloadId)];
     if (pending) {
-      pendingDownloadFallbacks.set(downloadId, pending);
+      trackedDownloads.set(downloadId, pending);
     }
     return pending;
   } catch {
     return void 0;
   }
 }
-async function clearDownloadFallback(downloadId) {
-  pendingDownloadFallbacks.delete(downloadId);
+async function clearTrackedDownload(downloadId) {
+  trackedDownloads.delete(downloadId);
   const storage = globalThis.chrome?.storage?.local;
   if (!storage) {
     return;
   }
   try {
-    const stored = await readStoredDownloadFallbacks();
+    const stored = await readStoredDownloadTracking();
     if (stored[String(downloadId)] === void 0) {
       return;
     }
     delete stored[String(downloadId)];
-    await storage.set({ [DOWNLOAD_FALLBACK_KEY]: stored });
+    await storage.set({ [DOWNLOAD_TRACKING_KEY]: stored });
   } catch {
   }
 }
-async function readStoredDownloadFallbacks() {
-  const stored = await globalThis.chrome?.storage?.local?.get(DOWNLOAD_FALLBACK_KEY);
-  const raw = stored?.[DOWNLOAD_FALLBACK_KEY];
+function capTracking(stored) {
+  const ids = Object.keys(stored).sort((a, b) => Number(a) - Number(b));
+  if (ids.length <= DOWNLOAD_TRACKING_LIMIT) {
+    return stored;
+  }
+  const kept = {};
+  for (const id of ids.slice(ids.length - DOWNLOAD_TRACKING_LIMIT)) {
+    kept[id] = stored[id];
+  }
+  return kept;
+}
+async function readStoredDownloadTracking() {
+  const stored = await globalThis.chrome?.storage?.local?.get(DOWNLOAD_TRACKING_KEY);
+  const raw = stored?.[DOWNLOAD_TRACKING_KEY];
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     return {};
   }
   const valid = {};
   for (const [id, value] of Object.entries(raw)) {
     const candidate = value;
-    if (/^\d+$/.test(id) && typeof candidate.filename === "string" && Array.isArray(candidate.fallbackUrls) && candidate.fallbackUrls.length <= 3 && candidate.fallbackUrls.every(
+    if (/^\d+$/.test(id) && typeof candidate.filename === "string" && typeof candidate.reportId === "number" && (candidate.tabId === null || typeof candidate.tabId === "number") && Array.isArray(candidate.fallbackUrls) && candidate.fallbackUrls.length <= 3 && candidate.fallbackUrls.every(
       (url) => typeof url === "string" && /^https?:\/\//i.test(url)
     )) {
       valid[id] = {
+        reportId: candidate.reportId,
+        tabId: candidate.tabId ?? null,
         filename: candidate.filename,
         fallbackUrls: candidate.fallbackUrls
       };

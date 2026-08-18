@@ -231,9 +231,13 @@ A quoted post's photos and a link card's preview belong to somebody else: each k
 control, saved under the account that actually published it, and the post action says in its
 accessible label that it is saving only the post's own media. It remains labeled on desktop and contracts to
 a 44-pixel icon action on narrow touch screens. The per-asset overlay remains for selective saves.
-Both controls report resolving, Saving, Saved, Queued, Allow, or Retry in place, expose busy state
-to assistive technology, preserve completed assets across a partial retry, and return to their
-original action after feedback. The MV3 build also adds **Download media with Aviary** to X's native right-click menu. The
+Both controls report resolving, Saving, Started, Saved, Queued, Allow, or Retry in place, expose
+busy state to assistive technology, preserve completed assets across a partial retry, and return to
+their original action after feedback. **Started** and **Saved** are separate for a reason: the
+browser's download API acknowledges a handoff, not a completed file, so in the extension build the
+control reads Started until the browser reports the transfer's terminal state. An interrupted
+transfer reads Retry, and is never written into the duplicate history — which is what makes the
+retry possible. The tracking survives the service worker being suspended mid-transfer. The MV3 build also adds **Download media with Aviary** to X's native right-click menu. The
 page-side handler maps the clicked player back to Aviary's captured direct variant, so X's
 MediaSource `blob:` playback handle is never mistaken for a file.
 

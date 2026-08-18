@@ -177,18 +177,6 @@ Internal audit of the subsystems no prior pass had examined, plus the code added
 
 Focused comparison of 46 primary sources for feed image/video download behavior. See RESEARCH.md.
 
-### P2 — download truth and edge coverage
-
-- [ ] F169 — P2 — Track browser downloads through terminal state
-  Why: `chrome.downloads.download()` confirms a handoff, not that the file completed; current feed
-  feedback can therefore reach Saved before a later network interruption.
-  Evidence: official Chrome downloads API; TwitterMediaHarvest indefinite-spinner and interrupted
-  download reports.
-  Touches: extension background download protocol, service-worker restart recovery, button states.
-  Acceptance: Started and Saved are distinct; completion/interruption updates survive service-worker
-  suspension; a failed transfer exposes Retry and never enters duplicate history.
-  Complexity: M
-
 ## Research-Driven Additions (2026-08-17)
 
 General pass over the subsystems no prior research examined (the 2026-08-16 pass was media-only).

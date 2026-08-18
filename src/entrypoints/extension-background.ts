@@ -4,6 +4,7 @@ import {
   syncDynamicAdRule,
   type ExtensionAdRuleApi
 } from "../extension/ad-rule";
+import { DOWNLOAD_STATE_MESSAGE } from "../extension/download-state";
 import {
   MEDIA_CONTEXT_DOWNLOAD_MESSAGE,
   MEDIA_CONTEXT_MENU_ID,
@@ -15,14 +16,29 @@ import {
 const runtime = globalThis.chrome?.runtime;
 const extensionApi = globalThis.chrome as unknown as ExtensionAdRuleApi | undefined;
 const contextMenus = globalThis.chrome?.contextMenus;
-const DOWNLOAD_FALLBACK_KEY = "aviary.downloadFallbacks.v1";
+const DOWNLOAD_TRACKING_KEY = "aviary.downloadTracking.v2";
+/** Bounded: every entry is one explicit user download, and each is cleared at its terminal state. */
+const DOWNLOAD_TRACKING_LIMIT = 64;
 
-interface PendingDownloadFallback {
-  fallbackUrls: string[];
+/**
+ * A download the browser accepted but has not finished.
+ *
+ * `downloads.download()` resolves as soon as the browser takes the request, which is a handoff and
+ * not a saved file -- a transfer interrupted ten seconds later had already been reported as Saved.
+ * This is what lets the terminal state get back to the tab that asked for it.
+ *
+ * `reportId` is the id the content script was told about. A fallback retry starts a *new* download
+ * with a new id, so without it the tab would never hear the outcome of the transfer it is waiting
+ * on.
+ */
+interface TrackedDownload {
+  reportId: number;
+  tabId: number | null;
   filename: string;
+  fallbackUrls: string[];
 }
 
-const pendingDownloadFallbacks = new Map<number, PendingDownloadFallback>();
+const trackedDownloads = new Map<number, TrackedDownload>();
 
 /** Returned to the content script when `downloads` has not been granted yet. */
 export const DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
@@ -85,13 +101,16 @@ contextMenus?.onClicked?.addListener((info, tab) => {
 
 globalThis.chrome?.downloads?.onChanged?.addListener((delta) => {
   if (delta.state?.current === "complete") {
-    settleBackgroundTask(clearDownloadFallback(delta.id), "download completion");
+    settleBackgroundTask(finishDownload(delta.id, "complete"), "download completion");
   } else if (delta.state?.current === "interrupted") {
-    settleBackgroundTask(retryDownloadFallback(delta.id), "download fallback");
+    settleBackgroundTask(
+      retryDownloadFallback(delta.id, delta.error?.current),
+      "download fallback"
+    );
   }
 });
 
-runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
+runtime?.onMessage?.addListener((message, sender, sendResponse) => {
   if (isAdRuleSyncMessage(message)) {
     if (!extensionApi) {
       sendResponse({ ok: false, enabled: message.enabled, error: "extension APIs unavailable" });
@@ -123,7 +142,7 @@ runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
     return true;
   }
   if (isDownload(message)) {
-    handleDownload(message).then(
+    handleDownload(message, tabIdOf(sender)).then(
       (result) => sendResponse(result),
       (error: unknown) => sendResponse({ ok: false, error: errorMessage(error) })
     );
@@ -224,11 +243,14 @@ async function openOptions(): Promise<boolean> {
   return true;
 }
 
-async function handleDownload(message: {
-  url: string;
-  fallbackUrls?: string[];
-  filename: string;
-}): Promise<{ ok: boolean; id?: number; error?: string; code?: string }> {
+async function handleDownload(
+  message: {
+    url: string;
+    fallbackUrls?: string[];
+    filename: string;
+  },
+  tabId: number | null
+): Promise<{ ok: boolean; id?: number; pending?: boolean; error?: string; code?: string }> {
   if (!(await hasDownloadPermission())) {
     return {
       ok: false,
@@ -252,11 +274,15 @@ async function handleDownload(message: {
         filename: message.filename,
         conflictAction: "uniquify"
       });
-      await rememberDownloadFallback(id, {
+      await trackDownload(id, {
+        reportId: id,
+        tabId,
         fallbackUrls: candidates.slice(index + 1),
         filename: message.filename
       });
-      return { ok: true, id };
+      // `pending` is the whole point: the browser has taken the request, and nothing yet knows
+      // whether the bytes arrive. The tab waits for AVIARY_DOWNLOAD_STATE before saying Saved.
+      return { ok: true, id, pending: true };
     } catch (error) {
       lastError = errorMessage(error);
     }
@@ -264,66 +290,111 @@ async function handleDownload(message: {
   return { ok: false, error: lastError };
 }
 
-async function retryDownloadFallback(downloadId: number): Promise<void> {
-  const pending = await readDownloadFallback(downloadId);
-  await clearDownloadFallback(downloadId);
+/**
+ * An interrupted transfer: try the next quality candidate, and only give up out loud.
+ *
+ * The retry inherits `reportId`, so whatever the tab is waiting on is what it eventually hears
+ * about -- a fallback that succeeds reports the original request complete, and one that has no
+ * candidates left reports it interrupted rather than leaving the button spinning forever.
+ */
+async function retryDownloadFallback(downloadId: number, error?: string): Promise<void> {
+  const pending = await readTrackedDownload(downloadId);
+  await clearTrackedDownload(downloadId);
   const downloads = globalThis.chrome?.downloads;
-  if (!pending || !downloads) {
+  if (!pending) {
     return;
   }
-
-  for (let index = 0; index < pending.fallbackUrls.length; index += 1) {
-    const url = pending.fallbackUrls[index]!;
-    try {
-      const id = await downloads.download({
-        url,
-        filename: pending.filename,
-        conflictAction: "uniquify"
-      });
-      await rememberDownloadFallback(id, {
-        fallbackUrls: pending.fallbackUrls.slice(index + 1),
-        filename: pending.filename
-      });
-      return;
-    } catch {
-      // Try the next bounded candidate. The original candidate order is quality order.
+  if (downloads) {
+    for (let index = 0; index < pending.fallbackUrls.length; index += 1) {
+      const url = pending.fallbackUrls[index]!;
+      try {
+        const id = await downloads.download({
+          url,
+          filename: pending.filename,
+          conflictAction: "uniquify"
+        });
+        await trackDownload(id, {
+          reportId: pending.reportId,
+          tabId: pending.tabId,
+          fallbackUrls: pending.fallbackUrls.slice(index + 1),
+          filename: pending.filename
+        });
+        return;
+      } catch {
+        // Try the next bounded candidate. The original candidate order is quality order.
+      }
     }
+  }
+  await reportDownloadState(pending, "interrupted", error);
+}
+
+async function finishDownload(downloadId: number, state: "complete"): Promise<void> {
+  const tracked = await readTrackedDownload(downloadId);
+  await clearTrackedDownload(downloadId);
+  if (tracked) {
+    await reportDownloadState(tracked, state);
   }
 }
 
-async function rememberDownloadFallback(
-  downloadId: number,
-  pending: PendingDownloadFallback
+/**
+ * Tells the tab that asked. Best effort by nature: the tab may have navigated away, in which case
+ * nothing is left there that was waiting to hear it.
+ */
+async function reportDownloadState(
+  tracked: TrackedDownload,
+  state: "complete" | "interrupted",
+  error?: string
 ): Promise<void> {
-  if (pending.fallbackUrls.length === 0) {
+  const tabs = globalThis.chrome?.tabs;
+  if (!tabs?.sendMessage || tracked.tabId === null) {
     return;
   }
-  pendingDownloadFallbacks.set(downloadId, pending);
+  try {
+    await tabs.sendMessage(tracked.tabId, {
+      type: DOWNLOAD_STATE_MESSAGE,
+      id: tracked.reportId,
+      state,
+      ...(error ? { error } : {})
+    });
+  } catch {
+    // No receiver in that tab any more.
+  }
+}
+
+function tabIdOf(sender: unknown): number | null {
+  const tab = (sender as { tab?: { id?: unknown } } | undefined)?.tab;
+  return typeof tab?.id === "number" ? tab.id : null;
+}
+
+/**
+ * Persisted, not just held in memory: a service worker is suspended between the handoff and the
+ * `onChanged` that reports the terminal state, and an in-memory map does not survive that.
+ */
+async function trackDownload(downloadId: number, pending: TrackedDownload): Promise<void> {
+  trackedDownloads.set(downloadId, pending);
   const storage = globalThis.chrome?.storage?.local;
   if (!storage) {
     return;
   }
   try {
-    const stored = await readStoredDownloadFallbacks();
+    const stored = await readStoredDownloadTracking();
     stored[String(downloadId)] = pending;
-    await storage.set({ [DOWNLOAD_FALLBACK_KEY]: stored });
+    await storage.set({ [DOWNLOAD_TRACKING_KEY]: capTracking(stored) });
   } catch {
     // The in-memory entry still covers the current service-worker lifetime.
   }
 }
 
-async function readDownloadFallback(
-  downloadId: number
-): Promise<PendingDownloadFallback | undefined> {
-  const local = pendingDownloadFallbacks.get(downloadId);
+async function readTrackedDownload(downloadId: number): Promise<TrackedDownload | undefined> {
+  const local = trackedDownloads.get(downloadId);
   if (local) {
     return local;
   }
   try {
-    const stored = await readStoredDownloadFallbacks();
+    const stored = await readStoredDownloadTracking();
     const pending = stored[String(downloadId)];
     if (pending) {
-      pendingDownloadFallbacks.set(downloadId, pending);
+      trackedDownloads.set(downloadId, pending);
     }
     return pending;
   } catch {
@@ -331,38 +402,51 @@ async function readDownloadFallback(
   }
 }
 
-async function clearDownloadFallback(downloadId: number): Promise<void> {
-  pendingDownloadFallbacks.delete(downloadId);
+async function clearTrackedDownload(downloadId: number): Promise<void> {
+  trackedDownloads.delete(downloadId);
   const storage = globalThis.chrome?.storage?.local;
   if (!storage) {
     return;
   }
   try {
-    const stored = await readStoredDownloadFallbacks();
+    const stored = await readStoredDownloadTracking();
     if (stored[String(downloadId)] === undefined) {
       return;
     }
     delete stored[String(downloadId)];
-    await storage.set({ [DOWNLOAD_FALLBACK_KEY]: stored });
+    await storage.set({ [DOWNLOAD_TRACKING_KEY]: stored });
   } catch {
     // Cleanup is best effort; entries are bounded by explicit user downloads.
   }
 }
 
-async function readStoredDownloadFallbacks(): Promise<
-  Record<string, PendingDownloadFallback>
-> {
-  const stored = await globalThis.chrome?.storage?.local?.get(DOWNLOAD_FALLBACK_KEY);
-  const raw = stored?.[DOWNLOAD_FALLBACK_KEY];
+/** Oldest first, so a browser that never reports a terminal state cannot grow this without end. */
+function capTracking(stored: Record<string, TrackedDownload>): Record<string, TrackedDownload> {
+  const ids = Object.keys(stored).sort((a, b) => Number(a) - Number(b));
+  if (ids.length <= DOWNLOAD_TRACKING_LIMIT) {
+    return stored;
+  }
+  const kept: Record<string, TrackedDownload> = {};
+  for (const id of ids.slice(ids.length - DOWNLOAD_TRACKING_LIMIT)) {
+    kept[id] = stored[id]!;
+  }
+  return kept;
+}
+
+async function readStoredDownloadTracking(): Promise<Record<string, TrackedDownload>> {
+  const stored = await globalThis.chrome?.storage?.local?.get(DOWNLOAD_TRACKING_KEY);
+  const raw = stored?.[DOWNLOAD_TRACKING_KEY];
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     return {};
   }
-  const valid: Record<string, PendingDownloadFallback> = {};
+  const valid: Record<string, TrackedDownload> = {};
   for (const [id, value] of Object.entries(raw)) {
-    const candidate = value as Partial<PendingDownloadFallback>;
+    const candidate = value as Partial<TrackedDownload>;
     if (
       /^\d+$/.test(id) &&
       typeof candidate.filename === "string" &&
+      typeof candidate.reportId === "number" &&
+      (candidate.tabId === null || typeof candidate.tabId === "number") &&
       Array.isArray(candidate.fallbackUrls) &&
       candidate.fallbackUrls.length <= 3 &&
       candidate.fallbackUrls.every(
@@ -370,6 +454,8 @@ async function readStoredDownloadFallbacks(): Promise<
       )
     ) {
       valid[id] = {
+        reportId: candidate.reportId,
+        tabId: candidate.tabId ?? null,
         filename: candidate.filename,
         fallbackUrls: candidate.fallbackUrls
       };

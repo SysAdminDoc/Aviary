@@ -209,7 +209,7 @@ test("an interrupted original-image download resumes from the persisted quality 
       );
       assert.equal(keptOpen, true);
     });
-    assert.deepEqual(response, { ok: true, id: 40 });
+    assert.deepEqual(response, { ok: true, id: 40, pending: true });
     assert.equal(typeof onDownloadChanged, "function");
 
     onDownloadChanged({ id: 40, state: { current: "interrupted" } });
@@ -218,7 +218,11 @@ test("an interrupted original-image download resumes from the persisted quality 
       "https://pbs.twimg.com/media/x?format=jpg&name=orig",
       "https://pbs.twimg.com/media/x?format=jpg&name=4096x4096"
     ]);
-    assert.deepEqual(stored["aviary.downloadFallbacks.v1"], {});
+    // The retry is a new download id, and it inherits the id the content script was told about --
+    // otherwise the tab waiting on 40 would never hear how the transfer it started ended.
+    assert.deepEqual(stored["aviary.downloadTracking.v2"], {
+      41: { reportId: 40, tabId: null, filename: "x.jpg", fallbackUrls: [] }
+    });
   } finally {
     globalThis.chrome = originalChrome;
   }

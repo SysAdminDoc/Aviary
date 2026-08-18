@@ -87,6 +87,8 @@ declare global {
           listener: (delta: {
             id: number;
             state?: { current?: "in_progress" | "interrupted" | "complete" };
+            /** Chrome's InterruptReason, e.g. NETWORK_FAILED or USER_CANCELED. */
+            error?: { current?: string };
           }) => void
         ): void;
       };

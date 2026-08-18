@@ -430,8 +430,17 @@ test("default media controls transfer both image and direct video bytes", async 
     const result = await page.evaluate(async (body) => {
       document.body.replaceChildren();
       const transfers = [];
-      let extensionMessageListener;
-      let listenerRemoved = false;
+      // The feature registers more than one runtime listener -- the native context-menu handler and
+      // the one that waits for a browser download's terminal state -- so this keeps the set rather
+      // than the last one added, and reports that destroy took them all back off.
+      const runtimeListeners = new Set();
+      const extensionMessageListener = (message, sender, respond) => {
+        let keptOpen = false;
+        for (const listener of runtimeListeners) {
+          keptOpen = listener(message, sender, respond) === true || keptOpen;
+        }
+        return keptOpen;
+      };
       const chromeRoot = globalThis.chrome ?? {};
       const originalRuntime = chromeRoot.runtime;
       globalThis.chrome = chromeRoot;
@@ -439,11 +448,10 @@ test("default media controls transfer both image and direct video bytes", async 
         id: "fixture-extension",
         onMessage: {
           addListener(listener) {
-            extensionMessageListener = listener;
+            runtimeListeners.add(listener);
           },
           removeListener(listener) {
-            listenerRemoved = listener === extensionMessageListener;
-            if (listenerRemoved) extensionMessageListener = undefined;
+            runtimeListeners.delete(listener);
           }
         }
       };
@@ -572,7 +580,7 @@ test("default media controls transfer both image and direct video bytes", async 
           const nativeMenuPreserved = target.dispatchEvent(
             new MouseEvent("contextmenu", { bubbles: true, cancelable: true })
           );
-          if (!extensionMessageListener) throw new Error("Context download listener missing");
+          if (runtimeListeners.size === 0) throw new Error("Context download listener missing");
           const response = await new Promise((resolve) => {
             const keptOpen = extensionMessageListener(
               { type: "AVIARY_DOWNLOAD_CONTEXT_MEDIA" },
@@ -603,7 +611,7 @@ test("default media controls transfer both image and direct video bytes", async 
         await AviaryMedia.mediaButtonsFeature.destroy(ctx);
         delete globalThis.GM_download;
         chromeRoot.runtime = originalRuntime;
-        output = { ...output, listenerRemoved };
+        output = { ...output, listenerRemoved: runtimeListeners.size === 0 };
       }
       return output;
     }, metadataBody);

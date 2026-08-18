@@ -1,5 +1,6 @@
 import { renderFilename } from "./template";
 import { extractTweet, mediaIdentity, type ExtractedTweet, type ExtractedMedia } from "./extract";
+import { sharedDownloadWatcher } from "./download-watch";
 import {
   createDownloader,
   DownloadPermissionError,
@@ -218,9 +219,38 @@ async function runTasks(
               : {}),
             filename
           });
-          if (job) queue?.mark(job.id, "completed");
-          if (ctx.settings.media.downloadHistory && history) {
-            await history.record(dedupeKey);
+          if (result.pending && result.downloadId !== undefined) {
+            // A batch reports handoffs -- waiting for each transfer in turn would turn a
+            // two-hundred-file run into a serial one. The queue and the duplicate index still
+            // report outcomes: both are settled when the browser says what happened, so an
+            // interrupted transfer never becomes a history entry that refuses the retry.
+            const jobId = job?.id;
+            void sharedDownloadWatcher()
+              .wait(result.downloadId)
+              .then(async (terminal) => {
+                if (terminal === "complete") {
+                  if (jobId) queue?.mark(jobId, "completed");
+                  if (ctx.settings.media.downloadHistory && history) {
+                    await history.record(dedupeKey);
+                  }
+                  return;
+                }
+                if (terminal === "interrupted") {
+                  if (jobId) queue?.mark(jobId, "failed", "the browser interrupted this transfer");
+                  ctx.diagnostics.warn("Batch media transfer was interrupted", {
+                    filename,
+                    kind: task.media.kind
+                  });
+                }
+              })
+              .catch(() => {
+                // The wait itself cannot fail meaningfully; the job simply stays running.
+              });
+          } else {
+            if (job) queue?.mark(job.id, "completed");
+            if (ctx.settings.media.downloadHistory && history) {
+              await history.record(dedupeKey);
+            }
           }
           progress.downloaded += 1;
           void ctx.auditLog.record("media.download", { filename, kind: task.media.kind, via: result.via, batch: true });
@@ -306,7 +336,26 @@ async function runPersistedJobs(
         await ctx.limiter.waitForToken();
         if (control.cancelled) break;
         const result = await downloader({ url: job.url, filename: job.filename });
-        queue.mark(job.id, result.deduplicated ? "duplicate" : "completed");
+        if (result.pending && result.downloadId !== undefined) {
+          // Resumed jobs settle the same way a fresh batch does: the queue entry stays running
+          // until the browser reports the transfer's terminal state, so a resumed job that fails
+          // is retryable rather than marked completed.
+          const jobId = job.id;
+          void sharedDownloadWatcher()
+            .wait(result.downloadId)
+            .then((terminal) => {
+              if (terminal === "complete") {
+                queue.mark(jobId, "completed");
+              } else if (terminal === "interrupted") {
+                queue.mark(jobId, "failed", "the browser interrupted this transfer");
+              }
+            })
+            .catch(() => {
+              // Nothing to report; the job stays running.
+            });
+        } else {
+          queue.mark(job.id, result.deduplicated ? "duplicate" : "completed");
+        }
         if (result.deduplicated) {
           progress.duplicate += 1;
         } else {

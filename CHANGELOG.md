@@ -16,6 +16,18 @@
 
 ### Fixed
 
+- **A browser download is only Saved once the browser says it finished.**
+  `chrome.downloads.download()` resolves when the browser accepts the request, so an interrupted
+  transfer had already been reported as Saved, marked completed in the queue, and written into the
+  duplicate index -- which then refused the retry the user wanted. The extension now reports each
+  download's terminal state back to the tab that asked. **Started** and **Saved** are distinct
+  states on the button; an interrupted transfer reads **Retry**, marks its queue entry failed, and
+  is never recorded as a duplicate; and a transfer still running when the wait gives up stays
+  **Started** rather than claiming either outcome. The tracking is persisted, so the answer still
+  arrives after the service worker has been suspended and restarted, and a quality-fallback retry
+  reports under the id the page is waiting on. Userscript saves are unchanged: `GM_download`'s own
+  callback already is the terminal state.
+
 - **Media inside a quoted post is the quoted account's, not the account that quoted them.** The
   extractor walked the whole `article` subtree and filed every photo and player it found under the
   outer post's handle and id, so saving a photo out of a quote wrote it as if the quoting account

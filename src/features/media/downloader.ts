@@ -23,6 +23,12 @@ export interface DownloaderResult {
   deduplicated?: boolean;
   /** True when the file was handed to the browser without a guaranteed save (cross-origin anchor). */
   degraded?: boolean;
+  /**
+   * The browser accepted the request but has not finished the transfer. Callers must not report a
+   * save, or write duplicate history, until the terminal state arrives for `downloadId`.
+   */
+  pending?: boolean;
+  downloadId?: number;
 }
 
 export interface CapturedMediaBytes {
@@ -128,7 +134,7 @@ export class DownloadPermissionError extends Error {
 }
 
 type ExtensionAttempt =
-  | { status: "ok" }
+  | { status: "ok"; id?: number; pending?: boolean }
   | { status: "unavailable" }
   | { status: "needs-permission" }
   | { status: "failed"; error: string };
@@ -199,7 +205,13 @@ export function createDownloader(options: DownloaderOptions = {}): Downloader {
 
     const extResult = await tryExtensionDownload(request);
     if (extResult.status === "ok") {
-      return { ok: true, via: "extension" };
+      return {
+        ok: true,
+        via: "extension",
+        ...(extResult.pending && extResult.id !== undefined
+          ? { pending: true, downloadId: extResult.id }
+          : {})
+      };
     }
     if (extResult.status === "needs-permission") {
       throw new DownloadPermissionError();
@@ -296,9 +308,13 @@ async function tryExtensionDownload(request: DownloadRequest): Promise<Extension
       url: request.url,
       fallbackUrls: request.fallbackUrls,
       filename: request.filename
-    })) as { ok?: boolean; code?: string; error?: string } | undefined;
+    })) as { ok?: boolean; id?: number; pending?: boolean; code?: string; error?: string } | undefined;
     if (response?.ok === true) {
-      return { status: "ok" };
+      return {
+        status: "ok",
+        ...(typeof response.id === "number" ? { id: response.id } : {}),
+        ...(response.pending === true ? { pending: true } : {})
+      };
     }
     if (response?.code === DOWNLOAD_PERMISSION_CODE) {
       return { status: "needs-permission" };
