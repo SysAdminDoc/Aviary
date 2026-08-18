@@ -100,16 +100,57 @@ test("a thread that fails halfway reports what was already posted", async () => 
 });
 
 test("readComposerText keeps the paragraph breaks thread mode splits on", async () => {
-  const source = await (await import("node:fs/promises")).readFile(
-    path.join(root, "src/features/integrations/crosspost.ts"),
-    "utf8"
-  );
+  // Asserted before by slicing the function out of the source and matching `/data-block="true"/`
+  // and `/join\("\n\n"\)/`. Both survive a reader that finds the blocks and then returns
+  // `textContent` anyway -- which is the bug: Draft.js renders one element per paragraph and
+  // `textContent` concatenates them with no separator, so a two-paragraph draft arrived as a
+  // single run and the blank-line split that drives thread mode could never fire.
+  const { chromium } = await import("playwright");
+  const temp = await mkdtemp(path.join(tmpdir(), "aviary-composer-"));
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const outfile = path.join(temp, "module.js");
+    await build({
+      entryPoints: [path.join(root, "src/features/integrations/crosspost.ts")],
+      outfile,
+      bundle: true,
+      format: "iife",
+      globalName: "AviaryCrosspost",
+      platform: "browser",
+      target: "es2022",
+      logLevel: "silent"
+    });
 
-  // Draft.js renders one element per paragraph; textContent joins them with no separator, so
-  // the blank-line split could never fire from the real composer.
-  const fn = source.slice(source.indexOf("export function readComposerText"));
-  assert.match(fn, /data-block="true"/);
-  assert.match(fn, /join\("\\n\\n"\)/);
+    const page = await browser.newPage();
+    // X's real composer: one `data-block` element per paragraph, no newline characters anywhere.
+    await page.setContent(`<!doctype html><meta charset=utf-8><body>
+      <div data-testid="tweetTextarea_0"><div data-block="true"><span>first paragraph</span></div><div data-block="true"><span>second paragraph</span></div><div data-block="true"><span>third</span></div></div>
+    </body>`);
+    await page.addScriptTag({ path: outfile });
+
+    const read = await page.evaluate(() => ({
+      text: AviaryCrosspost.readComposerText(),
+      naive: document.querySelector('[data-testid="tweetTextarea_0"]').textContent,
+      segments: AviaryCrosspost.splitForThread(AviaryCrosspost.readComposerText()).length
+    }));
+
+    assert.equal(read.text, "first paragraph\n\nsecond paragraph\n\nthird");
+    assert.ok(
+      !read.naive.includes("\n"),
+      "the fixture must reproduce the shape where textContent loses the breaks"
+    );
+    // The whole reason the breaks matter: thread mode splits on them.
+    assert.equal(read.segments, 3, "each paragraph must become its own post in thread mode");
+
+    const empty = await page.evaluate(() => {
+      document.querySelector('[data-testid="tweetTextarea_0"]').remove();
+      return AviaryCrosspost.readComposerText();
+    });
+    assert.equal(empty, "", "no composer means no text, not a throw");
+  } finally {
+    await browser.close();
+    await rm(temp, { recursive: true, force: true });
+  }
 });
 
 async function importBundledModule(relativePath) {

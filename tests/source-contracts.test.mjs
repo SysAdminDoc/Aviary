@@ -152,6 +152,18 @@ test("Control Center section files reach the panel only through their context", 
  * the disclosure and the local-only policy. A network call reaching the menu module would bypass
  * both, so it is banned outright rather than tested around.
  */
+/**
+ * X's bird is their trademark, and a lookalike would be no better. Only Aviary's own mark ships,
+ * so no X-hosted asset may be referenced from the favicon feature at all.
+ */
+test("no X-hosted asset is referenced as a favicon option", async () => {
+  const source = await readFile(path.join(root, "src/features/appearance/favicon.ts"), "utf8");
+  assert.ok(
+    !/twitter\.com|abs\.twimg\.com|pbs\.twimg\.com/i.test(source),
+    "the favicon feature must not reference an asset hosted by X"
+  );
+});
+
 test("the AI command menu never reaches the network itself", async () => {
   const menu = await readFile(path.join(root, "src/features/ai/command-menu.ts"), "utf8");
   const reached = [];

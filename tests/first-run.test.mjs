@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
@@ -122,8 +122,3 @@ test("a storage failure suppresses the notice instead of repeating it every load
   assert.equal(result.mounted, false, "an unreadable marker must not mean an unskippable notice");
 });
 
-test("boot only reports a fresh install when no settings were stored", async () => {
-  const main = await readFile(path.join(root, "src/main.ts"), "utf8");
-  assert.match(main, /const freshInstall = storedSettings === undefined/);
-  assert.match(main, /storage\.get<unknown>\(SETTINGS_KEY, undefined\)/);
-});

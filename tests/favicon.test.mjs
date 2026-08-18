@@ -131,13 +131,6 @@ test("the swapped icon is self-contained and needs no network request", async ()
   assert.ok(href.length < 4000, `the inlined mark should stay small, saw ${href.length} chars`);
 });
 
-test("no third-party bird logo is shipped as an option", async () => {
-  // X's bird is their trademark; a lookalike would be no better. Only Aviary's own mark ships.
-  const source = await readFile(path.join(root, "src/features/appearance/favicon.ts"), "utf8");
-  assert.doesNotMatch(source, /twitter\.com|abs\.twimg\.com/i, "no X-hosted asset may be referenced");
-  assert.match(source, /trademark/i, "the reason the bird is absent must stay documented");
-});
-
 test("the captured page still carries the icon link this feature swaps", async () => {
   const capture = await readFile(path.join(root, "_decoded/home.html"), "utf8");
   assert.match(capture, /<link rel="shortcut icon"/, "X still ships a shortcut icon link");

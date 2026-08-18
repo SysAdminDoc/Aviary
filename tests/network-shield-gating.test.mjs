@@ -47,7 +47,7 @@ before(async () => {
   await writeFile(
     entry,
     [
-      `export { adProtectionFeature } from ${JSON.stringify(abs("src/features/privacy/ad-protection.ts"))}`,
+      `export { adProtectionFeature, adLabelLanguageSupported } from ${JSON.stringify(abs("src/features/privacy/ad-protection.ts"))}`,
       `export { pageHooksFeature } from ${JSON.stringify(abs("src/features/privacy/page-hooks.ts"))}`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))}`
     ].join(";\n"),
@@ -164,4 +164,68 @@ test("the page-world logger stub is refused only when both halves are on", async
 
   // Reversibility: whatever was on, teardown turns the page-world hook off.
   assert.equal(configs.both.afterDestroy, false, "destroy must leave the page agent refusing nothing");
+});
+
+test("every language the feature claims to cover really hides a labelled ad in it", async () => {
+  // The claim used to be checked by pulling two Sets out of the source with regexes and comparing
+  // them to a hardcoded list — two lists in the test mirroring two lists in the source, and no
+  // evidence that either reaches the DOM. Here each language's own word for "Ad" is put on a post
+  // with no timestamp -- the shape that makes the label the deciding evidence, rather than a
+  // placementTracking marker that would hide the cell whatever the label said -- and the post has
+  // to disappear with the document set to that language.
+  const LABELS = {
+    en: "Ad",
+    es: "Anuncio",
+    fr: "Publicité",
+    de: "Anzeige",
+    ja: "広告",
+    ko: "광고",
+    pt: "Anúncio",
+    ar: "إعلان",
+    he: "מודעה"
+  };
+
+  const results = await page.evaluate(async (labels) => {
+    const out = {};
+    for (const [language, label] of Object.entries(labels)) {
+      document.documentElement.lang = language;
+      document.body.innerHTML = `
+        <main data-testid="primaryColumn">
+          <div data-testid="cellInnerDiv" id="labelled">
+            <article data-testid="tweet">
+              <div data-testid="User-Name"><a href="/brand"><span>@brand</span></a></div>
+              <span>${label}</span>
+            </article>
+          </div>
+        </main>`;
+
+      const ctx = window.shieldCtx(true, true);
+      await AviaryShield.adProtectionFeature.init(ctx);
+      await AviaryShield.adProtectionFeature.apply(ctx, document);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      const cell = document.getElementById("labelled");
+      out[language] = {
+        hidden: getComputedStyle(cell).display === "none" || cell.getBoundingClientRect().height === 0,
+        supported: AviaryShield.adLabelLanguageSupported(language)
+      };
+      await AviaryShield.adProtectionFeature.destroy(ctx);
+    }
+    document.documentElement.lang = "";
+    return out;
+  }, LABELS);
+
+  const unclaimed = Object.entries(results).filter(([, entry]) => !entry.supported).map(([code]) => code);
+  assert.deepEqual(unclaimed, [], "these languages have a label but are not claimed as covered");
+
+  const unhidden = Object.entries(results).filter(([, entry]) => !entry.hidden).map(([code]) => code);
+  assert.deepEqual(unhidden, [], "these languages are claimed as covered but their label is not recognised");
+});
+
+test("a language with no label is not claimed as covered", async () => {
+  const claims = await page.evaluate(() =>
+    ["zz", "fi", "th", "tr"].map((code) => ({ code, supported: AviaryShield.adLabelLanguageSupported(code) }))
+  );
+  // Reporting protection that does not exist is worse than reporting none; Trust reads this to
+  // tell the user whether label-based suppression applies on the page they are looking at.
+  assert.deepEqual(claims.filter((entry) => entry.supported), []);
 });

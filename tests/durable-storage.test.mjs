@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -146,22 +146,26 @@ test("every durable store key declared in src is registered everywhere it must b
   }
   assert.ok(declared.size >= 15, `expected the store keys, found ${declared.size}`);
 
-  const durable = await readFile(path.join(root, "src/platform/durable-storage.ts"), "utf8");
-  const profile = await readFile(path.join(root, "src/platform/profile.ts"), "utf8");
-  const backup = await readFile(path.join(root, "src/features/core/library-backup.ts"), "utf8");
-
-  const durableList = durable.slice(
-    durable.indexOf("DURABLE_STORAGE_KEYS"),
-    durable.indexOf("] as const", durable.indexOf("DURABLE_STORAGE_KEYS"))
+  // The three registries, read as the arrays they are. Slicing each file between a name and
+  // "] as const" broke on any reformat and, worse, silently produced an empty slice if either
+  // marker moved -- which would report every key as missing from every registry.
+  const registries = await importBundledEntry([
+    "src/platform/durable-storage.ts",
+    "src/platform/profile.ts",
+    "src/features/core/library-backup.ts"
+  ]);
+  const durableList = registries.DURABLE_STORAGE_KEYS;
+  const profileList = registries.PROFILE_MIGRATION_KEYS;
+  const backupList = registries.LIBRARY_BACKUP_COLLECTIONS.map((entry) =>
+    typeof entry === "string" ? entry : entry.key
   );
-  const profileList = profile.slice(
-    profile.indexOf("PROFILE_MIGRATION_KEYS"),
-    profile.indexOf("] as const", profile.indexOf("PROFILE_MIGRATION_KEYS"))
-  );
-  const backupList = backup.slice(
-    backup.indexOf("LIBRARY_BACKUP_COLLECTIONS"),
-    backup.indexOf("] as const", backup.indexOf("LIBRARY_BACKUP_COLLECTIONS"))
-  );
+  for (const [name, list] of [
+    ["DURABLE_STORAGE_KEYS", durableList],
+    ["PROFILE_MIGRATION_KEYS", profileList],
+    ["LIBRARY_BACKUP_COLLECTIONS", backupList]
+  ]) {
+    assert.ok(Array.isArray(list) && list.length > 0, `${name} is empty; the check would pass vacuously`);
+  }
 
   // Not every key belongs in every registry. These are the deliberate exclusions, each naming the
   // reason it is excluded from that specific registry — anything else missing is the seen-posts
@@ -190,18 +194,14 @@ test("every durable store key declared in src is registered everywhere it must b
   const gaps = [];
   for (const [key, file] of declared) {
     const excused = exempt[key] ?? {};
-    if (!excused.durable && !durableList.includes(`"${key}"`)) {
+    if (!excused.durable && !durableList.includes(key)) {
       gaps.push(`${key} (${file}) missing from DURABLE_STORAGE_KEYS`);
     }
-    if (!excused.profile && !profileList.includes(`"${key}"`)) {
+    if (!excused.profile && !profileList.includes(key)) {
       gaps.push(`${key} (${file}) missing from PROFILE_MIGRATION_KEYS`);
     }
-    // The backup list refers to keys by their imported constant, so match on the constant's name.
-    const constant = [...(await readFile(path.join(root, file), "utf8")).matchAll(
-      /export const (\w*KEYS?)\s*=\s*"(aviary\.[\w.-]+)"/g
-    )].find((entry) => entry[2] === key)?.[1];
-    if (!excused.backup && constant && !backupList.includes(`${constant},`) && !backupList.includes(`${constant} `)) {
-      gaps.push(`${key} (${constant}) missing from LIBRARY_BACKUP_COLLECTIONS`);
+    if (!excused.backup && !backupList.includes(key)) {
+      gaps.push(`${key} (${file}) missing from LIBRARY_BACKUP_COLLECTIONS`);
     }
   }
   assert.deepEqual(gaps, [], `durable stores are not registered everywhere:\n  ${gaps.join("\n  ")}`);
@@ -319,3 +319,31 @@ test("a removal made during a backend failure is not resurrected", async () => {
     "a delete during the outage must travel too, or the stale copy comes back"
   );
 });
+
+/** Bundles several modules into one graph so their exported registries can be read together. */
+async function importBundledEntry(relativePaths) {
+  const temp = await mkdtemp(path.join(tmpdir(), "aviary-registries-"));
+  const entry = path.join(temp, "entry.ts");
+  const outfile = path.join(temp, "module.mjs");
+  try {
+    await writeFile(
+      entry,
+      relativePaths
+        .map((relative) => `export * from ${JSON.stringify(path.resolve(root, relative).split(path.sep).join("/"))}`)
+        .join(";\n"),
+      "utf8"
+    );
+    await build({
+      entryPoints: [entry],
+      outfile,
+      bundle: true,
+      format: "esm",
+      platform: "neutral",
+      target: "es2022",
+      logLevel: "silent"
+    });
+    return await import(`${pathToFileURL(outfile).href}?v=${Date.now()}-${Math.random()}`);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+}

@@ -202,3 +202,29 @@ test("a userscript install never asks the background for anything", async () => 
   // somebody else's.
   assert.deepEqual(await syncs(), []);
 });
+
+test("boot calls a profile fresh only when nothing was stored for it", async () => {
+  // Two regexes over main.ts stood in for this: one for the `freshInstall` assignment and one for
+  // the `storage.get(SETTINGS_KEY, undefined)` call. Neither can see what the running app
+  // concluded, and the failure they guard is an upgrade shown a "here is what changed" notice --
+  // or a genuinely fresh profile never shown one.
+  // Its own boot, in its own storage: relying on whichever app the previous test left behind
+  // would make this pass or fail on test order.
+  await bootExtension();
+  const seen = await page.evaluate(() => window.__app.context.freshInstall);
+  assert.equal(typeof seen, "boolean", "boot must decide, not leave it undefined");
+
+  // The current context booted against a profile with no stored settings.
+  assert.equal(seen, true, "a profile with nothing stored must read as a fresh install");
+
+  const afterSave = await page.evaluate(async () => {
+    await window.__app.context.saveSettings();
+    // A second boot in the same storage: settings now exist, so this is an upgrade, not an install.
+    await window.__app.destroy();
+    const app = await AviaryAdRule.boot({ source: "extension" });
+    return { fresh: app.context.freshInstall, stored: Boolean(await app.context.storage.get("aviary.settings.v1", undefined)) };
+  });
+
+  assert.equal(afterSave.stored, true, "the save must have persisted for this to prove anything");
+  assert.equal(afterSave.fresh, false, "a profile with stored settings is an upgrade, not an install");
+});
