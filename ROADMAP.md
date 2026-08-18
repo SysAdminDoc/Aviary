@@ -150,13 +150,6 @@ Internal audit of the subsystems no prior pass had examined, plus the code added
 
 ### P2 — reliability
 
-- [ ] F162 — P2 — Coordinate the stores two X tabs share
-  Why: every whole-state store (hidden posts, seen posts, aria2 history, semantic index, usage ledger, archive jobs) loads once and persists full snapshots — two tabs are last-writer-wins, so a hide in tab A and a hide in tab B keep only one; the integration usage ledger's reserve step is a cross-tab TOCTOU that lets the daily AI byte budget be spent N times over; the backup snapshot/rollback window can clobber a second tab's writes. Web Locks is Baseline (Chrome 69 / Firefox 96 / Safari 15.4) and costs no dependency.
-  Evidence: audit 2026-08-15 across `hidden-posts.ts`, `seen-posts.ts`, aria2 history, `semantic-search.ts`, `usage.ts:156-206`, `library-backup.ts:395-491`; RESEARCH.md platform table (Web Locks).
-  Touches: `src/platform/storage.ts` (a lock-wrapping write path), the stores above, `library-backup.ts`.
-  Acceptance: with two simulated writers, both writes survive (merge-on-write under a lock, or read-modify-write inside one); the usage ledger cannot exceed its budget across writers; backup restore holds the lock across snapshot, write, and verify; single-tab behaviour and performance are unchanged.
-  Complexity: L
-
 ### P3 — small measured defects
 
 ## Research-Driven Additions (2026-08-16)

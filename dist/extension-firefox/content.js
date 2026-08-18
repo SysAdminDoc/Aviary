@@ -8825,6 +8825,76 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
   }
 
+  // src/platform/storage-lock.ts
+  var chains = /* @__PURE__ */ new Map();
+  function lockManager() {
+    const locks = globalThis.navigator?.locks;
+    return typeof locks?.request === "function" ? locks : void 0;
+  }
+  async function withStorageLock(name, run) {
+    const previous = chains.get(name) ?? Promise.resolve();
+    const attempt = previous.then(
+      () => runUnderBrowserLock(name, run),
+      // A failure ahead of us released its lock; it is not a reason to refuse this write.
+      () => runUnderBrowserLock(name, run)
+    );
+    const settled = attempt.then(
+      () => void 0,
+      () => void 0
+    );
+    chains.set(name, settled);
+    void settled.then(() => {
+      if (chains.get(name) === settled) {
+        chains.delete(name);
+      }
+    });
+    return attempt;
+  }
+  async function runUnderBrowserLock(name, run) {
+    const locks = lockManager();
+    if (!locks) {
+      return run();
+    }
+    let result;
+    let failure;
+    let failed = false;
+    await locks.request(`aviary.${name}`, async () => {
+      try {
+        result = await run();
+      } catch (error) {
+        failed = true;
+        failure = error;
+      }
+    });
+    if (failed) {
+      throw failure;
+    }
+    return result;
+  }
+  async function mutateStored(storage, key, fallback, mutate) {
+    return withStorageLock(key, async () => {
+      const stored = await storage.get(key, fallback);
+      const next = await mutate(stored);
+      await storage.set(key, next);
+      return next;
+    });
+  }
+  async function replaceStored(storage, key, value) {
+    await withStorageLock(key, async () => {
+      await storage.set(key, value);
+    });
+  }
+  function mergeKeyed(stored, added, removed = []) {
+    const merged = new Map(stored);
+    for (const [key, value] of added) {
+      merged.set(key, value);
+    }
+    for (const key of removed) {
+      merged.delete(key);
+    }
+    return merged;
+  }
+
   // src/platform/network.ts
   var NETWORK_TIMEOUTS = {
     aria2: 15e3,
@@ -8946,14 +9016,33 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       this.#state = { schemaVersion: 1, days: [] };
       this.#lastBlocked = null;
       try {
-        await this.#storage.set(INTEGRATION_USAGE_KEY, this.#state);
+        await replaceStored(this.#storage, INTEGRATION_USAGE_KEY, this.#state);
       } catch (error) {
         this.#state = before;
         throw error;
       }
     }
+    /**
+     * Check the budget and spend from it, atomically across tabs.
+     *
+     * The whole body runs inside one lock and re-reads the stored ledger at the top of it. Without
+     * that the sequence is a textbook time-of-check-to-time-of-use race: two tabs each read the same
+     * "bytes used today", each conclude there is room, and each write their own total -- so a daily
+     * budget could be spent once per open tab. The budget is the only promise Aviary makes about
+     * what a provider is allowed to cost, so it is the one counter that has to be exact.
+     */
     async #reserve(kind, requestBytes, records, budget) {
       await this.load();
+      return withStorageLock(
+        INTEGRATION_USAGE_KEY,
+        () => this.#reserveLocked(kind, requestBytes, records, budget)
+      );
+    }
+    async #reserveLocked(kind, requestBytes, records, budget) {
+      this.#state = mergeHighest(
+        this.#state,
+        normalizeState(await this.#storage.get(INTEGRATION_USAGE_KEY, EMPTY))
+      );
       const bytes = Math.max(0, Math.floor(Number.isFinite(requestBytes) ? requestBytes : 0));
       const maxRequestBytes = finiteLimit(budget.maxRequestBytes);
       const dailyLimitBytes = finiteLimit(budget.dailyBytes);
@@ -9147,6 +9236,32 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   function isRecord3(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
+  function mergeHighest(local, stored) {
+    const byDay = /* @__PURE__ */ new Map();
+    for (const day of local.days) {
+      byDay.set(day.day, day);
+    }
+    for (const day of stored.days) {
+      const existing = byDay.get(day.day);
+      byDay.set(
+        day.day,
+        existing ? {
+          day: day.day,
+          ai: {
+            requests: Math.max(existing.ai.requests, day.ai.requests),
+            bytes: Math.max(existing.ai.bytes, day.ai.bytes)
+          },
+          embedding: {
+            requests: Math.max(existing.embedding.requests, day.embedding.requests),
+            records: Math.max(existing.embedding.records, day.embedding.records),
+            bytes: Math.max(existing.embedding.bytes, day.embedding.bytes)
+          }
+        } : day
+      );
+    }
+    const days = [...byDay.values()].sort((a, b) => a.day.localeCompare(b.day));
+    return { schemaVersion: 1, days: days.slice(-USAGE_HISTORY_DAYS) };
+  }
 
   // src/features/integrations/semantic-search.ts
   var SEMANTIC_INDEX_KEY = "aviary.semanticIndex.v1";
@@ -9282,8 +9397,16 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       }
       return before - this.#state.entries.length;
     }
+    /**
+     * Written under the lock, and deliberately not merged.
+     *
+     * Every entry here is derived from a captured record and can be rebuilt on demand, and the index
+     * is bounded by a serialized-byte ceiling that a union of two tabs' copies would blow straight
+     * through. The lock keeps the byte accounting honest: two tabs trimming to the ceiling at once
+     * would otherwise each write a list the other had already shortened.
+     */
     async #persist() {
-      await this.#storage.set(SEMANTIC_INDEX_KEY, this.#state);
+      await replaceStored(this.#storage, SEMANTIC_INDEX_KEY, this.#state);
     }
   };
   async function fetchEmbedding(config, text, expectedDimension) {
@@ -10212,9 +10335,17 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       this.#loaded = true;
       await this.#persist();
     }
+    /**
+     * Written under the lock, and deliberately *not* merged.
+     *
+     * The aria2 daemon is the authority on what it is holding, and `reconcile()` rebuilds this list
+     * from it. Merging two tabs' copies would resurrect handoffs the daemon has already finished and
+     * this tab has already reconciled away. The lock is still worth taking: it stops a second tab's
+     * write landing in the middle of this one's read-modify-write.
+     */
     async #persist() {
       try {
-        await this.#storage.set(ARIA2_HISTORY_KEY, this.snapshot());
+        await replaceStored(this.#storage, ARIA2_HISTORY_KEY, this.snapshot());
       } catch {
       }
     }
@@ -12420,7 +12551,7 @@ ${record.text}${mediaList}`;
       }
       this.#evict(maxEntries);
       this.#version += 1;
-      await this.#persist(before);
+      await this.#persist(before, { added: [entry], removed: [], maxEntries });
       return entry;
     }
     async unhide(key) {
@@ -12432,7 +12563,7 @@ ${record.text}${mediaList}`;
       this.#entries.delete(key);
       this.#undoStack = this.#undoStack.filter((candidate) => candidate !== key);
       this.#version += 1;
-      await this.#persist(before);
+      await this.#persist(before, { added: [], removed: [key] });
       return entry;
     }
     /** Pops the most recent hide from this session; falls back to the newest stored entry. */
@@ -12452,8 +12583,16 @@ ${record.text}${mediaList}`;
       this.#entries.clear();
       this.#undoStack = [];
       this.#version += 1;
-      await this.#persist(before);
+      await this.#persist(before, null);
       return removed;
+    }
+    /** Takes on the merged result, so this tab now sees what every tab wrote. */
+    #adopt(merged) {
+      const snapshot = normalizeHiddenPosts(merged, Number.MAX_SAFE_INTEGER);
+      this.#entries = new Map(snapshot.entries.map((entry) => [entry.key, entry]));
+      this.#updatedAt = snapshot.updatedAt;
+      this.#undoStack = this.#undoStack.filter((key) => this.#entries.has(key));
+      this.#version += 1;
     }
     #evict(maxEntries) {
       const limit = Math.max(1, Math.trunc(maxEntries));
@@ -12481,14 +12620,45 @@ ${record.text}${mediaList}`;
       this.#updatedAt = snapshot.updatedAt;
       this.#version = snapshot.version;
     }
-    async #persist(before) {
+    /**
+     * Writes this tab's change into what is stored right now, not over it.
+     *
+     * The store holds its whole state in memory and used to persist that snapshot wholesale, so a
+     * hide in one tab and a hide in another kept only whichever wrote second. `delta` is what *this*
+     * call changed; it is folded into the stored entries under a cross-tab lock, and the result
+     * becomes this tab's state so the other tab's entries do not vanish on the next save either.
+     *
+     * `delta === null` means replace: only `clear()` uses it, and it means what it says.
+     */
+    async #persist(before, delta) {
       this.#updatedAt = (/* @__PURE__ */ new Date()).toISOString();
       const snapshot = {
         entries: [...this.#entries.values()],
         updatedAt: this.#updatedAt
       };
       try {
-        await this.#storage.set(HIDDEN_POSTS_KEY, snapshot);
+        if (delta === null) {
+          await replaceStored(this.#storage, HIDDEN_POSTS_KEY, snapshot);
+        } else {
+          const merged = await mutateStored(
+            this.#storage,
+            HIDDEN_POSTS_KEY,
+            null,
+            (stored) => {
+              const current = normalizeHiddenPosts(stored, Number.MAX_SAFE_INTEGER);
+              const entries = mergeKeyed(
+                current.entries.map((entry) => [entry.key, entry]),
+                delta.added.map((entry) => [entry.key, entry]),
+                delta.removed
+              );
+              return {
+                entries: capOldestFirst([...entries.values()], delta.maxEntries),
+                updatedAt: this.#updatedAt
+              };
+            }
+          );
+          this.#adopt(merged);
+        }
       } catch (error) {
         this.#restore(before);
         try {
@@ -12499,6 +12669,19 @@ ${record.text}${mediaList}`;
       }
     }
   };
+  function capOldestFirst(entries, maxEntries) {
+    if (maxEntries === void 0) {
+      return entries;
+    }
+    const limit = Math.max(1, Math.trunc(maxEntries));
+    if (entries.length <= limit) {
+      return entries;
+    }
+    const ordered = [...entries].sort(
+      (left, right) => left.hiddenAt < right.hiddenAt ? -1 : left.hiddenAt > right.hiddenAt ? 1 : 0
+    );
+    return ordered.slice(ordered.length - limit);
+  }
   function normalizeEntry(input) {
     if (!isRecord4(input)) {
       return null;
@@ -13063,6 +13246,13 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
     #loaded = false;
     #tail = Promise.resolve();
     #dirty = false;
+    /**
+     * Sightings made since the last flush.
+     *
+     * The merge folds these into what is stored rather than the whole in-memory map, so a "forget
+     * what I have seen" in another tab is not undone by this tab's next flush.
+     */
+    #pending = /* @__PURE__ */ new Map();
     constructor(storage) {
       this.#storage = storage;
     }
@@ -13092,18 +13282,45 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
         return false;
       }
       this.#seen.set(id, now2);
+      this.#pending.set(id, now2);
       this.#dirty = true;
       return true;
     }
-    /** Persist pending marks. Called on a cadence rather than per post: a timeline scroll can mark dozens. */
+    /**
+     * Persist pending marks. Called on a cadence rather than per post: a timeline scroll can mark
+     * dozens.
+     *
+     * Merged rather than overwritten: two tabs scrolling two timelines each held their own map, so
+     * whichever flushed second erased the other's sightings -- and the seen store's whole job is to
+     * know what has already gone past. The union is taken under a cross-tab lock and the retention
+     * rules are re-applied to the merged map, so the cap still holds.
+     */
     flush(now2) {
       if (!this.#dirty) {
         return;
       }
       this.#dirty = false;
       this.#prune(now2);
-      const payload = { version: 1, seen: Object.fromEntries(this.#seen) };
-      this.#tail = this.#tail.then(() => this.#storage.set(SEEN_POSTS_KEY, payload)).then(
+      const pending = this.#pending;
+      this.#pending = /* @__PURE__ */ new Map();
+      this.#tail = this.#tail.then(async () => {
+        const merged = await mutateStored(
+          this.#storage,
+          SEEN_POSTS_KEY,
+          void 0,
+          (stored) => {
+            const combined = parse(stored);
+            for (const [id, at] of pending) {
+              const existing = combined.get(id);
+              if (existing === void 0 || existing < at) {
+                combined.set(id, at);
+              }
+            }
+            return { version: 1, seen: Object.fromEntries(prune(combined, now2)) };
+          }
+        );
+        this.#seen = parse(merged);
+      }).then(
         () => void 0,
         () => void 0
       );
@@ -13113,27 +13330,16 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
     }
     async clear() {
       this.#seen = /* @__PURE__ */ new Map();
+      this.#pending = /* @__PURE__ */ new Map();
       this.#dirty = false;
       this.#loaded = true;
-      await this.#storage.set(SEEN_POSTS_KEY, { version: 1, seen: {} });
+      await replaceStored(this.#storage, SEEN_POSTS_KEY, {
+        version: 1,
+        seen: {}
+      });
     }
     #prune(now2) {
-      const cutoff = now2 - SEEN_POSTS_RETENTION_MS;
-      for (const [id, at] of this.#seen) {
-        if (at < cutoff) {
-          this.#seen.delete(id);
-        }
-      }
-      if (this.#seen.size <= SEEN_POSTS_LIMIT) {
-        return;
-      }
-      const excess = this.#seen.size - SEEN_POSTS_LIMIT;
-      let dropped = 0;
-      for (const id of this.#seen.keys()) {
-        if (dropped >= excess) break;
-        this.#seen.delete(id);
-        dropped += 1;
-      }
+      this.#seen = prune(this.#seen, now2);
     }
   };
   function parse(raw) {
@@ -13153,6 +13359,26 @@ html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-
       result.set(id, at);
     }
     return result;
+  }
+  function prune(seen, now2) {
+    const cutoff = now2 - SEEN_POSTS_RETENTION_MS;
+    const kept = /* @__PURE__ */ new Map();
+    for (const [id, at] of seen) {
+      if (at >= cutoff) {
+        kept.set(id, at);
+      }
+    }
+    if (kept.size <= SEEN_POSTS_LIMIT) {
+      return kept;
+    }
+    const excess = kept.size - SEEN_POSTS_LIMIT;
+    let dropped = 0;
+    for (const id of [...kept.keys()]) {
+      if (dropped >= excess) break;
+      kept.delete(id);
+      dropped += 1;
+    }
+    return kept;
   }
 
   // src/features/filtering/seen-posts-feature.ts
@@ -15055,8 +15281,16 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       await this.#persist();
       return { ok: true };
     }
+    /**
+     * Written under the lock, and deliberately not merged.
+     *
+     * A job belongs to the tab running it -- its payload, its cursor, its pause state -- and two
+     * tabs importing the same archive is not a thing the flow allows. Merging would recreate jobs
+     * `#trim` has already retired along with the payloads it released. The lock still matters: the
+     * trim is a read-modify-write, and a second tab writing inside it would undo the release.
+     */
     async #persist() {
-      await this.#storage.set(ARCHIVE_IMPORT_JOBS_KEY, this.#state);
+      await replaceStored(this.#storage, ARCHIVE_IMPORT_JOBS_KEY, this.#state);
     }
     async #trim() {
       const jobs = Object.values(this.#state.jobs).sort(compareJobs2);
@@ -16049,22 +16283,27 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       if (this.#index.has(key)) {
         return false;
       }
+      const entry = { key, at: (/* @__PURE__ */ new Date()).toISOString() };
       this.#index.add(key);
-      this.#entries.push({ key, at: (/* @__PURE__ */ new Date()).toISOString() });
+      this.#entries.push(entry);
       while (this.#entries.length > this.#limit) {
         const removed = this.#entries.shift();
         if (removed) {
           this.#index.delete(removed.key);
         }
       }
-      await this.#persist();
+      await this.#persist([entry]);
       return true;
     }
     async clear() {
       this.#entries = [];
       this.#index.clear();
       this.#loaded = true;
-      await this.#persist();
+      try {
+        await replaceStored(this.#storage, MEDIA_HISTORY_KEY, { entries: [] });
+      } catch (error) {
+        this.#onPersistError?.(error);
+      }
     }
     size() {
       return this.#entries.length;
@@ -16075,23 +16314,53 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     async #hydrate() {
       const fallback = { entries: [] };
       const stored = await this.#storage.get(MEDIA_HISTORY_KEY, fallback);
-      const entries = Array.isArray(stored?.entries) ? stored.entries : [];
-      this.#entries = entries.filter(
-        (entry) => typeof entry?.key === "string" && typeof entry?.at === "string"
-      ).slice(-this.#limit);
+      this.#entries = readEntries(stored).slice(-this.#limit);
       this.#index = new Set(this.#entries.map((entry) => entry.key));
       this.#loaded = true;
     }
-    async #persist() {
+    /**
+     * Folds this tab's entries into what is stored, under a cross-tab lock.
+     *
+     * Overwriting cost real work: two tabs saving media each wrote their own list, so the loser's
+     * dedup keys disappeared and the same files were offered again as new. `added` is what this call
+     * recorded -- never the whole local list -- then the same cap the in-memory list applies.
+     */
+    async #persist(added) {
       try {
-        await this.#storage.set(MEDIA_HISTORY_KEY, {
-          entries: this.#entries
-        });
+        const merged = await mutateStored(
+          this.#storage,
+          MEDIA_HISTORY_KEY,
+          { entries: [] },
+          (stored) => {
+            const byKey = /* @__PURE__ */ new Map();
+            for (const entry of readEntries(stored)) {
+              byKey.set(entry.key, entry);
+            }
+            for (const entry of added) {
+              const existing = byKey.get(entry.key);
+              if (!existing || existing.at < entry.at) {
+                byKey.set(entry.key, entry);
+              }
+            }
+            const ordered = [...byKey.values()].sort(
+              (left, right) => left.at < right.at ? -1 : left.at > right.at ? 1 : 0
+            );
+            return { entries: ordered.slice(-this.#limit) };
+          }
+        );
+        this.#entries = readEntries(merged);
+        this.#index = new Set(this.#entries.map((entry) => entry.key));
       } catch (error) {
         this.#onPersistError?.(error);
       }
     }
   };
+  function readEntries(stored) {
+    const entries = Array.isArray(stored?.entries) ? stored.entries : [];
+    return entries.filter(
+      (entry) => typeof entry?.key === "string" && typeof entry?.at === "string"
+    );
+  }
 
   // src/features/media/last-download.ts
   var LAST_DOWNLOAD_KEY = "aviary.media.last-download.v1";
@@ -18578,10 +18847,7 @@ ${COLOR_CSS}`;
     async load() {
       if (this.#loaded) return;
       const stored = await this.#storage.get(BOOKMARKS_KEY, emptyState2());
-      const entries = Array.isArray(stored?.entries) ? stored.entries : [];
-      this.#state = {
-        entries: entries.filter(isBookmark).slice(-this.#limit).map(normalizeBookmark)
-      };
+      this.#state = { entries: readBookmarks(stored).slice(-this.#limit) };
       this.#loaded = true;
     }
     async upsert(input) {
@@ -18592,11 +18858,11 @@ ${COLOR_CSS}`;
       if (existing) {
         applyInput(existing, input);
         existing.updatedAt = now2;
-        await this.#persist();
+        await this.#persist({ added: [existing], removed: [] });
         return existing;
       }
       const entry = {
-        id: `bm-${Date.now()}-${this.#sequence += 1}`,
+        id: newBookmarkId(this.#sequence += 1),
         tweetId,
         handle: normalizeHandle5(input.handle),
         text: normalizeText(input.text),
@@ -18612,7 +18878,7 @@ ${COLOR_CSS}`;
       while (this.#state.entries.length > this.#limit) {
         this.#state.entries.shift();
       }
-      await this.#persist();
+      await this.#persist({ added: [entry], removed: [] });
       return entry;
     }
     async update(id, input) {
@@ -18623,13 +18889,13 @@ ${COLOR_CSS}`;
       }
       applyInput(entry, input);
       entry.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
-      await this.#persist();
+      await this.#persist({ added: [entry], removed: [] });
       return entry;
     }
     async remove(id) {
       await this.load();
       this.#state.entries = this.#state.entries.filter((entry) => entry.id !== id);
-      await this.#persist();
+      await this.#persist({ added: [], removed: [id] });
     }
     list(filter) {
       return this.#state.entries.filter((entry) => {
@@ -18672,11 +18938,46 @@ ${COLOR_CSS}`;
     async clear() {
       this.#state = { entries: [] };
       this.#loaded = true;
-      await this.#persist();
-    }
-    async #persist() {
       try {
-        await this.#storage.set(BOOKMARKS_KEY, this.#state);
+        await replaceStored(this.#storage, BOOKMARKS_KEY, this.#state);
+      } catch {
+      }
+    }
+    /**
+     * Folds this tab's library into what is stored, under a cross-tab lock.
+     *
+     * Bookmarks are the most expensive thing here to lose: saving a post in one tab and a post in
+     * another used to keep only whichever wrote second. `delta` is what this call changed -- never
+     * the whole in-memory list, which would put back a bookmark another tab deleted while this one
+     * still held its stale copy.
+     */
+    async #persist(delta) {
+      try {
+        const merged = await mutateStored(
+          this.#storage,
+          BOOKMARKS_KEY,
+          { entries: [] },
+          (stored) => {
+            const byId = /* @__PURE__ */ new Map();
+            for (const entry of readBookmarks(stored)) {
+              byId.set(entry.id, entry);
+            }
+            for (const entry of delta.added) {
+              const existing = byId.get(entry.id);
+              if (!existing || existing.updatedAt <= entry.updatedAt) {
+                byId.set(entry.id, entry);
+              }
+            }
+            for (const id of delta.removed) {
+              byId.delete(id);
+            }
+            const ordered = [...byId.values()].sort(
+              (left, right) => left.capturedAt < right.capturedAt ? -1 : left.capturedAt > right.capturedAt ? 1 : 0
+            );
+            return { entries: ordered.slice(-this.#limit) };
+          }
+        );
+        this.#state = { entries: readBookmarks(merged) };
       } catch {
       }
     }
@@ -18764,6 +19065,14 @@ ${COLOR_CSS}`;
   }
   function cloneBookmark(entry) {
     return { ...entry, tags: [...entry.tags] };
+  }
+  function readBookmarks(stored) {
+    const entries = Array.isArray(stored?.entries) ? stored.entries : [];
+    return entries.filter(isBookmark).map(normalizeBookmark);
+  }
+  function newBookmarkId(sequence) {
+    const random = Math.floor(Math.random() * 16777215).toString(36);
+    return `bm-${Date.now()}-${sequence}-${random}`;
   }
 
   // src/features/library/bookmarks-feature.ts
@@ -19124,7 +19433,7 @@ ${COLOR_CSS}`;
       while (this.#entries.length > this.#limit) {
         this.#entries.shift();
       }
-      await this.#persist();
+      await this.#persist([entry]);
     }
     snapshot() {
       return { entries: [...this.#entries] };
@@ -19132,27 +19441,59 @@ ${COLOR_CSS}`;
     async clear() {
       this.#entries = [];
       this.#loaded = true;
-      await this.#persist();
+      try {
+        await replaceStored(this.#storage, AUDIT_LOG_KEY, { entries: [] });
+      } catch (error) {
+        this.#onPersistError?.(error);
+      }
     }
     size() {
       return this.#entries.length;
     }
     async #hydrate() {
       const stored = await this.#storage.get(AUDIT_LOG_KEY, EMPTY7);
-      const entries = Array.isArray(stored?.entries) ? stored.entries : [];
-      this.#entries = entries.filter(
-        (entry) => typeof entry?.at === "string" && typeof entry?.action === "string"
-      ).slice(-this.#limit);
+      this.#entries = readAuditEntries(stored).slice(-this.#limit);
       this.#loaded = true;
     }
-    async #persist() {
+    /**
+     * Appends into what is stored rather than over it.
+     *
+     * The log is a bounded ring of what happened locally, and two tabs each writing their own copy
+     * meant one tab's actions were simply missing from the record the user is told is complete.
+     * Merged by (time, action, detail) so the same entry arriving twice does not duplicate it.
+     */
+    async #persist(added) {
       try {
-        await this.#storage.set(AUDIT_LOG_KEY, { entries: this.#entries });
+        const merged = await mutateStored(
+          this.#storage,
+          AUDIT_LOG_KEY,
+          EMPTY7,
+          (stored) => {
+            const seen = /* @__PURE__ */ new Map();
+            for (const entry of [...readAuditEntries(stored), ...added]) {
+              seen.set(auditIdentity(entry), entry);
+            }
+            const ordered = [...seen.values()].sort(
+              (left, right) => left.at < right.at ? -1 : left.at > right.at ? 1 : 0
+            );
+            return { entries: ordered.slice(-this.#limit) };
+          }
+        );
+        this.#entries = readAuditEntries(merged);
       } catch (error) {
         this.#onPersistError?.(error);
       }
     }
   };
+  function readAuditEntries(stored) {
+    const entries = Array.isArray(stored?.entries) ? stored.entries : [];
+    return entries.filter(
+      (entry) => typeof entry?.at === "string" && typeof entry?.action === "string"
+    );
+  }
+  function auditIdentity(entry) {
+    return `${entry.at}|${entry.action}|${entry.detail ? JSON.stringify(entry.detail) : ""}`;
+  }
 
   // src/features/core/library-backup.ts
   var LIBRARY_BACKUP_SCHEMA_VERSION = 1;
@@ -19380,7 +19721,14 @@ ${COLOR_CSS}`;
       warnings
     };
   }
+  var LIBRARY_RESTORE_LOCK = "aviary.library.restore";
   async function restoreLibraryBackup(storage, payload, options = {}) {
+    return withStorageLock(
+      LIBRARY_RESTORE_LOCK,
+      () => restoreLibraryBackupLocked(storage, payload, options)
+    );
+  }
+  async function restoreLibraryBackupLocked(storage, payload, options) {
     const backup = parseLibraryBackup(payload);
     const preview = await previewLibraryRestore(
       storage,

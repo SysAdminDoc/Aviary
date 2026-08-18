@@ -1,3 +1,4 @@
+import { withStorageLock } from "../../platform/storage-lock";
 import { ARIA2_HISTORY_KEY } from "../integrations/aria2";
 import { SEMANTIC_INDEX_KEY } from "../integrations/semantic-search";
 import { INTEGRATION_USAGE_KEY } from "../integrations/usage";
@@ -380,10 +381,31 @@ export async function previewLibraryRestore(
   };
 }
 
+/** Every store a restore touches is coordinated through this one name. */
+export const LIBRARY_RESTORE_LOCK = "aviary.library.restore";
+
+/**
+ * Restores under one lock held across snapshot, write, and rollback.
+ *
+ * The window between reading each key's current value (kept for the rollback) and writing the
+ * backup's value over it is where a second tab's ordinary save used to land: the snapshot then
+ * holds a value that is no longer current, and a rollback restores the wrong thing. One lock over
+ * the whole sequence is the only way the rollback can promise what it says.
+ */
 export async function restoreLibraryBackup(
   storage: StorageGateway,
   payload: string | Uint8Array,
   options: LibraryBackupRestoreOptions = {}
+): Promise<LibraryBackupRestoreResult> {
+  return withStorageLock(LIBRARY_RESTORE_LOCK, () =>
+    restoreLibraryBackupLocked(storage, payload, options)
+  );
+}
+
+async function restoreLibraryBackupLocked(
+  storage: StorageGateway,
+  payload: string | Uint8Array,
+  options: LibraryBackupRestoreOptions
 ): Promise<LibraryBackupRestoreResult> {
   const backup = parseLibraryBackup(payload);
   const preview = await previewLibraryRestore(

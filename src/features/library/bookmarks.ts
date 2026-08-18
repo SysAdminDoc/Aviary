@@ -1,4 +1,5 @@
 import type { StorageGateway } from "../../platform/storage";
+import { mutateStored, replaceStored } from "../../platform/storage-lock";
 
 export const BOOKMARKS_KEY = "aviary.library.bookmarks.v1";
 export const BOOKMARKS_LIMIT = 5000;
@@ -57,13 +58,7 @@ export class BookmarkStore {
   async load(): Promise<void> {
     if (this.#loaded) return;
     const stored = await this.#storage.get<BookmarksState>(BOOKMARKS_KEY, emptyState());
-    const entries = Array.isArray(stored?.entries) ? stored.entries : [];
-    this.#state = {
-      entries: entries
-        .filter(isBookmark)
-        .slice(-this.#limit)
-        .map(normalizeBookmark)
-    };
+    this.#state = { entries: readBookmarks(stored).slice(-this.#limit) };
     this.#loaded = true;
   }
 
@@ -78,12 +73,12 @@ export class BookmarkStore {
     if (existing) {
       applyInput(existing, input);
       existing.updatedAt = now;
-      await this.#persist();
+      await this.#persist({ added: [existing], removed: [] });
       return existing;
     }
 
     const entry: BookmarkRecord = {
-      id: `bm-${Date.now()}-${(this.#sequence += 1)}`,
+      id: newBookmarkId(this.#sequence += 1),
       tweetId,
       handle: normalizeHandle(input.handle),
       text: normalizeText(input.text),
@@ -100,7 +95,7 @@ export class BookmarkStore {
     while (this.#state.entries.length > this.#limit) {
       this.#state.entries.shift();
     }
-    await this.#persist();
+    await this.#persist({ added: [entry], removed: [] });
     return entry;
   }
 
@@ -112,14 +107,16 @@ export class BookmarkStore {
     }
     applyInput(entry, input);
     entry.updatedAt = new Date().toISOString();
-    await this.#persist();
+    await this.#persist({ added: [entry], removed: [] });
     return entry;
   }
 
   async remove(id: string): Promise<void> {
     await this.load();
     this.#state.entries = this.#state.entries.filter((entry) => entry.id !== id);
-    await this.#persist();
+    // Named explicitly, or the merge would find it still present in another tab's copy and put
+    // the bookmark the user just deleted straight back.
+    await this.#persist({ added: [], removed: [id] });
   }
 
   list(filter?: { tag?: string; folder?: string }): BookmarkRecord[] {
@@ -170,12 +167,51 @@ export class BookmarkStore {
   async clear(): Promise<void> {
     this.#state = { entries: [] };
     this.#loaded = true;
-    await this.#persist();
+    try {
+      // A replace: emptying the library means emptying it, not re-merging another tab's copy.
+      await replaceStored(this.#storage, BOOKMARKS_KEY, this.#state);
+    } catch {
+      // best effort
+    }
   }
 
-  async #persist(): Promise<void> {
+  /**
+   * Folds this tab's library into what is stored, under a cross-tab lock.
+   *
+   * Bookmarks are the most expensive thing here to lose: saving a post in one tab and a post in
+   * another used to keep only whichever wrote second. `delta` is what this call changed -- never
+   * the whole in-memory list, which would put back a bookmark another tab deleted while this one
+   * still held its stale copy.
+   */
+  async #persist(delta: { added: BookmarkRecord[]; removed: string[] }): Promise<void> {
     try {
-      await this.#storage.set(BOOKMARKS_KEY, this.#state);
+      const merged = await mutateStored<BookmarksState>(
+        this.#storage,
+        BOOKMARKS_KEY,
+        { entries: [] },
+        (stored) => {
+          const byId = new Map<string, BookmarkRecord>();
+          for (const entry of readBookmarks(stored)) {
+            byId.set(entry.id, entry);
+          }
+          // Only what *this call* changed. Folding the whole local list in would resurrect a
+          // bookmark another tab deleted while this one still held it in memory.
+          for (const entry of delta.added) {
+            const existing = byId.get(entry.id);
+            if (!existing || existing.updatedAt <= entry.updatedAt) {
+              byId.set(entry.id, entry);
+            }
+          }
+          for (const id of delta.removed) {
+            byId.delete(id);
+          }
+          const ordered = [...byId.values()].sort((left, right) =>
+            left.capturedAt < right.capturedAt ? -1 : left.capturedAt > right.capturedAt ? 1 : 0
+          );
+          return { entries: ordered.slice(-this.#limit) };
+        }
+      );
+      this.#state = { entries: readBookmarks(merged) };
     } catch {
       // best effort
     }
@@ -282,4 +318,23 @@ function normalizeNotes(value: string | undefined): string {
 
 function cloneBookmark(entry: BookmarkRecord): BookmarkRecord {
   return { ...entry, tags: [...entry.tags] };
+}
+
+/** The stored shape is user-writable through a backup import, so every read validates it. */
+function readBookmarks(stored: BookmarksState | undefined): BookmarkRecord[] {
+  const entries = Array.isArray(stored?.entries) ? stored.entries : [];
+  return entries.filter(isBookmark).map(normalizeBookmark);
+}
+
+/**
+ * A bookmark id that is unique across tabs, not just within one.
+ *
+ * It used to be `Date.now()` plus a counter that starts at zero in every instance, so two tabs
+ * saving in the same millisecond produced the same id -- and the cross-tab merge, which keys on
+ * id, then kept one of the two bookmarks. The random suffix is for uniqueness only; nothing here
+ * depends on it being unpredictable.
+ */
+function newBookmarkId(sequence: number): string {
+  const random = Math.floor(Math.random() * 0xffffff).toString(36);
+  return `bm-${Date.now()}-${sequence}-${random}`;
 }

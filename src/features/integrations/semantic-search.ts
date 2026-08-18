@@ -1,4 +1,5 @@
 import type { StorageGateway } from "../../platform/storage";
+import { replaceStored } from "../../platform/storage-lock";
 import type { IntegrationSettings } from "../../platform/settings";
 import type { ExportRecord } from "../export/types";
 import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network";
@@ -200,8 +201,16 @@ export class SemanticIndex {
     return before - this.#state.entries.length;
   }
 
+  /**
+   * Written under the lock, and deliberately not merged.
+   *
+   * Every entry here is derived from a captured record and can be rebuilt on demand, and the index
+   * is bounded by a serialized-byte ceiling that a union of two tabs' copies would blow straight
+   * through. The lock keeps the byte accounting honest: two tabs trimming to the ceiling at once
+   * would otherwise each write a list the other had already shortened.
+   */
   async #persist(): Promise<void> {
-    await this.#storage.set(SEMANTIC_INDEX_KEY, this.#state);
+    await replaceStored(this.#storage, SEMANTIC_INDEX_KEY, this.#state);
   }
 }
 

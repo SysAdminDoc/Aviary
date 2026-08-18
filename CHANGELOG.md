@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+### Fixed
+
+- **Two X tabs no longer erase each other's work.** Every whole-state store loaded once into memory
+  and persisted that snapshot wholesale, so a hide in one tab and a hide in the other kept only
+  whichever wrote second -- silently, with nothing to see afterwards but a missing entry. Hidden
+  posts, seen posts, the media dedup index, the audit log and the bookmark library now merge on
+  write under a cross-tab Web Lock: each save folds *the change it just made* into what is actually
+  stored, never the whole in-memory list, so a deletion or a "clear" in one tab is not undone by
+  the other's next save either. Aria2 history, the semantic index and archive import jobs are
+  written under the same lock but deliberately not merged — each is derived, reconciled, or owned
+  by the tab running it, and the reasoning is recorded where the write happens.
+- **A daily provider budget can no longer be spent once per open tab.** The usage ledger checked
+  the counter and then wrote it back, which across two tabs is a time-of-check-to-time-of-use race:
+  both read the same "bytes used today", both concluded there was room. The whole check-and-spend
+  now runs inside one lock and re-reads the stored ledger first, combined with what the tab already
+  knows by taking the higher of the two counters — a daily total only goes up, so that can refuse a
+  request that would have been allowed but can never allow one that should have been refused.
+- **A library restore holds one lock across snapshot, write, and rollback.** The window between
+  reading a key's current value (kept for the rollback) and overwriting it was where an ordinary
+  save from a second tab used to land, leaving the rollback holding a value that was no longer
+  current.
+- Bookmark ids were `Date.now()` plus a counter that restarts at zero in every tab, so two tabs
+  saving in the same millisecond produced the same id. Found by the cross-tab merge, which keys on
+  id and would have kept one of the two bookmarks.
+
 ## 1.32.0 - 2026-08-18
 
 ### Added

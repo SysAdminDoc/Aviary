@@ -1,4 +1,5 @@
 import type { StorageGateway } from "../../platform/storage";
+import { mutateStored, replaceStored } from "../../platform/storage-lock";
 import type { PersistErrorSink } from "../media/history";
 
 export const AUDIT_LOG_KEY = "aviary.audit.v1";
@@ -91,7 +92,7 @@ export class AuditLog {
     while (this.#entries.length > this.#limit) {
       this.#entries.shift();
     }
-    await this.#persist();
+    await this.#persist([entry]);
   }
 
   snapshot(): AuditSnapshot {
@@ -101,7 +102,12 @@ export class AuditLog {
   async clear(): Promise<void> {
     this.#entries = [];
     this.#loaded = true;
-    await this.#persist();
+    // A replace: clearing the local action log must not leave another tab's copy behind.
+    try {
+      await replaceStored<AuditSnapshot>(this.#storage, AUDIT_LOG_KEY, { entries: [] });
+    } catch (error) {
+      this.#onPersistError?.(error);
+    }
   }
 
   size(): number {
@@ -110,21 +116,58 @@ export class AuditLog {
 
   async #hydrate(): Promise<void> {
     const stored = await this.#storage.get<AuditSnapshot>(AUDIT_LOG_KEY, EMPTY);
-    const entries = Array.isArray(stored?.entries) ? stored.entries : [];
-    this.#entries = entries
-      .filter(
-        (entry): entry is AuditEntry =>
-          typeof entry?.at === "string" && typeof entry?.action === "string"
-      )
-      .slice(-this.#limit);
+    this.#entries = readAuditEntries(stored).slice(-this.#limit);
     this.#loaded = true;
   }
 
-  async #persist(): Promise<void> {
+  /**
+   * Appends into what is stored rather than over it.
+   *
+   * The log is a bounded ring of what happened locally, and two tabs each writing their own copy
+   * meant one tab's actions were simply missing from the record the user is told is complete.
+   * Merged by (time, action, detail) so the same entry arriving twice does not duplicate it.
+   */
+  async #persist(added: AuditEntry[]): Promise<void> {
     try {
-      await this.#storage.set(AUDIT_LOG_KEY, { entries: this.#entries });
+      const merged = await mutateStored<AuditSnapshot>(
+        this.#storage,
+        AUDIT_LOG_KEY,
+        EMPTY,
+        (stored) => {
+          const seen = new Map<string, AuditEntry>();
+          // Only this call's entry: merging the whole local ring would restore lines a
+          // "Clear audit log" in another tab had just removed.
+          for (const entry of [...readAuditEntries(stored), ...added]) {
+            seen.set(auditIdentity(entry), entry);
+          }
+          const ordered = [...seen.values()].sort((left, right) =>
+            left.at < right.at ? -1 : left.at > right.at ? 1 : 0
+          );
+          return { entries: ordered.slice(-this.#limit) };
+        }
+      );
+      this.#entries = readAuditEntries(merged);
     } catch (error) {
       this.#onPersistError?.(error);
     }
   }
+}
+
+function readAuditEntries(stored: AuditSnapshot | undefined): AuditEntry[] {
+  const entries = Array.isArray(stored?.entries) ? stored.entries : [];
+  return entries.filter(
+    (entry): entry is AuditEntry =>
+      typeof entry?.at === "string" && typeof entry?.action === "string"
+  );
+}
+
+/**
+ * What makes two log lines the same line.
+ *
+ * The merge runs on every persist, so this tab's own entries meet themselves on the way back in.
+ * Time and action alone are not enough -- two downloads inside the same millisecond are two
+ * events -- so the detail is part of the identity.
+ */
+function auditIdentity(entry: AuditEntry): string {
+  return `${entry.at}|${entry.action}|${entry.detail ? JSON.stringify(entry.detail) : ""}`;
 }

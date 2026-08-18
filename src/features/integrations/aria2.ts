@@ -1,5 +1,6 @@
 import type { IntegrationSettings } from "../../platform/settings";
 import type { StorageGateway } from "../../platform/storage";
+import { replaceStored } from "../../platform/storage-lock";
 import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network";
 import { assertOutboundAllowed } from "./network-policy";
 
@@ -175,9 +176,17 @@ export class Aria2History {
     await this.#persist();
   }
 
+  /**
+   * Written under the lock, and deliberately *not* merged.
+   *
+   * The aria2 daemon is the authority on what it is holding, and `reconcile()` rebuilds this list
+   * from it. Merging two tabs' copies would resurrect handoffs the daemon has already finished and
+   * this tab has already reconciled away. The lock is still worth taking: it stops a second tab's
+   * write landing in the middle of this one's read-modify-write.
+   */
   async #persist(): Promise<void> {
     try {
-      await this.#storage.set<Aria2HistorySnapshot>(ARIA2_HISTORY_KEY, this.snapshot());
+      await replaceStored<Aria2HistorySnapshot>(this.#storage, ARIA2_HISTORY_KEY, this.snapshot());
     } catch {
       // History is best-effort; Aria2 remains usable without a storage backend.
     }

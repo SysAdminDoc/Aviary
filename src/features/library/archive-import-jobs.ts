@@ -1,4 +1,5 @@
 import type { StorageGateway } from "../../platform/storage";
+import { replaceStored } from "../../platform/storage-lock";
 
 export const ARCHIVE_IMPORT_JOBS_KEY = "aviary.archive.imports.v1";
 
@@ -268,8 +269,16 @@ export class ArchiveImportJobStore {
     return { ok: true };
   }
 
+  /**
+   * Written under the lock, and deliberately not merged.
+   *
+   * A job belongs to the tab running it -- its payload, its cursor, its pause state -- and two
+   * tabs importing the same archive is not a thing the flow allows. Merging would recreate jobs
+   * `#trim` has already retired along with the payloads it released. The lock still matters: the
+   * trim is a read-modify-write, and a second tab writing inside it would undo the release.
+   */
   async #persist(): Promise<void> {
-    await this.#storage.set(ARCHIVE_IMPORT_JOBS_KEY, this.#state);
+    await replaceStored(this.#storage, ARCHIVE_IMPORT_JOBS_KEY, this.#state);
   }
 
   async #trim(): Promise<void> {

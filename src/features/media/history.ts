@@ -1,4 +1,5 @@
 import type { StorageGateway } from "../../platform/storage";
+import { mutateStored, replaceStored } from "../../platform/storage-lock";
 
 export const MEDIA_HISTORY_KEY = "aviary.media.history.v1";
 export const MEDIA_HISTORY_LIMIT = 1500;
@@ -57,15 +58,16 @@ export class MediaHistory {
     if (this.#index.has(key)) {
       return false;
     }
+    const entry: MediaHistoryEntry = { key, at: new Date().toISOString() };
     this.#index.add(key);
-    this.#entries.push({ key, at: new Date().toISOString() });
+    this.#entries.push(entry);
     while (this.#entries.length > this.#limit) {
       const removed = this.#entries.shift();
       if (removed) {
         this.#index.delete(removed.key);
       }
     }
-    await this.#persist();
+    await this.#persist([entry]);
     return true;
   }
 
@@ -73,7 +75,12 @@ export class MediaHistory {
     this.#entries = [];
     this.#index.clear();
     this.#loaded = true;
-    await this.#persist();
+    // "Clear download history" means clear it, including whatever a second tab recorded.
+    try {
+      await replaceStored<MediaHistorySnapshot>(this.#storage, MEDIA_HISTORY_KEY, { entries: [] });
+    } catch (error) {
+      this.#onPersistError?.(error);
+    }
   }
 
   size(): number {
@@ -87,24 +94,57 @@ export class MediaHistory {
   async #hydrate(): Promise<void> {
     const fallback: MediaHistorySnapshot = { entries: [] };
     const stored = await this.#storage.get<MediaHistorySnapshot>(MEDIA_HISTORY_KEY, fallback);
-    const entries = Array.isArray(stored?.entries) ? stored.entries : [];
-    this.#entries = entries
-      .filter((entry): entry is MediaHistoryEntry =>
-        typeof entry?.key === "string" && typeof entry?.at === "string"
-      )
-      .slice(-this.#limit);
+    this.#entries = readEntries(stored).slice(-this.#limit);
     this.#index = new Set(this.#entries.map((entry) => entry.key));
     this.#loaded = true;
   }
 
-  async #persist(): Promise<void> {
+  /**
+   * Folds this tab's entries into what is stored, under a cross-tab lock.
+   *
+   * Overwriting cost real work: two tabs saving media each wrote their own list, so the loser's
+   * dedup keys disappeared and the same files were offered again as new. `added` is what this call
+   * recorded -- never the whole local list -- then the same cap the in-memory list applies.
+   */
+  async #persist(added: MediaHistoryEntry[]): Promise<void> {
     try {
-      await this.#storage.set<MediaHistorySnapshot>(MEDIA_HISTORY_KEY, {
-        entries: this.#entries
-      });
+      const merged = await mutateStored<MediaHistorySnapshot>(
+        this.#storage,
+        MEDIA_HISTORY_KEY,
+        { entries: [] },
+        (stored) => {
+          const byKey = new Map<string, MediaHistoryEntry>();
+          for (const entry of readEntries(stored)) {
+            byKey.set(entry.key, entry);
+          }
+          // Only this call's entry. Folding the whole local list in would undo a
+          // "Clear download history" performed in another tab.
+          for (const entry of added) {
+            const existing = byKey.get(entry.key);
+            if (!existing || existing.at < entry.at) {
+              byKey.set(entry.key, entry);
+            }
+          }
+          const ordered = [...byKey.values()].sort((left, right) =>
+            left.at < right.at ? -1 : left.at > right.at ? 1 : 0
+          );
+          return { entries: ordered.slice(-this.#limit) };
+        }
+      );
+      this.#entries = readEntries(merged);
+      this.#index = new Set(this.#entries.map((entry) => entry.key));
     } catch (error) {
       // Best-effort, but not silent: a full backend must be visible somewhere.
       this.#onPersistError?.(error);
     }
   }
+}
+
+/** The stored shape is user-writable through a backup import, so every read validates it. */
+function readEntries(stored: MediaHistorySnapshot | undefined): MediaHistoryEntry[] {
+  const entries = Array.isArray(stored?.entries) ? stored.entries : [];
+  return entries.filter(
+    (entry): entry is MediaHistoryEntry =>
+      typeof entry?.key === "string" && typeof entry?.at === "string"
+  );
 }

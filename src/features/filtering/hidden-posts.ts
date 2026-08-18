@@ -1,4 +1,5 @@
 import type { StorageGateway } from "../../platform/storage";
+import { mergeKeyed, mutateStored, replaceStored } from "../../platform/storage-lock";
 import type { PersistErrorSink } from "../media/history";
 
 export const HIDDEN_POSTS_KEY = "aviary.hiddenPosts.v1";
@@ -190,7 +191,7 @@ export class HiddenPostStore {
     }
     this.#evict(maxEntries);
     this.#version += 1;
-    await this.#persist(before);
+    await this.#persist(before, { added: [entry], removed: [], maxEntries });
     return entry;
   }
 
@@ -203,7 +204,7 @@ export class HiddenPostStore {
     this.#entries.delete(key);
     this.#undoStack = this.#undoStack.filter((candidate) => candidate !== key);
     this.#version += 1;
-    await this.#persist(before);
+    await this.#persist(before, { added: [], removed: [key] });
     return entry;
   }
 
@@ -225,8 +226,21 @@ export class HiddenPostStore {
     this.#entries.clear();
     this.#undoStack = [];
     this.#version += 1;
-    await this.#persist(before);
+    // Deliberately a replace, not a merge: "clear" means whatever another tab has is gone too.
+    // Merging here would resurrect exactly what the user asked to remove.
+    await this.#persist(before, null);
     return removed;
+  }
+
+  /** Takes on the merged result, so this tab now sees what every tab wrote. */
+  #adopt(merged: unknown): void {
+    const snapshot = normalizeHiddenPosts(merged, Number.MAX_SAFE_INTEGER);
+    this.#entries = new Map(snapshot.entries.map((entry) => [entry.key, entry]));
+    this.#updatedAt = snapshot.updatedAt;
+    // Undo is per-tab by nature -- it is "what I just did here" -- so keep only the keys that
+    // survived the merge rather than adopting another tab's history as this tab's undo stack.
+    this.#undoStack = this.#undoStack.filter((key) => this.#entries.has(key));
+    this.#version += 1;
   }
 
   #evict(maxEntries: number): void {
@@ -258,14 +272,48 @@ export class HiddenPostStore {
     this.#version = snapshot.version;
   }
 
-  async #persist(before: StoreState): Promise<void> {
+  /**
+   * Writes this tab's change into what is stored right now, not over it.
+   *
+   * The store holds its whole state in memory and used to persist that snapshot wholesale, so a
+   * hide in one tab and a hide in another kept only whichever wrote second. `delta` is what *this*
+   * call changed; it is folded into the stored entries under a cross-tab lock, and the result
+   * becomes this tab's state so the other tab's entries do not vanish on the next save either.
+   *
+   * `delta === null` means replace: only `clear()` uses it, and it means what it says.
+   */
+  async #persist(
+    before: StoreState,
+    delta: { added: HiddenPostEntry[]; removed: string[]; maxEntries?: number } | null
+  ): Promise<void> {
     this.#updatedAt = new Date().toISOString();
     const snapshot: HiddenPostsSnapshot = {
       entries: [...this.#entries.values()],
       updatedAt: this.#updatedAt
     };
     try {
-      await this.#storage.set(HIDDEN_POSTS_KEY, snapshot);
+      if (delta === null) {
+        await replaceStored(this.#storage, HIDDEN_POSTS_KEY, snapshot);
+      } else {
+        const merged = await mutateStored<unknown>(
+          this.#storage,
+          HIDDEN_POSTS_KEY,
+          null,
+          (stored) => {
+            const current = normalizeHiddenPosts(stored, Number.MAX_SAFE_INTEGER);
+            const entries = mergeKeyed(
+              current.entries.map((entry) => [entry.key, entry] as [string, HiddenPostEntry]),
+              delta.added.map((entry) => [entry.key, entry] as [string, HiddenPostEntry]),
+              delta.removed
+            );
+            return {
+              entries: capOldestFirst([...entries.values()], delta.maxEntries),
+              updatedAt: this.#updatedAt
+            } satisfies HiddenPostsSnapshot;
+          }
+        );
+        this.#adopt(merged);
+      }
     } catch (error) {
       this.#restore(before);
       // A mutation that did not persist must not be presented as a successful hide/unhide/clear.
@@ -277,6 +325,21 @@ export class HiddenPostStore {
       throw error;
     }
   }
+}
+
+/** Same retention rule the in-memory store applies, over a merged list. */
+function capOldestFirst(entries: HiddenPostEntry[], maxEntries?: number): HiddenPostEntry[] {
+  if (maxEntries === undefined) {
+    return entries;
+  }
+  const limit = Math.max(1, Math.trunc(maxEntries));
+  if (entries.length <= limit) {
+    return entries;
+  }
+  const ordered = [...entries].sort((left, right) =>
+    left.hiddenAt < right.hiddenAt ? -1 : left.hiddenAt > right.hiddenAt ? 1 : 0
+  );
+  return ordered.slice(ordered.length - limit);
 }
 
 function normalizeEntry(input: unknown): HiddenPostEntry | null {

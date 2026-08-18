@@ -1,5 +1,6 @@
 import type { IntegrationSettings } from "../../platform/settings";
 import type { StorageGateway } from "../../platform/storage";
+import { replaceStored, withStorageLock } from "../../platform/storage-lock";
 
 export const INTEGRATION_USAGE_KEY = "aviary.integration.usage.v1";
 export const INTEGRATION_USAGE_SCHEMA_VERSION = 1;
@@ -146,13 +147,22 @@ export class IntegrationUsageLedger {
     this.#state = { schemaVersion: 1, days: [] };
     this.#lastBlocked = null;
     try {
-      await this.#storage.set(INTEGRATION_USAGE_KEY, this.#state);
+      await replaceStored(this.#storage, INTEGRATION_USAGE_KEY, this.#state);
     } catch (error) {
       this.#state = before;
       throw error;
     }
   }
 
+  /**
+   * Check the budget and spend from it, atomically across tabs.
+   *
+   * The whole body runs inside one lock and re-reads the stored ledger at the top of it. Without
+   * that the sequence is a textbook time-of-check-to-time-of-use race: two tabs each read the same
+   * "bytes used today", each conclude there is room, and each write their own total -- so a daily
+   * budget could be spent once per open tab. The budget is the only promise Aviary makes about
+   * what a provider is allowed to cost, so it is the one counter that has to be exact.
+   */
   async #reserve(
     kind: UsageKind,
     requestBytes: number,
@@ -160,6 +170,26 @@ export class IntegrationUsageLedger {
     budget: UsageBudget
   ): Promise<UsageDecision> {
     await this.load();
+    return withStorageLock(INTEGRATION_USAGE_KEY, () =>
+      this.#reserveLocked(kind, requestBytes, records, budget)
+    );
+  }
+
+  async #reserveLocked(
+    kind: UsageKind,
+    requestBytes: number,
+    records: number,
+    budget: UsageBudget
+  ): Promise<UsageDecision> {
+    // Another tab may have spent since this one loaded, and the check below is only meaningful
+    // against what is actually recorded now. Combined with what this tab already knows rather
+    // than replaced by it: the counters only ever go up within a day, so taking the higher of the
+    // two can never under-count -- which keeps the budget exact even on a backend whose read lags
+    // its own write.
+    this.#state = mergeHighest(
+      this.#state,
+      normalizeState(await this.#storage.get<unknown>(INTEGRATION_USAGE_KEY, EMPTY))
+    );
     const bytes = Math.max(0, Math.floor(Number.isFinite(requestBytes) ? requestBytes : 0));
     const maxRequestBytes = finiteLimit(budget.maxRequestBytes);
     const dailyLimitBytes = finiteLimit(budget.dailyBytes);
@@ -436,4 +466,40 @@ function cloneState(state: UsageState): UsageState {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * The higher of two ledgers, counter by counter.
+ *
+ * A daily total is monotonic, so "whichever is larger" is always the one that has seen more
+ * spending. That makes the merge safe in the direction that matters: it can refuse a request that
+ * would have been allowed, and it can never allow one that should have been refused.
+ */
+function mergeHighest(local: UsageState, stored: UsageState): UsageState {
+  const byDay = new Map<string, UsageDay>();
+  for (const day of local.days) {
+    byDay.set(day.day, day);
+  }
+  for (const day of stored.days) {
+    const existing = byDay.get(day.day);
+    byDay.set(
+      day.day,
+      existing
+        ? {
+            day: day.day,
+            ai: {
+              requests: Math.max(existing.ai.requests, day.ai.requests),
+              bytes: Math.max(existing.ai.bytes, day.ai.bytes)
+            },
+            embedding: {
+              requests: Math.max(existing.embedding.requests, day.embedding.requests),
+              records: Math.max(existing.embedding.records, day.embedding.records),
+              bytes: Math.max(existing.embedding.bytes, day.embedding.bytes)
+            }
+          }
+        : day
+    );
+  }
+  const days = [...byDay.values()].sort((a, b) => a.day.localeCompare(b.day));
+  return { schemaVersion: 1, days: days.slice(-USAGE_HISTORY_DAYS) };
 }
