@@ -391,39 +391,6 @@ below were read at the cited line. See RESEARCH.md.
 
 ### P1 — accessibility
 
-- [ ] F196 — P1 — Assert accessibility by rendering, in the lane that already exists
-  Why: a11y is currently verified by regexing source text (F140, F182), which cannot catch the two
-  defects above. No major extension in this space — uBlock Origin, Dark Reader, Stylus, Refined GitHub
-  — publishes accessibility checks, and Aviary already owns every prerequisite: Playwright 1.62.1,
-  `launchPersistentContext`, local fixtures, and 60 committed baselines.
-  Evidence: `tests/audit-a11y.test.mjs` source-string assertions; `tools/settings-visual-harness.mjs`
-  harness; RESEARCH.md Architecture.
-  Touches: a new axe lane beside `tests/visual/`, `package.json` scripts, devDependency (axe is the one
-  place a dev-only dependency is worth it; runtime deps stay at zero).
-  Acceptance: an automated pass runs against the mounted panel scoped to Aviary's injected selectors —
-  never X's own DOM — across all 13 destinations plus the options page, in default and forced-colors
-  states; violations fail the lane; what axe cannot detect is written down so the pass is not mistaken
-  for full coverage.
-  Distinct from F140, deliberately: F140 replaces hand-written source-regex assertions with driven
-  interaction checks (focus order, `inert`, Escape, focus return) that no rule engine can express. This
-  item adds the automated rule sweep — invalid ARIA, missing accessible names, contrast — across every
-  destination. Land F140 first; it defines the harness this rides on. Neither subsumes the other.
-  Note (2026-08-18): verified working against this repo's exact pins, with four mechanics worth knowing
-  before starting. (1) `@axe-core/playwright` 4.13.0 peers on `playwright-core >=1.0.0`, which
-  `playwright@1.62.1` satisfies, and it does **not** require `@playwright/test` — types only, so it runs
-  under `node --test`. (2) `AxeBuilder` throws "Please use browser.newContext()" on a page from
-  `browser.newPage()`; the existing harness is already fine because `launchPersistentContext` returns a
-  context. (3) Shadow DOM scoping works and was proven end to end — `.include({ fromShadowDom:
-  ["#av-control-center", ".av-panel"] })`, one selector per level; violations come back with a **nested
-  array** `target`, so serialize it into the failure message. Axe supports open roots only, and
-  `control-center.ts:454` uses `attachShadow({mode:"open"})`. (4) Axe skips hidden regions, so the panel
-  must be open — which `launchSettingsVisualHarness()` already does. Also: `page.accessibility.snapshot()`
-  was **removed** in Playwright 1.57.0 and `Locator.ariaRef()` in 1.60.0, so F140 must use
-  `page.ariaSnapshot()` plus real `page.keyboard.press()` / `activeElement` checks. Expect Aviary's
-  glassmorphism to generate `incomplete` contrast entries — pin that count so growth fails. Note that
-  **no axe rule covers forced-colors breakage**; F194 is not redundant with this.
-  Complexity: M
-
 ### P1 — delivery integrity
 
 ### P1 — breakage response

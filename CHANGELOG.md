@@ -10,6 +10,14 @@
   port cannot be read from the page or posted to without the reference, so catching an envelope no
   longer reveals anything replayable. A second handshake cannot displace a standing channel either.
 
+### Added
+
+- An automated accessibility sweep runs against Aviary's own injected UI across all 13 Control
+  Center destinations, catching invalid ARIA, missing accessible names and insufficient contrast.
+  It is scoped to Aviary's shadow root — X's DOM is not ours to assert on — and its blind spots are
+  written down beside it: roughly half of accessibility issues by volume, and no coverage at all of
+  forced-colors breakage, which has its own lane.
+
 ### Changed
 
 - The Control Center's accessibility contract is now verified by driving the panel instead of
