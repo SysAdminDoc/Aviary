@@ -1,158 +1,198 @@
 # Research — Aviary
 
-Date: 2026-08-17 — replaces the 2026-08-16 feed-media research, whose findings shipped in v1.26.0/v1.27.1 or moved to ROADMAP.md (F169, F170).
+Date: 2026-08-18 — replaces all prior research.
 
-Scope: a general product/engineering pass over the subsystems the media-focused passes never examined. Confidence is labelled per claim: **Verified** (read in this repo or fetched from a primary source during this pass), **Likely** (secondary source), **Needs live validation** (requires an operator session on live X).
+This pass completes the 2026-08-17 pass, which lost 6 of 10 external streams to an API limit. Internal findings from that pass that are still open (F171–F193) are not restated here; this file carries what is new plus the standing conclusions. Confidence labels: **Verified** (read in this repo or fetched from a primary source), **Likely** (secondary source), **Needs live validation** (requires an operator session on live X).
 
 ## Executive Summary
 
-Aviary at v1.27.1 is a genuinely mature local-first X enhancer: 118 TypeScript modules, 41k LOC, zero runtime dependencies, 502 passing tests, clean typecheck and lint, an enforced no-innerHTML/no-eval/no-`<all_urls>` preflight, and a philosophy that is unusually well policed by its own test suite. Its strongest shape is the one it already chose — passive GraphQL observation plus reversible DOM work — which is the only design in this field with a durable half-life (Nitter, twarc, snscrape and twint all died of the alternative).
+Aviary at v1.27.1 is a mature local-first X enhancer — 118 TypeScript modules, 41k LOC, zero runtime dependencies, 502 passing tests, clean typecheck and lint, and a philosophy policed by its own preflight. Its passive-capture architecture is now demonstrably the *only* durable one in this field: in the 2026-05→08 window alone, OldTwitter users reported account locks and suspensions (issue #1222, 152 comments; #1332, 2026-08-08), OldTweetDeck was crippled by rate limits, X capped free accounts at 50 posts/day, and X's 2026-01-15 ToS added liquidated damages for anyone who "requests, **views**, or accesses" over 1M posts in 24 hours. Every tool that replicated X's API is bleeding; the tools that only observe are fine.
 
-The gap is not features. It is that a finished product has no users and a handful of correctness defects that its source-text test suite structurally cannot catch.
+Two things changed the opportunity landscape in the last five days, and both favour Aviary:
+
+1. **X open-sourced its ranking algorithm (Apache-2.0) and shipped a personal "Under the Hood" JSON export on 2026-08-13** showing whether visibility-limiting labels were applied to your account. **Nobody has built a local reader for it.** It is a file the user downloads — zero network, zero originated calls — which is precisely Aviary's shape. Caveat worth carrying into the build: HN's reaction to the algorithm release was sceptical — *"shared without weights so we only have so much visibility"*, *"How does anyone know if this is actually what is deployed to the live service?"* — so the **personal JSON export** (the user's own data) is the trustworthy half; the ranking weights are the speculative half and should not be presented as ground truth.
+2. **X's profile/media redesign hit the web ~2026-08-13→16**, and it is revertible client-side through X's own feature flags. Nine near-identical userscripts appeared within five days (top one at 123 installs/day). This is the hottest live demand in the ecosystem and it corroborates two currently-blocked items.
 
 Top opportunities, in priority order:
 
-1. **The product is undistributed and its update channel is dead.** `github.com/SysAdminDoc/Aviary` and the shipped `@updateURL`/`@downloadURL` both return HTTP 404 — the repo is private (0 stars, 0 forks, 0 issues, 3 releases nobody can fetch). Every other item is downstream of this. Tracked as blocked (F125, operator decision); the *engineering* halves are actionable now.
-2. **Filtered posts never collapse their timeline row.** `filter-engine.ts:206` writes the attribute with the wrong value; the CSS never matches. Filtering leaves a full-height blank gap for every hidden post — the exact defect hidden-posts was built to avoid.
-3. **A daily AI/embedding budget of `0` means unlimited, not blocked.** `usage.ts` collapses "unset" and "explicit zero" to the same value; the guard is `> 0`. A user capping spend at zero removes the cap.
-4. **Any page script can disable ad protection or uninstall the page agent.** The bridge broadcasts its session nonce via `postMessage(envelope, "*")`; the agent then honours `config` and `teardown` from anyone replaying it.
-5. **36% of the test suite asserts on source text, not behaviour.** 33 of 91 files regex over `src/`. A rename fails a working feature; a real regression that preserves the literal string passes. "502 tests" is worth materially less than it reads.
-6. **The DOM captures expire 2026-09-30 and then preflight fails hard.** They are already 90 days stale, they block ~9 roadmap items, and they contain a real user's handle and post text in tracked git history — which also blocks ever making the repo public.
-7. **The Popover API is free at both manifest floors and deletes the most code** (Chrome 116 = the declared floor exactly; Firefox 125 < 128). Top-layer rendering, light-dismiss and focus management, without the z-index fight against x.com's stacking contexts.
-8. **The i18n catalog is 53.9% of the shipped bundle** — measured, not estimated. Refines F138's rationale (below), which named the wrong cost.
-9. **WACZ is the packaging the archiving ecosystem standardised on**, and F147's current design has a replay-correctness bug worth fixing before it is built.
-10. **Archive-import fidelity** — t.co expansion and numeric-ID→handle backfill are documented failures of X's own export that Aviary can fix from its captured corpus with zero originated requests.
+1. **The Control Center is unusable in Windows High Contrast.** The settings toggle signals on/off purely through author colours the UA discards under `forced-colors: active`, and its real checkbox is `opacity: 0; appearance: none`, suppressing the UA's own rendering. Zero forced-colors coverage exists.
+2. **`aria-busy` is written as `""`, so the save transaction never announces as busy** — and it shares a root cause with the filter-engine defect (F171): half of all `toggleAttribute` calls target attributes that require a value.
+3. **The userscript update path is broken twice over.** Beyond the 404 (F183), `@updateURL` points at the full 1.9 MB `.user.js` rather than a `.meta.js`, so every update poll downloads the whole bundle — against a documented Tampermonkey size limit on the update path specifically.
+4. **Nothing gates delivery size.** No budget exists in preflight or build; the bundle grew 27 KB in two days.
+5. **Selector health knows which feature is broken and never says so.** `selectors.ts` already declares feature ownership and health already computes match state — the join is simply missing.
+6. **A feature-bisect wizard is unbuilt anywhere in this field** and directly attacks the project's #1 recurring pain (X DOM churn).
+7. **Fully-local hybrid search is now viable in the extension** — and would let Aviary retire the only component that sends post text off-device.
+8. **No major extension publishes accessibility CI.** Aviary already has the Playwright harness to be first.
+9. **Batch media download probably broke this week** — incumbents report the Photos/Videos split broke exactly this.
+10. **Local reading affordances** (read marker, rule expiry, shape filters, thread unroll) are well-evidenced, cheap, and entirely local.
+
+**The positioning nobody has claimed.** Account-safety anxiety is now an explicit purchase blocker — asked twice in three days on a single r/Twitter thread ("Any chance using this will get your account banned?"), and OldTwitter demonstrably fails it (issue #1332, users reporting repeated temp locks that lift when the extension is disabled; the AMO listing was pulled and a third party re-uploaded it unofficially). **No incumbent promises "this cannot get your account restricted."** Aviary's DOM-only, never-originate architecture is precisely that promise, and it is unmade in this market. Two supporting facts: Media Harvest (100k users, the "good" incumbent) ships **no download history and no already-downloaded state** — both of which Aviary already has — and the 151k-install Twitter Media Downloader has been abandoned since 2024-01-03 with users hand-patching bearer tokens to keep it alive.
+
+**Counter-signal, weighed deliberately.** Local-first architecture does not sell on its own. A 9-month retrospective from another local-first extension author (r/chrome_extensions, 2026-08-17) is blunt: *"Users weren't judging whether my architecture was local-first. They were judging the PDF they downloaded… Users may appreciate your architecture, but they experience your product through the result."* The same thread notes that enumerating narrow host permissions can *look* worse at install than `<all_urls>`, because the browser renders them as a long list — the fix being `optional_host_permissions` plus a runtime request behind a user gesture, **which Aviary already does** for `downloads` and the two media hosts. Read together: trust is necessary but not sufficient, and it should be argued through outcomes (files that land correctly, features that survive a redesign) rather than through architecture diagrams.
 
 ## Product Map
 
-- **Core workflows** — (1) read a de-advertised, decluttered, optionally re-themed X; (2) filter or hide posts reversibly, per route; (3) save media at original quality in one click; (4) capture and export what you have already scrolled past, in portable formats; (5) keep a local library — bookmarks, notes, snapshots, imported X archives — that outlives what X renders.
-- **Personas** — the privacy-motivated reader (ad/telemetry refusal, no account risk); the archivist/data-hoarder (export, WARC, archive import, media at `orig`); the power reader (filters, hide-and-remember, presets, themes).
-- **Platforms** — readable userscript (Tampermonkey/Violentmonkey; `@run-at document-start`) and MV3 extension for Chrome ≥116 and Firefox ≥128. Desktop-first; verification viewport 1440×900 with a 1920×1080 check. **Distribution today: none.**
-- **Integrations and data flow** — everything local by default. Opt-in outbound paths are Aria2 JSON-RPC, Bluesky/Mastodon crosspost, an AI provider, and an embeddings endpoint. The trust boundary is absolute and enforced in review: observe responses X already made; never originate an authenticated call, read a cookie, or extract a token.
+- **Core workflows** — (1) read a de-advertised, decluttered, re-themed X; (2) filter or hide posts reversibly, per route; (3) save media at original quality; (4) export what you scrolled past in portable formats; (5) keep a local library that outlives what X renders.
+- **Personas** — the privacy-motivated reader; the archivist/data-hoarder; the power reader.
+- **Platforms** — readable userscript (`@run-at document-start`) and MV3 extension, Chrome ≥116 / Firefox ≥128. Desktop-first, 1440×900 primary. **Distribution today: none** (private repo, 404 update URL).
+- **Data flow** — local by default. Opt-in outbound: Aria2, Bluesky/Mastodon crosspost, AI provider, embeddings endpoint. The boundary is absolute: observe responses X already made; never originate an authenticated call, read a cookie, or extract a token.
+
+**Distribution channels, when F125 resolves.** Hacker News is near-zero distribution for this category — every X-extension Show HN in 2026 scored 1–5 points. The audience is on **Reddit** (the r/Twitter grid-restore announcement took 167 upvotes / 70 comments in three days) and **Greasy Fork** (a grid-restore script went 0 → 354 installs at 132/day within 48 hours of publishing). Greasy Fork's code rules — no obfuscation, no minification, primary functionality must live in the posted source — describe Aviary's readable single-file build exactly, making its 1.9 MB bundle a compliance asset rather than a quirk. Two standing asks in this ecosystem are packaging, not features: self-distribution over AMO, and signed Firefox builds.
+
+**Mobile is the loudest unserved gap and Aviary does not address it.** On the grid-restore thread it was the single most repeated unanswered question — *"won't work for phone browsers that don't allow for extensions. It's so frustrating trying to look through art on my phone"* (2026-08-15), plus separate Chrome-Android and iOS asks. Aviary is desktop-first by explicit design (1440×900 primary), though `mobile-touch.ts` and coarse-pointer affordances exist. Firefox for Android runs userscript managers, so the userscript build is the plausible path — but nothing verifies it there. Not proposed as work this pass; recorded so the omission is deliberate rather than accidental.
+
+### X platform changes, 2026-05-01 → 2026-08-18 (Verified unless noted)
+
+| Date | Change | Effect |
+|---|---|---|
+| 2026-02-12 | X **removed the "Dim" theme**; in-app dark-mode toggle removed March 2026 | Aviary's 6 dark palettes — including one named `dim` — now restore something X deleted. Headline feature, not a nicety |
+| 2026-05-08 | Home/"Add Tweet"/X icons changed, desktop nav markup changed, "Chat"→"Messages" | **Breaks** selectors |
+| 2026-05-16 | Free accounts capped at 50 posts / 200 replies / 400 follows per day | **Breaks** mass-block and unfollow tools; validates read-only |
+| 2026-05-30 | **Communities shut down** | Obsoletes Communities features. Aviary references none — no debt |
+| 2026-06-03 | API adds `paid_partnership` field | New filterable label in payloads |
+| 2026-07-05 | "Manage timelines" button and "More From This Author" in threads | Breaks / opportunity |
+| 2026-07-27 | X Money launched (US) | New sidebar surface |
+| ~2026-08 | New **Grok upsell in the desktop sidebar** | May escape Aviary's `hideGrok`. **Needs live validation** |
+| **2026-08-13** | **X open-sourced its ranking algorithm** (`xai-org/x-algorithm`, Apache-2.0, 31.8k★) **and shipped "Under the Hood"** — eligible users download a JSON of aggregate stats showing visibility-limiting labels applied to their account/posts | **Largest opportunity in the window** |
+| **~2026-08-13→16** | **Profile/media redesign on web**: 3-column media grid removed, Media tab split into Photos/Videos (Videos default), multi-image posts become carousels. Revertible via `responsive_web_profile_redesign_enabled` and `rweb_media_carousel_enabled` | **Breaks + hottest demand** |
+| 2026-08-17 | The twitter.com escape hatch closed — logging in via twitter.com now sets an x.com cookie | Redirect-based workarounds are dead |
+| 2026-08-01 | **Chrome Web Store policy enforced**: user data "strictly necessary to the disclosed single purpose"; new ban on circumventing "safety guardrails… of AI-powered services" | Favours Aviary's posture; the AI provider runner needs careful single-purpose framing at listing time |
+| 2026-07-15 | Musk pledged to open source "the entire codebase… no exceptions" | **Likely** — no repo, no deadline, no reviewers as of 2026-08-18. Do not plan against it |
+
+**Bearing on two blocked items.** `Roadmap_Blocked.md` blocks **F115** ("Restore old X" feature-flag reversion) and **F139** (restore the Aug-2026 media redesign) because `featureSwitch` appears zero times in the 2026-05-19 captures and third-party scriptlets are not accepted as evidence. That rule still holds, but the evidence base is now much stronger: the two flag names are used by nine independent scripts with real install counts, and Control Panel for Twitter v4.24.0 (2026-08-17) states it reverts these surfaces "using X's own feature flags." This does not unblock them — only a capture does (F134, expiring 2026-09-30) — but it raises their expected value considerably and should inform how F134's capture session is spent.
 
 ## Competitive Landscape
 
-Full per-competitor detail from the 2026-08-14 ecosystem pass is in the vault note `Research/X Enhancer Ecosystem 2026-08-14.md`; the media-downloader field is covered in ROADMAP F118/F150/F169/F170. Not restated here. What follows is what this pass adds.
+Prior detail (Control Panel for Twitter, OldTwitter, TUIC, uBO lists, TwitterMediaHarvest, twitter-click-and-save, phanpy, tweetxvault, ArchiveWeb.page, SingleFile, gallery-dl, twitter-archive-parser) is in the vault note `Research/X Enhancer Ecosystem 2026-08-14.md` and the 2026-08-17 pass. New signal only:
 
-**Control Panel for Twitter (~2.6k★) / uBO x.com filter lists** — the safe DOM layer. No ban reports across the community. *Learn:* rule-based filtering with importable rule packs is table stakes (supports F145). *Avoid:* nothing; this is the lane Aviary is already in.
+**mkubicek/xTap** (89★, MIT) — patches `fetch`/XHR to observe GraphQL X already requested → daily JSONL. *"No scraping, no extra requests — just a tap on the data already flowing through."* **Aviary's architectural twin.** *Learn:* the framing is better than Aviary's own; the passive-tap story should be the README's first paragraph. *Avoid:* its stealth measures (randomized channel names, `toString()` overrides) — evasion invites the adversarial relationship Aviary avoids.
 
-**OldTwitter (~2.7k★)** — replaces the client, eats ban waves (March 2026 "inauthentic behavior" wave, issue #1222, 152 comments). *Learn:* nothing about architecture. *Avoid:* the entire API-layer approach. This is the empirical basis for Aviary's passive-capture rule.
+**xaitax/X-Posed** (264★, 5,000+ Chrome users) — inline country flags, device icons, VPN detection. *Learn:* account-provenance badges have real pull. *Avoid:* everything about how it works — it captures the session's authorization and CSRF headers, calls X's AboutAccount endpoint, and phones home to a 3.3M-entry shared cache. It is the clearest available demonstration of what Aviary refuses, and a direct differentiation target.
 
-**tweetxvault** — the closest direct competitor to Aviary's *library* half: bookmarks + likes + tweets into LanceDB, hybrid BM25 + MiniLM-384d + rerank search, X archive ZIP import, self-contained HTML viewer export. *Learn:* two things. (a) **Hybrid search beats pure-semantic** — exact-handle and exact-phrase queries are where vector-only search fails, which is precisely Aviary's current semantic-search shape. (b) It **auto-discovers GraphQL queryIds by parsing X's own JS bundles**, which survives queryId rotation without originating a call. *Avoid:* it originates authenticated GraphQL with the user's cookies — the line Aviary refuses — and is Linux/macOS only.
+**asmyshlyaev177/X-Pat** — MV3, TypeScript + Preact, 2 runtime deps, **609 unit tests**, on the Chrome Web Store. *Learn:* it competes on engineering-quality positioning, which is Aviary's claimed ground — and it is actually distributed, which Aviary is not.
 
-**ArchiveWeb.page (Webrecorder, ~1.5k★)** — the reference architecture for Aviary's extension half: in-browser capture → IndexedDB → WARC **and WACZ** export, replayed by wabac.js. *Learn:* the whole packaging and replay story (see F147 correction below). *Avoid:* it needs `chrome.debugger`; unreachable from a userscript, and Aviary's GraphQL tap is the userscript-legal equivalent.
+**Advanced Search for X** (1,163 installs, MIT) — query-builder with two-way sync to X's search bar, drag-and-drop folders for saved searches, regex mute, local tagged bookmarking. *Learn:* the **search builder is a genuine gap** in Aviary's surface; its bookmark/filter half overlaps Aviary most closely of any competitor.
 
-**Scoop (Harvard LIL) and Bellingcat auto-archiver** — evidentiary capture. *Learn:* capture *attachments* as first-class outputs (screenshot, PDF, DOM snapshot, TLS cert chain, provenance summary) and an enricher chain (hash → perceptual hash → timestamp → sign). RFC3161 timestamping is free, accountless, and answers "did this post really say this on this date." *Avoid:* porting their Python/Playwright/Docker weight; take the concepts only.
+**Old Twitter Layout (2026)** (80,000 users, 4.5★, 32 locales) — full client replacement. *Learn:* the demand for layout restoration is enormous. *Avoid:* the architecture; this is the class that eats ban waves.
 
-**SingleFile (~22.2k★)** — *Learn:* the self-extracting ZIP (a file that is simultaneously a valid ZIP and a valid HTML page, opening in any browser with no viewer and no extension) is the ideal single-thread share format. *Avoid:* data-URI-everything inflates size ~33% and produces no replay index.
+**Refined GitHub** — the survival pattern worth copying: a 3-column `broken-features.csv` on GitHub Pages, fetched ≤6-hourly with `cache: 'no-store'`, whose rows **self-expire** once the user's version passes a `Minimum working version` column, plus a `strings.json` selector-override map. Remote *data*, never code, and short-circuited entirely on dev builds. *Learn:* the parser is the valuable part and works identically against a **locally bundled** copy — Aviary can have the disable-a-broken-feature machinery with zero network. *Avoid:* the remote channel itself by default; Dark Reader disabled its equivalent for all users because GitHub does not permit CDN use at scale and *"making requests to other resources would look suspicious"* to reviewers.
 
-**gallery-dl** — *Learn:* its `--download-archive` is documented as *not* deduplicating across different source URLs pointing to the same image. Aviary's URL-keyed download history has the identical gap; content-hash plus perceptual hash is the fix.
+**Vencord** — patches declare `fromBuild`/`toBuild` ranges, `group: true` for all-or-nothing application, and fall back to the original module on throw; a headless CI job replays every patch against the live host on a schedule and bins failures into bad-patches / bad-finds / bad-starts. *Learn:* the triage taxonomy and the scheduled replay. *Adapt:* Aviary forbids GitHub Actions, so this must be a local scheduled lane on top of the existing Playwright smoke harness.
 
-**timhutton/twitter-archive-parser** — the best documented list of what X's own export gets wrong: t.co links preserved unexpanded, DM/mention participants stored as bare numeric IDs, media downscaled from originals, likes stored as text+link that dies with the source, and **bookmarks omitted entirely**. *Learn:* every one of these is a fix Aviary can make locally. The bookmarks omission is the single strongest positioning argument the README does not currently make.
+**Phanpy** — the reference for local reading UX. Catch-up digest with a 1–12h window slider, category chips with live counts, five sort axes including a **post-density metric** (`textLen/140 + 8·media + 8·card`), a Top Links pane, author grouping, and a deliberate refusal to mark anything read — ending in *"That's all."* *Learn:* nearly all of it; every mechanic computes from data Aviary already captures. *Adapt:* its column hotkeys (`1`–`9`, `[`/`]`) violate the no-shortcuts rule and must become click targets.
 
-**Dead ends, with evidence** — snscrape (dead), twint (archived), twarc (README: "no longer actively supported after changes to Twitter's API quotas made it unusable", 1.4k★ and Mellon-funded, still dead), Nitter (guest tokens removed 2024-01-31; no drop-in replacement in 2026), Conifer (Rhizome twilight announced 2025-12-15; capture halts May 2026). Every one died of depending on an access path X controlled. **Confidence: Verified.** This is the strongest available evidence that Aviary's passive design is correct and should not be relaxed for any feature.
+**Cyd** (Lockdown Systems / Lucy Parsons Labs, https://cyd.social/) — local-first, open source, desktop **and mobile**, covering X and Bluesky: *"runs directly on your computer or phone, not on our servers… We don't have access to any of your accounts."* The closest philosophical peer to Aviary's archive half, and the tool r/Twitter now recommends for filtered bulk deletion. *Learn:* it occupies delete/backup/migrate and has no browsing UX — the two products are complements, not rivals, and Aviary should not chase account-mutation features it has forbidden itself. *Note:* it ships on mobile, which Aviary does not.
+
+**Media Harvest** (100,000 users, 4.52★, MV3, scoped permissions) — the incumbent Aviary most resembles. Its own store listing concedes *"without batch processing or file compression"*, and 2026-08 reviews ask for exactly what Aviary already ships: download history, already-downloaded state, and bulk selection. One review (2026-08-17) reports the Likes→History tab consolidation broke its download button. *Learn:* the gap it leaves — **tick-box multi-select over a scrolled media tab**, sitting between one-at-a-time (safe, tedious) and full-profile ripping (fast, gets you flagged) — is explicitly requested and unserved.
+
+**ShotBird** — a Twitter-adjacent screenshot extension, CWS-Featured in Jan 2025, whose ownership transferred to a new email between Dec 2025 and Mar 2026; it then used `declarativeNetRequest` to **strip CSP and X-Frame-Options headers** and inject fake Chrome-update malware. Delisted 2026-03-09. Together with Nano Adblocker (~300k users, Oct 2020), The Great Suspender (>2M installs, remotely disabled Feb 2021) and Stylish (~1.8M users, sent every URL visited with a persistent id, 2018), this is the dominant failure mode of the genre — and every case ran through either a transfer of publish rights or a pre-existing remote-code path. **Aviary's no-telemetry, no-remote-code posture is what makes it un-sellable and therefore un-poisonable**; that is a marketable trust claim, now backed by the CWS single-purpose rule.
 
 ## Security, Privacy, and Reliability
 
-Findings below were read in source during this pass. The five marked **Verified (re-checked)** were reported by an audit pass and then independently confirmed by me against the cited lines.
+Findings from the 2026-08-17 pass (filter-engine cell collapse, zero-budget-means-unlimited, page-agent nonce replay, offscreen video retention, options-page locale, regex backtracking, seen-post flush, plaintext credential endpoints, unserialized `applyAll`, ad-rule ordering) remain open as F171–F181. New this pass:
 
 ### High
 
-- **`src/features/filtering/filter-engine.ts:206` — filtered posts leave a blank row.** `cell.toggleAttribute(CELL_RESULT_ATTR, hasHiddenArticle)` sets the attribute to `""`; the stylesheet at `:237` matches `[data-av-filter-cell-hidden="1"]`. The value never matches, so the owning `cellInnerDiv` is never collapsed. The article hides (that rule keys off `RESULT_ATTR="hide"` and works), leaving a full-height gap — the exact behaviour `hidden-posts-feature.ts` exists to prevent. **Verified (re-checked).**
-- **`src/features/integrations/usage.ts:171, 344-347` — a zero budget disables the budget.** `finiteLimit(undefined)` and `finiteLimit(0)` both return `0`, and both guards read `if (limit > 0 && …)`. Setting the daily AI/embedding cap to zero to stop all spend yields unlimited spend. This inverts a user's spending intent, which is a sharper failure than the "settings that claim what they don't do" class the project already polices. **Verified (re-checked).**
-- **`src/page/page-agent.ts:438-461` with `src/platform/page-bridge.ts:161,236` — the page can turn off ad protection.** The bridge posts envelopes containing `sessionNonce` with `target.postMessage(envelope, "*")`. Any page script listening for one `message` learns the nonce, after which the agent accepts `{kind:"config", blockAds:false}` or `{kind:"teardown"}` — silently disabling the default-on ad guard or uninstalling the agent. This is **distinct from and strictly worse than F161**, which covers only a squatter winning the first `hello`: this works even when the genuine bridge wins the race. The isolated world stays protected; what is lost silently is ad protection. **Verified (re-checked).**
-- **`src/features/performance/pause-offscreen-video.ts:16,72,89` — session-lifetime video retention.** `#tracked` (`Set<HTMLVideoElement>`) and `#resumable` (`Map`) hold strong references; entries are added at `:72` and cleared only in `stop()` at `:89`. There is no `isConnected` check, no `delete`, no `unobserve` anywhere in the file. Infinite scroll therefore retains every detached `<video>` for the whole session. **Verified (re-checked).**
-- **`src/features/filtering/hidden-posts-feature.ts:304-312` — reflow feedback loop.** `nudgeReflow()` dispatches a synthetic global `resize`; X's virtualizer relayouts, producing childList mutations that drive `applyAll` → `collapse()` → another `resize`. Self-sustaining for as long as a hidden post is on screen. **Likely** — mechanism read in source; the loop needs a live page to observe.
+- **The Control Center is not usable in forced-colors mode.** `src/ui/control-center.ts:3231-3262` — `.av-toggle` signals state through `border-color`, `background`, and a `::before` `background`, all author colours the UA forces to system colours under `forced-colors: active`. The real `<input type="checkbox">` is `opacity: 0; appearance: none` (`:3219-3229`), so the UA's own high-contrast checkbox rendering is suppressed too. The only surviving cue is a 14px knob translating 16px. There is **zero** forced-colors coverage in `src`, `tests`, or `tools`, and `box-shadow` — which the UA discards outright — is used 11× in `control-center.ts` and 14× in `theme.ts`. The visual harness already calls `page.emulateMedia({reducedMotion})` at `tools/settings-visual-harness.mjs:311`, so the parameter to cover this already exists. **Verified.**
+- **`aria-busy` never announces.** `src/ui/control-center.ts:752` — `transactionBar.toggleAttribute("aria-busy", transactionSaving)` writes `aria-busy=""`. ARIA boolean attributes require the literal string `"true"`; an empty value falls back to the default, false. Screen readers are never told the save is in progress. **Verified.**
+- **Root cause behind both that and F171.** All four `toggleAttribute` call sites: `control-center.ts:490` and `:716` use `inert` (a genuine HTML boolean — correct); `filter-engine.ts:206` and `control-center.ts:752` target attributes that require a value (**incorrect**). Half the uses are wrong, and a lint rule restricting the API to a known boolean allowlist prevents the class. **Verified.**
 
 ### Medium
 
-- **`src/entrypoints/extension-options.ts:36` — the options page is permanently English.** It reads `chrome.storage.local.get("aviary.settings.v1")`, but settings are written through the profile gateway as `aviary.profile.<id>.settings.v1` (`profile.ts:175-186`) into the durable IndexedDB backend. The lookup always misses and falls back to `"en"` regardless of the chosen locale — in a project that ships a 9-locale catalog and tests locale drift. **Verified (re-checked).**
-- **Unguarded user regex → catastrophic backtracking.** `predicates.ts:170-187` and `rules.ts:165-178` both compile user input with bare `new RegExp(…)` and run `.test()` synchronously per article per mutation batch. A rule like `/(a+)+b/` freezes the tab on the first long post. `RegExp.escape` is Baseline (2025-05-01) for the literal path; the pattern path needs a complexity budget.
-- **`src/features/filtering/seen-posts-feature.ts:29-32,57` — two defects.** The store is constructed only in `init`, so enabling `filter.dimSeenPosts` after boot leaves `apply` returning early forever until reload. And `await store?.flush(…)` awaits `undefined` — `flush` returns `void` and only queues onto a private tail chain — so `destroy` resolves before the write lands, which is the data loss its own comment claims to prevent.
-- **Credentialed requests to plaintext endpoints.** `ai-provider.ts:68-76,106-110` and `semantic-search.ts:216-221` accept any `http:` or `https:` URL and send `x-api-key`/`Bearer` to it. A typo'd `http://` endpoint transmits the key in cleartext. No host allowlist, no TLS requirement.
-- **`src/main.ts:252-279` with `src/features/registry.ts:76-87` — unserialized `applyAll`.** Three callers fire `void registry.applyAll(...)`; `applyAll` awaits per feature, so passes interleave at microtask boundaries and module-level guards (`lastAppliedVersion`, `compiledSignature`) set by one pass make the other skip a rescan it needed.
-- **`src/extension/ad-rule.ts:87-96` — rule/mirror ordering.** The DNR rule is committed first, then a failing `storage.set` throws; the rule stays applied while the caller reports failure and the mirror holds the old value, so the next `restoreDynamicAdRule` reverts a rule the user actually enabled.
-- **`src/features/filtering/hidden-posts-feature.ts:220-231` — recycled-article key cache.** The derived key is cached on `data-av-post-key`; X's virtualizer reuses article nodes, so a recycled article can keep a previous post's key and collapse an unrelated post.
-- **`src/page/page-agent.ts:719-729` — encode-before-size-check.** `new TextEncoder().encode(body)` runs over the entire response on the page's main thread for every GraphQL XHR before any size check, and `captureMediaMetadata` defaults to `true` (`:365`). A cheap UTF-16 length upper bound should gate it.
+- **`@updateURL` points at the full bundle.** The metablock declares both `@updateURL` and `@downloadURL` as `dist/aviary.user.js`; no `.meta.js` is generated anywhere in `tools/build.mjs` or `tools/userscript-meta.mjs`. Every update poll therefore transfers 1.9 MB instead of ~1 KB of metadata. Tampermonkey [#2285](https://github.com/Tampermonkey/tampermonkey/issues/2285) reports *"Message length exceeded maximum allowed length"* on script **update** where a fresh install succeeds, apparently size-linked. **Verified** for the repo facts; **Likely** for the size ceiling (single issue report, worth reproducing).
+- **No delivery-size gate exists.** Neither `tools/preflight.mjs` nor `tools/build.mjs` asserts any size budget. The bundle went 1,876,875 → 1,903,859 bytes between 2026-08-15 and 2026-08-16 with no signal. In a repo that gates version strings, CSP, `innerHTML`, capture age and dependency pinning, this is the one unguarded axis. **Verified.**
+- **Selector health cannot name the broken feature.** `src/platform/selectors.ts` declares `feature?: string` ("the feature that stops working when this selector stops matching") on **13 of 26** entries, and `requiredOn?: readonly RouteSurface[]` is declared but used **zero** times. `src/features/core/selector-health.ts` computes healthy/degraded and renders Trust rows, but nothing joins ownership to match state, so a user with a broken feature is told only that health is "degraded". **Verified.**
+- **Batch media download may be broken.** Aviary's "Download all visible media" walks rendered tweets; X split the Media tab into Photos/Videos around 2026-08-13→16, and competitors report exactly this breakage ("batch downloading no longer works efficiently… only process individual tweets one at a time", Greasy Fork discussion, 2026-08-17). Aviary's captures predate the redesign, so no fixture can answer it. **Needs live validation.**
 
-### Deadlines and privacy exposure
-
-- **`_decoded/captures.json` — `acknowledgedStaleUntil: "2026-09-30"`.** Captures are dated 2026-05-19, past the declared 90-day `ceilingDays`. After the waiver date `tools/preflight.mjs:185-192` moves from warning to hard failure, which breaks `npm run verify` — the project's only release gate. It also blocks ~9 items in Roadmap_Blocked.md. **Verified.** Tracked as F134 (operator half); no duplicate item added.
-- **`_decoded/` is tracked in git (26 files) and contains real user content** — `redacted-account on X_ _Millenial men got absolutely bodied…_ _ X.mhtml`, a full MHTML capture with handle and post body, plus `home.html`. This contradicts the fixture policy the repo enforces elsewhere (`tests/fixtures/ad-corpus/` stores "no handles, post text, account/tweet ids…"), and it is in history, so it survives deletion. It is a hard blocker on the "make the repo public" branch of F125. **Verified.**
-- **Legal posture.** X's ToS effective 2026-01-15 reportedly bars crawling or scraping "in any form, for any purpose" without written consent and adds liquidated damages of $15,000 per 1,000,000 posts for anyone who "requests, views, or accesses" over 1M posts in 24 hours — the verb *views* is drafted to reach client-side tools. Case law splits on logged-out (defensible: *X Corp. v. Bright Data*, N.D. Cal. 2024-05-09) versus logged-in against accepted terms (*hiQ v. LinkedIn* lost on contract). Aviary runs authenticated, so the exposure is contractual, not CFAA. **Confidence: Likely** — secondary sources; the ToS text itself was not fetched. The engineering consequence is that Aviary's never-originate rule is already the correct mitigation and should be documented as a deliberate legal posture, not only an engineering one.
+- **Ad protection is inert under Violentmonkey.** The metablock ships `@inject-into content`, and under that mode Violentmonkey documents `unsafeWindow` as the content script's own global rather than the page `window`. `pageWindowFromSandbox()` (`src/platform/page-bridge.ts:62-77`) correctly detects that and returns `undefined`, so the page agent never installs — taking the userscript's half of the default-on ad guard with it. The comment above that function names the exact failure: *"a feature that installs cleanly, reports itself healthy, and never sees a single request."* README and `docs/INSTALL.md` both list Violentmonkey as supported. The extension build is unaffected (`"world": "MAIN"`). **Verified 2026-08-18.**
+- **The README overstates what `--ignore-scripts` defends.** README.md:101-105 says "every major npm compromise of 2026 … executed through" an install script. Of twelve incidents surveyed, install-hook delivery was blocked in seven — including ChainDrop (2026-08-04), which hit Aviary's exact `eslint → file-entry-cache → flat-cache → keyv` chain and missed by whole major versions — but chalk/debug, @redhat-cloud-services (which passed SLSA attestation) and AsyncAPI delivered from the **module body**, which the flag does not touch. The real defences there are zero runtime dependencies and `npm ci` against a committed lockfile, both of which Aviary has. In a repo whose test suite fails builds over settings that claim what nothing implements, its own security claim should meet the same bar.
+- **`engines` admits end-of-life Node.** `">=22.23.2"` is satisfied by Node 25.x (EOL 2026-06-01, unpatched) and pre-LTS 26.x. The floor was picked specifically to clear the June and July 2026 Node security releases, so accepting an unpatched line defeats its purpose. Node 24 drops to maintenance 2026-10-20; Node 22 is EOL 2027-04-30. **Verified.**
 
 ### Already mitigated — do not re-propose
 
-- **Trusted Types.** Went Baseline 2026-02-24. If x.com ever sets `require-trusted-types-for 'script'`, MAIN-world `page.js` would throw on any HTML sink — but `tools/preflight.mjs` and `tests/source-contracts.test.mjs` already fail the build on `innerHTML`/`insertAdjacentHTML` outside the one policy wrapper. The exposure is closed. No action.
-- **Local encryption.** Removed deliberately (`privacy.encryptVault`, v1.10.0): a key stored beside its ciphertext protects nothing when X's own session cookie sits in the same profile. Do not revisit.
+- **Per-feature error isolation.** `src/features/registry.ts:64-100` — `initAll`, `applyAll`, `destroyAll` and `statuses()` each wrap every feature in try/catch and route failures to diagnostics. Refined GitHub's headline resilience pattern is already implemented here.
+- **Trusted Types.** Preflight and `source-contracts.test.mjs` already fail the build on `innerHTML`/`insertAdjacentHTML` outside the policy wrapper, so a host CSP turning on `require-trusted-types-for` cannot break the page world.
+- **Local encryption.** Removed deliberately in v1.10.0; a key beside its own ciphertext protects nothing when X's session cookie shares the profile.
+- **Chrome MV2 removal (2026-08-31).** Aviary is MV3. No exposure. Firefox has no MV2 deprecation plan and has committed to ≥12 months notice.
+- **Dependency CVEs.** There are none the pins are exposed to. Six of seven devDependencies are already at the latest published version; TypeScript is deliberately one major behind for a confirmed reason. Every advisory against esbuild, Playwright and ESLint is out of range, withdrawn, or scoped to a dev-server feature this build never invokes (`tools/build.mjs` uses only the JS build API, never `serve()`). The lockfile has 120 packages, zero non-registry `resolved` URLs, and no `workspaces` field — so the `prepare`-despite-`--ignore-scripts` workspace bypass does not apply either. `esbuild` is the only package with a `postinstall`, and it is redundant because the platform binary arrives through `optionalDependencies`. **Verified 2026-08-18.** No action.
+- **esbuild `target`.** Switching from `es2022` to `["chrome116","firefox128"]` was measured across the real entrypoint: 1,905,059 vs 1,905,076 bytes, and byte-identical output when probing `using`, `await using`, RegExp `v`-flag, static blocks, top-level await, import attributes and logical assignment. `es2022` is already conservative for these floors. **Verified non-finding** — recorded so it is not re-investigated.
 
 ## Architecture Assessment
 
-- **The i18n catalog dominates the bundle — measured.** `PANEL_CATALOG` is 8 non-English locales × 934 keys. In the built userscript it occupies bytes 53,171–1,078,924: **1,025,753 of 1,903,855 bytes, 53.9%**. It executes in **6.6 ms** and retains **2.84 MB** of heap, in every tab, on every X page load, to serve a settings panel usually never opened. **This refines F138, which named the wrong cost**: V8 lazily compiles function bodies, so compiling the whole 1.9 MB script costs only ~4 ms — the catalog is a top-level object literal that must be fully materialised at module execution, so the real costs are retained heap, module-execution time, and 54% of every update download. Measured 2026-08-17 against `dist/aviary.user.js`. **Verified.**
-- **The Control Center is the churn epicentre** — 70 commits on `src/ui/control-center.ts` (3,536 LOC) plus 38 on `src/features/core/control-center.ts` (1,215 LOC) plus 35 on `src/ui/control-center/`, the most-churned subsystem by a wide margin, with `sections/data.ts` at 1,256 LOC and `sections/advanced.ts` at 1,121. The split into `sections/` was the right move and is incomplete; the 3.5k-LOC root file is still the single largest hand-written module.
-- **The test suite's foundation is weaker than its count.** 33 of 91 files read `src/*.ts` as text and assert with regex — roughly 350 assertions, concentrated in `v1.8.0.test.mjs` (87), `audit-ui.test.mjs` (40), `audit-2026-08-07.test.mjs` (32), `source-contracts.test.mjs` (23), `audit-a11y.test.mjs` (20). Four are frozen version-named audits (`v1.0.0`, `v1.1.0`, `v1.6.0`, `v1.8.0`) at a project now on 1.27.1. F140 addresses only the a11y file. **Verified.** Note the distinction: `source-contracts.test.mjs` is *legitimately* source-text (it enforces bans like "no `innerHTML` anywhere"), and should stay. The problem is the behavioural assertions written as source regexes.
-- **Modules with no direct test**: `page-bridge`, `collector`, `snapshots-feature`, `media-context-menu`, `extension-content`, `extension-page`, `panel-context`, `feature-i18n`, `archive-types`, `build-version`, `constants`. `page-bridge` is the notable one given the nonce finding above.
-- **Platform primitives that would delete hand-rolled code.** Verified against webstatus.dev/MDN/caniuse during this pass. Safe at *both* declared floors (Chrome 116, Firefox 128) today: **Popover API** (Chrome 116 exactly, FF125 — top-layer menus/toasts, light-dismiss and focus handling, no z-index fight with x.com's stacking contexts); **`:has()`** (structural filter predicates move from the MutationObserver hot path into a static stylesheet); **`inert`** (already used); **Web Locks** (already the basis of F162); **`structuredClone`**; **Compression Streams**; **OPFS** + `navigator.storage.persist()`; **`Intl.Segmenter`**. Above the Firefox 128 floor and needing a fallback branch or a floor bump: **Navigation API** (FF147 — replaces `history` monkey-patching), **`URLPattern`** (FF142), **`@scope`** (FF146; basic `@scope` is Chrome 118 — note F129 already plans on this), **`content-visibility`** (FF130), **`RegExp.escape`** (FF134), **`light-dark()`** (Chrome 123 is the blocker, not Firefox). Not adoptable: `showSaveFilePicker` (Firefox position is "harmful", never shipped; Safari never) — but it is a legitimate **Chrome-only** upgrade in the *userscript* lane, which has no downloads API at all and currently degrades to an anchor.
-- **F147 (WACZ) has a replay-correctness bug in its current design.** Two corrections, both from primary specs read this pass. (a) A response-only WARC is not replayable for anything POSTed; WARC 1.1 pairs `request` and `response` via `WARC-Concurrent-To`, and pywb's POST replay works by matching adjacent request records. (b) More importantly, **pywb's POST-body canonicalization does not cover JSON/GraphQL bodies at all** and its form-urlencoded path is documented as broken against the outbackcdx fix. So GraphQL captures written as `response` records will not replay in ReplayWeb.page. They should be written as **`resource` records with a synthetic URI**, and only genuine HTTP GETs (media, images) should be response records. F147's existing STORE-vs-DEFLATE note remains correct and critical.
+- **The i18n catalog is 53.9% of the shipped bundle** — 1,025,753 of 1,903,855 bytes, 8 locales × 934 keys, 6.6 ms module execution and **2.84 MB retained heap per tab**, on every page load, to serve a panel usually never opened. Measured 2026-08-17. This is F138, whose rationale is corrected inline in ROADMAP.md; the new Tampermonkey update-size evidence strengthens it from a performance item to a delivery-integrity one.
+- **The Control Center is the churn epicentre** — 70 commits on `src/ui/control-center.ts` (3,536 LOC) plus 38 on `features/core/control-center.ts` plus 35 on `ui/control-center/`. The `sections/` split was correct and is incomplete.
+- **36% of the test suite asserts on source text** — 33 of 91 files regex over `src/`, ~350 assertions, four of them frozen version-named audits at a project on 1.27.1. F182 covers this; `source-contracts.test.mjs` is a legitimate exception (it enforces bans, not behaviour).
+- **Modules with no direct test**: `page-bridge` (notable given F173), `collector`, `snapshots-feature`, `media-context-menu`, `extension-content`, `extension-page`, `panel-context`, `feature-i18n`.
+- **Fully-local hybrid search is now viable in the extension lane.** A model2vec/potion static embedding is *not* a neural network — it is one float row per vocabulary token, so the entire forward pass is tokenize → gather → mean-pool → normalize, implementable in ~130 lines with no ONNX, no WASM, and no `wasm-unsafe-eval`. The published reference implementation uses potion-base-8M PCA'd to 128 dims, int8 with per-row scales: **4.2 MB total, 0.4 ms end-to-end query latency** (vs 23 MB and 18 ms for MiniLM-q8), cosine fidelity 0.999958 against the unquantized table, with an 80-line WordPiece tokenizer and RRF (k=60) fusion. Vector storage at 128-d int8 is 128 B/post — 12.8 MB for 100k posts. **This answers the 2026-08-17 open question directly.** Bundling it inline in the *userscript* is disqualifying (+55% even with an aggressively pruned vocabulary, against a bundle already near a documented update ceiling); in the *extension* it is a `web_accessible_resources` binary — bundled data, not remote code. The userscript path is an opt-in local file the user imports. Adopting it would let Aviary **retire the remote-embedding semantic search**, the only component that sends post text off-device.
+- **Accessibility is verified by reading source, not by rendering** — and no major extension (uBlock Origin, Dark Reader, Stylus, Refined GitHub) publishes accessibility CI. Aviary already has Playwright, `launchPersistentContext`, local fixtures and 60 committed baselines; `@axe-core/playwright` scoped to injected selectors would put it ahead of the field for modest effort.
 
 ## Rejected Ideas
 
-- **Vendoring an embeddings model for fully-local semantic search** — attractive, and tweetxvault proves hybrid search is the right target, but the research stream that would have quantified in-browser model size, latency and memory failed before returning. Proposing it now would be an unsourced guess against a zero-runtime-dependency constraint. Reduced to the sourced half (BM25 fusion, F199) and an open question.
-- **Parsing X's HLS variant playlists and remuxing segments to MP4 in-page** — technically possible for H.264/AAC and would beat the progressive-MP4 ceiling, but it is a media pipeline inside a content script, and the prior pass already rejected buffering whole videos in memory. Source: Scoop sidesteps this by shelling out to yt-dlp, which Aviary cannot do.
-- **`chrome.debugger`-based capture (ArchiveWeb.page's model)** — strictly more capable, but unavailable to the userscript lane and a large permission escalation for the extension. Aviary's GraphQL tap is the correct equivalent.
-- **Speculation Rules** — Chrome-only, and an injected `<script type="speculationrules">` is subject to x.com's `script-src` CSP. Near-zero value for an SPA overlay.
-- **Storage Buckets** — Chrome-only; `navigator.storage.persist()` is Baseline and covers the eviction need.
-- **Temporal API** — Chrome 144 / FF139 / no Safari. `Intl.RelativeTimeFormat` and `Intl.DurationFormat` already cover the need.
-- **`CloseWatcher`** — no Safari, FF149; Popover's built-in light-dismiss covers the case without a key handler, which also keeps the no-hotkeys policy clean.
-- **A Trusted Types hardening item** — the sinks it would defend are already banned by preflight. See "Already mitigated".
-- **Auto-fetching assets the user never scrolled to** (browsertrix `autofetch`) — would improve archive completeness, but it originates requests X did not make. Directly across the ban-risk line.
-- **MD5 anywhere in archive manifests** (offered by py-wacz) — SHA-256 only.
-- **Vendoring wabac.js for self-replay** — already rejected in F147 on AGPLv3 grounds; still correct. Link to replayweb.page instead.
+- **View Transitions for panel tab switches** — proposed by the 2026-08-17 platform survey, now rejected: `document.startViewTransition()` from a content script snapshots the **entire host document**, not just injected UI, and only one can run per document. Effectively unusable for an overlay.
+- **A remote hotfix/kill-switch channel as the default** — MV3 forbids remote *code* outright, Greasy Fork forbids loading bulk logic externally, and Dark Reader disabled its remote config for all users on CDN-abuse and reviewer-suspicion grounds. Build the parser; feed it a bundled file. (Refined GitHub's `yolo` repo.)
+- **`chrome.debugger`-based capture** — strictly more capable, unavailable to the userscript lane, and a large permission escalation.
+- **Redirecting to an alternate front-end** — Nitter is architecturally dead (guest tokens removed 2024-01-31) and the twitter.com escape hatch closed 2026-08-17. Only link *rewriting on copy* is viable (F149).
+- **Mass block/mute and chain-blocking** — the loudest unserved demand in the ecosystem, but every implementation originates authenticated writes, and X's 2026-05-16 caps (400 follows/day) now punish it directly. Ship the reversible log/undo model for *local* hide-and-remember instead.
+- **Web-of-trust or follow-graph scoring** — requires crawling a graph Aviary must never fetch. A passive "familiarity score" from the local seen store is the honest substitute.
+- **Estimate-based substitutes for revoked host data** — Return YouTube Dislike's post-API estimates were documented as off by ~20× in one case. Degrade to "unavailable", never to a confident wrong number.
+- **ONNX/transformer embeddings, and the ONNX export of a model2vec model** — 13.8 MB runtime plus a 23 MB model plus `wasm-unsafe-eval`, for 45× the query latency of a lookup table. The model2vec ONNX export is the same 30.2 MB of weights that then *needs* the runtime to do a table lookup.
+- **sqlite-vec in WASM** — cannot be dynamically loaded, so it needs a custom static build; 5.9 MB unoptimized; brute-force only with no ANN index.
+- **Chrome's built-in AI (Gemini Nano) for search** — no embeddings endpoint, and a 4.27 GB model.
+- **Firefox `browser.trial.ml`** — experimental, Firefox-only, documented as "virtually guaranteed to change", and its models come from a remote hub.
+- **Auto-fetching assets the user never scrolled to** (browsertrix `autofetch`) — originates requests X did not make.
+- **Planning against Musk's "entire codebase" pledge** — no repo, no date, no reviewers as of 2026-08-18.
+- **Vendoring wabac.js** — AGPLv3; link to replayweb.page instead (still correct, per F147).
 
 ## Sources
 
-Prior passes not restated: vault `Research/X Enhancer Ecosystem 2026-08-14.md` (market, X platform, extension platform, community demand); repo git history at `c142ddf`; `Roadmap_Blocked.md`.
+Prior passes not restated: vault `Research/X Enhancer Ecosystem 2026-08-14.md`, `Research/Browser Enhancer Platform Baselines 2026-08-17.md`, `Research/Old Reddit Ecosystem 2026-08-18.md`.
 
-Archiving formats and provenance:
-- https://specs.webrecorder.net/wacz/1.1.1/
-- https://github.com/webrecorder/wacz-auth-spec/blob/main/spec.md
-- https://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/
-- https://github.com/webrecorder/pywb/wiki/POST-request-replay
-- https://github.com/webrecorder/pywb/issues/768
-- https://github.com/webrecorder/warcio.js/blob/main/README.md
-- https://github.com/webrecorder/py-wacz
-- https://replayweb.page/docs/embedding/
-- https://auto-archiver.readthedocs.io/en/latest/modules/autogen/enricher/timestamping_enricher.html
-- https://auto-archiver.readthedocs.io/en/latest/modules/autogen/enricher/pdq_hash_enricher.html
-- https://github.com/harvard-lil/scoop
+X platform and policy:
+- https://github.com/xai-org/x-algorithm
+- https://techcrunch.com/2026/08/13/x-open-sources-its-ranking-algorithm-letting-users-see-if-theyve-been-shadowbanned/
+- https://docs.x.com/changelog
+- https://www.socialmediatoday.com/news/x-implements-new-posting-restrictions-on-non-paying-users/820671/
+- https://techcrunch.com/2026/04/23/x-is-shutting-down-communities-because-of-low-usage-and-lots-of-spam/
+- https://www.pcgamer.com/software/we-dont-have-the-capacity-to-support-more-than-two-colors-right-now-is-the-bizarre-excuse-x-is-using-to-explain-why-its-dimmed-theme-was-just-thrown-in-the-bin/
+- https://developer.chrome.com/blog/cws-policy-updates-2026
+- https://greasyfork.org/en/scripts/591463
 
-Comparable projects:
-- https://github.com/lhl/tweetxvault
-- https://github.com/timhutton/twitter-archive-parser
-- https://github.com/webrecorder/archiveweb.page
-- https://github.com/gildas-lormeau/SingleFile
-- https://github.com/mikf/gallery-dl/discussions/7717
-- https://github.com/DocNow/twarc
-- https://webrecorder.net/blog/2025-12-18-conifer-twilight/
-- https://en.wikipedia.org/wiki/Nitter
+Competitors and demand:
+- https://github.com/mkubicek/xTap
+- https://github.com/xaitax/x-account-location-device
+- https://github.com/asmyshlyaev177/x-profile-location
+- https://github.com/dimdenGD/OldTwitter/issues/1332
+- https://github.com/dimdenGD/OldTwitter/issues/1222
+- https://github.com/insin/control-panel-for-twitter/releases
+- https://github.com/insin/control-panel-for-twitter/issues/916
+- https://github.com/insin/control-panel-for-twitter/issues/598
+- https://github.com/insin/control-panel-for-twitter/issues/522
+- https://github.com/prinsss/twitter-web-exporter/issues/146
+- https://greasyfork.org/en/scripts/542403
+- https://greasyfork.org/en/scripts/404587
 
-Web platform baselines:
-- https://api.webstatus.dev/v1/features/scope
-- https://developer.mozilla.org/en-US/docs/Web/API/Popover_API
-- https://developer.mozilla.org/en-US/docs/Web/API/Navigation_API
-- https://developer.mozilla.org/en-US/docs/Web/API/Trusted_Types_API
-- https://developer.mozilla.org/en-US/docs/Web/API/Window/showSaveFilePicker
-- https://developer.mozilla.org/en-US/docs/Web/CSS/content-visibility
-- https://caniuse.com/css-cascade-scope
-- https://developer.chrome.com/blog/new-in-chrome-118
+Survival patterns and failure modes:
+- https://github.com/refined-github/yolo
+- https://deepwiki.com/Vendicated/Vencord/3.2.2-code-patching-mechanism
+- https://github.com/AprilSylph/XKit-Rewritten
+- https://code.visualstudio.com/blogs/2021/02/16/extension-bisect
+- https://monxresearch-sec.github.io/shotbird-extension-malware-report/
+- https://www.ghacks.net/2020/10/16/time-to-remove-nano-adblocker-and-defender-from-your-browsers-except-firefox/
+- https://github.com/Tampermonkey/tampermonkey/issues/2285
+- https://greasyfork.org/en/help/code-rules
 
-Legal posture (secondary, unverified against primary ToS text):
-- https://sociavault.com/blog/web-scraping-legality-court-cases-public-vs-private-data
-- https://en.wikipedia.org/wiki/HiQ_Labs_v._LinkedIn
+Reading UX and local search:
+- https://github.com/cheeaun/phanpy/blob/main/src/pages/catchup.jsx
+- https://github.com/cheeaun/phanpy/blob/main/src/utils/group-notifications.js
+- https://docs.joinmastodon.org/entities/Filter/
+- https://docs.joinmastodon.org/methods/markers/
+- https://github.com/bluesky-social/social-app/blob/main/src/lib/moderation/useModerationCauseDescription.ts
+- https://bart.degoe.de/semantic-search-in-your-browser/
+- https://huggingface.co/minishlab/potion-base-8M
 
 ## Open Questions
 
-1. **Is Aviary published or private?** F125's blocker, restated because it now gates more than distribution: a public repo requires purging `_decoded/` real-user captures from history first, and the CWS/AMO listing work has a lead time. Until answered, the shipped `@updateURL` advertises a channel that 404s.
-2. **Is a fully-local embedding path viable in a content script without a runtime dependency?** Needs model size, cold-start latency, and peak memory for a browser-resident small embedding model, measured — not assumed. Blocks choosing between F199 (BM25 fusion, sourced) and a larger local-semantic bet.
-3. **Does raising `gecko strict_min_version` from 128 to ~147 cost any real user?** With zero installs today the answer is trivially no, but it stops being free the moment F125 resolves toward publication. Deciding now unlocks Navigation API, `URLPattern`, `@scope`, and `content-visibility` unconditionally instead of behind detection branches.
-4. **Which of the ~350 source-text assertions encode a real contract versus a frozen implementation detail?** Determines whether F196 is a conversion or a deletion, and cannot be answered without reading them.
+1. **Is Aviary published or private?** Unchanged from 2026-08-17 and now more urgent: the CWS policy enforced 2026-08-01 requires the AI provider runner to be framed within a disclosed single purpose, and a public repo still requires purging `_decoded/` real-user captures from history first (F184). Blocks F125.
+2. **Does batch media download still work after X's Photos/Videos split?** No fixture can answer it — the captures predate the redesign. Determines whether F201 is a bug fix or a no-op.
+3. **Does the Tampermonkey update-size ceiling actually bite at 1.9 MB?** One issue report, unreproduced. If it does, F138 stops being a performance item and becomes "installed copies silently never update."
+4. **Should the Firefox floor move from 128 to ~147?** Unchanged from 2026-08-17; free today at zero installs, not free after F125 resolves.

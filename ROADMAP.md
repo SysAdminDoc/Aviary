@@ -58,6 +58,15 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Evidence: XKit-Rewritten#1664 (👍4). Corrected 2026-08-15 (second pass): `FilterDecision` is a bare `"show" | "hide" | "dim"` union (`src/features/filtering/predicates.ts:16`) and `evaluateRules` (`rules.ts:185`) returns it directly — the deciding rule is NOT currently exposed. First step is widening the decision to carry its source (rule line / predicate name) without breaking `decide()`'s callers.
   Touches: `src/features/filtering/rules.ts`, `filter-engine.ts`, `hidden-posts-feature.ts`, the dim/hide affordance, Filtering panel.
   Acceptance: a hidden or dimmed post names the rule or predicate that caught it, in text, on hover or reveal; the reason is derived from the decision rather than recomputed; nothing is stored per post.
+  Note (2026-08-18): two shipped models to copy the wording from. Mastodon requires every filter to carry
+  a `title` precisely so the warning can name which filter matched, and separates the outcome into
+  `warn` (show a placeholder naming the filter, expandable) / `hide` (never render) / `blur` (media only)
+  — https://docs.joinmastodon.org/entities/Filter/. Bluesky goes further and names the *cause* as well as
+  the rule: "Post Hidden by Muted Word", "Post Hidden by You", "Account Muted", 'Muted by "{list name}"'
+  — https://github.com/bluesky-social/social-app/blob/main/src/lib/moderation/useModerationCauseDescription.ts.
+  Aviary should render cause + rule title, offer peek-without-unhiding, and — since it already has a rule
+  engine — a filter inspector that runs any visible post through every rule and reports which matched.
+  F204 supplies the rule title this sentence needs.
   Complexity: M
 
 - [ ] F145 — P2 — Portable rule sets
@@ -93,6 +102,19 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Touches: `src/features/filtering/seen-posts.ts`, a new reading surface, Layout settings.
   Acceptance: a digest built only from the local seen record and already-rendered posts — zero originated requests — groups unseen posts by author over a chosen window, respects active filters, and shows filter reasons from F144 where a post was suppressed.
   Depends on: F144.
+  Note (2026-08-18): the reference implementation is Phanpy's Catch-up
+  (https://github.com/cheeaun/phanpy/blob/main/src/pages/catchup.jsx) and it is detailed enough to build
+  from without re-research. Window: a slider of 13 ranges (last 1h..12h, plus "beyond 12 hours"). Category
+  chips with live counts: Original / Replies / Quotes / Reposts / Followed tags / Filtered. Five sort axes
+  — time, replies, likes, reposts, and **density**, where
+  `density = (textLen + spoilerLen + pollLen)/140 + 8*mediaCount + 8*(hasCard ? 1 : 0)`; ascending puts
+  cheap-to-read first. Optional grouping by author, authors ordered by post count descending. A Top Links
+  pane deduped by URL, ranked by sharer count then reposts then likes, keeping links shared more than once
+  or the top 10, each showing "Shared by [avatars]" where clicking a sharer filters to them. One-line post
+  peeks with media as small thumbnails. Crucially it **marks nothing read** — it persists only the filter
+  selection and scroll position — and ends with "That's all." Aviary's version is a render of the local
+  seen store rather than a fetch, so the honest framing is "everything Aviary saw", not "everything posted".
+  Pair with F203, which supplies the read marker Catch-up deliberately does not use.
   Complexity: L
 
 - [ ] F149 — P2 — Copy a post link for an alternate front-end
@@ -100,6 +122,14 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Evidence: control-panel-for-twitter#522 (👍8) and #641.
   Touches: post action row or the existing per-post menu, settings (chosen host, off by default).
   Acceptance: a copy action yields the same post's URL on a user-configured host; the default is X's own URL; nothing rewrites links X rendered and no navigation is redirected.
+  Note (2026-08-18): demand is stronger than the original evidence showed, and the redirect alternative is
+  now definitively dead. Beyond control-panel-for-twitter#522 (+8) and #641, the same ask is open as
+  OldTweetDeck#212, and "Firefox extension to redirect x.com to xcancel.com" took 259 points / 162 comments
+  on HN (2026-01-07). Meanwhile CPFT v4.24.0 (2026-08-17) *removed* its twitter.com redirect because
+  logging in via twitter.com now sets an x.com cookie, and Nitter has been architecturally dead since X
+  removed guest tokens (2024-01-31). That makes copy-time rewriting the only viable form of this feature —
+  which is exactly what this item already scopes. Worth offering the common hosts (fxtwitter, vxtwitter,
+  fixupx, xcancel) as presets rather than a bare text field.
   Complexity: S
 
 - [ ] F154 — P2 — Mirror bookmarks locally as they render, and export them in bulk
@@ -124,6 +154,16 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Evidence: TypeScript 7.0 GA 2026-07-08; typescript-eslint#10940; package.json scripts.
   Touches: package.json (`typecheck` script, devDependency), tsconfig defaults that changed in 7.0.
   Acceptance: `npm run typecheck` runs on the native compiler and reports the same diagnostics as the TypeScript 6 pin on a deliberately broken file; lint still runs on the TypeScript 6 parser; local verification time drops measurably.
+  Note (2026-08-18): **demote — the premise holds but the payoff was measured and it is 1.4 seconds.**
+  The parser constraint is confirmed: `@typescript-eslint/parser@8.67.0` declares
+  `peerDependencies.typescript "<6.1.0"`, and TS 7.0 ships no programmatic API (it lands in 7.1). The
+  acceptance criterion was run: against this repo's `src/` plus a deliberately broken file, TS 6.0.3 and
+  TS 7.0.2 emitted byte-identical diagnostics, at **1.288s vs 0.276s**, and TS 7 needed no tsconfig
+  changes. But the whole gate is ~8.6s (`typecheck` 1.63s, `lint` 2.21s, `build` 0.25s, 502 tests 4.53s),
+  so the 8–12× multiplier applies to 1.6 seconds. The cost is a dual-TypeScript install plus a real trap:
+  under the alias layout `node_modules/.bin/tsc` still resolves to 6.x, so a bare `tsc --noEmit` silently
+  keeps using the old compiler and the migration looks done when it is not. Revisit at TS 7.1, when the
+  parser can move and this collapses to a single-package bump.
   Complexity: S
 
 ## Research-Driven Additions (2026-08-15, second pass)
@@ -223,6 +263,14 @@ confirmed a second time. See RESEARCH.md.
   nothing; `teardown` is not reachable from the page at all; the design note states plainly what the
   boundary does and does not defend.
   Depends on: coordinate with F161 — both touch the same handshake, land them together.
+  Note (2026-08-18): two refinements. The threat model is narrower than feared on one axis — Chrome
+  documents that `document_start` content scripts run "before any other DOM is constructed or any other
+  script is run", so the page's own inline scripts cannot win the first-`hello` race; what is unordered is
+  another *extension's* MAIN-world script. The replay half is unconditional and unaffected by that. Also,
+  `page-bridge.ts:161` posts with `targetOrigin: "*"` — tightening it to the page origin is free and
+  should land regardless of the channel redesign. Worth noting the userscript build already avoids the
+  window bus entirely via the `PageAgentSink` direct callback (`page-bridge.ts:157`); only the extension
+  build depends on `postMessage`, which narrows the fix surface.
   Complexity: M
 
 - [ ] F174 — P1 — Release offscreen videos when they leave the DOM
@@ -523,3 +571,347 @@ confirmed a second time. See RESEARCH.md.
   stays tracked; INSTALL's Chromium and Firefox load steps still work from a clean clone after one
   build; the bundles are attached to releases.
   Complexity: S
+
+## Research-Driven Additions (2026-08-18)
+
+Completes the 2026-08-17 pass, which lost most of its external streams to an API limit. Defects
+below were read at the cited line. See RESEARCH.md.
+
+### P1 — accessibility
+
+- [ ] F194 — P1 — Make the Control Center readable in forced-colors mode
+  Why: `.av-toggle` signals on/off through `border-color`, `background`, and a `::before` `background`
+  — all author colours the UA forces to system colours under `forced-colors: active` — while the real
+  `<input type="checkbox">` is `opacity: 0; appearance: none`, suppressing the UA's own high-contrast
+  checkbox rendering. The only surviving state cue is a 14px knob translating 16px. In Windows High
+  Contrast, on and off very likely render identically, across all 13 destinations.
+  Evidence: `src/ui/control-center.ts:3219-3229` (hidden input), `:3231-3262` (state styling); zero
+  matches for `forced-colors`/`ButtonText`/`Highlight` in `src`, `tests`, `tools`; `box-shadow` — which
+  the UA discards outright — used 11x in `control-center.ts`, 14x in `theme.ts` (measured 2026-08-17).
+  Touches: `src/ui/control-center.ts` styles, `tools/settings-visual-harness.mjs` (which already calls
+  `page.emulateMedia({reducedMotion})` at `:311`, so `forcedColors: "active"` slots into the same
+  parameterization), the committed baselines.
+  Acceptance: every control's state is distinguishable under `forced-colors: active` without relying on
+  author colour or `box-shadow` — borders in `ButtonText`/`Highlight`, or `mask-image` + `background-color`,
+  or the native control left visible; a visual lane covers the forced-colors state; the options page is
+  checked too, since MV3 dropped `options_ui.browser_style` and its contrast is entirely ours.
+  Note (2026-08-18): implementable today on the pinned Playwright — verified that
+  `emulateMedia({forcedColors: "active"})` on 1.62.1 applies the real palette, not just the media-query
+  flip: `background-color` and `color` repainted to system colours, the `ButtonBorder` keyword resolved,
+  and `background-image` computed to `none`. `forcedColors` is also accepted in `launchPersistentContext`
+  options, so it can be set at context level in the existing harness. The two rules that will bite this UI
+  are `background-image → none` unless the value contains `url()` (kills gradient-drawn affordances) and
+  `box-shadow`/`text-shadow` → `none` (kills glassmorphism depth and any shadow-based focus ring). One
+  trap: system colours follow **native element semantics, not ARIA roles**, so a `div role="button"` never
+  receives `ButtonText` — controls that must be visible in this mode need to be real `button`/`input`
+  elements. Assertions worth writing: the media query activated; panel colours actually changed (catches a
+  stray `forced-color-adjust: none`); `boxShadow === "none"`; every `backgroundImage` is `none` or contains
+  `url()`; buttons retain a non-transparent border. If any CSS still ships `-ms-high-contrast`, replace it —
+  it is deprecated and its MDN page now 404s.
+  Complexity: M
+
+- [ ] F195 — P1 — Restrict toggleAttribute to attributes that are actually boolean
+  Why: `transactionBar.toggleAttribute("aria-busy", saving)` writes `aria-busy=""`, but ARIA boolean
+  attributes require the literal string `"true"` and fall back to the default (false) otherwise — so a
+  saving transaction is never announced as busy. This is the same root cause as F171: of the four
+  `toggleAttribute` call sites, two target `inert` (a genuine HTML boolean, correct) and two target
+  attributes that carry a value (both wrong). A lint rule closes the class; two point fixes do not.
+  Evidence: `src/ui/control-center.ts:752` (aria-busy), `src/features/filtering/filter-engine.ts:206`
+  (F171), correct uses at `control-center.ts:490,716`. Enumerated 2026-08-17.
+  Touches: `src/ui/control-center.ts`, `eslint.config.mjs` (or `tools/preflight.mjs`, alongside the
+  existing `innerHTML`/`keydown` bans), a live-region test.
+  Acceptance: `aria-busy="true"` is present while saving and absent otherwise, asserted from the
+  accessibility tree rather than source text; a rule rejects `toggleAttribute` on any attribute outside
+  a declared HTML-boolean allowlist, and fails on a deliberately reintroduced case.
+  Depends on: land with F171 — same fix class.
+  Complexity: S
+
+- [ ] F196 — P1 — Assert accessibility by rendering, in the lane that already exists
+  Why: a11y is currently verified by regexing source text (F140, F182), which cannot catch the two
+  defects above. No major extension in this space — uBlock Origin, Dark Reader, Stylus, Refined GitHub
+  — publishes accessibility checks, and Aviary already owns every prerequisite: Playwright 1.62.1,
+  `launchPersistentContext`, local fixtures, and 60 committed baselines.
+  Evidence: `tests/audit-a11y.test.mjs` source-string assertions; `tools/settings-visual-harness.mjs`
+  harness; RESEARCH.md Architecture.
+  Touches: a new axe lane beside `tests/visual/`, `package.json` scripts, devDependency (axe is the one
+  place a dev-only dependency is worth it; runtime deps stay at zero).
+  Acceptance: an automated pass runs against the mounted panel scoped to Aviary's injected selectors —
+  never X's own DOM — across all 13 destinations plus the options page, in default and forced-colors
+  states; violations fail the lane; what axe cannot detect is written down so the pass is not mistaken
+  for full coverage.
+  Distinct from F140, deliberately: F140 replaces hand-written source-regex assertions with driven
+  interaction checks (focus order, `inert`, Escape, focus return) that no rule engine can express. This
+  item adds the automated rule sweep — invalid ARIA, missing accessible names, contrast — across every
+  destination. Land F140 first; it defines the harness this rides on. Neither subsumes the other.
+  Note (2026-08-18): verified working against this repo's exact pins, with four mechanics worth knowing
+  before starting. (1) `@axe-core/playwright` 4.13.0 peers on `playwright-core >=1.0.0`, which
+  `playwright@1.62.1` satisfies, and it does **not** require `@playwright/test` — types only, so it runs
+  under `node --test`. (2) `AxeBuilder` throws "Please use browser.newContext()" on a page from
+  `browser.newPage()`; the existing harness is already fine because `launchPersistentContext` returns a
+  context. (3) Shadow DOM scoping works and was proven end to end — `.include({ fromShadowDom:
+  ["#av-control-center", ".av-panel"] })`, one selector per level; violations come back with a **nested
+  array** `target`, so serialize it into the failure message. Axe supports open roots only, and
+  `control-center.ts:454` uses `attachShadow({mode:"open"})`. (4) Axe skips hidden regions, so the panel
+  must be open — which `launchSettingsVisualHarness()` already does. Also: `page.accessibility.snapshot()`
+  was **removed** in Playwright 1.57.0 and `Locator.ariaRef()` in 1.60.0, so F140 must use
+  `page.ariaSnapshot()` plus real `page.keyboard.press()` / `activeElement` checks. Expect Aviary's
+  glassmorphism to generate `incomplete` contrast entries — pin that count so growth fails. Note that
+  **no axe rule covers forced-colors breakage**; F194 is not redundant with this.
+  Complexity: M
+
+### P1 — delivery integrity
+
+- [ ] F197 — P1 — Poll for updates with metadata, not the whole bundle
+  Why: `@updateURL` and `@downloadURL` both point at `dist/aviary.user.js`, and no `.meta.js` is emitted
+  anywhere, so every update check transfers 1.9 MB instead of roughly a kilobyte of metadata. Userscript
+  managers exist to poll that URL on a schedule. Tampermonkey additionally reports "Message length
+  exceeded maximum allowed length" on script *update* where a fresh install succeeds, apparently
+  size-linked — so an oversized update payload is a plausible silent-update-failure mode as well as
+  waste.
+  Evidence: metablock in `dist/aviary.user.js`; no `.meta` emission in `tools/build.mjs` or
+  `tools/userscript-meta.mjs` (checked 2026-08-17); Tampermonkey#2285 (Likely — one report, worth
+  reproducing against the real bundle).
+  Touches: `tools/userscript-meta.mjs`, `tools/build.mjs`, `tools/preflight.mjs`, `docs/INSTALL.md`.
+  Acceptance: the build emits `dist/aviary.meta.js` containing only the metablock; `@updateURL` points
+  at it while `@downloadURL` points at the full script; both declare a byte-identical `@version`, and
+  preflight fails if they diverge; version strings stay free of zero-padded segments, which Tampermonkey
+  is documented to compare incorrectly.
+  Depends on: coordinate with F183 — both concern the same metablock, and neither needs F125's decision.
+  Complexity: S
+
+- [ ] F198 — P1 — Give delivery size a budget, like every other invariant here
+  Why: nothing in `tools/preflight.mjs` or `tools/build.mjs` asserts any size limit, and the userscript
+  grew 1,876,875 -> 1,903,859 bytes between 2026-08-15 and 2026-08-16 with no signal. This repo gates
+  version strings, manifest shape, CSP, `innerHTML`, capture age and dependency pinning; delivery size
+  is the one unguarded axis, and it is the axis the update path is most sensitive to.
+  Evidence: no size assertion found in either tool (checked 2026-08-17); sizes measured across the last
+  12 commits touching `dist/aviary.user.js`.
+  Touches: `tools/preflight.mjs`, `tools/build.mjs`.
+  Acceptance: preflight reports the built userscript and extension bundle sizes on every run and fails
+  past a declared ceiling recorded in-repo with its reasoning; the failure message names the largest
+  contributing modules so the next reader does not have to re-derive that the i18n catalog is 53.9% of
+  it (F138).
+  Complexity: S
+
+### P1 — breakage response
+
+- [ ] F199 — P1 — Name the feature that broke, using ownership the registry already declares
+  Why: X DOM churn is this project's dominant recurring failure, and the two halves of the answer already
+  exist without ever being joined. `selectors.ts` declares `feature?: string` — "the feature that stops
+  working when this selector stops matching" — and `selector-health.ts` already computes per-selector
+  match state, yet a user with a broken feature is told only that health is "degraded". Refined GitHub
+  ships the equivalent as a remote CSV; Aviary can do it from local data with no network at all.
+  Evidence: `src/platform/selectors.ts` — 13 of 26 entries declare `feature:`, and `requiredOn` is
+  declared in the interface but used zero times; `src/features/core/selector-health.ts` computes
+  healthy/degraded and renders Trust rows only. Counted 2026-08-17.
+  Touches: `src/platform/selectors.ts` (complete the ownership map), `src/features/core/selector-health.ts`,
+  the Trust panel, the affected feature rows.
+  Acceptance: every selector declares its owning feature and a test fails when one does not; Trust lists
+  the specific features currently degraded rather than a global state; the row for a degraded feature says
+  so in place, in the section where the user would look for it; nothing is fetched.
+  Complexity: M
+
+- [ ] F200 — P1 — A "which Aviary feature is breaking this page?" bisect
+  Why: when X changes markup, the support question is always "which of ~27 features did this". A binary
+  search over enabled features answers it in about five rounds instead of a linear hunt, and produces a
+  feature id that feeds a prefilled report. VS Code ships exactly this for extensions; no site enhancer
+  in this lineage has built it over its own features, so it is a genuine first. It is fully local, needs
+  no network, registers no key handlers, and uses the existing reversible init/destroy contract.
+  Evidence: VS Code Extension Bisect (https://code.visualstudio.com/blogs/2021/02/16/extension-bisect);
+  survey of RES / CPFT / Vencord / Dark Reader / uBO found no equivalent; `src/features/registry.ts`
+  already isolates and can enable/disable features individually.
+  Touches: `src/features/registry.ts`, a Trust panel flow, `src/features/core/audit-log.ts`,
+  `.github/ISSUE_TEMPLATE/bug_report.yml`.
+  Acceptance: a Trust action disables half the enabled features, prompts "still wrong?" / "fixed", halves
+  again, and names the culprit; the original settings are restored exactly whatever the user does,
+  including abandoning midway; the result plus the existing content-free diagnostics compose a prefilled
+  bug report; no confirmation dialogs, no shortcuts.
+  Depends on: F199 (selector health should answer the common case first; bisect is for what it cannot).
+  Complexity: M
+
+- [ ] F201 — P1 — Re-verify batch media download against X's Photos/Videos split
+  Why: X split the profile Media tab into Photos and Videos and replaced the 3-column grid around
+  2026-08-13..16. Competing downloaders report this broke batch collection specifically — "since Twitter
+  separated media into videos and images, batch downloading no longer works efficiently... only process
+  individual tweets one at a time" — and Media Harvest reports its Likes-tab download button broke when
+  Likes moved into History. Aviary's "Download all visible media" walks rendered tweets, so it is exposed
+  to the same change, and no fixture can answer it because every capture predates the redesign.
+  Evidence: Greasy Fork discussion 2026-08-17; Media Harvest store review 2026-08-17; capture dates in
+  `_decoded/captures.json` (2026-05-19). Needs live validation.
+  Touches: `src/features/media/batch-downloader.ts`, `extract.ts`, the Media panel status readout.
+  Acceptance: batch download is exercised on the current Photos and Videos tabs and either works or is
+  fixed; where a surface genuinely cannot be enumerated, the control says so instead of silently
+  collecting nothing; the finding is recorded against the capture set so the next redesign has a baseline.
+  Depends on: F134's capture session — verify this while signed in rather than booking a second session.
+  Complexity: S
+
+### P2 — leapfrog
+
+- [ ] F202 — P2 — Read X's "Under the Hood" export locally
+  Why: on 2026-08-13 X began letting eligible users download a JSON of aggregate stats showing whether
+  visibility-limiting labels were applied to their account or posts in the past month. It is a file the
+  user already has, so reading it originates nothing and crosses no line Aviary draws — and nobody has
+  built a reader. Aviary already owns the surfaces this needs: a local library, an import path, and a
+  panel to render it in.
+  Evidence: https://techcrunch.com/2026/08/13/x-open-sources-its-ranking-algorithm-letting-users-see-if-theyve-been-shadowbanned/ ;
+  https://github.com/xai-org/x-algorithm (Apache-2.0).
+  Touches: `src/features/library/archive-import.ts` (same import shape), a new Trust or Library surface,
+  export formats.
+  Acceptance: the user picks the JSON X gave them and sees which labels were applied and when, held
+  locally and included in library backup; month-over-month comparison works from stored reports; the
+  panel states plainly that this is X's own summary of itself and that the published ranking weights are
+  not proof of what runs in production — the export is the user's data, the weights are not.
+  Complexity: M
+
+### P2 — local reading, all zero-network
+
+- [ ] F203 — P2 — A read marker, a "new since you last looked" line, and hide-seen
+  Why: `seen-posts.ts` already records what has gone past, and the highest-value thing to build on it is
+  the oldest idea in feed reading: a position marker. Mastodon's markers API is the reference schema
+  (`last_read_id` per surface) and X's snowflake ids are ordinal, so "newer than" needs no timestamps.
+  NetNewsWire's per-feed read filter is the interaction, and its stated rationale for making unread
+  counts optional — that badges are "distracting, less meaningful, or even stressful" — is the right
+  default for a project that already ships a focus mode.
+  Evidence: https://docs.joinmastodon.org/methods/markers/ ;
+  https://netnewswire.com/help/ios/6.0/en/filters.html ; `src/features/filtering/seen-posts.ts` (no
+  `lastRead`/marker concept today, checked 2026-08-18).
+  Touches: `src/features/filtering/seen-posts.ts`, a new reading feature, Layout/Reading settings,
+  library backup registration.
+  Acceptance: a per-surface marker persists locally; a separator marks the first post newer than it, with
+  an explicit "mark above as read" control; "hide posts I have already seen" is a per-surface toggle; no
+  unread badge unless opted in; the marker advances only on explicit action or on a post leaving the
+  viewport upward, never on mere render; injecting the separator never moves the reading position.
+  Complexity: M
+
+- [ ] F204 — P2 — Give filter rules a title and an expiry
+  Why: every rule is permanent and anonymous today, so "mute this for a week" is impossible and a hidden
+  post cannot name what caught it. Bluesky ships duration as four choices with an explicit "Expired →
+  Renew" state; Mastodon requires a filter title precisely so the warning can say which filter matched.
+  The title is also the prerequisite that makes F144's "why was this hidden" sentence readable rather
+  than a raw pattern dump.
+  Evidence: https://github.com/bluesky-social/social-app/blob/main/src/components/dialogs/MutedWords.tsx
+  (value/targets/actorTarget/expiresAt); https://docs.joinmastodon.org/entities/Filter/ (title, context[],
+  warn|hide|blur); `src/features/filtering/rules.ts` has neither concept.
+  Touches: `src/features/filtering/rules.ts`, `predicates.ts`, the Filtering panel, settings schema and
+  normalization, library backup.
+  Acceptance: a rule carries an optional title and an optional expiry (24h / 7d / 30d / never); expired
+  rules stop applying, are shown as expired with a one-click renew, and are never silently deleted; the
+  title is what F144 shows on a suppressed post; existing untitled, non-expiring rules keep working
+  unchanged through normalization.
+  Depends on: F144 consumes the title; F145 must carry both fields through import/export.
+  Complexity: M
+
+- [ ] F205 — P2 — Filter on post shape, not just text
+  Why: the most repeated filtering requests in this ecosystem are structural rather than lexical — hide
+  replies, hide quote-posts, hide self-reposts, hide posts under an engagement floor — and every one of
+  those predicates is already visible in the rendered DOM, so they cost a predicate each and no capture.
+  Evidence: control-panel-for-twitter#916 / #882 / #850 / #452; Bluesky `feedViewPref`
+  (`hideReplies`, `hideReposts`, `hideQuotePosts`, `hideRepliesByLikeCount`) in
+  https://github.com/bluesky-social/atproto/blob/main/lexicons/app/bsky/actor/defs.json ; Ivory's
+  composite shape filters.
+  Touches: `src/features/filtering/predicates.ts`, the Filtering panel, settings schema.
+  Acceptance: shape predicates are available per route alongside the existing rules and reuse the same
+  hide/dim actions and the same reason reporting; an engagement floor accepts a number and states which
+  metric it reads; nothing here requires a new capture or a new request.
+  Note: self-repost filtering stays blocked — F033 in Roadmap_Blocked.md needs an authenticated fixture
+  of the attribution row. Ship the predicates that current captures already prove.
+  Complexity: S
+
+- [ ] F206 — P2 — Let the timeline stop
+  Why: infinite scroll is the one attention mechanism Aviary's focus mode does not touch, and an explicit
+  pagination request is open on the closest competitor with no implementation anywhere in the field.
+  Phanpy ships it as "Paginated timeline"; Elk ships `disableTimelineAutoloading`. It is a local DOM
+  behaviour with no capture dependency.
+  Evidence: control-panel-for-twitter#916 (2026-08-03, "Load some user-defined number of posts, and then
+  either force 'show more' or introduce pagination"); Phanpy settings; Elk settings definition.
+  Touches: a new layout feature, Layout settings, `src/features/layout/`.
+  Acceptance: after a user-set number of posts the timeline stops extending and shows an explicit control
+  to continue; the count and the control are visible; turning it off restores X's behaviour immediately;
+  scroll position is never moved by the intervention.
+  Complexity: M
+
+- [ ] F207 — P2 — Rebuild threads from what has already been captured
+  Why: "archive a thread including all the replies" is a standing unmet request, and Aviary is unusually
+  well placed: it already persists GraphQL payloads and `viewer.ts` already groups exported records by
+  `conversationId`, but nothing reconstructs a chain for reading. The algorithm is published — merge
+  overlapping reply contexts found in the same batch, order replies after parents, flag participants who
+  differ from the author to separate a self-thread from a conversation.
+  Evidence: https://github.com/cheeaun/phanpy/blob/main/src/utils/timeline-utils.js (`groupContext`);
+  r/DataHoarder 2026-08-14; `src/features/export/viewer.ts:206` already keys on `conversationId`;
+  no reconstruction exists in `src/features/`.
+  Touches: `src/features/export/network-capture.ts` (persist parent/root/author per post),
+  `src/features/library/`, a reading surface, export formats.
+  Acceptance: a captured thread renders as a continuous ordered read from local records only, with posts
+  that were never captured shown as explicit gaps rather than silently omitted; consecutive same-author
+  runs collapse in the timeline to a single expandable summary; export carries the reconstructed order;
+  zero originated requests.
+  Complexity: L
+
+### P1 — toolchain and claims (added 2026-08-18, second pass)
+
+- [ ] F208 — P1 — Ad protection is inert under Violentmonkey, which the docs list as supported
+  Why: the metablock ships `@inject-into content`, and Violentmonkey documents that under that mode
+  `unsafeWindow` references the content script's own global rather than the page `window`.
+  `pageWindowFromSandbox()` correctly detects this and returns `undefined` — so the page agent never
+  installs, and with it the userscript's half of the default-on ad guard. The comment directly above that
+  function already names the failure it is guarding against: "a feature that installs cleanly, reports
+  itself healthy, and never sees a single request." That is what a Violentmonkey user gets today, while
+  `docs/INSTALL.md` and README both name Violentmonkey as a supported manager.
+  Evidence: `dist/aviary.user.js:12` (`@inject-into content`); `src/platform/page-bridge.ts:62-77` (the
+  `unsafeWindow === globalThis` guard); https://violentmonkey.github.io/api/metadata-block/ . The
+  extension build is unaffected — it declares `"world": "MAIN"`. Verified 2026-08-18.
+  Touches: `tools/userscript-meta.mjs` (`@inject-into`), `src/platform/page-bridge.ts`, `docs/INSTALL.md`,
+  `docs/FAQ.md`, README's manager list.
+  Acceptance: either `@inject-into auto` is adopted so page injection is used where CSP permits and
+  content is the fallback, or the docs state plainly which managers get the page agent and which do not —
+  and in both cases a user whose page agent is unavailable is told so where they would look, rather than
+  seeing an ad-protection row that claims to be on. A test asserts the declared inject mode matches what
+  the docs promise.
+  Complexity: M
+
+- [ ] F209 — P1 — Say what `--ignore-scripts` actually defends against
+  Why: README states that "every major npm compromise of 2026 (axios, keyv/cacheable, the node-gyp worm)
+  executed through" an install script and that `--ignore-scripts` "closes that class". The first half is
+  not true of the 2026 record: chalk/debug (2025-09), @redhat-cloud-services (2026-06, which passed SLSA
+  attestation) and AsyncAPI (2026-07) all delivered their payload from the **module body**, which
+  `--ignore-scripts` does not touch. This repo fails builds over settings that claim what nothing
+  implements; the same standard should apply to its own security claims.
+  Evidence: README.md:101-105; incident survey 2026-08-18 — install-hook delivery blocked in 7 of 12
+  surveyed incidents, module-body delivery in 3, mixed in 2. The genuinely load-bearing defences here are
+  **zero runtime dependencies** and `npm ci` against a committed lockfile, both of which Aviary has.
+  Touches: README.md, `tests/readme-claims.test.mjs`.
+  Acceptance: the paragraph claims only what the flag does — blocking the install-hook family — and names
+  zero-runtime-deps plus lockfile pinning as what covers module-body attacks; the wording is specific
+  enough that a future incident of either class does not make it false again.
+  Complexity: S
+
+- [ ] F210 — P1 — Stop `engines` from accepting end-of-life Node
+  Why: `"node": ">=22.23.2"` is satisfied by Node 25.x, which reached end of life 2026-06-01 and receives
+  no security patches, and by pre-LTS 26.x. The floor was chosen deliberately to clear the June and July
+  2026 Node security releases, so admitting an unpatched line defeats the reason the floor exists.
+  Evidence: `package.json` engines; https://github.com/nodejs/Release (Node 20 EOL 2026-04-30, Node 25 EOL
+  2026-06-01, Node 24 → maintenance 2026-10-20, Node 22 EOL 2027-04-30). Verified 2026-08-18.
+  Touches: `package.json`, `docs/INSTALL.md`, `tools/preflight.mjs` if the range is asserted.
+  Acceptance: the range admits only supported lines (`^22.23.2 || ^24.18.1 || >=26.5.1` or equivalent) and
+  is stated once with its reasoning; a comment or preflight note records the next date the range must be
+  revisited, so it does not silently rot.
+  Complexity: S
+
+- [ ] F211 — P2 — Import the sources under test instead of bundling them first
+  Why: 82 of 91 test files bundle through esbuild and import the result, which puts a build step between
+  every assertion and the code it describes — and is part of why so many tests fell back to regexing
+  source text (F182). Node's type stripping is stable and available on the repo's existing floor, and the
+  sources are already erasable-syntax-only (no enums, namespaces, parameter properties, or decorators), so
+  `node --test` can import `src/**/*.ts` directly.
+  Evidence: https://nodejs.org/api/typescript.html (unflagged since 22.18.0, stable 24.12.0; repo floor is
+  22.23.2); verified 2026-08-18 by importing `src/platform/observer.ts` and `network.ts` directly under
+  Node with no build step. Cost is mechanical: 351 relative specifiers are extensionless and type
+  stripping requires explicit `.ts`, needing `allowImportingTsExtensions` and a `verbatimModuleSyntax`
+  pass over 212 value-import sites.
+  Touches: `tests/*.test.mjs` (the `importBundledModule` helper), `tsconfig.json`, import specifiers
+  across `src/`.
+  Acceptance: tests import the modules they describe with no bundling step; the esbuild harness is deleted
+  rather than left beside the new path; the build itself still bundles as before; suite runtime does not
+  regress. Do this for directness, not speed — the suite is already ~4.5s.
+  Depends on: sequence before F182, which is easier to do well once tests can import real modules.
+  Complexity: L
