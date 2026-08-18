@@ -311,17 +311,22 @@ test("an external AI request shows its disclosure before the first fetch", async
   assert.equal(result.afterSend, 1);
 });
 
-test("no outcome path in the AI menu or snippets ends without telling the user", async () => {
-  const menu = await readFile(path.join(root, "src/features/ai/command-menu.ts"), "utf8");
-  const snippets = await readFile(path.join(root, "src/features/composer/composer-snippets.ts"), "utf8");
+test("every outcome the AI menu and snippets can reach is copy the user will actually see", async () => {
+  // These were `assert.match(source, /result copied to the clipboard\./)`. A literal in a file is
+  // not a sentence anyone sees: it can sit in a branch nothing reaches, or in a string the
+  // translator never receives, in which case it ships in English for every locale. The extractor
+  // walks the rendered surfaces and records what reached `ft()`, so requiring each outcome to be
+  // in its manifest is the claim that matters -- reachable, translatable copy.
+  const manifest = JSON.parse(await readFile(path.join(root, "tools/i18n-manifest.json"), "utf8"));
 
-  // Every branch that previously closed the menu in silence.
-  // Routed through ft() now, so the assertions look for the source strings the catalog is
-  // keyed on rather than the interpolated sentence.
-  assert.match(menu, /result copied to the clipboard\./);
-  assert.match(menu, /could not be copied/);
-  assert.match(menu, /the provider did not respond/);
-  assert.match(menu, /Prompt copied to the clipboard/);
-  assert.match(menu, /finally/);
-  assert.match(snippets, /Click into the composer first/);
+  const OUTCOMES = [
+    "result copied to the clipboard.",
+    "could not be copied",
+    "the provider did not respond",
+    "Prompt copied to the clipboard",
+    "Click into the composer first"
+  ];
+
+  const missing = OUTCOMES.filter((outcome) => !manifest.manifest.some((line) => line.includes(outcome)));
+  assert.deepEqual(missing, [], "these outcomes end without copy the user can read in their language");
 });

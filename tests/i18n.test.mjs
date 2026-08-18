@@ -82,20 +82,81 @@ test("translateText falls back to the English source instead of an empty box", a
   assert.equal(hasTranslation("en", "A brand new row"), true);
 });
 
-test("the Control Center routes its copy through the translator", async () => {
-  const { readFile } = await import("node:fs/promises");
-  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+test("the Control Center actually renders translated copy, not just English", async () => {
+  // The row helpers are the choke point. The old form checked that `t(` appeared within 600
+  // characters of three function names -- which passes for a helper that calls `t()` on a
+  // constant and renders something else, and fails on any reformat. This renders the panel in a
+  // locale and reads what the user would see.
+  const { chromium } = await import("playwright");
+  const temp = await mkdtemp(path.join(tmpdir(), "aviary-i18n-panel-"));
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const entry = path.join(temp, "entry.ts");
+    const abs = (file) => path.resolve(root, file).split(path.sep).join("/");
+    await writeFile(
+      entry,
+      [
+        `export { mountControlCenter, renderedPanelStrings } from ${JSON.stringify(abs("src/ui/control-center.ts"))}`,
+        `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))}`
+      ].join(";\n"),
+      "utf8"
+    );
+    const bundle = path.join(temp, "bundle.js");
+    await build({
+      entryPoints: [entry],
+      outfile: bundle,
+      bundle: true,
+      format: "iife",
+      globalName: "AviaryI18n",
+      platform: "browser",
+      target: "es2022",
+      logLevel: "silent"
+    });
 
-  // The row helpers are the choke point: if these stop calling t(), every label silently
-  // reverts to English while the coverage readout keeps claiming the locale is complete.
-  for (const helper of ["function section(", "function toggleRow(", "function readonlyRow("]) {
-    const start = source.indexOf(helper);
-    assert.ok(start > -1, `${helper} not found`);
-    const body = source.slice(start, start + 600);
-    assert.match(body, /\bt\(/, `${helper} no longer translates its copy`);
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    await page.setContent("<!doctype html><meta charset=utf-8><body></body>");
+    await page.addScriptTag({ path: bundle });
+
+    const render = (locale) =>
+      page.evaluate(async (code) => {
+        document.getElementById("av-control-center")?.remove();
+        const settings = AviaryI18n.cloneSettings(AviaryI18n.DEFAULT_SETTINGS);
+        settings.i18n.locale = code;
+        AviaryI18n.mountControlCenter({
+          settings,
+          diagnostics: () => [],
+          onChange: async () => {},
+          onError: () => {}
+        });
+        const shadow = document.getElementById("av-control-center").shadowRoot;
+        shadow.querySelector(".av-launcher").click();
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        return {
+          labels: [...shadow.querySelectorAll(".av-row-label")].map((node) => node.textContent),
+          sections: [...shadow.querySelectorAll(".av-nav-item")].map((node) => node.textContent),
+          title: shadow.querySelector(".av-section-title")?.textContent ?? null,
+          accounted: AviaryI18n.renderedPanelStrings().length
+        };
+      }, locale);
+
+    const english = await render("en");
+    const japanese = await render("ja");
+
+    assert.ok(english.labels.length > 0, "the panel rendered no rows");
+    // If a helper stopped calling the translator, its copy would come out identical in both.
+    assert.notDeepEqual(japanese.sections, english.sections, "the nav rail is not translated");
+    assert.notEqual(japanese.title, english.title, "the section heading is not translated");
+    assert.ok(
+      japanese.labels.some((label, index) => label !== english.labels[index]),
+      "not one row label changed with the locale"
+    );
+    // The coverage readout counts what the translator saw; a helper bypassing it would leave the
+    // tally claiming a locale is complete while the panel renders English.
+    assert.ok(japanese.accounted > 20, `only ${japanese.accounted} strings reached the translator`);
+  } finally {
+    await browser.close();
+    await rm(temp, { recursive: true, force: true });
   }
-
-  assert.match(source, /export function renderedPanelStrings\(/, "drift accounting was removed");
 });
 
 test("the extractor reaches every panel section and every status branch", async () => {
@@ -104,13 +165,32 @@ test("the extractor reaches every panel section and every status branch", async 
   // The panel draws one section at a time behind the nav rail, and the coverage tally resets on
   // every render. A single render therefore reports only the default section -- which is exactly
   // how the extractor silently degraded from 254 strings to 26 when the rail landed.
-  assert.match(tool, /querySelectorAll\(".av-nav-item"\)/);
-  assert.match(tool, /no nav items found/);
+  // Read the committed manifest rather than the extractor's source: it is the artifact the sync
+  // step consumes, and the failure being guarded is a manifest that shrank, not a line that
+  // disappeared. When the nav rail landed, a single render reported only the default section and
+  // the harvest silently fell from 254 strings to 26.
+  const manifest = JSON.parse(await readFile(path.join(root, "tools/i18n-manifest.json"), "utf8"));
+  assert.ok(
+    manifest.manifest.length > 400,
+    `the harvest collapsed to ${manifest.manifest.length} strings; it must reach every section`
+  );
+  // Copy that only exists on a destination other than the one the panel opens on. If the
+  // extractor stopped walking the rail, every one of these would be gone.
+  for (const perSection of [
+    "Reset ad observations",
+    "Import settings (JSON)",
+    "Download Markdown report",
+    "Concurrent downloads"
+  ]) {
+    assert.ok(
+      manifest.manifest.includes(perSection),
+      `the harvest never reached the section that draws "${perSection}"`
+    );
+  }
 
   // `save(checked ? "X on" : "X off")` is how nearly every toggle reports itself. Anchoring the
   // status harvest on the literal immediately after the open paren missed both arms, so 51
   // confirmations shipped in English regardless of locale.
-  assert.match(tool, /function harvestStatusLiterals\(/);
   const { harvested } = await harvestFrom(tool);
   assert.ok(harvested.includes("Link cleaning on"), "ternary status arms must be harvested");
   assert.ok(harvested.includes("Link cleaning off"), "ternary status arms must be harvested");

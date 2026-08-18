@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "esbuild";
 
 import { captureAgeReport, listFixtureFiles, readCaptureManifest } from "../tools/capture-manifest.mjs";
 import { assertScrubbed, extractHtml, scrub } from "../tools/capture-decode.mjs";
@@ -26,24 +28,6 @@ for (const [name, fixture] of [
     assert.ok(tweetCount >= 5, `expected several tweet nodes, saw ${tweetCount}`);
   });
 }
-
-test("source selector registry contains stable and fallback selectors", async () => {
-  const source = await readFile(path.join(root, "src/platform/selectors.ts"), "utf8");
-
-  for (const selector of [
-    '[data-testid="primaryColumn"]',
-    'article[data-testid="tweet"]',
-    '[data-testid="tweetText"]',
-    '[data-testid="tweetTextarea_0"]',
-    '[data-testid="GrokDrawer"]',
-    'a[href="/i/grok"]',
-    'button[aria-label="Grok actions"]'
-  ]) {
-    assert.ok(source.includes(selector), `missing selector: ${selector}`);
-  }
-
-  assert.match(source, /fallback:/);
-});
 
 function count(value, pattern) {
   return [...value.matchAll(pattern)].length;
@@ -152,43 +136,6 @@ test("the capture decoder extracts and scrubs a real saved MHTML", async () => {
 // happening outside the fixture's reach. These keep the expanded registry honest without a browser:
 // the health pass itself is exercised against a live DOM in the Trust selector-health tests.
 
-test("every registered selector declares a fallback, a note, and what breaks without it", async () => {
-  const source = await readFile(path.join(root, "src/platform/selectors.ts"), "utf8");
-  const registry = source.slice(
-    source.indexOf("export const SURFACE_SELECTORS"),
-    source.indexOf("export function getSelectorHealth")
-  );
-  const entries = [...registry.matchAll(/surface: "([^"]+)"/g)].map((match) => match[1]);
-  assert.ok(entries.length >= 20, `expected the expanded registry, saw ${entries.length} surfaces`);
-
-  for (const block of registry.split("  {").slice(1)) {
-    const name = block.match(/surface: "([^"]+)"/)?.[1];
-    if (!name) continue;
-    assert.match(block, /stable:/, `${name} has no stable selector`);
-    assert.match(block, /fallback:/, `${name} has no fallback selector`);
-    assert.match(block, /note:/, `${name} has no note explaining its churn`);
-  }
-});
-
-test("the selectors features depend on are present in a capture, not invented", async () => {
-  const source = await readFile(path.join(root, "src/platform/selectors.ts"), "utf8");
-  const home = await readFile(path.join(root, "_decoded/home.html"), "utf8");
-  const status = await readFile(path.join(root, "_decoded/status.html"), "utf8");
-  const captures = home + status;
-
-  // Every test id the registry claims as a stable anchor has to exist in the ground truth. A
-  // selector nobody can point at in a capture is exactly what this project refuses to ship.
-  const testIds = new Set(
-    [...source.matchAll(/data-testid="([A-Za-z0-9_-]+)"/g)].map((match) => match[1])
-  );
-  const missing = [...testIds].filter((id) => !captures.includes(`data-testid="${id}"`));
-  assert.deepEqual(
-    missing,
-    [],
-    `selectors.ts claims test ids no capture contains: ${missing.join(", ")}`
-  );
-});
-
 // --- capture decoder: the two defects that would have poisoned a refreshed capture ------------
 // Quoted-printable carries bytes, not characters, and the first version mapped each octet through
 // String.fromCharCode before writing UTF-8 back out. Every non-ASCII character in a capture would
@@ -241,3 +188,77 @@ test("every secret name is scrubbed in both cookie and JSON form, and caught in 
     }
   }
 });
+
+/**
+ * The selector registry, read as the exported array rather than as the text of the file that
+ * declares it.
+ *
+ * The old form sliced `selectors.ts` between two export names and split the slice on `"  {"`, so
+ * a reformat, a helper inserted between the two exports, or an entry written on one line would
+ * silently drop surfaces from the check. Iterating `SURFACE_SELECTORS` cannot miss one.
+ */
+test("every registered surface declares a selector, a fallback, a note and its owning feature", async () => {
+  const { SURFACE_SELECTORS } = await importBundledModule("src/platform/selectors.ts");
+
+  assert.ok(
+    SURFACE_SELECTORS.length >= 20,
+    `expected the expanded registry, saw ${SURFACE_SELECTORS.length} surfaces`
+  );
+  assert.equal(
+    new Set(SURFACE_SELECTORS.map((entry) => entry.surface)).size,
+    SURFACE_SELECTORS.length,
+    "two surfaces share a name; Trust reports them by name and one would be unreachable"
+  );
+
+  const incomplete = [];
+  for (const entry of SURFACE_SELECTORS) {
+    for (const field of ["stable", "fallback", "note", "churnRisk", "feature"]) {
+      if (typeof entry[field] !== "string" || entry[field].trim().length === 0) {
+        incomplete.push(`${entry.surface ?? "(unnamed)"}: ${field}`);
+      }
+    }
+  }
+  // A surface with no fallback degrades to nothing the moment X renames its test id; one with no
+  // note or feature leaves the reader of a degraded Trust report with nowhere to go.
+  assert.deepEqual(incomplete, []);
+});
+
+test("the surfaces features depend on are present in a capture, not invented", async () => {
+  const { SURFACE_SELECTORS } = await importBundledModule("src/platform/selectors.ts");
+  const home = await readFile(path.join(root, "_decoded/home.html"), "utf8");
+  const status = await readFile(path.join(root, "_decoded/status.html"), "utf8");
+  const captures = home + status;
+
+  // Every test id the registry claims as a *stable* anchor has to exist in the ground truth. A
+  // selector nobody can point at in a capture is exactly what this project refuses to ship.
+  // Fallbacks are exempt: they exist for the shape X has not shipped yet.
+  const claimed = new Set();
+  for (const entry of SURFACE_SELECTORS) {
+    for (const match of entry.stable.matchAll(/data-testid="([A-Za-z0-9_-]+)"/g)) {
+      claimed.add(match[1]);
+    }
+  }
+  assert.ok(claimed.size >= 10, `only ${claimed.size} test ids were read from the registry`);
+
+  const missing = [...claimed].filter((id) => !captures.includes(`data-testid="${id}"`));
+  assert.deepEqual(missing, [], `the registry claims test ids no capture contains: ${missing.join(", ")}`);
+});
+
+async function importBundledModule(relativePath) {
+  const temp = await mkdtemp(path.join(tmpdir(), "aviary-fixtures-"));
+  const outfile = path.join(temp, "module.mjs");
+  try {
+    await build({
+      entryPoints: [path.join(root, relativePath)],
+      outfile,
+      bundle: true,
+      format: "esm",
+      platform: "neutral",
+      target: "es2022",
+      logLevel: "silent"
+    });
+    return await import(`${pathToFileURL(outfile).href}?v=${Date.now()}-${Math.random()}`);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+}
