@@ -165,11 +165,27 @@ export class IntegrationUsageLedger {
     const dailyLimitBytes = finiteLimit(budget.dailyBytes);
     const current = this.snapshot();
     const usedBytes = kind === "ai" ? current.ai.bytes : current.embedding.bytes;
-    if (maxRequestBytes > 0 && bytes > maxRequestBytes) {
-      return this.blocked(kind, bytes, usedBytes, dailyLimitBytes, `The ${kind} request is ${bytes} bytes, over the ${maxRequestBytes}-byte per-request budget.`);
+    if (overBudget(maxRequestBytes, bytes)) {
+      return this.blocked(
+        kind,
+        bytes,
+        usedBytes,
+        dailyLimitBytes,
+        maxRequestBytes <= 0
+          ? `The ${kind} per-request budget is zero, so no provider request was made.`
+          : `The ${kind} request is ${bytes} bytes, over the ${maxRequestBytes}-byte per-request budget.`
+      );
     }
-    if (dailyLimitBytes > 0 && usedBytes + bytes > dailyLimitBytes) {
-      return this.blocked(kind, bytes, usedBytes, dailyLimitBytes, `The ${kind} daily budget has been reached; no provider request was made.`);
+    if (overBudget(dailyLimitBytes, usedBytes + bytes)) {
+      return this.blocked(
+        kind,
+        bytes,
+        usedBytes,
+        dailyLimitBytes,
+        dailyLimitBytes <= 0
+          ? `The ${kind} daily budget is zero, so no provider request was made.`
+          : `The ${kind} daily budget has been reached; no provider request was made.`
+      );
     }
 
     const before = cloneState(this.#state);
@@ -258,10 +274,14 @@ export function buildAiDisclosure(
   const text = [request.systemPrompt ?? "", request.prompt].join("\n");
   const budget = defaultAiBudget(config);
   const requestBytes = estimateAiRequestBytes(config, request);
-  const budgetReason = budget.maxRequestBytes > 0 && requestBytes > budget.maxRequestBytes
-    ? `The AI request is ${requestBytes} bytes, over the ${budget.maxRequestBytes}-byte per-request budget.`
-    : usage && budget.dailyBytes > 0 && usage.ai.bytes + requestBytes > budget.dailyBytes
-      ? "The AI daily budget has been reached; no provider request was made."
+  const budgetReason = overBudget(budget.maxRequestBytes, requestBytes)
+    ? budget.maxRequestBytes <= 0
+      ? "The AI per-request budget is zero, so no provider request will be made."
+      : `The AI request is ${requestBytes} bytes, over the ${budget.maxRequestBytes}-byte per-request budget.`
+    : usage && overBudget(budget.dailyBytes, usage.ai.bytes + requestBytes)
+      ? budget.dailyBytes <= 0
+        ? "The AI daily budget is zero, so no provider request will be made."
+        : "The AI daily budget has been reached; no provider request was made."
       : null;
   return {
     provider: config.provider,
@@ -344,6 +364,19 @@ function aiRequestBody(
 function finiteLimit(value: number | undefined): number {
   if (value === undefined) return 0;
   return Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0;
+}
+
+/**
+ * A budget of zero means zero.
+ *
+ * These guards used to read `limit > 0 && over`, so a limit of 0 disabled the check entirely and a
+ * user who set the daily cap to zero to stop all provider spend got unlimited spend instead. There
+ * is deliberately no "unlimited" value: on a control whose whole job is to bound what leaves the
+ * browser, an unbounded setting is the one outcome nobody asks for by typing a number. Someone who
+ * wants effectively no ceiling raises it to the schema maximum, which is still a stated number.
+ */
+function overBudget(limit: number, bytes: number): boolean {
+  return limit <= 0 || bytes > limit;
 }
 
 function localDay(date: Date): string {

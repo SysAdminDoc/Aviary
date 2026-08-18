@@ -1,3 +1,4 @@
+import { INTEGRATION_BUDGET_CEILINGS } from "../../../platform/settings";
 import type { PanelContext } from "../panel-context";
 export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
   const rows = [
@@ -529,27 +530,27 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       ),
       ctx.dataRow(
         "AI usage today",
-        `${usage.ai.requests} requests · ${ctx.formatBytes(usage.ai.bytes)} / ${usage.ai.dailyLimitBytes > 0 ? ctx.formatBytes(usage.ai.dailyLimitBytes) : ctx.t("unlimited")}`
+        `${usage.ai.requests} requests · ${ctx.formatBytes(usage.ai.bytes)} / ${usage.ai.dailyLimitBytes > 0 ? ctx.formatBytes(usage.ai.dailyLimitBytes) : ctx.t("blocked (budget is 0)")}`
       ),
       ctx.integerInputRow(
         "AI max request bytes",
-        "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.",
+        "Stop before sending one AI request larger than this UTF-8 body. Set 0 to block every AI request.",
         integrations.ai.maxRequestBytes,
         async (value) => {
           integrations.ai.maxRequestBytes = value;
           await ctx.save("AI request budget saved");
         },
-        { max: 5_000_000 }
+        { max: INTEGRATION_BUDGET_CEILINGS.ai.maxRequestBytes }
       ),
       ctx.integerInputRow(
         "AI daily request bytes",
-        "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.",
+        "Stop AI provider calls after this many UTF-8 request bytes in the local day. Set 0 to block every AI request.",
         integrations.ai.dailyRequestBytes,
         async (value) => {
           integrations.ai.dailyRequestBytes = value;
           await ctx.save("AI daily budget saved");
         },
-        { max: 100_000_000 }
+        { max: INTEGRATION_BUDGET_CEILINGS.ai.dailyRequestBytes }
       )
     );
   }
@@ -612,27 +613,27 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       ),
       ctx.dataRow(
         "Embedding usage today",
-        `${usage.embedding.requests} requests · ${usage.embedding.records} records · ${ctx.formatBytes(usage.embedding.bytes)} / ${usage.embedding.dailyLimitBytes > 0 ? ctx.formatBytes(usage.embedding.dailyLimitBytes) : ctx.t("unlimited")}`
+        `${usage.embedding.requests} requests · ${usage.embedding.records} records · ${ctx.formatBytes(usage.embedding.bytes)} / ${usage.embedding.dailyLimitBytes > 0 ? ctx.formatBytes(usage.embedding.dailyLimitBytes) : ctx.t("blocked (budget is 0)")}`
       ),
       ctx.integerInputRow(
         "Embedding max record bytes",
-        "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.",
+        "Stop before sending one record larger than this UTF-8 body. Set 0 to block every embedding call.",
         integrations.semanticSearch.maxRecordBytes,
         async (value) => {
           integrations.semanticSearch.maxRecordBytes = value;
           await ctx.save("Embedding request budget saved");
         },
-        { max: 5_000_000 }
+        { max: INTEGRATION_BUDGET_CEILINGS.semanticSearch.maxRecordBytes }
       ),
       ctx.integerInputRow(
         "Embedding daily record bytes",
-        "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.",
+        "Stop embedding calls after this many UTF-8 record bytes in the local day. Set 0 to block every embedding call.",
         integrations.semanticSearch.dailyRecordBytes,
         async (value) => {
           integrations.semanticSearch.dailyRecordBytes = value;
           await ctx.save("Embedding daily budget saved");
         },
-        { max: 100_000_000 }
+        { max: INTEGRATION_BUDGET_CEILINGS.semanticSearch.dailyRecordBytes }
       )
     );
   }

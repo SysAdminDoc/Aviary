@@ -49,6 +49,41 @@ test("integration usage counters enforce request and daily budgets without stori
   assert.equal(ledger.snapshot().ai.bytes, 0);
 });
 
+test("a budget of zero blocks every request instead of disabling the budget", async () => {
+  const { IntegrationUsageLedger, buildAiDisclosure, defaultAiBudget, defaultEmbeddingBudget } =
+    await importBundledModule("src/features/integrations/usage.ts");
+
+  const zeroDaily = { enabled: true, provider: "openai", endpoint: "https://provider.test/chat", apiKey: "k", model: "m", maxRequestBytes: 32000, dailyRequestBytes: 0 };
+  const zeroRequest = { ...zeroDaily, maxRequestBytes: 0, dailyRequestBytes: 100000 };
+
+  // The guards used to read `limit > 0 && over`, so zero turned the check off entirely -- a user
+  // capping spend at zero got unlimited spend. Zero has to fail closed on a spending control.
+  const dailyLedger = new IntegrationUsageLedger(storageFrom(new Map()));
+  await dailyLedger.load();
+  const daily = await dailyLedger.reserveAi(1, defaultAiBudget(zeroDaily));
+  assert.equal(daily.allowed, false);
+  assert.match(daily.reason, /daily budget is zero/);
+  assert.deepEqual(dailyLedger.snapshot().ai, { requests: 0, bytes: 0 }, "a blocked request must not be counted");
+
+  const requestLedger = new IntegrationUsageLedger(storageFrom(new Map()));
+  await requestLedger.load();
+  const perRequest = await requestLedger.reserveAi(1, defaultAiBudget(zeroRequest));
+  assert.equal(perRequest.allowed, false);
+  assert.match(perRequest.reason, /per-request budget is zero/);
+
+  // Embeddings share the ledger, so they share the semantics.
+  const zeroEmbedding = { enabled: true, endpoint: "https://provider.test/embed", apiKey: "k", model: "m", maxRecordBytes: 0, dailyRecordBytes: 100000 };
+  const embeddingLedger = new IntegrationUsageLedger(storageFrom(new Map()));
+  await embeddingLedger.load();
+  const embedding = await embeddingLedger.reserveEmbedding(1, 1, defaultEmbeddingBudget(zeroEmbedding));
+  assert.equal(embedding.allowed, false);
+
+  // The disclosure a user reads before approving has to agree with what the ledger will do.
+  const disclosure = buildAiDisclosure(zeroDaily, { prompt: "hi" }, { ai: { requests: 0, bytes: 0 }, embedding: { requests: 0, bytes: 0 } }, true);
+  assert.equal(disclosure.budgetAllowed, false);
+  assert.match(disclosure.budgetReason, /zero/);
+});
+
 test("AI provider stops before fetch when a configured budget is exceeded", async () => {
   const { IntegrationUsageLedger } = await importBundledModule("src/features/integrations/usage.ts");
   const { runAiPrompt } = await importBundledModule("src/features/integrations/ai-provider.ts");

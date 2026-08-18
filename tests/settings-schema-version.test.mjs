@@ -89,3 +89,47 @@ test("bumping the schema version requires a matching migration step", async () =
     );
   }
 });
+
+test("the v1 budget migration carries an unlimited budget instead of inverting it", () => {
+  const { readSettingsEnvelope, INTEGRATION_BUDGET_CEILINGS } = mod;
+
+  // v1 documented 0 as "no bound". v2 reads 0 as zero and blocks, so a stored 0 has to be carried
+  // to the ceiling -- normalizing it unchanged would silently turn "unlimited" into "blocked".
+  const stored = {
+    schemaVersion: 1,
+    integrations: {
+      ai: { maxRequestBytes: 0, dailyRequestBytes: 0 },
+      semanticSearch: { maxRecordBytes: 0, dailyRecordBytes: 12345 }
+    }
+  };
+
+  const envelope = readSettingsEnvelope(stored);
+  assert.deepEqual(envelope.applied, [1]);
+  assert.equal(envelope.fromVersion, 1);
+  assert.equal(envelope.fromFuture, false);
+
+  const ai = envelope.settings.integrations.ai;
+  assert.equal(ai.maxRequestBytes, INTEGRATION_BUDGET_CEILINGS.ai.maxRequestBytes);
+  assert.equal(ai.dailyRequestBytes, INTEGRATION_BUDGET_CEILINGS.ai.dailyRequestBytes);
+
+  const semantic = envelope.settings.integrations.semanticSearch;
+  assert.equal(semantic.maxRecordBytes, INTEGRATION_BUDGET_CEILINGS.semanticSearch.maxRecordBytes);
+  // A budget the user actually chose is left exactly alone.
+  assert.equal(semantic.dailyRecordBytes, 12345);
+});
+
+test("an unversioned payload still runs the ladder rather than being assumed current", () => {
+  const { readSettingsEnvelope, INTEGRATION_BUDGET_CEILINGS } = mod;
+
+  // Defaulting an absent version to the *current* version skipped every step the moment the ladder
+  // gained one -- which is precisely when an old payload most needs migrating.
+  const envelope = readSettingsEnvelope({
+    integrations: { ai: { maxRequestBytes: 0, dailyRequestBytes: 0 } }
+  });
+
+  assert.deepEqual(envelope.applied, [1]);
+  assert.equal(
+    envelope.settings.integrations.ai.dailyRequestBytes,
+    INTEGRATION_BUDGET_CEILINGS.ai.dailyRequestBytes
+  );
+});

@@ -222,19 +222,6 @@ confirmed a second time. See RESEARCH.md.
 
 ### P1 — measured defects, root cause first
 
-- [ ] F172 — P1 — Make a zero integration budget mean zero
-  Why: `finiteLimit` maps both `undefined` and an explicit `0` to `0`, and every guard reads
-  `if (limit > 0 && …)`. A user who sets the daily AI or embedding budget to zero to stop all spend
-  gets unlimited spend instead. This inverts a stated user intent on a spending control, which is a
-  sharper failure than the "setting claims what nothing implements" class the project already polices.
-  Evidence: `src/features/integrations/usage.ts:171` (`finiteLimit`), guards at `:167-172`
-  (re-checked 2026-08-17).
-  Touches: `src/features/integrations/usage.ts`, the Integrations budget rows, `tests/integration-usage.test.mjs`.
-  Acceptance: an explicit `0` blocks every request of that kind with a stated reason; "no limit" is a
-  distinct, separately expressed value; the panel shows which of the two is in effect; a test covers
-  zero, unset, and a positive limit.
-  Complexity: S
-
 - [ ] F173 — P1 — Stop the page from disabling ad protection or uninstalling the agent
   Why: the bridge broadcasts its session nonce with `postMessage(envelope, "*")`, and the agent then
   honours `config` and `teardown` from anyone who replays it — so a page script that listens for one

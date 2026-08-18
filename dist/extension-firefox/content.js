@@ -2,8 +2,46 @@
 (() => {
   // src/platform/settings.ts
   var SETTINGS_KEY = "aviary.settings.v1";
-  var SETTINGS_SCHEMA_VERSION = 1;
-  var SETTINGS_MIGRATIONS = {};
+  var SETTINGS_SCHEMA_VERSION = 2;
+  var INTEGRATION_BUDGET_CEILINGS = {
+    ai: { maxRequestBytes: 5e6, dailyRequestBytes: 1e8 },
+    semanticSearch: { maxRecordBytes: 5e6, dailyRecordBytes: 1e8 }
+  };
+  var SETTINGS_MIGRATIONS = {
+    /**
+     * v1 read a provider budget of `0` as "no bound" — the panel said so — which made the one value
+     * a worried user is most likely to type on a spending control the one value that removed the
+     * bound. v2 reads `0` as zero and blocks, so the meaning of an existing stored `0` inverted and
+     * normalization alone cannot carry it: it would silently turn "unlimited" into "blocked".
+     *
+     * Anyone holding `0` chose no ceiling, so map it to the ceiling the schema already enforces.
+     * That keeps their intent, costs them nothing they could reach before, and leaves `0` free to
+     * mean what it says.
+     */
+    1: (record) => {
+      const next = { ...record };
+      const integrations = asRecord(next.integrations);
+      if (Object.keys(integrations).length === 0) {
+        return next;
+      }
+      const migrated = { ...integrations };
+      for (const [group, fields] of Object.entries(INTEGRATION_BUDGET_CEILINGS)) {
+        const block = asRecord(migrated[group]);
+        if (Object.keys(block).length === 0) {
+          continue;
+        }
+        const updated = { ...block };
+        for (const [field, ceiling] of Object.entries(fields)) {
+          if (updated[field] === 0) {
+            updated[field] = ceiling;
+          }
+        }
+        migrated[group] = updated;
+      }
+      next.integrations = migrated;
+      return next;
+    }
+  };
   var THEME_IDS = ["off", "dim", "lightsOut", "graphite", "plum", "midnight", "noir"];
   var RATE_LIMIT_MODES = ["conservative", "balanced"];
   var REDUCE_MOTION_MODES = ["system", "always", "never"];
@@ -181,7 +219,7 @@
       return { settings: normalizeSettings(raw), fromVersion: declared, fromFuture: true, applied: [] };
     }
     let working = { ...raw };
-    let version = declared ?? SETTINGS_SCHEMA_VERSION;
+    let version = declared ?? 1;
     const applied = [];
     while (version < SETTINGS_SCHEMA_VERSION) {
       const step = SETTINGS_MIGRATIONS[version];
@@ -444,13 +482,13 @@
             integrationsAi.maxRequestBytes,
             DEFAULT_SETTINGS.integrations.ai.maxRequestBytes,
             0,
-            5e6
+            INTEGRATION_BUDGET_CEILINGS.ai.maxRequestBytes
           ),
           dailyRequestBytes: integerValue(
             integrationsAi.dailyRequestBytes,
             DEFAULT_SETTINGS.integrations.ai.dailyRequestBytes,
             0,
-            1e8
+            INTEGRATION_BUDGET_CEILINGS.ai.dailyRequestBytes
           )
         },
         semanticSearch: {
@@ -475,13 +513,13 @@
             integrationsSemantic.maxRecordBytes,
             DEFAULT_SETTINGS.integrations.semanticSearch.maxRecordBytes,
             0,
-            5e6
+            INTEGRATION_BUDGET_CEILINGS.semanticSearch.maxRecordBytes
           ),
           dailyRecordBytes: integerValue(
             integrationsSemantic.dailyRecordBytes,
             DEFAULT_SETTINGS.integrations.semanticSearch.dailyRecordBytes,
             0,
-            1e8
+            INTEGRATION_BUDGET_CEILINGS.semanticSearch.dailyRecordBytes
           )
         },
         crosspost: {
@@ -1728,9 +1766,9 @@ html.av-reduce-motion *::after {
       "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status.": "Antes de enviar, Aviary muestra el proveedor, el endpoint, los campos, la estimaci\xF3n de caracteres/tokens, la retenci\xF3n y el estado del presupuesto.",
       "AI usage today": "Uso de IA hoy",
       "AI max request bytes": "M\xE1ximo de bytes por solicitud de IA",
-      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "Det\xE9n el env\xEDo de solicitudes de IA cuyo cuerpo UTF-8 supere este tama\xF1o. Usa 0 para no limitar cada solicitud.",
+      "Stop before sending one AI request larger than this UTF-8 body. Set 0 to block every AI request.": "Det\xE9n el env\xEDo de solicitudes de IA cuyo cuerpo UTF-8 supere este tama\xF1o. Usa 0 para bloquear todas las solicitudes de IA.",
       "AI daily request bytes": "Bytes diarios de solicitudes de IA",
-      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "Det\xE9n las llamadas al proveedor de IA despu\xE9s de estos bytes UTF-8 en el d\xEDa local. Usa 0 para ilimitado.",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Set 0 to block every AI request.": "Det\xE9n las llamadas al proveedor de IA tras estos bytes UTF-8 de solicitud en el d\xEDa local. Usa 0 para bloquear todas las solicitudes de IA.",
       "Semantic search": "B\xFAsqueda sem\xE1ntica",
       "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.": "Env\xEDa el texto de los registros capturados al endpoint de embeddings configurado para buscar similitudes. Aqu\xED se muestran el destino, los campos, la retenci\xF3n y el presupuesto de bytes.",
       "Embedding endpoint": "Endpoint de incrustaciones",
@@ -1745,9 +1783,9 @@ html.av-reduce-motion *::after {
       "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy.": "Una solicitud contiene el modelo y el texto del registro capturado. Los vectores y el texto limitado permanecen en el \xEDndice local de Aviary; la retenci\xF3n del proveedor sigue su pol\xEDtica.",
       "Embedding usage today": "Uso de embeddings hoy",
       "Embedding max record bytes": "M\xE1ximo de bytes por registro de embedding",
-      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "Det\xE9n el env\xEDo de registros cuyo cuerpo UTF-8 supere este tama\xF1o. Usa 0 para no limitar cada registro.",
+      "Stop before sending one record larger than this UTF-8 body. Set 0 to block every embedding call.": "Det\xE9n el env\xEDo de registros cuyo cuerpo UTF-8 supere este tama\xF1o. Usa 0 para bloquear todas las llamadas de incrustaci\xF3n.",
       "Embedding daily record bytes": "Bytes diarios de registros de embeddings",
-      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "Det\xE9n las llamadas de embeddings despu\xE9s de estos bytes UTF-8 de registros en el d\xEDa local. Usa 0 para ilimitado.",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Set 0 to block every embedding call.": "Det\xE9n las llamadas de incrustaci\xF3n tras estos bytes UTF-8 de registro en el d\xEDa local. Usa 0 para bloquear todas las llamadas de incrustaci\xF3n.",
       "Auto-embed every export": "Incrustar autom\xE1ticamente cada exportaci\xF3n",
       "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.": "Antes de activar, revisa arriba el endpoint, los campos de los registros capturados, la retenci\xF3n local y el presupuesto diario de bytes. Despu\xE9s de cada exportaci\xF3n, genera embeddings en segundo plano. Est\xE1 desactivado de forma predeterminada.",
       "Rebuild semantic index": "Reconstruir el \xEDndice sem\xE1ntico",
@@ -2087,7 +2125,7 @@ html.av-reduce-motion *::after {
       "No active downloads.": "No hay descargas activas.",
       "Cancel": "Cancelar",
       "Blocked by local-only mode": "Bloqueado por el modo solo local",
-      "unlimited": "ilimitado",
+      "blocked (budget is 0)": "bloqueado (presupuesto en 0)",
       "No matches (or integration disabled).": "No hay coincidencias (o la integraci\xF3n est\xE1 desactivada).",
       "Open a profile's followers or following list, then use Capture snapshot to record it.": "Abre la lista de seguidores o seguidos de un perfil y usa \xABCapturar instant\xE1nea\xBB para registrarla.",
       "No captured records match \u201C{query}\u201D.": "No hay registros capturados que coincidan con \xAB{query}\xBB.",
@@ -2175,6 +2213,7 @@ html.av-reduce-motion *::after {
       "The prompt could not be copied. Your browser blocked clipboard access.": "No se pudo copiar el prompt. Tu navegador bloque\xF3 el acceso al portapapeles.",
       "Review external AI request": "Revisar solicitud de IA externa",
       "Nothing is sent until you choose Send request.": "No se env\xEDa nada hasta que elijas Enviar solicitud.",
+      "unlimited": "ilimitado",
       "Aviary stores usage counters only; the provider's retention follows its policy.": "Aviary solo guarda contadores de uso; la retenci\xF3n del proveedor sigue su pol\xEDtica.",
       "Budget blocked this request.": "El presupuesto bloque\xF3 esta solicitud.",
       "Send request": "Enviar solicitud",
@@ -2281,6 +2320,10 @@ html.av-reduce-motion *::after {
       "posts": "publicaciones",
       "offline-ready": "listo sin conexi\xF3n",
       "network may be required": "puede requerir red",
+      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "Det\xE9n el env\xEDo de solicitudes de IA cuyo cuerpo UTF-8 supere este tama\xF1o. Usa 0 para no limitar cada solicitud.",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "Det\xE9n las llamadas al proveedor de IA despu\xE9s de estos bytes UTF-8 en el d\xEDa local. Usa 0 para ilimitado.",
+      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "Det\xE9n el env\xEDo de registros cuyo cuerpo UTF-8 supere este tama\xF1o. Usa 0 para no limitar cada registro.",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "Det\xE9n las llamadas de embeddings despu\xE9s de estos bytes UTF-8 de registros en el d\xEDa local. Usa 0 para ilimitado.",
       "Rewrite image URLs to name=orig before downloading.": "Reescribe las URL de imagen a name=orig antes de descargar.",
       "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "Solo se aplica mientras el modo sin anuncios est\xE1 activo. Aviary rechaza la solicitud de registro de contenido promocionado de X, la \xFAnica solicitud de anuncios que puede separarse de la propia cronolog\xEDa. Desact\xEDvalo si X se queja de un bloqueador de anuncios: las publicaciones patrocinadas siguen ocultas y Aviary deja de rechazar cualquier solicitud.",
       "Always play video at the highest quality": "Reproducir siempre el v\xEDdeo con la m\xE1xima calidad",
@@ -2664,9 +2707,9 @@ html.av-reduce-motion *::after {
       "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status.": "Antes de enviar, o Aviary mostra o provedor, endpoint, campos, estimativa de caracteres/tokens, reten\xE7\xE3o e status do or\xE7amento.",
       "AI usage today": "Uso de IA hoje",
       "AI max request bytes": "M\xE1ximo de bytes por solicita\xE7\xE3o de IA",
-      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "Pare antes de enviar uma solicita\xE7\xE3o de IA maior que este corpo UTF-8. Use 0 para n\xE3o limitar cada solicita\xE7\xE3o.",
+      "Stop before sending one AI request larger than this UTF-8 body. Set 0 to block every AI request.": "Pare antes de enviar uma solicita\xE7\xE3o de IA maior que este corpo UTF-8. Use 0 para bloquear todas as solicita\xE7\xF5es de IA.",
       "AI daily request bytes": "Bytes di\xE1rios de solicita\xE7\xF5es de IA",
-      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "Pare as chamadas ao provedor de IA ap\xF3s estes bytes UTF-8 de solicita\xE7\xE3o no dia local. Use 0 para ilimitado.",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Set 0 to block every AI request.": "Pare as chamadas ao provedor de IA ap\xF3s esta quantidade de bytes UTF-8 de solicita\xE7\xE3o no dia local. Use 0 para bloquear todas as solicita\xE7\xF5es de IA.",
       "Semantic search": "Busca sem\xE2ntica",
       "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.": "Envie o texto dos registros capturados ao endpoint de embeddings configurado para busca por similaridade. O destino, os campos, a reten\xE7\xE3o e o or\xE7amento de bytes aparecem aqui.",
       "Embedding endpoint": "Endpoint de embeddings",
@@ -2681,9 +2724,9 @@ html.av-reduce-motion *::after {
       "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy.": "Uma solicita\xE7\xE3o cont\xE9m o modelo e o texto do registro capturado. Vetores e texto limitado ficam no \xEDndice local do Aviary; a reten\xE7\xE3o do provedor segue a pol\xEDtica dele.",
       "Embedding usage today": "Uso de embeddings hoje",
       "Embedding max record bytes": "M\xE1ximo de bytes por registro de embedding",
-      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "Pare antes de enviar um registro maior que este corpo UTF-8. Use 0 para n\xE3o limitar cada registro.",
+      "Stop before sending one record larger than this UTF-8 body. Set 0 to block every embedding call.": "Pare antes de enviar um registro maior que este corpo UTF-8. Use 0 para bloquear todas as chamadas de incorpora\xE7\xE3o.",
       "Embedding daily record bytes": "Bytes di\xE1rios de registros de embeddings",
-      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "Pare as chamadas de embeddings ap\xF3s estes bytes UTF-8 de registros no dia local. Use 0 para ilimitado.",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Set 0 to block every embedding call.": "Pare as chamadas de incorpora\xE7\xE3o ap\xF3s esta quantidade de bytes UTF-8 de registro no dia local. Use 0 para bloquear todas as chamadas de incorpora\xE7\xE3o.",
       "Auto-embed every export": "Gerar embeddings a cada exporta\xE7\xE3o",
       "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.": "Antes de ativar, confira acima o endpoint, os campos dos registros capturados, a reten\xE7\xE3o local e o or\xE7amento di\xE1rio de bytes. Depois de cada exporta\xE7\xE3o, gere embeddings em segundo plano. Desativado por padr\xE3o.",
       "Rebuild semantic index": "Reconstruir o \xEDndice sem\xE2ntico",
@@ -3023,7 +3066,7 @@ html.av-reduce-motion *::after {
       "No active downloads.": "N\xE3o existem transfer\xEAncias ativas.",
       "Cancel": "Cancelar",
       "Blocked by local-only mode": "Bloqueado pelo modo somente local",
-      "unlimited": "ilimitado",
+      "blocked (budget is 0)": "bloqueado (or\xE7amento \xE9 0)",
       "No matches (or integration disabled).": "Sem correspond\xEAncias (ou a integra\xE7\xE3o est\xE1 desativada).",
       "Open a profile's followers or following list, then use Capture snapshot to record it.": 'Abra a lista de seguidores ou de quem um perfil segue e use "Capturar instant\xE2neo" para registr\xE1-la.',
       "No captured records match \u201C{query}\u201D.": "Nenhum registo capturado corresponde a \xAB{query}\xBB.",
@@ -3111,6 +3154,7 @@ html.av-reduce-motion *::after {
       "The prompt could not be copied. Your browser blocked clipboard access.": "N\xE3o foi poss\xEDvel copiar o prompt. O teu navegador bloqueou o acesso \xE0 \xE1rea de transfer\xEAncia.",
       "Review external AI request": "Revisar solicita\xE7\xE3o externa de IA",
       "Nothing is sent until you choose Send request.": "Nada \xE9 enviado at\xE9 voc\xEA escolher Enviar solicita\xE7\xE3o.",
+      "unlimited": "ilimitado",
       "Aviary stores usage counters only; the provider's retention follows its policy.": "O Aviary armazena apenas contadores de uso; a reten\xE7\xE3o do provedor segue a pol\xEDtica dele.",
       "Budget blocked this request.": "O or\xE7amento bloqueou esta solicita\xE7\xE3o.",
       "Send request": "Enviar solicita\xE7\xE3o",
@@ -3217,6 +3261,10 @@ html.av-reduce-motion *::after {
       "posts": "publica\xE7\xF5es",
       "offline-ready": "pronto off-line",
       "network may be required": "a rede pode ser necess\xE1ria",
+      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "Pare antes de enviar uma solicita\xE7\xE3o de IA maior que este corpo UTF-8. Use 0 para n\xE3o limitar cada solicita\xE7\xE3o.",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "Pare as chamadas ao provedor de IA ap\xF3s estes bytes UTF-8 de solicita\xE7\xE3o no dia local. Use 0 para ilimitado.",
+      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "Pare antes de enviar um registro maior que este corpo UTF-8. Use 0 para n\xE3o limitar cada registro.",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "Pare as chamadas de embeddings ap\xF3s estes bytes UTF-8 de registros no dia local. Use 0 para ilimitado.",
       "Rewrite image URLs to name=orig before downloading.": "Reescreve as URLs de imagem para name=orig antes de baixar.",
       "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "S\xF3 se aplica enquanto o modo sem an\xFAncios est\xE1 ativo. O Aviary recusa a requisi\xE7\xE3o separada de registro de conte\xFAdo promovido do X, a \xFAnica requisi\xE7\xE3o de an\xFAncio que pode ser separada da pr\xF3pria linha do tempo. Desative isto se o X reclamar de um bloqueador de an\xFAncios: as publica\xE7\xF5es patrocinadas continuam ocultas e o Aviary deixa de recusar qualquer requisi\xE7\xE3o.",
       "Always play video at the highest quality": "Reproduzir sempre o v\xEDdeo na m\xE1xima qualidade",
@@ -3600,9 +3648,9 @@ html.av-reduce-motion *::after {
       "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status.": "Avant l\u2019envoi, Aviary affiche le fournisseur, le point de terminaison, les champs, l\u2019estimation des caract\xE8res/tokens, la conservation et l\u2019\xE9tat du budget.",
       "AI usage today": "Utilisation de l\u2019IA aujourd\u2019hui",
       "AI max request bytes": "Octets maximum par requ\xEAte IA",
-      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "Arr\xEAter avant d\u2019envoyer une requ\xEAte IA dont le corps UTF-8 d\xE9passe cette taille. Utiliser 0 pour ne pas limiter chaque requ\xEAte.",
+      "Stop before sending one AI request larger than this UTF-8 body. Set 0 to block every AI request.": "Arr\xEAter avant d\u2019envoyer une requ\xEAte IA dont le corps UTF-8 d\xE9passe cette taille. Mettre 0 pour bloquer toutes les requ\xEAtes IA.",
       "AI daily request bytes": "Octets quotidiens des requ\xEAtes IA",
-      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "Arr\xEAter les appels au fournisseur d\u2019IA apr\xE8s ce nombre d\u2019octets UTF-8 dans la journ\xE9e locale. Utiliser 0 pour illimit\xE9.",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Set 0 to block every AI request.": "Arr\xEAter les appels au fournisseur IA apr\xE8s ce nombre d\u2019octets UTF-8 de requ\xEAte dans la journ\xE9e locale. Mettre 0 pour bloquer toutes les requ\xEAtes IA.",
       "Semantic search": "Recherche s\xE9mantique",
       "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.": "Envoyer le texte des enregistrements captur\xE9s au point de terminaison d\u2019embeddings configur\xE9 pour la recherche par similarit\xE9. La destination, les champs, la conservation et le budget d\u2019octets sont affich\xE9s ici.",
       "Embedding endpoint": "Point de terminaison des plongements",
@@ -3617,9 +3665,9 @@ html.av-reduce-motion *::after {
       "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy.": "Une requ\xEAte contient le mod\xE8le et le texte de l\u2019enregistrement captur\xE9. Les vecteurs et le texte limit\xE9 restent dans l\u2019index local d\u2019Aviary ; la conservation du fournisseur suit sa politique.",
       "Embedding usage today": "Utilisation des embeddings aujourd\u2019hui",
       "Embedding max record bytes": "Octets maximum par enregistrement d\u2019embedding",
-      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "Arr\xEAter avant d\u2019envoyer un enregistrement dont le corps UTF-8 d\xE9passe cette taille. Utiliser 0 pour ne pas limiter chaque enregistrement.",
+      "Stop before sending one record larger than this UTF-8 body. Set 0 to block every embedding call.": "Arr\xEAter avant d\u2019envoyer un enregistrement dont le corps UTF-8 d\xE9passe cette taille. Mettre 0 pour bloquer tous les appels d\u2019embedding.",
       "Embedding daily record bytes": "Octets quotidiens des enregistrements d\u2019embeddings",
-      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "Arr\xEAter les appels d\u2019embedding apr\xE8s ce nombre d\u2019octets UTF-8 d\u2019enregistrements dans la journ\xE9e locale. Utiliser 0 pour illimit\xE9.",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Set 0 to block every embedding call.": "Arr\xEAter les appels d\u2019embedding apr\xE8s ce nombre d\u2019octets UTF-8 d\u2019enregistrement dans la journ\xE9e locale. Mettre 0 pour bloquer tous les appels d\u2019embedding.",
       "Auto-embed every export": "Indexer automatiquement chaque export",
       "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.": "Avant l\u2019activation, v\xE9rifiez ci-dessus le point de terminaison, les champs des enregistrements captur\xE9s, la conservation locale et le budget quotidien d\u2019octets. Apr\xE8s chaque exportation, les embeddings sont g\xE9n\xE9r\xE9s en arri\xE8re-plan. D\xE9sactiv\xE9 par d\xE9faut.",
       "Rebuild semantic index": "Reconstruire l'index s\xE9mantique",
@@ -3959,7 +4007,7 @@ html.av-reduce-motion *::after {
       "No active downloads.": "Aucun t\xE9l\xE9chargement actif.",
       "Cancel": "Annuler",
       "Blocked by local-only mode": "Bloqu\xE9 par le mode local uniquement",
-      "unlimited": "illimit\xE9",
+      "blocked (budget is 0)": "bloqu\xE9 (budget \xE0 0)",
       "No matches (or integration disabled).": "Aucun r\xE9sultat (ou int\xE9gration d\xE9sactiv\xE9e).",
       "Open a profile's followers or following list, then use Capture snapshot to record it.": "Ouvrez la liste des abonn\xE9s ou des abonnements d'un profil, puis utilisez \xAB Capturer un instantan\xE9 \xBB pour l'enregistrer.",
       "No captured records match \u201C{query}\u201D.": "Aucun enregistrement captur\xE9 ne correspond \xE0 \xAB {query} \xBB.",
@@ -4047,6 +4095,7 @@ html.av-reduce-motion *::after {
       "The prompt could not be copied. Your browser blocked clipboard access.": "Le prompt n'a pas pu \xEAtre copi\xE9. Votre navigateur a bloqu\xE9 l'acc\xE8s au presse-papiers.",
       "Review external AI request": "V\xE9rifier la requ\xEAte IA externe",
       "Nothing is sent until you choose Send request.": "Rien n\u2019est envoy\xE9 avant de choisir Envoyer la requ\xEAte.",
+      "unlimited": "illimit\xE9",
       "Aviary stores usage counters only; the provider's retention follows its policy.": "Aviary conserve uniquement des compteurs d'utilisation ; la conservation du fournisseur suit sa politique.",
       "Budget blocked this request.": "Le budget a bloqu\xE9 cette requ\xEAte.",
       "Send request": "Envoyer la requ\xEAte",
@@ -4153,6 +4202,10 @@ html.av-reduce-motion *::after {
       "posts": "publications",
       "offline-ready": "pr\xEAt hors ligne",
       "network may be required": "r\xE9seau potentiellement n\xE9cessaire",
+      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "Arr\xEAter avant d\u2019envoyer une requ\xEAte IA dont le corps UTF-8 d\xE9passe cette taille. Utiliser 0 pour ne pas limiter chaque requ\xEAte.",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "Arr\xEAter les appels au fournisseur d\u2019IA apr\xE8s ce nombre d\u2019octets UTF-8 dans la journ\xE9e locale. Utiliser 0 pour illimit\xE9.",
+      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "Arr\xEAter avant d\u2019envoyer un enregistrement dont le corps UTF-8 d\xE9passe cette taille. Utiliser 0 pour ne pas limiter chaque enregistrement.",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "Arr\xEAter les appels d\u2019embedding apr\xE8s ce nombre d\u2019octets UTF-8 d\u2019enregistrements dans la journ\xE9e locale. Utiliser 0 pour illimit\xE9.",
       "Rewrite image URLs to name=orig before downloading.": "R\xE9\xE9crit les URL d'image en name=orig avant le t\xE9l\xE9chargement.",
       "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "Ne s'applique que si le mode sans publicit\xE9 est activ\xE9. Aviary refuse la requ\xEAte distincte de journalisation des contenus sponsoris\xE9s de X, la seule requ\xEAte publicitaire s\xE9parable du fil lui-m\xEAme. D\xE9sactivez ceci si X se plaint d'un bloqueur de publicit\xE9s : les posts sponsoris\xE9s restent masqu\xE9s et Aviary cesse de refuser la moindre requ\xEAte.",
       "Always play video at the highest quality": "Toujours lire les vid\xE9os en qualit\xE9 maximale",
@@ -4536,9 +4589,9 @@ html.av-reduce-motion *::after {
       "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status.": "Vor dem Senden zeigt Aviary Anbieter, Endpunkt, Felder, Zeichen-/Token-Sch\xE4tzung, Aufbewahrung und Budgetstatus.",
       "AI usage today": "KI-Nutzung heute",
       "AI max request bytes": "Maximale Bytes pro KI-Anfrage",
-      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "Vor dem Senden stoppen, wenn der UTF-8-Textk\xF6rper einer KI-Anfrage gr\xF6\xDFer ist. 0 hebt die Grenze pro Anfrage auf.",
+      "Stop before sending one AI request larger than this UTF-8 body. Set 0 to block every AI request.": "Vor dem Senden stoppen, wenn der UTF-8-Textk\xF6rper einer KI-Anfrage gr\xF6\xDFer ist. 0 blockiert jede KI-Anfrage.",
       "AI daily request bytes": "T\xE4gliche Bytes f\xFCr KI-Anfragen",
-      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "KI-Anbieteraufrufe nach dieser Zahl von UTF-8-Anfragebytes am lokalen Tag stoppen. 0 bedeutet unbegrenzt.",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Set 0 to block every AI request.": "KI-Anbieteraufrufe nach dieser Menge an UTF-8-Anfragebytes am lokalen Tag stoppen. 0 blockiert jede KI-Anfrage.",
       "Semantic search": "Semantische Suche",
       "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.": "Erfassten Datensatztext zur \xC4hnlichkeitssuche an den konfigurierten Embedding-Endpunkt senden. Ziel, Felder, Aufbewahrung und Bytebudget werden hier angezeigt.",
       "Embedding endpoint": "Embedding-Endpunkt",
@@ -4553,9 +4606,9 @@ html.av-reduce-motion *::after {
       "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy.": "Eine Anfrage enth\xE4lt Modell und erfassten Datensatztext. Vektoren und begrenzter Text bleiben in Aviarys lokalem Index; die Aufbewahrung des Anbieters folgt dessen Richtlinie.",
       "Embedding usage today": "Embedding-Nutzung heute",
       "Embedding max record bytes": "Maximale Bytes pro Embedding-Datensatz",
-      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "Vor dem Senden stoppen, wenn ein Datensatz gr\xF6\xDFer als dieser UTF-8-K\xF6rper ist. 0 hebt die Grenze pro Datensatz auf.",
+      "Stop before sending one record larger than this UTF-8 body. Set 0 to block every embedding call.": "Vor dem Senden stoppen, wenn der UTF-8-Textk\xF6rper eines Datensatzes gr\xF6\xDFer ist. 0 blockiert jeden Embedding-Aufruf.",
       "Embedding daily record bytes": "T\xE4gliche Datensatzbytes f\xFCr Embeddings",
-      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "Embedding-Aufrufe nach dieser Zahl von UTF-8-Datensatzbytes am lokalen Tag stoppen. 0 bedeutet unbegrenzt.",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Set 0 to block every embedding call.": "Embedding-Aufrufe nach dieser Menge an UTF-8-Datensatzbytes am lokalen Tag stoppen. 0 blockiert jeden Embedding-Aufruf.",
       "Auto-embed every export": "Jeden Export automatisch einbetten",
       "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.": "Pr\xFCfe vor dem Aktivieren oben Endpunkt, Felder erfasster Datens\xE4tze, lokale Aufbewahrung und t\xE4gliches Bytebudget. Nach jedem Export werden Embeddings im Hintergrund erstellt. Standardm\xE4\xDFig aus.",
       "Rebuild semantic index": "Semantischen Index neu aufbauen",
@@ -4895,7 +4948,7 @@ html.av-reduce-motion *::after {
       "No active downloads.": "Keine aktiven Downloads.",
       "Cancel": "Abbrechen",
       "Blocked by local-only mode": "Durch den Nur-lokal-Modus blockiert",
-      "unlimited": "unbegrenzt",
+      "blocked (budget is 0)": "blockiert (Budget ist 0)",
       "No matches (or integration disabled).": "Keine Treffer (oder Integration deaktiviert).",
       "Open a profile's followers or following list, then use Capture snapshot to record it.": "\xD6ffne die Follower- oder Gefolgt-Liste eines Profils und nutze \u201EMomentaufnahme erfassen\u201C, um sie festzuhalten.",
       "No captured records match \u201C{query}\u201D.": "Keine erfassten Datens\xE4tze entsprechen \u201E{query}\u201C.",
@@ -4983,6 +5036,7 @@ html.av-reduce-motion *::after {
       "The prompt could not be copied. Your browser blocked clipboard access.": "Der Prompt konnte nicht kopiert werden. Dein Browser hat den Zugriff auf die Zwischenablage blockiert.",
       "Review external AI request": "Externe KI-Anfrage pr\xFCfen",
       "Nothing is sent until you choose Send request.": "Es wird nichts gesendet, bis du Anfrage senden ausw\xE4hlst.",
+      "unlimited": "unbegrenzt",
       "Aviary stores usage counters only; the provider's retention follows its policy.": "Aviary speichert nur Nutzungsz\xE4hler; die Aufbewahrung des Anbieters richtet sich nach dessen Richtlinie.",
       "Budget blocked this request.": "Das Budget hat diese Anfrage blockiert.",
       "Send request": "Anfrage senden",
@@ -5089,6 +5143,10 @@ html.av-reduce-motion *::after {
       "posts": "Beitr\xE4ge",
       "offline-ready": "offline-fertig",
       "network may be required": "Netzwerk eventuell erforderlich",
+      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "Vor dem Senden stoppen, wenn der UTF-8-Textk\xF6rper einer KI-Anfrage gr\xF6\xDFer ist. 0 hebt die Grenze pro Anfrage auf.",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "KI-Anbieteraufrufe nach dieser Zahl von UTF-8-Anfragebytes am lokalen Tag stoppen. 0 bedeutet unbegrenzt.",
+      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "Vor dem Senden stoppen, wenn ein Datensatz gr\xF6\xDFer als dieser UTF-8-K\xF6rper ist. 0 hebt die Grenze pro Datensatz auf.",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "Embedding-Aufrufe nach dieser Zahl von UTF-8-Datensatzbytes am lokalen Tag stoppen. 0 bedeutet unbegrenzt.",
       "Rewrite image URLs to name=orig before downloading.": "Schreibt Bild-URLs vor dem Download auf name=orig um.",
       "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "Gilt nur, solange der werbefreie Modus aktiv ist. Aviary lehnt X' separate Protokollanfrage f\xFCr beworbene Inhalte ab \u2014 die einzige Werbeanfrage, die sich von der Timeline selbst trennen l\xE4sst. Schalte dies aus, wenn X einen Werbeblocker moniert: Gesponserte Beitr\xE4ge bleiben ausgeblendet, und Aviary lehnt \xFCberhaupt keine Anfrage mehr ab.",
       "Always play video at the highest quality": "Videos immer in h\xF6chster Qualit\xE4t abspielen",
@@ -5472,9 +5530,9 @@ html.av-reduce-motion *::after {
       "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status.": "\u9001\u4FE1\u524D\u306B\u3001Aviary\u306F\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u3001\u30A8\u30F3\u30C9\u30DD\u30A4\u30F3\u30C8\u3001\u30D5\u30A3\u30FC\u30EB\u30C9\u3001\u6587\u5B57\u6570/\u30C8\u30FC\u30AF\u30F3\u6570\u306E\u63A8\u5B9A\u3001\u4FDD\u6301\u3001\u4E88\u7B97\u72B6\u614B\u3092\u8868\u793A\u3057\u307E\u3059\u3002",
       "AI usage today": "\u4ECA\u65E5\u306EAI\u4F7F\u7528\u91CF",
       "AI max request bytes": "AI\u30EA\u30AF\u30A8\u30B9\u30C8\u306E\u6700\u5927\u30D0\u30A4\u30C8\u6570",
-      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "\u3053\u306EUTF-8\u672C\u6587\u3088\u308A\u5927\u304D\u3044AI\u30EA\u30AF\u30A8\u30B9\u30C8\u306F\u9001\u4FE1\u524D\u306B\u505C\u6B62\u3057\u307E\u3059\u30020\u3067\u30EA\u30AF\u30A8\u30B9\u30C8\u3054\u3068\u306E\u5236\u9650\u306A\u3057\u3002",
+      "Stop before sending one AI request larger than this UTF-8 body. Set 0 to block every AI request.": "UTF-8 \u672C\u6587\u304C\u3053\u306E\u30B5\u30A4\u30BA\u3092\u8D85\u3048\u308B AI \u30EA\u30AF\u30A8\u30B9\u30C8\u306F\u9001\u4FE1\u524D\u306B\u505C\u6B62\u3057\u307E\u3059\u30020 \u306B\u3059\u308B\u3068\u3059\u3079\u3066\u306E AI \u30EA\u30AF\u30A8\u30B9\u30C8\u3092\u906E\u65AD\u3057\u307E\u3059\u3002",
       "AI daily request bytes": "AI\u306E1\u65E5\u3042\u305F\u308A\u30EA\u30AF\u30A8\u30B9\u30C8\u30D0\u30A4\u30C8\u6570",
-      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "\u30ED\u30FC\u30AB\u30EB\u65E5\u306EUTF-8\u30EA\u30AF\u30A8\u30B9\u30C8\u30D0\u30A4\u30C8\u6570\u304C\u3053\u306E\u5024\u306B\u9054\u3057\u305F\u3089AI\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u547C\u3073\u51FA\u3057\u3092\u505C\u6B62\u3057\u307E\u3059\u30020\u3067\u7121\u5236\u9650\u3002",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Set 0 to block every AI request.": "\u30ED\u30FC\u30AB\u30EB\u65E5\u4ED8\u5185\u3067\u3053\u306E\u30D0\u30A4\u30C8\u6570\u306E UTF-8 \u30EA\u30AF\u30A8\u30B9\u30C8\u306B\u9054\u3057\u305F\u3089 AI \u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u547C\u3073\u51FA\u3057\u3092\u505C\u6B62\u3057\u307E\u3059\u30020 \u306B\u3059\u308B\u3068\u3059\u3079\u3066\u306E AI \u30EA\u30AF\u30A8\u30B9\u30C8\u3092\u906E\u65AD\u3057\u307E\u3059\u3002",
       "Semantic search": "\u30BB\u30DE\u30F3\u30C6\u30A3\u30C3\u30AF\u691C\u7D22",
       "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.": "\u985E\u4F3C\u691C\u7D22\u306E\u305F\u3081\u3001\u53D6\u5F97\u3057\u305F\u30EC\u30B3\u30FC\u30C9\u672C\u6587\u3092\u8A2D\u5B9A\u6E08\u307F\u306E\u57CB\u3081\u8FBC\u307F\u30A8\u30F3\u30C9\u30DD\u30A4\u30F3\u30C8\u3078\u9001\u4FE1\u3057\u307E\u3059\u3002\u9001\u4FE1\u5148\u3001\u30D5\u30A3\u30FC\u30EB\u30C9\u3001\u4FDD\u6301\u3001\u30D0\u30A4\u30C8\u4E88\u7B97\u3092\u3053\u3053\u3067\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002",
       "Embedding endpoint": "\u57CB\u3081\u8FBC\u307F\u306E\u30A8\u30F3\u30C9\u30DD\u30A4\u30F3\u30C8",
@@ -5489,9 +5547,9 @@ html.av-reduce-motion *::after {
       "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy.": "\u30EA\u30AF\u30A8\u30B9\u30C8\u306B\u306F\u30E2\u30C7\u30EB\u3068\u53D6\u5F97\u3057\u305F\u30EC\u30B3\u30FC\u30C9\u672C\u6587\u304C\u542B\u307E\u308C\u307E\u3059\u3002\u30D9\u30AF\u30C8\u30EB\u3068\u5236\u9650\u3055\u308C\u305F\u672C\u6587\u306FAviary\u306E\u30ED\u30FC\u30AB\u30EB\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9\u306B\u4FDD\u5B58\u3055\u308C\u3001\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u5074\u306E\u4FDD\u6301\u306F\u305D\u306E\u30DD\u30EA\u30B7\u30FC\u306B\u5F93\u3044\u307E\u3059\u3002",
       "Embedding usage today": "\u4ECA\u65E5\u306E\u57CB\u3081\u8FBC\u307F\u4F7F\u7528\u91CF",
       "Embedding max record bytes": "\u57CB\u3081\u8FBC\u307F\u30EC\u30B3\u30FC\u30C9\u306E\u6700\u5927\u30D0\u30A4\u30C8\u6570",
-      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "\u3053\u306EUTF-8\u672C\u6587\u3088\u308A\u5927\u304D\u3044\u30EC\u30B3\u30FC\u30C9\u306F\u9001\u4FE1\u524D\u306B\u505C\u6B62\u3057\u307E\u3059\u30020\u3067\u30EC\u30B3\u30FC\u30C9\u3054\u3068\u306E\u5236\u9650\u306A\u3057\u3002",
+      "Stop before sending one record larger than this UTF-8 body. Set 0 to block every embedding call.": "UTF-8 \u672C\u6587\u304C\u3053\u306E\u30B5\u30A4\u30BA\u3092\u8D85\u3048\u308B\u30EC\u30B3\u30FC\u30C9\u306F\u9001\u4FE1\u524D\u306B\u505C\u6B62\u3057\u307E\u3059\u30020 \u306B\u3059\u308B\u3068\u3059\u3079\u3066\u306E\u57CB\u3081\u8FBC\u307F\u547C\u3073\u51FA\u3057\u3092\u906E\u65AD\u3057\u307E\u3059\u3002",
       "Embedding daily record bytes": "\u57CB\u3081\u8FBC\u307F\u306E1\u65E5\u3042\u305F\u308A\u30EC\u30B3\u30FC\u30C9\u30D0\u30A4\u30C8\u6570",
-      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "\u30ED\u30FC\u30AB\u30EB\u65E5\u306EUTF-8\u30EC\u30B3\u30FC\u30C9\u30D0\u30A4\u30C8\u6570\u304C\u3053\u306E\u5024\u306B\u9054\u3057\u305F\u3089\u57CB\u3081\u8FBC\u307F\u547C\u3073\u51FA\u3057\u3092\u505C\u6B62\u3057\u307E\u3059\u30020\u3067\u7121\u5236\u9650\u3002",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Set 0 to block every embedding call.": "\u30ED\u30FC\u30AB\u30EB\u65E5\u4ED8\u5185\u3067\u3053\u306E\u30D0\u30A4\u30C8\u6570\u306E UTF-8 \u30EC\u30B3\u30FC\u30C9\u306B\u9054\u3057\u305F\u3089\u57CB\u3081\u8FBC\u307F\u547C\u3073\u51FA\u3057\u3092\u505C\u6B62\u3057\u307E\u3059\u30020 \u306B\u3059\u308B\u3068\u3059\u3079\u3066\u306E\u57CB\u3081\u8FBC\u307F\u547C\u3073\u51FA\u3057\u3092\u906E\u65AD\u3057\u307E\u3059\u3002",
       "Auto-embed every export": "\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u3054\u3068\u306B\u81EA\u52D5\u3067\u57CB\u3081\u8FBC\u307F",
       "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.": "\u6709\u52B9\u306B\u3059\u308B\u524D\u306B\u3001\u4E0A\u306E\u30A8\u30F3\u30C9\u30DD\u30A4\u30F3\u30C8\u3001\u53D6\u5F97\u30EC\u30B3\u30FC\u30C9\u306E\u30D5\u30A3\u30FC\u30EB\u30C9\u3001\u30ED\u30FC\u30AB\u30EB\u4FDD\u6301\u30011\u65E5\u306E\u30D0\u30A4\u30C8\u4E88\u7B97\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u5404\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u5F8C\u306B\u30D0\u30C3\u30AF\u30B0\u30E9\u30A6\u30F3\u30C9\u3067\u57CB\u3081\u8FBC\u307F\u307E\u3059\u3002\u65E2\u5B9A\u3067\u306F\u30AA\u30D5\u3067\u3059\u3002",
       "Rebuild semantic index": "\u30BB\u30DE\u30F3\u30C6\u30A3\u30C3\u30AF\u7D22\u5F15\u3092\u518D\u69CB\u7BC9",
@@ -5831,7 +5889,7 @@ html.av-reduce-motion *::after {
       "No active downloads.": "\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
       "Cancel": "\u30AD\u30E3\u30F3\u30BB\u30EB",
       "Blocked by local-only mode": "\u30ED\u30FC\u30AB\u30EB\u306E\u307F\u30E2\u30FC\u30C9\u3067\u30D6\u30ED\u30C3\u30AF",
-      "unlimited": "\u7121\u5236\u9650",
+      "blocked (budget is 0)": "\u906E\u65AD\uFF08\u4E88\u7B97\u304C 0\uFF09",
       "No matches (or integration disabled).": "\u4E00\u81F4\u3059\u308B\u7D50\u679C\u304C\u3042\u308A\u307E\u305B\u3093\uFF08\u7D71\u5408\u304C\u7121\u52B9\u306B\u306A\u3063\u3066\u3044\u308B\u53EF\u80FD\u6027\u304C\u3042\u308A\u307E\u3059\uFF09\u3002",
       "Open a profile's followers or following list, then use Capture snapshot to record it.": "\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u306E\u30D5\u30A9\u30ED\u30EF\u30FC\u307E\u305F\u306F\u30D5\u30A9\u30ED\u30FC\u4E2D\u306E\u4E00\u89A7\u3092\u958B\u304D\u3001\u300C\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8\u3092\u53D6\u5F97\u300D\u3067\u8A18\u9332\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
       "No captured records match \u201C{query}\u201D.": "\u300C{query}\u300D\u306B\u4E00\u81F4\u3059\u308B\u53D6\u5F97\u6E08\u307F\u30EC\u30B3\u30FC\u30C9\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
@@ -5919,6 +5977,7 @@ html.av-reduce-motion *::after {
       "The prompt could not be copied. Your browser blocked clipboard access.": "\u30D7\u30ED\u30F3\u30D7\u30C8\u3092\u30B3\u30D4\u30FC\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u30D6\u30E9\u30A6\u30B6\u30FC\u304C\u30AF\u30EA\u30C3\u30D7\u30DC\u30FC\u30C9\u3078\u306E\u30A2\u30AF\u30BB\u30B9\u3092\u62D2\u5426\u3057\u307E\u3057\u305F\u3002",
       "Review external AI request": "\u5916\u90E8AI\u30EA\u30AF\u30A8\u30B9\u30C8\u3092\u78BA\u8A8D",
       "Nothing is sent until you choose Send request.": "\u30EA\u30AF\u30A8\u30B9\u30C8\u3092\u9001\u4FE1\u3092\u9078\u3076\u307E\u3067\u4F55\u3082\u9001\u4FE1\u3055\u308C\u307E\u305B\u3093\u3002",
+      "unlimited": "\u7121\u5236\u9650",
       "Aviary stores usage counters only; the provider's retention follows its policy.": "Aviary \u304C\u4FDD\u5B58\u3059\u308B\u306E\u306F\u4F7F\u7528\u91CF\u30AB\u30A6\u30F3\u30BF\u30FC\u3060\u3051\u3067\u3059\u3002\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u306E\u4FDD\u6301\u671F\u9593\u306F\u5404\u793E\u306E\u30DD\u30EA\u30B7\u30FC\u306B\u5F93\u3044\u307E\u3059\u3002",
       "Budget blocked this request.": "\u4E88\u7B97\u306B\u3088\u308A\u3053\u306E\u30EA\u30AF\u30A8\u30B9\u30C8\u306F\u30D6\u30ED\u30C3\u30AF\u3055\u308C\u307E\u3057\u305F\u3002",
       "Send request": "\u30EA\u30AF\u30A8\u30B9\u30C8\u3092\u9001\u4FE1",
@@ -6025,6 +6084,10 @@ html.av-reduce-motion *::after {
       "posts": "\u4EF6\u306E\u6295\u7A3F",
       "offline-ready": "\u30AA\u30D5\u30E9\u30A4\u30F3\u5BFE\u5FDC",
       "network may be required": "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u304C\u5FC5\u8981\u306A\u5834\u5408\u304C\u3042\u308A\u307E\u3059",
+      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "\u3053\u306EUTF-8\u672C\u6587\u3088\u308A\u5927\u304D\u3044AI\u30EA\u30AF\u30A8\u30B9\u30C8\u306F\u9001\u4FE1\u524D\u306B\u505C\u6B62\u3057\u307E\u3059\u30020\u3067\u30EA\u30AF\u30A8\u30B9\u30C8\u3054\u3068\u306E\u5236\u9650\u306A\u3057\u3002",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "\u30ED\u30FC\u30AB\u30EB\u65E5\u306EUTF-8\u30EA\u30AF\u30A8\u30B9\u30C8\u30D0\u30A4\u30C8\u6570\u304C\u3053\u306E\u5024\u306B\u9054\u3057\u305F\u3089AI\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u547C\u3073\u51FA\u3057\u3092\u505C\u6B62\u3057\u307E\u3059\u30020\u3067\u7121\u5236\u9650\u3002",
+      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "\u3053\u306EUTF-8\u672C\u6587\u3088\u308A\u5927\u304D\u3044\u30EC\u30B3\u30FC\u30C9\u306F\u9001\u4FE1\u524D\u306B\u505C\u6B62\u3057\u307E\u3059\u30020\u3067\u30EC\u30B3\u30FC\u30C9\u3054\u3068\u306E\u5236\u9650\u306A\u3057\u3002",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "\u30ED\u30FC\u30AB\u30EB\u65E5\u306EUTF-8\u30EC\u30B3\u30FC\u30C9\u30D0\u30A4\u30C8\u6570\u304C\u3053\u306E\u5024\u306B\u9054\u3057\u305F\u3089\u57CB\u3081\u8FBC\u307F\u547C\u3073\u51FA\u3057\u3092\u505C\u6B62\u3057\u307E\u3059\u30020\u3067\u7121\u5236\u9650\u3002",
       "Rewrite image URLs to name=orig before downloading.": "\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u524D\u306B\u753B\u50CF URL \u3092 name=orig \u306B\u66F8\u304D\u63DB\u3048\u307E\u3059\u3002",
       "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "\u5E83\u544A\u975E\u8868\u793A\u30E2\u30FC\u30C9\u304C\u6709\u52B9\u306A\u9593\u306E\u307F\u9069\u7528\u3055\u308C\u307E\u3059\u3002Aviary \u306F X \u306E\u30D7\u30ED\u30E2\u30FC\u30B7\u30E7\u30F3\u30B3\u30F3\u30C6\u30F3\u30C4\u7528\u30ED\u30B0\u9001\u4FE1\u30EA\u30AF\u30A8\u30B9\u30C8\u3092\u62D2\u5426\u3057\u307E\u3059\u3002\u3053\u308C\u306F\u30BF\u30A4\u30E0\u30E9\u30A4\u30F3\u672C\u4F53\u304B\u3089\u5206\u96E2\u3067\u304D\u308B\u552F\u4E00\u306E\u5E83\u544A\u30EA\u30AF\u30A8\u30B9\u30C8\u3067\u3059\u3002X \u304C\u5E83\u544A\u30D6\u30ED\u30C3\u30AB\u30FC\u306B\u3064\u3044\u3066\u8B66\u544A\u3059\u308B\u5834\u5408\u306F\u3053\u308C\u3092\u30AA\u30D5\u306B\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u30B9\u30DD\u30F3\u30B5\u30FC\u6295\u7A3F\u306F\u5F15\u304D\u7D9A\u304D\u975E\u8868\u793A\u306E\u307E\u307E\u3001Aviary \u306F\u3044\u304B\u306A\u308B\u30EA\u30AF\u30A8\u30B9\u30C8\u3082\u62D2\u5426\u3057\u306A\u304F\u306A\u308A\u307E\u3059\u3002",
       "Always play video at the highest quality": "\u52D5\u753B\u3092\u5E38\u306B\u6700\u9AD8\u753B\u8CEA\u3067\u518D\u751F\u3059\u308B",
@@ -6408,9 +6471,9 @@ html.av-reduce-motion *::after {
       "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status.": "\uBCF4\uB0B4\uAE30 \uC804\uC5D0 Aviary\uB294 \uC81C\uACF5\uC790, \uC5D4\uB4DC\uD3EC\uC778\uD2B8, \uD544\uB4DC, \uBB38\uC790/\uD1A0\uD070 \uC608\uC0C1\uCE58, \uBCF4\uC874 \uBC0F \uC608\uC0B0 \uC0C1\uD0DC\uB97C \uD45C\uC2DC\uD569\uB2C8\uB2E4.",
       "AI usage today": "\uC624\uB298\uC758 AI \uC0AC\uC6A9\uB7C9",
       "AI max request bytes": "AI \uC694\uCCAD \uCD5C\uB300 \uBC14\uC774\uD2B8",
-      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "\uC774 UTF-8 \uBCF8\uBB38\uBCF4\uB2E4 \uD070 AI \uC694\uCCAD\uC740 \uBCF4\uB0B4\uAE30 \uC804\uC5D0 \uC911\uC9C0\uD569\uB2C8\uB2E4. 0\uC740 \uC694\uCCAD\uBCC4 \uC81C\uD55C \uC5C6\uC74C\uC785\uB2C8\uB2E4.",
+      "Stop before sending one AI request larger than this UTF-8 body. Set 0 to block every AI request.": "UTF-8 \uBCF8\uBB38\uC774 \uC774 \uD06C\uAE30\uB97C \uB118\uB294 AI \uC694\uCCAD\uC740 \uC804\uC1A1 \uC804\uC5D0 \uC911\uB2E8\uD569\uB2C8\uB2E4. 0\uC73C\uB85C \uC124\uC815\uD558\uBA74 \uBAA8\uB4E0 AI \uC694\uCCAD\uC744 \uCC28\uB2E8\uD569\uB2C8\uB2E4.",
       "AI daily request bytes": "AI \uC77C\uC77C \uC694\uCCAD \uBC14\uC774\uD2B8",
-      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "\uD604\uC9C0 \uB0A0\uC9DC\uC5D0 \uC774 UTF-8 \uC694\uCCAD \uBC14\uC774\uD2B8 \uC218\uC5D0 \uB3C4\uB2EC\uD558\uBA74 AI \uC81C\uACF5\uC790 \uD638\uCD9C\uC744 \uC911\uC9C0\uD569\uB2C8\uB2E4. 0\uC740 \uBB34\uC81C\uD55C\uC785\uB2C8\uB2E4.",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Set 0 to block every AI request.": "\uB85C\uCEEC \uB0A0\uC9DC \uAE30\uC900\uC73C\uB85C \uC774\uB9CC\uD07C\uC758 UTF-8 \uC694\uCCAD \uBC14\uC774\uD2B8\uC5D0 \uB3C4\uB2EC\uD558\uBA74 AI \uACF5\uAE09\uC790 \uD638\uCD9C\uC744 \uC911\uB2E8\uD569\uB2C8\uB2E4. 0\uC73C\uB85C \uC124\uC815\uD558\uBA74 \uBAA8\uB4E0 AI \uC694\uCCAD\uC744 \uCC28\uB2E8\uD569\uB2C8\uB2E4.",
       "Semantic search": "\uC758\uBBF8 \uAE30\uBC18 \uAC80\uC0C9",
       "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.": "\uC720\uC0AC\uB3C4 \uAC80\uC0C9\uC744 \uC704\uD574 \uCEA1\uCC98\uD55C \uB808\uCF54\uB4DC \uD14D\uC2A4\uD2B8\uB97C \uC124\uC815\uB41C \uC784\uBCA0\uB529 \uC5D4\uB4DC\uD3EC\uC778\uD2B8\uB85C \uBCF4\uB0C5\uB2C8\uB2E4. \uB300\uC0C1, \uD544\uB4DC, \uBCF4\uC874 \uBC0F \uBC14\uC774\uD2B8 \uC608\uC0B0\uC744 \uC5EC\uAE30\uC11C \uD655\uC778\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
       "Embedding endpoint": "\uC784\uBCA0\uB529 \uC5D4\uB4DC\uD3EC\uC778\uD2B8",
@@ -6425,9 +6488,9 @@ html.av-reduce-motion *::after {
       "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy.": "\uC694\uCCAD\uC5D0\uB294 \uBAA8\uB378\uACFC \uCEA1\uCC98\uD55C \uB808\uCF54\uB4DC \uD14D\uC2A4\uD2B8\uAC00 \uD3EC\uD568\uB429\uB2C8\uB2E4. \uBCA1\uD130\uC640 \uC81C\uD55C\uB41C \uD14D\uC2A4\uD2B8\uB294 Aviary\uC758 \uB85C\uCEEC \uC778\uB371\uC2A4\uC5D0 \uBCF4\uAD00\uB418\uBA70 \uC81C\uACF5\uC790 \uBCF4\uC874 \uC815\uCC45\uC744 \uB530\uB985\uB2C8\uB2E4.",
       "Embedding usage today": "\uC624\uB298\uC758 \uC784\uBCA0\uB529 \uC0AC\uC6A9\uB7C9",
       "Embedding max record bytes": "\uC784\uBCA0\uB529 \uB808\uCF54\uB4DC \uCD5C\uB300 \uBC14\uC774\uD2B8",
-      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "\uC774 UTF-8 \uBCF8\uBB38\uBCF4\uB2E4 \uD070 \uB808\uCF54\uB4DC\uB294 \uBCF4\uB0B4\uAE30 \uC804\uC5D0 \uC911\uC9C0\uD569\uB2C8\uB2E4. 0\uC740 \uB808\uCF54\uB4DC\uBCC4 \uC81C\uD55C \uC5C6\uC74C\uC785\uB2C8\uB2E4.",
+      "Stop before sending one record larger than this UTF-8 body. Set 0 to block every embedding call.": "UTF-8 \uBCF8\uBB38\uC774 \uC774 \uD06C\uAE30\uB97C \uB118\uB294 \uB808\uCF54\uB4DC\uB294 \uC804\uC1A1 \uC804\uC5D0 \uC911\uB2E8\uD569\uB2C8\uB2E4. 0\uC73C\uB85C \uC124\uC815\uD558\uBA74 \uBAA8\uB4E0 \uC784\uBCA0\uB529 \uD638\uCD9C\uC744 \uCC28\uB2E8\uD569\uB2C8\uB2E4.",
       "Embedding daily record bytes": "\uC784\uBCA0\uB529 \uC77C\uC77C \uB808\uCF54\uB4DC \uBC14\uC774\uD2B8",
-      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "\uD604\uC9C0 \uB0A0\uC9DC\uC5D0 \uC774 UTF-8 \uB808\uCF54\uB4DC \uBC14\uC774\uD2B8 \uC218\uC5D0 \uB3C4\uB2EC\uD558\uBA74 \uC784\uBCA0\uB529 \uD638\uCD9C\uC744 \uC911\uC9C0\uD569\uB2C8\uB2E4. 0\uC740 \uBB34\uC81C\uD55C\uC785\uB2C8\uB2E4.",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Set 0 to block every embedding call.": "\uB85C\uCEEC \uB0A0\uC9DC \uAE30\uC900\uC73C\uB85C \uC774\uB9CC\uD07C\uC758 UTF-8 \uB808\uCF54\uB4DC \uBC14\uC774\uD2B8\uC5D0 \uB3C4\uB2EC\uD558\uBA74 \uC784\uBCA0\uB529 \uD638\uCD9C\uC744 \uC911\uB2E8\uD569\uB2C8\uB2E4. 0\uC73C\uB85C \uC124\uC815\uD558\uBA74 \uBAA8\uB4E0 \uC784\uBCA0\uB529 \uD638\uCD9C\uC744 \uCC28\uB2E8\uD569\uB2C8\uB2E4.",
       "Auto-embed every export": "\uB0B4\uBCF4\uB0BC \uB54C\uB9C8\uB2E4 \uC790\uB3D9 \uC784\uBCA0\uB529",
       "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.": "\uD65C\uC131\uD654\uD558\uAE30 \uC804\uC5D0 \uC704\uC758 \uC5D4\uB4DC\uD3EC\uC778\uD2B8, \uCEA1\uCC98\uD55C \uB808\uCF54\uB4DC \uD544\uB4DC, \uB85C\uCEEC \uBCF4\uC874 \uBC0F \uC77C\uC77C \uBC14\uC774\uD2B8 \uC608\uC0B0\uC744 \uD655\uC778\uD558\uC138\uC694. \uAC01 \uB0B4\uBCF4\uB0B4\uAE30 \uD6C4 \uBC31\uADF8\uB77C\uC6B4\uB4DC\uC5D0\uC11C \uC784\uBCA0\uB529\uD569\uB2C8\uB2E4. \uAE30\uBCF8\uAC12\uC740 \uAEBC\uC9D0\uC785\uB2C8\uB2E4.",
       "Rebuild semantic index": "\uC758\uBBF8 \uC0C9\uC778 \uB2E4\uC2DC \uB9CC\uB4E4\uAE30",
@@ -6767,7 +6830,7 @@ html.av-reduce-motion *::after {
       "No active downloads.": "\uD65C\uC131 \uB2E4\uC6B4\uB85C\uB4DC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
       "Cancel": "\uCDE8\uC18C",
       "Blocked by local-only mode": "\uB85C\uCEEC \uC804\uC6A9 \uBAA8\uB4DC\uB85C \uCC28\uB2E8\uB428",
-      "unlimited": "\uBB34\uC81C\uD55C",
+      "blocked (budget is 0)": "\uCC28\uB2E8\uB428 (\uC608\uC0B0\uC774 0)",
       "No matches (or integration disabled).": "\uC77C\uCE58\uD558\uB294 \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4(\uD1B5\uD569\uC774 \uBE44\uD65C\uC131\uD654\uB418\uC5C8\uAC70\uB098 \uC9C0\uC6D0\uB418\uC9C0 \uC54A\uC74C).",
       "Open a profile's followers or following list, then use Capture snapshot to record it.": "\uD504\uB85C\uD544\uC758 \uD314\uB85C\uC6CC \uB610\uB294 \uD314\uB85C\uC789 \uBAA9\uB85D\uC744 \uC5F0 \uB2E4\uC74C '\uC2A4\uB0C5\uC0F7 \uCEA1\uCC98'\uB85C \uAE30\uB85D\uD558\uC138\uC694.",
       "No captured records match \u201C{query}\u201D.": "\u201C{query}\u201D\uC640 \uC77C\uCE58\uD558\uB294 \uCEA1\uCC98\uD55C \uB808\uCF54\uB4DC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
@@ -6855,6 +6918,7 @@ html.av-reduce-motion *::after {
       "The prompt could not be copied. Your browser blocked clipboard access.": "\uD504\uB86C\uD504\uD2B8\uB97C \uBCF5\uC0AC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uBE0C\uB77C\uC6B0\uC800\uAC00 \uD074\uB9BD\uBCF4\uB4DC \uC811\uADFC\uC744 \uCC28\uB2E8\uD588\uC2B5\uB2C8\uB2E4.",
       "Review external AI request": "\uC678\uBD80 AI \uC694\uCCAD \uAC80\uD1A0",
       "Nothing is sent until you choose Send request.": "\uC694\uCCAD \uBCF4\uB0B4\uAE30\uB97C \uC120\uD0DD\uD558\uAE30 \uC804\uC5D0\uB294 \uC544\uBB34\uAC83\uB3C4 \uC804\uC1A1\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+      "unlimited": "\uBB34\uC81C\uD55C",
       "Aviary stores usage counters only; the provider's retention follows its policy.": "Aviary\uB294 \uC0AC\uC6A9\uB7C9 \uCE74\uC6B4\uD130\uB9CC \uC800\uC7A5\uD558\uBA70, \uC81C\uACF5\uC5C5\uCCB4\uC758 \uBCF4\uC874 \uAE30\uAC04\uC740 \uD574\uB2F9 \uC815\uCC45\uC744 \uB530\uB985\uB2C8\uB2E4.",
       "Budget blocked this request.": "\uC608\uC0B0\uC774 \uC774 \uC694\uCCAD\uC744 \uCC28\uB2E8\uD588\uC2B5\uB2C8\uB2E4.",
       "Send request": "\uC694\uCCAD \uBCF4\uB0B4\uAE30",
@@ -6961,6 +7025,10 @@ html.av-reduce-motion *::after {
       "posts": "\uAC1C \uAC8C\uC2DC\uBB3C",
       "offline-ready": "\uC624\uD504\uB77C\uC778 \uC900\uBE44\uB428",
       "network may be required": "\uB124\uD2B8\uC6CC\uD06C\uAC00 \uD544\uC694\uD560 \uC218 \uC788\uC74C",
+      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "\uC774 UTF-8 \uBCF8\uBB38\uBCF4\uB2E4 \uD070 AI \uC694\uCCAD\uC740 \uBCF4\uB0B4\uAE30 \uC804\uC5D0 \uC911\uC9C0\uD569\uB2C8\uB2E4. 0\uC740 \uC694\uCCAD\uBCC4 \uC81C\uD55C \uC5C6\uC74C\uC785\uB2C8\uB2E4.",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "\uD604\uC9C0 \uB0A0\uC9DC\uC5D0 \uC774 UTF-8 \uC694\uCCAD \uBC14\uC774\uD2B8 \uC218\uC5D0 \uB3C4\uB2EC\uD558\uBA74 AI \uC81C\uACF5\uC790 \uD638\uCD9C\uC744 \uC911\uC9C0\uD569\uB2C8\uB2E4. 0\uC740 \uBB34\uC81C\uD55C\uC785\uB2C8\uB2E4.",
+      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "\uC774 UTF-8 \uBCF8\uBB38\uBCF4\uB2E4 \uD070 \uB808\uCF54\uB4DC\uB294 \uBCF4\uB0B4\uAE30 \uC804\uC5D0 \uC911\uC9C0\uD569\uB2C8\uB2E4. 0\uC740 \uB808\uCF54\uB4DC\uBCC4 \uC81C\uD55C \uC5C6\uC74C\uC785\uB2C8\uB2E4.",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "\uD604\uC9C0 \uB0A0\uC9DC\uC5D0 \uC774 UTF-8 \uB808\uCF54\uB4DC \uBC14\uC774\uD2B8 \uC218\uC5D0 \uB3C4\uB2EC\uD558\uBA74 \uC784\uBCA0\uB529 \uD638\uCD9C\uC744 \uC911\uC9C0\uD569\uB2C8\uB2E4. 0\uC740 \uBB34\uC81C\uD55C\uC785\uB2C8\uB2E4.",
       "Rewrite image URLs to name=orig before downloading.": "\uB0B4\uB824\uBC1B\uAE30 \uC804\uC5D0 \uC774\uBBF8\uC9C0 URL\uC744 name=orig\uB85C \uBC14\uAFC9\uB2C8\uB2E4.",
       "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "\uAD11\uACE0 \uC5C6\uB294 \uBAA8\uB4DC\uAC00 \uCF1C\uC838 \uC788\uC744 \uB54C\uB9CC \uC801\uC6A9\uB429\uB2C8\uB2E4. Aviary\uB294 X\uC758 \uBCC4\uB3C4 \uD64D\uBCF4 \uCF58\uD150\uCE20 \uB85C\uAE45 \uC694\uCCAD\uC744 \uAC70\uBD80\uD569\uB2C8\uB2E4. \uC774\uB294 \uD0C0\uC784\uB77C\uC778 \uC790\uCCB4\uC640 \uBD84\uB9AC\uD560 \uC218 \uC788\uB294 \uC720\uC77C\uD55C \uAD11\uACE0 \uC694\uCCAD\uC785\uB2C8\uB2E4. X\uAC00 \uAD11\uACE0 \uCC28\uB2E8\uAE30\uB97C \uBB38\uC81C \uC0BC\uC73C\uBA74 \uC774 \uC635\uC158\uC744 \uB044\uC138\uC694. \uC2A4\uD3F0\uC11C \uAC8C\uC2DC\uBB3C\uC740 \uACC4\uC18D \uC228\uACA8\uC9C0\uACE0 Aviary\uB294 \uC5B4\uB5A4 \uC694\uCCAD\uB3C4 \uAC70\uBD80\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
       "Always play video at the highest quality": "\uD56D\uC0C1 \uCD5C\uACE0 \uD654\uC9C8\uB85C \uB3D9\uC601\uC0C1 \uC7AC\uC0DD",
@@ -7344,9 +7412,9 @@ html.av-reduce-motion *::after {
       "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status.": "\u0642\u0628\u0644 \u0627\u0644\u0625\u0631\u0633\u0627\u0644\u060C \u064A\u0639\u0631\u0636 Aviary \u0627\u0644\u0645\u0632\u0648\u0651\u062F \u0648\u0646\u0642\u0637\u0629 \u0627\u0644\u0646\u0647\u0627\u064A\u0629 \u0648\u0627\u0644\u062D\u0642\u0648\u0644 \u0648\u062A\u0642\u062F\u064A\u0631 \u0627\u0644\u0623\u062D\u0631\u0641/\u0627\u0644\u0631\u0645\u0648\u0632 \u0648\u0627\u0644\u0627\u062D\u062A\u0641\u0627\u0638 \u0648\u062D\u0627\u0644\u0629 \u0627\u0644\u0645\u064A\u0632\u0627\u0646\u064A\u0629.",
       "AI usage today": "\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0627\u0644\u064A\u0648\u0645",
       "AI max request bytes": "\u0627\u0644\u062D\u062F \u0627\u0644\u0623\u0642\u0635\u0649 \u0644\u0628\u0627\u064A\u062A\u0627\u062A \u0637\u0644\u0628 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A",
-      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "\u0623\u0648\u0642\u0641 \u0627\u0644\u0625\u0631\u0633\u0627\u0644 \u0642\u0628\u0644 \u0625\u0631\u0633\u0627\u0644 \u0637\u0644\u0628 \u0630\u0643\u0627\u0621 \u0627\u0635\u0637\u0646\u0627\u0639\u064A \u064A\u062A\u062C\u0627\u0648\u0632 \u062C\u0633\u0645 UTF-8 \u0647\u0630\u0627 \u0627\u0644\u062D\u062C\u0645. \u0627\u0633\u062A\u062E\u062F\u0645 0 \u0628\u0644\u0627 \u062D\u062F \u0644\u0643\u0644 \u0637\u0644\u0628.",
+      "Stop before sending one AI request larger than this UTF-8 body. Set 0 to block every AI request.": "\u0627\u0644\u062A\u0648\u0642\u0641 \u0642\u0628\u0644 \u0625\u0631\u0633\u0627\u0644 \u0623\u064A \u0637\u0644\u0628 \u0630\u0643\u0627\u0621 \u0627\u0635\u0637\u0646\u0627\u0639\u064A \u064A\u062A\u062C\u0627\u0648\u0632 \u0646\u0635\u0647 \u0628\u062A\u0631\u0645\u064A\u0632 UTF-8 \u0647\u0630\u0627 \u0627\u0644\u062D\u062C\u0645. \u0627\u0636\u0628\u0637\u0647 \u0639\u0644\u0649 0 \u0644\u062D\u0638\u0631 \u0643\u0644 \u0637\u0644\u0628\u0627\u062A \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A.",
       "AI daily request bytes": "\u0628\u0627\u064A\u062A\u0627\u062A \u0637\u0644\u0628\u0627\u062A \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0627\u0644\u064A\u0648\u0645\u064A\u0629",
-      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "\u0623\u0648\u0642\u0641 \u0627\u0633\u062A\u062F\u0639\u0627\u0621\u0627\u062A \u0645\u0632\u0648\u0651\u062F \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0628\u0639\u062F \u0647\u0630\u0627 \u0627\u0644\u0639\u062F\u062F \u0645\u0646 \u0628\u0627\u064A\u062A\u0627\u062A \u0637\u0644\u0628 UTF-8 \u0641\u064A \u0627\u0644\u064A\u0648\u0645 \u0627\u0644\u0645\u062D\u0644\u064A. \u0627\u0633\u062A\u062E\u062F\u0645 0 \u0644\u063A\u064A\u0631 \u0645\u062D\u062F\u0648\u062F.",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Set 0 to block every AI request.": "\u0625\u064A\u0642\u0627\u0641 \u0645\u0643\u0627\u0644\u0645\u0627\u062A \u0645\u0632\u0648\u0651\u062F \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0628\u0639\u062F \u0647\u0630\u0627 \u0627\u0644\u0639\u062F\u062F \u0645\u0646 \u0628\u0627\u064A\u062A\u0627\u062A \u0627\u0644\u0637\u0644\u0628 \u0628\u062A\u0631\u0645\u064A\u0632 UTF-8 \u062E\u0644\u0627\u0644 \u0627\u0644\u064A\u0648\u0645 \u0627\u0644\u0645\u062D\u0644\u064A. \u0627\u0636\u0628\u0637\u0647 \u0639\u0644\u0649 0 \u0644\u062D\u0638\u0631 \u0643\u0644 \u0637\u0644\u0628\u0627\u062A \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A.",
       "Semantic search": "\u0627\u0644\u0628\u062D\u062B \u0627\u0644\u062F\u0644\u0627\u0644\u064A",
       "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.": "\u0623\u0631\u0633\u0644 \u0646\u0635 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0627\u0644\u0645\u0644\u062A\u0642\u0637\u0629 \u0625\u0644\u0649 \u0646\u0642\u0637\u0629 \u0646\u0647\u0627\u064A\u0629 \u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0627\u0644\u0645\u0643\u0648\u0651\u0646\u0629 \u0644\u0644\u0628\u062D\u062B \u0639\u0646 \u0627\u0644\u062A\u0634\u0627\u0628\u0647. \u062A\u0638\u0647\u0631 \u0627\u0644\u0648\u062C\u0647\u0629 \u0648\u0627\u0644\u062D\u0642\u0648\u0644 \u0648\u0627\u0644\u0627\u062D\u062A\u0641\u0627\u0638 \u0648\u0645\u064A\u0632\u0627\u0646\u064A\u0629 \u0627\u0644\u0628\u0627\u064A\u062A \u0647\u0646\u0627.",
       "Embedding endpoint": "\u0646\u0642\u0637\u0629 \u0627\u0644\u062A\u0636\u0645\u064A\u0646",
@@ -7361,9 +7429,9 @@ html.av-reduce-motion *::after {
       "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy.": "\u064A\u062D\u062A\u0648\u064A \u0627\u0644\u0637\u0644\u0628 \u0639\u0644\u0649 \u0627\u0644\u0646\u0645\u0648\u0630\u062C \u0648\u0646\u0635 \u0627\u0644\u0633\u062C\u0644 \u0627\u0644\u0645\u0644\u062A\u0642\u0637. \u062A\u0628\u0642\u0649 \u0627\u0644\u0645\u062A\u062C\u0647\u0627\u062A \u0648\u0627\u0644\u0646\u0635 \u0627\u0644\u0645\u062D\u062F\u0648\u062F \u0641\u064A \u0641\u0647\u0631\u0633 Aviary \u0627\u0644\u0645\u062D\u0644\u064A\u061B \u0648\u064A\u062A\u0628\u0639 \u0627\u062D\u062A\u0641\u0627\u0638 \u0627\u0644\u0645\u0632\u0648\u0651\u062F \u0633\u064A\u0627\u0633\u062A\u0647.",
       "Embedding usage today": "\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0627\u0644\u064A\u0648\u0645",
       "Embedding max record bytes": "\u0627\u0644\u062D\u062F \u0627\u0644\u0623\u0642\u0635\u0649 \u0644\u0628\u0627\u064A\u062A\u0627\u062A \u0633\u062C\u0644 \u0627\u0644\u062A\u0636\u0645\u064A\u0646",
-      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "\u0623\u0648\u0642\u0641 \u0627\u0644\u0625\u0631\u0633\u0627\u0644 \u0642\u0628\u0644 \u0625\u0631\u0633\u0627\u0644 \u0633\u062C\u0644 \u064A\u062A\u062C\u0627\u0648\u0632 \u062C\u0633\u0645 UTF-8 \u0647\u0630\u0627 \u0627\u0644\u062D\u062C\u0645. \u0627\u0633\u062A\u062E\u062F\u0645 0 \u0628\u0644\u0627 \u062D\u062F \u0644\u0643\u0644 \u0633\u062C\u0644.",
+      "Stop before sending one record larger than this UTF-8 body. Set 0 to block every embedding call.": "\u0627\u0644\u062A\u0648\u0642\u0641 \u0642\u0628\u0644 \u0625\u0631\u0633\u0627\u0644 \u0623\u064A \u0633\u062C\u0644 \u064A\u062A\u062C\u0627\u0648\u0632 \u0646\u0635\u0647 \u0628\u062A\u0631\u0645\u064A\u0632 UTF-8 \u0647\u0630\u0627 \u0627\u0644\u062D\u062C\u0645. \u0627\u0636\u0628\u0637\u0647 \u0639\u0644\u0649 0 \u0644\u062D\u0638\u0631 \u0643\u0644 \u0645\u0643\u0627\u0644\u0645\u0627\u062A \u0627\u0644\u062A\u0636\u0645\u064A\u0646.",
       "Embedding daily record bytes": "\u0628\u0627\u064A\u062A\u0627\u062A \u0633\u062C\u0644\u0627\u062A \u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0627\u0644\u064A\u0648\u0645\u064A\u0629",
-      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "\u0623\u0648\u0642\u0641 \u0627\u0633\u062A\u062F\u0639\u0627\u0621\u0627\u062A \u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0628\u0639\u062F \u0647\u0630\u0627 \u0627\u0644\u0639\u062F\u062F \u0645\u0646 \u0628\u0627\u064A\u062A\u0627\u062A \u0633\u062C\u0644\u0627\u062A UTF-8 \u0641\u064A \u0627\u0644\u064A\u0648\u0645 \u0627\u0644\u0645\u062D\u0644\u064A. \u0627\u0633\u062A\u062E\u062F\u0645 0 \u0644\u063A\u064A\u0631 \u0645\u062D\u062F\u0648\u062F.",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Set 0 to block every embedding call.": "\u0625\u064A\u0642\u0627\u0641 \u0645\u0643\u0627\u0644\u0645\u0627\u062A \u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0628\u0639\u062F \u0647\u0630\u0627 \u0627\u0644\u0639\u062F\u062F \u0645\u0646 \u0628\u0627\u064A\u062A\u0627\u062A \u0627\u0644\u0633\u062C\u0644 \u0628\u062A\u0631\u0645\u064A\u0632 UTF-8 \u062E\u0644\u0627\u0644 \u0627\u0644\u064A\u0648\u0645 \u0627\u0644\u0645\u062D\u0644\u064A. \u0627\u0636\u0628\u0637\u0647 \u0639\u0644\u0649 0 \u0644\u062D\u0638\u0631 \u0643\u0644 \u0645\u0643\u0627\u0644\u0645\u0627\u062A \u0627\u0644\u062A\u0636\u0645\u064A\u0646.",
       "Auto-embed every export": "\u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0627\u0644\u062A\u0644\u0642\u0627\u0626\u064A \u0628\u0639\u062F \u0643\u0644 \u062A\u0635\u062F\u064A\u0631",
       "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.": "\u0642\u0628\u0644 \u0627\u0644\u062A\u0641\u0639\u064A\u0644\u060C \u0631\u0627\u062C\u0639 \u0646\u0642\u0637\u0629 \u0627\u0644\u0646\u0647\u0627\u064A\u0629 \u0648\u062D\u0642\u0648\u0644 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0627\u0644\u0645\u0644\u062A\u0642\u0637\u0629 \u0648\u0627\u0644\u0627\u062D\u062A\u0641\u0627\u0638 \u0627\u0644\u0645\u062D\u0644\u064A \u0648\u0645\u064A\u0632\u0627\u0646\u064A\u0629 \u0627\u0644\u0628\u0627\u064A\u062A \u0627\u0644\u064A\u0648\u0645\u064A\u0629 \u0623\u0639\u0644\u0627\u0647. \u0628\u0639\u062F \u0643\u0644 \u062A\u0635\u062F\u064A\u0631\u060C \u064A\u062A\u0645 \u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0641\u064A \u0627\u0644\u062E\u0644\u0641\u064A\u0629. \u0645\u062A\u0648\u0642\u0641 \u0627\u0641\u062A\u0631\u0627\u0636\u064A\u064B\u0627.",
       "Rebuild semantic index": "\u0625\u0639\u0627\u062F\u0629 \u0628\u0646\u0627\u0621 \u0627\u0644\u0641\u0647\u0631\u0633 \u0627\u0644\u062F\u0644\u0627\u0644\u064A",
@@ -7703,7 +7771,7 @@ html.av-reduce-motion *::after {
       "No active downloads.": "\u0644\u0627 \u062A\u0648\u062C\u062F \u062A\u0646\u0632\u064A\u0644\u0627\u062A \u0646\u0634\u0637\u0629.",
       "Cancel": "\u0625\u0644\u063A\u0627\u0621",
       "Blocked by local-only mode": "\u0645\u062D\u0638\u0648\u0631 \u0628\u0633\u0628\u0628 \u0648\u0636\u0639 \u0627\u0644\u0645\u062D\u0644\u064A \u0641\u0642\u0637",
-      "unlimited": "\u063A\u064A\u0631 \u0645\u062D\u062F\u0648\u062F",
+      "blocked (budget is 0)": "\u0645\u062D\u0638\u0648\u0631 (\u0627\u0644\u0645\u064A\u0632\u0627\u0646\u064A\u0629 0)",
       "No matches (or integration disabled).": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0646\u062A\u0627\u0626\u062C \u0645\u0637\u0627\u0628\u0642\u0629 (\u0623\u0648 \u0623\u0646 \u0627\u0644\u062A\u0643\u0627\u0645\u0644 \u0645\u0639\u0637\u0651\u0644).",
       "Open a profile's followers or following list, then use Capture snapshot to record it.": "\u0627\u0641\u062A\u062D \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0645\u062A\u0627\u0628\u0650\u0639\u064A\u0646 \u0623\u0648 \u0627\u0644\u0645\u062A\u0627\u0628\u064E\u0639\u064A\u0646 \u0644\u0623\u062D\u062F \u0627\u0644\u0645\u0644\u0641\u0627\u062A \u0627\u0644\u0634\u062E\u0635\u064A\u0629\u060C \u062B\u0645 \u0627\u0633\u062A\u062E\u062F\u0645 \xAB\u0627\u0644\u062A\u0642\u0627\u0637 \u0644\u0642\u0637\u0629\xBB \u0644\u062A\u0633\u062C\u064A\u0644\u0647\u0627.",
       "No captured records match \u201C{query}\u201D.": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0633\u062C\u0644\u0627\u062A \u0645\u0644\u062A\u0642\u0637\u0629 \u062A\u0637\u0627\u0628\u0642 \xAB{query}\xBB.",
@@ -7791,6 +7859,7 @@ html.av-reduce-motion *::after {
       "The prompt could not be copied. Your browser blocked clipboard access.": "\u062A\u0639\u0630\u0651\u0631 \u0646\u0633\u062E \u0627\u0644\u0645\u0637\u0627\u0644\u0628\u0629. \u062D\u0638\u0631 \u0645\u062A\u0635\u0641\u062D\u0643 \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 \u0627\u0644\u062D\u0627\u0641\u0638\u0629.",
       "Review external AI request": "\u0645\u0631\u0627\u062C\u0639\u0629 \u0637\u0644\u0628 \u0630\u0643\u0627\u0621 \u0627\u0635\u0637\u0646\u0627\u0639\u064A \u062E\u0627\u0631\u062C\u064A",
       "Nothing is sent until you choose Send request.": "\u0644\u0646 \u064A\u064F\u0631\u0633\u0644 \u0634\u064A\u0621 \u062D\u062A\u0649 \u062A\u062E\u062A\u0627\u0631 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0637\u0644\u0628.",
+      "unlimited": "\u063A\u064A\u0631 \u0645\u062D\u062F\u0648\u062F",
       "Aviary stores usage counters only; the provider's retention follows its policy.": "\u064A\u062E\u0632\u0646 Aviary \u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0641\u0642\u0637\u061B \u0648\u062A\u062E\u0636\u0639 \u0645\u062F\u0629 \u0627\u062D\u062A\u0641\u0627\u0638 \u0627\u0644\u0645\u0632\u0648\u0651\u062F \u0644\u0633\u064A\u0627\u0633\u0627\u062A\u0647.",
       "Budget blocked this request.": "\u062D\u0638\u0631\u062A \u0627\u0644\u0645\u064A\u0632\u0627\u0646\u064A\u0629 \u0647\u0630\u0627 \u0627\u0644\u0637\u0644\u0628.",
       "Send request": "\u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0637\u0644\u0628",
@@ -7897,6 +7966,10 @@ html.av-reduce-motion *::after {
       "posts": "\u0645\u0646\u0634\u0648\u0631\u0627\u062A",
       "offline-ready": "\u062C\u0627\u0647\u0632 \u0644\u0644\u0639\u0645\u0644 \u062F\u0648\u0646 \u0627\u062A\u0635\u0627\u0644",
       "network may be required": "\u0642\u062F \u062A\u062A\u0637\u0644\u0628 \u0627\u0644\u0634\u0628\u0643\u0629",
+      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "\u0623\u0648\u0642\u0641 \u0627\u0644\u0625\u0631\u0633\u0627\u0644 \u0642\u0628\u0644 \u0625\u0631\u0633\u0627\u0644 \u0637\u0644\u0628 \u0630\u0643\u0627\u0621 \u0627\u0635\u0637\u0646\u0627\u0639\u064A \u064A\u062A\u062C\u0627\u0648\u0632 \u062C\u0633\u0645 UTF-8 \u0647\u0630\u0627 \u0627\u0644\u062D\u062C\u0645. \u0627\u0633\u062A\u062E\u062F\u0645 0 \u0628\u0644\u0627 \u062D\u062F \u0644\u0643\u0644 \u0637\u0644\u0628.",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "\u0623\u0648\u0642\u0641 \u0627\u0633\u062A\u062F\u0639\u0627\u0621\u0627\u062A \u0645\u0632\u0648\u0651\u062F \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0628\u0639\u062F \u0647\u0630\u0627 \u0627\u0644\u0639\u062F\u062F \u0645\u0646 \u0628\u0627\u064A\u062A\u0627\u062A \u0637\u0644\u0628 UTF-8 \u0641\u064A \u0627\u0644\u064A\u0648\u0645 \u0627\u0644\u0645\u062D\u0644\u064A. \u0627\u0633\u062A\u062E\u062F\u0645 0 \u0644\u063A\u064A\u0631 \u0645\u062D\u062F\u0648\u062F.",
+      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "\u0623\u0648\u0642\u0641 \u0627\u0644\u0625\u0631\u0633\u0627\u0644 \u0642\u0628\u0644 \u0625\u0631\u0633\u0627\u0644 \u0633\u062C\u0644 \u064A\u062A\u062C\u0627\u0648\u0632 \u062C\u0633\u0645 UTF-8 \u0647\u0630\u0627 \u0627\u0644\u062D\u062C\u0645. \u0627\u0633\u062A\u062E\u062F\u0645 0 \u0628\u0644\u0627 \u062D\u062F \u0644\u0643\u0644 \u0633\u062C\u0644.",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "\u0623\u0648\u0642\u0641 \u0627\u0633\u062A\u062F\u0639\u0627\u0621\u0627\u062A \u0627\u0644\u062A\u0636\u0645\u064A\u0646 \u0628\u0639\u062F \u0647\u0630\u0627 \u0627\u0644\u0639\u062F\u062F \u0645\u0646 \u0628\u0627\u064A\u062A\u0627\u062A \u0633\u062C\u0644\u0627\u062A UTF-8 \u0641\u064A \u0627\u0644\u064A\u0648\u0645 \u0627\u0644\u0645\u062D\u0644\u064A. \u0627\u0633\u062A\u062E\u062F\u0645 0 \u0644\u063A\u064A\u0631 \u0645\u062D\u062F\u0648\u062F.",
       "Rewrite image URLs to name=orig before downloading.": "\u064A\u0639\u064A\u062F \u0643\u062A\u0627\u0628\u0629 \u0631\u0648\u0627\u0628\u0637 \u0627\u0644\u0635\u0648\u0631 \u0625\u0644\u0649 name=orig \u0642\u0628\u0644 \u0627\u0644\u062A\u0646\u0632\u064A\u0644.",
       "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "\u064A\u0646\u0637\u0628\u0642 \u0641\u0642\u0637 \u0623\u062B\u0646\u0627\u0621 \u062A\u0641\u0639\u064A\u0644 \u0648\u0636\u0639 \u0628\u0644\u0627 \u0625\u0639\u0644\u0627\u0646\u0627\u062A. \u064A\u0631\u0641\u0636 Aviary \u0637\u0644\u0628 \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u0645\u062D\u062A\u0648\u0649 \u0627\u0644\u0645\u064F\u0645\u0648\u064E\u0651\u0644 \u0627\u0644\u0645\u0646\u0641\u0635\u0644 \u0641\u064A X\u060C \u0648\u0647\u0648 \u0637\u0644\u0628 \u0627\u0644\u0625\u0639\u0644\u0627\u0646 \u0627\u0644\u0648\u062D\u064A\u062F \u0627\u0644\u0630\u064A \u064A\u0645\u0643\u0646 \u0641\u0635\u0644\u0647 \u0639\u0646 \u0627\u0644\u062E\u0637 \u0627\u0644\u0632\u0645\u0646\u064A \u0646\u0641\u0633\u0647. \u0623\u0648\u0642\u0641 \u0647\u0630\u0627 \u0625\u0630\u0627 \u0627\u0634\u062A\u0643\u0649 X \u0645\u0646 \u0648\u062C\u0648\u062F \u0645\u0627\u0646\u0639 \u0625\u0639\u0644\u0627\u0646\u0627\u062A: \u062A\u0628\u0642\u0649 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A \u0627\u0644\u0645\u0645\u0648\u064E\u0651\u0644\u0629 \u0645\u062E\u0641\u064A\u0629 \u0648\u064A\u062A\u0648\u0642\u0641 Aviary \u0639\u0646 \u0631\u0641\u0636 \u0623\u064A \u0637\u0644\u0628 \u0639\u0644\u0649 \u0627\u0644\u0625\u0637\u0644\u0627\u0642.",
       "Always play video at the highest quality": "\u062A\u0634\u063A\u064A\u0644 \u0627\u0644\u0641\u064A\u062F\u064A\u0648 \u062F\u0627\u0626\u0645\u064B\u0627 \u0628\u0623\u0639\u0644\u0649 \u062C\u0648\u062F\u0629",
@@ -8280,9 +8353,9 @@ html.av-reduce-motion *::after {
       "Before sending, Aviary shows the provider, endpoint, fields, character/token estimate, retention, and budget status.": "\u05DC\u05E4\u05E0\u05D9 \u05D4\u05E9\u05DC\u05D9\u05D7\u05D4 Aviary \u05DE\u05E6\u05D9\u05D2\u05D4 \u05D0\u05EA \u05D4\u05E1\u05E4\u05E7, \u05E0\u05E7\u05D5\u05D3\u05EA \u05D4\u05E7\u05E6\u05D4, \u05D4\u05E9\u05D3\u05D5\u05EA, \u05D4\u05E2\u05E8\u05DB\u05EA \u05D4\u05EA\u05D5\u05D5\u05D9\u05DD/\u05D4\u05D8\u05D5\u05E7\u05E0\u05D9\u05DD, \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05D5\u05DE\u05E6\u05D1 \u05D4\u05EA\u05E7\u05E6\u05D9\u05D1.",
       "AI usage today": "\u05E9\u05D9\u05DE\u05D5\u05E9 \u05D1-AI \u05D4\u05D9\u05D5\u05DD",
       "AI max request bytes": "\u05DE\u05E7\u05E1\u05D9\u05DE\u05D5\u05DD \u05D1\u05EA\u05D9\u05DD \u05DC\u05D1\u05E7\u05E9\u05EA AI",
-      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "\u05E2\u05E6\u05D9\u05E8\u05D4 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05DC\u05D9\u05D7\u05EA \u05D1\u05E7\u05E9\u05EA AI \u05E9\u05D2\u05D5\u05E3 \u05D4-UTF-8 \u05E9\u05DC\u05D4 \u05D2\u05D3\u05D5\u05DC \u05DE\u05D4\u05E2\u05E8\u05DA \u05D4\u05D6\u05D4. 0 \u05DE\u05D1\u05D8\u05DC \u05D0\u05EA \u05D4\u05D4\u05D2\u05D1\u05DC\u05D4 \u05DC\u05D1\u05E7\u05E9\u05D4.",
+      "Stop before sending one AI request larger than this UTF-8 body. Set 0 to block every AI request.": "\u05DC\u05E2\u05E6\u05D5\u05E8 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05DC\u05D9\u05D7\u05EA \u05D1\u05E7\u05E9\u05EA \u05D1\u05D9\u05E0\u05D4 \u05DE\u05DC\u05D0\u05DB\u05D5\u05EA\u05D9\u05EA \u05E9\u05D2\u05D5\u05E3 \u05D4-UTF-8 \u05E9\u05DC\u05D4 \u05D2\u05D3\u05D5\u05DC \u05DE\u05D2\u05D5\u05D3\u05DC \u05D6\u05D4. \u05E2\u05E8\u05DA 0 \u05D7\u05D5\u05E1\u05DD \u05DB\u05DC \u05D1\u05E7\u05E9\u05EA \u05D1\u05D9\u05E0\u05D4 \u05DE\u05DC\u05D0\u05DB\u05D5\u05EA\u05D9\u05EA.",
       "AI daily request bytes": "\u05D1\u05EA\u05D9\u05DD \u05D9\u05D5\u05DE\u05D9\u05D9\u05DD \u05DC\u05D1\u05E7\u05E9\u05D5\u05EA AI",
-      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "\u05E2\u05E6\u05D9\u05E8\u05EA \u05E7\u05E8\u05D9\u05D0\u05D5\u05EA \u05DC\u05E1\u05E4\u05E7 AI \u05D0\u05D7\u05E8\u05D9 \u05DE\u05E1\u05E4\u05E8 \u05D6\u05D4 \u05E9\u05DC \u05D1\u05EA\u05D9 \u05D1\u05E7\u05E9\u05D5\u05EA UTF-8 \u05D1\u05D9\u05D5\u05DD \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9. 0 \u05DC\u05DC\u05D0 \u05D4\u05D2\u05D1\u05DC\u05D4.",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Set 0 to block every AI request.": "\u05DC\u05E2\u05E6\u05D5\u05E8 \u05E7\u05E8\u05D9\u05D0\u05D5\u05EA \u05DC\u05E1\u05E4\u05E7 \u05D4\u05D1\u05D9\u05E0\u05D4 \u05D4\u05DE\u05DC\u05D0\u05DB\u05D5\u05EA\u05D9\u05EA \u05D0\u05D7\u05E8\u05D9 \u05DB\u05DE\u05D5\u05EA \u05D6\u05D5 \u05E9\u05DC \u05D1\u05D9\u05D9\u05D8\u05D9\u05DD \u05D1\u05D1\u05E7\u05E9\u05D5\u05EA UTF-8 \u05D1\u05D9\u05D5\u05DD \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9. \u05E2\u05E8\u05DA 0 \u05D7\u05D5\u05E1\u05DD \u05DB\u05DC \u05D1\u05E7\u05E9\u05EA \u05D1\u05D9\u05E0\u05D4 \u05DE\u05DC\u05D0\u05DB\u05D5\u05EA\u05D9\u05EA.",
       "Semantic search": "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05E1\u05DE\u05E0\u05D8\u05D9",
       "Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here.": "\u05E9\u05DC\u05D9\u05D7\u05EA \u05D8\u05E7\u05E1\u05D8 \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05E0\u05DC\u05DB\u05D3\u05D5 \u05DC\u05E0\u05E7\u05D5\u05D3\u05EA \u05D4\u05E7\u05E6\u05D4 \u05D4\u05DE\u05D5\u05D2\u05D3\u05E8\u05EA \u05E9\u05DC embeddings \u05DC\u05D7\u05D9\u05E4\u05D5\u05E9 \u05D3\u05DE\u05D9\u05D5\u05DF. \u05D4\u05D9\u05E2\u05D3, \u05D4\u05E9\u05D3\u05D5\u05EA, \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05D5\u05EA\u05E7\u05E6\u05D9\u05D1 \u05D4\u05D1\u05EA\u05D9\u05DD \u05DE\u05D5\u05E6\u05D2\u05D9\u05DD \u05DB\u05D0\u05DF.",
       "Embedding endpoint": "\u05E0\u05E7\u05D5\u05D3\u05EA \u05E7\u05E6\u05D4 \u05DC\u05D4\u05D8\u05DE\u05E2\u05D4",
@@ -8297,9 +8370,9 @@ html.av-reduce-motion *::after {
       "A request contains the model and captured record text. Vectors and bounded text stay in Aviary's local index; provider retention follows its policy.": "\u05D1\u05E7\u05E9\u05D4 \u05DE\u05DB\u05D9\u05DC\u05D4 \u05D0\u05EA \u05D4\u05DE\u05D5\u05D3\u05DC \u05D5\u05D0\u05EA \u05D8\u05E7\u05E1\u05D8 \u05D4\u05E8\u05E9\u05D5\u05DE\u05D4 \u05E9\u05E0\u05DC\u05DB\u05D3\u05D4. \u05D5\u05E7\u05D8\u05D5\u05E8\u05D9\u05DD \u05D5\u05D8\u05E7\u05E1\u05D8 \u05DE\u05D5\u05D2\u05D1\u05DC \u05E0\u05E9\u05D0\u05E8\u05D9\u05DD \u05D1\u05D0\u05D9\u05E0\u05D3\u05E7\u05E1 \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9 \u05E9\u05DC Aviary; \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05D0\u05E6\u05DC \u05D4\u05E1\u05E4\u05E7 \u05E4\u05D5\u05E2\u05DC\u05EA \u05DC\u05E4\u05D9 \u05D4\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E9\u05DC\u05D5.",
       "Embedding usage today": "\u05E9\u05D9\u05DE\u05D5\u05E9 \u05D1-embeddings \u05D4\u05D9\u05D5\u05DD",
       "Embedding max record bytes": "\u05DE\u05E7\u05E1\u05D9\u05DE\u05D5\u05DD \u05D1\u05EA\u05D9\u05DD \u05DC\u05E8\u05E9\u05D5\u05DE\u05EA embedding",
-      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "\u05E2\u05E6\u05D9\u05E8\u05D4 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05DC\u05D9\u05D7\u05EA \u05E8\u05E9\u05D5\u05DE\u05D4 \u05E9\u05D2\u05D5\u05E3 \u05D4-UTF-8 \u05E9\u05DC\u05D4 \u05D2\u05D3\u05D5\u05DC \u05DE\u05D4\u05E2\u05E8\u05DA \u05D4\u05D6\u05D4. 0 \u05DC\u05DC\u05D0 \u05D4\u05D2\u05D1\u05DC\u05D4 \u05DC\u05E8\u05E9\u05D5\u05DE\u05D4.",
+      "Stop before sending one record larger than this UTF-8 body. Set 0 to block every embedding call.": "\u05DC\u05E2\u05E6\u05D5\u05E8 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05DC\u05D9\u05D7\u05EA \u05E8\u05E9\u05D5\u05DE\u05D4 \u05E9\u05D2\u05D5\u05E3 \u05D4-UTF-8 \u05E9\u05DC\u05D4 \u05D2\u05D3\u05D5\u05DC \u05DE\u05D2\u05D5\u05D3\u05DC \u05D6\u05D4. \u05E2\u05E8\u05DA 0 \u05D7\u05D5\u05E1\u05DD \u05DB\u05DC \u05E7\u05E8\u05D9\u05D0\u05EA \u05D4\u05D8\u05DE\u05E2\u05D4.",
       "Embedding daily record bytes": "\u05D1\u05EA\u05D9\u05DD \u05D9\u05D5\u05DE\u05D9\u05D9\u05DD \u05DC\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA embeddings",
-      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "\u05E2\u05E6\u05D9\u05E8\u05EA \u05E7\u05E8\u05D9\u05D0\u05D5\u05EA embeddings \u05D0\u05D7\u05E8\u05D9 \u05DE\u05E1\u05E4\u05E8 \u05D6\u05D4 \u05E9\u05DC \u05D1\u05EA\u05D9 \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA UTF-8 \u05D1\u05D9\u05D5\u05DD \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9. 0 \u05DC\u05DC\u05D0 \u05D4\u05D2\u05D1\u05DC\u05D4.",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Set 0 to block every embedding call.": "\u05DC\u05E2\u05E6\u05D5\u05E8 \u05E7\u05E8\u05D9\u05D0\u05D5\u05EA \u05D4\u05D8\u05DE\u05E2\u05D4 \u05D0\u05D7\u05E8\u05D9 \u05DB\u05DE\u05D5\u05EA \u05D6\u05D5 \u05E9\u05DC \u05D1\u05D9\u05D9\u05D8\u05D9\u05DD \u05D1\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA UTF-8 \u05D1\u05D9\u05D5\u05DD \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9. \u05E2\u05E8\u05DA 0 \u05D7\u05D5\u05E1\u05DD \u05DB\u05DC \u05E7\u05E8\u05D9\u05D0\u05EA \u05D4\u05D8\u05DE\u05E2\u05D4.",
       "Auto-embed every export": "\u05D4\u05D8\u05DE\u05E2\u05D4 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA \u05D1\u05DB\u05DC \u05D9\u05D9\u05E6\u05D5\u05D0",
       "Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default.": "\u05DC\u05E4\u05E0\u05D9 \u05D4\u05D4\u05E4\u05E2\u05DC\u05D4 \u05D9\u05E9 \u05DC\u05D1\u05D3\u05D5\u05E7 \u05DC\u05DE\u05E2\u05DC\u05D4 \u05D0\u05EA \u05E0\u05E7\u05D5\u05D3\u05EA \u05D4\u05E7\u05E6\u05D4, \u05E9\u05D3\u05D5\u05EA \u05D4\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05E0\u05DC\u05DB\u05D3\u05D5, \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4 \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9\u05EA \u05D5\u05EA\u05E7\u05E6\u05D9\u05D1 \u05D4\u05D1\u05EA\u05D9\u05DD \u05D4\u05D9\u05D5\u05DE\u05D9. \u05D0\u05D7\u05E8\u05D9 \u05DB\u05DC \u05D9\u05D9\u05E6\u05D5\u05D0 \u05D9\u05EA\u05D1\u05E6\u05E2 embedding \u05D1\u05E8\u05E7\u05E2. \u05DB\u05D1\u05D5\u05D9 \u05DB\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC.",
       "Rebuild semantic index": "\u05D1\u05E0\u05D9\u05D9\u05D4 \u05DE\u05D7\u05D3\u05E9 \u05E9\u05DC \u05D4\u05D0\u05D9\u05E0\u05D3\u05E7\u05E1 \u05D4\u05E1\u05DE\u05E0\u05D8\u05D9",
@@ -8639,7 +8712,7 @@ html.av-reduce-motion *::after {
       "No active downloads.": "\u05D0\u05D9\u05DF \u05D4\u05D5\u05E8\u05D3\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA.",
       "Cancel": "\u05D1\u05D9\u05D8\u05D5\u05DC",
       "Blocked by local-only mode": "\u05E0\u05D7\u05E1\u05DD \u05D1\u05DE\u05E6\u05D1 \u05DE\u05E7\u05D5\u05DE\u05D9 \u05D1\u05DC\u05D1\u05D3",
-      "unlimited": "\u05DC\u05DC\u05D0 \u05D4\u05D2\u05D1\u05DC\u05D4",
+      "blocked (budget is 0)": "\u05D7\u05E1\u05D5\u05DD (\u05D4\u05EA\u05E7\u05E6\u05D9\u05D1 \u05D4\u05D5\u05D0 0)",
       "No matches (or integration disabled).": "\u05D0\u05D9\u05DF \u05D4\u05EA\u05D0\u05DE\u05D5\u05EA (\u05D0\u05D5 \u05E9\u05D4\u05D0\u05D9\u05E0\u05D8\u05D2\u05E8\u05E6\u05D9\u05D4 \u05DE\u05D5\u05E9\u05D1\u05EA\u05EA).",
       "Open a profile's followers or following list, then use Capture snapshot to record it.": '\u05E4\u05EA\u05D7 \u05D0\u05EA \u05E8\u05E9\u05D9\u05DE\u05EA \u05D4\u05E2\u05D5\u05E7\u05D1\u05D9\u05DD \u05D0\u05D5 \u05D4\u05E0\u05E2\u05E7\u05D1\u05D9\u05DD \u05E9\u05DC \u05E4\u05E8\u05D5\u05E4\u05D9\u05DC, \u05D5\u05D0\u05D6 \u05D4\u05E9\u05EA\u05DE\u05E9 \u05D1"\u05DC\u05DB\u05D9\u05D3\u05EA \u05EA\u05DE\u05D5\u05E0\u05EA \u05DE\u05E6\u05D1" \u05DB\u05D3\u05D9 \u05DC\u05EA\u05E2\u05D3 \u05D0\u05D5\u05EA\u05D4.',
       "No captured records match \u201C{query}\u201D.": "\u05D0\u05D9\u05DF \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05E0\u05DC\u05DB\u05D3\u05D5 \u05D4\u05EA\u05D5\u05D0\u05DE\u05D5\u05EA \u05DC\u05BE\u201E{query}\u201D.",
@@ -8727,6 +8800,7 @@ html.av-reduce-motion *::after {
       "The prompt could not be copied. Your browser blocked clipboard access.": "\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05D4\u05D9\u05D4 \u05DC\u05D4\u05E2\u05EA\u05D9\u05E7 \u05D0\u05EA \u05D4\u05E4\u05E8\u05D5\u05DE\u05E4\u05D8. \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05D7\u05E1\u05DD \u05D0\u05EA \u05D4\u05D2\u05D9\u05E9\u05D4 \u05DC\u05DC\u05D5\u05D7.",
       "Review external AI request": "\u05D1\u05D3\u05D9\u05E7\u05EA \u05D1\u05E7\u05E9\u05EA AI \u05D7\u05D9\u05E6\u05D5\u05E0\u05D9\u05EA",
       "Nothing is sent until you choose Send request.": "\u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05DC\u05D0 \u05E0\u05E9\u05DC\u05D7 \u05E2\u05D3 \u05DC\u05D1\u05D7\u05D9\u05E8\u05D4 \u05D1\u05E9\u05DC\u05D9\u05D7\u05EA \u05D1\u05E7\u05E9\u05D4.",
+      "unlimited": "\u05DC\u05DC\u05D0 \u05D4\u05D2\u05D1\u05DC\u05D4",
       "Aviary stores usage counters only; the provider's retention follows its policy.": "Aviary \u05E9\u05D5\u05DE\u05E8 \u05E8\u05E7 \u05DE\u05D5\u05E0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9; \u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D0\u05E6\u05DC \u05D4\u05E1\u05E4\u05E7 \u05DB\u05E4\u05D5\u05E4\u05D4 \u05DC\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E9\u05DC\u05D5.",
       "Budget blocked this request.": "\u05D4\u05EA\u05E7\u05E6\u05D9\u05D1 \u05D7\u05E1\u05DD \u05D0\u05EA \u05D4\u05D1\u05E7\u05E9\u05D4 \u05D4\u05D6\u05D5.",
       "Send request": "\u05E9\u05DC\u05D9\u05D7\u05EA \u05D1\u05E7\u05E9\u05D4",
@@ -8833,6 +8907,10 @@ html.av-reduce-motion *::after {
       "posts": "\u05E4\u05D5\u05E1\u05D8\u05D9\u05DD",
       "offline-ready": "\u05DE\u05D5\u05DB\u05DF \u05DC\u05DC\u05D0 \u05D7\u05D9\u05D1\u05D5\u05E8",
       "network may be required": "\u05D9\u05D9\u05EA\u05DB\u05DF \u05E9\u05E0\u05D3\u05E8\u05E9 \u05D7\u05D9\u05D1\u05D5\u05E8 \u05E8\u05E9\u05EA",
+      "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.": "\u05E2\u05E6\u05D9\u05E8\u05D4 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05DC\u05D9\u05D7\u05EA \u05D1\u05E7\u05E9\u05EA AI \u05E9\u05D2\u05D5\u05E3 \u05D4-UTF-8 \u05E9\u05DC\u05D4 \u05D2\u05D3\u05D5\u05DC \u05DE\u05D4\u05E2\u05E8\u05DA \u05D4\u05D6\u05D4. 0 \u05DE\u05D1\u05D8\u05DC \u05D0\u05EA \u05D4\u05D4\u05D2\u05D1\u05DC\u05D4 \u05DC\u05D1\u05E7\u05E9\u05D4.",
+      "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.": "\u05E2\u05E6\u05D9\u05E8\u05EA \u05E7\u05E8\u05D9\u05D0\u05D5\u05EA \u05DC\u05E1\u05E4\u05E7 AI \u05D0\u05D7\u05E8\u05D9 \u05DE\u05E1\u05E4\u05E8 \u05D6\u05D4 \u05E9\u05DC \u05D1\u05EA\u05D9 \u05D1\u05E7\u05E9\u05D5\u05EA UTF-8 \u05D1\u05D9\u05D5\u05DD \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9. 0 \u05DC\u05DC\u05D0 \u05D4\u05D2\u05D1\u05DC\u05D4.",
+      "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.": "\u05E2\u05E6\u05D9\u05E8\u05D4 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05DC\u05D9\u05D7\u05EA \u05E8\u05E9\u05D5\u05DE\u05D4 \u05E9\u05D2\u05D5\u05E3 \u05D4-UTF-8 \u05E9\u05DC\u05D4 \u05D2\u05D3\u05D5\u05DC \u05DE\u05D4\u05E2\u05E8\u05DA \u05D4\u05D6\u05D4. 0 \u05DC\u05DC\u05D0 \u05D4\u05D2\u05D1\u05DC\u05D4 \u05DC\u05E8\u05E9\u05D5\u05DE\u05D4.",
+      "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.": "\u05E2\u05E6\u05D9\u05E8\u05EA \u05E7\u05E8\u05D9\u05D0\u05D5\u05EA embeddings \u05D0\u05D7\u05E8\u05D9 \u05DE\u05E1\u05E4\u05E8 \u05D6\u05D4 \u05E9\u05DC \u05D1\u05EA\u05D9 \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA UTF-8 \u05D1\u05D9\u05D5\u05DD \u05D4\u05DE\u05E7\u05D5\u05DE\u05D9. 0 \u05DC\u05DC\u05D0 \u05D4\u05D2\u05D1\u05DC\u05D4.",
       "Rewrite image URLs to name=orig before downloading.": "\u05DE\u05E9\u05DB\u05EA\u05D1 \u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05EA\u05DE\u05D5\u05E0\u05D4 \u05DC\u2011name=orig \u05DC\u05E4\u05E0\u05D9 \u05D4\u05D4\u05D5\u05E8\u05D3\u05D4.",
       "Only applies while Ad-free mode is on. Aviary refuses X's separate promoted-content logging request, the one ad request that can be separated from the timeline itself. Turn this off if X complains about an ad blocker: sponsored posts stay hidden and Aviary stops refusing any request at all.": "\u05D7\u05DC \u05E8\u05E7 \u05DB\u05D0\u05E9\u05E8 \u05DE\u05E6\u05D1 \u05DC\u05DC\u05D0 \u05DE\u05D5\u05D3\u05E2\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC. Aviary \u05D3\u05D5\u05D7\u05D4 \u05D0\u05EA \u05D1\u05E7\u05E9\u05EA \u05E8\u05D9\u05E9\u05D5\u05DD \u05D4\u05EA\u05D5\u05DB\u05DF \u05D4\u05DE\u05DE\u05D5\u05DE\u05DF \u05D4\u05E0\u05E4\u05E8\u05D3\u05EA \u05E9\u05DC X, \u05D1\u05E7\u05E9\u05EA \u05D4\u05DE\u05D5\u05D3\u05E2\u05D5\u05EA \u05D4\u05D9\u05D7\u05D9\u05D3\u05D4 \u05E9\u05E0\u05D9\u05EA\u05DF \u05DC\u05D4\u05E4\u05E8\u05D9\u05D3 \u05DE\u05E6\u05D9\u05E8 \u05D4\u05D6\u05DE\u05DF \u05E2\u05E6\u05DE\u05D5. \u05DB\u05D1\u05D4 \u05D6\u05D0\u05EA \u05D0\u05DD X \u05DE\u05EA\u05DC\u05D5\u05E0\u05DF \u05E2\u05DC \u05D7\u05D5\u05E1\u05DD \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA: \u05E4\u05D5\u05E1\u05D8\u05D9\u05DD \u05DE\u05DE\u05D5\u05DE\u05E0\u05D9\u05DD \u05D9\u05D9\u05E9\u05D0\u05E8\u05D5 \u05DE\u05D5\u05E1\u05EA\u05E8\u05D9\u05DD \u05D5-Aviary \u05D9\u05E4\u05E1\u05D9\u05E7 \u05DC\u05D3\u05D7\u05D5\u05EA \u05DB\u05DC \u05D1\u05E7\u05E9\u05D4 \u05E9\u05D4\u05D9\u05D0.",
       "Always play video at the highest quality": "\u05DC\u05E0\u05D2\u05DF \u05D5\u05D9\u05D3\u05D0\u05D5 \u05EA\u05DE\u05D9\u05D3 \u05D1\u05D0\u05D9\u05DB\u05D5\u05EA \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8",
@@ -9458,27 +9536,27 @@ html.av-reduce-motion *::after {
         ),
         ctx.dataRow(
           "AI usage today",
-          `${usage.ai.requests} requests \xB7 ${ctx.formatBytes(usage.ai.bytes)} / ${usage.ai.dailyLimitBytes > 0 ? ctx.formatBytes(usage.ai.dailyLimitBytes) : ctx.t("unlimited")}`
+          `${usage.ai.requests} requests \xB7 ${ctx.formatBytes(usage.ai.bytes)} / ${usage.ai.dailyLimitBytes > 0 ? ctx.formatBytes(usage.ai.dailyLimitBytes) : ctx.t("blocked (budget is 0)")}`
         ),
         ctx.integerInputRow(
           "AI max request bytes",
-          "Stop before sending one AI request larger than this UTF-8 body. Use 0 for no per-request bound.",
+          "Stop before sending one AI request larger than this UTF-8 body. Set 0 to block every AI request.",
           integrations.ai.maxRequestBytes,
           async (value) => {
             integrations.ai.maxRequestBytes = value;
             await ctx.save("AI request budget saved");
           },
-          { max: 5e6 }
+          { max: INTEGRATION_BUDGET_CEILINGS.ai.maxRequestBytes }
         ),
         ctx.integerInputRow(
           "AI daily request bytes",
-          "Stop AI provider calls after this many UTF-8 request bytes in the local day. Use 0 for unlimited.",
+          "Stop AI provider calls after this many UTF-8 request bytes in the local day. Set 0 to block every AI request.",
           integrations.ai.dailyRequestBytes,
           async (value) => {
             integrations.ai.dailyRequestBytes = value;
             await ctx.save("AI daily budget saved");
           },
-          { max: 1e8 }
+          { max: INTEGRATION_BUDGET_CEILINGS.ai.dailyRequestBytes }
         )
       );
     }
@@ -9538,27 +9616,27 @@ html.av-reduce-motion *::after {
         ),
         ctx.dataRow(
           "Embedding usage today",
-          `${usage.embedding.requests} requests \xB7 ${usage.embedding.records} records \xB7 ${ctx.formatBytes(usage.embedding.bytes)} / ${usage.embedding.dailyLimitBytes > 0 ? ctx.formatBytes(usage.embedding.dailyLimitBytes) : ctx.t("unlimited")}`
+          `${usage.embedding.requests} requests \xB7 ${usage.embedding.records} records \xB7 ${ctx.formatBytes(usage.embedding.bytes)} / ${usage.embedding.dailyLimitBytes > 0 ? ctx.formatBytes(usage.embedding.dailyLimitBytes) : ctx.t("blocked (budget is 0)")}`
         ),
         ctx.integerInputRow(
           "Embedding max record bytes",
-          "Stop before sending one record larger than this UTF-8 body. Use 0 for no per-record bound.",
+          "Stop before sending one record larger than this UTF-8 body. Set 0 to block every embedding call.",
           integrations.semanticSearch.maxRecordBytes,
           async (value) => {
             integrations.semanticSearch.maxRecordBytes = value;
             await ctx.save("Embedding request budget saved");
           },
-          { max: 5e6 }
+          { max: INTEGRATION_BUDGET_CEILINGS.semanticSearch.maxRecordBytes }
         ),
         ctx.integerInputRow(
           "Embedding daily record bytes",
-          "Stop embedding calls after this many UTF-8 record bytes in the local day. Use 0 for unlimited.",
+          "Stop embedding calls after this many UTF-8 record bytes in the local day. Set 0 to block every embedding call.",
           integrations.semanticSearch.dailyRecordBytes,
           async (value) => {
             integrations.semanticSearch.dailyRecordBytes = value;
             await ctx.save("Embedding daily budget saved");
           },
-          { max: 1e8 }
+          { max: INTEGRATION_BUDGET_CEILINGS.semanticSearch.dailyRecordBytes }
         )
       );
     }
@@ -15900,11 +15978,23 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       const dailyLimitBytes = finiteLimit(budget.dailyBytes);
       const current = this.snapshot();
       const usedBytes = kind === "ai" ? current.ai.bytes : current.embedding.bytes;
-      if (maxRequestBytes > 0 && bytes > maxRequestBytes) {
-        return this.blocked(kind, bytes, usedBytes, dailyLimitBytes, `The ${kind} request is ${bytes} bytes, over the ${maxRequestBytes}-byte per-request budget.`);
+      if (overBudget(maxRequestBytes, bytes)) {
+        return this.blocked(
+          kind,
+          bytes,
+          usedBytes,
+          dailyLimitBytes,
+          maxRequestBytes <= 0 ? `The ${kind} per-request budget is zero, so no provider request was made.` : `The ${kind} request is ${bytes} bytes, over the ${maxRequestBytes}-byte per-request budget.`
+        );
       }
-      if (dailyLimitBytes > 0 && usedBytes + bytes > dailyLimitBytes) {
-        return this.blocked(kind, bytes, usedBytes, dailyLimitBytes, `The ${kind} daily budget has been reached; no provider request was made.`);
+      if (overBudget(dailyLimitBytes, usedBytes + bytes)) {
+        return this.blocked(
+          kind,
+          bytes,
+          usedBytes,
+          dailyLimitBytes,
+          dailyLimitBytes <= 0 ? `The ${kind} daily budget is zero, so no provider request was made.` : `The ${kind} daily budget has been reached; no provider request was made.`
+        );
       }
       const before = cloneState(this.#state);
       const day = this.#getOrCreateDay(current.day);
@@ -15973,7 +16063,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     const text = [request.systemPrompt ?? "", request.prompt].join("\n");
     const budget = defaultAiBudget(config);
     const requestBytes = estimateAiRequestBytes(config, request);
-    const budgetReason = budget.maxRequestBytes > 0 && requestBytes > budget.maxRequestBytes ? `The AI request is ${requestBytes} bytes, over the ${budget.maxRequestBytes}-byte per-request budget.` : usage && budget.dailyBytes > 0 && usage.ai.bytes + requestBytes > budget.dailyBytes ? "The AI daily budget has been reached; no provider request was made." : null;
+    const budgetReason = overBudget(budget.maxRequestBytes, requestBytes) ? budget.maxRequestBytes <= 0 ? "The AI per-request budget is zero, so no provider request will be made." : `The AI request is ${requestBytes} bytes, over the ${budget.maxRequestBytes}-byte per-request budget.` : usage && overBudget(budget.dailyBytes, usage.ai.bytes + requestBytes) ? budget.dailyBytes <= 0 ? "The AI daily budget is zero, so no provider request will be made." : "The AI daily budget has been reached; no provider request was made." : null;
     return {
       provider: config.provider,
       endpoint: aiEndpoint(config),
@@ -16023,6 +16113,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   function finiteLimit(value) {
     if (value === void 0) return 0;
     return Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0;
+  }
+  function overBudget(limit, bytes) {
+    return limit <= 0 || bytes > limit;
   }
   function localDay(date) {
     const pad = (value) => String(value).padStart(2, "0");

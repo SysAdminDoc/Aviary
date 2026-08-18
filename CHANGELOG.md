@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Changed
+
+- A provider budget of `0` now means zero. It previously meant "no bound", so the one value a
+  cautious user is most likely to type on a spending control was the value that removed the
+  ceiling. Settings written before this are migrated: a stored `0` becomes the schema's maximum, so
+  anyone who chose "unlimited" keeps it and nobody's spend is newly blocked.
+
 ### Fixed
 
 - Filtering a post now collapses the timeline row that owns it, not only the post itself. The cell

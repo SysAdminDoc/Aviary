@@ -12,15 +12,59 @@ export const SETTINGS_KEY = "aviary.settings.v1";
  * changed unit, a value whose meaning inverted) and add the matching step to `SETTINGS_MIGRATIONS`.
  * Adding a new key with a default needs no bump; the normalizer already handles it.
  */
-export const SETTINGS_SCHEMA_VERSION = 1;
+export const SETTINGS_SCHEMA_VERSION = 2;
 
 type SettingsRecord = Record<string, unknown>;
+
+/**
+ * The one place a provider budget ceiling is written down. `normalizeSettings` clamps to these, the
+ * v1 -> v2 migration maps a stored `0` onto them, and the Control Center caps its inputs with them —
+ * three readers that have to agree, so they read the same constant instead of repeating the number.
+ */
+export const INTEGRATION_BUDGET_CEILINGS = {
+  ai: { maxRequestBytes: 5_000_000, dailyRequestBytes: 100_000_000 },
+  semanticSearch: { maxRecordBytes: 5_000_000, dailyRecordBytes: 100_000_000 }
+} as const;
 
 /**
  * Ordered upgrade steps. Key `n` migrates a payload written at version `n` to version `n + 1`.
  * Steps run in sequence, so each only has to understand the shape immediately before it.
  */
-const SETTINGS_MIGRATIONS: Record<number, (record: SettingsRecord) => SettingsRecord> = {};
+const SETTINGS_MIGRATIONS: Record<number, (record: SettingsRecord) => SettingsRecord> = {
+  /**
+   * v1 read a provider budget of `0` as "no bound" — the panel said so — which made the one value
+   * a worried user is most likely to type on a spending control the one value that removed the
+   * bound. v2 reads `0` as zero and blocks, so the meaning of an existing stored `0` inverted and
+   * normalization alone cannot carry it: it would silently turn "unlimited" into "blocked".
+   *
+   * Anyone holding `0` chose no ceiling, so map it to the ceiling the schema already enforces.
+   * That keeps their intent, costs them nothing they could reach before, and leaves `0` free to
+   * mean what it says.
+   */
+  1: (record) => {
+    const next = { ...record };
+    const integrations = asRecord(next.integrations);
+    if (Object.keys(integrations).length === 0) {
+      return next;
+    }
+    const migrated: SettingsRecord = { ...integrations };
+    for (const [group, fields] of Object.entries(INTEGRATION_BUDGET_CEILINGS)) {
+      const block = asRecord(migrated[group]);
+      if (Object.keys(block).length === 0) {
+        continue;
+      }
+      const updated: SettingsRecord = { ...block };
+      for (const [field, ceiling] of Object.entries(fields)) {
+        if (updated[field] === 0) {
+          updated[field] = ceiling;
+        }
+      }
+      migrated[group] = updated;
+    }
+    next.integrations = migrated;
+    return next;
+  }
+};
 
 export interface SettingsEnvelope {
   settings: AviarySettings;
@@ -417,9 +461,11 @@ export function readSettingsEnvelope(input: unknown): SettingsEnvelope {
     return { settings: normalizeSettings(raw), fromVersion: declared, fromFuture: true, applied: [] };
   }
 
-  // An unversioned payload predates versioning, which is version 1's shape by definition.
+  // An unversioned payload predates versioning, which is version 1's shape by definition. Defaulting
+  // to SETTINGS_SCHEMA_VERSION read as "already current" and skipped every step the moment the
+  // ladder gained one, which is exactly when an old payload most needs it.
   let working: SettingsRecord = { ...raw };
-  let version = declared ?? SETTINGS_SCHEMA_VERSION;
+  let version = declared ?? 1;
   const applied: number[] = [];
   while (version < SETTINGS_SCHEMA_VERSION) {
     const step = SETTINGS_MIGRATIONS[version];
@@ -698,13 +744,13 @@ export function normalizeSettings(input: unknown): AviarySettings {
           integrationsAi.maxRequestBytes,
           DEFAULT_SETTINGS.integrations.ai.maxRequestBytes,
           0,
-          5_000_000
+          INTEGRATION_BUDGET_CEILINGS.ai.maxRequestBytes
         ),
         dailyRequestBytes: integerValue(
           integrationsAi.dailyRequestBytes,
           DEFAULT_SETTINGS.integrations.ai.dailyRequestBytes,
           0,
-          100_000_000
+          INTEGRATION_BUDGET_CEILINGS.ai.dailyRequestBytes
         )
       },
       semanticSearch: {
@@ -729,13 +775,13 @@ export function normalizeSettings(input: unknown): AviarySettings {
           integrationsSemantic.maxRecordBytes,
           DEFAULT_SETTINGS.integrations.semanticSearch.maxRecordBytes,
           0,
-          5_000_000
+          INTEGRATION_BUDGET_CEILINGS.semanticSearch.maxRecordBytes
         ),
         dailyRecordBytes: integerValue(
           integrationsSemantic.dailyRecordBytes,
           DEFAULT_SETTINGS.integrations.semanticSearch.dailyRecordBytes,
           0,
-          100_000_000
+          INTEGRATION_BUDGET_CEILINGS.semanticSearch.dailyRecordBytes
         )
       },
       crosspost: {
