@@ -35,7 +35,13 @@ export type PageScopeStatus = "unavailable" | "connecting" | "connected";
  * The platform layer has no locale and no access to `t()`, so a sentence built here would render
  * in English in every translated build. The Control Center owns the wording.
  */
-export type PageScopeReason = "" | "no-page-scope" | "agent-absent" | "torn-down";
+export type PageScopeReason =
+  | ""
+  | "no-page-scope"
+  | "agent-absent"
+  /** An agent is present and already bound to a channel this bridge does not hold. */
+  | "agent-taken"
+  | "torn-down";
 
 export type PageEventHandler = (payload: unknown) => void;
 
@@ -161,6 +167,22 @@ export function createPageBridge(options: {
     }
     const envelope = value;
     if (envelope.nonce !== sessionNonce) {
+      return;
+    }
+    if (envelope.kind === "refused") {
+      // An agent is here and already answering somebody else. Reported rather than left to the
+      // handshake timeout, which says "this browser did not load Aviary's page script" -- the one
+      // thing that is definitely not true. See the note in page-agent.ts: this is a diagnostic,
+      // not a security control, and the page can forge it.
+      if (status !== "connected") {
+        clearTimeout(handshakeTimer);
+        handshakeTimer = undefined;
+        status = "unavailable";
+        reason = "agent-taken";
+        options.diagnostics.warn("Page agent is already bound to another channel", {
+          source: options.source
+        });
+      }
       return;
     }
     if (envelope.kind === "ready") {

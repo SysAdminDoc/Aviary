@@ -150,20 +150,6 @@ Internal audit of the subsystems no prior pass had examined, plus the code added
 
 ### P2 — reliability
 
-- [ ] F161 — P2 — Harden page-agent nonce adoption against a first-hello squatter
-  Why: the agent adopts the first well-formed `hello` nonce and rejects later ones, and the winning nonce rides every envelope where any page script can read it — so a script that races the bridge owns the agent: the real bridge's `ready` never validates, features report agent-absent, and the squatter can `config` off the default-on ad guard or tear the agent down. The isolated world stays protected; what is lost silently is ad protection.
-  Evidence: `src/page/page-agent.ts:386-398` (first-wins adoption), `src/platform/page-bridge.ts:108` (bridge drops mismatched nonces); mechanism confirmed 2026-08-15, a live race needs a runtime check.
-  Touches: `src/page/page-agent.ts`, `src/platform/page-bridge.ts`, their tests.
-  Acceptance: a `hello` arriving after the genuine bridge's cannot displace it, and a squatter arriving first is at minimum visible — the bridge detects an unadoptable agent and reports it through selector health / Trust instead of silently showing agent-absent; the design note states plainly that the boundary is not cryptographic and what it does and does not defend.
-  Note (2026-08-18): the displacement half landed with F173 — the `hello` now transfers a
-  `MessagePort`, and once one is adopted a later `hello` is refused outright, so a squatter cannot
-  take over a standing channel. What remains is the visibility half: a squatter that wins the very
-  first `hello` still leaves the bridge reporting `agent-absent`, which reads as "this browser did
-  not load Aviary's page script" rather than "something else answered". Note the practical reach is
-  narrow — Chrome runs `document_start` content scripts before any page script, so only another
-  extension's MAIN-world script can win that race.
-  Complexity: M
-
 - [ ] F162 — P2 — Coordinate the stores two X tabs share
   Why: every whole-state store (hidden posts, seen posts, aria2 history, semantic index, usage ledger, archive jobs) loads once and persists full snapshots — two tabs are last-writer-wins, so a hide in tab A and a hide in tab B keep only one; the integration usage ledger's reserve step is a cross-tab TOCTOU that lets the daily AI byte budget be spent N times over; the backup snapshot/rollback window can clobber a second tab's writes. Web Locks is Baseline (Chrome 69 / Firefox 96 / Safari 15.4) and costs no dependency.
   Evidence: audit 2026-08-15 across `hidden-posts.ts`, `seen-posts.ts`, aria2 history, `semantic-search.ts`, `usage.ts:156-206`, `library-backup.ts:395-491`; RESEARCH.md platform table (Web Locks).

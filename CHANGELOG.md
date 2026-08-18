@@ -16,6 +16,16 @@
 
 ### Fixed
 
+- **"Aviary's page script did not load" no longer stands in for "something else answered it".**
+  A script that wins the very first handshake owns the page agent -- the transferred control port
+  stops a *later* one from displacing it, but nothing can stop the first. The real bridge then sat
+  out a three-second timeout and reported `agent-absent`, which reads as a browser compatibility
+  problem when what actually happened is that Aviary's default-on network ad guard is answering to
+  somebody else. The agent now refuses a late handshake audibly, and Trust says so. The design note
+  on `installPageAgent` states plainly what the boundary defends and what it does not: it is not
+  cryptographic, the refusal itself is forgeable by the page, and it downgrades a diagnostic rather
+  than a decision.
+
 - **A browser download is only Saved once the browser says it finished.**
   `chrome.downloads.download()` resolves when the browser accepts the request, so an interrupted
   transfer had already been reported as Saved, marked completed in the queue, and written into the

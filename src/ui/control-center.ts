@@ -1535,6 +1535,11 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     if (code === "agent-absent") {
       return t("This browser did not load Aviary's page script.");
     }
+    if (code === "agent-taken") {
+      return t(
+        "Aviary's page script is loaded, but something else answered it first — most likely another extension. Network-level ad protection is not under Aviary's control on this page."
+      );
+    }
     return t("Unavailable in this browser.");
   };
 

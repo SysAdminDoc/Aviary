@@ -23,6 +23,7 @@ export const PAGE_CHANNEL = "aviary.page.v1";
 
 export type PageAgentKind =
   | "hello"
+  | "refused"
   | "ready"
   | "config"
   | "graphql"
@@ -77,6 +78,7 @@ export const MAX_GRAPHQL_PAYLOAD_BYTES = 1_500_000;
 
 const PAGE_AGENT_KINDS = new Set<PageAgentKind>([
   "hello",
+  "refused",
   "ready",
   "config",
   "graphql",
@@ -408,6 +410,36 @@ interface AgentState {
  */
 export type PageAgentSink = (envelope: PageAgentEnvelope) => void;
 
+/**
+ * Tells a `hello` that arrived too late that an agent is here and already spoken for.
+ *
+ * Without this the refusal is silent, and the isolated world cannot tell "no page script loaded"
+ * from "a page script loaded and something else is holding its channel". Both end as a three-second
+ * timeout, and the first is an ordinary compatibility message while the second means Aviary's
+ * default-on ad guard is under someone else's control.
+ *
+ * Deliberately posted on the window rather than the private port: the whole point is to reach a
+ * caller that has no port. That also means a page script can forge one, which is why the isolated
+ * world treats it as a *warning about* the boundary and never as a security decision -- see the
+ * note on `installPageAgent`.
+ */
+function refuseHello(nonce: string): void {
+  const target = state?.target;
+  if (!target || typeof target.postMessage !== "function") {
+    return;
+  }
+  // An opaque origin serializes as the string "null", which postMessage rejects as a target.
+  const origin = target.location?.origin;
+  try {
+    target.postMessage(
+      { channel: PAGE_CHANNEL, kind: "refused", nonce, payload: undefined },
+      origin && origin !== "null" ? origin : "*"
+    );
+  } catch {
+    // A host that will not accept the post leaves the caller on its timeout, as before.
+  }
+}
+
 let state: AgentState | undefined;
 
 /**
@@ -416,6 +448,28 @@ let state: AgentState | undefined;
  * Installation patches the request functions, but each path checks the current configuration
  * before doing work. The isolated world replaces the boot defaults by posting a `config` envelope,
  * so persisted opt-outs take effect as soon as settings finish loading.
+ *
+ * ## What the handshake does and does not defend
+ *
+ * This boundary is **not cryptographic**, and nothing here should be read as if it were. The agent
+ * runs in the page's own world, so any script in that world can read its code, its state, and every
+ * envelope on the window. What the design buys is narrower and worth stating exactly:
+ *
+ * - Once a `hello` is adopted its `MessagePort` becomes the only control surface. A page script
+ *   cannot obtain a reference to a transferred port it did not receive, so replaying a captured
+ *   `config` (to switch the default-on ad guard off) or a `teardown` no longer works. Before the
+ *   port, the nonce rode every envelope on a bus the page could read, which made it useless as a
+ *   secret.
+ * - A later `hello` cannot displace a standing channel, so a script that arrives after the isolated
+ *   world cannot take the agent over.
+ * - A script that wins the *first* `hello` does own the agent. Nothing here prevents that: the
+ *   agent has no way to authenticate its peer, and inventing one would be theatre. What it can do
+ *   is refuse the real bridge audibly rather than silently, which is what `refused` is for. The
+ *   practical reach is narrow -- `document_start` content scripts run before any page script, so
+ *   only another extension's MAIN-world script can win that race.
+ * - `refused` is itself forgeable by the page. It downgrades a diagnostic message, never a
+ *   decision: the isolated world stops waiting and reports what it saw, and every control path
+ *   still requires the port.
  */
 export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink): () => void {
   if (state) {
@@ -454,9 +508,13 @@ export function installPageAgent(target: PageAgentTarget, sink?: PageAgentSink):
       // way the standing channel is the one the isolated world holds; do not let a later hello
       // replace it.
       if (state?.controlPort) {
+        if (state.peerNonce !== nonce) {
+          refuseHello(nonce);
+        }
         return;
       }
       if (state?.peerNonce && state.peerNonce !== nonce) {
+        refuseHello(nonce);
         return;
       }
       if (state) {

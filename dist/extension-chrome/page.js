@@ -5,6 +5,7 @@
   var MAX_GRAPHQL_PAYLOAD_BYTES = 15e5;
   var PAGE_AGENT_KINDS = /* @__PURE__ */ new Set([
     "hello",
+    "refused",
     "ready",
     "config",
     "graphql",
@@ -161,6 +162,20 @@
     captureMediaMetadata: true,
     forceVideoQuality: false
   };
+  function refuseHello(nonce) {
+    const target = state?.target;
+    if (!target || typeof target.postMessage !== "function") {
+      return;
+    }
+    const origin = target.location?.origin;
+    try {
+      target.postMessage(
+        { channel: PAGE_CHANNEL, kind: "refused", nonce, payload: void 0 },
+        origin && origin !== "null" ? origin : "*"
+      );
+    } catch {
+    }
+  }
   var state;
   function installPageAgent(target, sink) {
     if (state) {
@@ -188,9 +203,13 @@
           return;
         }
         if (state?.controlPort) {
+          if (state.peerNonce !== nonce) {
+            refuseHello(nonce);
+          }
           return;
         }
         if (state?.peerNonce && state.peerNonce !== nonce) {
+          refuseHello(nonce);
           return;
         }
         if (state) {
