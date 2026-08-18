@@ -10,7 +10,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const LOCALES = ["es", "pt", "fr", "de", "ja", "ko", "ar", "he"];
 
 test("every locale covers the whole panel manifest", async () => {
-  const { PANEL_CATALOG, PANEL_STRINGS } = await importBundledModule("src/platform/i18n-catalog.ts");
+  const { panelCatalog, PANEL_STRINGS } = await importBundledModule("src/platform/i18n-catalog.ts");
+  const PANEL_CATALOG = panelCatalog();
 
   assert.ok(PANEL_STRINGS.length > 250, `manifest looks truncated: ${PANEL_STRINGS.length}`);
   assert.equal(new Set(PANEL_STRINGS).size, PANEL_STRINGS.length, "manifest has duplicates");
@@ -37,7 +38,8 @@ test("panelCoverage reports 100% for every shipped locale", async () => {
 });
 
 test("translations are not just the English string echoed back", async () => {
-  const { PANEL_CATALOG, PANEL_STRINGS } = await importBundledModule("src/platform/i18n-catalog.ts");
+  const { panelCatalog, PANEL_STRINGS } = await importBundledModule("src/platform/i18n-catalog.ts");
+  const PANEL_CATALOG = panelCatalog();
 
   // Brand names and bare URLs legitimately survive translation unchanged; anything else that
   // matches its source means an untranslated row slipped in behind a filled-in-looking entry.

@@ -270,7 +270,6 @@ test("the options page is localized without importing the whole catalog", async 
   const html = await readFile(path.join(root, "src/extension/options.html"), "utf8");
   const controller = await readFile(path.join(root, "src/entrypoints/extension-options.ts"), "utf8");
   const build = await readFile(path.join(root, "tools/build.mjs"), "utf8");
-  const catalog = await readFile(path.join(root, "src/platform/i18n-catalog.ts"), "utf8");
 
   // The page is a separate document with no FeatureContext, so its subset is defined at build
   // time. Importing PANEL_CATALOG instead would put ~240KB into a page that ships a few KB.
@@ -288,10 +287,13 @@ test("the options page is localized without importing the whole catalog", async 
   );
   assert.ok(keys.length >= 10, `expected the page to be marked up, found ${keys.length} keys`);
 
-  const start = catalog.indexOf("  ja: {");
-  const jaBlock = catalog.slice(start, catalog.indexOf(String.fromCharCode(10) + "  },", start));
+  // Read through the accessor rather than slicing the generated source. This used to look for a
+  // "  ja: {" block, which stopped existing the moment the catalog became a lazily parsed JSON
+  // string -- a passing assertion about a file's shape rather than about its contents.
+  const { panelCatalog } = await importBundledModule("src/platform/i18n-catalog.ts");
+  const ja = panelCatalog().ja ?? {};
   for (const key of keys) {
-    assert.ok(jaBlock.includes(JSON.stringify(key)), `options string missing from ja: ${key.slice(0, 50)}`);
+    assert.ok(ja[key] !== undefined, `options string missing from ja: ${key.slice(0, 50)}`);
   }
 });
 

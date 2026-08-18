@@ -20,6 +20,11 @@
 
 ### Changed
 
+- The translation catalog is no longer built as a live object on every page load. It ships as a
+  JSON string that is parsed once, on the first request for a translation — which for most sessions
+  never happens, because the settings panel is never opened. Retained memory per tab drops from
+  about 2.8 MB to 1.1 MB, and the shipped bundle is roughly 60 kB smaller. Nothing on the
+  document-start path touches it.
 - The Control Center's accessibility contract is now verified by driving the panel instead of
   matching strings in its source. Focus entry and return, `inert` on the page behind an open modal,
   Escape, focus containment, modal semantics, and an accessible name on every control are read from

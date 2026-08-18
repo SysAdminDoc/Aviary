@@ -124,6 +124,14 @@ also admit Node 25.x — end of life since 2026-06-01 and receiving no patches.
 locale, theme, keyboard/coarse-pointer mode, malformed input class, provider response class, and
 subscription lifecycle is reported locally before the headed smoke lanes.
 
+Accessibility is checked two ways, because neither covers the other. `tests/a11y-behaviour.test.mjs`
+drives the panel for focus entry and return, containment, Escape, modal semantics, and an accessible
+name on every control. `tests/a11y-axe.test.mjs` runs axe-core over all 13 Control Center
+destinations for invalid ARIA, missing names and contrast, scoped to Aviary's shadow root so it
+never reports X's own DOM. Axe covers roughly half of accessibility issues by volume and none of
+the judgement ones, and no axe rule covers forced-colors breakage — `tests/forced-colors.test.mjs`
+carries that separately.
+
 `npm run test:visual` rebuilds the extension and compares 60 desktop settings screenshots: all 13
 Control Center destinations plus extension permissions at 1440×900 and 1920×1080 on dark and light
 X hosts, with focused, invalid, saved, reduced-motion, and disabled-permission states. The reviewed

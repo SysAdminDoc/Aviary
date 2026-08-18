@@ -480,10 +480,10 @@ await build({
   platform: "neutral",
   logLevel: "silent"
 });
-const { PANEL_CATALOG } = await import(pathToFileURL(catOut).href);
+const { panelCatalog } = await import(pathToFileURL(catOut).href);
 const missing = {};
 for (const loc of ["es", "pt", "fr", "de", "ja", "ko", "ar", "he"]) {
-  const bundle = PANEL_CATALOG[loc] ?? {};
+  const bundle = panelCatalog()[loc] ?? {};
   missing[loc] = manifest.filter((s) => bundle[s] === undefined);
   console.log(`  ${loc}: missing ${missing[loc].length}/${manifest.length}`);
 }

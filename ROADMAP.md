@@ -29,21 +29,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ### P1 — trust, reliability, and measured defects
 
-- [ ] F138 — P1 — Take the translation catalog off the document-start path
-  Why: the built userscript is 1,862,668 characters and `src/platform/i18n-catalog.ts` is 1,011,863 of them — 54.3% — parsed synchronously on every X page load before first paint, to serve a settings panel that is usually never opened. All nine locales ship to every user.
-  Evidence: measured against `dist/aviary.user.js` 2026-08-15 (module-boundary sizes in RESEARCH.md Architecture); `@run-at document-start` in the metablock and `run_at: document_start` in both manifests.
-  Touches: `src/platform/i18n-catalog.ts`, `src/platform/i18n.ts`, `tools/build.mjs` (emit the catalog as a deferred payload — a lazily parsed JSON string in the userscript, a web-accessible chunk in the extension), boot path.
-  Acceptance: the document-start payload drops by at least half; panel copy still resolves on first open with no visible delay; the i18n extract/sync pipeline and the drift tests still pass unchanged; the userscript remains a single readable file.
-  Note (2026-08-17): re-measured, and the stated rationale names the wrong cost. The catalog is now
-  1,025,753 of 1,903,855 built bytes (53.9%, bytes 53,171–1,078,924 of `dist/aviary.user.js`), and it
-  is 8 locales × 934 keys. But V8 lazily compiles function bodies, so compiling the whole 1.9 MB script
-  costs only ~4 ms — "parsed synchronously before first paint" overstates it. `PANEL_CATALOG` is a
-  top-level object literal, so what actually happens on every X page load in every tab is **6.6 ms of
-  module execution and 2.84 MB of retained heap**, plus 54% of every update download. Keep the item;
-  justify it on retained heap and update payload, and make the acceptance measure those rather than
-  parse time.
-  Complexity: L
-
 ### P2 — features
 
 - [ ] F144 — P2 — Say why a post was filtered

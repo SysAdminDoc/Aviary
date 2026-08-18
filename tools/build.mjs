@@ -62,12 +62,12 @@ async function optionsCatalogSubset() {
     platform: "neutral",
     logLevel: "silent"
   });
-  const { PANEL_CATALOG } = await import(`${pathToFileURL(outfile).href}?v=${catalogSource.length}`);
+  const { panelCatalog } = await import(`${pathToFileURL(outfile).href}?v=${catalogSource.length}`);
   await rm(outfile, { force: true });
 
   const subset = {};
   const missing = [];
-  for (const [locale, entries] of Object.entries(PANEL_CATALOG)) {
+  for (const [locale, entries] of Object.entries(panelCatalog())) {
     subset[locale] = {};
     for (const key of keys) {
       const translated = entries[key];

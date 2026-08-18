@@ -1,4 +1,4 @@
-import { PANEL_CATALOG, PANEL_STRINGS } from "./i18n-catalog";
+import { PANEL_STRINGS, panelCatalog } from "./i18n-catalog";
 
 export type LocaleCode = "en" | "es" | "pt" | "fr" | "de" | "ja" | "ko" | "ar" | "he";
 
@@ -170,7 +170,7 @@ export function translateText(locale: string, english: string): string {
   if (locale === "en") {
     return english;
   }
-  return PANEL_CATALOG[locale as LocaleCode]?.[english] ?? english;
+  return panelCatalog()[locale as LocaleCode]?.[english] ?? english;
 }
 
 /** True when the catalog actually carries this string — not "the output differs". */
@@ -178,7 +178,7 @@ export function hasTranslation(locale: string, english: string): boolean {
   if (locale === "en") {
     return true;
   }
-  return PANEL_CATALOG[locale as LocaleCode]?.[english] !== undefined;
+  return panelCatalog()[locale as LocaleCode]?.[english] !== undefined;
 }
 
 export interface LocaleCoverage {
@@ -197,7 +197,7 @@ export function panelCoverage(locale: string): LocaleCoverage {
   if (locale === "en") {
     return { translated: total, total, percent: 100 };
   }
-  const bundle = PANEL_CATALOG[locale as LocaleCode];
+  const bundle = panelCatalog()[locale as LocaleCode];
   let translated = 0;
   for (const source of PANEL_STRINGS) {
     if (bundle?.[source] !== undefined) {

@@ -41,10 +41,10 @@ try {
     platform: "neutral",
     logLevel: "silent"
   });
-  const { PANEL_CATALOG } = await import(pathToFileURL(catOut).href);
+  const { panelCatalog } = await import(pathToFileURL(catOut).href);
 
   const merged = {};
-  for (const locale of LOCALES) merged[locale] = { ...(PANEL_CATALOG[locale] ?? {}) };
+  for (const locale of LOCALES) merged[locale] = { ...(panelCatalog()[locale] ?? {}) };
 
   for (const file of additionFiles) {
     const resolved = path.resolve(file);
@@ -62,7 +62,7 @@ try {
   }
 
   let incomplete = false;
-  const blocks = [];
+  const catalog = {};
   for (const locale of LOCALES) {
     const present = manifest.filter((source) => merged[locale][source] !== undefined);
     const missing = manifest.filter((source) => merged[locale][source] === undefined);
@@ -72,11 +72,7 @@ try {
     } else {
       console.log(`${locale}: ${present.length}/${manifest.length}`);
     }
-    blocks.push(
-      `  ${locale}: {\n` +
-        present.map((s) => `    ${JSON.stringify(s)}: ${JSON.stringify(merged[locale][s])},\n`).join("") +
-        `  },\n`
-    );
+    catalog[locale] = Object.fromEntries(present.map((s) => [s, merged[locale][s]]));
   }
 
   if (incomplete && !allowIncomplete) {
@@ -85,11 +81,31 @@ try {
   }
 
   const source = readFileSync(path.join(root, "src/platform/i18n-catalog.ts"), "utf8");
-  const header = source.split("export const PANEL_CATALOG")[0].trimEnd();
+  // Split on the first generated declaration, whichever shape the file is currently in, so
+  // regenerating never appends to what it was meant to replace.
+  const marker = ["export type PanelCatalog", "export const PANEL_CATALOG", "const PANEL_CATALOG_JSON"]
+    .map((token) => source.indexOf(token))
+    .filter((index) => index >= 0)
+    .sort((a, b) => a - b)[0];
+  const header = (marker === undefined ? source : source.slice(0, marker)).trimEnd();
+  // One JSON string rather than an object literal. A literal is materialized when the module
+  // runs, which happened on every X page load in every tab -- roughly 2.8 MB of retained heap and
+  // 6.6 ms of execution, to serve a panel most sessions never open. The string costs the same
+  // bytes on disk and nothing at all until something actually asks for a translation.
   const out =
-    `${header}\nexport const PANEL_CATALOG: Partial<Record<LocaleCode, Record<string, string>>> = {\n` +
-    blocks.join("") +
-    `};\n\n` +
+    `${header}\n\nexport type PanelCatalog = Partial<Record<LocaleCode, Record<string, string>>>;\n\n` +
+    `const PANEL_CATALOG_JSON =\n  ${JSON.stringify(JSON.stringify(catalog))};\n\n` +
+    `let parsedCatalog: PanelCatalog | undefined;\n\n` +
+    `/**\n` +
+    ` * The catalog, parsed on first use and cached.\n` +
+    ` *\n` +
+    ` * Nothing on the document-start path calls this; a translation is only needed once the panel\n` +
+    ` * or a translated feature string is actually rendered.\n` +
+    ` */\n` +
+    `export function panelCatalog(): PanelCatalog {\n` +
+    `  parsedCatalog ??= JSON.parse(PANEL_CATALOG_JSON) as PanelCatalog;\n` +
+    `  return parsedCatalog;\n` +
+    `}\n\n` +
     `/** Every English string the panel is known to render — the coverage denominator. */\n` +
     `export const PANEL_STRINGS: string[] = [\n` +
     manifest.map((s) => `  ${JSON.stringify(s)},\n`).join("") +
