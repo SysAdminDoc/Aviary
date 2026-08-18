@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Fixed
+
+- Filtering a post now collapses the timeline row that owns it, not only the post itself. The cell
+  marker was written as a bare presence flag while the stylesheet selected on its value, so every
+  hidden post left a full-height blank gap where the next post should have moved up.
+- A saving Control Center page now reports `aria-busy="true"` to assistive technology. It was
+  written as an empty value, which ARIA reads as the default, so screen readers were never told a
+  save was in progress.
+- `toggleAttribute` is now restricted by lint to attributes whose presence alone means true. Both
+  defects above were the same mistake, and neither could be caught by the source-text assertions
+  that were supposed to cover them.
+
 ## 1.27.1 - 2026-08-16
 
 ### Fixed

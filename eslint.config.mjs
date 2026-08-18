@@ -4,6 +4,26 @@ import globals from "globals";
 
 const sourceFiles = ["src/**/*.ts", "tests/**/*.mjs", "tools/**/*.mjs", "eslint.config.mjs"];
 
+/**
+ * `toggleAttribute` writes the empty string, which is correct only for attributes whose mere
+ * presence means true. Used on anything that carries a value it produces `attr=""`, which a
+ * `[attr="1"]` selector never matches and which ARIA reads as the default rather than as true.
+ * Both live instances of that bug shipped (a filtered post's row never collapsed, and a saving
+ * transaction never announced itself busy), so the API is restricted to real HTML booleans.
+ * A non-literal first argument is rejected too -- one of the two bugs passed a `const`.
+ */
+const HTML_BOOLEAN_ATTRIBUTES = [
+  "allowfullscreen", "async", "autofocus", "autoplay", "checked", "controls", "default", "defer",
+  "disabled", "formnovalidate", "hidden", "inert", "ismap", "itemscope", "loop", "multiple",
+  "muted", "nomodule", "novalidate", "open", "playsinline", "readonly", "required", "reversed",
+  "selected"
+];
+
+const toggleAttributeSelector = [
+  'CallExpression[callee.property.name="toggleAttribute"]',
+  ...HTML_BOOLEAN_ATTRIBUTES.map((name) => `:not([arguments.0.value="${name}"])`)
+].join("");
+
 export default [
   {
     ignores: ["dist/**", "node_modules/**", "_decoded/**", "work/**"]
@@ -38,6 +58,14 @@ export default [
       "no-fallthrough": "error",
       "no-implied-eval": "error",
       "no-new-func": "error",
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: toggleAttributeSelector,
+          message:
+            "toggleAttribute writes the empty string. Use setAttribute/removeAttribute for any attribute that carries a value (CSS selectors and ARIA booleans both need one), and pass a string literal when the attribute really is an HTML boolean."
+        }
+      ],
       "no-new-wrappers": "error",
       "no-promise-executor-return": "error",
       "no-self-assign": "error",

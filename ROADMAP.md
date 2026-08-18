@@ -222,19 +222,6 @@ confirmed a second time. See RESEARCH.md.
 
 ### P1 — measured defects, root cause first
 
-- [ ] F171 — P1 — Collapse the timeline row of a filtered post
-  Why: `cell.toggleAttribute(CELL_RESULT_ATTR, hasHiddenArticle)` sets the attribute to `""`, but the
-  stylesheet matches `[data-av-filter-cell-hidden="1"]`. The value never matches, so the article hides
-  and its owning `cellInnerDiv` does not — every filtered post leaves a full-height blank gap, which is
-  the exact defect `hidden-posts-feature.ts` was built to avoid.
-  Evidence: `src/features/filtering/filter-engine.ts:206` vs `:237` (re-checked 2026-08-17).
-  Touches: `src/features/filtering/filter-engine.ts`, a filtering fixture test that asserts computed
-  display on the cell rather than on the article.
-  Acceptance: a filtered post's `cellInnerDiv` computes to `display: none`; the following post moves
-  into the slot; disabling the master toggle restores both; a test fails if the attribute value and
-  the selector diverge again.
-  Complexity: S
-
 - [ ] F172 — P1 — Make a zero integration budget mean zero
   Why: `finiteLimit` maps both `undefined` and an explicit `0` to `0`, and every guard reads
   `if (limit > 0 && …)`. A user who sets the daily AI or embedding budget to zero to stop all spend
@@ -609,22 +596,6 @@ below were read at the cited line. See RESEARCH.md.
   `url()`; buttons retain a non-transparent border. If any CSS still ships `-ms-high-contrast`, replace it —
   it is deprecated and its MDN page now 404s.
   Complexity: M
-
-- [ ] F195 — P1 — Restrict toggleAttribute to attributes that are actually boolean
-  Why: `transactionBar.toggleAttribute("aria-busy", saving)` writes `aria-busy=""`, but ARIA boolean
-  attributes require the literal string `"true"` and fall back to the default (false) otherwise — so a
-  saving transaction is never announced as busy. This is the same root cause as F171: of the four
-  `toggleAttribute` call sites, two target `inert` (a genuine HTML boolean, correct) and two target
-  attributes that carry a value (both wrong). A lint rule closes the class; two point fixes do not.
-  Evidence: `src/ui/control-center.ts:752` (aria-busy), `src/features/filtering/filter-engine.ts:206`
-  (F171), correct uses at `control-center.ts:490,716`. Enumerated 2026-08-17.
-  Touches: `src/ui/control-center.ts`, `eslint.config.mjs` (or `tools/preflight.mjs`, alongside the
-  existing `innerHTML`/`keydown` bans), a live-region test.
-  Acceptance: `aria-busy="true"` is present while saving and absent otherwise, asserted from the
-  accessibility tree rather than source text; a rule rejects `toggleAttribute` on any attribute outside
-  a declared HTML-boolean allowlist, and fails on a deliberately reintroduced case.
-  Depends on: land with F171 — same fix class.
-  Complexity: S
 
 - [ ] F196 — P1 — Assert accessibility by rendering, in the lane that already exists
   Why: a11y is currently verified by regexing source text (F140, F182), which cannot catch the two

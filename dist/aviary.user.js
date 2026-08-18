@@ -12220,7 +12220,11 @@ html.av-reduce-motion *::after {
       const disabled = !transactionDirty() || transactionSaving;
       saveDraftButton.disabled = disabled;
       revertDraftButton.disabled = disabled;
-      transactionBar.toggleAttribute("aria-busy", transactionSaving);
+      if (transactionSaving) {
+        transactionBar.setAttribute("aria-busy", "true");
+      } else {
+        transactionBar.removeAttribute("aria-busy");
+      }
       host.dataset.avDraftState = transactionSaving ? "saving" : transactionDirty() ? "dirty" : "clean";
     };
     const isBusy = () => {
@@ -19790,7 +19794,11 @@ ${record.text}${mediaList}`;
     const hasHiddenArticle = cell.querySelector(
       `${ARTICLE_SELECTOR2}[${RESULT_ATTR}="hide"]`
     ) !== null;
-    cell.toggleAttribute(CELL_RESULT_ATTR, hasHiddenArticle);
+    if (hasHiddenArticle) {
+      cell.setAttribute(CELL_RESULT_ATTR, "1");
+    } else {
+      cell.removeAttribute(CELL_RESULT_ATTR);
+    }
   }
   function filterSummary(ctx) {
     return {

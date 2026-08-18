@@ -749,7 +749,13 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     const disabled = !transactionDirty() || transactionSaving;
     saveDraftButton.disabled = disabled;
     revertDraftButton.disabled = disabled;
-    transactionBar.toggleAttribute("aria-busy", transactionSaving);
+    // ARIA booleans are the strings "true"/"false"; an empty value falls back to the default, so
+    // `toggleAttribute` here meant the save never announced itself as busy to assistive technology.
+    if (transactionSaving) {
+      transactionBar.setAttribute("aria-busy", "true");
+    } else {
+      transactionBar.removeAttribute("aria-busy");
+    }
     host.dataset.avDraftState = transactionSaving ? "saving" : transactionDirty() ? "dirty" : "clean";
   };
 

@@ -269,3 +269,50 @@ test("snapshot capture and clear refresh the count while preserving action focus
   assert.equal(result.afterClear.focus, "Clear all snapshots");
   assert.equal(result.afterClear.status, "Snapshots cleared");
 });
+
+test("a saving page transaction announces itself busy to assistive technology", async () => {
+  const result = await page.evaluate(async () => {
+    document.body.replaceChildren();
+    const settings = AviaryActions.cloneSettings(AviaryActions.DEFAULT_SETTINGS);
+    let release;
+    const pending = new Promise((resolve) => {
+      release = resolve;
+    });
+    const panel = AviaryActions.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {
+        await pending;
+      },
+      onError: () => {}
+    });
+    const host = document.getElementById("av-control-center");
+    const shadow = host.shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    shadow.querySelector('[data-av-section="appearance"]').click();
+
+    const bar = shadow.querySelector(".av-transaction-bar");
+    const idle = bar.getAttribute("aria-busy");
+
+    const toggle = shadow.querySelector('.av-toggle-control > input[type="checkbox"]');
+    toggle.click();
+
+    const save = shadow.querySelector(".av-transaction-save");
+    save.click();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const saving = bar.getAttribute("aria-busy");
+
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    const settled = bar.getAttribute("aria-busy");
+
+    panel.destroy();
+    return { idle, saving, settled };
+  });
+
+  // An ARIA boolean is the literal string. `toggleAttribute` wrote "", which reads as the default
+  // (false), so the save was silent to a screen reader while the button sat disabled.
+  assert.equal(result.idle, null, "an idle bar must not claim to be busy");
+  assert.equal(result.saving, "true", 'a saving bar must expose aria-busy="true", not ""');
+  assert.equal(result.settled, null, "the busy state must clear once the write resolves");
+});

@@ -203,7 +203,14 @@ function syncCollapsedCell(article: Element): void {
   const hasHiddenArticle = cell.querySelector(
     `${ARTICLE_SELECTOR}[${RESULT_ATTR}="hide"]`
   ) !== null;
-  cell.toggleAttribute(CELL_RESULT_ATTR, hasHiddenArticle);
+  // The stylesheet matches [CELL_RESULT_ATTR="1"], so this has to be a value, not a bare presence
+  // flag. `toggleAttribute` writes the empty string, which never matched -- the article hid and its
+  // virtualizer row stayed at full height, leaving exactly the gap hidden-posts exists to close.
+  if (hasHiddenArticle) {
+    cell.setAttribute(CELL_RESULT_ATTR, "1");
+  } else {
+    cell.removeAttribute(CELL_RESULT_ATTR);
+  }
 }
 
 function filterSummary(ctx: FeatureContext): Record<string, unknown> {
