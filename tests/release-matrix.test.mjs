@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -86,11 +86,10 @@ test("release matrix covers every deterministic route, locale, theme, and input 
     }
   }
 
-  const ui = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
-  assert.match(ui, /event\.key === "Escape"/);
-  assert.match(ui, /event\.key !== "Tab"/);
-  assert.match(ui, /@media \(pointer: coarse\)/);
-  assert.match(ui, /min-height: 44px/);
+  // Escape closing the panel and focus staying inside it are driven in
+  // tests/a11y-behaviour.test.mjs; 44px touch targets under a coarse pointer are measured in
+  // tests/panel-appearance-contract.test.mjs. Four regexes over control-center.ts said only that
+  // the strings were present, in a test whose subject is the settings matrix.
   assert.equal(combinations, ROUTES.length * locales.length * THEMES.length * INPUT_MODES.length);
   console.log(
     `[release-matrix] ${combinations} route/locale/theme/input combinations; ${ROUTES.length} routes, ${locales.length} locales, ${THEMES.length} themes.`

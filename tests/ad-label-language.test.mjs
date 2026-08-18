@@ -95,17 +95,7 @@ test("the captured pages carry the lang attribute this reads", async () => {
   }
 });
 
-test("every language claimed as covered actually has labels in the set", async () => {
-  // The list and the labels are two places that can drift apart; a language claimed as covered
-  // with no matching label would report protection that does not exist.
-  const source = await readFile(path.join(root, "src/features/privacy/ad-protection.ts"), "utf8");
-  const claimed = source.match(/LABELLED_LANGUAGES = new Set\(\[([^\]]+)\]\)/)?.[1] ?? "";
-  const languages = [...claimed.matchAll(/"([a-z]{2})"/g)].map((match) => match[1]);
-  assert.deepEqual(languages, ["en", "es", "fr", "de", "ja", "ko", "pt", "ar", "he"]);
-
-  const labels = source.match(/AD_LABELS = new Set\(\[([\s\S]*?)\]\)/)?.[1] ?? "";
-  // One representative label per claimed language, so the two lists cannot silently diverge.
-  for (const marker of ["Ad", "Anuncio", "Publicité", "Anzeige", "広告", "광고", "Anúncio", "إعلان", "מודעה"]) {
-    assert.ok(labels.includes(marker), `no label found for a language claimed as covered: ${marker}`);
-  }
-});
+// "Every language claimed as covered actually has labels" is now driven in
+// tests/network-shield-gating.test.mjs: each language's own word for "Ad" goes on a post and the
+// post has to disappear, in both directions. Two lists compared against two hardcoded lists here
+// could only ever say the source agreed with the test.

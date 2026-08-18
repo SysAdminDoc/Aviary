@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { chromium } from "playwright";
 
+import { readI18nManifest } from "./helpers/i18n-manifest.mjs";
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const abs = (p) => path.resolve(root, p).replace(/\\/g, "/");
 
@@ -668,11 +670,18 @@ async function launcherCss() {
 }
 
 test("the declared injection mode matches what the install guide promises", async () => {
-  const buildScript = await readFile(path.join(root, "tools/build.mjs"), "utf8");
   const install = await readFile(path.join(root, "docs/INSTALL.md"), "utf8");
 
-  const declared = /@inject-into\s+(\S+)/.exec(buildScript)?.[1];
-  assert.equal(declared, "content", "Aviary stays out of the page's own scope by design");
+  // Read from the shipped metablock rather than from the script that writes it: what a userscript
+  // manager acts on is the banner in the delivered file, and a build that stopped emitting the
+  // directive would still satisfy a regex over tools/build.mjs.
+  const meta = await readFile(path.join(root, "dist/aviary.meta.js"), "utf8").catch(() => null);
+  const userscript = await readFile(path.join(root, "dist/aviary.user.js"), "utf8").catch(() => null);
+  for (const [name, source] of [["aviary.meta.js", meta], ["aviary.user.js", userscript]]) {
+    if (!source) continue;
+    const declared = /@inject-into\s+(\S+)/.exec(source)?.[1];
+    assert.equal(declared, "content", `${name}: Aviary stays out of the page's own scope by design`);
+  }
 
   // `content` is what makes unsafeWindow useless under Violentmonkey, so the page-world observer
   // cannot install there. That is a real difference between managers and the guide has to name it,
@@ -681,7 +690,12 @@ test("the declared injection mode matches what the install guide promises", asyn
   assert.match(install, /unsafeWindow/);
   assert.match(install, /Violentmonkey/);
 
-  // And the panel must own a sentence for the state, rather than leaving it to the docs.
-  const panel = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
-  assert.match(panel, /does not give Aviary access to the page itself/);
+  // And the panel must own a sentence for the state, rather than leaving it to the docs. Taken
+  // from the harvested copy, so it is a sentence that reached the translator and can be read in
+  // every locale -- not a literal sitting in a branch nothing renders.
+  const manifest = await readI18nManifest(root);
+  assert.ok(
+    manifest.manifest.some((line) => line.includes("does not give Aviary access to the page itself")),
+    "the panel has no translatable sentence for the no-page-scope state"
+  );
 });

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
@@ -19,9 +19,14 @@ before(async () => {
   const entry = path.join(temp, "entry.ts");
   await writeFile(
     entry,
-    `export { upgradeImage, restoreImage, inlineOriginalImagesFeature } from ${JSON.stringify(
-      path.resolve(root, "src/features/media/inline-original-images.ts").replace(/\\/g, "/")
-    )};`,
+    [
+      `export { upgradeImage, restoreImage, inlineOriginalImagesFeature } from ${JSON.stringify(
+        path.resolve(root, "src/features/media/inline-original-images.ts").split(path.sep).join("/")
+      )}`,
+      `export { DEFAULT_SETTINGS } from ${JSON.stringify(
+        path.resolve(root, "src/platform/settings.ts").split(path.sep).join("/")
+      )}`
+    ].join(";\n"),
     "utf8"
   );
   await build({
@@ -212,8 +217,13 @@ test("mutation scans only media images and clears stale non-media markers", asyn
 });
 
 test("the feature is off by default and reverses every image it touched", async () => {
-  const settings = await readFile(path.join(root, "src/platform/settings.ts"), "utf8");
-  assert.match(settings, /inlineOriginalImages: false/, "full-size images cost bandwidth: opt in");
+  // The default is a value, not a line: read it from the object every install starts with.
+  const defaults = await page.evaluate(() => AviaryImages.DEFAULT_SETTINGS.media.inlineOriginalImages);
+  assert.equal(
+    defaults,
+    false,
+    "full-size images cost bandwidth on every scroll, so this has to be opt-in"
+  );
 
   const result = await page.evaluate(() => {
     const host = document.createElement("div");
