@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -99,44 +99,6 @@ test("AI_COMMANDS prompt templates do not invent sources or leak text outside th
   }
   const factcheck = AI_COMMANDS.find((c) => c.id === "factcheck");
   assert.match(factcheck.promptTemplate("sample"), /Do not invent sources/);
-});
-
-test("ai command menu source is reversible and routes through the clipboard, not the network", async () => {
-  const source = await readFile(
-    path.join(root, "src/features/ai/command-menu.ts"),
-    "utf8"
-  );
-  for (const marker of [
-    "data-av-ai-trigger",
-    "data-av-ai-processed",
-    "av-ai-menu",
-    "copyToClipboard",
-    "destroy"
-  ]) {
-    assert.ok(source.includes(marker), `ai command-menu missing ${marker}`);
-  }
-  // No fetch / XHR / sendBeacon in the AI module — purely local clipboard.
-  assert.ok(!/fetch\(|XMLHttpRequest|sendBeacon/.test(source));
-});
-
-test("batch-downloader source covers concurrency, audit, dedup, and queue marking", async () => {
-  const source = await readFile(
-    path.join(root, "src/features/media/batch-downloader.ts"),
-    "utf8"
-  );
-  for (const marker of [
-    "concurrentDownloads",
-    "queue?.enqueue",
-    "queue?.mark",
-    "history?.has",
-    "history.record",
-    "auditLog.record",
-    "duplicate",
-    "completed",
-    "failed"
-  ]) {
-    assert.ok(source.includes(marker), `batch-downloader missing ${marker}`);
-  }
 });
 
 async function importBundledModule(relativePath) {

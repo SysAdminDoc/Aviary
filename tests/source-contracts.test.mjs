@@ -146,6 +146,21 @@ test("Control Center section files reach the panel only through their context", 
  * reads as working styling, so they are banned rather than tested for -- what the panel actually
  * does under a coarse pointer is measured in tests/panel-appearance-contract.test.mjs.
  */
+/**
+ * The AI command menu is a local surface: it builds a prompt and puts it on the clipboard. The
+ * external call, when the user has configured one, lives in `integrations/ai-provider.ts` behind
+ * the disclosure and the local-only policy. A network call reaching the menu module would bypass
+ * both, so it is banned outright rather than tested around.
+ */
+test("the AI command menu never reaches the network itself", async () => {
+  const menu = await readFile(path.join(root, "src/features/ai/command-menu.ts"), "utf8");
+  const reached = [];
+  for (const api of ["fetch(", "XMLHttpRequest", "sendBeacon", "EventSource", "WebSocket"]) {
+    if (menu.includes(api)) reached.push(api);
+  }
+  assert.deepEqual(reached, [], "the menu must reach a provider through ai-provider.ts or not at all");
+});
+
 test("no stylesheet tries to reach the Control Center through a page-level class", async () => {
   const mobile = await readFile(path.join(root, "src/features/core/mobile-touch.ts"), "utf8");
 

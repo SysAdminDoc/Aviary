@@ -37,6 +37,7 @@ before(async () => {
       `export { cleanShareLinksFeature, cleanUrl } from ${JSON.stringify(abs("src/features/library/clean-share-links.ts"))};`,
       `export { linkUnshortenFeature } from ${JSON.stringify(abs("src/features/library/link-unshorten.ts"))};`,
       `export { PRESETS } from ${JSON.stringify(abs("src/features/core/presets.ts"))};`,
+      `export { userNotesFeature } from ${JSON.stringify(abs("src/features/library/user-notes.ts"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};`
     ].join("\n"),
     "utf8"
@@ -499,4 +500,76 @@ test("every appearance and layout key a preset writes changes the page", async (
 
   // A preset that flips a key nothing reads reports a change it cannot deliver.
   assert.deepEqual(unimplemented, [], "these preset keys changed nothing on the page");
+});
+
+test("an account note shows on that account's posts only, and destroy takes it back off", async () => {
+  const result = await page.evaluate(async () => {
+    window.reset();
+    document.body.innerHTML = `
+      <main data-testid="primaryColumn">
+        <article data-testid="tweet" id="noted">
+          <div data-testid="User-Name"><a href="/alice"><span>@alice</span></a></div>
+        </article>
+        <article data-testid="tweet" id="other">
+          <div data-testid="User-Name"><a href="/bob"><span>@bob</span></a></div>
+        </article>
+      </main>`;
+
+    const ctx = window.ctx();
+    ctx.storage = {
+      async get(key, fallback) {
+        // A note keyed on the normalized handle, which is how the store writes it.
+        return String(key).includes("userNotes") ? { notes: { alice: "met at a conference" } } : fallback;
+      },
+      async set() {},
+      async remove() {}
+    };
+
+    const badges = () =>
+      [...document.querySelectorAll("[data-av-note-badge]")].map((badge) => ({
+        on: badge.closest("article")?.id,
+        text: badge.textContent
+      }));
+
+    const before = badges().length;
+    await AviaryLifecycle.userNotesFeature.init(ctx);
+    const during = badges();
+    const badge = document.querySelector("[data-av-note-badge]");
+    const shown = {
+      // The visible text is a short label; the note itself rides the title and the accessible
+      // name, so the badge survives a screen reader and a monochrome display.
+      label: badge?.textContent ?? "",
+      title: badge?.getAttribute("title") ?? "",
+      accessibleName: badge?.getAttribute("aria-label") ?? "",
+      role: badge?.getAttribute("role") ?? ""
+    };
+
+    AviaryLifecycle.userNotesFeature.destroy(ctx);
+    return {
+      before,
+      during,
+      shown,
+      after: badges().length,
+      markers: document.querySelectorAll("[data-av-note-processed]").length,
+      style: Boolean(document.getElementById("av-user-notes"))
+    };
+  });
+
+  assert.equal(result.before, 0, "the fixture must start clean");
+  assert.deepEqual(
+    result.during.map((badge) => badge.on),
+    ["noted"],
+    "the note must land on the account it was written for, and only that one"
+  );
+  assert.equal(result.shown.role, "note");
+  assert.ok(result.shown.label.trim().length > 0, "the badge must be visible as more than colour");
+  assert.match(result.shown.title, /met at a conference/, "the note must be reachable on hover");
+  assert.match(
+    result.shown.accessibleName,
+    /@alice: met at a conference/,
+    "and must reach a screen reader, naming the account it belongs to"
+  );
+  assert.equal(result.after, 0, "destroy left a badge behind");
+  assert.equal(result.markers, 0, "destroy left its processed marker on the post");
+  assert.equal(result.style, false, "destroy must take its stylesheet with it");
 });

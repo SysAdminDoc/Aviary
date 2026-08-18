@@ -37,6 +37,15 @@ const FIXTURE = `
       </div>
     </article>
   </div>
+  <div data-testid="cellInnerDiv">
+    <article data-testid="tweet">
+      <a href="/alice/status/1900000000000002"><time datetime="2026-08-18T10:01:00.000Z">now</time></a>
+      <div data-testid="User-Name"><a href="/alice"><span>@alice</span></a></div>
+      <div data-testid="tweetPhoto" style="width: 500px; height: 280px;">
+        <img src="https://pbs.twimg.com/media/photo2?format=jpg&name=small" style="width:100%; height:100%;" alt="">
+      </div>
+    </article>
+  </div>
 </main>`;
 
 let browser;
@@ -49,7 +58,8 @@ before(async () => {
   await writeFile(
     entry,
     [
-      `export { mediaButtonsFeature } from ${JSON.stringify(abs("src/features/media/media-buttons.ts"))};`,
+      `export { mediaButtonsFeature, getMediaQueue } from ${JSON.stringify(abs("src/features/media/media-buttons.ts"))};`,
+      `export { runMediaBatch } from ${JSON.stringify(abs("src/features/media/batch-downloader.ts"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};`
     ].join("\n"),
     "utf8"
@@ -259,4 +269,76 @@ test("a failing aria2 reconcile does not take the Save controls down with it", a
   // owns the Save buttons; the user would lose media downloads because a side integration is down.
   assert.equal(result.threw, null, "a refused aria2 connection failed the media feature");
   assert.ok(result.buttons > 0, "the Save controls disappeared");
+});
+
+test("a batch marks each job, skips what was already saved, and files each outcome separately", async () => {
+  const outcome = await page.evaluate(async () => {
+    // Through the media feature, so the queue and history under test are the ones it owns --
+    // `runMediaBatch` reaches them through module state, not through its options.
+    const stored = new Map();
+    const ctx = window.mediaCtx((settings) => {
+      settings.media.downloadHistory = true;
+      settings.jobs.concurrentDownloads = 2;
+    });
+    ctx.storage = {
+      async get(key, fallback) {
+        return stored.has(key) ? structuredClone(stored.get(key)) : fallback;
+      },
+      async set(key, value) {
+        stored.set(key, structuredClone(value));
+      },
+      async remove(key) {
+        stored.delete(key);
+      }
+    };
+    const audit = [];
+    ctx.auditLog = { async record(action) { audit.push(action); } };
+
+    const attempted = [];
+    globalThis.chrome = {
+      runtime: {
+        async sendMessage(message) {
+          attempted.push(message.url);
+          // Fail one download so "failed" is an outcome this run actually reaches.
+          return attempted.length === 1 ? { ok: false, error: "disk full" } : { ok: true };
+        }
+      }
+    };
+
+    await AviaryMedia.mediaButtonsFeature.init(ctx);
+    await AviaryMedia.mediaButtonsFeature.apply(ctx, document);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    const first = await AviaryMedia.runMediaBatch(ctx);
+    const firstJobs = AviaryMedia.getMediaQueue().snapshot();
+    // The same view again: everything saved the first time is now in the history.
+    const second = await AviaryMedia.runMediaBatch(ctx);
+    const secondJobs = AviaryMedia.getMediaQueue().snapshot();
+
+    await AviaryMedia.mediaButtonsFeature.destroy(ctx);
+    return { first, second, firstJobs, secondJobs, audit };
+  });
+
+  assert.ok(outcome.first.total > 0, "the fixture must offer media for this to prove anything");
+  assert.ok(outcome.firstJobs.failed >= 1, "a failed download must be marked failed, not left running");
+  assert.ok(outcome.firstJobs.completed >= 1, "a finished download must be marked completed");
+  assert.equal(outcome.firstJobs.running, 0, "no job may be left running after the batch returns");
+  assert.equal(outcome.firstJobs.queued, 0, "and none may be left merely queued");
+
+  // The second run over the same view is the whole point of the history: re-saving what is
+  // already on disk is the cost the setting exists to avoid.
+  assert.ok(outcome.second.duplicate >= 1, "the second run did not recognise anything as saved");
+  assert.ok(outcome.secondJobs.duplicate >= 1, "a skipped item must be marked, not omitted");
+
+  // Each outcome is filed under its own action; they used to share the nearest available label.
+  assert.ok(outcome.audit.includes("media.download"), `audit recorded ${JSON.stringify(outcome.audit)}`);
+  assert.ok(outcome.audit.includes("media.download.failed"));
+
+  // A batch skip is recorded in the queue and counted, but deliberately writes no audit entry:
+  // the log is bounded at 500 and one batch over an already-saved view would evict everything
+  // else. A single click on an already-saved item does record one, because that is a user action.
+  assert.ok(
+    !outcome.audit.includes("media.download.duplicate"),
+    "a batch skip must not flood the bounded action log"
+  );
 });
