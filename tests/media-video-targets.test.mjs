@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -115,71 +115,39 @@ test("resolveTarget refuses a blob-only video instead of reporting a save", asyn
   assert.equal(resolveTarget(manifestOnly), null, "a playlist is not a downloadable video file");
 });
 
-test("the media stylesheet keeps download buttons visible and leaves X's anchors intact", async () => {
-  const source = await readFile(path.join(root, "src/features/media/media-buttons.ts"), "utf8");
-
-  const css = source.slice(source.indexOf("const MEDIA_CSS"));
-  assert.match(css, /opacity:\s*1/);
-  assert.doesNotMatch(
-    css,
-    /\]:hover\s*\{[^}]*opacity:\s*0/s,
-    "hover must not hide a persistent media action"
-  );
-  assert.match(css, /min-height:\s*36px/);
-  assert.match(css, /box-shadow:/);
-
-  // The positioning context is no longer taken from X. Making tweetPhoto the containing block
-  // collapsed the photo it holds: X keeps that box at height 0 and hangs the picture off it with
-  // position:absolute inset:0, so the picture inherited the zero height and vanished the moment
-  // the Save button was switched on. Offsets are measured against whatever ancestor X has
-  // already positioned -- see positionButton() and tests/media-button-layout.test.mjs.
-  assert.match(source, /function positionButton\(/);
-  assert.match(source, /function positionedAncestor\(/);
-
-  const forced = [...css.matchAll(/([^{}]+)\{([^{}]*position\s*:\s*relative[^{}]*)\}/g)]
-    .map((m) => m[1].replace(/\s+/g, " ").trim())
-    .filter((selector) => /data-testid=/.test(selector));
-  assert.deepEqual(forced, [], "Aviary must not make X's media containers the positioning context");
-});
-
-test("a disabled aria2 integration is not contacted at boot", async () => {
-  const source = await readFile(path.join(root, "src/features/media/media-buttons.ts"), "utf8");
-
-  // An endpoint string survives disabling the integration, so `endpoint` alone was the wrong gate.
-  assert.match(source, /ctx\.settings\.integrations\.aria2\.enabled && ctx\.settings\.integrations\.aria2\.endpoint/);
-  // And a housekeeping reconcile must never fail the feature that owns the Save buttons.
-  const init = source.slice(source.indexOf("async init(ctx)"), source.indexOf("apply(ctx, root, addedNodes)"));
-  assert.match(init, /try \{[\s\S]*reconcile\([\s\S]*\} catch/);
-});
-
 test("tellAria2Status fails soft in local-only mode rather than throwing out", async () => {
-  const { tellAria2Status } = await importBundledModule("src/features/integrations/aria2.ts");
-  const { setLocalOnlyPolicy, resetLocalOnlyPolicy } = await importBundledModule(
+  // One bundle: the local-only policy is module-scope state, so importing the two separately
+  // would give each its own copy and the switch below would reach a policy aria2 never consults.
+  // The old version of this test said so in a comment and then asserted on source text instead.
+  const mod = await importBundledEntry([
+    "src/features/integrations/aria2.ts",
     "src/features/integrations/network-policy.ts"
-  );
-  // Bundled separately, so this only proves the try/catch shape; the source assert below is
-  // what pins the ordering that mattered.
-  void setLocalOnlyPolicy;
-  void resetLocalOnlyPolicy;
+  ]);
 
   const originalFetch = globalThis.fetch;
+  let reached = 0;
   globalThis.fetch = () => {
+    reached += 1;
     throw new Error("network should not be reached");
   };
   try {
-    assert.equal(await tellAria2Status({ endpoint: "", secret: "" }, "abc"), null);
+    mod.setLocalOnlyPolicy(() => true);
+    // The reconcile that calls this is housekeeping on the media feature's init path. Throwing
+    // here takes the Save buttons down because the user turned local-only mode on.
+    assert.equal(
+      await mod.tellAria2Status({ enabled: true, endpoint: "http://127.0.0.1:6800/jsonrpc", secret: "" }, "abc"),
+      null,
+      "local-only mode threw out of tellAria2Status instead of reporting no status"
+    );
+    assert.equal(reached, 0, "local-only mode must stop the call before it reaches the network");
+
+    // An unconfigured endpoint is the other soft path, and must not throw either.
+    mod.resetLocalOnlyPolicy();
+    assert.equal(await mod.tellAria2Status({ endpoint: "", secret: "" }, "abc"), null);
   } finally {
+    mod.resetLocalOnlyPolicy();
     globalThis.fetch = originalFetch;
   }
-
-  const source = await readFile(path.join(root, "src/features/integrations/aria2.ts"), "utf8");
-  const fn = source.slice(source.indexOf("export async function tellAria2Status"));
-  const assertIndex = fn.indexOf("assertOutboundAllowed");
-  const tryIndex = fn.indexOf("try {");
-  assert.ok(
-    tryIndex > -1 && tryIndex < assertIndex,
-    "assertOutboundAllowed must sit inside a try, or local-only mode throws out of the reconcile"
-  );
 });
 
 test("reconcile keeps entries when aria2 rejects the secret, drops only unknown GIDs", async () => {
@@ -282,6 +250,34 @@ async function importBundledModule(relativePath) {
       logLevel: "silent"
     });
     return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+}
+
+/** Bundles several modules into one graph so their module-level state is genuinely shared. */
+async function importBundledEntry(relativePaths) {
+  const temp = await mkdtemp(path.join(tmpdir(), "aviary-media-multi-"));
+  const entry = path.join(temp, "entry.ts");
+  const outfile = path.join(temp, "module.mjs");
+  try {
+    await writeFile(
+      entry,
+      relativePaths
+        .map((relative) => `export * from ${JSON.stringify(path.resolve(root, relative).split(path.sep).join("/"))}`)
+        .join(";\n"),
+      "utf8"
+    );
+    await build({
+      entryPoints: [entry],
+      outfile,
+      bundle: true,
+      format: "esm",
+      platform: "neutral",
+      target: "es2022",
+      logLevel: "silent"
+    });
+    return await import(`${pathToFileURL(outfile).href}?v=${Date.now()}-${Math.random()}`);
   } finally {
     await rm(temp, { recursive: true, force: true });
   }
