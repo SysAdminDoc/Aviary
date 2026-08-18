@@ -30,7 +30,7 @@ export const INTEGRATION_BUDGET_CEILINGS = {
  * Ordered upgrade steps. Key `n` migrates a payload written at version `n` to version `n + 1`.
  * Steps run in sequence, so each only has to understand the shape immediately before it.
  */
-const SETTINGS_MIGRATIONS: Record<number, (record: SettingsRecord) => SettingsRecord> = {
+export const SETTINGS_MIGRATIONS: Record<number, (record: SettingsRecord) => SettingsRecord> = {
   /**
    * v1 read a provider budget of `0` as "no bound" — the panel said so — which made the one value
    * a worried user is most likely to type on a spending control the one value that removed the

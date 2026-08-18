@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
@@ -78,16 +78,22 @@ test("garbage payloads normalize to defaults instead of throwing", () => {
 test("bumping the schema version requires a matching migration step", async () => {
   // The ladder is only useful if it is filled in. If a future change bumps the constant without
   // adding the step that performs it, an upgrade would leave settings at the older shape.
-  const source = await readFile(path.join(root, "src/platform/settings.ts"), "utf8");
-  const declared = Number(source.match(/SETTINGS_SCHEMA_VERSION = (\d+)/)?.[1]);
-  assert.equal(declared, mod.SETTINGS_SCHEMA_VERSION);
+  // Read as the ladder itself rather than as a regex over the file that declares it: a step
+  // written on one line, or a second object also named SETTINGS_MIGRATIONS, satisfied the pattern
+  // without being the ladder `readSettingsEnvelope` actually walks.
+  const declared = mod.SETTINGS_SCHEMA_VERSION;
+  const missing = [];
   for (let version = 1; version < declared; version++) {
-    assert.match(
-      source,
-      new RegExp(`SETTINGS_MIGRATIONS[\\s\\S]*?\\b${version}\\s*:`),
-      `schema version ${declared} needs a SETTINGS_MIGRATIONS step for ${version}`
-    );
+    if (typeof mod.SETTINGS_MIGRATIONS[version] !== "function") missing.push(version);
   }
+  assert.deepEqual(missing, [], `schema version ${declared} has no migration step for ${missing.join(", ")}`);
+
+  // And nothing above the declared version: a step for a version the build never reaches can
+  // never run, so it is a change somebody believes shipped and did not.
+  const stranded = Object.keys(mod.SETTINGS_MIGRATIONS)
+    .map(Number)
+    .filter((version) => version >= declared);
+  assert.deepEqual(stranded, [], "these migration steps are above the declared schema version");
 });
 
 test("the v1 budget migration carries an unlimited budget instead of inverting it", () => {

@@ -27,6 +27,7 @@ let context;
 let page;
 let temp;
 let bundle;
+let agentBundle;
 let fixture;
 
 before(async () => {
@@ -40,6 +41,24 @@ before(async () => {
     bundle: true,
     format: "iife",
     globalName: "AviaryAdRule",
+    platform: "browser",
+    target: "es2022",
+    logLevel: "silent"
+  });
+
+  const agentEntry = path.join(temp, "agent.ts");
+  await writeFile(
+    agentEntry,
+    `export { installPageAgent, readAgentConfig } from ${JSON.stringify(abs("src/page/page-agent.ts"))};`,
+    "utf8"
+  );
+  agentBundle = path.join(temp, "agent.js");
+  await build({
+    entryPoints: [agentEntry],
+    outfile: agentBundle,
+    bundle: true,
+    format: "iife",
+    globalName: "AviaryAgent",
     platform: "browser",
     target: "es2022",
     logLevel: "silent"
@@ -227,4 +246,53 @@ test("boot calls a profile fresh only when nothing was stored for it", async () 
 
   assert.equal(afterSave.stored, true, "the save must have persisted for this to prove anything");
   assert.equal(afterSave.fresh, false, "a profile with stored settings is an upgrade, not an install");
+});
+
+test("the first bridge config, sent before storage opens, keeps media capture on", async () => {
+  // Asserted before as `/captureMediaMetadata:\s*DEFAULT_SETTINGS\.media\.buttons/` over main.ts.
+  // The reason it matters is a timing one a source regex cannot express: media controls are on by
+  // default, so direct video variants have to be captured from the first timeline response. Wait
+  // for storage to open and that response is gone -- all the DOM can offer afterwards is a
+  // tab-local blob handle. Reading the agent's settled config would not show it either, because
+  // the page-hooks feature pushes its own config moments later; what matters is the first one.
+  await context?.close();
+  context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await context.route("https://x.com/home", (route) =>
+    route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: fixture })
+  );
+  await context.route("**/*", (route) =>
+    route.request().url() === "https://x.com/home" ? route.fallback() : route.fulfill({ status: 204, body: "" })
+  );
+  page = await context.newPage();
+  await page.goto("https://x.com/home");
+
+  // Stand in for the page agent: take the control port out of the handshake and record every
+  // envelope that arrives on it, in order. This is the page's own view of the channel.
+  await page.evaluate(() => {
+    window.__configs = [];
+    globalThis.chrome = { runtime: { async sendMessage() { return { ok: true }; } } };
+    window.addEventListener("message", (event) => {
+      const port = event.ports?.[0];
+      if (!port || event.data?.kind !== "hello") return;
+      port.onmessage = (message) => {
+        if (message.data?.kind === "config") window.__configs.push(message.data.payload);
+      };
+      port.start();
+    });
+  });
+  await page.addScriptTag({ path: bundle });
+  await page.evaluate(async () => {
+    window.__app = await AviaryAdRule.boot({ source: "extension" });
+  });
+  await page.waitForTimeout(120);
+
+  const configs = await page.evaluate(() => window.__configs);
+  assert.ok(configs.length > 0, "no config ever reached the page-world channel");
+  assert.equal(
+    configs[0].captureMediaMetadata,
+    true,
+    "the first config switched first-response video capture off"
+  );
+  // The default-on ad guard travels in the same first config, for the same reason.
+  assert.equal(configs[0].blockAds, true, "the default-on ad guard must hold from the first response");
 });

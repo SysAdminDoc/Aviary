@@ -23343,27 +23343,21 @@ a.av-link-clean {
     },
     destroy(ctx) {
       document.getElementById(STYLE_ID16)?.remove();
-      const root = document.documentElement;
-      for (const className of [
-        "av-media-layout-default",
-        "av-media-layout-stacked",
-        "av-media-layout-grid"
-      ]) {
-        root.classList.remove(className);
-      }
+      clearLayoutClasses();
       ctx.diagnostics.info("Media presentation destroyed");
     }
   };
   function applyPresentationClasses(ctx) {
+    clearLayoutClasses();
+    document.documentElement.classList.add(`av-media-layout-${ctx.settings.media.layout}`);
+  }
+  function clearLayoutClasses() {
     const root = document.documentElement;
-    for (const className of [
-      "av-media-layout-default",
-      "av-media-layout-stacked",
-      "av-media-layout-grid"
-    ]) {
-      root.classList.remove(className);
+    for (const className of Array.from(root.classList)) {
+      if (className.startsWith("av-media-layout-")) {
+        root.classList.remove(className);
+      }
     }
-    root.classList.add(`av-media-layout-${ctx.settings.media.layout}`);
   }
   function ensurePresentationStyle() {
     if (document.getElementById(STYLE_ID16)) {

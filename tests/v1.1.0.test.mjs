@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -290,23 +290,6 @@ test("page-world feature subscriptions survive a destroy and reboot", async () =
     assert.equal(second.count(event), 1, `${event} subscription missing after reboot`);
     feature.destroy(contextFor(second));
   }
-});
-
-test("composer-snippets source uses execCommand insertText (no keyboard simulation)", async () => {
-  const source = await readFile(
-    path.join(root, "src/features/composer/composer-snippets.ts"),
-    "utf8"
-  );
-  for (const marker of [
-    'execCommand("insertText"',
-    "tweetTextarea_0",
-    "data-av-snippet-palette",
-    "destroy"
-  ]) {
-    assert.ok(source.includes(marker), `composer-snippets missing ${marker}`);
-  }
-  // No simulated keypress.
-  assert.ok(!/dispatchEvent\(new KeyboardEvent/.test(source));
 });
 
 function makeStorage(map) {

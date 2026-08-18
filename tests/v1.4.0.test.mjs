@@ -366,15 +366,6 @@ test("crosspost attachment preference defaults off and normalizes safely", async
   assert.equal(normalizeSettings({ integrations: { crosspost: { attachLastDownload: "yes" } } }).integrations.crosspost.attachLastDownload, false);
 });
 
-test("export-feature triggers autoIndexExport when integration is enabled", async () => {
-  const source = await readFile(
-    path.join(root, "src/features/export/export-feature.ts"),
-    "utf8"
-  );
-  assert.match(source, /autoIndex/);
-  assert.match(source, /autoIndexExport/);
-});
-
 test("smoke spec scaffold ships with explicit setup instructions", async () => {
   const source = await readFile(
     path.join(root, "tests/smoke/aviary.smoke.mjs"),

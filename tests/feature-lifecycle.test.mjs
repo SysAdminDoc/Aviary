@@ -38,6 +38,8 @@ before(async () => {
       `export { linkUnshortenFeature } from ${JSON.stringify(abs("src/features/library/link-unshorten.ts"))};`,
       `export { PRESETS } from ${JSON.stringify(abs("src/features/core/presets.ts"))};`,
       `export { userNotesFeature } from ${JSON.stringify(abs("src/features/library/user-notes.ts"))};`,
+      `export { i18nFeature } from ${JSON.stringify(abs("src/features/core/i18n-feature.ts"))};`,
+      `export { mediaPresentationFeature } from ${JSON.stringify(abs("src/features/media/media-presentation.ts"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};`
     ].join("\n"),
     "utf8"
@@ -572,4 +574,73 @@ test("an account note shows on that account's posts only, and destroy takes it b
   assert.equal(result.after, 0, "destroy left a badge behind");
   assert.equal(result.markers, 0, "destroy left its processed marker on the post");
   assert.equal(result.style, false, "destroy must take its stylesheet with it");
+});
+
+test("the locale feature sets reading direction and the locale it set, and clears both", async () => {
+  const result = await page.evaluate(() => {
+    window.reset();
+    const html = document.documentElement;
+    const read = () => ({
+      rtl: html.classList.contains("av-rtl"),
+      ltr: html.classList.contains("av-ltr"),
+      locale: html.dataset.avLocale ?? null
+    });
+
+    const arabic = window.ctx((settings) => {
+      settings.i18n.locale = "ar";
+    });
+    const english = window.ctx((settings) => {
+      settings.i18n.locale = "en";
+    });
+
+    AviaryLifecycle.i18nFeature.init(arabic);
+    const withArabic = read();
+    // Switching back must clear the direction, not leave the page reading right-to-left.
+    AviaryLifecycle.i18nFeature.apply(english, document);
+    const withEnglish = read();
+    AviaryLifecycle.i18nFeature.destroy(english);
+    return { withArabic, withEnglish, afterDestroy: read() };
+  });
+
+  assert.equal(result.withArabic.rtl, true, "Arabic must set right-to-left");
+  assert.equal(result.withArabic.locale, "ar", "the page must record which locale is applied");
+  assert.equal(result.withEnglish.rtl, false, "switching to English must clear right-to-left");
+  assert.equal(result.withEnglish.locale, "en");
+  assert.equal(result.afterDestroy.rtl, false, "destroy must leave no direction class behind");
+  assert.equal(result.afterDestroy.ltr, false);
+  assert.equal(result.afterDestroy.locale, null, "and no locale marker");
+});
+
+test("the media layout class follows the setting and is removed on destroy", async () => {
+  const result = await page.evaluate(() => {
+    window.reset();
+    document.body.innerHTML = `
+      <main data-testid="primaryColumn">
+        <article data-testid="tweet">
+          <div data-testid="tweetPhoto"><img src="https://pbs.twimg.com/media/a?format=jpg" alt=""></div>
+        </article>
+      </main>`;
+    const layoutClasses = () =>
+      [...document.documentElement.classList].filter((name) => name.startsWith("av-media-layout-"));
+
+    const grid = window.ctx((settings) => {
+      settings.media.layout = "grid";
+    });
+    AviaryLifecycle.mediaPresentationFeature.init(grid);
+    const asGrid = layoutClasses();
+
+    const stack = window.ctx((settings) => {
+      settings.media.layout = "stacked";
+    });
+    AviaryLifecycle.mediaPresentationFeature.apply(stack, document);
+    const asStack = layoutClasses();
+
+    AviaryLifecycle.mediaPresentationFeature.destroy(stack);
+    return { asGrid, asStack, afterDestroy: layoutClasses() };
+  });
+
+  // Exactly one layout class at a time: two would leave the losing rule fighting the winner.
+  assert.deepEqual(result.asGrid, ["av-media-layout-grid"]);
+  assert.deepEqual(result.asStack, ["av-media-layout-stacked"], "changing the setting must swap the class");
+  assert.deepEqual(result.afterDestroy, [], "destroy must remove every class it set");
 });

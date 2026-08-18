@@ -35,28 +35,30 @@ export const mediaPresentationFeature: FeatureModule = {
 
   destroy(ctx) {
     document.getElementById(STYLE_ID)?.remove();
-    const root = document.documentElement;
-    for (const className of [
-      "av-media-layout-default",
-      "av-media-layout-stacked",
-      "av-media-layout-grid"
-    ]) {
-      root.classList.remove(className);
-    }
+    clearLayoutClasses();
     ctx.diagnostics.info("Media presentation destroyed");
   }
 };
 
 function applyPresentationClasses(ctx: FeatureContext): void {
+  clearLayoutClasses();
+  document.documentElement.classList.add(`av-media-layout-${ctx.settings.media.layout}`);
+}
+
+/**
+ * Removed by prefix rather than from a list of names.
+ *
+ * The class is built from the setting, so a fourth layout added to the settings type would be
+ * applied by the line above and left behind by a hardcoded removal list -- the same shape as the
+ * per-item nav classes in layout/declutter.ts, which have always been cleared this way.
+ */
+function clearLayoutClasses(): void {
   const root = document.documentElement;
-  for (const className of [
-    "av-media-layout-default",
-    "av-media-layout-stacked",
-    "av-media-layout-grid"
-  ]) {
-    root.classList.remove(className);
+  for (const className of Array.from(root.classList)) {
+    if (className.startsWith("av-media-layout-")) {
+      root.classList.remove(className);
+    }
   }
-  root.classList.add(`av-media-layout-${ctx.settings.media.layout}`);
 }
 
 function ensurePresentationStyle(): void {

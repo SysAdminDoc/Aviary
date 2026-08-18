@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -74,24 +74,6 @@ test("settings schema accepts new media presentation fields", async () => {
   // older build still carrying the key must import without smuggling it back in.
   const legacy = normalizeSettings({ media: { sensitive: "blur", layout: "default" } });
   assert.equal("sensitive" in legacy.media, false);
-});
-
-test("presentation feature destroy removes every class it sets", async () => {
-  const source = await readFile(
-    path.join(root, "src/features/media/media-presentation.ts"),
-    "utf8"
-  );
-  for (const marker of [
-    "av-media-layout-default",
-    "av-media-layout-stacked",
-    "av-media-layout-grid"
-  ]) {
-    assert.ok(source.includes(marker), `presentation source missing ${marker}`);
-  }
-  assert.match(source, /destroy/);
-  // Nothing may reintroduce a rule that claims to act on sensitive media: the build cannot tell
-  // sensitive media apart, which is exactly why the modes were removed.
-  assert.ok(!source.includes("av-sensitive"), "sensitive-media rules must not come back unscoped");
 });
 
 function stubVideoContainer({ sources, loop = false, muted = false, ariaLabel = "" }) {

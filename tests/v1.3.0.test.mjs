@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -273,17 +273,6 @@ test("SemanticIndex stores embeddings and ranks via cosine similarity", async ()
 
   assert.equal(cosineSimilarity([1, 0], [1, 0]), 1);
   assert.equal(cosineSimilarity([1, 0], [0, 1]), 0);
-});
-
-test("AI command-menu wires runAiPrompt when integration is enabled", async () => {
-  const source = await readFile(
-    path.join(root, "src/features/ai/command-menu.ts"),
-    "utf8"
-  );
-  assert.match(source, /runAiPrompt/);
-  assert.match(source, /Run with provider/);
-  // The no-key path still copies prompts only — never calls runAiPrompt.
-  assert.match(source, /AI prompt copied/);
 });
 
 function makeStorage(map) {

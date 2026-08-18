@@ -95,22 +95,6 @@ test("CleanupQueue is read-only by policy and respects protected items", async (
   assert.equal(queue.size(), 0);
 });
 
-test("mobile-touch + i18n features ship with class invariants", async () => {
-  const mobile = await import("node:fs/promises").then((fs) =>
-    fs.readFile(path.join(root, "src/features/core/mobile-touch.ts"), "utf8")
-  );
-  for (const marker of ["av-touch", "av-mobile", "matchMedia", "destroy"]) {
-    assert.ok(mobile.includes(marker), `mobile-touch missing ${marker}`);
-  }
-
-  const i18n = await import("node:fs/promises").then((fs) =>
-    fs.readFile(path.join(root, "src/features/core/i18n-feature.ts"), "utf8")
-  );
-  for (const marker of ["av-rtl", "av-ltr", "avLocale", "destroy"]) {
-    assert.ok(i18n.includes(marker), `i18n-feature missing ${marker}`);
-  }
-});
-
 async function importBundledModule(relativePath) {
   const temp = await mkdtemp(path.join(tmpdir(), "aviary-v100-"));
   const outfile = path.join(temp, "module.mjs");

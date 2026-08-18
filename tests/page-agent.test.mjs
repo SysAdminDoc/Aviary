@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -7,15 +7,6 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { build } from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-
-test("boot configuration enables default media capture before storage opens", async () => {
-  const source = await readFile(path.join(root, "src/main.ts"), "utf8");
-  assert.match(
-    source,
-    /captureMediaMetadata:\s*DEFAULT_SETTINGS\.media\.buttons/,
-    "the initial bridge config must not switch off first-response video capture"
-  );
-});
 
 /**
  * A stand-in for the page's window.
