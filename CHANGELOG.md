@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.35.0 - 2026-08-19
+
 ### Added
 
 - **The timeline can stop.** Set a number of posts and the feed stops extending there, with a
