@@ -2,6 +2,7 @@ import type {
   EngagementMetric,
   FilterAction,
   FilterMediaKey,
+  FilterReasonMode,
   FilterSurface,
   MediaLayout
 } from "../../platform/settings";
@@ -22,6 +23,12 @@ export const ENGAGEMENT_METRIC_OPTIONS: Array<[EngagementMetric, string]> = [
   ["replies", "Replies"],
   ["reposts", "Reposts"],
   ["likes", "Likes"]
+];
+
+export const FILTER_REASON_OPTIONS: Array<[FilterReasonMode, string]> = [
+  ["off", "Say nothing"],
+  ["dimmed", "On dimmed posts"],
+  ["all", "On dimmed and hidden posts"]
 ];
 
 export const FILTER_SURFACE_LABELS: Record<FilterSurface, string> = {

@@ -6,13 +6,15 @@ import {
   type FilterMediaKey
 } from "../../platform/settings";
 import { handleFromHref } from "./hidden-posts";
-import { evaluateRules, type CompiledRule, type RuleSignal } from "./rules";
+import { judgeRules, type CompiledRule, type RuleSignal } from "./rules";
 
 export interface CompiledFilters {
   /** Parsed field/operator/value rules; see ./rules.ts. */
   rules: CompiledRule[];
   keywords: string[];
   patterns: RegExp[];
+  /** The text each pattern was written as, so a reason can quote the rule the user typed. */
+  patternSources: string[];
   whitelist: Set<string>;
   premium: FilterAction;
   media: Record<FilterMediaKey, boolean>;
@@ -152,10 +154,12 @@ export function compileFilters(input: {
     .filter((value) => value.length > 0);
 
   const patterns: RegExp[] = [];
+  const patternSources: string[] = [];
   for (const source of input.regex) {
     const compiled = tryCompileRegex(source);
     if (compiled) {
       patterns.push(compiled);
+      patternSources.push(source.trim());
     }
   }
 
@@ -171,6 +175,7 @@ export function compileFilters(input: {
     rules: input.rules ?? [],
     keywords,
     patterns,
+    patternSources,
     whitelist,
     premium: input.premium,
     media: {
@@ -190,20 +195,40 @@ export function isExempt(signal: FilterInput, filters: CompiledFilters): boolean
 }
 
 /**
- * The JS half of the decision: allowlist, user rules, keywords, regexes. The media and verified
- * predicates are structural and live in the stylesheet the engine emits — see
- * `structuralFilterPlan`. A "show" here means "nothing textual matched", which is what lets the
- * structural rules take it from there.
+ * Why a post was suppressed. Carried out of the decision rather than worked out again afterwards:
+ * a reason recomputed from the signal is a second implementation of the filter, and the two would
+ * eventually disagree about a post the reader is looking at.
  */
-export function decide(signal: FilterInput, filters: CompiledFilters): FilterDecision {
+export type FilterCause =
+  | { kind: "rule"; label: string }
+  | { kind: "keyword"; label: string }
+  | { kind: "regex"; label: string }
+  | { kind: "engagement"; metric: EngagementMetric; min: number };
+
+export interface FilterVerdict {
+  action: FilterDecision;
+  /** Null when nothing suppressed the post, including when the allowlist exempted it. */
+  cause: FilterCause | null;
+}
+
+/**
+ * The JS half of the decision: allowlist, user rules, keywords, regexes, engagement floor. The
+ * media, verified and quote predicates are structural and live in the stylesheet the engine emits
+ * — see `structuralFilterPlan`. A "show" here means "nothing the JS half owns matched", which is
+ * what lets the structural rules take it from there.
+ */
+export function judge(signal: FilterInput, filters: CompiledFilters): FilterVerdict {
   if (isExempt(signal, filters)) {
-    return "show";
+    return { action: "show", cause: null };
   }
 
   if (filters.rules.length > 0) {
-    const ruled = evaluateRules(asRuleSignal(signal), filters.rules);
-    if (ruled !== "show") {
-      return ruled;
+    const ruled = judgeRules(asRuleSignal(signal), filters.rules);
+    if (ruled.action !== "show" && ruled.rule) {
+      return {
+        action: ruled.action,
+        cause: { kind: "rule", label: ruled.rule.title ?? ruled.rule.source }
+      };
     }
   }
 
@@ -211,15 +236,18 @@ export function decide(signal: FilterInput, filters: CompiledFilters): FilterDec
     const text = signal.text.toLowerCase();
     for (const keyword of filters.keywords) {
       if (text.includes(keyword)) {
-        return "hide";
+        return { action: "hide", cause: { kind: "keyword", label: keyword } };
       }
     }
   }
 
-  for (const pattern of filters.patterns) {
+  for (const [index, pattern] of filters.patterns.entries()) {
     pattern.lastIndex = 0;
     if (pattern.test(signal.text)) {
-      return "hide";
+      return {
+        action: "hide",
+        cause: { kind: "regex", label: filters.patternSources[index] ?? String(pattern) }
+      };
     }
   }
 
@@ -230,11 +258,18 @@ export function decide(signal: FilterInput, filters: CompiledFilters): FilterDec
   if (floor.action !== "off" && floor.min > 0) {
     const count = signal.engagement?.[floor.metric] ?? null;
     if (count !== null && count < floor.min) {
-      return floor.action;
+      return {
+        action: floor.action,
+        cause: { kind: "engagement", metric: floor.metric, min: floor.min }
+      };
     }
   }
 
-  return "show";
+  return { action: "show", cause: null };
+}
+
+export function decide(signal: FilterInput, filters: CompiledFilters): FilterDecision {
+  return judge(signal, filters).action;
 }
 
 /**

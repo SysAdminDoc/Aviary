@@ -31,28 +31,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ### P2 — features
 
-- [ ] F144 — P2 — Say why a post was filtered
-  Why: a filter that hides silently is indistinguishable from a bug, and the v1.25.0 rule DSL already knows which condition matched. It is the single best trust affordance a filter engine can add, and the same request is open against the closest architectural twin.
-  Evidence: XKit-Rewritten#1664 (👍4). Corrected 2026-08-15 (second pass): `FilterDecision` is a bare `"show" | "hide" | "dim"` union (`src/features/filtering/predicates.ts:16`) and `evaluateRules` (`rules.ts:185`) returns it directly — the deciding rule is NOT currently exposed. First step is widening the decision to carry its source (rule line / predicate name) without breaking `decide()`'s callers.
-  Touches: `src/features/filtering/rules.ts`, `filter-engine.ts`, `hidden-posts-feature.ts`, the dim/hide affordance, Filtering panel.
-  Acceptance: a hidden or dimmed post names the rule or predicate that caught it, in text, on hover or reveal; the reason is derived from the decision rather than recomputed; nothing is stored per post.
-  Note (2026-08-18): two shipped models to copy the wording from. Mastodon requires every filter to carry
-  a `title` precisely so the warning can name which filter matched, and separates the outcome into
-  `warn` (show a placeholder naming the filter, expandable) / `hide` (never render) / `blur` (media only)
-  — https://docs.joinmastodon.org/entities/Filter/. Bluesky goes further and names the *cause* as well as
-  the rule: "Post Hidden by Muted Word", "Post Hidden by You", "Account Muted", 'Muted by "{list name}"'
-  — https://github.com/bluesky-social/social-app/blob/main/src/lib/moderation/useModerationCauseDescription.ts.
-  Aviary should render cause + rule title, offer peek-without-unhiding, and — since it already has a rule
-  engine — a filter inspector that runs any visible post through every rule and reports which matched.
-  F204 shipped 2026-08-19: `CompiledRule.title` carries the name, read off a `[title]` prefix on
-  the rule line, and is null for the untitled rules that predate it — so the sentence needs a
-  fallback for those (the rule source itself is the honest one).
-  Note (2026-08-19): F186 moved the media and verified predicates into `:has()` rules, so a post
-  hidden by one of those carries no JS decision to read a reason off. Do not put them back to
-  recover it — match the article against `STRUCTURAL_SELECTORS` on demand, when the user asks why,
-  which is one query for one post instead of five for every post in every batch.
-  Complexity: M
-
 - [ ] F145 — P2 — Portable rule sets
   Why: `src/features/filtering/rules.ts` has no import or export path, so a rule set cannot be shared, backed up outside settings, or restored to a second profile — and rule packs are how every rule-engine competitor grows.
   Evidence: `src/features/filtering/rules.ts` exports only `compileRules`/`evaluateRules`; control-panel-for-twitter#864, rxliuli's importable rule packs.
@@ -88,7 +66,9 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Evidence: `src/features/filtering/seen-posts.ts`; cheeaun/phanpy Catch-up (★1478).
   Touches: `src/features/filtering/seen-posts.ts`, a new reading surface, Layout settings.
   Acceptance: a digest built only from the local seen record and already-rendered posts — zero originated requests — groups unseen posts by author over a chosen window, respects active filters, and shows filter reasons from F144 where a post was suppressed.
-  Depends on: F144.
+  Depends on: F144 — shipped 2026-08-19. `judge()` in `src/features/filtering/predicates.ts`
+  returns `{ action, cause }`, and the engine writes the localized sentence to
+  `data-av-filter-reason`; a digest can read the same verdict rather than inventing its own.
   Note (2026-08-18): the reference implementation is Phanpy's Catch-up
   (https://github.com/cheeaun/phanpy/blob/main/src/pages/catchup.jsx) and it is detailed enough to build
   from without re-research. Window: a slider of 13 ranges (last 1h..12h, plus "beyond 12 hours"). Category

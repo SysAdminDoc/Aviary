@@ -4,6 +4,18 @@
 
 ### Added
 
+- **A filtered post can say what caught it.** A filter that hides silently is hard to tell from a
+  bug, so a suppressed post now names the rule, keyword, pattern, engagement floor or media type
+  responsible — by the rule's title where it has one. The reason comes out of the same evaluation
+  that made the decision rather than being worked out afterwards, because a reason computed
+  separately is a second implementation of the filter and the two would eventually disagree about a
+  post the reader is looking at. Nothing is stored: the sentence lives on the article as an
+  attribute the stylesheet reads with `attr()`, and structural reasons are written into the
+  stylesheet itself, so no post costs anything extra. The default names reasons on dimmed posts,
+  which changes no layout; the third setting also turns a hidden post into a one-line strip that
+  opens on hover or when tabbed into — the post stays clipped rather than having its children
+  removed, so it remains reachable by keyboard.
+
 - **A filter rule can carry a name and a lifetime.** Start a line with `[a title]` to name a rule,
   and give it `for 7d from <instant>` to have it apply only for a while. An expired rule stops
   filtering on the next pass with no settings change and no reload — and is never deleted: the

@@ -112,8 +112,20 @@ export type FilterMediaKey = (typeof FILTER_MEDIA_KEYS)[number];
  * action group's summary label: the summary omits every metric that is zero, so a post with no
  * replies has no "replies" entry to read at all.
  */
+/**
+ * How much a suppressed post says about why. "dimmed" names the reason on posts the reader can
+ * still see, which costs no layout; "all" also turns a hidden post into a one-line strip carrying
+ * its reason, which the reader can expand. "off" is the silent behaviour that shipped first.
+ */
+export const FILTER_REASON_MODES = ["off", "dimmed", "all"] as const;
+export type FilterReasonMode = (typeof FILTER_REASON_MODES)[number];
+
 export const ENGAGEMENT_METRICS = ["replies", "reposts", "likes"] as const;
 export type EngagementMetric = (typeof ENGAGEMENT_METRICS)[number];
+
+export function isFilterReasonMode(value: unknown): value is FilterReasonMode {
+  return typeof value === "string" && (FILTER_REASON_MODES as readonly string[]).includes(value);
+}
 
 export function isEngagementMetric(value: unknown): value is EngagementMetric {
   return typeof value === "string" && (ENGAGEMENT_METRICS as readonly string[]).includes(value);
@@ -247,6 +259,8 @@ export interface AviarySettings {
     selfRepost: FilterAction;
     /** Posts that quote another post. Structural — see features/filtering/predicates.ts. */
     quotePosts: FilterAction;
+    /** Whether a suppressed post names what caught it. */
+    showReason: FilterReasonMode;
     /** Posts under `engagementMin` on `engagementMetric`. Off unless the minimum is above zero. */
     engagementRule: FilterAction;
     engagementMetric: EngagementMetric;
@@ -390,6 +404,7 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     blockedAccounts: "off",
     selfRepost: "off",
     quotePosts: "off",
+    showReason: "dimmed",
     engagementRule: "off",
     engagementMetric: "likes",
     engagementMin: 0,
@@ -656,6 +671,11 @@ export function normalizeSettings(input: unknown): AviarySettings {
       ),
       selfRepost: enumValue(filter.selfRepost, FILTER_ACTIONS, DEFAULT_SETTINGS.filter.selfRepost),
       quotePosts: enumValue(filter.quotePosts, FILTER_ACTIONS, DEFAULT_SETTINGS.filter.quotePosts),
+      showReason: enumValue(
+        filter.showReason,
+        [...FILTER_REASON_MODES],
+        DEFAULT_SETTINGS.filter.showReason
+      ),
       engagementRule: enumValue(
         filter.engagementRule,
         FILTER_ACTIONS,

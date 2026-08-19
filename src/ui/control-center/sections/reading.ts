@@ -2,10 +2,15 @@ import type { PanelContext } from "../panel-context";
 import {
   ENGAGEMENT_METRIC_OPTIONS,
   FILTER_ACTION_OPTIONS,
+  FILTER_REASON_OPTIONS,
   FILTER_MEDIA_LABELS,
   HIDE_NAV_ITEM_IDS
 } from "../constants";
-import { FILTER_MEDIA_KEYS, isEngagementMetric } from "../../../platform/settings";
+import {
+  FILTER_MEDIA_KEYS,
+  isEngagementMetric,
+  isFilterReasonMode
+} from "../../../platform/settings";
 export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
   return [
       ctx.selectRow("Theme", ctx.options.settings.appearance.theme, [
@@ -530,6 +535,21 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
         await ctx.save("Quote post filter saved");
       },
       "Posts that quote another post."
+    )
+  );
+
+  rows.push(
+    ctx.selectRow(
+      "Say why a post was filtered",
+      ctx.options.settings.filter.showReason,
+      FILTER_REASON_OPTIONS,
+      async (value) => {
+        ctx.options.settings.filter.showReason = isFilterReasonMode(value)
+          ? value
+          : ctx.options.settings.filter.showReason;
+        await ctx.save("Filter reason setting saved");
+      },
+      "A filter that hides silently is hard to tell from a bug. Dimmed posts can name what caught them at no cost to the layout; the third setting also turns a hidden post into a one-line strip that says why and opens when you hover or tab into it."
     )
   );
 

@@ -1,15 +1,17 @@
-import type { FilterSurface } from "../../platform/settings";
+import type { EngagementMetric, FilterSurface } from "../../platform/settings";
 import type { FeatureContext, FeatureModule } from "../registry";
 import {
   compileFilters,
-  decide,
   extractTweetSignal,
   isExempt,
+  judge,
   structuralFilterPlan,
   structuralSelectorsFor,
   type CompiledFilters,
-  type FilterDecision
+  type FilterCause,
+  type StructuralKey
 } from "./predicates";
+import { ft } from "../core/feature-i18n";
 import { compileRules, type CompiledRule, type RuleParseError } from "./rules";
 
 const STYLE_ID = "av-filter-engine";
@@ -20,6 +22,12 @@ const RESULT_ATTR = "data-av-filter-result";
 const CELL_RESULT_ATTR = "data-av-filter-cell-hidden";
 /** Written on a post the allowlist exempts, so the structural rules can step over it. */
 const ALLOW_RESULT = "allow";
+/** Carries the sentence a suppressed post shows about itself. Read straight into CSS content. */
+const REASON_ATTR = "data-av-filter-reason";
+/** Set while reasons are being shown at all, so the stylesheet can stay quiet when they are not. */
+const EXPLAIN_CLASS = "av-filter-explain";
+/** Set while hidden posts are collapsed to a strip rather than removed. */
+const EXPLAIN_ALL_CLASS = "av-filter-explain-all";
 
 let generation = 0;
 let ruleErrors: RuleParseError[] = [];
@@ -50,7 +58,7 @@ export const filterEngineFeature: FeatureModule = {
 
   init(ctx) {
     refreshCompiled(ctx);
-    syncFilterStyle();
+    syncFilterStyle(ctx);
     filterActive = ctx.settings.filter.enabled && surfaceMatches(ctx);
     applyRootClasses(ctx);
     if (filterActive) {
@@ -62,7 +70,7 @@ export const filterEngineFeature: FeatureModule = {
   apply(ctx, root, addedNodes) {
     applyRootClasses(ctx);
     refreshCompiled(ctx);
-    syncFilterStyle();
+    syncFilterStyle(ctx);
 
     const active = ctx.settings.filter.enabled && surfaceMatches(ctx);
     if (!active) {
@@ -107,10 +115,11 @@ export const filterEngineFeature: FeatureModule = {
 };
 
 function applyRootClasses(ctx: FeatureContext): void {
-  document.documentElement.classList.toggle(
-    "av-filter-enabled",
-    ctx.settings.filter.enabled && surfaceMatches(ctx)
-  );
+  const active = ctx.settings.filter.enabled && surfaceMatches(ctx);
+  const mode = ctx.settings.filter.showReason;
+  document.documentElement.classList.toggle("av-filter-enabled", active);
+  document.documentElement.classList.toggle(EXPLAIN_CLASS, active && mode !== "off");
+  document.documentElement.classList.toggle(EXPLAIN_ALL_CLASS, active && mode === "all");
 }
 
 function surfaceMatches(ctx: FeatureContext): boolean {
@@ -180,6 +189,9 @@ function filterSignature(ctx: FeatureContext): string {
     filter.engagementRule,
     filter.engagementMetric,
     filter.engagementMin,
+    // Not an input to any predicate, but the reason attribute is written per article and the
+    // generation stamp is what allows it to be rewritten when the setting changes.
+    filter.showReason,
     filter.enabled
   ]);
 }
@@ -189,9 +201,15 @@ function scanRoot(root: ParentNode | Element, ctx: FeatureContext): void {
     return;
   }
 
+  // Built once per scan rather than per post, and not at all when nothing is being explained.
+  const describe =
+    ctx.settings.filter.showReason === "off"
+      ? null
+      : (cause: FilterCause) => describeCause(ctx, cause);
+
   const articles = collectArticles(root);
   for (const article of articles) {
-    processArticle(article, compiled);
+    processArticle(article, compiled, describe);
   }
 }
 
@@ -208,33 +226,99 @@ function collectArticles(root: ParentNode | Element): Element[] {
   return results;
 }
 
-function processArticle(article: Element, filters: CompiledFilters): void {
+function processArticle(
+  article: Element,
+  filters: CompiledFilters,
+  describe: ((cause: FilterCause) => string) | null
+): void {
   if (article.getAttribute(PROCESSED_ATTR) === String(filters.generation)) {
     return;
   }
 
   const signal = extractTweetSignal(article);
-  const decision: FilterDecision = decide(signal, filters);
+  // One evaluation, and the reason comes out of it. Working the reason out afterwards would be a
+  // second implementation of the filter, and the two would eventually disagree.
+  const verdict = judge(signal, filters);
   article.setAttribute(PROCESSED_ATTR, String(filters.generation));
-  if (decision !== "show") {
-    article.setAttribute(RESULT_ATTR, decision);
+  if (verdict.action !== "show") {
+    article.setAttribute(RESULT_ATTR, verdict.action);
   } else if (isExempt(signal, filters)) {
     // An allowlisted author is not "undecided" — the structural rules must not reach it.
     article.setAttribute(RESULT_ATTR, ALLOW_RESULT);
   } else {
     article.removeAttribute(RESULT_ATTR);
   }
+
+  if (describe && verdict.cause) {
+    article.setAttribute(REASON_ATTR, describe(verdict.cause));
+  } else {
+    article.removeAttribute(REASON_ATTR);
+  }
   syncCollapsedCell(article);
 }
 
+/** The sentence a suppressed post shows. Localized, and short enough to sit on one line. */
+function describeCause(ctx: FeatureContext, cause: FilterCause): string {
+  switch (cause.kind) {
+    case "rule":
+      return `${ft(ctx, "Hidden by your rule")}: ${cause.label}`;
+    case "keyword":
+      return `${ft(ctx, "Hidden by your keyword")}: ${cause.label}`;
+    case "regex":
+      return `${ft(ctx, "Hidden by your pattern")}: ${cause.label}`;
+    case "engagement":
+      return `${ft(ctx, "Under your engagement floor")}: ${cause.min} ${metricCopy(
+        ctx,
+        cause.metric
+      )}`;
+  }
+}
+
+// Every one of these is written out as a literal `ft()` call rather than looked up in a table,
+// because `tools/i18n-extract.mjs` harvests copy by matching literal arguments. Copy reached
+// through a computed index is invisible to it and ships in English in all eight locales.
+function metricCopy(ctx: FeatureContext, metric: EngagementMetric): string {
+  switch (metric) {
+    case "replies":
+      return ft(ctx, "Replies");
+    case "reposts":
+      return ft(ctx, "Reposts");
+    case "likes":
+      return ft(ctx, "Likes");
+  }
+}
+
+/** The sentence a structurally suppressed post shows, emitted into the stylesheet. */
+function structuralCopy(ctx: FeatureContext, key: StructuralKey): string {
+  switch (key) {
+    case "photo":
+      return ft(ctx, "Hidden: this post has a photo");
+    case "video":
+      return ft(ctx, "Hidden: this post has a video");
+    case "gif":
+      return ft(ctx, "Hidden: this post has a GIF");
+    case "premium":
+      return ft(ctx, "Hidden: this post is from a verified account");
+    case "quote":
+      return ft(ctx, "Hidden: this post quotes another");
+  }
+}
+
 function clearDecorations(): void {
-  document.documentElement.classList.remove("av-filter-enabled");
+  document.documentElement.classList.remove(
+    "av-filter-enabled",
+    EXPLAIN_CLASS,
+    EXPLAIN_ALL_CLASS
+  );
   for (const node of Array.from(
-    document.querySelectorAll(`[${PROCESSED_ATTR}], [${RESULT_ATTR}], [${CELL_RESULT_ATTR}]`)
+    document.querySelectorAll(
+      `[${PROCESSED_ATTR}], [${RESULT_ATTR}], [${CELL_RESULT_ATTR}], [${REASON_ATTR}]`
+    )
   )) {
     node.removeAttribute(PROCESSED_ATTR);
     node.removeAttribute(RESULT_ATTR);
     node.removeAttribute(CELL_RESULT_ATTR);
+    node.removeAttribute(REASON_ATTR);
   }
   filterActive = false;
 }
@@ -270,8 +354,8 @@ function filterSummary(ctx: FeatureContext): Record<string, unknown> {
   };
 }
 
-function syncFilterStyle(): void {
-  const wanted = filterCss(compiled);
+function syncFilterStyle(ctx: FeatureContext): void {
+  const wanted = filterCss(compiled, ctx);
   const existing = document.getElementById(STYLE_ID);
   if (existing && wanted === styleText) {
     return;
@@ -296,28 +380,113 @@ const ROOT = "html.av-filter-enabled";
  */
 const UNDECIDED = `${ARTICLE_SELECTOR}[${PROCESSED_ATTR}]:not([${RESULT_ATTR}])`;
 
-function filterCss(filters: CompiledFilters | undefined): string {
+function filterCss(filters: CompiledFilters | undefined, ctx?: FeatureContext): string {
   const blocks = [
     `${ROOT} ${ARTICLE_SELECTOR}[${RESULT_ATTR}="hide"] { ${HIDDEN} }`,
     `${ROOT} [${CELL_RESULT_ATTR}="1"] { ${HIDDEN} }`,
     `${ROOT} ${ARTICLE_SELECTOR}[${RESULT_ATTR}="dim"] { ${DIMMED} }`,
-    `${ROOT} ${ARTICLE_SELECTOR}[${RESULT_ATTR}="dim"]:hover,\n${ROOT} ${ARTICLE_SELECTOR}[${RESULT_ATTR}="dim"]:focus-within { ${REVEALED} }`
+    `${ROOT} ${ARTICLE_SELECTOR}[${RESULT_ATTR}="dim"]:hover,\n${ROOT} ${ARTICLE_SELECTOR}[${RESULT_ATTR}="dim"]:focus-within { ${REVEALED} }`,
+    REASON_CSS
   ];
   if (filters) {
-    blocks.push(...structuralCss(filters));
+    blocks.push(...structuralCss(filters, ctx));
   }
   return `${blocks.join("\n\n")}\n`;
 }
 
 /**
+ * The reason a post carries, drawn from the attribute the engine wrote. `attr()` in `content` is
+ * the one place CSS may read a string out of the DOM, which is what keeps this to no elements
+ * created, none removed, and nothing stored per post.
+ *
+ * A dimmed post is still readable, so its reason is a line above it and costs no interaction. A
+ * hidden post has nothing to hover, so under "all" the article itself becomes the strip: its
+ * children are folded away and the reason takes their place, until the reader hovers or tabs into
+ * it and the post comes back.
+ */
+const REASON_CHIP =
+  "display: block; font-size: 12px; line-height: 1.6; opacity: 0.72; padding: 2px 0;";
+/**
+ * A suppressed post is clipped to the height of its own reason rather than having its children
+ * removed. `display: none` on the children would take them out of the tab order, and then
+ * `:focus-within` -- the only way to open the strip without a pointer -- could never fire. Clipping
+ * leaves every child focusable, so tabbing into one opens the post and the browser scrolls to it.
+ */
+const COLLAPSED = "display: block !important; max-height: 2.1em; overflow: hidden;";
+const EXPANDED = "max-height: none; overflow: visible;";
+const REASON_CSS = `
+html.${EXPLAIN_CLASS} ${ARTICLE_SELECTOR}[${RESULT_ATTR}="dim"][${REASON_ATTR}]::before {
+  content: attr(${REASON_ATTR});
+  ${REASON_CHIP}
+}
+
+html.${EXPLAIN_ALL_CLASS} ${ARTICLE_SELECTOR}[${RESULT_ATTR}="hide"][${REASON_ATTR}] {
+  ${COLLAPSED}
+}
+
+html.${EXPLAIN_ALL_CLASS} [${CELL_RESULT_ATTR}="1"]:has(${ARTICLE_SELECTOR}[${RESULT_ATTR}="hide"][${REASON_ATTR}]) {
+  display: revert !important;
+}
+
+html.${EXPLAIN_ALL_CLASS} ${ARTICLE_SELECTOR}[${RESULT_ATTR}="hide"][${REASON_ATTR}]::before {
+  content: attr(${REASON_ATTR});
+  ${REASON_CHIP}
+}
+
+html.${EXPLAIN_ALL_CLASS} ${ARTICLE_SELECTOR}[${RESULT_ATTR}="hide"][${REASON_ATTR}]:hover,
+html.${EXPLAIN_ALL_CLASS} ${ARTICLE_SELECTOR}[${RESULT_ATTR}="hide"][${REASON_ATTR}]:focus-within {
+  ${EXPANDED}
+}`.trim();
+
+/**
  * The structural half, emitted from the one table in predicates.ts. `:has()` is Baseline widely
  * available and sits far below both manifest floors (Chrome 105 / Firefox 121 against 116 / 128).
  */
-function structuralCss(filters: CompiledFilters): string[] {
+/**
+ * A `content:` string literal. The text comes from the translation catalog, so a quote, a
+ * backslash or a line break in any of eight locales must not be able to end the declaration and
+ * start writing CSS of its own.
+ */
+function cssString(text: string): string {
+  const escaped = text
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/[\r\n]+/g, " ");
+  return `"${escaped}"`;
+}
+
+function structuralCss(filters: CompiledFilters, ctx?: FeatureContext): string[] {
   const plan = structuralFilterPlan(filters);
   const blocks: string[] = [];
 
+  // A structural suppression has no JS decision to hang an attribute off, so its sentence is
+  // written into the stylesheet instead -- once per predicate, not once per post.
+  if (ctx && ctx.settings.filter.showReason !== "off") {
+    const explainAll = ctx.settings.filter.showReason === "all";
+    for (const key of [...plan.dim, ...(explainAll ? plan.hide : [])]) {
+      const target = `${ROOT} ${UNDECIDED}:has(${structuralSelectorsFor([key]).join(", ")})`;
+      if (plan.hide.includes(key)) {
+        blocks.push(`${target} { ${COLLAPSED} }`);
+        blocks.push(`${target}:hover,\n${target}:focus-within { ${EXPANDED} }`);
+        // The row was collapsed with the post; it has to come back to hold the strip.
+        blocks.push(
+          `${ROOT} ${CELL_SELECTOR}:has(${structuralSelectorsFor([key])
+            .map((selector) => `${UNDECIDED} ${selector}`)
+            .join(", ")}) { display: revert !important; }`
+        );
+      }
+      blocks.push(
+        `${target}::before { content: ${cssString(structuralCopy(ctx, key))}; ${REASON_CHIP} }`
+      );
+    }
+  }
+
   const hidden = structuralSelectorsFor(plan.hide);
+  if (hidden.length > 0 && ctx?.settings.filter.showReason === "all") {
+    // Under "all" the hide rules below are replaced by the collapse above; emitting both would
+    // remove the strip the reader is meant to be able to open.
+    return blocks;
+  }
   if (hidden.length > 0) {
     blocks.push(`${ROOT} ${UNDECIDED}:has(${hidden.join(", ")}) { ${HIDDEN} }`);
     // The row has to collapse with the post or X's absolutely-positioned virtualizer leaves a

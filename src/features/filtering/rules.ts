@@ -323,8 +323,21 @@ export interface RuleSignal extends FilterInput {
 }
 
 export function evaluateRules(signal: RuleSignal, rules: readonly CompiledRule[]): FilterDecision {
+  return judgeRules(signal, rules).action;
+}
+
+/**
+ * The same evaluation, keeping the rule that decided it. A post that is hidden without saying why
+ * is indistinguishable from a post that is missing, so the deciding rule has to survive the
+ * evaluation rather than be recomputed afterwards from a signal that may have moved on.
+ */
+export function judgeRules(
+  signal: RuleSignal,
+  rules: readonly CompiledRule[]
+): { action: FilterDecision; rule: CompiledRule | null } {
   // "hide" wins over "dim" when both match: the stronger action is the one the user asked for.
-  let decision: FilterDecision = "show";
+  let action: FilterDecision = "show";
+  let decidedBy: CompiledRule | null = null;
   for (const rule of rules) {
     const results = rule.conditions.map((condition) => matches(signal, condition));
     const matched = rule.combinator === "and" ? results.every(Boolean) : results.some(Boolean);
@@ -332,11 +345,15 @@ export function evaluateRules(signal: RuleSignal, rules: readonly CompiledRule[]
       continue;
     }
     if (rule.action === "hide") {
-      return "hide";
+      return { action: "hide", rule };
     }
-    decision = "dim";
+    if (action === "show") {
+      // The first rule to dim is the one that did it; a later dim changes nothing.
+      action = "dim";
+      decidedBy = rule;
+    }
   }
-  return decision;
+  return { action, rule: decidedBy };
 }
 
 function matches(signal: RuleSignal, condition: RuleCondition): boolean {
