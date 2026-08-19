@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Changed
+
+- **Every release named in this file now has a tag on the commit that bumped its version.** Nine
+  releases were tagged and thirty-one were documented, so most of the project's history could not be
+  checked out, diffed, or bisected by reference — which is the wrong gap for a project whose most
+  frequent question is "when did this selector break". Twenty-four tags were added, located by the
+  commit that changed `package.json` rather than by commit subject, since not every release commit
+  said "release". The two releases with no entry at all, **1.7.0** and **1.15.0**, are written below
+  from their own commit ranges and labelled as reconstructed.
+
 ### Added
 
 - **Copy a post's link for an alternate front-end.** Library gains a **Copy post links as** choice
@@ -911,6 +921,15 @@
   and build-stamped Control Center; the panel and README describe shipped snippet insertion and
   current MediaSource limitations accurately.
 
+## 1.15.0 - 2026-08-08
+
+Written from its release commit (`89dc1e1`) on 2026-08-19; the entry was missed when the release
+shipped, and the range is `83f4f04..89dc1e1`.
+
+### Changed
+
+- The Control Center was redesigned.
+
 ## 1.14.1 - 2026-08-08
 
 ### Fixed
@@ -1428,6 +1447,30 @@ listed at the end of ROADMAP.md.
   `hideBorders` and `writerMode` are removed from presets and tracked in ROADMAP.md.
 - The locale selector states what it currently does, since the panel is not yet localized.
 - docs/PRIVACY.md lists every storage key and corrects the claim that no passwords are stored.
+
+## 1.7.0 - 2026-08-06
+
+Written from its release commits (`b7adb59..2952c0a`) on 2026-08-19; the entry was missed when the
+release shipped.
+
+### Fixed
+
+- Settings export no longer leaked the credentials it carried: `docs/PRIVACY.md` had claimed no
+  passwords were stored while Aviary kept a Bluesky app password, a Mastodon token, an Aria2 secret
+  and two API keys in settings. The data map was rewritten to list all fifteen storage keys, to
+  separate X credentials (never touched) from integration credentials the user supplies, and to
+  explain the redaction behaviour and its limits.
+- The closed panel was kept out of the tab order, and preset descriptions were corrected to match
+  what the presets actually do.
+- The settings panel became usable on touch, in every theme, and with secrets hidden.
+- Page churn no longer broke the settings panel or an export in progress.
+
+### Changed
+
+- README corrections: the extension download path does not request the optional `downloads`
+  permission, so the anchor fallback is what runs and cross-origin media opens in a tab instead of
+  saving; XLSX was described as deferred when it ships; settings export was described without
+  mentioning it contained credentials; the privacy section was pinned to a stale v0.3.0 claim.
 
 ## 1.6.0 - 2026-08-06
 

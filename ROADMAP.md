@@ -252,18 +252,6 @@ confirmed a second time. See RESEARCH.md.
 
 ### P3 — repository hygiene
 
-- [ ] F192 — P3 — Tag the releases that were never tagged
-  Why: CHANGELOG.md documents 25 releases and git carries 3 tags, so v1.0.0 through v1.25.0 cannot be
-  checked out, diffed, or bisected by reference — which matters most for the "when did this selector
-  break" question this project asks constantly. Two releases also have no CHANGELOG entry at all.
-  Evidence: `git tag` = v1.26.0, v1.27.0, v1.27.1 against 25 `## X.Y.Z` headings (2026-08-17);
-  v1.7.0 and v1.15.0 missing from CHANGELOG despite a `chore: release v1.7.0` commit.
-  Touches: git tags, `CHANGELOG.md`.
-  Acceptance: every release named in CHANGELOG.md has a tag on the commit that bumped its version, or
-  is explicitly recorded as untaggable with the reason; the two missing entries are written from their
-  release commits.
-  Complexity: S
-
 - [ ] F193 — P3 — Stop carrying the extension bundles in git history
   Why: `dist/extension-chrome/content.js` and `dist/extension-firefox/content.js` are 1.9 MB each and
   tracked, and `npm run verify` rebuilds them on every commit touching `src/` — so each such commit
@@ -357,6 +345,14 @@ below were read at the cited line. See RESEARCH.md.
   metric it reads; nothing here requires a new capture or a new request.
   Note: self-repost filtering stays blocked — F033 in Roadmap_Blocked.md needs an authenticated fixture
   of the attribution row. Ship the predicates that current captures already prove.
+  Note (2026-08-19): checked against `_decoded/`. **Quote-posts** are provable — `status.html` carries
+  one `div[role="link"][tabindex="0"]`, and `quotedPost()` in `src/features/media/extract.ts` already
+  identifies it across all three shapes X has shipped. **An engagement floor** is provable — the action
+  group carries one aria-label of the form `"52 replies, 655 reposts, 11636 likes, 232 bookmarks,
+  219435 views"`, but that label is localized, so read the per-button `[data-testid="reply"|"retweet"|
+  "like"]` counts rather than parsing the summary by word order. **Replies are not provable**: neither
+  capture contains a reply-shaped post ("Replying to" appears zero times in both), so that predicate
+  needs a capture that has one before it can be written honestly.
   Complexity: S
 
 - [ ] F206 — P2 — Let the timeline stop
