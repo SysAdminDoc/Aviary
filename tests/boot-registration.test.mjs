@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
@@ -114,6 +114,48 @@ test("every feature the settings promise is registered in the running app", asyn
   assert.deepEqual(missing, [], "these are offered in the panel and nothing registered them");
   assert.equal(new Set(ids).size, ids.length, "registration is keyed by id; a duplicate would throw");
 });
+
+test("every feature module in the source tree is registered in the running app", async () => {
+  // The list above is written by hand and covers the features the panel promises. A brand-new
+  // module is in neither, so it can be written, wired to a setting, tested against directly, and
+  // never registered -- which is exactly how `layout.timelinePagination` first shipped: its own
+  // tests drove the module and passed while the app never loaded it.
+  //
+  // The expectation comes from the feature files and the answer from the booted registry, so
+  // neither side can supply the other's value.
+  const declared = await declaredFeatureIds();
+  const ids = await page.evaluate(() => window.__boot.app.registry.ids());
+
+  assert.ok(declared.length > 20, `only found ${declared.length} feature modules; the scan broke`);
+  const missing = declared.filter((entry) => !ids.includes(entry.id));
+  assert.deepEqual(
+    missing.map((entry) => `${entry.id} (${entry.file})`),
+    [],
+    "these export a FeatureModule that main.ts never registers"
+  );
+});
+
+/** Every `id` on an exported FeatureModule under src/features, with the file that declares it. */
+async function declaredFeatureIds() {
+  const found = [];
+  const walk = async (dir) => {
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(full);
+      } else if (entry.name.endsWith(".ts")) {
+        const source = await readFile(full, "utf8");
+        for (const match of source.matchAll(
+          /export const \w+: FeatureModule = \{\s*\n\s*id: "([^"]+)"/g
+        )) {
+          found.push({ id: match[1], file: path.relative(root, full).replace(/\\/g, "/") });
+        }
+      }
+    }
+  };
+  await walk(path.join(root, "src/features"));
+  return found;
+}
 
 test("no feature is shipped in a state where its own init throws", async () => {
   const inactive = await page.evaluate(() => {

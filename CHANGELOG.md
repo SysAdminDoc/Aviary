@@ -35,6 +35,12 @@
 
 ### Fixed
 
+- **A feature module that nothing registers is now a test failure.** The boot test checked a
+  hand-written list of ten feature ids, so a new module could be written, wired to a setting, tested
+  against directly, and never loaded by the app — which is how the timeline-stop feature first
+  landed. The check now reads every `FeatureModule` id out of `src/features` and requires the booted
+  registry to hold all thirty-four.
+
 - **Eleven sentences in the Control Center were shipping in English in all eight locales while
   translation coverage reported 100%.** The extractor draws the panel to harvest its copy, so a row
   that only appears under a condition — an expired rule, a callback the harness cannot supply — is

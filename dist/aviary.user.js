@@ -849,19 +849,19 @@ var Aviary = (() => {
     const currentPath = normalizePath(globalThis.location?.pathname ?? "/");
     for (const candidate of Array.from(document.querySelectorAll('[data-testid^="AppTabBar_"]'))) {
       const anchor = candidate instanceof HTMLAnchorElement ? candidate : candidate.closest("a");
-      let active = false;
+      let active2 = false;
       if (enabled && anchor) {
         try {
           const target = new URL(anchor.href, globalThis.location?.href);
           const targetPath = normalizePath(target.pathname);
-          active = target.origin === globalThis.location?.origin && (currentPath === targetPath || targetPath !== "/" && currentPath.startsWith(`${targetPath}/`));
+          active2 = target.origin === globalThis.location?.origin && (currentPath === targetPath || targetPath !== "/" && currentPath.startsWith(`${targetPath}/`));
         } catch {
-          active = false;
+          active2 = false;
         }
       }
-      if (active && candidate.getAttribute(ACTIVE_NAV_ATTRIBUTE) !== "1") {
+      if (active2 && candidate.getAttribute(ACTIVE_NAV_ATTRIBUTE) !== "1") {
         candidate.setAttribute(ACTIVE_NAV_ATTRIBUTE, "1");
-      } else if (!active && candidate.hasAttribute(ACTIVE_NAV_ATTRIBUTE)) {
+      } else if (!active2 && candidate.hasAttribute(ACTIVE_NAV_ATTRIBUTE)) {
         candidate.removeAttribute(ACTIVE_NAV_ATTRIBUTE);
       }
     }
@@ -1987,13 +1987,13 @@ html.av-reduce-motion *::after {
       const list = ctx.el("div", "av-search-results");
       const refresh = async () => {
         try {
-          const active = await ctx.options.listAria2Active();
+          const active2 = await ctx.options.listAria2Active();
           list.replaceChildren();
-          if (active.length === 0) {
+          if (active2.length === 0) {
             list.append(ctx.el("div", "av-row-description", ctx.t("No active downloads.")));
             return;
           }
-          for (const job of active) {
+          for (const job of active2) {
             const item = ctx.el("div", "av-search-hit");
             const total = job.totalLength > 0 ? `${Math.round(job.completedLength / job.totalLength * 100)}%` : "?";
             item.append(
@@ -5055,12 +5055,12 @@ html.av-reduce-motion *::after {
         panel.focus({ preventScroll: true });
         return;
       }
-      const active = shadow.activeElement;
-      const index = active ? focusables.indexOf(active) : -1;
-      if (event.shiftKey && (active === panel || index <= 0)) {
+      const active2 = shadow.activeElement;
+      const index = active2 ? focusables.indexOf(active2) : -1;
+      if (event.shiftKey && (active2 === panel || index <= 0)) {
         event.preventDefault();
         focusables[focusables.length - 1].focus({ preventScroll: true });
-      } else if (!event.shiftKey && (active === panel || index === focusables.length - 1 || index < 0)) {
+      } else if (!event.shiftKey && (active2 === panel || index === focusables.length - 1 || index < 0)) {
         event.preventDefault();
         focusables[0].focus({ preventScroll: true });
       }
@@ -5127,11 +5127,11 @@ html.av-reduce-motion *::after {
       if (transactionDirty() || transactionSaving) {
         return true;
       }
-      const active = shadow.activeElement;
-      if (!active) {
+      const active2 = shadow.activeElement;
+      if (!active2) {
         return false;
       }
-      return active !== panel;
+      return active2 !== panel;
     };
     const setStatus = (message) => {
       lastStatusEnglish = message;
@@ -5262,9 +5262,9 @@ html.av-reduce-motion *::after {
         draftCommits.clear();
         dirtyWhileBusy = false;
       }
-      const active = shadow.activeElement;
-      const identity = focusIdentity(active) ?? pendingActionFocus;
-      const selection = captureSelection(active);
+      const active2 = shadow.activeElement;
+      const identity = focusIdentity(active2) ?? pendingActionFocus;
+      const selection = captureSelection(active2);
       const contentScrollTop = body.querySelector(".av-content")?.scrollTop ?? 0;
       const navScrollTop = body.querySelector(".av-nav")?.scrollTop ?? 0;
       panelLocale = draftSettings.i18n.locale;
@@ -13504,8 +13504,8 @@ ${record.text}${mediaList}`;
       applyRootClasses(ctx);
       refreshCompiled(ctx);
       syncFilterStyle(ctx);
-      const active = ctx.settings.filter.enabled && surfaceMatches(ctx);
-      if (!active) {
+      const active2 = ctx.settings.filter.enabled && surfaceMatches(ctx);
+      if (!active2) {
         if (filterActive) {
           clearDecorations();
         }
@@ -13540,11 +13540,11 @@ ${record.text}${mediaList}`;
     }
   };
   function applyRootClasses(ctx) {
-    const active = ctx.settings.filter.enabled && surfaceMatches(ctx);
+    const active2 = ctx.settings.filter.enabled && surfaceMatches(ctx);
     const mode = ctx.settings.filter.showReason;
-    document.documentElement.classList.toggle("av-filter-enabled", active);
-    document.documentElement.classList.toggle(EXPLAIN_CLASS, active && mode !== "off");
-    document.documentElement.classList.toggle(EXPLAIN_ALL_CLASS, active && mode === "all");
+    document.documentElement.classList.toggle("av-filter-enabled", active2);
+    document.documentElement.classList.toggle(EXPLAIN_CLASS, active2 && mode !== "off");
+    document.documentElement.classList.toggle(EXPLAIN_ALL_CLASS, active2 && mode === "all");
   }
   function surfaceMatches(ctx) {
     const surfaces = ctx.settings.filter.surfaces;
@@ -15785,7 +15785,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       });
     }
     async complete(jobId, update) {
-      const released = await this.#set(jobId, (job) => {
+      const released2 = await this.#set(jobId, (job) => {
         if (job.status === "cancelled") return false;
         job.status = "completed";
         job.resumeOnBoot = false;
@@ -15797,10 +15797,10 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         delete job.error;
         return true;
       });
-      if (released) {
+      if (released2) {
         await this.#releaseSource(jobId);
       }
-      return released;
+      return released2;
     }
     /**
      * Drops an archive's bytes. Failed and cancelled imports deliberately keep theirs, because
@@ -21273,11 +21273,11 @@ ${COLOR_CSS}`;
           };
         },
         async listAria2Active() {
-          const active = await tellActiveAria2({
+          const active2 = await tellActiveAria2({
             endpoint: ctx.settings.integrations.aria2.endpoint,
             secret: ctx.settings.integrations.aria2.secret
           });
-          return active.map((job) => ({
+          return active2.map((job) => ({
             gid: job.gid,
             status: job.status,
             totalLength: job.totalLength,
@@ -24902,6 +24902,172 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
   };
 
+  // src/features/layout/timeline-pagination.ts
+  var STYLE_ID16 = "av-timeline-pagination";
+  var CELL_SELECTOR3 = '[data-testid="cellInnerDiv"]';
+  var TIMELINE_SELECTOR = '[data-testid="primaryColumn"]';
+  var OVER_LIMIT_ATTR = "data-av-past-limit";
+  var CONTROL_ID = "av-timeline-more";
+  var PAGINATED_SURFACES = /* @__PURE__ */ new Set(["home", "profile", "search"]);
+  var released = 0;
+  var lastSurface = "";
+  function timelineLimitFor(ctx) {
+    return ctx.settings.layout.timelineStopAfter;
+  }
+  var timelinePaginationFeature = {
+    id: "layout.timelinePagination",
+    title: "Let the timeline stop",
+    category: "layout",
+    init(ctx) {
+      released = 0;
+      lastSurface = ctx.route.surface;
+      if (active(ctx)) {
+        ensureStyle9();
+        ctx.diagnostics.info("Timeline pagination initialized", {
+          stopAfter: timelineLimitFor(ctx)
+        });
+      }
+    },
+    apply(ctx, root) {
+      if (!active(ctx)) {
+        clear();
+        return;
+      }
+      if (ctx.route.surface !== lastSurface) {
+        lastSurface = ctx.route.surface;
+        released = 0;
+      }
+      ensureStyle9();
+      paginate(ctx, root);
+    },
+    destroy(ctx) {
+      clear();
+      released = 0;
+      ctx.diagnostics.info("Timeline pagination destroyed");
+    },
+    getStatus() {
+      return {
+        ok: true,
+        message: released > 0 ? `Timeline extended by ${released}` : "Timeline pagination idle"
+      };
+    }
+  };
+  function active(ctx) {
+    return ctx.settings.layout.timelineStopAfter > 0 && PAGINATED_SURFACES.has(ctx.route.surface);
+  }
+  function paginate(ctx, root) {
+    const timeline = findTimeline(root) ?? findTimeline(document);
+    if (!timeline) {
+      return;
+    }
+    const limit = timelineLimitFor(ctx) + released;
+    const cells = Array.from(timeline.querySelectorAll(CELL_SELECTOR3));
+    let shown2 = 0;
+    let firstHidden = null;
+    for (const cell of cells) {
+      if (shown2 < limit) {
+        cell.removeAttribute(OVER_LIMIT_ATTR);
+        shown2 += 1;
+        continue;
+      }
+      if (!firstHidden) {
+        firstHidden = cell;
+      }
+      cell.setAttribute(OVER_LIMIT_ATTR, "1");
+    }
+    syncControl(ctx, timeline, firstHidden, shown2, cells.length);
+  }
+  function findTimeline(root) {
+    if (root instanceof Element && root.matches(TIMELINE_SELECTOR)) {
+      return root;
+    }
+    return "querySelector" in root ? root.querySelector(TIMELINE_SELECTOR) : null;
+  }
+  function syncControl(ctx, timeline, firstHidden, shown2, total) {
+    const existing = timeline.ownerDocument?.getElementById(CONTROL_ID) ?? null;
+    if (!firstHidden) {
+      existing?.remove();
+      return;
+    }
+    const label = `${ft(ctx, "Show more posts")} \xB7 ${shown2}`;
+    if (existing) {
+      const button3 = existing.querySelector("button");
+      if (button3) {
+        button3.textContent = label;
+      }
+      if (existing.nextElementSibling !== firstHidden) {
+        firstHidden.parentElement?.insertBefore(existing, firstHidden);
+      }
+      return;
+    }
+    const host = timeline.ownerDocument?.createElement("div");
+    if (!host) {
+      return;
+    }
+    host.id = CONTROL_ID;
+    host.className = "av-timeline-more";
+    const button2 = timeline.ownerDocument.createElement("button");
+    button2.type = "button";
+    button2.className = "av-timeline-more-button";
+    button2.textContent = label;
+    button2.addEventListener("click", () => {
+      released += timelineLimitFor(ctx);
+      ctx.diagnostics.info("Timeline extended", { released, total });
+      ctx.requestApply();
+    });
+    host.append(button2);
+    firstHidden.parentElement?.insertBefore(host, firstHidden);
+  }
+  function clear() {
+    document.getElementById(CONTROL_ID)?.remove();
+    for (const cell of Array.from(document.querySelectorAll(`[${OVER_LIMIT_ATTR}]`))) {
+      cell.removeAttribute(OVER_LIMIT_ATTR);
+    }
+    document.getElementById(STYLE_ID16)?.remove();
+  }
+  function ensureStyle9() {
+    if (document.getElementById(STYLE_ID16)) {
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = STYLE_ID16;
+    style.textContent = PAGINATION_CSS;
+    (document.head ?? document.documentElement).append(style);
+  }
+  var PAGINATION_CSS = `
+[${OVER_LIMIT_ATTR}="1"] {
+  display: none !important;
+}
+
+.av-timeline-more {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0 24px;
+}
+
+.av-timeline-more-button {
+  appearance: none;
+  border: 1px solid currentColor;
+  border-radius: 9999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  /* Longhands, not the shorthand: the shorthand cannot take a CSS-wide keyword as its family,
+     so the whole declaration is dropped, and a button does not inherit its type on its own. */
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+  font-size: 15px;
+  padding: 10px 22px;
+  opacity: 0.85;
+}
+
+.av-timeline-more-button:hover,
+.av-timeline-more-button:focus-visible {
+  opacity: 1;
+}
+`;
+
   // src/features/media/inline-original-images.ts
   var PROCESSED_ATTR7 = "data-av-orig-image";
   var ORIGINAL_SRC = "avOriginalSrc";
@@ -25013,7 +25179,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   }
 
   // src/features/library/link-unshorten.ts
-  var STYLE_ID16 = "av-link-unshorten";
+  var STYLE_ID17 = "av-link-unshorten";
   var PROCESSED_ATTR8 = "data-av-link-clean";
   var ORIGINAL_TITLE_PRESENT = "avOriginalTitlePresent";
   var linkUnshortenFeature = {
@@ -25024,17 +25190,17 @@ html.av-mobile [data-testid="primaryColumn"] {
       if (!ctx.settings.links.expandTco) {
         return;
       }
-      ensureStyle9();
+      ensureStyle10();
       scan6(document);
       ctx.diagnostics.info("Link unshortening initialized");
     },
     apply(ctx, root, addedNodes) {
       if (!ctx.settings.links.expandTco) {
         restoreProcessedLinks2();
-        document.getElementById(STYLE_ID16)?.remove();
+        document.getElementById(STYLE_ID17)?.remove();
         return;
       }
-      ensureStyle9();
+      ensureStyle10();
       if (!addedNodes || addedNodes.length === 0) {
         scan6(root);
         return;
@@ -25045,7 +25211,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     },
     destroy(ctx) {
       restoreProcessedLinks2();
-      document.getElementById(STYLE_ID16)?.remove();
+      document.getElementById(STYLE_ID17)?.remove();
       ctx.diagnostics.info("Link unshortening destroyed");
     }
   };
@@ -25115,12 +25281,12 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
     return null;
   }
-  function ensureStyle9() {
-    if (document.getElementById(STYLE_ID16)) {
+  function ensureStyle10() {
+    if (document.getElementById(STYLE_ID17)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID16;
+    style.id = STYLE_ID17;
     style.textContent = LINK_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -25132,7 +25298,7 @@ a.av-link-clean {
 `;
 
   // src/features/media/media-presentation.ts
-  var STYLE_ID17 = "av-media-presentation";
+  var STYLE_ID18 = "av-media-presentation";
   var mediaPresentationFeature = {
     id: "media.presentation",
     title: "Media presentation",
@@ -25149,7 +25315,7 @@ a.av-link-clean {
       applyPresentationClasses(ctx);
     },
     destroy(ctx) {
-      document.getElementById(STYLE_ID17)?.remove();
+      document.getElementById(STYLE_ID18)?.remove();
       clearLayoutClasses();
       ctx.diagnostics.info("Media presentation destroyed");
     }
@@ -25167,11 +25333,11 @@ a.av-link-clean {
     }
   }
   function ensurePresentationStyle() {
-    if (document.getElementById(STYLE_ID17)) {
+    if (document.getElementById(STYLE_ID18)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID17;
+    style.id = STYLE_ID18;
     style.textContent = PRESENTATION_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -26607,9 +26773,9 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     async load() {
       if (this.#loaded) return;
       this.#state = normalizeState3(await this.#base.get(PROFILE_REGISTRY_KEY, EMPTY8));
-      const active = await this.#base.get(ACTIVE_PROFILE_KEY, null);
-      if (typeof active === "string" && this.#state.profiles.some((profile) => profile.id === active)) {
-        this.#activeId = active;
+      const active2 = await this.#base.get(ACTIVE_PROFILE_KEY, null);
+      if (typeof active2 === "string" && this.#state.profiles.some((profile) => profile.id === active2)) {
+        this.#activeId = active2;
       }
       if (!this.#state.profiles.some((profile) => profile.id === this.#activeId)) {
         this.#state.profiles.unshift({
@@ -26627,10 +26793,10 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       return this.#activeId;
     }
     status() {
-      const active = this.#state.profiles.find((profile) => profile.id === this.#activeId);
+      const active2 = this.#state.profiles.find((profile) => profile.id === this.#activeId);
       return {
         activeId: this.#activeId,
-        activeLabel: active?.label ?? this.#activeId,
+        activeLabel: active2?.label ?? this.#activeId,
         profiles: this.#state.profiles.map((profile) => ({ ...profile })),
         legacyDataAvailable: this.#legacyDataAvailable
       };
@@ -26924,6 +27090,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     registry.register(pauseOffscreenVideoFeature);
     registry.register(videoPlaybackFeature);
     registry.register(forceFollowingFeature);
+    registry.register(timelinePaginationFeature);
     registry.register(inlineOriginalImagesFeature);
     registry.register(snapshotsFeature);
     registry.register(mobileTouchFeature);
