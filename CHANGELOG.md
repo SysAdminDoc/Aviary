@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Added
+
+- **Filter on the shape of a post, not only its words.** Two predicates, both off by default.
+  *Quote posts* hides or dims a post that quotes another — structural, so it is a `:has()` rule
+  costing nothing per post, and it tells a quoted post from a link preview by the quoted author's
+  name rather than by the `role="link"` the two share. *Low-engagement posts* hides or dims a post
+  under a minimum number of replies, reposts or likes; the count is read from the action button's
+  own accessible name, which carries the exact figure where the visible text is rounded to "11K",
+  and which reads zero as zero where the visible text is simply empty. A post whose count cannot be
+  read is never filtered on it, and a minimum of zero reads no counts at all.
+
 ### Changed
 
 - **The media and verified filters are stylesheet rules now, not work done per post.** Both were

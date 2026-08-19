@@ -1,4 +1,10 @@
-import type { FilterAction, FilterMediaKey, FilterSurface, MediaLayout } from "../../platform/settings";
+import type {
+  EngagementMetric,
+  FilterAction,
+  FilterMediaKey,
+  FilterSurface,
+  MediaLayout
+} from "../../platform/settings";
 
 export const MEDIA_LAYOUT_OPTIONS: Array<[MediaLayout, string]> = [
   ["default", "Default grid"],
@@ -10,6 +16,12 @@ export const FILTER_ACTION_OPTIONS: Array<[FilterAction, string]> = [
   ["off", "Off"],
   ["hide", "Hide"],
   ["dim", "Dim"]
+];
+
+export const ENGAGEMENT_METRIC_OPTIONS: Array<[EngagementMetric, string]> = [
+  ["replies", "Replies"],
+  ["reposts", "Reposts"],
+  ["likes", "Likes"]
 ];
 
 export const FILTER_SURFACE_LABELS: Record<FilterSurface, string> = {

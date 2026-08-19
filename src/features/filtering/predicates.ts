@@ -1,5 +1,10 @@
 import { checkRegexBudget } from "./regex-budget";
-import type { FilterAction, FilterMediaKey } from "../../platform/settings";
+import {
+  ENGAGEMENT_METRICS,
+  type EngagementMetric,
+  type FilterAction,
+  type FilterMediaKey
+} from "../../platform/settings";
 import { handleFromHref } from "./hidden-posts";
 import { evaluateRules, type CompiledRule, type RuleSignal } from "./rules";
 
@@ -11,6 +16,8 @@ export interface CompiledFilters {
   whitelist: Set<string>;
   premium: FilterAction;
   media: Record<FilterMediaKey, boolean>;
+  quotePosts: FilterAction;
+  engagement: { action: FilterAction; metric: EngagementMetric; min: number };
   generation: number;
 }
 
@@ -37,7 +44,7 @@ export type FilterDecision = "show" | "hide" | "dim";
  * subtree, add it to `STRUCTURAL_SELECTORS` and it is both read and emitted from that one table.
  * Otherwise it belongs in `decide`.
  */
-export type StructuralKey = FilterMediaKey | "premium";
+export type StructuralKey = FilterMediaKey | "premium" | "quote";
 
 export const STRUCTURAL_SELECTORS: Record<StructuralKey, readonly string[]> = {
   photo: ['[data-testid="tweetPhoto"] img[src*="pbs.twimg.com/media"]'],
@@ -46,7 +53,17 @@ export const STRUCTURAL_SELECTORS: Record<StructuralKey, readonly string[]> = {
     '[data-testid="videoComponent"][aria-label*="GIF" i]',
     '[aria-label="Embedded video"][data-testid*="gif" i]'
   ],
-  premium: ['[data-testid="icon-verified"]', '[aria-label*="Verified" i]']
+  premium: ['[data-testid="icon-verified"]', '[aria-label*="Verified" i]'],
+  // The three shapes X has shipped for a quoted post. The third is the current one and is not
+  // self-describing -- a bare role=link is also how X marks other cards -- so it is qualified by
+  // the quoted author's name. That test is written as a descendant rather than a nested `:has()`,
+  // which CSS does not allow inside another `:has()`; `quotedPost()` in media/extract.ts makes the
+  // same distinction in JS, and a test holds the two to the same answer on the real capture.
+  quote: [
+    '[data-testid="quoteTweet"]',
+    '[aria-labelledby="quoted"]',
+    'div[role="link"][tabindex="0"] [data-testid="User-Name"]'
+  ]
 };
 
 /**
@@ -73,6 +90,11 @@ export function structuralFilterPlan(filters: CompiledFilters): {
   } else if (filters.premium === "dim") {
     dim.push("premium");
   }
+  if (filters.quotePosts === "hide") {
+    hide.push("quote");
+  } else if (filters.quotePosts === "dim") {
+    dim.push("quote");
+  }
   return { hide, dim };
 }
 
@@ -91,6 +113,9 @@ function hasStructural(article: Element, key: StructuralKey): boolean {
   return article.querySelector(STRUCTURAL_SELECTORS[key].join(", ")) !== null;
 }
 
+/** A count X rendered, or null when the post does not carry that metric in a readable form. */
+export type EngagementCounts = Record<EngagementMetric, number | null>;
+
 export interface FilterInput {
   text: string;
   handle: string | null;
@@ -98,6 +123,8 @@ export interface FilterInput {
   media: Record<FilterMediaKey, boolean>;
   /** Whether the post text carries an outbound link. Absent on older callers. */
   hasLink?: boolean;
+  /** Reply, repost and like counts. Absent on older callers. */
+  engagement?: EngagementCounts;
 }
 
 export interface TweetSignal {
@@ -106,6 +133,7 @@ export interface TweetSignal {
   premium: boolean;
   media: Record<FilterMediaKey, boolean>;
   hasLink: boolean;
+  engagement: EngagementCounts;
 }
 
 export function compileFilters(input: {
@@ -115,6 +143,8 @@ export function compileFilters(input: {
   whitelist: string[];
   premium: FilterAction;
   media: Record<string, boolean>;
+  quotePosts?: FilterAction;
+  engagement?: { action: FilterAction; metric: EngagementMetric; min: number };
   generation: number;
 }): CompiledFilters {
   const keywords = input.keywords
@@ -148,6 +178,8 @@ export function compileFilters(input: {
       video: Boolean(input.media.video),
       gif: Boolean(input.media.gif)
     },
+    quotePosts: input.quotePosts ?? "off",
+    engagement: input.engagement ?? { action: "off", metric: "likes", min: 0 },
     generation: input.generation
   };
 }
@@ -191,7 +223,63 @@ export function decide(signal: FilterInput, filters: CompiledFilters): FilterDec
     }
   }
 
+  // Structural in spirit but not in form: it reads a number out of the page and compares it, which
+  // no selector can do. A post whose count could not be read is never filtered on it -- an
+  // unreadable signal is not evidence of a low one.
+  const floor = filters.engagement;
+  if (floor.action !== "off" && floor.min > 0) {
+    const count = signal.engagement?.[floor.metric] ?? null;
+    if (count !== null && count < floor.min) {
+      return floor.action;
+    }
+  }
+
   return "show";
+}
+
+/**
+ * The exact count behind one of X's action buttons.
+ *
+ * The button's own `aria-label` carries the unrounded number ("11636 Likes. Like") where the
+ * visible text is abbreviated to "11K", and it is present at zero ("0 Replies. Reply") where the
+ * visible text is empty. The label is localized, so the words are ignored and the first run of
+ * digits is taken -- with thousands separators folded, since a locale may write "11.636". The
+ * visible text is the fallback, abbreviation and all.
+ */
+export function readEngagementCount(article: Element, metric: EngagementMetric): number | null {
+  const button = article.querySelector(ENGAGEMENT_BUTTONS[metric]);
+  if (!button) {
+    return null;
+  }
+  const labelled = firstNumber(button.getAttribute("aria-label") ?? "");
+  if (labelled !== null) {
+    return labelled;
+  }
+  return expandAbbreviated(button.textContent ?? "");
+}
+
+const ENGAGEMENT_BUTTONS: Record<EngagementMetric, string> = {
+  replies: '[data-testid="reply"]',
+  reposts: '[data-testid="retweet"], [data-testid="unretweet"]',
+  likes: '[data-testid="like"], [data-testid="unlike"]'
+};
+
+function firstNumber(text: string): number | null {
+  const match = /\d[\d.,\p{Zs}]*/u.exec(text);
+  if (!match) {
+    return null;
+  }
+  const digits = match[0].replace(/[^\d]/g, "");
+  return digits.length > 0 ? Number(digits) : null;
+}
+
+function expandAbbreviated(text: string): number | null {
+  const match = /(\d+(?:[.,]\d+)?)\s*([KMB])?/i.exec(text.trim());
+  if (!match?.[1]) {
+    return null;
+  }
+  const scale = { k: 1_000, m: 1_000_000, b: 1_000_000_000 }[match[2]?.toLowerCase() ?? ""] ?? 1;
+  return Math.round(Number(match[1].replace(",", ".")) * scale);
 }
 
 /**
@@ -214,9 +302,14 @@ function asRuleSignal(signal: FilterInput): RuleSignal {
     },
     get hasLink() {
       return signal.hasLink === true;
+    },
+    get engagement() {
+      return signal.engagement ?? EMPTY_ENGAGEMENT;
     }
   };
 }
+
+const EMPTY_ENGAGEMENT: EngagementCounts = { replies: null, reposts: null, likes: null };
 
 /**
  * Every field is read on first access and remembered, because most of them are never asked for.
@@ -231,6 +324,7 @@ export function extractTweetSignal(article: Element): TweetSignal {
   let premium: boolean | undefined;
   let media: Record<FilterMediaKey, boolean> | undefined;
   let hasLink: boolean | undefined;
+  let engagement: EngagementCounts | undefined;
 
   return {
     get text() {
@@ -250,8 +344,19 @@ export function extractTweetSignal(article: Element): TweetSignal {
     },
     get hasLink() {
       return (hasLink ??= readHasLink(article));
+    },
+    get engagement() {
+      return (engagement ??= readEngagement(article));
     }
   };
+}
+
+function readEngagement(article: Element): EngagementCounts {
+  const counts = {} as EngagementCounts;
+  for (const metric of ENGAGEMENT_METRICS) {
+    counts[metric] = readEngagementCount(article, metric);
+  }
+  return counts;
 }
 
 function readText(article: Element): string {

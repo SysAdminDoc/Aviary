@@ -106,6 +106,18 @@ export const COUNT_METRICS = ["replies", "reposts", "likes", "views"] as const;
 export type CountMetric = (typeof COUNT_METRICS)[number];
 export const FILTER_MEDIA_KEYS = ["photo", "video", "gif"] as const;
 export type FilterMediaKey = (typeof FILTER_MEDIA_KEYS)[number];
+
+/**
+ * The engagement counts X renders on every post. Each is read from its own button, never from the
+ * action group's summary label: the summary omits every metric that is zero, so a post with no
+ * replies has no "replies" entry to read at all.
+ */
+export const ENGAGEMENT_METRICS = ["replies", "reposts", "likes"] as const;
+export type EngagementMetric = (typeof ENGAGEMENT_METRICS)[number];
+
+export function isEngagementMetric(value: unknown): value is EngagementMetric {
+  return typeof value === "string" && (ENGAGEMENT_METRICS as readonly string[]).includes(value);
+}
 const EXPORT_FORMATS = ["json", "csv", "html", "markdown", "xlsx"] as const;
 const BLOCKED_OBJECT_KEYS = new Set(["__proto__", "prototype", "constructor"]);
 
@@ -233,6 +245,12 @@ export interface AviarySettings {
     premiumRule: FilterAction;
     blockedAccounts: FilterAction;
     selfRepost: FilterAction;
+    /** Posts that quote another post. Structural — see features/filtering/predicates.ts. */
+    quotePosts: FilterAction;
+    /** Posts under `engagementMin` on `engagementMetric`. Off unless the minimum is above zero. */
+    engagementRule: FilterAction;
+    engagementMetric: EngagementMetric;
+    engagementMin: number;
     whitelist: string[];
     mediaTypes: Record<string, boolean>;
     surfaces: FilterSurface[];
@@ -371,6 +389,10 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     // is a filter the settings claim to apply and the engine never applies.
     blockedAccounts: "off",
     selfRepost: "off",
+    quotePosts: "off",
+    engagementRule: "off",
+    engagementMetric: "likes",
+    engagementMin: 0,
     whitelist: [],
     mediaTypes: { photo: false, video: false, gif: false },
     dimSeenPosts: false,
@@ -633,6 +655,16 @@ export function normalizeSettings(input: unknown): AviarySettings {
         DEFAULT_SETTINGS.filter.blockedAccounts
       ),
       selfRepost: enumValue(filter.selfRepost, FILTER_ACTIONS, DEFAULT_SETTINGS.filter.selfRepost),
+      quotePosts: enumValue(filter.quotePosts, FILTER_ACTIONS, DEFAULT_SETTINGS.filter.quotePosts),
+      engagementRule: enumValue(
+        filter.engagementRule,
+        FILTER_ACTIONS,
+        DEFAULT_SETTINGS.filter.engagementRule
+      ),
+      engagementMetric: isEngagementMetric(filter.engagementMetric)
+        ? filter.engagementMetric
+        : DEFAULT_SETTINGS.filter.engagementMetric,
+      engagementMin: integerValue(filter.engagementMin, DEFAULT_SETTINGS.filter.engagementMin, 0, 1_000_000),
       whitelist: stringArray(filter.whitelist, { maxItems: 200, maxLength: 80 }),
       mediaTypes: mediaTypeRecord(filter.mediaTypes),
       surfaces: surfaceArray(filter.surfaces)

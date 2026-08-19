@@ -1,6 +1,11 @@
 import type { PanelContext } from "../panel-context";
-import { FILTER_ACTION_OPTIONS, FILTER_MEDIA_LABELS, HIDE_NAV_ITEM_IDS } from "../constants";
-import { FILTER_MEDIA_KEYS } from "../../../platform/settings";
+import {
+  ENGAGEMENT_METRIC_OPTIONS,
+  FILTER_ACTION_OPTIONS,
+  FILTER_MEDIA_LABELS,
+  HIDE_NAV_ITEM_IDS
+} from "../constants";
+import { FILTER_MEDIA_KEYS, isEngagementMetric } from "../../../platform/settings";
 export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
   return [
       ctx.selectRow("Theme", ctx.options.settings.appearance.theme, [
@@ -482,6 +487,60 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.filter.premiumRule = ctx.coerceFilterAction(value);
         await ctx.save("Premium filter saved");
       }
+    )
+  );
+
+  rows.push(
+    ctx.selectRow(
+      "Quote posts",
+      ctx.options.settings.filter.quotePosts,
+      FILTER_ACTION_OPTIONS,
+      async (value) => {
+        ctx.options.settings.filter.quotePosts = ctx.coerceFilterAction(value);
+        await ctx.save("Quote post filter saved");
+      },
+      "Posts that quote another post."
+    )
+  );
+
+  rows.push(
+    ctx.selectRow(
+      "Low-engagement posts",
+      ctx.options.settings.filter.engagementRule,
+      FILTER_ACTION_OPTIONS,
+      async (value) => {
+        ctx.options.settings.filter.engagementRule = ctx.coerceFilterAction(value);
+        await ctx.save("Engagement filter saved");
+      },
+      "Posts under the minimum below. A post whose count Aviary cannot read is never filtered on it."
+    )
+  );
+
+  rows.push(
+    ctx.selectRow(
+      "Engagement measured in",
+      ctx.options.settings.filter.engagementMetric,
+      ENGAGEMENT_METRIC_OPTIONS,
+      async (value) => {
+        ctx.options.settings.filter.engagementMetric = isEngagementMetric(value)
+          ? value
+          : ctx.options.settings.filter.engagementMetric;
+        await ctx.save("Engagement metric saved");
+      },
+      "Which of the counts under a post the minimum applies to."
+    )
+  );
+
+  rows.push(
+    ctx.integerInputRow(
+      "Minimum engagement",
+      "Posts below this count are filtered. Zero leaves every post alone.",
+      ctx.options.settings.filter.engagementMin,
+      async (value) => {
+        ctx.options.settings.filter.engagementMin = value;
+        await ctx.save(`Engagement floor set to ${value}`);
+      },
+      { min: 0, max: 1_000_000 }
     )
   );
 

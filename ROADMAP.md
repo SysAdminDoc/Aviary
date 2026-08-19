@@ -305,28 +305,17 @@ below were read at the cited line. See RESEARCH.md.
   Depends on: F144 consumes the title; F145 must carry both fields through import/export.
   Complexity: M
 
-- [ ] F205 — P2 — Filter on post shape, not just text
-  Why: the most repeated filtering requests in this ecosystem are structural rather than lexical — hide
-  replies, hide quote-posts, hide self-reposts, hide posts under an engagement floor — and every one of
-  those predicates is already visible in the rendered DOM, so they cost a predicate each and no capture.
-  Evidence: control-panel-for-twitter#916 / #882 / #850 / #452; Bluesky `feedViewPref`
-  (`hideReplies`, `hideReposts`, `hideQuotePosts`, `hideRepliesByLikeCount`) in
-  https://github.com/bluesky-social/atproto/blob/main/lexicons/app/bsky/actor/defs.json ; Ivory's
-  composite shape filters.
-  Touches: `src/features/filtering/predicates.ts`, the Filtering panel, settings schema.
-  Acceptance: shape predicates are available per route alongside the existing rules and reuse the same
-  hide/dim actions and the same reason reporting; an engagement floor accepts a number and states which
-  metric it reads; nothing here requires a new capture or a new request.
-  Note: self-repost filtering stays blocked — F033 in Roadmap_Blocked.md needs an authenticated fixture
-  of the attribution row. Ship the predicates that current captures already prove.
-  Note (2026-08-19): checked against `_decoded/`. **Quote-posts** are provable — `status.html` carries
-  one `div[role="link"][tabindex="0"]`, and `quotedPost()` in `src/features/media/extract.ts` already
-  identifies it across all three shapes X has shipped. **An engagement floor** is provable — the action
-  group carries one aria-label of the form `"52 replies, 655 reposts, 11636 likes, 232 bookmarks,
-  219435 views"`, but that label is localized, so read the per-button `[data-testid="reply"|"retweet"|
-  "like"]` counts rather than parsing the summary by word order. **Replies are not provable**: neither
-  capture contains a reply-shaped post ("Replying to" appears zero times in both), so that predicate
-  needs a capture that has one before it can be written honestly.
+- [ ] F212 — P3 — Numeric comparison operators for the rule language
+  Why: F205 shipped the engagement floor as three settings (action, metric, minimum) because
+  `rules.ts` has no way to say `likes under 500` — `RULE_OPERATORS` is contains/is/starts/ends/
+  matches, all string comparisons. A user who wants "hide posts under 500 likes *from accounts I do
+  not follow*" cannot write it. The signal already carries the counts (`FilterInput.engagement`),
+  so this is a parser and evaluator change, not a capture one.
+  Touches: `src/features/filtering/rules.ts` (operators, numeric fields, `compare`), the Filtering
+  panel's rule help, `tests/filter-rules.test.mjs`.
+  Acceptance: a rule can compare a numeric field against a number with `under`/`over`; a numeric
+  operator against a text field is a parse error naming the mismatch rather than a silent false; the
+  three engagement settings keep working unchanged.
   Complexity: S
 
 - [ ] F206 — P2 — Let the timeline stop

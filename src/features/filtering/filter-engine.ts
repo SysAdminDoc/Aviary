@@ -134,6 +134,12 @@ function refreshCompiled(ctx: FeatureContext): void {
     whitelist: ctx.settings.filter.whitelist,
     premium: ctx.settings.filter.premiumRule,
     media: ctx.settings.filter.mediaTypes,
+    quotePosts: ctx.settings.filter.quotePosts,
+    engagement: {
+      action: ctx.settings.filter.engagementRule,
+      metric: ctx.settings.filter.engagementMetric,
+      min: ctx.settings.filter.engagementMin
+    },
     generation
   });
 }
@@ -147,6 +153,10 @@ function filterSignature(ctx: FeatureContext): string {
     filter.whitelist,
     filter.premiumRule,
     filter.mediaTypes,
+    filter.quotePosts,
+    filter.engagementRule,
+    filter.engagementMetric,
+    filter.engagementMin,
     filter.enabled
   ]);
 }
