@@ -31,7 +31,7 @@ test("compileFilters lowercases keywords, sanitizes regex flags, and seeds white
   assert.equal(filters.generation, 7);
 });
 
-test("decide returns hide for keyword/regex/media hits and respects whitelist + premium action", async () => {
+test("decide returns hide for keyword and regex hits, and the whitelist outranks both", async () => {
   const { compileFilters, decide } = await importBundledModule(
     "src/features/filtering/predicates.ts"
   );
@@ -72,44 +72,54 @@ test("decide returns hide for keyword/regex/media hits and respects whitelist + 
     ),
     "show"
   );
+
+  // The media and verified predicates are structural: the stylesheet answers them, so a signal
+  // carrying them must not move this decision. `filter-structural-css.test.mjs` proves the posts
+  // are still hidden -- against computed style, which is the only place the outcome now exists.
   assert.equal(
     decide(
-      {
-        text: "ok",
-        handle: "anyone",
-        premium: false,
-        media: { ...emptyMedia(), video: true }
-      },
+      { text: "ok", handle: "anyone", premium: false, media: { ...emptyMedia(), video: true } },
       filters
     ),
-    "hide"
+    "show"
   );
   assert.equal(
-    decide(
-      { text: "ok", handle: "anyone", premium: true, media: emptyMedia() },
-      filters
-    ),
-    "dim"
+    decide({ text: "ok", handle: "anyone", premium: true, media: emptyMedia() }, filters),
+    "show"
   );
 });
 
-test("decide with premium=off ignores premium signal", async () => {
-  const { compileFilters, decide } = await importBundledModule(
+test("the structural plan is what turns media and verified settings into rules", async () => {
+  const { compileFilters, structuralFilterPlan } = await importBundledModule(
     "src/features/filtering/predicates.ts"
   );
-  const filters = compileFilters({
-    keywords: [],
-    regex: [],
-    whitelist: [],
-    premium: "off",
-    media: { photo: false, video: false, gif: false },
-    generation: 1
-  });
+  const plan = (media, premium) =>
+    structuralFilterPlan(
+      compileFilters({ keywords: [], regex: [], whitelist: [], premium, media, generation: 1 })
+    );
 
-  assert.equal(
-    decide({ text: "ok", handle: null, premium: true, media: emptyMedia() }, filters),
-    "show"
-  );
+  assert.deepEqual(plan({ photo: false, video: false, gif: false }, "off"), { hide: [], dim: [] });
+  assert.deepEqual(plan({ photo: true, video: false, gif: false }, "off"), {
+    hide: ["photo"],
+    dim: []
+  });
+  // A GIF is a video player to X, so hiding video has always hidden GIFs too.
+  assert.deepEqual(plan({ photo: false, video: true, gif: false }, "off"), {
+    hide: ["video", "gif"],
+    dim: []
+  });
+  assert.deepEqual(plan({ photo: false, video: false, gif: true }, "off"), {
+    hide: ["gif"],
+    dim: []
+  });
+  assert.deepEqual(plan({ photo: false, video: false, gif: false }, "hide"), {
+    hide: ["premium"],
+    dim: []
+  });
+  assert.deepEqual(plan({ photo: false, video: false, gif: false }, "dim"), {
+    hide: [],
+    dim: ["premium"]
+  });
 });
 
 test("normalizeSettings keeps surfaces and selfRepost stable", async () => {

@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Changed
+
+- **The media and verified filters are stylesheet rules now, not work done per post.** Both were
+  questions about the shape of a post's own subtree — does it contain a photo, a video player, a
+  GIF, the verified badge — and the engine answered them with five `querySelector` calls against
+  every article on every mutation batch. They are emitted as `:has()` rules instead, from one table
+  that the remaining JS reader shares, so a timeline scroll no longer pays for them at all. Two
+  consequences beyond the saved work: media that renders *after* a post was judged is now caught,
+  where the JS pass had stamped that post done and would never look at it again; and a post the
+  engine has not judged yet is left alone, so nothing flashes hidden before the allowlist is
+  consulted. Precedence is unchanged — an allowlisted author still outranks everything, a rule that
+  dims still beats a media rule that would hide, and hiding video still hides GIFs.
+
 ## 1.34.0 - 2026-08-19
 
 ### Changed

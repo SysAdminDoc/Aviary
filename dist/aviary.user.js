@@ -12954,6 +12954,45 @@ ${record.text}${mediaList}`;
   }
 
   // src/features/filtering/predicates.ts
+  var STRUCTURAL_SELECTORS = {
+    photo: ['[data-testid="tweetPhoto"] img[src*="pbs.twimg.com/media"]'],
+    video: ['[data-testid="videoPlayer"]', '[data-testid="videoComponent"]'],
+    gif: [
+      '[data-testid="videoComponent"][aria-label*="GIF" i]',
+      '[aria-label="Embedded video"][data-testid*="gif" i]'
+    ],
+    premium: ['[data-testid="icon-verified"]', '[aria-label*="Verified" i]']
+  };
+  function structuralFilterPlan(filters) {
+    const hide = [];
+    if (filters.media.photo) {
+      hide.push("photo");
+    }
+    if (filters.media.video) {
+      hide.push("video", "gif");
+    } else if (filters.media.gif) {
+      hide.push("gif");
+    }
+    const dim = [];
+    if (filters.premium === "hide") {
+      hide.push("premium");
+    } else if (filters.premium === "dim") {
+      dim.push("premium");
+    }
+    return { hide, dim };
+  }
+  function structuralSelectorsFor(keys) {
+    const seen = /* @__PURE__ */ new Set();
+    for (const key of keys) {
+      for (const selector of STRUCTURAL_SELECTORS[key]) {
+        seen.add(selector);
+      }
+    }
+    return [...seen];
+  }
+  function hasStructural(article, key) {
+    return article.querySelector(STRUCTURAL_SELECTORS[key].join(", ")) !== null;
+  }
   function compileFilters(input) {
     const keywords = input.keywords.map((value) => value.trim().toLowerCase()).filter((value) => value.length > 0);
     const patterns = [];
@@ -12984,20 +13023,25 @@ ${record.text}${mediaList}`;
       generation: input.generation
     };
   }
+  function isExempt(signal, filters) {
+    return signal.handle !== null && signal.handle !== "" && filters.whitelist.has(signal.handle);
+  }
   function decide(signal, filters) {
-    if (signal.handle && filters.whitelist.has(signal.handle)) {
+    if (isExempt(signal, filters)) {
       return "show";
     }
     if (filters.rules.length > 0) {
-      const ruled = evaluateRules({ ...signal, hasLink: signal.hasLink === true }, filters.rules);
+      const ruled = evaluateRules(asRuleSignal(signal), filters.rules);
       if (ruled !== "show") {
         return ruled;
       }
     }
-    const text = signal.text.toLowerCase();
-    for (const keyword of filters.keywords) {
-      if (text.includes(keyword)) {
-        return "hide";
+    if (filters.keywords.length > 0) {
+      const text = signal.text.toLowerCase();
+      for (const keyword of filters.keywords) {
+        if (text.includes(keyword)) {
+          return "hide";
+        }
       }
     }
     for (const pattern of filters.patterns) {
@@ -13006,32 +13050,72 @@ ${record.text}${mediaList}`;
         return "hide";
       }
     }
-    for (const key of ["photo", "video", "gif"]) {
-      if (filters.media[key] && signal.media[key]) {
-        return "hide";
-      }
-    }
-    if (filters.premium !== "off" && signal.premium) {
-      return filters.premium;
-    }
     return "show";
   }
+  function asRuleSignal(signal) {
+    return {
+      get text() {
+        return signal.text;
+      },
+      get handle() {
+        return signal.handle;
+      },
+      get premium() {
+        return signal.premium;
+      },
+      get media() {
+        return signal.media;
+      },
+      get hasLink() {
+        return signal.hasLink === true;
+      }
+    };
+  }
   function extractTweetSignal(article) {
+    let text;
+    let handle;
+    let premium;
+    let media;
+    let hasLink;
+    return {
+      get text() {
+        return text ??= readText2(article);
+      },
+      get handle() {
+        if (handle === void 0) {
+          handle = readHandle2(article);
+        }
+        return handle;
+      },
+      get premium() {
+        return premium ??= hasStructural(article, "premium");
+      },
+      get media() {
+        return media ??= readMedia(article);
+      },
+      get hasLink() {
+        return hasLink ??= readHasLink(article);
+      }
+    };
+  }
+  function readText2(article) {
     const textNodes = article.querySelectorAll('[data-testid="tweetText"]');
-    const text = textNodes.length > 0 ? Array.from(textNodes).map((node) => node.textContent ?? "").join("\n") : article.textContent ?? "";
-    const handle = readHandle2(article);
-    const premium = article.querySelector('[data-testid="icon-verified"], [aria-label*="Verified" i]') !== null;
+    return textNodes.length > 0 ? Array.from(textNodes).map((node) => node.textContent ?? "").join("\n") : article.textContent ?? "";
+  }
+  function readMedia(article) {
     const media = {
-      photo: article.querySelector('[data-testid="tweetPhoto"] img[src*="pbs.twimg.com/media"]') !== null,
-      video: article.querySelector('[data-testid="videoPlayer"], [data-testid="videoComponent"]') !== null,
-      gif: article.querySelector('[data-testid="videoComponent"][aria-label*="GIF" i], [aria-label="Embedded video"][data-testid*="gif" i]') !== null
+      photo: hasStructural(article, "photo"),
+      video: hasStructural(article, "video"),
+      gif: hasStructural(article, "gif")
     };
     if (media.gif) {
       media.video = true;
     }
+    return media;
+  }
+  function readHasLink(article) {
     const textNode = article.querySelector('[data-testid="tweetText"]');
-    const hasLink = (textNode ?? article).querySelector('a[href^="http"], a[href^="/t.co/"], a[href*="t.co/"]') !== null;
-    return { text, handle, premium, media, hasLink };
+    return (textNode ?? article).querySelector('a[href^="http"], a[href^="/t.co/"], a[href*="t.co/"]') !== null;
   }
   function readHandle2(article) {
     const userName = article.querySelector('[data-testid="User-Name"]');
@@ -13089,6 +13173,7 @@ ${record.text}${mediaList}`;
   var PROCESSED_ATTR = "data-av-filter-processed";
   var RESULT_ATTR = "data-av-filter-result";
   var CELL_RESULT_ATTR = "data-av-filter-cell-hidden";
+  var ALLOW_RESULT = "allow";
   var generation = 0;
   var ruleErrors = [];
   function filterRuleErrors() {
@@ -13096,14 +13181,15 @@ ${record.text}${mediaList}`;
   }
   var compiled;
   var compiledSignature = "";
+  var styleText = "";
   var filterActive = false;
   var filterEngineFeature = {
     id: "filtering.engine",
     title: "Filter engine",
     category: "filtering",
     init(ctx) {
-      ensureFilterStyle();
       refreshCompiled(ctx);
+      syncFilterStyle();
       filterActive = ctx.settings.filter.enabled && surfaceMatches(ctx);
       applyRootClasses(ctx);
       if (filterActive) {
@@ -13112,9 +13198,9 @@ ${record.text}${mediaList}`;
       ctx.diagnostics.info("Filter engine initialized", filterSummary(ctx));
     },
     apply(ctx, root, addedNodes) {
-      ensureFilterStyle();
       applyRootClasses(ctx);
       refreshCompiled(ctx);
+      syncFilterStyle();
       const active = ctx.settings.filter.enabled && surfaceMatches(ctx);
       if (!active) {
         if (filterActive) {
@@ -13135,6 +13221,7 @@ ${record.text}${mediaList}`;
     destroy(ctx) {
       compiled = void 0;
       compiledSignature = "";
+      styleText = "";
       generation = 0;
       clearDecorations();
       document.getElementById(STYLE_ID3)?.remove();
@@ -13222,10 +13309,12 @@ ${record.text}${mediaList}`;
     const signal = extractTweetSignal(article);
     const decision = decide(signal, filters);
     article.setAttribute(PROCESSED_ATTR, String(filters.generation));
-    if (decision === "show") {
-      article.removeAttribute(RESULT_ATTR);
-    } else {
+    if (decision !== "show") {
       article.setAttribute(RESULT_ATTR, decision);
+    } else if (isExempt(signal, filters)) {
+      article.setAttribute(RESULT_ATTR, ALLOW_RESULT);
+    } else {
+      article.removeAttribute(RESULT_ATTR);
     }
     syncCollapsedCell(article);
   }
@@ -13264,36 +13353,58 @@ ${record.text}${mediaList}`;
       surfaces: ctx.settings.filter.surfaces
     };
   }
-  function ensureFilterStyle() {
-    if (document.getElementById(STYLE_ID3)) {
+  function syncFilterStyle() {
+    const wanted = filterCss(compiled);
+    const existing = document.getElementById(STYLE_ID3);
+    if (existing && wanted === styleText) {
       return;
     }
-    const style = document.createElement("style");
+    styleText = wanted;
+    const style = existing ?? document.createElement("style");
     style.id = STYLE_ID3;
-    style.textContent = FILTER_CSS;
-    (document.head ?? document.documentElement).append(style);
+    style.textContent = wanted;
+    if (!existing) {
+      (document.head ?? document.documentElement).append(style);
+    }
   }
-  var FILTER_CSS = `
-html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="hide"] {
-  display: none !important;
-}
-
-html.av-filter-enabled [${CELL_RESULT_ATTR}="1"] {
-  display: none !important;
-}
-
-html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"] {
-  opacity: 0.36;
-  filter: grayscale(0.5);
-  transition: opacity 120ms ease, filter 120ms ease;
-}
-
-html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:hover,
-html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-within {
-  opacity: 1;
-  filter: none;
-}
+  var HIDDEN = "display: none !important;";
+  var DIMMED = "opacity: 0.36; filter: grayscale(0.5); transition: opacity 120ms ease, filter 120ms ease;";
+  var REVEALED = "opacity: 1; filter: none;";
+  var ROOT = "html.av-filter-enabled";
+  var UNDECIDED = `${ARTICLE_SELECTOR2}[${PROCESSED_ATTR}]:not([${RESULT_ATTR}])`;
+  function filterCss(filters) {
+    const blocks = [
+      `${ROOT} ${ARTICLE_SELECTOR2}[${RESULT_ATTR}="hide"] { ${HIDDEN} }`,
+      `${ROOT} [${CELL_RESULT_ATTR}="1"] { ${HIDDEN} }`,
+      `${ROOT} ${ARTICLE_SELECTOR2}[${RESULT_ATTR}="dim"] { ${DIMMED} }`,
+      `${ROOT} ${ARTICLE_SELECTOR2}[${RESULT_ATTR}="dim"]:hover,
+${ROOT} ${ARTICLE_SELECTOR2}[${RESULT_ATTR}="dim"]:focus-within { ${REVEALED} }`
+    ];
+    if (filters) {
+      blocks.push(...structuralCss(filters));
+    }
+    return `${blocks.join("\n\n")}
 `;
+  }
+  function structuralCss(filters) {
+    const plan = structuralFilterPlan(filters);
+    const blocks = [];
+    const hidden = structuralSelectorsFor(plan.hide);
+    if (hidden.length > 0) {
+      blocks.push(`${ROOT} ${UNDECIDED}:has(${hidden.join(", ")}) { ${HIDDEN} }`);
+      blocks.push(
+        `${ROOT} ${CELL_SELECTOR}:has(${hidden.map((selector) => `${UNDECIDED} ${selector}`).join(", ")}) { ${HIDDEN} }`
+      );
+    }
+    const dimmed = structuralSelectorsFor(plan.dim);
+    if (dimmed.length > 0) {
+      const target = `${ROOT} ${UNDECIDED}:has(${dimmed.join(", ")})`;
+      blocks.push(`${target} { ${DIMMED} }`);
+      blocks.push(`${target}:hover,
+${target}:focus-within { ${REVEALED} }`);
+    }
+    return blocks;
+  }
 
   // src/features/filtering/seen-posts.ts
   var SEEN_POSTS_KEY = "aviary.seenPosts.v1";
@@ -13813,7 +13924,7 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
     return {
       tweetId: readTweetId3(article),
       handle: readHandle3(article),
-      text: readText2(article)
+      text: readText3(article)
     };
   }
   function readTweetId3(article) {
@@ -13835,7 +13946,7 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
     }
     return null;
   }
-  function readText2(article) {
+  function readText3(article) {
     const nodes = article.querySelectorAll('[data-testid="tweetText"]');
     if (nodes.length > 0) {
       return Array.from(nodes).map((node) => node.textContent ?? "").join(" ");

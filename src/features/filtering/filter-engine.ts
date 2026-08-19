@@ -4,6 +4,9 @@ import {
   compileFilters,
   decide,
   extractTweetSignal,
+  isExempt,
+  structuralFilterPlan,
+  structuralSelectorsFor,
   type CompiledFilters,
   type FilterDecision
 } from "./predicates";
@@ -15,6 +18,8 @@ const CELL_SELECTOR = '[data-testid="cellInnerDiv"]';
 const PROCESSED_ATTR = "data-av-filter-processed";
 const RESULT_ATTR = "data-av-filter-result";
 const CELL_RESULT_ATTR = "data-av-filter-cell-hidden";
+/** Written on a post the allowlist exempts, so the structural rules can step over it. */
+const ALLOW_RESULT = "allow";
 
 let generation = 0;
 let ruleErrors: RuleParseError[] = [];
@@ -26,6 +31,8 @@ export function filterRuleErrors(): RuleParseError[] {
 let compiled: CompiledFilters | undefined;
 /** Serialised filter inputs behind the current `compiled`, so an unchanged apply is free. */
 let compiledSignature = "";
+/** The stylesheet currently in the document, so an unchanged apply does not rewrite it. */
+let styleText = "";
 let filterActive = false;
 
 export const filterEngineFeature: FeatureModule = {
@@ -34,8 +41,8 @@ export const filterEngineFeature: FeatureModule = {
   category: "filtering",
 
   init(ctx) {
-    ensureFilterStyle();
     refreshCompiled(ctx);
+    syncFilterStyle();
     filterActive = ctx.settings.filter.enabled && surfaceMatches(ctx);
     applyRootClasses(ctx);
     if (filterActive) {
@@ -45,9 +52,9 @@ export const filterEngineFeature: FeatureModule = {
   },
 
   apply(ctx, root, addedNodes) {
-    ensureFilterStyle();
     applyRootClasses(ctx);
     refreshCompiled(ctx);
+    syncFilterStyle();
 
     const active = ctx.settings.filter.enabled && surfaceMatches(ctx);
     if (!active) {
@@ -72,6 +79,7 @@ export const filterEngineFeature: FeatureModule = {
   destroy(ctx) {
     compiled = undefined;
     compiledSignature = "";
+    styleText = "";
     generation = 0;
     clearDecorations();
     document.getElementById(STYLE_ID)?.remove();
@@ -175,10 +183,13 @@ function processArticle(article: Element, filters: CompiledFilters): void {
   const signal = extractTweetSignal(article);
   const decision: FilterDecision = decide(signal, filters);
   article.setAttribute(PROCESSED_ATTR, String(filters.generation));
-  if (decision === "show") {
-    article.removeAttribute(RESULT_ATTR);
-  } else {
+  if (decision !== "show") {
     article.setAttribute(RESULT_ATTR, decision);
+  } else if (isExempt(signal, filters)) {
+    // An allowlisted author is not "undecided" — the structural rules must not reach it.
+    article.setAttribute(RESULT_ATTR, ALLOW_RESULT);
+  } else {
+    article.removeAttribute(RESULT_ATTR);
   }
   syncCollapsedCell(article);
 }
@@ -226,34 +237,72 @@ function filterSummary(ctx: FeatureContext): Record<string, unknown> {
   };
 }
 
-function ensureFilterStyle(): void {
-  if (document.getElementById(STYLE_ID)) {
+function syncFilterStyle(): void {
+  const wanted = filterCss(compiled);
+  const existing = document.getElementById(STYLE_ID);
+  if (existing && wanted === styleText) {
     return;
   }
-  const style = document.createElement("style");
+  styleText = wanted;
+  const style = existing ?? document.createElement("style");
   style.id = STYLE_ID;
-  style.textContent = FILTER_CSS;
-  (document.head ?? document.documentElement).append(style);
+  style.textContent = wanted;
+  if (!existing) {
+    (document.head ?? document.documentElement).append(style);
+  }
 }
 
-const FILTER_CSS = `
-html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="hide"] {
-  display: none !important;
+const HIDDEN = "display: none !important;";
+const DIMMED = "opacity: 0.36; filter: grayscale(0.5); transition: opacity 120ms ease, filter 120ms ease;";
+const REVEALED = "opacity: 1; filter: none;";
+const ROOT = "html.av-filter-enabled";
+/**
+ * A post the JS half looked at and did not decide. Every structural rule hangs off this, which is
+ * what gives the two halves their precedence: a rule that hides or dims wins, an allowlisted
+ * author wins, and only a post nothing textual matched is left for the stylesheet.
+ */
+const UNDECIDED = `${ARTICLE_SELECTOR}[${PROCESSED_ATTR}]:not([${RESULT_ATTR}])`;
+
+function filterCss(filters: CompiledFilters | undefined): string {
+  const blocks = [
+    `${ROOT} ${ARTICLE_SELECTOR}[${RESULT_ATTR}="hide"] { ${HIDDEN} }`,
+    `${ROOT} [${CELL_RESULT_ATTR}="1"] { ${HIDDEN} }`,
+    `${ROOT} ${ARTICLE_SELECTOR}[${RESULT_ATTR}="dim"] { ${DIMMED} }`,
+    `${ROOT} ${ARTICLE_SELECTOR}[${RESULT_ATTR}="dim"]:hover,\n${ROOT} ${ARTICLE_SELECTOR}[${RESULT_ATTR}="dim"]:focus-within { ${REVEALED} }`
+  ];
+  if (filters) {
+    blocks.push(...structuralCss(filters));
+  }
+  return `${blocks.join("\n\n")}\n`;
 }
 
-html.av-filter-enabled [${CELL_RESULT_ATTR}="1"] {
-  display: none !important;
-}
+/**
+ * The structural half, emitted from the one table in predicates.ts. `:has()` is Baseline widely
+ * available and sits far below both manifest floors (Chrome 105 / Firefox 121 against 116 / 128).
+ */
+function structuralCss(filters: CompiledFilters): string[] {
+  const plan = structuralFilterPlan(filters);
+  const blocks: string[] = [];
 
-html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"] {
-  opacity: 0.36;
-  filter: grayscale(0.5);
-  transition: opacity 120ms ease, filter 120ms ease;
-}
+  const hidden = structuralSelectorsFor(plan.hide);
+  if (hidden.length > 0) {
+    blocks.push(`${ROOT} ${UNDECIDED}:has(${hidden.join(", ")}) { ${HIDDEN} }`);
+    // The row has to collapse with the post or X's absolutely-positioned virtualizer leaves a
+    // full-height gap. `:has()` cannot nest, so the article condition and the media it must
+    // contain are flattened into one descendant selector per member.
+    blocks.push(
+      `${ROOT} ${CELL_SELECTOR}:has(${hidden
+        .map((selector) => `${UNDECIDED} ${selector}`)
+        .join(", ")}) { ${HIDDEN} }`
+    );
+  }
 
-html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:hover,
-html.av-filter-enabled article[data-testid="tweet"][${RESULT_ATTR}="dim"]:focus-within {
-  opacity: 1;
-  filter: none;
+  const dimmed = structuralSelectorsFor(plan.dim);
+  if (dimmed.length > 0) {
+    const target = `${ROOT} ${UNDECIDED}:has(${dimmed.join(", ")})`;
+    blocks.push(`${target} { ${DIMMED} }`);
+    blocks.push(`${target}:hover,\n${target}:focus-within { ${REVEALED} }`);
+  }
+
+  return blocks;
 }
-`;

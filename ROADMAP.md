@@ -45,6 +45,10 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Aviary should render cause + rule title, offer peek-without-unhiding, and — since it already has a rule
   engine — a filter inspector that runs any visible post through every rule and reports which matched.
   F204 supplies the rule title this sentence needs.
+  Note (2026-08-19): F186 moved the media and verified predicates into `:has()` rules, so a post
+  hidden by one of those carries no JS decision to read a reason off. Do not put them back to
+  recover it — match the article against `STRUCTURAL_SELECTORS` on demand, when the user asks why,
+  which is one query for one post instead of five for every post in every batch.
   Complexity: M
 
 - [ ] F145 — P2 — Portable rule sets
@@ -168,20 +172,6 @@ confirmed a second time. See RESEARCH.md.
   and no `z-index` above X's; `inert`/focus-return behaviour is unchanged or better, proven against the
   live accessibility tree rather than source text; visual baselines are regenerated and reviewed.
   Depends on: F140 (the a11y assertions this touches should be behavioural before they are rewritten).
-  Complexity: M
-
-- [ ] F186 — P2 — Push structural filter predicates into `:has()` stylesheets
-  Why: the filter loop's shape is "MutationObserver fires → walk to the owning article → toggle a
-  class", and every predicate that is purely structural collapses to one static CSS rule instead —
-  removing that work from the mutation hot path entirely, which is the same path F175 and F179 are
-  contending over. `:has()` is Baseline Widely available and safe at both floors.
-  Evidence: MDN `:has()` — Chrome 105 / Firefox 121 / Safari 15.4, Baseline high 2026-06-19 (verified
-  2026-08-17). Current predicate set in `src/features/filtering/predicates.ts`.
-  Touches: `src/features/filtering/predicates.ts`, `filter-engine.ts` (CSS emission),
-  `tests/filter-engine.test.mjs`.
-  Acceptance: predicates that are structural are expressed as `:has()` rules and no longer run per
-  article per batch; text- and rule-driven predicates stay in JS; the split is documented so a future
-  predicate lands on the right side; measured mutation-batch work drops on the fixture timeline.
   Complexity: M
 
 ### P2 — archive fidelity

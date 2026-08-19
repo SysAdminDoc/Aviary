@@ -79,6 +79,21 @@ before(async () => {
         diagnostics: { info() {}, warn() {}, error() {} }
       };
     };
+    /**
+     * What the reader actually gets. Half the engine's decisions no longer exist as an attribute
+     * -- the structural predicates are `:has()` rules -- so the outcome has to be read off
+     * computed style, which is the one place both halves land.
+     */
+    window.outcome = () => {
+      const articles = [...document.querySelectorAll('article[data-testid="tweet"]')];
+      const style = (article) => getComputedStyle(article);
+      return {
+        hidden: articles.filter((article) => style(article).display === "none").length,
+        dimmed: articles.filter(
+          (article) => style(article).display !== "none" && Number(style(article).opacity) < 1
+        ).length
+      };
+    };
     /** Counts attribute mutations the engine causes inside the timeline. */
     window.countMutations = async (work) => {
       const target = document.querySelector('[data-testid="primaryColumn"]');
@@ -110,7 +125,7 @@ test("a second apply with unchanged settings does no work on an unchanged timeli
     const second = await window.countMutations(() => AviaryFilter.filterEngineFeature.apply(ctx, document));
     const third = await window.countMutations(() => AviaryFilter.filterEngineFeature.apply(ctx, document));
 
-    const hidden = document.querySelectorAll('[data-av-filter-result="hide"]').length;
+    const hidden = window.outcome().hidden;
     AviaryFilter.filterEngineFeature.destroy(ctx);
     return { first, second, third, hidden, posts };
   }, POSTS);
@@ -128,15 +143,13 @@ test("every input the filter reads takes effect without a reload", async () => {
   // Each case names a settings change and the outcome it must produce on the same fixture. If a
   // field were dropped from the recompile signature, its case here would stop changing anything.
   const cases = await page.evaluate(async () => {
-    const hiddenCount = () => document.querySelectorAll('[data-av-filter-result="hide"]').length;
     const run = async (mutate) => {
       const ctx = window.makeCtx(mutate);
       AviaryFilter.filterEngineFeature.init(ctx);
       await AviaryFilter.filterEngineFeature.apply(ctx, document);
-      const hidden = hiddenCount();
-      const dimmed = document.querySelectorAll('[data-av-filter-result="dim"]').length;
+      const result = window.outcome();
       AviaryFilter.filterEngineFeature.destroy(ctx);
-      return { hidden, dimmed };
+      return result;
     };
 
     return {
@@ -174,13 +187,13 @@ test("changing a rule between applies re-evaluates the timeline that was already
     });
     AviaryFilter.filterEngineFeature.init(ctx);
     await AviaryFilter.filterEngineFeature.apply(ctx, document);
-    const before = document.querySelectorAll('[data-av-filter-result="hide"]').length;
+    const before = window.outcome().hidden;
 
     // The same object the panel mutates, then a plain re-apply — no reload, no re-init.
     ctx.settings.filter.keywordRules = [];
     ctx.settings.filter.regexRules = ["number (1|3|5) "];
     const mutations = await window.countMutations(() => AviaryFilter.filterEngineFeature.apply(ctx, document));
-    const after = document.querySelectorAll('[data-av-filter-result="hide"]').length;
+    const after = window.outcome().hidden;
 
     AviaryFilter.filterEngineFeature.destroy(ctx);
     return { before, after, mutations };
@@ -197,10 +210,7 @@ test("every signature input invalidates the compiled filter when it changes mid-
   // missing, changing it leaves the previous compile in place and the setting silently stops
   // working until a reload -- which is what a re-apply without a re-init reproduces here.
   const changes = await page.evaluate(async () => {
-    const snapshot = () => ({
-      hidden: document.querySelectorAll('[data-av-filter-result="hide"]').length,
-      dimmed: document.querySelectorAll('[data-av-filter-result="dim"]').length
-    });
+    const snapshot = () => window.outcome();
     const same = (a, b) => a.hidden === b.hidden && a.dimmed === b.dimmed;
 
     const cases = {
@@ -269,9 +279,14 @@ test("a filter action nothing reads cannot default to anything but off", async (
   // wrong reason. This asks the engine instead: set the action to "hide" and see whether the
   // timeline changes.
   const audit = await page.evaluate(async () => {
+    // Computed display and opacity per post, in document order: the reader-visible outcome,
+    // whichever half of the engine produced it.
     const snapshot = () =>
       [...document.querySelectorAll('article[data-testid="tweet"]')]
-        .map((article) => article.getAttribute("data-av-filter-result") ?? "")
+        .map((article) => {
+          const style = getComputedStyle(article);
+          return `${style.display}/${style.opacity}`;
+        })
         .join(",");
 
     const render = (mutate) => {
