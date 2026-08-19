@@ -11,3 +11,9 @@ tools/i18n-manifest.json
 # 2026-08-15. They are produced at release time and attached to the release, not carried in history.
 # dist/aviary.user.js stays tracked: @downloadURL resolves to it, so it IS the update channel.
 dist/extension-*-v*.zip
+# The unpacked bundles for the same reason: `content.js` alone is 1.9 MB per target, rebuilt by
+# `npm run verify` on every commit touching src/, and nothing consumes the committed copy -- both
+# INSTALL's load-unpacked steps and the release artifacts come from a build. `dist/aviary.meta.js`
+# and `dist/aviary.user.js` stay tracked because a manager polls them by raw URL.
+dist/extension-chrome/
+dist/extension-firefox/

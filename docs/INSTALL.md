@@ -33,9 +33,10 @@ Control Center.
 
 ## Chrome, Edge, or Brave (developer load)
 
-1. Run `npm run verify`. The build emits `dist/extension-chrome/` and
-   `dist/extension-chrome-v1.33.0.zip`. The ZIPs are build output and are not carried in git —
-   build them, or take them from a release.
+1. Run `npm run verify` (or `npm run build`). **This step is required on a fresh clone**: neither
+   `dist/extension-chrome/` nor the ZIP is carried in git — `content.js` alone is 1.9 MB per target
+   and is rebuilt on every commit that touches `src/`, so the committed copy was 3.8 MB of
+   incompressible history per commit that nothing read. Build them, or take them from a release.
 2. Open `chrome://extensions/` (or the equivalent extensions page), enable **Developer mode**, and
    choose **Load unpacked** with `dist/extension-chrome/`. A ZIP is a release artifact; Chromium
    developer loading uses the unpacked directory.
@@ -90,10 +91,12 @@ against webstatus.dev and MDN on 2026-08-17.
 
 Build the extension, then:
 
-1. Open `about:debugging#/runtime/this-firefox`.
-2. Select **Load Temporary Add-on…**.
-3. Choose `dist/extension-firefox/manifest.json`.
-4. Refresh an `x.com` page.
+1. Run `npm run verify` (or `npm run build`) first — `dist/extension-firefox/` is not carried in
+   git either.
+2. Open `about:debugging#/runtime/this-firefox`.
+3. Select **Load Temporary Add-on…**.
+4. Choose `dist/extension-firefox/manifest.json`.
+5. Refresh an `x.com` page.
 
 The Firefox build has the same base, optional, and options-page permission flow as the Chromium
 build. Its background runs as a Firefox MV3 event page and keeps an empty enabled ruleset solely for

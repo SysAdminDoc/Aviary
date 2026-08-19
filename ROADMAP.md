@@ -250,22 +250,6 @@ confirmed a second time. See RESEARCH.md.
   contributed; local-only mode still makes zero provider requests.
   Complexity: M
 
-### P3 — repository hygiene
-
-- [ ] F193 — P3 — Stop carrying the extension bundles in git history
-  Why: `dist/extension-chrome/content.js` and `dist/extension-firefox/content.js` are 1.9 MB each and
-  tracked, and `npm run verify` rebuilds them on every commit touching `src/` — so each such commit
-  writes ~3.8 MB of incompressible binary that nothing consumes. `.git` is 113 MB after 193 commits.
-  This is the same reasoning that already removed the packaged ZIPs; the bundles were missed.
-  `dist/aviary.user.js` must stay tracked — `@downloadURL` resolves to it, so it is the update channel.
-  Evidence: `.gitignore` ZIP rationale; `ls -la dist/extension-*` (2026-08-17); `du -sh .git` = 113 MB.
-  Touches: `.gitignore`, `docs/INSTALL.md` (load-unpacked instructions must say to build first),
-  release artifact attachment.
-  Acceptance: the extension bundle directories are untracked and built on demand; `dist/aviary.user.js`
-  stays tracked; INSTALL's Chromium and Firefox load steps still work from a clean clone after one
-  build; the bundles are attached to releases.
-  Complexity: S
-
 ## Research-Driven Additions (2026-08-18)
 
 Completes the 2026-08-17 pass, which lost most of its external streams to an API limit. Defects

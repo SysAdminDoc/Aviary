@@ -4,6 +4,14 @@
 
 ### Changed
 
+- **The unpacked extension bundles are no longer carried in git.** `dist/extension-chrome/` and
+  `dist/extension-firefox/` are build output that `npm run verify` regenerates on every commit
+  touching `src/` — 1.9 MB of incompressible `content.js` per target, per commit, that nothing read:
+  the load-unpacked instructions and the release artifacts both come from a build. They are ignored
+  and built on demand; `dist/aviary.user.js` and `dist/aviary.meta.js` stay tracked because a
+  userscript manager polls them by raw URL. `docs/INSTALL.md` now says to build first, for both
+  browsers.
+
 - **Every release named in this file now has a tag on the commit that bumped its version.** Nine
   releases were tagged and thirty-one were documented, so most of the project's history could not be
   checked out, diffed, or bisected by reference — which is the wrong gap for a project whose most
