@@ -247,6 +247,8 @@ export interface AviarySettings {
     focusStart: string;
     /** End of the allowed reading window. An end before the start wraps midnight. */
     focusEnd: string;
+    /** Stop extending the feed past this many posts. Zero leaves X's endless scroll alone. */
+    timelineStopAfter: number;
   };
   filter: {
     enabled: boolean;
@@ -390,7 +392,8 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     forceFollowing: false,
     focusMode: false,
     focusStart: "09:00",
-    focusEnd: "18:00"
+    focusEnd: "18:00",
+    timelineStopAfter: 0
   },
   filter: {
     enabled: false,
@@ -655,7 +658,13 @@ export function normalizeSettings(input: unknown): AviarySettings {
       forceFollowing: booleanValue(layout.forceFollowing, DEFAULT_SETTINGS.layout.forceFollowing),
       focusMode: booleanValue(layout.focusMode, DEFAULT_SETTINGS.layout.focusMode),
       focusStart: timeValue(layout.focusStart, DEFAULT_SETTINGS.layout.focusStart),
-      focusEnd: timeValue(layout.focusEnd, DEFAULT_SETTINGS.layout.focusEnd)
+      focusEnd: timeValue(layout.focusEnd, DEFAULT_SETTINGS.layout.focusEnd),
+      timelineStopAfter: integerValue(
+        layout.timelineStopAfter,
+        DEFAULT_SETTINGS.layout.timelineStopAfter,
+        0,
+        1000
+      )
     },
     filter: {
       enabled: booleanValue(filter.enabled, DEFAULT_SETTINGS.filter.enabled),

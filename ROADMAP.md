@@ -272,19 +272,6 @@ below were read at the cited line. See RESEARCH.md.
   viewport upward, never on mere render; injecting the separator never moves the reading position.
   Complexity: M
 
-- [ ] F206 — P2 — Let the timeline stop
-  Why: infinite scroll is the one attention mechanism Aviary's focus mode does not touch, and an explicit
-  pagination request is open on the closest competitor with no implementation anywhere in the field.
-  Phanpy ships it as "Paginated timeline"; Elk ships `disableTimelineAutoloading`. It is a local DOM
-  behaviour with no capture dependency.
-  Evidence: control-panel-for-twitter#916 (2026-08-03, "Load some user-defined number of posts, and then
-  either force 'show more' or introduce pagination"); Phanpy settings; Elk settings definition.
-  Touches: a new layout feature, Layout settings, `src/features/layout/`.
-  Acceptance: after a user-set number of posts the timeline stops extending and shows an explicit control
-  to continue; the count and the control are visible; turning it off restores X's behaviour immediately;
-  scroll position is never moved by the intervention.
-  Complexity: M
-
 - [ ] F207 — P2 — Rebuild threads from what has already been captured
   Why: "archive a thread including all the replies" is a standing unmet request, and Aviary is unusually
   well placed: it already persists GraphQL payloads and `viewer.ts` already groups exported records by

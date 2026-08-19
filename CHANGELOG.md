@@ -4,6 +4,15 @@
 
 ### Added
 
+- **The timeline can stop.** Set a number of posts and the feed stops extending there, with a
+  control to continue that releases another page of the same size. Off by default; zero leaves X's
+  endless scroll exactly as it was. It applies to feeds that extend — home, profile, search — and
+  never to a conversation, which is finite already. The property the implementation is built around
+  is that nothing already on screen moves: the control is inserted *after* the last post shown
+  rather than above the cut, so continuing extends downward into space that was below the fold, and
+  a post the reader was looking at stays exactly where it was. A release granted on one feed does
+  not carry to the next.
+
 - **A filtered post can say what caught it.** A filter that hides silently is hard to tell from a
   bug, so a suppressed post now names the rule, keyword, pattern, engagement floor or media type
   responsible — by the rule's title where it has one. The reason comes out of the same evaluation

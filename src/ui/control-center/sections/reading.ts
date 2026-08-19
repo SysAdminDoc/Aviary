@@ -263,6 +263,18 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
           await ctx.save("Reading hours saved");
         }
       ),
+      ctx.integerInputRow(
+        "Stop the timeline after",
+        "Posts to show before the feed stops extending, with a control to continue. Zero leaves X's endless scroll alone. Nothing already on screen moves, and the control appears below the last post rather than above it.",
+        ctx.options.settings.layout.timelineStopAfter,
+        async (value) => {
+          ctx.options.settings.layout.timelineStopAfter = value;
+          await ctx.save(
+            value > 0 ? `Timeline stops after ${value} posts` : "Timeline scrolls without stopping"
+          );
+        },
+        { min: 0, max: 1000 }
+      ),
       ctx.toggleRow(
         "Writer mode",
         "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.",
