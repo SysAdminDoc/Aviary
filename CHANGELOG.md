@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.34.0 - 2026-08-19
+
 ### Changed
 
 - **The unpacked extension bundles are no longer carried in git.** `dist/extension-chrome/` and
