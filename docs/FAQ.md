@@ -211,7 +211,7 @@ Every control Aviary offers, by Control Center page. 75 controls across 12 pages
 | --- | --- |
 | Enable filters | Master switch for keyword, regex, premium, and media filters. |
 | Dim posts you have already seen | Fade a post the second time it scrolls past, so a return trip down the timeline shows what is new. Hovering a faded post brings it back. Only post IDs are stored. |
-| Filter rules | One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo |
+| Filter rules | One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Name a rule by starting the line with [a title], and give it a limited life with for 7d from <date>. Example: [Weekend sales] dim for 7d from 2026-08-19T10:00:00.000Z: text contains sale and media is photo |
 | Keyword rules | One keyword or phrase per line. Case-insensitive substring match. |
 | Regex rules | One pattern per line. Use /pattern/flags or a bare pattern (case-insensitive). |
 | Whitelist handles | Handles (one per line, no @) that are never filtered. |

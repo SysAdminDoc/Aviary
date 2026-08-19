@@ -10,7 +10,7 @@ import {
   type CompiledFilters,
   type FilterDecision
 } from "./predicates";
-import { compileRules, type RuleParseError } from "./rules";
+import { compileRules, type CompiledRule, type RuleParseError } from "./rules";
 
 const STYLE_ID = "av-filter-engine";
 const ARTICLE_SELECTOR = 'article[data-testid="tweet"]';
@@ -23,10 +23,18 @@ const ALLOW_RESULT = "allow";
 
 let generation = 0;
 let ruleErrors: RuleParseError[] = [];
+let expiredRules: CompiledRule[] = [];
+/** When the compiled set stops being current on its own, because a rule's window closes. */
+let nextExpiry: number | null = null;
 
 /** Parse failures from the last compile, for the Control Center to surface. */
 export function filterRuleErrors(): RuleParseError[] {
   return [...ruleErrors];
+}
+
+/** Rules whose window has closed, for the Control Center to offer a renewal of. */
+export function filterExpiredRules(): CompiledRule[] {
+  return [...expiredRules];
 }
 let compiled: CompiledFilters | undefined;
 /** Serialised filter inputs behind the current `compiled`, so an unchanged apply is free. */
@@ -80,6 +88,8 @@ export const filterEngineFeature: FeatureModule = {
     compiled = undefined;
     compiledSignature = "";
     styleText = "";
+    expiredRules = [];
+    nextExpiry = null;
     generation = 0;
     clearDecorations();
     document.getElementById(STYLE_ID)?.remove();
@@ -113,13 +123,26 @@ function refreshCompiled(ctx: FeatureContext): void {
   // invalidated every article on every mutation batch -- the stamp check could never hit and
   // the whole visible timeline was re-extracted (5+ querySelectorAll each) roughly every 120ms.
   const signature = filterSignature(ctx);
-  if (compiled && signature === compiledSignature) {
+  const now = Date.now();
+  // A rule with a window stops applying when the window closes, and nothing else about the
+  // settings changes at that moment -- so the compiled set has its own expiry beside the
+  // signature. The clock is read once per apply, never per post.
+  const stale = nextExpiry !== null && now >= nextExpiry;
+  if (compiled && signature === compiledSignature && !stale) {
     return;
   }
   compiledSignature = signature;
   generation += 1;
-  const ruleSet = compileRules(ctx.settings.filter.rules);
+  const ruleSet = compileRules(ctx.settings.filter.rules, now);
   ruleErrors = ruleSet.errors;
+  expiredRules = ruleSet.expired;
+  nextExpiry = ruleSet.nextExpiry;
+  if (ruleSet.expired.length > 0) {
+    ctx.diagnostics.info("Filter rules have expired", {
+      count: ruleSet.expired.length,
+      titles: ruleSet.expired.map((rule) => rule.title ?? rule.source).slice(0, 5)
+    });
+  }
   if (ruleErrors.length > 0) {
     // A rule that cannot be parsed must be visible, not a filter that silently never matches.
     ctx.diagnostics.warn("Filter rules could not be parsed", {

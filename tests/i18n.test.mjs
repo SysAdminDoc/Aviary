@@ -198,6 +198,61 @@ test("the extractor reaches every panel section and every status branch", async 
   assert.ok(harvested.includes("Link cleaning off"), "ternary status arms must be harvested");
 });
 
+test("a conditional row's description is harvested, not only its label", async () => {
+  // A row drawn behind a condition -- an expired rule, a callback the stub does not supply -- is
+  // never rendered during extraction, so its copy reaches the manifest only through the source
+  // scan. That scan read one string per helper call, which is the label. Every such row's
+  // explanatory sentence therefore shipped in English in all eight locales while coverage
+  // reported 100%: the same defect the label rule was written to fix, one argument to the right.
+  const tool = await readFile(path.join(root, "tools/i18n-extract.mjs"), "utf8");
+  const { harvestPanelLiterals } = await importToolFunction(tool, "harvestPanelLiterals");
+
+  const harvested = harvestPanelLiterals(`
+    ctx.actionRow("Renew expired rules", "Restart each rule's window.", async () => {});
+    ctx.toggleRow("Ad-free mode", "Collapse sponsored posts.", true, async () => {});
+    ctx.dataRow("Expired rules", someRuntimeValue);
+    ctx.selectRow("Quote posts", value, OPTIONS, onChange, "Posts that quote another post.");
+  `);
+
+  assert.ok(harvested.includes("Renew expired rules"), "the label must still be harvested");
+  assert.ok(
+    harvested.includes("Restart each rule's window."),
+    "an action row's description is copy and must be harvested too"
+  );
+  assert.ok(
+    harvested.includes("Collapse sponsored posts."),
+    "and so is a toggle row's description"
+  );
+
+  // The real manifest, not a sample: a description that only renders behind a condition.
+  const manifest = await readI18nManifest(root);
+  for (const conditional of [
+    "Clear the stored post IDs so everything reads as unseen again.",
+    "Retry every failed or cancelled media job in the durable queue."
+  ]) {
+    assert.ok(
+      manifest.manifest.includes(conditional),
+      `"${conditional}" is drawn behind a condition and is missing from the harvest`
+    );
+  }
+});
+
+/** Imports one named function out of the top-level-await tool script. */
+async function importToolFunction(toolSource, name) {
+  const start = toolSource.indexOf(`function ${name}(`);
+  assert.ok(start > -1, `${name} not found`);
+  const end = toolSource.indexOf("\n}\n", start);
+  assert.ok(end > start, `could not find the end of ${name}`);
+  const temp = await mkdtemp(path.join(tmpdir(), "aviary-i18n-fn-"));
+  try {
+    const file = path.join(temp, "fn.mjs");
+    await writeFile(file, `${toolSource.slice(start, end + 3)}\nexport { ${name} };\n`, "utf8");
+    return await import(pathToFileURL(file).href);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+}
+
 /** Runs the tool's own harvester over a sample so the assertion tests behaviour, not just text. */
 async function harvestFrom(toolSource) {
   const start = toolSource.indexOf("function harvestStatusLiterals(");

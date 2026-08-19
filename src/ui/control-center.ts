@@ -187,6 +187,9 @@ export interface ControlCenterOptions {
   getUserColors?: () => Record<string, string>;
   setUserColor?: (handle: string, color: string) => Promise<void>;
   getFilterRuleErrors?: () => Array<{ line: number; message: string }>;
+  getExpiredFilterRules?: () => Array<{ title: string | null; source: string; expiredAt: number }>;
+  /** Restarts every expired rule's own window from now. Resolves with how many were renewed. */
+  renewFilterRules?: () => Promise<number>;
   getSavedDiagnostics?: () => { total: number; errors: number; newestAt: string | null };
   clearSavedDiagnostics?: () => Promise<void>;
   clearAuditLog?: () => Promise<void>;

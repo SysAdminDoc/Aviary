@@ -44,7 +44,8 @@ import {
   type RetentionPolicy
 } from "../export/jobs";
 import { renderForExternalTarget } from "../export/external-targets";
-import { filterRuleErrors } from "../filtering/filter-engine";
+import { filterExpiredRules, filterRuleErrors } from "../filtering/filter-engine";
+import { renewRuleLine } from "../filtering/rules";
 import { getSeenPostStore } from "../filtering/seen-posts-feature";
 import {
   clearHiddenPosts,
@@ -389,6 +390,26 @@ export const controlCenterFeature: FeatureModule = {
           line: problem.line,
           message: problem.message
         }));
+      },
+      getExpiredFilterRules() {
+        return filterExpiredRules().map((rule) => ({
+          title: rule.title,
+          source: rule.source,
+          expiredAt: rule.expiresAt ?? 0
+        }));
+      },
+      async renewFilterRules() {
+        const expired = new Set(filterExpiredRules().map((rule) => rule.source));
+        if (expired.size === 0) {
+          return 0;
+        }
+        const now = Date.now();
+        ctx.settings.filter.rules = ctx.settings.filter.rules.map((line) =>
+          expired.has(line.trim()) ? renewRuleLine(line.trim(), now) : line
+        );
+        await ctx.saveSettings();
+        ctx.requestApply();
+        return expired.size;
       },
       getAdLabelLanguage() {
         const language = documentLanguage();

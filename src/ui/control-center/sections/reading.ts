@@ -420,7 +420,7 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
   rows.push(
     ctx.textareaRow(
       "Filter rules",
-      "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Example: dim: text contains sale and media is photo",
+      "One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Name a rule by starting the line with [a title], and give it a limited life with for 7d from <date>. Example: [Weekend sales] dim for 7d from 2026-08-19T10:00:00.000Z: text contains sale and media is photo",
       ctx.options.settings.filter.rules,
       async (lines) => {
         ctx.options.settings.filter.rules = lines.slice(0, 100);
@@ -437,6 +437,36 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
         ruleProblems.map((problem) => `line ${problem.line}: ${problem.message}`).join(" · ")
       )
     );
+  }
+
+  const expiredRules = ctx.options.getExpiredFilterRules?.() ?? [];
+  if (expiredRules.length > 0) {
+    rows.push(
+      ctx.dataRow(
+        "Expired rules",
+        expiredRules
+          .map((rule) => rule.title ?? rule.source)
+          .join(" · ")
+      )
+    );
+    if (ctx.options.renewFilterRules) {
+      rows.push(
+        ctx.actionRow(
+          "Renew expired rules",
+          "Restart each expired rule's own window from now. Nothing is deleted when a rule expires, so a rule can always be brought back.",
+          async () => {
+            try {
+              const renewed = await ctx.options.renewFilterRules!();
+              ctx.setStatusCopy("Renewed {count} rules.", { count: String(renewed) });
+              ctx.render();
+            } catch (error) {
+              ctx.options.onError("Could not renew filter rules", error);
+              ctx.setStatus("Could not renew the expired rules.");
+            }
+          }
+        )
+      );
+    }
   }
 
   rows.push(

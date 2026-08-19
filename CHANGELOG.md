@@ -4,6 +4,24 @@
 
 ### Added
 
+- **A filter rule can carry a name and a lifetime.** Start a line with `[a title]` to name a rule,
+  and give it `for 7d from <instant>` to have it apply only for a while. An expired rule stops
+  filtering on the next pass with no settings change and no reload — and is never deleted: the
+  panel lists what expired and offers one control that restarts each rule's own window from now.
+  The window is stored as its duration plus its start rather than as a deadline, which is what
+  makes renewing possible without asking the user again what they originally chose. Rules written
+  before any of this keep parsing exactly as they did.
+
+### Fixed
+
+- **Eleven sentences in the Control Center were shipping in English in all eight locales while
+  translation coverage reported 100%.** The extractor draws the panel to harvest its copy, so a row
+  that only appears under a condition — an expired rule, a callback the harness cannot supply — is
+  reached only by the source scan, and that scan read one string per row: the label. Every such
+  row's explanatory sentence was invisible to it. The scan now reads the description too, for each
+  helper whose second argument is one, and a test drives the harvester over a conditional row so
+  the gap cannot reopen.
+
 - **Filter on the shape of a post, not only its words.** Two predicates, both off by default.
   *Quote posts* hides or dims a post that quotes another — structural, so it is a `:has()` rule
   costing nothing per post, and it tells a quoted post from a link preview by the quoted author's

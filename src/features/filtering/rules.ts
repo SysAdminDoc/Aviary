@@ -38,11 +38,28 @@ export interface RuleCondition {
   pattern?: RegExp;
 }
 
+/**
+ * How long a rule lasts, kept as the window the user chose plus the instant it started, rather
+ * than as a bare deadline. Storing the window is what makes "renew" a one-click operation: the
+ * start moves to now and the rule's own duration decides the rest.
+ */
+export interface RuleWindow {
+  amount: number;
+  unit: "h" | "d";
+  startedAt: number;
+}
+
 export interface CompiledRule {
   source: string;
+  /** What the user called this rule. Null for the untitled rules that predate the syntax. */
+  title: string | null;
   action: Extract<FilterDecision, "hide" | "dim">;
   combinator: "and" | "or";
   conditions: RuleCondition[];
+  /** The window this rule lives in, or null when it never expires. */
+  window: RuleWindow | null;
+  /** When the window closes. Null when there is no window. */
+  expiresAt: number | null;
 }
 
 export interface RuleParseError {
@@ -52,17 +69,31 @@ export interface RuleParseError {
 }
 
 export interface CompiledRuleSet {
+  /** The rules that are in force right now. Expired ones are not here. */
   rules: CompiledRule[];
+  /**
+   * Rules whose window has closed. They keep applying to nothing and are never deleted -- an
+   * expired rule the user forgot about is a rule they can renew, and a rule that vanished is one
+   * they cannot.
+   */
+  expired: CompiledRule[];
   errors: RuleParseError[];
+  /**
+   * The next instant at which this set changes on its own, so the engine knows when to recompile
+   * without asking the clock once per post.
+   */
+  nextExpiry: number | null;
 }
 
 const MEDIA_VALUES = new Set<FilterMediaKey>(["photo", "video", "gif"]);
 const BOOLEAN_FIELDS = new Set<RuleField>(["verified", "link"]);
 const MAX_RULES = 100;
 
-export function compileRules(lines: readonly string[]): CompiledRuleSet {
+export function compileRules(lines: readonly string[], now = Date.now()): CompiledRuleSet {
   const rules: CompiledRule[] = [];
+  const expired: CompiledRule[] = [];
   const errors: RuleParseError[] = [];
+  let nextExpiry: number | null = null;
 
   lines.slice(0, MAX_RULES).forEach((raw, index) => {
     const source = raw.trim();
@@ -70,7 +101,15 @@ export function compileRules(lines: readonly string[]): CompiledRuleSet {
       return;
     }
     try {
-      rules.push(parseRule(source));
+      const rule = parseRule(source);
+      if (rule.expiresAt !== null && rule.expiresAt <= now) {
+        expired.push(rule);
+        return;
+      }
+      if (rule.expiresAt !== null && (nextExpiry === null || rule.expiresAt < nextExpiry)) {
+        nextExpiry = rule.expiresAt;
+      }
+      rules.push(rule);
     } catch (error) {
       errors.push({
         source,
@@ -80,16 +119,56 @@ export function compileRules(lines: readonly string[]): CompiledRuleSet {
     }
   });
 
-  return { rules, errors };
+  return { rules, expired, errors, nextExpiry };
 }
+
+/**
+ * The optional header a rule may carry, ahead of its conditions:
+ *
+ *   [Crypto noise] dim for 7d from 2026-08-19T10:00:00.000Z: text contains crypto
+ *
+ * Every part is optional and old rules have none of them. A leading `[...]` is unambiguous — a
+ * condition always starts with a bare word — and the rest is only read when the line carries the
+ * colon that separates a header from the conditions, which is the same colon `dim:` already used.
+ *
+ * The window is written as its duration plus the instant it started rather than as a deadline, so
+ * that renewing a rule is a matter of moving the start rather than recomputing what the user
+ * originally asked for.
+ */
+// The instant is matched greedily: an ISO timestamp contains colons of its own, so a lazy match
+// would stop at "2026-08-19T10" and read the rest of the time as conditions.
+const RULE_HEADER = /^(?:(hide|dim)\b\s*)?(?:for\s+(\d+)\s*([hd])\s+from\s+(\S+)\s*)?:\s*/i;
 
 function parseRule(source: string): CompiledRule {
   let body = source;
+  let title: string | null = null;
+
+  if (body.startsWith("[")) {
+    const close = body.indexOf("]");
+    if (close < 0) {
+      throw new Error("a rule title needs a closing ]");
+    }
+    title = body.slice(1, close).trim();
+    if (title.length === 0) {
+      throw new Error("a rule title cannot be empty; drop the brackets instead");
+    }
+    body = body.slice(close + 1).trim();
+    if (body.length === 0) {
+      throw new Error("a titled rule still needs conditions");
+    }
+  }
+
   let action: CompiledRule["action"] = "hide";
-  const prefix = /^(hide|dim)\s*:\s*/i.exec(body);
-  if (prefix?.[1]) {
-    action = prefix[1].toLowerCase() === "dim" ? "dim" : "hide";
-    body = body.slice(prefix[0].length);
+  let window: RuleWindow | null = null;
+  const header = RULE_HEADER.exec(body);
+  if (header) {
+    if (header[1]) {
+      action = header[1].toLowerCase() === "dim" ? "dim" : "hide";
+    }
+    if (header[2] && header[3] && header[4]) {
+      window = parseWindow(header[2], header[3], header[4]);
+    }
+    body = body.slice(header[0].length);
   }
 
   const parts = splitOnConnective(body);
@@ -97,7 +176,63 @@ function parseRule(source: string): CompiledRule {
   if (conditions.length === 0) {
     throw new Error("a rule needs at least one condition");
   }
-  return { source, action, combinator: parts.combinator, conditions };
+  return {
+    source,
+    title,
+    action,
+    combinator: parts.combinator,
+    conditions,
+    window,
+    expiresAt: window ? windowEnd(window) : null
+  };
+}
+
+const HOUR_MS = 60 * 60 * 1000;
+
+export function windowEnd(window: RuleWindow): number {
+  return window.startedAt + window.amount * (window.unit === "d" ? 24 : 1) * HOUR_MS;
+}
+
+function parseWindow(amount: string, unit: string, from: string): RuleWindow {
+  const value = Number(amount);
+  if (!Number.isInteger(value) || value < 1 || value > 3650) {
+    throw new Error(`"${amount}${unit}" is not a duration between 1h and 3650d`);
+  }
+  const startedAt = Date.parse(from);
+  if (Number.isNaN(startedAt)) {
+    throw new Error(`"${from}" is not a date Aviary can read; use an ISO instant`);
+  }
+  return { amount: value, unit: unit.toLowerCase() === "d" ? "d" : "h", startedAt };
+}
+
+/**
+ * The same rule, its window restarted at `now`. Returns the line unchanged when it has no window,
+ * so a caller can renew a whole set without deciding which lines carry one.
+ */
+export function renewRuleLine(source: string, now = Date.now()): string {
+  return source.replace(
+    /(for\s+\d+\s*[hd]\s+from\s+)(\S+)(\s*:)/i,
+    (_match, head: string, _instant: string, tail: string) =>
+      `${head}${new Date(now).toISOString()}${tail}`
+  );
+}
+
+/** Writes the header a panel control produces, for a rule the user is giving a window to. */
+export function withRuleWindow(source: string, amount: number, unit: "h" | "d", now = Date.now()): string {
+  const stripped = renewRuleLine(source, now);
+  if (stripped !== source) {
+    return stripped.replace(/for\s+\d+\s*[hd]\s+from/i, `for ${amount}${unit} from`);
+  }
+  const titled = /^(\[[^\]]*\]\s*)?/.exec(source);
+  const head = titled?.[1] ?? "";
+  let rest = source.slice(head.length);
+  let action = "hide";
+  const existing = /^(hide|dim)\s*:\s*/i.exec(rest);
+  if (existing?.[1]) {
+    action = existing[1].toLowerCase();
+    rest = rest.slice(existing[0].length);
+  }
+  return `${head}${action} for ${amount}${unit} from ${new Date(now).toISOString()}: ${rest}`;
 }
 
 /**

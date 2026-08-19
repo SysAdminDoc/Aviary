@@ -44,7 +44,9 @@ Actionable work only. Historical and completed roadmap material is archived in C
   — https://github.com/bluesky-social/social-app/blob/main/src/lib/moderation/useModerationCauseDescription.ts.
   Aviary should render cause + rule title, offer peek-without-unhiding, and — since it already has a rule
   engine — a filter inspector that runs any visible post through every rule and reports which matched.
-  F204 supplies the rule title this sentence needs.
+  F204 shipped 2026-08-19: `CompiledRule.title` carries the name, read off a `[title]` prefix on
+  the rule line, and is null for the untitled rules that predate it — so the sentence needs a
+  fallback for those (the rule source itself is the honest one).
   Note (2026-08-19): F186 moved the media and verified predicates into `:has()` rules, so a post
   hidden by one of those carries no JS decision to read a reason off. Do not put them back to
   recover it — match the article against `STRUCTURAL_SELECTORS` on demand, when the user asks why,
@@ -56,6 +58,9 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Evidence: `src/features/filtering/rules.ts` exports only `compileRules`/`evaluateRules`; control-panel-for-twitter#864, rxliuli's importable rule packs.
   Touches: `src/features/filtering/rules.ts`, Filtering panel, library backup, settings export.
   Acceptance: a rule set exports to and imports from a documented plain-text or JSON form, reports parse errors per line before applying, previews what a paste would add or replace, and rides the existing backup.
+  Note (2026-08-19): F204 put the title and the lifetime *inside* the rule line rather than beside
+  it, precisely so this item has nothing extra to carry — the plain-text form already round-trips
+  both. A JSON form would have to reproduce them as fields; prefer the text form.
   Complexity: M
 
 - [ ] F147 — P2 — WACZ export and self-replay
@@ -286,37 +291,6 @@ below were read at the cited line. See RESEARCH.md.
   unread badge unless opted in; the marker advances only on explicit action or on a post leaving the
   viewport upward, never on mere render; injecting the separator never moves the reading position.
   Complexity: M
-
-- [ ] F204 — P2 — Give filter rules a title and an expiry
-  Why: every rule is permanent and anonymous today, so "mute this for a week" is impossible and a hidden
-  post cannot name what caught it. Bluesky ships duration as four choices with an explicit "Expired →
-  Renew" state; Mastodon requires a filter title precisely so the warning can say which filter matched.
-  The title is also the prerequisite that makes F144's "why was this hidden" sentence readable rather
-  than a raw pattern dump.
-  Evidence: https://github.com/bluesky-social/social-app/blob/main/src/components/dialogs/MutedWords.tsx
-  (value/targets/actorTarget/expiresAt); https://docs.joinmastodon.org/entities/Filter/ (title, context[],
-  warn|hide|blur); `src/features/filtering/rules.ts` has neither concept.
-  Touches: `src/features/filtering/rules.ts`, `predicates.ts`, the Filtering panel, settings schema and
-  normalization, library backup.
-  Acceptance: a rule carries an optional title and an optional expiry (24h / 7d / 30d / never); expired
-  rules stop applying, are shown as expired with a one-click renew, and are never silently deleted; the
-  title is what F144 shows on a suppressed post; existing untitled, non-expiring rules keep working
-  unchanged through normalization.
-  Depends on: F144 consumes the title; F145 must carry both fields through import/export.
-  Complexity: M
-
-- [ ] F212 — P3 — Numeric comparison operators for the rule language
-  Why: F205 shipped the engagement floor as three settings (action, metric, minimum) because
-  `rules.ts` has no way to say `likes under 500` — `RULE_OPERATORS` is contains/is/starts/ends/
-  matches, all string comparisons. A user who wants "hide posts under 500 likes *from accounts I do
-  not follow*" cannot write it. The signal already carries the counts (`FilterInput.engagement`),
-  so this is a parser and evaluator change, not a capture one.
-  Touches: `src/features/filtering/rules.ts` (operators, numeric fields, `compare`), the Filtering
-  panel's rule help, `tests/filter-rules.test.mjs`.
-  Acceptance: a rule can compare a numeric field against a number with `under`/`over`; a numeric
-  operator against a text field is a parse error naming the mismatch rather than a silent false; the
-  three engagement settings keep working unchanged.
-  Complexity: S
 
 - [ ] F206 — P2 — Let the timeline stop
   Why: infinite scroll is the one attention mechanism Aviary's focus mode does not touch, and an explicit
