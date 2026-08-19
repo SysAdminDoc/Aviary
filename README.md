@@ -312,6 +312,11 @@ The audit log lives entirely in local storage. It never leaves the browser unles
 
 The Control Center "Library" section exposes:
 
+- **Copy post links as** — pick an alternate X front-end (fxtwitter, vxtwitter, fixupx, xcancel) and
+  each post grows a **Copy link** control that writes that post's address on that host. Copy-time
+  rewriting, never redirection: the links X rendered are left exactly as they are, no navigation is
+  redirected, and nothing is requested. Off by default; the host list is closed, so a typo cannot
+  produce a link somewhere you did not mean.
 - **Unshorten t.co links** — replaces visible `t.co` redirects in tweet body / quoted card text with the destination URL pulled from `aria-label` / `data-expanded-url` / `title` / textContent (no network calls). Reversed on destroy.
 - **Account notes** — one `handle: note` per line. Aviary stores notes per-handle and decorates the matching tweet's User-Name area with a small Note badge whose tooltip shows the note text.
 - **Clear all account notes** — drops every persisted note.

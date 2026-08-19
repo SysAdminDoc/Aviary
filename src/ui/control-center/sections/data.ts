@@ -1,5 +1,10 @@
+import {
+  DEFAULT_SETTINGS,
+  isCopyLinkHost,
+  type AviarySettings,
+  type RateLimitMode
+} from "../../../platform/settings";
 import type { PanelContext } from "../panel-context";
-import type { AviarySettings, RateLimitMode } from "../../../platform/settings";
 import { MEDIA_LAYOUT_OPTIONS } from "../constants";
 export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
   const rows: HTMLElement[] = [];
@@ -600,6 +605,32 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.links.cleanShareButtons = checked;
         await ctx.save(checked ? "Link cleaning on" : "Link cleaning off");
       }
+    )
+  );
+
+  rows.push(
+    ctx.selectRow(
+      "Copy post links as",
+      ctx.options.settings.links.copyLinkHost,
+      [
+        ["", "X (x.com)"],
+        ["fxtwitter.com", "fxtwitter.com"],
+        ["vxtwitter.com", "vxtwitter.com"],
+        ["fixupx.com", "fixupx.com"],
+        ["xcancel.com", "xcancel.com"]
+      ],
+      async (value) => {
+        ctx.options.settings.links.copyLinkHost = isCopyLinkHost(value)
+          ? value
+          : DEFAULT_SETTINGS.links.copyLinkHost;
+        await ctx.save(
+          ctx.options.settings.links.copyLinkHost === ""
+            ? "Copy link control off"
+            : "Copy link control on"
+        );
+      },
+      "Adds a Copy link control to each post that writes that post's address on the chosen host. Nothing X rendered is rewritten and no navigation is redirected — only what you copy changes. Leave it on X to remove the control.",
+      false
     )
   );
 

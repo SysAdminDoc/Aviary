@@ -19,6 +19,7 @@ import { mobileTouchFeature } from "./features/core/mobile-touch";
 import { exportFeature } from "./features/export/export-feature";
 import { networkCaptureFeature } from "./features/export/network-capture";
 import { cleanShareLinksFeature } from "./features/library/clean-share-links";
+import { copyPostLinkFeature } from "./features/library/copy-post-link";
 import { pauseOffscreenVideoFeature } from "./features/performance/pause-offscreen-video";
 import { videoPlaybackFeature } from "./features/performance/video-playback";
 import { forceFollowingFeature } from "./features/layout/force-following";
@@ -213,6 +214,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   registry.register(userNotesFeature);
   registry.register(linkUnshortenFeature);
   registry.register(cleanShareLinksFeature);
+  registry.register(copyPostLinkFeature);
   registry.register(pauseOffscreenVideoFeature);
   registry.register(videoPlaybackFeature);
   registry.register(forceFollowingFeature);

@@ -95,21 +95,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Pair with F203, which supplies the read marker Catch-up deliberately does not use.
   Complexity: L
 
-- [ ] F149 — P2 — Copy a post link for an alternate front-end
-  Why: a purely local text transform with steady demand, no request, and no risk — the mirror of the redirect feature that broke authentication elsewhere and is rejected.
-  Evidence: control-panel-for-twitter#522 (👍8) and #641.
-  Touches: post action row or the existing per-post menu, settings (chosen host, off by default).
-  Acceptance: a copy action yields the same post's URL on a user-configured host; the default is X's own URL; nothing rewrites links X rendered and no navigation is redirected.
-  Note (2026-08-18): demand is stronger than the original evidence showed, and the redirect alternative is
-  now definitively dead. Beyond control-panel-for-twitter#522 (+8) and #641, the same ask is open as
-  OldTweetDeck#212, and "Firefox extension to redirect x.com to xcancel.com" took 259 points / 162 comments
-  on HN (2026-01-07). Meanwhile CPFT v4.24.0 (2026-08-17) *removed* its twitter.com redirect because
-  logging in via twitter.com now sets an x.com cookie, and Nitter has been architecturally dead since X
-  removed guest tokens (2024-01-31). That makes copy-time rewriting the only viable form of this feature —
-  which is exactly what this item already scopes. Worth offering the common hosts (fxtwitter, vxtwitter,
-  fixupx, xcancel) as presets rather than a bare text field.
-  Complexity: S
-
 - [ ] F154 — P2 — Mirror bookmarks locally as they render, and export them in bulk
   Why: bookmarks are the clearest unserved need in the archiving communities — users report collections shrinking from hundreds to about twenty, and the standing explanation is that X does not delete them server-side, they simply stop being rendered (one third-party client listed five digits of bookmarks the UI would not show). Aviary already has a bookmark library and passive GraphQL capture, so mirroring what X hands the page needs no originated call.
   Evidence: r/Twitter 1uyh6kw (2026-07-16), 1vbkkzr (2026-07-31), 1vlyntp (2026-08-12); r/DataHoarder 1vo86y2 (2026-08-14); HN 47697679 (2026-04-08 — a Show HN bookmark-export one-off, people build this themselves); twitter-web-exporter's bookmark-cap bypass is the same mechanism. Verified 2026-08-15: `network-capture.ts` persists any GraphQL operation when `preserveRawPayloads` is on, so bookmark payloads already reach the store — this is a reader over captured data, not a new capture path.

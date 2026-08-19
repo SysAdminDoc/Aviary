@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Added
+
+- **Copy a post's link for an alternate front-end.** Library gains a **Copy post links as** choice
+  (X, fxtwitter, vxtwitter, fixupx, xcancel); pick anything but X and each post grows a **Copy
+  link** control that writes that post's address on the chosen host. Deliberately copy-time
+  rewriting rather than redirection: redirecting `x.com` navigation is the shape everyone else
+  shipped and has since removed, because logging in through the alternate host now sets an `x.com`
+  cookie and the front-ends people redirected to have been architecturally dead since X removed
+  guest tokens. Nothing X rendered is modified, no navigation is redirected, and no request is
+  originated — only what you copy changes. Off by default, and the host list is closed so a typo
+  cannot produce a link to somewhere you did not mean.
+
 ## 1.33.0 - 2026-08-18
 
 ### Fixed

@@ -163,6 +163,27 @@ const MASTODON_VISIBILITIES: IntegrationSettings["mastodon"]["visibility"][] = [
   "direct"
 ];
 
+/**
+ * The hosts a post link may be copied to.
+ *
+ * A closed list rather than a free-text field: an arbitrary host would let a typo silently produce
+ * a link to somewhere the user did not mean, and every one of these is a documented X front-end
+ * that serves the same `/handle/status/id` path. `""` is X itself and is the default.
+ */
+export const COPY_LINK_HOSTS = [
+  "",
+  "fxtwitter.com",
+  "vxtwitter.com",
+  "fixupx.com",
+  "xcancel.com"
+] as const;
+
+export type CopyLinkHost = (typeof COPY_LINK_HOSTS)[number];
+
+export function isCopyLinkHost(value: unknown): value is CopyLinkHost {
+  return typeof value === "string" && (COPY_LINK_HOSTS as readonly string[]).includes(value);
+}
+
 export interface AviarySettings {
   /** Shape version of this payload; see SETTINGS_SCHEMA_VERSION. */
   schemaVersion: number;
@@ -248,6 +269,16 @@ export interface AviarySettings {
   links: {
     cleanShareButtons: boolean;
     expandTco: boolean;
+    /**
+     * Host a per-post "Copy link" control writes into the clipboard, or `""` for X's own.
+     *
+     * Copy-time rewriting rather than redirection, deliberately. Redirecting `x.com` navigation is
+     * the shape of this feature that keeps breaking: logging in through the alternate host now sets
+     * an `x.com` cookie, and the front-ends people redirected to have been architecturally dead
+     * since X removed guest tokens. Rewriting only what the user asked to copy touches no
+     * navigation, originates no request, and cannot break a session.
+     */
+    copyLinkHost: CopyLinkHost;
   };
   performance: {
     pauseOffscreenVideo: boolean;
@@ -376,7 +407,9 @@ export const DEFAULT_SETTINGS: AviarySettings = {
   },
   links: {
     cleanShareButtons: false,
-    expandTco: false
+    expandTco: false,
+    // X's own URL: the control is off until a host is chosen, and nothing is rewritten by default.
+    copyLinkHost: ""
   },
   performance: {
     pauseOffscreenVideo: false,
@@ -647,7 +680,8 @@ export function normalizeSettings(input: unknown): AviarySettings {
     },
     links: {
       cleanShareButtons: booleanValue(links.cleanShareButtons, DEFAULT_SETTINGS.links.cleanShareButtons),
-      expandTco: booleanValue(links.expandTco, DEFAULT_SETTINGS.links.expandTco)
+      expandTco: booleanValue(links.expandTco, DEFAULT_SETTINGS.links.expandTco),
+      copyLinkHost: copyLinkHostValue(links.copyLinkHost)
     },
     performance: {
       pauseOffscreenVideo: booleanValue(
@@ -811,6 +845,10 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function copyLinkHostValue(value: unknown): CopyLinkHost {
+  return isCopyLinkHost(value) ? value : DEFAULT_SETTINGS.links.copyLinkHost;
 }
 
 function booleanValue(value: unknown, fallback: boolean): boolean {

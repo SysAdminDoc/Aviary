@@ -35,7 +35,8 @@ export type AuditAction =
   | "diagnostics.copy"
   | "diagnostics.clear"
   | "bisect.start"
-  | "bisect.result";
+  | "bisect.result"
+  | "link.copy";
 
 export interface AuditEntry {
   at: string;
