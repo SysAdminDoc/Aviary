@@ -579,8 +579,13 @@ function buildPostAction(
   button.append(icon, label);
 
   if (assets.length === 0) {
-    button.disabled = true;
-    button.title = ft(ctx, "The direct video is still loading. Try again in a moment.");
+    button.dataset.pendingVideo = "true";
+    button.title = ft(ctx, "Find the best available video, then download it.");
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+      void handlePendingPostDownload(tweet.article, ctx, button);
+    });
     return button;
   }
 
@@ -591,6 +596,50 @@ function buildPostAction(
     void handlePostDownload(tweet, assets, completed, ctx, button);
   });
   return button;
+}
+
+/**
+ * Keeps a late video player actionable while its direct MP4 metadata catches up.
+ *
+ * X mounts a MediaSource player before the intercepted timeline response has always crossed the
+ * page bridge. A disabled Download control looked permanently broken during that gap. The click
+ * now waits briefly for the same highest-bitrate metadata used by the normal path, then either
+ * starts the save or leaves an explicit retry action.
+ */
+async function handlePendingPostDownload(
+  article: Element,
+  ctx: FeatureContext,
+  button: HTMLButtonElement
+): Promise<void> {
+  setButtonFeedback(button, {
+    label: ft(ctx, "Finding video..."),
+    icon: "↻",
+    className: "is-active",
+    disabled: true,
+    busy: true
+  });
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const refreshed = extractTweetForContext(article, ctx);
+    const assets = primaryDownloadAssets(refreshed);
+    const stillWaiting =
+      refreshed.media.some((media) => media.kind === "video" && resolveTarget(media) === null) ||
+      (article.querySelector(VIDEO_CONTAINER_SELECTOR) !== null &&
+        !refreshed.media.some((media) => media.kind === "video"));
+    if (assets.length > 0 && !stillWaiting) {
+      delete button.dataset.pendingVideo;
+      await handlePostDownload(refreshed, assets, new Set<string>(), ctx, button);
+      return;
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, 250));
+  }
+
+  setButtonFeedback(button, {
+    label: ft(ctx, "Retry"),
+    icon: "↻",
+    className: "is-error"
+  });
+  button.title = ft(ctx, "The direct video is not ready yet. Try again.");
 }
 
 /**
@@ -1135,14 +1184,14 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   min-width: 100px;
   min-height: 36px;
   padding: 6px 10px;
-  border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 55%, transparent);
+  border: 0;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, transparent);
-  color: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 88%, white 12%);
+  background: var(--av-accent, rgb(29, 155, 240));
+  color: rgb(3, 20, 24);
   cursor: pointer;
-  font: 700 13px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
+  font: 750 13px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
   white-space: nowrap;
-  transition: transform 140ms ease, border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+  transition: transform 140ms ease, background-color 140ms ease, color 140ms ease;
 }
 
 [${ACTION_ATTR}] .av-media-action-icon {
@@ -1155,8 +1204,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
 }
 
 [${ACTION_ATTR}]:hover:not(:disabled) {
-  border-color: var(--av-accent, rgb(29, 155, 240));
-  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 20%, transparent);
+  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 86%, white);
   transform: translateY(-1px);
 }
 
@@ -1166,24 +1214,21 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
 }
 
 [${ACTION_ATTR}].is-success {
-  border-color: var(--av-media-success, rgb(120, 200, 130));
-  color: var(--av-media-success-text, rgb(206, 240, 210));
-  background: color-mix(in srgb, var(--av-media-success, rgb(120, 200, 130)) 14%, transparent);
+  color: rgb(3, 20, 24);
+  background: var(--av-media-success, rgb(120, 200, 130));
 }
 
 [${ACTION_ATTR}].is-duplicate {
-  border-color: var(--av-muted, rgb(113, 118, 123));
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-text, rgb(239, 243, 244));
+  background: color-mix(in srgb, var(--av-muted, rgb(113, 118, 123)) 46%, transparent);
 }
 
 [${ACTION_ATTR}].is-error {
-  border-color: var(--av-media-error, rgb(220, 110, 110));
-  color: var(--av-media-error-text, rgb(248, 200, 200));
-  background: color-mix(in srgb, var(--av-media-error, rgb(220, 110, 110)) 12%, transparent);
+  color: rgb(28, 8, 8);
+  background: var(--av-media-error, rgb(220, 110, 110));
 }
 
 [${ACTION_ATTR}].is-active {
-  border-color: var(--av-accent, rgb(29, 155, 240));
   cursor: progress;
 }
 
@@ -1193,7 +1238,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
 
 [${ACTION_ATTR}]:disabled {
   cursor: wait;
-  opacity: 0.62;
+  opacity: 0.84;
   transform: none;
 }
 
@@ -1207,15 +1252,13 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   min-width: 72px;
   min-height: 36px;
   padding: 6px 11px;
-  border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 82%, white 8%);
+  border: 0;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--av-surface-raised, rgb(15, 20, 25)) 94%, black);
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(15, 20, 25)) 90%, black);
   color: var(--av-text, rgb(239, 243, 244));
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.52);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.38);
   cursor: pointer;
-  font: 750 12px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font: 700 12.5px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
   opacity: 1;
   transition: transform 140ms ease, border-color 140ms ease, background-color 140ms ease, color 140ms ease;
 }
@@ -1243,7 +1286,6 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
    already positioned, which is the same box the photo itself resolves against. */
 
 [${BUTTON_ATTR}]:hover {
-  border-color: var(--av-accent, rgb(29, 155, 240));
   background: color-mix(in srgb, var(--av-surface-raised, rgb(15, 20, 25)) 86%, var(--av-accent, rgb(29, 155, 240)));
   transform: translateY(-1px);
 }
@@ -1254,22 +1296,18 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
 }
 
 [${BUTTON_ATTR}].is-success {
-  border-color: var(--av-media-success, rgb(120, 200, 130));
   color: var(--av-media-success-text, rgb(206, 240, 210));
 }
 
 [${BUTTON_ATTR}].is-duplicate {
-  border-color: var(--av-muted, rgb(113, 118, 123));
   color: var(--av-muted, rgb(113, 118, 123));
 }
 
 [${BUTTON_ATTR}].is-error {
-  border-color: var(--av-media-error, rgb(220, 110, 110));
   color: var(--av-media-error-text, rgb(248, 200, 200));
 }
 
 [${BUTTON_ATTR}].is-active {
-  border-color: var(--av-accent, rgb(29, 155, 240));
   cursor: progress;
 }
 

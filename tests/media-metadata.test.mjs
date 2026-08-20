@@ -311,9 +311,96 @@ test("media buttons reconcile a blob-only player when its direct variant arrives
     { kind: "thumbnail", text: "↓ Thumb", top: "48px", opacity: "1" }
   ]);
   assert.equal(result.off, 0);
-  assert.deepEqual(result.actionBefore, { text: "↓ Download", disabled: true });
+  assert.deepEqual(result.actionBefore, { text: "↓ Download", disabled: false });
   assert.deepEqual(result.actionDuring, { text: "↓ Download", disabled: false });
   assert.equal(result.actionOff, 0);
+});
+
+test("a pending video download stays actionable and uses the best variant when metadata arrives", async () => {
+  const result = await page.evaluate(async (body) => {
+    document.body.replaceChildren();
+    const transfers = [];
+    globalThis.GM_download = ({ url, name, onload }) => {
+      transfers.push({ url, name });
+      queueMicrotask(() => onload?.());
+    };
+
+    const article = document.createElement("article");
+    article.setAttribute("data-testid", "tweet");
+    const userName = document.createElement("div");
+    userName.setAttribute("data-testid", "User-Name");
+    const profile = document.createElement("a");
+    profile.href = "/someone";
+    userName.append(profile);
+    const status = document.createElement("a");
+    status.href = "/someone/status/123456789";
+    const actions = document.createElement("div");
+    actions.setAttribute("role", "group");
+    const reply = document.createElement("button");
+    reply.setAttribute("data-testid", "reply");
+    actions.append(reply);
+    const player = document.createElement("div");
+    player.setAttribute("data-testid", "videoComponent");
+    const video = document.createElement("video");
+    video.poster = "https://pbs.twimg.com/media/456789?format=jpg&name=small";
+    video.src = "blob:https://x.com/mse-player";
+    player.append(video);
+    article.append(userName, status, actions, player);
+    document.body.append(article);
+
+    const settings = structuredClone(AviaryMedia.DEFAULT_SETTINGS);
+    settings.media.downloadHistory = false;
+    const storage = {
+      async get(_key, fallback) {
+        return fallback;
+      },
+      async set() {}
+    };
+    const ctx = {
+      settings,
+      storage,
+      route: { surface: "home", path: "/home", href: "https://x.com/home" },
+      diagnostics: { info() {}, warn() {}, error() {} },
+      auditLog: { record() {} },
+      requestApply() {}
+    };
+
+    try {
+      await AviaryMedia.mediaButtonsFeature.init(ctx);
+      const action = article.querySelector("[data-av-media-action]");
+      if (!(action instanceof HTMLButtonElement)) throw new Error("Pending action missing");
+      const initial = { text: action.textContent, disabled: action.disabled };
+      action.click();
+      const finding = {
+        text: action.textContent,
+        disabled: action.disabled,
+        busy: action.getAttribute("aria-busy")
+      };
+      setTimeout(() => AviaryMedia.ingestMediaMetadata({ body }), 100);
+      const deadline = performance.now() + 3_000;
+      while (transfers.length === 0 && performance.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      return { initial, finding, transfers, finalText: action.textContent };
+    } finally {
+      await AviaryMedia.mediaButtonsFeature.destroy(ctx);
+      delete globalThis.GM_download;
+    }
+  }, metadataBody);
+
+  assert.deepEqual(result.initial, { text: "↓ Download", disabled: false });
+  assert.deepEqual(result.finding, {
+    text: "↻ Finding video...",
+    disabled: true,
+    busy: "true"
+  });
+  assert.deepEqual(result.transfers, [
+    {
+      url: "https://video.twimg.com/ext_tw_video/123/pu/vid/1280x720/direct.mp4",
+      name: "someone_123456789_01.mp4"
+    }
+  ]);
+  assert.equal(result.finalText, "✓ Saved");
 });
 
 test("media buttons reattach when X recycles a processed post's media subtree", async () => {
