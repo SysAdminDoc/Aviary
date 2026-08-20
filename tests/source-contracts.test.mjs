@@ -260,7 +260,7 @@ test("release metadata and removed UI claims stay synchronized", async () => {
     roadmap.includes("Version: " + String.fromCharCode(96) + pkg.version + String.fromCharCode(96)),
     "ROADMAP version is out of sync"
   );
-  assert.ok(changelog.includes("## " + pkg.version + " -"), "CHANGELOG has no current release heading");
+  assert.ok(changelog.includes("## " + pkg.version + " ("), "CHANGELOG has no current release heading");
   assert.doesNotMatch(readme, /\*\*Sensitive content\*\*\s*[—-]/i);
   assert.doesNotMatch(readme, /insertion(?: into[^)]*)? lands? in a later release/i);
   assert.doesNotMatch(readme, /v1\.5\.0 closes the .*batch/i);

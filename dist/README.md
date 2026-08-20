@@ -1,21 +1,21 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.35.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.36.0-2f81f7)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 ![Platform](https://img.shields.io/badge/platform-userscript%20%7C%20Chrome%20%7C%20Firefox-8b5cf6)
 
 <img width="1536" height="1024" alt="exec-86ea8b21-28c3-4eff-bc69-b1d8f9ab3e7c" src="https://github.com/user-attachments/assets/a36c2cdb-2b74-4fde-a934-3c0ada11bbac" />
 
 
-Aviary is a local-first X/Twitter enhancer delivered as a readable userscript first and a Manifest V3 extension second. The project is at v1.35.0: an opt-in premium Noir desktop skin, focused Home controls for the composer, discovery rail, current navigation and recommendations, default-on desktop ad protection, one-click original-quality image and direct-video downloads, transactional settings, local ad-contract drift diagnostics, a redesigned 13-page Control Center and responsive extension-permissions cockpit, committed desktop visual coverage, fixture-backed selector checks, reversible filtering, per-post hide-and-remember, checkpointed export/archive tools, local library features, opt-in integrations, persisted Aria2 history, configurable checkpoint retention, explicit crosspost media uploads, reproducible MV3 ZIP archives, and isolated Playwright smoke lanes.
+Aviary is a local-first X/Twitter enhancer. It adds clear image and video downloads, removes ads, and keeps its controls in a compact Control Center. Install it as a readable userscript or a Manifest V3 extension for Chrome and Firefox.
 
 ## Ad-free with media saves ready by default
 
 Fresh installs remove advertising and enable one clear Download action on every media post, plus
 per-asset Save, Thumb, and eligible Video/GIF controls.
-The media controls act only after you click them and can be disabled from Media at any time. Every
-other elective setting that changes ordinary X content or styling — themes, sidebar/trend declutter,
-Hide buttons, filters, offscreen video pausing, and general analytics refusal — still starts off.
+The media controls act only after you click them and can be disabled from Media at any time. Other
+settings that change ordinary X content or styling still start off. That includes themes, layout
+cleanup, filters, offscreen video pausing, and general analytics refusal.
 Outside those download affordances, Aviary adds only its launcher to X's primary left navigation.
 
 `tests/vanilla-by-default.test.mjs` measures this rather than asserting it: with default settings
@@ -26,9 +26,8 @@ Already configured it and want to start over? **Trust → Reset everything to pl
 preferences to Aviary's minimal ad-free baseline; saved posts, notes, bookmarks and download
 history are kept.
 
-Aviary does not touch sensitive media. It has no setting for it, because it cannot tell sensitive
-posts from any other post — X's own filter is the only thing here that knows, and it is left to do
-its job.
+Aviary does not touch sensitive media. It cannot reliably tell those posts from any other post.
+X's own filter is left to do its job.
 
 ## Current Status
 
@@ -66,7 +65,7 @@ sticky Save control commits the whole page once; Revert restores the saved value
 is guarded while a draft is open. The primary verification viewport is 1440×900, with a 1920×1080
 wide check.
 
-![Aviary Control Center presets page](docs/mockups/control-center-presets-implemented.png)
+![Aviary Control Center appearance page](docs/mockups/2026-08-20/control-center-appearance-implemented.png)
 
 ## Premium Noir theme
 
@@ -99,20 +98,19 @@ npm run verify
 ```
 
 Aviary has zero runtime dependencies, so nothing it ships needs an install script to build or run.
-`--ignore-scripts` closes the install-hook attack class at no cost here — the build and the full
-test suite pass on a clean install without them — and that class is a real one: the 2026-08-04
-ChainDrop worm poisoned `keyv`, `flat-cache` and `file-entry-cache`, which are exactly the packages
-ESLint pulls in here. It ran from a `preinstall` hook, and this repository resolves all three whole
-major versions below the poisoned releases.
+`--ignore-scripts` closes the install-hook attack class at no cost here. The build and full test
+suite pass on a clean install without them. This matters because the 2026-08-04 ChainDrop worm
+poisoned `keyv`, `flat-cache` and `file-entry-cache`, which ESLint pulls in here. It ran from a
+`preinstall` hook. This repository resolves all three packages below the poisoned releases.
 
 It is not blanket protection, and claiming otherwise would be the kind of statement this project
-fails its own build over. Several 2026 compromises — chalk/debug among them — put the payload in the
+fails its own build over. Several 2026 compromises, chalk/debug among them, put the payload in the
 module body, where no install flag reaches. What covers those is having no runtime dependencies at
 all and installing from a committed lockfile with `npm ci`.
 
-Node 22.23.2 or newer is required, the first line clear of the June and July 2026 Node security
-releases. The `engines` range names supported lines explicitly rather than an open `>=`, which would
-also admit Node 25.x — end of life since 2026-06-01 and receiving no patches.
+Node 22.23.2 or newer is required. This is the first line clear of the June and July 2026 Node
+security releases. The `engines` range names supported lines explicitly. An open `>=` would also
+admit Node 25.x, which reached end of life on 2026-06-01.
 
 `npm run verify` type-checks the TypeScript source, runs fixture/source contract tests, and builds:
 
@@ -129,8 +127,8 @@ drives the panel for focus entry and return, containment, Escape, modal semantic
 name on every control. `tests/a11y-axe.test.mjs` runs axe-core over all 13 Control Center
 destinations for invalid ARIA, missing names and contrast, scoped to Aviary's shadow root so it
 never reports X's own DOM. Axe covers roughly half of accessibility issues by volume and none of
-the judgement ones, and no axe rule covers forced-colors breakage — `tests/forced-colors.test.mjs`
-carries that separately.
+the judgement calls. No axe rule covers forced-colors breakage, so
+`tests/forced-colors.test.mjs` carries that separately.
 
 `npm run test:visual` rebuilds the extension and compares 60 desktop settings screenshots: all 13
 Control Center destinations plus extension permissions at 1440×900 and 1920×1080 on dark and light
@@ -154,7 +152,7 @@ notice, network status, and budget before provider work begins. Per-request and 
 limits are configurable in Integrations; profile-scoped usage history stores counters only, never
 API keys or raw prompts. Local-only mode and disabled integrations make zero provider requests.
 
-Aviary can also refuse X's general analytics beacons — the tracking pings sent as you scroll,
+Aviary can also refuse X's general analytics beacons, the tracking pings sent as you scroll,
 click and pause. That broader privacy control is off by default. Ad protection is separate: the
 userscript answers only X's exact promoted-content logger locally at document start, while the
 extension blocks the same URL before a connection through one host-scoped dynamic request rule.
@@ -180,7 +178,7 @@ removes the dynamic rule immediately; turning it back on restores it, including 
   first-party response as ordinary posts, so those bytes are inseparable and only their rendering
   can be suppressed safely.
 
-Aviary does not encrypt its local data, and deliberately offers no setting that claims to. Its vault sits in the same browser profile as X's own session cookie, auth token and cached media — none of which Aviary can encrypt, all of which are more sensitive than its copy. Use full-disk encryption, which covers all of it.
+Aviary does not encrypt its local data, and deliberately offers no setting that claims to. Its vault sits in the same browser profile as X's own session cookie, auth token and cached media, none of which Aviary can encrypt, all of which are more sensitive than its copy. Use full-disk encryption, which covers all of it.
 
 See [docs/PRIVACY.md](docs/PRIVACY.md) for the local data map and optional permission notes.
 
@@ -201,7 +199,7 @@ Blocked-account (F032) and self-repost (F033) filters are deferred until an auth
 
 ## Hidden Posts
 
-Every post carries a **Hide** control next to its More menu. Clicking it records the post locally and collapses it for good, so the following post is promoted into the slot instead of leaving a gap — you can clear a timeline by tapping Hide rather than scrolling past.
+Every post carries a **Hide** control next to its More menu. Clicking it records the post locally and collapses it for good, so the following post is promoted into the slot instead of leaving a gap, you can clear a timeline by tapping Hide rather than scrolling past.
 
 - Posts are keyed by status id. Posts without a `/status/` link (promoted units, some cards) fall back to a handle + text signature so the same unit stays hidden after a refresh.
 - Hiding collapses the owning `[data-testid="cellInnerDiv"]` row, not just the article, because X positions timeline rows absolutely inside a measured container. A single coalesced `resize` event lets the virtualizer close the gap without moving scroll position.
@@ -236,7 +234,7 @@ busy state to assistive technology, preserve completed assets across a partial r
 their original action after feedback. **Started** and **Saved** are separate for a reason: the
 browser's download API acknowledges a handoff, not a completed file, so in the extension build the
 control reads Started until the browser reports the transfer's terminal state. An interrupted
-transfer reads Retry, and is never written into the duplicate history — which is what makes the
+transfer reads Retry, and is never written into the duplicate history, which is what makes the
 retry possible. The tracking survives the service worker being suspended mid-transfer. The MV3 build also adds **Download media with Aviary** to X's native right-click menu. The
 page-side handler maps the clicked player back to Aviary's captured direct variant, so X's
 MediaSource `blob:` playback handle is never mistaken for a file.
@@ -268,7 +266,7 @@ handles. When `tweet_video/` URLs or loop+muted players are detected, the button
 
 The Media section also exposes:
 
-- **Media layout** — Default, Stacked (full-width images, one per row), or Strict grid (`auto-fit` columns).
+- **Media layout**, Default, Stacked (full-width images, one per row), or Strict grid (`auto-fit` columns).
 
 ## Export core
 
@@ -280,12 +278,12 @@ The Control Center "Export" section exposes:
 - Optional media-byte capture during an export; successful assets are packaged with byte length and
   SHA-256, while failed assets remain explicit retryable references.
 - Save folder hint that becomes both the ZIP filename prefix and the root path inside the archive.
-- "Export visible tweets" — bundles the configured formats into a STORE-only ZIP, adds a
+- "Export visible tweets", bundles the configured formats into a STORE-only ZIP, adds a
   `manifest.json` with per-file checksums and media capture status, and triggers a download.
 - Extract the ZIP and open `viewer.html` for a responsive local viewer with virtualized scrolling,
   search, sort, thread grouping, media-status filters, and built-in locale/RTL labels. It loads no
   remote script and only activates a remote media URL after an explicit link click.
-- "Copy diagnostics" — copies the Aviary diagnostic log (version, route, recent events) to the clipboard.
+- "Copy diagnostics", copies the Aviary diagnostic log (version, route, recent events) to the clipboard.
 
 Tweets are gathered passively from the DOM; no auth headers, cookies, or session tokens are ever read or persisted.
 
@@ -293,18 +291,18 @@ Tweets are gathered passively from the DOM; no auth headers, cookies, or session
 
 The Control Center "Backup & Audit" section exposes:
 
-- **Export settings** — downloads a versioned JSON envelope with every Aviary preference. API keys and passwords are replaced with a placeholder so the file is safe to share; importing it keeps the credentials already saved on this machine.
-- **Import settings** — paste an envelope and choose Import. Settings are normalized, unsupported keys are dropped, and version mismatches are reported as warnings (never silent overwrites).
-- **Export full library backup** — downloads one versioned JSON envelope for the active profile's
+- **Export settings**, downloads a versioned JSON envelope with every Aviary preference. API keys and passwords are replaced with a placeholder so the file is safe to share; importing it keeps the credentials already saved on this machine.
+- **Import settings**, paste an envelope and choose Import. Settings are normalized, unsupported keys are dropped, and version mismatches are reported as warnings (never silent overwrites).
+- **Export full library backup**, downloads one versioned JSON envelope for the active profile's
   local settings, bookmarks, notes, snapshots, archive collections, export jobs/records, media
   queues, indexes, usage counters, retention values, and other durable stores. Integration credentials are excluded
   by default and remain local when a redacted backup is restored.
-- **Restore a library backup** — choose a backup file to preview schema versions, collection counts,
+- **Restore a library backup**, choose a backup file to preview schema versions, collection counts,
   byte totals, conflicts, and checksums. Dry-run validates without mutation; an actual restore can
   be cancelled and rolls back earlier collection writes if a later local write fails. Restoring
   local stores reloads the page so in-memory feature snapshots cannot go stale.
-- **Audit entries** — read-only count of logged local actions (downloads, exports, settings round-trips, diagnostic copies).
-- **Clear audit log** — drops the persisted ring buffer.
+- **Audit entries**, read-only count of logged local actions (downloads, exports, settings round-trips, diagnostic copies).
+- **Clear audit log**, drops the persisted ring buffer.
 
 The audit log lives entirely in local storage. It never leaves the browser unless the user explicitly clicks Copy diagnostics or Export settings.
 
@@ -312,18 +310,18 @@ The audit log lives entirely in local storage. It never leaves the browser unles
 
 The Control Center "Library" section exposes:
 
-- **Copy post links as** — pick an alternate X front-end (fxtwitter, vxtwitter, fixupx, xcancel) and
+- **Copy post links as**, pick an alternate X front-end (fxtwitter, vxtwitter, fixupx, xcancel) and
   each post grows a **Copy link** control that writes that post's address on that host. Copy-time
   rewriting, never redirection: the links X rendered are left exactly as they are, no navigation is
   redirected, and nothing is requested. Off by default; the host list is closed, so a typo cannot
   produce a link somewhere you did not mean.
-- **Unshorten t.co links** — replaces visible `t.co` redirects in tweet body / quoted card text with the destination URL pulled from `aria-label` / `data-expanded-url` / `title` / textContent (no network calls). Reversed on destroy.
-- **Account notes** — one `handle: note` per line. Aviary stores notes per-handle and decorates the matching tweet's User-Name area with a small Note badge whose tooltip shows the note text.
-- **Clear all account notes** — drops every persisted note.
-- **Local bookmarks** — use the Save locally control on a rendered post, then search the Library
+- **Unshorten t.co links**, replaces visible `t.co` redirects in tweet body / quoted card text with the destination URL pulled from `aria-label` / `data-expanded-url` / `title` / textContent (no network calls). Reversed on destroy.
+- **Account notes**, one `handle: note` per line. Aviary stores notes per-handle and decorates the matching tweet's User-Name area with a small Note badge whose tooltip shows the note text.
+- **Clear all account notes**, drops every persisted note.
+- **Local bookmarks**, use the Save locally control on a rendered post, then search the Library
   and edit tags, folders, reminders, or notes. Removing a bookmark affects only Aviary's local
   library and leaves X's own bookmark action untouched.
-- **Composer snippets** — reusable replies / templates edited in Library and inserted into the focused
+- **Composer snippets**, reusable replies / templates edited in Library and inserted into the focused
   composer from the Snippets toolbar button.
 
 ## When something breaks
@@ -367,41 +365,41 @@ manifest still carries a placeholder add-on id, so an AMO submission needs a rea
 
 ## Presets, i18n, desktop interaction, cleanup, bookmarks, snippets, capture
 
-- **Presets** — Quiet Reader, Media Archivist, Creator, Researcher, Classic, Minimal. The Control Center "Presets" section applies any preset in one click and reports the exact deltas in the status line.
-- **i18n + RTL** — 9-locale translation table with English fallback, `av-rtl`/`av-ltr` HTML classes, and Arabic/Hebrew bidi-safe tweet text.
-- **Desktop interaction** — visible focus states, modal focus containment, reduced-motion support,
+- **Presets**, Quiet Reader, Media Archivist, Creator, Researcher, Classic, Minimal. The Control Center "Presets" section applies any preset in one click and reports the exact deltas in the status line.
+- **i18n + RTL**, 9-locale translation table with English fallback, `av-rtl`/`av-ltr` HTML classes, and Arabic/Hebrew bidi-safe tweet text.
+- **Desktop interaction**, visible focus states, modal focus containment, reduced-motion support,
   and mouse/keyboard-friendly controls are verified at the supported desktop widths.
-- **Hide row borders** — drops the 1px divider under each timeline post and the primary column's side rules. The rule anchors on `[data-testid="cellInnerDiv"] > div`, not on X's generated `r-*` class names, so a rename does not silently disable it.
-- **Writer mode** — while focus is inside the composer, the sidebar and the timeline behind it fade back; everything returns the moment focus leaves, and hovering a faded row restores it. Driven by `focusin`/`focusout` only — Aviary registers no key handlers.
-- **Snapshots & Archive** — capture follower / following lists from the active page; import official X archive ZIPs into the CheckpointStore; search captured records; download a Markdown report.
-- **Cleanup review queue** — Aviary never deletes account data; the queue is a read-only review surface (`destructiveAllowed()` returns `false` by policy).
-- **Bookmark library** — tags, folders, reminders, and due-time queries stored locally.
-- **Composer snippets** — a Snippets button next to the post toolbar opens a popover and inserts via `document.execCommand("insertText")`. No keyboard simulation, no hotkeys.
-- **XLSX export** — added to the Export format list. The writer reuses the STORE-only ZIP encoder, so there's still no external runtime dependency.
-- **WARC export** — emits ISO-28500 WARC/1.1 records for archival research tooling. Captured media
+- **Hide row borders**, drops the 1px divider under each timeline post and the primary column's side rules. The rule anchors on `[data-testid="cellInnerDiv"] > div`, not on X's generated `r-*` class names, so a rename does not silently disable it.
+- **Writer mode**, while focus is inside the composer, the sidebar and the timeline behind it fade back; everything returns the moment focus leaves, and hovering a faded row restores it. Driven by `focusin`/`focusout` only, Aviary registers no key handlers.
+- **Snapshots & Archive**, capture follower / following lists from the active page; import official X archive ZIPs into the CheckpointStore; search captured records; download a Markdown report.
+- **Cleanup review queue**, Aviary never deletes account data; the queue is a read-only review surface (`destructiveAllowed()` returns `false` by policy).
+- **Bookmark library**, tags, folders, reminders, and due-time queries stored locally.
+- **Composer snippets**, a Snippets button next to the post toolbar opens a popover and inserts via `document.execCommand("insertText")`. No keyboard simulation, no hotkeys.
+- **XLSX export**, added to the Export format list. The writer reuses the STORE-only ZIP encoder, so there's still no external runtime dependency.
+- **WARC export**, emits ISO-28500 WARC/1.1 records for archival research tooling. Captured media
   becomes a response record; uncaptured media is an explicit metadata-only record. One file per run.
-- **External export targets** — Copy-as-Markdown, Obsidian (YAML frontmatter), Notion (heading-first), raw JSON. Pure local rendering; the clipboard variant never touches disk.
-- **Batch profile-media download** — "Download all visible media" in the Media section walks every rendered tweet and pipes photos / videos / GIFs / thumbnails through the existing queue with the configured concurrency cap and dedup history.
-- **Local AI command menu (off by default)** — enable it in Integrations and each tweet's action row gains an AI button offering Translate / Summarize / Explain / Fact-check. On its own it only builds a prompt and copies it to your clipboard, with no network call and no API key. Configuring the separate AI provider runner below is what makes the same menu able to POST a prompt, and only after an explicit per-request disclosure.
-- **Passive GraphQL capture (opt-in)** — when "Preserve raw payloads" is on, Aviary records GraphQL response bodies under 1.5 MB into the CheckpointStore as a `capture-<operation>` job, scrubbing `ct0` and Bearer tokens on the way in. Toggle off and the wrapper uninstalls.
-- **Checkpoint retention (opt-in)** — cap jobs, records per job, or job age through the Export section. Zero disables each limit; the sweep runs at boot and after new jobs are created.
+- **External export targets**, Copy-as-Markdown, Obsidian (YAML frontmatter), Notion (heading-first), raw JSON. Pure local rendering; the clipboard variant never touches disk.
+- **Batch profile-media download**, "Download all visible media" in the Media section walks every rendered tweet and pipes photos / videos / GIFs / thumbnails through the existing queue with the configured concurrency cap and dedup history.
+- **Local AI command menu (off by default)**, enable it in Integrations and each tweet's action row gains an AI button offering Translate / Summarize / Explain / Fact-check. On its own it only builds a prompt and copies it to your clipboard, with no network call and no API key. Configuring the separate AI provider runner below is what makes the same menu able to POST a prompt, and only after an explicit per-request disclosure.
+- **Passive GraphQL capture (opt-in)**, when "Preserve raw payloads" is on, Aviary records GraphQL response bodies under 1.5 MB into the CheckpointStore as a `capture-<operation>` job, scrubbing `ct0` and Bearer tokens on the way in. Toggle off and the wrapper uninstalls.
+- **Checkpoint retention (opt-in)**, cap jobs, records per job, or job age through the Export section. Zero disables each limit; the sweep runs at boot and after new jobs are created.
 
 ## Integrations (every one is opt-in)
 
 The Control Center "Integrations" section gates each integration behind a per-feature toggle. Every block defaults disabled; no requests fire until you've enabled it *and* filled in the credentials.
 
-- **Aria2 handoff** — when configured and the request exceeds the minimum-bytes threshold, `Downloader` posts an `aria2.addUri` JSON-RPC call to your self-hosted Aria2 daemon (with optional `token:` secret). Falls through to GM_download / extension SW / anchor otherwise. The Integrations panel also lists in-flight transfers and lets you cancel one with a click.
-- **Bluesky / Mastodon crosspost** — sends the current composer text to your Bluesky AT-protocol account or your Mastodon instance. Two explicit Control Center actions; never auto-cross. Toggle "Crosspost as thread" to chunk on blank lines — Bluesky gets `reply.root/parent` refs, Mastodon chains `in_reply_to_id`.
-- **Crosspost media (opt-in)** — the "Attach last download" toggle uploads the last successful Aviary media source to Bluesky or Mastodon and attaches it to the first post only. The source URL and filename stay local until that explicit action.
-- **AI provider runner** — when enabled, the per-tweet AI command menu shows the provider, endpoint, fields, character/token estimate, retention notice, network status, and budget before POSTing a prompt to Anthropic, OpenAI, or an OpenAI-compatible endpoint. Per-request and daily UTF-8 byte limits stop calls before they leave the browser; the response is copied to your clipboard. With no key, the menu remains a local prompt builder.
-- **Semantic search** — embeds captured records via your provider's embeddings endpoint, persists vectors and bounded text locally, and ranks queries by cosine similarity. The panel shows the endpoint, fields, retention notice, and byte budget before you enable auto-indexing. Per-record and daily UTF-8 byte limits stop rebuilds or background indexing with a recoverable status. Embeddings only fire when you click "Rebuild semantic index", type into the semantic search box, or enable "Auto-embed every export".
+- **Aria2 handoff**, when configured and the request exceeds the minimum-bytes threshold, `Downloader` posts an `aria2.addUri` JSON-RPC call to your self-hosted Aria2 daemon (with optional `token:` secret). Falls through to GM_download / extension SW / anchor otherwise. The Integrations panel also lists in-flight transfers and lets you cancel one with a click.
+- **Bluesky / Mastodon crosspost**, sends the current composer text to your Bluesky AT-protocol account or your Mastodon instance. Two explicit Control Center actions; never auto-cross. Toggle "Crosspost as thread" to chunk on blank lines, Bluesky gets `reply.root/parent` refs, Mastodon chains `in_reply_to_id`.
+- **Crosspost media (opt-in)**, the "Attach last download" toggle uploads the last successful Aviary media source to Bluesky or Mastodon and attaches it to the first post only. The source URL and filename stay local until that explicit action.
+- **AI provider runner**, when enabled, the per-tweet AI command menu shows the provider, endpoint, fields, character/token estimate, retention notice, network status, and budget before POSTing a prompt to Anthropic, OpenAI, or an OpenAI-compatible endpoint. Per-request and daily UTF-8 byte limits stop calls before they leave the browser; the response is copied to your clipboard. With no key, the menu remains a local prompt builder.
+- **Semantic search**, embeds captured records via your provider's embeddings endpoint, persists vectors and bounded text locally, and ranks queries by cosine similarity. The panel shows the endpoint, fields, retention notice, and byte budget before you enable auto-indexing. Per-record and daily UTF-8 byte limits stop rebuilds or background indexing with a recoverable status. Embeddings only fire when you click "Rebuild semantic index", type into the semantic search box, or enable "Auto-embed every export".
 
-The Integrations panel also surfaces a "Recent integration errors" readout that distills failed audit-log entries — handy when a Bluesky token expires or your Aria2 daemon stops listening. Aria2 history stores completed/queued gids locally and prevents the same media URL from being requeued across browser sessions.
+The Integrations panel also surfaces a "Recent integration errors" readout that distills failed audit-log entries, handy when a Bluesky token expires or your Aria2 daemon stops listening. Aria2 history stores completed/queued gids locally and prevents the same media URL from being requeued across browser sessions.
 
 ## Roadmap
 
 The working plan is in [ROADMAP.md](ROADMAP.md), and what each release actually changed is in
-[CHANGELOG.md](CHANGELOG.md) — this section deliberately does not restate it, because a
+[CHANGELOG.md](CHANGELOG.md), this section deliberately does not restate it, because a
 hand-maintained summary of "the latest batch" is exactly what went three releases stale.
 Work that needs a capture or an operator decision before it can be built is tracked in
 Roadmap_Blocked.md, including F032/F033, which wait on privacy-safe authenticated fixtures

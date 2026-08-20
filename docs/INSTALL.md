@@ -1,4 +1,4 @@
-# Install Aviary 1.35.0
+# Install Aviary 1.36.0
 
 Aviary ships as a readable userscript and as Manifest V3 extensions. Both builds run on X pages;
 the extensions also provide a dedicated options page for optional browser permissions.
@@ -10,8 +10,8 @@ the extensions also provide a dedicated options page for optional browser permis
    The metablock declares `@inject-into content`, which keeps Aviary out of the page's own scope.
    Under Violentmonkey that mode also means `unsafeWindow` refers to the content script's global
    rather than the page's, so Aviary's page-world observer cannot install there. Everything that
-   works from the isolated world is unaffected — structural ad removal, themes, layout, filtering,
-   hiding, exports, the library — but the observer's own contributions are not available: refusing
+   works from the isolated world is unaffected, structural ad removal, themes, layout, filtering,
+   hiding, exports, the library, but the observer's own contributions are not available: refusing
    X's promoted-content logging call before it reaches the network, refusing analytics beacons, and
    discovering direct video variants for the Video/GIF download controls. Aviary says so rather than
    claiming otherwise: Trust reports "This userscript manager does not give Aviary access to the
@@ -34,7 +34,7 @@ Control Center.
 ## Chrome, Edge, or Brave (developer load)
 
 1. Run `npm run verify` (or `npm run build`). **This step is required on a fresh clone**: neither
-   `dist/extension-chrome/` nor the ZIP is carried in git — `content.js` alone is 1.9 MB per target
+   `dist/extension-chrome/` nor the ZIP is carried in git, `content.js` alone is 1.9 MB per target
    and is rebuilt on every commit that touches `src/`, so the committed copy was 3.8 MB of
    incompressible history per commit that nothing read. Build them, or take them from a release.
 2. Open `chrome://extensions/` (or the equivalent extensions page), enable **Developer mode**, and
@@ -65,7 +65,7 @@ if either manifest disagrees with it.
 | Build | Floor | Why |
 | --- | --- | --- |
 | Chromium | **116** | The `"world": "MAIN"` content script Aviary uses to observe X's own loaded network responses. |
-| Firefox | **128** | The same declaration, plus MV3 event-page backgrounds — and 128 is an ESR line. Aviary is sideloaded rather than distributed through a store, and the people most likely to sideload a local-first tool are the people most likely to be on ESR. |
+| Firefox | **128** | The same declaration, plus MV3 event-page backgrounds, and 128 is an ESR line. Aviary is sideloaded rather than distributed through a store, and the people most likely to sideload a local-first tool are the people most likely to be on ESR. |
 
 The floor is what decides whether a platform feature can be used directly. A feature is used
 directly only when it is available at **both** floors; anything newer carries a runtime detection
@@ -77,11 +77,11 @@ true for each feature, so the answer is looked up rather than re-derived:
 | `:has()` | 105 | 121 | yes |
 | Popover API | 116 | 125 | yes |
 | Web Locks | 69 | 96 | yes |
-| `content-visibility` | 85 | 130 | no — needs a branch |
-| `RegExp.escape` | 136 | 134 | no — needs a branch |
-| `URLPattern` | 95 | 142 | no — needs a branch |
-| `@scope` | 118 | 146 | no — needs a branch |
-| Navigation API | 102 | 147 | no — needs a branch |
+| `content-visibility` | 85 | 130 | no, needs a branch |
+| `RegExp.escape` | 136 | 134 | no, needs a branch |
+| `URLPattern` | 95 | 142 | no, needs a branch |
+| `@scope` | 118 | 146 | no, needs a branch |
+| Navigation API | 102 | 147 | no, needs a branch |
 
 Raising the Firefox floor to pick up the last three would buy a few lines of detection branch at
 the cost of excluding ESR users, which is the wrong trade for a sideloaded tool. Versions verified
@@ -91,7 +91,7 @@ against webstatus.dev and MDN on 2026-08-17.
 
 Build the extension, then:
 
-1. Run `npm run verify` (or `npm run build`) first — `dist/extension-firefox/` is not carried in
+1. Run `npm run verify` (or `npm run build`) first, `dist/extension-firefox/` is not carried in
    git either.
 2. Open `about:debugging#/runtime/this-firefox`.
 3. Select **Load Temporary Add-on…**.
@@ -100,7 +100,7 @@ Build the extension, then:
 
 The Firefox build has the same base, optional, and options-page permission flow as the Chromium
 build. Its background runs as a Firefox MV3 event page and keeps an empty enabled ruleset solely for
-Firefox 128–132 dynamic-rule restart compatibility. Temporary add-ons disappear when Firefox
+Firefox 128 to 132 dynamic-rule restart compatibility. Temporary add-ons disappear when Firefox
 restarts.
 
 ## Updating

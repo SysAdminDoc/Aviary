@@ -437,7 +437,7 @@ async function checkReleaseMetadata() {
   const required = [
     ["README.md", "shields.io/badge/version-" + pkg.version + "-"],
     ["ROADMAP.md", "Version: " + String.fromCharCode(96) + pkg.version + String.fromCharCode(96)],
-    ["CHANGELOG.md", "## " + pkg.version + " -"]
+    ["CHANGELOG.md", "## " + pkg.version + " ("]
   ];
   const optional = [["CLAUDE.md", "**Current version:** " + pkg.version]];
   const contents = new Map();

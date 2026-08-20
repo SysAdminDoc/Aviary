@@ -10,11 +10,11 @@ Passive GraphQL capture can produce better evidence than a full private-page scr
 bounded post description. Any contributed fixture must be minimized and scrubbed before it enters
 the repository.
 
-## F134 (operator half) — produce a refreshed authenticated capture
+## F134 (operator half), produce a refreshed authenticated capture
 
 The tooling landed 2026-08-15: `npm run capture:decode` turns a saved MHTML into a scrubbed
 `_decoded/*.html`, `_decoded/captures.json` records each capture's date and provenance, and preflight
-warns then fails past the declared 90-day ceiling. What cannot be automated is the capture itself —
+warns then fails past the declared 90-day ceiling. What cannot be automated is the capture itself,
 it requires a signed-in X session, and nothing in this repository logs in or fetches.
 
 The current captures are dated **2026-05-19**. Everything below that says "measured: N hits" was
@@ -25,9 +25,9 @@ this file be re-run, and would likely settle several of them.
 Re-entry condition: the operator follows "Refreshing the capture set" in CLAUDE.md. Then re-run each
 measurement, record it with the new date, and move whatever the capture now supports back into
 ROADMAP.md. The waiver in `captures.json` expires 2026-09-30, after which preflight fails rather
-than warns — deliberately, so the deadline is real.
+than warns, deliberately, so the deadline is real.
 
-## F139 — Restore what X's August 2026 media redesign changed
+## F139, Restore what X's August 2026 media redesign changed
 
 X replaced the 2x2 multi-image grid with a carousel (2026-08-11) and removed the desktop profile
 media grid, defaulting the Media tab to Videos and moving Likes into a dropdown (2026-08-13). These
@@ -47,13 +47,13 @@ applies before X's first read and actually changes the rendered layout. Flag nam
 file that can be updated without a rebuild, never compiled into a feature, and a flag that no longer
 exists must degrade loudly through selector health rather than silently doing nothing.
 
-## F032 — Hide blocked accounts again
+## F032, Hide blocked accounts again
 
 Blocked pending an authenticated `_decoded/` home/status capture containing the current blocked-account markup. The existing public fixtures do not expose the required `[data-testid="userActions"]` blocked state, so shipping a predicate now would be speculative.
 
 Re-entry condition: add the authenticated capture, verify the live selector, then implement and fixture-test the predicate while preserving the handle whitelist.
 
-## F033 — Hide self-quotes and self-reposts
+## F033, Hide self-quotes and self-reposts
 
 Blocked pending an authenticated `_decoded/` quote/thread capture containing the current repost attribution row. The existing fixtures do not expose the `Reposted by @<handle>` relationship needed for a reliable author-equality check.
 
@@ -147,8 +147,8 @@ promote a lane only after its evidence is checked into `_decoded/` or the extern
 ## Hide "More From This Author"
 
 X injects a "More From This Author" module between replies (reported July 2026; Control Panel for
-Twitter shipped a toggle for it in v4.23.0). The sibling module on the same routes — "Discover
-more" — is present in `_decoded/status.html` and is handled by
+Twitter shipped a toggle for it in v4.23.0). The sibling module on the same routes, "Discover
+more", is present in `_decoded/status.html` and is handled by
 `src/features/layout/thread-recommendations.ts`, which matches a bounded heading label inside a
 `cellInnerDiv` on a conversation route.
 
@@ -186,29 +186,29 @@ Also unverified: whether Aviary's exact promoted-logger block is what triggers t
 It may key on uBlock-scale request blocking that Aviary does not do. Do not claim causation in UI
 copy without a session that demonstrates the warning appearing and disappearing with the toggle.
 
-Updated 2026-08-15 — a testable hypothesis now exists. The fix that propagated through the July 2026
+Updated 2026-08-15, a testable hypothesis now exists. The fix that propagated through the July 2026
 reports does not hide anything; it *allowlists* two XHRs, `x.com/i/api/1.1/flow/viewer.json` and
 `x.com/i/api/*/viewer_context.json`. If that is right, the trigger is a probe request failing rather
 than an ad rendering, which would put Aviary's single-logger refusal outside it. Two further details
-worth carrying into the session: the detection does not always present as the banner — the same
+worth carrying into the session: the detection does not always present as the banner, the same
 reports describe "An error has occurred but it's not your fault", a blank feed, and search returning
-nothing, all of which read as an X outage — and it appears account-scoped rather than universal,
+nothing, all of which read as an X outage, and it appears account-scoped rather than universal,
 so one account seeing nothing proves nothing. In at least one report the actual cause was a second
 content blocker installed alongside the first. All community claim; one devtools session settles it.
 ROADMAP.md F153 covers the half that can be proved without the warning: that Aviary refuses neither
 probe.
 
-## F115 — "Restore old X" feature-flag reversion
+## F115, "Restore old X" feature-flag reversion
 
 X ships UI experiments behind bootstrap feature flags, and through 2026 the uBlock Origin community
-has been rewriting them by hand to undo each redesign — restoring the profile media grid, disabling
+has been rewriting them by hand to undo each redesign, restoring the profile media grid, disabling
 the image carousel, turning off the profile redesign. Nobody productizes it, and Aviary's page-world
 agent is architecturally the right layer: the extension declares `"world": "MAIN"` for `page.js`, so
 it can reach page globals before first paint, and rewriting a bootstrap flag issues no request and
 so stays on the safe side of the ban-risk line.
 
 Blocked on evidence, not on design. Measured: `__INITIAL_STATE__` and `featureSwitch` appear 0 times
-in `_decoded/home.html`, `_decoded/status.html`, and the root `.mhtml` captures — those captures are
+in `_decoded/home.html`, `_decoded/status.html`, and the root `.mhtml` captures, those captures are
 decoded DOM without page scripts. So the container's real name, its shape, whether it is writable
 before X reads it, and the exact flag names are all unknown here. The flag names circulating in
 community threads are third-party reports, not something this repository can verify, and a wrong
@@ -232,11 +232,11 @@ Updated 2026-08-15: two flag names are no longer unknown. Working community fixe
 profile media grid). That moves the remaining unknown from *discovery* to *verification*: the
 container's real name and nesting still need one authenticated session, and third-party scriptlets
 are not evidence this repository accepts on their own. Note the second one requires uBO's "Allow
-trusted filters", which most users will never enable — an in-page flip is a materially better answer
+trusted filters", which most users will never enable, an in-page flip is a materially better answer
 than the workaround the community currently has, which is the strongest argument for finishing this
 item. See ROADMAP.md F139.
 
-## F125 — Distribution decision, real Firefox add-on id, update story
+## F125, Distribution decision, real Firefox add-on id, update story
 
 The Firefox manifest ships `browser_specific_settings.gecko.id` as the placeholder
 `aviary@example.local`, which AMO will not accept, and neither manifest carries an `update_url`.
@@ -251,13 +251,13 @@ raw GitHub or a release asset, and whether store listing assets are needed at al
 implementing it would be inventing a product decision.
 
 Re-entry condition: the operator states the intended distribution. Then mint a stable add-on id,
-point the update URLs at the decided channel, update `docs/INSTALL.md`'s update section, and — if
-public — prepare listing assets and confirm the privacy disclosures match the Chrome Web Store
+point the update URLs at the decided channel, update `docs/INSTALL.md`'s update section, and, if
+public, prepare listing assets and confirm the privacy disclosures match the Chrome Web Store
 policy that took effect 2026-08-01.
 
 Updated 2026-08-15: three constraints to plan for rather than discover at submission. AMO caps the
 manifest `name` at 50 characters and Edge at 45 (Chrome does not enforce one), and AMO now requires
-an explicit `data-collection-permissions` declaration — verify both against MDN before writing the
+an explicit `data-collection-permissions` declaration, verify both against MDN before writing the
 listing, since the developer report they come from corrected itself once. Chrome additionally offers
 to skip review for updates that only change *safe static* `declarativeNetRequest` rules, which is an
 argument for expressing ad suppression as static rules where it can be. Separately, ROADMAP.md F152
@@ -269,8 +269,8 @@ decided.
 ## Proving the video-quality setting actually changes delivered quality
 
 `performance.forceVideoQuality` rewrites an HLS master playlist to its highest rendition. The
-rewrite itself is well covered — master-vs-media playlists, AVERAGE-BANDWIDTH ranking, single-variant
-pass-through — and the counter it increments is now shown in Media, so a user can see whether it
+rewrite itself is well covered, master-vs-media playlists, AVERAGE-BANDWIDTH ranking, single-variant
+pass-through, and the counter it increments is now shown in Media, so a user can see whether it
 ever fires for them.
 
 What remains unproven is whether X's player hands Aviary such a playlist at all. The page agent
@@ -289,14 +289,14 @@ counter stays at zero, X is not routing playlists through a path Aviary can reac
 should be removed with a migration. If it rises, record the request shape in `## Learned` and the
 claim can be strengthened to name the effect.
 
-## F121 — Articles / longform filter
+## F121, Articles / longform filter
 
 X's Articles surface draws steady complaint as an AI-slop vector, and the filter rule language
 added in v1.23 is the natural home for it: one more field, or one predicate the rules can name.
 
 Blocked on evidence. Measured: `twitterArticle`, `/i/article`, `article_card`, and `longform` each
 appear 0 times in `_decoded/home.html` and `_decoded/status.html`. The only `article`-bearing test
-ids in either capture are `news_sidebar_article_*`, which belong to the right-rail news module —
+ids in either capture are `news_sidebar_article_*`, which belong to the right-rail news module,
 a different surface, already covered by Hide trends. So the container, the marker, and whether an
 Article even renders as a timeline cell are all unknown here.
 
@@ -309,19 +309,19 @@ owning cell and its marker, then expose it as a rule field (`kind is article`) s
 the existing rule language rather than becoming a separate toggle. Fixture-test that an ordinary
 post carrying a link is untouched.
 
-## F130 — Relationship badges (follows you / mutual)
+## F130, Relationship badges (follows you / mutual)
 
 Blocked on evidence. Measured: "follows you" appears 0 times in `_decoded/home.html` and
 `_decoded/status.html`. The only follow-related test ids in either capture are `<userId>-follow`,
-which mark the Follow *button* — an action, not a relationship. Inferring "you do not follow this
+which mark the Follow *button*, an action, not a relationship. Inferring "you do not follow this
 account" from the presence of that button is wrong twice over: the button also appears inside
 Who-to-follow modules, and its absence has several causes.
 
 Re-entry condition: a capture containing X's own relationship indicator on a post or hovercard,
 or the relationship field inside a captured timeline payload. Either is passively available and so
-stays on the safe side of the ban-risk line — but neither exists here today.
+stays on the safe side of the ban-risk line, but neither exists here today.
 
-## F132 — Ad labels beyond the nine covered languages
+## F132, Ad labels beyond the nine covered languages
 
 X ships far more UI languages than the nine Aviary has ad labels for. In an uncovered language the
 exact-label test can never match, so native sponsored posts are simply not suppressed.
@@ -331,16 +331,16 @@ the document, and Trust now states plainly when the current UI language has no l
 leaving the user to assume protection they do not have.
 
 Adding the languages themselves is blocked. X's exact ad-label strings cannot be invented: a guessed
-translation either never matches, or — worse — matches ordinary prose, since the test is an exact
+translation either never matches, or, worse, matches ordinary prose, since the test is an exact
 full-text comparison against a span. No capture in this repository shows X's interface in any
 language other than English.
 
 Re-entry condition: for each language, a capture of X in that UI language containing a sponsored
 post, or X's own published localization strings. Add the label, add a fixture to the ad corpus, and
-extend `LABELLED_LANGUAGES` in the same commit — the test that pairs the two lists will fail if a
+extend `LABELLED_LANGUAGES` in the same commit, the test that pairs the two lists will fail if a
 language is claimed as covered without a label to back it.
 
-## F183 — Stop advertising an update channel that answers 404
+## F183, Stop advertising an update channel that answers 404
 
 The bandwidth half shipped 2026-08-18: the build now emits `dist/aviary.meta.js` and `@updateURL`
 points at it, so a poll transfers under a kilobyte instead of the whole script (F197). What remains
@@ -353,20 +353,20 @@ Re-entry condition: F125's distribution decision. If Aviary is published, the UR
 and nothing needs doing. If it stays private, decide whether the metablock should omit them and say
 so in `docs/INSTALL.md`, which already states the 404 plainly.
 
-## F184 — Remove real-user captures from the fixture set and its history
+## F184, Remove real-user captures from the fixture set and its history
 
 `_decoded/` is tracked and contains a full MHTML capture of a named account's post, handle and body
 text, against the standard this repository enforces on its own synthetic fixtures. The scrub itself
 is ordinary work, but it is in history, so removing it means a `git-filter-repo` rewrite and a force
-push over branch protection on the only copy of the project's history — and the selectors currently
+push over branch protection on the only copy of the project's history, and the selectors currently
 proved against those files have to be re-proved against a replacement capture that does not exist
 yet.
 
 Re-entry condition: sequence with F134's operator capture session. Scrub `tools/capture-decode.mjs`
 first so a fresh capture cannot reintroduce identifying content, take the new capture, re-prove the
-selectors against it, and only then rewrite history — one rewrite rather than two.
+selectors against it, and only then rewrite history, one rewrite rather than two.
 
-## F201 — Re-verify batch media download against X's Photos/Videos split
+## F201, Re-verify batch media download against X's Photos/Videos split
 
 X split the profile Media tab into Photos and Videos and dropped the 3-column grid around
 2026-08-13..16. Competing downloaders report this broke batch collection specifically, and Media
@@ -378,5 +378,5 @@ blocker as F134. Guessing at the new structure would ship exactly the speculativ
 repository refuses.
 
 Re-entry condition: verify during F134's authenticated capture session rather than booking a second
-one — open the current Photos and Videos tabs with the built artifact loaded and exercise the batch
+one, open the current Photos and Videos tabs with the built artifact loaded and exercise the batch
 action.

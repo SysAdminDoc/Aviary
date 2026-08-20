@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/SysAdminDoc
-// @version      1.35.0
+// @version      1.36.0
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       SysAdminDoc
 // @homepage     https://github.com/SysAdminDoc/Aviary
@@ -1551,7 +1551,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/platform/build-version.ts
-  var AVIARY_VERSION = false ? "dev" : "1.35.0";
+  var AVIARY_VERSION = false ? "dev" : "1.36.0";
 
   // src/ui/control-center/constants.ts
   var MEDIA_LAYOUT_OPTIONS = [
@@ -3880,6 +3880,27 @@ html.av-reduce-motion *::after {
         "Controls the opening burst and sustained pace of batch media requests."
       )
     );
+    if (ctx.options.runMediaBatch) {
+      rows.push(
+        ctx.actionRow(
+          "Download all visible media",
+          "Queue every photo, video, GIF, and thumbnail currently visible on this page.",
+          async () => {
+            ctx.setStatus("Downloading media from this view\u2026");
+            try {
+              const result = await ctx.options.runMediaBatch();
+              ctx.render();
+              ctx.setStatus(
+                result.cancelled ? `Batch cancelled: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).` : `Batch finished: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
+              );
+            } catch (error) {
+              ctx.options.onError("Batch download failed", error);
+              ctx.setStatus("Batch download failed.");
+            }
+          }
+        )
+      );
+    }
     const status = ctx.options.getMediaStatus?.();
     if (status) {
       rows.push(
@@ -3909,27 +3930,6 @@ html.av-reduce-motion *::after {
             ctx.setStatus("Could not clear history.");
           }
         })
-      );
-    }
-    if (ctx.options.runMediaBatch) {
-      rows.push(
-        ctx.actionRow(
-          "Download all visible media",
-          "Walks every tweet rendered on the current page and queues every photo/video/GIF/thumbnail through the existing download pipeline.",
-          async () => {
-            ctx.setStatus("Downloading media from this view\u2026");
-            try {
-              const result = await ctx.options.runMediaBatch();
-              ctx.render();
-              ctx.setStatus(
-                result.cancelled ? `Batch cancelled: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).` : `Batch finished: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
-              );
-            } catch (error) {
-              ctx.options.onError("Batch download failed", error);
-              ctx.setStatus("Batch download failed.");
-            }
-          }
-        )
       );
     }
     const mediaControlAction = (label, description, action, success) => {
@@ -4793,7 +4793,7 @@ html.av-reduce-motion *::after {
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION2 = false ? "dev" : "1.35.0";
+  var AVIARY_VERSION2 = false ? "dev" : "1.36.0";
   var SECTION_GROUP_BREAKS = {
     presets: [
       { before: "Quiet Reader", title: "Preset packs" },
@@ -4826,6 +4826,7 @@ html.av-reduce-motion *::after {
       { before: "Show download buttons", title: "On-post controls" },
       { before: "Filename template", title: "File naming" },
       { before: "Duplicate history", title: "Batch behavior" },
+      { before: "Download all visible media", title: "Queue actions" },
       { before: "Download status", title: "Queue status" }
     ],
     export: [
@@ -5088,6 +5089,8 @@ html.av-reduce-motion *::after {
       navLauncher.setAttribute("aria-expanded", String(open));
       overlay.classList.toggle("is-open", open);
       overlay.setAttribute("aria-hidden", String(!open));
+      const firstRunNotice = document.getElementById("av-first-run");
+      if (firstRunNotice) firstRunNotice.hidden = open;
       overlay.toggleAttribute("inert", !open);
       if (open) {
         bodyWasInert = document.body?.hasAttribute("inert") ?? false;
@@ -5362,7 +5365,7 @@ html.av-reduce-motion *::after {
         group: "Start",
         summary: "Local controls for a quieter X.",
         icon: "presets",
-        accent: "rgb(77, 199, 255)",
+        accent: "rgb(72, 211, 193)",
         build: () => buildPresetRows(panelContext)
       },
       {
@@ -5380,7 +5383,7 @@ html.av-reduce-motion *::after {
         group: "Reading",
         summary: "Reduce trends, recommendations, and footer noise.",
         icon: "layout",
-        accent: "rgb(130, 151, 255)",
+        accent: "rgb(72, 211, 193)",
         build: () => buildLayoutRows(panelContext)
       },
       {
@@ -5389,7 +5392,7 @@ html.av-reduce-motion *::after {
         group: "Reading",
         summary: "Master switch for keyword, regex, premium, and media filters.",
         icon: "filtering",
-        accent: "rgb(178, 139, 255)",
+        accent: "rgb(72, 211, 193)",
         build: () => buildFilterRows(panelContext)
       },
       {
@@ -5398,7 +5401,7 @@ html.av-reduce-motion *::after {
         group: "Reading",
         summary: "Keep posts you hid collapsed so the next post rises to the top.",
         icon: "hidden",
-        accent: "rgb(255, 184, 107)",
+        accent: "rgb(72, 211, 193)",
         build: () => buildHiddenPostRows(panelContext)
       },
       {
@@ -5407,7 +5410,7 @@ html.av-reduce-motion *::after {
         group: "Reading",
         summary: "Stops decoding timeline video once it leaves the screen, and resumes it when it comes back. A video you paused yourself stays paused.",
         icon: "performance",
-        accent: "rgb(80, 210, 160)",
+        accent: "rgb(72, 211, 193)",
         build: () => buildPerformanceRows(panelContext)
       },
       {
@@ -5416,7 +5419,7 @@ html.av-reduce-motion *::after {
         group: "Data",
         summary: "Inject Save and Thumb buttons over tweet photos and video thumbnails.",
         icon: "media",
-        accent: "rgb(77, 199, 255)",
+        accent: "rgb(72, 211, 193)",
         build: () => buildMediaRows(panelContext)
       },
       {
@@ -5425,7 +5428,7 @@ html.av-reduce-motion *::after {
         group: "Data",
         summary: "Accumulate tweets visible on the active page for the next export run.",
         icon: "export",
-        accent: "rgb(54, 211, 176)",
+        accent: "rgb(72, 211, 193)",
         build: () => buildExportRows(panelContext)
       },
       {
@@ -5434,7 +5437,7 @@ html.av-reduce-motion *::after {
         group: "Data",
         summary: "Save, search, organize, and revisit posts in a local bookmark library.",
         icon: "library",
-        accent: "rgb(171, 139, 255)",
+        accent: "rgb(72, 211, 193)",
         build: () => buildLibraryRows(panelContext)
       },
       {
@@ -5443,7 +5446,7 @@ html.av-reduce-motion *::after {
         group: "Data",
         summary: "Walks UserCell rows on the current page. Open a /handle/followers view first.",
         icon: "snapshots",
-        accent: "rgb(247, 183, 73)",
+        accent: "rgb(72, 211, 193)",
         build: () => buildSnapshotRows(panelContext)
       },
       {
@@ -5452,7 +5455,7 @@ html.av-reduce-motion *::after {
         group: "Advanced",
         summary: "Send large media downloads to a self-hosted Aria2 JSON-RPC endpoint.",
         icon: "integrations",
-        accent: "rgb(70, 200, 255)",
+        accent: "rgb(72, 211, 193)",
         build: () => buildIntegrationRows(panelContext)
       },
       {
@@ -5461,7 +5464,7 @@ html.av-reduce-motion *::after {
         group: "Advanced",
         summary: "Downloads your preferences as JSON. API keys and passwords are replaced with a placeholder, so the file is safe to share; importing it here keeps the credentials already saved on this machine.",
         icon: "backup",
-        accent: "rgb(137, 126, 255)",
+        accent: "rgb(72, 211, 193)",
         build: () => buildBackupRows(panelContext)
       },
       {
@@ -5470,7 +5473,7 @@ html.av-reduce-motion *::after {
         group: "Advanced",
         summary: "Settings stay in this browser.",
         icon: "trust",
-        accent: "rgb(72, 211, 147)",
+        accent: "rgb(72, 211, 193)",
         build: () => buildTrustRows(panelContext)
       }
     ];
@@ -6436,11 +6439,7 @@ html.av-reduce-motion *::after {
 }
 
 .av-nav-launcher[aria-expanded="true"] .av-nav-launcher-pill {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 15%, transparent),
-    color-mix(in srgb, var(--av-accent-secondary, rgb(151, 128, 255)) 8%, transparent)
-  );
+  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 13%, transparent);
   color: var(--av-text, currentColor);
 }
 
@@ -6507,11 +6506,7 @@ html.av-reduce-motion *::after {
      "leave X alone", the same wash sat on X's light mode at 1.12:1 against its own near-white
      label \u2014 invisible. The launcher is Aviary's own chrome and must not depend on the page.
      Measured in tests/injected-ui-contract.test.mjs by compositing on canvas. */
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 22%, var(--av-surface-raised, rgb(22, 24, 28))),
-    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, var(--av-surface-raised, rgb(22, 24, 28)))
-  );
+  background: rgb(20, 32, 42);
   color: var(--av-text, rgb(239, 243, 244));
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.42);
   cursor: pointer;
@@ -6521,7 +6516,7 @@ html.av-reduce-motion *::after {
   font-family: inherit;
   letter-spacing: 0;
   pointer-events: auto;
-  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+  transition: transform 140ms ease, border-color 140ms ease;
 }
 
 .av-launcher[hidden] {
@@ -6531,6 +6526,7 @@ html.av-reduce-motion *::after {
 .av-launcher:hover {
   transform: translateY(-1px);
   border-color: var(--av-accent, rgb(29, 155, 240));
+  background: rgb(24, 42, 54);
 }
 
 .av-launcher:focus-visible,
@@ -6565,16 +6561,14 @@ input:focus-visible {
 }
 
 .av-panel {
-  width: min(1200px, calc(100vw - 48px));
-  height: min(840px, calc(100vh - 48px));
+  width: min(1260px, calc(100vw - 40px));
+  height: min(860px, calc(100vh - 40px));
   overflow: hidden;
   display: flex;
   flex-direction: column;
   border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 82%, var(--av-text, rgb(239, 243, 244)) 18%);
-  border-radius: 12px;
-  background:
-    radial-gradient(circle at 82% 0%, color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 5%, transparent), transparent 36%),
-    color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
   box-shadow: 0 28px 88px rgba(0, 0, 0, 0.64);
   pointer-events: auto;
 }
@@ -6591,8 +6585,10 @@ input:focus-visible {
   grid-template-columns: 220px minmax(320px, 520px) minmax(80px, 1fr);
   align-items: center;
   gap: 20px;
-  min-height: 76px;
-  padding: 14px 20px;
+  height: 64px;
+  min-height: 64px;
+  padding: 10px 20px;
+  box-sizing: border-box;
   border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 90%, black);
 }
@@ -6610,14 +6606,13 @@ input:focus-visible {
 /* Quiet by default -- it is a build marker, not a heading. Carries the accent so a reload reads
    as a different build at a glance. */
 .av-version {
-  padding: 1px 6px;
-  border: 1px solid color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 45%, transparent);
-  /* 6px, matching the other badges: the repo's shape rules reject pill backdrops. */
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 14%, transparent);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--av-muted, rgb(132, 139, 145));
   font-weight: 600;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
   font-family: inherit;
   letter-spacing: 0.02em;
@@ -6635,7 +6630,7 @@ input:focus-visible {
 .av-subtitle {
   margin: 2px 0 0;
   color: var(--av-muted, rgb(113, 118, 123));
-  font-size: 11px;
+  font-size: 12.5px;
   line-height: 1.35;
 }
 
@@ -6667,7 +6662,7 @@ input:focus-visible {
   border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 82%, white 18%);
   background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 78%, white 8%);
   color: rgb(5, 10, 15);
-  box-shadow: 0 6px 22px color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 22%, transparent);
+  box-shadow: none;
 }
 
 .av-button-primary:hover:not(:disabled) {
@@ -6742,18 +6737,18 @@ input:focus-visible {
 .av-nav {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  padding: 16px 12px;
+  gap: 2px;
+  padding: 14px 12px;
   overflow-y: auto;
   /* Reserved so the list does not reflow the moment it becomes scrollable. */
   scrollbar-gutter: stable;
   border-inline-end: 1px solid var(--av-border, rgb(47, 51, 54));
-  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 88%, black);
+  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 92%, black);
   /* The rail scrolls at thirteen sections and a short viewport, and nothing said so -- the last
      item rendered cut through its own baseline, which reads as a rendering fault rather than a
      list with more below. The mask only bites where content actually reaches the bottom edge,
      so a rail that fits is untouched. */
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent 100%);
+  mask-image: none;
 }
 
 .av-nav,
@@ -6777,10 +6772,10 @@ input:focus-visible {
 .av-nav-group {
   /* The rail is sized so all twelve sections fit without scrolling at the default panel
      height; a sliced-in-half last item reads as a rendering bug rather than as "more below". */
-  margin: 14px 0 5px;
-  padding: 0 12px;
+  margin: 12px 0 5px;
+  padding: 0 10px;
   color: var(--av-muted, rgb(113, 118, 123));
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   line-height: 1.2;
   letter-spacing: 0.08em;
@@ -6793,15 +6788,15 @@ input:focus-visible {
 
 .av-nav-item {
   position: relative;
-  min-height: 32px;
+  min-height: 34px;
   padding-block: 0;
   padding-inline: 18px 12px;
-  border: 1px solid transparent;
-  border-radius: 7px;
+  border: 0;
+  border-radius: 6px;
   background: transparent;
   color: color-mix(in srgb, var(--av-text, rgb(239, 243, 244)) 70%, var(--av-muted, rgb(113, 118, 123)));
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.2;
   font-family: inherit;
   text-align: start;
@@ -6824,21 +6819,20 @@ input:focus-visible {
 }
 
 .av-nav-item.is-active {
-  border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 34%, transparent);
-  background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 12%, transparent);
+  background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 10%, var(--av-surface-raised, rgb(22, 24, 28)));
   color: var(--av-text, rgb(239, 243, 244));
 }
 
 .av-nav-item.is-active::before {
   background: var(--av-page-accent, rgb(77, 199, 255));
-  box-shadow: 0 0 12px color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 55%, transparent);
+  box-shadow: none;
 }
 
 .av-content {
   display: grid;
   align-content: start;
-  gap: 18px;
-  padding: 22px 28px 30px;
+  gap: 14px;
+  padding: 20px 28px 26px;
   overflow-y: auto;
   min-height: 0;
   scrollbar-gutter: stable;
@@ -6866,30 +6860,21 @@ input:focus-visible {
 
 .av-section {
   display: grid;
-  gap: 14px;
+  gap: 10px;
   min-width: 0;
 }
 
 .av-page-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  min-height: 68px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 24%, var(--av-border, rgb(47, 51, 54)));
+  gap: 0;
+  min-height: 58px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
 }
 
 .av-page-icon {
-  flex: 0 0 auto;
-  width: 38px;
-  height: 38px;
-  padding: 4px;
-  fill: none;
-  stroke: var(--av-page-accent, rgb(77, 199, 255));
-  stroke-width: 1.65;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  box-sizing: border-box;
+  display: none;
 }
 
 .av-page-heading-copy {
@@ -6905,7 +6890,7 @@ input:focus-visible {
 .av-section-title {
   margin: 0;
   color: var(--av-text, rgb(239, 243, 244));
-  font-size: 24px;
+  font-size: 25px;
   font-weight: 760;
   line-height: 1.12;
   letter-spacing: -0.025em;
@@ -6914,9 +6899,13 @@ input:focus-visible {
 .av-page-summary {
   margin: 0;
   color: var(--av-muted, rgb(113, 118, 123));
-  font-size: 12px;
-  line-height: 1.35;
+  font-size: 14px;
+  line-height: 1.4;
   max-width: 760px;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
   overflow-wrap: anywhere;
 }
 
@@ -6942,15 +6931,64 @@ input:focus-visible {
 .av-section[data-av-section="appearance"] .av-page-grid,
 .av-section[data-av-section="hidden"] .av-page-grid,
 .av-section[data-av-section="performance"] .av-page-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+.av-section[data-av-section="media"] .av-page-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 18px;
+}
+
+.av-section[data-av-section="media"] .av-group-title,
+.av-section[data-av-section="media"] .av-row[data-av-label="Show download buttons"],
+.av-section[data-av-section="media"] .av-row[data-av-label="Prefer original quality"],
+.av-section[data-av-section="media"] .av-row[data-av-label="Original quality status"],
+.av-section[data-av-section="media"] .av-row[data-av-label="Show images at original quality"],
+.av-section[data-av-section="media"] .av-row[data-av-label="Media layout"],
+.av-section[data-av-section="media"] .av-row[data-av-label="Filename template"],
+.av-section[data-av-section="media"] .av-row[data-av-label="Download all visible media"] {
+  grid-column: 1 / -1;
+}
+
+.av-section[data-av-section="media"] .av-row[data-av-label="Download all visible media"] > .av-button {
+  border-color: transparent;
+  background: var(--av-page-accent, rgb(72, 211, 193));
+  color: rgb(3, 20, 24);
+  font-weight: 780;
+}
+
+.av-section[data-av-section="media"] .av-row[data-av-label="Download all visible media"] > .av-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--av-page-accent, rgb(72, 211, 193)) 86%, white);
+}
+
+.av-section[data-av-section="media"] .av-row[data-av-label="Concurrent downloads"] {
+  display: flex;
+  grid-column: auto;
+  flex-direction: row;
+  align-items: center;
+}
+
+.av-section[data-av-section="media"] .av-row[data-av-label="Concurrent downloads"] > .av-text-input {
+  flex: 0 0 64px;
+  width: 64px;
+}
+
+.av-section[data-av-section="media"] .av-row[data-av-label="Download pacing"] .av-select {
+  min-width: 118px;
+}
+
+.av-section[data-av-section="media"] .av-row[data-av-label="Duplicate history"] .av-row-description,
+.av-section[data-av-section="media"] .av-row[data-av-label="Concurrent downloads"] .av-row-description,
+.av-section[data-av-section="media"] .av-row[data-av-label="Download pacing"] .av-row-description {
+  -webkit-line-clamp: 2;
 }
 
 .av-group-title {
   grid-column: 1 / -1;
-  margin: 18px 2px 7px;
-  color: var(--av-page-accent, rgb(77, 199, 255));
-  font-size: 10px;
+  margin: 16px 0 5px;
+  color: var(--av-muted, rgb(113, 118, 123));
+  font-size: 11px;
   font-weight: 820;
   line-height: 1.2;
   letter-spacing: 0.09em;
@@ -6974,43 +7012,42 @@ input:focus-visible {
   justify-content: space-between;
   gap: 16px;
   min-width: 0;
-  min-height: 62px;
-  padding: 11px 14px;
+  min-height: 54px;
+  padding: 8px 0;
   box-sizing: border-box;
-  /* The border token alone sits near 1.4:1 against the row fill, which reads as no border at
-     all across ~100 rows. Lifted toward the text token so grouping is actually visible. */
-  border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)), var(--av-text, rgb(239, 243, 244)) 18%);
+  /* Rows share one surface. A single divider keeps groups scannable without boxing each item. */
+  border: 0;
+  border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
   border-radius: 0;
-  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 48%, transparent);
-  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+  background: transparent;
+  transition: background 140ms ease, color 140ms ease;
 }
 
 .av-row:hover {
-  border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 26%, var(--av-border, rgb(47, 51, 54)));
-  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 66%, transparent);
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 46%, transparent);
 }
 
 .av-page-grid > .av-row + .av-row {
-  margin-top: -1px;
+  margin-top: 0;
 }
 
 .av-group-title + .av-row,
 .av-page-grid > .av-row:first-child {
-  border-start-start-radius: 9px;
-  border-start-end-radius: 9px;
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
 }
 
 .av-row:has(+ .av-group-title),
 .av-page-grid > .av-row:last-child {
-  border-end-start-radius: 9px;
-  border-end-end-radius: 9px;
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
 }
 
 .av-section[data-av-section="appearance"] .av-row,
 .av-section[data-av-section="hidden"] .av-row,
 .av-section[data-av-section="performance"] .av-row {
   margin-top: 0;
-  border-radius: 9px;
+  border-radius: 0;
 }
 
 .av-page-grid > .av-row-stack:not(.av-preset-card),
@@ -7049,11 +7086,11 @@ input:focus-visible {
   display: grid;
   grid-template-columns: minmax(260px, 1.15fr) minmax(300px, 1fr) auto;
   align-items: center;
-  min-height: 72px;
+  min-height: 68px;
   gap: 16px;
-  padding: 10px 12px 10px 18px;
+  padding: 10px 8px 10px 16px;
   overflow: hidden;
-  border-radius: 9px;
+  border-radius: 0;
 }
 
 .av-preset-card::before {
@@ -7065,12 +7102,7 @@ input:focus-visible {
   background: var(--av-card-accent, var(--av-page-accent, rgb(77, 199, 255)));
 }
 
-.av-preset-card:nth-child(6n + 1) { --av-card-accent: rgb(77, 199, 255); }
-.av-preset-card:nth-child(6n + 2) { --av-card-accent: rgb(72, 211, 193); }
-.av-preset-card:nth-child(6n + 3) { --av-card-accent: rgb(130, 151, 255); }
-.av-preset-card:nth-child(6n + 4) { --av-card-accent: rgb(178, 139, 255); }
-.av-preset-card:nth-child(6n + 5) { --av-card-accent: rgb(255, 184, 107); }
-.av-preset-card:nth-child(6n + 6) { --av-card-accent: rgb(80, 210, 160); }
+.av-preset-card { --av-card-accent: var(--av-page-accent, rgb(72, 211, 193)); }
 
 .av-preset-card .av-row-label {
   color: var(--av-text, rgb(239, 243, 244));
@@ -7117,7 +7149,7 @@ input:focus-visible {
   justify-content: flex-start;
   gap: 4px;
   min-width: 0;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.2;
 }
 
@@ -7257,15 +7289,19 @@ input:focus-visible {
 
 .av-row-label {
   color: var(--av-text, rgb(239, 243, 244));
-  font-size: 13.5px;
+  font-size: 15px;
   font-weight: 720;
   line-height: 1.25;
 }
 
 .av-row-description {
   color: var(--av-muted, rgb(113, 118, 123));
-  font-size: 11.75px;
-  line-height: 1.35;
+  font-size: 13px;
+  line-height: 1.4;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 input[type="checkbox"] {
@@ -7343,13 +7379,11 @@ input[type="checkbox"] {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  min-height: 58px;
-  padding: 10px 20px;
+  min-height: 56px;
+  padding: 9px 20px;
   border-top: 1px solid var(--av-border, rgb(47, 51, 54));
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 4%, transparent), transparent 42%),
-    color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 90%, black);
-  box-shadow: 0 -12px 34px rgba(0, 0, 0, 0.18);
+  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 92%, black);
+  box-shadow: none;
 }
 
 .av-status {
@@ -7359,7 +7393,7 @@ input[type="checkbox"] {
   gap: 8px;
   min-width: 0;
   color: var(--av-muted, rgb(113, 118, 123));
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.3;
 }
 
@@ -7380,7 +7414,7 @@ input[type="checkbox"] {
   height: 7px;
   border-radius: 50%;
   background: rgb(72, 211, 147);
-  box-shadow: 0 0 9px rgba(72, 211, 147, 0.45);
+  box-shadow: none;
 }
 
 .av-status[data-state="dirty"] {
@@ -7389,12 +7423,12 @@ input[type="checkbox"] {
 
 .av-status[data-state="dirty"]::before {
   background: rgb(247, 183, 73);
-  box-shadow: 0 0 9px rgba(247, 183, 73, 0.42);
+  box-shadow: none;
 }
 
 .av-status[data-state="saving"]::before {
   background: var(--av-page-accent, rgb(77, 199, 255));
-  box-shadow: 0 0 9px color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 55%, transparent);
+  box-shadow: none;
 }
 
 .av-status[data-state="error"] {
@@ -7403,7 +7437,7 @@ input[type="checkbox"] {
 
 .av-status[data-state="error"]::before {
   background: rgb(255, 95, 109);
-  box-shadow: 0 0 9px rgba(255, 95, 109, 0.42);
+  box-shadow: none;
 }
 
 /* Touch and viewport rules must live in this stylesheet: a sheet in document.head cannot
@@ -7527,9 +7561,7 @@ input[type="checkbox"] {
   }
 
   /*
-   * The sticky Save/Revert footer painted itself with a gradient and an upward shadow, both of
-   * which the UA discards -- leaving the one control that commits a page draft floating with no
-   * edge against the content above it.
+   * Keep the commit bar edge explicit when the UA replaces the authored surface colours.
    */
   .av-transaction-bar {
     background: Canvas;
@@ -7558,6 +7590,10 @@ input[type="checkbox"] {
     grid-column: 1 / -1;
     justify-content: flex-start;
   }
+
+  .av-section[data-av-section="media"] .av-page-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
@@ -7580,6 +7616,8 @@ input[type="checkbox"] {
   .av-panel-header {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 10px 12px;
+    height: auto;
+    min-height: 0;
     padding: 12px;
   }
 
@@ -7607,7 +7645,7 @@ input[type="checkbox"] {
     overflow-y: hidden;
     border-inline-end: 0;
     border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
-    mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+    mask-image: none;
     scrollbar-width: none;
   }
 
@@ -7661,7 +7699,8 @@ input[type="checkbox"] {
 
   .av-section[data-av-section="appearance"] .av-page-grid,
   .av-section[data-av-section="hidden"] .av-page-grid,
-  .av-section[data-av-section="performance"] .av-page-grid {
+  .av-section[data-av-section="performance"] .av-page-grid,
+  .av-section[data-av-section="media"] .av-page-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -17603,8 +17642,13 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     label.textContent = idleLabel;
     button2.append(icon, label);
     if (assets.length === 0) {
-      button2.disabled = true;
+      button2.dataset.pendingVideo = "true";
       button2.title = ft(ctx, "The direct video is still loading. Try again in a moment.");
+      button2.addEventListener("click", (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        void handlePendingPostDownload(tweet.article, ctx, button2);
+      });
       return button2;
     }
     const completed = /* @__PURE__ */ new Set();
@@ -17614,6 +17658,34 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       void handlePostDownload(tweet, assets, completed, ctx, button2);
     });
     return button2;
+  }
+  async function handlePendingPostDownload(article, ctx, button2) {
+    setButtonFeedback(button2, {
+      label: ft(ctx, "Saving..."),
+      icon: "\u21BB",
+      className: "is-active",
+      disabled: true,
+      busy: true
+    });
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const refreshed = extractTweetForContext(article, ctx);
+      const assets = primaryDownloadAssets(refreshed);
+      const stillWaiting = refreshed.media.some((media) => media.kind === "video" && resolveTarget(media) === null) || article.querySelector(VIDEO_CONTAINER_SELECTOR) !== null && !refreshed.media.some((media) => media.kind === "video");
+      if (assets.length > 0 && !stillWaiting) {
+        delete button2.dataset.pendingVideo;
+        await handlePostDownload(refreshed, assets, /* @__PURE__ */ new Set(), ctx, button2);
+        return;
+      }
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250);
+      });
+    }
+    setButtonFeedback(button2, {
+      label: ft(ctx, "Retry"),
+      icon: "\u21BB",
+      className: "is-error"
+    });
+    button2.title = ft(ctx, "The direct video is still loading. Try again in a moment.");
   }
   function positionButton(button2, container) {
     const anchor = positionedAncestor(container);
@@ -18045,14 +18117,14 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   min-width: 100px;
   min-height: 36px;
   padding: 6px 10px;
-  border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 55%, transparent);
+  border: 0;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, transparent);
-  color: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 88%, white 12%);
+  background: var(--av-accent, rgb(29, 155, 240));
+  color: rgb(3, 20, 24);
   cursor: pointer;
-  font: 700 13px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
+  font: 750 13px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
   white-space: nowrap;
-  transition: transform 140ms ease, border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+  transition: transform 140ms ease, background-color 140ms ease, color 140ms ease;
 }
 
 [${ACTION_ATTR}] .av-media-action-icon {
@@ -18065,8 +18137,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
 }
 
 [${ACTION_ATTR}]:hover:not(:disabled) {
-  border-color: var(--av-accent, rgb(29, 155, 240));
-  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 20%, transparent);
+  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 86%, white);
   transform: translateY(-1px);
 }
 
@@ -18076,24 +18147,21 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
 }
 
 [${ACTION_ATTR}].is-success {
-  border-color: var(--av-media-success, rgb(120, 200, 130));
-  color: var(--av-media-success-text, rgb(206, 240, 210));
-  background: color-mix(in srgb, var(--av-media-success, rgb(120, 200, 130)) 14%, transparent);
+  color: rgb(3, 20, 24);
+  background: var(--av-media-success, rgb(120, 200, 130));
 }
 
 [${ACTION_ATTR}].is-duplicate {
-  border-color: var(--av-muted, rgb(113, 118, 123));
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-text, rgb(239, 243, 244));
+  background: color-mix(in srgb, var(--av-muted, rgb(113, 118, 123)) 46%, transparent);
 }
 
 [${ACTION_ATTR}].is-error {
-  border-color: var(--av-media-error, rgb(220, 110, 110));
-  color: var(--av-media-error-text, rgb(248, 200, 200));
-  background: color-mix(in srgb, var(--av-media-error, rgb(220, 110, 110)) 12%, transparent);
+  color: rgb(28, 8, 8);
+  background: var(--av-media-error, rgb(220, 110, 110));
 }
 
 [${ACTION_ATTR}].is-active {
-  border-color: var(--av-accent, rgb(29, 155, 240));
   cursor: progress;
 }
 
@@ -18103,7 +18171,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
 
 [${ACTION_ATTR}]:disabled {
   cursor: wait;
-  opacity: 0.62;
+  opacity: 0.84;
   transform: none;
 }
 
@@ -18117,15 +18185,13 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   min-width: 72px;
   min-height: 36px;
   padding: 6px 11px;
-  border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 82%, white 8%);
+  border: 0;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--av-surface-raised, rgb(15, 20, 25)) 94%, black);
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(15, 20, 25)) 90%, black);
   color: var(--av-text, rgb(239, 243, 244));
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.52);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.38);
   cursor: pointer;
-  font: 750 12px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font: 700 12.5px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
   opacity: 1;
   transition: transform 140ms ease, border-color 140ms ease, background-color 140ms ease, color 140ms ease;
 }
@@ -18153,7 +18219,6 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
    already positioned, which is the same box the photo itself resolves against. */
 
 [${BUTTON_ATTR2}]:hover {
-  border-color: var(--av-accent, rgb(29, 155, 240));
   background: color-mix(in srgb, var(--av-surface-raised, rgb(15, 20, 25)) 86%, var(--av-accent, rgb(29, 155, 240)));
   transform: translateY(-1px);
 }
@@ -18164,22 +18229,18 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
 }
 
 [${BUTTON_ATTR2}].is-success {
-  border-color: var(--av-media-success, rgb(120, 200, 130));
   color: var(--av-media-success-text, rgb(206, 240, 210));
 }
 
 [${BUTTON_ATTR2}].is-duplicate {
-  border-color: var(--av-muted, rgb(113, 118, 123));
   color: var(--av-muted, rgb(113, 118, 123));
 }
 
 [${BUTTON_ATTR2}].is-error {
-  border-color: var(--av-media-error, rgb(220, 110, 110));
   color: var(--av-media-error-text, rgb(248, 200, 200));
 }
 
 [${BUTTON_ATTR2}].is-active {
-  border-color: var(--av-accent, rgb(29, 155, 240));
   cursor: progress;
 }
 
@@ -21771,31 +21832,31 @@ ${COLOR_CSS}`;
     const style = document.createElement("style");
     style.textContent = `
     .card {
-      max-width: 360px;
-      padding: 14px 16px;
+      max-width: 320px;
+      padding: 13px 14px;
       border: 1px solid #2f3336;
-      border-radius: 14px;
+      border-radius: 9px;
       background: #16181c;
       color: #e7e9ea;
       font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
       font-size: 13px;
       line-height: 1.5;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.38);
       ${reduceMotion2 ? "" : "animation: rise 160ms ease-out;"}
     }
     @keyframes rise {
       from { opacity: 0; transform: translateY(6px); }
       to { opacity: 1; transform: none; }
     }
-    .title { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
-    ul { margin: 8px 0 0; padding-inline-start: 18px; }
-    li { margin-bottom: 4px; }
-    .actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+    .title { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    ul { margin: 7px 0 0; padding-inline-start: 18px; }
+    li { margin-bottom: 3px; }
+    .actions { display: flex; justify-content: flex-end; margin-top: 10px; }
     button {
       min-height: 32px;
       padding: 0 14px;
       border: 0;
-      border-radius: 999px;
+      border-radius: 7px;
       background: #1d9bf0;
       color: #fff;
       font-family: inherit;

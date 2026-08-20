@@ -2,13 +2,38 @@
 
 ## Unreleased
 
-## 1.35.0 - 2026-08-19
+## 1.36.0 (2026-08-20)
+
+### Changed
+
+- **The Control Center now reads as one piece of software instead of a stack of cards.** Rows share
+  a flat surface with quiet dividers, labels are larger, page headers are shorter, and the rail uses
+  one accent. Helper copy is clamped so the setting name and control stay in charge.
+
+- **Media keeps the important actions in view.** Batch behavior is grouped across two columns on
+  wide screens, and Download all visible media is the one filled action in the section. The two
+  defaults that affect feed downloads, visible controls and original quality, remain first.
+
+- **Optional permissions are easier to understand.** The extension page drops the boxed cards and
+  status pills. Download access is a clear primary button, while media-host access remains visibly
+  secondary and optional.
+
+### Fixed
+
+- **A late-loading video no longer leaves a dead gray Download button.** The action stays clickable,
+  waits briefly for X's direct variants, chooses the highest-quality saveable file, and offers Retry
+  if the metadata still is not ready.
+
+- **The first-run notice no longer sits over the open Control Center.** Opening settings hides it and
+  closing settings restores it when it still applies.
+
+## 1.35.0 (2026-08-19)
 
 ### Added
 
 - **The timeline can stop.** Set a number of posts and the feed stops extending there, with a
   control to continue that releases another page of the same size. Off by default; zero leaves X's
-  endless scroll exactly as it was. It applies to feeds that extend — home, profile, search — and
+  endless scroll exactly as it was. It applies to feeds that extend, home, profile, search, and
   never to a conversation, which is finite already. The property the implementation is built around
   is that nothing already on screen moves: the control is inserted *after* the last post shown
   rather than above the cut, so continuing extends downward into space that was below the fold, and
@@ -17,19 +42,19 @@
 
 - **A filtered post can say what caught it.** A filter that hides silently is hard to tell from a
   bug, so a suppressed post now names the rule, keyword, pattern, engagement floor or media type
-  responsible — by the rule's title where it has one. The reason comes out of the same evaluation
+  responsible, by the rule's title where it has one. The reason comes out of the same evaluation
   that made the decision rather than being worked out afterwards, because a reason computed
   separately is a second implementation of the filter and the two would eventually disagree about a
   post the reader is looking at. Nothing is stored: the sentence lives on the article as an
   attribute the stylesheet reads with `attr()`, and structural reasons are written into the
   stylesheet itself, so no post costs anything extra. The default names reasons on dimmed posts,
   which changes no layout; the third setting also turns a hidden post into a one-line strip that
-  opens on hover or when tabbed into — the post stays clipped rather than having its children
+  opens on hover or when tabbed into, the post stays clipped rather than having its children
   removed, so it remains reachable by keyboard.
 
 - **A filter rule can carry a name and a lifetime.** Start a line with `[a title]` to name a rule,
   and give it `for 7d from <instant>` to have it apply only for a while. An expired rule stops
-  filtering on the next pass with no settings change and no reload — and is never deleted: the
+  filtering on the next pass with no settings change and no reload, and is never deleted: the
   panel lists what expired and offers one control that restarts each rule's own window from now.
   The window is stored as its duration plus its start rather than as a deadline, which is what
   makes renewing possible without asking the user again what they originally chose. Rules written
@@ -39,20 +64,20 @@
 
 - **A feature module that nothing registers is now a test failure.** The boot test checked a
   hand-written list of ten feature ids, so a new module could be written, wired to a setting, tested
-  against directly, and never loaded by the app — which is how the timeline-stop feature first
+  against directly, and never loaded by the app, which is how the timeline-stop feature first
   landed. The check now reads every `FeatureModule` id out of `src/features` and requires the booted
   registry to hold all thirty-four.
 
 - **Eleven sentences in the Control Center were shipping in English in all eight locales while
   translation coverage reported 100%.** The extractor draws the panel to harvest its copy, so a row
-  that only appears under a condition — an expired rule, a callback the harness cannot supply — is
+  that only appears under a condition, an expired rule, a callback the harness cannot supply, is
   reached only by the source scan, and that scan read one string per row: the label. Every such
   row's explanatory sentence was invisible to it. The scan now reads the description too, for each
   helper whose second argument is one, and a test drives the harvester over a conditional row so
   the gap cannot reopen.
 
 - **Filter on the shape of a post, not only its words.** Two predicates, both off by default.
-  *Quote posts* hides or dims a post that quotes another — structural, so it is a `:has()` rule
+  *Quote posts* hides or dims a post that quotes another, structural, so it is a `:has()` rule
   costing nothing per post, and it tells a quoted post from a link preview by the quoted author's
   name rather than by the `role="link"` the two share. *Low-engagement posts* hides or dims a post
   under a minimum number of replies, reposts or likes; the count is read from the action button's
@@ -63,23 +88,23 @@
 ### Changed
 
 - **The media and verified filters are stylesheet rules now, not work done per post.** Both were
-  questions about the shape of a post's own subtree — does it contain a photo, a video player, a
-  GIF, the verified badge — and the engine answered them with five `querySelector` calls against
+  questions about the shape of a post's own subtree, does it contain a photo, a video player, a
+  GIF, the verified badge, and the engine answered them with five `querySelector` calls against
   every article on every mutation batch. They are emitted as `:has()` rules instead, from one table
   that the remaining JS reader shares, so a timeline scroll no longer pays for them at all. Two
   consequences beyond the saved work: media that renders *after* a post was judged is now caught,
   where the JS pass had stamped that post done and would never look at it again; and a post the
   engine has not judged yet is left alone, so nothing flashes hidden before the allowlist is
-  consulted. Precedence is unchanged — an allowlisted author still outranks everything, a rule that
+  consulted. Precedence is unchanged, an allowlisted author still outranks everything, a rule that
   dims still beats a media rule that would hide, and hiding video still hides GIFs.
 
-## 1.34.0 - 2026-08-19
+## 1.34.0 (2026-08-19)
 
 ### Changed
 
 - **The unpacked extension bundles are no longer carried in git.** `dist/extension-chrome/` and
   `dist/extension-firefox/` are build output that `npm run verify` regenerates on every commit
-  touching `src/` — 1.9 MB of incompressible `content.js` per target, per commit, that nothing read:
+  touching `src/`, 1.9 MB of incompressible `content.js` per target, per commit, that nothing read:
   the load-unpacked instructions and the release artifacts both come from a build. They are ignored
   and built on demand; `dist/aviary.user.js` and `dist/aviary.meta.js` stay tracked because a
   userscript manager polls them by raw URL. `docs/INSTALL.md` now says to build first, for both
@@ -87,7 +112,7 @@
 
 - **Every release named in this file now has a tag on the commit that bumped its version.** Nine
   releases were tagged and thirty-one were documented, so most of the project's history could not be
-  checked out, diffed, or bisected by reference — which is the wrong gap for a project whose most
+  checked out, diffed, or bisected by reference, which is the wrong gap for a project whose most
   frequent question is "when did this selector break". Twenty-four tags were added, located by the
   commit that changed `package.json` rather than by commit subject, since not every release commit
   said "release". The two releases with no entry at all, **1.7.0** and **1.15.0**, are written below
@@ -102,10 +127,10 @@
   shipped and has since removed, because logging in through the alternate host now sets an `x.com`
   cookie and the front-ends people redirected to have been architecturally dead since X removed
   guest tokens. Nothing X rendered is modified, no navigation is redirected, and no request is
-  originated — only what you copy changes. Off by default, and the host list is closed so a typo
+  originated, only what you copy changes. Off by default, and the host list is closed so a typo
   cannot produce a link to somewhere you did not mean.
 
-## 1.33.0 - 2026-08-18
+## 1.33.0 (2026-08-18)
 
 ### Fixed
 
@@ -116,13 +141,13 @@
   write under a cross-tab Web Lock: each save folds *the change it just made* into what is actually
   stored, never the whole in-memory list, so a deletion or a "clear" in one tab is not undone by
   the other's next save either. Aria2 history, the semantic index and archive import jobs are
-  written under the same lock but deliberately not merged — each is derived, reconciled, or owned
+  written under the same lock but deliberately not merged, each is derived, reconciled, or owned
   by the tab running it, and the reasoning is recorded where the write happens.
 - **A daily provider budget can no longer be spent once per open tab.** The usage ledger checked
   the counter and then wrote it back, which across two tabs is a time-of-check-to-time-of-use race:
   both read the same "bytes used today", both concluded there was room. The whole check-and-spend
   now runs inside one lock and re-reads the stored ledger first, combined with what the tab already
-  knows by taking the higher of the two counters — a daily total only goes up, so that can refuse a
+  knows by taking the higher of the two counters, a daily total only goes up, so that can refuse a
   request that would have been allowed but can never allow one that should have been refused.
 - **A library restore holds one lock across snapshot, write, and rollback.** The window between
   reading a key's current value (kept for the rollback) and overwriting it was where an ordinary
@@ -132,7 +157,7 @@
   saving in the same millisecond produced the same id. Found by the cross-tab merge, which keys on
   id and would have kept one of the two bookmarks.
 
-## 1.32.0 - 2026-08-18
+## 1.32.0 (2026-08-18)
 
 ### Added
 
@@ -202,7 +227,7 @@
   and ad protection is registered first precisely so it runs before anything that reads the
   timeline.
 
-## 1.31.0 - 2026-08-18
+## 1.31.0 (2026-08-18)
 
 ### Fixed
 
@@ -226,7 +251,7 @@
 - `FeatureRegistry` gained `ids()` and `isActive()`, and `SETTINGS_MIGRATIONS` is exported, so the
   running app can be asked what it registered and which upgrade steps it carries.
 
-## 1.30.0 - 2026-08-18
+## 1.30.0 (2026-08-18)
 
 ### Fixed
 
@@ -247,7 +272,7 @@
   doing but never which feature it was, so nothing could ask the running app what it had actually
   registered.
 
-## 1.29.0 - 2026-08-18
+## 1.29.0 (2026-08-18)
 
 ### Security
 
@@ -261,35 +286,35 @@
 
 - An automated accessibility sweep runs against Aviary's own injected UI across all 13 Control
   Center destinations, catching invalid ARIA, missing accessible names and insufficient contrast.
-  It is scoped to Aviary's shadow root — X's DOM is not ours to assert on — and its blind spots are
+  It is scoped to Aviary's shadow root, X's DOM is not ours to assert on, and its blind spots are
   written down beside it: roughly half of accessibility issues by volume, and no coverage at all of
   forced-colors breakage, which has its own lane.
 
 ### Changed
 
 - The translation catalog is no longer built as a live object on every page load. It ships as a
-  JSON string that is parsed once, on the first request for a translation — which for most sessions
+  JSON string that is parsed once, on the first request for a translation, which for most sessions
   never happens, because the settings panel is never opened. Retained memory per tab drops from
   about 2.8 MB to 1.1 MB, and the shipped bundle is roughly 60 kB smaller. Nothing on the
   document-start path touches it.
 - The Control Center's accessibility contract is now verified by driving the panel instead of
   matching strings in its source. Focus entry and return, `inert` on the page behind an open modal,
   Escape, focus containment, modal semantics, and an accessible name on every control are read from
-  the rendered result — the previous assertions matched literal source text, which fails on a rename
+  the rendered result, the previous assertions matched literal source text, which fails on a rename
   and passes through a real regression.
 
 ### Fixed
 
 - Hiding a post no longer drives a feedback loop. The collapse dispatched a synthetic `resize` on
   every pass so X's virtualizer could close the row, but the virtualizer answers that resize with
-  mutations that drive the next pass — so it fed itself for as long as a hidden post was on screen.
+  mutations that drive the next pass, so it fed itself for as long as a hidden post was on screen.
   The nudge now fires only when a row actually changes state.
 - A recycled timeline row can no longer inherit the previous post's identity. X reuses article
   elements for different posts, and both the cached post key and the processed stamp were trusted
-  from the element rather than checked against what it now holds — so an unrelated post could
+  from the element rather than checked against what it now holds, so an unrelated post could
   silently disappear into a collapse meant for another one.
 
-## 1.28.0 - 2026-08-18
+## 1.28.0 (2026-08-18)
 
 ### Added
 
@@ -303,7 +328,7 @@
 ### Changed
 
 - The `engines` range names supported Node lines explicitly instead of an open `>=22.23.2`, which
-  also admitted Node 25.x — end of life and unpatched since 2026-06-01.
+  also admitted Node 25.x, end of life and unpatched since 2026-06-01.
 - README no longer claims `--ignore-scripts` covers every 2026 npm compromise. It blocks the
   install-hook class, and would have blocked ChainDrop on this exact dependency chain, but several
   2026 attacks ran from the module body where no install flag reaches.
@@ -316,19 +341,19 @@
 
 - The Control Center is usable in Windows High Contrast and other forced-colors modes. Settings
   toggles carried their entire on/off state in author colours the browser overrides, over a real
-  checkbox hidden with `opacity: 0` and `appearance: none` — so the browser's own guaranteed-contrast
+  checkbox hidden with `opacity: 0` and `appearance: none`, so the browser's own guaranteed-contrast
   rendering was suppressed as well and on looked like off. The native control is handed back in that
   mode, and rows, buttons, the selected destination and the Save/Revert footer keep explicit edges
   where tints and shadows used to carry them. The extension options page gets the same treatment;
   MV3 removed `options_ui.browser_style`, so none of it comes for free.
 - Feature passes no longer interleave. Boot, the mutation observer, route changes and settings saves
   all requested one without coordinating, so two could run at once and the guard markers features
-  use to skip redundant work would make one pass skip the rescan the other had been started for —
+  use to skip redundant work would make one pass skip the rescan the other had been started for,
   surfacing as a feature that quietly failed to re-apply after a settings change. Passes now run one
   at a time, and redundant whole-document passes collapse.
 - A filter pattern can no longer freeze the page. Patterns run against every post in every batch and
-  JavaScript cannot abort a running match, so a shape like `/(a+)+b/` — reachable by accident while
-  writing a rule — hung the tab. Repeated groups that already repeat, oversized repetition counts,
+  JavaScript cannot abort a running match, so a shape like `/(a+)+b/`, reachable by accident while
+  writing a rule, hung the tab. Repeated groups that already repeat, oversized repetition counts,
   and very long patterns are now refused before they compile: the keyword list drops them, and the
   rule DSL names the offending line in the errors it already reports.
 - Filtering a post now collapses the timeline row that owns it, not only the post itself. The cell
@@ -352,12 +377,12 @@
   have sent the key in the clear. Loopback addresses stay allowed, so a self-hosted provider on
   `127.0.0.1` still works.
 - The ad-protection rule and its persisted record can no longer disagree. The rule was committed
-  before the record, so a failed write left the rule applied while the record kept the old value —
+  before the record, so a failed write left the rule applied while the record kept the old value,
   and the next restore after a restart reverted a rule the user had enabled.
 - Tearing down seen-post dimming now waits for its pending write. The flush was queued rather than
   awaited, so up to 1.5 seconds of what you had just scrolled past could be lost.
 
-## 1.27.1 - 2026-08-16
+## 1.27.1 (2026-08-16)
 
 ### Fixed
 
@@ -367,7 +392,7 @@
 - X's current `/i/api/1.1/graphql/viewer_context.json` detection probe is covered by the explicit
   request-pass-through contract and can never be mistaken for timeline GraphQL or ad logging.
 
-## 1.27.0 - 2026-08-16
+## 1.27.0 (2026-08-16)
 
 ### Added
 
@@ -397,7 +422,7 @@
   the already-resolved photos. A same-control retry skips assets that completed before a partial
   failure.
 
-## 1.26.0 - 2026-08-16
+## 1.26.0 (2026-08-16)
 
 ### Changed
 
@@ -420,7 +445,7 @@
   duplicate, permission, and retry states; announce progress to assistive technology; return to
   their original action after feedback; and remain reusable after a completed handoff.
 
-## 1.25.0 - 2026-08-15
+## 1.25.0 (2026-08-15)
 
 ### Fixed
 
@@ -432,22 +457,22 @@
   1.5-second timer, and teardown cleared that timer without running it.
 - The hidden-posts pass stops appending and immediately removing a stylesheet on every mutation
   batch while the feature is off.
-- New profile ids come from `crypto.randomUUID()` instead of a timestamp plus a count — the same
+- New profile ids come from `crypto.randomUUID()` instead of a timestamp plus a count, the same
   collision shape already fixed once in bookmarks.
 
 - Turning the page agent off no longer removes somebody else's work. Teardown restored `fetch` and
-  the XHR methods by assignment, so if X's own instrumentation — or another extension — had wrapped
+  the XHR methods by assignment, so if X's own instrumentation, or another extension, had wrapped
   them *after* Aviary did, that layer was deleted along with Aviary's. It now restores only while
   the current value is still the wrapper Aviary installed, and otherwise leaves the chain intact
   and reports which path it took.
 - The capture-age gate reads every capture, not just the newest. One fresh capture used to mask an
-  arbitrarily stale sibling — and a selector proved against the stale one is exactly as speculative
+  arbitrarily stale sibling, and a selector proved against the stale one is exactly as speculative
   as one proved against nothing. Preflight now names each stale capture with its own age. The
   stale-capture waiver also covers the whole of its stated day in the reader's own timezone; it had
   been compared against a UTC day-end, so it expired early evening of that day in the Americas.
 
 - Importing an X archive no longer rewrites the whole archive on every progress tick. The job
-  record carried the file's bytes inline — a 250 MiB import becomes roughly 333 MiB of base64 —
+  record carried the file's bytes inline, a 250 MiB import becomes roughly 333 MiB of base64,
   and the record is re-serialised each time progress moves, along with every other retained job's
   copy. Measured on a 2 MiB fixture, a single tick wrote 2.8 MB; the payload now lives under its
   own key and a tick writes only progress. Failed and cancelled imports deliberately keep their
@@ -455,19 +480,19 @@
   releases it.
 
 - A refused ad-logging request sent over XHR now completes as a network error instead of never
-  finishing at all. Aviary's other two refusal paths deliberately fake benign completion — the
-  fetch path answers 204, the beacon path returns true — specifically so X's client does not sit
+  finishing at all. Aviary's other two refusal paths deliberately fake benign completion, the
+  fetch path answers 204, the beacon path returns true, specifically so X's client does not sit
   waiting or retry. The XHR path did neither: it returned, leaving the request stuck at OPENED, so
   anything gating a retry queue on completion would have waited indefinitely. It now reaches DONE
   with status 0 and fires `readystatechange`, `error`, and `loadend`, exactly as an offline request
   does, and one throwing listener no longer stops the rest.
 - Continuous integration now runs on changes to `_decoded/`, `docs/`, and the README. Its gates
-  already read all three — the fixture tests, the capture-age ceiling, the selector-evidence check,
-  the FAQ settings reference, and the privacy data map — but the paths filter listed only source,
+  already read all three, the fixture tests, the capture-age ceiling, the selector-evidence check,
+  the FAQ settings reference, and the privacy data map, but the paths filter listed only source,
   tests, tools, and configs, so refreshing a capture skipped the workflow that checks it.
 
 - A transient storage failure no longer costs you the session. When an IndexedDB transaction fails,
-  Aviary drops to the older storage path for the rest of that session — but migration had already
+  Aviary drops to the older storage path for the rest of that session, but migration had already
   emptied it, and the next healthy start preferred the durable copy and skipped any key it already
   held. Everything written during the outage was therefore shadowed by the pre-failure values,
   permanently, with no error anywhere. Writes and deletions made while the backend is down are now
@@ -477,19 +502,19 @@
 - Four local stores were invisible to the machinery that is supposed to know about every store.
   Seen posts, ad-contract observations, persisted diagnostics, and the first-run flag were each
   missing from the durable-storage migration list and the profile-adoption list, and seen posts
-  was additionally missing from the library backup — so **Backup claimed completeness over a store
+  was additionally missing from the library backup, so **Backup claimed completeness over a store
   it did not carry**. All four are registered now, and the privacy data map documents what each
   one holds.
 - A new test enumerates every `aviary.*.v1` key declared in the source and fails when one is
   absent from a registry it belongs in. Each deliberate exclusion is listed with the reason it is
-  excluded from that specific registry — the extension's DNR-rule mirror lives in a different
+  excluded from that specific registry, the extension's DNR-rule mirror lives in a different
   storage realm, and diagnostics, ad observations and the first-run flag are not user data. This
   is the only check that connects a store's declaration to the registries; nothing else did, which
   is why four accumulated.
 
 - The capture decoder no longer mangles non-ASCII text. Quoted-printable carries bytes, not
   characters, and the first version mapped each octet through `String.fromCharCode` before writing
-  UTF-8 back out — so `=E2=80=94` became mojibake instead of an em-dash, and every display name,
+  UTF-8 back out, so `=E2=80=94` became mojibake instead of an em-dash, and every display name,
   non-English post, and localized ad label in a refreshed capture would have been wrong. It decodes
   to bytes now and decodes those once as UTF-8, including across the soft line breaks that split an
   escape sequence mid-character.
@@ -498,7 +523,7 @@
   one list of secret names, so a name cannot be scrubbed-but-unchecked or the reverse, and the
   guard names which credential it found.
 
-## 1.24.0 - 2026-08-15
+## 1.24.0 (2026-08-15)
 
 ### Added
 
@@ -506,7 +531,7 @@
   `_decoded/captures.json` records when each capture was taken, from which route, and what it does
   and does not contain; preflight warns as it ages and fails past the declared ceiling. Without
   that, a blocked item's "measured: 0 hits" silently meant "0 hits as X was on the capture date"
-  rather than "this does not exist" — which is how the evidence here reached three months old with
+  rather than "this does not exist", which is how the evidence here reached three months old with
   every gate still green. A waiver can defer the failure but carries its own expiry, so it cannot
   become permanent.
 - `npm run capture:decode -- "<saved.mhtml>" <name>` turns a browser-saved capture into a scrubbed
@@ -518,41 +543,41 @@
 
 - Selector drift is watched across the surfaces features actually use, not just the ten
   foundational ones. Aviary referenced 56 distinct X test ids while monitoring 10, so a rename in
-  any of the rest silently disabled its owning feature with no diagnostic — the exact failure the
+  any of the rest silently disabled its owning feature with no diagnostic, the exact failure the
   fixture discipline exists to prevent, happening outside the fixture's reach. Timeline cells, the
   post action bar, engagement counts, author names, the video container, trends, the news rail,
   follow suggestions, the Home tab link, the search box and the promoted-placement marker are all
   registered now, each naming the feature that stops working without it. Every registered test id
   must appear in a capture, so the registry cannot grow a selector nobody can point at.
-- Export archives are compressed now. The ZIP writer emitted STORE — no compression at all — while
+- Export archives are compressed now. The ZIP writer emitted STORE, no compression at all, while
   the ZIP *reader* had been inflating `deflate-raw` since archive import shipped, so the two halves
   disagreed for no reason: text-heavy exports (JSON, CSV, HTML, WARC, Markdown) left the browser
   several times larger than they needed to be. `CompressionStream` is built into every supported
   browser, so this costs no dependency. Each entry keeps whichever form is smaller, so captured
-  photos and video — which grow under DEFLATE — are still stored as-is, and an archive still builds
+  photos and video, which grow under DEFLATE, are still stored as-is, and an archive still builds
   if compression is unavailable or fails. XLSX still uses the plain writer; it is a few kilobytes
   of XML and making it async would ripple through the synchronous formatter dispatch for no
   meaningful saving.
 - The packaged extension ZIPs are no longer tracked in git. `npm run verify` rebuilds them on every
   commit that touches `src/`, so each commit was adding roughly 3.9 MB of incompressible binary
-  that nothing can delta-compress — 230 blobs and 277.9 MB of the pack by 2026-08-15, for files
+  that nothing can delta-compress, 230 blobs and 277.9 MB of the pack by 2026-08-15, for files
   that are release artifacts. They are still built by the same command and still validated by
   preflight. `dist/aviary.user.js` stays tracked, because `@downloadURL` resolves to it and it is
   therefore the update channel itself.
 - Dependencies now install with `npm ci --ignore-scripts`, in CI and in the documented setup.
-  Aviary has zero runtime dependencies, so nothing it ships needs an install script — and every
+  Aviary has zero runtime dependencies, so nothing it ships needs an install script, and every
   major npm compromise of 2026 executed through one. Verified rather than assumed: esbuild's
   postinstall is a validation step, and a clean `--ignore-scripts` install still builds and passes
   the suite. `engines.node` now names 22.23.2, the first line clear of the June and July 2026 Node
   security releases, instead of any 22.
 - Trust now states the ad shield's boundary in both directions. **Refuse X's ad logging call** says
-  that Aviary refuses exactly one request and nothing else — including the checks X uses to notice
+  that Aviary refuses exactly one request and nothing else, including the checks X uses to notice
   an ad blocker. Reports of X's ad-blocker notice point at a *failed probe* rather than a rendered
   ad as the trigger, and the symptom is often not the banner at all but an error, a blank feed, or
   empty search. Tests now assert that neither the request rule nor the page-world stub matches
   those probes, so "Aviary is not what tripped it" is proved rather than assumed.
 - Aviary no longer asks for `mobile.twitter.com` or `tweetdeck.twitter.com`. X retired both in
-  2023, and measuring them confirms neither serves a document — `mobile.twitter.com` redirects to
+  2023, and measuring them confirms neither serves a document, `mobile.twitter.com` redirects to
   `twitter.com`, and `tweetdeck.twitter.com` redirects to `pro.twitter.com`, a host Aviary never
   matched at all. They only widened the permission prompt, which is the thing that makes people
   decline an extension. `twitter.com` stays despite also redirecting: it is the canonical legacy
@@ -562,30 +587,30 @@
 
 - The documentation gate now checks what the panel actually offers, not just version strings.
   README and docs/FAQ.md had reached v1.23.0 without mentioning a single feature added in v1.22.0
-  or v1.23.0 — focus mode, seen-post dimming, account colours, the tab icon — because the only
+  or v1.23.0, focus mode, seen-post dimming, account colours, the tab icon, because the only
   assertion was that two files carried the current version number. The FAQ now ends with a
   generated reference to all 71 controls across the Control Center's 12 pages, and the suite fails
   when a control is added or renamed without regenerating it (`npm run docs:settings`).
 - README's Roadmap section no longer restates what the latest release added. That summary had been
   describing the v1.18 batch for three releases while claiming to be current; it now points at the
-  changelog, which cannot drift from itself. `PROJECT_STATE.md` is gone for the same reason — 320
+  changelog, which cannot drift from itself. `PROJECT_STATE.md` is gone for the same reason, 320
   lines stamped "Updated: 2026-05-19", enumerating completed work the changelog already owns.
 - The userscript's update URLs now name the repository this project actually lives in. It was
   renamed to `SysAdminDoc/Aviary`, and `package.json` still declared the old path that
   `@updateURL`/`@downloadURL` are derived from. `github.com` follows a rename;
-  `raw.githubusercontent.com`, where those URLs point, does not — so every installed copy would
+  `raw.githubusercontent.com`, where those URLs point, does not, so every installed copy would
   have polled a path that could never answer. Preflight now compares the declared repository
   against the `origin` remote and fails on a mismatch, because the previous check validated the
   URL's shape, which a rename passes cleanly.
 
-## 1.23.0 - 2026-08-15
+## 1.23.0 (2026-08-15)
 
 ### Changed
 
 - The video-quality setting no longer promises an outcome it cannot guarantee. It is now **Pin
   video playlists to their best rendition** and reports how many playlists were actually rewritten
   this session. Aviary can only act on a playlist it sees, and a player fetching one inside a
-  worker never reaches it — so the setting states what it does instead of claiming a result.
+  worker never reaches it, so the setting states what it does instead of claiming a result.
 
 ### Fixed
 
@@ -596,16 +621,16 @@
 ### Added
 
 - Trust now states when X's interface language has no ad labels. Aviary matches sponsored posts by
-  an exact localized label, so in an uncovered language native ads are simply not suppressed — a
+  an exact localized label, so in an uncovered language native ads are simply not suppressed, a
   gap users previously had no way to notice.
 - **Focus mode** covers the reading column outside a daily window you set, with a five-minute
-  override one click away. Navigation stays usable, so the rest of X remains reachable — it is a
+  override one click away. Navigation stays usable, so the rest of X remains reachable, it is a
   reading gate, not a site block. Entirely local: nothing is blocked at the network layer and
   nothing leaves the device. A window whose end precedes its start wraps midnight, and an
   unreadable time falls back to the default rather than locking anyone out.
 - **Account colours** tag a handle with one of six colours, shown as a badge beside that account's
   posts. A colour works with or without a note, travels with the existing library backup, and the
-  badge keeps visible text and names the colour in its accessible label — colour is never the only
+  badge keeps visible text and names the colour in its accessible label, colour is never the only
   thing carrying the meaning.
 - **Keep video playing when the tab loses focus** resumes a video X stopped because you switched
   tabs, and leaves a video you paused yourself alone. **Loop videos** restarts one at the end. Both
@@ -613,7 +638,7 @@
 - **Dim posts you have already seen** (Filtering, off by default) fades a post the second time it
   scrolls past, so a return trip down the timeline shows what is new. A post is never faded while
   you are first reading it, hovering one brings it back, and **Forget seen posts** clears the
-  record. The store holds post IDs and timestamps only — no text, handle, or URL — capped at 4,000
+  record. The store holds post IDs and timestamps only, no text, handle, or URL, capped at 4,000
   entries and 30 days.
 - **Use Aviary's tab icon** (Appearance, off by default) swaps X's favicon for Aviary's own mark so
   its tabs are easy to pick out, and restores X's exact icon when turned off. The mark is inlined,
@@ -621,13 +646,13 @@
   offered: X's bird is their trademark, and a lookalike would be no better.
 - Empty library surfaces now say how to fill them. Snapshots, account notes, and export jobs each
   show one guiding sentence when they hold nothing, and an empty bookmark library is distinguished
-  from a search that simply found no match — different problems that had shown identical copy.
+  from a search that simply found no match, different problems that had shown identical copy.
 
-## 1.22.0 - 2026-08-14
+## 1.22.0 (2026-08-14)
 
 ### Added
 
-- Engagement counts can now be hidden per metric — replies, reposts, likes and views each have
+- Engagement counts can now be hidden per metric, replies, reposts, likes and views each have
   their own switch under the existing master toggle, which keeps hiding all four for anyone who had
   it on. Bookmarks are deliberately absent: no capture shows a bookmark count element to scope a
   rule to.
@@ -639,12 +664,12 @@
   the exported file, and the extractor harvests it so the sync step cannot drop it. Tests fail if a
   viewer string is missing from the catalog or a second table reappears.
 - A fresh install now says what it already changed. A one-time dismissible notice names the two
-  default-on behaviours — hidden ads and the click-only media controls — and points at the Aviary
+  default-on behaviours, hidden ads and the click-only media controls, and points at the Aviary
   row in X's left navigation. It appears only for a profile that has never stored settings, so an
   upgrade never sees it, and it respects the reduced-motion preference.
 - **Refuse X's ad logging call** is a new sub-toggle of Ad-free mode (on by default, so nothing
-  changes for existing installs). It owns the observable half of ad protection — the page-world
-  logger stub and the extension's dynamic request rule — while structural suppression stays on
+  changes for existing installs). It owns the observable half of ad protection, the page-world
+  logger stub and the extension's dynamic request rule, while structural suppression stays on
   Ad-free mode alone. X began testing an ad-blocker warning in July 2026 that appears to key on
   refused requests; turning this off keeps sponsored posts hidden while Aviary stops refusing any
   request at all.
@@ -654,7 +679,7 @@
   reported rather than silently rewritten into this build's narrower shape, and a test fails the
   build if the version is bumped without the migration step that performs it.
 - Warnings and errors now survive a reload. A bounded 50-entry, 7-day, profile-scoped ring keeps
-  Aviary's own message text, the time, and the *names* of a message's detail fields — never their
+  Aviary's own message text, the time, and the *names* of a message's detail fields, never their
   values, so no post text, handle, or URL is retained. Trust reports the count and can clear it,
   and **Copy diagnostics** now includes the entries from earlier page loads.
 - A boot failure is now visible instead of silent. Where Aviary previously only set
@@ -698,7 +723,7 @@
   enablement is decided at runtime by each feature reading its own setting.
 - Author matching now reads absolute profile links as well as relative ones. The filter engine's
   handle reader accepted only relative hrefs, so every author read as unknown against the saved
-  captures — the reason handle-based filtering had never been exercised against real markup.
+  captures, the reason handle-based filtering had never been exercised against real markup.
 - The five right-click media download messages added in this cycle were rendering in English in
   every locale; they are now translated across all nine shipped locales (821/821 per locale).
 - README no longer describes the AI command menu as an always-present per-tweet button with no
@@ -717,7 +742,7 @@
 - Noir now paints its ambient gradient on one fixed root canvas instead of X's viewport-height
   body, eliminating the horizontal background split that appeared after scrolling on any route.
 
-## 1.21.0 - 2026-08-14
+## 1.21.0 (2026-08-14)
 
 ### Added
 
@@ -749,9 +774,9 @@
 
 - Firefox now runs the shared MV3 background bundle as a supported event page, restoring lifecycle,
   options, downloads, and ad-rule message handling. An enabled empty static ruleset preserves
-  dynamic-rule behavior on Firefox 128–132 without broadening what Aviary blocks.
+  dynamic-rule behavior on Firefox 128 to 132 without broadening what Aviary blocks.
 
-## 1.20.0 - 2026-08-13
+## 1.20.0 (2026-08-13)
 
 ### Added
 
@@ -784,7 +809,7 @@
 - Hide engagement counts now removes the current view metric as well as reply, repost, and like
   numbers while preserving every control and its accessible total.
 
-## 1.19.0 - 2026-08-13
+## 1.19.0 (2026-08-13)
 
 ### Added
 
@@ -813,7 +838,7 @@
 - Settings captures now refuse to run when the packaged extension manifest is older than the
   current source release, preventing stale versioned screenshots from passing the geometry gate.
 
-## 1.18.0 - 2026-08-13
+## 1.18.0 (2026-08-13)
 
 ### Added
 
@@ -845,7 +870,7 @@
   trend, house-promo, or video-ad evidence and remains SPA-idempotent and reversible.
 - Saving one Control Center row no longer clears an unrelated row's draft indicator.
 
-## 1.17.0 - 2026-08-12
+## 1.17.0 (2026-08-12)
 
 ### Added
 
@@ -937,7 +962,7 @@
   and bounded backpressure reject forged, replay-shaped, oversized, or flooding events before
   they reach local persistence.
 
-## 1.16.0 - 2026-08-09
+## 1.16.0 (2026-08-09)
 
 ### Added
 
@@ -1002,7 +1027,7 @@
   and build-stamped Control Center; the panel and README describe shipped snippet insertion and
   current MediaSource limitations accurately.
 
-## 1.15.0 - 2026-08-08
+## 1.15.0 (2026-08-08)
 
 Written from its release commit (`89dc1e1`) on 2026-08-19; the entry was missed when the release
 shipped, and the range is `83f4f04..89dc1e1`.
@@ -1011,7 +1036,7 @@ shipped, and the range is `83f4f04..89dc1e1`.
 
 - The Control Center was redesigned.
 
-## 1.14.1 - 2026-08-08
+## 1.14.1 (2026-08-08)
 
 ### Fixed
 
@@ -1019,34 +1044,34 @@ shipped, and the range is `83f4f04..89dc1e1`.
   DOS timestamp and sorted filesystem entries, so repeated verification builds no longer dirty
   tracked release artifacts when the source has not changed.
 
-## 1.14.0 - 2026-08-07
+## 1.14.0 (2026-08-07)
 
 ### Fixed
 
 - **The Save button made photos disappear.** Switching it on removed every image from the
   timeline; switching it off brought them straight back. Aviary's stylesheet forced
   `position: relative` onto `[data-testid="tweetPhoto"]` so the button had something to anchor to.
-  X keeps that box at **height 0** — it is a flex container whose two children, the background-image
+  X keeps that box at **height 0**, it is a flex container whose two children, the background-image
   div that actually draws the photo and the `<img>` beside it, are both `position: absolute;
   inset: 0`, with the real height carried by an ancestor. Making the zero-height box their
   containing block collapsed both to nothing: loaded, present in the DOM, and invisible.
   Aviary no longer restyles any of X's containers. The button measures its offsets against
-  whichever ancestor X has already positioned — the same box the photo itself resolves against —
+  whichever ancestor X has already positioned, the same box the photo itself resolves against,
   and an absolutely positioned child is out of flow, so inserting it cannot disturb the layout
   either. Reproduced and pinned in `tests/media-button-layout.test.mjs`, which fails with
   "the stylesheet changed the photo from 317px to 0px" if the rule ever returns.
 - **Turning "Hide posts" on gave you no Hide button.** v1.13.0 made both `hidden.enabled` and
   `hidden.buttons` default to off, so the feature needed two switches and nothing said so. The
-  button now follows the feature, still gated by it — nothing is injected while the feature is off.
+  button now follows the feature, still gated by it, nothing is injected while the feature is off.
 
 
-## 1.13.1 - 2026-08-07
+## 1.13.1 (2026-08-07)
 
 ### Fixed
 
 - **Two stylesheets restyled X no matter what your settings said.** `media-buttons` injected its
-  sheet from `init()` *before* checking `media.buttons`, so every install — including one with
-  every option switched off — got `position: relative` forced onto every `tweetPhoto`,
+  sheet from `init()` *before* checking `media.buttons`, so every install, including one with
+  every option switched off, got `position: relative` forced onto every `tweetPhoto`,
   `videoPlayer` and `videoComponent`. X anchors the photo itself with `position: absolute` and
   `inset: 0`, so on any layout where the photo box takes its height from a sibling spacer, making
   that box the containing block collapses the image to zero height: loaded, present, invisible.
@@ -1057,17 +1082,17 @@ shipped, and the range is `83f4f04..89dc1e1`.
   targets for everyone, with nothing to switch either off. The wrapping override is gone; the tap
   targets now require the `av-touch` class that the mobile feature already manages.
 - A test now fails any rule Aviary injects into the page whose selector carries no `av-` class,
-  `data-av` attribute or `:host` — the property that both defects violated.
+  `data-av` attribute or `:host`, the property that both defects violated.
 
 
-## 1.13.0 - 2026-08-07
+## 1.13.0 (2026-08-07)
 
 ### Changed
 
 - **Installing Aviary now changes nothing about X.** A fresh install used to hide the right
   sidebar, hide trends, hide Grok, repaint the page with the "dim" theme, force `color-scheme:
   dark` over X's own setting, add a Hide button and two media buttons to every post, rewrite share
-  buttons, and pause video that scrolled offscreen — none of it asked for. Everything that alters
+  buttons, and pause video that scrolled offscreen, none of it asked for. Everything that alters
   what X looks like or how it behaves now starts off, and only what you switch on applies. The
   launcher button is the sole exception, because without it nothing can be switched on.
   Invisible local bookkeeping (the action log, selector health, the local-only network guard)
@@ -1075,13 +1100,13 @@ shipped, and the range is `83f4f04..89dc1e1`.
 - The theme picker gained **Off (X's own theme)**, which is the new default. Choosing it removes
   every hook Aviary paints through, rather than painting a dark theme that happens to resemble X's.
 - **Trust → Reset everything to plain X** puts every preference back to that state in one action.
-  Saved posts, notes, bookmarks and download history are untouched — it resets preferences only.
+  Saved posts, notes, bookmarks and download history are untouched, it resets preferences only.
   Flipping the defaults alone would have done nothing for anyone who already had settings stored.
 
 ### Removed
 
 - **The sensitive-content modes are gone.** They could not tell sensitive media from any other
-  media — every rule matched every photo and video — so "blur" smeared the whole timeline and read
+  media, every rule matched every photo and video, so "blur" smeared the whole timeline and read
   as images failing to load. Scoping them needs a capture containing sensitive media, and neither
   capture holds one. Aviary now leaves sensitive content entirely to X, whose own filter is the
   only thing here that knows which posts are sensitive.
@@ -1089,12 +1114,12 @@ shipped, and the range is `83f4f04..89dc1e1`.
 ### Fixed
 
 - **The AI button and the snippet trigger injected themselves regardless of any setting.** Neither
-  was gated on anything, so a "vanilla" install still put a button on every post — caught by
+  was gated on anything, so a "vanilla" install still put a button on every post, caught by
   counting real elements in a real timeline, not by reading the schema. The AI button now has its
   own toggle (Library → Show the AI button on posts, off by default), and the snippet trigger
   appears once there is a snippet to insert.
 - **The launcher became unreadable on X in light mode.** It painted a translucent accent wash
-  straight over the page, which only worked while Aviary forced X dark — measured at 1.12:1
+  straight over the page, which only worked while Aviary forced X dark, measured at 1.12:1
   against its own near-white label on a white page. The gradient now mixes into an opaque
   surface, so what is behind it stops mattering.
 - **Aviary was clearing X's own `color-scheme`.** X sets `color-scheme: dark` inline on `<html>`;
@@ -1102,7 +1127,7 @@ shipped, and the range is `83f4f04..89dc1e1`.
   page to `normal`. It now clears only the value it set itself.
 
 
-## 1.12.1 - 2026-08-07
+## 1.12.1 (2026-08-07)
 
 ### Fixed
 
@@ -1111,13 +1136,13 @@ shipped, and the range is `83f4f04..89dc1e1`.
   them tests whether X marked the media sensitive. Picking "Blur until hovered" therefore smeared
   the entire timeline at 18px, which reads as images failing to load rather than as a setting.
   Measured against the captured timeline: all three photos affected, none of them sensitive.
-  Scoping the rules properly needs a capture containing sensitive media — neither `home.html` nor
+  Scoping the rules properly needs a capture containing sensitive media, neither `home.html` nor
   `status.html` contains a single instance, and the one `contentDisclosureButton` in either file
   belongs to the composer toolbar, not a post. Until then the control says what it does: it is
   now **Photos and videos**, offering "Blur every photo and video" and "Hide every photo and
   video".
 - **The Media Archivist preset blurred your whole timeline.** It set that mode and described it as
-  "sensitive blur" — a claim the build cannot keep, since it cannot tell sensitive media apart. An
+  "sensitive blur", a claim the build cannot keep, since it cannot tell sensitive media apart. An
   archivist preset has no reason to change how media is displayed; it no longer does.
 - **Quiet Reader hid engagement counts without saying so.** Its description listed trends, borders,
   premium dimming and t.co cleanup, but not the like and reply counts it also removes. A test now
@@ -1125,7 +1150,7 @@ shipped, and the range is `83f4f04..89dc1e1`.
   media at all.
 
 
-## 1.12.0 - 2026-08-07
+## 1.12.0 (2026-08-07)
 
 ### Added
 
@@ -1136,12 +1161,12 @@ shipped, and the range is `83f4f04..89dc1e1`.
 - **Refuse X's analytics beacons** (off by default, under Trust & privacy). Blocks the tracking
   pings X sends as you scroll, click and pause, across `fetch`, `XMLHttpRequest` and
   `sendBeacon`. A refused beacon is answered with `204` rather than rejected, because a thrown
-  request surfaces in X's own error reporting — which is itself another beacon. Only the analytics
+  request surfaces in X's own error reporting, which is itself another beacon. Only the analytics
   endpoints are matched; the panel reports the running count, so a hook that never fires is
   visibly distinct from one that does not work.
 - **Always play video at the highest quality** (off by default, under Performance). X streams
   timeline video through Media Source Extensions, so there is no `src` to rewrite and no
-  `<source>` list to re-rank — the rendition is chosen by the player's own adaptive-bitrate logic.
+  `<source>` list to re-rank, the rendition is chosen by the player's own adaptive-bitrate logic.
   Aviary now trims the master playlist to its best rendition before the player sees it, so that
   logic has only one thing to choose. Sustained bandwidth decides, not peak.
 
@@ -1150,7 +1175,7 @@ shipped, and the range is `83f4f04..89dc1e1`.
 - **`privacy.encryptVault` is gone from the schema rather than implemented.** It had been parked
   on a key-custody decision: a key stored beside its own ciphertext protects nothing, and a
   passphrase-derived key means an unlock step and permanent data loss if the passphrase is
-  forgotten. What settles it is scope — Aviary's vault sits in the same browser profile as X's
+  forgotten. What settles it is scope, Aviary's vault sits in the same browser profile as X's
   own session cookie, auth token and cached media, none of which Aviary can encrypt and all of
   which are more sensitive than its copy. A toggle that encrypted the lesser half would invite
   the belief that the profile was protected. Full-disk encryption covers all of it. Settings
@@ -1159,7 +1184,7 @@ shipped, and the range is `83f4f04..89dc1e1`.
 ### Fixed
 
 - **Passive GraphQL capture never saw a single GraphQL response.** It wrapped `globalThis.fetch`,
-  which is Aviary's own copy — the content script runs in the isolated world, so X's requests were
+  which is Aviary's own copy, the content script runs in the isolated world, so X's requests were
   never going to pass through it, and the feature's status line had been reduced to admitting it
   saw nothing but Aviary's own traffic. Payloads now arrive from the page world, where those
   requests are actually visible.
@@ -1170,14 +1195,14 @@ shipped, and the range is `83f4f04..89dc1e1`.
   claimed an active filter and every settings export published that claim. It defaults to `off`
   until the filter exists, and a test now fails any filter action that defaults to something
   active while nothing reads it.
-- **Four sentences shipped in English in every locale while coverage reported 100%** — the
+- **Four sentences shipped in English in every locale while coverage reported 100%**, the
   empty-search state ("Nothing matches that search.") and both preset confirmations. The string
   extractor learns a panel's copy by rendering it twice and keeping what appears in both, so copy
   behind a condition no render reaches is copy it cannot see. It now also harvests every literal
   passed to `t()` straight from the panel source, which needs no maintenance as rows are added.
   Nine locales, 470 → 488 strings.
 
-## 1.11.0 - 2026-08-07
+## 1.11.0 (2026-08-07)
 
 ### Added
 
@@ -1187,7 +1212,7 @@ shipped, and the range is `83f4f04..89dc1e1`.
   `package.json`, so the userscript and both extension builds report the same number, and a test
   fails if either manifest drifts from it.
 
-## 1.10.0 - 2026-08-07
+## 1.10.0 (2026-08-07)
 
 Drains the 2026-08-07 audit: 25 findings, all closed. Several were features that reported
 success while doing nothing.
@@ -1195,23 +1220,23 @@ success while doing nothing.
 ### Fixed
 
 - **The video Save button was lying.** X streams timeline video through MediaSource, so the only
-  variant is a `blob:` handle that no downloader can resolve — and because `blob:` counts as
+  variant is a `blob:` handle that no downloader can resolve, and because `blob:` counts as
   same-origin, the anchor fallback returned success with no degraded flag, so the button showed
   "Saved" while nothing reached disk. A blob now loses to any real URL in ranking, a blob-only
   video refuses to resolve, and no button is offered where nothing can be saved. The poster keeps
   its Thumb button. GIFs, which are served as real files, are unaffected.
 - **That button was also invisible.** Every hover-reveal rule named `tweetPhoto`, but a video's
-  container is the player — so the control sat at `opacity: 0` with no rule that could show it,
+  container is the player, so the control sat at `opacity: 0` with no rule that could show it,
   anchored to whatever ancestor X happened to have positioned.
 - **Importing an X archive could not read an X archive.** The reader accepted STORE entries only;
   official archives are DEFLATE like every standard zip. It now inflates through the platform's
   own `DecompressionStream`, and verifies the CRC against the inflated bytes.
 - **A disabled aria2 integration still called your aria2 on every boot** (the check looked at the
-  endpoint string, not the enabled flag) — and with local-only mode on, that reconcile threw
+  endpoint string, not the enabled flag), and with local-only mode on, that reconcile threw
   through init, which the registry treats as a dead feature: every Save button disappeared.
 - **One boot with a mistyped aria2 secret erased the queued-download ledger.** Any RPC fault
   mapped to "removed", and reconcile deletes those. Only an unknown GID means removed now.
-- **"Test connection" queued a junk download every click** — it called `addUri` with a bogus URL,
+- **"Test connection" queued a junk download every click**, it called `addUri` with a bogus URL,
   which aria2 accepts. It calls `getVersion` now.
 - **Crossposts silently lost text.** Bluesky segments were cut at 300 UTF-16 units and the
   remainder posted nowhere; Mastodon was never chunked at all. Both are chunked to their real
@@ -1219,10 +1244,10 @@ success while doing nothing.
   reports how much was already posted instead of inviting a retry that double-posts.
 - **Thread mode was almost unreachable**: the composer read used `textContent`, which joins
   Draft.js paragraph blocks with no separator, so the blank-line split never fired.
-- **Ten controls rendered in the browser default font.** `font: 700 13px/1.1 inherit` is invalid —
+- **Ten controls rendered in the browser default font.** `font: 700 13px/1.1 inherit` is invalid.
   the shorthand cannot take a CSS-wide keyword as its family, so the whole declaration is dropped.
   The Control Center launcher and every nav item measured Arial 13.33px/400.
-- **Saved-post search could not match Japanese, Korean, Arabic, Hebrew or Cyrillic** — the very
+- **Saved-post search could not match Japanese, Korean, Arabic, Hebrew or Cyrillic**, the very
   languages the panel is translated into. The tokenizer was ASCII-only.
 - **The action log described the wrong events**: a failed crosspost was recorded as
   "export.start", an aria2 cancel as "export.complete". Six event kinds now exist and are used.
@@ -1230,7 +1255,7 @@ success while doing nothing.
   overwrote it for good; aria2 handoff failures fell through to a browser download with no trace;
   the semantic index grew without bound; exports embedded unusable `blob:` URLs; Obsidian
   frontmatter broke on any display name containing a colon or quote.
-- The filter engine re-extracted and re-decided every visible post on every mutation batch — its
+- The filter engine re-extracted and re-decided every visible post on every mutation batch, its
   processed-stamp check could never hit, because the stamp was invalidated on every apply.
 - `aria2.minBytes` could never take effect (no caller measured a size) and had no control in the
   panel; the export "capture as you scroll" path was unreachable; the settings nav rail clipped
@@ -1239,18 +1264,18 @@ success while doing nothing.
 ### Added
 
 - **Aviary now speaks your language everywhere it appears.** The Control Center has been
-  localized since v1.8.0, but every control injected into the timeline stayed English — the Hide
+  localized since v1.8.0, but every control injected into the timeline stayed English, the Hide
   button, media buttons, the AI menu, snippets, account-note badges, and the panel's own preset
   cards. All of it now translates, along with the extension options page, across nine locales
   (452 → 470 strings). The string extractor harvests these call sites from source, since a
   timeline control never renders inside the panel.
-- **Visible outcomes for the AI menu and snippets.** Every path used to end in silence — success,
+- **Visible outcomes for the AI menu and snippets.** Every path used to end in silence, success,
   provider failure and a blocked clipboard all looked identical, because the menu simply closed.
   A shared status toast now names the cause and the fix.
 - **Settings that finally do something**: an aria2 size threshold that routes by measured size,
   with its missing panel control.
 
-## 1.9.0 - 2026-08-07
+## 1.9.0 (2026-08-07)
 
 Adds a performance module, three capabilities researched from the high-install X userscripts, and
 drains the deferred code review.
@@ -1307,14 +1332,14 @@ drains the deferred code review.
   record; a stored item with an unrecognised status is now rejected instead of being carried
   forever against the limit.
 
-## 1.8.0 - 2026-08-06
+## 1.8.0 (2026-08-06)
 
 Drains the audit findings left open by the v1.7.0 pass.
 
 ### Added
 
 - **The Control Center is actually localized.** All nine locales are complete: every one of the
-  310 panel strings — labels, descriptions, select options, buttons, toasts and error copy — is
+  310 panel strings, labels, descriptions, select options, buttons, toasts and error copy, is
   translated for Spanish, Portuguese, French, German, Japanese, Korean, Arabic and Hebrew, with
   English as the source. The catalog is gettext-style, keyed on the English string itself, so
   editing a label can never leave a stale translation attached to it: the edited string simply
@@ -1337,34 +1362,34 @@ Drains the audit findings left open by the v1.7.0 pass.
   10/10 rows go 1px → 0px and back on destroy.
 - **Writer mode** (`layout.writerMode`) now does something. While focus is inside the composer the
   sidebar and the timeline behind it fade back; everything returns on blur. Driven by
-  `focusin`/`focusout` only — no key handlers, and hovering a faded row brings it back.
+  `focusin`/`focusout` only, no key handlers, and hovering a faded row brings it back.
   Quiet Reader and Minimal turn borders off again; Creator turns writer mode on.
 - **Extension options page.** A dark, self-contained page (toolbar icon, or Extensions → Aviary →
   Options) reports the live grant state of the optional `downloads` permission and the
   `pbs.twimg.com` / `video.twimg.com` media hosts, and grants or revokes either. This is the
-  surface `chrome.permissions.request` needs — it only resolves from a user gesture on an
+  surface `chrome.permissions.request` needs, it only resolves from a user gesture on an
   extension page, which a content script is not. Preflight fails the build if the page is missing,
   declares inline script, or is dropped from a manifest.
 
 - **Every failed write is reported, not just three stores'.** The storage gateway now notifies a
   diagnostics sink before rethrowing, so the nine call sites that deliberately wrap `set()` in an
-  empty `catch` keep working while their failures stop being invisible — `CheckpointStore`,
+  empty `catch` keep working while their failures stop being invisible, `CheckpointStore`,
   bookmarks, the cleanup queue, the semantic index, the Aria2 history and query discovery
   included. Any store added later gets this without plumbing a sink through its constructor.
 - **Failed writes are no longer silent.** `MediaHistory`, `AuditLog` and the hidden-post store
-  swallowed every persistence error, so a full browser store degraded to "changes stop sticking" —
-  indistinguishable from a bug. All three now take a persistence-error sink wired to diagnostics,
-  and the Trust section carries a **Saving** row that reads "Working — every change has been
+  swallowed every persistence error, so a full browser store degraded to "changes stop sticking".
+  It looked like an ordinary bug. All three now take a persistence-error sink wired to diagnostics,
+  and the Trust section carries a **Saving** row that reads "Working, every change has been
   written." or names the failure and its count. Writes stay best-effort: a failed write still
   resolves rather than throwing into the caller.
 
 - **`jobs.rateLimitMode` now paces a batch instead of only resizing a bucket.** `ctx.limiter` was
   built in `main.ts` and handed to every feature, and no feature ever drew from it. The media
-  batch — the one path that fires hundreds of requests at X's media hosts back to back — now
+  batch, the one path that fires hundreds of requests at X's media hosts back to back, now
   takes a token per download. The mode sets both the burst and the sustained rate (conservative
   4/1s, standard 8/4s); the old fixed 0.5/s refill would have made a 200-item batch look hung.
 - **`waitForToken` no longer hangs on an impossible request.** Asking for more tokens than the
-  bucket's capacity could never be satisfied, because refill clamps at capacity — it spun
+  bucket's capacity could never be satisfied, because refill clamps at capacity, it spun
   silently forever. It now throws `RangeError`.
 - **`privacy.auditLog` does something.** The toggle normalized and round-tripped while nothing
   read it, so turning the local action log off left it recording exactly as before. `AuditLog`
@@ -1381,7 +1406,7 @@ Drains the audit findings left open by the v1.7.0 pass.
   all set it, so applying any of them claimed a change that never happened. A new reversible
   feature removes share tokens and campaign parameters (`utm_*`, `fbclid`, and X's own `t`/`s`)
   from timeline links, with a **Clean tracking from links** toggle in Library. `t`/`s` are only
-  stripped on X hosts — they are ordinary parameter names elsewhere, and removing them would
+  stripped on X hosts, they are ordinary parameter names elsewhere, and removing them would
   break real links. `t.co` URLs are left alone because their path *is* the identifier. Verified
   in Chromium: late-arriving rows are cleaned too, and destroy restores every original href.
 
@@ -1390,7 +1415,7 @@ Drains the audit findings left open by the v1.7.0 pass.
   It now gates the outbound path of Aria2, Bluesky, Mastodon, the AI provider and embeddings, and
   Trust carries a **Local-only mode** toggle. The guard sits at each integration's entry point
   rather than at each `fetch`, so a blocked call fails once, before any credential is attached.
-  Upgrading with a configured integration clears the flag — enabling an integration was already
+  Upgrading with a configured integration clears the flag, enabling an integration was already
   the opt-in, and silently breaking a working setup would be worse than the inconsistency.
 
 - **Non-ASCII paths survive extraction.** The ZIP writer emitted UTF-8 filename bytes without
@@ -1401,11 +1426,11 @@ Drains the audit findings left open by the v1.7.0 pass.
   always guessed UTF-8, which is why this was invisible on Windows.)
 - **The ZIP writer fails loudly at its 32-bit ceilings.** Entry counts, entry sizes, name lengths
   and the central-directory offset are written with `setUint16`/`setUint32`, which truncate
-  silently — past those limits the archive was still produced and simply unzipped to the wrong
+  silently, past those limits the archive was still produced and simply unzipped to the wrong
   thing. Each now throws a `RangeError` naming the limit rather than emitting a corrupt file.
 
 - **A CRLF in a scraped value can no longer corrupt a WARC.** `WARC-Target-URI` and
-  `Content-Type` were interpolated unsanitised, and WARC headers are CRLF-delimited — so a
+  `Content-Type` were interpolated unsanitised, and WARC headers are CRLF-delimited, so a
   newline in a permalink or media URL injected arbitrary headers (a forged `WARC-Type` among
   them) and, once the injected text was read as a record boundary, `warcio` raised
   `ArchiveLoadFailed` and every later record was lost. Reachable because `library/archive-import.ts`
@@ -1417,7 +1442,7 @@ Drains the audit findings left open by the v1.7.0 pass.
 - **The Control Center is navigable.** It rendered all twelve sections into a single 386px
   column: 144 controls and roughly **nineteen screens of scrolling**, with no way to jump and no
   search. It now has a grouped nav rail (Start / Reading / Data / Advanced) and builds only the
-  section being viewed — the same panel opens at **one screen** instead of nineteen, and the
+  section being viewed, the same panel opens at **one screen** instead of nineteen, and the
   panel widened to 780px so descriptions stop wrapping to four lines.
 - **Settings search.** Specified in the original F002 and never built. Typing filters rows across
   every section at once, grouped under the section each match came from, with an empty state that
@@ -1427,13 +1452,13 @@ Drains the audit findings left open by the v1.7.0 pass.
 - **Below 760px the rail becomes a horizontal chip strip**, keeping every section one tap away
   instead of behind a menu, with 44px targets.
 - **The panel chrome now follows the locale.** The search placeholder and the status line were
-  built once at mount and never repainted, so they stayed English in every other language — and
+  built once at mount and never repainted, so they stayed English in every other language, and
   because `render()` resets the coverage tally, mount-only strings never reached the catalog at
   all. Both now repaint per render and are translated in all nine locales.
 
 - **Preset descriptions no longer promise ad-hiding.** Quiet Reader and Minimal both advertised
   "no promoted" while nothing implemented it. Detection turns out to need a capture Aviary does
-  not have: `[data-testid="placementTracking"]` is not an ad marker — in `_decoded/home.html`
+  not have: `[data-testid="placementTracking"]` is not an ad marker, in `_decoded/home.html`
   both instances wrap organic content (a quote-tweet video and the news sidebar), and "Promoted"
   appears nowhere in either fixture. The copy is corrected and the feature is parked with its
   re-entry condition rather than shipped on a selector that would hide real posts.
@@ -1442,7 +1467,7 @@ Drains the audit findings left open by the v1.7.0 pass.
 
 - **No Escape-to-close handler.** The open question was whether standard dialog dismissal should
   be an exception to the no-keyboard-handlers rule. It should not: the panel is non-modal, and
-  the keyboard path is already complete without one — the launcher is reachable in two Tabs,
+  the keyboard path is already complete without one, the launcher is reachable in two Tabs,
   Enter opens the panel, Close is the *first* tab stop inside it, and activating it returns focus
   to the launcher. Escape would add a global key listener (which `tools/preflight.mjs` and
   `tests/source-contracts.test.mjs` both reject) to duplicate a control that is already one Tab
@@ -1458,7 +1483,7 @@ Drains the audit findings left open by the v1.7.0 pass.
 - **Media downloads no longer report success when nothing was saved.** In the MV3 build without
   the `downloads` permission the background returned an error, the downloader fell back to an
   anchor click, and the browser ignored `download` for cross-origin `pbs.twimg.com` URLs and
-  navigated — while the button said "Saved". The background now distinguishes a missing permission
+  navigated, while the button said "Saved". The background now distinguishes a missing permission
   from a real failure, the downloader throws instead of falling through, the button reads "Allow"
   and opens the grant page once per session, and a batch stops at the first permission error rather
   than repeating it hundreds of times. A cross-origin anchor fallback now reports "Opened".
@@ -1466,7 +1491,7 @@ Drains the audit findings left open by the v1.7.0 pass.
 Full engineering, security, UX, accessibility and theming audit. Findings left open are
 listed at the end of ROADMAP.md.
 
-### Fixed — correctness
+### Fixed, correctness
 
 - Mutation batches are coalesced into one delivery per 120ms window. Every feature previously
   re-scanned, and the Control Center re-rendered, on each individual batch; five ordinary page
@@ -1485,7 +1510,7 @@ listed at the end of ROADMAP.md.
 - Link unshortening left its class and rewritten title behind on teardown.
 - XLSX export stripped no XML-illegal control characters, producing workbooks Excel rejects.
 
-### Fixed — security and data safety
+### Fixed, security and data safety
 
 - CSV export escapes leading `=`, `+`, `-` and `@` so attacker-controlled post text cannot
   execute as a formula when the export is opened in a spreadsheet.
@@ -1496,7 +1521,7 @@ listed at the end of ROADMAP.md.
 - HTML export drops non-http(s) hrefs rather than writing them into a file opened from disk.
 - Captured GraphQL payloads also scrub `auth_token`, `guest_id` and `csrf_token`.
 
-### Fixed — accessibility
+### Fixed, accessibility
 
 - The closed panel is inert; all 137 of its controls were previously focusable inside an
   `aria-hidden` container, so keyboard users tabbed into an invisible settings panel.
@@ -1504,14 +1529,14 @@ listed at the end of ROADMAP.md.
   3.96:1. Its muted token now measures 5.26:1, clearing the 4.5:1 AA floor.
 - Touch targets in the panel meet 44px. The touch and viewport rules were being written into
   `document.head`, where they could not reach the panel's shadow root at all.
-- "Reduced motion" gained a control — the setting previously had no UI — and now reaches the
+- "Reduced motion" gained a control, the setting previously had no UI, and now reaches the
   panel and toast, which a page-level class cannot style across a shadow boundary.
 - The per-post Hide control rests at a legible opacity instead of 1.56:1, and is fully opaque
   on devices with no hover.
 - Engagement counts can be hidden without hiding the buttons; their aria-labels still carry
   the totals.
 
-### Fixed — UX and visual
+### Fixed, UX and visual
 
 - Settings rows drew a 1.4:1 border, effectively invisible; now 2.3-2.6:1 in every theme.
 - The launcher gradient followed X blue in all five themes; it follows the theme accent.
@@ -1529,7 +1554,7 @@ listed at the end of ROADMAP.md.
 - The locale selector states what it currently does, since the panel is not yet localized.
 - docs/PRIVACY.md lists every storage key and corrects the claim that no passwords are stored.
 
-## 1.7.0 - 2026-08-06
+## 1.7.0 (2026-08-06)
 
 Written from its release commits (`b7adb59..2952c0a`) on 2026-08-19; the entry was missed when the
 release shipped.
@@ -1553,7 +1578,7 @@ release shipped.
   saving; XLSX was described as deferred when it ships; settings export was described without
   mentioning it contained credentials; the privacy section was pinned to a stale v0.3.0 claim.
 
-## 1.6.0 - 2026-08-06
+## 1.6.0 (2026-08-06)
 
 - Added a per-post Hide control that remembers the post locally and keeps it collapsed on every later visit, so the next post is promoted instead of leaving a gap.
 - Added the `aviary.hiddenPosts.v1` store with status-id keys, a handle+text signature fallback for posts without a `/status/` link, oldest-first eviction at a configurable cap, and a 20-deep session undo stack.
@@ -1561,7 +1586,7 @@ release shipped.
 - Added the Control Center "Hidden posts" section: master switch, per-post button toggle, per-route activation chips, and the remembered-post cap.
 - Added `post.hide`, `post.unhide`, and `post.hide.cleared` audit actions.
 
-## 1.5.0 - 2026-08-03
+## 1.5.0 (2026-08-03)
 
 - Added opt-in CheckpointStore retention controls for maximum jobs, records per job, and job age, with boot-time and new-job sweeps.
 - Added persisted Aria2 gid history and cross-session duplicate suppression, including completion/error reconciliation through `aria2.tellStatus`.
@@ -1570,7 +1595,7 @@ release shipped.
 - Added pinned Playwright 1.62.1 smoke CI with cached browser binaries and isolated Xvfb execution; local smoke profiles are temporary and cleaned up.
 - Kept F032/F033 blocked pending authenticated `_decoded/` fixtures.
 
-## Roadmap archive — 2026-08-10 — ROADMAP.md
+## Roadmap archive, 2026-08-10, ROADMAP.md
 
 <details>
 <summary>Original roadmap snapshot</summary>
@@ -1586,11 +1611,11 @@ Implementation status: **v1.16.0 is implemented.** The current release includes 
 
 > **v1.5.0 was implemented.** The release adds opt-in CheckpointStore retention (`aviary.retention.maxJobs`, `maxRecordsPerJob`, `maxAgeDays`), persisted Aria2 gid history with completion/error reconciliation, Bluesky image and Mastodon media uploads for explicit crossposts, the default-off "Attach last download" toggle, and a pinned Playwright 1.62.1 smoke workflow with cached browsers and isolated execution. F032/F033 still need authenticated `_decoded/` fixtures. Earlier baseline summary:
 
-> **v1.3.0 was implemented:** A new `settings.integrations` envelope holds Aria2 / Bluesky / Mastodon / AI / semantic-search configuration; every integration defaults to disabled and only acts when the user provides credentials. `features/integrations/aria2.ts` adds a JSON-RPC client + `shouldHandoffToAria2` threshold check; `Downloader` now picks Aria2 first when enabled and the request exceeds `integrations.aria2.minBytes` (F056). `features/integrations/crosspost.ts` provides Bluesky AT-protocol `createSession` + `createRecord` and Mastodon `POST /api/v1/statuses` clients, surfaced as two Control Center actions that send the current composer text (F077). `features/integrations/ai-provider.ts` adds `runAiPrompt` with adapters for Anthropic Messages and OpenAI-compatible chat completions; the local AI command menu (`features/ai/command-menu.ts`) now routes prompts through the provider when the integration is enabled and copies the response to the clipboard — when it isn't, the prompt itself is copied (F083). `features/integrations/semantic-search.ts` adds `SemanticIndex` with on-demand embedding fetch + cosine ranking, persisted under `aviary.semanticIndex.v1` (F067). The Control Center "Integrations" section surfaces every endpoint / token field plus a "Test Aria2 connection", "Rebuild semantic index", semantic search input, and clear-index action. F099 Playwright live smoke still requires `playwright` + browser binaries and remains queued for v1.4+. Earlier baseline summary:
+> **v1.3.0 was implemented:** A new `settings.integrations` envelope holds Aria2 / Bluesky / Mastodon / AI / semantic-search configuration; every integration defaults to disabled and only acts when the user provides credentials. `features/integrations/aria2.ts` adds a JSON-RPC client + `shouldHandoffToAria2` threshold check; `Downloader` now picks Aria2 first when enabled and the request exceeds `integrations.aria2.minBytes` (F056). `features/integrations/crosspost.ts` provides Bluesky AT-protocol `createSession` + `createRecord` and Mastodon `POST /api/v1/statuses` clients, surfaced as two Control Center actions that send the current composer text (F077). `features/integrations/ai-provider.ts` adds `runAiPrompt` with adapters for Anthropic Messages and OpenAI-compatible chat completions; the local AI command menu (`features/ai/command-menu.ts`) now routes prompts through the provider when the integration is enabled and copies the response to the clipboard, when it isn't, the prompt itself is copied (F083). `features/integrations/semantic-search.ts` adds `SemanticIndex` with on-demand embedding fetch + cosine ranking, persisted under `aviary.semanticIndex.v1` (F067). The Control Center "Integrations" section surfaces every endpoint / token field plus a "Test Aria2 connection", "Rebuild semantic index", semantic search input, and clear-index action. F099 Playwright live smoke still requires `playwright` + browser binaries and remains queued for v1.4+. Earlier baseline summary:
 
-> **v1.2.0 was implemented:** Batch profile-media downloader walks every visible tweet and pipes photos / videos / GIFs / thumbnails through the existing queue with per-mode concurrency, history dedup, and audit logging (F048 + F049). `export/warc.ts` writes ISO-28500 WARC/1.1 records that wrap captured `ExportRecord` payloads + media URLs for archival tooling (F071). `export/external-targets.ts` renders the same records as clipboard Markdown / Obsidian frontmatter Markdown / Notion-friendly Markdown / raw JSON, surfaced as Control Center actions (F069). `ai/command-menu.ts` adds a tweet-toolbar AI button that opens a four-command menu (Translate / Summarize / Explain / Fact-check prompt) and copies the assembled prompt to the clipboard — no network calls, no API keys required (F082 baseline). F099 Playwright live smoke, F067 semantic search, F056 native companion + Aria2 handoff, and F077 crosspost still need third-party binaries / accounts / tokens; they remain queued for v1.3+. Earlier baseline summary:
+> **v1.2.0 was implemented:** Batch profile-media downloader walks every visible tweet and pipes photos / videos / GIFs / thumbnails through the existing queue with per-mode concurrency, history dedup, and audit logging (F048 + F049). `export/warc.ts` writes ISO-28500 WARC/1.1 records that wrap captured `ExportRecord` payloads + media URLs for archival tooling (F071). `export/external-targets.ts` renders the same records as clipboard Markdown / Obsidian frontmatter Markdown / Notion-friendly Markdown / raw JSON, surfaced as Control Center actions (F069). `ai/command-menu.ts` adds a tweet-toolbar AI button that opens a four-command menu (Translate / Summarize / Explain / Fact-check prompt) and copies the assembled prompt to the clipboard, no network calls, no API keys required (F082 baseline). F099 Playwright live smoke, F067 semantic search, F056 native companion + Aria2 handoff, and F077 crosspost still need third-party binaries / accounts / tokens; they remain queued for v1.3+. Earlier baseline summary:
 
-> **v1.1.0 was implemented:** XLSX format ships via a tiny SpreadsheetML writer that reuses the STORE-only ZIP encoder (F058 finishing). `library/bookmarks.ts` adds a persisted bookmark library with tags / folders / reminders / due-time queries (F068). `export/network-capture.ts` ships a guarded passive `fetch` interceptor that records GraphQL response bodies into the CheckpointStore as a `capture-<operation>` job when `export.preserveRawPayloads` is `true`, caps payloads at 1.5 MB, scrubs `ct0` cookies and bearer tokens, and uninstalls cleanly on toggle (F091 stage 2). `composer/composer-snippets.ts` adds a Snippets button next to `[data-testid="toolBar"]` that opens a popover and inserts via `document.execCommand("insertText")` — no keyboard simulation (F075 insertion). F048/F049 batch media and F099 Playwright smoke remain queued for v1.2+. Blocked-account (F032) and self-repost (F033) filters stay deferred until authenticated fixtures land.
+> **v1.1.0 was implemented:** XLSX format ships via a tiny SpreadsheetML writer that reuses the STORE-only ZIP encoder (F058 finishing). `library/bookmarks.ts` adds a persisted bookmark library with tags / folders / reminders / due-time queries (F068). `export/network-capture.ts` ships a guarded passive `fetch` interceptor that records GraphQL response bodies into the CheckpointStore as a `capture-<operation>` job when `export.preserveRawPayloads` is `true`, caps payloads at 1.5 MB, scrubs `ct0` cookies and bearer tokens, and uninstalls cleanly on toggle (F091 stage 2). `composer/composer-snippets.ts` adds a Snippets button next to `[data-testid="toolBar"]` that opens a popover and inserts via `document.execCommand("insertText")`, no keyboard simulation (F075 insertion). F048/F049 batch media and F099 Playwright smoke remain queued for v1.2+. Blocked-account (F032) and self-repost (F033) filters stay deferred until authenticated fixtures land.
 
 Earlier baseline summary:
 
@@ -1647,19 +1672,19 @@ Roadmap progress:
 | v0.4.0 | Complete | Filter engine (`src/features/filtering/`): per-tweet keyword/regex predicates, premium/verified action, photo/video/GIF media-type filter, route-scoped (`filter.surfaces`) timeline-position gating, whitelist, master toggle, hide/dim CSS states. Processes added tweet articles only, never scans the full document on each mutation, and reverses cleanly when filters are disabled or the feature is destroyed. F032 (blocked accounts) and F033 (self-reposts) are parked behind authenticated fixtures and surfaced as a Control Center readonly row. |
 | v0.5.0 | Complete | One-click media (`src/features/media/`): per-tweet Save/Thumb buttons that normalize image URLs to `name=orig` (F041 + F043 baseline), templated filenames via `renderFilename` with `{handle}/{tweetId}/{mediaId}/{index}/{total}/{date}/{text}/{ext}` (F045), persisted dedup history with eviction (F046), in-memory job queue with status counts (F050), and video poster thumbnail download (F044). Userscript path uses `GM_download`; extension path messages the background service worker which dispatches `chrome.downloads` with `conflictAction: uniquify`; anchor fallback handles everything else. Buttons live only inside the tweet photo container and respect the master toggle. |
 | v0.6.0 | Complete | Video / GIF download + media presentation: `video-extract.ts` picks the highest-bitrate variant from available media metadata, detects GIF-style players (loop+muted or `tweet_video/` URLs), and feeds the existing downloader/queue/history pipeline (F042). `media-presentation.ts` applies reversible media-layout (default/stacked/grid) classes from settings (F022); sensitive-content modes were removed in v1.13.0 because Aviary cannot identify sensitive posts reliably. ZIP chunking (F047) and save-location memory (F051) are intentionally rolled into v0.7.0 with the export-core work where batch scale starts to matter. |
-| v0.7.0 | Complete | Export core (`src/features/export/`): DOM-based passive collector for visible tweets, persisted CheckpointStore with record dedup (F057, F059), JSON/CSV/HTML/Markdown formatters (F058 — XLSX deferred to v0.8.0), from-scratch STORE-only ZIP encoder with IEEE-802.3 CRC32 (F047), passive GraphQL query-ID discovery over loaded scripts (F061), and Control Center actions for "Export visible tweets" and "Copy diagnostics" (F102). Save-folder hint (`media.lastSaveFolder`) is wired through into the ZIP filename and entry prefix (F051). Active fetch/XHR interception for full GraphQL response capture (F091) is intentionally deferred to v0.8.0 so the trust contract stays untouched in this release. |
+| v0.7.0 | Complete | Export core (`src/features/export/`): DOM-based passive collector for visible tweets, persisted CheckpointStore with record dedup (F057, F059), JSON/CSV/HTML/Markdown formatters (F058, XLSX deferred to v0.8.0), from-scratch STORE-only ZIP encoder with IEEE-802.3 CRC32 (F047), passive GraphQL query-ID discovery over loaded scripts (F061), and Control Center actions for "Export visible tweets" and "Copy diagnostics" (F102). Save-folder hint (`media.lastSaveFolder`) is wired through into the ZIP filename and entry prefix (F051). Active fetch/XHR interception for full GraphQL response capture (F091) is intentionally deferred to v0.8.0 so the trust contract stays untouched in this release. |
 | v0.8.0 | Complete | Archive completeness: collector extensions for image alt-text, polls, quote-tweet wrappers, embedded article cards, and Birdwatch context (F054 + F064). `collectProfileAbout` scrapes `/handle` route metadata (F063). `AuditLog` ring buffer records media downloads, exports, settings roundtrips, and diagnostic copies (F092). Settings import/export via JSON envelopes with normalization + version warnings (F009). XLSX and F091 stage 2 are explicitly rolled into v0.9.0+ since they need binary spreadsheet tooling and a network-interception trust review respectively. |
 | v0.9.0 | Complete | Library + power UX (focused slice): `library/user-notes.ts` persists per-handle notes with reversible Note badges + Control Center editor (F027); `library/link-unshorten.ts` rewrites visible `t.co` redirects to their destinations and restores original text on destroy (F074); Control Center "Library" section adds a `composer.snippets` textarea editor (F075 editor). XLSX, F066 local search, F068 bookmark tags/folders/reminders, F091 stage 2, and the snippet-insertion path are explicitly deferred to v0.10.0+. |
 | v0.10.0 | Complete | MV3 store hardening: `tools/build.mjs` produces STORE-only `dist/extension-{chrome,firefox}-v<version>.zip` archives (F100); `tools/preflight.mjs` enforces manifest version sync, no `<all_urls>`, no `unsafe-eval`/`wasm-eval`, no `eval()`/`new Function()` in compiled bundles, pinned devDependencies, and the source-policy contract (F089 + F090); `docs/INSTALL.md` + `docs/FAQ.md` document every install path and the privacy contract (F101). `npm run verify` chains `typecheck → test → build → preflight`. F099 Playwright smoke needs a separate dev dep and carries forward. |
 | v0.11.0 | Complete | Advanced data + cleanup preview: `library/snapshots.ts` + feature module persist follower / following snapshots (F065); `export/zip-reader.ts` + `library/archive-import.ts` ingest official X archive ZIPs into the CheckpointStore (F070); `library/cleanup-preview.ts` reads-only classifies records by bucket and respects the whitelist (F079); `library/reports.ts` emits Markdown audit + snapshot diff + cleanup bundles (F072); `library/local-search.ts` indexes the CheckpointStore and is wired into the Control Center "Snapshots & Archive" section (F066). Carry-overs (XLSX, F068, F091 stage 2, composer insertion, F099 Playwright) roll to v1.0.0. |
 | v1.0.0 | Complete | Beats every competitor baseline: 6-preset pack (Quiet Reader / Media Archivist / Creator / Researcher / Classic / Minimal) with delta describer (F104); 9-locale i18n bundle with translate + fallback + RTL/CJK direction (F095 + F096); mobile + touch ergonomics media queries with bigger action buttons and panel sizing (F097); read-only cleanup review queue with `destructiveAllowed() === false` by policy (F079 / F080 safe slice). F048 / F049 media batch downloader carries forward to v1.1+. |
 | v1.1.0 | Complete | XLSX format via SpreadsheetML over the existing STORE-only ZIP encoder (F058 finishing); `library/bookmarks.ts` persisted library with tags / folders / reminders + due-time queries (F068); `export/network-capture.ts` guarded passive GraphQL interceptor (F091 stage 2) capped at 1.5 MB and auth-scrubbed; `composer/composer-snippets.ts` Snippets button + popover with `execCommand("insertText")` insertion into `[data-testid="tweetTextarea_0"]` (F075 insertion). F048/F049 media batch + F099 Playwright smoke remain queued. |
-| v1.2.0 | Complete | Batch profile-media downloader F048/F049 (queue + concurrency + history dedup + audit), WARC export F071 (ISO-28500/1.1), external export targets F069 (clipboard Markdown / Obsidian frontmatter / Notion / raw JSON), AI command menu scaffold F082 (local prompt builder, clipboard-only — no API calls). |
-| v1.3.0 | Complete | Integration scaffolds, all opt-in: Aria2 JSON-RPC handoff (F056), Bluesky AT-protocol + Mastodon crosspost (F077), provider-backed AI runner — Anthropic Messages / OpenAI / OpenAI-compatible (F083), semantic search with on-demand embedding fetch + cosine ranking (F067). Settings hold endpoint / API key fields per integration; URLs are validated and only `http://`/`https://` allowed. |
+| v1.2.0 | Complete | Batch profile-media downloader F048/F049 (queue + concurrency + history dedup + audit), WARC export F071 (ISO-28500/1.1), external export targets F069 (clipboard Markdown / Obsidian frontmatter / Notion / raw JSON), AI command menu scaffold F082 (local prompt builder, clipboard-only, no API calls). |
+| v1.3.0 | Complete | Integration scaffolds, all opt-in: Aria2 JSON-RPC handoff (F056), Bluesky AT-protocol + Mastodon crosspost (F077), provider-backed AI runner, Anthropic Messages / OpenAI / OpenAI-compatible (F083), semantic search with on-demand embedding fetch + cosine ranking (F067). Settings hold endpoint / API key fields per integration; URLs are validated and only `http://`/`https://` allowed. |
 | v1.4.0 | Complete | Aria2 sweep + cancel (`aria2.tellActive`/`aria2.remove`), thread mode for Bluesky + Mastodon crosspost (`splitForThread`, `reply.root/parent` + `in_reply_to_id` chaining), `recentIntegrationErrors` audit-log readout, auto-embedding on every export (`integrations.semanticSearch.autoIndex`), Playwright smoke spec scaffold + `npm run smoke`. |
 | v1.5.0 | Complete | CheckpointStore retention, persisted Aria2 gid history, explicit Bluesky/Mastodon media uploads, default-off crosspost attachment, and cached isolated smoke CI. |
 | v1.6.0 | Complete | Per-post hide-and-remember with virtualizer-aware row collapse, undo, persisted `aviary.hiddenPosts.v1`, and a Control Center management section. |
-| v1.8.0–v1.16.0 | Complete | Incremental hardening and current-X delivery: reproducible archives, runtime reconciliation, current MediaSource controls, Grok coverage, width/RTL fixes, action failure reporting, live export sessions, advanced settings, route-aware selector health, local bookmarks, hidden fixture smoke coverage, scoped original-quality image mutation, and externally gated-action coverage. See `CHANGELOG.md` for each release entry. |
+| v1.8.0 to v1.16.0 | Complete | Incremental hardening and current-X delivery: reproducible archives, runtime reconciliation, current MediaSource controls, Grok coverage, width/RTL fixes, action failure reporting, live export sessions, advanced settings, route-aware selector health, local bookmarks, hidden fixture smoke coverage, scoped original-quality image mutation, and externally gated-action coverage. See `CHANGELOG.md` for each release entry. |
 
 Original capture tree from research baseline:
 
@@ -2335,7 +2360,7 @@ Settings panel spec:
 | Distribution | Readable userscript, Chrome MV3 ZIP, Firefox MV3 ZIP, README, privacy notes, support diagnostics, and versioned release notes are produced. |
 | Documentation | README explains install paths, feature categories, local-first design, permissions, troubleshooting, and known X churn risks. |
 
-## Appendix A - Source Index
+## Appendix A: Source Index
 
 Local sources:
 
@@ -2501,7 +2526,7 @@ Academic, engineering, dependency, and security sources:
 | A14 | https://nvd.nist.gov/vuln/detail/CVE-2026-40451 | Chrome extension XSS vulnerability example. |
 | A15 | https://arxiv.org/abs/2604.17668 | JavaScript/npm dependency vulnerability propagation. |
 
-## Appendix B - Self-Audit
+## Appendix B: Self-Audit
 
 Mandatory Phase 5 checks:
 
@@ -2516,25 +2541,25 @@ Mandatory Phase 5 checks:
 | Hostile-review concerns addressed | Passed. The roadmap calls out missing fixtures, API volatility, store review, account risk, dependency supply chain, and destructive-operation safety. |
 | Disk write confirmed | This file is `C:\Users\--\repos\Twitter_Userscript\ROADMAP.md`. |
 
-## Competitor Gaps — 2026-08-07 research pass
+## Competitor Gaps, 2026-08-07 research pass
 
 Sourced from the userscript indexes (Greasy Fork itself edge-blocks automated clients, so the
 listing was read through userscript.zone plus targeted search). Ranked by how often the capability
 shows up in high-install scripts against how much of it Aviary already has.
 
-## Audit Findings — 2026-08-06 (not fixed in this pass)
+## Audit Findings, 2026-08-06 (not fixed in this pass)
 
 Raised during the full engineering/UX/security audit of v1.6.0. Items fixed in that pass are
 in CHANGELOG.md; these are the ones left open, with the reason each was not taken.
 
 
-## Audit Findings — 2026-08-07 (audit-only pass; not fixed)
+## Audit Findings, 2026-08-07 (audit-only pass; not fixed)
 
 Baseline at `409f846`: `tsc` clean, 188/188 tests pass, build+preflight green. Findings are
 ordered P1 → P3; each was verified as described in its Evidence line. Verification harnesses ran
 read-only (Playwright against `_decoded/home.html` and scratch pages); no source was changed.
 
-## Audit Findings — 2026-08-08 (live Chrome audit; not fixed)
+## Audit Findings, 2026-08-08 (live Chrome audit; not fixed)
 
 Baseline at `89dc1e1`: `npm run typecheck`, all 257 tests, `npm run build`, and
 `npm run preflight` pass. The audit exercised all 13 Control Center pages in a dedicated signed-in
@@ -2542,9 +2567,9 @@ Chrome tab on current `x.com`, restored the original settings and audited store 
 source changes. Items below are deduplicated against the feature catalog, prior audit sections, and
 `Roadmap_Blocked.md`; they are ordered P1 → P3.
 
-## Audit Findings — 2026-08-10
+## Audit Findings, 2026-08-10
 
-- [ ] P2 — Secondary Control Center sections bypass the localization choke point
+- [ ] P2, Secondary Control Center sections bypass the localization choke point
   Category: ux
   Where: `src/ui/control-center.ts:273,918-1069,1156-1261,1365-1402,1554-1637,2136-2155`; `src/platform/i18n.ts:2828-2839`
   Problem: The panel’s `t()` helper is exact-string keyed, but many stable labels, descriptions, empty states, action statuses, and the dialog ARIA label in the snapshots/archive, integrations, semantic-search, external-export, and crosspost sections are passed directly to `el()`/`setStatus()` as English strings. The extractor/catalog may contain those strings, but runtime never calls `t()` for them, so a user who selects es/fr/ja/ar sees translated chrome and English secondary workflows.
@@ -2554,7 +2579,7 @@ source changes. Items below are deduplicated against the feature catalog, prior 
   Confidence: Verified
   Effort: M
 
-- [ ] P2 — Privacy and installation documentation describes a pre-integration release
+- [ ] P2, Privacy and installation documentation describes a pre-integration release
   Category: docs
   Where: `docs/PRIVACY.md:63-65`; `docs/INSTALL.md:23-26`; `docs/FAQ.md:5-11,31-37,49-52`; current integration/permission paths in `src/features/integrations/` and `src/features/media/downloader.ts:74-116`
   Problem: The shipped docs still say optional permissions are future and unused by v0.3.0, say the first Save prompts for permission even though the current extension opens a dedicated options page, describe every feature as v0.9.0, claim Aviary’s only outbound traffic is selected media, list XLSX as future, and omit newer stored keys/features from uninstall/privacy guidance. Users can make incorrect trust, permission, and data-retention decisions from these statements.
@@ -2564,7 +2589,7 @@ source changes. Items below are deduplicated against the feature catalog, prior 
   Confidence: Verified
   Effort: M
 
-- [ ] P2 — Control Center overlay is visually open but not an actual modal
+- [ ] P2, Control Center overlay is visually open but not an actual modal
   Category: a11y
   Where: `src/ui/control-center.ts:265-342,3389-3422`
   Problem: The open overlay has `pointer-events: none`, while only `.av-panel` has `pointer-events: auto`; clicks outside the panel therefore pass through to X. The dialog has no `aria-modal="true"`, no focus trap, no Escape close path, and no background inerting beyond the overlay’s own closed state. Keyboard and screen-reader users can move into the page behind an open settings dialog, and pointer users can activate X controls through its backdrop.
@@ -2574,7 +2599,7 @@ source changes. Items below are deduplicated against the feature catalog, prior 
   Confidence: Verified
   Effort: M
 
-- [ ] P2 — Injected touch controls remain below the 44 px target or disappear on coarse pointers
+- [ ] P2, Injected touch controls remain below the 44 px target or disappear on coarse pointers
   Category: a11y
   Where: `src/features/core/mobile-touch.ts:50-64`; `src/features/filtering/hidden-posts-feature.ts:479-508`; `src/features/library/bookmarks-feature.ts:266-286`; `src/features/ai/command-menu.ts:282-303`; `src/features/composer/composer-snippets.ts:229-271`
   Problem: The page-level touch rules give Hide and media buttons only `min-height: 40px`; hidden-post and bookmark buttons are authored at 24px; AI uses `opacity: 0` except hover/focus; and snippet/AI controls have compact padding with no coarse-pointer override. On touch there is no hover to reveal the AI trigger and several controls are materially smaller than the 44px product/accessibility target.
@@ -2584,7 +2609,7 @@ source changes. Items below are deduplicated against the feature catalog, prior 
   Confidence: Verified
   Effort: M
 
-- [ ] P2 — AI and snippet popovers expose menu roles without keyboard menu behavior
+- [ ] P2, AI and snippet popovers expose menu roles without keyboard menu behavior
   Category: a11y
   Where: `src/features/ai/command-menu.ts:129-171,236-243`; `src/features/composer/composer-snippets.ts:109-150,168-191`
   Problem: Both features create `role="menu"`/`role="menuitem"` popovers, but triggers do not expose `aria-expanded`/`aria-controls`, opening does not move focus into the menu, and dismissal has no Escape/focus-restoration path. A keyboard user can remain on the trigger or tab into the page behind the menu, while screen readers receive incomplete disclosure state.
@@ -2594,7 +2619,7 @@ source changes. Items below are deduplicated against the feature catalog, prior 
   Confidence: Verified
   Effort: M
 
-- [ ] P2 — Secondary file/search controls and the thread checkbox have no programmatic labels
+- [ ] P2, Secondary file/search controls and the thread checkbox have no programmatic labels
   Category: a11y
   Where: `src/ui/control-center.ts:1003-1010,1041-1047,1365-1374,1554-1564`
   Problem: The archive file input, archive search input, semantic search input, and “Crosspost as thread” checkbox are placed beside visual copy in `div` rows without an associated `<label>`, `id/for`, or `aria-label`. Placeholder text and adjacent spans are not a reliable accessible name, so these secondary controls are unnamed or ambiguously named in the accessibility tree.
@@ -2604,7 +2629,7 @@ source changes. Items below are deduplicated against the feature catalog, prior 
   Confidence: Verified
   Effort: S
 
-- [ ] P2 — RTL toasts and injected action spacing use physical left/right properties
+- [ ] P2, RTL toasts and injected action spacing use physical left/right properties
   Category: visual
   Where: `src/features/core/feature-toast.ts:97-126`; `src/features/filtering/hidden-posts-feature.ts:479-484,531-550`
   Problem: In Arabic/Hebrew, both toast components stay at physical `right: 16px` instead of the inline-end side, and the feature-error accent remains a physical `border-left`; the Hide button also uses physical `margin-right`. This makes toast placement, accent direction, and action spacing disagree with the RTL Control Center/page direction, even though the i18n feature sets RTL correctly elsewhere.
@@ -2614,17 +2639,17 @@ source changes. Items below are deduplicated against the feature catalog, prior 
   Confidence: Verified
   Effort: S
 
-- [ ] P3 — The Control Center is a 4,000+ line god module with duplicated section wiring
+- [ ] P3, The Control Center is a 4,000+ line god module with duplicated section wiring
   Category: maintainability
   Where: `src/ui/control-center.ts:241-2781,488-2602,2960-3318`
-  Problem: Mounting, modal state, search/focus restoration, localization accounting, all 13 section renderers, every async action, status/error handling, and shared form helpers live in one closure/file. This boundary makes it easy for new secondary rows to bypass `t()`, the action rejection wrapper, or the accessibility contract—as the current findings demonstrate—and makes independent review/testing of a section unnecessarily risky.
+  Problem: Mounting, modal state, search/focus restoration, localization accounting, all 13 section renderers, every async action, status/error handling, and shared form helpers live in one closure/file. This boundary makes it easy for new secondary rows to bypass `t()`, the action rejection wrapper, or the accessibility contract,as the current findings demonstrate,and makes independent review/testing of a section unnecessarily risky.
   Evidence: The file contains the single `mountControlCenter()` orchestration plus section builders from Appearance through Trust and all helper implementations; it is roughly 4,275 lines. The raw secondary strings and custom Aria2 handler are in the same module but bypass the shared helpers that already solve those problems elsewhere.
   Fix: Keep one small mount/orchestration layer and extract section builders/actions into `src/ui/control-center/sections/` with a typed `PanelContext` exposing translator, status, error, focus, and save helpers. Centralize modal/a11y and async-action contracts, and add section-level tests before moving code.
   Acceptance: `control-center.ts` contains only orchestration/shared contracts, each section compiles and has focused tests, `npm run verify` remains green, and a static review can prove every new row uses the shared translation/error/accessibility helpers without behavior changes.
   Confidence: Verified
   Effort: L
 
-- [ ] P3 — Release verification has no lint/static-analysis stage
+- [ ] P3, Release verification has no lint/static-analysis stage
   Category: testing
   Where: `package.json:11-17`; `.github/workflows/smoke.yml:20-47`
   Problem: The repository has no `lint` script or linter configuration, and `npm run verify` runs only TypeScript checking, tests, build, and preflight regex contracts. Type errors and source-policy violations are covered, but unused/dead code, unsafe complexity, accessibility anti-patterns, and maintainability regressions can pass the release gate.
@@ -2634,7 +2659,7 @@ source changes. Items below are deduplicated against the feature catalog, prior 
   Confidence: Verified
   Effort: M
 
-- [ ] P3 — Expand the release test matrix to cover unaudited live and secondary environments
+- [ ] P3, Expand the release test matrix to cover unaudited live and secondary environments
   Category: testing
   Where: `tests/smoke/aviary.smoke.mjs:161-166,222-249`; `tests/smoke/externally-gated.smoke.mjs:528-755`; `tests/audit-ui.test.mjs`; `tests/audit-a11y.test.mjs`; `package.json:14-17`
   Problem: The green smoke suite covers Home, Home/Following query state, one profile root, Search, one status route, page-hook combinations, current-X fixture controls, and local provider stubs. It does not exercise profile followers/following/verified-followers subroutes, Notifications, Messages, the media viewer, real composer insertion/crosspost attachment, the options grant/revoke flow with a granted permission, malicious/oversized archives, bridge spoofing, boot/destroy/boot, all secondary locales, all nested surfaces in every theme, or real authenticated X markup/browser variants. The audit therefore cannot claim release coverage for those areas.
@@ -2646,35 +2671,35 @@ source changes. Items below are deduplicated against the feature catalog, prior 
 
 ## Research-Driven Additions
 
-- [ ] P2 — Unify archive, bookmark, notes, and semantic search behind one offline query model
+- [ ] P2, Unify archive, bookmark, notes, and semantic search behind one offline query model
   Why: Users must search different surfaces separately even though Aviary presents one local library; lexical search indexes only checkpoint `ExportRecord` values while bookmarks and semantic vectors have separate stores and substring/query behavior.
   Evidence: Verified in `src/features/library/local-search.ts:14-85`, `src/features/core/control-center.ts:650-664`, `src/features/library/bookmarks-feature.ts`, and `src/features/integrations/semantic-search.ts:48-147`. [xf](https://github.com/Dicklesworthstone/xf) demonstrates hybrid lexical/vector filtering, while [Raindrop’s filters](https://help.raindrop.io/filters) and [Dewey](https://getdewey.co/) demonstrate tags, folders, notes, and collection filters.
   Touches: shared indexed domain/search types; bookmark/archive/snapshot adapters; semantic provider adapter; Control Center search UI and saved queries; locale/accessibility strings; Unicode and ranking tests.
   Acceptance: One search surface can query posts, likes, bookmarks, notes, tags, folders, and snapshot metadata with documented date/type/media/account filters; lexical results work with no network or API key; semantic ranking is optional and clearly marked; every result identifies its source collection and account; empty, Unicode, long-query, and malformed-filter cases are deterministic.
   Complexity: L
 
-- [ ] P2 — Make exported archives truthful about captured assets and provide a self-contained package
+- [ ] P2, Make exported archives truthful about captured assets and provide a self-contained package
   Why: Current HTML and WARC outputs can look archival while media entries remain live URLs or explanatory metadata rather than captured bytes, so offline use and evidentiary completeness are ambiguous.
   Evidence: Verified in `src/features/export/formatters.ts` (media/permalink links remain HTTP(S)) and `src/features/export/warc.ts:26-40` (media bodies say they were not re-downloaded); compare the [WARC specification](https://iipc.github.io/warc-specifications/) and [archival capture guidance](https://www.archives.gov/records-mgmt/resources/socialmediacapture.pdf).
   Touches: `src/features/export/types.ts`; HTML/JSON/WARC formatters; media downloader integration; package manifest/checksum generation; export UI copy; offline/network-blocked tests.
   Acceptance: Every record/media entry declares `captured-bytes`, `remote-reference`, or `missing` status, source URL, capture time, and byte length/checksum when available; WARC response/resource records contain actual bytes or are explicitly metadata-only; no generated “offline” package silently fetches X at open time; interrupted media capture leaves a truthful manifest and retryable items.
   Complexity: L
 
-- [ ] P2 — Ship a responsive standalone archive viewer for exported packages
+- [ ] P2, Ship a responsive standalone archive viewer for exported packages
   Why: The current Control Center is tied to an X page and the export formats do not provide a usable large-library viewer, leaving users without an offline/mobile recovery path when X is unavailable.
   Evidence: Verified in `src/features/export/export-feature.ts:141-191` and the current formatter/ZIP path: exports are data files, not a bundled viewer. [xarchive](https://github.com/sytelus/xarchive) provides a local viewer with IndexedDB/large-list behavior, while [ArchiveBox](https://github.com/archivebox/archivebox) demonstrates replay/status-oriented archives.
   Touches: export package builder; new viewer assets/modules; archive manifest and search API; responsive CSS/touch semantics; viewer security policy; package/opening tests.
   Acceptance: An exported package opens from a local file or extension page without X access or remote script execution, renders at a 320 px viewport, supports search/filter/sort/thread/media-status views, handles a large fixture without rendering every row at once, preserves RTL/localized labels, and clearly marks missing or remote-only media.
   Complexity: L
 
-- [ ] P2 — Add a versioned full-library backup/restore flow with dry-run and rollback
+- [ ] P2, Add a versioned full-library backup/restore flow with dry-run and rollback
   Why: Settings import/export is not a backup of bookmarks, snapshots, jobs, records, indexes, or notes; raw JSON external targets are one-way record exports and do not preserve the installation’s local library.
   Evidence: Verified in `src/features/core/settings-migration.ts` (settings envelope only), the independent store keys cited above, and `src/features/export/external-targets.ts` (record-oriented targets). User demand for ownership and bookmark recovery is visible in [DataHoarder’s export discussion](https://www.reddit.com/r/DataHoarder/comments/1iga2wd/how_do_i_download_all_my_twitter_bookmarks/) and [HN’s local archive discussion](https://news.ycombinator.com/item?id=46529797).
   Touches: repository serializer/importer; profile and schema manifest; Control Center backup/restore UI; secret redaction; transaction/rollback layer; migration and corruption tests.
   Acceptance: One user-selected backup contains versioned manifests and all selected local collections, excludes credentials by default, previews versions/counts/conflicts before mutation, supports dry-run and cancellation, validates checksums, and restores transactionally with rollback on any collection failure; legacy settings import remains compatible.
   Complexity: L
 
-- [ ] P2 — Give AI and embedding integrations an explicit data-disclosure and usage budget
+- [ ] P2, Give AI and embedding integrations an explicit data-disclosure and usage budget
   Why: Opt-in network policy prevents accidental calls, but users are not shown exactly what text leaves the browser or given a durable cost/volume boundary when auto-indexing runs on every export.
   Evidence: Verified in `src/features/integrations/ai-provider.ts` (full system/user prompt sent to the configured endpoint) and `src/features/integrations/semantic-search.ts:78-127,178-209` (one embedding request per record); the README’s local-first promise makes destination transparency part of the trust contract. [BrowserOS](https://github.com/browseros-ai/BrowserOS) and commercial bookmark tools show the ecosystem’s movement toward explicit local/provider choices.
   Touches: integration settings and network policy; AI/semantic request builders; Control Center consent/preview/usage UI; audit-log redaction; provider, timeout, and budget tests.

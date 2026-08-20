@@ -1,6 +1,6 @@
 # Aviary Privacy Manifest
 
-Updated: 2026-08-19 · release 1.35.0
+Updated: 2026-08-20 · release 1.36.0
 
 ## Defaults and network boundaries
 
@@ -52,15 +52,15 @@ schema, migration, usage, and quota status.
 | `aviary.settings.v1` | Preferences and any integration credentials you enter | Configure Aviary. **Export settings** is a settings envelope, not a full-library backup. |
 | `aviary.integration.usage.v1` | Profile-scoped AI/embedding request, record, and UTF-8 byte counters for the local 31-day history | Enforce configurable per-request/daily budgets and show usage; **Clear AI and embedding usage** removes counters. No API keys or raw prompts are stored here. |
 | `aviary.hiddenPosts.v1` | Hidden status ids or handle/text signatures | Hide posts across visits; **Clear hidden posts** removes them. |
-| `aviary.seenPosts.v1` | Post ids and the time each first scrolled past — no text, handle, or URL | Fade a post the second time you pass it; capped at 4,000 entries and 30 days; **Forget seen posts** removes them. |
-| `aviary.adObservations.v1` | Which ad markers were present on a route, as counts — no post content | Notice when X changes its ad markup; bounded to 64 entries and 30 days. |
-| `aviary.diagnostics.v1` | Aviary's own warning and error text, the time, and the *names* of a message's detail fields — never their values | Let a failure from an earlier page load still be reportable; bounded to 50 entries and 7 days; clearable from Trust. |
+| `aviary.seenPosts.v1` | Post ids and the time each first scrolled past, no text, handle, or URL | Fade a post the second time you pass it; capped at 4,000 entries and 30 days; **Forget seen posts** removes them. |
+| `aviary.adObservations.v1` | Which ad markers were present on a route, as counts, no post content | Notice when X changes its ad markup; bounded to 64 entries and 30 days. |
+| `aviary.diagnostics.v1` | Aviary's own warning and error text, the time, and the *names* of a message's detail fields, never their values | Let a failure from an earlier page load still be reportable; bounded to 50 entries and 7 days; clearable from Trust. |
 | `aviary.firstRun.v1` | A single flag recording that the first-run notice was dismissed | Stop showing the notice again on this profile. |
 | `aviary.media.history.v1` | Bounded media dedup records | Avoid duplicate downloads; **Clear download history** removes them. |
 | `aviary.media.queue.v1` | Queued, paused, failed, and completed media jobs | Resume/retry media work; completed history is separately clearable. |
 | `aviary.media.last-download.v1` | Metadata for the last successful download | Make an explicitly enabled crosspost-media attachment possible. |
 | `aviary.audit.v1` | Capped local action log | Review activity; **Clear audit log** removes it. |
-| `aviary.seenPosts.v1` | Post IDs you have already scrolled past, with the time first seen. IDs and timestamps only — no text, handle, or URL. Capped at 4,000 entries and 30 days. | Fade posts on a second pass; **Forget seen posts** clears it. |
+| `aviary.seenPosts.v1` | Post IDs you have already scrolled past, with the time first seen. IDs and timestamps only, no text, handle, or URL. Capped at 4,000 entries and 30 days. | Fade posts on a second pass; **Forget seen posts** clears it. |
 | `aviary.firstRun.v1` | A single flag recording that the first-run notice was dismissed. | Removed with the profile's data; resetting it simply shows the notice again. |
 | `aviary.diagnostics.v1` | Last 50 warnings/errors for 7 days: Aviary's own message text, the time, and the *names* of its detail fields. Detail values are never written, so no post text, handle, or URL is retained. | Trust shows the count; **Clear saved warnings** removes it. |
 | `aviary.export.checkpoints.v1` | Export jobs, captured records, and checkpoints | Resume capture/export and local search; retention limits can remove old jobs. |
