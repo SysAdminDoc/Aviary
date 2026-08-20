@@ -274,7 +274,7 @@ h3 {
 .state::before {
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: 2px;
   background: currentColor;
   content: "";
   opacity: 0.72;

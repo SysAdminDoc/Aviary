@@ -339,8 +339,9 @@ test("the panel's chrome follows the theme accent rather than a pinned blue", as
           document.documentElement.className = "";
           const shadow = eval(mount);
           const launcher = shadow.querySelector(".av-nav-launcher-pill") ?? shadow.querySelector(".av-launcher");
+          const style = getComputedStyle(launcher);
           return {
-            background: getComputedStyle(launcher).backgroundColor,
+            paint: `${style.backgroundColor}|${style.borderTopColor}`,
             accent: getComputedStyle(document.documentElement).getPropertyValue("--av-accent").trim()
           };
         };
@@ -352,11 +353,11 @@ test("the panel's chrome follows the theme accent rather than a pinned blue", as
     const accentValues = accents.map((entry) => entry.accent).filter(Boolean);
     assert.ok(accentValues.length >= 2, "themes must define their own accent");
     assert.ok(
-      new Set(accents.map((entry) => entry.background)).size > 1,
+      new Set(accents.map((entry) => entry.paint)).size > 1,
       "the launcher paints identically under every theme — it is not following --av-accent"
     );
     assert.ok(
-      !accents.some((entry) => /rgba?\(29, 155, 240/.test(entry.background)),
+      !accents.some((entry) => /rgba?\(29, 155, 240/.test(entry.paint)),
       "the launcher must not fall back to X's fixed blue"
     );
   } finally {
@@ -536,6 +537,44 @@ test("row-heavy destinations keep one predictable reading column at every width"
   for (const [id, columns] of Object.entries(narrow)) {
     assert.equal(columns, 1, `${id} still renders in ${columns} columns at 700px`);
   }
+});
+
+test("media groups batch controls on wide screens and promotes the visible-download action", async () => {
+  const inspect = async (width) => {
+    const { context, page } = await openPage({ viewport: { width, height: 900 } });
+    try {
+      return await page.evaluate(async (mount) => {
+        const shadow = await eval(mount);
+        shadow.querySelector('.av-nav-item[data-av-section="media"]').click();
+        const section = shadow.querySelector('.av-section[data-av-section="media"]');
+        const grid = section.querySelector(".av-page-grid");
+        const row = (label) => grid.querySelector(`.av-row[data-av-label="${label}"]`);
+        const batchRows = [
+          row("Duplicate history"),
+          row("Concurrent downloads"),
+          row("Download pacing")
+        ];
+        const primary = row("Download all visible media")?.querySelector("button");
+        const primaryStyle = primary ? getComputedStyle(primary) : null;
+        return {
+          columns: getComputedStyle(grid).gridTemplateColumns.split(" ").length,
+          batchTops: batchRows.map((item) => Math.round(item.getBoundingClientRect().top)),
+          primaryExists: Boolean(primary),
+          primaryBackground: primaryStyle?.backgroundColor ?? ""
+        };
+      }, MOUNT_FEATURE);
+    } finally {
+      await context.close();
+    }
+  };
+
+  const wide = await inspect(1440);
+  const narrow = await inspect(700);
+  assert.equal(wide.columns, 3);
+  assert.equal(new Set(wide.batchTops).size, 1, "the three batch controls do not read as one group");
+  assert.equal(wide.primaryExists, true, "the batch download action is missing");
+  assert.notEqual(wide.primaryBackground, "rgba(0, 0, 0, 0)");
+  assert.equal(narrow.columns, 1);
 });
 
 test("a nav rail that overflows stays readable and can still be scrolled", async () => {

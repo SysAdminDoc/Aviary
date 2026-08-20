@@ -589,7 +589,7 @@ try {
     [...document.querySelectorAll("[data-av-media-button]")].map((button) => button.getAttribute("data-av-media-button")).sort()
   );
   expect(beforeMetadata.includes("thumbnail") && !beforeMetadata.includes("video"), `blob player exposed an invalid control: ${beforeMetadata}`);
-  expect(beforePostAction === true, `blob player action was not initially resolving: ${beforePostAction}`);
+  expect(beforePostAction === false, `blob player action was not initially actionable: ${beforePostAction}`);
   expect(afterMetadata.includes("thumbnail") && afterMetadata.includes("video"), `MSE metadata did not add Video: ${afterMetadata}`);
   await setToggle(page, "media", "Show download buttons", false);
   await page.waitForFunction(() => document.querySelectorAll("[data-av-media-button]").length === 0, null, { timeout: 8_000 });

@@ -390,7 +390,7 @@ test("a pending video download stays actionable and uses the best variant when m
 
   assert.deepEqual(result.initial, { text: "↓ Download", disabled: false });
   assert.deepEqual(result.finding, {
-    text: "↻ Finding video...",
+    text: "↻ Saving...",
     disabled: true,
     busy: "true"
   });

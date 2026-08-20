@@ -580,7 +580,7 @@ function buildPostAction(
 
   if (assets.length === 0) {
     button.dataset.pendingVideo = "true";
-    button.title = ft(ctx, "Find the best available video, then download it.");
+    button.title = ft(ctx, "The direct video is still loading. Try again in a moment.");
     button.addEventListener("click", (event) => {
       event.stopPropagation();
       event.preventDefault();
@@ -612,7 +612,7 @@ async function handlePendingPostDownload(
   button: HTMLButtonElement
 ): Promise<void> {
   setButtonFeedback(button, {
-    label: ft(ctx, "Finding video..."),
+    label: ft(ctx, "Saving..."),
     icon: "↻",
     className: "is-active",
     disabled: true,
@@ -631,7 +631,9 @@ async function handlePendingPostDownload(
       await handlePostDownload(refreshed, assets, new Set<string>(), ctx, button);
       return;
     }
-    await new Promise<void>((resolve) => setTimeout(resolve, 250));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 250);
+    });
   }
 
   setButtonFeedback(button, {
@@ -639,7 +641,7 @@ async function handlePendingPostDownload(
     icon: "↻",
     className: "is-error"
   });
-  button.title = ft(ctx, "The direct video is not ready yet. Try again.");
+  button.title = ft(ctx, "The direct video is still loading. Try again in a moment.");
 }
 
 /**

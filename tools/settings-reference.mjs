@@ -106,7 +106,7 @@ function unescape(value) {
 }
 
 function escapeCell(value) {
-  return value.replace(/\|/g, "\\|");
+  return value.replace(/ [—–] /g, ", ").replace(/\|/g, "\\|");
 }
 
 export function renderReference(pages) {

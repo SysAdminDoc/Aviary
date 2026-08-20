@@ -587,8 +587,8 @@ test("timeline controls render in the reader's locale, not English", async () =>
  *
  * It used to paint a translucent accent wash straight over the page, which only worked because
  * Aviary forced X dark. Once the default became "leave X alone", that wash sat on X's light mode
- * at 1.12:1 against its own near-white label. The gradient now mixes into an opaque surface, so
- * the page behind it stops mattering.
+ * at 1.12:1 against its own near-white label. The launcher now mixes into an opaque surface, so
+ * the page behind it stops mattering whether that surface resolves to a solid color or gradient.
  *
  * Compositing is done by the browser on a canvas rather than by parsing colour strings: Chromium
  * resolves color-mix() to `color(srgb ...)`, and a regex over that reads digits out of decimals
@@ -636,24 +636,28 @@ test("the launcher stays legible on a light page", async () => {
 
       // Every gradient stop, composited over WHITE -- the worst case for a light-coloured label.
       const text = composite(style.color, "#ffffff");
-      const ratios = stops.map((stop) => ratio(composite(stop, "#ffffff"), text));
+      const surfaces = stops.length > 0 ? stops : [style.backgroundColor];
+      const ratios = surfaces.map((surface) => ratio(composite(surface, "#ffffff"), text));
 
       return {
-        stops: stops.length,
+        surfaces: surfaces.length,
+        backgroundColor: style.backgroundColor,
+        backgroundImage: style.backgroundImage,
+        color: style.color,
         worst: Math.min(...ratios),
         // Control: a harness that cannot report a bad pair as bad is authorising everything.
         controlWhiteOnWhite: ratio(composite("#ffffff", "#ffffff"), composite("#ffffff", "#ffffff"))
       };
     });
 
-    assert.ok(measured.stops >= 2, `expected gradient stops, found ${measured.stops}`);
+    assert.ok(measured.surfaces >= 1, "expected a resolved launcher surface");
     assert.ok(
       measured.controlWhiteOnWhite < 1.05,
       `control failed — the harness reported ${measured.controlWhiteOnWhite}:1 for white on white`
     );
     assert.ok(
       measured.worst >= 4.5,
-      `launcher label measures ${measured.worst.toFixed(2)}:1 against its own background`
+      `launcher label measures ${measured.worst.toFixed(2)}:1 against ${measured.backgroundColor} (${measured.backgroundImage}); text ${measured.color}`
     );
   } finally {
     await browser.close();

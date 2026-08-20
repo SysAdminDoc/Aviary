@@ -2512,7 +2512,7 @@ const CONTROL_CENTER_CSS = `
      "leave X alone", the same wash sat on X's light mode at 1.12:1 against its own near-white
      label — invisible. The launcher is Aviary's own chrome and must not depend on the page.
      Measured in tests/injected-ui-contract.test.mjs by compositing on canvas. */
-  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 16%, var(--av-surface-raised, rgb(22, 24, 28)));
+  background: rgb(20, 32, 42);
   color: var(--av-text, rgb(239, 243, 244));
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.42);
   cursor: pointer;
@@ -2522,7 +2522,7 @@ const CONTROL_CENTER_CSS = `
   font-family: inherit;
   letter-spacing: 0;
   pointer-events: auto;
-  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+  transition: transform 140ms ease, border-color 140ms ease;
 }
 
 .av-launcher[hidden] {
@@ -2532,6 +2532,7 @@ const CONTROL_CENTER_CSS = `
 .av-launcher:hover {
   transform: translateY(-1px);
   border-color: var(--av-accent, rgb(29, 155, 240));
+  background: rgb(24, 42, 54);
 }
 
 .av-launcher:focus-visible,
@@ -2941,8 +2942,8 @@ input:focus-visible {
 }
 
 .av-section[data-av-section="media"] .av-page-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 20px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 18px;
 }
 
 .av-section[data-av-section="media"] .av-group-title,
@@ -2965,6 +2966,28 @@ input:focus-visible {
 
 .av-section[data-av-section="media"] .av-row[data-av-label="Download all visible media"] > .av-button:hover:not(:disabled) {
   background: color-mix(in srgb, var(--av-page-accent, rgb(72, 211, 193)) 86%, white);
+}
+
+.av-section[data-av-section="media"] .av-row[data-av-label="Concurrent downloads"] {
+  display: flex;
+  grid-column: auto;
+  flex-direction: row;
+  align-items: center;
+}
+
+.av-section[data-av-section="media"] .av-row[data-av-label="Concurrent downloads"] > .av-text-input {
+  flex: 0 0 64px;
+  width: 64px;
+}
+
+.av-section[data-av-section="media"] .av-row[data-av-label="Download pacing"] .av-select {
+  min-width: 118px;
+}
+
+.av-section[data-av-section="media"] .av-row[data-av-label="Duplicate history"] .av-row-description,
+.av-section[data-av-section="media"] .av-row[data-av-label="Concurrent downloads"] .av-row-description,
+.av-section[data-av-section="media"] .av-row[data-av-label="Download pacing"] .av-row-description {
+  -webkit-line-clamp: 2;
 }
 
 .av-group-title {
@@ -3572,6 +3595,10 @@ input[type="checkbox"] {
   .av-preset-highlights {
     grid-column: 1 / -1;
     justify-content: flex-start;
+  }
+
+  .av-section[data-av-section="media"] .av-page-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
