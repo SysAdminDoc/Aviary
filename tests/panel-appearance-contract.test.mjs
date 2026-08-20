@@ -340,7 +340,7 @@ test("the panel's chrome follows the theme accent rather than a pinned blue", as
           const shadow = eval(mount);
           const launcher = shadow.querySelector(".av-nav-launcher-pill") ?? shadow.querySelector(".av-launcher");
           return {
-            background: getComputedStyle(launcher).backgroundImage || getComputedStyle(launcher).backgroundColor,
+            background: getComputedStyle(launcher).backgroundColor,
             accent: getComputedStyle(document.documentElement).getPropertyValue("--av-accent").trim()
           };
         };
@@ -434,7 +434,7 @@ test("the hide control is legible at rest, not only on hover", async () => {
   }
 });
 
-test("every rail destination carries its own icon, accent and page summary", async () => {
+test("every rail destination carries a concise title and page summary", async () => {
   const { context, page } = await openPage();
   try {
     const pages = await page.evaluate(async (mount) => {
@@ -447,7 +447,7 @@ test("every rail destination carries its own icon, accent and page summary", asy
         const section = shadow.querySelector(".av-content .av-section");
         seen.push({
           id,
-          icon: Boolean(section.querySelector(".av-page-icon")),
+          iconDisplay: getComputedStyle(section.querySelector(".av-page-icon")).display,
           accent: section.style.getPropertyValue("--av-page-accent").trim(),
           kicker: section.querySelector(".av-page-kicker")?.textContent?.trim() ?? "",
           title: section.querySelector(".av-section-title")?.textContent?.trim() ?? "",
@@ -459,14 +459,13 @@ test("every rail destination carries its own icon, accent and page summary", asy
 
     assert.ok(pages.length >= 13, `expected at least 13 destinations, found ${pages.length}`);
     for (const entry of pages) {
-      assert.equal(entry.icon, true, `${entry.id} renders no page icon`);
+      assert.equal(entry.iconDisplay, "none", `${entry.id} still spends header space on a decorative icon`);
       assert.match(entry.accent, /^rgb/, `${entry.id} has no accent of its own`);
       assert.ok(entry.summary.length > 0, `${entry.id} has no page summary`);
       assert.ok(entry.title.length > 0, `${entry.id} has no title`);
       assert.ok(entry.kicker.length > 0, `${entry.id} does not say which group it belongs to`);
     }
-    // Distinct accents are the point of the system; one shared colour is the thing it replaced.
-    assert.ok(new Set(pages.map((entry) => entry.accent)).size >= 8, "destinations share too many accents");
+    assert.equal(new Set(pages.map((entry) => entry.accent)).size, 1, "the page accent should stay consistent");
     assert.equal(new Set(pages.map((entry) => entry.summary)).size, pages.length, "summaries must be distinct");
   } finally {
     await context.close();
@@ -503,7 +502,7 @@ test("preset cards are illustrated and say what they change", async () => {
   }
 });
 
-test("row-heavy destinations use a two-column board, and collapse when narrow", async () => {
+test("row-heavy destinations keep one predictable reading column at every width", async () => {
   const read = async (width) => {
     const { context, page } = await openPage({ viewport: { width, height: 900 } });
     try {
@@ -532,16 +531,14 @@ test("row-heavy destinations use a two-column board, and collapse when narrow", 
   const narrow = await read(700);
 
   for (const [id, columns] of Object.entries(wide)) {
-    assert.equal(columns, 2, `${id} renders in ${columns} column(s) on a wide window`);
+    assert.equal(columns, 1, `${id} renders in ${columns} columns on a wide window`);
   }
   for (const [id, columns] of Object.entries(narrow)) {
     assert.equal(columns, 1, `${id} still renders in ${columns} columns at 700px`);
   }
 });
 
-test("a nav rail that overflows says so, and can still be scrolled", async () => {
-  // Thirteen destinations overflow a short viewport. The last item rendered used to cut through
-  // its own baseline with nothing to say there was more below it.
+test("a nav rail that overflows stays readable and can still be scrolled", async () => {
   const { context, page } = await openPage({ viewport: { width: 1280, height: 420 } });
   try {
     const rail = await page.evaluate((mount) => {
@@ -562,9 +559,70 @@ test("a nav rail that overflows says so, and can still be scrolled", async () =>
 
     assert.equal(rail.overflows, true, "the rail must actually overflow at this height");
     assert.equal(rail.overflowY, "auto", "an overflowing rail that cannot scroll strands its last items");
-    assert.match(rail.mask, /linear-gradient/, "a fade is what tells the reader there is more below");
+    assert.equal(rail.mask, "none", "the rail should not fade or clip its final labels");
     assert.equal(rail.gutter, "stable", "the rail must not reflow the moment it becomes scrollable");
     assert.ok(rail.scrolledTo > rail.scrolledFrom, "the rail did not scroll");
+  } finally {
+    await context.close();
+  }
+});
+
+test("the control center uses a flat, readable settings hierarchy", async () => {
+  const { context, page } = await openPage({ viewport: { width: 1440, height: 900 } });
+  try {
+    const system = await page.evaluate((mount) => {
+      const shadow = eval(mount);
+      shadow.querySelector('.av-nav-item[data-av-section="appearance"]').click();
+      const row = shadow.querySelector(".av-row");
+      const description = row.querySelector(".av-row-description");
+      const activeNav = shadow.querySelector(".av-nav-item.is-active");
+      const version = shadow.querySelector(".av-version");
+      const header = shadow.querySelector(".av-panel-header");
+      const rowStyle = getComputedStyle(row);
+      const navStyle = getComputedStyle(activeNav);
+      const versionStyle = getComputedStyle(version);
+      return {
+        headerHeight: header.getBoundingClientRect().height,
+        rowFont: Number.parseFloat(getComputedStyle(description).fontSize),
+        rowBorderLeft: rowStyle.borderLeftWidth,
+        rowBorderRight: rowStyle.borderRightWidth,
+        rowBorderBottom: rowStyle.borderBottomWidth,
+        rowBackground: rowStyle.backgroundColor,
+        navBorder: navStyle.borderTopWidth,
+        versionBorder: versionStyle.borderTopWidth,
+        versionBackground: versionStyle.backgroundColor
+      };
+    }, MOUNT("(settings) => { settings.appearance.theme = 'dim'; }"));
+
+    assert.ok(system.headerHeight <= 68, `the panel header is still ${system.headerHeight}px tall`);
+    assert.ok(system.rowFont >= 13, `helper text is only ${system.rowFont}px`);
+    assert.equal(system.rowBorderLeft, "0px");
+    assert.equal(system.rowBorderRight, "0px");
+    assert.equal(system.rowBorderBottom, "1px");
+    assert.equal(system.rowBackground, "rgba(0, 0, 0, 0)");
+    assert.equal(system.navBorder, "0px");
+    assert.equal(system.versionBorder, "0px");
+    assert.equal(system.versionBackground, "rgba(0, 0, 0, 0)");
+  } finally {
+    await context.close();
+  }
+});
+
+test("opening the control center clears the first-run notice from the workspace", async () => {
+  const { context, page } = await openPage();
+  try {
+    const state = await page.evaluate((mount) => {
+      const notice = document.createElement("div");
+      notice.id = "av-first-run";
+      document.body.append(notice);
+      const shadow = eval(mount);
+      const hiddenWhileOpen = notice.hidden;
+      shadow.querySelector(".av-panel-header .av-button").click();
+      return { hiddenWhileOpen, restoredAfterClose: !notice.hidden };
+    }, MOUNT("(settings) => { settings.appearance.theme = 'dim'; }"));
+
+    assert.equal(state.hiddenWhileOpen, true);
+    assert.equal(state.restoredAfterClose, true);
   } finally {
     await context.close();
   }

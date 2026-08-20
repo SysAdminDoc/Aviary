@@ -1157,6 +1157,30 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
     )
   );
 
+  if (ctx.options.runMediaBatch) {
+    rows.push(
+      ctx.actionRow(
+        "Download all visible media",
+        "Queue every photo, video, GIF, and thumbnail currently visible on this page.",
+        async () => {
+          ctx.setStatus("Downloading media from this view…");
+          try {
+            const result = await ctx.options.runMediaBatch!();
+            ctx.render();
+            ctx.setStatus(
+              result.cancelled
+                ? `Batch cancelled: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
+                : `Batch finished: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
+            );
+          } catch (error) {
+            ctx.options.onError("Batch download failed", error);
+            ctx.setStatus("Batch download failed.");
+          }
+        }
+      )
+    );
+  }
+
   const status = ctx.options.getMediaStatus?.();
   if (status) {
     rows.push(
@@ -1187,30 +1211,6 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
           ctx.setStatus("Could not clear history.");
         }
       })
-    );
-  }
-
-  if (ctx.options.runMediaBatch) {
-    rows.push(
-      ctx.actionRow(
-        "Download all visible media",
-        "Walks every tweet rendered on the current page and queues every photo/video/GIF/thumbnail through the existing download pipeline.",
-        async () => {
-          ctx.setStatus("Downloading media from this view…");
-        try {
-            const result = await ctx.options.runMediaBatch!();
-            ctx.render();
-            ctx.setStatus(
-              result.cancelled
-                ? `Batch cancelled: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
-                : `Batch finished: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
-            );
-          } catch (error) {
-            ctx.options.onError("Batch download failed", error);
-            ctx.setStatus("Batch download failed.");
-          }
-        }
-      )
     );
   }
 

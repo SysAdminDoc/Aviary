@@ -409,6 +409,7 @@ const SECTION_GROUP_BREAKS: Record<string, Array<{ before: string; title: string
     { before: "Show download buttons", title: "On-post controls" },
     { before: "Filename template", title: "File naming" },
     { before: "Duplicate history", title: "Batch behavior" },
+    { before: "Download all visible media", title: "Queue actions" },
     { before: "Download status", title: "Queue status" }
   ],
   export: [
@@ -726,6 +727,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     navLauncher.setAttribute("aria-expanded", String(open));
     overlay.classList.toggle("is-open", open);
     overlay.setAttribute("aria-hidden", String(!open));
+    const firstRunNotice = document.getElementById("av-first-run");
+    if (firstRunNotice) firstRunNotice.hidden = open;
     // opacity:0 hides the panel visually but leaves every control in the tab order, so a
     // keyboard user would tab through ~137 invisible fields inside an aria-hidden container.
     overlay.toggleAttribute("inert", !open);
@@ -1086,7 +1089,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       group: "Start",
       summary: "Local controls for a quieter X.",
       icon: "presets",
-      accent: "rgb(77, 199, 255)",
+      accent: "rgb(72, 211, 193)",
       build: () => buildPresetRows(panelContext)
     },
     {
@@ -1104,7 +1107,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       group: "Reading",
       summary: "Reduce trends, recommendations, and footer noise.",
       icon: "layout",
-      accent: "rgb(130, 151, 255)",
+      accent: "rgb(72, 211, 193)",
       build: () => buildLayoutRows(panelContext)
     },
     {
@@ -1113,7 +1116,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       group: "Reading",
       summary: "Master switch for keyword, regex, premium, and media filters.",
       icon: "filtering",
-      accent: "rgb(178, 139, 255)",
+      accent: "rgb(72, 211, 193)",
       build: () => buildFilterRows(panelContext)
     },
     {
@@ -1122,7 +1125,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       group: "Reading",
       summary: "Keep posts you hid collapsed so the next post rises to the top.",
       icon: "hidden",
-      accent: "rgb(255, 184, 107)",
+      accent: "rgb(72, 211, 193)",
       build: () => buildHiddenPostRows(panelContext)
     },
     {
@@ -1131,7 +1134,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       group: "Reading",
       summary: "Stops decoding timeline video once it leaves the screen, and resumes it when it comes back. A video you paused yourself stays paused.",
       icon: "performance",
-      accent: "rgb(80, 210, 160)",
+      accent: "rgb(72, 211, 193)",
       build: () => buildPerformanceRows(panelContext)
     },
     {
@@ -1140,7 +1143,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       group: "Data",
       summary: "Inject Save and Thumb buttons over tweet photos and video thumbnails.",
       icon: "media",
-      accent: "rgb(77, 199, 255)",
+      accent: "rgb(72, 211, 193)",
       build: () => buildMediaRows(panelContext)
     },
     {
@@ -1149,7 +1152,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       group: "Data",
       summary: "Accumulate tweets visible on the active page for the next export run.",
       icon: "export",
-      accent: "rgb(54, 211, 176)",
+      accent: "rgb(72, 211, 193)",
       build: () => buildExportRows(panelContext)
     },
     {
@@ -1158,7 +1161,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       group: "Data",
       summary: "Save, search, organize, and revisit posts in a local bookmark library.",
       icon: "library",
-      accent: "rgb(171, 139, 255)",
+      accent: "rgb(72, 211, 193)",
       build: () => buildLibraryRows(panelContext)
     },
     {
@@ -1167,7 +1170,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       group: "Data",
       summary: "Walks UserCell rows on the current page. Open a /handle/followers view first.",
       icon: "snapshots",
-      accent: "rgb(247, 183, 73)",
+      accent: "rgb(72, 211, 193)",
       build: () => buildSnapshotRows(panelContext)
     },
     {
@@ -1176,7 +1179,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       group: "Advanced",
       summary: "Send large media downloads to a self-hosted Aria2 JSON-RPC endpoint.",
       icon: "integrations",
-      accent: "rgb(70, 200, 255)",
+      accent: "rgb(72, 211, 193)",
       build: () => buildIntegrationRows(panelContext)
     },
     {
@@ -1185,7 +1188,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       group: "Advanced",
       summary: "Downloads your preferences as JSON. API keys and passwords are replaced with a placeholder, so the file is safe to share; importing it here keeps the credentials already saved on this machine.",
       icon: "backup",
-      accent: "rgb(137, 126, 255)",
+      accent: "rgb(72, 211, 193)",
       build: () => buildBackupRows(panelContext)
     },
     {
@@ -1194,7 +1197,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       group: "Advanced",
       summary: "Settings stay in this browser.",
       icon: "trust",
-      accent: "rgb(72, 211, 147)",
+      accent: "rgb(72, 211, 193)",
       build: () => buildTrustRows(panelContext)
     }
   ];
@@ -2441,11 +2444,7 @@ const NAV_LAUNCHER_CSS = `
 }
 
 .av-nav-launcher[aria-expanded="true"] .av-nav-launcher-pill {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 15%, transparent),
-    color-mix(in srgb, var(--av-accent-secondary, rgb(151, 128, 255)) 8%, transparent)
-  );
+  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 13%, transparent);
   color: var(--av-text, currentColor);
 }
 
@@ -2513,11 +2512,7 @@ const CONTROL_CENTER_CSS = `
      "leave X alone", the same wash sat on X's light mode at 1.12:1 against its own near-white
      label — invisible. The launcher is Aviary's own chrome and must not depend on the page.
      Measured in tests/injected-ui-contract.test.mjs by compositing on canvas. */
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 22%, var(--av-surface-raised, rgb(22, 24, 28))),
-    color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, var(--av-surface-raised, rgb(22, 24, 28)))
-  );
+  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 16%, var(--av-surface-raised, rgb(22, 24, 28)));
   color: var(--av-text, rgb(239, 243, 244));
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.42);
   cursor: pointer;
@@ -2571,16 +2566,14 @@ input:focus-visible {
 }
 
 .av-panel {
-  width: min(1200px, calc(100vw - 48px));
-  height: min(840px, calc(100vh - 48px));
+  width: min(1260px, calc(100vw - 40px));
+  height: min(860px, calc(100vh - 40px));
   overflow: hidden;
   display: flex;
   flex-direction: column;
   border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 82%, var(--av-text, rgb(239, 243, 244)) 18%);
-  border-radius: 12px;
-  background:
-    radial-gradient(circle at 82% 0%, color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 5%, transparent), transparent 36%),
-    color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
   box-shadow: 0 28px 88px rgba(0, 0, 0, 0.64);
   pointer-events: auto;
 }
@@ -2597,8 +2590,10 @@ input:focus-visible {
   grid-template-columns: 220px minmax(320px, 520px) minmax(80px, 1fr);
   align-items: center;
   gap: 20px;
-  min-height: 76px;
-  padding: 14px 20px;
+  height: 64px;
+  min-height: 64px;
+  padding: 10px 20px;
+  box-sizing: border-box;
   border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 90%, black);
 }
@@ -2616,14 +2611,13 @@ input:focus-visible {
 /* Quiet by default -- it is a build marker, not a heading. Carries the accent so a reload reads
    as a different build at a glance. */
 .av-version {
-  padding: 1px 6px;
-  border: 1px solid color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 45%, transparent);
-  /* 6px, matching the other badges: the repo's shape rules reject pill backdrops. */
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 14%, transparent);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--av-muted, rgb(132, 139, 145));
   font-weight: 600;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
   font-family: inherit;
   letter-spacing: 0.02em;
@@ -2641,7 +2635,7 @@ input:focus-visible {
 .av-subtitle {
   margin: 2px 0 0;
   color: var(--av-muted, rgb(113, 118, 123));
-  font-size: 11px;
+  font-size: 12.5px;
   line-height: 1.35;
 }
 
@@ -2673,7 +2667,7 @@ input:focus-visible {
   border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 82%, white 18%);
   background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 78%, white 8%);
   color: rgb(5, 10, 15);
-  box-shadow: 0 6px 22px color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 22%, transparent);
+  box-shadow: none;
 }
 
 .av-button-primary:hover:not(:disabled) {
@@ -2748,18 +2742,18 @@ input:focus-visible {
 .av-nav {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  padding: 16px 12px;
+  gap: 2px;
+  padding: 14px 12px;
   overflow-y: auto;
   /* Reserved so the list does not reflow the moment it becomes scrollable. */
   scrollbar-gutter: stable;
   border-inline-end: 1px solid var(--av-border, rgb(47, 51, 54));
-  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 88%, black);
+  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 92%, black);
   /* The rail scrolls at thirteen sections and a short viewport, and nothing said so -- the last
      item rendered cut through its own baseline, which reads as a rendering fault rather than a
      list with more below. The mask only bites where content actually reaches the bottom edge,
      so a rail that fits is untouched. */
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent 100%);
+  mask-image: none;
 }
 
 .av-nav,
@@ -2783,10 +2777,10 @@ input:focus-visible {
 .av-nav-group {
   /* The rail is sized so all twelve sections fit without scrolling at the default panel
      height; a sliced-in-half last item reads as a rendering bug rather than as "more below". */
-  margin: 14px 0 5px;
-  padding: 0 12px;
+  margin: 12px 0 5px;
+  padding: 0 10px;
   color: var(--av-muted, rgb(113, 118, 123));
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   line-height: 1.2;
   letter-spacing: 0.08em;
@@ -2799,15 +2793,15 @@ input:focus-visible {
 
 .av-nav-item {
   position: relative;
-  min-height: 32px;
+  min-height: 34px;
   padding-block: 0;
   padding-inline: 18px 12px;
-  border: 1px solid transparent;
-  border-radius: 7px;
+  border: 0;
+  border-radius: 6px;
   background: transparent;
   color: color-mix(in srgb, var(--av-text, rgb(239, 243, 244)) 70%, var(--av-muted, rgb(113, 118, 123)));
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.2;
   font-family: inherit;
   text-align: start;
@@ -2830,21 +2824,20 @@ input:focus-visible {
 }
 
 .av-nav-item.is-active {
-  border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 34%, transparent);
-  background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 12%, transparent);
+  background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 10%, var(--av-surface-raised, rgb(22, 24, 28)));
   color: var(--av-text, rgb(239, 243, 244));
 }
 
 .av-nav-item.is-active::before {
   background: var(--av-page-accent, rgb(77, 199, 255));
-  box-shadow: 0 0 12px color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 55%, transparent);
+  box-shadow: none;
 }
 
 .av-content {
   display: grid;
   align-content: start;
-  gap: 18px;
-  padding: 22px 28px 30px;
+  gap: 14px;
+  padding: 20px 28px 26px;
   overflow-y: auto;
   min-height: 0;
   scrollbar-gutter: stable;
@@ -2872,30 +2865,21 @@ input:focus-visible {
 
 .av-section {
   display: grid;
-  gap: 14px;
+  gap: 10px;
   min-width: 0;
 }
 
 .av-page-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  min-height: 68px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 24%, var(--av-border, rgb(47, 51, 54)));
+  gap: 0;
+  min-height: 58px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
 }
 
 .av-page-icon {
-  flex: 0 0 auto;
-  width: 38px;
-  height: 38px;
-  padding: 4px;
-  fill: none;
-  stroke: var(--av-page-accent, rgb(77, 199, 255));
-  stroke-width: 1.65;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  box-sizing: border-box;
+  display: none;
 }
 
 .av-page-heading-copy {
@@ -2911,7 +2895,7 @@ input:focus-visible {
 .av-section-title {
   margin: 0;
   color: var(--av-text, rgb(239, 243, 244));
-  font-size: 24px;
+  font-size: 25px;
   font-weight: 760;
   line-height: 1.12;
   letter-spacing: -0.025em;
@@ -2920,9 +2904,13 @@ input:focus-visible {
 .av-page-summary {
   margin: 0;
   color: var(--av-muted, rgb(113, 118, 123));
-  font-size: 12px;
-  line-height: 1.35;
+  font-size: 14px;
+  line-height: 1.4;
   max-width: 760px;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
   overflow-wrap: anywhere;
 }
 
@@ -2948,15 +2936,42 @@ input:focus-visible {
 .av-section[data-av-section="appearance"] .av-page-grid,
 .av-section[data-av-section="hidden"] .av-page-grid,
 .av-section[data-av-section="performance"] .av-page-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+.av-section[data-av-section="media"] .av-page-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  column-gap: 20px;
+}
+
+.av-section[data-av-section="media"] .av-group-title,
+.av-section[data-av-section="media"] .av-row[data-av-label="Show download buttons"],
+.av-section[data-av-section="media"] .av-row[data-av-label="Prefer original quality"],
+.av-section[data-av-section="media"] .av-row[data-av-label="Original quality status"],
+.av-section[data-av-section="media"] .av-row[data-av-label="Show images at original quality"],
+.av-section[data-av-section="media"] .av-row[data-av-label="Media layout"],
+.av-section[data-av-section="media"] .av-row[data-av-label="Filename template"],
+.av-section[data-av-section="media"] .av-row[data-av-label="Download all visible media"] {
+  grid-column: 1 / -1;
+}
+
+.av-section[data-av-section="media"] .av-row[data-av-label="Download all visible media"] > .av-button {
+  border-color: transparent;
+  background: var(--av-page-accent, rgb(72, 211, 193));
+  color: rgb(3, 20, 24);
+  font-weight: 780;
+}
+
+.av-section[data-av-section="media"] .av-row[data-av-label="Download all visible media"] > .av-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--av-page-accent, rgb(72, 211, 193)) 86%, white);
 }
 
 .av-group-title {
   grid-column: 1 / -1;
-  margin: 18px 2px 7px;
-  color: var(--av-page-accent, rgb(77, 199, 255));
-  font-size: 10px;
+  margin: 16px 0 5px;
+  color: var(--av-muted, rgb(113, 118, 123));
+  font-size: 11px;
   font-weight: 820;
   line-height: 1.2;
   letter-spacing: 0.09em;
@@ -2980,43 +2995,42 @@ input:focus-visible {
   justify-content: space-between;
   gap: 16px;
   min-width: 0;
-  min-height: 62px;
-  padding: 11px 14px;
+  min-height: 54px;
+  padding: 8px 0;
   box-sizing: border-box;
-  /* The border token alone sits near 1.4:1 against the row fill, which reads as no border at
-     all across ~100 rows. Lifted toward the text token so grouping is actually visible. */
-  border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)), var(--av-text, rgb(239, 243, 244)) 18%);
+  /* Rows share one surface. A single divider keeps groups scannable without boxing each item. */
+  border: 0;
+  border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
   border-radius: 0;
-  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 48%, transparent);
-  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+  background: transparent;
+  transition: background 140ms ease, color 140ms ease;
 }
 
 .av-row:hover {
-  border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 26%, var(--av-border, rgb(47, 51, 54)));
-  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 66%, transparent);
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 46%, transparent);
 }
 
 .av-page-grid > .av-row + .av-row {
-  margin-top: -1px;
+  margin-top: 0;
 }
 
 .av-group-title + .av-row,
 .av-page-grid > .av-row:first-child {
-  border-start-start-radius: 9px;
-  border-start-end-radius: 9px;
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
 }
 
 .av-row:has(+ .av-group-title),
 .av-page-grid > .av-row:last-child {
-  border-end-start-radius: 9px;
-  border-end-end-radius: 9px;
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
 }
 
 .av-section[data-av-section="appearance"] .av-row,
 .av-section[data-av-section="hidden"] .av-row,
 .av-section[data-av-section="performance"] .av-row {
   margin-top: 0;
-  border-radius: 9px;
+  border-radius: 0;
 }
 
 .av-page-grid > .av-row-stack:not(.av-preset-card),
@@ -3055,11 +3069,11 @@ input:focus-visible {
   display: grid;
   grid-template-columns: minmax(260px, 1.15fr) minmax(300px, 1fr) auto;
   align-items: center;
-  min-height: 72px;
+  min-height: 68px;
   gap: 16px;
-  padding: 10px 12px 10px 18px;
+  padding: 10px 8px 10px 16px;
   overflow: hidden;
-  border-radius: 9px;
+  border-radius: 0;
 }
 
 .av-preset-card::before {
@@ -3071,12 +3085,7 @@ input:focus-visible {
   background: var(--av-card-accent, var(--av-page-accent, rgb(77, 199, 255)));
 }
 
-.av-preset-card:nth-child(6n + 1) { --av-card-accent: rgb(77, 199, 255); }
-.av-preset-card:nth-child(6n + 2) { --av-card-accent: rgb(72, 211, 193); }
-.av-preset-card:nth-child(6n + 3) { --av-card-accent: rgb(130, 151, 255); }
-.av-preset-card:nth-child(6n + 4) { --av-card-accent: rgb(178, 139, 255); }
-.av-preset-card:nth-child(6n + 5) { --av-card-accent: rgb(255, 184, 107); }
-.av-preset-card:nth-child(6n + 6) { --av-card-accent: rgb(80, 210, 160); }
+.av-preset-card { --av-card-accent: var(--av-page-accent, rgb(72, 211, 193)); }
 
 .av-preset-card .av-row-label {
   color: var(--av-text, rgb(239, 243, 244));
@@ -3123,7 +3132,7 @@ input:focus-visible {
   justify-content: flex-start;
   gap: 4px;
   min-width: 0;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.2;
 }
 
@@ -3263,15 +3272,19 @@ input:focus-visible {
 
 .av-row-label {
   color: var(--av-text, rgb(239, 243, 244));
-  font-size: 13.5px;
+  font-size: 15px;
   font-weight: 720;
   line-height: 1.25;
 }
 
 .av-row-description {
   color: var(--av-muted, rgb(113, 118, 123));
-  font-size: 11.75px;
-  line-height: 1.35;
+  font-size: 13px;
+  line-height: 1.4;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 input[type="checkbox"] {
@@ -3349,13 +3362,11 @@ input[type="checkbox"] {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  min-height: 58px;
-  padding: 10px 20px;
+  min-height: 56px;
+  padding: 9px 20px;
   border-top: 1px solid var(--av-border, rgb(47, 51, 54));
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 4%, transparent), transparent 42%),
-    color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 90%, black);
-  box-shadow: 0 -12px 34px rgba(0, 0, 0, 0.18);
+  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 92%, black);
+  box-shadow: none;
 }
 
 .av-status {
@@ -3365,7 +3376,7 @@ input[type="checkbox"] {
   gap: 8px;
   min-width: 0;
   color: var(--av-muted, rgb(113, 118, 123));
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.3;
 }
 
@@ -3386,7 +3397,7 @@ input[type="checkbox"] {
   height: 7px;
   border-radius: 50%;
   background: rgb(72, 211, 147);
-  box-shadow: 0 0 9px rgba(72, 211, 147, 0.45);
+  box-shadow: none;
 }
 
 .av-status[data-state="dirty"] {
@@ -3395,12 +3406,12 @@ input[type="checkbox"] {
 
 .av-status[data-state="dirty"]::before {
   background: rgb(247, 183, 73);
-  box-shadow: 0 0 9px rgba(247, 183, 73, 0.42);
+  box-shadow: none;
 }
 
 .av-status[data-state="saving"]::before {
   background: var(--av-page-accent, rgb(77, 199, 255));
-  box-shadow: 0 0 9px color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 55%, transparent);
+  box-shadow: none;
 }
 
 .av-status[data-state="error"] {
@@ -3409,7 +3420,7 @@ input[type="checkbox"] {
 
 .av-status[data-state="error"]::before {
   background: rgb(255, 95, 109);
-  box-shadow: 0 0 9px rgba(255, 95, 109, 0.42);
+  box-shadow: none;
 }
 
 /* Touch and viewport rules must live in this stylesheet: a sheet in document.head cannot
@@ -3533,9 +3544,7 @@ input[type="checkbox"] {
   }
 
   /*
-   * The sticky Save/Revert footer painted itself with a gradient and an upward shadow, both of
-   * which the UA discards -- leaving the one control that commits a page draft floating with no
-   * edge against the content above it.
+   * Keep the commit bar edge explicit when the UA replaces the authored surface colours.
    */
   .av-transaction-bar {
     background: Canvas;
@@ -3586,6 +3595,8 @@ input[type="checkbox"] {
   .av-panel-header {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 10px 12px;
+    height: auto;
+    min-height: 0;
     padding: 12px;
   }
 
@@ -3613,7 +3624,7 @@ input[type="checkbox"] {
     overflow-y: hidden;
     border-inline-end: 0;
     border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
-    mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+    mask-image: none;
     scrollbar-width: none;
   }
 
@@ -3667,7 +3678,8 @@ input[type="checkbox"] {
 
   .av-section[data-av-section="appearance"] .av-page-grid,
   .av-section[data-av-section="hidden"] .av-page-grid,
-  .av-section[data-av-section="performance"] .av-page-grid {
+  .av-section[data-av-section="performance"] .av-page-grid,
+  .av-section[data-av-section="media"] .av-page-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 

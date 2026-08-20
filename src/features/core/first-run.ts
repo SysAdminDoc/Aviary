@@ -73,31 +73,31 @@ function mountNotice(ctx: FeatureContext): void {
   const style = document.createElement("style");
   style.textContent = `
     .card {
-      max-width: 360px;
-      padding: 14px 16px;
+      max-width: 320px;
+      padding: 13px 14px;
       border: 1px solid #2f3336;
-      border-radius: 14px;
+      border-radius: 9px;
       background: #16181c;
       color: #e7e9ea;
       font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
       font-size: 13px;
       line-height: 1.5;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.38);
       ${reduceMotion ? "" : "animation: rise 160ms ease-out;"}
     }
     @keyframes rise {
       from { opacity: 0; transform: translateY(6px); }
       to { opacity: 1; transform: none; }
     }
-    .title { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
-    ul { margin: 8px 0 0; padding-inline-start: 18px; }
-    li { margin-bottom: 4px; }
-    .actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+    .title { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    ul { margin: 7px 0 0; padding-inline-start: 18px; }
+    li { margin-bottom: 3px; }
+    .actions { display: flex; justify-content: flex-end; margin-top: 10px; }
     button {
       min-height: 32px;
       padding: 0 14px;
       border: 0;
-      border-radius: 999px;
+      border-radius: 7px;
       background: #1d9bf0;
       color: #fff;
       font-family: inherit;
