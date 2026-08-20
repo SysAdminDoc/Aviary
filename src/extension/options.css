@@ -18,9 +18,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  background:
-    radial-gradient(circle at 78% 0%, rgba(64, 196, 255, 0.07), transparent 34%),
-    var(--av-bg);
+  background: var(--av-bg);
   color: var(--av-text);
   font: 14px/1.5 "Geist", "TwitterChirp", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
@@ -29,7 +27,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 72px;
+  min-height: 64px;
   padding: 0 max(32px, calc((100vw - 1100px) / 2));
   border-bottom: 1px solid var(--av-border);
   background: rgba(8, 14, 19, 0.88);
@@ -79,10 +77,10 @@ h3 {
 }
 
 .version {
-  padding: 2px 7px;
-  border: 1px solid color-mix(in srgb, var(--av-accent) 38%, transparent);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--av-accent) 10%, transparent);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--av-muted);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
@@ -91,9 +89,10 @@ h3 {
 .page-name {
   align-self: stretch;
   gap: 8px;
-  border-bottom: 3px solid var(--av-accent);
-  color: var(--av-accent);
-  font-weight: 700;
+  border-bottom: 0;
+  color: var(--av-muted);
+  font-size: 13px;
+  font-weight: 650;
 }
 
 .page-name svg,
@@ -107,17 +106,16 @@ h3 {
 }
 
 .page-name svg {
-  width: 18px;
-  height: 18px;
+  display: none;
 }
 
 .shell {
-  width: min(1100px, calc(100vw - 64px));
+  width: min(980px, calc(100vw - 64px));
   margin: 0 auto;
-  padding: 38px 0 52px;
+  padding: 32px 0 48px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
 .intro {
@@ -134,25 +132,30 @@ h3 {
 }
 
 .lede {
+  display: -webkit-box;
+  overflow: hidden;
   font-size: 15px;
   line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .permission-health {
-  display: grid;
-  grid-template-columns: minmax(230px, 1fr) 170px 170px minmax(230px, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  min-height: 88px;
-  border: 1px solid var(--av-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--av-surface) 86%, transparent);
+  gap: 10px 18px;
+  min-height: 48px;
+  padding-block: 8px 12px;
+  border-bottom: 1px solid var(--av-border);
+  background: transparent;
 }
 
 .health-title,
 .health-metric,
 .permission-health > p {
-  min-height: 52px;
-  padding: 0 20px;
+  min-height: 0;
+  padding: 0;
 }
 
 .health-title {
@@ -160,25 +163,25 @@ h3 {
 }
 
 .health-title svg {
-  width: 42px;
-  height: 42px;
-  padding: 7px;
-  border: 1px solid color-mix(in srgb, var(--av-accent) 60%, transparent);
-  border-radius: 10px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   color: var(--av-accent);
-  background: color-mix(in srgb, var(--av-accent) 8%, transparent);
+  background: transparent;
 }
 
 .health-metric,
 .permission-health > p {
   gap: 10px;
-  border-inline-start: 1px solid var(--av-border);
+  border-inline-start: 0;
 }
 
 .health-metric strong {
   color: var(--av-text);
-  font-size: 30px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
@@ -196,19 +199,19 @@ h3 {
 }
 
 .permission-list {
-  overflow: hidden;
-  border: 1px solid var(--av-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--av-surface) 72%, transparent);
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .permission-row {
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr) auto;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
   align-items: center;
   gap: 18px;
-  min-height: 164px;
-  padding: 24px 28px;
+  min-height: 126px;
+  padding: 20px 0;
 }
 
 .permission-row + .permission-row {
@@ -216,23 +219,19 @@ h3 {
 }
 
 .permission-row[data-priority="recommended"] {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--av-accent) 7%, transparent),
-    transparent 42%
-  );
-  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--av-accent) 72%, transparent);
+  background: transparent;
+  box-shadow: none;
 }
 
 .permission-icon {
   display: grid;
   place-items: center;
-  width: 50px;
-  height: 50px;
-  border: 1px solid var(--av-border);
-  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 0;
   color: var(--av-accent);
-  background: color-mix(in srgb, var(--av-surface-raised) 80%, transparent);
+  background: transparent;
 }
 
 .permission-icon svg {
@@ -252,39 +251,41 @@ h3 {
 
 .card p {
   max-width: 630px;
+  display: -webkit-box;
+  overflow: hidden;
   font-size: 14px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .state {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 8px;
-  border: 1px solid var(--av-border);
-  border-radius: 6px;
-  background: var(--av-surface-raised);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--av-muted);
-  font-size: 11px;
+  font-size: 13px;
   white-space: nowrap;
 }
 
 .state::before {
   width: 6px;
   height: 6px;
-  border-radius: 2px;
+  border-radius: 50%;
   background: currentColor;
   content: "";
   opacity: 0.72;
-  transform: rotate(45deg);
+  transform: none;
 }
 
 .state[data-granted="true"] {
-  border-color: color-mix(in srgb, var(--av-ok) 55%, transparent);
   color: var(--av-ok);
 }
 
 .state[data-granted="false"] {
-  border-color: color-mix(in srgb, var(--av-border) 85%, var(--av-text) 15%);
   color: var(--av-text);
 }
 
@@ -294,10 +295,10 @@ h3 {
 }
 
 code {
-  padding: 3px 8px;
-  border: 1px solid var(--av-border);
-  border-radius: 5px;
-  background: var(--av-surface-raised);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--av-muted);
   font-size: 12px;
 }
@@ -314,8 +315,8 @@ button {
   padding: 9px 17px;
   border: 1px solid color-mix(in srgb, var(--av-accent) 72%, transparent);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--av-accent) 14%, var(--av-surface-raised));
-  color: var(--av-text);
+  background: color-mix(in srgb, var(--av-accent) 82%, white 8%);
+  color: rgb(5, 10, 15);
   font: inherit;
   font-weight: 680;
   cursor: pointer;
@@ -324,7 +325,7 @@ button {
 
 button:hover:not(:disabled) {
   border-color: var(--av-accent);
-  background: color-mix(in srgb, var(--av-accent) 22%, var(--av-surface-raised));
+  background: color-mix(in srgb, var(--av-accent) 88%, white 12%);
   transform: translateY(-1px);
 }
 
@@ -343,7 +344,7 @@ button:disabled {
 }
 
 button.ghost {
-  border-color: var(--av-border);
+  border-color: transparent;
   background: transparent;
   color: var(--av-muted);
   font-weight: 600;
@@ -353,6 +354,17 @@ button.ghost:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--av-border), var(--av-text) 28%);
   background: var(--av-surface-raised);
   color: var(--av-text);
+}
+
+#media-grant {
+  border-color: var(--av-border);
+  background: transparent;
+  color: var(--av-text);
+}
+
+#media-grant:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--av-border), var(--av-text) 28%);
+  background: var(--av-surface-raised);
 }
 
 .status {
@@ -372,7 +384,7 @@ button.ghost:hover:not(:disabled) {
 .foot {
   padding-top: 18px;
   border-top: 1px solid var(--av-border);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -394,23 +406,8 @@ button.ghost:hover:not(:disabled) {
     width: calc(100vw - 40px);
   }
 
-  .permission-health {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .health-title {
-    grid-column: 1 / -1;
-    border-bottom: 1px solid var(--av-border);
-  }
-
-  .permission-health > p {
-    grid-column: 1 / -1;
-    border-top: 1px solid var(--av-border);
-    border-inline-start: 0;
-  }
-
   .permission-row {
-    grid-template-columns: 58px minmax(0, 1fr);
+    grid-template-columns: 42px minmax(0, 1fr);
   }
 
   .actions {
@@ -456,10 +453,6 @@ button.ghost:hover:not(:disabled) {
 
   h2 {
     font-size: 22px;
-  }
-
-  .permission-health {
-    grid-template-columns: 1fr 1fr;
   }
 
   .health-title,

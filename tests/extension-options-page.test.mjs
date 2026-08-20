@@ -289,6 +289,38 @@ test("a narrow window stacks the permission cards instead of clipping them", asy
   }
 });
 
+test("the permissions page uses one flat hierarchy with a clear download action", async () => {
+  await mountOptions();
+  const styles = await page.evaluate(() => {
+    const list = getComputedStyle(document.querySelector(".permission-list"));
+    const row = getComputedStyle(document.querySelector(".permission-row"));
+    const secondRow = getComputedStyle(document.querySelectorAll(".permission-row")[1]);
+    const state = getComputedStyle(document.querySelector(".state"));
+    const description = getComputedStyle(document.querySelector(".card-copy > p"));
+    const primary = getComputedStyle(document.getElementById("downloads-grant"));
+    const topbar = document.querySelector(".topbar").getBoundingClientRect();
+    return {
+      listBorder: list.borderTopWidth,
+      rowSideBorder: row.borderLeftWidth,
+      rowDivider: secondRow.borderTopWidth,
+      rowRadius: row.borderRadius,
+      stateBorder: state.borderTopWidth,
+      descriptionSize: Number.parseFloat(description.fontSize),
+      primaryBackground: primary.backgroundColor,
+      topbarHeight: topbar.height
+    };
+  });
+
+  assert.equal(styles.listBorder, "0px");
+  assert.equal(styles.rowSideBorder, "0px");
+  assert.equal(styles.rowDivider, "1px");
+  assert.equal(styles.rowRadius, "0px");
+  assert.equal(styles.stateBorder, "0px");
+  assert.ok(styles.descriptionSize >= 14, `permission copy is only ${styles.descriptionSize}px`);
+  assert.notEqual(styles.primaryBackground, "rgba(0, 0, 0, 0)");
+  assert.ok(styles.topbarHeight <= 64, `the options header is ${styles.topbarHeight}px tall`);
+});
+
 test("each card explains its own grant rather than borrowing the other's", async () => {
   const messages = {};
   for (const card of ["downloads", "media"]) {
