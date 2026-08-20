@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+## 1.37.0 (2026-08-20)
+
+### Changed
+
+- **The X theme now uses the whole desktop reading canvas.** Comfortable grows to 920px while
+  keeping the discovery rail. Wide centers a 1120px column and removes the rail so media and posts
+  get the space instead of an empty right gutter.
+
+- **Posts read as one continuous stream.** Authored themes replace stacked post cards with flat
+  surfaces, restrained hover feedback, quiet separators, readable text measures, and 10px media
+  corners. Wide action rows spread across the post, keeping Download easy to spot.
+
+- **Conversation pages have a clear focal post and denser replies.** Aviary marks the outer post
+  cells on status routes, enlarges the main post text, shortens the reply composer, and connects
+  replies with a subtle thread line. Turning the theme off removes every marker.
+
+### Verification
+
+- Added deterministic Home and conversation captures at 1440 by 900 and 1920 by 1080, plus a
+  focused test for route-aware focal and reply roles.
+- Compared the implementation with three generated design directions, reviewed the selected Quiet
+  Stream result in the in-app browser, and recorded the parity pass in `design-qa.md`.
+
 ## 1.36.0 (2026-08-20)
 
 ### Changed

@@ -45,7 +45,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
           ctx.options.settings.appearance.timelineWidth = value as "default" | "comfortable" | "wide";
           await ctx.save("Timeline width updated");
         },
-        "Widen the main column past the width X fixes it at. Capped to the space available, so a narrow window is unaffected."
+        "Comfortable keeps the discovery rail. Wide uses a centered 1120px media canvas and hides the rail."
       ),
       ctx.toggleRow(
         "Restore the Chirp font",

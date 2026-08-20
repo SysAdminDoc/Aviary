@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Post / X</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; background: #000; color: #e7e9ea; font: 15px system-ui, sans-serif; }
+      #react-root { min-height: 100vh; }
+      [data-testid="app-shell"] { display: flex; align-items: flex-start; min-height: 100vh; width: 100%; }
+      nav { position: sticky; top: 0; flex: 0 0 224px; min-height: 100vh; padding: 12px; border-right: 1px solid #2f3336; }
+      nav a { display: block; padding: 11px 12px; border-radius: 10px; color: #e7e9ea; text-decoration: none; }
+      nav button[data-testid="SideNav_NewTweet_Button"] { width: 176px; margin-top: 8px; padding: 11px 16px; border: 0; border-radius: 999px; }
+      [data-testid="timeline-shell"] { display: flex; flex: 1 1 auto; min-width: 0; }
+      [data-testid="primaryColumn"] {
+        display: flex;
+        flex: 0 1 600px;
+        flex-direction: column;
+        width: 600px;
+        min-width: 0;
+        border-left: 1px solid #2f3336;
+        border-right: 1px solid #2f3336;
+      }
+      [data-testid="sidebarColumn"] { flex: 0 0 350px; width: 350px; padding: 16px; }
+      [data-testid="toolBar"] { padding: 14px 16px; border-bottom: 1px solid #2f3336; font-size: 20px; font-weight: 700; }
+      [data-testid="cellInnerDiv"] > div { padding: 16px; border-bottom: 1px solid #2f3336; }
+      article[data-testid="tweet"] { position: relative; min-height: 116px; padding-left: 58px; }
+      article[data-av-focal-post="true"] { min-height: 320px; }
+      [data-testid="Tweet-User-Avatar"] { position: absolute; top: 0; left: 0; width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
+      [data-testid="User-Name"] { display: inline; }
+      [data-testid="User-Name"] a { color: #e7e9ea; font-weight: 700; text-decoration: none; }
+      article[data-testid="tweet"] > a[href*="/status/"] { margin-left: 6px; color: #71767b; text-decoration: none; }
+      [data-testid="tweetText"] { margin: 10px 0; font-size: 16px; line-height: 1.45; }
+      [data-av-focal-post="true"] [data-testid="tweetText"] { font-size: 23px; }
+      [data-testid="tweetPhoto"] { width: 100%; height: 260px; margin-top: 12px; overflow: hidden; border-radius: 12px; background: #16181c; }
+      [data-testid="tweetPhoto"] img { display: block; width: 100%; height: 100%; object-fit: cover; }
+      [data-testid="tweet-actions"] { display: flex; align-items: center; gap: 28px; margin-top: 14px; }
+      [data-testid="tweet-actions"] :is(button, a) { padding: 4px 6px; border: 0; background: transparent; color: inherit; font: inherit; text-decoration: none; }
+      [data-testid="tweetTextarea_0"] { min-height: 54px; padding: 10px; border: 1px solid #536471; }
+      [data-testid="news_sidebar"] { padding: 16px; border-radius: 14px; background: #16181c; }
+    </style>
+  </head>
+  <body>
+    <div id="react-root">
+      <div data-testid="app-shell">
+        <nav aria-label="Primary navigation">
+          <a data-testid="AppTabBar_Home_Link" href="/home">Home</a>
+          <a data-testid="AppTabBar_Explore_Link" href="/explore">Explore</a>
+          <a data-testid="AppTabBar_Notifications_Link" href="/notifications">Notifications</a>
+          <a data-testid="AppTabBar_DirectMessage_Link" href="/i/chat">Messages</a>
+          <a href="/i/jf/creators/studio">Creator Studio</a>
+          <a data-testid="AppTabBar_Profile_Link" href="/profile">Profile</a>
+          <a data-testid="AppTabBar_More_Menu" href="/more">More</a>
+          <button data-testid="SideNav_NewTweet_Button" type="button">Post</button>
+        </nav>
+        <div data-testid="timeline-shell">
+          <main data-testid="primaryColumn">
+            <div data-testid="toolBar">Post</div>
+            <div data-testid="cellInnerDiv">
+              <div>
+                <article data-testid="tweet" data-av-focal-post="true">
+                  <img data-testid="Tweet-User-Avatar" alt="" src="https://pbs.twimg.com/profile_images/lumen.png">
+                  <div data-testid="User-Name"><a href="/lumen">Lumen Studio</a></div>
+                  <a href="/lumen/status/1">@lumen · 2h</a>
+                  <div data-testid="tweetText" lang="en">A good interface gives the work room to breathe. The chrome should support the conversation, then get out of the way.</div>
+                  <div data-testid="tweetPhoto"><img alt="A quiet mountain lake at dusk" src="https://pbs.twimg.com/media/status-fixture?format=jpg&amp;name=large"></div>
+                  <div data-testid="tweet-actions" role="group" aria-label="Post actions">
+                    <button data-testid="reply" type="button">42</button>
+                    <button data-testid="retweet" type="button">128</button>
+                    <button data-testid="like" type="button">1.2K</button>
+                    <a href="/lumen/status/1/analytics">24K</a>
+                    <div class="av-media-action-slot" data-av-media-action-slot="1">
+                      <button class="av-media-action" data-av-media-action="1" type="button" aria-label="Download all media in this post">
+                        <span class="av-media-action-icon" aria-hidden="true">↓ </span><span class="av-media-action-label">Download</span>
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+            <div data-testid="cellInnerDiv" data-av-reply-composer="true">
+              <div>
+                <div data-testid="tweetTextarea_0" role="textbox" aria-label="Post your reply" contenteditable="true">Post your reply</div>
+              </div>
+            </div>
+            <div data-testid="cellInnerDiv" data-av-reply="true">
+              <div>
+                <article data-testid="tweet">
+                  <img data-testid="Tweet-User-Avatar" alt="" src="https://pbs.twimg.com/profile_images/northline.png">
+                  <div data-testid="User-Name"><a href="/northline">Northline</a></div>
+                  <a href="/northline/status/2">@northline · 1h</a>
+                  <div data-testid="tweetText" lang="en">The wider media treatment works. Keeping the reply measure tighter makes the thread much easier to scan.</div>
+                  <div data-testid="tweet-actions" role="group" aria-label="Post actions">
+                    <button data-testid="reply" type="button">4</button>
+                    <button data-testid="retweet" type="button">12</button>
+                    <button data-testid="like" type="button">86</button>
+                  </div>
+                </article>
+              </div>
+            </div>
+            <div data-testid="cellInnerDiv" data-av-reply="true">
+              <div>
+                <article data-testid="tweet">
+                  <img data-testid="Tweet-User-Avatar" alt="" src="https://pbs.twimg.com/profile_images/orbit.png">
+                  <div data-testid="User-Name"><a href="/orbit">Orbit</a></div>
+                  <a href="/orbit/status/3">@orbit · 38m</a>
+                  <div data-testid="tweetText" lang="en">This feels calmer already. Replies read as one conversation instead of a pile of boxes.</div>
+                  <div data-testid="tweet-actions" role="group" aria-label="Post actions">
+                    <button data-testid="reply" type="button">2</button>
+                    <button data-testid="like" type="button">31</button>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </main>
+          <aside data-testid="sidebarColumn">
+            <section data-testid="news_sidebar">Relevant people<br><br>Lumen Studio<br>Northline</section>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

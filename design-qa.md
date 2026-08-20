@@ -33,4 +33,22 @@ Date: 2026-08-20
 - Confirmed the first-run notice clears while the Control Center is open.
 - Confirmed the feed Download action stays enabled while direct video metadata is pending.
 
-Status: passed.
+## X theme parity
+
+- Compared the selected Quiet Stream direction at
+  `docs/mockups/2026-08-20-x-theme/direction-b-quiet-stream.png` with the Home and conversation
+  implementation captures at the same 1440 by 900 state. The combined review image is
+  `docs/mockups/2026-08-20-x-theme/quiet-stream-comparison.png`.
+- The 1120px Wide canvas now removes the discovery rail and centers posts. Comfortable keeps the
+  rail with a 920px reading column.
+- Home posts now form one continuous stream with flat surfaces, quiet separators, restrained hover
+  feedback, 10px media corners, and action rows that use the full post width.
+- Conversation routes identify one focal post and render replies as a compact connected stream.
+  Focal text has stronger hierarchy, the reply composer is shorter, and reply text keeps a readable
+  measure inside the wider column.
+- Reviewed Home and conversation captures in the in-app browser at 1440 by 900. Repeated captures at
+  1920 by 1080 confirmed the reading column remains centered without horizontal overflow.
+- Checked all six authored themes against dark and light host fixtures at both desktop sizes. Off
+  removes the surface marker and all conversation-role attributes.
+
+final result: passed

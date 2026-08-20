@@ -3,6 +3,7 @@ import { COUNT_METRICS, type AviarySettings, type ThemeId } from "../../platform
 
 const STYLE_ID = "av-theme-foundation";
 const ACTIVE_NAV_ATTRIBUTE = "data-av-active-route";
+const CONVERSATION_ROLE_ATTRIBUTE = "data-av-conversation-role";
 
 export const themeFeature: FeatureModule = {
   id: "appearance.theme",
@@ -38,7 +39,9 @@ export const themeFeature: FeatureModule = {
     );
     delete document.documentElement.dataset.avTheme;
     delete document.documentElement.dataset.avWidth;
+    delete document.documentElement.dataset.avSurface;
     syncActiveNavigation(false);
+    syncConversationStructure(false);
     setColorScheme(document.documentElement, undefined);
     ctx.diagnostics.info("Theme foundation destroyed");
   }
@@ -57,10 +60,13 @@ export function applyTheme(settings: AviarySettings): void {
   // would still force X's background black and claim `color-scheme: dark` over its own setting.
   if (theme === "off") {
     delete root.dataset.avTheme;
+    delete root.dataset.avSurface;
   } else {
     root.dataset.avTheme = theme;
+    root.dataset.avSurface = currentSurface();
   }
   syncActiveNavigation(theme === "noir");
+  syncConversationStructure(theme !== "off" && root.dataset.avSurface === "conversation");
   root.dataset.avWidth = settings.appearance.timelineWidth;
   root.classList.toggle("av-chirp", settings.appearance.restoreChirp);
   root.classList.toggle("av-dense", settings.appearance.denseMode);
@@ -133,6 +139,38 @@ function syncActiveNavigation(enabled: boolean): void {
 
 function normalizePath(pathname: string): string {
   return pathname.replace(/\/+$/, "") || "/";
+}
+
+function currentSurface(): "conversation" | "timeline" {
+  return /(?:^|\/)status\/\d+(?:\/|$)/.test(globalThis.location?.pathname ?? "")
+    ? "conversation"
+    : "timeline";
+}
+
+/**
+ * X does not expose a stable conversation-role attribute. Mark the outer timeline cells instead
+ * of depending on generated classes, and ignore quoted posts by keeping one article per cell.
+ * Route changes and timeline mutations already re-run the feature, so late replies receive the
+ * same structure without a second observer.
+ */
+function syncConversationStructure(enabled: boolean): void {
+  for (const node of Array.from(document.querySelectorAll<HTMLElement>(`[${CONVERSATION_ROLE_ATTRIBUTE}]`))) {
+    node.removeAttribute(CONVERSATION_ROLE_ATTRIBUTE);
+  }
+  if (!enabled) return;
+
+  const primary = document.querySelector<HTMLElement>('[data-testid="primaryColumn"]');
+  if (!primary) return;
+
+  let postIndex = 0;
+  for (const cell of Array.from(primary.querySelectorAll<HTMLElement>('[data-testid="cellInnerDiv"]'))) {
+    const article = cell.querySelector<HTMLElement>('article[data-testid="tweet"]');
+    if (!article || article.closest('[data-testid="cellInnerDiv"]') !== cell) continue;
+    const role = postIndex === 0 ? "focal" : "reply";
+    cell.setAttribute(CONVERSATION_ROLE_ATTRIBUTE, role);
+    article.setAttribute(CONVERSATION_ROLE_ATTRIBUTE, role);
+    postIndex += 1;
+  }
 }
 
 function ensureThemeStyle(): void {
@@ -276,6 +314,114 @@ html[data-av-theme] [aria-label="Timeline: Trending now"] {
   color: var(--av-text, rgb(239, 243, 244));
 }
 
+/* Quiet Stream foundation: authored themes read as one continuous timeline. Row separators carry
+   the hierarchy, while posts stay flat and media gets the available width. */
+html[data-av-theme] [data-testid="cellInnerDiv"] > div {
+  border-bottom-color: color-mix(in srgb, var(--av-border) 64%, transparent);
+  transition: background-color 140ms ease;
+}
+
+html[data-av-theme] [data-testid="cellInnerDiv"] > div:hover {
+  background-color: color-mix(in srgb, var(--av-surface-raised) 28%, transparent);
+}
+
+html[data-av-theme] article[data-testid="tweet"] {
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-av-theme] article[data-testid="tweet"] [data-testid="tweetText"] {
+  max-inline-size: min(72ch, 100%);
+  line-height: 1.45;
+}
+
+html[data-av-theme] article[data-testid="tweet"] [role="group"] {
+  column-gap: clamp(12px, 2.2vw, 32px);
+}
+
+html[data-av-width="wide"][data-av-surface="timeline"]
+  article[data-testid="tweet"] [role="group"],
+html[data-av-width="wide"][data-av-surface="conversation"]
+  article[data-av-conversation-role="focal"] [role="group"] {
+  justify-content: space-between;
+  width: 100%;
+}
+
+html[data-av-theme] [data-testid="tweetPhoto"],
+html[data-av-theme] [data-testid="videoPlayer"],
+html[data-av-theme] [data-testid="videoComponent"] {
+  inline-size: 100% !important;
+  max-inline-size: none !important;
+  border-radius: 10px;
+}
+
+html[data-av-theme] [data-av-media-action] {
+  min-width: auto;
+  min-height: 32px;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--av-border) 76%, transparent);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--av-accent);
+  box-shadow: none;
+}
+
+html[data-av-theme] [data-av-media-action]:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--av-accent) 56%, var(--av-border));
+  background: color-mix(in srgb, var(--av-accent) 10%, transparent);
+  color: var(--av-text);
+}
+
+/* A post detail route has one focal post, then a compact connected reply stream. The role markers
+   are applied by syncConversationStructure so this stays independent of X's generated classes. */
+html[data-av-theme][data-av-surface="conversation"] [data-av-conversation-role="focal"]
+  [data-testid="tweetText"] {
+  max-inline-size: min(52ch, 100%);
+  font-size: clamp(20px, 1.5vw, 23px);
+  line-height: 1.36;
+}
+
+html[data-av-theme][data-av-surface="conversation"] [data-av-conversation-role="focal"]
+  [data-testid="tweetPhoto"],
+html[data-av-theme][data-av-surface="conversation"] [data-av-conversation-role="focal"]
+  [data-testid="videoPlayer"],
+html[data-av-theme][data-av-surface="conversation"] [data-av-conversation-role="focal"]
+  [data-testid="videoComponent"] {
+  margin-block-start: 16px;
+}
+
+html[data-av-theme][data-av-surface="conversation"] [data-av-conversation-role="reply"] {
+  position: relative;
+}
+
+html[data-av-theme][data-av-surface="conversation"] [data-av-conversation-role="reply"]::before {
+  position: absolute;
+  z-index: 0;
+  inset-block: -1px;
+  inset-inline-start: 31px;
+  width: 1px;
+  background: color-mix(in srgb, var(--av-border) 72%, transparent);
+  content: "";
+  pointer-events: none;
+}
+
+html[data-av-theme][data-av-surface="conversation"]
+  [data-testid="cellInnerDiv"][data-av-conversation-role="reply"] > div {
+  padding-block: 12px !important;
+}
+
+html[data-av-theme][data-av-surface="conversation"]
+  [data-testid="cellInnerDiv"][data-av-conversation-role="reply"] > div > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-av-theme][data-av-surface="conversation"] [data-testid^="tweetTextarea_"] {
+  min-height: 40px !important;
+  border-radius: 8px;
+}
+
 /* Noir is Aviary's authored premium desktop skin. X keeps body and #react-root at one viewport
    tall while the timeline overflows through descendants, so a body-owned background ends partway
    down the viewport after scrolling. The root canvas owns one fully fixed paint instead: it covers
@@ -338,6 +484,7 @@ html.av-theme-noir [data-testid^="AppTabBar_"][data-av-active-route="1"] {
 html.av-theme-noir [data-testid="SideNav_NewTweet_Button"],
 html.av-theme-noir [data-testid="tweetButtonInline"] {
   border-color: rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
   background: linear-gradient(135deg, var(--av-accent), var(--av-accent-secondary));
   color: rgb(3, 7, 11);
   box-shadow: 0 10px 28px rgba(92, 211, 255, 0.2), 0 5px 18px rgba(151, 128, 255, 0.16);
@@ -359,7 +506,7 @@ html.av-theme-noir [data-testid="SideNav_AccountSwitcher_Button"] {
 html.av-theme-noir [data-testid="primaryColumn"] {
   border-color: color-mix(in srgb, var(--av-border) 86%, transparent);
   background: rgba(6, 10, 16, 0.94);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.22);
 }
 
 html.av-theme-noir [data-testid="primaryColumn"] [role="tablist"] {
@@ -381,16 +528,15 @@ html.av-theme-noir [data-testid="cellInnerDiv"] > div {
 }
 
 html.av-theme-noir article[data-testid="tweet"] {
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(16, 25, 36, 0.68), rgba(8, 13, 20, 0.62));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.028);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   transition: background-color 150ms ease, box-shadow 150ms ease;
 }
 
 html.av-theme-noir article[data-testid="tweet"]:hover {
-  background-color: rgba(20, 31, 44, 0.72);
-  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--av-accent) 48%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background-color: color-mix(in srgb, var(--av-surface-raised) 36%, transparent);
+  box-shadow: none;
 }
 
 html.av-theme-noir article[data-testid="tweet"] [data-testid="User-Name"],
@@ -413,9 +559,9 @@ html.av-theme-noir [data-testid="tweetPhoto"],
 html.av-theme-noir [data-testid="videoPlayer"],
 html.av-theme-noir [data-testid="videoComponent"] {
   border: 1px solid color-mix(in srgb, var(--av-border) 82%, transparent);
-  border-radius: 14px;
+  border-radius: 10px;
   background-color: var(--av-surface-raised);
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 html.av-theme-noir [data-testid="toolBar"] {
@@ -440,9 +586,9 @@ html.av-theme-noir [data-testid="sidebarColumn"] section[data-testid="news_sideb
 html.av-theme-noir [data-testid="sidebarColumn"] aside[role="complementary"],
 html.av-theme-noir [aria-label="Timeline: Trending now"] {
   border: 1px solid color-mix(in srgb, var(--av-border) 78%, transparent);
-  border-radius: 12px;
-  background: linear-gradient(145deg, rgba(16, 25, 36, 0.86), rgba(8, 13, 20, 0.9));
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  border-radius: 10px;
+  background: rgba(11, 18, 27, 0.9);
+  box-shadow: none;
 }
 
 html.av-theme-noir [aria-label="Timeline: Trending now"] > section {
@@ -461,7 +607,7 @@ html.av-theme-noir [data-testid="sidebarColumn"] [data-testid="UserCell"]:hover 
 
 html.av-theme-noir form[role="search"]:has([data-testid="SearchBox_Search_Input"]) {
   border: 1px solid color-mix(in srgb, var(--av-border) 82%, transparent);
-  border-radius: 999px;
+  border-radius: 10px;
   background-color: rgba(14, 22, 32, 0.94);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
 }
@@ -493,19 +639,31 @@ html.av-theme-noir [data-testid="grokImgGen"] {
    basis and growth as well, and clamp against the viewport rather than 100% so the rule works
    through both the old block layout and the current flex wrapper. */
 html[data-av-width="comfortable"] [data-testid="primaryColumn"] {
-  flex: 0 1 min(820px, calc(100vw - 16px)) !important;
-  flex-basis: min(820px, calc(100vw - 16px)) !important;
-  width: min(820px, calc(100vw - 16px)) !important;
-  max-width: min(820px, calc(100vw - 16px)) !important;
+  flex: 0 1 min(920px, calc(100vw - 16px)) !important;
+  flex-basis: min(920px, calc(100vw - 16px)) !important;
+  width: min(920px, calc(100vw - 16px)) !important;
+  max-width: min(920px, calc(100vw - 16px)) !important;
   min-width: 0 !important;
 }
 
 html[data-av-width="wide"] [data-testid="primaryColumn"] {
-  flex: 0 1 min(1040px, calc(100vw - 16px)) !important;
-  flex-basis: min(1040px, calc(100vw - 16px)) !important;
-  width: min(1040px, calc(100vw - 16px)) !important;
-  max-width: min(1040px, calc(100vw - 16px)) !important;
+  flex: 0 1 min(1120px, calc(100vw - 16px)) !important;
+  flex-basis: min(1120px, calc(100vw - 16px)) !important;
+  width: min(1120px, calc(100vw - 16px)) !important;
+  max-width: min(1120px, calc(100vw - 16px)) !important;
   min-width: 0 !important;
+}
+
+/* Wide is the media-first desktop canvas. The discovery rail cannot coexist with 1120px of post
+   content at common laptop widths, so Wide removes it and centers the reading column. Comfortable
+   retains the rail for people who still want trends and follow suggestions beside the feed. */
+html[data-av-width="wide"] [data-testid="sidebarColumn"] {
+  display: none !important;
+}
+
+html[data-av-width="wide"] [data-testid="timeline-shell"],
+html[data-av-width="wide"] main[role="main"] div:has(> [data-testid="primaryColumn"]) {
+  justify-content: center !important;
 }
 
 /* TwitterChirp is the family X registers the font under -- confirmed in the captured

@@ -1,11 +1,10 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.36.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.37.0-2f81f7)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 ![Platform](https://img.shields.io/badge/platform-userscript%20%7C%20Chrome%20%7C%20Firefox-8b5cf6)
 
-<img width="1536" height="1024" alt="exec-86ea8b21-28c3-4eff-bc69-b1d8f9ab3e7c" src="https://github.com/user-attachments/assets/a36c2cdb-2b74-4fde-a934-3c0ada11bbac" />
-
+![Aviary Quiet Stream theme on X](docs/mockups/2026-08-20-x-theme/implementation-home-1440.png)
 
 Aviary is a local-first X/Twitter enhancer. It adds clear image and video downloads, removes ads, and keeps its controls in a compact Control Center. Install it as a readable userscript or a Manifest V3 extension for Chrome and Firefox.
 
@@ -70,11 +69,18 @@ wide check.
 ## Premium Noir theme
 
 Choose **Appearance → Theme → Noir** for Aviary's authored dark desktop skin. It gives the full X
-shell a near-black blue base, subtle cyan/violet light, elevated timeline cards, a continuous
+shell a near-black blue base, subtle cyan/violet light, a continuous flat timeline, a quieter
 navigation rail, refined composer/search surfaces, and restrained action highlights. Noir uses
 semantic roles and stable X test ids rather than generated classes, avoids page-wide blur on the
 infinite timeline, and remains opt-in: choosing **Off (X's own theme)** removes every Aviary paint
 hook and restores the site's styling.
+
+Timeline width now has two useful desktop tiers. Comfortable keeps X's discovery rail beside a
+920px reading column. Wide centers a 1120px media canvas and removes the rail, so photos, video,
+posts, and replies use the space instead of leaving a dead strip. Text remains capped to a readable
+measure. On post pages, the focal post is larger and replies form a compact connected stream.
+
+![Aviary Quiet Stream conversation view](docs/mockups/2026-08-20-x-theme/implementation-status-1440.png)
 
 All six authored dark palettes now repaint the semantic shell and readable timeline surfaces even
 when X itself is set to a light host theme. Automated coverage switches every palette across both
@@ -137,8 +143,9 @@ limit ignores per-channel deltas up to 24 and allows at most 1% changed pixels, 
 antialiasing without accepting a moved card or missing footer. After intentionally reviewing a UI
 change, regenerate the committed baselines with `npm run test:visual:update`.
 
-`npm run capture:theme -- <output.png> <width> <height> <theme>` captures any authored palette;
-for example, `npm run capture:theme -- docs/audit/noir.png 1440 900 noir`. Supported theme ids are
+`npm run capture:theme -- <output.png> <width> <height> <theme> [default|comfortable|wide]
+[home|status]` captures any authored palette and reading surface. For example,
+`npm run capture:theme -- docs/audit/noir-thread.png 1440 900 noir wide status`. Theme ids are
 `dim`, `lightsOut`, `graphite`, `plum`, `midnight`, and `noir`.
 `npm run capture:settings -- <output-directory> <width> <height> <dark|light>` uses the same
 deterministic settings harness for ad-hoc captures.

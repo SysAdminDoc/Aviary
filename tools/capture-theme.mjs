@@ -10,6 +10,10 @@ const themes = new Set(["dim", "lightsOut", "graphite", "plum", "midnight", "noi
 const width = Number.parseInt(process.argv[3] ?? "1440", 10);
 const height = Number.parseInt(process.argv[4] ?? "900", 10);
 const theme = process.argv[5] ?? "noir";
+const timelineWidth = process.argv[6] ?? "default";
+const surface = process.argv[7] ?? "home";
+const timelineWidths = new Set(["default", "comfortable", "wide"]);
+const surfaces = new Set(["home", "status"]);
 if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1000 || height < 700) {
   console.error("Theme capture requires a desktop viewport of at least 1000x700.");
   process.exit(2);
@@ -18,10 +22,18 @@ if (!themes.has(theme)) {
   console.error(`Unknown theme ${JSON.stringify(theme)}. Choose ${[...themes].join(", ")}.`);
   process.exit(2);
 }
+if (!timelineWidths.has(timelineWidth)) {
+  console.error(`Unknown timeline width ${JSON.stringify(timelineWidth)}. Choose ${[...timelineWidths].join(", ")}.`);
+  process.exit(2);
+}
+if (!surfaces.has(surface)) {
+  console.error(`Unknown surface ${JSON.stringify(surface)}. Choose ${[...surfaces].join(", ")}.`);
+  process.exit(2);
+}
 
 const requestedPath = process.argv[2] ?? `docs/audit/${theme}-${width}x${height}.png`;
 const outputPath = path.resolve(root, requestedPath);
-const fixturePath = path.join(root, "tests/smoke/current-x-home.html");
+const fixturePath = path.join(root, `tests/smoke/current-x-${surface}.html`);
 const temp = await mkdtemp(path.join(tmpdir(), "aviary-theme-capture-"));
 const bundlePath = path.join(temp, "theme.js");
 let browser;
@@ -41,6 +53,8 @@ try {
   browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
   const fixtureHtml = await readFile(fixturePath, "utf8");
+  const fixtureMedia = await readFile(path.join(root, "tests/fixtures/quiet-stream-landscape.png"));
+  const fixtureAvatar = await readFile(path.join(root, "src/extension/icons/icon-128.png"));
   await page.route("https://x.com/**", (route) =>
     route.fulfill({ status: 200, contentType: "text/html", body: fixtureHtml })
   );
@@ -48,16 +62,15 @@ try {
     route.fulfill({
       status: 200,
       contentType: "image/png",
-      body: Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
-        "base64"
-      )
+      body: route.request().url().includes("profile_images") ? fixtureAvatar : fixtureMedia
     })
   );
-  await page.goto("https://x.com/home", { waitUntil: "domcontentloaded" });
+  await page.goto(surface === "home" ? "https://x.com/home" : "https://x.com/fixture/status/1", {
+    waitUntil: "domcontentloaded"
+  });
   await page.addScriptTag({ content: await readFile(bundlePath, "utf8") });
   const baselineWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-  await page.evaluate((themeId) => {
+  await page.evaluate(({ themeId, widthId }) => {
     const style = document.createElement("style");
     style.id = "av-theme-capture";
     style.textContent = AviaryTheme.THEME_CSS;
@@ -66,21 +79,30 @@ try {
       appearance: {
         theme: themeId,
         denseMode: false,
-        timelineWidth: "default",
+        timelineWidth: widthId,
         hideBorders: false,
         hideCounts: false,
         restoreChirp: true
       },
       accessibility: { highContrast: false, reduceMotion: "system" }
     });
-  }, theme);
+  }, { themeId: theme, widthId: timelineWidth });
   await page.evaluate(() => document.fonts.ready);
   await page.evaluate(() => Promise.allSettled(document.getAnimations().map((animation) => animation.finished)));
+  if (surface === "home") {
+    await page.evaluate(() => {
+      const article = document.querySelector('article[data-testid="tweet"]');
+      if (article?.querySelector('[data-testid="videoPlayer"]')) {
+        article.querySelector('[data-testid="tweetPhoto"]')?.remove();
+      }
+    });
+  }
   const metrics = await page.evaluate(() => ({
     theme: document.documentElement.dataset.avTheme,
     themeClasses: [...document.documentElement.classList].filter((name) => name.startsWith("av-theme-")),
     activeNav: document.querySelector('[data-testid="AppTabBar_Home_Link"]')?.getAttribute("data-av-active-route"),
     scrollWidth: document.documentElement.scrollWidth,
+    rootGradient: getComputedStyle(document.documentElement).backgroundImage,
     bodyColor: getComputedStyle(document.body).color,
     bodyBackground: getComputedStyle(document.body).backgroundColor,
     bodyGradient: getComputedStyle(document.body).backgroundImage,
@@ -99,8 +121,9 @@ try {
       metrics.primaryBackground === "rgba(0, 0, 0, 0)") {
     throw new Error(`${theme} did not paint the shared dark-theme foundation: ${JSON.stringify(metrics)}`);
   }
-  if (theme === "noir" && (metrics.activeNav !== "1" || !metrics.bodyGradient.includes("gradient") ||
-      !metrics.articleGradient.includes("gradient") || !metrics.actionGradient.includes("gradient"))) {
+  if (theme === "noir" && ((surface === "home" && metrics.activeNav !== "1") ||
+      !metrics.rootGradient.includes("gradient") ||
+      metrics.articleGradient !== "none" || !metrics.actionGradient.includes("gradient"))) {
     throw new Error(`Noir did not paint every premium layer: ${JSON.stringify(metrics)}`);
   }
   if (theme !== "noir" && metrics.activeNav !== null && metrics.activeNav !== undefined) {
@@ -110,7 +133,7 @@ try {
     throw new Error(`Noir introduced horizontal overflow: ${baselineWidth}px -> ${metrics.scrollWidth}px`);
   }
   await page.screenshot({ path: outputPath, fullPage: false });
-  console.log(`[theme-capture] ${theme} ${width}x${height} -> ${outputPath}`);
+  console.log(`[theme-capture] ${theme}/${timelineWidth}/${surface} ${width}x${height} -> ${outputPath}`);
 } finally {
   await browser?.close().catch(() => undefined);
   await rm(temp, { recursive: true, force: true });
