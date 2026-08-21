@@ -82,6 +82,11 @@ test("the FAQ settings reference lists every control the Control Center draws", 
     media.rows.find((row) => row.label === "Metadata sidecar")?.description,
     "Choose one: Off, Text, JSON."
   );
+  const filtering = pages.find((page) => page.page === "Filtering");
+  assert.equal(
+    filtering.rows.find((row) => row.label === "Portable rule set")?.description,
+    "Export plain text, or paste a set to preview before adding or replacing rules."
+  );
 });
 
 test("README defers release detail to CHANGELOG instead of restating it", async () => {

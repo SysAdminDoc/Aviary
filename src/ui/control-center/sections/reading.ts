@@ -456,6 +456,14 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
     );
   }
 
+  if (
+    ctx.options.exportFilterRules &&
+    ctx.options.previewFilterRuleImport &&
+    ctx.options.applyFilterRuleImport
+  ) {
+    rows.push(portableRuleSetRow(ctx));
+  }
+
   const expiredRules = ctx.options.getExpiredFilterRules?.() ?? [];
   if (expiredRules.length > 0) {
     rows.push(
@@ -649,6 +657,162 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
   );
 
   return rows;
+}
+
+function portableRuleSetRow(ctx: PanelContext): HTMLElement {
+  const row = ctx.el("div", "av-row av-row-stack av-rule-set-row");
+  row.dataset.avLabel = "Portable rule set";
+  const copy = ctx.el("span", "av-row-copy");
+  copy.append(
+    ctx.el("span", "av-row-label", ctx.t("Portable rule set")),
+    ctx.el(
+      "span",
+      "av-row-description",
+      ctx.t("Export plain text, or paste a set to preview before adding or replacing rules.")
+    )
+  );
+
+  const textarea = document.createElement("textarea");
+  textarea.className = "av-textarea av-rule-set-input";
+  textarea.value = ctx.state.pendingFilterRuleImport;
+  textarea.placeholder = ctx.t("Paste rules here");
+  textarea.rows = 4;
+  textarea.spellcheck = false;
+  textarea.setAttribute("aria-label", ctx.t("Portable rule set"));
+
+  const actions = ctx.el("div", "av-rule-set-actions");
+  const exportButton = ctx.button("Export .txt", "av-button av-button-secondary");
+  const previewButton = ctx.button("Preview", "av-button av-button-secondary");
+  const addButton = ctx.button("Add rules", "av-button av-button-primary");
+  const replaceButton = ctx.button("Replace rules", "av-button av-button-secondary");
+  const previewCopy = ctx.el("div", "av-rule-set-preview", ctx.t("Paste rules to see both import choices."));
+  previewCopy.setAttribute("role", "status");
+  previewCopy.setAttribute("aria-live", "polite");
+
+  const showPreview = (): void => {
+    const preview = ctx.state.pendingFilterRulePreview;
+    addButton.disabled = !preview || preview.add.errors.length > 0;
+    replaceButton.disabled = !preview || preview.replace.errors.length > 0;
+    previewCopy.dataset.avState = "ready";
+    if (!preview) {
+      previewCopy.textContent = ctx.t("Paste rules to see both import choices.");
+      return;
+    }
+    const parseErrors = preview.replace.errors;
+    if (parseErrors.length > 0) {
+      previewCopy.dataset.avState = "error";
+      previewCopy.textContent = parseErrors
+        .map((problem) => `line ${problem.line}: ${problem.message}`)
+        .join(" · ");
+      return;
+    }
+    if (preview.add.errors.length > 0) {
+      previewCopy.dataset.avState = "error";
+      const problem = preview.add.errors[0]!;
+      previewCopy.textContent = ctx.localizedCopy(
+        "{imported} rules found. Replace is ready. Add is blocked at line {line}: {error}",
+        {
+          imported: preview.imported,
+          line: problem.line,
+          error: problem.message
+        }
+      );
+      return;
+    }
+    previewCopy.textContent = ctx.localizedCopy(
+      "{imported} rules found. Add {added}; {duplicates} already present. Replace {replaced} with {total}.",
+      {
+        imported: preview.imported,
+        added: preview.add.added,
+        duplicates: preview.add.duplicates,
+        replaced: preview.replace.replaced,
+        total: preview.replace.total
+      }
+    );
+  };
+
+  textarea.addEventListener("input", () => {
+    ctx.state.pendingFilterRuleImport = textarea.value;
+    ctx.state.pendingFilterRulePreview = null;
+    showPreview();
+  });
+
+  exportButton.addEventListener("click", () => {
+    if (ctx.guardDraft()) return;
+    exportButton.disabled = true;
+    void ctx.options
+      .exportFilterRules!()
+      .then((result) => {
+        ctx.setStatusCopy("Rule set exported: {filename} ({count} lines).", {
+          filename: result.filename,
+          count: result.rules
+        });
+      })
+      .catch((error: unknown) => {
+        ctx.options.onError("Could not export filter rules", error);
+        ctx.setStatus("Could not export the rule set.");
+      })
+      .finally(() => {
+        exportButton.disabled = false;
+      });
+  });
+
+  previewButton.addEventListener("click", () => {
+    try {
+      ctx.state.pendingFilterRuleImport = textarea.value;
+      ctx.state.pendingFilterRulePreview = ctx.options.previewFilterRuleImport!(
+        textarea.value,
+        ctx.options.settings.filter.rules
+      );
+      showPreview();
+      const errors = ctx.state.pendingFilterRulePreview.replace.errors.length;
+      ctx.setStatus(errors > 0 ? "Rule set needs attention." : "Rule-set preview ready.");
+    } catch (error) {
+      ctx.options.onError("Could not preview filter rules", error);
+      ctx.setStatus("Could not preview the rule set.");
+    }
+  });
+
+  const apply = (mode: "add" | "replace", button: HTMLButtonElement): void => {
+    if (ctx.guardDraft()) return;
+    button.disabled = true;
+    void ctx.options
+      .applyFilterRuleImport!(textarea.value, mode)
+      .then((plan) => {
+        if (plan.errors.length > 0) {
+          ctx.state.pendingFilterRulePreview = ctx.options.previewFilterRuleImport!(
+            textarea.value,
+            ctx.options.settings.filter.rules
+          );
+          showPreview();
+          ctx.setStatus("Rule set needs attention.");
+          return;
+        }
+        ctx.options.settings.filter.rules = [...plan.lines];
+        ctx.state.pendingFilterRuleImport = "";
+        ctx.state.pendingFilterRulePreview = null;
+        ctx.render();
+        if (mode === "add") {
+          ctx.setStatusCopy("Added {count} rules.", { count: plan.added });
+        } else {
+          ctx.setStatusCopy("Replaced the rule set with {count} rules.", { count: plan.total });
+        }
+      })
+      .catch((error: unknown) => {
+        ctx.options.onError("Could not import filter rules", error);
+        ctx.setStatus("Could not import the rule set.");
+      })
+      .finally(() => {
+        button.disabled = false;
+      });
+  };
+
+  addButton.addEventListener("click", () => apply("add", addButton));
+  replaceButton.addEventListener("click", () => apply("replace", replaceButton));
+  actions.append(exportButton, previewButton, addButton, replaceButton);
+  row.append(copy, textarea, actions, previewCopy);
+  showPreview();
+  return row;
 }
 
 export function buildHiddenPostRows(ctx: PanelContext): HTMLElement[] {

@@ -21,6 +21,9 @@ test("library backup redacts credentials, preserves binary values, and supports 
   const { normalizeSettings } = await importBundledModule("src/platform/settings.ts");
   const settings = normalizeSettings({
     appearance: { theme: "midnight" },
+    filter: {
+      rules: ["[Weekend] dim for 7d from 2026-08-19T10:00:00.000Z: text contains sale"]
+    },
     integrations: { ai: { apiKey: "do-not-export-this" } }
   });
   const store = new Map([
@@ -60,6 +63,7 @@ test("library backup redacts credentials, preserves binary values, and supports 
   assert.equal(restored.applied, true);
   assert.equal(store.get(BOOKMARKS_KEY).entries[0].id, "bm-1");
   assert.equal(store.get(SETTINGS_KEY).integrations.ai.apiKey, "do-not-export-this");
+  assert.deepEqual(store.get(SETTINGS_KEY).filter.rules, settings.filter.rules);
 });
 
 test("library backup rejects tampering and rolls back a failed collection write", async () => {

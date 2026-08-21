@@ -36,6 +36,16 @@ Date: 2026-08-21
 - Reviewed the dark 1440 by 900 and 1920 by 1080 Library captures against the generated reference.
   The modal entry flow and existing bookmark tools remain intentional differences.
 
+## Portable filtering rules
+
+- Compared the Filtering implementation with `docs/mockups/2026-08-20/control-center-filtering.png`.
+- Export, paste, preview, add, and replace controls share one compact row instead of creating five
+  bordered settings cards. The preview sits directly under the controls and uses plain status text.
+- Reviewed the dark 1440 by 900 and 1920 by 1080 captures. The rule editor remains the dominant
+  control, button labels stay visible, and the row fits without horizontal overflow.
+- Exercised invalid and valid paste states in Chromium. Parse errors name their source line, both
+  apply buttons stay disabled on invalid input, and the valid preview exposes both outcomes.
+
 ## Verification
 
 - Reviewed all 13 Control Center destinations on dark and light X fixtures at 1440 by 900 and 1920

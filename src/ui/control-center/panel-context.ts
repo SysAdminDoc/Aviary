@@ -6,6 +6,7 @@ import type {
   ReduceMotionMode
 } from "../../platform/settings";
 import type { LibraryBackupPreview } from "../../features/core/library-backup";
+import type { RuleSetImportPreview } from "../../features/filtering/rules";
 import type { ControlCenterOptions } from "../control-center";
 
 export type LocalizedCopy =
@@ -23,6 +24,8 @@ export interface PanelState {
   bookmarkQuery: string;
   libraryQuery: string;
   unifiedSemantic: boolean;
+  pendingFilterRuleImport: string;
+  pendingFilterRulePreview: RuleSetImportPreview | null;
   pendingLibraryBackupPayload: string | null;
   pendingLibraryBackupPreview: LibraryBackupPreview | null;
   libraryRestoreRunning: boolean;

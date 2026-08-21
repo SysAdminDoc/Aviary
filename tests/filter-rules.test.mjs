@@ -171,3 +171,61 @@ test("a rule set is bounded rather than unbounded work per post", () => {
   const { rules } = mod.compileRules(many);
   assert.ok(rules.length <= 100, `rule count must be capped, saw ${rules.length}`);
 });
+
+test("portable text preserves titles, lifetimes, comments, and Unicode", () => {
+  const lines = [
+    "# Weekend pack",
+    "[Weekend sales] dim for 7d from 2026-08-19T10:00:00.000Z: text contains sale and media is photo",
+    "text contains café"
+  ];
+  const text = mod.exportRuleSet(lines);
+  assert.match(text, /^# Aviary filter rules v1\n/);
+
+  const preview = mod.previewRuleSetImport(text, []);
+  assert.deepEqual(preview.replace.errors, []);
+  assert.deepEqual(preview.replace.lines, lines);
+  assert.equal(preview.imported, 2);
+  assert.equal(preview.comments, 1);
+});
+
+test("a pasted rule set previews add and replace before either writes", () => {
+  const current = ["text contains crypto", "media is gif"];
+  const preview = mod.previewRuleSetImport(
+    ["# Aviary filter rules v1", "text contains crypto", "[Videos] dim: media is video"].join("\r\n"),
+    current
+  );
+
+  assert.deepEqual(preview.add.errors, []);
+  assert.deepEqual(preview.add.lines, [...current, "[Videos] dim: media is video"]);
+  assert.equal(preview.add.added, 1);
+  assert.equal(preview.add.duplicates, 1);
+  assert.equal(preview.add.total, 3);
+  assert.deepEqual(preview.replace.lines, ["text contains crypto", "[Videos] dim: media is video"]);
+  assert.equal(preview.replace.replaced, 2);
+  assert.equal(preview.replace.total, 2);
+});
+
+test("portable imports report every bad source line before applying", () => {
+  const preview = mod.previewRuleSetImport(
+    ["# Aviary filter rules v1", "colour is blue", "text contains sale", "media is audio"].join("\n"),
+    ["text contains existing"]
+  );
+
+  assert.deepEqual(
+    preview.replace.errors.map((problem) => problem.line),
+    [2, 4]
+  );
+  assert.match(preview.replace.errors[0].message, /unknown field/);
+  assert.match(preview.replace.errors[1].message, /photo, video, or gif/);
+  assert.ok(preview.add.errors.length > 0, "add must be blocked by the same parse errors");
+});
+
+test("add mode identifies the exact pasted line that would exceed storage", () => {
+  const current = Array.from({ length: 100 }, (_, index) => `text contains current${index}`);
+  const preview = mod.previewRuleSetImport("text contains one-more", current);
+
+  assert.deepEqual(preview.replace.errors, [], "replace remains available when the pasted set fits");
+  assert.equal(preview.add.errors.length, 1);
+  assert.equal(preview.add.errors[0].line, 1);
+  assert.match(preview.add.errors[0].message, /100-line/);
+});

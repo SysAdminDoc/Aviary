@@ -19,7 +19,8 @@ before(async () => {
     entry,
     [
       `export { mountControlCenter } from ${JSON.stringify(path.join(root, "src/ui/control-center.ts").replace(/\\/g, "/"))};`,
-      `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(path.join(root, "src/platform/settings.ts").replace(/\\/g, "/"))};`
+      `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(path.join(root, "src/platform/settings.ts").replace(/\\/g, "/"))};`,
+      `export { previewRuleSetImport } from ${JSON.stringify(path.join(root, "src/features/filtering/rules.ts").replace(/\\/g, "/"))};`
     ].join("\n"),
     "utf8"
   );
@@ -450,4 +451,79 @@ test("a saving page transaction announces itself busy to assistive technology", 
   assert.equal(result.idle, null, "an idle bar must not claim to be busy");
   assert.equal(result.saving, "true", 'a saving bar must expose aria-busy="true", not ""');
   assert.equal(result.settled, null, "the busy state must clear once the write resolves");
+});
+
+test("portable rules preview errors and both outcomes before applying", async () => {
+  const result = await page.evaluate(async () => {
+    document.body.replaceChildren();
+    const settings = AviaryActions.cloneSettings(AviaryActions.DEFAULT_SETTINGS);
+    settings.filter.rules = ["text contains existing"];
+    const applied = [];
+    let exports = 0;
+    const panel = AviaryActions.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: () => {},
+      exportFilterRules: async () => {
+        exports += 1;
+        return { filename: "aviary-filter-rules.txt", rules: settings.filter.rules.length };
+      },
+      previewFilterRuleImport: (payload, current) => AviaryActions.previewRuleSetImport(payload, current),
+      applyFilterRuleImport: async (payload, mode) => {
+        const plan = AviaryActions.previewRuleSetImport(payload, settings.filter.rules)[mode];
+        applied.push({ mode, errors: plan.errors.length });
+        if (plan.errors.length === 0) settings.filter.rules = [...plan.lines];
+        return plan;
+      }
+    });
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    shadow.querySelector('[data-av-section="filtering"]').click();
+    const byText = (label) =>
+      [...shadow.querySelectorAll(".av-rule-set-actions .av-button")].find(
+        (candidate) => candidate.textContent === label
+      );
+    const input = shadow.querySelector(".av-rule-set-input");
+
+    byText("Export .txt").click();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const exportStatus = shadow.querySelector(".av-status").textContent;
+
+    input.value = "text contains sale\nmedia is audio";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    byText("Preview").click();
+    const invalid = {
+      copy: shadow.querySelector(".av-rule-set-preview").textContent,
+      addDisabled: byText("Add rules").disabled,
+      replaceDisabled: byText("Replace rules").disabled
+    };
+
+    input.value = "text contains existing\n[Videos] dim: media is video";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    byText("Preview").click();
+    const valid = {
+      copy: shadow.querySelector(".av-rule-set-preview").textContent,
+      addDisabled: byText("Add rules").disabled,
+      replaceDisabled: byText("Replace rules").disabled
+    };
+    byText("Add rules").click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const status = shadow.querySelector(".av-status").textContent;
+    panel.destroy();
+    return { exportStatus, exports, invalid, valid, applied, rules: settings.filter.rules, status };
+  });
+
+  assert.equal(result.exports, 1);
+  assert.match(result.exportStatus, /aviary-filter-rules\.txt/);
+  assert.match(result.invalid.copy, /line 2/);
+  assert.equal(result.invalid.addDisabled, true);
+  assert.equal(result.invalid.replaceDisabled, true);
+  assert.match(result.valid.copy, /2 rules found/);
+  assert.match(result.valid.copy, /1 already present/);
+  assert.equal(result.valid.addDisabled, false);
+  assert.equal(result.valid.replaceDisabled, false);
+  assert.deepEqual(result.applied, [{ mode: "add", errors: 0 }]);
+  assert.deepEqual(result.rules, ["text contains existing", "[Videos] dim: media is video"]);
+  assert.equal(result.status, "Added 1 rules.");
 });

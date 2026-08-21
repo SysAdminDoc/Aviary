@@ -25,6 +25,7 @@ import { hasTranslation, localeDirection, translateText } from "../platform/i18n
 import type { RetentionPolicy } from "../features/export/jobs";
 import type { BookmarkInput, BookmarkRecord } from "../features/library/bookmarks";
 import type { OfflineQueryHit } from "../features/library/query-model";
+import type { RuleSetImportMode, RuleSetImportPlan, RuleSetImportPreview } from "../features/filtering/rules";
 
 /**
  * Stamped in by `tools/build.mjs` so a reload shows at a glance which build is running.
@@ -192,6 +193,9 @@ export interface ControlCenterOptions {
   getAdLabelLanguage?: () => { language: string; supported: boolean };
   getUserColors?: () => Record<string, string>;
   setUserColor?: (handle: string, color: string) => Promise<void>;
+  exportFilterRules?: () => Promise<{ filename: string; rules: number }>;
+  previewFilterRuleImport?: (payload: string, currentRules: readonly string[]) => RuleSetImportPreview;
+  applyFilterRuleImport?: (payload: string, mode: RuleSetImportMode) => Promise<RuleSetImportPlan>;
   getFilterRuleErrors?: () => Array<{ line: number; message: string }>;
   getExpiredFilterRules?: () => Array<{ title: string | null; source: string; expiredAt: number }>;
   /** Restarts every expired rule's own window from now. Resolves with how many were renewed. */
@@ -603,6 +607,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     bookmarkQuery: "",
     libraryQuery: "",
     unifiedSemantic: false,
+    pendingFilterRuleImport: "",
+    pendingFilterRulePreview: null,
     pendingLibraryBackupPayload: null,
     pendingLibraryBackupPreview: null,
     libraryRestoreRunning: false,
@@ -3122,6 +3128,31 @@ input:focus-visible {
   margin-top: 2px;
 }
 
+.av-rule-set-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.av-rule-set-actions .av-button {
+  min-width: 0;
+  min-height: 32px;
+  padding-inline: 10px;
+}
+
+.av-rule-set-preview {
+  grid-column: 2 / -1;
+  min-height: 18px;
+  color: var(--av-muted, rgb(113, 118, 123));
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.av-rule-set-preview[data-av-state="error"] {
+  color: var(--av-danger, rgb(244, 33, 46));
+}
+
 .av-preset-card {
   position: relative;
   display: grid;
@@ -3762,6 +3793,10 @@ input[type="checkbox"] {
   .av-page-grid,
   .av-section[data-av-section="presets"] .av-page-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .av-rule-set-preview {
+    grid-column: auto;
   }
 
   .av-section[data-av-section="library"] .av-row-stack:has(> .av-library-media-actions) {

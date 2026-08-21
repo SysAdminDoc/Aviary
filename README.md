@@ -199,13 +199,15 @@ See [docs/PRIVACY.md](docs/PRIVACY.md) for the local data map and optional permi
 The Control Center "Filtering" section exposes:
 
 - Master toggle for all filter rules.
+- Field rules with optional titles, expiry windows, and hide or dim actions.
+- Portable plain-text rule sets with a preview before adding or replacing anything.
 - Keyword and regex rule lists (one per line; `/pattern/flags` or bare patterns, case-insensitive by default).
 - Whitelist of handles that are never filtered.
 - Premium/verified action selector (off / hide / dim).
 - Photo, video, and GIF media-type filters.
 - Per-route activation chips (Home, Status, Profile, Search, Notifications, Messages).
 
-Filters process only tweet articles added by MutationObserver and re-evaluate existing tweets when rules change. Disabling the master toggle removes every visible filter effect without a reload.
+Filters process only tweet articles added by MutationObserver and re-evaluate existing tweets when rules change. Disabling the master toggle removes every visible filter effect without a reload. Portable sets keep titles and expiry windows, and the same rules remain part of settings exports and full library backups.
 
 Blocked-account (F032) and self-repost (F033) filters are deferred until an authenticated fixture capture lands; their settings keys are reserved.
 

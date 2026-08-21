@@ -24,16 +24,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ### P2, features
 
-- [ ] F145, P2, Portable rule sets
-  Why: `src/features/filtering/rules.ts` has no import or export path, so a rule set cannot be shared, backed up outside settings, or restored to a second profile, and rule packs are how every rule-engine competitor grows.
-  Evidence: `src/features/filtering/rules.ts` exports only `compileRules`/`evaluateRules`; control-panel-for-twitter#864, rxliuli's importable rule packs.
-  Touches: `src/features/filtering/rules.ts`, Filtering panel, library backup, settings export.
-  Acceptance: a rule set exports to and imports from a documented plain-text or JSON form, reports parse errors per line before applying, previews what a paste would add or replace, and rides the existing backup.
-  Note (2026-08-19): F204 put the title and the lifetime *inside* the rule line rather than beside
-  it, precisely so this item has nothing extra to carry, the plain-text form already round-trips
-  both. A JSON form would have to reproduce them as fields; prefer the text form.
-  Complexity: M
-
 - [ ] F147, P2, WACZ export and self-replay
   Why: Aviary emits raw uncompressed WARC while the browser-side archiving ecosystem has standardized on WACZ, whose client-side replay engine means an Aviary archive would open in every Webrecorder tool for a packaging change rather than a capture change.
   Evidence: WACZ 1.1.1 + CDXJ 0.1.0 specs, read 2026-08-15, implementable from this item without re-research. Layout: `archive/` (>=1 WARC), `indexes/` (>=1 CDXJ), `pages/pages.jsonl`, `datapackage.json` (`profile: "data-package"`, `wacz_version: "1.1.1"`, `resources[]` each name/path/hash/bytes with `sha256:` prefix), plus `datapackage-digest.json` `{path, hash-of-datapackage.json}`. CDXJ line = `<SURT> <YYYYMMDDHHMMSS> <JSON: url,digest,mime,status,filename,offset,length>`, lines sorted in LC_ALL=C byte order; SURT = lowercased host reversed comma-form (`com,example)/path`). pages.jsonl header `{"format":"json-pages-1.0","id":"pages","title":"All Pages"}`, entries need `url` + RFC3339 `ts`. Plain uncompressed `.warc` is spec-valid, gzip is optional, and if ever added it must be per-record so offset/length address one member.

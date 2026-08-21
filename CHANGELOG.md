@@ -4,6 +4,10 @@
 
 ### Added
 
+- **Filter rules now travel as plain text.** Filtering can export a documented one-rule-per-line
+  file, preview a paste with separate add and replace counts, and report every malformed source
+  line before either action writes. Titles, comments, and expiry windows round-trip unchanged.
+
 - **Completed media is easy to recognize and archive with context.** A quiet marker appears only
   after a confirmed save. Optional text and JSON sidecars keep the filename, post details, and a
   bounded copy of the post text beside the downloaded file.
@@ -34,10 +38,10 @@
   and visual matches, plus the most recent match type. Clearing history resets the hashes and those
   counters together.
 
-- **The delivery-size ceiling now includes the deeper local media workflow.** The main bundle
-  allowance is 2.225 MB after adding media fingerprints, resumable captured-media batches, optional
-  sidecars, offline archive repair, and hybrid search. The shipped bundle is 2.20 MB, leaving a
-  narrow margin so later growth still needs an explicit decision.
+- **The delivery-size ceiling now includes the deeper local media and filtering workflows.** The
+  main bundle allowance is 2.235 MB after adding media fingerprints, resumable captured-media
+  batches, optional sidecars, portable rules in eight languages, offline archive repair, and hybrid
+  search. The shipped bundle is 2.23 MB, leaving a narrow margin for later growth.
 
 - **Snapshots & Archive reports every repair source.** The panel separates links found in the ZIP
   from links found in local captures, counts resolved and unresolved participant IDs, and confirms

@@ -54,7 +54,7 @@ schema, migration, usage, and quota status.
 | Key | Data | Purpose and user control |
 |---|---|---|
 | `aviary.profiles.v1` / `aviary.profile.active.v1` | Profile registry and active-profile id | Keep explicit settings/library boundaries. Profiles are created and switched in Trust. |
-| `aviary.settings.v1` | Preferences and any integration credentials you enter | Configure Aviary. **Export settings** is a settings envelope, not a full-library backup. |
+| `aviary.settings.v1` | Preferences, portable filter rules, and any integration credentials you enter | Configure Aviary. Plain-text rule exports contain only the rules you wrote. **Export settings** is a settings envelope, not a full-library backup. |
 | `aviary.integration.usage.v1` | Profile-scoped AI/embedding request, record, and UTF-8 byte counters for the local 31-day history | Enforce configurable per-request/daily budgets and show usage; **Clear AI and embedding usage** removes counters. No API keys or raw prompts are stored here. |
 | `aviary.hiddenPosts.v1` | Hidden status ids or handle/text signatures | Hide posts across visits; **Clear hidden posts** removes them. |
 | `aviary.seenPosts.v1` | Post ids and the time each first scrolled past, no text, handle, or URL | Fade a post the second time you pass it; capped at 4,000 entries and 30 days; **Forget seen posts** removes them. |

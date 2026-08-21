@@ -88,6 +88,30 @@ export interface CompiledRuleSet {
 const MEDIA_VALUES = new Set<FilterMediaKey>(["photo", "video", "gif"]);
 const BOOLEAN_FIELDS = new Set<RuleField>(["verified", "link"]);
 const MAX_RULES = 100;
+const MAX_RULE_LENGTH = 400;
+const MAX_RULE_SET_BYTES = 64 * 1024;
+
+export const PORTABLE_RULE_SET_HEADER = "# Aviary filter rules v1";
+
+export type RuleSetImportMode = "add" | "replace";
+
+export interface RuleSetImportPlan {
+  mode: RuleSetImportMode;
+  /** The exact settings value that will be written if this plan is applied. */
+  lines: string[];
+  added: number;
+  duplicates: number;
+  replaced: number;
+  total: number;
+  errors: RuleParseError[];
+}
+
+export interface RuleSetImportPreview {
+  imported: number;
+  comments: number;
+  add: RuleSetImportPlan;
+  replace: RuleSetImportPlan;
+}
 
 export function compileRules(lines: readonly string[], now = Date.now()): CompiledRuleSet {
   const rules: CompiledRule[] = [];
@@ -120,6 +144,147 @@ export function compileRules(lines: readonly string[], now = Date.now()): Compil
   });
 
   return { rules, expired, errors, nextExpiry };
+}
+
+/**
+ * Writes the documented portable form. It stays deliberately boring: UTF-8 text, one rule per
+ * line, and one version comment that older engines already ignore.
+ */
+export function exportRuleSet(lines: readonly string[]): string {
+  return `${[PORTABLE_RULE_SET_HEADER, ...normalizeRuleLines(lines)].join("\n")}\n`;
+}
+
+/**
+ * Parses a pasted rule set without changing settings. Both possible outcomes are returned so the
+ * panel can show the exact add and replace impact before either action is enabled.
+ */
+export function previewRuleSetImport(
+  payload: string,
+  current: readonly string[],
+  now = Date.now()
+): RuleSetImportPreview {
+  const parsed = parsePortableRuleSet(payload, now);
+  const existing = normalizeRuleLines(current);
+  const existingSet = new Set(existing);
+  const addLines = [...existing];
+  const addErrors = [...parsed.errors];
+  let added = 0;
+  let duplicates = 0;
+
+  for (const candidate of parsed.lines) {
+    if (existingSet.has(candidate.source)) {
+      if (!candidate.comment) duplicates += 1;
+      continue;
+    }
+    if (addLines.length >= MAX_RULES) {
+      addErrors.push({
+        source: candidate.source,
+        line: candidate.line,
+        message: `adding this line would exceed the ${MAX_RULES}-line rule-set limit`
+      });
+      continue;
+    }
+    existingSet.add(candidate.source);
+    addLines.push(candidate.source);
+    if (!candidate.comment) added += 1;
+  }
+
+  const replacementLines = parsed.lines.slice(0, MAX_RULES).map((candidate) => candidate.source);
+  const imported = parsed.lines.filter((candidate) => !candidate.comment).length;
+  const comments = parsed.lines.length - imported;
+  const currentRules = existing.filter((line) => !line.startsWith("#")).length;
+
+  return {
+    imported,
+    comments,
+    add: {
+      mode: "add",
+      lines: addLines,
+      added,
+      duplicates,
+      replaced: 0,
+      total: addLines.filter((line) => !line.startsWith("#")).length,
+      errors: addErrors
+    },
+    replace: {
+      mode: "replace",
+      lines: replacementLines,
+      added: imported,
+      duplicates: 0,
+      replaced: currentRules,
+      total: imported,
+      errors: [...parsed.errors]
+    }
+  };
+}
+
+interface PortableRuleLine {
+  source: string;
+  line: number;
+  comment: boolean;
+}
+
+function parsePortableRuleSet(
+  payload: string,
+  now: number
+): { lines: PortableRuleLine[]; errors: RuleParseError[] } {
+  const lines: PortableRuleLine[] = [];
+  const errors: RuleParseError[] = [];
+  if (new TextEncoder().encode(payload).byteLength > MAX_RULE_SET_BYTES) {
+    return {
+      lines,
+      errors: [{ source: "", line: 1, message: "the pasted rule set is larger than 64 KB" }]
+    };
+  }
+
+  const seen = new Set<string>();
+  const rawLines = payload.replace(/^\uFEFF/, "").split(/\r\n?|\n/);
+  rawLines.forEach((raw, index) => {
+    const source = raw.trim();
+    const line = index + 1;
+    if (source.length === 0 || source.toLowerCase() === PORTABLE_RULE_SET_HEADER.toLowerCase()) return;
+    if (source.length > MAX_RULE_LENGTH) {
+      errors.push({ source, line, message: `a rule cannot exceed ${MAX_RULE_LENGTH} characters` });
+      return;
+    }
+    if (seen.has(source)) return;
+    seen.add(source);
+    const comment = source.startsWith("#");
+    if (!comment) {
+      const result = compileRules([source], now);
+      if (result.errors[0]) {
+        errors.push({ source, line, message: result.errors[0].message });
+        return;
+      }
+    }
+    if (lines.length >= MAX_RULES) {
+      errors.push({
+        source,
+        line,
+        message: `this line exceeds the ${MAX_RULES}-line rule-set limit`
+      });
+      return;
+    }
+    lines.push({ source, line, comment });
+  });
+
+  if (lines.every((line) => line.comment) && errors.length === 0) {
+    errors.push({ source: "", line: 1, message: "paste at least one rule" });
+  }
+  return { lines, errors };
+}
+
+function normalizeRuleLines(lines: readonly string[]): string[] {
+  const normalized: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (line.length === 0 || seen.has(line)) continue;
+    seen.add(line);
+    normalized.push(line);
+    if (normalized.length === MAX_RULES) break;
+  }
+  return normalized;
 }
 
 /**

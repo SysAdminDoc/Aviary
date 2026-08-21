@@ -45,7 +45,7 @@ import {
 } from "../export/jobs";
 import { renderForExternalTarget } from "../export/external-targets";
 import { filterExpiredRules, filterRuleErrors } from "../filtering/filter-engine";
-import { renewRuleLine } from "../filtering/rules";
+import { exportRuleSet, previewRuleSetImport, renewRuleLine } from "../filtering/rules";
 import { getSeenPostStore } from "../filtering/seen-posts-feature";
 import {
   clearHiddenPosts,
@@ -397,6 +397,33 @@ export const controlCenterFeature: FeatureModule = {
       },
       async clearAdObservations() {
         await clearSelectorAdObservations(ctx.storage);
+      },
+      async exportFilterRules() {
+        const text = exportRuleSet(ctx.settings.filter.rules);
+        const filename = filterRulesFilename();
+        downloadBlob(new TextEncoder().encode(text), filename, "text/plain;charset=utf-8");
+        void ctx.auditLog.record("settings.export", {
+          kind: "filter-rules",
+          rules: ctx.settings.filter.rules.filter((line) => !line.trim().startsWith("#")).length
+        });
+        return { filename, rules: ctx.settings.filter.rules.length };
+      },
+      previewFilterRuleImport(payload, currentRules) {
+        return previewRuleSetImport(payload, currentRules);
+      },
+      async applyFilterRuleImport(payload, mode) {
+        const preview = previewRuleSetImport(payload, ctx.settings.filter.rules);
+        const plan = preview[mode];
+        if (plan.errors.length > 0) return plan;
+        ctx.settings.filter.rules = [...plan.lines];
+        await ctx.saveSettings();
+        ctx.requestApply();
+        void ctx.auditLog.record("settings.import", {
+          kind: "filter-rules",
+          mode,
+          rules: plan.total
+        });
+        return plan;
       },
       getFilterRuleErrors() {
         return filterRuleErrors().map((problem) => ({
@@ -1208,6 +1235,10 @@ function replaceSettings(target: AviarySettings, next: AviarySettings): void {
 
 function settingsFilename(): string {
   return `aviary-settings-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+}
+
+function filterRulesFilename(): string {
+  return `aviary-filter-rules-${new Date().toISOString().replace(/[:.]/g, "-")}.txt`;
 }
 
 function reportFilename(): string {

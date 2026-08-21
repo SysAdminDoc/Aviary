@@ -86,16 +86,33 @@ export async function collectRows() {
             unescape(choice[1])
           );
           rows.push({
+            at: match.index,
             label,
             description: choices.length > 0 ? `Choose one: ${choices.join(", ")}.` : "A choice control."
           });
           continue;
         }
         const description = rest.match(/^\s*\n?\s*"((?:[^"\\]|\\.)*)"/);
-        rows.push({ label, description: description ? unescape(description[1]) : "" });
+        rows.push({ at: match.index, label, description: description ? unescape(description[1]) : "" });
+      }
+      // A few dense tools use several controls inside one custom row. Their stable accessible
+      // label and first distinct translated sentence are still enough to keep the reference
+      // complete without pretending every button is a separate setting.
+      for (const match of body.matchAll(/\.dataset\.avLabel\s*=\s*"((?:[^"\\]|\\.)+)"/g)) {
+        const label = unescape(match[1]);
+        const rowEnd = body.indexOf("return row;", match.index);
+        const rowBody = body.slice(match.index, rowEnd === -1 ? body.length : rowEnd);
+        const copy = [...rowBody.matchAll(/\bctx\.t\(\s*"((?:[^"\\]|\\.)*)"\s*\)/g)].map((item) =>
+          unescape(item[1])
+        );
+        rows.push({ at: match.index, label, description: copy.find((value) => value !== label) ?? "" });
       }
       if (rows.length > 0) {
-        pages.push({ page: pageTitle(bound.name), file, rows });
+        pages.push({
+          page: pageTitle(bound.name),
+          file,
+          rows: rows.sort((left, right) => left.at - right.at).map(({ at: _at, ...row }) => row)
+        });
       }
     }
   }

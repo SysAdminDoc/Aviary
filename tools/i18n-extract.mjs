@@ -91,6 +91,14 @@ function stubs(variant) {
   // them. A conditional row needs its option supplied here or its copy never reaches the manifest.
   getUserColors: () => ({ ${v ? "someone" : "another"}: "${v ? "violet" : "sky"}" }),
   setUserColor: async () => {},
+  exportFilterRules: async () => ({ filename: "aviary-filter-rules.txt", rules: ${v ? 2 : 5} }),
+  previewFilterRuleImport: () => ({
+    imported: ${v ? 2 : 5},
+    comments: 0,
+    add: { mode: "add", lines: [], added: 2, duplicates: 0, replaced: 0, total: 2, errors: [] },
+    replace: { mode: "replace", lines: [], added: 2, duplicates: 0, replaced: 1, total: 2, errors: [] }
+  }),
+  applyFilterRuleImport: async () => ({ mode: "add", lines: [], added: 2, duplicates: 0, replaced: 0, total: 2, errors: [] }),
   setUserNote: async () => {},
   clearUserNotes: async () => {},
   // Real preset copy: a stub phrase here would enter the manifest and give translators a
