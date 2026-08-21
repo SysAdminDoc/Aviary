@@ -26,7 +26,8 @@ Text search is local and always available. It gives extra weight to exact handle
 and rare terms, then applies source, account, tag, folder, date, and media filters. If you enable
 semantic ranking and have built an embedding index, Aviary blends both result lists and labels each
 hit as text, semantic, or combined. Local-only mode returns the text results without contacting the
-embedding provider.
+embedding provider. Quoted words must occur together inside one field, so the end of a post cannot
+form a phrase with the account name or another unrelated value.
 
 ## How does ad protection work?
 
@@ -99,6 +100,8 @@ Duplicate history stores hashes rather than media URLs. It recognizes another `n
 same X image and exact SHA-256 byte matches. **Match visually similar images** is separate and off
 by default. It uses a 256-bit visual signature for re-encoded images, but two images with similar
 flat compositions can be mistaken for a match. The Media page shows which match type fired.
+A short-lived hashed claim also stops two open X tabs from starting the same file together. A
+failed or interrupted save releases the claim so Retry works immediately.
 
 ## How do I export what I am seeing?
 

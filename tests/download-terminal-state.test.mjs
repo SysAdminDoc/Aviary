@@ -168,9 +168,12 @@ test("an interrupted transfer offers Retry and never enters the duplicate histor
   const observed = await page.evaluate(async () => {
     window.installExtension();
     const ctx = window.mediaCtx();
-    const recorded = [];
-    ctx.storage.set = async (key) => {
-      if (String(key).includes("history")) recorded.push(key);
+    const stored = new Map();
+    ctx.storage.get = async (key, fallback) => {
+      return stored.has(key) ? structuredClone(stored.get(key)) : structuredClone(fallback);
+    };
+    ctx.storage.set = async (key, value) => {
+      stored.set(key, structuredClone(value));
     };
     const button = await window.mount(ctx);
 
@@ -182,7 +185,8 @@ test("an interrupted transfer offers Retry and never enters the duplicate histor
       label: button.textContent,
       disabled: button.disabled,
       queue: window.queueStatuses(),
-      historyWrites: recorded.length
+      historyEntries: [...stored.values()].find((value) => value?.schemaVersion === 3)?.entries.length ?? 0,
+      reservations: [...stored.values()].find((value) => value?.schemaVersion === 3)?.reservations.length ?? 0
     };
 
     // Retrying is the whole point of not recording it: the asset must be downloadable again.
@@ -198,10 +202,11 @@ test("an interrupted transfer offers Retry and never enters the duplicate histor
   assert.equal(observed.afterInterrupt.disabled, false, "a failed transfer must be retryable");
   assert.deepEqual(observed.afterInterrupt.queue, ["failed"]);
   assert.equal(
-    observed.afterInterrupt.historyWrites,
+    observed.afterInterrupt.historyEntries,
     0,
     "an interrupted transfer was written into the duplicate history"
   );
+  assert.equal(observed.afterInterrupt.reservations, 0, "the failed transfer kept its reservation");
 
   assert.equal(observed.retried.handed, 2, "the retry was refused as a duplicate");
   assert.match(observed.retried.label, /Started/);

@@ -227,7 +227,8 @@ The Control Center "Media" section exposes:
   post carries the quoted account's handle and text. Where X renders no permalink inside the quote
   card and no captured record supplies its id, `{tweetId}` falls back to the post the asset was
   found in -- the handle is the ownership claim, and it is never the wrong one.
-- Duplicate history toggle and a "Clear download history" action.
+- Duplicate history with hashed asset and content signatures, plus a "Clear download history"
+  action. Short-lived hashed claims stop two open X tabs from starting the same transfer together.
 - Live status readout (running / completed / duplicate / failed) and the size of the dedup index.
 
 Downloads prefer `GM_download` in userscript managers, fall back to the extension service worker (`chrome.downloads` with `conflictAction: uniquify`), and finally use an anchor tag when no privileged downloader is available. Image candidates stay in quality order; the extension persists the bounded fallback while a download is active so an interrupted `orig` transfer can resume at `4096x4096` after its service worker wakes again.
@@ -244,7 +245,9 @@ their original action after feedback. **Started** and **Saved** are separate for
 browser's download API acknowledges a handoff, not a completed file, so in the extension build the
 control reads Started until the browser reports the transfer's terminal state. An interrupted
 transfer reads Retry, and is never written into the duplicate history, which is what makes the
-retry possible. The tracking survives the service worker being suspended mid-transfer. The MV3 build also adds **Download media with Aviary** to X's native right-click menu. The
+retry possible. Failed claims are released immediately, while a tab that disappears cannot block
+the file after its claim expires. The tracking survives the service worker being suspended
+mid-transfer. The MV3 build also adds **Download media with Aviary** to X's native right-click menu. The
 page-side handler maps the clicked player back to Aviary's captured direct variant, so X's
 MediaSource `blob:` playback handle is never mistaken for a file.
 
@@ -382,12 +385,13 @@ manifest still carries a placeholder add-on id, so an AMO submission needs a rea
 - **Writer mode**, while focus is inside the composer, the sidebar and the timeline behind it fade back; everything returns the moment focus leaves, and hovering a faded row restores it. Driven by `focusin`/`focusout` only, Aviary registers no key handlers.
 - **Snapshots & Archive**, capture follower / following lists from the active page; import official
   X archive ZIPs; expand t.co destinations and identify numeric participants from the ZIP or local
-  GraphQL captures without making a request; search captured records; download a Markdown report.
+  GraphQL captures without making a request; reject malformed or unrelated checkpoint evidence;
+  search captured records; download a Markdown report.
 - **Cleanup review queue**, Aviary never deletes account data; the queue is a read-only review surface (`destructiveAllowed()` returns `false` by policy).
 - **Bookmark library**, tags, folders, reminders, and due-time queries stored locally.
 - **Unified local search**, ranks exact handles, quoted phrases, and rare terms across captured posts,
   likes, bookmarks, notes, tags, folders, snapshots, and imported archive metadata. Filters and text
-  ranking run entirely in the browser.
+  ranking run entirely in the browser. A quoted phrase must occur inside one indexed field.
 - **Composer snippets**, a Snippets button next to the post toolbar opens a popover and inserts via `document.execCommand("insertText")`. No keyboard simulation, no hotkeys.
 - **XLSX export**, added to the Export format list. The writer reuses the STORE-only ZIP encoder, so there's still no external runtime dependency.
 - **WARC export**, emits ISO-28500 WARC/1.1 records for archival research tooling. Captured media

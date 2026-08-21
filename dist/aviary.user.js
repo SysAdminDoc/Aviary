@@ -11013,6 +11013,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   }
 
   // src/features/media/downloader.ts
+  var MEDIA_FINGERPRINT_TIMEOUT_MS = 1500;
   var DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
   async function captureMediaBytes(url, options = {}) {
     const sourceUrl = url.trim();
@@ -11020,28 +11021,31 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       throw new TypeError("Only HTTP(S) media URLs can be captured into an archive.");
     }
     const maxBytes = Math.max(1, Math.trunc(options.maxBytes ?? 50 * 1024 * 1024));
-    const response = await withNetworkTimeout(
-      (signal) => fetch(sourceUrl, { signal }),
-      options.timeoutMs ?? NETWORK_TIMEOUTS.mediaTransfer
-    );
-    if (!response.ok) {
-      throw new Error(`Media request failed with HTTP ${response.status}.`);
-    }
-    const declaredLength = Number(response.headers.get("content-length"));
-    if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
-      throw new RangeError(`Media response exceeds the ${maxBytes}-byte capture limit.`);
-    }
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    if (bytes.byteLength > maxBytes) {
-      throw new RangeError(`Media response exceeds the ${maxBytes}-byte capture limit.`);
-    }
+    const captured = await withNetworkTimeout(async (signal) => {
+      const response = await fetch(sourceUrl, { signal });
+      if (!response.ok) {
+        throw new Error(`Media request failed with HTTP ${response.status}.`);
+      }
+      const declaredLength = Number(response.headers.get("content-length"));
+      if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+        throw new RangeError(`Media response exceeds the ${maxBytes}-byte capture limit.`);
+      }
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      if (bytes.byteLength > maxBytes) {
+        throw new RangeError(`Media response exceeds the ${maxBytes}-byte capture limit.`);
+      }
+      return {
+        bytes,
+        contentType: response.headers.get("content-type")?.split(";", 1)[0]?.trim() || "application/octet-stream"
+      };
+    }, options.timeoutMs ?? NETWORK_TIMEOUTS.mediaTransfer);
     return {
       sourceUrl,
       capturedAt: (/* @__PURE__ */ new Date()).toISOString(),
-      bytes,
-      byteLength: bytes.byteLength,
-      sha256: sha256Hex(bytes),
-      contentType: response.headers.get("content-type")?.split(";", 1)[0]?.trim() || "application/octet-stream"
+      bytes: captured.bytes,
+      byteLength: captured.bytes.byteLength,
+      sha256: sha256Hex(captured.bytes),
+      contentType: captured.contentType
     };
   }
   async function fingerprintMediaDownload(request) {
@@ -11049,9 +11053,16 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     if (request.kind === "video") {
       return { identityHash };
     }
+    const timeoutMs = Math.max(
+      1,
+      Math.min(MEDIA_FINGERPRINT_TIMEOUT_MS, Math.trunc(request.timeoutMs ?? MEDIA_FINGERPRINT_TIMEOUT_MS))
+    );
+    const deadline = Date.now() + timeoutMs;
     for (const url of downloadCandidates(request)) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) break;
       try {
-        const captured = await captureMediaBytes(url);
+        const captured = await captureMediaBytes(url, { timeoutMs: remaining });
         let perceptualHash = null;
         if (request.includePerceptual && captured.contentType.startsWith("image/")) {
           try {
@@ -15923,12 +15934,16 @@ a.av-link-clean {
     #handles = /* @__PURE__ */ new Map();
     constructor(localCorpus = []) {
       let corpusBytes = 0;
-      for (const record of localCorpus.slice(-MAX_LOCAL_CORPUS_RECORDS).reverse()) {
-        this.#ingestValue(record, "local-corpus");
-        if (!record.surface.startsWith("graphql:")) continue;
+      const corpus = Array.isArray(localCorpus) ? localCorpus : [];
+      for (const candidate of corpus.slice(-MAX_LOCAL_CORPUS_RECORDS).reverse()) {
+        if (!candidate || typeof candidate !== "object") continue;
+        const record = candidate;
+        if (typeof record.surface !== "string" || !record.surface.startsWith("graphql:")) continue;
+        if (typeof record.text !== "string") continue;
         const recordBytes = new TextEncoder().encode(record.text).byteLength;
         if (corpusBytes + recordBytes > MAX_LOCAL_CORPUS_BYTES) continue;
         corpusBytes += recordBytes;
+        this.#ingestValue(record, "local-corpus");
         try {
           this.#ingestValue(JSON.parse(record.text), "local-corpus");
         } catch {
@@ -16848,12 +16863,16 @@ a.av-link-clean {
   }
   function mergeByKey(current, incoming, key) {
     const result = [...current];
-    const seen = new Set(current.map(key));
+    const positions = new Map(result.map((entry, index) => [key(entry), index]));
     for (const entry of incoming) {
       const identity = key(entry);
-      if (seen.has(identity)) continue;
-      seen.add(identity);
-      result.push(entry);
+      const position = positions.get(identity);
+      if (position === void 0) {
+        positions.set(identity, result.length);
+        result.push(entry);
+      } else {
+        result[position] = entry;
+      }
     }
     return result.slice(-1e4);
   }
@@ -17696,13 +17715,14 @@ a.av-link-clean {
   // src/features/media/history.ts
   var MEDIA_HISTORY_KEY = "aviary.media.history.v1";
   var MEDIA_HISTORY_LIMIT = 1500;
+  var MEDIA_HISTORY_RESERVATION_TTL_MS = 10 * 60 * 1e3;
+  var MEDIA_HISTORY_RESERVATION_LIMIT = 128;
   var MediaHistory = class {
     #storage;
     #limit;
     #onPersistError;
     #entries = [];
-    #identityIndex = /* @__PURE__ */ new Set();
-    #exactIndex = /* @__PURE__ */ new Set();
+    #reservations = [];
     #matches = emptyMatches();
     #lastMatch = null;
     #loaded = false;
@@ -17722,55 +17742,127 @@ a.av-link-clean {
       await this.#loading;
     }
     has(key) {
-      return this.#identityIndex.has(legacyIdentityHash(key));
+      return this.findMatch({ identityHash: legacyIdentityHash(key) }, false) !== null;
     }
     findMatch(fingerprint, allowPerceptual = false) {
       const candidate = normalizeFingerprint(fingerprint);
-      if (candidate.exactHash && this.#exactIndex.has(candidate.exactHash)) {
-        return "exact";
-      }
-      if (this.#identityIndex.has(candidate.identityHash)) {
-        return "identity";
-      }
-      if (allowPerceptual && candidate.perceptualHash) {
-        for (const entry of this.#entries) {
-          if (entry.perceptualHash && hexadecimalHammingDistance(entry.perceptualHash, candidate.perceptualHash) <= PERCEPTUAL_MATCH_DISTANCE) {
-            return "perceptual";
-          }
-        }
-      }
-      return null;
+      return findFingerprintMatch(
+        this.#entries,
+        activeReservations(this.#reservations),
+        candidate,
+        allowPerceptual
+      );
     }
     async record(fingerprintOrLegacyKey) {
       await this.load();
       const fingerprint = typeof fingerprintOrLegacyKey === "string" ? { identityHash: legacyIdentityHash(fingerprintOrLegacyKey) } : normalizeFingerprint(fingerprintOrLegacyKey);
-      if (this.findMatch(fingerprint, false)) {
+      const entry = { ...fingerprint, at: (/* @__PURE__ */ new Date()).toISOString() };
+      return await this.#persist({ added: [entry] }) > 0;
+    }
+    /** Atomically claims a fingerprint so two tabs cannot start the same transfer. */
+    async reserve(fingerprint, allowPerceptual = false) {
+      await this.load();
+      const candidate = normalizeFingerprint(fingerprint);
+      const now2 = Date.now();
+      const reservation = {
+        ...candidate,
+        token: reservationToken(candidate, now2),
+        at: new Date(now2).toISOString(),
+        expiresAt: now2 + MEDIA_HISTORY_RESERVATION_TTL_MS
+      };
+      let result = { match: null, token: reservation.token };
+      try {
+        const merged = await mutateStored(
+          this.#storage,
+          MEDIA_HISTORY_KEY,
+          emptySnapshot2(),
+          (stored) => {
+            const entries = readEntries(stored);
+            const reservations = readReservations(stored, now2);
+            const match = findFingerprintMatch(entries, reservations, candidate, allowPerceptual);
+            if (match) {
+              result = { match, token: null };
+            } else {
+              reservations.push(reservation);
+            }
+            return snapshotFrom(stored, entries, reservations, this.#limit);
+          }
+        );
+        this.#adopt(merged);
+        return result;
+      } catch (error) {
+        this.#onPersistError?.(error);
+        const match = this.findMatch(candidate, allowPerceptual);
+        if (match) return { match, token: null };
+        this.#reservations.push(reservation);
+        this.#reservations = activeReservations(this.#reservations).slice(-MEDIA_HISTORY_RESERVATION_LIMIT);
+        return result;
+      }
+    }
+    /** Turns a successful in-flight claim into durable completed history. */
+    async commit(token, fingerprint) {
+      await this.load();
+      if (!validToken(token)) return false;
+      const candidate = normalizeFingerprint(fingerprint);
+      const entry = { ...candidate, at: (/* @__PURE__ */ new Date()).toISOString() };
+      let added = false;
+      try {
+        const merged = await mutateStored(
+          this.#storage,
+          MEDIA_HISTORY_KEY,
+          emptySnapshot2(),
+          (stored) => {
+            const entries = readEntries(stored);
+            const reservations = readReservations(stored).filter((item) => item.token !== token);
+            if (!findFingerprintMatch(entries, [], candidate, false)) {
+              mergeEntry(entries, entry);
+              added = true;
+            }
+            return snapshotFrom(stored, entries, reservations, this.#limit);
+          }
+        );
+        this.#adopt(merged);
+        return added;
+      } catch (error) {
+        this.#onPersistError?.(error);
+        this.#reservations = this.#reservations.filter((item) => item.token !== token);
+        if (!findFingerprintMatch(this.#entries, [], candidate, false)) {
+          mergeEntry(this.#entries, entry);
+          return true;
+        }
         return false;
       }
-      const entry = { ...fingerprint, at: (/* @__PURE__ */ new Date()).toISOString() };
-      this.#identityIndex.add(entry.identityHash);
-      if (entry.exactHash) this.#exactIndex.add(entry.exactHash);
-      this.#entries.push(entry);
-      while (this.#entries.length > this.#limit) {
-        const removed = this.#entries.shift();
-        if (removed) {
-          this.#rebuildIndexes();
-        }
+    }
+    /** Releases a failed transfer claim so a retry can start immediately. */
+    async release(token) {
+      await this.load();
+      if (!validToken(token)) return;
+      try {
+        const merged = await mutateStored(
+          this.#storage,
+          MEDIA_HISTORY_KEY,
+          emptySnapshot2(),
+          (stored) => snapshotFrom(
+            stored,
+            readEntries(stored),
+            readReservations(stored).filter((item) => item.token !== token),
+            this.#limit
+          )
+        );
+        this.#adopt(merged);
+      } catch (error) {
+        this.#onPersistError?.(error);
+        this.#reservations = this.#reservations.filter((item) => item.token !== token);
       }
-      await this.#persist({ added: [entry] });
-      return true;
     }
     async noteMatch(kind) {
       await this.load();
       const match = { kind, at: (/* @__PURE__ */ new Date()).toISOString() };
-      this.#matches = { ...this.#matches, [kind]: this.#matches[kind] + 1 };
-      this.#lastMatch = match;
       await this.#persist({ matched: match });
     }
     async clear() {
       this.#entries = [];
-      this.#identityIndex.clear();
-      this.#exactIndex.clear();
+      this.#reservations = [];
       this.#matches = emptyMatches();
       this.#lastMatch = null;
       this.#loaded = true;
@@ -17785,8 +17877,9 @@ a.av-link-clean {
     }
     snapshot() {
       return {
-        schemaVersion: 2,
+        schemaVersion: 3,
         entries: this.#entries.map((entry) => ({ ...entry })),
+        reservations: activeReservations(this.#reservations).map((entry) => ({ ...entry })),
         matches: { ...this.#matches },
         lastMatch: this.#lastMatch ? { ...this.#lastMatch } : null
       };
@@ -17797,9 +17890,9 @@ a.av-link-clean {
         emptySnapshot2()
       );
       this.#entries = readEntries(stored).slice(-this.#limit);
+      this.#reservations = readReservations(stored);
       this.#matches = readMatches(stored);
       this.#lastMatch = readLastMatch(stored);
-      this.#rebuildIndexes();
       this.#loaded = true;
       if (!isCurrentSnapshot(stored)) {
         await this.#persist({});
@@ -17813,6 +17906,7 @@ a.av-link-clean {
      * recorded -- never the whole local list -- then the same cap the in-memory list applies.
      */
     async #persist(delta) {
+      let added = 0;
       try {
         const merged = await mutateStored(
           this.#storage,
@@ -17820,8 +17914,11 @@ a.av-link-clean {
           emptySnapshot2(),
           (stored) => {
             const entries = readEntries(stored);
+            const reservations = readReservations(stored);
             for (const entry of delta.added ?? []) {
+              if (findFingerprintMatch(entries, reservations, entry, false)) continue;
               mergeEntry(entries, entry);
+              added += 1;
             }
             const ordered = entries.sort(
               (left, right) => left.at < right.at ? -1 : left.at > right.at ? 1 : 0
@@ -17833,33 +17930,32 @@ a.av-link-clean {
             const storedLastMatch = readLastMatch(stored);
             const lastMatch = delta.matched && (!storedLastMatch || storedLastMatch.at <= delta.matched.at) ? delta.matched : storedLastMatch;
             return {
-              schemaVersion: 2,
+              schemaVersion: 3,
               entries: ordered.slice(-this.#limit),
+              reservations: reservations.slice(-MEDIA_HISTORY_RESERVATION_LIMIT),
               matches: matches2,
               lastMatch
             };
           }
         );
-        this.#entries = readEntries(merged);
-        this.#matches = readMatches(merged);
-        this.#lastMatch = readLastMatch(merged);
-        this.#rebuildIndexes();
+        this.#adopt(merged);
       } catch (error) {
         this.#onPersistError?.(error);
       }
+      return added;
     }
-    #rebuildIndexes() {
-      this.#identityIndex = new Set(this.#entries.map((entry) => entry.identityHash));
-      this.#exactIndex = new Set(
-        this.#entries.flatMap((entry) => entry.exactHash ? [entry.exactHash] : [])
-      );
+    #adopt(snapshot) {
+      this.#entries = readEntries(snapshot).slice(-this.#limit);
+      this.#reservations = readReservations(snapshot);
+      this.#matches = readMatches(snapshot);
+      this.#lastMatch = readLastMatch(snapshot);
     }
   };
   function readEntries(stored) {
     const entries = Array.isArray(stored?.entries) ? stored.entries : [];
     const normalized = [];
     for (const candidate of entries) {
-      if (!candidate || typeof candidate.at !== "string") continue;
+      if (!candidate || typeof candidate !== "object" || typeof candidate.at !== "string") continue;
       if ("identityHash" in candidate && validHash(candidate.identityHash)) {
         const exactHash = validHash(candidate.exactHash) ? candidate.exactHash.toLowerCase() : void 0;
         const perceptualHash = validHash(candidate.perceptualHash) ? candidate.perceptualHash.toLowerCase() : void 0;
@@ -17881,7 +17977,45 @@ a.av-link-clean {
     return normalized;
   }
   function emptySnapshot2() {
-    return { schemaVersion: 2, entries: [], matches: emptyMatches(), lastMatch: null };
+    return {
+      schemaVersion: 3,
+      entries: [],
+      reservations: [],
+      matches: emptyMatches(),
+      lastMatch: null
+    };
+  }
+  function readReservations(stored, now2 = Date.now()) {
+    const candidates2 = Array.isArray(stored?.reservations) ? stored.reservations : [];
+    const reservations = [];
+    for (const candidate of candidates2) {
+      if (!candidate || typeof candidate !== "object") continue;
+      const value = candidate;
+      if (!validToken(value.token) || !validHash(value.identityHash) || typeof value.at !== "string" || typeof value.expiresAt !== "number" || !Number.isFinite(value.expiresAt) || value.expiresAt <= now2) {
+        continue;
+      }
+      reservations.push({
+        token: value.token,
+        identityHash: value.identityHash.toLowerCase(),
+        ...validHash(value.exactHash) ? { exactHash: value.exactHash.toLowerCase() } : {},
+        ...validHash(value.perceptualHash) ? { perceptualHash: value.perceptualHash.toLowerCase() } : {},
+        at: value.at,
+        expiresAt: Math.trunc(value.expiresAt)
+      });
+    }
+    return reservations.slice(-MEDIA_HISTORY_RESERVATION_LIMIT);
+  }
+  function activeReservations(reservations, now2 = Date.now()) {
+    return reservations.filter((entry) => entry.expiresAt > now2);
+  }
+  function snapshotFrom(stored, entries, reservations, limit) {
+    return {
+      schemaVersion: 3,
+      entries: entries.sort((left, right) => left.at < right.at ? -1 : left.at > right.at ? 1 : 0).slice(-limit),
+      reservations: activeReservations(reservations).slice(-MEDIA_HISTORY_RESERVATION_LIMIT),
+      matches: readMatches(stored),
+      lastMatch: readLastMatch(stored)
+    };
   }
   function emptyMatches() {
     return { identity: 0, exact: 0, perceptual: 0 };
@@ -17933,9 +18067,42 @@ a.av-link-clean {
     return sha256Hex(new TextEncoder().encode(`aviary-media-legacy:${key}`));
   }
   function isCurrentSnapshot(stored) {
-    return stored.schemaVersion === 2 && Array.isArray(stored.entries) && stored.entries.every(
+    const now2 = Date.now();
+    return stored.schemaVersion === 3 && Array.isArray(stored.entries) && Array.isArray(stored.reservations) && stored.entries.every(
       (entry) => typeof entry === "object" && entry !== null && "identityHash" in entry && validHash(entry.identityHash) && !("key" in entry)
-    );
+    ) && stored.reservations.every((entry) => isActiveStoredReservation(entry, now2));
+  }
+  function isActiveStoredReservation(value, now2) {
+    if (!value || typeof value !== "object") return false;
+    const entry = value;
+    return validToken(entry.token) && validHash(entry.identityHash) && (entry.exactHash === void 0 || validHash(entry.exactHash)) && (entry.perceptualHash === void 0 || validHash(entry.perceptualHash)) && typeof entry.at === "string" && typeof entry.expiresAt === "number" && Number.isFinite(entry.expiresAt) && entry.expiresAt > now2;
+  }
+  function findFingerprintMatch(entries, reservations, fingerprint, allowPerceptual) {
+    const candidates2 = [...entries, ...reservations];
+    if (fingerprint.exactHash && candidates2.some((entry) => entry.exactHash === fingerprint.exactHash)) {
+      return "exact";
+    }
+    if (candidates2.some((entry) => entry.identityHash === fingerprint.identityHash)) {
+      return "identity";
+    }
+    if (allowPerceptual && fingerprint.perceptualHash) {
+      for (const entry of candidates2) {
+        if (entry.perceptualHash && hexadecimalHammingDistance(entry.perceptualHash, fingerprint.perceptualHash) <= PERCEPTUAL_MATCH_DISTANCE) {
+          return "perceptual";
+        }
+      }
+    }
+    return null;
+  }
+  var reservationSequence = 0;
+  function reservationToken(fingerprint, now2) {
+    reservationSequence += 1;
+    return sha256Hex(new TextEncoder().encode(
+      `${fingerprint.exactHash ?? fingerprint.identityHash}:${now2}:${reservationSequence}:${Math.random()}`
+    ));
+  }
+  function validToken(value) {
+    return typeof value === "string" && /^[0-9a-f]{64}$/i.test(value);
   }
   function validHash(value) {
     return typeof value === "string" && /^[0-9a-f]{64}$/i.test(value);
@@ -18862,9 +19029,14 @@ a.av-link-clean {
       identityHash: mediaIdentityHash(media.kind, target.url, target.mediaId)
     };
     let historyMatch = null;
+    let reservationToken2 = null;
     if (ctx.settings.media.downloadHistory) {
       historyMatch = history.findMatch(fingerprint, false);
-      if (!historyMatch) {
+      if (historyMatch) {
+        const reservation = await history.reserve(fingerprint, false);
+        historyMatch = reservation.match;
+        reservationToken2 = reservation.token;
+      } else {
         fingerprint = await fingerprintMediaDownload({
           kind: media.kind,
           url: target.url,
@@ -18872,7 +19044,12 @@ a.av-link-clean {
           mediaId: target.mediaId,
           includePerceptual: ctx.settings.media.perceptualDedup
         });
-        historyMatch = history.findMatch(fingerprint, ctx.settings.media.perceptualDedup);
+        const reservation = await history.reserve(
+          fingerprint,
+          ctx.settings.media.perceptualDedup
+        );
+        historyMatch = reservation.match;
+        reservationToken2 = reservation.token;
       }
     }
     if (historyMatch) {
@@ -18894,6 +19071,7 @@ a.av-link-clean {
         filename
       });
       if (result.deduplicated) {
+        if (reservationToken2) await history.release(reservationToken2);
         queue.mark(job.id, "duplicate");
         ctx.diagnostics.info("Media skipped \u2014 already queued in Aria2 history", {
           url: target.url
@@ -18907,6 +19085,10 @@ a.av-link-clean {
         onStarted?.();
         const terminal = await downloadWatcher.wait(result.downloadId);
         if (terminal === "interrupted") {
+          if (reservationToken2) {
+            await history.release(reservationToken2);
+            reservationToken2 = null;
+          }
           queue.mark(job.id, "failed");
           ctx.diagnostics.warn("Media transfer was interrupted", { filename, kind: media.kind });
           void ctx.auditLog.record("media.download.failed", { filename, kind: media.kind });
@@ -18924,7 +19106,12 @@ a.av-link-clean {
         kind: media.kind
       });
       if (ctx.settings.media.downloadHistory) {
-        await history.record(fingerprint);
+        if (reservationToken2) {
+          await history.commit(reservationToken2, fingerprint);
+          reservationToken2 = null;
+        } else {
+          await history.record(fingerprint);
+        }
       }
       ctx.diagnostics.info("Media saved", {
         filename,
@@ -18938,6 +19125,10 @@ a.av-link-clean {
       });
       return { status: "completed", degraded: result.degraded === true };
     } catch (error) {
+      if (reservationToken2) {
+        await history.release(reservationToken2);
+        reservationToken2 = null;
+      }
       const needsPermission = error instanceof DownloadPermissionError;
       queue.mark(job.id, "failed", String(error?.message ?? error));
       ctx.diagnostics.error("Media download failed", errorDetails4(error));
@@ -19387,8 +19578,14 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
             )
           };
           let historyMatch = ctx.settings.media.downloadHistory ? history2?.findMatch(fingerprint, false) ?? null : null;
-          if (historyMatch) {
-            await history2?.noteMatch(historyMatch);
+          let reservationToken2 = null;
+          if (historyMatch && history2) {
+            const reservation = await history2.reserve(fingerprint, false);
+            historyMatch = reservation.match;
+            reservationToken2 = reservation.token;
+          }
+          if (historyMatch && history2) {
+            await history2.noteMatch(historyMatch);
             progress.duplicate += 1;
             if (queue2) {
               const job2 = queue2.enqueue({ url: task.target.url, filename });
@@ -19398,10 +19595,16 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
             continue;
           }
           await ctx.limiter.waitForToken();
-          if (control.cancelled) return;
+          if (control.cancelled) {
+            if (reservationToken2 && history2) await history2.release(reservationToken2);
+            return;
+          }
           await waitForBatch(control);
-          if (control.cancelled) return;
-          if (ctx.settings.media.downloadHistory && history2) {
+          if (control.cancelled) {
+            if (reservationToken2 && history2) await history2.release(reservationToken2);
+            return;
+          }
+          if (ctx.settings.media.downloadHistory && history2 && !reservationToken2) {
             fingerprint = await fingerprintMediaDownload({
               kind: task.media.kind,
               url: task.target.url,
@@ -19409,7 +19612,12 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
               mediaId: task.target.mediaId,
               includePerceptual: ctx.settings.media.perceptualDedup
             });
-            historyMatch = history2.findMatch(fingerprint, ctx.settings.media.perceptualDedup);
+            const reservation = await history2.reserve(
+              fingerprint,
+              ctx.settings.media.perceptualDedup
+            );
+            historyMatch = reservation.match;
+            reservationToken2 = reservation.token;
             if (historyMatch) {
               await history2.noteMatch(historyMatch);
               progress.duplicate += 1;
@@ -19425,6 +19633,10 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
               continue;
             }
           }
+          if (control.cancelled) {
+            if (reservationToken2 && history2) await history2.release(reservationToken2);
+            return;
+          }
           const job = queue2?.enqueue({ url: task.target.url, filename });
           if (job) {
             jobIds.push(job.id);
@@ -19437,17 +19649,34 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
               ...task.target.fallbackUrls ? { fallbackUrls: task.target.fallbackUrls } : {},
               filename
             });
+            if (result.deduplicated) {
+              if (reservationToken2 && history2) {
+                await history2.release(reservationToken2);
+                reservationToken2 = null;
+              }
+              if (job) queue2?.mark(job.id, "duplicate");
+              progress.duplicate += 1;
+              void ctx.auditLog.record("media.download.duplicate", {
+                source: "aria2-history",
+                batch: true
+              });
+              continue;
+            }
             if (result.pending && result.downloadId !== void 0) {
               const jobId = job?.id;
+              const activeReservation = reservationToken2;
+              reservationToken2 = null;
               void sharedDownloadWatcher().wait(result.downloadId).then(async (terminal) => {
                 if (terminal === "complete") {
                   if (jobId) queue2?.mark(jobId, "completed");
                   if (ctx.settings.media.downloadHistory && history2) {
-                    await history2.record(fingerprint);
+                    if (activeReservation) await history2.commit(activeReservation, fingerprint);
+                    else await history2.record(fingerprint);
                   }
                   return;
                 }
                 if (terminal === "interrupted") {
+                  if (activeReservation && history2) await history2.release(activeReservation);
                   if (jobId) queue2?.mark(jobId, "failed", "the browser interrupted this transfer");
                   ctx.diagnostics.warn("Batch media transfer was interrupted", {
                     filename,
@@ -19459,12 +19688,21 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
             } else {
               if (job) queue2?.mark(job.id, "completed");
               if (ctx.settings.media.downloadHistory && history2) {
-                await history2.record(fingerprint);
+                if (reservationToken2) {
+                  await history2.commit(reservationToken2, fingerprint);
+                  reservationToken2 = null;
+                } else {
+                  await history2.record(fingerprint);
+                }
               }
             }
             progress.downloaded += 1;
             void ctx.auditLog.record("media.download", { filename, kind: task.media.kind, via: result.via, batch: true });
           } catch (error) {
+            if (reservationToken2 && history2) {
+              await history2.release(reservationToken2);
+              reservationToken2 = null;
+            }
             if (job) queue2?.mark(job.id, "failed", String(error?.message ?? error));
             progress.failed += 1;
             if (error instanceof DownloadPermissionError) {
@@ -19760,12 +19998,14 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
     #documents = [];
     #tokens = /* @__PURE__ */ new Map();
     #tokenSequences = /* @__PURE__ */ new Map();
+    #phraseSequences = /* @__PURE__ */ new Map();
     #documentFrequencies = /* @__PURE__ */ new Map();
     #totalDocumentLength = 0;
     rebuild(documents) {
       this.#documents.length = 0;
       this.#tokens.clear();
       this.#tokenSequences.clear();
+      this.#phraseSequences.clear();
       this.#documentFrequencies.clear();
       this.#totalDocumentLength = 0;
       for (const document2 of documents) this.add(document2);
@@ -19777,6 +20017,10 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
       this.#documents.push(normalized);
       this.#tokens.set(normalized.id, frequencies);
       this.#tokenSequences.set(normalized.id, tokenSequence);
+      this.#phraseSequences.set(
+        normalized.id,
+        phraseSearchFields(normalized).map((field) => tokenizeSearchText(field))
+      );
       this.#totalDocumentLength += tokenSequence.length;
       for (const term of frequencies.keys()) {
         this.#documentFrequencies.set(term, (this.#documentFrequencies.get(term) ?? 0) + 1);
@@ -19799,10 +20043,11 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
         if (!matchesFilters(document2, parsed.filters)) continue;
         const indexed = this.#tokens.get(document2.id) ?? /* @__PURE__ */ new Map();
         const tokenSequence = this.#tokenSequences.get(document2.id) ?? [];
+        const phraseSequences = this.#phraseSequences.get(document2.id) ?? [];
         const matchedTerms = parsed.terms.filter((term) => indexed.has(term));
         if (parsed.terms.length > 0 && matchedTerms.length === 0) continue;
         const matchedPhrases = parsed.phrases.filter(
-          (phrase) => containsTokenSequence(tokenSequence, tokenizeSearchText(phrase))
+          (phrase) => phraseSequences.some((field) => containsTokenSequence(field, tokenizeSearchText(phrase)))
         );
         if (matchedPhrases.length !== parsed.phrases.length) continue;
         const score = bm25Score(
@@ -19889,29 +20134,31 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   }
   function documentFromExportRecord(record) {
     const collection = record.surface.includes("likes") ? "likes" : "posts";
+    const fields = [
+      record.text,
+      record.handle ?? "",
+      record.displayName ?? "",
+      record.permalink ?? "",
+      ...(record.participants ?? []).flatMap(
+        (participant) => [participant.id, participant.handle ?? "", participant.label]
+      ),
+      ...(record.expandedUrls ?? []).flatMap(
+        (link) => [link.shortUrl, link.destination, link.source]
+      ),
+      ...record.media.flatMap((media) => [media.url, media.altText ?? ""]),
+      record.quote?.text ?? "",
+      record.article?.title ?? ""
+    ];
     return {
       id: `record:${record.tweetId ?? `${record.capturedAt}:${record.text.slice(0, 48)}`}`,
       collection,
       account: normalizeAccount(record.handle),
-      text: [
-        record.text,
-        record.handle ?? "",
-        record.displayName ?? "",
-        record.permalink ?? "",
-        ...(record.participants ?? []).map(
-          (participant) => `${participant.id} ${participant.handle ?? ""} ${participant.label}`
-        ),
-        ...(record.expandedUrls ?? []).map(
-          (link) => `${link.shortUrl} ${link.destination} ${link.source}`
-        ),
-        ...record.media.map((media) => `${media.url} ${media.altText ?? ""}`),
-        record.quote?.text ?? "",
-        record.article?.title ?? ""
-      ].join(" "),
+      text: fields.join(" "),
       tags: [],
       folder: null,
       capturedAt: record.capturedAt,
       mediaCount: record.media.length,
+      phraseFields: fields,
       payload: record
     };
   }
@@ -19926,6 +20173,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
       capturedAt: bookmark.updatedAt || bookmark.capturedAt,
       // Bookmark.url is the post permalink, not a captured media asset.
       mediaCount: 0,
+      phraseFields: [bookmark.text, bookmark.handle ?? "", bookmark.url ?? "", bookmark.notes],
       payload: bookmark
     };
   }
@@ -19939,6 +20187,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
       folder: null,
       capturedAt: null,
       mediaCount: 0,
+      phraseFields: [note],
       payload: { handle, note }
     };
   }
@@ -19952,6 +20201,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
       folder: null,
       capturedAt: snapshot.capturedAt,
       mediaCount: 0,
+      phraseFields: [snapshot.handle, snapshot.kind, ...snapshot.accounts],
       payload: snapshot
     };
   }
@@ -19965,6 +20215,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
       folder: null,
       capturedAt: entry.embeddedAt,
       mediaCount: 0,
+      phraseFields: [entry.text],
       payload: entry
     };
   }
@@ -19980,6 +20231,13 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
         folder: null,
         capturedAt: snapshot.updatedAt,
         mediaCount: 0,
+        phraseFields: [
+          snapshot.profile.handle ?? "",
+          snapshot.profile.displayName ?? "",
+          snapshot.profile.bio ?? "",
+          snapshot.profile.location ?? "",
+          snapshot.profile.website ?? ""
+        ],
         payload: snapshot.profile
       });
     }
@@ -19993,6 +20251,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
         folder: null,
         capturedAt: snapshot.updatedAt,
         mediaCount: 0,
+        phraseFields: [entry.handle ?? "", entry.displayName ?? "", entry.sourceFile],
         payload: entry
       });
     }
@@ -20006,6 +20265,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
         folder: null,
         capturedAt: snapshot.updatedAt,
         mediaCount: 0,
+        phraseFields: [entry.name ?? "", entry.description ?? "", ...entry.memberIds, ...entry.subscriberIds],
         payload: entry
       });
     }
@@ -20019,6 +20279,13 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
         folder: null,
         capturedAt: snapshot.updatedAt,
         mediaCount: 1,
+        phraseFields: [
+          entry.tweetId ?? "",
+          entry.url ?? "",
+          entry.filename ?? "",
+          entry.mimeType ?? "",
+          entry.sourceFile
+        ],
         payload: entry
       });
     }
@@ -20031,11 +20298,23 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
       text: String(document2.text ?? "").normalize("NFC").slice(0, 1e5),
       tags: document2.tags.map((tag) => String(tag).trim().toLocaleLowerCase()).filter(Boolean).slice(0, 64),
       folder: document2.folder ? String(document2.folder).trim().toLocaleLowerCase().slice(0, 128) : null,
-      mediaCount: Number.isFinite(document2.mediaCount) ? Math.max(0, Math.floor(document2.mediaCount)) : 0
+      mediaCount: Number.isFinite(document2.mediaCount) ? Math.max(0, Math.floor(document2.mediaCount)) : 0,
+      ...Array.isArray(document2.phraseFields) ? {
+        phraseFields: document2.phraseFields.map((field) => String(field ?? "").normalize("NFC").slice(0, 1e5)).filter(Boolean).slice(0, 128)
+      } : {}
     };
   }
   function searchableText(document2) {
     return [document2.text, document2.account ?? "", document2.collection, ...document2.tags, document2.folder ?? ""].join(" ");
+  }
+  function phraseSearchFields(document2) {
+    return [
+      ...document2.phraseFields ?? [document2.text],
+      document2.account ?? "",
+      document2.collection,
+      ...document2.tags,
+      document2.folder ?? ""
+    ].filter(Boolean);
   }
   function fieldBoost(document2, query) {
     const accountTerms = new Set(tokenizeSearchText(document2.account ?? ""));

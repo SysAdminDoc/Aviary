@@ -205,7 +205,7 @@ test("two tabs saving media keep both dedup keys", async () => {
   await Promise.all([a.record("alice:photo1"), b.record("bob:photo2")]);
 
   const stored = mod.readShared(mod.MEDIA_HISTORY_KEY);
-  assert.equal(stored.schemaVersion, 2);
+  assert.equal(stored.schemaVersion, 3);
   assert.equal(stored.entries.length, 2);
   assert.ok(stored.entries.every((entry) => /^[0-9a-f]{64}$/.test(entry.identityHash)));
   assert.ok(stored.entries.every((entry) => !Object.hasOwn(entry, "key")));
@@ -215,6 +215,74 @@ test("two tabs saving media keep both dedup keys", async () => {
   await a.record("alice:photo3");
   assert.equal(a.has("bob:photo2"), true, "the other tab's dedup key was never adopted");
   assert.equal(mod.readShared(mod.MEDIA_HISTORY_KEY).entries.length, 3);
+});
+
+test("two tabs cannot reserve the same media fingerprint", async () => {
+  const mod = await load();
+  mod.setSettleDelay(2);
+  const a = new mod.MediaHistory(mod.tab());
+  const b = new mod.MediaHistory(mod.tab());
+  await a.load();
+  await b.load();
+  const fingerprint = {
+    identityHash: "1".repeat(64),
+    exactHash: "2".repeat(64)
+  };
+
+  const reservations = await Promise.all([
+    a.reserve(fingerprint, false),
+    b.reserve(fingerprint, false)
+  ]);
+  assert.equal(reservations.filter((entry) => entry.token).length, 1);
+  assert.equal(reservations.filter((entry) => entry.match === "exact").length, 1);
+
+  const owner = reservations.findIndex((entry) => entry.token);
+  await (owner === 0 ? a : b).commit(reservations[owner].token, fingerprint);
+  assert.equal(mod.readShared(mod.MEDIA_HISTORY_KEY).entries.length, 1);
+});
+
+test("an expired media reservation cannot block a retry", async () => {
+  const mod = await load();
+  const storage = mod.tab();
+  const fingerprint = { identityHash: "5".repeat(64), exactHash: "6".repeat(64) };
+  await storage.set(mod.MEDIA_HISTORY_KEY, {
+    schemaVersion: 3,
+    entries: [],
+    reservations: [{
+      ...fingerprint,
+      token: "7".repeat(64),
+      at: new Date(0).toISOString(),
+      expiresAt: Date.now() - 1
+    }],
+    matches: { identity: 0, exact: 0, perceptual: 0 },
+    lastMatch: null
+  });
+
+  const history = new mod.MediaHistory(storage);
+  await history.load();
+  const reservation = await history.reserve(fingerprint, false);
+
+  assert.equal(reservation.match, null);
+  assert.match(reservation.token, /^[0-9a-f]{64}$/);
+  assert.equal(mod.readShared(mod.MEDIA_HISTORY_KEY).reservations.length, 1);
+  assert.ok(mod.readShared(mod.MEDIA_HISTORY_KEY).reservations[0].expiresAt > Date.now());
+});
+
+test("two tabs recording the same fingerprint report one new entry", async () => {
+  const mod = await load();
+  mod.setSettleDelay(2);
+  const a = new mod.MediaHistory(mod.tab());
+  const b = new mod.MediaHistory(mod.tab());
+  await a.load();
+  await b.load();
+  const fingerprint = {
+    identityHash: "3".repeat(64),
+    exactHash: "4".repeat(64)
+  };
+
+  const results = await Promise.all([a.record(fingerprint), b.record(fingerprint)]);
+  assert.deepEqual(results.sort(), [false, true]);
+  assert.equal(mod.readShared(mod.MEDIA_HISTORY_KEY).entries.length, 1);
 });
 
 test("the audit log records what both tabs did, without duplicating either", async () => {

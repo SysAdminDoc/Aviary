@@ -951,9 +951,14 @@ async function performMediaDownload(
     identityHash: mediaIdentityHash(media.kind, target.url, target.mediaId)
   };
   let historyMatch: MediaMatchKind | null = null;
+  let reservationToken: string | null = null;
   if (ctx.settings.media.downloadHistory) {
     historyMatch = history.findMatch(fingerprint, false);
-    if (!historyMatch) {
+    if (historyMatch) {
+      const reservation = await history.reserve(fingerprint, false);
+      historyMatch = reservation.match;
+      reservationToken = reservation.token;
+    } else {
       fingerprint = await fingerprintMediaDownload({
         kind: media.kind,
         url: target.url,
@@ -961,7 +966,12 @@ async function performMediaDownload(
         mediaId: target.mediaId,
         includePerceptual: ctx.settings.media.perceptualDedup
       });
-      historyMatch = history.findMatch(fingerprint, ctx.settings.media.perceptualDedup);
+      const reservation = await history.reserve(
+        fingerprint,
+        ctx.settings.media.perceptualDedup
+      );
+      historyMatch = reservation.match;
+      reservationToken = reservation.token;
     }
   }
 
@@ -985,6 +995,7 @@ async function performMediaDownload(
       filename
     });
     if (result.deduplicated) {
+      if (reservationToken) await history.release(reservationToken);
       queue.mark(job.id, "duplicate");
       ctx.diagnostics.info("Media skipped — already queued in Aria2 history", {
         url: target.url
@@ -1002,6 +1013,10 @@ async function performMediaDownload(
       onStarted?.();
       const terminal = await downloadWatcher.wait(result.downloadId);
       if (terminal === "interrupted") {
+        if (reservationToken) {
+          await history.release(reservationToken);
+          reservationToken = null;
+        }
         queue.mark(job.id, "failed");
         ctx.diagnostics.warn("Media transfer was interrupted", { filename, kind: media.kind });
         void ctx.auditLog.record("media.download.failed", { filename, kind: media.kind });
@@ -1021,7 +1036,12 @@ async function performMediaDownload(
       kind: media.kind
     });
     if (ctx.settings.media.downloadHistory) {
-      await history.record(fingerprint);
+      if (reservationToken) {
+        await history.commit(reservationToken, fingerprint);
+        reservationToken = null;
+      } else {
+        await history.record(fingerprint);
+      }
     }
     ctx.diagnostics.info("Media saved", {
       filename,
@@ -1035,6 +1055,10 @@ async function performMediaDownload(
     });
     return { status: "completed", degraded: result.degraded === true };
   } catch (error) {
+    if (reservationToken) {
+      await history.release(reservationToken);
+      reservationToken = null;
+    }
     const needsPermission = error instanceof DownloadPermissionError;
     queue.mark(job.id, "failed", String((error as Error)?.message ?? error));
     ctx.diagnostics.error("Media download failed", errorDetails(error));

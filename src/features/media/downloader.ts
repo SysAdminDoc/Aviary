@@ -57,7 +57,11 @@ export interface MediaFingerprintRequest {
   fallbackUrls?: string[];
   mediaId: string | null;
   includePerceptual: boolean;
+  timeoutMs?: number;
 }
+
+/** A duplicate check must stay much shorter than the download it precedes. */
+export const MEDIA_FINGERPRINT_TIMEOUT_MS = 1_500;
 
 /** Code shared with the background worker so both sides agree on the failure. */
 export const DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
@@ -76,28 +80,31 @@ export async function captureMediaBytes(
     throw new TypeError("Only HTTP(S) media URLs can be captured into an archive.");
   }
   const maxBytes = Math.max(1, Math.trunc(options.maxBytes ?? 50 * 1024 * 1024));
-  const response = await withNetworkTimeout(
-    (signal) => fetch(sourceUrl, { signal }),
-    options.timeoutMs ?? NETWORK_TIMEOUTS.mediaTransfer
-  );
-  if (!response.ok) {
-    throw new Error(`Media request failed with HTTP ${response.status}.`);
-  }
-  const declaredLength = Number(response.headers.get("content-length"));
-  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
-    throw new RangeError(`Media response exceeds the ${maxBytes}-byte capture limit.`);
-  }
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.byteLength > maxBytes) {
-    throw new RangeError(`Media response exceeds the ${maxBytes}-byte capture limit.`);
-  }
+  const captured = await withNetworkTimeout(async (signal) => {
+    const response = await fetch(sourceUrl, { signal });
+    if (!response.ok) {
+      throw new Error(`Media request failed with HTTP ${response.status}.`);
+    }
+    const declaredLength = Number(response.headers.get("content-length"));
+    if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+      throw new RangeError(`Media response exceeds the ${maxBytes}-byte capture limit.`);
+    }
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength > maxBytes) {
+      throw new RangeError(`Media response exceeds the ${maxBytes}-byte capture limit.`);
+    }
+    return {
+      bytes,
+      contentType: response.headers.get("content-type")?.split(";", 1)[0]?.trim() || "application/octet-stream"
+    };
+  }, options.timeoutMs ?? NETWORK_TIMEOUTS.mediaTransfer);
   return {
     sourceUrl,
     capturedAt: new Date().toISOString(),
-    bytes,
-    byteLength: bytes.byteLength,
-    sha256: sha256Hex(bytes),
-    contentType: response.headers.get("content-type")?.split(";", 1)[0]?.trim() || "application/octet-stream"
+    bytes: captured.bytes,
+    byteLength: captured.bytes.byteLength,
+    sha256: sha256Hex(captured.bytes),
+    contentType: captured.contentType
   };
 }
 
@@ -115,9 +122,16 @@ export async function fingerprintMediaDownload(
     return { identityHash };
   }
 
+  const timeoutMs = Math.max(
+    1,
+    Math.min(MEDIA_FINGERPRINT_TIMEOUT_MS, Math.trunc(request.timeoutMs ?? MEDIA_FINGERPRINT_TIMEOUT_MS))
+  );
+  const deadline = Date.now() + timeoutMs;
   for (const url of downloadCandidates(request)) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
     try {
-      const captured = await captureMediaBytes(url);
+      const captured = await captureMediaBytes(url, { timeoutMs: remaining });
       let perceptualHash: string | null = null;
       if (request.includePerceptual && captured.contentType.startsWith("image/")) {
         try {

@@ -23,8 +23,9 @@
   counters together.
 
 - **The delivery-size ceiling now includes the new local analysis.** The main bundle allowance is
-  2.155 MB after adding media fingerprints and offline archive repair, leaving less than 9 KB of
-  headroom so later growth still needs an explicit decision.
+  2.18 MB after adding media fingerprints, cross-tab transfer claims, offline archive repair, and
+  hybrid search. The shipped bundle remains below 2.17 MB, so later growth still needs an explicit
+  decision.
 
 - **Snapshots & Archive reports every repair source.** The panel separates links found in the ZIP
   from links found in local captures, counts resolved and unresolved participant IDs, and confirms
@@ -34,6 +35,27 @@
   quoted phrases, and rare terms first. Optional semantic hits are fused into that list, deduplicated
   by post ID, and labelled as text, semantic, or combined. Local-only mode returns before any
   embedding-provider request.
+
+### Fixed
+
+- **A duplicate check can no longer hold the Download action behind repeated network waits.** Image
+  fingerprinting gets one short deadline across every quality candidate, including response-body
+  reading. Video saves continue directly from their stable X media identity.
+
+- **Two X tabs can no longer start the same media transfer together.** A short-lived hashed claim is
+  written before the handoff. Successful transfers commit it to history, while refused, failed, and
+  interrupted transfers release it so Retry remains available.
+
+- **Archive repair now rejects bad or unrelated local evidence.** Malformed checkpoint records and
+  records outside captured GraphQL traffic are ignored. Reimporting an archive also lets its newer
+  participant details replace a stale saved copy.
+
+- **Quoted search stays inside one field.** A phrase can match a post, tag, folder, handle, or other
+  indexed value, but can no longer be invented across the boundary between two unrelated values.
+
+- **Firefox release smoke now waits for the browser process to close.** Windows no longer reports a
+  false failure when Firefox briefly retains its temporary profile database after every behavior
+  check has passed.
 
 ## 1.37.0 (2026-08-20)
 

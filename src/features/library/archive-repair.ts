@@ -37,12 +37,16 @@ export class ArchiveRepairIndex {
 
   constructor(localCorpus: readonly ExportRecord[] = []) {
     let corpusBytes = 0;
-    for (const record of localCorpus.slice(-MAX_LOCAL_CORPUS_RECORDS).reverse()) {
-      this.#ingestValue(record, "local-corpus");
-      if (!record.surface.startsWith("graphql:")) continue;
+    const corpus = Array.isArray(localCorpus) ? localCorpus : [];
+    for (const candidate of corpus.slice(-MAX_LOCAL_CORPUS_RECORDS).reverse()) {
+      if (!candidate || typeof candidate !== "object") continue;
+      const record = candidate as Partial<ExportRecord>;
+      if (typeof record.surface !== "string" || !record.surface.startsWith("graphql:")) continue;
+      if (typeof record.text !== "string") continue;
       const recordBytes = new TextEncoder().encode(record.text).byteLength;
       if (corpusBytes + recordBytes > MAX_LOCAL_CORPUS_BYTES) continue;
       corpusBytes += recordBytes;
+      this.#ingestValue(record, "local-corpus");
       try {
         this.#ingestValue(JSON.parse(record.text), "local-corpus");
       } catch {

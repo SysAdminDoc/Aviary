@@ -25,6 +25,7 @@ export interface OfflineQueryDocument {
   folder: string | null;
   capturedAt: string | null;
   mediaCount: number;
+  phraseFields?: string[];
   payload?: unknown;
 }
 
@@ -173,6 +174,7 @@ export class OfflineQueryIndex {
   readonly #documents: OfflineQueryDocument[] = [];
   readonly #tokens = new Map<string, Map<string, number>>();
   readonly #tokenSequences = new Map<string, string[]>();
+  readonly #phraseSequences = new Map<string, string[][]>();
   readonly #documentFrequencies = new Map<string, number>();
   #totalDocumentLength = 0;
 
@@ -180,6 +182,7 @@ export class OfflineQueryIndex {
     this.#documents.length = 0;
     this.#tokens.clear();
     this.#tokenSequences.clear();
+    this.#phraseSequences.clear();
     this.#documentFrequencies.clear();
     this.#totalDocumentLength = 0;
     for (const document of documents) this.add(document);
@@ -192,6 +195,10 @@ export class OfflineQueryIndex {
     this.#documents.push(normalized);
     this.#tokens.set(normalized.id, frequencies);
     this.#tokenSequences.set(normalized.id, tokenSequence);
+    this.#phraseSequences.set(
+      normalized.id,
+      phraseSearchFields(normalized).map((field) => tokenizeSearchText(field))
+    );
     this.#totalDocumentLength += tokenSequence.length;
     for (const term of frequencies.keys()) {
       this.#documentFrequencies.set(term, (this.#documentFrequencies.get(term) ?? 0) + 1);
@@ -220,10 +227,11 @@ export class OfflineQueryIndex {
       if (!matchesFilters(document, parsed.filters)) continue;
       const indexed = this.#tokens.get(document.id) ?? new Map<string, number>();
       const tokenSequence = this.#tokenSequences.get(document.id) ?? [];
+      const phraseSequences = this.#phraseSequences.get(document.id) ?? [];
       const matchedTerms = parsed.terms.filter((term) => indexed.has(term));
       if (parsed.terms.length > 0 && matchedTerms.length === 0) continue;
       const matchedPhrases = parsed.phrases.filter((phrase) =>
-        containsTokenSequence(tokenSequence, tokenizeSearchText(phrase))
+        phraseSequences.some((field) => containsTokenSequence(field, tokenizeSearchText(phrase)))
       );
       if (matchedPhrases.length !== parsed.phrases.length) continue;
       const score = bm25Score(
@@ -342,29 +350,31 @@ export function tokenizeSearchText(value: string): string[] {
 
 export function documentFromExportRecord(record: ExportRecord): OfflineQueryDocument {
   const collection: OfflineCollection = record.surface.includes("likes") ? "likes" : "posts";
+  const fields = [
+    record.text,
+    record.handle ?? "",
+    record.displayName ?? "",
+    record.permalink ?? "",
+    ...(record.participants ?? []).flatMap((participant) =>
+      [participant.id, participant.handle ?? "", participant.label]
+    ),
+    ...(record.expandedUrls ?? []).flatMap((link) =>
+      [link.shortUrl, link.destination, link.source]
+    ),
+    ...record.media.flatMap((media) => [media.url, media.altText ?? ""]),
+    record.quote?.text ?? "",
+    record.article?.title ?? ""
+  ];
   return {
     id: `record:${record.tweetId ?? `${record.capturedAt}:${record.text.slice(0, 48)}`}`,
     collection,
     account: normalizeAccount(record.handle),
-    text: [
-      record.text,
-      record.handle ?? "",
-      record.displayName ?? "",
-      record.permalink ?? "",
-      ...(record.participants ?? []).map((participant) =>
-        `${participant.id} ${participant.handle ?? ""} ${participant.label}`
-      ),
-      ...(record.expandedUrls ?? []).map((link) =>
-        `${link.shortUrl} ${link.destination} ${link.source}`
-      ),
-      ...record.media.map((media) => `${media.url} ${media.altText ?? ""}`),
-      record.quote?.text ?? "",
-      record.article?.title ?? ""
-    ].join(" "),
+    text: fields.join(" "),
     tags: [],
     folder: null,
     capturedAt: record.capturedAt,
     mediaCount: record.media.length,
+    phraseFields: fields,
     payload: record
   };
 }
@@ -380,6 +390,7 @@ export function documentFromBookmark(bookmark: BookmarkRecord): OfflineQueryDocu
     capturedAt: bookmark.updatedAt || bookmark.capturedAt,
     // Bookmark.url is the post permalink, not a captured media asset.
     mediaCount: 0,
+    phraseFields: [bookmark.text, bookmark.handle ?? "", bookmark.url ?? "", bookmark.notes],
     payload: bookmark
   };
 }
@@ -394,6 +405,7 @@ export function documentFromNote(handle: string, note: string): OfflineQueryDocu
     folder: null,
     capturedAt: null,
     mediaCount: 0,
+    phraseFields: [note],
     payload: { handle, note }
   };
 }
@@ -408,6 +420,7 @@ export function documentFromSnapshot(snapshot: SnapshotEntry): OfflineQueryDocum
     folder: null,
     capturedAt: snapshot.capturedAt,
     mediaCount: 0,
+    phraseFields: [snapshot.handle, snapshot.kind, ...snapshot.accounts],
     payload: snapshot
   };
 }
@@ -422,6 +435,7 @@ export function documentFromSemanticEntry(entry: SemanticEntry): OfflineQueryDoc
     folder: null,
     capturedAt: entry.embeddedAt,
     mediaCount: 0,
+    phraseFields: [entry.text],
     payload: entry
   };
 }
@@ -438,6 +452,13 @@ export function documentsFromArchiveLibrary(snapshot: ArchiveLibrarySnapshot): O
       folder: null,
       capturedAt: snapshot.updatedAt,
       mediaCount: 0,
+      phraseFields: [
+        snapshot.profile.handle ?? "",
+        snapshot.profile.displayName ?? "",
+        snapshot.profile.bio ?? "",
+        snapshot.profile.location ?? "",
+        snapshot.profile.website ?? ""
+      ],
       payload: snapshot.profile
     });
   }
@@ -451,6 +472,7 @@ export function documentsFromArchiveLibrary(snapshot: ArchiveLibrarySnapshot): O
       folder: null,
       capturedAt: snapshot.updatedAt,
       mediaCount: 0,
+      phraseFields: [entry.handle ?? "", entry.displayName ?? "", entry.sourceFile],
       payload: entry
     });
   }
@@ -464,6 +486,7 @@ export function documentsFromArchiveLibrary(snapshot: ArchiveLibrarySnapshot): O
       folder: null,
       capturedAt: snapshot.updatedAt,
       mediaCount: 0,
+      phraseFields: [entry.name ?? "", entry.description ?? "", ...entry.memberIds, ...entry.subscriberIds],
       payload: entry
     });
   }
@@ -477,6 +500,13 @@ export function documentsFromArchiveLibrary(snapshot: ArchiveLibrarySnapshot): O
       folder: null,
       capturedAt: snapshot.updatedAt,
       mediaCount: 1,
+      phraseFields: [
+        entry.tweetId ?? "",
+        entry.url ?? "",
+        entry.filename ?? "",
+        entry.mimeType ?? "",
+        entry.sourceFile
+      ],
       payload: entry
     });
   }
@@ -490,12 +520,30 @@ function normalizeDocument(document: OfflineQueryDocument): OfflineQueryDocument
     text: String(document.text ?? "").normalize("NFC").slice(0, 100_000),
     tags: document.tags.map((tag) => String(tag).trim().toLocaleLowerCase()).filter(Boolean).slice(0, 64),
     folder: document.folder ? String(document.folder).trim().toLocaleLowerCase().slice(0, 128) : null,
-    mediaCount: Number.isFinite(document.mediaCount) ? Math.max(0, Math.floor(document.mediaCount)) : 0
+    mediaCount: Number.isFinite(document.mediaCount) ? Math.max(0, Math.floor(document.mediaCount)) : 0,
+    ...(Array.isArray(document.phraseFields)
+      ? {
+          phraseFields: document.phraseFields
+            .map((field) => String(field ?? "").normalize("NFC").slice(0, 100_000))
+            .filter(Boolean)
+            .slice(0, 128)
+        }
+      : {})
   };
 }
 
 function searchableText(document: OfflineQueryDocument): string {
   return [document.text, document.account ?? "", document.collection, ...document.tags, document.folder ?? ""].join(" ");
+}
+
+function phraseSearchFields(document: OfflineQueryDocument): string[] {
+  return [
+    ...(document.phraseFields ?? [document.text]),
+    document.account ?? "",
+    document.collection,
+    ...document.tags,
+    document.folder ?? ""
+  ].filter(Boolean);
 }
 
 function fieldBoost(document: OfflineQueryDocument, query: ParsedOfflineQuery): number {

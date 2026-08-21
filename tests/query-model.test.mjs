@@ -123,6 +123,27 @@ test("lexical ranking puts exact handles and quoted phrases first", async () => 
   assert.deepEqual(parseOfflineQuery('"best quality video"').phrases, ["best quality video"]);
 });
 
+test("quoted phrases cannot span unrelated indexed fields", async () => {
+  const { OfflineQueryIndex } = await importBundledModule(
+    "src/features/library/query-model.ts"
+  );
+  const index = new OfflineQueryIndex();
+  index.rebuild([{
+    id: "field-boundary",
+    collection: "posts",
+    account: "alice",
+    text: "hello",
+    tags: ["reading list"],
+    folder: "later review",
+    capturedAt: "2026-08-01T00:00:00Z",
+    mediaCount: 0
+  }]);
+
+  assert.deepEqual(index.search('"hello alice"'), []);
+  assert.equal(index.search('"reading list"')[0]?.document.id, "field-boundary");
+  assert.equal(index.search('"later review"')[0]?.document.id, "field-boundary");
+});
+
 test("lexical and semantic results are fused and report both contributing signals", async () => {
   const { documentFromSemanticEntry, fuseOfflineHits } = await importBundledModule(
     "src/features/library/query-model.ts"

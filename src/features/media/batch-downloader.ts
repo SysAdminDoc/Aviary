@@ -197,9 +197,15 @@ async function runTasks(
         let historyMatch = ctx.settings.media.downloadHistory
           ? history?.findMatch(fingerprint, false) ?? null
           : null;
+        let reservationToken: string | null = null;
 
-        if (historyMatch) {
-          await history?.noteMatch(historyMatch);
+        if (historyMatch && history) {
+          const reservation = await history.reserve(fingerprint, false);
+          historyMatch = reservation.match;
+          reservationToken = reservation.token;
+        }
+        if (historyMatch && history) {
+          await history.noteMatch(historyMatch);
           progress.duplicate += 1;
           if (queue) {
             const job = queue.enqueue({ url: task.target.url, filename });
@@ -213,11 +219,17 @@ async function runTasks(
         // feature ever drew from it. A batch is the one place the pacing matters: it is the
         // only path that fires hundreds of requests at X's media hosts back to back.
         await ctx.limiter.waitForToken();
-        if (control.cancelled) return;
+        if (control.cancelled) {
+          if (reservationToken && history) await history.release(reservationToken);
+          return;
+        }
         await waitForBatch(control);
-        if (control.cancelled) return;
+        if (control.cancelled) {
+          if (reservationToken && history) await history.release(reservationToken);
+          return;
+        }
 
-        if (ctx.settings.media.downloadHistory && history) {
+        if (ctx.settings.media.downloadHistory && history && !reservationToken) {
           fingerprint = await fingerprintMediaDownload({
             kind: task.media.kind,
             url: task.target.url,
@@ -227,7 +239,12 @@ async function runTasks(
             mediaId: task.target.mediaId,
             includePerceptual: ctx.settings.media.perceptualDedup
           });
-          historyMatch = history.findMatch(fingerprint, ctx.settings.media.perceptualDedup);
+          const reservation = await history.reserve(
+            fingerprint,
+            ctx.settings.media.perceptualDedup
+          );
+          historyMatch = reservation.match;
+          reservationToken = reservation.token;
           if (historyMatch) {
             await history.noteMatch(historyMatch);
             progress.duplicate += 1;
@@ -242,6 +259,10 @@ async function runTasks(
             });
             continue;
           }
+        }
+        if (control.cancelled) {
+          if (reservationToken && history) await history.release(reservationToken);
+          return;
         }
 
         const job = queue?.enqueue({ url: task.target.url, filename });
@@ -259,23 +280,40 @@ async function runTasks(
               : {}),
             filename
           });
+          if (result.deduplicated) {
+            if (reservationToken && history) {
+              await history.release(reservationToken);
+              reservationToken = null;
+            }
+            if (job) queue?.mark(job.id, "duplicate");
+            progress.duplicate += 1;
+            void ctx.auditLog.record("media.download.duplicate", {
+              source: "aria2-history",
+              batch: true
+            });
+            continue;
+          }
           if (result.pending && result.downloadId !== undefined) {
             // A batch reports handoffs -- waiting for each transfer in turn would turn a
             // two-hundred-file run into a serial one. The queue and the duplicate index still
             // report outcomes: both are settled when the browser says what happened, so an
             // interrupted transfer never becomes a history entry that refuses the retry.
             const jobId = job?.id;
+            const activeReservation = reservationToken;
+            reservationToken = null;
             void sharedDownloadWatcher()
               .wait(result.downloadId)
               .then(async (terminal) => {
                 if (terminal === "complete") {
                   if (jobId) queue?.mark(jobId, "completed");
                   if (ctx.settings.media.downloadHistory && history) {
-                    await history.record(fingerprint);
+                    if (activeReservation) await history.commit(activeReservation, fingerprint);
+                    else await history.record(fingerprint);
                   }
                   return;
                 }
                 if (terminal === "interrupted") {
+                  if (activeReservation && history) await history.release(activeReservation);
                   if (jobId) queue?.mark(jobId, "failed", "the browser interrupted this transfer");
                   ctx.diagnostics.warn("Batch media transfer was interrupted", {
                     filename,
@@ -289,12 +327,21 @@ async function runTasks(
           } else {
             if (job) queue?.mark(job.id, "completed");
             if (ctx.settings.media.downloadHistory && history) {
-              await history.record(fingerprint);
+              if (reservationToken) {
+                await history.commit(reservationToken, fingerprint);
+                reservationToken = null;
+              } else {
+                await history.record(fingerprint);
+              }
             }
           }
           progress.downloaded += 1;
           void ctx.auditLog.record("media.download", { filename, kind: task.media.kind, via: result.via, batch: true });
         } catch (error) {
+          if (reservationToken && history) {
+            await history.release(reservationToken);
+            reservationToken = null;
+          }
           if (job) queue?.mark(job.id, "failed", String((error as Error)?.message ?? error));
           progress.failed += 1;
           if (error instanceof DownloadPermissionError) {

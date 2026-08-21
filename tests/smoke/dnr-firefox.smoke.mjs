@@ -183,14 +183,18 @@ async function main() {
       // process cleanup below is authoritative
     }
     try {
+      await bidi?.must("session.end", {});
+    } catch {
+      // A failed smoke assertion can close the session first.
+    }
+    try {
       bidi?.socket.close();
     } catch {
       // already closed
     }
-    firefoxProcess?.kill();
+    await stopProcess(firefoxProcess);
     await closeServer(proxy?.server);
-    await delay(350);
-    await rm(tempRoot, { recursive: true, force: true });
+    await rm(tempRoot, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
   }
 }
 
@@ -600,6 +604,13 @@ function closeServer(server) {
     }
     server.close(resolve);
   });
+}
+
+async function stopProcess(child) {
+  if (!child || child.exitCode !== null || child.signalCode !== null) return;
+  const exited = new Promise((resolve) => child.once("exit", resolve));
+  child.kill();
+  await Promise.race([exited, delay(5_000)]);
 }
 
 function delay(milliseconds) {

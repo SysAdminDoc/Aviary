@@ -153,7 +153,8 @@ test("MediaHistory matches exact bytes, X identities, and opt-in visual similari
   assert.deepEqual(snapshot.matches, { identity: 1, exact: 1, perceptual: 1 });
   assert.equal(snapshot.lastMatch.kind, "perceptual");
   const stored = store.get(MEDIA_HISTORY_KEY);
-  assert.equal(stored.schemaVersion, 2);
+  assert.equal(stored.schemaVersion, 3);
+  assert.deepEqual(stored.reservations, []);
   assert.ok(stored.entries.every((entry) => !Object.hasOwn(entry, "key")));
   assert.ok(stored.entries.every((entry) => !JSON.stringify(entry).includes("twimg.com")));
 });
@@ -189,11 +190,49 @@ test("fingerprintMediaDownload hashes the bytes returned by the media host", asy
   }
 });
 
-test("MediaHistory repairs a malformed current-version snapshot", async () => {
+test("fingerprinting uses one short budget for every fallback candidate", async () => {
+  const { fingerprintMediaDownload, MEDIA_FINGERPRINT_TIMEOUT_MS } = await importBundledModule(
+    "src/features/media/downloader.ts"
+  );
+  assert.ok(MEDIA_FINGERPRINT_TIMEOUT_MS <= 2_000);
+  const originalFetch = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = async (_url, init) => {
+    requests += 1;
+    return await new Promise((_resolve, reject) => {
+      init.signal.addEventListener("abort", () => reject(init.signal.reason), { once: true });
+    });
+  };
+  try {
+    const startedAt = Date.now();
+    const fingerprint = await fingerprintMediaDownload({
+      kind: "photo",
+      url: "https://pbs.twimg.com/media/stalled-one?format=jpg&name=orig",
+      fallbackUrls: [
+        "https://pbs.twimg.com/media/stalled-two?format=jpg&name=orig",
+        "https://pbs.twimg.com/media/stalled-three?format=jpg&name=orig"
+      ],
+      mediaId: null,
+      includePerceptual: false,
+      timeoutMs: 20
+    });
+    assert.ok(Date.now() - startedAt < 200, "a fingerprint miss must not delay the save path");
+    assert.equal(requests, 1, "a spent total budget must not restart for every fallback");
+    assert.equal(fingerprint.exactHash, undefined);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("MediaHistory repairs malformed entries and reservations in a current-version snapshot", async () => {
   const { MediaHistory, MEDIA_HISTORY_KEY } = await importBundledModule(
     "src/features/media/history.ts"
   );
-  const store = new Map([[MEDIA_HISTORY_KEY, { schemaVersion: 2, entries: "broken" }]]);
+  const store = new Map([[MEDIA_HISTORY_KEY, {
+    schemaVersion: 3,
+    entries: [null, "broken", 4],
+    reservations: [{ token: "a".repeat(64), identityHash: "b".repeat(64) }]
+  }]]);
   const storage = {
     async get(key, fallback) {
       return store.has(key) ? structuredClone(store.get(key)) : fallback;
@@ -211,8 +250,9 @@ test("MediaHistory repairs a malformed current-version snapshot", async () => {
 
   assert.equal(history.size(), 0);
   assert.deepEqual(store.get(MEDIA_HISTORY_KEY), {
-    schemaVersion: 2,
+    schemaVersion: 3,
     entries: [],
+    reservations: [],
     matches: { identity: 0, exact: 0, perceptual: 0 },
     lastMatch: null
   });

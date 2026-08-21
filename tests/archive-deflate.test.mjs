@@ -240,6 +240,47 @@ test("archive repair expands only known links and labels known or unresolved par
   }
 });
 
+test("archive repair ignores malformed and non-GraphQL checkpoint evidence", async () => {
+  const { ArchiveRepairIndex } = await importBundledModule(
+    "src/features/library/archive-repair.ts"
+  );
+  const index = new ArchiveRepairIndex([
+    { surface: null, text: "{broken" },
+    {
+      surface: "archive",
+      text: "ordinary checkpoint",
+      expandedUrls: [{
+        shortUrl: "https://t.co/poison",
+        destination: "https://stale.example/wrong",
+        source: "local-corpus"
+      }]
+    }
+  ]);
+  const records = [{
+    tweetId: "repair-boundary",
+    handle: null,
+    displayName: null,
+    text: "Keep https://t.co/poison",
+    capturedAt: "2026-08-21T00:00:00.000Z",
+    surface: "archive.tweets",
+    media: [],
+    permalink: null
+  }];
+  const collections = {
+    profile: null,
+    account: null,
+    directMessages: [],
+    media: [],
+    followers: [],
+    following: [],
+    lists: []
+  };
+
+  const summary = index.repair(records, collections);
+  assert.equal(records[0].text, "Keep https://t.co/poison");
+  assert.equal(summary.corpusLinksExpanded, 0);
+});
+
 test("official archive collection files are classified, typed, and reported before commit", async () => {
   const { importOfficialArchive } = await importBundledModule(
     "src/features/library/archive-import.ts"
@@ -510,6 +551,53 @@ test("typed archive collections persist separately from searchable tweet records
   assert.equal(reloaded.snapshot().directMessages[0].text, "private");
   assert.equal(reloaded.snapshot().directMessages[0].sender.label, "Unresolved user ID 43");
   assert.equal(reloaded.snapshot().directMessages[0].recipients[0].label, "Unresolved user ID 99");
+});
+
+test("a reimport replaces stale participant repairs for the same direct message", async () => {
+  const { ArchiveLibraryStore } = await importBundledModule(
+    "src/features/library/archive-library.ts"
+  );
+  const persisted = new Map();
+  const storage = {
+    async get(key, fallback) {
+      return persisted.has(key) ? structuredClone(persisted.get(key)) : structuredClone(fallback);
+    },
+    async set(key, value) {
+      persisted.set(key, structuredClone(value));
+    }
+  };
+  const message = (handle) => ({
+    id: "message-repair-1",
+    conversationId: "43-99",
+    senderId: "43",
+    recipientIds: ["99"],
+    text: "private",
+    createdAt: null,
+    mediaUrls: [],
+    sender: { id: "43", handle, label: `@${handle} (user ID 43)` },
+    recipients: [{ id: "99", handle: null, label: "Unresolved user ID 99" }]
+  });
+  const collections = (handle) => ({
+    profile: null,
+    account: null,
+    directMessages: [message(handle)],
+    media: [],
+    followers: [],
+    following: [],
+    lists: []
+  });
+  const store = new ArchiveLibraryStore(storage);
+
+  await store.merge(collections("stale_handle"), "archive-old");
+  await store.merge(collections("archive_handle"), "archive-new", {
+    archiveLinksExpanded: 0,
+    corpusLinksExpanded: 0,
+    participantIdsResolved: 1,
+    participantIdsUnresolved: 1
+  });
+
+  assert.equal(store.snapshot().directMessages[0].sender.handle, "archive_handle");
+  assert.equal(store.snapshot().lastRepair.participantIdsResolved, 1);
 });
 
 test("typed archive collection writes do not mutate the live snapshot when persistence fails", async () => {

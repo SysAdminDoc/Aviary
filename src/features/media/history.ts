@@ -11,12 +11,20 @@ import {
 
 export const MEDIA_HISTORY_KEY = "aviary.media.history.v1";
 export const MEDIA_HISTORY_LIMIT = 1500;
+export const MEDIA_HISTORY_RESERVATION_TTL_MS = 10 * 60 * 1000;
+const MEDIA_HISTORY_RESERVATION_LIMIT = 128;
 
 export interface MediaHistoryEntry {
   identityHash: string;
   exactHash?: string;
   perceptualHash?: string;
   at: string;
+}
+
+export interface MediaHistoryReservation extends MediaFingerprint {
+  token: string;
+  at: string;
+  expiresAt: number;
 }
 
 export type MediaMatchKind = "identity" | "exact" | "perceptual";
@@ -33,10 +41,16 @@ export interface MediaHistoryLastMatch {
 }
 
 export interface MediaHistorySnapshot {
-  schemaVersion: 2;
+  schemaVersion: 3;
   entries: MediaHistoryEntry[];
+  reservations: MediaHistoryReservation[];
   matches: MediaHistoryMatchSummary;
   lastMatch: MediaHistoryLastMatch | null;
+}
+
+export interface MediaHistoryReservationResult {
+  match: MediaMatchKind | null;
+  token: string | null;
 }
 
 /**
@@ -51,8 +65,7 @@ export class MediaHistory {
   readonly #limit: number;
   readonly #onPersistError: PersistErrorSink | undefined;
   #entries: MediaHistoryEntry[] = [];
-  #identityIndex = new Set<string>();
-  #exactIndex = new Set<string>();
+  #reservations: MediaHistoryReservation[] = [];
   #matches: MediaHistoryMatchSummary = emptyMatches();
   #lastMatch: MediaHistoryLastMatch | null = null;
   #loaded = false;
@@ -79,29 +92,17 @@ export class MediaHistory {
   }
 
   has(key: string): boolean {
-    return this.#identityIndex.has(legacyIdentityHash(key));
+    return this.findMatch({ identityHash: legacyIdentityHash(key) }, false) !== null;
   }
 
   findMatch(fingerprint: MediaFingerprint, allowPerceptual = false): MediaMatchKind | null {
     const candidate = normalizeFingerprint(fingerprint);
-    if (candidate.exactHash && this.#exactIndex.has(candidate.exactHash)) {
-      return "exact";
-    }
-    if (this.#identityIndex.has(candidate.identityHash)) {
-      return "identity";
-    }
-    if (allowPerceptual && candidate.perceptualHash) {
-      for (const entry of this.#entries) {
-        if (
-          entry.perceptualHash &&
-          hexadecimalHammingDistance(entry.perceptualHash, candidate.perceptualHash) <=
-            PERCEPTUAL_MATCH_DISTANCE
-        ) {
-          return "perceptual";
-        }
-      }
-    }
-    return null;
+    return findFingerprintMatch(
+      this.#entries,
+      activeReservations(this.#reservations),
+      candidate,
+      allowPerceptual
+    );
   }
 
   async record(fingerprintOrLegacyKey: MediaFingerprint | string): Promise<boolean> {
@@ -110,35 +111,121 @@ export class MediaHistory {
       typeof fingerprintOrLegacyKey === "string"
         ? { identityHash: legacyIdentityHash(fingerprintOrLegacyKey) }
         : normalizeFingerprint(fingerprintOrLegacyKey);
-    if (this.findMatch(fingerprint, false)) {
+    const entry: MediaHistoryEntry = { ...fingerprint, at: new Date().toISOString() };
+    return (await this.#persist({ added: [entry] })) > 0;
+  }
+
+  /** Atomically claims a fingerprint so two tabs cannot start the same transfer. */
+  async reserve(
+    fingerprint: MediaFingerprint,
+    allowPerceptual = false
+  ): Promise<MediaHistoryReservationResult> {
+    await this.load();
+    const candidate = normalizeFingerprint(fingerprint);
+    const now = Date.now();
+    const reservation: MediaHistoryReservation = {
+      ...candidate,
+      token: reservationToken(candidate, now),
+      at: new Date(now).toISOString(),
+      expiresAt: now + MEDIA_HISTORY_RESERVATION_TTL_MS
+    };
+    let result: MediaHistoryReservationResult = { match: null, token: reservation.token };
+    try {
+      const merged = await mutateStored<MediaHistorySnapshot | LegacyMediaHistorySnapshot>(
+        this.#storage,
+        MEDIA_HISTORY_KEY,
+        emptySnapshot(),
+        (stored) => {
+          const entries = readEntries(stored);
+          const reservations = readReservations(stored, now);
+          const match = findFingerprintMatch(entries, reservations, candidate, allowPerceptual);
+          if (match) {
+            result = { match, token: null };
+          } else {
+            reservations.push(reservation);
+          }
+          return snapshotFrom(stored, entries, reservations, this.#limit);
+        }
+      );
+      this.#adopt(merged);
+      return result;
+    } catch (error) {
+      this.#onPersistError?.(error);
+      const match = this.findMatch(candidate, allowPerceptual);
+      if (match) return { match, token: null };
+      this.#reservations.push(reservation);
+      this.#reservations = activeReservations(this.#reservations).slice(-MEDIA_HISTORY_RESERVATION_LIMIT);
+      return result;
+    }
+  }
+
+  /** Turns a successful in-flight claim into durable completed history. */
+  async commit(token: string, fingerprint: MediaFingerprint): Promise<boolean> {
+    await this.load();
+    if (!validToken(token)) return false;
+    const candidate = normalizeFingerprint(fingerprint);
+    const entry: MediaHistoryEntry = { ...candidate, at: new Date().toISOString() };
+    let added = false;
+    try {
+      const merged = await mutateStored<MediaHistorySnapshot | LegacyMediaHistorySnapshot>(
+        this.#storage,
+        MEDIA_HISTORY_KEY,
+        emptySnapshot(),
+        (stored) => {
+          const entries = readEntries(stored);
+          const reservations = readReservations(stored).filter((item) => item.token !== token);
+          if (!findFingerprintMatch(entries, [], candidate, false)) {
+            mergeEntry(entries, entry);
+            added = true;
+          }
+          return snapshotFrom(stored, entries, reservations, this.#limit);
+        }
+      );
+      this.#adopt(merged);
+      return added;
+    } catch (error) {
+      this.#onPersistError?.(error);
+      this.#reservations = this.#reservations.filter((item) => item.token !== token);
+      if (!findFingerprintMatch(this.#entries, [], candidate, false)) {
+        mergeEntry(this.#entries, entry);
+        return true;
+      }
       return false;
     }
-    const entry: MediaHistoryEntry = { ...fingerprint, at: new Date().toISOString() };
-    this.#identityIndex.add(entry.identityHash);
-    if (entry.exactHash) this.#exactIndex.add(entry.exactHash);
-    this.#entries.push(entry);
-    while (this.#entries.length > this.#limit) {
-      const removed = this.#entries.shift();
-      if (removed) {
-        this.#rebuildIndexes();
-      }
+  }
+
+  /** Releases a failed transfer claim so a retry can start immediately. */
+  async release(token: string): Promise<void> {
+    await this.load();
+    if (!validToken(token)) return;
+    try {
+      const merged = await mutateStored<MediaHistorySnapshot | LegacyMediaHistorySnapshot>(
+        this.#storage,
+        MEDIA_HISTORY_KEY,
+        emptySnapshot(),
+        (stored) => snapshotFrom(
+          stored,
+          readEntries(stored),
+          readReservations(stored).filter((item) => item.token !== token),
+          this.#limit
+        )
+      );
+      this.#adopt(merged);
+    } catch (error) {
+      this.#onPersistError?.(error);
+      this.#reservations = this.#reservations.filter((item) => item.token !== token);
     }
-    await this.#persist({ added: [entry] });
-    return true;
   }
 
   async noteMatch(kind: MediaMatchKind): Promise<void> {
     await this.load();
     const match = { kind, at: new Date().toISOString() } satisfies MediaHistoryLastMatch;
-    this.#matches = { ...this.#matches, [kind]: this.#matches[kind] + 1 };
-    this.#lastMatch = match;
     await this.#persist({ matched: match });
   }
 
   async clear(): Promise<void> {
     this.#entries = [];
-    this.#identityIndex.clear();
-    this.#exactIndex.clear();
+    this.#reservations = [];
     this.#matches = emptyMatches();
     this.#lastMatch = null;
     this.#loaded = true;
@@ -156,8 +243,9 @@ export class MediaHistory {
 
   snapshot(): MediaHistorySnapshot {
     return {
-      schemaVersion: 2,
+      schemaVersion: 3,
       entries: this.#entries.map((entry) => ({ ...entry })),
+      reservations: activeReservations(this.#reservations).map((entry) => ({ ...entry })),
       matches: { ...this.#matches },
       lastMatch: this.#lastMatch ? { ...this.#lastMatch } : null
     };
@@ -169,9 +257,9 @@ export class MediaHistory {
       emptySnapshot()
     );
     this.#entries = readEntries(stored).slice(-this.#limit);
+    this.#reservations = readReservations(stored);
     this.#matches = readMatches(stored);
     this.#lastMatch = readLastMatch(stored);
-    this.#rebuildIndexes();
     this.#loaded = true;
     if (!isCurrentSnapshot(stored)) {
       await this.#persist({});
@@ -188,7 +276,8 @@ export class MediaHistory {
   async #persist(delta: {
     added?: MediaHistoryEntry[];
     matched?: MediaHistoryLastMatch;
-  }): Promise<void> {
+  }): Promise<number> {
+    let added = 0;
     try {
       const merged = await mutateStored<MediaHistorySnapshot | LegacyMediaHistorySnapshot>(
         this.#storage,
@@ -196,10 +285,13 @@ export class MediaHistory {
         emptySnapshot(),
         (stored) => {
           const entries = readEntries(stored);
+          const reservations = readReservations(stored);
           // Only this call's entry. Folding the whole local list in would undo a
           // "Clear download history" performed in another tab.
           for (const entry of delta.added ?? []) {
+            if (findFingerprintMatch(entries, reservations, entry, false)) continue;
             mergeEntry(entries, entry);
+            added += 1;
           }
           const ordered = entries.sort((left, right) =>
             left.at < right.at ? -1 : left.at > right.at ? 1 : 0
@@ -214,28 +306,27 @@ export class MediaHistory {
               ? delta.matched
               : storedLastMatch;
           return {
-            schemaVersion: 2,
+            schemaVersion: 3,
             entries: ordered.slice(-this.#limit),
+            reservations: reservations.slice(-MEDIA_HISTORY_RESERVATION_LIMIT),
             matches,
             lastMatch
           };
         }
       );
-      this.#entries = readEntries(merged);
-      this.#matches = readMatches(merged);
-      this.#lastMatch = readLastMatch(merged);
-      this.#rebuildIndexes();
+      this.#adopt(merged);
     } catch (error) {
       // Best-effort, but not silent: a full backend must be visible somewhere.
       this.#onPersistError?.(error);
     }
+    return added;
   }
 
-  #rebuildIndexes(): void {
-    this.#identityIndex = new Set(this.#entries.map((entry) => entry.identityHash));
-    this.#exactIndex = new Set(
-      this.#entries.flatMap((entry) => entry.exactHash ? [entry.exactHash] : [])
-    );
+  #adopt(snapshot: MediaHistorySnapshot | LegacyMediaHistorySnapshot): void {
+    this.#entries = readEntries(snapshot).slice(-this.#limit);
+    this.#reservations = readReservations(snapshot);
+    this.#matches = readMatches(snapshot);
+    this.#lastMatch = readLastMatch(snapshot);
   }
 }
 
@@ -246,7 +337,7 @@ function readEntries(
   const entries = Array.isArray(stored?.entries) ? stored.entries : [];
   const normalized: MediaHistoryEntry[] = [];
   for (const candidate of entries) {
-    if (!candidate || typeof candidate.at !== "string") continue;
+    if (!candidate || typeof candidate !== "object" || typeof candidate.at !== "string") continue;
     if ("identityHash" in candidate && validHash(candidate.identityHash)) {
       const exactHash = validHash(candidate.exactHash) ? candidate.exactHash.toLowerCase() : undefined;
       const perceptualHash = validHash(candidate.perceptualHash)
@@ -277,13 +368,77 @@ interface LegacyMediaHistoryEntry {
 
 interface LegacyMediaHistorySnapshot {
   entries: Array<MediaHistoryEntry | LegacyMediaHistoryEntry>;
+  reservations?: unknown;
   matches?: Partial<MediaHistoryMatchSummary>;
   lastMatch?: MediaHistoryLastMatch | null;
   schemaVersion?: number;
 }
 
 function emptySnapshot(): MediaHistorySnapshot {
-  return { schemaVersion: 2, entries: [], matches: emptyMatches(), lastMatch: null };
+  return {
+    schemaVersion: 3,
+    entries: [],
+    reservations: [],
+    matches: emptyMatches(),
+    lastMatch: null
+  };
+}
+
+function readReservations(
+  stored: MediaHistorySnapshot | LegacyMediaHistorySnapshot | undefined,
+  now = Date.now()
+): MediaHistoryReservation[] {
+  const candidates = Array.isArray(stored?.reservations) ? stored.reservations : [];
+  const reservations: MediaHistoryReservation[] = [];
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate !== "object") continue;
+    const value = candidate as Partial<MediaHistoryReservation>;
+    if (
+      !validToken(value.token) ||
+      !validHash(value.identityHash) ||
+      typeof value.at !== "string" ||
+      typeof value.expiresAt !== "number" ||
+      !Number.isFinite(value.expiresAt) ||
+      value.expiresAt <= now
+    ) {
+      continue;
+    }
+    reservations.push({
+      token: value.token,
+      identityHash: value.identityHash.toLowerCase(),
+      ...(validHash(value.exactHash) ? { exactHash: value.exactHash.toLowerCase() } : {}),
+      ...(validHash(value.perceptualHash)
+        ? { perceptualHash: value.perceptualHash.toLowerCase() }
+        : {}),
+      at: value.at,
+      expiresAt: Math.trunc(value.expiresAt)
+    });
+  }
+  return reservations.slice(-MEDIA_HISTORY_RESERVATION_LIMIT);
+}
+
+function activeReservations(
+  reservations: readonly MediaHistoryReservation[],
+  now = Date.now()
+): MediaHistoryReservation[] {
+  return reservations.filter((entry) => entry.expiresAt > now);
+}
+
+function snapshotFrom(
+  stored: MediaHistorySnapshot | LegacyMediaHistorySnapshot,
+  entries: MediaHistoryEntry[],
+  reservations: MediaHistoryReservation[],
+  limit: number
+): MediaHistorySnapshot {
+  return {
+    schemaVersion: 3,
+    entries: entries
+      .sort((left, right) => left.at < right.at ? -1 : left.at > right.at ? 1 : 0)
+      .slice(-limit),
+    reservations: activeReservations(reservations).slice(-MEDIA_HISTORY_RESERVATION_LIMIT),
+    matches: readMatches(stored),
+    lastMatch: readLastMatch(stored)
+  };
 }
 
 function emptyMatches(): MediaHistoryMatchSummary {
@@ -353,10 +508,68 @@ function legacyIdentityHash(key: string): string {
 }
 
 function isCurrentSnapshot(stored: MediaHistorySnapshot | LegacyMediaHistorySnapshot): boolean {
-  return stored.schemaVersion === 2 && Array.isArray(stored.entries) && stored.entries.every((entry) =>
-    typeof entry === "object" && entry !== null &&
-    "identityHash" in entry && validHash(entry.identityHash) && !("key" in entry)
-  );
+  const now = Date.now();
+  return stored.schemaVersion === 3 &&
+    Array.isArray(stored.entries) &&
+    Array.isArray(stored.reservations) &&
+    stored.entries.every((entry) =>
+      typeof entry === "object" && entry !== null &&
+      "identityHash" in entry && validHash(entry.identityHash) && !("key" in entry)
+    ) &&
+    stored.reservations.every((entry) => isActiveStoredReservation(entry, now));
+}
+
+function isActiveStoredReservation(value: unknown, now: number): boolean {
+  if (!value || typeof value !== "object") return false;
+  const entry = value as Partial<MediaHistoryReservation>;
+  return validToken(entry.token) &&
+    validHash(entry.identityHash) &&
+    (entry.exactHash === undefined || validHash(entry.exactHash)) &&
+    (entry.perceptualHash === undefined || validHash(entry.perceptualHash)) &&
+    typeof entry.at === "string" &&
+    typeof entry.expiresAt === "number" &&
+    Number.isFinite(entry.expiresAt) &&
+    entry.expiresAt > now;
+}
+
+function findFingerprintMatch(
+  entries: readonly MediaFingerprint[],
+  reservations: readonly MediaFingerprint[],
+  fingerprint: MediaFingerprint,
+  allowPerceptual: boolean
+): MediaMatchKind | null {
+  const candidates = [...entries, ...reservations];
+  if (fingerprint.exactHash && candidates.some((entry) => entry.exactHash === fingerprint.exactHash)) {
+    return "exact";
+  }
+  if (candidates.some((entry) => entry.identityHash === fingerprint.identityHash)) {
+    return "identity";
+  }
+  if (allowPerceptual && fingerprint.perceptualHash) {
+    for (const entry of candidates) {
+      if (
+        entry.perceptualHash &&
+        hexadecimalHammingDistance(entry.perceptualHash, fingerprint.perceptualHash) <=
+          PERCEPTUAL_MATCH_DISTANCE
+      ) {
+        return "perceptual";
+      }
+    }
+  }
+  return null;
+}
+
+let reservationSequence = 0;
+
+function reservationToken(fingerprint: MediaFingerprint, now: number): string {
+  reservationSequence += 1;
+  return sha256Hex(new TextEncoder().encode(
+    `${fingerprint.exactHash ?? fingerprint.identityHash}:${now}:${reservationSequence}:${Math.random()}`
+  ));
+}
+
+function validToken(value: unknown): value is string {
+  return typeof value === "string" && /^[0-9a-f]{64}$/i.test(value);
 }
 
 function validHash(value: unknown): value is string {

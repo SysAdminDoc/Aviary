@@ -59,7 +59,7 @@ schema, migration, usage, and quota status.
 | `aviary.adObservations.v1` | Which ad markers were present on a route, as counts, no post content | Notice when X changes its ad markup; bounded to 64 entries and 30 days. |
 | `aviary.diagnostics.v1` | Aviary's own warning and error text, the time, and the *names* of a message's detail fields, never their values | Let a failure from an earlier page load still be reportable; bounded to 50 entries and 7 days; clearable from Trust. |
 | `aviary.firstRun.v1` | A single flag recording that the first-run notice was dismissed | Stop showing the notice again on this profile. |
-| `aviary.media.history.v1` | Bounded media dedup records | Avoid duplicate downloads; **Clear download history** removes them. |
+| `aviary.media.history.v1` | Bounded media dedup records and short-lived hashed in-flight claims | Avoid duplicate downloads across tabs; failed claims expire or are removed, and **Clear download history** removes all of them. |
 | `aviary.media.queue.v1` | Queued, paused, failed, and completed media jobs | Resume/retry media work; completed history is separately clearable. |
 | `aviary.media.last-download.v1` | Metadata for the last successful download | Make an explicitly enabled crosspost-media attachment possible. |
 | `aviary.audit.v1` | Capped local action log | Review activity; **Clear audit log** removes it. |

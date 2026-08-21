@@ -139,12 +139,17 @@ function normalizeSnapshot(value: unknown): ArchiveLibrarySnapshot {
 
 function mergeByKey<T>(current: T[], incoming: T[], key: (entry: T) => string): T[] {
   const result = [...current];
-  const seen = new Set(current.map(key));
+  const positions = new Map(result.map((entry, index) => [key(entry), index]));
   for (const entry of incoming) {
     const identity = key(entry);
-    if (seen.has(identity)) continue;
-    seen.add(identity);
-    result.push(entry);
+    const position = positions.get(identity);
+    if (position === undefined) {
+      positions.set(identity, result.length);
+      result.push(entry);
+    } else {
+      // A selected archive is newer evidence than the copy already persisted for this key.
+      result[position] = entry;
+    }
   }
   return result.slice(-10_000);
 }
