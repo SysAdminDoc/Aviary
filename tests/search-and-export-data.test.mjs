@@ -126,6 +126,47 @@ test("semantic embeddings require finite, non-empty, dimension-consistent vector
   }
 });
 
+test("semantic query refusal happens before any provider request", async () => {
+  const { SemanticIndex } = await importBundledModule(
+    "src/features/integrations/semantic-search.ts"
+  );
+  const storage = {
+    async get(_key, _fallback) {
+      return {
+        model: "m",
+        entries: [{
+          id: "1:stored",
+          tweetId: "1",
+          handle: "alice",
+          text: "stored locally",
+          vector: [1, 0],
+          embeddedAt: "2026-08-21T00:00:00.000Z"
+        }]
+      };
+    },
+    async set() {}
+  };
+  const originalFetch = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = async () => {
+    requests += 1;
+    throw new Error("provider request must not run");
+  };
+  try {
+    const index = new SemanticIndex(storage);
+    const hits = await index.search(
+      { enabled: true, endpoint: "https://embed.test", apiKey: "k", model: "m", autoIndex: false },
+      "stored",
+      10,
+      { allowProviderRequest: false }
+    );
+    assert.deepEqual(hits, []);
+    assert.equal(requests, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("exports never carry a blob: URL that only meant something in the capturing tab", async () => {
   const { renderForExternalTarget } = await importBundledModule(
     "src/features/export/external-targets.ts"

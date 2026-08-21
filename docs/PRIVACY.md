@@ -23,12 +23,15 @@ These are the only Aviary-triggered network paths:
 | Aria2 handoff | When enabled, configured, and the media meets the threshold | Your configured JSON-RPC endpoint; the media URL, filename, and optional RPC secret are sent. |
 | Bluesky / Mastodon | After you click the corresponding crosspost action | Your configured service; composer text, thread metadata, and optionally the last downloaded media when attachment is enabled. |
 | AI provider | When AI runs is enabled, you review the disclosure, and you send a provider-backed command | Your configured endpoint; the prompt built from the selected post and configured system text. The review shows fields, character/token estimate, retention notice, network status, and byte budget. |
-| Semantic search | When you rebuild the index, search semantically, or enable auto-embedding | Your configured embeddings endpoint; the model and record text sent for each embedding request. The Control Center shows the destination, fields, retention notice, and byte budget before auto-indexing. |
+| Semantic search | When you rebuild the index, explicitly add semantic ranking to a query, or enable auto-embedding | Your configured embeddings endpoint; the model and record text sent for each embedding request. The Control Center shows the destination, fields, retention notice, and byte budget before auto-indexing. |
 | Analytics refusal | When beacon blocking is enabled | No new destination; matching analytics beacons are intercepted before they leave the page. |
 
 Every integration is disabled by default and requires an explicit setting, endpoint/credential,
 and (for actions) a user gesture. Local prompt building works without an AI key. The options page
 grant/revoke controls are local extension UI and do not send data.
+
+Library text ranking, including exact-handle and quoted-phrase matching, never makes a request.
+Local-only mode returns those text results before the semantic query path can contact a provider.
 
 The extension's required permissions are `storage` and
 `declarativeNetRequestWithHostAccess`. The latter is bounded by the existing X/Twitter host list

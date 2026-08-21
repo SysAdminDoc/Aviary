@@ -203,6 +203,63 @@ test("semantic search ignores results that belong to an older query", async () =
   assert.doesNotMatch(result, /stale result/);
 });
 
+test("library search labels the ranking signals used for each result", async () => {
+  const result = await page.evaluate(async () => {
+    document.body.replaceChildren();
+    const settings = AviaryActions.cloneSettings(AviaryActions.DEFAULT_SETTINGS);
+    const hitDocument = {
+      id: "record:42",
+      collection: "posts",
+      account: "alice",
+      text: "Local archive workflow",
+      tags: [],
+      folder: null,
+      capturedAt: "2026-08-21T00:00:00.000Z",
+      mediaCount: 0
+    };
+    const panel = AviaryActions.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: () => {},
+      offlineSearch: () => [{
+        document: hitDocument,
+        score: 1,
+        matchedTerms: ["archive"],
+        snippet: hitDocument.text,
+        mode: "lexical"
+      }],
+      offlineSemanticSearch: async () => [{
+        document: hitDocument,
+        score: 1,
+        matchedTerms: ["archive"],
+        snippet: hitDocument.text,
+        mode: "hybrid"
+      }]
+    });
+    const shadow = document.querySelector("#av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    shadow.querySelector('[data-av-section="library"]').click();
+    const input = [...shadow.querySelectorAll('input[type="search"]')].find((candidate) =>
+      candidate.placeholder.startsWith("Search local library")
+    );
+    const toggle = shadow.querySelector('input[aria-label="Use semantic ranking (optional)"]');
+    input.value = "archive";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const lexical = input.closest(".av-row").querySelector(".av-search-results").textContent;
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event("change", { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const hybrid = input.closest(".av-row").querySelector(".av-search-results").textContent;
+    panel.destroy();
+    return { lexical, hybrid };
+  });
+
+  assert.match(result.lexical, /Text match/);
+  assert.match(result.hybrid, /Text \+ semantic match/);
+});
+
 test("snapshot capture and clear refresh the count while preserving action focus", async () => {
   const result = await page.evaluate(async () => {
     document.body.replaceChildren();

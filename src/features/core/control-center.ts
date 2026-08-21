@@ -102,7 +102,10 @@ import {
   documentFromSemanticEntry,
   documentFromSnapshot,
   documentsFromArchiveLibrary,
+  fuseOfflineHits,
+  hasOfflineQueryFilters,
   OfflineQueryIndex,
+  parseOfflineQuery,
   type OfflineQueryHit
 } from "../library/query-model";
 import { getMediaHistory, getMediaQueue } from "../media/media-buttons";
@@ -510,19 +513,35 @@ export const controlCenterFeature: FeatureModule = {
         return searchOfflineLibrary(query);
       },
       async offlineSemanticSearch(query) {
-        if (!semanticIndex) return [];
+        const lexicalHits = searchOfflineLibrary(query, 60);
+        const parsed = parseOfflineQuery(query);
+        if (
+          !semanticIndex ||
+          semanticIndex.size() === 0 ||
+          isLocalOnly() ||
+          parsed.errors.length > 0 ||
+          parsed.terms.length === 0
+        ) {
+          return lexicalHits.slice(0, 30);
+        }
         const hits = await semanticIndex.search(
           ctx.settings.integrations.semanticSearch,
-          query,
-          30
+          parsed.text,
+          60,
+          { allowProviderRequest: true }
         );
-        return hits.map((hit) => ({
+        if (hits.length === 0) return lexicalHits.slice(0, 30);
+        const semanticHits = hits.map((hit) => ({
           document: documentFromSemanticEntry(hit.entry),
           score: hit.score,
           matchedTerms: [],
           snippet: hit.entry.text.slice(0, 220),
           mode: "semantic" as const
         }));
+        return fuseOfflineHits(lexicalHits, semanticHits, {
+          limit: 30,
+          includeSemanticOnly: parsed.phrases.length === 0 && !hasOfflineQueryFilters(parsed.filters)
+        });
       },
       async updateBookmark(id, input) {
         const entry = await updateBookmark(id, input);
@@ -1210,11 +1229,11 @@ function rebuildSearchIndex(): void {
   searchIndex.rebuild(collectAllRecords(store));
 }
 
-function searchOfflineLibrary(query: string): OfflineQueryHit[] {
+function searchOfflineLibrary(query: string, limit = 30): OfflineQueryHit[] {
   const index = new OfflineQueryIndex();
   const documents = collectOfflineDocuments();
   index.rebuild(documents);
-  return index.search(query, { limit: 30 });
+  return index.search(query, { limit });
 }
 
 function collectOfflineDocuments() {
@@ -1222,7 +1241,6 @@ function collectOfflineDocuments() {
   documents.push(...getBookmarks().map(documentFromBookmark));
   documents.push(...Object.entries(getUserNotes()).map(([handle, note]) => documentFromNote(handle, note)));
   documents.push(...(getSnapshotStore()?.list() ?? []).map(documentFromSnapshot));
-  documents.push(...(semanticIndex?.list() ?? []).map(documentFromSemanticEntry));
   if (archiveLibrary) {
     documents.push(...documentsFromArchiveLibrary(archiveLibrary.snapshot()));
   }

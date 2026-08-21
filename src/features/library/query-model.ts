@@ -41,6 +41,7 @@ export interface OfflineQueryFilters {
 export interface ParsedOfflineQuery {
   text: string;
   terms: string[];
+  phrases: string[];
   filters: OfflineQueryFilters;
   errors: string[];
   truncated: boolean;
@@ -51,12 +52,17 @@ export interface OfflineQueryHit {
   score: number;
   matchedTerms: string[];
   snippet: string;
-  mode: "lexical" | "semantic";
+  mode: "lexical" | "semantic" | "hybrid";
 }
 
 export interface OfflineQueryOptions {
   limit?: number;
-  mode?: "lexical" | "semantic";
+  mode?: "lexical" | "semantic" | "hybrid";
+}
+
+export interface OfflineFusionOptions {
+  limit?: number;
+  includeSemanticOnly?: boolean;
 }
 
 const EMPTY_FILTERS = (): OfflineQueryFilters => ({
@@ -94,6 +100,7 @@ export function parseOfflineQuery(input: string): ParsedOfflineQuery {
   const filters = EMPTY_FILTERS();
   const errors: string[] = [];
   const terms = [] as string[];
+  const phrases = [] as string[];
   const filterPattern = /(^|\s)(source|type|account|tag|folder|from|to|after|before|has):("([^"]*)"|([^\s]+))/giu;
   let freeText = query;
 
@@ -146,11 +153,16 @@ export function parseOfflineQuery(input: string): ParsedOfflineQuery {
     }
   }
 
+  for (const match of freeText.matchAll(/"([^"]+)"/gu)) {
+    const phrase = normalizePhrase(match[1] ?? "");
+    if (tokenizeSearchText(phrase).length > 0 && !phrases.includes(phrase)) phrases.push(phrase);
+  }
   terms.push(...tokenizeSearchText(freeText));
   if (truncated) errors.push(`query exceeds ${OFFLINE_QUERY_MAX_LENGTH} characters`);
   return {
     text: freeText.replace(/\s+/g, " ").trim(),
     terms: [...new Set(terms)],
+    phrases,
     filters,
     errors,
     truncated
@@ -159,18 +171,31 @@ export function parseOfflineQuery(input: string): ParsedOfflineQuery {
 
 export class OfflineQueryIndex {
   readonly #documents: OfflineQueryDocument[] = [];
-  readonly #tokens = new Map<string, Set<string>>();
+  readonly #tokens = new Map<string, Map<string, number>>();
+  readonly #tokenSequences = new Map<string, string[]>();
+  readonly #documentFrequencies = new Map<string, number>();
+  #totalDocumentLength = 0;
 
   rebuild(documents: readonly OfflineQueryDocument[]): void {
     this.#documents.length = 0;
     this.#tokens.clear();
+    this.#tokenSequences.clear();
+    this.#documentFrequencies.clear();
+    this.#totalDocumentLength = 0;
     for (const document of documents) this.add(document);
   }
 
   add(document: OfflineQueryDocument): void {
     const normalized = normalizeDocument(document);
+    const tokenSequence = tokenizeSearchText(searchableText(normalized));
+    const frequencies = termFrequencies(tokenSequence);
     this.#documents.push(normalized);
-    this.#tokens.set(normalized.id, new Set(tokenizeSearchText(searchableText(normalized))));
+    this.#tokens.set(normalized.id, frequencies);
+    this.#tokenSequences.set(normalized.id, tokenSequence);
+    this.#totalDocumentLength += tokenSequence.length;
+    for (const term of frequencies.keys()) {
+      this.#documentFrequencies.set(term, (this.#documentFrequencies.get(term) ?? 0) + 1);
+    }
   }
 
   size(): number {
@@ -178,26 +203,37 @@ export class OfflineQueryIndex {
   }
 
   termCount(): number {
-    const terms = new Set<string>();
-    for (const tokens of this.#tokens.values()) {
-      for (const token of tokens) terms.add(token);
-    }
-    return terms.size;
+    return this.#documentFrequencies.size;
   }
 
   search(query: string | ParsedOfflineQuery, options: OfflineQueryOptions = {}): OfflineQueryHit[] {
     const parsed = typeof query === "string" ? parseOfflineQuery(query) : query;
     if (parsed.errors.length > 0) return [];
-    if (parsed.terms.length === 0 && !hasFilter(parsed.filters)) return [];
+    if (parsed.terms.length === 0 && !hasOfflineQueryFilters(parsed.filters)) return [];
     const limit = Math.max(1, Math.min(100, options.limit ?? 50));
     const hits: OfflineQueryHit[] = [];
+    const averageDocumentLength = this.#documents.length > 0
+      ? this.#totalDocumentLength / this.#documents.length
+      : 1;
 
     for (const document of this.#documents) {
       if (!matchesFilters(document, parsed.filters)) continue;
-      const indexed = this.#tokens.get(document.id) ?? new Set<string>();
+      const indexed = this.#tokens.get(document.id) ?? new Map<string, number>();
+      const tokenSequence = this.#tokenSequences.get(document.id) ?? [];
       const matchedTerms = parsed.terms.filter((term) => indexed.has(term));
       if (parsed.terms.length > 0 && matchedTerms.length === 0) continue;
-      const score = matchedTerms.length * 2 + fieldBoost(document, parsed.terms);
+      const matchedPhrases = parsed.phrases.filter((phrase) =>
+        containsTokenSequence(tokenSequence, tokenizeSearchText(phrase))
+      );
+      if (matchedPhrases.length !== parsed.phrases.length) continue;
+      const score = bm25Score(
+        indexed,
+        matchedTerms,
+        tokenSequence.length,
+        averageDocumentLength,
+        this.#documents.length,
+        this.#documentFrequencies
+      ) + fieldBoost(document, parsed) + matchedPhrases.length * 12;
       hits.push({
         document,
         score,
@@ -215,6 +251,72 @@ export class OfflineQueryIndex {
       )
       .slice(0, limit);
   }
+}
+
+/** Merge local text and embedding ranks without making either one an exclusive search mode. */
+export function fuseOfflineHits(
+  lexicalHits: readonly OfflineQueryHit[],
+  semanticHits: readonly OfflineQueryHit[],
+  options: OfflineFusionOptions = {}
+): OfflineQueryHit[] {
+  const limit = Math.max(1, Math.min(100, options.limit ?? 50));
+  const includeSemanticOnly = options.includeSemanticOnly ?? true;
+  const fused = new Map<string, {
+    lexical: OfflineQueryHit | null;
+    semantic: OfflineQueryHit | null;
+    lexicalRank: number | null;
+    semanticRank: number | null;
+  }>();
+
+  lexicalHits.forEach((hit, index) => {
+    const key = fusionIdentity(hit.document);
+    const current = fused.get(key);
+    fused.set(key, {
+      lexical: current?.lexical ?? hit,
+      semantic: current?.semantic ?? null,
+      lexicalRank: current?.lexicalRank ?? index + 1,
+      semanticRank: current?.semanticRank ?? null
+    });
+  });
+  semanticHits.forEach((hit, index) => {
+    const key = fusionIdentity(hit.document);
+    const current = fused.get(key);
+    if (!current && !includeSemanticOnly) return;
+    fused.set(key, {
+      lexical: current?.lexical ?? null,
+      semantic: current?.semantic ?? hit,
+      lexicalRank: current?.lexicalRank ?? null,
+      semanticRank: current?.semanticRank ?? index + 1
+    });
+  });
+
+  return [...fused.values()]
+    .map((entry): OfflineQueryHit => {
+      const primary = entry.lexical ?? entry.semantic!;
+      const lexicalScore = entry.lexicalRank === null ? 0 : 1.4 / (20 + entry.lexicalRank);
+      const semanticScore = entry.semanticRank === null ? 0 : 1 / (20 + entry.semanticRank);
+      const mode = entry.lexical && entry.semantic
+        ? "hybrid"
+        : entry.semantic
+          ? "semantic"
+          : "lexical";
+      return {
+        document: primary.document,
+        score: lexicalScore + semanticScore,
+        matchedTerms: [...new Set([
+          ...(entry.lexical?.matchedTerms ?? []),
+          ...(entry.semantic?.matchedTerms ?? [])
+        ])],
+        snippet: entry.lexical?.snippet || entry.semantic?.snippet || "",
+        mode
+      };
+    })
+    .sort((a, b) =>
+      b.score - a.score ||
+      timestampValue(b.document.capturedAt) - timestampValue(a.document.capturedAt) ||
+      a.document.id.localeCompare(b.document.id)
+    )
+    .slice(0, limit);
 }
 
 export function tokenizeSearchText(value: string): string[] {
@@ -396,10 +498,15 @@ function searchableText(document: OfflineQueryDocument): string {
   return [document.text, document.account ?? "", document.collection, ...document.tags, document.folder ?? ""].join(" ");
 }
 
-function fieldBoost(document: OfflineQueryDocument, terms: readonly string[]): number {
+function fieldBoost(document: OfflineQueryDocument, query: ParsedOfflineQuery): number {
   const accountTerms = new Set(tokenizeSearchText(document.account ?? ""));
   const tagTerms = new Set(tokenizeSearchText(document.tags.join(" ")));
-  return terms.reduce((score, term) => score + (accountTerms.has(term) ? 2 : 0) + (tagTerms.has(term) ? 1 : 0), 0);
+  const fieldScore = query.terms.reduce(
+    (score, term) => score + (accountTerms.has(term) ? 4 : 0) + (tagTerms.has(term) ? 2 : 0),
+    0
+  );
+  const exactAccount = query.terms.length === 1 && document.account === query.terms[0];
+  return fieldScore + (exactAccount ? 12 : 0);
 }
 
 function matchesFilters(document: OfflineQueryDocument, filters: OfflineQueryFilters): boolean {
@@ -414,9 +521,60 @@ function matchesFilters(document: OfflineQueryDocument, filters: OfflineQueryFil
   return true;
 }
 
-function hasFilter(filters: OfflineQueryFilters): boolean {
+export function hasOfflineQueryFilters(filters: OfflineQueryFilters): boolean {
   return filters.collections.length > 0 || Boolean(filters.account || filters.tag || filters.folder) ||
     filters.from !== null || filters.to !== null || filters.hasMedia !== null;
+}
+
+function termFrequencies(tokens: readonly string[]): Map<string, number> {
+  const frequencies = new Map<string, number>();
+  for (const token of tokens) frequencies.set(token, (frequencies.get(token) ?? 0) + 1);
+  return frequencies;
+}
+
+function bm25Score(
+  frequencies: ReadonlyMap<string, number>,
+  matchedTerms: readonly string[],
+  documentLength: number,
+  averageDocumentLength: number,
+  documentCount: number,
+  documentFrequencies: ReadonlyMap<string, number>
+): number {
+  const k1 = 1.2;
+  const b = 0.75;
+  return matchedTerms.reduce((score, term) => {
+    const frequency = frequencies.get(term) ?? 0;
+    const documentsWithTerm = documentFrequencies.get(term) ?? 0;
+    const inverseDocumentFrequency = Math.log(
+      1 + (documentCount - documentsWithTerm + 0.5) / (documentsWithTerm + 0.5)
+    );
+    const normalizedFrequency = frequency * (k1 + 1) /
+      (frequency + k1 * (1 - b + b * documentLength / Math.max(1, averageDocumentLength)));
+    return score + inverseDocumentFrequency * normalizedFrequency;
+  }, 0);
+}
+
+function containsTokenSequence(tokens: readonly string[], phrase: readonly string[]): boolean {
+  if (phrase.length === 0 || phrase.length > tokens.length) return false;
+  outer: for (let start = 0; start <= tokens.length - phrase.length; start += 1) {
+    for (let offset = 0; offset < phrase.length; offset += 1) {
+      if (tokens[start + offset] !== phrase[offset]) continue outer;
+    }
+    return true;
+  }
+  return false;
+}
+
+function normalizePhrase(value: string): string {
+  return value.normalize("NFC").toLocaleLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function fusionIdentity(document: OfflineQueryDocument): string {
+  if (typeof document.payload === "object" && document.payload !== null) {
+    const tweetId = (document.payload as { tweetId?: unknown }).tweetId;
+    if (typeof tweetId === "string" && tweetId.trim()) return `tweet:${tweetId.trim()}`;
+  }
+  return document.id;
 }
 
 function parseDateFilter(value: string, endOfDay: boolean): number | null {

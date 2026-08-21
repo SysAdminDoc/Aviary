@@ -385,6 +385,9 @@ manifest still carries a placeholder add-on id, so an AMO submission needs a rea
   GraphQL captures without making a request; search captured records; download a Markdown report.
 - **Cleanup review queue**, Aviary never deletes account data; the queue is a read-only review surface (`destructiveAllowed()` returns `false` by policy).
 - **Bookmark library**, tags, folders, reminders, and due-time queries stored locally.
+- **Unified local search**, ranks exact handles, quoted phrases, and rare terms across captured posts,
+  likes, bookmarks, notes, tags, folders, snapshots, and imported archive metadata. Filters and text
+  ranking run entirely in the browser.
 - **Composer snippets**, a Snippets button next to the post toolbar opens a popover and inserts via `document.execCommand("insertText")`. No keyboard simulation, no hotkeys.
 - **XLSX export**, added to the Export format list. The writer reuses the STORE-only ZIP encoder, so there's still no external runtime dependency.
 - **WARC export**, emits ISO-28500 WARC/1.1 records for archival research tooling. Captured media
@@ -403,7 +406,11 @@ The Control Center "Integrations" section gates each integration behind a per-fe
 - **Bluesky / Mastodon crosspost**, sends the current composer text to your Bluesky AT-protocol account or your Mastodon instance. Two explicit Control Center actions; never auto-cross. Toggle "Crosspost as thread" to chunk on blank lines, Bluesky gets `reply.root/parent` refs, Mastodon chains `in_reply_to_id`.
 - **Crosspost media (opt-in)**, the "Attach last download" toggle uploads the last successful Aviary media source to Bluesky or Mastodon and attaches it to the first post only. The source URL and filename stay local until that explicit action.
 - **AI provider runner**, when enabled, the per-tweet AI command menu shows the provider, endpoint, fields, character/token estimate, retention notice, network status, and budget before POSTing a prompt to Anthropic, OpenAI, or an OpenAI-compatible endpoint. Per-request and daily UTF-8 byte limits stop calls before they leave the browser; the response is copied to your clipboard. With no key, the menu remains a local prompt builder.
-- **Semantic search**, embeds captured records via your provider's embeddings endpoint, persists vectors and bounded text locally, and ranks queries by cosine similarity. The panel shows the endpoint, fields, retention notice, and byte budget before you enable auto-indexing. Per-record and daily UTF-8 byte limits stop rebuilds or background indexing with a recoverable status. Embeddings only fire when you click "Rebuild semantic index", type into the semantic search box, or enable "Auto-embed every export".
+- **Semantic search**, embeds captured records via your provider's embeddings endpoint and keeps the
+  bounded vectors locally. The Library can blend those results with its local text ranking instead
+  of replacing it, and labels the signal used for every hit. Exact text still works with no key.
+  Embeddings only fire when you rebuild the index, run a semantic query, or enable auto-embedding.
+  Local-only mode stops before a provider request.
 
 The Integrations panel also surfaces a "Recent integration errors" readout that distills failed audit-log entries, handy when a Bluesky token expires or your Aria2 daemon stops listening. Aria2 history stores completed/queued gids locally and prevents the same media URL from being requeued across browser sessions.
 

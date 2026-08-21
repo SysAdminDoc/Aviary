@@ -51,6 +51,10 @@ export interface SemanticHit {
   score: number;
 }
 
+export interface SemanticQueryOptions {
+  allowProviderRequest?: boolean;
+}
+
 export class SemanticIndex {
   readonly #storage: StorageGateway;
   readonly #usage: IntegrationUsageLedger | undefined;
@@ -154,11 +158,13 @@ export class SemanticIndex {
   async search(
     config: IntegrationSettings["semanticSearch"],
     query: string,
-    limit = 10
+    limit = 10,
+    options: SemanticQueryOptions = {}
   ): Promise<SemanticHit[]> {
     if (!config.enabled || !config.endpoint || !config.apiKey || !config.model || query.trim().length === 0) {
       return [];
     }
+    if (options.allowProviderRequest === false) return [];
     await this.load();
     if (this.#state.entries.length === 0) return [];
     if (this.#usage) {

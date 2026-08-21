@@ -30,6 +30,11 @@
   from links found in local captures, counts resolved and unresolved participant IDs, and confirms
   that the repair made no requests.
 
+- **Library search now blends exact text and meaning.** Local BM25-style ranking puts exact handles,
+  quoted phrases, and rare terms first. Optional semantic hits are fused into that list, deduplicated
+  by post ID, and labelled as text, semantic, or combined. Local-only mode returns before any
+  embedding-provider request.
+
 ## 1.37.0 (2026-08-20)
 
 ### Changed

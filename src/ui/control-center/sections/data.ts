@@ -433,9 +433,13 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
         const item = ctx.el("div", "av-search-hit");
         item.setAttribute("role", "listitem");
         const account = hit.document.account ? `@${hit.document.account}` : "local";
-        const mode = hit.mode === "semantic" ? " · semantic" : "";
+        const signal = hit.mode === "hybrid"
+          ? ctx.t("Text + semantic match")
+          : hit.mode === "semantic"
+            ? ctx.t("Semantic match")
+            : ctx.t("Text match");
         item.append(
-          ctx.el("span", "av-row-label", `${hit.document.collection}${mode} · ${account}`),
+          ctx.el("span", "av-row-label", `${hit.document.collection} · ${account} · ${signal}`),
           ctx.el("span", "av-row-description", hit.snippet || ctx.t("(no text)"))
         );
         results.append(item);

@@ -178,21 +178,6 @@ confirmed a second time. See RESEARCH.md.
   Depends on: F147.
   Complexity: M
 
-- [ ] F191, P2, Fuse lexical ranking into local search
-  Why: the local library search and the opt-in semantic index are separate paths, and pure vector
-  ranking is worst exactly where this corpus is queried most, exact handles, exact phrases, and rare
-  tokens. The closest comparable local X vault runs BM25 and embeddings together and reranks. The
-  lexical half needs no provider call, no key, and no runtime dependency, so it also gives local-only
-  users a real improvement rather than an upsell.
-  Evidence: https://github.com/lhl/tweetxvault (tantivy BM25 + MiniLM-384d + rerank);
-  `src/features/library/local-search.ts`, `src/features/integrations/semantic-search.ts`.
-  Touches: `src/features/library/local-search.ts`, `src/features/library/query-model.ts`,
-  `src/features/integrations/semantic-search.ts` (fusion at rank time), Library panel.
-  Acceptance: an exact handle or quoted phrase ranks first without any embedding configured; when the
-  semantic index exists, results are fused rather than chosen by mode; the panel says which signals
-  contributed; local-only mode still makes zero provider requests.
-  Complexity: M
-
 ## Research-Driven Additions (2026-08-18)
 
 Completes the 2026-08-17 pass, which lost most of its external streams to an API limit. Defects

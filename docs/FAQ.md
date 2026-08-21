@@ -15,10 +15,18 @@ An explicit opt-in or user action can make Aviary contact a destination you conf
   is separately opt-in.
 - **AI provider** sends the selected-post prompt only when provider runs are enabled and invoked.
 - **Semantic search** sends record text to your configured embeddings endpoint when indexing or
-  semantic queries run.
+  when you explicitly add semantic ranking to a query.
 
 These integrations are disabled by default. The Control Center shows their configuration and
 recent errors; [PRIVACY.md](PRIVACY.md) lists the data sent by each path.
+
+## How does Library search rank results?
+
+Text search is local and always available. It gives extra weight to exact handles, quoted phrases,
+and rare terms, then applies source, account, tag, folder, date, and media filters. If you enable
+semantic ranking and have built an embedding index, Aviary blends both result lists and labels each
+hit as text, semantic, or combined. Local-only mode returns the text results without contacting the
+embedding provider.
 
 ## How does ad protection work?
 
