@@ -291,9 +291,14 @@ export interface ControlCenterOptions {
     recognizedFiles?: number;
     skippedFiles?: number;
     malformedFiles?: number;
+    archiveLinksExpanded?: number;
+    corpusLinksExpanded?: number;
+    participantIdsResolved?: number;
+    participantIdsUnresolved?: number;
   }>;
   getArchiveImportStatus?: () => ArchiveImportStatus;
   getArchiveLibraryStatus?: () => {
+    hasImport: boolean;
     authoredPosts: number;
     likes: number;
     directMessages: number;
@@ -303,6 +308,12 @@ export interface ControlCenterOptions {
     lists: number;
     profile: number;
     account: number;
+    repairs: {
+      archiveLinksExpanded: number;
+      corpusLinksExpanded: number;
+      participantIdsResolved: number;
+      participantIdsUnresolved: number;
+    };
   };
   pauseArchiveImport?: (jobId: string) => Promise<{ ok: boolean; error?: string }>;
   resumeArchiveImport?: (jobId: string) => Promise<{ ok: boolean; error?: string }>;

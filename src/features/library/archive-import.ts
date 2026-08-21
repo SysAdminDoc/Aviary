@@ -2,14 +2,21 @@ import { canInflate, readZip } from "../export/zip-reader";
 import type { ExportRecord } from "../export/types";
 import {
   emptyArchiveCollections,
+  emptyArchiveRepairSummary,
   type ArchiveAccount,
   type ArchiveAccountRef,
   type ArchiveCollections,
   type ArchiveDirectMessage,
   type ArchiveList,
   type ArchiveMediaReference,
-  type ArchiveProfile
+  type ArchiveProfile,
+  type ArchiveRepairSummary
 } from "./archive-types";
+import {
+  ArchiveRepairIndex,
+  buildArchiveParticipant,
+  buildMentionParticipant
+} from "./archive-repair";
 
 export type ArchiveCollectionName =
   | "authored-posts"
@@ -38,6 +45,7 @@ export interface ArchiveImportResult {
   recognizedFiles: ArchiveFileReport[];
   skippedFiles: string[];
   malformedFiles: string[];
+  repairs: ArchiveRepairSummary;
 }
 
 const TEXT_DECODER = new TextDecoder();
@@ -45,7 +53,8 @@ export const MAX_ARCHIVE_BYTES = 256 * 1024 * 1024;
 
 export async function importOfficialArchive(
   buffer: Uint8Array,
-  surface = "archive"
+  surface = "archive",
+  localCorpus: readonly ExportRecord[] = []
 ): Promise<ArchiveImportResult> {
   const warnings: string[] = [];
   const errors: string[] = [];
@@ -55,16 +64,18 @@ export async function importOfficialArchive(
   const recognizedFiles: ArchiveFileReport[] = [];
   const skippedFiles: string[] = [];
   const malformedFiles: string[] = [];
+  const repairIndex = new ArchiveRepairIndex(localCorpus);
+  let repairs = emptyArchiveRepairSummary();
   if (buffer.byteLength > MAX_ARCHIVE_BYTES) {
     errors.push("Archive exceeds the 256 MiB input limit.");
-    return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles };
+    return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles, repairs };
   }
   let entries;
   try {
     entries = await readZip(buffer);
   } catch (error) {
     errors.push((error as Error).message);
-    return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles };
+    return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles, repairs };
   }
   if (entries.length === 0) {
     errors.push(
@@ -72,7 +83,7 @@ export async function importOfficialArchive(
         ? "Archive contained no readable entries."
         : "This browser cannot decompress archives (DecompressionStream is unavailable)."
     );
-    return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles };
+    return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles, repairs };
   }
 
   for (const entry of entries) {
@@ -98,11 +109,13 @@ export async function importOfficialArchive(
       recognizedFiles.push({ filename: entry.filename, collection, status: "malformed", records: 0 });
       continue;
     }
+    repairIndex.ingestArchivePayload(parsed);
     const count = appendCollection(collections, collection, parsed, entry.filename, surface, records);
     recognizedFiles.push({ filename: entry.filename, collection, status: "parsed", records: count });
   }
 
-  return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles };
+  repairs = repairIndex.repair(records, collections);
+  return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles, repairs };
 }
 
 function classifyArchiveFile(name: string): ArchiveCollectionName | null {
@@ -177,18 +190,22 @@ function mapDirectMessages(parsed: unknown): ArchiveDirectMessage[] {
       const text = stringField(message, "text", "full_text") ?? "";
       const id = stringField(message, "id", "id_str");
       if (!id && text.length === 0) continue;
+      const senderId = stringField(message, "senderId", "sender_id");
+      const recipientIds = [
+        ...stringArrayField(message, "recipientIds", "recipient_ids"),
+        ...[stringField(message, "recipientId", "recipient_id") ?? ""].filter(Boolean)
+      ].slice(0, 1000);
       out.push({
         id,
         conversationId,
-        senderId: stringField(message, "senderId", "sender_id"),
-        recipientIds: [
-          ...stringArrayField(message, "recipientIds", "recipient_ids"),
-          ...[stringField(message, "recipientId", "recipient_id") ?? ""].filter(Boolean)
-        ].slice(0, 1000),
+        senderId,
+        recipientIds,
         text,
         createdAt: stringField(message, "createdAt", "created_at"),
         mediaUrls: stringArrayField(message, "mediaUrls", "media_urls")
-          .filter(isHttpUrl)
+          .filter(isHttpUrl),
+        sender: senderId ? buildArchiveParticipant(senderId) : null,
+        recipients: recipientIds.map((recipientId) => buildArchiveParticipant(recipientId))
       });
     }
   }
@@ -353,6 +370,8 @@ function mapTweets(parsed: unknown, surface: string): ExportRecord[] {
       media: [],
       permalink: id ? `https://x.com/i/web/status/${id}` : null
     };
+    const participants = mentionParticipants(tweet);
+    if (participants.length > 0) record.participants = participants;
     out.push(record);
   }
   return out;
@@ -376,6 +395,8 @@ function mapLikes(parsed: unknown, surface: string): ExportRecord[] {
       media: [],
       permalink: id ? `https://x.com/i/web/status/${id}` : null
     };
+    const participants = mentionParticipants(like);
+    if (participants.length > 0) record.participants = participants;
     out.push(record);
   }
   return out;
@@ -399,17 +420,26 @@ function stringFromAuthor(tweet: Record<string, unknown>): string | null {
       return author;
     }
   }
+  return null;
+}
 
-  // Some archive variants omit the expanded user object. Mentions are only a last-resort hint;
-  // using the first mention as the primary author silently attributes ordinary posts to someone
-  // the tweet happened to mention.
-  const entities = tweet.entities;
-  if (!isRecord(entities)) return null;
-  const userMentions = entities.user_mentions;
-  if (!Array.isArray(userMentions) || userMentions.length === 0) return null;
-  const first = userMentions[0];
-  if (!isRecord(first)) return null;
-  return stringField(first, "screen_name");
+function mentionParticipants(tweet: Record<string, unknown>): NonNullable<ExportRecord["participants"]> {
+  const entities = isRecord(tweet.entities) ? tweet.entities : null;
+  const mentions = Array.isArray(entities?.user_mentions) ? entities.user_mentions : [];
+  const participants = new Map<string, NonNullable<ExportRecord["participants"]>[number]>();
+  for (const candidate of mentions) {
+    if (!isRecord(candidate)) continue;
+    const id = stringField(candidate, "id_str", "id", "user_id", "userId");
+    if (!id) continue;
+    participants.set(
+      id,
+      buildMentionParticipant(
+        id,
+        stringField(candidate, "screen_name", "screenName", "username", "handle")
+      )
+    );
+  }
+  return [...participants.values()];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

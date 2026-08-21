@@ -112,6 +112,134 @@ test("a DEFLATE-compressed archive — what X actually ships — imports", async
   assert.deepEqual(result.warnings, [], "the CRC must verify against the inflated bytes");
 });
 
+test("archive repair expands only known links and labels known or unresolved participant ids", async () => {
+  const { importOfficialArchive } = await importBundledModule(
+    "src/features/library/archive-import.ts"
+  );
+  const assign = (name, value) => `window.YTD.${name}.part0 = ${JSON.stringify(value)}`;
+  const archive = buildZip([
+    {
+      name: "data/tweets.js",
+      content: assign("tweets", [
+        {
+          tweet: {
+            id_str: "repair-1",
+            full_text:
+              "Archive https://t.co/fromArchive corpus https://t.co/fromCorpus unknown https://t.co/unknown unsafe https://t.co/unsafe",
+            created_at: "Tue Jan 16 12:00:00 +0000 2026",
+            entities: {
+              urls: [
+                {
+                  url: "https://t.co/fromArchive",
+                  expanded_url: "https://example.test/from-archive"
+                },
+                {
+                  url: "https://t.co/unsafe",
+                  expanded_url: "javascript:alert(1)"
+                }
+              ],
+              user_mentions: [
+                { id_str: "43" },
+                { id_str: "88" }
+              ]
+            }
+          }
+        }
+      ]),
+      method: 8
+    },
+    {
+      name: "data/direct-messages.js",
+      content: assign("direct_messages", [
+        {
+          dmConversation: {
+            conversationId: "43-99",
+            messages: [
+              {
+                messageCreate: {
+                  id: "message-repair-1",
+                  senderId: "43",
+                  recipientId: "99",
+                  text: "Private message"
+                }
+              }
+            ]
+          }
+        }
+      ])
+    }
+  ]);
+  const corpus = [
+    {
+      tweetId: null,
+      handle: null,
+      displayName: null,
+      text: JSON.stringify({
+        data: {
+          user: { result: { rest_id: "43", legacy: { screen_name: "known_handle" } } },
+          tweet: {
+            legacy: {
+              entities: {
+                urls: [
+                  {
+                    url: "https://t.co/fromCorpus",
+                    expanded_url: "https://example.test/from-corpus"
+                  },
+                  {
+                    url: "https://t.co/fromArchive",
+                    expanded_url: "https://example.test/stale-corpus-value"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }),
+      capturedAt: "2026-01-15T00:00:00.000Z",
+      surface: "graphql:HomeTimeline",
+      media: [],
+      permalink: null
+    }
+  ];
+  const originalFetch = globalThis.fetch;
+  let fetchCalls = 0;
+  globalThis.fetch = async () => {
+    fetchCalls += 1;
+    throw new Error("archive repair must stay offline");
+  };
+
+  try {
+    const result = await importOfficialArchive(archive, "archive", corpus);
+
+    assert.equal(fetchCalls, 0, "repair must never originate a request");
+    assert.equal(
+      result.records[0].text,
+      "Archive https://example.test/from-archive corpus https://example.test/from-corpus unknown https://t.co/unknown unsafe https://t.co/unsafe"
+    );
+    assert.equal(result.records[0].handle, null, "a mentioned account must not be invented as the author");
+    assert.deepEqual(result.records[0].participants, [
+      { id: "43", handle: "known_handle", label: "@known_handle (user ID 43)", role: "mention" },
+      { id: "88", handle: null, label: "Unresolved user ID 88", role: "mention" }
+    ]);
+    assert.deepEqual(result.collections.directMessages[0].sender, {
+      id: "43",
+      handle: "known_handle",
+      label: "@known_handle (user ID 43)"
+    });
+    assert.deepEqual(result.collections.directMessages[0].recipients, [
+      { id: "99", handle: null, label: "Unresolved user ID 99" }
+    ]);
+    assert.deepEqual(result.repairs, {
+      archiveLinksExpanded: 1,
+      corpusLinksExpanded: 1,
+      participantIdsResolved: 1,
+      participantIdsUnresolved: 2
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("official archive collection files are classified, typed, and reported before commit", async () => {
   const { importOfficialArchive } = await importBundledModule(
     "src/features/library/archive-import.ts"
@@ -342,8 +470,8 @@ test("typed archive collections persist separately from searchable tweet records
       {
         id: "message-1",
         conversationId: "conversation-1",
-        senderId: "sender-1",
-        recipientIds: ["recipient-1"],
+        senderId: "43",
+        recipientIds: ["99"],
         text: "private",
         createdAt: null,
         mediaUrls: []
@@ -356,16 +484,32 @@ test("typed archive collections persist separately from searchable tweet records
   };
 
   const store = new ArchiveLibraryStore(storage);
-  await store.merge(collections, "archive-1");
+  await store.merge(collections, "archive-1", {
+    archiveLinksExpanded: 2,
+    corpusLinksExpanded: 3,
+    participantIdsResolved: 1,
+    participantIdsUnresolved: 1
+  });
   await store.merge(collections, "archive-2");
   assert.equal(store.snapshot().directMessages.length, 1);
   assert.deepEqual(store.snapshot().importedJobs, ["archive-1", "archive-2"]);
+  assert.deepEqual(store.snapshot().lastRepair, {
+    archiveLinksExpanded: 2,
+    corpusLinksExpanded: 3,
+    participantIdsResolved: 1,
+    participantIdsUnresolved: 1
+  });
+  const detached = store.snapshot();
+  detached.lastRepair.archiveLinksExpanded = 999;
+  assert.equal(store.snapshot().lastRepair.archiveLinksExpanded, 2, "repair status must be a detached snapshot");
   assert.ok(persisted.has(ARCHIVE_LIBRARY_KEY));
 
   const reloaded = new ArchiveLibraryStore(storage);
   await reloaded.load();
   assert.equal(reloaded.snapshot().profile?.handle, "aviary");
   assert.equal(reloaded.snapshot().directMessages[0].text, "private");
+  assert.equal(reloaded.snapshot().directMessages[0].sender.label, "Unresolved user ID 43");
+  assert.equal(reloaded.snapshot().directMessages[0].recipients[0].label, "Unresolved user ID 99");
 });
 
 test("typed archive collection writes do not mutate the live snapshot when persistence fails", async () => {

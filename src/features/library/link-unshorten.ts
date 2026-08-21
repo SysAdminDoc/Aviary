@@ -3,6 +3,19 @@ import type { FeatureModule } from "../registry";
 const STYLE_ID = "av-link-unshorten";
 const PROCESSED_ATTR = "data-av-link-clean";
 const ORIGINAL_TITLE_PRESENT = "avOriginalTitlePresent";
+const MAX_KNOWLEDGE_NODES = 100_000;
+const MAX_KNOWN_LINKS = 10_000;
+
+export interface KnownShortLink {
+  shortUrl: string;
+  destination: string;
+}
+
+export type LinkKnowledgeSource = "archive" | "local-corpus";
+
+export interface ResolvedShortLink extends KnownShortLink {
+  source: LinkKnowledgeSource;
+}
 
 export const linkUnshortenFeature: FeatureModule = {
   id: "library.linkUnshorten",
@@ -41,6 +54,69 @@ export const linkUnshortenFeature: FeatureModule = {
     ctx.diagnostics.info("Link unshortening destroyed");
   }
 };
+
+/** Reads only URL pairs already present in a local archive or captured response body. */
+export function collectKnownShortLinks(root: unknown): KnownShortLink[] {
+  const found = new Map<string, KnownShortLink>();
+  const pending: unknown[] = [root];
+  const visited = new Set<object>();
+  let inspected = 0;
+
+  while (pending.length > 0 && inspected < MAX_KNOWLEDGE_NODES && found.size < MAX_KNOWN_LINKS) {
+    const value = pending.pop();
+    if (!value || typeof value !== "object" || visited.has(value)) continue;
+    visited.add(value);
+    inspected += 1;
+    if (Array.isArray(value)) {
+      pending.push(...value);
+      continue;
+    }
+
+    const record = value as Record<string, unknown>;
+    const shortUrl = firstString(record, "url", "tco_url", "tcoUrl", "short_url", "shortUrl");
+    const destination = firstString(
+      record,
+      "expanded_url",
+      "expandedUrl",
+      "unwound_url",
+      "unwoundUrl",
+      "destination"
+    );
+    const key = shortUrl ? tcoLinkKey(shortUrl) : null;
+    if (shortUrl && key && destination && isExpandedHttpUrl(destination)) {
+      found.set(key, { shortUrl, destination });
+    }
+    pending.push(...Object.values(record));
+  }
+
+  return [...found.values()];
+}
+
+/** Replaces only t.co links for which the caller can provide a captured destination. */
+export function replaceKnownTcoLinks(
+  text: string,
+  resolve: (shortUrl: string) => Omit<ResolvedShortLink, "shortUrl"> | null
+): { text: string; resolved: ResolvedShortLink[] } {
+  const resolved: ResolvedShortLink[] = [];
+  const expanded = text.replace(/https?:\/\/t\.co\/[A-Za-z0-9]+/gi, (shortUrl) => {
+    const match = resolve(shortUrl);
+    if (!match || !isExpandedHttpUrl(match.destination)) return shortUrl;
+    resolved.push({ shortUrl, ...match });
+    return match.destination;
+  });
+  return { text: expanded, resolved };
+}
+
+export function tcoLinkKey(value: string): string | null {
+  try {
+    const url = new URL(value);
+    if (url.hostname.toLowerCase() !== "t.co") return null;
+    const match = /^\/([A-Za-z0-9]+)\/?$/.exec(url.pathname);
+    return match?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
 
 function restoreProcessedLinks(): void {
   for (const link of Array.from(
@@ -112,6 +188,23 @@ function resolveDestination(anchor: HTMLAnchorElement): string | null {
     }
   }
   return null;
+}
+
+function firstString(record: Record<string, unknown>, ...keys: string[]): string | null {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function isExpandedHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (url.protocol === "http:" || url.protocol === "https:") && url.hostname.toLowerCase() !== "t.co";
+  } catch {
+    return false;
+  }
 }
 
 function ensureStyle(): void {

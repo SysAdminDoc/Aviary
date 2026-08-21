@@ -1,5 +1,15 @@
 import type { StorageGateway } from "../../platform/storage";
-import type { ArchiveCollections, ArchiveDirectMessage, ArchiveMediaReference, ArchiveAccountRef, ArchiveList } from "./archive-types";
+import {
+  emptyArchiveRepairSummary,
+  type ArchiveAccountRef,
+  type ArchiveCollections,
+  type ArchiveDirectMessage,
+  type ArchiveExpandedUrl,
+  type ArchiveList,
+  type ArchiveMediaReference,
+  type ArchiveParticipant,
+  type ArchiveRepairSummary
+} from "./archive-types";
 
 export const ARCHIVE_LIBRARY_KEY = "aviary.archive.library.v1";
 
@@ -7,6 +17,7 @@ export interface ArchiveLibrarySnapshot extends ArchiveCollections {
   version: 1;
   importedJobs: string[];
   updatedAt: string | null;
+  lastRepair: ArchiveRepairSummary;
 }
 
 const EMPTY: ArchiveLibrarySnapshot = {
@@ -19,7 +30,8 @@ const EMPTY: ArchiveLibrarySnapshot = {
   following: [],
   lists: [],
   importedJobs: [],
-  updatedAt: null
+  updatedAt: null,
+  lastRepair: emptyArchiveRepairSummary()
 };
 
 export class ArchiveLibraryStore {
@@ -41,14 +53,18 @@ export class ArchiveLibraryStore {
     return cloneSnapshot(this.#snapshot);
   }
 
-  async merge(collections: ArchiveCollections, jobId: string): Promise<void> {
+  async merge(
+    collections: ArchiveCollections,
+    jobId: string,
+    repairs?: ArchiveRepairSummary
+  ): Promise<void> {
     await this.load();
     const next = cloneSnapshot(this.#snapshot);
     next.profile = collections.profile ?? next.profile;
     next.account = collections.account ?? next.account;
     next.directMessages = mergeByKey(
       next.directMessages,
-      collections.directMessages,
+      collections.directMessages.map(normalizeDirectMessage),
       (entry) => entry.id ?? `${entry.conversationId ?? ""}:${entry.createdAt ?? ""}:${entry.text}`
     );
     next.media = mergeByKey(
@@ -76,6 +92,7 @@ export class ArchiveLibraryStore {
       next.importedJobs = next.importedJobs.slice(-100);
     }
     next.updatedAt = new Date().toISOString();
+    if (repairs) next.lastRepair = { ...repairs };
     await this.#storage.set(ARCHIVE_LIBRARY_KEY, next);
     this.#snapshot = next;
   }
@@ -107,13 +124,16 @@ function normalizeSnapshot(value: unknown): ArchiveLibrarySnapshot {
       displayName: stringOrNull(raw.account.displayName),
       email: stringOrNull(raw.account.email)
     } : null,
-    directMessages: arrayOf(raw.directMessages).filter(isDirectMessage),
+    directMessages: arrayOf(raw.directMessages)
+      .filter(isDirectMessage)
+      .map(normalizeDirectMessage),
     media: arrayOf(raw.media).filter(isMediaReference),
     followers: arrayOf(raw.followers).filter(isAccountRef),
     following: arrayOf(raw.following).filter(isAccountRef),
     lists: arrayOf(raw.lists).filter(isList),
     importedJobs: arrayOf(raw.importedJobs).filter((entry): entry is string => typeof entry === "string").slice(-100),
-    updatedAt: stringOrNull(raw.updatedAt)
+    updatedAt: stringOrNull(raw.updatedAt),
+    lastRepair: normalizeRepairSummary(raw.lastRepair)
   };
 }
 
@@ -134,12 +154,22 @@ function cloneSnapshot(snapshot: ArchiveLibrarySnapshot): ArchiveLibrarySnapshot
     ...snapshot,
     profile: snapshot.profile ? { ...snapshot.profile } : null,
     account: snapshot.account ? { ...snapshot.account } : null,
-    directMessages: snapshot.directMessages.map((entry) => ({ ...entry, recipientIds: [...entry.recipientIds], mediaUrls: [...entry.mediaUrls] })),
+    directMessages: snapshot.directMessages.map((entry) => ({
+      ...entry,
+      recipientIds: [...entry.recipientIds],
+      mediaUrls: [...entry.mediaUrls],
+      sender: entry.sender ? { ...entry.sender } : null,
+      recipients: (entry.recipients ?? []).map((participant) => ({ ...participant })),
+      ...(entry.expandedUrls
+        ? { expandedUrls: entry.expandedUrls.map((link) => ({ ...link })) }
+        : {})
+    })),
     media: snapshot.media.map((entry) => ({ ...entry })),
     followers: snapshot.followers.map((entry) => ({ ...entry })),
     following: snapshot.following.map((entry) => ({ ...entry })),
     lists: snapshot.lists.map((entry) => ({ ...entry, memberIds: [...entry.memberIds], subscriberIds: [...entry.subscriberIds] })),
-    importedJobs: [...snapshot.importedJobs]
+    importedJobs: [...snapshot.importedJobs],
+    lastRepair: { ...snapshot.lastRepair }
   };
 }
 
@@ -157,6 +187,87 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isDirectMessage(value: unknown): value is ArchiveDirectMessage {
   return isRecord(value) && typeof value.text === "string" && Array.isArray(value.recipientIds) && Array.isArray(value.mediaUrls);
+}
+
+function normalizeDirectMessage(message: ArchiveDirectMessage): ArchiveDirectMessage {
+  const sender = normalizeParticipant(message.sender) ?? participantFromId(message.senderId);
+  const recipients = Array.isArray(message.recipients) && message.recipients.length > 0
+    ? message.recipients
+        .map(normalizeParticipant)
+        .filter((entry): entry is ArchiveParticipant => Boolean(entry))
+    : message.recipientIds.map((id) => participantFromId(id)!).filter(Boolean);
+  return {
+    ...message,
+    recipientIds: [...message.recipientIds],
+    mediaUrls: [...message.mediaUrls],
+    sender,
+    recipients,
+    ...(Array.isArray(message.expandedUrls)
+      ? {
+          expandedUrls: message.expandedUrls
+            .map(normalizeExpandedUrl)
+            .filter((entry): entry is ArchiveExpandedUrl => Boolean(entry))
+        }
+      : {})
+  };
+}
+
+function participantFromId(value: unknown): ArchiveParticipant | null {
+  if (typeof value !== "string" || !value) return null;
+  return {
+    id: value,
+    handle: null,
+    label: /^\d+$/.test(value) ? `Unresolved user ID ${value}` : `Unresolved participant ${value}`
+  };
+}
+
+function normalizeParticipant(value: unknown): ArchiveParticipant | null {
+  if (!isRecord(value) || typeof value.id !== "string") return null;
+  return {
+    id: value.id,
+    handle: stringOrNull(value.handle),
+    label: typeof value.label === "string" ? value.label : `Unresolved user ID ${value.id}`
+  };
+}
+
+function normalizeExpandedUrl(value: unknown): ArchiveExpandedUrl | null {
+  if (
+    !isRecord(value) ||
+    typeof value.shortUrl !== "string" ||
+    typeof value.destination !== "string" ||
+    !isHttpUrl(value.destination) ||
+    (value.source !== "archive" && value.source !== "local-corpus")
+  ) {
+    return null;
+  }
+  return {
+    shortUrl: value.shortUrl,
+    destination: value.destination,
+    source: value.source
+  };
+}
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function normalizeRepairSummary(value: unknown): ArchiveRepairSummary {
+  const record = isRecord(value) ? value : {};
+  return {
+    archiveLinksExpanded: nonNegativeInteger(record.archiveLinksExpanded),
+    corpusLinksExpanded: nonNegativeInteger(record.corpusLinksExpanded),
+    participantIdsResolved: nonNegativeInteger(record.participantIdsResolved),
+    participantIdsUnresolved: nonNegativeInteger(record.participantIdsUnresolved)
+  };
+}
+
+function nonNegativeInteger(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.trunc(value) : 0;
 }
 
 function isMediaReference(value: unknown): value is ArchiveMediaReference {

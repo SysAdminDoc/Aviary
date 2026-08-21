@@ -117,6 +117,22 @@ export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
         )
       )
     );
+    if (archiveLibraryStatus.hasImport) {
+      rows.push(
+        ctx.dataRow(
+          "Offline archive repairs",
+          ctx.localizedCopy(
+            "{archiveLinks} archive links + {corpusLinks} captured links expanded · {participants} participant IDs resolved · {unresolved} kept as unresolved IDs · no requests made",
+            {
+              archiveLinks: archiveLibraryStatus.repairs.archiveLinksExpanded,
+              corpusLinks: archiveLibraryStatus.repairs.corpusLinksExpanded,
+              participants: archiveLibraryStatus.repairs.participantIdsResolved,
+              unresolved: archiveLibraryStatus.repairs.participantIdsUnresolved
+            }
+          )
+        )
+      );
+    }
   }
   if (archiveStatus) {
     for (const job of archiveStatus.jobs) {
@@ -202,9 +218,13 @@ export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
           const result = await ctx.options.importArchive!(file);
           ctx.render();
           ctx.setStatusCopy(
-            "Imported {records} records. Warnings: {warnings}; errors: {errors}. Files: {recognized} recognized, {skipped} skipped, {malformed} malformed.",
+            "Imported {records} records. Repairs: {archiveLinks} archive links, {corpusLinks} captured links, {participants} participant IDs resolved, {unresolved} kept unresolved. Warnings: {warnings}; errors: {errors}. Files: {recognized} recognized, {skipped} skipped, {malformed} malformed.",
             {
               records: result.records,
+              archiveLinks: result.archiveLinksExpanded ?? 0,
+              corpusLinks: result.corpusLinksExpanded ?? 0,
+              participants: result.participantIdsResolved ?? 0,
+              unresolved: result.participantIdsUnresolved ?? 0,
               warnings: result.warnings,
               errors: result.errors,
               recognized: result.recognizedFiles ?? 0,

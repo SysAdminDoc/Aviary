@@ -29,6 +29,37 @@ export interface ArchiveDirectMessage {
   text: string;
   createdAt: string | null;
   mediaUrls: string[];
+  sender?: ArchiveParticipant | null;
+  recipients?: ArchiveParticipant[];
+  expandedUrls?: ArchiveExpandedUrl[];
+}
+
+export interface ArchiveExpandedUrl {
+  shortUrl: string;
+  destination: string;
+  source: "archive" | "local-corpus";
+}
+
+export interface ArchiveParticipant {
+  id: string;
+  handle: string | null;
+  label: string;
+}
+
+export interface ArchiveRepairSummary {
+  archiveLinksExpanded: number;
+  corpusLinksExpanded: number;
+  participantIdsResolved: number;
+  participantIdsUnresolved: number;
+}
+
+export function emptyArchiveRepairSummary(): ArchiveRepairSummary {
+  return {
+    archiveLinksExpanded: 0,
+    corpusLinksExpanded: 0,
+    participantIdsResolved: 0,
+    participantIdsUnresolved: 0
+  };
 }
 
 export interface ArchiveMediaReference {

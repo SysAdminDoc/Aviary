@@ -602,6 +602,7 @@ export const controlCenterFeature: FeatureModule = {
       getArchiveLibraryStatus() {
         const snapshot = archiveLibrary?.snapshot();
         return {
+          hasImport: Boolean(snapshot?.updatedAt),
           authoredPosts: countRecordsForSurface(getCheckpointStore(), "archive"),
           likes: countRecordsForSurface(getCheckpointStore(), "archive.likes"),
           directMessages: snapshot?.directMessages.length ?? 0,
@@ -610,7 +611,13 @@ export const controlCenterFeature: FeatureModule = {
           following: snapshot?.following.length ?? 0,
           lists: snapshot?.lists.length ?? 0,
           profile: snapshot?.profile ? 1 : 0,
-          account: snapshot?.account ? 1 : 0
+          account: snapshot?.account ? 1 : 0,
+          repairs: snapshot?.lastRepair ?? {
+            archiveLinksExpanded: 0,
+            corpusLinksExpanded: 0,
+            participantIdsResolved: 0,
+            participantIdsUnresolved: 0
+          }
         };
       },
       async resumeArchiveImport(jobId) {
@@ -982,16 +989,35 @@ async function processArchiveImport(
   recognizedFiles: number;
   skippedFiles: number;
   malformedFiles: number;
+  archiveLinksExpanded: number;
+  corpusLinksExpanded: number;
+  participantIdsResolved: number;
+  participantIdsUnresolved: number;
 }> {
   const source = await jobs.source(jobId);
   if (!source) {
     const message = "The durable archive source is unavailable or corrupted.";
     await jobs.fail(jobId, message);
-    return { records: 0, warnings: 0, errors: 1, recognizedFiles: 0, skippedFiles: 0, malformedFiles: 0 };
+    return {
+      records: 0,
+      warnings: 0,
+      errors: 1,
+      recognizedFiles: 0,
+      skippedFiles: 0,
+      malformedFiles: 0,
+      archiveLinksExpanded: 0,
+      corpusLinksExpanded: 0,
+      participantIdsResolved: 0,
+      participantIdsUnresolved: 0
+    };
   }
   await jobs.markRunning(jobId);
   try {
-    const result = await importOfficialArchive(source, "archive");
+    const result = await importOfficialArchive(
+      source,
+      "archive",
+      collectAllRecords(getCheckpointStore())
+    );
     const state = jobs.get(jobId);
     // Pause/cancel is checked after parsing because ZIP inflation is a single asynchronous
     // operation. No records are committed when the user changes the job state while it runs.
@@ -1008,7 +1034,11 @@ async function processArchiveImport(
         errors: result.errors.length,
         recognizedFiles: result.recognizedFiles.length,
         skippedFiles: result.skippedFiles.length,
-        malformedFiles: result.malformedFiles.length
+        malformedFiles: result.malformedFiles.length,
+        archiveLinksExpanded: result.repairs.archiveLinksExpanded,
+        corpusLinksExpanded: result.repairs.corpusLinksExpanded,
+        participantIdsResolved: result.repairs.participantIdsResolved,
+        participantIdsUnresolved: result.repairs.participantIdsUnresolved
       };
     }
 
@@ -1026,12 +1056,16 @@ async function processArchiveImport(
         errors: result.errors.length,
         recognizedFiles: result.recognizedFiles.length,
         skippedFiles: result.skippedFiles.length,
-        malformedFiles: result.malformedFiles.length
+        malformedFiles: result.malformedFiles.length,
+        archiveLinksExpanded: result.repairs.archiveLinksExpanded,
+        corpusLinksExpanded: result.repairs.corpusLinksExpanded,
+        participantIdsResolved: result.repairs.participantIdsResolved,
+        participantIdsUnresolved: result.repairs.participantIdsUnresolved
       };
     }
 
-    if (archiveLibrary && hasArchiveCollections(result.collections)) {
-      await archiveLibrary.merge(result.collections, jobId);
+    if (archiveLibrary && (result.records.length > 0 || hasArchiveCollections(result.collections))) {
+      await archiveLibrary.merge(result.collections, jobId, result.repairs);
     }
     const store = getCheckpointStore();
     if (result.records.length > 0 && store) {
@@ -1051,7 +1085,8 @@ async function processArchiveImport(
         archive: jobs.get(jobId)?.filename ?? "archive.zip",
         records: result.records.length,
         collections: result.recognizedFiles.length,
-        warnings: result.warnings.length
+        warnings: result.warnings.length,
+        repairs: result.repairs
       });
     }
     await jobs.updateProgress(jobId, {
@@ -1072,7 +1107,11 @@ async function processArchiveImport(
       errors: result.errors.length,
       recognizedFiles: result.recognizedFiles.length,
       skippedFiles: result.skippedFiles.length,
-      malformedFiles: result.malformedFiles.length
+      malformedFiles: result.malformedFiles.length,
+      archiveLinksExpanded: result.repairs.archiveLinksExpanded,
+      corpusLinksExpanded: result.repairs.corpusLinksExpanded,
+      participantIdsResolved: result.repairs.participantIdsResolved,
+      participantIdsUnresolved: result.repairs.participantIdsUnresolved
     };
   } catch (error) {
     await jobs.fail(jobId, error);

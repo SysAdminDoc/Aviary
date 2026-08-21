@@ -178,22 +178,6 @@ confirmed a second time. See RESEARCH.md.
   Depends on: F147.
   Complexity: M
 
-- [ ] F190, P2, Repair X archive imports from the captured corpus
-  Why: X's own export is documented as losing four things Aviary can restore locally, t.co links are
-  preserved unexpanded (they hide origins and die with t.co), DM and mention participants are stored as
-  bare numeric ids with no handle, media are downscaled from originals, and bookmarks are omitted
-  entirely. Aviary already has `link-unshorten.ts`, an archive importer, and a captured GraphQL corpus
-  that can resolve numeric ids to handles with zero originated requests.
-  Evidence: https://github.com/timhutton/twitter-archive-parser (documented archive defects);
-  `src/features/library/archive-import.ts`, `link-unshorten.ts`.
-  Touches: `src/features/library/archive-import.ts`, `link-unshorten.ts`, the captured-record index,
-  Library panel, README positioning.
-  Acceptance: imported records show expanded destination URLs where the archive or corpus supplies one;
-  numeric participant ids resolve to handles where the local corpus knows them and stay numeric,
-  labelled, where it does not; nothing is fabricated and no request is originated; the panel states how
-  many of each were resolved.
-  Complexity: M
-
 - [ ] F191, P2, Fuse lexical ranking into local search
   Why: the local library search and the opt-in semantic index are separate paths, and pure vector
   ranking is worst exactly where this corpus is queried most, exact handles, exact phrases, and rare

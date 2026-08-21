@@ -11,6 +11,23 @@ export interface ExportRecord {
   quote?: ExportQuoteSummary;
   article?: ExportArticleSummary;
   birdwatch?: string;
+  /** Account references carried by imported records without changing the original post text. */
+  participants?: ExportParticipant[];
+  /** Short links expanded from metadata already present in an archive or local capture. */
+  expandedUrls?: ExportExpandedUrl[];
+}
+
+export interface ExportParticipant {
+  id: string;
+  handle: string | null;
+  label: string;
+  role: "mention";
+}
+
+export interface ExportExpandedUrl {
+  shortUrl: string;
+  destination: string;
+  source: "archive" | "local-corpus";
 }
 
 export interface ExportMedia {

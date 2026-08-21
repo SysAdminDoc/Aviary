@@ -249,6 +249,12 @@ export function documentFromExportRecord(record: ExportRecord): OfflineQueryDocu
       record.handle ?? "",
       record.displayName ?? "",
       record.permalink ?? "",
+      ...(record.participants ?? []).map((participant) =>
+        `${participant.id} ${participant.handle ?? ""} ${participant.label}`
+      ),
+      ...(record.expandedUrls ?? []).map((link) =>
+        `${link.shortUrl} ${link.destination} ${link.source}`
+      ),
       ...record.media.map((media) => `${media.url} ${media.altText ?? ""}`),
       record.quote?.text ?? "",
       record.article?.title ?? ""

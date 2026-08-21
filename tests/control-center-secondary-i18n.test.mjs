@@ -70,7 +70,24 @@ test("secondary Control Center sections render stable copy through every locale"
             { jobId: "failed", filename: "failed.zip", status: "failed", filesParsed: 1, recordCount: 0, warningCount: 1 }
           ]
         }),
-        getArchiveLibraryStatus: () => ({ authoredPosts: 4, likes: 2, directMessages: 1, media: 3, followers: 5, following: 6, lists: 1, profile: 1, account: 1 }),
+        getArchiveLibraryStatus: () => ({
+          hasImport: true,
+          authoredPosts: 4,
+          likes: 2,
+          directMessages: 1,
+          media: 3,
+          followers: 5,
+          following: 6,
+          lists: 1,
+          profile: 1,
+          account: 1,
+          repairs: {
+            archiveLinksExpanded: 2,
+            corpusLinksExpanded: 3,
+            participantIdsResolved: 4,
+            participantIdsUnresolved: 1
+          }
+        }),
         importArchive: async () => ({ records: 1, warnings: 0, errors: 0 }),
         searchArchive: () => [],
         downloadReport: async () => {},
@@ -159,6 +176,7 @@ test("secondary Control Center sections render stable copy through every locale"
 
   const English = results.en;
   assert.match(English.text.snapshots, /2 entries · latest followers of 3/);
+  assert.match(English.text.snapshots, /2 archive links \+ 3 captured links expanded/);
   assert.match(English.text.integrations, /Aria2 active downloads/);
   assert.match(English.text.export, /2 jobs tracked · 5 GraphQL IDs cached/);
   assert.match(English.text.library, /3 saved · 1 due/);
@@ -178,6 +196,7 @@ test("secondary Control Center sections render stable copy through every locale"
     "Snapshots stored",
     "Capture followers from this view",
     "Imported collections",
+    "Offline archive repairs",
     "Pause archive.zip.",
     "Aria2 active downloads",
     "Crosspost as thread",
@@ -185,6 +204,7 @@ test("secondary Control Center sections render stable copy through every locale"
     "Export status",
     "Local bookmarks",
     "2 entries · latest followers of 3",
+    "2 archive links + 3 captured links expanded · 4 participant IDs resolved · 1 kept as unresolved IDs · no requests made",
     "2 jobs tracked · 5 GraphQL IDs cached",
     "3 saved · 1 due · 1 tags · 1 folders",
     "Search all local collections",

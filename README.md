@@ -380,7 +380,9 @@ manifest still carries a placeholder add-on id, so an AMO submission needs a rea
   and mouse/keyboard-friendly controls are verified at the supported desktop widths.
 - **Hide row borders**, drops the 1px divider under each timeline post and the primary column's side rules. The rule anchors on `[data-testid="cellInnerDiv"] > div`, not on X's generated `r-*` class names, so a rename does not silently disable it.
 - **Writer mode**, while focus is inside the composer, the sidebar and the timeline behind it fade back; everything returns the moment focus leaves, and hovering a faded row restores it. Driven by `focusin`/`focusout` only, Aviary registers no key handlers.
-- **Snapshots & Archive**, capture follower / following lists from the active page; import official X archive ZIPs into the CheckpointStore; search captured records; download a Markdown report.
+- **Snapshots & Archive**, capture follower / following lists from the active page; import official
+  X archive ZIPs; expand t.co destinations and identify numeric participants from the ZIP or local
+  GraphQL captures without making a request; search captured records; download a Markdown report.
 - **Cleanup review queue**, Aviary never deletes account data; the queue is a read-only review surface (`destructiveAllowed()` returns `false` by policy).
 - **Bookmark library**, tags, folders, reminders, and due-time queries stored locally.
 - **Composer snippets**, a Snippets button next to the post toolbar opens a popover and inserts via `document.execCommand("insertText")`. No keyboard simulation, no hotkeys.

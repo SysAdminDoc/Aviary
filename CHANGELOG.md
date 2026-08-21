@@ -12,14 +12,23 @@
   and reports visual matches separately. The setting warns that similar compositions can produce
   a false match and remains off by default.
 
+- **Official archive imports repair what they can prove locally.** t.co links expand from metadata
+  in the archive or stored GraphQL captures. Numeric participant IDs gain known handles, while
+  unknown IDs remain visible and are labelled unresolved.
+
 ### Changed
 
 - **The Media page explains every duplicate decision.** It shows counts for exact-byte, same-asset,
   and visual matches, plus the most recent match type. Clearing history resets the hashes and those
   counters together.
 
-- **The delivery-size ceiling now includes content fingerprinting.** The main bundle allowance is
-  2.125 MB, leaving less than 8 KB of headroom so later growth still needs an explicit decision.
+- **The delivery-size ceiling now includes the new local analysis.** The main bundle allowance is
+  2.155 MB after adding media fingerprints and offline archive repair, leaving less than 9 KB of
+  headroom so later growth still needs an explicit decision.
+
+- **Snapshots & Archive reports every repair source.** The panel separates links found in the ZIP
+  from links found in local captures, counts resolved and unresolved participant IDs, and confirms
+  that the repair made no requests.
 
 ## 1.37.0 (2026-08-20)
 

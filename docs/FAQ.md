@@ -120,6 +120,11 @@ collections such as account data, lists, followers, media references, authored p
 remain in separate local stores; direct messages are kept out of public-post search. No archive
 file is uploaded.
 
+During import, Aviary expands t.co links only when the ZIP or a previously stored GraphQL capture
+contains the destination. It also pairs numeric participant IDs with handles already present in
+that local data. Unknown IDs stay numeric and are labelled unresolved. The panel reports each count,
+and this repair path makes no request.
+
 ## I want to back up my settings. Is that a full backup?
 
 **Export settings** alone is not a full backup: it creates a versioned preferences envelope,
