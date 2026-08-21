@@ -39,6 +39,185 @@ test("normalizeImageUrl forces name=orig and preserves format", async () => {
   assert.equal(normalizeImageUrl("not a url"), null);
 });
 
+test("content fingerprints collapse X size variants and distinguish match strength", async () => {
+  const {
+    hexadecimalHammingDistance,
+    mediaIdentityHash,
+    perceptualHashFromRgba,
+    PERCEPTUAL_HASH_HEIGHT,
+    PERCEPTUAL_HASH_WIDTH
+  } = await importBundledModule("src/features/export/assets.ts");
+  const small = mediaIdentityHash(
+    "photo",
+    "https://pbs.twimg.com/media/AbCdEfGh?format=jpg&name=small",
+    null
+  );
+  const original = mediaIdentityHash(
+    "photo",
+    "https://pbs.twimg.com/media/AbCdEfGh?format=png&name=orig",
+    null
+  );
+  assert.equal(small, original, "the mutable size and encoding must not define the X asset");
+  assert.notEqual(
+    small,
+    mediaIdentityHash("photo", "https://pbs.twimg.com/media/Different?name=small", null)
+  );
+
+  const ascending = new Uint8ClampedArray(PERCEPTUAL_HASH_WIDTH * PERCEPTUAL_HASH_HEIGHT * 4);
+  const descending = new Uint8ClampedArray(ascending.length);
+  for (let y = 0; y < PERCEPTUAL_HASH_HEIGHT; y += 1) {
+    for (let x = 0; x < PERCEPTUAL_HASH_WIDTH; x += 1) {
+      const offset = (y * PERCEPTUAL_HASH_WIDTH + x) * 4;
+      const light = x * 12;
+      const dark = 255 - light;
+      ascending.set([light, light, light, 255], offset);
+      descending.set([dark, dark, dark, 255], offset);
+    }
+  }
+  const ascendingHash = perceptualHashFromRgba(ascending);
+  const descendingHash = perceptualHashFromRgba(descending);
+  assert.equal(ascendingHash.length, 64, "the visual signature must carry 256 bits");
+  assert.equal(hexadecimalHammingDistance(ascendingHash, ascendingHash), 0);
+  assert.equal(hexadecimalHammingDistance(ascendingHash, descendingHash), 256);
+});
+
+test("MediaHistory matches exact bytes, X identities, and opt-in visual similarity", async () => {
+  const { MediaHistory, MEDIA_HISTORY_KEY } = await importBundledModule(
+    "src/features/media/history.ts"
+  );
+  const { mediaIdentityHash } = await importBundledModule("src/features/export/assets.ts");
+  const store = new Map();
+  const storage = {
+    async get(key, fallback) {
+      return store.has(key) ? structuredClone(store.get(key)) : fallback;
+    },
+    async set(key, value) {
+      store.set(key, structuredClone(value));
+    },
+    async remove(key) {
+      store.delete(key);
+    }
+  };
+  const history = new MediaHistory(storage);
+  await history.load();
+
+  const saved = {
+    identityHash: mediaIdentityHash(
+      "photo",
+      "https://pbs.twimg.com/media/AssetOne?format=jpg&name=small",
+      null
+    ),
+    exactHash: "1".repeat(64),
+    perceptualHash: "0".repeat(64)
+  };
+  assert.equal(await history.record(saved), true);
+
+  const resized = {
+    identityHash: mediaIdentityHash(
+      "photo",
+      "https://pbs.twimg.com/media/AssetOne?format=png&name=orig",
+      null
+    ),
+    exactHash: "2".repeat(64)
+  };
+  assert.equal(history.findMatch(resized), "identity", "a different name= size is the same X asset");
+
+  const sameBytesElsewhere = {
+    identityHash: mediaIdentityHash(
+      "photo",
+      "https://pbs.twimg.com/media/OtherAsset?format=jpg&name=orig",
+      null
+    ),
+    exactHash: saved.exactHash
+  };
+  assert.equal(history.findMatch(sameBytesElsewhere), "exact");
+  assert.equal(await history.record(sameBytesElsewhere), false, "one content hash must keep one entry");
+
+  const visuallySimilar = {
+    identityHash: mediaIdentityHash(
+      "photo",
+      "https://pbs.twimg.com/media/Reencoded?format=webp&name=orig",
+      null
+    ),
+    exactHash: "3".repeat(64),
+    perceptualHash: `${"0".repeat(63)}1`
+  };
+  assert.equal(history.findMatch(visuallySimilar, false), null, "visual matching stays opt-in");
+  assert.equal(history.findMatch(visuallySimilar, true), "perceptual");
+  await history.noteMatch("identity");
+  await history.noteMatch("exact");
+  await history.noteMatch("perceptual");
+
+  const snapshot = history.snapshot();
+  assert.equal(snapshot.entries.length, 1, "alternate URLs must not grow the index");
+  assert.deepEqual(snapshot.matches, { identity: 1, exact: 1, perceptual: 1 });
+  assert.equal(snapshot.lastMatch.kind, "perceptual");
+  const stored = store.get(MEDIA_HISTORY_KEY);
+  assert.equal(stored.schemaVersion, 2);
+  assert.ok(stored.entries.every((entry) => !Object.hasOwn(entry, "key")));
+  assert.ok(stored.entries.every((entry) => !JSON.stringify(entry).includes("twimg.com")));
+});
+
+test("fingerprintMediaDownload hashes the bytes returned by the media host", async () => {
+  const { fingerprintMediaDownload } = await importBundledModule(
+    "src/features/media/downloader.ts"
+  );
+  const originalFetch = globalThis.fetch;
+  const bytes = new Uint8Array([9, 8, 7, 6, 5, 4]);
+  globalThis.fetch = async () => new Response(bytes, {
+    status: 200,
+    headers: { "content-type": "image/jpeg", "content-length": String(bytes.byteLength) }
+  });
+  try {
+    const first = await fingerprintMediaDownload({
+      kind: "photo",
+      url: "https://pbs.twimg.com/media/First?format=jpg&name=orig",
+      mediaId: null,
+      includePerceptual: false
+    });
+    const second = await fingerprintMediaDownload({
+      kind: "photo",
+      url: "https://pbs.twimg.com/media/Second?format=jpg&name=orig",
+      mediaId: null,
+      includePerceptual: false
+    });
+    assert.notEqual(first.identityHash, second.identityHash, "the fixture needs distinct source identities");
+    assert.equal(first.exactHash, second.exactHash, "equal response bytes must share one exact hash");
+    assert.match(first.exactHash, /^[0-9a-f]{64}$/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("MediaHistory repairs a malformed current-version snapshot", async () => {
+  const { MediaHistory, MEDIA_HISTORY_KEY } = await importBundledModule(
+    "src/features/media/history.ts"
+  );
+  const store = new Map([[MEDIA_HISTORY_KEY, { schemaVersion: 2, entries: "broken" }]]);
+  const storage = {
+    async get(key, fallback) {
+      return store.has(key) ? structuredClone(store.get(key)) : fallback;
+    },
+    async set(key, value) {
+      store.set(key, structuredClone(value));
+    },
+    async remove(key) {
+      store.delete(key);
+    }
+  };
+
+  const history = new MediaHistory(storage);
+  await history.load();
+
+  assert.equal(history.size(), 0);
+  assert.deepEqual(store.get(MEDIA_HISTORY_KEY), {
+    schemaVersion: 2,
+    entries: [],
+    matches: { identity: 0, exact: 0, perceptual: 0 },
+    lastMatch: null
+  });
+});
+
 test("tweetIdFromHref extracts the numeric tweet id when present", async () => {
   const { tweetIdFromHref } = await importBundledModule("src/features/media/urls.ts");
   assert.equal(tweetIdFromHref("/handle/status/1234567890"), "1234567890");

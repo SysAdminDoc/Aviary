@@ -206,10 +206,13 @@ export const controlCenterFeature: FeatureModule = {
       getMediaStatus(): MediaStatus {
         const queue = getMediaQueue();
         const history = getMediaHistory();
+        const historySnapshot = history?.snapshot();
         const snapshot = queue?.snapshot();
         const batch = getMediaBatchStatus();
         return {
           historySize: history?.size() ?? 0,
+          historyMatches: historySnapshot?.matches ?? { identity: 0, exact: 0, perceptual: 0 },
+          lastHistoryMatch: historySnapshot?.lastMatch?.kind ?? null,
           completed: snapshot?.completed ?? 0,
           failed: snapshot?.failed ?? 0,
           duplicate: snapshot?.duplicate ?? 0,

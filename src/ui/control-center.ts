@@ -45,6 +45,12 @@ import type { BisectStatus, BisectVerdict } from "../features/core/feature-bisec
 
 export interface MediaStatus {
   historySize: number;
+  historyMatches: {
+    identity: number;
+    exact: number;
+    perceptual: number;
+  };
+  lastHistoryMatch: "identity" | "exact" | "perceptual" | null;
   completed: number;
   failed: number;
   duplicate: number;
@@ -408,6 +414,7 @@ const SECTION_GROUP_BREAKS: Record<string, Array<{ before: string; title: string
   media: [
     { before: "Show download buttons", title: "On-post controls" },
     { before: "Filename template", title: "File naming" },
+    { before: "Match visually similar images", title: "Duplicate matching" },
     { before: "Duplicate history", title: "Batch behavior" },
     { before: "Download all visible media", title: "Queue actions" },
     { before: "Download status", title: "Queue status" }

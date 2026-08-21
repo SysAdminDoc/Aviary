@@ -205,17 +205,16 @@ test("two tabs saving media keep both dedup keys", async () => {
   await Promise.all([a.record("alice:photo1"), b.record("bob:photo2")]);
 
   const stored = mod.readShared(mod.MEDIA_HISTORY_KEY);
-  assert.deepEqual(stored.entries.map((entry) => entry.key).sort(), ["alice:photo1", "bob:photo2"]);
+  assert.equal(stored.schemaVersion, 2);
+  assert.equal(stored.entries.length, 2);
+  assert.ok(stored.entries.every((entry) => /^[0-9a-f]{64}$/.test(entry.identityHash)));
+  assert.ok(stored.entries.every((entry) => !Object.hasOwn(entry, "key")));
 
   // The point of the index is recognising a file the other tab already saved. That happens on the
   // next write, which is when this tab next reads what is actually stored.
   await a.record("alice:photo3");
   assert.equal(a.has("bob:photo2"), true, "the other tab's dedup key was never adopted");
-  assert.deepEqual(mod.readShared(mod.MEDIA_HISTORY_KEY).entries.map((entry) => entry.key).sort(), [
-    "alice:photo1",
-    "alice:photo3",
-    "bob:photo2"
-  ]);
+  assert.equal(mod.readShared(mod.MEDIA_HISTORY_KEY).entries.length, 3);
 });
 
 test("the audit log records what both tabs did, without duplicating either", async () => {
@@ -282,11 +281,11 @@ test("a clear in one tab is not undone by the other tab's next write", async () 
   await historyB.load();
   await historyB.clear();
   await historyA.record("alice:new");
-  assert.deepEqual(
-    mod.readShared(mod.MEDIA_HISTORY_KEY).entries.map((entry) => entry.key),
-    ["alice:new"],
-    "cleared download history came back"
-  );
+  assert.equal(mod.readShared(mod.MEDIA_HISTORY_KEY).entries.length, 1);
+  const historyC = new mod.MediaHistory(mod.tab());
+  await historyC.load();
+  assert.equal(historyC.has("alice:new"), true);
+  assert.equal(historyC.has("alice:old1"), false, "cleared download history came back");
 
   const logA = new mod.AuditLog(mod.tab(), 500, undefined, () => true);
   const logB = new mod.AuditLog(mod.tab(), 500, undefined, () => true);

@@ -11,14 +11,16 @@ import type { PageBridge } from "../../platform/page-bridge";
 import {
   createDownloader,
   DownloadPermissionError,
+  fingerprintMediaDownload,
   requestDownloadPermissionSurface,
   type Downloader
 } from "./downloader";
+import { mediaIdentityHash, type MediaFingerprint } from "../export/assets";
 import { extractTweet, mediaIdentity, type ExtractedMedia, type ExtractedTweet } from "./extract";
 import { MediaMetadataCache } from "./media-metadata";
 import { sharedDownloadWatcher } from "./download-watch";
 import { isSaveableVariantUrl, VIDEO_CONTAINER_SELECTOR } from "./video-extract";
-import { MediaHistory } from "./history";
+import { MediaHistory, type MediaMatchKind } from "./history";
 import { rememberLastDownload } from "./last-download";
 import { DownloadQueue } from "./queue";
 import { renderFilename } from "./template";
@@ -821,6 +823,9 @@ async function handleDownload(
         "The browser is still transferring this file. Check your downloads for the result."
       );
     }
+    if (outcome.matchKind) {
+      button.title = duplicateMatchTitle(outcome.matchKind, ctx);
+    }
     if (outcome.degraded) {
       button.title = ft(ctx, "Your browser opened this file instead of saving it — grant Aviary the download permission for a real save.");
     }
@@ -838,6 +843,7 @@ interface MediaDownloadOutcome {
    */
   status: "completed" | "started" | "history-duplicate" | "aria2-duplicate";
   degraded: boolean;
+  matchKind?: MediaMatchKind;
 }
 
 async function handlePostDownload(
@@ -941,14 +947,33 @@ async function performMediaDownload(
     text: identity.text,
     mediaId: target.mediaId
   });
-  const dedupeKey = `${identity.tweetId ?? "0"}:${target.mediaId ?? target.url}:${index}:${media.kind}`;
+  let fingerprint: MediaFingerprint = {
+    identityHash: mediaIdentityHash(media.kind, target.url, target.mediaId)
+  };
+  let historyMatch: MediaMatchKind | null = null;
+  if (ctx.settings.media.downloadHistory) {
+    historyMatch = history.findMatch(fingerprint, false);
+    if (!historyMatch) {
+      fingerprint = await fingerprintMediaDownload({
+        kind: media.kind,
+        url: target.url,
+        ...(target.fallbackUrls ? { fallbackUrls: target.fallbackUrls } : {}),
+        mediaId: target.mediaId,
+        includePerceptual: ctx.settings.media.perceptualDedup
+      });
+      historyMatch = history.findMatch(fingerprint, ctx.settings.media.perceptualDedup);
+    }
+  }
 
-  if (ctx.settings.media.downloadHistory && history.has(dedupeKey)) {
+  if (historyMatch) {
+    await history.noteMatch(historyMatch);
     const duplicate = queue.enqueue({ url: target.url, filename });
     queue.mark(duplicate.id, "duplicate");
-    ctx.diagnostics.info("Media skipped — already in history", { dedupeKey });
-    void ctx.auditLog.record("media.download.duplicate", { dedupeKey });
-    return { status: "history-duplicate", degraded: false };
+    ctx.diagnostics.info("Media skipped because its fingerprint is already in history", {
+      matchKind: historyMatch
+    });
+    void ctx.auditLog.record("media.download.duplicate", { matchKind: historyMatch });
+    return { status: "history-duplicate", degraded: false, matchKind: historyMatch };
   }
 
   const job = queue.enqueue({ url: target.url, filename });
@@ -965,7 +990,6 @@ async function performMediaDownload(
         url: target.url
       });
       void ctx.auditLog.record("media.download.duplicate", {
-        dedupeKey,
         source: "aria2-history"
       });
       return { status: "aria2-duplicate", degraded: false };
@@ -997,7 +1021,7 @@ async function performMediaDownload(
       kind: media.kind
     });
     if (ctx.settings.media.downloadHistory) {
-      await history.record(dedupeKey);
+      await history.record(fingerprint);
     }
     ctx.diagnostics.info("Media saved", {
       filename,
@@ -1021,6 +1045,16 @@ async function performMediaDownload(
     });
     throw error;
   }
+}
+
+function duplicateMatchTitle(kind: MediaMatchKind, ctx: FeatureContext): string {
+  if (kind === "exact") {
+    return ft(ctx, "Skipped because the downloaded bytes match an item in history.");
+  }
+  if (kind === "perceptual") {
+    return ft(ctx, "Skipped because the image looks like an item in history.");
+  }
+  return ft(ctx, "Skipped because this is the same X media asset at another size.");
 }
 
 function showDownloadError(

@@ -1,5 +1,11 @@
 import type { IntegrationSettings } from "../../platform/settings";
-import { sha256Hex } from "../export/assets";
+import {
+  mediaIdentityHash,
+  perceptualImageHash,
+  sha256Hex,
+  type MediaFingerprint,
+  type MediaFingerprintKind
+} from "../export/assets";
 import type { ExportMedia, ExportRecord } from "../export/types";
 import {
   addUriToAria2,
@@ -45,6 +51,14 @@ export interface CaptureMediaOptions {
   timeoutMs?: number;
 }
 
+export interface MediaFingerprintRequest {
+  kind: MediaFingerprintKind;
+  url: string;
+  fallbackUrls?: string[];
+  mediaId: string | null;
+  includePerceptual: boolean;
+}
+
 /** Code shared with the background worker so both sides agree on the failure. */
 export const DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
 
@@ -85,6 +99,43 @@ export async function captureMediaBytes(
     sha256: sha256Hex(bytes),
     contentType: response.headers.get("content-type")?.split(";", 1)[0]?.trim() || "application/octet-stream"
   };
+}
+
+/**
+ * Builds the strongest fingerprint available without making a save depend on the fingerprint
+ * request. Videos retain their stable X identity because reading a multi-gigabyte file merely to
+ * decide whether to download it would double the transfer. Images add exact bytes and, when the
+ * user opts in, a visual signature.
+ */
+export async function fingerprintMediaDownload(
+  request: MediaFingerprintRequest
+): Promise<MediaFingerprint> {
+  const identityHash = mediaIdentityHash(request.kind, request.url, request.mediaId);
+  if (request.kind === "video") {
+    return { identityHash };
+  }
+
+  for (const url of downloadCandidates(request)) {
+    try {
+      const captured = await captureMediaBytes(url);
+      let perceptualHash: string | null = null;
+      if (request.includePerceptual && captured.contentType.startsWith("image/")) {
+        try {
+          perceptualHash = await perceptualImageHash(captured.bytes, captured.contentType);
+        } catch {
+          // Exact matching still works when an image decoder refuses an otherwise downloadable file.
+        }
+      }
+      return {
+        identityHash,
+        exactHash: captured.sha256,
+        ...(perceptualHash ? { perceptualHash } : {})
+      };
+    } catch {
+      // The downloader walks the same ordered candidates. A fingerprint miss must never block it.
+    }
+  }
+  return { identityHash };
 }
 
 /** Captures each asset explicitly and retains a retryable remote-reference on failure. */
@@ -329,7 +380,7 @@ async function tryExtensionDownload(request: DownloadRequest): Promise<Extension
   }
 }
 
-function downloadCandidates(request: DownloadRequest): string[] {
+function downloadCandidates(request: Pick<DownloadRequest, "url" | "fallbackUrls">): string[] {
   return [request.url, ...(request.fallbackUrls ?? [])]
     .filter((url, index, all) => /^https?:\/\//i.test(url) && all.indexOf(url) === index)
     .slice(0, 4);

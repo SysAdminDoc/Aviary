@@ -178,22 +178,6 @@ confirmed a second time. See RESEARCH.md.
   Depends on: F147.
   Complexity: M
 
-- [ ] F189, P2, Dedup media by content, not URL
-  Why: the download history is keyed by URL, so the same image served at a different size or re-encoded
-  by X counts as a new asset, the identical gap gallery-dl documents in its own archive
-  ("prevents re-downloading but does not deduplicate across different source URLs pointing to the same
-  image"). Aviary already computes SHA-256 for captured export assets, so the exact-match half is
-  nearly free; a perceptual hash covers the re-encode case.
-  Evidence: https://github.com/mikf/gallery-dl/discussions/7717;
-  https://auto-archiver.readthedocs.io/en/latest/modules/autogen/enricher/pdq_hash_enricher.html
-  (PDQ, 256-bit, stored as hex); `src/features/media/history.ts` key scheme.
-  Touches: `src/features/media/history.ts`, `src/features/export/assets.ts`, the Media panel's dedup
-  readout and "Clear download history".
-  Acceptance: re-saving the same image at a different `name=` size is reported as a duplicate; the
-  index stores hashes rather than growing per URL; the panel states which kind of match fired; the
-  perceptual half is opt-in and its false-positive behaviour is stated.
-  Complexity: M
-
 - [ ] F190, P2, Repair X archive imports from the captured corpus
   Why: X's own export is documented as losing four things Aviary can restore locally, t.co links are
   preserved unexpanded (they hide origins and die with t.co), DM and mention participants are stored as

@@ -12,6 +12,8 @@ Aviary is a local-first X/Twitter enhancer. It adds clear image and video downlo
 
 Fresh installs remove advertising and enable one clear Download action on every media post, plus
 per-asset Save, Thumb, and eligible Video/GIF controls.
+Download history stores hashed media identities instead of source URLs. It catches alternate X
+image sizes and exact byte matches, with optional visual matching for re-encoded images.
 The media controls act only after you click them and can be disabled from Media at any time. Other
 settings that change ordinary X content or styling still start off. That includes themes, layout
 cleanup, filters, offscreen video pausing, and general analytics refusal.

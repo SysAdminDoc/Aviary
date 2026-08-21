@@ -100,6 +100,16 @@ before(async () => {
 
   browser = await chromium.launch({ headless: true });
   page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  await page.route("https://pbs.twimg.com/**", (route) => route.fulfill({
+    status: 200,
+    headers: {
+      "access-control-allow-origin": "*",
+      "content-type": "image/jpeg"
+    },
+    body: Buffer.from(route.request().url().includes("QuotedPhoto")
+      ? [0xff, 0xd8, 2, 0xff, 0xd9]
+      : [0xff, 0xd8, 1, 0xff, 0xd9])
+  }));
   await page.setContent("<!doctype html><meta charset=utf-8><body></body>");
   await page.addScriptTag({ path: bundle });
   await page.evaluate(() => {

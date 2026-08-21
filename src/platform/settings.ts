@@ -285,6 +285,7 @@ export interface AviarySettings {
     inlineOriginalImages: boolean;
     filenameTemplate: string;
     downloadHistory: boolean;
+    perceptualDedup: boolean;
     zipChunkSize: number;
     layout: MediaLayout;
     lastSaveFolder: string;
@@ -430,6 +431,7 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     inlineOriginalImages: false,
     filenameTemplate: "{handle}_{tweetId}_{index}",
     downloadHistory: true,
+    perceptualDedup: false,
     zipChunkSize: 250,
     layout: "default",
     lastSaveFolder: ""
@@ -710,6 +712,7 @@ export function normalizeSettings(input: unknown): AviarySettings {
       inlineOriginalImages: booleanValue(media.inlineOriginalImages, DEFAULT_SETTINGS.media.inlineOriginalImages),
       filenameTemplate: stringValue(media.filenameTemplate, DEFAULT_SETTINGS.media.filenameTemplate, 160),
       downloadHistory: booleanValue(media.downloadHistory, DEFAULT_SETTINGS.media.downloadHistory),
+      perceptualDedup: booleanValue(media.perceptualDedup, DEFAULT_SETTINGS.media.perceptualDedup),
       zipChunkSize: integerValue(media.zipChunkSize, DEFAULT_SETTINGS.media.zipChunkSize, 25, 1000),
       layout: enumValue(media.layout, MEDIA_LAYOUTS, DEFAULT_SETTINGS.media.layout),
       lastSaveFolder: folderHintValue(media.lastSaveFolder, DEFAULT_SETTINGS.media.lastSaveFolder)

@@ -52,6 +52,25 @@ export interface ExportPackageManifest {
   networkRequiredToComplete: boolean;
 }
 
+export type MediaFingerprintKind = "photo" | "video" | "thumbnail";
+
+/**
+ * Durable media identity. Only hashes reach storage, never the source URL.
+ *
+ * `identityHash` collapses X's size variants before any request. `exactHash` is SHA-256 over the
+ * response bytes. `perceptualHash` is a 256-bit difference hash over decoded image pixels and is
+ * intentionally optional because visually similar images can collide.
+ */
+export interface MediaFingerprint {
+  identityHash: string;
+  exactHash?: string;
+  perceptualHash?: string;
+}
+
+export const PERCEPTUAL_HASH_WIDTH = 17;
+export const PERCEPTUAL_HASH_HEIGHT = 16;
+export const PERCEPTUAL_MATCH_DISTANCE = 12;
+
 /**
  * Returns the durable meaning of a media entry. A URL is never treated as captured content, and
  * a blank/invalid URL is never presented as a link that an offline reader could fetch later.
@@ -265,8 +284,137 @@ export function sha256Hex(data: Uint8Array): string {
   return Array.from(hash, (word) => word.toString(16).padStart(8, "0")).join("");
 }
 
+/** Hashes a stable X asset identity, not the mutable size URL that happened to render. */
+export function mediaIdentityHash(
+  kind: MediaFingerprintKind,
+  sourceUrl: string,
+  mediaId: string | null
+): string {
+  const identity = cleanText(mediaId) || mediaIdentityFromUrl(sourceUrl) || canonicalMediaUrl(sourceUrl);
+  return sha256Hex(new TextEncoder().encode(`aviary-media:${kind}:${identity}`));
+}
+
+/**
+ * Produces a 256-bit difference hash from decoded RGBA pixels.
+ *
+ * The caller supplies the fixed 17 by 16 sample. Keeping the comparison pure makes the matching
+ * contract testable without relying on a browser image decoder.
+ */
+export function perceptualHashFromRgba(
+  rgba: Uint8ClampedArray,
+  width = PERCEPTUAL_HASH_WIDTH,
+  height = PERCEPTUAL_HASH_HEIGHT
+): string {
+  if (width !== PERCEPTUAL_HASH_WIDTH || height !== PERCEPTUAL_HASH_HEIGHT) {
+    throw new RangeError(`Perceptual samples must be ${PERCEPTUAL_HASH_WIDTH} by ${PERCEPTUAL_HASH_HEIGHT}.`);
+  }
+  if (rgba.length !== width * height * 4) {
+    throw new RangeError("Perceptual sample length does not match its dimensions.");
+  }
+
+  const bytes = new Uint8Array(32);
+  let bit = 0;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width - 1; x += 1) {
+      const left = pixelLuma(rgba, (y * width + x) * 4);
+      const right = pixelLuma(rgba, (y * width + x + 1) * 4);
+      if (left > right) {
+        bytes[Math.trunc(bit / 8)]! |= 1 << (7 - (bit % 8));
+      }
+      bit += 1;
+    }
+  }
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+}
+
+/** Decodes captured image bytes and normalizes them to the sample used by the difference hash. */
+export async function perceptualImageHash(
+  bytes: Uint8Array,
+  contentType = "image/*"
+): Promise<string | null> {
+  if (typeof createImageBitmap !== "function") {
+    return null;
+  }
+  const bitmap = await createImageBitmap(new Blob([bytes.slice().buffer], { type: contentType }));
+  try {
+    const canvas = createHashCanvas();
+    const context = canvas.getContext("2d", { willReadFrequently: true }) as
+      | CanvasRenderingContext2D
+      | OffscreenCanvasRenderingContext2D
+      | null;
+    if (!context) {
+      return null;
+    }
+    context.drawImage(bitmap, 0, 0, PERCEPTUAL_HASH_WIDTH, PERCEPTUAL_HASH_HEIGHT);
+    const sample = context.getImageData(
+      0,
+      0,
+      PERCEPTUAL_HASH_WIDTH,
+      PERCEPTUAL_HASH_HEIGHT
+    );
+    return perceptualHashFromRgba(sample.data);
+  } finally {
+    bitmap.close();
+  }
+}
+
+/** Number of differing bits between two equal-length hexadecimal signatures. */
+export function hexadecimalHammingDistance(left: string, right: string): number {
+  if (!/^[0-9a-f]+$/i.test(left) || left.length !== right.length || !/^[0-9a-f]+$/i.test(right)) {
+    return Number.POSITIVE_INFINITY;
+  }
+  let distance = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    distance += NIBBLE_BITS[Number.parseInt(left[index]!, 16) ^ Number.parseInt(right[index]!, 16)]!;
+  }
+  return distance;
+}
+
 function rotateRight(value: number, bits: number): number {
   return (value >>> bits) | (value << (32 - bits));
+}
+
+function pixelLuma(rgba: Uint8ClampedArray, offset: number): number {
+  return rgba[offset]! * 299 + rgba[offset + 1]! * 587 + rgba[offset + 2]! * 114;
+}
+
+function createHashCanvas(): OffscreenCanvas | HTMLCanvasElement {
+  if (typeof OffscreenCanvas === "function") {
+    return new OffscreenCanvas(PERCEPTUAL_HASH_WIDTH, PERCEPTUAL_HASH_HEIGHT);
+  }
+  if (typeof document === "undefined") {
+    throw new Error("No image canvas is available in this context.");
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = PERCEPTUAL_HASH_WIDTH;
+  canvas.height = PERCEPTUAL_HASH_HEIGHT;
+  return canvas;
+}
+
+function mediaIdentityFromUrl(sourceUrl: string): string {
+  try {
+    const url = new URL(sourceUrl);
+    if (url.hostname.toLowerCase() === "pbs.twimg.com") {
+      return /^\/media\/([A-Za-z0-9_-]+)/i.exec(url.pathname)?.[1] ?? "";
+    }
+  } catch {
+    // The canonical fallback below handles malformed or relative values without throwing.
+  }
+  return "";
+}
+
+function canonicalMediaUrl(sourceUrl: string): string {
+  try {
+    const url = new URL(sourceUrl);
+    for (const key of ["name", "format", "width", "height", "tag"]) {
+      url.searchParams.delete(key);
+    }
+    url.hash = "";
+    url.searchParams.sort();
+    return url.toString();
+  } catch {
+    return cleanText(sourceUrl);
+  }
 }
 
 function cleanText(value: string | null | undefined): string {
@@ -315,3 +463,5 @@ const SHA256_K = Uint32Array.from([
   0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
   0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 ]);
+
+const NIBBLE_BITS = Uint8Array.from([0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4]);

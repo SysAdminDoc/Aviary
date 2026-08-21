@@ -1118,8 +1118,19 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
   );
   rows.push(
     ctx.toggleRow(
+      "Match visually similar images",
+      "Compare a 256-bit visual signature too. Similar flat compositions can be mistaken for a match, so this stays off by default.",
+      ctx.options.settings.media.perceptualDedup,
+      async (checked) => {
+        ctx.options.settings.media.perceptualDedup = checked;
+        await ctx.save(checked ? "Visual duplicate matching on" : "Visual duplicate matching off");
+      }
+    )
+  );
+  rows.push(
+    ctx.toggleRow(
       "Duplicate history",
-      "Skip downloads of media you have already saved from this browser.",
+      "Skip the same X asset or exact image bytes without storing its source URL.",
       ctx.options.settings.media.downloadHistory,
       async (checked) => {
         ctx.options.settings.media.downloadHistory = checked;
@@ -1198,6 +1209,24 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
       );
     }
     rows.push(ctx.dataRow("History entries", String(status.historySize)));
+    rows.push(
+      ctx.dataRow(
+        "Duplicate matches",
+        `${status.historyMatches.exact} exact / ${status.historyMatches.identity} same X asset / ${status.historyMatches.perceptual} visual`
+      )
+    );
+    rows.push(
+      ctx.dataRow(
+        "Last duplicate match",
+        status.lastHistoryMatch === "exact"
+          ? "Exact downloaded bytes"
+          : status.lastHistoryMatch === "identity"
+            ? "Same X media asset"
+            : status.lastHistoryMatch === "perceptual"
+              ? "Visually similar image"
+              : "No duplicate match recorded"
+      )
+    );
   }
 
   if (ctx.options.clearMediaHistory) {

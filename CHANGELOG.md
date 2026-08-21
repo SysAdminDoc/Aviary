@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Added
+
+- **Download history now recognizes the media, not the delivery URL.** Image saves store a stable
+  X asset hash plus SHA-256 when the bytes can be read. A different size URL or a second URL with
+  identical bytes is skipped without adding another history entry.
+
+- **Visual duplicate matching is available as an opt-in.** It compares a 256-bit image signature
+  and reports visual matches separately. The setting warns that similar compositions can produce
+  a false match and remains off by default.
+
+### Changed
+
+- **The Media page explains every duplicate decision.** It shows counts for exact-byte, same-asset,
+  and visual matches, plus the most recent match type. Clearing history resets the hashes and those
+  counters together.
+
+- **The delivery-size ceiling now includes content fingerprinting.** The main bundle allowance is
+  2.125 MB, leaving less than 8 KB of headroom so later growth still needs an explicit decision.
+
 ## 1.37.0 (2026-08-20)
 
 ### Changed

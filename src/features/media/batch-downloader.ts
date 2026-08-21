@@ -4,10 +4,12 @@ import { sharedDownloadWatcher } from "./download-watch";
 import {
   createDownloader,
   DownloadPermissionError,
+  fingerprintMediaDownload,
   requestDownloadPermissionSurface,
   type Downloader,
   type DownloaderResult
 } from "./downloader";
+import { mediaIdentityHash, type MediaFingerprint } from "../export/assets";
 import { getMediaHistory, getMediaQueue } from "./media-buttons";
 import { isSaveableVariantUrl } from "./video-extract";
 import type { DownloadJob } from "./queue";
@@ -174,7 +176,6 @@ async function runTasks(
         if (index >= tasks.length) return;
         const task = tasks[index]!;
         const identity = mediaIdentity(task.tweet, task.media);
-        const dedupeKey = `${identity.tweetId ?? "0"}:${task.target.mediaId ?? task.target.url}:${task.index}:${task.media.kind}`;
         const filename = renderFilename(ctx.settings.media.filenameTemplate, {
           handle: identity.handle,
           tweetId: identity.tweetId,
@@ -186,7 +187,19 @@ async function runTasks(
           mediaId: task.target.mediaId
         });
 
-        if (ctx.settings.media.downloadHistory && history?.has(dedupeKey)) {
+        let fingerprint: MediaFingerprint = {
+          identityHash: mediaIdentityHash(
+            task.media.kind,
+            task.target.url,
+            task.target.mediaId
+          )
+        };
+        let historyMatch = ctx.settings.media.downloadHistory
+          ? history?.findMatch(fingerprint, false) ?? null
+          : null;
+
+        if (historyMatch) {
+          await history?.noteMatch(historyMatch);
           progress.duplicate += 1;
           if (queue) {
             const job = queue.enqueue({ url: task.target.url, filename });
@@ -203,6 +216,33 @@ async function runTasks(
         if (control.cancelled) return;
         await waitForBatch(control);
         if (control.cancelled) return;
+
+        if (ctx.settings.media.downloadHistory && history) {
+          fingerprint = await fingerprintMediaDownload({
+            kind: task.media.kind,
+            url: task.target.url,
+            ...(task.target.fallbackUrls
+              ? { fallbackUrls: task.target.fallbackUrls }
+              : {}),
+            mediaId: task.target.mediaId,
+            includePerceptual: ctx.settings.media.perceptualDedup
+          });
+          historyMatch = history.findMatch(fingerprint, ctx.settings.media.perceptualDedup);
+          if (historyMatch) {
+            await history.noteMatch(historyMatch);
+            progress.duplicate += 1;
+            if (queue) {
+              const duplicate = queue.enqueue({ url: task.target.url, filename });
+              queue.mark(duplicate.id, "duplicate");
+              jobIds.push(duplicate.id);
+            }
+            void ctx.auditLog.record("media.download.duplicate", {
+              matchKind: historyMatch,
+              batch: true
+            });
+            continue;
+          }
+        }
 
         const job = queue?.enqueue({ url: task.target.url, filename });
         if (job) {
@@ -231,7 +271,7 @@ async function runTasks(
                 if (terminal === "complete") {
                   if (jobId) queue?.mark(jobId, "completed");
                   if (ctx.settings.media.downloadHistory && history) {
-                    await history.record(dedupeKey);
+                    await history.record(fingerprint);
                   }
                   return;
                 }
@@ -249,7 +289,7 @@ async function runTasks(
           } else {
             if (job) queue?.mark(job.id, "completed");
             if (ctx.settings.media.downloadHistory && history) {
-              await history.record(dedupeKey);
+              await history.record(fingerprint);
             }
           }
           progress.downloaded += 1;
