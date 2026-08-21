@@ -81,6 +81,7 @@ export type RateLimitMode = "conservative" | "balanced";
 export type ReduceMotionMode = "system" | "always" | "never";
 export type FilterAction = "off" | "hide" | "dim";
 export type MediaLayout = "default" | "stacked" | "grid";
+export type MediaSidecarFormat = "off" | "text" | "json";
 export type FilterSurface =
   | "home"
   | "status"
@@ -102,6 +103,7 @@ export const FILTER_SURFACES: FilterSurface[] = [
   "messages"
 ];
 const MEDIA_LAYOUTS: MediaLayout[] = ["default", "stacked", "grid"];
+const MEDIA_SIDECAR_FORMATS: MediaSidecarFormat[] = ["off", "text", "json"];
 export const COUNT_METRICS = ["replies", "reposts", "likes", "views"] as const;
 export type CountMetric = (typeof COUNT_METRICS)[number];
 export const FILTER_MEDIA_KEYS = ["photo", "video", "gif"] as const;
@@ -286,6 +288,7 @@ export interface AviarySettings {
     filenameTemplate: string;
     downloadHistory: boolean;
     perceptualDedup: boolean;
+    sidecarFormat: MediaSidecarFormat;
     zipChunkSize: number;
     layout: MediaLayout;
     lastSaveFolder: string;
@@ -432,6 +435,7 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     filenameTemplate: "{handle}_{tweetId}_{index}",
     downloadHistory: true,
     perceptualDedup: false,
+    sidecarFormat: "off",
     zipChunkSize: 250,
     layout: "default",
     lastSaveFolder: ""
@@ -713,6 +717,11 @@ export function normalizeSettings(input: unknown): AviarySettings {
       filenameTemplate: stringValue(media.filenameTemplate, DEFAULT_SETTINGS.media.filenameTemplate, 160),
       downloadHistory: booleanValue(media.downloadHistory, DEFAULT_SETTINGS.media.downloadHistory),
       perceptualDedup: booleanValue(media.perceptualDedup, DEFAULT_SETTINGS.media.perceptualDedup),
+      sidecarFormat: enumValue(
+        media.sidecarFormat,
+        MEDIA_SIDECAR_FORMATS,
+        DEFAULT_SETTINGS.media.sidecarFormat
+      ),
       zipChunkSize: integerValue(media.zipChunkSize, DEFAULT_SETTINGS.media.zipChunkSize, 25, 1000),
       layout: enumValue(media.layout, MEDIA_LAYOUTS, DEFAULT_SETTINGS.media.layout),
       lastSaveFolder: folderHintValue(media.lastSaveFolder, DEFAULT_SETTINGS.media.lastSaveFolder)

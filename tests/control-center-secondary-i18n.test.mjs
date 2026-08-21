@@ -209,7 +209,7 @@ test("secondary Control Center sections render stable copy through every locale"
     "3 saved · 1 due · 1 tags · 1 folders",
     "Search all local collections",
     "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.",
-    "Use semantic ranking (optional)",
+    "Semantic ranking",
     "Try source:bookmarks, tag:reading, or has:media."
   ];
   for (const locale of locales.slice(1)) {

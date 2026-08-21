@@ -243,7 +243,7 @@ test("library search labels the ranking signals used for each result", async () 
     const input = [...shadow.querySelectorAll('input[type="search"]')].find((candidate) =>
       candidate.placeholder.startsWith("Search local library")
     );
-    const toggle = shadow.querySelector('input[aria-label="Use semantic ranking (optional)"]');
+    const toggle = shadow.querySelector('input[aria-label="Semantic ranking"]');
     input.value = "archive";
     input.dispatchEvent(new Event("input", { bubbles: true }));
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -258,6 +258,84 @@ test("library search labels the ranking signals used for each result", async () 
 
   assert.match(result.lexical, /Text match/);
   assert.match(result.hybrid, /Text \+ semantic match/);
+});
+
+test("Library downloads use the visible query and keep it when the page is revisited", async () => {
+  const result = await page.evaluate(async () => {
+    document.body.replaceChildren();
+    const settings = AviaryActions.cloneSettings(AviaryActions.DEFAULT_SETTINGS);
+    const calls = [];
+    const panel = AviaryActions.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: () => {},
+      offlineSearch: () => [],
+      getCapturedMediaCount: (query) => query.includes("alice") ? 12 : 40,
+      runCapturedMediaBatch: async (query) => {
+        calls.push(query);
+        return { total: 12, downloaded: 10, duplicate: 2, failed: 0, cancelled: false };
+      }
+    });
+    const shadow = document.querySelector("#av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    shadow.querySelector('[data-av-section="library"]').click();
+    let input = [...shadow.querySelectorAll('input[type="search"]')].find((candidate) =>
+      candidate.placeholder.startsWith("Search local library")
+    );
+    input.value = "account:alice has:media";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const row = input.closest(".av-row");
+    const count = row.querySelector(".av-library-media-count").textContent;
+    const button = row.querySelector(".av-library-media-download");
+    button.click();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const status = shadow.querySelector(".av-status").textContent;
+    shadow.querySelector('[data-av-section="appearance"]').click();
+    shadow.querySelector('[data-av-section="library"]').click();
+    input = [...shadow.querySelectorAll('input[type="search"]')].find((candidate) =>
+      candidate.placeholder.startsWith("Search local library")
+    );
+    const restored = input.value;
+    panel.destroy();
+    return { calls, count, status, restored };
+  });
+
+  assert.deepEqual(result.calls, ["account:alice has:media"]);
+  assert.equal(result.count, "12 media");
+  assert.match(result.status, /10 saved \/ 2 dup \/ 0 failed/);
+  assert.equal(result.restored, "account:alice has:media");
+});
+
+test("the sidecar preference lives with Media downloads, not Export formats", async () => {
+  const result = await page.evaluate(() => {
+    document.body.replaceChildren();
+    const settings = AviaryActions.cloneSettings(AviaryActions.DEFAULT_SETTINGS);
+    const panel = AviaryActions.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: () => {}
+    });
+    const shadow = document.querySelector("#av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    const hasSidecar = () => [...shadow.querySelectorAll(".av-row-label")]
+      .some((label) => label.textContent === "Metadata sidecar");
+    shadow.querySelector('[data-av-section="export"]').click();
+    const exportHasSidecar = hasSidecar();
+    shadow.querySelector('[data-av-section="media"]').click();
+    const mediaHasSidecar = hasSidecar();
+    const value = [...shadow.querySelectorAll(".av-row")]
+      .find((row) => row.querySelector(".av-row-label")?.textContent === "Metadata sidecar")
+      ?.querySelector("select")?.value;
+    panel.destroy();
+    return { exportHasSidecar, mediaHasSidecar, value };
+  });
+
+  assert.equal(result.exportHasSidecar, false);
+  assert.equal(result.mediaHasSidecar, true);
+  assert.equal(result.value, "off");
 });
 
 test("snapshot capture and clear refresh the count while preserving action focus", async () => {

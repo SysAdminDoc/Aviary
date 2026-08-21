@@ -123,6 +123,25 @@ test("lexical ranking puts exact handles and quoted phrases first", async () => 
   assert.deepEqual(parseOfflineQuery('"best quality video"').phrases, ["best quality video"]);
 });
 
+test("offline query batches can return more than the interactive 100-result window", async () => {
+  const { OfflineQueryIndex } = await importBundledModule(
+    "src/features/library/query-model.ts"
+  );
+  const index = new OfflineQueryIndex();
+  index.rebuild(Array.from({ length: 150 }, (_, id) => ({
+    id: `record:${id}`,
+    collection: "posts",
+    account: "alice",
+    text: `captured media common ${id}`,
+    tags: [],
+    folder: null,
+    capturedAt: "2026-08-21T12:00:00.000Z",
+    mediaCount: 1
+  })));
+
+  assert.equal(index.search("common", { limit: 150 }).length, 150);
+});
+
 test("quoted phrases cannot span unrelated indexed fields", async () => {
   const { OfflineQueryIndex } = await importBundledModule(
     "src/features/library/query-model.ts"

@@ -208,6 +208,14 @@ export interface ControlCenterOptions {
   searchBookmarks?: (query: string) => BookmarkRecord[];
   offlineSearch?: (query: string) => OfflineQueryHit[];
   offlineSemanticSearch?: (query: string) => Promise<OfflineQueryHit[]>;
+  getCapturedMediaCount?: (query: string) => number;
+  runCapturedMediaBatch?: (query: string) => Promise<{
+    total: number;
+    downloaded: number;
+    duplicate: number;
+    failed: number;
+    cancelled?: boolean;
+  }>;
   updateBookmark?: (id: string, input: BookmarkInput) => Promise<BookmarkRecord | null>;
   removeBookmark?: (id: string) => Promise<boolean>;
   clearBookmarks?: () => Promise<void>;
@@ -593,6 +601,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   /** Search, backup, and restore state survives section rebuilds and settings saves. */
   const panelState: PanelState = {
     bookmarkQuery: "",
+    libraryQuery: "",
     unifiedSemantic: false,
     pendingLibraryBackupPayload: null,
     pendingLibraryBackupPreview: null,
@@ -3101,6 +3110,14 @@ input:focus-visible {
   align-items: start;
 }
 
+.av-section[data-av-section="library"] .av-row-stack:has(> .av-library-media-actions) {
+  grid-template-columns: minmax(320px, 1fr) auto;
+}
+
+.av-section[data-av-section="library"] .av-row-stack:has(> .av-library-media-actions) > .av-row-copy {
+  grid-column: 1 / -1;
+}
+
 .av-row-stack:has(> .av-textarea) > .av-button {
   margin-top: 2px;
 }
@@ -3234,6 +3251,32 @@ input:focus-visible {
   gap: 6px;
   max-height: 220px;
   overflow: auto;
+}
+
+.av-row-stack > .av-search-results {
+  grid-column: 1 / -1;
+}
+
+.av-library-media-actions {
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+
+.av-library-media-actions > .av-inline-controls {
+  align-items: center;
+  white-space: nowrap;
+}
+
+.av-library-media-actions .av-library-media-download {
+  flex: 0 0 auto;
+  min-width: 132px;
+}
+
+.av-library-media-count {
+  min-width: 54px;
+  text-align: end;
+  white-space: nowrap;
 }
 
 .av-search-hit {
@@ -3721,6 +3764,10 @@ input[type="checkbox"] {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .av-section[data-av-section="library"] .av-row-stack:has(> .av-library-media-actions) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .av-section[data-av-section="appearance"] .av-page-grid,
   .av-section[data-av-section="hidden"] .av-page-grid,
   .av-section[data-av-section="performance"] .av-page-grid,
@@ -3737,6 +3784,15 @@ input[type="checkbox"] {
 
   .av-preset-highlights {
     grid-column: auto;
+  }
+
+  .av-library-media-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .av-library-media-count {
+    text-align: start;
   }
 
   .av-row,

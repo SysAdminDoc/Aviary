@@ -2,6 +2,7 @@ import {
   DEFAULT_SETTINGS,
   isCopyLinkHost,
   type AviarySettings,
+  type MediaSidecarFormat,
   type RateLimitMode
 } from "../../../platform/settings";
 import type { PanelContext } from "../panel-context";
@@ -392,30 +393,72 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
       ctx.el(
         "span",
         "av-row-description",
-        ctx.t("Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.")
+        ctx.t("Search posts, likes, bookmarks, notes, and captures.")
       )
     );
     const input = document.createElement("input");
     input.type = "search";
     input.className = "av-text-input";
-    input.placeholder = ctx.t("Search local library (source:, account:, tag:, from:, to:, has:media)");
+    input.value = ctx.state.libraryQuery;
+    input.placeholder = ctx.t("Search local library");
     input.setAttribute("aria-label", ctx.t("Search all local collections"));
     input.spellcheck = false;
     const semanticToggle = document.createElement("input");
     semanticToggle.type = "checkbox";
     semanticToggle.checked = ctx.state.unifiedSemantic;
-    semanticToggle.setAttribute("aria-label", ctx.t("Use semantic ranking (optional)"));
-    const semanticCopy = ctx.el("span", "av-row-description", ctx.t("Use semantic ranking (optional)"));
+    semanticToggle.setAttribute("aria-label", ctx.t("Semantic ranking"));
+    const semanticCopy = ctx.el("span", "av-row-description", ctx.t("Semantic ranking"));
     const semanticRow = ctx.el("label", "av-inline-controls");
     semanticRow.append(semanticToggle, semanticCopy);
     const results = ctx.el("div", "av-search-results");
     results.setAttribute("role", "list");
     results.setAttribute("aria-live", "polite");
     let searchSequence = 0;
+    const libraryTools = ctx.el("div", "av-inline-controls av-library-media-actions");
+    libraryTools.append(semanticRow);
+
+    const mediaCount = ctx.el("span", "av-row-description av-library-media-count");
+    const updateMediaCount = (): void => {
+      const count = ctx.options.getCapturedMediaCount?.(ctx.state.libraryQuery.trim()) ?? 0;
+      mediaCount.textContent = ctx.formatCopy(ctx.t("{count} media"), { count });
+    };
+    if (ctx.options.runCapturedMediaBatch) {
+      const download = ctx.el(
+        "button",
+        "av-button av-button-secondary av-library-media-download",
+        ctx.t("Download media")
+      ) as HTMLButtonElement;
+      download.type = "button";
+      download.addEventListener("click", () => {
+        download.disabled = true;
+        const query = ctx.state.libraryQuery.trim();
+        ctx.setStatus(query ? "Downloading media from matching captures..." : "Downloading all captured media...");
+        void ctx.options
+          .runCapturedMediaBatch!(query)
+          .then((result) => {
+            updateMediaCount();
+            ctx.setStatus(
+              result.cancelled
+                ? `Batch cancelled: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
+                : `Batch finished: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
+            );
+          })
+          .catch((error: unknown) => {
+            ctx.options.onError("Captured media download failed", error);
+            ctx.setStatus("Captured media download failed.");
+          })
+          .finally(() => {
+            download.disabled = false;
+          });
+      });
+      libraryTools.append(download, mediaCount);
+    }
 
     const renderUnified = async (): Promise<void> => {
       const sequence = ++searchSequence;
       const query = input.value.trim();
+      ctx.state.libraryQuery = input.value;
+      updateMediaCount();
       results.replaceChildren();
       if (query.length === 0) {
         results.append(ctx.el("div", "av-row-description", ctx.t("Try source:bookmarks, tag:reading, or has:media.")));
@@ -451,8 +494,9 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
       ctx.state.unifiedSemantic = semanticToggle.checked;
       void renderUnified();
     });
+    updateMediaCount();
     results.append(ctx.el("div", "av-row-description", ctx.t("Try source:bookmarks, tag:reading, or has:media.")));
-    row.append(copy, input, semanticRow, results);
+    row.append(copy, input, libraryTools, results);
     rows.push(row);
   }
 
@@ -1138,6 +1182,24 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.media.filenameTemplate = value.length > 0 ? value : "{handle}_{tweetId}_{index}";
         await ctx.save("Filename template saved");
       }
+    )
+  );
+  rows.push(
+    ctx.selectRow(
+      "Metadata sidecar",
+      ctx.options.settings.media.sidecarFormat,
+      [
+        ["off", "Off"],
+        ["text", "Text"],
+        ["json", "JSON"]
+      ],
+      async (value) => {
+        if (value === "off" || value === "text" || value === "json") {
+          ctx.options.settings.media.sidecarFormat = value as MediaSidecarFormat;
+          await ctx.save("Media sidecar preference saved");
+        }
+      },
+      "Save a local text or JSON companion after each completed media download."
     )
   );
   rows.push(

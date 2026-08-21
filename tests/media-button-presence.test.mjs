@@ -58,8 +58,9 @@ before(async () => {
   await writeFile(
     entry,
     [
-      `export { mediaButtonsFeature, getMediaQueue } from ${JSON.stringify(abs("src/features/media/media-buttons.ts"))};`,
+      `export { mediaButtonsFeature, getMediaHistory, getMediaQueue, refreshMediaDownloadMarkers } from ${JSON.stringify(abs("src/features/media/media-buttons.ts"))};`,
       `export { runMediaBatch } from ${JSON.stringify(abs("src/features/media/batch-downloader.ts"))};`,
+      `export { mediaIdentityHash } from ${JSON.stringify(abs("src/features/export/assets.ts"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};`
     ].join("\n"),
     "utf8"
@@ -173,6 +174,103 @@ test("a media control is visible at rest, not only on hover, and is big enough t
   assert.ok(control.resting.height >= 36, `the control is ${control.resting.height}px tall`);
   assert.notEqual(control.resting.shadow, "none", "the control needs separation from the photo behind it");
   assert.ok(control.hovered >= control.resting.opacity, "hover must not hide a persistent control");
+});
+
+test("previously downloaded media carries a quiet visible and accessible marker", async () => {
+  const marked = await page.evaluate(async () => {
+    const identityHash = AviaryMedia.mediaIdentityHash(
+      "photo",
+      "https://pbs.twimg.com/media/photo1?format=jpg&name=orig",
+      "photo1"
+    );
+    const ctx = window.mediaCtx();
+    ctx.storage.get = async (key, fallback) => {
+      if (String(key).includes("media.history")) {
+        return {
+          schemaVersion: 3,
+          entries: [{ identityHash, at: "2026-08-21T12:00:00.000Z" }],
+          reservations: [],
+          matches: { identity: 0, exact: 0, perceptual: 0 },
+          lastMatch: null
+        };
+      }
+      return fallback;
+    };
+    await AviaryMedia.mediaButtonsFeature.init(ctx);
+    const buttons = [...document.querySelectorAll("[data-av-media-button]")].map((button) => ({
+      article: button.closest("article")?.querySelector("a[href*='/status/']")?.getAttribute("href"),
+      downloaded: button.getAttribute("data-av-downloaded"),
+      label: button.getAttribute("aria-label"),
+      marker: getComputedStyle(button, "::after").content
+    }));
+    await AviaryMedia.getMediaHistory().clear();
+    AviaryMedia.refreshMediaDownloadMarkers(ctx);
+    const afterClear = [...document.querySelectorAll("[data-av-media-button]")].map((button) => ({
+      article: button.closest("article")?.querySelector("a[href*='/status/']")?.getAttribute("href"),
+      downloaded: button.getAttribute("data-av-downloaded"),
+      label: button.getAttribute("aria-label")
+    }));
+    await AviaryMedia.mediaButtonsFeature.destroy(ctx);
+    return { buttons, afterClear };
+  });
+
+  const saved = marked.buttons.find((entry) => entry.article?.endsWith("0001"));
+  const fresh = marked.buttons.find((entry) => entry.article?.endsWith("0002"));
+  assert.equal(saved.downloaded, "true");
+  assert.match(saved.label, /Previously downloaded/);
+  assert.notEqual(saved.marker, "none", "the saved state has no visible marker");
+  assert.equal(fresh.downloaded, null);
+  assert.ok(marked.afterClear.every((entry) => entry.downloaded === null));
+  assert.ok(marked.afterClear.every((entry) => !/Previously downloaded/.test(entry.label)));
+});
+
+test("a completed media save emits its opted-in sidecar and persists recovery metadata", async () => {
+  const result = await page.evaluate(async () => {
+    const ctx = window.mediaCtx((settings) => {
+      settings.media.downloadHistory = false;
+      settings.media.sidecarFormat = "json";
+    });
+    const messages = [];
+    globalThis.chrome = {
+      runtime: {
+        async sendMessage(message) {
+          messages.push(message);
+          return { ok: true };
+        }
+      }
+    };
+    const sidecars = [];
+    const originalClick = HTMLAnchorElement.prototype.click;
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    HTMLAnchorElement.prototype.click = function () {
+      sidecars.push({ filename: this.download, href: this.href });
+    };
+    URL.createObjectURL = () => "blob:aviary-sidecar";
+    URL.revokeObjectURL = () => {};
+    try {
+      await AviaryMedia.mediaButtonsFeature.init(ctx);
+      const button = document.querySelector("[data-av-media-button]");
+      button.click();
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      const queued = AviaryMedia.getMediaQueue().snapshot().recent.at(-1);
+      await AviaryMedia.mediaButtonsFeature.destroy(ctx);
+      return { messages, sidecars, queued };
+    } finally {
+      HTMLAnchorElement.prototype.click = originalClick;
+      URL.createObjectURL = originalCreate;
+      URL.revokeObjectURL = originalRevoke;
+    }
+  });
+
+  assert.equal(result.messages.length, 1);
+  assert.match(result.messages[0].url, /name=orig/);
+  assert.ok(result.messages[0].fallbackUrls.length > 0, "the original-image fallback was not handed off");
+  assert.equal(result.sidecars.length, 1);
+  assert.match(result.sidecars[0].filename, /\.json$/);
+  assert.equal(result.queued.status, "completed");
+  assert.equal(result.queued.kind, "photo");
+  assert.equal(result.queued.sidecar.format, "json");
 });
 
 test("destroy removes every control and leaves the post as it was", async () => {

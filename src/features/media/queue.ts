@@ -1,4 +1,8 @@
 import type { StorageGateway } from "../../platform/storage";
+import {
+  normalizeMediaSidecarRequest,
+  type MediaSidecarRequest
+} from "./sidecar";
 
 export type JobStatus =
   | "queued"
@@ -12,7 +16,11 @@ export type JobStatus =
 export interface DownloadJob {
   id: string;
   url: string;
+  fallbackUrls?: string[];
   filename: string;
+  kind?: "photo" | "video" | "thumbnail";
+  mediaId?: string | null;
+  sidecar?: MediaSidecarRequest;
   status: JobStatus;
   error?: string;
   startedAt?: string;
@@ -34,6 +42,7 @@ export interface QueueSnapshot {
 
 export const MEDIA_QUEUE_KEY = "aviary.media.queue.v1";
 const RECENT_LIMIT = 40;
+const QUEUE_LIMIT = 5_000;
 interface QueueState {
   sequence: number;
   jobs: DownloadJob[];
@@ -67,7 +76,7 @@ export class DownloadQueue {
           job.error = "Interrupted before completion; resume when ready.";
         }
       }
-      this.#jobs.push(...jobs.slice(-200));
+      this.#jobs.push(...jobs.slice(-QUEUE_LIMIT));
       this.#seq = Math.max(
         Number.isFinite(raw?.sequence) ? Math.trunc(raw.sequence) : 0,
         ...this.#jobs.map((job) => sequenceFromId(job.id))
@@ -83,6 +92,12 @@ export class DownloadQueue {
 
   async flush(): Promise<void> {
     await this.#persistTail;
+  }
+
+  /** Persists every queued item before a batch starts its first external handoff. */
+  async checkpoint(): Promise<void> {
+    this.#persist();
+    await this.flush();
   }
 
   enqueue(job: Omit<DownloadJob, "id" | "status">): DownloadJob {
@@ -221,7 +236,7 @@ export class DownloadQueue {
   }
 
   #trim(): void {
-    while (this.#jobs.length > 200) {
+    while (this.#jobs.length > QUEUE_LIMIT) {
       this.#jobs.shift();
     }
   }
@@ -259,10 +274,27 @@ function isDownloadJob(value: unknown): value is DownloadJob {
 
 function normalizeJob(value: DownloadJob): DownloadJob {
   const valid = value.status === "queued" || value.status === "running" || value.status === "completed" || value.status === "failed" || value.status === "duplicate" || value.status === "paused" || value.status === "cancelled";
+  const sidecar = normalizeMediaSidecarRequest(value.sidecar);
   return {
     id: value.id,
     url: value.url,
+    ...(Array.isArray(value.fallbackUrls)
+      ? {
+          fallbackUrls: value.fallbackUrls
+            .filter((url): url is string => typeof url === "string" && /^https?:\/\//i.test(url))
+            .slice(0, 8)
+        }
+      : {}),
     filename: value.filename,
+    ...(value.kind === "photo" || value.kind === "video" || value.kind === "thumbnail"
+      ? { kind: value.kind }
+      : {}),
+    ...(typeof value.mediaId === "string"
+      ? { mediaId: value.mediaId.slice(0, 160) }
+      : value.mediaId === null
+        ? { mediaId: null }
+        : {}),
+    ...(sidecar ? { sidecar } : {}),
     status: valid ? value.status : "failed",
     ...(typeof value.error === "string" ? { error: value.error } : {}),
     ...(typeof value.startedAt === "string" ? { startedAt: value.startedAt } : {}),

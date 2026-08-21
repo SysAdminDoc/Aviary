@@ -15,6 +15,7 @@ export type OfflineCollection =
   | "archive";
 
 export const OFFLINE_QUERY_MAX_LENGTH = 512;
+export const OFFLINE_QUERY_RESULT_LIMIT = 5_000;
 
 export interface OfflineQueryDocument {
   id: string;
@@ -217,7 +218,7 @@ export class OfflineQueryIndex {
     const parsed = typeof query === "string" ? parseOfflineQuery(query) : query;
     if (parsed.errors.length > 0) return [];
     if (parsed.terms.length === 0 && !hasOfflineQueryFilters(parsed.filters)) return [];
-    const limit = Math.max(1, Math.min(100, options.limit ?? 50));
+    const limit = Math.max(1, Math.min(OFFLINE_QUERY_RESULT_LIMIT, options.limit ?? 50));
     const hits: OfflineQueryHit[] = [];
     const averageDocumentLength = this.#documents.length > 0
       ? this.#totalDocumentLength / this.#documents.length

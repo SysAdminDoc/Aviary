@@ -14,6 +14,13 @@ import { getMediaHistory, getMediaQueue } from "./media-buttons";
 import { isSaveableVariantUrl } from "./video-extract";
 import type { DownloadJob } from "./queue";
 import type { FeatureContext } from "../registry";
+import type { ExportMedia, ExportRecord } from "../export/types";
+import { normalizeImageUrl } from "./urls";
+import {
+  mediaSidecarRequest,
+  saveMediaSidecar,
+  type MediaSidecarRequest
+} from "./sidecar";
 
 export interface BatchOptions {
   surface?: string;
@@ -60,6 +67,23 @@ interface ActiveBatch {
   waiters: Set<() => void>;
   progress: BatchProgress;
 }
+
+interface MediaBatchTask {
+  kind: "photo" | "video" | "thumbnail";
+  index: number;
+  total: number;
+  target: ResolvedTarget;
+  identity: { handle: string | null; tweetId: string | null; text: string };
+  permalink: string | null;
+}
+
+interface PreparedMediaBatchTask extends MediaBatchTask {
+  filename: string;
+  job: DownloadJob | undefined;
+  sidecar: MediaSidecarRequest | undefined;
+}
+
+const MEDIA_BATCH_LIMIT = 5_000;
 
 let activeBatch: ActiveBatch | undefined;
 let batchSequence = 0;
@@ -115,20 +139,28 @@ export async function runMediaBatch(
     onWarn: (message, details) => ctx.diagnostics.warn(message, details)
   });
   const concurrency = Math.max(1, Math.min(ctx.settings.jobs.concurrentDownloads, 6));
-  const max = Math.max(1, options.maxItems ?? 200);
+  const max = Math.max(1, Math.min(MEDIA_BATCH_LIMIT, options.maxItems ?? 200));
   const filterKind = options.filterKind ?? "all";
 
   const tweets = collectArticles(document, options.surface, {
     preferOriginalImages: ctx.settings.media.preferOriginalImages
   });
-  const tasks: Array<{ media: ExtractedMedia; tweet: ExtractedTweet; index: number; target: ResolvedTarget }> = [];
+  const tasks: MediaBatchTask[] = [];
 
   for (const tweet of tweets) {
     tweet.media.forEach((media, index) => {
       if (filterKind !== "all" && media.kind !== filterKind) return;
       const target = resolveTarget(media);
       if (!target) return;
-      tasks.push({ media, tweet, index, target });
+      const identity = mediaIdentity(tweet, media);
+      tasks.push({
+        kind: media.kind,
+        index,
+        total: tweet.media.length,
+        target,
+        identity,
+        permalink: postPermalink(identity)
+      });
     });
     // Stop collecting once the cap is reached; the single exit below keeps the configured
     // concurrency applied on every path.
@@ -140,12 +172,45 @@ export async function runMediaBatch(
   return runTasks(ctx, downloader, queue, history, tasks.slice(0, max), concurrency);
 }
 
+export function countCapturedMedia(
+  records: readonly ExportRecord[],
+  preferOriginalImages: boolean,
+  filterKind: NonNullable<BatchOptions["filterKind"]> = "all"
+): number {
+  return capturedMediaTasks(records, preferOriginalImages, filterKind).length;
+}
+
+/** Downloads only media URLs already present in local capture records. */
+export async function runCapturedMediaBatch(
+  ctx: FeatureContext,
+  records: readonly ExportRecord[],
+  options: Pick<BatchOptions, "maxItems" | "filterKind"> = {}
+): Promise<BatchResult> {
+  const queue = getMediaQueue();
+  const history = getMediaHistory();
+  const downloader = createDownloader({
+    integrations: ctx.settings.integrations,
+    onWarn: (message, details) => ctx.diagnostics.warn(message, details)
+  });
+  const tasks = capturedMediaTasks(
+    records,
+    ctx.settings.media.preferOriginalImages,
+    options.filterKind ?? "all"
+  );
+  const max = Math.max(1, Math.min(MEDIA_BATCH_LIMIT, options.maxItems ?? MEDIA_BATCH_LIMIT));
+  if (tasks.length > MEDIA_BATCH_LIMIT && (options.maxItems === undefined || options.maxItems > MEDIA_BATCH_LIMIT)) {
+    throw new Error(`This collection has more than ${MEDIA_BATCH_LIMIT.toLocaleString()} downloadable items. Narrow the Library search and try again.`);
+  }
+  const concurrency = Math.max(1, Math.min(ctx.settings.jobs.concurrentDownloads, 6));
+  return runTasks(ctx, downloader, queue, history, tasks.slice(0, max), concurrency);
+}
+
 async function runTasks(
   ctx: FeatureContext,
   downloader: Downloader,
   queue: ReturnType<typeof getMediaQueue>,
   history: ReturnType<typeof getMediaHistory>,
-  tasks: Array<{ media: ExtractedMedia; tweet: ExtractedTweet; index: number; target: ResolvedTarget }>,
+  tasks: MediaBatchTask[],
   concurrency = 3
 ): Promise<BatchResult> {
   const progress: BatchProgress = {
@@ -155,14 +220,46 @@ async function runTasks(
     duplicate: 0,
     failed: 0
   };
-  const jobIds: string[] = [];
   const control = beginBatch(tasks.length, progress);
-
+  let prepared: PreparedMediaBatchTask[] = [];
+  let jobIds: string[] = [];
   let cursor = 0;
   let needsDownloadPermission = false;
   const workers: Promise<void>[] = [];
 
   try {
+    prepared = tasks.map((task): PreparedMediaBatchTask => {
+      const filename = renderFilename(ctx.settings.media.filenameTemplate, {
+        handle: task.identity.handle,
+        tweetId: task.identity.tweetId,
+        index: task.index,
+        total: task.total,
+        date: new Date(),
+        ext: task.target.ext,
+        text: task.identity.text,
+        mediaId: task.target.mediaId
+      });
+      const sidecar = mediaSidecarRequest(ctx.settings.media.sidecarFormat, {
+        mediaFilename: filename,
+        kind: task.kind,
+        handle: task.identity.handle,
+        tweetId: task.identity.tweetId,
+        text: task.identity.text,
+        permalink: task.permalink,
+        savedAt: new Date().toISOString()
+      });
+      const job = queue?.enqueue({
+        url: task.target.url,
+        ...(task.target.fallbackUrls ? { fallbackUrls: task.target.fallbackUrls } : {}),
+        filename,
+        kind: task.kind,
+        mediaId: task.target.mediaId,
+        ...(sidecar ? { sidecar } : {})
+      });
+      return { ...task, filename, job, sidecar };
+    });
+    jobIds = prepared.flatMap((task) => task.job ? [task.job.id] : []);
+    await queue?.checkpoint();
     const next = async (): Promise<void> => {
       while (true) {
         // A missing download permission fails every remaining task the same way — stop
@@ -173,23 +270,13 @@ async function runTasks(
         if (needsDownloadPermission) return;
         if (control.cancelled) return;
         const index = cursor++;
-        if (index >= tasks.length) return;
-        const task = tasks[index]!;
-        const identity = mediaIdentity(task.tweet, task.media);
-        const filename = renderFilename(ctx.settings.media.filenameTemplate, {
-          handle: identity.handle,
-          tweetId: identity.tweetId,
-          index: task.index,
-          total: task.tweet.media.length,
-          date: new Date(),
-          ext: task.target.ext,
-          text: identity.text,
-          mediaId: task.target.mediaId
-        });
+        if (index >= prepared.length) return;
+        const task = prepared[index]!;
+        const { filename, job } = task;
 
         let fingerprint: MediaFingerprint = {
           identityHash: mediaIdentityHash(
-            task.media.kind,
+            task.kind,
             task.target.url,
             task.target.mediaId
           )
@@ -207,11 +294,7 @@ async function runTasks(
         if (historyMatch && history) {
           await history.noteMatch(historyMatch);
           progress.duplicate += 1;
-          if (queue) {
-            const job = queue.enqueue({ url: task.target.url, filename });
-            queue.mark(job.id, "duplicate");
-            jobIds.push(job.id);
-          }
+          if (job) queue?.mark(job.id, "duplicate");
           continue;
         }
 
@@ -231,7 +314,7 @@ async function runTasks(
 
         if (ctx.settings.media.downloadHistory && history && !reservationToken) {
           fingerprint = await fingerprintMediaDownload({
-            kind: task.media.kind,
+            kind: task.kind,
             url: task.target.url,
             ...(task.target.fallbackUrls
               ? { fallbackUrls: task.target.fallbackUrls }
@@ -248,11 +331,7 @@ async function runTasks(
           if (historyMatch) {
             await history.noteMatch(historyMatch);
             progress.duplicate += 1;
-            if (queue) {
-              const duplicate = queue.enqueue({ url: task.target.url, filename });
-              queue.mark(duplicate.id, "duplicate");
-              jobIds.push(duplicate.id);
-            }
+            if (job) queue?.mark(job.id, "duplicate");
             void ctx.auditLog.record("media.download.duplicate", {
               matchKind: historyMatch,
               batch: true
@@ -265,9 +344,7 @@ async function runTasks(
           return;
         }
 
-        const job = queue?.enqueue({ url: task.target.url, filename });
         if (job) {
-          jobIds.push(job.id);
           queue?.mark(job.id, "running");
         }
         progress.enqueued += 1;
@@ -310,6 +387,7 @@ async function runTasks(
                     if (activeReservation) await history.commit(activeReservation, fingerprint);
                     else await history.record(fingerprint);
                   }
+                  saveSidecarOrWarn(ctx, task.sidecar, filename);
                   return;
                 }
                 if (terminal === "interrupted") {
@@ -317,12 +395,17 @@ async function runTasks(
                   if (jobId) queue?.mark(jobId, "failed", "the browser interrupted this transfer");
                   ctx.diagnostics.warn("Batch media transfer was interrupted", {
                     filename,
-                    kind: task.media.kind
+                    kind: task.kind
                   });
                 }
               })
-              .catch(() => {
-                // The wait itself cannot fail meaningfully; the job simply stays running.
+              .catch(async (error) => {
+                if (activeReservation && history) await history.release(activeReservation);
+                if (jobId) queue?.mark(jobId, "failed", "the browser result could not be confirmed");
+                ctx.diagnostics.warn("Could not confirm batch media transfer", {
+                  filename,
+                  error: String((error as Error)?.message ?? error)
+                });
               });
           } else {
             if (job) queue?.mark(job.id, "completed");
@@ -334,9 +417,10 @@ async function runTasks(
                 await history.record(fingerprint);
               }
             }
+            saveSidecarOrWarn(ctx, task.sidecar, filename);
           }
           progress.downloaded += 1;
-          void ctx.auditLog.record("media.download", { filename, kind: task.media.kind, via: result.via, batch: true });
+          void ctx.auditLog.record("media.download", { filename, kind: task.kind, via: result.via, batch: true });
         } catch (error) {
           if (reservationToken && history) {
             await history.release(reservationToken);
@@ -350,10 +434,10 @@ async function runTasks(
           }
           ctx.diagnostics.error("Batch media download failed", {
             filename,
-            kind: task.media.kind,
+            kind: task.kind,
             error: String((error as Error)?.message ?? error)
           });
-          void ctx.auditLog.record("media.download.failed", { filename, kind: task.media.kind, batch: true });
+          void ctx.auditLog.record("media.download.failed", { filename, kind: task.kind, batch: true });
         }
       }
     };
@@ -409,6 +493,7 @@ async function runPersistedJobs(
     integrations: ctx.settings.integrations,
     onWarn: (message, details) => ctx.diagnostics.warn(message, details)
   });
+  const history = getMediaHistory();
   let needsDownloadPermission = false;
 
   try {
@@ -417,44 +502,125 @@ async function runPersistedJobs(
       await waitForBatch(control);
       if (control.cancelled) break;
       queue.resume(job.id);
-      queue.mark(job.id, "running");
-      progress.enqueued += 1;
+      let fingerprint: MediaFingerprint | undefined;
+      let reservationToken: string | null = null;
       try {
         await ctx.limiter.waitForToken();
         if (control.cancelled) break;
-        const result = await downloader({ url: job.url, filename: job.filename });
+
+        if (ctx.settings.media.downloadHistory && history && job.kind) {
+          fingerprint = {
+            identityHash: mediaIdentityHash(job.kind, job.url, job.mediaId ?? null)
+          };
+          let historyMatch = history.findMatch(fingerprint, false);
+          if (!historyMatch) {
+            fingerprint = await fingerprintMediaDownload({
+              kind: job.kind,
+              url: job.url,
+              ...(job.fallbackUrls ? { fallbackUrls: job.fallbackUrls } : {}),
+              mediaId: job.mediaId ?? null,
+              includePerceptual: ctx.settings.media.perceptualDedup
+            });
+          }
+          const reservation = await history.reserve(
+            fingerprint,
+            ctx.settings.media.perceptualDedup
+          );
+          historyMatch = reservation.match;
+          reservationToken = reservation.token;
+          if (historyMatch) {
+            await history.noteMatch(historyMatch);
+            queue.mark(job.id, "duplicate");
+            progress.duplicate += 1;
+            void ctx.auditLog.record("media.download.duplicate", {
+              matchKind: historyMatch,
+              batch: true,
+              resumed: true
+            });
+            continue;
+          }
+        }
+
+        queue.mark(job.id, "running");
+        progress.enqueued += 1;
+        const result = await downloader({
+          url: job.url,
+          ...(job.fallbackUrls ? { fallbackUrls: job.fallbackUrls } : {}),
+          filename: job.filename
+        });
+        if (result.deduplicated) {
+          if (reservationToken && history) {
+            await history.release(reservationToken);
+            reservationToken = null;
+          }
+          queue.mark(job.id, "duplicate");
+          progress.duplicate += 1;
+          void ctx.auditLog.record("media.download.duplicate", {
+            filename: job.filename,
+            batch: true,
+            resumed: true,
+            via: result.via
+          });
+          continue;
+        }
         if (result.pending && result.downloadId !== undefined) {
           // Resumed jobs settle the same way a fresh batch does: the queue entry stays running
           // until the browser reports the transfer's terminal state, so a resumed job that fails
           // is retryable rather than marked completed.
           const jobId = job.id;
+          const activeReservation = reservationToken;
+          const activeFingerprint = fingerprint;
+          reservationToken = null;
           void sharedDownloadWatcher()
             .wait(result.downloadId)
-            .then((terminal) => {
+            .then(async (terminal) => {
               if (terminal === "complete") {
                 queue.mark(jobId, "completed");
+                if (ctx.settings.media.downloadHistory && history && activeFingerprint) {
+                  if (activeReservation) {
+                    await history.commit(activeReservation, activeFingerprint);
+                  } else {
+                    await history.record(activeFingerprint);
+                  }
+                }
+                saveSidecarOrWarn(ctx, job.sidecar, job.filename);
               } else if (terminal === "interrupted") {
+                if (activeReservation && history) await history.release(activeReservation);
                 queue.mark(jobId, "failed", "the browser interrupted this transfer");
               }
             })
-            .catch(() => {
-              // Nothing to report; the job stays running.
+            .catch(async (error) => {
+              if (activeReservation && history) await history.release(activeReservation);
+              queue.mark(jobId, "failed", "the browser result could not be confirmed");
+              ctx.diagnostics.warn("Could not confirm resumed media transfer", {
+                filename: job.filename,
+                error: String((error as Error)?.message ?? error)
+              });
             });
         } else {
-          queue.mark(job.id, result.deduplicated ? "duplicate" : "completed");
+          queue.mark(job.id, "completed");
+          if (ctx.settings.media.downloadHistory && history && fingerprint) {
+            if (reservationToken) {
+              await history.commit(reservationToken, fingerprint);
+              reservationToken = null;
+            } else {
+              await history.record(fingerprint);
+            }
+          }
+          saveSidecarOrWarn(ctx, job.sidecar, job.filename);
         }
-        if (result.deduplicated) {
-          progress.duplicate += 1;
-        } else {
-          progress.downloaded += 1;
-        }
-        void ctx.auditLog.record(result.deduplicated ? "media.download.duplicate" : "media.download", {
+        progress.downloaded += 1;
+        void ctx.auditLog.record("media.download", {
           filename: job.filename,
           batch: true,
           resumed: true,
           via: result.via
         });
       } catch (error) {
+        if (reservationToken && history) {
+          await history.release(reservationToken);
+          reservationToken = null;
+        }
         queue.mark(job.id, "failed", String((error as Error)?.message ?? error));
         progress.failed += 1;
         if (error instanceof DownloadPermissionError) {
@@ -477,6 +643,15 @@ async function runPersistedJobs(
   } finally {
     finishBatch(control);
   }
+}
+
+function saveSidecarOrWarn(
+  ctx: FeatureContext,
+  request: MediaSidecarRequest | undefined,
+  mediaFilename: string
+): void {
+  if (!request || saveMediaSidecar(request)) return;
+  ctx.diagnostics.warn("Media sidecar could not be saved", { mediaFilename });
 }
 
 function beginBatch(total: number, progress: BatchProgress): ActiveBatch {
@@ -514,6 +689,67 @@ function finishBatch(control: ActiveBatch): void {
   if (activeBatch === control) {
     activeBatch = undefined;
   }
+}
+
+function capturedMediaTasks(
+  records: readonly ExportRecord[],
+  preferOriginalImages: boolean,
+  filterKind: NonNullable<BatchOptions["filterKind"]>
+): MediaBatchTask[] {
+  const tasks: MediaBatchTask[] = [];
+  const seen = new Set<string>();
+  for (const record of records) {
+    record.media.forEach((media, index) => {
+      if (filterKind !== "all" && media.kind !== filterKind) return;
+      const target = resolveCapturedTarget(media, preferOriginalImages);
+      if (!target) return;
+      const key = `${media.kind}:${target.mediaId ?? target.url}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      const attributed = media.attribution;
+      const handle = attributed?.handle ?? record.handle;
+      const text = attributed?.scope === "quote" ? record.quote?.text ?? record.text : record.text;
+      tasks.push({
+        kind: media.kind,
+        index,
+        total: record.media.length,
+        target,
+        identity: { handle, tweetId: record.tweetId, text },
+        permalink: record.permalink
+      });
+    });
+  }
+  return tasks;
+}
+
+function resolveCapturedTarget(
+  media: ExportMedia,
+  preferOriginalImages: boolean
+): ResolvedTarget | null {
+  const url = (media.url || media.sourceUrl || "").trim();
+  if (media.kind === "photo" || media.kind === "thumbnail") {
+    const image = normalizeImageUrl(url, { preferOriginal: preferOriginalImages });
+    return image
+      ? {
+          url: image.url,
+          fallbackUrls: image.fallbackUrls,
+          mediaId: image.mediaId,
+          ext: image.format
+        }
+      : null;
+  }
+  const type = media.type ?? "video/mp4";
+  if (!isSaveableVariantUrl(url, type)) return null;
+  return {
+    url,
+    mediaId: mediaIdFromVideo(url),
+    ext: extensionForVideo(type, url)
+  };
+}
+
+function postPermalink(identity: MediaBatchTask["identity"]): string | null {
+  if (!identity.tweetId) return null;
+  return `https://x.com/${identity.handle ?? "i"}/status/${identity.tweetId}`;
 }
 
 function collectArticles(

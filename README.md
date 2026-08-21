@@ -14,6 +14,9 @@ Fresh installs remove advertising and enable one clear Download action on every 
 per-asset Save, Thumb, and eligible Video/GIF controls.
 Download history stores hashed media identities instead of source URLs. It catches alternate X
 image sizes and exact byte matches, with optional visual matching for re-encoded images.
+Saved media gets a quiet marker on the post. You can also write a text or JSON companion beside a
+completed download, or use the current Library search to download media from captured records.
+That Library batch uses only URLs already stored locally and does not request another X timeline.
 The media controls act only after you click them and can be disabled from Media at any time. Other
 settings that change ordinary X content or styling still start off. That includes themes, layout
 cleanup, filters, offscreen video pausing, and general analytics refusal.
@@ -46,7 +49,7 @@ X's own filter is left to do its job.
 - Layout declutter and theme foundations: `src/features/layout/declutter.ts`, `src/features/appearance/theme.ts`
 - Filter engine and predicates: `src/features/filtering/filter-engine.ts`, `src/features/filtering/predicates.ts`
 - Hidden posts: `src/features/filtering/hidden-posts.ts` (store), `src/features/filtering/hidden-posts-feature.ts` (Hide button + collapse)
-- Media downloads: `src/features/media/` (`media-buttons.ts`, `urls.ts`, `template.ts`, `history.ts`, `queue.ts`, `downloader.ts`, `extract.ts`, `video-extract.ts`, `media-presentation.ts`, `batch-downloader.ts`)
+- Media downloads: `src/features/media/` (`media-buttons.ts`, `urls.ts`, `template.ts`, `sidecar.ts`, `history.ts`, `queue.ts`, `downloader.ts`, `extract.ts`, `video-extract.ts`, `media-presentation.ts`, `batch-downloader.ts`)
 - Export core: `src/features/export/` (`export-feature.ts`, `collector.ts`, `formatters.ts`, `assets.ts`, `viewer.ts`, `zip-store.ts`, `zip-reader.ts`, `jobs.ts`, `query-discovery.ts`, `network-capture.ts`, `xlsx.ts`, `warc.ts`, `external-targets.ts`, `types.ts`)
 - AI: `src/features/ai/command-menu.ts` (local prompt builder; optionally runs through `features/integrations/ai-provider.ts` when the user supplies an API key)
 - Integrations: `src/features/integrations/` (`aria2.ts`, `crosspost.ts`, `ai-provider.ts`, `semantic-search.ts`, `usage.ts`)

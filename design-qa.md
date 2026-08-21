@@ -1,6 +1,6 @@
 # Design QA
 
-Date: 2026-08-20
+Date: 2026-08-21
 
 ## Reference comparison
 
@@ -23,6 +23,18 @@ Date: 2026-08-20
   control grouping.
 - Helper text is clamped instead of deleted. Settings that need context still expose it without
   overpowering the control.
+
+## Captured media workflow
+
+- Generated a focused Library reference at
+  `docs/mockups/2026-08-21/control-center-library-captured-media.png`, using the established Library
+  page as the edit target.
+- The implementation keeps search dominant, places one compact Download media action beside it,
+  and shows a quiet media count. It does not add another card, pill, or explanatory panel.
+- Media keeps the new sidecar selector in the file-naming group. Its label, short description, and
+  standard select treatment match the surrounding controls.
+- Reviewed the dark 1440 by 900 and 1920 by 1080 Library captures against the generated reference.
+  The modal entry flow and existing bookmark tools remain intentional differences.
 
 ## Verification
 

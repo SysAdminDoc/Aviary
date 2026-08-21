@@ -69,11 +69,13 @@ import { previewCleanup } from "../library/cleanup-preview";
 import { CleanupQueue } from "../library/cleanup-queue";
 import {
   cancelMediaBatch,
+  countCapturedMedia,
   getMediaBatchStatus,
   pauseMediaBatch,
   resumeMediaBatch,
   resumePendingMediaJobs,
   retryFailedMediaJobs,
+  runCapturedMediaBatch,
   runMediaBatch
 } from "../media/batch-downloader";
 import { LocalSearchIndex } from "../library/local-search";
@@ -108,7 +110,11 @@ import {
   parseOfflineQuery,
   type OfflineQueryHit
 } from "../library/query-model";
-import { getMediaHistory, getMediaQueue } from "../media/media-buttons";
+import {
+  getMediaHistory,
+  getMediaQueue,
+  refreshMediaDownloadMarkers
+} from "../media/media-buttons";
 import { getLastDownload } from "../media/last-download";
 import type { FeatureContext, FeatureModule } from "../registry";
 import {
@@ -228,6 +234,7 @@ export const controlCenterFeature: FeatureModule = {
       },
       async clearMediaHistory() {
         await getMediaHistory()?.clear();
+        refreshMediaDownloadMarkers(ctx);
       },
       getExportStatus(): ExportStatus {
         const store = getCheckpointStore();
@@ -511,6 +518,33 @@ export const controlCenterFeature: FeatureModule = {
       },
       offlineSearch(query) {
         return searchOfflineLibrary(query);
+      },
+      getCapturedMediaCount(query) {
+        return countCapturedMedia(
+          matchingCapturedRecords(query),
+          ctx.settings.media.preferOriginalImages
+        );
+      },
+      async runCapturedMediaBatch(query) {
+        const records = matchingCapturedRecords(query);
+        const result = await runCapturedMediaBatch(ctx, records);
+        void ctx.auditLog.record("media.download", {
+          batch: true,
+          source: "captured-library",
+          query: query.slice(0, 512),
+          total: result.total,
+          downloaded: result.downloaded,
+          duplicate: result.duplicate,
+          failed: result.failed,
+          cancelled: result.cancelled
+        });
+        return {
+          total: result.total,
+          downloaded: result.downloaded,
+          duplicate: result.duplicate,
+          failed: result.failed,
+          cancelled: result.cancelled
+        };
       },
       async offlineSemanticSearch(query) {
         const lexicalHits = searchOfflineLibrary(query, 60);
@@ -1256,6 +1290,19 @@ function collectAllRecords(
     all.push(...store.records(job.jobId));
   }
   return all;
+}
+
+function matchingCapturedRecords(query: string): Array<import("../export/types").ExportRecord> {
+  const records = collectAllRecords(getCheckpointStore()).filter((record) => record.media.length > 0);
+  if (query.trim().length === 0) return records;
+  const index = new OfflineQueryIndex();
+  index.rebuild(records.map(documentFromExportRecord));
+  return index
+    .search(query, { limit: 5_000 })
+    .map((hit) => hit.document.payload)
+    .filter((payload): payload is import("../export/types").ExportRecord =>
+      Boolean(payload && typeof payload === "object" && Array.isArray((payload as { media?: unknown }).media))
+    );
 }
 
 function formatHit(hit: import("../library/local-search").SearchHit): {

@@ -4,6 +4,14 @@
 
 ### Added
 
+- **Completed media is easy to recognize and archive with context.** A quiet marker appears only
+  after a confirmed save. Optional text and JSON sidecars keep the filename, post details, and a
+  bounded copy of the post text beside the downloaded file.
+
+- **Library searches can download their captured media.** The action uses the visible local query,
+  checkpoints every queue item before the first handoff, and contacts only stored media URLs. It
+  does not request another X timeline or GraphQL response.
+
 - **Download history now recognizes the media, not the delivery URL.** Image saves store a stable
   X asset hash plus SHA-256 when the bytes can be read. A different size URL or a second URL with
   identical bytes is skipped without adding another history entry.
@@ -18,14 +26,18 @@
 
 ### Changed
 
+- **Interrupted media batches keep enough detail to resume correctly.** Queue entries retain image
+  fallbacks, media identity, and opted-in sidecar data. Recovery writes history and sidecars only
+  after the browser confirms completion.
+
 - **The Media page explains every duplicate decision.** It shows counts for exact-byte, same-asset,
   and visual matches, plus the most recent match type. Clearing history resets the hashes and those
   counters together.
 
-- **The delivery-size ceiling now includes the new local analysis.** The main bundle allowance is
-  2.18 MB after adding media fingerprints, cross-tab transfer claims, offline archive repair, and
-  hybrid search. The shipped bundle remains below 2.17 MB, so later growth still needs an explicit
-  decision.
+- **The delivery-size ceiling now includes the deeper local media workflow.** The main bundle
+  allowance is 2.225 MB after adding media fingerprints, resumable captured-media batches, optional
+  sidecars, offline archive repair, and hybrid search. The shipped bundle is 2.20 MB, leaving a
+  narrow margin so later growth still needs an explicit decision.
 
 - **Snapshots & Archive reports every repair source.** The panel separates links found in the ZIP
   from links found in local captures, counts resolved and unresolved participant IDs, and confirms

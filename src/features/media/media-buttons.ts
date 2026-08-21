@@ -24,12 +24,14 @@ import { MediaHistory, type MediaMatchKind } from "./history";
 import { rememberLastDownload } from "./last-download";
 import { DownloadQueue } from "./queue";
 import { renderFilename } from "./template";
+import { mediaSidecarRequest, saveMediaSidecar } from "./sidecar";
 
 const STYLE_ID = "av-media-buttons";
 const BUTTON_ATTR = "data-av-media-button";
 const ACTION_ATTR = "data-av-media-action";
 const ACTION_SLOT_ATTR = "data-av-media-action-slot";
 const PROCESSED_ATTR = "data-av-media-processed";
+const DOWNLOADED_ATTR = "data-av-downloaded";
 const MEDIA_HOST_SELECTOR =
   '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="videoComponent"]';
 const MEDIA_MUTATION_SELECTOR =
@@ -218,6 +220,14 @@ export function getMediaQueue(): DownloadQueue | undefined {
 
 export function getMediaHistory(): MediaHistory | undefined {
   return history;
+}
+
+/** Rebuilds visible controls so their completed-history marker matches the current index. */
+export function refreshMediaDownloadMarkers(ctx: FeatureContext): void {
+  clearDecorations();
+  if (!ctx.settings.media.buttons) return;
+  ensureMediaStyle();
+  scanArticles(document, ctx);
 }
 
 /** Exposed for the headed compatibility lane and for the page bridge contract test. */
@@ -565,6 +575,7 @@ function buildPostAction(
     ? ft(ctx, "Download this post's own media. Quoted and card media has its own Save button.")
     : ft(ctx, "Download all media in this post");
   button.dataset.idleLabel = idleLabel;
+  button.dataset.baseIdleAriaLabel = accessibleLabel;
   button.dataset.idleAriaLabel = accessibleLabel;
   button.setAttribute("aria-label", accessibleLabel);
   button.setAttribute("aria-live", "polite");
@@ -579,6 +590,14 @@ function buildPostAction(
   label.className = "av-media-action-label";
   label.textContent = idleLabel;
   button.append(icon, label);
+
+  if (assets.length > 0) {
+    setDownloadedMarker(
+      button,
+      assets.every((asset) => wasDownloaded(asset.media.kind, asset.target)),
+      ctx
+    );
+  }
 
   if (assets.length === 0) {
     button.dataset.pendingVideo = "true";
@@ -721,6 +740,7 @@ function buildButton(
   button.setAttribute("aria-busy", "false");
   button.title = accessibleLabel;
   button.dataset.idleLabel = idleLabel;
+  button.dataset.baseIdleAriaLabel = accessibleLabel;
   button.dataset.idleAriaLabel = accessibleLabel;
   button.textContent = `↓ ${ft(ctx, buttonLabel(media))}`;
 
@@ -732,6 +752,11 @@ function buildButton(
   label.className = "av-media-button-label";
   label.textContent = idleLabel;
   button.replaceChildren(icon, label);
+
+  const target = resolveTarget(media);
+  if (target) {
+    setDownloadedMarker(button, wasDownloaded(media.kind, target), ctx);
+  }
 
   button.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -826,6 +851,9 @@ async function handleDownload(
     if (outcome.matchKind) {
       button.title = duplicateMatchTitle(outcome.matchKind, ctx);
     }
+    if (outcome.status === "completed" || outcome.status === "history-duplicate") {
+      setDownloadedMarker(button, true, ctx);
+    }
     if (outcome.degraded) {
       button.title = ft(ctx, "Your browser opened this file instead of saving it — grant Aviary the download permission for a real save.");
     }
@@ -915,6 +943,14 @@ async function handlePostDownload(
   if (degraded) {
     button.title = ft(ctx, "Your browser opened this file instead of saving it — grant Aviary the download permission for a real save.");
   }
+  if (
+    outcomes.length > 0 &&
+    outcomes.every((outcome) =>
+      outcome.status === "completed" || outcome.status === "history-duplicate"
+    )
+  ) {
+    setDownloadedMarker(button, true, ctx);
+  }
   scheduleButtonRestore(button);
 }
 
@@ -947,6 +983,17 @@ async function performMediaDownload(
     text: identity.text,
     mediaId: target.mediaId
   });
+  const sidecar = mediaSidecarRequest(ctx.settings.media.sidecarFormat, {
+    mediaFilename: filename,
+    kind: media.kind,
+    handle: identity.handle,
+    tweetId: identity.tweetId,
+    text: identity.text,
+    permalink: identity.tweetId
+      ? `https://x.com/${identity.handle ?? "i"}/status/${identity.tweetId}`
+      : null,
+    savedAt: new Date().toISOString()
+  });
   let fingerprint: MediaFingerprint = {
     identityHash: mediaIdentityHash(media.kind, target.url, target.mediaId)
   };
@@ -977,7 +1024,13 @@ async function performMediaDownload(
 
   if (historyMatch) {
     await history.noteMatch(historyMatch);
-    const duplicate = queue.enqueue({ url: target.url, filename });
+    const duplicate = queue.enqueue({
+      url: target.url,
+      ...(target.fallbackUrls ? { fallbackUrls: target.fallbackUrls } : {}),
+      filename,
+      kind: media.kind,
+      mediaId: target.mediaId
+    });
     queue.mark(duplicate.id, "duplicate");
     ctx.diagnostics.info("Media skipped because its fingerprint is already in history", {
       matchKind: historyMatch
@@ -986,7 +1039,14 @@ async function performMediaDownload(
     return { status: "history-duplicate", degraded: false, matchKind: historyMatch };
   }
 
-  const job = queue.enqueue({ url: target.url, filename });
+  const job = queue.enqueue({
+    url: target.url,
+    ...(target.fallbackUrls ? { fallbackUrls: target.fallbackUrls } : {}),
+    filename,
+    kind: media.kind,
+    mediaId: target.mediaId,
+    ...(sidecar ? { sidecar } : {})
+  });
   queue.mark(job.id, "running");
   try {
     const result = await downloader({
@@ -1043,6 +1103,7 @@ async function performMediaDownload(
         await history.record(fingerprint);
       }
     }
+    saveSidecarOrWarn(ctx, sidecar, filename);
     ctx.diagnostics.info("Media saved", {
       filename,
       kind: media.kind,
@@ -1165,6 +1226,42 @@ function restoreIdleButton(button: HTMLButtonElement): void {
   button.title = accessibleLabel;
 }
 
+function wasDownloaded(kind: ExtractedMedia["kind"], target: ResolvedTarget): boolean {
+  return history?.wasDownloaded({
+    identityHash: mediaIdentityHash(kind, target.url, target.mediaId)
+  }) === true;
+}
+
+function setDownloadedMarker(
+  button: HTMLButtonElement,
+  downloaded: boolean,
+  ctx: FeatureContext
+): void {
+  if (downloaded) {
+    button.setAttribute(DOWNLOADED_ATTR, "true");
+  } else {
+    button.removeAttribute(DOWNLOADED_ATTR);
+  }
+  const base = button.dataset.baseIdleAriaLabel ?? button.dataset.idleAriaLabel ?? "";
+  const accessibleLabel = downloaded
+    ? `${base}. ${ft(ctx, "Previously downloaded")}.`
+    : base;
+  button.dataset.idleAriaLabel = accessibleLabel;
+  if (!button.dataset.state) {
+    button.setAttribute("aria-label", accessibleLabel);
+    button.title = accessibleLabel;
+  }
+}
+
+function saveSidecarOrWarn(
+  ctx: FeatureContext,
+  request: ReturnType<typeof mediaSidecarRequest>,
+  mediaFilename: string
+): void {
+  if (!request || saveMediaSidecar(request)) return;
+  ctx.diagnostics.warn("Media sidecar could not be saved", { mediaFilename });
+}
+
 function resolveTarget(media: ExtractedMedia): ResolvedTarget | null {
   if (media.kind === "video" && media.video?.preferred) {
     const url = media.video.preferred.url;
@@ -1252,6 +1349,22 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   font: 750 13px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
   white-space: nowrap;
   transition: transform 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+[${ACTION_ATTR}][${DOWNLOADED_ATTR}],
+[${BUTTON_ATTR}][${DOWNLOADED_ATTR}] {
+  position: relative;
+}
+
+[${ACTION_ATTR}][${DOWNLOADED_ATTR}]::after,
+[${BUTTON_ATTR}][${DOWNLOADED_ATTR}]::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--av-media-success, rgb(120, 200, 130));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--av-media-success, rgb(120, 200, 130)) 20%, transparent);
 }
 
 [${ACTION_ATTR}] .av-media-action-icon {

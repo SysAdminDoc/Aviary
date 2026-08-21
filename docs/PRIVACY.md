@@ -18,7 +18,7 @@ These are the only Aviary-triggered network paths:
 
 | Feature | When it leaves the browser | Destination and data |
 |---|---|---|
-| Media Save / Thumb | After you click a media button | The selected X media URL. A browser/userscript downloader handles the file. |
+| Media Save / Thumb / captured Library batch | After you click a media button or the Library download action | The selected X media URL or URLs already stored in local capture records. A browser/userscript downloader handles each file. Optional text or JSON sidecars are built locally after a completed save. |
 | Export media-byte capture | Only when **Capture media bytes in export** is enabled and you click export | The selected X media URLs; successful response bytes, length, and checksum are placed in that local package, while failures remain local retryable metadata. |
 | Aria2 handoff | When enabled, configured, and the media meets the threshold | Your configured JSON-RPC endpoint; the media URL, filename, and optional RPC secret are sent. |
 | Bluesky / Mastodon | After you click the corresponding crosspost action | Your configured service; composer text, thread metadata, and optionally the last downloaded media when attachment is enabled. |
@@ -32,6 +32,8 @@ grant/revoke controls are local extension UI and do not send data.
 
 Library text ranking, including exact-handle and quoted-phrase matching, never makes a request.
 Local-only mode returns those text results before the semantic query path can contact a provider.
+Downloading media from a Library search contacts only the stored X media URLs selected by that
+local query. It does not request a timeline or GraphQL response.
 
 The extension's required permissions are `storage` and
 `declarativeNetRequestWithHostAccess`. The latter is bounded by the existing X/Twitter host list
@@ -60,12 +62,9 @@ schema, migration, usage, and quota status.
 | `aviary.diagnostics.v1` | Aviary's own warning and error text, the time, and the *names* of a message's detail fields, never their values | Let a failure from an earlier page load still be reportable; bounded to 50 entries and 7 days; clearable from Trust. |
 | `aviary.firstRun.v1` | A single flag recording that the first-run notice was dismissed | Stop showing the notice again on this profile. |
 | `aviary.media.history.v1` | Bounded media dedup records and short-lived hashed in-flight claims | Avoid duplicate downloads across tabs; failed claims expire or are removed, and **Clear download history** removes all of them. |
-| `aviary.media.queue.v1` | Queued, paused, failed, and completed media jobs | Resume/retry media work; completed history is separately clearable. |
+| `aviary.media.queue.v1` | Queued, paused, failed, and completed media jobs. A job can include X media URLs, fallback URLs, a filename, media kind/id, and an opted-in sidecar request with bounded post text, account, post id, permalink, and save time. | Resume/retry media work and create the sidecar only after a confirmed save; completed history is separately clearable. |
 | `aviary.media.last-download.v1` | Metadata for the last successful download | Make an explicitly enabled crosspost-media attachment possible. |
 | `aviary.audit.v1` | Capped local action log | Review activity; **Clear audit log** removes it. |
-| `aviary.seenPosts.v1` | Post IDs you have already scrolled past, with the time first seen. IDs and timestamps only, no text, handle, or URL. Capped at 4,000 entries and 30 days. | Fade posts on a second pass; **Forget seen posts** clears it. |
-| `aviary.firstRun.v1` | A single flag recording that the first-run notice was dismissed. | Removed with the profile's data; resetting it simply shows the notice again. |
-| `aviary.diagnostics.v1` | Last 50 warnings/errors for 7 days: Aviary's own message text, the time, and the *names* of its detail fields. Detail values are never written, so no post text, handle, or URL is retained. | Trust shows the count; **Clear saved warnings** removes it. |
 | `aviary.export.checkpoints.v1` | Export jobs, captured records, and checkpoints | Resume capture/export and local search; retention limits can remove old jobs. |
 | `aviary.retention.maxJobs`, `aviary.retention.maxRecordsPerJob`, `aviary.retention.maxAgeDays` | Export retention limits | Bound checkpoint storage; zero disables the corresponding limit. |
 | `aviary.queryIds.v1` | GraphQL operation ids discovered in loaded X scripts | Keep export parsing resilient as X changes. |

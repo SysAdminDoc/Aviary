@@ -26,10 +26,10 @@ const expectedExtensionIcons = Object.fromEntries(
  * Raising one is fine. Raising one without saying why in the commit is not.
  */
 const DELIVERY_BUDGETS = [
-  { file: "aviary.user.js", maxBytes: 2_180_000 },
+  { file: "aviary.user.js", maxBytes: 2_225_000 },
   { file: "aviary.meta.js", maxBytes: 4_000 },
-  { file: "extension-chrome/content.js", maxBytes: 2_180_000 },
-  { file: "extension-firefox/content.js", maxBytes: 2_180_000 }
+  { file: "extension-chrome/content.js", maxBytes: 2_225_000 },
+  { file: "extension-firefox/content.js", maxBytes: 2_225_000 }
 ];
 
 const failures = [];

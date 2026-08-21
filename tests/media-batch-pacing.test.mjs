@@ -43,7 +43,8 @@ before(async () => {
   await writeFile(
     entry,
     [
-      `export { runMediaBatch } from ${JSON.stringify(abs("src/features/media/batch-downloader.ts"))};`,
+      `export { resumePendingMediaJobs, runMediaBatch, runCapturedMediaBatch } from ${JSON.stringify(abs("src/features/media/batch-downloader.ts"))};`,
+      `export { mediaButtonsFeature, getMediaQueue } from ${JSON.stringify(abs("src/features/media/media-buttons.ts"))};`,
       `export { DownloadPermissionError, createDownloader } from ${JSON.stringify(abs("src/features/media/downloader.ts"))};`,
       `export { TokenBucket } from ${JSON.stringify(abs("src/platform/rate-limit.ts"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};`
@@ -247,4 +248,218 @@ test("the original-image preference reaches the URL the batch actually asks for"
     asRendered.every((url) => !/name=orig/.test(url)),
     `turning it off still requested originals: ${asRendered[0]}`
   );
+});
+
+test("a captured-library batch checkpoints every task before media handoff and originates no GraphQL", async () => {
+  const observed = await page.evaluate(async () => {
+    const settings = AviaryBatch.cloneSettings(AviaryBatch.DEFAULT_SETTINGS);
+    settings.media.downloadHistory = false;
+    const stored = new Map();
+    const storage = {
+      async get(key, fallback) {
+        return stored.has(key) ? structuredClone(stored.get(key)) : structuredClone(fallback);
+      },
+      async set(key, value) {
+        stored.set(key, structuredClone(value));
+      },
+      async remove(key) {
+        stored.delete(key);
+      }
+    };
+    const handed = [];
+    const checkpointSizes = [];
+    globalThis.chrome = {
+      runtime: {
+        async sendMessage(message) {
+          handed.push(message.url);
+          checkpointSizes.push(stored.get("aviary.media.queue.v1")?.jobs?.length ?? 0);
+          return { ok: true };
+        }
+      }
+    };
+    const fetched = [];
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (url) => {
+      fetched.push(String(url));
+      throw new Error("captured-library batch must not originate a request");
+    };
+    const ctx = {
+      settings,
+      route: { surface: "home", path: "/home" },
+      storage,
+      limiter: { async waitForToken() {} },
+      auditLog: { async record() {} },
+      diagnostics: { info() {}, warn() {}, error() {} }
+    };
+    const records = [{
+      tweetId: "199",
+      handle: "alice",
+      displayName: "Alice",
+      text: "captured once",
+      capturedAt: "2026-08-21T12:00:00.000Z",
+      surface: "home",
+      permalink: "https://x.com/alice/status/199",
+      media: [
+        { kind: "photo", url: "https://pbs.twimg.com/media/CapturedOne?format=jpg&name=small", type: "image/jpeg" },
+        { kind: "video", url: "https://video.twimg.com/ext_tw_video/199/pu/vid/1280x720/video199.mp4", type: "video/mp4", bitrate: 2176000 }
+      ]
+    }];
+
+    try {
+      await AviaryBatch.mediaButtonsFeature.init(ctx);
+      const result = await AviaryBatch.runCapturedMediaBatch(ctx, records);
+      await AviaryBatch.mediaButtonsFeature.destroy(ctx);
+      return { result, handed, checkpointSizes, fetched };
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  assert.equal(observed.result.total, 2);
+  assert.equal(observed.handed.length, 2);
+  assert.deepEqual(observed.checkpointSizes, [2, 2], "the first handoff happened before the full checkpoint");
+  assert.equal(observed.fetched.some((url) => /graphql/i.test(url)), false);
+  assert.match(observed.handed[0], /name=orig/);
+  assert.match(observed.handed[1], /video199\.mp4/);
+});
+
+test("a second batch is rejected before it can mutate the durable queue", async () => {
+  const observed = await page.evaluate(async () => {
+    const settings = AviaryBatch.cloneSettings(AviaryBatch.DEFAULT_SETTINGS);
+    settings.media.downloadHistory = false;
+    const stored = new Map();
+    const storage = {
+      async get(key, fallback) {
+        return stored.has(key) ? structuredClone(stored.get(key)) : structuredClone(fallback);
+      },
+      async set(key, value) {
+        stored.set(key, structuredClone(value));
+      },
+      async remove(key) {
+        stored.delete(key);
+      }
+    };
+    let holding = true;
+    const releases = [];
+    globalThis.chrome = {
+      runtime: {
+        sendMessage() {
+          if (!holding) return Promise.resolve({ ok: true });
+          return new Promise((resolve) => releases.push(() => resolve({ ok: true })));
+        }
+      }
+    };
+    const ctx = {
+      settings,
+      route: { surface: "home", path: "/home" },
+      storage,
+      limiter: { async waitForToken() {} },
+      auditLog: { async record() {} },
+      diagnostics: { info() {}, warn() {}, error() {} }
+    };
+    await AviaryBatch.mediaButtonsFeature.init(ctx);
+    const first = AviaryBatch.runMediaBatch(ctx);
+    while (releases.length === 0) await new Promise((resolve) => setTimeout(resolve, 0));
+    const before = AviaryBatch.getMediaQueue().snapshot().total;
+    let error = "";
+    try {
+      await AviaryBatch.runMediaBatch(ctx);
+    } catch (caught) {
+      error = String(caught?.message ?? caught);
+    }
+    const after = AviaryBatch.getMediaQueue().snapshot().total;
+    holding = false;
+    for (const release of releases) release();
+    await first;
+    await AviaryBatch.mediaButtonsFeature.destroy(ctx);
+    return { before, after, error };
+  });
+
+  assert.match(observed.error, /already running/i);
+  assert.equal(observed.after, observed.before, "the rejected batch appended jobs before checking the active batch");
+});
+
+test("resumed jobs retain fallback URLs and save sidecars only after completion", async () => {
+  const observed = await page.evaluate(async () => {
+    const settings = AviaryBatch.cloneSettings(AviaryBatch.DEFAULT_SETTINGS);
+    settings.media.downloadHistory = false;
+    const stored = new Map([["aviary.media.queue.v1", {
+      sequence: 4,
+      jobs: [{
+        id: "job-4",
+        url: "https://pbs.twimg.com/media/resume?format=jpg&name=orig",
+        fallbackUrls: ["https://pbs.twimg.com/media/resume?format=jpg&name=4096x4096"],
+        filename: "resume.jpg",
+        kind: "photo",
+        mediaId: "resume",
+        sidecar: {
+          format: "text",
+          mediaFilename: "resume.jpg",
+          kind: "photo",
+          handle: "alice",
+          tweetId: "204",
+          text: "resumed capture",
+          permalink: "https://x.com/alice/status/204",
+          savedAt: "2026-08-21T12:00:00.000Z"
+        },
+        status: "queued",
+        resumeOnBoot: true
+      }]
+    }]]);
+    const storage = {
+      async get(key, fallback) {
+        return stored.has(key) ? structuredClone(stored.get(key)) : structuredClone(fallback);
+      },
+      async set(key, value) {
+        stored.set(key, structuredClone(value));
+      },
+      async remove(key) {
+        stored.delete(key);
+      }
+    };
+    const messages = [];
+    globalThis.chrome = {
+      runtime: {
+        async sendMessage(message) {
+          messages.push(message);
+          return { ok: true };
+        }
+      }
+    };
+    const sidecars = [];
+    const originalClick = HTMLAnchorElement.prototype.click;
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    HTMLAnchorElement.prototype.click = function () {
+      sidecars.push(this.download);
+    };
+    URL.createObjectURL = () => "blob:resume-sidecar";
+    URL.revokeObjectURL = () => {};
+    const ctx = {
+      settings,
+      route: { surface: "home", path: "/home" },
+      storage,
+      limiter: { async waitForToken() {} },
+      auditLog: { async record() {} },
+      diagnostics: { info() {}, warn() {}, error() {} }
+    };
+    try {
+      await AviaryBatch.mediaButtonsFeature.init(ctx);
+      const result = await AviaryBatch.resumePendingMediaJobs(ctx);
+      const job = AviaryBatch.getMediaQueue().snapshot().recent.at(-1);
+      await AviaryBatch.mediaButtonsFeature.destroy(ctx);
+      return { result, messages, sidecars, job };
+    } finally {
+      HTMLAnchorElement.prototype.click = originalClick;
+      URL.createObjectURL = originalCreate;
+      URL.revokeObjectURL = originalRevoke;
+    }
+  });
+
+  assert.deepEqual(observed.messages[0].fallbackUrls, [
+    "https://pbs.twimg.com/media/resume?format=jpg&name=4096x4096"
+  ]);
+  assert.deepEqual(observed.sidecars, ["resume.txt"]);
+  assert.equal(observed.job.status, "completed");
+  assert.equal(observed.result.downloaded, 1);
 });

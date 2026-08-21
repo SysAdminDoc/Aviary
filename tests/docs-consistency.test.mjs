@@ -72,6 +72,16 @@ test("the FAQ settings reference lists every control the Control Center draws", 
       );
     }
   }
+  const media = pages.find((page) => page.page === "Media");
+  assert.equal(
+    media.rows.find((row) => row.label === "Media layout")?.description,
+    "A choice control.",
+    "a select row borrowed choices from the next control"
+  );
+  assert.equal(
+    media.rows.find((row) => row.label === "Metadata sidecar")?.description,
+    "Choose one: Off, Text, JSON."
+  );
 });
 
 test("README defers release detail to CHANGELOG instead of restating it", async () => {

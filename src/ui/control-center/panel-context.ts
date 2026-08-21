@@ -21,6 +21,7 @@ export type RowCommitMode = "page" | "action";
 
 export interface PanelState {
   bookmarkQuery: string;
+  libraryQuery: string;
   unifiedSemantic: boolean;
   pendingLibraryBackupPayload: string | null;
   pendingLibraryBackupPreview: LibraryBackupPreview | null;

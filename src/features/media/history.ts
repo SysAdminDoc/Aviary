@@ -105,6 +105,12 @@ export class MediaHistory {
     );
   }
 
+  /** Completed history only. In-flight claims must not paint a media item as already saved. */
+  wasDownloaded(fingerprint: MediaFingerprint, allowPerceptual = false): boolean {
+    const candidate = normalizeFingerprint(fingerprint);
+    return findFingerprintMatch(this.#entries, [], candidate, allowPerceptual) !== null;
+  }
+
   async record(fingerprintOrLegacyKey: MediaFingerprint | string): Promise<boolean> {
     await this.load();
     const fingerprint =

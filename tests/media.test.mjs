@@ -224,6 +224,42 @@ test("fingerprinting uses one short budget for every fallback candidate", async 
   }
 });
 
+test("media sidecars render bounded JSON or text beside the saved filename", async () => {
+  const { buildMediaSidecar } = await importBundledModule(
+    "src/features/media/sidecar.ts"
+  );
+  const input = {
+    mediaFilename: "saved/alice_123_1.jpg",
+    kind: "photo",
+    handle: "alice",
+    tweetId: "123",
+    text: `hello ${"x".repeat(12_000)}`,
+    permalink: "https://x.com/alice/status/123",
+    savedAt: "2026-08-21T12:00:00.000Z"
+  };
+
+  const json = buildMediaSidecar("json", input);
+  assert.equal(json.filename, "saved/alice_123_1.json");
+  assert.equal(json.contentType, "application/json");
+  const payload = JSON.parse(new TextDecoder().decode(json.data));
+  assert.equal(payload.media.filename, "saved/alice_123_1.jpg");
+  assert.equal(payload.post.handle, "alice");
+  assert.equal(payload.post.text.length, 10_000, "persisted sidecar text must stay bounded");
+
+  const text = buildMediaSidecar("text", input);
+  assert.equal(text.filename, "saved/alice_123_1.txt");
+  assert.equal(text.contentType, "text/plain");
+  assert.match(new TextDecoder().decode(text.data), /Post: https:\/\/x\.com\/alice\/status\/123/);
+  assert.equal(buildMediaSidecar("off", input), null);
+});
+
+test("sidecar format is opt-in and rejects unknown imported values", async () => {
+  const { normalizeSettings } = await importBundledModule("src/platform/settings.ts");
+  assert.equal(normalizeSettings({}).media.sidecarFormat, "off");
+  assert.equal(normalizeSettings({ media: { sidecarFormat: "json" } }).media.sidecarFormat, "json");
+  assert.equal(normalizeSettings({ media: { sidecarFormat: "xml" } }).media.sidecarFormat, "off");
+});
+
 test("MediaHistory repairs malformed entries and reservations in a current-version snapshot", async () => {
   const { MediaHistory, MEDIA_HISTORY_KEY } = await importBundledModule(
     "src/features/media/history.ts"
