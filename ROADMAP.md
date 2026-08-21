@@ -24,26 +24,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ### P2, features
 
-- [ ] F147, P2, WACZ export and self-replay
-  Why: Aviary emits raw uncompressed WARC while the browser-side archiving ecosystem has standardized on WACZ, whose client-side replay engine means an Aviary archive would open in every Webrecorder tool for a packaging change rather than a capture change.
-  Evidence: WACZ 1.1.1 + CDXJ 0.1.0 specs, read 2026-08-15, implementable from this item without re-research. Layout: `archive/` (>=1 WARC), `indexes/` (>=1 CDXJ), `pages/pages.jsonl`, `datapackage.json` (`profile: "data-package"`, `wacz_version: "1.1.1"`, `resources[]` each name/path/hash/bytes with `sha256:` prefix), plus `datapackage-digest.json` `{path, hash-of-datapackage.json}`. CDXJ line = `<SURT> <YYYYMMDDHHMMSS> <JSON: url,digest,mime,status,filename,offset,length>`, lines sorted in LC_ALL=C byte order; SURT = lowercased host reversed comma-form (`com,example)/path`). pages.jsonl header `{"format":"json-pages-1.0","id":"pages","title":"All Pages"}`, entries need `url` + RFC3339 `ts`. Plain uncompressed `.warc` is spec-valid, gzip is optional, and if ever added it must be per-record so offset/length address one member.
-  Touches: `src/features/export/warc.ts`, a new WACZ packager, export format list, docs/FAQ.md.
-  Acceptance: the WACZ validates against the spec and opens in replayweb.page; opt-in beside WARC; storage cost stated before the run. CRITICAL: the `archive/` and `indexes/` members must go through `buildStoreZip` (STORE), not the F137 DEFLATE path, replay reads records by offset/length inside the member, which a deflated member cannot serve. Do not vendor wabac.js (AGPLv3): self-replay means linking to replayweb.page, not embedding the engine.
-  Depends on: F137 (shipped 2026-08-15, the writer now exposes both `buildZip` and `buildStoreZip`; this item needs the STORE path).
-  Note (2026-08-17): two replay-correctness corrections found before build, both from primary specs.
-  (a) A response-only WARC is not replayable for anything POSTed, WARC 1.1 pairs `request` and
-  `response` through `WARC-Concurrent-To`, and pywb's POST replay works by matching adjacent request
-  records. (b) More decisively, pywb's POST-body canonicalization does not cover JSON/GraphQL bodies at
-  all, and its form-urlencoded path is documented as broken against the outbackcdx fix
-  (webrecorder/pywb#768). So captured GraphQL written as `response` records will not replay in
-  replayweb.page. Write GraphQL captures as **`resource` records with a synthetic URI**, and reserve
-  `response` records for genuine HTTP GETs (media, images). Also add a `warcinfo` record first in each
-  file, keep `WARC-Payload-Digest` and `WARC-Block-Digest` distinct (payload digest must not be written
-  on records with no well-defined payload), and consider `revisit` records with
-  `identical-payload-digest` for cross-export dedup, that is the standards-blessed answer to the same
-  avatar appearing in thousands of captures, and it pairs with F189.
-  Complexity: L
-
 - [ ] F148, P2, Catch-up digest over the seen-post store
   Why: v1.25.0 shipped the hard half, a bounded record of which posts have already gone past, and the best reading-mode idea in the adjacent field is what sits on top of it: a time-bounded digest of what is new, grouped by author.
   Evidence: `src/features/filtering/seen-posts.ts`; cheeaun/phanpy Catch-up (★1478).

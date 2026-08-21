@@ -295,12 +295,17 @@ The Control Center "Export" section exposes:
 - Optional media-byte capture during an export; successful assets are packaged with byte length and
   SHA-256, while failed assets remain explicit retryable references.
 - Save folder hint that becomes both the ZIP filename prefix and the root path inside the archive.
-- "Export visible tweets", bundles the configured formats into a STORE-only ZIP, adds a
+- "Export visible tweets", bundles the configured formats into a ZIP, compresses a member only
+  when that makes it smaller, adds a
   `manifest.json` with per-file checksums and media capture status, and triggers a download.
 - Extract the ZIP and open `viewer.html` for a responsive local viewer with virtualized scrolling,
   search, sort, thread grouping, media-status filters, and built-in locale/RTL labels. It loads no
   remote script and only activates a remote media URL after an explicit link click.
 - "Copy diagnostics", copies the Aviary diagnostic log (version, route, recent events) to the clipboard.
+- **Preservation archive** keeps WARC and WACZ together. WARC is the raw record stream. WACZ 1.1.1
+  adds a byte-sorted CDXJ index, a page list, and checksummed package metadata for direct use in
+  [replayweb.page](https://replayweb.page/). The panel shows the expected WACZ size before download
+  because its WARC and index members stay uncompressed for reliable byte-range replay.
 
 Tweets are gathered passively from the DOM; no auth headers, cookies, or session tokens are ever read or persisted.
 

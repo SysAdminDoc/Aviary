@@ -4,6 +4,11 @@
 
 ### Added
 
+- **Preservation exports now open in standard replay tools.** Export can download a raw WARC or a
+  WACZ 1.1.1 package with a byte-sorted CDXJ index, replayable synthetic post pages, checksummed
+  resources, and an exact page list. The panel shows the estimated uncompressed storage cost and
+  links directly to replayweb.page.
+
 - **Filter rules now travel as plain text.** Filtering can export a documented one-rule-per-line
   file, preview a paste with separate add and replace counts, and report every malformed source
   line before either action writes. Titles, comments, and expiry windows round-trip unchanged.
@@ -38,10 +43,10 @@
   and visual matches, plus the most recent match type. Clearing history resets the hashes and those
   counters together.
 
-- **The delivery-size ceiling now includes the deeper local media and filtering workflows.** The
-  main bundle allowance is 2.235 MB after adding media fingerprints, resumable captured-media
-  batches, optional sidecars, portable rules in eight languages, offline archive repair, and hybrid
-  search. The shipped bundle is 2.23 MB, leaving a narrow margin for later growth.
+- **The delivery-size ceiling now includes the deeper local media, filtering, and preservation
+  workflows.** The main bundle allowance is 2.265 MB after adding media fingerprints, resumable
+  captured-media batches, portable rules in eight languages, offline archive repair, hybrid search,
+  and the WARC/WACZ writer. The shipped bundle is 2.25 MB, leaving a narrow margin for later growth.
 
 - **Snapshots & Archive reports every repair source.** The panel separates links found in the ZIP
   from links found in local captures, counts resolved and unresolved participant IDs, and confirms

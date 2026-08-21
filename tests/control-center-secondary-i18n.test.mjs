@@ -135,6 +135,8 @@ test("secondary Control Center sections render stable copy through every locale"
         runExport: async () => ({ records: 2, filename: "export.zip", files: 1 }),
         copyDiagnostics: async () => {},
         downloadWarc: async () => ({ records: 2 }),
+        getWaczEstimate: () => ({ records: 2, estimatedBytes: 4096 }),
+        downloadWacz: async () => ({ records: 2, bytes: 4096, filename: "archive.wacz" }),
         exportToTarget: async () => ({ target: "raw-json", records: 2 }),
         getRetentionPolicy: () => ({ maxJobs: 10, maxRecordsPerJob: 100, maxAgeDays: 30 }),
         saveRetentionPolicy: async () => {}

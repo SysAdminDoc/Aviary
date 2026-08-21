@@ -53,6 +53,7 @@ import {
   undoLastHide
 } from "../filtering/hidden-posts-feature";
 import { buildWarcArchive } from "../export/warc";
+import { buildWaczArchive, estimateWaczBytes } from "../export/wacz";
 import { pingAria2Version, removeAria2Download, tellActiveAria2 } from "../integrations/aria2";
 import { crosspost, readComposerText, type CrosspostRequest } from "../integrations/crosspost";
 import { SemanticIndex } from "../integrations/semantic-search";
@@ -994,6 +995,25 @@ export const controlCenterFeature: FeatureModule = {
         downloadBlob(artifact.data, artifact.filename, artifact.contentType);
         void ctx.auditLog.record("export.complete", { format: "warc", records: records.length });
         return { records: records.length };
+      },
+      getWaczEstimate() {
+        return estimateWaczBytes(collectAllRecords(getCheckpointStore()));
+      },
+      async downloadWacz() {
+        rebuildSearchIndex();
+        const records = collectAllRecords(getCheckpointStore());
+        const artifact = buildWaczArchive(records);
+        downloadBlob(artifact.data, artifact.filename, artifact.contentType);
+        void ctx.auditLog.record("export.complete", {
+          format: "wacz",
+          records: records.length,
+          bytes: artifact.data.length
+        });
+        return {
+          records: records.length,
+          bytes: artifact.data.length,
+          filename: artifact.filename
+        };
       },
       async exportToTarget(target) {
         rebuildSearchIndex();

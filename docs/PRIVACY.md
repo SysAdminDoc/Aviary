@@ -111,6 +111,11 @@ Aviary does not encrypt local storage. Use the browser profile's normal protecti
 encryption. Anyone with access to that browser profile may be able to read the stored credentials
 and local library.
 
+WARC and WACZ preservation downloads contain the captured post text, original URLs, timestamps,
+and any media bytes already present in the selected records. Treat them as account data. Aviary
+builds both files locally and does not upload them. The replayweb.page action only opens the viewer;
+you decide which archive to load there.
+
 ## Clearing and uninstalling
 
 Use the Control Center clear actions listed above before sharing or retiring a profile. Removing an

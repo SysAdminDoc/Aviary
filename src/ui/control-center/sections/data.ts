@@ -1013,23 +1013,8 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
     );
   }
 
-  if (ctx.options.downloadWarc) {
-    rows.push(
-      ctx.actionRow(
-        "Download as WARC",
-        "Wrap captured records into an ISO-28500 WARC file for research / preservation tooling.",
-        async () => {
-          ctx.setStatus("Building WARC archive…");
-        try {
-            const result = await ctx.options.downloadWarc!();
-            ctx.setStatusCopy("WARC downloaded ({records} records).", { records: result.records });
-          } catch (error) {
-            ctx.options.onError("WARC export failed", error);
-            ctx.setStatus("WARC export failed.");
-          }
-        }
-      )
-    );
+  if (ctx.options.downloadWarc || ctx.options.downloadWacz) {
+    rows.push(preservationArchiveRow(ctx));
   }
 
   if (ctx.options.exportToTarget) {
@@ -1116,6 +1101,90 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
   }
 
   return rows;
+}
+
+function preservationArchiveRow(ctx: PanelContext): HTMLElement {
+  const row = ctx.el("div", "av-row av-preservation-row");
+  row.dataset.avLabel = "Preservation archive";
+  const copy = ctx.el("span", "av-row-copy");
+  const description = ctx.el(
+    "span",
+    "av-row-description",
+    ctx.t("Download a raw WARC or a replay-ready WACZ. WACZ keeps archive and index members uncompressed.")
+  );
+  const estimate = ctx.options.getWaczEstimate?.();
+  if (estimate) {
+    description.append(document.createTextNode(` ${ctx.localizedCopy(
+      "Estimated WACZ: {size} for {records} records.",
+      { size: ctx.formatBytes(estimate.estimatedBytes), records: estimate.records }
+    )}`));
+  }
+  copy.append(ctx.el("span", "av-row-label", ctx.t("Preservation archive")), description);
+
+  const actions = ctx.el("div", "av-preservation-actions");
+  actions.setAttribute("role", "group");
+  actions.setAttribute("aria-label", ctx.t("Preservation archive actions"));
+  const archiveButtons: HTMLButtonElement[] = [];
+  const run = async (
+    button: HTMLButtonElement,
+    status: string,
+    operation: () => Promise<void>
+  ): Promise<void> => {
+    archiveButtons.forEach((candidate) => { candidate.disabled = true; });
+    button.setAttribute("aria-busy", "true");
+    ctx.setStatus(status);
+    try {
+      await operation();
+    } finally {
+      button.removeAttribute("aria-busy");
+      archiveButtons.forEach((candidate) => { candidate.disabled = false; });
+    }
+  };
+
+  if (ctx.options.downloadWarc) {
+    const warc = ctx.button("WARC", "av-button av-button-secondary");
+    archiveButtons.push(warc);
+    warc.addEventListener("click", () => {
+      void run(warc, ctx.t("Building WARC archive…"), async () => {
+        try {
+          const result = await ctx.options.downloadWarc!();
+          ctx.setStatusCopy("WARC downloaded ({records} records).", { records: result.records });
+        } catch (error) {
+          ctx.options.onError("WARC export failed", error);
+          ctx.setStatus("WARC export failed.");
+        }
+      });
+    });
+    actions.append(warc);
+  }
+
+  if (ctx.options.downloadWacz) {
+    const wacz = ctx.button("WACZ", "av-button av-button-primary");
+    archiveButtons.push(wacz);
+    wacz.addEventListener("click", () => {
+      void run(wacz, ctx.t("Building WACZ archive…"), async () => {
+        try {
+          const result = await ctx.options.downloadWacz!();
+          ctx.setStatusCopy("WACZ downloaded ({records} records, {size}).", {
+            records: result.records,
+            size: ctx.formatBytes(result.bytes)
+          });
+        } catch (error) {
+          ctx.options.onError("WACZ export failed", error);
+          ctx.setStatus("WACZ export failed.");
+        }
+      });
+    });
+    actions.append(wacz);
+  }
+
+  const replay = ctx.el("a", "av-button av-button-secondary av-replay-link", ctx.t("Open replayweb.page"));
+  replay.href = "https://replayweb.page/";
+  replay.target = "_blank";
+  replay.rel = "noopener noreferrer";
+  actions.append(replay);
+  row.append(copy, actions);
+  return row;
 }
 
 export function buildMediaRows(ctx: PanelContext): HTMLElement[] {

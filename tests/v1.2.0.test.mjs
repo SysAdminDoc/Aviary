@@ -29,10 +29,11 @@ test("buildWarcArchive emits ISO-28500 WARC/1.1 headers and a metadata record", 
   assert.equal(artifact.filename, "tweets.warc");
   assert.equal(artifact.contentType, "application/warc");
   const text = new TextDecoder().decode(artifact.data);
-  assert.match(text, /^WARC\/1\.1/);
+  assert.match(text, /^WARC\/1\.1\r\nWARC-Type: warcinfo/);
   assert.match(text, /WARC-Type: metadata/);
   assert.match(text, /WARC-Type: resource/);
-  assert.match(text, /metadata:\/\/aviary/);
+  assert.match(text, /WARC-Target-URI: urn:aviary:export-metadata/);
+  assert.match(text, /WARC-Filename: tweets\.warc/);
   assert.match(text, /https:\/\/x\.com\/alpha\/status\/1/);
 
   const block = formatRecord({ url: "https://example.com/", mime: "text/plain", body: "hi" });

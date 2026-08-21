@@ -116,6 +116,8 @@ function stubs(variant) {
   getCapturedMediaCount: () => ${v ? 3 : 8},
   runCapturedMediaBatch: async () => ({ total: 0, downloaded: 0, duplicate: 0, failed: 0 }),
   downloadWarc: async () => ({ records: 0 }),
+  getWaczEstimate: () => ({ records: ${v ? 2 : 5}, estimatedBytes: ${v ? 2048 : 8192} }),
+  downloadWacz: async () => ({ records: 0, bytes: 0, filename: "archive.wacz" }),
   exportToTarget: async () => ({ target: "notion", records: 0 }),
   crosspost: async () => ({ ok: true }),
   listAria2Active: async () => [

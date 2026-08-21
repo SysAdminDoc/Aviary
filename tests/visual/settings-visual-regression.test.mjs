@@ -13,6 +13,7 @@ import {
   comparePngBuffers,
   launchSettingsVisualHarness,
   prepareSettingsScreenshot,
+  revealControlCenterRow,
   selectSettingsSection,
   setControlCenterMaterialState
 } from "../../tools/settings-visual-harness.mjs";
@@ -37,6 +38,17 @@ test("desktop settings screenshots stay within the reviewed visual threshold", {
               harness,
               harness.page,
               `control-center-${section}-${hostTheme}-${viewport.width}x${viewport.height}.png`
+            );
+          }
+
+          if (hostTheme === "dark" && viewport.width === 1440) {
+            await selectSettingsSection(harness.page, "export");
+            await revealControlCenterRow(harness.page, "Preservation archive");
+            await assertControlCenterLayout(harness.page, "export-preservation", viewport);
+            await assertScreenshot(
+              harness,
+              harness.page,
+              "control-center-export-preservation-dark-1440x900.png"
             );
           }
 

@@ -47,6 +47,8 @@ test("translations are not just the English string echoed back", async () => {
   // matches its source means an untranslated row slipped in behind a filled-in-looking entry.
   const allowedIdentical = new Set([
     "Aviary",
+    "WARC",
+    "WACZ",
     "https://mastodon.social",
     "Anthropic Messages API",
     "OpenAI Chat Completions"

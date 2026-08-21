@@ -46,6 +46,17 @@ Date: 2026-08-21
 - Exercised invalid and valid paste states in Chromium. Parse errors name their source line, both
   apply buttons stay disabled on invalid input, and the valid preview exposes both outcomes.
 
+## Preservation export
+
+- Compared the Export implementation with `docs/mockups/2026-08-20/control-center-export.png`.
+- WARC, WACZ, and replayweb.page now share one preservation row. WACZ is the only filled action,
+  while the raw format and viewer link stay secondary.
+- The storage estimate sits in the helper line before the action runs. No new card, status pill, or
+  confirmation layer was added.
+- Added a focused dark 1440 by 900 baseline at
+  `tests/visual/baselines/settings/control-center-export-preservation-dark-1440x900.png` so this
+  below-the-fold action remains part of visual review.
+
 ## Verification
 
 - Reviewed all 13 Control Center destinations on dark and light X fixtures at 1440 by 900 and 1920

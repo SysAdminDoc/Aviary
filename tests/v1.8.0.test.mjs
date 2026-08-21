@@ -595,7 +595,8 @@ test("a CRLF in a scraped value cannot inject WARC headers or split a record", a
     { tweetId: "1", handle: "a", text: "t", permalink: hostile, media: [{ url: hostile, kind: "photo", type: "image/jpeg" }] }
   ]);
   const all = new TextDecoder().decode(archive.data);
-  assert.equal(all.split("WARC/1.1").length - 1, 3, "expected metadata + resource + media records");
+  const recordStarts = all.match(/(?:^|\r\n\r\n)WARC\/1\.1\r\n/g) ?? [];
+  assert.equal(recordStarts.length, 5, "expected warcinfo + metadata + two resources + media records");
 });
 
 test("WARC Content-Length counts bytes, not characters", async () => {

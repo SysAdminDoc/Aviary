@@ -262,6 +262,8 @@ export interface ControlCenterOptions {
   getIntegrationUsage?: () => IntegrationUsageStatus | undefined;
   clearIntegrationUsage?: () => Promise<void>;
   downloadWarc?: () => Promise<{ records: number }>;
+  getWaczEstimate?: () => { records: number; estimatedBytes: number };
+  downloadWacz?: () => Promise<{ records: number; bytes: number; filename: string }>;
   exportToTarget?: (
     target: "clipboard-markdown" | "obsidian" | "notion" | "raw-json"
   ) => Promise<{ target: string; records: number; copied?: boolean }>;
@@ -446,7 +448,8 @@ const SECTION_GROUP_BREAKS: Record<string, Array<{ before: string; title: string
     { before: "Capture visible tweets", title: "Capture" },
     { before: "Export formats", title: "Package" },
     { before: "Save folder hint", title: "Destination" },
-    { before: "Export visible tweets", title: "Jobs" }
+    { before: "Export visible tweets", title: "Jobs" },
+    { before: "Preservation archive", title: "Preservation" }
   ],
   library: [
     { before: "Search all local collections", title: "Universal search" },
@@ -3153,6 +3156,36 @@ input:focus-visible {
   color: var(--av-danger, rgb(244, 33, 46));
 }
 
+.av-preservation-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto;
+  align-items: center;
+  min-height: 64px;
+}
+
+.av-preservation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+}
+
+.av-preservation-actions .av-button {
+  min-width: 0;
+  min-height: 34px;
+  padding-inline: 12px;
+}
+
+.av-replay-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
 .av-preset-card {
   position: relative;
   display: grid;
@@ -3797,6 +3830,15 @@ input[type="checkbox"] {
 
   .av-rule-set-preview {
     grid-column: auto;
+  }
+
+  .av-preservation-row {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .av-preservation-actions {
+    justify-content: flex-start;
   }
 
   .av-section[data-av-section="library"] .av-row-stack:has(> .av-library-media-actions) {

@@ -159,6 +159,17 @@ export async function selectSettingsSection(page, section) {
   await settleVisuals(page);
 }
 
+export async function revealControlCenterRow(page, label) {
+  await page.evaluate((rowLabel) => {
+    const row = Array.from(
+      document.querySelector("#av-control-center")?.shadowRoot?.querySelectorAll(".av-row") ?? []
+    ).find((candidate) => candidate.getAttribute("data-av-label") === rowLabel);
+    if (!(row instanceof HTMLElement)) throw new Error(`Control Center row missing: ${rowLabel}`);
+    row.scrollIntoView({ block: "center" });
+  }, label);
+  await settleVisuals(page);
+}
+
 export async function assertControlCenterLayout(page, section, viewport) {
   const metrics = await page.evaluate(() => {
     const shadow = document.querySelector("#av-control-center")?.shadowRoot;

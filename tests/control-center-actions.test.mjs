@@ -120,6 +120,80 @@ test("rejected Control Center actions report failure and re-enable their buttons
   );
 });
 
+test("preservation actions show cost before download and keep one compact control group", async () => {
+  const result = await page.evaluate(async () => {
+    document.body.replaceChildren();
+    const settings = AviaryActions.cloneSettings(AviaryActions.DEFAULT_SETTINGS);
+    let warcRuns = 0;
+    let waczRuns = 0;
+    let finishWacz;
+    const panel = AviaryActions.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: () => {},
+      getWaczEstimate: () => ({ records: 7, estimatedBytes: 18 * 1024 }),
+      downloadWarc: async () => {
+        warcRuns += 1;
+        return { records: 7 };
+      },
+      downloadWacz: () => {
+        waczRuns += 1;
+        return new Promise((resolve) => {
+          finishWacz = () => resolve({ records: 7, bytes: 16 * 1024, filename: "archive.wacz" });
+        });
+      }
+    });
+    const shadow = document.querySelector("#av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    shadow.querySelector('[data-av-section="export"]').click();
+    const row = shadow.querySelector('[data-av-label="Preservation archive"]');
+    const buttons = [...row.querySelectorAll("button")];
+    const wacz = buttons.find((button) => button.textContent === "WACZ");
+    const warc = buttons.find((button) => button.textContent === "WARC");
+    const replay = row.querySelector("a");
+
+    wacz.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const during = {
+      disabled: buttons.every((button) => button.disabled),
+      busy: wacz.getAttribute("aria-busy")
+    };
+    finishWacz();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const waczStatus = shadow.querySelector(".av-status").textContent;
+
+    warc.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const warcStatus = shadow.querySelector(".av-status").textContent;
+    const output = {
+      text: row.textContent,
+      actionCount: row.querySelectorAll(".av-preservation-actions").length,
+      replayHref: replay.href,
+      replayTarget: replay.target,
+      during,
+      enabledAfter: buttons.every((button) => !button.disabled),
+      waczStatus,
+      warcStatus,
+      warcRuns,
+      waczRuns
+    };
+    panel.destroy();
+    return output;
+  });
+
+  assert.match(result.text, /Estimated WACZ: 18 KiB for 7 records\./);
+  assert.equal(result.actionCount, 1);
+  assert.equal(result.replayHref, "https://replayweb.page/");
+  assert.equal(result.replayTarget, "_blank");
+  assert.deepEqual(result.during, { disabled: true, busy: "true" });
+  assert.equal(result.enabledAfter, true);
+  assert.equal(result.waczStatus, "WACZ downloaded (7 records, 16 KiB).");
+  assert.equal(result.warcStatus, "WARC downloaded (7 records).");
+  assert.equal(result.warcRuns, 1);
+  assert.equal(result.waczRuns, 1);
+});
+
 test("a rejected Aria2 cancel reports failure and re-enables the row action", async () => {
   const result = await page.evaluate(async () => {
     document.body.replaceChildren();
