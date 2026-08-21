@@ -45,10 +45,10 @@ export class ArchiveRepairIndex {
       if (typeof record.text !== "string") continue;
       const recordBytes = new TextEncoder().encode(record.text).byteLength;
       if (corpusBytes + recordBytes > MAX_LOCAL_CORPUS_BYTES) continue;
-      corpusBytes += recordBytes;
-      this.#ingestValue(record, "local-corpus");
       try {
-        this.#ingestValue(JSON.parse(record.text), "local-corpus");
+        const payload = JSON.parse(record.text);
+        corpusBytes += recordBytes;
+        this.#ingestValue(payload, "local-corpus");
       } catch {
         // A bounded capture can end mid-JSON. It contributes no facts instead of failing import.
       }

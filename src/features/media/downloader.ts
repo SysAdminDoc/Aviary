@@ -2,7 +2,7 @@ import type { IntegrationSettings } from "../../platform/settings";
 import {
   mediaIdentityHash,
   perceptualImageHash,
-  sha256Hex,
+  sha256HexAsync,
   type MediaFingerprint,
   type MediaFingerprintKind
 } from "../export/assets";
@@ -93,9 +93,14 @@ export async function captureMediaBytes(
     if (bytes.byteLength > maxBytes) {
       throw new RangeError(`Media response exceeds the ${maxBytes}-byte capture limit.`);
     }
+    const sha256 = await sha256HexAsync(bytes);
+    if (signal.aborted) {
+      throw signal.reason;
+    }
     return {
       bytes,
-      contentType: response.headers.get("content-type")?.split(";", 1)[0]?.trim() || "application/octet-stream"
+      contentType: response.headers.get("content-type")?.split(";", 1)[0]?.trim() || "application/octet-stream",
+      sha256
     };
   }, options.timeoutMs ?? NETWORK_TIMEOUTS.mediaTransfer);
   return {
@@ -103,7 +108,7 @@ export async function captureMediaBytes(
     capturedAt: new Date().toISOString(),
     bytes: captured.bytes,
     byteLength: captured.bytes.byteLength,
-    sha256: sha256Hex(captured.bytes),
+    sha256: captured.sha256,
     contentType: captured.contentType
   };
 }
@@ -134,8 +139,16 @@ export async function fingerprintMediaDownload(
       const captured = await captureMediaBytes(url, { timeoutMs: remaining });
       let perceptualHash: string | null = null;
       if (request.includePerceptual && captured.contentType.startsWith("image/")) {
+        const decodeBudget = deadline - Date.now();
+        if (decodeBudget <= 0) {
+          return { identityHash, exactHash: captured.sha256 };
+        }
         try {
-          perceptualHash = await perceptualImageHash(captured.bytes, captured.contentType);
+          perceptualHash = await withNetworkTimeout(async (signal) => {
+            const hash = await perceptualImageHash(captured.bytes, captured.contentType);
+            if (signal.aborted) throw signal.reason;
+            return hash;
+          }, decodeBudget);
         } catch {
           // Exact matching still works when an image decoder refuses an otherwise downloadable file.
         }

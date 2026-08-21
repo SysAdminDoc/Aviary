@@ -40,22 +40,24 @@
 
 - **A duplicate check can no longer hold the Download action behind repeated network waits.** Image
   fingerprinting gets one short deadline across every quality candidate, including response-body
-  reading. Video saves continue directly from their stable X media identity.
+  reading, SHA-256 work, and optional image decoding. Video saves continue directly from their
+  stable X media identity.
 
 - **Two X tabs can no longer start the same media transfer together.** A short-lived hashed claim is
   written before the handoff. Successful transfers commit it to history, while refused, failed, and
   interrupted transfers release it so Retry remains available.
 
 - **Archive repair now rejects bad or unrelated local evidence.** Malformed checkpoint records and
-  records outside captured GraphQL traffic are ignored. Reimporting an archive also lets its newer
+  records outside captured GraphQL traffic are ignored. A broken GraphQL body cannot contribute
+  forged metadata from its outer checkpoint record. Reimporting an archive also lets its newer
   participant details replace a stale saved copy.
 
 - **Quoted search stays inside one field.** A phrase can match a post, tag, folder, handle, or other
   indexed value, but can no longer be invented across the boundary between two unrelated values.
 
-- **Firefox release smoke now waits for the browser process to close.** Windows no longer reports a
-  false failure when Firefox briefly retains its temporary profile database after every behavior
-  check has passed.
+- **Firefox release smoke now uses Mozilla's current WebDriver path and proves process exit.** Every
+  browser command has a deadline, a forced cleanup is verified, and Windows profile removal waits
+  until the Firefox process tree has actually closed.
 
 ## 1.37.0 (2026-08-20)
 

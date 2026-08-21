@@ -247,6 +247,15 @@ test("archive repair ignores malformed and non-GraphQL checkpoint evidence", asy
   const index = new ArchiveRepairIndex([
     { surface: null, text: "{broken" },
     {
+      surface: "graphql:HomeTimeline",
+      text: "{broken",
+      expandedUrls: [{
+        shortUrl: "https://t.co/poison",
+        destination: "https://poison.example/wrong",
+        source: "local-corpus"
+      }]
+    },
+    {
       surface: "archive",
       text: "ordinary checkpoint",
       expandedUrls: [{

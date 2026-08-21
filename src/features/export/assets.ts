@@ -284,6 +284,16 @@ export function sha256Hex(data: Uint8Array): string {
   return Array.from(hash, (word) => word.toString(16).padStart(8, "0")).join("");
 }
 
+/** Uses the browser's asynchronous digest so callers can enforce a wall-clock deadline. */
+export async function sha256HexAsync(data: Uint8Array): Promise<string> {
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) {
+    throw new Error("Asynchronous SHA-256 is unavailable in this browser.");
+  }
+  const digest = await subtle.digest("SHA-256", data.slice().buffer);
+  return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");
+}
+
 /** Hashes a stable X asset identity, not the mutable size URL that happened to render. */
 export function mediaIdentityHash(
   kind: MediaFingerprintKind,
