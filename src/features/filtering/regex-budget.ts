@@ -34,7 +34,56 @@ export interface RegexBudgetVerdict {
   reason: string | null;
 }
 
-const UNBOUNDED_QUANTIFIER = /[*+]|\{\s*\d*\s*,\s*\}/;
+/**
+ * How many times a quantifier at `index` can repeat what precedes it, or 0 when there is none.
+ *
+ * `Infinity` for `*`, `+` and `{n,}`. A bounded form reports its own ceiling, and that matters more
+ * than it looks: the check used to ask only whether a quantifier was unbounded, so `(a|a){1,200}`
+ * read as harmless and skipped every ambiguity test below. It is not harmless. Measured against a
+ * 26-character subject it took 807 ms, and each further two characters multiply that by four -- a
+ * frozen tab, reached by changing two characters of a pattern the guard already refuses.
+ *
+ * `?` reports 1, not 2: matching something once or not at all repeats nothing.
+ */
+function repetitionCeiling(source: string, index: number): number {
+  const char = source[index];
+  if (char === "*" || char === "+") return Number.POSITIVE_INFINITY;
+  if (char === "?") return 1;
+  if (char !== "{") return 0;
+  const brace = /^\{\s*(\d+)\s*(?:,\s*(\d*)\s*)?\}/.exec(source.slice(index));
+  if (!brace) return 0;
+  if (brace[2] === undefined) return Number(brace[1]);
+  return brace[2] === "" ? Number.POSITIVE_INFINITY : Number(brace[2]);
+}
+
+/**
+ * True when `body` contains a quantifier that can repeat more than once, at any depth.
+ *
+ * This is the inner half of the `(a+)+b` family. It reads the body character by character rather
+ * than with a regex so that an escaped `+` or a `*` inside a character class is not mistaken for a
+ * quantifier -- and so that a bounded inner repeat counts, since `(a{1,200})+` backtracks for the
+ * same reason `(a+)+` does.
+ */
+function hasRepetitionAnywhere(body: string): boolean {
+  let inClass = false;
+  for (let index = 0; index < body.length; index += 1) {
+    const char = body[index];
+    if (char === "\\") {
+      index += 1;
+      continue;
+    }
+    if (inClass) {
+      if (char === "]") inClass = false;
+      continue;
+    }
+    if (char === "[") {
+      inClass = true;
+      continue;
+    }
+    if (repetitionCeiling(body, index) > 1) return true;
+  }
+  return false;
+}
 
 /**
  * Finds a quantifier applied to a group that makes the repetition ambiguous.
@@ -76,14 +125,19 @@ function repeatedGroupRisk(pattern: string): "nested" | "alternation" | null {
     if (start === undefined) {
       continue;
     }
+    // A lookaround is zero-width, so a quantifier on it repeats nothing and its branches cannot
+    // consume the same text twice. Nested lookarounds were already skipped below; the group being
+    // examined was not, which is why `(?=a|b)+` -- a valid, harmless pattern -- was refused.
+    if (/^\(\?<?[=!]/.test(pattern.slice(start))) {
+      continue;
+    }
     // What immediately follows the group, ignoring a lazy/possessive marker.
     const after = pattern.slice(index + 1).replace(/^[?]/, "");
-    const groupIsRepeated = UNBOUNDED_QUANTIFIER.test(after.slice(0, 1)) || /^\{\s*\d*\s*,\s*\}/.test(after);
-    if (!groupIsRepeated) {
+    if (repetitionCeiling(after, 0) <= 1) {
       continue;
     }
     const body = pattern.slice(start + 1, index);
-    if (UNBOUNDED_QUANTIFIER.test(body)) {
+    if (hasRepetitionAnywhere(body)) {
       return "nested";
     }
     if (hasAlternationAnywhere(body)) {

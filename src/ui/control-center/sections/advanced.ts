@@ -194,15 +194,14 @@ function buildBisectRows(ctx: PanelContext): HTMLElement[] {
   const rows: HTMLElement[] = [];
   const name = (id: string): string => ctx.options.featureTitle?.(id) ?? id;
 
+  // No try/catch here. Both rows that use this carry their own failure sentence, and a local catch
+  // meant the shared boundary could never fire -- so that sentence was translated into all nine
+  // locales and was unreachable in every one of them. The boundary reports the error to diagnostics
+  // exactly as this did, and names the button the reader pressed while doing it.
   const respond = (verdict: "still-wrong" | "fixed") => async (): Promise<void> => {
-    try {
-      await answer(verdict);
-      ctx.render();
-      ctx.setStatus("Answer recorded.");
-    } catch (error) {
-      ctx.options.onError("The feature search could not continue", error);
-      ctx.setStatus("The feature search could not continue.");
-    }
+    await answer(verdict);
+    ctx.render();
+    ctx.setStatus("Answer recorded.");
   };
 
   if (status.phase === "idle") {

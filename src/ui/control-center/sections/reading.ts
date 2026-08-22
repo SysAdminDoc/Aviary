@@ -912,7 +912,8 @@ export function buildCatchUpRows(ctx: PanelContext): HTMLElement[] {
         async () => {
           const result = ctx.options.openCatchUp!();
           ctx.setStatus(`Catch-up opened with ${result.count} post${result.count === 1 ? "" : "s"}.`);
-        }
+        },
+        "The catch-up digest could not be opened. Nothing was lost, so reload the page and try again."
       )
     );
   }

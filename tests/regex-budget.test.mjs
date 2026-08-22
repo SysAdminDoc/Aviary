@@ -165,3 +165,67 @@ test("wrapping an overlapping alternation in another group does not get it past 
     );
   }
 });
+
+/**
+ * A bounded quantifier is not a safe quantifier.
+ *
+ * The guard used to ask only whether the quantifier on a group was unbounded, so every ambiguity
+ * check below it was skipped for `(a|a){1,200}` -- the same catastrophic pattern as `(a|a)+` with
+ * two characters changed, and well inside the repetition ceiling the budget already enforces.
+ * Measured on the bypass: 52 ms against 22 repeated characters, 200 ms against 24, 807 ms against
+ * 26. Each further two characters multiply it by four, so this reaches a frozen tab the same way
+ * the unbounded form does.
+ */
+test("a bounded quantifier on an ambiguous group is refused too", async () => {
+  const { checkRegexBudget } = await importSourceModule("src/features/filtering/regex-budget.ts");
+
+  for (const pattern of [
+    "(a|a){1,200}$",
+    "((a|a)){1,200}$",
+    "(?:(a|a)){1,200}$",
+    "((?<n>(?:a|a)){1,200}){1,200}$",
+    // The nested half of the same gap: a bounded inner repeat backtracks for the same reason
+    // `(a+)+` does, and read as harmless for the same reason.
+    "(a{1,200})+b",
+    "(?:(\\d?a?){1,200})+$",
+    "(a{2,5})+b"
+  ]) {
+    assert.notEqual(checkRegexBudget(pattern).reason, null, `${pattern} must be refused`);
+  }
+
+  // `?` repeats nothing, and a group with no quantifier at all is not repeated. Neither may be
+  // dragged in by widening what counts as repetition.
+  for (const pattern of ["(ab)?", "(a|b)?", "(spam|scam)", "^@?(\\w{1,15})$", "(\\w{1,15})"]) {
+    assert.equal(
+      checkRegexBudget(pattern).reason,
+      null,
+      `${pattern} must stay allowed, got ${checkRegexBudget(pattern).reason}`
+    );
+  }
+});
+
+/**
+ * The lookaround skip has to cover the group being examined, not only the ones inside it.
+ *
+ * `hasAlternationAnywhere` is handed the group's body with the opening paren already stripped, so
+ * the `?=` that makes the group a lookaround was never visible to it. Nested lookarounds were
+ * skipped correctly; the outermost one was not, and `(?=a|b)+` -- valid, zero-width, and incapable
+ * of the ambiguity the check is looking for -- was refused.
+ */
+test("a quantified lookaround is not treated as an ambiguous repeated group", async () => {
+  const { checkRegexBudget } = await importSourceModule("src/features/filtering/regex-budget.ts");
+
+  for (const pattern of ["(?=a|b)+", "(?!a|b)+", "(?=a|b)*", "(?!spam|scam)+"]) {
+    assert.equal(
+      checkRegexBudget(pattern).reason,
+      null,
+      `${pattern} must stay allowed, got ${checkRegexBudget(pattern).reason}`
+    );
+  }
+
+  // A lookaround alongside a real alternation in the same repeated group is still refused: the
+  // skip is for the lookaround's own branches, not for everything sharing the group with it.
+  for (const pattern of ["(a(?=b|c)|d)+", "((?=a)|a)+", "((?=[(])|a)+"]) {
+    assert.notEqual(checkRegexBudget(pattern).reason, null, `${pattern} must be refused`);
+  }
+});

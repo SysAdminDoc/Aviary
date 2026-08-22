@@ -441,6 +441,51 @@ test("a hostile save-folder hint cannot put a traversal into a ZIP entry name", 
 });
 
 /**
+ * The cut itself can build what the filter just removed.
+ *
+ * Every check here tried hostile *input*, and every one of them passed, because the segment filter
+ * ran first and did its job. Then the length cap ran on the joined result and re-created the exact
+ * shapes that had been filtered out: seventy-seven safe characters followed by `/..z` came back as
+ * a `..` traversal, and `/CONIN$X` came back as the reserved device name. Both reached real ZIP
+ * entry names, at the default cap and at the shorter one the export path uses.
+ */
+test("a save-folder hint made hostile by truncation is filtered again", async () => {
+  const { sanitizeFolderHint } = await importSourceModule("src/platform/settings.ts");
+
+  const reserved = /^(?:CON|PRN|AUX|NUL|CONIN\$|CONOUT\$|CLOCK\$|COM[0-9]|LPT[0-9])$/i;
+
+  // Chosen so the cut falls inside the final segment rather than on the input's own boundaries.
+  const cases = [
+    { input: "a".repeat(77) + "/..z", max: 80 },
+    { input: "a".repeat(73) + "/CONIN$X", max: 80 },
+    { input: "a".repeat(78) + "/.z", max: 80 },
+    { input: "a".repeat(117) + "/..z", max: undefined },
+    { input: "a".repeat(113) + "/CONIN$X", max: undefined }
+  ];
+
+  for (const { input, max } of cases) {
+    const out = max === undefined ? sanitizeFolderHint(input) : sanitizeFolderHint(input, max);
+    const segments = out.length === 0 ? [] : out.split("/");
+    const label = `${JSON.stringify(input.slice(-12))} at ${max ?? "the default"}`;
+
+    assert.ok(out.length <= (max ?? 120), `${label} must still respect the cap, got ${out.length}`);
+    assert.ok(!segments.includes(".."), `${label} truncated into a traversal: ${out.slice(-16)}`);
+    assert.ok(!segments.includes("."), `${label} truncated into a bare dot: ${out.slice(-16)}`);
+    assert.ok(
+      !segments.some((segment) => reserved.test(segment)),
+      `${label} truncated into a reserved device name: ${out.slice(-16)}`
+    );
+    assert.ok(
+      !segments.some((segment) => segment.length === 0),
+      `${label} left an empty path segment: ${JSON.stringify(out)}`
+    );
+  }
+
+  // The control: a hint that survives the cut is still the hint, not a mangled version of it.
+  assert.equal(sanitizeFolderHint("aviary/exports", 80), "aviary/exports");
+});
+
+/**
  * The length cap is applied after the segments are rejoined, so it can land on a separator. A
  * trailing slash turns every entry into `folder//name`, an empty path segment.
  */

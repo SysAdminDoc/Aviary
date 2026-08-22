@@ -32,14 +32,18 @@ const DELIVERY_BUDGETS = [
   // rendering English in all nine locales -- the catch-up digest, the sentence every action row
   // shows when it fails, and the renamed media controls -- for 53 strings x 8 locales.
   //
-  // The catalog is now 34% of the bundle (920 kB of 2.70 MB), and every translated string costs
-  // eight copies that a given reader will never use. ROADMAP F270 tracks splitting it per locale;
-  // until that lands this ceiling has to move with the copy, so keep raising it deliberately with
-  // the reason written down rather than letting growth pass unremarked.
-  { file: "aviary.user.js", maxBytes: 2_710_000 },
+  // Plus one more sentence for the row that opens the catch-up digest, which had no failure copy
+  // of its own and showed the generic three words instead.
+  //
+  // The catalog is now 34% of the bundle (920 kB of 2.71 MB), and every translated string costs
+  // eight copies that a given reader will never use. This is the fourth time this ceiling has moved
+  // for catalog growth alone, which is the argument for ROADMAP F270 rather than a fifth raise:
+  // split the catalog per locale so a reader ships one. Until that lands the ceiling has to move
+  // with the copy, deliberately and with the reason written down.
+  { file: "aviary.user.js", maxBytes: 2_716_000 },
   { file: "aviary.meta.js", maxBytes: 4_000 },
-  { file: "extension-chrome/content.js", maxBytes: 2_710_000 },
-  { file: "extension-firefox/content.js", maxBytes: 2_710_000 }
+  { file: "extension-chrome/content.js", maxBytes: 2_716_000 },
+  { file: "extension-firefox/content.js", maxBytes: 2_716_000 }
 ];
 
 const failures = [];

@@ -1339,23 +1339,29 @@ const RESERVED_PATH_SEGMENTS =
  * Windows-shaped traversal became a working POSIX one on the way into the archive.
  */
 export function sanitizeFolderHint(value: string, maxLength = 120): string {
-  return value
-    .replace(/[<>:"|?*\u0000-\u001f]/g, "")
-    .replace(/\\/g, "/")
-    .split("/")
-    .map((segment) => segment.trim().replace(/[. ]+$/, ""))
-    .filter(
-      (segment) =>
-        segment.length > 0 &&
-        segment !== "." &&
-        segment !== ".." &&
-        !RESERVED_PATH_SEGMENTS.test(segment)
-    )
-    .join("/")
-    .slice(0, maxLength)
-    // Slicing after the join can land on a separator, and a trailing slash turns every ZIP entry
-    // into `folder//name`. Trim it rather than leaving an empty path segment behind.
-    .replace(/\/+$/, "");
+  const keepSafeSegments = (path: string): string =>
+    path
+      .split("/")
+      .map((segment) => segment.trim().replace(/[. ]+$/, ""))
+      .filter(
+        (segment) =>
+          segment.length > 0 &&
+          segment !== "." &&
+          segment !== ".." &&
+          !RESERVED_PATH_SEGMENTS.test(segment)
+      )
+      .join("/");
+
+  const cleaned = keepSafeSegments(
+    value.replace(/[<>:"|?*\u0000-\u001f]/g, "").replace(/\\/g, "/")
+  );
+
+  // Filtered, then cut, then filtered again -- because the cut can create exactly what the filter
+  // just removed. Seventy-seven safe characters followed by `/..z` survived the first pass intact,
+  // and slicing at 80 turned the tail back into a `..` traversal; `/CONIN$X` came back as the
+  // reserved device name the same way. Both reached real ZIP entry names. A second pass over the
+  // truncated string can only shorten it, so the length cap still holds.
+  return keepSafeSegments(cleaned.slice(0, maxLength));
 }
 
 function folderHintValue(value: unknown, fallback: string): string {

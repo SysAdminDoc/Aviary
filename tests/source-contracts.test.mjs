@@ -88,7 +88,7 @@ test("no stylesheet targets one of X's generated class names", async () => {
 test("the shipped options page carries no inline script, handler, or pill styling", async () => {
   const html = await readFile(path.join(root, "src/extension/options.html"), "utf8");
   assert.ok(
-    !/<script(?![^>]*src=)[^>]*>[\s\S]*?\S[\s\S]*?<\/script>/i.test(html),
+    !/<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?\S[\s\S]*?<\/script>/i.test(html),
     "MV3 page CSP blocks inline script"
   );
   assert.ok(!/\son[a-z]+\s*=/i.test(html), "no inline event handlers");
@@ -96,7 +96,7 @@ test("the shipped options page carries no inline script, handler, or pill stylin
   assert.match(html, /href="options\.css"/);
 
   const controller = await readFile(path.join(root, "src/entrypoints/extension-options.ts"), "utf8");
-  assert.ok(!/fetch\s*\(/.test(controller), "the options page must not make network calls");
+  assert.ok(!/\bfetch\s*\(/.test(controller), "the options page must not make network calls");
   assert.ok(!/innerHTML/.test(controller), "no HTML injection sink");
 
   const css = await readFile(path.join(root, "src/extension/options.css"), "utf8");
@@ -180,7 +180,7 @@ test("no stylesheet tries to reach the Control Center through a page-level class
   // light DOM, where a page-level class is exactly the right tool.
   const PANEL_ONLY = "shell|overlay|panel|launcher|nav|content|section|row|searchbar|toggle|transaction|status";
   const dead = [
-    ...mobile.matchAll(new RegExp(String.raw`html\.av-(?:touch|mobile)\s+\.av-(?:${PANEL_ONLY})[a-z-]*`, "g"))
+    ...mobile.matchAll(new RegExp(String.raw`html\.av-(?:touch|mobile)\s+\.av-(?:${PANEL_ONLY})\b[a-z-]*`, "g"))
   ].map((match) => match[0]);
 
   assert.deepEqual(dead, [], "these selectors cannot cross the shadow boundary");
@@ -415,7 +415,10 @@ test("every action row that can reject says what failed and what to do", async (
         index += 1;
       }
       const body = text.slice(match.index, index);
-      if (args < 4 && !body.includes("catch")) {
+      // An actual catch construct -- `catch (error)`, `catch {`, `.catch(...)` -- not the word.
+      // Matching the bare word let the "Open catch-up digest" row pass on its own product
+      // vocabulary while its handler had no boundary at all and showed "Action failed."
+      if (args < 4 && !/\bcatch\s*[({]/.test(body)) {
         silent.push(`${relative}:${text.slice(0, match.index).split("\n").length}`);
       }
     }
