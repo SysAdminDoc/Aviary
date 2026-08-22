@@ -1,9 +1,9 @@
-import type { FeatureContext, FeatureModule, FeatureStatus } from "../registry";
-import type { PageBridge } from "../../platform/page-bridge";
+import type { FeatureContext, FeatureModule, FeatureStatus } from "../registry.ts";
+import type { PageBridge } from "../../platform/page-bridge.ts";
 import type {
   BlockedBeaconPayload,
   PlaylistRewritePayload
-} from "../../page/page-agent";
+} from "../../page/page-agent.ts";
 
 /**
  * Owns everything that needs the page's own world: refusing X's analytics beacons and forcing the

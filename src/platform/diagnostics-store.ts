@@ -1,5 +1,5 @@
-import type { DiagnosticEvent, DiagnosticLevel } from "./diagnostics";
-import type { StorageGateway } from "./storage";
+import type { DiagnosticEvent, DiagnosticLevel } from "./diagnostics.ts";
+import type { StorageGateway } from "./storage.ts";
 
 export const DIAGNOSTICS_KEY = "aviary.diagnostics.v1";
 export const DIAGNOSTICS_LIMIT = 50;

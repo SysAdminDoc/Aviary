@@ -1,3 +1,4 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -9,7 +10,7 @@ import { build } from "esbuild";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("downloader throws instead of reporting success when downloads is not granted", async () => {
-  const { createDownloader, DownloadPermissionError } = await importBundledModule(
+  const { createDownloader, DownloadPermissionError } = await importSourceModule(
     "src/features/media/downloader.ts"
   );
 
@@ -36,7 +37,7 @@ test("downloader throws instead of reporting success when downloads is not grant
 });
 
 test("downloader surfaces a background failure rather than silently navigating", async () => {
-  const { createDownloader } = await importBundledModule("src/features/media/downloader.ts");
+  const { createDownloader } = await importSourceModule("src/features/media/downloader.ts");
   const originalChrome = globalThis.chrome;
   globalThis.chrome = {
     runtime: { sendMessage: async () => ({ ok: false, error: "disk full" }) }
@@ -53,7 +54,7 @@ test("downloader surfaces a background failure rather than silently navigating",
 });
 
 test("extension downloads receive the ordered original-image fallback candidates", async () => {
-  const { createDownloader } = await importBundledModule("src/features/media/downloader.ts");
+  const { createDownloader } = await importSourceModule("src/features/media/downloader.ts");
   const originalChrome = globalThis.chrome;
   const sent = [];
   globalThis.chrome = {
@@ -86,7 +87,7 @@ test("extension downloads receive the ordered original-image fallback candidates
 });
 
 test("isCrossOrigin marks the anchor fallback degraded only when download is ignored", async () => {
-  const { isCrossOrigin } = await importBundledModule("src/features/media/downloader.ts");
+  const { isCrossOrigin } = await importSourceModule("src/features/media/downloader.ts");
   assert.equal(isCrossOrigin("blob:https://x.com/abc"), false);
   assert.equal(isCrossOrigin("data:image/png;base64,AAAA"), false);
   // No `location` in node: treat unknown origin as cross-origin so callers never over-promise.
@@ -139,7 +140,7 @@ test("native media context clicks request download access before messaging the s
   };
 
   try {
-    await importBundledModule("src/entrypoints/extension-background.ts");
+    await importSourceModule("src/entrypoints/extension-background.ts", { fresh: true });
     assert.equal(typeof clicked, "function", "background did not register the context-menu action");
 
     insideGesture = true;
@@ -195,7 +196,7 @@ test("an interrupted original-image download resumes from the persisted quality 
   };
 
   try {
-    await importBundledModule("src/entrypoints/extension-background.ts");
+    await importSourceModule("src/entrypoints/extension-background.ts", { fresh: true });
     const response = await new Promise((resolve) => {
       const keptOpen = onMessage(
         {
@@ -229,7 +230,7 @@ test("an interrupted original-image download resumes from the persisted quality 
 });
 
 test("presets can promise the two settings that now have implementations", async () => {
-  const { PRESETS } = await importBundledModule("src/features/core/presets.ts");
+  const { PRESETS } = await importSourceModule("src/features/core/presets.ts");
   const byId = Object.fromEntries(PRESETS.map((preset) => [preset.id, preset]));
   assert.equal(byId["quiet-reader"].overrides.appearance.hideBorders, true);
   assert.equal(byId.minimal.overrides.appearance.hideBorders, true);
@@ -247,26 +248,6 @@ test("the Control Center exposes both settings", async () => {
   assert.match(source, /ctx\.options\.settings\.layout\.writerMode = checked/);
 });
 
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-v180-"));
-  const outfile = path.join(temp, "module.mjs");
-
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}
-
 async function waitFor(predicate, timeoutMs = 1_000) {
   const deadline = Date.now() + timeoutMs;
   while (!predicate() && Date.now() < deadline) {
@@ -276,7 +257,7 @@ async function waitFor(predicate, timeoutMs = 1_000) {
 }
 
 test("a failed write reports to the persistence sink instead of vanishing", async () => {
-  const { MediaHistory } = await importBundledModule("src/features/media/history.ts");
+  const { MediaHistory } = await importSourceModule("src/features/media/history.ts");
 
   const full = {
     async get(_key, fallback) {
@@ -299,7 +280,7 @@ test("a failed write reports to the persistence sink instead of vanishing", asyn
 });
 
 test("waitForToken refuses an impossible request instead of hanging forever", async () => {
-  const { TokenBucket } = await importBundledModule("src/platform/rate-limit.ts");
+  const { TokenBucket } = await importSourceModule("src/platform/rate-limit.ts");
 
   const bucket = new TokenBucket(4, 1);
   // refill() clamps at capacity, so this condition could never come true — it used to spin.
@@ -310,7 +291,7 @@ test("waitForToken refuses an impossible request instead of hanging forever", as
 });
 
 test("media.zipChunkSize splits a long export into several archives", async () => {
-  const { buildExportZipChunks } = await importBundledModule("src/features/export/export-feature.ts");
+  const { buildExportZipChunks } = await importSourceModule("src/features/export/export-feature.ts");
 
   const records = Array.from({ length: 250 }, (_, i) => ({
     tweetId: String(i),
@@ -333,7 +314,7 @@ test("media.zipChunkSize splits a long export into several archives", async () =
   // than no chunking at all, and a plain length check would not catch it. Read the archives
   // properly rather than scanning raw bytes: entries are DEFLATE now, so a substring search over
   // the container would find nothing and quietly pass once the assertion was relaxed.
-  const { readZip } = await importBundledModule("src/features/export/zip-reader.ts");
+  const { readZip } = await importSourceModule("src/features/export/zip-reader.ts");
   const decoder = new TextDecoder();
   const seen = new Set();
   for (const artifact of many) {
@@ -351,7 +332,7 @@ test("media.zipChunkSize splits a long export into several archives", async () =
 });
 
 test("cleanShareButtons strips tracking parameters without breaking links", async () => {
-  const { cleanUrl } = await importBundledModule("src/features/library/clean-share-links.ts");
+  const { cleanUrl } = await importSourceModule("src/features/library/clean-share-links.ts");
 
   // X's own share sheet appends t= and s=.
   assert.equal(
@@ -379,7 +360,7 @@ test("cleanShareButtons strips tracking parameters without breaking links", asyn
 });
 
 test("every setting a preset promises now has an implementation behind it", async () => {
-  const { PRESETS } = await importBundledModule("src/features/core/presets.ts");
+  const { PRESETS } = await importSourceModule("src/features/core/presets.ts");
 
   // A preset that flips a setting nothing reads silently lies about what applying it does.
   // These are the keys the presets touch that were schema-only when v1.8.0 opened.
@@ -392,7 +373,7 @@ test("every setting a preset promises now has an implementation behind it", asyn
 });
 
 test("local-only mode blocks every integration entry point", async () => {
-  const policy = await importBundledModule("src/features/integrations/network-policy.ts");
+  const policy = await importSourceModule("src/features/integrations/network-policy.ts");
   const { assertOutboundAllowed, setLocalOnlyPolicy, resetLocalOnlyPolicy, LocalOnlyError } = policy;
 
   resetLocalOnlyPolicy();
@@ -417,7 +398,7 @@ test("local-only mode blocks every integration entry point", async () => {
 });
 
 test("upgrading with a configured integration does not silently break it", async () => {
-  const { normalizeSettings, DEFAULT_SETTINGS } = await importBundledModule("src/platform/settings.ts");
+  const { normalizeSettings, DEFAULT_SETTINGS } = await importSourceModule("src/platform/settings.ts");
 
   // A fresh install keeps the local-only default, because integrations ship disabled.
   assert.equal(normalizeSettings({}).privacy.localOnly, true);
@@ -518,7 +499,7 @@ export { runAiPrompt } from "${p("src/features/integrations/ai-provider.ts")}";`
 });
 
 test("zip entry names are flagged UTF-8 so non-ASCII paths survive extraction", async () => {
-  const { buildStoreZip } = await importBundledModule("src/features/export/zip-store.ts");
+  const { buildStoreZip } = await importSourceModule("src/features/export/zip-store.ts");
 
   const name = "Recherché-アーカイブ/aviary-export.json";
   const zip = buildStoreZip([
@@ -547,7 +528,7 @@ test("zip entry names are flagged UTF-8 so non-ASCII paths survive extraction", 
 });
 
 test("the zip writer refuses to emit a silently-truncated archive", async () => {
-  const { buildStoreZip } = await importBundledModule("src/features/export/zip-store.ts");
+  const { buildStoreZip } = await importSourceModule("src/features/export/zip-store.ts");
 
   // setUint16/setUint32 truncate without complaint, so these ceilings have to be checked.
   const tooMany = Array.from({ length: 0x10000 }, (_, i) => ({
@@ -568,7 +549,7 @@ test("the zip writer refuses to emit a silently-truncated archive", async () => 
 });
 
 test("a CRLF in a scraped value cannot inject WARC headers or split a record", async () => {
-  const { formatRecord, buildWarcArchive } = await importBundledModule("src/features/export/warc.ts");
+  const { formatRecord, buildWarcArchive } = await importSourceModule("src/features/export/warc.ts");
 
   const hostile = "https://x.com/a/status/456\r\nWARC-Type: warcinfo\r\nX-Injected: yes";
   const bytes = formatRecord({ url: hostile, mime: "application/json", body: "{}" });
@@ -600,7 +581,7 @@ test("a CRLF in a scraped value cannot inject WARC headers or split a record", a
 });
 
 test("WARC Content-Length counts bytes, not characters", async () => {
-  const { formatRecord } = await importBundledModule("src/features/export/warc.ts");
+  const { formatRecord } = await importSourceModule("src/features/export/warc.ts");
 
   // 8 characters, but more than 8 bytes once encoded — a char count would truncate the body
   // and desynchronise every following record.
@@ -614,14 +595,14 @@ test("WARC Content-Length counts bytes, not characters", async () => {
 });
 
 test("a record with no target URI or mime still carries both fields", async () => {
-  const { formatRecord } = await importBundledModule("src/features/export/warc.ts");
+  const { formatRecord } = await importSourceModule("src/features/export/warc.ts");
   const text = new TextDecoder().decode(formatRecord({ url: "", mime: "", body: "x" }));
   assert.match(text, /WARC-Target-URI: urn:aviary:unknown/);
   assert.match(text, /Content-Type: application\/octet-stream/);
 });
 
 test("a swallowed storage write still reports through the gateway sink", async () => {
-  const { createStorageGateway, setStorageErrorSink } = await importBundledModule(
+  const { createStorageGateway, setStorageErrorSink } = await importSourceModule(
     "src/platform/storage.ts"
   );
 

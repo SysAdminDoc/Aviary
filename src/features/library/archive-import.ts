@@ -1,5 +1,5 @@
-import { canInflate, readZip } from "../export/zip-reader";
-import type { ExportRecord } from "../export/types";
+import { canInflate, readZip } from "../export/zip-reader.ts";
+import type { ExportRecord } from "../export/types.ts";
 import {
   emptyArchiveCollections,
   emptyArchiveRepairSummary,
@@ -11,12 +11,12 @@ import {
   type ArchiveMediaReference,
   type ArchiveProfile,
   type ArchiveRepairSummary
-} from "./archive-types";
+} from "./archive-types.ts";
 import {
   ArchiveRepairIndex,
   buildArchiveParticipant,
   buildMentionParticipant
-} from "./archive-repair";
+} from "./archive-repair.ts";
 
 export type ArchiveCollectionName =
   | "authored-posts"

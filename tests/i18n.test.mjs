@@ -1,3 +1,4 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -12,7 +13,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const LOCALES = ["es", "pt", "fr", "de", "ja", "ko", "ar", "he"];
 
 test("every locale covers the whole panel manifest", async () => {
-  const { panelCatalog, PANEL_STRINGS } = await importBundledModule("src/platform/i18n-catalog.ts");
+  const { panelCatalog, PANEL_STRINGS } = await importSourceModule("src/platform/i18n-catalog.ts");
   const PANEL_CATALOG = panelCatalog();
 
   assert.ok(PANEL_STRINGS.length > 250, `manifest looks truncated: ${PANEL_STRINGS.length}`);
@@ -27,7 +28,7 @@ test("every locale covers the whole panel manifest", async () => {
 });
 
 test("panelCoverage reports 100% for every shipped locale", async () => {
-  const { panelCoverage, supportedLocales } = await importBundledModule("src/platform/i18n.ts");
+  const { panelCoverage, supportedLocales } = await importSourceModule("src/platform/i18n.ts");
 
   for (const entry of supportedLocales()) {
     const coverage = panelCoverage(entry.code);
@@ -40,7 +41,7 @@ test("panelCoverage reports 100% for every shipped locale", async () => {
 });
 
 test("translations are not just the English string echoed back", async () => {
-  const { panelCatalog, PANEL_STRINGS } = await importBundledModule("src/platform/i18n-catalog.ts");
+  const { panelCatalog, PANEL_STRINGS } = await importSourceModule("src/platform/i18n-catalog.ts");
   const PANEL_CATALOG = panelCatalog();
 
   // Brand names and bare URLs legitimately survive translation unchanged; anything else that
@@ -66,7 +67,7 @@ test("translations are not just the English string echoed back", async () => {
 });
 
 test("RTL locales are declared right-to-left and LTR ones are not", async () => {
-  const { localeDirection } = await importBundledModule("src/platform/i18n.ts");
+  const { localeDirection } = await importSourceModule("src/platform/i18n.ts");
 
   assert.equal(localeDirection("ar"), "rtl");
   assert.equal(localeDirection("he"), "rtl");
@@ -76,7 +77,7 @@ test("RTL locales are declared right-to-left and LTR ones are not", async () => 
 });
 
 test("translateText falls back to the English source instead of an empty box", async () => {
-  const { translateText, hasTranslation } = await importBundledModule("src/platform/i18n.ts");
+  const { translateText, hasTranslation } = await importSourceModule("src/platform/i18n.ts");
 
   assert.equal(translateText("es", "Close"), "Cerrar");
   assert.equal(translateText("en", "Close"), "Close");
@@ -279,24 +280,6 @@ export { harvestStatusLiterals };
         'save(checked ? "Link cleaning on" : "Link cleaning off");\nsetStatus("Plain one");'
       )
     };
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-i18n-test-"));
-  try {
-    const outfile = path.join(temp, "module.mjs");
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "neutral",
-      logLevel: "silent"
-    });
-    return await import(pathToFileURL(outfile).href);
   } finally {
     await rm(temp, { recursive: true, force: true });
   }

@@ -1,21 +1,21 @@
-import type { FeatureContext, FeatureModule } from "../registry";
-import { SemanticIndex } from "../integrations/semantic-search";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
+import { SemanticIndex } from "../integrations/semantic-search.ts";
 import {
   buildExportPackageManifest,
   prepareExportPackage,
   sha256Hex,
   type ExportPackageFile
-} from "./assets";
-import { collectExportRecords } from "./collector";
-import { captureExportRecordMedia } from "../media/downloader";
-import { getCapturedMediaMetadata } from "../media/media-buttons";
-import { CheckpointStore } from "./jobs";
-import { formatExport } from "./formatters";
-import { discoverQueryIds, type QueryRegistry } from "./query-discovery";
-import { reconstructExportOrder, reconstructThreads } from "./thread-reconstruction";
-import { buildExportViewer } from "./viewer";
-import { buildZip, type ZipFileEntry } from "./zip-store";
-import type { ExportFormat, ExportRecord } from "./types";
+} from "./assets.ts";
+import { collectExportRecords } from "./collector.ts";
+import { captureExportRecordMedia } from "../media/downloader.ts";
+import { getCapturedMediaMetadata } from "../media/media-buttons.ts";
+import { CheckpointStore } from "./jobs.ts";
+import { formatExport } from "./formatters.ts";
+import { discoverQueryIds, type QueryRegistry } from "./query-discovery.ts";
+import { reconstructExportOrder, reconstructThreads } from "./thread-reconstruction.ts";
+import { buildExportViewer } from "./viewer.ts";
+import { buildZip, type ZipFileEntry } from "./zip-store.ts";
+import type { ExportFormat, ExportRecord } from "./types.ts";
 
 let checkpointStore: CheckpointStore | undefined;
 let queryRegistry: QueryRegistry | undefined;

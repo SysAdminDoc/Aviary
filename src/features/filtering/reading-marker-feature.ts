@@ -1,11 +1,11 @@
-import { translateText } from "../../platform/i18n";
-import type { FeatureContext, FeatureModule } from "../registry";
+import { translateText } from "../../platform/i18n.ts";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
 import {
   compareTweetIds,
   isReadingMarkerSurface,
   ReadingMarkerStore,
   type ReadingMarkerSurface
-} from "./seen-posts";
+} from "./seen-posts.ts";
 
 const STYLE_ID = "av-reading-marker";
 const SEPARATOR_ATTR = "data-av-reading-separator";

@@ -1,8 +1,8 @@
-import type { StorageGateway } from "../../platform/storage";
+import type { StorageGateway } from "../../platform/storage.ts";
 import {
   normalizeMediaSidecarRequest,
   type MediaSidecarRequest
-} from "./sidecar";
+} from "./sidecar.ts";
 
 export type JobStatus =
   | "queued"

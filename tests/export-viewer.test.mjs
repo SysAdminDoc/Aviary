@@ -1,16 +1,11 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
 import { chromium } from "playwright";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("standalone viewer is local-only, responsive, virtualized, searchable, and RTL-aware", async () => {
-  const { buildExportViewer } = await importBundledModule("src/features/export/viewer.ts");
+  const { buildExportViewer } = await importSourceModule("src/features/export/viewer.ts");
   const records = Array.from({ length: 120 }, (_, index) => ({
     tweetId: String(index + 1),
     handle: "archivist",
@@ -72,7 +67,7 @@ test("standalone viewer is local-only, responsive, virtualized, searchable, and 
 });
 
 test("thread view renders missing parents and collapses same-author runs", async () => {
-  const { buildExportViewer } = await importBundledModule("src/features/export/viewer.ts");
+  const { buildExportViewer } = await importSourceModule("src/features/export/viewer.ts");
   const records = [
     {
       tweetId: "root-1",
@@ -135,7 +130,7 @@ test("thread view renders missing parents and collapses same-author runs", async
 });
 
 test("thread sorting orders complete groups without breaking parent order", async () => {
-  const { buildExportViewer } = await importBundledModule("src/features/export/viewer.ts");
+  const { buildExportViewer } = await importSourceModule("src/features/export/viewer.ts");
   const records = [
     {
       tweetId: "old-root",
@@ -195,22 +190,3 @@ test("thread sorting orders complete groups without breaking parent order", asyn
     await browser.close();
   }
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-viewer-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
-}

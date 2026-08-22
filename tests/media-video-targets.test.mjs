@@ -1,15 +1,9 @@
+import { importSourceEntry, importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("a MediaSource blob is never chosen over a real variant", async () => {
-  const { extractVideo } = await importBundledModule("src/features/media/video-extract.ts");
+  const { extractVideo } = await importSourceModule("src/features/media/video-extract.ts");
 
   // Shaped like X's player: the blob handle plus a real progressive URL. The blob carries no
   // bitrate, but bitrate is not the tie-breaker that matters here -- saveability is.
@@ -24,7 +18,7 @@ test("a MediaSource blob is never chosen over a real variant", async () => {
 });
 
 test("isSaveableVariantUrl rejects blob handles and accepts real media URLs", async () => {
-  const { isSaveableVariantUrl } = await importBundledModule("src/features/media/video-extract.ts");
+  const { isSaveableVariantUrl } = await importSourceModule("src/features/media/video-extract.ts");
 
   assert.equal(isSaveableVariantUrl("blob:https://x.com/9a1f"), false);
   assert.equal(isSaveableVariantUrl("BLOB:https://x.com/9a1f"), false, "scheme is case-insensitive");
@@ -38,7 +32,7 @@ test("isSaveableVariantUrl rejects blob handles and accepts real media URLs", as
 });
 
 test("the best progressive MP4 wins over a higher-bitrate streaming manifest", async () => {
-  const { extractVideo } = await importBundledModule("src/features/media/video-extract.ts");
+  const { extractVideo } = await importSourceModule("src/features/media/video-extract.ts");
   const container = fakeContainer([]);
   const extracted = extractVideo(container, {
     variants: [
@@ -74,7 +68,7 @@ test("the best progressive MP4 wins over a higher-bitrate streaming manifest", a
 });
 
 test("resolveTarget refuses a blob-only video instead of reporting a save", async () => {
-  const { resolveTarget } = await importBundledModule("src/features/media/batch-downloader.ts");
+  const { resolveTarget } = await importSourceModule("src/features/media/batch-downloader.ts");
 
   const blobOnly = {
     kind: "video",
@@ -137,7 +131,7 @@ test("tellAria2Status fails soft in local-only mode rather than throwing out", a
   // One bundle: the local-only policy is module-scope state, so importing the two separately
   // would give each its own copy and the switch below would reach a policy aria2 never consults.
   // The old version of this test said so in a comment and then asserted on source text instead.
-  const mod = await importBundledEntry([
+  const mod = await importSourceEntry([
     "src/features/integrations/aria2.ts",
     "src/features/integrations/network-policy.ts"
   ]);
@@ -169,7 +163,7 @@ test("tellAria2Status fails soft in local-only mode rather than throwing out", a
 });
 
 test("reconcile keeps entries when aria2 rejects the secret, drops only unknown GIDs", async () => {
-  const { Aria2History } = await importBundledModule("src/features/integrations/aria2.ts");
+  const { Aria2History } = await importSourceModule("src/features/integrations/aria2.ts");
 
   const entries = [
     { gid: "aaa", url: "https://x/1", filename: "1.mp4", status: "queued", queuedAt: "2026-01-01T00:00:00.000Z" },
@@ -213,7 +207,7 @@ test("reconcile keeps entries when aria2 rejects the secret, drops only unknown 
 });
 
 test("the aria2 connection test does not enqueue a download", async () => {
-  const { pingAria2Version } = await importBundledModule("src/features/integrations/aria2.ts");
+  const { pingAria2Version } = await importSourceModule("src/features/integrations/aria2.ts");
 
   const methods = [];
   const originalFetch = globalThis.fetch;
@@ -252,51 +246,4 @@ function fakeContainer(sources) {
     getAttribute: () => null,
     querySelector: (selector) => (selector === "video" ? video : null)
   };
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-video-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}
-
-/** Bundles several modules into one graph so their module-level state is genuinely shared. */
-async function importBundledEntry(relativePaths) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-media-multi-"));
-  const entry = path.join(temp, "entry.ts");
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await writeFile(
-      entry,
-      relativePaths
-        .map((relative) => `export * from ${JSON.stringify(path.resolve(root, relative).split(path.sep).join("/"))}`)
-        .join(";\n"),
-      "utf8"
-    );
-    await build({
-      entryPoints: [entry],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "neutral",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?v=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
 }

@@ -1,4 +1,4 @@
-import type { FeatureContext, FeatureModule } from "../registry";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
 
 const MARKER = "data-av-abs-time";
 const ORIGINAL = "data-av-abs-original";

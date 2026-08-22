@@ -1,4 +1,4 @@
-import { reportStorageError, type StorageGateway, type StorageStatus } from "./storage";
+import { reportStorageError, type StorageGateway, type StorageStatus } from "./storage.ts";
 
 export const DURABLE_STORAGE_SCHEMA_VERSION = 1;
 

@@ -1,4 +1,4 @@
-import type { ExportRecord } from "./types";
+import type { ExportRecord } from "./types.ts";
 
 const MAX_NODES = 30_000;
 const MAX_RECORDS = 2_000;

@@ -1,6 +1,6 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.44.1-2f81f7)
+![Version](https://img.shields.io/badge/version-1.45.0-2f81f7)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 ![Platform](https://img.shields.io/badge/platform-userscript%20%7C%20Chrome%20%7C%20Firefox-8b5cf6)
 
@@ -48,6 +48,9 @@ Outside those download affordances, Aviary adds only its launcher to X's primary
 `tests/vanilla-by-default.test.mjs` measures this rather than asserting it: with default settings
 it mounts the real theme code against an organic captured timeline and requires non-ad computed
 styles to come back byte-identical. Ad-specific fixtures separately verify structural removal.
+
+Development tests import the TypeScript sources directly through Node's native type stripping.
+The release build still bundles the userscript and extension artifacts.
 
 Already configured it and want to start over? **Trust → Reset everything to plain X**. That resets
 preferences to Aviary's minimal ad-free baseline; saved posts, notes, bookmarks and download

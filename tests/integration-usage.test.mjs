@@ -1,12 +1,6 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("integration usage counters enforce request and daily budgets without storing prompts", async () => {
   const {
@@ -14,7 +8,7 @@ test("integration usage counters enforce request and daily budgets without stori
     buildAiDisclosure,
     defaultAiBudget,
     defaultEmbeddingBudget
-  } = await importBundledModule("src/features/integrations/usage.ts");
+  } = await importSourceModule("src/features/integrations/usage.ts");
   const store = new Map();
   const ledger = new IntegrationUsageLedger(storageFrom(store));
   await ledger.load();
@@ -51,7 +45,7 @@ test("integration usage counters enforce request and daily budgets without stori
 
 test("a budget of zero blocks every request instead of disabling the budget", async () => {
   const { IntegrationUsageLedger, buildAiDisclosure, defaultAiBudget, defaultEmbeddingBudget } =
-    await importBundledModule("src/features/integrations/usage.ts");
+    await importSourceModule("src/features/integrations/usage.ts");
 
   const zeroDaily = { enabled: true, provider: "openai", endpoint: "https://provider.test/chat", apiKey: "k", model: "m", maxRequestBytes: 32000, dailyRequestBytes: 0 };
   const zeroRequest = { ...zeroDaily, maxRequestBytes: 0, dailyRequestBytes: 100000 };
@@ -85,8 +79,8 @@ test("a budget of zero blocks every request instead of disabling the budget", as
 });
 
 test("AI provider stops before fetch when a configured budget is exceeded", async () => {
-  const { IntegrationUsageLedger } = await importBundledModule("src/features/integrations/usage.ts");
-  const { runAiPrompt } = await importBundledModule("src/features/integrations/ai-provider.ts");
+  const { IntegrationUsageLedger } = await importSourceModule("src/features/integrations/usage.ts");
+  const { runAiPrompt } = await importSourceModule("src/features/integrations/ai-provider.ts");
   const store = new Map();
   const ledger = new IntegrationUsageLedger(storageFrom(store));
   let calls = 0;
@@ -118,8 +112,8 @@ test("AI provider stops before fetch when a configured budget is exceeded", asyn
 });
 
 test("semantic auto-index stops at the record budget and does not send later records", async () => {
-  const { IntegrationUsageLedger } = await importBundledModule("src/features/integrations/usage.ts");
-  const { SemanticIndex } = await importBundledModule("src/features/integrations/semantic-search.ts");
+  const { IntegrationUsageLedger } = await importSourceModule("src/features/integrations/usage.ts");
+  const { SemanticIndex } = await importSourceModule("src/features/integrations/semantic-search.ts");
   const store = new Map();
   const ledger = new IntegrationUsageLedger(storageFrom(store));
   let calls = 0;
@@ -169,23 +163,4 @@ function storageFrom(store) {
       store.delete(key);
     }
   };
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-integration-usage-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "neutral",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
 }

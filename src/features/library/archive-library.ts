@@ -1,4 +1,4 @@
-import type { StorageGateway } from "../../platform/storage";
+import type { StorageGateway } from "../../platform/storage.ts";
 import {
   emptyArchiveRepairSummary,
   type ArchiveAccountRef,
@@ -9,7 +9,7 @@ import {
   type ArchiveMediaReference,
   type ArchiveParticipant,
   type ArchiveRepairSummary
-} from "./archive-types";
+} from "./archive-types.ts";
 
 export const ARCHIVE_LIBRARY_KEY = "aviary.archive.library.v1";
 

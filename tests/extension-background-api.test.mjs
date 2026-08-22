@@ -1,10 +1,6 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { after, test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
 
 /**
  * The background service worker's message surface, driven through a stubbed `chrome`.
@@ -15,8 +11,6 @@ import { build } from "esbuild";
  * is registered but never answers, or answers with the wrong shape. Each test below registers the
  * listener the way Chrome does and sends it a message.
  */
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
  * Loads the background worker against a stubbed `chrome`, returning the listeners it registered
@@ -69,7 +63,7 @@ async function loadBackground(overrides = {}) {
   // which is exactly how a "permission missing" assertion passes without a permission check.
   globalThis.chrome = chrome;
   {
-    const module = await importBundledModule("src/entrypoints/extension-background.ts");
+    const module = await importSourceModule("src/entrypoints/extension-background.ts", { fresh: true });
     assert.equal(typeof registered.message, "function", "the background registered no message listener");
 
     /** Resolves with whatever the listener passes to `sendResponse`. */
@@ -215,26 +209,6 @@ test("a download that exhausts every candidate reports the last failure rather t
   assert.equal(response.ok, false);
   assert.match(response.error, /disk full/);
 });
-
-let bundleId = 0;
-async function importBundledModule(relativePath) {
-  const dir = await mkdtemp(path.join(tmpdir(), "aviary-bg-"));
-  const outfile = path.join(dir, `mod-${bundleId++}.mjs`);
-  await build({
-    entryPoints: [path.join(root, relativePath)],
-    outfile,
-    bundle: true,
-    format: "esm",
-    platform: "neutral",
-    target: "es2022",
-    logLevel: "silent"
-  });
-  try {
-    return await import(`${pathToFileURL(outfile).href}?v=${bundleId}`);
-  } finally {
-    setTimeout(() => void rm(dir, { recursive: true, force: true }), 0);
-  }
-}
 
 /** A `chrome` stub that records DNR rule changes and remembers the mirrored choice. */
 function dnrStub({ mirrored } = {}) {

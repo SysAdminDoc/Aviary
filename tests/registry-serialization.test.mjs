@@ -1,10 +1,6 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
 
 /**
  * Boot, the mutation observer, route changes and `requestApply` all fire `void applyAll(...)` with
@@ -12,8 +8,6 @@ import { build } from "esbuild";
  * await boundary. Features guard their work with module-level markers, and one pass would set a
  * marker that made the other skip the rescan it had been started for.
  */
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function context() {
   return {
@@ -41,7 +35,7 @@ function slowFeature(log) {
 }
 
 test("a second pass cannot start before the first finishes", async () => {
-  const { FeatureRegistry } = await importBundledModule("src/features/registry.ts");
+  const { FeatureRegistry } = await importSourceModule("src/features/registry.ts");
   const log = [];
   const registry = new FeatureRegistry();
   registry.register(slowFeature(log));
@@ -68,7 +62,7 @@ test("a second pass cannot start before the first finishes", async () => {
 });
 
 test("node batches are never dropped, because nothing else would process them", async () => {
-  const { FeatureRegistry } = await importBundledModule("src/features/registry.ts");
+  const { FeatureRegistry } = await importSourceModule("src/features/registry.ts");
   const log = [];
   const registry = new FeatureRegistry();
   registry.register(slowFeature(log));
@@ -85,7 +79,7 @@ test("node batches are never dropped, because nothing else would process them", 
 });
 
 test("redundant whole-document passes collapse into one", async () => {
-  const { FeatureRegistry } = await importBundledModule("src/features/registry.ts");
+  const { FeatureRegistry } = await importSourceModule("src/features/registry.ts");
   const log = [];
   const registry = new FeatureRegistry();
   registry.register(slowFeature(log));
@@ -108,7 +102,7 @@ test("redundant whole-document passes collapse into one", async () => {
 });
 
 test("a feature that throws does not poison later passes", async () => {
-  const { FeatureRegistry } = await importBundledModule("src/features/registry.ts");
+  const { FeatureRegistry } = await importSourceModule("src/features/registry.ts");
   const log = [];
   const registry = new FeatureRegistry();
   registry.register({
@@ -131,21 +125,3 @@ test("a feature that throws does not poison later passes", async () => {
   await registry.applyAll(ctx, {}, ["b"]);
   assert.deepEqual(log, ["attempt", "attempt"]);
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-registry-serial-"));
-  try {
-    const outfile = path.join(temp, "module.mjs");
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "neutral",
-      logLevel: "silent"
-    });
-    return await import(pathToFileURL(outfile).href);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}

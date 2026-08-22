@@ -4,10 +4,10 @@ import type {
   FilterSurface,
   MediaLayout,
   ReduceMotionMode
-} from "../../platform/settings";
-import type { LibraryBackupPreview } from "../../features/core/library-backup";
-import type { RuleSetImportPreview } from "../../features/filtering/rules";
-import type { ControlCenterOptions } from "../control-center";
+} from "../../platform/settings.ts";
+import type { LibraryBackupPreview } from "../../features/core/library-backup.ts";
+import type { RuleSetImportPreview } from "../../features/filtering/rules.ts";
+import type { ControlCenterOptions } from "../control-center.ts";
 
 export type LocalizedCopy =
   | string

@@ -1,12 +1,6 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const THEMES = ["off", "dim", "lightsOut", "graphite", "plum", "midnight", "noir"];
 const INPUT_MODES = ["keyboard", "coarse-pointer"];
 const ROUTES = [
@@ -30,30 +24,11 @@ const ROUTES = [
   ["/i/media_viewer?url=https%3A%2F%2Fpbs.twimg.com%2Fmedia%2Ffixture", "unknown"]
 ];
 
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-release-matrix-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}
-
 test("release matrix covers every deterministic route, locale, theme, and input mode", async () => {
   const [{ readRoute }, { normalizeSettings }, { panelCoverage, supportedLocales }] = await Promise.all([
-    importBundledModule("src/platform/route.ts"),
-    importBundledModule("src/platform/settings.ts"),
-    importBundledModule("src/platform/i18n.ts")
+    importSourceModule("src/platform/route.ts"),
+    importSourceModule("src/platform/settings.ts"),
+    importSourceModule("src/platform/i18n.ts")
   ]);
   const locales = supportedLocales();
   let combinations = 0;
@@ -98,11 +73,11 @@ test("release matrix covers every deterministic route, locale, theme, and input 
 
 test("release matrix rejects malformed state, provider bodies, Unicode overflow, and ZIP bombs", async () => {
   const [{ normalizeSettings }, { IntegrationUsageLedger }, { utf8Bytes }, { runAiPrompt }, { readStoreZip, ZIP_LIMITS }] = await Promise.all([
-    importBundledModule("src/platform/settings.ts"),
-    importBundledModule("src/features/integrations/usage.ts"),
-    importBundledModule("src/features/integrations/usage.ts"),
-    importBundledModule("src/features/integrations/ai-provider.ts"),
-    importBundledModule("src/features/export/zip-reader.ts")
+    importSourceModule("src/platform/settings.ts"),
+    importSourceModule("src/features/integrations/usage.ts"),
+    importSourceModule("src/features/integrations/usage.ts"),
+    importSourceModule("src/features/integrations/ai-provider.ts"),
+    importSourceModule("src/features/export/zip-reader.ts")
   ]);
 
   for (const input of [
@@ -187,7 +162,7 @@ test("release matrix rejects malformed state, provider bodies, Unicode overflow,
 });
 
 test("route subscriptions survive teardown and a second boot", async () => {
-  const { watchRoute } = await importBundledModule("src/platform/route.ts");
+  const { watchRoute } = await importSourceModule("src/platform/route.ts");
   const originalHistory = globalThis.history;
   const originalLocation = globalThis.location;
   const originalAdd = globalThis.addEventListener;

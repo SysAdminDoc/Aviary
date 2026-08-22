@@ -1,15 +1,9 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("CSV export neutralizes spreadsheet formulas in attacker-controlled text", async () => {
-  const { formatExport } = await importBundledModule("src/features/export/formatters.ts");
+  const { formatExport } = await importSourceModule("src/features/export/formatters.ts");
 
   const csv = new TextDecoder().decode(
     formatExport("csv", [
@@ -31,7 +25,7 @@ test("CSV export neutralizes spreadsheet formulas in attacker-controlled text", 
 });
 
 test("HTML export drops non-http(s) hrefs instead of emitting them", async () => {
-  const { formatExport } = await importBundledModule("src/features/export/formatters.ts");
+  const { formatExport } = await importSourceModule("src/features/export/formatters.ts");
 
   const html = new TextDecoder().decode(
     formatExport("html", [
@@ -54,8 +48,8 @@ test("HTML export drops non-http(s) hrefs instead of emitting them", async () =>
 });
 
 test("XLSX export strips XML-illegal control characters", async () => {
-  const { formatXlsx } = await importBundledModule("src/features/export/xlsx.ts");
-  const { readStoreZip } = await importBundledModule("src/features/export/zip-reader.ts");
+  const { formatXlsx } = await importSourceModule("src/features/export/xlsx.ts");
+  const { readStoreZip } = await importSourceModule("src/features/export/zip-reader.ts");
 
   const artifact = formatXlsx([record({ text: `bad${String.fromCharCode(7)}bell` })]);
   const sheet = readStoreZip(artifact.data).find((entry) =>
@@ -70,7 +64,7 @@ test("XLSX export strips XML-illegal control characters", async () => {
 });
 
 test("normalizeImageUrl honours the preferOriginalImages preference", async () => {
-  const { normalizeImageUrl } = await importBundledModule("src/features/media/urls.ts");
+  const { normalizeImageUrl } = await importSourceModule("src/features/media/urls.ts");
   const served = "https://pbs.twimg.com/media/ABCDEFGH?format=jpg&name=small";
 
   assert.equal(normalizeImageUrl(served).url.includes("name=orig"), true, "default stays original quality");
@@ -103,24 +97,4 @@ function record(overrides = {}) {
     permalink: "https://x.com/someone/status/1234567890",
     ...overrides
   };
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-audit-"));
-  const outfile = path.join(temp, "module.mjs");
-
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
 }

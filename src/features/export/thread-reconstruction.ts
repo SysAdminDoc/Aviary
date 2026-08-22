@@ -1,4 +1,4 @@
-import type { ExportRecord } from "./types";
+import type { ExportRecord } from "./types.ts";
 
 export interface ThreadParticipant {
   authorId: string | null;

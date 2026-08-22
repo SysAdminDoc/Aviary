@@ -1,10 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+import { importSourceModule } from "./source-import.mjs";
 
 /**
  * Loads the background service worker against a stubbed `chrome`.
@@ -57,7 +51,7 @@ export async function loadBackground({ stored = {}, granted = true } = {}) {
     }
   };
 
-  await importBundledModule("src/entrypoints/extension-background.ts");
+  await importSourceModule("src/entrypoints/extension-background.ts", { fresh: true });
 
   return {
     downloads,
@@ -90,23 +84,4 @@ export async function loadBackground({ stored = {}, granted = true } = {}) {
       }
     }
   };
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-background-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?v=${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
 }

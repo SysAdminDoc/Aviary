@@ -1,4 +1,4 @@
-import { crc32 } from "./zip-store";
+import { crc32 } from "./zip-store.ts";
 
 export interface ZipReadEntry {
   filename: string;

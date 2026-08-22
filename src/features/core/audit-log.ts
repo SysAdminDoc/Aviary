@@ -1,6 +1,6 @@
-import type { StorageGateway } from "../../platform/storage";
-import { mutateStored, replaceStored } from "../../platform/storage-lock";
-import type { PersistErrorSink } from "../media/history";
+import type { StorageGateway } from "../../platform/storage.ts";
+import { mutateStored, replaceStored } from "../../platform/storage-lock.ts";
+import type { PersistErrorSink } from "../media/history.ts";
 
 export const AUDIT_LOG_KEY = "aviary.audit.v1";
 export const AUDIT_LOG_LIMIT = 500;

@@ -1,18 +1,18 @@
-import type { PanelContext } from "../panel-context";
+import type { PanelContext } from "../panel-context.ts";
 import {
   ENGAGEMENT_METRIC_OPTIONS,
   FILTER_ACTION_OPTIONS,
   FILTER_REASON_OPTIONS,
   FILTER_MEDIA_LABELS,
   HIDE_NAV_ITEM_IDS
-} from "../constants";
+} from "../constants.ts";
 import {
   CUSTOM_CSS_SCOPE_IDS,
   sanitizeCustomCss,
   FILTER_MEDIA_KEYS,
   isEngagementMetric,
   isFilterReasonMode
-} from "../../../platform/settings";
+} from "../../../platform/settings.ts";
 export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
   const rows = [
       ctx.selectRow("Theme", ctx.options.settings.appearance.theme, [

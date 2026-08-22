@@ -1,19 +1,13 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const decoder = new TextDecoder();
 
 test("WACZ 1.1.1 package has checksummed STORE members and deterministic output", async () => {
   const [{ buildWaczArchive }, { readStoreZip }, { sha256Hex }] = await Promise.all([
-    importBundledModule("src/features/export/wacz.ts"),
-    importBundledModule("src/features/export/zip-reader.ts"),
-    importBundledModule("src/features/export/assets.ts")
+    importSourceModule("src/features/export/wacz.ts"),
+    importSourceModule("src/features/export/zip-reader.ts"),
+    importSourceModule("src/features/export/assets.ts")
   ]);
   const generatedAt = new Date("2026-08-12T12:34:56Z");
   const records = [sampleRecord()];
@@ -54,8 +48,8 @@ test("WACZ 1.1.1 package has checksummed STORE members and deterministic output"
 
 test("CDXJ offsets address replayable WARC records and pages use RFC3339 timestamps", async () => {
   const [{ buildWaczArchive, toSurt }, { readStoreZip }] = await Promise.all([
-    importBundledModule("src/features/export/wacz.ts"),
-    importBundledModule("src/features/export/zip-reader.ts")
+    importSourceModule("src/features/export/wacz.ts"),
+    importSourceModule("src/features/export/zip-reader.ts")
   ]);
   const artifact = buildWaczArchive([sampleRecord()], {
     generatedAt: new Date("2026-08-12T12:34:56Z")
@@ -116,7 +110,7 @@ test("CDXJ offsets address replayable WARC records and pages use RFC3339 timesta
 });
 
 test("WARC represents derived post data as a synthetic resource", async () => {
-  const { buildIndexedWarcArchive } = await importBundledModule("src/features/export/warc.ts");
+  const { buildIndexedWarcArchive } = await importSourceModule("src/features/export/warc.ts");
   const archive = buildIndexedWarcArchive([sampleRecord({ media: [] })], {
     generatedAt: new Date("2026-08-12T12:34:56Z")
   });
@@ -160,23 +154,4 @@ function zipMethods(bytes) {
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-wacz-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
 }

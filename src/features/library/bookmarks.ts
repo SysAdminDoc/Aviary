@@ -1,5 +1,5 @@
-import type { StorageGateway } from "../../platform/storage";
-import { mutateStored, replaceStored } from "../../platform/storage-lock";
+import type { StorageGateway } from "../../platform/storage.ts";
+import { mutateStored, replaceStored } from "../../platform/storage-lock.ts";
 
 export const BOOKMARKS_KEY = "aviary.library.bookmarks.v1";
 export const BOOKMARKS_LIMIT = 5000;

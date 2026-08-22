@@ -1,6 +1,6 @@
-import type { FeatureContext, FeatureModule } from "../registry";
-import { ft } from "../core/feature-i18n";
-import { removeFeatureToast, showFeatureToast } from "../core/feature-toast";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
+import { ft } from "../core/feature-i18n.ts";
+import { removeFeatureToast, showFeatureToast } from "../core/feature-toast.ts";
 
 const STYLE_ID = "av-composer-snippets";
 const TOOLBAR_ATTR = "data-av-composer-mounted";

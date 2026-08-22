@@ -3,7 +3,7 @@ import {
   type CatchUpCategory,
   type CatchUpRecord,
   type CatchUpSort
-} from "./catch-up";
+} from "./catch-up.ts";
 
 const DIALOG_ID = "av-catch-up-dialog";
 const STYLE_ID = "av-catch-up-style";

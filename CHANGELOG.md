@@ -4,6 +4,20 @@
 
 No changes yet.
 
+## 1.45.0 (2026-08-22)
+
+### Changed
+
+- **Tests now execute the TypeScript sources directly.** Node's native type stripping imports the
+  modules under test without creating a temporary esbuild bundle. The production build still
+  bundles the userscript and extension artifacts.
+
+### Verification
+
+- Added a shared direct-source loader, explicit .ts specifiers, and fresh entrypoint imports for
+  service-worker tests that need isolated browser stubs.
+- Re-ran typecheck, lint, the full test suite, and the production build.
+
 ## 1.44.1 (2026-08-22)
 
 ### Fixed

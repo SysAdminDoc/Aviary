@@ -1,16 +1,10 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("offline query model searches every local collection with Unicode and filters", async () => {
   const { OfflineQueryIndex, documentFromBookmark, documentFromNote, documentFromSnapshot, parseOfflineQuery } =
-    await importBundledModule("src/features/library/query-model.ts");
+    await importSourceModule("src/features/library/query-model.ts");
   const index = new OfflineQueryIndex();
   index.rebuild([
     {
@@ -71,7 +65,7 @@ test("offline query model searches every local collection with Unicode and filte
 });
 
 test("lexical ranking puts exact handles and quoted phrases first", async () => {
-  const { OfflineQueryIndex, parseOfflineQuery } = await importBundledModule(
+  const { OfflineQueryIndex, parseOfflineQuery } = await importSourceModule(
     "src/features/library/query-model.ts"
   );
   const index = new OfflineQueryIndex();
@@ -124,7 +118,7 @@ test("lexical ranking puts exact handles and quoted phrases first", async () => 
 });
 
 test("offline query batches can return more than the interactive 100-result window", async () => {
-  const { OfflineQueryIndex } = await importBundledModule(
+  const { OfflineQueryIndex } = await importSourceModule(
     "src/features/library/query-model.ts"
   );
   const index = new OfflineQueryIndex();
@@ -143,7 +137,7 @@ test("offline query batches can return more than the interactive 100-result wind
 });
 
 test("quoted phrases cannot span unrelated indexed fields", async () => {
-  const { OfflineQueryIndex } = await importBundledModule(
+  const { OfflineQueryIndex } = await importSourceModule(
     "src/features/library/query-model.ts"
   );
   const index = new OfflineQueryIndex();
@@ -164,7 +158,7 @@ test("quoted phrases cannot span unrelated indexed fields", async () => {
 });
 
 test("lexical and semantic results are fused and report both contributing signals", async () => {
-  const { documentFromSemanticEntry, fuseOfflineHits } = await importBundledModule(
+  const { documentFromSemanticEntry, fuseOfflineHits } = await importSourceModule(
     "src/features/library/query-model.ts"
   );
   const lexicalDocument = {
@@ -223,22 +217,3 @@ test("lexical and semantic results are fused and report both contributing signal
   assert.equal(fused.find((hit) => hit.document.id === semanticOnly.id)?.mode, "semantic");
   assert.equal(fused.filter((hit) => hit.document.account === "alice").length, 1, "shared posts must deduplicate");
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-query-model-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "neutral",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?t=${Date.now()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}

@@ -1,4 +1,4 @@
-import type { FeatureContext, FeatureModule, FeatureStatus } from "../registry";
+import type { FeatureContext, FeatureModule, FeatureStatus } from "../registry.ts";
 
 const STYLE_ID = "av-ad-protection";
 const HIDDEN_ATTRIBUTE = "data-av-ad-hidden";

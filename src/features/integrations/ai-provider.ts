@@ -1,11 +1,11 @@
-import type { IntegrationSettings } from "../../platform/settings";
-import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network";
-import { assertOutboundAllowed } from "./network-policy";
+import type { IntegrationSettings } from "../../platform/settings.ts";
+import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network.ts";
+import { assertOutboundAllowed } from "./network-policy.ts";
 import {
   defaultAiBudget,
   estimateAiRequestBytes,
   IntegrationUsageLedger
-} from "./usage";
+} from "./usage.ts";
 
 export interface AiProviderRequest {
   prompt: string;

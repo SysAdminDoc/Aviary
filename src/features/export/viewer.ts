@@ -1,11 +1,11 @@
-import { supportedLocales, translateText } from "../../platform/i18n";
-import { serializeExportRecords } from "./assets";
+import { supportedLocales, translateText } from "../../platform/i18n.ts";
+import { serializeExportRecords } from "./assets.ts";
 import {
   reconstructThreads,
   threadRecordKey,
   type ReconstructedThread
-} from "./thread-reconstruction";
-import type { ExportRecord } from "./types";
+} from "./thread-reconstruction.ts";
+import type { ExportRecord } from "./types.ts";
 
 /**
  * The viewer's copy, in English, keyed by the id its markup uses.

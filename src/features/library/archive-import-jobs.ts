@@ -1,5 +1,5 @@
-import type { StorageGateway } from "../../platform/storage";
-import { replaceStored } from "../../platform/storage-lock";
+import type { StorageGateway } from "../../platform/storage.ts";
+import { replaceStored } from "../../platform/storage-lock.ts";
 
 export const ARCHIVE_IMPORT_JOBS_KEY = "aviary.archive.imports.v1";
 

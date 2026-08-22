@@ -1,15 +1,9 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("formatExport produces deterministic JSON, CSV, HTML, and Markdown artifacts", async () => {
-  const { formatExport } = await importBundledModule("src/features/export/formatters.ts");
+  const { formatExport } = await importSourceModule("src/features/export/formatters.ts");
   const records = [
     {
       tweetId: "1",
@@ -73,13 +67,13 @@ test("formatExport produces deterministic JSON, CSV, HTML, and Markdown artifact
 });
 
 test("crc32 matches a known IEEE 802.3 vector", async () => {
-  const { crc32 } = await importBundledModule("src/features/export/zip-store.ts");
+  const { crc32 } = await importSourceModule("src/features/export/zip-store.ts");
   const data = new TextEncoder().encode("123456789");
   assert.equal(crc32(data), 0xcbf43926);
 });
 
 test("buildStoreZip produces a parseable archive with end-of-central-directory record", async () => {
-  const { buildStoreZip } = await importBundledModule("src/features/export/zip-store.ts");
+  const { buildStoreZip } = await importSourceModule("src/features/export/zip-store.ts");
   const archive = buildStoreZip([
     { filename: "hello.txt", data: new TextEncoder().encode("hello") },
     { filename: "folder/nested.txt", data: new TextEncoder().encode("world") }
@@ -102,7 +96,7 @@ test("buildStoreZip produces a parseable archive with end-of-central-directory r
 });
 
 test("CheckpointStore round-trips jobs and dedupes records", async () => {
-  const { CheckpointStore } = await importBundledModule("src/features/export/jobs.ts");
+  const { CheckpointStore } = await importSourceModule("src/features/export/jobs.ts");
   const store = new Map();
   const storage = {
     async get(key, fallback) {
@@ -187,7 +181,7 @@ test("CheckpointStore round-trips jobs and dedupes records", async () => {
     "raw bodies that differ after the old 80-character key must both be retained"
   );
 
-  const reloaded = new (await importBundledModule("src/features/export/jobs.ts")).CheckpointStore(storage);
+  const reloaded = new (await importSourceModule("src/features/export/jobs.ts")).CheckpointStore(storage);
   await reloaded.load();
   assert.equal(reloaded.records("job-1").length, 2, "checkpoint persisted across reloads");
 });
@@ -197,7 +191,7 @@ test("CheckpointStore applies configurable retention at boot and append time", a
     CheckpointStore,
     RETENTION_KEYS,
     saveRetentionPolicy
-  } = await importBundledModule("src/features/export/jobs.ts");
+  } = await importSourceModule("src/features/export/jobs.ts");
   const store = new Map();
   const storage = {
     async get(key, fallback) {
@@ -230,7 +224,7 @@ test("CheckpointStore applies configurable retention at boot and append time", a
 });
 
 test("CheckpointStore removes jobs older than the configured age at boot", async () => {
-  const { CheckpointStore, saveRetentionPolicy } = await importBundledModule("src/features/export/jobs.ts");
+  const { CheckpointStore, saveRetentionPolicy } = await importSourceModule("src/features/export/jobs.ts");
   const store = new Map();
   const storage = {
     async get(key, fallback) {
@@ -264,7 +258,7 @@ test("CheckpointStore removes jobs older than the configured age at boot", async
 });
 
 test("CheckpointStore recovers interrupted jobs and keeps lifecycle actions durable", async () => {
-  const { CheckpointStore } = await importBundledModule("src/features/export/jobs.ts");
+  const { CheckpointStore } = await importSourceModule("src/features/export/jobs.ts");
   const store = new Map();
   const storage = {
     async get(key, fallback) {
@@ -303,7 +297,7 @@ test("CheckpointStore recovers interrupted jobs and keeps lifecycle actions dura
 });
 
 test("selectSupportedFormats filters unsupported values and never returns empty", async () => {
-  const { selectSupportedFormats } = await importBundledModule(
+  const { selectSupportedFormats } = await importSourceModule(
     "src/features/export/export-feature.ts"
   );
   assert.deepEqual(selectSupportedFormats(["json", "exe", "html", "xlsx"]), ["json", "html", "xlsx"]);
@@ -312,29 +306,9 @@ test("selectSupportedFormats filters unsupported values and never returns empty"
   assert.deepEqual(selectSupportedFormats([]), ["json"]);
 });
 
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-export-"));
-  const outfile = path.join(temp, "module.mjs");
-
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
-}
-
 test("buildZip deflates text and leaves incompressible bytes alone", async () => {
-  const { buildZip, buildStoreZip } = await importBundledModule("src/features/export/zip-store.ts");
-  const { readZip } = await importBundledModule("src/features/export/zip-reader.ts");
+  const { buildZip, buildStoreZip } = await importSourceModule("src/features/export/zip-store.ts");
+  const { readZip } = await importSourceModule("src/features/export/zip-reader.ts");
   const encoder = new TextEncoder();
 
   // Text an export actually produces: repetitive JSON, which is where the win is.
@@ -385,8 +359,8 @@ test("buildZip deflates text and leaves incompressible bytes alone", async () =>
 });
 
 test("an empty entry and a zero-record archive still produce a readable zip", async () => {
-  const { buildZip } = await importBundledModule("src/features/export/zip-store.ts");
-  const { readZip } = await importBundledModule("src/features/export/zip-reader.ts");
+  const { buildZip } = await importSourceModule("src/features/export/zip-store.ts");
+  const { readZip } = await importSourceModule("src/features/export/zip-reader.ts");
   const empty = await buildZip([{ filename: "empty.txt", data: new Uint8Array(0) }]);
   const read = await readZip(empty);
   assert.equal(read.length, 1);

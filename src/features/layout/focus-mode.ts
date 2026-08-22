@@ -1,5 +1,5 @@
-import type { FeatureContext, FeatureModule } from "../registry";
-import { ft } from "../core/feature-i18n";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
+import { ft } from "../core/feature-i18n.ts";
 
 const HOST_ID = "av-focus-mode";
 const STYLE_ID = "av-focus-mode-style";

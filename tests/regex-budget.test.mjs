@@ -1,10 +1,6 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
 
 /**
  * Filter patterns run synchronously against every article in every mutation batch, and JavaScript
@@ -12,10 +8,8 @@ import { build } from "esbuild";
  * slowly, it freezes the tab. A user can reach that by accident while writing their own rules.
  */
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-
 test("the classic backtracking shapes are refused before they compile", async () => {
-  const { checkRegexBudget } = await importBundledModule("src/features/filtering/regex-budget.ts");
+  const { checkRegexBudget } = await importSourceModule("src/features/filtering/regex-budget.ts");
 
   // A quantified group whose body already repeats is the family behind nearly every real case.
   for (const pattern of ["(a+)+b", "(a*)*b", "(\\d+)*$", "([a-z]+)+@", "(ab+)+c"]) {
@@ -28,7 +22,7 @@ test("the classic backtracking shapes are refused before they compile", async ()
 });
 
 test("ordinary filter patterns are left alone", async () => {
-  const { checkRegexBudget } = await importBundledModule("src/features/filtering/regex-budget.ts");
+  const { checkRegexBudget } = await importSourceModule("src/features/filtering/regex-budget.ts");
 
   for (const pattern of [
     "crypto",
@@ -45,7 +39,7 @@ test("ordinary filter patterns are left alone", async () => {
 });
 
 test("a parenthesis inside a class or escaped is not read as a group", async () => {
-  const { checkRegexBudget } = await importBundledModule("src/features/filtering/regex-budget.ts");
+  const { checkRegexBudget } = await importSourceModule("src/features/filtering/regex-budget.ts");
 
   // These look like nested quantifiers to a naive text scan and are perfectly safe.
   assert.equal(checkRegexBudget("[(+]+x").reason, null);
@@ -53,7 +47,7 @@ test("a parenthesis inside a class or escaped is not read as a group", async () 
 });
 
 test("a refused pattern does not become an active filter", async () => {
-  const { compileFilters } = await importBundledModule("src/features/filtering/predicates.ts");
+  const { compileFilters } = await importSourceModule("src/features/filtering/predicates.ts");
 
   const filters = compileFilters({
     keywords: [],
@@ -70,7 +64,7 @@ test("a refused pattern does not become an active filter", async () => {
 });
 
 test("the rule DSL reports a refused pattern per line instead of applying it", async () => {
-  const { compileRules } = await importBundledModule("src/features/filtering/rules.ts");
+  const { compileRules } = await importSourceModule("src/features/filtering/rules.ts");
 
   const compiled = compileRules(['text matches "(a+)+b"', 'text matches "crypto"']);
   const errors = compiled.errors ?? [];
@@ -78,21 +72,3 @@ test("the rule DSL reports a refused pattern per line instead of applying it", a
   assert.equal(errors.length, 1, "exactly the hostile line must fail");
   assert.match(String(errors[0].message ?? errors[0]), /refused/);
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-regex-budget-"));
-  try {
-    const outfile = path.join(temp, "module.mjs");
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "neutral",
-      logLevel: "silent"
-    });
-    return await import(pathToFileURL(outfile).href);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}

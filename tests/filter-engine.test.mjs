@@ -1,15 +1,14 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
+import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("compileFilters lowercases keywords, sanitizes regex flags, and seeds whitelist", async () => {
-  const { compileFilters } = await importBundledModule("src/features/filtering/predicates.ts");
+  const { compileFilters } = await importSourceModule("src/features/filtering/predicates.ts");
   const filters = compileFilters({
     keywords: ["  Crypto  ", "", "NFT"],
     regex: ["/foo/uy", "(unclosed", "bar"],
@@ -32,7 +31,7 @@ test("compileFilters lowercases keywords, sanitizes regex flags, and seeds white
 });
 
 test("decide returns hide for keyword and regex hits, and the whitelist outranks both", async () => {
-  const { compileFilters, decide } = await importBundledModule(
+  const { compileFilters, decide } = await importSourceModule(
     "src/features/filtering/predicates.ts"
   );
   const filters = compileFilters({
@@ -90,7 +89,7 @@ test("decide returns hide for keyword and regex hits, and the whitelist outranks
 });
 
 test("the structural plan is what turns media and verified settings into rules", async () => {
-  const { compileFilters, structuralFilterPlan } = await importBundledModule(
+  const { compileFilters, structuralFilterPlan } = await importSourceModule(
     "src/features/filtering/predicates.ts"
   );
   const plan = (media, premium) =>
@@ -123,7 +122,7 @@ test("the structural plan is what turns media and verified settings into rules",
 });
 
 test("normalizeSettings keeps surfaces and selfRepost stable", async () => {
-  const { DEFAULT_SETTINGS, normalizeSettings } = await importBundledModule(
+  const { DEFAULT_SETTINGS, normalizeSettings } = await importSourceModule(
     "src/platform/settings.ts"
   );
 
@@ -142,7 +141,7 @@ test("normalizeSettings keeps surfaces and selfRepost stable", async () => {
 });
 
 test("profile collection subroutes keep profile-scoped features active", async () => {
-  const { readRoute } = await importBundledModule("src/platform/route.ts");
+  const { readRoute } = await importSourceModule("src/platform/route.ts");
   for (const pathname of [
     "/alice",
     "/alice/",
@@ -173,24 +172,4 @@ test("home fixture exposes verified, photo, and video markers required by the fi
 
 function emptyMedia() {
   return { photo: false, video: false, gif: false };
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-filter-"));
-  const outfile = path.join(temp, "module.mjs");
-
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
 }

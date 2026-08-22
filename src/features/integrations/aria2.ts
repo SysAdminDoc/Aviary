@@ -1,8 +1,8 @@
-import type { IntegrationSettings } from "../../platform/settings";
-import type { StorageGateway } from "../../platform/storage";
-import { replaceStored } from "../../platform/storage-lock";
-import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network";
-import { assertOutboundAllowed } from "./network-policy";
+import type { IntegrationSettings } from "../../platform/settings.ts";
+import type { StorageGateway } from "../../platform/storage.ts";
+import { replaceStored } from "../../platform/storage-lock.ts";
+import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network.ts";
+import { assertOutboundAllowed } from "./network-policy.ts";
 
 export const ARIA2_HISTORY_KEY = "aviary.aria2.history.v1";
 const ARIA2_HISTORY_LIMIT = 1000;

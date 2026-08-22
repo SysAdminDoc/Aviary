@@ -1,6 +1,6 @@
-import type { StorageGateway } from "../../platform/storage";
-import type { FeatureContext, FeatureModule } from "../registry";
-import { ft } from "../core/feature-i18n";
+import type { StorageGateway } from "../../platform/storage.ts";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
+import { ft } from "../core/feature-i18n.ts";
 
 export const USER_NOTES_KEY = "aviary.userNotes.v1";
 const STYLE_ID = "av-user-notes";

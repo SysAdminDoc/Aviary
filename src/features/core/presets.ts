@@ -1,4 +1,4 @@
-import { cloneSettings, DEFAULT_SETTINGS, normalizeSettings, type AviarySettings } from "../../platform/settings";
+import { cloneSettings, DEFAULT_SETTINGS, normalizeSettings, type AviarySettings } from "../../platform/settings.ts";
 
 export type PresetId =
   | "quiet-reader"

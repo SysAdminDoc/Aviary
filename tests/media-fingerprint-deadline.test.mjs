@@ -1,15 +1,9 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("fingerprinting budget includes exact hashing and optional image decoding", async () => {
-  const { fingerprintMediaDownload } = await importBundledModule(
+  const { fingerprintMediaDownload } = await importSourceModule(
     "src/features/media/downloader.ts"
   );
   const originalFetch = globalThis.fetch;
@@ -69,22 +63,3 @@ test("fingerprinting budget includes exact hashing and optional image decoding",
     else globalThis.createImageBitmap = originalCreateImageBitmap;
   }
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-media-deadline-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
-}

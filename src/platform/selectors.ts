@@ -1,4 +1,4 @@
-import type { RouteSurface } from "./route";
+import type { RouteSurface } from "./route.ts";
 
 export type ChurnRisk = "Low" | "Medium" | "High";
 export type SelectorRelevance = "required" | "optional" | "inapplicable";

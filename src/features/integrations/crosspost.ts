@@ -1,6 +1,6 @@
-import type { IntegrationSettings } from "../../platform/settings";
-import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network";
-import { assertOutboundAllowed } from "./network-policy";
+import type { IntegrationSettings } from "../../platform/settings.ts";
+import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network.ts";
+import { assertOutboundAllowed } from "./network-policy.ts";
 
 export type CrosspostTarget = "bluesky" | "mastodon";
 

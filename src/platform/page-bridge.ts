@@ -7,8 +7,8 @@ import {
   type PageAgentEnvelope,
   type PageAgentKind,
   type PageAgentTarget
-} from "../page/page-agent";
-import type { Diagnostics } from "./diagnostics";
+} from "../page/page-agent.ts";
+import type { Diagnostics } from "./diagnostics.ts";
 
 /**
  * The isolated-world half of the page bridge.

@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.44.1`
+Version: `1.45.0`
 
 Actionable work only. Historical and completed roadmap material is archived in CHANGELOG.md; blocked work is kept in Roadmap_Blocked.md.
 
@@ -106,7 +106,7 @@ below were read at the cited line. See RESEARCH.md.
 
 ### P1, toolchain and claims (added 2026-08-18, second pass)
 
-- [ ] F211, P2, Import the sources under test instead of bundling them first
+- [x] F211, P2, Import the sources under test instead of bundling them first
   Why: 82 of 91 test files bundle through esbuild and import the result, which puts a build step between
   every assertion and the code it describes, and is part of why so many tests fell back to regexing
   source text (F182). Node's type stripping is stable and available on the repo's existing floor, and the

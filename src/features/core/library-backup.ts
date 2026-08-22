@@ -1,30 +1,30 @@
-import { withStorageLock } from "../../platform/storage-lock";
-import { ARIA2_HISTORY_KEY } from "../integrations/aria2";
-import { SEMANTIC_INDEX_KEY } from "../integrations/semantic-search";
-import { INTEGRATION_USAGE_KEY } from "../integrations/usage";
-import { ARCHIVE_IMPORT_JOBS_KEY } from "../library/archive-import-jobs";
-import { ARCHIVE_LIBRARY_KEY } from "../library/archive-library";
-import { CLEANUP_QUEUE_KEY } from "../library/cleanup-queue";
-import { BOOKMARKS_KEY } from "../library/bookmarks";
-import { SNAPSHOTS_KEY } from "../library/snapshots";
-import { USER_NOTES_KEY } from "../library/user-notes";
-import { UNDER_THE_HOOD_KEY } from "../library/under-the-hood";
-import { AUDIT_LOG_KEY } from "./audit-log";
-import { CHECKPOINT_KEY, RETENTION_KEYS } from "../export/jobs";
-import { QUERY_REGISTRY_KEY } from "../export/query-discovery";
-import { MEDIA_HISTORY_KEY } from "../media/history";
-import { MEDIA_QUEUE_KEY } from "../media/queue";
-import { LAST_DOWNLOAD_KEY } from "../media/last-download";
-import { HIDDEN_POSTS_KEY } from "../filtering/hidden-posts";
-import { READING_MARKERS_KEY, SEEN_POSTS_KEY } from "../filtering/seen-posts";
-import { CATCH_UP_KEY } from "../filtering/catch-up";
+import { withStorageLock } from "../../platform/storage-lock.ts";
+import { ARIA2_HISTORY_KEY } from "../integrations/aria2.ts";
+import { SEMANTIC_INDEX_KEY } from "../integrations/semantic-search.ts";
+import { INTEGRATION_USAGE_KEY } from "../integrations/usage.ts";
+import { ARCHIVE_IMPORT_JOBS_KEY } from "../library/archive-import-jobs.ts";
+import { ARCHIVE_LIBRARY_KEY } from "../library/archive-library.ts";
+import { CLEANUP_QUEUE_KEY } from "../library/cleanup-queue.ts";
+import { BOOKMARKS_KEY } from "../library/bookmarks.ts";
+import { SNAPSHOTS_KEY } from "../library/snapshots.ts";
+import { USER_NOTES_KEY } from "../library/user-notes.ts";
+import { UNDER_THE_HOOD_KEY } from "../library/under-the-hood.ts";
+import { AUDIT_LOG_KEY } from "./audit-log.ts";
+import { CHECKPOINT_KEY, RETENTION_KEYS } from "../export/jobs.ts";
+import { QUERY_REGISTRY_KEY } from "../export/query-discovery.ts";
+import { MEDIA_HISTORY_KEY } from "../media/history.ts";
+import { MEDIA_QUEUE_KEY } from "../media/queue.ts";
+import { LAST_DOWNLOAD_KEY } from "../media/last-download.ts";
+import { HIDDEN_POSTS_KEY } from "../filtering/hidden-posts.ts";
+import { READING_MARKERS_KEY, SEEN_POSTS_KEY } from "../filtering/seen-posts.ts";
+import { CATCH_UP_KEY } from "../filtering/catch-up.ts";
 import {
   buildSettingsExport,
   parseSettingsImport
-} from "./settings-migration";
-import { normalizeSettings, SETTINGS_KEY } from "../../platform/settings";
-import type { StorageGateway } from "../../platform/storage";
-import { sha256Hex } from "../export/assets";
+} from "./settings-migration.ts";
+import { normalizeSettings, SETTINGS_KEY } from "../../platform/settings.ts";
+import type { StorageGateway } from "../../platform/storage.ts";
+import { sha256Hex } from "../export/assets.ts";
 
 export const LIBRARY_BACKUP_SCHEMA_VERSION = 1;
 export const LIBRARY_BACKUP_COLLECTION_VERSION = 1;

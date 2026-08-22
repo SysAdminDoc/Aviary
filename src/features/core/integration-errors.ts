@@ -1,4 +1,4 @@
-import type { AuditEntry } from "./audit-log";
+import type { AuditEntry } from "./audit-log.ts";
 
 /**
  * Actions that can carry a failure. `export.start`/`export.complete` are no longer in this set

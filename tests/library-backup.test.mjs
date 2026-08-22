@@ -1,12 +1,6 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("library backup redacts credentials, preserves binary values, and supports dry-run", async () => {
   const {
@@ -14,11 +8,11 @@ test("library backup redacts credentials, preserves binary values, and supports 
     parseLibraryBackup,
     previewLibraryRestore,
     restoreLibraryBackup
-  } = await importBundledModule("src/features/core/library-backup.ts");
+  } = await importSourceModule("src/features/core/library-backup.ts");
   const SETTINGS_KEY = "aviary.settings.v1";
   const BOOKMARKS_KEY = "aviary.library.bookmarks.v1";
   const MEDIA_QUEUE_KEY = "aviary.media.queue.v1";
-  const { normalizeSettings } = await importBundledModule("src/platform/settings.ts");
+  const { normalizeSettings } = await importSourceModule("src/platform/settings.ts");
   const settings = normalizeSettings({
     appearance: { theme: "midnight" },
     filter: {
@@ -70,10 +64,10 @@ test("library backup rejects tampering and rolls back a failed collection write"
   const {
     createLibraryBackup,
     restoreLibraryBackup
-  } = await importBundledModule("src/features/core/library-backup.ts");
+  } = await importSourceModule("src/features/core/library-backup.ts");
   const SETTINGS_KEY = "aviary.settings.v1";
   const BOOKMARKS_KEY = "aviary.library.bookmarks.v1";
-  const { normalizeSettings } = await importBundledModule("src/platform/settings.ts");
+  const { normalizeSettings } = await importSourceModule("src/platform/settings.ts");
   const settings = normalizeSettings({ appearance: { theme: "dim" } });
   const source = storageFrom(new Map([
     [SETTINGS_KEY, settings],
@@ -84,7 +78,7 @@ test("library backup rejects tampering and rolls back a failed collection write"
     createdAt: "2026-08-12T13:00:00.000Z"
   });
   const tampered = new TextDecoder().decode(artifact.data).replace('"text": "backup"', '"text": "tampered"');
-  await assert.rejects(() => importBundledModule("src/features/core/library-backup.ts").then(({ parseLibraryBackup }) => parseLibraryBackup(tampered)), /checksum/i);
+  await assert.rejects(() => importSourceModule("src/features/core/library-backup.ts").then(({ parseLibraryBackup }) => parseLibraryBackup(tampered)), /checksum/i);
 
   let failOnce = true;
   const currentSettings = normalizeSettings({ appearance: { theme: "plum" } });
@@ -113,7 +107,7 @@ test("library backup rejects tampering and rolls back a failed collection write"
 });
 
 test("library backup cancellation performs no writes", async () => {
-  const { createLibraryBackup, restoreLibraryBackup } = await importBundledModule("src/features/core/library-backup.ts");
+  const { createLibraryBackup, restoreLibraryBackup } = await importSourceModule("src/features/core/library-backup.ts");
   const BOOKMARKS_KEY = "aviary.library.bookmarks.v1";
   const source = storageFrom(new Map([[BOOKMARKS_KEY, { entries: [{ id: "one" }] }]]));
   const { artifact } = await createLibraryBackup(source, { selectedKeys: [BOOKMARKS_KEY] });
@@ -143,25 +137,4 @@ function storageFrom(store, overrides = {}) {
     ...overrides
   };
   return storage;
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-library-backup-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "neutral",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?${Date.now()}-${Math.random()}`);
-  } finally {
-    // esbuild's output is loaded before the temporary directory is removed; the bundled module
-    // has no deferred filesystem reads.
-    await rm(temp, { recursive: true, force: true });
-  }
 }

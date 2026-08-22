@@ -1,18 +1,12 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("settings export/import round-trips with normalization", async () => {
-  const { DEFAULT_SETTINGS, normalizeSettings } = await importBundledModule(
+  const { DEFAULT_SETTINGS, normalizeSettings } = await importSourceModule(
     "src/platform/settings.ts"
   );
-  const { buildSettingsExport, parseSettingsImport } = await importBundledModule(
+  const { buildSettingsExport, parseSettingsImport } = await importSourceModule(
     "src/features/core/settings-migration.ts"
   );
 
@@ -59,7 +53,7 @@ test("settings export/import round-trips with normalization", async () => {
 });
 
 test("AuditLog persists, caps, and clears", async () => {
-  const { AuditLog, AUDIT_LOG_KEY } = await importBundledModule(
+  const { AuditLog, AUDIT_LOG_KEY } = await importSourceModule(
     "src/features/core/audit-log.ts"
   );
 
@@ -94,28 +88,8 @@ test("AuditLog persists, caps, and clears", async () => {
 });
 
 test("query discovery extracts /i/api/graphql/<id>/<op> pairs", async () => {
-  const { QUERY_REGISTRY_KEY } = await importBundledModule(
+  const { QUERY_REGISTRY_KEY } = await importSourceModule(
     "src/features/export/query-discovery.ts"
   );
   assert.equal(typeof QUERY_REGISTRY_KEY, "string");
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-v8-"));
-  const outfile = path.join(temp, "module.mjs");
-
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
-}

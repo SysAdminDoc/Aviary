@@ -1,4 +1,4 @@
-import type { FeatureContext, FeatureRegistry } from "../registry";
+import type { FeatureContext, FeatureRegistry } from "../registry.ts";
 
 /**
  * "Which Aviary feature is breaking this page?"

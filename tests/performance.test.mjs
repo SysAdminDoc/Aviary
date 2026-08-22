@@ -1,12 +1,6 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
  * A `<video>` stub that reproduces the one behaviour the pauser actually depends on: `pause()`
@@ -106,7 +100,7 @@ function fakeView() {
 const settled = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 test("an offscreen video is paused and resumed when it scrolls back", async () => {
-  const { OffscreenVideoPauser } = await importBundledModule(
+  const { OffscreenVideoPauser } = await importSourceModule(
     "src/features/performance/pause-offscreen-video.ts"
   );
 
@@ -133,7 +127,7 @@ test("an offscreen video is paused and resumed when it scrolls back", async () =
 });
 
 test("a video the viewer paused is never resumed by scrolling", async () => {
-  const { OffscreenVideoPauser } = await importBundledModule(
+  const { OffscreenVideoPauser } = await importSourceModule(
     "src/features/performance/pause-offscreen-video.ts"
   );
 
@@ -164,7 +158,7 @@ test("a video the viewer paused is never resumed by scrolling", async () => {
 });
 
 test("a video already paused when it leaves the viewport is not marked for resume", async () => {
-  const { OffscreenVideoPauser } = await importBundledModule(
+  const { OffscreenVideoPauser } = await importSourceModule(
     "src/features/performance/pause-offscreen-video.ts"
   );
 
@@ -183,7 +177,7 @@ test("a video already paused when it leaves the viewport is not marked for resum
 });
 
 test("stopping removes every attribute, listener and observation the feature added", async () => {
-  const { OffscreenVideoPauser } = await importBundledModule(
+  const { OffscreenVideoPauser } = await importSourceModule(
     "src/features/performance/pause-offscreen-video.ts"
   );
 
@@ -205,7 +199,7 @@ test("stopping removes every attribute, listener and observation the feature add
 });
 
 test("scanning twice does not double-observe the same video", async () => {
-  const { OffscreenVideoPauser } = await importBundledModule(
+  const { OffscreenVideoPauser } = await importSourceModule(
     "src/features/performance/pause-offscreen-video.ts"
   );
 
@@ -221,7 +215,7 @@ test("scanning twice does not double-observe the same video", async () => {
 });
 
 test("videos X removes from the page stop being tracked", async () => {
-  const { OffscreenVideoPauser } = await importBundledModule(
+  const { OffscreenVideoPauser } = await importSourceModule(
     "src/features/performance/pause-offscreen-video.ts"
   );
   const view = fakeView();
@@ -254,7 +248,7 @@ test("videos X removes from the page stop being tracked", async () => {
 });
 
 test("the feature reports unavailable rather than throwing without IntersectionObserver", async () => {
-  const { OffscreenVideoPauser } = await importBundledModule(
+  const { OffscreenVideoPauser } = await importSourceModule(
     "src/features/performance/pause-offscreen-video.ts"
   );
 
@@ -266,7 +260,7 @@ test("the feature reports unavailable rather than throwing without IntersectionO
 });
 
 test("pauseOffscreenVideo is a real setting the normalizer round-trips", async () => {
-  const { DEFAULT_SETTINGS, normalizeSettings } = await importBundledModule(
+  const { DEFAULT_SETTINGS, normalizeSettings } = await importSourceModule(
     "src/platform/settings.ts"
   );
 
@@ -286,23 +280,3 @@ test("pauseOffscreenVideo is a real setting the normalizer round-trips", async (
     "a non-boolean falls back to the default rather than becoming truthy"
   );
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-perf-"));
-  const outfile = path.join(temp, "module.mjs");
-
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}

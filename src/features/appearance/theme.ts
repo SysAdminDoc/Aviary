@@ -1,5 +1,5 @@
-import type { FeatureModule } from "../registry";
-import { COUNT_METRICS, type AviarySettings, type ThemeId } from "../../platform/settings";
+import type { FeatureModule } from "../registry.ts";
+import { COUNT_METRICS, type AviarySettings, type ThemeId } from "../../platform/settings.ts";
 
 const STYLE_ID = "av-theme-foundation";
 const ACTIVE_NAV_ATTRIBUTE = "data-av-active-route";

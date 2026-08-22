@@ -1,15 +1,9 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("Under the Hood parser reads X's monthly aggregate shape and bounds labels", async () => {
-  const { parseUnderTheHoodJson } = await importBundledModule("src/features/library/under-the-hood.ts");
+  const { parseUnderTheHoodJson } = await importSourceModule("src/features/library/under-the-hood.ts");
   const result = parseUnderTheHoodJson(
     JSON.stringify({
       notes: "X's best-effort report",
@@ -47,7 +41,7 @@ test("Under the Hood parser reads X's monthly aggregate shape and bounds labels"
 });
 
 test("Under the Hood parser accepts reportJson wrappers and rejects malformed or oversized files", async () => {
-  const { parseUnderTheHoodJson, MAX_UNDER_THE_HOOD_BYTES } = await importBundledModule("src/features/library/under-the-hood.ts");
+  const { parseUnderTheHoodJson, MAX_UNDER_THE_HOOD_BYTES } = await importSourceModule("src/features/library/under-the-hood.ts");
   const wrapped = parseUnderTheHoodJson(JSON.stringify({
     reportJson: JSON.stringify({
       monthBucket: 202606,
@@ -68,7 +62,7 @@ test("Under the Hood parser accepts reportJson wrappers and rejects malformed or
 });
 
 test("Under the Hood comparison reports month-over-month label changes", async () => {
-  const { compareUnderTheHoodReports, parseUnderTheHoodJson } = await importBundledModule("src/features/library/under-the-hood.ts");
+  const { compareUnderTheHoodReports, parseUnderTheHoodJson } = await importSourceModule("src/features/library/under-the-hood.ts");
   const make = (month, postCount, postLabels, accountLabels) => parseUnderTheHoodJson(JSON.stringify({
     period: { startDate: `${month}-01`, endDate: `${month}-28`, timezone: "UTC" },
     postCount,
@@ -87,7 +81,7 @@ test("Under the Hood comparison reports month-over-month label changes", async (
 });
 
 test("Under the Hood store deduplicates months and exports normalized user data", async () => {
-  const { UnderTheHoodStore, UNDER_THE_HOOD_KEY } = await importBundledModule("src/features/library/under-the-hood.ts");
+  const { UnderTheHoodStore, UNDER_THE_HOOD_KEY } = await importSourceModule("src/features/library/under-the-hood.ts");
   const store = new Map();
   const storage = storageFrom(store);
   const reports = new UnderTheHoodStore(storage);
@@ -109,7 +103,7 @@ test("Under the Hood store deduplicates months and exports normalized user data"
 });
 
 test("Under the Hood reports are part of the full library backup allow-list", async () => {
-  const { createLibraryBackup, parseLibraryBackup } = await importBundledModule("src/features/core/library-backup.ts");
+  const { createLibraryBackup, parseLibraryBackup } = await importSourceModule("src/features/core/library-backup.ts");
   const underTheHoodKey = "aviary.library.underTheHood.v1";
   const storage = storageFrom(new Map([[underTheHoodKey, {
     version: 1,
@@ -149,23 +143,4 @@ function storageFrom(store) {
       this.store.delete(key);
     }
   };
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-under-the-hood-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "neutral",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
 }

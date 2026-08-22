@@ -1,5 +1,5 @@
-import { translateText } from "../../platform/i18n";
-import type { FeatureContext } from "../registry";
+import { translateText } from "../../platform/i18n.ts";
+import type { FeatureContext } from "../registry.ts";
 
 /**
  * Translates a string in a feature that injects into the timeline.

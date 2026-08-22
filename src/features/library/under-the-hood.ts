@@ -1,5 +1,5 @@
-import type { StorageGateway } from "../../platform/storage";
-import { mutateStored } from "../../platform/storage-lock";
+import type { StorageGateway } from "../../platform/storage.ts";
+import { mutateStored } from "../../platform/storage-lock.ts";
 
 export const UNDER_THE_HOOD_KEY = "aviary.library.underTheHood.v1";
 export const UNDER_THE_HOOD_STORE_VERSION = 1 as const;

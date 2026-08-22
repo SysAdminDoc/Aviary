@@ -1,19 +1,13 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 
 test("exported settings redact credentials but keep every preference", async () => {
-  const { buildSettingsExport, REDACTED_SECRET } = await importBundledModule(
+  const { buildSettingsExport, REDACTED_SECRET } = await importSourceModule(
     "src/features/core/settings-migration.ts"
   );
-  const { normalizeSettings } = await importBundledModule("src/platform/settings.ts");
+  const { normalizeSettings } = await importSourceModule("src/platform/settings.ts");
 
   const settings = normalizeSettings({
     appearance: { theme: "plum" },
@@ -53,10 +47,10 @@ test("exported settings redact credentials but keep every preference", async () 
 });
 
 test("importing a redacted file keeps locally stored credentials", async () => {
-  const { buildSettingsExport, parseSettingsImport, REDACTED_SECRET } = await importBundledModule(
+  const { buildSettingsExport, parseSettingsImport, REDACTED_SECRET } = await importSourceModule(
     "src/features/core/settings-migration.ts"
   );
-  const { normalizeSettings } = await importBundledModule("src/platform/settings.ts");
+  const { normalizeSettings } = await importSourceModule("src/platform/settings.ts");
 
   const current = normalizeSettings({
     integrations: {
@@ -85,23 +79,3 @@ test("importing a redacted file keeps locally stored credentials", async () => {
   const blind = parseSettingsImport(JSON.stringify(envelope));
   assert.equal(blind.settings.integrations.ai.apiKey, "");
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-audit-ux-"));
-  const outfile = path.join(temp, "module.mjs");
-
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
-}

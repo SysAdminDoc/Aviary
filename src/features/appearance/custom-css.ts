@@ -1,10 +1,10 @@
-import type { FeatureModule } from "../registry";
+import type { FeatureModule } from "../registry.ts";
 import {
   CUSTOM_CSS_SCOPE_IDS,
   sanitizeCustomCss,
   type CustomCssRules,
   type CustomCssScopeId
-} from "../../platform/settings";
+} from "../../platform/settings.ts";
 
 const STYLE_ID = "av-custom-css";
 const SCOPE_ATTRIBUTE = "data-av-custom-css-scope";

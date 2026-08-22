@@ -1,13 +1,13 @@
-import type { FeatureContext, FeatureModule } from "../registry";
-import { ft } from "../core/feature-i18n";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
+import { ft } from "../core/feature-i18n.ts";
 import {
   buildBookmarkExportArtifacts,
   BookmarkStore,
   type BookmarkInput,
   type BookmarkRecord,
   type CapturedBookmarkInput
-} from "./bookmarks";
-import { extractTweet } from "../media/extract";
+} from "./bookmarks.ts";
+import { extractTweet } from "../media/extract.ts";
 
 const STYLE_ID = "av-local-bookmarks";
 const BUTTON_ATTR = "data-av-local-bookmark";

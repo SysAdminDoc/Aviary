@@ -5,7 +5,7 @@ import type {
   FilterReasonMode,
   FilterSurface,
   MediaLayout
-} from "../../platform/settings";
+} from "../../platform/settings.ts";
 
 export const MEDIA_LAYOUT_OPTIONS: Array<[MediaLayout, string]> = [
   ["default", "Default grid"],

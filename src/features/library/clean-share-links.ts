@@ -1,4 +1,4 @@
-import type { FeatureModule } from "../registry";
+import type { FeatureModule } from "../registry.ts";
 
 const PROCESSED_ATTR = "data-av-share-clean";
 const ORIGINAL_HREF = "avOriginalHref";

@@ -1,19 +1,14 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("ad observations retain only bounded, normalized marker counts and reset cleanly", async () => {
   const {
     AD_OBSERVATIONS_KEY,
     AD_OBSERVATION_RETENTION_MS,
     AdObservationStore
-  } = await importBundledModule("src/features/core/ad-observations.ts");
+  } = await importSourceModule("src/features/core/ad-observations.ts");
   const values = new Map();
   const storage = {
     async get(key, fallback) { return structuredClone(values.get(key) ?? fallback); },
@@ -90,22 +85,3 @@ test("ad observations retain only bounded, normalized marker counts and reset cl
     degradedReason: null
   });
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-ad-observations-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "neutral",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}

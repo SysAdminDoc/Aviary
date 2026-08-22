@@ -1,5 +1,5 @@
-import type { EngagementMetric, FilterSurface } from "../../platform/settings";
-import type { FeatureContext, FeatureModule } from "../registry";
+import type { EngagementMetric, FilterSurface } from "../../platform/settings.ts";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
 import {
   compileFilters,
   extractTweetSignal,
@@ -10,9 +10,9 @@ import {
   type CompiledFilters,
   type FilterCause,
   type StructuralKey
-} from "./predicates";
-import { ft } from "../core/feature-i18n";
-import { compileRules, type CompiledRule, type RuleParseError } from "./rules";
+} from "./predicates.ts";
+import { ft } from "../core/feature-i18n.ts";
+import { compileRules, type CompiledRule, type RuleParseError } from "./rules.ts";
 
 const STYLE_ID = "av-filter-engine";
 const ARTICLE_SELECTOR = 'article[data-testid="tweet"]';

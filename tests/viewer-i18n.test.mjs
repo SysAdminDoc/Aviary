@@ -1,3 +1,4 @@
+import { importSourceEntry } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -96,7 +97,7 @@ test("the extractor harvests viewer copy, or the sync step would drop it", async
 test("the viewer's locale list comes from the shared registry, not a table of its own", async () => {
   // Before: `doesNotMatch(/VIEWER_LABELS/)` plus `match(/name: locale\.label/)`. Neither can see
   // what the generated viewer contains -- a second table under any other name would satisfy both.
-  const { buildExportViewer, supportedLocales } = await importBundledEntry([
+  const { buildExportViewer, supportedLocales } = await importSourceEntry([
     "src/features/export/viewer.ts",
     "src/platform/i18n.ts"
   ]);
@@ -135,31 +136,3 @@ test("the viewer's locale list comes from the shared registry, not a table of it
     "the viewer ships a locale list that is not the registry's"
   );
 });
-
-/** Bundles several modules into one graph so their shared state is genuinely shared. */
-async function importBundledEntry(relativePaths) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-viewer-multi-"));
-  const entry = path.join(temp, "entry.ts");
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await writeFile(
-      entry,
-      relativePaths
-        .map((relative) => `export * from ${JSON.stringify(path.resolve(root, relative).split(path.sep).join("/"))}`)
-        .join(";\n"),
-      "utf8"
-    );
-    await build({
-      entryPoints: [entry],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "neutral",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?v=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}

@@ -1,6 +1,6 @@
-import type { StorageGateway } from "../../platform/storage";
-import { mergeKeyed, mutateStored, replaceStored } from "../../platform/storage-lock";
-import type { PersistErrorSink } from "../media/history";
+import type { StorageGateway } from "../../platform/storage.ts";
+import { mergeKeyed, mutateStored, replaceStored } from "../../platform/storage-lock.ts";
+import type { PersistErrorSink } from "../media/history.ts";
 
 export const HIDDEN_POSTS_KEY = "aviary.hiddenPosts.v1";
 

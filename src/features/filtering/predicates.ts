@@ -1,12 +1,12 @@
-import { checkRegexBudget } from "./regex-budget";
+import { checkRegexBudget } from "./regex-budget.ts";
 import {
   ENGAGEMENT_METRICS,
   type EngagementMetric,
   type FilterAction,
   type FilterMediaKey
-} from "../../platform/settings";
-import { handleFromHref } from "./hidden-posts";
-import { judgeRules, type CompiledRule, type RuleSignal } from "./rules";
+} from "../../platform/settings.ts";
+import { handleFromHref } from "./hidden-posts.ts";
+import { judgeRules, type CompiledRule, type RuleSignal } from "./rules.ts";
 
 export interface CompiledFilters {
   /** Parsed field/operator/value rules; see ./rules.ts. */

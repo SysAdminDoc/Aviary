@@ -1,4 +1,4 @@
-import type { StorageGateway } from "./storage";
+import type { StorageGateway } from "./storage.ts";
 
 /**
  * Coordination for the stores two X tabs share.

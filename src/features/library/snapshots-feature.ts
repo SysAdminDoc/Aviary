@@ -1,5 +1,5 @@
-import type { FeatureContext, FeatureModule } from "../registry";
-import { collectAccountsFromDom, SnapshotStore, type SnapshotEntry, type SnapshotKind } from "./snapshots";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
+import { collectAccountsFromDom, SnapshotStore, type SnapshotEntry, type SnapshotKind } from "./snapshots.ts";
 
 let store: SnapshotStore | undefined;
 

@@ -3,15 +3,15 @@ import {
   restoreDynamicAdRule,
   syncDynamicAdRule,
   type ExtensionAdRuleApi
-} from "../extension/ad-rule";
-import { DOWNLOAD_STATE_MESSAGE } from "../extension/download-state";
+} from "../extension/ad-rule.ts";
+import { DOWNLOAD_STATE_MESSAGE } from "../extension/download-state.ts";
 import {
   MEDIA_CONTEXT_DOWNLOAD_MESSAGE,
   MEDIA_CONTEXT_MENU_ID,
   MEDIA_CONTEXT_MENU_TITLE,
   MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE,
   X_DOCUMENT_PATTERNS
-} from "../extension/media-context-menu";
+} from "../extension/media-context-menu.ts";
 
 const runtime = globalThis.chrome?.runtime;
 const extensionApi = globalThis.chrome as unknown as ExtensionAdRuleApi | undefined;

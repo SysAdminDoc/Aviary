@@ -1,15 +1,9 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("normalizeImageUrl forces name=orig and preserves format", async () => {
-  const { normalizeImageUrl } = await importBundledModule("src/features/media/urls.ts");
+  const { normalizeImageUrl } = await importSourceModule("src/features/media/urls.ts");
 
   const small = normalizeImageUrl(
     "https://pbs.twimg.com/media/AbCdEfGh.jpg?format=jpg&name=small"
@@ -46,7 +40,7 @@ test("content fingerprints collapse X size variants and distinguish match streng
     perceptualHashFromRgba,
     PERCEPTUAL_HASH_HEIGHT,
     PERCEPTUAL_HASH_WIDTH
-  } = await importBundledModule("src/features/export/assets.ts");
+  } = await importSourceModule("src/features/export/assets.ts");
   const small = mediaIdentityHash(
     "photo",
     "https://pbs.twimg.com/media/AbCdEfGh?format=jpg&name=small",
@@ -82,10 +76,10 @@ test("content fingerprints collapse X size variants and distinguish match streng
 });
 
 test("MediaHistory matches exact bytes, X identities, and opt-in visual similarity", async () => {
-  const { MediaHistory, MEDIA_HISTORY_KEY } = await importBundledModule(
+  const { MediaHistory, MEDIA_HISTORY_KEY } = await importSourceModule(
     "src/features/media/history.ts"
   );
-  const { mediaIdentityHash } = await importBundledModule("src/features/export/assets.ts");
+  const { mediaIdentityHash } = await importSourceModule("src/features/export/assets.ts");
   const store = new Map();
   const storage = {
     async get(key, fallback) {
@@ -160,7 +154,7 @@ test("MediaHistory matches exact bytes, X identities, and opt-in visual similari
 });
 
 test("fingerprintMediaDownload hashes the bytes returned by the media host", async () => {
-  const { fingerprintMediaDownload } = await importBundledModule(
+  const { fingerprintMediaDownload } = await importSourceModule(
     "src/features/media/downloader.ts"
   );
   const originalFetch = globalThis.fetch;
@@ -191,7 +185,7 @@ test("fingerprintMediaDownload hashes the bytes returned by the media host", asy
 });
 
 test("fingerprinting uses one short budget for every fallback candidate", async () => {
-  const { fingerprintMediaDownload, MEDIA_FINGERPRINT_TIMEOUT_MS } = await importBundledModule(
+  const { fingerprintMediaDownload, MEDIA_FINGERPRINT_TIMEOUT_MS } = await importSourceModule(
     "src/features/media/downloader.ts"
   );
   assert.ok(MEDIA_FINGERPRINT_TIMEOUT_MS <= 2_000);
@@ -225,7 +219,7 @@ test("fingerprinting uses one short budget for every fallback candidate", async 
 });
 
 test("media sidecars render bounded JSON or text beside the saved filename", async () => {
-  const { buildMediaSidecar } = await importBundledModule(
+  const { buildMediaSidecar } = await importSourceModule(
     "src/features/media/sidecar.ts"
   );
   const input = {
@@ -254,14 +248,14 @@ test("media sidecars render bounded JSON or text beside the saved filename", asy
 });
 
 test("sidecar format is opt-in and rejects unknown imported values", async () => {
-  const { normalizeSettings } = await importBundledModule("src/platform/settings.ts");
+  const { normalizeSettings } = await importSourceModule("src/platform/settings.ts");
   assert.equal(normalizeSettings({}).media.sidecarFormat, "off");
   assert.equal(normalizeSettings({ media: { sidecarFormat: "json" } }).media.sidecarFormat, "json");
   assert.equal(normalizeSettings({ media: { sidecarFormat: "xml" } }).media.sidecarFormat, "off");
 });
 
 test("MediaHistory repairs malformed entries and reservations in a current-version snapshot", async () => {
-  const { MediaHistory, MEDIA_HISTORY_KEY } = await importBundledModule(
+  const { MediaHistory, MEDIA_HISTORY_KEY } = await importSourceModule(
     "src/features/media/history.ts"
   );
   const store = new Map([[MEDIA_HISTORY_KEY, {
@@ -295,7 +289,7 @@ test("MediaHistory repairs malformed entries and reservations in a current-versi
 });
 
 test("media history export filters inclusive date ranges without exposing source URLs", async () => {
-  const { buildMediaHistoryExportArtifacts } = await importBundledModule(
+  const { buildMediaHistoryExportArtifacts } = await importSourceModule(
     "src/features/media/history.ts"
   );
   const snapshot = {
@@ -333,7 +327,7 @@ test("media history export filters inclusive date ranges without exposing source
 });
 
 test("tweetIdFromHref extracts the numeric tweet id when present", async () => {
-  const { tweetIdFromHref } = await importBundledModule("src/features/media/urls.ts");
+  const { tweetIdFromHref } = await importSourceModule("src/features/media/urls.ts");
   assert.equal(tweetIdFromHref("/handle/status/1234567890"), "1234567890");
   assert.equal(tweetIdFromHref("https://x.com/handle/status/9876543210/photo/1"), "9876543210");
   assert.equal(tweetIdFromHref("/handle"), null);
@@ -341,7 +335,7 @@ test("tweetIdFromHref extracts the numeric tweet id when present", async () => {
 });
 
 test("renderFilename interpolates fields and sanitizes unsafe segments", async () => {
-  const { renderFilename } = await importBundledModule("src/features/media/template.ts");
+  const { renderFilename } = await importSourceModule("src/features/media/template.ts");
 
   assert.equal(
     renderFilename("{account}/{tweetId}", {
@@ -397,7 +391,7 @@ test("renderFilename interpolates fields and sanitizes unsafe segments", async (
 });
 
 test("MediaHistory records, dedupes, persists, and clears", async () => {
-  const { MediaHistory, MEDIA_HISTORY_KEY } = await importBundledModule(
+  const { MediaHistory, MEDIA_HISTORY_KEY } = await importSourceModule(
     "src/features/media/history.ts"
   );
 
@@ -446,7 +440,7 @@ test("MediaHistory records, dedupes, persists, and clears", async () => {
 });
 
 test("last download hint persists only valid media source metadata", async () => {
-  const { getLastDownload, rememberLastDownload, LAST_DOWNLOAD_KEY } = await importBundledModule(
+  const { getLastDownload, rememberLastDownload, LAST_DOWNLOAD_KEY } = await importSourceModule(
     "src/features/media/last-download.ts"
   );
   const store = new Map();
@@ -476,7 +470,7 @@ test("last download hint persists only valid media source metadata", async () =>
 });
 
 test("DownloadQueue tracks status transitions and snapshots", async () => {
-  const { DownloadQueue } = await importBundledModule("src/features/media/queue.ts");
+  const { DownloadQueue } = await importSourceModule("src/features/media/queue.ts");
   const queue = new DownloadQueue();
 
   const a = queue.enqueue({ url: "https://x/y.jpg", filename: "a.jpg" });
@@ -498,7 +492,7 @@ test("DownloadQueue tracks status transitions and snapshots", async () => {
 });
 
 test("DownloadQueue persists interrupted work and supports recovery controls", async () => {
-  const { DownloadQueue, MEDIA_QUEUE_KEY } = await importBundledModule("src/features/media/queue.ts");
+  const { DownloadQueue, MEDIA_QUEUE_KEY } = await importSourceModule("src/features/media/queue.ts");
   const store = new Map([
     [MEDIA_QUEUE_KEY, {
       sequence: 4,
@@ -544,7 +538,7 @@ test("DownloadQueue persists interrupted work and supports recovery controls", a
 });
 
 test("Aria2 history persists queued gids and reconciles completed or failed work", async () => {
-  const { Aria2History, ARIA2_HISTORY_KEY } = await importBundledModule(
+  const { Aria2History, ARIA2_HISTORY_KEY } = await importSourceModule(
     "src/features/integrations/aria2.ts"
   );
   const store = new Map([
@@ -589,8 +583,8 @@ test("Aria2 history persists queued gids and reconciles completed or failed work
 });
 
 test("Aria2 downloader history prevents the same URL from requeueing", async () => {
-  const { Aria2History } = await importBundledModule("src/features/integrations/aria2.ts");
-  const { createDownloader } = await importBundledModule("src/features/media/downloader.ts");
+  const { Aria2History } = await importSourceModule("src/features/integrations/aria2.ts");
+  const { createDownloader } = await importSourceModule("src/features/media/downloader.ts");
   const store = new Map();
   const storage = {
     async get(key, fallback) {
@@ -636,7 +630,7 @@ test("Aria2 downloader history prevents the same URL from requeueing", async () 
 });
 
 test("userscript downloads try the original image before the bounded fallback", async () => {
-  const { createDownloader } = await importBundledModule("src/features/media/downloader.ts");
+  const { createDownloader } = await importSourceModule("src/features/media/downloader.ts");
   const attempted = [];
   const originalDownload = globalThis.GM_download;
   globalThis.GM_download = (options) => {
@@ -670,23 +664,3 @@ test("userscript downloads try the original image before the bounded fallback", 
     }
   }
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-media-"));
-  const outfile = path.join(temp, "module.mjs");
-
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
-}

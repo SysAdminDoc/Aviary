@@ -1,15 +1,14 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
+import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("derivePostKey prefers the status id and falls back to a handle+text signature", async () => {
-  const { derivePostKey } = await importBundledModule("src/features/filtering/hidden-posts.ts");
+  const { derivePostKey } = await importSourceModule("src/features/filtering/hidden-posts.ts");
 
   assert.equal(
     derivePostKey({ tweetId: "1234567890", handle: "someone", text: "hello" }),
@@ -31,7 +30,7 @@ test("derivePostKey prefers the status id and falls back to a handle+text signat
 });
 
 test("handleFromHref reads root-relative and absolute profile links", async () => {
-  const { handleFromHref } = await importBundledModule("src/features/filtering/hidden-posts.ts");
+  const { handleFromHref } = await importSourceModule("src/features/filtering/hidden-posts.ts");
 
   assert.equal(handleFromHref("/JuvyWicks"), "juvywicks");
   assert.equal(handleFromHref("/JuvyWicks/status/123"), "juvywicks");
@@ -43,7 +42,7 @@ test("handleFromHref reads root-relative and absolute profile links", async () =
 });
 
 test("normalizeHiddenPosts rejects malformed keys, dedupes, and trims oldest past the cap", async () => {
-  const { normalizeHiddenPosts } = await importBundledModule(
+  const { normalizeHiddenPosts } = await importSourceModule(
     "src/features/filtering/hidden-posts.ts"
   );
 
@@ -74,7 +73,7 @@ test("normalizeHiddenPosts rejects malformed keys, dedupes, and trims oldest pas
 });
 
 test("HiddenPostStore persists hides, evicts at the cap, and restores through undo", async () => {
-  const { HiddenPostStore, HIDDEN_POSTS_KEY } = await importBundledModule(
+  const { HiddenPostStore, HIDDEN_POSTS_KEY } = await importSourceModule(
     "src/features/filtering/hidden-posts.ts"
   );
 
@@ -119,7 +118,7 @@ test("HiddenPostStore persists hides, evicts at the cap, and restores through un
 });
 
 test("HiddenPostStore reloads what it wrote and bumps its version on every mutation", async () => {
-  const { HiddenPostStore } = await importBundledModule("src/features/filtering/hidden-posts.ts");
+  const { HiddenPostStore } = await importSourceModule("src/features/filtering/hidden-posts.ts");
 
   const storage = createMemoryStorage();
   const first = new HiddenPostStore(storage);
@@ -140,7 +139,7 @@ test("HiddenPostStore reloads what it wrote and bumps its version on every mutat
 });
 
 test("HiddenPostStore rejects a hide when persistence fails and rolls back memory", async () => {
-  const { HiddenPostStore } = await importBundledModule("src/features/filtering/hidden-posts.ts");
+  const { HiddenPostStore } = await importSourceModule("src/features/filtering/hidden-posts.ts");
   const reported = [];
   const storage = {
     async get(_key, fallback) {
@@ -164,7 +163,7 @@ test("HiddenPostStore rejects a hide when persistence fails and rolls back memor
 });
 
 test("hidden settings normalize with their own defaults and a clamped cap", async () => {
-  const { DEFAULT_SETTINGS, normalizeSettings } = await importBundledModule(
+  const { DEFAULT_SETTINGS, normalizeSettings } = await importSourceModule(
     "src/platform/settings.ts"
   );
 
@@ -226,24 +225,4 @@ function createMemoryStorage() {
       return values.get(key);
     }
   };
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-v16-"));
-  const outfile = path.join(temp, "module.mjs");
-
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
 }

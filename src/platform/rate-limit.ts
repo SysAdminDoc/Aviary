@@ -1,11 +1,15 @@
 export class TokenBucket {
   #tokens: number;
   #lastRefill: number;
+  capacity: number;
+  refillPerSecond: number;
 
   constructor(
-    public capacity: number,
-    public refillPerSecond: number
+    capacity: number,
+    refillPerSecond: number
   ) {
+    this.capacity = capacity;
+    this.refillPerSecond = refillPerSecond;
     this.#tokens = capacity;
     this.#lastRefill = Date.now();
   }

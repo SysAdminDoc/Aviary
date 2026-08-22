@@ -1,4 +1,4 @@
-import type { StorageGateway } from "../../platform/storage";
+import type { StorageGateway } from "../../platform/storage.ts";
 
 export const LAST_DOWNLOAD_KEY = "aviary.media.last-download.v1";
 

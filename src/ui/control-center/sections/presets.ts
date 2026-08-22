@@ -1,4 +1,4 @@
-import type { PanelContext } from "../panel-context";
+import type { PanelContext } from "../panel-context.ts";
 export function buildPresetRows(ctx: PanelContext): HTMLElement[] {
   const rows: HTMLElement[] = [];
   if (!ctx.options.listPresets || !ctx.options.applyPreset) {

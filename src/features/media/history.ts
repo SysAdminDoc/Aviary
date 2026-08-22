@@ -1,5 +1,5 @@
-import type { StorageGateway } from "../../platform/storage";
-import { mutateStored, replaceStored } from "../../platform/storage-lock";
+import type { StorageGateway } from "../../platform/storage.ts";
+import { mutateStored, replaceStored } from "../../platform/storage-lock.ts";
 import {
   hexadecimalHammingDistance,
   mediaIdentityHash,
@@ -7,7 +7,7 @@ import {
   sha256Hex,
   type MediaFingerprint,
   type MediaFingerprintKind
-} from "../export/assets";
+} from "../export/assets.ts";
 
 export const MEDIA_HISTORY_KEY = "aviary.media.history.v1";
 export const MEDIA_HISTORY_LIMIT = 1500;

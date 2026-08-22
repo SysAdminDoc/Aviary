@@ -1,15 +1,15 @@
-import type { FeatureContext, FeatureModule } from "../registry";
-import type { CheckpointStore } from "./jobs";
-import { getCheckpointStore } from "./export-feature";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
+import type { CheckpointStore } from "./jobs.ts";
+import { getCheckpointStore } from "./export-feature.ts";
 import {
   MAX_GRAPHQL_PAYLOAD_BYTES,
   sanitizeCapturedGraphqlPayload,
   type SanitizedCapturedGraphqlPayload
-} from "../../page/page-agent";
-import type { PageBridge } from "../../platform/page-bridge";
-import { mirrorBookmarks } from "../library/bookmarks-feature";
-import { parseCapturedBookmarks } from "../library/bookmark-capture";
-import { parseCapturedThreadRecords } from "./thread-capture";
+} from "../../page/page-agent.ts";
+import type { PageBridge } from "../../platform/page-bridge.ts";
+import { mirrorBookmarks } from "../library/bookmarks-feature.ts";
+import { parseCapturedBookmarks } from "../library/bookmark-capture.ts";
+import { parseCapturedThreadRecords } from "./thread-capture.ts";
 
 const MAX_PAYLOADS = 50;
 const MAX_SESSION_PAYLOADS = 500;

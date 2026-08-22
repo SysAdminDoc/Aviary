@@ -1,8 +1,8 @@
-import { AVIARY_VERSION } from "../../platform/build-version";
-import { withStorageLock } from "../../platform/storage-lock";
-import type { StorageGateway } from "../../platform/storage";
-import { sha256Hex } from "./assets";
-import type { ExportArtifact } from "./types";
+import { AVIARY_VERSION } from "../../platform/build-version.ts";
+import { withStorageLock } from "../../platform/storage-lock.ts";
+import type { StorageGateway } from "../../platform/storage.ts";
+import { sha256Hex } from "./assets.ts";
+import type { ExportArtifact } from "./types.ts";
 
 export const WACZ_SIGNING_KEY = "aviary.waczSigning.v1";
 export const WACZ_SIGNING_ALGORITHM = "ECDSA-P384-SHA256";

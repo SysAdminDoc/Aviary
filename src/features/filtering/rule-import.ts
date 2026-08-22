@@ -3,14 +3,14 @@ import {
   normalizeSettings,
   SETTINGS_KEY,
   type AviarySettings
-} from "../../platform/settings";
-import type { StorageGateway } from "../../platform/storage";
-import { withStorageLock } from "../../platform/storage-lock";
+} from "../../platform/settings.ts";
+import type { StorageGateway } from "../../platform/storage.ts";
+import { withStorageLock } from "../../platform/storage-lock.ts";
 import {
   previewRuleSetImport,
   type RuleSetImportMode,
   type RuleSetImportPlan
-} from "./rules";
+} from "./rules.ts";
 
 export interface RuleImportContext {
   settings: AviarySettings;

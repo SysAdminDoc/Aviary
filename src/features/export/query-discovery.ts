@@ -1,4 +1,4 @@
-import type { StorageGateway } from "../../platform/storage";
+import type { StorageGateway } from "../../platform/storage.ts";
 
 export const QUERY_REGISTRY_KEY = "aviary.queryIds.v1";
 

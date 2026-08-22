@@ -1,9 +1,9 @@
-import type { ExportRecord } from "../export/types";
+import type { ExportRecord } from "../export/types.ts";
 import {
   documentFromExportRecord,
   OfflineQueryIndex,
   type OfflineQueryHit
-} from "./query-model";
+} from "./query-model.ts";
 
 export interface SearchHit {
   record: ExportRecord;

@@ -1,13 +1,13 @@
-import { supportedLocales } from "../../platform/i18n";
-import { AVIARY_VERSION } from "../../platform/build-version";
-import type { ProfileStatus } from "../../platform/profile";
+import { supportedLocales } from "../../platform/i18n.ts";
+import { AVIARY_VERSION } from "../../platform/build-version.ts";
+import type { ProfileStatus } from "../../platform/profile.ts";
 import {
   DEFAULT_SETTINGS,
   cloneSettings,
   normalizeSettings,
   SETTINGS_KEY,
   type AviarySettings
-} from "../../platform/settings";
+} from "../../platform/settings.ts";
 import {
   type ControlCenterHandle,
   type ExportStatus,
@@ -15,19 +15,19 @@ import {
   type MediaStatus,
   type IntegrationUsageStatus as ControlCenterUsageStatus,
   mountControlCenter
-} from "../../ui/control-center";
-import { pageHookCounters } from "../privacy/page-hooks";
+} from "../../ui/control-center.ts";
+import { pageHookCounters } from "../privacy/page-hooks.ts";
 import {
   adLabelLanguageSupported,
   adProtectionCounters,
   documentLanguage
-} from "../privacy/ad-protection";
+} from "../privacy/ad-protection.ts";
 import {
   clearAdObservations as clearSelectorAdObservations,
   getSelectorHealthSnapshot
-} from "./selector-health";
-import { applyPreset, describePresetDelta, getPreset, listPresets } from "./presets";
-import { describeBisectResult, FeatureBisect, type BisectVerdict } from "./feature-bisect";
+} from "./selector-health.ts";
+import { applyPreset, describePresetDelta, getPreset, listPresets } from "./presets.ts";
+import { describeBisectResult, FeatureBisect, type BisectVerdict } from "./feature-bisect.ts";
 import {
   getCheckpointStore,
   getDiscoveredQueries,
@@ -36,47 +36,47 @@ import {
   rebuildCapturedThreads,
   resumeExportJob,
   runExportOfVisibleTweets
-} from "../export/export-feature";
+} from "../export/export-feature.ts";
 import {
   DEFAULT_RETENTION_POLICY,
   loadRetentionPolicy,
   normalizeRetentionPolicy,
   saveRetentionPolicy,
   type RetentionPolicy
-} from "../export/jobs";
-import { renderForExternalTarget } from "../export/external-targets";
-import { filterExpiredRules, filterRuleErrors } from "../filtering/filter-engine";
-import { applyFilterRuleImportAtomic } from "../filtering/rule-import";
-import { exportRuleSet, previewRuleSetImport, renewRuleLine } from "../filtering/rules";
-import { getCatchUpStore, getSeenPostStore } from "../filtering/seen-posts-feature";
-import { openCatchUpDigest } from "../filtering/catch-up-ui";
+} from "../export/jobs.ts";
+import { renderForExternalTarget } from "../export/external-targets.ts";
+import { filterExpiredRules, filterRuleErrors } from "../filtering/filter-engine.ts";
+import { applyFilterRuleImportAtomic } from "../filtering/rule-import.ts";
+import { exportRuleSet, previewRuleSetImport, renewRuleLine } from "../filtering/rules.ts";
+import { getCatchUpStore, getSeenPostStore } from "../filtering/seen-posts-feature.ts";
+import { openCatchUpDigest } from "../filtering/catch-up-ui.ts";
 import {
   clearHiddenPosts,
   getHiddenPostStore,
   undoLastHide
-} from "../filtering/hidden-posts-feature";
-import { buildWarcArchive } from "../export/warc";
-import { estimateWaczBytes } from "../export/wacz";
+} from "../filtering/hidden-posts-feature.ts";
+import { buildWarcArchive } from "../export/warc.ts";
+import { estimateWaczBytes } from "../export/wacz.ts";
 import {
   buildWaczArchiveOffThread,
   buildSignedWaczArchiveOffThread,
   type WaczWorkerBuildOptions
-} from "../export/wacz-worker-client";
-import { WaczSigningKeyStore } from "../export/wacz-signing";
-import { pingAria2Version, removeAria2Download, tellActiveAria2 } from "../integrations/aria2";
-import { crosspost, readComposerText, type CrosspostRequest } from "../integrations/crosspost";
-import { SemanticIndex } from "../integrations/semantic-search";
-import { isLocalOnly } from "../integrations/network-policy";
-import { defaultAiBudget, defaultEmbeddingBudget } from "../integrations/usage";
-import { recentIntegrationErrors } from "./integration-errors";
-import { importOfficialArchive, MAX_ARCHIVE_BYTES } from "../library/archive-import";
+} from "../export/wacz-worker-client.ts";
+import { WaczSigningKeyStore } from "../export/wacz-signing.ts";
+import { pingAria2Version, removeAria2Download, tellActiveAria2 } from "../integrations/aria2.ts";
+import { crosspost, readComposerText, type CrosspostRequest } from "../integrations/crosspost.ts";
+import { SemanticIndex } from "../integrations/semantic-search.ts";
+import { isLocalOnly } from "../integrations/network-policy.ts";
+import { defaultAiBudget, defaultEmbeddingBudget } from "../integrations/usage.ts";
+import { recentIntegrationErrors } from "./integration-errors.ts";
+import { importOfficialArchive, MAX_ARCHIVE_BYTES } from "../library/archive-import.ts";
 import {
   ArchiveImportJobStore,
   type ArchiveImportJobActionResult
-} from "../library/archive-import-jobs";
-import { ArchiveLibraryStore } from "../library/archive-library";
-import { previewCleanup } from "../library/cleanup-preview";
-import { CleanupQueue } from "../library/cleanup-queue";
+} from "../library/archive-import-jobs.ts";
+import { ArchiveLibraryStore } from "../library/archive-library.ts";
+import { previewCleanup } from "../library/cleanup-preview.ts";
+import { CleanupQueue } from "../library/cleanup-queue.ts";
 import {
   cancelMediaBatch,
   countCapturedMedia,
@@ -87,10 +87,10 @@ import {
   retryFailedMediaJobs,
   runCapturedMediaBatch,
   runMediaBatch
-} from "../media/batch-downloader";
-import { LocalSearchIndex } from "../library/local-search";
-import { buildMarkdownReport } from "../library/reports";
-import { captureSnapshotFromDom, getSnapshotStore } from "../library/snapshots-feature";
+} from "../media/batch-downloader.ts";
+import { LocalSearchIndex } from "../library/local-search.ts";
+import { buildMarkdownReport } from "../library/reports.ts";
+import { captureSnapshotFromDom, getSnapshotStore } from "../library/snapshots-feature.ts";
 import {
   clearUserNotes,
   getUserColors,
@@ -98,7 +98,7 @@ import {
   isUserColor,
   setUserColor,
   setUserNote
-} from "../library/user-notes";
+} from "../library/user-notes.ts";
 import {
   bookmarkStatus,
   clearBookmarks,
@@ -107,7 +107,7 @@ import {
   removeBookmark,
   searchBookmarks,
   updateBookmark
-} from "../library/bookmarks-feature";
+} from "../library/bookmarks-feature.ts";
 import {
   documentFromBookmark,
   documentFromExportRecord,
@@ -120,32 +120,32 @@ import {
   OfflineQueryIndex,
   parseOfflineQuery,
   type OfflineQueryHit
-} from "../library/query-model";
+} from "../library/query-model.ts";
 import {
   getMediaHistory,
   getMediaQueue,
   refreshMediaDownloadMarkers
-} from "../media/media-buttons";
-import { getLastDownload } from "../media/last-download";
-import { buildMediaHistoryExportArtifacts } from "../media/history";
-import type { FeatureContext, FeatureModule } from "../registry";
+} from "../media/media-buttons.ts";
+import { getLastDownload } from "../media/last-download.ts";
+import { buildMediaHistoryExportArtifacts } from "../media/history.ts";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
 import {
   buildSettingsExport,
   parseSettingsImport,
   type SettingsImportReport
-} from "./settings-migration";
+} from "./settings-migration.ts";
 import {
   createLibraryBackup,
   previewLibraryRestore,
   restoreLibraryBackup,
   type LibraryBackupPreview,
   type LibraryBackupRestoreResult
-} from "./library-backup";
+} from "./library-backup.ts";
 import {
   UnderTheHoodStore,
   type UnderTheHoodParseResult,
   type UnderTheHoodStatus
-} from "../library/under-the-hood";
+} from "../library/under-the-hood.ts";
 
 let controlCenter: ControlCenterHandle | undefined;
 const searchIndex = new LocalSearchIndex();
@@ -1207,7 +1207,7 @@ export const controlCenterFeature: FeatureModule = {
         const snapshotStore = getSnapshotStore();
         const latest = snapshotStore?.list().at(-1);
         const diff = latest ? snapshotStore?.diffLatest(latest.kind, latest.handle) ?? undefined : undefined;
-        const reportInput: import("../library/reports").ReportInputs = {
+        const reportInput: import("../library/reports.ts").ReportInputs = {
           audit: ctx.auditLog.snapshot().entries,
           cleanup
         };
@@ -1463,7 +1463,7 @@ function countRecordsForSurface(
   return total;
 }
 
-function hasArchiveCollections(collections: import("../library/archive-types").ArchiveCollections): boolean {
+function hasArchiveCollections(collections: import("../library/archive-types.ts").ArchiveCollections): boolean {
   return Boolean(
     collections.profile ||
       collections.account ||
@@ -1500,16 +1500,16 @@ function collectOfflineDocuments() {
 
 function collectAllRecords(
   store: ReturnType<typeof getCheckpointStore>
-): Array<import("../export/types").ExportRecord> {
+): Array<import("../export/types.ts").ExportRecord> {
   if (!store) return [];
-  const all: Array<import("../export/types").ExportRecord> = [];
+  const all: Array<import("../export/types.ts").ExportRecord> = [];
   for (const job of store.list()) {
     all.push(...store.records(job.jobId));
   }
   return all;
 }
 
-function matchingCapturedRecords(query: string): Array<import("../export/types").ExportRecord> {
+function matchingCapturedRecords(query: string): Array<import("../export/types.ts").ExportRecord> {
   const records = collectAllRecords(getCheckpointStore()).filter((record) => record.media.length > 0);
   if (query.trim().length === 0) return records;
   const index = new OfflineQueryIndex();
@@ -1517,12 +1517,12 @@ function matchingCapturedRecords(query: string): Array<import("../export/types")
   return index
     .search(query, { limit: 5_000 })
     .map((hit) => hit.document.payload)
-    .filter((payload): payload is import("../export/types").ExportRecord =>
+    .filter((payload): payload is import("../export/types.ts").ExportRecord =>
       Boolean(payload && typeof payload === "object" && Array.isArray((payload as { media?: unknown }).media))
     );
 }
 
-function formatHit(hit: import("../library/local-search").SearchHit): {
+function formatHit(hit: import("../library/local-search.ts").SearchHit): {
   handle: string | null;
   tweetId: string | null;
   text: string;

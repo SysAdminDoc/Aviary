@@ -1,11 +1,11 @@
-import type { StorageGateway } from "../../platform/storage";
+import type { StorageGateway } from "../../platform/storage.ts";
 import type {
   ExportCheckpoint,
   ExportFormat,
   ExportJobProgress,
   ExportJobStatus,
   ExportRecord
-} from "./types";
+} from "./types.ts";
 
 export const CHECKPOINT_KEY = "aviary.export.checkpoints.v1";
 

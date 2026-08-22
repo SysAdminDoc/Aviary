@@ -1,6 +1,6 @@
-import type { StorageGateway } from "../../platform/storage";
-import { mutateStored, replaceStored } from "../../platform/storage-lock";
-import type { RouteSurface } from "../../platform/route";
+import type { StorageGateway } from "../../platform/storage.ts";
+import { mutateStored, replaceStored } from "../../platform/storage-lock.ts";
+import type { RouteSurface } from "../../platform/route.ts";
 
 export const SEEN_POSTS_KEY = "aviary.seenPosts.v1";
 export const SEEN_POSTS_LIMIT = 4000;

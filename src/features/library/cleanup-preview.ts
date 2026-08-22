@@ -1,4 +1,4 @@
-import type { ExportRecord } from "../export/types";
+import type { ExportRecord } from "../export/types.ts";
 
 export type CleanupBucket = "tweets" | "retweets" | "replies" | "likes" | "bookmarks";
 

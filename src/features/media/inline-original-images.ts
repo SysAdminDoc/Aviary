@@ -1,5 +1,5 @@
-import type { FeatureContext, FeatureModule } from "../registry";
-import { normalizeImageUrl } from "./urls";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
+import { normalizeImageUrl } from "./urls.ts";
 
 const PROCESSED_ATTR = "data-av-orig-image";
 const ORIGINAL_SRC = "avOriginalSrc";

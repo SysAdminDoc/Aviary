@@ -1,4 +1,4 @@
-import type { LocaleCode } from "./i18n";
+import type { LocaleCode } from "./i18n.ts";
 
 /**
  * Panel catalog, gettext-style: the English source string IS the key.

@@ -1,4 +1,4 @@
-import type { FeatureContext, FeatureModule } from "../registry";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
 
 const STYLE_ID = "av-layout-declutter";
 

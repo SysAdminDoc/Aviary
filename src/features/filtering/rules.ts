@@ -1,6 +1,6 @@
-import { checkRegexBudget } from "./regex-budget";
-import type { FilterMediaKey } from "../../platform/settings";
-import type { FilterDecision, FilterInput } from "./predicates";
+import { checkRegexBudget } from "./regex-budget.ts";
+import type { FilterMediaKey } from "../../platform/settings.ts";
+import type { FilterDecision, FilterInput } from "./predicates.ts";
 
 /**
  * A small rule language for the timeline filter.

@@ -1,19 +1,13 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("profile storage isolates values and adopts legacy data only explicitly", async () => {
   const {
     ProfileManager,
     PROFILE_MIGRATION_KEYS,
     createProfileStorageGateway
-  } = await importBundledModule("src/platform/profile.ts");
+  } = await importSourceModule("src/platform/profile.ts");
   const store = new Map([["aviary.settings.v1", { legacy: true }]]);
   const base = {
     async get(key, fallback) {
@@ -49,22 +43,3 @@ test("profile storage isolates values and adopts legacy data only explicitly", a
   assert.equal(manager.status().legacyDataAvailable, false);
   assert.ok(PROFILE_MIGRATION_KEYS.includes("aviary.settings.v1"));
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-profile-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}

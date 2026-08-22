@@ -1,4 +1,4 @@
-import type { FeatureModule } from "../registry";
+import type { FeatureModule } from "../registry.ts";
 
 const STYLE_ID = "av-link-unshorten";
 const PROCESSED_ATTR = "data-av-link-clean";

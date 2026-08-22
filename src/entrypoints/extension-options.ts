@@ -7,10 +7,10 @@
  * browser-owned gesture. No network calls, no storage writes.
  */
 
-import { createStorageGateway } from "../platform/storage";
-import { createDurableStorageGateway } from "../platform/durable-storage";
-import { ACTIVE_PROFILE_KEY, DEFAULT_PROFILE_ID, createProfileStorageGateway } from "../platform/profile";
-import { SETTINGS_KEY } from "../platform/settings";
+import { createStorageGateway } from "../platform/storage.ts";
+import { createDurableStorageGateway } from "../platform/durable-storage.ts";
+import { ACTIVE_PROFILE_KEY, DEFAULT_PROFILE_ID, createProfileStorageGateway } from "../platform/profile.ts";
+import { SETTINGS_KEY } from "../platform/settings.ts";
 
 export const MEDIA_ORIGINS = ["https://pbs.twimg.com/*", "https://video.twimg.com/*"];
 

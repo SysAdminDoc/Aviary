@@ -1,4 +1,4 @@
-import { cloneSettings, normalizeSettings, type AviarySettings } from "../../platform/settings";
+import { cloneSettings, normalizeSettings, type AviarySettings } from "../../platform/settings.ts";
 
 export const SETTINGS_EXPORT_VERSION = 1;
 

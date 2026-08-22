@@ -1,4 +1,4 @@
-import type { CapturedBookmarkInput } from "./bookmarks";
+import type { CapturedBookmarkInput } from "./bookmarks.ts";
 
 const MAX_NODES = 25_000;
 const MAX_TEXT = 20_000;

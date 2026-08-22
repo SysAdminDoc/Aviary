@@ -4,9 +4,9 @@ import {
   prepareWaczArchive,
   type PreparedWacz,
   type WaczBuildOptions
-} from "../features/export/wacz";
-import type { ExportRecord } from "../features/export/types";
-import type { WaczSignatureData } from "../features/export/wacz-signing";
+} from "../features/export/wacz.ts";
+import type { ExportRecord } from "../features/export/types.ts";
+import type { WaczSignatureData } from "../features/export/wacz-signing.ts";
 
 interface WaczWorkerRequest {
   id: number;

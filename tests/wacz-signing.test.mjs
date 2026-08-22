@@ -1,17 +1,11 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 
 test("a profile-local P-384 keypair persists and signs the manifest hash", async () => {
-  const { WACZ_SIGNING_KEY, WaczSigningKeyStore } = await importBundledModule(
+  const { WACZ_SIGNING_KEY, WaczSigningKeyStore } = await importSourceModule(
     "src/features/export/wacz-signing.ts"
   );
   const storage = new MemoryStorage();
@@ -56,9 +50,9 @@ test("a profile-local P-384 keypair persists and signs the manifest hash", async
 test("signed WACZ embeds verifiable anonymous signature data and unsigned WACZ stays valid", async () => {
   const [{ buildSignedWaczArchive, buildWaczArchive }, { WaczSigningKeyStore }, { readStoreZip }] =
     await Promise.all([
-      importBundledModule("src/features/export/wacz.ts"),
-      importBundledModule("src/features/export/wacz-signing.ts"),
-      importBundledModule("src/features/export/zip-reader.ts")
+      importSourceModule("src/features/export/wacz.ts"),
+      importSourceModule("src/features/export/wacz-signing.ts"),
+      importSourceModule("src/features/export/zip-reader.ts")
     ]);
   const signing = new WaczSigningKeyStore(new MemoryStorage());
   await signing.load();
@@ -96,8 +90,8 @@ test("signed WACZ embeds verifiable anonymous signature data and unsigned WACZ s
 test("routine library backups cannot carry the WACZ private key", async () => {
   const [{ createLibraryBackup, LIBRARY_BACKUP_COLLECTIONS }, { WACZ_SIGNING_KEY }]
     = await Promise.all([
-      importBundledModule("src/features/core/library-backup.ts"),
-      importBundledModule("src/features/export/wacz-signing.ts")
+      importSourceModule("src/features/core/library-backup.ts"),
+      importSourceModule("src/features/export/wacz-signing.ts")
     ]);
   const privateSentinel = "PRIVATE-WACZ-KEY-MUST-NOT-BACK-UP";
   const storage = new MemoryStorage({
@@ -112,7 +106,7 @@ test("routine library backups cannot carry the WACZ private key", async () => {
 });
 
 test("an invalid stored identity is reported and never silently replaced", async () => {
-  const { WACZ_SIGNING_KEY, WaczSigningKeyStore } = await importBundledModule(
+  const { WACZ_SIGNING_KEY, WaczSigningKeyStore } = await importSourceModule(
     "src/features/export/wacz-signing.ts"
   );
   const invalid = { schemaVersion: 1, algorithm: "ECDSA-P384-SHA256", privateKey: "broken" };
@@ -159,23 +153,4 @@ function sampleRecord() {
     media: [],
     permalink: "https://x.com/alpha/status/1"
   };
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-wacz-signing-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
 }

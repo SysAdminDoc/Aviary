@@ -1,6 +1,6 @@
 {
   "name": "aviary-x-enhancer",
-  "version": "1.44.1",
+  "version": "1.45.0",
   "private": true,
   "type": "module",
   "description": "Local-first X/Twitter enhancer delivered as a readable userscript and MV3 extension.",

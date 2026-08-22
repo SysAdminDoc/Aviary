@@ -2,20 +2,20 @@ import type {
   ExportExpandedUrl,
   ExportParticipant,
   ExportRecord
-} from "../export/types";
+} from "../export/types.ts";
 import {
   collectKnownShortLinks,
   replaceKnownTcoLinks,
   tcoLinkKey,
   type LinkKnowledgeSource,
   type ResolvedShortLink
-} from "./link-unshorten";
+} from "./link-unshorten.ts";
 import {
   emptyArchiveRepairSummary,
   type ArchiveCollections,
   type ArchiveParticipant,
   type ArchiveRepairSummary
-} from "./archive-types";
+} from "./archive-types.ts";
 
 const MAX_IDENTITY_NODES = 100_000;
 const MAX_IDENTITIES = 25_000;

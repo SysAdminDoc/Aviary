@@ -1,30 +1,30 @@
-import type { FeatureContext, FeatureModule } from "../registry";
-import { ft } from "../core/feature-i18n";
-import { showFeatureToast } from "../core/feature-toast";
-import { Aria2History } from "../integrations/aria2";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
+import { ft } from "../core/feature-i18n.ts";
+import { showFeatureToast } from "../core/feature-toast.ts";
+import { Aria2History } from "../integrations/aria2.ts";
 import {
   isMediaContextDownloadMessage,
   isMediaContextPermissionDeniedMessage
-} from "../../extension/media-context-menu";
-import type { CapturedGraphqlPayload } from "../../page/page-agent";
-import type { PageBridge } from "../../platform/page-bridge";
+} from "../../extension/media-context-menu.ts";
+import type { CapturedGraphqlPayload } from "../../page/page-agent.ts";
+import type { PageBridge } from "../../platform/page-bridge.ts";
 import {
   createDownloader,
   DownloadPermissionError,
   fingerprintMediaDownload,
   requestDownloadPermissionSurface,
   type Downloader
-} from "./downloader";
-import { mediaIdentityHash, type MediaFingerprint } from "../export/assets";
-import { extractTweet, mediaIdentity, type ExtractedMedia, type ExtractedTweet } from "./extract";
-import { MediaMetadataCache } from "./media-metadata";
-import { sharedDownloadWatcher } from "./download-watch";
-import { isSaveableVariantUrl, VIDEO_CONTAINER_SELECTOR } from "./video-extract";
-import { MediaHistory, type MediaMatchKind } from "./history";
-import { rememberLastDownload } from "./last-download";
-import { DownloadQueue } from "./queue";
-import { renderFilename } from "./template";
-import { mediaSidecarRequest, saveMediaSidecar } from "./sidecar";
+} from "./downloader.ts";
+import { mediaIdentityHash, type MediaFingerprint } from "../export/assets.ts";
+import { extractTweet, mediaIdentity, type ExtractedMedia, type ExtractedTweet } from "./extract.ts";
+import { MediaMetadataCache } from "./media-metadata.ts";
+import { sharedDownloadWatcher } from "./download-watch.ts";
+import { isSaveableVariantUrl, VIDEO_CONTAINER_SELECTOR } from "./video-extract.ts";
+import { MediaHistory, type MediaMatchKind } from "./history.ts";
+import { rememberLastDownload } from "./last-download.ts";
+import { DownloadQueue } from "./queue.ts";
+import { renderFilename } from "./template.ts";
+import { mediaSidecarRequest, saveMediaSidecar } from "./sidecar.ts";
 
 const STYLE_ID = "av-media-buttons";
 const BUTTON_ATTR = "data-av-media-button";

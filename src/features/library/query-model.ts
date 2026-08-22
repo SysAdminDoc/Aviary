@@ -1,8 +1,8 @@
-import type { ExportRecord } from "../export/types";
-import type { SemanticEntry } from "../integrations/semantic-search";
-import type { BookmarkRecord } from "./bookmarks";
-import type { SnapshotEntry } from "./snapshots";
-import type { ArchiveLibrarySnapshot } from "./archive-library";
+import type { ExportRecord } from "../export/types.ts";
+import type { SemanticEntry } from "../integrations/semantic-search.ts";
+import type { BookmarkRecord } from "./bookmarks.ts";
+import type { SnapshotEntry } from "./snapshots.ts";
+import type { ArchiveLibrarySnapshot } from "./archive-library.ts";
 
 /** One bounded, searchable representation for every local library surface. */
 export type OfflineCollection =

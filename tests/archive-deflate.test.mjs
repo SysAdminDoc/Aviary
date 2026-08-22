@@ -1,13 +1,7 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
 import { deflateRawSync, crc32 as nodeCrc32 } from "node:zlib";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
  * Builds a ZIP the way a normal zip tool would.
@@ -98,7 +92,7 @@ const TWEETS_JS = `window.YTD.tweets.part0 = ${JSON.stringify([
 ])}`;
 
 test("a DEFLATE-compressed archive — what X actually ships — imports", async () => {
-  const { importOfficialArchive } = await importBundledModule(
+  const { importOfficialArchive } = await importSourceModule(
     "src/features/library/archive-import.ts"
   );
 
@@ -113,7 +107,7 @@ test("a DEFLATE-compressed archive — what X actually ships — imports", async
 });
 
 test("archive repair expands only known links and labels known or unresolved participant ids", async () => {
-  const { importOfficialArchive } = await importBundledModule(
+  const { importOfficialArchive } = await importSourceModule(
     "src/features/library/archive-import.ts"
   );
   const assign = (name, value) => `window.YTD.${name}.part0 = ${JSON.stringify(value)}`;
@@ -241,7 +235,7 @@ test("archive repair expands only known links and labels known or unresolved par
 });
 
 test("archive repair ignores malformed and non-GraphQL checkpoint evidence", async () => {
-  const { ArchiveRepairIndex } = await importBundledModule(
+  const { ArchiveRepairIndex } = await importSourceModule(
     "src/features/library/archive-repair.ts"
   );
   const index = new ArchiveRepairIndex([
@@ -291,7 +285,7 @@ test("archive repair ignores malformed and non-GraphQL checkpoint evidence", asy
 });
 
 test("official archive collection files are classified, typed, and reported before commit", async () => {
-  const { importOfficialArchive } = await importBundledModule(
+  const { importOfficialArchive } = await importSourceModule(
     "src/features/library/archive-import.ts"
   );
   const assign = (name, value) => `window.YTD.${name}.part0 = ${JSON.stringify(value)}`;
@@ -385,7 +379,7 @@ test("official archive collection files are classified, typed, and reported befo
 });
 
 test("STORE entries still read, and mixed archives read both", async () => {
-  const { readZip } = await importBundledModule("src/features/export/zip-reader.ts");
+  const { readZip } = await importSourceModule("src/features/export/zip-reader.ts");
 
   const archive = buildZip([
     { name: "data/tweets.js", content: TWEETS_JS, method: 8 },
@@ -401,7 +395,7 @@ test("STORE entries still read, and mixed archives read both", async () => {
 });
 
 test("readStoreZip still refuses compressed entries rather than returning garbage", async () => {
-  const { readStoreZip, UnsupportedZipMethodError } = await importBundledModule(
+  const { readStoreZip, UnsupportedZipMethodError } = await importSourceModule(
     "src/features/export/zip-reader.ts"
   );
 
@@ -410,7 +404,7 @@ test("readStoreZip still refuses compressed entries rather than returning garbag
 });
 
 test("a corrupted deflate stream is reported, not silently dropped", async () => {
-  const { importOfficialArchive } = await importBundledModule(
+  const { importOfficialArchive } = await importSourceModule(
     "src/features/library/archive-import.ts"
   );
 
@@ -427,7 +421,7 @@ test("a corrupted deflate stream is reported, not silently dropped", async () =>
 });
 
 test("ZIP inflation rejects an entry whose declared expansion exceeds the safety limit", async () => {
-  const { readZip, ZipLimitError, ZIP_LIMITS } = await importBundledModule(
+  const { readZip, ZipLimitError, ZIP_LIMITS } = await importSourceModule(
     "src/features/export/zip-reader.ts"
   );
   const archive = buildZip([
@@ -441,7 +435,7 @@ test("ZIP inflation rejects an entry whose declared expansion exceeds the safety
 });
 
 test("archive import jobs rehydrate interrupted source and release it after completion", async () => {
-  const { ArchiveImportJobStore, ARCHIVE_IMPORT_JOBS_KEY } = await importBundledModule(
+  const { ArchiveImportJobStore, ARCHIVE_IMPORT_JOBS_KEY } = await importSourceModule(
     "src/features/library/archive-import-jobs.ts"
   );
   const source = new Uint8Array([0, 1, 2, 253, 254, 255]);
@@ -498,7 +492,7 @@ test("archive import jobs rehydrate interrupted source and release it after comp
 });
 
 test("typed archive collections persist separately from searchable tweet records and dedupe", async () => {
-  const { ArchiveLibraryStore, ARCHIVE_LIBRARY_KEY } = await importBundledModule(
+  const { ArchiveLibraryStore, ARCHIVE_LIBRARY_KEY } = await importSourceModule(
     "src/features/library/archive-library.ts"
   );
   const persisted = new Map();
@@ -563,7 +557,7 @@ test("typed archive collections persist separately from searchable tweet records
 });
 
 test("a reimport replaces stale participant repairs for the same direct message", async () => {
-  const { ArchiveLibraryStore } = await importBundledModule(
+  const { ArchiveLibraryStore } = await importSourceModule(
     "src/features/library/archive-library.ts"
   );
   const persisted = new Map();
@@ -610,7 +604,7 @@ test("a reimport replaces stale participant repairs for the same direct message"
 });
 
 test("typed archive collection writes do not mutate the live snapshot when persistence fails", async () => {
-  const { ArchiveLibraryStore } = await importBundledModule(
+  const { ArchiveLibraryStore } = await importSourceModule(
     "src/features/library/archive-library.ts"
   );
   const storage = {
@@ -638,27 +632,8 @@ test("typed archive collection writes do not mutate the live snapshot when persi
   assert.equal(store.snapshot().profile, null);
 });
 
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-deflate-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}
-
 test("a progress tick no longer rewrites the archive it is reporting on", async () => {
-  const { ArchiveImportJobStore, ARCHIVE_IMPORT_JOBS_KEY } = await importBundledModule(
+  const { ArchiveImportJobStore, ARCHIVE_IMPORT_JOBS_KEY } = await importSourceModule(
     "src/features/library/archive-import-jobs.ts"
   );
 
@@ -701,8 +676,8 @@ test("a progress tick no longer rewrites the archive it is reporting on", async 
 });
 
 test("an un-prefixed archive entry containing '=' is not destroyed by prefix stripping", async () => {
-  const { importOfficialArchive } = await importBundledModule("src/features/library/archive-import.ts");
-  const { buildStoreZip } = await importBundledModule("src/features/export/zip-store.ts");
+  const { importOfficialArchive } = await importSourceModule("src/features/library/archive-import.ts");
+  const { buildStoreZip } = await importSourceModule("src/features/export/zip-store.ts");
   const encoder = new TextEncoder();
 
   // Pure JSON, no `window.YTD` prefix, carrying base64 padding and a query string. The old

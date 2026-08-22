@@ -1,12 +1,6 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /** An in-memory stand-in for the storage gateway, so nothing here touches a real backend. */
 function memoryStorage(seed = {}) {
@@ -27,7 +21,7 @@ function memoryStorage(seed = {}) {
 const candidate = (bucket, extra = {}) => ({ bucket, protected: false, ...extra });
 
 test("the destructive gate fails closed instead of merely reporting false", async () => {
-  const { CleanupQueue, DestructiveActionBlockedError } = await importBundledModule(
+  const { CleanupQueue, DestructiveActionBlockedError } = await importSourceModule(
     "src/features/library/cleanup-queue.ts"
   );
   const queue = new CleanupQueue(memoryStorage());
@@ -64,7 +58,7 @@ async function fillPastLimit(queue, calls = 12, perCall = 5) {
 }
 
 test("queue ids stay unique once the queue is trimming at its limit", async () => {
-  const { CleanupQueue } = await importBundledModule("src/features/library/cleanup-queue.ts");
+  const { CleanupQueue } = await importSourceModule("src/features/library/cleanup-queue.ts");
   const queue = new CleanupQueue(memoryStorage(), 50);
 
   await fillPastLimit(queue);
@@ -75,7 +69,7 @@ test("queue ids stay unique once the queue is trimming at its limit", async () =
 });
 
 test("setStatus reaches the intended item after trimming", async () => {
-  const { CleanupQueue } = await importBundledModule("src/features/library/cleanup-queue.ts");
+  const { CleanupQueue } = await importSourceModule("src/features/library/cleanup-queue.ts");
   const queue = new CleanupQueue(memoryStorage(), 50);
   await fillPastLimit(queue);
 
@@ -89,7 +83,7 @@ test("setStatus reaches the intended item after trimming", async () => {
 });
 
 test("a stored item with an unknown status is rejected, not carried forever", async () => {
-  const { CleanupQueue, CLEANUP_QUEUE_KEY } = await importBundledModule(
+  const { CleanupQueue, CLEANUP_QUEUE_KEY } = await importSourceModule(
     "src/features/library/cleanup-queue.ts"
   );
   const storage = memoryStorage({
@@ -111,7 +105,7 @@ test("a stored item with an unknown status is rejected, not carried forever", as
 });
 
 test("clear preserves the stored destructive flag instead of resetting it", async () => {
-  const { CleanupQueue, CLEANUP_QUEUE_KEY } = await importBundledModule(
+  const { CleanupQueue, CLEANUP_QUEUE_KEY } = await importSourceModule(
     "src/features/library/cleanup-queue.ts"
   );
   const storage = memoryStorage({
@@ -135,7 +129,7 @@ test("clear preserves the stored destructive flag instead of resetting it", asyn
 });
 
 test("two queues do not share one items array", async () => {
-  const { CleanupQueue } = await importBundledModule("src/features/library/cleanup-queue.ts");
+  const { CleanupQueue } = await importSourceModule("src/features/library/cleanup-queue.ts");
 
   const first = new CleanupQueue(memoryStorage());
   const second = new CleanupQueue(memoryStorage());
@@ -146,7 +140,7 @@ test("two queues do not share one items array", async () => {
 });
 
 test("protected candidates are never enqueued", async () => {
-  const { CleanupQueue } = await importBundledModule("src/features/library/cleanup-queue.ts");
+  const { CleanupQueue } = await importSourceModule("src/features/library/cleanup-queue.ts");
   const queue = new CleanupQueue(memoryStorage());
 
   const added = await queue.enqueue([
@@ -161,7 +155,7 @@ test("protected candidates are never enqueued", async () => {
 
 
 test("removing one bookmark cannot take a second with it", async () => {
-  const { BookmarkStore } = await importBundledModule("src/features/library/bookmarks.ts");
+  const { BookmarkStore } = await importSourceModule("src/features/library/bookmarks.ts");
   const store = new BookmarkStore(memoryStorage(), 64);
 
   // Clock frozen and the store trimming at its limit: the shape in which the old
@@ -186,7 +180,7 @@ test("removing one bookmark cannot take a second with it", async () => {
 });
 
 test("two bookmark stores do not share one entries array", async () => {
-  const { BookmarkStore } = await importBundledModule("src/features/library/bookmarks.ts");
+  const { BookmarkStore } = await importSourceModule("src/features/library/bookmarks.ts");
   const first = new BookmarkStore(memoryStorage());
   const second = new BookmarkStore(memoryStorage());
   await first.upsert({ text: "only mine" });
@@ -194,22 +188,3 @@ test("two bookmark stores do not share one entries array", async () => {
   assert.equal(first.size(), 1);
   assert.equal(second.size(), 0);
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-cleanup-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "neutral",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}

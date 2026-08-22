@@ -1,16 +1,16 @@
-import type { FeatureContext, FeatureModule } from "../registry";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
 import {
   getSelectorHealthForRoute,
   type SelectorHealth
-} from "../../platform/selectors";
-import type { StorageGateway } from "../../platform/storage";
-import { observeAdMarkers } from "../privacy/ad-protection";
+} from "../../platform/selectors.ts";
+import type { StorageGateway } from "../../platform/storage.ts";
+import { observeAdMarkers } from "../privacy/ad-protection.ts";
 import {
   AD_OBSERVATIONS_KEY,
   AdObservationStore,
   emptyAdObservationSnapshot,
   type AdObservationSnapshot
-} from "./ad-observations";
+} from "./ad-observations.ts";
 
 const CRITICAL_SURFACES = new Set(["App root", "Primary column"]);
 const MIN_LOG_INTERVAL_MS = 5000;

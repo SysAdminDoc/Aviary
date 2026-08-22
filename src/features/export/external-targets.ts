@@ -1,5 +1,5 @@
-import type { ExportArtifact, ExportRecord } from "./types";
-import { describeMediaCapture, serializeExportRecords } from "./assets";
+import type { ExportArtifact, ExportRecord } from "./types.ts";
+import { describeMediaCapture, serializeExportRecords } from "./assets.ts";
 
 const ENCODER = new TextEncoder();
 

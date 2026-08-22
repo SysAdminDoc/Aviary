@@ -1,6 +1,6 @@
-import type { StorageGateway } from "../../platform/storage";
-import { mutateStored, replaceStored } from "../../platform/storage-lock";
-import type { ExportRecord } from "../export/types";
+import type { StorageGateway } from "../../platform/storage.ts";
+import { mutateStored, replaceStored } from "../../platform/storage-lock.ts";
+import type { ExportRecord } from "../export/types.ts";
 
 export const CATCH_UP_KEY = "aviary.catchUp.v1";
 export const CATCH_UP_LIMIT = 4000;

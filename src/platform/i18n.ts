@@ -1,4 +1,4 @@
-import { PANEL_STRINGS, panelCatalog } from "./i18n-catalog";
+import { PANEL_STRINGS, panelCatalog } from "./i18n-catalog.ts";
 
 export type LocaleCode = "en" | "es" | "pt" | "fr" | "de" | "ja" | "ko" | "ar" | "he";
 

@@ -1,12 +1,6 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const record = (overrides = {}) => ({
   tweetId: "1",
@@ -21,7 +15,7 @@ const record = (overrides = {}) => ({
 });
 
 test("saved-post search finds records in the languages the panel is translated into", async () => {
-  const { LocalSearchIndex } = await importBundledModule("src/features/library/local-search.ts");
+  const { LocalSearchIndex } = await importSourceModule("src/features/library/local-search.ts");
 
   const index = new LocalSearchIndex();
   index.rebuild([
@@ -42,7 +36,7 @@ test("saved-post search finds records in the languages the panel is translated i
 });
 
 test("Korean matching survives a decomposed query (NFC, never NFD)", async () => {
-  const { LocalSearchIndex } = await importBundledModule("src/features/library/local-search.ts");
+  const { LocalSearchIndex } = await importSourceModule("src/features/library/local-search.ts");
 
   const index = new LocalSearchIndex();
   index.rebuild([record({ tweetId: "k", text: "서울".normalize("NFC") })]);
@@ -54,7 +48,7 @@ test("Korean matching survives a decomposed query (NFC, never NFD)", async () =>
 });
 
 test("the semantic index is bounded and reports what it dropped", async () => {
-  const { SemanticIndex, SEMANTIC_INDEX_LIMIT } = await importBundledModule(
+  const { SemanticIndex, SEMANTIC_INDEX_LIMIT } = await importSourceModule(
     "src/features/integrations/semantic-search.ts"
   );
 
@@ -97,7 +91,7 @@ test("the semantic index is bounded and reports what it dropped", async () => {
 });
 
 test("semantic embeddings require finite, non-empty, dimension-consistent vectors", async () => {
-  const { SemanticIndex, cosineSimilarity } = await importBundledModule(
+  const { SemanticIndex, cosineSimilarity } = await importSourceModule(
     "src/features/integrations/semantic-search.ts"
   );
   const storage = {
@@ -127,7 +121,7 @@ test("semantic embeddings require finite, non-empty, dimension-consistent vector
 });
 
 test("semantic query refusal happens before any provider request", async () => {
-  const { SemanticIndex } = await importBundledModule(
+  const { SemanticIndex } = await importSourceModule(
     "src/features/integrations/semantic-search.ts"
   );
   const storage = {
@@ -168,10 +162,10 @@ test("semantic query refusal happens before any provider request", async () => {
 });
 
 test("exports never carry a blob: URL that only meant something in the capturing tab", async () => {
-  const { renderForExternalTarget } = await importBundledModule(
+  const { renderForExternalTarget } = await importSourceModule(
     "src/features/export/external-targets.ts"
   );
-  const { formatExport } = await importBundledModule("src/features/export/formatters.ts");
+  const { formatExport } = await importSourceModule("src/features/export/formatters.ts");
 
   const withBlob = [
     record({ media: [{ kind: "video", url: "", type: "video/mp4", width: 1280, height: 720 }] })
@@ -188,7 +182,7 @@ test("exports never carry a blob: URL that only meant something in the capturing
 });
 
 test("a display name with YAML metacharacters cannot break or extend the frontmatter", async () => {
-  const { renderForExternalTarget } = await importBundledModule(
+  const { renderForExternalTarget } = await importSourceModule(
     "src/features/export/external-targets.ts"
   );
 
@@ -207,22 +201,3 @@ test("a display name with YAML metacharacters cannot break or extend the frontma
   );
   assert.match(frontmatter, /display_name: "Someone: \\"quoted\\" injected_key: gotcha"/);
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-search-export-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}

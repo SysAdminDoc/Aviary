@@ -1,4 +1,4 @@
-import type { FeatureContext, FeatureModule } from "../registry";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
 
 const PROCESSED_ATTR = "data-av-perf-video";
 const PAUSED_ATTR = "data-av-perf-paused";

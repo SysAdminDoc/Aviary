@@ -1,12 +1,12 @@
-import { renderFilename } from "./template";
+import { renderFilename } from "./template.ts";
 import {
   extractTweet,
   mediaIdentity,
   type ExtractedTweet,
   type ExtractedMedia,
   type ExtractTweetOptions
-} from "./extract";
-import { sharedDownloadWatcher } from "./download-watch";
+} from "./extract.ts";
+import { sharedDownloadWatcher } from "./download-watch.ts";
 import {
   createDownloader,
   DownloadPermissionError,
@@ -14,19 +14,19 @@ import {
   requestDownloadPermissionSurface,
   type Downloader,
   type DownloaderResult
-} from "./downloader";
-import { mediaIdentityHash, type MediaFingerprint } from "../export/assets";
-import { getCapturedMediaMetadata, getMediaHistory, getMediaQueue } from "./media-buttons";
-import { isSaveableVariantUrl } from "./video-extract";
-import type { DownloadJob } from "./queue";
-import type { FeatureContext } from "../registry";
-import type { ExportMedia, ExportRecord } from "../export/types";
-import { normalizeImageUrl } from "./urls";
+} from "./downloader.ts";
+import { mediaIdentityHash, type MediaFingerprint } from "../export/assets.ts";
+import { getCapturedMediaMetadata, getMediaHistory, getMediaQueue } from "./media-buttons.ts";
+import { isSaveableVariantUrl } from "./video-extract.ts";
+import type { DownloadJob } from "./queue.ts";
+import type { FeatureContext } from "../registry.ts";
+import type { ExportMedia, ExportRecord } from "../export/types.ts";
+import { normalizeImageUrl } from "./urls.ts";
 import {
   mediaSidecarRequest,
   saveMediaSidecar,
   type MediaSidecarRequest
-} from "./sidecar";
+} from "./sidecar.ts";
 
 export interface BatchOptions {
   surface?: string;

@@ -1,12 +1,6 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
  * A stand-in for the page's window.
@@ -78,7 +72,7 @@ const MASTER_PLAYLIST = [
 ].join("\n");
 
 test("request guards cannot match timeline, media, login, or action traffic", async () => {
-  const { isTelemetryUrl, isAdRequestUrl, isGraphqlUrl } = await importBundledModule("src/page/page-agent.ts");
+  const { isTelemetryUrl, isAdRequestUrl, isGraphqlUrl } = await importSourceModule("src/page/page-agent.ts");
 
   // The direction that matters. A matcher one character too greedy would not fail loudly here --
   // it would blank the timeline on live X, where nothing in this repo can observe it.
@@ -121,7 +115,7 @@ test("the isolated GraphQL boundary rejects forged, inconsistent, oversized, and
     isPageAgentEnvelope,
     sanitizeCapturedGraphqlPayload,
     PAGE_CHANNEL
-  } = await importBundledModule("src/page/page-agent.ts");
+  } = await importSourceModule("src/page/page-agent.ts");
   const at = new Date().toISOString();
   const valid = {
     url: "/i/api/graphql/abc123/HomeTimeline?variables=%7B%7D",
@@ -169,7 +163,7 @@ test("the isolated GraphQL boundary rejects forged, inconsistent, oversized, and
 });
 
 test("startup captures direct video metadata while elective hooks remain off", async () => {
-  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+  const { installPageAgent, PAGE_CHANNEL } = await importSourceModule("src/page/page-agent.ts");
   const target = fakeWindow();
   const events = [];
 
@@ -203,7 +197,7 @@ test("startup captures direct video metadata while elective hooks remain off", a
 });
 
 test("an enabled beacon hook refuses telemetry and reports it, without disturbing the timeline", async () => {
-  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+  const { installPageAgent, PAGE_CHANNEL } = await importSourceModule("src/page/page-agent.ts");
 
   const target = fakeWindow(async (input) => new Response(`served:${String(input)}`, { status: 200 }));
   const events = [];
@@ -243,7 +237,7 @@ test("an enabled beacon hook refuses telemetry and reports it, without disturbin
 });
 
 test("ad protection refuses promoted logging across fetch, XHR, and sendBeacon only", async () => {
-  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+  const { installPageAgent, PAGE_CHANNEL } = await importSourceModule("src/page/page-agent.ts");
   const target = fakeWindow(async (input) => new Response(`served:${String(input)}`, { status: 200 }));
   const events = [];
   const uninstall = installPageAgent(target, (envelope) => events.push(envelope));
@@ -291,7 +285,7 @@ test("ad protection refuses promoted logging across fetch, XHR, and sendBeacon o
 });
 
 test("page-agent config and teardown require the negotiated session nonce", async () => {
-  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+  const { installPageAgent, PAGE_CHANNEL } = await importSourceModule("src/page/page-agent.ts");
   const target = fakeWindow();
   const uninstall = installPageAgent(target);
   const nonce = "trusted-session-nonce-1234";
@@ -333,7 +327,7 @@ test("page-agent config and teardown require the negotiated session nonce", asyn
 });
 
 test("XHR telemetry is refused by URL captured at open()", async () => {
-  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+  const { installPageAgent, PAGE_CHANNEL } = await importSourceModule("src/page/page-agent.ts");
   const target = fakeWindow();
   const uninstall = installPageAgent(target);
 
@@ -359,7 +353,7 @@ test("XHR telemetry is refused by URL captured at open()", async () => {
 });
 
 test("a master playlist is reduced to its highest-bandwidth rendition", async () => {
-  const { rewritePlaylistToBestVariant } = await importBundledModule("src/page/page-agent.ts");
+  const { rewritePlaylistToBestVariant } = await importSourceModule("src/page/page-agent.ts");
 
   const result = rewritePlaylistToBestVariant(MASTER_PLAYLIST);
   assert.ok(result, "a three-variant master playlist must be rewritten");
@@ -380,7 +374,7 @@ test("a master playlist is reduced to its highest-bandwidth rendition", async ()
 });
 
 test("AVERAGE-BANDWIDTH is preferred and never confused with BANDWIDTH", async () => {
-  const { rewritePlaylistToBestVariant } = await importBundledModule("src/page/page-agent.ts");
+  const { rewritePlaylistToBestVariant } = await importSourceModule("src/page/page-agent.ts");
 
   // Peak bandwidth ranks these one way and sustained bandwidth the other. Picking the wrong
   // attribute silently selects the lower-quality rendition, which is the whole failure this
@@ -400,7 +394,7 @@ test("AVERAGE-BANDWIDTH is preferred and never confused with BANDWIDTH", async (
 });
 
 test("a fetched playlist is rewritten in flight and reported", async () => {
-  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+  const { installPageAgent, PAGE_CHANNEL } = await importSourceModule("src/page/page-agent.ts");
 
   const target = fakeWindow(async () => new Response(MASTER_PLAYLIST, { status: 200 }));
   const events = [];
@@ -427,7 +421,7 @@ test("a fetched playlist is rewritten in flight and reported", async () => {
 });
 
 test("GraphQL capture reads the body without consuming the page's response", async () => {
-  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+  const { installPageAgent, PAGE_CHANNEL } = await importSourceModule("src/page/page-agent.ts");
 
   const body = JSON.stringify({ data: { home: { instructions: [] } } });
   const target = fakeWindow(async () => new Response(body, { status: 200 }));
@@ -456,7 +450,7 @@ test("GraphQL capture reads the body without consuming the page's response", asy
 });
 
 test("media metadata capture shares GraphQL delivery without enabling raw export capture", async () => {
-  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+  const { installPageAgent, PAGE_CHANNEL } = await importSourceModule("src/page/page-agent.ts");
 
   const body = JSON.stringify({ data: { tweet: { rest_id: "123" } } });
   const target = fakeWindow(async () => new Response(body, { status: 200 }));
@@ -484,7 +478,7 @@ test("media metadata capture shares GraphQL delivery without enabling raw export
 });
 
 test("media metadata capture observes XHR GraphQL without changing the page response", async () => {
-  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+  const { installPageAgent, PAGE_CHANNEL } = await importSourceModule("src/page/page-agent.ts");
 
   const responseValue = { data: { tweet: { rest_id: "123", video_info: { variants: [] } } } };
   const body = JSON.stringify(responseValue);
@@ -530,7 +524,7 @@ test("media metadata capture observes XHR GraphQL without changing the page resp
 });
 
 test("XHR capture accepts text responses and ignores non-GraphQL API traffic", async () => {
-  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+  const { installPageAgent, PAGE_CHANNEL } = await importSourceModule("src/page/page-agent.ts");
 
   const body = JSON.stringify({ data: { tweet: { rest_id: "456" } } });
   const target = fakeWindow();
@@ -578,7 +572,7 @@ test("XHR capture accepts text responses and ignores non-GraphQL API traffic", a
 });
 
 test("teardown restores the exact references it replaced", async () => {
-  const { installPageAgent } = await importBundledModule("src/page/page-agent.ts");
+  const { installPageAgent } = await importSourceModule("src/page/page-agent.ts");
   const target = fakeWindow();
 
   const uninstall = installPageAgent(target);
@@ -594,26 +588,6 @@ test("teardown restores the exact references it replaced", async () => {
   assert.equal(target.XMLHttpRequest.prototype.send, target.originals.send);
 });
 
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-page-"));
-  const outfile = path.join(temp, "module.mjs");
-
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}
-
 function sendConfig(target, channel, config) {
   const nonce = "test-session-nonce-1234";
   target.postMessage({ channel, kind: "hello", nonce });
@@ -626,7 +600,7 @@ function sendConfig(target, channel, config) {
 // so anything gating a retry queue on completion would have waited for good.
 
 test("a refused XHR completes as a network error instead of hanging", async () => {
-  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+  const { installPageAgent, PAGE_CHANNEL } = await importSourceModule("src/page/page-agent.ts");
   const target = fakeWindow(async (input) => new Response(`served:${String(input)}`, { status: 200 }));
   const uninstall = installPageAgent(target);
 
@@ -662,7 +636,7 @@ test("a refused XHR completes as a network error instead of hanging", async () =
 });
 
 test("a listener throwing during refusal does not stop the remaining completion events", async () => {
-  const { installPageAgent, PAGE_CHANNEL } = await importBundledModule("src/page/page-agent.ts");
+  const { installPageAgent, PAGE_CHANNEL } = await importSourceModule("src/page/page-agent.ts");
   const target = fakeWindow(async () => new Response("", { status: 200 }));
   const uninstall = installPageAgent(target);
 
@@ -693,7 +667,7 @@ test("a listener throwing during refusal does not stop the remaining completion 
 
 test("teardown leaves a wrapper installed after Aviary's alone", async () => {
   const { installPageAgent, uninstallPageAgent, getLastUninstallOutcomes } =
-    await importBundledModule("src/page/page-agent.ts");
+    await importSourceModule("src/page/page-agent.ts");
   const target = fakeWindow(async () => new Response("", { status: 200 }));
   const originalFetch = target.fetch;
 
@@ -719,7 +693,7 @@ test("teardown leaves a wrapper installed after Aviary's alone", async () => {
 
 test("teardown restores fetch when it is still ours", async () => {
   const { installPageAgent, uninstallPageAgent, getLastUninstallOutcomes } =
-    await importBundledModule("src/page/page-agent.ts");
+    await importSourceModule("src/page/page-agent.ts");
   const target = fakeWindow(async () => new Response("", { status: 200 }));
   const originalFetch = target.fetch;
 

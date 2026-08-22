@@ -1,18 +1,12 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("listPresets and applyPreset mutate the expected sections", async () => {
-  const { listPresets, getPreset, applyPreset, describePresetDelta } = await importBundledModule(
+  const { listPresets, getPreset, applyPreset, describePresetDelta } = await importSourceModule(
     "src/features/core/presets.ts"
   );
-  const { DEFAULT_SETTINGS } = await importBundledModule("src/platform/settings.ts");
+  const { DEFAULT_SETTINGS } = await importSourceModule("src/platform/settings.ts");
 
   const presets = listPresets();
   assert.ok(presets.length >= 6);
@@ -37,7 +31,7 @@ test("listPresets and applyPreset mutate the expected sections", async () => {
 });
 
 test("i18n bundle exposes locales, translates with fallback, and reports direction", async () => {
-  const { translate, supportedLocales, localeDirection } = await importBundledModule(
+  const { translate, supportedLocales, localeDirection } = await importSourceModule(
     "src/platform/i18n.ts"
   );
 
@@ -57,7 +51,7 @@ test("i18n bundle exposes locales, translates with fallback, and reports directi
 });
 
 test("CleanupQueue is read-only by policy and respects protected items", async () => {
-  const { CleanupQueue } = await importBundledModule("src/features/library/cleanup-queue.ts");
+  const { CleanupQueue } = await importSourceModule("src/features/library/cleanup-queue.ts");
   const store = new Map();
   const storage = {
     async get(key, fallback) {
@@ -94,22 +88,3 @@ test("CleanupQueue is read-only by policy and respects protected items", async (
   await queue.clear();
   assert.equal(queue.size(), 0);
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-v100-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
-}

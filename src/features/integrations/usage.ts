@@ -1,6 +1,6 @@
-import type { IntegrationSettings } from "../../platform/settings";
-import type { StorageGateway } from "../../platform/storage";
-import { replaceStored, withStorageLock } from "../../platform/storage-lock";
+import type { IntegrationSettings } from "../../platform/settings.ts";
+import type { StorageGateway } from "../../platform/storage.ts";
+import { replaceStored, withStorageLock } from "../../platform/storage-lock.ts";
 
 export const INTEGRATION_USAGE_KEY = "aviary.integration.usage.v1";
 export const INTEGRATION_USAGE_SCHEMA_VERSION = 1;

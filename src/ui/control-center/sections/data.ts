@@ -4,9 +4,9 @@ import {
   type AviarySettings,
   type MediaSidecarFormat,
   type RateLimitMode
-} from "../../../platform/settings";
-import type { PanelContext } from "../panel-context";
-import { MEDIA_LAYOUT_OPTIONS } from "../constants";
+} from "../../../platform/settings.ts";
+import type { PanelContext } from "../panel-context.ts";
+import { MEDIA_LAYOUT_OPTIONS } from "../constants.ts";
 export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
   const rows: HTMLElement[] = [];
 

@@ -1,5 +1,5 @@
-import type { FeatureContext, FeatureModule } from "../registry";
-import { ft } from "./feature-i18n";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
+import { ft } from "./feature-i18n.ts";
 
 export const FIRST_RUN_KEY = "aviary.firstRun.v1";
 const HOST_ID = "av-first-run";

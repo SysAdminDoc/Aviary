@@ -1,4 +1,4 @@
-import type { ExportMedia, ExportRecord, MediaCaptureStatus } from "./types";
+import type { ExportMedia, ExportRecord, MediaCaptureStatus } from "./types.ts";
 
 export interface ExportMediaManifest {
   status: MediaCaptureStatus;

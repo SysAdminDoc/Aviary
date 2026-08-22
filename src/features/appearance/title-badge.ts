@@ -1,4 +1,4 @@
-import type { FeatureContext, FeatureModule } from "../registry";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
 
 /**
  * X puts its unread count in the tab title ("(3) Home / X"), which survives every declutter

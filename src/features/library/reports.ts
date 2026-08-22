@@ -1,6 +1,6 @@
-import type { AuditEntry } from "../core/audit-log";
-import type { CleanupPreview } from "./cleanup-preview";
-import type { SnapshotDiff, SnapshotEntry } from "./snapshots";
+import type { AuditEntry } from "../core/audit-log.ts";
+import type { CleanupPreview } from "./cleanup-preview.ts";
+import type { SnapshotDiff, SnapshotEntry } from "./snapshots.ts";
 
 export interface ReportInputs {
   audit: AuditEntry[];

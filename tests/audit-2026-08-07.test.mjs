@@ -1,20 +1,19 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { build } from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const execFileAsync = promisify(execFile);
 
 test("filter recompiles when the rules change and not when they do not", async () => {
-  const { compileFilters, decide } = await importBundledModule(
+  const { compileFilters, decide } = await importSourceModule(
     "src/features/filtering/predicates.ts"
   );
 
@@ -37,7 +36,7 @@ test("filter recompiles when the rules change and not when they do not", async (
 });
 
 test("a corrupted stored value is reported instead of silently reading as unset", async () => {
-  const { createStorageGateway, setStorageErrorSink } = await importBundledModule(
+  const { createStorageGateway, setStorageErrorSink } = await importSourceModule(
     "src/platform/storage.ts"
   );
 
@@ -66,7 +65,7 @@ test("a corrupted stored value is reported instead of silently reading as unset"
 });
 
 test("an out-of-range value cannot reach storage through saveSettings", async () => {
-  const { normalizeSettings, DEFAULT_SETTINGS, cloneSettings } = await importBundledModule(
+  const { normalizeSettings, DEFAULT_SETTINGS, cloneSettings } = await importSourceModule(
     "src/platform/settings.ts"
   );
 
@@ -81,7 +80,7 @@ test("an out-of-range value cannot reach storage through saveSettings", async ()
 });
 
 test("the action log is keyed by its own store, not by a label borrowed from elsewhere", async () => {
-  const { AUDIT_LOG_KEY, AuditLog } = await importBundledModule("src/features/core/audit-log.ts");
+  const { AUDIT_LOG_KEY, AuditLog } = await importSourceModule("src/features/core/audit-log.ts");
   assert.equal(typeof AUDIT_LOG_KEY, "string");
 
   const values = new Map();
@@ -123,7 +122,7 @@ test("the action log is keyed by its own store, not by a label borrowed from els
 });
 
 test("a failed crosspost surfaces as an integration error under its own kind", async () => {
-  const { recentIntegrationErrors } = await importBundledModule(
+  const { recentIntegrationErrors } = await importSourceModule(
     "src/features/core/integration-errors.ts"
   );
 
@@ -138,8 +137,8 @@ test("a failed crosspost surfaces as an integration error under its own kind", a
 });
 
 test("aria2 routes by size, so the threshold finally means something", async () => {
-  const { createDownloader } = await importBundledModule("src/features/media/downloader.ts");
-  const { shouldHandoffToAria2 } = await importBundledModule("src/features/integrations/aria2.ts");
+  const { createDownloader } = await importSourceModule("src/features/media/downloader.ts");
+  const { shouldHandoffToAria2 } = await importSourceModule("src/features/integrations/aria2.ts");
 
   // The predicate always said yes without a size, and no caller ever supplied one -- so with
   // aria2 on, a 40 KB thumbnail was handed off just like a 4 GB video.
@@ -223,7 +222,7 @@ test("the options page is localized without importing the whole catalog", async 
   // Read through the accessor rather than slicing the generated source. This used to look for a
   // "  ja: {" block, which stopped existing the moment the catalog became a lazily parsed JSON
   // string -- a passing assertion about a file's shape rather than about its contents.
-  const { panelCatalog } = await importBundledModule("src/platform/i18n-catalog.ts");
+  const { panelCatalog } = await importSourceModule("src/platform/i18n-catalog.ts");
   const ja = panelCatalog().ja ?? {};
   for (const key of keys) {
     assert.ok(ja[key] !== undefined, `options string missing from ja: ${key.slice(0, 50)}`);
@@ -278,22 +277,3 @@ test("store extension archives are byte-reproducible", async () => {
 
   assert.deepEqual(second, first, "repeated builds changed a tracked ZIP without source changes");
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-audit0807-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}

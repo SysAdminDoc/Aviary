@@ -1,16 +1,10 @@
+import { importSourceEntry, importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("formatXlsx packages an OPC-shaped ZIP with the expected parts", async () => {
-  const { formatXlsx } = await importBundledModule("src/features/export/xlsx.ts");
-  const { readStoreZip } = await importBundledModule("src/features/export/zip-reader.ts");
+  const { formatXlsx } = await importSourceModule("src/features/export/xlsx.ts");
+  const { readStoreZip } = await importSourceModule("src/features/export/zip-reader.ts");
 
   const artifact = formatXlsx([
     {
@@ -43,7 +37,7 @@ test("formatXlsx packages an OPC-shaped ZIP with the expected parts", async () =
 });
 
 test("selectSupportedFormats now accepts xlsx", async () => {
-  const { selectSupportedFormats } = await importBundledModule(
+  const { selectSupportedFormats } = await importSourceModule(
     "src/features/export/export-feature.ts"
   );
   assert.deepEqual(selectSupportedFormats(["json", "xlsx"]), ["json", "xlsx"]);
@@ -51,7 +45,7 @@ test("selectSupportedFormats now accepts xlsx", async () => {
 });
 
 test("BookmarkStore round-trips, dedupes tags, and reports tag/folder summaries", async () => {
-  const { BookmarkStore } = await importBundledModule("src/features/library/bookmarks.ts");
+  const { BookmarkStore } = await importSourceModule("src/features/library/bookmarks.ts");
 
   const store = new Map();
   const storage = {
@@ -97,7 +91,7 @@ test("BookmarkStore round-trips, dedupes tags, and reports tag/folder summaries"
 });
 
 test("BookmarkStore.dueReminders selects entries past the cutoff", async () => {
-  const { BookmarkStore } = await importBundledModule("src/features/library/bookmarks.ts");
+  const { BookmarkStore } = await importSourceModule("src/features/library/bookmarks.ts");
   const store = new Map();
   const storage = makeStorage(store);
   const bookmarks = new BookmarkStore(storage);
@@ -117,7 +111,7 @@ test("a captured payload is scrubbed of session tokens and truncated to its byte
   // One bundle for both: `getCheckpointStore` is module-level state, so bundling the two
   // separately would give network-capture its own copy and persist nothing anywhere the export
   // feature could see -- a green test against a capture path that stores nothing.
-  const bundled = await importBundledEntry([
+  const bundled = await importSourceEntry([
     "src/features/export/network-capture.ts",
     "src/features/export/export-feature.ts"
   ]);
@@ -202,7 +196,7 @@ test("a captured payload is scrubbed of session tokens and truncated to its byte
 });
 
 test("network capture never patches the fetch it can reach, because it is the wrong one", async () => {
-  const { networkCaptureFeature } = await importBundledModule("src/features/export/network-capture.ts");
+  const { networkCaptureFeature } = await importSourceModule("src/features/export/network-capture.ts");
   const bridge = fakeBridge();
   const context = {
     pageBridge: bridge,
@@ -228,7 +222,7 @@ test("network capture never patches the fetch it can reach, because it is the wr
 });
 
 test("network capture rejects forged payloads and bounds a burst before persistence", async () => {
-  const { networkCaptureFeature, getRecentCapturedPayloads } = await importBundledModule(
+  const { networkCaptureFeature, getRecentCapturedPayloads } = await importSourceModule(
     "src/features/export/network-capture.ts"
   );
   const bridge = fakeBridge();
@@ -273,8 +267,8 @@ test("network capture rejects forged payloads and bounds a burst before persiste
 });
 
 test("page-world feature subscriptions survive a destroy and reboot", async () => {
-  const { pageHooksFeature } = await importBundledModule("src/features/privacy/page-hooks.ts");
-  const { networkCaptureFeature } = await importBundledModule("src/features/export/network-capture.ts");
+  const { pageHooksFeature } = await importSourceModule("src/features/privacy/page-hooks.ts");
+  const { networkCaptureFeature } = await importSourceModule("src/features/export/network-capture.ts");
 
   for (const [feature, event] of [
     [pageHooksFeature, "blocked"],
@@ -304,53 +298,6 @@ function makeStorage(map) {
       map.delete(key);
     }
   };
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-v11x-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
-}
-
-/** Bundles several modules into one graph so their module-level state is genuinely shared. */
-async function importBundledEntry(relativePaths) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-v11x-multi-"));
-  const entry = path.join(temp, "entry.ts");
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await writeFile(
-      entry,
-      relativePaths
-        .map((relative) => `export * from ${JSON.stringify(path.resolve(root, relative).split(path.sep).join("/"))};`)
-        .join(";\n"),
-      "utf8"
-    );
-    await build({
-      entryPoints: [entry],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
 }
 
 function fakeBridge() {

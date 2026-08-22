@@ -1,15 +1,16 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("a long post is chunked, not truncated", async () => {
-  const { chunkToLimit, segmentsForTarget, TARGET_LIMITS } = await importBundledModule(
+  const { chunkToLimit, segmentsForTarget, TARGET_LIMITS } = await importSourceModule(
     "src/features/integrations/crosspost.ts"
   );
 
@@ -40,7 +41,7 @@ test("a long post is chunked, not truncated", async () => {
 });
 
 test("the limit counts graphemes, so emoji are not miscounted", async () => {
-  const { chunkToLimit } = await importBundledModule("src/features/integrations/crosspost.ts");
+  const { chunkToLimit } = await importSourceModule("src/features/integrations/crosspost.ts");
 
   // Each family emoji is one grapheme but several UTF-16 units; counting units would chunk far
   // too early and could split a sequence into replacement characters.
@@ -53,7 +54,7 @@ test("the limit counts graphemes, so emoji are not miscounted", async () => {
 });
 
 test("thread mode splits on blank lines and then chunks each block", async () => {
-  const { segmentsForTarget } = await importBundledModule("src/features/integrations/crosspost.ts");
+  const { segmentsForTarget } = await importSourceModule("src/features/integrations/crosspost.ts");
 
   const long = Array.from({ length: 80 }, (_, i) => `w${i}`).join(" ");
   const segments = segmentsForTarget(`first paragraph\n\n${long}`, "bluesky", true);
@@ -63,7 +64,7 @@ test("thread mode splits on blank lines and then chunks each block", async () =>
 });
 
 test("a thread that fails halfway reports what was already posted", async () => {
-  const { crosspost } = await importBundledModule("src/features/integrations/crosspost.ts");
+  const { crosspost } = await importSourceModule("src/features/integrations/crosspost.ts");
 
   let calls = 0;
   const originalFetch = globalThis.fetch;
@@ -152,22 +153,3 @@ test("readComposerText keeps the paragraph breaks thread mode splits on", async 
     await rm(temp, { recursive: true, force: true });
   }
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-crosspost-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}

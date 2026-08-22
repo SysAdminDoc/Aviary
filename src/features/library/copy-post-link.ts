@@ -1,9 +1,9 @@
-import type { FeatureContext, FeatureModule } from "../registry";
-import { ft } from "../core/feature-i18n";
-import { showFeatureToast } from "../core/feature-toast";
-import { tweetIdFromHref } from "../media/urls";
-import { handleFromHref } from "../filtering/hidden-posts";
-import type { CopyLinkHost } from "../../platform/settings";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
+import { ft } from "../core/feature-i18n.ts";
+import { showFeatureToast } from "../core/feature-toast.ts";
+import { tweetIdFromHref } from "../media/urls.ts";
+import { handleFromHref } from "../filtering/hidden-posts.ts";
+import type { CopyLinkHost } from "../../platform/settings.ts";
 
 /**
  * Copy a post's link on a front-end other than X.

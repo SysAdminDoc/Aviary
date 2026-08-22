@@ -1,4 +1,4 @@
-import type { StorageGateway } from "./storage";
+import type { StorageGateway } from "./storage.ts";
 
 export const PROFILE_REGISTRY_KEY = "aviary.profiles.v1";
 export const ACTIVE_PROFILE_KEY = "aviary.profile.active.v1";

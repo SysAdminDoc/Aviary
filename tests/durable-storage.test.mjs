@@ -1,10 +1,9 @@
+import { importSourceEntry, importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
+import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -12,7 +11,7 @@ test("durable storage migrates legacy values atomically and reports its backend"
   const {
     createDurableStorageGateway,
     DURABLE_STORAGE_SCHEMA_VERSION
-  } = await importBundledModule("src/platform/durable-storage.ts");
+  } = await importSourceModule("src/platform/durable-storage.ts");
   const legacy = memoryStorage({ "aviary.library.bookmarks.v1": { entries: [{ id: "b1" }] } });
   const backend = new MemoryBackend();
   const storage = createDurableStorageGateway(legacy, { backend });
@@ -32,7 +31,7 @@ test("durable storage migrates legacy values atomically and reports its backend"
 });
 
 test("durable storage keeps small unversioned values on the legacy gateway", async () => {
-  const { createDurableStorageGateway } = await importBundledModule("src/platform/durable-storage.ts");
+  const { createDurableStorageGateway } = await importSourceModule("src/platform/durable-storage.ts");
   const legacy = memoryStorage();
   const backend = new MemoryBackend();
   const storage = createDurableStorageGateway(legacy, { backend });
@@ -47,7 +46,7 @@ test("durable storage keeps small unversioned values on the legacy gateway", asy
 });
 
 test("durable storage falls back cleanly when IndexedDB is unavailable", async () => {
-  const { createDurableStorageGateway } = await importBundledModule("src/platform/durable-storage.ts");
+  const { createDurableStorageGateway } = await importSourceModule("src/platform/durable-storage.ts");
   const legacy = memoryStorage();
   const storage = createDurableStorageGateway(legacy, { backend: null });
 
@@ -109,26 +108,6 @@ function memoryStorage(initial = {}) {
   };
 }
 
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-durable-"));
-  const outfile = path.join(temp, "module.mjs");
-
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
-}
-
 // `aviary.seenPosts.v1` shipped in v1.23.0 and was in none of the three registries below, so it was
 // skipped by eager migration, legacy profile adoption, and the library backup — Backup claimed
 // completeness over a store it did not carry. Enumerating the declared keys is the only check that
@@ -149,7 +128,7 @@ test("every durable store key declared in src is registered everywhere it must b
   // The three registries, read as the arrays they are. Slicing each file between a name and
   // "] as const" broke on any reformat and, worse, silently produced an empty slice if either
   // marker moved -- which would report every key as missing from every registry.
-  const registries = await importBundledEntry([
+  const registries = await importSourceEntry([
     "src/platform/durable-storage.ts",
     "src/platform/profile.ts",
     "src/features/core/library-backup.ts"
@@ -262,7 +241,7 @@ class FlakyBackend extends MemoryBackend {
 
 test("writes made during a backend failure survive the next healthy boot", async () => {
   const { createDurableStorageGateway, PENDING_WRITES_KEY } =
-    await importBundledModule("src/platform/durable-storage.ts");
+    await importSourceModule("src/platform/durable-storage.ts");
 
   const legacy = memoryStorage();
   const backend = new FlakyBackend();
@@ -302,7 +281,7 @@ test("writes made during a backend failure survive the next healthy boot", async
 });
 
 test("a removal made during a backend failure is not resurrected", async () => {
-  const { createDurableStorageGateway } = await importBundledModule("src/platform/durable-storage.ts");
+  const { createDurableStorageGateway } = await importSourceModule("src/platform/durable-storage.ts");
   const legacy = memoryStorage();
   const backend = new FlakyBackend();
 
@@ -322,31 +301,3 @@ test("a removal made during a backend failure is not resurrected", async () => {
     "a delete during the outage must travel too, or the stale copy comes back"
   );
 });
-
-/** Bundles several modules into one graph so their exported registries can be read together. */
-async function importBundledEntry(relativePaths) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-registries-"));
-  const entry = path.join(temp, "entry.ts");
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await writeFile(
-      entry,
-      relativePaths
-        .map((relative) => `export * from ${JSON.stringify(path.resolve(root, relative).split(path.sep).join("/"))}`)
-        .join(";\n"),
-      "utf8"
-    );
-    await build({
-      entryPoints: [entry],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "neutral",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?v=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}

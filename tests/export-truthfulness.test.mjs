@@ -1,15 +1,9 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("media manifests distinguish captured bytes, remote references, and missing assets", async () => {
-  const { describeMediaCapture, sha256Hex } = await importBundledModule("src/features/export/assets.ts");
+  const { describeMediaCapture, sha256Hex } = await importSourceModule("src/features/export/assets.ts");
   const bytes = new TextEncoder().encode("hello");
   assert.equal(
     sha256Hex(bytes),
@@ -36,7 +30,7 @@ test("media manifests distinguish captured bytes, remote references, and missing
 });
 
 test("all export formats carry an explicit media status and source", async () => {
-  const { formatExport } = await importBundledModule("src/features/export/formatters.ts");
+  const { formatExport } = await importSourceModule("src/features/export/formatters.ts");
   const record = sampleRecord({
     media: [{
       kind: "photo",
@@ -56,7 +50,7 @@ test("all export formats carry an explicit media status and source", async () =>
 });
 
 test("WARC stores captured bytes as responses and remote media as metadata-only", async () => {
-  const { buildWarcArchive } = await importBundledModule("src/features/export/warc.ts");
+  const { buildWarcArchive } = await importSourceModule("src/features/export/warc.ts");
   const bytes = new TextEncoder().encode("captured media");
   const artifact = buildWarcArchive([sampleRecord({
     media: [
@@ -78,7 +72,7 @@ test("WARC stores captured bytes as responses and remote media as metadata-only"
 });
 
 test("WARC record ids remain unique when two captured records are byte-identical", async () => {
-  const { buildWarcArchive } = await importBundledModule("src/features/export/warc.ts");
+  const { buildWarcArchive } = await importSourceModule("src/features/export/warc.ts");
   const media = {
     kind: "photo",
     url: "https://pbs.twimg.com/media/same.jpg",
@@ -100,10 +94,10 @@ test("WARC record ids remain unique when two captured records are byte-identical
 });
 
 test("export ZIPs include a checksum manifest and package media without silent network fetches", async () => {
-  const { buildExportZip } = await importBundledModule("src/features/export/export-feature.ts");
+  const { buildExportZip } = await importSourceModule("src/features/export/export-feature.ts");
   // readZip, not readStoreZip: export archives are DEFLATE now, and the STORE-only reader
   // correctly refuses method 8.
-  const { readZip } = await importBundledModule("src/features/export/zip-reader.ts");
+  const { readZip } = await importSourceModule("src/features/export/zip-reader.ts");
   const bytes = new TextEncoder().encode("offline image");
   const archive = await buildExportZip([sampleRecord({
     media: [
@@ -133,7 +127,7 @@ test("export ZIPs include a checksum manifest and package media without silent n
 });
 
 test("media capture records failures as retryable metadata", async () => {
-  const { captureExportRecordMedia } = await importBundledModule("src/features/media/downloader.ts");
+  const { captureExportRecordMedia } = await importSourceModule("src/features/media/downloader.ts");
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response("no", { status: 503 });
   try {
@@ -160,23 +154,4 @@ function sampleRecord(overrides = {}) {
     permalink: "https://x.com/alpha/status/1",
     ...overrides
   };
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-truthful-export-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
 }

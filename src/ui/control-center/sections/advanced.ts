@@ -1,5 +1,5 @@
-import { INTEGRATION_BUDGET_CEILINGS } from "../../../platform/settings";
-import type { PanelContext } from "../panel-context";
+import { INTEGRATION_BUDGET_CEILINGS } from "../../../platform/settings.ts";
+import type { PanelContext } from "../panel-context.ts";
 export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
   const rows = [
       ctx.storageStatusRow(),

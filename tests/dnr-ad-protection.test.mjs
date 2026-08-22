@@ -1,16 +1,15 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
+import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("the dynamic rule matches only the separable promoted-content logger", async () => {
-  const mod = await importBundledModule("src/extension/ad-rule.ts");
+  const mod = await importSourceModule("src/extension/ad-rule.ts");
   const matcher = new RegExp(mod.AD_LOGGER_RULE.condition.regexFilter);
   const requestDomains = new Set(mod.AD_LOGGER_RULE.condition.requestDomains);
   const matches = (url) => matcher.test(url) && requestDomains.has(new URL(url).hostname);
@@ -51,7 +50,7 @@ test("the dynamic rule matches only the separable promoted-content logger", asyn
 });
 
 test("enable, disable, and restart reconciliation own exactly one dynamic rule", async () => {
-  const mod = await importBundledModule("src/extension/ad-rule.ts");
+  const mod = await importSourceModule("src/extension/ad-rule.ts");
   const updates = [];
   const stored = new Map();
   const api = {
@@ -95,7 +94,7 @@ test("enable, disable, and restart reconciliation own exactly one dynamic rule",
 });
 
 test("content-to-background synchronization is extension-only and validates the reply", async () => {
-  const mod = await importBundledModule("src/extension/ad-rule.ts");
+  const mod = await importSourceModule("src/extension/ad-rule.ts");
   const originalChrome = globalThis.chrome;
   const messages = [];
 
@@ -182,25 +181,6 @@ test("both extension packages request only host-scoped DNR and Firefox has a rea
   }
 });
 
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-dnr-unit-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "neutral",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?v=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}
-
 // X's ad-blocker notice appears to key on a *failed probe* rather than a rendered ad: the community
 // remedy that propagated through the July 2026 reports allowlists two XHRs instead of hiding
 // anything, and reports describe the symptom as "An error has occurred but it's not your fault", a
@@ -217,7 +197,7 @@ const DETECTION_PROBES = [
 ];
 
 test("the request rule never matches X's own detection probes", async () => {
-  const mod = await importBundledModule("src/extension/ad-rule.ts");
+  const mod = await importSourceModule("src/extension/ad-rule.ts");
   const matcher = new RegExp(mod.AD_LOGGER_RULE.condition.regexFilter);
   const requestDomains = new Set(mod.AD_LOGGER_RULE.condition.requestDomains);
   for (const url of DETECTION_PROBES) {
@@ -227,7 +207,7 @@ test("the request rule never matches X's own detection probes", async () => {
 });
 
 test("the page-world stub never refuses X's own detection probes", async () => {
-  const mod = await importBundledModule("src/page/page-agent.ts");
+  const mod = await importSourceModule("src/page/page-agent.ts");
   for (const url of DETECTION_PROBES) {
     assert.equal(mod.isAdRequestUrl(url), false, `the page agent would refuse a detection probe: ${url}`);
   }
@@ -237,7 +217,7 @@ test("the page-world stub never refuses X's own detection probes", async () => {
 
 test("a failed mirror write cannot leave the rule and its record disagreeing", async () => {
   const { syncDynamicAdRule, restoreDynamicAdRule } =
-    await importBundledModule("src/extension/ad-rule.ts");
+    await importSourceModule("src/extension/ad-rule.ts");
 
   const applied = [];
   const mirror = new Map();

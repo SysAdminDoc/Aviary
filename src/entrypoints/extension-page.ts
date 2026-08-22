@@ -1,4 +1,4 @@
-import { installPageAgent, type PageAgentTarget } from "../page/page-agent";
+import { installPageAgent, type PageAgentTarget } from "../page/page-agent.ts";
 
 /**
  * Runs in the page's own world (`"world": "MAIN"` in both manifests), which is the only place X's

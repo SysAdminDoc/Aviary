@@ -1,4 +1,4 @@
-import type { FeatureContext } from "../registry";
+import type { FeatureContext } from "../registry.ts";
 
 const TOAST_HOST_ID = "av-feature-toast";
 const DEFAULT_TIMEOUT_MS = 4000;

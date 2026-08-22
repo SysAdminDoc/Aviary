@@ -7,12 +7,12 @@ import {
   FILTER_SURFACES,
   isThemeId,
   cloneSettings
-} from "../platform/settings";
-import { FILTER_SURFACE_LABELS } from "./control-center/constants";
-import { buildBackupRows, buildIntegrationRows, buildTrustRows } from "./control-center/sections/advanced";
-import { buildExportRows, buildLibraryRows, buildMediaRows, buildSnapshotRows } from "./control-center/sections/data";
-import { buildAppearanceRows, buildCatchUpRows, buildFilterRows, buildHiddenPostRows, buildLayoutRows, buildPerformanceRows } from "./control-center/sections/reading";
-import { buildPresetRows } from "./control-center/sections/presets";
+} from "../platform/settings.ts";
+import { FILTER_SURFACE_LABELS } from "./control-center/constants.ts";
+import { buildBackupRows, buildIntegrationRows, buildTrustRows } from "./control-center/sections/advanced.ts";
+import { buildExportRows, buildLibraryRows, buildMediaRows, buildSnapshotRows } from "./control-center/sections/data.ts";
+import { buildAppearanceRows, buildCatchUpRows, buildFilterRows, buildHiddenPostRows, buildLayoutRows, buildPerformanceRows } from "./control-center/sections/reading.ts";
+import { buildPresetRows } from "./control-center/sections/presets.ts";
 import type {
   DraftCommit,
   DraftRollback,
@@ -20,17 +20,17 @@ import type {
   PanelContext,
   PanelState,
   RowCommitMode
-} from "./control-center/panel-context";
-import { hasTranslation, localeDirection, translateText } from "../platform/i18n";
-import type { RetentionPolicy } from "../features/export/jobs";
-import type { WaczSigningStatus } from "../features/export/wacz-signing";
-import type { BookmarkInput, BookmarkRecord } from "../features/library/bookmarks";
-import type { OfflineQueryHit } from "../features/library/query-model";
+} from "./control-center/panel-context.ts";
+import { hasTranslation, localeDirection, translateText } from "../platform/i18n.ts";
+import type { RetentionPolicy } from "../features/export/jobs.ts";
+import type { WaczSigningStatus } from "../features/export/wacz-signing.ts";
+import type { BookmarkInput, BookmarkRecord } from "../features/library/bookmarks.ts";
+import type { OfflineQueryHit } from "../features/library/query-model.ts";
 import type {
   UnderTheHoodParseResult,
   UnderTheHoodStatus
-} from "../features/library/under-the-hood";
-import type { RuleSetImportMode, RuleSetImportPlan, RuleSetImportPreview } from "../features/filtering/rules";
+} from "../features/library/under-the-hood.ts";
+import type { RuleSetImportMode, RuleSetImportPlan, RuleSetImportPreview } from "../features/filtering/rules.ts";
 
 /**
  * Stamped in by `tools/build.mjs` so a reload shows at a glance which build is running.
@@ -42,12 +42,12 @@ declare const __AVIARY_VERSION__: string;
 const AVIARY_VERSION = typeof __AVIARY_VERSION__ === "undefined" ? "dev" : __AVIARY_VERSION__;
 
 
-import type { DiagnosticEvent } from "../platform/diagnostics";
-import type { StorageStatus } from "../platform/storage";
-import type { ProfileStatus } from "../platform/profile";
-import type { LibraryBackupPreview, LibraryBackupRestoreResult } from "../features/core/library-backup";
-import type { IntegrationUsageStatus } from "../features/integrations/usage";
-import type { BisectStatus, BisectVerdict } from "../features/core/feature-bisect";
+import type { DiagnosticEvent } from "../platform/diagnostics.ts";
+import type { StorageStatus } from "../platform/storage.ts";
+import type { ProfileStatus } from "../platform/profile.ts";
+import type { LibraryBackupPreview, LibraryBackupRestoreResult } from "../features/core/library-backup.ts";
+import type { IntegrationUsageStatus } from "../features/integrations/usage.ts";
+import type { BisectStatus, BisectVerdict } from "../features/core/feature-bisect.ts";
 
 export interface MediaStatus {
   historySize: number;

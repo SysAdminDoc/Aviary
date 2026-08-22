@@ -1,3 +1,4 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -21,7 +22,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
  * on.
  */
 test("default settings enable only ad protection and user-invoked media saves", async () => {
-  const { DEFAULT_SETTINGS } = await importBundledModule("src/platform/settings.ts");
+  const { DEFAULT_SETTINGS } = await importSourceModule("src/platform/settings.ts");
   const s = DEFAULT_SETTINGS;
 
   // Appearance: X paints itself.
@@ -81,7 +82,7 @@ test("default settings enable only ad protection and user-invoked media saves", 
  */
 test("default styles leave organic timeline surfaces unchanged and collapse ads", async () => {
   const { chromium } = await import("playwright");
-  const { DEFAULT_SETTINGS } = await importBundledModule("src/platform/settings.ts");
+  const { DEFAULT_SETTINGS } = await importSourceModule("src/platform/settings.ts");
 
   const browser = await chromium.launch({ headless: true });
   try {
@@ -177,25 +178,6 @@ async function bundleToText(relativePath) {
     });
     const { readFile } = await import("node:fs/promises");
     return readFile(outfile, "utf8");
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-vanilla-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
   } finally {
     await rm(temp, { recursive: true, force: true });
   }

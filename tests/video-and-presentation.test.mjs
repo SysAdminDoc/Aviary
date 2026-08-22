@@ -1,15 +1,10 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("extractVideo prefers highest-bitrate source and detects GIF heuristics", async () => {
-  const { extractVideo } = await importBundledModule(
+  const { extractVideo } = await importSourceModule(
     "src/features/media/video-extract.ts"
   );
 
@@ -39,7 +34,7 @@ test("extractVideo prefers highest-bitrate source and detects GIF heuristics", a
 });
 
 test("extractVideo flags loop+muted GIF-style player", async () => {
-  const { extractVideo } = await importBundledModule(
+  const { extractVideo } = await importSourceModule(
     "src/features/media/video-extract.ts"
   );
   const container = stubVideoContainer({
@@ -53,7 +48,7 @@ test("extractVideo flags loop+muted GIF-style player", async () => {
 });
 
 test("settings schema accepts new media presentation fields", async () => {
-  const { DEFAULT_SETTINGS, normalizeSettings } = await importBundledModule(
+  const { DEFAULT_SETTINGS, normalizeSettings } = await importSourceModule(
     "src/platform/settings.ts"
   );
 
@@ -160,25 +155,5 @@ function walk(root, visit) {
   for (const child of root.children ?? []) {
     visit(child);
     walk(child, visit);
-  }
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-v6-"));
-  const outfile = path.join(temp, "module.mjs");
-
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
   }
 }

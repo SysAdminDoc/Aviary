@@ -1,4 +1,4 @@
-import type { SubtitleTrack, VideoVariant } from "./video-extract";
+import type { SubtitleTrack, VideoVariant } from "./video-extract.ts";
 
 export interface CapturedMediaMetadata {
   tweetId: string | null;

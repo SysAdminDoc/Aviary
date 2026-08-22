@@ -1,15 +1,9 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("network operations abort and settle when an endpoint stalls", async () => {
-  const { NetworkTimeoutError, withNetworkTimeout } = await importBundledModule(
+  const { NetworkTimeoutError, withNetworkTimeout } = await importSourceModule(
     "src/platform/network.ts"
   );
   let signal;
@@ -32,7 +26,7 @@ test("network operations abort and settle when an endpoint stalls", async () => 
 });
 
 test("settings carry an integrations envelope with defaults disabled and URL validation", async () => {
-  const { DEFAULT_SETTINGS, normalizeSettings } = await importBundledModule(
+  const { DEFAULT_SETTINGS, normalizeSettings } = await importSourceModule(
     "src/platform/settings.ts"
   );
 
@@ -81,7 +75,7 @@ test("settings carry an integrations envelope with defaults disabled and URL val
 });
 
 test("shouldHandoffToAria2 requires enabled + endpoint + threshold", async () => {
-  const { shouldHandoffToAria2 } = await importBundledModule("src/features/integrations/aria2.ts");
+  const { shouldHandoffToAria2 } = await importSourceModule("src/features/integrations/aria2.ts");
   const base = { enabled: false, endpoint: "", secret: "", minBytes: 1_000_000 };
   assert.equal(shouldHandoffToAria2(base, 5_000_000), false);
   assert.equal(shouldHandoffToAria2({ ...base, enabled: true, endpoint: "http://x" }, 500_000), false);
@@ -94,7 +88,7 @@ test("shouldHandoffToAria2 requires enabled + endpoint + threshold", async () =>
 });
 
 test("addUriToAria2 issues a JSON-RPC call with token prefix when secret is set", async () => {
-  const { addUriToAria2 } = await importBundledModule("src/features/integrations/aria2.ts");
+  const { addUriToAria2 } = await importSourceModule("src/features/integrations/aria2.ts");
   let observed;
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, init) => {
@@ -122,7 +116,7 @@ test("addUriToAria2 issues a JSON-RPC call with token prefix when secret is set"
 });
 
 test("crosspost reports configured-but-disabled gracefully and forwards bluesky session calls", async () => {
-  const { crosspost } = await importBundledModule("src/features/integrations/crosspost.ts");
+  const { crosspost } = await importSourceModule("src/features/integrations/crosspost.ts");
 
   const disabled = await crosspost(
     {
@@ -176,7 +170,7 @@ test("crosspost reports configured-but-disabled gracefully and forwards bluesky 
 });
 
 test("runAiPrompt routes to Anthropic Messages and OpenAI Chat endpoints", async () => {
-  const { runAiPrompt } = await importBundledModule("src/features/integrations/ai-provider.ts");
+  const { runAiPrompt } = await importSourceModule("src/features/integrations/ai-provider.ts");
   const originalFetch = globalThis.fetch;
   let observed;
   globalThis.fetch = async (url, init) => {
@@ -228,7 +222,7 @@ test("runAiPrompt routes to Anthropic Messages and OpenAI Chat endpoints", async
 });
 
 test("SemanticIndex stores embeddings and ranks via cosine similarity", async () => {
-  const { SemanticIndex, cosineSimilarity } = await importBundledModule(
+  const { SemanticIndex, cosineSimilarity } = await importSourceModule(
     "src/features/integrations/semantic-search.ts"
   );
 
@@ -287,23 +281,4 @@ function makeStorage(map) {
       map.delete(key);
     }
   };
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-v13-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
 }

@@ -1,15 +1,10 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("thread capture parses root, parent, author, and creation metadata without fetching", async () => {
-  const { parseCapturedThreadRecords } = await importBundledModule("src/features/export/thread-capture.ts");
+  const { parseCapturedThreadRecords } = await importSourceModule("src/features/export/thread-capture.ts");
   const body = JSON.stringify({
     data: {
       home: {
@@ -43,23 +38,4 @@ function tweet(id, text, handle, parentId, name) {
       created_at: handle === "alice" ? "Wed Aug 22 12:00:00 +0000 2026" : "Wed Aug 22 12:02:00 +0000 2026"
     }
   };
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-thread-capture-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
 }

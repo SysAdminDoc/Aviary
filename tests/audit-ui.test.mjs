@@ -1,10 +1,10 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -69,7 +69,7 @@ test("credential fields are masked and offer an explicit reveal", async () => {
 });
 
 test("normalizeSettings still round-trips the reduce-motion values the new control emits", async () => {
-  const { normalizeSettings } = await importBundledModule("src/platform/settings.ts");
+  const { normalizeSettings } = await importSourceModule("src/platform/settings.ts");
 
   for (const mode of ["system", "always", "never"]) {
     assert.equal(normalizeSettings({ accessibility: { reduceMotion: mode } }).accessibility.reduceMotion, mode);
@@ -79,23 +79,3 @@ test("normalizeSettings still round-trips the reduce-motion values the new contr
     "system"
   );
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-audit-ui-"));
-  const outfile = path.join(temp, "module.mjs");
-
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
-}

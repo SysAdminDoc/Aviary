@@ -1,5 +1,5 @@
-import { localeDirection } from "../../platform/i18n";
-import type { FeatureContext, FeatureModule } from "../registry";
+import { localeDirection } from "../../platform/i18n.ts";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
 
 const STYLE_ID = "av-i18n";
 

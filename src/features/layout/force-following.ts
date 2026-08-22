@@ -1,4 +1,4 @@
-import type { FeatureContext, FeatureModule } from "../registry";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
 
 const TABLIST = '[role="tablist"][data-testid="ScrollSnap-List"]';
 const TABLIST_FALLBACK = '[role="tablist"]';

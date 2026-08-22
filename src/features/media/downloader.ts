@@ -1,18 +1,18 @@
-import type { IntegrationSettings } from "../../platform/settings";
+import type { IntegrationSettings } from "../../platform/settings.ts";
 import {
   mediaIdentityHash,
   perceptualImageHash,
   sha256HexAsync,
   type MediaFingerprint,
   type MediaFingerprintKind
-} from "../export/assets";
-import type { ExportMedia, ExportRecord } from "../export/types";
+} from "../export/assets.ts";
+import type { ExportMedia, ExportRecord } from "../export/types.ts";
 import {
   addUriToAria2,
   Aria2History,
   shouldHandoffToAria2
-} from "../integrations/aria2";
-import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network";
+} from "../integrations/aria2.ts";
+import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network.ts";
 
 export interface DownloadRequest {
   url: string;

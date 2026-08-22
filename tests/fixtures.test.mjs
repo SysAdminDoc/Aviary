@@ -1,10 +1,9 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
+import { fileURLToPath } from "node:url";
 
 import { captureAgeReport, listFixtureFiles, readCaptureManifest } from "../tools/capture-manifest.mjs";
 import { assertScrubbed, extractHtml, scrub } from "../tools/capture-decode.mjs";
@@ -198,7 +197,7 @@ test("every secret name is scrubbed in both cookie and JSON form, and caught in 
  * silently drop surfaces from the check. Iterating `SURFACE_SELECTORS` cannot miss one.
  */
 test("every registered surface declares a selector, a fallback, a note and its owning feature", async () => {
-  const { SURFACE_SELECTORS } = await importBundledModule("src/platform/selectors.ts");
+  const { SURFACE_SELECTORS } = await importSourceModule("src/platform/selectors.ts");
 
   assert.ok(
     SURFACE_SELECTORS.length >= 20,
@@ -224,7 +223,7 @@ test("every registered surface declares a selector, a fallback, a note and its o
 });
 
 test("the surfaces features depend on are present in a capture, not invented", async () => {
-  const { SURFACE_SELECTORS } = await importBundledModule("src/platform/selectors.ts");
+  const { SURFACE_SELECTORS } = await importSourceModule("src/platform/selectors.ts");
   const home = await readFile(path.join(root, "_decoded/home.html"), "utf8");
   const status = await readFile(path.join(root, "_decoded/status.html"), "utf8");
   const captures = home + status;
@@ -243,22 +242,3 @@ test("the surfaces features depend on are present in a capture, not invented", a
   const missing = [...claimed].filter((id) => !captures.includes(`data-testid="${id}"`));
   assert.deepEqual(missing, [], `the registry claims test ids no capture contains: ${missing.join(", ")}`);
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-fixtures-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "neutral",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?v=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}

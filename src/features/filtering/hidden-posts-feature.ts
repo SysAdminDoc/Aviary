@@ -1,12 +1,12 @@
-import type { FilterSurface } from "../../platform/settings";
-import type { FeatureContext, FeatureModule } from "../registry";
-import { ft } from "../core/feature-i18n";
+import type { FilterSurface } from "../../platform/settings.ts";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
+import { ft } from "../core/feature-i18n.ts";
 import {
   derivePostKey,
   handleFromHref,
   HiddenPostStore,
   type HiddenPostEntry
-} from "./hidden-posts";
+} from "./hidden-posts.ts";
 
 const STYLE_ID = "av-hidden-posts";
 const TOAST_HOST_ID = "av-hidden-toast";

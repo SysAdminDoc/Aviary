@@ -1,9 +1,9 @@
-import type { FeatureContext, FeatureModule } from "../registry";
-import { runAiPrompt } from "../integrations/ai-provider";
-import { buildAiDisclosure } from "../integrations/usage";
-import { isLocalOnly } from "../integrations/network-policy";
-import { removeFeatureToast, showFeatureToast } from "../core/feature-toast";
-import { ft } from "../core/feature-i18n";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
+import { runAiPrompt } from "../integrations/ai-provider.ts";
+import { buildAiDisclosure } from "../integrations/usage.ts";
+import { isLocalOnly } from "../integrations/network-policy.ts";
+import { removeFeatureToast, showFeatureToast } from "../core/feature-toast.ts";
+import { ft } from "../core/feature-i18n.ts";
 
 const STYLE_ID = "av-ai-command-menu";
 const TRIGGER_ATTR = "data-av-ai-trigger";

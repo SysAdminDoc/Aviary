@@ -1,15 +1,9 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("SnapshotStore records, diffs, and clears", async () => {
-  const { SnapshotStore, diffSnapshots } = await importBundledModule(
+  const { SnapshotStore, diffSnapshots } = await importSourceModule(
     "src/features/library/snapshots.ts"
   );
   const store = new Map();
@@ -38,8 +32,8 @@ test("SnapshotStore records, diffs, and clears", async () => {
 });
 
 test("readStoreZip round-trips entries produced by buildStoreZip", async () => {
-  const { buildStoreZip } = await importBundledModule("src/features/export/zip-store.ts");
-  const { readStoreZip } = await importBundledModule("src/features/export/zip-reader.ts");
+  const { buildStoreZip } = await importSourceModule("src/features/export/zip-store.ts");
+  const { readStoreZip } = await importSourceModule("src/features/export/zip-reader.ts");
   const encoder = new TextEncoder();
   const archive = buildStoreZip([
     { filename: "tweets.js", data: encoder.encode('window.YTD.tweets.part0 = [{"tweet":{"id_str":"1","full_text":"hello"}}]') },
@@ -55,8 +49,8 @@ test("readStoreZip round-trips entries produced by buildStoreZip", async () => {
 });
 
 test("importOfficialArchive parses tweets.js + like.js into ExportRecords", async () => {
-  const { buildStoreZip } = await importBundledModule("src/features/export/zip-store.ts");
-  const { importOfficialArchive } = await importBundledModule(
+  const { buildStoreZip } = await importSourceModule("src/features/export/zip-store.ts");
+  const { importOfficialArchive } = await importSourceModule(
     "src/features/library/archive-import.ts"
   );
   const encoder = new TextEncoder();
@@ -86,7 +80,7 @@ test("importOfficialArchive parses tweets.js + like.js into ExportRecords", asyn
 });
 
 test("previewCleanup classifies records into buckets and respects whitelist", async () => {
-  const { previewCleanup } = await importBundledModule(
+  const { previewCleanup } = await importSourceModule(
     "src/features/library/cleanup-preview.ts"
   );
   const records = [
@@ -131,7 +125,7 @@ test("previewCleanup classifies records into buckets and respects whitelist", as
 });
 
 test("LocalSearchIndex tokenizes and ranks hits", async () => {
-  const { LocalSearchIndex } = await importBundledModule(
+  const { LocalSearchIndex } = await importSourceModule(
     "src/features/library/local-search.ts"
   );
   const index = new LocalSearchIndex();
@@ -171,7 +165,7 @@ test("LocalSearchIndex tokenizes and ranks hits", async () => {
 });
 
 test("buildMarkdownReport produces section headers and audit lines", async () => {
-  const { buildMarkdownReport } = await importBundledModule(
+  const { buildMarkdownReport } = await importSourceModule(
     "src/features/library/reports.ts"
   );
   const markdown = buildMarkdownReport({
@@ -205,23 +199,4 @@ function makeStorage(map) {
       map.delete(key);
     }
   };
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-v11-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
 }

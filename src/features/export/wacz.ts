@@ -1,8 +1,8 @@
-import { serializeExportRecord, sha256Hex } from "./assets";
-import type { ExportArtifact, ExportRecord } from "./types";
-import { buildIndexedWarcArchive, type WarcIndexEntry } from "./warc";
-import type { WaczDigestSigner, WaczSignatureData } from "./wacz-signing";
-import { buildStoreZip, type ZipFileEntry } from "./zip-store";
+import { serializeExportRecord, sha256Hex } from "./assets.ts";
+import type { ExportArtifact, ExportRecord } from "./types.ts";
+import { buildIndexedWarcArchive, type WarcIndexEntry } from "./warc.ts";
+import type { WaczDigestSigner, WaczSignatureData } from "./wacz-signing.ts";
+import { buildStoreZip, type ZipFileEntry } from "./zip-store.ts";
 
 const ENCODER = new TextEncoder();
 

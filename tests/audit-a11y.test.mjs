@@ -1,9 +1,10 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -109,7 +110,7 @@ test("archive search waits for the typing to stop before it walks the records", 
 });
 
 test("LocalSearchIndex handles empty and punctuation-only queries safely", async () => {
-  const { LocalSearchIndex } = await importBundledModule("src/features/library/local-search.ts");
+  const { LocalSearchIndex } = await importSourceModule("src/features/library/local-search.ts");
   const index = new LocalSearchIndex();
   index.rebuild([
     {
@@ -131,23 +132,3 @@ test("LocalSearchIndex handles empty and punctuation-only queries safely", async
   assert.equal(index.search("HELLO").length, 1, "search is case-insensitive");
   assert.equal(index.search("@someone").length, 1, "handles match with or without @");
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-audit-a11y-"));
-  const outfile = path.join(temp, "module.mjs");
-
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
-}

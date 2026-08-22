@@ -1,7 +1,7 @@
-import type { ExportArtifact, ExportFormat, ExportRecord } from "./types";
-import { describeMediaCapture, serializeExportRecords } from "./assets";
-import { reconstructThreads } from "./thread-reconstruction";
-import { formatXlsx } from "./xlsx";
+import type { ExportArtifact, ExportFormat, ExportRecord } from "./types.ts";
+import { describeMediaCapture, serializeExportRecords } from "./assets.ts";
+import { reconstructThreads } from "./thread-reconstruction.ts";
+import { formatXlsx } from "./xlsx.ts";
 
 const TEXT_ENCODER = new TextEncoder();
 

@@ -1,6 +1,6 @@
-import type { ExportArtifact, ExportRecord } from "./types";
-import { describeMediaCapture } from "./assets";
-import { buildStoreZip } from "./zip-store";
+import type { ExportArtifact, ExportRecord } from "./types.ts";
+import { describeMediaCapture } from "./assets.ts";
+import { buildStoreZip } from "./zip-store.ts";
 
 const ENCODER = new TextEncoder();
 

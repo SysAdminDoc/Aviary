@@ -1,4 +1,4 @@
-import type { MediaSidecarFormat } from "../../platform/settings";
+import type { MediaSidecarFormat } from "../../platform/settings.ts";
 
 const MAX_SIDECAR_TEXT = 10_000;
 

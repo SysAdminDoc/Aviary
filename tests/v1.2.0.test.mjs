@@ -1,15 +1,9 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("buildWarcArchive emits ISO-28500 WARC/1.1 headers and a metadata record", async () => {
-  const { buildWarcArchive, formatRecord } = await importBundledModule(
+  const { buildWarcArchive, formatRecord } = await importSourceModule(
     "src/features/export/warc.ts"
   );
 
@@ -43,7 +37,7 @@ test("buildWarcArchive emits ISO-28500 WARC/1.1 headers and a metadata record", 
 });
 
 test("renderForExternalTarget produces Obsidian frontmatter and Notion headings", async () => {
-  const { renderForExternalTarget } = await importBundledModule(
+  const { renderForExternalTarget } = await importSourceModule(
     "src/features/export/external-targets.ts"
   );
 
@@ -89,7 +83,7 @@ test("renderForExternalTarget produces Obsidian frontmatter and Notion headings"
 });
 
 test("AI_COMMANDS prompt templates do not invent sources or leak text outside the prompt body", async () => {
-  const { AI_COMMANDS } = await importBundledModule(
+  const { AI_COMMANDS } = await importSourceModule(
     "src/features/ai/command-menu.ts"
   );
   assert.equal(AI_COMMANDS.length, 4);
@@ -101,22 +95,3 @@ test("AI_COMMANDS prompt templates do not invent sources or leak text outside th
   const factcheck = AI_COMMANDS.find((c) => c.id === "factcheck");
   assert.match(factcheck.promptTemplate("sample"), /Do not invent sources/);
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-v12-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
-}

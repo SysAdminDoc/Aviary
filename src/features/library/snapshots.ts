@@ -1,4 +1,4 @@
-import type { StorageGateway } from "../../platform/storage";
+import type { StorageGateway } from "../../platform/storage.ts";
 
 export const SNAPSHOTS_KEY = "aviary.snapshots.v1";
 export const SNAPSHOT_LIMIT = 24;

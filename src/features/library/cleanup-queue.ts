@@ -1,5 +1,5 @@
-import type { StorageGateway } from "../../platform/storage";
-import type { CleanupCandidate } from "./cleanup-preview";
+import type { StorageGateway } from "../../platform/storage.ts";
+import type { CleanupCandidate } from "./cleanup-preview.ts";
 
 export const CLEANUP_QUEUE_KEY = "aviary.cleanupQueue.v1";
 export const CLEANUP_QUEUE_LIMIT = 5000;

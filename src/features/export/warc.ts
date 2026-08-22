@@ -3,8 +3,8 @@ import {
   describeMediaCapture,
   serializeExportRecord,
   sha256Hex
-} from "./assets";
-import type { ExportArtifact, ExportMedia, ExportRecord } from "./types";
+} from "./assets.ts";
+import type { ExportArtifact, ExportMedia, ExportRecord } from "./types.ts";
 
 const ENCODER = new TextEncoder();
 const WARC_VERSION = "WARC/1.1";

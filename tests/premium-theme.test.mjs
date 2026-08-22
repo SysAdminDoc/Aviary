@@ -1,9 +1,10 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -11,7 +12,7 @@ const fixture = path.join(root, "tests/smoke/current-x-home.html");
 
 test("Noir gives the desktop shell a premium dark treatment and turns fully off", async () => {
   const { chromium } = await import("playwright");
-  const { DEFAULT_SETTINGS, normalizeSettings } = await importBundledModule("src/platform/settings.ts");
+  const { DEFAULT_SETTINGS, normalizeSettings } = await importSourceModule("src/platform/settings.ts");
   const settings = normalizeSettings({
     ...DEFAULT_SETTINGS,
     appearance: { ...DEFAULT_SETTINGS.appearance, theme: "noir" }
@@ -211,25 +212,6 @@ async function bundleToText(relativePath) {
       logLevel: "silent"
     });
     return await readFile(outfile, "utf8");
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-}
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-noir-module-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "node",
-      target: "node22",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?v=${Date.now()}`);
   } finally {
     await rm(temp, { recursive: true, force: true });
   }

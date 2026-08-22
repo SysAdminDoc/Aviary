@@ -1,12 +1,12 @@
-import type { ExportArtifact, ExportRecord } from "./types";
+import type { ExportArtifact, ExportRecord } from "./types.ts";
 import {
   buildSignedWaczArchive,
   buildWaczArchive,
   estimateWaczBytes,
   type PreparedWacz,
   type WaczBuildOptions
-} from "./wacz";
-import type { WaczDigestSigner, WaczSignatureData } from "./wacz-signing";
+} from "./wacz.ts";
+import type { WaczDigestSigner, WaczSignatureData } from "./wacz-signing.ts";
 
 declare const __AVIARY_WACZ_WORKER_SOURCE__: string;
 

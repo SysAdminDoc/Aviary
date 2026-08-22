@@ -1,15 +1,14 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
+import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("tellActiveAria2 parses RPC results and removeAria2Download issues aria2.remove", async () => {
-  const { tellActiveAria2, removeAria2Download } = await importBundledModule(
+  const { tellActiveAria2, removeAria2Download } = await importSourceModule(
     "src/features/integrations/aria2.ts"
   );
 
@@ -64,7 +63,7 @@ test("tellActiveAria2 parses RPC results and removeAria2Download issues aria2.re
 });
 
 test("splitForThread chunks on blank lines and drops empty segments", async () => {
-  const { splitForThread } = await importBundledModule(
+  const { splitForThread } = await importSourceModule(
     "src/features/integrations/crosspost.ts"
   );
   assert.deepEqual(splitForThread("first\n\nsecond\n\nthird"), ["first", "second", "third"]);
@@ -74,7 +73,7 @@ test("splitForThread chunks on blank lines and drops empty segments", async () =
 });
 
 test("crosspost asThread posts every segment for Bluesky with reply refs", async () => {
-  const { crosspost } = await importBundledModule(
+  const { crosspost } = await importSourceModule(
     "src/features/integrations/crosspost.ts"
   );
   const original = globalThis.fetch;
@@ -123,7 +122,7 @@ test("crosspost asThread posts every segment for Bluesky with reply refs", async
 });
 
 test("crosspost asThread chains in_reply_to_id for Mastodon", async () => {
-  const { crosspost } = await importBundledModule(
+  const { crosspost } = await importSourceModule(
     "src/features/integrations/crosspost.ts"
   );
   const original = globalThis.fetch;
@@ -168,7 +167,7 @@ test("crosspost asThread chains in_reply_to_id for Mastodon", async () => {
 });
 
 test("crosspost uploads the last image to Bluesky and embeds it on the first post", async () => {
-  const { crosspost } = await importBundledModule("src/features/integrations/crosspost.ts");
+  const { crosspost } = await importSourceModule("src/features/integrations/crosspost.ts");
   const original = globalThis.fetch;
   const calls = [];
   globalThis.fetch = async (url, init) => {
@@ -220,7 +219,7 @@ test("crosspost uploads the last image to Bluesky and embeds it on the first pos
 });
 
 test("crosspost uploads the last media to Mastodon and attaches it to the first status", async () => {
-  const { crosspost } = await importBundledModule("src/features/integrations/crosspost.ts");
+  const { crosspost } = await importSourceModule("src/features/integrations/crosspost.ts");
   const original = globalThis.fetch;
   const calls = [];
   globalThis.fetch = async (url, init) => {
@@ -266,7 +265,7 @@ test("crosspost uploads the last media to Mastodon and attaches it to the first 
 });
 
 test("crosspost rejects an attachment over the bounded download limit", async () => {
-  const { ATTACHMENT_LIMITS, crosspost } = await importBundledModule(
+  const { ATTACHMENT_LIMITS, crosspost } = await importSourceModule(
     "src/features/integrations/crosspost.ts"
   );
   const original = globalThis.fetch;
@@ -313,7 +312,7 @@ test("crosspost rejects an attachment over the bounded download limit", async ()
 });
 
 test("recentIntegrationErrors surfaces failed audit entries newest-first", async () => {
-  const { recentIntegrationErrors } = await importBundledModule(
+  const { recentIntegrationErrors } = await importSourceModule(
     "src/features/core/integration-errors.ts"
   );
   const entries = [
@@ -347,7 +346,7 @@ test("recentIntegrationErrors surfaces failed audit entries newest-first", async
 });
 
 test("semanticSearch settings carry the new autoIndex flag", async () => {
-  const { DEFAULT_SETTINGS, normalizeSettings } = await importBundledModule(
+  const { DEFAULT_SETTINGS, normalizeSettings } = await importSourceModule(
     "src/platform/settings.ts"
   );
   assert.equal(DEFAULT_SETTINGS.integrations.semanticSearch.autoIndex, false);
@@ -358,7 +357,7 @@ test("semanticSearch settings carry the new autoIndex flag", async () => {
 });
 
 test("crosspost attachment preference defaults off and normalizes safely", async () => {
-  const { DEFAULT_SETTINGS, normalizeSettings } = await importBundledModule(
+  const { DEFAULT_SETTINGS, normalizeSettings } = await importSourceModule(
     "src/platform/settings.ts"
   );
   assert.equal(DEFAULT_SETTINGS.integrations.crosspost.attachLastDownload, false);
@@ -424,22 +423,3 @@ test("Playwright smoke stays local and leaves no hosted build workflow", async (
   assert.doesNotMatch(smoke, /MouseEvent|HTMLButtonElement/);
   assert.match(smoke, /rm\(userDataDir/);
 });
-
-async function importBundledModule(relativePath) {
-  const temp = await mkdtemp(path.join(tmpdir(), "aviary-v14-"));
-  const outfile = path.join(temp, "module.mjs");
-  try {
-    await build({
-      entryPoints: [path.join(root, relativePath)],
-      outfile,
-      bundle: true,
-      format: "esm",
-      platform: "browser",
-      target: "es2022",
-      logLevel: "silent"
-    });
-    return await import(`${pathToFileURL(outfile).href}?cache=${Date.now()}-${Math.random()}`);
-  } finally {
-    await rm(temp, { force: true, recursive: true });
-  }
-}

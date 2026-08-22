@@ -1,12 +1,12 @@
-import { normalizeImageUrl, tweetIdFromHref, type NormalizedImage } from "./urls";
-import type { CapturedMediaMetadata } from "./media-metadata";
+import { normalizeImageUrl, tweetIdFromHref, type NormalizedImage } from "./urls.ts";
+import type { CapturedMediaMetadata } from "./media-metadata.ts";
 import {
   extractVideo,
   videoContainers,
   type ExtractedVideo,
   type SubtitleTrack,
   type VideoVariant
-} from "./video-extract";
+} from "./video-extract.ts";
 
 export interface ExtractedAudio {
   container: HTMLElement;

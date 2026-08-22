@@ -1,7 +1,7 @@
 import {
   isDownloadStateMessage,
   type DownloadTerminalState
-} from "../../extension/download-state";
+} from "../../extension/download-state.ts";
 
 /**
  * Waits for a browser download to actually finish.

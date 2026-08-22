@@ -1,4 +1,4 @@
-import type { FeatureContext, FeatureModule } from "../registry";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
 
 const MARKER = "data-av-thread-recommendation";
 const HEADING_MARKER = "data-av-thread-recommendation-heading";

@@ -1,6 +1,6 @@
-import type { RouteSurface } from "../../platform/route";
-import type { StorageGateway } from "../../platform/storage";
-import type { AdMarkerCounts } from "../privacy/ad-protection";
+import type { RouteSurface } from "../../platform/route.ts";
+import type { StorageGateway } from "../../platform/storage.ts";
+import type { AdMarkerCounts } from "../privacy/ad-protection.ts";
 
 export const AD_OBSERVATIONS_KEY = "aviary.adObservations.v1";
 export const AD_OBSERVATION_LIMIT = 64;

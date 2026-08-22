@@ -1,6 +1,6 @@
-import { extractTweet, quotedPost, type ExtractTweetOptions } from "../media/extract";
-import { isSaveableVariantUrl } from "../media/video-extract";
-import { tweetIdFromHref } from "../media/urls";
+import { extractTweet, quotedPost, type ExtractTweetOptions } from "../media/extract.ts";
+import { isSaveableVariantUrl } from "../media/video-extract.ts";
+import { tweetIdFromHref } from "../media/urls.ts";
 import type {
   ExportArticleSummary,
   ExportMedia,
@@ -8,7 +8,7 @@ import type {
   ExportProfileAbout,
   ExportQuoteSummary,
   ExportRecord
-} from "./types";
+} from "./types.ts";
 
 export interface CollectExportOptions {
   mediaMetadata?: ExtractTweetOptions["mediaMetadata"];

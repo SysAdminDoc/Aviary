@@ -1,8 +1,8 @@
-import type { FeatureContext, FeatureModule } from "../registry";
-import type { FilterSurface } from "../../platform/settings";
-import { collectExportRecords } from "../export/collector";
-import { CatchUpStore, type CatchUpCategory, type CatchUpMetrics } from "./catch-up";
-import { SeenPostStore } from "./seen-posts";
+import type { FeatureContext, FeatureModule } from "../registry.ts";
+import type { FilterSurface } from "../../platform/settings.ts";
+import { collectExportRecords } from "../export/collector.ts";
+import { CatchUpStore, type CatchUpCategory, type CatchUpMetrics } from "./catch-up.ts";
+import { SeenPostStore } from "./seen-posts.ts";
 
 const STYLE_ID = "av-seen-posts";
 const MARKER = "data-av-seen";
