@@ -4,6 +4,21 @@
 
 No changes yet.
 
+## 1.42.0 (2026-08-22)
+
+### Added
+
+- **Library can read X Under the Hood reports locally.** Choose the JSON export from X to see its
+  reporting period, aggregate post and account labels, generated time, and a month-over-month
+  comparison. Reports stay in the local library, travel with the full library backup, and can be
+  exported again as normalized JSON. The panel identifies them as X's own summaries and does not
+  present published ranking code or weights as proof of production ranking behavior.
+
+### Verification
+
+- Added bounded parser, wrapper compatibility, month comparison, store deduplication, backup
+  registration, and Control Center file-import/export coverage.
+
 ## 1.41.0 (2026-08-22)
 
 ### Changed

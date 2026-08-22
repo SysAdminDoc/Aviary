@@ -1,4 +1,4 @@
-# Install Aviary 1.41.0
+# Install Aviary 1.42.0
 
 Aviary ships as a readable userscript and as Manifest V3 extensions. Both builds run on X pages;
 the extensions also provide a dedicated options page for optional browser permissions.
@@ -28,8 +28,8 @@ The userscript declares only the grants it uses:
 - `@connect pbs.twimg.com` and `@connect video.twimg.com` for cross-origin media downloads.
 
 No permission prompt is needed for the local prompt builder, snapshots, bookmarks, notes, archive
-import, or local export formats. Provider integrations remain disabled until configured in the
-Control Center.
+import, Under the Hood JSON reader, or local export formats. Provider integrations remain disabled
+until configured in the Control Center.
 
 ## Chrome, Edge, or Brave (developer load)
 

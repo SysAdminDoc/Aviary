@@ -30,6 +30,8 @@ export type AuditAction =
   | "settings.export"
   | "library.backup.export"
   | "library.backup.restore"
+  | "library.under-the-hood.import"
+  | "library.under-the-hood.export"
   | "preset.apply"
   | "crosspost"
   | "aria2.cancel"

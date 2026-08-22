@@ -26,6 +26,10 @@ import type { RetentionPolicy } from "../features/export/jobs";
 import type { WaczSigningStatus } from "../features/export/wacz-signing";
 import type { BookmarkInput, BookmarkRecord } from "../features/library/bookmarks";
 import type { OfflineQueryHit } from "../features/library/query-model";
+import type {
+  UnderTheHoodParseResult,
+  UnderTheHoodStatus
+} from "../features/library/under-the-hood";
 import type { RuleSetImportMode, RuleSetImportPlan, RuleSetImportPreview } from "../features/filtering/rules";
 
 /**
@@ -221,6 +225,9 @@ export interface ControlCenterOptions {
   clearUserNotes?: () => Promise<void>;
   getBookmarkStatus?: () => BookmarkStatus;
   exportBookmarks?: () => Promise<{ records: number; files: number; filenames: string[] }>;
+  getUnderTheHoodStatus?: () => UnderTheHoodStatus;
+  importUnderTheHood?: (payload: string) => Promise<UnderTheHoodParseResult>;
+  exportUnderTheHood?: () => Promise<{ filename: string; reports: number; bytes: number }>;
   searchBookmarks?: (query: string) => BookmarkRecord[];
   offlineSearch?: (query: string) => OfflineQueryHit[];
   offlineSemanticSearch?: (query: string) => Promise<OfflineQueryHit[]>;

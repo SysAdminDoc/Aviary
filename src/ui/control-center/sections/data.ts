@@ -385,6 +385,106 @@ export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
 export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
   const rows: HTMLElement[] = [];
 
+  if (ctx.options.getUnderTheHoodStatus && ctx.options.importUnderTheHood) {
+    const status = ctx.options.getUnderTheHoodStatus();
+    const intro = ctx.el("div", "av-row av-row-stack av-under-the-hood");
+    const copy = ctx.el("span", "av-row-copy");
+    copy.append(
+      ctx.el("span", "av-row-label", ctx.t("X Under the Hood")),
+      ctx.el(
+        "span",
+        "av-row-description",
+        ctx.t("Read X's own monthly visibility summary locally. It reports aggregate labels, not production ranking weights or a complete post audit.")
+      )
+    );
+    const file = document.createElement("input");
+    file.type = "file";
+    file.className = "av-text-input";
+    file.accept = ".json,application/json";
+    file.setAttribute("aria-label", ctx.t("Import X Under the Hood JSON"));
+    file.addEventListener("change", () => {
+      const selected = file.files?.[0];
+      if (!selected) return;
+      ctx.setStatus(ctx.t("Reading Under the Hood report…"));
+      void selected
+        .text()
+        .then(async (payload) => {
+          const result = await ctx.options.importUnderTheHood!(payload);
+          if (!result.report) {
+            ctx.setStatus(result.errors[0] ?? ctx.t("Under the Hood report could not be read."));
+            return;
+          }
+          ctx.render();
+          const warning = result.warnings.length > 0 ? ` ${result.warnings[0]}` : "";
+          ctx.setStatus(`${ctx.t("Under the Hood report saved locally.")} ${result.report.period.startDate.slice(0, 7)}.${warning}`);
+        })
+        .catch((error: unknown) => {
+          ctx.options.onError("Under the Hood import failed", error);
+          ctx.setStatus(ctx.t("Under the Hood report could not be read."));
+        });
+    });
+    intro.append(copy, file);
+    rows.push(intro);
+
+    if (status.latest) {
+      rows.push(
+        ctx.dataRow(
+          "Latest Under the Hood report",
+          `${status.latest.period} · ${status.latest.postCount} eligible posts · ${status.latest.postLabelCount} labeled posts · ${status.latest.accountLabelDayCount} account label-days`
+        )
+      );
+      const labels = [
+        ...status.latest.postLabels.map((label) => `post: ${label}`),
+        ...status.latest.accountLabels.map((label) => `account: ${label}`)
+      ];
+      rows.push(
+        ctx.readonlyRow(
+          "Labels in latest report",
+          labels.length > 0 ? labels.join(" · ") : ctx.t("No visibility labels were reported for this month.")
+        )
+      );
+    } else {
+      rows.push(ctx.readonlyRow("Under the Hood reports", ctx.t("No X report imported yet.")));
+    }
+
+    if (status.comparison && status.previous && status.latest) {
+      const comparison = status.comparison;
+      const signed = (value: number): string => (value > 0 ? `+${value}` : String(value));
+      const labelChanges = [
+        ...comparison.addedPostLabels.map((label) => `new post: ${label}`),
+        ...comparison.removedPostLabels.map((label) => `removed post: ${label}`),
+        ...comparison.addedAccountLabels.map((label) => `new account: ${label}`),
+        ...comparison.removedAccountLabels.map((label) => `removed account: ${label}`)
+      ];
+      rows.push(
+        ctx.dataRow(
+          "Month-over-month",
+          `${comparison.earlier} → ${comparison.later} · posts ${signed(comparison.postCountDelta)} · labeled posts ${signed(comparison.postLabelCountDelta)} · account label-days ${signed(comparison.accountLabelDayCountDelta)}${labelChanges.length > 0 ? ` · ${labelChanges.join(" · ")}` : ""}`
+        )
+      );
+    } else if (status.reportCount > 0) {
+      rows.push(ctx.readonlyRow("Month-over-month", ctx.t("Import another month to compare reports.")));
+    }
+
+    if (ctx.options.exportUnderTheHood) {
+      rows.push(
+        ctx.actionRow(
+          "Export saved Under the Hood reports",
+          "Downloads the normalized reports as local JSON. This is user data from X; Aviary does not add ranking weights or infer a score.",
+          async () => {
+            try {
+              const result = await ctx.options.exportUnderTheHood!();
+              ctx.setStatus(`Under the Hood reports exported: ${result.filename} (${result.reports} reports, ${ctx.formatBytes(result.bytes)}).`);
+            } catch (error) {
+              ctx.options.onError("Under the Hood export failed", error);
+              ctx.setStatus("Could not export Under the Hood reports.");
+            }
+          }
+        )
+      );
+    }
+  }
+
   if (ctx.options.offlineSearch) {
     const row = ctx.el("div", "av-row av-row-stack");
     const copy = ctx.el("span", "av-row-copy");

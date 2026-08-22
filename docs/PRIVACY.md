@@ -1,6 +1,6 @@
 # Aviary Privacy Manifest
 
-Updated: 2026-08-22 · release 1.41.0
+Updated: 2026-08-22 · release 1.42.0
 
 ## Defaults and network boundaries
 
@@ -74,6 +74,7 @@ schema, migration, usage, and quota status.
 | `aviary.aria2.history.v1` | Queued/completed Aria2 gids and media metadata | Avoid requeueing the same media URL. |
 | `aviary.snapshots.v1` | Captured follower/following snapshots | Compare snapshots over time; **Clear all snapshots** removes them. |
 | `aviary.library.bookmarks.v1` | Local bookmarks, tags, folders, reminders, notes, captured source and operation metadata | Search/edit the local library; mirrored records contain only posts X sent while you scrolled past them; individual bookmarks or **Clear local bookmarks** remove them. |
+| `aviary.library.underTheHood.v1` | Normalized monthly summaries from JSON reports the user downloaded from X, including reporting periods, aggregate label names, counts, and explanations | Read X's own summary locally, compare stored months, include it in library backups, or export the normalized copy. Aviary never adds ranking weights or infers a production score. |
 | `aviary.userNotes.v1` | Private account notes | Decorate matching posts; **Clear all account notes** removes them. |
 | `aviary.cleanupQueue.v1` | Review candidates from cleanup previews | Review-only queue; **Clear cleanup queue** removes it. Aviary does not delete X data. |
 | `aviary.semanticIndex.v1` | Embedding vectors and record metadata | Local semantic search; **Clear semantic index** removes it. |

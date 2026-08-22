@@ -33,6 +33,7 @@ export const DURABLE_STORAGE_KEYS = [
   "aviary.adObservations.v1",
   "aviary.library.bookmarks.v1",
   "aviary.snapshots.v1",
+  "aviary.library.underTheHood.v1",
   "aviary.semanticIndex.v1",
   "aviary.archive.imports.v1",
   "aviary.archive.library.v1",

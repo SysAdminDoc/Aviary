@@ -140,6 +140,11 @@ import {
   type LibraryBackupPreview,
   type LibraryBackupRestoreResult
 } from "./library-backup";
+import {
+  UnderTheHoodStore,
+  type UnderTheHoodParseResult,
+  type UnderTheHoodStatus
+} from "../library/under-the-hood";
 
 let controlCenter: ControlCenterHandle | undefined;
 const searchIndex = new LocalSearchIndex();
@@ -148,6 +153,7 @@ let semanticIndex: SemanticIndex | undefined;
 let retentionPolicy: RetentionPolicy | undefined;
 let archiveImportJobs: ArchiveImportJobStore | undefined;
 let archiveLibrary: ArchiveLibraryStore | undefined;
+let underTheHoodStore: UnderTheHoodStore | undefined;
 // One search per page, so the panel can be closed and reopened mid-round without losing it.
 const bisect = new FeatureBisect();
 
@@ -175,6 +181,10 @@ export const controlCenterFeature: FeatureModule = {
     if (!archiveLibrary) {
       archiveLibrary = new ArchiveLibraryStore(ctx.storage);
       await archiveLibrary.load();
+    }
+    if (!underTheHoodStore) {
+      underTheHoodStore = new UnderTheHoodStore(ctx.storage);
+      await underTheHoodStore.load();
     }
     controlCenter = mountControlCenter({
       settings: ctx.settings,
@@ -317,6 +327,46 @@ export const controlCenterFeature: FeatureModule = {
           records,
           files: artifacts.length,
           filenames: artifacts.map((artifact) => artifact.filename)
+        };
+      },
+      getUnderTheHoodStatus(): UnderTheHoodStatus {
+        return underTheHoodStore?.status() ?? {
+          reportCount: 0,
+          latest: null,
+          previous: null,
+          comparison: null
+        };
+      },
+      async importUnderTheHood(payload: string): Promise<UnderTheHoodParseResult> {
+        if (!underTheHoodStore) {
+          return {
+            report: null,
+            warnings: [],
+            errors: ["Under the Hood storage is not loaded."]
+          };
+        }
+        const result = await underTheHoodStore.importPayload(payload);
+        if (result.report) {
+          void ctx.auditLog.record("library.under-the-hood.import", {
+            period: result.report.period.startDate.slice(0, 7),
+            warnings: result.warnings.length,
+            errors: result.errors.length
+          });
+        }
+        return result;
+      },
+      async exportUnderTheHood() {
+        if (!underTheHoodStore) throw new Error("Under the Hood storage is not loaded.");
+        const artifact = underTheHoodStore.exportArtifact();
+        downloadBlob(artifact.data, artifact.filename, artifact.contentType);
+        void ctx.auditLog.record("library.under-the-hood.export", {
+          reports: artifact.reports,
+          bytes: artifact.bytes
+        });
+        return {
+          filename: artifact.filename,
+          reports: artifact.reports,
+          bytes: artifact.bytes
         };
       },
       async copyDiagnostics() {
@@ -1179,6 +1229,7 @@ export const controlCenterFeature: FeatureModule = {
     retentionPolicy = undefined;
     archiveImportJobs = undefined;
     archiveLibrary = undefined;
+    underTheHoodStore = undefined;
     ctx.diagnostics.info("Control Center destroyed");
   }
 };

@@ -1,6 +1,6 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.41.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.42.0-2f81f7)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 ![Platform](https://img.shields.io/badge/platform-userscript%20%7C%20Chrome%20%7C%20Firefox-8b5cf6)
 
@@ -20,6 +20,11 @@ That Library batch uses only URLs already stored locally and does not request an
 When X has already exposed a direct audio track or caption file, the same post controls make those
 files downloadable too. The Media page can export a date-bounded copy of download history without
 including source media URLs.
+
+Library also reads the monthly JSON that eligible accounts can download from X's Under the Hood
+page. It keeps the report period and aggregate visibility labels locally, compares saved months,
+and includes the normalized reports in a full library backup. The panel identifies the file as X's
+own summary. It does not turn published ranking code into a production score.
 
 The Control Center, menus, review dialog, and feedback toast use the browser Popover API. That
 keeps them above X's layout without a z-index fight, dismisses them by clicking outside, and
@@ -62,7 +67,7 @@ X's own filter is left to do its job.
 - Export core: `src/features/export/` (`export-feature.ts`, `collector.ts`, `formatters.ts`, `assets.ts`, `viewer.ts`, `zip-store.ts`, `zip-reader.ts`, `jobs.ts`, `query-discovery.ts`, `network-capture.ts`, `xlsx.ts`, `warc.ts`, `wacz.ts`, `wacz-signing.ts`, `wacz-worker-client.ts`, `external-targets.ts`, `types.ts`)
 - AI: `src/features/ai/command-menu.ts` (local prompt builder; optionally runs through `features/integrations/ai-provider.ts` when the user supplies an API key)
 - Integrations: `src/features/integrations/` (`aria2.ts`, `crosspost.ts`, `ai-provider.ts`, `semantic-search.ts`, `usage.ts`)
-- Library: `src/features/library/` (`user-notes.ts`, `link-unshorten.ts`, `snapshots.ts`, `snapshots-feature.ts`, `archive-import.ts`, `cleanup-preview.ts`, `cleanup-queue.ts`, `reports.ts`, `local-search.ts`, `bookmarks.ts`, `bookmark-capture.ts`, `bookmarks-feature.ts`)
+- Library: `src/features/library/` (`user-notes.ts`, `link-unshorten.ts`, `snapshots.ts`, `snapshots-feature.ts`, `archive-import.ts`, `cleanup-preview.ts`, `cleanup-queue.ts`, `reports.ts`, `local-search.ts`, `bookmarks.ts`, `bookmark-capture.ts`, `bookmarks-feature.ts`, `under-the-hood.ts`)
 - Composer: `src/features/composer/composer-snippets.ts`
 - i18n: `src/platform/i18n.ts` + `src/features/core/i18n-feature.ts`
 - Presets: `src/features/core/presets.ts`

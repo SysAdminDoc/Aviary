@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.41.0`
+Version: `1.42.0`
 
 Actionable work only. Historical and completed roadmap material is archived in CHANGELOG.md; blocked work is kept in Roadmap_Blocked.md.
 
@@ -51,7 +51,7 @@ below were read at the cited line. See RESEARCH.md.
 
 ### P2, leapfrog
 
-- [ ] F202, P2, Read X's "Under the Hood" export locally
+- [x] F202, P2, Read X's "Under the Hood" export locally
   Why: on 2026-08-13 X began letting eligible users download a JSON of aggregate stats showing whether
   visibility-limiting labels were applied to their account or posts in the past month. It is a file the
   user already has, so reading it originates nothing and crosses no line Aviary draws, and nobody has

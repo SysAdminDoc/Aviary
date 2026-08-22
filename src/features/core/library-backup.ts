@@ -8,6 +8,7 @@ import { CLEANUP_QUEUE_KEY } from "../library/cleanup-queue";
 import { BOOKMARKS_KEY } from "../library/bookmarks";
 import { SNAPSHOTS_KEY } from "../library/snapshots";
 import { USER_NOTES_KEY } from "../library/user-notes";
+import { UNDER_THE_HOOD_KEY } from "../library/under-the-hood";
 import { AUDIT_LOG_KEY } from "./audit-log";
 import { CHECKPOINT_KEY, RETENTION_KEYS } from "../export/jobs";
 import { QUERY_REGISTRY_KEY } from "../export/query-discovery";
@@ -65,6 +66,7 @@ export const LIBRARY_BACKUP_COLLECTIONS = [
   { key: AUDIT_LOG_KEY, label: "Audit log", version: 1 },
   { key: BOOKMARKS_KEY, label: "Bookmarks", version: 1 },
   { key: SNAPSHOTS_KEY, label: "Snapshots", version: 1 },
+  { key: UNDER_THE_HOOD_KEY, label: "Under the Hood reports", version: 1 },
   { key: SEMANTIC_INDEX_KEY, label: "Semantic index", version: 1 },
   { key: ARCHIVE_IMPORT_JOBS_KEY, label: "Archive import jobs", version: 1 },
   { key: ARCHIVE_LIBRARY_KEY, label: "Archive library", version: 1 },
