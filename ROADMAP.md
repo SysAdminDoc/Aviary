@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.43.0`
+Version: `1.44.0`
 
 Actionable work only. Historical and completed roadmap material is archived in CHANGELOG.md; blocked work is kept in Roadmap_Blocked.md.
 
@@ -87,7 +87,7 @@ below were read at the cited line. See RESEARCH.md.
   viewport upward, never on mere render; injecting the separator never moves the reading position.
   Complexity: M
 
-- [ ] F207, P2, Rebuild threads from what has already been captured
+- [x] F207, P2, Rebuild threads from what has already been captured
   Why: "archive a thread including all the replies" is a standing unmet request, and Aviary is unusually
   well placed: it already persists GraphQL payloads and `viewer.ts` already groups exported records by
   `conversationId`, but nothing reconstructs a chain for reading. The algorithm is published, merge

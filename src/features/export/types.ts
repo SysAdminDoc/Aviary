@@ -11,6 +11,18 @@ export interface ExportRecord {
   quote?: ExportQuoteSummary;
   article?: ExportArticleSummary;
   birdwatch?: string;
+  /** X conversation root shared by the post and its replies. */
+  conversationId?: string | null;
+  /** The immediate post this record replies to, when X exposed it. */
+  parentId?: string | null;
+  /** Root status id retained separately so partial contexts can show a visible gap. */
+  rootId?: string | null;
+  /** Stable author identity used to distinguish a self-thread from a conversation. */
+  authorId?: string | null;
+  /** Original post creation time. `capturedAt` remains the local capture time. */
+  createdAt?: string | null;
+  /** Compatibility field used by older captures and imported records. */
+  threadId?: string | null;
   /** Account references carried by imported records without changing the original post text. */
   participants?: ExportParticipant[];
   /** Short links expanded from metadata already present in an archive or local capture. */

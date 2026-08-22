@@ -98,6 +98,12 @@ export interface ExportResultSummary {
   files?: number;
 }
 
+export interface CapturedThreadResultSummary {
+  records: number;
+  threads: number;
+  filename: string;
+}
+
 export type { IntegrationUsageStatus };
 
 export interface ArchiveImportStatus {
@@ -174,6 +180,7 @@ export interface ControlCenterOptions {
   resumeExportJob?: (jobId: string) => Promise<{ ok: boolean; error?: string }>;
   cancelExportJob?: (jobId: string) => Promise<{ ok: boolean; error?: string }>;
   runExport?: () => Promise<ExportResultSummary>;
+  rebuildThreads?: () => Promise<CapturedThreadResultSummary>;
   copyDiagnostics?: () => Promise<void>;
   exportSettings?: () => Promise<void>;
   exportLibraryBackup?: () => Promise<{ filename: string; collections: number; bytes: number }>;

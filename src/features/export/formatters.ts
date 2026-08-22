@@ -1,5 +1,6 @@
 import type { ExportArtifact, ExportFormat, ExportRecord } from "./types";
 import { describeMediaCapture, serializeExportRecords } from "./assets";
+import { reconstructThreads } from "./thread-reconstruction";
 import { formatXlsx } from "./xlsx";
 
 const TEXT_ENCODER = new TextEncoder();
@@ -27,7 +28,15 @@ function jsonArtifact(records: ExportRecord[]): ExportArtifact {
       generator: "Aviary",
       generatedAt: new Date().toISOString(),
       count: records.length,
-      records: serializeExportRecords(records)
+      records: serializeExportRecords(records),
+      threads: reconstructThreads(records).map((thread) => ({
+        id: thread.id,
+        rootId: thread.rootId,
+        kind: thread.kind,
+        postIds: thread.records.map((record) => record.tweetId ?? null),
+        gaps: thread.gaps.map((gap) => ({ missingId: gap.missingId, parentId: gap.parentId })),
+        authorRuns: thread.authorRuns
+      }))
     },
     null,
     2

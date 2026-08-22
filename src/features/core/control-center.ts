@@ -33,6 +33,7 @@ import {
   getDiscoveredQueries,
   cancelExportJob,
   pauseExportJob,
+  rebuildCapturedThreads,
   resumeExportJob,
   runExportOfVisibleTweets
 } from "../export/export-feature";
@@ -310,6 +311,15 @@ export const controlCenterFeature: FeatureModule = {
           records: result.records,
           filename: result.filename,
           files: result.artifacts.length
+        };
+      },
+      async rebuildThreads() {
+        const result = await rebuildCapturedThreads(ctx);
+        if (result.data) downloadBlob(result.data, result.filename, "application/zip");
+        return {
+          records: result.records,
+          threads: result.threads,
+          filename: result.filename
         };
       },
       async exportBookmarks() {

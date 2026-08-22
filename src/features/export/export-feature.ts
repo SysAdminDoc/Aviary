@@ -12,6 +12,7 @@ import { getCapturedMediaMetadata } from "../media/media-buttons";
 import { CheckpointStore } from "./jobs";
 import { formatExport } from "./formatters";
 import { discoverQueryIds, type QueryRegistry } from "./query-discovery";
+import { reconstructExportOrder, reconstructThreads } from "./thread-reconstruction";
 import { buildExportViewer } from "./viewer";
 import { buildZip, type ZipFileEntry } from "./zip-store";
 import type { ExportFormat, ExportRecord } from "./types";
@@ -110,6 +111,13 @@ export interface ExportRunResult {
   filename: string;
 }
 
+export interface CapturedThreadExportResult {
+  data: Uint8Array | null;
+  filename: string;
+  records: number;
+  threads: number;
+}
+
 export interface ExportJobActionResult {
   ok: boolean;
   error?: string;
@@ -132,7 +140,7 @@ export async function runExportOfVisibleTweets(ctx: FeatureContext): Promise<Exp
     await checkpointStore.append(jobId, initialRecords);
 
     const records = checkpointStore.records(jobId);
-    let packageRecords = records;
+    let packageRecords = reconstructExportOrder(records);
     if (ctx.settings.export.captureMediaBytes) {
       packageRecords = await captureExportMedia(records);
     }
@@ -165,6 +173,36 @@ export async function runExportOfVisibleTweets(ctx: FeatureContext): Promise<Exp
     void ctx.auditLog.record("export.failed", { jobId, error: String((error as Error)?.message ?? error) });
     throw error;
   }
+}
+
+/** Builds a local-only reader from every captured post already in the checkpoint store. */
+export async function rebuildCapturedThreads(ctx: FeatureContext): Promise<CapturedThreadExportResult> {
+  if (!checkpointStore) {
+    checkpointStore = new CheckpointStore(ctx.storage);
+    await checkpointStore.load();
+  }
+  const byKey = new Map<string, ExportRecord>();
+  for (const job of checkpointStore.list()) {
+    for (const record of checkpointStore.records(job.jobId)) {
+      if (!record.tweetId) continue;
+      const key = `tweet:${record.tweetId}`;
+      const previous = byKey.get(key);
+      if (!previous || record.media.length > previous.media.length || record.text.length > previous.text.length) {
+        byKey.set(key, record);
+      }
+    }
+  }
+  const records = reconstructExportOrder([...byKey.values()]);
+  const threads = reconstructThreads(records);
+  if (records.length === 0) {
+    return { data: null, filename: "aviary-threads.zip", records: 0, threads: 0 };
+  }
+  return {
+    data: await buildExportZip(records, ["json"], "aviary-threads"),
+    filename: "aviary-threads.zip",
+    records: records.length,
+    threads: threads.length
+  };
 }
 
 async function captureExportMedia(records: ExportRecord[]): Promise<ExportRecord[]> {
@@ -214,7 +252,7 @@ export async function buildExportZip(
 ): Promise<Uint8Array> {
   const entries: ZipFileEntry[] = [];
   const safeFolder = sanitizeFolder(folder);
-  const prepared = prepareExportPackage(records);
+  const prepared = prepareExportPackage(reconstructExportOrder(records));
   const packageFiles: ExportPackageFile[] = [];
 
   for (const format of formats) {
@@ -279,19 +317,20 @@ export async function buildExportZipChunks(
   folder: string,
   chunkSize: number
 ): Promise<ExportArtifact[]> {
-  if (records.length === 0) {
+  const orderedRecords = reconstructExportOrder(records);
+  if (orderedRecords.length === 0) {
     return [];
   }
-  const size = Math.max(1, Math.trunc(chunkSize) || records.length);
+  const size = Math.max(1, Math.trunc(chunkSize) || orderedRecords.length);
   const base = zipFilename(folder);
-  if (records.length <= size) {
-    return [{ data: await buildExportZip(records, formats, folder), filename: base }];
+  if (orderedRecords.length <= size) {
+    return [{ data: await buildExportZip(orderedRecords, formats, folder), filename: base }];
   }
 
-  const total = Math.ceil(records.length / size);
+  const total = Math.ceil(orderedRecords.length / size);
   const artifacts: ExportArtifact[] = [];
   for (let index = 0; index < total; index += 1) {
-    const slice = records.slice(index * size, (index + 1) * size);
+    const slice = orderedRecords.slice(index * size, (index + 1) * size);
     artifacts.push({
       data: await buildExportZip(slice, formats, folder),
       filename: base.replace(/\.zip$/, `-part${index + 1}of${total}.zip`)

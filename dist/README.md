@@ -1,6 +1,6 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.43.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.44.0-2f81f7)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 ![Platform](https://img.shields.io/badge/platform-userscript%20%7C%20Chrome%20%7C%20Firefox-8b5cf6)
 
@@ -31,6 +31,11 @@ you last looked** separator divides the newer posts from the rest, and **Mark ab
 it explicitly. A post leaving the viewport upward may advance the position. Rendering alone never
 does, and Aviary never adds an unread badge. Seen-post dimming can be enabled per surface from
 Filtering.
+
+Captured replies can be rebuilt into a local thread reader from the Data section. The reader orders
+parents before replies, labels participants who join a conversation, keeps missing parents visible as
+gaps, and collapses consecutive posts by one author into an expandable run. It reads only records
+already stored in the browser. The exported ZIP contains the same order and thread index.
 
 The Control Center, menus, review dialog, and feedback toast use the browser Popover API. That
 keeps them above X's layout without a z-index fight, dismisses them by clicking outside, and
@@ -345,8 +350,11 @@ The Control Center "Export" section exposes:
   when that makes it smaller, adds a
   `manifest.json` with per-file checksums and media capture status, and triggers a download.
 - Extract the ZIP and open `viewer.html` for a responsive local viewer with virtualized scrolling,
-  search, sort, thread grouping, media-status filters, and built-in locale/RTL labels. It loads no
-  remote script and only activates a remote media URL after an explicit link click.
+  search, sort, reconstructed thread reading, media-status filters, and built-in locale/RTL labels.
+  Missing captured parents are called out instead of being silently omitted. It loads no remote
+  script and only activates a remote media URL after an explicit link click.
+- **Rebuild captured threads**, reads every locally captured post in parent-first order and downloads
+  a ZIP with the reconstructed JSON and viewer. It never asks X for a missing reply.
 - "Copy diagnostics", copies the Aviary diagnostic log (version, route, recent events) to the clipboard.
 - **Preservation archive** keeps WARC and WACZ together. WARC is the raw record stream. WACZ 1.1.1
   adds a byte-sorted CDXJ index, a page list, and checksummed package metadata for direct use in

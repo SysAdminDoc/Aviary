@@ -1125,6 +1125,29 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
     );
   }
 
+  if (ctx.options.rebuildThreads) {
+    rows.push(
+      ctx.actionRow(
+        "Rebuild captured threads",
+        "Read captured replies in parent-first order. Missing parents stay visible as local gaps.",
+        async () => {
+          try {
+            const result = await ctx.options.rebuildThreads!();
+            ctx.render();
+            if (result.records === 0) {
+              ctx.setStatus("No captured posts have thread metadata yet.");
+            } else {
+              ctx.setStatus("Captured thread reader exported.");
+            }
+          } catch (error) {
+            ctx.options.onError("Thread rebuild failed", error);
+            ctx.setStatus("Thread rebuild failed. See diagnostics.");
+          }
+        }
+      )
+    );
+  }
+
   if (ctx.options.copyDiagnostics) {
     rows.push(
       ctx.actionRow("Copy diagnostics", "Copy support diagnostics (version, route, recent log).", async () => {

@@ -67,6 +67,69 @@ test("standalone viewer is local-only, responsive, virtualized, searchable, and 
   }
 });
 
+test("thread view renders missing parents and collapses same-author runs", async () => {
+  const { buildExportViewer } = await importBundledModule("src/features/export/viewer.ts");
+  const records = [
+    {
+      tweetId: "root-1",
+      handle: "alice",
+      displayName: "Alice",
+      authorId: "author-a",
+      conversationId: "root-1",
+      rootId: "root-1",
+      text: "root",
+      capturedAt: "2026-08-22T12:00:00Z",
+      createdAt: "2026-08-22T12:00:00Z",
+      surface: "home",
+      media: [],
+      permalink: "https://x.com/alice/status/root-1"
+    },
+    {
+      tweetId: "reply-1",
+      handle: "alice",
+      displayName: "Alice",
+      authorId: "author-a",
+      conversationId: "root-1",
+      rootId: "root-1",
+      parentId: "root-1",
+      text: "same author",
+      capturedAt: "2026-08-22T12:01:00Z",
+      createdAt: "2026-08-22T12:01:00Z",
+      surface: "home",
+      media: [],
+      permalink: "https://x.com/alice/status/reply-1"
+    },
+    {
+      tweetId: "reply-2",
+      handle: "bob",
+      displayName: "Bob",
+      authorId: "author-b",
+      conversationId: "root-1",
+      rootId: "root-1",
+      parentId: "missing-parent",
+      text: "conversation reply",
+      capturedAt: "2026-08-22T12:02:00Z",
+      createdAt: "2026-08-22T12:02:00Z",
+      surface: "home",
+      media: [],
+      permalink: "https://x.com/bob/status/reply-2"
+    }
+  ];
+  const html = new TextDecoder().decode(buildExportViewer(records));
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: 900, height: 700 } });
+    await page.setContent(html, { waitUntil: "load" });
+    await page.locator("#thread").check();
+    assert.equal(await page.locator(".thread-gap").count(), 1);
+    assert.equal(await page.locator("details.author-run").count(), 1);
+    assert.match(await page.locator("#list").textContent(), /Missing captured post/);
+    assert.match(await page.locator("#list").textContent(), /3 posts/);
+  } finally {
+    await browser.close();
+  }
+});
+
 async function importBundledModule(relativePath) {
   const temp = await mkdtemp(path.join(tmpdir(), "aviary-viewer-"));
   const outfile = path.join(temp, "module.mjs");

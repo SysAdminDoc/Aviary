@@ -1,5 +1,10 @@
 import { supportedLocales, translateText } from "../../platform/i18n";
 import { serializeExportRecords } from "./assets";
+import {
+  reconstructThreads,
+  threadRecordKey,
+  type ReconstructedThread
+} from "./thread-reconstruction";
 import type { ExportRecord } from "./types";
 
 /**
@@ -40,6 +45,10 @@ const VIEWER_COPY = {
   threadPosts: "posts",
   offline: "offline-ready",
   network: "network may be required",
+  gap: "Missing captured post",
+  gapDetail: "This parent was not captured locally.",
+  conversation: "Conversation",
+  authorRun: "{count} posts by {author}",
 } as const;
 
 type ViewerCopyKey = keyof typeof VIEWER_COPY;
@@ -62,6 +71,7 @@ const LOCALE_ORDER: string[] = supportedLocales().map((locale) => locale.code);
 
 export function buildExportViewer(records: readonly ExportRecord[]): Uint8Array {
   const data = safeJson(serializeExportRecords(records));
+  const threads = safeJson(serializeThreads(reconstructThreads(records)));
   const labels = safeJson(buildViewerLabels());
   const script = viewerScript(labels);
   const html = `<!doctype html>
@@ -89,6 +99,7 @@ export function buildExportViewer(records: readonly ExportRecord[]): Uint8Array 
   </div>
 </main>
 <script type="application/json" id="records-data">${data}</script>
+<script type="application/json" id="threads-data">${threads}</script>
 <script>${script}</script>
 </body></html>`;
   return new TextEncoder().encode(html);
@@ -103,11 +114,31 @@ function safeJson(value: unknown): string {
     .replace(/\u2029/g, "\\u2029");
 }
 
+function serializeThreads(threads: readonly ReconstructedThread[]): Array<Record<string, unknown>> {
+  return threads.map((thread) => ({
+    id: thread.id,
+    rootId: thread.rootId,
+    kind: thread.kind,
+    participants: thread.participants,
+    authorRuns: thread.authorRuns,
+    items: thread.items.map((item) => item.kind === "gap"
+      ? { kind: "gap", missingId: item.missingId, parentId: item.parentId, depth: item.depth }
+      : {
+          kind: "post",
+          key: threadRecordKey(item.record),
+          depth: item.depth,
+          parentId: item.parentId,
+          differentAuthor: item.differentAuthor
+        })
+  }));
+}
+
 function viewerScript(labels: string): string {
   return `(function () {
   "use strict";
   const LABELS = ${labels};
   const RECORDS = JSON.parse(document.getElementById("records-data").textContent || "[]");
+  const THREADS = JSON.parse(document.getElementById("threads-data").textContent || "[]");
   const LOCALES = ["en", "es", "pt", "fr", "de", "ja", "ko", "ar", "he"];
   const RTL = new Set(["ar", "he"]);
   const state = { locale: localeFromBrowser(), query: "", status: "all", sort: "newest", thread: false };
@@ -150,6 +181,9 @@ function viewerScript(labels: string): string {
   const mediaStatuses = (record) => new Set((record.media || []).map((media) => captureOf(media).status));
   const recordText = (record) => [record.handle, record.displayName, record.text, record.permalink]
     .filter(Boolean).join(" ").toLocaleLowerCase();
+  const recordKey = (record) => record.tweetId
+    ? "tweet:" + record.tweetId
+    : ["record", record.surface || "", record.permalink || "", record.capturedAt || "", String(record.text || "").slice(0, 160)].join("|");
   function localeFromBrowser() {
     const candidate = (navigator.language || "en").slice(0, 2).toLowerCase();
     return LOCALES.includes(candidate) ? candidate : "en";
@@ -201,18 +235,41 @@ function viewerScript(labels: string): string {
     return state.thread ? threadGroups(filtered) : filtered.map((record) => [record]);
   }
   function threadGroups(records) {
-    const groups = new Map();
-    records.forEach((record) => {
-      const key = record.conversationId || record.threadId || (record.handle ? "handle:" + record.handle : "record:" + (record.tweetId || "unknown"));
-      const group = groups.get(key) || [];
-      group.push(record);
-      groups.set(key, group);
+    const byKey = new Map(records.map((record) => [recordKey(record), record]));
+    const used = new Set();
+    const result = [];
+    THREADS.forEach((thread) => {
+      const group = [];
+      let hasPost = false;
+      (thread.items || []).forEach((item) => {
+        if (item.kind === "gap") {
+          if (hasPost || (thread.items || []).some((candidate) => candidate.kind === "post" && byKey.has(candidate.key))) {
+            group.push({ __aviaryGap: true, missingId: item.missingId, parentId: item.parentId, depth: item.depth });
+          }
+          return;
+        }
+        const record = byKey.get(item.key);
+        if (!record) return;
+        hasPost = true;
+        used.add(item.key);
+        group.push({ ...record, __threadDepth: item.depth, __differentAuthor: item.differentAuthor });
+      });
+      if (hasPost) result.push(group);
     });
-    return Array.from(groups.values());
+    const leftovers = new Map();
+    records.forEach((record) => {
+      const key = recordKey(record);
+      if (used.has(key)) return;
+      const groupKey = record.conversationId || record.threadId || (record.handle ? "handle:" + record.handle : "record:" + (record.tweetId || "unknown"));
+      const group = leftovers.get(groupKey) || [];
+      group.push(record);
+      leftovers.set(groupKey, group);
+    });
+    return result.concat(Array.from(leftovers.values()));
   }
   function appendMedia(card, group) {
     const labels = currentLabels();
-    const media = group.flatMap((record) => record.media || []);
+    const media = group.filter((entry) => !entry.__aviaryGap).flatMap((record) => record.media || []);
     if (media.length === 0) return;
     const section = document.createElement("section");
     section.className = "media";
@@ -264,21 +321,51 @@ function viewerScript(labels: string): string {
     card.append(section);
   }
   function appendCard(group) {
-    const record = group[0];
+    const posts = group.filter((entry) => !entry.__aviaryGap);
+    const record = posts[0] || {};
     const card = document.createElement("article");
     card.className = "record-card";
     const heading = document.createElement("div");
     heading.className = "record-heading";
     heading.append(text("h2", record.displayName || (record.handle ? "@" + record.handle : "Unknown")));
     if (record.handle) heading.append(text("span", "@" + record.handle, "handle"));
-    if (group.length > 1) heading.append(text("span", group.length + " " + currentLabels().threadPosts, "thread-count"));
+    if (posts.length > 1) heading.append(text("span", posts.length + " " + currentLabels().threadPosts, "thread-count"));
+    if (posts.some((entry) => entry.__differentAuthor)) heading.append(text("span", currentLabels().conversation, "thread-conversation"));
+    if (group.some((entry) => entry.__aviaryGap)) heading.append(text("span", currentLabels().gap, "thread-gap-count"));
     heading.append(text("time", record.capturedAt || "", "date"));
     card.append(heading);
-    group.slice(0, 12).forEach((entry) => {
-      const body = text("p", entry.text || "", "body");
-      card.append(body);
+    let run = [];
+    const flushRun = () => {
+      if (run.length === 0) return;
+      if (run.length === 1) {
+        appendPost(card, run[0]);
+      } else {
+        const details = document.createElement("details");
+        details.className = "author-run";
+        const author = run[0].displayName || (run[0].handle ? "@" + run[0].handle : "Unknown");
+        details.append(text("summary", interpolate(currentLabels().authorRun, { count: run.length, author })));
+        run.forEach((entry) => appendPost(details, entry));
+        card.append(details);
+      }
+      run = [];
+    };
+    group.slice(0, 48).forEach((entry) => {
+      if (entry.__aviaryGap) {
+        flushRun();
+        const gap = document.createElement("div");
+        gap.className = "thread-gap";
+        gap.append(text("strong", currentLabels().gap));
+        gap.append(text("small", currentLabels().gapDetail));
+        if (entry.missingId) gap.append(text("code", entry.missingId));
+        card.append(gap);
+        return;
+      }
+      const previous = run[run.length - 1];
+      if (previous && (previous.authorId || previous.handle || previous.displayName || "unknown") !== (entry.authorId || entry.handle || entry.displayName || "unknown")) flushRun();
+      run.push(entry);
     });
-    if (group.length > 12) card.append(text("p", "+" + (group.length - 12) + " " + currentLabels().threadPosts));
+    flushRun();
+    if (posts.length > 48) card.append(text("p", "+" + (posts.length - 48) + " " + currentLabels().threadPosts));
     appendMedia(card, group);
     if (record.permalink && /^https?:\\/\\//i.test(record.permalink)) {
       const link = document.createElement("a");
@@ -290,10 +377,15 @@ function viewerScript(labels: string): string {
     }
     return card;
   }
+  function appendPost(card, entry) {
+    const body = text("p", entry.text || "", "body");
+    if (entry.__differentAuthor) body.classList.add("different-author");
+    card.append(body);
+  }
   function render() {
     const groups = filteredRecords();
     const labels = currentLabels();
-    const totalRecords = groups.reduce((sum, group) => sum + group.length, 0);
+    const totalRecords = groups.reduce((sum, group) => sum + group.filter((entry) => !entry.__aviaryGap).length, 0);
     summary.textContent = totalRecords + " " + labels.records + " · " + groups.length + " " + labels.shown + (state.status === "all" ? "" : " · " + statusLabel(state.status));
     empty.hidden = groups.length !== 0;
     empty.textContent = labels.noResults;
@@ -344,7 +436,15 @@ h2 { font-size: 1rem; margin: 0; }
 .handle, .date, small { color: #9aa6af; font-size: .78rem; }
 .date { margin-inline-start: auto; }
 .thread-count { color: #8ecdf1; font-size: .78rem; }
+.thread-gap-count { color: #f0b44d; font-size: .78rem; }
+.thread-conversation { color: #d6a7ff; font-size: .78rem; }
 .body { white-space: pre-wrap; line-height: 1.45; margin: 12px 0 0; }
+.different-author { border-inline-start: 2px solid #8ecdf1; padding-inline-start: 10px; }
+.author-run { margin-top: 12px; border-block: 1px solid #2b3944; padding: 8px 0; }
+.author-run summary { cursor: pointer; color: #8ecdf1; font-size: .88rem; }
+.thread-gap { display: grid; gap: 3px; margin: 12px 0; padding: 10px; border: 1px dashed #8d6c36; border-radius: 8px; background: #211d15; color: #f0b44d; }
+.thread-gap small { color: #c4a878; }
+.thread-gap code { color: #e7e9ea; font-size: .75rem; overflow-wrap: anywhere; }
 .media { display: grid; gap: 8px; margin-top: 12px; }
 .media h3 { margin: 0; font-size: .85rem; }
 .media-item { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 8px; padding: 8px; border-radius: 8px; background: #18232d; }

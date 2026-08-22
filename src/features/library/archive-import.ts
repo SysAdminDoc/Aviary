@@ -370,6 +370,16 @@ function mapTweets(parsed: unknown, surface: string): ExportRecord[] {
       media: [],
       permalink: id ? `https://x.com/i/web/status/${id}` : null
     };
+    const conversationId = stringField(tweet, "conversation_id_str", "conversationId");
+    const parentId = stringField(tweet, "in_reply_to_status_id_str", "inReplyToId", "in_reply_to_id");
+    const authorId = stringField(tweet, "user_id_str", "user_id", "author_id", "authorId");
+    if (conversationId) {
+      record.conversationId = conversationId;
+      record.rootId = conversationId;
+    }
+    if (parentId) record.parentId = parentId;
+    if (authorId) record.authorId = authorId;
+    if (createdAt !== now) record.createdAt = createdAt;
     const participants = mentionParticipants(tweet);
     if (participants.length > 0) record.participants = participants;
     out.push(record);

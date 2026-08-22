@@ -1,6 +1,6 @@
 # Aviary Privacy Manifest
 
-Updated: 2026-08-22 · release 1.43.0
+Updated: 2026-08-22 · release 1.44.0
 
 ## Defaults and network boundaries
 
@@ -25,6 +25,7 @@ These are the only Aviary-triggered network paths:
 | AI provider | When AI runs is enabled, you review the disclosure, and you send a provider-backed command | Your configured endpoint; the prompt built from the selected post and configured system text. The review shows fields, character/token estimate, retention notice, network status, and byte budget. |
 | Semantic search | When you rebuild the index, explicitly add semantic ranking to a query, or enable auto-embedding | Your configured embeddings endpoint; the model and record text sent for each embedding request. The Control Center shows the destination, fields, retention notice, and byte budget before auto-indexing. |
 | Bookmark mirror | Never; it reads only GraphQL responses already delivered to the page when **Preserve raw payloads** is enabled | No new destination. Matching bookmark timeline payloads are parsed locally and the tweet text, handle, permalink, operation name, and timestamp are stored in `aviary.library.bookmarks.v1`. |
+| Captured thread reader | Never; it reads only records already stored in the local export checkpoints | No destination. Root, parent, author, and creation metadata are parsed from captured GraphQL bodies, and missing parents remain local gaps. |
 | Analytics refusal | When beacon blocking is enabled | No new destination; matching analytics beacons are intercepted before they leave the page. |
 
 Every integration is disabled by default and requires an explicit setting, endpoint/credential,

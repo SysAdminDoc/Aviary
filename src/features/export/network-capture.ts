@@ -9,6 +9,7 @@ import {
 import type { PageBridge } from "../../platform/page-bridge";
 import { mirrorBookmarks } from "../library/bookmarks-feature";
 import { parseCapturedBookmarks } from "../library/bookmark-capture";
+import { parseCapturedThreadRecords } from "./thread-capture";
 
 const MAX_PAYLOADS = 50;
 const MAX_SESSION_PAYLOADS = 500;
@@ -244,7 +245,9 @@ async function persistPayload(
     await store.start(jobId, "capture", ["json"], true);
   }
   const scrubbed = truncateUtf8(scrubAuth(body), MAX_GRAPHQL_PAYLOAD_BYTES);
+  const threadRecords = parseCapturedThreadRecords(body, operationName, capturedAt, url);
   await store.append(jobId, [
+    ...threadRecords,
     {
       tweetId: null,
       handle: null,

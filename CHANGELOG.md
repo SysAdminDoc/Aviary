@@ -4,6 +4,26 @@
 
 No changes yet.
 
+## 1.44.0 (2026-08-22)
+
+### Added
+
+- **Captured threads can be rebuilt locally.** GraphQL captures now retain each post's conversation
+  root, parent, author, and creation time. A bounded graph pass merges overlapping contexts, orders
+  parents before replies, identifies conversations with more than one author, and inserts explicit
+  gaps for parents that were not captured.
+- **The archive viewer now has a real thread reader.** Thread view uses the reconstructed order,
+  marks author changes, and collapses consecutive posts by one author into an expandable run. The
+  JSON export carries the thread index, and Data has a one-click local reader export for all captured
+  posts.
+
+### Verification
+
+- Added parser, graph reconstruction, missing-parent, author-run, export-order, and no-network tests.
+- Re-ran the responsive standalone viewer, locale coverage, typecheck, and lint suites.
+- Raised the content delivery ceiling to 2.62 MB for the bounded local thread reader and its
+  localized viewer copy. The built user script is 2.59 MB.
+
 ## 1.43.0 (2026-08-22)
 
 ### Added

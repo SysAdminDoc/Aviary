@@ -356,6 +356,10 @@ export function documentFromExportRecord(record: ExportRecord): OfflineQueryDocu
     record.handle ?? "",
     record.displayName ?? "",
     record.permalink ?? "",
+    record.conversationId ?? "",
+    record.rootId ?? "",
+    record.parentId ?? "",
+    record.authorId ?? "",
     ...(record.participants ?? []).flatMap((participant) =>
       [participant.id, participant.handle ?? "", participant.label]
     ),
