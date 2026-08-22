@@ -26062,7 +26062,18 @@ ${COLOR_CSS}`;
       );
     }
     const rawSettings = isRecord10(parsed.settings) ? parsed.settings : parsed;
-    const normalized = normalizeSettings(rawSettings);
+    const envelope = readSettingsEnvelope(rawSettings);
+    const normalized = envelope.settings;
+    if (envelope.applied.length > 0) {
+      warnings.push(
+        `Upgraded settings from schema ${envelope.fromVersion ?? 1} to ${SETTINGS_SCHEMA_VERSION}.`
+      );
+    }
+    if (envelope.fromFuture) {
+      warnings.push(
+        `These settings were written by a newer Aviary (schema ${envelope.fromVersion}, this build supports ${SETTINGS_SCHEMA_VERSION}); anything it does not understand was dropped.`
+      );
+    }
     let restored = 0;
     for (const [group, key] of SECRET_PATHS) {
       if (readSecret(normalized, group, key) === REDACTED_SECRET) {

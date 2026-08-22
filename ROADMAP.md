@@ -259,16 +259,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Confidence: Verified
   Effort: M
 
-- [ ] P1 — F245, Importing a settings backup silently inverts the AI and embedding spending limits
-  Category: correctness
-  Where: `src/features/core/settings-migration.ts:103-111` (`parseSettingsImport`), against `src/platform/settings.ts:566` (`readSettingsEnvelope`) and the v1 to v2 step at `src/platform/settings.ts:43-60`. `src/features/core/library-backup.ts:433` and `:476` share the same call.
-  Problem: `parseSettingsImport` calls `normalizeSettings` rather than `readSettingsEnvelope`, so `SETTINGS_MIGRATIONS[1]` never runs on an imported file. That step exists for exactly one reason, written out in its own docstring: v1 read a provider budget of `0` as "no ceiling" and v2 reads `0` as zero and blocks, so "normalization alone cannot carry it: it would silently turn 'unlimited' into 'blocked'". On the import path that is precisely what happens. The version check compounds it — it compares against `SETTINGS_EXPORT_VERSION`, the envelope version, which is still `1` and did not move across either schema bump, rather than against `settings.schemaVersion`. So neither an older nor a newer settings shape is detected and no warning is produced.
-  Evidence: reproduced against the real modules with the payload `{schemaVersion: 1, integrations: {ai: {enabled: true, maxRequestBytes: 0, dailyRequestBytes: 0}, semanticSearch: {enabled: true, maxRecordBytes: 0, dailyRecordBytes: 0}}}`. Boot path: `readSettingsEnvelope` reports `applied: [1]` and yields ai `5000000 / 100000000` and embedding `5000000 / 100000000`, matching `INTEGRATION_BUDGET_CEILINGS`. Import path, in both the `{version:1, settings:{…}}` envelope form and the bare form: ai `0 / 0` and embedding `0 / 0`, with warnings containing only "Unknown generator 'unset'. Continuing best-effort." A user restoring a pre-v2 backup finds every provider request blocked and is told nothing. `tests/v0.8.0.test.mjs:5` and `tests/audit-ux.test.mjs:49` exercise `parseSettingsImport` for redaction and normalization only and never pass it a `schemaVersion`.
-  Fix: have `parseSettingsImport` run `readSettingsEnvelope(rawSettings)` instead of `normalizeSettings`, push each applied step into `warnings` so the user sees the upgrade happened, and refuse (or warn loudly on) `fromFuture`. Check `library-backup.ts:433` and `:476` in the same edit.
-  Acceptance: a test feeds the payload above through `parseSettingsImport` and asserts the budgets match the ceilings and that `warnings` names the applied migration; a second asserts a `fromFuture` payload is refused or warned about.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P1 — F246, A post with no caption is filtered on its author's name, its timestamp and its like count
   Category: correctness
   Where: `src/features/filtering/predicates.ts:397-403` (`readText`), consumed by `extractTweetSignal` and matched at `judge`.

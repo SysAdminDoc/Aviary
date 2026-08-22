@@ -13,6 +13,12 @@
   generated scope block.
 
 ### Fixed
+- Importing a settings backup taken before the schema-2 bump now upgrades it instead of inverting
+  it. A provider budget of `0` meant "no ceiling" under schema 1 and means "block everything" under
+  schema 2, and the import path skipped the migration that carries that across, so restoring an old
+  backup silently blocked every AI and embedding request. Imports now climb the same ladder a boot
+  does and say so, and a file from a newer Aviary is reported instead of passing unnoticed.
+
 
 - The Control Center no longer covers the page on load. Since the move to native popovers the
   panel's own `display: flex` outranked the browser rule that hides a closed popover, so it was

@@ -1,4 +1,10 @@
-import { cloneSettings, normalizeSettings, type AviarySettings } from "../../platform/settings.ts";
+import {
+  cloneSettings,
+  normalizeSettings,
+  readSettingsEnvelope,
+  SETTINGS_SCHEMA_VERSION,
+  type AviarySettings
+} from "../../platform/settings.ts";
 
 export const SETTINGS_EXPORT_VERSION = 1;
 
@@ -108,7 +114,24 @@ export function parseSettingsImport(
   }
 
   const rawSettings = isRecord(parsed.settings) ? parsed.settings : parsed;
-  const normalized = normalizeSettings(rawSettings);
+  // Through the schema ladder, not straight to the normalizer. A stored value whose *meaning*
+  // changed between schema versions cannot be carried by normalization: v1 read a provider budget
+  // of 0 as "no ceiling" and v2 reads it as zero and blocks, so importing a pre-v2 backup used to
+  // turn an unlimited budget into a blocked one with nothing said. `version` above is the envelope
+  // version, which has not moved across either schema bump, so it can never have caught this.
+  const envelope = readSettingsEnvelope(rawSettings);
+  const normalized = envelope.settings;
+  if (envelope.applied.length > 0) {
+    warnings.push(
+      `Upgraded settings from schema ${envelope.fromVersion ?? 1} to ${SETTINGS_SCHEMA_VERSION}.`
+    );
+  }
+  if (envelope.fromFuture) {
+    warnings.push(
+      `These settings were written by a newer Aviary (schema ${envelope.fromVersion}, this build ` +
+        `supports ${SETTINGS_SCHEMA_VERSION}); anything it does not understand was dropped.`
+    );
+  }
 
   // Redacted placeholders must never be applied as literal credentials; keep what is
   // already configured on this machine instead.
