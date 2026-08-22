@@ -229,3 +229,88 @@ test("a quantified lookaround is not treated as an ambiguous repeated group", as
     assert.notEqual(checkRegexBudget(pattern).reason, null, `${pattern} must be refused`);
   }
 });
+
+/**
+ * A group that can match nothing is ambiguous even with no alternation and no inner repeat.
+ *
+ * `(a?){200}` carries neither of the shapes the other two checks look for, so both walked past it.
+ * But the group can match empty, and a bounded repeat gets no empty-loop guard, so the engine has
+ * to try every way of distributing empty and non-empty iterations across the same text. Measured
+ * before this: `(a?){200}b` took 3.0 s against four characters and never finished against five,
+ * and `(.?){20}spam` took 1.2 s against an ordinary 29-character post.
+ */
+test("a repeated group that can match nothing is refused", async () => {
+  const { checkRegexBudget } = await importSourceModule("src/features/filtering/regex-budget.ts");
+
+  for (const pattern of [
+    "(a?){200}b",
+    "(.?){20}spam",
+    "(a*){200}b",
+    "(\\d?a?){200}b",
+    "((a|b)?){50}c",
+    "(a?)*b"
+  ]) {
+    assert.notEqual(checkRegexBudget(pattern).reason, null, `${pattern} must be refused`);
+  }
+
+  // The measurement, so this test fails loudly if the guard is ever relaxed here rather than
+  // quietly letting a frozen tab back in.
+  assert.equal(checkRegexBudget("(.?){26}spam").reason !== null, true);
+
+  // Optional is not the same as nullable: these consume something on every path.
+  for (const pattern of ["(a?b)+", "(x?y){20}", "(\\d?\\.){3}"]) {
+    assert.equal(
+      checkRegexBudget(pattern).reason,
+      null,
+      `${pattern} must stay allowed, got ${checkRegexBudget(pattern).reason}`
+    );
+  }
+});
+
+/**
+ * How many times a group can run is what decides whether an ambiguous body matters.
+ *
+ * The first version of this guard asked only whether a group repeated more than once, and read the
+ * canonical IPv4 pattern as dangerous. An ambiguous branch run n times explores at most 2^n paths
+ * per starting position; at 8 that is 256, which against the 400-character pattern ceiling is
+ * nothing. Measured over 1,800 generated patterns against the implementation before this: 386
+ * newly refused, every one of them unbounded or counted above the budget, and none with a small
+ * bounded count.
+ */
+test("a small bounded repetition of an ambiguous group is allowed, a large one is not", async () => {
+  const { checkRegexBudget } = await importSourceModule("src/features/filtering/regex-budget.ts");
+
+  // Filters a reader would actually write.
+  for (const pattern of [
+    "(cat|dog){2}",
+    "(spam|scam){1,3}",
+    "(\\d{1,3}\\.){3}\\d{1,3}",
+    "(#\\w+\\s*){3}",
+    "(\\w+\\s){3}",
+    "(\\S+){3}",
+    "(.?){8}"
+  ]) {
+    assert.equal(
+      checkRegexBudget(pattern).reason,
+      null,
+      `${pattern} must stay allowed, got ${checkRegexBudget(pattern).reason}`
+    );
+  }
+
+  for (const pattern of ["(cat|cat){9}", "(a|a){20}", "(a|a){1,200}"]) {
+    assert.notEqual(checkRegexBudget(pattern).reason, null, `${pattern} must be refused`);
+  }
+
+  // Total repetition, not the count written on any single group. Neither number here is above the
+  // budget on its own, and together they run the ambiguous branch 64 times.
+  assert.notEqual(
+    checkRegexBudget("((a|a){8}){8}").reason,
+    null,
+    "nested counts multiply and the guard has to see the product"
+  );
+  assert.equal(
+    checkRegexBudget("((a|a){2}){2}").reason,
+    null,
+    "and four is still four"
+  );
+});

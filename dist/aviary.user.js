@@ -19168,8 +19168,112 @@ ${record.text}${mediaList}`;
     }
     return false;
   }
-  function repeatedGroupRisk(pattern) {
+  function repetitionFloor(source, index) {
+    const char = source[index];
+    if (char === "*" || char === "?") return 0;
+    if (char === "+") return 1;
+    if (char !== "{") return 1;
+    const brace = /^\{\s*(\d+)\s*(?:,\s*(\d*)\s*)?\}/.exec(source.slice(index));
+    return brace ? Number(brace[1]) : 1;
+  }
+  function atomEnd(source, index) {
+    const char = source[index];
+    if (char === "\\") return Math.min(index + 2, source.length);
+    if (char === "[") {
+      let cursor = index + 1;
+      if (source[cursor] === "^") cursor += 1;
+      if (source[cursor] === "]") cursor += 1;
+      while (cursor < source.length && source[cursor] !== "]") {
+        cursor += source[cursor] === "\\" ? 2 : 1;
+      }
+      return Math.min(cursor + 1, source.length);
+    }
+    if (char === "(") {
+      let depth = 0;
+      let inClass = false;
+      for (let cursor = index; cursor < source.length; cursor += 1) {
+        const at = source[cursor];
+        if (at === "\\") {
+          cursor += 1;
+          continue;
+        }
+        if (inClass) {
+          if (at === "]") inClass = false;
+          continue;
+        }
+        if (at === "[") inClass = true;
+        else if (at === "(") depth += 1;
+        else if (at === ")") {
+          depth -= 1;
+          if (depth === 0) return cursor + 1;
+        }
+      }
+      return source.length;
+    }
+    return index + 1;
+  }
+  function quantifierEnd(source, index) {
+    const char = source[index];
+    if (char === "*" || char === "+" || char === "?") {
+      return source[index + 1] === "?" ? index + 2 : index + 1;
+    }
+    if (char === "{") {
+      const brace = /^\{\s*\d+\s*(?:,\s*\d*\s*)?\}/.exec(source.slice(index));
+      if (brace) {
+        const end = index + brace[0].length;
+        return source[end] === "?" ? end + 1 : end;
+      }
+    }
+    return index;
+  }
+  function splitAlternatives(body) {
+    const parts = [];
+    let depth = 0;
+    let inClass = false;
+    let start = 0;
+    for (let index = 0; index < body.length; index += 1) {
+      const char = body[index];
+      if (char === "\\") {
+        index += 1;
+        continue;
+      }
+      if (inClass) {
+        if (char === "]") inClass = false;
+        continue;
+      }
+      if (char === "[") inClass = true;
+      else if (char === "(") depth += 1;
+      else if (char === ")") depth -= 1;
+      else if (char === "|" && depth === 0) {
+        parts.push(body.slice(start, index));
+        start = index + 1;
+      }
+    }
+    parts.push(body.slice(start));
+    return parts;
+  }
+  function canMatchEmpty(body) {
+    return splitAlternatives(body).some((branch) => {
+      let index = 0;
+      while (index < branch.length) {
+        const char = branch[index];
+        const end = atomEnd(branch, index);
+        const after = quantifierEnd(branch, end);
+        const optional = repetitionFloor(branch, end) === 0;
+        const zeroWidth = char === "^" || char === "$" || char === "\\" && (branch[index + 1] === "b" || branch[index + 1] === "B") || char === "(" && /^\(\?<?[=!]/.test(branch.slice(index));
+        if (!zeroWidth && !optional) {
+          if (char !== "(") return false;
+          const inner = branch.slice(index + 1, end - 1).replace(/^\?(?::|<[A-Za-z_$][\w$]*>)/, "");
+          if (!canMatchEmpty(inner)) return false;
+        }
+        index = after > index ? after : index + 1;
+      }
+      return true;
+    });
+  }
+  function scanGroups(pattern) {
     const openStack = [];
+    const spans = [];
     let inClass = false;
     for (let index = 0; index < pattern.length; index += 1) {
       const char = pattern[index];
@@ -19189,23 +19293,40 @@ ${record.text}${mediaList}`;
         openStack.push(index);
         continue;
       }
-      if (char !== ")") {
-        continue;
-      }
+      if (char !== ")") continue;
       const start = openStack.pop();
-      if (start === void 0) {
+      if (start === void 0) continue;
+      spans.push({
+        start,
+        end: index,
+        ceiling: repetitionCeiling(pattern, index + 1),
+        lookaround: /^\(\?<?[=!]/.test(pattern.slice(start))
+      });
+    }
+    return spans;
+  }
+  var AMBIGUITY_BUDGET = 8;
+  function repeatedGroupRisk(pattern) {
+    const spans = scanGroups(pattern);
+    for (const span of spans) {
+      if (span.lookaround) {
         continue;
       }
-      if (/^\(\?<?[=!]/.test(pattern.slice(start))) {
+      let total = span.ceiling;
+      for (const outer of spans) {
+        if (outer !== span && outer.start < span.start && outer.end > span.end) {
+          total *= outer.ceiling;
+        }
+      }
+      if (total <= AMBIGUITY_BUDGET) {
         continue;
       }
-      const after = pattern.slice(index + 1).replace(/^[?]/, "");
-      if (repetitionCeiling(after, 0) <= 1) {
-        continue;
-      }
-      const body = pattern.slice(start + 1, index);
+      const body = pattern.slice(span.start + 1, span.end);
       if (hasRepetitionAnywhere(body)) {
         return "nested";
+      }
+      if (canMatchEmpty(body)) {
+        return "nullable";
       }
       if (hasAlternationAnywhere(body)) {
         return "alternation";
@@ -19266,6 +19387,11 @@ ${record.text}${mediaList}`;
     if (risk === "nested") {
       return {
         reason: "a repeated group that already repeats can backtrack badly enough to freeze the page"
+      };
+    }
+    if (risk === "nullable") {
+      return {
+        reason: "a repeated group that can match nothing has too many ways to match the same text and can freeze the page"
       };
     }
     if (risk === "alternation") {

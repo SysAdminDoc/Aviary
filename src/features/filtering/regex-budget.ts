@@ -86,21 +86,162 @@ function hasRepetitionAnywhere(body: string): boolean {
 }
 
 /**
- * Finds a quantifier applied to a group that makes the repetition ambiguous.
+ * How few times a quantifier at `index` can repeat what precedes it. 1 when there is none.
  *
- * Reports which shape it found so the message can name it: `nested` for `(a+)+`, where the body
- * already repeats, and `alternation` for `(a|a)+`, where two branches can match the same text.
- *
- * Walks the pattern tracking group spans rather than pattern-matching on text, so an escaped paren
- * or one inside a character class cannot be mistaken for a real group boundary.
+ * The companion to {@link repetitionCeiling}, and the half that decides whether something is
+ * optional. A term whose floor is 0 contributes nothing to the match on at least one path, which
+ * is what makes a group nullable and therefore ambiguous under repetition.
  */
-function repeatedGroupRisk(pattern: string): "nested" | "alternation" | null {
+function repetitionFloor(source: string, index: number): number {
+  const char = source[index];
+  if (char === "*" || char === "?") return 0;
+  if (char === "+") return 1;
+  if (char !== "{") return 1;
+  const brace = /^\{\s*(\d+)\s*(?:,\s*(\d*)\s*)?\}/.exec(source.slice(index));
+  return brace ? Number(brace[1]) : 1;
+}
+
+/** Index just past the group, class or escape that starts at `index`. */
+function atomEnd(source: string, index: number): number {
+  const char = source[index];
+  if (char === "\\") return Math.min(index + 2, source.length);
+  if (char === "[") {
+    let cursor = index + 1;
+    if (source[cursor] === "^") cursor += 1;
+    if (source[cursor] === "]") cursor += 1;
+    while (cursor < source.length && source[cursor] !== "]") {
+      cursor += source[cursor] === "\\" ? 2 : 1;
+    }
+    return Math.min(cursor + 1, source.length);
+  }
+  if (char === "(") {
+    let depth = 0;
+    let inClass = false;
+    for (let cursor = index; cursor < source.length; cursor += 1) {
+      const at = source[cursor];
+      if (at === "\\") {
+        cursor += 1;
+        continue;
+      }
+      if (inClass) {
+        if (at === "]") inClass = false;
+        continue;
+      }
+      if (at === "[") inClass = true;
+      else if (at === "(") depth += 1;
+      else if (at === ")") {
+        depth -= 1;
+        if (depth === 0) return cursor + 1;
+      }
+    }
+    return source.length;
+  }
+  return index + 1;
+}
+
+/** Index just past any quantifier at `index`, including a lazy marker. */
+function quantifierEnd(source: string, index: number): number {
+  const char = source[index];
+  if (char === "*" || char === "+" || char === "?") {
+    return source[index + 1] === "?" ? index + 2 : index + 1;
+  }
+  if (char === "{") {
+    const brace = /^\{\s*\d+\s*(?:,\s*\d*\s*)?\}/.exec(source.slice(index));
+    if (brace) {
+      const end = index + brace[0].length;
+      return source[end] === "?" ? end + 1 : end;
+    }
+  }
+  return index;
+}
+
+/** The top-level `|` branches of `body`, with groups and character classes left intact. */
+function splitAlternatives(body: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let inClass = false;
+  let start = 0;
+  for (let index = 0; index < body.length; index += 1) {
+    const char = body[index];
+    if (char === "\\") {
+      index += 1;
+      continue;
+    }
+    if (inClass) {
+      if (char === "]") inClass = false;
+      continue;
+    }
+    if (char === "[") inClass = true;
+    else if (char === "(") depth += 1;
+    else if (char === ")") depth -= 1;
+    else if (char === "|" && depth === 0) {
+      parts.push(body.slice(start, index));
+      start = index + 1;
+    }
+  }
+  parts.push(body.slice(start));
+  return parts;
+}
+
+/**
+ * True when `body` can match without consuming anything.
+ *
+ * This is the hole the first version of this guard left open. `(a?){200}` carries no repeated
+ * quantifier inside it and no alternation, so both checks below walked past it -- but the group can
+ * match empty, so a bounded outer repeat has combinatorially many ways to distribute empty and
+ * non-empty iterations across the same text. Measured: `(a?){200}b` against four characters took
+ * 3.0 s and against five it did not finish, and `(.?){20}spam` took 1.2 s against an ordinary
+ * 29-character post. The unbounded form is safe, because the engine breaks an empty-match loop; a
+ * bounded one gets no such guard.
+ */
+function canMatchEmpty(body: string): boolean {
+  return splitAlternatives(body).some((branch) => {
+    let index = 0;
+    while (index < branch.length) {
+      const char = branch[index];
+      const end = atomEnd(branch, index);
+      const after = quantifierEnd(branch, end);
+      const optional = repetitionFloor(branch, end) === 0;
+
+      // Zero-width by construction, whatever quantifier follows.
+      const zeroWidth =
+        char === "^" ||
+        char === "$" ||
+        (char === "\\" && (branch[index + 1] === "b" || branch[index + 1] === "B")) ||
+        (char === "(" && /^\(\?<?[=!]/.test(branch.slice(index)));
+
+      if (!zeroWidth && !optional) {
+        if (char !== "(") return false;
+        const inner = branch.slice(index + 1, end - 1).replace(/^\?(?::|<[A-Za-z_$][\w$]*>)/, "");
+        if (!canMatchEmpty(inner)) return false;
+      }
+      index = after > index ? after : index + 1;
+    }
+    return true;
+  });
+}
+
+/**
+ * Every group in the pattern, with how many times the engine may run it in total.
+ *
+ * "In total" is what matters and what a single pass cannot see: a group's own quantifier is written
+ * after its closing paren, and its enclosing groups' quantifiers come later still. `((a|a){8}){8}`
+ * carries nothing worse than an 8 anywhere in it and runs the ambiguous branch 64 times.
+ */
+interface GroupSpan {
+  start: number;
+  end: number;
+  ceiling: number;
+  lookaround: boolean;
+}
+
+function scanGroups(pattern: string): GroupSpan[] {
   const openStack: number[] = [];
+  const spans: GroupSpan[] = [];
   let inClass = false;
 
   for (let index = 0; index < pattern.length; index += 1) {
     const char = pattern[index];
-
     if (char === "\\") {
       index += 1;
       continue;
@@ -117,28 +258,70 @@ function repeatedGroupRisk(pattern: string): "nested" | "alternation" | null {
       openStack.push(index);
       continue;
     }
-    if (char !== ")") {
+    if (char !== ")") continue;
+
+    const start = openStack.pop();
+    if (start === undefined) continue;
+    spans.push({
+      start,
+      end: index,
+      ceiling: repetitionCeiling(pattern, index + 1),
+      lookaround: /^\(\?<?[=!]/.test(pattern.slice(start))
+    });
+  }
+  return spans;
+}
+
+/**
+ * How many times an ambiguous group may run before the cost stops being worth arguing about.
+ *
+ * The first version of this guard asked only whether a group repeated more than once, which read
+ * `(cat|dog){2}` and `(\d{1,3}\.){3}\d{1,3}` -- the canonical IPv4 pattern -- as dangerous. They
+ * are not: an ambiguous branch run n times explores at most 2^n paths per starting position, and
+ * at 8 that is 256, which against the 400-character ceiling above is nothing. The patterns that
+ * freeze a tab are the ones with a large or unbounded count, and those are what this catches.
+ */
+const AMBIGUITY_BUDGET = 8;
+
+/**
+ * Finds a group the engine may run enough times for an ambiguous body to matter.
+ *
+ * Reports which shape it found so the message can name it: `nested` for `(a+)+`, where the body
+ * already repeats; `alternation` for `(a|a)+`, where two branches can match the same text; and
+ * `nullable` for `(a?){200}`, where the body can match nothing at all and the engine has to try
+ * every way of distributing the empty iterations.
+ *
+ * Works from group spans rather than pattern-matching on text, so an escaped paren or one inside a
+ * character class cannot be mistaken for a real group boundary -- and so a group's total repetition
+ * can account for the quantifiers on the groups around it, which are written after it in the source
+ * and so are invisible to a single left-to-right pass.
+ */
+function repeatedGroupRisk(pattern: string): "nested" | "alternation" | "nullable" | null {
+  const spans = scanGroups(pattern);
+
+  for (const span of spans) {
+    if (span.lookaround) {
+      // Zero-width: a quantifier on it repeats nothing, and its branches cannot consume the same
+      // text twice. `(?=a|b)+` is valid and harmless.
       continue;
     }
 
-    const start = openStack.pop();
-    if (start === undefined) {
+    let total = span.ceiling;
+    for (const outer of spans) {
+      if (outer !== span && outer.start < span.start && outer.end > span.end) {
+        total *= outer.ceiling;
+      }
+    }
+    if (total <= AMBIGUITY_BUDGET) {
       continue;
     }
-    // A lookaround is zero-width, so a quantifier on it repeats nothing and its branches cannot
-    // consume the same text twice. Nested lookarounds were already skipped below; the group being
-    // examined was not, which is why `(?=a|b)+` -- a valid, harmless pattern -- was refused.
-    if (/^\(\?<?[=!]/.test(pattern.slice(start))) {
-      continue;
-    }
-    // What immediately follows the group, ignoring a lazy/possessive marker.
-    const after = pattern.slice(index + 1).replace(/^[?]/, "");
-    if (repetitionCeiling(after, 0) <= 1) {
-      continue;
-    }
-    const body = pattern.slice(start + 1, index);
+
+    const body = pattern.slice(span.start + 1, span.end);
     if (hasRepetitionAnywhere(body)) {
       return "nested";
+    }
+    if (canMatchEmpty(body)) {
+      return "nullable";
     }
     if (hasAlternationAnywhere(body)) {
       return "alternation";
@@ -220,6 +403,13 @@ export function checkRegexBudget(pattern: string): RegexBudgetVerdict {
   if (risk === "nested") {
     return {
       reason: "a repeated group that already repeats can backtrack badly enough to freeze the page"
+    };
+  }
+  if (risk === "nullable") {
+    return {
+      reason:
+        "a repeated group that can match nothing has too many ways to match the same text and " +
+        "can freeze the page"
     };
   }
   if (risk === "alternation") {
