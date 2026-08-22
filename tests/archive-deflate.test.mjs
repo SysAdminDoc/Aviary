@@ -740,3 +740,132 @@ test("an imported record captures the import time and keeps the authored time se
     "the authored time belongs in createdAt, normalized"
   );
 });
+
+/**
+ * A 256 MiB promise has to land somewhere that can hold 256 MiB.
+ *
+ * The archive's bytes were written to an unversioned key, and `DurableStorageGateway.#isDurable`
+ * routes on exactly that suffix -- so the payload went to `chrome.storage.local`, whose quota is
+ * 10 MB without `unlimitedStorage`, which the extension manifest does not request. Base64 inflates
+ * the payload by a third, so the write would have failed somewhere near a 7 MB ZIP while the panel
+ * and the importer both promised 256 MiB.
+ *
+ * The intent behind leaving the suffix off -- keeping transient payloads out of migration and
+ * backup -- still holds: those registries are explicit allow-lists, and this key is in neither.
+ */
+test("an archive import stores its bytes on the durable key and reports a real ceiling", async () => {
+  const { ArchiveImportJobStore, archiveSourceKey } = await importSourceModule(
+    "src/features/library/archive-import-jobs.ts"
+  );
+  const { DURABLE_STORAGE_KEYS } = await importSourceModule("src/platform/durable-storage.ts");
+  const { PROFILE_MIGRATION_KEYS } = await importSourceModule("src/platform/profile.ts");
+
+  // The routing rule itself, quoted from durable-storage.ts, so this test fails if the key stops
+  // satisfying it rather than only if the string changes.
+  const routesToIndexedDb = (key) => key.startsWith("aviary.") && /\.v\d+$/.test(key);
+  const key = archiveSourceKey("archive-1");
+  assert.ok(routesToIndexedDb(key), `${key} would be routed away from IndexedDB`);
+
+  // And it is still excluded from the two registries it was kept out of.
+  assert.ok(!DURABLE_STORAGE_KEYS.includes(key));
+  assert.ok(!PROFILE_MIGRATION_KEYS.includes(key));
+
+  const store = new Map();
+  const gateway = (quotaBytes) => ({
+    async get(key, fallback) {
+      return store.has(key) ? store.get(key) : fallback;
+    },
+    async set(key, value) {
+      store.set(key, JSON.parse(JSON.stringify(value)));
+    },
+    async remove(key) {
+      store.delete(key);
+    },
+    getStatus: () => ({
+      backend: "indexeddb",
+      schemaVersion: 1,
+      migratedKeys: 0,
+      usageBytes: null,
+      quotaBytes
+    })
+  });
+
+  const source = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+  const jobs = new ArchiveImportJobStore(gateway(null));
+  const started = await jobs.start("fixture.zip", source);
+  assert.ok(
+    [...store.keys()].some((stored) => stored === archiveSourceKey(started.jobId)),
+    `the payload was written to ${[...store.keys()].join(", ")}`
+  );
+
+  // A profile that cannot hold the declared limit refuses with the limit it can hold, named.
+  store.clear();
+  const tight = new ArchiveImportJobStore(gateway(10 * 1024 * 1024));
+  await assert.rejects(
+    () => tight.start("big.zip", new Uint8Array(9 * 1024 * 1024)),
+    (error) => {
+      assert.match(String(error), /over the \d+ MiB this browser profile can store/);
+      assert.ok(!/256 MiB/.test(String(error)), "it must not quote a limit it cannot honour");
+      return true;
+    }
+  );
+
+  // An unknown quota is not a small quota: the declared limit stands rather than guessing lower.
+  store.clear();
+  const unknown = new ArchiveImportJobStore(gateway(null));
+  const ok = await unknown.start("medium.zip", new Uint8Array(9 * 1024 * 1024));
+  assert.equal(ok.sourceBytes, 9 * 1024 * 1024);
+});
+
+/**
+ * An import that was already in flight when the key changed still resumes.
+ *
+ * The bytes of a paused job live under whatever key was current when it started, so reading only
+ * the new one would have stranded every interrupted import across the upgrade.
+ */
+test("a job whose bytes were written to the pre-versioned key still resumes", async () => {
+  const { ArchiveImportJobStore, ARCHIVE_IMPORT_JOBS_KEY, archiveSourceKey } =
+    await importSourceModule("src/features/library/archive-import-jobs.ts");
+
+  const source = new Uint8Array([9, 8, 7, 6, 5]);
+  const encoded = Buffer.from(source).toString("base64");
+  const store = new Map();
+  const storage = {
+    async get(key, fallback) {
+      return store.has(key) ? store.get(key) : fallback;
+    },
+    async set(key, value) {
+      store.set(key, JSON.parse(JSON.stringify(value)));
+    },
+    async remove(key) {
+      store.delete(key);
+    }
+  };
+
+  // Exactly what the previous build left behind: a paused job, and its bytes on the old key.
+  store.set(ARCHIVE_IMPORT_JOBS_KEY, {
+    jobs: {
+      "archive-old": {
+        jobId: "archive-old",
+        filename: "old.zip",
+        sourceBytes: source.byteLength,
+        status: "paused",
+        filesParsed: 0,
+        recordCount: 0,
+        warningCount: 0,
+        errorCount: 0,
+        createdAt: "2026-08-01T00:00:00.000Z",
+        updatedAt: "2026-08-01T00:00:00.000Z",
+        resumeOnBoot: true,
+        source: ""
+      }
+    },
+    sequence: 1
+  });
+  store.set("aviary.archive.import.source.archive-old", encoded);
+  assert.notEqual(archiveSourceKey("archive-old"), "aviary.archive.import.source.archive-old");
+
+  const jobs = new ArchiveImportJobStore(storage);
+  await jobs.load();
+  assert.deepEqual(await jobs.source("archive-old"), source, "the interrupted import was stranded");
+});

@@ -7,12 +7,30 @@ export const ARCHIVE_IMPORT_JOBS_KEY = "aviary.archive.imports.v1";
  * Each archive's bytes live under their own key rather than inside the job record. The record is
  * rewritten on every progress tick, and a 250 MiB import carries a ~333 MiB base64 string -- so
  * keeping the two together meant re-serialising the whole archive (and every other retained job's
- * archive) several times a second. Unversioned on purpose: these are transient payloads, not a
- * durable store, and they must not be swept into migration or backup.
+ * archive) several times a second.
+ *
+ * Versioned, despite these being transient payloads rather than a durable store. The intent behind
+ * leaving the `.vN` off was to keep them out of migration and backup, but that is not what decides
+ * it: those two registries are explicit allow-lists and a key absent from them is excluded either
+ * way. What the suffix actually decides is `DurableStorageGateway.#isDurable`, which routes on it.
+ * Without it a 256 MiB archive was routed to `chrome.storage.local`, whose quota is 10 MB without
+ * `unlimitedStorage`, which the manifest does not request -- so the write would have failed near a
+ * 7 MB ZIP while the panel promised 256 MiB.
  */
-export const archiveSourceKey = (jobId: string): string => `aviary.archive.import.source.${jobId}`;
+export const archiveSourceKey = (jobId: string): string =>
+  `aviary.archive.import.source.${jobId}.v1`;
+
+/** Where an in-flight job's bytes were written before the key was versioned. */
+const legacyArchiveSourceKey = (jobId: string): string =>
+  `aviary.archive.import.source.${jobId}`;
 const MAX_RETAINED_JOBS = 12;
 const MAX_SOURCE_BYTES = 256 * 1024 * 1024;
+/** Base64 costs four characters per three bytes. */
+const BASE64_INFLATION = 4 / 3;
+
+function formatMiB(bytes: number): string {
+  return `${Math.max(1, Math.round(bytes / (1024 * 1024)))} MiB`;
+}
 
 export type ArchiveImportJobStatus =
   | "queued"
@@ -91,8 +109,14 @@ export class ArchiveImportJobStore {
 
   async start(filename: string, source: Uint8Array): Promise<ArchiveImportJob> {
     await this.load();
-    if (source.byteLength > MAX_SOURCE_BYTES) {
-      throw new Error("Archive exceeds the 256 MiB input limit.");
+    const ceiling = this.#sourceCeiling();
+    if (source.byteLength > ceiling) {
+      // Named in the message. Refusing a file with a limit the reader cannot reconcile against
+      // what the panel promised is only marginally better than the quota error it replaces.
+      throw new Error(
+        `Archive is ${formatMiB(source.byteLength)}, over the ${formatMiB(ceiling)} this browser ` +
+          `profile can store.`
+      );
     }
     const now = new Date().toISOString();
     const job: ArchiveImportJob = {
@@ -116,11 +140,31 @@ export class ArchiveImportJobStore {
     return cloneJob(job);
   }
 
+  /**
+   * The smaller of what the product promises and what this browser profile can actually hold.
+   *
+   * `getStatus()` is optional on the gateway and its quota is nullable, so an unknown quota means
+   * the declared limit stands -- guessing lower would refuse imports that would have worked. The
+   * base64 the payload is stored as inflates it by about a third, and the job record is rewritten
+   * alongside it, so the usable share of the quota is well under all of it.
+   */
+  #sourceCeiling(): number {
+    const quota = this.#storage.getStatus?.().quotaBytes ?? null;
+    if (quota === null || !Number.isFinite(quota) || quota <= 0) {
+      return MAX_SOURCE_BYTES;
+    }
+    return Math.min(MAX_SOURCE_BYTES, Math.floor((quota * 0.6) / BASE64_INFLATION));
+  }
+
   async source(jobId: string): Promise<Uint8Array | null> {
     const job = this.#state.jobs[jobId];
     if (!job) return null;
     // Pre-split records carried the payload inline; read it from wherever it actually is.
-    const encoded = job.source || (await this.#storage.get<string>(archiveSourceKey(jobId), ""));
+    // Pre-versioned jobs wrote to the unversioned key; a resumable import must survive the upgrade.
+    const encoded =
+      job.source ||
+      (await this.#storage.get<string>(archiveSourceKey(jobId), "")) ||
+      (await this.#storage.get<string>(legacyArchiveSourceKey(jobId), ""));
     if (!encoded) return null;
     try {
       const bytes = decodeBase64(encoded);
@@ -186,6 +230,7 @@ export class ArchiveImportJobStore {
   async #releaseSource(jobId: string): Promise<void> {
     try {
       await this.#storage.remove(archiveSourceKey(jobId));
+      await this.#storage.remove(legacyArchiveSourceKey(jobId));
     } catch {
       // A stranded payload is wasteful, not incorrect; the job record is already authoritative.
     }

@@ -24719,9 +24719,14 @@ a.av-link-clean {
 
   // src/features/library/archive-import-jobs.ts
   var ARCHIVE_IMPORT_JOBS_KEY = "aviary.archive.imports.v1";
-  var archiveSourceKey = (jobId) => `aviary.archive.import.source.${jobId}`;
+  var archiveSourceKey = (jobId) => `aviary.archive.import.source.${jobId}.v1`;
+  var legacyArchiveSourceKey = (jobId) => `aviary.archive.import.source.${jobId}`;
   var MAX_RETAINED_JOBS = 12;
   var MAX_SOURCE_BYTES = 256 * 1024 * 1024;
+  var BASE64_INFLATION = 4 / 3;
+  function formatMiB2(bytes) {
+    return `${Math.max(1, Math.round(bytes / (1024 * 1024)))} MiB`;
+  }
   var EMPTY4 = { jobs: {}, sequence: 0 };
   var ArchiveImportJobStore = class {
     #storage;
@@ -24758,8 +24763,11 @@ a.av-link-clean {
     }
     async start(filename, source) {
       await this.load();
-      if (source.byteLength > MAX_SOURCE_BYTES) {
-        throw new Error("Archive exceeds the 256 MiB input limit.");
+      const ceiling = this.#sourceCeiling();
+      if (source.byteLength > ceiling) {
+        throw new Error(
+          `Archive is ${formatMiB2(source.byteLength)}, over the ${formatMiB2(ceiling)} this browser profile can store.`
+        );
       }
       const now2 = (/* @__PURE__ */ new Date()).toISOString();
       const job = {
@@ -24782,10 +24790,25 @@ a.av-link-clean {
       await this.#persist();
       return cloneJob(job);
     }
+    /**
+     * The smaller of what the product promises and what this browser profile can actually hold.
+     *
+     * `getStatus()` is optional on the gateway and its quota is nullable, so an unknown quota means
+     * the declared limit stands -- guessing lower would refuse imports that would have worked. The
+     * base64 the payload is stored as inflates it by about a third, and the job record is rewritten
+     * alongside it, so the usable share of the quota is well under all of it.
+     */
+    #sourceCeiling() {
+      const quota = this.#storage.getStatus?.().quotaBytes ?? null;
+      if (quota === null || !Number.isFinite(quota) || quota <= 0) {
+        return MAX_SOURCE_BYTES;
+      }
+      return Math.min(MAX_SOURCE_BYTES, Math.floor(quota * 0.6 / BASE64_INFLATION));
+    }
     async source(jobId) {
       const job = this.#state.jobs[jobId];
       if (!job) return null;
-      const encoded = job.source || await this.#storage.get(archiveSourceKey(jobId), "");
+      const encoded = job.source || await this.#storage.get(archiveSourceKey(jobId), "") || await this.#storage.get(legacyArchiveSourceKey(jobId), "");
       if (!encoded) return null;
       try {
         const bytes = decodeBase642(encoded);
@@ -24839,6 +24862,7 @@ a.av-link-clean {
     async #releaseSource(jobId) {
       try {
         await this.#storage.remove(archiveSourceKey(jobId));
+        await this.#storage.remove(legacyArchiveSourceKey(jobId));
       } catch {
       }
     }

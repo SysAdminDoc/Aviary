@@ -161,16 +161,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Effort: M
   Blocked: needs a signed-in operator to save the two MHTML captures. Nothing in the repo logs in or fetches.
 
-- [ ] P3 — F261, The archive import source key is routed away from IndexedDB, so the advertised 256 MiB ceiling may be unreachable
-  Category: reliability
-  Where: `src/features/library/archive-import-jobs.ts:13-15` (`archiveSourceKey` and `MAX_SOURCE_BYTES`), against `src/platform/durable-storage.ts:284-287` (`#isDurable`).
-  Problem: the key is deliberately unversioned so it stays out of migration and backup, but `#isDurable` routes on a trailing `.vN`, so unversioning also routes it away from IndexedDB and into `chrome.storage.local`, whose quota is 10 MB without `unlimitedStorage`. `src/extension/manifest.chrome.json:26-30` requests only `"storage"`. Base64 inflates the payload roughly a third further, so the write would fail somewhere near a 7 MB ZIP while `archive-import.ts:52` and the panel copy both promise 256 MiB.
-  Evidence: read at the cited lines; the routing rule and the manifest permission list are as quoted. Marked Needs-repro because the userscript build reaches `GM_setValue` first, where the ceiling is different, and the actual Chrome failure threshold was not measured.
-  Fix: rename the key to `aviary.archive.import.source.<jobId>.v1` so it lands in IndexedDB — the three key registries are explicit allow-lists, so it still cannot be swept into migration or backup — and cross-check `MAX_SOURCE_BYTES` against `storage.getStatus().quotaBytes` before accepting a file, rejecting with a sentence that names the real limit.
-  Acceptance: importing a 50 MB archive in the extension build succeeds, or fails with a message naming the actual ceiling rather than throwing a quota error.
-  Confidence: Needs-repro
-  Effort: S
-
 ### Unaudited — needs a pass
 
 - [ ] P3 — F264, Areas this pass did not reach
