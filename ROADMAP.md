@@ -190,46 +190,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Confidence: Verified
   Effort: S
 
-- [ ] P2 — F221, Five design tokens are referenced by name and defined nowhere
-  Category: visual
-  Where: `--av-danger` at `src/ui/control-center.ts:3218`; `--av-media-success` at `src/features/media/media-buttons.ts:1457, 1458, 1482`; `--av-media-error` at `:1493`; `--av-media-success-text` at `:1564`; `--av-media-error-text` at `:1573`.
-  Problem: none of these five properties is defined in any of the six `themeVars` entries (`src/features/appearance/theme.ts:190-247`), in `src/extension/options.css:1-11`, or anywhere else, so their `var(…, fallback)` fallback paints in every theme including the ones that mean to restyle it. A theme therefore cannot change a danger colour or a media success colour at all, and the five reds that exist in the codebase cannot be unified without a token to unify them on: `rgb(244, 33, 46)` at `control-center.ts:3218` and `hidden-posts-feature.ts:579-580`, `rgb(255, 120, 128)` at `control-center.ts:3628`, `rgb(255, 95, 109)` at `:3632`, `rgb(255, 151, 151)` at `options.css:381`, `rgb(220, 110, 110)` at `bookmarks-feature.ts:306` and `feature-toast.ts:158`. The success green `rgb(72, 211, 147)` at `control-center.ts:3609` is a hand-copy of `options.css:9`'s `--av-ok`, and the warning amber `rgb(247, 183, 73)` at `:3614` and `:3618` has no token at all.
-  Evidence: `grep -rn -- "--av-danger" src/` returns exactly one line, the consumer at `control-center.ts:3218`. `grep -rn -- "--av-media-success\|--av-media-error" src/` returns six lines, all consumers in `media-buttons.ts`. `theme.ts:190-247` is the complete set of theme variable blocks and defines only `--av-bg`, `--av-surface`, `--av-surface-raised`, `--av-border`, `--av-text`, `--av-muted`, `--av-accent`, plus `--av-accent-secondary` in `noir` alone.
-  Fix: add `--av-danger`, `--av-warn`, `--av-ok`, `--av-on-accent` and `--av-on-danger` to all six `themeVars` entries and to `options.css`'s `:root`, then replace the literals listed above with the tokens. Pick the `--av-danger` value for contrast rather than fidelity to X's `#F4212E` — see F231 for the measurement.
-  Acceptance: `grep -rn -- "var(--av-" src/ | grep -o -- "--av-[a-z-]*" | sort -u` produces no name that is absent from `theme.ts`'s `themeVars` and `options.css`; a test asserts that set relationship so a future undefined token fails the build.
-  Confidence: Verified
-  Effort: M
-
-- [ ] P2 — F222, The account-note badge is invisible on X's light mode in the default configuration
-  Category: a11y
-  Where: `src/features/library/user-notes.ts:285-299` (`.av-note-badge`).
-  Problem: the badge paints `background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 18%, transparent)` with `color: var(--av-text, rgb(239, 243, 244))` at `font-size: 10px`. Both properties fall back, because theme `"off"` is the default and defines no custom properties, and the background is 82% transparent over whatever X is showing. On X's light mode the label is near-white text on near-white ground. The repo already fixed this exact failure once for the launcher — `control-center.ts:2620-2624` explains that a translucent accent wash measured 1.12:1 on X light mode and was made opaque for that reason — and the fix was never carried to the injected in-timeline controls.
-  Evidence: measured in headless Chromium by running `userNotesFeature.init` and `apply`, mounting a `<span class="av-note-badge">` and reading `getComputedStyle` with `document.body.style.background = "#ffffff"`: `background: color(srgb 0.113725 0.607843 0.941177 / 0.18)`, `color: rgb(239, 243, 244)`, `fontSize: 10px`. Compositing 18% `rgb(29, 155, 240)` over white gives `#D6EDFC`, L = 0.81902; `#EFF3F4` has L = 0.88993; ratio = 0.93993 / 0.86902 = **1.08:1**. The coloured variants are no better: `slate` at `user-notes.ts:276` is `rgba(148, 163, 184, 0.22)`, which composites to `#E8EBEF` for roughly 1.05:1.
-  Fix: give the badge an opaque background of its own chrome, as the launcher does — `background: var(--av-surface-raised, rgb(22, 24, 28))` with `color: var(--av-text, rgb(239, 243, 244))` — rather than a wash over the page. Apply the same treatment to the six coloured variants at `user-notes.ts:270-284`, keeping the colour as a border or a left rule instead of the fill.
-  Acceptance: extend the canvas-compositing check already used by `tests/injected-ui-contract.test.mjs:609` ("the launcher stays legible on a light page") to the note badge and assert at least 4.5:1 against both a white and a black page.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — F223, The first-run notice's only button is white on X blue at 3.00:1
-  Category: a11y
-  Where: `src/features/core/first-run.ts:94-107`.
-  Problem: `button { background: #1d9bf0; color: #fff; font-size: 13px; font-weight: 700; }`. 13px at weight 700 is not WCAG "large text" (which needs 18.66px bold or 24px), so this must clear 4.5:1 and does not. It is the only control on the first thing a new user ever sees from Aviary, and every other primary button in the codebase already avoids the problem: `src/extension/options.css:319` and `src/ui/control-center.ts:2768` both put `rgb(5, 10, 15)` on the accent fill.
-  Evidence: L(`#FFFFFF`) = 1.0; L(`#1D9BF0`) = 0.29989 (channel luminances 0.01228, 0.32770, 0.87130 weighted 0.2126 / 0.7152 / 0.0722). Ratio = 1.05 / 0.34989 = **3.00:1**. With `rgb(5, 10, 15)` the same fill gives roughly 8.6:1.
-  Fix: `color: rgb(5, 10, 15)` to match the other two primary buttons. While in the file, change the focus ring at `first-run.ts:108` from `#e7e9ea` to the accent used everywhere else, and reconsider `card.setAttribute("role", "status")` at `:112` — a polite live region containing the notice's only interactive control is announced as a status message rather than presented as something to act on.
-  Acceptance: a contrast assertion in `tests/first-run.test.mjs` (or the a11y suite) measuring the dismiss button's foreground against its background at 4.5:1 or better.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — F226, The Catch-up dialog ignores the user's theme entirely
-  Category: visual
-  Where: `src/features/filtering/catch-up-ui.ts:351-400` (the whole injected stylesheet).
-  Problem: the dialog is a first-class Aviary surface — appended to `document.body` at `:56` with a document-level stylesheet at `:408` — and it is the only one that uses no design token at all. Twenty-eight colour literals, none of them `var(--av-*)`: `:358 color: #f2f5f7`, `:359 background: #11161c`, `:367 background: #18212b`, `:375 border-color: #54d5c5; color: #8ef1e4`, `:389 color: #71e2d2` and the rest. Under `plum` or `noir` it is a foreign teal-on-slate panel sitting on top of a themed page, and under any theme its accents are a colour that appears nowhere else in the product. Separately, `.av-catch-up-end` at `:400` is `color: #65727f` on the `#11161c` ground, which is 3.69:1 at 12px — the sibling greys in the same block are fine (`#8693A0` at `:382` is 5.79:1, `#9AA6B2` at `:370` is 7.33:1), so that one value is an outlier rather than a systematic choice.
-  Evidence: read at the cited lines; the block from `:351` to `:400` contains no `var(--av-` occurrence. Contrast for `.av-catch-up-end`: L(`#65727F`) = 0.16337, L(`#11161C`) = 0.00776, ratio = 0.21337 / 0.05776 = 3.69:1.
-  Fix: map the literals onto `--av-surface`, `--av-surface-raised`, `--av-border`, `--av-text`, `--av-muted` and `--av-accent`, keeping the current values only as fallbacks so the default theme "off" still paints. Replace the `#65727f` end-of-list colour with `var(--av-muted, #8693a0)`. Add the same `:focus-visible` block the rest of the codebase uses (see F229).
-  Acceptance: the dialog's computed background and text colours change when `data-av-theme` moves from absent to `plum`; a contrast assertion covers `.av-catch-up-end`.
-  Confidence: Verified
-  Effort: M
-
 - [ ] P2 — F227, "Tweets" survives in eight user-facing strings while the rest of the product says "posts"
   Category: ux
   Where: `src/ui/control-center/sections/data.ts:957` ("Capture visible tweets"), `:958` ("Accumulate tweets visible on the active page for the next export run."), `:1095` ("Export visible tweets" and "Collect the currently rendered tweets and download a ZIP."); `src/ui/control-center.ts:500` and `:503` (the two `SECTION_GROUP_BREAKS` anchors that key off those labels), `:1254` ("…over tweet photos and video thumbnails."), `:1263`; `src/features/core/presets.ts:97` (the Researcher preset highlight, rendered at `src/ui/control-center/sections/presets.ts:24`).

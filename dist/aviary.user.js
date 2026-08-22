@@ -1056,6 +1056,16 @@ var Aviary = (() => {
        descriptions and status line it carries. Lifted to the nearest value that clears 4.5. */
     --av-muted: rgb(132, 139, 145);
     --av-accent: rgb(29, 155, 240);
+    --av-danger: rgb(255, 120, 128);
+    --av-warn: rgb(247, 183, 73);
+    --av-ok: rgb(72, 211, 147);
+    --av-on-accent: rgb(5, 10, 15);
+    --av-on-danger: rgb(28, 8, 8);
+    --av-media-success: rgb(120, 200, 130);
+    --av-media-error: rgb(220, 110, 110);
+    --av-media-success-text: rgb(206, 240, 210);
+    --av-media-error-text: rgb(248, 200, 200);
+    --av-accent-secondary: rgb(29, 155, 240);
   `,
     lightsOut: `
     --av-bg: rgb(0, 0, 0);
@@ -1065,6 +1075,16 @@ var Aviary = (() => {
     --av-text: rgb(245, 247, 248);
     --av-muted: rgb(132, 139, 145);
     --av-accent: rgb(29, 155, 240);
+    --av-danger: rgb(255, 120, 128);
+    --av-warn: rgb(247, 183, 73);
+    --av-ok: rgb(72, 211, 147);
+    --av-on-accent: rgb(5, 10, 15);
+    --av-on-danger: rgb(28, 8, 8);
+    --av-media-success: rgb(120, 200, 130);
+    --av-media-error: rgb(220, 110, 110);
+    --av-media-success-text: rgb(206, 240, 210);
+    --av-media-error-text: rgb(248, 200, 200);
+    --av-accent-secondary: rgb(29, 155, 240);
   `,
     graphite: `
     --av-bg: rgb(8, 9, 11);
@@ -1074,6 +1094,16 @@ var Aviary = (() => {
     --av-text: rgb(241, 244, 246);
     --av-muted: rgb(150, 157, 164);
     --av-accent: rgb(91, 176, 255);
+    --av-danger: rgb(255, 128, 136);
+    --av-warn: rgb(247, 189, 90);
+    --av-ok: rgb(88, 214, 155);
+    --av-on-accent: rgb(6, 10, 14);
+    --av-on-danger: rgb(28, 8, 8);
+    --av-media-success: rgb(126, 204, 137);
+    --av-media-error: rgb(222, 116, 116);
+    --av-media-success-text: rgb(208, 241, 212);
+    --av-media-error-text: rgb(248, 203, 203);
+    --av-accent-secondary: rgb(91, 176, 255);
   `,
     plum: `
     --av-bg: rgb(9, 5, 12);
@@ -1083,6 +1113,16 @@ var Aviary = (() => {
     --av-text: rgb(246, 241, 249);
     --av-muted: rgb(164, 148, 174);
     --av-accent: rgb(205, 142, 255);
+    --av-danger: rgb(255, 133, 150);
+    --av-warn: rgb(246, 191, 108);
+    --av-ok: rgb(112, 216, 168);
+    --av-on-accent: rgb(14, 6, 18);
+    --av-on-danger: rgb(30, 8, 12);
+    --av-media-success: rgb(140, 206, 160);
+    --av-media-error: rgb(224, 124, 132);
+    --av-media-success-text: rgb(215, 242, 224);
+    --av-media-error-text: rgb(249, 208, 212);
+    --av-accent-secondary: rgb(205, 142, 255);
   `,
     midnight: `
     --av-bg: rgb(2, 8, 16);
@@ -1092,6 +1132,16 @@ var Aviary = (() => {
     --av-text: rgb(239, 246, 252);
     --av-muted: rgb(139, 160, 178);
     --av-accent: rgb(68, 171, 255);
+    --av-danger: rgb(255, 126, 138);
+    --av-warn: rgb(247, 187, 96);
+    --av-ok: rgb(88, 216, 164);
+    --av-on-accent: rgb(3, 12, 22);
+    --av-on-danger: rgb(26, 8, 12);
+    --av-media-success: rgb(126, 205, 150);
+    --av-media-error: rgb(222, 118, 124);
+    --av-media-success-text: rgb(210, 242, 220);
+    --av-media-error-text: rgb(248, 205, 208);
+    --av-accent-secondary: rgb(68, 171, 255);
   `,
     noir: `
     --av-bg: rgb(4, 7, 11);
@@ -1102,6 +1152,15 @@ var Aviary = (() => {
     --av-muted: rgb(155, 169, 184);
     --av-accent: rgb(92, 211, 255);
     --av-accent-secondary: rgb(151, 128, 255);
+    --av-danger: rgb(255, 130, 140);
+    --av-warn: rgb(248, 190, 100);
+    --av-ok: rgb(92, 219, 168);
+    --av-on-accent: rgb(3, 20, 24);
+    --av-on-danger: rgb(26, 8, 10);
+    --av-media-success: rgb(128, 208, 152);
+    --av-media-error: rgb(224, 120, 126);
+    --av-media-success-text: rgb(212, 243, 222);
+    --av-media-error-text: rgb(249, 206, 210);
   `
   };
   var THEME_CSS = `
@@ -9007,16 +9066,16 @@ input[type="checkbox"] {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: rgb(72, 211, 147);
+  background: var(--av-ok, rgb(72, 211, 147));
   box-shadow: none;
 }
 
 .av-status[data-state="dirty"] {
-  color: rgb(247, 183, 73);
+  color: var(--av-warn, rgb(247, 183, 73));
 }
 
 .av-status[data-state="dirty"]::before {
-  background: rgb(247, 183, 73);
+  background: var(--av-warn, rgb(247, 183, 73));
   box-shadow: none;
 }
 
@@ -9026,11 +9085,11 @@ input[type="checkbox"] {
 }
 
 .av-status[data-state="error"] {
-  color: rgb(255, 120, 128);
+  color: var(--av-danger, rgb(255, 120, 128));
 }
 
 .av-status[data-state="error"]::before {
-  background: rgb(255, 95, 109);
+  background: var(--av-danger, rgb(255, 120, 128));
   box-shadow: none;
 }
 
@@ -20453,49 +20512,49 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
   padding: 0;
   border: 1px solid rgba(148, 163, 184, .22);
   border-radius: 12px;
-  color: #f2f5f7;
-  background: #11161c;
+  color: var(--av-text, #f2f5f7);
+  background: var(--av-surface, #11161c);
   box-shadow: 0 26px 90px rgba(0, 0, 0, .55);
   font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 .av-catch-up-dialog::backdrop { background: rgba(3, 7, 12, .72); }
 .av-catch-up-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 24px 28px 18px; border-bottom: 1px solid rgba(148, 163, 184, .16); }
 .av-catch-up-heading h2 { margin: 0; font-size: 24px; letter-spacing: -.02em; }
-.av-catch-up-heading p { margin: 5px 0 0; color: #9aa6b2; }
-.av-catch-up-close, .av-catch-up-filter, .av-catch-up-select { border: 1px solid rgba(148, 163, 184, .3); border-radius: 8px; background: #18212b; color: inherit; }
+.av-catch-up-heading p { margin: 5px 0 0; color: var(--av-muted, #9aa6b2); }
+.av-catch-up-close, .av-catch-up-filter, .av-catch-up-select { border: 1px solid rgba(148, 163, 184, .3); border-radius: 8px; background: var(--av-surface-raised, #18212b); color: inherit; }
 .av-catch-up-close { padding: 8px 12px; cursor: pointer; }
 .av-catch-up-controls { display: flex; align-items: end; gap: 12px; flex-wrap: wrap; padding: 16px 28px 10px; }
-.av-catch-up-field { display: grid; gap: 5px; color: #9aa6b2; font-size: 12px; }
+.av-catch-up-field { display: grid; gap: 5px; color: var(--av-muted, #9aa6b2); font-size: 12px; }
 .av-catch-up-select { min-width: 138px; padding: 8px 10px; font-size: 13px; }
-.av-catch-up-check { display: flex; align-items: center; gap: 7px; min-height: 34px; color: #cbd5df; }
+.av-catch-up-check { display: flex; align-items: center; gap: 7px; min-height: 34px; color: var(--av-text, #cbd5df); }
 .av-catch-up-filters { display: flex; flex-wrap: wrap; gap: 7px; padding: 0 28px 16px; border-bottom: 1px solid rgba(148, 163, 184, .16); }
 .av-catch-up-filter { padding: 7px 10px; cursor: pointer; font-size: 12px; }
-.av-catch-up-filter.is-active { border-color: #54d5c5; color: #8ef1e4; background: rgba(84, 213, 197, .12); }
+.av-catch-up-filter.is-active { border-color: var(--av-accent, #54d5c5); color: var(--av-accent, #8ef1e4); background: color-mix(in srgb, var(--av-accent, #54d5c5) 12%, transparent); }
 .av-catch-up-scroll { height: calc(100% - 162px); overflow: auto; }
 .av-catch-up-content { max-width: 760px; margin: 0 auto; padding: 18px 28px 32px; }
 .av-catch-up-record { position: relative; padding: 16px 0; border-bottom: 1px solid rgba(148, 163, 184, .13); }
 .av-catch-up-record:last-of-type { border-bottom: 0; }
 .av-catch-up-meta { display: flex; align-items: baseline; gap: 10px; }
-.av-catch-up-author-name { font-weight: 650; color: #e8edf1; }
-.av-catch-up-time { color: #8693a0; font-size: 12px; }
-.av-catch-up-text { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: #d9e0e6; }
-.av-catch-up-reason { margin: 8px 0 0; color: #f5c36a; font-size: 12px; }
+.av-catch-up-author-name { font-weight: 650; color: var(--av-text, #e8edf1); }
+.av-catch-up-time { color: var(--av-muted, #8693a0); font-size: 12px; }
+.av-catch-up-text { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--av-text, #d9e0e6); }
+.av-catch-up-reason { margin: 8px 0 0; color: var(--av-warn, #f5c36a); font-size: 12px; }
 .av-catch-up-media { display: flex; gap: 8px; margin-top: 12px; }
-.av-catch-up-media img, .av-catch-up-media-preview { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; background: #202a34; }
+.av-catch-up-media img, .av-catch-up-media-preview { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; background: var(--av-surface-raised, #202a34); }
 .av-catch-up-media-preview { border: 1px solid rgba(148, 163, 184, .24); color: #aeb9c3; cursor: pointer; font-size: 11px; }
 .av-catch-up-actions { margin-top: 10px; }
-.av-catch-up-link { color: #71e2d2; text-decoration: none; font-size: 12px; }
+.av-catch-up-link { color: var(--av-accent, #71e2d2); text-decoration: none; font-size: 12px; }
 .av-catch-up-link:hover { text-decoration: underline; }
-.av-catch-up-author { margin: 20px 0 0; font-size: 13px; color: #8ef1e4; }
+.av-catch-up-author { margin: 20px 0 0; font-size: 13px; color: var(--av-accent, #8ef1e4); }
 .av-catch-up-links { margin: 0 0 8px; padding: 12px 0; border-bottom: 1px solid rgba(148, 163, 184, .13); }
 .av-catch-up-links h3 { margin: 0 0 8px; font-size: 13px; color: #aeb9c3; }
 .av-catch-up-link-row { display: flex; justify-content: space-between; gap: 14px; padding: 5px 0; font-size: 12px; }
-.av-catch-up-link-row a { overflow: hidden; color: #d9e0e6; text-overflow: ellipsis; white-space: nowrap; }
-.av-catch-up-link-row span { flex: none; color: #8693a0; }
-.av-catch-up-empty { display: grid; gap: 8px; padding: 80px 0; text-align: center; color: #9aa6b2; }
-.av-catch-up-empty strong { color: #e8edf1; font-size: 18px; }
+.av-catch-up-link-row a { overflow: hidden; color: var(--av-text, #d9e0e6); text-overflow: ellipsis; white-space: nowrap; }
+.av-catch-up-link-row span { flex: none; color: var(--av-muted, #8693a0); }
+.av-catch-up-empty { display: grid; gap: 8px; padding: 80px 0; text-align: center; color: var(--av-muted, #9aa6b2); }
+.av-catch-up-empty strong { color: var(--av-text, #e8edf1); font-size: 18px; }
 .av-catch-up-empty p { margin: 0; }
-.av-catch-up-end { margin: 22px 0 0; text-align: center; color: #65727f; font-size: 12px; }
+.av-catch-up-end { margin: 22px 0 0; text-align: center; color: var(--av-muted, #8693a0); font-size: 12px; }
 @media (max-width: 640px) {
   .av-catch-up-dialog { width: 100vw; height: 100vh; border: 0; border-radius: 0; }
   .av-catch-up-header, .av-catch-up-controls, .av-catch-up-filters { padding-left: 18px; padding-right: 18px; }
@@ -25608,7 +25667,11 @@ ${COLOR_CSS}`;
   padding: 1px 6px;
   border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 70%, transparent);
   border-radius: 6px;
-  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 18%, transparent);
+  /* Opaque, and deliberately so. This was an 18% accent wash straight over whatever X had behind
+     it, which on X's light mode composited to near-white under near-white text: 1.08:1, an
+     invisible label. The launcher was fixed the same way and this surface was missed. */
+  background: var(--av-surface-raised, rgb(22, 24, 28));
+  border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 45%, transparent);
   color: var(--av-text, rgb(239, 243, 244));
   font-weight: 700;
   font-size: 10px;
@@ -28909,13 +28972,16 @@ ${COLOR_CSS}`;
       border: 0;
       border-radius: 7px;
       background: #1d9bf0;
-      color: #fff;
+      /* White on X blue is 3.00:1, and 13px at weight 700 is not WCAG large text. Every other
+         primary button in the codebase puts this dark ink on the accent fill; this one was missed,
+         on the first control a new user ever sees. */
+      color: rgb(5, 10, 15);
       font-family: inherit;
       font-size: 13px;
       font-weight: 700;
       cursor: pointer;
     }
-    button:focus-visible { outline: 2px solid #e7e9ea; outline-offset: 2px; }
+    button:focus-visible { outline: 2px solid #1d9bf0; outline-offset: 2px; }
   `;
     const card = document.createElement("div");
     card.className = "card";

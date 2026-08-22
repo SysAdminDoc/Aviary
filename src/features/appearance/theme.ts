@@ -186,7 +186,12 @@ function ensureThemeStyle(): void {
 
 // "off" is absent by construction: it emits no class, so it has no variables. The Control
 // Center's own CSS carries fallbacks (`var(--av-surface, ...)`), so the panel stays styled
-// while X is left completely alone.
+// while X is left completely alone -- which also means every fallback in this codebase is a real
+// production value, not a safety net, and has to be kept correct.
+//
+// Every name a `var(--av-*)` anywhere in `src/` reads is defined here, in all six palettes. Five
+// used to be referenced and defined nowhere (`--av-danger`, the four `--av-media-*`), so a theme
+// could not change them and the hard-coded fallback painted in every palette.
 const themeVars: Record<Exclude<ThemeId, "off">, string> = {
   dim: `
     --av-bg: rgb(0, 0, 0);
@@ -198,6 +203,16 @@ const themeVars: Record<Exclude<ThemeId, "off">, string> = {
        descriptions and status line it carries. Lifted to the nearest value that clears 4.5. */
     --av-muted: rgb(132, 139, 145);
     --av-accent: rgb(29, 155, 240);
+    --av-danger: rgb(255, 120, 128);
+    --av-warn: rgb(247, 183, 73);
+    --av-ok: rgb(72, 211, 147);
+    --av-on-accent: rgb(5, 10, 15);
+    --av-on-danger: rgb(28, 8, 8);
+    --av-media-success: rgb(120, 200, 130);
+    --av-media-error: rgb(220, 110, 110);
+    --av-media-success-text: rgb(206, 240, 210);
+    --av-media-error-text: rgb(248, 200, 200);
+    --av-accent-secondary: rgb(29, 155, 240);
   `,
   lightsOut: `
     --av-bg: rgb(0, 0, 0);
@@ -207,6 +222,16 @@ const themeVars: Record<Exclude<ThemeId, "off">, string> = {
     --av-text: rgb(245, 247, 248);
     --av-muted: rgb(132, 139, 145);
     --av-accent: rgb(29, 155, 240);
+    --av-danger: rgb(255, 120, 128);
+    --av-warn: rgb(247, 183, 73);
+    --av-ok: rgb(72, 211, 147);
+    --av-on-accent: rgb(5, 10, 15);
+    --av-on-danger: rgb(28, 8, 8);
+    --av-media-success: rgb(120, 200, 130);
+    --av-media-error: rgb(220, 110, 110);
+    --av-media-success-text: rgb(206, 240, 210);
+    --av-media-error-text: rgb(248, 200, 200);
+    --av-accent-secondary: rgb(29, 155, 240);
   `,
   graphite: `
     --av-bg: rgb(8, 9, 11);
@@ -216,6 +241,16 @@ const themeVars: Record<Exclude<ThemeId, "off">, string> = {
     --av-text: rgb(241, 244, 246);
     --av-muted: rgb(150, 157, 164);
     --av-accent: rgb(91, 176, 255);
+    --av-danger: rgb(255, 128, 136);
+    --av-warn: rgb(247, 189, 90);
+    --av-ok: rgb(88, 214, 155);
+    --av-on-accent: rgb(6, 10, 14);
+    --av-on-danger: rgb(28, 8, 8);
+    --av-media-success: rgb(126, 204, 137);
+    --av-media-error: rgb(222, 116, 116);
+    --av-media-success-text: rgb(208, 241, 212);
+    --av-media-error-text: rgb(248, 203, 203);
+    --av-accent-secondary: rgb(91, 176, 255);
   `,
   plum: `
     --av-bg: rgb(9, 5, 12);
@@ -225,6 +260,16 @@ const themeVars: Record<Exclude<ThemeId, "off">, string> = {
     --av-text: rgb(246, 241, 249);
     --av-muted: rgb(164, 148, 174);
     --av-accent: rgb(205, 142, 255);
+    --av-danger: rgb(255, 133, 150);
+    --av-warn: rgb(246, 191, 108);
+    --av-ok: rgb(112, 216, 168);
+    --av-on-accent: rgb(14, 6, 18);
+    --av-on-danger: rgb(30, 8, 12);
+    --av-media-success: rgb(140, 206, 160);
+    --av-media-error: rgb(224, 124, 132);
+    --av-media-success-text: rgb(215, 242, 224);
+    --av-media-error-text: rgb(249, 208, 212);
+    --av-accent-secondary: rgb(205, 142, 255);
   `,
   midnight: `
     --av-bg: rgb(2, 8, 16);
@@ -234,6 +279,16 @@ const themeVars: Record<Exclude<ThemeId, "off">, string> = {
     --av-text: rgb(239, 246, 252);
     --av-muted: rgb(139, 160, 178);
     --av-accent: rgb(68, 171, 255);
+    --av-danger: rgb(255, 126, 138);
+    --av-warn: rgb(247, 187, 96);
+    --av-ok: rgb(88, 216, 164);
+    --av-on-accent: rgb(3, 12, 22);
+    --av-on-danger: rgb(26, 8, 12);
+    --av-media-success: rgb(126, 205, 150);
+    --av-media-error: rgb(222, 118, 124);
+    --av-media-success-text: rgb(210, 242, 220);
+    --av-media-error-text: rgb(248, 205, 208);
+    --av-accent-secondary: rgb(68, 171, 255);
   `,
   noir: `
     --av-bg: rgb(4, 7, 11);
@@ -244,6 +299,15 @@ const themeVars: Record<Exclude<ThemeId, "off">, string> = {
     --av-muted: rgb(155, 169, 184);
     --av-accent: rgb(92, 211, 255);
     --av-accent-secondary: rgb(151, 128, 255);
+    --av-danger: rgb(255, 130, 140);
+    --av-warn: rgb(248, 190, 100);
+    --av-ok: rgb(92, 219, 168);
+    --av-on-accent: rgb(3, 20, 24);
+    --av-on-danger: rgb(26, 8, 10);
+    --av-media-success: rgb(128, 208, 152);
+    --av-media-error: rgb(224, 120, 126);
+    --av-media-success-text: rgb(212, 243, 222);
+    --av-media-error-text: rgb(249, 206, 210);
   `
 };
 

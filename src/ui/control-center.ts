@@ -3666,16 +3666,16 @@ input[type="checkbox"] {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: rgb(72, 211, 147);
+  background: var(--av-ok, rgb(72, 211, 147));
   box-shadow: none;
 }
 
 .av-status[data-state="dirty"] {
-  color: rgb(247, 183, 73);
+  color: var(--av-warn, rgb(247, 183, 73));
 }
 
 .av-status[data-state="dirty"]::before {
-  background: rgb(247, 183, 73);
+  background: var(--av-warn, rgb(247, 183, 73));
   box-shadow: none;
 }
 
@@ -3685,11 +3685,11 @@ input[type="checkbox"] {
 }
 
 .av-status[data-state="error"] {
-  color: rgb(255, 120, 128);
+  color: var(--av-danger, rgb(255, 120, 128));
 }
 
 .av-status[data-state="error"]::before {
-  background: rgb(255, 95, 109);
+  background: var(--av-danger, rgb(255, 120, 128));
   box-shadow: none;
 }
 

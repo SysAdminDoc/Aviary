@@ -26,6 +26,14 @@
   silence.
 
 ### Fixed
+- Themes now reach every colour they should. Six token names were read by a stylesheet and set by
+  no palette, so their hard-coded value painted whatever theme was chosen, and the catch-up digest
+  ignored the theme entirely, opening as a foreign teal panel over a themed page.
+- The account-note badge is readable on X's light mode. It painted a translucent accent wash over
+  whatever the page had behind it, which on a light page put near-white text on near-white ground.
+- The first-run notice's button no longer puts white on X blue at 3.00:1. It uses the same dark ink
+  every other primary button in the panel does.
+
 - Turning Aviary off now takes the catch-up digest and the shared toast with it. The digest's
   stylesheet was never removed, and two features raised the toast without being able to take it
   down, so both could outlive the teardown that was meant to return the page to what X rendered.

@@ -99,13 +99,16 @@ function mountNotice(ctx: FeatureContext): void {
       border: 0;
       border-radius: 7px;
       background: #1d9bf0;
-      color: #fff;
+      /* White on X blue is 3.00:1, and 13px at weight 700 is not WCAG large text. Every other
+         primary button in the codebase puts this dark ink on the accent fill; this one was missed,
+         on the first control a new user ever sees. */
+      color: rgb(5, 10, 15);
       font-family: inherit;
       font-size: 13px;
       font-weight: 700;
       cursor: pointer;
     }
-    button:focus-visible { outline: 2px solid #e7e9ea; outline-offset: 2px; }
+    button:focus-visible { outline: 2px solid #1d9bf0; outline-offset: 2px; }
   `;
 
   const card = document.createElement("div");

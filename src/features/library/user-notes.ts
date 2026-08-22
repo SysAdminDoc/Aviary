@@ -289,7 +289,11 @@ const NOTE_CSS = `
   padding: 1px 6px;
   border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 70%, transparent);
   border-radius: 6px;
-  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 18%, transparent);
+  /* Opaque, and deliberately so. This was an 18% accent wash straight over whatever X had behind
+     it, which on X's light mode composited to near-white under near-white text: 1.08:1, an
+     invisible label. The launcher was fixed the same way and this surface was missed. */
+  background: var(--av-surface-raised, rgb(22, 24, 28));
+  border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 45%, transparent);
   color: var(--av-text, rgb(239, 243, 244));
   font-weight: 700;
   font-size: 10px;

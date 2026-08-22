@@ -452,6 +452,13 @@ function writeState(state: CatchUpUiState): void {
   }
 }
 
+/**
+ * The digest is a first-class Aviary surface: it is appended to <body> with its own document-level
+ * stylesheet, and it was the only one that ignored the user's theme entirely. Every colour below
+ * reads a token with its previous literal as the fallback, so the default theme "off" -- which
+ * defines no custom properties -- paints exactly what it painted before, while a chosen palette
+ * now reaches it.
+ */
 function ensureStyle(): void {
   if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement("style");
@@ -464,49 +471,49 @@ function ensureStyle(): void {
   padding: 0;
   border: 1px solid rgba(148, 163, 184, .22);
   border-radius: 12px;
-  color: #f2f5f7;
-  background: #11161c;
+  color: var(--av-text, #f2f5f7);
+  background: var(--av-surface, #11161c);
   box-shadow: 0 26px 90px rgba(0, 0, 0, .55);
   font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 .av-catch-up-dialog::backdrop { background: rgba(3, 7, 12, .72); }
 .av-catch-up-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 24px 28px 18px; border-bottom: 1px solid rgba(148, 163, 184, .16); }
 .av-catch-up-heading h2 { margin: 0; font-size: 24px; letter-spacing: -.02em; }
-.av-catch-up-heading p { margin: 5px 0 0; color: #9aa6b2; }
-.av-catch-up-close, .av-catch-up-filter, .av-catch-up-select { border: 1px solid rgba(148, 163, 184, .3); border-radius: 8px; background: #18212b; color: inherit; }
+.av-catch-up-heading p { margin: 5px 0 0; color: var(--av-muted, #9aa6b2); }
+.av-catch-up-close, .av-catch-up-filter, .av-catch-up-select { border: 1px solid rgba(148, 163, 184, .3); border-radius: 8px; background: var(--av-surface-raised, #18212b); color: inherit; }
 .av-catch-up-close { padding: 8px 12px; cursor: pointer; }
 .av-catch-up-controls { display: flex; align-items: end; gap: 12px; flex-wrap: wrap; padding: 16px 28px 10px; }
-.av-catch-up-field { display: grid; gap: 5px; color: #9aa6b2; font-size: 12px; }
+.av-catch-up-field { display: grid; gap: 5px; color: var(--av-muted, #9aa6b2); font-size: 12px; }
 .av-catch-up-select { min-width: 138px; padding: 8px 10px; font-size: 13px; }
-.av-catch-up-check { display: flex; align-items: center; gap: 7px; min-height: 34px; color: #cbd5df; }
+.av-catch-up-check { display: flex; align-items: center; gap: 7px; min-height: 34px; color: var(--av-text, #cbd5df); }
 .av-catch-up-filters { display: flex; flex-wrap: wrap; gap: 7px; padding: 0 28px 16px; border-bottom: 1px solid rgba(148, 163, 184, .16); }
 .av-catch-up-filter { padding: 7px 10px; cursor: pointer; font-size: 12px; }
-.av-catch-up-filter.is-active { border-color: #54d5c5; color: #8ef1e4; background: rgba(84, 213, 197, .12); }
+.av-catch-up-filter.is-active { border-color: var(--av-accent, #54d5c5); color: var(--av-accent, #8ef1e4); background: color-mix(in srgb, var(--av-accent, #54d5c5) 12%, transparent); }
 .av-catch-up-scroll { height: calc(100% - 162px); overflow: auto; }
 .av-catch-up-content { max-width: 760px; margin: 0 auto; padding: 18px 28px 32px; }
 .av-catch-up-record { position: relative; padding: 16px 0; border-bottom: 1px solid rgba(148, 163, 184, .13); }
 .av-catch-up-record:last-of-type { border-bottom: 0; }
 .av-catch-up-meta { display: flex; align-items: baseline; gap: 10px; }
-.av-catch-up-author-name { font-weight: 650; color: #e8edf1; }
-.av-catch-up-time { color: #8693a0; font-size: 12px; }
-.av-catch-up-text { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: #d9e0e6; }
-.av-catch-up-reason { margin: 8px 0 0; color: #f5c36a; font-size: 12px; }
+.av-catch-up-author-name { font-weight: 650; color: var(--av-text, #e8edf1); }
+.av-catch-up-time { color: var(--av-muted, #8693a0); font-size: 12px; }
+.av-catch-up-text { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--av-text, #d9e0e6); }
+.av-catch-up-reason { margin: 8px 0 0; color: var(--av-warn, #f5c36a); font-size: 12px; }
 .av-catch-up-media { display: flex; gap: 8px; margin-top: 12px; }
-.av-catch-up-media img, .av-catch-up-media-preview { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; background: #202a34; }
+.av-catch-up-media img, .av-catch-up-media-preview { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; background: var(--av-surface-raised, #202a34); }
 .av-catch-up-media-preview { border: 1px solid rgba(148, 163, 184, .24); color: #aeb9c3; cursor: pointer; font-size: 11px; }
 .av-catch-up-actions { margin-top: 10px; }
-.av-catch-up-link { color: #71e2d2; text-decoration: none; font-size: 12px; }
+.av-catch-up-link { color: var(--av-accent, #71e2d2); text-decoration: none; font-size: 12px; }
 .av-catch-up-link:hover { text-decoration: underline; }
-.av-catch-up-author { margin: 20px 0 0; font-size: 13px; color: #8ef1e4; }
+.av-catch-up-author { margin: 20px 0 0; font-size: 13px; color: var(--av-accent, #8ef1e4); }
 .av-catch-up-links { margin: 0 0 8px; padding: 12px 0; border-bottom: 1px solid rgba(148, 163, 184, .13); }
 .av-catch-up-links h3 { margin: 0 0 8px; font-size: 13px; color: #aeb9c3; }
 .av-catch-up-link-row { display: flex; justify-content: space-between; gap: 14px; padding: 5px 0; font-size: 12px; }
-.av-catch-up-link-row a { overflow: hidden; color: #d9e0e6; text-overflow: ellipsis; white-space: nowrap; }
-.av-catch-up-link-row span { flex: none; color: #8693a0; }
-.av-catch-up-empty { display: grid; gap: 8px; padding: 80px 0; text-align: center; color: #9aa6b2; }
-.av-catch-up-empty strong { color: #e8edf1; font-size: 18px; }
+.av-catch-up-link-row a { overflow: hidden; color: var(--av-text, #d9e0e6); text-overflow: ellipsis; white-space: nowrap; }
+.av-catch-up-link-row span { flex: none; color: var(--av-muted, #8693a0); }
+.av-catch-up-empty { display: grid; gap: 8px; padding: 80px 0; text-align: center; color: var(--av-muted, #9aa6b2); }
+.av-catch-up-empty strong { color: var(--av-text, #e8edf1); font-size: 18px; }
 .av-catch-up-empty p { margin: 0; }
-.av-catch-up-end { margin: 22px 0 0; text-align: center; color: #65727f; font-size: 12px; }
+.av-catch-up-end { margin: 22px 0 0; text-align: center; color: var(--av-muted, #8693a0); font-size: 12px; }
 @media (max-width: 640px) {
   .av-catch-up-dialog { width: 100vw; height: 100vh; border: 0; border-radius: 0; }
   .av-catch-up-header, .av-catch-up-controls, .av-catch-up-filters { padding-left: 18px; padding-right: 18px; }

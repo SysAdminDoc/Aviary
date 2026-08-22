@@ -249,3 +249,85 @@ async function bundleToText(relativePath) {
     await rm(temp, { recursive: true, force: true });
   }
 }
+
+/**
+ * A token a stylesheet reads must be a token a theme can set.
+ *
+ * Five names were referenced and defined nowhere -- `--av-danger` and the four `--av-media-*` --
+ * so their hard-coded fallback painted in every palette and no theme could change them. The
+ * default theme is "off", which defines no custom properties at all, which is exactly why an
+ * undefined token looks like it works.
+ */
+
+/**
+ * A token a stylesheet reads must be a token something sets, and a palette token must be set by
+ * every palette.
+ *
+ * Five names were referenced and defined nowhere -- `--av-danger` and the four `--av-media-*` --
+ * so their hard-coded fallback painted in every palette and no theme could change them. A sixth,
+ * `--av-accent-secondary`, was defined by `noir` alone, which is the other half of the same
+ * problem: a rule reading it outside that palette resolves to nothing. The default theme is "off"
+ * and defines no custom properties at all, which is exactly why either mistake looks like it works.
+ */
+test("every --av-* token is set somewhere, and every palette token is set by all six", async () => {
+  const { readdir, readFile } = await import("node:fs/promises");
+  const nodePath = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const repo = nodePath.resolve(nodePath.dirname(fileURLToPath(import.meta.url)), "..");
+
+  const walk = async (directory) => {
+    const out = [];
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const full = nodePath.join(directory, entry.name);
+      if (entry.isDirectory()) out.push(...(await walk(full)));
+      else if (entry.name.endsWith(".ts") || entry.name.endsWith(".css")) out.push(full);
+    }
+    return out;
+  };
+
+  const read = new Set();
+  const assigned = new Set();
+  for (const file of await walk(nodePath.join(repo, "src"))) {
+    const text = await readFile(file, "utf8");
+    for (const match of text.matchAll(/var\(\s*(--av-[\w-]+)/g)) read.add(match[1]);
+    for (const match of text.matchAll(/(--av-[\w-]+)\s*:/g)) assigned.add(match[1]);
+    // Some tokens are set per element from JS rather than declared in a stylesheet.
+    for (const match of text.matchAll(/setProperty\(\s*"(--av-[\w-]+)"/g)) assigned.add(match[1]);
+  }
+
+  const never = [...read].filter((token) => !assigned.has(token)).sort();
+  assert.deepEqual(
+    never,
+    [],
+    `these tokens are read and never set anywhere, so only their fallback ever paints: ${never.join(", ")}`
+  );
+
+  // The palette half: whatever one palette sets, all of them must set.
+  const themeSource = await readFile(nodePath.join(repo, "src/features/appearance/theme.ts"), "utf8");
+  const palettes = ["dim", "lightsOut", "graphite", "plum", "midnight", "noir"];
+  const perPalette = new Map();
+  for (const palette of palettes) {
+    const marker = `  ${palette}: \``;
+    const from = themeSource.indexOf(marker);
+    assert.ok(from >= 0, `palette ${palette} not found in themeVars`);
+    const bodyStart = from + marker.length;
+    const bodyEnd = themeSource.indexOf("`", bodyStart);
+    assert.ok(bodyEnd > bodyStart, `palette ${palette} block is not terminated`);
+    const body = themeSource.slice(bodyStart, bodyEnd);
+    perPalette.set(palette, new Set([...body.matchAll(/(--av-[\w-]+)\s*:/g)].map((m) => m[1])));
+  }
+
+  const union = new Set([...perPalette.values()].flatMap((set) => [...set]));
+  const gaps = [];
+  for (const [palette, set] of perPalette) {
+    for (const token of union) {
+      if (!set.has(token)) gaps.push(`${palette} ${token}`);
+    }
+  }
+  assert.deepEqual(
+    gaps.sort(),
+    [],
+    `these palettes are missing a token the others define, so a rule reading it there resolves to ` +
+      `its fallback instead of the palette: ${gaps.join(", ")}`
+  );
+});
