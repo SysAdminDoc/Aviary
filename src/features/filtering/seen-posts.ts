@@ -1,10 +1,34 @@
 import type { StorageGateway } from "../../platform/storage";
 import { mutateStored, replaceStored } from "../../platform/storage-lock";
+import type { RouteSurface } from "../../platform/route";
 
 export const SEEN_POSTS_KEY = "aviary.seenPosts.v1";
 export const SEEN_POSTS_LIMIT = 4000;
 export const SEEN_POSTS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const TWEET_ID = /^\d{1,25}$/;
+
+/** Route surfaces that can carry a chronological reading position. */
+export const READING_MARKER_SURFACES = [
+  "home",
+  "status",
+  "profile",
+  "search",
+  "notifications",
+  "messages"
+] as const satisfies readonly RouteSurface[];
+export type ReadingMarkerSurface = (typeof READING_MARKER_SURFACES)[number];
+export const READING_MARKERS_KEY = "aviary.readingMarkers.v1";
+export const READING_MARKERS_VERSION = 1 as const;
+
+export interface ReadingMarker {
+  lastReadId: string;
+  updatedAt: number;
+}
+
+export interface ReadingMarkersSnapshot {
+  version: typeof READING_MARKERS_VERSION;
+  markers: Partial<Record<ReadingMarkerSurface, ReadingMarker>>;
+}
 
 interface StoredSeenPosts {
   version: 1;
@@ -139,6 +163,184 @@ export class SeenPostStore {
   #prune(now: number): void {
     this.#seen = prune(this.#seen, now);
   }
+}
+
+/**
+ * One small, profile-scoped position per feed surface. It stores no post content. Snowflake ids
+ * are compared as decimal strings so a marker never loses precision in JavaScript numbers.
+ *
+ * `advance` is deliberately directional: scrolling down X's newest-first timeline moves the
+ * read boundary toward older (smaller) ids. Scrolling back toward newer posts cannot make a read
+ * marker jump forward without an explicit button press.
+ */
+export class ReadingMarkerStore {
+  readonly #storage: StorageGateway;
+  #markers = new Map<ReadingMarkerSurface, ReadingMarker>();
+  #pending = new Map<ReadingMarkerSurface, ReadingMarker>();
+  #loaded = false;
+  #dirty = false;
+  #tail: Promise<void> = Promise.resolve();
+
+  constructor(storage: StorageGateway) {
+    this.#storage = storage;
+  }
+
+  async load(): Promise<void> {
+    if (this.#loaded) return;
+    this.#loaded = true;
+    try {
+      this.#markers = parseReadingMarkers(await this.#storage.get<unknown>(READING_MARKERS_KEY, undefined));
+    } catch {
+      this.#markers = new Map();
+    }
+  }
+
+  get(surface: ReadingMarkerSurface): ReadingMarker | null {
+    const marker = this.#markers.get(surface);
+    return marker ? { ...marker } : null;
+  }
+
+  /** Store a user-selected position, including an explicit mark-above action. */
+  set(surface: ReadingMarkerSurface, lastReadId: string, now: number): boolean {
+    if (!isReadingMarkerSurface(surface) || !TWEET_ID.test(lastReadId) || !Number.isFinite(now)) {
+      return false;
+    }
+    const next = { lastReadId, updatedAt: Math.max(0, Math.floor(now)) } satisfies ReadingMarker;
+    const current = this.#markers.get(surface);
+    if (current?.lastReadId === next.lastReadId) {
+      return false;
+    }
+    this.#markers.set(surface, next);
+    this.#pending.set(surface, next);
+    this.#dirty = true;
+    return true;
+  }
+
+  /** Move the boundary toward older posts when one leaves the viewport upward. */
+  advance(surface: ReadingMarkerSurface, lastReadId: string, now: number): boolean {
+    const current = this.#markers.get(surface);
+    if (current && compareTweetIds(lastReadId, current.lastReadId) >= 0) {
+      return false;
+    }
+    return this.set(surface, lastReadId, now);
+  }
+
+  snapshot(): ReadingMarkersSnapshot {
+    return {
+      version: READING_MARKERS_VERSION,
+      markers: Object.fromEntries(
+        [...this.#markers.entries()].map(([surface, marker]) => [surface, { ...marker }])
+      ) as Partial<Record<ReadingMarkerSurface, ReadingMarker>>
+    };
+  }
+
+  async clear(surface?: ReadingMarkerSurface): Promise<void> {
+    if (surface === undefined) {
+      this.#markers.clear();
+      this.#pending.clear();
+      this.#dirty = false;
+      this.#loaded = true;
+      await this.#tail;
+      await replaceStored(this.#storage, READING_MARKERS_KEY, {
+        version: READING_MARKERS_VERSION,
+        markers: {}
+      } satisfies ReadingMarkersSnapshot);
+      return;
+    }
+    if (!isReadingMarkerSurface(surface)) return;
+    this.#markers.delete(surface);
+    this.#pending.delete(surface);
+    this.#dirty = this.#pending.size > 0;
+    await this.#tail;
+    const merged = await mutateStored<unknown>(this.#storage, READING_MARKERS_KEY, {
+      version: READING_MARKERS_VERSION,
+      markers: {}
+    }, (stored) => {
+      const next = parseReadingMarkers(stored);
+      next.delete(surface);
+      return snapshotFromMap(next);
+    });
+    this.#markers = parseReadingMarkers(merged);
+  }
+
+  flush(): void {
+    if (!this.#dirty) return;
+    this.#dirty = false;
+    const pending = this.#pending;
+    this.#pending = new Map();
+    this.#tail = this.#tail
+      .then(async () => {
+        const merged = await mutateStored<unknown>(
+          this.#storage,
+          READING_MARKERS_KEY,
+          { version: READING_MARKERS_VERSION, markers: {} } satisfies ReadingMarkersSnapshot,
+          (stored) => {
+            const next = parseReadingMarkers(stored);
+            for (const [surface, marker] of pending) {
+              const current = next.get(surface);
+              if (!current || marker.updatedAt >= current.updatedAt) {
+                next.set(surface, marker);
+              }
+            }
+            return snapshotFromMap(next);
+          }
+        );
+        this.#markers = parseReadingMarkers(merged);
+        for (const [surface, marker] of this.#pending) {
+          this.#markers.set(surface, marker);
+        }
+      })
+      .then(
+        () => undefined,
+        () => undefined
+      );
+  }
+
+  async settled(): Promise<void> {
+    await this.#tail;
+  }
+}
+
+export function isReadingMarkerSurface(value: unknown): value is ReadingMarkerSurface {
+  return (READING_MARKER_SURFACES as readonly string[]).includes(String(value));
+}
+
+/** Positive when `left` is a newer X snowflake than `right`. */
+export function compareTweetIds(left: string, right: string): number {
+  if (left.length !== right.length) return left.length > right.length ? 1 : -1;
+  return left === right ? 0 : left > right ? 1 : -1;
+}
+
+function snapshotFromMap(markers: Map<ReadingMarkerSurface, ReadingMarker>): ReadingMarkersSnapshot {
+  return {
+    version: READING_MARKERS_VERSION,
+    markers: Object.fromEntries(markers.entries()) as Partial<Record<ReadingMarkerSurface, ReadingMarker>>
+  };
+}
+
+function parseReadingMarkers(raw: unknown): Map<ReadingMarkerSurface, ReadingMarker> {
+  const result = new Map<ReadingMarkerSurface, ReadingMarker>();
+  if (!raw || typeof raw !== "object") return result;
+  const markers = (raw as Partial<ReadingMarkersSnapshot>).markers;
+  if (!markers || typeof markers !== "object") return result;
+  for (const [surface, value] of Object.entries(markers)) {
+    if (!isReadingMarkerSurface(surface) || !value || typeof value !== "object") continue;
+    const candidate = value as Partial<ReadingMarker>;
+    if (
+      typeof candidate.lastReadId !== "string" ||
+      !TWEET_ID.test(candidate.lastReadId) ||
+      typeof candidate.updatedAt !== "number" ||
+      !Number.isFinite(candidate.updatedAt) ||
+      candidate.updatedAt < 0
+    ) {
+      continue;
+    }
+    result.set(surface, {
+      lastReadId: candidate.lastReadId,
+      updatedAt: Math.floor(candidate.updatedAt)
+    });
+  }
+  return result;
 }
 
 function parse(raw: unknown): Map<string, number> {

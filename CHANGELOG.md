@@ -4,6 +4,22 @@
 
 No changes yet.
 
+## 1.43.0 (2026-08-22)
+
+### Added
+
+- **Reading keeps a local position per feed surface.** A "New since you last looked" separator
+  appears at the boundary, with an explicit Mark above as read action. Scrolling a post out of the
+  viewport upward can advance the marker, while rendering alone never does. The marker store is
+  included in library backups and has no unread badge.
+- **Seen-post hiding is now per surface.** Keep the existing local dimming behavior on Home, a
+  profile, search, notifications, messages, or status pages independently.
+
+### Verification
+
+- Added bounded marker-store tests, directional Snowflake comparisons, explicit mark-above behavior,
+  no-write-on-render coverage, upward viewport-exit coverage, and layout-preserving separator checks.
+
 ## 1.42.0 (2026-08-22)
 
 ### Added

@@ -8,6 +8,7 @@ import { firstRunFeature } from "./features/core/first-run";
 import { selectorHealthFeature } from "./features/core/selector-health";
 import { filterEngineFeature } from "./features/filtering/filter-engine";
 import { seenPostsFeature } from "./features/filtering/seen-posts-feature";
+import { readingMarkerFeature } from "./features/filtering/reading-marker-feature";
 import { hiddenPostsFeature } from "./features/filtering/hidden-posts-feature";
 import { layoutDeclutterFeature } from "./features/layout/declutter";
 import { threadRecommendationsFeature } from "./features/layout/thread-recommendations";
@@ -208,6 +209,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   registry.register(focusModeFeature);
   registry.register(filterEngineFeature);
   registry.register(seenPostsFeature);
+  registry.register(readingMarkerFeature);
   registry.register(hiddenPostsFeature);
   registry.register(mediaButtonsFeature);
   registry.register(mediaPresentationFeature);

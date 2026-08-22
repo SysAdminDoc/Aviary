@@ -1,4 +1,5 @@
 import type { FeatureContext, FeatureModule } from "../registry";
+import type { FilterSurface } from "../../platform/settings";
 import { collectExportRecords } from "../export/collector";
 import { CatchUpStore, type CatchUpCategory, type CatchUpMetrics } from "./catch-up";
 import { SeenPostStore } from "./seen-posts";
@@ -70,7 +71,7 @@ export const seenPostsFeature: FeatureModule = {
   category: "filtering",
 
   async init(ctx) {
-    if (!ctx.settings.filter.dimSeenPosts) {
+    if (!seenDimmingEnabled(ctx)) {
       teardown();
       return;
     }
@@ -81,7 +82,7 @@ export const seenPostsFeature: FeatureModule = {
   },
 
   async apply(ctx, root, addedNodes) {
-    if (!ctx.settings.filter.dimSeenPosts) {
+    if (!seenDimmingEnabled(ctx)) {
       teardown();
       return;
     }
@@ -120,6 +121,14 @@ export const seenPostsFeature: FeatureModule = {
     };
   }
 };
+
+function seenDimmingEnabled(ctx: FeatureContext): boolean {
+  const surfaces = ctx.settings.filter.dimSeenSurfaces;
+  return (
+    ctx.settings.filter.dimSeenPosts &&
+    (!surfaces || surfaces.includes(ctx.route.surface as FilterSurface))
+  );
+}
 
 function scan(ctx: FeatureContext, root: ParentNode | Element): void {
   const articles = collect(root);

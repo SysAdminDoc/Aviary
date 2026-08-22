@@ -310,6 +310,24 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         { min: 0, max: 1000 }
       ),
       ctx.toggleRow(
+        "Show read marker",
+        "Keep a local position for each feed and show a new since you last looked line. It never adds an unread badge.",
+        ctx.options.settings.layout.readMarker,
+        async (checked) => {
+          ctx.options.settings.layout.readMarker = checked;
+          await ctx.save(checked ? "Read marker on" : "Read marker off");
+        }
+      ),
+      ctx.surfaceRow(
+        "Read marker surfaces",
+        "Choose where the local position marker and new-post separator appear.",
+        ctx.options.settings.layout.readMarkerSurfaces,
+        async (surfaces) => {
+          ctx.options.settings.layout.readMarkerSurfaces = surfaces;
+          await ctx.save("Read marker surfaces saved");
+        }
+      ),
+      ctx.toggleRow(
         "Writer mode",
         "While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away.",
         ctx.options.settings.layout.writerMode,
@@ -446,6 +464,18 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
       async (checked) => {
         ctx.options.settings.filter.dimSeenPosts = checked;
         await ctx.save(checked ? "Seen-post dimming on" : "Seen-post dimming off");
+      }
+    )
+  );
+
+  rows.push(
+    ctx.surfaceRow(
+      "Hide seen posts on",
+      "Choose the feed surfaces where posts you have already seen are dimmed.",
+      ctx.options.settings.filter.dimSeenSurfaces,
+      async (surfaces) => {
+        ctx.options.settings.filter.dimSeenSurfaces = surfaces;
+        await ctx.save("Seen-post surfaces saved");
       }
     )
   );

@@ -14,6 +14,7 @@ export const PROFILE_MIGRATION_KEYS = [
   "aviary.aria2.history.v1",
   "aviary.hiddenPosts.v1",
   "aviary.seenPosts.v1",
+  "aviary.readingMarkers.v1",
   "aviary.catchUp.v1",
   "aviary.media.last-download.v1",
   "aviary.cleanupQueue.v1",

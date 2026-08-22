@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.42.0`
+Version: `1.43.0`
 
 Actionable work only. Historical and completed roadmap material is archived in CHANGELOG.md; blocked work is kept in Roadmap_Blocked.md.
 
@@ -69,7 +69,7 @@ below were read at the cited line. See RESEARCH.md.
 
 ### P2, local reading, all zero-network
 
-- [ ] F203, P2, A read marker, a "new since you last looked" line, and hide-seen
+- [x] F203, P2, A read marker, a "new since you last looked" line, and hide-seen
   Why: `seen-posts.ts` already records what has gone past, and the highest-value thing to build on it is
   the oldest idea in feed reading: a position marker. Mastodon's markers API is the reference schema
   (`last_read_id` per surface) and X's snowflake ids are ordinal, so "newer than" needs no timestamps.

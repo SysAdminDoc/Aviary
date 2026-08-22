@@ -1,4 +1,4 @@
-# Install Aviary 1.42.0
+# Install Aviary 1.43.0
 
 Aviary ships as a readable userscript and as Manifest V3 extensions. Both builds run on X pages;
 the extensions also provide a dedicated options page for optional browser permissions.
@@ -30,6 +30,9 @@ The userscript declares only the grants it uses:
 No permission prompt is needed for the local prompt builder, snapshots, bookmarks, notes, archive
 import, Under the Hood JSON reader, or local export formats. Provider integrations remain disabled
 until configured in the Control Center.
+
+Read markers and per-surface seen-post hiding are local settings. They do not add an unread badge or
+request another X endpoint.
 
 ## Chrome, Edge, or Brave (developer load)
 

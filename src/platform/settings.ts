@@ -274,6 +274,10 @@ export interface AviarySettings {
     focusEnd: string;
     /** Stop extending the feed past this many posts. Zero leaves X's endless scroll alone. */
     timelineStopAfter: number;
+    /** Show a local position marker and "new since you last looked" separator. */
+    readMarker: boolean;
+    /** Feed surfaces where the local position marker is shown. */
+    readMarkerSurfaces: FilterSurface[];
   };
   filter: {
     enabled: boolean;
@@ -297,6 +301,8 @@ export interface AviarySettings {
     surfaces: FilterSurface[];
     /** Fade posts that have already scrolled past once. Stores post ids only. */
     dimSeenPosts: boolean;
+    /** Surfaces where already-seen posts are dimmed when the master switch is on. */
+    dimSeenSurfaces: FilterSurface[];
   };
   hidden: {
     enabled: boolean;
@@ -421,7 +427,9 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     focusMode: false,
     focusStart: "09:00",
     focusEnd: "18:00",
-    timelineStopAfter: 0
+    timelineStopAfter: 0,
+    readMarker: true,
+    readMarkerSurfaces: ["home", "status", "profile", "search", "notifications", "messages"]
   },
   filter: {
     enabled: false,
@@ -442,6 +450,7 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     whitelist: [],
     mediaTypes: { photo: false, video: false, gif: false },
     dimSeenPosts: false,
+    dimSeenSurfaces: ["home", "status", "profile", "search", "notifications", "messages"],
     surfaces: ["home", "status", "profile", "search"]
   },
   hidden: {
@@ -695,12 +704,23 @@ export function normalizeSettings(input: unknown): AviarySettings {
         DEFAULT_SETTINGS.layout.timelineStopAfter,
         0,
         1000
+      ),
+      readMarker: booleanValue(layout.readMarker, DEFAULT_SETTINGS.layout.readMarker),
+      readMarkerSurfaces: surfaceArray(
+        layout.readMarkerSurfaces,
+        DEFAULT_SETTINGS.layout.readMarkerSurfaces,
+        true
       )
     },
     filter: {
       enabled: booleanValue(filter.enabled, DEFAULT_SETTINGS.filter.enabled),
       rules: stringArray(filter.rules, { maxItems: 100, maxLength: 400 }),
       dimSeenPosts: booleanValue(filter.dimSeenPosts, DEFAULT_SETTINGS.filter.dimSeenPosts),
+      dimSeenSurfaces: surfaceArray(
+        filter.dimSeenSurfaces,
+        DEFAULT_SETTINGS.filter.dimSeenSurfaces,
+        true
+      ),
       keywordRules: stringArray(filter.keywordRules, { maxItems: 200, maxLength: 180 }),
       regexRules: stringArray(filter.regexRules, { maxItems: 100, maxLength: 240 }),
       premiumRule: enumValue(filter.premiumRule, FILTER_ACTIONS, DEFAULT_SETTINGS.filter.premiumRule),
@@ -1101,7 +1121,8 @@ function mediaTypeRecord(value: unknown): Record<string, boolean> {
 
 function surfaceArray(
   value: unknown,
-  fallback: readonly FilterSurface[] = DEFAULT_SETTINGS.filter.surfaces
+  fallback: readonly FilterSurface[] = DEFAULT_SETTINGS.filter.surfaces,
+  allowEmpty = false
 ): FilterSurface[] {
   if (!Array.isArray(value)) {
     return [...fallback];
@@ -1112,7 +1133,7 @@ function surfaceArray(
       seen.add(item as FilterSurface);
     }
   }
-  return seen.size > 0 ? [...seen] : [...fallback];
+  return seen.size > 0 || allowEmpty ? [...seen] : [...fallback];
 }
 
 function integerValue(value: unknown, fallback: number, min: number, max: number): number {

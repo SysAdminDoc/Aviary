@@ -1,6 +1,6 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.42.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.43.0-2f81f7)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 ![Platform](https://img.shields.io/badge/platform-userscript%20%7C%20Chrome%20%7C%20Firefox-8b5cf6)
 
@@ -25,6 +25,12 @@ Library also reads the monthly JSON that eligible accounts can download from X's
 page. It keeps the report period and aggregate visibility labels locally, compares saved months,
 and includes the normalized reports in a full library backup. The panel identifies the file as X's
 own summary. It does not turn published ranking code into a production score.
+
+Reading also keeps one local position per feed surface. When a saved position exists, a **New since
+you last looked** separator divides the newer posts from the rest, and **Mark above as read** moves
+it explicitly. A post leaving the viewport upward may advance the position. Rendering alone never
+does, and Aviary never adds an unread badge. Seen-post dimming can be enabled per surface from
+Filtering.
 
 The Control Center, menus, review dialog, and feedback toast use the browser Popover API. That
 keeps them above X's layout without a z-index fight, dismisses them by clicking outside, and

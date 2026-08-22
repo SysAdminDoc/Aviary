@@ -1,6 +1,6 @@
 # Aviary Privacy Manifest
 
-Updated: 2026-08-22 · release 1.42.0
+Updated: 2026-08-22 · release 1.43.0
 
 ## Defaults and network boundaries
 
@@ -59,6 +59,7 @@ schema, migration, usage, and quota status.
 | `aviary.integration.usage.v1` | Profile-scoped AI/embedding request, record, and UTF-8 byte counters for the local 31-day history | Enforce configurable per-request/daily budgets and show usage; **Clear AI and embedding usage** removes counters. No API keys or raw prompts are stored here. |
 | `aviary.hiddenPosts.v1` | Hidden status ids or handle/text signatures | Hide posts across visits; **Clear hidden posts** removes them. |
 | `aviary.seenPosts.v1` | Post ids and the time each first scrolled past, no text, handle, or URL | Fade a post the second time you pass it; capped at 4,000 entries and 30 days; **Forget seen posts** removes them. |
+| `aviary.readingMarkers.v1` | One last-read X post id and local update time per feed surface | Show a local new-post separator, advance it after an upward viewport exit or explicit action, and include it in library backups. No post text or unread badge. |
 | `aviary.catchUp.v1` | Bounded copies of rendered post text, account, permalink, media references, filter reason, and basic counts | Power the local Catch-up digest; capped at 4,000 rows and 30 days; **Forget seen posts** removes them. |
 | `aviary.adObservations.v1` | Which ad markers were present on a route, as counts, no post content | Notice when X changes its ad markup; bounded to 64 entries and 30 days. |
 | `aviary.diagnostics.v1` | Aviary's own warning and error text, the time, and the *names* of a message's detail fields, never their values | Let a failure from an earlier page load still be reportable; bounded to 50 entries and 7 days; clearable from Trust. |
