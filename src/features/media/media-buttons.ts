@@ -1,6 +1,6 @@
 import type { FeatureContext, FeatureModule } from "../registry.ts";
 import { ft } from "../core/feature-i18n.ts";
-import { showFeatureToast } from "../core/feature-toast.ts";
+import { removeFeatureToast, showFeatureToast } from "../core/feature-toast.ts";
 import { Aria2History } from "../integrations/aria2.ts";
 import {
   isMediaContextDownloadMessage,
@@ -197,6 +197,8 @@ export const mediaButtonsFeature: FeatureModule = {
     appliedPreferOriginalImages = undefined;
     appliedMetadataVersion = undefined;
     mediaMetadataCache.clear();
+    // Same reason as copy-post-link: the toast host is on <html> with a live timer.
+    removeFeatureToast();
     unsubscribeFromMediaMetadata();
     subscribedBridge = undefined;
     ctx.diagnostics.info("Media buttons destroyed");

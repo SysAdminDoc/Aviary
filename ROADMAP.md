@@ -220,26 +220,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Confidence: Verified
   Effort: S
 
-- [ ] P2 — F224, The Catch-up dialog injects a document stylesheet that no teardown ever removes
-  Category: reliability
-  Where: `src/features/filtering/catch-up-ui.ts:9` (`const STYLE_ID = "av-catch-up-style"`), `:346-350` (`ensureStyle`), `:408` (the append).
-  Problem: CLAUDE.md states the contract as "Every feature must fully reverse itself in `destroy`", and `<style id="av-catch-up-style">` violates it. `ensureStyle` appends to `document.head` and nothing anywhere removes it. The digest is opened from the Control Center, but `controlCenterFeature.destroy` (`src/features/core/control-center.ts:1230-1244`) does not sweep it, and the feature that owns the digest data, `filtering.seenPosts`, removes only its own `av-seen-posts` style and markers. After `registry.destroyAll` the page has not returned to what X rendered. If teardown happens while the digest is still open, the dialog node and all nine of its listeners survive too — the self-removal at `:52-55` is bound to the `close` event with `{ once: true }`, which teardown never fires.
-  Evidence: `grep -rl "av-catch-up" src/` returns `src/features/filtering/catch-up-ui.ts` and nothing else, so no other module can be removing it. `catch-up-ui.ts:346-347` is `function ensureStyle(): void { if (document.getElementById(STYLE_ID)) return;` with no matching remover in the file.
-  Fix: export a `closeCatchUpDigest()` from `catch-up-ui.ts` that removes both `#av-catch-up-dialog` and `#av-catch-up-style`, and call it from `controlCenterFeature.destroy` in `src/features/core/control-center.ts` next to the existing `controlCenter?.destroy()`.
-  Acceptance: a test opens the digest, runs `controlCenterFeature.destroy(ctx)`, and asserts `document.getElementById("av-catch-up-style")` and `document.getElementById("av-catch-up-dialog")` are both null.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — F225, Two features show a toast and never remove it, leaving a live host and timer after teardown
-  Category: reliability
-  Where: `src/features/library/copy-post-link.ts:149` and `:160`; `src/features/media/media-buttons.ts:301, 316, 368, 393`. The helper is `src/features/core/feature-toast.ts:25` (`showFeatureToast`) and `:73` (`removeFeatureToast`).
-  Problem: `feature-toast.ts:72` states the expectation directly — "Removes the host entirely. Features call this from `destroy` so nothing survives teardown." Only `src/features/ai/command-menu.ts:96` and `src/features/composer/composer-snippets.ts:66` actually do. `copy-post-link`'s `clearDecorations` and `mediaButtonsFeature.destroy` clean up their own nodes and stop, so suspending either feature inside the toast's dismissal window leaves `#av-feature-toast` — a div on `<html>` with a shadow root, a popover card and a pending `setTimeout` — alive indefinitely. On a full `destroyAll` the host does get removed, but only incidentally: reverse registration order happens to run `aiCommandMenuFeature.destroy` (registered at `src/main.ts:232`) before `mediaButtonsFeature` (`:214`) and `copyPostLinkFeature` (`:221`), and that call's cleanup includes `removeFeatureToast()`. That is an undocumented ordering dependency, not a guarantee.
-  Evidence: `grep -rn "removeFeatureToast\|showFeatureToast" src/` shows six `showFeatureToast` call sites across `copy-post-link.ts` and `media-buttons.ts` against zero `removeFeatureToast` calls in either file, and two `removeFeatureToast` calls in the two files that do it correctly.
-  Fix: call `removeFeatureToast()` from `copyPostLinkFeature.destroy` and `mediaButtonsFeature.destroy`. A source-contract test is the durable fix: assert that any file importing `showFeatureToast` also imports and calls `removeFeatureToast`.
-  Acceptance: the new source-contract case passes; a lifecycle test shows a toast, destroys `media.buttons`, and asserts `document.getElementById("av-feature-toast")` is null.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — F226, The Catch-up dialog ignores the user's theme entirely
   Category: visual
   Where: `src/features/filtering/catch-up-ui.ts:351-400` (the whole injected stylesheet).

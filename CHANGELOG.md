@@ -26,6 +26,10 @@
   silence.
 
 ### Fixed
+- Turning Aviary off now takes the catch-up digest and the shared toast with it. The digest's
+  stylesheet was never removed, and two features raised the toast without being able to take it
+  down, so both could outlive the teardown that was meant to return the page to what X rendered.
+
 - An archive import records when Aviary imported it, not when the post was written. The authored
   time was being written into the capture field, which is what the WARC and WACZ exports publish as
   the capture instant, so a signed archive asserted a moment that never happened. The authored time

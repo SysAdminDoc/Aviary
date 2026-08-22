@@ -14544,6 +14544,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       appliedPreferOriginalImages = void 0;
       appliedMetadataVersion = void 0;
       mediaMetadataCache.clear();
+      removeFeatureToast();
       unsubscribeFromMediaMetadata();
       subscribedBridge2 = void 0;
       ctx.diagnostics.info("Media buttons destroyed");
@@ -20176,6 +20177,10 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
     }
     const digest = buildCatchUpDigest(entries, state2);
     return { count: digest.records.length };
+  }
+  function closeCatchUpDigest() {
+    document.getElementById(DIALOG_ID)?.remove();
+    document.getElementById(STYLE_ID7)?.remove();
   }
   function buildHeader(ctx, dialog) {
     const header = document.createElement("header");
@@ -28538,6 +28543,7 @@ ${COLOR_CSS}`;
     },
     destroy(ctx) {
       bisect.forget();
+      closeCatchUpDigest();
       controlCenter?.destroy();
       controlCenter = void 0;
       cleanupQueue = void 0;
@@ -32246,6 +32252,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     await clipboard.writeText(text);
   }
   function clearDecorations6() {
+    removeFeatureToast();
     document.getElementById(STYLE_ID19)?.remove();
     for (const button3 of Array.from(document.querySelectorAll(`[${BUTTON_ATTR4}]`))) {
       button3.remove();

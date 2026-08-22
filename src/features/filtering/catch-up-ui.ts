@@ -115,6 +115,18 @@ export function openCatchUpDigest(
   return { count: digest.records.length };
 }
 
+/**
+ * Takes the digest and its stylesheet back off the page.
+ *
+ * The dialog removes itself on `close`, but nothing fires that during teardown, and the stylesheet
+ * was never removed at all -- so after `registry.destroyAll` the page had not returned to what X
+ * rendered, which is the contract every feature is held to.
+ */
+export function closeCatchUpDigest(): void {
+  document.getElementById(DIALOG_ID)?.remove();
+  document.getElementById(STYLE_ID)?.remove();
+}
+
 interface DialogParts {
   header: HTMLElement;
   controls: HTMLElement;

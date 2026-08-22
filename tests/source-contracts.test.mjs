@@ -485,3 +485,32 @@ test("every integer row whose description states a range enforces it", async () 
       `will silently replace: ${unbounded.join(", ")}`
   );
 });
+
+/**
+ * A module that raises the shared toast must be able to take it down.
+ *
+ * `showFeatureToast` mounts a host on `<html>` with a shadow root and a pending dismissal timer,
+ * outside anything a feature's own selectors sweep. Two features raised it and never removed it,
+ * and only came off because another feature's teardown happened to run later in reverse
+ * registration order -- an ordering accident, not a guarantee.
+ */
+test("every module that shows the shared toast also removes it", async () => {
+  const files = await listFiles(path.join(root, "src"), ".ts");
+  const orphaned = [];
+
+  for (const file of files) {
+    const text = await readFile(file, "utf8");
+    if (path.basename(file) === "feature-toast.ts") continue;
+    if (!text.includes("showFeatureToast(")) continue;
+    if (!text.includes("removeFeatureToast(")) {
+      orphaned.push(path.relative(root, file));
+    }
+  }
+
+  assert.deepEqual(
+    orphaned,
+    [],
+    `these modules raise the shared toast with no way to take it down, so it can outlive their ` +
+      `own teardown: ${orphaned.join(", ")}`
+  );
+});

@@ -49,7 +49,7 @@ import { filterExpiredRules, filterRuleErrors } from "../filtering/filter-engine
 import { applyFilterRuleImportAtomic } from "../filtering/rule-import.ts";
 import { exportRuleSet, previewRuleSetImport, renewRuleLine } from "../filtering/rules.ts";
 import { getCatchUpStore, getSeenPostStore } from "../filtering/seen-posts-feature.ts";
-import { openCatchUpDigest } from "../filtering/catch-up-ui.ts";
+import { closeCatchUpDigest, openCatchUpDigest } from "../filtering/catch-up-ui.ts";
 import {
   clearHiddenPosts,
   getHiddenPostStore,
@@ -1234,6 +1234,9 @@ export const controlCenterFeature: FeatureModule = {
     // features is being torn down in the same pass, so putting them back would leave features
     // running that nothing is left to destroy.
     bisect.forget();
+    // The digest is opened from this panel and lives on <body> with its own stylesheet, so this is
+    // the teardown that owns it.
+    closeCatchUpDigest();
     controlCenter?.destroy();
     controlCenter = undefined;
     cleanupQueue = undefined;

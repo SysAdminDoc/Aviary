@@ -1,6 +1,6 @@
 import type { FeatureContext, FeatureModule } from "../registry.ts";
 import { ft } from "../core/feature-i18n.ts";
-import { showFeatureToast } from "../core/feature-toast.ts";
+import { removeFeatureToast, showFeatureToast } from "../core/feature-toast.ts";
 import { tweetIdFromHref } from "../media/urls.ts";
 import { handleFromHref } from "../filtering/hidden-posts.ts";
 import type { CopyLinkHost } from "../../platform/settings.ts";
@@ -175,6 +175,11 @@ async function writeClipboard(text: string): Promise<void> {
 }
 
 function clearDecorations(): void {
+  // The toast host lives on <html> with a pending dismissal timer, outside anything the
+  // selectors below sweep. Until now it only came off because another feature's teardown
+  // happened to run later in reverse registration order, which is an accident of ordering
+  // rather than a guarantee.
+  removeFeatureToast();
   document.getElementById(STYLE_ID)?.remove();
   for (const button of Array.from(document.querySelectorAll(`[${BUTTON_ATTR}]`))) {
     button.remove();
