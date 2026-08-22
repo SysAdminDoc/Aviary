@@ -122,25 +122,6 @@ confirmed a second time. See RESEARCH.md.
   Depends on: F140 (the a11y assertions this touches should be behavioural before they are rewritten).
   Complexity: M
 
-### P2, archive fidelity
-
-- [ ] F188, P2, Sign and self-describe archive packages
-  Why: WACZ carries a `datapackage-digest.json` whose anonymous-ECDSA scheme was designed for exactly
-  Aviary's situation, a decentralized tool with no domain certificate, and ReplayWeb.page renders an
-  integrity badge when it validates. Combined with the per-file SHA-256 resource list Aviary already
-  computes for its manifest, this turns an export into something a third party can verify without
-  trusting the exporter, using WebCrypto and no runtime dependency.
-  Evidence: https://github.com/webrecorder/wacz-auth-spec/blob/main/spec.md (read 2026-08-17);
-  https://specs.webrecorder.net/wacz/1.1.1/ `datapackage.json` resources block.
-  Touches: the F147 WACZ packager, `src/features/export/assets.ts` (digests already exist),
-  Export panel copy, `docs/FAQ.md`.
-  Acceptance: a signed package validates against the spec and shows a verified badge in
-  replayweb.page; the keypair is generated and stored locally, is exportable, and is excluded from
-  redacted backups; signing is opt-in and an unsigned package remains spec-valid. SHA-256 only.
-  py-wacz offers MD5 and it must not be used.
-  Depends on: F147.
-  Complexity: M
-
 ## Research-Driven Additions (2026-08-18)
 
 Completes the 2026-08-17 pass, which lost most of its external streams to an API limit. Defects
