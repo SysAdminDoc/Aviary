@@ -1,3 +1,4 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
@@ -622,6 +623,26 @@ test("every status string the panel shows is a finished sentence", async () => {
 });
 
 /**
+ * Whether a `/` at this offset starts a regex literal rather than being division.
+ *
+ * The distinction is decided by what came before it: a regex can only appear where a value can,
+ * so it follows an operator, a comma, an opening bracket, a keyword or the start of a statement.
+ * Division follows a value -- an identifier, a number, or a closing bracket.
+ */
+function couldStartRegex(text, index) {
+  let cursor = index - 1;
+  while (cursor >= 0 && /\s/.test(text[cursor])) cursor -= 1;
+  if (cursor < 0) return true;
+  const before = text[cursor];
+  if (/[\w$)\]]/.test(before)) {
+    // `return /x/` and `typeof /x/` are values despite following a word.
+    const word = /([A-Za-z_$][\w$]*)$/.exec(text.slice(0, cursor + 1));
+    return word ? ["return", "typeof", "case", "in", "of", "delete", "void", "yield", "await"].includes(word[1]) : false;
+  }
+  return true;
+}
+
+/**
  * No em or en dash in anything a person reads.
  *
  * The project rule is that dashes do not appear in prose written for someone outside this machine,
@@ -682,6 +703,31 @@ test("no user-facing string carries an em or en dash", async () => {
           index = end;
           continue;
         }
+        if (char === "/" && couldStartRegex(text, index)) {
+          // A regex literal, not a comment and not division. Walking into one treats the quote
+          // inside /["']/ as the start of a string, and everything after it -- including real
+          // copy -- is then read as being inside that phantom string and never checked.
+          index += 1;
+          let inClass = false;
+          while (index < text.length) {
+            const at = text[index];
+            if (at === "\\") {
+              index += 2;
+              continue;
+            }
+            if (at === "\n") break;
+            if (inClass) {
+              if (at === "]") inClass = false;
+            } else if (at === "[") {
+              inClass = true;
+            } else if (at === "/") {
+              index += 1;
+              break;
+            }
+            index += 1;
+          }
+          continue;
+        }
         if (char === '"' || char === "'" || char === "`") {
           const quote = char;
           const startedAt = line;
@@ -717,5 +763,88 @@ test("no user-facing string carries an em or en dash", async () => {
     [],
     `these string literals carry an em or en dash, which the project's own writing rule forbids ` +
       `in anything a person reads: ${offenders.join(", ")}`
+  );
+});
+
+/**
+ * Every outbound request is either behind the local-only guard or deliberately not.
+ *
+ * `privacy.localOnly` is on by default, and the panel described it as blocking "every outbound
+ * request". That was not true: saving a photo fetches it from X's CDN with no guard, and guarding
+ * it would leave the flagship media features dead on every fresh install. The copy is what was
+ * wrong, and it now says which requests it covers.
+ *
+ * This pins both halves. A new `fetch` in an integration must be behind the guard, and a new one
+ * outside the integrations has to be added to the list below with a reason, which is a decision
+ * someone makes rather than something that happens quietly.
+ */
+test("every outbound request is guarded by local-only mode, or listed as deliberately not", async () => {
+  const files = await listFiles(path.join(root, "src"), ".ts");
+
+  // Requests Aviary originates that the guard deliberately does not cover, each with the reason.
+  const exempt = new Map([
+    [
+      "src/features/media/downloader.ts",
+      "fetches the media the reader asked to save, from the same X host the page loaded it from"
+    ]
+  ]);
+
+  const unguarded = [];
+  for (const file of files) {
+    const relative = path.relative(root, file).replaceAll("\\", "/");
+    if (relative.endsWith("i18n-catalog.ts")) continue;
+
+    const text = await readFile(file, "utf8");
+    // Comments stripped, so a `fetch(` written in prose is not mistaken for a call.
+    const code = text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+    const calls = [...code.matchAll(/(?<![\w.])fetch\s*\(/g)].length;
+    if (calls === 0) continue;
+    if (exempt.has(relative)) continue;
+
+    if (!code.includes("assertOutboundAllowed")) {
+      unguarded.push(relative);
+    }
+  }
+
+  assert.deepEqual(
+    unguarded,
+    [],
+    `these files make an outbound request with no local-only guard and no recorded exemption: ` +
+      `${unguarded.join(", ")}`
+  );
+
+  // The exemptions have to stay real: a file listed here that no longer makes a request is a
+  // stale note, and a stale note is how the next reader learns the wrong thing.
+  for (const [relative] of exempt) {
+    const text = await readFile(path.join(root, relative), "utf8");
+    assert.match(text, /fetch\s*\(/, `${relative} is exempted from a guard it no longer needs`);
+  }
+});
+
+/**
+ * The translations get the same rule as the English they came from.
+ *
+ * The dash guard above skips `i18n-catalog.ts`, on the grounds that its keys are exactly the source
+ * literals it already checks. Its *values* are not -- they are the translators' text, and a sweep
+ * of the English cannot reach a dash a translator reached for. Twenty-two of them were left behind
+ * by exactly that gap.
+ */
+test("no translation carries an em or en dash either", async () => {
+  const { panelCatalog } = await importSourceModule("src/platform/i18n-catalog.ts");
+  const offenders = [];
+
+  for (const [locale, bundle] of Object.entries(panelCatalog())) {
+    for (const [key, value] of Object.entries(bundle)) {
+      if (/[\u2013\u2014]/.test(value)) {
+        offenders.push(`${locale}: ${JSON.stringify(key.slice(0, 40))}`);
+      }
+    }
+  }
+
+  assert.deepEqual(
+    offenders,
+    [],
+    `these translations carry an em or en dash, which the writing rule forbids in the translated ` +
+      `copy exactly as it does in the English: ${offenders.join(", ")}`
   );
 });

@@ -619,10 +619,16 @@ function harvestPanelLiterals(source) {
   // And the sentence under the label, for every helper whose second argument *is* the
   // description. Harvesting only the label left the explanatory copy of every conditional row in
   // English while the manifest reported full coverage -- the same defect as above, one argument
-  // to the right. `dataRow`/`readonlyRow` are excluded because their second argument is a value,
-  // and `selectRow` because its description is the fifth.
+  // to the right. `selectRow` is excluded because its description is the fifth.
+  //
+  // `dataRow` and `readonlyRow` are included despite their second argument usually being runtime
+  // data, because when it is written as a *literal* it is authored copy and goes through `t()`
+  // like any other. Excluding them lost the Saving row's sentence outright: it had eight
+  // translations, the English was edited, the new form reached no harvest at all, and
+  // `panelCoverage` went on reporting 100% because the old key had been correctly retired from
+  // the manifest too. The row shipped in English in all eight locales with nothing failing.
   for (const match of source.matchAll(
-    /\b(?:actionRow|toggleRow|textInputRow|textareaRow|surfaceRow|integerInputRow|secretInputRow)\(\s*"(?:(?:[^"\\]|\\.)*)"\s*,\s*"((?:[^"\\]|\\.)*)"/g
+    /\b(?:dataRow|readonlyRow|actionRow|toggleRow|textInputRow|textareaRow|surfaceRow|integerInputRow|secretInputRow)\(\s*"(?:(?:[^"\\]|\\.)*)"\s*,\s*"((?:[^"\\]|\\.)*)"/g
   )) {
     found.push(JSON.parse(`"${match[1]}"`));
   }

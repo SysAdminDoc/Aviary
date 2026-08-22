@@ -3,6 +3,13 @@
  * except the integrations the user configured. It defaulted to `true` while every integration
  * happily made requests, so the setting and the behaviour disagreed about what was promised.
  *
+ * Where the line is drawn, because the panel copy has to be able to state it: this covers every
+ * request Aviary originates to somewhere the page was not already talking to -- Aria2, Bluesky,
+ * Mastodon, an AI provider, an embedding endpoint. It does not cover fetching a photo or a video
+ * from X's own CDN to save it, which is the same host the page loaded that media from and is the
+ * one thing the media features exist to do. Guarding that would leave the flagship feature dead on
+ * every fresh install, since this setting is on by default.
+ *
  * The policy lives at module scope rather than being threaded through every client signature,
  * because the integration entry points take narrow config objects (an Aria2 endpoint, a Bluesky
  * service) and have no view of settings. `main.ts` installs it once at boot; the predicate is

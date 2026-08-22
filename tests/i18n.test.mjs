@@ -64,18 +64,22 @@ test("translations are not just the English string echoed back", async () => {
     "OpenAI Chat Completions"
   ]);
 
-  // A string built only from placeholders, punctuation and spacing has no words in it, so a
-  // translation identical to the source is the correct translation rather than a missing one.
-  // "{name}: {state} · {config}" is the whole of one such row.
-  const nothingToTranslate = (source) =>
-    source.replace(/\{[^}]*\}/g, "").replace(/[^\p{L}\p{N}]+/gu, "").length === 0;
+  // Two rows are built only from placeholders and punctuation, so an identical translation is the
+  // correct one. They are named rather than matched by shape: a structural exclusion covers any
+  // number of rows, and placeholder-only is not the same as nothing-to-translate -- Japanese
+  // writes a clock as "{h}時{m}分" and a right-to-left locale needs direction marks around a
+  // bare "{a} / {b}". Naming them keeps each exclusion a decision that someone made.
+  for (const source of ["{name}: {state} · {config}", "{name}: {state} · {count} {indexed}"]) {
+    assert.ok(
+      PANEL_STRINGS.includes(source),
+      `${JSON.stringify(source)} is exempted from the echo budget but is no longer rendered`
+    );
+    allowedIdentical.add(source);
+  }
 
   for (const locale of LOCALES) {
     const echoed = PANEL_STRINGS.filter(
-      (source) =>
-        PANEL_CATALOG[locale][source] === source &&
-        !allowedIdentical.has(source) &&
-        !nothingToTranslate(source)
+      (source) => PANEL_CATALOG[locale][source] === source && !allowedIdentical.has(source)
     );
     assert.ok(
       echoed.length <= 6,

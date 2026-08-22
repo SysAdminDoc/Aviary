@@ -9,7 +9,7 @@ export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
       ),
       ctx.toggleRow(
         "Local-only mode",
-        "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.",
+        "Blocks every request to an integration you configured: Aria2, crossposting, AI prompts and embeddings. Saving media still fetches from X's own servers, which is where the page loaded it from. On by default; turning an integration on is what turns this off.",
         ctx.options.settings.privacy.localOnly,
         async (checked) => {
           ctx.options.settings.privacy.localOnly = checked;

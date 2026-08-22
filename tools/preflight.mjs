@@ -397,7 +397,9 @@ async function checkBundles() {
 }
 
 async function checkPermissions() {
-  // Confirm GitHub Actions release artifact ZIP filenames will match expected pattern.
+  // The release ZIP is built here and attached to a GitHub release by hand; this repository does
+  // not build in CI. The check is that the artifact exists under the name the release step will
+  // look for, so a version bump that missed the build is caught before the release and not during.
   const expectedZip = `extension-chrome-v${pkg.version}.zip`;
   const distEntries = await readdir(path.join(root, "dist"));
   if (!distEntries.includes(expectedZip)) {
@@ -407,6 +409,17 @@ async function checkPermissions() {
 
 async function checkSourcePolicy() {
   const files = await listFiles(path.join(root, "src"), ".ts");
+  // Without this the whole source policy -- the innerHTML ban, the keyboard-shortcut ban, the
+  // backdrop-filter ban -- passes by finding nothing to check. A gate that cannot see its input
+  // reports success, which is the worst answer it can give. The floor is well under the real
+  // count so ordinary growth or pruning never trips it; only a broken walk does.
+  if (files.length < 50) {
+    failures.push(
+      `source policy scanned only ${files.length} files under src/, which is too few to be real; ` +
+        "the walk is broken and every source-policy check below it would pass vacuously"
+    );
+    return;
+  }
   for (const file of files) {
     const rel = path.relative(root, file);
     if (rel.endsWith(path.join("platform", "trusted-types.ts"))) continue;

@@ -361,7 +361,7 @@ Every control Aviary offers, by Control Center page. 87 controls across 12 pages
 
 | Control | What it does |
 | --- | --- |
-| Local-only mode | Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off. |
+| Local-only mode | Blocks every request to an integration you configured: Aria2, crossposting, AI prompts and embeddings. Saving media still fetches from X's own servers, which is where the page loaded it from. On by default; turning an integration on is what turns this off. |
 | Refuse X's analytics beacons | Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused. Timeline, media and login traffic is untouched. |
 | Monitor selector health | Check the current X surface for required and fallback anchors. Turn this off when you do not want selector diagnostics. |
 | Switch profile | A choice control. |

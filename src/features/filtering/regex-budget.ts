@@ -57,35 +57,6 @@ function repetitionCeiling(source: string, index: number): number {
 }
 
 /**
- * True when `body` contains a quantifier that can repeat more than once, at any depth.
- *
- * This is the inner half of the `(a+)+b` family. It reads the body character by character rather
- * than with a regex so that an escaped `+` or a `*` inside a character class is not mistaken for a
- * quantifier -- and so that a bounded inner repeat counts, since `(a{1,200})+` backtracks for the
- * same reason `(a+)+` does.
- */
-function hasRepetitionAnywhere(body: string): boolean {
-  let inClass = false;
-  for (let index = 0; index < body.length; index += 1) {
-    const char = body[index];
-    if (char === "\\") {
-      index += 1;
-      continue;
-    }
-    if (inClass) {
-      if (char === "]") inClass = false;
-      continue;
-    }
-    if (char === "[") {
-      inClass = true;
-      continue;
-    }
-    if (repetitionCeiling(body, index) > 1) return true;
-  }
-  return false;
-}
-
-/**
  * How few times a quantifier at `index` can repeat what precedes it. 1 when there is none.
  *
  * The companion to {@link repetitionCeiling}, and the half that decides whether something is
@@ -101,10 +72,37 @@ function repetitionFloor(source: string, index: number): number {
   return brace ? Number(brace[1]) : 1;
 }
 
-/** Index just past the group, class or escape that starts at `index`. */
+/**
+ * Index just past the group, class or escape that starts at `index`.
+ *
+ * An escape is not always two characters. `\p{L}`, `\x61`, `\u0061`, `\u{1F600}` and `\k<name>`
+ * are all longer, and advancing past only two of them left the walk reading the rest of the escape
+ * as literal text -- so `(\p{L}?){200}spam` read as not-nullable and was accepted, then took over
+ * eight seconds against four characters.
+ */
 function atomEnd(source: string, index: number): number {
   const char = source[index];
-  if (char === "\\") return Math.min(index + 2, source.length);
+  if (char === "\\") {
+    const next = source[index + 1];
+    if (next === "p" || next === "P" || next === "k") {
+      const open = source[index + 2];
+      if (open === "{" || open === "<") {
+        const close = source.indexOf(open === "{" ? "}" : ">", index + 3);
+        if (close !== -1) return close + 1;
+      }
+      return Math.min(index + 2, source.length);
+    }
+    if (next === "u") {
+      if (source[index + 2] === "{") {
+        const close = source.indexOf("}", index + 3);
+        if (close !== -1) return close + 1;
+      }
+      return Math.min(index + 6, source.length);
+    }
+    if (next === "x") return Math.min(index + 4, source.length);
+    if (next === "c") return Math.min(index + 3, source.length);
+    return Math.min(index + 2, source.length);
+  }
   if (char === "[") {
     let cursor = index + 1;
     if (source[cursor] === "^") cursor += 1;
@@ -184,41 +182,65 @@ function splitAlternatives(body: string): string[] {
 }
 
 /**
- * True when `body` can match without consuming anything.
+ * The shortest and longest text `body` can match, as far as this can tell cheaply.
  *
- * This is the hole the first version of this guard left open. `(a?){200}` carries no repeated
- * quantifier inside it and no alternation, so both checks below walked past it -- but the group can
- * match empty, so a bounded outer repeat has combinatorially many ways to distribute empty and
- * non-empty iterations across the same text. Measured: `(a?){200}b` against four characters took
- * 3.0 s and against five it did not finish, and `(.?){20}spam` took 1.2 s against an ordinary
- * 29-character post. The unbounded form is safe, because the engine breaks an empty-match loop; a
- * bounded one gets no such guard.
+ * The length range is what decides how many ways a repetition can carve up a subject. A body that
+ * always matches the same length offers one split per starting position and costs nothing; one that
+ * can match several lengths turns k repetitions into a choice of compositions, which is what makes
+ * `(a+){8}b` take half a second on 29 characters and never finish on 40.
+ *
+ * `Infinity` for a maximum means unbounded. Anything this cannot parse reports an unbounded range,
+ * which is the conservative answer: it reads as variable, and variable is what gets checked.
  */
-function canMatchEmpty(body: string): boolean {
-  return splitAlternatives(body).some((branch) => {
+function bodyLengthRange(body: string): { min: number; max: number } {
+  let min = Number.POSITIVE_INFINITY;
+  let max = 0;
+
+  for (const branch of splitAlternatives(body)) {
+    let low = 0;
+    let high = 0;
     let index = 0;
     while (index < branch.length) {
       const char = branch[index];
       const end = atomEnd(branch, index);
       const after = quantifierEnd(branch, end);
-      const optional = repetitionFloor(branch, end) === 0;
+      const floor = repetitionFloor(branch, end);
+      const ceiling = Math.max(1, repetitionCeiling(branch, end));
 
-      // Zero-width by construction, whatever quantifier follows.
-      const zeroWidth =
-        char === "^" ||
-        char === "$" ||
-        (char === "\\" && (branch[index + 1] === "b" || branch[index + 1] === "B")) ||
-        (char === "(" && /^\(\?<?[=!]/.test(branch.slice(index)));
-
-      if (!zeroWidth && !optional) {
-        if (char !== "(") return false;
-        const inner = branch.slice(index + 1, end - 1).replace(/^\?(?::|<[A-Za-z_$][\w$]*>)/, "");
-        if (!canMatchEmpty(inner)) return false;
+      let atomMin = 1;
+      let atomMax = 1;
+      if (char === "^" || char === "$") {
+        atomMin = 0;
+        atomMax = 0;
+      } else if (char === "(") {
+        if (/^\(\?<?[=!]/.test(branch.slice(index))) {
+          atomMin = 0;
+          atomMax = 0;
+        } else {
+          const inner = branch.slice(index + 1, end - 1).replace(/^\?(?::|<[A-Za-z_$][\w$]*>)/, "");
+          const range = bodyLengthRange(inner);
+          atomMin = range.min;
+          atomMax = range.max;
+        }
+      } else if (char === "\\" && (branch[index + 1] === "b" || branch[index + 1] === "B")) {
+        atomMin = 0;
+        atomMax = 0;
       }
+
+      low += atomMin * floor;
+      high += atomMax * ceiling;
       index = after > index ? after : index + 1;
     }
-    return true;
-  });
+    min = Math.min(min, low);
+    max = Math.max(max, high);
+  }
+
+  return { min: Number.isFinite(min) ? min : 0, max };
+}
+
+/** How many top-level branches `body` offers, which is how many ways one repetition can go. */
+function branchCount(body: string): number {
+  return splitAlternatives(body).length;
 }
 
 /**
@@ -265,7 +287,10 @@ function scanGroups(pattern: string): GroupSpan[] {
     spans.push({
       start,
       end: index,
-      ceiling: repetitionCeiling(pattern, index + 1),
+      // An unquantified group runs once, not zero times. Reporting 0 made the product below
+      // collapse to 0 for everything inside it, so one extra pair of parentheses turned every
+      // check off: `((.?){20}spam)` was accepted and took 1.2 s on an ordinary post.
+      ceiling: Math.max(1, repetitionCeiling(pattern, index + 1)),
       lookaround: /^\(\?<?[=!]/.test(pattern.slice(start))
     });
   }
@@ -273,30 +298,43 @@ function scanGroups(pattern: string): GroupSpan[] {
 }
 
 /**
- * How many times an ambiguous group may run before the cost stops being worth arguing about.
+ * How many times a group of variable length may repeat before the splits stop being countable.
  *
- * The first version of this guard asked only whether a group repeated more than once, which read
- * `(cat|dog){2}` and `(\d{1,3}\.){3}\d{1,3}` -- the canonical IPv4 pattern -- as dangerous. They
- * are not: an ambiguous branch run n times explores at most 2^n paths per starting position, and
- * at 8 that is 256, which against the 400-character ceiling above is nothing. The patterns that
- * freeze a tab are the ones with a large or unbounded count, and those are what this catches.
+ * When a body can match more than one length, repeating it k times means choosing where each
+ * repetition ends, and the engine tries every choice: C(n-1, k-1) of them for a subject of length
+ * n. At k=3 against the 400-character pattern subject that is about 80,000, which is a millisecond.
+ * At k=8 it is 3e14. Measured on the way in: `(a+){8}b` took 554 ms against 29 characters and did
+ * not finish against 40, and `(\w{1,20}){8}!` took 4.0 s against 34.
+ *
+ * This is deliberately much smaller than the alternation budget below, because compositions grow
+ * far faster than powers. Treating the two the same is what let the whole `(a+)+b` family back in
+ * at count 8.
  */
-const AMBIGUITY_BUDGET = 8;
+const VARIABLE_LENGTH_BUDGET = 3;
+
+/**
+ * How many times a group whose branches can match the same text may repeat.
+ *
+ * Here the cost really is branches^k, so the bound behaves. At 8 with two branches that is 256
+ * against a 400-character ceiling, which is nothing, and it leaves `(cat|dog){2}`,
+ * `(spam|scam){1,3}` and the canonical IPv4 `(\d{1,3}\.){3}\d{1,3}` usable.
+ */
+const ALTERNATION_BUDGET = 8;
 
 /**
  * Finds a group the engine may run enough times for an ambiguous body to matter.
  *
- * Reports which shape it found so the message can name it: `nested` for `(a+)+`, where the body
- * already repeats; `alternation` for `(a|a)+`, where two branches can match the same text; and
- * `nullable` for `(a?){200}`, where the body can match nothing at all and the engine has to try
- * every way of distributing the empty iterations.
+ * Reports which shape it found so the message can name it: `nested` for a body whose length varies,
+ * which covers `(a+)+`, `(a{1,200})+` and `(a?){200}` alike -- they are all the same problem, that
+ * the engine has to choose where each repetition ends; and `alternation` for `(a|a)+`, where two
+ * branches can match the same text at the same length.
  *
  * Works from group spans rather than pattern-matching on text, so an escaped paren or one inside a
  * character class cannot be mistaken for a real group boundary -- and so a group's total repetition
  * can account for the quantifiers on the groups around it, which are written after it in the source
  * and so are invisible to a single left-to-right pass.
  */
-function repeatedGroupRisk(pattern: string): "nested" | "alternation" | "nullable" | null {
+function repeatedGroupRisk(pattern: string): "nested" | "alternation" | null {
   const spans = scanGroups(pattern);
 
   for (const span of spans) {
@@ -312,18 +350,19 @@ function repeatedGroupRisk(pattern: string): "nested" | "alternation" | "nullabl
         total *= outer.ceiling;
       }
     }
-    if (total <= AMBIGUITY_BUDGET) {
+    if (total <= 1) {
       continue;
     }
 
     const body = pattern.slice(span.start + 1, span.end);
-    if (hasRepetitionAnywhere(body)) {
+    const length = bodyLengthRange(body);
+
+    if (length.max > length.min && total > VARIABLE_LENGTH_BUDGET) {
       return "nested";
     }
-    if (canMatchEmpty(body)) {
-      return "nullable";
-    }
-    if (hasAlternationAnywhere(body)) {
+    // `branchCount` sees the body's own top-level `|`; `hasAlternationAnywhere` also sees one
+    // wrapped in a group, which matches the same language and backtracks exactly as badly.
+    if ((branchCount(body) > 1 || hasAlternationAnywhere(body)) && total > ALTERNATION_BUDGET) {
       return "alternation";
     }
   }
@@ -402,14 +441,9 @@ export function checkRegexBudget(pattern: string): RegexBudgetVerdict {
   const risk = repeatedGroupRisk(pattern);
   if (risk === "nested") {
     return {
-      reason: "a repeated group that already repeats can backtrack badly enough to freeze the page"
-    };
-  }
-  if (risk === "nullable") {
-    return {
       reason:
-        "a repeated group that can match nothing has too many ways to match the same text and " +
-        "can freeze the page"
+        "a repeated group whose length can vary has too many ways to divide up the text and can " +
+        "backtrack badly enough to freeze the page"
     };
   }
   if (risk === "alternation") {

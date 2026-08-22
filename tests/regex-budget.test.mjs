@@ -231,15 +231,15 @@ test("a quantified lookaround is not treated as an ambiguous repeated group", as
 });
 
 /**
- * A group that can match nothing is ambiguous even with no alternation and no inner repeat.
+ * A repeated group whose length can vary is the whole `(a+)+b` family, nullable cases included.
  *
- * `(a?){200}` carries neither of the shapes the other two checks look for, so both walked past it.
- * But the group can match empty, and a bounded repeat gets no empty-loop guard, so the engine has
- * to try every way of distributing empty and non-empty iterations across the same text. Measured
- * before this: `(a?){200}b` took 3.0 s against four characters and never finished against five,
- * and `(.?){20}spam` took 1.2 s against an ordinary 29-character post.
+ * They are one problem, not three: if the body can match more than one length, repeating it k times
+ * means the engine chooses where each repetition ends, and it tries every choice. Measured on the
+ * way in: `(a?){200}b` took 3.0 s against four characters and never finished against five,
+ * `(.?){20}spam` took 1.2 s against an ordinary 29-character post, `(a+){8}b` took 554 ms against
+ * 29 characters, and `(\w{1,20}){8}!` took 4.0 s against 34.
  */
-test("a repeated group that can match nothing is refused", async () => {
+test("a repeated group whose length can vary is refused", async () => {
   const { checkRegexBudget } = await importSourceModule("src/features/filtering/regex-budget.ts");
 
   for (const pattern of [
@@ -248,7 +248,23 @@ test("a repeated group that can match nothing is refused", async () => {
     "(a*){200}b",
     "(\\d?a?){200}b",
     "((a|b)?){50}c",
-    "(a?)*b"
+    "(a?)*b",
+    // Nested quantifiers, which vary in length for exactly the same reason.
+    "(a+)+b",
+    "(a+){8}b",
+    "(\\w{1,20}){8}!",
+    "(.*){8}z",
+    "(a|aa|aaa|aaaa|aaaaa|aaaaaa){8}x",
+    // One more pair of parentheses must not turn the check off. An unquantified group runs once;
+    // reporting it as zero made the product collapse and accepted every one of these.
+    "((.?){20}spam)",
+    "((a?){200}b)",
+    "(?=(a+){200}b)",
+    // An escape is not always two characters. Advancing past only two left the walk reading the
+    // rest as literal text, so these read as fixed-length and were accepted.
+    "(\\p{L}?){200}spam",
+    "(\\x61?){200}b",
+    "(\\u0061?){200}b"
   ]) {
     assert.notEqual(checkRegexBudget(pattern).reason, null, `${pattern} must be refused`);
   }
@@ -257,8 +273,19 @@ test("a repeated group that can match nothing is refused", async () => {
   // quietly letting a frozen tab back in.
   assert.equal(checkRegexBudget("(.?){26}spam").reason !== null, true);
 
-  // Optional is not the same as nullable: these consume something on every path.
-  for (const pattern of ["(a?b)+", "(x?y){20}", "(\\d?\\.){3}"]) {
+  // A body that always matches the same length offers one split and costs nothing, however many
+  // times it repeats.
+  for (const pattern of ["(ab)+", "(ab){200}", "(\\d\\.){20}", "(..)+"]) {
+    assert.equal(
+      checkRegexBudget(pattern).reason,
+      null,
+      `${pattern} must stay allowed, got ${checkRegexBudget(pattern).reason}`
+    );
+  }
+
+  // A varying body repeated a few times is still countable: three repetitions over the
+  // 400-character pattern ceiling is about 80,000 splits, which is a millisecond.
+  for (const pattern of ["(\\d?\\.){3}", "(\\w+\\s){3}", "(\\S+){3}"]) {
     assert.equal(
       checkRegexBudget(pattern).reason,
       null,
@@ -288,7 +315,8 @@ test("a small bounded repetition of an ambiguous group is allowed, a large one i
     "(#\\w+\\s*){3}",
     "(\\w+\\s){3}",
     "(\\S+){3}",
-    "(.?){8}"
+    // Fixed length, so however many branches it has, repeating it only ever costs branches^k.
+    "(cat|dog){8}"
   ]) {
     assert.equal(
       checkRegexBudget(pattern).reason,
@@ -313,4 +341,11 @@ test("a small bounded repetition of an ambiguous group is allowed, a large one i
     null,
     "and four is still four"
   );
+
+  // The two budgets are deliberately different sizes, because compositions grow far faster than
+  // powers. Holding them at one number is what let the whole `(a+)+b` family back in at count 8.
+  assert.equal(checkRegexBudget("(\\S+){3}").reason, null, "three splits are countable");
+  assert.notEqual(checkRegexBudget("(\\S+){4}").reason, null, "four are not");
+  assert.equal(checkRegexBudget("(cat|dog){8}").reason, null, "eight branch choices are countable");
+  assert.notEqual(checkRegexBudget("(cat|dog){9}").reason, null, "nine are not");
 });
