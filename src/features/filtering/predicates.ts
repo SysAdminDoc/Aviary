@@ -394,13 +394,21 @@ function readEngagement(article: Element): EngagementCounts {
   return counts;
 }
 
+/**
+ * The post's own words, and only those.
+ *
+ * A media-only post carries no `tweetText` node at all, and falling back to the article's whole
+ * text made the haystack the display name, the handle, the relative timestamp and the engagement
+ * counts. A keyword rule then hid a photo because its author is called "Crypto Guy", and told the
+ * reader their keyword did it; a numeric pattern matched the like count and stopped matching as
+ * the count ticked over. An empty string is the honest answer: the structural and media predicates
+ * already describe a post that has no words.
+ */
 function readText(article: Element): string {
   const textNodes = article.querySelectorAll('[data-testid="tweetText"]');
-  return textNodes.length > 0
-    ? Array.from(textNodes)
-        .map((node) => node.textContent ?? "")
-        .join("\n")
-    : article.textContent ?? "";
+  return Array.from(textNodes)
+    .map((node) => node.textContent ?? "")
+    .join("\n");
 }
 
 function readMedia(article: Element): Record<FilterMediaKey, boolean> {

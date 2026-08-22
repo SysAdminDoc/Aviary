@@ -259,16 +259,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Confidence: Verified
   Effort: M
 
-- [ ] P1 — F246, A post with no caption is filtered on its author's name, its timestamp and its like count
-  Category: correctness
-  Where: `src/features/filtering/predicates.ts:397-403` (`readText`), consumed by `extractTweetSignal` and matched at `judge`.
-  Problem: `readText` returns the concatenated text of every `[data-testid="tweetText"]` node, and falls back to `article.textContent` when there are none. X renders no `tweetText` node for a media-only post, which is common, so the entire article's text becomes the haystack for every keyword and regex rule: the display name, the handle, the relative timestamp and the engagement counts. A keyword rule then matches the author's display name and hides the post, and the reason line tells the reader it was their keyword that did it. Because the like count and the relative timestamp are in the haystack too, a numeric pattern matches nondeterministically as counts tick over.
-  Evidence: measured in headless Chromium against the real `extractTweetSignal`, `compileFilters` and `judge`. A media-only article whose only occurrence of "crypto" is the display name "Crypto Guy" produced `signal.text = "Crypto Guy@cryptoguy2h12"` and `verdict = {"action":"hide","cause":{"kind":"keyword","label":"crypto"}}`. The control — the same article with a `tweetText` node reading "a photo of my dog" — produced `signal.text = "a photo of my dog"` and `verdict = {"action":"show","cause":null}`.
-  Fix: return `""` when there is no `tweetText` node rather than the whole article's text. The structural and media predicates already cover post shape, and the allowlist exemption is unaffected. If matching author names is wanted, it should be its own rule field rather than an accident of the text fallback.
-  Acceptance: a test builds a media-only article with a keyword-matching display name and asserts `judge` returns `show`; the existing keyword tests still pass.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P1 — F247, Clicking a row button while an edit is staged discards the edit, then Save reports success
   Category: correctness
   Where: `src/ui/control-center.ts:1050-1054` (`render`'s dirty guard) and `:1462-1500` (`commitDraft`). Reachable from the row handlers that call `ctx.render()` without `ctx.guardDraft()`: `src/ui/control-center/sections/reading.ts:1037`, `src/ui/control-center/sections/data.ts:220`, `:417`, `:694`, `:710`, `src/ui/control-center/sections/advanced.ts:1128`.

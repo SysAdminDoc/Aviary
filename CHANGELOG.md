@@ -13,6 +13,11 @@
   generated scope block.
 
 ### Fixed
+- Keyword and regex filters no longer read a post's author, timestamp or engagement counts. A
+  media-only post carries no caption node, and the text reader used to fall back to the whole
+  article, so a keyword hid a photo because of the account's display name and a numeric pattern
+  matched the like count until the count changed. A post with no words now matches no word rule.
+
 - Importing a settings backup taken before the schema-2 bump now upgrades it instead of inverting
   it. A provider budget of `0` meant "no ceiling" under schema 1 and means "block everything" under
   schema 2, and the import path skipped the migration that carries that across, so restoring an old

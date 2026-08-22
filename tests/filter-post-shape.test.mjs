@@ -30,7 +30,7 @@ before(async () => {
     entry,
     [
       `export { filterEngineFeature } from ${JSON.stringify(abs("src/features/filtering/filter-engine.ts"))};`,
-      `export { extractTweetSignal, readEngagementCount, STRUCTURAL_SELECTORS } from ${JSON.stringify(abs("src/features/filtering/predicates.ts"))};`,
+      `export { extractTweetSignal, readEngagementCount, compileFilters, judge, STRUCTURAL_SELECTORS } from ${JSON.stringify(abs("src/features/filtering/predicates.ts"))};`,
       `export { quotedPost } from ${JSON.stringify(abs("src/features/media/extract.ts"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings, normalizeSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};`
     ].join("\n"),
@@ -405,4 +405,74 @@ test("both shape settings survive normalization and reject nonsense", async () =
     engagementRule: "off",
     engagementMin: 0
   });
+});
+
+/**
+ * A post with no words matches no word rule.
+ *
+ * X renders no `tweetText` node for a media-only post, and the text reader used to fall back to
+ * the whole article. That made the haystack the display name, the handle, the relative timestamp
+ * and every engagement count, so a keyword rule hid a photo because its author is called
+ * "Crypto Guy" -- and the reason line told the reader their keyword had done it. A numeric pattern
+ * matched the like count and then stopped matching as the count ticked over.
+ */
+test("a post with no caption is not filtered on its author, timestamp or counts", async () => {
+  const result = await page.evaluate(() => {
+    document.body.replaceChildren();
+    const build = (withCaption) => {
+      const article = document.createElement("article");
+      article.setAttribute("data-testid", "tweet");
+      const name = document.createElement("div");
+      name.setAttribute("data-testid", "User-Name");
+      const displayName = document.createElement("span");
+      displayName.textContent = "Crypto Guy";
+      const handle = document.createElement("a");
+      handle.setAttribute("href", "/cryptoguy");
+      handle.textContent = "@cryptoguy";
+      const time = document.createElement("time");
+      time.textContent = "2h";
+      name.append(displayName, handle, time);
+      const status = document.createElement("a");
+      status.setAttribute("href", "/cryptoguy/status/123");
+      const group = document.createElement("div");
+      group.setAttribute("role", "group");
+      group.setAttribute("aria-label", "actions");
+      const likes = document.createElement("span");
+      likes.textContent = "12";
+      group.append(likes);
+      const photo = document.createElement("div");
+      photo.setAttribute("data-testid", "tweetPhoto");
+      article.append(name, status, group, photo);
+      if (withCaption) {
+        const text = document.createElement("div");
+        text.setAttribute("data-testid", "tweetText");
+        text.textContent = "a crypto photo";
+        article.append(text);
+      }
+      document.body.append(article);
+      return article;
+    };
+
+    const filters = AviaryShape.compileFilters({
+      keywords: ["crypto"],
+      regex: [],
+      whitelist: [],
+      premium: "off",
+      media: {},
+      generation: 1
+    });
+
+    const mediaOnly = build(false);
+    const captioned = build(true);
+    return {
+      mediaOnlyText: AviaryShape.extractTweetSignal(mediaOnly).text,
+      mediaOnly: AviaryShape.judge(AviaryShape.extractTweetSignal(mediaOnly), filters).action,
+      captioned: AviaryShape.judge(AviaryShape.extractTweetSignal(captioned), filters).action
+    };
+  });
+
+  assert.equal(result.mediaOnlyText, "");
+  assert.equal(result.mediaOnly, "show");
+  // The control proves the rule still works: the same keyword in the post's own words hides it.
+  assert.equal(result.captioned, "hide");
 });

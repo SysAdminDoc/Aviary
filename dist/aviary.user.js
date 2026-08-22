@@ -18616,7 +18616,7 @@ ${record.text}${mediaList}`;
   }
   function readText2(article) {
     const textNodes = article.querySelectorAll('[data-testid="tweetText"]');
-    return textNodes.length > 0 ? Array.from(textNodes).map((node) => node.textContent ?? "").join("\n") : article.textContent ?? "";
+    return Array.from(textNodes).map((node) => node.textContent ?? "").join("\n");
   }
   function readMedia(article) {
     const media = {
