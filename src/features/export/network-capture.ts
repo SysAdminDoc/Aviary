@@ -156,6 +156,15 @@ function enqueueCaptured(payload: unknown, epoch: number, ctx: FeatureContext): 
     rejectCapture(ctx, "invalid GraphQL payload");
     return;
   }
+  if (sanitized.truncated) {
+    // Aviary's own cap, not a bad message. Counted so the status line stops reporting a clean
+    // capture while a response's posts are missing from the export.
+    rejectCapture(
+      ctx,
+      `response exceeded the ${MAX_GRAPHQL_PAYLOAD_BYTES}-byte capture cap and was not stored`
+    );
+    return;
+  }
   if (sessionPayloads >= MAX_SESSION_PAYLOADS) {
     rejectCapture(ctx, "session payload limit reached");
     return;

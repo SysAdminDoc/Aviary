@@ -58,6 +58,10 @@ export interface CapturedGraphqlPayload {
 
 export interface SanitizedCapturedGraphqlPayload extends CapturedGraphqlPayload {
   body: string;
+  /** True when the page agent dropped the body because it exceeded the cap. */
+  truncated?: boolean;
+  /** The size the response actually was, present only when `truncated`. */
+  originalBytes?: number;
 }
 
 export interface BlockedBeaconPayload {
@@ -133,8 +137,14 @@ export function sanitizeCapturedGraphqlPayload(
   if (typeof status !== "number" || !Number.isSafeInteger(status) || status < 100 || status > 599) {
     return null;
   }
+  // A truncated payload carries no body, so it reports zero bytes; everything else must report a
+  // real size inside the cap. Both are well-formed -- neither is a reason to distrust the sender.
+  const truncated = value.truncated === true;
   const bytes = value.bytes;
-  if (typeof bytes !== "number" || !Number.isSafeInteger(bytes) || bytes <= 0 || bytes > MAX_GRAPHQL_PAYLOAD_BYTES) {
+  if (typeof bytes !== "number" || !Number.isSafeInteger(bytes)) {
+    return null;
+  }
+  if (truncated ? bytes !== 0 : bytes <= 0 || bytes > MAX_GRAPHQL_PAYLOAD_BYTES) {
     return null;
   }
   const at = typeof value.at === "string" ? value.at : "";
@@ -155,6 +165,21 @@ export function sanitizeCapturedGraphqlPayload(
     }
   } catch {
     return null;
+  }
+  if (truncated) {
+    const originalBytes = value.originalBytes;
+    return {
+      url: route.href,
+      operation: route.operation,
+      status,
+      bytes,
+      at,
+      body: "",
+      truncated: true,
+      ...(typeof originalBytes === "number" && Number.isSafeInteger(originalBytes) && originalBytes > 0
+        ? { originalBytes }
+        : {})
+    };
   }
   return { url: route.href, operation: route.operation, status, bytes, at, body };
 }
@@ -810,13 +835,20 @@ function armXhrGraphqlCapture(
 
 function emitCapturedGraphql(url: string, status: number, body: string): void {
   const bytes = new TextEncoder().encode(body).byteLength;
+  // A response over the cap is Aviary's own limit, not a message to distrust. It used to be sent
+  // with the real (over-cap) byte count and no body, which the isolated world's validator refused
+  // on the bounds check and reported as an untrusted message -- a security-shaped warning for an
+  // ordinary large timeline. Say what it is instead: the payload is dropped, the size is reported
+  // honestly, and `truncated` is what tells the reader this was a cap rather than a refusal.
+  const oversize = bytes > MAX_GRAPHQL_PAYLOAD_BYTES;
   emit("graphql", {
     url,
     operation: graphqlOperationName(url),
     status,
-    bytes,
+    bytes: oversize ? 0 : bytes,
     at: now(),
-    body: bytes <= MAX_GRAPHQL_PAYLOAD_BYTES ? body : undefined
+    body: oversize ? "" : body,
+    ...(oversize ? { truncated: true, originalBytes: bytes } : {})
   });
 }
 

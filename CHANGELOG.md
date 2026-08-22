@@ -21,6 +21,11 @@
   silence.
 
 ### Fixed
+- A timeline response larger than the capture cap is now reported as what it is. Aviary's own size
+  limit used to surface as "Page bridge rejected an untrusted message", a security-shaped warning
+  kept for a week, while the capture feature never saw the response at all and the panel went on
+  reporting a clean run with that response's posts missing from the export.
+
 - A regex filter rule can no longer freeze the tab. The budget refused a repeated group that
   already repeats, like `(a+)+b`, but not one whose branches can match the same text, like
   `(a|a)+$` — which costs the same and took nearly ten seconds against a thirty-character post,

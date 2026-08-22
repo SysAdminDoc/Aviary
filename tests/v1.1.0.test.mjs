@@ -347,3 +347,89 @@ function contextFor(pageBridge) {
     diagnostics: { info() {}, warn() {}, error() {} }
   };
 }
+
+/**
+ * A response past the capture cap is Aviary's own limit, not a message to distrust.
+ *
+ * The page agent used to send the real over-cap byte count with no body, which the isolated
+ * world's validator refused on its bounds check and reported as "Page bridge rejected an untrusted
+ * message" -- a security-shaped warning, persisted for a week, for an ordinary large timeline. The
+ * capture feature never saw the message at all, so its own rejection count stayed at zero and the
+ * panel went on reporting a clean capture while that response's posts were missing from the export.
+ */
+test("a response over the capture cap is reported as a cap, not as an untrusted message", async () => {
+  const { sanitizeCapturedGraphqlPayload, MAX_GRAPHQL_PAYLOAD_BYTES } = await importSourceModule(
+    "src/page/page-agent.ts"
+  );
+  const { networkCaptureFeature } = await importSourceModule(
+    "src/features/export/network-capture.ts"
+  );
+
+  const url = "https://x.com/i/api/graphql/abc123/HomeTimeline";
+
+  // The shape the page agent now emits for an over-cap response.
+  const truncated = sanitizeCapturedGraphqlPayload(
+    {
+      url,
+      operation: "HomeTimeline",
+      status: 200,
+      bytes: 0,
+      at: new Date().toISOString(),
+      body: "",
+      truncated: true,
+      originalBytes: MAX_GRAPHQL_PAYLOAD_BYTES + 1
+    },
+    "https://x.com"
+  );
+  assert.ok(truncated, "a capped payload is well-formed and must not be refused as malformed");
+  assert.equal(truncated.truncated, true);
+  assert.equal(truncated.body, "");
+  assert.equal(truncated.originalBytes, MAX_GRAPHQL_PAYLOAD_BYTES + 1);
+
+  // A genuinely malformed payload is still refused.
+  assert.equal(
+    sanitizeCapturedGraphqlPayload(
+      { url, operation: "HomeTimeline", status: 200, bytes: 5, at: new Date().toISOString(), body: "no" },
+      "https://x.com"
+    ),
+    null,
+    "a byte count that disagrees with the body is still refused"
+  );
+
+  // The capture feature counts the cap, so the status line stops claiming a clean run.
+  const bridge = fakeBridge();
+  const warnings = [];
+  const context = {
+    pageBridge: bridge,
+    route: { href: "https://x.com/home" },
+    settings: { export: { preserveRawPayloads: true } },
+    diagnostics: {
+      info() {},
+      warn(message, details) {
+        warnings.push({ message, details });
+      },
+      error() {}
+    },
+    auditLog: { record: async () => {} }
+  };
+  networkCaptureFeature.init(context);
+  networkCaptureFeature.apply(context);
+  bridge.emit("graphql", {
+    url,
+    operation: "HomeTimeline",
+    status: 200,
+    bytes: 0,
+    at: new Date().toISOString(),
+    body: "",
+    truncated: true,
+    originalBytes: MAX_GRAPHQL_PAYLOAD_BYTES + 1
+  });
+
+  const status = networkCaptureFeature.getStatus();
+  assert.match(status.message, /rejected/, `the cap must reach the status line, saw ${status.message}`);
+  assert.ok(
+    warnings.every((entry) => !/untrusted/i.test(entry.message)),
+    `a size cap must not be reported as untrusted, saw ${JSON.stringify(warnings)}`
+  );
+  networkCaptureFeature.destroy(context);
+});

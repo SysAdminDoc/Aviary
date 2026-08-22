@@ -165,7 +165,10 @@ export function createPageBridge(options: {
       return;
     }
     lastRejectedAt = now;
-    options.diagnostics.warn("Page bridge rejected an untrusted message", { reason });
+    // "untrusted" is a claim about the sender. Keep it for envelopes that are actually
+    // malformed; a payload the page agent marked as over the size cap arrives well-formed and
+    // is reported by the capture feature instead.
+    options.diagnostics.warn("Page bridge rejected a malformed message", { reason });
   }
 
   function dispatch(value: unknown): void {

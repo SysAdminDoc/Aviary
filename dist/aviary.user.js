@@ -30789,8 +30789,12 @@ html.av-mobile [data-testid="primaryColumn"] {
     if (typeof status !== "number" || !Number.isSafeInteger(status) || status < 100 || status > 599) {
       return null;
     }
+    const truncated = value.truncated === true;
     const bytes = value.bytes;
-    if (typeof bytes !== "number" || !Number.isSafeInteger(bytes) || bytes <= 0 || bytes > MAX_GRAPHQL_PAYLOAD_BYTES) {
+    if (typeof bytes !== "number" || !Number.isSafeInteger(bytes)) {
+      return null;
+    }
+    if (truncated ? bytes !== 0 : bytes <= 0 || bytes > MAX_GRAPHQL_PAYLOAD_BYTES) {
       return null;
     }
     const at = typeof value.at === "string" ? value.at : "";
@@ -30811,6 +30815,19 @@ html.av-mobile [data-testid="primaryColumn"] {
       }
     } catch {
       return null;
+    }
+    if (truncated) {
+      const originalBytes = value.originalBytes;
+      return {
+        url: route.href,
+        operation: route.operation,
+        status,
+        bytes,
+        at,
+        body: "",
+        truncated: true,
+        ...typeof originalBytes === "number" && Number.isSafeInteger(originalBytes) && originalBytes > 0 ? { originalBytes } : {}
+      };
     }
     return { url: route.href, operation: route.operation, status, bytes, at, body };
   }
@@ -31198,13 +31215,15 @@ html.av-mobile [data-testid="primaryColumn"] {
   }
   function emitCapturedGraphql(url, status, body) {
     const bytes = new TextEncoder().encode(body).byteLength;
+    const oversize = bytes > MAX_GRAPHQL_PAYLOAD_BYTES;
     emit("graphql", {
       url,
       operation: graphqlOperationName(url),
       status,
-      bytes,
+      bytes: oversize ? 0 : bytes,
       at: now(),
-      body: bytes <= MAX_GRAPHQL_PAYLOAD_BYTES ? body : void 0
+      body: oversize ? "" : body,
+      ...oversize ? { truncated: true, originalBytes: bytes } : {}
     });
   }
   function requestUrl(input, baseOrigin) {
@@ -31705,6 +31724,13 @@ html.av-mobile [data-testid="primaryColumn"] {
     const sanitized = sanitizeCapturedGraphqlPayload(payload, pageOrigin(ctx));
     if (!sanitized) {
       rejectCapture(ctx, "invalid GraphQL payload");
+      return;
+    }
+    if (sanitized.truncated) {
+      rejectCapture(
+        ctx,
+        `response exceeded the ${MAX_GRAPHQL_PAYLOAD_BYTES}-byte capture cap and was not stored`
+      );
       return;
     }
     if (sessionPayloads >= MAX_SESSION_PAYLOADS) {
@@ -33320,7 +33346,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         return;
       }
       lastRejectedAt = now2;
-      options.diagnostics.warn("Page bridge rejected an untrusted message", { reason: reason2 });
+      options.diagnostics.warn("Page bridge rejected a malformed message", { reason: reason2 });
     }
     function dispatch(value) {
       if (!isPageAgentEnvelope(value)) {
