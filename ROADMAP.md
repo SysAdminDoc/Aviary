@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.40.0`
+Version: `1.41.0`
 
 Actionable work only. Historical and completed roadmap material is archived in CHANGELOG.md; blocked work is kept in Roadmap_Blocked.md.
 
@@ -39,23 +39,6 @@ confirmed a second time. See RESEARCH.md.
 ### P1, trust and verification
 
 ### P2, platform primitives that delete hand-rolled code
-
-- [ ] F185, P2, Move menus, toasts and the panel to the Popover API
-  Why: it is free at both declared manifest floors, Chrome 116 is exactly `minimum_chrome_version`, and
-  Firefox 125 is below the 128 floor, and it replaces hand-rolled top-layer work with platform
-  behaviour: top-layer rendering (no z-index contest with x.com's stacking contexts), light dismiss, and
-  focus handling. Light dismiss also covers the Escape case without registering a key handler, which
-  keeps the no-hotkeys policy clean rather than bending it.
-  Evidence: MDN Popover API; Chrome 116 / Firefox 125 / Safari 17, Baseline Newly 2025-01-27 (verified
-  against webstatus.dev 2026-08-17). Current floors in both manifests.
-  Touches: `src/ui/control-center.ts` (overlay/panel), `src/features/core/feature-toast.ts`,
-  `src/features/composer/composer-snippets.ts` (popover), `src/features/ai/command-menu.ts`,
-  `tests/control-center-modal.test.mjs`, `tests/audit-a11y.test.mjs`, the 60 visual baselines.
-  Acceptance: the panel, toasts, and both popovers use `popover` with no bespoke outside-click handler
-  and no `z-index` above X's; `inert`/focus-return behaviour is unchanged or better, proven against the
-  live accessibility tree rather than source text; visual baselines are regenerated and reviewed.
-  Depends on: F140 (the a11y assertions this touches should be behavioural before they are rewritten).
-  Complexity: M
 
 ## Research-Driven Additions (2026-08-18)
 

@@ -23,6 +23,11 @@ let lastAppliedVersion = -1;
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 let reflowHandle: number | undefined;
 
+type NativePopover = HTMLElement & {
+  showPopover?: () => void;
+  hidePopover?: () => void;
+};
+
 export const hiddenPostsFeature: FeatureModule = {
   id: "filtering.hiddenPosts",
   title: "Hide posts",
@@ -127,7 +132,14 @@ function applyRootClass(ctx: FeatureContext): void {
 function clearDecorations(): void {
   const hadHiddenRows = document.querySelector(`[${HIDDEN_ATTR}]`) !== null;
   document.getElementById(STYLE_ID)?.remove();
-  document.getElementById(TOAST_HOST_ID)?.remove();
+  const toastHost = document.getElementById(TOAST_HOST_ID);
+  const toastCard = toastHost?.shadowRoot?.querySelector<HTMLElement>(".av-toast");
+  try {
+    (toastCard as NativePopover | null)?.hidePopover?.();
+  } catch {
+    // The host is removed immediately below, so no further cleanup is required.
+  }
+  toastHost?.remove();
   document.documentElement.classList.remove("av-hide-posts-enabled");
   for (const button of Array.from(document.querySelectorAll(`[${BUTTON_ATTR}]`))) {
     button.remove();
@@ -435,6 +447,14 @@ function showToast(message: string, ctx: FeatureContext): void {
   };
 
   card.classList.add("is-open");
+  try {
+    if (!card.matches(":popover-open")) {
+      (card as NativePopover).showPopover?.();
+    }
+  } catch {
+    // The manifest floors include Popover API support. Keep the authored state as a safe fallback
+    // for embedded test hosts that expose the attribute but not the methods.
+  }
   scheduleToastDismiss(card, TOAST_TIMEOUT_MS);
 }
 
@@ -450,6 +470,11 @@ function scheduleToastDismiss(card: HTMLElement, delay: number): void {
   }
   toastTimer = setTimeout(() => {
     card.classList.remove("is-open");
+    try {
+      (card as NativePopover).hidePopover?.();
+    } catch {
+      // Keep teardown best-effort if a host removes the popover implementation mid-toast.
+    }
     toastTimer = undefined;
   }, delay);
 }
@@ -473,6 +498,7 @@ function ensureToastHost(): ShadowRoot {
 
   const card = document.createElement("div");
   card.className = "av-toast";
+  card.setAttribute("popover", "manual");
   card.setAttribute("role", "status");
   card.setAttribute("aria-live", "polite");
 
@@ -565,9 +591,10 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
 const TOAST_CSS = `
 .av-toast {
   position: fixed;
+  inset: auto;
   inset-inline-end: 16px;
   bottom: 76px;
-  z-index: 2147483000;
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -586,6 +613,12 @@ const TOAST_CSS = `
 }
 
 .av-toast.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.av-toast:popover-open {
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);

@@ -10,8 +10,8 @@ import { chromium } from "playwright";
 /**
  * The accessibility contract, driven rather than read.
  *
- * These assertions previously matched literal source strings — `overlay.toggleAttribute("inert",
- * !open)`, `event.key === "Escape"`, a `visibility: hidden` substring. That form fails on any
+ * These assertions stay behavioural instead of matching implementation details such as an inert
+ * toggle, a hand-written Escape branch, or a visibility substring. That form fails on any
  * rename while a real regression that keeps the string passes, and it demonstrably let two defects
  * ship: a settings toggle unreadable in forced colors, and an `aria-busy` written as the empty
  * string. Nothing here reads a `.ts` file; every check mounts the panel and drives it.
@@ -81,19 +81,20 @@ test("a closed panel is out of the tab order, not merely invisible", async () =>
   const closed = await page.evaluate(() => {
     const root = document.getElementById("av-control-center").shadowRoot;
     const overlay = root.querySelector(".av-overlay");
-    const style = getComputedStyle(overlay);
+    const panel = root.querySelector(".av-panel");
     return {
       inert: overlay.inert === true || overlay.hasAttribute("inert"),
-      visibility: style.visibility,
-      pointerEvents: style.pointerEvents
+      popover: panel.getAttribute("popover"),
+      popoverOpen: panel.matches(":popover-open")
     };
   });
 
   // `aria-hidden` over focusable descendants is the failure this guards; `inert` is what actually
-  // removes them from the tab order, and visibility keeps them off the accessibility tree.
+  // removes them from the tab order. Native popover state keeps the closed dialog out of the
+  // accessibility tree as well.
   assert.equal(closed.inert, true, "a closed overlay must be inert");
-  assert.equal(closed.visibility, "hidden");
-  assert.equal(closed.pointerEvents, "none");
+  assert.equal(closed.popover, "auto");
+  assert.equal(closed.popoverOpen, false);
 });
 
 test("opening moves focus into the panel and exposes it as a modal", async () => {
@@ -108,7 +109,8 @@ test("opening moves focus into the panel and exposes it as a modal", async () =>
     const panel = root.querySelector(".av-panel");
     return {
       inert: overlay.inert === true || overlay.hasAttribute("inert"),
-      visibility: getComputedStyle(overlay).visibility,
+      popover: panel.getAttribute("popover"),
+      popoverOpen: panel.matches(":popover-open"),
       role: panel.getAttribute("role"),
       ariaModal: panel.getAttribute("aria-modal"),
       bodyInert: document.body.hasAttribute("inert"),
@@ -117,7 +119,8 @@ test("opening moves focus into the panel and exposes it as a modal", async () =>
   });
 
   assert.equal(open.inert, false, "an open overlay must be interactive");
-  assert.equal(open.visibility, "visible");
+  assert.equal(open.popover, "auto");
+  assert.equal(open.popoverOpen, true);
   assert.equal(open.ariaModal, "true", "a modal must say so");
   assert.ok(open.role === "dialog" || open.role === "alertdialog", `unexpected role ${open.role}`);
   assert.equal(open.bodyInert, true, "the page behind a modal must be inert");
@@ -127,7 +130,7 @@ test("opening moves focus into the panel and exposes it as a modal", async () =>
 test("Escape closes the panel and returns focus to what opened it", async () => {
   await mount();
 
-  const result = await page.evaluate(async () => {
+  const opened = await page.evaluate(async () => {
     const root = document.getElementById("av-control-center").shadowRoot;
     const launcher = root.querySelector(".av-launcher");
     launcher.focus();
@@ -135,21 +138,23 @@ test("Escape closes the panel and returns focus to what opened it", async () => 
     await new Promise((resolve) => setTimeout(resolve, 20));
     const openedWith = root.activeElement?.className ?? "";
 
-    root.activeElement?.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "Escape", bubbles: true, composed: true })
-    );
-    await new Promise((resolve) => setTimeout(resolve, 220));
+    return { openedWith };
+  });
 
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(25);
+  const result = await page.evaluate(() => {
+    const root = document.getElementById("av-control-center").shadowRoot;
+    const launcher = root.querySelector(".av-launcher");
     const overlay = root.querySelector(".av-overlay");
     return {
-      openedWith,
       closedInert: overlay.inert === true || overlay.hasAttribute("inert"),
       bodyInert: document.body.hasAttribute("inert"),
       focusReturned: root.activeElement === launcher
     };
   });
 
-  assert.notEqual(result.openedWith, "", "the panel must take focus when it opens");
+  assert.notEqual(opened.openedWith, "", "the panel must take focus when it opens");
   assert.equal(result.closedInert, true, "Escape must close the panel");
   assert.equal(result.bodyInert, false, "and must release the page behind it");
   assert.equal(result.focusReturned, true, "focus must go back to the control that opened it");

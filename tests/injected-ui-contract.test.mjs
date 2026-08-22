@@ -140,7 +140,7 @@ test("injected controls render at their declared size and inherit the page famil
 });
 
 test("AI and snippet popovers expose controlled menus and restore focus", async () => {
-  const state = await page.evaluate(() => {
+  const state = await page.evaluate(async () => {
     document.body.replaceChildren();
     const context = globalThis.__ctx;
 
@@ -171,11 +171,13 @@ test("AI and snippet popovers expose controlled menus and restore focus", async 
       expanded: aiTrigger.getAttribute("aria-expanded"),
       controls: aiMenu.id === aiTrigger.getAttribute("aria-controls"),
       role: aiMenu.getAttribute("role"),
+      popover: aiMenu.getAttribute("popover"),
       focus: document.activeElement?.className
     };
     aiMenu.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
     const aiMoved = document.activeElement?.className;
-    aiMenu.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    aiMenu.hidePopover();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     const aiClosed = {
       menu: Boolean(document.getElementById(aiMenu.id)),
       expanded: aiTrigger.getAttribute("aria-expanded"),
@@ -189,11 +191,13 @@ test("AI and snippet popovers expose controlled menus and restore focus", async 
       expanded: snippetTrigger.getAttribute("aria-expanded"),
       controls: snippetMenu.id === snippetTrigger.getAttribute("aria-controls"),
       role: snippetMenu.getAttribute("role"),
+      popover: snippetMenu.getAttribute("popover"),
       focus: document.activeElement?.className
     };
     snippetMenu.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
     const snippetMoved = document.activeElement?.className;
-    snippetMenu.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    snippetMenu.hidePopover();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     const snippetClosed = {
       menu: Boolean(document.getElementById(snippetMenu.id)),
       expanded: snippetTrigger.getAttribute("aria-expanded"),
@@ -209,6 +213,7 @@ test("AI and snippet popovers expose controlled menus and restore focus", async 
     expanded: "true",
     controls: true,
     role: "menu",
+    popover: "auto",
     focus: "av-ai-option"
   });
   assert.equal(state.aiMoved, "av-ai-option");
@@ -217,6 +222,7 @@ test("AI and snippet popovers expose controlled menus and restore focus", async 
     expanded: "true",
     controls: true,
     role: "menu",
+    popover: "auto",
     focus: "av-snippet-option"
   });
   assert.equal(state.snippetMoved, "av-snippet-option");
@@ -354,12 +360,14 @@ test("injected toasts and hide spacing follow the document direction", async () 
         featureHostDir: featureHost?.dir,
         hiddenHostDir: hiddenHost?.dir,
         feature: {
+          popover: featureCard.getAttribute("popover"),
           insetInlineEnd: getComputedStyle(featureCard).insetInlineEnd,
           borderInlineStart: getComputedStyle(featureCard).borderInlineStartWidth,
           left: Math.round(featureCard.getBoundingClientRect().left),
           right: Math.round(window.innerWidth - featureCard.getBoundingClientRect().right)
         },
         hidden: {
+          popover: hiddenCard.getAttribute("popover"),
           insetInlineEnd: getComputedStyle(hiddenCard).insetInlineEnd,
           left: Math.round(hiddenCard.getBoundingClientRect().left),
           right: Math.round(window.innerWidth - hiddenCard.getBoundingClientRect().right)
@@ -376,6 +384,8 @@ test("injected toasts and hide spacing follow the document direction", async () 
 
   assert.equal(results.ltr.featureHostDir, "ltr");
   assert.equal(results.ltr.hiddenHostDir, "ltr");
+  assert.equal(results.ltr.feature.popover, "manual");
+  assert.equal(results.ltr.hidden.popover, "manual");
   assert.equal(results.ltr.feature.insetInlineEnd, "16px");
   assert.equal(results.ltr.hidden.insetInlineEnd, "16px");
   assert.equal(results.ltr.feature.right, 16);
@@ -385,6 +395,8 @@ test("injected toasts and hide spacing follow the document direction", async () 
 
   assert.equal(results.rtl.featureHostDir, "rtl");
   assert.equal(results.rtl.hiddenHostDir, "rtl");
+  assert.equal(results.rtl.feature.popover, "manual");
+  assert.equal(results.rtl.hidden.popover, "manual");
   assert.equal(results.rtl.feature.insetInlineEnd, "16px");
   assert.equal(results.rtl.hidden.insetInlineEnd, "16px");
   assert.equal(results.rtl.feature.left, 16);

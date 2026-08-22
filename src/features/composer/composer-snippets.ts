@@ -55,11 +55,9 @@ export const composerSnippetsFeature: FeatureModule = {
   }
 };
 
-let openPaletteDismiss: ((event: Event) => void) | undefined;
 let openPaletteKeydown: ((event: KeyboardEvent) => void) | undefined;
 let openPaletteNode: HTMLElement | undefined;
 let openPaletteTrigger: HTMLElement | undefined;
-let openPaletteDismissTimer: ReturnType<typeof setTimeout> | undefined;
 let appliedSnippetsSignature: string | undefined;
 let paletteSequence = 0;
 
@@ -76,23 +74,24 @@ function clearDecorations(): void {
 }
 
 function closePalettes(restoreFocus = true): void {
-  if (openPaletteDismiss) {
-    document.removeEventListener("click", openPaletteDismiss, true);
-    openPaletteDismiss = undefined;
-  }
-  if (openPaletteKeydown && openPaletteNode) {
-    openPaletteNode.removeEventListener("keydown", openPaletteKeydown);
+  const palette = openPaletteNode;
+  if (openPaletteKeydown && palette) {
+    palette.removeEventListener("keydown", openPaletteKeydown);
     openPaletteKeydown = undefined;
-  }
-  if (openPaletteDismissTimer !== undefined) {
-    clearTimeout(openPaletteDismissTimer);
-    openPaletteDismissTimer = undefined;
   }
   const trigger = openPaletteTrigger;
   trigger?.setAttribute("aria-expanded", "false");
   openPaletteTrigger = undefined;
-  for (const palette of Array.from(document.querySelectorAll(`[${PALETTE_ATTR}="popover"]`))) {
+  if (palette) {
+    try {
+      (palette as HTMLElement & { hidePopover?: () => void }).hidePopover?.();
+    } catch {
+      // Keep teardown best-effort for embedded hosts without a complete Popover implementation.
+    }
     palette.remove();
+  }
+  for (const stray of Array.from(document.querySelectorAll(`[${PALETTE_ATTR}="popover"]`))) {
+    stray.remove();
   }
   openPaletteNode = undefined;
   if (restoreFocus && trigger?.isConnected) {
@@ -159,6 +158,7 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
   const snippets = ctx.settings.composer.snippets;
   const popover = document.createElement("div");
   popover.setAttribute(PALETTE_ATTR, "popover");
+  popover.setAttribute("popover", "auto");
   popover.className = "av-snippet-popover";
   popover.setAttribute("role", "menu");
   popover.tabIndex = -1;
@@ -202,8 +202,8 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
     }
   }
 
-  positionPopover(popover, trigger);
   document.body.append(popover);
+  positionPopover(popover, trigger);
   openPaletteNode = popover;
   const menuItems = (): HTMLButtonElement[] =>
     Array.from(popover.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));
@@ -219,7 +219,7 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
   const keydown = (event: KeyboardEvent): void => {
     const items = menuItems();
     const current = items.indexOf(document.activeElement as HTMLButtonElement);
-    if (event.key === "Escape" || event.key === "Tab") {
+    if (event.key === "Tab") {
       event.preventDefault();
       event.stopPropagation();
       closePalettes();
@@ -252,22 +252,21 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
   };
   openPaletteKeydown = keydown;
   popover.addEventListener("keydown", keydown);
-  focusMenuItem(0);
-
-  const dismiss = (event: Event): void => {
-    if (!popover.contains(event.target as Node) && event.target !== trigger) {
+  popover.addEventListener("toggle", (event) => {
+    const closed = (event as Event & { newState?: string }).newState === "closed";
+    if (closed && openPaletteNode === popover) {
+      // Escape and light-dismiss are handled by the UA. Mirror the state back to the trigger and
+      // remove the detached palette so future composer mutations cannot keep stale snippets.
       closePalettes();
     }
-  };
-  // Defer so the click that opened the palette doesn't dismiss it.
-  openPaletteDismiss = dismiss;
-  openPaletteDismissTimer = setTimeout(() => {
-    openPaletteDismissTimer = undefined;
-    // The feature may have been disabled before the deferred listener was installed.
-    if (openPaletteDismiss === dismiss && document.contains(popover)) {
-      document.addEventListener("click", dismiss, true);
-    }
-  }, 0);
+  });
+  try {
+    (popover as HTMLElement & { showPopover?: () => void }).showPopover?.();
+  } catch {
+    // The manifest floors include Popover API support. The authored palette remains usable in a
+    // test host that exposes the attribute but not the methods.
+  }
+  focusMenuItem(0);
 }
 
 function insertSnippet(snippet: string): boolean {
@@ -320,7 +319,7 @@ const COMPOSER_CSS = `
 }
 
 .av-snippet-popover {
-  z-index: 2147482700;
+  margin: 0;
   display: grid;
   gap: 4px;
   padding: 8px;

@@ -573,11 +573,13 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
   const overlay = el("div", "av-overlay");
   overlay.setAttribute("aria-hidden", "true");
-  // Closed at mount: keep it out of the tab order before the first toggle too.
+  // The wrapper remains the accessibility state marker used by the surrounding X chrome. The
+  // dialog itself owns the native top layer and light-dismiss behavior.
   overlay.toggleAttribute("inert", true);
 
   const panel = el("section", "av-panel");
   panel.id = "av-control-panel";
+  panel.setAttribute("popover", "auto");
   panel.setAttribute("role", "dialog");
   panel.setAttribute("aria-label", t("Aviary settings"));
   panel.setAttribute("aria-modal", "true");
@@ -749,11 +751,6 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
   const handlePanelKeyDown = (event: KeyboardEvent): void => {
     if (!open) return;
-    if (event.key === "Escape") {
-      event.preventDefault();
-      setOpen(false);
-      return;
-    }
     if (event.key !== "Tab") return;
 
     const focusables = modalFocusables();
@@ -785,13 +782,12 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   };
 
   panel.addEventListener("keydown", handlePanelKeyDown);
-  overlay.addEventListener("click", (event) => {
-    if (open && event.target === overlay) {
-      setOpen(false);
-    }
-  });
-
-  const setOpen = (value: boolean): void => {
+  type NativePopover = HTMLElement & {
+    showPopover?: () => void;
+    hidePopover?: () => void;
+  };
+  const nativePanel = panel as NativePopover;
+  const setOpen = (value: boolean, fromNative = false): void => {
     if (open === value) {
       if (value) panel.focus({ preventScroll: true });
       return;
@@ -806,6 +802,16 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     // opacity:0 hides the panel visually but leaves every control in the tab order, so a
     // keyboard user would tab through ~137 invisible fields inside an aria-hidden container.
     overlay.toggleAttribute("inert", !open);
+    panel.toggleAttribute("inert", !open);
+    if (!fromNative) {
+      try {
+        if (open) nativePanel.showPopover?.();
+        else nativePanel.hidePopover?.();
+      } catch {
+        // The manifest floors include Popover API support. Keep the authored state as a safe
+        // fallback for embedded test hosts that expose the attribute but not the methods.
+      }
+    }
     if (open) {
       bodyWasInert = document.body?.hasAttribute("inert") ?? false;
       document.body?.setAttribute("inert", "");
@@ -829,6 +835,13 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       launcherForFocus().focus({ preventScroll: true });
     }
   };
+
+  panel.addEventListener("toggle", (event) => {
+    const nextState = (event as Event & { newState?: string }).newState === "open";
+    if (nextState !== open) {
+      setOpen(nextState, true);
+    }
+  });
 
   /**
    * A rebuild replaces every row, which destroys half-typed input and moves focus. Page
@@ -2579,7 +2592,6 @@ const CONTROL_CENTER_CSS = `
 .av-shell {
   position: fixed;
   inset: 0;
-  z-index: 2147482600;
   pointer-events: none;
 }
 
@@ -2628,29 +2640,13 @@ input:focus-visible {
 }
 
 .av-overlay {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  opacity: 0;
-  pointer-events: none;
-  /* Belt and braces with [inert]: keeps the closed panel out of the tab order even where
-     inert is unsupported. Delayed so the fade-out still runs. */
-  visibility: hidden;
-  transform: translateY(8px);
-  transition: opacity 160ms ease, transform 160ms ease, visibility 0s linear 160ms;
-}
-
-.av-overlay.is-open {
-  opacity: 1;
-  pointer-events: auto;
-  visibility: visible;
-  transform: translateY(0);
-  transition: opacity 160ms ease, transform 160ms ease, visibility 0s;
+  display: contents;
 }
 
 .av-panel {
+  position: fixed;
+  inset: 0;
+  margin: auto;
   width: min(1260px, calc(100vw - 40px));
   height: min(860px, calc(100vh - 40px));
   overflow: hidden;
@@ -2661,6 +2657,10 @@ input:focus-visible {
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
   box-shadow: 0 28px 88px rgba(0, 0, 0, 0.64);
   pointer-events: auto;
+}
+
+.av-panel::backdrop {
+  background: rgba(0, 0, 0, 0.56);
 }
 
 /* The panel takes focus when it opens; the UA default paints a hard white halo around the
@@ -3783,10 +3783,6 @@ input[type="checkbox"] {
     min-height: 48px;
   }
 
-  .av-overlay {
-    padding: 8px 8px 76px;
-  }
-
   .av-panel {
     width: min(420px, calc(100vw - 16px));
     height: min(86vh, calc(100vh - 60px));
@@ -3928,7 +3924,7 @@ input[type="checkbox"] {
 
 @media (prefers-reduced-motion: reduce) {
   .av-launcher,
-  .av-overlay {
+  .av-panel {
     transition: none;
   }
 }
@@ -3937,7 +3933,7 @@ input[type="checkbox"] {
    class cannot cross into this shadow tree — the host carries the state instead. */
 :host([data-av-motion="reduce"]) .av-launcher,
 :host([data-av-motion="reduce"]) .av-launcher:hover,
-:host([data-av-motion="reduce"]) .av-overlay {
+:host([data-av-motion="reduce"]) .av-panel {
   transition: none;
   transform: none;
 }

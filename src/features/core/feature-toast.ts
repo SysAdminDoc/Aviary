@@ -7,6 +7,11 @@ export type ToastTone = "info" | "error";
 
 let dismissTimer: ReturnType<typeof setTimeout> | undefined;
 
+type NativePopover = HTMLElement & {
+  showPopover?: () => void;
+  hidePopover?: () => void;
+};
+
 /**
  * A small status toast for features that inject into the timeline.
  *
@@ -40,12 +45,26 @@ export function showFeatureToast(
   text.textContent = message;
   card.dataset.tone = options.tone ?? "info";
   card.classList.add("is-open");
+  try {
+    const nativeCard = card as NativePopover;
+    if (!card.matches(":popover-open")) {
+      nativeCard.showPopover?.();
+    }
+  } catch {
+    // The manifest floors include Popover API support. The class state remains a safe fallback
+    // for embedded test hosts that expose the attribute but not the methods.
+  }
 
   if (dismissTimer !== undefined) {
     clearTimeout(dismissTimer);
   }
   dismissTimer = setTimeout(() => {
     card.classList.remove("is-open");
+    try {
+      (card as NativePopover).hidePopover?.();
+    } catch {
+      // Keep teardown best-effort if a host removes the popover implementation mid-toast.
+    }
     dismissTimer = undefined;
   }, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
 }
@@ -56,7 +75,17 @@ export function removeFeatureToast(): void {
     clearTimeout(dismissTimer);
     dismissTimer = undefined;
   }
-  document.getElementById(TOAST_HOST_ID)?.remove();
+  const host = document.getElementById(TOAST_HOST_ID);
+  const card = host?.shadowRoot?.querySelector<HTMLElement>(".av-ftoast");
+  if (card) {
+    card.classList.remove("is-open");
+    try {
+      (card as NativePopover).hidePopover?.();
+    } catch {
+      // The host is removed immediately below, so no further cleanup is required.
+    }
+  }
+  host?.remove();
 }
 
 function prefersReducedMotion(ctx: FeatureContext): boolean {
@@ -84,6 +113,7 @@ function ensureHost(): ShadowRoot {
 
   const card = document.createElement("div");
   card.className = "av-ftoast";
+  card.setAttribute("popover", "manual");
   card.setAttribute("role", "status");
   card.setAttribute("aria-live", "polite");
 
@@ -99,9 +129,10 @@ function ensureHost(): ShadowRoot {
 const TOAST_CSS = `
 .av-ftoast {
   position: fixed;
+  inset: auto;
   inset-inline-end: 16px;
   bottom: 132px;
-  z-index: 2147483000;
+  margin: 0;
   display: flex;
   align-items: center;
   max-width: 340px;
@@ -128,6 +159,12 @@ const TOAST_CSS = `
 }
 
 .av-ftoast.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.av-ftoast:popover-open {
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);

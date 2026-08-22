@@ -152,25 +152,28 @@ function decorate(ctx: FeatureContext, root: ParentNode | Element): void {
 
 /** The menu is appended to <body>, so destroy() has to be able to reach it. */
 let openMenuNode: HTMLElement | undefined;
-let openMenuDismiss: ((event: Event) => void) | undefined;
 let openMenuKeydown: ((event: KeyboardEvent) => void) | undefined;
 let openMenuTrigger: HTMLElement | undefined;
 let closeAiReview: ((approved: boolean) => void) | undefined;
 let menuSequence = 0;
 
 function closeOpenMenu(restoreFocus = true): void {
-  if (openMenuDismiss) {
-    document.removeEventListener("click", openMenuDismiss, true);
-    openMenuDismiss = undefined;
-  }
-  if (openMenuKeydown && openMenuNode) {
-    openMenuNode.removeEventListener("keydown", openMenuKeydown);
+  const menu = openMenuNode;
+  if (openMenuKeydown && menu) {
+    menu.removeEventListener("keydown", openMenuKeydown);
     openMenuKeydown = undefined;
   }
   const trigger = openMenuTrigger;
   trigger?.setAttribute("aria-expanded", "false");
   openMenuTrigger = undefined;
-  openMenuNode?.remove();
+  if (menu) {
+    try {
+      (menu as HTMLElement & { hidePopover?: () => void }).hidePopover?.();
+    } catch {
+      // Keep teardown best-effort for embedded hosts without a complete Popover implementation.
+    }
+    menu.remove();
+  }
   openMenuNode = undefined;
   for (const stray of Array.from(document.querySelectorAll(".av-ai-menu"))) {
     stray.remove();
@@ -184,6 +187,7 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
   closeOpenMenu();
   const menu = document.createElement("div");
   menu.className = "av-ai-menu";
+  menu.setAttribute("popover", "auto");
   menu.setAttribute("role", "menu");
   menu.id = trigger.getAttribute("aria-controls") ?? `av-ai-menu-${++menuSequence}`;
   menu.setAttribute("aria-labelledby", trigger.id);
@@ -300,7 +304,7 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
   const keydown = (event: KeyboardEvent): void => {
     const items = menuItems();
     const current = items.indexOf(document.activeElement as HTMLButtonElement);
-    if (event.key === "Escape" || event.key === "Tab") {
+    if (event.key === "Tab") {
       event.preventDefault();
       event.stopPropagation();
       closeOpenMenu();
@@ -333,24 +337,30 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
   };
   openMenuKeydown = keydown;
   menu.addEventListener("keydown", keydown);
-  focusMenuItem(0);
-  const dismiss = (event: Event): void => {
-    if (!menu.contains(event.target as Node) && event.target !== trigger) {
+  menu.addEventListener("toggle", (event) => {
+    const closed = (event as Event & { newState?: string }).newState === "closed";
+    if (closed && openMenuNode === menu) {
+      // Escape and light-dismiss are handled by the UA. Mirror the state back to the trigger and
+      // remove the detached menu so a later post mutation cannot leave stale commands behind.
       closeOpenMenu();
     }
-  };
-  openMenuDismiss = dismiss;
-  setTimeout(() => document.addEventListener("click", dismiss, true), 0);
+  });
+  try {
+    (menu as HTMLElement & { showPopover?: () => void }).showPopover?.();
+  } catch {
+    // The manifest floors include Popover API support. The authored menu remains usable in a
+    // test host that exposes the attribute but not the methods.
+  }
+  focusMenuItem(0);
 }
 
 function showAiRequestReview(
   ctx: FeatureContext,
   disclosure: ReturnType<typeof buildAiDisclosure>
 ): Promise<boolean> {
-  const backdrop = document.createElement("div");
-  backdrop.className = "av-ai-review-backdrop";
   const dialog = document.createElement("section");
   dialog.className = "av-ai-review";
+  dialog.setAttribute("popover", "auto");
   dialog.setAttribute("role", "dialog");
   dialog.setAttribute("aria-modal", "true");
   dialog.setAttribute("aria-label", ft(ctx, "Review external AI request"));
@@ -402,8 +412,7 @@ function showAiRequestReview(
   send.disabled = !disclosure.networkAllowed || !disclosure.budgetAllowed;
   actions.append(cancel, send);
   dialog.append(title, intro, details, actions);
-  backdrop.append(dialog);
-  document.body.append(backdrop);
+  document.body.append(dialog);
 
   return new Promise((resolve) => {
     let settled = false;
@@ -411,23 +420,30 @@ function showAiRequestReview(
       if (settled) return;
       settled = true;
       closeAiReview = undefined;
-      document.removeEventListener("keydown", onKeyDown, true);
-      backdrop.remove();
+      dialog.removeEventListener("toggle", onToggle);
+      try {
+        (dialog as HTMLElement & { hidePopover?: () => void }).hidePopover?.();
+      } catch {
+        // Keep teardown best-effort for embedded hosts without a complete Popover implementation.
+      }
+      dialog.remove();
       resolve(approved);
     };
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === "Escape") {
-        event.preventDefault();
+    const onToggle = (event: Event): void => {
+      if ((event as Event & { newState?: string }).newState === "closed") {
         finish(false);
       }
     };
     cancel.addEventListener("click", () => finish(false));
     send.addEventListener("click", () => finish(true));
-    backdrop.addEventListener("click", (event) => {
-      if (event.target === backdrop) finish(false);
-    });
-    document.addEventListener("keydown", onKeyDown, true);
+    dialog.addEventListener("toggle", onToggle);
     closeAiReview = finish;
+    try {
+      (dialog as HTMLElement & { showPopover?: () => void }).showPopover?.();
+    } catch {
+      // The manifest floors include Popover API support. The authored dialog remains usable in a
+      // test host that exposes the attribute but not the methods.
+    }
     (send.disabled ? cancel : send).focus({ preventScroll: true });
   });
 }
@@ -495,7 +511,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 }
 
 .av-ai-menu {
-  z-index: 2147482800;
+  margin: 0;
   display: grid;
   gap: 4px;
   padding: 8px;
@@ -525,17 +541,10 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, transparent);
 }
 
-.av-ai-review-backdrop {
+.av-ai-review {
   position: fixed;
   inset: 0;
-  z-index: 2147482900;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-  background: rgba(0, 0, 0, 0.58);
-}
-
-.av-ai-review {
+  margin: auto;
   width: min(460px, 100%);
   max-height: min(720px, calc(100vh - 32px));
   overflow: auto;
@@ -545,6 +554,10 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   background: var(--av-surface, rgb(15, 20, 25));
   color: var(--av-text, rgb(239, 243, 244));
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+
+.av-ai-review::backdrop {
+  background: rgba(0, 0, 0, 0.58);
 }
 
 .av-ai-review h2 {

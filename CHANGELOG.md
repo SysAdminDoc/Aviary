@@ -4,6 +4,22 @@
 
 No changes yet.
 
+## 1.41.0 (2026-08-22)
+
+### Changed
+
+- **Aviary's own surfaces now use the browser's Popover API.** The Control Center, AI and composer
+  menus, external-request review, and feature toast render in the top layer without a competing
+  z-index. Native light dismiss owns outside clicks and Escape, while Aviary keeps its modal inert
+  boundary and focus return.
+
+### Verification
+
+- Regenerated and reviewed all 60 settings visual baselines across dark and light X fixtures at
+  1440px and 1920px widths.
+- Added behavioural assertions for native popover state, live focus return, outside dismissal, and
+  the accessibility tree. Full verification remains green.
+
 ## 1.40.0 (2026-08-22)
 
 ### Added

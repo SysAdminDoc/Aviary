@@ -1,4 +1,4 @@
-# Install Aviary 1.40.0
+# Install Aviary 1.41.0
 
 Aviary ships as a readable userscript and as Manifest V3 extensions. Both builds run on X pages;
 the extensions also provide a dedicated options page for optional browser permissions.

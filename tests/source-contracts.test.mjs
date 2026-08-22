@@ -54,7 +54,7 @@ function isScopedKeyboardInteraction(relative, text) {
     path.join("src", "features", "composer", "composer-snippets.ts")
   ]);
   if (!allowed.has(relative)) return false;
-  return /\.key\s*===\s*["'](?:Escape|Tab|Arrow(?:Up|Down|Left|Right)|Home|End|Enter|\s)["']/.test(text);
+  return /\.key\s*(?:===|!==)\s*["'](?:Escape|Tab|Arrow(?:Up|Down|Left|Right)|Home|End|Enter|\s)["']/.test(text);
 }
 
 test("no stylesheet targets one of X's generated class names", async () => {

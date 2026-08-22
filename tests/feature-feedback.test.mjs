@@ -70,6 +70,8 @@ test("the toast announces itself politely and carries its message", async () => 
     return {
       role: card.getAttribute("role"),
       live: card.getAttribute("aria-live"),
+      popover: card.getAttribute("popover"),
+      popoverOpen: card.matches(":popover-open"),
       open: card.classList.contains("is-open"),
       text: card.textContent,
       tone: card.dataset.tone
@@ -78,6 +80,8 @@ test("the toast announces itself politely and carries its message", async () => 
 
   assert.equal(result.role, "status");
   assert.equal(result.live, "polite");
+  assert.equal(result.popover, "manual");
+  assert.equal(result.popoverOpen, true);
   assert.equal(result.open, true);
   assert.equal(result.text, "Prompt copied to the clipboard.");
   assert.equal(result.tone, "info");
@@ -148,7 +152,7 @@ test("the AI menu flips above the trigger instead of running past the fold", asy
   );
 });
 
-test("destroy removes an open AI menu and its document listener", async () => {
+test("destroy removes an open AI menu and its native popover state", async () => {
   const result = await page.evaluate(() => {
     const ctx = {
       settings: {

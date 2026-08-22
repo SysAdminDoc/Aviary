@@ -1,6 +1,6 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.40.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.41.0-2f81f7)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 ![Platform](https://img.shields.io/badge/platform-userscript%20%7C%20Chrome%20%7C%20Firefox-8b5cf6)
 
@@ -20,6 +20,10 @@ That Library batch uses only URLs already stored locally and does not request an
 When X has already exposed a direct audio track or caption file, the same post controls make those
 files downloadable too. The Media page can export a date-bounded copy of download history without
 including source media URLs.
+
+The Control Center, menus, review dialog, and feedback toast use the browser Popover API. That
+keeps them above X's layout without a z-index fight, dismisses them by clicking outside, and
+returns focus to the control that opened them.
 The media controls act only after you click them and can be disabled from Media at any time. Other
 settings that change ordinary X content or styling still start off. That includes themes, layout
 cleanup, filters, offscreen video pausing, and general analytics refusal.

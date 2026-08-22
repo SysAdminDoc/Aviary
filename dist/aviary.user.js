@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/SysAdminDoc
-// @version      1.40.0
+// @version      1.41.0
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       SysAdminDoc
 // @homepage     https://github.com/SysAdminDoc/Aviary
@@ -2226,7 +2226,7 @@ ${body}
   }
 
   // src/platform/build-version.ts
-  var AVIARY_VERSION = false ? "dev" : "1.40.0";
+  var AVIARY_VERSION = false ? "dev" : "1.41.0";
 
   // src/ui/control-center/constants.ts
   var MEDIA_LAYOUT_OPTIONS = [
@@ -6099,7 +6099,7 @@ ${body}
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION2 = false ? "dev" : "1.40.0";
+  var AVIARY_VERSION2 = false ? "dev" : "1.41.0";
   var SECTION_GROUP_BREAKS = {
     presets: [
       { before: "Quiet Reader", title: "Preset packs" },
@@ -6217,6 +6217,7 @@ ${body}
     overlay.toggleAttribute("inert", true);
     const panel = el("section", "av-panel");
     panel.id = "av-control-panel";
+    panel.setAttribute("popover", "auto");
     panel.setAttribute("role", "dialog");
     panel.setAttribute("aria-label", t("Aviary settings"));
     panel.setAttribute("aria-modal", "true");
@@ -6356,11 +6357,6 @@ ${body}
     });
     const handlePanelKeyDown = (event) => {
       if (!open) return;
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setOpen(false);
-        return;
-      }
       if (event.key !== "Tab") return;
       const focusables = modalFocusables();
       if (focusables.length === 0) {
@@ -6386,12 +6382,8 @@ ${body}
       panel.focus({ preventScroll: true });
     };
     panel.addEventListener("keydown", handlePanelKeyDown);
-    overlay.addEventListener("click", (event) => {
-      if (open && event.target === overlay) {
-        setOpen(false);
-      }
-    });
-    const setOpen = (value) => {
+    const nativePanel = panel;
+    const setOpen = (value, fromNative = false) => {
       if (open === value) {
         if (value) panel.focus({ preventScroll: true });
         return;
@@ -6404,6 +6396,14 @@ ${body}
       const firstRunNotice = document.getElementById("av-first-run");
       if (firstRunNotice) firstRunNotice.hidden = open;
       overlay.toggleAttribute("inert", !open);
+      panel.toggleAttribute("inert", !open);
+      if (!fromNative) {
+        try {
+          if (open) nativePanel.showPopover?.();
+          else nativePanel.hidePopover?.();
+        } catch {
+        }
+      }
       if (open) {
         bodyWasInert = document.body?.hasAttribute("inert") ?? false;
         document.body?.setAttribute("inert", "");
@@ -6426,6 +6426,12 @@ ${body}
         launcherForFocus().focus({ preventScroll: true });
       }
     };
+    panel.addEventListener("toggle", (event) => {
+      const nextState = event.newState === "open";
+      if (nextState !== open) {
+        setOpen(nextState, true);
+      }
+    });
     const transactionDirty = () => dirtyControls.size > 0;
     const updateTransactionButtons = () => {
       const disabled = !transactionDirty() || transactionSaving;
@@ -7811,7 +7817,6 @@ ${body}
 .av-shell {
   position: fixed;
   inset: 0;
-  z-index: 2147482600;
   pointer-events: none;
 }
 
@@ -7860,29 +7865,13 @@ input:focus-visible {
 }
 
 .av-overlay {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  opacity: 0;
-  pointer-events: none;
-  /* Belt and braces with [inert]: keeps the closed panel out of the tab order even where
-     inert is unsupported. Delayed so the fade-out still runs. */
-  visibility: hidden;
-  transform: translateY(8px);
-  transition: opacity 160ms ease, transform 160ms ease, visibility 0s linear 160ms;
-}
-
-.av-overlay.is-open {
-  opacity: 1;
-  pointer-events: auto;
-  visibility: visible;
-  transform: translateY(0);
-  transition: opacity 160ms ease, transform 160ms ease, visibility 0s;
+  display: contents;
 }
 
 .av-panel {
+  position: fixed;
+  inset: 0;
+  margin: auto;
   width: min(1260px, calc(100vw - 40px));
   height: min(860px, calc(100vh - 40px));
   overflow: hidden;
@@ -7893,6 +7882,10 @@ input:focus-visible {
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
   box-shadow: 0 28px 88px rgba(0, 0, 0, 0.64);
   pointer-events: auto;
+}
+
+.av-panel::backdrop {
+  background: rgba(0, 0, 0, 0.56);
 }
 
 /* The panel takes focus when it opens; the UA default paints a hard white halo around the
@@ -9015,10 +9008,6 @@ input[type="checkbox"] {
     min-height: 48px;
   }
 
-  .av-overlay {
-    padding: 8px 8px 76px;
-  }
-
   .av-panel {
     width: min(420px, calc(100vw - 16px));
     height: min(86vh, calc(100vh - 60px));
@@ -9160,7 +9149,7 @@ input[type="checkbox"] {
 
 @media (prefers-reduced-motion: reduce) {
   .av-launcher,
-  .av-overlay {
+  .av-panel {
     transition: none;
   }
 }
@@ -9169,7 +9158,7 @@ input[type="checkbox"] {
    class cannot cross into this shadow tree \u2014 the host carries the state instead. */
 :host([data-av-motion="reduce"]) .av-launcher,
 :host([data-av-motion="reduce"]) .av-launcher:hover,
-:host([data-av-motion="reduce"]) .av-overlay {
+:host([data-av-motion="reduce"]) .av-panel {
   transition: none;
   transform: none;
 }
@@ -12713,11 +12702,22 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     text.textContent = message;
     card.dataset.tone = options.tone ?? "info";
     card.classList.add("is-open");
+    try {
+      const nativeCard = card;
+      if (!card.matches(":popover-open")) {
+        nativeCard.showPopover?.();
+      }
+    } catch {
+    }
     if (dismissTimer !== void 0) {
       clearTimeout(dismissTimer);
     }
     dismissTimer = setTimeout(() => {
       card.classList.remove("is-open");
+      try {
+        card.hidePopover?.();
+      } catch {
+      }
       dismissTimer = void 0;
     }, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
   }
@@ -12726,7 +12726,16 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       clearTimeout(dismissTimer);
       dismissTimer = void 0;
     }
-    document.getElementById(TOAST_HOST_ID)?.remove();
+    const host = document.getElementById(TOAST_HOST_ID);
+    const card = host?.shadowRoot?.querySelector(".av-ftoast");
+    if (card) {
+      card.classList.remove("is-open");
+      try {
+        card.hidePopover?.();
+      } catch {
+      }
+    }
+    host?.remove();
   }
   function prefersReducedMotion2(ctx) {
     if (ctx.settings.accessibility.reduceMotion === "always") return true;
@@ -12749,6 +12758,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     style.textContent = TOAST_CSS;
     const card = document.createElement("div");
     card.className = "av-ftoast";
+    card.setAttribute("popover", "manual");
     card.setAttribute("role", "status");
     card.setAttribute("aria-live", "polite");
     const text = document.createElement("span");
@@ -12760,9 +12770,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   var TOAST_CSS = `
 .av-ftoast {
   position: fixed;
+  inset: auto;
   inset-inline-end: 16px;
   bottom: 132px;
-  z-index: 2147483000;
+  margin: 0;
   display: flex;
   align-items: center;
   max-width: 340px;
@@ -12789,6 +12800,12 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
 }
 
 .av-ftoast.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.av-ftoast:popover-open {
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);
@@ -19636,7 +19653,13 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
   function clearDecorations3() {
     const hadHiddenRows = document.querySelector(`[${HIDDEN_ATTR}]`) !== null;
     document.getElementById(STYLE_ID8)?.remove();
-    document.getElementById(TOAST_HOST_ID2)?.remove();
+    const toastHost = document.getElementById(TOAST_HOST_ID2);
+    const toastCard = toastHost?.shadowRoot?.querySelector(".av-toast");
+    try {
+      toastCard?.hidePopover?.();
+    } catch {
+    }
+    toastHost?.remove();
     document.documentElement.classList.remove("av-hide-posts-enabled");
     for (const button3 of Array.from(document.querySelectorAll(`[${BUTTON_ATTR2}]`))) {
       button3.remove();
@@ -19867,6 +19890,12 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
       });
     };
     card.classList.add("is-open");
+    try {
+      if (!card.matches(":popover-open")) {
+        card.showPopover?.();
+      }
+    } catch {
+    }
     scheduleToastDismiss(card, TOAST_TIMEOUT_MS);
   }
   function reduceMotion(ctx) {
@@ -19880,6 +19909,10 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
     }
     toastTimer = setTimeout(() => {
       card.classList.remove("is-open");
+      try {
+        card.hidePopover?.();
+      } catch {
+      }
       toastTimer = void 0;
     }, delay2);
   }
@@ -19899,6 +19932,7 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
     style.textContent = TOAST_CSS2;
     const card = document.createElement("div");
     card.className = "av-toast";
+    card.setAttribute("popover", "manual");
     card.setAttribute("role", "status");
     card.setAttribute("aria-live", "polite");
     const text = document.createElement("span");
@@ -19981,9 +20015,10 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   var TOAST_CSS2 = `
 .av-toast {
   position: fixed;
+  inset: auto;
   inset-inline-end: 16px;
   bottom: 76px;
-  z-index: 2147483000;
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -20002,6 +20037,12 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
 }
 
 .av-toast.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.av-toast:popover-open {
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);
@@ -28134,24 +28175,26 @@ ${text}`
     }
   }
   var openMenuNode;
-  var openMenuDismiss;
   var openMenuKeydown;
   var openMenuTrigger;
   var closeAiReview;
   var menuSequence = 0;
   function closeOpenMenu(restoreFocus = true) {
-    if (openMenuDismiss) {
-      document.removeEventListener("click", openMenuDismiss, true);
-      openMenuDismiss = void 0;
-    }
-    if (openMenuKeydown && openMenuNode) {
-      openMenuNode.removeEventListener("keydown", openMenuKeydown);
+    const menu = openMenuNode;
+    if (openMenuKeydown && menu) {
+      menu.removeEventListener("keydown", openMenuKeydown);
       openMenuKeydown = void 0;
     }
     const trigger = openMenuTrigger;
     trigger?.setAttribute("aria-expanded", "false");
     openMenuTrigger = void 0;
-    openMenuNode?.remove();
+    if (menu) {
+      try {
+        menu.hidePopover?.();
+      } catch {
+      }
+      menu.remove();
+    }
     openMenuNode = void 0;
     for (const stray of Array.from(document.querySelectorAll(".av-ai-menu"))) {
       stray.remove();
@@ -28164,6 +28207,7 @@ ${text}`
     closeOpenMenu();
     const menu = document.createElement("div");
     menu.className = "av-ai-menu";
+    menu.setAttribute("popover", "auto");
     menu.setAttribute("role", "menu");
     menu.id = trigger.getAttribute("aria-controls") ?? `av-ai-menu-${++menuSequence}`;
     menu.setAttribute("aria-labelledby", trigger.id);
@@ -28276,7 +28320,7 @@ ${text}`
     const keydown = (event) => {
       const items = menuItems();
       const current = items.indexOf(document.activeElement);
-      if (event.key === "Escape" || event.key === "Tab") {
+      if (event.key === "Tab") {
         event.preventDefault();
         event.stopPropagation();
         closeOpenMenu();
@@ -28309,20 +28353,22 @@ ${text}`
     };
     openMenuKeydown = keydown;
     menu.addEventListener("keydown", keydown);
-    focusMenuItem(0);
-    const dismiss = (event) => {
-      if (!menu.contains(event.target) && event.target !== trigger) {
+    menu.addEventListener("toggle", (event) => {
+      const closed = event.newState === "closed";
+      if (closed && openMenuNode === menu) {
         closeOpenMenu();
       }
-    };
-    openMenuDismiss = dismiss;
-    setTimeout(() => document.addEventListener("click", dismiss, true), 0);
+    });
+    try {
+      menu.showPopover?.();
+    } catch {
+    }
+    focusMenuItem(0);
   }
   function showAiRequestReview(ctx, disclosure) {
-    const backdrop = document.createElement("div");
-    backdrop.className = "av-ai-review-backdrop";
     const dialog = document.createElement("section");
     dialog.className = "av-ai-review";
+    dialog.setAttribute("popover", "auto");
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
     dialog.setAttribute("aria-label", ft(ctx, "Review external AI request"));
@@ -28372,31 +28418,34 @@ ${text}`
     send.disabled = !disclosure.networkAllowed || !disclosure.budgetAllowed;
     actions.append(cancel, send);
     dialog.append(title, intro, details, actions);
-    backdrop.append(dialog);
-    document.body.append(backdrop);
+    document.body.append(dialog);
     return new Promise((resolve) => {
       let settled = false;
       const finish2 = (approved) => {
         if (settled) return;
         settled = true;
         closeAiReview = void 0;
-        document.removeEventListener("keydown", onKeyDown, true);
-        backdrop.remove();
+        dialog.removeEventListener("toggle", onToggle);
+        try {
+          dialog.hidePopover?.();
+        } catch {
+        }
+        dialog.remove();
         resolve(approved);
       };
-      const onKeyDown = (event) => {
-        if (event.key === "Escape") {
-          event.preventDefault();
+      const onToggle = (event) => {
+        if (event.newState === "closed") {
           finish2(false);
         }
       };
       cancel.addEventListener("click", () => finish2(false));
       send.addEventListener("click", () => finish2(true));
-      backdrop.addEventListener("click", (event) => {
-        if (event.target === backdrop) finish2(false);
-      });
-      document.addEventListener("keydown", onKeyDown, true);
+      dialog.addEventListener("toggle", onToggle);
       closeAiReview = finish2;
+      try {
+        dialog.showPopover?.();
+      } catch {
+      }
       (send.disabled ? cancel : send).focus({ preventScroll: true });
     });
   }
@@ -28455,7 +28504,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 }
 
 .av-ai-menu {
-  z-index: 2147482800;
+  margin: 0;
   display: grid;
   gap: 4px;
   padding: 8px;
@@ -28485,17 +28534,10 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, transparent);
 }
 
-.av-ai-review-backdrop {
+.av-ai-review {
   position: fixed;
   inset: 0;
-  z-index: 2147482900;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-  background: rgba(0, 0, 0, 0.58);
-}
-
-.av-ai-review {
+  margin: auto;
   width: min(460px, 100%);
   max-height: min(720px, calc(100vh - 32px));
   overflow: auto;
@@ -28505,6 +28547,10 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   background: var(--av-surface, rgb(15, 20, 25));
   color: var(--av-text, rgb(239, 243, 244));
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+
+.av-ai-review::backdrop {
+  background: rgba(0, 0, 0, 0.58);
 }
 
 .av-ai-review h2 {
@@ -28613,11 +28659,9 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       return { ok: true, message: "Composer snippets ready" };
     }
   };
-  var openPaletteDismiss;
   var openPaletteKeydown;
   var openPaletteNode;
   var openPaletteTrigger;
-  var openPaletteDismissTimer;
   var appliedSnippetsSignature;
   var paletteSequence = 0;
   function clearDecorations5() {
@@ -28632,23 +28676,23 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     }
   }
   function closePalettes(restoreFocus = true) {
-    if (openPaletteDismiss) {
-      document.removeEventListener("click", openPaletteDismiss, true);
-      openPaletteDismiss = void 0;
-    }
-    if (openPaletteKeydown && openPaletteNode) {
-      openPaletteNode.removeEventListener("keydown", openPaletteKeydown);
+    const palette = openPaletteNode;
+    if (openPaletteKeydown && palette) {
+      palette.removeEventListener("keydown", openPaletteKeydown);
       openPaletteKeydown = void 0;
-    }
-    if (openPaletteDismissTimer !== void 0) {
-      clearTimeout(openPaletteDismissTimer);
-      openPaletteDismissTimer = void 0;
     }
     const trigger = openPaletteTrigger;
     trigger?.setAttribute("aria-expanded", "false");
     openPaletteTrigger = void 0;
-    for (const palette of Array.from(document.querySelectorAll(`[${PALETTE_ATTR}="popover"]`))) {
+    if (palette) {
+      try {
+        palette.hidePopover?.();
+      } catch {
+      }
       palette.remove();
+    }
+    for (const stray of Array.from(document.querySelectorAll(`[${PALETTE_ATTR}="popover"]`))) {
+      stray.remove();
     }
     openPaletteNode = void 0;
     if (restoreFocus && trigger?.isConnected) {
@@ -28703,6 +28747,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     const snippets = ctx.settings.composer.snippets;
     const popover = document.createElement("div");
     popover.setAttribute(PALETTE_ATTR, "popover");
+    popover.setAttribute("popover", "auto");
     popover.className = "av-snippet-popover";
     popover.setAttribute("role", "menu");
     popover.tabIndex = -1;
@@ -28742,8 +28787,8 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
         popover.append(option);
       }
     }
-    positionPopover(popover, trigger);
     document.body.append(popover);
+    positionPopover(popover, trigger);
     openPaletteNode = popover;
     const menuItems = () => Array.from(popover.querySelectorAll('[role="menuitem"]'));
     const focusMenuItem = (index) => {
@@ -28758,7 +28803,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     const keydown = (event) => {
       const items = menuItems();
       const current = items.indexOf(document.activeElement);
-      if (event.key === "Escape" || event.key === "Tab") {
+      if (event.key === "Tab") {
         event.preventDefault();
         event.stopPropagation();
         closePalettes();
@@ -28791,19 +28836,17 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     };
     openPaletteKeydown = keydown;
     popover.addEventListener("keydown", keydown);
-    focusMenuItem(0);
-    const dismiss = (event) => {
-      if (!popover.contains(event.target) && event.target !== trigger) {
+    popover.addEventListener("toggle", (event) => {
+      const closed = event.newState === "closed";
+      if (closed && openPaletteNode === popover) {
         closePalettes();
       }
-    };
-    openPaletteDismiss = dismiss;
-    openPaletteDismissTimer = setTimeout(() => {
-      openPaletteDismissTimer = void 0;
-      if (openPaletteDismiss === dismiss && document.contains(popover)) {
-        document.addEventListener("click", dismiss, true);
-      }
-    }, 0);
+    });
+    try {
+      popover.showPopover?.();
+    } catch {
+    }
+    focusMenuItem(0);
   }
   function insertSnippet(snippet2) {
     const composer = document.querySelector('[data-testid="tweetTextarea_0"]');
@@ -28850,7 +28893,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 }
 
 .av-snippet-popover {
-  z-index: 2147482700;
+  margin: 0;
   display: grid;
   gap: 4px;
   padding: 8px;

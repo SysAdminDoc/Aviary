@@ -57,14 +57,15 @@ test("Control Center behaves as a modal and restores launcher focus", async () =
     const host = document.querySelector("#av-control-center");
     const shadow = host.shadowRoot;
     const launcher = shadow.querySelector(".av-launcher");
-    const overlay = shadow.querySelector(".av-overlay");
     const panel = shadow.querySelector(".av-panel");
     launcher.click();
     const opened = {
       modal: panel.getAttribute("aria-modal"),
       labelledBy: panel.getAttribute("aria-labelledby"),
+      popover: panel.getAttribute("popover"),
+      popoverOpen: panel.matches(":popover-open"),
       bodyInert: document.body.hasAttribute("inert"),
-      pointerEvents: getComputedStyle(overlay).pointerEvents,
+      pointerEvents: getComputedStyle(panel).pointerEvents,
       focus: shadow.activeElement?.className ?? ""
     };
 
@@ -85,11 +86,14 @@ test("Control Center behaves as a modal and restores launcher focus", async () =
 
   assert.equal(result.opened.modal, "true");
   assert.equal(result.opened.labelledBy, "av-control-title");
+  assert.equal(result.opened.popover, "auto");
+  assert.equal(result.opened.popoverOpen, true);
   assert.equal(result.opened.bodyInert, true);
   assert.equal(result.opened.pointerEvents, "auto");
   assert.equal(result.opened.focus, "av-panel");
   assert.equal(result.focusStayedInside, true);
 
+  await page.waitForTimeout(25);
   await page.keyboard.press("Tab");
   const wrappedForward = await page.evaluate(() => {
     const shadow = document.querySelector("#av-control-center").shadowRoot;
@@ -98,7 +102,9 @@ test("Control Center behaves as a modal and restores launcher focus", async () =
   });
   assert.equal(wrappedForward, true);
 
+  await page.waitForTimeout(25);
   await page.keyboard.press("Escape");
+  await page.waitForTimeout(25);
   const closed = await page.evaluate(() => {
     const host = document.querySelector("#av-control-center");
     const shadow = host.shadowRoot;
@@ -113,8 +119,10 @@ test("Control Center behaves as a modal and restores launcher focus", async () =
   await page.evaluate(() => {
     const shadow = document.querySelector("#av-control-center").shadowRoot;
     shadow.querySelector(".av-launcher").click();
-    shadow.querySelector(".av-overlay").click();
   });
+  await page.waitForTimeout(25);
+  await page.mouse.click(4, 4);
+  await page.waitForTimeout(25);
   assert.equal(
     await page.evaluate(() => document.querySelector("#av-control-center").shadowRoot.querySelector(".av-overlay").getAttribute("aria-hidden")),
     "true"
@@ -201,8 +209,13 @@ test("the launcher joins X's navigation, adapts to compact rails, and survives S
       .shadowRoot.querySelector(".av-nav-launcher")
       .click();
   });
+  await page.waitForTimeout(25);
   assert.equal(await page.evaluate(() => document.body.hasAttribute("inert")), true);
+  await page.evaluate(() => {
+    document.querySelector("#av-control-center").shadowRoot.querySelector(".av-panel").focus();
+  });
   await page.keyboard.press("Escape");
+  await page.waitForTimeout(25);
   const restored = await page.evaluate(() => {
     const navHost = document.querySelector("#av-control-center-nav");
     const launcher = navHost.shadowRoot.querySelector(".av-nav-launcher");
