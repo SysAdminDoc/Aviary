@@ -24,7 +24,7 @@
     "preflight": "node tools/preflight.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:matrix": "node --test tests/release-matrix.test.mjs",
-    "test:visual": "npm run build && node --test tests/visual/settings-visual-regression.test.mjs",
+    "test:visual": "npm run build && node --test tests/visual/settings-visual-regression.test.mjs tests/visual/injected-visual-regression.test.mjs",
     "test:visual:update": "npm run build && node tools/update-settings-visuals.mjs",
     "typecheck": "tsgo --noEmit",
     "smoke": "node tests/smoke/dnr-chromium.smoke.mjs && node tests/smoke/dnr-firefox.smoke.mjs && node tests/smoke/aviary.smoke.mjs && node tests/smoke/externally-gated.smoke.mjs",

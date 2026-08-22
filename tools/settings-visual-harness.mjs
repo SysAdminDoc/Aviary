@@ -232,6 +232,54 @@ export async function prepareSettingsScreenshot(page) {
   });
 }
 
+/**
+ * Closes the Control Center so the page underneath can be photographed.
+ *
+ * The harness opens the panel as part of launching, because that is what every settings baseline
+ * needs. The injected surfaces are the other half of what this product draws, and they are behind
+ * it.
+ */
+export async function closeControlCenter(page) {
+  await page.evaluate(() => {
+    const shadow =
+      document.querySelector("#av-control-center")?.shadowRoot ??
+      document.querySelector("#av-control-center-nav")?.shadowRoot;
+    const close = shadow?.querySelector(".av-panel-close, .av-close");
+    if (close instanceof HTMLElement) {
+      close.click();
+      return;
+    }
+    const launcher =
+      document.querySelector("#av-control-center-nav")?.shadowRoot?.querySelector(".av-nav-launcher") ??
+      document.querySelector("#av-control-center")?.shadowRoot?.querySelector(".av-launcher");
+    if (launcher instanceof HTMLElement) launcher.click();
+  });
+  await page.waitForFunction(
+    () => {
+      const panel = document.querySelector("#av-control-center")?.shadowRoot?.querySelector(".av-panel");
+      return !panel || getComputedStyle(panel).display === "none";
+    },
+    null,
+    { timeout: 10_000 }
+  );
+  await settleVisuals(page);
+}
+
+/**
+ * A screenshot of one element rather than the viewport.
+ *
+ * An injected surface sits inside a page this repository does not control, so photographing the
+ * whole viewport would make every baseline hostage to the fixture's own layout. Clipping to the
+ * element keeps the comparison about the thing being tested.
+ */
+export async function prepareElementScreenshot(page, selector) {
+  await normalizeDynamicText(page);
+  await settleVisuals(page);
+  const target = page.locator(selector).first();
+  await target.waitFor({ state: "visible", timeout: 10_000 });
+  return target.screenshot({ animations: "disabled", caret: "hide", scale: "css", type: "png" });
+}
+
 export async function comparePngBuffers(page, expected, actual) {
   return page.evaluate(async ({ expectedBase64, actualBase64, colorDelta }) => {
     const decode = async (base64) => {

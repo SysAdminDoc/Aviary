@@ -3,8 +3,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const testFile = path.join(root, "tests", "visual", "settings-visual-regression.test.mjs");
-const child = spawn(process.execPath, ["--test", testFile], {
+// Both visual suites, because a baseline set is only trustworthy if regenerating it regenerates
+// all of it. Updating one and not the other leaves the other's drift check failing for a reason
+// that has nothing to do with what changed.
+const testFiles = [
+  path.join(root, "tests", "visual", "settings-visual-regression.test.mjs"),
+  path.join(root, "tests", "visual", "injected-visual-regression.test.mjs")
+];
+const child = spawn(process.execPath, ["--test", ...testFiles], {
   cwd: root,
   env: { ...process.env, AVIARY_UPDATE_VISUALS: "1" },
   stdio: "inherit"
