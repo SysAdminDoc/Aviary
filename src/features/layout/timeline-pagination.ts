@@ -199,7 +199,7 @@ const PAGINATION_CSS = `
 .av-timeline-more-button {
   appearance: none;
   border: 1px solid currentColor;
-  border-radius: 9999px;
+  border-radius: 8px;
   background: transparent;
   color: inherit;
   cursor: pointer;

@@ -322,7 +322,7 @@ function ensureStyle(): void {
   min-height: 28px;
   padding: 4px 10px;
   border: 1px solid currentColor;
-  border-radius: 999px;
+  border-radius: 7px;
   background: transparent;
   color: inherit;
   cursor: pointer;

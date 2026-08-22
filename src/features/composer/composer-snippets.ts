@@ -314,7 +314,7 @@ const COMPOSER_CSS = `
   background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 14%, transparent);
   color: var(--av-text, rgb(239, 243, 244));
   font-weight: 700;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.2;
   font-family: inherit;
   letter-spacing: 0.04em;

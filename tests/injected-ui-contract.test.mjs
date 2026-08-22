@@ -128,7 +128,7 @@ test("injected controls render at their declared size and inherit the page famil
   });
 
   // Before the longhand conversion every one of these computed Arial 13.33px/400.
-  assert.equal(computed.aiTrigger.size, "10px");
+  assert.equal(computed.aiTrigger.size, "12px");
   assert.equal(computed.aiTrigger.weight, "700");
   assert.match(computed.aiTrigger.family, /Georgia/, "the family must inherit, not fall back to the UA font");
 

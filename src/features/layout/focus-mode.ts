@@ -198,7 +198,7 @@ const PANEL_CSS = `
   max-width: 380px;
   padding: 20px 22px;
   border: 1px solid #2f3336;
-  border-radius: 16px;
+  border-radius: 10px;
   background: #16181c;
   color: #e7e9ea;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -213,7 +213,7 @@ button {
   min-height: 34px;
   padding: 0 16px;
   border: 1px solid #536471;
-  border-radius: 999px;
+  border-radius: 8px;
   background: transparent;
   color: inherit;
   font-family: inherit;

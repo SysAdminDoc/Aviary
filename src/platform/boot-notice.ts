@@ -36,7 +36,7 @@ export function showBootFailureNotice(reason: string): void {
       max-width: 380px;
       padding: 12px 14px;
       border: 1px solid #f4212e;
-      border-radius: 12px;
+      border-radius: 9px;
       background: #15181c;
       color: #e7e9ea;
       font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -58,7 +58,7 @@ export function showBootFailureNotice(reason: string): void {
       min-width: 44px;
       min-height: 28px;
       border: 1px solid #536471;
-      border-radius: 999px;
+      border-radius: 7px;
       background: transparent;
       color: inherit;
       font-family: inherit;

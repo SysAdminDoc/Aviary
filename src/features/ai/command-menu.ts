@@ -490,13 +490,14 @@ function ensureStyle(): void {
 const AI_CSS = `
 .av-ai-trigger {
   margin-inline-start: auto;
-  padding: 2px 8px;
+  min-height: 30px;
+  padding: 4px 9px;
   border: 1px solid color-mix(in srgb, var(--av-muted, rgb(132, 139, 145)) 60%, transparent);
   border-radius: 6px;
   background: transparent;
   color: var(--av-muted, rgb(132, 139, 145));
   font-weight: 700;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.2;
   font-family: inherit;
   letter-spacing: 0.06em;
@@ -566,7 +567,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   overflow: auto;
   padding: 18px;
   border: 1px solid var(--av-border, rgb(47, 51, 54));
-  border-radius: 14px;
+  border-radius: 10px;
   background: var(--av-surface, rgb(15, 20, 25));
   color: var(--av-text, rgb(239, 243, 244));
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
