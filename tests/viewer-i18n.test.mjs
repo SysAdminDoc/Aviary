@@ -136,3 +136,39 @@ test("the viewer's locale list comes from the shared registry, not a table of it
     "the viewer ships a locale list that is not the registry's"
   );
 });
+
+/**
+ * The viewer's locale table is the registry's, not a copy of it.
+ *
+ * Two literals inside the generated script -- the locale list and the right-to-left set -- were
+ * hand-maintained beside the registry that everything else derives from. They happened to agree,
+ * and nothing could tell if they stopped: add a locale and the picker is short, add a
+ * right-to-left one and it renders the wrong way round, remove one and `LABELS[code].name` throws
+ * inside the IIFE's last statement, so the viewer comes up blank.
+ */
+test("the generated viewer knows exactly the locales the registry lists", async () => {
+  const html = new TextDecoder().decode(mod.buildExportViewer([]));
+
+  const locales = /const LOCALES = (\[[^\]]*\]);/.exec(html);
+  const rtl = /const RTL = new Set\((\[[^\]]*\])\);/.exec(html);
+  assert.ok(locales, "the generated script must declare its locale list");
+  assert.ok(rtl, "and its right-to-left set");
+
+  const registry = mod.supportedLocales();
+  assert.deepEqual(
+    JSON.parse(locales[1]),
+    registry.map((locale) => locale.code),
+    "the viewer's locale list drifted from the registry"
+  );
+  assert.deepEqual(
+    JSON.parse(rtl[1]),
+    registry.filter((locale) => locale.direction === "rtl").map((locale) => locale.code),
+    "the viewer's right-to-left set drifted from the registry"
+  );
+
+  // Nothing in the generated document may name a locale the registry does not have.
+  const known = new Set(registry.map((locale) => locale.code));
+  for (const match of html.matchAll(/data-locale="([a-z-]+)"/g)) {
+    assert.ok(known.has(match[1]), `the viewer offers ${match[1]}, which the registry does not list`);
+  }
+});

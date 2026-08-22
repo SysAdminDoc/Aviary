@@ -68,12 +68,15 @@ function buildViewerLabels(): Record<string, ViewerLabels> {
 }
 
 const LOCALE_ORDER: string[] = supportedLocales().map((locale) => locale.code);
+const RTL_CODES: string[] = supportedLocales()
+  .filter((locale) => locale.direction === "rtl")
+  .map((locale) => locale.code);
 
 export function buildExportViewer(records: readonly ExportRecord[]): Uint8Array {
   const data = safeJson(serializeExportRecords(records));
   const threads = safeJson(serializeThreads(reconstructThreads(records)));
   const labels = safeJson(buildViewerLabels());
-  const script = viewerScript(labels);
+  const script = viewerScript(labels, LOCALE_ORDER, RTL_CODES);
   const html = `<!doctype html>
 <html lang="en" dir="ltr"><head>
 <meta charset="utf-8" />
@@ -133,14 +136,24 @@ function serializeThreads(threads: readonly ReconstructedThread[]): Array<Record
   }));
 }
 
-function viewerScript(labels: string): string {
+/**
+ * The registry's own locale list, not a copy of it.
+ *
+ * The header of this file condemns exactly the pattern these two literals were: a second
+ * hand-maintained table that nothing can keep honest. Adding a locale left the picker short and
+ * `localeFromBrowser()` falling back to English; adding a right-to-left one rendered it the wrong
+ * way round; removing one made `LABELS[code].name` throw inside `applyLabels()`, which is the
+ * generated IIFE's last statement, so the whole viewer came up blank. Every test still passed
+ * through all of it, because nothing could see these lines.
+ */
+function viewerScript(labels: string, locales: readonly string[], rtl: readonly string[]): string {
   return `(function () {
   "use strict";
   const LABELS = ${labels};
   const RECORDS = JSON.parse(document.getElementById("records-data").textContent || "[]");
   const THREADS = JSON.parse(document.getElementById("threads-data").textContent || "[]");
-  const LOCALES = ["en", "es", "pt", "fr", "de", "ja", "ko", "ar", "he"];
-  const RTL = new Set(["ar", "he"]);
+  const LOCALES = ${JSON.stringify(locales)};
+  const RTL = new Set(${JSON.stringify(rtl)});
   const state = { locale: localeFromBrowser(), query: "", status: "all", sort: "newest", thread: false };
   const rowHeight = 190;
   const overscan = 4;

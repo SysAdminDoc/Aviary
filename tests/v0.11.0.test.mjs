@@ -203,3 +203,59 @@ function makeStorage(map) {
     }
   };
 }
+
+/**
+ * A field that states what a post is beats a guess at how its text begins.
+ *
+ * The classifier read the first characters of the text and then stated the result as fact in the
+ * downloadable report -- "Reply to another account". The archive import already fills `parentId`
+ * from `in_reply_to_status_id_str` and the classifier ignored it, so a post that merely opened
+ * with a handle was reported as a reply, and a real reply that opened with a word was reported as
+ * an original post.
+ */
+test("cleanup preview classifies from the record, and says so when it is guessing", async () => {
+  const { previewCleanup } = await importSourceModule("src/features/library/cleanup-preview.ts");
+
+  const record = (over) => ({
+    tweetId: "1",
+    handle: "someone",
+    displayName: "Someone",
+    text: "a post",
+    permalink: "https://x.com/someone/status/1",
+    capturedAt: "2026-08-01T00:00:00.000Z",
+    surface: "home",
+    media: [],
+    ...over
+  });
+
+  // A reply that does not look like one.
+  const stated = previewCleanup([record({ text: "thanks, that helped", parentId: "900" })], {});
+  assert.equal(stated.candidates[0].bucket, "replies");
+  assert.equal(stated.candidates[0].reason, "Reply to another account");
+
+  // A post that looks like a reply and carries nothing saying it is one.
+  const guessed = previewCleanup([record({ text: "@someone else entirely" })], {});
+  assert.equal(guessed.candidates[0].bucket, "replies");
+  assert.match(
+    guessed.candidates[0].reason,
+    /Looks like a reply/,
+    "a guess must be presented as a guess"
+  );
+
+  // An empty parentId is not a parent.
+  const empty = previewCleanup([record({ text: "@someone else", parentId: "" })], {});
+  assert.match(empty.candidates[0].reason, /Looks like a reply/);
+
+  // And a real reply is not re-read as a repost because of how it starts.
+  const repostShaped = previewCleanup([record({ text: "RT @someone: hello", parentId: "900" })], {});
+  assert.equal(
+    repostShaped.candidates[0].bucket,
+    "replies",
+    "the field states what this is; the text only suggests"
+  );
+
+  // The repost guess is still available, and still marked as one.
+  const repost = previewCleanup([record({ text: "RT @someone: hello" })], {});
+  assert.equal(repost.candidates[0].bucket, "retweets");
+  assert.match(repost.candidates[0].reason, /Looks like reposted content/);
+});

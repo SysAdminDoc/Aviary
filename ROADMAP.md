@@ -161,26 +161,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Effort: M
   Blocked: needs a signed-in operator to save the two MHTML captures. Nothing in the repo logs in or fetches.
 
-- [ ] P3 — F258, The exported viewer still carries a hand-maintained locale table
-  Category: maintainability
-  Where: `src/features/export/viewer.ts:142-143`, inside the generated script.
-  Problem: the file's own header comment condemns exactly this pattern — a second, hand-maintained nine-locale table living outside the catalog, which nothing can keep honest. `buildViewerLabels()` was moved onto `supportedLocales()`, but `const LOCALES = ["en", "es", "pt", "fr", "de", "ja", "ko", "ar", "he"];` and `const RTL = new Set(["ar", "he"]);` were left as literals. Add a locale to the registry and every test still passes while the exported viewer's picker omits it and `localeFromBrowser()` falls back to English; add an RTL locale and it renders left to right; remove one and `LABELS[code].name` at `viewer.ts:217` throws inside `applyLabels()`, which is the generated IIFE's last statement, so the whole viewer renders blank.
-  Evidence: read at `viewer.ts:142-143`. The two literals currently agree with the registry — `supportedLocales()` returns `en,es,pt,fr,de,ja,ko,ar,he` with `ar,he` right-to-left — so this is latent drift rather than a live defect. `tests/viewer-i18n.test.mjs:53` checks the derived `LOCALE_ORDER` and `:120-140` checks the inlined `LABELS` names; neither can see these two lines.
-  Fix: interpolate both from the registry the way `labels` already is — `const LOCALES = ${JSON.stringify(LOCALE_ORDER)};` and `const RTL = new Set(${JSON.stringify(rtlCodes)});`.
-  Acceptance: `tests/viewer-i18n.test.mjs` asserts the generated HTML contains no locale code the registry does not list, and that its RTL set matches the registry's right-to-left entries.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P3 — F259, Cleanup preview guesses reply and repost from post text while the authoritative field is on the record
-  Category: correctness
-  Where: `src/features/library/cleanup-preview.ts:82-83` and the reason string at `:92`.
-  Problem: the classifier tests `record.text.startsWith("RT @")`, `startsWith("Reposted ")` and `startsWith("@")` and then states the guess as fact — "Reply to another account". `src/features/library/archive-import.ts:374` already populates `record.parentId` from `in_reply_to_status_id_str` and `:380` populates `conversationId`, and the classifier ignores both. A standalone post that opens with `@handle` is bucketed and explained as a reply; a genuine reply whose text begins with a word is reported as an original post; a post that quotes the string `RT @foo` becomes a repost. These counts drive `byBucket` in the downloadable report.
-  Evidence: read at the cited lines. `tests/v0.11.0.test.mjs:82-124` pins the three happy-path shapes and never supplies a record carrying `parentId`.
-  Fix: prefer `record.parentId != null` for the `replies` bucket and fall back to the text heuristic only when the field is absent, labelling that case as inferred rather than asserted.
-  Acceptance: a test classifies a record with `parentId` set and text that does not start with `@` as a reply, and a record with no `parentId` whose text starts with `@` as inferred rather than asserted.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P3 — F261, The archive import source key is routed away from IndexedDB, so the advertised 256 MiB ceiling may be unreachable
   Category: reliability
   Where: `src/features/library/archive-import-jobs.ts:13-15` (`archiveSourceKey` and `MAX_SOURCE_BYTES`), against `src/platform/durable-storage.ts:284-287` (`#isDurable`).

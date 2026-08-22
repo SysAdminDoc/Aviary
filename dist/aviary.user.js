@@ -18226,11 +18226,12 @@ ${sections.join("\n\n---\n\n")}
     return table;
   }
   var LOCALE_ORDER = supportedLocales().map((locale) => locale.code);
+  var RTL_CODES = supportedLocales().filter((locale) => locale.direction === "rtl").map((locale) => locale.code);
   function buildExportViewer(records) {
     const data = safeJson(serializeExportRecords(records));
     const threads = safeJson(serializeThreads(reconstructThreads(records)));
     const labels = safeJson(buildViewerLabels());
-    const script = viewerScript(labels);
+    const script = viewerScript(labels, LOCALE_ORDER, RTL_CODES);
     const html = `<!doctype html>
 <html lang="en" dir="ltr"><head>
 <meta charset="utf-8" />
@@ -18280,14 +18281,14 @@ ${sections.join("\n\n---\n\n")}
       })
     }));
   }
-  function viewerScript(labels) {
+  function viewerScript(labels, locales, rtl) {
     return `(function () {
   "use strict";
   const LABELS = ${labels};
   const RECORDS = JSON.parse(document.getElementById("records-data").textContent || "[]");
   const THREADS = JSON.parse(document.getElementById("threads-data").textContent || "[]");
-  const LOCALES = ["en", "es", "pt", "fr", "de", "ja", "ko", "ar", "he"];
-  const RTL = new Set(["ar", "he"]);
+  const LOCALES = ${JSON.stringify(locales)};
+  const RTL = new Set(${JSON.stringify(rtl)});
   const state = { locale: localeFromBrowser(), query: "", status: "all", sort: "newest", thread: false };
   const rowHeight = 190;
   const overscan = 4;
@@ -25253,7 +25254,7 @@ a.av-link-clean {
         handle: record.handle,
         text: record.text,
         permalink: record.permalink,
-        reason: explain(bucket, record),
+        reason: explain(bucket, record, wasInferred(bucket, record, options.bucketHint)),
         protected: isProtected
       });
     }
@@ -25268,16 +25269,23 @@ a.av-link-clean {
     if (hint) return hint;
     if (record.surface.includes("likes")) return "likes";
     if (record.surface.includes("bookmarks")) return "bookmarks";
+    if (record.parentId != null && record.parentId !== "") return "replies";
     if (record.text.startsWith("RT @") || record.text.startsWith("Reposted ")) return "retweets";
     if (record.text.startsWith("@")) return "replies";
     return "tweets";
   }
-  function explain(bucket, record) {
+  function wasInferred(bucket, record, hint) {
+    if (hint) return false;
+    if (record.surface.includes("likes") || record.surface.includes("bookmarks")) return false;
+    if (bucket === "replies") return record.parentId == null || record.parentId === "";
+    return bucket === "retweets";
+  }
+  function explain(bucket, record, inferred = false) {
     switch (bucket) {
       case "retweets":
-        return "Reposted content, author retains the original";
+        return inferred ? "Looks like reposted content, from how the text begins" : "Reposted content, author retains the original";
       case "replies":
-        return "Reply to another account";
+        return inferred ? "Looks like a reply, from how the text begins" : "Reply to another account";
       case "likes":
         return "Imported from Likes archive";
       case "bookmarks":

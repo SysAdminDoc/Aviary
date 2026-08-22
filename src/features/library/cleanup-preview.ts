@@ -62,7 +62,7 @@ export function previewCleanup(
       handle: record.handle,
       text: record.text,
       permalink: record.permalink,
-      reason: explain(bucket, record),
+      reason: explain(bucket, record, wasInferred(bucket, record, options.bucketHint)),
       protected: isProtected
     });
   }
@@ -75,21 +75,46 @@ export function previewCleanup(
   };
 }
 
+/**
+ * What kind of post this is, from the record rather than from how its text happens to start.
+ *
+ * The archive import already fills `parentId` from `in_reply_to_status_id_str`, and this ignored
+ * it in favour of reading the first character of the text. A post that merely opens with a handle
+ * was bucketed and explained as a reply; a real reply that opens with a word was reported as an
+ * original post; a post quoting the string "RT @foo" became a repost. These counts go into the
+ * downloadable report, stated as fact.
+ *
+ * The text heuristic is still there, because an archive from before that field existed has nothing
+ * else to go on -- but a guess is now marked as a guess, and the field wins wherever it is present.
+ */
 function classify(record: ExportRecord, hint?: CleanupBucket): CleanupBucket | null {
   if (hint) return hint;
   if (record.surface.includes("likes")) return "likes";
   if (record.surface.includes("bookmarks")) return "bookmarks";
+  if (record.parentId != null && record.parentId !== "") return "replies";
   if (record.text.startsWith("RT @") || record.text.startsWith("Reposted ")) return "retweets";
   if (record.text.startsWith("@")) return "replies";
   return "tweets";
 }
 
-function explain(bucket: CleanupBucket, record: ExportRecord): string {
+/** True when the bucket came from the text rather than from a field that states it. */
+function wasInferred(bucket: CleanupBucket, record: ExportRecord, hint?: CleanupBucket): boolean {
+  if (hint) return false;
+  if (record.surface.includes("likes") || record.surface.includes("bookmarks")) return false;
+  if (bucket === "replies") return record.parentId == null || record.parentId === "";
+  return bucket === "retweets";
+}
+
+function explain(bucket: CleanupBucket, record: ExportRecord, inferred = false): string {
   switch (bucket) {
     case "retweets":
-      return "Reposted content, author retains the original";
+      return inferred
+        ? "Looks like reposted content, from how the text begins"
+        : "Reposted content, author retains the original";
     case "replies":
-      return "Reply to another account";
+      return inferred
+        ? "Looks like a reply, from how the text begins"
+        : "Reply to another account";
     case "likes":
       return "Imported from Likes archive";
     case "bookmarks":
