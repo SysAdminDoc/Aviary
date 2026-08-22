@@ -190,16 +190,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Confidence: Verified
   Effort: M
 
-- [ ] P2 — F234, The Catch-up dialog's non-modal fallback has no modal semantics and no focus management
-  Category: a11y
-  Where: `src/features/filtering/catch-up-ui.ts:57-62`.
-  Problem: `if (typeof dialog.showModal === "function") { dialog.showModal(); } else { dialog.setAttribute("open", "true"); }`. On the fallback path the element is a plain non-modal `<dialog>`: nothing moves focus into it, nothing contains focus, Escape does not close it, and the page behind stays fully tabbable. The dialog never sets `role` or `aria-modal` itself, relying entirely on `showModal()` for them, so the fallback exposes no modal semantics at all. The `aria-labelledby="av-catch-up-title"` at `:46` does resolve correctly to the `title.id` at `:79`, so that half is fine.
-  Evidence: read at the cited lines; `grep -n "aria-modal\|role=" src/features/filtering/catch-up-ui.ts` finds `role` only on the filters group at `:126`.
-  Fix: in the fallback branch set `role="dialog"` and `aria-modal="true"`, move focus to the close button, add an Escape handler, and mark the rest of the document inert — the same treatment `src/ui/control-center.ts:589` and `:830-831` already apply to the panel. Alternatively drop the fallback: both manifests floor at Chrome 116 and Firefox 128, which have `showModal`.
-  Acceptance: a test that deletes `HTMLDialogElement.prototype.showModal` before opening the digest and asserts the dialog carries `aria-modal="true"`, that focus lands inside it, and that Escape closes it.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — F256, The snapshot diff presents a scroll-depth artifact as a follow and unfollow list
   Category: correctness
   Where: `src/features/library/snapshots-feature.ts:45` (`collectAccountsFromDom`), `src/features/library/snapshots.ts:8-14` (`SnapshotEntry`) and `:100-121` (`diffSnapshots`), rendered at `src/features/library/reports.ts:45-47`.

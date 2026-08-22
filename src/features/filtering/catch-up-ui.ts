@@ -102,13 +102,33 @@ export function openCatchUpDigest(
   if (typeof dialog.showModal === "function") {
     dialog.showModal();
   } else {
-    // A plain `open` attribute is not a modal: it carries no dialog semantics and moves no focus.
-    // Both manifest floors have showModal, so this path is for an embedded host only -- say what
-    // the surface is and put focus on the control that dismisses it. No Escape handler: this
-    // project registers no keyboard shortcuts, and native showModal is what supplies Escape.
+    // A plain `open` attribute is not a modal: it carries no dialog semantics, moves no focus, and
+    // leaves the page behind it in the tab order. Both manifest floors ship showModal, so this path
+    // only runs in an embedded host -- but it still has to be usable rather than a trap.
+    //
+    // Everything a modal owes the reader except Escape: the surface says what it is, focus lands on
+    // the control that dismisses it, and the rest of the document is made inert so Tab cannot walk
+    // out behind it. Escape is deliberately absent -- this project registers no keyboard shortcuts,
+    // and `tests/source-contracts.test.mjs` enforces that -- so on this path the close button and
+    // the backdrop click are the ways out. Native showModal supplies Escape everywhere it exists.
     dialog.setAttribute("open", "true");
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
+    // The dialog's siblings, not <body> itself. A modal opened with showModal is exempt from an
+    // inert ancestor; this one is not, so inerting <body> would make the dialog inside it dead too.
+    const inerted: Element[] = [];
+    for (const sibling of Array.from(document.body?.children ?? [])) {
+      if (sibling === dialog || sibling.hasAttribute("inert")) continue;
+      sibling.setAttribute("inert", "");
+      inerted.push(sibling);
+    }
+    dialog.addEventListener(
+      "close",
+      () => {
+        for (const sibling of inerted) sibling.removeAttribute("inert");
+      },
+      { once: true }
+    );
     header.querySelector<HTMLButtonElement>(".av-catch-up-close")?.focus();
   }
   const digest = buildCatchUpDigest(entries, state);

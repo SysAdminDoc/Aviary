@@ -220,3 +220,81 @@ test("the digest renders in the reader's locale", async () => {
     }
   }
 });
+
+/**
+ * The non-modal fallback still has to be usable rather than a trap.
+ *
+ * Without `showModal` a plain `open` attribute carries no dialog semantics, moves no focus, and
+ * leaves the page behind it fully tabbable. Both manifest floors ship `showModal`, so this only
+ * runs in an embedded host -- but a surface that opens and cannot be navigated is worse than one
+ * that does not open. Escape is deliberately not handled: this project registers no keyboard
+ * shortcuts, and native `showModal` is what supplies it everywhere it exists.
+ */
+test("without showModal the digest still declares itself, takes focus, and contains it", async () => {
+  const now = Date.now();
+  const entries = [
+    {
+      tweetId: "9500",
+      handle: "alice",
+      displayName: "Alice",
+      text: "A local post",
+      permalink: "https://x.com/alice/status/9500",
+      articleUrl: null,
+      capturedAt: new Date(now - 60_000).toISOString(),
+      seenAt: now - 60_000,
+      surface: "home",
+      category: "original",
+      filterReason: null,
+      media: [],
+      metrics: { replies: 0, likes: 0, reposts: 0 }
+    }
+  ];
+
+  const state = await page.evaluate(async (items) => {
+    document.querySelector("#av-catch-up-dialog")?.remove();
+    // The harness page is otherwise empty, and "the page behind the dialog" is the thing under
+    // test -- without something there, an inert sweep has nothing to prove.
+    const behind = document.createElement("button");
+    behind.id = "av-inert-probe";
+    behind.textContent = "behind the dialog";
+    document.body.append(behind);
+    const realShowModal = HTMLDialogElement.prototype.showModal;
+    delete HTMLDialogElement.prototype.showModal;
+    try {
+      AviaryCatchUp.openCatchUpDigest(window.__ctx("en"), items);
+      const dialog = document.querySelector("#av-catch-up-dialog");
+      const close = dialog.querySelector(".av-catch-up-close");
+      const siblingsInert = () =>
+        [...document.body.children].filter(
+          (node) => node !== dialog && node.hasAttribute("inert")
+        ).length;
+      const opened = {
+        role: dialog.getAttribute("role"),
+        modal: dialog.getAttribute("aria-modal"),
+        focused: document.activeElement === close,
+        // The dialog itself must stay live: a non-modal dialog is not exempt from an inert
+        // ancestor, so inerting <body> would kill the very surface being opened.
+        dialogInert: dialog.hasAttribute("inert"),
+        siblingsInert: siblingsInert()
+      };
+      close.click();
+      // `close()` removes the open attribute synchronously but queues the close event, and the
+      // inert sweep is undone by that event's handler. Reading before the task runs measures the
+      // moment in between, not the outcome.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      return { opened, closedSiblingsInert: siblingsInert() };
+    } finally {
+      HTMLDialogElement.prototype.showModal = realShowModal;
+      document.querySelector("#av-catch-up-dialog")?.remove();
+      for (const node of [...document.body.children]) node.removeAttribute("inert");
+      behind.remove();
+    }
+  }, entries);
+
+  assert.equal(state.opened.role, "dialog", "the fallback must say what the surface is");
+  assert.equal(state.opened.modal, "true");
+  assert.equal(state.opened.focused, true, "focus must land on the control that dismisses it");
+  assert.equal(state.opened.dialogInert, false, "the dialog itself must stay interactive");
+  assert.ok(state.opened.siblingsInert > 0, "Tab must not walk out behind it");
+  assert.equal(state.closedSiblingsInert, 0, "and the page must be usable again after closing");
+});
