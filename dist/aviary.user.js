@@ -813,11 +813,6 @@ var Aviary = (() => {
     for (const key of FILTER_MEDIA_KEYS) {
       result[key] = record[key] ?? DEFAULT_SETTINGS.filter.mediaTypes[key] ?? false;
     }
-    for (const [key, enabled2] of Object.entries(record)) {
-      if (!(key in result)) {
-        result[key] = enabled2;
-      }
-    }
     return result;
   }
   function surfaceArray(value, fallback = DEFAULT_SETTINGS.filter.surfaces, allowEmpty = false) {
@@ -847,8 +842,9 @@ var Aviary = (() => {
     });
     return formats.length > 0 ? [...new Set(formats)] : [...DEFAULT_SETTINGS.export.formats];
   }
+  var MAX_URL_LENGTH = 2048;
   function urlValue(value, fallback) {
-    if (typeof value !== "string") return fallback;
+    if (typeof value !== "string" || value.length > MAX_URL_LENGTH) return fallback;
     const trimmed = value.trim();
     if (trimmed.length === 0) return fallback === "" ? "" : fallback;
     try {
@@ -17731,13 +17727,13 @@ a { color: #8ecdf1; }
   function toPlainMarkdown(records) {
     const lines = records.map((record) => {
       const handle = record.handle ? `@${record.handle}` : "(unknown)";
-      const permalink2 = record.permalink ? ` \u2014 [link](${record.permalink})` : "";
+      const permalink2 = record.permalink ? ` \xB7 [link](${markdownUrl(record.permalink)})` : "";
       const body = record.text.split("\n").map((line) => `> ${line}`).join("\n");
       const media = record.media.map((entry) => {
         const capture = describeMediaCapture(entry, record.capturedAt);
         return `- ${entry.kind} \u2014 ${capture.status}: ${capture.sourceUrl || "no source URL"}; bytes ${capture.byteLength ?? "unknown"}; sha256 ${capture.sha256 ?? "unknown"}`;
       }).join("\n");
-      return `### ${record.displayName ?? handle} (${handle})${permalink2}
+      return `### ${markdownText(record.displayName ?? handle)} (${markdownText(handle)})${permalink2}
 
 ${body}${media ? `
 
@@ -17753,7 +17749,7 @@ ${lines.join("\n\n---\n\n")}
     const sections = records.map((record) => {
       const safeId = record.tweetId ?? "no-id";
       const handle = record.handle ?? "anon";
-      const tags = ["#aviary", `#x/${handle}`];
+      const tags = ["#aviary", `#x/${tagToken(handle)}`];
       const frontmatter = [
         "---",
         `tweet_id: ${yamlScalar(safeId)}`,
@@ -17775,7 +17771,7 @@ ${record.media.map((media) => {
       }).join("\n")}`;
       return `${frontmatter}
 
-# ${record.displayName ?? handle}
+# ${markdownText(record.displayName ?? handle)}
 
 ${record.text}${mediaList}`;
     });
@@ -17785,6 +17781,12 @@ ${record.text}${mediaList}`;
       contentType: "text/markdown",
       data: ENCODER2.encode(document2)
     };
+  }
+  function tagToken(value) {
+    return value.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 80) || "anon";
+  }
+  function markdownText(value) {
+    return value.replace(/[\r\n]+/g, " ").replace(/([[\]<>`])/g, "\\$1").trim();
   }
   function yamlScalar(value) {
     const escaped = value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/[\r\n]+/g, " ");
@@ -17830,7 +17832,7 @@ ${record.text}${mediaList}`;
     };
   }
   function markdownUrl(value) {
-    return value.replace(/\\/g, "%5C").replace(/\)/g, "%29").replace(/\s/g, "%20");
+    return value.replace(/\\/g, "%5C").replace(/\(/g, "%28").replace(/\)/g, "%29").replace(/\[/g, "%5B").replace(/\]/g, "%5D").replace(/\s/g, "%20");
   }
 
   // src/features/filtering/regex-budget.ts
@@ -23143,7 +23145,11 @@ a.av-link-clean {
         handle: stringFromAuthor(tweet) ?? null,
         displayName: null,
         text,
-        capturedAt: createdAt,
+        // The import time, not the post's. `capturedAt` is what warc.ts writes into WARC-Date and
+        // what wacz.ts derives the CDXJ timestamp from, and those describe when the record was
+        // captured -- so putting X's `created_at` here made a signed archive assert a capture instant
+        // that never happened. types.ts states the split; `createdAt` below carries the authored time.
+        capturedAt: now2,
         surface,
         media: [],
         permalink: id ? `https://x.com/i/web/status/${id}` : null
@@ -23157,7 +23163,8 @@ a.av-link-clean {
       }
       if (parentId) record.parentId = parentId;
       if (authorId) record.authorId = authorId;
-      if (createdAt !== now2) record.createdAt = createdAt;
+      const authoredAt = new Date(createdAt);
+      if (!Number.isNaN(authoredAt.getTime())) record.createdAt = authoredAt.toISOString();
       const participants = mentionParticipants(tweet);
       if (participants.length > 0) record.participants = participants;
       out.push(record);
@@ -28576,6 +28583,7 @@ ${COLOR_CSS}`;
           errorCount: result.errors.length
         });
         return {
+          stopped: state2.status,
           records: 0,
           warnings: result.warnings.length,
           errors: result.errors.length,
@@ -28667,6 +28675,12 @@ ${COLOR_CSS}`;
   }
   async function processArchiveImportAction(ctx, jobs, jobId) {
     const result = await processArchiveImport(ctx, jobs, jobId);
+    if (result.stopped) {
+      return {
+        ok: false,
+        error: result.stopped === "cancelled" ? "Import cancelled. No records were saved." : "Import paused. No records were saved yet."
+      };
+    }
     if (result.errors > 0 && result.records === 0) {
       return { ok: false, error: "Archive import produced no records" };
     }

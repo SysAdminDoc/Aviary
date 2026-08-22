@@ -691,3 +691,52 @@ test("an un-prefixed archive entry containing '=' is not destroyed by prefix str
   assert.equal(result.records.length, 1, "the entry must parse rather than be reported malformed");
   assert.match(result.records[0].text, /aGVsbG8=/, "its content must survive intact");
 });
+
+/**
+ * `capturedAt` is when Aviary captured the record, not when the post was written.
+ *
+ * `types.ts` states the split, and the import assigned the archive's `created_at` to both. That
+ * value is what `warc.ts` writes into `WARC-Date` and what `wacz.ts` derives the CDXJ timestamp
+ * from, so a WACZ built from an archive import asserted a capture instant that never happened --
+ * in the one format whose whole purpose is provenance, on a package the signer then signs.
+ */
+test("an imported record captures the import time and keeps the authored time separately", async () => {
+  const { importOfficialArchive } = await importSourceModule(
+    "src/features/library/archive-import.ts"
+  );
+
+  const authored = "Tue Jan 16 12:00:00 +0000 2026";
+  const payload =
+    "window.YTD.tweets.part0 = " +
+    JSON.stringify([
+      {
+        tweet: {
+          id_str: "1750000000000000000",
+          full_text: "an imported post",
+          created_at: authored,
+          user: { screen_name: "someone" }
+        }
+      }
+    ]);
+
+  const zip = buildZip([{ name: "data/tweets.js", content: payload, method: 0 }]);
+  const before = Date.now();
+  const result = await importOfficialArchive(zip, "archive");
+  const after = Date.now();
+
+  const record = result.records.find((entry) => entry.tweetId === "1750000000000000000");
+  assert.ok(record, `the fixture post must import: ${JSON.stringify(result.errors)}`);
+
+  const captured = Date.parse(record.capturedAt);
+  assert.ok(!Number.isNaN(captured), `capturedAt must be a date: ${record.capturedAt}`);
+  assert.equal(record.capturedAt, new Date(captured).toISOString(), "capturedAt must be ISO-8601");
+  assert.ok(
+    captured >= before - 1000 && captured <= after + 1000,
+    `capturedAt must be the import time, saw ${record.capturedAt}`
+  );
+  assert.equal(
+    record.createdAt,
+    new Date(authored).toISOString(),
+    "the authored time belongs in createdAt, normalized"
+  );
+});

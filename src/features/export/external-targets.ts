@@ -32,13 +32,13 @@ export function renderForExternalTarget(
 function toPlainMarkdown(records: readonly ExportRecord[]): string {
   const lines = records.map((record) => {
     const handle = record.handle ? `@${record.handle}` : "(unknown)";
-    const permalink = record.permalink ? ` — [link](${record.permalink})` : "";
+    const permalink = record.permalink ? ` · [link](${markdownUrl(record.permalink)})` : "";
     const body = record.text.split("\n").map((line) => `> ${line}`).join("\n");
     const media = record.media.map((entry) => {
       const capture = describeMediaCapture(entry, record.capturedAt);
       return `- ${entry.kind} — ${capture.status}: ${capture.sourceUrl || "no source URL"}; bytes ${capture.byteLength ?? "unknown"}; sha256 ${capture.sha256 ?? "unknown"}`;
     }).join("\n");
-    return `### ${record.displayName ?? handle} (${handle})${permalink}\n\n${body}${media ? `\n\n**Media**\n${media}` : ""}`;
+    return `### ${markdownText(record.displayName ?? handle)} (${markdownText(handle)})${permalink}\n\n${body}${media ? `\n\n**Media**\n${media}` : ""}`;
   });
   return `# Aviary clipboard export\n\n${lines.join("\n\n---\n\n")}\n`;
 }
@@ -47,7 +47,10 @@ function toObsidianArtifact(records: readonly ExportRecord[]): ExportArtifact {
   const sections = records.map((record) => {
     const safeId = record.tweetId ?? "no-id";
     const handle = record.handle ?? "anon";
-    const tags = ["#aviary", `#x/${handle}`];
+    // The handle is escaped for every other frontmatter value but was interpolated raw here, so a
+    // handle carrying newlines terminated the YAML block from inside it and turned the rest of the
+    // note into real Markdown. An imported archive's screen_name is an arbitrary string.
+    const tags = ["#aviary", `#x/${tagToken(handle)}`];
     const frontmatter = [
       "---",
       `tweet_id: ${yamlScalar(safeId)}`,
@@ -68,7 +71,7 @@ function toObsidianArtifact(records: readonly ExportRecord[]): ExportArtifact {
             const label = `${media.kind} — ${capture.status}`;
             return `- ${target ? `[${label}](${markdownUrl(target)})` : label} — captured ${capture.capturedAt ?? "unknown"}; bytes ${capture.byteLength ?? "unknown"}; sha256 ${capture.sha256 ?? "unknown"}`;
           }).join("\n")}`;
-    return `${frontmatter}\n\n# ${record.displayName ?? handle}\n\n${record.text}${mediaList}`;
+    return `${frontmatter}\n\n# ${markdownText(record.displayName ?? handle)}\n\n${record.text}${mediaList}`;
   });
   const document = sections.join("\n\n---\n\n");
   return {
@@ -85,6 +88,28 @@ function toObsidianArtifact(records: readonly ExportRecord[]): ExportArtifact {
  * all produce invalid YAML, which Obsidian renders as a broken block; a crafted name could add
  * frontmatter keys of its own.
  */
+/**
+ * A YAML tag carries no quoting of its own, so anything that could end the line has to go.
+ *
+ * Every other frontmatter value goes through `yamlScalar`; a tag cannot, because the `#x/` prefix
+ * has to stay a bare token. Reducing it to the characters a handle can legally contain is what
+ * keeps the block closed.
+ */
+function tagToken(value: string): string {
+  return value.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 80) || "anon";
+}
+
+/**
+ * Identity text on a Markdown line the reader will open.
+ *
+ * Post text is left alone -- it is the content, and Markdown is what the export is for -- but a
+ * display name or handle sits inside a heading Aviary builds, where a newline ends the heading and
+ * a bracket starts a link the author did not write.
+ */
+function markdownText(value: string): string {
+  return value.replace(/[\r\n]+/g, " ").replace(/([[\]<>`])/g, "\\$1").trim();
+}
+
 function yamlScalar(value: string): string {
   const escaped = value
     .replace(/\\/g, "\\\\")
@@ -134,6 +159,19 @@ function toJsonArtifact(records: readonly ExportRecord[]): ExportArtifact {
   };
 }
 
+/**
+ * A URL that cannot end its own link early or start a second one.
+ *
+ * Escaping only the closing paren left an unbalanced opening one able to nest, and square
+ * brackets able to begin a link label, so an archive whose id_str carried a bracket-paren pair
+ * produced a second destination the author never wrote.
+ */
 function markdownUrl(value: string): string {
-  return value.replace(/\\/g, "%5C").replace(/\)/g, "%29").replace(/\s/g, "%20");
+  return value
+    .replace(/\\/g, "%5C")
+    .replace(/\(/g, "%28")
+    .replace(/\)/g, "%29")
+    .replace(/\[/g, "%5B")
+    .replace(/\]/g, "%5D")
+    .replace(/\s/g, "%20");
 }

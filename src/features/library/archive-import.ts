@@ -365,7 +365,11 @@ function mapTweets(parsed: unknown, surface: string): ExportRecord[] {
       handle: stringFromAuthor(tweet) ?? null,
       displayName: null,
       text,
-      capturedAt: createdAt,
+      // The import time, not the post's. `capturedAt` is what warc.ts writes into WARC-Date and
+      // what wacz.ts derives the CDXJ timestamp from, and those describe when the record was
+      // captured -- so putting X's `created_at` here made a signed archive assert a capture instant
+      // that never happened. types.ts states the split; `createdAt` below carries the authored time.
+      capturedAt: now,
       surface,
       media: [],
       permalink: id ? `https://x.com/i/web/status/${id}` : null
@@ -379,7 +383,10 @@ function mapTweets(parsed: unknown, surface: string): ExportRecord[] {
     }
     if (parentId) record.parentId = parentId;
     if (authorId) record.authorId = authorId;
-    if (createdAt !== now) record.createdAt = createdAt;
+    // Normalized so every consumer sees one format. X's archive writes "Tue Jan 16 12:00:00 +0000
+    // 2026", which is not a valid HTML datetime and mixed formats in the exported columns.
+    const authoredAt = new Date(createdAt);
+    if (!Number.isNaN(authoredAt.getTime())) record.createdAt = authoredAt.toISOString();
     const participants = mentionParticipants(tweet);
     if (participants.length > 0) record.participants = participants;
     out.push(record);

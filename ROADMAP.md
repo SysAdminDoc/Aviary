@@ -341,46 +341,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Confidence: Verified
   Effort: M
 
-- [ ] P2 — F249, The Obsidian export's tag line breaks out of its own frontmatter, and one Markdown link is built unescaped
-  Category: security
-  Where: `src/features/export/external-targets.ts:50` and `:59` (the `tags` line), and `:35` (the clipboard permalink). `yamlScalar` is at `:88-94` and `markdownUrl` is used correctly at `:69`.
-  Problem: every frontmatter value except one goes through `yamlScalar`, which escapes quotes and collapses newlines. The exception is the handle inside `tags`, which is interpolated raw: `` const tags = ["#aviary", `#x/${handle}`] `` and then `` `tags: [${tags.join(", ")}]` ``. A handle containing newlines therefore terminates the YAML block from inside it. Separately, `toPlainMarkdown` at `:35` builds `` ` — [link](${record.permalink})` `` from the raw permalink while `markdownUrl()` exists two functions away and is used for media, so a permalink containing `)` closes the link early and anything after it becomes document text — including a second, attacker-controlled link. Both fields are attacker-influenced: `src/features/library/archive-import.ts:428` takes `user.screen_name` as an arbitrary string with no character class, and `:360` takes `id_str` the same way, and both flow through untouched.
-  Evidence: reproduced against the real `renderForExternalTarget`. With `handle` set to `"bob\n\n## FAKE SECTION\n\nreal"` the output is `handle: "bob ## FAKE SECTION real"` (correctly escaped) but `tags: [#aviary, #x/bob` followed by a blank line, a real `## FAKE SECTION` heading, `real]`, and only then the closing `---`. With `permalink` set to `"https://x.com/i/web/status/1) [PHISH](https://evil.example"` the clipboard export renders `### Bob (@bob) — [link](https://x.com/i/web/status/1) [PHISH](https://evil.example)`. The control record produced `tags: [#aviary, #x/bob]` and a single well-formed link. `tests/search-and-export-data.test.mjs:186-206` pins that "a display name with YAML metacharacters cannot break or extend the frontmatter" — the guarantee simply does not cover the handle.
-  Fix: pass the handle through `yamlScalar` (or a tag-specific sanitizer that strips whitespace and `]`) before building the tag, and use `markdownUrl()` at `:35`. While there, add one `markdownText()` helper — collapse `[\r\n]+`, escape `[`, `]`, `<` and backticks — and apply it to every interpolated identity field in this file and in `src/features/export/formatters.ts:192` and `src/features/library/reports.ts:37, 45-46, 69`.
-  Acceptance: extend the existing frontmatter test to cover the handle and the permalink, asserting the emitted note has exactly two `---` lines and exactly one Markdown link per record.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — F250, An imported archive makes the WARC assert a capture time that never happened
-  Category: correctness
-  Where: `src/features/library/archive-import.ts:362-368`; the contract it breaks is stated at `src/features/export/types.ts:22`; the consumers are `src/features/export/warc.ts:104` and `src/features/export/wacz.ts:164-167`.
-  Problem: `types.ts:22` says plainly `/** Original post creation time. `capturedAt` remains the local capture time. */`. `archive-import.ts:368` sets `capturedAt: createdAt` — the post's authored time from the archive's `created_at` field, in X's raw format rather than ISO. `warc.ts:104` then uses `validDate(record.capturedAt)` for `WARC-Date`, and the CDXJ timestamp is derived from the same value. Per the WARC specification `WARC-Date` is when data capture for the record began, so a WACZ built from an archive import asserts a capture instant that never occurred — in the one format whose entire purpose is provenance, on a package `wacz-signing.ts` will then sign. The same value also reaches `formatters.ts:154` and `warc.ts:317` as `<time datetime="…">`, which is not a valid HTML datetime, and mixes formats in the `capturedAt` column of JSON, CSV and XLSX.
-  Evidence: read at the cited lines. `archive-import.ts:362` is `const createdAt = stringField(tweet, "created_at") ?? now;` and `:368` is `capturedAt: createdAt,` with `createdAt` assigned to the separate `record.createdAt` field only at `:383`, and only when it differs from `now`. `warc.ts:219-223` shows `validDate` accepts anything `new Date(value)` parses, and `new Date("Tue Jan 16 12:00:00 +0000 2026").toISOString()` returns `"2026-01-16T12:00:00.000Z"`, so the authored time does become the `WARC-Date` rather than falling back. `tests/archive-deflate.test.mjs` asserts `text` and `tweetId` on imported records and never `capturedAt`.
-  Fix: set `capturedAt` to the import time as an ISO string, and put the parsed `created_at` in `createdAt` only, which is what the type comment already specifies. If the authored time should drive replay ordering, express that in the CDXJ and pages layer as a deliberate choice rather than by overloading `capturedAt`.
-  Acceptance: a test imports a fixture archive and asserts every record's `capturedAt` parses as ISO-8601 and is within a second of the import, while `createdAt` carries the archive's value; a WARC built from those records carries a `WARC-Date` in the import window.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — F254, Two settings collections have no size bound
-  Category: reliability
-  Where: `src/platform/settings.ts:1108-1120` (`mediaTypeRecord`) and `:1158` (`urlValue`) / `:1192` (`credentialedUrlValue`).
-  Problem: every other collection in the schema is capped — `stringArray` takes a `maxItems`, `secretValue` slices to 4096, `stringValue` to 120 or 500 — but `mediaTypeRecord` copies every key outside `FILTER_MEDIA_KEYS` straight through with no count limit, and the URL validators have no length cap. A hand-edited or imported settings file can therefore inflate the settings blob without limit, which matters because the settings blob is read at boot before anything else and because the panel's own Trust page exists to report "the browser store may be full".
-  Evidence: measured against the real `normalizeSettings`: a `filter.mediaTypes` object with 5000 unknown keys comes back with 5003 keys and survives a second normalization pass unchanged; a 500 KB `integrations.ai.endpoint` and a 500 KB `integrations.aria2.endpoint` both persist at their full length.
-  Fix: drop the passthrough loop in `mediaTypeRecord` — nothing reads a key outside `FILTER_MEDIA_KEYS` — or cap it at a small constant. Add a `maxLength` to `urlValue` and `credentialedUrlValue` in line with the other string validators.
-  Acceptance: a test asserts `normalizeSettings` returns at most `FILTER_MEDIA_KEYS.length` media-type keys and truncates an over-long endpoint.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — F255, A cancelled archive import is reported with the success template
-  Category: ux
-  Where: `src/features/core/control-center.ts:1287-1305` (the cancel/pause branch of `processArchiveImport`), `:1398-1401` (`processArchiveImportAction`), and the status line at `src/ui/control-center/sections/data.ts:222-235`.
-  Problem: when the user cancels or pauses mid-import the branch returns `{ records: 0, warnings, errors: result.errors.length, recognizedFiles, … }`. For a well-formed archive `errors.length` is `0`, so the panel renders the ordinary completion sentence with zeros in it — "Imported 0 records. Warnings: 0; errors: 0. Files: 9 recognized, 1 skipped, 0 malformed." A user reading that concludes the archive was empty, not that their cancel took effect, and the recognized/skipped counts describe files that were parsed and then deliberately discarded, presented in the same breath as the committed record count. `processArchiveImportAction` compounds it: its `errors > 0 && records === 0` test is false, so resume and retry both return `{ ok: true }` for a run that committed nothing.
-  Evidence: read at the cited lines. The in-code comment at `:1288-1289` is accurate about commits and silent about reporting.
-  Fix: return an explicit `cancelled: true` (or a `status` field) from `processArchiveImport`, have `processArchiveImportAction` treat it as not-ok, and give the panel its own sentence — "Import cancelled. No records were saved." — rather than reusing the completion template with zeros.
-  Acceptance: a test cancels an import mid-run and asserts the status string contains "cancelled" and does not contain "Imported 0 records".
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — F256, The snapshot diff presents a scroll-depth artifact as a follow and unfollow list
   Category: correctness
   Where: `src/features/library/snapshots-feature.ts:45` (`collectAccountsFromDom`), `src/features/library/snapshots.ts:8-14` (`SnapshotEntry`) and `:100-121` (`diffSnapshots`), rendered at `src/features/library/reports.ts:45-47`.

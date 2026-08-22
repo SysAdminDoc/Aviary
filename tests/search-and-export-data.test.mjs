@@ -201,3 +201,62 @@ test("a display name with YAML metacharacters cannot break or extend the frontma
   );
   assert.match(frontmatter, /display_name: "Someone: \\"quoted\\" injected_key: gotcha"/);
 });
+
+/**
+ * The tag line was the one frontmatter value that skipped `yamlScalar`.
+ *
+ * Every other field was escaped, so the pinned guarantee about display names held while a handle
+ * carrying newlines terminated the YAML block from inside the tag and turned the rest of the note
+ * into real Markdown headings. `archive-import.ts` takes `user.screen_name` as an arbitrary string,
+ * so this is reachable from a crafted archive rather than only from a hand-edited file.
+ */
+test("a hostile handle cannot break out of the Obsidian frontmatter or the clipboard heading", async () => {
+  const { renderForExternalTarget } = await importSourceModule(
+    "src/features/export/external-targets.ts"
+  );
+
+  const hostile = {
+    tweetId: "1",
+    handle: "bob\n\n## FAKE SECTION\n\nreal",
+    displayName: "Bob\n# Injected",
+    text: "ordinary post text",
+    capturedAt: "2026-01-16T12:00:00.000Z",
+    surface: "home",
+    media: [],
+    permalink: "https://x.com/i/web/status/1) [PHISH](https://evil.example"
+  };
+
+  const note = new TextDecoder().decode(
+    renderForExternalTarget("obsidian", [hostile]).artifact.data
+  );
+  const frontmatterFences = note.split("\n").filter((line) => line === "---").length;
+  assert.equal(frontmatterFences, 2, `the note must have exactly one frontmatter block:\n${note}`);
+  const block = note.slice(note.indexOf("---") + 3, note.indexOf("---", note.indexOf("---") + 3));
+  assert.doesNotMatch(block, /^##/m, "no heading may appear inside the frontmatter");
+  assert.match(block, /tags: \[#aviary, #x\/bob/, "the tag keeps the readable part of the handle");
+
+  const clipboard = renderForExternalTarget("clipboard-markdown", [hostile]).payload;
+  const headings = clipboard.split("\n").filter((line) => line.startsWith("### "));
+  assert.equal(headings.length, 1, `one record is one heading:\n${clipboard}`);
+  // The permalink used to close its own link early and leave a second attacker-written one behind.
+  const links = [...clipboard.matchAll(/\[([^\]]*)\]\(([^)]*)\)/g)];
+  assert.equal(links.length, 1, `one record is one link:\n${clipboard}`);
+  assert.ok(
+    links[0][2].startsWith("https://x.com/"),
+    `the only link must point at X, saw ${links[0][2]}`
+  );
+  assert.doesNotMatch(
+    clipboard,
+    /\]\(https:\/\/evil\.example/,
+    `no second destination may survive:\n${clipboard}`
+  );
+
+  // The control: an ordinary record still renders normally.
+  const clean = new TextDecoder().decode(
+    renderForExternalTarget("obsidian", [
+      { ...hostile, handle: "bob", displayName: "Bob", permalink: "https://x.com/bob/status/1" }
+    ]).artifact.data
+  );
+  assert.match(clean, /tags: \[#aviary, #x\/bob\]/);
+  assert.match(clean, /# Bob/);
+});

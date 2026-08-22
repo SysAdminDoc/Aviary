@@ -1251,6 +1251,8 @@ async function processArchiveImport(
   jobs: ArchiveImportJobStore,
   jobId: string
 ): Promise<{
+  /** Set when the user paused or cancelled the run, so nothing reports it as a completion. */
+  stopped?: "cancelled" | "paused";
   records: number;
   warnings: number;
   errors: number;
@@ -1296,7 +1298,12 @@ async function processArchiveImport(
         warningCount: result.warnings.length,
         errorCount: result.errors.length
       });
+      // Said out loud, because a well-formed archive reports zero errors here and the panel then
+      // rendered the ordinary completion sentence with zeros in it -- which reads as "the archive
+      // was empty", not "your cancel took effect". The file counts describe files that were parsed
+      // and then deliberately discarded, so they are not a result either.
       return {
+        stopped: state.status,
         records: 0,
         warnings: result.warnings.length,
         errors: result.errors.length,
@@ -1397,6 +1404,16 @@ async function processArchiveImportAction(
   jobId: string
 ): Promise<ArchiveImportJobActionResult> {
   const result = await processArchiveImport(ctx, jobs, jobId);
+  if (result.stopped) {
+    // A run the user stopped is not a run that succeeded, and resume/retry must not report one.
+    return {
+      ok: false,
+      error:
+        result.stopped === "cancelled"
+          ? "Import cancelled. No records were saved."
+          : "Import paused. No records were saved yet."
+    };
+  }
   if (result.errors > 0 && result.records === 0) {
     return { ok: false, error: "Archive import produced no records" };
   }

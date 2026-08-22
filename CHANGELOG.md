@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Security
+- A crafted account archive can no longer break out of an exported note. The Obsidian export
+  escaped every frontmatter value except the one inside the tag line, so a handle carrying newlines
+  ended the block from within it and turned the rest of the note into real Markdown. A permalink
+  carrying a bracket and a parenthesis could also add a second link the author never wrote.
+
 - The save-folder hint can no longer put a `..` path segment into an export ZIP. It stripped only
   the characters Windows forbids, so a traversal survived, and the export side rewrites a backslash
   to a forward slash, which turned a Windows-shaped one into a working POSIX one. The hint travels
@@ -21,6 +26,16 @@
   silence.
 
 ### Fixed
+- An archive import records when Aviary imported it, not when the post was written. The authored
+  time was being written into the capture field, which is what the WARC and WACZ exports publish as
+  the capture instant, so a signed archive asserted a moment that never happened. The authored time
+  is kept separately and normalized, instead of X's own format leaking into exported columns.
+- Cancelling or pausing an archive import says so. A well-formed archive reports no errors, so the
+  panel rendered the ordinary completion sentence with zeros in it, which reads as "the archive was
+  empty" rather than "your cancel took effect".
+- Two settings values are now bounded: the media-type map no longer copies unknown keys through
+  without limit, and an endpoint URL is capped in length.
+
 - Typing a space into the settings search no longer builds every section at once. The gate ran on
   the untrimmed query while the match ran on the trimmed one, so a blank query matched every row,
   rebuilt the whole panel on each keystroke, and cleared the rail's current destination.

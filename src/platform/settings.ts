@@ -1179,11 +1179,9 @@ function mediaTypeRecord(value: unknown): Record<string, boolean> {
   for (const key of FILTER_MEDIA_KEYS) {
     result[key] = record[key] ?? DEFAULT_SETTINGS.filter.mediaTypes[key] ?? false;
   }
-  for (const [key, enabled] of Object.entries(record)) {
-    if (!(key in result)) {
-      result[key] = enabled;
-    }
-  }
+  // Nothing reads a key outside FILTER_MEDIA_KEYS, and this used to copy every extra one through
+  // with no limit -- the only collection in the schema without a cap, and a route to inflating the
+  // settings blob that a hand-edited or imported file could take.
   return result;
 }
 
@@ -1223,8 +1221,11 @@ function exportFormatArray(value: unknown): AviarySettings["export"]["formats"] 
   return formats.length > 0 ? [...new Set(formats)] : [...DEFAULT_SETTINGS.export.formats];
 }
 
+/** Longer than any endpoint, and short enough that a hand-edited file cannot inflate settings. */
+const MAX_URL_LENGTH = 2048;
+
 function urlValue(value: unknown, fallback: string): string {
-  if (typeof value !== "string") return fallback;
+  if (typeof value !== "string" || value.length > MAX_URL_LENGTH) return fallback;
   const trimmed = value.trim();
   if (trimmed.length === 0) return fallback === "" ? "" : fallback;
   try {
