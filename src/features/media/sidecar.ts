@@ -12,8 +12,9 @@ export interface MediaSidecarInput {
   savedAt: string;
 }
 
-export interface MediaSidecarRequest extends MediaSidecarInput {
+export interface MediaSidecarRequest extends Omit<MediaSidecarInput, "savedAt"> {
   format: Exclude<MediaSidecarFormat, "off">;
+  queuedAt: string;
 }
 
 export interface MediaSidecarArtifact {
@@ -70,15 +71,20 @@ export function buildMediaSidecar(
 
 export function mediaSidecarRequest(
   format: MediaSidecarFormat,
-  input: MediaSidecarInput
+  input: Omit<MediaSidecarInput, "savedAt"> & { queuedAt?: string }
 ): MediaSidecarRequest | undefined {
   if (format === "off") return undefined;
-  return { format, ...normalizeMediaSidecarInput(input) };
+  const normalized = normalizeMediaSidecarInput({
+    ...input,
+    savedAt: input.queuedAt ?? new Date().toISOString()
+  });
+  const { savedAt: queuedAt, ...metadata } = normalized;
+  return { format, ...metadata, queuedAt };
 }
 
 export function normalizeMediaSidecarRequest(value: unknown): MediaSidecarRequest | undefined {
   if (!value || typeof value !== "object") return undefined;
-  const record = value as Partial<MediaSidecarRequest>;
+  const record = value as Partial<MediaSidecarRequest> & { savedAt?: unknown };
   if (record.format !== "json" && record.format !== "text") return undefined;
   if (
     typeof record.mediaFilename !== "string" ||
@@ -86,24 +92,31 @@ export function normalizeMediaSidecarRequest(value: unknown): MediaSidecarReques
   ) {
     return undefined;
   }
-  return {
-    format: record.format,
-    ...normalizeMediaSidecarInput({
-      mediaFilename: record.mediaFilename,
-      kind: record.kind,
-      handle: typeof record.handle === "string" ? record.handle : null,
-      tweetId: typeof record.tweetId === "string" ? record.tweetId : null,
-      text: typeof record.text === "string" ? record.text : "",
-      permalink: typeof record.permalink === "string" ? record.permalink : null,
-      savedAt: typeof record.savedAt === "string" ? record.savedAt : new Date().toISOString()
-    })
-  };
+  const normalized = normalizeMediaSidecarInput({
+    mediaFilename: record.mediaFilename,
+    kind: record.kind,
+    handle: typeof record.handle === "string" ? record.handle : null,
+    tweetId: typeof record.tweetId === "string" ? record.tweetId : null,
+    text: typeof record.text === "string" ? record.text : "",
+    permalink: typeof record.permalink === "string" ? record.permalink : null,
+    savedAt:
+      typeof record.queuedAt === "string"
+        ? record.queuedAt
+        : typeof record.savedAt === "string"
+          ? record.savedAt
+          : new Date().toISOString()
+  });
+  const { savedAt: queuedAt, ...metadata } = normalized;
+  return { format: record.format, ...metadata, queuedAt };
 }
 
 /** Starts the local companion-file save. Blob downloads do not require a network permission. */
-export function saveMediaSidecar(request: MediaSidecarRequest | undefined): boolean {
+export function saveMediaSidecar(
+  request: MediaSidecarRequest | undefined,
+  savedAt = new Date().toISOString()
+): boolean {
   if (!request || typeof document === "undefined") return false;
-  const artifact = buildMediaSidecar(request.format, request);
+  const artifact = buildMediaSidecar(request.format, { ...request, savedAt });
   if (!artifact) return false;
   try {
     const blob = new Blob([new Uint8Array(artifact.data)], { type: artifact.contentType });

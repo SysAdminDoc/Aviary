@@ -20,7 +20,8 @@ before(async () => {
     entry,
     `export * from ${JSON.stringify(abs("src/features/filtering/rules.ts"))};
 export { compileFilters, decide } from ${JSON.stringify(abs("src/features/filtering/predicates.ts"))};
-export { DEFAULT_SETTINGS, normalizeSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};`,
+   export { DEFAULT_SETTINGS, cloneSettings, normalizeSettings, SETTINGS_KEY } from ${JSON.stringify(abs("src/platform/settings.ts"))};
+export { applyFilterRuleImportAtomic } from ${JSON.stringify(abs("src/features/filtering/rule-import.ts"))};`,
     "utf8"
   );
   const outfile = path.join(temp, "bundle.mjs");
@@ -203,6 +204,58 @@ test("a pasted rule set previews add and replace before either writes", () => {
   assert.deepEqual(preview.replace.lines, ["text contains crypto", "[Videos] dim: media is video"]);
   assert.equal(preview.replace.replaced, 2);
   assert.equal(preview.replace.total, 2);
+});
+
+test("two tabs add rules against the latest stored settings without clobbering each other", async () => {
+  let stored = mod.cloneSettings(mod.DEFAULT_SETTINGS);
+  stored.appearance.theme = "graphite";
+  stored.filter.rules = ["text contains existing"];
+  const storage = {
+    async get(key, fallback) {
+      assert.equal(key, mod.SETTINGS_KEY);
+      return structuredClone(stored ?? fallback);
+    },
+    async set(key, value) {
+      assert.equal(key, mod.SETTINGS_KEY);
+      await Promise.resolve();
+      stored = structuredClone(value);
+    },
+    async remove() {}
+  };
+  const first = { settings: mod.cloneSettings(stored), storage };
+  const second = { settings: mod.cloneSettings(stored), storage };
+
+  await Promise.all([
+    mod.applyFilterRuleImportAtomic(first, "text contains tab-a", "add"),
+    mod.applyFilterRuleImportAtomic(second, "text contains tab-b", "add")
+  ]);
+
+  assert.deepEqual(stored.filter.rules, [
+    "text contains existing",
+    "text contains tab-a",
+    "text contains tab-b"
+  ]);
+  assert.equal(stored.appearance.theme, "graphite", "an unrelated setting from another tab was lost");
+});
+
+test("a rejected rule-set write leaves the live settings untouched", async () => {
+  const settings = mod.cloneSettings(mod.DEFAULT_SETTINGS);
+  settings.filter.rules = ["text contains existing"];
+  const storage = {
+    async get() {
+      return mod.cloneSettings(settings);
+    },
+    async set() {
+      throw new Error("quota exceeded");
+    },
+    async remove() {}
+  };
+
+  await assert.rejects(
+    mod.applyFilterRuleImportAtomic({ settings, storage }, "text contains new", "add"),
+    /quota exceeded/
+  );
+  assert.deepEqual(settings.filter.rules, ["text contains existing"]);
 });
 
 test("portable imports report every bad source line before applying", () => {

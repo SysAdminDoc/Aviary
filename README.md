@@ -49,8 +49,8 @@ X's own filter is left to do its job.
 - Layout declutter and theme foundations: `src/features/layout/declutter.ts`, `src/features/appearance/theme.ts`
 - Filter engine and predicates: `src/features/filtering/filter-engine.ts`, `src/features/filtering/predicates.ts`
 - Hidden posts: `src/features/filtering/hidden-posts.ts` (store), `src/features/filtering/hidden-posts-feature.ts` (Hide button + collapse)
-- Media downloads: `src/features/media/` (`media-buttons.ts`, `urls.ts`, `template.ts`, `sidecar.ts`, `history.ts`, `queue.ts`, `downloader.ts`, `extract.ts`, `video-extract.ts`, `media-presentation.ts`, `batch-downloader.ts`)
-- Export core: `src/features/export/` (`export-feature.ts`, `collector.ts`, `formatters.ts`, `assets.ts`, `viewer.ts`, `zip-store.ts`, `zip-reader.ts`, `jobs.ts`, `query-discovery.ts`, `network-capture.ts`, `xlsx.ts`, `warc.ts`, `wacz.ts`, `external-targets.ts`, `types.ts`)
+- Media downloads: `src/features/media/` (`media-buttons.ts`, `urls.ts`, `template.ts`, `sidecar.ts`, `history.ts`, `queue.ts`, `download-watch.ts`, `downloader.ts`, `extract.ts`, `video-extract.ts`, `media-presentation.ts`, `batch-downloader.ts`)
+- Export core: `src/features/export/` (`export-feature.ts`, `collector.ts`, `formatters.ts`, `assets.ts`, `viewer.ts`, `zip-store.ts`, `zip-reader.ts`, `jobs.ts`, `query-discovery.ts`, `network-capture.ts`, `xlsx.ts`, `warc.ts`, `wacz.ts`, `wacz-worker-client.ts`, `external-targets.ts`, `types.ts`)
 - AI: `src/features/ai/command-menu.ts` (local prompt builder; optionally runs through `features/integrations/ai-provider.ts` when the user supplies an API key)
 - Integrations: `src/features/integrations/` (`aria2.ts`, `crosspost.ts`, `ai-provider.ts`, `semantic-search.ts`, `usage.ts`)
 - Library: `src/features/library/` (`user-notes.ts`, `link-unshorten.ts`, `snapshots.ts`, `snapshots-feature.ts`, `archive-import.ts`, `cleanup-preview.ts`, `cleanup-queue.ts`, `reports.ts`, `local-search.ts`, `bookmarks.ts`, `bookmarks-feature.ts`)
@@ -305,7 +305,9 @@ The Control Center "Export" section exposes:
 - **Preservation archive** keeps WARC and WACZ together. WARC is the raw record stream. WACZ 1.1.1
   adds a byte-sorted CDXJ index, a page list, and checksummed package metadata for direct use in
   [replayweb.page](https://replayweb.page/). The panel shows the expected WACZ size before download
-  because its WARC and index members stay uncompressed for reliable byte-range replay.
+  because its WARC and index members stay uncompressed for reliable byte-range replay. Assembly
+  runs in a dedicated local worker, can be cancelled while it reports progress, and refuses an
+  estimate above 256 MiB.
 
 Tweets are gathered passively from the DOM; no auth headers, cookies, or session tokens are ever read or persisted.
 

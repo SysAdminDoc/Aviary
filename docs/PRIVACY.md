@@ -62,7 +62,7 @@ schema, migration, usage, and quota status.
 | `aviary.diagnostics.v1` | Aviary's own warning and error text, the time, and the *names* of a message's detail fields, never their values | Let a failure from an earlier page load still be reportable; bounded to 50 entries and 7 days; clearable from Trust. |
 | `aviary.firstRun.v1` | A single flag recording that the first-run notice was dismissed | Stop showing the notice again on this profile. |
 | `aviary.media.history.v1` | Bounded media dedup records and short-lived hashed in-flight claims | Avoid duplicate downloads across tabs; failed claims expire or are removed, and **Clear download history** removes all of them. |
-| `aviary.media.queue.v1` | Queued, paused, failed, and completed media jobs. A job can include X media URLs, fallback URLs, a filename, media kind/id, and an opted-in sidecar request with bounded post text, account, post id, permalink, and save time. | Resume/retry media work and create the sidecar only after a confirmed save; completed history is separately clearable. |
+| `aviary.media.queue.v1` | Queued, paused, failed, opened, and completed media jobs. A job can include X media URLs, fallback URLs, a filename, media kind/id, a browser download id, and an opted-in sidecar request with bounded post text, account, post id, permalink, and queue time. | Resume/retry media work and create the sidecar only after a confirmed save; completed history is separately clearable. |
 | `aviary.media.last-download.v1` | Metadata for the last successful download | Make an explicitly enabled crosspost-media attachment possible. |
 | `aviary.audit.v1` | Capped local action log | Review activity; **Clear audit log** removes it. |
 | `aviary.export.checkpoints.v1` | Export jobs, captured records, and checkpoints | Resume capture/export and local search; retention limits can remove old jobs. |
@@ -113,8 +113,8 @@ and local library.
 
 WARC and WACZ preservation downloads contain the captured post text, original URLs, timestamps,
 and any media bytes already present in the selected records. Treat them as account data. Aviary
-builds both files locally and does not upload them. The replayweb.page action only opens the viewer;
-you decide which archive to load there.
+builds both files locally in a dedicated worker, applies a 256 MiB estimate guard, and does not
+upload them. The replayweb.page action only opens the viewer; you decide which archive to load there.
 
 ## Clearing and uninstalling
 

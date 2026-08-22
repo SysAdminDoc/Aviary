@@ -45,6 +45,7 @@ import {
 } from "../export/jobs";
 import { renderForExternalTarget } from "../export/external-targets";
 import { filterExpiredRules, filterRuleErrors } from "../filtering/filter-engine";
+import { applyFilterRuleImportAtomic } from "../filtering/rule-import";
 import { exportRuleSet, previewRuleSetImport, renewRuleLine } from "../filtering/rules";
 import { getSeenPostStore } from "../filtering/seen-posts-feature";
 import {
@@ -53,7 +54,11 @@ import {
   undoLastHide
 } from "../filtering/hidden-posts-feature";
 import { buildWarcArchive } from "../export/warc";
-import { buildWaczArchive, estimateWaczBytes } from "../export/wacz";
+import { estimateWaczBytes } from "../export/wacz";
+import {
+  buildWaczArchiveOffThread,
+  type WaczWorkerBuildOptions
+} from "../export/wacz-worker-client";
 import { pingAria2Version, removeAria2Download, tellActiveAria2 } from "../integrations/aria2";
 import { crosspost, readComposerText, type CrosspostRequest } from "../integrations/crosspost";
 import { SemanticIndex } from "../integrations/semantic-search";
@@ -225,6 +230,7 @@ export const controlCenterFeature: FeatureModule = {
           lastHistoryMatch: historySnapshot?.lastMatch?.kind ?? null,
           completed: snapshot?.completed ?? 0,
           failed: snapshot?.failed ?? 0,
+          opened: snapshot?.opened ?? 0,
           duplicate: snapshot?.duplicate ?? 0,
           running: snapshot?.running ?? 0,
           queued: snapshot?.queued ?? 0,
@@ -413,11 +419,8 @@ export const controlCenterFeature: FeatureModule = {
         return previewRuleSetImport(payload, currentRules);
       },
       async applyFilterRuleImport(payload, mode) {
-        const preview = previewRuleSetImport(payload, ctx.settings.filter.rules);
-        const plan = preview[mode];
+        const plan = await applyFilterRuleImportAtomic(ctx, payload, mode);
         if (plan.errors.length > 0) return plan;
-        ctx.settings.filter.rules = [...plan.lines];
-        await ctx.saveSettings();
         ctx.requestApply();
         void ctx.auditLog.record("settings.import", {
           kind: "filter-rules",
@@ -556,12 +559,14 @@ export const controlCenterFeature: FeatureModule = {
       async runCapturedMediaBatch(query) {
         const records = matchingCapturedRecords(query);
         const result = await runCapturedMediaBatch(ctx, records);
-        void ctx.auditLog.record("media.download", {
+        void ctx.auditLog.record("media.batch", {
           batch: true,
           source: "captured-library",
           query: query.slice(0, 512),
           total: result.total,
           downloaded: result.downloaded,
+          started: result.started,
+          opened: result.opened,
           duplicate: result.duplicate,
           failed: result.failed,
           cancelled: result.cancelled
@@ -569,6 +574,8 @@ export const controlCenterFeature: FeatureModule = {
         return {
           total: result.total,
           downloaded: result.downloaded,
+          started: result.started,
+          opened: result.opened,
           duplicate: result.duplicate,
           failed: result.failed,
           cancelled: result.cancelled
@@ -948,10 +955,12 @@ export const controlCenterFeature: FeatureModule = {
       },
       async runMediaBatch() {
         const result = await runMediaBatch(ctx, { maxItems: 100, surface: ctx.route.surface });
-        void ctx.auditLog.record("media.download", {
+        void ctx.auditLog.record("media.batch", {
           batch: true,
           total: result.total,
           downloaded: result.downloaded,
+          started: result.started,
+          opened: result.opened,
           duplicate: result.duplicate,
           failed: result.failed,
           cancelled: result.cancelled
@@ -959,6 +968,8 @@ export const controlCenterFeature: FeatureModule = {
         return {
           total: result.total,
           downloaded: result.downloaded,
+          started: result.started,
+          opened: result.opened,
           duplicate: result.duplicate,
           failed: result.failed,
           cancelled: result.cancelled
@@ -972,6 +983,8 @@ export const controlCenterFeature: FeatureModule = {
         return {
           total: result.total,
           downloaded: result.downloaded,
+          started: result.started,
+          opened: result.opened,
           duplicate: result.duplicate,
           failed: result.failed,
           cancelled: result.cancelled
@@ -982,6 +995,8 @@ export const controlCenterFeature: FeatureModule = {
         return {
           total: result.total,
           downloaded: result.downloaded,
+          started: result.started,
+          opened: result.opened,
           duplicate: result.duplicate,
           failed: result.failed,
           cancelled: result.cancelled
@@ -999,10 +1014,10 @@ export const controlCenterFeature: FeatureModule = {
       getWaczEstimate() {
         return estimateWaczBytes(collectAllRecords(getCheckpointStore()));
       },
-      async downloadWacz() {
+      async downloadWacz(options?: WaczWorkerBuildOptions) {
         rebuildSearchIndex();
         const records = collectAllRecords(getCheckpointStore());
-        const artifact = buildWaczArchive(records);
+        const artifact = await buildWaczArchiveOffThread(records, options);
         downloadBlob(artifact.data, artifact.filename, artifact.contentType);
         void ctx.auditLog.record("export.complete", {
           format: "wacz",

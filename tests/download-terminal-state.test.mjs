@@ -259,6 +259,53 @@ test("a userscript download, which has no handoff to wait on, still reports Save
   assert.deepEqual(observed.queue, ["completed"]);
 });
 
+test("a cross-origin anchor open never creates save history, metadata, or a downloaded marker", async () => {
+  const observed = await page.evaluate(async () => {
+    delete globalThis.chrome;
+    delete globalThis.GM_download;
+    const ctx = window.mediaCtx();
+    ctx.settings.media.sidecarFormat = "json";
+    const stored = new Map();
+    ctx.storage.get = async (key, fallback) =>
+      stored.has(key) ? structuredClone(stored.get(key)) : structuredClone(fallback);
+    ctx.storage.set = async (key, value) => {
+      stored.set(key, structuredClone(value));
+    };
+    const clicks = [];
+    const originalClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () {
+      clicks.push({ href: this.href, download: this.download });
+    };
+    try {
+      const button = await window.mount(ctx);
+      button.click();
+      await new Promise((resolve) => setTimeout(resolve, 160));
+      const historyState = stored.get("aviary.media.history.v1");
+      const result = {
+        label: button.textContent,
+        marker: button.getAttribute("data-av-downloaded"),
+        queue: window.queueStatuses(),
+        clicks,
+        historyEntries: historyState?.entries?.length ?? 0,
+        reservations: historyState?.reservations?.length ?? 0,
+        lastDownload: stored.has("aviary.media.last-download.v1")
+      };
+      await AviaryDownloads.mediaButtonsFeature.destroy(ctx);
+      return result;
+    } finally {
+      HTMLAnchorElement.prototype.click = originalClick;
+    }
+  });
+
+  assert.match(observed.label, /Opened/);
+  assert.equal(observed.marker, null);
+  assert.deepEqual(observed.queue, ["opened"]);
+  assert.equal(observed.clicks.length, 1, "an unconfirmed open also wrote a sidecar");
+  assert.equal(observed.historyEntries, 0);
+  assert.equal(observed.reservations, 0);
+  assert.equal(observed.lastDownload, false);
+});
+
 test("a terminal state that arrives before anyone waits for it is not lost", async () => {
   const outcomes = await page.evaluate(() => {
     const watcher = new AviaryDownloads.DownloadWatcher();

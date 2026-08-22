@@ -63,7 +63,7 @@ export function buildWaczArchive(
 
   return {
     filename: `aviary-${filenameTimestamp(generatedAt)}.wacz`,
-    contentType: "application/x-wacz",
+    contentType: "application/wacz",
     data
   };
 }

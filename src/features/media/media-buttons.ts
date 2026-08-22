@@ -840,7 +840,12 @@ async function handleDownload(
               : successLabel(media)
       ),
       icon: outcome.degraded ? "↗" : outcome.status === "started" ? "↓" : "✓",
-      className: outcome.status === "completed" ? "is-success" : "is-duplicate"
+      className:
+        outcome.status === "completed"
+          ? "is-success"
+          : outcome.status === "opened"
+            ? "is-opened"
+            : "is-duplicate"
     });
     if (outcome.status === "started") {
       button.title = ft(
@@ -869,7 +874,7 @@ interface MediaDownloadOutcome {
    * the wait gave up. It is deliberately not `completed`: nothing has proved the file is on disk,
    * so it is neither reported as saved nor written to the duplicate history.
    */
-  status: "completed" | "started" | "history-duplicate" | "aria2-duplicate";
+  status: "completed" | "started" | "opened" | "history-duplicate" | "aria2-duplicate";
   degraded: boolean;
   matchKind?: MediaMatchKind;
 }
@@ -992,7 +997,7 @@ async function performMediaDownload(
     permalink: identity.tweetId
       ? `https://x.com/${identity.handle ?? "i"}/status/${identity.tweetId}`
       : null,
-    savedAt: new Date().toISOString()
+    queuedAt: new Date().toISOString()
   });
   let fingerprint: MediaFingerprint = {
     identityHash: mediaIdentityHash(media.kind, target.url, target.mediaId)
@@ -1048,6 +1053,34 @@ async function performMediaDownload(
     ...(sidecar ? { sidecar } : {})
   });
   queue.mark(job.id, "running");
+  const completeConfirmedSave = async (via: string): Promise<void> => {
+    queue!.mark(job.id, "completed");
+    await rememberLastDownload(ctx.storage, {
+      url: target.url,
+      filename,
+      kind: media.kind
+    });
+    if (ctx.settings.media.downloadHistory) {
+      if (reservationToken) {
+        await history!.commit(reservationToken, fingerprint);
+        reservationToken = null;
+      } else {
+        await history!.record(fingerprint);
+      }
+    }
+    saveSidecarOrWarn(ctx, sidecar, filename);
+    ctx.diagnostics.info("Media saved", { filename, kind: media.kind });
+    void ctx.auditLog.record("media.download", { filename, kind: media.kind, via });
+  };
+  const failInterruptedSave = async (): Promise<void> => {
+    if (reservationToken) {
+      await history!.release(reservationToken);
+      reservationToken = null;
+    }
+    queue!.mark(job.id, "failed", "the browser interrupted this transfer");
+    ctx.diagnostics.warn("Media transfer was interrupted", { filename, kind: media.kind });
+    void ctx.auditLog.record("media.download.failed", { filename, kind: media.kind });
+  };
   try {
     const result = await downloader({
       url: target.url,
@@ -1066,55 +1099,56 @@ async function performMediaDownload(
       return { status: "aria2-duplicate", degraded: false };
     }
 
+    if (result.degraded) {
+      if (reservationToken) {
+        await history.release(reservationToken);
+        reservationToken = null;
+      }
+      queue.mark(job.id, "opened", "the browser opened this URL; a saved file was not confirmed");
+      ctx.diagnostics.info("Media opened without a confirmed save", {
+        filename,
+        kind: media.kind,
+        via: result.via
+      });
+      void ctx.auditLog.record("media.download.opened", {
+        filename,
+        kind: media.kind,
+        via: result.via
+      });
+      return { status: "opened", degraded: true };
+    }
+
     // The extension build answers when the browser accepts the request, not when the bytes land.
     // Reporting Saved there is what let an interrupted transfer both claim success and write the
     // duplicate-history entry that then refused the retry.
     if (result.pending && result.downloadId !== undefined) {
+      queue.trackDownload(job.id, result.downloadId);
       onStarted?.();
+      const terminalResult = downloadWatcher.terminal(result.downloadId);
       const terminal = await downloadWatcher.wait(result.downloadId);
       if (terminal === "interrupted") {
-        if (reservationToken) {
-          await history.release(reservationToken);
-          reservationToken = null;
-        }
-        queue.mark(job.id, "failed");
-        ctx.diagnostics.warn("Media transfer was interrupted", { filename, kind: media.kind });
-        void ctx.auditLog.record("media.download.failed", { filename, kind: media.kind });
+        await failInterruptedSave();
         throw new Error("The browser interrupted this transfer before it finished.");
       }
       if (terminal === "pending") {
-        // Still going. Leave the job running and say so rather than claiming either outcome.
+        // The visible button can stop waiting, but the terminal listener and durable download id
+        // stay alive so a large transfer cannot become a permanently running orphan.
+        void terminalResult.then(async (eventual) => {
+          if (eventual === "complete") {
+            await completeConfirmedSave(result.via);
+          } else if (eventual === "interrupted") {
+            await failInterruptedSave();
+          }
+        }).catch((error: unknown) => {
+          ctx.diagnostics.warn("Could not reconcile media transfer", errorDetails(error));
+        });
         ctx.diagnostics.info("Media transfer still running", { filename, kind: media.kind });
         return { status: "started", degraded: false };
       }
     }
 
-    queue.mark(job.id, "completed");
-    await rememberLastDownload(ctx.storage, {
-      url: target.url,
-      filename,
-      kind: media.kind
-    });
-    if (ctx.settings.media.downloadHistory) {
-      if (reservationToken) {
-        await history.commit(reservationToken, fingerprint);
-        reservationToken = null;
-      } else {
-        await history.record(fingerprint);
-      }
-    }
-    saveSidecarOrWarn(ctx, sidecar, filename);
-    ctx.diagnostics.info("Media saved", {
-      filename,
-      kind: media.kind,
-      degraded: result.degraded === true
-    });
-    void ctx.auditLog.record("media.download", {
-      filename,
-      kind: media.kind,
-      via: result.via
-    });
-    return { status: "completed", degraded: result.degraded === true };
+    await completeConfirmedSave(result.via);
+    return { status: "completed", degraded: false };
   } catch (error) {
     if (reservationToken) {
       await history.release(reservationToken);
@@ -1165,14 +1199,14 @@ function showDownloadError(
 interface ButtonFeedback {
   label: string;
   icon: string;
-  className: "is-active" | "is-success" | "is-duplicate" | "is-error";
+  className: "is-active" | "is-success" | "is-opened" | "is-duplicate" | "is-error";
   disabled?: boolean;
   busy?: boolean;
 }
 
 function setButtonFeedback(button: HTMLButtonElement, feedback: ButtonFeedback): void {
   clearButtonRestore(button);
-  button.classList.remove("is-active", "is-success", "is-duplicate", "is-error");
+  button.classList.remove("is-active", "is-success", "is-opened", "is-duplicate", "is-error");
   button.classList.add(feedback.className);
   button.dataset.state = feedback.className.slice(3);
   button.disabled = feedback.disabled === true;
@@ -1209,7 +1243,7 @@ function clearButtonRestore(button: HTMLButtonElement): void {
 }
 
 function restoreIdleButton(button: HTMLButtonElement): void {
-  button.classList.remove("is-active", "is-success", "is-duplicate", "is-error");
+  button.classList.remove("is-active", "is-success", "is-opened", "is-duplicate", "is-error");
   delete button.dataset.state;
   button.disabled = false;
   button.setAttribute("aria-busy", "false");
@@ -1362,7 +1396,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   flex: 0 0 auto;
   width: 7px;
   height: 7px;
-  border-radius: 999px;
+    border-radius: 4px;
   background: var(--av-media-success, rgb(120, 200, 130));
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--av-media-success, rgb(120, 200, 130)) 20%, transparent);
 }
@@ -1391,6 +1425,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   background: var(--av-media-success, rgb(120, 200, 130));
 }
 
+[${ACTION_ATTR}].is-opened,
 [${ACTION_ATTR}].is-duplicate {
   color: var(--av-text, rgb(239, 243, 244));
   background: color-mix(in srgb, var(--av-muted, rgb(113, 118, 123)) 46%, transparent);
@@ -1472,6 +1507,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   color: var(--av-media-success-text, rgb(206, 240, 210));
 }
 
+[${BUTTON_ATTR}].is-opened,
 [${BUTTON_ATTR}].is-duplicate {
   color: var(--av-muted, rgb(113, 118, 123));
 }

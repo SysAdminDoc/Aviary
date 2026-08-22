@@ -32,6 +32,8 @@ export interface BatchProgress {
   total: number;
   enqueued: number;
   downloaded: number;
+  started: number;
+  opened: number;
   duplicate: number;
   failed: number;
 }
@@ -93,8 +95,8 @@ export function getMediaBatchStatus(): MediaBatchStatus | undefined {
     return undefined;
   }
   const { id, status } = activeBatch;
-  const { total, enqueued, downloaded, duplicate, failed } = activeBatch.progress;
-  return { id, status, total, enqueued, downloaded, duplicate, failed };
+  const { total, enqueued, downloaded, started, opened, duplicate, failed } = activeBatch.progress;
+  return { id, status, total, enqueued, downloaded, started, opened, duplicate, failed };
 }
 
 export function pauseMediaBatch(): BatchActionResult {
@@ -217,6 +219,8 @@ async function runTasks(
     total: tasks.length,
     enqueued: 0,
     downloaded: 0,
+    started: 0,
+    opened: 0,
     duplicate: 0,
     failed: 0
   };
@@ -246,7 +250,7 @@ async function runTasks(
         tweetId: task.identity.tweetId,
         text: task.identity.text,
         permalink: task.permalink,
-        savedAt: new Date().toISOString()
+        queuedAt: new Date().toISOString()
       });
       const job = queue?.enqueue({
         url: task.target.url,
@@ -370,16 +374,32 @@ async function runTasks(
             });
             continue;
           }
+          if (result.degraded) {
+            if (reservationToken && history) {
+              await history.release(reservationToken);
+              reservationToken = null;
+            }
+            if (job) {
+              queue?.mark(job.id, "opened", "the browser opened this URL; a saved file was not confirmed");
+            }
+            progress.opened += 1;
+            void ctx.auditLog.record("media.download.opened", {
+              filename,
+              kind: task.kind,
+              via: result.via,
+              batch: true
+            });
+            continue;
+          }
           if (result.pending && result.downloadId !== undefined) {
-            // A batch reports handoffs -- waiting for each transfer in turn would turn a
-            // two-hundred-file run into a serial one. The queue and the duplicate index still
-            // report outcomes: both are settled when the browser says what happened, so an
-            // interrupted transfer never becomes a history entry that refuses the retry.
+            // The batch can return after the handoff, but the terminal listener remains active.
+            // Only that listener is allowed to count, audit, or write metadata for a saved file.
             const jobId = job?.id;
             const activeReservation = reservationToken;
             reservationToken = null;
+            if (jobId) queue?.trackDownload(jobId, result.downloadId);
             void sharedDownloadWatcher()
-              .wait(result.downloadId)
+              .terminal(result.downloadId)
               .then(async (terminal) => {
                 if (terminal === "complete") {
                   if (jobId) queue?.mark(jobId, "completed");
@@ -388,6 +408,12 @@ async function runTasks(
                     else await history.record(fingerprint);
                   }
                   saveSidecarOrWarn(ctx, task.sidecar, filename);
+                  void ctx.auditLog.record("media.download", {
+                    filename,
+                    kind: task.kind,
+                    via: result.via,
+                    batch: true
+                  });
                   return;
                 }
                 if (terminal === "interrupted") {
@@ -396,6 +422,11 @@ async function runTasks(
                   ctx.diagnostics.warn("Batch media transfer was interrupted", {
                     filename,
                     kind: task.kind
+                  });
+                  void ctx.auditLog.record("media.download.failed", {
+                    filename,
+                    kind: task.kind,
+                    batch: true
                   });
                 }
               })
@@ -407,6 +438,8 @@ async function runTasks(
                   error: String((error as Error)?.message ?? error)
                 });
               });
+            progress.started += 1;
+            continue;
           } else {
             if (job) queue?.mark(job.id, "completed");
             if (ctx.settings.media.downloadHistory && history) {
@@ -481,6 +514,8 @@ async function runPersistedJobs(
     total: jobs.length,
     enqueued: 0,
     downloaded: 0,
+    started: 0,
+    opened: 0,
     duplicate: 0,
     failed: 0
   };
@@ -563,6 +598,21 @@ async function runPersistedJobs(
           });
           continue;
         }
+        if (result.degraded) {
+          if (reservationToken && history) {
+            await history.release(reservationToken);
+            reservationToken = null;
+          }
+          queue.mark(job.id, "opened", "the browser opened this URL; a saved file was not confirmed");
+          progress.opened += 1;
+          void ctx.auditLog.record("media.download.opened", {
+            filename: job.filename,
+            batch: true,
+            resumed: true,
+            via: result.via
+          });
+          continue;
+        }
         if (result.pending && result.downloadId !== undefined) {
           // Resumed jobs settle the same way a fresh batch does: the queue entry stays running
           // until the browser reports the transfer's terminal state, so a resumed job that fails
@@ -571,8 +621,9 @@ async function runPersistedJobs(
           const activeReservation = reservationToken;
           const activeFingerprint = fingerprint;
           reservationToken = null;
+          queue.trackDownload(jobId, result.downloadId);
           void sharedDownloadWatcher()
-            .wait(result.downloadId)
+            .terminal(result.downloadId)
             .then(async (terminal) => {
               if (terminal === "complete") {
                 queue.mark(jobId, "completed");
@@ -584,9 +635,20 @@ async function runPersistedJobs(
                   }
                 }
                 saveSidecarOrWarn(ctx, job.sidecar, job.filename);
+                void ctx.auditLog.record("media.download", {
+                  filename: job.filename,
+                  batch: true,
+                  resumed: true,
+                  via: result.via
+                });
               } else if (terminal === "interrupted") {
                 if (activeReservation && history) await history.release(activeReservation);
                 queue.mark(jobId, "failed", "the browser interrupted this transfer");
+                void ctx.auditLog.record("media.download.failed", {
+                  filename: job.filename,
+                  batch: true,
+                  resumed: true
+                });
               }
             })
             .catch(async (error) => {
@@ -597,6 +659,8 @@ async function runPersistedJobs(
                 error: String((error as Error)?.message ?? error)
               });
             });
+          progress.started += 1;
+          continue;
         } else {
           queue.mark(job.id, "completed");
           if (ctx.settings.media.downloadHistory && history && fingerprint) {

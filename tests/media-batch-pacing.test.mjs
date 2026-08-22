@@ -323,6 +323,167 @@ test("a captured-library batch checkpoints every task before media handoff and o
   assert.match(observed.handed[1], /video199\.mp4/);
 });
 
+test("a failed queue checkpoint aborts before the first media handoff", async () => {
+  const observed = await page.evaluate(async () => {
+    const settings = AviaryBatch.cloneSettings(AviaryBatch.DEFAULT_SETTINGS);
+    settings.media.downloadHistory = false;
+    let handed = 0;
+    globalThis.chrome = {
+      runtime: {
+        async sendMessage() {
+          handed += 1;
+          return { ok: true };
+        }
+      }
+    };
+    const storage = {
+      async get(_key, fallback) {
+        return structuredClone(fallback);
+      },
+      async set(key) {
+        if (key === "aviary.media.queue.v1") throw new Error("quota exceeded");
+      },
+      async remove() {}
+    };
+    const ctx = {
+      settings,
+      route: { surface: "home", path: "/home" },
+      storage,
+      limiter: { async waitForToken() {} },
+      auditLog: { async record() {} },
+      diagnostics: { info() {}, warn() {}, error() {} }
+    };
+    const records = [{
+      tweetId: "checkpoint-failure",
+      handle: "alice",
+      text: "captured",
+      capturedAt: "2026-08-21T12:00:00.000Z",
+      media: [{ kind: "photo", url: "https://pbs.twimg.com/media/Checkpoint?format=jpg&name=small" }]
+    }];
+    let error = "";
+    try {
+      await AviaryBatch.mediaButtonsFeature.init(ctx);
+      await AviaryBatch.runCapturedMediaBatch(ctx, records);
+    } catch (caught) {
+      error = String(caught?.message ?? caught);
+    } finally {
+      await AviaryBatch.mediaButtonsFeature.destroy(ctx);
+    }
+    return { error, handed };
+  });
+
+  assert.match(observed.error, /quota exceeded/);
+  assert.equal(observed.handed, 0, "the downloader ran without a durable checkpoint");
+});
+
+test("a pending batch handoff stays durable and becomes saved only on terminal completion", async () => {
+  const observed = await page.evaluate(async () => {
+    const settings = AviaryBatch.cloneSettings(AviaryBatch.DEFAULT_SETTINGS);
+    settings.media.downloadHistory = false;
+    settings.media.sidecarFormat = "text";
+    const stored = new Map();
+    const storage = {
+      async get(key, fallback) {
+        return stored.has(key) ? structuredClone(stored.get(key)) : structuredClone(fallback);
+      },
+      async set(key, value) {
+        stored.set(key, structuredClone(value));
+      },
+      async remove(key) {
+        stored.delete(key);
+      }
+    };
+    const listeners = new Set();
+    globalThis.chrome = {
+      runtime: {
+        id: "fixture",
+        onMessage: {
+          addListener(listener) { listeners.add(listener); },
+          removeListener(listener) { listeners.delete(listener); }
+        },
+        async sendMessage(message) {
+          if (message?.type === "AVIARY_DOWNLOAD") return { ok: true, id: 701, pending: true };
+          return { ok: true };
+        }
+      }
+    };
+    const audits = [];
+    const sidecarBlobs = [];
+    const originalClick = HTMLAnchorElement.prototype.click;
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    HTMLAnchorElement.prototype.click = function () {};
+    URL.createObjectURL = (blob) => {
+      sidecarBlobs.push(blob);
+      return "blob:batch-sidecar";
+    };
+    URL.revokeObjectURL = () => {};
+    const ctx = {
+      settings,
+      route: { surface: "home", path: "/home" },
+      storage,
+      limiter: { async waitForToken() {} },
+      auditLog: { async record(action, detail) { audits.push({ action, detail }); } },
+      diagnostics: { info() {}, warn() {}, error() {} }
+    };
+    const records = [{
+      tweetId: "pending-batch",
+      handle: "alice",
+      text: "captured",
+      capturedAt: "2026-08-21T12:00:00.000Z",
+      permalink: "https://x.com/alice/status/pending-batch",
+      media: [{ kind: "photo", url: "https://pbs.twimg.com/media/Pending?format=jpg&name=small" }]
+    }];
+    try {
+      await AviaryBatch.mediaButtonsFeature.init(ctx);
+      const result = await AviaryBatch.runCapturedMediaBatch(ctx, records);
+      const beforeJob = structuredClone(AviaryBatch.getMediaQueue().snapshot().recent.at(-1));
+      const persistedBefore = stored.get("aviary.media.queue.v1")?.jobs?.at(-1);
+      const before = {
+        result,
+        job: beforeJob,
+        persistedDownloadId: persistedBefore?.downloadId,
+        sidecars: sidecarBlobs.length,
+        saves: audits.filter((entry) => entry.action === "media.download").length
+      };
+
+      const reportedAt = Date.now();
+      for (const listener of [...listeners]) {
+        listener({ type: "AVIARY_DOWNLOAD_STATE", id: 701, state: "complete" }, {}, () => {});
+      }
+      await new Promise((resolve) => setTimeout(resolve, 120));
+      const sidecarText = sidecarBlobs.length > 0 ? await sidecarBlobs[0].text() : "";
+      const savedAt = /^Saved: (.+)$/m.exec(sidecarText)?.[1] ?? "";
+      const after = {
+        job: AviaryBatch.getMediaQueue().snapshot().recent.at(-1),
+        sidecars: sidecarBlobs.length,
+        saves: audits.filter((entry) => entry.action === "media.download").length,
+        savedAt: Date.parse(savedAt),
+        reportedAt
+      };
+      await AviaryBatch.mediaButtonsFeature.destroy(ctx);
+      return { before, after };
+    } finally {
+      HTMLAnchorElement.prototype.click = originalClick;
+      URL.createObjectURL = originalCreate;
+      URL.revokeObjectURL = originalRevoke;
+    }
+  });
+
+  assert.equal(observed.before.result.downloaded, 0);
+  assert.equal(observed.before.result.started, 1);
+  assert.equal(observed.before.job.status, "running");
+  assert.equal(observed.before.job.downloadId, 701);
+  assert.equal(observed.before.persistedDownloadId, 701);
+  assert.equal(observed.before.sidecars, 0);
+  assert.equal(observed.before.saves, 0);
+  assert.equal(observed.after.job.status, "completed");
+  assert.equal(observed.after.job.downloadId, undefined);
+  assert.equal(observed.after.sidecars, 1);
+  assert.equal(observed.after.saves, 1);
+  assert.ok(observed.after.savedAt >= observed.after.reportedAt, "the sidecar kept its queue timestamp");
+});
+
 test("a second batch is rejected before it can mutate the durable queue", async () => {
   const observed = await page.evaluate(async () => {
     const settings = AviaryBatch.cloneSettings(AviaryBatch.DEFAULT_SETTINGS);

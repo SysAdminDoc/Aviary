@@ -24,8 +24,8 @@ export const DOWNLOAD_TERMINAL_TIMEOUT_MS = 300_000;
 const MAX_BUFFERED = 64;
 
 interface Waiter {
+  promise: Promise<DownloadWatchOutcome>;
   resolve(outcome: DownloadWatchOutcome): void;
-  timer: ReturnType<typeof setTimeout>;
 }
 
 export class DownloadWatcher {
@@ -56,7 +56,6 @@ export class DownloadWatcher {
     }
     this.#listener = undefined;
     for (const waiter of this.#waiting.values()) {
-      clearTimeout(waiter.timer);
       // Nothing is left to report the outcome, so the honest answer is that it is still going.
       waiter.resolve("pending");
     }
@@ -69,7 +68,6 @@ export class DownloadWatcher {
     const waiter = this.#waiting.get(id);
     if (waiter) {
       this.#waiting.delete(id);
-      clearTimeout(waiter.timer);
       waiter.resolve(state);
       return;
     }
@@ -83,6 +81,21 @@ export class DownloadWatcher {
   }
 
   wait(id: number, timeoutMs = DOWNLOAD_TERMINAL_TIMEOUT_MS): Promise<DownloadWatchOutcome> {
+    const terminal = this.terminal(id);
+    return new Promise<DownloadWatchOutcome>((resolve) => {
+      const timer = setTimeout(() => resolve("pending"), timeoutMs);
+      void terminal.then((outcome) => {
+        clearTimeout(timer);
+        resolve(outcome);
+      });
+    });
+  }
+
+  /**
+   * Keeps listening until the browser reports a terminal result or the feature is destroyed.
+   * Unlike `wait`, this promise does not disappear when the UI switches from busy to Started.
+   */
+  terminal(id: number): Promise<DownloadWatchOutcome> {
     const already = this.#settled.get(id);
     if (already) {
       this.#settled.delete(id);
@@ -90,17 +103,14 @@ export class DownloadWatcher {
     }
     const existing = this.#waiting.get(id);
     if (existing) {
-      // Two callers on one id would mean two buttons for one file; the second gets no answer of
-      // its own rather than stealing the first one's.
-      return Promise.resolve("pending");
+      return existing.promise;
     }
-    return new Promise<DownloadWatchOutcome>((resolve) => {
-      const timer = setTimeout(() => {
-        this.#waiting.delete(id);
-        resolve("pending");
-      }, timeoutMs);
-      this.#waiting.set(id, { resolve, timer });
+    let settle!: (outcome: DownloadWatchOutcome) => void;
+    const promise = new Promise<DownloadWatchOutcome>((resolve) => {
+      settle = resolve;
     });
+    this.#waiting.set(id, { promise, resolve: settle });
+    return promise;
   }
 }
 

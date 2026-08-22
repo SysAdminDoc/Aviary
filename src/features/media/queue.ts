@@ -11,6 +11,7 @@ export type JobStatus =
   | "cancelled"
   | "completed"
   | "failed"
+  | "opened"
   | "duplicate";
 
 export interface DownloadJob {
@@ -20,6 +21,8 @@ export interface DownloadJob {
   filename: string;
   kind?: "photo" | "video" | "thumbnail";
   mediaId?: string | null;
+  /** Browser download id retained while a handoff awaits terminal confirmation. */
+  downloadId?: number;
   sidecar?: MediaSidecarRequest;
   status: JobStatus;
   error?: string;
@@ -34,6 +37,7 @@ export interface QueueSnapshot {
   queued: number;
   completed: number;
   failed: number;
+  opened: number;
   duplicate: number;
   paused: number;
   cancelled: number;
@@ -96,8 +100,7 @@ export class DownloadQueue {
 
   /** Persists every queued item before a batch starts its first external handoff. */
   async checkpoint(): Promise<void> {
-    this.#persist();
-    await this.flush();
+    await this.#queuePersist();
   }
 
   enqueue(job: Omit<DownloadJob, "id" | "status">): DownloadJob {
@@ -121,13 +124,15 @@ export class DownloadQueue {
     if (status === "running" && !job.startedAt) {
       job.startedAt = new Date().toISOString();
     }
-    if (status === "completed" || status === "failed" || status === "duplicate") {
+    if (status === "completed" || status === "failed" || status === "opened" || status === "duplicate") {
       job.finishedAt = new Date().toISOString();
       job.resumeOnBoot = false;
+      delete job.downloadId;
     }
     if (status === "cancelled") {
       job.finishedAt = new Date().toISOString();
       job.resumeOnBoot = false;
+      delete job.downloadId;
     }
     job.status = status;
     if (error) {
@@ -139,9 +144,17 @@ export class DownloadQueue {
     this.#notify();
   }
 
+  trackDownload(jobId: string, downloadId: number): void {
+    const job = this.#jobs.find((entry) => entry.id === jobId);
+    if (!job || !Number.isSafeInteger(downloadId) || downloadId < 0) return;
+    job.downloadId = downloadId;
+    this.#persist();
+    this.#notify();
+  }
+
   pause(jobId: string): boolean {
     const job = this.#jobs.find((entry) => entry.id === jobId);
-    if (!job || job.status === "completed" || job.status === "failed" || job.status === "duplicate" || job.status === "cancelled") return false;
+    if (!job || job.status === "completed" || job.status === "failed" || job.status === "opened" || job.status === "duplicate" || job.status === "cancelled") return false;
     job.status = "paused";
     job.resumeOnBoot = false;
     job.error = "Paused by user.";
@@ -163,7 +176,7 @@ export class DownloadQueue {
 
   cancel(jobId: string): boolean {
     const job = this.#jobs.find((entry) => entry.id === jobId);
-    if (!job || job.status === "completed" || job.status === "failed" || job.status === "duplicate" || job.status === "cancelled") return false;
+    if (!job || job.status === "completed" || job.status === "failed" || job.status === "opened" || job.status === "duplicate" || job.status === "cancelled") return false;
     job.status = "cancelled";
     job.resumeOnBoot = false;
     job.finishedAt = new Date().toISOString();
@@ -201,6 +214,7 @@ export class DownloadQueue {
       running: 0,
       completed: 0,
       failed: 0,
+      opened: 0,
       duplicate: 0,
       paused: 0,
       cancelled: 0
@@ -214,6 +228,7 @@ export class DownloadQueue {
       running: counts.running,
       completed: counts.completed,
       failed: counts.failed,
+      opened: counts.opened,
       duplicate: counts.duplicate,
       paused: counts.paused,
       cancelled: counts.cancelled,
@@ -253,16 +268,20 @@ export class DownloadQueue {
   }
 
   #persist(): void {
-    if (!this.#storage) return;
+    void this.#queuePersist();
+  }
+
+  #queuePersist(): Promise<void> {
+    if (!this.#storage) return Promise.resolve();
     const snapshot: QueueState = {
       sequence: this.#seq,
       jobs: this.#jobs.map((job) => ({ ...job }))
     };
-    this.#persistTail = this.#persistTail
-      .then(() => this.#storage!.set(MEDIA_QUEUE_KEY, snapshot))
-      .catch((error) => {
-        this.#onPersistError?.(error);
-      });
+    const write = this.#persistTail.then(() => this.#storage!.set(MEDIA_QUEUE_KEY, snapshot));
+    this.#persistTail = write.catch((error) => {
+      this.#onPersistError?.(error);
+    });
+    return write;
   }
 }
 
@@ -273,7 +292,7 @@ function isDownloadJob(value: unknown): value is DownloadJob {
 }
 
 function normalizeJob(value: DownloadJob): DownloadJob {
-  const valid = value.status === "queued" || value.status === "running" || value.status === "completed" || value.status === "failed" || value.status === "duplicate" || value.status === "paused" || value.status === "cancelled";
+  const valid = value.status === "queued" || value.status === "running" || value.status === "completed" || value.status === "failed" || value.status === "opened" || value.status === "duplicate" || value.status === "paused" || value.status === "cancelled";
   const sidecar = normalizeMediaSidecarRequest(value.sidecar);
   return {
     id: value.id,
@@ -295,6 +314,9 @@ function normalizeJob(value: DownloadJob): DownloadJob {
         ? { mediaId: null }
         : {}),
     ...(sidecar ? { sidecar } : {}),
+    ...(typeof value.downloadId === "number" && Number.isSafeInteger(value.downloadId) && value.downloadId >= 0
+      ? { downloadId: value.downloadId }
+      : {}),
     status: valid ? value.status : "failed",
     ...(typeof value.error === "string" ? { error: value.error } : {}),
     ...(typeof value.startedAt === "string" ? { startedAt: value.startedAt } : {}),

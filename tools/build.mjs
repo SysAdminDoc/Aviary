@@ -97,13 +97,35 @@ function decodeHtmlEntities(value) {
 await rm(dist, { force: true, recursive: true });
 await mkdir(dist, { recursive: true });
 
+// WACZ assembly hashes and copies every captured byte. Inline a dedicated worker into both
+// delivery targets so the export never needs a hosted script and never runs that work on X's UI
+// thread. The source is minified only to avoid duplicating a large readable bundle inside another.
+const waczWorkerBuild = await esbuild.build({
+  entryPoints: [path.join(root, "src/entrypoints/wacz-worker.ts")],
+  bundle: true,
+  write: false,
+  format: "iife",
+  target: "es2022",
+  platform: "browser",
+  minify: true,
+  legalComments: "none"
+});
+const waczWorkerSource = waczWorkerBuild.outputFiles[0]?.text;
+if (!waczWorkerSource) {
+  throw new Error("WACZ worker build produced no JavaScript");
+}
+const contentDefines = {
+  __AVIARY_VERSION__: JSON.stringify(pkg.version),
+  __AVIARY_WACZ_WORKER_SOURCE__: JSON.stringify(waczWorkerSource)
+};
+
 await esbuild.build({
   entryPoints: [path.join(root, "src/entrypoints/userscript.ts")],
   outfile: path.join(dist, "aviary.user.js"),
   bundle: true,
   format: "iife",
   globalName: "Aviary",
-  define: { __AVIARY_VERSION__: JSON.stringify(pkg.version) },
+  define: contentDefines,
   target: "es2022",
   platform: "browser",
   minify: false,
@@ -126,7 +148,7 @@ for (const target of ["extension-chrome", "extension-firefox"]) {
     outfile: path.join(targetDir, "content.js"),
     bundle: true,
     format: "iife",
-    define: { __AVIARY_VERSION__: JSON.stringify(pkg.version) },
+    define: contentDefines,
     target: "es2022",
     platform: "browser",
     minify: false,

@@ -44,9 +44,10 @@
   counters together.
 
 - **The delivery-size ceiling now includes the deeper local media, filtering, and preservation
-  workflows.** The main bundle allowance is 2.265 MB after adding media fingerprints, resumable
+  workflows.** The main bundle allowance is 2.35 MB after adding media fingerprints, resumable
   captured-media batches, portable rules in eight languages, offline archive repair, hybrid search,
-  and the WARC/WACZ writer. The shipped bundle is 2.25 MB, leaving a narrow margin for later growth.
+  and the WARC/WACZ writer plus its dedicated worker. The worker keeps archive assembly off X's
+  reading thread and rejects an export estimate above 256 MiB before allocating it.
 
 - **Snapshots & Archive reports every repair source.** The panel separates links found in the ZIP
   from links found in local captures, counts resolved and unresolved participant IDs, and confirms
@@ -58,6 +59,20 @@
   embedding-provider request.
 
 ### Fixed
+
+- **Media handoffs no longer masquerade as completed downloads.** Cross-origin fallback now reports
+  Opened and releases its duplicate claim. Extension transfers stay Started until a terminal
+  browser event, persist the download id for reconciliation, and write history, markers, and
+  sidecars only after completion. Queue checkpoint failures stop a batch before its first handoff.
+
+- **Portable rule imports use the latest stored settings.** The read, preview, and write now share a
+  storage lock, so two tabs preserve each other's changes and a failed write leaves live settings
+  untouched.
+
+- **Preservation records remain truthful and replay-safe.** WARC ids include a deterministic
+  occurrence number, declared media types are not promoted to payload facts, and WACZ uses its
+  standard media type. Archive assembly runs in an inlined worker with progress, cancellation, and
+  a 256 MiB estimate guard.
 
 - **A duplicate check can no longer hold the Download action behind repeated network waits.** Image
   fingerprinting gets one short deadline across every quality candidate, including response-body

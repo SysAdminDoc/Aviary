@@ -156,7 +156,7 @@ test("preservation actions show cost before download and keep one compact contro
     wacz.click();
     await new Promise((resolve) => setTimeout(resolve, 0));
     const during = {
-      disabled: buttons.every((button) => button.disabled),
+      disabled: wacz.disabled,
       busy: wacz.getAttribute("aria-busy")
     };
     finishWacz();
@@ -349,7 +349,15 @@ test("Library downloads use the visible query and keep it when the page is revis
       getCapturedMediaCount: (query) => query.includes("alice") ? 12 : 40,
       runCapturedMediaBatch: async (query) => {
         calls.push(query);
-        return { total: 12, downloaded: 10, duplicate: 2, failed: 0, cancelled: false };
+        return {
+          total: 12,
+          downloaded: 8,
+          started: 1,
+          opened: 1,
+          duplicate: 2,
+          failed: 0,
+          cancelled: false
+        };
       }
     });
     const shadow = document.querySelector("#av-control-center").shadowRoot;
@@ -379,7 +387,7 @@ test("Library downloads use the visible query and keep it when the page is revis
 
   assert.deepEqual(result.calls, ["account:alice has:media"]);
   assert.equal(result.count, "12 media");
-  assert.match(result.status, /10 saved \/ 2 dup \/ 0 failed/);
+  assert.match(result.status, /8 saved \/ 1 running \/ 1 opened \/ 2 dup \/ 0 failed/);
   assert.equal(result.restored, "account:alice has:media");
 });
 

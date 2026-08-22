@@ -3371,7 +3371,7 @@ html.av-reduce-motion *::after {
           void ctx.options.runCapturedMediaBatch(query).then((result) => {
             updateMediaCount();
             ctx.setStatus(
-              result.cancelled ? `Batch cancelled: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).` : `Batch finished: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
+              result.cancelled ? `Batch cancelled: ${result.downloaded} saved / ${result.started} running / ${result.opened} opened / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).` : `Batch finished: ${result.downloaded} saved / ${result.started} running / ${result.opened} opened / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
             );
           }).catch((error) => {
             ctx.options.onError("Captured media download failed", error);
@@ -4027,21 +4027,48 @@ html.av-reduce-motion *::after {
     if (ctx.options.downloadWacz) {
       const wacz = ctx.button("WACZ", "av-button av-button-primary");
       archiveButtons.push(wacz);
+      let waczController;
+      const cancelWacz = ctx.button("Cancel", "av-button av-button-secondary");
+      cancelWacz.type = "button";
+      cancelWacz.hidden = true;
+      cancelWacz.setAttribute("aria-hidden", "true");
+      cancelWacz.addEventListener("click", () => {
+        waczController?.abort();
+        cancelWacz.disabled = true;
+      });
       wacz.addEventListener("click", () => {
         void run(wacz, ctx.t("Building WACZ archive\u2026"), async () => {
+          waczController = new AbortController();
+          cancelWacz.hidden = false;
+          cancelWacz.removeAttribute("aria-hidden");
           try {
-            const result = await ctx.options.downloadWacz();
+            const result = await ctx.options.downloadWacz({
+              signal: waczController.signal,
+              onProgress: (progress) => {
+                ctx.setStatus(`${ctx.t("Building WACZ archive\u2026")} ${Math.round(progress * 100)}%`);
+              }
+            });
             ctx.setStatusCopy("WACZ downloaded ({records} records, {size}).", {
               records: result.records,
               size: ctx.formatBytes(result.bytes)
             });
           } catch (error) {
-            ctx.options.onError("WACZ export failed", error);
-            ctx.setStatus("WACZ export failed.");
+            if (error instanceof DOMException && error.name === "AbortError") {
+              ctx.setStatus(ctx.t("Export job cancelled."));
+            } else {
+              ctx.options.onError("WACZ export failed", error);
+              ctx.setStatus(error instanceof Error ? error.message : "WACZ export failed.");
+            }
+          } finally {
+            waczController = void 0;
+            cancelWacz.hidden = true;
+            cancelWacz.setAttribute("aria-hidden", "true");
+            cancelWacz.disabled = false;
           }
         });
       });
       actions.append(wacz);
+      actions.append(cancelWacz);
     }
     const replay = ctx.el("a", "av-button av-button-secondary av-replay-link", ctx.t("Open replayweb.page"));
     replay.href = "https://replayweb.page/";
@@ -4195,7 +4222,7 @@ html.av-reduce-motion *::after {
               const result = await ctx.options.runMediaBatch();
               ctx.render();
               ctx.setStatus(
-                result.cancelled ? `Batch cancelled: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).` : `Batch finished: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
+                result.cancelled ? `Batch cancelled: ${result.downloaded} saved / ${result.started} running / ${result.opened} opened / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).` : `Batch finished: ${result.downloaded} saved / ${result.started} running / ${result.opened} opened / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
               );
             } catch (error) {
               ctx.options.onError("Batch download failed", error);
@@ -4210,14 +4237,14 @@ html.av-reduce-motion *::after {
       rows.push(
         ctx.dataRow(
           "Download status",
-          `${status.running} running / ${status.queued ?? 0} queued / ${status.paused ?? 0} paused / ${status.completed} done / ${status.duplicate} dup / ${status.failed} failed`
+          `${status.running} running / ${status.queued ?? 0} queued / ${status.paused ?? 0} paused / ${status.completed} done / ${status.opened ?? 0} opened / ${status.duplicate} dup / ${status.failed} failed`
         )
       );
       if (status.batch) {
         rows.push(
           ctx.dataRow(
             "Active media batch",
-            `${status.batch.status} \xB7 ${status.batch.downloaded} saved / ${status.batch.duplicate} dup / ${status.batch.failed} failed of ${status.batch.total}`
+            `${status.batch.status} \xB7 ${status.batch.downloaded} saved / ${status.batch.started} running / ${status.batch.opened} opened / ${status.batch.duplicate} dup / ${status.batch.failed} failed of ${status.batch.total}`
           )
         );
       }
@@ -4290,7 +4317,7 @@ html.av-reduce-motion *::after {
           const result = await ctx.options.resumePendingMediaJobs();
           ctx.render();
           ctx.setStatus(
-            result.cancelled ? `Queued media recovery cancelled after ${result.downloaded} saved.` : `Queued media recovery finished: ${result.downloaded} saved / ${result.failed} failed.`
+            result.cancelled ? `Queued media recovery cancelled after ${result.downloaded} saved, ${result.started} still running, and ${result.opened} opened.` : `Queued media recovery finished: ${result.downloaded} saved / ${result.started} running / ${result.opened} opened / ${result.failed} failed.`
           );
         })
       );
@@ -4301,7 +4328,7 @@ html.av-reduce-motion *::after {
           const result = await ctx.options.retryFailedMediaJobs();
           ctx.render();
           ctx.setStatus(
-            result.total === 0 ? "No failed media jobs to retry." : `Media retry finished: ${result.downloaded} saved / ${result.failed} failed.`
+            result.total === 0 ? "No failed media jobs to retry." : `Media retry finished: ${result.downloaded} saved / ${result.started} running / ${result.opened} opened / ${result.failed} failed.`
           );
         })
       );
@@ -14726,6 +14753,23 @@ ${target}:focus-within { ${REVEALED} }`);
     return blocks;
   }
 
+  // src/features/filtering/rule-import.ts
+  async function applyFilterRuleImportAtomic(ctx, payload, mode) {
+    return withStorageLock(SETTINGS_KEY, async () => {
+      const latest = normalizeSettings(
+        await ctx.storage.get(SETTINGS_KEY, cloneSettings(ctx.settings))
+      );
+      const plan = previewRuleSetImport(payload, latest.filter.rules)[mode];
+      if (plan.errors.length > 0) return plan;
+      const next = cloneSettings(latest);
+      next.filter.rules = [...plan.lines];
+      const normalized = normalizeSettings(next);
+      await ctx.storage.set(SETTINGS_KEY, normalized);
+      ctx.settings.filter.rules = [...normalized.filter.rules];
+      return plan;
+    });
+  }
+
   // src/features/filtering/seen-posts.ts
   var SEEN_POSTS_KEY = "aviary.seenPosts.v1";
   var SEEN_POSTS_LIMIT = 4e3;
@@ -15576,8 +15620,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
     const index = [];
     const pages = [];
     let offset = 0;
+    let occurrence = 0;
     const append = (input, indexed) => {
-      const block = formatRecord(input);
+      const block = formatRecord({ ...input, occurrence: occurrence++ });
       blocks.push(block);
       if (indexed) index.push({ ...indexed, offset, length: block.length });
       offset += block.length;
@@ -15662,8 +15707,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
               body: responseBlock,
               recordType: "response",
               recordedAt: mediaRecordedAt,
-              payloadDigest,
-              extraHeaders: { "WARC-Identified-Payload-Type": mime }
+              payloadDigest
             }, {
               url: sourceUrl,
               timestamp: mediaTimestamp,
@@ -15785,7 +15829,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
 <style>
 :root{color-scheme:dark;background:#07080a;color:#f2f4f7;font:16px/1.55 system-ui,sans-serif}
 body{margin:0;padding:clamp(24px,6vw,72px)}main{max-width:680px;margin:auto}
-article{background:#111318;border:1px solid #292d35;border-radius:18px;padding:24px;box-shadow:0 20px 60px #0008}
+article{background:#111318;border:1px solid #292d35;border-radius:12px;padding:24px;box-shadow:0 20px 60px #0008}
 header{display:flex;justify-content:space-between;gap:16px;color:#aab2c0;font-size:14px}strong{color:#f2f4f7}
 p{white-space:pre-wrap;font-size:18px}.media{display:grid;gap:10px;margin-top:18px}img,video{width:100%;border-radius:12px;background:#050506}
 a{display:inline-block;margin-top:18px;color:#7dd3fc;text-underline-offset:3px}
@@ -15828,7 +15872,8 @@ a{display:inline-block;margin-top:18px;color:#7dd3fc;text-underline-offset:3px}
       recordedAt,
       url,
       mime,
-      blockDigest
+      blockDigest,
+      occurrence: input.occurrence ?? 0
     }));
     const headerLines = [
       WARC_VERSION,
@@ -15860,7 +15905,8 @@ a{display:inline-block;margin-top:18px;color:#7dd3fc;text-underline-offset:3px}
       parts.recordedAt,
       parts.url,
       parts.mime,
-      parts.blockDigest
+      parts.blockDigest,
+      String(parts.occurrence)
     ].join("\n")));
     const uuid = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-8${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
     return `<urn:uuid:${uuid}>`;
@@ -15957,7 +16003,7 @@ ${entry.ts}`;
     ]);
     return {
       filename: `aviary-${filenameTimestamp(generatedAt)}.wacz`,
-      contentType: "application/x-wacz",
+      contentType: "application/wacz",
       data
     };
   }
@@ -16037,6 +16083,98 @@ ${entry.ts}`;
     if (value === void 0) return void 0;
     const date = value instanceof Date ? new Date(value.getTime()) : new Date(value);
     return Number.isNaN(date.getTime()) ? void 0 : date;
+  }
+
+  // src/features/export/wacz-worker-client.ts
+  var MAX_WACZ_EXPORT_BYTES = 256 * 1024 * 1024;
+  var requestSequence = 0;
+  async function buildWaczArchiveOffThread(records, options = {}) {
+    const estimate = estimateWaczBytes(records);
+    if (estimate.estimatedBytes > MAX_WACZ_EXPORT_BYTES) {
+      throw new RangeError(
+        `This WACZ is about ${formatMiB(estimate.estimatedBytes)} MiB. The safe export limit is ${formatMiB(MAX_WACZ_EXPORT_BYTES)} MiB.`
+      );
+    }
+    throwIfAborted(options.signal);
+    options.onProgress?.(0);
+    const source = true ? '"use strict";(()=>{function O(e,t=null){let r=W(e.sourceUrl??e.url),n=e.bytes instanceof Uint8Array?e.bytes:null,s=/^https?:\\/\\//i.test(r),a=n?"captured-bytes":e.captureStatus==="missing"||!s?"missing":"remote-reference",i=n?n.byteLength:le(e.byteLength),l=n?X(e.sha256)??k(n):X(e.sha256),c=W(e.capturedAt??t)||null,f=W(e.captureError);return{status:a,sourceUrl:r,capturedAt:c,byteLength:i,sha256:l,retryable:a!=="captured-bytes"&&s,...a==="captured-bytes"&&W(e.assetPath)?{packagePath:W(e.assetPath)}:{},...f?{error:f}:{}}}function de(e,t=null){let r=O(e,t),n={kind:e.kind,url:e.url,capture:r};return e.width!==void 0&&(n.width=e.width),e.height!==void 0&&(n.height=e.height),e.bitrate!==void 0&&(n.bitrate=e.bitrate),e.type!==void 0&&(n.type=e.type),e.altText!==void 0&&(n.altText=e.altText),n}function G(e){return{...e,media:Y(e).map(t=>de(t,e.capturedAt))}}function K(e,t,r="",n=new Date().toISOString()){let s=[],a=0,i=0,l=0,c=0;return e.forEach((f,d)=>{Y(f).forEach(y=>{let o=O(y,f.capturedAt),g=o.packagePath?ue(r,o.packagePath):void 0,p=g?{...o,packagePath:g}:o;s.push({recordIndex:d,recordId:f.tweetId,kind:y.kind,capture:p}),o.status==="captured-bytes"?a+=o.byteLength??0:o.status==="remote-reference"?i+=1:l+=1,o.retryable&&(c+=1)})}),{schemaVersion:1,generator:"Aviary",generatedAt:n,recordCount:e.length,files:t.map(f=>({...f})),media:s,summary:{capturedBytes:a,remoteReferences:i,missing:l,retryable:c},offlineReady:i===0&&l===0,networkRequiredToComplete:i>0||c>0}}function Y(e){return Array.isArray(e.media)?e.media:[]}function k(e){let t=Math.ceil((e.length+9)/64)*64,r=new Uint8Array(t);r.set(e),r[e.length]=128;let n=new DataView(r.buffer),s=e.length*8;n.setUint32(t-8,Math.floor(s/4294967296)),n.setUint32(t-4,s>>>0);let a=new Uint32Array([1779033703,3144134277,1013904242,2773480762,1359893119,2600822924,528734635,1541459225]),i=new Uint32Array(64);for(let l=0;l<r.length;l+=64){for(let u=0;u<16;u+=1)i[u]=n.getUint32(l+u*4);for(let u=16;u<64;u+=1){let E=w(i[u-15],7)^w(i[u-15],18)^i[u-15]>>>3,b=w(i[u-2],17)^w(i[u-2],19)^i[u-2]>>>10;i[u]=i[u-16]+E+i[u-7]+b>>>0}let c=a[0],f=a[1],d=a[2],y=a[3],o=a[4],g=a[5],p=a[6],x=a[7];for(let u=0;u<64;u+=1){let E=w(o,6)^w(o,11)^w(o,25),b=o&g^~o&p,U=x+E+b+pe[u]+i[u]>>>0,R=w(c,2)^w(c,13)^w(c,22),$=c&f^c&d^f&d,C=R+$>>>0;x=p,p=g,g=o,o=y+U>>>0,y=d,d=f,f=c,c=U+C>>>0}a[0]=a[0]+c>>>0,a[1]=a[1]+f>>>0,a[2]=a[2]+d>>>0,a[3]=a[3]+y>>>0,a[4]=a[4]+o>>>0,a[5]=a[5]+g>>>0,a[6]=a[6]+p>>>0,a[7]=a[7]+x>>>0}return Array.from(a,l=>l.toString(16).padStart(8,"0")).join("")}function w(e,t){return e>>>t|e<<32-t}function W(e){return typeof e=="string"?e.trim():""}function X(e){let t=W(e).toLowerCase();return/^[0-9a-f]{64}$/.test(t)?t:null}function le(e){return typeof e=="number"&&Number.isFinite(e)&&e>=0?Math.trunc(e):null}function ue(e,t){return e?`${e.replace(/\\/+$/g,"")}/${t}`:t}var pe=Uint32Array.from([1116352408,1899447441,3049323471,3921009573,961987163,1508970993,2453635748,2870763221,3624381080,310598401,607225278,1426881987,1925078388,2162078206,2614888103,3248222580,3835390401,4022224774,264347078,604807628,770255983,1249150122,1555081692,1996064986,2554220882,2821834349,2952996808,3210313671,3336571891,3584528711,113926993,338241895,666307205,773529912,1294757372,1396182291,1695183700,1986661051,2177026350,2456956037,2730485921,2820302411,3259730800,3345764771,3516065817,3600352804,4094571909,275423344,430227734,506948616,659060556,883997877,958139571,1322822218,1537002063,1747873779,1955562222,2024104815,2227730452,2361852424,2428436474,2756734187,3204031479,3329325298]),Ne=Uint8Array.from([0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4]);var I=new TextEncoder,ee="WARC/1.1";function te(e,t={}){let r=N(t.generatedAt)??new Date,n=we(t.filename??"tweets.warc"),s=z(r),a=[],i=[],l=[],c=0,f=0,d=(o,g)=>{let p=he({...o,occurrence:f++});a.push(p),g&&i.push({...g,offset:c,length:p.length}),c+=p.length};d({mime:"application/warc-fields",body:["software: Aviary",`format: ${ee}`,"conformsTo: https://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/"].join(`\\r\n`),recordType:"warcinfo",recordedAt:r,extraHeaders:{"WARC-Filename":n}});let y=K(e,[],"",s);return d({url:"urn:aviary:export-metadata",mime:"application/json",body:JSON.stringify({generator:"Aviary",generatedAt:s,count:e.length,metadataOnly:!0,packageManifest:y}),recordType:"metadata",recordedAt:r}),e.forEach((o,g)=>{let p=N(o.capturedAt)??r,x=z(p),u=ge(o,g),E=I.encode(JSON.stringify(G(o),null,2)),b=j(E);d({url:u,mime:"application/json",body:E,recordType:"resource",recordedAt:p,payloadDigest:b},{url:u,timestamp:x,digest:b,mime:"application/json",status:"-"});let U=me(o,g),R=o.handle?`@${o.handle} captured post`:`Captured post ${g+1}`,$=I.encode(ye(o,R)),C=j($);d({url:U,mime:"text/html; charset=utf-8",body:$,recordType:"resource",recordedAt:p,payloadDigest:C},{url:U,timestamp:x,digest:C,mime:"text/html",status:"-"}),l.push({url:U,ts:x,title:R});for(let[_,A]of re(o).entries()){let H=O(A,o.capturedAt),h=N(H.capturedAt)??p,D=z(h),P=J(H.sourceUrl),m=ne(A);if(H.status==="captured-bytes"&&A.bytes instanceof Uint8Array){let S=j(A.bytes);if(P){let B=xe(A.bytes,m);d({url:P,mime:"application/http; msgtype=response",body:B,recordType:"response",recordedAt:h,payloadDigest:S},{url:P,timestamp:D,digest:S,mime:m,status:"200"})}else{let B=Q(g,_,A);d({url:B,mime:m,body:A.bytes,recordType:"resource",recordedAt:h,payloadDigest:S},{url:B,timestamp:D,digest:S,mime:m,status:"-"})}continue}d({url:P??Q(g,_,A),mime:"application/json",body:JSON.stringify({generator:"Aviary",metadataOnly:!0,message:"The media body is not in this WARC; the manifest records whether it is retryable.",media:H}),recordType:"metadata",recordedAt:h})}}),{artifact:{filename:n,contentType:"application/warc",data:q(a,c)},index:i.sort(Ue),pages:Te(l)}}function re(e){return Array.isArray(e.media)?e.media:[]}function N(e){if(e==null)return;let t=e instanceof Date?new Date(e.getTime()):new Date(e);return Number.isNaN(t.getTime())?void 0:t}function z(e){return e.toISOString().replace(/\\.[0-9]{3}Z$/,"Z")}function ne(e){return e.type?.includes("/")?e.type:e.type==="png"?"image/png":e.type==="webp"?"image/webp":e.kind==="video"?"video/mp4":"image/jpeg"}function fe(e){let t=ne(e);return t==="image/png"?"png":t==="image/webp"?"webp":t==="video/mp4"?"mp4":"jpg"}function ge(e,t){let r=encodeURIComponent(e.tweetId?.trim()||`record-${t+1}`);return`https://aviary.invalid/records/${F(t)}-${r}.json`}function me(e,t){let r=encodeURIComponent(e.tweetId?.trim()||`record-${t+1}`);return`https://aviary.invalid/pages/${F(t)}-${r}.html`}function Q(e,t,r){return`https://aviary.invalid/media/${F(e)}-${F(t)}.${fe(r)}`}function F(e){return String(e+1).padStart(6,"0")}function J(e){if(!e)return null;try{let t=new URL(e);return t.protocol!=="http:"&&t.protocol!=="https:"?null:(t.hash="",t.href)}catch{return null}}function ye(e,t){let r=J(e.permalink),n=re(e).map(a=>{let i=J(a.sourceUrl||a.url);if(!i)return"";let l=T(i);return a.kind==="video"?`<video controls preload="metadata" src="${l}"></video>`:`<img src="${l}" alt="${T(a.altText??"Captured post media")}">`}).join(""),s=r?`<a href="${T(r)}" rel="noreferrer">Original post</a>`:"";return`<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>${T(t)}</title>\n<style>\n:root{color-scheme:dark;background:#07080a;color:#f2f4f7;font:16px/1.55 system-ui,sans-serif}\nbody{margin:0;padding:clamp(24px,6vw,72px)}main{max-width:680px;margin:auto}\narticle{background:#111318;border:1px solid #292d35;border-radius:12px;padding:24px;box-shadow:0 20px 60px #0008}\nheader{display:flex;justify-content:space-between;gap:16px;color:#aab2c0;font-size:14px}strong{color:#f2f4f7}\np{white-space:pre-wrap;font-size:18px}.media{display:grid;gap:10px;margin-top:18px}img,video{width:100%;border-radius:12px;background:#050506}\na{display:inline-block;margin-top:18px;color:#7dd3fc;text-underline-offset:3px}\n</style>\n</head>\n<body><main><article><header><strong>${T(e.handle?`@${e.handle}`:e.displayName??"Captured post")}</strong><time datetime="${T(e.capturedAt??"")}">${T(e.capturedAt??"")}</time></header><p>${T(e.text??"")}</p>${n?`<div class="media">${n}</div>`:""}${s}</article></main></body>\n</html>`}function T(e){return e.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll(\'"\',"&quot;").replaceAll("\'","&#39;")}function xe(e,t){let r=I.encode(["HTTP/1.1 200 OK",`Content-Type: ${M(t)||"application/octet-stream"}`,`Content-Length: ${e.length}`,"Connection: close","",""].join(`\\r\n`));return q([r,e],r.length+e.length)}function M(e){let t="";for(let r of e){let n=r.codePointAt(0)??0;t+=n<32||n===127?" ":r}return t.split(" ").filter(r=>r.length>0).join(" ")}function he(e){let t=e.recordType??"resource",r=z(N(e.recordedAt)??new Date),n=typeof e.body=="string"?I.encode(e.body):e.body,s=M(e.url??""),a=M(e.mime)||"application/octet-stream",i=j(n),l=M(e.recordId??Ae({recordType:t,recordedAt:r,url:s,mime:a,blockDigest:i,occurrence:e.occurrence??0})),c=[ee,`WARC-Type: ${t}`,...t==="warcinfo"?[]:[`WARC-Target-URI: ${s||"urn:aviary:unknown"}`],`WARC-Date: ${r}`,`WARC-Record-ID: ${l.startsWith("<")?l:`<${l}>`}`,...Object.entries(e.extraHeaders??{}).map(([y,o])=>`${be(y)}: ${M(o)}`),`WARC-Block-Digest: ${i}`,...e.payloadDigest?[`WARC-Payload-Digest: ${M(e.payloadDigest)}`]:[],`Content-Type: ${a}`,`Content-Length: ${n.length}`],f=I.encode(`${c.join(`\\r\n`)}\\r\n\\r\n`),d=I.encode(`\\r\n\\r\n`);return q([f,n,d],f.length+n.length+d.length)}function be(e){return e.replace(/[^A-Za-z0-9-]/g,"")||"X-Aviary-Header"}function Ae(e){let t=k(I.encode([e.recordType,e.recordedAt,e.url,e.mime,e.blockDigest,String(e.occurrence)].join(`\n`)));return`<urn:uuid:${`${t.slice(0,8)}-${t.slice(8,12)}-5${t.slice(13,16)}-8${t.slice(17,20)}-${t.slice(20,32)}`}>`}function j(e){return`sha256:${Ee(k(e))}`}function Ee(e){let t="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",r=0,n=0,s="";for(let a=0;a<e.length;a+=2){for(r=r<<8|Number.parseInt(e.slice(a,a+2),16),n+=8;n>=5;)s+=t[r>>>n-5&31],n-=5;r&=(1<<n)-1}return n>0&&(s+=t[r<<5-n&31]),s}function q(e,t){let r=new Uint8Array(t),n=0;for(let s of e)r.set(s,n),n+=s.length;return r}function we(e){let t=e.replace(/[\\\\/:*?"<>|\\u0000-\\u001f]/g,"-").trim();return t.toLowerCase().endsWith(".warc")?t:`${t||"tweets"}.warc`}function Ue(e,t){return e.url.localeCompare(t.url)||e.timestamp.localeCompare(t.timestamp)||e.offset-t.offset}function Te(e){let t=new Set;return e.filter(r=>{let n=`${r.url}\n${r.ts}`;return t.has(n)?!1:(t.add(n),!0)})}var Re=(()=>{let e=new Uint32Array(256);for(let t=0;t<256;t++){let r=t;for(let n=0;n<8;n++)r=r&1?3988292384^r>>>1:r>>>1;e[t]=r>>>0}return e})();function $e(e){let t=4294967295;for(let r=0;r<e.length;r++)t=(Re[(t^e[r])&255]^t>>>8)>>>0;return(t^4294967295)>>>0}var ae=2048,Z=65535,V=4294967295,ie=0;function oe(e){return Ce(e,e.map(()=>ie),e.map(t=>t.data))}function Ce(e,t,r){let n=new TextEncoder,s=[],a=[],i=0;if(e.length>Z)throw new RangeError(`A zip holds at most ${Z} entries without ZIP64; got ${e.length}.`);for(let[p,x]of e.entries()){let u=t[p]??ie,E=r[p]??x.data;if(E.length>V)throw new RangeError(`"${x.filename}" is ${x.data.length} bytes; a zip entry cannot exceed ${V} without ZIP64.`);let b=n.encode(x.filename);if(b.length>Z)throw new RangeError(`"${x.filename}" has a name longer than ${Z} bytes.`);let U=$e(E),R=E.length,$=x.data.length,C=x.date??new Date,_=He(C),A=Pe(C),H=new ArrayBuffer(30+b.length),h=new DataView(H);h.setUint32(0,67324752,!0),h.setUint16(4,20,!0),h.setUint16(6,ae,!0),h.setUint16(8,u,!0),h.setUint16(10,A,!0),h.setUint16(12,_,!0),h.setUint32(14,U,!0),h.setUint32(18,$,!0),h.setUint32(22,R,!0),h.setUint16(26,b.length,!0),h.setUint16(28,0,!0);let D=new Uint8Array(H);D.set(b,30),s.push(D),s.push(x.data);let P=new ArrayBuffer(46+b.length),m=new DataView(P);m.setUint32(0,33639248,!0),m.setUint16(4,20,!0),m.setUint16(6,20,!0),m.setUint16(8,ae,!0),m.setUint16(10,u,!0),m.setUint16(12,A,!0),m.setUint16(14,_,!0),m.setUint32(16,U,!0),m.setUint32(20,$,!0),m.setUint32(24,R,!0),m.setUint16(28,b.length,!0),m.setUint16(30,0,!0),m.setUint16(32,0,!0),m.setUint16(34,0,!0),m.setUint16(36,0,!0),m.setUint32(38,0,!0),m.setUint32(42,i,!0);let S=new Uint8Array(P);S.set(b,46),a.push(S),i+=D.length+x.data.length}let l=i,c=0;for(let p of a)c+=p.length;if(l>V||c>V)throw new RangeError(`The archive is too large for a non-ZIP64 zip (central directory at ${l}, size ${c}).`);let f=new Uint8Array(22),d=new DataView(f.buffer);d.setUint32(0,101010256,!0),d.setUint16(4,0,!0),d.setUint16(6,0,!0),d.setUint16(8,e.length,!0),d.setUint16(10,e.length,!0),d.setUint32(12,c,!0),d.setUint32(16,l,!0),d.setUint16(20,0,!0);let y=i+c+f.length,o=new Uint8Array(y),g=0;for(let p of s)o.set(p,g),g+=p.length;for(let p of a)o.set(p,g),g+=p.length;return o.set(f,g),o}function He(e){return(Math.max(e.getUTCFullYear()-1980,0)&127)<<9|(e.getUTCMonth()+1&15)<<5|e.getUTCDate()&31}function Pe(e){return(e.getUTCHours()&31)<<11|(e.getUTCMinutes()&63)<<5|Math.floor(e.getUTCSeconds()/2)&31}var v=new TextEncoder,Se="1.1.1";var ke="archive/aviary.warc",Ie="indexes/index.cdxj",De="pages/pages.jsonl";function se(e,t={}){let r=ce(t.generatedAt)??new Date,n=te(e,{generatedAt:r,filename:"aviary.warc"}),s=v.encode(We(n.index,"aviary.warc")),a=v.encode(ve(n.pages)),i=[{filename:ke,data:n.artifact.data,date:r},{filename:Ie,data:s,date:r},{filename:De,data:a,date:r}],l={profile:"data-package",wacz_version:Se,created:r.toISOString(),software:"Aviary",resources:i.map(y=>({name:Be(y.filename),path:y.filename,hash:`sha256:${k(y.data)}`,bytes:y.data.length}))},c=v.encode(`${JSON.stringify(l,null,2)}\n`),f=v.encode(`${JSON.stringify({path:"datapackage.json",hash:`sha256:${k(c)}`},null,2)}\n`),d=oe([...i,{filename:"datapackage.json",data:c,date:r},{filename:"datapackage-digest.json",data:f,date:r}]);return{filename:`aviary-${Oe(r)}.wacz`,contentType:"application/wacz",data:d}}function We(e,t="aviary.warc"){let r=e.map(n=>`${Me(n.url)} ${_e(n.timestamp)} ${JSON.stringify({url:n.url,digest:n.digest,mime:n.mime,status:n.status,filename:t,offset:n.offset,length:n.length})}`);return r.sort(Le),r.length>0?`${r.join(`\n`)}\n`:""}function Me(e){let t=new URL(e),r=t.hostname.toLowerCase(),n=r.includes(":")?r:r.split(".").filter(Boolean).reverse().join(","),s=t.port?`:${t.port}`:"";return`${n}${s})${t.pathname||"/"}${t.search}`}function ve(e){let t=[JSON.stringify({format:"json-pages-1.0",id:"pages",title:"All Pages"})];return e.forEach((r,n)=>{t.push(JSON.stringify({id:`page-${String(n+1).padStart(6,"0")}`,url:r.url,ts:r.ts,...r.title?{title:r.title}:{}}))}),`${t.join(`\n`)}\n`}function _e(e){let t=ce(e);if(!t)throw new TypeError(`Invalid CDX timestamp: ${e}`);return t.toISOString().replace(/[-:T]/g,"").slice(0,14)}function Le(e,t){let r=v.encode(e),n=v.encode(t),s=Math.min(r.length,n.length);for(let a=0;a<s;a+=1){let i=r[a]-n[a];if(i!==0)return i}return r.length-n.length}function Be(e){return e.replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"")}function Oe(e){return e.toISOString().replace(/[-:]/g,"").replace(/\\.[0-9]{3}Z$/,"Z")}function ce(e){if(e===void 0)return;let t=e instanceof Date?new Date(e.getTime()):new Date(e);return Number.isNaN(t.getTime())?void 0:t}var L=globalThis;L.onmessage=e=>{let t=e.data;if(!(!t||!Number.isSafeInteger(t.id)||!Array.isArray(t.records)))try{L.postMessage({id:t.id,type:"progress",progress:.15});let r={...t.options.generatedAt?{generatedAt:new Date(t.options.generatedAt)}:{}},n=se(t.records,r);L.postMessage({id:t.id,type:"progress",progress:1}),L.postMessage({id:t.id,type:"complete",artifact:n},[n.data.buffer])}catch(r){L.postMessage({id:t.id,type:"error",error:String(r?.message??r)})}};})();\n' : "";
+    if (!source) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+      throwIfAborted(options.signal);
+      const artifact = buildWaczArchive(records, options);
+      options.onProgress?.(1);
+      return artifact;
+    }
+    if (typeof Worker !== "function") {
+      throw new Error("This browser cannot build a WACZ without blocking the page.");
+    }
+    const blobUrl = URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
+    let worker;
+    try {
+      worker = new Worker(blobUrl, { name: "aviary-wacz" });
+    } catch (error) {
+      URL.revokeObjectURL(blobUrl);
+      throw new Error(`The browser blocked the WACZ worker: ${String(error?.message ?? error)}`);
+    }
+    const id = ++requestSequence;
+    return new Promise((resolve, reject) => {
+      const cleanup = () => {
+        options.signal?.removeEventListener("abort", abort);
+        worker.terminate();
+        URL.revokeObjectURL(blobUrl);
+      };
+      const fail = (error) => {
+        cleanup();
+        reject(error);
+      };
+      const abort = () => fail(abortError());
+      worker.onmessage = (event) => {
+        const reply = event.data;
+        if (reply?.id !== id) return;
+        if (reply.type === "progress" && typeof reply.progress === "number") {
+          options.onProgress?.(Math.max(0, Math.min(1, reply.progress)));
+          return;
+        }
+        if (reply.type === "error") {
+          fail(new Error(typeof reply.error === "string" ? reply.error : "WACZ worker failed"));
+          return;
+        }
+        if (reply.type !== "complete" || !isExportArtifact(reply.artifact)) {
+          fail(new Error("WACZ worker returned an invalid archive"));
+          return;
+        }
+        const artifact = reply.artifact;
+        cleanup();
+        resolve(artifact);
+      };
+      worker.onerror = (event) => {
+        fail(new Error(event.message || "WACZ worker failed"));
+      };
+      options.signal?.addEventListener("abort", abort, { once: true });
+      worker.postMessage({
+        id,
+        records,
+        options: {
+          ...options.generatedAt ? { generatedAt: options.generatedAt.toISOString() } : {}
+        }
+      });
+    });
+  }
+  function isExportArtifact(value) {
+    if (!value || typeof value !== "object") return false;
+    const artifact = value;
+    return typeof artifact.filename === "string" && typeof artifact.contentType === "string" && artifact.data instanceof Uint8Array;
+  }
+  function throwIfAborted(signal) {
+    if (signal?.aborted) throw abortError();
+  }
+  function abortError() {
+    return new DOMException("WACZ export cancelled", "AbortError");
+  }
+  function formatMiB(bytes) {
+    return Math.ceil(bytes / (1024 * 1024)).toLocaleString();
   }
 
   // src/features/integrations/crosspost.ts
@@ -18112,7 +18250,6 @@ a.av-link-clean {
       }
       this.#listener = void 0;
       for (const waiter of this.#waiting.values()) {
-        clearTimeout(waiter.timer);
         waiter.resolve("pending");
       }
       this.#waiting.clear();
@@ -18123,7 +18260,6 @@ a.av-link-clean {
       const waiter = this.#waiting.get(id);
       if (waiter) {
         this.#waiting.delete(id);
-        clearTimeout(waiter.timer);
         waiter.resolve(state2);
         return;
       }
@@ -18136,6 +18272,20 @@ a.av-link-clean {
       this.#settled.set(id, state2);
     }
     wait(id, timeoutMs = DOWNLOAD_TERMINAL_TIMEOUT_MS) {
+      const terminal = this.terminal(id);
+      return new Promise((resolve) => {
+        const timer2 = setTimeout(() => resolve("pending"), timeoutMs);
+        void terminal.then((outcome) => {
+          clearTimeout(timer2);
+          resolve(outcome);
+        });
+      });
+    }
+    /**
+     * Keeps listening until the browser reports a terminal result or the feature is destroyed.
+     * Unlike `wait`, this promise does not disappear when the UI switches from busy to Started.
+     */
+    terminal(id) {
       const already = this.#settled.get(id);
       if (already) {
         this.#settled.delete(id);
@@ -18143,15 +18293,14 @@ a.av-link-clean {
       }
       const existing = this.#waiting.get(id);
       if (existing) {
-        return Promise.resolve("pending");
+        return existing.promise;
       }
-      return new Promise((resolve) => {
-        const timer2 = setTimeout(() => {
-          this.#waiting.delete(id);
-          resolve("pending");
-        }, timeoutMs);
-        this.#waiting.set(id, { resolve, timer: timer2 });
+      let settle;
+      const promise = new Promise((resolve) => {
+        settle = resolve;
       });
+      this.#waiting.set(id, { promise, resolve: settle });
+      return promise;
     }
   };
   var shared;
@@ -19078,7 +19227,12 @@ a.av-link-clean {
   }
   function mediaSidecarRequest(format, input) {
     if (format === "off") return void 0;
-    return { format, ...normalizeMediaSidecarInput(input) };
+    const normalized = normalizeMediaSidecarInput({
+      ...input,
+      savedAt: input.queuedAt ?? (/* @__PURE__ */ new Date()).toISOString()
+    });
+    const { savedAt: queuedAt, ...metadata } = normalized;
+    return { format, ...metadata, queuedAt };
   }
   function normalizeMediaSidecarRequest(value) {
     if (!value || typeof value !== "object") return void 0;
@@ -19087,22 +19241,21 @@ a.av-link-clean {
     if (typeof record.mediaFilename !== "string" || record.kind !== "photo" && record.kind !== "video" && record.kind !== "thumbnail") {
       return void 0;
     }
-    return {
-      format: record.format,
-      ...normalizeMediaSidecarInput({
-        mediaFilename: record.mediaFilename,
-        kind: record.kind,
-        handle: typeof record.handle === "string" ? record.handle : null,
-        tweetId: typeof record.tweetId === "string" ? record.tweetId : null,
-        text: typeof record.text === "string" ? record.text : "",
-        permalink: typeof record.permalink === "string" ? record.permalink : null,
-        savedAt: typeof record.savedAt === "string" ? record.savedAt : (/* @__PURE__ */ new Date()).toISOString()
-      })
-    };
+    const normalized = normalizeMediaSidecarInput({
+      mediaFilename: record.mediaFilename,
+      kind: record.kind,
+      handle: typeof record.handle === "string" ? record.handle : null,
+      tweetId: typeof record.tweetId === "string" ? record.tweetId : null,
+      text: typeof record.text === "string" ? record.text : "",
+      permalink: typeof record.permalink === "string" ? record.permalink : null,
+      savedAt: typeof record.queuedAt === "string" ? record.queuedAt : typeof record.savedAt === "string" ? record.savedAt : (/* @__PURE__ */ new Date()).toISOString()
+    });
+    const { savedAt: queuedAt, ...metadata } = normalized;
+    return { format: record.format, ...metadata, queuedAt };
   }
-  function saveMediaSidecar(request) {
+  function saveMediaSidecar(request, savedAt = (/* @__PURE__ */ new Date()).toISOString()) {
     if (!request || typeof document === "undefined") return false;
-    const artifact = buildMediaSidecar(request.format, request);
+    const artifact = buildMediaSidecar(request.format, { ...request, savedAt });
     if (!artifact) return false;
     try {
       const blob = new Blob([new Uint8Array(artifact.data)], { type: artifact.contentType });
@@ -19205,8 +19358,7 @@ a.av-link-clean {
     }
     /** Persists every queued item before a batch starts its first external handoff. */
     async checkpoint() {
-      this.#persist();
-      await this.flush();
+      await this.#queuePersist();
     }
     enqueue(job) {
       const entry = {
@@ -19228,13 +19380,15 @@ a.av-link-clean {
       if (status === "running" && !job.startedAt) {
         job.startedAt = (/* @__PURE__ */ new Date()).toISOString();
       }
-      if (status === "completed" || status === "failed" || status === "duplicate") {
+      if (status === "completed" || status === "failed" || status === "opened" || status === "duplicate") {
         job.finishedAt = (/* @__PURE__ */ new Date()).toISOString();
         job.resumeOnBoot = false;
+        delete job.downloadId;
       }
       if (status === "cancelled") {
         job.finishedAt = (/* @__PURE__ */ new Date()).toISOString();
         job.resumeOnBoot = false;
+        delete job.downloadId;
       }
       job.status = status;
       if (error) {
@@ -19245,9 +19399,16 @@ a.av-link-clean {
       this.#persist();
       this.#notify();
     }
+    trackDownload(jobId, downloadId) {
+      const job = this.#jobs.find((entry) => entry.id === jobId);
+      if (!job || !Number.isSafeInteger(downloadId) || downloadId < 0) return;
+      job.downloadId = downloadId;
+      this.#persist();
+      this.#notify();
+    }
     pause(jobId) {
       const job = this.#jobs.find((entry) => entry.id === jobId);
-      if (!job || job.status === "completed" || job.status === "failed" || job.status === "duplicate" || job.status === "cancelled") return false;
+      if (!job || job.status === "completed" || job.status === "failed" || job.status === "opened" || job.status === "duplicate" || job.status === "cancelled") return false;
       job.status = "paused";
       job.resumeOnBoot = false;
       job.error = "Paused by user.";
@@ -19267,7 +19428,7 @@ a.av-link-clean {
     }
     cancel(jobId) {
       const job = this.#jobs.find((entry) => entry.id === jobId);
-      if (!job || job.status === "completed" || job.status === "failed" || job.status === "duplicate" || job.status === "cancelled") return false;
+      if (!job || job.status === "completed" || job.status === "failed" || job.status === "opened" || job.status === "duplicate" || job.status === "cancelled") return false;
       job.status = "cancelled";
       job.resumeOnBoot = false;
       job.finishedAt = (/* @__PURE__ */ new Date()).toISOString();
@@ -19300,6 +19461,7 @@ a.av-link-clean {
         running: 0,
         completed: 0,
         failed: 0,
+        opened: 0,
         duplicate: 0,
         paused: 0,
         cancelled: 0
@@ -19313,6 +19475,7 @@ a.av-link-clean {
         running: counts.running,
         completed: counts.completed,
         failed: counts.failed,
+        opened: counts.opened,
         duplicate: counts.duplicate,
         paused: counts.paused,
         cancelled: counts.cancelled,
@@ -19346,14 +19509,19 @@ a.av-link-clean {
       }
     }
     #persist() {
-      if (!this.#storage) return;
+      void this.#queuePersist();
+    }
+    #queuePersist() {
+      if (!this.#storage) return Promise.resolve();
       const snapshot = {
         sequence: this.#seq,
         jobs: this.#jobs.map((job) => ({ ...job }))
       };
-      this.#persistTail = this.#persistTail.then(() => this.#storage.set(MEDIA_QUEUE_KEY, snapshot)).catch((error) => {
+      const write = this.#persistTail.then(() => this.#storage.set(MEDIA_QUEUE_KEY, snapshot));
+      this.#persistTail = write.catch((error) => {
         this.#onPersistError?.(error);
       });
+      return write;
     }
   };
   function isDownloadJob(value) {
@@ -19362,7 +19530,7 @@ a.av-link-clean {
     return typeof record.id === "string" && typeof record.url === "string" && typeof record.filename === "string";
   }
   function normalizeJob3(value) {
-    const valid = value.status === "queued" || value.status === "running" || value.status === "completed" || value.status === "failed" || value.status === "duplicate" || value.status === "paused" || value.status === "cancelled";
+    const valid = value.status === "queued" || value.status === "running" || value.status === "completed" || value.status === "failed" || value.status === "opened" || value.status === "duplicate" || value.status === "paused" || value.status === "cancelled";
     const sidecar = normalizeMediaSidecarRequest(value.sidecar);
     return {
       id: value.id,
@@ -19374,6 +19542,7 @@ a.av-link-clean {
       ...value.kind === "photo" || value.kind === "video" || value.kind === "thumbnail" ? { kind: value.kind } : {},
       ...typeof value.mediaId === "string" ? { mediaId: value.mediaId.slice(0, 160) } : value.mediaId === null ? { mediaId: null } : {},
       ...sidecar ? { sidecar } : {},
+      ...typeof value.downloadId === "number" && Number.isSafeInteger(value.downloadId) && value.downloadId >= 0 ? { downloadId: value.downloadId } : {},
       status: valid ? value.status : "failed",
       ...typeof value.error === "string" ? { error: value.error } : {},
       ...typeof value.startedAt === "string" ? { startedAt: value.startedAt } : {},
@@ -19970,7 +20139,7 @@ a.av-link-clean {
           outcome.degraded ? "Opened" : outcome.status === "aria2-duplicate" ? "Queued" : outcome.status === "started" ? "Started" : successLabel(media)
         ),
         icon: outcome.degraded ? "\u2197" : outcome.status === "started" ? "\u2193" : "\u2713",
-        className: outcome.status === "completed" ? "is-success" : "is-duplicate"
+        className: outcome.status === "completed" ? "is-success" : outcome.status === "opened" ? "is-opened" : "is-duplicate"
       });
       if (outcome.status === "started") {
         button2.title = ft(
@@ -20082,7 +20251,7 @@ a.av-link-clean {
       tweetId: identity.tweetId,
       text: identity.text,
       permalink: identity.tweetId ? `https://x.com/${identity.handle ?? "i"}/status/${identity.tweetId}` : null,
-      savedAt: (/* @__PURE__ */ new Date()).toISOString()
+      queuedAt: (/* @__PURE__ */ new Date()).toISOString()
     });
     let fingerprint = {
       identityHash: mediaIdentityHash(media.kind, target.url, target.mediaId)
@@ -20136,6 +20305,34 @@ a.av-link-clean {
       ...sidecar ? { sidecar } : {}
     });
     queue.mark(job.id, "running");
+    const completeConfirmedSave = async (via) => {
+      queue.mark(job.id, "completed");
+      await rememberLastDownload(ctx.storage, {
+        url: target.url,
+        filename,
+        kind: media.kind
+      });
+      if (ctx.settings.media.downloadHistory) {
+        if (reservationToken2) {
+          await history.commit(reservationToken2, fingerprint);
+          reservationToken2 = null;
+        } else {
+          await history.record(fingerprint);
+        }
+      }
+      saveSidecarOrWarn(ctx, sidecar, filename);
+      ctx.diagnostics.info("Media saved", { filename, kind: media.kind });
+      void ctx.auditLog.record("media.download", { filename, kind: media.kind, via });
+    };
+    const failInterruptedSave = async () => {
+      if (reservationToken2) {
+        await history.release(reservationToken2);
+        reservationToken2 = null;
+      }
+      queue.mark(job.id, "failed", "the browser interrupted this transfer");
+      ctx.diagnostics.warn("Media transfer was interrupted", { filename, kind: media.kind });
+      void ctx.auditLog.record("media.download.failed", { filename, kind: media.kind });
+    };
     try {
       const result = await downloader({
         url: target.url,
@@ -20153,50 +20350,49 @@ a.av-link-clean {
         });
         return { status: "aria2-duplicate", degraded: false };
       }
+      if (result.degraded) {
+        if (reservationToken2) {
+          await history.release(reservationToken2);
+          reservationToken2 = null;
+        }
+        queue.mark(job.id, "opened", "the browser opened this URL; a saved file was not confirmed");
+        ctx.diagnostics.info("Media opened without a confirmed save", {
+          filename,
+          kind: media.kind,
+          via: result.via
+        });
+        void ctx.auditLog.record("media.download.opened", {
+          filename,
+          kind: media.kind,
+          via: result.via
+        });
+        return { status: "opened", degraded: true };
+      }
       if (result.pending && result.downloadId !== void 0) {
+        queue.trackDownload(job.id, result.downloadId);
         onStarted?.();
+        const terminalResult = downloadWatcher.terminal(result.downloadId);
         const terminal = await downloadWatcher.wait(result.downloadId);
         if (terminal === "interrupted") {
-          if (reservationToken2) {
-            await history.release(reservationToken2);
-            reservationToken2 = null;
-          }
-          queue.mark(job.id, "failed");
-          ctx.diagnostics.warn("Media transfer was interrupted", { filename, kind: media.kind });
-          void ctx.auditLog.record("media.download.failed", { filename, kind: media.kind });
+          await failInterruptedSave();
           throw new Error("The browser interrupted this transfer before it finished.");
         }
         if (terminal === "pending") {
+          void terminalResult.then(async (eventual) => {
+            if (eventual === "complete") {
+              await completeConfirmedSave(result.via);
+            } else if (eventual === "interrupted") {
+              await failInterruptedSave();
+            }
+          }).catch((error) => {
+            ctx.diagnostics.warn("Could not reconcile media transfer", errorDetails4(error));
+          });
           ctx.diagnostics.info("Media transfer still running", { filename, kind: media.kind });
           return { status: "started", degraded: false };
         }
       }
-      queue.mark(job.id, "completed");
-      await rememberLastDownload(ctx.storage, {
-        url: target.url,
-        filename,
-        kind: media.kind
-      });
-      if (ctx.settings.media.downloadHistory) {
-        if (reservationToken2) {
-          await history.commit(reservationToken2, fingerprint);
-          reservationToken2 = null;
-        } else {
-          await history.record(fingerprint);
-        }
-      }
-      saveSidecarOrWarn(ctx, sidecar, filename);
-      ctx.diagnostics.info("Media saved", {
-        filename,
-        kind: media.kind,
-        degraded: result.degraded === true
-      });
-      void ctx.auditLog.record("media.download", {
-        filename,
-        kind: media.kind,
-        via: result.via
-      });
-      return { status: "completed", degraded: result.degraded === true };
+      await completeConfirmedSave(result.via);
+      return { status: "completed", degraded: false };
     } catch (error) {
       if (reservationToken2) {
         await history.release(reservationToken2);
@@ -20239,7 +20435,7 @@ a.av-link-clean {
   }
   function setButtonFeedback(button2, feedback) {
     clearButtonRestore(button2);
-    button2.classList.remove("is-active", "is-success", "is-duplicate", "is-error");
+    button2.classList.remove("is-active", "is-success", "is-opened", "is-duplicate", "is-error");
     button2.classList.add(feedback.className);
     button2.dataset.state = feedback.className.slice(3);
     button2.disabled = feedback.disabled === true;
@@ -20273,7 +20469,7 @@ a.av-link-clean {
     }
   }
   function restoreIdleButton(button2) {
-    button2.classList.remove("is-active", "is-success", "is-duplicate", "is-error");
+    button2.classList.remove("is-active", "is-success", "is-opened", "is-duplicate", "is-error");
     delete button2.dataset.state;
     button2.disabled = false;
     button2.setAttribute("aria-busy", "false");
@@ -20406,7 +20602,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   flex: 0 0 auto;
   width: 7px;
   height: 7px;
-  border-radius: 999px;
+    border-radius: 4px;
   background: var(--av-media-success, rgb(120, 200, 130));
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--av-media-success, rgb(120, 200, 130)) 20%, transparent);
 }
@@ -20435,6 +20631,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   background: var(--av-media-success, rgb(120, 200, 130));
 }
 
+[${ACTION_ATTR}].is-opened,
 [${ACTION_ATTR}].is-duplicate {
   color: var(--av-text, rgb(239, 243, 244));
   background: color-mix(in srgb, var(--av-muted, rgb(113, 118, 123)) 46%, transparent);
@@ -20516,6 +20713,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   color: var(--av-media-success-text, rgb(206, 240, 210));
 }
 
+[${BUTTON_ATTR2}].is-opened,
 [${BUTTON_ATTR2}].is-duplicate {
   color: var(--av-muted, rgb(113, 118, 123));
 }
@@ -20590,8 +20788,8 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
       return void 0;
     }
     const { id, status } = activeBatch;
-    const { total, enqueued, downloaded, duplicate, failed } = activeBatch.progress;
-    return { id, status, total, enqueued, downloaded, duplicate, failed };
+    const { total, enqueued, downloaded, started, opened, duplicate, failed } = activeBatch.progress;
+    return { id, status, total, enqueued, downloaded, started, opened, duplicate, failed };
   }
   function pauseMediaBatch() {
     if (!activeBatch) {
@@ -20683,6 +20881,8 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
       total: tasks.length,
       enqueued: 0,
       downloaded: 0,
+      started: 0,
+      opened: 0,
       duplicate: 0,
       failed: 0
     };
@@ -20711,7 +20911,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
           tweetId: task.identity.tweetId,
           text: task.identity.text,
           permalink: task.permalink,
-          savedAt: (/* @__PURE__ */ new Date()).toISOString()
+          queuedAt: (/* @__PURE__ */ new Date()).toISOString()
         });
         const job = queue2?.enqueue({
           url: task.target.url,
@@ -20818,11 +21018,29 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
               });
               continue;
             }
+            if (result.degraded) {
+              if (reservationToken2 && history2) {
+                await history2.release(reservationToken2);
+                reservationToken2 = null;
+              }
+              if (job) {
+                queue2?.mark(job.id, "opened", "the browser opened this URL; a saved file was not confirmed");
+              }
+              progress.opened += 1;
+              void ctx.auditLog.record("media.download.opened", {
+                filename,
+                kind: task.kind,
+                via: result.via,
+                batch: true
+              });
+              continue;
+            }
             if (result.pending && result.downloadId !== void 0) {
               const jobId = job?.id;
               const activeReservation = reservationToken2;
               reservationToken2 = null;
-              void sharedDownloadWatcher().wait(result.downloadId).then(async (terminal) => {
+              if (jobId) queue2?.trackDownload(jobId, result.downloadId);
+              void sharedDownloadWatcher().terminal(result.downloadId).then(async (terminal) => {
                 if (terminal === "complete") {
                   if (jobId) queue2?.mark(jobId, "completed");
                   if (ctx.settings.media.downloadHistory && history2) {
@@ -20830,6 +21048,12 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
                     else await history2.record(fingerprint);
                   }
                   saveSidecarOrWarn2(ctx, task.sidecar, filename);
+                  void ctx.auditLog.record("media.download", {
+                    filename,
+                    kind: task.kind,
+                    via: result.via,
+                    batch: true
+                  });
                   return;
                 }
                 if (terminal === "interrupted") {
@@ -20838,6 +21062,11 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
                   ctx.diagnostics.warn("Batch media transfer was interrupted", {
                     filename,
                     kind: task.kind
+                  });
+                  void ctx.auditLog.record("media.download.failed", {
+                    filename,
+                    kind: task.kind,
+                    batch: true
                   });
                 }
               }).catch(async (error) => {
@@ -20848,6 +21077,8 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
                   error: String(error?.message ?? error)
                 });
               });
+              progress.started += 1;
+              continue;
             } else {
               if (job) queue2?.mark(job.id, "completed");
               if (ctx.settings.media.downloadHistory && history2) {
@@ -20911,6 +21142,8 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
       total: jobs.length,
       enqueued: 0,
       downloaded: 0,
+      started: 0,
+      opened: 0,
       duplicate: 0,
       failed: 0
     };
@@ -20990,12 +21223,28 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
             });
             continue;
           }
+          if (result.degraded) {
+            if (reservationToken2 && history2) {
+              await history2.release(reservationToken2);
+              reservationToken2 = null;
+            }
+            queue2.mark(job.id, "opened", "the browser opened this URL; a saved file was not confirmed");
+            progress.opened += 1;
+            void ctx.auditLog.record("media.download.opened", {
+              filename: job.filename,
+              batch: true,
+              resumed: true,
+              via: result.via
+            });
+            continue;
+          }
           if (result.pending && result.downloadId !== void 0) {
             const jobId = job.id;
             const activeReservation = reservationToken2;
             const activeFingerprint = fingerprint;
             reservationToken2 = null;
-            void sharedDownloadWatcher().wait(result.downloadId).then(async (terminal) => {
+            queue2.trackDownload(jobId, result.downloadId);
+            void sharedDownloadWatcher().terminal(result.downloadId).then(async (terminal) => {
               if (terminal === "complete") {
                 queue2.mark(jobId, "completed");
                 if (ctx.settings.media.downloadHistory && history2 && activeFingerprint) {
@@ -21006,9 +21255,20 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
                   }
                 }
                 saveSidecarOrWarn2(ctx, job.sidecar, job.filename);
+                void ctx.auditLog.record("media.download", {
+                  filename: job.filename,
+                  batch: true,
+                  resumed: true,
+                  via: result.via
+                });
               } else if (terminal === "interrupted") {
                 if (activeReservation && history2) await history2.release(activeReservation);
                 queue2.mark(jobId, "failed", "the browser interrupted this transfer");
+                void ctx.auditLog.record("media.download.failed", {
+                  filename: job.filename,
+                  batch: true,
+                  resumed: true
+                });
               }
             }).catch(async (error) => {
               if (activeReservation && history2) await history2.release(activeReservation);
@@ -21018,6 +21278,8 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
                 error: String(error?.message ?? error)
               });
             });
+            progress.started += 1;
+            continue;
           } else {
             queue2.mark(job.id, "completed");
             if (ctx.settings.media.downloadHistory && history2 && fingerprint) {
@@ -23533,6 +23795,7 @@ ${COLOR_CSS}`;
             lastHistoryMatch: historySnapshot?.lastMatch?.kind ?? null,
             completed: snapshot?.completed ?? 0,
             failed: snapshot?.failed ?? 0,
+            opened: snapshot?.opened ?? 0,
             duplicate: snapshot?.duplicate ?? 0,
             running: snapshot?.running ?? 0,
             queued: snapshot?.queued ?? 0,
@@ -23711,11 +23974,8 @@ ${COLOR_CSS}`;
           return previewRuleSetImport(payload, currentRules);
         },
         async applyFilterRuleImport(payload, mode) {
-          const preview = previewRuleSetImport(payload, ctx.settings.filter.rules);
-          const plan = preview[mode];
+          const plan = await applyFilterRuleImportAtomic(ctx, payload, mode);
           if (plan.errors.length > 0) return plan;
-          ctx.settings.filter.rules = [...plan.lines];
-          await ctx.saveSettings();
           ctx.requestApply();
           void ctx.auditLog.record("settings.import", {
             kind: "filter-rules",
@@ -23853,12 +24113,14 @@ ${COLOR_CSS}`;
         async runCapturedMediaBatch(query) {
           const records = matchingCapturedRecords(query);
           const result = await runCapturedMediaBatch(ctx, records);
-          void ctx.auditLog.record("media.download", {
+          void ctx.auditLog.record("media.batch", {
             batch: true,
             source: "captured-library",
             query: query.slice(0, 512),
             total: result.total,
             downloaded: result.downloaded,
+            started: result.started,
+            opened: result.opened,
             duplicate: result.duplicate,
             failed: result.failed,
             cancelled: result.cancelled
@@ -23866,6 +24128,8 @@ ${COLOR_CSS}`;
           return {
             total: result.total,
             downloaded: result.downloaded,
+            started: result.started,
+            opened: result.opened,
             duplicate: result.duplicate,
             failed: result.failed,
             cancelled: result.cancelled
@@ -24232,10 +24496,12 @@ ${COLOR_CSS}`;
         },
         async runMediaBatch() {
           const result = await runMediaBatch(ctx, { maxItems: 100, surface: ctx.route.surface });
-          void ctx.auditLog.record("media.download", {
+          void ctx.auditLog.record("media.batch", {
             batch: true,
             total: result.total,
             downloaded: result.downloaded,
+            started: result.started,
+            opened: result.opened,
             duplicate: result.duplicate,
             failed: result.failed,
             cancelled: result.cancelled
@@ -24243,6 +24509,8 @@ ${COLOR_CSS}`;
           return {
             total: result.total,
             downloaded: result.downloaded,
+            started: result.started,
+            opened: result.opened,
             duplicate: result.duplicate,
             failed: result.failed,
             cancelled: result.cancelled
@@ -24256,6 +24524,8 @@ ${COLOR_CSS}`;
           return {
             total: result.total,
             downloaded: result.downloaded,
+            started: result.started,
+            opened: result.opened,
             duplicate: result.duplicate,
             failed: result.failed,
             cancelled: result.cancelled
@@ -24266,6 +24536,8 @@ ${COLOR_CSS}`;
           return {
             total: result.total,
             downloaded: result.downloaded,
+            started: result.started,
+            opened: result.opened,
             duplicate: result.duplicate,
             failed: result.failed,
             cancelled: result.cancelled
@@ -24283,10 +24555,10 @@ ${COLOR_CSS}`;
         getWaczEstimate() {
           return estimateWaczBytes(collectAllRecords(getCheckpointStore()));
         },
-        async downloadWacz() {
+        async downloadWacz(options) {
           rebuildSearchIndex();
           const records = collectAllRecords(getCheckpointStore());
-          const artifact = buildWaczArchive(records);
+          const artifact = await buildWaczArchiveOffThread(records, options);
           downloadBlob(artifact.data, artifact.filename, artifact.contentType);
           void ctx.auditLog.record("export.complete", {
             format: "wacz",

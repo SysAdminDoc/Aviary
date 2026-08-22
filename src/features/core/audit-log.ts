@@ -7,8 +7,10 @@ export const AUDIT_LOG_LIMIT = 500;
 
 export type AuditAction =
   | "media.download"
+  | "media.download.opened"
   | "media.download.duplicate"
   | "media.download.failed"
+  | "media.batch"
   | "filter.applied"
   | "post.hide"
   | "post.unhide"

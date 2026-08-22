@@ -112,7 +112,9 @@ post text. Duplicate, refused, and interrupted transfers do not create one.
 Library search has a **Download media** action. With an empty search it uses every captured record;
 with a query it uses only those local matches, including `account:`, `source:`, date, and
 `has:media` filters. The queue is written before the first file handoff, survives a restart, and
-never starts a GraphQL request. It can only save media references Aviary has already captured.
+keeps the browser download id when the extension owns the transfer. A file is counted as saved only
+after the browser reports completion, and it never starts a GraphQL request. It can only save media
+references Aviary has already captured.
 
 ## How do I export what I am seeing?
 
@@ -140,7 +142,8 @@ size before it runs, then **Open replayweb.page** takes you to the compatible br
 Aviary writes captured media as real HTTP responses and gives each derived post page a synthetic
 archive URL. Missing media remains honest metadata rather than a fake response. WACZ keeps the WARC
 and index members uncompressed because replay depends on their exact byte offsets, so it can be
-larger than a normal export ZIP. The archive is built and downloaded locally.
+larger than a normal export ZIP. The archive is assembled in a local worker, with a 256 MiB estimate
+guard and a cancel action, then downloaded locally.
 
 ## How do I share or restore filter rules?
 

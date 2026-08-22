@@ -54,6 +54,7 @@ export interface MediaStatus {
   lastHistoryMatch: "identity" | "exact" | "perceptual" | null;
   completed: number;
   failed: number;
+  opened?: number;
   duplicate: number;
   running: number;
   queued?: number;
@@ -65,6 +66,8 @@ export interface MediaStatus {
     total: number;
     enqueued: number;
     downloaded: number;
+    started: number;
+    opened: number;
     duplicate: number;
     failed: number;
   };
@@ -216,6 +219,8 @@ export interface ControlCenterOptions {
   runCapturedMediaBatch?: (query: string) => Promise<{
     total: number;
     downloaded: number;
+    started: number;
+    opened: number;
     duplicate: number;
     failed: number;
     cancelled?: boolean;
@@ -241,6 +246,8 @@ export interface ControlCenterOptions {
   resumePendingMediaJobs?: () => Promise<{
     total: number;
     downloaded: number;
+    started: number;
+    opened: number;
     duplicate: number;
     failed: number;
     cancelled: boolean;
@@ -248,6 +255,8 @@ export interface ControlCenterOptions {
   retryFailedMediaJobs?: () => Promise<{
     total: number;
     downloaded: number;
+    started: number;
+    opened: number;
     duplicate: number;
     failed: number;
     cancelled: boolean;
@@ -255,6 +264,8 @@ export interface ControlCenterOptions {
   runMediaBatch?: () => Promise<{
     total: number;
     downloaded: number;
+    started: number;
+    opened: number;
     duplicate: number;
     failed: number;
     cancelled?: boolean;
@@ -263,7 +274,10 @@ export interface ControlCenterOptions {
   clearIntegrationUsage?: () => Promise<void>;
   downloadWarc?: () => Promise<{ records: number }>;
   getWaczEstimate?: () => { records: number; estimatedBytes: number };
-  downloadWacz?: () => Promise<{ records: number; bytes: number; filename: string }>;
+  downloadWacz?: (options?: {
+    signal?: AbortSignal;
+    onProgress?: (progress: number) => void;
+  }) => Promise<{ records: number; bytes: number; filename: string }>;
   exportToTarget?: (
     target: "clipboard-markdown" | "obsidian" | "notion" | "raw-json"
   ) => Promise<{ target: string; records: number; copied?: boolean }>;

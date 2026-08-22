@@ -16,6 +16,8 @@ export interface WarcRecordInput {
   recordType?: "warcinfo" | "response" | "resource" | "metadata" | "revisit";
   recordedAt?: Date;
   recordId?: string;
+  /** Stable position within one archive, used only to prevent duplicate deterministic ids. */
+  occurrence?: number;
   payloadDigest?: string;
   extraHeaders?: Readonly<Record<string, string>>;
 }
@@ -62,9 +64,10 @@ export function buildIndexedWarcArchive(
   const index: WarcIndexEntry[] = [];
   const pages: WarcPageEntry[] = [];
   let offset = 0;
+  let occurrence = 0;
 
   const append = (input: WarcRecordInput, indexed?: Omit<WarcIndexEntry, "offset" | "length">): void => {
-    const block = formatRecord(input);
+    const block = formatRecord({ ...input, occurrence: occurrence++ });
     blocks.push(block);
     if (indexed) index.push({ ...indexed, offset, length: block.length });
     offset += block.length;
@@ -155,8 +158,7 @@ export function buildIndexedWarcArchive(
             body: responseBlock,
             recordType: "response",
             recordedAt: mediaRecordedAt,
-            payloadDigest,
-            extraHeaders: { "WARC-Identified-Payload-Type": mime }
+            payloadDigest
           }, {
             url: sourceUrl,
             timestamp: mediaTimestamp,
@@ -293,7 +295,7 @@ function renderReplayPage(record: ExportRecord, title: string): string {
 <style>
 :root{color-scheme:dark;background:#07080a;color:#f2f4f7;font:16px/1.55 system-ui,sans-serif}
 body{margin:0;padding:clamp(24px,6vw,72px)}main{max-width:680px;margin:auto}
-article{background:#111318;border:1px solid #292d35;border-radius:18px;padding:24px;box-shadow:0 20px 60px #0008}
+article{background:#111318;border:1px solid #292d35;border-radius:12px;padding:24px;box-shadow:0 20px 60px #0008}
 header{display:flex;justify-content:space-between;gap:16px;color:#aab2c0;font-size:14px}strong{color:#f2f4f7}
 p{white-space:pre-wrap;font-size:18px}.media{display:grid;gap:10px;margin-top:18px}img,video{width:100%;border-radius:12px;background:#050506}
 a{display:inline-block;margin-top:18px;color:#7dd3fc;text-underline-offset:3px}
@@ -346,7 +348,8 @@ export function formatRecord(input: WarcRecordInput): Uint8Array {
     recordedAt,
     url,
     mime,
-    blockDigest
+    blockDigest,
+    occurrence: input.occurrence ?? 0
   }));
   const headerLines = [
     WARC_VERSION,
@@ -378,13 +381,15 @@ function deterministicRecordId(parts: {
   url: string;
   mime: string;
   blockDigest: string;
+  occurrence: number;
 }): string {
   const hex = sha256Hex(ENCODER.encode([
     parts.recordType,
     parts.recordedAt,
     parts.url,
     parts.mime,
-    parts.blockDigest
+    parts.blockDigest,
+    String(parts.occurrence)
   ].join("\n")));
   const uuid = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-8${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
   return `<urn:uuid:${uuid}>`;

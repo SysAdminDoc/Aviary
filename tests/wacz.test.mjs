@@ -20,7 +20,7 @@ test("WACZ 1.1.1 package has checksummed STORE members and deterministic output"
   const artifact = buildWaczArchive(records, { generatedAt });
   const again = buildWaczArchive(records, { generatedAt });
 
-  assert.equal(artifact.contentType, "application/x-wacz");
+  assert.equal(artifact.contentType, "application/wacz");
   assert.equal(artifact.filename, "aviary-20260812T123456Z.wacz");
   assert.deepEqual(artifact.data, again.data);
   assert.deepEqual(zipMethods(artifact.data), [0, 0, 0, 0, 0]);

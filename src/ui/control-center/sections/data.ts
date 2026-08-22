@@ -439,8 +439,8 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
             updateMediaCount();
             ctx.setStatus(
               result.cancelled
-                ? `Batch cancelled: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
-                : `Batch finished: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
+                ? `Batch cancelled: ${result.downloaded} saved / ${result.started} running / ${result.opened} opened / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
+                : `Batch finished: ${result.downloaded} saved / ${result.started} running / ${result.opened} opened / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
             );
           })
           .catch((error: unknown) => {
@@ -1161,21 +1161,48 @@ function preservationArchiveRow(ctx: PanelContext): HTMLElement {
   if (ctx.options.downloadWacz) {
     const wacz = ctx.button("WACZ", "av-button av-button-primary");
     archiveButtons.push(wacz);
+    let waczController: AbortController | undefined;
+    const cancelWacz = ctx.button("Cancel", "av-button av-button-secondary");
+    cancelWacz.type = "button";
+    cancelWacz.hidden = true;
+    cancelWacz.setAttribute("aria-hidden", "true");
+    cancelWacz.addEventListener("click", () => {
+      waczController?.abort();
+      cancelWacz.disabled = true;
+    });
     wacz.addEventListener("click", () => {
       void run(wacz, ctx.t("Building WACZ archive…"), async () => {
+        waczController = new AbortController();
+        cancelWacz.hidden = false;
+        cancelWacz.removeAttribute("aria-hidden");
         try {
-          const result = await ctx.options.downloadWacz!();
+          const result = await ctx.options.downloadWacz!({
+            signal: waczController.signal,
+            onProgress: (progress) => {
+              ctx.setStatus(`${ctx.t("Building WACZ archive…")} ${Math.round(progress * 100)}%`);
+            }
+          });
           ctx.setStatusCopy("WACZ downloaded ({records} records, {size}).", {
             records: result.records,
             size: ctx.formatBytes(result.bytes)
           });
         } catch (error) {
-          ctx.options.onError("WACZ export failed", error);
-          ctx.setStatus("WACZ export failed.");
+          if (error instanceof DOMException && error.name === "AbortError") {
+            ctx.setStatus(ctx.t("Export job cancelled."));
+          } else {
+            ctx.options.onError("WACZ export failed", error);
+            ctx.setStatus(error instanceof Error ? error.message : "WACZ export failed.");
+          }
+        } finally {
+          waczController = undefined;
+          cancelWacz.hidden = true;
+          cancelWacz.setAttribute("aria-hidden", "true");
+          cancelWacz.disabled = false;
         }
       });
     });
     actions.append(wacz);
+    actions.append(cancelWacz);
   }
 
   const replay = ctx.el("a", "av-button av-button-secondary av-replay-link", ctx.t("Open replayweb.page"));
@@ -1335,8 +1362,8 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
             ctx.render();
             ctx.setStatus(
               result.cancelled
-                ? `Batch cancelled: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
-                : `Batch finished: ${result.downloaded} saved / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
+                ? `Batch cancelled: ${result.downloaded} saved / ${result.started} running / ${result.opened} opened / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
+                : `Batch finished: ${result.downloaded} saved / ${result.started} running / ${result.opened} opened / ${result.duplicate} dup / ${result.failed} failed (of ${result.total}).`
             );
           } catch (error) {
             ctx.options.onError("Batch download failed", error);
@@ -1352,14 +1379,14 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
     rows.push(
       ctx.dataRow(
         "Download status",
-        `${status.running} running / ${status.queued ?? 0} queued / ${status.paused ?? 0} paused / ${status.completed} done / ${status.duplicate} dup / ${status.failed} failed`
+        `${status.running} running / ${status.queued ?? 0} queued / ${status.paused ?? 0} paused / ${status.completed} done / ${status.opened ?? 0} opened / ${status.duplicate} dup / ${status.failed} failed`
       )
     );
     if (status.batch) {
       rows.push(
         ctx.dataRow(
           "Active media batch",
-          `${status.batch.status} · ${status.batch.downloaded} saved / ${status.batch.duplicate} dup / ${status.batch.failed} failed of ${status.batch.total}`
+          `${status.batch.status} · ${status.batch.downloaded} saved / ${status.batch.started} running / ${status.batch.opened} opened / ${status.batch.duplicate} dup / ${status.batch.failed} failed of ${status.batch.total}`
         )
       );
     }
@@ -1447,8 +1474,8 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
         ctx.render();
         ctx.setStatus(
           result.cancelled
-            ? `Queued media recovery cancelled after ${result.downloaded} saved.`
-            : `Queued media recovery finished: ${result.downloaded} saved / ${result.failed} failed.`
+            ? `Queued media recovery cancelled after ${result.downloaded} saved, ${result.started} still running, and ${result.opened} opened.`
+            : `Queued media recovery finished: ${result.downloaded} saved / ${result.started} running / ${result.opened} opened / ${result.failed} failed.`
         );
       })
     );
@@ -1461,7 +1488,7 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
         ctx.setStatus(
           result.total === 0
             ? "No failed media jobs to retry."
-            : `Media retry finished: ${result.downloaded} saved / ${result.failed} failed.`
+            : `Media retry finished: ${result.downloaded} saved / ${result.started} running / ${result.opened} opened / ${result.failed} failed.`
         );
       })
     );

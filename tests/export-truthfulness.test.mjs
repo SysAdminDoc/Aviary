@@ -70,6 +70,33 @@ test("WARC stores captured bytes as responses and remote media as metadata-only"
   assert.match(text, /metadataOnly":true/);
   assert.match(text, /remote-reference/);
   assert.match(text, /The media body is not in this WARC/);
+  assert.doesNotMatch(
+    text,
+    /WARC-Identified-Payload-Type:/,
+    "a declared HTTP type was falsely presented as independently identified"
+  );
+});
+
+test("WARC record ids remain unique when two captured records are byte-identical", async () => {
+  const { buildWarcArchive } = await importBundledModule("src/features/export/warc.ts");
+  const media = {
+    kind: "photo",
+    url: "https://pbs.twimg.com/media/same.jpg",
+    bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
+    type: "image/jpeg"
+  };
+  const record = sampleRecord({
+    tweetId: null,
+    capturedAt: "2026-08-12T12:00:00Z",
+    media: [media]
+  });
+  const text = new TextDecoder().decode(buildWarcArchive([record, structuredClone(record)]).data);
+  const ids = [...text.matchAll(/^WARC-Record-ID: (.+)$/gm)].map((match) => match[1].trim());
+
+  assert.ok(ids.length > 2, "the fixture did not create a useful archive");
+  assert.equal(new Set(ids).size, ids.length, "two WARC records reused the same mandatory id");
+  assert.match(text, /Content-Type: image\/jpeg/, "the declared HTTP media type disappeared");
+  assert.doesNotMatch(text, /WARC-Identified-Payload-Type:/);
 });
 
 test("export ZIPs include a checksum manifest and package media without silent network fetches", async () => {
