@@ -80,12 +80,6 @@ export function reconstructThreads(records: readonly ExportRecord[]): Reconstruc
       const bucket = contextBuckets.get(context) ?? [];
       bucket.push(index);
       contextBuckets.set(context, bucket);
-    } else if (node.handle && !node.parentId) {
-      // Preserve the viewer's long-standing self-thread fallback for older records that predate
-      // the GraphQL metadata fields. It is only used when there is no explicit context at all.
-      const bucket = contextBuckets.get(`handle:${node.handle}`) ?? [];
-      bucket.push(index);
-      contextBuckets.set(`handle:${node.handle}`, bucket);
     }
   });
 
@@ -177,21 +171,42 @@ function dedupeNodes(records: readonly ExportRecord[]): ThreadNode[] {
 }
 
 function mergeNode(existing: ThreadNode, incoming: ExportRecord): ThreadNode {
-  const merged: ExportRecord = {
-    ...existing.record,
-    ...incoming,
-    media: incoming.media?.length > existing.record.media.length ? incoming.media : existing.record.media,
-    ...(incoming.participants?.length
-      ? { participants: incoming.participants }
-      : existing.record.participants?.length
-        ? { participants: existing.record.participants }
-        : {}),
-    ...(incoming.expandedUrls?.length
-      ? { expandedUrls: incoming.expandedUrls }
-      : existing.record.expandedUrls?.length
-        ? { expandedUrls: existing.record.expandedUrls }
-        : {})
-  };
+  const merged: ExportRecord = { ...existing.record };
+  const stringFields: Array<keyof ExportRecord> = [
+    "tweetId",
+    "handle",
+    "displayName",
+    "capturedAt",
+    "surface",
+    "permalink",
+    "conversationId",
+    "parentId",
+    "rootId",
+    "authorId",
+    "createdAt",
+    "threadId",
+    "birdwatch"
+  ];
+  for (const field of stringFields) {
+    const value = incoming[field];
+    if (typeof value !== "string" || value.trim().length === 0) continue;
+    if (field === "capturedAt" && existing.record.capturedAt) continue;
+    if (field === "surface" && existing.record.surface) continue;
+    (merged as unknown as Record<string, unknown>)[field] = value;
+  }
+  if (incoming.text.trim().length > existing.record.text.trim().length) merged.text = incoming.text;
+  if (incoming.media.length > existing.record.media.length) merged.media = incoming.media;
+  const incomingParticipants = incoming.participants;
+  if (incomingParticipants && incomingParticipants.length > (existing.record.participants?.length ?? 0)) {
+    merged.participants = incomingParticipants;
+  }
+  const incomingExpandedUrls = incoming.expandedUrls;
+  if (incomingExpandedUrls && incomingExpandedUrls.length > (existing.record.expandedUrls?.length ?? 0)) {
+    merged.expandedUrls = incomingExpandedUrls;
+  }
+  if (incoming.poll && !existing.record.poll) merged.poll = incoming.poll;
+  if (incoming.quote && !existing.record.quote) merged.quote = incoming.quote;
+  if (incoming.article && !existing.record.article) merged.article = incoming.article;
   return {
     ...existing,
     record: merged,

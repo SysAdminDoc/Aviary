@@ -4,6 +4,19 @@
 
 No changes yet.
 
+## 1.44.1 (2026-08-22)
+
+### Fixed
+
+- **Captured thread rebuilding preserves the best local record.** Duplicate payloads no longer let
+  empty fields erase richer text, author, or metadata values. Records without conversation metadata
+  stay independent, long threads render continuously, and the reader's sort order applies to whole
+  thread groups while preserving parent-first order.
+
+### Verification
+
+- Added duplicate-merge, metadata-less grouping, long-thread, and thread-sort regression coverage.
+
 ## 1.44.0 (2026-08-22)
 
 ### Added

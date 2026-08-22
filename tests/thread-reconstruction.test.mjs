@@ -37,6 +37,32 @@ test("reconstructThreads surfaces missing parents and collapses same-author runs
   assert.equal(thread.authorRuns[0].count, 2);
 });
 
+test("reconstructThreads keeps richer duplicate data and does not invent handle threads", async () => {
+  const { reconstructThreads } = await importBundledModule("src/features/export/thread-reconstruction.ts");
+  const rich = record("500", "rich text", "same", null, null, "author-1", "2026-08-22T12:00:00Z");
+  const poor = {
+    ...rich,
+    handle: null,
+    displayName: null,
+    text: "",
+    authorId: null,
+    conversationId: null,
+    rootId: null,
+    createdAt: null
+  };
+  const [merged] = reconstructThreads([rich, poor]);
+  assert.equal(merged.records[0].text, "rich text");
+  assert.equal(merged.records[0].handle, "same");
+  assert.equal(merged.records[0].displayName, "same");
+  assert.equal(merged.records[0].authorId, "author-1");
+
+  const unrelated = reconstructThreads([
+    record("501", "first", "same", null, null, null, "2026-08-22T12:01:00Z"),
+    record("502", "second", "same", null, null, null, "2026-08-22T12:02:00Z")
+  ]);
+  assert.equal(unrelated.length, 2, "metadata-less posts from one author are not one fabricated thread");
+});
+
 function record(tweetId, text, handle, parentId, conversationId, authorId, createdAt, media = []) {
   return {
     tweetId,

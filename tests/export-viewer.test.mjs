@@ -15,6 +15,9 @@ test("standalone viewer is local-only, responsive, virtualized, searchable, and 
     tweetId: String(index + 1),
     handle: "archivist",
     displayName: "Archivist",
+    conversationId: "1",
+    rootId: "1",
+    ...(index > 0 ? { parentId: String(index) } : {}),
     text: index === 73 ? "needle survives the filter" : `post ${index}`,
     capturedAt: `2026-08-12T12:${String(index % 60).padStart(2, "0")}:00Z`,
     surface: "home",
@@ -56,6 +59,7 @@ test("standalone viewer is local-only, responsive, virtualized, searchable, and 
     await page.locator("#thread").check();
     assert.equal(await page.locator("#list .record-card").count(), 1);
     assert.match(await page.locator("#list").textContent(), /120 posts/);
+    assert.equal(await page.locator("#list .body").count(), 120, "long threads must stay continuous");
 
     await page.selectOption("#locale", "ar");
     assert.equal(await page.locator("html").getAttribute("dir"), "rtl");
@@ -125,6 +129,68 @@ test("thread view renders missing parents and collapses same-author runs", async
     assert.equal(await page.locator("details.author-run").count(), 1);
     assert.match(await page.locator("#list").textContent(), /Missing captured post/);
     assert.match(await page.locator("#list").textContent(), /3 posts/);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("thread sorting orders complete groups without breaking parent order", async () => {
+  const { buildExportViewer } = await importBundledModule("src/features/export/viewer.ts");
+  const records = [
+    {
+      tweetId: "old-root",
+      handle: "zeta",
+      displayName: "Zeta",
+      conversationId: "old-root",
+      rootId: "old-root",
+      text: "old root",
+      capturedAt: "2026-08-22T10:00:00Z",
+      createdAt: "2026-08-22T10:00:00Z",
+      surface: "home",
+      media: [],
+      permalink: "https://x.com/zeta/status/old-root"
+    },
+    {
+      tweetId: "new-root",
+      handle: "alpha",
+      displayName: "Alpha",
+      conversationId: "new-root",
+      rootId: "new-root",
+      text: "new root",
+      capturedAt: "2026-08-22T12:00:00Z",
+      createdAt: "2026-08-22T12:00:00Z",
+      surface: "home",
+      media: [],
+      permalink: "https://x.com/alpha/status/new-root"
+    },
+    {
+      tweetId: "new-reply",
+      handle: "alpha",
+      displayName: "Alpha",
+      conversationId: "new-root",
+      rootId: "new-root",
+      parentId: "new-root",
+      text: "new reply",
+      capturedAt: "2026-08-22T12:01:00Z",
+      createdAt: "2026-08-22T12:01:00Z",
+      surface: "home",
+      media: [],
+      permalink: "https://x.com/alpha/status/new-reply"
+    }
+  ];
+  const html = new TextDecoder().decode(buildExportViewer(records));
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: 900, height: 700 } });
+    await page.setContent(html, { waitUntil: "load" });
+    await page.locator("#thread").check();
+    assert.equal(await page.locator("#list .record-card").count(), 2);
+    assert.match(await page.locator("#list .record-card").first().textContent(), /new root/);
+    await page.selectOption("#sort", "oldest");
+    assert.match(await page.locator("#list .record-card").first().textContent(), /old root/);
+    await page.selectOption("#sort", "handle");
+    assert.match(await page.locator("#list .record-card").first().textContent(), /new root/);
+    assert.match(await page.locator("#list .record-card").first().textContent(), /new reply/);
   } finally {
     await browser.close();
   }

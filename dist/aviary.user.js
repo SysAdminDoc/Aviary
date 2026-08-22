@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/SysAdminDoc
-// @version      1.44.0
+// @version      1.44.1
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       SysAdminDoc
 // @homepage     https://github.com/SysAdminDoc/Aviary
@@ -2103,7 +2103,7 @@ ${body}
   }
 
   // src/platform/build-version.ts
-  var AVIARY_VERSION = false ? "dev" : "1.44.0";
+  var AVIARY_VERSION = false ? "dev" : "1.44.1";
 
   // src/ui/control-center/constants.ts
   var MEDIA_LAYOUT_OPTIONS = [
@@ -6120,7 +6120,7 @@ ${body}
   }
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION2 = false ? "dev" : "1.44.0";
+  var AVIARY_VERSION2 = false ? "dev" : "1.44.1";
   var SECTION_GROUP_BREAKS = {
     presets: [
       { before: "Quiet Reader", title: "Preset packs" },
@@ -15870,10 +15870,6 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
         const bucket = contextBuckets.get(context) ?? [];
         bucket.push(index);
         contextBuckets.set(context, bucket);
-      } else if (node.handle && !node.parentId) {
-        const bucket = contextBuckets.get(`handle:${node.handle}`) ?? [];
-        bucket.push(index);
-        contextBuckets.set(`handle:${node.handle}`, bucket);
       }
     });
     for (const bucket of contextBuckets.values()) {
@@ -15954,13 +15950,42 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
     return nodes;
   }
   function mergeNode(existing, incoming) {
-    const merged = {
-      ...existing.record,
-      ...incoming,
-      media: incoming.media?.length > existing.record.media.length ? incoming.media : existing.record.media,
-      ...incoming.participants?.length ? { participants: incoming.participants } : existing.record.participants?.length ? { participants: existing.record.participants } : {},
-      ...incoming.expandedUrls?.length ? { expandedUrls: incoming.expandedUrls } : existing.record.expandedUrls?.length ? { expandedUrls: existing.record.expandedUrls } : {}
-    };
+    const merged = { ...existing.record };
+    const stringFields = [
+      "tweetId",
+      "handle",
+      "displayName",
+      "capturedAt",
+      "surface",
+      "permalink",
+      "conversationId",
+      "parentId",
+      "rootId",
+      "authorId",
+      "createdAt",
+      "threadId",
+      "birdwatch"
+    ];
+    for (const field2 of stringFields) {
+      const value = incoming[field2];
+      if (typeof value !== "string" || value.trim().length === 0) continue;
+      if (field2 === "capturedAt" && existing.record.capturedAt) continue;
+      if (field2 === "surface" && existing.record.surface) continue;
+      merged[field2] = value;
+    }
+    if (incoming.text.trim().length > existing.record.text.trim().length) merged.text = incoming.text;
+    if (incoming.media.length > existing.record.media.length) merged.media = incoming.media;
+    const incomingParticipants = incoming.participants;
+    if (incomingParticipants && incomingParticipants.length > (existing.record.participants?.length ?? 0)) {
+      merged.participants = incomingParticipants;
+    }
+    const incomingExpandedUrls = incoming.expandedUrls;
+    if (incomingExpandedUrls && incomingExpandedUrls.length > (existing.record.expandedUrls?.length ?? 0)) {
+      merged.expandedUrls = incomingExpandedUrls;
+    }
+    if (incoming.poll && !existing.record.poll) merged.poll = incoming.poll;
+    if (incoming.quote && !existing.record.quote) merged.quote = incoming.quote;
+    if (incoming.article && !existing.record.article) merged.article = incoming.article;
     return {
       ...existing,
       record: merged,
@@ -16864,7 +16889,10 @@ ${sections.join("\n\n---\n\n")}
       const rightDate = Date.parse(right.capturedAt || "") || 0;
       return state.sort === "newest" ? rightDate - leftDate : leftDate - rightDate;
     });
-    return state.thread ? threadGroups(filtered) : filtered.map((record) => [record]);
+    if (!state.thread) return filtered.map((record) => [record]);
+    const groups = threadGroups(filtered);
+    groups.sort((left, right) => compareGroups(left, right, state.sort));
+    return groups;
   }
   function threadGroups(records) {
     const byKey = new Map(records.map((record) => [recordKey(record), record]));
@@ -16892,7 +16920,7 @@ ${sections.join("\n\n---\n\n")}
     records.forEach((record) => {
       const key = recordKey(record);
       if (used.has(key)) return;
-      const groupKey = record.conversationId || record.threadId || (record.handle ? "handle:" + record.handle : "record:" + (record.tweetId || "unknown"));
+      const groupKey = record.conversationId || record.rootId || record.threadId || recordKey(record);
       const group = leftovers.get(groupKey) || [];
       group.push(record);
       leftovers.set(groupKey, group);
@@ -16981,7 +17009,7 @@ ${sections.join("\n\n---\n\n")}
       }
       run = [];
     };
-    group.slice(0, 48).forEach((entry) => {
+    group.forEach((entry) => {
       if (entry.__aviaryGap) {
         flushRun();
         const gap = document.createElement("div");
@@ -16997,7 +17025,6 @@ ${sections.join("\n\n---\n\n")}
       run.push(entry);
     });
     flushRun();
-    if (posts.length > 48) card.append(text("p", "+" + (posts.length - 48) + " " + currentLabels().threadPosts));
     appendMedia(card, group);
     if (record.permalink && /^https?:\\/\\//i.test(record.permalink)) {
       const link = document.createElement("a");
@@ -17008,6 +17035,18 @@ ${sections.join("\n\n---\n\n")}
       card.append(link);
     }
     return card;
+  }
+  function compareGroups(left, right, sort) {
+    const leftPosts = left.filter((entry) => !entry.__aviaryGap);
+    const rightPosts = right.filter((entry) => !entry.__aviaryGap);
+    if (sort === "handle") {
+      return String(leftPosts[0]?.handle || "").localeCompare(String(rightPosts[0]?.handle || ""));
+    }
+    const leftTimes = leftPosts.map((entry) => Date.parse(entry.capturedAt || "") || 0);
+    const rightTimes = rightPosts.map((entry) => Date.parse(entry.capturedAt || "") || 0);
+    const leftTime = sort === "newest" ? Math.max(0, ...leftTimes) : Math.min(...leftTimes, 0);
+    const rightTime = sort === "newest" ? Math.max(0, ...rightTimes) : Math.min(...rightTimes, 0);
+    return sort === "newest" ? rightTime - leftTime : leftTime - rightTime;
   }
   function appendPost(card, entry) {
     const body = text("p", entry.text || "", "body");

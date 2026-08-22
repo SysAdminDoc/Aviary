@@ -232,7 +232,10 @@ function viewerScript(labels: string): string {
       const rightDate = Date.parse(right.capturedAt || "") || 0;
       return state.sort === "newest" ? rightDate - leftDate : leftDate - rightDate;
     });
-    return state.thread ? threadGroups(filtered) : filtered.map((record) => [record]);
+    if (!state.thread) return filtered.map((record) => [record]);
+    const groups = threadGroups(filtered);
+    groups.sort((left, right) => compareGroups(left, right, state.sort));
+    return groups;
   }
   function threadGroups(records) {
     const byKey = new Map(records.map((record) => [recordKey(record), record]));
@@ -260,7 +263,7 @@ function viewerScript(labels: string): string {
     records.forEach((record) => {
       const key = recordKey(record);
       if (used.has(key)) return;
-      const groupKey = record.conversationId || record.threadId || (record.handle ? "handle:" + record.handle : "record:" + (record.tweetId || "unknown"));
+      const groupKey = record.conversationId || record.rootId || record.threadId || recordKey(record);
       const group = leftovers.get(groupKey) || [];
       group.push(record);
       leftovers.set(groupKey, group);
@@ -349,7 +352,7 @@ function viewerScript(labels: string): string {
       }
       run = [];
     };
-    group.slice(0, 48).forEach((entry) => {
+    group.forEach((entry) => {
       if (entry.__aviaryGap) {
         flushRun();
         const gap = document.createElement("div");
@@ -365,7 +368,6 @@ function viewerScript(labels: string): string {
       run.push(entry);
     });
     flushRun();
-    if (posts.length > 48) card.append(text("p", "+" + (posts.length - 48) + " " + currentLabels().threadPosts));
     appendMedia(card, group);
     if (record.permalink && /^https?:\\/\\//i.test(record.permalink)) {
       const link = document.createElement("a");
@@ -376,6 +378,18 @@ function viewerScript(labels: string): string {
       card.append(link);
     }
     return card;
+  }
+  function compareGroups(left, right, sort) {
+    const leftPosts = left.filter((entry) => !entry.__aviaryGap);
+    const rightPosts = right.filter((entry) => !entry.__aviaryGap);
+    if (sort === "handle") {
+      return String(leftPosts[0]?.handle || "").localeCompare(String(rightPosts[0]?.handle || ""));
+    }
+    const leftTimes = leftPosts.map((entry) => Date.parse(entry.capturedAt || "") || 0);
+    const rightTimes = rightPosts.map((entry) => Date.parse(entry.capturedAt || "") || 0);
+    const leftTime = sort === "newest" ? Math.max(0, ...leftTimes) : Math.min(...leftTimes, 0);
+    const rightTime = sort === "newest" ? Math.max(0, ...rightTimes) : Math.min(...rightTimes, 0);
+    return sort === "newest" ? rightTime - leftTime : leftTime - rightTime;
   }
   function appendPost(card, entry) {
     const body = text("p", entry.text || "", "body");
