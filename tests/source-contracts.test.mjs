@@ -514,3 +514,34 @@ test("every module that shows the shared toast also removes it", async () => {
       `own teardown: ${orphaned.join(", ")}`
   );
 });
+
+/**
+ * The panel's status tone is chosen from the English source string.
+ *
+ * `setStatus` picks the dot colour by matching the source against /could not|failed|error|invalid/
+ * and defaults to the success tone, so a message that is already translated, or that is a raw
+ * exception, is scored on the wrong text. A WACZ failure reporting "Quota exceeded" matched none of
+ * those words and rendered beside the green dot.
+ */
+test("no panel status message is pre-translated or a raw exception", async () => {
+  const directory = path.join(root, "src/ui/control-center/sections");
+  const files = await listFiles(directory, ".ts");
+  const offenders = [];
+
+  for (const file of files) {
+    const text = await readFile(file, "utf8");
+    const relative = path.relative(root, file);
+    for (const pattern of [/setStatus\(\s*ctx\.t\(/g, /setStatus\([^)]*\berror\.message\b/g]) {
+      for (const match of text.matchAll(pattern)) {
+        offenders.push(`${relative}:${text.slice(0, match.index).split("\n").length}`);
+      }
+    }
+  }
+
+  assert.deepEqual(
+    offenders,
+    [],
+    `these status calls hand setStatus something other than the English source, so the tone is ` +
+      `chosen from the wrong text: ${offenders.join(", ")}`
+  );
+});

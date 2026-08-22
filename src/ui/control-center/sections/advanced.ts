@@ -60,7 +60,7 @@ export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
         "Saved warnings",
         saved.total === 0
           ? "None"
-          : `${saved.total} kept · ${saved.errors} error(s) · newest ${saved.newestAt ?? "unknown"}`
+          : `${saved.total} kept · ${saved.errors} ${saved.errors === 1 ? ctx.t("error") : ctx.t("errors")} · newest ${saved.newestAt ?? "unknown"}`
       )
     );
     if (ctx.options.clearSavedDiagnostics && saved.total > 0) {
@@ -232,7 +232,7 @@ function buildBisectRows(ctx: PanelContext): HTMLElement[] {
         ctx.dataRow(
           "Feature search",
           ctx.localizedCopy(
-            "{feature} is what changed this page, found in {rounds} round(s). Every feature is running again — turn that one off with its own setting if you want it to stay off.",
+            "{feature} is what changed this page. It took {rounds} rounds to find. Every feature is running again, so turn that one off with its own setting if you want it to stay off.",
             { feature: name(result.featureId), rounds: status.round }
           )
         )

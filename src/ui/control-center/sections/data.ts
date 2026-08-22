@@ -409,7 +409,7 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
     file.addEventListener("change", () => {
       const selected = file.files?.[0];
       if (!selected) return;
-      ctx.setStatus(ctx.t("Reading Under the Hood report…"));
+      ctx.setStatus("Reading Under the Hood report…");
       void selected
         .text()
         .then(async (payload) => {
@@ -424,7 +424,7 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
         })
         .catch((error: unknown) => {
           ctx.options.onError("Under the Hood import failed", error);
-          ctx.setStatus(ctx.t("Under the Hood report could not be read."));
+          ctx.setStatus("Under the Hood report could not be read.");
         });
     });
     intro.append(copy, file);
@@ -1358,10 +1358,13 @@ function preservationArchiveRow(ctx: PanelContext): HTMLElement {
           });
         } catch (error) {
           if (error instanceof DOMException && error.name === "AbortError") {
-            ctx.setStatus(ctx.t("Export job cancelled."));
+            ctx.setStatus("Export job cancelled.");
           } else {
             ctx.options.onError("WACZ export failed", error);
-            ctx.setStatus(error instanceof Error ? error.message : "WACZ export failed.");
+            // An authored sentence, not the exception. statusState reads the English source to
+            // choose the tone, so a raw message like "Quota exceeded" matched none of its words
+            // and rendered beside the success dot; the real reason is in diagnostics.
+            ctx.setStatus("WACZ export failed. Free some disk space or export fewer records, then try again.");
           }
         } finally {
           waczController = undefined;
@@ -1483,7 +1486,7 @@ function waczSigningRow(ctx: PanelContext): HTMLElement {
             });
           } catch (error) {
             if (error instanceof DOMException && error.name === "AbortError") {
-              ctx.setStatus(ctx.t("Export job cancelled."));
+              ctx.setStatus("Export job cancelled.");
             } else {
               ctx.options.onError("Signed WACZ export failed", error);
               ctx.setStatus("Signed WACZ export failed.");

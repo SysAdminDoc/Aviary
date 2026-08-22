@@ -105,6 +105,14 @@ async function boot() {
   );
 }
 
+/**
+ * A second pass over an unchanged page must schedule no new reflow nudge.
+ *
+ * This used to count `resize` events after awaiting one real animation frame, which made it a
+ * measurement of how many frames elapsed rather than of what the feature scheduled: under a loaded
+ * full-suite run the first pass could be seen to nudge twice and the test failed intermittently.
+ * The frames are driven explicitly here, so the count is the feature's decision and nothing else.
+ */
 test("re-applying over an already-collapsed post does not keep firing resize", async () => {
   await boot();
 
@@ -114,28 +122,59 @@ test("re-applying over an already-collapsed post does not keep firing resize", a
       count += 1;
     };
     window.addEventListener("resize", onResize);
-    const frame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
 
-    // First pass performs the collapse, which legitimately needs one nudge so the virtualizer
-    // closes the row. Every pass after it changes nothing.
-    await AviaryHidden.hiddenPostsFeature.apply(window.__ctx, document);
-    await frame();
-    const afterFirst = count;
+    // A frame queue the test drains, so no wall-clock frame can slip in between passes.
+    const pending = new Map();
+    let nextHandle = 1;
+    const realRaf = window.requestAnimationFrame;
+    const realCancel = window.cancelAnimationFrame;
+    window.requestAnimationFrame = (callback) => {
+      const handle = nextHandle++;
+      pending.set(handle, callback);
+      return handle;
+    };
+    window.cancelAnimationFrame = (handle) => {
+      pending.delete(handle);
+    };
+    const drain = () => {
+      const scheduled = [...pending.entries()];
+      pending.clear();
+      for (const [, callback] of scheduled) callback(0);
+      return scheduled.length;
+    };
 
-    for (let i = 0; i < 6; i += 1) {
+    try {
+      // The first pass performs the collapse, which legitimately needs one nudge so the
+      // virtualizer closes the row.
       await AviaryHidden.hiddenPostsFeature.apply(window.__ctx, document);
-      await frame();
+      const scheduledByFirst = drain();
+      const afterFirst = count;
+
+      // Every pass after it changes nothing, so none of them may schedule anything.
+      let scheduledAfter = 0;
+      for (let i = 0; i < 6; i += 1) {
+        await AviaryHidden.hiddenPostsFeature.apply(window.__ctx, document);
+        scheduledAfter += drain();
+      }
+      return { scheduledByFirst, afterFirst, scheduledAfter, total: count };
+    } finally {
+      window.requestAnimationFrame = realRaf;
+      window.cancelAnimationFrame = realCancel;
+      window.removeEventListener("resize", onResize);
     }
-    window.removeEventListener("resize", onResize);
-    return { afterFirst, total: count };
   });
 
-  assert.ok(resizes.afterFirst <= 1, `the collapse should nudge at most once, saw ${resizes.afterFirst}`);
-  assert.equal(
-    resizes.total,
-    resizes.afterFirst,
-    "steady-state passes must not dispatch resize, or each one drives the next"
+  assert.ok(
+    resizes.scheduledByFirst <= 1,
+    `the collapse should schedule at most one nudge, saw ${resizes.scheduledByFirst}`
   );
+  assert.equal(resizes.afterFirst, resizes.scheduledByFirst, "each scheduled nudge fires once");
+  assert.equal(
+    resizes.scheduledAfter,
+    0,
+    `a pass that changes nothing must schedule nothing, saw ${resizes.scheduledAfter}`
+  );
+  assert.equal(resizes.total, resizes.afterFirst, "and therefore fire nothing further");
 });
 
 test("a recycled article does not inherit the previous post's identity", async () => {

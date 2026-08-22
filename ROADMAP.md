@@ -150,26 +150,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
 
 ### P2
 
-- [ ] P2 — F269, `hidden-posts-reconcile` counts reflow nudges on a clock and is flaky under load
-  Category: testing
-  Where: `tests/hidden-posts-reconcile.test.mjs:108` ("re-applying over an already-collapsed post does not keep firing resize"), asserting at `:133`.
-  Problem: the test counts `resize` events dispatched by `nudgeReflow` in `src/features/filtering/hidden-posts-feature.ts` and requires at most one. The nudge is scheduled through `requestAnimationFrame`, so the count depends on how many frames elapse while the test waits. It passes in isolation and fails intermittently in a full `npm test` run, where several browser-backed suites compete for the machine.
-  Evidence: observed failing once in a full run ("the collapse should nudge at most once, saw 2") with a reported duration of 2439ms, then passing three times out of three when run alone at about 500ms each, and passing on the next full run. The feature code involved was not touched by the change that surfaced it.
-  Fix: stop counting within a wall-clock window. Either drive the frames deterministically by stubbing `requestAnimationFrame` for the duration of the assertion, or assert the invariant the test actually means — that a second apply over an already-collapsed post schedules no *new* nudge — by checking the module's own pending-handle state rather than the number of events observed.
-  Acceptance: the test passes 20 consecutive full-suite runs, and still fails when `nudgeReflow`'s "already scheduled" guard is removed.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — F266, The composer snippet palette opens at the top of the viewport, not next to its trigger
-  Category: visual
-  Where: `src/features/composer/composer-snippets.ts:288` (`positionPopover`) and the `.av-snippet-popover` rule in the same file.
-  Problem: the palette sets an inline `bottom` while the UA's `[popover]` rule supplies `inset: 0`. With `height: fit-content` the box is over-constrained, the browser drops `bottom`, and the palette pins to `top: 0` — so it opens at the top of the screen however far down the composer is. Measured with a trigger at viewport top 607: the palette rendered at top 0.
-  Evidence: reproduced in headless Chromium at both `989cfd2` and `288733f`, so this predates the popover-position work in this session and is not caused by it. `positionPopover` never reads the palette's own height, unlike the AI menu's `positionMenu`, so the flip logic is not involved.
-  Fix: set `top: auto` alongside the inline `bottom` (or in the `.av-snippet-popover` rule) so the box is no longer over-constrained, and confirm against a trigger near the bottom of the viewport.
-  Acceptance: a browser test places the composer toolbar near the bottom of the viewport, opens the palette, and asserts its bounding box sits within a few pixels of the trigger rather than at `top: 0`.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P3 — F267, `readHasLink` still reads the whole article for a post with no caption
   Category: correctness
   Where: `src/features/filtering/predicates.ts` (`readHasLink`), the `(textNode ?? article)` fallback.
@@ -187,26 +167,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Evidence: reproduced by deleting `HTMLElement.prototype.showPopover` in a page that still supports the selector — the AI menu and the panel both computed `display: none` with a zero box.
   Fix: either drop the fallback comments and let the call throw into the caller's own error path, or make the catch fall back to an explicit visible state rather than leaving the surface hidden and the body inert.
   Acceptance: the comments describe what the code does, or a host without `showPopover` leaves the page usable.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — F230, The i18n extractor hard-codes a stale copy of the preset data it claims is real
-  Category: maintainability
-  Where: `tools/i18n-extract.mjs:104-106`; the real data is `src/features/core/presets.ts:40-43`.
-  Problem: the extractor mounts the panel against a stub options object, and the stub's `listPresets` returns a hand-written duplicate of the Quiet Reader preset. The comment two lines above says "Real preset copy: a stub phrase here would enter the manifest and give translators a string the product never shows" — and that is exactly what has happened. The stub still carries "Hide trends and row borders, dim premium posts, strip t.co, dense + dim theme." while `presets.ts:43` now reads "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme." The dead string is in `PANEL_STRINGS` and has been translated into all eight locales. It does no runtime harm today only because a second, source-scanning harvest path (`tools/i18n-extract.mjs:21`) picks the real string up as well — so the safety net that hides this is incidental, and a future preset string reaching the catalog only through the render path would ship untranslated with every test still green.
-  Evidence: `grep -rn "Hide trends and row borders" src/ tools/` returns `tools/i18n-extract.mjs:106`, `tools/i18n-manifest.json:31` and two lines in `src/platform/i18n-catalog.ts`, and no hit in `src/features/core/presets.ts`. A script comparing every catalog key against `PANEL_STRINGS` reports 0 orphans across 1176 strings and 8 locales, confirming both the stale and the live string are in the manifest. `tests/i18n.test.mjs:15` compares the catalog against `PANEL_STRINGS`, and both sides derive from the extractor, so the test cannot see this drift.
-  Fix: have the stub import `PRESETS` from `src/features/core/presets.ts` instead of restating it, so the extractor and the product cannot disagree. Then regenerate with `node tools/i18n-extract.mjs --write` and drop the orphaned key. Check `src/platform/i18n-catalog.ts:1188` for the same problem: it holds a "Reset all preferences" description that no longer matches `src/ui/control-center/sections/advanced.ts:1017`.
-  Acceptance: `grep -c "Hide trends and row borders" tools/ src/` returns 0; a test asserts every string in `PRESETS` appears in `PANEL_STRINGS`.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — F231, A failed WACZ export shows a raw exception next to a green success indicator
-  Category: ux
-  Where: `src/ui/control-center/sections/data.ts:1346`; the tone logic is `src/ui/control-center.ts:910-915` (`statusState`); the styling is `src/ui/control-center.ts:3604-3634`.
-  Problem: `statusState` derives the status tone by regex over the English source string: `if (/could not|failed|error|invalid/i.test(source)) return "error";` with a fallthrough of `return "saved";`. `.av-status::before` has no `[data-state="saved"]` rule — green (`rgb(72, 211, 147)`, `:3609`) is the base — so anything that fails the regex renders with the success dot. `data.ts:1346` passes a raw `error.message` straight in, so a WACZ export that dies with "Quota exceeded", "The operation is insecure." or "Cannot read properties of undefined (…)" shows that text beside a green dot. Four further sites pre-translate before calling `setStatus` — `data.ts:408, 423, 1343, 1468` are `ctx.setStatus(ctx.t("…"))` — which breaks the same contract in the eight non-English locales, since `statusState` then regex-tests translated text. `data.ts:423` ("Under the Hood report could not be read.") is the one that matters: correct tone in English, success-green in every other locale.
-  Evidence: `control-center.ts:911-914` is the four-line `statusState` body quoted above; `control-center.ts:3604-3612` defines the base `.av-status::before { … background: rgb(72, 211, 147); }` with `[data-state="error"]` rules only at `:3627-3634`. `grep -rn "setStatus(.*error.message" src/ui/` returns exactly one line, `data.ts:1346`. `grep -c "setStatus(ctx\.t(" src/ui/control-center/sections/*.ts` returns 4.
-  Fix: at `data.ts:1346` use an authored sentence and keep the raw message in diagnostics, matching what the sibling signed-WACZ path at `data.ts:1471` already does — for example "WACZ export failed. Free some disk space or export fewer records, then try again." Remove the `ctx.t(...)` wrapper from the four pre-translated calls so `setStatus` receives the English source it is documented to take. Optionally make the tone explicit rather than inferred by giving `setStatus` an optional tone argument.
-  Acceptance: a test calls the panel's `setStatus` with "Quota exceeded" and asserts `data-state` is not `"saved"`; `grep -rn "setStatus(ctx\.t(" src/ui/` returns nothing.
   Confidence: Verified
   Effort: S
 
@@ -237,16 +197,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Evidence: read at the cited lines; `grep -n "aria-modal\|role=" src/features/filtering/catch-up-ui.ts` finds `role` only on the filters group at `:126`.
   Fix: in the fallback branch set `role="dialog"` and `aria-modal="true"`, move focus to the close button, add an Escape handler, and mark the rest of the document inert — the same treatment `src/ui/control-center.ts:589` and `:830-831` already apply to the panel. Alternatively drop the fallback: both manifests floor at Chrome 116 and Firefox 128, which have `showModal`.
   Acceptance: a test that deletes `HTMLDialogElement.prototype.showModal` before opening the digest and asserts the dialog carries `aria-modal="true"`, that focus lands inside it, and that Escape closes it.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — F235, Pluralization is wrong or unlocalizable in eight status strings
-  Category: ux
-  Where: parenthetical plurals at `src/ui/control-center/sections/advanced.ts:63` ("{n} error(s)") and `:234` ("found in {rounds} round(s)"); always-plural at `src/ui/control-center/sections/reading.ts:549` ("Renewed {count} rules."), `:810` ("({count} lines)"), `:860` ("Added {count} rules."), `:862` ("Replaced the rule set with {count} rules.").
-  Problem: "1 error(s)" and "Renewed 1 rules." are both wrong in English, and the parenthetical form cannot be localized at all — no target language pluralizes that way, so the eight locales inherit an English typographic convention that means nothing in them. The codebase already branches correctly in the same files: `data.ts:1109-1118`, `reading.ts:709` and `:896` all select on `count === 1`.
-  Evidence: read at the cited lines. `advanced.ts:63` is `` `${saved.total} kept · ${saved.errors} error(s) · newest ${saved.newestAt ?? "unknown"}` ``.
-  Fix: branch on the count the way the neighbouring code does, and re-run the i18n extractor so both forms enter the catalog as separate keys.
-  Acceptance: a test renders each of these rows with a count of 1 and of 2 and asserts no output contains "(s)" or "1 rules".
   Confidence: Verified
   Effort: S
 

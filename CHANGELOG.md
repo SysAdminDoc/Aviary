@@ -26,6 +26,14 @@
   silence.
 
 ### Fixed
+- A failed WACZ export no longer shows a raw exception beside a success indicator. The status tone
+  is chosen from the English message, so a reason like "Quota exceeded" matched none of the words
+  that mean failure and rendered green; the export now says what to do and the reason goes to
+  diagnostics.
+- Counts read properly. "1 error(s)" and "Renewed 1 rules." are gone, and the bisect result no
+  longer uses a parenthetical plural that no target language can render.
+- The composer snippet palette opens next to its trigger instead of at the top of the screen.
+
 - Themes now reach every colour they should. Six token names were read by a stylesheet and set by
   no palette, so their hard-coded value painted whatever theme was chosen, and the catch-up digest
   ignored the theme entirely, opening as a foreign teal panel over a themed page.

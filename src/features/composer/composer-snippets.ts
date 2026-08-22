@@ -322,6 +322,11 @@ const COMPOSER_CSS = `
 
 .av-snippet-popover {
   margin: 0;
+  /* The UA's [popover] rule supplies inset: 0. With a height of fit-content and an inline bottom,
+     the box is over-constrained, the browser drops bottom, and the palette pins to the top of the
+     viewport however far down the composer is. Releasing top is what lets the inline bottom win. */
+  top: auto;
+  right: auto;
   display: grid;
   gap: 4px;
   padding: 8px;

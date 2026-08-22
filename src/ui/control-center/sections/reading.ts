@@ -553,7 +553,7 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
           async () => {
             try {
               const renewed = await ctx.options.renewFilterRules!();
-              ctx.setStatusCopy("Renewed {count} rules.", { count: String(renewed) });
+              ctx.setStatusCopy(renewed === 1 ? "Renewed {count} rule." : "Renewed {count} rules.", { count: String(renewed) });
               ctx.render();
             } catch (error) {
               ctx.options.onError("Could not renew filter rules", error);

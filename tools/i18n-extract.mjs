@@ -101,9 +101,11 @@ function stubs(variant) {
   applyFilterRuleImport: async () => ({ mode: "add", lines: [], added: 2, duplicates: 0, replaced: 0, total: 2, errors: [] }),
   setUserNote: async () => {},
   clearUserNotes: async () => {},
-  // Real preset copy: a stub phrase here would enter the manifest and give translators a
-  // string the product never shows.
-  listPresets: () => [{ id: "quiet-reader", label: "Quiet Reader", description: "Hide trends and row borders, dim premium posts, strip t.co, dense + dim theme." }],
+  // The real preset list, not a copy of it. This used to be a hand-written duplicate carrying the
+  // comment "a stub phrase here would enter the manifest and give translators a string the product
+  // never shows" -- and that is exactly what had happened: the product's Quiet Reader description
+  // had been edited and this had not, so a dead string was translated into all eight locales.
+  listPresets: () => realPresets(),
   applyPreset: async () => ({ applied: true, changes: [] }),
   listLocales: () => supportedLocales(),
   setLocale: async (code: string) => { settings.i18n.locale = code; },
@@ -177,6 +179,7 @@ async function renderStrings(page, variant) {
     `import { mountControlCenter, renderedPanelStrings } from "${abs("src/ui/control-center.ts")}";
 import { DEFAULT_SETTINGS, cloneSettings } from "${abs("src/platform/settings.ts")}";
 import { supportedLocales } from "${abs("src/platform/i18n.ts")}";
+import { listPresets as realPresets } from "${abs("src/features/core/presets.ts")}";
 
 const settings: any = cloneSettings(DEFAULT_SETTINGS);
 // Turn on everything gated behind a settings flag, so no row is skipped.

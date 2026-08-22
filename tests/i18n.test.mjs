@@ -55,6 +55,8 @@ test("translations are not just the English string echoed back", async () => {
     "JSON",
     "SHA-256",
     "bytes",
+    // A list of file-format names; every one is a proper noun in every locale.
+    "JSON, CSV, HTML, Markdown",
     // The theme's own name, presented untranslated in the picker in every locale.
     "Noir",
     "https://mastodon.social",
