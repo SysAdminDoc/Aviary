@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.46.0 (2026-08-22)
 
 ### Security
 - A crafted account archive can no longer break out of an exported note. The Obsidian export
@@ -109,14 +109,19 @@
   kept for a week, while the capture feature never saw the response at all and the panel went on
   reporting a clean run with that response's posts missing from the export.
 
-- A regex filter rule can no longer freeze the tab. The budget refused a repeated group that
-  already repeats, like `(a+)+b`, but not one whose branches can match the same text, like
-  `(a|a)+$`, which costs the same and took nearly ten seconds against a thirty-character post,
-  once per post, with no way to abort it. Both shapes are refused now, including when the
-  alternation is wrapped in a further group, which one extra pair of parentheses used to hide.
-- A regex rule that is refused, or that will not compile, is named in the panel with the reason.
-  It used to be dropped in silence while the status line counted the raw lines and said they had
-  been saved, so a rule that never ran looked exactly like one that did.
+- A regex filter rule can no longer freeze the tab. Filter patterns run against every post in
+  every batch of new ones, and JavaScript gives no way to abort a match that has started, so a
+  pattern that backtracks badly does not fail slowly. It stops the page. The budget used to refuse
+  a repeated group that already repeats, like `(a+)+b`, and nothing else. It now refuses any
+  repeated group whose length can vary, which is the same problem written several ways: `(a+)+b`,
+  `(a{1,200})+b` and `(a?){200}b` all make the engine choose where each repetition ends, and it
+  tries every choice. Measured on the way in, `(.?){20}spam` took 1.2 seconds against an ordinary
+  29-character post and `(a?){200}b` never finished against five characters.
+
+  Ordinary filters are unaffected and several that used to be refused now work. A repeated group
+  is judged on how many times it can actually run, counting the quantifiers on the groups around
+  it, so `(cat|dog){2}`, `(\w+\s){3}` and the usual `(\d{1,3}\.){3}\d{1,3}` address pattern are
+  all fine while `(a|a){20}` is not.
 
 - Turning a feature off and on again, which the "which feature is breaking this page?" search does
   on every round, no longer leaves its page-bridge subscription behind. Each round used to add
@@ -154,6 +159,63 @@
   X that could not be dismissed. The panel, the AI command menu and the composer snippet palette
   now each state their closed appearance, and both menus are measured after they are shown so the
   flip-above-the-trigger decision still reads a real height.
+
+- Two captures of a followers list are no longer compared as though both were complete. A capture
+  reads the rows the browser has rendered, and X renders those a screenful at a time. Scroll to 400
+  rows one week and 150 the next and the downloadable report named 250 specific accounts as
+  removed. Nobody had unfollowed. They were off screen. A capture now records whether the list had
+  finished loading, the capture button says which kind of capture it just made, and a comparison
+  that cannot support the claim says so instead of making it.
+
+- The panel's status line speaks with one voice. Messages from a save ended without a full stop
+  and messages from an action ended with one, so the same line alternated between the two styles
+  depending on which button was pressed last. All of them are sentences now, in all nine languages.
+
+- No em or en dashes anywhere a person reads. That covers panel copy, error text, the options page,
+  the standalone archive viewer and the documents an export writes into a file you open. The
+  translations were swept too, using each language's own punctuation.
+
+- A media-only post no longer matches a rule looking for links. With no caption to read, the whole
+  post was searched, so the author's own profile link satisfied `link is true` and a photo was
+  hidden by a rule written for link spam.
+
+- The settings search finds accented labels from unaccented queries. In Spanish, "interaccion" now
+  finds the row labelled "Ocultar contadores de interacción", which is how people actually type.
+
+- A cleanup preview reads what a post is instead of guessing from how its text starts. A post that
+  merely opened with a handle was reported as a reply, and a real reply that opened with a word was
+  reported as an original post. Where an archive predates the field that states it, the preview
+  still guesses, and now says it is guessing.
+
+- An archive import can store what it promises. The bytes were written somewhere with a 10 MB
+  ceiling while the panel offered 256 MiB, so a large import would have failed with a quota error.
+  It now uses the durable store, and refuses an oversized file with the limit your browser profile
+  can actually hold rather than a number it cannot honour.
+
+- Two tabs no longer overwrite each other's snapshots, cleanup queue or archive library. Each of
+  the three wrote its whole in-memory list, so whichever wrote second erased the other. They merge
+  now, clearing still clears, and re-importing the same archive settles instead of quietly rotating
+  what it kept.
+
+- A failed delete is reported. Every other storage write already reached diagnostics; deletes threw
+  and vanished.
+
+- Local-only mode says what it blocks. It described itself as blocking every outbound request,
+  while saving a photo still fetched it from X's servers, which is where the page loaded it from
+  and is the one thing the media features exist to do.
+
+- The Saving row is translated again in all eight languages, and the "Monitoring active" line no
+  longer shows in English regardless of the chosen language.
+
+### Performance
+
+- The delivered script is 420 kB smaller. The translation catalog stored each English source string
+  beside every translation, so every string shipped nine times over. It is stored by position now,
+  and 207 strings no longer used by anything were retired from it.
+
+- The first paint no longer waits on 28 storage reads. Starting up checked all 28 keys an older
+  version might have left behind, one after another, before a single feature ran, and the answer
+  only decides whether one optional row appears in a panel most sessions never open.
 
 ## 1.45.0 (2026-08-22)
 
