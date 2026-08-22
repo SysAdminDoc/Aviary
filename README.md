@@ -1,10 +1,10 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.46.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.47.0-2f81f7)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 ![Platform](https://img.shields.io/badge/platform-userscript%20%7C%20Chrome%20%7C%20Firefox-8b5cf6)
 
-![Aviary Quiet Stream theme on X](docs/mockups/2026-08-20-x-theme/implementation-home-1440.png)
+![Aviary Noir theme on X](docs/audit/2026-08-22-premium-final/x-home-wide-dark-1440x900.png)
 
 Aviary is a local-first X/Twitter enhancer. It adds clear image and video downloads, removes ads, and keeps its controls in a compact Control Center. Install it as a readable userscript or a Manifest V3 extension for Chrome and Firefox.
 
@@ -12,6 +12,11 @@ Aviary is a local-first X/Twitter enhancer. It adds clear image and video downlo
 
 Fresh installs remove advertising and enable one clear Download action on every media post, plus
 per-asset Save, Thumb, and eligible Video/GIF controls.
+The permissions page puts download access first, then sends you straight back to X. On the Noir
+theme, Wide uses the available desktop canvas for media and connected replies while keeping text at
+a readable measure.
+On phones, the post-level Download control uses a labeled full-width row beneath X's actions. The
+per-asset button stays in the media corner for quick individual saves.
 Download history stores hashed media identities instead of source URLs. It catches alternate X
 image sizes and exact byte matches, with optional visual matching for re-encoded images.
 Saved media gets a quiet marker on the post. You can also write a text or JSON companion beside a
@@ -90,30 +95,30 @@ X's own filter is left to do its job.
 
 ## Desktop settings
 
-All 13 Control Center destinations and the extension permissions page share one desktop cockpit
+All 14 Control Center destinations and the extension permissions page share one desktop cockpit
 system with a fixed rail, grouped navigation, flat control rows, explicit dependencies, keyboard
 focus treatment, and reduced-motion support. Settings stay in an isolated page draft until the
 sticky Save control commits the whole page once; Revert restores the saved values, and navigation
 is guarded while a draft is open. The primary verification viewport is 1440×900, with a 1920×1080
 wide check.
 
-![Aviary Control Center appearance page](docs/mockups/2026-08-20/control-center-appearance-implemented.png)
+![Aviary Control Center appearance page](docs/audit/2026-08-22-premium-final/control-center-appearance-1440x900.png)
 
 ## Premium Noir theme
 
 Choose **Appearance → Theme → Noir** for Aviary's authored dark desktop skin. It gives the full X
-shell a near-black blue base, subtle cyan/violet light, a continuous flat timeline, a quieter
-navigation rail, refined composer/search surfaces, and restrained action highlights. Noir uses
+shell a near-black blue base, a continuous flat timeline, a quieter navigation rail, refined
+composer and search surfaces, and restrained cyan highlights. Noir uses
 semantic roles and stable X test ids rather than generated classes, avoids page-wide blur on the
 infinite timeline, and remains opt-in: choosing **Off (X's own theme)** removes every Aviary paint
 hook and restores the site's styling.
 
 Timeline width now has two useful desktop tiers. Comfortable keeps X's discovery rail beside a
-920px reading column. Wide centers a 1120px media canvas and removes the rail, so photos, video,
+1000px reading column. Wide can use up to a 1440px media canvas and removes the rail, so photos, video,
 posts, and replies use the space instead of leaving a dead strip. Text remains capped to a readable
 measure. On post pages, the focal post is larger and replies form a compact connected stream.
 
-![Aviary Quiet Stream conversation view](docs/mockups/2026-08-20-x-theme/implementation-status-1440.png)
+![Aviary Noir conversation view](docs/audit/2026-08-22-premium-final/x-status-wide-dark-1440x900.png)
 
 All six authored dark palettes now repaint the semantic shell and readable timeline surfaces even
 when X itself is set to a light host theme. Automated coverage switches every palette across both

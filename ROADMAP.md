@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.46.0`
+Version: `1.47.0`
 
 Actionable work only. Historical and completed roadmap material is archived in CHANGELOG.md; blocked work is kept in Roadmap_Blocked.md.
 
@@ -127,7 +127,7 @@ below were read at the cited line. See RESEARCH.md.
   every new file uses the same helper shape.
   Complexity: L
 
-## Audit Findings — 2026-08-22
+## Audit Findings, 2026-08-22
 
 Full-repository audit pass. Baseline before this pass was green: `npm run typecheck` exit 0,
 `npm run lint` exit 0, `npm test` 799/799 pass, `npm run build` exit 0, `npm run preflight` pass,
@@ -150,5 +150,4 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
 
 ### P2
 
-### Unaudited — needs a pass
-
+### Unaudited, needs a pass

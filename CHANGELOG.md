@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.47.0 (2026-08-22)
+
+### Changed
+- The Control Center now follows X's light or dark surface when Aviary's theme is off. Its type,
+  spacing, navigation and controls use one flatter visual system across all fourteen destinations.
+- The permissions page now leads with download access, explains the best-quality path in three
+  short steps and includes a direct route back to X. Noir's Wide layout gives media and replies
+  more room, and Download is a filled primary action instead of an easy-to-miss outline.
+- On narrow feeds, Download now becomes a labeled full-width row below X's post actions. The
+  per-asset button stays compact in the media corner, so both save paths remain easy to reach.
+- The rest of Aviary received the same cleanup. Catch-up and archive reading now use clearer type
+  and flatter surfaces. Focus mode, pagination, reading markers, and composer tools no longer look
+  like a separate design system.
+
 ## 1.46.0 (2026-08-22)
 
 ### Security

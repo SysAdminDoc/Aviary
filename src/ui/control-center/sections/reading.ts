@@ -30,7 +30,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
         }
         ctx.options.settings.appearance.theme = value;
         await ctx.save("Theme updated.");
-      }, "Noir adds Aviary's premium cyan-violet skin; Off leaves X's own styling untouched."),
+      }, "Noir applies Aviary's flat dark theme; Off leaves X's own styling untouched."),
       ctx.toggleRow("Dense mode", "Tighten timeline spacing for scanning.", ctx.options.settings.appearance.denseMode, async (checked) => {
         ctx.options.settings.appearance.denseMode = checked;
         await ctx.save("Density updated.");
@@ -47,7 +47,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
           ctx.options.settings.appearance.timelineWidth = value as "default" | "comfortable" | "wide";
           await ctx.save("Timeline width updated.");
         },
-        "Comfortable keeps the discovery rail. Wide uses a centered 1120px media canvas and hides the rail."
+        "Comfortable keeps the discovery rail. Wide uses up to a 1440px media canvas and hides the rail."
       ),
       ctx.readonlyRow(
         "Custom CSS",
