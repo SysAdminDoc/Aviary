@@ -1288,7 +1288,7 @@ function handleOrEmpty(value: unknown): string {
  * Reserved on Windows whatever extension follows, so a folder segment must never be one.
  */
 const RESERVED_PATH_SEGMENTS =
-  /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i;
+  /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9]|conin\$|conout\$|clock\$)(?:\.|$)/i;
 
 /**
  * Reduces a folder hint to segments that cannot escape the directory they are extracted into.
@@ -1312,7 +1312,10 @@ export function sanitizeFolderHint(value: string, maxLength = 120): string {
         !RESERVED_PATH_SEGMENTS.test(segment)
     )
     .join("/")
-    .slice(0, maxLength);
+    .slice(0, maxLength)
+    // Slicing after the join can land on a separator, and a trailing slash turns every ZIP entry
+    // into `folder//name`. Trim it rather than leaving an empty path segment behind.
+    .replace(/\/+$/, "");
 }
 
 function folderHintValue(value: unknown, fallback: string): string {

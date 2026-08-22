@@ -144,7 +144,7 @@ function refreshCompiled(ctx: FeatureContext): void {
   compiledSignature = signature;
   generation += 1;
   const ruleSet = compileRules(ctx.settings.filter.rules, now);
-  ruleErrors = ruleSet.errors;
+  ruleErrors = ruleSet.errors.map((error) => ({ ...error, origin: "rules" as const }));
   expiredRules = ruleSet.expired;
   nextExpiry = ruleSet.nextExpiry;
   if (ruleSet.expired.length > 0) {
@@ -189,7 +189,8 @@ function refreshCompiled(ctx: FeatureContext): void {
       ...compiled.refusedPatterns.map((refused) => ({
         source: refused.source,
         line: lineOf.get(refused.source) ?? 0,
-        message: refused.reason
+        message: refused.reason,
+        origin: "regex" as const
       }))
     ];
     ctx.diagnostics.warn("Regex filter rules were refused", {

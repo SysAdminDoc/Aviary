@@ -218,7 +218,13 @@ export interface ControlCenterOptions {
   exportFilterRules?: () => Promise<{ filename: string; rules: number }>;
   previewFilterRuleImport?: (payload: string, currentRules: readonly string[]) => RuleSetImportPreview;
   applyFilterRuleImport?: (payload: string, mode: RuleSetImportMode) => Promise<RuleSetImportPlan>;
-  getFilterRuleErrors?: () => Array<{ line: number; message: string }>;
+  getFilterRuleErrors?: () => Array<{
+    line: number;
+    message: string;
+    /** Which editor the line is numbered against: the rule DSL, or the raw regex list. */
+    origin?: "rules" | "regex";
+    source?: string;
+  }>;
   getExpiredFilterRules?: () => Array<{ title: string | null; source: string; expiredAt: number }>;
   /** Restarts every expired rule's own window from now. Resolves with how many were renewed. */
   renewFilterRules?: () => Promise<number>;

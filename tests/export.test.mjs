@@ -439,3 +439,29 @@ test("a hostile save-folder hint cannot put a traversal into a ZIP entry name", 
     `an ordinary folder must still prefix every entry, saw ${JSON.stringify(kept)}`
   );
 });
+
+/**
+ * The length cap is applied after the segments are rejoined, so it can land on a separator. A
+ * trailing slash turns every entry into `folder//name`, an empty path segment.
+ */
+test("a truncated save-folder hint leaves no empty path segment", async () => {
+  const { normalizeSettings, sanitizeFolderHint } = await importSourceModule(
+    "src/platform/settings.ts"
+  );
+
+  const long = "seg/".repeat(40) + "tail";
+  for (const value of [long, "folder/", "folder//", "a/b/"]) {
+    const reduced = sanitizeFolderHint(value, 80);
+    assert.ok(!reduced.endsWith("/"), `${JSON.stringify(value)} kept a trailing separator`);
+    assert.ok(!reduced.includes("//"), `${JSON.stringify(value)} kept an empty segment`);
+  }
+
+  // Windows reserved device names are refused whatever extension follows them.
+  for (const reserved of ["CON", "con.txt", "NUL", "com1", "LPT9.log", "CONIN$", "clock$.txt"]) {
+    assert.equal(
+      normalizeSettings({ media: { lastSaveFolder: reserved } }).media.lastSaveFolder,
+      "",
+      `${reserved} is reserved on Windows and must not become a folder`
+    );
+  }
+});

@@ -86,7 +86,7 @@ function repeatedGroupRisk(pattern: string): "nested" | "alternation" | null {
     if (UNBOUNDED_QUANTIFIER.test(body)) {
       return "nested";
     }
-    if (hasTopLevelAlternation(body)) {
+    if (hasAlternationAnywhere(body)) {
       return "alternation";
     }
   }
@@ -94,15 +94,23 @@ function repeatedGroupRisk(pattern: string): "nested" | "alternation" | null {
 }
 
 /**
- * True when `body` contains a `|` at its own nesting level.
+ * True when repeating `body` can be ambiguous, at any depth.
  *
- * Only a top-level alternation makes the enclosing repetition ambiguous. One nested inside a
- * further group is that group's problem, and that group is checked on its own when the walk above
- * closes it.
+ * A `|` at the body's own level is the plain case. But wrapping it changes nothing about the cost:
+ * `((a|a))+` matches the same language as `(a|a)+` and backtracks exactly as badly, and only the
+ * outer group carries the quantifier, so a check that looked at depth 0 alone walked straight past
+ * it. Measured: `((a|a))+$` against thirty repeated characters did not finish inside two minutes.
+ *
+ * So the search descends. A group that only ever wraps -- `(?=...)`, `(?!...)` and their lookbehind
+ * forms -- is skipped, because a lookaround is not repeated by the enclosing quantifier and its
+ * branches cannot consume the same text twice.
  */
-function hasTopLevelAlternation(body: string): boolean {
-  let depth = 0;
+function hasAlternationAnywhere(body: string): boolean {
   let inClass = false;
+  // Depth 0 is the body itself; each entry records whether that nesting level is a lookaround,
+  // whose contents cannot contribute to the enclosing repetition's ambiguity.
+  const lookaroundStack: boolean[] = [];
+  let skipDepth = 0;
 
   for (let index = 0; index < body.length; index += 1) {
     const char = body[index];
@@ -120,14 +128,16 @@ function hasTopLevelAlternation(body: string): boolean {
       continue;
     }
     if (char === "(") {
-      depth += 1;
+      const isLookaround = /^\(\?<?[=!]/.test(body.slice(index));
+      lookaroundStack.push(isLookaround);
+      if (isLookaround) skipDepth += 1;
       continue;
     }
     if (char === ")") {
-      depth -= 1;
+      if (lookaroundStack.pop() === true) skipDepth -= 1;
       continue;
     }
-    if (char === "|" && depth === 0) {
+    if (char === "|" && skipDepth === 0) {
       return true;
     }
   }

@@ -132,3 +132,36 @@ test("a refused regex is reported with its reason instead of vanishing", async (
   // A blank line is not a mistake and must not be reported as one.
   assert.ok(!refusedSources.includes(""));
 });
+
+/**
+ * One extra pair of parentheses must not defeat the alternation check.
+ *
+ * The first version of this guard looked for a `|` at the quantified group's own level, so
+ * `(a|a)+$` was refused while `((a|a))+$` -- the same language, the same catastrophic backtracking,
+ * and only the outer group carrying the quantifier -- walked straight through. Measured on the
+ * bypass: about 14 ms against 20 repeated characters, 50 ms against 22, and past two minutes
+ * against 30, which is the frozen tab the whole budget exists to prevent.
+ */
+test("wrapping an overlapping alternation in another group does not get it past the budget", async () => {
+  const { checkRegexBudget } = await importSourceModule("src/features/filtering/regex-budget.ts");
+
+  for (const pattern of [
+    "((a|a))+$",
+    "(?:(a|a))+$",
+    "((a|a))*$",
+    "(((a|a)))+$",
+    "(([a-z]|[a-z]))+$"
+  ]) {
+    assert.notEqual(checkRegexBudget(pattern).reason, null, `${pattern} must be refused`);
+  }
+
+  // A lookaround's branches cannot consume the same text twice, so repeating what wraps one is not
+  // ambiguous and must stay usable.
+  for (const pattern of ["(?=a|b)x+", "(\\w(?=a|b))+", "(spam|scam)", "\\b(crypto|nft)\\b"]) {
+    assert.equal(
+      checkRegexBudget(pattern).reason,
+      null,
+      `${pattern} must stay allowed, got ${checkRegexBudget(pattern).reason}`
+    );
+  }
+});

@@ -538,7 +538,9 @@ export const controlCenterFeature: FeatureModule = {
       getFilterRuleErrors() {
         return filterRuleErrors().map((problem) => ({
           line: problem.line,
-          message: problem.message
+          message: problem.message,
+          origin: problem.origin ?? "rules",
+          source: problem.source
         }));
       },
       getExpiredFilterRules() {

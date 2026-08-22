@@ -21,6 +21,10 @@
   silence.
 
 ### Fixed
+- A refused filter rule now names which editor its line number belongs to. The panel renders one
+  list fed from two textareas, each numbered from its own line 1, so a rejected regex could point
+  the reader at an innocent line of the rule box.
+
 - Filtering the catch-up digest no longer throws focus away. Changing the window, the sort, the
   grouping or a category rebuilt the whole dialog, which removed the control being operated, so
   keyboard users were sent back to the top of the modal on every change. The controls stay put now
@@ -49,7 +53,8 @@
 - A regex filter rule can no longer freeze the tab. The budget refused a repeated group that
   already repeats, like `(a+)+b`, but not one whose branches can match the same text, like
   `(a|a)+$` — which costs the same and took nearly ten seconds against a thirty-character post,
-  once per post, with no way to abort it. Both shapes are refused now.
+  once per post, with no way to abort it. Both shapes are refused now, including when the
+  alternation is wrapped in a further group, which one extra pair of parentheses used to hide.
 - A regex rule that is refused, or that will not compile, is named in the panel with the reason.
   It used to be dropped in silence while the status line counted the raw lines and said they had
   been saved, so a rule that never ran looked exactly like one that did.

@@ -515,7 +515,14 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
     rows.push(
       ctx.dataRow(
         "Rules that could not be read",
-        ruleProblems.map((problem) => `line ${problem.line}: ${problem.message}`).join(" · ")
+        // Both editors number from their own line 1, so the box has to be named or the reader is
+        // sent to an innocent line in the wrong one.
+        ruleProblems
+          .map((problem) => {
+            const box = problem.origin === "regex" ? ctx.t("Regex rules") : ctx.t("Filter rules");
+            return `${box} ${ctx.t("line")} ${problem.line}: ${problem.message}`;
+          })
+          .join(" · ")
       )
     );
   }

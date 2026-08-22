@@ -66,6 +66,14 @@ export interface RuleParseError {
   source: string;
   line: number;
   message: string;
+  /**
+   * Which editor the line came from.
+   *
+   * The panel renders one list, but it is fed from two textareas -- the rule DSL and the raw regex
+   * list -- each numbered from its own line 1. Without this the reader was pointed at a line number
+   * in the wrong box. Absent means the rule DSL, which is the only producer that predates this.
+   */
+  origin?: "rules" | "regex";
 }
 
 export interface CompiledRuleSet {
