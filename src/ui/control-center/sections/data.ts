@@ -105,7 +105,7 @@ export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
       ctx.actionRow("Clear all snapshots", "Drop every stored follower/following snapshot.", async () => {
         try {
           await ctx.options.clearSnapshots!();
-          await ctx.save("Snapshots cleared");
+          await ctx.save("Snapshots cleared.");
         } catch (error) {
           ctx.options.onError("Could not clear snapshots", error);
           ctx.setStatus("Could not clear snapshots.");
@@ -390,7 +390,7 @@ export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
       ctx.actionRow("Clear cleanup queue", "Drop every queued item without touching account data.", async () => {
         try {
           await ctx.options.clearCleanupQueue!();
-          await ctx.save("Cleanup queue cleared");
+          await ctx.save("Cleanup queue cleared.");
         } catch (error) {
           ctx.options.onError("Could not clear cleanup queue", error);
           ctx.setStatus("Could not clear queue.");
@@ -803,7 +803,7 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.ai.commandMenu,
       async (checked) => {
         ctx.options.settings.ai.commandMenu = checked;
-        await ctx.save(checked ? "AI button on" : "AI button off");
+        await ctx.save(checked ? "AI button on." : "AI button off.");
       }
     )
   );
@@ -815,7 +815,7 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.links.expandTco,
       async (checked) => {
         ctx.options.settings.links.expandTco = checked;
-        await ctx.save(checked ? "Unshorten on" : "Unshorten off");
+        await ctx.save(checked ? "Unshorten on." : "Unshorten off.");
       }
     )
   );
@@ -827,7 +827,7 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.links.cleanShareButtons,
       async (checked) => {
         ctx.options.settings.links.cleanShareButtons = checked;
-        await ctx.save(checked ? "Link cleaning on" : "Link cleaning off");
+        await ctx.save(checked ? "Link cleaning on." : "Link cleaning off.");
       }
     )
   );
@@ -849,8 +849,8 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
           : DEFAULT_SETTINGS.links.copyLinkHost;
         await ctx.save(
           ctx.options.settings.links.copyLinkHost === ""
-            ? "Copy link control off"
-            : "Copy link control on"
+            ? "Copy link control off."
+            : "Copy link control on."
         );
       },
       "Adds a Copy link control to each post that writes that post's address on the chosen host. Nothing X rendered is rewritten and no navigation is redirected — only what you copy changes. Leave it on X to remove the control.",
@@ -885,7 +885,7 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
             }
           }
           ctx.render();
-          await ctx.save("Account colours saved");
+          await ctx.save("Account colours saved.");
         }
       )
     );
@@ -941,7 +941,7 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
             await restore();
             throw error;
           }
-          await ctx.save(`${seen.size} account note${seen.size === 1 ? "" : "s"} saved`);
+          await ctx.save(`${seen.size} account note${seen.size === 1 ? "" : "s"} saved.`);
           return restore;
         }
       )
@@ -953,7 +953,7 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
       ctx.actionRow("Clear all account notes", "Drop every persisted note.", async () => {
         try {
           await ctx.options.clearUserNotes!();
-          await ctx.save("Account notes cleared");
+          await ctx.save("Account notes cleared.");
         } catch (error) {
           ctx.options.onError("Could not clear account notes", error);
           ctx.setStatus("Could not clear notes.");
@@ -972,7 +972,7 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
           .map((line) => line.trim())
           .filter((line) => line.length > 0)
           .slice(0, 100);
-        await ctx.save(`${ctx.options.settings.composer.snippets.length} snippet${ctx.options.settings.composer.snippets.length === 1 ? "" : "s"} saved`);
+        await ctx.save(`${ctx.options.settings.composer.snippets.length} snippet${ctx.options.settings.composer.snippets.length === 1 ? "" : "s"} saved.`);
       }
     )
   );
@@ -989,7 +989,7 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.export.enabled,
       async (checked) => {
         ctx.options.settings.export.enabled = checked;
-        await ctx.save(checked ? "Export capture on" : "Export capture off");
+        await ctx.save(checked ? "Export capture on." : "Export capture off.");
       }
     )
   );
@@ -1019,7 +1019,7 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.export.preserveRawPayloads,
       async (checked) => {
         ctx.options.settings.export.preserveRawPayloads = checked;
-        await ctx.save("Raw payload preference saved");
+        await ctx.save("Raw payload preference saved.");
       }
     )
   );
@@ -1030,7 +1030,7 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.export.captureMediaBytes,
       async (checked) => {
         ctx.options.settings.export.captureMediaBytes = checked;
-        await ctx.save(checked ? "Media byte capture on" : "Media byte capture off");
+        await ctx.save(checked ? "Media byte capture on." : "Media byte capture off.");
       }
     )
   );
@@ -1041,7 +1041,7 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.export.autoDiscoverQueryIds,
       async (checked) => {
         ctx.options.settings.export.autoDiscoverQueryIds = checked;
-        await ctx.save("Query discovery preference saved");
+        await ctx.save("Query discovery preference saved.");
       }
     )
   );
@@ -1052,7 +1052,7 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.media.lastSaveFolder,
       async (value) => {
         ctx.options.settings.media.lastSaveFolder = value;
-        await ctx.save("Save folder hint saved");
+        await ctx.save("Save folder hint saved.");
       }
     )
   );
@@ -1239,7 +1239,7 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.media.zipChunkSize,
         async (value) => {
           ctx.options.settings.media.zipChunkSize = value;
-          await ctx.save("Records per ZIP saved");
+          await ctx.save("Records per ZIP saved.");
         },
         { min: 25, max: 1000 }
       )
@@ -1253,7 +1253,7 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
         async (value) => {
           const before = ctx.options.getRetentionPolicy!();
           await ctx.options.saveRetentionPolicy!({ ...before, maxJobs: value });
-          await ctx.save("Export job retention saved");
+          await ctx.save("Export job retention saved.");
           return async () => ctx.options.saveRetentionPolicy!(before);
         }
       )
@@ -1266,7 +1266,7 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
         async (value) => {
           const before = ctx.options.getRetentionPolicy!();
           await ctx.options.saveRetentionPolicy!({ ...before, maxRecordsPerJob: value });
-          await ctx.save("Record retention saved");
+          await ctx.save("Record retention saved.");
           return async () => ctx.options.saveRetentionPolicy!(before);
         }
       )
@@ -1279,7 +1279,7 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
         async (value) => {
           const before = ctx.options.getRetentionPolicy!();
           await ctx.options.saveRetentionPolicy!({ ...before, maxAgeDays: value });
-          await ctx.save("Age-based retention saved");
+          await ctx.save("Age-based retention saved.");
           return async () => ctx.options.saveRetentionPolicy!(before);
         }
       )
@@ -1557,7 +1557,7 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.media.buttons,
       async (checked) => {
         ctx.options.settings.media.buttons = checked;
-        await ctx.save(checked ? "Media buttons on" : "Media buttons off");
+        await ctx.save(checked ? "Media buttons on." : "Media buttons off.");
       }
     )
   );
@@ -1568,7 +1568,7 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.media.preferOriginalImages,
       async (checked) => {
         ctx.options.settings.media.preferOriginalImages = checked;
-        await ctx.save("Original quality preference saved");
+        await ctx.save("Original quality preference saved.");
       }
     )
   );
@@ -1587,7 +1587,7 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.media.inlineOriginalImages,
       async (checked) => {
         ctx.options.settings.media.inlineOriginalImages = checked;
-        await ctx.save(checked ? "Full-size images on" : "Full-size images off");
+        await ctx.save(checked ? "Full-size images on." : "Full-size images off.");
       }
     )
   );
@@ -1598,7 +1598,7 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
       MEDIA_LAYOUT_OPTIONS,
       async (value) => {
         ctx.options.settings.media.layout = ctx.coerceLayout(value);
-        await ctx.save("Media layout saved");
+        await ctx.save("Media layout saved.");
       }
     )
   );
@@ -1609,7 +1609,7 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.media.filenameTemplate,
       async (value) => {
         ctx.options.settings.media.filenameTemplate = value.length > 0 ? value : "{handle}_{tweetId}_{index}";
-        await ctx.save("Filename template saved");
+        await ctx.save("Filename template saved.");
       }
     )
   );
@@ -1625,7 +1625,7 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
       async (value) => {
         if (value === "off" || value === "text" || value === "json") {
           ctx.options.settings.media.sidecarFormat = value as MediaSidecarFormat;
-          await ctx.save("Media sidecar preference saved");
+          await ctx.save("Media sidecar preference saved.");
         }
       },
       "Save a local text or JSON companion after each completed media download."
@@ -1638,7 +1638,7 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.media.perceptualDedup,
       async (checked) => {
         ctx.options.settings.media.perceptualDedup = checked;
-        await ctx.save(checked ? "Visual duplicate matching on" : "Visual duplicate matching off");
+        await ctx.save(checked ? "Visual duplicate matching on." : "Visual duplicate matching off.");
       }
     )
   );
@@ -1649,7 +1649,7 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.media.downloadHistory,
       async (checked) => {
         ctx.options.settings.media.downloadHistory = checked;
-        await ctx.save(checked ? "Duplicate history on" : "Duplicate history off");
+        await ctx.save(checked ? "Duplicate history on." : "Duplicate history off.");
       }
     )
   );
@@ -1660,7 +1660,7 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.jobs.concurrentDownloads,
       async (value) => {
         ctx.options.settings.jobs.concurrentDownloads = Math.max(1, Math.min(6, Math.trunc(value)));
-        await ctx.save("Concurrent download limit saved");
+        await ctx.save("Concurrent download limit saved.");
       },
       { min: 1, max: 6 }
     )
@@ -1676,7 +1676,7 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
       async (value) => {
         if (value === "conservative" || value === "balanced") {
           ctx.options.settings.jobs.rateLimitMode = value as RateLimitMode;
-          await ctx.save("Download pacing saved");
+          await ctx.save("Download pacing saved.");
         }
       },
       "Controls the opening burst and sustained pace of batch media requests."
@@ -1749,7 +1749,7 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
       ctx.actionRow("Clear download history", "Reset the local dedup index.", async () => {
         try {
           await ctx.options.clearMediaHistory?.();
-          await ctx.save("History cleared");
+          await ctx.save("History cleared.");
         } catch (error) {
           ctx.options.onError("Could not clear download history", error);
           ctx.setStatus("Could not clear history.");

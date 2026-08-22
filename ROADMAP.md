@@ -170,16 +170,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Confidence: Verified
   Effort: S
 
-- [ ] P2 — F232, Panel status messages are split down the middle on terminal punctuation
-  Category: ux
-  Where: every `ctx.save(...)` and `ctx.setStatus(...)` call across `src/ui/control-center/sections/data.ts`, `advanced.ts` and `reading.ts`. Both land in the same element through `src/ui/control-center.ts:893-899`.
-  Problem: `ctx.setStatus` messages end with a period and `ctx.save` messages do not, so the same status line alternates between the two styles depending on which helper the last action used. The clash is visible inside a single section: `data.ts:92` "Snapshots cleared" against `data.ts:758` "Bookmarks cleared."; `data.ts:1715` "History cleared" against `data.ts:1718` "Could not clear history."
-  Evidence: read at the cited lines. Roughly 76 `ctx.setStatus` strings across the three section files end in a period and roughly 122 `ctx.save` strings do not; both reach `status.textContent` through the same `setStatus` in `control-center.ts:895`.
-  Fix: settle on the sentence form, which is the majority of the user-visible text, and add the period to every `ctx.save(...)` message. Re-run `node tools/i18n-extract.mjs --write` because the English strings are the catalog keys.
-  Acceptance: a source-contract test asserts every string literal passed to `ctx.save(` and `ctx.setStatus(` in `src/ui/control-center/sections/` ends in `.`, `…`, `%` or a digit.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — F233, Em dashes in 61 authored user-facing strings, against the project's own rule
   Category: docs
   Where: `src/ui/control-center/sections/advanced.ts` (7: lines 21, 213, 234, 507, 896, 1007, 1164); `src/ui/control-center.ts` (5 user-facing: 1556, 1558, 1571, 1576, 1656); `src/features/export/external-targets.ts` (5: 35, 39, 68, 69, 113); `src/features/library/reports.ts` (5: 29, 37, 45, 46, 69); `src/features/ai/command-menu.ts` (4: 206, 227, 269, 277); `src/features/export/formatters.ts` (4: 131, 192, 200, 209); `src/extension/options.html` (3: 6, 80, 82); `src/ui/control-center/sections/data.ts` (3: 217, 289, 826); `src/ui/control-center/sections/reading.ts` (3 on 2 lines: 221 twice, 1026); `src/features/media/media-buttons.ts` (2: 887, 973); `src/features/export/viewer.ts` (2: 24, 284); `src/features/filtering/hidden-posts-feature.ts` (2: 366, 409); `src/features/filtering/rules.ts` (2: 450, 453); and one each in `src/entrypoints/extension-options.ts:165`, `src/features/integrations/crosspost.ts:215`, `src/features/library/archive-import.ts:97`, `src/features/library/cleanup-preview.ts:90`, `src/features/media/downloader.ts:272`, `src/ui/control-center/sections/presets.ts:73`. `src/features/layout/focus-mode.ts:151` carries the repository's only en dash.

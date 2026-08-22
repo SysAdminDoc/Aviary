@@ -206,8 +206,8 @@ test("the extractor reaches every panel section and every status branch", async 
   // status harvest on the literal immediately after the open paren missed both arms, so 51
   // confirmations shipped in English regardless of locale.
   const { harvested } = await harvestFrom(tool);
-  assert.ok(harvested.includes("Link cleaning on"), "ternary status arms must be harvested");
-  assert.ok(harvested.includes("Link cleaning off"), "ternary status arms must be harvested");
+  assert.ok(harvested.includes("Link cleaning on."), "ternary status arms must be harvested");
+  assert.ok(harvested.includes("Link cleaning off."), "ternary status arms must be harvested");
 });
 
 test("a conditional row's description is harvested, not only its label", async () => {
@@ -286,7 +286,7 @@ export { harvestStatusLiterals };
     const mod = await import(pathToFileURL(file).href);
     return {
       harvested: mod.harvestStatusLiterals(
-        'save(checked ? "Link cleaning on" : "Link cleaning off");\nsetStatus("Plain one");'
+        'save(checked ? "Link cleaning on." : "Link cleaning off.");\nsetStatus("Plain one");'
       )
     };
   } finally {

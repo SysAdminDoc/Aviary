@@ -500,6 +500,35 @@ await build({
 });
 const { PANEL_STRINGS: previous } = await import(pathToFileURL(prevOut).href);
 
+// The union above is a safety net, not a permanent record. A string that has been edited or
+// deleted still appears in `previous`, so without this the manifest only ever grows: renaming 144
+// status strings to end in a period added 144 entries and dropped none, and every dead one costs
+// eight translations in a catalog that is already the largest thing shipped.
+//
+// A previously-known string is kept only when it still occurs somewhere in the source these
+// harvests read. Anything else cannot be rendered by any branch, reachable or not, so it is gone
+// rather than merely unvisited -- which is the distinction the safety net exists to protect.
+// Matched as a whole quoted literal, not as a substring. "Snapshots cleared" occurs inside
+// "Snapshots cleared." -- which is exactly the rename that made this filter necessary -- so a
+// substring test keeps every string it was meant to retire.
+const sourceCorpus = [src, ...featureSources, optionsController, viewerSource].join("\n");
+const escaped = (value) => JSON.stringify(value).slice(1, -1);
+const stillInSource = (value) => {
+  const body = escaped(value);
+  if (
+    sourceCorpus.includes(`"${body}"`) ||
+    sourceCorpus.includes(`\`${body}\``) ||
+    sourceCorpus.includes(`'${value.replace(/'/g, "\\'")}'`)
+  ) {
+    return true;
+  }
+  // The options page carries its copy as HTML text and data-i18n attributes rather than as JS
+  // string literals, so those are matched raw.
+  return optionsHtml.includes(value);
+};
+const retired = previous.filter((value) => !stillInSource(value));
+const carried = previous.filter(stillInSource);
+
 const manifest = [];
 const seen = new Set();
 for (const s of [
@@ -509,7 +538,7 @@ for (const s of [
   ...featureLiterals,
   ...optionsLiterals,
   ...viewerLiterals,
-  ...previous
+  ...carried
 ]) {
   const v = s.trim();
   if (v.length > 0 && !seen.has(v)) {
@@ -521,6 +550,9 @@ for (const s of [
 console.log(`rendered:        ${a.strings.length} (${a.sections} sections visited)`);
 console.log(`data / endonyms: ${dropped.length} dropped`);
 console.log(`setStatus:       ${statusLiterals.length}`);
+console.log(`retired:         ${retired.length}`);
+for (const value of retired.slice(0, 10)) console.log(`  - ${JSON.stringify(value)}`);
+if (retired.length > 10) console.log(`  ... and ${retired.length - 10} more`);
 console.log(`panel t():       ${panelLiterals.length}`);
 console.log(`ft() + presets:  ${featureLiterals.length}`);
 console.log(`options page:    ${optionsLiterals.length}`);

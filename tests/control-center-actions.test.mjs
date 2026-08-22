@@ -617,7 +617,7 @@ test("snapshot capture and clear refresh the count while preserving action focus
   assert.match(result.afterCapture.status, /Captured 3 followers/);
   assert.match(result.afterClear.count, /^0 entries/);
   assert.equal(result.afterClear.focus, "Clear all snapshots");
-  assert.equal(result.afterClear.status, "Snapshots cleared");
+  assert.equal(result.afterClear.status, "Snapshots cleared.");
 });
 
 test("a saving page transaction announces itself busy to assistive technology", async () => {

@@ -29,11 +29,11 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
           return;
         }
         ctx.options.settings.appearance.theme = value;
-        await ctx.save("Theme updated");
+        await ctx.save("Theme updated.");
       }, "Noir adds Aviary's premium cyan-violet skin; Off leaves X's own styling untouched."),
       ctx.toggleRow("Dense mode", "Tighten timeline spacing for scanning.", ctx.options.settings.appearance.denseMode, async (checked) => {
         ctx.options.settings.appearance.denseMode = checked;
-        await ctx.save("Density updated");
+        await ctx.save("Density updated.");
       }),
       ctx.selectRow(
         "Timeline width",
@@ -45,7 +45,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
         ],
         async (value) => {
           ctx.options.settings.appearance.timelineWidth = value as "default" | "comfortable" | "wide";
-          await ctx.save("Timeline width updated");
+          await ctx.save("Timeline width updated.");
         },
         "Comfortable keeps the discovery rail. Wide uses a centered 1120px media canvas and hides the rail."
       ),
@@ -59,7 +59,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.appearance.restoreChirp,
         async (checked) => {
           ctx.options.settings.appearance.restoreChirp = checked;
-          await ctx.save(checked ? "Chirp font on" : "Chirp font off");
+          await ctx.save(checked ? "Chirp font on." : "Chirp font off.");
         }
       ),
       ctx.toggleRow(
@@ -68,7 +68,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.appearance.hideCounts,
         async (checked) => {
           ctx.options.settings.appearance.hideCounts = checked;
-          await ctx.save(checked ? "Engagement counts hidden" : "Engagement counts shown");
+          await ctx.save(checked ? "Engagement counts hidden." : "Engagement counts shown.");
         }
       ),
       ctx.toggleRow(
@@ -80,7 +80,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
             ...ctx.options.settings.appearance.countMetrics,
             replies: checked
           };
-          await ctx.save("Count preference saved");
+          await ctx.save("Count preference saved.");
         }
       ),
       ctx.toggleRow(
@@ -92,7 +92,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
             ...ctx.options.settings.appearance.countMetrics,
             reposts: checked
           };
-          await ctx.save("Count preference saved");
+          await ctx.save("Count preference saved.");
         }
       ),
       ctx.toggleRow(
@@ -104,7 +104,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
             ...ctx.options.settings.appearance.countMetrics,
             likes: checked
           };
-          await ctx.save("Count preference saved");
+          await ctx.save("Count preference saved.");
         }
       ),
       ctx.toggleRow(
@@ -116,7 +116,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
             ...ctx.options.settings.appearance.countMetrics,
             views: checked
           };
-          await ctx.save("Count preference saved");
+          await ctx.save("Count preference saved.");
         }
       ),
       ctx.toggleRow(
@@ -125,7 +125,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.appearance.hideTitleBadge,
         async (checked) => {
           ctx.options.settings.appearance.hideTitleBadge = checked;
-          await ctx.save(checked ? "Tab title badge hidden" : "Tab title badge shown");
+          await ctx.save(checked ? "Tab title badge hidden." : "Tab title badge shown.");
         }
       ),
       ctx.toggleRow(
@@ -134,7 +134,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.appearance.absoluteTimestamps,
         async (checked) => {
           ctx.options.settings.appearance.absoluteTimestamps = checked;
-          await ctx.save(checked ? "Absolute timestamps on" : "Absolute timestamps off");
+          await ctx.save(checked ? "Absolute timestamps on." : "Absolute timestamps off.");
         }
       ),
       ctx.toggleRow(
@@ -143,7 +143,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.appearance.replaceFavicon,
         async (checked) => {
           ctx.options.settings.appearance.replaceFavicon = checked;
-          await ctx.save(checked ? "Aviary tab icon on" : "X tab icon restored");
+          await ctx.save(checked ? "Aviary tab icon on." : "X tab icon restored.");
         }
       ),
       ctx.toggleRow(
@@ -152,12 +152,12 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.appearance.hideBorders,
         async (checked) => {
           ctx.options.settings.appearance.hideBorders = checked;
-          await ctx.save(checked ? "Row borders hidden" : "Row borders restored");
+          await ctx.save(checked ? "Row borders hidden." : "Row borders restored.");
         }
       ),
       ctx.toggleRow("High contrast", "Use stronger borders and text contrast.", ctx.options.settings.accessibility.highContrast, async (checked) => {
         ctx.options.settings.accessibility.highContrast = checked;
-        await ctx.save("Contrast preference saved");
+        await ctx.save("Contrast preference saved.");
       }),
       ctx.selectRow(
         "Reduced motion",
@@ -169,7 +169,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
         ],
         async (value) => {
           ctx.options.settings.accessibility.reduceMotion = ctx.coerceReduceMotion(value);
-          await ctx.save("Motion preference saved");
+          await ctx.save("Motion preference saved.");
         }
       )
   ];
@@ -192,8 +192,8 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
           ctx.options.settings.appearance.customCss[scope] = sanitized.value;
           await ctx.save(
             sanitized.changed && sanitized.value.length === 0
-              ? `${label} rejected unsafe or malformed CSS`
-              : `${label} saved`
+              ? `${label} rejected unsafe or malformed CSS.`
+              : `${label} saved.`
           );
         },
         "Apply"
@@ -213,7 +213,7 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.privacy.blockAds,
         async (checked) => {
           ctx.options.settings.privacy.blockAds = checked;
-          await ctx.save(checked ? "Ad-free mode on" : "Ad-free mode off");
+          await ctx.save(checked ? "Ad-free mode on." : "Ad-free mode off.");
         }
       ),
       ctx.toggleRow(
@@ -222,7 +222,7 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.privacy.networkShield,
         async (checked) => {
           ctx.options.settings.privacy.networkShield = checked;
-          await ctx.save(checked ? "Ad logging refused" : "Ad logging allowed");
+          await ctx.save(checked ? "Ad logging refused." : "Ad logging allowed.");
         }
       ),
       hooks
@@ -233,11 +233,11 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         : ctx.readonlyRow("Ad protection status", "Protection starts at document load."),
       ctx.toggleRow("Hide right sidebar", "Reduce trends, recommendations, and footer noise.", ctx.options.settings.layout.hideRightSidebar, async (checked) => {
         ctx.options.settings.layout.hideRightSidebar = checked;
-        await ctx.save("Sidebar preference saved");
+        await ctx.save("Sidebar preference saved.");
       }),
       ctx.toggleRow("Hide trends", "Remove trending topics and news modules.", ctx.options.settings.layout.hideTrends, async (checked) => {
         ctx.options.settings.layout.hideTrends = checked;
-        await ctx.save("Trend preference saved");
+        await ctx.save("Trend preference saved.");
       }),
       ctx.toggleRow(
         "Hide follow suggestions",
@@ -245,7 +245,7 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.layout.hideFollowSuggestions,
         async (checked) => {
           ctx.options.settings.layout.hideFollowSuggestions = checked;
-          await ctx.save("Layout preference saved");
+          await ctx.save("Layout preference saved.");
         }
       ),
       ctx.toggleRow(
@@ -254,7 +254,7 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.layout.hideHomeComposer,
         async (checked) => {
           ctx.options.settings.layout.hideHomeComposer = checked;
-          await ctx.save("Layout preference saved");
+          await ctx.save("Layout preference saved.");
         }
       ),
       ctx.toggleRow(
@@ -263,12 +263,12 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.layout.hideThreadRecommendations,
         async (checked) => {
           ctx.options.settings.layout.hideThreadRecommendations = checked;
-          await ctx.save("Layout preference saved");
+          await ctx.save("Layout preference saved.");
         }
       ),
       ctx.toggleRow("Hide Grok surfaces", "Remove the Grok drawer, navigation link, image-generation entries, and per-post actions where detected.", ctx.options.settings.layout.hideGrok, async (checked) => {
         ctx.options.settings.layout.hideGrok = checked;
-        await ctx.save("Grok preference saved");
+        await ctx.save("Grok preference saved.");
       }),
       ctx.toggleRow(
         "Focus mode",
@@ -276,7 +276,7 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.layout.focusMode,
         async (checked) => {
           ctx.options.settings.layout.focusMode = checked;
-          await ctx.save(checked ? "Focus mode on" : "Focus mode off");
+          await ctx.save(checked ? "Focus mode on." : "Focus mode off.");
         }
       ),
       ctx.textInputRow(
@@ -285,7 +285,7 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.layout.focusStart,
         async (value) => {
           ctx.options.settings.layout.focusStart = value;
-          await ctx.save("Reading hours saved");
+          await ctx.save("Reading hours saved.");
         }
       ),
       ctx.textInputRow(
@@ -294,7 +294,7 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.layout.focusEnd,
         async (value) => {
           ctx.options.settings.layout.focusEnd = value;
-          await ctx.save("Reading hours saved");
+          await ctx.save("Reading hours saved.");
         }
       ),
       ctx.integerInputRow(
@@ -304,7 +304,7 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         async (value) => {
           ctx.options.settings.layout.timelineStopAfter = value;
           await ctx.save(
-            value > 0 ? `Timeline stops after ${value} posts` : "Timeline scrolls without stopping"
+            value > 0 ? `Timeline stops after ${value} posts.` : "Timeline scrolls without stopping."
           );
         },
         { min: 0, max: 1000 }
@@ -315,7 +315,7 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.layout.readMarker,
         async (checked) => {
           ctx.options.settings.layout.readMarker = checked;
-          await ctx.save(checked ? "Read marker on" : "Read marker off");
+          await ctx.save(checked ? "Read marker on." : "Read marker off.");
         }
       ),
       ctx.surfaceRow(
@@ -324,7 +324,7 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.layout.readMarkerSurfaces,
         async (surfaces) => {
           ctx.options.settings.layout.readMarkerSurfaces = surfaces;
-          await ctx.save("Read marker surfaces saved");
+          await ctx.save("Read marker surfaces saved.");
         }
       ),
       ctx.toggleRow(
@@ -333,7 +333,7 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.layout.writerMode,
         async (checked) => {
           ctx.options.settings.layout.writerMode = checked;
-          await ctx.save(checked ? "Writer mode on" : "Writer mode off");
+          await ctx.save(checked ? "Writer mode on." : "Writer mode off.");
         }
       ),
       ctx.toggleRow(
@@ -342,7 +342,7 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.layout.forceFollowing,
         async (checked) => {
           ctx.options.settings.layout.forceFollowing = checked;
-          await ctx.save(checked ? "Following timeline on" : "Following timeline off");
+          await ctx.save(checked ? "Following timeline on." : "Following timeline off.");
         }
       )
   ];
@@ -357,7 +357,7 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
             .map((line) => line.trim().toLowerCase())
             .filter((line) => HIDE_NAV_ITEM_IDS.has(line))
         )].slice(0, 24);
-        await ctx.save("Navigation visibility saved");
+        await ctx.save("Navigation visibility saved.");
       }
     )
   );
@@ -374,7 +374,7 @@ export function buildPerformanceRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.performance.pauseOffscreenVideo,
       async (checked) => {
         ctx.options.settings.performance.pauseOffscreenVideo = checked;
-        await ctx.save(checked ? "Offscreen video paused" : "Offscreen video left playing");
+        await ctx.save(checked ? "Offscreen video paused." : "Offscreen video left playing.");
       }
     )
   );
@@ -386,7 +386,7 @@ export function buildPerformanceRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.performance.keepVideoPlaying,
       async (checked) => {
         ctx.options.settings.performance.keepVideoPlaying = checked;
-        await ctx.save(checked ? "Video keeps playing" : "Video pauses with the tab");
+        await ctx.save(checked ? "Video keeps playing." : "Video pauses with the tab.");
       }
     )
   );
@@ -398,7 +398,7 @@ export function buildPerformanceRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.performance.loopVideos,
       async (checked) => {
         ctx.options.settings.performance.loopVideos = checked;
-        await ctx.save(checked ? "Video looping on" : "Video looping off");
+        await ctx.save(checked ? "Video looping on." : "Video looping off.");
       }
     )
   );
@@ -414,7 +414,7 @@ export function buildPerformanceRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.performance.forceVideoQuality,
       async (checked) => {
         ctx.options.settings.performance.forceVideoQuality = checked;
-        await ctx.save(checked ? "Playlist pinning on" : "Playlist pinning off");
+        await ctx.save(checked ? "Playlist pinning on." : "Playlist pinning off.");
       }
     )
   );
@@ -442,7 +442,7 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.filter.enabled,
       async (checked) => {
         ctx.options.settings.filter.enabled = checked;
-        await ctx.save(checked ? "Filters enabled" : "Filters disabled");
+        await ctx.save(checked ? "Filters enabled." : "Filters disabled.");
       }
     )
   );
@@ -463,7 +463,7 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.filter.dimSeenPosts,
       async (checked) => {
         ctx.options.settings.filter.dimSeenPosts = checked;
-        await ctx.save(checked ? "Seen-post dimming on" : "Seen-post dimming off");
+        await ctx.save(checked ? "Seen-post dimming on." : "Seen-post dimming off.");
       }
     )
   );
@@ -475,7 +475,7 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.filter.dimSeenSurfaces,
       async (surfaces) => {
         ctx.options.settings.filter.dimSeenSurfaces = surfaces;
-        await ctx.save("Seen-post surfaces saved");
+        await ctx.save("Seen-post surfaces saved.");
       }
     )
   );
@@ -505,7 +505,7 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.filter.rules,
       async (lines) => {
         ctx.options.settings.filter.rules = lines.slice(0, 100);
-        await ctx.save("Filter rules saved");
+        await ctx.save("Filter rules saved.");
       }
     )
   );
@@ -572,7 +572,7 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.filter.keywordRules,
       async (lines) => {
         ctx.options.settings.filter.keywordRules = lines.slice(0, 200);
-        await ctx.save(`Saved ${ctx.options.settings.filter.keywordRules.length} keyword rules`);
+        await ctx.save(`Saved ${ctx.options.settings.filter.keywordRules.length} keyword rules.`);
       }
     )
   );
@@ -584,7 +584,7 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.filter.regexRules,
       async (lines) => {
         ctx.options.settings.filter.regexRules = lines.slice(0, 100);
-        await ctx.save(`Saved ${ctx.options.settings.filter.regexRules.length} regex rules`);
+        await ctx.save(`Saved ${ctx.options.settings.filter.regexRules.length} regex rules.`);
       }
     )
   );
@@ -599,7 +599,7 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
           .map((line) => line.replace(/^@/, "").trim())
           .filter((line) => /^[A-Za-z0-9_]{1,15}$/.test(line))
           .slice(0, 200);
-        await ctx.save(`Saved ${ctx.options.settings.filter.whitelist.length} whitelist handles`);
+        await ctx.save(`Saved ${ctx.options.settings.filter.whitelist.length} whitelist handles.`);
       }
     )
   );
@@ -611,7 +611,7 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
       FILTER_ACTION_OPTIONS,
       async (value) => {
         ctx.options.settings.filter.premiumRule = ctx.coerceFilterAction(value);
-        await ctx.save("Premium filter saved");
+        await ctx.save("Premium filter saved.");
       }
     )
   );
@@ -623,7 +623,7 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
       FILTER_ACTION_OPTIONS,
       async (value) => {
         ctx.options.settings.filter.quotePosts = ctx.coerceFilterAction(value);
-        await ctx.save("Quote post filter saved");
+        await ctx.save("Quote post filter saved.");
       },
       "Posts that quote another post."
     )
@@ -638,7 +638,7 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.filter.showReason = isFilterReasonMode(value)
           ? value
           : ctx.options.settings.filter.showReason;
-        await ctx.save("Filter reason setting saved");
+        await ctx.save("Filter reason setting saved.");
       },
       "A filter that hides silently is hard to tell from a bug. Dimmed posts can name what caught them at no cost to the layout; the third setting also turns a hidden post into a one-line strip that says why and opens when you hover or tab into it."
     )
@@ -651,7 +651,7 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
       FILTER_ACTION_OPTIONS,
       async (value) => {
         ctx.options.settings.filter.engagementRule = ctx.coerceFilterAction(value);
-        await ctx.save("Engagement filter saved");
+        await ctx.save("Engagement filter saved.");
       },
       "Posts under the minimum below. A post whose count Aviary cannot read is never filtered on it."
     )
@@ -666,7 +666,7 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.filter.engagementMetric = isEngagementMetric(value)
           ? value
           : ctx.options.settings.filter.engagementMetric;
-        await ctx.save("Engagement metric saved");
+        await ctx.save("Engagement metric saved.");
       },
       "Which of the counts under a post the minimum applies to."
     )
@@ -714,7 +714,7 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
         await ctx.save(
           next.length > 0
             ? `Filters active on ${next.length} route${next.length === 1 ? "" : "s"}`
-            : "Filters off on every route"
+            : "Filters off on every route."
         );
       }
     )
@@ -937,7 +937,7 @@ export function buildHiddenPostRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.hidden.enabled,
       async (checked) => {
         ctx.options.settings.hidden.enabled = checked;
-        await ctx.save(checked ? "Hidden posts applied" : "Hidden posts revealed");
+        await ctx.save(checked ? "Hidden posts applied." : "Hidden posts revealed.");
       }
     )
   );
@@ -949,7 +949,7 @@ export function buildHiddenPostRows(ctx: PanelContext): HTMLElement[] {
       ctx.options.settings.hidden.buttons,
       async (checked) => {
         ctx.options.settings.hidden.buttons = checked;
-        await ctx.save(checked ? "Hide buttons on" : "Hide buttons off");
+        await ctx.save(checked ? "Hide buttons on." : "Hide buttons off.");
       }
     )
   );
@@ -973,7 +973,7 @@ export function buildHiddenPostRows(ctx: PanelContext): HTMLElement[] {
         await ctx.save(
           next.length > 0
             ? `Hiding active on ${next.length} route${next.length === 1 ? "" : "s"}`
-            : "Hiding off on every route"
+            : "Hiding off on every route."
         );
       }
     )

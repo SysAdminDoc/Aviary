@@ -284,7 +284,7 @@ test("the status line actually announces the result of a save", async () => {
 
   assert.notEqual(announced.staged, announced.before, "staging a change must be announced");
   assert.match(announced.staged, /Unsaved/i);
-  // Each control names its own outcome ("Density updated"), so the assertion is that the line
+  // Each control names its own outcome ("Density updated."), so the assertion is that the line
   // changed again and stopped warning about unsaved work — not that it says one fixed word.
   assert.notEqual(announced.saved, announced.staged, "the save must be announced too");
   assert.ok(!/Unsaved/i.test(announced.saved), `the panel still reads "${announced.saved}" after saving`);

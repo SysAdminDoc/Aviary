@@ -13,7 +13,7 @@ export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.privacy.localOnly,
         async (checked) => {
           ctx.options.settings.privacy.localOnly = checked;
-          await ctx.save(checked ? "Local-only mode on" : "Local-only mode off");
+          await ctx.save(checked ? "Local-only mode on." : "Local-only mode off.");
         }
       ),
       ctx.toggleRow(
@@ -22,7 +22,7 @@ export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.privacy.blockAnalyticsBeacons,
         async (checked) => {
           ctx.options.settings.privacy.blockAnalyticsBeacons = checked;
-          await ctx.save(checked ? "Analytics beacons refused" : "Analytics beacons allowed");
+          await ctx.save(checked ? "Analytics beacons refused." : "Analytics beacons allowed.");
         }
       ),
       ctx.toggleRow(
@@ -31,7 +31,7 @@ export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.diagnostics.selectorHealth,
         async (checked) => {
           ctx.options.settings.diagnostics.selectorHealth = checked;
-          await ctx.save(checked ? "Selector health monitoring on" : "Selector health monitoring off");
+          await ctx.save(checked ? "Selector health monitoring on." : "Selector health monitoring off.");
         }
       ),
         ...ctx.beaconRows(),
@@ -349,7 +349,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.aria2.enabled,
       async (checked) => {
         integrations.aria2.enabled = checked;
-        await ctx.save(checked ? "Aria2 handoff on" : "Aria2 handoff off");
+        await ctx.save(checked ? "Aria2 handoff on." : "Aria2 handoff off.");
       }
     )
   );
@@ -360,7 +360,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.aria2.endpoint,
       async (value) => {
         integrations.aria2.endpoint = value;
-        await ctx.save("Aria2 endpoint saved");
+        await ctx.save("Aria2 endpoint saved.");
       }
     )
   );
@@ -371,7 +371,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.aria2.secret,
       async (value) => {
         integrations.aria2.secret = value;
-        await ctx.save("Aria2 secret saved");
+        await ctx.save("Aria2 secret saved.");
       }
     )
   );
@@ -382,7 +382,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       Math.round(integrations.aria2.minBytes / 1_000_000),
       async (value) => {
         integrations.aria2.minBytes = Math.max(0, value) * 1_000_000;
-        await ctx.save("Aria2 threshold saved");
+        await ctx.save("Aria2 threshold saved.");
       },
       // In MB, matching the label. The normalizer's floor is one megabyte, and a typed 0 meant
       // every download was handed off for the rest of the session before a reload replaced it.
@@ -480,7 +480,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.bluesky.enabled,
       async (checked) => {
         integrations.bluesky.enabled = checked;
-        await ctx.save(checked ? "Bluesky on" : "Bluesky off");
+        await ctx.save(checked ? "Bluesky on." : "Bluesky off.");
       }
     )
   );
@@ -491,7 +491,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.bluesky.service,
       async (value) => {
         integrations.bluesky.service = value;
-        await ctx.save("Bluesky service saved");
+        await ctx.save("Bluesky service saved.");
       }
     )
   );
@@ -502,7 +502,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.bluesky.handle,
       async (value) => {
         integrations.bluesky.handle = value;
-        await ctx.save("Bluesky handle saved");
+        await ctx.save("Bluesky handle saved.");
       }
     )
   );
@@ -513,7 +513,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.bluesky.appPassword,
       async (value) => {
         integrations.bluesky.appPassword = value;
-        await ctx.save("Bluesky app password saved");
+        await ctx.save("Bluesky app password saved.");
       }
     )
   );
@@ -526,7 +526,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.mastodon.enabled,
       async (checked) => {
         integrations.mastodon.enabled = checked;
-        await ctx.save(checked ? "Mastodon on" : "Mastodon off");
+        await ctx.save(checked ? "Mastodon on." : "Mastodon off.");
       }
     )
   );
@@ -537,7 +537,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.mastodon.instance,
       async (value) => {
         integrations.mastodon.instance = value;
-        await ctx.save("Mastodon instance saved");
+        await ctx.save("Mastodon instance saved.");
       }
     )
   );
@@ -548,7 +548,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.mastodon.token,
       async (value) => {
         integrations.mastodon.token = value;
-        await ctx.save("Mastodon token saved");
+        await ctx.save("Mastodon token saved.");
       }
     )
   );
@@ -560,7 +560,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.crosspost.attachLastDownload,
       async (checked) => {
         integrations.crosspost.attachLastDownload = checked;
-        await ctx.save(checked ? "Crosspost attachment on" : "Crosspost attachment off");
+        await ctx.save(checked ? "Crosspost attachment on." : "Crosspost attachment off.");
       }
     )
   );
@@ -627,7 +627,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.ai.enabled,
       async (checked) => {
         integrations.ai.enabled = checked;
-        await ctx.save(checked ? "AI runs on" : "AI runs off");
+        await ctx.save(checked ? "AI runs on." : "AI runs off.");
       }
     )
   );
@@ -655,7 +655,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.ai.endpoint,
       async (value) => {
         integrations.ai.endpoint = value;
-        await ctx.save("AI endpoint saved");
+        await ctx.save("AI endpoint saved.");
       }
     )
   );
@@ -666,7 +666,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.ai.model,
       async (value) => {
         integrations.ai.model = value;
-        await ctx.save("AI model saved");
+        await ctx.save("AI model saved.");
       }
     )
   );
@@ -677,7 +677,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.ai.apiKey,
       async (value) => {
         integrations.ai.apiKey = value;
-        await ctx.save("AI API key saved");
+        await ctx.save("AI API key saved.");
       }
     )
   );
@@ -706,7 +706,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
         integrations.ai.maxRequestBytes,
         async (value) => {
           integrations.ai.maxRequestBytes = value;
-          await ctx.save("AI request budget saved");
+          await ctx.save("AI request budget saved.");
         },
         { max: INTEGRATION_BUDGET_CEILINGS.ai.maxRequestBytes }
       ),
@@ -716,7 +716,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
         integrations.ai.dailyRequestBytes,
         async (value) => {
           integrations.ai.dailyRequestBytes = value;
-          await ctx.save("AI daily budget saved");
+          await ctx.save("AI daily budget saved.");
         },
         { max: INTEGRATION_BUDGET_CEILINGS.ai.dailyRequestBytes }
       )
@@ -731,7 +731,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.semanticSearch.enabled,
       async (checked) => {
         integrations.semanticSearch.enabled = checked;
-        await ctx.save(checked ? "Semantic search on" : "Semantic search off");
+        await ctx.save(checked ? "Semantic search on." : "Semantic search off.");
       }
     )
   );
@@ -742,7 +742,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.semanticSearch.endpoint,
       async (value) => {
         integrations.semanticSearch.endpoint = value;
-        await ctx.save("Embedding endpoint saved");
+        await ctx.save("Embedding endpoint saved.");
       }
     )
   );
@@ -753,7 +753,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.semanticSearch.model,
       async (value) => {
         integrations.semanticSearch.model = value;
-        await ctx.save("Embedding model saved");
+        await ctx.save("Embedding model saved.");
       }
     )
   );
@@ -764,7 +764,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.semanticSearch.apiKey,
       async (value) => {
         integrations.semanticSearch.apiKey = value;
-        await ctx.save("Embedding API key saved");
+        await ctx.save("Embedding API key saved.");
       }
     )
   );
@@ -789,7 +789,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
         integrations.semanticSearch.maxRecordBytes,
         async (value) => {
           integrations.semanticSearch.maxRecordBytes = value;
-          await ctx.save("Embedding request budget saved");
+          await ctx.save("Embedding request budget saved.");
         },
         { max: INTEGRATION_BUDGET_CEILINGS.semanticSearch.maxRecordBytes }
       ),
@@ -799,7 +799,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
         integrations.semanticSearch.dailyRecordBytes,
         async (value) => {
           integrations.semanticSearch.dailyRecordBytes = value;
-          await ctx.save("Embedding daily budget saved");
+          await ctx.save("Embedding daily budget saved.");
         },
         { max: INTEGRATION_BUDGET_CEILINGS.semanticSearch.dailyRecordBytes }
       )
@@ -813,7 +813,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       integrations.semanticSearch.autoIndex,
       async (checked) => {
         integrations.semanticSearch.autoIndex = checked;
-        await ctx.save(checked ? "Auto-embed on" : "Auto-embed off");
+        await ctx.save(checked ? "Auto-embed on." : "Auto-embed off.");
       }
     )
   );
@@ -920,7 +920,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       ctx.actionRow("Clear semantic index", "Forget every embedded record.", async () => {
         try {
           await ctx.options.clearSemanticIndex!();
-          await ctx.save("Semantic index cleared");
+          await ctx.save("Semantic index cleared.");
         } catch (error) {
           ctx.options.onError("Could not clear semantic index", error);
           ctx.setStatus("Could not clear semantic index.");
@@ -937,7 +937,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
         async () => {
           try {
             await ctx.options.clearIntegrationUsage!();
-            await ctx.save("AI and embedding usage cleared");
+            await ctx.save("AI and embedding usage cleared.");
           } catch (error) {
             ctx.options.onError("Could not clear AI and embedding usage", error);
             ctx.setStatus("Could not clear AI and embedding usage.");
@@ -1266,7 +1266,7 @@ export function buildBackupRows(ctx: PanelContext): HTMLElement[] {
         ctx.options.settings.privacy.auditLog,
         async (value) => {
           ctx.options.settings.privacy.auditLog = value;
-          await ctx.save(value ? "Action log on" : "Action log off");
+          await ctx.save(value ? "Action log on." : "Action log off.");
         }
       )
     );
@@ -1278,7 +1278,7 @@ export function buildBackupRows(ctx: PanelContext): HTMLElement[] {
       ctx.actionRow("Clear audit log", "Drop the local action log.", async () => {
         try {
           await ctx.options.clearAuditLog!();
-          await ctx.save("Audit log cleared");
+          await ctx.save("Audit log cleared.");
         } catch (error) {
           ctx.options.onError("Could not clear audit log", error);
           ctx.setStatus("Could not clear audit log.");

@@ -548,3 +548,75 @@ test("no panel status message is pre-translated or a raw exception", async () =>
       `chosen from the wrong text: ${offenders.join(", ")}`
   );
 });
+
+/**
+ * One status line, one voice.
+ *
+ * `ctx.save(...)` and `ctx.setStatus(...)` both end up in the same element, and they disagreed:
+ * setStatus copy ended in a period and save copy did not. The clash was visible inside a single
+ * section -- "Snapshots cleared" one click, "Bookmarks cleared." the next -- because which style
+ * appeared depended only on which helper the last action happened to use.
+ *
+ * Sentence form wins, being the majority of the user-visible text. A string ending in a digit, a
+ * percent sign or an ellipsis is already finished and needs nothing added.
+ */
+test("every status string the panel shows is a finished sentence", async () => {
+  const directory = path.join(root, "src/ui/control-center/sections");
+  const files = await listFiles(directory, ".ts");
+  const unfinished = [];
+
+  // A template literal that ends in an interpolation is completed by the value, not by the source.
+  const finished = (value, quote) =>
+    /[.…%!?:]$/.test(value.trimEnd()) ||
+    /\d$/.test(value.trimEnd()) ||
+    (quote === "`" && value.trimEnd().endsWith("}"));
+
+  for (const file of files) {
+    const text = await readFile(file, "utf8");
+    const relative = path.relative(root, file);
+
+    for (const match of text.matchAll(/\bctx\.(save|setStatus)\(/g)) {
+      let index = match.index + match[0].length;
+      let depth = 1;
+      const args = [];
+      while (index < text.length && depth > 0) {
+        const char = text[index];
+        if (char === '"' || char === "'" || char === "`") {
+          const quote = char;
+          let value = "";
+          index += 1;
+          while (index < text.length && text[index] !== quote) {
+            if (text[index] === "\\") {
+              value += text[index + 1] === "n" ? "\n" : text[index + 1];
+              index += 2;
+              continue;
+            }
+            value += text[index];
+            index += 1;
+          }
+          args.push({ value, quote });
+        } else if (char === "(" || char === "[" || char === "{") {
+          depth += 1;
+        } else if (char === ")" || char === "]" || char === "}") {
+          depth -= 1;
+          if (depth === 0) break;
+        }
+        index += 1;
+      }
+
+      const line = text.slice(0, match.index).split("\n").length;
+      for (const { value, quote } of args) {
+        if (value.trim().length === 0) continue;
+        if (finished(value, quote)) continue;
+        unfinished.push(`${relative}:${line} ${JSON.stringify(value)}`);
+      }
+    }
+  }
+
+  assert.deepEqual(
+    unfinished,
+    [],
+    `these status strings do not end a sentence, so the panel's status line alternates styles ` +
+      `depending on which action ran last: ${unfinished.join(", ")}`
+  );
+});
