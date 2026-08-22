@@ -68,6 +68,11 @@ test("bookmark GraphQL parsing keeps only tweet records and never fetches media"
                       }
                     }
                   }
+                },
+                media_only: {
+                  rest_id: "1002",
+                  legacy: { id_str: "1002", full_text: "" },
+                  core: { user_results: { result: { legacy: { screen_name: "Bob" } } } }
                 }
               }]
             }]
@@ -81,15 +86,45 @@ test("bookmark GraphQL parsing keeps only tweet records and never fetches media"
       "2026-08-21T12:35:00Z",
       "https://x.com/i/api/graphql/Bookmarks"
     );
-    assert.deepEqual(records, [{
-      tweetId: "1001",
-      handle: "alice",
-      text: "Saved from the bookmark feed",
-      url: "https://x.com/alice/status/1001",
-      capturedAt: "2026-08-21T12:34:56.000Z",
-      sourceOperation: "Bookmarks"
-    }]);
+    assert.deepEqual(records, [
+      {
+        tweetId: "1001",
+        handle: "alice",
+        text: "Saved from the bookmark feed",
+        url: "https://x.com/alice/status/1001",
+        capturedAt: "2026-08-21T12:34:56.000Z",
+        sourceOperation: "Bookmarks"
+      },
+      {
+        tweetId: "1002",
+        handle: "bob",
+        text: "",
+        url: "https://x.com/bob/status/1002",
+        capturedAt: "2026-08-21T12:34:56.000Z",
+        sourceOperation: "Bookmarks"
+      }
+    ]);
     assert.deepEqual(module.parseCapturedBookmarks("{}", "HomeTimeline", "2026-08-21T12:35:00Z"), []);
+
+    const oversizedTimestamp = JSON.stringify({
+      data: {
+        bookmark_timeline: {
+          entries: [{
+            bookmark_created_at: 1e30,
+            tweet_results: {
+              result: {
+                rest_id: "1003",
+                legacy: { id_str: "1003", full_text: "still captured" },
+                core: { user_results: { result: { legacy: { screen_name: "Carol" } } } }
+              }
+            }
+          }]
+        }
+      }
+    });
+    const safe = module.parseCapturedBookmarks(oversizedTimestamp, "Bookmarks", "2026-08-21T12:35:00Z");
+    assert.equal(safe[0]?.tweetId, "1003");
+    assert.equal(safe[0]?.capturedAt, "2026-08-21T12:35:00.000Z");
   } finally {
     await cleanup();
   }

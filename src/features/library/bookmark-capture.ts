@@ -72,8 +72,8 @@ function readTweet(
 ): CapturedBookmarkInput | null {
   const legacy = asRecord(value.legacy);
   const tweetId = cleanId(value.rest_id) ?? cleanId(legacy?.id_str) ?? cleanId(value.id_str);
-  const text = cleanText(legacy?.full_text) ?? cleanText(legacy?.text) ?? cleanText(value.text);
-  if (!tweetId || !text) return null;
+  const text = cleanText(legacy?.full_text) ?? cleanText(legacy?.text) ?? cleanText(value.text) ?? "";
+  if (!tweetId) return null;
   // User objects also have id_str. A tweet-like object has the legacy text field, or the
   // GraphQL core/tweet result shape that carries a tweet's user relationship.
   if (!legacy && !value.core && !value.tweet_results && !value.conversation_id_str) return null;
@@ -117,7 +117,8 @@ function findBookmarkTimestamp(value: Record<string, unknown> | null): string | 
 function timestampValue(value: unknown): string | null {
   if (typeof value === "number" && Number.isFinite(value)) {
     const milliseconds = value > 10_000_000_000 ? value : value * 1000;
-    return validTimestamp(new Date(milliseconds).toISOString());
+    const date = new Date(milliseconds);
+    return Number.isFinite(date.getTime()) ? validTimestamp(date.toISOString()) : null;
   }
   return typeof value === "string" ? validTimestamp(value) : null;
 }

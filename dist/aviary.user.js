@@ -28652,8 +28652,8 @@ html.av-mobile [data-testid="primaryColumn"] {
   function readTweet(value, fallbackTimestamp, operationName) {
     const legacy = asRecord2(value.legacy);
     const tweetId = cleanId2(value.rest_id) ?? cleanId2(legacy?.id_str) ?? cleanId2(value.id_str);
-    const text = cleanText3(legacy?.full_text) ?? cleanText3(legacy?.text) ?? cleanText3(value.text);
-    if (!tweetId || !text) return null;
+    const text = cleanText3(legacy?.full_text) ?? cleanText3(legacy?.text) ?? cleanText3(value.text) ?? "";
+    if (!tweetId) return null;
     if (!legacy && !value.core && !value.tweet_results && !value.conversation_id_str) return null;
     const user = findUser(value, legacy);
     const handle = cleanHandle(user?.screen_name ?? user?.screenName);
@@ -28692,7 +28692,8 @@ html.av-mobile [data-testid="primaryColumn"] {
   function timestampValue2(value) {
     if (typeof value === "number" && Number.isFinite(value)) {
       const milliseconds = value > 1e10 ? value : value * 1e3;
-      return validTimestamp(new Date(milliseconds).toISOString());
+      const date = new Date(milliseconds);
+      return Number.isFinite(date.getTime()) ? validTimestamp(date.toISOString()) : null;
     }
     return typeof value === "string" ? validTimestamp(value) : null;
   }
