@@ -148,26 +148,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
 
 ### P1
 
-- [ ] P1 — F217, Every Catch-up filter, sort and grouping change destroys the control the user is operating
-  Category: a11y
-  Where: `src/features/filtering/catch-up-ui.ts:170` (`dialog.replaceChildren(header, controls, filters, scroller)`), reached from the handlers at `:95-98` (Window select), `:108-112` (Sort select), `:120-123` (Group authors checkbox) and `:137-142` (each category chip).
-  Problem: every one of those handlers calls `rerender()`, which is `() => renderDialog(dialog, entries, state, render)` (`:48`), and `renderDialog` ends by replacing all four of the dialog's children. The `<select>`, checkbox or chip the user just operated is removed from the DOM while it holds focus, so focus falls back to the dialog root and the next Tab restarts from the top of the modal. Filtering the digest with a keyboard means re-tabbing to your place after every single change. The summary paragraph at `:81` is rewritten with the new count and carries no `aria-live`, so a screen reader is told nothing about the result set changing either.
-  Evidence: read at the cited lines; `renderDialog` builds `header`, `controls`, `filters` and `scroller` from scratch on every call and line 170 is `dialog.replaceChildren(header, controls, filters, scroller);`. `tests/catch-up-ui.test.mjs` has a single case, "exposes local records and filters without a page request", with no focus or ARIA assertion. Note `aria-pressed` on the chips (`:136`) is correct precisely because of the rebuild, so that attribute is not the defect.
-  Fix: split `renderDialog` so the controls and filter rows are built once and only `scroller`'s content is replaced on a state change. Keep `header`, `controls` and `filters` mounted and update the chip `aria-pressed` and label counts in place. Give the summary paragraph at `:81` `role="status"` so the new count is announced. If a full rebuild has to stay, record `document.activeElement`'s stable identity before `replaceChildren` and restore focus after.
-  Acceptance: a browser test opens the digest, focuses the Sort select, changes it, and asserts `document.activeElement` is still the Sort select; and asserts the summary element carries `role="status"`.
-  Confidence: Verified
-  Effort: M
-
-- [ ] P1 — F218, The Catch-up dialog is the only injected surface with no translation, and ships English in all eight non-English locales
-  Category: ux
-  Where: `src/features/filtering/catch-up-ui.ts` throughout — `:30-38` (the seven window options), `:78` ("Catch-up"), `:81-83` (the summary and empty-window sentences), `:86-87` ("Close", "Close catch-up"), `:93` and `:104` ("Window", "Sort"), `:99-103` (the four sort labels), `:124` ("Group authors"), `:127` ("Catch-up categories"), `:155-160` (the empty state) and `:162` ("That's all."). Reached from `src/ui/control-center/sections/reading.ts:900-910` via `src/features/core/control-center.ts:586-588`.
-  Problem: the file imports no translation helper and assigns every string to `textContent` directly. `translateText` (`src/platform/i18n.ts:151-156`) returns the English source for anything it cannot find, so nothing fails loudly — the dialog simply renders in English next to a fully translated Control Center. This is the exact regression `tests/injected-ui-contract.test.mjs:588-590` was written to prevent for the other injected controls.
-  Evidence: `catch-up-ui.ts` is the only file returned by "has a `textContent = "` literal and imports neither `feature-i18n` nor `translateText"` across `src/features/` and `src/page/`; the other fourteen files with injected copy all import `ft` or `translateText`. Checking eight of its strings against the catalog — "Group authors", "A quiet window. Nothing new to review.", "Nothing in this window.", "That's all.", "Close catch-up", "Newest first", "Last hour", "Least dense first" — every one is absent from `src/platform/i18n-catalog.ts`. The locale contract test at `tests/injected-ui-contract.test.mjs:522-593` covers only `hiddenPostsFeature`, `mediaButtonsFeature` and `aiCommandMenuFeature`.
-  Fix: import `ft` from `src/features/core/feature-i18n.ts` and thread the `FeatureContext` into `openCatchUpDigest` (it is called from `control-center.ts:587`, which has `ctx` in scope), then wrap every user-visible literal. Run `node tools/i18n-extract.mjs --write` afterwards so the new strings enter the manifest and catalog. Add the digest to the locale contract test alongside the three features already there.
-  Acceptance: `tests/injected-ui-contract.test.mjs` gains a case that opens the digest with `i18n.locale` set to `ja` and `ar` and asserts the title, the Close label and the category chips all differ from their English rendering; `npm test` still reports 100% panel coverage for every locale.
-  Confidence: Verified
-  Effort: M
-
 - [ ] P1 — F220, 50 of the panel's 54 action rows report every failure as "Action failed."
   Category: ux
   Where: `src/ui/control-center.ts:1008-1031` (`actionRow`, `failureMessage = "Action failed."`). Call sites across `src/ui/control-center/sections/data.ts`, `advanced.ts` and `reading.ts`.

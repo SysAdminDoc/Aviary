@@ -584,7 +584,7 @@ export const controlCenterFeature: FeatureModule = {
         };
       },
       openCatchUp() {
-        return openCatchUpDigest(getCatchUpStore()?.list() ?? []);
+        return openCatchUpDigest(ctx, getCatchUpStore()?.list() ?? []);
       },
       getSavedDiagnostics() {
         const saved = ctx.diagnosticsStore?.snapshot() ?? [];

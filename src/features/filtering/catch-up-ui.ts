@@ -4,6 +4,8 @@ import {
   type CatchUpRecord,
   type CatchUpSort
 } from "./catch-up.ts";
+import { ft } from "../core/feature-i18n.ts";
+import type { FeatureContext } from "../registry.ts";
 
 const DIALOG_ID = "av-catch-up-dialog";
 const STYLE_ID = "av-catch-up-style";
@@ -18,14 +20,29 @@ interface CatchUpUiState {
   scrollTop: number;
 }
 
-const CATEGORY_LABELS: Record<CatchUpCategory | "all", string> = {
-  all: "All",
-  original: "Original",
-  replies: "Replies",
-  quotes: "Quotes",
-  reposts: "Reposts",
-  filtered: "Filtered"
-};
+/**
+ * Written as literal `ft` calls rather than a lookup table the caller indexes.
+ *
+ * tools/i18n-extract.mjs harvests literal ft call sites out of the source, so a label reached
+ * through a computed index is invisible to it and ships untranslated however complete the catalog
+ * looks. CLAUDE.md records this trap; this is the shape that avoids it.
+ */
+function categoryLabel(ctx: FeatureContext, category: CatchUpCategory | "all"): string {
+  switch (category) {
+    case "original":
+      return ft(ctx, "Original");
+    case "replies":
+      return ft(ctx, "Replies");
+    case "quotes":
+      return ft(ctx, "Quotes");
+    case "reposts":
+      return ft(ctx, "Reposts");
+    case "filtered":
+      return ft(ctx, "Filtered");
+    default:
+      return ft(ctx, "All");
+  }
+}
 
 const WINDOW_OPTIONS: Array<[number, string]> = [
   [1, "Last hour"],
@@ -37,7 +54,10 @@ const WINDOW_OPTIONS: Array<[number, string]> = [
   [13, "Beyond 12 hours"]
 ];
 
-export function openCatchUpDigest(entries: readonly CatchUpRecord[]): { count: number } {
+export function openCatchUpDigest(
+  ctx: FeatureContext,
+  entries: readonly CatchUpRecord[]
+): { count: number } {
   document.getElementById(DIALOG_ID)?.remove();
   ensureStyle();
   const dialog = document.createElement("dialog");
@@ -45,7 +65,29 @@ export function openCatchUpDigest(entries: readonly CatchUpRecord[]): { count: n
   dialog.className = "av-catch-up-dialog";
   dialog.setAttribute("aria-labelledby", "av-catch-up-title");
   const state = readState();
-  const render = (): void => renderDialog(dialog, entries, state, render);
+
+  // Built once. Only the scroller's contents are replaced on a state change, because rebuilding
+  // the whole dialog removed the select or chip the user had just operated -- focus fell back to
+  // the dialog root and the next Tab restarted from the top, which made filtering the digest
+  // unusable from the keyboard.
+  const header = buildHeader(ctx, dialog);
+  const controls = document.createElement("div");
+  controls.className = "av-catch-up-controls";
+  const filters = document.createElement("div");
+  filters.className = "av-catch-up-filters";
+  filters.setAttribute("role", "group");
+  filters.setAttribute("aria-label", ft(ctx, "Catch-up categories"));
+  const scroller = document.createElement("div");
+  scroller.className = "av-catch-up-scroll";
+  scroller.addEventListener("scroll", () => {
+    state.scrollTop = scroller.scrollTop;
+    writeState(state);
+  }, { passive: true });
+
+  const render = (): void => {
+    renderDigest(ctx, { header, controls, filters, scroller }, entries, state, render);
+  };
+
   dialog.addEventListener("click", (event) => {
     if (event.target === dialog) dialog.close();
   });
@@ -53,64 +95,90 @@ export function openCatchUpDigest(entries: readonly CatchUpRecord[]): { count: n
     writeState(state);
     dialog.remove();
   }, { once: true });
+  dialog.append(header, controls, filters, scroller);
   document.body.append(dialog);
+  buildControls(ctx, controls, state, render);
   render();
   if (typeof dialog.showModal === "function") {
     dialog.showModal();
   } else {
+    // A plain `open` attribute is not a modal: it carries no dialog semantics and moves no focus.
+    // Both manifest floors have showModal, so this path is for an embedded host only -- say what
+    // the surface is and put focus on the control that dismisses it. No Escape handler: this
+    // project registers no keyboard shortcuts, and native showModal is what supplies Escape.
     dialog.setAttribute("open", "true");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    header.querySelector<HTMLButtonElement>(".av-catch-up-close")?.focus();
   }
   const digest = buildCatchUpDigest(entries, state);
   return { count: digest.records.length };
 }
 
-function renderDialog(
-  dialog: HTMLDialogElement,
-  entries: readonly CatchUpRecord[],
-  state: CatchUpUiState,
-  rerender: () => void
-): void {
-  const digest = buildCatchUpDigest(entries, state);
+interface DialogParts {
+  header: HTMLElement;
+  controls: HTMLElement;
+  filters: HTMLElement;
+  scroller: HTMLElement;
+}
+
+/** Built once, so the close button keeps its identity across every state change. */
+function buildHeader(ctx: FeatureContext, dialog: HTMLDialogElement): HTMLElement {
   const header = document.createElement("header");
   header.className = "av-catch-up-header";
   const heading = document.createElement("div");
   heading.className = "av-catch-up-heading";
   const title = document.createElement("h2");
   title.id = "av-catch-up-title";
-  title.textContent = "Catch-up";
+  title.textContent = ft(ctx, "Catch-up");
   const summary = document.createElement("p");
-  summary.textContent = digest.records.length > 0
-    ? `${digest.records.length} post${digest.records.length === 1 ? "" : "s"} Aviary saw in this window`
-    : "A quiet window. Nothing new to review.";
+  summary.className = "av-catch-up-summary";
+  // The count changes as the reader filters, and a screen reader was told nothing about it.
+  summary.setAttribute("role", "status");
   heading.append(title, summary);
 
-  const close = button("Close", "av-catch-up-close");
-  close.setAttribute("aria-label", "Close catch-up");
+  const close = button(ft(ctx, "Close"), "av-catch-up-close");
+  close.setAttribute("aria-label", ft(ctx, "Close catch-up"));
   close.addEventListener("click", () => dialog.close());
   header.append(heading, close);
+  return header;
+}
 
-  const controls = document.createElement("div");
-  controls.className = "av-catch-up-controls";
-  const windowSelect = select("Window", WINDOW_OPTIONS, String(state.windowHours));
+/** Built once. Their values are read from `state`, so a re-render never replaces them. */
+function buildControls(
+  ctx: FeatureContext,
+  controls: HTMLElement,
+  state: CatchUpUiState,
+  rerender: () => void
+): void {
+  const windowSelect = select(
+    ft(ctx, "Window"),
+    WINDOW_OPTIONS.map(([value, label]) => [value, ft(ctx, label)] as [string | number, string]),
+    String(state.windowHours)
+  );
   windowSelect.addEventListener("change", () => {
     state.windowHours = Number(windowSelect.value);
     state.scrollTop = 0;
     rerender();
   });
-  controls.append(field("Window", windowSelect));
+  controls.append(field(ft(ctx, "Window"), windowSelect));
 
-  const sortSelect = select("Sort", [
-    ["newest", "Newest first"],
-    ["oldest", "Oldest first"],
-    ["density", "Least dense first"],
-    ["author", "Group by author"]
-  ], state.sort);
+  const sortSelect = select(
+    ft(ctx, "Sort"),
+    [
+      ["newest", ft(ctx, "Newest first")],
+      ["oldest", ft(ctx, "Oldest first")],
+      ["density", ft(ctx, "Least dense first")],
+      ["author", ft(ctx, "Group by author")]
+    ],
+    state.sort
+  );
   sortSelect.addEventListener("change", () => {
     state.sort = sortSelect.value as CatchUpSort;
     state.scrollTop = 0;
     rerender();
   });
-  controls.append(field("Sort", sortSelect));
+  controls.append(field(ft(ctx, "Sort"), sortSelect));
 
   const groupLabel = document.createElement("label");
   groupLabel.className = "av-catch-up-check";
@@ -121,79 +189,102 @@ function renderDialog(
     state.groupByAuthor = group.checked;
     rerender();
   });
-  groupLabel.append(group, document.createTextNode("Group authors"));
+  groupLabel.append(group, document.createTextNode(ft(ctx, "Group by author")));
   controls.append(groupLabel);
+}
 
-  const filters = document.createElement("div");
-  filters.className = "av-catch-up-filters";
-  filters.setAttribute("role", "group");
-  filters.setAttribute("aria-label", "Catch-up categories");
-  for (const category of ["all", "original", "replies", "quotes", "reposts", "filtered"] as const) {
-    const chip = button(
-      `${CATEGORY_LABELS[category]} ${digest.counts[category]}`,
-      `av-catch-up-filter${state.category === category ? " is-active" : ""}`
-    );
-    chip.setAttribute("aria-pressed", String(state.category === category));
-    chip.addEventListener("click", () => {
-      state.category = category;
-      state.scrollTop = 0;
-      rerender();
-    });
-    filters.append(chip);
+/**
+ * Repaints what the state actually changes: the summary count, the chip counts and pressed state,
+ * and the scroller's contents. The header, the selects and the chips themselves stay mounted, so
+ * whatever the reader was operating still has focus when this returns.
+ */
+function renderDigest(
+  ctx: FeatureContext,
+  parts: DialogParts,
+  entries: readonly CatchUpRecord[],
+  state: CatchUpUiState,
+  rerender: () => void
+): void {
+  const digest = buildCatchUpDigest(entries, state);
+
+  const summary = parts.header.querySelector(".av-catch-up-summary");
+  if (summary) {
+    summary.textContent =
+      digest.records.length > 0
+        ? `${digest.records.length} ${ft(ctx, digest.records.length === 1 ? "post Aviary saw in this window" : "posts Aviary saw in this window")}`
+        : ft(ctx, "A quiet window. Nothing new to review.");
   }
 
-  const scroller = document.createElement("div");
-  scroller.className = "av-catch-up-scroll";
-  scroller.addEventListener("scroll", () => {
-    state.scrollTop = scroller.scrollTop;
-    writeState(state);
-  }, { passive: true });
+  const categories = ["all", "original", "replies", "quotes", "reposts", "filtered"] as const;
+  if (parts.filters.childElementCount === 0) {
+    for (const category of categories) {
+      const chip = button("", "av-catch-up-filter");
+      chip.dataset.avCategory = category;
+      chip.addEventListener("click", () => {
+        state.category = category;
+        state.scrollTop = 0;
+        rerender();
+      });
+      parts.filters.append(chip);
+    }
+  }
+  for (const chip of Array.from(parts.filters.children)) {
+    const category = (chip as HTMLElement).dataset.avCategory as CatchUpCategory | "all";
+    chip.textContent = `${categoryLabel(ctx, category)} ${digest.counts[category]}`;
+    chip.classList.toggle("is-active", state.category === category);
+    chip.setAttribute("aria-pressed", String(state.category === category));
+  }
+
   const content = document.createElement("div");
   content.className = "av-catch-up-content";
-  const links = buildLinks(digest.topLinks);
+  const links = buildLinks(ctx, digest.topLinks);
   if (links) content.append(links);
 
   if (digest.records.length === 0) {
     const empty = document.createElement("div");
     empty.className = "av-catch-up-empty";
     empty.append(
-      element("strong", "Nothing in this window."),
-      element("p", "Catch-up only includes posts Aviary has already rendered. It does not request more from X."),
-      element("span", "That's all.")
+      element("strong", ft(ctx, "Nothing in this window.")),
+      element("p", ft(ctx, "Catch-up only includes posts Aviary has already rendered. It does not request more from X.")),
+      element("span", ft(ctx, "That's all."))
     );
     content.append(empty);
   } else {
-    appendRecords(content, digest.records, state.groupByAuthor || state.sort === "author");
-    content.append(element("p", "That's all.", "av-catch-up-end"));
+    appendRecords(ctx, content, digest.records, state.groupByAuthor || state.sort === "author");
+    content.append(element("p", ft(ctx, "That's all."), "av-catch-up-end"));
   }
-  scroller.append(content);
-  dialog.replaceChildren(header, controls, filters, scroller);
+  parts.scroller.replaceChildren(content);
   queueMicrotask(() => {
-    scroller.scrollTop = Math.max(0, state.scrollTop);
+    parts.scroller.scrollTop = Math.max(0, state.scrollTop);
   });
 }
 
-function appendRecords(parent: HTMLElement, records: readonly CatchUpRecord[], grouped: boolean): void {
+function appendRecords(
+  ctx: FeatureContext,
+  parent: HTMLElement,
+  records: readonly CatchUpRecord[],
+  grouped: boolean
+): void {
   let lastAuthor = "";
   for (const record of records) {
     if (grouped && record.handle !== lastAuthor) {
-      const heading = element("h3", record.handle ? `@${record.handle}` : "Unknown account", "av-catch-up-author");
+      const heading = element("h3", record.handle ? `@${record.handle}` : ft(ctx, "Unknown account"), "av-catch-up-author");
       parent.append(heading);
       lastAuthor = record.handle ?? "";
     }
-    parent.append(recordRow(record));
+    parent.append(recordRow(ctx, record));
   }
 }
 
-function recordRow(record: CatchUpRecord): HTMLElement {
+function recordRow(ctx: FeatureContext, record: CatchUpRecord): HTMLElement {
   const row = element("article", "", "av-catch-up-record");
   row.dataset.avCategory = record.category;
   const meta = element("div", "", "av-catch-up-meta");
-  const author = element("span", record.handle ? `@${record.handle}` : "Unknown account", "av-catch-up-author-name");
+  const author = element("span", record.handle ? `@${record.handle}` : ft(ctx, "Unknown account"), "av-catch-up-author-name");
   const time = element("time", formatTime(record.seenAt), "av-catch-up-time");
   time.dateTime = record.capturedAt;
   meta.append(author, time);
-  const body = element("p", record.text || "(no text)", "av-catch-up-text");
+  const body = element("p", record.text || ft(ctx, "(no text)"), "av-catch-up-text");
   row.append(meta, body);
   if (record.filterReason) row.append(element("p", record.filterReason, "av-catch-up-reason"));
   if (record.media.length > 0) {
@@ -201,17 +292,17 @@ function recordRow(record: CatchUpRecord): HTMLElement {
     for (const item of record.media) {
       const preview = button(
         item.kind === "photo"
-          ? "Photo"
+          ? ft(ctx, "Photo")
           : item.kind === "video"
-            ? "Video"
+            ? ft(ctx, "Video")
             : item.kind === "audio"
-              ? "Audio"
+              ? ft(ctx, "Audio")
               : item.kind === "subtitle"
-                ? "Captions"
-                : "Thumb",
+                ? ft(ctx, "Captions")
+                : ft(ctx, "Thumb"),
         "av-catch-up-media-preview"
       );
-      preview.setAttribute("aria-label", `Load ${item.kind} preview`);
+      preview.setAttribute("aria-label", `${ft(ctx, "Load preview")}: ${item.kind}`);
       preview.addEventListener("click", () => {
         if (item.kind === "audio") {
           const audio = document.createElement("audio");
@@ -226,7 +317,7 @@ function recordRow(record: CatchUpRecord): HTMLElement {
           link.href = item.url;
           link.target = "_blank";
           link.rel = "noopener noreferrer";
-          link.textContent = "Open captions";
+          link.textContent = ft(ctx, "Open captions");
           preview.replaceWith(link);
           return;
         }
@@ -248,17 +339,20 @@ function recordRow(record: CatchUpRecord): HTMLElement {
     link.href = record.permalink;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
-    link.textContent = "Open post";
+    link.textContent = ft(ctx, "Open post");
     actions.append(link);
   }
   if (actions.childElementCount > 0) row.append(actions);
   return row;
 }
 
-function buildLinks(links: ReturnType<typeof buildCatchUpDigest>["topLinks"]): HTMLElement | null {
+function buildLinks(
+  ctx: FeatureContext,
+  links: ReturnType<typeof buildCatchUpDigest>["topLinks"]
+): HTMLElement | null {
   if (links.length === 0) return null;
   const section = element("section", "", "av-catch-up-links");
-  section.append(element("h3", "Top links"));
+  section.append(element("h3", ft(ctx, "Top links")));
   for (const link of links.slice(0, 5)) {
     const row = element("div", "", "av-catch-up-link-row");
     const anchor = document.createElement("a");
@@ -266,7 +360,10 @@ function buildLinks(links: ReturnType<typeof buildCatchUpDigest>["topLinks"]): H
     anchor.target = "_blank";
     anchor.rel = "noopener noreferrer";
     anchor.textContent = link.url;
-    row.append(anchor, element("span", `${link.shared} share${link.shared === 1 ? "" : "s"}`));
+    row.append(
+      anchor,
+      element("span", `${link.shared} ${ft(ctx, link.shared === 1 ? "share" : "shares")}`)
+    );
     section.append(row);
   }
   return section;

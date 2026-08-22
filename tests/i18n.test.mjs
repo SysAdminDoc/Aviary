@@ -44,12 +44,19 @@ test("translations are not just the English string echoed back", async () => {
   const { panelCatalog, PANEL_STRINGS } = await importSourceModule("src/platform/i18n-catalog.ts");
   const PANEL_CATALOG = panelCatalog();
 
-  // Brand names and bare URLs legitimately survive translation unchanged; anything else that
-  // matches its source means an untranslated row slipped in behind a filled-in-looking entry.
+  // Brand names, format names, units and bare URLs legitimately survive translation unchanged;
+  // anything else that matches its source means an untranslated row slipped in behind a
+  // filled-in-looking entry. A word that simply happens to be spelled the same in one target
+  // language does NOT belong here -- that is what the budget below is for.
   const allowedIdentical = new Set([
     "Aviary",
     "WARC",
     "WACZ",
+    "JSON",
+    "SHA-256",
+    "bytes",
+    // The theme's own name, presented untranslated in the picker in every locale.
+    "Noir",
     "https://mastodon.social",
     "Anthropic Messages API",
     "OpenAI Chat Completions"

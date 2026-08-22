@@ -21,6 +21,13 @@
   silence.
 
 ### Fixed
+- Filtering the catch-up digest no longer throws focus away. Changing the window, the sort, the
+  grouping or a category rebuilt the whole dialog, which removed the control being operated, so
+  keyboard users were sent back to the top of the modal on every change. The controls stay put now
+  and only the list repaints, and the post count is announced when it changes.
+- The catch-up digest is translated. It was the last surface still rendering English next to a
+  fully translated Control Center, in all eight non-English locales.
+
 - A dimmed post no longer says it was hidden. The reason line always read "Hidden by your rule",
   including on posts that were only dimmed, and the default setting shows a reason on dimmed posts
   only — so out of the box the only posts explaining themselves were the ones being described
