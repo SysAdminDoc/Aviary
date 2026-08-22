@@ -194,6 +194,90 @@ test("preservation actions show cost before download and keep one compact contro
   assert.equal(result.waczRuns, 1);
 });
 
+test("signed WACZ is explicit, reports its local identity, and exports the keypair", async () => {
+  const result = await page.evaluate(async () => {
+    document.body.replaceChildren();
+    const settings = AviaryActions.cloneSettings(AviaryActions.DEFAULT_SETTINGS);
+    let signing = { state: "missing", fingerprint: null, createdAt: null };
+    let finishSigned;
+    let signedRuns = 0;
+    let keyRuns = 0;
+    const fingerprint = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    const panel = AviaryActions.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: () => {},
+      getWaczSigningStatus: () => signing,
+      downloadSignedWacz: () => {
+        signedRuns += 1;
+        return new Promise((resolve) => {
+          finishSigned = () => {
+            signing = { state: "ready", fingerprint, createdAt: "2026-08-21T12:00:00Z" };
+            resolve({ records: 4, bytes: 12 * 1024, filename: "signed.wacz", fingerprint });
+          };
+        });
+      },
+      exportWaczSigningKey: async () => {
+        keyRuns += 1;
+        return { filename: "aviary-wacz-keypair-0123456789ab.json", fingerprint };
+      }
+    });
+    const shadow = document.querySelector("#av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    shadow.querySelector('[data-av-section="export"]').click();
+    const row = shadow.querySelector('[data-av-label="Signed WACZ"]');
+    const initial = row.textContent;
+    const signed = [...row.querySelectorAll("button")].find((button) => button.textContent === "Signed WACZ");
+    const cancel = [...row.querySelectorAll("button")].find((button) => button.textContent === "Cancel");
+
+    signed.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const during = {
+      disabled: signed.disabled,
+      cancelVisible: !cancel.hidden,
+      cancelEnabled: !cancel.disabled,
+      busy: signed.getAttribute("aria-busy")
+    };
+    finishSigned();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const signedStatus = shadow.querySelector(".av-status").textContent;
+    const ready = row.textContent;
+    const key = [...row.querySelectorAll("button")].find((button) => button.textContent === "Export keypair");
+    key.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const keyStatus = shadow.querySelector(".av-status").textContent;
+    const output = {
+      initial,
+      ready,
+      labels: [...row.querySelectorAll("button")]
+        .filter((button) => !button.hidden)
+        .map((button) => button.textContent),
+      during,
+      enabledAfter: [...row.querySelectorAll("button")]
+        .filter((button) => !button.hidden)
+        .every((button) => !button.disabled),
+      signedStatus,
+      keyStatus,
+      signedRuns,
+      keyRuns
+    };
+    panel.destroy();
+    return output;
+  });
+
+  assert.match(result.initial, /First use creates a local P-384 identity/);
+  assert.match(result.ready, /0123 4567 89AB CDEF/);
+  assert.match(result.ready, /not what X served/);
+  assert.deepEqual(result.labels, ["Signed WACZ", "Export keypair"]);
+  assert.deepEqual(result.during, { disabled: true, cancelVisible: true, cancelEnabled: true, busy: "true" });
+  assert.equal(result.enabledAfter, true);
+  assert.equal(result.signedStatus, "Signed WACZ downloaded (4 records, 12 KiB).");
+  assert.equal(result.keyStatus, "Signing keypair downloaded: aviary-wacz-keypair-0123456789ab.json.");
+  assert.equal(result.signedRuns, 1);
+  assert.equal(result.keyRuns, 1);
+});
+
 test("a rejected Aria2 cancel reports failure and re-enables the row action", async () => {
   const result = await page.evaluate(async () => {
     document.body.replaceChildren();

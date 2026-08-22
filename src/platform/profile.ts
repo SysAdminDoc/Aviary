@@ -26,6 +26,7 @@ export const PROFILE_MIGRATION_KEYS = [
   "aviary.semanticIndex.v1",
   "aviary.archive.imports.v1",
   "aviary.archive.library.v1",
+  "aviary.waczSigning.v1",
   "aviary.retention.maxJobs",
   "aviary.retention.maxRecordsPerJob",
   "aviary.retention.maxAgeDays"

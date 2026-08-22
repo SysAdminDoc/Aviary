@@ -9,6 +9,11 @@
   resources, and an exact page list. The panel shows the estimated uncompressed storage cost and
   links directly to replayweb.page.
 
+- **WACZ packages can carry a local proof of continuity.** The opt-in Signed WACZ action creates an
+  anonymous ECDSA P-384 identity on first use, signs the exact SHA-256 datapackage hash, and embeds
+  the public key, signature, creation time, and Aviary version in `datapackage-digest.json`. The
+  keypair can be exported separately, while ordinary unsigned WACZ downloads remain unchanged.
+
 - **Filter rules now travel as plain text.** Filtering can export a documented one-rule-per-line
   file, preview a paste with separate add and replace counts, and report every malformed source
   line before either action writes. Titles, comments, and expiry windows round-trip unchanged.

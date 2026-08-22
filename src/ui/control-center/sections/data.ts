@@ -1016,6 +1016,9 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
   if (ctx.options.downloadWarc || ctx.options.downloadWacz) {
     rows.push(preservationArchiveRow(ctx));
   }
+  if (ctx.options.downloadSignedWacz || ctx.options.exportWaczSigningKey) {
+    rows.push(waczSigningRow(ctx));
+  }
 
   if (ctx.options.exportToTarget) {
     const targets: Array<{ id: "clipboard-markdown" | "obsidian" | "notion" | "raw-json"; label: string; description: string }> = [
@@ -1212,6 +1215,150 @@ function preservationArchiveRow(ctx: PanelContext): HTMLElement {
   actions.append(replay);
   row.append(copy, actions);
   return row;
+}
+
+function waczSigningRow(ctx: PanelContext): HTMLElement {
+  const row = ctx.el("div", "av-row av-preservation-row");
+  row.dataset.avLabel = "Signed WACZ";
+  const copy = ctx.el("span", "av-row-copy");
+  const description = ctx.el("span", "av-row-description");
+  copy.append(ctx.el("span", "av-row-label", ctx.t("Signed WACZ")), description);
+
+  const actions = ctx.el("div", "av-preservation-actions");
+  actions.setAttribute("role", "group");
+  actions.setAttribute("aria-label", ctx.t("WACZ signing actions"));
+  let actionButtons: HTMLButtonElement[] = [];
+  let signingController: AbortController | undefined;
+  const cancelSigning = ctx.button("Cancel", "av-button av-button-secondary");
+  cancelSigning.type = "button";
+  cancelSigning.hidden = true;
+  cancelSigning.setAttribute("aria-hidden", "true");
+  cancelSigning.addEventListener("click", () => {
+    signingController?.abort();
+    cancelSigning.disabled = true;
+  });
+
+  const run = async (
+    button: HTMLButtonElement,
+    status: string,
+    operation: () => Promise<void>
+  ): Promise<void> => {
+    if (ctx.guardDraft()) return;
+    actionButtons.forEach((candidate) => { candidate.disabled = true; });
+    button.setAttribute("aria-busy", "true");
+    ctx.setStatus(status);
+    try {
+      await operation();
+    } finally {
+      button.removeAttribute("aria-busy");
+      actionButtons.forEach((candidate) => { candidate.disabled = false; });
+    }
+  };
+
+  const refresh = (): void => {
+    const signing = ctx.options.getWaczSigningStatus?.() ?? {
+      state: "missing" as const,
+      fingerprint: null,
+      createdAt: null
+    };
+    if (signing.state === "ready" && signing.fingerprint) {
+      description.textContent = ctx.localizedCopy(
+        "Local identity {fingerprint}. It proves continuity of this key, not what X served.",
+        { fingerprint: shortFingerprint(signing.fingerprint) }
+      );
+    } else if (signing.state === "invalid") {
+      description.textContent = ctx.t("The stored keypair is invalid. Replace it before signing another archive.");
+    } else {
+      description.textContent = ctx.t("First use creates a local P-384 identity. Signing stays off for ordinary WACZ downloads.");
+    }
+
+    actionButtons = [];
+    actions.replaceChildren();
+    if (signing.state === "invalid" && ctx.options.replaceWaczSigningKey) {
+      const replace = ctx.button("Replace keypair", "av-button av-button-secondary");
+      actionButtons.push(replace);
+      replace.addEventListener("click", () => {
+        void run(replace, ctx.t("Creating a new signing identity…"), async () => {
+          try {
+            await ctx.options.replaceWaczSigningKey!();
+            refresh();
+            actionButtons[0]?.focus({ preventScroll: true });
+            ctx.setStatus("Signing identity replaced.");
+          } catch (error) {
+            ctx.options.onError("Signing identity replacement failed", error);
+            ctx.setStatus("Could not replace the signing identity.");
+          }
+        });
+      });
+      actions.append(replace);
+      return;
+    }
+
+    if (ctx.options.downloadSignedWacz) {
+      const signed = ctx.button("Signed WACZ", "av-button av-button-primary");
+      actionButtons.push(signed);
+      signed.addEventListener("click", () => {
+        void run(signed, ctx.t("Signing WACZ archive…"), async () => {
+          signingController = new AbortController();
+          cancelSigning.hidden = false;
+          cancelSigning.removeAttribute("aria-hidden");
+          try {
+            const result = await ctx.options.downloadSignedWacz!({
+              signal: signingController.signal,
+              onProgress: (progress) => {
+                ctx.setStatus(`${ctx.t("Signing WACZ archive…")} ${Math.round(progress * 100)}%`);
+              }
+            });
+            refresh();
+            ctx.setStatusCopy("Signed WACZ downloaded ({records} records, {size}).", {
+              records: result.records,
+              size: ctx.formatBytes(result.bytes)
+            });
+          } catch (error) {
+            if (error instanceof DOMException && error.name === "AbortError") {
+              ctx.setStatus(ctx.t("Export job cancelled."));
+            } else {
+              ctx.options.onError("Signed WACZ export failed", error);
+              ctx.setStatus("Signed WACZ export failed.");
+            }
+          } finally {
+            signingController = undefined;
+            cancelSigning.hidden = true;
+            cancelSigning.setAttribute("aria-hidden", "true");
+            cancelSigning.disabled = false;
+          }
+        });
+      });
+      actions.append(signed);
+      actions.append(cancelSigning);
+    }
+
+    if (ctx.options.exportWaczSigningKey) {
+      const exportKey = ctx.button("Export keypair", "av-button av-button-secondary");
+      actionButtons.push(exportKey);
+      exportKey.addEventListener("click", () => {
+        void run(exportKey, ctx.t("Preparing signing keypair…"), async () => {
+          try {
+            const result = await ctx.options.exportWaczSigningKey!();
+            refresh();
+            ctx.setStatusCopy("Signing keypair downloaded: {filename}.", { filename: result.filename });
+          } catch (error) {
+            ctx.options.onError("Signing keypair export failed", error);
+            ctx.setStatus("Signing keypair export failed.");
+          }
+        });
+      });
+      actions.append(exportKey);
+    }
+  };
+
+  refresh();
+  row.append(copy, actions);
+  return row;
+}
+
+function shortFingerprint(value: string): string {
+  return value.slice(0, 16).toUpperCase().replace(/(.{4})(?=.)/g, "$1 ");
 }
 
 export function buildMediaRows(ctx: PanelContext): HTMLElement[] {

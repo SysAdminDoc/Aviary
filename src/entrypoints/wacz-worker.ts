@@ -1,10 +1,20 @@
-import { buildWaczArchive, type WaczBuildOptions } from "../features/export/wacz";
+import {
+  buildWaczArchive,
+  finishWaczArchive,
+  prepareWaczArchive,
+  type PreparedWacz,
+  type WaczBuildOptions
+} from "../features/export/wacz";
 import type { ExportRecord } from "../features/export/types";
+import type { WaczSignatureData } from "../features/export/wacz-signing";
 
 interface WaczWorkerRequest {
   id: number;
-  records: ExportRecord[];
-  options: { generatedAt?: string };
+  type?: "build" | "prepare" | "finish";
+  records?: ExportRecord[];
+  prepared?: PreparedWacz;
+  signedData?: WaczSignatureData;
+  options?: { generatedAt?: string };
 }
 
 interface WorkerScope {
@@ -16,12 +26,33 @@ const scope = globalThis as unknown as WorkerScope;
 
 scope.onmessage = (event) => {
   const request = event.data;
-  if (!request || !Number.isSafeInteger(request.id) || !Array.isArray(request.records)) return;
+  if (!request || !Number.isSafeInteger(request.id)) return;
   try {
-    scope.postMessage({ id: request.id, type: "progress", progress: 0.15 });
+    const type = request.type ?? "build";
+    if (type === "finish") {
+      if (!request.prepared) throw new TypeError("WACZ worker is missing prepared archive data");
+      scope.postMessage({ id: request.id, type: "progress", progress: 0.85 });
+      const artifact = finishWaczArchive(request.prepared, request.signedData);
+      scope.postMessage({ id: request.id, type: "progress", progress: 1 });
+      scope.postMessage(
+        { id: request.id, type: "complete", artifact },
+        [artifact.data.buffer]
+      );
+      return;
+    }
+    if (!Array.isArray(request.records)) throw new TypeError("WACZ worker is missing records");
     const options: WaczBuildOptions = {
-      ...(request.options.generatedAt ? { generatedAt: new Date(request.options.generatedAt) } : {})
+      ...(request.options?.generatedAt ? { generatedAt: new Date(request.options.generatedAt) } : {})
     };
+    scope.postMessage({ id: request.id, type: "progress", progress: 0.15 });
+    if (type === "prepare") {
+      const prepared = prepareWaczArchive(request.records, options);
+      scope.postMessage(
+        { id: request.id, type: "prepared", prepared },
+        transferPrepared(prepared)
+      );
+      return;
+    }
     const artifact = buildWaczArchive(request.records, options);
     scope.postMessage({ id: request.id, type: "progress", progress: 1 });
     scope.postMessage(
@@ -36,3 +67,10 @@ scope.onmessage = (event) => {
     });
   }
 };
+
+function transferPrepared(prepared: PreparedWacz): Transferable[] {
+  return [
+    prepared.datapackageBytes.buffer,
+    ...prepared.resourceEntries.map((entry) => entry.data.buffer)
+  ];
+}

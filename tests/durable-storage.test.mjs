@@ -188,7 +188,10 @@ test("every durable store key declared in src is registered everywhere it must b
     "aviary.firstRun.v1": { backup: "UI dismissal flag, deliberately not carried" },
     // Warnings and errors from earlier page loads; bounded, profile-scoped, and about this
     // install rather than about the user's library.
-    "aviary.diagnostics.v1": { backup: "install diagnostics, not user data" }
+    "aviary.diagnostics.v1": { backup: "install diagnostics, not user data" },
+    // The private WACZ signing key has its own explicit export. Sweeping it into a routine library
+    // backup would turn a data backup into an unmarked identity credential.
+    "aviary.waczSigning.v1": { backup: "private signing identity, explicitly exported only" }
   };
 
   const gaps = [];

@@ -69,6 +69,38 @@ test("production WACZ assembly runs in the inlined worker", async () => {
     assert.equal(result.filename, "aviary-20260812T123456Z.wacz");
     assert.ok(result.bytes > 0);
     assert.deepEqual(result.progress, [0, 0.15, 1]);
+
+    const signed = await page.evaluate(async () => {
+      const progress = [];
+      const artifact = await globalThis.AviaryWaczWorker.buildSignedWaczArchiveOffThread([{
+        tweetId: "worker-1",
+        handle: "alpha",
+        displayName: "Alpha",
+        text: "worker test",
+        capturedAt: "2026-08-12T12:00:00Z",
+        surface: "home",
+        media: [],
+        permalink: "https://x.com/alpha/status/worker-1"
+      }], {
+        sign: async (hash, created) => {
+          return {
+            hash,
+            signature: "signature",
+            publicKey: "public-key",
+            created,
+            software: "Aviary",
+            version: "test"
+          };
+        }
+      }, {
+        generatedAt: new Date("2026-08-12T12:34:56Z"),
+        onProgress: (value) => progress.push(value)
+      });
+      return { contentType: artifact.contentType, bytes: artifact.data.byteLength, progress };
+    });
+    assert.equal(signed.contentType, "application/wacz");
+    assert.ok(signed.bytes > 0);
+    assert.deepEqual(signed.progress, [0, 0.15, 0.85, 1]);
   } finally {
     await browser?.close();
     await rm(temp, { force: true, recursive: true });

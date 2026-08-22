@@ -23,6 +23,7 @@ import type {
 } from "./control-center/panel-context";
 import { hasTranslation, localeDirection, translateText } from "../platform/i18n";
 import type { RetentionPolicy } from "../features/export/jobs";
+import type { WaczSigningStatus } from "../features/export/wacz-signing";
 import type { BookmarkInput, BookmarkRecord } from "../features/library/bookmarks";
 import type { OfflineQueryHit } from "../features/library/query-model";
 import type { RuleSetImportMode, RuleSetImportPlan, RuleSetImportPreview } from "../features/filtering/rules";
@@ -278,6 +279,18 @@ export interface ControlCenterOptions {
     signal?: AbortSignal;
     onProgress?: (progress: number) => void;
   }) => Promise<{ records: number; bytes: number; filename: string }>;
+  getWaczSigningStatus?: () => WaczSigningStatus;
+  downloadSignedWacz?: (options?: {
+    signal?: AbortSignal;
+    onProgress?: (progress: number) => void;
+  }) => Promise<{
+    records: number;
+    bytes: number;
+    filename: string;
+    fingerprint: string;
+  }>;
+  exportWaczSigningKey?: () => Promise<{ filename: string; fingerprint: string }>;
+  replaceWaczSigningKey?: () => Promise<WaczSigningStatus>;
   exportToTarget?: (
     target: "clipboard-markdown" | "obsidian" | "notion" | "raw-json"
   ) => Promise<{ target: string; records: number; copied?: boolean }>;

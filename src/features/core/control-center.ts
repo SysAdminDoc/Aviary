@@ -57,8 +57,10 @@ import { buildWarcArchive } from "../export/warc";
 import { estimateWaczBytes } from "../export/wacz";
 import {
   buildWaczArchiveOffThread,
+  buildSignedWaczArchiveOffThread,
   type WaczWorkerBuildOptions
 } from "../export/wacz-worker-client";
+import { WaczSigningKeyStore } from "../export/wacz-signing";
 import { pingAria2Version, removeAria2Download, tellActiveAria2 } from "../integrations/aria2";
 import { crosspost, readComposerText, type CrosspostRequest } from "../integrations/crosspost";
 import { SemanticIndex } from "../integrations/semantic-search";
@@ -152,6 +154,8 @@ export const controlCenterFeature: FeatureModule = {
   category: "core",
 
   async init(ctx) {
+    const waczSigning = new WaczSigningKeyStore(ctx.storage);
+    await waczSigning.load();
     if (!cleanupQueue) {
       cleanupQueue = new CleanupQueue(ctx.storage);
       await cleanupQueue.load();
@@ -1029,6 +1033,39 @@ export const controlCenterFeature: FeatureModule = {
           bytes: artifact.data.length,
           filename: artifact.filename
         };
+      },
+      getWaczSigningStatus() {
+        return waczSigning.status();
+      },
+      async downloadSignedWacz(options?: WaczWorkerBuildOptions) {
+        rebuildSearchIndex();
+        const records = collectAllRecords(getCheckpointStore());
+        const artifact = await buildSignedWaczArchiveOffThread(records, waczSigning, options);
+        downloadBlob(artifact.data, artifact.filename, artifact.contentType);
+        void ctx.auditLog.record("export.complete", {
+          format: "wacz",
+          signed: true,
+          records: records.length,
+          bytes: artifact.data.length
+        });
+        return {
+          records: records.length,
+          bytes: artifact.data.length,
+          filename: artifact.filename,
+          fingerprint: waczSigning.status().fingerprint ?? ""
+        };
+      },
+      async exportWaczSigningKey() {
+        const artifact = await waczSigning.exportKeypair();
+        downloadBlob(artifact.data, artifact.filename, artifact.contentType);
+        void ctx.auditLog.record("export.complete", { format: "wacz-keypair" });
+        return {
+          filename: artifact.filename,
+          fingerprint: waczSigning.status().fingerprint ?? ""
+        };
+      },
+      async replaceWaczSigningKey() {
+        return waczSigning.replace();
       },
       async exportToTarget(target) {
         rebuildSearchIndex();

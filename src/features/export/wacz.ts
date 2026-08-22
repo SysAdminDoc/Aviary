@@ -1,6 +1,7 @@
 import { serializeExportRecord, sha256Hex } from "./assets";
 import type { ExportArtifact, ExportRecord } from "./types";
 import { buildIndexedWarcArchive, type WarcIndexEntry } from "./warc";
+import type { WaczDigestSigner, WaczSignatureData } from "./wacz-signing";
 import { buildStoreZip, type ZipFileEntry } from "./zip-store";
 
 const ENCODER = new TextEncoder();
@@ -22,10 +23,37 @@ export interface WaczEstimate {
   estimatedBytes: number;
 }
 
+export interface PreparedWacz {
+  generatedAt: Date;
+  datapackageBytes: Uint8Array;
+  datapackageHash: string;
+  resourceEntries: ZipFileEntry[];
+}
+
 export function buildWaczArchive(
   records: readonly ExportRecord[],
   options: WaczBuildOptions = {}
 ): ExportArtifact {
+  return finishWaczArchive(prepareWaczArchive(records, options));
+}
+
+export async function buildSignedWaczArchive(
+  records: readonly ExportRecord[],
+  signer: WaczDigestSigner,
+  options: WaczBuildOptions = {}
+): Promise<ExportArtifact> {
+  const prepared = prepareWaczArchive(records, options);
+  const signedData = await signer.sign(prepared.datapackageHash, prepared.generatedAt.toISOString());
+  if (signedData.hash !== prepared.datapackageHash) {
+    throw new Error("WACZ signer returned a signature for a different manifest hash");
+  }
+  return finishWaczArchive(prepared, signedData);
+}
+
+export function prepareWaczArchive(
+  records: readonly ExportRecord[],
+  options: WaczBuildOptions
+): PreparedWacz {
   const generatedAt = validDate(options.generatedAt) ?? new Date();
   const warc = buildIndexedWarcArchive(records, {
     generatedAt,
@@ -51,18 +79,28 @@ export function buildWaczArchive(
     }))
   };
   const datapackageBytes = ENCODER.encode(`${JSON.stringify(datapackage, null, 2)}\n`);
+  return {
+    generatedAt,
+    datapackageBytes,
+    datapackageHash: `sha256:${sha256Hex(datapackageBytes)}`,
+    resourceEntries
+  };
+}
+
+export function finishWaczArchive(prepared: PreparedWacz, signedData?: WaczSignatureData): ExportArtifact {
   const digestBytes = ENCODER.encode(`${JSON.stringify({
     path: "datapackage.json",
-    hash: `sha256:${sha256Hex(datapackageBytes)}`
+    hash: prepared.datapackageHash,
+    ...(signedData ? { signedData } : {})
   }, null, 2)}\n`);
   const data = buildStoreZip([
-    ...resourceEntries,
-    { filename: "datapackage.json", data: datapackageBytes, date: generatedAt },
-    { filename: "datapackage-digest.json", data: digestBytes, date: generatedAt }
+    ...prepared.resourceEntries,
+    { filename: "datapackage.json", data: prepared.datapackageBytes, date: prepared.generatedAt },
+    { filename: "datapackage-digest.json", data: digestBytes, date: prepared.generatedAt }
   ]);
 
   return {
-    filename: `aviary-${filenameTimestamp(generatedAt)}.wacz`,
+    filename: `aviary-${filenameTimestamp(prepared.generatedAt)}.wacz`,
     contentType: "application/wacz",
     data
   };

@@ -118,6 +118,12 @@ function stubs(variant) {
   downloadWarc: async () => ({ records: 0 }),
   getWaczEstimate: () => ({ records: ${v ? 2 : 5}, estimatedBytes: ${v ? 2048 : 8192} }),
   downloadWacz: async () => ({ records: 0, bytes: 0, filename: "archive.wacz" }),
+  getWaczSigningStatus: () => (${v
+    ? '{ state: "ready", fingerprint: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", createdAt: "2026-08-21T12:00:00Z" }'
+    : '{ state: "missing", fingerprint: null, createdAt: null }'}),
+  downloadSignedWacz: async () => ({ records: 0, bytes: 0, filename: "archive.wacz", fingerprint: "0123456789abcdef" }),
+  exportWaczSigningKey: async () => ({ filename: "keypair.json", fingerprint: "0123456789abcdef" }),
+  replaceWaczSigningKey: async () => ({ state: "ready", fingerprint: "0123456789abcdef", createdAt: "2026-08-21T12:00:00Z" }),
   exportToTarget: async () => ({ target: "notion", records: 0 }),
   crosspost: async () => ({ ok: true }),
   listAria2Active: async () => [

@@ -137,6 +137,10 @@ test("secondary Control Center sections render stable copy through every locale"
         downloadWarc: async () => ({ records: 2 }),
         getWaczEstimate: () => ({ records: 2, estimatedBytes: 4096 }),
         downloadWacz: async () => ({ records: 2, bytes: 4096, filename: "archive.wacz" }),
+        getWaczSigningStatus: () => ({ state: "ready", fingerprint: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", createdAt: "2026-08-21T12:00:00Z" }),
+        downloadSignedWacz: async () => ({ records: 2, bytes: 4096, filename: "archive.wacz", fingerprint: "0123456789abcdef" }),
+        exportWaczSigningKey: async () => ({ filename: "keypair.json", fingerprint: "0123456789abcdef" }),
+        replaceWaczSigningKey: async () => ({ state: "ready", fingerprint: "0123456789abcdef", createdAt: "2026-08-21T12:00:00Z" }),
         exportToTarget: async () => ({ target: "raw-json", records: 2 }),
         getRetentionPolicy: () => ({ maxJobs: 10, maxRecordsPerJob: 100, maxAgeDays: 30 }),
         saveRetentionPolicy: async () => {}
