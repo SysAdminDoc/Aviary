@@ -520,7 +520,7 @@ test("a pending video download stays actionable and uses the best variant when m
 
   assert.deepEqual(result.initial, { text: "↓ Download", disabled: false });
   assert.deepEqual(result.finding, {
-    text: "↻ Saving...",
+    text: "↻ Downloading…",
     disabled: true,
     busy: "true"
   });
@@ -613,10 +613,10 @@ test("media buttons reattach when X recycles a processed post's media subtree", 
   });
 
   assert.deepEqual(result, {
-    initialText: "↓ Save",
+    initialText: "↓ Download",
     initialConnected: false,
     processedBefore: "1",
-    replacementText: "↓ Save",
+    replacementText: "↓ Download",
     replacementContainer: true,
     buttonCount: 1,
     initialActionConnected: false,
@@ -837,7 +837,7 @@ test("default media controls transfer both image and direct video bytes", async 
     assert.equal(result.imageButton, "✓ Saved");
     assert.equal(result.videoButton, "✓ Saved");
     assert.deepEqual(result.runningState, {
-      text: "↻ Saving...",
+      text: "↻ Downloading…",
       busy: "true",
       disabled: true,
       state: "active"
@@ -849,7 +849,7 @@ test("default media controls transfer both image and direct video bytes", async 
       state: "success"
     });
     assert.deepEqual(result.repeatRunningState, {
-      text: "↻ Saving...",
+      text: "↻ Downloading…",
       busy: "true",
       disabled: true
     });

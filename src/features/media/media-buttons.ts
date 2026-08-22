@@ -603,7 +603,7 @@ function buildPostAction(
   // Say so rather than quietly saving fewer files than the post appears to hold. The excluded
   // assets are a quoted post's or a link card's, and each keeps its own Save control.
   const accessibleLabel = tweet.media.some((media) => media.owner.scope !== "post")
-    ? ft(ctx, "Download this post's own media. Quoted and card media has its own Save button.")
+    ? ft(ctx, "Download this post's own media. Quoted and card media has its own Download button.")
     : ft(ctx, "Download all media in this post");
   button.dataset.idleLabel = idleLabel;
   button.dataset.baseIdleAriaLabel = accessibleLabel;
@@ -664,7 +664,7 @@ async function handlePendingPostDownload(
   button: HTMLButtonElement
 ): Promise<void> {
   setButtonFeedback(button, {
-    label: ft(ctx, "Saving..."),
+    label: ft(ctx, "Downloading…"),
     icon: "↻",
     className: "is-active",
     disabled: true,
@@ -813,7 +813,8 @@ function buttonLabel(media: ExtractedMedia): string {
   }
   if (media.kind === "audio") return "Audio";
   if (media.kind === "subtitle") return "Captions";
-  return "Save";
+  // Returned as a literal: both call sites wrap this in ft(), and the harvester reads literals.
+  return "Download";
 }
 
 function buttonAriaLabel(media: ExtractedMedia): string {
@@ -851,7 +852,7 @@ async function handleDownload(
     return;
   }
   setButtonFeedback(button, {
-    label: ft(ctx, "Saving..."),
+    label: ft(ctx, "Downloading…"),
     icon: "↻",
     className: "is-active",
     disabled: true,
@@ -931,7 +932,7 @@ async function handlePostDownload(
     return;
   }
   setButtonFeedback(button, {
-    label: ft(ctx, "Saving..."),
+    label: ft(ctx, "Downloading…"),
     icon: "↻",
     className: "is-active",
     disabled: true,

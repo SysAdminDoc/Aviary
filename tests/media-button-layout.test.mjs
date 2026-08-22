@@ -87,7 +87,7 @@ test("inserting the button does not disturb the photo", async () => {
       const button = document.createElement("button");
       button.setAttribute("data-av-media-button", "photo");
       button.style.position = "absolute";
-      button.textContent = "Save";
+      button.textContent = "Download";
       container.append(button);
 
       // The same anchoring positionButton() performs.

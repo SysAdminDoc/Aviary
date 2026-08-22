@@ -94,7 +94,7 @@ test("a fresh install is told exactly what is already on and where settings live
   assert.equal(result.mounted, true);
   assert.equal(result.role, "status", "a passive notice must not steal focus like an alert");
   assert.match(result.text, /Sponsored posts/, "must name the ad protection that is already on");
-  assert.match(result.text, /save control/, "must name the media controls that are already on");
+  assert.match(result.text, /download control/, "must name the media controls that are already on");
   assert.match(result.text, /left navigation/, "must say where the settings entry is");
 });
 

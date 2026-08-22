@@ -968,8 +968,8 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
   const rows: HTMLElement[] = [];
   rows.push(
     ctx.toggleRow(
-      "Capture visible tweets",
-      "Accumulate tweets visible on the active page for the next export run.",
+      "Capture visible posts",
+      "Accumulate posts visible on the active page for the next export run.",
       ctx.options.settings.export.enabled,
       async (checked) => {
         ctx.options.settings.export.enabled = checked;
@@ -1109,7 +1109,7 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
 
   if (ctx.options.runExport) {
     rows.push(
-      ctx.actionRow("Export visible tweets", "Collect the currently rendered tweets and download a ZIP.", async () => {
+      ctx.actionRow("Export visible posts", "Collect the currently rendered posts and download a ZIP.", async () => {
         ctx.setStatus("Collecting visible posts…");
         try {
           const result = await ctx.options.runExport!();

@@ -337,7 +337,7 @@ Every control Aviary offers, by Control Center page. 87 controls across 12 pages
 
 | Control | What it does |
 | --- | --- |
-| Capture visible tweets | Accumulate tweets visible on the active page for the next export run. |
+| Capture visible posts | Accumulate posts visible on the active page for the next export run. |
 | Preserve raw payloads | Also store the raw GraphQL responses X sends this tab, so records can be re-parsed later. Session tokens are stripped before anything is written. |
 | Capture media bytes in export | Fetch media during the export action and include successful bytes with length and checksum; failed items remain retryable references. |
 | Auto-discover query IDs | Scan loaded scripts for X GraphQL operation IDs and cache them locally. |

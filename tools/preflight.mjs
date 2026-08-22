@@ -28,14 +28,18 @@ const expectedExtensionIcons = Object.fromEntries(
 const DELIVERY_BUDGETS = [
   // v1.40 adds five localized, scoped custom-CSS editors and their safety copy. v1.42 adds a
   // bounded Under the Hood parser and localized Library reader. v1.44 adds local thread capture,
-  // graph reconstruction, and a standalone reader. v1.46 translates two surfaces that were still
-  // rendering English in all nine locales -- the catch-up digest, and the sentence every action
-  // row shows when it fails -- for 43 strings x 8 locales, about 50 kB inlined. Keep the ceiling
-  // tight, but make room for those shipped controls rather than silently accepting growth.
-  { file: "aviary.user.js", maxBytes: 2_680_000 },
+  // graph reconstruction, and a standalone reader. v1.46 translates three surfaces that were still
+  // rendering English in all nine locales -- the catch-up digest, the sentence every action row
+  // shows when it fails, and the renamed media controls -- for 53 strings x 8 locales.
+  //
+  // The catalog is now 34% of the bundle (920 kB of 2.70 MB), and every translated string costs
+  // eight copies that a given reader will never use. ROADMAP F270 tracks splitting it per locale;
+  // until that lands this ceiling has to move with the copy, so keep raising it deliberately with
+  // the reason written down rather than letting growth pass unremarked.
+  { file: "aviary.user.js", maxBytes: 2_710_000 },
   { file: "aviary.meta.js", maxBytes: 4_000 },
-  { file: "extension-chrome/content.js", maxBytes: 2_680_000 },
-  { file: "extension-firefox/content.js", maxBytes: 2_680_000 }
+  { file: "extension-chrome/content.js", maxBytes: 2_710_000 },
+  { file: "extension-firefox/content.js", maxBytes: 2_710_000 }
 ];
 
 const failures = [];

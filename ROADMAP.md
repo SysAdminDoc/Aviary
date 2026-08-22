@@ -190,16 +190,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Confidence: Verified
   Effort: S
 
-- [ ] P2 — F227, "Tweets" survives in eight user-facing strings while the rest of the product says "posts"
-  Category: ux
-  Where: `src/ui/control-center/sections/data.ts:957` ("Capture visible tweets"), `:958` ("Accumulate tweets visible on the active page for the next export run."), `:1095` ("Export visible tweets" and "Collect the currently rendered tweets and download a ZIP."); `src/ui/control-center.ts:500` and `:503` (the two `SECTION_GROUP_BREAKS` anchors that key off those labels), `:1254` ("…over tweet photos and video thumbnails."), `:1263`; `src/features/core/presets.ts:97` (the Researcher preset highlight, rendered at `src/ui/control-center/sections/presets.ts:24`).
-  Problem: X renamed tweets to posts, the product followed everywhere else, and these eight did not. The inconsistency is visible inside a single section: `data.ts:1095`'s button says "Export visible tweets" while its own status messages three lines later say "Collecting visible posts…" (`:1096`), "No posts found on this view." (`:1102`) and "No captured posts have thread metadata yet." (`:1138`).
-  Evidence: `grep -n "tweets\|tweet photos" src/ui/control-center/sections/data.ts src/ui/control-center.ts src/features/core/presets.ts` excluding `tweetId`, `testid` and `extractTweet` returns exactly the eight lines above; `grep -ho "\bposts\b" src/ui/control-center/sections/*.ts src/ui/control-center.ts | wc -l` returns 68.
-  Fix: rename all eight to "posts". Two of them are load-bearing beyond their own text: `control-center.ts:500` and `:503` match on the label string to place a group heading, so those anchors must change in the same edit. `{tweetId}` in the filename-template field list (`data.ts:1571`) is a stored data key and must not change. Re-run `node tools/i18n-extract.mjs --write` afterwards, because changing the English text orphans the existing translations of these strings.
-  Acceptance: `grep -rn "tweets" src/ui/ src/features/core/presets.ts` returns nothing; the panel still renders the Capture and Jobs group headings in the Export section; `npm test` reports 100% locale coverage.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — F230, The i18n extractor hard-codes a stale copy of the preset data it claims is real
   Category: maintainability
   Where: `tools/i18n-extract.mjs:104-106`; the real data is `src/features/core/presets.ts:40-43`.
@@ -260,17 +250,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Confidence: Verified
   Effort: S
 
-- [ ] P2 — F236, "Save" and "Download" name the same action interchangeably, including a button name that no longer exists
-  Category: ux
-  Where: `src/features/media/media-buttons.ts:585` (post-level label "Download"), `:799` (per-asset label "Save"), `:589` (a tooltip using both), `:650, 837, 917` (busy label "Saving..."); `src/ui/control-center.ts:1254` ("Inject Save and Thumb buttons…"); `src/extension/options.html:59-60` ("Lets the Save and Thumb buttons write files…"); `src/features/core/first-run.ts:125` ("a save control"); `src/ui/control-center/sections/data.ts:1518-1519` ("Show download buttons", "Add one Download action…"), `:1594` (both words in one sentence).
-  Problem: the post-level control is labelled "Download" but its busy state says "Saving...", the per-asset control beside it says "Save", and two surfaces the user is sent to for help — the section summary and the permissions page — describe "the Save and Thumb buttons", a name that is no longer on the page. A user following `options.html:59` looks for a Save button and finds one labelled Download. The bookmark action at `src/features/library/bookmarks-feature.ts:241` genuinely is "Save locally", so "save" is not free to mean both things.
-  Evidence: read at the cited lines; `grep -n '"Download"\|"Save"\|"Saving' src/features/media/media-buttons.ts` returns the five labels above. The `"Saving..."` literal also uses an ASCII ellipsis where the panel's own convention is `…` (`data.ts:217, 312, 1096, 1655`; `advanced.ts:822, 1121, 1188, 1430`), and `src/ui/control-center.ts:911` matches on the exact string `"Saving..."`, so any change to it must update that comparison too.
-  Fix: reserve "Download" for anything that writes a media file and "Save locally" for the bookmark action. Rename `media-buttons.ts:799` to "Download", change the three busy labels to "Downloading…", update `control-center.ts:1254` and `options.html:59-60` to name the Download and Thumb buttons, and change `first-run.ts:125` to "a download control". Update the `"Saving..."` comparison at `control-center.ts:911` in the same edit, and re-run the i18n extractor.
-  Acceptance: `grep -rn '"Save"' src/features/media/` returns nothing; the options page and the Media section summary both name the same button the page actually shows; the panel's saving tone still resolves for the transaction bar.
-  Confidence: Verified
-  Effort: S
-
-
 - [ ] P2 — F248, An older build silently destroys settings written by a newer one
   Category: correctness
   Where: `src/platform/settings.ts:562-573` (`readSettingsEnvelope`'s `fromFuture` branch and its docstring), `src/main.ts:156-164` (the only consumer), `src/main.ts:253-259` (`saveSettings`).
@@ -292,6 +271,16 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Effort: M
 
 ### P3
+
+- [ ] P3 — F270, The translation catalog is a third of the delivered bundle and every reader ships all nine locales
+  Category: perf
+  Where: `src/platform/i18n-catalog.ts` (the inlined `PANEL_CATALOG_JSON`), consumed through `panelCatalog()` in `src/platform/i18n.ts`; the size ceiling is `DELIVERY_BUDGETS` in `tools/preflight.mjs`.
+  Problem: the catalog is 920 kB of a 2.70 MB bundle, 34% of everything delivered, and it is one JSON blob holding all eight non-English locales. A reader uses exactly one, so seven eighths of it is never read. Every string translated makes the problem worse in eight-copy increments, and the delivery budget has been raised three times in one session to keep up. The extension has a second copy of the same bytes in each of the two unpacked builds.
+  Evidence: `src/platform/i18n-catalog.ts` is 920,546 bytes against a `dist/aviary.user.js` of 2,697,490. `tools/build.mjs` already demonstrates the pattern that would fix it: `src/entrypoints/extension-options.ts` documents that importing the full catalog "would put roughly 240KB of translations into a page that otherwise ships a few KB", so the build reads the `data-i18n` keys out of `options.html` and defines only those.
+  Fix: split the catalog per locale and load the chosen one at boot. The userscript has no second file to fetch, so the honest shape there is probably to keep English inline and put the other eight behind the same build-time narrowing the options page already uses, keyed off `settings.i18n.locale`. Whatever the shape, the test that holds coverage at 100% per locale has to keep working against the split form.
+  Acceptance: `dist/aviary.user.js` drops by at least 700 kB with no locale losing coverage; `tests/i18n.test.mjs` still reports 100% for every shipped locale; switching locale in the panel still repaints without a reload.
+  Confidence: Verified
+  Effort: L
 
 - [ ] P3 — F237, Two `_decoded/` captures are past their staleness ceiling and the waiver expires 2026-09-30 (pre-existing baseline)
   Category: docs

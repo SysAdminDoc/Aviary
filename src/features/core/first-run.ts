@@ -125,7 +125,7 @@ function mountNotice(ctx: FeatureContext): void {
   const list = document.createElement("ul");
   for (const line of [
     ft(ctx, "Sponsored posts, promoted trends and pre-rolls are hidden."),
-    ft(ctx, "Photos and videos get a save control that only acts when you click it.")
+    ft(ctx, "Photos and videos get a download control that only acts when you click it.")
   ]) {
     const item = document.createElement("li");
     item.textContent = line;

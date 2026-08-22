@@ -581,7 +581,7 @@ test("timeline controls render in the reader's locale, not English", async () =>
 
   assert.deepEqual(rendered.en, {
     hide: "Hide",
-    save: "↓ Save",
+    save: "↓ Download",
     ai: "Open Aviary AI command menu"
   });
 

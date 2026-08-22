@@ -503,10 +503,10 @@ const SECTION_GROUP_BREAKS: Record<string, Array<{ before: string; title: string
     { before: "Download status", title: "Queue status" }
   ],
   export: [
-    { before: "Capture visible tweets", title: "Capture" },
+    { before: "Capture visible posts", title: "Capture" },
     { before: "Export formats", title: "Package" },
     { before: "Save folder hint", title: "Destination" },
-    { before: "Export visible tweets", title: "Jobs" },
+    { before: "Export visible posts", title: "Jobs" },
     { before: "Preservation archive", title: "Preservation" }
   ],
   library: [
@@ -1286,7 +1286,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       id: "media",
       title: "Media",
       group: "Data",
-      summary: "Inject Save and Thumb buttons over tweet photos and video thumbnails.",
+      summary: "Adds Download and Thumb buttons to post photos and video thumbnails.",
       icon: "media",
       accent: "rgb(72, 211, 193)",
       build: () => buildMediaRows(panelContext)
@@ -1295,7 +1295,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       id: "export",
       title: "Export",
       group: "Data",
-      summary: "Accumulate tweets visible on the active page for the next export run.",
+      summary: "Accumulate posts visible on the active page for the next export run.",
       icon: "export",
       accent: "rgb(72, 211, 193)",
       build: () => buildExportRows(panelContext)

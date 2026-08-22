@@ -146,6 +146,15 @@
 
 ### Changed
 
+- One name per action. Anything that writes a media file is now called Download, everywhere: the
+  per-asset button said Save while the post-level one said Download, the busy state said "Saving…"
+  on both, and the permissions page and the Media section sent readers looking for a Save button
+  that no longer existed. Save locally stays the bookmark action, which is the only thing it means.
+- Eight panel strings still said "tweets" while the rest of the product said "posts", including two
+  in the same section as status messages that already said posts. The translations were already
+  correct in every locale; only the English had been left behind.
+
+
 - **Tests now execute the TypeScript sources directly.** Node's native type stripping imports the
   modules under test without creating a temporary esbuild bundle. The production build still
   bundles the userscript and extension artifacts.

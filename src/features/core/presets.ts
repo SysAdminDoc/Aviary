@@ -94,9 +94,9 @@ export const PRESETS: PresetDefinition[] = [
     label: "Researcher",
     description: "Export capture on, JSON+CSV+HTML+MD formats, auto-discover query IDs, raw payloads.",
     highlights: [
-      { label: "Capture visible tweets", value: "Enabled" },
+      { label: "Capture visible posts", value: "Enabled" },
       { label: "Preserve raw payloads", value: "Enabled" },
-      { label: "Export formats", value: "Enabled" }
+      { label: "Export formats", value: "JSON, CSV, HTML, Markdown" }
     ],
     overrides: {
       filter: { enabled: false },
