@@ -169,6 +169,8 @@ var Aviary = (() => {
       // blocked-account markup before a predicate can be written; until then a default of "hide"
       // is a filter the settings claim to apply and the engine never applies.
       blockedAccounts: "off",
+      // Same shape, different capture. F033 needs one containing a self-repost before a predicate
+      // can tell one apart from an ordinary repost. "off" until then, so nothing is claimed.
       selfRepost: "off",
       quotePosts: "off",
       showReason: "dimmed",
@@ -7843,6 +7845,7 @@ ${body}
           if (open) nativePanel.showPopover?.();
           else nativePanel.hidePopover?.();
         } catch {
+          panel.classList.toggle("av-popover-unavailable", open);
         }
       }
       if (open) {
@@ -9355,6 +9358,14 @@ textarea:focus-visible {
    sheet stops fighting the UA sheet. */
 .av-panel:not(:popover-open) {
   display: none;
+}
+
+/* The escape hatch for a host with the selector above but no showPopover to satisfy it. The class
+   is repeated to carry more weight than the rule it overrides rather than tying with it: this sheet
+   lives in a shadow root, so there is no html element here to qualify with, and a tie would be
+   settled by source order alone. */
+.av-panel.av-popover-unavailable.av-popover-unavailable {
+  display: flex;
 }
 
 .av-panel::backdrop {
@@ -20156,8 +20167,13 @@ ${record.text}${mediaList}`;
     return media;
   }
   function readHasLink(article) {
-    const textNode = article.querySelector('[data-testid="tweetText"]');
-    return (textNode ?? article).querySelector('a[href^="http"], a[href^="/t.co/"], a[href*="t.co/"]') !== null;
+    const textNodes = article.querySelectorAll('[data-testid="tweetText"]');
+    for (const node of Array.from(textNodes)) {
+      if (node.querySelector('a[href^="http"], a[href^="/t.co/"], a[href*="t.co/"]') !== null) {
+        return true;
+      }
+    }
+    return false;
   }
   function readHandle2(article) {
     const userName = article.querySelector('[data-testid="User-Name"]');
@@ -31517,6 +31533,7 @@ ${text}`
     try {
       menu.showPopover?.();
     } catch {
+      menu.classList.add("av-popover-unavailable");
     }
     positionMenu(menu, trigger);
     focusMenuItem(0);
@@ -31674,6 +31691,12 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
    menu that never reached showPopover would paint anyway. */
 .av-ai-menu:not(:popover-open) {
   display: none;
+}
+
+/* See the panel's copy of this: the class is repeated so the rule outweighs the one above rather
+   than tying with it and being settled by source order. */
+.av-ai-menu.av-popover-unavailable.av-popover-unavailable {
+  display: grid;
 }
 
 .av-ai-option {
@@ -32006,6 +32029,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     try {
       popover.showPopover?.();
     } catch {
+      popover.classList.add("av-popover-unavailable");
     }
     positionPopover(popover, trigger);
     focusMenuItem(0);
@@ -32074,6 +32098,12 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
    menu that never reached showPopover would paint anyway. */
 .av-snippet-popover:not(:popover-open) {
   display: none;
+}
+
+/* See the panel's copy of this: the class is repeated so the rule outweighs the one above rather
+   than tying with it and being settled by source order. */
+.av-snippet-popover.av-popover-unavailable.av-popover-unavailable {
+  display: grid;
 }
 
 .av-snippet-option {

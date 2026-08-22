@@ -476,3 +476,79 @@ test("a post with no caption is not filtered on its author, timestamp or counts"
   // The control proves the rule still works: the same keyword in the post's own words hides it.
   assert.equal(result.captioned, "hide");
 });
+
+/**
+ * A post with no words has no link of the author's.
+ *
+ * `readHasLink` fell back to the whole article when there was no `tweetText` node, which is every
+ * media-only post. The article carries the author's own profile link and the timestamp permalink,
+ * so `link is true` matched a photo with no link in it at all -- the same fallback that was taken
+ * out of the text reader, left behind one function below it.
+ */
+test("a media-only post does not satisfy a link rule on its own author link", async () => {
+  const result = await page.evaluate(() => {
+    document.body.replaceChildren();
+
+    const build = (caption) => {
+      const article = document.createElement("article");
+      article.setAttribute("data-testid", "tweet");
+
+      const name = document.createElement("div");
+      name.setAttribute("data-testid", "User-Name");
+      const displayName = document.createElement("span");
+      displayName.textContent = "Someone";
+      // Absolute, the way a saved capture rewrites it. A root-relative href would not reach the
+      // selector at all, which is why this defect depends on X's markup rather than on Aviary.
+      const handle = document.createElement("a");
+      handle.setAttribute("href", "https://x.com/someone");
+      handle.textContent = "@someone";
+      const time = document.createElement("time");
+      time.textContent = "2h";
+      name.append(displayName, handle, time);
+
+      const permalink = document.createElement("a");
+      permalink.setAttribute("href", "https://x.com/someone/status/123");
+
+      const photo = document.createElement("div");
+      photo.setAttribute("data-testid", "tweetPhoto");
+
+      article.append(name, permalink, photo);
+      if (caption !== null) {
+        const text = document.createElement("div");
+        text.setAttribute("data-testid", "tweetText");
+        if (caption.link) {
+          const link = document.createElement("a");
+          link.setAttribute("href", "https://t.co/abc123");
+          link.textContent = "t.co/abc123";
+          text.append(link);
+        } else {
+          text.textContent = caption.words;
+        }
+        article.append(text);
+      }
+      document.body.append(article);
+      return article;
+    };
+
+    const signals = {
+      mediaOnly: AviaryShape.extractTweetSignal(build(null)),
+      captionNoLink: AviaryShape.extractTweetSignal(build({ words: "just a photo" })),
+      captionWithLink: AviaryShape.extractTweetSignal(build({ link: true }))
+    };
+
+    return {
+      mediaOnly: signals.mediaOnly.hasLink,
+      captionNoLink: signals.captionNoLink.hasLink,
+      captionWithLink: signals.captionWithLink.hasLink
+    };
+  });
+
+  assert.equal(
+    result.mediaOnly,
+    false,
+    "the author's profile link and the timestamp permalink are not links the author wrote"
+  );
+  assert.equal(result.captionNoLink, false);
+  // The control: a link the author actually wrote is still found.
+  assert.equal(result.captionWithLink, true);
+});

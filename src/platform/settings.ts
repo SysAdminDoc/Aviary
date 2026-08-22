@@ -449,6 +449,8 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     // blocked-account markup before a predicate can be written; until then a default of "hide"
     // is a filter the settings claim to apply and the engine never applies.
     blockedAccounts: "off",
+    // Same shape, different capture. F033 needs one containing a self-repost before a predicate
+    // can tell one apart from an ordinary repost. "off" until then, so nothing is claimed.
     selfRepost: "off",
     quotePosts: "off",
     showReason: "dimmed",

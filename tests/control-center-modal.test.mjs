@@ -305,3 +305,77 @@ test("a closed Control Center is not rendered, and opening then closing restores
   assert.equal(states.afterOpen.popoverOpen, true);
   assert.deepEqual(states.afterClose, { display: "none", area: 0, popoverOpen: false });
 });
+
+/**
+ * A host with the popover selector but no showPopover must not swallow the panel.
+ *
+ * Three places carried a comment saying the surface "remains usable in a test host that exposes
+ * the attribute but not the methods". Once the closed state was hidden by `:not(:popover-open)`
+ * that stopped being true, and for the panel it was the worst possible end state: the rule hides
+ * it, `inert` is on <body>, focus is inside, and the only way out is a UA light-dismiss that
+ * cannot fire because nothing was ever shown as a popover.
+ *
+ * No shipping engine is in that shape. This pins the behaviour anyway, because the code asserted
+ * the opposite in three places and now has to earn it.
+ */
+test("a host without showPopover still shows the panel rather than trapping the page", async () => {
+  const result = await page.evaluate(() => {
+    document.querySelector("#av-control-center")?.remove();
+    document.body.removeAttribute("inert");
+
+    const showPopover = HTMLElement.prototype.showPopover;
+    const hidePopover = HTMLElement.prototype.hidePopover;
+    // Present, and throwing: the selector still parses, so the closed-state rule still applies.
+    HTMLElement.prototype.showPopover = function () {
+      throw new Error("not supported in this host");
+    };
+    HTMLElement.prototype.hidePopover = function () {
+      throw new Error("not supported in this host");
+    };
+
+    try {
+      const settings = AviaryModal.cloneSettings(AviaryModal.DEFAULT_SETTINGS);
+      const handle = AviaryModal.mountControlCenter({
+        settings,
+        diagnostics: () => [],
+        onChange: async () => {},
+        onError: () => {}
+      });
+      const shadow = document.querySelector("#av-control-center").shadowRoot;
+      const panel = shadow.querySelector(".av-panel");
+      shadow.querySelector(".av-launcher").click();
+
+      const opened = {
+        display: getComputedStyle(panel).display,
+        width: panel.getBoundingClientRect().width > 0,
+        bodyInert: document.body.hasAttribute("inert")
+      };
+
+      shadow.querySelector(".av-launcher").click();
+      const closed = {
+        display: getComputedStyle(panel).display,
+        bodyInert: document.body.hasAttribute("inert")
+      };
+
+      handle?.destroy?.();
+      return { opened, closed };
+    } finally {
+      HTMLElement.prototype.showPopover = showPopover;
+      HTMLElement.prototype.hidePopover = hidePopover;
+      document.querySelector("#av-control-center")?.remove();
+      document.body.removeAttribute("inert");
+    }
+  });
+
+  assert.notEqual(
+    result.opened.display,
+    "none",
+    "the panel was made inert and given focus, so it must also be visible"
+  );
+  assert.equal(result.opened.width, true, "and it must have a box, not a zero-sized one");
+  assert.equal(result.opened.bodyInert, true, "the page behind it is still held back");
+
+  // Closing puts it back: the escape hatch is not a permanent override.
+  assert.equal(result.closed.display, "none");
+  assert.equal(result.closed.bodyInert, false, "and the page is usable again");
+});

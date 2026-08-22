@@ -346,8 +346,10 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
   try {
     (menu as HTMLElement & { showPopover?: () => void }).showPopover?.();
   } catch {
-    // The manifest floors include Popover API support. The authored menu remains usable in a
-    // test host that exposes the attribute but not the methods.
+    // Both manifest floors ship the Popover API, and an engine without it drops the
+    // `:not(:popover-open)` rule at parse time, so the authored display applies. A host with the
+    // selector but no methods would otherwise get an invisible menu; the class restores it.
+    menu.classList.add("av-popover-unavailable");
   }
   // Measured after showing, not merely after insertion: a closed popover is display:none, so a
   // height read before showPopover is zero and the flip-above decision never fires.
@@ -442,8 +444,9 @@ function showAiRequestReview(
     try {
       (dialog as HTMLElement & { showPopover?: () => void }).showPopover?.();
     } catch {
-      // The manifest floors include Popover API support. The authored dialog remains usable in a
-      // test host that exposes the attribute but not the methods.
+      // Nothing hides this one when it is closed -- there is no `:not(:popover-open)` rule for the
+      // review dialog -- so a host without the methods shows it and it stays usable. The catch is
+      // only here so a throw cannot leave the caller half-built.
     }
     (send.disabled ? cancel : send).focus({ preventScroll: true });
   });
@@ -526,6 +529,12 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
    menu that never reached showPopover would paint anyway. */
 .av-ai-menu:not(:popover-open) {
   display: none;
+}
+
+/* See the panel's copy of this: the class is repeated so the rule outweighs the one above rather
+   than tying with it and being settled by source order. */
+.av-ai-menu.av-popover-unavailable.av-popover-unavailable {
+  display: grid;
 }
 
 .av-ai-option {

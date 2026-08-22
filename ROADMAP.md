@@ -150,26 +150,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
 
 ### P2
 
-- [ ] P3 — F267, `readHasLink` still reads the whole article for a post with no caption
-  Category: correctness
-  Where: `src/features/filtering/predicates.ts` (`readHasLink`), the `(textNode ?? article)` fallback.
-  Problem: its own comment says "Only links inside the post's own text; the action bar and quoted chrome are not the author's", and that is true only while a `tweetText` node exists. For a media-only post there is none, so the whole article is searched and the author's own profile link can satisfy a `link is true` rule. This is the same fallback that F246 removed from `readText` two functions above, left in place here.
-  Evidence: read at the cited line after F246 landed. A reviewer could reproduce it on a capture-shaped DOM where profile hrefs are absolute, and could not on a live-X-shaped DOM where they are root-relative, so the reach depends on X's markup rather than on Aviary.
-  Fix: return `false` when there is no `tweetText` node, matching `readText`. If link detection should cover card and quote chrome, that belongs in its own predicate with its own name.
-  Acceptance: a test builds a media-only post whose only anchor is the author's profile link and asserts a `link is true` rule does not match it, with a captioned control that still does.
-  Confidence: Likely
-  Effort: S
-
-- [ ] P3 — F268, Three comments claim a Popover API fallback that does not exist
-  Category: maintainability
-  Where: `src/ui/control-center.ts` (the `showPopover`/`hidePopover` try/catch), `src/features/ai/command-menu.ts`, `src/features/composer/composer-snippets.ts`.
-  Problem: each `try { showPopover?.() } catch {}` carries a comment saying the surface "remains usable in a test host that exposes the attribute but not the methods". Since the closed state is now hidden by `:not(:popover-open)`, a host with the selector but no methods gets an invisible surface instead — and for the Control Center that is the bad end state: `document.body` is made `inert`, the panel takes focus, nothing is visible, and `handlePanelKeyDown` handles only Tab, so UA light-dismiss is the only exit and it cannot fire. No shipping engine has the selector without the methods, so this is unreachable; it is logged because the code asserts the opposite in three places.
-  Evidence: reproduced by deleting `HTMLElement.prototype.showPopover` in a page that still supports the selector — the AI menu and the panel both computed `display: none` with a zero box.
-  Fix: either drop the fallback comments and let the call throw into the caller's own error path, or make the catch fall back to an explicit visible state rather than leaving the surface hidden and the body inert.
-  Acceptance: the comments describe what the code does, or a host without `showPopover` leaves the page usable.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P3 — F237, Two `_decoded/` captures are past their staleness ceiling and the waiver expires 2026-09-30 (pre-existing baseline)
   Category: docs
   Where: `_decoded/captures.json`; the gate is `tools/preflight.mjs`.
@@ -239,16 +219,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Evidence: read at the cited lines. `tests/v0.11.0.test.mjs:82-124` pins the three happy-path shapes and never supplies a record carrying `parentId`.
   Fix: prefer `record.parentId != null` for the `replies` bucket and fall back to the text heuristic only when the field is absent, labelling that case as inferred rather than asserted.
   Acceptance: a test classifies a record with `parentId` set and text that does not start with `@` as a reply, and a record with no `parentId` whose text starts with `@` as inferred rather than asserted.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P3 — F260, `filter.selfRepost` is dead schema with no note saying why
-  Category: maintainability
-  Where: `src/platform/settings.ts:289-290` (declaration), `:443-444` (default), `:727-732` (normalizer).
-  Problem: `filter.selfRepost` and `filter.blockedAccounts` are declared, defaulted and normalized, and neither is read by any feature nor rendered by any panel row. `blockedAccounts` carries an explicit note at `settings.ts:440-442` pointing at the blocked F032 item; `selfRepost` carries none, so the next reader has to rediscover that it is parked rather than broken. Both are already tracked in `Roadmap_Blocked.md` under "Settings that normalize but nothing reads" — this item is only about the missing comment, not about implementing either filter.
-  Evidence: `grep -rn "selfRepost" src/` returns only the three settings.ts sites. `tests/filter-engine-work.test.mjs:274` covers the narrower property that an unread filter action must default to `"off"`, which both satisfy.
-  Fix: add a one-line comment on `selfRepost` matching the one on `blockedAccounts`, naming the blocked item it waits on.
-  Acceptance: both dead keys carry a comment naming their re-entry condition.
   Confidence: Verified
   Effort: S
 

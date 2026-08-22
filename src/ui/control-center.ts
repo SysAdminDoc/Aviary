@@ -829,8 +829,13 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         if (open) nativePanel.showPopover?.();
         else nativePanel.hidePopover?.();
       } catch {
-        // The manifest floors include Popover API support. Keep the authored state as a safe
-        // fallback for embedded test hosts that expose the attribute but not the methods.
+        // Both manifest floors ship the Popover API, and an engine without it drops the
+        // `:not(:popover-open)` rule at parse time, so the authored display applies and the panel
+        // works. The only shape this covers is a host that has the selector but not the methods,
+        // which no shipping engine does -- and that shape is the bad one: the rule would hide the
+        // panel while `inert` is on <body> and focus is inside, leaving nothing visible and no way
+        // out. The class is what makes that state recoverable rather than a lockout.
+        panel.classList.toggle("av-popover-unavailable", open);
       }
     }
     if (open) {
@@ -2733,6 +2738,14 @@ textarea:focus-visible {
    sheet stops fighting the UA sheet. */
 .av-panel:not(:popover-open) {
   display: none;
+}
+
+/* The escape hatch for a host with the selector above but no showPopover to satisfy it. The class
+   is repeated to carry more weight than the rule it overrides rather than tying with it: this sheet
+   lives in a shadow root, so there is no html element here to qualify with, and a tie would be
+   settled by source order alone. */
+.av-panel.av-popover-unavailable.av-popover-unavailable {
+  display: flex;
 }
 
 .av-panel::backdrop {

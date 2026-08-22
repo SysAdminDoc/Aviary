@@ -262,8 +262,10 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
   try {
     (popover as HTMLElement & { showPopover?: () => void }).showPopover?.();
   } catch {
-    // The manifest floors include Popover API support. The authored palette remains usable in a
-    // test host that exposes the attribute but not the methods.
+    // Both manifest floors ship the Popover API, and an engine without it drops the
+    // `:not(:popover-open)` rule at parse time, so the authored display applies. A host with the
+    // selector but no methods would otherwise get an invisible palette; the class restores it.
+    popover.classList.add("av-popover-unavailable");
   }
   // Positioned after showing so it measures the shown box, matching the AI menu. This one reads
   // only the trigger, so it does not depend on the palette's own height.
@@ -340,6 +342,12 @@ const COMPOSER_CSS = `
    menu that never reached showPopover would paint anyway. */
 .av-snippet-popover:not(:popover-open) {
   display: none;
+}
+
+/* See the panel's copy of this: the class is repeated so the rule outweighs the one above rather
+   than tying with it and being settled by source order. */
+.av-snippet-popover.av-popover-unavailable.av-popover-unavailable {
+  display: grid;
 }
 
 .av-snippet-option {

@@ -440,13 +440,26 @@ function readMedia(article: Element): Record<FilterMediaKey, boolean> {
   return media;
 }
 
+/**
+ * A link the author put in the post, and only that.
+ *
+ * The article also contains the author's own profile link, the timestamp permalink, and whatever
+ * a quoted post or a card brought with it. Falling back to the whole article when there is no
+ * `tweetText` node -- which is every media-only post -- meant `link is true` matched all of them,
+ * so a rule written to hide link spam hid a photo instead. This is the same fallback that was
+ * taken out of `readText` above, for the same reason.
+ *
+ * A post with no words has no link of the author's, and false is the honest answer. If a rule
+ * should reach card or quote chrome, that is a different question and deserves its own predicate.
+ */
 function readHasLink(article: Element): boolean {
-  // Only links inside the post's own text; the action bar and quoted chrome are not the author's.
-  const textNode = article.querySelector('[data-testid="tweetText"]');
-  return (
-    (textNode ?? article).querySelector('a[href^="http"], a[href^="/t.co/"], a[href*="t.co/"]') !==
-    null
-  );
+  const textNodes = article.querySelectorAll('[data-testid="tweetText"]');
+  for (const node of Array.from(textNodes)) {
+    if (node.querySelector('a[href^="http"], a[href^="/t.co/"], a[href*="t.co/"]') !== null) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function readHandle(article: Element): string | null {
