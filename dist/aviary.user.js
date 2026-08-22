@@ -851,12 +851,17 @@ var Aviary = (() => {
     if (cleaned.length === 0) return "";
     return /^[A-Za-z0-9._-]{1,253}$/.test(cleaned) ? cleaned : "";
   }
+  var RESERVED_PATH_SEGMENTS = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i;
+  function sanitizeFolderHint(value, maxLength = 120) {
+    return value.replace(/[<>:"|?*\u0000-\u001f]/g, "").replace(/\\/g, "/").split("/").map((segment) => segment.trim().replace(/[. ]+$/, "")).filter(
+      (segment) => segment.length > 0 && segment !== "." && segment !== ".." && !RESERVED_PATH_SEGMENTS.test(segment)
+    ).join("/").slice(0, maxLength);
+  }
   function folderHintValue(value, fallback) {
     if (typeof value !== "string") {
       return fallback;
     }
-    const cleaned = value.replace(/[<>:"|?*\u0000-\u001f]/g, "").trim().slice(0, 120);
-    return cleaned;
+    return sanitizeFolderHint(value);
   }
   function localeValue(value, fallback) {
     if (typeof value !== "string") {
@@ -17452,8 +17457,7 @@ a { color: #8ecdf1; }
     return result.length > 0 ? result : ["json"];
   }
   function sanitizeFolder(folder) {
-    const cleaned = folder.replace(/[<>:"|?*\u0000-\u001f]/g, "").replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
-    return cleaned.slice(0, 80);
+    return sanitizeFolderHint(folder, 80);
   }
   function packagePath(folder, path) {
     return folder ? `${folder}/${path}` : path;

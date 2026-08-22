@@ -1235,12 +1235,42 @@ function handleOrEmpty(value: unknown): string {
   return /^[A-Za-z0-9._-]{1,253}$/.test(cleaned) ? cleaned : "";
 }
 
+/**
+ * Reserved on Windows whatever extension follows, so a folder segment must never be one.
+ */
+const RESERVED_PATH_SEGMENTS =
+  /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i;
+
+/**
+ * Reduces a folder hint to segments that cannot escape the directory they are extracted into.
+ *
+ * This value names the root folder inside every export ZIP, and it travels verbatim in a shared
+ * settings file and in a library restore. Stripping only the Windows-illegal characters left `..`
+ * intact, and the export side additionally rewrites a backslash to a forward slash, so a
+ * Windows-shaped traversal became a working POSIX one on the way into the archive.
+ */
+export function sanitizeFolderHint(value: string, maxLength = 120): string {
+  return value
+    .replace(/[<>:"|?*\u0000-\u001f]/g, "")
+    .replace(/\\/g, "/")
+    .split("/")
+    .map((segment) => segment.trim().replace(/[. ]+$/, ""))
+    .filter(
+      (segment) =>
+        segment.length > 0 &&
+        segment !== "." &&
+        segment !== ".." &&
+        !RESERVED_PATH_SEGMENTS.test(segment)
+    )
+    .join("/")
+    .slice(0, maxLength);
+}
+
 function folderHintValue(value: unknown, fallback: string): string {
   if (typeof value !== "string") {
     return fallback;
   }
-  const cleaned = value.replace(/[<>:"|?*\u0000-\u001f]/g, "").trim().slice(0, 120);
-  return cleaned;
+  return sanitizeFolderHint(value);
 }
 
 function localeValue(value: unknown, fallback: string): string {

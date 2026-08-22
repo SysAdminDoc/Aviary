@@ -367,3 +367,75 @@ test("an empty entry and a zero-record archive still produce a readable zip", as
   assert.equal(read[0].data.length, 0);
   assert.ok((await buildZip([])).length > 0, "an archive with no entries is still a valid zip");
 });
+
+/**
+ * The save-folder hint names the root folder inside every export ZIP, and it travels verbatim in a
+ * shared settings file and in a library restore. It stripped only the Windows-illegal characters,
+ * so `..` survived -- and the export side rewrites a backslash to a forward slash, which turned a
+ * Windows-shaped traversal into a working POSIX one on the way into the archive.
+ */
+test("a hostile save-folder hint cannot put a traversal into a ZIP entry name", async () => {
+  const { normalizeSettings } = await importSourceModule("src/platform/settings.ts");
+  const { buildExportZip } = await importSourceModule("src/features/export/export-feature.ts");
+
+  const records = [
+    {
+      tweetId: "1",
+      handle: "someone",
+      displayName: "Someone",
+      text: "hello",
+      capturedAt: new Date(0).toISOString(),
+      surface: "home",
+      media: [],
+      permalink: "https://x.com/someone/status/1"
+    }
+  ];
+
+  const localHeaderNames = (bytes) => {
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const names = [];
+    for (let index = 0; index + 30 <= bytes.length; index += 1) {
+      if (view.getUint32(index, true) !== 0x04034b50) continue;
+      const nameLength = view.getUint16(index + 26, true);
+      names.push(new TextDecoder().decode(bytes.subarray(index + 30, index + 30 + nameLength)));
+    }
+    return names;
+  };
+
+  const hostile = [
+    "../../../../AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup",
+    "..\\..\\..\\Startup",
+    "./../escape",
+    "CON",
+    "trailing. ",
+    "//leading"
+  ];
+
+  for (const folder of hostile) {
+    const persisted = normalizeSettings({ media: { lastSaveFolder: folder } }).media.lastSaveFolder;
+    assert.ok(
+      !persisted.split("/").includes(".."),
+      `${JSON.stringify(folder)} persisted as ${JSON.stringify(persisted)}`
+    );
+    const names = localHeaderNames(await buildExportZip(records, ["json"], persisted));
+    assert.ok(names.length > 0, "the archive must still contain entries");
+    for (const name of names) {
+      assert.ok(
+        !name.split("/").includes(".."),
+        `${JSON.stringify(folder)} produced the entry ${JSON.stringify(name)}`
+      );
+      assert.ok(!name.startsWith("/"), `${JSON.stringify(name)} must not be absolute`);
+    }
+  }
+
+  // The control: an ordinary folder name is still used, unchanged.
+  const ordinary = normalizeSettings({
+    media: { lastSaveFolder: "aviary-exports" }
+  }).media.lastSaveFolder;
+  assert.equal(ordinary, "aviary-exports");
+  const kept = localHeaderNames(await buildExportZip(records, ["json"], ordinary));
+  assert.ok(
+    kept.every((name) => name.startsWith("aviary-exports/")),
+    `an ordinary folder must still prefix every entry, saw ${JSON.stringify(kept)}`
+  );
+});

@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Security
+- The save-folder hint can no longer put a `..` path segment into an export ZIP. It stripped only
+  the characters Windows forbids, so a traversal survived, and the export side rewrites a backslash
+  to a forward slash, which turned a Windows-shaped one into a working POSIX one. The hint travels
+  verbatim in a shared settings file and in a library restore, so it was not only self-typed.
+
 
 - Custom CSS can no longer reach the network or paint outside the surface it was written for.
   The old blocklist looked for the literal text `url(`, but `image-set()` and `cross-fade()` take

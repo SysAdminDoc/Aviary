@@ -219,16 +219,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Effort: M
 
 
-- [ ] P1 — F243, A settings value puts `..` path segments into every export ZIP entry name
-  Category: security
-  Where: `src/platform/settings.ts:1219-1225` (`folderHintValue`), `src/features/export/export-feature.ts:353-356` (`sanitizeFolder`) and `:358-360` (`packagePath`). The value is `media.lastSaveFolder`, edited at `src/ui/control-center/sections/data.ts:1019-1027`.
-  Problem: both sanitizers strip `< > : " | ? *` and control characters and neither strips `..`. `sanitizeFolder` additionally rewrites `\` to `/`, which converts a Windows-style traversal into a working POSIX one. The cleaned string is then concatenated straight into the ZIP entry name, so `tweets.json`, `viewer.html`, `manifest.json` and every `media/*` member escape the extraction directory on any tool that honours `..`. `zipFilename()` collapses `/` for the download name, so nothing looks wrong to the user.
-  Evidence: reproduced by calling the real `normalizeSettings` and `buildExportZip` and reading local-file-header names straight out of the ZIP bytes. Input `"../../../../AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup"` persists unchanged through `normalizeSettings` and yields entry names `"../../../../AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/tweets.json"` and two more. Input `"..\\..\\..\\Startup"` yields `"../../../Startup/tweets.json"` — the backslash replace normalises it into the traversal. The control `"normal-folder"` yields `"normal-folder/tweets.json"`. `tests/video-and-presentation.test.mjs:58-62` asserts only that `<` and `?` are removed.
-  Fix: in `folderHintValue`, split on `/`, drop any segment that is empty, `.`, `..`, a Windows reserved device name (`CON`, `PRN`, `AUX`, `NUL`, `COM1`-`COM9`, `LPT1`-`LPT9`), or ends in a dot or space, then rejoin. Have `sanitizeFolder` re-apply the same reduction rather than trusting the stored value, since it is also reachable from a restored library backup. Consider rejecting `..` in `writeZip` as a last line of defence.
-  Acceptance: a test asserts no entry name produced by `buildExportZip` contains a `..` segment for any of the inputs above, and that a normal folder name still round-trips.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P1 — F244, A regex filter rule can freeze the tab, and the budget check does not catch the pattern that does it
   Category: reliability
   Where: `src/features/filtering/regex-budget.ts:70-90` (`checkRegexBudget`, and `UNBOUNDED_QUANTIFIER` at `:77`); matching runs at `src/features/filtering/predicates.ts` inside `judge`, called per article from `src/features/filtering/filter-engine.ts:210`.

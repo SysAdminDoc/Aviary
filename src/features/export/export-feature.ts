@@ -1,4 +1,5 @@
 import type { FeatureContext, FeatureModule } from "../registry.ts";
+import { sanitizeFolderHint } from "../../platform/settings.ts";
 import { SemanticIndex } from "../integrations/semantic-search.ts";
 import {
   buildExportPackageManifest,
@@ -351,8 +352,9 @@ export function selectSupportedFormats(input: readonly string[]): ExportFormat[]
 }
 
 function sanitizeFolder(folder: string): string {
-  const cleaned = folder.replace(/[<>:"|?*\u0000-\u001f]/g, "").replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
-  return cleaned.slice(0, 80);
+  // Re-applied here rather than trusting what storage holds: this value also arrives from an
+  // imported settings file and from a library restore, and it becomes the ZIP entry prefix.
+  return sanitizeFolderHint(folder, 80);
 }
 
 function packagePath(folder: string, path: string): string {
