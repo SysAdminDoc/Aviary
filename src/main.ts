@@ -45,6 +45,7 @@ import { observeAddedElements } from "./platform/observer.ts";
 import { TokenBucket } from "./platform/rate-limit.ts";
 import { readRoute, watchRoute } from "./platform/route.ts";
 import {
+  type AviarySettings,
   cloneSettings,
   DEFAULT_SETTINGS,
   normalizeSettings,
@@ -179,6 +180,10 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
       steps: settingsEnvelope.applied
     });
   }
+  // Custom CSS is the one setting whose stored value can be refused outright rather than clamped,
+  // and normalization happens before any feature runs. Losing a user's rules without a word is not
+  // an option, so the drop is reported where the rest of the boot's decisions are.
+  reportDroppedCustomCss(storedSettings, settings, diagnostics);
   if (settingsEnvelope.fromFuture) {
     // Written by a newer Aviary. Run with normalized values, but never write this build's
     // narrower shape back over settings it cannot represent.
@@ -345,6 +350,40 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     pageBridge.destroy();
     pendingBridge = undefined;
     throw error;
+  }
+}
+
+/**
+ * Warns when a stored custom CSS rule was refused by the sanitizer during normalization.
+ *
+ * The sanitizer's blocklist can tighten between releases -- it did, to close an escape that reached
+ * the network -- and `normalizeCustomCss` discards what it refuses with no channel of its own. An
+ * upgrading user would otherwise find their rules simply gone.
+ */
+function reportDroppedCustomCss(
+  stored: unknown,
+  settings: AviarySettings,
+  diagnostics: Diagnostics
+): void {
+  if (typeof stored !== "object" || stored === null) {
+    return;
+  }
+  const rules = (stored as { appearance?: { customCss?: unknown } }).appearance?.customCss;
+  if (typeof rules !== "object" || rules === null) {
+    return;
+  }
+  const dropped: string[] = [];
+  for (const [scope, value] of Object.entries(rules as Record<string, unknown>)) {
+    const kept = (settings.appearance.customCss as Record<string, string | undefined>)[scope];
+    if (typeof value === "string" && value.trim().length > 0 && (kept ?? "") === "") {
+      dropped.push(scope);
+    }
+  }
+  if (dropped.length > 0) {
+    diagnostics.warn("Stored custom CSS was refused and not applied", {
+      scopes: dropped.join(", "),
+      reason: "It uses something the current safety rules reject. Re-enter it in Appearance."
+    });
   }
 }
 

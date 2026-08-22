@@ -164,6 +164,8 @@ test("custom CSS sanitization refuses every route to a remote file or a wider sc
       crossFade: 'p { background-image: cross-fade(image-set("https://evil.example/x.png" 1x) 50%, red); }',
       escapedUrl: 'p { background-image: ' + backslash + '75 rl("https://evil.example/x.png"); }',
       srcDescriptor: 'p { src: "https://evil.example/x.woff2"; }',
+      escapeInSelector: '.a' + backslash + '75 rl { color: red; }',
+      escapeAfterAClosedString: '.a { content: "ok"; background-image: ' + backslash + '75 rl("https://evil.example/x.png"); }',
       paintWorklet: "p { background-image: paint(evil); }",
       newlineBraceEscape: '.a { content: "x' + String.fromCharCode(10) + '}' + String.fromCharCode(10) + '}' + String.fromCharCode(10) + '#outside { outline: 5px solid rgb(0,128,0); }' + String.fromCharCode(10) + '"; }'
     };
@@ -174,7 +176,11 @@ test("custom CSS sanitization refuses every route to a remote file or a wider sc
       quotedContent: '.a::after { content: "hello"; }',
       comment: "/* note */ .a { color: red; }",
       colorMix: ".a { background: color-mix(in srgb, red 50%, blue); }",
-      selectorList: ".a, .b > .c { color: red; }"
+      selectorList: ".a, .b > .c { color: red; }",
+      // Already-stored CSS: an escape inside a string can only ever produce a character, so
+      // tightening the rules must not silently delete a user's existing rule on upgrade.
+      unicodeEscapeInAString: '.a::before { content: "' + backslash + '2192"; }',
+      escapedQuoteInAString: '.a::before { content: "say ' + backslash + '"hi' + backslash + '""; }'
     };
     const accepted = {};
     for (const [name, css] of Object.entries(refuse)) {

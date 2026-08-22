@@ -651,7 +651,7 @@ var Aviary = (() => {
   }
   function sanitizeCustomCss(value) {
     const normalized = value.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "").slice(0, CUSTOM_CSS_MAX_LENGTH);
-    if (normalized.includes("\\")) {
+    if (hasEscapeOutsideString(normalized)) {
       return { value: "", changed: normalized.length > 0 };
     }
     const forbidden = /@(?:charset|font-face|import|namespace|scope|keyframes?|property|page)\b|(?:url|expression|image-set|cross-fade|paint)\s*\(|(?:^|[;{\s])(?:behavior|-moz-binding|src)\s*:/i;
@@ -659,6 +659,42 @@ var Aviary = (() => {
       return { value: "", changed: normalized.length > 0 };
     }
     return { value: normalized, changed: normalized !== value };
+  }
+  function hasEscapeOutsideString(value) {
+    let quote = null;
+    let comment = false;
+    for (let index = 0; index < value.length; index += 1) {
+      const current = value[index];
+      const next = value[index + 1];
+      if (comment) {
+        if (current === "*" && next === "/") {
+          comment = false;
+          index += 1;
+        }
+        continue;
+      }
+      if (quote !== null) {
+        if (current === "\n" || current === "\r") {
+          quote = null;
+          continue;
+        }
+        if (current === "\\") {
+          index += 1;
+          continue;
+        }
+        if (current === quote) quote = null;
+        continue;
+      }
+      if (current === "/" && next === "*") {
+        comment = true;
+        index += 1;
+      } else if (current === '"' || current === "'") {
+        quote = current;
+      } else if (current === "\\") {
+        return true;
+      }
+    }
+    return false;
   }
   function normalizeCustomCss(value) {
     const raw = asRecord(value);
@@ -34403,6 +34439,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         steps: settingsEnvelope.applied
       });
     }
+    reportDroppedCustomCss(storedSettings, settings, diagnostics);
     if (settingsEnvelope.fromFuture) {
       diagnostics.warn("Settings were written by a newer Aviary", {
         found: settingsEnvelope.fromVersion,
@@ -34540,6 +34577,28 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       pageBridge.destroy();
       pendingBridge = void 0;
       throw error;
+    }
+  }
+  function reportDroppedCustomCss(stored, settings, diagnostics) {
+    if (typeof stored !== "object" || stored === null) {
+      return;
+    }
+    const rules = stored.appearance?.customCss;
+    if (typeof rules !== "object" || rules === null) {
+      return;
+    }
+    const dropped = [];
+    for (const [scope, value] of Object.entries(rules)) {
+      const kept = settings.appearance.customCss[scope];
+      if (typeof value === "string" && value.trim().length > 0 && (kept ?? "") === "") {
+        dropped.push(scope);
+      }
+    }
+    if (dropped.length > 0) {
+      diagnostics.warn("Stored custom CSS was refused and not applied", {
+        scopes: dropped.join(", "),
+        reason: "It uses something the current safety rules reject. Re-enter it in Appearance."
+      });
     }
   }
   async function reconcileExtensionAdRule(source, enabled2, diagnostics) {

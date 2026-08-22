@@ -318,7 +318,7 @@ async function listFiles(dir, suffix) {
  * on every page load with `inert` keeping it dead to input. This is a ban on that shape: a module
  * that creates a popover must not leave its closed appearance to the UA sheet.
  */
-test("every module that creates a popover states its closed appearance", async () => {
+test("every popover surface states its closed appearance", async () => {
   const files = await listFiles(path.join(root, "src"), ".ts");
   const silent = [];
 
@@ -327,15 +327,48 @@ test("every module that creates a popover states its closed appearance", async (
     if (!text.includes('setAttribute("popover"')) {
       continue;
     }
-    if (!text.includes(":popover-open")) {
-      silent.push(path.relative(root, file));
+    const relative = path.relative(root, file);
+
+    // Per popover surface, not per file: a module can create two and guard only one, which a
+    // file-level check waves through. The class is tied to the element by variable name, because
+    // that is what says which element actually receives the popover attribute. Both ways this
+    // codebase names an element are covered: a direct `className =` and the `el(tag, class)` helper.
+    const popoverVars = new Set(
+      [...text.matchAll(/(\w+)\.setAttribute\("popover"/g)].map((match) => match[1])
+    );
+    for (const variable of popoverVars) {
+      const assigned =
+        new RegExp(`${variable}\\.className = "([\\w -]+)"`).exec(text) ??
+        new RegExp(`(?:const|let) ${variable} = el\\(\\s*"[\\w-]+"\\s*,\\s*"([\\w -]+)"`).exec(text);
+      assert.ok(
+        assigned,
+        `${relative}: could not find the class given to the popover element "${variable}"; ` +
+          `this contract has to be able to see it to check it`
+      );
+      for (const className of assigned[1].split(/\s+/).filter(Boolean)) {
+        // A class only needs a closed-state rule when the author sheet gives it a `display`: that
+        // is what outranks the UA's `[popover]:not(:popover-open) { display: none }`.
+        const declaresDisplay = new RegExp(
+          `\\.${className}\\s*\\{[^}]*\\bdisplay\\s*:`,
+          "s"
+        ).test(text);
+        if (!declaresDisplay) continue;
+        // Either form states the closed appearance: hiding it explicitly, or driving the visible
+        // state from `:popover-open` while the base rule is already invisible.
+        if (
+          !text.includes(`.${className}:not(:popover-open)`) &&
+          !text.includes(`.${className}:popover-open`)
+        ) {
+          silent.push(`${relative} .${className}`);
+        }
+      }
     }
   }
 
   assert.deepEqual(
     silent,
     [],
-    `these modules create a popover without a :popover-open rule, so the UA sheet alone decides ` +
-      `whether the closed surface is visible: ${silent.join(", ")}`
+    `these popover surfaces set an author display with no :popover-open rule, so the closed ` +
+      `surface stays painted: ${silent.join(", ")}`
   );
 });

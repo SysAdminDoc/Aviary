@@ -972,10 +972,13 @@ export function sanitizeCustomCss(value: string): SanitizedCustomCss {
     .slice(0, CUSTOM_CSS_MAX_LENGTH);
   // A blocklist over source text cannot decide what the CSS tokenizer will do, because the
   // tokenizer unescapes an identifier before it resolves the function name: an escape spelling
-  // out u-r-l is url() to the parser and something else entirely to a regex. Nothing in a bounded
-  // declaration language needs an escape, so refusing every backslash is what makes the rest of
-  // this list mean what it says.
-  if (normalized.includes("\\")) {
+  // out u-r-l is url() to the parser and something else entirely to a regex.
+  //
+  // The distinction that matters is where the escape sits. Outside a string it can build an
+  // identifier, which is how the bypass worked, so it is refused. Inside a string it can only
+  // ever produce a character -- `content: "\\201C"` is ordinary, already-stored CSS -- so it is
+  // kept, and the walk below is the same one that measures brace balance.
+  if (hasEscapeOutsideString(normalized)) {
     return { value: "", changed: normalized.length > 0 };
   }
   // url() is not the only way to name a remote file: image-set() and cross-fade() take a bare
@@ -987,6 +990,52 @@ export function sanitizeCustomCss(value: string): SanitizedCustomCss {
     return { value: "", changed: normalized.length > 0 };
   }
   return { value: normalized, changed: normalized !== value };
+}
+
+/**
+ * True when a backslash appears anywhere the CSS tokenizer could read it as part of an identifier.
+ *
+ * Escapes inside a quoted string resolve to text and are left alone. Everywhere else -- a property
+ * value, a selector, an at-rule prelude -- an escape can spell a function name the source text does
+ * not contain, which is what let a hidden `url(` reach the network.
+ */
+function hasEscapeOutsideString(value: string): boolean {
+  let quote: '"' | "'" | null = null;
+  let comment = false;
+  for (let index = 0; index < value.length; index += 1) {
+    const current = value[index]!;
+    const next = value[index + 1];
+    if (comment) {
+      if (current === "*" && next === "/") {
+        comment = false;
+        index += 1;
+      }
+      continue;
+    }
+    if (quote !== null) {
+      // A newline ends the string here exactly as it does for the tokenizer; balancedCss refuses
+      // that input outright, so this only has to agree with it, not recover from it.
+      if (current === "\n" || current === "\r") {
+        quote = null;
+        continue;
+      }
+      if (current === "\\") {
+        index += 1;
+        continue;
+      }
+      if (current === quote) quote = null;
+      continue;
+    }
+    if (current === "/" && next === "*") {
+      comment = true;
+      index += 1;
+    } else if (current === '"' || current === "'") {
+      quote = current;
+    } else if (current === "\\") {
+      return true;
+    }
+  }
+  return false;
 }
 
 function normalizeCustomCss(value: unknown): CustomCssRules {

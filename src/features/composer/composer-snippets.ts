@@ -265,8 +265,8 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
     // The manifest floors include Popover API support. The authored palette remains usable in a
     // test host that exposes the attribute but not the methods.
   }
-  // Measured after showing, not merely after insertion: a closed popover is display:none, so a
-  // height read before showPopover is zero and the flip-above decision never fires.
+  // Positioned after showing so it measures the shown box, matching the AI menu. This one reads
+  // only the trigger, so it does not depend on the palette's own height.
   positionPopover(popover, trigger);
   focusMenuItem(0);
 }

@@ -12,10 +12,13 @@
 - Custom CSS can no longer reach the network or paint outside the surface it was written for.
   The old blocklist looked for the literal text `url(`, but `image-set()` and `cross-fade()` take
   a bare string as a URL, an identifier escape spells `url` without a regex ever seeing it, and
-  `src:` and `paint()` load their own resources. Escapes are now refused outright, the blocklist
-  covers the other four routes, and a newline inside a quoted string ends that string the way the
-  CSS parser does, so a payload can no longer hide a real closing brace inside one and escape its
-  generated scope block.
+  `src:` and `paint()` load their own resources. An escape anywhere it could build an identifier is
+  now refused, the blocklist covers the other four routes, and a newline inside a quoted string
+  ends that string the way the CSS parser does, so a payload can no longer hide a real closing
+  brace inside one and escape its generated scope block. Escapes inside a quoted string still work,
+  because they can only ever produce a character: `content: "92"` and the like keep running.
+  If a stored rule is refused after an upgrade, Aviary now says so instead of dropping it in
+  silence.
 
 ### Fixed
 - Turning a feature off and on again, which the "which feature is breaking this page?" search does
