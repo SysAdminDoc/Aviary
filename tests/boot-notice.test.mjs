@@ -19,7 +19,10 @@ before(async () => {
   const entry = path.join(temp, "entry.ts");
   await writeFile(
     entry,
-    `export * from ${JSON.stringify(abs("src/platform/boot-notice.ts"))};`,
+    [
+      `export * from ${JSON.stringify(abs("src/platform/boot-notice.ts"))};`,
+      `export { boot } from ${JSON.stringify(abs("src/main.ts"))};`
+    ].join("\n"),
     "utf8"
   );
   const bundle = path.join(temp, "bundle.js");
@@ -98,4 +101,51 @@ test("the notice mounts before body exists, because boot starts at document-star
   });
   await bare.close();
   assert.equal(mounted, true, "the notice must attach to documentElement when body is absent");
+});
+
+/**
+ * A failure in the awaited prelude has to reach the notice too.
+ *
+ * `bootInternal` opens its own guard at the first feature, so storage initialization, the profile
+ * load, the settings read and the audit log all ran outside it. Both entrypoints call `boot()` as
+ * `void boot(...)`, so a rejection there went nowhere: the page kept `data-av-ready="booting"`, the
+ * user saw an enhancer that silently did nothing, and the page bridge stayed installed. This drives
+ * the earliest awaited step by making the storage backend unreachable at construction.
+ */
+test("a failure before the first feature still reports itself", async () => {
+  const result = await page.evaluate(async () => {
+    AviaryBootNotice.removeBootFailureNotice();
+    delete document.documentElement.dataset.avReady;
+
+    const original = Object.getOwnPropertyDescriptor(globalThis, "indexedDB");
+    Object.defineProperty(globalThis, "indexedDB", {
+      configurable: true,
+      get() {
+        throw new Error("indexedDB is unavailable in this context");
+      }
+    });
+
+    let threw = false;
+    try {
+      await AviaryBootNotice.boot({ source: "extension" });
+    } catch {
+      threw = true;
+    }
+
+    if (original) Object.defineProperty(globalThis, "indexedDB", original);
+    else delete globalThis.indexedDB;
+
+    const notice = document.getElementById("av-boot-notice");
+    return {
+      threw,
+      ready: document.documentElement.dataset.avReady ?? null,
+      noticeShown: notice !== null,
+      reason: notice?.shadowRoot?.querySelector(".reason")?.textContent ?? ""
+    };
+  });
+
+  assert.equal(result.threw, true, "boot must still reject so callers can see it");
+  assert.equal(result.ready, "error", "the page must not be left claiming it is still booting");
+  assert.equal(result.noticeShown, true, "a boot failure must be visible");
+  assert.match(result.reason, /indexedDB/, "the notice must carry the reason");
 });

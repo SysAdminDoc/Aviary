@@ -40,7 +40,7 @@ import { adProtectionFeature, installEarlyAdShield } from "./features/privacy/ad
 import { Diagnostics } from "./platform/diagnostics.ts";
 import { DiagnosticsStore } from "./platform/diagnostics-store.ts";
 import { showBootFailureNotice } from "./platform/boot-notice.ts";
-import { createPageBridge } from "./platform/page-bridge.ts";
+import { createPageBridge, type PageBridge } from "./platform/page-bridge.ts";
 import { observeAddedElements } from "./platform/observer.ts";
 import { TokenBucket } from "./platform/rate-limit.ts";
 import { readRoute, watchRoute } from "./platform/route.ts";
@@ -71,6 +71,17 @@ export interface AviaryApp {
 
 let activeApp: AviaryApp | undefined;
 let bootingApp: Promise<AviaryApp | undefined> | undefined;
+/**
+ * The page bridge, from the moment it is created until boot either finishes or cleans it up.
+ *
+ * `bootInternal` opens its own guard at the first feature, so everything before that -- storage
+ * initialization, the profile load, the settings read, the audit log -- used to reject straight out
+ * of `boot()`. Both entrypoints call `boot()` as `void boot(...)`, so the rejection went nowhere: no
+ * failure notice, `data-av-ready` stuck on "booting", and this bridge left patching the page's
+ * fetch and XHR for the life of the tab. Holding it here is what lets the outer guard finish the
+ * teardown the inner one would have done.
+ */
+let pendingBridge: PageBridge | undefined;
 
 export function boot(options: BootOptions): Promise<AviaryApp | undefined> {
   if (typeof document === "undefined") {
@@ -85,9 +96,21 @@ export function boot(options: BootOptions): Promise<AviaryApp | undefined> {
     return bootingApp;
   }
 
-  bootingApp = bootInternal(options).finally(() => {
-    bootingApp = undefined;
-  });
+  bootingApp = bootInternal(options)
+    .catch((error: unknown) => {
+      // `bootInternal` reports and cleans up anything that fails once features are starting. This
+      // covers the awaited prelude before that, which otherwise fails silently.
+      if (document.documentElement.dataset.avReady !== "error") {
+        document.documentElement.dataset.avReady = "error";
+        showBootFailureNotice(error instanceof Error ? error.message : String(error));
+      }
+      pendingBridge?.destroy();
+      pendingBridge = undefined;
+      throw error;
+    })
+    .finally(() => {
+      bootingApp = undefined;
+    });
 
   return bootingApp;
 }
@@ -107,6 +130,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   // Connect while the document is still starting, before storage opens. The page agent itself
   // starts with the same default-on ad guard, then this config is replaced by persisted settings.
   const pageBridge = createPageBridge({ source: options.source, diagnostics });
+  pendingBridge = pageBridge;
   pageBridge.configure({
     blockAds: DEFAULT_SETTINGS.privacy.blockAds && DEFAULT_SETTINGS.privacy.networkShield,
     blockBeacons: false,
@@ -292,6 +316,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     document.documentElement.dataset.avReady = "true";
     diagnostics.info("Aviary booted", { source: options.source, surface: context.route.surface });
 
+    pendingBridge = undefined;
     activeApp = {
       context,
       registry,
@@ -318,6 +343,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     }
     await registry.destroyAll(context);
     pageBridge.destroy();
+    pendingBridge = undefined;
     throw error;
   }
 }

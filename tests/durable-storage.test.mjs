@@ -301,3 +301,64 @@ test("a removal made during a backend failure is not resurrected", async () => {
     "a delete during the outage must travel too, or the stale copy comes back"
   );
 });
+
+/**
+ * A corrupted pending-writes value must not take the boot down.
+ *
+ * `aviary.durable.pending` lives in the legacy realm, which on the localStorage fallback is shared
+ * with everything else running on the page. A stored object or number sailed past the
+ * `length === 0` early return and then threw `pending is not iterable` out of `initialize()` --
+ * which `main.ts` awaits before its own failure guard opens, so the tab was left with no Aviary,
+ * no notice, and a page bridge still patching fetch.
+ */
+test("a corrupted pending-writes value is discarded instead of thrown", async () => {
+  const { DurableStorageGateway, PENDING_WRITES_KEY } = await importSourceModule(
+    "src/platform/durable-storage.ts"
+  );
+
+  for (const corrupt of [{ a: 1 }, 7, true, "oops", [1, 2, 3]]) {
+    const legacyStore = new Map([[PENDING_WRITES_KEY, corrupt]]);
+    const legacy = {
+      async get(key, fallback) {
+        return legacyStore.has(key) ? legacyStore.get(key) : fallback;
+      },
+      async set(key, value) {
+        legacyStore.set(key, value);
+      },
+      async remove(key) {
+        legacyStore.delete(key);
+      }
+    };
+    const backendStore = new Map();
+    const backend = {
+      async get(key) {
+        return backendStore.get(key);
+      },
+      async put(key, value) {
+        backendStore.set(key, value);
+      },
+      async remove(key) {
+        backendStore.delete(key);
+      },
+      async getMeta() {
+        return undefined;
+      },
+      async putMany(entries, meta) {
+        for (const [key, value] of entries) backendStore.set(key, value);
+        backendStore.set("__aviary_meta__", meta);
+      },
+      async estimate() {
+        return {};
+      }
+    };
+
+    const gateway = new DurableStorageGateway(legacy, backend, "aviary");
+    const status = await gateway.initialize(["aviary.settings.v1"]);
+    assert.equal(
+      status.backend,
+      "indexeddb",
+      `a ${typeof corrupt} pending value must not knock the backend out`
+    );
+    assert.equal(status.pendingWrites, 0);
+  }
+});

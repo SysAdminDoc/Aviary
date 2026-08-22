@@ -120,9 +120,8 @@ export class DurableStorageGateway implements StorageGateway {
     // deliberately refuses to overwrite a key the backend already holds -- which is correct for a
     // first migration and exactly wrong here, because those legacy values are the *newer* ones.
     // Reconciling them first is what stops a fallback session from being silently reverted.
-    await this.#reconcilePendingWrites();
-
     try {
+      await this.#reconcilePendingWrites();
       const previous = await this.#backend.getMeta();
       const migratedKeys = new Set(previous?.migratedKeys ?? []);
       const entries: Array<readonly [string, unknown]> = [];
@@ -330,7 +329,11 @@ export class DurableStorageGateway implements StorageGateway {
     }
     let pending: string[];
     try {
-      pending = await this.#legacy.get<string[]>(PENDING_WRITES_KEY, []);
+      const stored = await this.#legacy.get<unknown>(PENDING_WRITES_KEY, []);
+      // Shape-checked rather than trusted. This key lives in the legacy realm, which on the
+      // localStorage fallback is shared with everything else on the page, and a stored object or
+      // number made the loop below throw straight out of boot.
+      pending = Array.isArray(stored) ? stored.filter((key) => typeof key === "string") : [];
     } catch (error) {
       reportStorageError(PENDING_WRITES_KEY, error, "read");
       return;

@@ -13,6 +13,12 @@
   generated scope block.
 
 ### Fixed
+- A boot failure now always says so. Storage initialization, the profile load, the settings read
+  and the audit log all ran before the failure guard opened, so a throw in any of them left the page
+  claiming it was still booting, showed no notice, and left the page bridge patching the page's
+  network calls for the life of the tab. A corrupted pending-writes value, which is what made that
+  reachable, is now discarded instead of thrown.
+
 - A settings edit staged in the Control Center now survives a row action that repaints the
   section. Typing a value and then clicking something else in the same section used to discard the
   edit while the Save button stayed lit, and pressing it reported "Saved locally" having written

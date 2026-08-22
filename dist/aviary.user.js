@@ -33720,8 +33720,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       if (!this.#backend) {
         return this.getStatus();
       }
-      await this.#reconcilePendingWrites();
       try {
+        await this.#reconcilePendingWrites();
         const previous = await this.#backend.getMeta();
         const migratedKeys = new Set(previous?.migratedKeys ?? []);
         const entries = [];
@@ -33905,7 +33905,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       }
       let pending;
       try {
-        pending = await this.#legacy.get(PENDING_WRITES_KEY, []);
+        const stored = await this.#legacy.get(PENDING_WRITES_KEY, []);
+        pending = Array.isArray(stored) ? stored.filter((key) => typeof key === "string") : [];
       } catch (error) {
         reportStorageError(PENDING_WRITES_KEY, error, "read");
         return;
@@ -34289,6 +34290,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   // src/main.ts
   var activeApp;
   var bootingApp;
+  var pendingBridge;
   function boot(options) {
     if (typeof document === "undefined") {
       return Promise.resolve(void 0);
@@ -34299,7 +34301,15 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     if (bootingApp) {
       return bootingApp;
     }
-    bootingApp = bootInternal(options).finally(() => {
+    bootingApp = bootInternal(options).catch((error) => {
+      if (document.documentElement.dataset.avReady !== "error") {
+        document.documentElement.dataset.avReady = "error";
+        showBootFailureNotice(error instanceof Error ? error.message : String(error));
+      }
+      pendingBridge?.destroy();
+      pendingBridge = void 0;
+      throw error;
+    }).finally(() => {
       bootingApp = void 0;
     });
     return bootingApp;
@@ -34312,6 +34322,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     document.documentElement.dataset.avReady = "booting";
     const diagnostics = new Diagnostics();
     const pageBridge = createPageBridge({ source: options.source, diagnostics });
+    pendingBridge = pageBridge;
     pageBridge.configure({
       blockAds: DEFAULT_SETTINGS.privacy.blockAds && DEFAULT_SETTINGS.privacy.networkShield,
       blockBeacons: false,
@@ -34465,6 +34476,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       );
       document.documentElement.dataset.avReady = "true";
       diagnostics.info("Aviary booted", { source: options.source, surface: context.route.surface });
+      pendingBridge = void 0;
       activeApp = {
         context,
         registry,
@@ -34489,6 +34501,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       }
       await registry.destroyAll(context);
       pageBridge.destroy();
+      pendingBridge = void 0;
       throw error;
     }
   }
