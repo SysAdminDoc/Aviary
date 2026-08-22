@@ -290,8 +290,6 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
     menu.append(item);
   }
   document.body.append(menu);
-  // Measured after insertion: the flip decision needs the menu's real height.
-  positionMenu(menu, trigger);
   openMenuNode = menu;
   const menuItems = (): HTMLButtonElement[] =>
     Array.from(menu.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));
@@ -351,6 +349,9 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
     // The manifest floors include Popover API support. The authored menu remains usable in a
     // test host that exposes the attribute but not the methods.
   }
+  // Measured after showing, not merely after insertion: a closed popover is display:none, so a
+  // height read before showPopover is zero and the flip-above decision never fires.
+  positionMenu(menu, trigger);
   focusMenuItem(0);
 }
 
@@ -519,6 +520,12 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   border-radius: 10px;
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4);
+}
+
+/* Author display: grid outranks the UA's [popover]:not(:popover-open) { display: none }, so a
+   menu that never reached showPopover would paint anyway. */
+.av-ai-menu:not(:popover-open) {
+  display: none;
 }
 
 .av-ai-option {

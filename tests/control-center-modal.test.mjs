@@ -259,3 +259,49 @@ test("the launcher joins X's navigation, adapts to compact rails, and survives S
     { panel: null, launcher: null }
   );
 });
+
+/**
+ * A closed panel must not be on screen.
+ *
+ * The Popover API hides a closed popover through the UA-origin rule
+ * `[popover]:not(:popover-open) { display: none }`, and `.av-panel` sets `display: flex` in the
+ * author sheet -- which wins. v1.45.0 shipped with the closed panel laid out full-screen on every
+ * page load and `inert` keeping it dead to input, so the settings window covered X and could not
+ * be dismissed. Every other assertion in this file drives the panel open first, which is exactly
+ * why none of them saw it. This one measures the state the user actually loads into.
+ */
+test("a closed Control Center is not rendered, and opening then closing restores that", async () => {
+  const states = await page.evaluate(async () => {
+    const settings = AviaryModal.cloneSettings(AviaryModal.DEFAULT_SETTINGS);
+    globalThis.__modalHandle = AviaryModal.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: () => {}
+    });
+    const shadow = document.querySelector("#av-control-center").shadowRoot;
+    const panel = shadow.querySelector(".av-panel");
+    const read = () => {
+      const rect = panel.getBoundingClientRect();
+      return {
+        display: getComputedStyle(panel).display,
+        area: Math.round(rect.width) * Math.round(rect.height),
+        popoverOpen: panel.matches(":popover-open")
+      };
+    };
+    const onMount = read();
+    shadow.querySelector(".av-launcher").click();
+    const afterOpen = read();
+    shadow.querySelector(".av-launcher").click();
+    const afterClose = read();
+    globalThis.__modalHandle?.destroy();
+    delete globalThis.__modalHandle;
+    return { onMount, afterOpen, afterClose };
+  });
+
+  assert.deepEqual(states.onMount, { display: "none", area: 0, popoverOpen: false });
+  assert.equal(states.afterOpen.display, "flex");
+  assert.ok(states.afterOpen.area > 0, `an opened panel must have a box, got ${states.afterOpen.area}`);
+  assert.equal(states.afterOpen.popoverOpen, true);
+  assert.deepEqual(states.afterClose, { display: "none", area: 0, popoverOpen: false });
+});

@@ -308,3 +308,34 @@ async function listFiles(dir, suffix) {
 
   return files;
 }
+
+/**
+ * A popover surface must state its own closed appearance.
+ *
+ * The UA hides a closed popover with `[popover]:not(:popover-open) { display: none }`, which is
+ * UA-origin and loses to any author `display` on the same element. v1.45.0 shipped the Control
+ * Center panel with an author `display: flex` and no closed-state rule, so it painted full-screen
+ * on every page load with `inert` keeping it dead to input. This is a ban on that shape: a module
+ * that creates a popover must not leave its closed appearance to the UA sheet.
+ */
+test("every module that creates a popover states its closed appearance", async () => {
+  const files = await listFiles(path.join(root, "src"), ".ts");
+  const silent = [];
+
+  for (const file of files) {
+    const text = await readFile(file, "utf8");
+    if (!text.includes('setAttribute("popover"')) {
+      continue;
+    }
+    if (!text.includes(":popover-open")) {
+      silent.push(path.relative(root, file));
+    }
+  }
+
+  assert.deepEqual(
+    silent,
+    [],
+    `these modules create a popover without a :popover-open rule, so the UA sheet alone decides ` +
+      `whether the closed surface is visible: ${silent.join(", ")}`
+  );
+});

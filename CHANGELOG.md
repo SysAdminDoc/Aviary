@@ -2,7 +2,14 @@
 
 ## Unreleased
 
-No changes yet.
+### Fixed
+
+- The Control Center no longer covers the page on load. Since the move to native popovers the
+  panel's own `display: flex` outranked the browser rule that hides a closed popover, so it was
+  laid out full-screen on every visit while `inert` kept it dead to input: a settings window over
+  X that could not be dismissed. The panel, the AI command menu and the composer snippet palette
+  now each state their closed appearance, and both menus are measured after they are shown so the
+  flip-above-the-trigger decision still reads a real height.
 
 ## 1.45.0 (2026-08-22)
 

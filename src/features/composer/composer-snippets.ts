@@ -203,7 +203,6 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
   }
 
   document.body.append(popover);
-  positionPopover(popover, trigger);
   openPaletteNode = popover;
   const menuItems = (): HTMLButtonElement[] =>
     Array.from(popover.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));
@@ -266,6 +265,9 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
     // The manifest floors include Popover API support. The authored palette remains usable in a
     // test host that exposes the attribute but not the methods.
   }
+  // Measured after showing, not merely after insertion: a closed popover is display:none, so a
+  // height read before showPopover is zero and the flip-above decision never fires.
+  positionPopover(popover, trigger);
   focusMenuItem(0);
 }
 
@@ -327,6 +329,12 @@ const COMPOSER_CSS = `
   border-radius: 10px;
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4);
+}
+
+/* Author display: grid outranks the UA's [popover]:not(:popover-open) { display: none }, so a
+   menu that never reached showPopover would paint anyway. */
+.av-snippet-popover:not(:popover-open) {
+  display: none;
 }
 
 .av-snippet-option {

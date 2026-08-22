@@ -6412,7 +6412,6 @@ ${body}
       open = value;
       launcher.setAttribute("aria-expanded", String(open));
       navLauncher.setAttribute("aria-expanded", String(open));
-      overlay.classList.toggle("is-open", open);
       overlay.setAttribute("aria-hidden", String(!open));
       const firstRunNotice = document.getElementById("av-first-run");
       if (firstRunNotice) firstRunNotice.hidden = open;
@@ -7903,6 +7902,15 @@ input:focus-visible {
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
   box-shadow: 0 28px 88px rgba(0, 0, 0, 0.64);
   pointer-events: auto;
+}
+
+/* The UA hides a closed popover with [popover]:not(:popover-open) { display: none }, which is
+   UA-origin and therefore loses to the author display: flex above. Without this rule the closed
+   panel is laid out and painted full-screen on every page load while inert keeps it dead to
+   input -- a settings window that covers X and cannot be dismissed. Authored here so the author
+   sheet stops fighting the UA sheet. */
+.av-panel:not(:popover-open) {
+  display: none;
 }
 
 .av-panel::backdrop {
@@ -29770,7 +29778,6 @@ ${text}`
       menu.append(item);
     }
     document.body.append(menu);
-    positionMenu(menu, trigger);
     openMenuNode = menu;
     const menuItems = () => Array.from(menu.querySelectorAll('[role="menuitem"]'));
     const focusMenuItem = (index) => {
@@ -29825,6 +29832,7 @@ ${text}`
       menu.showPopover?.();
     } catch {
     }
+    positionMenu(menu, trigger);
     focusMenuItem(0);
   }
   function showAiRequestReview(ctx, disclosure) {
@@ -29974,6 +29982,12 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   border-radius: 10px;
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4);
+}
+
+/* Author display: grid outranks the UA's [popover]:not(:popover-open) { display: none }, so a
+   menu that never reached showPopover would paint anyway. */
+.av-ai-menu:not(:popover-open) {
+  display: none;
 }
 
 .av-ai-option {
@@ -30250,7 +30264,6 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       }
     }
     document.body.append(popover);
-    positionPopover(popover, trigger);
     openPaletteNode = popover;
     const menuItems = () => Array.from(popover.querySelectorAll('[role="menuitem"]'));
     const focusMenuItem = (index) => {
@@ -30308,6 +30321,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       popover.showPopover?.();
     } catch {
     }
+    positionPopover(popover, trigger);
     focusMenuItem(0);
   }
   function insertSnippet(snippet2) {
@@ -30363,6 +30377,12 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   border-radius: 10px;
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4);
+}
+
+/* Author display: grid outranks the UA's [popover]:not(:popover-open) { display: none }, so a
+   menu that never reached showPopover would paint anyway. */
+.av-snippet-popover:not(:popover-open) {
+  display: none;
 }
 
 .av-snippet-option {
