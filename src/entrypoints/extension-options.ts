@@ -112,6 +112,7 @@ function start(): void {
     return;
   }
   showVersion();
+  wireOpenX();
   for (const card of CARDS) {
     wireCard(card);
   }
@@ -122,6 +123,13 @@ function start(): void {
     for (const card of CARDS) {
       void refresh(card);
     }
+  });
+}
+
+function wireOpenX(): void {
+  document.getElementById("open-x")?.addEventListener("click", () => {
+    const opened = globalThis.open("https://x.com/home", "_blank", "noopener");
+    if (!opened) globalThis.location.assign("https://x.com/home");
   });
 }
 

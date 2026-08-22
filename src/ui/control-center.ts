@@ -1120,6 +1120,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     // Mirrored onto the host because shadow content cannot see the page-level motion class.
     host.dataset.avMotion = prefersReducedMotion(draftSettings) ? "reduce" : "full";
     navLauncherHost.dataset.avMotion = host.dataset.avMotion;
+    host.dataset.avColorMode = controlCenterColorMode(draftSettings);
     reconcileLauncherMount();
     const registry = sectionRegistry();
     if (!registry.some((entry) => entry.id === activeSectionId)) {
@@ -1872,6 +1873,30 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   };
 }
 
+/**
+ * Aviary themes own a dark canvas. With the theme turned off, the panel follows X's actual
+ * reading surface so opening settings never drops a dark modal onto a light timeline.
+ */
+function controlCenterColorMode(settings: AviarySettings): "dark" | "light" {
+  if (settings.appearance.theme !== "off") return "dark";
+
+  for (const node of [
+    document.querySelector<HTMLElement>('[data-testid="primaryColumn"]'),
+    document.body,
+    document.documentElement
+  ]) {
+    if (!node) continue;
+    const match = getComputedStyle(node).backgroundColor.match(
+      /rgba?\(\s*(\d+(?:\.\d+)?)\D+(\d+(?:\.\d+)?)\D+(\d+(?:\.\d+)?)(?:\D+(\d*(?:\.\d+)?))?\s*\)/i
+    );
+    if (!match || (match[4] !== undefined && Number(match[4]) === 0)) continue;
+    const perceived = Number(match[1]) * 0.299 + Number(match[2]) * 0.587 + Number(match[3]) * 0.114;
+    return perceived >= 170 ? "light" : "dark";
+  }
+
+  return globalThis.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+
 const FOCUSABLE_SELECTOR = "button, input, select, textarea, a[href], [tabindex]:not([tabindex='-1'])";
 const COVERAGE_ROW_CLASS = "av-locale-coverage";
 
@@ -2595,7 +2620,7 @@ const NAV_LAUNCHER_CSS = `
   min-width: 50px;
   min-height: 50px;
   padding: 12px;
-  border-radius: 25px;
+  border-radius: 9px;
   transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
 }
 
@@ -2665,8 +2690,32 @@ const NAV_LAUNCHER_CSS = `
 const CONTROL_CENTER_CSS = `
 :host {
   direction: ltr;
+  --av-bg: rgb(5, 9, 13);
+  --av-surface: rgb(10, 16, 22);
+  --av-surface-raised: rgb(17, 25, 33);
+  --av-border: rgb(43, 56, 67);
+  --av-text: rgb(243, 247, 249);
+  --av-muted: rgb(163, 175, 185);
+  --av-accent: rgb(77, 211, 208);
+  --av-danger: rgb(255, 130, 140);
+  --av-warn: rgb(248, 190, 100);
+  --av-ok: rgb(92, 219, 168);
   color-scheme: dark;
   font-family: TwitterChirp, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+:host([data-av-color-mode="light"]) {
+  --av-bg: rgb(237, 243, 246);
+  --av-surface: rgb(250, 252, 253);
+  --av-surface-raised: rgb(229, 237, 241);
+  --av-border: rgb(194, 207, 214);
+  --av-text: rgb(15, 24, 31);
+  --av-muted: rgb(78, 94, 105);
+  --av-accent: rgb(0, 126, 132);
+  --av-danger: rgb(183, 36, 50);
+  --av-warn: rgb(139, 91, 0);
+  --av-ok: rgb(0, 115, 75);
+  color-scheme: light;
 }
 
 :host([dir="rtl"]) {
@@ -2736,15 +2785,15 @@ textarea:focus-visible {
   position: fixed;
   inset: 0;
   margin: auto;
-  width: min(1260px, calc(100vw - 40px));
-  height: min(860px, calc(100vh - 40px));
+  width: min(1280px, calc(100vw - 32px));
+  height: min(860px, calc(100vh - 32px));
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 82%, var(--av-text, rgb(239, 243, 244)) 18%);
+  border: 1px solid var(--av-border, rgb(43, 56, 67));
   border-radius: 10px;
-  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 96%, black);
-  box-shadow: 0 28px 88px rgba(0, 0, 0, 0.64);
+  background: var(--av-surface, rgb(10, 16, 22));
+  box-shadow: 0 28px 88px rgba(0, 0, 0, 0.5);
   pointer-events: auto;
 }
 
@@ -2766,14 +2815,14 @@ textarea:focus-visible {
 }
 
 .av-panel::backdrop {
-  background: rgba(0, 0, 0, 0.56);
+  background: rgba(0, 0, 0, 0.5);
 }
 
 /* The panel takes focus when it opens; the UA default paints a hard white halo around the
    whole dialog. Keep the indicator, make it read as a highlighted edge instead. */
 .av-panel:focus-visible {
-  outline: 1px solid color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 52%, transparent);
-  outline-offset: -1px;
+  outline: 2px solid transparent;
+  border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 34%, var(--av-border));
 }
 
 .av-panel-header {
@@ -2781,12 +2830,12 @@ textarea:focus-visible {
   grid-template-columns: 220px minmax(320px, 520px) minmax(80px, 1fr);
   align-items: center;
   gap: 20px;
-  height: 64px;
-  min-height: 64px;
-  padding: 10px 20px;
+  height: 56px;
+  min-height: 56px;
+  padding: 8px 18px;
   box-sizing: border-box;
   border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
-  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 90%, black);
+  background: color-mix(in srgb, var(--av-surface, rgb(10, 16, 22)) 94%, var(--av-bg));
 }
 
 .av-panel-header > .av-button {
@@ -2819,14 +2868,14 @@ textarea:focus-visible {
 .av-title {
   margin: 0;
   color: var(--av-text, rgb(239, 243, 244));
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.25;
 }
 
 .av-subtitle {
   margin: 2px 0 0;
   color: var(--av-muted, rgb(132, 139, 145));
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.35;
 }
 
@@ -2835,7 +2884,7 @@ textarea:focus-visible {
   min-height: 34px;
   border: 1px solid var(--av-border, rgb(47, 51, 54));
   border-radius: 8px;
-  background: var(--av-surface-raised, rgb(22, 24, 28));
+  background: var(--av-surface-raised, rgb(17, 25, 33));
   color: var(--av-text, rgb(239, 243, 244));
   font-weight: 650;
   font-size: 13px;
@@ -2899,12 +2948,12 @@ textarea:focus-visible {
 
 .av-search-input {
   width: 100%;
-  height: 38px;
+  height: 36px;
   padding-block: 0;
   padding-inline: 40px 14px;
-  border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 78%, var(--av-text, rgb(239, 243, 244)) 22%);
+  border: 1px solid transparent;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 82%, black);
+  background: var(--av-surface-raised, rgb(17, 25, 33));
   color: var(--av-text, rgb(239, 243, 244));
   font-size: 13px;
   line-height: 1.4;
@@ -2934,12 +2983,12 @@ textarea:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 14px 12px;
+  padding: 12px 10px;
   overflow-y: auto;
   /* Reserved so the list does not reflow the moment it becomes scrollable. */
   scrollbar-gutter: stable;
   border-inline-end: 1px solid var(--av-border, rgb(47, 51, 54));
-  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 92%, black);
+  background: color-mix(in srgb, var(--av-surface, rgb(10, 16, 22)) 94%, var(--av-bg));
   /* The rail scrolls at thirteen sections and a short viewport, and nothing said so -- the last
      item rendered cut through its own baseline, which reads as a rendering fault rather than a
      list with more below. The mask only bites where content actually reaches the bottom edge,
@@ -2968,10 +3017,10 @@ textarea:focus-visible {
 .av-nav-group {
   /* The rail is sized so all twelve sections fit without scrolling at the default panel
      height; a sliced-in-half last item reads as a rendering bug rather than as "more below". */
-  margin: 12px 0 5px;
+  margin: 11px 0 4px;
   padding: 0 10px;
   color: var(--av-muted, rgb(132, 139, 145));
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 800;
   line-height: 1.2;
   letter-spacing: 0.08em;
@@ -2984,7 +3033,7 @@ textarea:focus-visible {
 
 .av-nav-item {
   position: relative;
-  min-height: 34px;
+  min-height: 33px;
   padding-block: 0;
   padding-inline: 18px 12px;
   border: 0;
@@ -2992,7 +3041,7 @@ textarea:focus-visible {
   background: transparent;
   color: color-mix(in srgb, var(--av-text, rgb(239, 243, 244)) 70%, var(--av-muted, rgb(132, 139, 145)));
   font-weight: 600;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.2;
   font-family: inherit;
   text-align: start;
@@ -3027,12 +3076,12 @@ textarea:focus-visible {
 .av-content {
   display: grid;
   align-content: start;
-  gap: 14px;
-  padding: 20px 28px 26px;
+  gap: 12px;
+  padding: 16px 28px 22px;
   overflow-y: auto;
   min-height: 0;
   scrollbar-gutter: stable;
-  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 94%, black);
+  background: var(--av-surface, rgb(10, 16, 22));
 }
 
 .av-empty {
@@ -3064,8 +3113,8 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 0;
-  min-height: 58px;
-  padding-bottom: 12px;
+  min-height: 52px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--av-border, rgb(47, 51, 54));
 }
 
@@ -3086,7 +3135,7 @@ textarea:focus-visible {
 .av-section-title {
   margin: 0;
   color: var(--av-text, rgb(239, 243, 244));
-  font-size: 25px;
+  font-size: 24px;
   font-weight: 760;
   line-height: 1.12;
   letter-spacing: -0.025em;
@@ -3095,7 +3144,7 @@ textarea:focus-visible {
 .av-page-summary {
   margin: 0;
   color: var(--av-muted, rgb(132, 139, 145));
-  font-size: 14px;
+  font-size: 13.5px;
   line-height: 1.4;
   max-width: 760px;
   display: -webkit-box;
@@ -3132,8 +3181,7 @@ textarea:focus-visible {
 }
 
 .av-section[data-av-section="media"] .av-page-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  column-gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .av-section[data-av-section="media"] .av-group-title,
@@ -3160,7 +3208,7 @@ textarea:focus-visible {
 
 .av-section[data-av-section="media"] .av-row[data-av-label="Concurrent downloads"] {
   display: flex;
-  grid-column: auto;
+  grid-column: 1 / -1;
   flex-direction: row;
   align-items: center;
 }
@@ -3182,9 +3230,9 @@ textarea:focus-visible {
 
 .av-group-title {
   grid-column: 1 / -1;
-  margin: 16px 0 5px;
+  margin: 13px 0 3px;
   color: var(--av-muted, rgb(132, 139, 145));
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 820;
   line-height: 1.2;
   letter-spacing: 0.09em;
@@ -3208,8 +3256,8 @@ textarea:focus-visible {
   justify-content: space-between;
   gap: 16px;
   min-width: 0;
-  min-height: 54px;
-  padding: 8px 0;
+  min-height: 50px;
+  padding: 7px 0;
   box-sizing: border-box;
   /* Rows share one surface. A single divider keeps groups scannable without boxing each item. */
   border: 0;
@@ -3257,7 +3305,7 @@ textarea:focus-visible {
 .av-row-stack {
   flex-direction: column;
   align-items: stretch;
-  gap: 8px;
+  gap: 7px;
 }
 
 .av-row-stack:has(> .av-text-input),
@@ -3501,9 +3549,10 @@ textarea:focus-visible {
   display: grid;
   gap: 2px;
   padding: 6px 8px;
-  border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 70%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 70%, transparent);
+  border: 0;
+  border-inline-start: 2px solid color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 58%, transparent);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(17, 25, 33)) 66%, transparent);
 }
 
 .av-bookmark-editor {
@@ -3539,9 +3588,9 @@ textarea:focus-visible {
   gap: 6px;
   min-height: 30px;
   padding: 4px 10px;
-  border: 1px solid var(--av-border, rgb(47, 51, 54));
+  border: 1px solid transparent;
   border-radius: 6px;
-  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 70%, transparent);
+  background: var(--av-surface-raised, rgb(17, 25, 33));
   color: var(--av-text, rgb(239, 243, 244));
   cursor: pointer;
   font-size: 12px;
@@ -3574,14 +3623,14 @@ textarea:focus-visible {
 
 .av-row-label {
   color: var(--av-text, rgb(239, 243, 244));
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 720;
   line-height: 1.25;
 }
 
 .av-row-description {
   color: var(--av-muted, rgb(132, 139, 145));
-  font-size: 13px;
+  font-size: 13.5px;
   line-height: 1.4;
   display: -webkit-box;
   overflow: hidden;
@@ -3618,7 +3667,7 @@ input[type="checkbox"] {
   position: absolute;
   inset: 0;
   border: 1px solid color-mix(in srgb, var(--av-border, rgb(47, 51, 54)) 70%, var(--av-text, rgb(239, 243, 244)) 30%);
-  border-radius: 12px;
+  border-radius: 6px;
   background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 78%, black);
   transition: border-color 140ms ease, background 140ms ease;
 }
@@ -3630,7 +3679,7 @@ input[type="checkbox"] {
   inset-inline-start: 3px;
   width: 14px;
   height: 14px;
-  border-radius: 50%;
+  border-radius: 3px;
   background: var(--av-muted, rgb(132, 139, 145));
   transition: transform 140ms ease, background 140ms ease;
 }
@@ -3664,10 +3713,10 @@ input[type="checkbox"] {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  min-height: 56px;
-  padding: 9px 20px;
+  min-height: 54px;
+  padding: 8px 18px;
   border-top: 1px solid var(--av-border, rgb(47, 51, 54));
-  background: color-mix(in srgb, var(--av-surface, rgb(15, 20, 25)) 92%, black);
+  background: color-mix(in srgb, var(--av-surface, rgb(10, 16, 22)) 94%, var(--av-bg));
   box-shadow: none;
 }
 
@@ -3697,7 +3746,7 @@ input[type="checkbox"] {
   content: "";
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  border-radius: 2px;
   background: var(--av-ok, rgb(72, 211, 147));
   box-shadow: none;
 }
@@ -3877,7 +3926,7 @@ input[type="checkbox"] {
   }
 
   .av-section[data-av-section="media"] .av-page-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -3997,8 +4046,7 @@ input[type="checkbox"] {
 
   .av-section[data-av-section="appearance"] .av-page-grid,
   .av-section[data-av-section="hidden"] .av-page-grid,
-  .av-section[data-av-section="performance"] .av-page-grid,
-  .av-section[data-av-section="media"] .av-page-grid {
+  .av-section[data-av-section="performance"] .av-page-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 

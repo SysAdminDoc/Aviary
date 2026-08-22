@@ -87,6 +87,7 @@ export async function launchSettingsVisualHarness(viewport, hostTheme = "dark") 
 
     const page = await context.newPage();
     await page.setViewportSize(viewport);
+    await page.emulateMedia({ colorScheme: hostTheme });
     await installFixtureRoutes(page, fixtureHtml);
     await page.goto("https://x.com/home", { waitUntil: "domcontentloaded", timeout: 60_000 });
     await page.addStyleTag({ content: hostThemeCss(hostTheme) });
@@ -126,6 +127,7 @@ export async function launchSettingsVisualHarness(viewport, hostTheme = "dark") 
         if (!extensionId) throw new Error("MV3 service worker did not expose an extension id");
         const options = await context.newPage();
         await options.setViewportSize(viewport);
+        await options.emulateMedia({ colorScheme: hostTheme });
         await options.goto(`chrome-extension://${extensionId}/options.html`);
         await options.waitForSelector("#downloads-state[data-granted]", { timeout: 15_000 });
         await options.waitForSelector("#media-state[data-granted]", { timeout: 15_000 });

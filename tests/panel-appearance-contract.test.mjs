@@ -208,9 +208,11 @@ test("every painted theme keeps secondary row text above the AA floor", async ()
         `${result.theme}: row description is ${result.ratio.toFixed(2)}:1, below the 4.5:1 AA floor`
       );
     }
-    // Distinct themes must actually paint differently, or the loop above measured one theme six
-    // times and passed for the wrong reason.
-    assert.ok(new Set(results.map((r) => r.colour)).size > 1, "the themes did not change anything");
+    assert.equal(
+      new Set(results.map((result) => result.colour)).size,
+      1,
+      "the Control Center palette should not shift between authored page themes"
+    );
   } finally {
     await context.close();
   }
@@ -329,7 +331,7 @@ test("reduced motion is reachable from the panel, in all three states", async ()
   }
 });
 
-test("the panel's chrome follows the theme accent rather than a pinned blue", async () => {
+test("the panel chrome keeps Aviary's branded accent instead of inheriting X blue", async () => {
   const { context, page } = await openPage();
   try {
     const accents = await page.evaluate(
@@ -342,7 +344,8 @@ test("the panel's chrome follows the theme accent rather than a pinned blue", as
           const style = getComputedStyle(launcher);
           return {
             paint: `${style.backgroundColor}|${style.borderTopColor}`,
-            accent: getComputedStyle(document.documentElement).getPropertyValue("--av-accent").trim()
+            panelAccent: getComputedStyle(shadow.host).getPropertyValue("--av-accent").trim(),
+            pageAccent: getComputedStyle(document.documentElement).getPropertyValue("--av-accent").trim()
           };
         };
         return mounts.map(read);
@@ -350,15 +353,18 @@ test("the panel's chrome follows the theme accent rather than a pinned blue", as
       { mounts: THEMES.map((theme) => MOUNT(`(settings) => { settings.appearance.theme = "${theme}"; }`)) }
     );
 
-    const accentValues = accents.map((entry) => entry.accent).filter(Boolean);
-    assert.ok(accentValues.length >= 2, "themes must define their own accent");
-    assert.ok(
-      new Set(accents.map((entry) => entry.paint)).size > 1,
-      "the launcher paints identically under every theme — it is not following --av-accent"
+    const pageAccentValues = accents.map((entry) => entry.pageAccent).filter(Boolean);
+    const panelAccentValues = accents.map((entry) => entry.panelAccent).filter(Boolean);
+    assert.ok(new Set(pageAccentValues).size >= 2, "page themes must still define their own accents");
+    assert.equal(
+      new Set(panelAccentValues).size,
+      1,
+      "the Control Center should keep one deliberate product accent"
     );
+    assert.equal(new Set(accents.map((entry) => entry.paint)).size, 1);
     assert.ok(
-      !accents.some((entry) => /rgba?\(29, 155, 240/.test(entry.paint)),
-      "the launcher must not fall back to X's fixed blue"
+      !accents.some((entry) => /rgba?\(29, 155, 240/.test(`${entry.paint}|${entry.panelAccent}`)),
+      "the panel must not fall back to X's fixed blue"
     );
   } finally {
     await context.close();
@@ -539,7 +545,7 @@ test("row-heavy destinations keep one predictable reading column at every width"
   }
 });
 
-test("media groups batch controls on wide screens and promotes the visible-download action", async () => {
+test("media settings keep one readable column and promote the visible-download action", async () => {
   const inspect = async (width) => {
     const { context, page } = await openPage({ viewport: { width, height: 900 } });
     try {
@@ -570,8 +576,9 @@ test("media groups batch controls on wide screens and promotes the visible-downl
 
   const wide = await inspect(1440);
   const narrow = await inspect(700);
-  assert.equal(wide.columns, 3);
-  assert.equal(new Set(wide.batchTops).size, 1, "the three batch controls do not read as one group");
+  assert.equal(wide.columns, 1);
+  assert.equal(new Set(wide.batchTops).size, 3, "the batch controls should each retain a full-width row");
+  assert.deepEqual(wide.batchTops, [...wide.batchTops].sort((a, b) => a - b));
   assert.equal(wide.primaryExists, true, "the batch download action is missing");
   assert.notEqual(wide.primaryBackground, "rgba(0, 0, 0, 0)");
   assert.equal(narrow.columns, 1);
