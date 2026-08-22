@@ -25,6 +25,9 @@ let rewrittenPlaylists = 0;
 let bridgeStatus: "unavailable" | "connecting" | "connected" = "connecting";
 let bridgeReason = "";
 let subscribedBridge: PageBridge | undefined;
+/** Held so `destroy` can unsubscribe the exact closures `init` registered. */
+let blockedHandler: ((payload: unknown) => void) | undefined;
+let playlistHandler: ((payload: unknown) => void) | undefined;
 
 export const pageHooksFeature: FeatureModule = {
   id: "privacy.pageHooks",
@@ -40,8 +43,9 @@ export const pageHooksFeature: FeatureModule = {
     }
 
     if (subscribedBridge !== bridge) {
+      detachBridgeHandlers();
       subscribedBridge = bridge;
-      bridge.on("blocked", (payload) => {
+      blockedHandler = (payload) => {
         const blocked = payload as BlockedBeaconPayload;
         if (blocked?.category === "ad") {
           blockedAdRequests += 1;
@@ -56,14 +60,16 @@ export const pageHooksFeature: FeatureModule = {
           via: blocked?.via,
           url: blocked?.url
         });
-      });
-      bridge.on("playlist", (payload) => {
+      };
+      bridge.on("blocked", blockedHandler);
+      playlistHandler = (payload) => {
         rewrittenPlaylists += 1;
         const rewrite = payload as PlaylistRewritePayload;
         ctx.diagnostics.info("Video playlist pinned to its best rendition", {
           variantsBefore: rewrite?.variantsBefore
         });
-      });
+      };
+      bridge.on("playlist", playlistHandler);
     }
 
     pushConfig(ctx);
@@ -87,6 +93,7 @@ export const pageHooksFeature: FeatureModule = {
     blockedAdRequests = 0;
     rewrittenPlaylists = 0;
     if (subscribedBridge === ctx.pageBridge) {
+      detachBridgeHandlers();
       subscribedBridge = undefined;
     }
   },
@@ -145,4 +152,11 @@ export function pageHookCounters(): {
   rewrittenPlaylists: number;
 } {
   return { blockedBeacons, blockedAdRequests, rewrittenPlaylists };
+}
+
+function detachBridgeHandlers(): void {
+  if (blockedHandler) subscribedBridge?.off("blocked", blockedHandler);
+  if (playlistHandler) subscribedBridge?.off("playlist", playlistHandler);
+  blockedHandler = undefined;
+  playlistHandler = undefined;
 }

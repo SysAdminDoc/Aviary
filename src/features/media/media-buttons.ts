@@ -197,6 +197,7 @@ export const mediaButtonsFeature: FeatureModule = {
     appliedPreferOriginalImages = undefined;
     appliedMetadataVersion = undefined;
     mediaMetadataCache.clear();
+    unsubscribeFromMediaMetadata();
     subscribedBridge = undefined;
     ctx.diagnostics.info("Media buttons destroyed");
   },
@@ -248,18 +249,32 @@ export function getCapturedMediaMetadata(args: {
   return mediaMetadataCache.find(args.tweetId, args.mediaId, args.poster);
 }
 
+/** Held so `destroy` can unsubscribe the exact closure this registered. */
+let graphqlHandler: ((payload: unknown) => void) | undefined;
+
 function subscribeToMediaMetadata(ctx: FeatureContext): void {
   const bridge = ctx.pageBridge;
   if (!bridge || subscribedBridge === bridge) {
     return;
   }
+  unsubscribeFromMediaMetadata();
   subscribedBridge = bridge;
-  bridge.on("graphql", (payload) => {
+  graphqlHandler = (payload) => {
     const changed = mediaMetadataCache.ingest(payload as CapturedGraphqlPayload);
     if (changed > 0 && ctx.settings.media.buttons) {
       ctx.requestApply();
     }
-  });
+  };
+  bridge.on("graphql", graphqlHandler);
+}
+
+/**
+ * The bridge has no idea a feature was suspended, so an unsubscribed handler stays live and every
+ * later page event is ingested once per accumulated closure.
+ */
+function unsubscribeFromMediaMetadata(): void {
+  if (graphqlHandler) subscribedBridge?.off("graphql", graphqlHandler);
+  graphqlHandler = undefined;
 }
 
 function applyToggleClass(ctx: FeatureContext): void {

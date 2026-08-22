@@ -13,6 +13,12 @@
   generated scope block.
 
 ### Fixed
+- Turning a feature off and on again, which the "which feature is breaking this page?" search does
+  on every round, no longer leaves its page-bridge subscription behind. Each round used to add
+  another live handler, so a single response from X was processed once per round: capture budgets
+  ran out early, the capture count read high, and the Trust page's blocked-request counters
+  multiplied.
+
 - A boot failure now always says so. Storage initialization, the profile load, the settings read
   and the audit log all ran before the failure guard opened, so a throw in any of them left the page
   claiming it was still booting, showed no notice, and left the page bridge patching the page's

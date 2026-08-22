@@ -50,6 +50,14 @@ export interface PageBridge {
   reason(): PageScopeReason;
   configure(config: PageAgentConfig): void;
   on(kind: PageAgentKind, handler: PageEventHandler): void;
+  /**
+   * Drops a handler registered with {@link on}.
+   *
+   * Features subscribe in `init` and are re-initialized by `registry.resume`, which the bisect
+   * search does on every round. Without this, each round left another live closure behind and one
+   * page event was processed once per accumulated handler.
+   */
+  off(kind: PageAgentKind, handler: PageEventHandler): void;
   destroy(): void;
 }
 
@@ -301,6 +309,12 @@ export function createPageBridge(options: {
       const set = handlers.get(kind) ?? new Set<PageEventHandler>();
       set.add(handler);
       handlers.set(kind, set);
+    },
+    off(kind, handler) {
+      const set = handlers.get(kind);
+      if (!set) return;
+      set.delete(handler);
+      if (set.size === 0) handlers.delete(kind);
     },
     destroy() {
       if (handshakeTimer) {

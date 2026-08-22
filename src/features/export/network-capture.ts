@@ -17,6 +17,8 @@ const MAX_SESSION_BYTES = 50_000_000;
 const MAX_PENDING_PAYLOADS = 32;
 
 let subscribedBridge: PageBridge | undefined;
+/** Held so `destroy` can unsubscribe the exact closure `init` registered. */
+let graphqlHandler: ((payload: unknown) => void) | undefined;
 let activeContext: FeatureContext | undefined;
 let captureEpoch = 0;
 let captureTail: Promise<void> = Promise.resolve();
@@ -51,13 +53,17 @@ export const networkCaptureFeature: FeatureModule = {
     const bridge = ctx.pageBridge;
     if (bridge && (subscribedBridge !== bridge || previousContext !== ctx)) {
       resetCaptureSession();
+      if (graphqlHandler && subscribedBridge) {
+        subscribedBridge.off("graphql", graphqlHandler);
+      }
       subscribedBridge = bridge;
-      bridge.on("graphql", (payload) => {
+      graphqlHandler = (payload) => {
         const current = activeContext;
         if (current) {
           enqueueCaptured(payload, captureEpoch, current);
         }
-      });
+      };
+      bridge.on("graphql", graphqlHandler);
     }
     ctx.diagnostics.info("Network capture feature ready", {
       enabled: ctx.settings.export.preserveRawPayloads,
@@ -82,6 +88,8 @@ export const networkCaptureFeature: FeatureModule = {
     lastCaptureEnabled = false;
     recentPayloads.length = 0;
     if (subscribedBridge === ctx.pageBridge) {
+      if (graphqlHandler) subscribedBridge?.off("graphql", graphqlHandler);
+      graphqlHandler = undefined;
       subscribedBridge = undefined;
     }
     ctx.diagnostics.info("Network capture destroyed");

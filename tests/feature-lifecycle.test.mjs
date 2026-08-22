@@ -644,3 +644,66 @@ test("the media layout class follows the setting and is removed on destroy", asy
   assert.deepEqual(result.asStack, ["av-media-layout-stacked"], "changing the setting must swap the class");
   assert.deepEqual(result.afterDestroy, [], "destroy must remove every class it set");
 });
+
+/**
+ * A resumed feature must not leave its old subscription behind.
+ *
+ * The bisect search suspends and resumes features by calling their own `destroy` and `init`. The
+ * page bridge had no unsubscribe, and the three features that listen to it dropped only a guard
+ * variable in `destroy`, so every round left another live closure. One GraphQL response was then
+ * processed once per accumulated handler: the session payload and byte budgets burned N times
+ * faster and stopped capture early, the panel reported an inflated capture count, and the Trust
+ * page's blocked-beacon counters multiplied.
+ */
+test("suspending and resuming a feature does not multiply its page-bridge handlers", async () => {
+  const { networkCaptureFeature } = await import(
+    new URL("../src/features/export/network-capture.ts", import.meta.url).href
+  );
+
+  const handlers = new Map();
+  const bridge = {
+    status: () => "connected",
+    reason: () => "",
+    configure() {},
+    on(kind, handler) {
+      const set = handlers.get(kind) ?? new Set();
+      set.add(handler);
+      handlers.set(kind, set);
+    },
+    off(kind, handler) {
+      handlers.get(kind)?.delete(handler);
+    },
+    destroy() {}
+  };
+
+  const ctx = {
+    settings: { export: { preserveRawPayloads: true } },
+    route: { surface: "home", href: "https://x.com/home", path: "/home" },
+    storage: { get: async (_key, fallback) => fallback, set: async () => {} },
+    diagnostics: { info() {}, warn() {}, error() {} },
+    auditLog: { record() {} },
+    pageBridge: bridge,
+    requestApply() {}
+  };
+
+  await networkCaptureFeature.init(ctx);
+  assert.equal(handlers.get("graphql")?.size ?? 0, 1, "init subscribes once");
+
+  for (let round = 0; round < 5; round += 1) {
+    await networkCaptureFeature.destroy(ctx);
+    await networkCaptureFeature.init(ctx);
+  }
+
+  assert.equal(
+    handlers.get("graphql")?.size ?? 0,
+    1,
+    "five suspend/resume rounds must still leave exactly one subscriber"
+  );
+
+  await networkCaptureFeature.destroy(ctx);
+  assert.equal(
+    handlers.get("graphql")?.size ?? 0,
+    0,
+    "destroy must leave nothing subscribed"
+  );
+});

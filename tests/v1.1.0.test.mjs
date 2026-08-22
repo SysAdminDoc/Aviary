@@ -214,11 +214,15 @@ test("network capture never patches the fetch it can reach, because it is the wr
   networkCaptureFeature.apply(context);
   const patchedFetch = globalThis.fetch !== originalFetch;
   const patchedXhr = globalThis.XMLHttpRequest?.prototype?.open !== originalXhr;
+  // Measured while the feature is live. destroy() now unsubscribes, so counting after teardown
+  // would be asking whether the handler leaked, which is a different claim from this one.
+  const subscribedWhileActive = bridge.count("graphql");
   networkCaptureFeature.destroy(context);
 
   assert.equal(patchedFetch, false, "network-capture patched fetch");
   assert.equal(patchedXhr, false, "network-capture patched XMLHttpRequest");
-  assert.equal(bridge.count("graphql"), 1, "payloads must arrive from the page bridge instead");
+  assert.equal(subscribedWhileActive, 1, "payloads must arrive from the page bridge instead");
+  assert.equal(bridge.count("graphql"), 0, "and the subscription must not outlive the feature");
 });
 
 test("network capture rejects forged payloads and bounds a burst before persistence", async () => {
@@ -310,6 +314,14 @@ function fakeBridge() {
       const list = handlers.get(kind) ?? [];
       list.push(handler);
       handlers.set(kind, list);
+    },
+    // Part of the PageBridge contract: features unsubscribe in destroy so a suspend/resume cycle
+    // cannot leave a second live handler behind.
+    off(kind, handler) {
+      const list = handlers.get(kind);
+      if (!list) return;
+      const at = list.indexOf(handler);
+      if (at >= 0) list.splice(at, 1);
     },
     emit(kind, payload) {
       for (const handler of handlers.get(kind) ?? []) {

@@ -9235,6 +9235,8 @@ input[type="checkbox"] {
   var bridgeStatus = "connecting";
   var bridgeReason = "";
   var subscribedBridge;
+  var blockedHandler;
+  var playlistHandler;
   var pageHooksFeature = {
     id: "privacy.pageHooks",
     title: "Page-world hooks",
@@ -9247,8 +9249,9 @@ input[type="checkbox"] {
         return;
       }
       if (subscribedBridge !== bridge) {
+        detachBridgeHandlers();
         subscribedBridge = bridge;
-        bridge.on("blocked", (payload) => {
+        blockedHandler = (payload) => {
           const blocked = payload;
           if (blocked?.category === "ad") {
             blockedAdRequests += 1;
@@ -9263,14 +9266,16 @@ input[type="checkbox"] {
             via: blocked?.via,
             url: blocked?.url
           });
-        });
-        bridge.on("playlist", (payload) => {
+        };
+        bridge.on("blocked", blockedHandler);
+        playlistHandler = (payload) => {
           rewrittenPlaylists += 1;
           const rewrite = payload;
           ctx.diagnostics.info("Video playlist pinned to its best rendition", {
             variantsBefore: rewrite?.variantsBefore
           });
-        });
+        };
+        bridge.on("playlist", playlistHandler);
       }
       pushConfig(ctx);
     },
@@ -9289,6 +9294,7 @@ input[type="checkbox"] {
       blockedAdRequests = 0;
       rewrittenPlaylists = 0;
       if (subscribedBridge === ctx.pageBridge) {
+        detachBridgeHandlers();
         subscribedBridge = void 0;
       }
     },
@@ -9338,6 +9344,12 @@ input[type="checkbox"] {
   }
   function pageHookCounters() {
     return { blockedBeacons, blockedAdRequests, rewrittenPlaylists };
+  }
+  function detachBridgeHandlers() {
+    if (blockedHandler) subscribedBridge?.off("blocked", blockedHandler);
+    if (playlistHandler) subscribedBridge?.off("playlist", playlistHandler);
+    blockedHandler = void 0;
+    playlistHandler = void 0;
   }
 
   // src/features/privacy/ad-protection.ts
@@ -14406,6 +14418,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       appliedPreferOriginalImages = void 0;
       appliedMetadataVersion = void 0;
       mediaMetadataCache.clear();
+      unsubscribeFromMediaMetadata();
       subscribedBridge2 = void 0;
       ctx.diagnostics.info("Media buttons destroyed");
     },
@@ -14436,18 +14449,25 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   function getCapturedMediaMetadata(args) {
     return mediaMetadataCache.find(args.tweetId, args.mediaId, args.poster);
   }
+  var graphqlHandler;
   function subscribeToMediaMetadata(ctx) {
     const bridge = ctx.pageBridge;
     if (!bridge || subscribedBridge2 === bridge) {
       return;
     }
+    unsubscribeFromMediaMetadata();
     subscribedBridge2 = bridge;
-    bridge.on("graphql", (payload) => {
+    graphqlHandler = (payload) => {
       const changed = mediaMetadataCache.ingest(payload);
       if (changed > 0 && ctx.settings.media.buttons) {
         ctx.requestApply();
       }
-    });
+    };
+    bridge.on("graphql", graphqlHandler);
+  }
+  function unsubscribeFromMediaMetadata() {
+    if (graphqlHandler) subscribedBridge2?.off("graphql", graphqlHandler);
+    graphqlHandler = void 0;
   }
   function applyToggleClass(ctx) {
     document.documentElement.classList.toggle(
@@ -31468,6 +31488,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   var MAX_SESSION_BYTES = 5e7;
   var MAX_PENDING_PAYLOADS = 32;
   var subscribedBridge3;
+  var graphqlHandler2;
   var activeContext2;
   var captureEpoch = 0;
   var captureTail = Promise.resolve();
@@ -31488,13 +31509,17 @@ html.av-mobile [data-testid="primaryColumn"] {
       const bridge = ctx.pageBridge;
       if (bridge && (subscribedBridge3 !== bridge || previousContext !== ctx)) {
         resetCaptureSession();
+        if (graphqlHandler2 && subscribedBridge3) {
+          subscribedBridge3.off("graphql", graphqlHandler2);
+        }
         subscribedBridge3 = bridge;
-        bridge.on("graphql", (payload) => {
+        graphqlHandler2 = (payload) => {
           const current = activeContext2;
           if (current) {
             enqueueCaptured(payload, captureEpoch, current);
           }
-        });
+        };
+        bridge.on("graphql", graphqlHandler2);
       }
       ctx.diagnostics.info("Network capture feature ready", {
         enabled: ctx.settings.export.preserveRawPayloads,
@@ -31515,6 +31540,8 @@ html.av-mobile [data-testid="primaryColumn"] {
       lastCaptureEnabled = false;
       recentPayloads.length = 0;
       if (subscribedBridge3 === ctx.pageBridge) {
+        if (graphqlHandler2) subscribedBridge3?.off("graphql", graphqlHandler2);
+        graphqlHandler2 = void 0;
         subscribedBridge3 = void 0;
       }
       ctx.diagnostics.info("Network capture destroyed");
@@ -33314,6 +33341,12 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         const set = handlers.get(kind) ?? /* @__PURE__ */ new Set();
         set.add(handler);
         handlers.set(kind, set);
+      },
+      off(kind, handler) {
+        const set = handlers.get(kind);
+        if (!set) return;
+        set.delete(handler);
+        if (set.size === 0) handlers.delete(kind);
       },
       destroy() {
         if (handshakeTimer) {
