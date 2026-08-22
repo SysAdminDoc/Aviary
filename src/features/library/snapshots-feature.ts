@@ -1,5 +1,11 @@
 import type { FeatureContext, FeatureModule } from "../registry.ts";
-import { collectAccountsFromDom, SnapshotStore, type SnapshotEntry, type SnapshotKind } from "./snapshots.ts";
+import {
+  collectAccountsFromDom,
+  measureListCoverage,
+  SnapshotStore,
+  type SnapshotEntry,
+  type SnapshotKind
+} from "./snapshots.ts";
 
 let store: SnapshotStore | undefined;
 
@@ -34,6 +40,8 @@ export function getSnapshotStore(): SnapshotStore | undefined {
 export interface CaptureFromDomResult {
   entry: SnapshotEntry;
   totalAccounts: number;
+  /** False when rows were still below the fold or still loading, so the capture is a slice. */
+  reachedEnd: boolean;
 }
 
 export async function captureSnapshotFromDom(
@@ -47,16 +55,19 @@ export async function captureSnapshotFromDom(
     ctx.diagnostics.warn("Snapshot skipped — no UserCell rows in DOM");
     return null;
   }
+  const coverage = measureListCoverage(document, accounts.length);
   const entry = await store.record({
     kind,
     handle: profileHandle.toLowerCase(),
     source: "dom",
-    accounts
+    accounts,
+    coverage
   });
   ctx.diagnostics.info("Snapshot captured", {
     kind,
     handle: profileHandle,
-    count: accounts.length
+    count: accounts.length,
+    reachedEnd: coverage.reachedEnd
   });
-  return { entry, totalAccounts: accounts.length };
+  return { entry, totalAccounts: accounts.length, reachedEnd: coverage.reachedEnd };
 }

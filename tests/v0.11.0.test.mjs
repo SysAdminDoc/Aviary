@@ -16,9 +16,12 @@ test("SnapshotStore records, diffs, and clears", async () => {
 
   const diff = snapshots.diffLatest("followers", "self");
   assert.ok(diff);
-  assert.deepEqual(diff.added, ["delta"]);
-  assert.deepEqual(diff.removed, ["alpha"]);
-  assert.equal(diff.unchanged, 2);
+  // Renamed from added/removed/unchanged. Those words claimed the difference was a follow or an
+  // unfollow, which a DOM capture cannot know; these say only which capture a handle appeared in.
+  assert.deepEqual(diff.onlyLater, ["delta"]);
+  assert.deepEqual(diff.onlyEarlier, ["alpha"]);
+  assert.equal(diff.inBoth, 2);
+  assert.equal(diff.partial, true, "neither capture recorded reaching the end of the list");
 
   await snapshots.clear();
   assert.equal(snapshots.size(), 0);
@@ -27,8 +30,8 @@ test("SnapshotStore records, diffs, and clears", async () => {
     { kind: "followers", handle: "x", capturedAt: "2026-05-19T12:00:00Z", source: "dom", accounts: ["a", "b"] },
     { kind: "followers", handle: "x", capturedAt: "2026-05-19T13:00:00Z", source: "dom", accounts: ["b", "c"] }
   );
-  assert.deepEqual(direct.added, ["c"]);
-  assert.deepEqual(direct.removed, ["a"]);
+  assert.deepEqual(direct.onlyLater, ["c"]);
+  assert.deepEqual(direct.onlyEarlier, ["a"]);
 });
 
 test("readStoreZip round-trips entries produced by buildStoreZip", async () => {

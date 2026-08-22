@@ -5,24 +5,81 @@ export const SNAPSHOT_LIMIT = 24;
 
 export type SnapshotKind = "followers" | "following";
 
+/**
+ * How much of the list the capture actually saw.
+ *
+ * A DOM capture reads the rows the browser has rendered, and X renders a follower list a screenful
+ * at a time. Without this, two captures of the same list at different scroll depths were compared
+ * as though both were complete, and the difference was reported as follows and unfollows.
+ */
+export interface SnapshotCoverage {
+  /** Distinct account rows that had been rendered when the capture ran. */
+  rows: number;
+  /** True only when the list had visibly finished loading -- no further rows were coming. */
+  reachedEnd: boolean;
+}
+
+/** Past this many pixels from the bottom, more rows are still plausibly below the fold. */
+const END_OF_LIST_SLACK = 400;
+
 export interface SnapshotEntry {
   kind: SnapshotKind;
   handle: string;
   capturedAt: string;
   source: "dom" | "archive";
   accounts: string[];
+  /**
+   * Absent on entries captured before coverage was recorded, which is why every consumer has to
+   * treat "no coverage" as "unknown" rather than as "complete".
+   */
+  coverage?: SnapshotCoverage;
+}
+
+/**
+ * Whether the visible list had finished loading, measured from the document it was read out of.
+ *
+ * Two signals, both necessary. X keeps a progressbar in the tree while more rows are on the way,
+ * and a reader who has not scrolled to the bottom has not seen the rows below the fold even if
+ * nothing is loading at that instant. A short list that fits on one screen satisfies both and is
+ * correctly reported as complete.
+ */
+export function measureListCoverage(doc: Document, rows: number): SnapshotCoverage {
+  const loading = doc.querySelector('[role="progressbar"]') !== null;
+  const scroller = doc.scrollingElement ?? doc.documentElement;
+  const remaining = scroller
+    ? scroller.scrollHeight - (scroller.scrollTop + scroller.clientHeight)
+    : Number.POSITIVE_INFINITY;
+  return { rows, reachedEnd: !loading && remaining <= END_OF_LIST_SLACK };
 }
 
 export interface SnapshotsStore {
   entries: SnapshotEntry[];
 }
 
+/**
+ * What two captures of the same list have in common and what they do not.
+ *
+ * Deliberately not called "added" and "removed". Those words claim the difference was caused by
+ * somebody following or unfollowing, and a DOM capture cannot support that claim unless both
+ * captures reached the end of the list. Capture a followers list after scrolling to 400 rows,
+ * capture it again next week after scrolling to 150, and the honest statement is that 250 accounts
+ * appear in the earlier capture and not the later one -- not that 250 people unfollowed.
+ */
 export interface SnapshotDiff {
   earlierAt: string;
   laterAt: string;
-  added: string[];
-  removed: string[];
-  unchanged: number;
+  /** Present in the later capture and not the earlier one. */
+  onlyLater: string[];
+  /** Present in the earlier capture and not the later one. */
+  onlyEarlier: string[];
+  /** Present in both. */
+  inBoth: number;
+  /**
+   * True when at least one capture did not reach the end of its list, so a difference cannot be
+   * attributed to a follow or an unfollow. Also true when either capture predates coverage
+   * recording, because "unknown" is not "complete".
+   */
+  partial: boolean;
 }
 
 const EMPTY: SnapshotsStore = { entries: [] };
@@ -100,29 +157,35 @@ export class SnapshotStore {
 export function diffSnapshots(earlier: SnapshotEntry, later: SnapshotEntry): SnapshotDiff {
   const earlierSet = new Set(earlier.accounts);
   const laterSet = new Set(later.accounts);
-  const added: string[] = [];
-  const removed: string[] = [];
-  let unchanged = 0;
+  const onlyLater: string[] = [];
+  const onlyEarlier: string[] = [];
+  let inBoth = 0;
   for (const handle of laterSet) {
     if (earlierSet.has(handle)) {
-      unchanged += 1;
+      inBoth += 1;
     } else {
-      added.push(handle);
+      onlyLater.push(handle);
     }
   }
   for (const handle of earlierSet) {
     if (!laterSet.has(handle)) {
-      removed.push(handle);
+      onlyEarlier.push(handle);
     }
   }
-  added.sort();
-  removed.sort();
+  onlyLater.sort();
+  onlyEarlier.sort();
+  // An archive export is the whole list by construction; a DOM capture is only the whole list when
+  // it says so. Anything else -- including an entry stored before coverage existed -- is unknown,
+  // and unknown has to read as partial or the report goes back to naming people who did nothing.
+  const complete = (entry: SnapshotEntry): boolean =>
+    entry.source === "archive" || entry.coverage?.reachedEnd === true;
   return {
     earlierAt: earlier.capturedAt,
     laterAt: later.capturedAt,
-    added,
-    removed,
-    unchanged
+    onlyLater,
+    onlyEarlier,
+    inBoth,
+    partial: !complete(earlier) || !complete(later)
   };
 }
 
@@ -146,6 +209,11 @@ function isSnapshotEntry(value: unknown): value is SnapshotEntry {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Partial<SnapshotEntry>;
   return (
+    (candidate.coverage === undefined ||
+      (typeof candidate.coverage === "object" &&
+        candidate.coverage !== null &&
+        typeof candidate.coverage.rows === "number" &&
+        typeof candidate.coverage.reachedEnd === "boolean")) &&
     (candidate.kind === "followers" || candidate.kind === "following") &&
     typeof candidate.handle === "string" &&
     typeof candidate.capturedAt === "string" &&

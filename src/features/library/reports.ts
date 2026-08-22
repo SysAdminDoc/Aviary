@@ -39,12 +39,31 @@ export function buildMarkdownReport(input: ReportInputs): string {
     lines.push(`- Captured: ${latest.capturedAt}`);
     lines.push(`- Source: ${latest.source}`);
     lines.push(`- Total: ${latest.accounts.length}`);
+    if (latest.coverage) {
+      lines.push(
+        `- Coverage: ${latest.coverage.rows} rows rendered, ` +
+          `${latest.coverage.reachedEnd ? "list finished loading" : "list still loading"}`
+      );
+    }
     if (diff) {
       lines.push("");
-      lines.push(`### Diff vs ${diff.earlierAt}`);
-      lines.push(`- Added (${diff.added.length}): ${diff.added.slice(0, 30).join(", ") || "—"}${diff.added.length > 30 ? ", …" : ""}`);
-      lines.push(`- Removed (${diff.removed.length}): ${diff.removed.slice(0, 30).join(", ") || "—"}${diff.removed.length > 30 ? ", …" : ""}`);
-      lines.push(`- Unchanged: ${diff.unchanged}`);
+      lines.push(`### Compared with the capture from ${diff.earlierAt}`);
+      if (diff.partial) {
+        // The buckets below are still worth printing, but not under a heading that says somebody
+        // followed or unfollowed. At least one of these captures saw part of a list.
+        lines.push("");
+        lines.push(
+          "At least one of these captures did not reach the end of its list, so this compares " +
+            "two partial views. A handle listed below may simply have been off screen. Scroll " +
+            "each list to the end before capturing if you want a comparison that means something."
+        );
+        lines.push("");
+      }
+      const sample = (handles: string[]): string =>
+        `${handles.slice(0, 30).join(", ") || "none"}${handles.length > 30 ? ", …" : ""}`;
+      lines.push(`- Present only in the later capture (${diff.onlyLater.length}): ${sample(diff.onlyLater)}`);
+      lines.push(`- Present only in the earlier capture (${diff.onlyEarlier.length}): ${sample(diff.onlyEarlier)}`);
+      lines.push(`- Present in both: ${diff.inBoth}`);
     }
     lines.push("");
   }

@@ -756,7 +756,7 @@ export const controlCenterFeature: FeatureModule = {
         const handle = inferProfileHandle(ctx.route.path) ?? "self";
         const result = await captureSnapshotFromDom(ctx, kind, handle);
         if (!result) return null;
-        return { count: result.totalAccounts, handle: result.entry.handle };
+        return { count: result.totalAccounts, handle: result.entry.handle, reachedEnd: result.reachedEnd };
       },
       getSnapshotStatus() {
         const store = getSnapshotStore();
@@ -773,9 +773,10 @@ export const controlCenterFeature: FeatureModule = {
         const diff = getSnapshotStore()?.diffLatest(kind, handle);
         if (!diff) return null;
         return {
-          added: diff.added.length,
-          removed: diff.removed.length,
-          unchanged: diff.unchanged
+          onlyLater: diff.onlyLater.length,
+          onlyEarlier: diff.onlyEarlier.length,
+          inBoth: diff.inBoth,
+          partial: diff.partial
         };
       },
       async clearSnapshots() {

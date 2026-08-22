@@ -346,12 +346,14 @@ export interface ControlCenterOptions {
     ai: { enabled: boolean; configured: boolean };
     semanticSearch: { enabled: boolean; configured: boolean; indexed: number };
   };
-  captureSnapshot?: (kind: "followers" | "following") => Promise<{ count: number; handle: string } | null>;
+  captureSnapshot?: (
+    kind: "followers" | "following"
+  ) => Promise<{ count: number; handle: string; reachedEnd: boolean } | null>;
   getSnapshotStatus?: () => { total: number; latestAt: string | null; latestKind: string | null; latestCount: number };
   diffLatestSnapshot?: (
     kind: "followers" | "following",
     handle: string
-  ) => { added: number; removed: number; unchanged: number } | null;
+  ) => { onlyLater: number; onlyEarlier: number; inBoth: number; partial: boolean } | null;
   clearSnapshots?: () => Promise<void>;
   importArchive?: (file: File) => Promise<{
     records: number;

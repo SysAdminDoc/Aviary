@@ -1,3 +1,4 @@
+import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -157,4 +158,124 @@ test("switching the panel's language does not change the version the report clai
   // is a bug-report attachment; the one thing it has to get right is which build produced it.
   assert.match(japanese.markdown, /for v9\.9\.9-report/);
   assert.ok(!/for vja\b/.test(japanese.markdown), "the locale is not a version");
+});
+
+/**
+ * Scroll depth is not a follow list.
+ *
+ * A DOM capture reads the account rows the browser has rendered, and X renders a follower list a
+ * screenful at a time. Nothing recorded how much of the list a capture had seen, so two captures
+ * at different scroll depths were compared as though both were complete and the difference was
+ * printed under "Removed". Scroll to 400 rows one week and 150 the next and the report names 250
+ * specific accounts as removed. Nobody unfollowed; they were off screen.
+ */
+test("a report never presents a difference in scroll depth as a follow or unfollow list", async () => {
+  const { diffSnapshots } = await importSourceModule("src/features/library/snapshots.ts");
+  const { buildMarkdownReport } = await importSourceModule("src/features/library/reports.ts");
+
+  const handles = Array.from({ length: 400 }, (_, index) => `account${String(index).padStart(3, "0")}`);
+  const capture = (accounts, reachedEnd, at) => ({
+    kind: "followers",
+    handle: "self",
+    capturedAt: at,
+    source: "dom",
+    accounts,
+    coverage: { rows: accounts.length, reachedEnd }
+  });
+
+  // Deep scroll last week, shallow scroll today. Nobody unfollowed.
+  const deep = capture(handles, false, "2026-08-01T00:00:00.000Z");
+  const shallow = capture(handles.slice(0, 150), false, "2026-08-15T00:00:00.000Z");
+
+  const diff = diffSnapshots(deep, shallow);
+  assert.equal(diff.onlyEarlier.length, 250, "the raw difference is still reported");
+  assert.equal(diff.partial, true, "but it must be marked as a comparison of two partial views");
+
+  const markdown = buildMarkdownReport({
+    audit: [],
+    snapshots: { latest: shallow, diff },
+    generatedAt: "2026-08-15T00:00:00.000Z"
+  });
+
+  assert.ok(
+    !/^- Removed/m.test(markdown),
+    "the report must not print a bucket called Removed for a difference it cannot attribute"
+  );
+  assert.ok(
+    !/^- Added/m.test(markdown),
+    "nor one called Added"
+  );
+  assert.match(markdown, /Present only in the earlier capture \(250\)/);
+  assert.match(markdown, /did not reach the end of its list/);
+  assert.match(markdown, /list still loading/);
+
+  // The control: two captures that both reached the end describe a real change, and say so.
+  const before = capture(handles.slice(0, 200), true, "2026-08-01T00:00:00.000Z");
+  const after = capture(handles.slice(0, 199), true, "2026-08-15T00:00:00.000Z");
+  const real = diffSnapshots(before, after);
+  assert.equal(real.partial, false);
+  assert.deepEqual(real.onlyEarlier, ["account199"]);
+  const complete = buildMarkdownReport({
+    audit: [],
+    snapshots: { latest: after, diff: real },
+    generatedAt: "2026-08-15T00:00:00.000Z"
+  });
+  assert.ok(
+    !/did not reach the end of its list/.test(complete),
+    "a comparison of two complete captures must not be hedged"
+  );
+  assert.match(complete, /list finished loading/);
+
+  // An entry stored before coverage was recorded is unknown, and unknown is not complete.
+  const legacy = { kind: "followers", handle: "self", capturedAt: "2026-07-01T00:00:00.000Z", source: "dom", accounts: handles.slice(0, 300) };
+  assert.equal(diffSnapshots(legacy, after).partial, true);
+
+  // An archive export is the whole list by construction.
+  const archived = { kind: "followers", handle: "self", capturedAt: "2026-07-01T00:00:00.000Z", source: "archive", accounts: handles.slice(0, 300) };
+  assert.equal(diffSnapshots(archived, after).partial, false);
+});
+
+/**
+ * The end of a list is two facts, not one.
+ *
+ * X keeps a progressbar in the tree while more rows are on the way, and a reader who has not
+ * scrolled to the bottom has not seen what is below the fold even when nothing is loading at that
+ * instant. A list that fits on one screen satisfies both and is complete.
+ */
+test("reaching the end of a list needs both no spinner and no rows below the fold", async () => {
+  const { measureListCoverage } = await importSourceModule("src/features/library/snapshots.ts");
+
+  const doc = (options) => ({
+    querySelector: (selector) =>
+      selector === '[role="progressbar"]' && options.loading ? {} : null,
+    scrollingElement: {
+      scrollHeight: options.scrollHeight,
+      scrollTop: options.scrollTop,
+      clientHeight: options.clientHeight
+    },
+    documentElement: null
+  });
+
+  const atBottom = { scrollHeight: 10_000, scrollTop: 9_200, clientHeight: 800, loading: false };
+  assert.equal(measureListCoverage(doc(atBottom), 400).reachedEnd, true);
+
+  assert.equal(
+    measureListCoverage(doc({ ...atBottom, loading: true }), 400).reachedEnd,
+    false,
+    "a spinner means more rows are coming"
+  );
+  assert.equal(
+    measureListCoverage(doc({ ...atBottom, scrollTop: 3_000 }), 150).reachedEnd,
+    false,
+    "rows below the fold have not been seen"
+  );
+
+  // A short list that never scrolls is complete.
+  assert.equal(
+    measureListCoverage(doc({ scrollHeight: 800, scrollTop: 0, clientHeight: 800, loading: false }), 12)
+      .reachedEnd,
+    true
+  );
+
+  assert.equal(measureListCoverage(doc(atBottom), 400).rows, 400);
 });

@@ -45,10 +45,18 @@ export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
             const result = await ctx.options.captureSnapshot!("followers");
             ctx.render();
             if (result) {
-              ctx.setStatusCopy("Captured {count} followers for @{handle}.", {
-                count: result.count,
-                handle: result.handle
-              });
+              // Say which of the two this was. A capture that stopped at the fold is a slice of the
+              // list, and a reader who is not told that will later read a comparison against it as
+              // a list of people who unfollowed them.
+              ctx.setStatusCopy(
+                result.reachedEnd
+                  ? "Captured {count} followers for @{handle}. The list had finished loading, so this is all of them."
+                  : "Captured {count} followers for @{handle}. The list was still loading, so this is only what was on screen. Scroll to the end and capture again for the whole list.",
+                {
+                  count: result.count,
+                  handle: result.handle
+                }
+              );
             } else {
               ctx.setStatus("No UserCell rows found.");
             }
@@ -68,10 +76,18 @@ export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
             const result = await ctx.options.captureSnapshot!("following");
             ctx.render();
             if (result) {
-              ctx.setStatusCopy("Captured {count} following for @{handle}.", {
-                count: result.count,
-                handle: result.handle
-              });
+              // Say which of the two this was. A capture that stopped at the fold is a slice of the
+              // list, and a reader who is not told that will later read a comparison against it as
+              // a list of people who unfollowed them.
+              ctx.setStatusCopy(
+                result.reachedEnd
+                  ? "Captured {count} following for @{handle}. The list had finished loading, so this is all of them."
+                  : "Captured {count} following for @{handle}. The list was still loading, so this is only what was on screen. Scroll to the end and capture again for the whole list.",
+                {
+                  count: result.count,
+                  handle: result.handle
+                }
+              );
             } else {
               ctx.setStatus("No UserCell rows found.");
             }
