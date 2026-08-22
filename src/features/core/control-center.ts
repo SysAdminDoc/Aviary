@@ -47,7 +47,8 @@ import { renderForExternalTarget } from "../export/external-targets";
 import { filterExpiredRules, filterRuleErrors } from "../filtering/filter-engine";
 import { applyFilterRuleImportAtomic } from "../filtering/rule-import";
 import { exportRuleSet, previewRuleSetImport, renewRuleLine } from "../filtering/rules";
-import { getSeenPostStore } from "../filtering/seen-posts-feature";
+import { getCatchUpStore, getSeenPostStore } from "../filtering/seen-posts-feature";
+import { openCatchUpDigest } from "../filtering/catch-up-ui";
 import {
   clearHiddenPosts,
   getHiddenPostStore,
@@ -472,7 +473,17 @@ export const controlCenterFeature: FeatureModule = {
       },
       async clearSeenPosts() {
         await getSeenPostStore()?.clear();
+        await getCatchUpStore()?.clear();
         ctx.requestApply();
+      },
+      getCatchUpStatus() {
+        return {
+          records: getCatchUpStore()?.size ?? 0,
+          tracking: Boolean(getSeenPostStore())
+        };
+      },
+      openCatchUp() {
+        return openCatchUpDigest(getCatchUpStore()?.list() ?? []);
       },
       getSavedDiagnostics() {
         const saved = ctx.diagnosticsStore?.snapshot() ?? [];

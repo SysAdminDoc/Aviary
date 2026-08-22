@@ -81,6 +81,19 @@ handle/text signature), collapses the owning timeline row, and shows an **Undo**
 posts section also has **Undo last hide**, per-post restore for recent entries, and **Clear hidden
 posts**. It never changes the post on X.
 
+## What is the Catch-up digest?
+
+Turn on **Filtering → Dim posts you have already seen** to keep a local copy of each rendered post.
+Open **Catch-up** from the Reading section to review the last 1, 2, 4, 6, 8, or 12 hours, or the
+older-than-12-hours window. You can filter by original posts, replies, quotes, reposts, or filtered
+rows, group by author, sort by time or density, inspect top links, and open an original post.
+
+Catch-up does not mark posts read and does not fetch a timeline or GraphQL response. It only knows
+what Aviary has already rendered in this browser profile. Filtered rows stay available in their own
+view with the reason supplied by the active rule. The store keeps at most 4,000 rows for 30 days,
+and **Forget seen posts** clears both the id ledger and its rendered copies. Media previews load only
+after you click them.
+
 ## How do I save media, and why did it open instead?
 
 The Media section adds one **Download** action to every media post, plus **Save**, **Thumb**, and
@@ -272,7 +285,7 @@ Every control Aviary offers, by Control Center page. 81 controls across 12 pages
 | Control | What it does |
 | --- | --- |
 | Enable filters | Master switch for keyword, regex, premium, and media filters. |
-| Dim posts you have already seen | Fade a post the second time it scrolls past, so a return trip down the timeline shows what is new. Hovering a faded post brings it back. Only post IDs are stored. |
+| Dim posts you have already seen | Fade a post the second time it scrolls past, and keep a local catch-up copy of posts Aviary has rendered. Hovering a faded post brings it back. |
 | Filter rules | One rule per line: field, optional not, operator, value. Fields are text, handle, media, verified, link; operators are contains, is, starts, ends, matches. Join with and / or, and prefix dim: to fade instead of hide. Name a rule by starting the line with [a title], and give it a limited life with for 7d from <date>. Example: [Weekend sales] dim for 7d from 2026-08-19T10:00:00.000Z: text contains sale and media is photo |
 | Keyword rules | One keyword or phrase per line. Case-insensitive substring match. |
 | Regex rules | One pattern per line. Use /pattern/flags or a bare pattern (case-insensitive). |

@@ -54,6 +54,11 @@ export class SeenPostStore {
     return this.#seen.has(id);
   }
 
+  /** The first-sighted timestamp is the join key for the catch-up reading copy. */
+  seenAt(id: string): number | null {
+    return this.#seen.get(id) ?? null;
+  }
+
   get size(): number {
     return this.#seen.size;
   }

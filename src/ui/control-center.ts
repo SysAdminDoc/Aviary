@@ -11,7 +11,7 @@ import {
 import { FILTER_SURFACE_LABELS } from "./control-center/constants";
 import { buildBackupRows, buildIntegrationRows, buildTrustRows } from "./control-center/sections/advanced";
 import { buildExportRows, buildLibraryRows, buildMediaRows, buildSnapshotRows } from "./control-center/sections/data";
-import { buildAppearanceRows, buildFilterRows, buildHiddenPostRows, buildLayoutRows, buildPerformanceRows } from "./control-center/sections/reading";
+import { buildAppearanceRows, buildCatchUpRows, buildFilterRows, buildHiddenPostRows, buildLayoutRows, buildPerformanceRows } from "./control-center/sections/reading";
 import { buildPresetRows } from "./control-center/sections/presets";
 import type {
   DraftCommit,
@@ -194,6 +194,8 @@ export interface ControlCenterOptions {
   getSelectorHealth?: () => SelectorHealthStatus;
   clearAdObservations?: () => Promise<void>;
   clearSeenPosts?: () => Promise<void>;
+  getCatchUpStatus?: () => { records: number; tracking: boolean };
+  openCatchUp?: () => { count: number };
   getAdLabelLanguage?: () => { language: string; supported: boolean };
   getUserColors?: () => Record<string, string>;
   setUserColor?: (handle: string, color: string) => Promise<void>;
@@ -415,6 +417,7 @@ type SectionIcon =
   | "appearance"
   | "layout"
   | "filtering"
+  | "catchup"
   | "hidden"
   | "performance"
   | "media"
@@ -456,6 +459,7 @@ const SECTION_GROUP_BREAKS: Record<string, Array<{ before: string; title: string
     { before: "Premium / verified posts", title: "Content types" },
     { before: "Active on", title: "Routes" }
   ],
+  catchup: [{ before: "Open catch-up digest", title: "Digest" }],
   hidden: [
     { before: "Hide dismissed posts", title: "Status" },
     { before: "Active on", title: "Coverage" },
@@ -1181,6 +1185,15 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       icon: "filtering",
       accent: "rgb(72, 211, 193)",
       build: () => buildFilterRows(panelContext)
+    },
+    {
+      id: "catchup",
+      title: "Catch-up",
+      group: "Reading",
+      summary: "Review posts Aviary has already rendered, with no new requests.",
+      icon: "catchup",
+      accent: "rgb(72, 211, 193)",
+      build: () => buildCatchUpRows(panelContext)
     },
     {
       id: "hidden",
@@ -1931,6 +1944,7 @@ function sectionIcon(icon: SectionIcon): SVGSVGElement {
     appearance: ["M12 3a9 9 0 1 0 0 18V3Z"],
     layout: ["M4 4h16v16H4zM4 9h16M9 9v11"],
     filtering: ["M4 5h16l-6 7v5l-4 2v-7L4 5Z"],
+    catchup: ["M4 5h16v14H4z", "M8 9h8M8 13h5"],
     hidden: ["M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6Z", "M4 4l16 16"],
     performance: ["M4 17a8 8 0 0 1 16 0", "M12 17l4-6"],
     media: ["M4 5h16v14H4z", "M7 16l3-4 3 3 2-2 3 3", "M9 9h.01"],

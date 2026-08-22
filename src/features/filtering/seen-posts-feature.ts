@@ -1,4 +1,6 @@
 import type { FeatureContext, FeatureModule } from "../registry";
+import { collectExportRecords } from "../export/collector";
+import { CatchUpStore, type CatchUpCategory, type CatchUpMetrics } from "./catch-up";
 import { SeenPostStore } from "./seen-posts";
 
 const STYLE_ID = "av-seen-posts";
@@ -7,6 +9,8 @@ const FLUSH_DELAY_MS = 1500;
 
 let store: SeenPostStore | undefined;
 let storeLoading: Promise<void> | undefined;
+let catchUpStore: CatchUpStore | undefined;
+let catchUpLoading: Promise<void> | undefined;
 let flushTimer: ReturnType<typeof setTimeout> | undefined;
 
 /**
@@ -37,6 +41,22 @@ async function ensureStore(ctx: FeatureContext): Promise<void> {
   await storeLoading;
 }
 
+async function ensureCatchUpStore(ctx: FeatureContext): Promise<void> {
+  if (catchUpStore) return;
+  if (!catchUpLoading) {
+    const pending = new CatchUpStore(ctx.storage);
+    catchUpLoading = pending.load().then(
+      () => {
+        catchUpStore = pending;
+      },
+      () => {
+        catchUpLoading = undefined;
+      }
+    );
+  }
+  await catchUpLoading;
+}
+
 /**
  * Fades posts that already scrolled past once, so a second pass down the timeline reads as
  * "new since last time" instead of the same posts again.
@@ -56,6 +76,7 @@ export const seenPostsFeature: FeatureModule = {
     }
     ensureStyle();
     await ensureStore(ctx);
+    await ensureCatchUpStore(ctx);
     scan(ctx, document);
   },
 
@@ -66,6 +87,7 @@ export const seenPostsFeature: FeatureModule = {
     }
     ensureStyle();
     await ensureStore(ctx);
+    await ensureCatchUpStore(ctx);
     if (!store) {
       return;
     }
@@ -84,7 +106,9 @@ export const seenPostsFeature: FeatureModule = {
     // returns void, so awaiting it awaited `undefined` and resolved before the write landed --
     // exactly the loss this was meant to prevent. `settled()` is the part worth waiting for.
     store?.flush(Date.now());
+    catchUpStore?.flush(Date.now());
     await store?.settled();
+    await catchUpStore?.settled();
     teardown();
     ctx.diagnostics.info("Seen-post dimming removed");
   },
@@ -92,7 +116,7 @@ export const seenPostsFeature: FeatureModule = {
   getStatus() {
     return {
       ok: true,
-      message: store ? `Seen posts tracked: ${store.size}` : "Seen-post tracking idle"
+    message: store ? `Seen posts tracked: ${store.size}` : "Seen-post tracking idle"
     };
   }
 };
@@ -104,6 +128,7 @@ function scan(ctx: FeatureContext, root: ParentNode | Element): void {
   }
   const now = Date.now();
   let marked = false;
+  let captured = false;
 
   for (const article of articles) {
     const id = readTweetId(article);
@@ -112,16 +137,31 @@ function scan(ctx: FeatureContext, root: ParentNode | Element): void {
     }
     if (store!.has(id)) {
       article.setAttribute(MARKER, "1");
-      continue;
+    } else {
+      // First sighting: leave it undimmed, but remember it for next time.
+      if (store!.mark(id, now)) {
+        marked = true;
+      }
+      article.removeAttribute(MARKER);
     }
-    // First sighting: leave it undimmed, but remember it for next time.
-    if (store!.mark(id, now)) {
-      marked = true;
+
+    const seenAt = store!.seenAt(id);
+    if (seenAt !== null && catchUpStore) {
+      const record = collectExportRecords(article, ctx.route.surface)[0];
+      if (record) {
+        catchUpStore.upsertExportRecord(
+          record,
+          seenAt,
+          classifyArticle(article, article.getAttribute("data-av-filter-reason")),
+          article.getAttribute("data-av-filter-reason"),
+          readMetrics(article)
+        );
+        captured = true;
+      }
     }
-    article.removeAttribute(MARKER);
   }
 
-  if (marked) {
+  if (marked || captured) {
     scheduleFlush(now);
   }
 }
@@ -158,6 +198,7 @@ function scheduleFlush(now: number): void {
   flushTimer = setTimeout(() => {
     flushTimer = undefined;
     store?.flush(now);
+    catchUpStore?.flush(now);
   }, FLUSH_DELAY_MS);
 }
 
@@ -189,7 +230,9 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER}="1"] {
 function teardown(): void {
   // Turning the setting off also drops the pending timer, so push what it was holding first.
   if (flushTimer !== undefined) {
-    store?.flush(Date.now());
+    const now = Date.now();
+    store?.flush(now);
+    catchUpStore?.flush(now);
   }
   document.getElementById(STYLE_ID)?.remove();
   for (const article of Array.from(document.querySelectorAll(`[${MARKER}]`))) {
@@ -210,4 +253,42 @@ export function resetSeenPostsState(): void {
   teardown();
   store = undefined;
   storeLoading = undefined;
+  catchUpStore = undefined;
+  catchUpLoading = undefined;
+}
+
+export function getCatchUpStore(): CatchUpStore | undefined {
+  return catchUpStore;
+}
+
+function classifyArticle(article: Element, filterReason: string | null): CatchUpCategory {
+  if (filterReason) return "filtered";
+  const socialContext = article.querySelector('[data-testid="socialContext"]')?.textContent ?? "";
+  if (/repost|retweeted|reposted/i.test(socialContext)) return "reposts";
+  if (article.querySelector('[data-testid="quoteTweet"], [aria-labelledby="quoted"], div[role="link"][tabindex="0"] [data-testid="User-Name"]')) {
+    return "quotes";
+  }
+  if (/replying to/i.test(article.textContent ?? "")) return "replies";
+  return "original";
+}
+
+function readMetrics(article: Element): CatchUpMetrics {
+  return {
+    replies: readMetric(article, "reply"),
+    likes: readMetric(article, "like"),
+    reposts: readMetric(article, "retweet") || readMetric(article, "repost")
+  };
+}
+
+function readMetric(article: Element, testId: string): number {
+  const node = article.querySelector(`[data-testid="${testId}"], [data-testid="${testId}Toggle"]`);
+  const source = node?.getAttribute("aria-label") ?? node?.textContent ?? "";
+  const match = /([\d,.]+)\s*(?:[KMB])?/i.exec(source);
+  if (!match) return 0;
+  const raw = match[1]!.replace(/,/g, "");
+  const value = Number(raw);
+  if (!Number.isFinite(value)) return 0;
+  const suffix = /([KMB])/i.exec(source)?.[1]?.toUpperCase();
+  const multiplier = suffix === "K" ? 1_000 : suffix === "M" ? 1_000_000 : suffix === "B" ? 1_000_000_000 : 1;
+  return Math.max(0, Math.floor(value * multiplier));
 }

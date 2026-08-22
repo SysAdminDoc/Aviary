@@ -58,6 +58,7 @@ schema, migration, usage, and quota status.
 | `aviary.integration.usage.v1` | Profile-scoped AI/embedding request, record, and UTF-8 byte counters for the local 31-day history | Enforce configurable per-request/daily budgets and show usage; **Clear AI and embedding usage** removes counters. No API keys or raw prompts are stored here. |
 | `aviary.hiddenPosts.v1` | Hidden status ids or handle/text signatures | Hide posts across visits; **Clear hidden posts** removes them. |
 | `aviary.seenPosts.v1` | Post ids and the time each first scrolled past, no text, handle, or URL | Fade a post the second time you pass it; capped at 4,000 entries and 30 days; **Forget seen posts** removes them. |
+| `aviary.catchUp.v1` | Bounded copies of rendered post text, account, permalink, media references, filter reason, and basic counts | Power the local Catch-up digest; capped at 4,000 rows and 30 days; **Forget seen posts** removes them. |
 | `aviary.adObservations.v1` | Which ad markers were present on a route, as counts, no post content | Notice when X changes its ad markup; bounded to 64 entries and 30 days. |
 | `aviary.diagnostics.v1` | Aviary's own warning and error text, the time, and the *names* of a message's detail fields, never their values | Let a failure from an earlier page load still be reportable; bounded to 50 entries and 7 days; clearable from Trust. |
 | `aviary.firstRun.v1` | A single flag recording that the first-run notice was dismissed | Stop showing the notice again on this profile. |

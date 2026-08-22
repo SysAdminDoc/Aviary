@@ -24,29 +24,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ### P2, features
 
-- [ ] F148, P2, Catch-up digest over the seen-post store
-  Why: v1.25.0 shipped the hard half, a bounded record of which posts have already gone past, and the best reading-mode idea in the adjacent field is what sits on top of it: a time-bounded digest of what is new, grouped by author.
-  Evidence: `src/features/filtering/seen-posts.ts`; cheeaun/phanpy Catch-up (★1478).
-  Touches: `src/features/filtering/seen-posts.ts`, a new reading surface, Layout settings.
-  Acceptance: a digest built only from the local seen record and already-rendered posts, zero originated requests, groups unseen posts by author over a chosen window, respects active filters, and shows filter reasons from F144 where a post was suppressed.
-  Depends on: F144, shipped 2026-08-19. `judge()` in `src/features/filtering/predicates.ts`
-  returns `{ action, cause }`, and the engine writes the localized sentence to
-  `data-av-filter-reason`; a digest can read the same verdict rather than inventing its own.
-  Note (2026-08-18): the reference implementation is Phanpy's Catch-up
-  (https://github.com/cheeaun/phanpy/blob/main/src/pages/catchup.jsx) and it is detailed enough to build
-  from without re-research. Window: a slider of 13 ranges (last 1h..12h, plus "beyond 12 hours"). Category
-  chips with live counts: Original / Replies / Quotes / Reposts / Followed tags / Filtered. Five sort axes
-  cover time, replies, likes, reposts, and **density**, where
-  `density = (textLen + spoilerLen + pollLen)/140 + 8*mediaCount + 8*(hasCard ? 1 : 0)`; ascending puts
-  cheap-to-read first. Optional grouping by author, authors ordered by post count descending. A Top Links
-  pane deduped by URL, ranked by sharer count then reposts then likes, keeping links shared more than once
-  or the top 10, each showing "Shared by [avatars]" where clicking a sharer filters to them. One-line post
-  peeks with media as small thumbnails. Crucially it **marks nothing read**, it persists only the filter
-  selection and scroll position, and ends with "That's all." Aviary's version is a render of the local
-  seen store rather than a fetch, so the honest framing is "everything Aviary saw", not "everything posted".
-  Pair with F203, which supplies the read marker Catch-up deliberately does not use.
-  Complexity: L
-
 - [ ] F154, P2, Mirror bookmarks locally as they render, and export them in bulk
   Why: bookmarks are the clearest unserved need in the archiving communities, users report collections shrinking from hundreds to about twenty, and the standing explanation is that X does not delete them server-side, they simply stop being rendered (one third-party client listed five digits of bookmarks the UI would not show). Aviary already has a bookmark library and passive GraphQL capture, so mirroring what X hands the page needs no originated call.
   Evidence: r/Twitter 1uyh6kw (2026-07-16), 1vbkkzr (2026-07-31), 1vlyntp (2026-08-12); r/DataHoarder 1vo86y2 (2026-08-14); HN 47697679 (2026-04-08, a Show HN bookmark-export one-off, people build this themselves); twitter-web-exporter's bookmark-cap bypass is the same mechanism. Verified 2026-08-15: `network-capture.ts` persists any GraphQL operation when `preserveRawPayloads` is on, so bookmark payloads already reach the store, this is a reader over captured data, not a new capture path.

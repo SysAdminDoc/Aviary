@@ -10,6 +10,7 @@ export const SETTINGS_SECTIONS = [
   "appearance",
   "layout",
   "filtering",
+  "catchup",
   "hidden",
   "performance",
   "media",

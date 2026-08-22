@@ -16,6 +16,7 @@ import { MEDIA_QUEUE_KEY } from "../media/queue";
 import { LAST_DOWNLOAD_KEY } from "../media/last-download";
 import { HIDDEN_POSTS_KEY } from "../filtering/hidden-posts";
 import { SEEN_POSTS_KEY } from "../filtering/seen-posts";
+import { CATCH_UP_KEY } from "../filtering/catch-up";
 import {
   buildSettingsExport,
   parseSettingsImport
@@ -57,6 +58,7 @@ export const LIBRARY_BACKUP_COLLECTIONS = [
   { key: ARIA2_HISTORY_KEY, label: "Aria2 history", version: 1 },
   { key: HIDDEN_POSTS_KEY, label: "Hidden posts", version: 1 },
   { key: SEEN_POSTS_KEY, label: "Seen posts", version: 1 },
+  { key: CATCH_UP_KEY, label: "Catch-up records", version: 1 },
   { key: LAST_DOWNLOAD_KEY, label: "Last download", version: 1 },
   { key: CLEANUP_QUEUE_KEY, label: "Cleanup queue", version: 1 },
   { key: USER_NOTES_KEY, label: "User notes", version: 1 },

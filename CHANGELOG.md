@@ -4,6 +4,11 @@
 
 ### Added
 
+- **Catch-up keeps a local reading copy of rendered posts.** Filtering can retain up to 4,000
+  rendered rows for 30 days. The digest covers recent and older windows, categories, author groups,
+  top links, media previews, filter reasons, and direct links back to the original post. It reads
+  only the local seen store and never requests more from X; a media preview loads only after a click.
+
 - **Preservation exports now open in standard replay tools.** Export can download a raw WARC or a
   WACZ 1.1.1 package with a byte-sorted CDXJ index, replayable synthetic post pages, checksummed
   resources, and an exact page list. The panel shows the estimated uncompressed storage cost and
@@ -48,11 +53,12 @@
   and visual matches, plus the most recent match type. Clearing history resets the hashes and those
   counters together.
 
-- **The delivery-size ceiling now includes the deeper local media, filtering, and preservation
-  workflows.** The main bundle allowance is 2.35 MB after adding media fingerprints, resumable
-  captured-media batches, portable rules in eight languages, offline archive repair, hybrid search,
-  and the WARC/WACZ writer plus its dedicated worker. The worker keeps archive assembly off X's
-  reading thread and rejects an export estimate above 256 MiB before allocating it.
+- **The delivery-size ceiling now includes the deeper local media, filtering, preservation, and
+  catch-up workflows.** The main bundle allowance is 2.40 MB after adding media fingerprints,
+  resumable captured-media batches, portable rules in eight languages, offline archive repair,
+  hybrid search, the WARC/WACZ writer plus its dedicated worker, and the bounded local digest. The
+  worker keeps archive assembly off X's reading thread and rejects an export estimate above 256 MiB
+  before allocating it.
 
 - **Snapshots & Archive reports every repair source.** The panel separates links found in the ZIP
   from links found in local captures, counts resolved and unresolved participant IDs, and confirms

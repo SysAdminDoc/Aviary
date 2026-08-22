@@ -396,6 +396,7 @@ test("all destinations share one clean transaction bar and all locales translate
     "appearance",
     "layout",
     "filtering",
+    "catchup",
     "hidden",
     "performance",
     "media",

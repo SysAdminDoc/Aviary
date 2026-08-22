@@ -407,7 +407,7 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
   rows.push(
     ctx.toggleRow(
       "Dim posts you have already seen",
-      "Fade a post the second time it scrolls past, so a return trip down the timeline shows what is new. Hovering a faded post brings it back. Only post IDs are stored.",
+      "Fade a post the second time it scrolls past, and keep a local catch-up copy of posts Aviary has rendered. Hovering a faded post brings it back.",
       ctx.options.settings.filter.dimSeenPosts,
       async (checked) => {
         ctx.options.settings.filter.dimSeenPosts = checked;
@@ -813,6 +813,45 @@ function portableRuleSetRow(ctx: PanelContext): HTMLElement {
   row.append(copy, textarea, actions, previewCopy);
   showPreview();
   return row;
+}
+
+export function buildCatchUpRows(ctx: PanelContext): HTMLElement[] {
+  const rows: HTMLElement[] = [];
+  const status = ctx.options.getCatchUpStatus?.();
+  if (!status?.tracking) {
+    rows.push(
+      ctx.readonlyRow(
+        "Catch-up is waiting",
+        "Turn on Dim posts you have already seen in Filtering. Catch-up uses only rows Aviary has already rendered."
+      )
+    );
+  } else {
+    rows.push(
+      ctx.dataRow(
+        "Posts available",
+        `${status.records} rendered post${status.records === 1 ? "" : "s"} kept locally for 30 days.`
+      )
+    );
+  }
+  if (ctx.options.openCatchUp) {
+    rows.push(
+      ctx.actionRow(
+        "Open catch-up digest",
+        "Review a time window, filter by post type, group by author, and open the original post. No requests are made.",
+        async () => {
+          const result = ctx.options.openCatchUp!();
+          ctx.setStatus(`Catch-up opened with ${result.count} post${result.count === 1 ? "" : "s"}.`);
+        }
+      )
+    );
+  }
+  rows.push(
+    ctx.readonlyRow(
+      "What it includes",
+      "Everything Aviary saw in the active browser profile. Filtered posts keep the reason written by the active filter rule."
+    )
+  );
+  return rows;
 }
 
 export function buildHiddenPostRows(ctx: PanelContext): HTMLElement[] {

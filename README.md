@@ -48,6 +48,7 @@ X's own filter is left to do its job.
 - Settings/storage foundations: `src/platform/settings.ts`, `src/platform/storage.ts`
 - Layout declutter and theme foundations: `src/features/layout/declutter.ts`, `src/features/appearance/theme.ts`
 - Filter engine and predicates: `src/features/filtering/filter-engine.ts`, `src/features/filtering/predicates.ts`
+- Catch-up digest: `src/features/filtering/catch-up.ts`, `src/features/filtering/catch-up-ui.ts`
 - Hidden posts: `src/features/filtering/hidden-posts.ts` (store), `src/features/filtering/hidden-posts-feature.ts` (Hide button + collapse)
 - Media downloads: `src/features/media/` (`media-buttons.ts`, `urls.ts`, `template.ts`, `sidecar.ts`, `history.ts`, `queue.ts`, `download-watch.ts`, `downloader.ts`, `extract.ts`, `video-extract.ts`, `media-presentation.ts`, `batch-downloader.ts`)
 - Export core: `src/features/export/` (`export-feature.ts`, `collector.ts`, `formatters.ts`, `assets.ts`, `viewer.ts`, `zip-store.ts`, `zip-reader.ts`, `jobs.ts`, `query-discovery.ts`, `network-capture.ts`, `xlsx.ts`, `warc.ts`, `wacz.ts`, `wacz-signing.ts`, `wacz-worker-client.ts`, `external-targets.ts`, `types.ts`)
@@ -220,6 +221,20 @@ Every post carries a **Hide** control next to its More menu. Clicking it records
 - A toast with **Undo** appears after each hide; the Control Center also offers "Undo last hide", per-post Restore for the eight most recent, and "Clear hidden posts".
 - Storage key: `aviary.hiddenPosts.v1`. The oldest entries are dropped once the store passes "Maximum remembered posts" (default 5000, range 100-50000).
 - The Control Center "Hidden posts" section controls the master switch, the per-post button, per-route activation, and the cap. Turning the master switch off reveals everything again without forgetting anything.
+
+## Catch-up digest
+
+Filtering can keep a bounded local copy of posts Aviary has already rendered. The Control Center
+opens a digest for the last 1, 2, 4, 6, 8, or 12 hours, plus an older-than-12-hours view. It can
+sort by time, density, or author, group rows by author, show top links, and open the original post.
+The default view leaves filtered rows out of the main count; the Filtered view keeps each rule's
+reason visible.
+
+Catch-up never marks anything read, requests another timeline, or claims to know what X did not
+render. It stores a bounded copy of the rendered text, account, permalink, media references, and
+basic engagement counts for up to 4,000 posts or 30 days. **Filtering → Dim posts you have already
+seen** enables the companion store. **Forget seen posts** clears both the id-only seen ledger and
+the catch-up copies. Media references stay inert until you click a preview.
 
 ## One-click media
 
