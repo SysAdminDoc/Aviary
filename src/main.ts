@@ -2,6 +2,7 @@ import { themeFeature } from "./features/appearance/theme";
 import { titleBadgeFeature } from "./features/appearance/title-badge";
 import { absoluteTimeFeature } from "./features/appearance/absolute-time";
 import { faviconFeature } from "./features/appearance/favicon";
+import { customCssFeature } from "./features/appearance/custom-css";
 import { controlCenterFeature } from "./features/core/control-center";
 import { firstRunFeature } from "./features/core/first-run";
 import { selectorHealthFeature } from "./features/core/selector-health";
@@ -233,6 +234,8 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   registry.register(controlCenterFeature);
   // Last: the notice points at the navigation row the Control Center feature mounts.
   registry.register(firstRunFeature);
+  // Custom CSS is last so a user's scoped declarations win over Aviary's authored styles.
+  registry.register(customCssFeature);
 
   const context: FeatureContext = {
     route: readRoute(),
@@ -256,7 +259,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     },
     requestApply() {
       reconcileRateLimit();
-      void registry.applyAll(context, document);
+      return registry.applyAll(context, document);
     }
   };
 

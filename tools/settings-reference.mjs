@@ -95,6 +95,19 @@ export async function collectRows() {
         const description = rest.match(/^\s*\n?\s*"((?:[^"\\]|\\.)*)"/);
         rows.push({ at: match.index, label, description: description ? unescape(description[1]) : "" });
       }
+      // Array-backed row definitions keep repetitive controls compact in the source. Expand the
+      // stable label and description tuple here so the generated reference still lists every row.
+      if (body.includes("const cssRows")) {
+        const cssRowsStart = body.indexOf("const cssRows");
+        const cssRowsBody = body.slice(cssRowsStart, body.indexOf("];", cssRowsStart) + 2);
+        for (const match of cssRowsBody.matchAll(/\[\s*"(?:[^"\\]|\\.)+"\s*,\s*"((?:[^"\\]|\\.)+)"\s*,\s*"((?:[^"\\]|\\.)+)"\s*\]/g)) {
+          rows.push({
+            at: cssRowsStart + match.index,
+            label: unescape(match[1]),
+            description: unescape(match[2])
+          });
+        }
+      }
       // A few dense tools use several controls inside one custom row. Their stable accessible
       // label and first distinct translated sentence are still enough to keep the reference
       // complete without pretending every button is a separate setting.

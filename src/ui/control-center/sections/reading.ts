@@ -7,12 +7,14 @@ import {
   HIDE_NAV_ITEM_IDS
 } from "../constants";
 import {
+  CUSTOM_CSS_SCOPE_IDS,
+  sanitizeCustomCss,
   FILTER_MEDIA_KEYS,
   isEngagementMetric,
   isFilterReasonMode
 } from "../../../platform/settings";
 export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
-  return [
+  const rows = [
       ctx.selectRow("Theme", ctx.options.settings.appearance.theme, [
         ["off", "Off (X's own theme)"],
         ["dim", "Dim"],
@@ -46,6 +48,10 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
           await ctx.save("Timeline width updated");
         },
         "Comfortable keeps the discovery rail. Wide uses a centered 1120px media canvas and hides the rail."
+      ),
+      ctx.readonlyRow(
+        "Custom CSS",
+        "Optional local overrides for the scoped surfaces below. CSS never leaves this profile and is not covered by bug-report expectations."
       ),
       ctx.toggleRow(
         "Restore the Chirp font",
@@ -167,6 +173,34 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
         }
       )
   ];
+  const cssRows: Array<[typeof CUSTOM_CSS_SCOPE_IDS[number], string, string]> = [
+    ["posts", "Posts CSS", "Scoped to rendered posts. Example: article { border-radius: 18px; }"],
+    ["media", "Media actions CSS", "Scoped to Aviary media buttons and their contents."],
+    ["navigation", "Navigation CSS", "Scoped to X's navigation rail."],
+    ["sidebar", "Sidebar CSS", "Scoped to X's discovery sidebar."],
+    ["composer", "Composer CSS", "Scoped to the composer toolbar and text area."]
+  ];
+  for (const [scope, label, description] of cssRows) {
+    rows.push(
+      ctx.textareaRow(
+        label,
+        description,
+        ctx.options.settings.appearance.customCss[scope].split(/\r?\n/),
+        async (lines) => {
+          const candidate = lines.join("\n");
+          const sanitized = sanitizeCustomCss(candidate);
+          ctx.options.settings.appearance.customCss[scope] = sanitized.value;
+          await ctx.save(
+            sanitized.changed && sanitized.value.length === 0
+              ? `${label} rejected unsafe or malformed CSS`
+              : `${label} saved`
+          );
+        },
+        "Apply"
+      )
+    );
+  }
+  return rows;
 }
 
 export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {

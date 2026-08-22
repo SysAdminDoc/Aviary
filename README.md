@@ -1,6 +1,6 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.39.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.40.0-2f81f7)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 ![Platform](https://img.shields.io/badge/platform-userscript%20%7C%20Chrome%20%7C%20Firefox-8b5cf6)
 
@@ -49,7 +49,8 @@ X's own filter is left to do its job.
   promoted-content logger guard
 - Stable selector registry: `src/platform/selectors.ts`
 - Settings/storage foundations: `src/platform/settings.ts`, `src/platform/storage.ts`
-- Layout declutter and theme foundations: `src/features/layout/declutter.ts`, `src/features/appearance/theme.ts`
+- Layout declutter, theme, and scoped custom CSS foundations: `src/features/layout/declutter.ts`,
+  `src/features/appearance/theme.ts`, `src/features/appearance/custom-css.ts`
 - Filter engine and predicates: `src/features/filtering/filter-engine.ts`, `src/features/filtering/predicates.ts`
 - Catch-up digest: `src/features/filtering/catch-up.ts`, `src/features/filtering/catch-up-ui.ts`
 - Hidden posts: `src/features/filtering/hidden-posts.ts` (store), `src/features/filtering/hidden-posts-feature.ts` (Hide button + collapse)
@@ -95,6 +96,11 @@ All six authored dark palettes now repaint the semantic shell and readable timel
 when X itself is set to a light host theme. Automated coverage switches every palette across both
 host themes at 1440×900 and 1920×1080, checks text contrast and overflow, and proves that Off
 restores the host exactly.
+
+Appearance also includes an optional Custom CSS editor for posts, media actions, navigation, the
+sidebar, and the composer. Each rule stays local to the selected surface, refuses remote imports,
+and is capped before it is saved. These are power-user overrides, so Trust calls out that support
+cannot reproduce their visual effects.
 
 ## Focused Home
 

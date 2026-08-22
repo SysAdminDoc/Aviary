@@ -291,7 +291,7 @@ export class FeatureBisect {
     }
     // Resumed features have torn their own state down; only a pass over the document puts their
     // markers back on posts X rendered while they were off.
-    ctx.requestApply();
+    await ctx.requestApply();
   }
 }
 

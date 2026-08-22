@@ -26,10 +26,12 @@ const expectedExtensionIcons = Object.fromEntries(
  * Raising one is fine. Raising one without saying why in the commit is not.
  */
 const DELIVERY_BUDGETS = [
-  { file: "aviary.user.js", maxBytes: 2_450_000 },
+  // v1.40 adds five localized, scoped custom-CSS editors and their safety copy. Keep the ceiling
+  // tight, but make room for that shipped control surface rather than silently accepting growth.
+  { file: "aviary.user.js", maxBytes: 2_500_000 },
   { file: "aviary.meta.js", maxBytes: 4_000 },
-  { file: "extension-chrome/content.js", maxBytes: 2_450_000 },
-  { file: "extension-firefox/content.js", maxBytes: 2_450_000 }
+  { file: "extension-chrome/content.js", maxBytes: 2_500_000 },
+  { file: "extension-firefox/content.js", maxBytes: 2_500_000 }
 ];
 
 const failures = [];

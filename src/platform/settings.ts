@@ -77,6 +77,27 @@ export interface SettingsEnvelope {
 }
 
 export type ThemeId = "off" | "dim" | "lightsOut" | "graphite" | "plum" | "midnight" | "noir";
+
+/** Stable page surfaces that accept a user-authored, local CSS override. */
+export const CUSTOM_CSS_SCOPE_IDS = [
+  "posts",
+  "media",
+  "navigation",
+  "sidebar",
+  "composer"
+] as const;
+
+export type CustomCssScopeId = (typeof CUSTOM_CSS_SCOPE_IDS)[number];
+export type CustomCssRules = Record<CustomCssScopeId, string>;
+export const CUSTOM_CSS_MAX_LENGTH = 12_000;
+
+export const EMPTY_CUSTOM_CSS: CustomCssRules = {
+  posts: "",
+  media: "",
+  navigation: "",
+  sidebar: "",
+  composer: ""
+};
 export type RateLimitMode = "conservative" | "balanced";
 export type ReduceMotionMode = "system" | "always" | "never";
 export type FilterAction = "off" | "hide" | "dim";
@@ -232,6 +253,8 @@ export interface AviarySettings {
     /** Swap X's tab icon for Aviary's own mark. */
     replaceFavicon: boolean;
     restoreChirp: boolean;
+    /** Local CSS overrides keyed by a stable page surface. Empty by default. */
+    customCss: CustomCssRules;
   };
   layout: {
     hideNavItems: string[];
@@ -382,7 +405,8 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     hideTitleBadge: false,
     absoluteTimestamps: false,
     replaceFavicon: false,
-    restoreChirp: false
+    restoreChirp: false,
+    customCss: { ...EMPTY_CUSTOM_CSS }
   },
   layout: {
     hideNavItems: [],
@@ -644,7 +668,8 @@ export function normalizeSettings(input: unknown): AviarySettings {
         appearance.replaceFavicon,
         DEFAULT_SETTINGS.appearance.replaceFavicon
       ),
-      restoreChirp: booleanValue(appearance.restoreChirp, DEFAULT_SETTINGS.appearance.restoreChirp)
+      restoreChirp: booleanValue(appearance.restoreChirp, DEFAULT_SETTINGS.appearance.restoreChirp),
+      customCss: normalizeCustomCss(appearance.customCss)
     },
     layout: {
       hideNavItems: stringArray(layout.hideNavItems, { maxItems: 24, maxLength: 48 }),
@@ -910,6 +935,78 @@ export function cloneSettings(settings: AviarySettings): AviarySettings {
 
 export function isThemeId(value: unknown): value is ThemeId {
   return THEME_IDS.includes(value as ThemeId);
+}
+
+export interface SanitizedCustomCss {
+  value: string;
+  changed: boolean;
+}
+
+/**
+ * Keeps custom CSS local and inside its generated `@scope` block. Network imports, font loads,
+ * script-like CSS hooks, malformed braces, and oversized payloads are refused before persistence.
+ */
+export function sanitizeCustomCss(value: string): SanitizedCustomCss {
+  const normalized = value
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "")
+    .slice(0, CUSTOM_CSS_MAX_LENGTH);
+  const forbidden = /@(?:charset|font-face|import|namespace|scope|keyframes?|property|page)\b|url\s*\(|expression\s*\(|(?:^|[;{\s])(?:behavior|-moz-binding)\s*:/i;
+  if (forbidden.test(normalized) || !balancedCss(normalized)) {
+    return { value: "", changed: normalized.length > 0 };
+  }
+  return { value: normalized, changed: normalized !== value };
+}
+
+function normalizeCustomCss(value: unknown): CustomCssRules {
+  const raw = asRecord(value);
+  const result = { ...EMPTY_CUSTOM_CSS };
+  for (const scope of CUSTOM_CSS_SCOPE_IDS) {
+    const candidate = raw[scope];
+    if (typeof candidate === "string") {
+      result[scope] = sanitizeCustomCss(candidate).value;
+    }
+  }
+  return result;
+}
+
+function balancedCss(value: string): boolean {
+  let depth = 0;
+  let quote: '"' | "'" | null = null;
+  let escaped = false;
+  let comment = false;
+  for (let index = 0; index < value.length; index += 1) {
+    const current = value[index]!;
+    const next = value[index + 1];
+    if (comment) {
+      if (current === "*" && next === "/") {
+        comment = false;
+        index += 1;
+      }
+      continue;
+    }
+    if (quote !== null) {
+      if (escaped) {
+        escaped = false;
+      } else if (current === "\\") {
+        escaped = true;
+      } else if (current === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (current === "/" && next === "*") {
+      comment = true;
+      index += 1;
+    } else if (current === "\"" || current === "'") {
+      quote = current;
+    } else if (current === "{") {
+      depth += 1;
+    } else if (current === "}") {
+      depth -= 1;
+      if (depth < 0) return false;
+    }
+  }
+  return depth === 0 && quote === null && !comment;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {

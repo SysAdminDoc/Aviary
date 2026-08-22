@@ -3,6 +3,10 @@ import type { PanelContext } from "../panel-context";
 export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
   const rows = [
       ctx.storageStatusRow(),
+      ctx.readonlyRow(
+        "Custom CSS safety",
+        "Custom CSS is local, scoped to the named surface, and never sent with diagnostics. It is a power-user override, so support cannot reproduce its visual effects."
+      ),
       ctx.toggleRow(
         "Local-only mode",
         "Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off.",

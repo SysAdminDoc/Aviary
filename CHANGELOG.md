@@ -4,6 +4,25 @@
 
 No changes yet.
 
+## 1.40.0 (2026-08-22)
+
+### Added
+
+- **Power users can tune Aviary's surfaces with local CSS.** Appearance now has separate overrides
+  for posts, media actions, navigation, the sidebar, and the composer. Each editor is wrapped in a
+  stable `@scope` boundary when the browser supports it, with a selector fallback for Aviary's
+  Firefox floor. Rules are capped at 12,000 characters and refuse imports, remote URLs, and malformed
+  input before saving. Trust explains that these overrides are local and unsupported for visual
+  reproduction.
+
+### Verification
+
+- Added settings normalization and browser coverage for scoped markers, persistence boundaries,
+  unsafe CSS rejection, and cleanup when the feature is turned off.
+- Feature-bisect now waits for the serialized apply pass before reading the page, preventing a
+  delayed media teardown from naming an unrelated feature. Delivery budgets are 2.50 MB for the
+  content bundles to account for the localized controls.
+
 ## 1.39.0 (2026-08-22)
 
 ### Changed
@@ -83,7 +102,8 @@ No changes yet.
   counters together.
 
 - **The delivery-size ceiling now includes the deeper local media, filtering, preservation,
-  catch-up, and bookmark workflows.** The main bundle allowance is 2.45 MB after adding media fingerprints,
+  catch-up, and bookmark workflows.** The main bundle allowance is 2.50 MB after adding the scoped
+  custom CSS controls in v1.40.0, media fingerprints,
   resumable captured-media batches, portable rules in eight languages, offline archive repair,
   hybrid search, the WARC/WACZ writer plus its dedicated worker, the bounded local digest, and the
   bookmark mirror/parser plus bulk export formats. The worker keeps archive assembly off X's reading

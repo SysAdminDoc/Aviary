@@ -39,7 +39,8 @@ export interface FeatureContext {
    */
   registry?: FeatureRegistry;
   saveSettings(): Promise<void>;
-  requestApply(): void;
+  /** Request a serialized apply pass. Live boot contexts return its completion promise. */
+  requestApply(): void | Promise<void>;
 }
 
 export interface FeatureStatus {

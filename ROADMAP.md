@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.39.0`
+Version: `1.40.0`
 
 Actionable work only. Historical and completed roadmap material is archived in CHANGELOG.md; blocked work is kept in Roadmap_Blocked.md.
 
@@ -9,14 +9,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 ## Research-Driven Additions (2026-08-14)
 
 ### P2, high-value features
-
-- [ ] F129, P3, Per-module custom CSS escape hatch
-  Why: table stakes in OldTwitter/TUIC/GT2 lineage for power users; bounded per-module scoping keeps it reversible and off the support path.
-  Evidence: TUIC CSS packs; OldTwitter custom CSS; RESEARCH.md Competitive.
-  Touches: settings (per-module css string), theme/feature style injection, Trust copy (unsupported-styles disclaimer).
-  Acceptance: user CSS applies within a module's scope attribute, survives reload, and is excluded from bug-report expectations; off by default.
-  Complexity: M
-  Note (2026-08-15): build the injection on CSS `@scope` (Chrome 118 / Firefox 146 / Safari 26.4, and esbuild parses it since 0.27.3) rather than an attribute-prefix rewrite. If Aviary ever publishes, the store-compliant route for user-supplied *script* is the `chrome.userScripts` `USER_SCRIPT` world, which is exempt from page CSP, but that needs manifest floors raised, so keep this item CSS-only.
 
 ## Research-Driven Additions (2026-08-15)
 
