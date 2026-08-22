@@ -1361,7 +1361,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       item.type = "button";
       item.dataset.avSection = entry.id;
       item.style.setProperty("--av-page-accent", entry.accent);
-      const selected = searchQuery.length === 0 && entry.id === activeSectionId;
+      const selected = searchQuery.trim().length === 0 && entry.id === activeSectionId;
       item.classList.toggle("is-active", selected);
       // A rail of buttons is a tablist in behaviour; say so rather than leaving it to guesswork.
       item.setAttribute("aria-current", selected ? "true" : "false");
@@ -1408,7 +1408,10 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
   const buildContent = (registry: PanelSection[]): HTMLElement => {
     const content = el("div", "av-content");
-    if (searchQuery.length > 0) {
+    // Trimmed, because `searchResults` matches on the trimmed needle: a query of only spaces
+    // passed this gate with an empty needle, `includes("")` matched every row, and all fourteen
+    // sections were built at once -- per keystroke, and with the rail's aria-current cleared.
+    if (searchQuery.trim().length > 0) {
       content.append(...searchResults(registry));
       return content;
     }
@@ -2688,10 +2691,15 @@ const CONTROL_CENTER_CSS = `
   background: rgb(24, 42, 54);
 }
 
+/* The forced-colors block below already lists .av-nav-item and textarea; leaving them out here
+   meant the panel's primary navigation fell back to the UA ring in ordinary rendering while every
+   control beside it carried Aviary's. */
 .av-launcher:focus-visible,
 .av-button:focus-visible,
 .av-select:focus-visible,
-input:focus-visible {
+.av-nav-item:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
   outline: 2px solid var(--av-accent, rgb(29, 155, 240));
   outline-offset: 3px;
 }

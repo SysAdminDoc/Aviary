@@ -286,7 +286,7 @@ Every control Aviary offers, by Control Center page. 87 controls across 12 pages
 | Show read marker | Keep a local position for each feed and show a new since you last looked line. It never adds an unread badge. |
 | Writer mode | While focus is in the composer, fade the sidebar and the timeline behind it. Everything returns the moment you click away. |
 | Open Following instead of For you | Selects the second home tab each time you arrive at the timeline. Switch back to For you and it stays there until you navigate away. |
-| Hide navigation items | One stable X navigation id per line: home, explore, notifications, follow, chat, grok, history, studio, premium, profile, or more. |
+| Hide navigation items | One stable X navigation id per line: home, explore, notifications, follow, chat, messages, grok, history, studio, premium, profile, or more. |
 
 #### Performance
 

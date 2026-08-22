@@ -428,3 +428,60 @@ test("every action row that can reject says what failed and what to do", async (
       `every failure reads "Action failed.": ${silent.join(", ")}`
   );
 });
+
+/**
+ * An integer row must enforce the range its own description promises.
+ *
+ * `integerInputRow` writes its `bounds` argument to the input's `min`/`max`, and `commitDraft`
+ * gates on `checkValidity()`. Three rows omitted it while the normalizer clamped a real range, so
+ * the panel accepted an out-of-range value, confirmed it, let the features use it for the rest of
+ * the session, and let the next reload substitute a different number with nothing said.
+ */
+test("every integer row whose description states a range enforces it", async () => {
+  const directory = path.join(root, "src/ui/control-center/sections");
+  const files = await listFiles(directory, ".ts");
+  const unbounded = [];
+
+  for (const file of files) {
+    const text = await readFile(file, "utf8");
+    const relative = path.relative(root, file);
+
+    for (const match of text.matchAll(/ctx\.integerInputRow\(/g)) {
+      let index = match.index + match[0].length;
+      let depth = 1;
+      let args = 1;
+      let quote = null;
+      while (index < text.length && depth > 0) {
+        const char = text[index];
+        if (quote) {
+          if (char === "\\") index += 1;
+          else if (char === quote) quote = null;
+        } else if (char === '"' || char === "'" || char === "`") {
+          quote = char;
+        } else if (char === "(" || char === "[" || char === "{") {
+          depth += 1;
+        } else if (char === ")" || char === "]" || char === "}") {
+          depth -= 1;
+          if (depth === 0) break;
+        } else if (char === "," && depth === 1) {
+          args += 1;
+        }
+        index += 1;
+      }
+      const body = text.slice(match.index, index);
+      // A description that states a range in parentheses, or a label in MB, is a promise.
+      const promisesRange = /\(\d+-\d+\)/.test(body) || /\(MB\)/.test(body);
+      if (promisesRange && args < 5) {
+        const label = /"([^"]+)"/.exec(body);
+        unbounded.push(`${relative} ${label ? label[1] : "?"}`);
+      }
+    }
+  }
+
+  assert.deepEqual(
+    unbounded,
+    [],
+    `these rows state a range and do not enforce it, so the panel confirms a value the normalizer ` +
+      `will silently replace: ${unbounded.join(", ")}`
+  );
+});

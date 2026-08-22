@@ -349,7 +349,7 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
   rows.push(
     ctx.textareaRow(
       "Hide navigation items",
-      "One stable X navigation id per line: home, explore, notifications, follow, chat, grok, history, studio, premium, profile, or more.",
+      "One stable X navigation id per line: home, explore, notifications, follow, chat, messages, grok, history, studio, premium, profile, or more.",
       ctx.options.settings.layout.hideNavItems,
       async (lines) => {
         ctx.options.settings.layout.hideNavItems = [...new Set(
@@ -986,7 +986,10 @@ export function buildHiddenPostRows(ctx: PanelContext): HTMLElement[] {
       async (value) => {
         ctx.options.settings.hidden.maxEntries = value;
         await ctx.save(`Hidden post limit set to ${ctx.options.settings.hidden.maxEntries}`);
-      }
+      },
+      // The same range the description states and the normalizer clamps to. Without it the panel
+      // accepted anything, confirmed it, and let the next reload substitute a different number.
+      { min: 100, max: 50_000 }
     )
   );
 

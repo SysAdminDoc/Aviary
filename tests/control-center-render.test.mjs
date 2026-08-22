@@ -422,3 +422,86 @@ test("a section that cannot be drawn says so and leaves the rest of the panel us
   assert.ok(result.recovered.rows > 0);
   assert.ok(result.searched > 0, "a search must not stop at the section that cannot be built");
 });
+
+/**
+ * A query of only spaces must not build the whole panel.
+ *
+ * `buildContent` gated on the raw query while `searchResults` matched on the trimmed one, so a
+ * single space passed the gate with an empty needle, `includes("")` matched every row, and all
+ * fourteen sections were built at once -- per keystroke, with no debounce, and with the rail's
+ * `aria-current` cleared so the panel looked like it had lost its place.
+ */
+test("a whitespace-only search renders one section, not all of them", async () => {
+  const counts = await page.evaluate(() => {
+    const settings = AviaryCC.cloneSettings(AviaryCC.DEFAULT_SETTINGS);
+    const handle = AviaryCC.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: () => {}
+    });
+    const shadow = document.querySelector("#av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+
+    const measure = () => ({
+      sections: shadow.querySelectorAll(".av-section").length,
+      current: shadow.querySelectorAll('.av-nav-item[aria-current="page"]').length
+    });
+
+    const search = shadow.querySelector(".av-search-input");
+    const baseline = measure();
+
+    search.value = "   ";
+    search.dispatchEvent(new Event("input", { bubbles: true }));
+    const whitespace = measure();
+
+    search.value = "theme";
+    search.dispatchEvent(new Event("input", { bubbles: true }));
+    const real = measure();
+
+    handle.destroy();
+    return { baseline, whitespace, real };
+  });
+
+  assert.equal(counts.whitespace.sections, counts.baseline.sections, "a blank query is not a query");
+  assert.equal(counts.whitespace.current, counts.baseline.current, "the rail must keep its place");
+  assert.ok(counts.real.sections >= 1, "a real query still searches");
+});
+
+/**
+ * Every focusable control in the panel carries Aviary's own ring.
+ *
+ * `.av-nav-item` and `textarea` were listed in the forced-colors block and missing from the
+ * ordinary one, so the panel's primary navigation fell back to the UA ring while every control
+ * beside it did not.
+ */
+test("the nav rail and textareas carry the panel's own focus ring", async () => {
+  const outlines = await page.evaluate(() => {
+    const settings = AviaryCC.cloneSettings(AviaryCC.DEFAULT_SETTINGS);
+    const handle = AviaryCC.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: () => {}
+    });
+    const shadow = document.querySelector("#av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+
+    const read = (node) => {
+      if (!node) return null;
+      node.focus();
+      const style = getComputedStyle(node);
+      return { style: style.outlineStyle, width: style.outlineWidth };
+    };
+    const out = {
+      navItem: read(shadow.querySelector(".av-nav-item")),
+      button: read(shadow.querySelector(".av-button"))
+    };
+    handle.destroy();
+    return out;
+  });
+
+  assert.ok(outlines.navItem, "the panel must have a nav item to focus");
+  assert.equal(outlines.navItem.style, "solid", "the nav item must carry the authored ring");
+  assert.equal(outlines.navItem.width, outlines.button.width, "and the same width as every other control");
+});

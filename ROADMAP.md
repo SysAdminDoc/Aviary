@@ -260,26 +260,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Confidence: Verified
   Effort: S
 
-- [ ] P2 — F228, The Hide-navigation help text omits an id the code accepts
-  Category: docs
-  Where: `src/ui/control-center/sections/reading.ts:352`; the accepted set is `HIDE_NAV_ITEM_IDS` at `src/ui/control-center/constants.ts:49-62`.
-  Problem: the helper text lists eleven ids — home, explore, notifications, follow, chat, grok, history, studio, premium, profile, more — and the set contains twelve. `messages` is accepted by the filter at `reading.ts:358` and named nowhere in the UI, so a user who wants to hide the Messages row has no way to learn the id, and the filter silently drops anything not in the set, giving no feedback that a guess was wrong.
-  Evidence: `constants.ts:49-62` lists `"premium", "home", "explore", "notifications", "follow", "chat", "messages", "grok", "history", "studio", "profile", "more"`. The description at `reading.ts:352` omits `messages`.
-  Fix: add `messages` to the sentence, keeping the code's order so the two stay comparable. Better still, derive the list from `HIDE_NAV_ITEM_IDS` so it cannot drift again, and surface the ids the textarea rejected instead of dropping them silently. Re-run the i18n extractor after any wording change.
-  Acceptance: a test asserts every member of `HIDE_NAV_ITEM_IDS` appears in the row's description string.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — F229, The panel's navigation buttons and textareas have no Aviary focus ring outside forced-colors mode
-  Category: a11y
-  Where: `src/ui/control-center.ts:2648-2654` (the base `:focus-visible` rule) versus `:3740-3749` (the same rule inside `@media (forced-colors: active)`).
-  Problem: the base rule covers `.av-launcher`, `.av-button`, `.av-select` and `input`. The forced-colors rule covers those four plus `.av-nav-item` and `textarea`. `.av-nav-item` is a real `<button>` (`control-center.ts:1325`) and is the panel's primary navigation, so in ordinary rendering the most-used control in the panel falls back to the UA ring while everything beside it shows Aviary's 2px accent ring at 3px offset. The forced-colors list containing both names is direct evidence the omission upstream is an oversight rather than a decision.
-  Evidence: `:2648-2651` reads `.av-launcher:focus-visible, .av-button:focus-visible, .av-select:focus-visible, input:focus-visible {`; `:3744-3746` reads `.av-nav-item:focus-visible, input:focus-visible, textarea:focus-visible {`. `grep -n "av-nav-item" src/ui/control-center.ts` shows its only other `:focus-visible` mention is that forced-colors block.
-  Fix: add `.av-nav-item:focus-visible` and `textarea:focus-visible` to the selector list at `:2648`. The ring colour `var(--av-accent, rgb(29, 155, 240))` measures about 6:1 against the panel surface `#0E1318`, so it is visible with the default theme as well as every named one.
-  Acceptance: `tests/a11y-behaviour.test.mjs` gains an assertion that every focusable control in the panel shadow root has a non-`none` computed `outline-style` when focus-visible, not just an accessible name.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — F230, The i18n extractor hard-codes a stale copy of the preset data it claims is real
   Category: maintainability
   Where: `tools/i18n-extract.mjs:104-106`; the real data is `src/features/core/presets.ts:40-43`.
@@ -381,26 +361,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Confidence: Verified
   Effort: S
 
-- [ ] P2 — F252, Three settings rows accept values the normalizer silently replaces on the next reload
-  Category: correctness
-  Where: `src/ui/control-center/sections/reading.ts:975` ("Maximum remembered posts"), `src/ui/control-center/sections/data.ts:1203` ("Records per ZIP"), `src/ui/control-center/sections/advanced.ts:377` ("Hand off files larger than (MB)"). The helper is `src/ui/control-center.ts:2239-2282` (`integerInputRow`).
-  Problem: `integerInputRow` takes an optional `bounds` argument and writes it to `input.min` / `input.max`, and `commitDraft` gates on `checkValidity()`. These three call sites omit it, so the input carries `min="0"` and no maximum while the normalizer clamps a real range. Two of them state that range in their own helper text and then do not enforce it. The panel confirms the value with a success message, the features read it live for the rest of the session, and a reload substitutes a different number with no notice. `aria2.minBytes` is the worst of the three: `src/features/integrations/aria2.ts:91` compares `estimatedBytes >= integration.minBytes`, so a typed `0` hands every download to Aria2 for the session, and the value does not come back as the 50 MB default afterwards — it comes back as 1 MB, the clamp floor.
-  Evidence: measured by calling the real `normalizeSettings`: `hidden.maxEntries` 0 → 100, `media.zipChunkSize` 100000 → 1000, `integrations.aria2.minBytes` 0 → 1000000. The three call sites pass four arguments where the working examples pass five: `src/ui/control-center/sections/advanced.ts:698` passes `{ max: INTEGRATION_BUDGET_CEILINGS.ai.maxRequestBytes }`, `data.ts:1620` passes `{ min: 1, max: 6 }`, and `reading.ts:669` passes `{ min: 0, max: 1_000_000 }`. The MB-to-bytes conversion at `advanced.ts:380-382` is correct and is not part of this finding.
-  Fix: pass `bounds` matching the normalizer's clamp on all three, reading the same constants the normalizer reads so the two cannot drift.
-  Acceptance: a test asserts that for every `integerInputRow` whose setting the normalizer clamps, the rendered input's `min` and `max` equal the clamp bounds.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — F253, A single space in the settings search builds every section at once
-  Category: perf
-  Where: `src/ui/control-center.ts:1374-1383` (`buildContent`) and `:1391-1392` (`searchResults`).
-  Problem: `buildContent` gates on `if (searchQuery.length > 0)` using the untrimmed value, while `searchResults` computes `needle = searchQuery.trim().toLowerCase()`. For a query of `"   "` the gate passes with an empty needle, `includes("")` is true for every row, and all fourteen sections are built at once — the exact full-panel render the section registry exists to avoid, as its own comment at `:1386-1389` says. It also runs every section's option callbacks (`getSelectorHealth`, `getMediaStatus`, `getBookmarkStatus`, `searchBookmarks` and the rest) and clears the rail's `aria-current`, so the panel looks like it lost its place. There is no debounce on the search input, so this happens per keystroke.
-  Evidence: read at the cited lines; the raw-versus-trimmed mismatch is on adjacent code paths. Driven in the panel: with no query, 1 section and 1 row rendered with the rail's `aria-current` set; with the query `"   "`, 12 sections and 124 rows rendered and no `aria-current`.
-  Fix: compute `needle` once at the top and gate `buildContent` on `needle.length > 0`. Add a short debounce to the search input while there.
-  Acceptance: a test sets the search query to `"   "` and asserts the panel renders one section, and that `aria-current` is still set on the rail.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — F254, Two settings collections have no size bound
   Category: reliability
   Where: `src/platform/settings.ts:1108-1120` (`mediaTypeRecord`) and `:1158` (`urlValue`) / `:1192` (`credentialedUrlValue`).
@@ -430,16 +390,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Acceptance: a test diffs a 400-row snapshot against a 150-row snapshot of the same list and asserts the report is labelled partial rather than naming 250 removals.
   Confidence: Verified
   Effort: M
-
-- [ ] P2 — F257, The unified library search is the one panel handler with an unguarded await
-  Category: reliability
-  Where: `src/ui/control-center/sections/data.ts:557-566` (`renderUnified`) and its two call sites, both `void renderUnified()`.
-  Problem: `renderUnified` calls `results.replaceChildren()` and then awaits either `ctx.options.offlineSemanticSearch(query)` or `ctx.options.offlineSearch(query)` with no try/catch, and both callers discard the promise. `offlineSemanticSearch` reaches `semanticIndex.search(..., { allowProviderRequest: true })` at `src/features/core/control-center.ts:701`, a live provider request. A provider failure therefore becomes an unhandled promise rejection, and because the results area has already been cleared the user is left looking at an empty pane with no message, no status line and no diagnostics entry. The sibling Semantic search row at `src/ui/control-center/sections/advanced.ts:902` wraps the same class of call in a `.catch` that routes to `ctx.options.onError`, so the pattern is established.
-  Evidence: read at the cited lines. A sweep of the other 27 `addEventListener` handlers in `src/ui/control-center/sections/` found every one either goes through `actionRow`'s shared rejection boundary at `src/ui/control-center.ts:1013-1045` or carries its own `.catch` plus a `.finally` that re-enables its button. This is the only one that does neither.
-  Fix: wrap the body in try/catch and route to `ctx.options.onError` and `ctx.setStatus`, matching `advanced.ts:902`.
-  Acceptance: a test makes `offlineSemanticSearch` reject and asserts the status line reports the failure and no unhandled rejection is raised.
-  Confidence: Verified
-  Effort: S
 
 ### P3
 

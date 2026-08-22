@@ -21,6 +21,20 @@
   silence.
 
 ### Fixed
+- Typing a space into the settings search no longer builds every section at once. The gate ran on
+  the untrimmed query while the match ran on the trimmed one, so a blank query matched every row,
+  rebuilt the whole panel on each keystroke, and cleared the rail's current destination.
+- The panel's navigation rail and its text areas carry Aviary's own focus ring in ordinary
+  rendering. They were listed only in the high-contrast block, so they fell back to the browser's
+  ring while every control beside them did not.
+- Three settings that state a range now enforce it. Maximum remembered posts, Records per ZIP and
+  the Aria2 hand-off threshold accepted any number, confirmed it, and let the next reload quietly
+  substitute a different one. An Aria2 threshold of zero meant every download was handed off.
+- The Hide navigation items help text names `messages`, which the field has always accepted and
+  silently discarded from anyone who guessed a different spelling.
+- A failed library search says so. The unified search cleared its results and then awaited a
+  provider with nothing catching a rejection, so a failure left an empty pane and no message.
+
 - Every panel action that can fail now says what failed and what to do next, in the reader's own
   language. Pausing an import, cancelling an export, resuming queued downloads and eleven other
   controls all reported the same three words, "Action failed.", while the real reason went only to

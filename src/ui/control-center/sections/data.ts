@@ -568,9 +568,19 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
         results.append(ctx.el("div", "av-row-description", ctx.t("Try source:bookmarks, tag:reading, or has:media.")));
         return;
       }
-      const matches = ctx.state.unifiedSemantic && ctx.options.offlineSemanticSearch
-        ? await ctx.options.offlineSemanticSearch(query)
-        : ctx.options.offlineSearch!(query);
+      let matches: ReturnType<NonNullable<typeof ctx.options.offlineSearch>>;
+      try {
+        matches = ctx.state.unifiedSemantic && ctx.options.offlineSemanticSearch
+          ? await ctx.options.offlineSemanticSearch(query)
+          : ctx.options.offlineSearch!(query);
+      } catch (error) {
+        // The semantic path reaches a provider, so this rejects in the ordinary course of things.
+        // The results area has already been cleared, so without this the reader was left looking
+        // at an empty pane with no message anywhere.
+        ctx.options.onError("Library search failed", error);
+        ctx.setStatus("Library search failed. Check the embedding endpoint and key in Integrations.");
+        return;
+      }
       if (sequence !== searchSequence) return;
       if (matches.length === 0) {
         results.append(ctx.el("div", "av-row-description", ctx.t("No local collections match this search.")));
@@ -1214,7 +1224,8 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
         async (value) => {
           ctx.options.settings.media.zipChunkSize = value;
           await ctx.save("Records per ZIP saved");
-        }
+        },
+        { min: 25, max: 1000 }
       )
     );
     const policy = ctx.options.getRetentionPolicy();

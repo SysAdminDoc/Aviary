@@ -384,7 +384,10 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
       async (value) => {
         integrations.aria2.minBytes = Math.max(0, value) * 1_000_000;
         await ctx.save("Aria2 threshold saved");
-      }
+      },
+      // In MB, matching the label. The normalizer's floor is one megabyte, and a typed 0 meant
+      // every download was handed off for the rest of the session before a reload replaced it.
+      { min: 1, max: 5000 }
     )
   );
   if (ctx.options.pingAria2) {
