@@ -970,7 +970,19 @@ export function sanitizeCustomCss(value: string): SanitizedCustomCss {
   const normalized = value
     .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "")
     .slice(0, CUSTOM_CSS_MAX_LENGTH);
-  const forbidden = /@(?:charset|font-face|import|namespace|scope|keyframes?|property|page)\b|url\s*\(|expression\s*\(|(?:^|[;{\s])(?:behavior|-moz-binding)\s*:/i;
+  // A blocklist over source text cannot decide what the CSS tokenizer will do, because the
+  // tokenizer unescapes an identifier before it resolves the function name: an escape spelling
+  // out u-r-l is url() to the parser and something else entirely to a regex. Nothing in a bounded
+  // declaration language needs an escape, so refusing every backslash is what makes the rest of
+  // this list mean what it says.
+  if (normalized.includes("\\")) {
+    return { value: "", changed: normalized.length > 0 };
+  }
+  // url() is not the only way to name a remote file: image-set() and cross-fade() take a bare
+  // <string> as a URL, src: is a descriptor that loads one, and paint() runs a worklet.
+  // -webkit-image-set is covered by the image-set alternative.
+  const forbidden =
+    /@(?:charset|font-face|import|namespace|scope|keyframes?|property|page)\b|(?:url|expression|image-set|cross-fade|paint)\s*\(|(?:^|[;{\s])(?:behavior|-moz-binding|src)\s*:/i;
   if (forbidden.test(normalized) || !balancedCss(normalized)) {
     return { value: "", changed: normalized.length > 0 };
   }
@@ -1005,6 +1017,13 @@ function balancedCss(value: string): boolean {
       continue;
     }
     if (quote !== null) {
+      // A newline inside a CSS string is a parse error: the tokenizer emits a bad-string token
+      // and ends the string there. Counting on past it is what let a payload hide a real
+      // block-closing brace inside what this function believed was still a string, and so escape
+      // the generated @scope block. It is never intentional, so refuse rather than resynchronize.
+      if (current === "\n" || current === "\r") {
+        return false;
+      }
       if (escaped) {
         escaped = false;
       } else if (current === "\\") {

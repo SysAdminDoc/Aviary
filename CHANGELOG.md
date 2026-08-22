@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Security
+
+- Custom CSS can no longer reach the network or paint outside the surface it was written for.
+  The old blocklist looked for the literal text `url(`, but `image-set()` and `cross-fade()` take
+  a bare string as a URL, an identifier escape spells `url` without a regex ever seeing it, and
+  `src:` and `paint()` load their own resources. Escapes are now refused outright, the blocklist
+  covers the other four routes, and a newline inside a quoted string ends that string the way the
+  CSS parser does, so a payload can no longer hide a real closing brace inside one and escape its
+  generated scope block.
+
 ### Fixed
 
 - The Control Center no longer covers the page on load. Since the move to native popovers the

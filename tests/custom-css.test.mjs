@@ -141,3 +141,91 @@ test("custom CSS has a selector fallback below the @scope browser floor", async 
   assert.match(fallback, /@media \(min-width: 1px\)/);
   assert.match(fallback, /a\[data-av-custom-css-scope~="navigation"\]/);
 });
+
+/**
+ * The sanitizer is the only gate on custom CSS, and custom CSS is not only self-typed: it rides a
+ * shared settings file verbatim through parseSettingsImport and through a library restore.
+ *
+ * Three shapes got past the old blocklist. image-set() and cross-fade() take a bare <string> as a
+ * URL, so neither needs the url( token the regex looked for. A CSS identifier escape spells url
+ * without the regex ever seeing it, because the tokenizer unescapes before it resolves the
+ * function name. And balancedCss let a quoted string run across a newline while the real tokenizer
+ * ends it there, so braces it counted as "inside a string" were real block-closing tokens and the
+ * rule escaped its generated @scope block onto the whole page.
+ *
+ * The controls in the second half matter as much as the attacks: a gate that refuses everything is
+ * not a fix.
+ */
+test("custom CSS sanitization refuses every route to a remote file or a wider scope", async () => {
+  const result = await page.evaluate((backslash) => {
+    const refuse = {
+      imageSet: 'p { background-image: image-set("https://evil.example/x.png" 1x); }',
+      webkitImageSet: 'p { background-image: -webkit-image-set("https://evil.example/x.png" 1x); }',
+      crossFade: 'p { background-image: cross-fade(image-set("https://evil.example/x.png" 1x) 50%, red); }',
+      escapedUrl: 'p { background-image: ' + backslash + '75 rl("https://evil.example/x.png"); }',
+      srcDescriptor: 'p { src: "https://evil.example/x.woff2"; }',
+      paintWorklet: "p { background-image: paint(evil); }",
+      newlineBraceEscape: '.a { content: "x' + String.fromCharCode(10) + '}' + String.fromCharCode(10) + '}' + String.fromCharCode(10) + '#outside { outline: 5px solid rgb(0,128,0); }' + String.fromCharCode(10) + '"; }'
+    };
+    const keep = {
+      declaration: ".card { color: red; }",
+      nestedMedia: "@media (min-width: 1px) { .card { color: red; } }",
+      attributeSelector: '[data-x="1"] > p { color: red; }',
+      quotedContent: '.a::after { content: "hello"; }',
+      comment: "/* note */ .a { color: red; }",
+      colorMix: ".a { background: color-mix(in srgb, red 50%, blue); }",
+      selectorList: ".a, .b > .c { color: red; }"
+    };
+    const accepted = {};
+    for (const [name, css] of Object.entries(refuse)) {
+      accepted[name] = AviaryCustomCss.sanitizeCustomCss(css).value.length > 0;
+    }
+    const preserved = {};
+    for (const [name, css] of Object.entries(keep)) {
+      preserved[name] = AviaryCustomCss.sanitizeCustomCss(css).value === css;
+    }
+    return { accepted, preserved };
+  }, String.fromCharCode(92));
+
+  for (const [name, wasAccepted] of Object.entries(result.accepted)) {
+    assert.equal(wasAccepted, false, `${name} must be refused`);
+  }
+  for (const [name, wasPreserved] of Object.entries(result.preserved)) {
+    assert.equal(wasPreserved, true, `${name} is ordinary CSS and must survive unchanged`);
+  }
+});
+
+/**
+ * The scoped output must be one rule, whatever it was handed.
+ *
+ * Measuring the emitted sheet rather than the sanitizer's verdict is the half that would have
+ * caught the escape: the payload was accepted, and the browser then parsed three top-level rules
+ * where the author expected one, painting an element outside the scope root.
+ */
+test("scoped custom CSS never emits a rule outside its own scope block", async () => {
+  const outsideStyle = await page.evaluate(() => {
+    document.body.innerHTML = '<article data-testid="tweet"></article><div id="outside">out</div>';
+    const payload = '.a { content: "x' + String.fromCharCode(10) + '}' + String.fromCharCode(10) + '}' + String.fromCharCode(10) + '#outside { outline: 7px solid rgb(0, 128, 0); }' + String.fromCharCode(10) + '"; }';
+    AviaryCustomCss.applyCustomCss({
+      posts: payload,
+      media: "",
+      navigation: "",
+      sidebar: "",
+      composer: ""
+    });
+    const outside = getComputedStyle(document.getElementById("outside"));
+    const style = document.getElementById("av-custom-css");
+    return {
+      // outline-width computes to 3px (medium) even when nothing is painted, so the style is the
+      // property that actually says whether the payload reached this element.
+      outlineStyle: outside.outlineStyle,
+      topLevelRules: style?.sheet ? style.sheet.cssRules.length : 0
+    };
+  });
+
+  assert.equal(outsideStyle.outlineStyle, "none");
+  assert.ok(
+    outsideStyle.topLevelRules <= 1,
+    `the payload must not add top-level rules, saw ${outsideStyle.topLevelRules}`
+  );
+});

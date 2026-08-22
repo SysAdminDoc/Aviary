@@ -177,10 +177,18 @@ function findNextBrace(source: string, start: number): number {
       continue;
     }
     if (quote) {
-      if (escaped) escaped = false;
-      else if (current === "\\") escaped = true;
-      else if (current === quote) quote = null;
-      continue;
+      // A newline inside a CSS string is a parse error: the tokenizer emits a bad-string token and
+      // ends the string there. Tracking on past it is what let a real block-closing brace hide
+      // inside what this scan believed was still a string. End the string and reprocess the
+      // character the way the tokenizer would.
+      if (current !== "\n" && current !== "\r") {
+        if (escaped) escaped = false;
+        else if (current === "\\") escaped = true;
+        else if (current === quote) quote = null;
+        continue;
+      }
+      quote = null;
+      escaped = false;
     }
     if (current === "/" && next === "*") {
       comment = true;
@@ -211,10 +219,18 @@ function findMatchingBrace(source: string, open: number): number {
       continue;
     }
     if (quote) {
-      if (escaped) escaped = false;
-      else if (current === "\\") escaped = true;
-      else if (current === quote) quote = null;
-      continue;
+      // A newline inside a CSS string is a parse error: the tokenizer emits a bad-string token and
+      // ends the string there. Tracking on past it is what let a real block-closing brace hide
+      // inside what this scan believed was still a string. End the string and reprocess the
+      // character the way the tokenizer would.
+      if (current !== "\n" && current !== "\r") {
+        if (escaped) escaped = false;
+        else if (current === "\\") escaped = true;
+        else if (current === quote) quote = null;
+        continue;
+      }
+      quote = null;
+      escaped = false;
     }
     if (current === "/" && next === "*") {
       comment = true;
@@ -236,10 +252,18 @@ function splitSelectorList(value: string): string[] {
   for (let index = 0; index < value.length; index += 1) {
     const current = value[index]!;
     if (quote) {
-      if (escaped) escaped = false;
-      else if (current === "\\") escaped = true;
-      else if (current === quote) quote = null;
-      continue;
+      // A newline inside a CSS string is a parse error: the tokenizer emits a bad-string token and
+      // ends the string there. Tracking on past it is what let a real block-closing brace hide
+      // inside what this scan believed was still a string. End the string and reprocess the
+      // character the way the tokenizer would.
+      if (current !== "\n" && current !== "\r") {
+        if (escaped) escaped = false;
+        else if (current === "\\") escaped = true;
+        else if (current === quote) quote = null;
+        continue;
+      }
+      quote = null;
+      escaped = false;
     }
     if (current === '"' || current === "'") quote = current;
     else if (current === "[") brackets += 1;
@@ -279,10 +303,18 @@ function firstCombinatorIndex(value: string): number {
   for (let index = 0; index < value.length; index += 1) {
     const current = value[index]!;
     if (quote) {
-      if (escaped) escaped = false;
-      else if (current === "\\") escaped = true;
-      else if (current === quote) quote = null;
-      continue;
+      // A newline inside a CSS string is a parse error: the tokenizer emits a bad-string token and
+      // ends the string there. Tracking on past it is what let a real block-closing brace hide
+      // inside what this scan believed was still a string. End the string and reprocess the
+      // character the way the tokenizer would.
+      if (current !== "\n" && current !== "\r") {
+        if (escaped) escaped = false;
+        else if (current === "\\") escaped = true;
+        else if (current === quote) quote = null;
+        continue;
+      }
+      quote = null;
+      escaped = false;
     }
     if (current === '"' || current === "'") quote = current;
     else if (current === "[") brackets += 1;

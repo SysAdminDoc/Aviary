@@ -651,7 +651,10 @@ var Aviary = (() => {
   }
   function sanitizeCustomCss(value) {
     const normalized = value.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "").slice(0, CUSTOM_CSS_MAX_LENGTH);
-    const forbidden = /@(?:charset|font-face|import|namespace|scope|keyframes?|property|page)\b|url\s*\(|expression\s*\(|(?:^|[;{\s])(?:behavior|-moz-binding)\s*:/i;
+    if (normalized.includes("\\")) {
+      return { value: "", changed: normalized.length > 0 };
+    }
+    const forbidden = /@(?:charset|font-face|import|namespace|scope|keyframes?|property|page)\b|(?:url|expression|image-set|cross-fade|paint)\s*\(|(?:^|[;{\s])(?:behavior|-moz-binding|src)\s*:/i;
     if (forbidden.test(normalized) || !balancedCss(normalized)) {
       return { value: "", changed: normalized.length > 0 };
     }
@@ -684,6 +687,9 @@ var Aviary = (() => {
         continue;
       }
       if (quote !== null) {
+        if (current === "\n" || current === "\r") {
+          return false;
+        }
         if (escaped) {
           escaped = false;
         } else if (current === "\\") {
@@ -1912,10 +1918,14 @@ ${body}
         continue;
       }
       if (quote) {
-        if (escaped) escaped = false;
-        else if (current === "\\") escaped = true;
-        else if (current === quote) quote = null;
-        continue;
+        if (current !== "\n" && current !== "\r") {
+          if (escaped) escaped = false;
+          else if (current === "\\") escaped = true;
+          else if (current === quote) quote = null;
+          continue;
+        }
+        quote = null;
+        escaped = false;
       }
       if (current === "/" && next === "*") {
         comment = true;
@@ -1945,10 +1955,14 @@ ${body}
         continue;
       }
       if (quote) {
-        if (escaped) escaped = false;
-        else if (current === "\\") escaped = true;
-        else if (current === quote) quote = null;
-        continue;
+        if (current !== "\n" && current !== "\r") {
+          if (escaped) escaped = false;
+          else if (current === "\\") escaped = true;
+          else if (current === quote) quote = null;
+          continue;
+        }
+        quote = null;
+        escaped = false;
       }
       if (current === "/" && next === "*") {
         comment = true;
@@ -1969,10 +1983,14 @@ ${body}
     for (let index = 0; index < value.length; index += 1) {
       const current = value[index];
       if (quote) {
-        if (escaped) escaped = false;
-        else if (current === "\\") escaped = true;
-        else if (current === quote) quote = null;
-        continue;
+        if (current !== "\n" && current !== "\r") {
+          if (escaped) escaped = false;
+          else if (current === "\\") escaped = true;
+          else if (current === quote) quote = null;
+          continue;
+        }
+        quote = null;
+        escaped = false;
       }
       if (current === '"' || current === "'") quote = current;
       else if (current === "[") brackets += 1;
@@ -2010,10 +2028,14 @@ ${body}
     for (let index = 0; index < value.length; index += 1) {
       const current = value[index];
       if (quote) {
-        if (escaped) escaped = false;
-        else if (current === "\\") escaped = true;
-        else if (current === quote) quote = null;
-        continue;
+        if (current !== "\n" && current !== "\r") {
+          if (escaped) escaped = false;
+          else if (current === "\\") escaped = true;
+          else if (current === quote) quote = null;
+          continue;
+        }
+        quote = null;
+        escaped = false;
       }
       if (current === '"' || current === "'") quote = current;
       else if (current === "[") brackets += 1;
