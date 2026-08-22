@@ -231,6 +231,36 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
 
 ### P2
 
+- [ ] P2 — F266, The composer snippet palette opens at the top of the viewport, not next to its trigger
+  Category: visual
+  Where: `src/features/composer/composer-snippets.ts:288` (`positionPopover`) and the `.av-snippet-popover` rule in the same file.
+  Problem: the palette sets an inline `bottom` while the UA's `[popover]` rule supplies `inset: 0`. With `height: fit-content` the box is over-constrained, the browser drops `bottom`, and the palette pins to `top: 0` — so it opens at the top of the screen however far down the composer is. Measured with a trigger at viewport top 607: the palette rendered at top 0.
+  Evidence: reproduced in headless Chromium at both `989cfd2` and `288733f`, so this predates the popover-position work in this session and is not caused by it. `positionPopover` never reads the palette's own height, unlike the AI menu's `positionMenu`, so the flip logic is not involved.
+  Fix: set `top: auto` alongside the inline `bottom` (or in the `.av-snippet-popover` rule) so the box is no longer over-constrained, and confirm against a trigger near the bottom of the viewport.
+  Acceptance: a browser test places the composer toolbar near the bottom of the viewport, opens the palette, and asserts its bounding box sits within a few pixels of the trigger rather than at `top: 0`.
+  Confidence: Verified
+  Effort: S
+
+- [ ] P3 — F267, `readHasLink` still reads the whole article for a post with no caption
+  Category: correctness
+  Where: `src/features/filtering/predicates.ts` (`readHasLink`), the `(textNode ?? article)` fallback.
+  Problem: its own comment says "Only links inside the post's own text; the action bar and quoted chrome are not the author's", and that is true only while a `tweetText` node exists. For a media-only post there is none, so the whole article is searched and the author's own profile link can satisfy a `link is true` rule. This is the same fallback that F246 removed from `readText` two functions above, left in place here.
+  Evidence: read at the cited line after F246 landed. A reviewer could reproduce it on a capture-shaped DOM where profile hrefs are absolute, and could not on a live-X-shaped DOM where they are root-relative, so the reach depends on X's markup rather than on Aviary.
+  Fix: return `false` when there is no `tweetText` node, matching `readText`. If link detection should cover card and quote chrome, that belongs in its own predicate with its own name.
+  Acceptance: a test builds a media-only post whose only anchor is the author's profile link and asserts a `link is true` rule does not match it, with a captioned control that still does.
+  Confidence: Likely
+  Effort: S
+
+- [ ] P3 — F268, Three comments claim a Popover API fallback that does not exist
+  Category: maintainability
+  Where: `src/ui/control-center.ts` (the `showPopover`/`hidePopover` try/catch), `src/features/ai/command-menu.ts`, `src/features/composer/composer-snippets.ts`.
+  Problem: each `try { showPopover?.() } catch {}` carries a comment saying the surface "remains usable in a test host that exposes the attribute but not the methods". Since the closed state is now hidden by `:not(:popover-open)`, a host with the selector but no methods gets an invisible surface instead — and for the Control Center that is the bad end state: `document.body` is made `inert`, the panel takes focus, nothing is visible, and `handlePanelKeyDown` handles only Tab, so UA light-dismiss is the only exit and it cannot fire. No shipping engine has the selector without the methods, so this is unreachable; it is logged because the code asserts the opposite in three places.
+  Evidence: reproduced by deleting `HTMLElement.prototype.showPopover` in a page that still supports the selector — the AI menu and the panel both computed `display: none` with a zero box.
+  Fix: either drop the fallback comments and let the call throw into the caller's own error path, or make the catch fall back to an explicit visible state rather than leaving the surface hidden and the body inert.
+  Acceptance: the comments describe what the code does, or a host without `showPopover` leaves the page usable.
+  Confidence: Verified
+  Effort: S
+
 - [ ] P2 — F221, Five design tokens are referenced by name and defined nowhere
   Category: visual
   Where: `--av-danger` at `src/ui/control-center.ts:3218`; `--av-media-success` at `src/features/media/media-buttons.ts:1457, 1458, 1482`; `--av-media-error` at `:1493`; `--av-media-success-text` at `:1564`; `--av-media-error-text` at `:1573`.
