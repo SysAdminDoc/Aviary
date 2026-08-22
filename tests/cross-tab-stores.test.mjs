@@ -77,7 +77,7 @@ async function load() {
       `export { IntegrationUsageLedger, INTEGRATION_USAGE_KEY } from ${JSON.stringify(abs("src/features/integrations/usage.ts"))};`,
       `export { SnapshotStore, SNAPSHOTS_KEY } from ${JSON.stringify(abs("src/features/library/snapshots.ts"))};`,
       `export { CleanupQueue, CLEANUP_QUEUE_KEY } from ${JSON.stringify(abs("src/features/library/cleanup-queue.ts"))};`,
-      `export { ArchiveLibraryStore, ARCHIVE_LIBRARY_KEY } from ${JSON.stringify(abs("src/features/library/archive-library.ts"))};`,
+      `export { ArchiveLibraryStore, ARCHIVE_LIBRARY_KEY, ARCHIVE_COLLECTION_LIMIT } from ${JSON.stringify(abs("src/features/library/archive-library.ts"))};`,
       `export { withStorageLock, mutateStored } from ${JSON.stringify(abs("src/platform/storage-lock.ts"))};`
     ].join("\n"),
     "utf8"
@@ -649,4 +649,64 @@ test("a cleared cleanup queue stays cleared when the other tab reviews an old it
     { tweetId: "2", handle: "someone", text: "a later post", bucket: "reply", protected: false }
   ]);
   assert.equal(mod.readShared(mod.CLEANUP_QUEUE_KEY).items.length, 1);
+});
+
+/**
+ * Re-importing the same archive settles instead of rotating the store.
+ *
+ * Past the per-collection cap, an entry the cap had dropped was offered again by the same archive,
+ * read as new, appended, and pushed another entry out. So every re-merge moved the retained window
+ * forward by the size of the archive and the store never converged. `importedJobs` was recorded
+ * and never consulted.
+ */
+test("merging the same archive twice changes nothing the second time", async () => {
+  const mod = await load();
+  mod.setSettleDelay(0);
+  const { ARCHIVE_COLLECTION_LIMIT } = mod;
+  assert.equal(typeof ARCHIVE_COLLECTION_LIMIT, "number");
+
+  const store = new mod.ArchiveLibraryStore(mod.tab());
+  await store.load();
+
+  const followers = (from, count) =>
+    Array.from({ length: count }, (_, index) => ({
+      id: `f${from + index}`,
+      handle: `handle${from + index}`,
+      sourceFile: "follower.js"
+    }));
+
+  const collections = (entries) => ({
+    profile: null,
+    account: null,
+    directMessages: [],
+    media: [],
+    followers: entries,
+    following: [],
+    lists: []
+  });
+
+  // Fill past the ceiling, so the cap is actually doing something.
+  await store.merge(collections(followers(0, ARCHIVE_COLLECTION_LIMIT)), "job-fill");
+  await store.merge(collections(followers(ARCHIVE_COLLECTION_LIMIT, 2_000)), "job-extra");
+
+  const afterSecond = mod.readShared(mod.ARCHIVE_LIBRARY_KEY).followers.map((entry) => entry.id);
+  assert.equal(afterSecond.length, ARCHIVE_COLLECTION_LIMIT, "the cap must still be a cap");
+
+  // The same archive again, and again. Nothing may move.
+  await store.merge(collections(followers(0, ARCHIVE_COLLECTION_LIMIT)), "job-fill");
+  const afterRepeat = mod.readShared(mod.ARCHIVE_LIBRARY_KEY).followers.map((entry) => entry.id);
+  assert.deepEqual(afterRepeat, afterSecond, "re-merging a recorded archive rotated the store");
+
+  await store.merge(collections(followers(0, ARCHIVE_COLLECTION_LIMIT)), "job-fill");
+  assert.deepEqual(
+    mod.readShared(mod.ARCHIVE_LIBRARY_KEY).followers.map((entry) => entry.id),
+    afterSecond,
+    "and it must still be settled a third time"
+  );
+
+  // A genuinely new archive is still folded in.
+  await store.merge(collections(followers(50_000, 10)), "job-new");
+  const afterNew = mod.readShared(mod.ARCHIVE_LIBRARY_KEY).followers.map((entry) => entry.id);
+  assert.ok(afterNew.includes("f50000"), "a new archive must still land");
+  assert.equal(afterNew.length, ARCHIVE_COLLECTION_LIMIT);
 });

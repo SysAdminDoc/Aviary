@@ -25046,6 +25046,7 @@ a.av-link-clean {
 
   // src/features/library/archive-library.ts
   var ARCHIVE_LIBRARY_KEY = "aviary.archive.library.v1";
+  var ARCHIVE_COLLECTION_LIMIT = 1e4;
   var EMPTY5 = {
     version: 1,
     profile: null,
@@ -25084,6 +25085,11 @@ a.av-link-clean {
       );
     }
     #fold(base, collections, jobId, repairs) {
+      if (base.importedJobs.includes(jobId)) {
+        const unchanged = cloneSnapshot(base);
+        if (repairs) unchanged.lastRepair = { ...repairs };
+        return unchanged;
+      }
       const next = cloneSnapshot(base);
       next.profile = collections.profile ?? next.profile;
       next.account = collections.account ?? next.account;
@@ -25169,7 +25175,7 @@ a.av-link-clean {
         result[position] = entry;
       }
     }
-    return result.slice(-1e4);
+    return result.slice(-ARCHIVE_COLLECTION_LIMIT);
   }
   function cloneSnapshot(snapshot) {
     return {

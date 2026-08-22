@@ -24,6 +24,26 @@ Internal audit of the subsystems no prior pass had examined, plus the code added
 
 ### P3, small measured defects
 
+- [ ] P3 — F271, The visual baselines cover the panel and nothing Aviary injects into the timeline
+  Category: testing
+  Where: `tests/visual/baselines/settings/` and the suite that drives it.
+  Problem: 66 baselines, and every one of them is the Control Center or the extension options page — 15 sections in dark and light at two viewports, plus four state variants. Nothing Aviary puts on X itself has a baseline: the media buttons, the injected toasts, the hide affordance, the catch-up digest, the AI command menu and the snippet palette all render into the page, all carry their own stylesheet, and all are invisible to this suite. Those are the surfaces most exposed to X changing its markup underneath them, and the ones where a cascade regression like F265 actually shows.
+  Evidence: `ls tests/visual/baselines/settings/` returns 66 files, all prefixed `control-center-` or `extension-options-`. `grep -rn "av-media-action\|av-catch-up\|av-ai-menu\|av-snippet" tests/visual/` returns nothing.
+  Fix: add a baseline per injected surface against the saved `_decoded/` captures rather than live X, in dark and light. The capture set is the only stable ground truth available, and it is the same fixture the selector tests already use.
+  Acceptance: the visual suite fails when an injected surface's rendering changes, not only when the panel's does.
+  Confidence: Verified
+  Effort: M
+
+- [ ] P3 — F272, The mobile and coarse-pointer path has no behavioural test of its own
+  Category: testing
+  Where: `src/features/core/mobile-touch.ts` (96 lines), reached from the registry like any feature.
+  Problem: two tests touch it and neither exercises what it does. `tests/source-contracts.test.mjs:178` reads the file as text to check its selectors are scoped, and `tests/injected-ui-contract.test.mjs` asserts hit-target sizes on a coarse-pointer emulation. Nothing drives the feature's own `apply`/`destroy` against a touch-shaped DOM, so a regression in what it actually changes would be caught only by the size assertion happening to move.
+  Evidence: `grep -rn "mobileTouchFeature" tests/` returns the two sites above and no behavioural case.
+  Fix: a feature-lifecycle test in the shape the other features already have: apply against a coarse-pointer page, assert what changed, destroy, assert the page is back to what X rendered.
+  Acceptance: `mobileTouchFeature` has a lifecycle test that fails if `destroy` stops reversing `apply`.
+  Confidence: Verified
+  Effort: S
+
 ## Research-Driven Additions (2026-08-16)
 
 Focused comparison of 46 primary sources for feed image/video download behavior. See RESEARCH.md.
@@ -151,14 +171,4 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
 ### P2
 
 ### Unaudited — needs a pass
-
-- [ ] P3 — F264, Areas this pass did not reach
-  Category: docs
-  Where: repository-wide.
-  Problem: recorded so the next pass starts from what is known rather than re-deriving it. Not audited in this pass: `src/features/integrations/` beyond the panel wiring — `crosspost.ts`, `ai-provider.ts`, `semantic-search.ts`, `aria2.ts` and `usage.ts` were read only where a finding led into them, so the outbound-request paths, the local-only guard's coverage of each, and the provider error handling have had no dedicated review. `tools/build.mjs` and `tools/preflight.mjs` were run but not read, so the delivery gate itself is unaudited. `npm run smoke` was run and passed, including its Firefox 153.0.3 DNR lane, but no finding here was reproduced against Gecko: the browser reproductions in F212, F242, F246 and F265 were all Chromium, which matters for the `@scope` fallback in F242 and for the native-popover cascade in F265. The visual regression baselines under `tests/visual/baselines/settings` were regenerated and compared but not inspected for whether they cover the secondary surfaces. The mobile and coarse-pointer path (`src/features/core/mobile-touch.ts`) was checked only through the existing contract test. No performance profiling was done beyond the specific measurements cited in F240, F244 and F253.
-  Evidence: this pass's own tool history.
-  Fix: run each of these as a scoped follow-up, starting with the integrations outbound paths since they are the only code in the product that originates a network request.
-  Acceptance: each area named above has either a finding or an explicit note that it was reviewed and is clean.
-  Confidence: Verified
-  Effort: L
 

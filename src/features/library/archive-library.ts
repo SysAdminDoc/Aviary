@@ -14,6 +14,9 @@ import {
 
 export const ARCHIVE_LIBRARY_KEY = "aviary.archive.library.v1";
 
+/** Per-collection ceiling. Past this the oldest entries are dropped, which is a real loss. */
+export const ARCHIVE_COLLECTION_LIMIT = 10_000;
+
 export interface ArchiveLibrarySnapshot extends ArchiveCollections {
   version: 1;
   importedJobs: string[];
@@ -63,6 +66,11 @@ export class ArchiveLibraryStore {
     // Built from what is on disk at write time, not from the copy this instance loaded. Two tabs
     // importing different archives each wrote their whole snapshot back, so the second import
     // erased the first one's collections along with its record of which jobs had been imported.
+    //
+    // `importedJobs` is consulted, not merely appended to. Re-merging an archive already recorded
+    // used to be a no-op only when the collections were small enough to fit under the cap below;
+    // above it, entries that had been sliced away were appended again as though new, and the
+    // retained window rotated forward by the size of the archive on every re-merge, never settling.
     this.#snapshot = await mutateStored<ArchiveLibrarySnapshot>(
       this.#storage,
       ARCHIVE_LIBRARY_KEY,
@@ -77,6 +85,12 @@ export class ArchiveLibraryStore {
     jobId: string,
     repairs?: ArchiveRepairSummary
   ): ArchiveLibrarySnapshot {
+    if (base.importedJobs.includes(jobId)) {
+      // Already folded in. Doing it again cannot add anything and, past the cap, actively loses.
+      const unchanged = cloneSnapshot(base);
+      if (repairs) unchanged.lastRepair = { ...repairs };
+      return unchanged;
+    }
     const next = cloneSnapshot(base);
     next.profile = collections.profile ?? next.profile;
     next.account = collections.account ?? next.account;
@@ -155,6 +169,14 @@ function normalizeSnapshot(value: unknown): ArchiveLibrarySnapshot {
   };
 }
 
+/**
+ * The archive folded into what is already stored, keyed so a re-import updates rather than doubles.
+ *
+ * The cap is a real ceiling and it drops the oldest entries, which is a loss the caller cannot see
+ * from here. What it must not do is make the store unstable: an entry dropped by the cap and then
+ * offered again reads as new, gets appended, and pushes another one out. `#fold` refusing a jobId
+ * it has already recorded is what keeps that from repeating on every re-merge.
+ */
 function mergeByKey<T>(current: T[], incoming: T[], key: (entry: T) => string): T[] {
   const result = [...current];
   const positions = new Map(result.map((entry, index) => [key(entry), index]));
@@ -169,7 +191,7 @@ function mergeByKey<T>(current: T[], incoming: T[], key: (entry: T) => string): 
       result[position] = entry;
     }
   }
-  return result.slice(-10_000);
+  return result.slice(-ARCHIVE_COLLECTION_LIMIT);
 }
 
 function cloneSnapshot(snapshot: ArchiveLibrarySnapshot): ArchiveLibrarySnapshot {
