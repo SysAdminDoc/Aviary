@@ -9,6 +9,7 @@ import {
   structuralSelectorsFor,
   type CompiledFilters,
   type FilterCause,
+  type FilterDecision,
   type StructuralKey
 } from "./predicates.ts";
 import { ft } from "../core/feature-i18n.ts";
@@ -227,7 +228,7 @@ function scanRoot(root: ParentNode | Element, ctx: FeatureContext): void {
   const describe =
     ctx.settings.filter.showReason === "off"
       ? null
-      : (cause: FilterCause) => describeCause(ctx, cause);
+      : (cause: FilterCause, action: FilterDecision) => describeCause(ctx, cause, action);
 
   const articles = collectArticles(root);
   for (const article of articles) {
@@ -251,7 +252,7 @@ function collectArticles(root: ParentNode | Element): Element[] {
 function processArticle(
   article: Element,
   filters: CompiledFilters,
-  describe: ((cause: FilterCause) => string) | null
+  describe: ((cause: FilterCause, action: FilterDecision) => string) | null
 ): void {
   if (article.getAttribute(PROCESSED_ATTR) === String(filters.generation)) {
     return;
@@ -272,22 +273,29 @@ function processArticle(
   }
 
   if (describe && verdict.cause) {
-    article.setAttribute(REASON_ATTR, describe(verdict.cause));
+    article.setAttribute(REASON_ATTR, describe(verdict.cause, verdict.action));
   } else {
     article.removeAttribute(REASON_ATTR);
   }
   syncCollapsedCell(article);
 }
 
-/** The sentence a suppressed post shows. Localized, and short enough to sit on one line. */
-function describeCause(ctx: FeatureContext, cause: FilterCause): string {
+/**
+ * The sentence a suppressed post shows. Localized, and short enough to sit on one line.
+ *
+ * The verb has to match what actually happened. A dimmed post is still on screen, and the default
+ * `showReason` value is "dimmed" -- so out of the box the only posts carrying a reason were the
+ * ones the sentence described wrongly, telling the reader a post they can plainly see was hidden.
+ */
+function describeCause(ctx: FeatureContext, cause: FilterCause, action: FilterDecision): string {
+  const dimmed = action === "dim";
   switch (cause.kind) {
     case "rule":
-      return `${ft(ctx, "Hidden by your rule")}: ${cause.label}`;
+      return `${ft(ctx, dimmed ? "Dimmed by your rule" : "Hidden by your rule")}: ${cause.label}`;
     case "keyword":
-      return `${ft(ctx, "Hidden by your keyword")}: ${cause.label}`;
+      return `${ft(ctx, dimmed ? "Dimmed by your keyword" : "Hidden by your keyword")}: ${cause.label}`;
     case "regex":
-      return `${ft(ctx, "Hidden by your pattern")}: ${cause.label}`;
+      return `${ft(ctx, dimmed ? "Dimmed by your pattern" : "Hidden by your pattern")}: ${cause.label}`;
     case "engagement":
       return `${ft(ctx, "Under your engagement floor")}: ${cause.min} ${metricCopy(
         ctx,

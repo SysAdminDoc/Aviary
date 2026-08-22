@@ -21,6 +21,11 @@
   silence.
 
 ### Fixed
+- A dimmed post no longer says it was hidden. The reason line always read "Hidden by your rule",
+  including on posts that were only dimmed, and the default setting shows a reason on dimmed posts
+  only — so out of the box the only posts explaining themselves were the ones being described
+  wrongly. Translated into all nine locales.
+
 - A media download's outcome is visible again under an Aviary theme. The theme styled every
   download button and the feature styled its own success, failure, duplicate and opened states at
   exactly the same weight, so which one painted came down to stylesheet order: with any theme

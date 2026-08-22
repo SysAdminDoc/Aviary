@@ -168,16 +168,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Confidence: Verified
   Effort: M
 
-- [ ] P1 — F219, A dimmed post says it was hidden, in the shipped default configuration
-  Category: ux
-  Where: `src/features/filtering/filter-engine.ts:261-273` (`describeCause`), applied at `:251-253` for both verdict actions. Default set at `src/platform/settings.ts:446` (`showReason: "dimmed"`). Option labels at `src/ui/control-center/constants.ts:28-31`.
-  Problem: `describeCause` returns "Hidden by your rule", "Hidden by your keyword" or "Hidden by your pattern" regardless of what the filter actually did. `processArticle` sets `REASON_ATTR` whenever `describe && verdict.cause` (`:251`), and `verdict.action` can be `"dim"` as well as `"hide"` — `:243-244` writes the action into `RESULT_ATTR` and the stylesheet at `:387` and `:418` renders the reason above dimmed posts specifically. The default `showReason` value is `"dimmed"`, whose option label is literally "On dimmed posts" (`constants.ts:30`), so out of the box the only posts that display a reason are the ones the sentence describes incorrectly. The user reads "Hidden by your rule" on a post that is plainly still on screen. The fourth branch, `"Under your engagement floor"` (`:266-270`), is action-neutral and is already correct.
-  Evidence: read at the cited lines. `filter-engine.ts:243` is `if (verdict.action !== "show") { article.setAttribute(RESULT_ATTR, verdict.action); }` and `:418` is `html.${EXPLAIN_CLASS} ${ARTICLE_SELECTOR}[${RESULT_ATTR}="dim"][${REASON_ATTR}]::before`, which is the rule that paints the sentence on a dimmed post. `settings.ts:446` reads `showReason: "dimmed",`.
-  Fix: pass `verdict.action` into `describeCause` and branch the three sentences: "Dimmed by your rule" / "Hidden by your rule", and the same pair for keyword and pattern. Add the three new English strings and re-run `node tools/i18n-extract.mjs --write`.
-  Acceptance: a test drives the engine with a rule whose action is `dim` and asserts the `data-av-reason` attribute starts with "Dimmed", and with a `hide` rule asserts it starts with "Hidden".
-  Confidence: Verified
-  Effort: S
-
 - [ ] P1 — F220, 50 of the panel's 54 action rows report every failure as "Action failed."
   Category: ux
   Where: `src/ui/control-center.ts:1008-1031` (`actionRow`, `failureMessage = "Action failed."`). Call sites across `src/ui/control-center/sections/data.ts`, `advanced.ts` and `reading.ts`.

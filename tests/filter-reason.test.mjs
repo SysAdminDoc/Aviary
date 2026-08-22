@@ -422,3 +422,36 @@ test("the reason mode survives normalization and defaults to the free half", asy
   // nothing. Collapsing hidden posts into strips is a real change and stays opt-in.
   assert.equal(modes.fallback, "dimmed");
 });
+
+/**
+ * The verb has to match what happened to the post.
+ *
+ * `describeCause` always said "Hidden by your ...", but the reason is attached to dimmed posts as
+ * well as hidden ones -- and the default `showReason` value is "dimmed", so out of the box the only
+ * posts carrying a reason were the ones the sentence described wrongly. The reader saw a post
+ * plainly still on screen, captioned as hidden. The `[Weekend sales]` fixture rule is a `dim:` rule
+ * and the keyword and pattern rules hide, so one run covers both verbs.
+ */
+test("a dimmed post says dimmed and a hidden post says hidden", async () => {
+  const { state } = await page.evaluate(() =>
+    window.run((s) => {
+      window.everything(s);
+      s.filter.showReason = "all";
+    })
+  );
+
+  assert.equal(state.rule.result, "dim", "the fixture rule is a dim rule");
+  assert.match(
+    state.rule.reason,
+    /^Dimmed by your rule/,
+    `a dimmed post must not claim it was hidden: ${state.rule.reason}`
+  );
+
+  assert.equal(state.keyword.result, "hide");
+  assert.match(state.keyword.reason, /^Hidden by your keyword/, `saw ${state.keyword.reason}`);
+  assert.equal(state.regex.result, "hide");
+  assert.match(state.regex.reason, /^Hidden by your pattern/, `saw ${state.regex.reason}`);
+
+  // The sentence the reader actually sees agrees with the attribute.
+  assert.equal(state.rule.before, `"${state.rule.reason}"`);
+});
