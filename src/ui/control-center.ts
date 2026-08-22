@@ -160,6 +160,11 @@ export interface ControlCenterOptions {
   adoptLegacyProfileData?: () => Promise<{ moved: number; skipped: number }>;
   getMediaStatus?: () => MediaStatus;
   clearMediaHistory?: () => Promise<void>;
+  exportMediaHistory?: (options: { from: string | null; to: string | null }) => Promise<{
+    records: number;
+    files: number;
+    filenames: string[];
+  }>;
   getExportStatus?: () => ExportStatus;
   pauseExportJob?: (jobId: string) => Promise<{ ok: boolean; error?: string }>;
   resumeExportJob?: (jobId: string) => Promise<{ ok: boolean; error?: string }>;
@@ -219,8 +224,8 @@ export interface ControlCenterOptions {
   searchBookmarks?: (query: string) => BookmarkRecord[];
   offlineSearch?: (query: string) => OfflineQueryHit[];
   offlineSemanticSearch?: (query: string) => Promise<OfflineQueryHit[]>;
-  getCapturedMediaCount?: (query: string) => number;
-  runCapturedMediaBatch?: (query: string) => Promise<{
+  getCapturedMediaCount?: (query: string, filterKind?: "all" | "photo" | "video" | "thumbnail" | "audio" | "subtitle") => number;
+  runCapturedMediaBatch?: (query: string, filterKind?: "all" | "photo" | "video" | "thumbnail" | "audio" | "subtitle") => Promise<{
     total: number;
     downloaded: number;
     started: number;

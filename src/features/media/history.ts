@@ -53,6 +53,59 @@ export interface MediaHistoryReservationResult {
   token: string | null;
 }
 
+export interface MediaHistoryExportOptions {
+  from?: string | null;
+  to?: string | null;
+}
+
+export interface MediaHistoryExportArtifact {
+  filename: string;
+  contentType: string;
+  data: Uint8Array;
+}
+
+/** Builds bounded JSON and CSV history files without retaining or exporting source media URLs. */
+export function buildMediaHistoryExportArtifacts(
+  snapshot: Pick<MediaHistorySnapshot, "entries" | "matches" | "lastMatch">,
+  options: MediaHistoryExportOptions = {}
+): MediaHistoryExportArtifact[] {
+  const range = normalizeHistoryRange(options);
+  const entries = snapshot.entries
+    .filter((entry) => {
+      const at = Date.parse(entry.at);
+      return Number.isFinite(at) && at >= range.fromMs && at <= range.toMs;
+    })
+    .sort((left, right) => left.at.localeCompare(right.at));
+  const rangeLabel = `${range.fromLabel ?? "all"}-to-${range.toLabel ?? "all"}`;
+  const payload = {
+    schemaVersion: 1,
+    exportedAt: new Date().toISOString(),
+    range: { from: range.fromLabel, to: range.toLabel },
+    count: entries.length,
+    matches: { ...snapshot.matches },
+    lastMatch: snapshot.lastMatch ? { ...snapshot.lastMatch } : null,
+    entries: entries.map((entry) => ({ ...entry }))
+  };
+  const csv = [
+    "identity_hash,exact_hash,perceptual_hash,downloaded_at",
+    ...entries.map((entry) => [entry.identityHash, entry.exactHash ?? "", entry.perceptualHash ?? "", entry.at]
+      .map(csvCell)
+      .join(","))
+  ].join("\n") + "\n";
+  return [
+    {
+      filename: `aviary-media-history-${rangeLabel}.json`,
+      contentType: "application/json",
+      data: new TextEncoder().encode(`${JSON.stringify(payload, null, 2)}\n`)
+    },
+    {
+      filename: `aviary-media-history-${rangeLabel}.csv`,
+      contentType: "text/csv",
+      data: new TextEncoder().encode(csv)
+    }
+  ];
+}
+
 /**
  * Called when a write to the storage backend fails. Persistence here is best-effort by design,
  * but swallowing the error entirely turns a full quota into "changes silently stop sticking",
@@ -390,6 +443,47 @@ function emptySnapshot(): MediaHistorySnapshot {
   };
 }
 
+function normalizeHistoryRange(options: MediaHistoryExportOptions): {
+  fromMs: number;
+  toMs: number;
+  fromLabel: string | null;
+  toLabel: string | null;
+} {
+  const from = normalizeDateInput(options.from, false);
+  const to = normalizeDateInput(options.to, true);
+  if (from && to && from.ms > to.ms) {
+    throw new RangeError("The history start date must be on or before the end date.");
+  }
+  return {
+    fromMs: from?.ms ?? Number.NEGATIVE_INFINITY,
+    toMs: to?.ms ?? Number.POSITIVE_INFINITY,
+    fromLabel: from?.label ?? null,
+    toLabel: to?.label ?? null
+  };
+}
+
+function normalizeDateInput(value: string | null | undefined, endOfDay: boolean): { ms: number; label: string } | null {
+  if (value === null || value === undefined || value.trim() === "") return null;
+  const trimmed = value.trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (!match) throw new RangeError("History dates must use YYYY-MM-DD.");
+  const date = new Date(`${trimmed}T${endOfDay ? "23:59:59.999" : "00:00:00.000"}Z`);
+  if (!Number.isFinite(date.getTime())) throw new RangeError("History date is invalid.");
+  if (
+    date.getUTCFullYear() !== Number(match[1]) ||
+    date.getUTCMonth() + 1 !== Number(match[2]) ||
+    date.getUTCDate() !== Number(match[3])
+  ) {
+    throw new RangeError("History date is invalid.");
+  }
+  return { ms: date.getTime(), label: trimmed.replaceAll("-", "") };
+}
+
+function csvCell(value: string): string {
+  const safe = value.replaceAll("\"", "\"\"");
+  return /[",\n\r]/.test(safe) ? `"${safe}"` : safe;
+}
+
 function readReservations(
   stored: MediaHistorySnapshot | LegacyMediaHistorySnapshot | undefined,
   now = Date.now()
@@ -591,5 +685,5 @@ function isMatchKind(value: unknown): value is MediaMatchKind {
 }
 
 function isMediaKind(value: unknown): value is MediaFingerprintKind {
-  return value === "photo" || value === "video" || value === "thumbnail";
+  return value === "photo" || value === "video" || value === "thumbnail" || value === "audio" || value === "subtitle";
 }

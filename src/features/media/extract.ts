@@ -3,14 +3,29 @@ import type { CapturedMediaMetadata } from "./media-metadata";
 import {
   extractVideo,
   videoContainers,
-  type ExtractedVideo
+  type ExtractedVideo,
+  type SubtitleTrack,
+  type VideoVariant
 } from "./video-extract";
 
+export interface ExtractedAudio {
+  container: HTMLElement;
+  variants: VideoVariant[];
+  preferred: VideoVariant | null;
+}
+
+export interface ExtractedSubtitle {
+  container: HTMLElement;
+  track: SubtitleTrack;
+}
+
 export interface ExtractedMedia {
-  kind: "photo" | "thumbnail" | "video";
+  kind: "photo" | "thumbnail" | "video" | "audio" | "subtitle";
   source: HTMLElement;
   image?: NormalizedImage;
   video?: ExtractedVideo;
+  audio?: ExtractedAudio;
+  subtitle?: ExtractedSubtitle;
   /** Whose media this actually is. Not always the post it was found in. */
   owner: MediaOwner;
 }
@@ -117,6 +132,23 @@ export function extractTweet(article: Element, options: ExtractTweetOptions = {}
     if (video.preferred) {
       media.push({ kind: "video", source: video.container, video, owner: resolved });
     }
+    const audio = preferredAudio(video.audioVariants);
+    if (audio) {
+      media.push({
+        kind: "audio",
+        source: video.container,
+        audio: { container: video.container, variants: video.audioVariants, preferred: audio },
+        owner: resolved
+      });
+    }
+    for (const track of video.subtitleTracks) {
+      media.push({
+        kind: "subtitle",
+        source: video.container,
+        subtitle: { container: video.container, track },
+        owner: resolved
+      });
+    }
     if (video.poster) {
       const normalized = normalizeImageUrl(video.poster, imageOptions);
       if (normalized) {
@@ -127,7 +159,61 @@ export function extractTweet(article: Element, options: ExtractTweetOptions = {}
     }
   }
 
+  for (const audio of Array.from(article.querySelectorAll<HTMLAudioElement>("audio"))) {
+    const owner = ownerOf(article, audio, own);
+    const variants = readAudioVariants(audio);
+    const preferred = preferredAudio(variants);
+    if (preferred) {
+      media.push({ kind: "audio", source: audio, audio: { container: audio, variants, preferred }, owner });
+    }
+    for (const track of Array.from(audio.querySelectorAll<HTMLTrackElement>("track"))) {
+      const subtitle = readSubtitleTrack(track);
+      if (subtitle) {
+        media.push({ kind: "subtitle", source: audio, subtitle: { container: audio, track: subtitle }, owner });
+      }
+    }
+  }
+
   return { article, tweetId, handle, text, media };
+}
+
+function readAudioVariants(audio: HTMLAudioElement): VideoVariant[] {
+  const variants: VideoVariant[] = [];
+  const seen = new Set<string>();
+  const push = (url: string, type: string, bitrate?: string): void => {
+    if (!/^https?:\/\//i.test(url) || seen.has(url)) return;
+    seen.add(url);
+    variants.push({
+      url,
+      type: type || "audio/mp4",
+      width: null,
+      height: null,
+      bitrate: bitrate && Number.isFinite(Number(bitrate)) ? Number(bitrate) : null
+    });
+  };
+  if (audio.currentSrc) push(audio.currentSrc, audio.dataset.contentType ?? "audio/mp4");
+  if (audio.src) push(audio.src, audio.dataset.contentType ?? "audio/mp4");
+  for (const source of Array.from(audio.querySelectorAll<HTMLSourceElement>("source"))) {
+    push(source.src, source.type || "audio/mp4", source.dataset.bitrate);
+  }
+  return variants;
+}
+
+function preferredAudio(variants: VideoVariant[]): VideoVariant | null {
+  return [...variants].sort((left, right) => (right.bitrate ?? 0) - (left.bitrate ?? 0))[0] ?? null;
+}
+
+function readSubtitleTrack(track: HTMLTrackElement): SubtitleTrack | null {
+  const url = track.src || track.getAttribute("src") || "";
+  if (!/^https?:\/\//i.test(url)) return null;
+  const kind = (track.kind || "").toLowerCase();
+  if (kind && kind !== "subtitles" && kind !== "captions") return null;
+  return {
+    url,
+    type: track.getAttribute("type") || "text/vtt",
+    language: track.srclang?.trim() || null,
+    label: track.label?.trim() || null
+  };
 }
 
 /**

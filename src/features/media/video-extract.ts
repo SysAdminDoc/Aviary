@@ -6,9 +6,18 @@ export interface VideoVariant {
   bitrate: number | null;
 }
 
+export interface SubtitleTrack {
+  url: string;
+  type: string;
+  language: string | null;
+  label: string | null;
+}
+
 export interface VideoMetadata {
   poster?: string | null;
   variants?: VideoVariant[];
+  audioVariants?: VideoVariant[];
+  subtitleTracks?: SubtitleTrack[];
   isGif?: boolean;
 }
 
@@ -18,6 +27,8 @@ export interface ExtractedVideo {
   isGif: boolean;
   variants: VideoVariant[];
   preferred: VideoVariant | null;
+  audioVariants: VideoVariant[];
+  subtitleTracks: SubtitleTrack[];
 }
 
 export const VIDEO_CONTAINER_SELECTOR =
@@ -88,6 +99,35 @@ export function extractVideo(
     pushVariantObject(variants, seen, variant);
   }
 
+  const audioVariants: VideoVariant[] = [];
+  const seenAudio = new Set<string>();
+  for (const source of Array.from(video.querySelectorAll<HTMLSourceElement>("source"))) {
+    const markedAudio =
+      typeof source.hasAttribute === "function"
+        ? source.hasAttribute("data-av-audio")
+        : source.dataset?.avAudio !== undefined;
+    if (!/^audio\//i.test(source.type) && !markedAudio) continue;
+    pushVariant(
+      audioVariants,
+      seenAudio,
+      source.src,
+      source.type || "audio/mp4",
+      undefined,
+      undefined,
+      source.dataset.bitrate
+    );
+  }
+  for (const variant of metadata.audioVariants ?? []) {
+    pushVariantObject(audioVariants, seenAudio, variant);
+  }
+
+  const subtitleTracks = [
+    ...Array.from(video.querySelectorAll<HTMLTrackElement>("track"))
+      .map(readSubtitleTrack)
+      .filter((track): track is SubtitleTrack => track !== null),
+    ...(metadata.subtitleTracks ?? [])
+  ].filter((track, index, all) => all.findIndex((candidate) => candidate.url === track.url) === index);
+
   const poster = video.poster || metadata.poster || null;
   if (variants.length === 0 && !poster) {
     return null;
@@ -96,7 +136,23 @@ export function extractVideo(
   const preferred = variants.length > 0 ? pickPreferred(variants) : null;
   const isGif = metadata.isGif === true || looksLikeGif(container, video, variants);
 
-  return { container, poster, isGif, variants, preferred };
+  return { container, poster, isGif, variants, preferred, audioVariants, subtitleTracks };
+}
+
+function readSubtitleTrack(track: HTMLTrackElement): SubtitleTrack | null {
+  if (typeof track.getAttribute !== "function" && typeof track.kind !== "string") {
+    return null;
+  }
+  const url = track.src || track.getAttribute("src") || "";
+  if (!/^https?:\/\//i.test(url)) return null;
+  const kind = (track.kind || "").toLowerCase();
+  if (kind && kind !== "subtitles" && kind !== "captions") return null;
+  return {
+    url,
+    type: track.getAttribute?.("type") || "text/vtt",
+    language: track.srclang?.trim() || null,
+    label: track.label?.trim() || null
+  };
 }
 
 function pushVariantObject(

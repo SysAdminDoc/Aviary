@@ -31,7 +31,7 @@ export interface ExportExpandedUrl {
 }
 
 export interface ExportMedia {
-  kind: "photo" | "video" | "thumbnail";
+  kind: "photo" | "video" | "thumbnail" | "audio" | "subtitle";
   url: string;
   /** Canonical source URL retained when `url` is blank because the capture was not usable. */
   sourceUrl?: string;
@@ -56,6 +56,8 @@ export interface ExportMedia {
   bitrate?: number;
   type?: string;
   altText?: string;
+  language?: string;
+  label?: string;
 }
 
 export type MediaCaptureStatus = "captured-bytes" | "remote-reference" | "missing";

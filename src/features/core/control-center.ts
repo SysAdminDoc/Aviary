@@ -126,6 +126,7 @@ import {
   refreshMediaDownloadMarkers
 } from "../media/media-buttons";
 import { getLastDownload } from "../media/last-download";
+import { buildMediaHistoryExportArtifacts } from "../media/history";
 import type { FeatureContext, FeatureModule } from "../registry";
 import {
   buildSettingsExport,
@@ -248,6 +249,28 @@ export const controlCenterFeature: FeatureModule = {
       async clearMediaHistory() {
         await getMediaHistory()?.clear();
         refreshMediaDownloadMarkers(ctx);
+      },
+      async exportMediaHistory(options) {
+        const history = getMediaHistory();
+        if (!history) throw new Error("Media history is not loaded");
+        const artifacts = buildMediaHistoryExportArtifacts(history.snapshot(), options);
+        for (const artifact of artifacts) {
+          downloadBlob(artifact.data, artifact.filename, artifact.contentType);
+        }
+        const records = artifacts.length > 0
+          ? JSON.parse(new TextDecoder().decode(artifacts[0]!.data)).count
+          : 0;
+        void ctx.auditLog.record("media.history.export", {
+          records,
+          files: artifacts.length,
+          from: options.from,
+          to: options.to
+        });
+        return {
+          records,
+          files: artifacts.length,
+          filenames: artifacts.map((artifact) => artifact.filename)
+        };
       },
       getExportStatus(): ExportStatus {
         const store = getCheckpointStore();
@@ -583,15 +606,16 @@ export const controlCenterFeature: FeatureModule = {
       offlineSearch(query) {
         return searchOfflineLibrary(query);
       },
-      getCapturedMediaCount(query) {
+      getCapturedMediaCount(query, filterKind = "all") {
         return countCapturedMedia(
           matchingCapturedRecords(query),
-          ctx.settings.media.preferOriginalImages
+          ctx.settings.media.preferOriginalImages,
+          filterKind
         );
       },
-      async runCapturedMediaBatch(query) {
+      async runCapturedMediaBatch(query, filterKind = "all") {
         const records = matchingCapturedRecords(query);
-        const result = await runCapturedMediaBatch(ctx, records);
+        const result = await runCapturedMediaBatch(ctx, records, { filterKind });
         void ctx.auditLog.record("media.batch", {
           batch: true,
           source: "captured-library",
@@ -848,7 +872,7 @@ export const controlCenterFeature: FeatureModule = {
         };
         if (ctx.settings.integrations.crosspost.attachLastDownload) {
           const lastDownload = await getLastDownload(ctx.storage);
-          if (lastDownload) {
+          if (lastDownload && (lastDownload.kind === "photo" || lastDownload.kind === "video" || lastDownload.kind === "thumbnail")) {
             request.attachment = {
               url: lastDownload.url,
               filename: lastDownload.filename,

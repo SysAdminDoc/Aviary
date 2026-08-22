@@ -1,6 +1,6 @@
 # Aviary Privacy Manifest
 
-Updated: 2026-08-20 · release 1.37.0
+Updated: 2026-08-22 · release 1.38.0
 
 ## Defaults and network boundaries
 
@@ -18,7 +18,7 @@ These are the only Aviary-triggered network paths:
 
 | Feature | When it leaves the browser | Destination and data |
 |---|---|---|
-| Media Save / Thumb / captured Library batch | After you click a media button or the Library download action | The selected X media URL or URLs already stored in local capture records. A browser/userscript downloader handles each file. Optional text or JSON sidecars are built locally after a completed save. |
+| Media Save / Thumb / captured Library batch | After you click a media button or the Library download action | The selected X image, video, audio, or caption URL, or URLs already stored in local capture records. A browser/userscript downloader handles each file. Optional text or JSON sidecars are built locally after a completed save. |
 | Export media-byte capture | Only when **Capture media bytes in export** is enabled and you click export | The selected X media URLs; successful response bytes, length, and checksum are placed in that local package, while failures remain local retryable metadata. |
 | Aria2 handoff | When enabled, configured, and the media meets the threshold | Your configured JSON-RPC endpoint; the media URL, filename, and optional RPC secret are sent. |
 | Bluesky / Mastodon | After you click the corresponding crosspost action | Your configured service; composer text, thread metadata, and optionally the last downloaded media when attachment is enabled. |
@@ -63,7 +63,7 @@ schema, migration, usage, and quota status.
 | `aviary.adObservations.v1` | Which ad markers were present on a route, as counts, no post content | Notice when X changes its ad markup; bounded to 64 entries and 30 days. |
 | `aviary.diagnostics.v1` | Aviary's own warning and error text, the time, and the *names* of a message's detail fields, never their values | Let a failure from an earlier page load still be reportable; bounded to 50 entries and 7 days; clearable from Trust. |
 | `aviary.firstRun.v1` | A single flag recording that the first-run notice was dismissed | Stop showing the notice again on this profile. |
-| `aviary.media.history.v1` | Bounded media dedup records and short-lived hashed in-flight claims | Avoid duplicate downloads across tabs; failed claims expire or are removed, and **Clear download history** removes all of them. |
+| `aviary.media.history.v1` | Bounded media dedup records and short-lived hashed in-flight claims | Avoid duplicate downloads across tabs; failed claims expire or are removed, and **Clear download history** removes all of them. The date-range JSON and CSV export contains hashes and timestamps only, never source media URLs. |
 | `aviary.media.queue.v1` | Queued, paused, failed, opened, and completed media jobs. A job can include X media URLs, fallback URLs, a filename, media kind/id, a browser download id, and an opted-in sidecar request with bounded post text, account, post id, permalink, and queue time. | Resume/retry media work and create the sidecar only after a confirmed save; completed history is separately clearable. |
 | `aviary.waczSigning.v1` | An opt-in local ECDSA P-384 signing identity, including its private key, public key, fingerprint, and creation time | Sign WACZ manifest digests and export the keypair explicitly. It is never included in routine library backups. |
 | `aviary.media.last-download.v1` | Metadata for the last successful download | Make an explicitly enabled crosspost-media attachment possible. |

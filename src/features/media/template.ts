@@ -23,6 +23,7 @@ export function renderFilename(template: string, fields: FilenameFields): string
 
   const substitutions: Record<string, string> = {
     handle: safeHandle,
+    account: safeHandle,
     tweetId,
     mediaId,
     index: indexLabel,

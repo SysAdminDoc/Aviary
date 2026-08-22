@@ -33,11 +33,11 @@ const ACTION_SLOT_ATTR = "data-av-media-action-slot";
 const PROCESSED_ATTR = "data-av-media-processed";
 const DOWNLOADED_ATTR = "data-av-downloaded";
 const MEDIA_HOST_SELECTOR =
-  '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="videoComponent"]';
+  '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="videoComponent"], audio';
 const MEDIA_MUTATION_SELECTOR =
   '[data-testid="tweetPhoto"], [data-testid="tweetPhoto"] img, ' +
   '[data-testid="videoPlayer"], [data-testid="videoComponent"], video, source, ' +
-  '[role="group"], [data-testid="reply"]';
+  'audio, track, [role="group"], [data-testid="reply"]';
 const CONTEXT_TARGET_MAX_AGE_MS = 30_000;
 
 type ExtensionMessageListener = (
@@ -237,6 +237,15 @@ export function ingestMediaMetadata(payload: CapturedGraphqlPayload | unknown): 
 
 export function mediaMetadataCacheSize(): number {
   return mediaMetadataCache.size;
+}
+
+/** Gives local export capture access to the same metadata already observed by the media feature. */
+export function getCapturedMediaMetadata(args: {
+  tweetId: string | null;
+  mediaId: string | null;
+  poster: string | null;
+}): ReturnType<MediaMetadataCache["find"]> {
+  return mediaMetadataCache.find(args.tweetId, args.mediaId, args.poster);
 }
 
 function subscribeToMediaMetadata(ctx: FeatureContext): void {
@@ -545,7 +554,12 @@ function findActionGroup(article: Element): HTMLElement | null {
 function primaryDownloadAssets(tweet: ExtractedTweet): PrimaryDownloadAsset[] {
   const assets: PrimaryDownloadAsset[] = [];
   tweet.media.forEach((media, index) => {
-    if (media.kind !== "photo" && media.kind !== "video") {
+    if (
+      media.kind !== "photo" &&
+      media.kind !== "video" &&
+      media.kind !== "audio" &&
+      media.kind !== "subtitle"
+    ) {
       return;
     }
     if (media.owner.scope !== "post") {
@@ -715,6 +729,12 @@ function resolveContainer(media: ExtractedMedia): Element | null {
   ) {
     return media.source;
   }
+  if (media.kind === "audio" && media.audio) {
+    return media.audio.container;
+  }
+  if (media.kind === "subtitle" && media.subtitle) {
+    return media.subtitle.container;
+  }
   return media.source.closest('[data-testid="tweetPhoto"]') ?? media.source.parentElement;
 }
 
@@ -774,6 +794,8 @@ function buttonLabel(media: ExtractedMedia): string {
   if (media.kind === "video") {
     return media.video?.isGif ? "GIF" : "Video";
   }
+  if (media.kind === "audio") return "Audio";
+  if (media.kind === "subtitle") return "Captions";
   return "Save";
 }
 
@@ -784,6 +806,8 @@ function buttonAriaLabel(media: ExtractedMedia): string {
   if (media.kind === "video") {
     return media.video?.isGif ? "Download GIF" : "Download video";
   }
+  if (media.kind === "audio") return "Download audio";
+  if (media.kind === "subtitle") return "Download captions";
   return "Download image";
 }
 
@@ -1304,6 +1328,24 @@ function resolveTarget(media: ExtractedMedia): ResolvedTarget | null {
     }
     return { url, mediaId: mediaIdFromVideo(url), ext: extensionForVideo(media.video.preferred.type, url) };
   }
+  if (media.kind === "audio" && media.audio?.preferred) {
+    const variant = media.audio.preferred;
+    if (!isSaveableVariantUrl(variant.url, variant.type)) return null;
+    return {
+      url: variant.url,
+      mediaId: mediaIdFromVideo(variant.url),
+      ext: extensionForAudio(variant.type, variant.url)
+    };
+  }
+  if (media.kind === "subtitle" && media.subtitle?.track) {
+    const track = media.subtitle.track;
+    if (!isSaveableVariantUrl(track.url, track.type)) return null;
+    return {
+      url: track.url,
+      mediaId: mediaIdFromVideo(track.url),
+      ext: extensionForSubtitle(track.type, track.url)
+    };
+  }
   if (media.image) {
     return {
       url: media.image.url,
@@ -1316,7 +1358,7 @@ function resolveTarget(media: ExtractedMedia): ResolvedTarget | null {
 }
 
 function mediaIdFromVideo(url: string): string | null {
-  const match = /\/([A-Za-z0-9_-]{6,})\.(mp4|m4s|m3u8|webm|mov)(?:[?#]|$)/i.exec(url);
+  const match = /\/([A-Za-z0-9_-]{6,})\.(mp4|m4s|m3u8|webm|mov|m4a|mp3|ogg|opus|wav|vtt|srt|ttml|dfxp)(?:[?#]|$)/i.exec(url);
   return match?.[1] ?? null;
 }
 
@@ -1328,9 +1370,24 @@ function extensionForVideo(mime: string, url: string): string {
   return "mp4";
 }
 
+function extensionForAudio(mime: string, url: string): string {
+  if (/mpeg|mp3/i.test(mime) || /\.mp3(?:[?#]|$)/i.test(url)) return "mp3";
+  if (/ogg|opus/i.test(mime) || /\.(?:ogg|opus)(?:[?#]|$)/i.test(url)) return "ogg";
+  if (/wav/i.test(mime) || /\.wav(?:[?#]|$)/i.test(url)) return "wav";
+  return "m4a";
+}
+
+function extensionForSubtitle(mime: string, url: string): string {
+  if (/srt/i.test(mime) || /\.srt(?:[?#]|$)/i.test(url)) return "srt";
+  if (/ttml|dfxp/i.test(mime) || /\.(?:ttml|dfxp)(?:[?#]|$)/i.test(url)) return "ttml";
+  return "vtt";
+}
+
 function successLabel(media: ExtractedMedia): string {
   if (media.kind === "thumbnail") return "Got it";
   if (media.kind === "video") return media.video?.isGif ? "GIF saved" : "Saved";
+  if (media.kind === "audio") return "Audio saved";
+  if (media.kind === "subtitle") return "Captions saved";
   return "Saved";
 }
 

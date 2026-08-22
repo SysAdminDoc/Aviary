@@ -11,6 +11,7 @@ export type AuditAction =
   | "media.download.duplicate"
   | "media.download.failed"
   | "media.batch"
+  | "media.history.export"
   | "filter.applied"
   | "post.hide"
   | "post.unhide"

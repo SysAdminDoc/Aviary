@@ -294,6 +294,44 @@ test("MediaHistory repairs malformed entries and reservations in a current-versi
   });
 });
 
+test("media history export filters inclusive date ranges without exposing source URLs", async () => {
+  const { buildMediaHistoryExportArtifacts } = await importBundledModule(
+    "src/features/media/history.ts"
+  );
+  const snapshot = {
+    entries: [
+      { identityHash: "a".repeat(64), at: "2026-01-01T00:00:00.000Z" },
+      { identityHash: "b".repeat(64), exactHash: "c".repeat(64), at: "2026-01-15T12:30:00.000Z" },
+      { identityHash: "d".repeat(64), at: "2026-02-01T00:00:00.000Z" }
+    ],
+    matches: { identity: 2, exact: 1, perceptual: 0 },
+    lastMatch: { kind: "exact", at: "2026-01-15T12:30:00.000Z" }
+  };
+  const artifacts = buildMediaHistoryExportArtifacts(snapshot, {
+    from: "2026-01-01",
+    to: "2026-01-31"
+  });
+  assert.deepEqual(artifacts.map((artifact) => artifact.filename), [
+    "aviary-media-history-20260101-to-20260131.json",
+    "aviary-media-history-20260101-to-20260131.csv"
+  ]);
+  const payload = JSON.parse(new TextDecoder().decode(artifacts[0].data));
+  assert.equal(payload.count, 2);
+  assert.deepEqual(payload.entries.map((entry) => entry.identityHash), ["a".repeat(64), "b".repeat(64)]);
+  assert.doesNotMatch(JSON.stringify(payload), /pbs\.twimg|https?:/i);
+  const csv = new TextDecoder().decode(artifacts[1].data);
+  assert.match(csv, /downloaded_at/);
+  assert.doesNotMatch(csv, /2026-02-01/);
+  assert.throws(
+    () => buildMediaHistoryExportArtifacts(snapshot, { from: "2026-02-31" }),
+    /History date is invalid/
+  );
+  assert.throws(
+    () => buildMediaHistoryExportArtifacts(snapshot, { from: "2026-02-02", to: "2026-02-01" }),
+    /on or before/
+  );
+});
+
 test("tweetIdFromHref extracts the numeric tweet id when present", async () => {
   const { tweetIdFromHref } = await importBundledModule("src/features/media/urls.ts");
   assert.equal(tweetIdFromHref("/handle/status/1234567890"), "1234567890");
@@ -304,6 +342,20 @@ test("tweetIdFromHref extracts the numeric tweet id when present", async () => {
 
 test("renderFilename interpolates fields and sanitizes unsafe segments", async () => {
   const { renderFilename } = await importBundledModule("src/features/media/template.ts");
+
+  assert.equal(
+    renderFilename("{account}/{tweetId}", {
+      handle: "alpha",
+      tweetId: "999",
+      index: 0,
+      total: 1,
+      date: new Date("2026-05-19T12:00:00Z"),
+      ext: "jpg",
+      text: "",
+      mediaId: null
+    }),
+    "alpha/999.jpg"
+  );
 
   const result = renderFilename("{handle}_{tweetId}_{index}", {
     handle: "alpha",

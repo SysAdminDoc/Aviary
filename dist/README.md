@@ -1,6 +1,6 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.37.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.38.0-2f81f7)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 ![Platform](https://img.shields.io/badge/platform-userscript%20%7C%20Chrome%20%7C%20Firefox-8b5cf6)
 
@@ -17,6 +17,9 @@ image sizes and exact byte matches, with optional visual matching for re-encoded
 Saved media gets a quiet marker on the post. You can also write a text or JSON companion beside a
 completed download, or use the current Library search to download media from captured records.
 That Library batch uses only URLs already stored locally and does not request another X timeline.
+When X has already exposed a direct audio track or caption file, the same post controls make those
+files downloadable too. The Media page can export a date-bounded copy of download history without
+including source media URLs.
 The media controls act only after you click them and can be disabled from Media at any time. Other
 settings that change ordinary X content or styling still start off. That includes themes, layout
 cleanup, filters, offscreen video pausing, and general analytics refusal.
@@ -242,9 +245,10 @@ The Control Center "Media" section exposes:
 
 - Default-on master toggle for one persistent post-level Download action plus per-asset Save / Thumb / eligible Video and GIF buttons.
 - Original-quality preference (`name=orig` first, then `4096x4096` only if the original transfer fails).
-- Filename template with `{handle}`, `{tweetId}`, `{mediaId}`, `{index}`, `{total}`, `{date}`, `{text}`, `{ext}` fields.
+- Filename template with `{handle}`, `{account}`, `{tweetId}`, `{mediaId}`, `{index}`, `{total}`, `{date}`, `{text}`, `{ext}` fields.
   `{handle}`, `{text}` and `{tweetId}` follow the media's owner, so a photo saved out of a quoted
-  post carries the quoted account's handle and text. Where X renders no permalink inside the quote
+  post carries the quoted account's handle and text. `{account}` is an alias for `{handle}` and is
+  useful as a folder segment when you want files grouped by publisher. Where X renders no permalink inside the quote
   card and no captured record supplies its id, `{tweetId}` falls back to the post the asset was
   found in -- the handle is the ownership claim, and it is never the wrong one.
 - Duplicate history with hashed asset and content signatures, plus a "Clear download history"
@@ -253,8 +257,9 @@ The Control Center "Media" section exposes:
 
 Downloads prefer `GM_download` in userscript managers, fall back to the extension service worker (`chrome.downloads` with `conflictAction: uniquify`), and finally use an anchor tag when no privileged downloader is available. Image candidates stay in quality order; the extension persists the bounded fallback while a download is active so an interrupted `orig` transfer can resume at `4096x4096` after its service worker wakes again.
 
-The post action sits beside X's native controls and downloads every attached photo and direct
-video/GIF in one click, excluding video thumbnails and anything that is not the post's own media.
+The post action sits beside X's native controls and downloads every attached photo, direct video/GIF,
+audio track, and caption file in one click, excluding video thumbnails and anything that is not the
+post's own media.
 A quoted post's photos and a link card's preview belong to somebody else: each keeps its own Save
 control, saved under the account that actually published it, and the post action says in its
 accessible label that it is saving only the post's own media. It remains labeled on desktop and contracts to
@@ -292,7 +297,12 @@ and `XMLHttpRequest`, which X currently uses for HomeTimeline. HLS/DASH manifest
 segments are never offered as if they were standalone videos. Capture starts at document load so the first
 visible timeline videos are covered before X replaces their direct variants with tab-local blob
 handles. When `tweet_video/` URLs or loop+muted players are detected, the button labels itself
-"GIF" and the dedup history scopes by media kind.
+"GIF" and the dedup history scopes by media kind. Direct audio and caption controls appear only when
+the page or a captured response already contains a saveable URL. Aviary does not discover new media
+through a background request just to populate those controls.
+
+The Media section also offers **Export download history**, with optional start and end dates. The
+JSON and CSV files contain hashes, timestamps, and match counters, never the original media URLs.
 
 ## Media layout
 

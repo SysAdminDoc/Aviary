@@ -1,4 +1,4 @@
-import { extractTweet, quotedPost } from "../media/extract";
+import { extractTweet, quotedPost, type ExtractTweetOptions } from "../media/extract";
 import { isSaveableVariantUrl } from "../media/video-extract";
 import { tweetIdFromHref } from "../media/urls";
 import type {
@@ -10,7 +10,15 @@ import type {
   ExportRecord
 } from "./types";
 
-export function collectExportRecords(root: ParentNode, surface: string): ExportRecord[] {
+export interface CollectExportOptions {
+  mediaMetadata?: ExtractTweetOptions["mediaMetadata"];
+}
+
+export function collectExportRecords(
+  root: ParentNode,
+  surface: string,
+  options: CollectExportOptions = {}
+): ExportRecord[] {
   const articles = root instanceof Element && root.matches('article[data-testid="tweet"]')
     ? [root]
     : Array.from(root.querySelectorAll<Element>('article[data-testid="tweet"]'));
@@ -20,7 +28,10 @@ export function collectExportRecords(root: ParentNode, surface: string): ExportR
   const now = new Date().toISOString();
 
   for (const article of articles) {
-    const tweet = extractTweet(article);
+    const tweet = extractTweet(
+      article,
+      options.mediaMetadata ? { mediaMetadata: options.mediaMetadata } : {}
+    );
     const key = `${tweet.tweetId ?? "noid"}:${tweet.handle ?? "noh"}:${(tweet.text || "").slice(0, 60)}`;
     if (seen.has(key)) {
       continue;
@@ -43,6 +54,25 @@ export function collectExportRecords(root: ParentNode, surface: string): ExportR
         if (item.video.preferred.height !== null) entry.height = item.video.preferred.height;
         if (item.video.preferred.bitrate !== null) entry.bitrate = item.video.preferred.bitrate;
         media.push(entry);
+      } else if (item.kind === "audio" && item.audio?.preferred) {
+        const variant = item.audio.preferred;
+        if (!isSaveableVariantUrl(variant.url, variant.type)) continue;
+        media.push({
+          kind: "audio",
+          url: variant.url,
+          type: variant.type,
+          ...(variant.bitrate !== null ? { bitrate: variant.bitrate } : {})
+        });
+      } else if (item.kind === "subtitle" && item.subtitle?.track) {
+        const track = item.subtitle.track;
+        if (!isSaveableVariantUrl(track.url, track.type)) continue;
+        media.push({
+          kind: "subtitle",
+          url: track.url,
+          type: track.type,
+          ...(track.language ? { language: track.language } : {}),
+          ...(track.label ? { label: track.label } : {})
+        });
       } else if (item.image) {
         const entry: ExportMedia = {
           kind: item.kind === "thumbnail" ? "thumbnail" : "photo",

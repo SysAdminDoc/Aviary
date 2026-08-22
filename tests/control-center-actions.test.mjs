@@ -505,6 +505,54 @@ test("the sidecar preference lives with Media downloads, not Export formats", as
   assert.equal(result.value, "off");
 });
 
+test("media follow-on actions expose captured audio, captions, and date-bounded history export", async () => {
+  const result = await page.evaluate(async () => {
+    document.body.replaceChildren();
+    const settings = AviaryActions.cloneSettings(AviaryActions.DEFAULT_SETTINGS);
+    const calls = [];
+    const panel = AviaryActions.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: () => {},
+      getCapturedMediaCount: (_query, kind) => kind === "audio" ? 2 : 1,
+      runCapturedMediaBatch: async (_query, kind) => {
+        calls.push(kind);
+        return { total: kind === "audio" ? 2 : 1, downloaded: 1, started: 0, opened: 0, duplicate: 0, failed: 0, cancelled: false };
+      },
+      exportMediaHistory: async (range) => {
+        calls.push(range);
+        return { records: 3, files: 2, filenames: ["history.json", "history.csv"] };
+      }
+    });
+    const shadow = document.querySelector("#av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    shadow.querySelector('[data-av-section="media"]').click();
+    const labels = [...shadow.querySelectorAll(".av-row-label")].map((label) => label.textContent);
+    const exportRow = [...shadow.querySelectorAll(".av-row")]
+      .find((row) => row.querySelector(".av-row-label")?.textContent === "Export download history");
+    const dateInputs = [...exportRow.querySelectorAll('input[type="date"]')];
+    dateInputs[0].value = "2026-01-01";
+    dateInputs[1].value = "2026-01-31";
+    exportRow.querySelector("button").click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const audioRow = [...shadow.querySelectorAll(".av-row")]
+      .find((row) => row.querySelector(".av-row-label")?.textContent === "Download captured audio");
+    audioRow.querySelector("button").click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    panel.destroy();
+    return { labels, calls };
+  });
+
+  assert.ok(result.labels.includes("Download captured audio"));
+  assert.ok(result.labels.includes("Download captured captions"));
+  assert.ok(result.labels.includes("Export download history"));
+  assert.deepEqual(result.calls, [
+    { from: "2026-01-01", to: "2026-01-31" },
+    "audio"
+  ]);
+});
+
 test("snapshot capture and clear refresh the count while preserving action focus", async () => {
   const result = await page.evaluate(async () => {
     document.body.replaceChildren();

@@ -115,6 +115,7 @@ function stubs(variant) {
   offlineSemanticSearch: async () => [],
   getCapturedMediaCount: () => ${v ? 3 : 8},
   runCapturedMediaBatch: async () => ({ total: 0, downloaded: 0, duplicate: 0, failed: 0 }),
+  exportMediaHistory: async () => ({ records: 0, files: 2, filenames: ["history.json", "history.csv"] }),
   downloadWarc: async () => ({ records: 0 }),
   getWaczEstimate: () => ({ records: ${v ? 2 : 5}, estimatedBytes: ${v ? 2048 : 8192} }),
   downloadWacz: async () => ({ records: 0, bytes: 0, filename: "archive.wacz" }),

@@ -97,8 +97,8 @@ after you click them.
 ## How do I save media, and why did it open instead?
 
 The Media section adds one **Download** action to every media post, plus **Save**, **Thumb**, and
-eligible **Video/GIF** controls for individual assets. The post action saves all attached photos
-and direct videos/GIFs, never the video thumbnail. Images request their source format at
+eligible **Video/GIF** controls for individual assets. The post action saves all attached photos,
+direct videos/GIFs, audio tracks, and caption files, never the video thumbnail. Images request their source format at
 `name=orig` first and fall back to `4096x4096` only when that transfer fails. Videos use the
 highest-bitrate complete progressive MP4 Aviary captured; a `blob:` handle or streaming manifest
 is not presented as a video file. In an extension,
@@ -127,7 +127,9 @@ with a query it uses only those local matches, including `account:`, `source:`, 
 `has:media` filters. The queue is written before the first file handoff, survives a restart, and
 keeps the browser download id when the extension owns the transfer. A file is counted as saved only
 after the browser reports completion, and it never starts a GraphQL request. It can only save media
-references Aviary has already captured.
+references Aviary has already captured. The Media page can separately download captured audio or
+caption tracks and export JSON or CSV download history for a chosen date range. History exports keep
+hashes and timestamps but omit source media URLs.
 
 ## How do I export what I am seeing?
 

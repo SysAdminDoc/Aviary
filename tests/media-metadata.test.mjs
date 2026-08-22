@@ -23,6 +23,7 @@ before(async () => {
     [
       `export { MediaMetadataCache } from ${JSON.stringify(absoluteSource("src/features/media/media-metadata.ts"))};`,
       `export { extractTweet } from ${JSON.stringify(absoluteSource("src/features/media/extract.ts"))};`,
+      `export { collectExportRecords } from ${JSON.stringify(absoluteSource("src/features/export/collector.ts"))};`,
       `export { mediaButtonsFeature, ingestMediaMetadata, mediaMetadataCacheSize } from ${JSON.stringify(absoluteSource("src/features/media/media-buttons.ts"))};`,
       `export { DEFAULT_SETTINGS } from ${JSON.stringify(absoluteSource("src/platform/settings.ts"))};`
     ].join("\n"),
@@ -125,6 +126,135 @@ test("GraphQL media metadata is bounded, keyed, and rejects ambiguous matches", 
   );
   assert.equal(result.wrongTweet, null);
   assert.equal(result.wrongMedia, null);
+});
+
+test("captured media metadata keeps direct audio and caption tracks with the player", async () => {
+  const body = JSON.stringify({
+    data: {
+      tweetResult: {
+        rest_id: "987654321",
+        legacy: {
+          extended_entities: {
+            media: [{
+              type: "video",
+              media_key: "7_888888",
+              preview_image_url_https: "https://pbs.twimg.com/media/888888?format=jpg&name=small",
+              video_info: {
+                variants: [
+                  {
+                    content_type: "video/mp4",
+                    url: "https://video.twimg.com/ext_tw_video/987/pu/vid/1920x1080/main.mp4",
+                    bitrate: 4_000_000
+                  },
+                  {
+                    content_type: "audio/mp4",
+                    url: "https://video.twimg.com/ext_tw_audio/987/track.m4a",
+                    bitrate: 192_000
+                  }
+                ],
+                captions: [{
+                  url: "https://video.twimg.com/ext_tw_video/987/captions-en.vtt",
+                  language: "en",
+                  label: "English"
+                }]
+              }
+            }]
+          }
+        }
+      }
+    }
+  });
+
+  const result = await page.evaluate((metadataBody) => {
+    const cache = new AviaryMedia.MediaMetadataCache();
+    cache.ingest({ body: metadataBody });
+    const article = document.createElement("article");
+    article.setAttribute("data-testid", "tweet");
+    const status = document.createElement("a");
+    status.href = "/someone/status/987654321";
+    article.append(status);
+    const player = document.createElement("div");
+    player.setAttribute("data-testid", "videoPlayer");
+    const video = document.createElement("video");
+    video.poster = "https://pbs.twimg.com/media/888888?format=jpg&name=small";
+    video.src = "blob:https://x.com/captured-player";
+    player.append(video);
+    article.append(player);
+    const tweet = AviaryMedia.extractTweet(article, {
+      mediaMetadata: ({ tweetId, mediaId, poster }) => cache.find(tweetId, mediaId, poster)
+    });
+    return {
+      cached: cache.find("987654321", "888888"),
+      media: tweet.media.map((entry) => ({
+        kind: entry.kind,
+        url: entry.audio?.preferred?.url ?? entry.subtitle?.track.url ?? entry.video?.preferred?.url ?? null,
+        language: entry.subtitle?.track.language ?? null
+      }))
+    };
+  }, body);
+
+  assert.equal(result.cached.audioVariants[0].url, "https://video.twimg.com/ext_tw_audio/987/track.m4a");
+  assert.deepEqual(result.cached.subtitleTracks[0], {
+    url: "https://video.twimg.com/ext_tw_video/987/captions-en.vtt",
+    type: "text/vtt",
+    language: "en",
+    label: "English"
+  });
+  assert.deepEqual(result.media, [
+    {
+      kind: "video",
+      url: "https://video.twimg.com/ext_tw_video/987/pu/vid/1920x1080/main.mp4",
+      language: null
+    },
+    {
+      kind: "audio",
+      url: "https://video.twimg.com/ext_tw_audio/987/track.m4a",
+      language: null
+    },
+    {
+      kind: "subtitle",
+      url: "https://video.twimg.com/ext_tw_video/987/captions-en.vtt",
+      language: "en"
+    },
+    { kind: "thumbnail", url: null, language: null }
+  ]);
+});
+
+test("export collection includes direct audio and caption downloads", async () => {
+  const result = await page.evaluate(() => {
+    document.body.replaceChildren();
+    const article = document.createElement("article");
+    article.setAttribute("data-testid", "tweet");
+    const status = document.createElement("a");
+    status.href = "/someone/status/246813579";
+    article.append(status);
+    const audio = document.createElement("audio");
+    audio.src = "https://video.twimg.com/ext_tw_audio/246/track.m4a";
+    const track = document.createElement("track");
+    track.kind = "captions";
+    track.src = "https://video.twimg.com/ext_tw_video/246/captions-en.vtt";
+    track.srclang = "en";
+    track.label = "English";
+    audio.append(track);
+    article.append(audio);
+    document.body.append(article);
+    return AviaryMedia.collectExportRecords(document, "home");
+  });
+
+  assert.deepEqual(result[0].media, [
+    {
+      kind: "audio",
+      url: "https://video.twimg.com/ext_tw_audio/246/track.m4a",
+      type: "audio/mp4"
+    },
+    {
+      kind: "subtitle",
+      url: "https://video.twimg.com/ext_tw_video/246/captions-en.vtt",
+      type: "text/vtt",
+      language: "en",
+      label: "English"
+    }
+  ]);
 });
 
 test("MSE extraction keeps the real player as the video and thumbnail anchor", async () => {

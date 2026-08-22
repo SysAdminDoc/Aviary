@@ -231,6 +231,8 @@ function mediaMime(media: ExportMedia): string {
   if (media.type === "png") return "image/png";
   if (media.type === "webp") return "image/webp";
   if (media.kind === "video") return "video/mp4";
+  if (media.kind === "audio") return "audio/mp4";
+  if (media.kind === "subtitle") return "text/vtt";
   return "image/jpeg";
 }
 
@@ -239,6 +241,11 @@ function mediaExtension(media: ExportMedia): string {
   if (mime === "image/png") return "png";
   if (mime === "image/webp") return "webp";
   if (mime === "video/mp4") return "mp4";
+  if (mime === "audio/mp4") return "m4a";
+  if (mime === "audio/mpeg") return "mp3";
+  if (mime === "text/vtt") return "vtt";
+  if (mime === "text/srt") return "srt";
+  if (mime === "application/ttml+xml" || mime === "text/ttml") return "ttml";
   return "jpg";
 }
 
@@ -280,6 +287,12 @@ function renderReplayPage(record: ExportRecord, title: string): string {
     const escaped = escapeHtml(source);
     if (entry.kind === "video") {
       return `<video controls preload="metadata" src="${escaped}"></video>`;
+    }
+    if (entry.kind === "audio") {
+      return `<audio controls preload="metadata" src="${escaped}"></audio>`;
+    }
+    if (entry.kind === "subtitle") {
+      return `<p><a href="${escaped}" rel="noreferrer">Captured captions${entry.language ? ` (${escapeHtml(entry.language)})` : ""}</a></p>`;
     }
     return `<img src="${escaped}" alt="${escapeHtml(entry.altText ?? "Captured post media")}">`;
   }).join("");

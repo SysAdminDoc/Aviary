@@ -1,5 +1,11 @@
 import { renderFilename } from "./template";
-import { extractTweet, mediaIdentity, type ExtractedTweet, type ExtractedMedia } from "./extract";
+import {
+  extractTweet,
+  mediaIdentity,
+  type ExtractedTweet,
+  type ExtractedMedia,
+  type ExtractTweetOptions
+} from "./extract";
 import { sharedDownloadWatcher } from "./download-watch";
 import {
   createDownloader,
@@ -10,7 +16,7 @@ import {
   type DownloaderResult
 } from "./downloader";
 import { mediaIdentityHash, type MediaFingerprint } from "../export/assets";
-import { getMediaHistory, getMediaQueue } from "./media-buttons";
+import { getCapturedMediaMetadata, getMediaHistory, getMediaQueue } from "./media-buttons";
 import { isSaveableVariantUrl } from "./video-extract";
 import type { DownloadJob } from "./queue";
 import type { FeatureContext } from "../registry";
@@ -25,7 +31,7 @@ import {
 export interface BatchOptions {
   surface?: string;
   maxItems?: number;
-  filterKind?: "photo" | "video" | "thumbnail" | "all";
+  filterKind?: "photo" | "video" | "thumbnail" | "audio" | "subtitle" | "all";
 }
 
 export interface BatchProgress {
@@ -71,7 +77,7 @@ interface ActiveBatch {
 }
 
 interface MediaBatchTask {
-  kind: "photo" | "video" | "thumbnail";
+  kind: "photo" | "video" | "thumbnail" | "audio" | "subtitle";
   index: number;
   total: number;
   target: ResolvedTarget;
@@ -145,7 +151,8 @@ export async function runMediaBatch(
   const filterKind = options.filterKind ?? "all";
 
   const tweets = collectArticles(document, options.surface, {
-    preferOriginalImages: ctx.settings.media.preferOriginalImages
+    preferOriginalImages: ctx.settings.media.preferOriginalImages,
+    mediaMetadata: getCapturedMediaMetadata
   });
   const tasks: MediaBatchTask[] = [];
 
@@ -807,7 +814,12 @@ function resolveCapturedTarget(
   return {
     url,
     mediaId: mediaIdFromVideo(url),
-    ext: extensionForVideo(type, url)
+    ext:
+      media.kind === "audio"
+        ? extensionForAudio(type, url)
+        : media.kind === "subtitle"
+          ? extensionForSubtitle(type, url)
+          : extensionForVideo(type, url)
   };
 }
 
@@ -819,7 +831,7 @@ function postPermalink(identity: MediaBatchTask["identity"]): string | null {
 function collectArticles(
   root: ParentNode,
   surface = "active",
-  extractOptions: { preferOriginalImages?: boolean } = {}
+  extractOptions: Pick<ExtractTweetOptions, "preferOriginalImages" | "mediaMetadata"> = {}
 ): ExtractedTweet[] {
   const articles =
     root instanceof Element && root.matches('article[data-testid="tweet"]')
@@ -847,6 +859,16 @@ export function resolveTarget(media: ExtractedMedia): ResolvedTarget | null {
     }
     return { url, mediaId: mediaIdFromVideo(url), ext: extensionForVideo(media.video.preferred.type, url) };
   }
+  if (media.kind === "audio" && media.audio?.preferred) {
+    const variant = media.audio.preferred;
+    if (!isSaveableVariantUrl(variant.url, variant.type)) return null;
+    return { url: variant.url, mediaId: mediaIdFromVideo(variant.url), ext: extensionForAudio(variant.type, variant.url) };
+  }
+  if (media.kind === "subtitle" && media.subtitle?.track) {
+    const track = media.subtitle.track;
+    if (!isSaveableVariantUrl(track.url, track.type)) return null;
+    return { url: track.url, mediaId: mediaIdFromVideo(track.url), ext: extensionForSubtitle(track.type, track.url) };
+  }
   if (media.image) {
     return {
       url: media.image.url,
@@ -859,7 +881,7 @@ export function resolveTarget(media: ExtractedMedia): ResolvedTarget | null {
 }
 
 function mediaIdFromVideo(url: string): string | null {
-  const match = /\/([A-Za-z0-9_-]{6,})\.(mp4|m4s|m3u8|webm|mov)(?:[?#]|$)/i.exec(url);
+  const match = /\/([A-Za-z0-9_-]{6,})\.(mp4|m4s|m3u8|webm|mov|m4a|mp3|ogg|opus|wav|vtt|srt|ttml|dfxp)(?:[?#]|$)/i.exec(url);
   return match?.[1] ?? null;
 }
 
@@ -869,4 +891,17 @@ function extensionForVideo(mime: string, url: string): string {
   if (/m3u8/i.test(mime) || /\.m3u8(?:[?#]|$)/i.test(url)) return "m3u8";
   if (/mov/i.test(mime) || /\.mov(?:[?#]|$)/i.test(url)) return "mov";
   return "mp4";
+}
+
+function extensionForAudio(mime: string, url: string): string {
+  if (/mpeg|mp3/i.test(mime) || /\.mp3(?:[?#]|$)/i.test(url)) return "mp3";
+  if (/ogg|opus/i.test(mime) || /\.(?:ogg|opus)(?:[?#]|$)/i.test(url)) return "ogg";
+  if (/wav/i.test(mime) || /\.wav(?:[?#]|$)/i.test(url)) return "wav";
+  return "m4a";
+}
+
+function extensionForSubtitle(mime: string, url: string): string {
+  if (/srt/i.test(mime) || /\.srt(?:[?#]|$)/i.test(url)) return "srt";
+  if (/ttml|dfxp/i.test(mime) || /\.(?:ttml|dfxp)(?:[?#]|$)/i.test(url)) return "ttml";
+  return "vtt";
 }

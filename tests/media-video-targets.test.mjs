@@ -113,6 +113,24 @@ test("resolveTarget refuses a blob-only video instead of reporting a save", asyn
     }
   };
   assert.equal(resolveTarget(manifestOnly), null, "a playlist is not a downloadable video file");
+
+  const audio = {
+    kind: "audio",
+    source: {},
+    audio: {
+      preferred: { url: "https://video.twimg.com/ext_tw_audio/abc/track.mp3", type: "audio/mpeg" }
+    }
+  };
+  assert.equal(resolveTarget(audio).ext, "mp3");
+
+  const captions = {
+    kind: "subtitle",
+    source: {},
+    subtitle: {
+      track: { url: "https://video.twimg.com/ext_tw_video/abc/captions.srt", type: "text/srt" }
+    }
+  };
+  assert.equal(resolveTarget(captions).ext, "srt");
 });
 
 test("tellAria2Status fails soft in local-only mode rather than throwing out", async () => {

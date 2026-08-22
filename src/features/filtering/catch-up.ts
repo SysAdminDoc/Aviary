@@ -16,7 +16,7 @@ export interface CatchUpMetrics {
 }
 
 export interface CatchUpMedia {
-  kind: "photo" | "video" | "thumbnail";
+  kind: "photo" | "video" | "thumbnail" | "audio" | "subtitle";
   url: string;
   altText?: string;
 }
@@ -347,7 +347,7 @@ function isCategory(value: unknown): value is CatchUpCategory {
 }
 
 function isMediaKind(value: unknown): value is CatchUpMedia["kind"] {
-  return value === "photo" || value === "video" || value === "thumbnail";
+  return value === "photo" || value === "video" || value === "thumbnail" || value === "audio" || value === "subtitle";
 }
 
 function normalizeHandle(value: unknown): string | null {

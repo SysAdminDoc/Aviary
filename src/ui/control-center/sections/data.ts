@@ -1445,7 +1445,7 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
   rows.push(
     ctx.textInputRow(
       "Filename template",
-      "Fields: {handle}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}.",
+      "Fields: {handle}, {account}, {tweetId}, {mediaId}, {index}, {total}, {date}, {text}, {ext}. {account} is an alias for the publishing handle and can create per-account folders.",
       ctx.options.settings.media.filenameTemplate,
       async (value) => {
         ctx.options.settings.media.filenameTemplate = value.length > 0 ? value : "{handle}_{tweetId}_{index}";
@@ -1527,7 +1527,7 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
     rows.push(
       ctx.actionRow(
         "Download all visible media",
-        "Queue every photo, video, GIF, and thumbnail currently visible on this page.",
+        "Queue every photo, video, GIF, thumbnail, audio track, and caption track currently visible on this page.",
         async () => {
           ctx.setStatus("Downloading media from this view…");
           try {
@@ -1596,6 +1596,79 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
         }
       })
     );
+  }
+
+  if (ctx.options.exportMediaHistory) {
+    const row = ctx.el("div", "av-row av-row-stack av-media-history-export");
+    const copy = ctx.el("span", "av-row-copy");
+    copy.append(
+      ctx.el("span", "av-row-label", ctx.t("Export download history")),
+      ctx.el("span", "av-row-description", ctx.t("Export the local dedup records as JSON and CSV for a chosen date range. Source media URLs are never included."))
+    );
+    const controls = ctx.el("div", "av-inline-controls");
+    const from = document.createElement("input");
+    from.type = "date";
+    from.className = "av-text-input";
+    from.setAttribute("aria-label", ctx.t("History start date"));
+    const to = document.createElement("input");
+    to.type = "date";
+    to.className = "av-text-input";
+    to.setAttribute("aria-label", ctx.t("History end date"));
+    const exportButton = ctx.button(ctx.t("Export range"), "av-button av-button-secondary");
+    exportButton.addEventListener("click", () => {
+      exportButton.disabled = true;
+      void ctx.options.exportMediaHistory!({ from: from.value || null, to: to.value || null })
+        .then((result) => {
+          ctx.setStatusCopy("History exported: {records} records in {files} files.", {
+            records: result.records,
+            files: result.files
+          });
+        })
+        .catch((error: unknown) => {
+          ctx.options.onError("Download history export failed", error);
+          ctx.setStatus("Could not export download history.");
+        })
+        .finally(() => {
+          exportButton.disabled = false;
+        });
+    });
+    controls.append(from, to, exportButton);
+    row.append(copy, controls);
+    rows.push(row);
+  }
+
+  if (ctx.options.getCapturedMediaCount && ctx.options.runCapturedMediaBatch) {
+    const followOns: Array<["audio" | "subtitle", string, string]> = [
+      [
+        "audio",
+        ctx.t("Download captured audio"),
+        ctx.t("Download audio tracks already present in local captures. No metadata discovery request is made.")
+      ],
+      [
+        "subtitle",
+        ctx.t("Download captured captions"),
+        ctx.t("Download caption tracks already present in local captures. No metadata discovery request is made.")
+      ]
+    ];
+    for (const [kind, label, description] of followOns) {
+      const count = ctx.options.getCapturedMediaCount("", kind);
+      if (count === 0) continue;
+      rows.push(
+        ctx.actionRow(
+          label,
+          { source: `${description} {count} available.`, values: { count } },
+          async () => {
+            const result = await ctx.options.runCapturedMediaBatch!("", kind);
+            ctx.render();
+            ctx.setStatusCopy("Captured media finished: {downloaded} saved / {duplicate} dup / {failed} failed.", {
+              downloaded: result.downloaded,
+              duplicate: result.duplicate,
+              failed: result.failed
+            });
+          }
+        )
+      );
+    }
   }
 
   const mediaControlAction = (

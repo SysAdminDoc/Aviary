@@ -8,6 +8,7 @@ import {
 } from "./assets";
 import { collectExportRecords } from "./collector";
 import { captureExportRecordMedia } from "../media/downloader";
+import { getCapturedMediaMetadata } from "../media/media-buttons";
 import { CheckpointStore } from "./jobs";
 import { formatExport } from "./formatters";
 import { discoverQueryIds, type QueryRegistry } from "./query-discovery";
@@ -125,7 +126,9 @@ export async function runExportOfVisibleTweets(ctx: FeatureContext): Promise<Exp
   await checkpointStore.start(jobId, ctx.route.surface, formats, ctx.settings.export.preserveRawPayloads);
   void ctx.auditLog.record("export.start", { jobId, formats, surface: ctx.route.surface });
   try {
-    const initialRecords = collectExportRecords(document, ctx.route.surface);
+    const initialRecords = collectExportRecords(document, ctx.route.surface, {
+      mediaMetadata: getCapturedMediaMetadata
+    });
     await checkpointStore.append(jobId, initialRecords);
 
     const records = checkpointStore.records(jobId);

@@ -199,9 +199,37 @@ function recordRow(record: CatchUpRecord): HTMLElement {
   if (record.media.length > 0) {
     const media = element("div", "", "av-catch-up-media");
     for (const item of record.media) {
-      const preview = button(item.kind === "photo" ? "Photo" : item.kind === "video" ? "Video" : "Thumb", "av-catch-up-media-preview");
+      const preview = button(
+        item.kind === "photo"
+          ? "Photo"
+          : item.kind === "video"
+            ? "Video"
+            : item.kind === "audio"
+              ? "Audio"
+              : item.kind === "subtitle"
+                ? "Captions"
+                : "Thumb",
+        "av-catch-up-media-preview"
+      );
       preview.setAttribute("aria-label", `Load ${item.kind} preview`);
       preview.addEventListener("click", () => {
+        if (item.kind === "audio") {
+          const audio = document.createElement("audio");
+          audio.controls = true;
+          audio.preload = "metadata";
+          audio.src = item.url;
+          preview.replaceWith(audio);
+          return;
+        }
+        if (item.kind === "subtitle") {
+          const link = document.createElement("a");
+          link.href = item.url;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = "Open captions";
+          preview.replaceWith(link);
+          return;
+        }
         const image = document.createElement("img");
         image.src = item.url;
         image.alt = item.altText ?? `${item.kind} from the post`;

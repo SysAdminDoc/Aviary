@@ -230,6 +230,13 @@ function viewerScript(labels: string): string {
           image.alt = entry.altText || entry.kind;
           item.append(image);
         }
+        if (entry.kind === "audio") {
+          const audio = document.createElement("audio");
+          audio.controls = true;
+          audio.preload = "metadata";
+          audio.src = capture.packagePath;
+          item.append(audio);
+        }
         const link = document.createElement("a");
         link.href = capture.packagePath;
         link.textContent = labels.captured;

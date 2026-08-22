@@ -19,7 +19,7 @@ export interface DownloadJob {
   url: string;
   fallbackUrls?: string[];
   filename: string;
-  kind?: "photo" | "video" | "thumbnail";
+  kind?: "photo" | "video" | "thumbnail" | "audio" | "subtitle";
   mediaId?: string | null;
   /** Browser download id retained while a handoff awaits terminal confirmation. */
   downloadId?: number;
@@ -305,7 +305,7 @@ function normalizeJob(value: DownloadJob): DownloadJob {
         }
       : {}),
     filename: value.filename,
-    ...(value.kind === "photo" || value.kind === "video" || value.kind === "thumbnail"
+    ...(value.kind === "photo" || value.kind === "video" || value.kind === "thumbnail" || value.kind === "audio" || value.kind === "subtitle"
       ? { kind: value.kind }
       : {}),
     ...(typeof value.mediaId === "string"

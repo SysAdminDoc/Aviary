@@ -4,7 +4,7 @@ const MAX_SIDECAR_TEXT = 10_000;
 
 export interface MediaSidecarInput {
   mediaFilename: string;
-  kind: "photo" | "video" | "thumbnail";
+  kind: "photo" | "video" | "thumbnail" | "audio" | "subtitle";
   handle: string | null;
   tweetId: string | null;
   text: string;
@@ -88,7 +88,7 @@ export function normalizeMediaSidecarRequest(value: unknown): MediaSidecarReques
   if (record.format !== "json" && record.format !== "text") return undefined;
   if (
     typeof record.mediaFilename !== "string" ||
-    (record.kind !== "photo" && record.kind !== "video" && record.kind !== "thumbnail")
+    (record.kind !== "photo" && record.kind !== "video" && record.kind !== "thumbnail" && record.kind !== "audio" && record.kind !== "subtitle")
   ) {
     return undefined;
   }

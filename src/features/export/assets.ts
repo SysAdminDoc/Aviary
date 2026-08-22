@@ -52,7 +52,7 @@ export interface ExportPackageManifest {
   networkRequiredToComplete: boolean;
 }
 
-export type MediaFingerprintKind = "photo" | "video" | "thumbnail";
+export type MediaFingerprintKind = "photo" | "video" | "thumbnail" | "audio" | "subtitle";
 
 /**
  * Durable media identity. Only hashes reach storage, never the source URL.
@@ -126,6 +126,8 @@ export function serializeExportMedia(
   if (media.bitrate !== undefined) serialized.bitrate = media.bitrate;
   if (media.type !== undefined) serialized.type = media.type;
   if (media.altText !== undefined) serialized.altText = media.altText;
+  if (media.language !== undefined) serialized.language = media.language;
+  if (media.label !== undefined) serialized.label = media.label;
   return serialized;
 }
 
@@ -448,9 +450,10 @@ function mediaExtension(media: ExportMedia): string {
   const type = cleanText(media.type).toLowerCase();
   const fromType = type.includes("/") ? type.split("/").at(-1) ?? "" : type;
   const fromUrl = /[.?](?:format=)?([a-z0-9]{2,5})(?:[?#]|$)/i.exec(media.url)?.[1]?.toLowerCase() ?? "";
-  const candidate = fromType || fromUrl || (media.kind === "video" ? "mp4" : "jpg");
+  const candidate = fromType || fromUrl || defaultMediaExtension(media.kind);
+  if (candidate.includes("ttml") || candidate.includes("dfxp")) return "ttml";
   if (candidate === "jpeg") return "jpg";
-  return /^[a-z0-9]{2,5}$/.test(candidate) ? candidate : media.kind === "video" ? "mp4" : "bin";
+  return /^[a-z0-9]{2,5}$/.test(candidate) ? candidate : defaultMediaExtension(media.kind);
 }
 
 function mediaContentType(media: ExportMedia, extension: string): string {
@@ -460,7 +463,20 @@ function mediaContentType(media: ExportMedia, extension: string): string {
   if (extension === "png") return "image/png";
   if (extension === "webp") return "image/webp";
   if (extension === "mp4") return "video/mp4";
+  if (extension === "m4a") return "audio/mp4";
+  if (extension === "mp3") return "audio/mpeg";
+  if (extension === "ogg" || extension === "opus") return "audio/ogg";
+  if (extension === "vtt") return "text/vtt";
+  if (extension === "srt") return "text/srt";
+  if (extension === "ttml") return "application/ttml+xml";
   return "application/octet-stream";
+}
+
+function defaultMediaExtension(kind: ExportMedia["kind"]): string {
+  if (kind === "video") return "mp4";
+  if (kind === "audio") return "m4a";
+  if (kind === "subtitle") return "vtt";
+  return kind === "photo" || kind === "thumbnail" ? "jpg" : "bin";
 }
 
 const SHA256_K = Uint32Array.from([

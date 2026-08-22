@@ -1,10 +1,12 @@
-import type { VideoVariant } from "./video-extract";
+import type { SubtitleTrack, VideoVariant } from "./video-extract";
 
 export interface CapturedMediaMetadata {
   tweetId: string | null;
   mediaId: string | null;
   poster: string | null;
   variants: VideoVariant[];
+  audioVariants: VideoVariant[];
+  subtitleTracks: SubtitleTrack[];
   isGif: boolean;
 }
 
@@ -224,7 +226,10 @@ function readMediaMetadata(
   tweetId: string | null
 ): CapturedMediaMetadata | null {
   const videoInfo = isRecord(record.video_info) ? record.video_info : {};
-  const variants = readVariants(videoInfo.variants);
+  const allVariants = readVariants(videoInfo.variants);
+  const audioVariants = allVariants.filter(isAudioVariant);
+  const variants = allVariants.filter((variant) => !isAudioVariant(variant));
+  const subtitleTracks = readSubtitleTracks(record, videoInfo);
   const poster = firstUrl(
     record.preview_image_url_https,
     record.preview_image_url,
@@ -241,10 +246,10 @@ function readMediaMetadata(
     record.is_gif === true ||
     variants.some((variant) => variant.url.toLowerCase().includes("tweet_video"));
 
-  if (!poster && variants.length === 0) {
+  if (!poster && variants.length === 0 && audioVariants.length === 0 && subtitleTracks.length === 0) {
     return null;
   }
-  return { tweetId, mediaId, poster, variants, isGif };
+  return { tweetId, mediaId, poster, variants, audioVariants, subtitleTracks, isGif };
 }
 
 function readVariants(value: unknown): VideoVariant[] {
@@ -271,6 +276,52 @@ function readVariants(value: unknown): VideoVariant[] {
     });
   }
   return variants;
+}
+
+function isAudioVariant(variant: VideoVariant): boolean {
+  return /^audio\//i.test(variant.type) || /\.(?:aac|m4a|mp3|ogg|opus|wav)(?:[?#]|$)/i.test(variant.url);
+}
+
+function readSubtitleTracks(...values: unknown[]): SubtitleTrack[] {
+  const found = new Map<string, SubtitleTrack>();
+  const seen = new Set<unknown>();
+  const visit = (value: unknown, depth: number): void => {
+    if (depth > 6 || !value || typeof value !== "object" || seen.has(value)) return;
+    seen.add(value);
+    if (Array.isArray(value)) {
+      for (const child of value) visit(child, depth + 1);
+      return;
+    }
+    const record = value as Record<string, unknown>;
+    const type = typeof record.type === "string" ? record.type : "";
+    const url = firstUrl(record.url, record.src, record.source_url, record.href);
+    if (url && isSubtitleUrl(url, type)) {
+      found.set(url, {
+        url,
+        type: type.includes("/") ? type : subtitleType(url),
+        language: cleanOptional(record.language ?? record.lang ?? record.srclang),
+        label: cleanOptional(record.label ?? record.name ?? record.title)
+      });
+    }
+    for (const child of Object.values(record)) visit(child, depth + 1);
+  };
+  for (const value of values) visit(value, 0);
+  return [...found.values()].slice(0, 8);
+}
+
+function isSubtitleUrl(url: string, type: string): boolean {
+  return /(?:text\/vtt|text\/srt|application\/ttml|caption|subtitle)/i.test(type) ||
+    /\.(?:vtt|srt|ttml|dfxp)(?:[?#]|$)/i.test(url);
+}
+
+function subtitleType(url: string): string {
+  if (/\.(?:srt)(?:[?#]|$)/i.test(url)) return "text/srt";
+  if (/\.(?:ttml|dfxp)(?:[?#]|$)/i.test(url)) return "application/ttml+xml";
+  return "text/vtt";
+}
+
+function cleanOptional(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim().slice(0, 80) : null;
 }
 
 function upsert(entries: Map<string, CapturedMediaMetadata>, incoming: CapturedMediaMetadata): boolean {
@@ -329,11 +380,29 @@ function mergeMetadata(
       seen.add(variant.url);
     }
   }
+  const audioVariants = [...existing.audioVariants];
+  const seenAudio = new Set(audioVariants.map((variant) => variant.url));
+  for (const variant of incoming.audioVariants) {
+    if (!seenAudio.has(variant.url)) {
+      audioVariants.push(variant);
+      seenAudio.add(variant.url);
+    }
+  }
+  const subtitleTracks = [...existing.subtitleTracks];
+  const seenTracks = new Set(subtitleTracks.map((track) => track.url));
+  for (const track of incoming.subtitleTracks) {
+    if (!seenTracks.has(track.url)) {
+      subtitleTracks.push(track);
+      seenTracks.add(track.url);
+    }
+  }
   return {
     tweetId: existing.tweetId ?? incoming.tweetId,
     mediaId: existing.mediaId ?? incoming.mediaId,
     poster: existing.poster ?? incoming.poster,
     variants,
+    audioVariants,
+    subtitleTracks,
     isGif: existing.isGif || incoming.isGif
   };
 }
@@ -353,6 +422,25 @@ function metadataEqual(a: CapturedMediaMetadata, b: CapturedMediaMetadata): bool
         variant.width === other.width &&
         variant.height === other.height &&
         variant.bitrate === other.bitrate
+      );
+    }) &&
+    a.audioVariants.length === b.audioVariants.length &&
+    a.audioVariants.every((variant, index) => {
+      const other = b.audioVariants[index];
+      return (
+        variant.url === other?.url &&
+        variant.type === other.type &&
+        variant.bitrate === other.bitrate
+      );
+    }) &&
+    a.subtitleTracks.length === b.subtitleTracks.length &&
+    a.subtitleTracks.every((track, index) => {
+      const other = b.subtitleTracks[index];
+      return (
+        track.url === other?.url &&
+        track.type === other.type &&
+        track.language === other.language &&
+        track.label === other.label
       );
     })
   );
@@ -375,7 +463,9 @@ function metadataKey(metadata: CapturedMediaMetadata): string {
 function cloneMetadata(metadata: CapturedMediaMetadata): CapturedMediaMetadata {
   return {
     ...metadata,
-    variants: metadata.variants.map((variant) => ({ ...variant }))
+    variants: metadata.variants.map((variant) => ({ ...variant })),
+    audioVariants: metadata.audioVariants.map((variant) => ({ ...variant })),
+    subtitleTracks: metadata.subtitleTracks.map((track) => ({ ...track }))
   };
 }
 

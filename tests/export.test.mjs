@@ -18,7 +18,22 @@ test("formatExport produces deterministic JSON, CSV, HTML, and Markdown artifact
       text: "Hello, world",
       capturedAt: "2026-05-19T12:00:00Z",
       surface: "home",
-      media: [{ kind: "photo", url: "https://pbs.twimg.com/media/x?format=jpg&name=orig", type: "jpg" }],
+      media: [
+        { kind: "photo", url: "https://pbs.twimg.com/media/x?format=jpg&name=orig", type: "jpg" },
+        {
+          kind: "audio",
+          url: "https://video.twimg.com/ext_tw_audio/1/track.m4a",
+          type: "audio/mp4",
+          bitrate: 192000
+        },
+        {
+          kind: "subtitle",
+          url: "https://video.twimg.com/ext_tw_video/1/captions.vtt",
+          type: "text/vtt",
+          language: "en",
+          label: "English"
+        }
+      ],
       permalink: "https://x.com/alpha/status/1"
     },
     {
@@ -38,6 +53,8 @@ test("formatExport produces deterministic JSON, CSV, HTML, and Markdown artifact
   const decoded = JSON.parse(new TextDecoder().decode(json.data));
   assert.equal(decoded.records.length, 2);
   assert.equal(decoded.records[1].handle, "beta");
+  assert.deepEqual(decoded.records[0].media.slice(1).map((media) => media.kind), ["audio", "subtitle"]);
+  assert.equal(decoded.records[0].media[2].language, "en");
 
   const csv = formatExport("csv", records);
   const csvText = new TextDecoder().decode(csv.data);

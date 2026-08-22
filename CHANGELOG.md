@@ -2,7 +2,16 @@
 
 ## Unreleased
 
+No changes yet.
+
+## 1.38.0 (2026-08-22)
+
 ### Added
+
+- **Media follow-ons stay local and useful.** Captured audio tracks and caption files now get their
+  own download controls and can be included in export records. Download filenames accept an
+  `{account}` folder token, while the Media page exports JSON and CSV download history for an
+  inclusive date range without source media URLs.
 
 - **Bookmarks can be mirrored and exported locally.** With **Preserve raw payloads** enabled, Aviary
   reads bookmark timeline responses already delivered to the page and stores the posts it can see,

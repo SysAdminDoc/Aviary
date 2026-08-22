@@ -5,7 +5,7 @@ export const LAST_DOWNLOAD_KEY = "aviary.media.last-download.v1";
 export interface LastDownload {
   url: string;
   filename: string;
-  kind: "photo" | "video" | "thumbnail";
+  kind: "photo" | "video" | "thumbnail" | "audio" | "subtitle";
   downloadedAt: string;
 }
 
@@ -38,7 +38,7 @@ function isLastDownload(value: unknown): value is LastDownload {
     isHttpUrl(candidate.url) &&
     typeof candidate.filename === "string" &&
     candidate.filename.length > 0 &&
-    (candidate.kind === "photo" || candidate.kind === "video" || candidate.kind === "thumbnail") &&
+    (candidate.kind === "photo" || candidate.kind === "video" || candidate.kind === "thumbnail" || candidate.kind === "audio" || candidate.kind === "subtitle") &&
     typeof candidate.downloadedAt === "string"
   );
 }

@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.37.0`
+Version: `1.38.0`
 
 Actionable work only. Historical and completed roadmap material is archived in CHANGELOG.md; blocked work is kept in Roadmap_Blocked.md.
 
@@ -23,14 +23,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 ### P1, trust, reliability, and measured defects
 
 ### P2, features
-
-- [ ] F150, P2, Media follow-ons beyond F118
-  Why: the media backlog of the benchmark saver names four things Aviary can serve from records it already holds, without a single originated call.
-  Evidence: TwitterMediaHarvest#336 (subtitles), #103 (audio-only), #316 (group by account), #323 (history export by date range).
-  Touches: `src/features/media/*`, `history.ts`, filename template tokens, Media panel.
-  Acceptance: each capability works only from captured or already-downloaded records; download history exports over a chosen date range; grouping is a filename-template token rather than a new store.
-  Depends on: F118.
-  Complexity: M
 
 ### P3, toolchain
 
