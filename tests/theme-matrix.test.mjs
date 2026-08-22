@@ -119,9 +119,12 @@ test("every authored dark theme survives dark and light X hosts at both desktop 
             `${label}: scrolling canvas is transparent`
           );
           if (theme === "noir") {
-            assert.equal(state.paint.rootAttachment, "fixed, fixed, fixed", `${label}: canvas moves while scrolling`);
+            assert.equal(state.paint.rootImage, "none", `${label}: root retained decorative texture`);
+            assert.equal(state.paint.bodyImage, "none", `${label}: body retained decorative texture`);
+            assert.equal(state.paint.navImage, "none", `${label}: navigation retained decorative texture`);
+            assert.equal(state.paint.sidebarImage, "none", `${label}: sidebar retained decorative texture`);
+            assert.equal(state.paint.rootBackground, state.tokens.bg, `${label}: root missed the flat canvas token`);
             assert.equal(state.paint.bodyBackground, "rgba(0, 0, 0, 0)", `${label}: body masks the root canvas`);
-            assert.equal(state.paint.bodyImage, "none", `${label}: body paint can end at the viewport boundary`);
           }
           assert.ok(hasPaint(state.paint.navBackground, state.paint.navImage), `${label}: navigation is transparent`);
           assert.notEqual(state.paint.primaryBackground, "rgba(0, 0, 0, 0)", `${label}: timeline is transparent`);

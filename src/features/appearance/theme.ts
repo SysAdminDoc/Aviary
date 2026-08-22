@@ -503,8 +503,8 @@ html[data-av-theme][data-av-surface="conversation"] [data-testid^="tweetTextarea
   border-radius: 8px;
 }
 
-/* Noir is Aviary's authored premium desktop skin. The root owns the fixed canvas so it covers
-   every route and scroll depth without exposing a second base colour. */
+/* Noir is Aviary's authored premium desktop skin. The root owns the canvas so it covers every
+   route and scroll depth without exposing a second base colour. */
 html.av-theme-noir {
   background-color: var(--av-bg);
 }

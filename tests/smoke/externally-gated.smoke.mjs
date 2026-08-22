@@ -90,6 +90,7 @@ const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
   "base64"
 );
+const LARGE_PNG = Buffer.concat([PNG, Buffer.alloc(1_100_000 - PNG.length)]);
 
 const masterPlaylist = [
   "#EXTM3U",
@@ -331,10 +332,22 @@ async function commitSettings(page) {
   });
   if (!committed) return;
   await page.waitForFunction(
-    () => document.querySelector("#av-control-center")?.getAttribute("data-av-draft-state") === "clean",
+    () => {
+      const host = document.querySelector("#av-control-center");
+      const status = host?.shadowRoot?.querySelector(".av-status");
+      return host?.getAttribute("data-av-draft-state") === "clean" || status?.getAttribute("data-tone") === "error";
+    },
     null,
     { timeout: 5_000 }
   );
+  const result = await page.evaluate(() => {
+    const host = document.querySelector("#av-control-center");
+    return {
+      state: host?.getAttribute("data-av-draft-state") ?? "missing",
+      status: host?.shadowRoot?.querySelector(".av-status")?.textContent ?? ""
+    };
+  });
+  if (result.state !== "clean") throw new Error(`Settings commit failed: ${result.status || result.state}`);
 }
 
 async function setToggle(page, section, label, checked) {
@@ -485,7 +498,7 @@ try {
   });
 
   await context.route("https://pbs.twimg.com/**", async (route) => {
-    await route.fulfill({ status: 200, contentType: "image/png", body: PNG });
+    await route.fulfill({ status: 200, contentType: "image/png", body: LARGE_PNG });
   });
   await context.route("https://video.twimg.com/**", async (route) => {
     if (route.request().url().includes(".m3u8")) {
@@ -673,7 +686,7 @@ try {
 
   await setField(page, "integrations", "Aria2 endpoint", `${provider.browserBase}/aria2`);
   await setField(page, "integrations", "Aria2 RPC secret", "aria-secret");
-  await setField(page, "integrations", "Hand off files larger than (MB)", "0");
+  await setField(page, "integrations", "Hand off files larger than (MB)", "1");
   await setToggle(page, "integrations", "Aria2 handoff", true);
   await setToggle(page, "trust", "Local-only mode", false);
   await clickAction(page, "integrations", "Test Aria2 connection");
@@ -736,15 +749,17 @@ try {
   await waitStatus(page, "Copied 1 records to clipboard.");
   expect((await readClipboard(page)).includes("An imported archive fixture record."), "Markdown export did not reach the clipboard");
 
-  const exportDownload = page.waitForEvent("download", { timeout: 15_000 });
-  await clickAction(page, "export", "Export visible tweets");
-  const exportArtifact = await exportDownload;
+  const [exportArtifact] = await Promise.all([
+    page.waitForEvent("download", { timeout: 15_000 }),
+    clickAction(page, "export", "Export visible posts")
+  ]);
   const exportPath = path.join(tempDownloads, exportArtifact.suggestedFilename());
   await exportArtifact.saveAs(exportPath);
   expect((await stat(exportPath)).size > 0, "visible-tweet export produced an empty file");
-  const warcDownload = page.waitForEvent("download", { timeout: 15_000 });
-  await clickAction(page, "snapshots", "Download Markdown report");
-  const reportArtifact = await warcDownload;
+  const [reportArtifact] = await Promise.all([
+    page.waitForEvent("download", { timeout: 15_000 }),
+    clickAction(page, "snapshots", "Download Markdown report")
+  ]);
   await reportArtifact.saveAs(path.join(tempDownloads, reportArtifact.suggestedFilename()));
 
   await optionsPage.close();
