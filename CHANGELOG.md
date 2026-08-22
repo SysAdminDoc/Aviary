@@ -93,7 +93,7 @@
 
 - A dimmed post no longer says it was hidden. The reason line always read "Hidden by your rule",
   including on posts that were only dimmed, and the default setting shows a reason on dimmed posts
-  only — so out of the box the only posts explaining themselves were the ones being described
+  only, so out of the box the only posts explaining themselves were the ones being described
   wrongly. Translated into all nine locales.
 
 - A media download's outcome is visible again under an Aviary theme. The theme styled every
@@ -111,7 +111,7 @@
 
 - A regex filter rule can no longer freeze the tab. The budget refused a repeated group that
   already repeats, like `(a+)+b`, but not one whose branches can match the same text, like
-  `(a|a)+$` — which costs the same and took nearly ten seconds against a thirty-character post,
+  `(a|a)+$`, which costs the same and took nearly ten seconds against a thirty-character post,
   once per post, with no way to abort it. Both shapes are refused now, including when the
   alternation is wrapped in a further group, which one extra pair of parentheses used to hide.
 - A regex rule that is refused, or that will not compile, is named in the panel with the reason.

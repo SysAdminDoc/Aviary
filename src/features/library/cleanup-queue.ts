@@ -10,6 +10,8 @@ export type CleanupQueueStatus = "queued" | "approved" | "skipped" | "complete";
 export interface CleanupQueueItem extends CleanupCandidate {
   id: string;
   enqueuedAt: string;
+  /** The clear generation this item was written under. Absent on items stored before it existed. */
+  generation?: number;
   status: CleanupQueueStatus;
   reviewedAt?: string;
   reviewerNote?: string;
@@ -18,6 +20,19 @@ export interface CleanupQueueItem extends CleanupCandidate {
 interface CleanupQueueState {
   items: CleanupQueueItem[];
   destructiveExecuted: boolean;
+  /**
+   * How many times the queue has been cleared, so a merge can tell a new item from a stale one.
+   *
+   * Merging only what a call touched stops one tab erasing another's work, but it cannot by itself
+   * tell "this item is new" from "this item is one the other tab was told to forget and I still
+   * have in memory". Without this, reviewing an item after another tab cleared the queue put that
+   * item straight back.
+   *
+   * A counter rather than a timestamp, because a timestamp does not survive a tie: a clear and an
+   * enqueue in the same millisecond are indistinguishable, and the enqueue is the one that loses.
+   * That is the same millisecond collision the item ids already carry a random suffix for.
+   */
+  generation?: number;
 }
 
 const CLEANUP_QUEUE_STATUSES: CleanupQueueStatus[] = ["queued", "approved", "skipped", "complete"];
@@ -45,6 +60,11 @@ function emptyState(): CleanupQueueState {
   return { items: [], destructiveExecuted: false };
 }
 
+/** True when this item was written before the clear that is on disk, so it must not come back. */
+function clearedAway(item: CleanupQueueItem, generation: number): boolean {
+  return (item.generation ?? 0) < generation;
+}
+
 export class CleanupQueue {
   readonly #storage: StorageGateway;
   readonly #limit: number;
@@ -63,7 +83,8 @@ export class CleanupQueue {
     const stored = await this.#storage.get<CleanupQueueState>(CLEANUP_QUEUE_KEY, emptyState());
     this.#state = {
       items: Array.isArray(stored?.items) ? stored.items.filter(isQueueItem).slice(-this.#limit) : [],
-      destructiveExecuted: stored?.destructiveExecuted === true
+      destructiveExecuted: stored?.destructiveExecuted === true,
+      generation: typeof stored?.generation === "number" ? stored.generation : 0
     };
     this.#loaded = true;
   }
@@ -85,7 +106,10 @@ export class CleanupQueue {
     while (this.#state.items.length > this.#limit) {
       this.#state.items.shift();
     }
-    await this.#persist(added);
+    // Stamped at write time, from what is on disk. Stamping at enqueue time would use this tab's
+    // idea of the generation, which is stale the moment another tab clears -- and an enqueue after
+    // a clear is exactly the thing that must survive.
+    await this.#persist(added, "new");
     return added.length;
   }
 
@@ -107,16 +131,21 @@ export class CleanupQueue {
     item.status = status;
     item.reviewedAt = new Date().toISOString();
     if (note) item.reviewerNote = note;
-    await this.#persist([item]);
+    await this.#persist([item], "existing");
   }
 
   async clear(): Promise<void> {
     // Loaded first: clearing before the stored state has been read would drop
     // `destructiveExecuted` back to false rather than preserving what was on disk.
     await this.load();
-    this.#state = { items: [], destructiveExecuted: this.#state.destructiveExecuted };
+    this.#state = {
+      items: [],
+      destructiveExecuted: this.#state.destructiveExecuted,
+      generation: (this.#state.generation ?? 0) + 1
+    };
     this.#loaded = true;
     // Replaced, not merged, for the same reason as the snapshot store: clearing means clearing.
+    // The watermark is what stops another tab's next write putting the items back.
     await replaceStored(this.#storage, CLEANUP_QUEUE_KEY, this.#state);
   }
 
@@ -152,24 +181,30 @@ export class CleanupQueue {
    * this tab still holds in its pre-review state. `destructiveExecuted` only ever goes one way,
    * so it is or-ed rather than overwritten.
    */
-  async #persist(touched: readonly CleanupQueueItem[]): Promise<void> {
+  async #persist(touched: readonly CleanupQueueItem[], kind: "new" | "existing"): Promise<void> {
     try {
       this.#state = await mutateStored<CleanupQueueState>(
         this.#storage,
         CLEANUP_QUEUE_KEY,
         emptyState(),
         (stored) => {
+          const generation = typeof stored?.generation === "number" ? stored.generation : 0;
           const existing = Array.isArray(stored?.items) ? stored.items.filter(isQueueItem) : [];
+          const incoming =
+            kind === "new"
+              ? touched.map((item) => ({ ...item, generation }))
+              : touched.filter((item) => !clearedAway(item, generation));
           const merged = mergeKeyed(
             existing.map((item) => [item.id, item] as [string, CleanupQueueItem]),
-            touched.map((item) => [item.id, item] as [string, CleanupQueueItem])
+            incoming.map((item) => [item.id, item] as [string, CleanupQueueItem])
           );
           const items = [...merged.values()].sort(
             (a, b) => Date.parse(a.enqueuedAt) - Date.parse(b.enqueuedAt)
           );
           return {
             items: items.slice(-this.#limit),
-            destructiveExecuted: stored?.destructiveExecuted === true || this.#state.destructiveExecuted
+            destructiveExecuted: stored?.destructiveExecuted === true || this.#state.destructiveExecuted,
+            generation
           };
         }
       );

@@ -1729,7 +1729,9 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
 
   const selectorSummary = (): string => {
     const last = [...options.diagnostics()].reverse().find((event) => event.message.includes("Selector"));
-    return last?.message ?? "Monitoring active";
+    // Translated like every other sentence the panel shows. A diagnostics message that has one
+    // is passed through as it came; this fallback is authored copy and was leaking English.
+    return last?.message ?? t("Monitoring active");
   };
 
   const selectorHealthRows = (): HTMLElement[] => {

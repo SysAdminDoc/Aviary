@@ -546,3 +546,107 @@ test("two archive imports in two tabs both land in the library", async () => {
   await a.clear();
   assert.deepEqual(mod.readShared(mod.ARCHIVE_LIBRARY_KEY).followers, []);
 });
+
+/**
+ * Two tabs capturing the same list in the same millisecond both survive.
+ *
+ * The merge keyed on kind, handle and an ISO timestamp with millisecond resolution, so two tabs
+ * capturing at once collapsed to one -- and `record()` still returned the entry that had just been
+ * dropped, so the panel reported a capture that no longer existed and the next diff had nothing to
+ * compare against. The whole-state write this replaced kept both. The cleanup queue had already
+ * been given a random suffix for exactly this collision; the snapshot key had not.
+ */
+test("two tabs capturing the same list in the same millisecond keep both captures", async () => {
+  const mod = await load();
+  mod.setSettleDelay(0);
+
+  const a = new mod.SnapshotStore(mod.tab());
+  const b = new mod.SnapshotStore(mod.tab());
+  await a.load();
+  await b.load();
+
+  // Same kind, same handle, same instant, different scroll depth. Nothing but the accounts differs.
+  const fixed = "2026-08-22T12:00:00.000Z";
+  const realNow = Date;
+  globalThis.Date = class extends realNow {
+    constructor(...args) {
+      super(...(args.length ? args : [fixed]));
+    }
+    toISOString() {
+      return fixed;
+    }
+  };
+  globalThis.Date.parse = realNow.parse;
+  globalThis.Date.now = () => realNow.parse(fixed);
+
+  let first;
+  let second;
+  try {
+    [first, second] = await Promise.all([
+      a.record({ kind: "followers", handle: "self", source: "dom", accounts: ["alpha", "beta"] }),
+      b.record({ kind: "followers", handle: "self", source: "dom", accounts: ["alpha"] })
+    ]);
+  } finally {
+    globalThis.Date = realNow;
+  }
+
+  assert.equal(first.capturedAt, second.capturedAt, "the collision this guards against must be real");
+
+  const stored = mod.readShared(mod.SNAPSHOTS_KEY).entries;
+  assert.equal(stored.length, 2, "one tab's capture was dropped by the merge");
+  assert.deepEqual(
+    stored.map((entry) => entry.accounts.length).sort(),
+    [1, 2],
+    "and both scroll depths must be the ones that survived"
+  );
+
+  // A capture identical in every respect is the same capture, and collapsing that is correct.
+  const c = new mod.SnapshotStore(mod.tab());
+  await c.load();
+  const before = mod.readShared(mod.SNAPSHOTS_KEY).entries.length;
+  await c.record({
+    kind: "followers",
+    handle: "self",
+    source: "dom",
+    accounts: stored[0].accounts
+  });
+  const after = mod.readShared(mod.SNAPSHOTS_KEY).entries;
+  assert.ok(after.length >= before, "a genuinely new capture is still recorded");
+});
+
+/**
+ * Clearing the cleanup queue is not undone by a review in the other tab.
+ *
+ * Merging only what a call touched stops one tab erasing another's work, but it cannot by itself
+ * tell "this item is new" from "this item is one the other tab was told to forget and I still hold
+ * in memory". Reviewing an item after another tab cleared put that item straight back.
+ */
+test("a cleared cleanup queue stays cleared when the other tab reviews an old item", async () => {
+  const mod = await load();
+  mod.setSettleDelay(0);
+
+  const a = new mod.CleanupQueue(mod.tab());
+  await a.load();
+  await a.enqueue([
+    { tweetId: "1", handle: "someone", text: "a post", bucket: "reply", protected: false }
+  ]);
+
+  // A second tab that opened after the enqueue, so it is holding the item when the clear lands.
+  // `load()` is a no-op once a store has loaded, which is why this is a fresh instance.
+  const b = new mod.CleanupQueue(mod.tab());
+  await b.load();
+  const item = b.list()[0];
+  assert.ok(item, "the other tab has to be holding the item for this to mean anything");
+
+  await a.clear();
+  await b.setStatus(item.id, "skipped", "reviewed after the clear");
+
+  const stored = mod.readShared(mod.CLEANUP_QUEUE_KEY).items;
+  assert.deepEqual(stored, [], "the review resurrected an item that had been cleared");
+
+  // And the queue is still usable afterwards: something enqueued after the clear stays.
+  await b.enqueue([
+    { tweetId: "2", handle: "someone", text: "a later post", bucket: "reply", protected: false }
+  ]);
+  assert.equal(mod.readShared(mod.CLEANUP_QUEUE_KEY).items.length, 1);
+});

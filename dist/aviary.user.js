@@ -8529,7 +8529,7 @@ ${body}
     };
     const selectorSummary = () => {
       const last = [...options.diagnostics()].reverse().find((event) => event.message.includes("Selector"));
-      return last?.message ?? "Monitoring active";
+      return last?.message ?? t("Monitoring active");
     };
     const selectorHealthRows = () => {
       const health = options.getSelectorHealth?.();
@@ -14871,8 +14871,8 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     has(key) {
       return this.findMatch({ identityHash: legacyIdentityHash(key) }, false) !== null;
     }
-    findMatch(fingerprint, allowPerceptual = false) {
-      const candidate = normalizeFingerprint(fingerprint);
+    findMatch(fingerprint2, allowPerceptual = false) {
+      const candidate = normalizeFingerprint(fingerprint2);
       return findFingerprintMatch(
         this.#entries,
         activeReservations(this.#reservations),
@@ -14881,20 +14881,20 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       );
     }
     /** Completed history only. In-flight claims must not paint a media item as already saved. */
-    wasDownloaded(fingerprint, allowPerceptual = false) {
-      const candidate = normalizeFingerprint(fingerprint);
+    wasDownloaded(fingerprint2, allowPerceptual = false) {
+      const candidate = normalizeFingerprint(fingerprint2);
       return findFingerprintMatch(this.#entries, [], candidate, allowPerceptual) !== null;
     }
     async record(fingerprintOrLegacyKey) {
       await this.load();
-      const fingerprint = typeof fingerprintOrLegacyKey === "string" ? { identityHash: legacyIdentityHash(fingerprintOrLegacyKey) } : normalizeFingerprint(fingerprintOrLegacyKey);
-      const entry = { ...fingerprint, at: (/* @__PURE__ */ new Date()).toISOString() };
+      const fingerprint2 = typeof fingerprintOrLegacyKey === "string" ? { identityHash: legacyIdentityHash(fingerprintOrLegacyKey) } : normalizeFingerprint(fingerprintOrLegacyKey);
+      const entry = { ...fingerprint2, at: (/* @__PURE__ */ new Date()).toISOString() };
       return await this.#persist({ added: [entry] }) > 0;
     }
     /** Atomically claims a fingerprint so two tabs cannot start the same transfer. */
-    async reserve(fingerprint, allowPerceptual = false) {
+    async reserve(fingerprint2, allowPerceptual = false) {
       await this.load();
-      const candidate = normalizeFingerprint(fingerprint);
+      const candidate = normalizeFingerprint(fingerprint2);
       const now2 = Date.now();
       const reservation = {
         ...candidate,
@@ -14932,10 +14932,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       }
     }
     /** Turns a successful in-flight claim into durable completed history. */
-    async commit(token, fingerprint) {
+    async commit(token, fingerprint2) {
       await this.load();
       if (!validToken(token)) return false;
-      const candidate = normalizeFingerprint(fingerprint);
+      const candidate = normalizeFingerprint(fingerprint2);
       const entry = { ...candidate, at: (/* @__PURE__ */ new Date()).toISOString() };
       let added = false;
       try {
@@ -15207,10 +15207,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
     if (existing.at < incoming.at) existing.at = incoming.at;
   }
-  function normalizeFingerprint(fingerprint) {
-    const identityHash = validHash(fingerprint.identityHash) ? fingerprint.identityHash.toLowerCase() : sha256Hex(new TextEncoder().encode(String(fingerprint.identityHash)));
-    const exactHash = validHash(fingerprint.exactHash) ? fingerprint.exactHash.toLowerCase() : void 0;
-    const perceptualHash = validHash(fingerprint.perceptualHash) ? fingerprint.perceptualHash.toLowerCase() : void 0;
+  function normalizeFingerprint(fingerprint2) {
+    const identityHash = validHash(fingerprint2.identityHash) ? fingerprint2.identityHash.toLowerCase() : sha256Hex(new TextEncoder().encode(String(fingerprint2.identityHash)));
+    const exactHash = validHash(fingerprint2.exactHash) ? fingerprint2.exactHash.toLowerCase() : void 0;
+    const perceptualHash = validHash(fingerprint2.perceptualHash) ? fingerprint2.perceptualHash.toLowerCase() : void 0;
     return {
       identityHash,
       ...exactHash ? { exactHash } : {},
@@ -15238,17 +15238,17 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     const entry = value;
     return validToken(entry.token) && validHash(entry.identityHash) && (entry.exactHash === void 0 || validHash(entry.exactHash)) && (entry.perceptualHash === void 0 || validHash(entry.perceptualHash)) && typeof entry.at === "string" && typeof entry.expiresAt === "number" && Number.isFinite(entry.expiresAt) && entry.expiresAt > now2;
   }
-  function findFingerprintMatch(entries, reservations, fingerprint, allowPerceptual) {
+  function findFingerprintMatch(entries, reservations, fingerprint2, allowPerceptual) {
     const candidates2 = [...entries, ...reservations];
-    if (fingerprint.exactHash && candidates2.some((entry) => entry.exactHash === fingerprint.exactHash)) {
+    if (fingerprint2.exactHash && candidates2.some((entry) => entry.exactHash === fingerprint2.exactHash)) {
       return "exact";
     }
-    if (candidates2.some((entry) => entry.identityHash === fingerprint.identityHash)) {
+    if (candidates2.some((entry) => entry.identityHash === fingerprint2.identityHash)) {
       return "identity";
     }
-    if (allowPerceptual && fingerprint.perceptualHash) {
+    if (allowPerceptual && fingerprint2.perceptualHash) {
       for (const entry of candidates2) {
-        if (entry.perceptualHash && hexadecimalHammingDistance(entry.perceptualHash, fingerprint.perceptualHash) <= PERCEPTUAL_MATCH_DISTANCE) {
+        if (entry.perceptualHash && hexadecimalHammingDistance(entry.perceptualHash, fingerprint2.perceptualHash) <= PERCEPTUAL_MATCH_DISTANCE) {
           return "perceptual";
         }
       }
@@ -15256,10 +15256,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     return null;
   }
   var reservationSequence = 0;
-  function reservationToken(fingerprint, now2) {
+  function reservationToken(fingerprint2, now2) {
     reservationSequence += 1;
     return sha256Hex(new TextEncoder().encode(
-      `${fingerprint.exactHash ?? fingerprint.identityHash}:${now2}:${reservationSequence}:${Math.random()}`
+      `${fingerprint2.exactHash ?? fingerprint2.identityHash}:${now2}:${reservationSequence}:${Math.random()}`
     ));
   }
   function validToken(value) {
@@ -16453,19 +16453,19 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       permalink: identity.tweetId ? `https://x.com/${identity.handle ?? "i"}/status/${identity.tweetId}` : null,
       queuedAt: (/* @__PURE__ */ new Date()).toISOString()
     });
-    let fingerprint = {
+    let fingerprint2 = {
       identityHash: mediaIdentityHash(media.kind, target.url, target.mediaId)
     };
     let historyMatch = null;
     let reservationToken2 = null;
     if (ctx.settings.media.downloadHistory) {
-      historyMatch = history.findMatch(fingerprint, false);
+      historyMatch = history.findMatch(fingerprint2, false);
       if (historyMatch) {
-        const reservation = await history.reserve(fingerprint, false);
+        const reservation = await history.reserve(fingerprint2, false);
         historyMatch = reservation.match;
         reservationToken2 = reservation.token;
       } else {
-        fingerprint = await fingerprintMediaDownload({
+        fingerprint2 = await fingerprintMediaDownload({
           kind: media.kind,
           url: target.url,
           ...target.fallbackUrls ? { fallbackUrls: target.fallbackUrls } : {},
@@ -16473,7 +16473,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
           includePerceptual: ctx.settings.media.perceptualDedup
         });
         const reservation = await history.reserve(
-          fingerprint,
+          fingerprint2,
           ctx.settings.media.perceptualDedup
         );
         historyMatch = reservation.match;
@@ -16514,10 +16514,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       });
       if (ctx.settings.media.downloadHistory) {
         if (reservationToken2) {
-          await history.commit(reservationToken2, fingerprint);
+          await history.commit(reservationToken2, fingerprint2);
           reservationToken2 = null;
         } else {
-          await history.record(fingerprint);
+          await history.record(fingerprint2);
         }
       }
       saveSidecarOrWarn(ctx, sidecar, filename);
@@ -25357,6 +25357,9 @@ a.av-link-clean {
   function emptyState() {
     return { items: [], destructiveExecuted: false };
   }
+  function clearedAway(item, generation2) {
+    return (item.generation ?? 0) < generation2;
+  }
   var CleanupQueue = class {
     #storage;
     #limit;
@@ -25373,7 +25376,8 @@ a.av-link-clean {
       const stored = await this.#storage.get(CLEANUP_QUEUE_KEY, emptyState());
       this.#state = {
         items: Array.isArray(stored?.items) ? stored.items.filter(isQueueItem).slice(-this.#limit) : [],
-        destructiveExecuted: stored?.destructiveExecuted === true
+        destructiveExecuted: stored?.destructiveExecuted === true,
+        generation: typeof stored?.generation === "number" ? stored.generation : 0
       };
       this.#loaded = true;
     }
@@ -25394,7 +25398,7 @@ a.av-link-clean {
       while (this.#state.items.length > this.#limit) {
         this.#state.items.shift();
       }
-      await this.#persist(added);
+      await this.#persist(added, "new");
       return added.length;
     }
     list(status) {
@@ -25413,11 +25417,15 @@ a.av-link-clean {
       item.status = status;
       item.reviewedAt = (/* @__PURE__ */ new Date()).toISOString();
       if (note) item.reviewerNote = note;
-      await this.#persist([item]);
+      await this.#persist([item], "existing");
     }
     async clear() {
       await this.load();
-      this.#state = { items: [], destructiveExecuted: this.#state.destructiveExecuted };
+      this.#state = {
+        items: [],
+        destructiveExecuted: this.#state.destructiveExecuted,
+        generation: (this.#state.generation ?? 0) + 1
+      };
       this.#loaded = true;
       await replaceStored(this.#storage, CLEANUP_QUEUE_KEY, this.#state);
     }
@@ -25451,24 +25459,27 @@ a.av-link-clean {
      * this tab still holds in its pre-review state. `destructiveExecuted` only ever goes one way,
      * so it is or-ed rather than overwritten.
      */
-    async #persist(touched) {
+    async #persist(touched, kind) {
       try {
         this.#state = await mutateStored(
           this.#storage,
           CLEANUP_QUEUE_KEY,
           emptyState(),
           (stored) => {
+            const generation2 = typeof stored?.generation === "number" ? stored.generation : 0;
             const existing = Array.isArray(stored?.items) ? stored.items.filter(isQueueItem) : [];
+            const incoming = kind === "new" ? touched.map((item) => ({ ...item, generation: generation2 })) : touched.filter((item) => !clearedAway(item, generation2));
             const merged = mergeKeyed(
               existing.map((item) => [item.id, item]),
-              touched.map((item) => [item.id, item])
+              incoming.map((item) => [item.id, item])
             );
             const items = [...merged.values()].sort(
               (a, b) => Date.parse(a.enqueuedAt) - Date.parse(b.enqueuedAt)
             );
             return {
               items: items.slice(-this.#limit),
-              destructiveExecuted: stored?.destructiveExecuted === true || this.#state.destructiveExecuted
+              destructiveExecuted: stored?.destructiveExecuted === true || this.#state.destructiveExecuted,
+              generation: generation2
             };
           }
         );
@@ -25644,17 +25655,17 @@ a.av-link-clean {
           if (index >= prepared.length) return;
           const task = prepared[index];
           const { filename, job } = task;
-          let fingerprint = {
+          let fingerprint2 = {
             identityHash: mediaIdentityHash(
               task.kind,
               task.target.url,
               task.target.mediaId
             )
           };
-          let historyMatch = ctx.settings.media.downloadHistory ? history2?.findMatch(fingerprint, false) ?? null : null;
+          let historyMatch = ctx.settings.media.downloadHistory ? history2?.findMatch(fingerprint2, false) ?? null : null;
           let reservationToken2 = null;
           if (historyMatch && history2) {
-            const reservation = await history2.reserve(fingerprint, false);
+            const reservation = await history2.reserve(fingerprint2, false);
             historyMatch = reservation.match;
             reservationToken2 = reservation.token;
           }
@@ -25675,7 +25686,7 @@ a.av-link-clean {
             return;
           }
           if (ctx.settings.media.downloadHistory && history2 && !reservationToken2) {
-            fingerprint = await fingerprintMediaDownload({
+            fingerprint2 = await fingerprintMediaDownload({
               kind: task.kind,
               url: task.target.url,
               ...task.target.fallbackUrls ? { fallbackUrls: task.target.fallbackUrls } : {},
@@ -25683,7 +25694,7 @@ a.av-link-clean {
               includePerceptual: ctx.settings.media.perceptualDedup
             });
             const reservation = await history2.reserve(
-              fingerprint,
+              fingerprint2,
               ctx.settings.media.perceptualDedup
             );
             historyMatch = reservation.match;
@@ -25752,8 +25763,8 @@ a.av-link-clean {
                 if (terminal === "complete") {
                   if (jobId) queue2?.mark(jobId, "completed");
                   if (ctx.settings.media.downloadHistory && history2) {
-                    if (activeReservation) await history2.commit(activeReservation, fingerprint);
-                    else await history2.record(fingerprint);
+                    if (activeReservation) await history2.commit(activeReservation, fingerprint2);
+                    else await history2.record(fingerprint2);
                   }
                   saveSidecarOrWarn2(ctx, task.sidecar, filename);
                   void ctx.auditLog.record("media.download", {
@@ -25791,10 +25802,10 @@ a.av-link-clean {
               if (job) queue2?.mark(job.id, "completed");
               if (ctx.settings.media.downloadHistory && history2) {
                 if (reservationToken2) {
-                  await history2.commit(reservationToken2, fingerprint);
+                  await history2.commit(reservationToken2, fingerprint2);
                   reservationToken2 = null;
                 } else {
-                  await history2.record(fingerprint);
+                  await history2.record(fingerprint2);
                 }
               }
               saveSidecarOrWarn2(ctx, task.sidecar, filename);
@@ -25872,18 +25883,18 @@ a.av-link-clean {
         await waitForBatch(control);
         if (control.cancelled) break;
         queue2.resume(job.id);
-        let fingerprint;
+        let fingerprint2;
         let reservationToken2 = null;
         try {
           await ctx.limiter.waitForToken();
           if (control.cancelled) break;
           if (ctx.settings.media.downloadHistory && history2 && job.kind) {
-            fingerprint = {
+            fingerprint2 = {
               identityHash: mediaIdentityHash(job.kind, job.url, job.mediaId ?? null)
             };
-            let historyMatch = history2.findMatch(fingerprint, false);
+            let historyMatch = history2.findMatch(fingerprint2, false);
             if (!historyMatch) {
-              fingerprint = await fingerprintMediaDownload({
+              fingerprint2 = await fingerprintMediaDownload({
                 kind: job.kind,
                 url: job.url,
                 ...job.fallbackUrls ? { fallbackUrls: job.fallbackUrls } : {},
@@ -25892,7 +25903,7 @@ a.av-link-clean {
               });
             }
             const reservation = await history2.reserve(
-              fingerprint,
+              fingerprint2,
               ctx.settings.media.perceptualDedup
             );
             historyMatch = reservation.match;
@@ -25949,7 +25960,7 @@ a.av-link-clean {
           if (result.pending && result.downloadId !== void 0) {
             const jobId = job.id;
             const activeReservation = reservationToken2;
-            const activeFingerprint = fingerprint;
+            const activeFingerprint = fingerprint2;
             reservationToken2 = null;
             queue2.trackDownload(jobId, result.downloadId);
             void sharedDownloadWatcher().terminal(result.downloadId).then(async (terminal) => {
@@ -25990,12 +26001,12 @@ a.av-link-clean {
             continue;
           } else {
             queue2.mark(job.id, "completed");
-            if (ctx.settings.media.downloadHistory && history2 && fingerprint) {
+            if (ctx.settings.media.downloadHistory && history2 && fingerprint2) {
               if (reservationToken2) {
-                await history2.commit(reservationToken2, fingerprint);
+                await history2.commit(reservationToken2, fingerprint2);
                 reservationToken2 = null;
               } else {
-                await history2.record(fingerprint);
+                await history2.record(fingerprint2);
               }
             }
             saveSidecarOrWarn2(ctx, job.sidecar, job.filename);
@@ -26937,7 +26948,19 @@ a.av-link-clean {
     return Array.from(handles).sort();
   }
   function snapshotKey(entry) {
-    return `${entry.kind}|${entry.handle}|${entry.capturedAt}`;
+    return `${entry.kind}|${entry.handle}|${entry.capturedAt}|${fingerprint(entry.accounts)}`;
+  }
+  function fingerprint(accounts) {
+    let hash = 2166136261;
+    for (const account of accounts) {
+      for (let index = 0; index < account.length; index += 1) {
+        hash ^= account.charCodeAt(index);
+        hash = Math.imul(hash, 16777619) >>> 0;
+      }
+      hash ^= 47;
+      hash = Math.imul(hash, 16777619) >>> 0;
+    }
+    return `${accounts.length}.${hash.toString(36)}`;
   }
   function isSnapshotEntry(value) {
     if (typeof value !== "object" || value === null) return false;

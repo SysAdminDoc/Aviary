@@ -231,9 +231,33 @@ export function collectAccountsFromDom(root: ParentNode): string[] {
   return Array.from(handles).sort();
 }
 
-/** What makes one capture distinct from another: the same list, taken at a different moment. */
+/**
+ * What makes one capture distinct from another.
+ *
+ * The timestamp alone is not enough. It has millisecond resolution, and two tabs capturing the
+ * same list at once land on the same millisecond often enough to matter -- the merge then keeps
+ * one, while `record()` returns the entry it just dropped, so the panel reports a capture that no
+ * longer exists and the next diff has nothing to compare. The accounts are what actually differ
+ * between two captures at different scroll depths, so they are part of the identity.
+ *
+ * Two captures that agree on all of it are the same capture, and collapsing those is correct.
+ */
 function snapshotKey(entry: SnapshotEntry): string {
-  return `${entry.kind}|${entry.handle}|${entry.capturedAt}`;
+  return `${entry.kind}|${entry.handle}|${entry.capturedAt}|${fingerprint(entry.accounts)}`;
+}
+
+/** Deterministic 32-bit FNV-1a over the account list, rendered base36. */
+function fingerprint(accounts: readonly string[]): string {
+  let hash = 0x811c9dc5;
+  for (const account of accounts) {
+    for (let index = 0; index < account.length; index += 1) {
+      hash ^= account.charCodeAt(index);
+      hash = Math.imul(hash, 0x01000193) >>> 0;
+    }
+    hash ^= 0x2f;
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return `${accounts.length}.${hash.toString(36)}`;
 }
 
 function isSnapshotEntry(value: unknown): value is SnapshotEntry {
