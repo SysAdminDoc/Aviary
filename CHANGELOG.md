@@ -4,6 +4,12 @@
 
 ### Added
 
+- **Bookmarks can be mirrored and exported locally.** With **Preserve raw payloads** enabled, Aviary
+  reads bookmark timeline responses already delivered to the page and stores the posts it can see,
+  including their capture timestamp. User tags, folders, reminders, and notes survive refreshes.
+  Library can download the local set as JSON and CSV, and the panel says plainly that the mirror
+  only contains posts X sent while you scrolled past them.
+
 - **Catch-up keeps a local reading copy of rendered posts.** Filtering can retain up to 4,000
   rendered rows for 30 days. The digest covers recent and older windows, categories, author groups,
   top links, media previews, filter reasons, and direct links back to the original post. It reads
@@ -53,12 +59,12 @@
   and visual matches, plus the most recent match type. Clearing history resets the hashes and those
   counters together.
 
-- **The delivery-size ceiling now includes the deeper local media, filtering, preservation, and
-  catch-up workflows.** The main bundle allowance is 2.40 MB after adding media fingerprints,
+- **The delivery-size ceiling now includes the deeper local media, filtering, preservation,
+  catch-up, and bookmark workflows.** The main bundle allowance is 2.45 MB after adding media fingerprints,
   resumable captured-media batches, portable rules in eight languages, offline archive repair,
-  hybrid search, the WARC/WACZ writer plus its dedicated worker, and the bounded local digest. The
-  worker keeps archive assembly off X's reading thread and rejects an export estimate above 256 MiB
-  before allocating it.
+  hybrid search, the WARC/WACZ writer plus its dedicated worker, the bounded local digest, and the
+  bookmark mirror/parser plus bulk export formats. The worker keeps archive assembly off X's reading
+  thread and rejects an export estimate above 256 MiB before allocating it.
 
 - **Snapshots & Archive reports every repair source.** The panel separates links found in the ZIP
   from links found in local captures, counts resolved and unresolved participant IDs, and confirms

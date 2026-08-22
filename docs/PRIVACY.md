@@ -24,6 +24,7 @@ These are the only Aviary-triggered network paths:
 | Bluesky / Mastodon | After you click the corresponding crosspost action | Your configured service; composer text, thread metadata, and optionally the last downloaded media when attachment is enabled. |
 | AI provider | When AI runs is enabled, you review the disclosure, and you send a provider-backed command | Your configured endpoint; the prompt built from the selected post and configured system text. The review shows fields, character/token estimate, retention notice, network status, and byte budget. |
 | Semantic search | When you rebuild the index, explicitly add semantic ranking to a query, or enable auto-embedding | Your configured embeddings endpoint; the model and record text sent for each embedding request. The Control Center shows the destination, fields, retention notice, and byte budget before auto-indexing. |
+| Bookmark mirror | Never; it reads only GraphQL responses already delivered to the page when **Preserve raw payloads** is enabled | No new destination. Matching bookmark timeline payloads are parsed locally and the tweet text, handle, permalink, operation name, and timestamp are stored in `aviary.library.bookmarks.v1`. |
 | Analytics refusal | When beacon blocking is enabled | No new destination; matching analytics beacons are intercepted before they leave the page. |
 
 Every integration is disabled by default and requires an explicit setting, endpoint/credential,
@@ -72,7 +73,7 @@ schema, migration, usage, and quota status.
 | `aviary.queryIds.v1` | GraphQL operation ids discovered in loaded X scripts | Keep export parsing resilient as X changes. |
 | `aviary.aria2.history.v1` | Queued/completed Aria2 gids and media metadata | Avoid requeueing the same media URL. |
 | `aviary.snapshots.v1` | Captured follower/following snapshots | Compare snapshots over time; **Clear all snapshots** removes them. |
-| `aviary.library.bookmarks.v1` | Local bookmarks, tags, folders, reminders, and notes | Search/edit the local library; individual bookmarks or **Clear local bookmarks** remove them. |
+| `aviary.library.bookmarks.v1` | Local bookmarks, tags, folders, reminders, notes, captured source and operation metadata | Search/edit the local library; mirrored records contain only posts X sent while you scrolled past them; individual bookmarks or **Clear local bookmarks** remove them. |
 | `aviary.userNotes.v1` | Private account notes | Decorate matching posts; **Clear all account notes** removes them. |
 | `aviary.cleanupQueue.v1` | Review candidates from cleanup previews | Review-only queue; **Clear cleanup queue** removes it. Aviary does not delete X data. |
 | `aviary.semanticIndex.v1` | Embedding vectors and record metadata | Local semantic search; **Clear semantic index** removes it. |

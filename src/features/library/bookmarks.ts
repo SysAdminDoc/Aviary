@@ -4,6 +4,8 @@ import { mutateStored, replaceStored } from "../../platform/storage-lock";
 export const BOOKMARKS_KEY = "aviary.library.bookmarks.v1";
 export const BOOKMARKS_LIMIT = 5000;
 
+export type BookmarkSource = "manual" | "captured";
+
 export interface BookmarkRecord {
   id: string;
   tweetId: string | null;
@@ -16,6 +18,8 @@ export interface BookmarkRecord {
   notes: string;
   capturedAt: string;
   updatedAt: string;
+  source: BookmarkSource;
+  sourceOperation: string | null;
 }
 
 interface BookmarksState {
@@ -36,6 +40,21 @@ export interface BookmarkInput {
   folder?: string | null;
   remindAt?: string | null;
   notes?: string;
+}
+
+export interface CapturedBookmarkInput {
+  tweetId: string;
+  handle?: string | null;
+  text?: string;
+  url?: string | null;
+  capturedAt: string;
+  sourceOperation?: string | null;
+}
+
+export interface BookmarkExportArtifact {
+  filename: string;
+  contentType: string;
+  data: Uint8Array;
 }
 
 export class BookmarkStore {
@@ -88,7 +107,9 @@ export class BookmarkStore {
       remindAt: normalizeReminder(input.remindAt),
       notes: normalizeNotes(input.notes),
       capturedAt: now,
-      updatedAt: now
+      updatedAt: now,
+      source: "manual",
+      sourceOperation: null
     };
 
     this.#state.entries.push(entry);
@@ -109,6 +130,73 @@ export class BookmarkStore {
     entry.updatedAt = new Date().toISOString();
     await this.#persist({ added: [entry], removed: [] });
     return entry;
+  }
+
+  /**
+   * Mirrors bookmark timeline records in one locked write. User-authored metadata stays attached
+   * to the tweet when a later GraphQL response refreshes its text or capture timestamp.
+   */
+  async mirror(inputs: readonly CapturedBookmarkInput[]): Promise<number> {
+    await this.load();
+    const normalized = dedupeCaptured(inputs);
+    if (normalized.length === 0) return 0;
+    const now = new Date().toISOString();
+    try {
+      const merged = await mutateStored<BookmarksState>(
+        this.#storage,
+        BOOKMARKS_KEY,
+        { entries: [] },
+        (stored) => {
+          const entries = readBookmarks(stored);
+          const byTweetId = new Map<string, BookmarkRecord>();
+          for (const entry of entries) {
+            if (entry.tweetId) byTweetId.set(entry.tweetId, entry);
+          }
+          for (const input of normalized) {
+            const existing = byTweetId.get(input.tweetId);
+            if (existing) {
+              // A delayed response must not move a record backwards in time. Keep the user's
+              // tags, folder, reminder, and notes exactly as they were.
+              if (existing.source === "captured" && Date.parse(existing.capturedAt) > Date.parse(input.capturedAt)) continue;
+              const handle = normalizeHandle(input.handle);
+              const text = normalizeText(input.text);
+              const url = normalizeUrl(input.url);
+              if (handle) existing.handle = handle;
+              if (text) existing.text = text;
+              if (url) existing.url = url;
+              existing.capturedAt = input.capturedAt;
+              existing.updatedAt = now;
+              existing.source = "captured";
+              existing.sourceOperation = normalizeOperation(input.sourceOperation);
+              continue;
+            }
+            const entry: BookmarkRecord = {
+              id: newBookmarkId(this.#sequence += 1),
+              tweetId: input.tweetId,
+              handle: normalizeHandle(input.handle),
+              text: normalizeText(input.text),
+              url: normalizeUrl(input.url),
+              tags: [],
+              folder: null,
+              remindAt: null,
+              notes: "",
+              capturedAt: input.capturedAt,
+              updatedAt: now,
+              source: "captured",
+              sourceOperation: normalizeOperation(input.sourceOperation)
+            };
+            entries.push(entry);
+            byTweetId.set(entry.tweetId!, entry);
+          }
+          entries.sort((left, right) => left.capturedAt.localeCompare(right.capturedAt));
+          return { entries: entries.slice(-this.#limit) };
+        }
+      );
+      this.#state = { entries: readBookmarks(merged) };
+      return normalized.length;
+    } catch {
+      return 0;
+    }
   }
 
   async remove(id: string): Promise<void> {
@@ -256,7 +344,9 @@ function normalizeBookmark(entry: BookmarkRecord): BookmarkRecord {
     capturedAt,
     // Older or partially written records may not have updatedAt. Sorting/search must remain safe
     // and the capture timestamp is the least surprising repair value.
-    updatedAt: normalizeTimestamp(entry.updatedAt) ?? capturedAt
+    updatedAt: normalizeTimestamp(entry.updatedAt) ?? capturedAt,
+    source: entry.source === "captured" ? "captured" : "manual",
+    sourceOperation: normalizeOperation(entry.sourceOperation)
   };
 }
 
@@ -269,6 +359,33 @@ function applyInput(entry: BookmarkRecord, input: BookmarkInput): void {
   if ("folder" in input) entry.folder = normalizeFolder(input.folder);
   if ("remindAt" in input) entry.remindAt = normalizeReminder(input.remindAt);
   if ("notes" in input) entry.notes = normalizeNotes(input.notes);
+}
+
+function normalizeOperation(value: string | null | undefined): string | null {
+  if (typeof value !== "string" || value.trim().length === 0) return null;
+  return value.trim().slice(0, 120);
+}
+
+function dedupeCaptured(inputs: readonly CapturedBookmarkInput[]): CapturedBookmarkInput[] {
+  const byTweetId = new Map<string, CapturedBookmarkInput>();
+  for (const input of inputs) {
+    const tweetId = normalizeId(input.tweetId);
+    const capturedAt = normalizeTimestamp(input.capturedAt);
+    if (!tweetId || !capturedAt) continue;
+    const candidate: CapturedBookmarkInput = {
+      tweetId,
+      handle: input.handle ?? null,
+      text: input.text ?? "",
+      url: input.url ?? null,
+      capturedAt,
+      sourceOperation: input.sourceOperation ?? null
+    };
+    const previous = byTweetId.get(tweetId);
+    if (!previous || previous.capturedAt <= candidate.capturedAt) {
+      byTweetId.set(tweetId, candidate);
+    }
+  }
+  return [...byTweetId.values()];
 }
 
 function normalizeId(value: string | null | undefined): string | null {
@@ -318,6 +435,78 @@ function normalizeNotes(value: string | undefined): string {
 
 function cloneBookmark(entry: BookmarkRecord): BookmarkRecord {
   return { ...entry, tags: [...entry.tags] };
+}
+
+export function buildBookmarkExportArtifacts(entries: readonly BookmarkRecord[]): BookmarkExportArtifact[] {
+  const exportedAt = new Date().toISOString();
+  const json = JSON.stringify(
+    {
+      generator: "Aviary",
+      schemaVersion: 1,
+      exportedAt,
+      count: entries.length,
+      limitation: "Contains only local bookmarks, including captured posts X sent while they were scrolled past.",
+      bookmarks: entries
+    },
+    null,
+    2
+  );
+  const headers = [
+    "id",
+    "tweetId",
+    "handle",
+    "text",
+    "url",
+    "capturedAt",
+    "updatedAt",
+    "source",
+    "sourceOperation",
+    "tags",
+    "folder",
+    "remindAt",
+    "notes"
+  ];
+  const lines = [headers.join(",")];
+  for (const entry of entries) {
+    lines.push([
+      entry.id,
+      entry.tweetId ?? "",
+      entry.handle ?? "",
+      entry.text,
+      entry.url ?? "",
+      entry.capturedAt,
+      entry.updatedAt,
+      entry.source,
+      entry.sourceOperation ?? "",
+      entry.tags.join(" "),
+      entry.folder ?? "",
+      entry.remindAt ?? "",
+      entry.notes
+    ].map(csvCell).join(","));
+  }
+  const encoder = new TextEncoder();
+  return [
+    {
+      filename: `aviary-bookmarks-${fileStamp(exportedAt)}.json`,
+      contentType: "application/json",
+      data: encoder.encode(json)
+    },
+    {
+      filename: `aviary-bookmarks-${fileStamp(exportedAt)}.csv`,
+      contentType: "text/csv;charset=utf-8",
+      data: encoder.encode(`${lines.join("\n")}\n`)
+    }
+  ];
+}
+
+function csvCell(value: string): string {
+  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  const escaped = safe.replace(/"/g, '""');
+  return /[",\r\n]/.test(safe) ? `"${escaped}"` : escaped;
+}
+
+function fileStamp(value: string): string {
+  return value.replace(/[^0-9A-Za-z]+/g, "-").replace(/^-|-$/g, "").slice(0, 32) || "export";
 }
 
 /** The stored shape is user-writable through a backup import, so every read validates it. */

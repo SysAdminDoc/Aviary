@@ -215,6 +215,7 @@ export interface ControlCenterOptions {
   setUserNote?: (handle: string, note: string) => Promise<void>;
   clearUserNotes?: () => Promise<void>;
   getBookmarkStatus?: () => BookmarkStatus;
+  exportBookmarks?: () => Promise<{ records: number; files: number; filenames: string[] }>;
   searchBookmarks?: (query: string) => BookmarkRecord[];
   offlineSearch?: (query: string) => OfflineQueryHit[];
   offlineSemanticSearch?: (query: string) => Promise<OfflineQueryHit[]>;
@@ -399,6 +400,7 @@ export interface BookmarkStatus {
   due: number;
   tags: string[];
   folders: string[];
+  mirrored?: number;
 }
 
 /** One entry in the settings rail: a heading group, a title, and the rows it owns. */

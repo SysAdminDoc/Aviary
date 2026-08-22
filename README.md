@@ -54,7 +54,7 @@ X's own filter is left to do its job.
 - Export core: `src/features/export/` (`export-feature.ts`, `collector.ts`, `formatters.ts`, `assets.ts`, `viewer.ts`, `zip-store.ts`, `zip-reader.ts`, `jobs.ts`, `query-discovery.ts`, `network-capture.ts`, `xlsx.ts`, `warc.ts`, `wacz.ts`, `wacz-signing.ts`, `wacz-worker-client.ts`, `external-targets.ts`, `types.ts`)
 - AI: `src/features/ai/command-menu.ts` (local prompt builder; optionally runs through `features/integrations/ai-provider.ts` when the user supplies an API key)
 - Integrations: `src/features/integrations/` (`aria2.ts`, `crosspost.ts`, `ai-provider.ts`, `semantic-search.ts`, `usage.ts`)
-- Library: `src/features/library/` (`user-notes.ts`, `link-unshorten.ts`, `snapshots.ts`, `snapshots-feature.ts`, `archive-import.ts`, `cleanup-preview.ts`, `cleanup-queue.ts`, `reports.ts`, `local-search.ts`, `bookmarks.ts`, `bookmarks-feature.ts`)
+- Library: `src/features/library/` (`user-notes.ts`, `link-unshorten.ts`, `snapshots.ts`, `snapshots-feature.ts`, `archive-import.ts`, `cleanup-preview.ts`, `cleanup-queue.ts`, `reports.ts`, `local-search.ts`, `bookmarks.ts`, `bookmark-capture.ts`, `bookmarks-feature.ts`)
 - Composer: `src/features/composer/composer-snippets.ts`
 - i18n: `src/platform/i18n.ts` + `src/features/core/i18n-feature.ts`
 - Presets: `src/features/core/presets.ts`
@@ -360,8 +360,11 @@ The Control Center "Library" section exposes:
 - **Account notes**, one `handle: note` per line. Aviary stores notes per-handle and decorates the matching tweet's User-Name area with a small Note badge whose tooltip shows the note text.
 - **Clear all account notes**, drops every persisted note.
 - **Local bookmarks**, use the Save locally control on a rendered post, then search the Library
-  and edit tags, folders, reminders, or notes. Removing a bookmark affects only Aviary's local
-  library and leaves X's own bookmark action untouched.
+  and edit tags, folders, reminders, or notes. When **Preserve raw payloads** is enabled, bookmark
+  timeline responses already sent to the page are mirrored into the same library, including a
+  capture timestamp. The mirror only contains posts X has sent while you scrolled past them.
+  **Export local bookmarks** downloads JSON and CSV in bulk. Removing a bookmark affects only
+  Aviary's local library and leaves X's own bookmark action untouched.
 - **Composer snippets**, reusable replies / templates edited in Library and inserted into the focused
   composer from the Snippets toolbar button.
 
@@ -428,7 +431,7 @@ manifest still carries a placeholder add-on id, so an AMO submission needs a rea
 - **External export targets**, Copy-as-Markdown, Obsidian (YAML frontmatter), Notion (heading-first), raw JSON. Pure local rendering; the clipboard variant never touches disk.
 - **Batch profile-media download**, "Download all visible media" in the Media section walks every rendered tweet and pipes photos / videos / GIFs / thumbnails through the existing queue with the configured concurrency cap and dedup history.
 - **Local AI command menu (off by default)**, enable it in Integrations and each tweet's action row gains an AI button offering Translate / Summarize / Explain / Fact-check. On its own it only builds a prompt and copies it to your clipboard, with no network call and no API key. Configuring the separate AI provider runner below is what makes the same menu able to POST a prompt, and only after an explicit per-request disclosure.
-- **Passive GraphQL capture (opt-in)**, when "Preserve raw payloads" is on, Aviary records GraphQL response bodies under 1.5 MB into the CheckpointStore as a `capture-<operation>` job, scrubbing `ct0` and Bearer tokens on the way in. Toggle off and the wrapper uninstalls.
+- **Passive GraphQL capture (opt-in)**, when "Preserve raw payloads" is on, Aviary records GraphQL response bodies under 1.5 MB into the CheckpointStore as a `capture-<operation>` job and mirrors bookmark timeline responses into the local Library, scrubbing `ct0` and Bearer tokens on the way in. Toggle off and the wrapper uninstalls.
 - **Checkpoint retention (opt-in)**, cap jobs, records per job, or job age through the Export section. Zero disables each limit; the sweep runs at boot and after new jobs are created.
 
 ## Integrations (every one is opt-in)

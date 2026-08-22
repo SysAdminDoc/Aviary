@@ -174,6 +174,7 @@ test("Library exposes editable bookmark metadata and removal", async () => {
     localButton.click();
     await new Promise((resolve) => setTimeout(resolve, 15));
 
+    let exportCalls = 0;
     const settings = AviaryBookmarks.cloneSettings(AviaryBookmarks.DEFAULT_SETTINGS);
     const panel = AviaryBookmarks.mountControlCenter({
       settings,
@@ -194,6 +195,10 @@ test("Library exposes editable bookmark metadata and removal", async () => {
         await store.remove(id);
         return true;
       },
+      exportBookmarks: async () => {
+        exportCalls += 1;
+        return { records: AviaryBookmarks.getBookmarks().length, files: 2, filenames: ["bookmarks.json", "bookmarks.csv"] };
+      },
       clearBookmarks: async () => AviaryBookmarks.getBookmarkStore().clear()
     });
 
@@ -210,13 +215,16 @@ test("Library exposes editable bookmark metadata and removal", async () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
     const updated = AviaryBookmarks.getBookmarks()[0];
 
+    shadow.querySelector('[data-av-label="Export local bookmarks"] button').click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
     const removeButtons = () => [...shadow.querySelectorAll(".av-bookmark-hit .av-inline-controls .av-button")];
     removeButtons()[1].click();
     await new Promise((resolve) => setTimeout(resolve, 20));
     const afterRemove = AviaryBookmarks.getBookmarks().length;
     panel.destroy();
     await AviaryBookmarks.bookmarksFeature.destroy(context);
-    return { updated, afterRemove };
+    return { updated, afterRemove, exportCalls };
   });
 
   assert.deepEqual(result.updated.tags, ["research", "saved"]);
@@ -224,6 +232,7 @@ test("Library exposes editable bookmark metadata and removal", async () => {
   assert.equal(result.updated.remindAt, "2026-08-20T14:30:00.000Z");
   assert.equal(result.updated.notes, "Review this later");
   assert.equal(result.afterRemove, 0);
+  assert.equal(result.exportCalls, 1);
 });
 
 test("malformed persisted bookmarks are repaired or ignored before Library search sorts them", async () => {

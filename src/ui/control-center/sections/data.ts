@@ -505,8 +505,9 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
     rows.push(
       ctx.dataRow(
         "Local bookmarks",
-        ctx.localizedCopy("{saved} saved · {due} due · {tags} tags · {folders} folders", {
+        ctx.localizedCopy("{saved} saved · {mirrored} mirrored · {due} due · {tags} tags · {folders} folders", {
           saved: status.total,
+          mirrored: status.mirrored ?? 0,
           due: status.due,
           tags: status.tags.length,
           folders: status.folders.length
@@ -518,7 +519,11 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
     const bookmarkCopy = ctx.el("span", "av-row-copy");
     bookmarkCopy.append(
       ctx.el("span", "av-row-label", ctx.t("Find local bookmarks")),
-      ctx.el("span", "av-row-description", ctx.t("Search saved posts by text, handle, tags, folder, or ID."))
+      ctx.el(
+        "span",
+        "av-row-description",
+        ctx.t("Search saved posts by text, handle, tags, folder, or ID. Captured bookmarks only include posts X sent while you scrolled past them.")
+      )
     );
     const bookmarkInput = document.createElement("input");
     bookmarkInput.type = "search";
@@ -623,6 +628,27 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
     renderBookmarks();
     bookmarkRow.append(bookmarkCopy, bookmarkInput, bookmarkResults);
     rows.push(bookmarkRow);
+
+    if (ctx.options.exportBookmarks) {
+      rows.push(
+        ctx.actionRow(
+          "Export local bookmarks",
+          "Download JSON and CSV for every bookmark in this profile. The mirror only holds what X has sent to the page while you scrolled past it.",
+          async () => {
+            try {
+              const result = await ctx.options.exportBookmarks!();
+              ctx.setStatusCopy("Bookmarks exported: {records} records in {files} files.", {
+                records: result.records,
+                files: result.files
+              });
+            } catch (error) {
+              ctx.options.onError("Bookmark export failed", error);
+              ctx.setStatus("Could not export bookmarks.");
+            }
+          }
+        )
+      );
+    }
 
     if (ctx.options.clearBookmarks) {
       rows.push(

@@ -1,9 +1,11 @@
 import type { FeatureContext, FeatureModule } from "../registry";
 import { ft } from "../core/feature-i18n";
 import {
+  buildBookmarkExportArtifacts,
   BookmarkStore,
   type BookmarkInput,
-  type BookmarkRecord
+  type BookmarkRecord,
+  type CapturedBookmarkInput
 } from "./bookmarks";
 import { extractTweet } from "../media/extract";
 
@@ -94,13 +96,24 @@ export function bookmarkStatus(): {
   due: number;
   tags: string[];
   folders: string[];
+  mirrored: number;
 } {
+  const entries = store?.list() ?? [];
   return {
-    total: store?.size() ?? 0,
+    total: entries.length,
     due: store?.dueReminders().length ?? 0,
     tags: store?.tags() ?? [],
-    folders: store?.folders() ?? []
+    folders: store?.folders() ?? [],
+    mirrored: entries.filter((entry) => entry.source === "captured").length
   };
+}
+
+export async function mirrorBookmarks(inputs: readonly CapturedBookmarkInput[]): Promise<number> {
+  return (await store?.mirror(inputs)) ?? 0;
+}
+
+export function exportBookmarkArtifacts(): ReturnType<typeof buildBookmarkExportArtifacts> {
+  return buildBookmarkExportArtifacts(getBookmarks());
 }
 
 export async function updateBookmark(id: string, input: BookmarkInput): Promise<BookmarkRecord | null> {

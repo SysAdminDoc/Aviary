@@ -16,6 +16,7 @@ export type AuditAction =
   | "post.unhide"
   | "post.hide.cleared"
   | "bookmark.save"
+  | "bookmark.mirror"
   | "bookmark.update"
   | "bookmark.remove"
   | "bookmark.clear"

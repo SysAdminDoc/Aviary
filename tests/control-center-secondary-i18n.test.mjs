@@ -185,7 +185,7 @@ test("secondary Control Center sections render stable copy through every locale"
   assert.match(English.text.snapshots, /2 archive links \+ 3 captured links expanded/);
   assert.match(English.text.integrations, /Aria2 active downloads/);
   assert.match(English.text.export, /2 jobs tracked · 5 GraphQL IDs cached/);
-  assert.match(English.text.library, /3 saved · 1 due/);
+  assert.match(English.text.library, /3 saved · 0 mirrored · 1 due/);
   assert.match(English.text.library, /Search all local collections/);
   const expectedControlNames = {
     "av-import-archive": "Import official X archive",
@@ -212,7 +212,7 @@ test("secondary Control Center sections render stable copy through every locale"
     "2 entries · latest followers of 3",
     "2 archive links + 3 captured links expanded · 4 participant IDs resolved · 1 kept as unresolved IDs · no requests made",
     "2 jobs tracked · 5 GraphQL IDs cached",
-    "3 saved · 1 due · 1 tags · 1 folders",
+    "3 saved · 0 mirrored · 1 due · 1 tags · 1 folders",
     "Search all local collections",
     "Search posts, likes, bookmarks, notes, tags, folders, and snapshots with filters.",
     "Semantic ranking",

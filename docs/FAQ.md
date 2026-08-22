@@ -208,6 +208,15 @@ Aria2 history, snapshots, bookmarks, notes, cleanup candidates, semantic vectors
 jobs, archive-library data, and an optional WACZ signing identity. See the complete key table and clearing guidance in
 [PRIVACY.md](PRIVACY.md).
 
+## Can Aviary save my X bookmarks locally?
+
+Yes. Turn on **Export → Preserve raw payloads**, then open or scroll through the X bookmark feed.
+Aviary reads the bookmark GraphQL responses X has already sent to this page and mirrors the visible
+tweet text, handle, permalink, and capture timestamp into the local Library. It does not request
+the bookmark feed, replay missing pages, or fetch media to fill gaps. The mirror only contains what
+X sent while you scrolled past it, so it is not a complete account backup unless you have visited
+the full feed. **Library → Export local bookmarks** downloads the stored set as JSON and CSV.
+
 ## What's the audit log?
 
 It is a capped local ring buffer of actions such as downloads, exports, settings round-trips, and

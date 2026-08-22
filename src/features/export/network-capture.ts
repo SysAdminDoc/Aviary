@@ -7,6 +7,8 @@ import {
   type SanitizedCapturedGraphqlPayload
 } from "../../page/page-agent";
 import type { PageBridge } from "../../platform/page-bridge";
+import { mirrorBookmarks } from "../library/bookmarks-feature";
+import { parseCapturedBookmarks } from "../library/bookmark-capture";
 
 const MAX_PAYLOADS = 50;
 const MAX_SESSION_PAYLOADS = 500;
@@ -221,6 +223,21 @@ async function persistPayload(
     return;
   }
   const store = getCheckpointStore() as CheckpointStore | undefined;
+  const capturedAt = new Date().toISOString();
+  const mirrored = parseCapturedBookmarks(body, operationName, capturedAt, url);
+  if (mirrored.length > 0) {
+    const count = await mirrorBookmarks(mirrored);
+    if (count > 0) {
+      void ctx.auditLog.record("bookmark.mirror", {
+        operation: operationName,
+        records: count
+      });
+      ctx.diagnostics.info("Captured bookmarks mirrored locally", {
+        operation: operationName,
+        records: count
+      });
+    }
+  }
   if (!store) return;
   const jobId = `capture-${operationName}`;
   if (store.list().every((entry) => entry.jobId !== jobId)) {
@@ -233,7 +250,7 @@ async function persistPayload(
       handle: null,
       displayName: null,
       text: scrubbed,
-      capturedAt: new Date().toISOString(),
+      capturedAt,
       surface: `graphql:${operationName}`,
       media: [],
       permalink: url
