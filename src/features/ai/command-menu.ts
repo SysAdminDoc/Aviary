@@ -488,10 +488,10 @@ const AI_CSS = `
 .av-ai-trigger {
   margin-inline-start: auto;
   padding: 2px 8px;
-  border: 1px solid color-mix(in srgb, var(--av-muted, rgb(113, 118, 123)) 60%, transparent);
+  border: 1px solid color-mix(in srgb, var(--av-muted, rgb(132, 139, 145)) 60%, transparent);
   border-radius: 6px;
   background: transparent;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-weight: 700;
   font-size: 10px;
   line-height: 1.2;
@@ -574,7 +574,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 
 .av-ai-review p {
   margin: 8px 0 14px;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 13px;
 }
 
@@ -587,7 +587,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 }
 
 .av-ai-review dt {
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
 }
 
 .av-ai-review dd {

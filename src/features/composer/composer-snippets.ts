@@ -359,7 +359,7 @@ const COMPOSER_CSS = `
 
 .av-snippet-empty {
   padding: 6px 8px;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 12px;
 }
 `;

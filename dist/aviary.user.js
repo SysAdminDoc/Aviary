@@ -1216,7 +1216,12 @@ html[data-av-theme] [data-testid="videoComponent"] {
   border-radius: 10px;
 }
 
-html[data-av-theme] [data-av-media-action] {
+/* The resting button only. This rule and the feature's own state rules were both (0,2,1), so which
+   one painted a finished or failed download came down to which stylesheet was appended last -- and
+   under every Aviary theme the answer was this one, which made success, failure, opened and
+   duplicate all render as an untouched button. Excluding the states here is what leaves the
+   feature that raises them in charge of what they look like. */
+html[data-av-theme] [data-av-media-action]:not(.is-success):not(.is-error):not(.is-opened):not(.is-duplicate) {
   min-width: auto;
   min-height: 32px;
   padding: 5px 8px;
@@ -8058,7 +8063,7 @@ input:focus-visible {
 
 .av-subtitle {
   margin: 2px 0 0;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 12.5px;
   line-height: 1.35;
 }
@@ -8102,7 +8107,7 @@ input:focus-visible {
 .av-button-primary:disabled {
   border-color: var(--av-border, rgb(47, 51, 54));
   background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 24%, var(--av-surface-raised, rgb(22, 24, 28)));
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   box-shadow: none;
 }
 
@@ -8124,7 +8129,7 @@ input:focus-visible {
   height: 17px;
   transform: translateY(-50%);
   fill: none;
-  stroke: var(--av-muted, rgb(113, 118, 123));
+  stroke: var(--av-muted, rgb(132, 139, 145));
   stroke-width: 1.8;
   stroke-linecap: round;
   pointer-events: none;
@@ -8145,7 +8150,7 @@ input:focus-visible {
 }
 
 .av-search-input::placeholder {
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
 }
 
 .av-search-input:focus-visible {
@@ -8183,7 +8188,7 @@ input:focus-visible {
 .av-nav,
 .av-content {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--av-muted, rgb(113, 118, 123)) 58%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--av-muted, rgb(132, 139, 145)) 58%, transparent) transparent;
 }
 
 .av-nav::-webkit-scrollbar,
@@ -8195,7 +8200,7 @@ input:focus-visible {
 .av-nav::-webkit-scrollbar-thumb,
 .av-content::-webkit-scrollbar-thumb {
   border-radius: 3px;
-  background: color-mix(in srgb, var(--av-muted, rgb(113, 118, 123)) 58%, transparent);
+  background: color-mix(in srgb, var(--av-muted, rgb(132, 139, 145)) 58%, transparent);
 }
 
 .av-nav-group {
@@ -8203,7 +8208,7 @@ input:focus-visible {
      height; a sliced-in-half last item reads as a rendering bug rather than as "more below". */
   margin: 12px 0 5px;
   padding: 0 10px;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 11px;
   font-weight: 800;
   line-height: 1.2;
@@ -8223,7 +8228,7 @@ input:focus-visible {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: color-mix(in srgb, var(--av-text, rgb(239, 243, 244)) 70%, var(--av-muted, rgb(113, 118, 123)));
+  color: color-mix(in srgb, var(--av-text, rgb(239, 243, 244)) 70%, var(--av-muted, rgb(132, 139, 145)));
   font-weight: 600;
   font-size: 13.5px;
   line-height: 1.2;
@@ -8282,7 +8287,7 @@ input:focus-visible {
 
 .av-empty-hint {
   margin: 0;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 13px;
   line-height: 1.4;
 }
@@ -8327,7 +8332,7 @@ input:focus-visible {
 
 .av-page-summary {
   margin: 0;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 14px;
   line-height: 1.4;
   max-width: 760px;
@@ -8416,7 +8421,7 @@ input:focus-visible {
 .av-group-title {
   grid-column: 1 / -1;
   margin: 16px 0 5px;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 11px;
   font-weight: 820;
   line-height: 1.2;
@@ -8534,7 +8539,7 @@ input:focus-visible {
 .av-rule-set-preview {
   grid-column: 2 / -1;
   min-height: 18px;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 12px;
   line-height: 1.35;
 }
@@ -8646,7 +8651,7 @@ input:focus-visible {
 }
 
 .av-preset-highlight-label {
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   white-space: normal;
 }
 
@@ -8813,7 +8818,7 @@ input:focus-visible {
 }
 
 .av-row-description {
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 13px;
   line-height: 1.4;
   display: -webkit-box;
@@ -8864,7 +8869,7 @@ input[type="checkbox"] {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--av-muted, rgb(113, 118, 123));
+  background: var(--av-muted, rgb(132, 139, 145));
   transition: transform 140ms ease, background 140ms ease;
 }
 
@@ -8910,7 +8915,7 @@ input[type="checkbox"] {
   flex: 1 1 auto;
   gap: 8px;
   min-width: 0;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 13px;
   line-height: 1.3;
 }
@@ -15486,7 +15491,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
 [${ACTION_ATTR}].is-opened,
 [${ACTION_ATTR}].is-duplicate {
   color: var(--av-text, rgb(239, 243, 244));
-  background: color-mix(in srgb, var(--av-muted, rgb(113, 118, 123)) 46%, transparent);
+  background: color-mix(in srgb, var(--av-muted, rgb(132, 139, 145)) 46%, transparent);
 }
 
 [${ACTION_ATTR}].is-error {
@@ -15567,7 +15572,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
 
 [${BUTTON_ATTR}].is-opened,
 [${BUTTON_ATTR}].is-duplicate {
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
 }
 
 [${BUTTON_ATTR}].is-error {
@@ -26119,7 +26124,7 @@ ${COLOR_CSS}`;
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   cursor: pointer;
   font-family: inherit;
   font-size: 11px;
@@ -30127,10 +30132,10 @@ ${text}`
 .av-ai-trigger {
   margin-inline-start: auto;
   padding: 2px 8px;
-  border: 1px solid color-mix(in srgb, var(--av-muted, rgb(113, 118, 123)) 60%, transparent);
+  border: 1px solid color-mix(in srgb, var(--av-muted, rgb(132, 139, 145)) 60%, transparent);
   border-radius: 6px;
   background: transparent;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-weight: 700;
   font-size: 10px;
   line-height: 1.2;
@@ -30213,7 +30218,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 
 .av-ai-review p {
   margin: 8px 0 14px;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 13px;
 }
 
@@ -30226,7 +30231,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 }
 
 .av-ai-review dt {
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
 }
 
 .av-ai-review dd {
@@ -30584,7 +30589,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 
 .av-snippet-empty {
   padding: 6px 8px;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 12px;
 }
 `;

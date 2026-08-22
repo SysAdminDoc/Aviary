@@ -21,6 +21,14 @@
   silence.
 
 ### Fixed
+- A media download's outcome is visible again under an Aviary theme. The theme styled every
+  download button and the feature styled its own success, failure, duplicate and opened states at
+  exactly the same weight, so which one painted came down to stylesheet order: with any theme
+  selected, a finished download and a failed one both looked like a button nobody had touched.
+- Secondary text in the Control Center is readable in the default configuration. Twenty-four places
+  still fell back to X's own grey, which measures 4.07:1 on the panel and had already been replaced
+  in the theme tokens for that reason. They now use the corrected value, which clears 5.4:1.
+
 - A timeline response larger than the capture cap is now reported as what it is. Aviary's own size
   limit used to surface as "Page bridge rejected an untrusted message", a security-shaped warning
   kept for a week, while the capture feature never saw the response at all and the panel went on

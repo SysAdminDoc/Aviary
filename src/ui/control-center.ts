@@ -2783,7 +2783,7 @@ input:focus-visible {
 
 .av-subtitle {
   margin: 2px 0 0;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 12.5px;
   line-height: 1.35;
 }
@@ -2827,7 +2827,7 @@ input:focus-visible {
 .av-button-primary:disabled {
   border-color: var(--av-border, rgb(47, 51, 54));
   background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 24%, var(--av-surface-raised, rgb(22, 24, 28)));
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   box-shadow: none;
 }
 
@@ -2849,7 +2849,7 @@ input:focus-visible {
   height: 17px;
   transform: translateY(-50%);
   fill: none;
-  stroke: var(--av-muted, rgb(113, 118, 123));
+  stroke: var(--av-muted, rgb(132, 139, 145));
   stroke-width: 1.8;
   stroke-linecap: round;
   pointer-events: none;
@@ -2870,7 +2870,7 @@ input:focus-visible {
 }
 
 .av-search-input::placeholder {
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
 }
 
 .av-search-input:focus-visible {
@@ -2908,7 +2908,7 @@ input:focus-visible {
 .av-nav,
 .av-content {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--av-muted, rgb(113, 118, 123)) 58%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--av-muted, rgb(132, 139, 145)) 58%, transparent) transparent;
 }
 
 .av-nav::-webkit-scrollbar,
@@ -2920,7 +2920,7 @@ input:focus-visible {
 .av-nav::-webkit-scrollbar-thumb,
 .av-content::-webkit-scrollbar-thumb {
   border-radius: 3px;
-  background: color-mix(in srgb, var(--av-muted, rgb(113, 118, 123)) 58%, transparent);
+  background: color-mix(in srgb, var(--av-muted, rgb(132, 139, 145)) 58%, transparent);
 }
 
 .av-nav-group {
@@ -2928,7 +2928,7 @@ input:focus-visible {
      height; a sliced-in-half last item reads as a rendering bug rather than as "more below". */
   margin: 12px 0 5px;
   padding: 0 10px;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 11px;
   font-weight: 800;
   line-height: 1.2;
@@ -2948,7 +2948,7 @@ input:focus-visible {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: color-mix(in srgb, var(--av-text, rgb(239, 243, 244)) 70%, var(--av-muted, rgb(113, 118, 123)));
+  color: color-mix(in srgb, var(--av-text, rgb(239, 243, 244)) 70%, var(--av-muted, rgb(132, 139, 145)));
   font-weight: 600;
   font-size: 13.5px;
   line-height: 1.2;
@@ -3007,7 +3007,7 @@ input:focus-visible {
 
 .av-empty-hint {
   margin: 0;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 13px;
   line-height: 1.4;
 }
@@ -3052,7 +3052,7 @@ input:focus-visible {
 
 .av-page-summary {
   margin: 0;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 14px;
   line-height: 1.4;
   max-width: 760px;
@@ -3141,7 +3141,7 @@ input:focus-visible {
 .av-group-title {
   grid-column: 1 / -1;
   margin: 16px 0 5px;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 11px;
   font-weight: 820;
   line-height: 1.2;
@@ -3259,7 +3259,7 @@ input:focus-visible {
 .av-rule-set-preview {
   grid-column: 2 / -1;
   min-height: 18px;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 12px;
   line-height: 1.35;
 }
@@ -3371,7 +3371,7 @@ input:focus-visible {
 }
 
 .av-preset-highlight-label {
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   white-space: normal;
 }
 
@@ -3538,7 +3538,7 @@ input:focus-visible {
 }
 
 .av-row-description {
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 13px;
   line-height: 1.4;
   display: -webkit-box;
@@ -3589,7 +3589,7 @@ input[type="checkbox"] {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--av-muted, rgb(113, 118, 123));
+  background: var(--av-muted, rgb(132, 139, 145));
   transition: transform 140ms ease, background 140ms ease;
 }
 
@@ -3635,7 +3635,7 @@ input[type="checkbox"] {
   flex: 1 1 auto;
   gap: 8px;
   min-width: 0;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   font-size: 13px;
   line-height: 1.3;
 }

@@ -356,7 +356,12 @@ html[data-av-theme] [data-testid="videoComponent"] {
   border-radius: 10px;
 }
 
-html[data-av-theme] [data-av-media-action] {
+/* The resting button only. This rule and the feature's own state rules were both (0,2,1), so which
+   one painted a finished or failed download came down to which stylesheet was appended last -- and
+   under every Aviary theme the answer was this one, which made success, failure, opened and
+   duplicate all render as an untouched button. Excluding the states here is what leaves the
+   feature that raises them in charge of what they look like. */
+html[data-av-theme] [data-av-media-action]:not(.is-success):not(.is-error):not(.is-opened):not(.is-duplicate) {
   min-width: auto;
   min-height: 32px;
   padding: 5px 8px;

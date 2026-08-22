@@ -31,6 +31,7 @@ before(async () => {
     entry,
     [
       `export { mediaButtonsFeature } from ${JSON.stringify(abs("src/features/media/media-buttons.ts"))};`,
+      `export { THEME_CSS } from ${JSON.stringify(abs("src/features/appearance/theme.ts"))};`,
       `export { aiCommandMenuFeature } from ${JSON.stringify(abs("src/features/ai/command-menu.ts"))};`,
       `export { composerSnippetsFeature } from ${JSON.stringify(abs("src/features/composer/composer-snippets.ts"))};`,
       `export { mobileTouchFeature } from ${JSON.stringify(abs("src/features/core/mobile-touch.ts"))};`,
@@ -715,3 +716,103 @@ test("the declared injection mode matches what the install guide promises", asyn
     "the panel has no translatable sentence for the no-page-scope state"
   );
 });
+
+/**
+ * A download's outcome has to be visible under the user's own theme.
+ *
+ * `theme.ts` styled every `[data-av-media-action]` and the feature styled its own state classes,
+ * and both selectors were (0,2,1). A tie is broken by which stylesheet was appended last, and under
+ * every Aviary theme that was the theme sheet -- so a finished download, a duplicate, an
+ * opened-in-a-tab fallback and an outright failure all rendered exactly like a button nobody had
+ * touched. Both sheet orders are driven here, because the ordering is what made the bug invisible.
+ */
+test("the media action's states stay distinct under every theme, whichever sheet loads first", async () => {
+  const results = await page.evaluate(async (themeCss) => {
+    const out = {};
+    for (const themeFirst of [true, false]) {
+      document.body.replaceChildren();
+      for (const style of [...document.querySelectorAll("style")]) style.remove();
+
+      const ctx = {
+        settings: {
+          media: { buttons: true, preferOriginalImages: true, filenameTemplate: "x", downloadHistory: false, layout: "default" },
+          integrations: { aria2: { enabled: false, rpcUrl: "", secret: "" } },
+          i18n: { locale: "en" },
+          accessibility: { reduceMotion: "never" }
+        },
+        route: { surface: "home", href: "https://x.com/home", path: "/home" },
+        storage: { get: async (_key, fallback) => fallback, set: async () => {} },
+        diagnostics: { info() {}, warn() {}, error() {} },
+        auditLog: { record() {} },
+        requestApply() {}
+      };
+
+      const mountTheme = () => {
+        const style = document.createElement("style");
+        style.id = "av-theme-probe";
+        style.textContent = themeCss;
+        document.head.append(style);
+      };
+
+      if (themeFirst) mountTheme();
+      await Aviary.mediaButtonsFeature.init?.(ctx);
+      await Aviary.mediaButtonsFeature.apply?.(ctx, document, []);
+      if (!themeFirst) mountTheme();
+
+      const read = (theme, cls) => {
+        if (theme) {
+          document.documentElement.dataset.avTheme = theme;
+          document.documentElement.className = `av-theme-${theme}`;
+        } else {
+          document.documentElement.removeAttribute("data-av-theme");
+          document.documentElement.className = "";
+        }
+        const button = document.createElement("button");
+        button.setAttribute("data-av-media-action", "");
+        if (cls) button.className = cls;
+        document.body.append(button);
+        void button.offsetHeight;
+        const style = getComputedStyle(button);
+        const value = `${style.backgroundColor}|${style.color}`;
+        button.remove();
+        return value;
+      };
+
+      const perTheme = {};
+      for (const theme of [null, "dim", "noir"]) {
+        perTheme[theme ?? "off"] = {
+          resting: read(theme, ""),
+          success: read(theme, "is-success"),
+          error: read(theme, "is-error")
+        };
+      }
+      out[themeFirst ? "themeFirst" : "featureFirst"] = perTheme;
+      Aviary.mediaButtonsFeature.destroy?.(ctx);
+    }
+    return out;
+  }, await themeCssSource());
+
+  for (const [order, themes] of Object.entries(results)) {
+    for (const [theme, states] of Object.entries(themes)) {
+      assert.notEqual(
+        states.success,
+        states.resting,
+        `${order}/${theme}: a finished download must not look like an untouched button`
+      );
+      assert.notEqual(
+        states.error,
+        states.resting,
+        `${order}/${theme}: a failed download must not look like an untouched button`
+      );
+      assert.notEqual(
+        states.success,
+        states.error,
+        `${order}/${theme}: success and failure must not look the same`
+      );
+    }
+  }
+});
+
+async function themeCssSource() {
+  return page.evaluate(() => Aviary.THEME_CSS);
+}

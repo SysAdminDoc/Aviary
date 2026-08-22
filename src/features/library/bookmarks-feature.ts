@@ -284,7 +284,7 @@ const BOOKMARK_CSS = `
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
   cursor: pointer;
   font-family: inherit;
   font-size: 11px;

@@ -1500,7 +1500,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
 [${ACTION_ATTR}].is-opened,
 [${ACTION_ATTR}].is-duplicate {
   color: var(--av-text, rgb(239, 243, 244));
-  background: color-mix(in srgb, var(--av-muted, rgb(113, 118, 123)) 46%, transparent);
+  background: color-mix(in srgb, var(--av-muted, rgb(132, 139, 145)) 46%, transparent);
 }
 
 [${ACTION_ATTR}].is-error {
@@ -1581,7 +1581,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
 
 [${BUTTON_ATTR}].is-opened,
 [${BUTTON_ATTR}].is-duplicate {
-  color: var(--av-muted, rgb(113, 118, 123));
+  color: var(--av-muted, rgb(132, 139, 145));
 }
 
 [${BUTTON_ATTR}].is-error {
