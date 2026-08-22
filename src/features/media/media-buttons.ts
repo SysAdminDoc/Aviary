@@ -1619,19 +1619,27 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
 }
 
 @media (max-width: 520px) {
+  article[data-testid="tweet"] [role="group"]:has(> [${ACTION_SLOT_ATTR}]) {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
   [${ACTION_SLOT_ATTR}] {
-    min-width: 44px;
-    margin-inline-start: 0;
+    flex: 1 0 100%;
+    width: 100%;
+    min-width: 0;
+    margin: 4px 0 0;
   }
 
   [${ACTION_ATTR}] {
-    min-width: 44px;
-    width: 44px;
-    padding-inline: 8px;
+    width: 100%;
+    min-width: 0;
+    min-height: 46px;
+    padding-inline: 14px;
   }
 
   [${ACTION_ATTR}] .av-media-action-label {
-    display: none;
+    display: inline;
   }
 
   [${BUTTON_ATTR}] {

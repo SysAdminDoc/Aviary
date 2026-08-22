@@ -36,7 +36,11 @@ async function mediaCss() {
   const src = await readFile(path.join(root, "src/features/media/media-buttons.ts"), "utf8");
   const open = "const MEDIA_CSS = `";
   const raw = src.slice(src.indexOf(open) + open.length, src.indexOf("`;", src.indexOf(open)));
-  return raw.replace(/\$\{BUTTON_ATTR\}/g, "data-av-media-button");
+  return raw
+    .replace(/\$\{BUTTON_ATTR\}/g, "data-av-media-button")
+    .replace(/\$\{ACTION_ATTR\}/g, "data-av-media-action")
+    .replace(/\$\{ACTION_SLOT_ATTR\}/g, "data-av-media-action-slot")
+    .replace(/\$\{DOWNLOADED_ATTR\}/g, "data-av-downloaded");
 }
 
 /**
@@ -126,4 +130,49 @@ test("no rule makes X's media containers the positioning context", async () => {
     [],
     "making X's media box the containing block collapses the photo it holds"
   );
+});
+
+test("mobile gives the post download action a labeled full-width row", async () => {
+  const css = await mediaCss();
+  const browser = await chromium.launch({ headless: true });
+
+  try {
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    await page.setContent(`<!doctype html><meta charset="utf-8"><body style="margin:0">
+      <article data-testid="tweet" style="width:366px;margin:12px">
+        <div role="group" style="display:flex;align-items:center;justify-content:space-between">
+          <button type="button">Reply</button><button type="button">Repost</button>
+          <div data-av-media-action-slot="1">
+            <button data-av-media-action="1" type="button">
+              <span class="av-media-action-icon">↓</span><span class="av-media-action-label">Download</span>
+            </button>
+          </div>
+        </div>
+      </article>`);
+    await page.addStyleTag({ content: css });
+    await page.evaluate(() => document.documentElement.classList.add("av-media-buttons-enabled"));
+
+    const measured = await page.evaluate(() => {
+      const group = document.querySelector('[role="group"]');
+      const slot = document.querySelector("[data-av-media-action-slot]");
+      const button = document.querySelector("[data-av-media-action]");
+      const label = document.querySelector(".av-media-action-label");
+      return {
+        groupWidth: group.getBoundingClientRect().width,
+        slotWidth: slot.getBoundingClientRect().width,
+        buttonWidth: button.getBoundingClientRect().width,
+        buttonHeight: button.getBoundingClientRect().height,
+        flexWrap: getComputedStyle(group).flexWrap,
+        labelDisplay: getComputedStyle(label).display
+      };
+    });
+
+    assert.equal(measured.flexWrap, "wrap");
+    assert.ok(measured.slotWidth >= measured.groupWidth - 1);
+    assert.ok(measured.buttonWidth >= measured.groupWidth - 1);
+    assert.ok(measured.buttonHeight >= 44);
+    assert.notEqual(measured.labelDisplay, "none");
+  } finally {
+    await browser.close();
+  }
 });
