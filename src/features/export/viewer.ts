@@ -21,7 +21,7 @@ import type { ExportRecord } from "./types.ts";
  */
 const VIEWER_COPY = {
   title: "Aviary archive",
-  subtitle: "Local archive viewer — remote references are never fetched automatically.",
+  subtitle: "Local archive viewer. Remote references are never fetched automatically.",
   language: "Language",
   search: "Search records",
   status: "Media status",
@@ -281,7 +281,7 @@ function viewerScript(labels: string): string {
       const capture = captureOf(entry);
       const item = document.createElement("div");
       item.className = "media-item status-" + capture.status;
-      item.append(text("strong", entry.kind + " — " + statusLabel(capture.status)));
+      item.append(text("strong", entry.kind + " · " + statusLabel(capture.status)));
       if (capture.status === "captured-bytes" && capture.packagePath && /^(?:[a-z0-9._-]+\\/)*[a-z0-9._/-]+$/i.test(capture.packagePath)) {
         if (/^image\\//i.test(entry.type || "")) {
           const image = document.createElement("img");

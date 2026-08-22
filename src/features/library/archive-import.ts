@@ -94,7 +94,7 @@ export async function importOfficialArchive(
       continue;
     }
     if (!entry.crcOk) {
-      warnings.push(`${entry.filename}: CRC32 mismatch — proceeding best effort.`);
+      warnings.push(`${entry.filename}: CRC32 mismatch, proceeding best effort.`);
     }
     const text = safeDecode(entry.data, errors, entry.filename);
     if (!text) continue;

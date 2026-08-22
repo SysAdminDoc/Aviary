@@ -902,7 +902,7 @@ async function handleDownload(
       setDownloadedMarker(button, true, ctx);
     }
     if (outcome.degraded) {
-      button.title = ft(ctx, "Your browser opened this file instead of saving it — grant Aviary the download permission for a real save.");
+      button.title = ft(ctx, "Your browser opened this file instead of saving it. Grant Aviary the download permission for a real save.");
     }
     scheduleButtonRestore(button);
   } catch (error) {
@@ -988,7 +988,7 @@ async function handlePostDownload(
     className: allDuplicate ? "is-duplicate" : "is-success"
   });
   if (degraded) {
-    button.title = ft(ctx, "Your browser opened this file instead of saving it — grant Aviary the download permission for a real save.");
+    button.title = ft(ctx, "Your browser opened this file instead of saving it. Grant Aviary the download permission for a real save.");
   }
   if (
     outcomes.length > 0 &&
@@ -1132,7 +1132,7 @@ async function performMediaDownload(
     if (result.deduplicated) {
       if (reservationToken) await history.release(reservationToken);
       queue.mark(job.id, "duplicate");
-      ctx.diagnostics.info("Media skipped — already queued in Aria2 history", {
+      ctx.diagnostics.info("Media skipped: already queued in Aria2 history", {
         url: target.url
       });
       void ctx.auditLog.record("media.download.duplicate", {

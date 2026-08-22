@@ -188,7 +188,7 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
           ctx.diagnostics.info("Snippet inserted", { length: snippet.length });
           void ctx.auditLog.record("snippet.insert", { length: snippet.length });
         } else {
-          ctx.diagnostics.warn("Snippet insert failed — composer not focused");
+          ctx.diagnostics.warn("Snippet insert failed: composer not focused");
           // A successful insert is self-evident (the text appears); only the failure needs
           // saying, and it needs to say what to do about it.
           showFeatureToast(ft(ctx, "Click into the composer first, then pick a snippet."), {

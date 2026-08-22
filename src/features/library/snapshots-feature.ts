@@ -52,7 +52,7 @@ export async function captureSnapshotFromDom(
   if (!store) return null;
   const accounts = collectAccountsFromDom(document);
   if (accounts.length === 0) {
-    ctx.diagnostics.warn("Snapshot skipped — no UserCell rows in DOM");
+    ctx.diagnostics.warn("Snapshot skipped: no UserCell rows in DOM");
     return null;
   }
   const coverage = measureListCoverage(document, accounts.length);

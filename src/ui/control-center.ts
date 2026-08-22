@@ -1601,9 +1601,9 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     }
     const percent = Math.round((translatedStrings / renderedStrings) * 100);
     if (translatedStrings === renderedStrings) {
-      return `${label} — every panel string translated (${renderedStrings}).`;
+      return `${label}: every panel string translated (${renderedStrings}).`;
     }
-    return `${label} — ${translatedStrings} of ${renderedStrings} panel strings translated (${percent}%). The rest fall back to English.`;
+    return `${label}: ${translatedStrings} of ${renderedStrings} panel strings translated (${percent}%). The rest fall back to English.`;
   };
 
   /**
@@ -1616,12 +1616,12 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       .diagnostics()
       .filter((event) => event.level === "error" && event.message.includes("failed to save"));
     if (failures.length === 0) {
-      return readonlyRow("Saving", "Working — every change has been written.");
+      return readonlyRow("Saving", "Working. Every change has been written.");
     }
     const last = failures[failures.length - 1]?.message ?? "";
     return dataRow(
       "Saving",
-      `${t("Some changes could not be saved — the browser store may be full.")} ${last} (${failures.length})`
+      `${t("Some changes could not be saved. The browser store may be full.")} ${last} (${failures.length})`
     );
   };
 
@@ -1701,7 +1701,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     }
     if (code === "agent-taken") {
       return t(
-        "Aviary's page script is loaded, but something else answered it first — most likely another extension. Network-level ad protection is not under Aviary's control on this page."
+        "Aviary's page script is loaded, but something else answered it first, most likely another extension. Network-level ad protection is not under Aviary's control on this page."
       );
     }
     return t("Unavailable in this browser.");
@@ -2668,7 +2668,7 @@ const CONTROL_CENTER_CSS = `
   /* Opaque, and deliberately so. This was a translucent accent wash over whatever the page had
      behind it, which worked only because Aviary used to force X dark. With the default now
      "leave X alone", the same wash sat on X's light mode at 1.12:1 against its own near-white
-     label — invisible. The launcher is Aviary's own chrome and must not depend on the page.
+     label, invisible. The launcher is Aviary's own chrome and must not depend on the page.
      Measured in tests/injected-ui-contract.test.mjs by compositing on canvas. */
   background: rgb(20, 32, 42);
   color: var(--av-text, rgb(239, 243, 244));
@@ -3401,7 +3401,7 @@ textarea:focus-visible {
 }
 
 /* Text fields and textareas want the full row width; an action button does not. At the old
-   386px panel a stretched button looked deliberate — at 780px it reads as a banner. */
+   386px panel a stretched button looked deliberate. At 780px it reads as a banner. */
 .av-row-stack > .av-button {
   align-self: start;
   width: auto;
@@ -4006,7 +4006,7 @@ input[type="checkbox"] {
 }
 
 /* The reduceMotion setting can force reduction with no OS preference set, and a page-level
-   class cannot cross into this shadow tree — the host carries the state instead. */
+   class cannot cross into this shadow tree, the host carries the state instead. */
 :host([data-av-motion="reduce"]) .av-launcher,
 :host([data-av-motion="reduce"]) .av-launcher:hover,
 :host([data-av-motion="reduce"]) .av-panel {

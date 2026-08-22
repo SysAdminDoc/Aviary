@@ -218,7 +218,7 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
       ),
       ctx.toggleRow(
         "Refuse X's ad logging call",
-        "Only applies while Ad-free mode is on. Aviary refuses exactly one request — X's separate promoted-content logging call — and nothing else, including the checks X uses to notice an ad blocker. Turn this off if X complains anyway: sponsored posts stay hidden and Aviary stops refusing any request at all.",
+        "Only applies while Ad-free mode is on. Aviary refuses exactly one request (X's separate promoted-content logging call) and nothing else, including the checks X uses to notice an ad blocker. Turn this off if X complains anyway: sponsored posts stay hidden and Aviary stops refusing any request at all.",
         ctx.options.settings.privacy.networkShield,
         async (checked) => {
           ctx.options.settings.privacy.networkShield = checked;
@@ -1034,7 +1034,7 @@ export function buildHiddenPostRows(ctx: PanelContext): HTMLElement[] {
       ctx.el(
         "span",
         "av-row-description",
-        `${entry.hiddenAt} — ${entry.text.length > 0 ? entry.text : "(no text)"}`
+        `${entry.hiddenAt} · ${entry.text.length > 0 ? entry.text : "(no text)"}`
       )
     );
     const restore = ctx.el("button", "av-button av-button-secondary", ctx.t("Restore")) as HTMLButtonElement;

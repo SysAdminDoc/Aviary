@@ -87,7 +87,7 @@ function classify(record: ExportRecord, hint?: CleanupBucket): CleanupBucket | n
 function explain(bucket: CleanupBucket, record: ExportRecord): string {
   switch (bucket) {
     case "retweets":
-      return "Reposted content — author retains the original";
+      return "Reposted content, author retains the original";
     case "replies":
       return "Reply to another account";
     case "likes":

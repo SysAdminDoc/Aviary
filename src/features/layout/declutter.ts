@@ -204,7 +204,7 @@ html.av-hide-grok button[aria-label="Grok actions"] {
 }
 
 /* Writer mode: only active while focus is inside the composer, so the timeline is untouched
-   the rest of the time. Nothing is display:none'd here — the surroundings recede and come
+   the rest of the time. Nothing is display:none'd here. The surroundings recede and come
    straight back on blur, which keeps the effect reversible mid-scroll. */
 html.av-writer-mode.av-writing [data-testid="sidebarColumn"],
 html.av-writer-mode.av-writing [data-testid="news_sidebar"] {

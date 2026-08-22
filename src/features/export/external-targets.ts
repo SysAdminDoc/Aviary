@@ -36,7 +36,7 @@ function toPlainMarkdown(records: readonly ExportRecord[]): string {
     const body = record.text.split("\n").map((line) => `> ${line}`).join("\n");
     const media = record.media.map((entry) => {
       const capture = describeMediaCapture(entry, record.capturedAt);
-      return `- ${entry.kind} — ${capture.status}: ${capture.sourceUrl || "no source URL"}; bytes ${capture.byteLength ?? "unknown"}; sha256 ${capture.sha256 ?? "unknown"}`;
+      return `- ${entry.kind} · ${capture.status}: ${capture.sourceUrl || "no source URL"}; bytes ${capture.byteLength ?? "unknown"}; sha256 ${capture.sha256 ?? "unknown"}`;
     }).join("\n");
     return `### ${markdownText(record.displayName ?? handle)} (${markdownText(handle)})${permalink}\n\n${body}${media ? `\n\n**Media**\n${media}` : ""}`;
   });
@@ -68,8 +68,8 @@ function toObsidianArtifact(records: readonly ExportRecord[]): ExportArtifact {
         : `\n\n${record.media.map((media) => {
             const capture = describeMediaCapture(media, record.capturedAt);
             const target = capture.packagePath ?? capture.sourceUrl;
-            const label = `${media.kind} — ${capture.status}`;
-            return `- ${target ? `[${label}](${markdownUrl(target)})` : label} — captured ${capture.capturedAt ?? "unknown"}; bytes ${capture.byteLength ?? "unknown"}; sha256 ${capture.sha256 ?? "unknown"}`;
+            const label = `${media.kind} · ${capture.status}`;
+            return `- ${target ? `[${label}](${markdownUrl(target)})` : label} · captured ${capture.capturedAt ?? "unknown"}; bytes ${capture.byteLength ?? "unknown"}; sha256 ${capture.sha256 ?? "unknown"}`;
           }).join("\n")}`;
     return `${frontmatter}\n\n# ${markdownText(record.displayName ?? handle)}\n\n${record.text}${mediaList}`;
   });
@@ -135,7 +135,7 @@ function toNotionArtifact(records: readonly ExportRecord[]): ExportArtifact {
       lines.push("**Media**");
       for (const media of record.media) {
         const capture = describeMediaCapture(media, record.capturedAt);
-        lines.push(`- ${media.kind} — ${capture.status}: ${capture.sourceUrl || "no source URL"}; bytes ${capture.byteLength ?? "unknown"}; sha256 ${capture.sha256 ?? "unknown"}`);
+        lines.push(`- ${media.kind} · ${capture.status}: ${capture.sourceUrl || "no source URL"}; bytes ${capture.byteLength ?? "unknown"}; sha256 ${capture.sha256 ?? "unknown"}`);
       }
     }
   }

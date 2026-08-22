@@ -275,7 +275,7 @@ Every control Aviary offers, by Control Center page. 87 controls across 12 pages
 | Control | What it does |
 | --- | --- |
 | Ad-free mode | Collapse sponsored posts, paid partnerships, promoted trends, house promos, and visible pre-rolls. Aviary also refuses X's separate promoted-content logging call without blocking timeline delivery. |
-| Refuse X's ad logging call | Only applies while Ad-free mode is on. Aviary refuses exactly one request, X's separate promoted-content logging call, and nothing else, including the checks X uses to notice an ad blocker. Turn this off if X complains anyway: sponsored posts stay hidden and Aviary stops refusing any request at all. |
+| Refuse X's ad logging call | Only applies while Ad-free mode is on. Aviary refuses exactly one request (X's separate promoted-content logging call) and nothing else, including the checks X uses to notice an ad blocker. Turn this off if X complains anyway: sponsored posts stay hidden and Aviary stops refusing any request at all. |
 | Hide right sidebar | Reduce trends, recommendations, and footer noise. |
 | Hide trends | Remove trending topics and news modules. |
 | Hide follow suggestions | Remove Who to follow cards without hiding the rest of the sidebar. |
@@ -362,7 +362,7 @@ Every control Aviary offers, by Control Center page. 87 controls across 12 pages
 | Control | What it does |
 | --- | --- |
 | Local-only mode | Blocks every outbound request, including the integrations you configured. On by default; turning an integration on is what turns this off. |
-| Refuse X's analytics beacons | Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused, timeline, media and login traffic is untouched. |
+| Refuse X's analytics beacons | Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused. Timeline, media and login traffic is untouched. |
 | Monitor selector health | Check the current X surface for required and fallback anchors. Turn this off when you do not want selector diagnostics. |
 | Switch profile | A choice control. |
 

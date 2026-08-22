@@ -26,7 +26,7 @@ export function buildMarkdownReport(input: ReportInputs): string {
     lines.push("- No entries yet.");
   } else {
     for (const entry of input.audit.slice(-50)) {
-      const detail = entry.detail ? ` — ${JSON.stringify(entry.detail)}` : "";
+      const detail = entry.detail ? ` · ${JSON.stringify(entry.detail)}` : "";
       lines.push(`- ${entry.at} · ${entry.action}${detail}`);
     }
   }
@@ -34,7 +34,7 @@ export function buildMarkdownReport(input: ReportInputs): string {
 
   if (input.snapshots) {
     const { latest, diff } = input.snapshots;
-    lines.push(`## Snapshot — ${latest.kind} for @${latest.handle}`);
+    lines.push(`## Snapshot: ${latest.kind} for @${latest.handle}`);
     lines.push("");
     lines.push(`- Captured: ${latest.capturedAt}`);
     lines.push(`- Source: ${latest.source}`);
@@ -85,7 +85,7 @@ export function buildMarkdownReport(input: ReportInputs): string {
         const guard = candidate.protected ? " [protected]" : "";
         const handle = candidate.handle ? `@${candidate.handle}` : "(unknown)";
         const preview = candidate.text.slice(0, 80).replace(/\s+/g, " ");
-        lines.push(`- ${candidate.bucket}${guard} · ${handle} · ${candidate.tweetId ?? "—"} · "${preview}"`);
+        lines.push(`- ${candidate.bucket}${guard} · ${handle} · ${candidate.tweetId ?? "unknown"} · "${preview}"`);
       }
     }
     lines.push("");

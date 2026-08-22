@@ -170,16 +170,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Confidence: Verified
   Effort: S
 
-- [ ] P2 — F233, Em dashes in 61 authored user-facing strings, against the project's own rule
-  Category: docs
-  Where: `src/ui/control-center/sections/advanced.ts` (7: lines 21, 213, 234, 507, 896, 1007, 1164); `src/ui/control-center.ts` (5 user-facing: 1556, 1558, 1571, 1576, 1656); `src/features/export/external-targets.ts` (5: 35, 39, 68, 69, 113); `src/features/library/reports.ts` (5: 29, 37, 45, 46, 69); `src/features/ai/command-menu.ts` (4: 206, 227, 269, 277); `src/features/export/formatters.ts` (4: 131, 192, 200, 209); `src/extension/options.html` (3: 6, 80, 82); `src/ui/control-center/sections/data.ts` (3: 217, 289, 826); `src/ui/control-center/sections/reading.ts` (3 on 2 lines: 221 twice, 1026); `src/features/media/media-buttons.ts` (2: 887, 973); `src/features/export/viewer.ts` (2: 24, 284); `src/features/filtering/hidden-posts-feature.ts` (2: 366, 409); `src/features/filtering/rules.ts` (2: 450, 453); and one each in `src/entrypoints/extension-options.ts:165`, `src/features/integrations/crosspost.ts:215`, `src/features/library/archive-import.ts:97`, `src/features/library/cleanup-preview.ts:90`, `src/features/media/downloader.ts:272`, `src/ui/control-center/sections/presets.ts:73`. `src/features/layout/focus-mode.ts:151` carries the repository's only en dash.
-  Problem: the project rule is that no em dash or en dash appears in prose a human reads outside this machine, and these are panel copy, toasts, error text, the options page, and text written into exported documents the user opens. Code comments and log lines are exempt and are excluded from the counts above.
-  Evidence: a scan of every `.ts`, `.html` and `.css` file under `src/` for U+2014 and U+2013, excluding lines whose trimmed form starts with `//`, `/*` or `*`, returns 357 occurrences, of which 296 are in the generated `src/platform/i18n-catalog.ts`. The remaining 61 are the authored strings listed above. `README.md`, `docs/FAQ.md`, `docs/INSTALL.md`, `docs/PRIVACY.md`, `LOGO_PROMPTS.md` and `design-qa.md` are already clean, with zero of either character, so no documentation retrofit is needed.
-  Fix: rewrite each with a period, a comma, parentheses, or the interpunct this panel already uses as a separator (`data.ts:289`, `advanced.ts:426`). Two need care: `options.html:80` is a `data-i18n` key and `:82` is the text it looks up, so both must change together or the lookup misses; and `src/platform/i18n-catalog.ts` must be regenerated with `node tools/i18n-extract.mjs --write` in the same commit, because the English strings are the catalog keys and every edited string otherwise falls back to English in all eight locales.
-  Acceptance: the scan above returns 0 for authored source; a source-contract test fails on U+2014 or U+2013 in any string literal outside comments and outside `i18n-catalog.ts`.
-  Confidence: Verified
-  Effort: M
-
 - [ ] P3 — F237, Two `_decoded/` captures are past their staleness ceiling and the waiver expires 2026-09-30 (pre-existing baseline)
   Category: docs
   Where: `_decoded/captures.json`; the gate is `tools/preflight.mjs`.

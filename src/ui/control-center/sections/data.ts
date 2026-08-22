@@ -234,7 +234,7 @@ export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
       const file = input.files?.[0];
       if (!file) return;
       void (async () => {
-        ctx.setStatus("Reading archive — large files take a moment…");
+        ctx.setStatus("Reading archive, large files take a moment…");
         try {
           const result = await ctx.options.importArchive!(file);
           ctx.render();
@@ -306,7 +306,7 @@ export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
       for (const hit of hits.slice(0, 10)) {
         const item = ctx.el("div", "av-search-hit");
         item.setAttribute("role", "listitem");
-        const head = ctx.el("span", "av-row-label", `@${hit.handle ?? "anon"} · ${hit.tweetId ?? "—"}`);
+        const head = ctx.el("span", "av-row-label", `@${hit.handle ?? "anon"} · ${hit.tweetId ?? "unknown"}`);
         const body = ctx.el("span", "av-row-description", hit.text.slice(0, 140));
         item.append(head, body);
         results.append(item);
@@ -853,7 +853,7 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
             : "Copy link control on."
         );
       },
-      "Adds a Copy link control to each post that writes that post's address on the chosen host. Nothing X rendered is rewritten and no navigation is redirected — only what you copy changes. Leave it on X to remove the control.",
+      "Adds a Copy link control to each post that writes that post's address on the chosen host. Nothing X rendered is rewritten and no navigation is redirected. Only what you copy changes. Leave it on X to remove the control.",
       false
     )
   );

@@ -199,7 +199,7 @@ const themeVars: Record<Exclude<ThemeId, "off">, string> = {
     --av-surface-raised: rgb(22, 24, 28);
     --av-border: rgb(47, 51, 54);
     --av-text: rgb(239, 243, 244);
-    /* X's own secondary grey measures 3.96:1 on the panel row — below AA for the 12px
+    /* X's own secondary grey measures 3.96:1 on the panel row, below AA for the 12px
        descriptions and status line it carries. Lifted to the nearest value that clears 4.5. */
     --av-muted: rgb(132, 139, 145);
     --av-accent: rgb(29, 155, 240);
@@ -751,7 +751,7 @@ html.av-dense article[data-testid="tweet"] {
   padding-bottom: 8px;
 }
 
-/* Engagement counts inside the action bar only — the buttons themselves stay operable and
+/* Engagement counts inside the action bar only. The buttons themselves stay operable and
    keep their aria-labels, which carry the number for screen readers.
 
    Split per metric so each can be hidden on its own. The view total is the odd one out: it lives

@@ -269,7 +269,7 @@ export function createDownloader(options: DownloaderOptions = {}): Downloader {
           }
           return { ok: true, via: "aria2", ...(result.gid ? { gid: result.gid } : {}) };
         }
-        options.onWarn?.("Aria2 refused the handoff — saving through the browser instead", {
+        options.onWarn?.("Aria2 refused the handoff, saving through the browser instead", {
           error: result.error ?? "unknown",
           filename: request.filename
         });

@@ -70,7 +70,7 @@ export function buildPresetRows(ctx: PanelContext): HTMLElement[] {
           const entry = ctx.options.listLocales?.().find((locale) => locale.code === value);
           await ctx.save(`Locale set to ${entry?.label ?? value}`);
         },
-        "Translates the panel and sets reading direction — right-to-left for Arabic and Hebrew. Trust shows how much of the chosen locale is filled in; anything missing stays English.",
+        "Translates the panel and sets reading direction, right-to-left for Arabic and Hebrew. Trust shows how much of the chosen locale is filled in; anything missing stays English.",
         false
       )
     );

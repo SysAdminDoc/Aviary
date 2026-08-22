@@ -128,7 +128,7 @@ function htmlArtifact(records: ExportRecord[]): ExportArtifact {
           const href = capture.packagePath
             ? safeRelativeHref(capture.packagePath)
             : safeHref(capture.sourceUrl);
-          const label = `${entry.kind} — ${capture.status}`;
+          const label = `${entry.kind} · ${capture.status}`;
           const link = href
             ? `<a href="${escapeHtml(href)}" rel="noopener noreferrer">${escapeHtml(label)}</a>`
             : escapeHtml(label);
@@ -189,7 +189,7 @@ ${rows}
 
 function markdownArtifact(records: ExportRecord[]): ExportArtifact {
   const sections = records.map((record) => {
-    const header = `## ${record.displayName ?? record.handle ?? "Unknown"} (@${record.handle ?? "anon"}) — ${record.capturedAt}`;
+    const header = `## ${record.displayName ?? record.handle ?? "Unknown"} (@${record.handle ?? "anon"}) · ${record.capturedAt}`;
     const body = record.text.split("\n").map((line) => `> ${line}`).join("\n");
     const media =
       record.media.length === 0
@@ -197,7 +197,7 @@ function markdownArtifact(records: ExportRecord[]): ExportArtifact {
         : `\n\n${record.media.map((entry) => {
             const capture = describeMediaCapture(entry, record.capturedAt);
             const target = capture.packagePath ?? capture.sourceUrl;
-            const label = `${entry.kind} — ${capture.status}`;
+            const label = `${entry.kind} · ${capture.status}`;
             const link = target ? `[${label}](${escapeMarkdownUrl(target)})` : label;
             const details = `captured ${capture.capturedAt ?? "unknown"}; bytes ${capture.byteLength ?? "unknown"}; sha256 ${capture.sha256 ?? "unknown"}`;
             return `- ${link} (${details})`;
@@ -206,7 +206,7 @@ function markdownArtifact(records: ExportRecord[]): ExportArtifact {
     return `${header}\n\n${body}${media}${permalink}`;
   });
 
-  const md = `# Aviary export\n\nGenerated ${new Date().toISOString()} — ${records.length} records. Media links marked remote-reference are not fetched automatically.\n\n${sections.join("\n\n---\n\n")}\n`;
+  const md = `# Aviary export\n\nGenerated ${new Date().toISOString()} · ${records.length} records. Media links marked remote-reference are not fetched automatically.\n\n${sections.join("\n\n---\n\n")}\n`;
 
   return {
     filename: "tweets.md",

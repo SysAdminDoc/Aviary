@@ -148,7 +148,7 @@ function showPanel(ctx: FeatureContext): void {
 
   const window_ = document.createElement("p");
   window_.className = "window";
-  window_.textContent = `${ctx.settings.layout.focusStart} – ${ctx.settings.layout.focusEnd}`;
+  window_.textContent = `${ctx.settings.layout.focusStart} to ${ctx.settings.layout.focusEnd}`;
 
   const button = document.createElement("button");
   button.type = "button";

@@ -162,7 +162,7 @@ async function run(card: CardWiring, action: "request" | "remove"): Promise<void
     const granted = await refresh(card);
     if (action === "request") {
       setStatus(
-        granted ? translate(card.grantedMessage) : translate("Request dismissed — nothing changed."),
+        granted ? translate(card.grantedMessage) : translate("Request dismissed. Nothing changed."),
         granted ? "success" : "info"
       );
     } else {

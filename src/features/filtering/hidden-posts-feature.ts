@@ -363,7 +363,7 @@ function ensureButton(article: Element, key: string, ctx: FeatureContext): void 
   button.className = "av-hide-button";
   button.setAttribute(BUTTON_ATTR, "1");
   button.textContent = ft(ctx, "Hide");
-  button.title = ft(ctx, "Hide this post — Aviary keeps it hidden on future visits");
+  button.title = ft(ctx, "Hide this post. Aviary keeps it hidden on future visits.");
   button.setAttribute("aria-label", ft(ctx, "Hide this post"));
   button.addEventListener("click", (event) => {
     event.preventDefault();
@@ -406,7 +406,7 @@ async function hidePost(
     if (entry) {
       ctx.diagnostics.info("Post hidden", { key, handle: entry.handle });
       void ctx.auditLog.record("post.hide", { key });
-      showToast(`${ft(ctx, "Post hidden")} — ${store.size()}`, ctx);
+      showToast(`${ft(ctx, "Post hidden")} · ${store.size()}`, ctx);
     }
   } catch (error) {
     button.disabled = false;

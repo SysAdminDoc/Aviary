@@ -212,7 +212,7 @@ function partialFailure(
   const result: CrosspostResult = {
     ok: false,
     target,
-    error: posted > 0 ? `${error} — ${posted} of the thread was already posted` : error
+    error: posted > 0 ? `${error} (${posted} of the thread was already posted)` : error
   };
   if (posted > 0) result.posts = posted;
   if (url) result.url = url;

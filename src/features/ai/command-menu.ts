@@ -203,7 +203,7 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
     item.tabIndex = -1;
     item.title = ft(ctx, command.hint);
     item.textContent = aiEnabled
-      ? `${ft(ctx, command.label)} — ${ft(ctx, "Run with provider")}`
+      ? `${ft(ctx, command.label)} · ${ft(ctx, "Run with provider")}`
       : ft(ctx, command.label);
     item.addEventListener("click", async (event) => {
       event.stopPropagation();
@@ -224,7 +224,7 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
           }
         }
         item.disabled = true;
-        item.textContent = `${ft(ctx, command.label)} — ${ft(ctx, "running…")}`;
+        item.textContent = `${ft(ctx, command.label)} · ${ft(ctx, "running…")}`;
         try {
           const result = await runAiPrompt(
             ctx.settings.integrations.ai,
@@ -266,7 +266,7 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
           showFeatureToast(`${ft(ctx, command.label)}: ${message}`, { tone: "error", ctx });
         } finally {
           item.disabled = false;
-          item.textContent = `${ft(ctx, command.label)} — ${ft(ctx, "Run with provider")}`;
+          item.textContent = `${ft(ctx, command.label)} · ${ft(ctx, "Run with provider")}`;
           closeOpenMenu();
         }
       } else {
@@ -274,7 +274,7 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
           await copyToClipboard(prompt);
           ctx.diagnostics.info("AI prompt copied", { command: command.id, length: prompt.length });
           void ctx.auditLog.record("diagnostics.copy", { kind: "ai", command: command.id });
-          showFeatureToast(ft(ctx, "Prompt copied to the clipboard — paste it into your assistant."), { ctx });
+          showFeatureToast(ft(ctx, "Prompt copied to the clipboard. Paste it into your assistant."), { ctx });
         } catch (error) {
           ctx.diagnostics.warn("AI prompt clipboard failed", {
             error: String((error as Error)?.message ?? error)

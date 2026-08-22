@@ -18,7 +18,7 @@ export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
       ),
       ctx.toggleRow(
         "Refuse X's analytics beacons",
-        "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused — timeline, media and login traffic is untouched.",
+        "Stops the tracking pings X sends as you scroll, click and pause. Only the analytics endpoints are refused. Timeline, media and login traffic is untouched.",
         ctx.options.settings.privacy.blockAnalyticsBeacons,
         async (checked) => {
           ctx.options.settings.privacy.blockAnalyticsBeacons = checked;
@@ -210,7 +210,7 @@ function buildBisectRows(ctx: PanelContext): HTMLElement[] {
         "Find the feature breaking this page",
         {
           source:
-            "Turns every Aviary feature off, then back on in halves, asking after each round whether the page is still wrong. It names the one responsible in about five rounds. Nothing is written to your settings, so reloading restores everything whatever you do — including stopping halfway. The Control Center and its language stay on throughout, so neither can be named.",
+            "Turns every Aviary feature off, then back on in halves, asking after each round whether the page is still wrong. It names the one responsible in about five rounds. Nothing is written to your settings, so reloading restores everything whatever you do, including stopping halfway. The Control Center and its language stay on throughout, so neither can be named.",
           values: {}
         },
         async () => {
@@ -509,7 +509,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
   rows.push(
     ctx.secretInputRow(
       "Bluesky app password",
-      "App password from your account settings — never your main password.",
+      "App password from your account settings. Never your main password.",
       integrations.bluesky.appPassword,
       async (value) => {
         integrations.bluesky.appPassword = value;
@@ -898,7 +898,7 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
             for (const hit of hits) {
               const item = ctx.el("div", "av-search-hit");
               item.append(
-                ctx.el("span", "av-row-label", `@${hit.handle ?? "anon"} · ${hit.tweetId ?? "—"} · score ${hit.score.toFixed(3)}`),
+                ctx.el("span", "av-row-label", `@${hit.handle ?? "anon"} · ${hit.tweetId ?? "unknown"} · score ${hit.score.toFixed(3)}`),
                 ctx.el("span", "av-row-description", hit.text.slice(0, 200))
               );
               results.append(item);
@@ -1009,7 +1009,7 @@ export function buildBackupRows(ctx: PanelContext): HTMLElement[] {
 
   // These branches appear only after a file has been selected, so keep their stable copy in
   // the panel manifest even though the extractor cannot click a native file picker.
-  ctx.t("Redacted — saved credentials will be kept.");
+  ctx.t("Redacted. Saved credentials will be kept.");
   ctx.t("Stop after the current collection and roll back anything already written.");
   ctx.t("Validate the backup and show the same conflicts without writing or removing any local data.");
   ctx.t("Apply the selected profile collections. A failed write rolls back the collections already changed.");
@@ -1166,7 +1166,7 @@ export function buildBackupRows(ctx: PanelContext): HTMLElement[] {
       )
     );
     if (backupPreview.credentialsRedacted) {
-      rows.push(ctx.readonlyRow("Credentials", "Redacted — saved credentials will be kept."));
+      rows.push(ctx.readonlyRow("Credentials", "Redacted. Saved credentials will be kept."));
     }
     if (backupPreview.warnings.length > 0) {
       rows.push(

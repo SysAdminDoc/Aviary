@@ -455,10 +455,10 @@ function parseCondition(clause: string): RuleCondition {
   const condition: RuleCondition = { field, operator, value, negate: Boolean(negate) };
 
   if (field === "media" && !MEDIA_VALUES.has(value.toLowerCase() as FilterMediaKey)) {
-    throw new Error(`media takes photo, video, or gif — not "${value}"`);
+    throw new Error(`media takes photo, video, or gif, not "${value}"`);
   }
   if (BOOLEAN_FIELDS.has(field) && !["true", "false"].includes(value.toLowerCase())) {
-    throw new Error(`${field} takes true or false — not "${value}"`);
+    throw new Error(`${field} takes true or false, not "${value}"`);
   }
   if (operator === "matches") {
     condition.pattern = compilePattern(value);

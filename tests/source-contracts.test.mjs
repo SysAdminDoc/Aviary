@@ -620,3 +620,102 @@ test("every status string the panel shows is a finished sentence", async () => {
       `depending on which action ran last: ${unfinished.join(", ")}`
   );
 });
+
+/**
+ * No em or en dash in anything a person reads.
+ *
+ * The project rule is that dashes do not appear in prose written for someone outside this machine,
+ * and that covers panel copy, toasts, error text, the options page, and the documents an export
+ * writes. Code comments and log lines are for whoever is reading the source and are exempt, which
+ * is why this walks the file and looks only inside string literals.
+ *
+ * `src/platform/i18n-catalog.ts` is generated from those literals and is excluded here; its English
+ * keys are exactly what this checks, and its translations are the translators' text.
+ */
+test("no user-facing string carries an em or en dash", async () => {
+  const roots = [path.join(root, "src")];
+  const offenders = [];
+
+  const walk = async (directory) => {
+    const found = [];
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const full = path.join(directory, entry.name);
+      if (entry.isDirectory()) found.push(...(await walk(full)));
+      else if (/\.(ts|html|css)$/.test(entry.name)) found.push(full);
+    }
+    return found;
+  };
+
+  for (const source of roots) {
+    for (const file of await walk(source)) {
+      const relative = path.relative(root, file);
+      if (relative.endsWith("i18n-catalog.ts")) continue;
+      const text = await readFile(file, "utf8");
+
+      if (file.endsWith(".html")) {
+        // No comment syntax worth modelling here; the whole document is read by a person.
+        const stripped = text.replace(/<!--[\s\S]*?-->/g, "");
+        if (/[\u2013\u2014]/.test(stripped)) {
+          offenders.push(`${relative} (html)`);
+        }
+        continue;
+      }
+
+      // Walk the file so a dash inside a comment is not confused with one inside a literal.
+      let index = 0;
+      let line = 1;
+      while (index < text.length) {
+        const char = text[index];
+        if (char === "\n") {
+          line += 1;
+          index += 1;
+          continue;
+        }
+        if (char === "/" && text[index + 1] === "/") {
+          while (index < text.length && text[index] !== "\n") index += 1;
+          continue;
+        }
+        if (char === "/" && text[index + 1] === "*") {
+          const close = text.indexOf("*/", index + 2);
+          const end = close === -1 ? text.length : close + 2;
+          line += text.slice(index, end).split("\n").length - 1;
+          index = end;
+          continue;
+        }
+        if (char === '"' || char === "'" || char === "`") {
+          const quote = char;
+          const startedAt = line;
+          let value = "";
+          index += 1;
+          while (index < text.length && text[index] !== quote) {
+            if (text[index] === "\\") {
+              value += text[index + 1];
+              index += 2;
+              continue;
+            }
+            if (text[index] === "\n") line += 1;
+            value += text[index];
+            index += 1;
+          }
+          index += 1;
+          if (quote === "`") {
+            // A template literal can hold a CSS block with its own comments; those are source too.
+            value = value.replace(/\/\*[\s\S]*?\*\//g, "");
+          }
+          if (/[\u2013\u2014]/.test(value)) {
+            offenders.push(`${relative}:${startedAt}`);
+          }
+          continue;
+        }
+        index += 1;
+      }
+    }
+  }
+
+  assert.deepEqual(
+    offenders,
+    [],
+    `these string literals carry an em or en dash, which the project's own writing rule forbids ` +
+      `in anything a person reads: ${offenders.join(", ")}`
+  );
+});
