@@ -293,3 +293,49 @@ export { harvestStatusLiterals };
     await rm(temp, { recursive: true, force: true });
   }
 }
+
+/**
+ * The catalog stores translations, not nine copies of the English.
+ *
+ * The keys are the English source strings, and they used to be written beside every translation:
+ * once in PANEL_STRINGS and once more inside each of the eight locale bundles. That was 413 kB of
+ * an 831 kB catalog, in a bundle where the catalog was already a third of everything delivered,
+ * and it grew by eight copies of every string anyone translated. Positions cost nothing.
+ *
+ * This pins the stored shape rather than a byte count, because a byte count drifts with the copy
+ * and this does not: regenerate with an emitter that writes objects again and it fails.
+ */
+test("the stored catalog is positional, not keyed by the English source string", async () => {
+  const source = await readFile(path.join(root, "src/platform/i18n-catalog.ts"), "utf8");
+  const literal = /const PANEL_CATALOG_JSON =\s*("(?:[^"\\]|\\.)*");/s.exec(source);
+  assert.ok(literal, "the generated catalog literal must be findable");
+
+  const rows = JSON.parse(JSON.parse(literal[1]));
+  const { PANEL_STRINGS, panelCatalog } = await importSourceModule("src/platform/i18n-catalog.ts");
+
+  for (const [locale, values] of Object.entries(rows)) {
+    assert.ok(Array.isArray(values), `${locale} must be stored as an array of translations`);
+    assert.equal(
+      values.length,
+      PANEL_STRINGS.length,
+      `${locale} must line up index-for-index with the manifest`
+    );
+  }
+
+  // And the zip back into records is faithful: same keys, same values, for every locale.
+  const catalog = panelCatalog();
+  for (const [locale, values] of Object.entries(rows)) {
+    const bundle = catalog[locale];
+    assert.ok(bundle, `${locale} must survive the zip`);
+    const translated = values.filter((value) => value !== null).length;
+    assert.equal(Object.keys(bundle).length, translated, `${locale} lost entries in the zip`);
+    for (let index = 0; index < values.length; index += 1) {
+      if (values[index] === null) continue;
+      assert.equal(
+        bundle[PANEL_STRINGS[index]],
+        values[index],
+        `${locale} misaligned at index ${index} (${PANEL_STRINGS[index]})`
+      );
+    }
+  }
+});

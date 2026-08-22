@@ -26,24 +26,21 @@ const expectedExtensionIcons = Object.fromEntries(
  * Raising one is fine. Raising one without saying why in the commit is not.
  */
 const DELIVERY_BUDGETS = [
-  // v1.40 adds five localized, scoped custom-CSS editors and their safety copy. v1.42 adds a
-  // bounded Under the Hood parser and localized Library reader. v1.44 adds local thread capture,
-  // graph reconstruction, and a standalone reader. v1.46 translates three surfaces that were still
-  // rendering English in all nine locales -- the catch-up digest, the sentence every action row
-  // shows when it fails, and the renamed media controls -- for 53 strings x 8 locales.
+  // The catalog used to store the English source string beside every translation, so each string
+  // shipped nine times: once in PANEL_STRINGS and once inside each of the eight locale bundles.
+  // Storing translations positionally against that manifest took 349 kB out of the bundle and,
+  // more to the point, stopped the ratchet -- this ceiling had moved four times in one session for
+  // catalog growth alone. A new translated string now costs eight translations, not eight copies
+  // of its own English text as well.
   //
-  // Plus one more sentence for the row that opens the catch-up digest, which had no failure copy
-  // of its own and showed the generic three words instead.
-  //
-  // The catalog is now 34% of the bundle (920 kB of 2.71 MB), and every translated string costs
-  // eight copies that a given reader will never use. This is the fourth time this ceiling has moved
-  // for catalog growth alone, which is the argument for ROADMAP F270 rather than a fifth raise:
-  // split the catalog per locale so a reader ships one. Until that lands the ceiling has to move
-  // with the copy, deliberately and with the reason written down.
-  { file: "aviary.user.js", maxBytes: 2_716_000 },
+  // Headroom is deliberately modest. The remaining catalog is 438 kB of real translated text, and
+  // shrinking that further means compressing it, which means decompressing before the first
+  // translated render -- trading away the laziness that keeps the catalog off the document-start
+  // path entirely. Not worth it for the bytes.
+  { file: "aviary.user.js", maxBytes: 2_400_000 },
   { file: "aviary.meta.js", maxBytes: 4_000 },
-  { file: "extension-chrome/content.js", maxBytes: 2_716_000 },
-  { file: "extension-firefox/content.js", maxBytes: 2_716_000 }
+  { file: "extension-chrome/content.js", maxBytes: 2_400_000 },
+  { file: "extension-firefox/content.js", maxBytes: 2_400_000 }
 ];
 
 const failures = [];

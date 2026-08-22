@@ -202,16 +202,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
 
 ### P3
 
-- [ ] P3 — F270, The translation catalog is a third of the delivered bundle and every reader ships all nine locales
-  Category: perf
-  Where: `src/platform/i18n-catalog.ts` (the inlined `PANEL_CATALOG_JSON`), consumed through `panelCatalog()` in `src/platform/i18n.ts`; the size ceiling is `DELIVERY_BUDGETS` in `tools/preflight.mjs`.
-  Problem: the catalog is 920 kB of a 2.70 MB bundle, 34% of everything delivered, and it is one JSON blob holding all eight non-English locales. A reader uses exactly one, so seven eighths of it is never read. Every string translated makes the problem worse in eight-copy increments, and the delivery budget has been raised three times in one session to keep up. The extension has a second copy of the same bytes in each of the two unpacked builds.
-  Evidence: `src/platform/i18n-catalog.ts` is 920,546 bytes against a `dist/aviary.user.js` of 2,697,490. `tools/build.mjs` already demonstrates the pattern that would fix it: `src/entrypoints/extension-options.ts` documents that importing the full catalog "would put roughly 240KB of translations into a page that otherwise ships a few KB", so the build reads the `data-i18n` keys out of `options.html` and defines only those.
-  Fix: split the catalog per locale and load the chosen one at boot. The userscript has no second file to fetch, so the honest shape there is probably to keep English inline and put the other eight behind the same build-time narrowing the options page already uses, keyed off `settings.i18n.locale`. Whatever the shape, the test that holds coverage at 100% per locale has to keep working against the split form.
-  Acceptance: `dist/aviary.user.js` drops by at least 700 kB with no locale losing coverage; `tests/i18n.test.mjs` still reports 100% for every shipped locale; switching locale in the panel still repaints without a reload.
-  Confidence: Verified
-  Effort: L
-
 - [ ] P3 — F237, Two `_decoded/` captures are past their staleness ceiling and the waiver expires 2026-09-30 (pre-existing baseline)
   Category: docs
   Where: `_decoded/captures.json`; the gate is `tools/preflight.mjs`.
