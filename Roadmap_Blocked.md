@@ -380,3 +380,18 @@ repository refuses.
 Re-entry condition: verify during F134's authenticated capture session rather than booking a second
 one, open the current Photos and Videos tabs with the built artifact loaded and exercise the batch
 action.
+
+## F237, The `_decoded/` captures expire on 2026-09-30 and the build gate fails with them
+
+`npm run preflight` passes today with a warning: `home.html` and `status.html` were captured on
+2026-05-19, are 95 days old against a 90-day ceiling, and are waived only until 2026-09-30. After
+that the gate fails, and until the captures are refreshed no selector claim in the project can be
+re-measured against anything -- these two files are the only ground truth there is.
+
+Nothing here can be fixed from this machine. The capture half of the procedure in CLAUDE.md needs a
+signed-in X session, which is the same blocker as F134 and F201.
+
+Re-entry condition: take it in the same operator capture session as F134 and F201 rather than
+booking a third. Scrub `tools/capture-decode.mjs` first, take the captures, then re-run every
+"measured: N hits" claim in this file against them and record the new date, including the claims
+that stay blocked. Do it before 2026-09-30, not at a release.

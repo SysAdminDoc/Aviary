@@ -150,17 +150,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
 
 ### P2
 
-- [ ] P3 — F237, Two `_decoded/` captures are past their staleness ceiling and the waiver expires 2026-09-30 (pre-existing baseline)
-  Category: docs
-  Where: `_decoded/captures.json`; the gate is `tools/preflight.mjs`.
-  Problem: `npm run preflight` passes with the warning "stale DOM captures: home.html 95d (captured 2026-05-19), status.html 95d (captured 2026-05-19), past the 90-day ceiling; waived until 2026-09-30, after which preflight fails". The captures are the only ground truth for every selector in the project, so after 2026-09-30 the build gate fails and no selector claim can be re-measured until they are refreshed. This is baseline state, not something this audit introduced.
-  Evidence: `npm run preflight` output, verbatim above, exit code 0.
-  Fix: follow the "Refreshing the capture set" procedure in CLAUDE.md — the capture half needs a signed-in operator, so schedule it before the waiver expires rather than discovering it at a release. Re-run every "measured: N hits" claim in `Roadmap_Blocked.md` against the new captures and record the new date, including the ones that stay blocked.
-  Acceptance: `npm run preflight` reports no stale-capture warning; `_decoded/captures.json` carries a `capturedOn` within the ceiling for both routes.
-  Confidence: Verified
-  Effort: M
-  Blocked: needs a signed-in operator to save the two MHTML captures. Nothing in the repo logs in or fetches.
-
 ### Unaudited — needs a pass
 
 - [ ] P3 — F264, Areas this pass did not reach
