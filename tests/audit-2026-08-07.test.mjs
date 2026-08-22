@@ -277,3 +277,123 @@ test("store extension archives are byte-reproducible", async () => {
 
   assert.deepEqual(second, first, "repeated builds changed a tracked ZIP without source changes");
 });
+
+/**
+ * A delete is a write, and it was the one write the sink could not see.
+ *
+ * `get` reports and returns its fallback; `set` reports and rethrows. `remove` did neither, so a
+ * failed delete threw raw at the caller and never reached diagnostics -- while this module's own
+ * comment promises it catches every write "and every store added later, without each having to
+ * remember to plumb a sink through its constructor". ProfileManager.adoptLegacyIntoActive calls
+ * remove() bare, so a backend failure there was an unreported rejection.
+ */
+test("a failed delete reaches the storage error sink", async () => {
+  const { createStorageGateway, setStorageErrorSink } = await importSourceModule(
+    "src/platform/storage.ts"
+  );
+
+  const reports = [];
+  setStorageErrorSink((key, error, op) => reports.push({ key, op, message: String(error) }));
+
+  const original = globalThis.localStorage;
+  globalThis.localStorage = {
+    getItem: () => null,
+    setItem: () => undefined,
+    removeItem: () => {
+      throw new Error("backend refused the delete");
+    }
+  };
+
+  let threw = null;
+  try {
+    const gateway = createStorageGateway("aviary");
+    await gateway.remove("aviary.snapshots.v1").catch((error) => {
+      threw = error;
+    });
+  } finally {
+    globalThis.localStorage = original;
+    setStorageErrorSink(undefined);
+  }
+
+  assert.equal(reports.length, 1, "a failed delete must reach the sink exactly once");
+  assert.equal(reports[0].op, "write", "a delete is a write");
+  assert.equal(reports[0].key, "aviary.snapshots.v1");
+  assert.ok(threw, "and it must still reach the caller, the way a failed set does");
+  assert.match(String(threw), /backend refused the delete/);
+});
+
+/**
+ * A blob that never got downloaded still has to be released.
+ *
+ * Both helpers created the object URL, built an anchor, clicked it, and only then armed the revoke
+ * timer. A throw anywhere in between -- a null document.body, a click the page blocks -- stranded
+ * the blob for the lifetime of the document. The sidecar helper additionally returned false, as
+ * though nothing had been allocated at all.
+ */
+test("a blob download releases its object URL when the click throws", async () => {
+  const { saveMediaSidecar } = await importSourceModule("src/features/media/sidecar.ts");
+
+  const created = [];
+  const revoked = [];
+  const originalDocument = globalThis.document;
+  const originalURL = globalThis.URL;
+
+  globalThis.URL = class extends originalURL {
+    static createObjectURL() {
+      const url = `blob:test/${created.length}`;
+      created.push(url);
+      return url;
+    }
+    static revokeObjectURL(url) {
+      revoked.push(url);
+    }
+  };
+
+  const makeDocument = (onClick) => ({
+    createElement: () => ({
+      href: "",
+      download: "",
+      rel: "",
+      click: onClick,
+      remove: () => undefined
+    }),
+    body: { append: () => undefined }
+  });
+
+  try {
+    globalThis.document = makeDocument(() => {
+      throw new Error("the page refused the download");
+    });
+    const failed = saveMediaSidecar({
+      format: "json",
+      mediaFilename: "photo.jpg",
+      sourceUrl: "https://pbs.twimg.com/media/photo.jpg",
+      tweetId: "1",
+      handle: "someone"
+    });
+
+    assert.equal(failed, false, "the caller is still told it did not save");
+    assert.equal(created.length, 1, "the URL was created");
+    assert.deepEqual(revoked, created, "and released rather than stranded");
+
+    // The control: a download that works hands the URL to the revoke timer instead, so it is not
+    // revoked before the browser has read it.
+    created.length = 0;
+    revoked.length = 0;
+    globalThis.document = makeDocument(() => undefined);
+    const saved = saveMediaSidecar({
+      format: "json",
+      mediaFilename: "photo.jpg",
+      sourceUrl: "https://pbs.twimg.com/media/photo.jpg",
+      tweetId: "1",
+      handle: "someone"
+    });
+    assert.equal(saved, true);
+    assert.equal(created.length, 1);
+    assert.deepEqual(revoked, [], "not revoked while the download is still starting");
+  } finally {
+    globalThis.URL = originalURL;
+    if (originalDocument === undefined) delete globalThis.document;
+    else globalThis.document = originalDocument;
+  }
+});

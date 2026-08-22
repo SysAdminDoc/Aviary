@@ -112,22 +112,31 @@ export function createStorageGateway(namespace = "aviary"): StorageGateway {
     async remove(key: string): Promise<void> {
       const storageKey = scoped(key);
 
-      if (typeof globals.GM_deleteValue === "function") {
-        await globals.GM_deleteValue(storageKey);
-        return;
-      }
+      // A delete is a write, and it was the one write this module could not see. Callers such as
+      // ProfileManager.adoptLegacyIntoActive call remove() bare, so a backend failure there used
+      // to propagate as an unreported rejection while the comment at the top of this file promised
+      // the opposite.
+      try {
+        if (typeof globals.GM_deleteValue === "function") {
+          await globals.GM_deleteValue(storageKey);
+          return;
+        }
 
-      if (globalThis.chrome?.storage?.local) {
-        await globalThis.chrome.storage.local.remove(storageKey);
-        return;
-      }
+        if (globalThis.chrome?.storage?.local) {
+          await globalThis.chrome.storage.local.remove(storageKey);
+          return;
+        }
 
-      if (globalThis.localStorage) {
-        globalThis.localStorage.removeItem(storageKey);
-        return;
-      }
+        if (globalThis.localStorage) {
+          globalThis.localStorage.removeItem(storageKey);
+          return;
+        }
 
-      throw new Error(`No storage backend is available for ${storageKey}`);
+        throw new Error(`No storage backend is available for ${storageKey}`);
+      } catch (error) {
+        reportStorageError(storageKey, error, "write");
+        throw error;
+      }
     }
   };
 }

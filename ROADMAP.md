@@ -161,16 +161,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Effort: M
   Blocked: needs a signed-in operator to save the two MHTML captures. Nothing in the repo logs in or fetches.
 
-- [ ] P3 — F238, `createStorageGateway.remove()` is the one write path the error sink cannot see
-  Category: maintainability
-  Where: `src/platform/storage.ts:105-125` (`remove`), against `:56-82` (`get`) and `:84-103` (`set`).
-  Problem: `get` reports through `reportStorageError` and returns its fallback; `set` reports and rethrows. `remove` does neither — no try, no report — so a failed delete throws raw at the caller and never reaches diagnostics. That contradicts the module's own comment at `:29-36`, which says reporting here "catches every one of them, and every store added later, without each having to remember to plumb a sink through its constructor". Callers such as `ProfileManager.adoptLegacyIntoActive` (`src/platform/profile.ts:150`) call `this.#base.remove(key)` bare, so a quota or backend error there propagates as an unreported rejection.
-  Evidence: read at the cited lines; `remove` is four `if` blocks and a `throw`, with no `try` and no `reportStorageError` call anywhere in its body.
-  Fix: wrap `remove`'s body the way `set` is wrapped, reporting through `reportStorageError(storageKey, error, "write")` and rethrowing.
-  Acceptance: a test that makes the backing store's delete throw and asserts the sink registered by `setStorageErrorSink` was called with the key and `"write"`.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P3 — F239, About 110 lines of a superseded translation system are still in the platform layer
   Category: maintainability
   Where: `src/platform/i18n.ts:24-146` — the `StringKey` union, the `FALLBACK` map, `PARTIAL_BUNDLES`, and `translate(locale, key)`.
@@ -190,17 +180,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Acceptance: a boot with no legacy data performs at most a small constant number of storage reads before `registry.initAll`, asserted with a counting stub gateway in `tests/profile.test.mjs`.
   Confidence: Verified
   Effort: S
-
-- [ ] P3 — F241, Two blob download helpers leak their object URL on the error path
-  Category: reliability
-  Where: `src/features/media/sidecar.ts:121-134` and `src/features/core/control-center.ts:1538-1552` (`downloadBlob`).
-  Problem: both create the object URL, build an anchor, append it, click it, and only then schedule `setTimeout(() => URL.revokeObjectURL(url), 4000)`. In `sidecar.ts` the URL is block-scoped inside the `try`, so anything that throws between creation and the timeout — a null `document.body`, a `click()` the page blocks — strands the blob for the document's lifetime and returns `false` as if nothing had been allocated. `downloadBlob` has no `try` at all, so the same throw both leaks the URL and propagates to the caller. The window is narrow and this is unlikely on a live X page; it is logged because the error path is the one place neither helper covers.
-  Evidence: read at the cited lines. `sidecar.ts:122-123` is `const blob = new Blob(...); const url = URL.createObjectURL(blob);` inside the `try` whose `catch { return false; }` is at `:132-134`.
-  Fix: hoist `url` above the `try` and revoke it in a `finally` when the timeout was never armed, or wrap the anchor work in its own inner try that revokes immediately on failure.
-  Acceptance: a test that makes `anchor.click()` throw and asserts `URL.revokeObjectURL` was called with the created URL.
-  Confidence: Likely
-  Effort: S
-
 
 - [ ] P3 — F258, The exported viewer still carries a hand-maintained locale table
   Category: maintainability
@@ -231,16 +210,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Acceptance: importing a 50 MB archive in the extension build succeeds, or fails with a message naming the actual ceiling rather than throwing a quota error.
   Confidence: Needs-repro
   Effort: S
-
-- [ ] P3 — F262, Two more stores write their whole in-memory state without the storage lock
-  Category: reliability
-  Where: `src/features/library/snapshots.ts:91-97`, `src/features/library/cleanup-queue.ts:143-146`, `src/features/library/archive-library.ts:96` and `:103`.
-  Problem: these three persist by writing their entire in-memory collection rather than merging the change they just made, and none takes `withStorageLock` / `mutateStored`. That is the pattern CLAUDE.md records as fixed elsewhere and that `tests/cross-tab-stores.test.mjs` drives for six other stores. The trigger here is weaker than for the export checkpoint store — these are written on explicit user action rather than automatically as the feed scrolls — so two tabs have to be used deliberately rather than merely left open. Logged so the sweep is complete rather than because a common path hits it.
-  Evidence: read at the cited lines; none of the three call sites references `withStorageLock` or `mutateStored`, while `src/features/library/bookmarks.ts` in the same directory does.
-  Fix: route each `#persist` through `mutateStored` and merge per-entry, following `bookmarks.ts`. Add all three to `tests/cross-tab-stores.test.mjs`.
-  Acceptance: the cross-tab test covers snapshots, the cleanup queue and the archive library, and a second gateway's write no longer erases the first's entries.
-  Confidence: Likely
-  Effort: M
 
 - [ ] P3 — F263, The settings search does not fold diacritics, so accented labels need accented queries
   Category: ux

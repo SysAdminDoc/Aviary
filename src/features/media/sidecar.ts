@@ -118,9 +118,14 @@ export function saveMediaSidecar(
   if (!request || typeof document === "undefined") return false;
   const artifact = buildMediaSidecar(request.format, { ...request, savedAt });
   if (!artifact) return false;
+  // The URL is created before the try so the failure path can still release it. Inside, a throw
+  // between createObjectURL and the revoke timer -- a null document.body, a click the page refuses
+  // -- stranded the blob for the lifetime of the document and returned false as though nothing had
+  // been allocated.
+  let url: string | null = null;
   try {
     const blob = new Blob([new Uint8Array(artifact.data)], { type: artifact.contentType });
-    const url = URL.createObjectURL(blob);
+    url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
     anchor.download = artifact.filename;
@@ -128,10 +133,15 @@ export function saveMediaSidecar(
     document.body.append(anchor);
     anchor.click();
     anchor.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 4_000);
+    // Handed to the timer, which owns it from here.
+    const handed = url;
+    url = null;
+    setTimeout(() => URL.revokeObjectURL(handed), 4_000);
     return true;
   } catch {
     return false;
+  } finally {
+    if (url !== null) URL.revokeObjectURL(url);
   }
 }
 

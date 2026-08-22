@@ -1,4 +1,5 @@
 import type { StorageGateway } from "../../platform/storage.ts";
+import { mergeKeyed, mutateStored, replaceStored } from "../../platform/storage-lock.ts";
 import type { CleanupCandidate } from "./cleanup-preview.ts";
 
 export const CLEANUP_QUEUE_KEY = "aviary.cleanupQueue.v1";
@@ -69,22 +70,23 @@ export class CleanupQueue {
 
   async enqueue(candidates: readonly CleanupCandidate[]): Promise<number> {
     await this.load();
-    let added = 0;
+    const added: CleanupQueueItem[] = [];
     for (const candidate of candidates) {
       if (candidate.protected) continue;
-      this.#state.items.push({
+      const item: CleanupQueueItem = {
         ...candidate,
-        id: `item-${Date.now()}-${(this.#sequence += 1)}`,
+        id: newQueueItemId((this.#sequence += 1)),
         enqueuedAt: new Date().toISOString(),
         status: "queued"
-      });
-      added += 1;
+      };
+      this.#state.items.push(item);
+      added.push(item);
     }
     while (this.#state.items.length > this.#limit) {
       this.#state.items.shift();
     }
-    await this.#persist();
-    return added;
+    await this.#persist(added);
+    return added.length;
   }
 
   list(status?: CleanupQueueStatus): CleanupQueueItem[] {
@@ -105,7 +107,7 @@ export class CleanupQueue {
     item.status = status;
     item.reviewedAt = new Date().toISOString();
     if (note) item.reviewerNote = note;
-    await this.#persist();
+    await this.#persist([item]);
   }
 
   async clear(): Promise<void> {
@@ -114,7 +116,8 @@ export class CleanupQueue {
     await this.load();
     this.#state = { items: [], destructiveExecuted: this.#state.destructiveExecuted };
     this.#loaded = true;
-    await this.#persist();
+    // Replaced, not merged, for the same reason as the snapshot store: clearing means clearing.
+    await replaceStored(this.#storage, CLEANUP_QUEUE_KEY, this.#state);
   }
 
   /**
@@ -140,13 +143,52 @@ export class CleanupQueue {
     }
   }
 
-  async #persist(): Promise<void> {
+  /**
+   * The items just written, folded into what is on disk.
+   *
+   * Items carry their own id, so a review in one tab and an enqueue in another both survive. Only
+   * the items this call touched are merged: merging this tab's whole list would put back every
+   * item the other tab was told to clear, and would overwrite the other tab's review of an item
+   * this tab still holds in its pre-review state. `destructiveExecuted` only ever goes one way,
+   * so it is or-ed rather than overwritten.
+   */
+  async #persist(touched: readonly CleanupQueueItem[]): Promise<void> {
     try {
-      await this.#storage.set(CLEANUP_QUEUE_KEY, this.#state);
+      this.#state = await mutateStored<CleanupQueueState>(
+        this.#storage,
+        CLEANUP_QUEUE_KEY,
+        emptyState(),
+        (stored) => {
+          const existing = Array.isArray(stored?.items) ? stored.items.filter(isQueueItem) : [];
+          const merged = mergeKeyed(
+            existing.map((item) => [item.id, item] as [string, CleanupQueueItem]),
+            touched.map((item) => [item.id, item] as [string, CleanupQueueItem])
+          );
+          const items = [...merged.values()].sort(
+            (a, b) => Date.parse(a.enqueuedAt) - Date.parse(b.enqueuedAt)
+          );
+          return {
+            items: items.slice(-this.#limit),
+            destructiveExecuted: stored?.destructiveExecuted === true || this.#state.destructiveExecuted
+          };
+        }
+      );
     } catch {
       // best effort
     }
   }
+}
+
+/**
+ * Unique across tabs, not just within one.
+ *
+ * The sequence restarts at zero in every tab, so two tabs enqueueing in the same millisecond
+ * produced the same id -- and the merge keys on id, so one of the two items silently vanished.
+ * The same fix the bookmark store already carries, for the same reason.
+ */
+function newQueueItemId(sequence: number): string {
+  const random = Math.floor(Math.random() * 0xffffff).toString(36);
+  return `item-${Date.now()}-${sequence}-${random}`;
 }
 
 function isQueueItem(value: unknown): value is CleanupQueueItem {

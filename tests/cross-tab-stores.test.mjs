@@ -75,6 +75,9 @@ async function load() {
       `export { AuditLog, AUDIT_LOG_KEY } from ${JSON.stringify(abs("src/features/core/audit-log.ts"))};`,
       `export { BookmarkStore, BOOKMARKS_KEY } from ${JSON.stringify(abs("src/features/library/bookmarks.ts"))};`,
       `export { IntegrationUsageLedger, INTEGRATION_USAGE_KEY } from ${JSON.stringify(abs("src/features/integrations/usage.ts"))};`,
+      `export { SnapshotStore, SNAPSHOTS_KEY } from ${JSON.stringify(abs("src/features/library/snapshots.ts"))};`,
+      `export { CleanupQueue, CLEANUP_QUEUE_KEY } from ${JSON.stringify(abs("src/features/library/cleanup-queue.ts"))};`,
+      `export { ArchiveLibraryStore, ARCHIVE_LIBRARY_KEY } from ${JSON.stringify(abs("src/features/library/archive-library.ts"))};`,
       `export { withStorageLock, mutateStored } from ${JSON.stringify(abs("src/platform/storage-lock.ts"))};`
     ].join("\n"),
     "utf8"
@@ -444,4 +447,102 @@ test("mutateStored reads inside the lock, so the second writer sees the first's 
 
 test.after(async () => {
   await cleanup?.();
+});
+
+test("a capture in each tab survives, and clearing still clears", async () => {
+  const mod = await load();
+  mod.setSettleDelay(2);
+  const a = new mod.SnapshotStore(mod.tab());
+  const b = new mod.SnapshotStore(mod.tab());
+  await a.load();
+  await b.load();
+
+  await Promise.all([
+    a.record({ kind: "followers", handle: "self", source: "dom", accounts: ["alpha", "beta"] }),
+    b.record({ kind: "following", handle: "self", source: "dom", accounts: ["gamma"] })
+  ]);
+
+  const kinds = mod.readShared(mod.SNAPSHOTS_KEY).entries.map((entry) => entry.kind).sort();
+  assert.deepEqual(kinds, ["followers", "following"], "one tab's capture erased the other's");
+
+  // And a clear is a clear: the other tab's stale copy must not put the captures back.
+  await a.clear();
+  await b.record({ kind: "followers", handle: "self", source: "dom", accounts: ["delta"] });
+  const after = mod.readShared(mod.SNAPSHOTS_KEY).entries;
+  assert.equal(after.length, 1, "clearing was undone by the other tab's next write");
+  assert.deepEqual(after[0].accounts, ["delta"]);
+});
+
+test("a cleanup queue review in one tab is not erased by an enqueue in the other", async () => {
+  const mod = await load();
+  mod.setSettleDelay(2);
+  const a = new mod.CleanupQueue(mod.tab());
+  const b = new mod.CleanupQueue(mod.tab());
+  await a.load();
+  await b.load();
+
+  const candidate = (tweetId, bucket) => ({
+    tweetId,
+    handle: "someone",
+    text: `post ${tweetId}`,
+    bucket,
+    protected: false
+  });
+
+  await Promise.all([a.enqueue([candidate("1", "reply")]), b.enqueue([candidate("2", "repost")])]);
+
+  const tweetIds = mod.readShared(mod.CLEANUP_QUEUE_KEY).items.map((item) => item.tweetId).sort();
+  assert.deepEqual(tweetIds, ["1", "2"], "one tab's enqueue erased the other's");
+
+  // A review in one tab and a fresh enqueue in the other keep both.
+  const mine = a.list().find((item) => item.tweetId === "1");
+  await a.setStatus(mine.id, "skipped", "not this one");
+  await b.enqueue([candidate("3", "reply")]);
+
+  const stored = mod.readShared(mod.CLEANUP_QUEUE_KEY).items;
+  assert.equal(stored.length, 3);
+  assert.equal(
+    stored.find((item) => item.tweetId === "1").status,
+    "skipped",
+    "the review was overwritten by the other tab's stale copy"
+  );
+});
+
+test("two archive imports in two tabs both land in the library", async () => {
+  const mod = await load();
+  mod.setSettleDelay(2);
+  const a = new mod.ArchiveLibraryStore(mod.tab());
+  const b = new mod.ArchiveLibraryStore(mod.tab());
+  await a.load();
+  await b.load();
+
+  const collections = (handle) => ({
+    profile: null,
+    account: null,
+    directMessages: [],
+    media: [],
+    followers: [{ id: handle, handle, sourceFile: "follower.js" }],
+    following: [],
+    lists: []
+  });
+
+  await Promise.all([
+    a.merge(collections("alice"), "job-a"),
+    b.merge(collections("bob"), "job-b")
+  ]);
+
+  const stored = mod.readShared(mod.ARCHIVE_LIBRARY_KEY);
+  assert.deepEqual(
+    stored.followers.map((entry) => entry.handle).sort(),
+    ["alice", "bob"],
+    "one tab's import erased the other's"
+  );
+  assert.deepEqual(
+    stored.importedJobs.slice().sort(),
+    ["job-a", "job-b"],
+    "and the record of which archives were already imported has to survive too"
+  );
+
+  await a.clear();
+  assert.deepEqual(mod.readShared(mod.ARCHIVE_LIBRARY_KEY).followers, []);
 });

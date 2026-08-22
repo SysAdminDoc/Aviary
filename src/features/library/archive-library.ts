@@ -1,4 +1,5 @@
 import type { StorageGateway } from "../../platform/storage.ts";
+import { mutateStored, replaceStored } from "../../platform/storage-lock.ts";
 import {
   emptyArchiveRepairSummary,
   type ArchiveAccountRef,
@@ -59,7 +60,24 @@ export class ArchiveLibraryStore {
     repairs?: ArchiveRepairSummary
   ): Promise<void> {
     await this.load();
-    const next = cloneSnapshot(this.#snapshot);
+    // Built from what is on disk at write time, not from the copy this instance loaded. Two tabs
+    // importing different archives each wrote their whole snapshot back, so the second import
+    // erased the first one's collections along with its record of which jobs had been imported.
+    this.#snapshot = await mutateStored<ArchiveLibrarySnapshot>(
+      this.#storage,
+      ARCHIVE_LIBRARY_KEY,
+      cloneSnapshot(EMPTY),
+      (stored: unknown) => this.#fold(normalizeSnapshot(stored), collections, jobId, repairs)
+    );
+  }
+
+  #fold(
+    base: ArchiveLibrarySnapshot,
+    collections: ArchiveCollections,
+    jobId: string,
+    repairs?: ArchiveRepairSummary
+  ): ArchiveLibrarySnapshot {
+    const next = cloneSnapshot(base);
     next.profile = collections.profile ?? next.profile;
     next.account = collections.account ?? next.account;
     next.directMessages = mergeByKey(
@@ -93,14 +111,14 @@ export class ArchiveLibraryStore {
     }
     next.updatedAt = new Date().toISOString();
     if (repairs) next.lastRepair = { ...repairs };
-    await this.#storage.set(ARCHIVE_LIBRARY_KEY, next);
-    this.#snapshot = next;
+    return next;
   }
 
   async clear(): Promise<void> {
     const next = cloneSnapshot(EMPTY);
     this.#loaded = true;
-    await this.#storage.set(ARCHIVE_LIBRARY_KEY, next);
+    // Replaced, not merged: clearing the library means clearing it.
+    await replaceStored(this.#storage, ARCHIVE_LIBRARY_KEY, next);
     this.#snapshot = next;
   }
 }

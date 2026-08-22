@@ -1563,16 +1563,27 @@ function downloadBlob(data: Uint8Array, filename: string, contentType = "applica
   if (typeof document === "undefined") {
     return;
   }
-  const blob = new Blob([new Uint8Array(data)], { type: contentType });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.rel = "noopener noreferrer";
-  document.body.append(anchor);
-  anchor.click();
-  anchor.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  // See saveMediaSidecar: a throw between createObjectURL and the revoke timer leaks the blob for
+  // the lifetime of the document. This one has no catch of its own and must not grow one -- the
+  // caller's error path is what tells the user the export failed -- so the release goes in a
+  // finally and the error still propagates.
+  let url: string | null = null;
+  try {
+    const blob = new Blob([new Uint8Array(data)], { type: contentType });
+    url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.rel = "noopener noreferrer";
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    const handed = url;
+    url = null;
+    setTimeout(() => URL.revokeObjectURL(handed), 4000);
+  } finally {
+    if (url !== null) URL.revokeObjectURL(url);
+  }
 }
 
 interface DiagnosticsContext {

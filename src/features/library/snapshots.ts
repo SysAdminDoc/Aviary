@@ -1,4 +1,5 @@
 import type { StorageGateway } from "../../platform/storage.ts";
+import { mergeKeyed, mutateStored, replaceStored } from "../../platform/storage-lock.ts";
 
 export const SNAPSHOTS_KEY = "aviary.snapshots.v1";
 export const SNAPSHOT_LIMIT = 24;
@@ -114,7 +115,7 @@ export class SnapshotStore {
     while (this.#state.entries.length > this.#limit) {
       this.#state.entries.shift();
     }
-    await this.#persist();
+    await this.#persist([stored]);
     return stored;
   }
 
@@ -138,16 +139,41 @@ export class SnapshotStore {
   async clear(): Promise<void> {
     this.#state = { entries: [] };
     this.#loaded = true;
-    await this.#persist();
+    // Replaced, not merged. Clearing is an explicit "drop all of this", and folding it into
+    // another tab's copy would bring straight back what the reader just asked to be rid of.
+    await replaceStored(this.#storage, SNAPSHOTS_KEY, this.#state);
   }
 
   size(): number {
     return this.#state.entries.length;
   }
 
-  async #persist(): Promise<void> {
+  /**
+   * The captures just taken, folded into whatever is on disk.
+   *
+   * Two tabs each capturing used to race: both loaded the list at boot, both wrote the whole list
+   * back, and whichever wrote second erased the other's capture. Only `added` is merged, not this
+   * tab's whole in-memory list -- merging the list would put back every capture the other tab was
+   * told to clear, which is the same defect pointed the other way.
+   */
+  async #persist(added: readonly SnapshotEntry[]): Promise<void> {
     try {
-      await this.#storage.set(SNAPSHOTS_KEY, this.#state);
+      this.#state = await mutateStored<SnapshotsStore>(
+        this.#storage,
+        SNAPSHOTS_KEY,
+        EMPTY,
+        (stored) => {
+          const existing = Array.isArray(stored?.entries) ? stored.entries.filter(isSnapshotEntry) : [];
+          const merged = mergeKeyed(
+            existing.map((entry) => [snapshotKey(entry), entry] as [string, SnapshotEntry]),
+            added.map((entry) => [snapshotKey(entry), entry] as [string, SnapshotEntry])
+          );
+          const entries = [...merged.values()].sort(
+            (a, b) => Date.parse(a.capturedAt) - Date.parse(b.capturedAt)
+          );
+          return { entries: entries.slice(-this.#limit) };
+        }
+      );
     } catch {
       // best effort
     }
@@ -203,6 +229,11 @@ export function collectAccountsFromDom(root: ParentNode): string[] {
     }
   }
   return Array.from(handles).sort();
+}
+
+/** What makes one capture distinct from another: the same list, taken at a different moment. */
+function snapshotKey(entry: SnapshotEntry): string {
+  return `${entry.kind}|${entry.handle}|${entry.capturedAt}`;
 }
 
 function isSnapshotEntry(value: unknown): value is SnapshotEntry {

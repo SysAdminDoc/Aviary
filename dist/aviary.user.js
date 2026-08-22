@@ -15383,9 +15383,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     if (!request || typeof document === "undefined") return false;
     const artifact = buildMediaSidecar(request.format, { ...request, savedAt });
     if (!artifact) return false;
+    let url = null;
     try {
       const blob = new Blob([new Uint8Array(artifact.data)], { type: artifact.contentType });
-      const url = URL.createObjectURL(blob);
+      url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
       anchor.download = artifact.filename;
@@ -15393,10 +15394,14 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       document.body.append(anchor);
       anchor.click();
       anchor.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 4e3);
+      const handed = url;
+      url = null;
+      setTimeout(() => URL.revokeObjectURL(handed), 4e3);
       return true;
     } catch {
       return false;
+    } finally {
+      if (url !== null) URL.revokeObjectURL(url);
     }
   }
   function normalizeMediaSidecarInput(input) {
@@ -24895,7 +24900,15 @@ a.av-link-clean {
     }
     async merge(collections, jobId, repairs) {
       await this.load();
-      const next = cloneSnapshot(this.#snapshot);
+      this.#snapshot = await mutateStored(
+        this.#storage,
+        ARCHIVE_LIBRARY_KEY,
+        cloneSnapshot(EMPTY5),
+        (stored) => this.#fold(normalizeSnapshot(stored), collections, jobId, repairs)
+      );
+    }
+    #fold(base, collections, jobId, repairs) {
+      const next = cloneSnapshot(base);
       next.profile = collections.profile ?? next.profile;
       next.account = collections.account ?? next.account;
       next.directMessages = mergeByKey(
@@ -24929,13 +24942,12 @@ a.av-link-clean {
       }
       next.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
       if (repairs) next.lastRepair = { ...repairs };
-      await this.#storage.set(ARCHIVE_LIBRARY_KEY, next);
-      this.#snapshot = next;
+      return next;
     }
     async clear() {
       const next = cloneSnapshot(EMPTY5);
       this.#loaded = true;
-      await this.#storage.set(ARCHIVE_LIBRARY_KEY, next);
+      await replaceStored(this.#storage, ARCHIVE_LIBRARY_KEY, next);
       this.#snapshot = next;
     }
   };
@@ -25184,22 +25196,23 @@ a.av-link-clean {
     }
     async enqueue(candidates2) {
       await this.load();
-      let added = 0;
+      const added = [];
       for (const candidate of candidates2) {
         if (candidate.protected) continue;
-        this.#state.items.push({
+        const item = {
           ...candidate,
-          id: `item-${Date.now()}-${this.#sequence += 1}`,
+          id: newQueueItemId(this.#sequence += 1),
           enqueuedAt: (/* @__PURE__ */ new Date()).toISOString(),
           status: "queued"
-        });
-        added += 1;
+        };
+        this.#state.items.push(item);
+        added.push(item);
       }
       while (this.#state.items.length > this.#limit) {
         this.#state.items.shift();
       }
-      await this.#persist();
-      return added;
+      await this.#persist(added);
+      return added.length;
     }
     list(status) {
       if (!status) {
@@ -25217,13 +25230,13 @@ a.av-link-clean {
       item.status = status;
       item.reviewedAt = (/* @__PURE__ */ new Date()).toISOString();
       if (note) item.reviewerNote = note;
-      await this.#persist();
+      await this.#persist([item]);
     }
     async clear() {
       await this.load();
       this.#state = { items: [], destructiveExecuted: this.#state.destructiveExecuted };
       this.#loaded = true;
-      await this.#persist();
+      await replaceStored(this.#storage, CLEANUP_QUEUE_KEY, this.#state);
     }
     /**
      * Aviary does not delete account data. Always false today; a future version would flip it
@@ -25246,13 +25259,44 @@ a.av-link-clean {
         throw new DestructiveActionBlockedError(action);
       }
     }
-    async #persist() {
+    /**
+     * The items just written, folded into what is on disk.
+     *
+     * Items carry their own id, so a review in one tab and an enqueue in another both survive. Only
+     * the items this call touched are merged: merging this tab's whole list would put back every
+     * item the other tab was told to clear, and would overwrite the other tab's review of an item
+     * this tab still holds in its pre-review state. `destructiveExecuted` only ever goes one way,
+     * so it is or-ed rather than overwritten.
+     */
+    async #persist(touched) {
       try {
-        await this.#storage.set(CLEANUP_QUEUE_KEY, this.#state);
+        this.#state = await mutateStored(
+          this.#storage,
+          CLEANUP_QUEUE_KEY,
+          emptyState(),
+          (stored) => {
+            const existing = Array.isArray(stored?.items) ? stored.items.filter(isQueueItem) : [];
+            const merged = mergeKeyed(
+              existing.map((item) => [item.id, item]),
+              touched.map((item) => [item.id, item])
+            );
+            const items = [...merged.values()].sort(
+              (a, b) => Date.parse(a.enqueuedAt) - Date.parse(b.enqueuedAt)
+            );
+            return {
+              items: items.slice(-this.#limit),
+              destructiveExecuted: stored?.destructiveExecuted === true || this.#state.destructiveExecuted
+            };
+          }
+        );
       } catch {
       }
     }
   };
+  function newQueueItemId(sequence) {
+    const random = Math.floor(Math.random() * 16777215).toString(36);
+    return `item-${Date.now()}-${sequence}-${random}`;
+  }
   function isQueueItem(value) {
     if (typeof value !== "object" || value === null) return false;
     const candidate = value;
@@ -26608,7 +26652,7 @@ a.av-link-clean {
       while (this.#state.entries.length > this.#limit) {
         this.#state.entries.shift();
       }
-      await this.#persist();
+      await this.#persist([stored]);
       return stored;
     }
     list(kind, handle) {
@@ -26629,14 +26673,37 @@ a.av-link-clean {
     async clear() {
       this.#state = { entries: [] };
       this.#loaded = true;
-      await this.#persist();
+      await replaceStored(this.#storage, SNAPSHOTS_KEY, this.#state);
     }
     size() {
       return this.#state.entries.length;
     }
-    async #persist() {
+    /**
+     * The captures just taken, folded into whatever is on disk.
+     *
+     * Two tabs each capturing used to race: both loaded the list at boot, both wrote the whole list
+     * back, and whichever wrote second erased the other's capture. Only `added` is merged, not this
+     * tab's whole in-memory list -- merging the list would put back every capture the other tab was
+     * told to clear, which is the same defect pointed the other way.
+     */
+    async #persist(added) {
       try {
-        await this.#storage.set(SNAPSHOTS_KEY, this.#state);
+        this.#state = await mutateStored(
+          this.#storage,
+          SNAPSHOTS_KEY,
+          EMPTY6,
+          (stored) => {
+            const existing = Array.isArray(stored?.entries) ? stored.entries.filter(isSnapshotEntry) : [];
+            const merged = mergeKeyed(
+              existing.map((entry) => [snapshotKey(entry), entry]),
+              added.map((entry) => [snapshotKey(entry), entry])
+            );
+            const entries = [...merged.values()].sort(
+              (a, b) => Date.parse(a.capturedAt) - Date.parse(b.capturedAt)
+            );
+            return { entries: entries.slice(-this.#limit) };
+          }
+        );
       } catch {
       }
     }
@@ -26685,6 +26752,9 @@ a.av-link-clean {
       }
     }
     return Array.from(handles).sort();
+  }
+  function snapshotKey(entry) {
+    return `${entry.kind}|${entry.handle}|${entry.capturedAt}`;
   }
   function isSnapshotEntry(value) {
     if (typeof value !== "object" || value === null) return false;
@@ -30169,16 +30239,23 @@ ${COLOR_CSS}`;
     if (typeof document === "undefined") {
       return;
     }
-    const blob = new Blob([new Uint8Array(data)], { type: contentType });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = filename;
-    anchor.rel = "noopener noreferrer";
-    document.body.append(anchor);
-    anchor.click();
-    anchor.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 4e3);
+    let url = null;
+    try {
+      const blob = new Blob([new Uint8Array(data)], { type: contentType });
+      url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.rel = "noopener noreferrer";
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      const handed = url;
+      url = null;
+      setTimeout(() => URL.revokeObjectURL(handed), 4e3);
+    } finally {
+      if (url !== null) URL.revokeObjectURL(url);
+    }
   }
   function buildDiagnosticsPayload(ctx) {
     const events = ctx.diagnostics.snapshot();
@@ -35352,19 +35429,24 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       },
       async remove(key) {
         const storageKey = scoped(key);
-        if (typeof globals.GM_deleteValue === "function") {
-          await globals.GM_deleteValue(storageKey);
-          return;
+        try {
+          if (typeof globals.GM_deleteValue === "function") {
+            await globals.GM_deleteValue(storageKey);
+            return;
+          }
+          if (globalThis.chrome?.storage?.local) {
+            await globalThis.chrome.storage.local.remove(storageKey);
+            return;
+          }
+          if (globalThis.localStorage) {
+            globalThis.localStorage.removeItem(storageKey);
+            return;
+          }
+          throw new Error(`No storage backend is available for ${storageKey}`);
+        } catch (error) {
+          reportStorageError(storageKey, error, "write");
+          throw error;
         }
-        if (globalThis.chrome?.storage?.local) {
-          await globalThis.chrome.storage.local.remove(storageKey);
-          return;
-        }
-        if (globalThis.localStorage) {
-          globalThis.localStorage.removeItem(storageKey);
-          return;
-        }
-        throw new Error(`No storage backend is available for ${storageKey}`);
       }
     };
   }
