@@ -30,8 +30,20 @@ test("listPresets and applyPreset mutate the expected sections", async () => {
   assert.ok(delta.some((line) => line.includes("appearance.theme")));
 });
 
-test("i18n bundle exposes locales, translates with fallback, and reports direction", async () => {
-  const { translate, supportedLocales, localeDirection } = await importSourceModule(
+/**
+ * This used to cover `translate(locale, key)` as well.
+ *
+ * That was a second, symbolic-key translation system that nothing in `src/` called: the panel and
+ * every feature go through `translateText` and the gettext-style catalog, whose coverage the suite
+ * holds at 100% per locale. It was not merely unused but misleading -- visibly incomplete beside
+ * the one that ships, and preserving product language the live UI no longer uses. esbuild had
+ * already tree-shaken it out of the bundle, so this test was the only thing keeping it alive.
+ *
+ * The parts that are real -- the locale list and the direction lookup -- are still covered here,
+ * and `tests/i18n.test.mjs` covers the lookup that actually renders.
+ */
+test("i18n bundle exposes locales and reports direction", async () => {
+  const { supportedLocales, localeDirection, translateText } = await importSourceModule(
     "src/platform/i18n.ts"
   );
 
@@ -39,11 +51,11 @@ test("i18n bundle exposes locales, translates with fallback, and reports directi
   assert.ok(locales.length >= 7);
   assert.ok(locales.some((entry) => entry.direction === "rtl"));
 
-  assert.equal(translate("en", "section.appearance"), "Appearance");
-  assert.equal(translate("es", "section.appearance"), "Apariencia");
-  assert.equal(translate("ja", "section.appearance"), "外観");
-  // Missing key falls back to the English bundle.
-  assert.equal(translate("ja", "ui.exportVisible"), "Export visible tweets");
+  // The lookup that does ship: the English source string is the key, and an unknown one degrades
+  // to itself rather than to an empty box.
+  assert.equal(translateText("en", "Appearance"), "Appearance");
+  assert.equal(translateText("es", "Appearance"), "Apariencia");
+  assert.equal(translateText("ja", "no such string in any catalog"), "no such string in any catalog");
 
   assert.equal(localeDirection("ar"), "rtl");
   assert.equal(localeDirection("en"), "ltr");

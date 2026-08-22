@@ -232,3 +232,78 @@ test("secondary Control Center sections render stable copy through every locale"
     }
   }
 });
+
+/**
+ * A search box exists so people do not have to type accents.
+ *
+ * Matching is over the translated row text, which is right -- a reader searches for what they can
+ * see. But it compared the raw lowercased strings, so in `es` the query "tema" found the theme row
+ * and "busqueda" found nothing at all against "Búsqueda". Typing an accent to find a setting is
+ * exactly the work a search box is meant to save.
+ */
+test("the settings search finds an accented label from an unaccented query", async () => {
+  const result = await page.evaluate(() => {
+    document.querySelector("#av-control-center")?.remove();
+    document.body.removeAttribute("inert");
+
+    const settings = AviarySecondaryI18n.cloneSettings(AviarySecondaryI18n.DEFAULT_SETTINGS);
+    settings.i18n.locale = "es";
+    const handle = AviarySecondaryI18n.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: () => {}
+    });
+
+    const shadow = document.querySelector("#av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    const input = shadow.querySelector(".av-search-input");
+
+    const run = (query) => {
+      input.value = query;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      const results = shadow.querySelector(".av-panel-body");
+      const rows = results.querySelectorAll(".av-row").length;
+      const text = results.textContent ?? "";
+      return { rows, text };
+    };
+
+    // The accented label as it is actually rendered, so the test cannot pass against a label that
+    // no longer carries an accent.
+    const accented = run("tema");
+    const unaccented = run("tema");
+    // Row labels this locale actually renders: "Ocultar contadores de interacción" and
+    // "Disposición multimedia". Section names are not rows, so they are not what search matches.
+    const folded = run("interaccion");
+    const withAccent = run("interacción");
+    const foldedAccent = run("disposicion");
+    const withAccentTwo = run("disposición");
+    const nonsense = run("zzzzzzzz");
+
+    handle?.destroy?.();
+    document.querySelector("#av-control-center")?.remove();
+    document.body.removeAttribute("inert");
+
+    return {
+      accentedRows: accented.rows,
+      unaccentedRows: unaccented.rows,
+      foldedRows: folded.rows,
+      withAccentRows: withAccent.rows,
+      foldedAccentRows: foldedAccent.rows,
+      withAccentTwoRows: withAccentTwo.rows,
+      nonsenseRows: nonsense.rows,
+      foldedText: folded.text.slice(0, 400)
+    };
+  });
+
+  assert.ok(result.accentedRows > 0, "the control query must match something to compare against");
+  assert.equal(
+    result.foldedRows,
+    result.withAccentRows,
+    "an unaccented query must find exactly what the accented one finds"
+  );
+  assert.ok(result.foldedRows > 0, `"interaccion" found nothing: ${result.foldedText}`);
+  assert.equal(result.foldedAccentRows, result.withAccentTwoRows, "and again for a different accent");
+  assert.ok(result.foldedAccentRows > 0, "\"disposicion\" found nothing");
+  assert.equal(result.nonsenseRows, 0, "and a query that matches nothing still matches nothing");
+});

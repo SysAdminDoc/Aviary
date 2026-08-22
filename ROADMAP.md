@@ -161,16 +161,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Effort: M
   Blocked: needs a signed-in operator to save the two MHTML captures. Nothing in the repo logs in or fetches.
 
-- [ ] P3 — F239, About 110 lines of a superseded translation system are still in the platform layer
-  Category: maintainability
-  Where: `src/platform/i18n.ts:24-146` — the `StringKey` union, the `FALLBACK` map, `PARTIAL_BUNDLES`, and `translate(locale, key)`.
-  Problem: nothing in `src/` calls `translate` or references `StringKey`. The panel and every feature use the gettext-style catalog through `translateText` and `ft` instead. The dead code is actively misleading: it presents a second, visibly incomplete translation system (Spanish has 12 of 36 keys, Japanese 7, Arabic and Hebrew 6, and Portuguese and Korean have no bundle at all) beside one the tests hold at 100% coverage, and it preserves stale product language — `"ui.exportVisible": "Export visible tweets"` — that F227 is removing from the live UI.
-  Evidence: `grep -rn "\btranslate(" src/ --include=*.ts` excluding `translateText` and `i18n.ts` itself returns only `src/entrypoints/extension-options.ts`, which defines and calls its own local `translate` over a build-time catalog. `grep -rn "StringKey" src/` returns nothing outside `i18n.ts`. Only `tests/v1.0.0.test.mjs` keeps it referenced. It does not reach users: `grep -c "PARTIAL_BUNDLES" dist/aviary.user.js` returns 0, so esbuild already tree-shakes it out of the bundle.
-  Fix: delete the four exports and update `tests/v1.0.0.test.mjs`, which is the only thing keeping them alive.
-  Acceptance: `grep -rn "PARTIAL_BUNDLES\|StringKey" src/ tests/` returns nothing; `npm test` and `npm run typecheck` stay green.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P3 — F240, Boot performs 28 serial storage round-trips to compute a boolean that only drives a UI hint
   Category: perf
   Where: `src/platform/profile.ts:107` (`this.#legacyDataAvailable = await this.hasLegacyData()`), called from `load()`, which `src/main.ts:130` awaits before any feature initializes. The loop is `profile.ts:158-163` over the 28 entries of `PROFILE_MIGRATION_KEYS` (`:7-33`).
@@ -209,16 +199,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Fix: rename the key to `aviary.archive.import.source.<jobId>.v1` so it lands in IndexedDB — the three key registries are explicit allow-lists, so it still cannot be swept into migration or backup — and cross-check `MAX_SOURCE_BYTES` against `storage.getStatus().quotaBytes` before accepting a file, rejecting with a sentence that names the real limit.
   Acceptance: importing a 50 MB archive in the extension build succeeds, or fails with a message naming the actual ceiling rather than throwing a quota error.
   Confidence: Needs-repro
-  Effort: S
-
-- [ ] P3 — F263, The settings search does not fold diacritics, so accented labels need accented queries
-  Category: ux
-  Where: `src/ui/control-center.ts:1392` (`searchQuery.trim().toLowerCase()`) and the row-text comparison below it.
-  Problem: matching is `String.includes` over the translated row text after `toLowerCase()`, with no Unicode normalization. In `es`, `pt` and `fr` a query typed without accents does not match an accented label, which is how most people type. Searching the translated text rather than the English source is the right call and should not change; the missing piece is only the folding. There is a second, smaller consequence worth naming in the same fix: because an untranslated row falls back to English, a partially translated locale leaves the user guessing which of two languages a given row is in.
-  Evidence: read at the cited line. Verified in `es`: the query `theme` returns the no-results state while `tema` returns 2 sections and 4 rows. No Turkish locale ships, so the dotted-I `toLowerCase` hazard does not apply.
-  Fix: normalize both sides with `.normalize("NFD").replace(/\p{Diacritic}/gu, "")` before comparing.
-  Acceptance: a test in `es` asserts the query `busqueda` matches a row labelled with `búsqueda`.
-  Confidence: Verified
   Effort: S
 
 ### Unaudited — needs a pass

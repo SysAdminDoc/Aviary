@@ -1428,13 +1428,28 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   };
 
   /**
+   * Case and accents folded away, so a query typed the way people actually type finds the row.
+   *
+   * Matching is over the *translated* row text, which is the right call and is not changing here:
+   * a reader searches for what they can see. But without folding, `es` needed `tema` to find a row
+   * labelled "Tema" and `busqueda` found nothing at all against "Búsqueda" -- and typing accents is
+   * exactly what a search box is used to avoid.
+   */
+  const foldForSearch = (value: string): string =>
+    value
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "");
+
+  /**
    * Matching happens on the rendered row text rather than a separate keyword table, so a row
    * added later is searchable the moment it exists and a label edit cannot desynchronise from
    * its search terms. Sections are built once each here, which is the one render where paying
    * for the whole panel is the point.
    */
   const searchResults = (registry: PanelSection[]): HTMLElement[] => {
-    const needle = searchQuery.trim().toLowerCase();
+    const needle = foldForSearch(searchQuery);
     const out: HTMLElement[] = [];
     let matches = 0;
 
@@ -1447,7 +1462,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         // and must not stop at the first section that cannot be built.
         continue;
       }
-      const hits = rows.filter((row) => (row.textContent ?? "").toLowerCase().includes(needle));
+      const hits = rows.filter((row) => foldForSearch(row.textContent ?? "").includes(needle));
       if (hits.length === 0) {
         continue;
       }

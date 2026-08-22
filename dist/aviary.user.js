@@ -8315,8 +8315,9 @@ ${body}
       content.append(buildSection(entry));
       return content;
     };
+    const foldForSearch = (value) => value.trim().toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
     const searchResults = (registry) => {
-      const needle = searchQuery.trim().toLowerCase();
+      const needle = foldForSearch(searchQuery);
       const out = [];
       let matches2 = 0;
       for (const entry of registry) {
@@ -8326,7 +8327,7 @@ ${body}
         } catch {
           continue;
         }
-        const hits = rows.filter((row) => (row.textContent ?? "").toLowerCase().includes(needle));
+        const hits = rows.filter((row) => foldForSearch(row.textContent ?? "").includes(needle));
         if (hits.length === 0) {
           continue;
         }
