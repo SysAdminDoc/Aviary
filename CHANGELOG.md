@@ -4,6 +4,20 @@
 
 No changes yet.
 
+## 1.39.0 (2026-08-22)
+
+### Changed
+
+- **Type checking now uses the native compiler.** `npm run typecheck` runs the pinned TypeScript
+  native preview while ESLint keeps TypeScript 6.0.3 for its parser. A deliberate broken fixture
+  produces matching diagnostics in both compilers. On this machine, the typecheck measured about
+  0.32 seconds with the native compiler and 1.58 seconds with TypeScript 6.
+
+### Verification
+
+- Added a regression test that makes the compiler split and diagnostic parity observable. The native
+  package is pinned in both manifests so a fresh install resolves the same toolchain.
+
 ## 1.38.0 (2026-08-22)
 
 ### Added

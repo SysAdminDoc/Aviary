@@ -1,6 +1,6 @@
 {
   "name": "aviary-x-enhancer",
-"version": "1.38.0",
+"version": "1.39.0",
   "private": true,
   "type": "module",
   "description": "Local-first X/Twitter enhancer delivered as a readable userscript and MV3 extension.",
@@ -26,7 +26,7 @@
     "test:matrix": "node --test tests/release-matrix.test.mjs",
     "test:visual": "npm run build && node --test tests/visual/settings-visual-regression.test.mjs",
     "test:visual:update": "npm run build && node tools/update-settings-visuals.mjs",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "smoke": "node tests/smoke/dnr-chromium.smoke.mjs && node tests/smoke/dnr-firefox.smoke.mjs && node tests/smoke/aviary.smoke.mjs && node tests/smoke/externally-gated.smoke.mjs",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run preflight"
   },
@@ -34,6 +34,7 @@
     "@axe-core/playwright": "4.13.0",
     "@typescript-eslint/eslint-plugin": "8.67.0",
     "@typescript-eslint/parser": "8.67.0",
+    "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "esbuild": "0.28.2",
     "eslint": "10.8.1",
     "globals": "17.11.0",

@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.38.0`
+Version: `1.39.0`
 
 Actionable work only. Historical and completed roadmap material is archived in CHANGELOG.md; blocked work is kept in Roadmap_Blocked.md.
 
@@ -23,25 +23,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 ### P1, trust, reliability, and measured defects
 
 ### P2, features
-
-### P3, toolchain
-
-- [ ] F151, P3, Typecheck on the native TypeScript compiler
-  Why: `npm run typecheck` is pure `tsc --noEmit`, nothing consumes the programmatic API, so it can move to the Go-native compiler for an 8 to 12× faster gate while TypeScript 6 stays installed for the lint parser, which cannot run on 7.0 until 7.1 restores the API.
-  Evidence: TypeScript 7.0 GA 2026-07-08; typescript-eslint#10940; package.json scripts.
-  Touches: package.json (`typecheck` script, devDependency), tsconfig defaults that changed in 7.0.
-  Acceptance: `npm run typecheck` runs on the native compiler and reports the same diagnostics as the TypeScript 6 pin on a deliberately broken file; lint still runs on the TypeScript 6 parser; local verification time drops measurably.
-  Note (2026-08-18): **demote, the premise holds but the payoff was measured and it is 1.4 seconds.**
-  The parser constraint is confirmed: `@typescript-eslint/parser@8.67.0` declares
-  `peerDependencies.typescript "<6.1.0"`, and TS 7.0 ships no programmatic API (it lands in 7.1). The
-  acceptance criterion was run: against this repo's `src/` plus a deliberately broken file, TS 6.0.3 and
-  TS 7.0.2 emitted byte-identical diagnostics, at **1.288s vs 0.276s**, and TS 7 needed no tsconfig
-  changes. But the whole gate is ~8.6s (`typecheck` 1.63s, `lint` 2.21s, `build` 0.25s, 502 tests 4.53s),
-  so the 8 to 12× multiplier applies to 1.6 seconds. The cost is a dual-TypeScript install plus a real trap:
-  under the alias layout `node_modules/.bin/tsc` still resolves to 6.x, so a bare `tsc --noEmit` silently
-  keeps using the old compiler and the migration looks done when it is not. Revisit at TS 7.1, when the
-  parser can move and this collapses to a single-package bump.
-  Complexity: S
 
 ## Research-Driven Additions (2026-08-15, second pass)
 
