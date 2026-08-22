@@ -34,16 +34,6 @@ Internal audit of the subsystems no prior pass had examined, plus the code added
   Confidence: Verified
   Effort: M
 
-- [ ] P3 — F272, The mobile and coarse-pointer path has no behavioural test of its own
-  Category: testing
-  Where: `src/features/core/mobile-touch.ts` (96 lines), reached from the registry like any feature.
-  Problem: two tests touch it and neither exercises what it does. `tests/source-contracts.test.mjs:178` reads the file as text to check its selectors are scoped, and `tests/injected-ui-contract.test.mjs` asserts hit-target sizes on a coarse-pointer emulation. Nothing drives the feature's own `apply`/`destroy` against a touch-shaped DOM, so a regression in what it actually changes would be caught only by the size assertion happening to move.
-  Evidence: `grep -rn "mobileTouchFeature" tests/` returns the two sites above and no behavioural case.
-  Fix: a feature-lifecycle test in the shape the other features already have: apply against a coarse-pointer page, assert what changed, destroy, assert the page is back to what X rendered.
-  Acceptance: `mobileTouchFeature` has a lifecycle test that fails if `destroy` stops reversing `apply`.
-  Confidence: Verified
-  Effort: S
-
 ## Research-Driven Additions (2026-08-16)
 
 Focused comparison of 46 primary sources for feed image/video download behavior. See RESEARCH.md.

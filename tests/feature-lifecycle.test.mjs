@@ -23,6 +23,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const abs = (file) => path.resolve(root, file).replace(/\\/g, "/");
 
 let browser;
+let bundle;
 let page;
 let temp;
 
@@ -38,13 +39,14 @@ before(async () => {
       `export { linkUnshortenFeature } from ${JSON.stringify(abs("src/features/library/link-unshorten.ts"))};`,
       `export { PRESETS } from ${JSON.stringify(abs("src/features/core/presets.ts"))};`,
       `export { userNotesFeature } from ${JSON.stringify(abs("src/features/library/user-notes.ts"))};`,
+      `export { mobileTouchFeature } from ${JSON.stringify(abs("src/features/core/mobile-touch.ts"))};`,
       `export { i18nFeature } from ${JSON.stringify(abs("src/features/core/i18n-feature.ts"))};`,
       `export { mediaPresentationFeature } from ${JSON.stringify(abs("src/features/media/media-presentation.ts"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};`
     ].join("\n"),
     "utf8"
   );
-  const bundle = path.join(temp, "bundle.js");
+  bundle = path.join(temp, "bundle.js");
   await build({
     entryPoints: [entry],
     outfile: bundle,
@@ -706,4 +708,106 @@ test("suspending and resuming a feature does not multiply its page-bridge handle
     0,
     "destroy must leave nothing subscribed"
   );
+});
+
+/**
+ * The mobile path, driven rather than read.
+ *
+ * Two tests touched this feature and neither exercised what it does: one read the file as text to
+ * check its selectors were scoped, and one asserted hit-target sizes under a coarse-pointer
+ * emulation. Nothing drove `apply` against a touch-shaped page, so a regression in what it
+ * actually changes -- or in `destroy` failing to put it back, which is the contract every feature
+ * here is held to -- would have been caught only by the size assertion happening to move.
+ */
+test("the mobile feature marks a coarse-pointer page and destroy puts it back", async () => {
+  const before = await page.evaluate(() => {
+    window.reset();
+    document.getElementById("av-mobile-touch")?.remove();
+    return {
+      classes: document.documentElement.className,
+      style: document.getElementById("av-mobile-touch") !== null
+    };
+  });
+  assert.equal(before.style, false, "the page must start without the feature's stylesheet");
+
+  // A coarse pointer on a narrow viewport, which is the case the feature exists for.
+  const narrow = await browser.newPage({
+    viewport: { width: 420, height: 900 },
+    hasTouch: true,
+    isMobile: true
+  });
+  // Without a viewport meta an emulated mobile page still lays out at 980px, so the narrow
+  // media query would not match and the test would be measuring the wrong thing.
+  await narrow.setContent(
+    '<!doctype html><meta charset=utf-8><meta name="viewport" content="width=device-width"><body></body>'
+  );
+  await narrow.addScriptTag({ path: bundle });
+
+  const result = await narrow.evaluate(() => {
+    const ctx = {
+      settings: AviaryLifecycle.cloneSettings(AviaryLifecycle.DEFAULT_SETTINGS),
+      route: { surface: "home", path: "/home" },
+      diagnostics: { info() {}, warn() {}, error() {} }
+    };
+
+    AviaryLifecycle.mobileTouchFeature.init(ctx);
+    const applied = {
+      touch: document.documentElement.classList.contains("av-touch"),
+      mobile: document.documentElement.classList.contains("av-mobile"),
+      styles: document.querySelectorAll("#av-mobile-touch").length,
+      coarse: window.matchMedia("(pointer: coarse)").matches
+    };
+
+    // Applying twice must not stack a second stylesheet.
+    AviaryLifecycle.mobileTouchFeature.apply(ctx);
+    const reapplied = document.querySelectorAll("#av-mobile-touch").length;
+
+    AviaryLifecycle.mobileTouchFeature.destroy(ctx);
+    const destroyed = {
+      touch: document.documentElement.classList.contains("av-touch"),
+      mobile: document.documentElement.classList.contains("av-mobile"),
+      styles: document.querySelectorAll("#av-mobile-touch").length
+    };
+
+    return { applied, reapplied, destroyed };
+  });
+
+  await narrow.close();
+
+  assert.equal(result.applied.coarse, true, "the emulation has to be coarse for this to mean anything");
+  assert.equal(result.applied.touch, true, "a coarse pointer must be marked on the root element");
+  assert.equal(result.applied.mobile, true, "and so must a narrow viewport");
+  assert.equal(result.applied.styles, 1, "the feature's stylesheet must be on the page");
+  assert.equal(result.reapplied, 1, "applying twice must not stack a second stylesheet");
+
+  assert.deepEqual(
+    result.destroyed,
+    { touch: false, mobile: false, styles: 0 },
+    "destroy must leave the page as X rendered it"
+  );
+});
+
+/**
+ * And on a desktop pointer it marks nothing, so the page is untouched.
+ */
+test("the mobile feature leaves a fine-pointer page alone", async () => {
+  const result = await page.evaluate(() => {
+    window.reset();
+    document.getElementById("av-mobile-touch")?.remove();
+    const ctx = window.ctx();
+    AviaryLifecycle.mobileTouchFeature.init(ctx);
+    const state = {
+      touch: document.documentElement.classList.contains("av-touch"),
+      mobile: document.documentElement.classList.contains("av-mobile"),
+      styles: document.querySelectorAll("#av-mobile-touch").length
+    };
+    AviaryLifecycle.mobileTouchFeature.destroy(ctx);
+    return { state, stylesAfter: document.querySelectorAll("#av-mobile-touch").length };
+  });
+
+  assert.equal(result.state.touch, false, "a fine pointer must not be marked as touch");
+  assert.equal(result.state.mobile, false, "a wide viewport must not be marked as mobile");
+  // The stylesheet still ships, because its rules are all behind those two classes.
+  assert.equal(result.state.styles, 1);
+  assert.equal(result.stylesAfter, 0, "and destroy still takes it away");
 });
