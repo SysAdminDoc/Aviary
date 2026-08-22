@@ -139,3 +139,55 @@ test("an unversioned payload still runs the ladder rather than being assumed cur
     INTEGRATION_BUDGET_CEILINGS.ai.dailyRequestBytes
   );
 });
+
+/**
+ * Downgrading must not delete what the newer build wrote.
+ *
+ * `fromFuture` was set and then consumed by exactly one line, a diagnostics warning. The save choke
+ * point normalized unconditionally, so opening a profile in an older Aviary and toggling any single
+ * setting wrote this build's narrower shape over the newer one: every key the newer schema had
+ * added was gone, with no prompt, no backup, and a warning the user never sees.
+ */
+test("a payload from a newer Aviary survives a save by an older one", async () => {
+  const { readSettingsEnvelope, mergeKnownSettings, SETTINGS_SCHEMA_VERSION } = await import(
+    new URL("../src/platform/settings.ts", import.meta.url).href
+  );
+
+  const stored = {
+    schemaVersion: SETTINGS_SCHEMA_VERSION + 97,
+    somethingThisBuildHasNeverHeardOf: { keep: "me", nested: [1, 2, 3] },
+    appearance: { theme: "noir", aFutureAppearanceKey: true },
+    filter: { enabled: true }
+  };
+
+  const envelope = readSettingsEnvelope(structuredClone(stored));
+  assert.equal(envelope.fromFuture, true);
+  assert.equal(envelope.fromVersion, stored.schemaVersion);
+  assert.ok(envelope.future, "the original payload must be kept so a save can merge onto it");
+
+  // What the boot's save choke point now writes.
+  const written = mergeKnownSettings(envelope.future, envelope.settings);
+
+  assert.deepEqual(
+    written.somethingThisBuildHasNeverHeardOf,
+    stored.somethingThisBuildHasNeverHeardOf,
+    "a group this build does not know must survive untouched"
+  );
+  assert.equal(
+    written.schemaVersion,
+    stored.schemaVersion,
+    "the stored version belongs to the newer build and must not be restamped"
+  );
+  // A group this build owns is replaced wholesale, because it owns that shape.
+  assert.equal(written.appearance.theme, "noir", "known values still round-trip");
+  assert.equal(
+    "aFutureAppearanceKey" in written.appearance,
+    false,
+    "a key inside a group this build owns is not preserved, and that is the documented trade"
+  );
+
+  // The ordinary path is unchanged: a current payload has nothing to merge onto.
+  const current = readSettingsEnvelope({ schemaVersion: SETTINGS_SCHEMA_VERSION });
+  assert.equal(current.fromFuture, false);
+  assert.equal(current.future, undefined);
+});

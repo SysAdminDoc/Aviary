@@ -200,16 +200,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Confidence: Verified
   Effort: S
 
-- [ ] P2 — F248, An older build silently destroys settings written by a newer one
-  Category: correctness
-  Where: `src/platform/settings.ts:562-573` (`readSettingsEnvelope`'s `fromFuture` branch and its docstring), `src/main.ts:156-164` (the only consumer), `src/main.ts:253-259` (`saveSettings`).
-  Problem: the docstring promises that on a future payload "unknown keys are left in the record and `fromFuture` is set so the caller can avoid writing this build's narrower shape back". Neither half holds. The branch returns `normalizeSettings(raw)`, which builds a fresh object literal, so the unknown keys are gone from `envelope.settings` and `schemaVersion` is restamped to this build's value. And `fromFuture` is referenced in exactly one place in `src/`, a `diagnostics.warn` in `main.ts` — `saveSettings` writes unconditionally. Downgrade the extension, or open the same profile in an older build, toggle any single setting, and every key the newer schema added is gone from storage. No prompt, no backup, and the only trace is a warning the user never sees.
-  Evidence: reproduced against the real module with `{schemaVersion: 99, someBrandNewGroup: {keep: "me"}, appearance: {theme: "noir"}}`: `fromFuture` is `true`, `fromVersion` is `99`, `someBrandNewGroup` is **not** present on `envelope.settings`, and `settings.schemaVersion` is stamped `2`. Passing that result back through `normalizeSettings`, which is what `saveSettings` does, also drops it. `grep -rn "fromFuture" src/` returns the definition and `main.ts:158` only. `tests/settings-schema-version.test.mjs:51` asserts `fromFuture === true` and that runtime values are usable, and never asserts anything about what is written back.
-  Fix: carry the raw future payload on the envelope and have `saveSettings` merge this build's known keys over it rather than replacing it, so unknown groups survive a round trip. If that is too invasive, set a read-only flag on `fromFuture`, block `saveSettings`, and have the panel say plainly that these settings were written by a newer Aviary and will not be modified. Either way, correct the docstring so it describes what the function does.
-  Acceptance: a test reads a future payload with an unknown group, calls the save choke point, and asserts the unknown group is still in storage afterwards.
-  Confidence: Verified
-  Effort: M
-
 - [ ] P2 — F256, The snapshot diff presents a scroll-depth artifact as a follow and unfollow list
   Category: correctness
   Where: `src/features/library/snapshots-feature.ts:45` (`collectAccountsFromDom`), `src/features/library/snapshots.ts:8-14` (`SnapshotEntry`) and `:100-121` (`diffSnapshots`), rendered at `src/features/library/reports.ts:45-47`.

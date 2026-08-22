@@ -283,11 +283,26 @@ var Aviary = (() => {
       crosspost: { attachLastDownload: false }
     }
   };
+  function mergeKnownSettings(future, settings) {
+    const merged = { ...future };
+    const known = normalizeSettings(cloneSettings(settings));
+    for (const [key, value] of Object.entries(known)) {
+      if (key === "schemaVersion") continue;
+      merged[key] = value;
+    }
+    return merged;
+  }
   function readSettingsEnvelope(input) {
     const raw = asRecord(input);
     const declared = typeof raw.schemaVersion === "number" && Number.isFinite(raw.schemaVersion) ? Math.floor(raw.schemaVersion) : null;
     if (declared !== null && declared > SETTINGS_SCHEMA_VERSION) {
-      return { settings: normalizeSettings(raw), fromVersion: declared, fromFuture: true, applied: [] };
+      return {
+        settings: normalizeSettings(raw),
+        fromVersion: declared,
+        fromFuture: true,
+        applied: [],
+        future: { ...raw }
+      };
     }
     let working = { ...raw };
     let version = declared ?? 1;
@@ -34758,6 +34773,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       });
     }
     reportDroppedCustomCss(storedSettings, settings, diagnostics);
+    const futurePayload = settingsEnvelope.future;
     if (settingsEnvelope.fromFuture) {
       diagnostics.warn("Settings were written by a newer Aviary", {
         found: settingsEnvelope.fromVersion,
@@ -34838,7 +34854,10 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       pageBridge,
       registry,
       async saveSettings() {
-        await storage.set(SETTINGS_KEY, normalizeSettings(cloneSettings(settings)));
+        await storage.set(
+          SETTINGS_KEY,
+          futurePayload ? mergeKnownSettings(futurePayload, settings) : normalizeSettings(cloneSettings(settings))
+        );
         await reconcileExtensionAdRule(options.source, networkShieldActive(settings), diagnostics);
         diagnostics.info("Settings saved", { key: SETTINGS_KEY });
       },

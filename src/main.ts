@@ -48,6 +48,7 @@ import {
   type AviarySettings,
   cloneSettings,
   DEFAULT_SETTINGS,
+  mergeKnownSettings,
   normalizeSettings,
   readSettingsEnvelope,
   SETTINGS_KEY,
@@ -184,6 +185,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   // and normalization happens before any feature runs. Losing a user's rules without a word is not
   // an option, so the drop is reported where the rest of the boot's decisions are.
   reportDroppedCustomCss(storedSettings, settings, diagnostics);
+  const futurePayload = settingsEnvelope.future;
   if (settingsEnvelope.fromFuture) {
     // Written by a newer Aviary. Run with normalized values, but never write this build's
     // narrower shape back over settings it cannot represent.
@@ -284,7 +286,17 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     async saveSettings() {
       // Normalized here so persistence has one choke point with one guarantee. Panel handlers
       // wrote whatever was in memory while import/preset/locale wrote normalized values.
-      await storage.set(SETTINGS_KEY, normalizeSettings(cloneSettings(settings)));
+      //
+      // When the stored payload came from a newer Aviary, this build's shape is merged onto it
+      // rather than replacing it: `fromFuture` used to be a diagnostics line and nothing else, so
+      // downgrading and toggling any single setting silently deleted every key the newer schema
+      // had added.
+      await storage.set(
+        SETTINGS_KEY,
+        futurePayload
+          ? mergeKnownSettings(futurePayload, settings)
+          : normalizeSettings(cloneSettings(settings))
+      );
       await reconcileExtensionAdRule(options.source, networkShieldActive(settings), diagnostics);
       diagnostics.info("Settings saved", { key: SETTINGS_KEY });
     },

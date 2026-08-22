@@ -74,6 +74,14 @@ export interface SettingsEnvelope {
   fromFuture: boolean;
   /** Migration steps applied to reach the current version. */
   applied: number[];
+  /**
+   * The payload exactly as it was stored, kept only when {@link fromFuture}.
+   *
+   * The running build cannot represent what a newer schema added, so normalizing produces a
+   * narrower object. Writing that back deleted every key the newer build owned. Holding the
+   * original is what lets {@link mergeKnownSettings} put this build's values onto it instead.
+   */
+  future?: Record<string, unknown>;
 }
 
 export type ThemeId = "off" | "dim" | "lightsOut" | "graphite" | "plum" | "midnight" | "noir";
@@ -559,18 +567,49 @@ export const DEFAULT_SETTINGS: AviarySettings = {
 /**
  * Run the upgrade ladder over a raw persisted payload.
  *
- * A payload from a *newer* build is never downgraded: unknown keys are left in the record and
- * `fromFuture` is set so the caller can avoid writing this build's shape back over settings it
- * does not understand. Normalization still runs, because the running code needs valid values.
+ * A payload from a *newer* build is never downgraded: the original record is returned on `future`
+ * and `fromFuture` is set, so the caller can merge this build's values onto it rather than writing
+ * its narrower shape over settings it does not understand. Normalization still runs alongside,
+ * because the running code needs valid values.
  */
+/**
+ * This build's settings written onto a payload from a newer one.
+ *
+ * Top-level groups this build knows are replaced wholesale, because it owns their shape. Anything
+ * else in `future` is carried through untouched, including a group this build has never heard of
+ * and the `schemaVersion` that describes it -- so opening a profile in an older Aviary and changing
+ * one setting no longer deletes everything the newer schema added.
+ */
+export function mergeKnownSettings(
+  future: Record<string, unknown>,
+  settings: AviarySettings
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...future };
+  const known = normalizeSettings(cloneSettings(settings)) as unknown as Record<string, unknown>;
+  for (const [key, value] of Object.entries(known)) {
+    // The stored schemaVersion belongs to the newer build; overwriting it would claim this build
+    // wrote the whole payload, and the next boot would then migrate a shape it never saw.
+    if (key === "schemaVersion") continue;
+    merged[key] = value;
+  }
+  return merged;
+}
+
 export function readSettingsEnvelope(input: unknown): SettingsEnvelope {
   const raw = asRecord(input);
   const declared = typeof raw.schemaVersion === "number" && Number.isFinite(raw.schemaVersion)
     ? Math.floor(raw.schemaVersion)
     : null;
   if (declared !== null && declared > SETTINGS_SCHEMA_VERSION) {
-    // Never migrate a shape this build has not seen. Normalize for runtime use and say so.
-    return { settings: normalizeSettings(raw), fromVersion: declared, fromFuture: true, applied: [] };
+    // Never migrate a shape this build has not seen. Normalize for runtime use, and hand the
+    // original back so a later save does not have to throw away what it cannot represent.
+    return {
+      settings: normalizeSettings(raw),
+      fromVersion: declared,
+      fromFuture: true,
+      applied: [],
+      future: { ...raw }
+    };
   }
 
   // An unversioned payload predates versioning, which is version 1's shape by definition. Defaulting

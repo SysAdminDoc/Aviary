@@ -26,6 +26,11 @@
   silence.
 
 ### Fixed
+- Opening a profile in an older Aviary no longer deletes what a newer one wrote. The build already
+  knew the settings came from a newer schema and only logged it, then wrote its own narrower shape
+  on the next save, so changing any single setting after a downgrade discarded everything the newer
+  version had added. The stored payload is kept and this build's values are merged onto it.
+
 - A failed WACZ export no longer shows a raw exception beside a success indicator. The status tone
   is chosen from the English message, so a reason like "Quota exceeded" matched none of the words
   that mean failure and rendered green; the export now says what to do and the reason goes to
