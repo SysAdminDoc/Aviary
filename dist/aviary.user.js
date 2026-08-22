@@ -17748,7 +17748,7 @@ ${record.text}${mediaList}`;
   var MAX_PATTERN_LENGTH = 400;
   var MAX_REPETITION = 200;
   var UNBOUNDED_QUANTIFIER = /[*+]|\{\s*\d*\s*,\s*\}/;
-  function hasNestedQuantifier(pattern) {
+  function repeatedGroupRisk(pattern) {
     const openStack = [];
     let inClass = false;
     for (let index = 0; index < pattern.length; index += 1) {
@@ -17783,6 +17783,40 @@ ${record.text}${mediaList}`;
       }
       const body = pattern.slice(start + 1, index);
       if (UNBOUNDED_QUANTIFIER.test(body)) {
+        return "nested";
+      }
+      if (hasTopLevelAlternation(body)) {
+        return "alternation";
+      }
+    }
+    return null;
+  }
+  function hasTopLevelAlternation(body) {
+    let depth = 0;
+    let inClass = false;
+    for (let index = 0; index < body.length; index += 1) {
+      const char = body[index];
+      if (char === "\\") {
+        index += 1;
+        continue;
+      }
+      if (inClass) {
+        if (char === "]") inClass = false;
+        continue;
+      }
+      if (char === "[") {
+        inClass = true;
+        continue;
+      }
+      if (char === "(") {
+        depth += 1;
+        continue;
+      }
+      if (char === ")") {
+        depth -= 1;
+        continue;
+      }
+      if (char === "|" && depth === 0) {
         return true;
       }
     }
@@ -17803,9 +17837,15 @@ ${record.text}${mediaList}`;
         };
       }
     }
-    if (hasNestedQuantifier(pattern)) {
+    const risk = repeatedGroupRisk(pattern);
+    if (risk === "nested") {
       return {
         reason: "a repeated group that already repeats can backtrack badly enough to freeze the page"
+      };
+    }
+    if (risk === "alternation") {
+      return {
+        reason: "a repeated group whose branches can match the same text can backtrack badly enough to freeze the page"
       };
     }
     return { reason: null };
@@ -18518,11 +18558,14 @@ ${record.text}${mediaList}`;
     const keywords = input.keywords.map((value) => value.trim().toLowerCase()).filter((value) => value.length > 0);
     const patterns = [];
     const patternSources = [];
+    const refusedPatterns = [];
     for (const source of input.regex) {
-      const compiled2 = tryCompileRegex(source);
-      if (compiled2) {
-        patterns.push(compiled2);
+      const compiled2 = compileRegexSource(source);
+      if (compiled2.pattern) {
+        patterns.push(compiled2.pattern);
         patternSources.push(source.trim());
+      } else if (compiled2.reason) {
+        refusedPatterns.push({ source: source.trim(), reason: compiled2.reason });
       }
     }
     const whitelist = /* @__PURE__ */ new Set();
@@ -18537,6 +18580,7 @@ ${record.text}${mediaList}`;
       keywords,
       patterns,
       patternSources,
+      refusedPatterns,
       whitelist,
       premium: input.premium,
       media: {
@@ -18721,24 +18765,25 @@ ${record.text}${mediaList}`;
     const cleaned = value.replace(/^@/, "").trim().toLowerCase();
     return /^[a-z0-9_]{1,15}$/.test(cleaned) ? cleaned : null;
   }
-  function tryCompileRegex(source) {
+  function compileRegexSource(source) {
     const trimmed = source.trim();
     if (trimmed.length === 0) {
-      return null;
+      return { pattern: null, reason: null };
     }
     try {
       const match = /^\/(.+)\/([a-z]*)$/i.exec(trimmed);
       const body = match?.[1];
       const flags = match?.[2] ?? "";
-      if (checkRegexBudget(body ?? trimmed).reason !== null) {
-        return null;
+      const budget = checkRegexBudget(body ?? trimmed);
+      if (budget.reason !== null) {
+        return { pattern: null, reason: budget.reason };
       }
       if (match && body) {
-        return new RegExp(body, sanitizeFlags(flags));
+        return { pattern: new RegExp(body, sanitizeFlags(flags)), reason: null };
       }
-      return new RegExp(trimmed, "i");
-    } catch {
-      return null;
+      return { pattern: new RegExp(trimmed, "i"), reason: null };
+    } catch (error) {
+      return { pattern: null, reason: error instanceof Error ? error.message : "is not a valid pattern" };
     }
   }
   function sanitizeFlags(input) {
@@ -18884,6 +18929,23 @@ ${record.text}${mediaList}`;
       },
       generation
     });
+    if (compiled.refusedPatterns.length > 0) {
+      const lineOf = new Map(
+        ctx.settings.filter.regexRules.map((source, index) => [source.trim(), index + 1])
+      );
+      ruleErrors = [
+        ...ruleErrors,
+        ...compiled.refusedPatterns.map((refused) => ({
+          source: refused.source,
+          line: lineOf.get(refused.source) ?? 0,
+          message: refused.reason
+        }))
+      ];
+      ctx.diagnostics.warn("Regex filter rules were refused", {
+        count: compiled.refusedPatterns.length,
+        first: compiled.refusedPatterns[0]?.source ?? ""
+      });
+    }
   }
   function filterSignature(ctx) {
     const filter = ctx.settings.filter;

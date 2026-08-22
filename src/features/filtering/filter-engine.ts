@@ -174,6 +174,28 @@ function refreshCompiled(ctx: FeatureContext): void {
     },
     generation
   });
+
+  // A regex the budget refused, or one that will not compile, is not a filter -- and until now it
+  // was also not reported. The panel counted the raw lines and said "Saved N regex rules", so a
+  // rule that never runs looked exactly like one that does. These join the rule-DSL errors because
+  // the panel already renders that list, and the reason is the one the budget wrote.
+  if (compiled.refusedPatterns.length > 0) {
+    const lineOf = new Map(
+      ctx.settings.filter.regexRules.map((source, index) => [source.trim(), index + 1])
+    );
+    ruleErrors = [
+      ...ruleErrors,
+      ...compiled.refusedPatterns.map((refused) => ({
+        source: refused.source,
+        line: lineOf.get(refused.source) ?? 0,
+        message: refused.reason
+      }))
+    ];
+    ctx.diagnostics.warn("Regex filter rules were refused", {
+      count: compiled.refusedPatterns.length,
+      first: compiled.refusedPatterns[0]?.source ?? ""
+    });
+  }
 }
 
 function filterSignature(ctx: FeatureContext): string {

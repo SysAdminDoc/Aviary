@@ -72,3 +72,63 @@ test("the rule DSL reports a refused pattern per line instead of applying it", a
   assert.equal(errors.length, 1, "exactly the hostile line must fail");
   assert.match(String(errors[0].message ?? errors[0]), /refused/);
 });
+
+/**
+ * The other half of the catastrophic family.
+ *
+ * `hasNestedQuantifier` only fired when the repeated group's body carried its own quantifier, so
+ * `(a+)+b` was refused while `(a|a)+$` sailed through -- and costs exactly the same, because two
+ * branches that can match the same text make the repetition ambiguous. Measured end to end through
+ * `judge`, `/(a|a)+$/` took about 0.1s against 20 repeated characters, 2.3s against 28 and 9.8s
+ * against 30, synchronously, once per article per mutation batch, with no way to abort it.
+ */
+test("a repeated group whose branches overlap is refused, and ordinary patterns are not", async () => {
+  const { checkRegexBudget } = await importSourceModule("src/features/filtering/regex-budget.ts");
+
+  const refuse = ["(a|a)+$", "(a|ab)+$", "(?:a|a)+$", "(x|x|x)+y", "^(a|a)*$", "(a|b|c)*d"];
+  for (const pattern of refuse) {
+    const verdict = checkRegexBudget(pattern);
+    assert.notEqual(verdict.reason, null, `${pattern} must be refused`);
+  }
+
+  // An alternation that is not repeated is ordinary, and so is a repeated group with one branch.
+  const keep = ["(cat|dog)", "^(spam|scam) ", "(abc)+", "[a-z]+@[a-z]+", "https?://\\S+", "(?:re)?post"];
+  for (const pattern of keep) {
+    const verdict = checkRegexBudget(pattern);
+    assert.equal(verdict.reason, null, `${pattern} must be allowed, got ${verdict.reason}`);
+  }
+});
+
+/**
+ * A rule that does not run has to say so.
+ *
+ * `compileFilters` kept what compiled and dropped the rest with no record, while the panel counted
+ * the raw textarea lines and reported "Saved N regex rules". A budget-refused or uncompilable line
+ * was indistinguishable from a working one.
+ */
+test("a refused regex is reported with its reason instead of vanishing", async () => {
+  const { compileFilters } = await importSourceModule("src/features/filtering/predicates.ts");
+
+  const filters = compileFilters({
+    keywords: [],
+    regex: ["(a+)+b", "[unclosed", "/ok/", "  ", "(a|a)+$"],
+    whitelist: [],
+    premium: "off",
+    media: {},
+    generation: 1
+  });
+
+  assert.equal(filters.patterns.length, 1, "only the valid pattern becomes a filter");
+  assert.deepEqual(filters.patternSources, ["/ok/"]);
+
+  const refusedSources = filters.refusedPatterns.map((entry) => entry.source);
+  assert.deepEqual(refusedSources, ["(a+)+b", "[unclosed", "(a|a)+$"]);
+  for (const refused of filters.refusedPatterns) {
+    assert.ok(
+      refused.reason.length > 0,
+      `${refused.source} must carry a reason the panel can show`
+    );
+  }
+  // A blank line is not a mistake and must not be reported as one.
+  assert.ok(!refusedSources.includes(""));
+});

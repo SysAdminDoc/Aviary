@@ -219,16 +219,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Effort: M
 
 
-- [ ] P1 — F244, A regex filter rule can freeze the tab, and the budget check does not catch the pattern that does it
-  Category: reliability
-  Where: `src/features/filtering/regex-budget.ts:70-90` (`checkRegexBudget`, and `UNBOUNDED_QUANTIFIER` at `:77`); matching runs at `src/features/filtering/predicates.ts` inside `judge`, called per article from `src/features/filtering/filter-engine.ts:210`.
-  Problem: the budget is compile-time only and bounds three things — pattern length (400), literal repetition counts (200), and a quantified group whose body text already contains `*` or `+`. There is no per-match, per-post or per-pass time budget anywhere in the pipeline, so matching is synchronous on the main thread with no abort. The whole exponential-alternation family slips through, because the repeated group's body carries no quantifier of its own. The module's own comment at `regex-budget.ts:14` already concedes that "two alternation branches that overlap can still backtrack badly"; what is missing is any second line of defence.
-  Evidence: `checkRegexBudget` returns no reason for `(a|a)+$`, `(a|ab)+$`, `(?:a|a)+$`, `(x|x|x)+y` and `^(a|a)*$`, while correctly refusing `(a+)+b`, `(a*)*b` and `([a-z]+)+$` with "a repeated group that already repeats can backtrack badly enough to freeze the page". Timed end to end through the real `compileFilters({keywords:[],regex:["/(a|a)+$/"],whitelist:[],premium:"off",media:{},generation:1})` and `judge` against a signal whose text is `"a".repeat(n) + "!"`: n=20 → 104 ms, n=24 → 220 ms, n=26 → 599 ms, n=28 → 2335 ms, n=30 → **9795 ms**. That is per article per mutation batch. A post with forty repeated characters is an unrecoverable tab.
-  Fix: two changes, either of which closes the family, and both are cheap. Extend the compile-time check to refuse a repeated group whose body contains a top-level `|` (this costs a handful of legitimate patterns and is the smaller change). And add a runtime budget: time the first N matches of each compiled pattern against a bounded sample, disable a pattern that exceeds, say, 5 ms on a 2 KB string, and surface it through the refused-rules path added by F253 so the user is told which rule was switched off and why.
-  Acceptance: `checkRegexBudget("(a|a)+$")` returns a reason; a test asserts a pattern that exceeds the runtime budget is disabled and named in the panel rather than left running.
-  Confidence: Verified
-  Effort: M
-
 ### P2
 
 - [ ] P2 — F266, The composer snippet palette opens at the top of the viewport, not next to its trigger
@@ -449,16 +439,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Evidence: read at the cited lines. `archive-import.ts:362` is `const createdAt = stringField(tweet, "created_at") ?? now;` and `:368` is `capturedAt: createdAt,` with `createdAt` assigned to the separate `record.createdAt` field only at `:383`, and only when it differs from `now`. `warc.ts:219-223` shows `validDate` accepts anything `new Date(value)` parses, and `new Date("Tue Jan 16 12:00:00 +0000 2026").toISOString()` returns `"2026-01-16T12:00:00.000Z"`, so the authored time does become the `WARC-Date` rather than falling back. `tests/archive-deflate.test.mjs` asserts `text` and `tweetId` on imported records and never `capturedAt`.
   Fix: set `capturedAt` to the import time as an ISO string, and put the parsed `created_at` in `createdAt` only, which is what the type comment already specifies. If the authored time should drive replay ordering, express that in the CDXJ and pages layer as a deliberate choice rather than by overloading `capturedAt`.
   Acceptance: a test imports a fixture archive and asserts every record's `capturedAt` parses as ISO-8601 and is within a second of the import, while `createdAt` carries the archive's value; a WARC built from those records carries a `WARC-Date` in the import window.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — F251, A refused regex rule is dropped silently and the panel says it was saved
-  Category: ux
-  Where: `src/features/filtering/predicates.ts:447-469` (`tryCompileRegex` returning `null` for both the budget refusal and a constructor throw), `src/features/filtering/filter-engine.ts:39` (`filterRuleErrors`, which covers only the rule DSL), `src/ui/control-center/sections/reading.ts:573-582` (the save message).
-  Problem: a regex rule that the budget refuses and one that will not compile are both discarded with no record of what was refused, and the panel then reports `Saved ${settings.filter.regexRules.length} regex rules` counting the raw input lines. Type `(a+)+b` or `[unclosed` and the status line says "Saved 1 regex rules" while zero patterns are active. This is the failure mode the codebase rejects in its own words at `filter-engine.ts:151` — "A rule that cannot be parsed must be visible, not a filter that silently never matches" — applied to the DSL but never to `filter.regexRules`.
-  Evidence: read at the cited lines. `checkRegexBudget("(a+)+b")` returns the reason "a repeated group that already repeats can backtrack badly enough to freeze the page", and `tryCompileRegex` maps that to `null` with no side channel. `compileFilters` (`predicates.ts:156-164`) pushes only successful compiles into `patterns` and `patternSources`.
-  Fix: have `compileFilters` return the refused sources with their reasons alongside `patterns`, fold them into `filterRuleErrors()`, and render them the way DSL parse errors already are at `reading.ts:517-519`. This is also where F244's runtime-disabled patterns should surface.
-  Acceptance: a test saves `["(a+)+b", "[unclosed", "/valid/"]` and asserts the panel reports one active rule and names the two refused sources with reasons.
   Confidence: Verified
   Effort: S
 

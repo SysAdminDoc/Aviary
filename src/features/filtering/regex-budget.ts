@@ -7,11 +7,17 @@
  * JavaScript gives no way to abort a running match, so the only place to stop it is before it
  * compiles.
  *
- * What this catches is the shape behind almost every real case: a quantifier applied to a group
- * that itself contains an unbounded quantifier, plus repetition counts and pattern lengths past the
- * point of usefulness for filtering post text. What it does not catch is the general problem, which
- * is undecidable — two alternation branches that overlap can still backtrack badly. This is a guard
- * rail, not a proof, and it is deliberately described that way in the message the user sees.
+ * Two shapes are refused, because between them they cover every case anyone has reached here by
+ * accident. A quantifier applied to a group that already contains an unbounded quantifier is the
+ * `(a+)+b` family. A quantifier applied to a group whose branches can match the same text is the
+ * `(a|a)+$` family, which costs exactly as much and which the first check does not see, because the
+ * branches carry no quantifier of their own. Repetition counts and pattern lengths past the point
+ * of usefulness for filtering post text are refused too.
+ *
+ * This is still a guard rail rather than a proof — the general problem is undecidable — and it is
+ * deliberately described that way in the message the user sees. Refusing every repeated group that
+ * contains a top-level alternation costs a handful of patterns that would have been fine; a frozen
+ * tab costs the whole session, and nothing can abort a running match.
  *
  * Note for anyone tempted to reach for `RegExp.escape`: it is Chrome 136 / Firefox 134, well above
  * this project's Chrome 116 / Firefox 128 manifest floors.
@@ -31,12 +37,15 @@ export interface RegexBudgetVerdict {
 const UNBOUNDED_QUANTIFIER = /[*+]|\{\s*\d*\s*,\s*\}/;
 
 /**
- * Finds a quantifier applied to a group whose body already repeats — the `(a+)+` family.
+ * Finds a quantifier applied to a group that makes the repetition ambiguous.
+ *
+ * Reports which shape it found so the message can name it: `nested` for `(a+)+`, where the body
+ * already repeats, and `alternation` for `(a|a)+`, where two branches can match the same text.
  *
  * Walks the pattern tracking group spans rather than pattern-matching on text, so an escaped paren
  * or one inside a character class cannot be mistaken for a real group boundary.
  */
-function hasNestedQuantifier(pattern: string): boolean {
+function repeatedGroupRisk(pattern: string): "nested" | "alternation" | null {
   const openStack: number[] = [];
   let inClass = false;
 
@@ -75,6 +84,50 @@ function hasNestedQuantifier(pattern: string): boolean {
     }
     const body = pattern.slice(start + 1, index);
     if (UNBOUNDED_QUANTIFIER.test(body)) {
+      return "nested";
+    }
+    if (hasTopLevelAlternation(body)) {
+      return "alternation";
+    }
+  }
+  return null;
+}
+
+/**
+ * True when `body` contains a `|` at its own nesting level.
+ *
+ * Only a top-level alternation makes the enclosing repetition ambiguous. One nested inside a
+ * further group is that group's problem, and that group is checked on its own when the walk above
+ * closes it.
+ */
+function hasTopLevelAlternation(body: string): boolean {
+  let depth = 0;
+  let inClass = false;
+
+  for (let index = 0; index < body.length; index += 1) {
+    const char = body[index];
+
+    if (char === "\\") {
+      index += 1;
+      continue;
+    }
+    if (inClass) {
+      if (char === "]") inClass = false;
+      continue;
+    }
+    if (char === "[") {
+      inClass = true;
+      continue;
+    }
+    if (char === "(") {
+      depth += 1;
+      continue;
+    }
+    if (char === ")") {
+      depth -= 1;
+      continue;
+    }
+    if (char === "|" && depth === 0) {
       return true;
     }
   }
@@ -99,9 +152,17 @@ export function checkRegexBudget(pattern: string): RegexBudgetVerdict {
     }
   }
 
-  if (hasNestedQuantifier(pattern)) {
+  const risk = repeatedGroupRisk(pattern);
+  if (risk === "nested") {
     return {
       reason: "a repeated group that already repeats can backtrack badly enough to freeze the page"
+    };
+  }
+  if (risk === "alternation") {
+    return {
+      reason:
+        "a repeated group whose branches can match the same text can backtrack badly enough to " +
+        "freeze the page"
     };
   }
 

@@ -21,6 +21,14 @@
   silence.
 
 ### Fixed
+- A regex filter rule can no longer freeze the tab. The budget refused a repeated group that
+  already repeats, like `(a+)+b`, but not one whose branches can match the same text, like
+  `(a|a)+$` — which costs the same and took nearly ten seconds against a thirty-character post,
+  once per post, with no way to abort it. Both shapes are refused now.
+- A regex rule that is refused, or that will not compile, is named in the panel with the reason.
+  It used to be dropped in silence while the status line counted the raw lines and said they had
+  been saved, so a rule that never ran looked exactly like one that did.
+
 - Turning a feature off and on again, which the "which feature is breaking this page?" search does
   on every round, no longer leaves its page-bridge subscription behind. Each round used to add
   another live handler, so a single response from X was processed once per round: capture budgets

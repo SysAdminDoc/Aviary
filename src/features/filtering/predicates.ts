@@ -8,6 +8,11 @@ import {
 import { handleFromHref } from "./hidden-posts.ts";
 import { judgeRules, type CompiledRule, type RuleSignal } from "./rules.ts";
 
+export interface RefusedPattern {
+  source: string;
+  reason: string;
+}
+
 export interface CompiledFilters {
   /** Parsed field/operator/value rules; see ./rules.ts. */
   rules: CompiledRule[];
@@ -15,6 +20,14 @@ export interface CompiledFilters {
   patterns: RegExp[];
   /** The text each pattern was written as, so a reason can quote the rule the user typed. */
   patternSources: string[];
+  /**
+   * The regex lines that did not become filters, with why.
+   *
+   * A refused pattern used to be dropped on the floor while the panel counted the raw input and
+   * reported "Saved N regex rules", so a rule the budget rejected looked identical to one that
+   * works. This is what lets the panel say which line is not running.
+   */
+  refusedPatterns: RefusedPattern[];
   whitelist: Set<string>;
   premium: FilterAction;
   media: Record<FilterMediaKey, boolean>;
@@ -155,11 +168,14 @@ export function compileFilters(input: {
 
   const patterns: RegExp[] = [];
   const patternSources: string[] = [];
+  const refusedPatterns: RefusedPattern[] = [];
   for (const source of input.regex) {
-    const compiled = tryCompileRegex(source);
-    if (compiled) {
-      patterns.push(compiled);
+    const compiled = compileRegexSource(source);
+    if (compiled.pattern) {
+      patterns.push(compiled.pattern);
       patternSources.push(source.trim());
+    } else if (compiled.reason) {
+      refusedPatterns.push({ source: source.trim(), reason: compiled.reason });
     }
   }
 
@@ -176,6 +192,7 @@ export function compileFilters(input: {
     keywords,
     patterns,
     patternSources,
+    refusedPatterns,
     whitelist,
     premium: input.premium,
     media: {
@@ -452,10 +469,16 @@ function normalizeHandle(value: string): string | null {
   return /^[a-z0-9_]{1,15}$/.test(cleaned) ? cleaned : null;
 }
 
-function tryCompileRegex(source: string): RegExp | null {
+/**
+ * Compiles one regex line, or says why it will not run.
+ *
+ * A blank line is neither: it is skipped without being reported, because an empty line in a
+ * textarea is not something the user got wrong.
+ */
+function compileRegexSource(source: string): { pattern: RegExp | null; reason: string | null } {
   const trimmed = source.trim();
   if (trimmed.length === 0) {
-    return null;
+    return { pattern: null, reason: null };
   }
 
   try {
@@ -464,15 +487,16 @@ function tryCompileRegex(source: string): RegExp | null {
     const flags = match?.[2] ?? "";
     // Bounded before compiling: these run against every article in every batch, and JavaScript
     // offers no way to abort a match once it is away.
-    if (checkRegexBudget(body ?? trimmed).reason !== null) {
-      return null;
+    const budget = checkRegexBudget(body ?? trimmed);
+    if (budget.reason !== null) {
+      return { pattern: null, reason: budget.reason };
     }
     if (match && body) {
-      return new RegExp(body, sanitizeFlags(flags));
+      return { pattern: new RegExp(body, sanitizeFlags(flags)), reason: null };
     }
-    return new RegExp(trimmed, "i");
-  } catch {
-    return null;
+    return { pattern: new RegExp(trimmed, "i"), reason: null };
+  } catch (error) {
+    return { pattern: null, reason: error instanceof Error ? error.message : "is not a valid pattern" };
   }
 }
 
