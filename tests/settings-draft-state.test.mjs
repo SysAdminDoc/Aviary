@@ -591,3 +591,71 @@ test("a section rebuild keeps a staged edit instead of losing it under a success
   assert.equal(String(result.committed), result.edited, "the committed value must be the typed one");
   assert.equal(result.saved, 1, "the edit must reach onChange exactly once");
 });
+
+/**
+ * A toggle survives the same rebuild, and the empty-transaction guard must not eat it.
+ *
+ * Toggles and selects write straight into the draft settings and never register a commit closure,
+ * so they are dirty without being in `draftCommits`. Carrying only the registered controls across a
+ * rebuild left the toggle's detached node in the dirty set, which made the transaction look empty
+ * and the save refuse an edit that was in fact ready to commit.
+ */
+test("a staged toggle also survives a section rebuild and still commits", async () => {
+  const result = await page.evaluate(async () => {
+    const settings = AviaryDrafts.cloneSettings(AviaryDrafts.DEFAULT_SETTINGS);
+    let saved = 0;
+    const handle = AviaryDrafts.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {
+        saved += 1;
+      },
+      onError: () => {},
+      getHiddenPostsStatus: () => ({
+        total: 1,
+        updatedAt: "2026-08-22",
+        recent: [{ key: "post-1", handle: "someone", text: "a post", hiddenAt: "2026-08-22" }]
+      }),
+      unhidePost: async () => true
+    });
+    const shadow = document.querySelector("#av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    [...shadow.querySelectorAll(".av-nav-item")].find((i) => i.textContent === "Hidden posts")?.click();
+
+    const toggle = [...shadow.querySelectorAll(".av-row")]
+      .map((row) => row.querySelector('input[type="checkbox"]'))
+      .find(Boolean);
+    const before = toggle.checked;
+    toggle.checked = !before;
+    toggle.dispatchEvent(new Event("change", { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const stagedDisabled = shadow.querySelector(".av-transaction-save").disabled;
+
+    [...shadow.querySelectorAll("button")].find((b) => b.textContent === "Restore")?.click();
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
+    const survivedChecked = [...shadow.querySelectorAll(".av-row")]
+      .map((row) => row.querySelector('input[type="checkbox"]'))
+      .find(Boolean).checked;
+
+    shadow.querySelector(".av-transaction-save").click();
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
+    const statusNode = shadow.querySelector(".av-status");
+    const out = {
+      before,
+      stagedDisabled,
+      survivedChecked,
+      state: statusNode.dataset.state,
+      status: statusNode.textContent,
+      saved
+    };
+    handle.destroy();
+    return out;
+  });
+
+  assert.equal(result.stagedDisabled, false, "staging a toggle must enable Save");
+  assert.equal(result.survivedChecked, !result.before, "the toggle must keep its staged position");
+  assert.equal(result.state, "saved", `the toggle must commit, status was ${result.status}`);
+  assert.equal(result.saved, 1, "the toggle must reach onChange exactly once");
+});

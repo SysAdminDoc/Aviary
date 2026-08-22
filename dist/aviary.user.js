@@ -6671,7 +6671,14 @@ ${body}
       const selection = captureSelection(active2);
       const contentScrollTop = body.querySelector(".av-content")?.scrollTop ?? 0;
       const navScrollTop = body.querySelector(".av-nav")?.scrollTop ?? 0;
-      const pendingDrafts = [...dirtyControls].filter((control) => control.isConnected && draftCommits.has(control)).map((control) => ({ identity: focusIdentity(control), value: control.value })).filter((entry) => entry.identity !== null);
+      const pendingDrafts = [...dirtyControls].filter((control) => control.isConnected).map((control) => ({
+        identity: focusIdentity(control),
+        value: control.value,
+        registered: draftCommits.has(control)
+      })).filter(
+        (entry) => entry.identity !== null
+      );
+      dirtyControls.clear();
       panelLocale = draftSettings.i18n.locale;
       host.dir = localeDirection(panelLocale);
       resetCoverageTally();
@@ -6709,10 +6716,12 @@ ${body}
       if (rail) rail.scrollTop = navScrollTop;
       for (const pending of pendingDrafts) {
         const control = findByIdentity(pending.identity);
-        if (control && draftCommits.has(control)) {
+        if (!control) continue;
+        if (pending.registered) {
+          if (!draftCommits.has(control)) continue;
           control.value = pending.value;
-          dirtyControls.add(control);
         }
+        dirtyControls.add(control);
       }
       if (identity || pendingActionLabel) {
         const target = (identity ? findByIdentity(identity) : null) ?? (pendingActionLabel ? findActionButton(pendingActionLabel) : null);

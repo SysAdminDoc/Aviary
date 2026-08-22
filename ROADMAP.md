@@ -221,6 +221,16 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
 
 ### P2
 
+- [ ] P2 — F269, `hidden-posts-reconcile` counts reflow nudges on a clock and is flaky under load
+  Category: testing
+  Where: `tests/hidden-posts-reconcile.test.mjs:108` ("re-applying over an already-collapsed post does not keep firing resize"), asserting at `:133`.
+  Problem: the test counts `resize` events dispatched by `nudgeReflow` in `src/features/filtering/hidden-posts-feature.ts` and requires at most one. The nudge is scheduled through `requestAnimationFrame`, so the count depends on how many frames elapse while the test waits. It passes in isolation and fails intermittently in a full `npm test` run, where several browser-backed suites compete for the machine.
+  Evidence: observed failing once in a full run ("the collapse should nudge at most once, saw 2") with a reported duration of 2439ms, then passing three times out of three when run alone at about 500ms each, and passing on the next full run. The feature code involved was not touched by the change that surfaced it.
+  Fix: stop counting within a wall-clock window. Either drive the frames deterministically by stubbing `requestAnimationFrame` for the duration of the assertion, or assert the invariant the test actually means — that a second apply over an already-collapsed post schedules no *new* nudge — by checking the module's own pending-handle state rather than the number of events observed.
+  Acceptance: the test passes 20 consecutive full-suite runs, and still fails when `nudgeReflow`'s "already scheduled" guard is removed.
+  Confidence: Verified
+  Effort: S
+
 - [ ] P2 — F266, The composer snippet palette opens at the top of the viewport, not next to its trigger
   Category: visual
   Where: `src/features/composer/composer-snippets.ts:288` (`positionPopover`) and the `.av-snippet-popover` rule in the same file.

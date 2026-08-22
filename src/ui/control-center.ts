@@ -1062,14 +1062,28 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     // are replaced below, so both have to be measured here and put back afterwards.
     const contentScrollTop = body.querySelector(".av-content")?.scrollTop ?? 0;
     const navScrollTop = body.querySelector(".av-nav")?.scrollTop ?? 0;
-    // A registered draft control holds the user's typed value only on the DOM node, so a rebuild
-    // used to throw the edit away while `dirtyControls` still pointed at the detached input. The
-    // Save button stayed lit and committed nothing. Carry the value across on the same row
-    // identity the focus restore below already relies on.
+    // Every dirty control is carried across the rebuild on the same row identity the focus restore
+    // below already relies on, because the rebuild replaces the nodes `dirtyControls` points at.
+    //
+    // The two kinds need different handling. A registered control (text, secret, integer,
+    // textarea) holds the typed value only on the node, so the value travels with it and its
+    // rebuilt row re-registers the commit closure. A toggle or select already wrote itself into
+    // `draftSettings` and its rebuilt row renders from there, so only its membership of the dirty
+    // set has to be restored -- without that the transaction looks empty and the save is refused.
     const pendingDrafts = [...dirtyControls]
-      .filter((control) => control.isConnected && draftCommits.has(control))
-      .map((control) => ({ identity: focusIdentity(control), value: control.value }))
-      .filter((entry): entry is { identity: string; value: string } => entry.identity !== null);
+      .filter((control) => control.isConnected)
+      .map((control) => ({
+        identity: focusIdentity(control),
+        value: control.value,
+        registered: draftCommits.has(control)
+      }))
+      .filter(
+        (entry): entry is { identity: string; value: string; registered: boolean } =>
+          entry.identity !== null
+      );
+    // Anything that cannot be re-found below is genuinely gone; starting from empty is what stops a
+    // detached node keeping the Save button lit over an edit that no longer exists.
+    dirtyControls.clear();
 
     panelLocale = draftSettings.i18n.locale;
     host.dir = localeDirection(panelLocale);
@@ -1120,13 +1134,16 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     const rail = body.querySelector(".av-nav");
     if (rail) rail.scrollTop = navScrollTop;
     for (const pending of pendingDrafts) {
-      const control = findByIdentity(pending.identity);
-      // The rebuilt row registered its own commit closure, so re-adding the node to the dirty set
-      // is all that is needed to make the transaction complete against the value shown.
-      if (control && draftCommits.has(control as DraftControl)) {
-        (control as DraftControl).value = pending.value;
-        dirtyControls.add(control as DraftControl);
+      const control = findByIdentity(pending.identity) as DraftControl | null;
+      if (!control) continue;
+      // Only a registered control needs its value put back, and only onto a row that registered a
+      // commit closure of its own -- re-finding a different kind of control at the same identity
+      // would otherwise write a value the row does not mean.
+      if (pending.registered) {
+        if (!draftCommits.has(control)) continue;
+        control.value = pending.value;
       }
+      dirtyControls.add(control);
     }
     if (identity || pendingActionLabel) {
       const target = (identity ? findByIdentity(identity) : null) ?? (pendingActionLabel ? findActionButton(pendingActionLabel) : null);
