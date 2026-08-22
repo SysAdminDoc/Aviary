@@ -71,11 +71,13 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
         className: document.documentElement.classList.contains("av-theme-noir"),
         activeNav: document.querySelector('[data-testid="AppTabBar_Home_Link"]')?.getAttribute("data-av-active-route"),
         rootBackground: root.backgroundImage,
-        rootBackgroundAttachment: root.backgroundAttachment,
+        rootBackgroundColor: root.backgroundColor,
         bodyBackground: body.backgroundImage,
         bodyBackgroundColor: body.backgroundColor,
         navBackground: nav.backgroundImage,
+        navBackgroundColor: nav.backgroundColor,
         activeNavBackground: activeNav.backgroundImage,
+        activeNavBackgroundColor: activeNav.backgroundColor,
         primaryBackground: primary.backgroundColor,
         primaryShadow: primary.boxShadow,
         articleBackground: article.backgroundImage,
@@ -91,6 +93,7 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
         searchInputBackground: searchInput.backgroundColor,
         searchInputBorder: searchInput.borderTopWidth,
         buttonBackground: postButton.backgroundImage,
+        buttonFill: postButton.backgroundColor,
         buttonColor: postButton.color,
         scrollWidth: document.documentElement.scrollWidth
       };
@@ -99,12 +102,14 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
     assert.equal(noir.theme, "noir");
     assert.equal(noir.className, true);
     assert.equal(noir.activeNav, "1", "Noir must mark the current route without relying on X's aria-current");
-    assert.match(noir.rootBackground, /radial-gradient/);
-    assert.equal(noir.rootBackgroundAttachment, "fixed, fixed, fixed");
+    assert.equal(noir.rootBackground, "none", "Noir uses flat surfaces rather than decorative gradients");
+    assert.notEqual(noir.rootBackgroundColor, "rgba(0, 0, 0, 0)");
     assert.equal(noir.bodyBackground, "none", "the viewport-height body must not own the scrolling canvas");
     assert.equal(noir.bodyBackgroundColor, "rgba(0, 0, 0, 0)");
-    assert.match(noir.navBackground, /linear-gradient/);
-    assert.match(noir.activeNavBackground, /linear-gradient/);
+    assert.equal(noir.navBackground, "none");
+    assert.notEqual(noir.navBackgroundColor, "rgba(0, 0, 0, 0)");
+    assert.equal(noir.activeNavBackground, "none");
+    assert.notEqual(noir.activeNavBackgroundColor, "rgba(0, 0, 0, 0)");
     assert.match(noir.primaryBackground, /rgba?\(/);
     assert.notEqual(noir.primaryShadow, "none");
     assert.equal(noir.articleBackground, "none", "posts belong to one continuous stream");
@@ -119,7 +124,8 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
     assert.equal(noir.searchShellRadius, "10px");
     assert.equal(noir.searchInputBackground, "rgba(0, 0, 0, 0)");
     assert.equal(noir.searchInputBorder, "0px");
-    assert.match(noir.buttonBackground, /linear-gradient/);
+    assert.equal(noir.buttonBackground, "none");
+    assert.notEqual(noir.buttonFill, "rgba(0, 0, 0, 0)");
     assert.ok(contrast(parseRgb(noir.buttonColor), [92, 211, 255]) >= 4.5);
     assert.ok(noir.scrollWidth <= beforeScrollWidth + 1, "the theme must not introduce horizontal overflow");
 
@@ -137,7 +143,7 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
         bodyBottom: document.body.getBoundingClientRect().bottom,
         viewportHeight: window.innerHeight,
         rootBackground: root.backgroundImage,
-        rootBackgroundAttachment: root.backgroundAttachment,
+        rootBackgroundColor: root.backgroundColor,
         bodyBackground: body.backgroundImage,
         bodyBackgroundColor: body.backgroundColor
       };
@@ -147,8 +153,8 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
       scrolledCanvas.bodyBottom > 0 && scrolledCanvas.bodyBottom < scrolledCanvas.viewportHeight,
       "the regression fixture must put X's viewport-height body edge inside the scrolled viewport"
     );
-    assert.match(scrolledCanvas.rootBackground, /radial-gradient/);
-    assert.equal(scrolledCanvas.rootBackgroundAttachment, "fixed, fixed, fixed");
+    assert.equal(scrolledCanvas.rootBackground, "none");
+    assert.notEqual(scrolledCanvas.rootBackgroundColor, "rgba(0, 0, 0, 0)");
     assert.equal(scrolledCanvas.bodyBackground, "none");
     assert.equal(scrolledCanvas.bodyBackgroundColor, "rgba(0, 0, 0, 0)");
 

@@ -349,7 +349,7 @@ html[data-av-theme] [data-testid="SearchBox_Search_Input"] {
   color: var(--av-text, rgb(239, 243, 244));
 }
 
-html[data-av-theme] article[data-testid="tweet"] [role="group"] button,
+html[data-av-theme] article[data-testid="tweet"] [role="group"] button:not([data-av-media-action]),
 html[data-av-theme] article[data-testid="tweet"] [role="group"] a {
   color: var(--av-muted, rgb(132, 139, 145));
 }
@@ -397,11 +397,16 @@ html[data-av-theme] article[data-testid="tweet"] {
 
 html[data-av-theme] article[data-testid="tweet"] [data-testid="tweetText"] {
   max-inline-size: min(72ch, 100%);
-  line-height: 1.45;
+  font-size: 16px;
+  line-height: 1.5;
 }
 
 html[data-av-theme] article[data-testid="tweet"] [role="group"] {
   column-gap: clamp(12px, 2.2vw, 32px);
+}
+
+html[data-av-theme] article[data-testid="tweet"] [role="group"] > :not([data-av-media-action-slot]) {
+  min-height: 36px;
 }
 
 html[data-av-width="wide"][data-av-surface="timeline"]
@@ -426,20 +431,20 @@ html[data-av-theme] [data-testid="videoComponent"] {
    duplicate all render as an untouched button. Excluding the states here is what leaves the
    feature that raises them in charge of what they look like. */
 html[data-av-theme] [data-av-media-action]:not(.is-success):not(.is-error):not(.is-opened):not(.is-duplicate) {
-  min-width: auto;
-  min-height: 32px;
-  padding: 5px 8px;
-  border: 1px solid color-mix(in srgb, var(--av-border) 76%, transparent);
+  min-width: 108px;
+  min-height: 40px;
+  padding: 7px 12px;
+  border: 1px solid transparent;
   border-radius: 8px;
-  background: transparent;
-  color: var(--av-accent);
+  background: var(--av-accent);
+  color: var(--av-on-accent, rgb(3, 20, 24));
   box-shadow: none;
 }
 
 html[data-av-theme] [data-av-media-action]:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--av-accent) 56%, var(--av-border));
-  background: color-mix(in srgb, var(--av-accent) 10%, transparent);
-  color: var(--av-text);
+  border-color: transparent;
+  background: color-mix(in srgb, var(--av-accent) 86%, white);
+  color: var(--av-on-accent, rgb(3, 20, 24));
 }
 
 /* A post detail route has one focal post, then a compact connected reply stream. The role markers
@@ -469,15 +474,22 @@ html[data-av-theme][data-av-surface="conversation"] [data-av-conversation-role="
   z-index: 0;
   inset-block: -1px;
   inset-inline-start: 31px;
-  width: 1px;
-  background: color-mix(in srgb, var(--av-border) 72%, transparent);
+  width: 2px;
+  background: color-mix(in srgb, var(--av-accent) 24%, var(--av-border));
   content: "";
   pointer-events: none;
 }
 
 html[data-av-theme][data-av-surface="conversation"]
   [data-testid="cellInnerDiv"][data-av-conversation-role="reply"] > div {
-  padding-block: 12px !important;
+  padding-block: 14px !important;
+}
+
+html[data-av-theme][data-av-surface="conversation"] [data-av-conversation-role="reply"]
+  [data-testid="tweetText"] {
+  max-inline-size: min(68ch, 100%);
+  font-size: 15.5px;
+  line-height: 1.52;
 }
 
 html[data-av-theme][data-av-surface="conversation"]
@@ -491,19 +503,10 @@ html[data-av-theme][data-av-surface="conversation"] [data-testid^="tweetTextarea
   border-radius: 8px;
 }
 
-/* Noir is Aviary's authored premium desktop skin. X keeps body and #react-root at one viewport
-   tall while the timeline overflows through descendants, so a body-owned background ends partway
-   down the viewport after scrolling. The root canvas owns one fully fixed paint instead: it covers
-   every route and scroll depth without moving the accent glows or exposing a second base colour. */
+/* Noir is Aviary's authored premium desktop skin. The root owns the fixed canvas so it covers
+   every route and scroll depth without exposing a second base colour. */
 html.av-theme-noir {
   background-color: var(--av-bg);
-  background-image:
-    radial-gradient(circle at 12% -8%, rgba(92, 211, 255, 0.11), transparent 34rem),
-    radial-gradient(circle at 88% 2%, rgba(151, 128, 255, 0.1), transparent 38rem),
-    linear-gradient(180deg, rgb(5, 9, 14), var(--av-bg) 42rem);
-  background-attachment: fixed, fixed, fixed;
-  background-position: 0 0, 0 0, 0 0;
-  background-repeat: no-repeat, no-repeat, no-repeat;
 }
 
 html.av-theme-noir body {
@@ -518,13 +521,13 @@ html.av-theme-noir [data-testid="app-shell"] {
 
 html.av-theme-noir header[role="banner"] > div > div:has(nav[aria-label="Primary"]) {
   border-right: 1px solid color-mix(in srgb, var(--av-border) 72%, transparent);
-  background: linear-gradient(180deg, rgba(11, 18, 27, 0.97), rgba(5, 9, 14, 0.96));
+  background: rgb(7, 12, 18);
 }
 
 html.av-theme-noir nav:has([data-testid="AppTabBar_Home_Link"]) {
   border-color: color-mix(in srgb, var(--av-border) 82%, transparent);
-  background: linear-gradient(180deg, rgba(11, 18, 27, 0.96), rgba(5, 9, 14, 0.94));
-  box-shadow: 18px 0 54px rgba(0, 0, 0, 0.2);
+  background: rgb(7, 12, 18);
+  box-shadow: none;
 }
 
 html.av-theme-noir [data-testid^="AppTabBar_"] {
@@ -541,35 +544,31 @@ html.av-theme-noir [data-testid^="AppTabBar_"]:hover {
 
 html.av-theme-noir [data-testid^="AppTabBar_"][aria-current="page"],
 html.av-theme-noir [data-testid^="AppTabBar_"][data-av-active-route="1"] {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--av-accent) 15%, var(--av-surface)),
-    color-mix(in srgb, var(--av-accent-secondary) 8%, var(--av-surface))
-  );
+  background: color-mix(in srgb, var(--av-accent) 13%, var(--av-surface));
   box-shadow: inset 2px 0 0 var(--av-accent);
   color: var(--av-text);
 }
 
 html.av-theme-noir [data-testid="SideNav_NewTweet_Button"],
 html.av-theme-noir [data-testid="tweetButtonInline"] {
-  border-color: rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--av-accent), var(--av-accent-secondary));
-  color: rgb(3, 7, 11);
-  box-shadow: 0 10px 28px rgba(92, 211, 255, 0.2), 0 5px 18px rgba(151, 128, 255, 0.16);
+  border-color: transparent;
+  border-radius: 8px;
+  background: var(--av-accent);
+  color: var(--av-on-accent);
+  box-shadow: none;
   font-weight: 750;
 }
 
 html.av-theme-noir [data-testid="SideNav_NewTweet_Button"]:hover,
 html.av-theme-noir [data-testid="tweetButtonInline"]:hover {
-  box-shadow: 0 14px 34px rgba(92, 211, 255, 0.26), 0 7px 22px rgba(151, 128, 255, 0.22);
-  filter: saturate(1.08) brightness(1.05);
+  background: color-mix(in srgb, var(--av-accent) 86%, white);
+  box-shadow: none;
 }
 
 html.av-theme-noir [data-testid="SideNav_AccountSwitcher_Button"] {
   border: 1px solid color-mix(in srgb, var(--av-border) 80%, transparent);
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(14, 22, 32, 0.92), rgba(9, 14, 21, 0.94));
+  border-radius: 9px;
+  background: var(--av-surface);
 }
 
 html.av-theme-noir [data-testid="primaryColumn"] {
@@ -614,12 +613,12 @@ html.av-theme-noir article[data-testid="tweet"] [data-testid="tweetText"] {
   color: var(--av-text);
 }
 
-html.av-theme-noir article[data-testid="tweet"] [role="group"] button {
+html.av-theme-noir article[data-testid="tweet"] [role="group"] button:not([data-av-media-action]) {
   color: var(--av-muted);
   transition: color 140ms ease, background-color 140ms ease;
 }
 
-html.av-theme-noir article[data-testid="tweet"] [role="group"] button:hover {
+html.av-theme-noir article[data-testid="tweet"] [role="group"] button:not([data-av-media-action]):hover {
   background-color: color-mix(in srgb, var(--av-accent) 10%, transparent);
   color: var(--av-accent);
 }
@@ -635,7 +634,7 @@ html.av-theme-noir [data-testid="videoComponent"] {
 
 html.av-theme-noir [data-testid="toolBar"] {
   border-color: color-mix(in srgb, var(--av-border) 74%, transparent);
-  background: linear-gradient(180deg, rgba(11, 18, 27, 0.72), rgba(7, 12, 18, 0.88));
+  background: var(--av-surface);
 }
 
 html.av-theme-noir [data-testid="tweetTextarea_0RichTextInputContainer"],
@@ -697,8 +696,8 @@ html.av-theme-noir form[role="search"]:has([data-testid="SearchBox_Search_Input"
 html.av-theme-noir [data-testid="GrokDrawer"],
 html.av-theme-noir [data-testid="grokImgGen"] {
   border-color: color-mix(in srgb, var(--av-accent-secondary) 48%, var(--av-border));
-  background: linear-gradient(145deg, rgba(18, 22, 41, 0.94), rgba(9, 14, 24, 0.96));
-  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.3);
+  background: var(--av-surface);
+  box-shadow: none;
 }
 
 /* The primary column takes its width from its own box, not from a max-width -- measured on
@@ -708,22 +707,22 @@ html.av-theme-noir [data-testid="grokImgGen"] {
    basis and growth as well, and clamp against the viewport rather than 100% so the rule works
    through both the old block layout and the current flex wrapper. */
 html[data-av-width="comfortable"] [data-testid="primaryColumn"] {
-  flex: 0 1 min(920px, calc(100vw - 16px)) !important;
-  flex-basis: min(920px, calc(100vw - 16px)) !important;
-  width: min(920px, calc(100vw - 16px)) !important;
-  max-width: min(920px, calc(100vw - 16px)) !important;
+  flex: 0 1 min(1000px, calc(100vw - 16px)) !important;
+  flex-basis: min(1000px, calc(100vw - 16px)) !important;
+  width: min(1000px, calc(100vw - 16px)) !important;
+  max-width: min(1000px, calc(100vw - 16px)) !important;
   min-width: 0 !important;
 }
 
 html[data-av-width="wide"] [data-testid="primaryColumn"] {
-  flex: 0 1 min(1120px, calc(100vw - 16px)) !important;
-  flex-basis: min(1120px, calc(100vw - 16px)) !important;
-  width: min(1120px, calc(100vw - 16px)) !important;
-  max-width: min(1120px, calc(100vw - 16px)) !important;
+  flex: 0 1 min(1440px, calc(100vw - 16px)) !important;
+  flex-basis: min(1440px, calc(100vw - 16px)) !important;
+  width: min(1440px, calc(100vw - 16px)) !important;
+  max-width: min(1440px, calc(100vw - 16px)) !important;
   min-width: 0 !important;
 }
 
-/* Wide is the media-first desktop canvas. The discovery rail cannot coexist with 1120px of post
+/* Wide is the media-first desktop canvas. The discovery rail cannot coexist with 1440px of post
    content at common laptop widths, so Wide removes it and centers the reading column. Comfortable
    retains the rail for people who still want trends and follow suggestions beside the feed. */
 html[data-av-width="wide"] [data-testid="sidebarColumn"] {

@@ -1437,7 +1437,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   flex: 0 0 auto;
   align-items: center;
   justify-content: flex-end;
-  min-width: 104px;
+  min-width: 112px;
   margin-inline-start: 4px;
 }
 
@@ -1447,9 +1447,9 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-width: 100px;
-  min-height: 36px;
-  padding: 6px 10px;
+  min-width: 108px;
+  min-height: 40px;
+  padding: 7px 12px;
   border: 0;
   border-radius: 8px;
   background: var(--av-accent, rgb(29, 155, 240));
@@ -1471,7 +1471,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   flex: 0 0 auto;
   width: 7px;
   height: 7px;
-    border-radius: 4px;
+  border-radius: 2px;
   background: var(--av-media-success, rgb(120, 200, 130));
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--av-media-success, rgb(120, 200, 130)) 20%, transparent);
 }
@@ -1533,7 +1533,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   justify-content: center;
   gap: 6px;
   min-width: 72px;
-  min-height: 36px;
+  min-height: 38px;
   padding: 6px 11px;
   border: 0;
   border-radius: 8px;
@@ -1631,6 +1631,18 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   }
 
   [${ACTION_ATTR}] .av-media-action-label {
+    display: none;
+  }
+
+  [${BUTTON_ATTR}] {
+    min-width: 44px;
+    width: 44px;
+    min-height: 44px;
+    padding: 8px;
+    color: var(--av-accent, rgb(29, 155, 240));
+  }
+
+  [${BUTTON_ATTR}] .av-media-button-label {
     display: none;
   }
 }

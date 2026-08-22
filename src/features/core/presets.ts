@@ -142,7 +142,7 @@ export const PRESETS: PresetDefinition[] = [
       appearance: {
         theme: "noir",
         denseMode: false,
-        timelineWidth: "comfortable",
+        timelineWidth: "wide",
         hideCounts: true,
         hideBorders: true
       },

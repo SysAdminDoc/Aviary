@@ -75,11 +75,11 @@ test("conversation routes distinguish the focal post from compact connected repl
     });
 
     assert.equal(themed.surface, "conversation");
-    assert.equal(themed.width, 1120);
+    assert.ok(themed.width >= 1200, `wide conversation should use the available canvas, saw ${themed.width}px`);
     assert.equal(themed.focalCount, 1);
     assert.equal(themed.replyCount, 2);
     assert.ok(themed.focalFont > themed.replyFont);
-    assert.equal(themed.replyPadding, "12px");
+    assert.equal(themed.replyPadding, "14px");
     assert.equal(themed.replyLine, '""');
 
     const off = await page.evaluate(() => {

@@ -109,8 +109,9 @@ try {
     primaryBackground: getComputedStyle(document.querySelector('[data-testid="primaryColumn"]')).backgroundColor,
     articleGradient: getComputedStyle(document.querySelector('article[data-testid="tweet"]')).backgroundImage,
     actionGradient: getComputedStyle(document.querySelector('[data-testid="SideNav_NewTweet_Button"]')).backgroundImage,
+    actionBackground: getComputedStyle(document.querySelector('[data-testid="SideNav_NewTweet_Button"]')).backgroundColor,
     studioColor: getComputedStyle(document.querySelector('nav a[href="/i/jf/creators/studio"]')).color,
-    actionColors: [...document.querySelectorAll('article[data-testid="tweet"] [role="group"] :is(button, a)')]
+    actionColors: [...document.querySelectorAll('article[data-testid="tweet"] [role="group"] :is(button, a):not([data-av-media-action])')]
       .map((element) => getComputedStyle(element).color),
     mutedToken: getComputedStyle(document.documentElement).getPropertyValue("--av-muted").trim(),
     textToken: getComputedStyle(document.documentElement).getPropertyValue("--av-text").trim()
@@ -122,8 +123,8 @@ try {
     throw new Error(`${theme} did not paint the shared dark-theme foundation: ${JSON.stringify(metrics)}`);
   }
   if (theme === "noir" && ((surface === "home" && metrics.activeNav !== "1") ||
-      !metrics.rootGradient.includes("gradient") ||
-      metrics.articleGradient !== "none" || !metrics.actionGradient.includes("gradient"))) {
+      metrics.rootGradient !== "none" || metrics.articleGradient !== "none" ||
+      metrics.actionGradient !== "none" || metrics.actionBackground === "rgba(0, 0, 0, 0)")) {
     throw new Error(`Noir did not paint every premium layer: ${JSON.stringify(metrics)}`);
   }
   if (theme !== "noir" && metrics.activeNav !== null && metrics.activeNav !== undefined) {

@@ -142,7 +142,7 @@ test("timelineWidth actually widens the captured primary column", async () => {
     wide.width > comfortable.width,
     `wide (${wide.width}px) must exceed comfortable (${comfortable.width}px)`
   );
-  assert.equal(wide.width, 1120, "wide is capped at its declared width on a 1400px viewport");
+  assert.equal(wide.width, 1384, "wide keeps a 16px viewport gutter below its declared cap");
 });
 
 test("timelineWidth controls the current X flex item when the sidebar is hidden", async () => {
@@ -163,7 +163,11 @@ test("timelineWidth controls the current X flex item when the sidebar is hidden"
     `current X wide (${wide.width}px) must exceed comfortable (${comfortable.width}px)`
   );
   assert.ok(wide.width >= 1040, `current X wide should use at least 1040px, saw ${wide.width}px`);
-  assert.ok(wide.flexBasis.includes("1120px"), `current X flex basis should be pinned, saw ${wide.flexBasis}`);
+  assert.equal(
+    wide.flexBasis,
+    "1384px",
+    `current X flex basis should resolve to the 16px-gutter width, saw ${wide.flexBasis}`
+  );
 });
 
 test("timelineWidth never overflows a viewport narrower than the tier", async () => {
@@ -173,7 +177,7 @@ test("timelineWidth never overflows a viewport narrower than the tier", async ()
 
   assert.ok(
     narrow.width <= 700,
-    `a 1120px tier must clamp to the 700px viewport, measured ${narrow.width}px`
+    `a 1440px tier must clamp to the 700px viewport, measured ${narrow.width}px`
   );
 });
 
