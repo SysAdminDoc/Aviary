@@ -401,17 +401,18 @@ function harvestOptionsLiterals(html, controller) {
 
 function harvestStatusLiterals(source) {
   const found = [];
-  const readLiteral = (i) => {
+  const readLiteralAt = (i, keep) => {
     const quote = source[i];
     let j = i + 1;
     while (j < source.length && source[j] !== quote) {
       j += source[j] === "\\" ? 2 : 1;
     }
-    if (quote === '"') {
+    if (keep && quote === '"') {
       found.push(JSON.parse(source.slice(i, j + 1)));
     }
     return j;
   };
+  const readLiteral = (i) => readLiteralAt(i, true);
 
   const collectAllArguments = (start) => {
     let depth = 1;
@@ -444,10 +445,41 @@ function harvestStatusLiterals(source) {
     }
   };
 
+  // `actionRow`'s fourth argument is the sentence the shared rejection boundary shows. It is a
+  // plain literal at the call site rather than an `ft(...)` call, and no render reaches it, so
+  // without this it never enters the manifest and ships English in every locale. Only that one
+  // argument is collected: the surrounding handler also contains diagnostics labels the user never
+  // sees, and translating those would be asking for work nobody reads.
+  const collectNthArgument = (start, wanted) => {
+    let depth = 0;
+    let argument = 1;
+    let i = start;
+    while (i < source.length) {
+      const ch = source[i];
+      if (ch === '"' || ch === "'" || ch === "`") {
+        const isTarget = argument === wanted && depth === 0;
+        const next = readLiteralAt(i, isTarget);
+        i = next;
+      } else if (ch === "(" || ch === "[" || ch === "{") {
+        depth += 1;
+      } else if (ch === ")" || ch === "]" || ch === "}") {
+        if (depth === 0) return;
+        depth -= 1;
+      } else if (ch === "," && depth === 0) {
+        argument += 1;
+        if (argument > wanted) return;
+      }
+      i += 1;
+    }
+  };
+
   for (const match of source.matchAll(/\b(setStatusCopy|setStatus|save)\(/g)) {
     const start = match.index + match[0].length;
     if (match[1] === "setStatusCopy") collectFirstArgument(start);
     else collectAllArguments(start);
+  }
+  for (const match of source.matchAll(/\bactionRow\(/g)) {
+    collectNthArgument(match.index + match[0].length, 4);
   }
   return [...new Set(found)];
 }

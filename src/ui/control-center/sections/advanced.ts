@@ -145,7 +145,8 @@ export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
               moved: result.moved,
               skipped: result.skipped
             });
-          }
+          },
+          "The legacy data could not be assigned. Nothing was moved, so it is still where it was. Reopen this page to try again."
         )
       );
     }
@@ -312,12 +313,14 @@ function buildBisectRows(ctx: PanelContext): HTMLElement[] {
     ctx.actionRow(
       "The page is still wrong",
       { source: "The problem survives with these features off, so it is one of the others.", values: {} },
-      respond("still-wrong")
+      respond("still-wrong"),
+      "The search could not record that answer. It is still where it was, so press the same button again."
     ),
     ctx.actionRow(
       "The page looks right now",
       { source: "The problem went away with these features off, so it is one of them.", values: {} },
-      respond("fixed")
+      respond("fixed"),
+      "The search could not record that answer. It is still where it was, so press the same button again."
     ),
     ctx.actionRow(
       "Stop the search",
@@ -1186,7 +1189,8 @@ export function buildBackupRows(ctx: PanelContext): HTMLElement[] {
           async () => {
             ctx.state.libraryRestoreAbort?.abort();
             ctx.setStatus("Cancelling restore…");
-          }
+          },
+          "The restore could not be cancelled. It will stop at the end of the current collection on its own."
         )
       );
     } else {

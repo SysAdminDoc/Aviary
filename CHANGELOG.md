@@ -21,6 +21,11 @@
   silence.
 
 ### Fixed
+- Every panel action that can fail now says what failed and what to do next, in the reader's own
+  language. Pausing an import, cancelling an export, resuming queued downloads and eleven other
+  controls all reported the same three words, "Action failed.", while the real reason went only to
+  diagnostics.
+
 - A refused filter rule now names which editor its line number belongs to. The panel renders one
   list fed from two textareas, each numbered from its own line 1, so a rejected regex could point
   the reader at an innocent line of the rule box.

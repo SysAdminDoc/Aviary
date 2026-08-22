@@ -372,3 +372,59 @@ test("every popover surface states its closed appearance", async () => {
       `surface stays painted: ${silent.join(", ")}`
   );
 });
+
+/**
+ * An action row whose handler does not catch must carry its own failure sentence.
+ *
+ * `actionRow`'s shared rejection boundary reports the real error to diagnostics and shows the
+ * caller's `failureMessage`, defaulting to "Action failed." A row that handles its own errors never
+ * reaches that boundary, so it does not need one; a row that lets the rejection through does, or
+ * the reader gets three words with no cause and no next step for every distinct failure.
+ */
+test("every action row that can reject says what failed and what to do", async () => {
+  const directory = path.join(root, "src/ui/control-center/sections");
+  const files = await listFiles(directory, ".ts");
+  const silent = [];
+
+  for (const file of files) {
+    const text = await readFile(file, "utf8");
+    const relative = path.relative(root, file);
+
+    for (const match of text.matchAll(/ctx\.actionRow\(/g)) {
+      // Walk to the matching close paren, counting top-level arguments, so a comma inside a
+      // nested call or string cannot be miscounted.
+      let index = match.index + match[0].length;
+      let depth = 1;
+      let args = 1;
+      let quote = null;
+      while (index < text.length && depth > 0) {
+        const char = text[index];
+        if (quote) {
+          if (char === "\\") index += 1;
+          else if (char === quote) quote = null;
+        } else if (char === '"' || char === "'" || char === "`") {
+          quote = char;
+        } else if (char === "(" || char === "[" || char === "{") {
+          depth += 1;
+        } else if (char === ")" || char === "]" || char === "}") {
+          depth -= 1;
+          if (depth === 0) break;
+        } else if (char === "," && depth === 1) {
+          args += 1;
+        }
+        index += 1;
+      }
+      const body = text.slice(match.index, index);
+      if (args < 4 && !body.includes("catch")) {
+        silent.push(`${relative}:${text.slice(0, match.index).split("\n").length}`);
+      }
+    }
+  }
+
+  assert.deepEqual(
+    silent,
+    [],
+    `these action rows let a rejection reach the shared boundary with no message of their own, so ` +
+      `every failure reads "Action failed.": ${silent.join(", ")}`
+  );
+});

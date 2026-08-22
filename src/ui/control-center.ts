@@ -1029,11 +1029,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         } catch {
           // Error reporting is diagnostic plumbing; it must never create a second rejected action.
         }
-        if (failureMessage === "Action failed.") {
-          setStatus("Action failed.");
-        } else {
-          setStatus(failureMessage);
-        }
+        setStatus(failureMessage);
       },
       (button) => {
         pendingActionFocus = focusIdentity(button);

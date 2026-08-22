@@ -156,7 +156,8 @@ export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
             if (!result.ok) throw new Error(result.error ?? "Archive import could not be paused");
             ctx.render();
             ctx.setStatus("Archive import paused.");
-          })
+          },
+          "The import could not be paused. It may have already finished. Reopen this section to see where it got to.")
         );
       }
       if ((job.status === "paused" || job.status === "queued") && ctx.options.resumeArchiveImport) {
@@ -166,7 +167,8 @@ export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
             if (!result.ok) throw new Error(result.error ?? "Archive import could not be resumed");
             ctx.render();
             ctx.setStatus("Archive import resumed.");
-          })
+          },
+          "The import could not be resumed. Its saved source may have been cleared. Retry it to start again from the file.")
         );
       }
       if (
@@ -179,7 +181,8 @@ export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
             if (!result.ok) throw new Error(result.error ?? "Archive import could not be cancelled");
             ctx.render();
             ctx.setStatus("Archive import cancelled.");
-          })
+          },
+          "The import could not be cancelled. It may have already finished. Reopen this section to see where it got to.")
         );
       }
       if ((job.status === "failed" || job.status === "cancelled") && ctx.options.retryArchiveImport) {
@@ -189,7 +192,8 @@ export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
             if (!result.ok) throw new Error(result.error ?? "Archive import could not be retried");
             ctx.render();
             ctx.setStatus("Archive import retry started.");
-          })
+          },
+          "The import could not be retried. Pick the archive file again to start a fresh import.")
         );
       }
     }
@@ -1064,7 +1068,8 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
             if (!result.ok) throw new Error(result.error ?? "Export job could not be paused");
             ctx.render();
             ctx.setStatus("Export job paused.");
-          })
+          },
+          "The export job could not be paused. It may have already finished. Reopen this section to see its current state.")
         );
       }
       if (job.status === "paused" && ctx.options.resumeExportJob) {
@@ -1074,7 +1079,8 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
             if (!result.ok) throw new Error(result.error ?? "Export job could not be resumed");
             ctx.render();
             ctx.setStatus("Export job resumed.");
-          })
+          },
+          "The export job could not be resumed. Its checkpoint may have been cleared. Start a new export instead.")
         );
       }
       if ((job.status === "running" || job.status === "paused" || job.status === "queued") && ctx.options.cancelExportJob) {
@@ -1084,7 +1090,8 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
             if (!result.ok) throw new Error(result.error ?? "Export job could not be cancelled");
             ctx.render();
             ctx.setStatus("Export job cancelled.");
-          })
+          },
+          "The export job could not be cancelled. It may have already finished. Reopen this section to see its current state.")
         );
       }
     }
@@ -1788,7 +1795,8 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
               duplicate: result.duplicate,
               failed: result.failed
             });
-          }
+          },
+          "That batch could not run. Grant download access on the Aviary permissions page, then try again."
         )
       );
     }
@@ -1801,14 +1809,19 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
     success: string
   ): void => {
     rows.push(
-      ctx.actionRow(label, description, async () => {
-        const result = action();
-        if (!result.ok) {
-          throw new Error(result.error ?? `${label} failed`);
-        }
-        ctx.render();
-        ctx.setStatus(success);
-      })
+      ctx.actionRow(
+        label,
+        description,
+        async () => {
+          const result = action();
+          if (!result.ok) {
+            throw new Error(result.error ?? `${label} failed`);
+          }
+          ctx.render();
+          ctx.setStatus(success);
+        },
+        "The batch did not take that instruction. It may have already finished. Reopen this section to see its current state."
+      )
     );
   };
 
@@ -1846,7 +1859,8 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
             ? `Queued media recovery cancelled after ${result.downloaded} saved, ${result.started} still running, and ${result.opened} opened.`
             : `Queued media recovery finished: ${result.downloaded} saved / ${result.started} running / ${result.opened} opened / ${result.failed} failed.`
         );
-      })
+      },
+      "The queued downloads could not be resumed. Grant download access on the Aviary permissions page, then try again.")
     );
   }
   if (ctx.options.retryFailedMediaJobs) {
@@ -1859,7 +1873,8 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
             ? "No failed media jobs to retry."
             : `Media retry finished: ${result.downloaded} saved / ${result.started} running / ${result.opened} opened / ${result.failed} failed.`
         );
-      })
+      },
+      "The failed downloads could not be retried. Grant download access on the Aviary permissions page, then try again.")
     );
   }
 

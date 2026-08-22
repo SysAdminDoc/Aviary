@@ -148,17 +148,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
 
 ### P1
 
-- [ ] P1 — F220, 50 of the panel's 54 action rows report every failure as "Action failed."
-  Category: ux
-  Where: `src/ui/control-center.ts:1008-1031` (`actionRow`, `failureMessage = "Action failed."`). Call sites across `src/ui/control-center/sections/data.ts`, `advanced.ts` and `reading.ts`.
-  Problem: `actionRow` takes an optional fourth argument and defaults it to the string "Action failed."; on rejection it reports the real error to `options.onError` (diagnostics only) and calls `setStatus(failureMessage)`. Only 4 of the 54 `ctx.actionRow(...)` call sites pass that fourth argument, so 50 user-visible failures collapse to three words with no cause and no next step. Several handlers already throw a perfectly good sentence that the user never sees — "Archive import could not be paused" (`data.ts:156`), "Export job could not be cancelled" (`data.ts:1084`), and so on — and others have no `catch` at all, so pausing an import, cancelling an export, retrying media, assigning legacy profile data and opening the catch-up digest all fail identically.
-  Evidence: `grep -c "ctx.actionRow(" src/ui/control-center/sections/*.ts` returns 54. A brace-aware argument count over those same call sites returns 4 with a fourth argument and 50 without. `control-center.ts:1027-1031` is `if (failureMessage === "Action failed.") { setStatus("Action failed."); } else { setStatus(failureMessage); }` — note both branches are identical in effect, so the conditional is also dead and should collapse to `setStatus(failureMessage)`.
-  Fix: pass a specific `failureMessage` at every call site, phrased as cause plus next step (for example `data.ts:1062` → "The export job could not be paused. It may have already finished. Reopen this section to see its current state."). Collapse the dead conditional at `:1027-1031`. Consider making the fourth argument required so a new action row cannot be added without one.
-  Acceptance: a test asserts every `ctx.actionRow` call in `src/ui/control-center/sections/` passes four arguments, in the same style as the existing source-contract tests; and `grep -c '"Action failed."' src/` returns 1 (the constant itself).
-  Confidence: Verified
-  Effort: M
-
-
 ### P2
 
 - [ ] P2 — F269, `hidden-posts-reconcile` counts reflow nudges on a clock and is flaky under load
