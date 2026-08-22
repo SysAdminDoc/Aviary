@@ -6630,6 +6630,7 @@ ${body}
       const selection = captureSelection(active2);
       const contentScrollTop = body.querySelector(".av-content")?.scrollTop ?? 0;
       const navScrollTop = body.querySelector(".av-nav")?.scrollTop ?? 0;
+      const pendingDrafts = [...dirtyControls].filter((control) => control.isConnected && draftCommits.has(control)).map((control) => ({ identity: focusIdentity(control), value: control.value })).filter((entry) => entry.identity !== null);
       panelLocale = draftSettings.i18n.locale;
       host.dir = localeDirection(panelLocale);
       resetCoverageTally();
@@ -6665,6 +6666,13 @@ ${body}
       if (content) content.scrollTop = contentScrollTop;
       const rail = body.querySelector(".av-nav");
       if (rail) rail.scrollTop = navScrollTop;
+      for (const pending of pendingDrafts) {
+        const control = findByIdentity(pending.identity);
+        if (control && draftCommits.has(control)) {
+          control.value = pending.value;
+          dirtyControls.add(control);
+        }
+      }
       if (identity || pendingActionLabel) {
         const target = (identity ? findByIdentity(identity) : null) ?? (pendingActionLabel ? findActionButton(pendingActionLabel) : null);
         if (target) {
@@ -6956,6 +6964,11 @@ ${body}
     const commitDraft = async () => {
       if (!transactionDirty() || transactionSaving) return;
       const controls = [...dirtyControls].filter((control) => control.isConnected);
+      if (controls.length === 0) {
+        dirtyControls.clear();
+        setStatus("That change could not be saved. Make it again and save.");
+        return;
+      }
       const invalid = controls.find((control) => !control.checkValidity());
       if (invalid) {
         setStatus("Fix invalid values before saving.");

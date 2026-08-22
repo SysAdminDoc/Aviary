@@ -13,6 +13,12 @@
   generated scope block.
 
 ### Fixed
+- A settings edit staged in the Control Center now survives a row action that repaints the
+  section. Typing a value and then clicking something else in the same section used to discard the
+  edit while the Save button stayed lit, and pressing it reported "Saved locally" having written
+  nothing. The typed value is carried onto the rebuilt row, and a save that can no longer find what
+  it was asked to write says so instead of claiming success.
+
 - Keyword and regex filters no longer read a post's author, timestamp or engagement counts. A
   media-only post carries no caption node, and the text reader used to fall back to the whole
   article, so a keyword hid a photo because of the account's display name and a numeric pattern

@@ -1062,6 +1062,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     // are replaced below, so both have to be measured here and put back afterwards.
     const contentScrollTop = body.querySelector(".av-content")?.scrollTop ?? 0;
     const navScrollTop = body.querySelector(".av-nav")?.scrollTop ?? 0;
+    // A registered draft control holds the user's typed value only on the DOM node, so a rebuild
+    // used to throw the edit away while `dirtyControls` still pointed at the detached input. The
+    // Save button stayed lit and committed nothing. Carry the value across on the same row
+    // identity the focus restore below already relies on.
+    const pendingDrafts = [...dirtyControls]
+      .filter((control) => control.isConnected && draftCommits.has(control))
+      .map((control) => ({ identity: focusIdentity(control), value: control.value }))
+      .filter((entry): entry is { identity: string; value: string } => entry.identity !== null);
 
     panelLocale = draftSettings.i18n.locale;
     host.dir = localeDirection(panelLocale);
@@ -1111,6 +1119,15 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     if (content) content.scrollTop = contentScrollTop;
     const rail = body.querySelector(".av-nav");
     if (rail) rail.scrollTop = navScrollTop;
+    for (const pending of pendingDrafts) {
+      const control = findByIdentity(pending.identity);
+      // The rebuilt row registered its own commit closure, so re-adding the node to the dirty set
+      // is all that is needed to make the transaction complete against the value shown.
+      if (control && draftCommits.has(control as DraftControl)) {
+        (control as DraftControl).value = pending.value;
+        dirtyControls.add(control as DraftControl);
+      }
+    }
     if (identity || pendingActionLabel) {
       const target = (identity ? findByIdentity(identity) : null) ?? (pendingActionLabel ? findActionButton(pendingActionLabel) : null);
       if (target) {
@@ -1462,6 +1479,14 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     if (!transactionDirty() || transactionSaving) return;
 
     const controls = [...dirtyControls].filter((control) => control.isConnected);
+    if (controls.length === 0) {
+      // Every dirty control was detached and could not be recovered. Committing here would write
+      // an unchanged draft and report "Saved locally" over an edit that no longer exists, which is
+      // the one outcome worse than losing it.
+      dirtyControls.clear();
+      setStatus("That change could not be saved. Make it again and save.");
+      return;
+    }
     const invalid = controls.find((control) => !control.checkValidity());
     if (invalid) {
       setStatus("Fix invalid values before saving.");

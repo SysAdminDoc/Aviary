@@ -259,16 +259,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Confidence: Verified
   Effort: M
 
-- [ ] P1 — F247, Clicking a row button while an edit is staged discards the edit, then Save reports success
-  Category: correctness
-  Where: `src/ui/control-center.ts:1050-1054` (`render`'s dirty guard) and `:1462-1500` (`commitDraft`). Reachable from the row handlers that call `ctx.render()` without `ctx.guardDraft()`: `src/ui/control-center/sections/reading.ts:1037`, `src/ui/control-center/sections/data.ts:220`, `:417`, `:694`, `:710`, `src/ui/control-center/sections/advanced.ts:1128`.
-  Problem: `render()` guards only `replaceSettings` behind `if (!transactionDirty())`; the DOM rebuild below it runs unconditionally. Draft-registered text, integer and textarea controls hold the typed value only in the DOM node — `drafts.register(input, label, () => onChange(input.value.trim()))` defers reading it until commit — so the rebuild throws the edit away while `dirtyControls` still points at the now-detached node. `transactionDirty()` is still true, so the Save button stays lit. `commitDraft` then filters to `control.isConnected` at `:1465`, finds nothing, runs the empty commit loop, writes the unchanged draft, and finishes with `setStatus(lastDraftMessage)` — "Saved locally". The user types a value, clicks an unrelated button in the same section, watches the field revert, presses a Save button that is still lit, and is told the save succeeded while nothing was written.
-  Evidence: read at the cited lines and confirmed by driving the panel: staging a value produced status "Unsaved changes" with Save enabled; clicking the section's Restore button reverted the field while Save stayed enabled; pressing Save reported "Saved locally" with the setting still holding its pre-edit value and `onChange` firing once for a no-op write. `actionRow` and the preset and rule-import buttons do call the guard; these six do not.
-  Fix: cheapest correct version — in `commitDraft`, when `dirtyControls.size > 0` but `controls.length === 0`, treat it as a failed save and say so rather than reporting success. Better: make `ctx.render()` defer while `transactionDirty()`, the way `refresh()` already does, or re-key `dirtyControls` and `draftCommits` onto the rebuilt nodes by row label.
-  Acceptance: a test stages a text edit, triggers a section rebuild, presses Save, and asserts either the edit is committed or the status reports a failure — never "Saved locally" with the old value still in settings.
-  Confidence: Verified
-  Effort: M
-
 ### P2
 
 - [ ] P2 — F221, Five design tokens are referenced by name and defined nowhere

@@ -508,3 +508,86 @@ test("profile and import controls remain immediate actions outside the settings 
 function AviaryDraftsDirection(code) {
   return code === "ar" || code === "he" ? "rtl" : "ltr";
 }
+
+/**
+ * A section rebuild must not eat a staged edit, and a save must never claim to have written one.
+ *
+ * Registered draft controls hold the typed value only on the DOM node. The row handlers that call
+ * `ctx.render()` without the draft guard -- the hidden-post Restore button here, plus the bookmark
+ * rows and the three file inputs -- rebuild every row, so the input being typed into is replaced
+ * while `dirtyControls` still points at the detached node. The Save button stayed lit,
+ * `commitDraft` filtered the detached entries out, committed nothing, and reported "Saved locally".
+ */
+test("a section rebuild keeps a staged edit instead of losing it under a success message", async () => {
+  const result = await page.evaluate(async () => {
+    const settings = AviaryDrafts.cloneSettings(AviaryDrafts.DEFAULT_SETTINGS);
+    let saved = 0;
+    let unhidden = 0;
+    const handle = AviaryDrafts.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {
+        saved += 1;
+      },
+      onError: () => {},
+      getHiddenPostsStatus: () => ({
+        total: 1,
+        updatedAt: "2026-08-22",
+        recent: [{ key: "post-1", handle: "someone", text: "a post", hiddenAt: "2026-08-22" }]
+      }),
+      unhidePost: async () => {
+        unhidden += 1;
+        return true;
+      }
+    });
+    const shadow = document.querySelector("#av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+
+    // Navigate to Hidden posts, which carries both the Restore button and a number input.
+    const navTo = (title) =>
+      [...shadow.querySelectorAll(".av-nav-item")].find((item) => item.textContent === title);
+    navTo("Hidden posts")?.click();
+
+    const numberInput = () =>
+      [...shadow.querySelectorAll(".av-row")]
+        .map((row) => row.querySelector('input[type="number"]'))
+        .find(Boolean);
+
+    const input = numberInput();
+    const original = input.value;
+    const edited = String(Number(original) + 7);
+    input.value = edited;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    const stagedSaveDisabled = shadow.querySelector(".av-transaction-save").disabled;
+
+    // The reported path: an unguarded row action that repaints the whole section.
+    [...shadow.querySelectorAll("button")].find((b) => b.textContent === "Restore")?.click();
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
+    const survived = numberInput().value;
+    shadow.querySelector(".av-transaction-save").click();
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
+    const statusNode = shadow.querySelector(".av-status");
+    const out = {
+      original,
+      edited,
+      stagedSaveDisabled,
+      survived,
+      unhidden,
+      saved,
+      status: statusNode.textContent,
+      state: statusNode.dataset.state,
+      committed: settings.hidden.maxEntries
+    };
+    handle.destroy();
+    return out;
+  });
+
+  assert.equal(result.stagedSaveDisabled, false, "staging an edit must enable Save");
+  assert.equal(result.unhidden, 1, "the row action must still run");
+  assert.equal(result.survived, result.edited, "the rebuild must carry the staged value onto the new row");
+  assert.equal(result.state, "saved", `the surviving edit must commit, status was ${result.status}`);
+  assert.equal(String(result.committed), result.edited, "the committed value must be the typed one");
+  assert.equal(result.saved, 1, "the edit must reach onChange exactly once");
+});
