@@ -75,6 +75,7 @@ export class ProfileManager {
   #state: ProfileState = EMPTY;
   #activeId = DEFAULT_PROFILE_ID;
   #legacyDataAvailable = false;
+  #legacySweep: Promise<void> = Promise.resolve();
   #loaded = false;
 
   constructor(base: StorageGateway) {
@@ -97,8 +98,33 @@ export class ProfileManager {
         lastUsedAt: new Date().toISOString()
       });
     }
-    this.#legacyDataAvailable = await this.hasLegacyData();
     this.#loaded = true;
+    // Deferred to a later task, not merely left unawaited. The answer drives one optional panel
+    // row and nothing on the timeline, while the walk is 28 storage reads -- 25 of them separate
+    // IndexedDB transactions -- and main.ts awaits this before a single feature initializes.
+    // Issuing the reads in this task would still put them in front of the first paint even if
+    // nothing waited for the results.
+    this.#legacySweep = new Promise<void>((resolve) => {
+      setTimeout(() => {
+        this.#refreshLegacyAvailability().then(resolve, resolve);
+      }, 0);
+    });
+  }
+
+  /**
+   * Whether a pre-profile install left data outside the active profile.
+   *
+   * Awaitable so a caller that genuinely needs the answer -- a test, or a panel that wants to be
+   * sure -- can wait for it rather than reading a value that has not been computed yet. Boot does
+   * not wait, because it does not need to.
+   */
+  async legacyDataSettled(): Promise<boolean> {
+    await this.#legacySweep;
+    return this.#legacyDataAvailable;
+  }
+
+  async #refreshLegacyAvailability(): Promise<void> {
+    this.#legacyDataAvailable = await this.hasLegacyData();
   }
 
   get activeId(): string {
@@ -161,15 +187,24 @@ export class ProfileManager {
       await this.#base.remove(key);
       moved += 1;
     }
-    this.#legacyDataAvailable = await this.hasLegacyData();
+    this.#legacySweep = this.#refreshLegacyAvailability();
+    await this.#legacySweep;
     return { moved, skipped };
   }
 
+  /**
+   * One round of reads rather than 28 in series.
+   *
+   * The old loop returned on the first hit, which sounds cheaper and is the opposite on the path
+   * that matters: a fresh install has none of these keys, so it always ran all 28 to completion,
+   * one await at a time. Asking for them together lets the durable gateway overlap them, and the
+   * early-exit saving it gives up only ever applied to installs that had legacy data anyway.
+   */
   async hasLegacyData(): Promise<boolean> {
-    for (const key of PROFILE_MIGRATION_KEYS) {
-      if ((await this.#base.get<unknown>(key, undefined)) !== undefined) return true;
-    }
-    return false;
+    const found = await Promise.all(
+      PROFILE_MIGRATION_KEYS.map((key) => this.#base.get<unknown>(key, undefined))
+    );
+    return found.some((value) => value !== undefined);
   }
 
   async #persist(): Promise<void> {

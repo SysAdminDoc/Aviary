@@ -36010,6 +36010,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     #state = EMPTY8;
     #activeId = DEFAULT_PROFILE_ID;
     #legacyDataAvailable = false;
+    #legacySweep = Promise.resolve();
     #loaded = false;
     constructor(base) {
       this.#base = base;
@@ -36030,8 +36031,26 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           lastUsedAt: (/* @__PURE__ */ new Date()).toISOString()
         });
       }
-      this.#legacyDataAvailable = await this.hasLegacyData();
       this.#loaded = true;
+      this.#legacySweep = new Promise((resolve) => {
+        setTimeout(() => {
+          this.#refreshLegacyAvailability().then(resolve, resolve);
+        }, 0);
+      });
+    }
+    /**
+     * Whether a pre-profile install left data outside the active profile.
+     *
+     * Awaitable so a caller that genuinely needs the answer -- a test, or a panel that wants to be
+     * sure -- can wait for it rather than reading a value that has not been computed yet. Boot does
+     * not wait, because it does not need to.
+     */
+    async legacyDataSettled() {
+      await this.#legacySweep;
+      return this.#legacyDataAvailable;
+    }
+    async #refreshLegacyAvailability() {
+      this.#legacyDataAvailable = await this.hasLegacyData();
     }
     get activeId() {
       return this.#activeId;
@@ -36089,14 +36108,23 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         await this.#base.remove(key);
         moved += 1;
       }
-      this.#legacyDataAvailable = await this.hasLegacyData();
+      this.#legacySweep = this.#refreshLegacyAvailability();
+      await this.#legacySweep;
       return { moved, skipped };
     }
+    /**
+     * One round of reads rather than 28 in series.
+     *
+     * The old loop returned on the first hit, which sounds cheaper and is the opposite on the path
+     * that matters: a fresh install has none of these keys, so it always ran all 28 to completion,
+     * one await at a time. Asking for them together lets the durable gateway overlap them, and the
+     * early-exit saving it gives up only ever applied to installs that had legacy data anyway.
+     */
     async hasLegacyData() {
-      for (const key of PROFILE_MIGRATION_KEYS) {
-        if (await this.#base.get(key, void 0) !== void 0) return true;
-      }
-      return false;
+      const found = await Promise.all(
+        PROFILE_MIGRATION_KEYS.map((key) => this.#base.get(key, void 0))
+      );
+      return found.some((value) => value !== void 0);
     }
     async #persist() {
       await this.#base.set(PROFILE_REGISTRY_KEY, this.#state);

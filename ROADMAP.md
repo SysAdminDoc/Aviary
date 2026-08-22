@@ -161,16 +161,6 @@ Numbering continues the existing `F<n>` scheme from F211. Every P0 and P1 item w
   Effort: M
   Blocked: needs a signed-in operator to save the two MHTML captures. Nothing in the repo logs in or fetches.
 
-- [ ] P3 — F240, Boot performs 28 serial storage round-trips to compute a boolean that only drives a UI hint
-  Category: perf
-  Where: `src/platform/profile.ts:107` (`this.#legacyDataAvailable = await this.hasLegacyData()`), called from `load()`, which `src/main.ts:130` awaits before any feature initializes. The loop is `profile.ts:158-163` over the 28 entries of `PROFILE_MIGRATION_KEYS` (`:7-33`).
-  Problem: `hasLegacyData` awaits one `#base.get` per key and returns on the first hit. Twenty-five of those keys match `#isDurable`, so each is a separate IndexedDB read transaction through `DurableStorageGateway`. On a fresh install none of them hit, so the full 28 run to completion, in series, on the boot critical path — and the only consumer of the result is `legacyDataAvailable` in `ProfileStatus`, which the panel uses to decide whether to offer the "Assign legacy data here" row. `DurableStorageGateway.initialize` (`durable-storage.ts:127-141`) has already walked a 27-key list serially just before this.
-  Evidence: read at the cited lines; `PROFILE_MIGRATION_KEYS` has 28 entries and `hasLegacyData` is a bare `for … await` with no batching and no caching between boots.
-  Fix: compute it lazily — the panel is the only reader, so have `status()` resolve it on demand and cache the answer, or persist a one-time "legacy swept" marker after the first negative sweep so later boots skip the walk entirely. If it must stay eager, run the reads with `Promise.all` and let the gateway coalesce.
-  Acceptance: a boot with no legacy data performs at most a small constant number of storage reads before `registry.initAll`, asserted with a counting stub gateway in `tests/profile.test.mjs`.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P3 — F258, The exported viewer still carries a hand-maintained locale table
   Category: maintainability
   Where: `src/features/export/viewer.ts:142-143`, inside the generated script.
