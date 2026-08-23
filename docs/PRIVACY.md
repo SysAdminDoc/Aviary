@@ -1,6 +1,6 @@
 # Aviary Privacy Manifest
 
-Updated: 2026-08-22 · release 1.47.0
+Updated: 2026-08-23 · release 1.47.0
 
 ## Defaults and network boundaries
 
@@ -47,11 +47,15 @@ metadata.
 
 ## Data stored locally
 
-The logical keys below are stored in the active profile. The durable-storage backend uses the
-browser's IndexedDB database `aviary.durable.v1` when available and falls back to the extension or
-userscript storage backend when it cannot open. Profile-scoped copies may be prefixed with
-`aviary.profile.<profileId>.`; the Control Center's Trust section reports the active backend,
-schema, migration, usage, and quota status.
+The logical keys below are stored in the active profile. The extension owns one IndexedDB database,
+`aviary.durable.v1`, in its background origin. Content scripts and options use a typed extension
+message API and cannot open that active database from X. On upgrade, the content script reads only
+the old X-origin database, sends each value with a SHA-256 receipt, checks the background readback,
+then deletes the old database. A failed or interrupted copy leaves the source intact for retry.
+The userscript uses `GM_getValue`, `GM_setValue`, and `GM_deleteValue` only, never X storage, and
+refuses a measured value above 16 MiB explicitly. Profile-scoped copies may be prefixed with
+`aviary.profile.<profileId>.`; Trust reports the active backend, schema, migration, usage, and quota
+status.
 
 | Key | Data | Purpose and user control |
 |---|---|---|

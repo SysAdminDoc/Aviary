@@ -11,6 +11,7 @@ import { createStorageGateway } from "../platform/storage.ts";
 import { createDurableStorageGateway } from "../platform/durable-storage.ts";
 import { ACTIVE_PROFILE_KEY, DEFAULT_PROFILE_ID, createProfileStorageGateway } from "../platform/profile.ts";
 import { SETTINGS_KEY } from "../platform/settings.ts";
+import { createExtensionDurableStorageBackend } from "../extension/durable-storage-api.ts";
 
 export const MEDIA_ORIGINS = ["https://pbs.twimg.com/*", "https://video.twimg.com/*"];
 
@@ -46,7 +47,12 @@ const RTL_LOCALES = new Set(["ar", "he"]);
  */
 async function readLocale(): Promise<string> {
   try {
-    const durable = createDurableStorageGateway(createStorageGateway("aviary"));
+    const backend = createExtensionDurableStorageBackend();
+    if (!backend) throw new Error("Extension durable storage is unavailable");
+    const durable = createDurableStorageGateway(
+      createStorageGateway("aviary", { mode: "extension" }),
+      { backend }
+    );
     const activeId = await durable.get<string | null>(ACTIVE_PROFILE_KEY, null);
     const scoped = createProfileStorageGateway(durable, activeId ?? DEFAULT_PROFILE_ID);
     const settings = await scoped.get<{ i18n?: { locale?: unknown } } | null>(SETTINGS_KEY, null);

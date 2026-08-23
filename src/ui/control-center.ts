@@ -1656,6 +1656,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         ? "IndexedDB"
         : status.backend === "indexeddb-fallback"
           ? "IndexedDB fallback"
+          : status.backend === "userscript-manager"
+            ? "Userscript manager"
           : "Browser storage";
     const usage = status.usageBytes === null ? "usage unavailable" : `${formatBytes(status.usageBytes)} used`;
     const quota = status.quotaBytes === null ? "quota unavailable" : `${formatBytes(status.quotaBytes)} available`;

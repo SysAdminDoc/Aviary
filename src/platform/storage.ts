@@ -1,3 +1,5 @@
+import { storageValueBytes } from "./storage-value-hash.ts";
+
 export interface StorageGateway {
   get<T>(key: string, fallback: T): Promise<T>;
   set<T>(key: string, value: T): Promise<void>;
@@ -6,7 +8,7 @@ export interface StorageGateway {
 }
 
 export interface StorageStatus {
-  backend: "legacy" | "indexeddb" | "indexeddb-fallback";
+  backend: "legacy" | "indexeddb" | "indexeddb-fallback" | "userscript-manager";
   schemaVersion: number;
   migratedKeys: number;
   usageBytes: number | null;
@@ -24,6 +26,32 @@ type GlobalWithUserscriptStorage = typeof globalThis & {
   GM_setValue?: <T>(key: string, value: T) => void | Promise<void>;
   GM_deleteValue?: (key: string) => void | Promise<void>;
 };
+
+export const USERSCRIPT_MANAGER_VALUE_LIMIT_BYTES = 16 * 1024 * 1024;
+
+export interface StorageGatewayOptions {
+  /** Prevents an extension or userscript entrypoint from falling through to the page origin. */
+  mode?: "auto" | "extension" | "userscript";
+  userscriptValueLimitBytes?: number;
+}
+
+export class UserscriptStorageCapacityError extends Error {
+  readonly code = "userscript-storage-capacity";
+  readonly key: string;
+  readonly measuredBytes: number;
+  readonly limitBytes: number;
+
+  constructor(key: string, measuredBytes: number, limitBytes: number) {
+    super(
+      `The userscript manager refused ${key}: ${measuredBytes} bytes exceeds Aviary's ` +
+        `${limitBytes}-byte per-value safety limit.`
+    );
+    this.name = "UserscriptStorageCapacityError";
+    this.key = key;
+    this.measuredBytes = measuredBytes;
+    this.limitBytes = limitBytes;
+  }
+}
 
 /**
  * Notified whenever a write fails, before the error is rethrown to the caller.
@@ -46,7 +74,10 @@ export function reportStorageError(key: string, error: unknown, op: "read" | "wr
   onWriteError?.(key, error, op);
 }
 
-export function createStorageGateway(namespace = "aviary"): StorageGateway {
+export function createStorageGateway(
+  namespace = "aviary",
+  options: StorageGatewayOptions = {}
+): StorageGateway {
   const scoped = (key: string) => {
     if (namespace.length === 0 || key.startsWith(`${namespace}.`)) {
       return key;
@@ -54,22 +85,39 @@ export function createStorageGateway(namespace = "aviary"): StorageGateway {
     return `${namespace}.${key}`;
   };
   const globals = globalThis as GlobalWithUserscriptStorage;
+  const mode = options.mode ?? "auto";
+  const managerLimit = Math.max(
+    1,
+    Math.floor(options.userscriptValueLimitBytes ?? USERSCRIPT_MANAGER_VALUE_LIMIT_BYTES)
+  );
+
+  if (
+    mode === "userscript" &&
+    (typeof globals.GM_getValue !== "function" ||
+      typeof globals.GM_setValue !== "function" ||
+      typeof globals.GM_deleteValue !== "function")
+  ) {
+    throw new Error("The userscript manager did not expose its storage API");
+  }
+  if (mode === "extension" && !globalThis.chrome?.storage?.local) {
+    throw new Error("Extension storage is unavailable");
+  }
 
   return {
     async get<T>(key: string, fallback: T): Promise<T> {
       const storageKey = scoped(key);
 
       try {
-        if (typeof globals.GM_getValue === "function") {
+        if (mode !== "extension" && typeof globals.GM_getValue === "function") {
           return await globals.GM_getValue(storageKey, fallback);
         }
 
-        if (globalThis.chrome?.storage?.local) {
+        if (mode !== "userscript" && globalThis.chrome?.storage?.local) {
           const result = await globalThis.chrome.storage.local.get(storageKey);
           return result[storageKey] === undefined ? fallback : (result[storageKey] as T);
         }
 
-        const raw = globalThis.localStorage?.getItem(storageKey);
+        const raw = mode === "auto" ? globalThis.localStorage?.getItem(storageKey) : null;
         return raw === null || raw === undefined ? fallback : (JSON.parse(raw) as T);
       } catch (error) {
         reportStorageError(storageKey, error, "read");
@@ -87,17 +135,21 @@ export function createStorageGateway(namespace = "aviary"): StorageGateway {
       // the failure is no longer invisible. A quota error here is the difference between "a
       // setting did not stick" and "the browser store is full".
       try {
-        if (typeof globals.GM_setValue === "function") {
+        if (mode !== "extension" && typeof globals.GM_setValue === "function") {
+          const measuredBytes = storageValueBytes(value);
+          if (measuredBytes > managerLimit) {
+            throw new UserscriptStorageCapacityError(storageKey, measuredBytes, managerLimit);
+          }
           await globals.GM_setValue(storageKey, value);
           return;
         }
 
-        if (globalThis.chrome?.storage?.local) {
+        if (mode !== "userscript" && globalThis.chrome?.storage?.local) {
           await globalThis.chrome.storage.local.set({ [storageKey]: value });
           return;
         }
 
-        if (globalThis.localStorage) {
+        if (mode === "auto" && globalThis.localStorage) {
           globalThis.localStorage.setItem(storageKey, JSON.stringify(value));
           return;
         }
@@ -117,17 +169,17 @@ export function createStorageGateway(namespace = "aviary"): StorageGateway {
       // to propagate as an unreported rejection while the comment at the top of this file promised
       // the opposite.
       try {
-        if (typeof globals.GM_deleteValue === "function") {
+        if (mode !== "extension" && typeof globals.GM_deleteValue === "function") {
           await globals.GM_deleteValue(storageKey);
           return;
         }
 
-        if (globalThis.chrome?.storage?.local) {
+        if (mode !== "userscript" && globalThis.chrome?.storage?.local) {
           await globalThis.chrome.storage.local.remove(storageKey);
           return;
         }
 
-        if (globalThis.localStorage) {
+        if (mode === "auto" && globalThis.localStorage) {
           globalThis.localStorage.removeItem(storageKey);
           return;
         }

@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Security
+- Extension settings, queues, notes, archives, and signing identity now live in one
+  background-owned IndexedDB database. X pages can no longer enumerate Aviary's active database,
+  and the options page reads the same active profile as the feed.
+- Updates copy the database left by older content scripts, compare SHA-256 receipts for every
+  value, and delete the X-origin copy only after readback succeeds. A failed copy remains available
+  for the next retry.
+
+### Changed
+- The userscript now keeps durable records in its manager store and reports an explicit capacity
+  error before a single stored value exceeds 16 MiB.
+
 ## 1.47.0 (2026-08-22)
 
 ### Changed

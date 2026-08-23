@@ -10,14 +10,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P0, Now
 
-- [ ] F273, P0: Move durable data out of the x.com storage origin
-  Why: the extension content script opens `aviary.durable.v1` in the host-page origin, while options opens the same name in the extension origin. Local records can be visible to x.com scripts and split between two databases.
-  Evidence: `src/entrypoints/extension-content.ts`, `src/main.ts:147`, `src/entrypoints/extension-options.ts:49`, `src/platform/durable-storage.ts:377`; https://developer.chrome.com/docs/extensions/develop/concepts/storage-and-cookies
-  Touches: `src/platform/durable-storage.ts`, `src/platform/storage.ts`, `src/main.ts`, `src/entrypoints/extension-background.ts`, `src/entrypoints/extension-content.ts`, `src/entrypoints/extension-options.ts`, storage and smoke tests
-  Acceptance: extension IndexedDB opens only in the extension background origin behind a typed request API; content and options read the same active profile; an upgrade copies every legacy and host-origin record, verifies per-key hashes, then deletes the old database; an x.com page cannot enumerate `aviary.durable.v1` after migration; a worker restart preserves all data; the userscript stores durable records in manager-owned storage and refuses an oversized write explicitly if the measured manager limit is reached.
-  Complexity: XL
-  Depends: None.
-
 - [ ] F274, P0: Make fallback-write reconciliation atomic
   Why: `#markPending()` and `#reconcilePendingWrites()` replace one shared pending-key array without a common transaction, so concurrent fallback writes can lose the only marker that says legacy data is newer.
   Evidence: `src/platform/durable-storage.ts:307-365`; https://www.w3.org/TR/IndexedDB-3/; https://w3c.github.io/web-locks/

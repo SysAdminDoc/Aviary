@@ -27,6 +27,10 @@ The userscript declares only the grants it uses:
 - `unsafeWindow` for the page-world X GraphQL observer used by opt-in capture and media discovery.
 - `@connect pbs.twimg.com` and `@connect video.twimg.com` for cross-origin media downloads.
 
+Settings and library records stay in the userscript manager's value store. Aviary does not use
+X's localStorage or IndexedDB for active userscript data. A single manager value is measured before
+writing and is refused with a visible capacity error above 16 MiB, instead of failing silently.
+
 No permission prompt is needed for the local prompt builder, snapshots, bookmarks, notes, archive
 import, Under the Hood JSON reader, or local export formats. Provider integrations remain disabled
 until configured in the Control Center.
@@ -56,6 +60,11 @@ download access**. Optional media-host access for
 `pbs.twimg.com` and `video.twimg.com` is requested separately by **Grant media hosts**. Both can be
 revoked from the same page. Media buttons remain available without either optional grant; without
 `downloads`, a cross-origin anchor may open the media instead of claiming it was saved.
+
+The extension's durable database belongs to its background origin. X content scripts and the
+options page reach it through extension messages and therefore share the same active profile. An
+upgrade checks and removes the older X-origin database after a verified copy; if copying fails, the
+old database is kept for the next retry.
 
 To manage permissions later, open the extension's **Options** page from the extensions manager (or
 the Aviary options link). The page reports live grant state and never writes settings or makes a

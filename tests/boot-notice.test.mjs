@@ -109,8 +109,9 @@ test("the notice mounts before body exists, because boot starts at document-star
  * `bootInternal` opens its own guard at the first feature, so storage initialization, the profile
  * load, the settings read and the audit log all ran outside it. Both entrypoints call `boot()` as
  * `void boot(...)`, so a rejection there went nowhere: the page kept `data-av-ready="booting"`, the
- * user saw an enhancer that silently did nothing, and the page bridge stayed installed. This drives
- * the earliest awaited step by making the storage backend unreachable at construction.
+ * user saw an enhancer that silently did nothing, and the page bridge stayed installed. Extension
+ * storage now lives in the background, so this drives the earlier host-migration read instead of
+ * pretending the active database is still constructed on x.com.
  */
 test("a failure before the first feature still reports itself", async () => {
   const result = await page.evaluate(async () => {
@@ -118,6 +119,15 @@ test("a failure before the first feature still reports itself", async () => {
     delete document.documentElement.dataset.avReady;
 
     const original = Object.getOwnPropertyDescriptor(globalThis, "indexedDB");
+    const originalChrome = globalThis.chrome;
+    globalThis.chrome = {
+      runtime: {
+        id: "fixture-extension",
+        async sendMessage() {
+          return { ok: false, error: "background must not be reached" };
+        }
+      }
+    };
     Object.defineProperty(globalThis, "indexedDB", {
       configurable: true,
       get() {
@@ -134,6 +144,8 @@ test("a failure before the first feature still reports itself", async () => {
 
     if (original) Object.defineProperty(globalThis, "indexedDB", original);
     else delete globalThis.indexedDB;
+    if (originalChrome) globalThis.chrome = originalChrome;
+    else delete globalThis.chrome;
 
     const notice = document.getElementById("av-boot-notice");
     return {

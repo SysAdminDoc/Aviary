@@ -197,6 +197,14 @@ deterministic settings harness for ad-hoc captures.
 
 Aviary is designed to keep account data local. It sends no telemetry, never reads or exports cookies or auth headers, and loads no remote code. Credentials you enter for optional integrations are stored locally and are redacted when you export settings.
 
+The extension keeps durable settings and library records in one IndexedDB database owned by its
+background worker. Content scripts and the options page use a typed extension message API, so X
+page scripts cannot inspect the active database. On the first updated X page, Aviary copies any
+database left by an older content-script build, checks every copied value with SHA-256, and deletes
+the old page-origin database only after those checks pass. The userscript never opens an X-origin
+database. It uses the manager's own value store and reports a clear storage-capacity error before a
+single value exceeds 16 MiB.
+
 AI and embedding calls are opt-in and show the destination, fields, estimated size, retention
 notice, network status, and budget before provider work begins. Per-request and daily UTF-8 byte
 limits are configurable in Integrations; profile-scoped usage history stores counters only, never

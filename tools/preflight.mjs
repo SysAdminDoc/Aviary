@@ -380,6 +380,28 @@ async function checkBundles() {
       }
     }
 
+    try {
+      const [content, background, options] = await Promise.all([
+        readFile(contentPath, "utf8"),
+        readFile(bgPath, "utf8"),
+        readFile(optionsPath, "utf8")
+      ]);
+      if (content.includes("function createIndexedDbStorageBackend") || content.includes("class IndexedDbStorageBackend")) {
+        failures.push(`${target}: content bundle contains the active IndexedDB backend`);
+      }
+      if (options.includes("indexedDB")) {
+        failures.push(`${target}: options bundle opens IndexedDB instead of using the background API`);
+      }
+      if (!background.includes("createIndexedDbStorageBackend") || !background.includes("AVIARY_DURABLE_STORAGE")) {
+        failures.push(`${target}: background bundle does not own the typed durable-storage API`);
+      }
+      if (!content.includes("migrateLegacyHostDurableStorage") || !content.includes("deleteDatabase")) {
+        failures.push(`${target}: content bundle is missing verified legacy-host migration cleanup`);
+      }
+    } catch (error) {
+      failures.push(`${target}: durable-storage bundle audit failed (${(error).message})`);
+    }
+
     // MV3's page CSP rejects inline script; catch it here rather than at store review.
     const htmlPath = path.join(root, "dist", target, "options.html");
     try {

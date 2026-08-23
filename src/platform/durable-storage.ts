@@ -1,4 +1,5 @@
 import { reportStorageError, type StorageGateway, type StorageStatus } from "./storage.ts";
+import { hashStorageValue } from "./storage-value-hash.ts";
 
 export const DURABLE_STORAGE_SCHEMA_VERSION = 1;
 
@@ -65,13 +66,14 @@ export interface DurableStorageBackend {
 export interface DurableStorageOptions {
   backend?: DurableStorageBackend | null;
   namespace?: string;
+  legacyBackend?: "legacy" | "userscript-manager";
 }
 
-const DATABASE_NAME = "aviary.durable.v1";
-const OBJECT_STORE = "values";
-const META_KEY = "__aviary_meta__";
+export const DURABLE_DATABASE_NAME = "aviary.durable.v1";
+export const DURABLE_OBJECT_STORE = "values";
+export const DURABLE_META_KEY = "__aviary_meta__";
 
-interface IndexedValue {
+export interface DurableIndexedValue {
   key: string;
   value: unknown;
   updatedAt: string;
@@ -86,6 +88,7 @@ export class DurableStorageGateway implements StorageGateway {
   readonly #legacy: StorageGateway;
   readonly #backend: DurableStorageBackend | null;
   readonly #namespace: string;
+  readonly #legacyBackend: "legacy" | "userscript-manager";
   #initialized = false;
   #usable = true;
   #status: StorageStatus = {
@@ -98,12 +101,23 @@ export class DurableStorageGateway implements StorageGateway {
     lastError: null
   };
 
-  constructor(legacy: StorageGateway, backend: DurableStorageBackend | null, namespace = "aviary") {
+  constructor(
+    legacy: StorageGateway,
+    backend: DurableStorageBackend | null,
+    namespace = "aviary",
+    legacyBackend: "legacy" | "userscript-manager" = "legacy"
+  ) {
     this.#legacy = legacy;
     this.#backend = backend;
     this.#namespace = namespace;
+    this.#legacyBackend = legacyBackend;
     if (backend) {
       this.#status.backend = "indexeddb";
+    } else {
+      this.#status.backend = legacyBackend;
+      if (legacyBackend === "userscript-manager") {
+        this.#status.schemaVersion = DURABLE_STORAGE_SCHEMA_VERSION;
+      }
     }
   }
 
@@ -146,6 +160,13 @@ export class DurableStorageGateway implements StorageGateway {
         migratedAt: new Date().toISOString()
       };
       await this.#backend.putMany(entries, meta);
+
+      // A committed transaction is not enough evidence to delete the only old copy. Hash every
+      // value as read back through the backend first; a mismatched clone or partial implementation
+      // leaves legacy untouched and retries on the next boot.
+      await Promise.all(
+        entries.map(([key, value]) => verifyBackendValue(this.#backend!, key, value))
+      );
 
       for (const [key] of entries) {
         try {
@@ -200,6 +221,7 @@ export class DurableStorageGateway implements StorageGateway {
       const legacy = await this.#legacy.get<T | undefined>(key, undefined);
       if (legacy !== undefined) {
         await this.#backend.put(scopedKey, legacy);
+        await verifyBackendValue(this.#backend, scopedKey, legacy);
         try {
           await this.#legacy.remove(key);
         } catch (error) {
@@ -378,18 +400,28 @@ export function createDurableStorageGateway(
   legacy: StorageGateway,
   options: DurableStorageOptions = {}
 ): DurableStorageGateway {
-  const backend = options.backend === undefined ? createIndexedDbBackend() : options.backend;
-  return new DurableStorageGateway(legacy, backend, options.namespace ?? "aviary");
+  // Safe by default. Only the extension background calls createIndexedDbStorageBackend(); page
+  // and options bundles must receive an explicit remote backend or remain on their owned legacy
+  // gateway. This prevents a future call site from reopening the active database on x.com.
+  const backend = options.backend ?? null;
+  return new DurableStorageGateway(
+    legacy,
+    backend,
+    options.namespace ?? "aviary",
+    options.legacyBackend ?? "legacy"
+  );
 }
 
-function createIndexedDbBackend(): DurableStorageBackend | null {
-  if (!globalThis.indexedDB) {
+export function createIndexedDbStorageBackend(
+  factory: IDBFactory | undefined = globalThis.indexedDB
+): DurableStorageBackend | null {
+  if (!factory) {
     return null;
   }
-  return new IndexedDbStorageBackend(globalThis.indexedDB);
+  return new IndexedDbStorageBackend(factory);
 }
 
-class IndexedDbStorageBackend implements DurableStorageBackend {
+export class IndexedDbStorageBackend implements DurableStorageBackend {
   readonly #database: Promise<IDBDatabase>;
 
   constructor(factory: IDBFactory) {
@@ -398,14 +430,19 @@ class IndexedDbStorageBackend implements DurableStorageBackend {
 
   async get(key: string): Promise<unknown | undefined> {
     const database = await this.#database;
-    const record = await idbRequest<IndexedValue | undefined>(database.transaction(OBJECT_STORE, "readonly").objectStore(OBJECT_STORE).get(key));
+    const record = await idbRequest<DurableIndexedValue | undefined>(
+      database
+        .transaction(DURABLE_OBJECT_STORE, "readonly")
+        .objectStore(DURABLE_OBJECT_STORE)
+        .get(key)
+    );
     return record?.value;
   }
 
   async put(key: string, value: unknown): Promise<void> {
     const database = await this.#database;
     await idbTransaction(database, "readwrite", (store) => {
-      store.put({ key, value, updatedAt: new Date().toISOString() } satisfies IndexedValue);
+      store.put({ key, value, updatedAt: new Date().toISOString() } satisfies DurableIndexedValue);
     });
   }
 
@@ -417,17 +454,21 @@ class IndexedDbStorageBackend implements DurableStorageBackend {
   }
 
   async getMeta(): Promise<DurableStorageMeta | undefined> {
-    const value = await this.get(META_KEY);
-    return isMeta(value) ? value : undefined;
+    const value = await this.get(DURABLE_META_KEY);
+    return isDurableStorageMeta(value) ? value : undefined;
   }
 
   async putMany(entries: ReadonlyArray<readonly [string, unknown]>, meta: DurableStorageMeta): Promise<void> {
     const database = await this.#database;
     await idbTransaction(database, "readwrite", (store) => {
       for (const [key, value] of entries) {
-        store.put({ key, value, updatedAt: new Date().toISOString() } satisfies IndexedValue);
+        store.put({ key, value, updatedAt: new Date().toISOString() } satisfies DurableIndexedValue);
       }
-      store.put({ key: META_KEY, value: meta, updatedAt: new Date().toISOString() } satisfies IndexedValue);
+      store.put({
+        key: DURABLE_META_KEY,
+        value: meta,
+        updatedAt: new Date().toISOString()
+      } satisfies DurableIndexedValue);
     });
   }
 
@@ -439,10 +480,10 @@ class IndexedDbStorageBackend implements DurableStorageBackend {
 
 function openDatabase(factory: IDBFactory): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = factory.open(DATABASE_NAME, DURABLE_STORAGE_SCHEMA_VERSION);
+    const request = factory.open(DURABLE_DATABASE_NAME, DURABLE_STORAGE_SCHEMA_VERSION);
     request.onupgradeneeded = () => {
-      if (!request.result.objectStoreNames.contains(OBJECT_STORE)) {
-        request.result.createObjectStore(OBJECT_STORE, { keyPath: "key" });
+      if (!request.result.objectStoreNames.contains(DURABLE_OBJECT_STORE)) {
+        request.result.createObjectStore(DURABLE_OBJECT_STORE, { keyPath: "key" });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -464,8 +505,8 @@ function idbTransaction(
   action: (store: IDBObjectStore) => void
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const transaction = database.transaction(OBJECT_STORE, mode);
-    const store = transaction.objectStore(OBJECT_STORE);
+    const transaction = database.transaction(DURABLE_OBJECT_STORE, mode);
+    const store = transaction.objectStore(DURABLE_OBJECT_STORE);
     try {
       action(store);
     } catch (error) {
@@ -479,7 +520,7 @@ function idbTransaction(
   });
 }
 
-function isMeta(value: unknown): value is DurableStorageMeta {
+export function isDurableStorageMeta(value: unknown): value is DurableStorageMeta {
   if (!value || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;
   return (
@@ -492,4 +533,22 @@ function isMeta(value: unknown): value is DurableStorageMeta {
 
 function finiteOrNull(value: number | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+async function verifyBackendValue(
+  backend: DurableStorageBackend,
+  key: string,
+  expectedValue: unknown
+): Promise<void> {
+  const actualValue = await backend.get(key);
+  if (actualValue === undefined) {
+    throw new Error(`Durable migration did not retain ${key}`);
+  }
+  const [expectedHash, actualHash] = await Promise.all([
+    hashStorageValue(expectedValue),
+    hashStorageValue(actualValue)
+  ]);
+  if (expectedHash !== actualHash) {
+    throw new Error(`Durable migration hash mismatch for ${key}`);
+  }
 }

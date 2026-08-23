@@ -8488,7 +8488,7 @@ ${body}
       if (!status2) {
         return readonlyRow("Storage", "Settings stay in this browser.");
       }
-      const backend = status2.backend === "indexeddb" ? "IndexedDB" : status2.backend === "indexeddb-fallback" ? "IndexedDB fallback" : "Browser storage";
+      const backend = status2.backend === "indexeddb" ? "IndexedDB" : status2.backend === "indexeddb-fallback" ? "IndexedDB fallback" : status2.backend === "userscript-manager" ? "Userscript manager" : "Browser storage";
       const usage = status2.usageBytes === null ? "usage unavailable" : `${formatBytes(status2.usageBytes)} used`;
       const quota = status2.quotaBytes === null ? "quota unavailable" : `${formatBytes(status2.quotaBytes)} available`;
       const error = status2.lastError ? ` \xB7 ${status2.lastError}` : "";
@@ -35658,7 +35658,83 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     return "unknown";
   }
 
+  // src/platform/storage-value-hash.ts
+  async function hashStorageValue(value) {
+    const subtle = globalThis.crypto?.subtle;
+    if (!subtle) {
+      throw new Error("SHA-256 is unavailable in this browser context");
+    }
+    const bytes = new TextEncoder().encode(JSON.stringify(canonicalValue(value, /* @__PURE__ */ new Set())));
+    const digest = new Uint8Array(await subtle.digest("SHA-256", bytes));
+    return Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+  function storageValueBytes(value) {
+    const serialized = JSON.stringify(value);
+    if (serialized === void 0) {
+      return new TextEncoder().encode(String(value)).byteLength;
+    }
+    return new TextEncoder().encode(serialized).byteLength;
+  }
+  function canonicalValue(value, seen) {
+    if (value === null) return null;
+    if (typeof value === "string") return value;
+    if (typeof value === "boolean") return ["boolean", value];
+    if (typeof value === "number") {
+      if (Number.isNaN(value)) return ["number", "NaN"];
+      if (value === Number.POSITIVE_INFINITY) return ["number", "Infinity"];
+      if (value === Number.NEGATIVE_INFINITY) return ["number", "-Infinity"];
+      if (Object.is(value, -0)) return ["number", "-0"];
+      return ["number", String(value)];
+    }
+    if (typeof value === "bigint") return ["bigint", value.toString()];
+    if (value === void 0 || typeof value === "function" || typeof value === "symbol") {
+      return ["undefined"];
+    }
+    if (seen.has(value)) {
+      throw new Error("Storage values must not contain cycles");
+    }
+    seen.add(value);
+    try {
+      if (value instanceof Date) return ["date", value.toISOString()];
+      if (value instanceof ArrayBuffer) {
+        return ["bytes", Array.from(new Uint8Array(value))];
+      }
+      if (ArrayBuffer.isView(value)) {
+        return [
+          "bytes",
+          Array.from(new Uint8Array(value.buffer, value.byteOffset, value.byteLength))
+        ];
+      }
+      if (Array.isArray(value)) {
+        return ["array", value.map((entry) => canonicalValue(entry, seen))];
+      }
+      const entries = Object.keys(value).sort().map((key) => [
+        key,
+        canonicalValue(value[key], seen)
+      ]);
+      return ["object", entries];
+    } finally {
+      seen.delete(value);
+    }
+  }
+
   // src/platform/storage.ts
+  var USERSCRIPT_MANAGER_VALUE_LIMIT_BYTES = 16 * 1024 * 1024;
+  var UserscriptStorageCapacityError = class extends Error {
+    code = "userscript-storage-capacity";
+    key;
+    measuredBytes;
+    limitBytes;
+    constructor(key, measuredBytes, limitBytes) {
+      super(
+        `The userscript manager refused ${key}: ${measuredBytes} bytes exceeds Aviary's ${limitBytes}-byte per-value safety limit.`
+      );
+      this.name = "UserscriptStorageCapacityError";
+      this.key = key;
+      this.measuredBytes = measuredBytes;
+      this.limitBytes = limitBytes;
+    }
+  };
   var onWriteError;
   function setStorageErrorSink(sink) {
     onWriteError = sink;
@@ -35666,7 +35742,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   function reportStorageError(key, error, op) {
     onWriteError?.(key, error, op);
   }
-  function createStorageGateway(namespace = "aviary") {
+  function createStorageGateway(namespace = "aviary", options = {}) {
     const scoped = (key) => {
       if (namespace.length === 0 || key.startsWith(`${namespace}.`)) {
         return key;
@@ -35674,18 +35750,29 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       return `${namespace}.${key}`;
     };
     const globals = globalThis;
+    const mode = options.mode ?? "auto";
+    const managerLimit = Math.max(
+      1,
+      Math.floor(options.userscriptValueLimitBytes ?? USERSCRIPT_MANAGER_VALUE_LIMIT_BYTES)
+    );
+    if (mode === "userscript" && (typeof globals.GM_getValue !== "function" || typeof globals.GM_setValue !== "function" || typeof globals.GM_deleteValue !== "function")) {
+      throw new Error("The userscript manager did not expose its storage API");
+    }
+    if (mode === "extension" && !globalThis.chrome?.storage?.local) {
+      throw new Error("Extension storage is unavailable");
+    }
     return {
       async get(key, fallback) {
         const storageKey = scoped(key);
         try {
-          if (typeof globals.GM_getValue === "function") {
+          if (mode !== "extension" && typeof globals.GM_getValue === "function") {
             return await globals.GM_getValue(storageKey, fallback);
           }
-          if (globalThis.chrome?.storage?.local) {
+          if (mode !== "userscript" && globalThis.chrome?.storage?.local) {
             const result = await globalThis.chrome.storage.local.get(storageKey);
             return result[storageKey] === void 0 ? fallback : result[storageKey];
           }
-          const raw = globalThis.localStorage?.getItem(storageKey);
+          const raw = mode === "auto" ? globalThis.localStorage?.getItem(storageKey) : null;
           return raw === null || raw === void 0 ? fallback : JSON.parse(raw);
         } catch (error) {
           reportStorageError(storageKey, error, "read");
@@ -35695,15 +35782,19 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       async set(key, value) {
         const storageKey = scoped(key);
         try {
-          if (typeof globals.GM_setValue === "function") {
+          if (mode !== "extension" && typeof globals.GM_setValue === "function") {
+            const measuredBytes = storageValueBytes(value);
+            if (measuredBytes > managerLimit) {
+              throw new UserscriptStorageCapacityError(storageKey, measuredBytes, managerLimit);
+            }
             await globals.GM_setValue(storageKey, value);
             return;
           }
-          if (globalThis.chrome?.storage?.local) {
+          if (mode !== "userscript" && globalThis.chrome?.storage?.local) {
             await globalThis.chrome.storage.local.set({ [storageKey]: value });
             return;
           }
-          if (globalThis.localStorage) {
+          if (mode === "auto" && globalThis.localStorage) {
             globalThis.localStorage.setItem(storageKey, JSON.stringify(value));
             return;
           }
@@ -35716,15 +35807,15 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       async remove(key) {
         const storageKey = scoped(key);
         try {
-          if (typeof globals.GM_deleteValue === "function") {
+          if (mode !== "extension" && typeof globals.GM_deleteValue === "function") {
             await globals.GM_deleteValue(storageKey);
             return;
           }
-          if (globalThis.chrome?.storage?.local) {
+          if (mode !== "userscript" && globalThis.chrome?.storage?.local) {
             await globalThis.chrome.storage.local.remove(storageKey);
             return;
           }
-          if (globalThis.localStorage) {
+          if (mode === "auto" && globalThis.localStorage) {
             globalThis.localStorage.removeItem(storageKey);
             return;
           }
@@ -35769,13 +35860,13 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     "aviary.archive.library.v1",
     "aviary.waczSigning.v1"
   ];
-  var DATABASE_NAME = "aviary.durable.v1";
-  var OBJECT_STORE = "values";
-  var META_KEY = "__aviary_meta__";
+  var DURABLE_DATABASE_NAME = "aviary.durable.v1";
+  var DURABLE_OBJECT_STORE = "values";
   var DurableStorageGateway = class {
     #legacy;
     #backend;
     #namespace;
+    #legacyBackend;
     #initialized = false;
     #usable = true;
     #status = {
@@ -35787,12 +35878,18 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       pendingWrites: 0,
       lastError: null
     };
-    constructor(legacy, backend, namespace = "aviary") {
+    constructor(legacy, backend, namespace = "aviary", legacyBackend = "legacy") {
       this.#legacy = legacy;
       this.#backend = backend;
       this.#namespace = namespace;
+      this.#legacyBackend = legacyBackend;
       if (backend) {
         this.#status.backend = "indexeddb";
+      } else {
+        this.#status.backend = legacyBackend;
+        if (legacyBackend === "userscript-manager") {
+          this.#status.schemaVersion = DURABLE_STORAGE_SCHEMA_VERSION;
+        }
       }
     }
     async initialize(keys = DURABLE_STORAGE_KEYS) {
@@ -35827,6 +35924,9 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           migratedAt: (/* @__PURE__ */ new Date()).toISOString()
         };
         await this.#backend.putMany(entries, meta);
+        await Promise.all(
+          entries.map(([key, value]) => verifyBackendValue(this.#backend, key, value))
+        );
         for (const [key] of entries) {
           try {
             await this.#legacy.remove(key);
@@ -35875,6 +35975,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         const legacy = await this.#legacy.get(key, void 0);
         if (legacy !== void 0) {
           await this.#backend.put(scopedKey, legacy);
+          await verifyBackendValue(this.#backend, scopedKey, legacy);
           try {
             await this.#legacy.remove(key);
           } catch (error) {
@@ -36027,97 +36128,34 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     }
   };
   function createDurableStorageGateway(legacy, options = {}) {
-    const backend = options.backend === void 0 ? createIndexedDbBackend() : options.backend;
-    return new DurableStorageGateway(legacy, backend, options.namespace ?? "aviary");
+    const backend = options.backend ?? null;
+    return new DurableStorageGateway(
+      legacy,
+      backend,
+      options.namespace ?? "aviary",
+      options.legacyBackend ?? "legacy"
+    );
   }
-  function createIndexedDbBackend() {
-    if (!globalThis.indexedDB) {
-      return null;
-    }
-    return new IndexedDbStorageBackend(globalThis.indexedDB);
-  }
-  var IndexedDbStorageBackend = class {
-    #database;
-    constructor(factory) {
-      this.#database = openDatabase(factory);
-    }
-    async get(key) {
-      const database = await this.#database;
-      const record = await idbRequest(database.transaction(OBJECT_STORE, "readonly").objectStore(OBJECT_STORE).get(key));
-      return record?.value;
-    }
-    async put(key, value) {
-      const database = await this.#database;
-      await idbTransaction(database, "readwrite", (store6) => {
-        store6.put({ key, value, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
-      });
-    }
-    async remove(key) {
-      const database = await this.#database;
-      await idbTransaction(database, "readwrite", (store6) => {
-        store6.delete(key);
-      });
-    }
-    async getMeta() {
-      const value = await this.get(META_KEY);
-      return isMeta(value) ? value : void 0;
-    }
-    async putMany(entries, meta) {
-      const database = await this.#database;
-      await idbTransaction(database, "readwrite", (store6) => {
-        for (const [key, value] of entries) {
-          store6.put({ key, value, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
-        }
-        store6.put({ key: META_KEY, value: meta, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
-      });
-    }
-    async estimate() {
-      const estimate = globalThis.navigator?.storage?.estimate;
-      return estimate ? estimate.call(globalThis.navigator) : {};
-    }
-  };
-  function openDatabase(factory) {
-    return new Promise((resolve, reject) => {
-      const request = factory.open(DATABASE_NAME, DURABLE_STORAGE_SCHEMA_VERSION);
-      request.onupgradeneeded = () => {
-        if (!request.result.objectStoreNames.contains(OBJECT_STORE)) {
-          request.result.createObjectStore(OBJECT_STORE, { keyPath: "key" });
-        }
-      };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error ?? new Error("IndexedDB could not open"));
-      request.onblocked = () => reject(new Error("IndexedDB upgrade is blocked by another tab"));
-    });
-  }
-  function idbRequest(request) {
-    return new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error ?? new Error("IndexedDB request failed"));
-    });
-  }
-  function idbTransaction(database, mode, action) {
-    return new Promise((resolve, reject) => {
-      const transaction = database.transaction(OBJECT_STORE, mode);
-      const store6 = transaction.objectStore(OBJECT_STORE);
-      try {
-        action(store6);
-      } catch (error) {
-        transaction.abort();
-        reject(error);
-        return;
-      }
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error ?? new Error("IndexedDB transaction failed"));
-      transaction.onabort = () => reject(transaction.error ?? new Error("IndexedDB transaction aborted"));
-    });
-  }
-  function isMeta(value) {
+  function isDurableStorageMeta(value) {
     if (!value || typeof value !== "object") return false;
     const record = value;
     return record.schemaVersion === DURABLE_STORAGE_SCHEMA_VERSION && Array.isArray(record.migratedKeys) && record.migratedKeys.every((key) => typeof key === "string") && (record.migratedAt === null || typeof record.migratedAt === "string");
   }
   function finiteOrNull(value) {
     return typeof value === "number" && Number.isFinite(value) ? value : null;
+  }
+  async function verifyBackendValue(backend, key, expectedValue) {
+    const actualValue = await backend.get(key);
+    if (actualValue === void 0) {
+      throw new Error(`Durable migration did not retain ${key}`);
+    }
+    const [expectedHash, actualHash] = await Promise.all([
+      hashStorageValue(expectedValue),
+      hashStorageValue(actualValue)
+    ]);
+    if (expectedHash !== actualHash) {
+      throw new Error(`Durable migration hash mismatch for ${key}`);
+    }
   }
 
   // src/platform/profile.ts
@@ -36398,6 +36436,184 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     return error instanceof Error ? error.message : String(error);
   }
 
+  // src/extension/durable-storage-api.ts
+  var DURABLE_STORAGE_MESSAGE = "AVIARY_DURABLE_STORAGE";
+  var MIGRATION_BATCH_LIMIT = 16;
+  var MAX_KEY_LENGTH = 512;
+  var ExtensionDurableStorageBackend = class {
+    #sendMessage;
+    constructor(sendMessage) {
+      this.#sendMessage = sendMessage;
+    }
+    async get(key) {
+      const result = asRecord4(await this.#call({
+        type: DURABLE_STORAGE_MESSAGE,
+        operation: "get",
+        key
+      }));
+      return result.found === true ? result.value : void 0;
+    }
+    async put(key, value) {
+      await this.#call({ type: DURABLE_STORAGE_MESSAGE, operation: "put", key, value });
+    }
+    async remove(key) {
+      await this.#call({ type: DURABLE_STORAGE_MESSAGE, operation: "remove", key });
+    }
+    async getMeta() {
+      const result = asRecord4(await this.#call({
+        type: DURABLE_STORAGE_MESSAGE,
+        operation: "get-meta"
+      }));
+      return result.found === true && isDurableStorageMeta(result.value) ? result.value : void 0;
+    }
+    async putMany(entries, meta) {
+      await this.#call({
+        type: DURABLE_STORAGE_MESSAGE,
+        operation: "put-many",
+        entries: entries.map(([key, value]) => [key, value]),
+        meta
+      });
+    }
+    async estimate() {
+      const result = asRecord4(await this.#call({
+        type: DURABLE_STORAGE_MESSAGE,
+        operation: "estimate"
+      }));
+      return {
+        ...typeof result.usage === "number" ? { usage: result.usage } : {},
+        ...typeof result.quota === "number" ? { quota: result.quota } : {}
+      };
+    }
+    async migrateHostEntries(entries) {
+      const result = asRecord4(await this.#call({
+        type: DURABLE_STORAGE_MESSAGE,
+        operation: "migrate-host",
+        entries
+      }));
+      const hashes = result.hashes;
+      if (!hashes || typeof hashes !== "object" || Array.isArray(hashes)) {
+        throw new Error("The extension storage migration returned no hash receipts");
+      }
+      const valid = {};
+      for (const [key, hash] of Object.entries(hashes)) {
+        if (typeof hash === "string") valid[key] = hash;
+      }
+      return valid;
+    }
+    async #call(request) {
+      const response = await this.#sendMessage(request);
+      if (!response || typeof response !== "object") {
+        throw new Error("The extension storage background did not answer");
+      }
+      const candidate = response;
+      if (candidate.ok !== true) {
+        throw new Error(candidate.error ?? "The extension storage request failed");
+      }
+      return candidate.result;
+    }
+  };
+  function createExtensionDurableStorageBackend(runtime = globalThis.chrome?.runtime) {
+    if (!runtime?.id || typeof runtime.sendMessage !== "function") {
+      return null;
+    }
+    return new ExtensionDurableStorageBackend((message) => runtime.sendMessage(message));
+  }
+  async function migrateLegacyHostDurableStorage(backend, factory = globalThis.indexedDB) {
+    if (!factory) {
+      return { databaseFound: false, recordsCopied: 0, databaseDeleted: false };
+    }
+    const database = await openLegacyDatabase(factory);
+    if (!database) {
+      return { databaseFound: false, recordsCopied: 0, databaseDeleted: false };
+    }
+    let records;
+    try {
+      if (!database.objectStoreNames.contains(DURABLE_OBJECT_STORE)) {
+        throw new Error("The legacy durable database has no values store");
+      }
+      records = await idbRequest(
+        database.transaction(DURABLE_OBJECT_STORE, "readonly").objectStore(DURABLE_OBJECT_STORE).getAll()
+      );
+    } finally {
+      database.close();
+    }
+    const entries = [];
+    for (const record of records) {
+      if (!record || !validKey(record.key)) {
+        throw new Error("The legacy durable database contains an invalid key");
+      }
+      entries.push({
+        key: record.key,
+        value: record.value,
+        hash: await hashStorageValue(record.value)
+      });
+    }
+    for (let offset = 0; offset < entries.length; offset += MIGRATION_BATCH_LIMIT) {
+      const batch = entries.slice(offset, offset + MIGRATION_BATCH_LIMIT);
+      const receipts = await backend.migrateHostEntries(batch);
+      for (const entry of batch) {
+        if (receipts[entry.key] !== entry.hash) {
+          throw new Error(`Extension storage migration hash mismatch for ${entry.key}`);
+        }
+      }
+    }
+    await deleteDatabase(factory);
+    const remaining = await databaseNames(factory);
+    if (remaining?.includes(DURABLE_DATABASE_NAME)) {
+      throw new Error("The legacy durable database remained after verified migration");
+    }
+    return {
+      databaseFound: true,
+      recordsCopied: entries.length,
+      databaseDeleted: true
+    };
+  }
+  async function openLegacyDatabase(factory) {
+    const names = await databaseNames(factory);
+    if (names && !names.includes(DURABLE_DATABASE_NAME)) return null;
+    return new Promise((resolve, reject) => {
+      const request = factory.open(DURABLE_DATABASE_NAME);
+      let created = false;
+      request.onupgradeneeded = (event) => {
+        if (event.oldVersion === 0) {
+          created = true;
+          request.transaction?.abort();
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => {
+        if (created) resolve(null);
+        else reject(request.error ?? new Error("The legacy durable database could not open"));
+      };
+      request.onblocked = () => reject(new Error("The legacy durable database is open in another tab"));
+    });
+  }
+  async function deleteDatabase(factory) {
+    await new Promise((resolve, reject) => {
+      const request = factory.deleteDatabase(DURABLE_DATABASE_NAME);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error ?? new Error("The legacy durable database could not be deleted"));
+      request.onblocked = () => reject(new Error("The legacy durable database is open in another tab"));
+    });
+  }
+  async function databaseNames(factory) {
+    if (typeof factory.databases !== "function") return null;
+    const databases = await factory.databases();
+    return databases.map((database) => database.name).filter((name) => typeof name === "string");
+  }
+  function idbRequest(request) {
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error ?? new Error("Legacy IndexedDB request failed"));
+    });
+  }
+  function validKey(value) {
+    return typeof value === "string" && value.length > 0 && value.length <= MAX_KEY_LENGTH;
+  }
+  function asRecord4(value) {
+    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  }
+
   // src/main.ts
   var activeApp;
   var bootingApp;
@@ -36444,8 +36660,26 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       captureMediaMetadata: DEFAULT_SETTINGS.media.buttons,
       forceVideoQuality: false
     });
-    const legacyStorage = createStorageGateway("aviary");
-    const durableStorage = createDurableStorageGateway(legacyStorage);
+    const extensionBackend = options.source === "extension" ? createExtensionDurableStorageBackend() : null;
+    if (options.source === "extension" && globalThis.chrome?.runtime?.id && !extensionBackend) {
+      throw new Error("The extension background storage API is unavailable");
+    }
+    if (extensionBackend) {
+      const migration = await migrateLegacyHostDurableStorage(extensionBackend);
+      if (migration.databaseFound) {
+        diagnostics.info("Legacy host storage migrated", {
+          records: migration.recordsCopied,
+          deleted: migration.databaseDeleted
+        });
+      }
+    }
+    const hasUserscriptManager = typeof globalThis.GM_getValue === "function" && typeof globalThis.GM_setValue === "function" && typeof globalThis.GM_deleteValue === "function";
+    const storageMode = options.source === "extension" && globalThis.chrome?.runtime?.id ? "extension" : options.source === "userscript" && hasUserscriptManager ? "userscript" : "auto";
+    const legacyStorage = createStorageGateway("aviary", { mode: storageMode });
+    const durableStorage = createDurableStorageGateway(legacyStorage, {
+      backend: extensionBackend,
+      legacyBackend: storageMode === "userscript" ? "userscript-manager" : "legacy"
+    });
     setStorageErrorSink((key, error, op) => {
       diagnostics.error(
         op === "read" ? `Storage could not read ${key}` : `Storage write failed to save ${key}`,

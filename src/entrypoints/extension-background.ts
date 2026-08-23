@@ -12,10 +12,18 @@ import {
   MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE,
   X_DOCUMENT_PATTERNS
 } from "../extension/media-context-menu.ts";
+import {
+  handleDurableStorageRequest,
+  isDurableStorageRequest
+} from "../extension/durable-storage-api.ts";
+import { createIndexedDbStorageBackend } from "../platform/durable-storage.ts";
 
 const runtime = globalThis.chrome?.runtime;
 const extensionApi = globalThis.chrome as unknown as ExtensionAdRuleApi | undefined;
 const contextMenus = globalThis.chrome?.contextMenus;
+// The only IndexedDB constructor in the extension build. Content and options use the typed runtime
+// protocol above, so their host/extension documents never open a second storage authority.
+const durableStorageBackend = createIndexedDbStorageBackend();
 const DOWNLOAD_TRACKING_KEY = "aviary.downloadTracking.v2";
 /** Bounded: every entry is one explicit user download, and each is cleared at its terminal state. */
 const DOWNLOAD_TRACKING_LIMIT = 64;
@@ -111,6 +119,17 @@ globalThis.chrome?.downloads?.onChanged?.addListener((delta) => {
 });
 
 runtime?.onMessage?.addListener((message, sender, sendResponse) => {
+  if (isDurableStorageRequest(message)) {
+    if (!durableStorageBackend) {
+      sendResponse({ ok: false, error: "Extension durable storage is unavailable" });
+      return false;
+    }
+    handleDurableStorageRequest(message, durableStorageBackend).then(
+      (response) => sendResponse(response),
+      (error: unknown) => sendResponse({ ok: false, error: errorMessage(error) })
+    );
+    return true;
+  }
   if (isAdRuleSyncMessage(message)) {
     if (!extensionApi) {
       sendResponse({ ok: false, enabled: message.enabled, error: "extension APIs unavailable" });

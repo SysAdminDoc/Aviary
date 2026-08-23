@@ -60,6 +60,10 @@ import { createProfileStorageGateway, ProfileManager } from "./platform/profile.
 import { createTrustedHtmlPolicy } from "./platform/trusted-types.ts";
 import { IntegrationUsageLedger } from "./features/integrations/usage.ts";
 import { requestExtensionAdRuleSync } from "./extension/ad-rule.ts";
+import {
+  createExtensionDurableStorageBackend,
+  migrateLegacyHostDurableStorage
+} from "./extension/durable-storage-api.ts";
 
 export interface BootOptions {
   source: "userscript" | "extension";
@@ -143,8 +147,39 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     captureMediaMetadata: DEFAULT_SETTINGS.media.buttons,
     forceVideoQuality: false
   });
-  const legacyStorage = createStorageGateway("aviary");
-  const durableStorage = createDurableStorageGateway(legacyStorage);
+  const extensionBackend =
+    options.source === "extension" ? createExtensionDurableStorageBackend() : null;
+  if (options.source === "extension" && globalThis.chrome?.runtime?.id && !extensionBackend) {
+    throw new Error("The extension background storage API is unavailable");
+  }
+  if (extensionBackend) {
+    const migration = await migrateLegacyHostDurableStorage(extensionBackend);
+    if (migration.databaseFound) {
+      diagnostics.info("Legacy host storage migrated", {
+        records: migration.recordsCopied,
+        deleted: migration.databaseDeleted
+      });
+    }
+  }
+
+  // Production entrypoints are fail-closed: neither an extension nor a userscript may fall
+  // through to x.com's localStorage. Test harnesses without an extension id or GM grants retain
+  // auto mode so they can exercise feature behavior without pretending to be a packaged build.
+  const hasUserscriptManager =
+    typeof globalThis.GM_getValue === "function" &&
+    typeof globalThis.GM_setValue === "function" &&
+    typeof globalThis.GM_deleteValue === "function";
+  const storageMode =
+    options.source === "extension" && globalThis.chrome?.runtime?.id
+      ? "extension"
+      : options.source === "userscript" && hasUserscriptManager
+        ? "userscript"
+        : "auto";
+  const legacyStorage = createStorageGateway("aviary", { mode: storageMode });
+  const durableStorage = createDurableStorageGateway(legacyStorage, {
+    backend: extensionBackend,
+    legacyBackend: storageMode === "userscript" ? "userscript-manager" : "legacy"
+  });
   // Every failed write reaches diagnostics, including the ones individual stores swallow.
   setStorageErrorSink((key, error, op) => {
     diagnostics.error(
