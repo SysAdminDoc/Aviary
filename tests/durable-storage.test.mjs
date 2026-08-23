@@ -62,6 +62,7 @@ test("durable storage falls back cleanly when IndexedDB is unavailable", async (
 
 class MemoryBackend {
   values = new Map();
+  pending = new Map();
   meta = undefined;
 
   async get(key) {
@@ -85,6 +86,24 @@ class MemoryBackend {
       this.values.set(key, structuredClone(value));
     }
     this.meta = structuredClone(meta);
+  }
+
+  async stagePendingWrite(write) {
+    this.pending.set(write.key, structuredClone(write));
+  }
+
+  async commitPendingWrite(expected) {
+    const write = this.pending.get(expected.key);
+    if (!write || write.id !== expected.id) throw new Error("pending marker mismatch");
+    if (write.kind === "put") this.values.set(write.key, structuredClone(write.value));
+    else this.values.delete(write.key);
+    this.pending.delete(write.key);
+    return {
+      id: write.id,
+      key: write.key,
+      kind: write.kind,
+      valueHash: write.kind === "put" ? await storageValueHash(write.value) : null
+    };
   }
 
   async estimate() {
@@ -239,6 +258,11 @@ class FlakyBackend extends MemoryBackend {
   }
 }
 
+async function storageValueHash(value) {
+  const { hashStorageValue } = await importSourceModule("src/platform/storage-value-hash.ts");
+  return hashStorageValue(value);
+}
+
 test("writes made during a backend failure survive the next healthy boot", async () => {
   const { createDurableStorageGateway, PENDING_WRITES_KEY } =
     await importSourceModule("src/platform/durable-storage.ts");
@@ -258,7 +282,9 @@ test("writes made during a backend failure survive the next healthy boot", async
   assert.equal(first.getStatus().backend, "indexeddb-fallback");
   assert.equal(first.getStatus().pendingWrites, 1, "the write must be recorded for reconciliation");
   assert.ok(
-    (await legacy.get(PENDING_WRITES_KEY, [])).includes("aviary.userNotes.v1"),
+    (await legacy.get(PENDING_WRITES_KEY, { entries: [] })).entries.some(
+      (entry) => entry.key === "aviary.userNotes.v1" && entry.kind === "put"
+    ),
     "the ledger belongs in legacy, because the backend is what failed"
   );
 
@@ -362,3 +388,224 @@ test("a corrupted pending-writes value is discarded instead of thrown", async ()
     assert.equal(status.pendingWrites, 0);
   }
 });
+
+const STORAGE_LANES = [
+  "Chrome extension",
+  "Firefox extension",
+  "Tampermonkey",
+  "Violentmonkey"
+];
+
+test("simultaneous fallback writes retain the union of pending keys in every storage lane", async (t) => {
+  const { createDurableStorageGateway, PENDING_WRITES_KEY } = await importSourceModule(
+    "src/platform/durable-storage.ts"
+  );
+  for (const lane of STORAGE_LANES) {
+    await t.test(lane, async () => {
+      const legacyState = new Map();
+      const legacy = laneStorage(legacyState, lane);
+      const backend = new FlakyBackend();
+      const storage = createDurableStorageGateway(legacy, { backend });
+      const keys = [
+        "aviary.userNotes.v1",
+        "aviary.snapshots.v1",
+        "aviary.hiddenPosts.v1"
+      ];
+      await storage.initialize(keys);
+      await storage.set(keys[2], { stale: true });
+
+      backend.failing = true;
+      await Promise.all([
+        storage.set(keys[0], { alice: "one" }),
+        storage.set(keys[1], ["snapshot"]),
+        storage.remove(keys[2])
+      ]);
+
+      const ledger = legacyState.get(PENDING_WRITES_KEY);
+      assert.equal(ledger.schemaVersion, 2);
+      assert.deepEqual(new Set(ledger.entries.map((entry) => entry.key)), new Set(keys));
+      assert.equal(ledger.entries.find((entry) => entry.key === keys[2]).kind, "remove");
+
+      backend.failing = false;
+      const restarted = createDurableStorageGateway(legacy, { backend });
+      await restarted.initialize(keys);
+      assert.deepEqual(await restarted.get(keys[0], null), { alice: "one" });
+      assert.deepEqual(await restarted.get(keys[1], null), ["snapshot"]);
+      assert.equal(await restarted.get(keys[2], "absent"), "absent");
+      assert.equal(legacyState.has(PENDING_WRITES_KEY), false);
+    });
+  }
+});
+
+test("every reconciliation await boundary converges on the latest operation after restart", async (t) => {
+  const { createDurableStorageGateway, PENDING_WRITES_KEY } = await importSourceModule(
+    "src/platform/durable-storage.ts"
+  );
+  const crashPoints = [
+    "legacy.get.pending.before",
+    "legacy.get.pending.after",
+    "backend.stage.before",
+    "backend.stage.after",
+    "backend.commit.before",
+    "backend.commit.after",
+    "legacy.remove.value.before",
+    "legacy.remove.value.after",
+    "legacy.remove.pending.before",
+    "legacy.remove.pending.after"
+  ];
+  const key = "aviary.userNotes.v1";
+
+  for (const lane of STORAGE_LANES) {
+    await t.test(lane, async (laneTest) => {
+      for (const latestKind of ["put", "remove"]) {
+        await laneTest.test(`latest ${latestKind}`, async (kindTest) => {
+          for (const crashPoint of crashPoints) {
+            await kindTest.test(crashPoint, async () => {
+              const firstWrite = latestKind === "put"
+                ? { id: "first-remove", key, kind: "remove" }
+                : { id: "first-put", key, kind: "put", value: { version: "intermediate" } };
+              const latestWrite = latestKind === "put"
+                ? { id: "latest-put", key, kind: "put", value: { version: "latest" } }
+                : { id: "latest-remove", key, kind: "remove" };
+              const legacyState = new Map([[PENDING_WRITES_KEY, pendingLedger(firstWrite)]]);
+              const backendState = {
+                values: new Map([[key, { version: "before" }]]),
+                pending: new Map(),
+                meta: undefined
+              };
+              const fault = new FaultOnce(crashPoint);
+              const interrupted = createDurableStorageGateway(
+                laneStorage(legacyState, lane, fault),
+                { backend: new CrashableBackend(backendState, fault) }
+              );
+
+              await interrupted.initialize([key]);
+              assert.equal(fault.triggered, true, `${crashPoint} was not exercised`);
+
+              // A write that arrives after the interrupted attempt is the authority. A staged old
+              // marker must not overwrite it when a fresh page and worker reconcile on restart.
+              legacyState.set(PENDING_WRITES_KEY, pendingLedger(latestWrite));
+              const restarted = createDurableStorageGateway(laneStorage(legacyState, lane), {
+                backend: new CrashableBackend(backendState)
+              });
+              const status = await restarted.initialize([key]);
+
+              assert.equal(status.backend, "indexeddb");
+              assert.equal(status.pendingWrites, 0);
+              if (latestKind === "put") {
+                assert.deepEqual(await restarted.get(key, null), { version: "latest" });
+              } else {
+                assert.equal(await restarted.get(key, "absent"), "absent");
+              }
+              assert.equal(backendState.pending.size, 0, "the transaction left a staged marker");
+              assert.equal(legacyState.has(PENDING_WRITES_KEY), false);
+            });
+          }
+        });
+      }
+    });
+  }
+});
+
+class FaultOnce {
+  triggered = false;
+
+  constructor(target) {
+    this.target = target;
+  }
+
+  hit(point) {
+    if (!this.triggered && point === this.target) {
+      this.triggered = true;
+      throw new Error(`simulated crash at ${point}`);
+    }
+  }
+}
+
+class CrashableBackend {
+  constructor(state, fault = undefined) {
+    this.state = state;
+    this.fault = fault;
+  }
+
+  async get(key) {
+    return this.state.values.has(key) ? structuredClone(this.state.values.get(key)) : undefined;
+  }
+
+  async put(key, value) {
+    this.state.values.set(key, structuredClone(value));
+  }
+
+  async remove(key) {
+    this.state.values.delete(key);
+  }
+
+  async getMeta() {
+    return this.state.meta ? structuredClone(this.state.meta) : undefined;
+  }
+
+  async putMany(entries, meta) {
+    for (const [key, value] of entries) this.state.values.set(key, structuredClone(value));
+    this.state.meta = structuredClone(meta);
+  }
+
+  async stagePendingWrite(write) {
+    this.fault?.hit("backend.stage.before");
+    this.state.pending.set(write.key, structuredClone(write));
+    this.fault?.hit("backend.stage.after");
+  }
+
+  async commitPendingWrite(expected) {
+    this.fault?.hit("backend.commit.before");
+    const write = this.state.pending.get(expected.key);
+    if (!write || write.id !== expected.id) throw new Error("pending marker mismatch");
+    const nextValues = new Map(this.state.values);
+    const nextPending = new Map(this.state.pending);
+    if (write.kind === "put") nextValues.set(write.key, structuredClone(write.value));
+    else nextValues.delete(write.key);
+    nextPending.delete(write.key);
+    this.state.values = nextValues;
+    this.state.pending = nextPending;
+    this.fault?.hit("backend.commit.after");
+    return {
+      id: write.id,
+      key: write.key,
+      kind: write.kind,
+      valueHash: write.kind === "put" ? await storageValueHash(write.value) : null
+    };
+  }
+
+  async estimate() {
+    return {};
+  }
+}
+
+function laneStorage(values, lane, fault = undefined) {
+  const yieldForLane = async () => {
+    if (lane === "Firefox extension" || lane === "Violentmonkey") await Promise.resolve();
+  };
+  return {
+    async get(key, fallback) {
+      await yieldForLane();
+      if (key === "aviary.durable.pending") fault?.hit("legacy.get.pending.before");
+      const value = values.has(key) ? structuredClone(values.get(key)) : fallback;
+      if (key === "aviary.durable.pending") fault?.hit("legacy.get.pending.after");
+      return value;
+    },
+    async set(key, value) {
+      await yieldForLane();
+      values.set(key, structuredClone(value));
+    },
+    async remove(key) {
+      await yieldForLane();
+      const label = key === "aviary.durable.pending" ? "pending" : "value";
+      fault?.hit(`legacy.remove.${label}.before`);
+      values.delete(key);
+      fault?.hit(`legacy.remove.${label}.after`);
+    }
+  };
+}
+
+function pendingLedger(...entries) {
+  return { schemaVersion: 2, entries: structuredClone(entries) };
+}

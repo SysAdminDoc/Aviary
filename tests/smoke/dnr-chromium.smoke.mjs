@@ -171,18 +171,46 @@ try {
     true
   );
 
-  // Write through the public client, close the isolated browser to discard its worker, then
-  // read through a newly-started worker. IndexedDB, not module memory, must carry the value.
+  // Stop at the reconciliation await boundary after staging. The marker must survive a full
+  // browser restart, then the next worker must commit the value and consume that marker together.
+  const stagedWrite = {
+    id: "smoke-restart-put",
+    key: "aviary.profile.account-smoke.userNotes.v1",
+    kind: "put",
+    value: { alice: "survives restart" }
+  };
   assert.deepEqual(
     await storagePage.evaluate(() =>
       chrome.runtime.sendMessage({
         type: "AVIARY_DURABLE_STORAGE",
-        operation: "put",
-        key: "aviary.profile.account-smoke.userNotes.v1",
-        value: { alice: "survives restart" }
+        operation: "stage-pending",
+        write: {
+          id: "smoke-restart-put",
+          key: "aviary.profile.account-smoke.userNotes.v1",
+          kind: "put",
+          value: { alice: "survives restart" }
+        }
       })
     ),
     { ok: true, result: null }
+  );
+  assert.equal(
+    await storagePage.evaluate(async () => {
+      const database = await new Promise((resolve, reject) => {
+        const request = indexedDB.open("aviary.durable.v1");
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      const keys = await new Promise((resolve, reject) => {
+        const request = database.transaction("values", "readonly").objectStore("values").getAllKeys();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      database.close();
+      return keys.some((key) => String(key).startsWith("__aviary_pending__:"));
+    }),
+    true,
+    "the staged reconciliation marker was not durable"
   );
   await context.close();
   context = undefined;
@@ -200,6 +228,41 @@ try {
   assert.equal(new URL(restartedWorker.url()).host, extensionId);
   const restartedPage = await context.newPage();
   await restartedPage.goto(`chrome-extension://${extensionId}/options.html`);
+  const committed = await restartedPage.evaluate((write) =>
+    chrome.runtime.sendMessage({
+      type: "AVIARY_DURABLE_STORAGE",
+      operation: "commit-pending",
+      write
+    }), stagedWrite
+  );
+  assert.equal(committed.ok, true);
+  assert.deepEqual(
+    {
+      id: committed.result.id,
+      key: committed.result.key,
+      kind: committed.result.kind
+    },
+    { id: stagedWrite.id, key: stagedWrite.key, kind: stagedWrite.kind }
+  );
+  assert.match(committed.result.valueHash, /^[0-9a-f]{64}$/);
+  assert.equal(
+    await restartedPage.evaluate(async () => {
+      const database = await new Promise((resolve, reject) => {
+        const request = indexedDB.open("aviary.durable.v1");
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      const keys = await new Promise((resolve, reject) => {
+        const request = database.transaction("values", "readonly").objectStore("values").getAllKeys();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      database.close();
+      return keys.some((key) => String(key).startsWith("__aviary_pending__:"));
+    }),
+    false,
+    "the committed reconciliation left its marker behind"
+  );
   const afterRestart = await restartedPage.evaluate(async () =>
     chrome.runtime.sendMessage({
       type: "AVIARY_DURABLE_STORAGE",
@@ -212,8 +275,37 @@ try {
     result: { found: true, value: { alice: "survives restart" } }
   });
 
+  const tombstoneKey = "aviary.profile.account-smoke.reconcileScratch.v1";
+  await restartedPage.evaluate((key) =>
+    chrome.runtime.sendMessage({
+      type: "AVIARY_DURABLE_STORAGE",
+      operation: "put",
+      key,
+      value: "remove me"
+    }), tombstoneKey
+  );
+  const tombstone = { id: "smoke-remove", key: tombstoneKey, kind: "remove" };
+  await restartedPage.evaluate((write) =>
+    chrome.runtime.sendMessage({ type: "AVIARY_DURABLE_STORAGE", operation: "stage-pending", write }),
+    tombstone
+  );
+  assert.deepEqual(
+    await restartedPage.evaluate((write) =>
+      chrome.runtime.sendMessage({ type: "AVIARY_DURABLE_STORAGE", operation: "commit-pending", write }),
+      tombstone
+    ),
+    { ok: true, result: { ...tombstone, valueHash: null } }
+  );
+  assert.deepEqual(
+    await restartedPage.evaluate((key) =>
+      chrome.runtime.sendMessage({ type: "AVIARY_DURABLE_STORAGE", operation: "get", key }),
+      tombstoneKey
+    ),
+    { ok: true, result: { found: false } }
+  );
+
   console.log(
-    "[dnr-chromium] background storage migration/restart, exact DNR match, negative controls, persistence, and loopback blocking passed."
+    "[dnr-chromium] atomic storage reconciliation/restart, migration, DNR controls, persistence, and loopback blocking passed."
   );
 } finally {
   await seedContext?.close().catch(() => {});

@@ -3,8 +3,11 @@ import {
   DURABLE_META_KEY,
   DURABLE_OBJECT_STORE,
   DURABLE_STORAGE_SCHEMA_VERSION,
+  isDurablePendingWrite,
   isDurableStorageMeta,
   type DurableIndexedValue,
+  type DurablePendingWrite,
+  type DurablePendingWriteReceipt,
   type DurableStorageBackend,
   type DurableStorageEstimate,
   type DurableStorageMeta
@@ -27,6 +30,16 @@ type DurableStorageRequest =
       meta: DurableStorageMeta;
     }
   | { type: typeof DURABLE_STORAGE_MESSAGE; operation: "estimate" }
+  | {
+      type: typeof DURABLE_STORAGE_MESSAGE;
+      operation: "stage-pending";
+      write: DurablePendingWrite;
+    }
+  | {
+      type: typeof DURABLE_STORAGE_MESSAGE;
+      operation: "commit-pending";
+      write: DurablePendingWrite;
+    }
   | {
       type: typeof DURABLE_STORAGE_MESSAGE;
       operation: "migrate-host";
@@ -103,6 +116,36 @@ export class ExtensionDurableStorageBackend implements DurableStorageBackend {
     });
   }
 
+  async stagePendingWrite(write: DurablePendingWrite): Promise<void> {
+    await this.#call({
+      type: DURABLE_STORAGE_MESSAGE,
+      operation: "stage-pending",
+      write
+    });
+  }
+
+  async commitPendingWrite(write: DurablePendingWrite): Promise<DurablePendingWriteReceipt> {
+    const result = asRecord(await this.#call({
+      type: DURABLE_STORAGE_MESSAGE,
+      operation: "commit-pending",
+      write
+    }));
+    if (
+      typeof result.id !== "string" ||
+      typeof result.key !== "string" ||
+      (result.kind !== "put" && result.kind !== "remove") ||
+      (result.valueHash !== null && typeof result.valueHash !== "string")
+    ) {
+      throw new Error("The extension storage background returned an invalid reconciliation receipt");
+    }
+    return {
+      id: result.id,
+      key: result.key,
+      kind: result.kind,
+      valueHash: result.valueHash
+    };
+  }
+
   async estimate(): Promise<DurableStorageEstimate> {
     const result = asRecord(await this.#call({
       type: DURABLE_STORAGE_MESSAGE,
@@ -166,6 +209,9 @@ export function isDurableStorageRequest(message: unknown): message is DurableSto
   if (request.operation === "put-many") {
     return validEntries(request.entries) && isDurableStorageMeta(request.meta);
   }
+  if (request.operation === "stage-pending" || request.operation === "commit-pending") {
+    return isDurablePendingWrite(request.write);
+  }
   if (request.operation === "migrate-host") {
     return (
       Array.isArray(request.entries) &&
@@ -202,6 +248,11 @@ export async function handleDurableStorageRequest(
         return { ok: true, result: null };
       case "estimate":
         return { ok: true, result: await backend.estimate() };
+      case "stage-pending":
+        await backend.stagePendingWrite(request.write);
+        return { ok: true, result: null };
+      case "commit-pending":
+        return { ok: true, result: await backend.commitPendingWrite(request.write) };
       case "migrate-host":
         return { ok: true, result: { hashes: await importHostEntries(backend, request.entries) } };
     }

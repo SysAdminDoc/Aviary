@@ -136,8 +136,71 @@ async function main() {
     true
   );
 
+  const pendingWrite = {
+    id: "firefox-smoke-put",
+    key: "aviary.firefox.reconcileScratch.v1",
+    kind: "put",
+    value: { state: "committed" }
+  };
+  assert.deepEqual(
+    await messageClient.evaluate(extensionContext, (write) =>
+      chrome.runtime.sendMessage({
+        type: "AVIARY_DURABLE_STORAGE",
+        operation: "stage-pending",
+        write
+      }), pendingWrite
+    ),
+    { ok: true, result: null }
+  );
+  assert.equal(
+    await extensionClient.evaluate(extensionContext, async () => {
+      const database = await new Promise((resolve, reject) => {
+        const request = indexedDB.open("aviary.durable.v1");
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      const keys = await new Promise((resolve, reject) => {
+        const request = database.transaction("values", "readonly").objectStore("values").getAllKeys();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      database.close();
+      return keys.some((key) => String(key).startsWith("__aviary_pending__:"));
+    }),
+    true
+  );
+  const committed = await messageClient.evaluate(extensionContext, (write) =>
+    chrome.runtime.sendMessage({
+      type: "AVIARY_DURABLE_STORAGE",
+      operation: "commit-pending",
+      write
+    }), pendingWrite
+  );
+  assert.equal(committed.ok, true);
+  assert.equal(committed.result.id, pendingWrite.id);
+  assert.match(committed.result.valueHash, /^[0-9a-f]{64}$/);
+  assert.deepEqual(
+    await messageClient.evaluate(extensionContext, (key) =>
+      chrome.runtime.sendMessage({ type: "AVIARY_DURABLE_STORAGE", operation: "get", key }),
+      pendingWrite.key
+    ),
+    { ok: true, result: { found: true, value: pendingWrite.value } }
+  );
+  const tombstone = { id: "firefox-smoke-remove", key: pendingWrite.key, kind: "remove" };
+  await messageClient.evaluate(extensionContext, (write) =>
+    chrome.runtime.sendMessage({ type: "AVIARY_DURABLE_STORAGE", operation: "stage-pending", write }),
+    tombstone
+  );
+  assert.deepEqual(
+    await messageClient.evaluate(extensionContext, (write) =>
+      chrome.runtime.sendMessage({ type: "AVIARY_DURABLE_STORAGE", operation: "commit-pending", write }),
+      tombstone
+    ),
+    { ok: true, result: { ...tombstone, valueHash: null } }
+  );
+
   console.log(
-    `[dnr-firefox] Firefox ${driver.browserVersion}: event page, exact match, four negative controls, enable/disable persistence, and pre-network loopback blocking passed.`
+    `[dnr-firefox] Firefox ${driver.browserVersion}: atomic storage reconciliation, event page, DNR controls, persistence, and loopback blocking passed.`
   );
   } catch (error) {
     runError = error;
@@ -387,11 +450,11 @@ class WebDriverClient {
     throw new Error("Firefox did not finish loading Aviary's options page.");
   }
 
-  async evaluate(_context, fn) {
-    const script = `const done = arguments[arguments.length - 1]; Promise.resolve((${String(fn)})()).then(`
+  async evaluate(_context, fn, argument = null) {
+    const script = `const done = arguments[arguments.length - 1]; Promise.resolve((${String(fn)})(arguments[0])).then(`
       + `(value) => done({ ok: true, value }), `
       + `(error) => done({ ok: false, error: String(error) }));`;
-    const envelope = await this.request("POST", "/execute/async", { script, args: [] });
+    const envelope = await this.request("POST", "/execute/async", { script, args: [argument] });
     if (!envelope?.ok) throw new Error(envelope?.error ?? "Firefox extension evaluation failed.");
     return envelope.value;
   }

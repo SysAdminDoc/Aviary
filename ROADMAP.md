@@ -8,16 +8,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ## Research-Driven Additions
 
-### P0, Now
-
-- [ ] F274, P0: Make fallback-write reconciliation atomic
-  Why: `#markPending()` and `#reconcilePendingWrites()` replace one shared pending-key array without a common transaction, so concurrent fallback writes can lose the only marker that says legacy data is newer.
-  Evidence: `src/platform/durable-storage.ts:307-365`; https://www.w3.org/TR/IndexedDB-3/; https://w3c.github.io/web-locks/
-  Touches: `src/platform/durable-storage.ts`, the F273 background storage protocol, `tests/durable-storage.test.mjs`
-  Acceptance: simultaneous `set()` and `remove()` calls under an injected backend failure retain the union of pending keys; reconciliation commits the value or tombstone and removes its marker in one transaction; a crash at every await boundary converges on the latest value after restart; Chrome and Firefox extension lanes plus both supported userscript managers pass the same fault matrix.
-  Complexity: M
-  Depends: F273 for the extension transaction boundary.
-
 ### P1, Next
 
 - [ ] F275, P1: Exclude ordinary writers from backup restore and rollback

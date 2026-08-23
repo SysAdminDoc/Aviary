@@ -13,6 +13,9 @@
 ### Changed
 - The userscript now keeps durable records in its manager store and reports an explicit capacity
   error before a single stored value exceeds 16 MiB.
+- Writes made during a temporary storage outage now share one locked journal. The background stages
+  each latest value or removal, then commits it and clears its marker in one IndexedDB transaction.
+  Interrupted work retries after restart without losing another key or reviving an older value.
 
 ## 1.47.0 (2026-08-22)
 

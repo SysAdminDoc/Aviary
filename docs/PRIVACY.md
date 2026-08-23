@@ -55,7 +55,10 @@ then deletes the old database. A failed or interrupted copy leaves the source in
 The userscript uses `GM_getValue`, `GM_setValue`, and `GM_deleteValue` only, never X storage, and
 refuses a measured value above 16 MiB explicitly. Profile-scoped copies may be prefixed with
 `aviary.profile.<profileId>.`; Trust reports the active backend, schema, migration, usage, and quota
-status.
+status. During an extension storage outage, the latest pending value or removal for each key stays
+in one locked `chrome.storage.local` journal. Recovery stages that operation in the background and
+commits the value or removal with marker cleanup in one IndexedDB transaction. The journal is
+cleared only after every receipt matches, so interruption leaves a retry path instead of stale data.
 
 | Key | Data | Purpose and user control |
 |---|---|---|

@@ -203,7 +203,9 @@ page scripts cannot inspect the active database. On the first updated X page, Av
 database left by an older content-script build, checks every copied value with SHA-256, and deletes
 the old page-origin database only after those checks pass. The userscript never opens an X-origin
 database. It uses the manager's own value store and reports a clear storage-capacity error before a
-single value exceeds 16 MiB.
+single value exceeds 16 MiB. If extension storage is briefly unavailable, pending values and
+removals share one locked local journal. The background applies each operation and removes its
+marker in one transaction, so a closed tab or restarted worker can retry without reviving old data.
 
 AI and embedding calls are opt-in and show the destination, fields, estimated size, retention
 notice, network status, and budget before provider work begins. Per-request and daily UTF-8 byte

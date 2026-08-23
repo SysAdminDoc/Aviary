@@ -392,8 +392,18 @@ async function checkBundles() {
       if (options.includes("indexedDB")) {
         failures.push(`${target}: options bundle opens IndexedDB instead of using the background API`);
       }
-      if (!background.includes("createIndexedDbStorageBackend") || !background.includes("AVIARY_DURABLE_STORAGE")) {
+      if (
+        !background.includes("createIndexedDbStorageBackend") ||
+        !background.includes("AVIARY_DURABLE_STORAGE")
+      ) {
         failures.push(`${target}: background bundle does not own the typed durable-storage API`);
+      }
+      if (
+        !background.includes("stage-pending") ||
+        !background.includes("commit-pending") ||
+        !background.includes("__aviary_pending__:")
+      ) {
+        failures.push(`${target}: background bundle is missing atomic fallback reconciliation`);
       }
       if (!content.includes("migrateLegacyHostDurableStorage") || !content.includes("deleteDatabase")) {
         failures.push(`${target}: content bundle is missing verified legacy-host migration cleanup`);

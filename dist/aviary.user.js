@@ -35831,6 +35831,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   // src/platform/durable-storage.ts
   var DURABLE_STORAGE_SCHEMA_VERSION = 1;
   var PENDING_WRITES_KEY = "aviary.durable.pending";
+  var PENDING_WRITES_SCHEMA_VERSION = 2;
+  var PENDING_WRITES_LOCK = "durable.pending-writes";
   var DURABLE_STORAGE_KEYS = [
     "aviary.profiles.v1",
     "aviary.profile.active.v1",
@@ -35964,7 +35966,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       }
       await this.#ensureInitialized();
       if (!this.#backend || !this.#usable) {
-        return this.#legacy.get(key, fallback);
+        return this.#backend ? this.#getFallbackValue(key, fallback) : this.#legacy.get(key, fallback);
       }
       const scopedKey = this.#scope(key);
       try {
@@ -35986,7 +35988,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         return fallback;
       } catch (error) {
         this.#fallback(error);
-        return this.#legacy.get(key, fallback);
+        return this.#getFallbackValue(key, fallback);
       }
     }
     async set(key, value) {
@@ -35996,9 +35998,10 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       }
       await this.#ensureInitialized();
       if (!this.#backend || !this.#usable) {
-        await this.#legacy.set(key, value);
         if (this.#backend) {
-          await this.#markPending(key);
+          await this.#markPending(key, "put", value);
+        } else {
+          await this.#legacy.set(key, value);
         }
         return;
       }
@@ -36013,8 +36016,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         await this.refreshEstimate();
       } catch (error) {
         this.#fallback(error);
-        await this.#legacy.set(key, value);
-        await this.#markPending(key);
+        await this.#markPending(key, "put", value);
       }
     }
     async remove(key) {
@@ -36024,9 +36026,10 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       }
       await this.#ensureInitialized();
       if (!this.#backend || !this.#usable) {
-        await this.#legacy.remove(key);
         if (this.#backend) {
-          await this.#markPending(key);
+          await this.#markPending(key, "remove");
+        } else {
+          await this.#legacy.remove(key);
         }
         return;
       }
@@ -36037,8 +36040,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         await this.refreshEstimate();
       } catch (error) {
         this.#fallback(error);
-        await this.#legacy.remove(key);
-        await this.#markPending(key);
+        await this.#markPending(key, "remove");
       }
     }
     async #ensureInitialized() {
@@ -36067,16 +36069,22 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
      * the next healthy boot knows legacy holds the newer value. Kept in the legacy store on purpose:
      * the backend is the thing that just failed.
      */
-    async #markPending(key) {
+    async #markPending(key, kind, value) {
       try {
-        const pending = await this.#legacy.get(PENDING_WRITES_KEY, []);
-        if (!pending.includes(key)) {
-          pending.push(key);
-          await this.#legacy.set(PENDING_WRITES_KEY, pending);
-        }
-        this.#status.pendingWrites = pending.length;
+        this.#status.pendingWrites = await withStorageLock(PENDING_WRITES_LOCK, async () => {
+          const pending = await this.#readPendingWrites();
+          pending.set(key, {
+            id: createPendingWriteId(),
+            key,
+            kind,
+            ...kind === "put" ? { value } : {}
+          });
+          await this.#writePendingWrites(pending);
+          return pending.size;
+        });
       } catch (error) {
         reportStorageError(PENDING_WRITES_KEY, error, "write");
+        throw error;
       }
     }
     /**
@@ -36087,44 +36095,80 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       if (!this.#backend) {
         return;
       }
-      let pending;
-      try {
-        const stored = await this.#legacy.get(PENDING_WRITES_KEY, []);
-        pending = Array.isArray(stored) ? stored.filter((key) => typeof key === "string") : [];
-      } catch (error) {
-        reportStorageError(PENDING_WRITES_KEY, error, "read");
-        return;
-      }
-      if (pending.length === 0) {
-        this.#status.pendingWrites = 0;
-        return;
-      }
-      const unresolved = [];
-      for (const key of pending) {
-        try {
-          const legacyValue = await this.#legacy.get(key, void 0);
-          const scopedKey = this.#scope(key);
-          if (legacyValue === void 0) {
-            await this.#backend.remove(scopedKey);
-          } else {
-            await this.#backend.put(scopedKey, legacyValue);
-            await this.#legacy.remove(key);
+      await withStorageLock(PENDING_WRITES_LOCK, async () => {
+        const pending = await this.#readPendingWrites();
+        this.#status.pendingWrites = pending.size;
+        if (pending.size === 0) return;
+        for (const write of pending.values()) {
+          const scopedWrite = { ...write, key: this.#scope(write.key) };
+          try {
+            await this.#backend.stagePendingWrite(scopedWrite);
+            const receipt = await this.#backend.commitPendingWrite(scopedWrite);
+            await verifyPendingWriteReceipt(scopedWrite, receipt);
+          } catch (error) {
+            reportStorageError(write.key, error, "write");
+            throw error;
           }
+        }
+        for (const write of pending.values()) {
+          try {
+            await this.#legacy.remove(write.key);
+          } catch (error) {
+            reportStorageError(write.key, error, "write");
+            throw error;
+          }
+        }
+        try {
+          await this.#writePendingWrites(/* @__PURE__ */ new Map());
         } catch (error) {
-          reportStorageError(key, error, "write");
-          unresolved.push(key);
+          reportStorageError(PENDING_WRITES_KEY, error, "write");
+          throw error;
         }
-      }
-      try {
-        if (unresolved.length > 0) {
-          await this.#legacy.set(PENDING_WRITES_KEY, unresolved);
-        } else {
-          await this.#legacy.remove(PENDING_WRITES_KEY);
+        this.#status.pendingWrites = 0;
+      });
+    }
+    async #getFallbackValue(key, fallback) {
+      return withStorageLock(PENDING_WRITES_LOCK, async () => {
+        const pending = await this.#readPendingWrites();
+        const write = pending.get(key);
+        if (write?.kind === "put") return write.value;
+        if (write?.kind === "remove") return fallback;
+        return this.#legacy.get(key, fallback);
+      });
+    }
+    async #readPendingWrites() {
+      const stored = await this.#legacy.get(PENDING_WRITES_KEY, []);
+      const pending = /* @__PURE__ */ new Map();
+      if (Array.isArray(stored)) {
+        for (const key of stored) {
+          if (typeof key !== "string" || !this.#isDurable(key) || pending.has(key)) continue;
+          const value = await this.#legacy.get(key, void 0);
+          const kind = value === void 0 ? "remove" : "put";
+          const fingerprint2 = await hashStorageValue({ key, kind, value });
+          pending.set(key, {
+            id: `legacy-${fingerprint2}`,
+            key,
+            kind,
+            ...kind === "put" ? { value } : {}
+          });
         }
-      } catch (error) {
-        reportStorageError(PENDING_WRITES_KEY, error, "write");
+        return pending;
       }
-      this.#status.pendingWrites = unresolved.length;
+      if (!isPendingWriteLedger(stored)) return pending;
+      for (const write of stored.entries) {
+        if (this.#isDurable(write.key)) pending.set(write.key, write);
+      }
+      return pending;
+    }
+    async #writePendingWrites(pending) {
+      if (pending.size === 0) {
+        await this.#legacy.remove(PENDING_WRITES_KEY);
+        return;
+      }
+      await this.#legacy.set(PENDING_WRITES_KEY, {
+        schemaVersion: PENDING_WRITES_SCHEMA_VERSION,
+        entries: [...pending.values()]
+      });
     }
   };
   function createDurableStorageGateway(legacy, options = {}) {
@@ -36141,6 +36185,11 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     const record = value;
     return record.schemaVersion === DURABLE_STORAGE_SCHEMA_VERSION && Array.isArray(record.migratedKeys) && record.migratedKeys.every((key) => typeof key === "string") && (record.migratedAt === null || typeof record.migratedAt === "string");
   }
+  function isDurablePendingWrite(value) {
+    if (!value || typeof value !== "object") return false;
+    const write = value;
+    return validPendingWriteId(write.id) && typeof write.key === "string" && write.key.length > 0 && write.key.length <= 512 && (write.kind === "put" && "value" in write || write.kind === "remove");
+  }
   function finiteOrNull(value) {
     return typeof value === "number" && Number.isFinite(value) ? value : null;
   }
@@ -36156,6 +36205,27 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     if (expectedHash !== actualHash) {
       throw new Error(`Durable migration hash mismatch for ${key}`);
     }
+  }
+  async function verifyPendingWriteReceipt(write, receipt) {
+    const expectedHash = write.kind === "put" ? await hashStorageValue(write.value) : null;
+    if (receipt.id !== write.id || receipt.key !== write.key || receipt.kind !== write.kind || receipt.valueHash !== expectedHash) {
+      throw new Error(`Durable reconciliation receipt mismatch for ${write.key}`);
+    }
+  }
+  function isPendingWriteLedger(value) {
+    if (!value || typeof value !== "object") return false;
+    const ledger = value;
+    return ledger.schemaVersion === PENDING_WRITES_SCHEMA_VERSION && Array.isArray(ledger.entries) && ledger.entries.every(isDurablePendingWrite);
+  }
+  function validPendingWriteId(value) {
+    return typeof value === "string" && value.length > 0 && value.length <= 128 && /^[A-Za-z0-9._:-]+$/.test(value);
+  }
+  function createPendingWriteId() {
+    const cryptoWithUuid = globalThis.crypto;
+    if (typeof cryptoWithUuid?.randomUUID === "function") {
+      return cryptoWithUuid.randomUUID();
+    }
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   }
 
   // src/platform/profile.ts
@@ -36473,6 +36543,29 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         entries: entries.map(([key, value]) => [key, value]),
         meta
       });
+    }
+    async stagePendingWrite(write) {
+      await this.#call({
+        type: DURABLE_STORAGE_MESSAGE,
+        operation: "stage-pending",
+        write
+      });
+    }
+    async commitPendingWrite(write) {
+      const result = asRecord4(await this.#call({
+        type: DURABLE_STORAGE_MESSAGE,
+        operation: "commit-pending",
+        write
+      }));
+      if (typeof result.id !== "string" || typeof result.key !== "string" || result.kind !== "put" && result.kind !== "remove" || result.valueHash !== null && typeof result.valueHash !== "string") {
+        throw new Error("The extension storage background returned an invalid reconciliation receipt");
+      }
+      return {
+        id: result.id,
+        key: result.key,
+        kind: result.kind,
+        valueHash: result.valueHash
+      };
     }
     async estimate() {
       const result = asRecord4(await this.#call({

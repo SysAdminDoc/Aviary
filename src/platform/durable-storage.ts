@@ -1,4 +1,5 @@
 import { reportStorageError, type StorageGateway, type StorageStatus } from "./storage.ts";
+import { withStorageLock } from "./storage-lock.ts";
 import { hashStorageValue } from "./storage-value-hash.ts";
 
 export const DURABLE_STORAGE_SCHEMA_VERSION = 1;
@@ -10,6 +11,9 @@ export const DURABLE_STORAGE_SCHEMA_VERSION = 1;
 // Deliberately unversioned: `#isDurable` routes any `aviary.*.vN` key to the backend, and this
 // one must stay in the legacy realm. The name says which realm it belongs to.
 export const PENDING_WRITES_KEY = "aviary.durable.pending";
+export const PENDING_WRITES_SCHEMA_VERSION = 2;
+const PENDING_WRITES_LOCK = "durable.pending-writes";
+const DURABLE_PENDING_MARKER_PREFIX = "__aviary_pending__:";
 
 /** Every current versioned store is migrated before the first feature reads it. */
 export const DURABLE_STORAGE_KEYS = [
@@ -53,6 +57,20 @@ export interface DurableStorageMeta {
   migratedAt: string | null;
 }
 
+export interface DurablePendingWrite {
+  id: string;
+  key: string;
+  kind: "put" | "remove";
+  value?: unknown;
+}
+
+export interface DurablePendingWriteReceipt {
+  id: string;
+  key: string;
+  kind: "put" | "remove";
+  valueHash: string | null;
+}
+
 /** Small interface keeps migration logic testable without shipping an IndexedDB dependency. */
 export interface DurableStorageBackend {
   get(key: string): Promise<unknown | undefined>;
@@ -60,6 +78,8 @@ export interface DurableStorageBackend {
   remove(key: string): Promise<void>;
   getMeta(): Promise<DurableStorageMeta | undefined>;
   putMany(entries: ReadonlyArray<readonly [string, unknown]>, meta: DurableStorageMeta): Promise<void>;
+  stagePendingWrite(write: DurablePendingWrite): Promise<void>;
+  commitPendingWrite(write: DurablePendingWrite): Promise<DurablePendingWriteReceipt>;
   estimate(): Promise<DurableStorageEstimate>;
 }
 
@@ -77,6 +97,17 @@ export interface DurableIndexedValue {
   key: string;
   value: unknown;
   updatedAt: string;
+}
+
+interface PendingWriteLedger {
+  schemaVersion: typeof PENDING_WRITES_SCHEMA_VERSION;
+  entries: DurablePendingWrite[];
+}
+
+interface DurablePendingMarker {
+  schemaVersion: 1;
+  write: DurablePendingWrite;
+  valueHash: string | null;
 }
 
 /**
@@ -209,7 +240,9 @@ export class DurableStorageGateway implements StorageGateway {
     }
     await this.#ensureInitialized();
     if (!this.#backend || !this.#usable) {
-      return this.#legacy.get(key, fallback);
+      return this.#backend
+        ? this.#getFallbackValue(key, fallback)
+        : this.#legacy.get(key, fallback);
     }
 
     const scopedKey = this.#scope(key);
@@ -232,7 +265,7 @@ export class DurableStorageGateway implements StorageGateway {
       return fallback;
     } catch (error) {
       this.#fallback(error);
-      return this.#legacy.get(key, fallback);
+      return this.#getFallbackValue(key, fallback);
     }
   }
 
@@ -243,12 +276,10 @@ export class DurableStorageGateway implements StorageGateway {
     }
     await this.#ensureInitialized();
     if (!this.#backend || !this.#usable) {
-      await this.#legacy.set(key, value);
-      // With a backend configured but unusable, this value is newer than whatever the backend
-      // still holds. Without the marker, the next healthy boot would read the stale backend copy
-      // and this write would be silently reverted.
       if (this.#backend) {
-        await this.#markPending(key);
+        await this.#markPending(key, "put", value);
+      } else {
+        await this.#legacy.set(key, value);
       }
       return;
     }
@@ -264,8 +295,7 @@ export class DurableStorageGateway implements StorageGateway {
       await this.refreshEstimate();
     } catch (error) {
       this.#fallback(error);
-      await this.#legacy.set(key, value);
-      await this.#markPending(key);
+      await this.#markPending(key, "put", value);
     }
   }
 
@@ -276,10 +306,10 @@ export class DurableStorageGateway implements StorageGateway {
     }
     await this.#ensureInitialized();
     if (!this.#backend || !this.#usable) {
-      await this.#legacy.remove(key);
-      // A removal has to travel too, or the next boot resurrects the backend's stale copy.
       if (this.#backend) {
-        await this.#markPending(key);
+        await this.#markPending(key, "remove");
+      } else {
+        await this.#legacy.remove(key);
       }
       return;
     }
@@ -291,8 +321,7 @@ export class DurableStorageGateway implements StorageGateway {
       await this.refreshEstimate();
     } catch (error) {
       this.#fallback(error);
-      await this.#legacy.remove(key);
-      await this.#markPending(key);
+      await this.#markPending(key, "remove");
     }
   }
 
@@ -326,18 +355,22 @@ export class DurableStorageGateway implements StorageGateway {
    * the next healthy boot knows legacy holds the newer value. Kept in the legacy store on purpose:
    * the backend is the thing that just failed.
    */
-  async #markPending(key: string): Promise<void> {
+  async #markPending(key: string, kind: "put" | "remove", value?: unknown): Promise<void> {
     try {
-      const pending = await this.#legacy.get<string[]>(PENDING_WRITES_KEY, []);
-      if (!pending.includes(key)) {
-        pending.push(key);
-        await this.#legacy.set(PENDING_WRITES_KEY, pending);
-      }
-      this.#status.pendingWrites = pending.length;
+      this.#status.pendingWrites = await withStorageLock(PENDING_WRITES_LOCK, async () => {
+        const pending = await this.#readPendingWrites();
+        pending.set(key, {
+          id: createPendingWriteId(),
+          key,
+          kind,
+          ...(kind === "put" ? { value } : {})
+        });
+        await this.#writePendingWrites(pending);
+        return pending.size;
+      });
     } catch (error) {
-      // If even this cannot be recorded the write is still in legacy; it just will not be
-      // reconciled automatically. Say so rather than pretend.
       reportStorageError(PENDING_WRITES_KEY, error, "write");
+      throw error;
     }
   }
 
@@ -349,50 +382,90 @@ export class DurableStorageGateway implements StorageGateway {
     if (!this.#backend) {
       return;
     }
-    let pending: string[];
-    try {
-      const stored = await this.#legacy.get<unknown>(PENDING_WRITES_KEY, []);
-      // Shape-checked rather than trusted. This key lives in the legacy realm, which on the
-      // localStorage fallback is shared with everything else on the page, and a stored object or
-      // number made the loop below throw straight out of boot.
-      pending = Array.isArray(stored) ? stored.filter((key) => typeof key === "string") : [];
-    } catch (error) {
-      reportStorageError(PENDING_WRITES_KEY, error, "read");
-      return;
-    }
-    if (pending.length === 0) {
-      this.#status.pendingWrites = 0;
-      return;
-    }
+    await withStorageLock(PENDING_WRITES_LOCK, async () => {
+      const pending = await this.#readPendingWrites();
+      this.#status.pendingWrites = pending.size;
+      if (pending.size === 0) return;
 
-    const unresolved: string[] = [];
-    for (const key of pending) {
-      try {
-        const legacyValue = await this.#legacy.get<unknown | undefined>(key, undefined);
-        const scopedKey = this.#scope(key);
-        if (legacyValue === undefined) {
-          // The fallback session removed it, so the removal has to travel too.
-          await this.#backend.remove(scopedKey);
-        } else {
-          await this.#backend.put(scopedKey, legacyValue);
-          await this.#legacy.remove(key);
+      for (const write of pending.values()) {
+        const scopedWrite = { ...write, key: this.#scope(write.key) };
+        try {
+          await this.#backend!.stagePendingWrite(scopedWrite);
+          const receipt = await this.#backend!.commitPendingWrite(scopedWrite);
+          await verifyPendingWriteReceipt(scopedWrite, receipt);
+        } catch (error) {
+          reportStorageError(write.key, error, "write");
+          throw error;
         }
-      } catch (error) {
-        reportStorageError(key, error, "write");
-        unresolved.push(key);
       }
-    }
 
-    try {
-      if (unresolved.length > 0) {
-        await this.#legacy.set(PENDING_WRITES_KEY, unresolved);
-      } else {
-        await this.#legacy.remove(PENDING_WRITES_KEY);
+      // Old releases stored fallback values under their ordinary legacy keys. Do not clear the
+      // journal until every stale copy is gone, or a later backend outage could expose old data.
+      for (const write of pending.values()) {
+        try {
+          await this.#legacy.remove(write.key);
+        } catch (error) {
+          reportStorageError(write.key, error, "write");
+          throw error;
+        }
       }
-    } catch (error) {
-      reportStorageError(PENDING_WRITES_KEY, error, "write");
+
+      try {
+        await this.#writePendingWrites(new Map());
+      } catch (error) {
+        reportStorageError(PENDING_WRITES_KEY, error, "write");
+        throw error;
+      }
+      this.#status.pendingWrites = 0;
+    });
+  }
+
+  async #getFallbackValue<T>(key: string, fallback: T): Promise<T> {
+    return withStorageLock(PENDING_WRITES_LOCK, async () => {
+      const pending = await this.#readPendingWrites();
+      const write = pending.get(key);
+      if (write?.kind === "put") return write.value as T;
+      if (write?.kind === "remove") return fallback;
+      return this.#legacy.get(key, fallback);
+    });
+  }
+
+  async #readPendingWrites(): Promise<Map<string, DurablePendingWrite>> {
+    const stored = await this.#legacy.get<unknown>(PENDING_WRITES_KEY, []);
+    const pending = new Map<string, DurablePendingWrite>();
+    if (Array.isArray(stored)) {
+      // v1 stored only a key array and kept each value under its legacy key. Normalize it in
+      // memory so an interrupted upgrade can continue without a destructive ledger rewrite.
+      for (const key of stored) {
+        if (typeof key !== "string" || !this.#isDurable(key) || pending.has(key)) continue;
+        const value = await this.#legacy.get<unknown | undefined>(key, undefined);
+        const kind = value === undefined ? "remove" : "put";
+        const fingerprint = await hashStorageValue({ key, kind, value });
+        pending.set(key, {
+          id: `legacy-${fingerprint}`,
+          key,
+          kind,
+          ...(kind === "put" ? { value } : {})
+        });
+      }
+      return pending;
     }
-    this.#status.pendingWrites = unresolved.length;
+    if (!isPendingWriteLedger(stored)) return pending;
+    for (const write of stored.entries) {
+      if (this.#isDurable(write.key)) pending.set(write.key, write);
+    }
+    return pending;
+  }
+
+  async #writePendingWrites(pending: Map<string, DurablePendingWrite>): Promise<void> {
+    if (pending.size === 0) {
+      await this.#legacy.remove(PENDING_WRITES_KEY);
+      return;
+    }
+    await this.#legacy.set(PENDING_WRITES_KEY, {
+      schemaVersion: PENDING_WRITES_SCHEMA_VERSION,
+      entries: [...pending.values()]
+    } satisfies PendingWriteLedger);
   }
 }
 
@@ -472,6 +545,32 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
     });
   }
 
+  async stagePendingWrite(write: DurablePendingWrite): Promise<void> {
+    if (!isDurablePendingWrite(write)) {
+      throw new Error("Invalid durable pending write");
+    }
+    const database = await this.#database;
+    const marker: DurablePendingMarker = {
+      schemaVersion: 1,
+      write,
+      valueHash: write.kind === "put" ? await hashStorageValue(write.value) : null
+    };
+    await idbTransaction(database, "readwrite", (store) => {
+      store.put({
+        key: pendingMarkerKey(write.key),
+        value: marker,
+        updatedAt: new Date().toISOString()
+      } satisfies DurableIndexedValue);
+    });
+  }
+
+  async commitPendingWrite(write: DurablePendingWrite): Promise<DurablePendingWriteReceipt> {
+    if (!isDurablePendingWrite(write)) {
+      throw new Error("Invalid durable pending write");
+    }
+    return commitPendingWriteTransaction(await this.#database, write);
+  }
+
   async estimate(): Promise<DurableStorageEstimate> {
     const estimate = globalThis.navigator?.storage?.estimate;
     return estimate ? estimate.call(globalThis.navigator) : {};
@@ -531,6 +630,18 @@ export function isDurableStorageMeta(value: unknown): value is DurableStorageMet
   );
 }
 
+export function isDurablePendingWrite(value: unknown): value is DurablePendingWrite {
+  if (!value || typeof value !== "object") return false;
+  const write = value as Partial<DurablePendingWrite>;
+  return (
+    validPendingWriteId(write.id) &&
+    typeof write.key === "string" &&
+    write.key.length > 0 &&
+    write.key.length <= 512 &&
+    ((write.kind === "put" && "value" in write) || write.kind === "remove")
+  );
+}
+
 function finiteOrNull(value: number | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
@@ -551,4 +662,113 @@ async function verifyBackendValue(
   if (expectedHash !== actualHash) {
     throw new Error(`Durable migration hash mismatch for ${key}`);
   }
+}
+
+async function verifyPendingWriteReceipt(
+  write: DurablePendingWrite,
+  receipt: DurablePendingWriteReceipt
+): Promise<void> {
+  const expectedHash = write.kind === "put" ? await hashStorageValue(write.value) : null;
+  if (
+    receipt.id !== write.id ||
+    receipt.key !== write.key ||
+    receipt.kind !== write.kind ||
+    receipt.valueHash !== expectedHash
+  ) {
+    throw new Error(`Durable reconciliation receipt mismatch for ${write.key}`);
+  }
+}
+
+function isPendingWriteLedger(value: unknown): value is PendingWriteLedger {
+  if (!value || typeof value !== "object") return false;
+  const ledger = value as Partial<PendingWriteLedger>;
+  return (
+    ledger.schemaVersion === PENDING_WRITES_SCHEMA_VERSION &&
+    Array.isArray(ledger.entries) &&
+    ledger.entries.every(isDurablePendingWrite)
+  );
+}
+
+function validPendingWriteId(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= 128 &&
+    /^[A-Za-z0-9._:-]+$/.test(value)
+  );
+}
+
+function createPendingWriteId(): string {
+  const cryptoWithUuid = globalThis.crypto as Crypto & { randomUUID?: () => string };
+  if (typeof cryptoWithUuid?.randomUUID === "function") {
+    return cryptoWithUuid.randomUUID();
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+function pendingMarkerKey(key: string): string {
+  return `${DURABLE_PENDING_MARKER_PREFIX}${key}`;
+}
+
+function isDurablePendingMarker(value: unknown): value is DurablePendingMarker {
+  if (!value || typeof value !== "object") return false;
+  const marker = value as Partial<DurablePendingMarker>;
+  return (
+    marker.schemaVersion === 1 &&
+    isDurablePendingWrite(marker.write) &&
+    (marker.valueHash === null ||
+      (typeof marker.valueHash === "string" && /^[0-9a-f]{64}$/.test(marker.valueHash)))
+  );
+}
+
+function commitPendingWriteTransaction(
+  database: IDBDatabase,
+  expected: DurablePendingWrite
+): Promise<DurablePendingWriteReceipt> {
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(DURABLE_OBJECT_STORE, "readwrite");
+    const store = transaction.objectStore(DURABLE_OBJECT_STORE);
+    const request = store.get(pendingMarkerKey(expected.key));
+    let receipt: DurablePendingWriteReceipt | undefined;
+    let failure: Error | undefined;
+
+    request.onsuccess = () => {
+      const record = request.result as DurableIndexedValue | undefined;
+      const marker = record?.value;
+      if (
+        !isDurablePendingMarker(marker) ||
+        marker.write.id !== expected.id ||
+        marker.write.key !== expected.key ||
+        marker.write.kind !== expected.kind
+      ) {
+        failure = new Error(`Durable reconciliation marker mismatch for ${expected.key}`);
+        transaction.abort();
+        return;
+      }
+      if (marker.write.kind === "put") {
+        store.put({
+          key: marker.write.key,
+          value: marker.write.value,
+          updatedAt: new Date().toISOString()
+        } satisfies DurableIndexedValue);
+      } else {
+        store.delete(marker.write.key);
+      }
+      store.delete(pendingMarkerKey(marker.write.key));
+      receipt = {
+        id: marker.write.id,
+        key: marker.write.key,
+        kind: marker.write.kind,
+        valueHash: marker.valueHash
+      };
+    };
+    transaction.oncomplete = () => {
+      if (receipt) resolve(receipt);
+      else reject(failure ?? new Error("Durable reconciliation committed without a receipt"));
+    };
+    transaction.onerror = () =>
+      reject(failure ?? transaction.error ?? new Error("IndexedDB reconciliation failed"));
+    transaction.onabort = () =>
+      reject(failure ?? transaction.error ?? new Error("IndexedDB reconciliation aborted"));
+  });
 }

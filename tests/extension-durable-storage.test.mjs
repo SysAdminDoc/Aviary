@@ -54,6 +54,48 @@ test("content and options share one background profile across a worker restart",
   );
 });
 
+test("the background protocol stages and atomically commits fallback values and tombstones", async () => {
+  const api = await importSourceModule("src/extension/durable-storage-api.ts");
+  const backend = new MemoryBackend();
+  const client = new api.ExtensionDurableStorageBackend((message) =>
+    api.handleDurableStorageRequest(message, backend)
+  );
+  const put = {
+    id: "put-operation",
+    key: "aviary.userNotes.v1",
+    kind: "put",
+    value: { alice: "latest" }
+  };
+
+  await client.stagePendingWrite(put);
+  assert.equal(backend.pending.has(put.key), true, "staging must survive a worker interruption");
+  const putReceipt = await client.commitPendingWrite(put);
+  assert.deepEqual(backend.values.get(put.key), put.value);
+  assert.equal(backend.pending.has(put.key), false, "commit must consume its marker");
+  assert.equal(putReceipt.id, put.id);
+  assert.match(putReceipt.valueHash, /^[0-9a-f]{64}$/);
+
+  const remove = { id: "remove-operation", key: put.key, kind: "remove" };
+  await client.stagePendingWrite(remove);
+  assert.deepEqual(await client.commitPendingWrite(remove), {
+    id: remove.id,
+    key: remove.key,
+    kind: "remove",
+    valueHash: null
+  });
+  assert.equal(backend.values.has(put.key), false);
+  assert.equal(backend.pending.has(put.key), false);
+  assert.equal(
+    api.isDurableStorageRequest({
+      type: api.DURABLE_STORAGE_MESSAGE,
+      operation: "stage-pending",
+      write: { id: "bad id with spaces", key: put.key, kind: "remove" }
+    }),
+    false,
+    "malformed operation ids must not reach the background transaction"
+  );
+});
+
 test("host migration refuses a bad receipt and returns readback hashes for every copied key", async () => {
   const api = await importSourceEntry([
     "src/extension/durable-storage-api.ts",
@@ -174,6 +216,7 @@ test("userscript mode fails closed when its manager storage grant is missing", a
 
 class MemoryBackend {
   values = new Map();
+  pending = new Map();
   meta = undefined;
 
   async get(key) {
@@ -196,6 +239,25 @@ class MemoryBackend {
     for (const [key, value] of entries) this.values.set(key, structuredClone(value));
     this.meta = structuredClone(meta);
     this.values.set("__aviary_meta__", structuredClone(meta));
+  }
+
+  async stagePendingWrite(write) {
+    this.pending.set(write.key, structuredClone(write));
+  }
+
+  async commitPendingWrite(expected) {
+    const write = this.pending.get(expected.key);
+    if (!write || write.id !== expected.id) throw new Error("pending marker mismatch");
+    if (write.kind === "put") this.values.set(write.key, structuredClone(write.value));
+    else this.values.delete(write.key);
+    this.pending.delete(write.key);
+    const { hashStorageValue } = await importSourceModule("src/platform/storage-value-hash.ts");
+    return {
+      id: write.id,
+      key: write.key,
+      kind: write.kind,
+      valueHash: write.kind === "put" ? await hashStorageValue(write.value) : null
+    };
   }
 
   async estimate() {
