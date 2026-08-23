@@ -1,4 +1,5 @@
 import type { StorageGateway } from "../../platform/storage.ts";
+import { replaceStored } from "../../platform/storage-lock.ts";
 import type {
   ExportCheckpoint,
   ExportFormat,
@@ -279,7 +280,7 @@ export class CheckpointStore {
 
   async #persist(): Promise<void> {
     try {
-      await this.#storage.set(CHECKPOINT_KEY, this.#state);
+      await replaceStored(this.#storage, CHECKPOINT_KEY, this.#state);
     } catch {
       // best effort
     }
@@ -314,9 +315,9 @@ export async function saveRetentionPolicy(
 ): Promise<RetentionPolicy> {
   const policy = normalizeRetentionPolicy(input);
   await Promise.all([
-    storage.set(RETENTION_KEYS.maxJobs, policy.maxJobs),
-    storage.set(RETENTION_KEYS.maxRecordsPerJob, policy.maxRecordsPerJob),
-    storage.set(RETENTION_KEYS.maxAgeDays, policy.maxAgeDays)
+    replaceStored(storage, RETENTION_KEYS.maxJobs, policy.maxJobs),
+    replaceStored(storage, RETENTION_KEYS.maxRecordsPerJob, policy.maxRecordsPerJob),
+    replaceStored(storage, RETENTION_KEYS.maxAgeDays, policy.maxAgeDays)
   ]);
   return policy;
 }

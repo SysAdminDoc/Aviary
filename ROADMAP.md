@@ -10,14 +10,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F275, P1: Exclude ordinary writers from backup restore and rollback
-  Why: restore holds `aviary.library.restore`, while ordinary stores hold unrelated per-key locks. A write can land during restore and be silently replaced by the restored snapshot or rollback.
-  Evidence: `src/features/core/library-backup.ts:390-407`, `src/platform/storage-lock.ts:41-129`; https://w3c.github.io/web-locks/
-  Touches: `src/platform/storage-lock.ts`, `src/features/core/library-backup.ts`, every registered backup store, backup concurrency tests
-  Acceptance: ordinary mutations enter a shared restore gate before their per-key transaction; restore and rollback take the exclusive gate; a two-tab test pauses a writer during restore and proves its change is present after commit; the same test proves rollback restores the preflight snapshot without erasing a write that begins afterward.
-  Complexity: L
-  Depends: F273.
-
 - [ ] F276, P1: Replace the remaining stale full-snapshot writes with merge-on-write deltas
   Why: serializing a stale snapshot does not preserve changes made by another tab. Settings, profiles, media queue, export jobs, and diagnostics retain this loss mode.
   Evidence: `src/main.ts:286`, `src/platform/profile.ts:210`, `src/features/media/queue.ts:280`, `src/features/export/jobs.ts:280`, `src/platform/diagnostics-store.ts:154`, `src/platform/storage-lock.ts:3-16`

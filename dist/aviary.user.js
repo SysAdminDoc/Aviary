@@ -12043,11 +12043,21 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
 
   // src/platform/storage-lock.ts
   var chains = /* @__PURE__ */ new Map();
+  var storageGateQueue = [];
+  var storageGateReaders = 0;
+  var storageGateWriter = false;
   function lockManager() {
     const locks = globalThis.navigator?.locks;
     return typeof locks?.request === "function" ? locks : void 0;
   }
-  async function withStorageLock(name, run) {
+  async function withStorageLock(name, run, options = {}) {
+    if (options.restoreGate === false) return withNamedStorageLock(name, run);
+    return withStorageRestoreGate("shared", () => withNamedStorageLock(name, run));
+  }
+  async function withExclusiveStorageGate(run) {
+    return withStorageRestoreGate("exclusive", run);
+  }
+  async function withNamedStorageLock(name, run) {
     const previous = chains.get(name) ?? Promise.resolve();
     const attempt = previous.then(
       () => runUnderBrowserLock(name, run),
@@ -12065,6 +12075,59 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       }
     });
     return attempt;
+  }
+  function withStorageRestoreGate(mode, run) {
+    return new Promise((resolve, reject) => {
+      storageGateQueue.push({
+        mode,
+        run,
+        resolve: (value) => resolve(value),
+        reject
+      });
+      drainStorageGate();
+    });
+  }
+  function drainStorageGate() {
+    if (storageGateWriter || storageGateQueue.length === 0) return;
+    if (storageGateReaders > 0 && storageGateQueue[0]?.mode === "exclusive") return;
+    if (storageGateQueue[0]?.mode === "exclusive") {
+      const request = storageGateQueue.shift();
+      storageGateWriter = true;
+      runStorageGateRequest(request);
+      return;
+    }
+    while (storageGateQueue[0]?.mode === "shared" && !storageGateWriter) {
+      const request = storageGateQueue.shift();
+      storageGateReaders += 1;
+      runStorageGateRequest(request);
+    }
+  }
+  function runStorageGateRequest(request) {
+    void runUnderBrowserStorageGate(request.mode, request.run).then(
+      request.resolve,
+      request.reject
+    ).finally(() => {
+      if (request.mode === "exclusive") storageGateWriter = false;
+      else storageGateReaders -= 1;
+      drainStorageGate();
+    });
+  }
+  async function runUnderBrowserStorageGate(mode, run) {
+    const locks = lockManager();
+    if (!locks) return run();
+    let result;
+    let failure;
+    let failed = false;
+    await locks.request("aviary.library.restore", { mode }, async () => {
+      try {
+        result = await run();
+      } catch (error) {
+        failed = true;
+        failure = error;
+      }
+    });
+    if (failed) throw failure;
+    return result;
   }
   async function runUnderBrowserLock(name, run) {
     const locks = lockManager();
@@ -15333,7 +15396,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   async function rememberLastDownload(storage, input) {
     if (!isHttpUrl(input.url) || input.filename.trim().length === 0) return;
     try {
-      await storage.set(LAST_DOWNLOAD_KEY, {
+      await replaceStored(storage, LAST_DOWNLOAD_KEY, {
         ...input,
         filename: input.filename.slice(0, 240),
         downloadedAt: (/* @__PURE__ */ new Date()).toISOString()
@@ -15701,7 +15764,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         sequence: this.#seq,
         jobs: this.#jobs.map((job) => ({ ...job }))
       };
-      const write = this.#persistTail.then(() => this.#storage.set(MEDIA_QUEUE_KEY, snapshot));
+      const write = this.#persistTail.then(
+        () => replaceStored(this.#storage, MEDIA_QUEUE_KEY, snapshot)
+      );
       this.#persistTail = write.catch((error) => {
         this.#onPersistError?.(error);
       });
@@ -17297,7 +17362,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
     }
     async #persist() {
       try {
-        await this.#storage.set(CHECKPOINT_KEY, this.#state);
+        await replaceStored(this.#storage, CHECKPOINT_KEY, this.#state);
       } catch {
       }
     }
@@ -17325,9 +17390,9 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   async function saveRetentionPolicy(storage, input) {
     const policy = normalizeRetentionPolicy(input);
     await Promise.all([
-      storage.set(RETENTION_KEYS.maxJobs, policy.maxJobs),
-      storage.set(RETENTION_KEYS.maxRecordsPerJob, policy.maxRecordsPerJob),
-      storage.set(RETENTION_KEYS.maxAgeDays, policy.maxAgeDays)
+      replaceStored(storage, RETENTION_KEYS.maxJobs, policy.maxJobs),
+      replaceStored(storage, RETENTION_KEYS.maxRecordsPerJob, policy.maxRecordsPerJob),
+      replaceStored(storage, RETENTION_KEYS.maxAgeDays, policy.maxAgeDays)
     ]);
     return policy;
   }
@@ -18238,7 +18303,7 @@ ${sections.join("\n\n---\n\n")}
       observedAt: (/* @__PURE__ */ new Date()).toISOString()
     };
     try {
-      await storage.set(QUERY_REGISTRY_KEY, result);
+      await replaceStored(storage, QUERY_REGISTRY_KEY, result);
     } catch {
     }
     return result;
@@ -25915,6 +25980,7 @@ a.av-link-clean {
         workers.push(next());
       }
       await Promise.all(workers);
+      await queue2?.flush();
       return {
         ...progress,
         jobIds,
@@ -26115,6 +26181,7 @@ a.av-link-clean {
           void ctx.auditLog.record("media.download.failed", { filename: job.filename, batch: true, resumed: true });
         }
       }
+      await queue2.flush();
       return {
         ...progress,
         jobIds,
@@ -27169,7 +27236,7 @@ a.av-link-clean {
     }
     cache.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
     try {
-      await activeStorage.set(USER_NOTES_KEY, cache);
+      await replaceStored(activeStorage, USER_NOTES_KEY, cache);
     } catch {
     }
   }
@@ -27193,7 +27260,7 @@ a.av-link-clean {
     }
     cache.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
     try {
-      await activeStorage.set(USER_NOTES_KEY, cache);
+      await replaceStored(activeStorage, USER_NOTES_KEY, cache);
     } catch {
     }
   }
@@ -27201,7 +27268,7 @@ a.av-link-clean {
     if (!activeStorage) return;
     cache = { notes: {}, colors: {}, updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
     try {
-      await activeStorage.set(USER_NOTES_KEY, cache);
+      await replaceStored(activeStorage, USER_NOTES_KEY, cache);
     } catch {
     }
   }
@@ -28220,7 +28287,7 @@ ${COLOR_CSS}`;
     async clear() {
       await this.load();
       const next = cloneState3(EMPTY_STATE);
-      await this.#storage.set(UNDER_THE_HOOD_KEY, next);
+      await replaceStored(this.#storage, UNDER_THE_HOOD_KEY, next);
       this.#state = next;
     }
     exportArtifact(exportedAt = (/* @__PURE__ */ new Date()).toISOString()) {
@@ -28867,10 +28934,8 @@ ${COLOR_CSS}`;
       warnings
     };
   }
-  var LIBRARY_RESTORE_LOCK = "aviary.library.restore";
   async function restoreLibraryBackup(storage, payload, options = {}) {
-    return withStorageLock(
-      LIBRARY_RESTORE_LOCK,
+    return withExclusiveStorageGate(
       () => restoreLibraryBackupLocked(storage, payload, options)
     );
   }
@@ -36081,7 +36146,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           });
           await this.#writePendingWrites(pending);
           return pending.size;
-        });
+        }, { restoreGate: false });
       } catch (error) {
         reportStorageError(PENDING_WRITES_KEY, error, "write");
         throw error;
@@ -36125,7 +36190,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           throw error;
         }
         this.#status.pendingWrites = 0;
-      });
+      }, { restoreGate: false });
     }
     async #getFallbackValue(key, fallback) {
       return withStorageLock(PENDING_WRITES_LOCK, async () => {
@@ -36134,7 +36199,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         if (write?.kind === "put") return write.value;
         if (write?.kind === "remove") return fallback;
         return this.#legacy.get(key, fallback);
-      });
+      }, { restoreGate: false });
     }
     async #readPendingWrites() {
       const stored = await this.#legacy.get(PENDING_WRITES_KEY, []);
@@ -36886,7 +36951,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       pageBridge,
       registry,
       async saveSettings() {
-        await storage.set(
+        await replaceStored(
+          storage,
           SETTINGS_KEY,
           futurePayload ? mergeKnownSettings(futurePayload, settings) : normalizeSettings(cloneSettings(settings))
         );

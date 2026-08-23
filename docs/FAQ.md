@@ -198,7 +198,8 @@ and this repair path makes no request.
 redacts API keys/passwords, and preserves credentials already stored on the destination browser.
 Use **Backup & Audit → Export full library backup** for the active profile's local collections,
 jobs, notes, indexes, and settings. Restore first offers a checksum/conflict preview and dry run,
-then rolls earlier writes back if a later collection fails. Captured media bytes remain included
+then rolls earlier writes back if a later collection fails. A save from another open X tab waits
+for that restore or rollback to finish and applies afterward. Captured media bytes remain included
 only when they exist in a selected durable store/export package; live remote URLs are not silently
 converted into offline assets.
 

@@ -78,7 +78,7 @@ async function load() {
       `export { SnapshotStore, SNAPSHOTS_KEY } from ${JSON.stringify(abs("src/features/library/snapshots.ts"))};`,
       `export { CleanupQueue, CLEANUP_QUEUE_KEY } from ${JSON.stringify(abs("src/features/library/cleanup-queue.ts"))};`,
       `export { ArchiveLibraryStore, ARCHIVE_LIBRARY_KEY, ARCHIVE_COLLECTION_LIMIT } from ${JSON.stringify(abs("src/features/library/archive-library.ts"))};`,
-      `export { withStorageLock, mutateStored } from ${JSON.stringify(abs("src/platform/storage-lock.ts"))};`
+      `export { withStorageLock, withExclusiveStorageGate, mutateStored } from ${JSON.stringify(abs("src/platform/storage-lock.ts"))};`
     ].join("\n"),
     "utf8"
   );
@@ -430,6 +430,44 @@ test("the lock serializes, and releases when the work inside it throws", async (
   assert.equal(await next, "ok");
   // A failure ahead in the queue releases the lock rather than blocking every later writer.
   assert.deepEqual(order, ["first-in", "first-out", "second-in"]);
+});
+
+test("browser locks receive shared writer gates and an exclusive restore gate", async () => {
+  const mod = await load();
+  const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  const calls = [];
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: {
+      locks: {
+        async request(name, options, callback) {
+          if (typeof options === "function") {
+            calls.push({ name, mode: "exclusive" });
+            return options();
+          }
+          calls.push({ name, mode: options.mode });
+          return callback();
+        }
+      }
+    }
+  });
+  try {
+    await mod.withStorageLock("bookmarks", async () => undefined);
+    await mod.withExclusiveStorageGate(async () => undefined);
+    await mod.withExclusiveStorageGate(() =>
+      mod.withStorageLock("durable.pending", async () => undefined, { restoreGate: false })
+    );
+  } finally {
+    if (originalNavigator) Object.defineProperty(globalThis, "navigator", originalNavigator);
+    else delete globalThis.navigator;
+  }
+  assert.deepEqual(calls, [
+    { name: "aviary.library.restore", mode: "shared" },
+    { name: "aviary.bookmarks", mode: "exclusive" },
+    { name: "aviary.library.restore", mode: "exclusive" },
+    { name: "aviary.library.restore", mode: "exclusive" },
+    { name: "aviary.durable.pending", mode: "exclusive" }
+  ]);
 });
 
 test("mutateStored reads inside the lock, so the second writer sees the first's write", async () => {

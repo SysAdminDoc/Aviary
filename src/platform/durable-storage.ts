@@ -367,7 +367,7 @@ export class DurableStorageGateway implements StorageGateway {
         });
         await this.#writePendingWrites(pending);
         return pending.size;
-      });
+      }, { restoreGate: false });
     } catch (error) {
       reportStorageError(PENDING_WRITES_KEY, error, "write");
       throw error;
@@ -417,7 +417,7 @@ export class DurableStorageGateway implements StorageGateway {
         throw error;
       }
       this.#status.pendingWrites = 0;
-    });
+    }, { restoreGate: false });
   }
 
   async #getFallbackValue<T>(key: string, fallback: T): Promise<T> {
@@ -427,7 +427,7 @@ export class DurableStorageGateway implements StorageGateway {
       if (write?.kind === "put") return write.value as T;
       if (write?.kind === "remove") return fallback;
       return this.#legacy.get(key, fallback);
-    });
+    }, { restoreGate: false });
   }
 
   async #readPendingWrites(): Promise<Map<string, DurablePendingWrite>> {

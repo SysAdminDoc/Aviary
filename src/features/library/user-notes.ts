@@ -1,4 +1,5 @@
 import type { StorageGateway } from "../../platform/storage.ts";
+import { replaceStored } from "../../platform/storage-lock.ts";
 import type { FeatureContext, FeatureModule } from "../registry.ts";
 import { ft } from "../core/feature-i18n.ts";
 
@@ -91,7 +92,7 @@ export async function setUserNote(handle: string, note: string): Promise<void> {
   }
   cache.updatedAt = new Date().toISOString();
   try {
-    await activeStorage.set(USER_NOTES_KEY, cache);
+    await replaceStored(activeStorage, USER_NOTES_KEY, cache);
   } catch {
     // best effort
   }
@@ -118,7 +119,7 @@ export async function setUserColor(handle: string, color: UserColor | ""): Promi
   }
   cache.updatedAt = new Date().toISOString();
   try {
-    await activeStorage.set(USER_NOTES_KEY, cache);
+    await replaceStored(activeStorage, USER_NOTES_KEY, cache);
   } catch {
     // best effort
   }
@@ -128,7 +129,7 @@ export async function clearUserNotes(): Promise<void> {
   if (!activeStorage) return;
   cache = { notes: {}, colors: {}, updatedAt: new Date().toISOString() };
   try {
-    await activeStorage.set(USER_NOTES_KEY, cache);
+    await replaceStored(activeStorage, USER_NOTES_KEY, cache);
   } catch {
     // best effort
   }

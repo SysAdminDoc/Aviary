@@ -16,6 +16,11 @@
 - Writes made during a temporary storage outage now share one locked journal. The background stages
   each latest value or removal, then commits it and clears its marker in one IndexedDB transaction.
   Interrupted work retries after restart without losing another key or reviving an older value.
+- Full-library restore and rollback now hold one exclusive storage gate. Ordinary saves wait behind
+  it, then continue against the completed result, so an in-progress restore cannot erase a change
+  from another open X tab.
+- Media batches now wait for their durable queue checkpoint before reporting a browser transfer as
+  running, so restart recovery retains the browser download ID.
 
 ## 1.47.0 (2026-08-22)
 

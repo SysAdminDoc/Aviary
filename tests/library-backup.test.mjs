@@ -122,6 +122,117 @@ test("library backup cancellation performs no writes", async () => {
   assert.equal(target.store.get(BOOKMARKS_KEY).entries[0].id, "current");
 });
 
+test("a two-tab writer waits for restore commit and remains authoritative afterward", async () => {
+  const { createLibraryBackup, restoreLibraryBackup } = await importSourceModule(
+    "src/features/core/library-backup.ts"
+  );
+  const { replaceStored } = await importSourceModule("src/platform/storage-lock.ts");
+  const BOOKMARKS_KEY = "aviary.library.bookmarks.v1";
+  const source = storageFrom(new Map([
+    [BOOKMARKS_KEY, { entries: [{ id: "backup", text: "restored" }] }]
+  ]));
+  const { artifact } = await createLibraryBackup(source, { selectedKeys: [BOOKMARKS_KEY] });
+  const restoreEntered = deferred();
+  const releaseRestore = deferred();
+  const order = [];
+  const target = storageFrom(
+    new Map([[BOOKMARKS_KEY, { entries: [{ id: "before", text: "preflight" }] }]]),
+    {
+      async set(key, value) {
+        if (key === BOOKMARKS_KEY && value.entries?.[0]?.id === "backup") {
+          order.push("restore-write");
+          restoreEntered.resolve();
+          await releaseRestore.promise;
+        }
+        this.store.set(key, structuredClone(value));
+      }
+    }
+  );
+
+  const restoring = restoreLibraryBackup(target, new TextDecoder().decode(artifact.data)).then(
+    (result) => {
+      order.push("restore-done");
+      return result;
+    }
+  );
+  await restoreEntered.promise;
+  let writerSettled = false;
+  const writer = replaceStored(target, BOOKMARKS_KEY, {
+    entries: [{ id: "writer", text: "saved after restore" }]
+  }).then(() => {
+    writerSettled = true;
+    order.push("writer-done");
+  });
+  await Promise.resolve();
+  assert.equal(writerSettled, false, "the second tab wrote inside the restore transaction");
+
+  releaseRestore.resolve();
+  assert.equal((await restoring).applied, true);
+  await writer;
+  assert.equal(target.store.get(BOOKMARKS_KEY).entries[0].id, "writer");
+  assert.deepEqual(order, ["restore-write", "restore-done", "writer-done"]);
+});
+
+test("rollback restores its preflight snapshot before a later two-tab write proceeds", async () => {
+  const { createLibraryBackup, restoreLibraryBackup } = await importSourceModule(
+    "src/features/core/library-backup.ts"
+  );
+  const { replaceStored } = await importSourceModule("src/platform/storage-lock.ts");
+  const { normalizeSettings } = await importSourceModule("src/platform/settings.ts");
+  const SETTINGS_KEY = "aviary.settings.v1";
+  const BOOKMARKS_KEY = "aviary.library.bookmarks.v1";
+  const source = storageFrom(new Map([
+    [SETTINGS_KEY, normalizeSettings({ appearance: { theme: "dim" } })],
+    [BOOKMARKS_KEY, { entries: [{ id: "backup" }] }]
+  ]));
+  const { artifact } = await createLibraryBackup(source, {
+    selectedKeys: [SETTINGS_KEY, BOOKMARKS_KEY]
+  });
+  const currentSettings = normalizeSettings({ appearance: { theme: "plum" } });
+  const writerSettings = normalizeSettings({ appearance: { theme: "noir" } });
+  const failureEntered = deferred();
+  const releaseFailure = deferred();
+  const order = [];
+  let failBackupOnce = true;
+  const target = storageFrom(
+    new Map([
+      [SETTINGS_KEY, currentSettings],
+      [BOOKMARKS_KEY, { entries: [{ id: "current" }] }]
+    ]),
+    {
+      async set(key, value) {
+        if (key === BOOKMARKS_KEY && value.entries?.[0]?.id === "backup" && failBackupOnce) {
+          failBackupOnce = false;
+          failureEntered.resolve();
+          await releaseFailure.promise;
+          throw new Error("simulated restore failure");
+        }
+        if (key === SETTINGS_KEY && value.appearance?.theme === "plum") order.push("rollback");
+        if (key === SETTINGS_KEY && value.appearance?.theme === "noir") order.push("writer");
+        this.store.set(key, structuredClone(value));
+      }
+    }
+  );
+
+  const restoring = restoreLibraryBackup(target, new TextDecoder().decode(artifact.data));
+  await failureEntered.promise;
+  let writerSettled = false;
+  const writer = replaceStored(target, SETTINGS_KEY, writerSettings).then(() => {
+    writerSettled = true;
+  });
+  await Promise.resolve();
+  assert.equal(writerSettled, false, "the second tab bypassed a rollback in progress");
+
+  releaseFailure.resolve();
+  const result = await restoring;
+  assert.equal(result.applied, false);
+  assert.equal(result.rolledBack, true);
+  await writer;
+  assert.equal(target.store.get(SETTINGS_KEY).appearance.theme, "noir");
+  assert.equal(target.store.get(BOOKMARKS_KEY).entries[0].id, "current");
+  assert.deepEqual(order, ["rollback", "writer"]);
+});
+
 function storageFrom(store, overrides = {}) {
   const storage = {
     store,
@@ -137,4 +248,12 @@ function storageFrom(store, overrides = {}) {
     ...overrides
   };
   return storage;
+}
+
+function deferred() {
+  let resolve;
+  const promise = new Promise((accept) => {
+    resolve = accept;
+  });
+  return { promise, resolve };
 }

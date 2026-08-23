@@ -1,4 +1,5 @@
 import type { StorageGateway } from "../../platform/storage.ts";
+import { replaceStored } from "../../platform/storage-lock.ts";
 import {
   normalizeMediaSidecarRequest,
   type MediaSidecarRequest
@@ -277,7 +278,9 @@ export class DownloadQueue {
       sequence: this.#seq,
       jobs: this.#jobs.map((job) => ({ ...job }))
     };
-    const write = this.#persistTail.then(() => this.#storage!.set(MEDIA_QUEUE_KEY, snapshot));
+    const write = this.#persistTail.then(() =>
+      replaceStored(this.#storage!, MEDIA_QUEUE_KEY, snapshot)
+    );
     this.#persistTail = write.catch((error) => {
       this.#onPersistError?.(error);
     });

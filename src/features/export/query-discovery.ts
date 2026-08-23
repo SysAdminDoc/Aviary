@@ -1,4 +1,5 @@
 import type { StorageGateway } from "../../platform/storage.ts";
+import { replaceStored } from "../../platform/storage-lock.ts";
 
 export const QUERY_REGISTRY_KEY = "aviary.queryIds.v1";
 
@@ -39,7 +40,7 @@ export async function discoverQueryIds(storage: StorageGateway): Promise<QueryRe
     observedAt: new Date().toISOString()
   };
   try {
-    await storage.set(QUERY_REGISTRY_KEY, result);
+    await replaceStored(storage, QUERY_REGISTRY_KEY, result);
   } catch {
     // best effort
   }

@@ -486,6 +486,7 @@ async function runTasks(
       workers.push(next());
     }
     await Promise.all(workers);
+    await queue?.flush();
 
     return {
       ...progress,
@@ -705,6 +706,7 @@ async function runPersistedJobs(
         void ctx.auditLog.record("media.download.failed", { filename: job.filename, batch: true, resumed: true });
       }
     }
+    await queue.flush();
     return {
       ...progress,
       jobIds,

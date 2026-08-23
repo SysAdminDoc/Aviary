@@ -18,7 +18,21 @@ import type { StorageGateway } from "./storage.ts";
 
 type LockManagerLike = {
   request(name: string, callback: () => Promise<unknown>): Promise<unknown>;
+  request(
+    name: string,
+    options: { mode: "shared" | "exclusive" },
+    callback: () => Promise<unknown>
+  ): Promise<unknown>;
 };
+
+type StorageGateMode = "shared" | "exclusive";
+
+interface StorageGateRequest {
+  mode: StorageGateMode;
+  run: () => Promise<unknown>;
+  resolve: (value: unknown) => void;
+  reject: (error: unknown) => void;
+}
 
 /**
  * In-process serialization, per lock name.
@@ -30,6 +44,9 @@ type LockManagerLike = {
  * how a browser schedules lock grants.
  */
 const chains = new Map<string, Promise<unknown>>();
+const storageGateQueue: StorageGateRequest[] = [];
+let storageGateReaders = 0;
+let storageGateWriter = false;
 
 function lockManager(): LockManagerLike | undefined {
   const locks = (globalThis.navigator as { locks?: LockManagerLike } | undefined)?.locks;
@@ -47,7 +64,21 @@ export function crossTabLocksAvailable(): boolean {
  * The lock is released whether `run` resolves or rejects; a store whose write fails must not
  * leave every other tab blocked on it.
  */
-export async function withStorageLock<T>(name: string, run: () => Promise<T>): Promise<T> {
+export async function withStorageLock<T>(
+  name: string,
+  run: () => Promise<T>,
+  options: { restoreGate?: boolean } = {}
+): Promise<T> {
+  if (options.restoreGate === false) return withNamedStorageLock(name, run);
+  return withStorageRestoreGate("shared", () => withNamedStorageLock(name, run));
+}
+
+/** Holds the restore gate exclusively across preflight snapshot, restore, and rollback. */
+export async function withExclusiveStorageGate<T>(run: () => Promise<T>): Promise<T> {
+  return withStorageRestoreGate("exclusive", run);
+}
+
+async function withNamedStorageLock<T>(name: string, run: () => Promise<T>): Promise<T> {
   const previous = chains.get(name) ?? Promise.resolve();
   const attempt = previous.then(
     () => runUnderBrowserLock(name, run),
@@ -67,6 +98,68 @@ export async function withStorageLock<T>(name: string, run: () => Promise<T>): P
     }
   });
   return attempt;
+}
+
+function withStorageRestoreGate<T>(mode: StorageGateMode, run: () => Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    storageGateQueue.push({
+      mode,
+      run,
+      resolve: (value) => resolve(value as T),
+      reject
+    });
+    drainStorageGate();
+  });
+}
+
+function drainStorageGate(): void {
+  if (storageGateWriter || storageGateQueue.length === 0) return;
+  if (storageGateReaders > 0 && storageGateQueue[0]?.mode === "exclusive") return;
+
+  if (storageGateQueue[0]?.mode === "exclusive") {
+    const request = storageGateQueue.shift()!;
+    storageGateWriter = true;
+    runStorageGateRequest(request);
+    return;
+  }
+
+  while (storageGateQueue[0]?.mode === "shared" && !storageGateWriter) {
+    const request = storageGateQueue.shift()!;
+    storageGateReaders += 1;
+    runStorageGateRequest(request);
+  }
+}
+
+function runStorageGateRequest(request: StorageGateRequest): void {
+  void runUnderBrowserStorageGate(request.mode, request.run).then(
+    request.resolve,
+    request.reject
+  ).finally(() => {
+    if (request.mode === "exclusive") storageGateWriter = false;
+    else storageGateReaders -= 1;
+    drainStorageGate();
+  });
+}
+
+async function runUnderBrowserStorageGate<T>(
+  mode: StorageGateMode,
+  run: () => Promise<T>
+): Promise<T> {
+  const locks = lockManager();
+  if (!locks) return run();
+  let result!: T;
+  let failure: unknown;
+  let failed = false;
+  await locks.request("aviary.library.restore", { mode }, async () => {
+    try {
+      result = await run();
+    } catch (error) {
+      failed = true;
+      failure = error;
+    }
+  });
+  if (failed) throw failure;
+  return result;
 }
 
 async function runUnderBrowserLock<T>(name: string, run: () => Promise<T>): Promise<T> {

@@ -1,4 +1,5 @@
 import type { StorageGateway } from "../../platform/storage.ts";
+import { replaceStored } from "../../platform/storage-lock.ts";
 
 export const LAST_DOWNLOAD_KEY = "aviary.media.last-download.v1";
 
@@ -15,7 +16,7 @@ export async function rememberLastDownload(
 ): Promise<void> {
   if (!isHttpUrl(input.url) || input.filename.trim().length === 0) return;
   try {
-    await storage.set<LastDownload>(LAST_DOWNLOAD_KEY, {
+    await replaceStored<LastDownload>(storage, LAST_DOWNLOAD_KEY, {
       ...input,
       filename: input.filename.slice(0, 240),
       downloadedAt: new Date().toISOString()

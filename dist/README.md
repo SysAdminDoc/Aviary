@@ -397,8 +397,9 @@ The Control Center "Backup & Audit" section exposes:
   by default and remain local when a redacted backup is restored.
 - **Restore a library backup**, choose a backup file to preview schema versions, collection counts,
   byte totals, conflicts, and checksums. Dry-run validates without mutation; an actual restore can
-  be cancelled and rolls back earlier collection writes if a later local write fails. Restoring
-  local stores reloads the page so in-memory feature snapshots cannot go stale.
+  be cancelled and rolls back earlier collection writes if a later local write fails. Saves from
+  another open X tab wait for restore or rollback to finish, then apply afterward. Restoring local
+  stores reloads the page so in-memory feature snapshots cannot go stale.
 - **Audit entries**, read-only count of logged local actions (downloads, exports, settings round-trips, diagnostic copies).
 - **Clear audit log**, drops the persisted ring buffer.
 

@@ -1,5 +1,5 @@
 import type { StorageGateway } from "../../platform/storage.ts";
-import { mutateStored } from "../../platform/storage-lock.ts";
+import { mutateStored, replaceStored } from "../../platform/storage-lock.ts";
 
 export const UNDER_THE_HOOD_KEY = "aviary.library.underTheHood.v1";
 export const UNDER_THE_HOOD_STORE_VERSION = 1 as const;
@@ -242,7 +242,7 @@ export class UnderTheHoodStore {
   async clear(): Promise<void> {
     await this.load();
     const next = cloneState(EMPTY_STATE);
-    await this.#storage.set(UNDER_THE_HOOD_KEY, next);
+    await replaceStored(this.#storage, UNDER_THE_HOOD_KEY, next);
     this.#state = next;
   }
 

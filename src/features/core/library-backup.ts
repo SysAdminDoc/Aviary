@@ -1,4 +1,4 @@
-import { withStorageLock } from "../../platform/storage-lock.ts";
+import { withExclusiveStorageGate } from "../../platform/storage-lock.ts";
 import { ARIA2_HISTORY_KEY } from "../integrations/aria2.ts";
 import { SEMANTIC_INDEX_KEY } from "../integrations/semantic-search.ts";
 import { INTEGRATION_USAGE_KEY } from "../integrations/usage.ts";
@@ -402,7 +402,7 @@ export async function restoreLibraryBackup(
   payload: string | Uint8Array,
   options: LibraryBackupRestoreOptions = {}
 ): Promise<LibraryBackupRestoreResult> {
-  return withStorageLock(LIBRARY_RESTORE_LOCK, () =>
+  return withExclusiveStorageGate(() =>
     restoreLibraryBackupLocked(storage, payload, options)
   );
 }

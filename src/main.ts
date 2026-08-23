@@ -57,6 +57,7 @@ import {
 import { createStorageGateway, setStorageErrorSink } from "./platform/storage.ts";
 import { createDurableStorageGateway, DURABLE_STORAGE_KEYS } from "./platform/durable-storage.ts";
 import { createProfileStorageGateway, ProfileManager } from "./platform/profile.ts";
+import { replaceStored } from "./platform/storage-lock.ts";
 import { createTrustedHtmlPolicy } from "./platform/trusted-types.ts";
 import { IntegrationUsageLedger } from "./features/integrations/usage.ts";
 import { requestExtensionAdRuleSync } from "./extension/ad-rule.ts";
@@ -326,7 +327,8 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
       // rather than replacing it: `fromFuture` used to be a diagnostics line and nothing else, so
       // downgrading and toggling any single setting silently deleted every key the newer schema
       // had added.
-      await storage.set(
+      await replaceStored(
+        storage,
         SETTINGS_KEY,
         futurePayload
           ? mergeKnownSettings(futurePayload, settings)
