@@ -929,6 +929,10 @@ var Aviary = (() => {
   var STYLE_ID = "av-theme-foundation";
   var ACTIVE_NAV_ATTRIBUTE = "data-av-active-route";
   var CONVERSATION_ROLE_ATTRIBUTE = "data-av-conversation-role";
+  var CONVERSATION_LINE_ATTRIBUTE = "data-av-conversation-line";
+  var CONVERSATION_LINE_MAX_WIDTH = 3;
+  var CONVERSATION_LINE_MIN_HEIGHT = 12;
+  var CONVERSATION_LINE_CENTER_TOLERANCE = 4;
   var themeFeature = {
     id: "appearance.theme",
     title: "Theme foundation",
@@ -1045,6 +1049,9 @@ var Aviary = (() => {
     for (const node of Array.from(document.querySelectorAll(`[${CONVERSATION_ROLE_ATTRIBUTE}]`))) {
       node.removeAttribute(CONVERSATION_ROLE_ATTRIBUTE);
     }
+    for (const node of Array.from(document.querySelectorAll(`[${CONVERSATION_LINE_ATTRIBUTE}]`))) {
+      node.removeAttribute(CONVERSATION_LINE_ATTRIBUTE);
+    }
     if (!enabled2) return;
     const primary = document.querySelector('[data-testid="primaryColumn"]');
     if (!primary) return;
@@ -1055,7 +1062,28 @@ var Aviary = (() => {
       const role = postIndex === 0 ? "focal" : "reply";
       cell.setAttribute(CONVERSATION_ROLE_ATTRIBUTE, role);
       article.setAttribute(CONVERSATION_ROLE_ATTRIBUTE, role);
+      if (role === "reply") stampConversationLines(article);
       postIndex += 1;
+    }
+  }
+  function stampConversationLines(article) {
+    const avatar = article.querySelector('[data-testid="Tweet-User-Avatar"]');
+    if (!avatar) return;
+    const avatarBox = avatar.getBoundingClientRect();
+    if (avatarBox.width === 0) return;
+    const avatarCenter = avatarBox.left + avatarBox.width / 2;
+    for (const candidate of Array.from(article.querySelectorAll("div"))) {
+      if (candidate.closest('article[data-testid="tweet"]') !== article) continue;
+      if (candidate.childElementCount > 0) continue;
+      if ((candidate.textContent ?? "").trim().length > 0) continue;
+      const style = getComputedStyle(candidate);
+      if (style.position !== "absolute") continue;
+      const box = candidate.getBoundingClientRect();
+      if (box.width === 0 || box.width > CONVERSATION_LINE_MAX_WIDTH) continue;
+      if (box.height < CONVERSATION_LINE_MIN_HEIGHT) continue;
+      const center = box.left + box.width / 2;
+      if (Math.abs(center - avatarCenter) > CONVERSATION_LINE_CENTER_TOLERANCE) continue;
+      candidate.setAttribute(CONVERSATION_LINE_ATTRIBUTE, "1");
     }
   }
   function ensureThemeStyle() {
@@ -1318,6 +1346,14 @@ html[data-av-theme] [data-av-media-action]:hover:not(:disabled) {
   border-color: transparent;
   background: color-mix(in srgb, var(--av-accent) 86%, white);
   color: var(--av-on-accent, rgb(3, 20, 24));
+}
+
+/* X's own reply connector, hidden by the stamp syncConversationStructure puts on it after checking
+   its geometry. The stamp is what keeps this independent of X's generated class names, and it is
+   removed on teardown, so turning the theme off restores X's element rather than leaving it hidden
+   by a selector nothing owns any more. */
+html[data-av-theme][data-av-surface="conversation"] [data-av-conversation-line] {
+  display: none !important;
 }
 
 /* A post detail route has one focal post, then a compact reply stream. The role markers

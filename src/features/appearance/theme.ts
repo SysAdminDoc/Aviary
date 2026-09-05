@@ -4,6 +4,13 @@ import { COUNT_METRICS, type AviarySettings, type ThemeId } from "../../platform
 const STYLE_ID = "av-theme-foundation";
 const ACTIVE_NAV_ATTRIBUTE = "data-av-active-route";
 const CONVERSATION_ROLE_ATTRIBUTE = "data-av-conversation-role";
+const CONVERSATION_LINE_ATTRIBUTE = "data-av-conversation-line";
+/** X paints the connector 2px wide. Allow for device-pixel rounding, refuse anything wider. */
+const CONVERSATION_LINE_MAX_WIDTH = 3;
+/** Below this it is a divider or a spacer, not a connector running down the thread. */
+const CONVERSATION_LINE_MIN_HEIGHT = 12;
+/** How far the connector's centre may sit from the avatar's centre and still be the same gutter. */
+const CONVERSATION_LINE_CENTER_TOLERANCE = 4;
 
 export const themeFeature: FeatureModule = {
   id: "appearance.theme",
@@ -157,6 +164,11 @@ function syncConversationStructure(enabled: boolean): void {
   for (const node of Array.from(document.querySelectorAll<HTMLElement>(`[${CONVERSATION_ROLE_ATTRIBUTE}]`))) {
     node.removeAttribute(CONVERSATION_ROLE_ATTRIBUTE);
   }
+  // Teardown has to reach the connector stamps too, or turning the theme off leaves X's own
+  // element hidden by a rule whose selector is still on the page.
+  for (const node of Array.from(document.querySelectorAll<HTMLElement>(`[${CONVERSATION_LINE_ATTRIBUTE}]`))) {
+    node.removeAttribute(CONVERSATION_LINE_ATTRIBUTE);
+  }
   if (!enabled) return;
 
   const primary = document.querySelector<HTMLElement>('[data-testid="primaryColumn"]');
@@ -169,7 +181,44 @@ function syncConversationStructure(enabled: boolean): void {
     const role = postIndex === 0 ? "focal" : "reply";
     cell.setAttribute(CONVERSATION_ROLE_ATTRIBUTE, role);
     article.setAttribute(CONVERSATION_ROLE_ATTRIBUTE, role);
+    if (role === "reply") stampConversationLines(article);
     postIndex += 1;
+  }
+}
+
+/**
+ * Finds X's own reply connector and marks it, by shape rather than by name.
+ *
+ * The vertical line down a reply's avatar gutter is a real element X renders, not a pseudo-element
+ * on the cell, so hiding `::before` on the reply cell changes nothing a reader can see. Its class
+ * is generated (`css-*` / `r-*`) and has already been renamed once, so matching on the name would
+ * be matching on the one part guaranteed to churn.
+ *
+ * What does not churn is what the element *is*: an empty absolutely-positioned box about two
+ * pixels wide, running down the column the avatar sits in. Every condition here is checked against
+ * the live layout, so a node that stops looking like a connector stops being stamped, and anything
+ * carrying content or a hit target is left alone.
+ */
+function stampConversationLines(article: HTMLElement): void {
+  const avatar = article.querySelector<HTMLElement>('[data-testid="Tweet-User-Avatar"]');
+  if (!avatar) return;
+  const avatarBox = avatar.getBoundingClientRect();
+  if (avatarBox.width === 0) return;
+  const avatarCenter = avatarBox.left + avatarBox.width / 2;
+
+  for (const candidate of Array.from(article.querySelectorAll<HTMLElement>("div"))) {
+    // Only this post's own gutter. A quoted post nested inside brings its own avatar and line.
+    if (candidate.closest('article[data-testid="tweet"]') !== article) continue;
+    if (candidate.childElementCount > 0) continue;
+    if ((candidate.textContent ?? "").trim().length > 0) continue;
+    const style = getComputedStyle(candidate);
+    if (style.position !== "absolute") continue;
+    const box = candidate.getBoundingClientRect();
+    if (box.width === 0 || box.width > CONVERSATION_LINE_MAX_WIDTH) continue;
+    if (box.height < CONVERSATION_LINE_MIN_HEIGHT) continue;
+    const center = box.left + box.width / 2;
+    if (Math.abs(center - avatarCenter) > CONVERSATION_LINE_CENTER_TOLERANCE) continue;
+    candidate.setAttribute(CONVERSATION_LINE_ATTRIBUTE, "1");
   }
 }
 
@@ -445,6 +494,14 @@ html[data-av-theme] [data-av-media-action]:hover:not(:disabled) {
   border-color: transparent;
   background: color-mix(in srgb, var(--av-accent) 86%, white);
   color: var(--av-on-accent, rgb(3, 20, 24));
+}
+
+/* X's own reply connector, hidden by the stamp syncConversationStructure puts on it after checking
+   its geometry. The stamp is what keeps this independent of X's generated class names, and it is
+   removed on teardown, so turning the theme off restores X's element rather than leaving it hidden
+   by a selector nothing owns any more. */
+html[data-av-theme][data-av-surface="conversation"] [data-av-conversation-line] {
+  display: none !important;
 }
 
 /* A post detail route has one focal post, then a compact reply stream. The role markers

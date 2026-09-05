@@ -20,6 +20,7 @@
   implying a guarantee.
 
 ### Fixed
+- Conversation pages no longer show the vertical connector line down a reply's avatar column while an Aviary theme is active. The previous fix removed a line Aviary itself drew; the one readers were seeing is X's own element, found now by its shape and position rather than by a class name X regenerates.
 - A full library backup now covers the whole install rather than whichever profile happened to be
   open. It carries every profile's collections, the profile list, and the active-profile pointer,
   so restoring on a new browser no longer silently loses every profile but one. Backups written by

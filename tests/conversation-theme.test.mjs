@@ -70,7 +70,33 @@ test("conversation routes distinguish the focal post without drawing reply conne
           ? Number.parseFloat(getComputedStyle(replies[0].querySelector('[data-testid="tweetText"]')).fontSize)
           : 0,
         replyPadding: replyCell ? getComputedStyle(replyCell.firstElementChild).paddingTop : "",
-        replyLine: replyCell ? getComputedStyle(replyCell, "::before").content : "none"
+        replyLine: replyCell ? getComputedStyle(replyCell, "::before").content : "none",
+        // X draws the connector as its own element in the avatar gutter. Reading the reply cell's
+        // pseudo-element proves nothing about it: that assertion passed while the line was still
+        // on screen, which is the defect this covers.
+        nativeLines: [...document.querySelectorAll("[data-av-conversation-line]")].map((node) => ({
+          hidden: getComputedStyle(node).display === "none",
+          insideReply: node.closest('article[data-av-conversation-role="reply"]') !== null,
+          namedByClass: node.getAttribute("data-av-conversation-line")
+        })),
+        // Nothing in the avatar gutter may be collateral damage.
+        avatars: [...document.querySelectorAll('[data-testid="Tweet-User-Avatar"]')].map((node) => {
+          const box = node.getBoundingClientRect();
+          return { width: Math.round(box.width), height: Math.round(box.height) };
+        }),
+        decoysStamped: [...document.querySelectorAll("[data-av-decoy]")]
+          .filter((node) => node.hasAttribute("data-av-conversation-line"))
+          .map((node) => node.getAttribute("data-av-decoy")),
+        authorLinkClickable: (() => {
+          const link = document.querySelector(
+            'article[data-av-conversation-role="reply"] [data-testid="User-Name"] a'
+          );
+          if (!link) return false;
+          const box = link.getBoundingClientRect();
+          if (box.width === 0 || box.height === 0) return false;
+          const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+          return link.contains(hit) || hit === link;
+        })()
       };
     });
 
@@ -81,6 +107,32 @@ test("conversation routes distinguish the focal post without drawing reply conne
     assert.ok(themed.focalFont > themed.replyFont);
     assert.equal(themed.replyPadding, "14px");
     assert.equal(themed.replyLine, "none");
+
+    // The real element, not the pseudo-element. Both replies in the fixture carry one.
+    assert.equal(
+      themed.nativeLines.length,
+      2,
+      "X's own reply connectors were not detected, so hiding them cannot have been proved"
+    );
+    for (const line of themed.nativeLines) {
+      assert.equal(line.hidden, true, "a stamped connector is still painted");
+      assert.equal(line.insideReply, true, "a connector was stamped outside a reply cell");
+    }
+    assert.deepEqual(
+      themed.avatars,
+      [
+        { width: 44, height: 44 },
+        { width: 44, height: 44 },
+        { width: 44, height: 44 }
+      ],
+      "hiding the connector must not resize the avatars beside it"
+    );
+    assert.equal(themed.authorLinkClickable, true, "the reply author link lost its hit target");
+    assert.deepEqual(
+      themed.decoysStamped,
+      [],
+      "a non-connector element was stamped, so the geometry checks are not doing anything"
+    );
 
     const off = await page.evaluate(() => {
       AviaryTheme.applyTheme({
@@ -94,12 +146,16 @@ test("conversation routes distinguish the focal post without drawing reply conne
         },
         accessibility: { highContrast: false, reduceMotion: "never" }
       });
+      const line = document.querySelector(".css-175oi2r.r-1bnu78o");
       return {
         surface: document.documentElement.dataset.avSurface ?? null,
-        markers: document.querySelectorAll('[data-av-conversation-role]').length
+        markers: document.querySelectorAll('[data-av-conversation-role]').length,
+        lineStamps: document.querySelectorAll("[data-av-conversation-line]").length,
+        // X's node has to come back, not merely lose its stamp.
+        lineVisible: line ? getComputedStyle(line).display !== "none" : false
       };
     });
-    assert.deepEqual(off, { surface: null, markers: 0 });
+    assert.deepEqual(off, { surface: null, markers: 0, lineStamps: 0, lineVisible: true });
   } finally {
     await browser.close();
     await rm(temp, { recursive: true, force: true });

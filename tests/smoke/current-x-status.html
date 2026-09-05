@@ -28,6 +28,9 @@
       article[data-testid="tweet"] { position: relative; min-height: 116px; padding-left: 58px; }
       article[data-av-focal-post="true"] { min-height: 320px; }
       [data-testid="Tweet-User-Avatar"] { position: absolute; top: 0; left: 0; width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
+      .css-175oi2r.r-1bnu78o { position: absolute; top: 52px; bottom: 0; left: 21px; width: 2px; background-color: rgb(51, 54, 57); }
+      .css-175oi2r.r-1p0dtai { position: absolute; top: 52px; bottom: 0; left: 8px; width: 28px; pointer-events: none; }
+      .css-175oi2r.r-1awozwy { position: absolute; top: 52px; bottom: 0; right: 8px; width: 2px; pointer-events: none; }
       [data-testid="User-Name"] { display: inline; }
       [data-testid="User-Name"] a { color: #e7e9ea; font-weight: 700; text-decoration: none; }
       article[data-testid="tweet"] > a[href*="/status/"] { margin-left: 6px; color: #71767b; text-decoration: none; }
@@ -87,6 +90,9 @@
             <div data-testid="cellInnerDiv" data-av-reply="true">
               <div>
                 <article data-testid="tweet">
+                  <div class="css-175oi2r r-1bnu78o"></div>
+                  <div class="css-175oi2r r-1p0dtai" data-av-decoy="wide"></div>
+                  <div class="css-175oi2r r-1awozwy" data-av-decoy="offset"></div>
                   <img data-testid="Tweet-User-Avatar" alt="" src="https://pbs.twimg.com/profile_images/northline.png">
                   <div data-testid="User-Name"><a href="/northline">Northline</a></div>
                   <a href="/northline/status/2">@northline · 1h</a>
@@ -102,6 +108,7 @@
             <div data-testid="cellInnerDiv" data-av-reply="true">
               <div>
                 <article data-testid="tweet">
+                  <div class="css-175oi2r r-1bnu78o"></div>
                   <img data-testid="Tweet-User-Avatar" alt="" src="https://pbs.twimg.com/profile_images/orbit.png">
                   <div data-testid="User-Name"><a href="/orbit">Orbit</a></div>
                   <a href="/orbit/status/3">@orbit · 38m</a>

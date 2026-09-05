@@ -336,14 +336,6 @@ Research date 2026-09-05, against `1.47.2` at `9a5970a` plus the shelved cross-o
 
 ### P0, Now
 
-- [ ] F316, P0: Remove X's native reply connector, not only Aviary's pseudo-line
-  Why: the 1.47.2 fix removed Aviary's former `::before` connector, but the user's vertical line is a real X element in the avatar gutter and the current test passes without containing that element.
-  Evidence: `src/features/appearance/theme.ts` (`syncConversationStructure`), `tests/conversation-theme.test.mjs` (`replyCell::before` only), `tests/smoke/current-x-status.html` (no connector subtree); https://gist.github.com/busybox11/f339f10da2b5f4a1a26c558663936699 and https://gist.github.com/ShrineFox/f3017d5847a61893eaee9bb4c7028a25#L370 identify the current and older generated-class forms
-  Touches: `src/features/appearance/theme.ts`, `tests/smoke/current-x-status.html`, `tests/conversation-theme.test.mjs`, selector-fixture helpers
-  Acceptance: the sanitized Status fixture contains a full-height 2 px connector aligned beneath `[data-testid="Tweet-User-Avatar"]`; `syncConversationStructure()` stamps only a structurally and geometrically matching connector inside each direct reply cell, without naming any `css-*` or `r-*` class; every stamped connector computes to `display: none` while an Aviary theme is active; the focal avatar, reply avatars, profile links, and their hit targets retain their dimensions and remain clickable; turning the theme off or destroying the feature removes every Aviary stamp and restores X's node; the regression test fails if the implementation hides only the reply-cell pseudo-element.
-  Complexity: M
-  Depends: None. Feed the sanitized shape into F306 when its fixture generator lands.
-
 - [ ] F317, P0: Suppress hover-only help and profile cards in Minimal mode
   Why: Aviary no longer authors native `title` tooltips, but X still opens visual tooltips and profile cards when the pointer rests on controls, names, and avatars, which directly contradicts the user's minimal-UI request.
   Evidence: no `hoverCardParent` or visual tooltip suppression exists in `src/` or `tests/`; `src/features/core/presets.ts` defines the Minimal preset; https://www.reddit.com/r/uBlockOrigin/comments/1hzxmcr/block_twitterx_profile_name_hover_over/ and https://github.com/Bl4Cc4t/GoodTwitter2/issues/575 report the same hover-card failure; https://www.w3.org/WAI/WCAG22/Understanding/content-on-hover-or-focus.html
