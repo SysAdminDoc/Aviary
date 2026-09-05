@@ -2,7 +2,7 @@
 
 Version: `1.47.2`
 
-Date: 2026-08-23, extended 2026-09-04
+Date: 2026-08-23, extended 2026-09-05
 
 Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tasks that require a fresh authenticated X capture, distribution identity, or another external environment.
 
@@ -60,11 +60,12 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 - [ ] F282, P1: Produce validator-clean CDXJ and WACZ packages
   Why: synthetic HTTPS resources are indexed with `status: "-"`, although CDXJ defines the field as an HTTP response status. Current tests check ordering and offsets but not external conformance or replay.
-  Evidence: `src/features/export/warc.ts:103-183`, `src/features/export/wacz.ts:69-134`, `tests/wacz.test.mjs`; https://specs.webrecorder.net/cdxj/0.1.0/; https://github.com/webrecorder/specs/blob/main/wacz/1.2.0/index.md
+  Evidence: `src/features/export/warc.ts:103-183`, `src/features/export/wacz.ts:69-134`, `tests/wacz.test.mjs`; https://specs.webrecorder.net/cdxj/0.1.0/; https://specs.webrecorder.net/wacz/1.1.1/
   Touches: `src/features/export/warc.ts`, `src/features/export/wacz.ts`, WACZ worker, package metadata, preservation tests and fixtures
   Acceptance: every indexed entry resolves to the exact WARC offset and has a three-digit status; synthetic pages are valid HTTP 200 response records or are omitted from CDXJ; the package includes title, description, modified time, and first-page URL/date when available; the reference validator exits cleanly; ReplayWeb opens the first page and one captured media response in an isolated browser test.
   Complexity: M
   Depends: None.
+  Research update 2026-09-05: when Aviary retained payload bytes but not the received status line and headers, emit `WARC-Type: resource` instead of the invented `HTTP/1.1 200 OK` block in `src/features/export/warc.ts`; use `createdAt` as the visible post time, label `capturedAt` separately, and keep `capturedAt` for `WARC-Date`. Evidence: https://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/ and https://iipc.github.io/warc-specifications/guidelines/warc-implementation-guidelines/
 
 ### P2, Later
 
@@ -123,6 +124,7 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
   Acceptance: remove `@typescript/native-preview` and its platform packages; pin TypeScript 7.0.2 under a CLI alias and `@typescript/typescript6` under the `typescript` alias; `npm run typecheck` invokes stable `tsc --noEmit`; typescript-eslint still loads the TypeScript 6 API; compiler-parity, lint, build, and the full verify gate pass.
   Complexity: S
   Depends: None.
+  Research update 2026-09-05: evaluate the update as one controlled set with typescript-eslint 8.69.0, ESLint 10.10.0, and globals 17.12.0; pin every accepted version and keep each current version if its upgrade breaks the compiler split. Evidence: https://github.com/microsoft/TypeScript/releases/tag/v7.0.2, https://github.com/typescript-eslint/typescript-eslint/releases/tag/v8.69.0, https://github.com/eslint/eslint/releases/tag/v10.10.0, https://github.com/sindresorhus/globals/releases/tag/v17.12.0
 
 - [ ] F290, P2: Make local releases atomic and reconcile the missing release ledger
   Why: GitHub has no releases for 1.38.0 through 1.44.1 or 1.46.0 despite exact version commits, and the current release steps can leave commit, tag, artifacts, and release metadata out of sync.
@@ -136,11 +138,12 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 - [ ] F291, P3: Generate documentation facts from runtime contracts
   Why: page counts, theme claims, panel widths, action names, and permission lists have drifted across README, FAQ, install, privacy, design QA, and logo prompts.
-  Evidence: `README.md`, `docs/FAQ.md`, `docs/INSTALL.md`, `docs/PRIVACY.md`, `docs/DESIGN_QA.md`, `docs/LOGO_PROMPTS.md`, `tests/docs-consistency.test.mjs`
+  Evidence: `README.md`, `docs/FAQ.md`, `docs/INSTALL.md`, `docs/PRIVACY.md`, `design-qa.md`, `LOGO_PROMPTS.md`, `tests/docs-consistency.test.mjs`
   Touches: those documents, settings-reference tooling, docs-consistency tests
   Acceptance: every document says 14 destinations, current dark/light behavior, current width tokens, current Download naming, and all required permissions including `contextMenus`; generated tables come from canonical section/settings metadata; stale Twitter Userscript branding is removed; a contract test fails on future count, permission, theme, or action-name drift.
   Complexity: S
   Depends: F279 and F287 so final permission and locale facts are stable.
+  Research update 2026-09-05: the real files are root `design-qa.md` and root `LOGO_PROMPTS.md`, not the two `docs/` paths above; the refresh must also reconcile 71 PNG baselines, 14 destinations, 36 registered modules, 21 selector surfaces, the available-width Wide mode, and screenshots that still display 1.47.0. Evidence: `README.md`, `design-qa.md`, `LOGO_PROMPTS.md`, `src/main.ts`, `src/platform/selectors.ts`, `tests/visual/baselines/`
 
 - [ ] F292, P3: Export a static personal archive with RSS
   Why: Tweetback and Nitter validate independent local reading and feeds, while Aviary already has captured records, thread relationships, local media references, and a standalone viewer.
@@ -179,6 +182,7 @@ Research date 2026-09-04, against `1.47.0` plus the uncommitted cross-origin loc
   Acceptance: both packages declare `unlimitedStorage`; the background worker calls `navigator.storage.persist()` once at first initialize and records the result; `navigator.storage.persisted()` returns true in a packaged Chromium and Firefox smoke run; the Trust panel states persisted, best-effort, or unknown with the measured usage and quota beside it, and says plainly that best-effort storage can be cleared by the browser; a manifest test fails if the permission is removed; the userscript path documents that persistence belongs to the manager and names the measured per-value ceiling instead of implying durability.
   Complexity: M
   Depends: F273. Pairs with F296, since an evictable store and a partial backup are the same failure with different triggers.
+  Research update 2026-09-05: `persist()` can return false and `estimate()` may be rounded or padded, so display approximate bytes and keep persisted, best-effort, and unknown as separate states; tests must cover denial and unavailable APIs. Evidence: https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/persist and https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/estimate
 
 - [ ] F296, P0: Back up and restore the whole install, not one profile
   Why: "full library backup" reads a profile-scoped gateway, so it captures the active profile only, and its collection list omits the profile roster and the WACZ signing identity outright. Restoring on a fresh browser silently loses every other profile and produces a new signing key, so packages exported before the restore can no longer be attributed to the same identity.
@@ -187,6 +191,7 @@ Research date 2026-09-04, against `1.47.0` plus the uncommitted cross-origin loc
   Acceptance: a backup taken from an install with three profiles restores all three, their per-profile collections, the active-profile pointer, and the signing identity, with fingerprints matching before and after; the preview names every profile and collection it will write and every one it will skip; a signing identity is never silently replaced, and a restore that would change the fingerprint says so and requires an explicit choice; a single-profile backup restores unchanged; a backup whose collection set does not match this build is refused with a stated reason rather than partially applied; credentials stay redacted unless the user opted in, and the signing private key is treated as a credential.
   Complexity: M
   Depends: F275. Interacts with F276, which will change how these stores persist.
+  Research update 2026-09-05: `createLibraryBackup()` must enforce `MAX_LIBRARY_BACKUP_BYTES` before download because `parseLibraryBackup()` rejects anything above 100 MiB; a same-build backup must always be same-build restorable, and resumable archive-source payloads must be included or named as explicit omissions. Evidence: `src/features/core/library-backup.ts`, `src/features/library/archive-import-jobs.ts`
 
 ### P1, Next
 
@@ -197,6 +202,7 @@ Research date 2026-09-04, against `1.47.0` plus the uncommitted cross-origin loc
   Acceptance: `FIREFOX_FLOOR` names a Firefox line still receiving security updates on the day of the change, with the endoflife.date figure and that date recorded in the module comment; `PLATFORM_FEATURE_FLOORS` is re-derived against the new floor and each entry that becomes `underFloor` has its detection branch and fallback deleted rather than left dead; preflight still fails if the manifest and the module disagree; the Firefox smoke lane runs against the new floor; `dnr-empty-rules.json` and the comment explaining it are removed if the compatibility reason no longer applies at the new floor, or kept with a restated reason if it does.
   Complexity: M
   Depends: None.
+  Research update 2026-09-05: stage both browser floors in the same compatibility review. Chrome 116 is also from 2023, and raising `minimum_chrome_version` silently stops updates for users below the new floor, so release notes and the support table must name the last compatible build. Evidence: https://developer.chrome.com/docs/extensions/reference/manifest/minimum-chrome-version and https://developer.chrome.com/blog/chrome-two-week-release
 
 - [ ] F298, P1: Split delivery so the panel and archive code leave the document-start path
   Why: the extension content bundle is 2,320,580 bytes against a 2,400,000 budget, which is 3.3 percent headroom, and there is no code splitting anywhere. The Control Center, export and WACZ machinery, archive viewer, and the 608 kB i18n catalog all load at `document_start` on every X page even though most sessions open none of them. Nearly every queued feature fails preflight before it fails review.
@@ -205,9 +211,10 @@ Research date 2026-09-04, against `1.47.0` plus the uncommitted cross-origin loc
   Acceptance: measure first whether a dynamic `import()` of a web-accessible resource works from an isolated-world content script at both browser floors, and record the answer, because esbuild's `iife` output cannot code-split and a positive result forces the extension content target to `esm`; then the extension boots from a document-start bundle that carries ad protection, selector health, the feature registry, media controls, and the launcher, and loads the Control Center, export, WACZ, archive viewer, and translation catalog on first use from `web_accessible_resources`; measured first-chunk bytes drop by at least 50 percent and each chunk gets its own budget in `DELIVERY_BUDGETS`; the userscript keeps one readable file and its own budget, because that is its product promise; a lazy chunk that fails to load reports a named error in the panel rather than a dead control; the extension content bundle is minified while the userscript is not, and the build states why for each.
   Complexity: L
   Depends: None. Unblocks the delivery-size half of F283, F292, and F294.
+  Research update 2026-09-05: expose exact chunks only to X matches, use `use_dynamic_url` where supported, and never expose background or privileged modules; ship a deterministic source archive and prove the AMO reviewer build on the documented Linux ARM64, Node 24, npm 11 environment. Evidence: https://developer.chrome.com/docs/extensions/reference/manifest/web-accessible-resources and https://extensionworkshop.com/documentation/publish/source-code-submission/
 
 - [ ] F299, P1: Report a selector break on the page, not only inside Advanced
-  Why: selector health reacts only when "App root" or "Primary column" goes missing, and its only reaction is a diagnostics warning. Twenty-four surfaces are tracked, twelve marked high churn, and every one already names the feature it owns, so the data to say "Download is unavailable because X renamed the post action bar" exists and is discarded. With the update channel answering 404 (F183), a user on a broken build has no other way to find out.
+  Why: selector health reacts only when "App root" or "Primary column" goes missing, and its only reaction is a diagnostics warning. Twenty-one surfaces are tracked, twelve marked high churn, and every one already names the feature it owns, so the data to say "Download is unavailable because X renamed the post action bar" exists and is discarded. With the update channel answering 404 (F183), a user on a broken build has no other way to find out.
   Evidence: `src/features/core/selector-health.ts:15` (`CRITICAL_SURFACES`), `:74-99` (warn-only), `src/ui/control-center/sections/advanced.ts:41` (the only UI consumer), `src/platform/selectors.ts:12-22` (every surface names its owning feature), `:125` and the twelve `churnRisk: "High"` entries; `Roadmap_Blocked.md` F183
   Touches: `src/features/core/selector-health.ts`, `src/features/core/feature-toast.ts`, the launcher in `src/features/core/control-center.ts`, `src/platform/selectors.ts`, `tests/selector-health-dashboard.test.mjs`, a new degraded-state test, `.github/ISSUE_TEMPLATE/bug_report.yml`
   Acceptance: a required surface missing on the current route marks the launcher with a non-blocking degraded state and opens to a list naming each missing surface and the feature it disables, in the user's locale; the signal appears once per distinct degradation rather than per mutation batch, and clears itself when the surface returns without a reload; a healthy route, a route where the surface is `inapplicable`, and a feature the user turned off never produce a signal; the panel offers a copy action producing a report with route, surface names, feature ids, and build version and no post content, handles, or URLs; a fixture with a renamed post action bar drives the whole path in a test.
@@ -221,6 +228,7 @@ Research date 2026-09-04, against `1.47.0` plus the uncommitted cross-origin loc
   Acceptance: the test file is tracked and runs on a clean clone; `crossTabLocksAvailable` is either called by production code or deleted with its test; the lease, renew, and poll constants in `storage-lock.ts` each have a test that fails when the constant is changed; a lock held by a tab that stops renewing is taken over after the lease expires and never before; the `GM_listValues` boot requirement is proved by a userscript lane that refuses to boot without it and states why; full `verify`, the release matrix, both packaged browser transactions, and the smoke suite pass before the version is cut.
   Complexity: S
   Depends: None.
+  Research update 2026-09-05: packaged tests must suspend and restart the extension background between acquire, renew, commit, and recovery; correctness may not depend on an in-memory owner, timer, or listener registered after asynchronous boot. Evidence: https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle and https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/background
 
 - [ ] F301, P1: Cover the two untested modules that sit on privileged paths
   Why: `trusted-types.ts` is the only file exempted from preflight's repository-wide `innerHTML` ban and silently degrades to a string passthrough when `trustedTypes` is absent. `media-context-menu.ts` carries the message-shape validator for a cross-context download trigger, and `contextMenus` is a declared permission in both manifests. Neither is referenced by any test.
@@ -237,6 +245,7 @@ Research date 2026-09-04, against `1.47.0` plus the uncommitted cross-origin loc
   Acceptance: one named release command runs typecheck, lint, node tests, build, preflight, the visual lane, and every smoke lane, and fails on any of them; a fast development command keeps the current `verify` scope and says in its output which lanes it did not run; the build refuses to leave an artifact on disk that preflight would reject; a deliberately shifted baseline and a deliberately over-budget bundle each fail the release command before anything is published.
   Complexity: M
   Depends: None.
+  Research update 2026-09-05: add full-width reflow cases for Home, search, profile, bookmarks, Status, Messages, compose, settings, and media overlays at 320, 768, 1280, and 1920 CSS pixels plus 200% and 400% zoom; use Playwright 1.63.0 forced-colors and ARIA snapshots after deliberate rebaselining. Evidence: https://www.w3.org/WAI/WCAG22/Understanding/reflow.html and https://github.com/microsoft/playwright/releases/tag/v1.63.0
 
 ### P2, Later
 
@@ -265,7 +274,7 @@ Research date 2026-09-04, against `1.47.0` plus the uncommitted cross-origin loc
   Depends: F300, so `crossTabLocksAvailable` is resolved by the change that touched it.
 
 - [ ] F306, P2: Generate synthetic capture fixtures so selector proof is not one operator session
-  Why: every selector claim in the project rests on two `_decoded/` files dated 2026-05-19, which are 108 days old against a 90-day ceiling and pass only on a waiver expiring 2026-09-30. After that `preflight` fails and takes `verify` with it, blocking releases unrelated to selectors. The same files carry a named account's handle and body text and are in git history, which is what F184 is about. A generator turns both problems into one.
+  Why: every selector claim in the project rests on two `_decoded/` files dated 2026-05-19, which are 109 days old against a 90-day ceiling and pass only on a waiver expiring 2026-09-30. After that `preflight` fails and takes `verify` with it, blocking releases unrelated to selectors. The same files carry a named account's handle and body text and are in git history, which is what F184 is about. A generator turns both problems into one.
   Evidence: `_decoded/captures.json` (`ceilingDays: 90`, `acknowledgedStaleUntil: "2026-09-30"`, both captures `capturedOn: "2026-05-19"`), `tools/capture-decode.mjs`, `src/platform/selectors.ts:12-22` (each surface names its owning feature), `.github/pull_request_template.md` (a capture is required as evidence for selector work), `Roadmap_Blocked.md` F134, F184, F237
   Touches: a new generator under `tools/`, a shape schema file beside `_decoded/captures.json`, `tools/preflight.mjs`, `tests/fixtures.test.mjs`, `tests/declutter-current-x.test.mjs`, the fixture helpers
   Acceptance: a schema records, per surface, the container nesting, test ids, roles, aria attributes, and repetition counts that Aviary depends on, and carries the capture date it was derived from; the generator produces deterministic synthetic Home and conversation documents from that schema with no real handle, display name, post body, image URL, or numeric id; every selector test that currently reads `_decoded/` passes against the generated documents; preflight ages the schema rather than the MHTML, so a refreshed capture updates the schema and is then discarded; a deliberately renamed test id in the schema makes the owning surface report missing, proving the fixtures can still fail; the real captures can be deleted from the working tree without any test losing coverage, which is the precondition F184 is waiting on.
@@ -282,9 +291,11 @@ Research date 2026-09-04, against `1.47.0` plus the uncommitted cross-origin loc
   Complexity: S
   Depends: None.
 
+### P1, Next
+
 - [ ] F308, P1: Cross-check the selector registry against a maintained third-party X behaviour
   Why: every selector claim in the project is proved against captures dated 2026-05-19, and refreshing them needs an operator session. Webrecorder ships `browsertrix-behaviors` with a maintained X behaviour whose selector table was last updated 2026-08-25, which is a second, dated, independently maintained source for the same DOM that costs no authenticated capture and no request to X.
-  Evidence: https://github.com/webrecorder/browsertrix-behaviors (v0.13.1, 2026-08-26), https://raw.githubusercontent.com/webrecorder/browsertrix-behaviors/main/src/site/twitter.ts (anchor-relative XPath off the `h1`, `promoted` skip rule, `expand` for "Show more", recursive quote descent, and a re-locate-after-mutation helper for X's recycled virtualized rows); `src/platform/selectors.ts` (24 surfaces, 12 `churnRisk: "High"`), `_decoded/captures.json`
+  Evidence: https://github.com/webrecorder/browsertrix-behaviors (v0.13.1, 2026-08-26), https://raw.githubusercontent.com/webrecorder/browsertrix-behaviors/main/src/site/twitter.ts (anchor-relative XPath off the `h1`, `promoted` skip rule, `expand` for "Show more", recursive quote descent, and a re-locate-after-mutation helper for X's recycled virtualized rows); `src/platform/selectors.ts` (21 surfaces, 12 `churnRisk: "High"`), `_decoded/captures.json`
   Touches: `src/platform/selectors.ts`, a comparison note or generated table under `docs/`, `tests/fixtures.test.mjs`, `Roadmap_Blocked.md` entries that a confirmed selector would unblock
   Acceptance: every Aviary surface whose selector has an equivalent in the third-party behaviour records that equivalent and the date it was checked, beside the existing `stable`/`fallback` pair; surfaces where the two disagree are listed with the disagreement stated rather than silently resolved in Aviary's favour; the comparison is a checked-in artifact with its own date, not a one-off; Aviary's own fallback chain gains any structural selector the comparison shows is more durable, proved by a fixture; nothing is copied that Aviary cannot prove against a fixture it holds, and if any selector is taken verbatim its upstream license and attribution are recorded beside it.
   Complexity: M
@@ -298,6 +309,8 @@ Research date 2026-09-04, against `1.47.0` plus the uncommitted cross-origin loc
   Complexity: S
   Depends: None.
 
+### P2, Later
+
 - [ ] F310, P2: Record the saved video's codec, and stop preferring an unplayable rendition
   Why: Aviary picks the highest-bitrate complete progressive MP4. yt-dlp deliberately sorts HLS ahead of higher-bitrate progressive HTTP for X because the progressive variant's codec is not known in advance and some of them produce files common players refuse. Aviary therefore has a quality rule that can select a file the user cannot open, and no way to tell afterwards.
   Evidence: `src/features/media/video-extract.ts` (highest numeric bitrate among complete direct MP4 candidates), `src/features/media/history.ts`; https://github.com/yt-dlp/yt-dlp/issues/8117 ("Some Twitter/X videos download an mp4 that doesn't play in VLC"), yt-dlp's X format sort `('res', 'proto:m3u8', 'br', 'size')`
@@ -307,7 +320,7 @@ Research date 2026-09-04, against `1.47.0` plus the uncommitted cross-origin loc
   Depends: F284, which adds the receipt this writes into.
 
 - [ ] F311, P2: Import old-vintage and Grailbird X archives, not only current ones
-  Why: X's export has changed shape by accretion. Archives from roughly 2020 and earlier carry `data/tweet.js` rather than `tweets.js` and lack the four direct-message files; pre-2018 exports use the Grailbird layout entirely. Three separate third-party tools have this exact bug open or recently closed, and none of them was built to handle more than one vintage. Aviary's import path can win here cheaply.
+  Why: X's export has changed shape by accretion. Archives from roughly 2020 and earlier carry `data/tweet.js` rather than `tweets.js` and lack the four direct-message files; pre-2018 exports use the Grailbird layout entirely. Three separate third-party tools had this exact bug open or closed by 2026-09-05, and none of them was built to handle more than one vintage. Aviary's import path can win here cheaply.
   Evidence: https://github.com/JonathanSeriesX/twixodus/issues/1 (2026-08-28, maintainer: "They must have changed the data structure at some point between 2020 and 2024"), https://github.com/marcomaroni-github/twitter-to-bluesky/issues/93, https://github.com/tweetback/tweetback/issues/95, https://github.com/lhl/tweetxvault/blob/main/docs/GRAILBIRD.md, https://github.com/dogsheep/twitter-to-sqlite/issues/63 (the per-feature files X appended over time); `src/features/library/archive-import.ts`, `src/features/library/archive-import-jobs.ts`
   Touches: `src/features/library/archive-import.ts`, the archive classifier, `src/features/library/archive-types.ts`, new fixture archives, `tests/search-and-export-data.test.mjs`, import preview copy
   Acceptance: the classifier recognises the current layout, the `tweet.js` layout, and the Grailbird `data/js/tweets/YYYY_MM.js` layout, names which it found in the preview, and states which collections that vintage cannot contain rather than reporting them as empty; a fixture archive of each vintage imports with correct counts; an unrecognised layout is refused with the files it did find listed, never partially imported; records carry the source vintage so a later re-import of a newer export can supersede them by canonical post id.
@@ -345,3 +358,93 @@ Research date 2026-09-04, against `1.47.0` plus the uncommitted cross-origin loc
   Acceptance: one export produces a valid AS2 `OrderedCollection` outbox whose items are `Create` activities wrapping `Note` objects with `id`, `published`, `content`, `attributedTo`, `inReplyTo` where known, and `attachment` entries pointing at the media files in the same package; a post whose original is unavailable is represented as a tombstone rather than omitted silently; the export states plainly that AS2 is an interop format and that no major platform currently imports posts from it; repeated export is deterministic apart from the declared generated time.
   Complexity: M
   Depends: F292, which builds the static export this shares its record mapping with.
+
+## Research-Driven Additions (2026-09-05)
+
+Research date 2026-09-05, against `1.47.2` at `9a5970a` plus the shelved cross-origin storage-authority work described by F300. IDs continue from F315. The existing items above carry inline research updates where new evidence changed their acceptance criteria.
+
+### P0, Now
+
+- [ ] F316, P0: Remove X's native reply connector, not only Aviary's pseudo-line
+  Why: the 1.47.2 fix removed Aviary's former `::before` connector, but the user's vertical line is a real X element in the avatar gutter and the current test passes without containing that element.
+  Evidence: `src/features/appearance/theme.ts` (`syncConversationStructure`), `tests/conversation-theme.test.mjs` (`replyCell::before` only), `tests/smoke/current-x-status.html` (no connector subtree); https://gist.github.com/busybox11/f339f10da2b5f4a1a26c558663936699 and https://gist.github.com/ShrineFox/f3017d5847a61893eaee9bb4c7028a25#L370 identify the current and older generated-class forms
+  Touches: `src/features/appearance/theme.ts`, `tests/smoke/current-x-status.html`, `tests/conversation-theme.test.mjs`, selector-fixture helpers
+  Acceptance: the sanitized Status fixture contains a full-height 2 px connector aligned beneath `[data-testid="Tweet-User-Avatar"]`; `syncConversationStructure()` stamps only a structurally and geometrically matching connector inside each direct reply cell, without naming any `css-*` or `r-*` class; every stamped connector computes to `display: none` while an Aviary theme is active; the focal avatar, reply avatars, profile links, and their hit targets retain their dimensions and remain clickable; turning the theme off or destroying the feature removes every Aviary stamp and restores X's node; the regression test fails if the implementation hides only the reply-cell pseudo-element.
+  Complexity: M
+  Depends: None. Feed the sanitized shape into F306 when its fixture generator lands.
+
+- [ ] F317, P0: Suppress hover-only help and profile cards in Minimal mode
+  Why: Aviary no longer authors native `title` tooltips, but X still opens visual tooltips and profile cards when the pointer rests on controls, names, and avatars, which directly contradicts the user's minimal-UI request.
+  Evidence: no `hoverCardParent` or visual tooltip suppression exists in `src/` or `tests/`; `src/features/core/presets.ts` defines the Minimal preset; https://www.reddit.com/r/uBlockOrigin/comments/1hzxmcr/block_twitterx_profile_name_hover_over/ and https://github.com/Bl4Cc4t/GoodTwitter2/issues/575 report the same hover-card failure; https://www.w3.org/WAI/WCAG22/Understanding/content-on-hover-or-focus.html
+  Touches: `src/features/layout/declutter.ts`, `src/features/core/presets.ts`, `src/platform/settings.ts`, `src/ui/control-center/sections/reading.ts`, injected UI modules, lifecycle and accessibility tests, a sanitized hover-card fixture
+  Acceptance: an independent `Suppress hover previews` setting is enabled by the Minimal preset; with it enabled, resting the pointer for at least 1 second on every Aviary control and representative X navigation button, post action, avatar, and author name produces no browser title, visual `[role="tooltip"]`, or `[data-testid="hoverCardParent"]`; click-opened menus, dialogs, validation messages, focus outlines, visible labels, `aria-label`, and `aria-describedby` remain intact; disabling the setting restores every X `title` value Aviary removed and stops suppressing newly inserted hover portals; touch-only fixtures do not gain pointer listeners; a contract test covers all Aviary-injected controls and fails when a new native `title` is introduced.
+  Complexity: M
+  Depends: None.
+
+### P1, Next
+
+- [ ] F318, P1: Mark a post seen only after visible dwell
+  Why: the current scan records every rendered article immediately, including virtualized posts below the viewport, so dimming and Catch-up can claim the viewer saw content that never reached the screen.
+  Evidence: `src/features/filtering/seen-posts-feature.ts` (`scan()` calls `store.mark()` without `IntersectionObserver` or `document.visibilityState`); https://github.com/phuaky/xrai uses 1,000 ms active dwell or a direct status open before marking content seen
+  Touches: `src/features/filtering/seen-posts-feature.ts`, `src/features/filtering/seen-posts.ts`, Catch-up capture, `tests/seen-posts-dimming.test.mjs`, `tests/catch-up-capture.test.mjs`, a viewport fixture
+  Acceptance: a timeline post is recorded only after at least 50 percent of its box, or 200 CSS pixels for a post taller than the viewport, stays visible for 1,000 continuous milliseconds while `document.visibilityState` is `visible`; direct navigation to that post's Status route records it immediately; fast scroll-through, background-tab time, detached or recycled nodes, and interrupted dwell do not mark it; two simultaneous candidates keep independent timers; disabling or destroying the feature cancels observers and timers and flushes only qualified IDs; existing stored IDs remain valid; tests use a controllable observer and clock and prove each boundary without sleeping.
+  Complexity: M
+  Depends: None. F276 separately protects simultaneous writes after a post qualifies as seen.
+
+- [ ] F319, P1: Preserve protected and unknown audience state through export
+  Why: portable output currently cannot distinguish a public post from content captured while its author was protected, so a shareable package can expose follower-only material without warning.
+  Evidence: `src/features/export/types.ts` has no audience field; `src/features/export/thread-capture.ts` already reads `userLegacy` but drops its `protected` boolean; https://docs.x.com/x-api/fundamentals/data-dictionary and https://help.x.com/en/safety-and-security/public-and-protected-posts
+  Touches: `src/features/export/types.ts`, `src/features/export/thread-capture.ts`, `src/features/export/collector.ts`, export preview and formatters, WARC/WACZ metadata, static viewer, backup and migration tests
+  Acceptance: `ExportRecord` carries `audience: "public" | "protected" | "unknown"`; GraphQL capture maps a real boolean and DOM-only or old records remain `unknown`, never inferred public; local library backup retains all records unchanged; before HTML, Markdown, WARC, WACZ, ActivityStreams, or static share export, the preview reports public, protected, and unknown counts and excludes protected and unknown records until the user explicitly includes each group; JSON and CSV include the field and state their archival rather than share-oriented behavior; quoted-post media inherits its owning record's audience; round-trip tests cover all three states and an old record with no field.
+  Complexity: M
+  Depends: F282 for preservation-package validation. Extend F292 and F315 to consume the audience field when they land.
+
+- [ ] F320, P1: Stage large archive imports without whole-file base64 duplication
+  Why: a 256 MiB import is encoded into roughly 341 MiB of base64, persisted, decoded into another complete byte array, and then parsed, creating avoidable quota and memory failures before useful work begins.
+  Evidence: `src/features/library/archive-import-jobs.ts` (`MAX_SOURCE_BYTES`, `encodeBase64`, `source()`), `src/features/library/archive-import.ts` (`MAX_ARCHIVE_BYTES`); https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system and https://web.dev/articles/origin-private-file-system
+  Touches: archive import job and parser, ZIP reader, extension background storage API, userscript storage adapter, import progress and recovery UI, large-input and restart tests
+  Acceptance: the extension stages source bytes in extension-owned OPFS or chunked IndexedDB through the background, never in X-origin storage; the userscript path stores fixed-size manager chunks; no chunk exceeds 4 MiB and no full-source base64 string is created; ZIP entries are consumed incrementally with compressed, per-entry inflated, and total inflated limits checked before allocation; pause, reload, browser-background restart, resume, cancel, success, and failure retain or remove chunks exactly as their job state requires; a deterministic 256 MiB boundary fixture completes or refuses before allocation with a specific limit reason; an allocator seam proves no parser allocation exceeds 8 MiB; imports at the current 256 MiB limit remain portable between Tampermonkey, Violentmonkey, Chrome, and Firefox through the existing export and re-import path.
+  Complexity: L
+  Depends: F288 for the large-library and restart harness and F300 for background-owned coordination.
+
+- [ ] F321, P1: Preserve post language and bidirectional isolation end to end
+  Why: X exposes post language, but `ExportRecord` drops it, exported HTML hardcodes English, and mixed RTL content can reorder punctuation, handles, and links in portable output.
+  Evidence: `src/features/export/types.ts`, `src/features/export/collector.ts`, `src/features/export/thread-capture.ts`, `src/features/export/formatters.ts` (`<html lang="en">`), `src/features/export/warc.ts`; https://www.w3.org/International/questions/qa-html-language-declarations.html and https://www.w3.org/International/articles/inline-bidi-markup/
+  Touches: export record schema and migration, DOM and GraphQL collectors, JSON/CSV/HTML/Markdown/WARC formatters, offline viewer, search documents, export and accessibility tests
+  Acceptance: collectors retain a canonical BCP 47 post language when X supplied one and store `null` when it did not; invalid tags never reach markup; JSON and CSV include the value; HTML, replay pages, and the viewer keep the shell locale on the document and render each post body with its own `lang` plus `dir="auto"` or an equivalent `bdi` boundary; Markdown preserves language in frontmatter without injecting raw HTML into post text; fixtures cover Arabic and Hebrew with Latin handles and punctuation, plus Japanese, Thai, Lao, Khmer, Myanmar, emoji, an invalid tag, and an old record with no language.
+  Complexity: M
+  Depends: None. Reuse F287's locale metadata when that item lands.
+
+### P2, Later
+
+- [ ] F322, P2: Replace draft `aria-description` with a real referenced description
+  Why: the AI command menu's only item hints use an attribute absent from the WAI-ARIA 1.2 Recommendation, while a hidden DOM description works without adding visible hover help.
+  Evidence: `src/features/ai/command-menu.ts:203`; https://www.w3.org/TR/wai-aria-1.2/ and https://w3c.github.io/aria/#aria-description
+  Touches: `src/features/ai/command-menu.ts`, command-menu styles, accessibility behavior and axe tests
+  Acceptance: every command menu item owns a unique hidden description element and references it with `aria-describedby`; no `aria-description`, `title`, visual tooltip, duplicate ID, or orphaned description remains after the menu closes; Playwright's accessibility snapshot exposes the command name and hint; mouse, touch, and focus behavior remain unchanged; a test opening and closing the menu repeatedly proves complete cleanup.
+  Complexity: S
+  Depends: F302 for the Playwright 1.63 accessibility snapshot.
+
+- [ ] F323, P2: Segment local search with `Intl.Segmenter`
+  Why: whitespace tokenization plus a CJK bigram fallback leaves Thai, Lao, Khmer, and Myanmar queries as oversized tokens, even though supported browsers provide locale-aware word boundaries.
+  Evidence: `src/features/library/query-model.ts` (`tokenizeSearchText`); https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter, https://tc39.es/ecma402/#sec-intl-segmenter-constructor, https://www.unicode.org/reports/tr29/
+  Touches: `src/features/library/query-model.ts`, index schema/version migration, search worker if applicable, tokenizer and ranking tests
+  Acceptance: feature-detected `Intl.Segmenter` with word granularity supplies tokens for scripts without spaces while the existing deterministic tokenizer remains the fallback; handles, IDs, normalization, phrase matching, and Latin/CJK rankings do not regress; Thai, Lao, Khmer, and Myanmar fixtures find the same record from a contained word; index versioning rebuilds old indexes once and resumes safely after interruption; tests run both native and forced-fallback paths.
+  Complexity: M
+  Depends: F297 so the final browser floors define the required Segmenter behavior.
+
+- [ ] F324, P2: Attribute mutation work and long frames to individual features
+  Why: every active `apply()` runs serially after each mutation batch, but diagnostics cannot identify which feature makes scrolling or navigation stall.
+  Evidence: `src/features/registry.ts` (`#runApply`), `src/platform/observer.ts` (`FLUSH_DELAY_MS = 120`, `MAX_BATCH_NODES = 400`); https://w3c.github.io/long-animation-frames/, https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/Long_animation_frame_timing, https://web.dev/articles/optimize-long-tasks
+  Touches: feature registry, observer diagnostics, redacted diagnostic store, Advanced performance view, deterministic registry and large-DOM tests
+  Acceptance: each apply pass records feature ID, invocation count, total duration, maximum duration, and whether the pass was incremental or full in a bounded local ring; no selector, route URL, post text, handle, or DOM value is stored; Long Animation Frame data is correlated when supported and reported as unavailable otherwise; a reset control clears the aggregate immediately; a synthetic slow feature and a 400-node overflow identify the correct feature and pass type; a 20-run fixed registry benchmark reports enabled and disabled medians, and instrumentation adds no more than 5 percent or 0.25 ms per pass, whichever allowance is larger.
+  Complexity: M
+  Depends: F281 for the redacted diagnostic schema.
+
+- [ ] F325, P2: Hide For You independently from opening Following
+  Why: users may want the algorithmic tab gone, not merely bypassed once on arrival, and current `forceFollowing` deliberately leaves a manual switch back available.
+  Evidence: `src/features/layout/force-following.ts`; https://github.com/yusukesaitoh/calm-twitter/issues/70 and https://github.com/alterebro/bye-for-you
+  Touches: `src/features/layout/force-following.ts`, `src/platform/settings.ts`, Minimal preset, Reading controls, i18n catalog, route and teardown tests
+  Acceptance: a separate `Hide For You tab` setting is enabled by the Minimal preset and can be changed without changing `forceFollowing`; on Home it selects Following before collapsing only the first tab to 0 by 0, using the known home tablist and position rather than translated text; profile, search, notifications, and custom-list tablists are untouched; if the strip has fewer than two tabs the feature does nothing and reports degraded selector health; disabling it restores the tab without navigation or reload; LTR, RTL, narrow, and touch fixtures pass.
+  Complexity: S
+  Depends: F299 for visible degraded-selector reporting.
