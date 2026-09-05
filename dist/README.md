@@ -200,12 +200,15 @@ Aviary is designed to keep account data local. It sends no telemetry, never read
 The extension keeps durable settings and library records in one IndexedDB database owned by its
 background worker. Content scripts and the options page use a typed extension message API, so X
 page scripts cannot inspect the active database. On the first updated X page, Aviary copies any
-database left by an older content-script build, checks every copied value with SHA-256, and deletes
-the old page-origin database only after those checks pass. The userscript never opens an X-origin
-database. It uses the manager's own value store and reports a clear storage-capacity error before a
-single value exceeds 16 MiB. If extension storage is briefly unavailable, pending values and
-removals share one locked local journal. The background applies each operation and removes its
-marker in one transaction, so a closed tab or restarted worker can retry without reviving old data.
+database left by an older content-script build, checks every copied value with SHA-256, and includes
+inactive-profile records discovered during migration. If an old tab still holds that database,
+Aviary keeps booting from the verified background copy and seals the source. After the old tab
+closes, the next pass recopies any late writes before deletion. The userscript never opens an
+X-origin database. It uses the manager's own value store and reports a clear storage-capacity error
+before a single value exceeds 16 MiB. Extension and manager lock registers are shared across x.com,
+twitter.com, and pro.x.com. If extension storage is briefly unavailable, pending values and removals
+share one journal. The background applies each operation and removes its marker in one transaction,
+so a closed tab or restarted worker can retry without reviving old data.
 
 AI and embedding calls are opt-in and show the destination, fields, estimated size, retention
 notice, network status, and budget before provider work begins. Per-request and daily UTF-8 byte

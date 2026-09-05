@@ -22,7 +22,8 @@ the extensions also provide a dedicated options page for optional browser permis
 
 The userscript declares only the grants it uses:
 
-- `GM_getValue`, `GM_setValue`, and `GM_deleteValue` for local settings/library storage.
+- `GM_getValue`, `GM_setValue`, `GM_deleteValue`, and `GM_listValues` for local
+  settings/library storage and cross-origin lock coordination.
 - `GM_download` when the manager supplies it for privileged media saves.
 - `unsafeWindow` for the page-world X GraphQL observer used by opt-in capture and media discovery.
 - `@connect pbs.twimg.com` and `@connect video.twimg.com` for cross-origin media downloads.
@@ -64,7 +65,8 @@ revoked from the same page. Media buttons remain available without either option
 The extension's durable database belongs to its background origin. X content scripts and the
 options page reach it through extension messages and therefore share the same active profile. An
 upgrade checks and removes the older X-origin database after a verified copy; if copying fails, the
-old database is kept for the next retry.
+old database is kept for the next retry. If an old tab still has it open, Aviary seals the source,
+continues booting, and recopies late writes before deletion on the next pass.
 
 To manage permissions later, open the extension's **Options** page from the extensions manager (or
 the Aviary options link). The page reports live grant state and never writes settings or makes a

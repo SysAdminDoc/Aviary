@@ -4,6 +4,7 @@ export interface StorageGateway {
   get<T>(key: string, fallback: T): Promise<T>;
   set<T>(key: string, value: T): Promise<void>;
   remove(key: string): Promise<void>;
+  keys?(): Promise<string[]>;
   getStatus?(): StorageStatus;
 }
 
@@ -25,6 +26,7 @@ type GlobalWithUserscriptStorage = typeof globalThis & {
   GM_getValue?: <T>(key: string, fallback: T) => T | Promise<T>;
   GM_setValue?: <T>(key: string, value: T) => void | Promise<void>;
   GM_deleteValue?: (key: string) => void | Promise<void>;
+  GM_listValues?: () => string[] | Promise<string[]>;
 };
 
 export const USERSCRIPT_MANAGER_VALUE_LIMIT_BYTES = 16 * 1024 * 1024;
@@ -95,7 +97,8 @@ export function createStorageGateway(
     mode === "userscript" &&
     (typeof globals.GM_getValue !== "function" ||
       typeof globals.GM_setValue !== "function" ||
-      typeof globals.GM_deleteValue !== "function")
+      typeof globals.GM_deleteValue !== "function" ||
+      typeof globals.GM_listValues !== "function")
   ) {
     throw new Error("The userscript manager did not expose its storage API");
   }
@@ -189,6 +192,26 @@ export function createStorageGateway(
         reportStorageError(storageKey, error, "write");
         throw error;
       }
+    },
+
+    async keys(): Promise<string[]> {
+      const prefix = namespace.length > 0 ? `${namespace}.` : "";
+      if (mode !== "extension" && typeof globals.GM_listValues === "function") {
+        return (await globals.GM_listValues()).filter((key) => key.startsWith(prefix));
+      }
+      if (mode !== "userscript" && globalThis.chrome?.storage?.local) {
+        return Object.keys(await globalThis.chrome.storage.local.get(null))
+          .filter((key) => key.startsWith(prefix));
+      }
+      if (mode === "auto" && globalThis.localStorage) {
+        const keys: string[] = [];
+        for (let index = 0; index < globalThis.localStorage.length; index += 1) {
+          const key = globalThis.localStorage.key(index);
+          if (key?.startsWith(prefix)) keys.push(key);
+        }
+        return keys;
+      }
+      return [];
     }
   };
 }

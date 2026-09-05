@@ -166,10 +166,33 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   // Production entrypoints are fail-closed: neither an extension nor a userscript may fall
   // through to x.com's localStorage. Test harnesses without an extension id or GM grants retain
   // auto mode so they can exercise feature behavior without pretending to be a packaged build.
-  const hasUserscriptManager =
-    typeof globalThis.GM_getValue === "function" &&
-    typeof globalThis.GM_setValue === "function" &&
-    typeof globalThis.GM_deleteValue === "function";
+  //
+  // A *partial* grant is the case worth refusing rather than degrading. A manager that exposes
+  // GM_getValue but not GM_listValues fails `hasUserscriptManager`, falls to auto mode, and then
+  // still reads and writes through GM -- so nothing looks wrong, while the cross-origin lock
+  // register (which enumerates keys) silently has no backend and every x.com/twitter.com pair
+  // stops coordinating. Refusing names the missing grant instead.
+  const userscriptGrants = {
+    GM_getValue: typeof globalThis.GM_getValue === "function",
+    GM_setValue: typeof globalThis.GM_setValue === "function",
+    GM_deleteValue: typeof globalThis.GM_deleteValue === "function",
+    GM_listValues: typeof globalThis.GM_listValues === "function"
+  };
+  const missingGrants = Object.entries(userscriptGrants)
+    .filter(([, granted]) => !granted)
+    .map(([grant]) => grant);
+  const hasUserscriptManager = missingGrants.length === 0;
+  if (
+    options.source === "userscript" &&
+    !hasUserscriptManager &&
+    missingGrants.length < Object.keys(userscriptGrants).length
+  ) {
+    throw new Error(
+      `Aviary cannot start: this userscript manager did not grant ${missingGrants.join(", ")}. ` +
+        "Aviary stores your library through the manager and coordinates writes across x.com, " +
+        "twitter.com and pro.x.com by listing those keys, so it will not fall back to page storage."
+    );
+  }
   const storageMode =
     options.source === "extension" && globalThis.chrome?.runtime?.id
       ? "extension"

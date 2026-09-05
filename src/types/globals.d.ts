@@ -2,6 +2,7 @@ declare global {
   var GM_getValue: (<T>(key: string, defaultValue: T) => T | Promise<T>) | undefined;
   var GM_setValue: (<T>(key: string, value: T) => void | Promise<void>) | undefined;
   var GM_deleteValue: ((key: string) => void | Promise<void>) | undefined;
+  var GM_listValues: (() => string[] | Promise<string[]>) | undefined;
   var GM_download:
     | ((options: {
         url: string;

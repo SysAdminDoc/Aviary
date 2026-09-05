@@ -13,6 +13,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_deleteValue
+// @grant        GM_listValues
 // @grant        GM_download
 // @grant        unsafeWindow
 // @connect      pbs.twimg.com
@@ -12026,6 +12027,11 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   var storageGateQueue = [];
   var storageGateReaders = 0;
   var storageGateWriter = false;
+  var lockOwnerSequence = 0;
+  var SHARED_LOCK_PREFIX = "aviary.lock.v1";
+  var SHARED_LOCK_LEASE_MS = 3e4;
+  var SHARED_LOCK_RENEW_MS = 8e3;
+  var SHARED_LOCK_POLL_MS = 12;
   function lockManager() {
     const locks = globalThis.navigator?.locks;
     return typeof locks?.request === "function" ? locks : void 0;
@@ -12083,7 +12089,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
   }
   function runStorageGateRequest(request) {
-    void runUnderBrowserStorageGate(request.mode, request.run).then(
+    void runUnderSharedStorageLock("aviary.library.restore", request.mode, request.run).then(
       request.resolve,
       request.reject
     ).finally(() => {
@@ -12092,24 +12098,14 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       drainStorageGate();
     });
   }
-  async function runUnderBrowserStorageGate(mode, run) {
-    const locks = lockManager();
-    if (!locks) return run();
-    let result;
-    let failure;
-    let failed = false;
-    await locks.request("aviary.library.restore", { mode }, async () => {
-      try {
-        result = await run();
-      } catch (error) {
-        failed = true;
-        failure = error;
-      }
-    });
-    if (failed) throw failure;
-    return result;
-  }
   async function runUnderBrowserLock(name, run) {
+    return runUnderSharedStorageLock(`aviary.${name}`, "exclusive", run);
+  }
+  async function runUnderSharedStorageLock(name, mode, run) {
+    const registerStore = sharedLockRegisterStore();
+    if (registerStore) {
+      return runUnderRegisterLock(registerStore, name, mode, run);
+    }
     const locks = lockManager();
     if (!locks) {
       return run();
@@ -12117,18 +12113,152 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     let result;
     let failure;
     let failed = false;
-    await locks.request(`aviary.${name}`, async () => {
+    const callback = async () => {
       try {
         result = await run();
       } catch (error) {
         failed = true;
         failure = error;
       }
-    });
+    };
+    if (mode === "shared") await locks.request(name, { mode }, callback);
+    else await locks.request(name, callback);
     if (failed) {
       throw failure;
     }
     return result;
+  }
+  async function runUnderRegisterLock(store6, name, mode, run) {
+    const encodedName = encodeURIComponent(name);
+    if (encodedName.length > 320) throw new Error("The storage lock name is too long");
+    const prefix = `${SHARED_LOCK_PREFIX}.${encodedName}`;
+    const owner = nextLockOwner();
+    const key = `${prefix}.${owner}`;
+    let contender = {
+      version: 1,
+      owner,
+      phase: "choosing",
+      ticket: 0,
+      mode,
+      expiresAt: Date.now() + SHARED_LOCK_LEASE_MS
+    };
+    await store6.write(key, contender);
+    try {
+      const initial = await readLockContenders(store6, prefix, owner);
+      contender = {
+        ...contender,
+        phase: "waiting",
+        ticket: Math.max(0, ...initial.map((entry) => entry.ticket)) + 1,
+        expiresAt: Date.now() + SHARED_LOCK_LEASE_MS
+      };
+      await store6.write(key, contender);
+      while (!await lockCanEnter(store6, prefix, contender)) {
+        await waitForLockPoll();
+        contender = await renewLockContender(store6, key, contender);
+      }
+      let renewal = Promise.resolve();
+      let renewalFailure;
+      const renew = () => {
+        renewal = renewal.then(async () => {
+          try {
+            contender = await renewLockContender(store6, key, contender);
+          } catch (error) {
+            renewalFailure = error;
+          }
+        });
+      };
+      const timer2 = globalThis.setInterval(renew, SHARED_LOCK_RENEW_MS);
+      try {
+        const result = await run();
+        await renewal;
+        if (renewalFailure) throw renewalFailure;
+        return result;
+      } finally {
+        globalThis.clearInterval(timer2);
+        await renewal;
+      }
+    } finally {
+      await store6.remove(key);
+    }
+  }
+  async function lockCanEnter(store6, prefix, contender) {
+    const peers = await readLockContenders(store6, prefix, contender.owner);
+    if (peers.some((peer) => peer.phase === "choosing")) return false;
+    return !peers.some((peer) => {
+      if (peer.phase !== "waiting") return false;
+      if (contender.mode === "shared" && peer.mode === "shared") return false;
+      return compareLockContenders(peer, contender) < 0;
+    });
+  }
+  async function readLockContenders(store6, prefix, owner) {
+    const now2 = Date.now();
+    const contenders = [];
+    for (const [key, value] of await store6.entries(`${prefix}.`)) {
+      if (!isSharedLockContender(value) || value.expiresAt <= now2) {
+        await store6.remove(key);
+        continue;
+      }
+      if (value.owner !== owner) contenders.push(value);
+    }
+    return contenders;
+  }
+  async function renewLockContender(store6, key, contender) {
+    if (contender.expiresAt - Date.now() > SHARED_LOCK_RENEW_MS * 2) return contender;
+    const renewed = { ...contender, expiresAt: Date.now() + SHARED_LOCK_LEASE_MS };
+    await store6.write(key, renewed);
+    return renewed;
+  }
+  function compareLockContenders(left, right) {
+    return left.ticket - right.ticket || left.owner.localeCompare(right.owner);
+  }
+  function isSharedLockContender(value) {
+    if (!value || typeof value !== "object") return false;
+    const contender = value;
+    return contender.version === 1 && typeof contender.owner === "string" && contender.owner.length > 0 && (contender.phase === "choosing" || contender.phase === "waiting") && typeof contender.ticket === "number" && Number.isSafeInteger(contender.ticket) && contender.ticket >= 0 && (contender.mode === "shared" || contender.mode === "exclusive") && typeof contender.expiresAt === "number" && Number.isFinite(contender.expiresAt);
+  }
+  function nextLockOwner() {
+    const random = globalThis.crypto?.randomUUID?.().replaceAll("-", "") ?? Math.random().toString(36).slice(2);
+    return `${Date.now().toString(36)}-${(++lockOwnerSequence).toString(36)}-${random}`;
+  }
+  function waitForLockPoll() {
+    return new Promise((resolve) => {
+      globalThis.setTimeout(resolve, SHARED_LOCK_POLL_MS);
+    });
+  }
+  function sharedLockRegisterStore() {
+    const extensionStorage = globalThis.chrome?.runtime?.id ? globalThis.chrome.storage?.local : void 0;
+    if (extensionStorage && typeof extensionStorage.get === "function" && typeof extensionStorage.set === "function" && typeof extensionStorage.remove === "function") {
+      return {
+        async entries(prefix) {
+          const values = await extensionStorage.get(null);
+          return Object.entries(values).filter(([key]) => key.startsWith(prefix));
+        },
+        async write(key, value) {
+          await extensionStorage.set({ [key]: value });
+        },
+        async remove(key) {
+          await extensionStorage.remove(key);
+        }
+      };
+    }
+    if (typeof globalThis.GM_listValues === "function" && typeof globalThis.GM_getValue === "function" && typeof globalThis.GM_setValue === "function" && typeof globalThis.GM_deleteValue === "function") {
+      return {
+        async entries(prefix) {
+          const keys = (await globalThis.GM_listValues()).filter((key) => key.startsWith(prefix));
+          return Promise.all(keys.map(async (key) => [
+            key,
+            await globalThis.GM_getValue(key, void 0)
+          ]));
+        },
+        async write(key, value) {
+          await globalThis.GM_setValue(key, value);
+        },
+        async remove(key) {
+          await globalThis.GM_deleteValue(key);
+        }
+      };
+    }
+    return void 0;
   }
   async function mutateStored(storage, key, fallback, mutate) {
     return withStorageLock(key, async () => {
@@ -35816,7 +35946,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       1,
       Math.floor(options.userscriptValueLimitBytes ?? USERSCRIPT_MANAGER_VALUE_LIMIT_BYTES)
     );
-    if (mode === "userscript" && (typeof globals.GM_getValue !== "function" || typeof globals.GM_setValue !== "function" || typeof globals.GM_deleteValue !== "function")) {
+    if (mode === "userscript" && (typeof globals.GM_getValue !== "function" || typeof globals.GM_setValue !== "function" || typeof globals.GM_deleteValue !== "function" || typeof globals.GM_listValues !== "function")) {
       throw new Error("The userscript manager did not expose its storage API");
     }
     if (mode === "extension" && !globalThis.chrome?.storage?.local) {
@@ -35885,6 +36015,24 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           reportStorageError(storageKey, error, "write");
           throw error;
         }
+      },
+      async keys() {
+        const prefix = namespace.length > 0 ? `${namespace}.` : "";
+        if (mode !== "extension" && typeof globals.GM_listValues === "function") {
+          return (await globals.GM_listValues()).filter((key) => key.startsWith(prefix));
+        }
+        if (mode !== "userscript" && globalThis.chrome?.storage?.local) {
+          return Object.keys(await globalThis.chrome.storage.local.get(null)).filter((key) => key.startsWith(prefix));
+        }
+        if (mode === "auto" && globalThis.localStorage) {
+          const keys = [];
+          for (let index = 0; index < globalThis.localStorage.length; index += 1) {
+            const key = globalThis.localStorage.key(index);
+            if (key?.startsWith(prefix)) keys.push(key);
+          }
+          return keys;
+        }
+        return [];
       }
     };
   }
@@ -35968,7 +36116,11 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         const previous = await this.#backend.getMeta();
         const migratedKeys = new Set(previous?.migratedKeys ?? []);
         const entries = [];
-        const scopedKeys = [...new Set(keys.map((key) => this.#scope(key)))];
+        const discoveredKeys = this.#legacy.keys ? await this.#legacy.keys() : [];
+        const scopedKeys = [.../* @__PURE__ */ new Set([
+          ...keys.map((key) => this.#scope(key)),
+          ...discoveredKeys.filter((key) => this.#isDurable(key)).map((key) => this.#scope(key))
+        ])];
         for (const key of scopedKeys) {
           const existing = await this.#backend.get(key);
           if (existing !== void 0) {
@@ -36571,6 +36723,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   var DURABLE_STORAGE_MESSAGE = "AVIARY_DURABLE_STORAGE";
   var MIGRATION_BATCH_LIMIT = 16;
   var MAX_KEY_LENGTH = 512;
+  var LEGACY_MIGRATION_SEAL_STORE = "__aviary_migration_seal__";
   var ExtensionDurableStorageBackend = class {
     #sendMessage;
     constructor(sendMessage) {
@@ -36681,6 +36834,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       return { databaseFound: false, recordsCopied: 0, databaseDeleted: false };
     }
     let records;
+    const legacyVersion = database.version;
+    const migrationSealed = database.objectStoreNames.contains(LEGACY_MIGRATION_SEAL_STORE);
     try {
       if (!database.objectStoreNames.contains(DURABLE_OBJECT_STORE)) {
         throw new Error("The legacy durable database has no values store");
@@ -36711,15 +36866,25 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         }
       }
     }
-    await deleteDatabase(factory);
-    const remaining = await databaseNames(factory);
-    if (remaining?.includes(DURABLE_DATABASE_NAME)) {
-      throw new Error("The legacy durable database remained after verified migration");
+    const readyToDelete = migrationSealed || await sealLegacyDatabase(factory, legacyVersion);
+    if (!readyToDelete) {
+      return {
+        databaseFound: true,
+        recordsCopied: entries.length,
+        databaseDeleted: false
+      };
+    }
+    const databaseDeleted = await deleteDatabase(factory);
+    if (databaseDeleted) {
+      const remaining = await databaseNames(factory);
+      if (remaining?.includes(DURABLE_DATABASE_NAME)) {
+        throw new Error("The legacy durable database remained after verified migration");
+      }
     }
     return {
       databaseFound: true,
       recordsCopied: entries.length,
-      databaseDeleted: true
+      databaseDeleted
     };
   }
   async function openLegacyDatabase(factory) {
@@ -36728,26 +36893,73 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     return new Promise((resolve, reject) => {
       const request = factory.open(DURABLE_DATABASE_NAME);
       let created = false;
+      let blocked = false;
       request.onupgradeneeded = (event) => {
         if (event.oldVersion === 0) {
           created = true;
           request.transaction?.abort();
         }
       };
-      request.onsuccess = () => resolve(request.result);
+      request.onsuccess = () => {
+        if (blocked) {
+          request.result.close();
+          return;
+        }
+        resolve(request.result);
+      };
       request.onerror = () => {
         if (created) resolve(null);
         else reject(request.error ?? new Error("The legacy durable database could not open"));
       };
-      request.onblocked = () => reject(new Error("The legacy durable database is open in another tab"));
+      request.onblocked = () => {
+        blocked = true;
+        resolve(null);
+      };
     });
   }
   async function deleteDatabase(factory) {
-    await new Promise((resolve, reject) => {
+    return deleteDatabaseRequest(factory);
+  }
+  async function deleteDatabaseRequest(factory) {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish2 = (deleted) => {
+        if (settled) return;
+        settled = true;
+        resolve(deleted);
+      };
       const request = factory.deleteDatabase(DURABLE_DATABASE_NAME);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error ?? new Error("The legacy durable database could not be deleted"));
-      request.onblocked = () => reject(new Error("The legacy durable database is open in another tab"));
+      request.onsuccess = () => finish2(true);
+      request.onerror = () => {
+        if (settled) return;
+        settled = true;
+        reject(request.error ?? new Error("The legacy durable database could not be deleted"));
+      };
+      request.onblocked = () => finish2(false);
+    });
+  }
+  async function sealLegacyDatabase(factory, currentVersion) {
+    return new Promise((resolve, reject) => {
+      const request = factory.open(DURABLE_DATABASE_NAME, currentVersion + 1);
+      let blocked = false;
+      request.onupgradeneeded = () => {
+        if (!request.result.objectStoreNames.contains(LEGACY_MIGRATION_SEAL_STORE)) {
+          request.result.createObjectStore(LEGACY_MIGRATION_SEAL_STORE);
+        }
+      };
+      request.onsuccess = () => {
+        request.result.close();
+        if (!blocked) resolve(true);
+      };
+      request.onerror = () => {
+        if (!blocked) {
+          reject(request.error ?? new Error("The legacy durable database could not be sealed"));
+        }
+      };
+      request.onblocked = () => {
+        blocked = true;
+        resolve(false);
+      };
     });
   }
   async function databaseNames(factory) {
@@ -36827,7 +37039,19 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         });
       }
     }
-    const hasUserscriptManager = typeof globalThis.GM_getValue === "function" && typeof globalThis.GM_setValue === "function" && typeof globalThis.GM_deleteValue === "function";
+    const userscriptGrants = {
+      GM_getValue: typeof globalThis.GM_getValue === "function",
+      GM_setValue: typeof globalThis.GM_setValue === "function",
+      GM_deleteValue: typeof globalThis.GM_deleteValue === "function",
+      GM_listValues: typeof globalThis.GM_listValues === "function"
+    };
+    const missingGrants = Object.entries(userscriptGrants).filter(([, granted]) => !granted).map(([grant]) => grant);
+    const hasUserscriptManager = missingGrants.length === 0;
+    if (options.source === "userscript" && !hasUserscriptManager && missingGrants.length < Object.keys(userscriptGrants).length) {
+      throw new Error(
+        `Aviary cannot start: this userscript manager did not grant ${missingGrants.join(", ")}. Aviary stores your library through the manager and coordinates writes across x.com, twitter.com and pro.x.com by listing those keys, so it will not fall back to page storage.`
+      );
+    }
     const storageMode = options.source === "extension" && globalThis.chrome?.runtime?.id ? "extension" : options.source === "userscript" && hasUserscriptManager ? "userscript" : "auto";
     const legacyStorage = createStorageGateway("aviary", { mode: storageMode });
     const durableStorage = createDurableStorageGateway(legacyStorage, {

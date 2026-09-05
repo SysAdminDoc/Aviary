@@ -389,52 +389,41 @@ test("a corrupted pending-writes value is discarded instead of thrown", async ()
   }
 });
 
-const STORAGE_LANES = [
-  "Chrome extension",
-  "Firefox extension",
-  "Tampermonkey",
-  "Violentmonkey"
-];
-
-test("simultaneous fallback writes retain the union of pending keys in every storage lane", async (t) => {
+test("the storage model retains the union of simultaneous fallback writes", async () => {
   const { createDurableStorageGateway, PENDING_WRITES_KEY } = await importSourceModule(
     "src/platform/durable-storage.ts"
   );
-  for (const lane of STORAGE_LANES) {
-    await t.test(lane, async () => {
-      const legacyState = new Map();
-      const legacy = laneStorage(legacyState, lane);
-      const backend = new FlakyBackend();
-      const storage = createDurableStorageGateway(legacy, { backend });
-      const keys = [
-        "aviary.userNotes.v1",
-        "aviary.snapshots.v1",
-        "aviary.hiddenPosts.v1"
-      ];
-      await storage.initialize(keys);
-      await storage.set(keys[2], { stale: true });
+  const legacyState = new Map();
+  const legacy = modelStorage(legacyState);
+  const backend = new FlakyBackend();
+  const storage = createDurableStorageGateway(legacy, { backend });
+  const keys = [
+    "aviary.userNotes.v1",
+    "aviary.snapshots.v1",
+    "aviary.hiddenPosts.v1"
+  ];
+  await storage.initialize(keys);
+  await storage.set(keys[2], { stale: true });
 
-      backend.failing = true;
-      await Promise.all([
-        storage.set(keys[0], { alice: "one" }),
-        storage.set(keys[1], ["snapshot"]),
-        storage.remove(keys[2])
-      ]);
+  backend.failing = true;
+  await Promise.all([
+    storage.set(keys[0], { alice: "one" }),
+    storage.set(keys[1], ["snapshot"]),
+    storage.remove(keys[2])
+  ]);
 
-      const ledger = legacyState.get(PENDING_WRITES_KEY);
-      assert.equal(ledger.schemaVersion, 2);
-      assert.deepEqual(new Set(ledger.entries.map((entry) => entry.key)), new Set(keys));
-      assert.equal(ledger.entries.find((entry) => entry.key === keys[2]).kind, "remove");
+  const ledger = legacyState.get(PENDING_WRITES_KEY);
+  assert.equal(ledger.schemaVersion, 2);
+  assert.deepEqual(new Set(ledger.entries.map((entry) => entry.key)), new Set(keys));
+  assert.equal(ledger.entries.find((entry) => entry.key === keys[2]).kind, "remove");
 
-      backend.failing = false;
-      const restarted = createDurableStorageGateway(legacy, { backend });
-      await restarted.initialize(keys);
-      assert.deepEqual(await restarted.get(keys[0], null), { alice: "one" });
-      assert.deepEqual(await restarted.get(keys[1], null), ["snapshot"]);
-      assert.equal(await restarted.get(keys[2], "absent"), "absent");
-      assert.equal(legacyState.has(PENDING_WRITES_KEY), false);
-    });
-  }
+  backend.failing = false;
+  const restarted = createDurableStorageGateway(legacy, { backend });
+  await restarted.initialize(keys);
+  assert.deepEqual(await restarted.get(keys[0], null), { alice: "one" });
+  assert.deepEqual(await restarted.get(keys[1], null), ["snapshot"]);
+  assert.equal(await restarted.get(keys[2], "absent"), "absent");
+  assert.equal(legacyState.has(PENDING_WRITES_KEY), false);
 });
 
 test("every reconciliation await boundary converges on the latest operation after restart", async (t) => {
@@ -455,12 +444,10 @@ test("every reconciliation await boundary converges on the latest operation afte
   ];
   const key = "aviary.userNotes.v1";
 
-  for (const lane of STORAGE_LANES) {
-    await t.test(lane, async (laneTest) => {
-      for (const latestKind of ["put", "remove"]) {
-        await laneTest.test(`latest ${latestKind}`, async (kindTest) => {
-          for (const crashPoint of crashPoints) {
-            await kindTest.test(crashPoint, async () => {
+  for (const latestKind of ["put", "remove"]) {
+    await t.test(`latest ${latestKind}`, async (kindTest) => {
+      for (const crashPoint of crashPoints) {
+        await kindTest.test(crashPoint, async () => {
               const firstWrite = latestKind === "put"
                 ? { id: "first-remove", key, kind: "remove" }
                 : { id: "first-put", key, kind: "put", value: { version: "intermediate" } };
@@ -475,7 +462,7 @@ test("every reconciliation await boundary converges on the latest operation afte
               };
               const fault = new FaultOnce(crashPoint);
               const interrupted = createDurableStorageGateway(
-                laneStorage(legacyState, lane, fault),
+                modelStorage(legacyState, fault),
                 { backend: new CrashableBackend(backendState, fault) }
               );
 
@@ -485,7 +472,7 @@ test("every reconciliation await boundary converges on the latest operation afte
               // A write that arrives after the interrupted attempt is the authority. A staged old
               // marker must not overwrite it when a fresh page and worker reconcile on restart.
               legacyState.set(PENDING_WRITES_KEY, pendingLedger(latestWrite));
-              const restarted = createDurableStorageGateway(laneStorage(legacyState, lane), {
+              const restarted = createDurableStorageGateway(modelStorage(legacyState), {
                 backend: new CrashableBackend(backendState)
               });
               const status = await restarted.initialize([key]);
@@ -499,8 +486,6 @@ test("every reconciliation await boundary converges on the latest operation afte
               }
               assert.equal(backendState.pending.size, 0, "the transaction left a staged marker");
               assert.equal(legacyState.has(PENDING_WRITES_KEY), false);
-            });
-          }
         });
       }
     });
@@ -580,24 +565,18 @@ class CrashableBackend {
   }
 }
 
-function laneStorage(values, lane, fault = undefined) {
-  const yieldForLane = async () => {
-    if (lane === "Firefox extension" || lane === "Violentmonkey") await Promise.resolve();
-  };
+function modelStorage(values, fault = undefined) {
   return {
     async get(key, fallback) {
-      await yieldForLane();
       if (key === "aviary.durable.pending") fault?.hit("legacy.get.pending.before");
       const value = values.has(key) ? structuredClone(values.get(key)) : fallback;
       if (key === "aviary.durable.pending") fault?.hit("legacy.get.pending.after");
       return value;
     },
     async set(key, value) {
-      await yieldForLane();
       values.set(key, structuredClone(value));
     },
     async remove(key) {
-      await yieldForLane();
       const label = key === "aviary.durable.pending" ? "pending" : "value";
       fault?.hit(`legacy.remove.${label}.before`);
       values.delete(key);

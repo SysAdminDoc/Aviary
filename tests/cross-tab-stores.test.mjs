@@ -748,3 +748,216 @@ test("merging the same archive twice changes nothing the second time", async () 
   assert.ok(afterNew.includes("f50000"), "a new archive must still land");
   assert.equal(afterNew.length, ARCHIVE_COLLECTION_LIMIT);
 });
+
+/**
+ * The shared lock register, driven rather than read.
+ *
+ * Web Locks is scoped per origin, and Aviary runs on three: x.com, twitter.com and pro.x.com all
+ * share one extension or manager storage area but get three separate Web Locks namespaces, so two
+ * tabs on different X hostnames were never actually serialized. The register replaces it with a
+ * Lamport-style queue in that shared storage, which means the lock is now a *lease*: a tab that is
+ * killed mid-transaction leaves its entry behind, and only expiry frees it. That makes the lease
+ * duration load-bearing in a way a lock held by the browser never was.
+ */
+async function loadLockModule(store) {
+  const { importSourceModule } = await import("./helpers/source-import.mjs");
+  const previousChrome = globalThis.chrome;
+  globalThis.chrome = {
+    runtime: { id: "fixture-extension" },
+    storage: {
+      local: {
+        async get(request) {
+          if (request === null) return Object.fromEntries(store);
+          return {};
+        },
+        async set(entry) {
+          for (const [key, value] of Object.entries(entry)) store.set(key, structuredClone(value));
+        },
+        async remove(key) {
+          store.delete(key);
+        }
+      }
+    }
+  };
+  const mod = await importSourceModule("src/platform/storage-lock.ts", { fresh: true });
+  return {
+    mod,
+    restore() {
+      if (previousChrome) globalThis.chrome = previousChrome;
+      else delete globalThis.chrome;
+    }
+  };
+}
+
+/**
+ * The one register key a planted peer occupies.
+ *
+ * `runUnderBrowserLock` prefixes the caller's store key with `aviary.` before it reaches the
+ * register, so a peer planted under the bare store name is invisible to the lock and the waiter
+ * walks straight in. Deriving the key the same way the production path does is the difference
+ * between this test proving mutual exclusion and proving nothing.
+ */
+function peerKey(name, owner) {
+  return `aviary.lock.v1.${encodeURIComponent(`aviary.${name}`)}.${owner}`;
+}
+
+test("the lease, renew and poll intervals hold the contract the register depends on", async () => {
+  const store = new Map();
+  const { mod, restore } = await loadLockModule(store);
+  try {
+    // Pinned literals: each of these is a behavioural decision, not a tuning knob. Shortening the
+    // lease makes a slow library restore lose its own lock; lengthening it makes a force-quit tab
+    // wedge every other tab for that long.
+    assert.equal(mod.SHARED_LOCK_LEASE_MS, 30_000, "the lease bounds how long a dead tab blocks");
+    assert.equal(mod.SHARED_LOCK_RENEW_MS, 8_000, "renewal must be frequent enough to survive a miss");
+    assert.equal(mod.SHARED_LOCK_POLL_MS, 12, "polling bounds handoff latency between tabs");
+
+    assert.ok(
+      mod.SHARED_LOCK_RENEW_MS * 3 <= mod.SHARED_LOCK_LEASE_MS,
+      "a live holder must survive two missed renewals, or a busy tab loses a lock it still holds"
+    );
+    assert.ok(
+      mod.SHARED_LOCK_POLL_MS < mod.SHARED_LOCK_RENEW_MS,
+      "a waiter must re-read the register far more often than the holder renews"
+    );
+  } finally {
+    restore();
+  }
+});
+
+test("a live peer keeps the lock and an expired one loses it", async () => {
+  const store = new Map();
+  const { mod, restore } = await loadLockModule(store);
+  try {
+    const name = "aviary.media.history.v1";
+    // A peer that is still renewing: earlier ticket, exclusive, lease well in the future.
+    store.set(peerKey(name, "peer-live"), {
+      version: 1,
+      owner: "peer-live",
+      phase: "waiting",
+      ticket: 1,
+      mode: "exclusive",
+      expiresAt: Date.now() + mod.SHARED_LOCK_LEASE_MS
+    });
+
+    let entered = false;
+    let released;
+    const held = new Promise((resolve) => {
+      released = resolve;
+    });
+    const pending = mod.withStorageLock(name, async () => {
+      entered = true;
+      await held;
+      return "done";
+    });
+
+    try {
+      // Comfortably more than the poll interval: if expiry were not required, this is where a
+      // waiter would wrongly decide the lock was free.
+      await new Promise((resolve) => setTimeout(resolve, mod.SHARED_LOCK_POLL_MS * 20));
+      assert.equal(entered, false, "a peer whose lease is still valid must keep the lock");
+
+      // The peer stops renewing. Its entry stays behind, exactly as a killed tab would leave it.
+      store.set(peerKey(name, "peer-live"), {
+        ...store.get(peerKey(name, "peer-live")),
+        expiresAt: Date.now() - 1
+      });
+    } finally {
+      // Always release, or a failed assertion above strands the pending lock and its renewal
+      // timer, and the whole test file hangs instead of reporting the failure.
+      released("released");
+    }
+
+    assert.equal(await pending, "done", "an expired lease must be reclaimed, not waited on forever");
+    assert.equal(entered, true, "and the waiting transaction must actually run");
+    assert.equal(
+      store.has(peerKey(name, "peer-live")),
+      false,
+      "the dead peer's register entry must be swept, not left to be re-read every poll"
+    );
+  } finally {
+    restore();
+  }
+});
+
+test("the register releases its own entry even when the transaction throws", async () => {
+  const store = new Map();
+  const { mod, restore } = await loadLockModule(store);
+  try {
+    await assert.rejects(
+      mod.withStorageLock("aviary.userNotes.v1", async () => {
+        throw new Error("transaction failed");
+      }),
+      /transaction failed/
+    );
+    assert.deepEqual(
+      [...store.keys()].filter((key) => key.startsWith("aviary.lock.v1.")),
+      [],
+      "a thrown transaction must not strand a contender for the whole lease"
+    );
+  } finally {
+    restore();
+  }
+});
+
+/**
+ * A suspended background must not be able to lose the lock.
+ *
+ * The register's whole authority has to live in storage. If any part of it depended on an
+ * in-memory owner id, a renewal timer, or a listener registered after an asynchronous boot, then
+ * an MV3 service worker suspending between acquire and commit would drop it -- and the symptom
+ * would not be an error, it would be two tabs both believing they hold an exclusive lock.
+ *
+ * A fresh module instance is the sharpest available version of that event: it has a new
+ * `lockOwnerSequence`, an empty in-process chain map, and no timers, exactly like a worker that
+ * just woke up. Only the shared store survives, which is the point.
+ */
+test("a lock survives losing every scrap of in-memory state", async () => {
+  const store = new Map();
+  const first = await loadLockModule(store);
+  const name = "aviary.hiddenPosts.v1";
+  try {
+    // A holder that acquired the lock and then had its context torn down mid-transaction. Its
+    // register entry is all that is left of it, and it is still inside its lease.
+    store.set(peerKey(name, "worker-before-suspend"), {
+      version: 1,
+      owner: "worker-before-suspend",
+      phase: "waiting",
+      ticket: 4,
+      mode: "exclusive",
+      expiresAt: Date.now() + first.mod.SHARED_LOCK_LEASE_MS
+    });
+  } finally {
+    first.restore();
+  }
+
+  // Everything in memory is gone. Storage is not.
+  const second = await loadLockModule(store);
+  try {
+    let entered = false;
+    const attempt = second.mod.withStorageLock(name, async () => {
+      entered = true;
+      return "ran";
+    });
+    await new Promise((resolve) => setTimeout(resolve, second.mod.SHARED_LOCK_POLL_MS * 20));
+    assert.equal(
+      entered,
+      false,
+      "a woken worker must read the lease out of storage, not assume the lock is free"
+    );
+
+    store.set(peerKey(name, "worker-before-suspend"), {
+      ...store.get(peerKey(name, "worker-before-suspend")),
+      expiresAt: Date.now() - 1
+    });
+    assert.equal(await attempt, "ran", "and must proceed once that lease actually expires");
+
+    assert.deepEqual(
+      [...store.keys()].filter((key) => key.startsWith("aviary.lock.v1.")),
+      [],
+      "with no entry left behind by either the dead holder or the new one"
+    );
+  } finally {
+    second.restore();
+  }
+});

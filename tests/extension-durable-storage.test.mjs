@@ -153,10 +153,27 @@ test("legacy values remain recoverable when durable readback does not match", as
   assert.match(status.lastError, /hash mismatch/i);
 });
 
+test("legacy migration discovers inactive profile keys instead of relying on the base allow-list", async () => {
+  const { createDurableStorageGateway } = await importSourceModule(
+    "src/platform/durable-storage.ts"
+  );
+  const dynamicKey = "aviary.profile.inactive-account.userNotes.v1";
+  const legacy = memoryStorage({ [dynamicKey]: { alice: "inactive profile note" } });
+  const backend = new MemoryBackend();
+  const storage = createDurableStorageGateway(legacy, { backend });
+
+  const status = await storage.initialize([]);
+
+  assert.equal(status.backend, "indexeddb");
+  assert.deepEqual(backend.values.get(dynamicKey), { alice: "inactive profile note" });
+  assert.equal(legacy.values.has(dynamicKey), false, "the verified dynamic source was not removed");
+});
+
 test("userscript mode never falls through to page storage and refuses an oversized value explicitly", async () => {
   rememberGlobal("GM_getValue");
   rememberGlobal("GM_setValue");
   rememberGlobal("GM_deleteValue");
+  rememberGlobal("GM_listValues");
   rememberGlobal("chrome");
   rememberGlobal("localStorage");
 
@@ -165,6 +182,7 @@ test("userscript mode never falls through to page storage and refuses an oversiz
   globalThis.GM_getValue = (key, fallback) => manager.has(key) ? manager.get(key) : fallback;
   globalThis.GM_setValue = (key, value) => { manager.set(key, structuredClone(value)); };
   globalThis.GM_deleteValue = (key) => { manager.delete(key); };
+  globalThis.GM_listValues = () => [...manager.keys()];
   globalThis.chrome = {
     storage: { local: { async get() { return {}; }, async set() { pageWrites += 1; }, async remove() {} } }
   };
@@ -203,9 +221,11 @@ test("userscript mode fails closed when its manager storage grant is missing", a
   rememberGlobal("GM_getValue");
   rememberGlobal("GM_setValue");
   rememberGlobal("GM_deleteValue");
+  rememberGlobal("GM_listValues");
   delete globalThis.GM_getValue;
   delete globalThis.GM_setValue;
   delete globalThis.GM_deleteValue;
+  delete globalThis.GM_listValues;
 
   const { createStorageGateway } = await importSourceModule("src/platform/storage.ts");
   assert.throws(
@@ -284,6 +304,9 @@ function memoryStorage(initial = {}) {
     },
     async remove(key) {
       values.delete(key);
+    },
+    async keys() {
+      return [...values.keys()];
     }
   };
 }

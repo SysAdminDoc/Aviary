@@ -122,7 +122,7 @@ test("library backup cancellation performs no writes", async () => {
   assert.equal(target.store.get(BOOKMARKS_KEY).entries[0].id, "current");
 });
 
-test("a two-tab writer waits for restore commit and remains authoritative afterward", async () => {
+test("a queued writer waits for restore commit and remains authoritative afterward", async () => {
   const { createLibraryBackup, restoreLibraryBackup } = await importSourceModule(
     "src/features/core/library-backup.ts"
   );
@@ -164,7 +164,7 @@ test("a two-tab writer waits for restore commit and remains authoritative afterw
     order.push("writer-done");
   });
   await Promise.resolve();
-  assert.equal(writerSettled, false, "the second tab wrote inside the restore transaction");
+  assert.equal(writerSettled, false, "the queued writer ran inside the restore transaction");
 
   releaseRestore.resolve();
   assert.equal((await restoring).applied, true);
@@ -173,7 +173,7 @@ test("a two-tab writer waits for restore commit and remains authoritative afterw
   assert.deepEqual(order, ["restore-write", "restore-done", "writer-done"]);
 });
 
-test("rollback restores its preflight snapshot before a later two-tab write proceeds", async () => {
+test("rollback restores its preflight snapshot before a later queued write proceeds", async () => {
   const { createLibraryBackup, restoreLibraryBackup } = await importSourceModule(
     "src/features/core/library-backup.ts"
   );
@@ -221,7 +221,7 @@ test("rollback restores its preflight snapshot before a later two-tab write proc
     writerSettled = true;
   });
   await Promise.resolve();
-  assert.equal(writerSettled, false, "the second tab bypassed a rollback in progress");
+  assert.equal(writerSettled, false, "the queued writer bypassed a rollback in progress");
 
   releaseFailure.resolve();
   const result = await restoring;

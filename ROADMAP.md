@@ -221,15 +221,6 @@ Research date 2026-09-04, against `1.47.0` plus the uncommitted cross-origin loc
   Complexity: M
   Depends: None.
 
-- [ ] F300, P1: Land the cross-origin lock work with its coverage tracked
-  Why: `tests/storage-authority-browser.test.mjs` is untracked and not ignored, is 23,797 bytes, and is the only coverage for the shared-register lock that replaces per-origin Web Locks. Because `npm test` globs `tests/*.test.mjs` it passes locally and would not exist for anyone who cloned. `crossTabLocksAvailable` was modified by the same change and is called by nothing.
-  Evidence: `git status` at `b9b6ec9` (17 modified, 1 untracked, `git check-ignore -v tests/storage-authority-browser.test.mjs` returns nothing); `git diff --stat` 689 insertions across `src/platform/storage-lock.ts` (+255), `src/extension/durable-storage-api.ts` (+93), `src/platform/storage.ts`, `src/platform/durable-storage.ts`, `src/main.ts`, `src/types/globals.d.ts`, `tools/build.mjs`; `src/platform/storage-lock.ts:77`
-  Touches: the seventeen modified files, `tests/storage-authority-browser.test.mjs`, `package.json` version, `CHANGELOG.md`
-  Acceptance: the test file is tracked and runs on a clean clone; `crossTabLocksAvailable` is either called by production code or deleted with its test; the lease, renew, and poll constants in `storage-lock.ts` each have a test that fails when the constant is changed; a lock held by a tab that stops renewing is taken over after the lease expires and never before; the `GM_listValues` boot requirement is proved by a userscript lane that refuses to boot without it and states why; full `verify`, the release matrix, both packaged browser transactions, and the smoke suite pass before the version is cut.
-  Complexity: S
-  Depends: None.
-  Research update 2026-09-05: packaged tests must suspend and restart the extension background between acquire, renew, commit, and recovery; correctness may not depend on an in-memory owner, timer, or listener registered after asynchronous boot. Evidence: https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle and https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/background
-
 - [ ] F301, P1: Cover the two untested modules that sit on privileged paths
   Why: `trusted-types.ts` is the only file exempted from preflight's repository-wide `innerHTML` ban and silently degrades to a string passthrough when `trustedTypes` is absent. `media-context-menu.ts` carries the message-shape validator for a cross-context download trigger, and `contextMenus` is a declared permission in both manifests. Neither is referenced by any test.
   Evidence: `src/platform/trusted-types.ts`, `tools/preflight.mjs` (the `platform/trusted-types.ts` exemption in the `innerHTML` scan), `src/extension/media-context-menu.ts` (`isMediaContextDownloadMessage`, `X_DOCUMENT_PATTERNS`), both manifests' `permissions` arrays; no match for either path across `tests/**/*.mjs`
@@ -448,3 +439,19 @@ Research date 2026-09-05, against `1.47.2` at `9a5970a` plus the shelved cross-o
   Acceptance: a separate `Hide For You tab` setting is enabled by the Minimal preset and can be changed without changing `forceFollowing`; on Home it selects Following before collapsing only the first tab to 0 by 0, using the known home tablist and position rather than translated text; profile, search, notifications, and custom-list tablists are untouched; if the strip has fewer than two tabs the feature does nothing and reports degraded selector health; disabling it restores the tab without navigation or reload; LTR, RTL, narrow, and touch fixtures pass.
   Complexity: S
   Depends: F299 for visible degraded-selector reporting.
+
+- [ ] F326, P2: Stop re-reading the whole storage area on every lock poll
+  Why: a waiting contender calls `store.entries(prefix)`, which for the extension backend is `chrome.storage.local.get(null)` -- the entire area, deserialized, every 12 ms. Measured on 2026-09-05: the Firefox extension lane of `tests/storage-authority-browser.test.mjs` takes 196s while the Chrome extension lane takes 3s and the Tampermonkey lane 2.5s, against the same crash matrix. The register is the only thing that differs, and it scales with how much the user has stored, so the cost lands hardest on exactly the large libraries the lock exists to protect.
+  Evidence: `src/platform/storage-lock.ts` (`sharedLockRegisterStore().entries` uses `get(null)`; `readLockContenders` runs it per poll at `SHARED_LOCK_POLL_MS` = 12), `node --test tests/storage-authority-browser.test.mjs` on 2026-09-05 (Chrome 3002ms, Firefox 195940ms, Tampermonkey 2530ms, Violentmonkey 13532ms)
+  Touches: `src/platform/storage-lock.ts`, `tests/cross-tab-stores.test.mjs`, `tests/storage-authority-browser.test.mjs`
+  Acceptance: contender discovery reads only keys under the lock's own prefix, using an index key or a per-lock roster rather than a full-area scan; a store seeded with 10,000 unrelated keys costs no more per poll than an empty one, measured rather than asserted; the Firefox extension lane finishes within the same order of magnitude as the Chrome lane; every existing register test still passes unchanged.
+  Complexity: M
+  Depends: None.
+
+- [ ] F327, P2: Drive the lock through a real suspended service worker
+  Why: `tests/cross-tab-stores.test.mjs` proves the register keeps no in-memory authority by discarding the module between phases, which is the right property but a simulation of it. The fidelity gap is a real MV3 worker: registration timing, `chrome.storage` waking the worker mid-transaction, and listeners attached after an asynchronous boot are not exercised anywhere.
+  Evidence: `tests/cross-tab-stores.test.mjs` ("a lock survives losing every scrap of in-memory state"), `tests/storage-authority-browser.test.mjs` (models the background as a Node-side binding, not a worker); https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle
+  Touches: a packaged-extension test harness, `tests/storage-authority-browser.test.mjs`
+  Acceptance: a headless Chromium launched with `channel: "chromium"` and `launchPersistentContext` loads the built `dist/extension-chrome` and reports its service worker; the worker is stopped between lock acquire, renew, and commit and the transaction still completes exactly once; a lease left by a worker killed mid-transaction is reclaimed only after it expires; the test fails if the extension does not actually load, so a silent no-load cannot pass as green.
+  Complexity: M
+  Depends: None. A bare `headless: true` loads no extension at all; `channel: "chromium"` is the form that works.

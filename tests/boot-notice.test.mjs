@@ -161,3 +161,54 @@ test("a failure before the first feature still reports itself", async () => {
   assert.equal(result.noticeShown, true, "a boot failure must be visible");
   assert.match(result.reason, /indexedDB/, "the notice must carry the reason");
 });
+
+/**
+ * A partial userscript grant is worse than no grant at all.
+ *
+ * `hasUserscriptManager` requires all four GM functions, and a manager missing only
+ * `GM_listValues` used to fail that check and fall through to `"auto"` storage mode. Auto still
+ * sees `GM_getValue`, so reads and writes kept working and nothing looked wrong -- while the
+ * cross-origin lock register, which enumerates keys to find its peers, silently had no backend
+ * and x.com/twitter.com stopped coordinating their writes. Refusing to boot names the grant.
+ *
+ * No grants at all stays permitted, because that is the test-harness shape the storage-mode
+ * comment in `main.ts` deliberately keeps open.
+ */
+test("a userscript manager missing one GM grant is refused by name", async () => {
+  const result = await page.evaluate(async () => {
+    AviaryBootNotice.removeBootFailureNotice();
+    delete document.documentElement.dataset.avReady;
+
+    globalThis.GM_getValue = async () => undefined;
+    globalThis.GM_setValue = async () => {};
+    globalThis.GM_deleteValue = async () => {};
+    delete globalThis.GM_listValues;
+
+    let threw = false;
+    try {
+      await AviaryBootNotice.boot({ source: "userscript" });
+    } catch {
+      threw = true;
+    }
+
+    delete globalThis.GM_getValue;
+    delete globalThis.GM_setValue;
+    delete globalThis.GM_deleteValue;
+
+    const notice = document.getElementById("av-boot-notice");
+    const reason = notice?.shadowRoot?.querySelector(".reason")?.textContent ?? "";
+    const ready = document.documentElement.dataset.avReady ?? null;
+    AviaryBootNotice.removeBootFailureNotice();
+    delete document.documentElement.dataset.avReady;
+    return { threw, ready, reason };
+  });
+
+  assert.equal(result.threw, true, "a partial grant must reject rather than degrade");
+  assert.equal(result.ready, "error", "the page must not be left claiming it is still booting");
+  assert.match(result.reason, /GM_listValues/, "the notice must name the grant that is missing");
+  assert.match(
+    result.reason,
+    /page storage/,
+    "and must say why it refuses rather than falling back"
+  );
+});

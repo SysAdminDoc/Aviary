@@ -9,11 +9,10 @@ import type { StorageGateway } from "./storage.ts";
  * costs more in the integration usage ledger, where "read the counter, add to it, write it back"
  * across two tabs lets one day's byte budget be spent twice.
  *
- * Web Locks is the answer the platform already ships -- Chrome 69 / Firefox 96 / Safari 15.4, no
- * dependency, and scoped per origin so two `x.com` tabs genuinely share one. What it does not do
- * is merge; a lock only makes "read, change, write" atomic. So the pattern here is always
- * read-modify-write *inside* the lock, with the store folding its own change into whatever it
- * finds on disk rather than overwriting with what it loaded at boot.
+ * Extension and userscript storage spans every matched X origin, while Web Locks does not. The
+ * shared-storage register below implements a Lamport-style queue with one register per contender,
+ * so x.com, twitter.com, and pro.x.com all coordinate through the same extension or manager-owned
+ * authority. Web Locks remains the fallback for unprivileged browser and test contexts.
  */
 
 type LockManagerLike = {
@@ -34,6 +33,21 @@ interface StorageGateRequest {
   reject: (error: unknown) => void;
 }
 
+interface SharedLockRegisterStore {
+  entries(prefix: string): Promise<Array<[string, unknown]>>;
+  write(key: string, value: SharedLockContender): Promise<void>;
+  remove(key: string): Promise<void>;
+}
+
+interface SharedLockContender {
+  version: 1;
+  owner: string;
+  phase: "choosing" | "waiting";
+  ticket: number;
+  mode: StorageGateMode;
+  expiresAt: number;
+}
+
 /**
  * In-process serialization, per lock name.
  *
@@ -47,15 +61,29 @@ const chains = new Map<string, Promise<unknown>>();
 const storageGateQueue: StorageGateRequest[] = [];
 let storageGateReaders = 0;
 let storageGateWriter = false;
+let lockOwnerSequence = 0;
+
+const SHARED_LOCK_PREFIX = "aviary.lock.v1";
+
+/**
+ * How long a contender's register entry stays authoritative without a renewal.
+ *
+ * A tab that is killed mid-transaction leaves its entry behind, so the lease is what stops one
+ * crashed tab from wedging every other tab's writes forever. Long enough that an ordinary slow
+ * transaction (a library restore over a large store) never loses its own lock, short enough that
+ * a user who force-quit a tab is not staring at a dead panel. Exported so a test can pin it:
+ * shortening the lease silently makes takeover racy, and lengthening it silently makes a crash
+ * look like a hang.
+ */
+export const SHARED_LOCK_LEASE_MS = 30_000;
+/** Renewal cadence. Must stay well under a third of the lease so one missed tick is survivable. */
+export const SHARED_LOCK_RENEW_MS = 8_000;
+/** How often a waiting contender re-reads the register. Bounds handoff latency. */
+export const SHARED_LOCK_POLL_MS = 12;
 
 function lockManager(): LockManagerLike | undefined {
   const locks = (globalThis.navigator as { locks?: LockManagerLike } | undefined)?.locks;
   return typeof locks?.request === "function" ? locks : undefined;
-}
-
-/** True when this browser can coordinate across tabs rather than only within this one. */
-export function crossTabLocksAvailable(): boolean {
-  return lockManager() !== undefined;
 }
 
 /**
@@ -131,7 +159,7 @@ function drainStorageGate(): void {
 }
 
 function runStorageGateRequest(request: StorageGateRequest): void {
-  void runUnderBrowserStorageGate(request.mode, request.run).then(
+  void runUnderSharedStorageLock("aviary.library.restore", request.mode, request.run).then(
     request.resolve,
     request.reject
   ).finally(() => {
@@ -141,28 +169,19 @@ function runStorageGateRequest(request: StorageGateRequest): void {
   });
 }
 
-async function runUnderBrowserStorageGate<T>(
+async function runUnderBrowserLock<T>(name: string, run: () => Promise<T>): Promise<T> {
+  return runUnderSharedStorageLock(`aviary.${name}`, "exclusive", run);
+}
+
+async function runUnderSharedStorageLock<T>(
+  name: string,
   mode: StorageGateMode,
   run: () => Promise<T>
 ): Promise<T> {
-  const locks = lockManager();
-  if (!locks) return run();
-  let result!: T;
-  let failure: unknown;
-  let failed = false;
-  await locks.request("aviary.library.restore", { mode }, async () => {
-    try {
-      result = await run();
-    } catch (error) {
-      failed = true;
-      failure = error;
-    }
-  });
-  if (failed) throw failure;
-  return result;
-}
-
-async function runUnderBrowserLock<T>(name: string, run: () => Promise<T>): Promise<T> {
+  const registerStore = sharedLockRegisterStore();
+  if (registerStore) {
+    return runUnderRegisterLock(registerStore, name, mode, run);
+  }
   const locks = lockManager();
   if (!locks) {
     return run();
@@ -170,18 +189,206 @@ async function runUnderBrowserLock<T>(name: string, run: () => Promise<T>): Prom
   let result!: T;
   let failure: unknown;
   let failed = false;
-  await locks.request(`aviary.${name}`, async () => {
+  const callback = async () => {
     try {
       result = await run();
     } catch (error) {
       failed = true;
       failure = error;
     }
-  });
+  };
+  if (mode === "shared") await locks.request(name, { mode }, callback);
+  else await locks.request(name, callback);
   if (failed) {
     throw failure;
   }
   return result;
+}
+
+async function runUnderRegisterLock<T>(
+  store: SharedLockRegisterStore,
+  name: string,
+  mode: StorageGateMode,
+  run: () => Promise<T>
+): Promise<T> {
+  const encodedName = encodeURIComponent(name);
+  if (encodedName.length > 320) throw new Error("The storage lock name is too long");
+  const prefix = `${SHARED_LOCK_PREFIX}.${encodedName}`;
+  const owner = nextLockOwner();
+  const key = `${prefix}.${owner}`;
+  let contender: SharedLockContender = {
+    version: 1,
+    owner,
+    phase: "choosing",
+    ticket: 0,
+    mode,
+    expiresAt: Date.now() + SHARED_LOCK_LEASE_MS
+  };
+  await store.write(key, contender);
+
+  try {
+    const initial = await readLockContenders(store, prefix, owner);
+    contender = {
+      ...contender,
+      phase: "waiting",
+      ticket: Math.max(0, ...initial.map((entry) => entry.ticket)) + 1,
+      expiresAt: Date.now() + SHARED_LOCK_LEASE_MS
+    };
+    await store.write(key, contender);
+
+    while (!(await lockCanEnter(store, prefix, contender))) {
+      await waitForLockPoll();
+      contender = await renewLockContender(store, key, contender);
+    }
+
+    let renewal = Promise.resolve();
+    let renewalFailure: unknown;
+    const renew = () => {
+      renewal = renewal.then(async () => {
+        try {
+          contender = await renewLockContender(store, key, contender);
+        } catch (error) {
+          renewalFailure = error;
+        }
+      });
+    };
+    const timer = globalThis.setInterval(renew, SHARED_LOCK_RENEW_MS);
+    try {
+      const result = await run();
+      await renewal;
+      if (renewalFailure) throw renewalFailure;
+      return result;
+    } finally {
+      globalThis.clearInterval(timer);
+      await renewal;
+    }
+  } finally {
+    await store.remove(key);
+  }
+}
+
+async function lockCanEnter(
+  store: SharedLockRegisterStore,
+  prefix: string,
+  contender: SharedLockContender
+): Promise<boolean> {
+  const peers = await readLockContenders(store, prefix, contender.owner);
+  if (peers.some((peer) => peer.phase === "choosing")) return false;
+  return !peers.some((peer) => {
+    if (peer.phase !== "waiting") return false;
+    if (contender.mode === "shared" && peer.mode === "shared") return false;
+    return compareLockContenders(peer, contender) < 0;
+  });
+}
+
+async function readLockContenders(
+  store: SharedLockRegisterStore,
+  prefix: string,
+  owner: string
+): Promise<SharedLockContender[]> {
+  const now = Date.now();
+  const contenders: SharedLockContender[] = [];
+  for (const [key, value] of await store.entries(`${prefix}.`)) {
+    if (!isSharedLockContender(value) || value.expiresAt <= now) {
+      await store.remove(key);
+      continue;
+    }
+    if (value.owner !== owner) contenders.push(value);
+  }
+  return contenders;
+}
+
+async function renewLockContender(
+  store: SharedLockRegisterStore,
+  key: string,
+  contender: SharedLockContender
+): Promise<SharedLockContender> {
+  if (contender.expiresAt - Date.now() > SHARED_LOCK_RENEW_MS * 2) return contender;
+  const renewed = { ...contender, expiresAt: Date.now() + SHARED_LOCK_LEASE_MS };
+  await store.write(key, renewed);
+  return renewed;
+}
+
+function compareLockContenders(left: SharedLockContender, right: SharedLockContender): number {
+  return left.ticket - right.ticket || left.owner.localeCompare(right.owner);
+}
+
+function isSharedLockContender(value: unknown): value is SharedLockContender {
+  if (!value || typeof value !== "object") return false;
+  const contender = value as Partial<SharedLockContender>;
+  return (
+    contender.version === 1 &&
+    typeof contender.owner === "string" &&
+    contender.owner.length > 0 &&
+    (contender.phase === "choosing" || contender.phase === "waiting") &&
+    typeof contender.ticket === "number" &&
+    Number.isSafeInteger(contender.ticket) &&
+    contender.ticket >= 0 &&
+    (contender.mode === "shared" || contender.mode === "exclusive") &&
+    typeof contender.expiresAt === "number" &&
+    Number.isFinite(contender.expiresAt)
+  );
+}
+
+function nextLockOwner(): string {
+  const random = globalThis.crypto?.randomUUID?.().replaceAll("-", "")
+    ?? Math.random().toString(36).slice(2);
+  return `${Date.now().toString(36)}-${(++lockOwnerSequence).toString(36)}-${random}`;
+}
+
+function waitForLockPoll(): Promise<void> {
+  return new Promise((resolve) => {
+    globalThis.setTimeout(resolve, SHARED_LOCK_POLL_MS);
+  });
+}
+
+function sharedLockRegisterStore(): SharedLockRegisterStore | undefined {
+  const extensionStorage = globalThis.chrome?.runtime?.id
+    ? globalThis.chrome.storage?.local
+    : undefined;
+  if (
+    extensionStorage &&
+    typeof extensionStorage.get === "function" &&
+    typeof extensionStorage.set === "function" &&
+    typeof extensionStorage.remove === "function"
+  ) {
+    return {
+      async entries(prefix) {
+        const values = await extensionStorage.get(null);
+        return Object.entries(values).filter(([key]) => key.startsWith(prefix));
+      },
+      async write(key, value) {
+        await extensionStorage.set({ [key]: value });
+      },
+      async remove(key) {
+        await extensionStorage.remove(key);
+      }
+    };
+  }
+
+  if (
+    typeof globalThis.GM_listValues === "function" &&
+    typeof globalThis.GM_getValue === "function" &&
+    typeof globalThis.GM_setValue === "function" &&
+    typeof globalThis.GM_deleteValue === "function"
+  ) {
+    return {
+      async entries(prefix) {
+        const keys = (await globalThis.GM_listValues!()).filter((key) => key.startsWith(prefix));
+        return Promise.all(keys.map(async (key) => [
+          key,
+          await globalThis.GM_getValue!(key, undefined)
+        ] as [string, unknown]));
+      },
+      async write(key, value) {
+        await globalThis.GM_setValue!(key, value);
+      },
+      async remove(key) {
+        await globalThis.GM_deleteValue!(key);
+      }
+    };
+  }
+  return undefined;
 }
 
 /**

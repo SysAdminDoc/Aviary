@@ -7,8 +7,9 @@
   background-owned IndexedDB database. X pages can no longer enumerate Aviary's active database,
   and the options page reads the same active profile as the feed.
 - Updates copy the database left by older content scripts, compare SHA-256 receipts for every
-  value, and delete the X-origin copy only after readback succeeds. A failed copy remains available
-  for the next retry.
+  value, and discover inactive-profile records instead of relying on a fixed key list. If an old
+  tab blocks cleanup, a version seal retains its later writes for one final verified copy rather
+  than blocking Aviary startup or deleting them.
 
 ### Changed
 - The userscript now keeps durable records in its manager store and reports an explicit capacity
@@ -19,8 +20,15 @@
 - Full-library restore and rollback now hold one exclusive storage gate. Ordinary saves wait behind
   it, then continue against the completed result, so an in-progress restore cannot erase a change
   from another open X tab.
+- Extension and userscript locks now use manager-owned storage registers shared by x.com,
+  twitter.com, and pro.x.com. Restore and fallback-journal coordination no longer splits by page
+  origin.
 - Media batches now wait for their durable queue checkpoint before reporting a browser transfer as
   running, so restart recovery retains the browser download ID.
+- A userscript manager that grants only part of Aviary's storage API is now refused by name at
+  startup instead of quietly falling back to page storage. Aviary lists its own keys to coordinate
+  writes across x.com, twitter.com and pro.x.com, so a manager without `GM_listValues` cannot keep
+  two tabs consistent.
 
 ## 1.47.2 (2026-09-05)
 

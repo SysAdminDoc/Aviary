@@ -17,6 +17,7 @@ import { hashStorageValue } from "../platform/storage-value-hash.ts";
 export const DURABLE_STORAGE_MESSAGE = "AVIARY_DURABLE_STORAGE";
 const MIGRATION_BATCH_LIMIT = 16;
 const MAX_KEY_LENGTH = 512;
+const LEGACY_MIGRATION_SEAL_STORE = "__aviary_migration_seal__";
 
 type DurableStorageRequest =
   | { type: typeof DURABLE_STORAGE_MESSAGE; operation: "get"; key: string }
@@ -279,6 +280,8 @@ export async function migrateLegacyHostDurableStorage(
   }
 
   let records: DurableIndexedValue[];
+  const legacyVersion = database.version;
+  const migrationSealed = database.objectStoreNames.contains(LEGACY_MIGRATION_SEAL_STORE);
   try {
     if (!database.objectStoreNames.contains(DURABLE_OBJECT_STORE)) {
       throw new Error("The legacy durable database has no values store");
@@ -315,15 +318,25 @@ export async function migrateLegacyHostDurableStorage(
     }
   }
 
-  await deleteDatabase(factory);
-  const remaining = await databaseNames(factory);
-  if (remaining?.includes(DURABLE_DATABASE_NAME)) {
-    throw new Error("The legacy durable database remained after verified migration");
+  const readyToDelete = migrationSealed || await sealLegacyDatabase(factory, legacyVersion);
+  if (!readyToDelete) {
+    return {
+      databaseFound: true,
+      recordsCopied: entries.length,
+      databaseDeleted: false
+    };
+  }
+  const databaseDeleted = await deleteDatabase(factory);
+  if (databaseDeleted) {
+    const remaining = await databaseNames(factory);
+    if (remaining?.includes(DURABLE_DATABASE_NAME)) {
+      throw new Error("The legacy durable database remained after verified migration");
+    }
   }
   return {
     databaseFound: true,
     recordsCopied: entries.length,
-    databaseDeleted: true
+    databaseDeleted
   };
 }
 
@@ -374,27 +387,83 @@ async function openLegacyDatabase(factory: IDBFactory): Promise<IDBDatabase | nu
   return new Promise((resolve, reject) => {
     const request = factory.open(DURABLE_DATABASE_NAME);
     let created = false;
+    let blocked = false;
     request.onupgradeneeded = (event) => {
       if (event.oldVersion === 0) {
         created = true;
         request.transaction?.abort();
       }
     };
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      if (blocked) {
+        request.result.close();
+        return;
+      }
+      resolve(request.result);
+    };
     request.onerror = () => {
       if (created) resolve(null);
       else reject(request.error ?? new Error("The legacy durable database could not open"));
     };
-    request.onblocked = () => reject(new Error("The legacy durable database is open in another tab"));
+    // Another new tab may already be deleting the verified source. Let that request finish and
+    // continue boot against the shared background database instead of failing both tabs.
+    request.onblocked = () => {
+      blocked = true;
+      resolve(null);
+    };
   });
 }
 
-async function deleteDatabase(factory: IDBFactory): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
+async function deleteDatabase(factory: IDBFactory): Promise<boolean> {
+  return deleteDatabaseRequest(factory);
+}
+
+async function deleteDatabaseRequest(factory: IDBFactory): Promise<boolean> {
+  return new Promise<boolean>((resolve, reject) => {
+    let settled = false;
+    const finish = (deleted: boolean) => {
+      if (settled) return;
+      settled = true;
+      resolve(deleted);
+    };
     const request = factory.deleteDatabase(DURABLE_DATABASE_NAME);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error ?? new Error("The legacy durable database could not be deleted"));
-    request.onblocked = () => reject(new Error("The legacy durable database is open in another tab"));
+    request.onsuccess = () => finish(true);
+    request.onerror = () => {
+      if (settled) return;
+      settled = true;
+      reject(request.error ?? new Error("The legacy durable database could not be deleted"));
+    };
+    // A sealed database cannot be reopened by the old schema. A concurrent new migrator may still
+    // block briefly, but letting this request finish later is safe because those clients only read.
+    request.onblocked = () => finish(false);
+  });
+}
+
+async function sealLegacyDatabase(factory: IDBFactory, currentVersion: number): Promise<boolean> {
+  return new Promise<boolean>((resolve, reject) => {
+    const request = factory.open(DURABLE_DATABASE_NAME, currentVersion + 1);
+    let blocked = false;
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains(LEGACY_MIGRATION_SEAL_STORE)) {
+        request.result.createObjectStore(LEGACY_MIGRATION_SEAL_STORE);
+      }
+    };
+    request.onsuccess = () => {
+      request.result.close();
+      if (!blocked) resolve(true);
+    };
+    request.onerror = () => {
+      if (!blocked) {
+        reject(request.error ?? new Error("The legacy durable database could not be sealed"));
+      }
+    };
+    // A version upgrade preserves every late write and prevents the old version from reopening.
+    // Once the blocking tab closes, the seal commits. The next boot recopies the final values and
+    // can delete safely.
+    request.onblocked = () => {
+      blocked = true;
+      resolve(false);
+    };
   });
 }
 

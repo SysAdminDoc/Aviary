@@ -15,7 +15,7 @@ export const PENDING_WRITES_SCHEMA_VERSION = 2;
 const PENDING_WRITES_LOCK = "durable.pending-writes";
 const DURABLE_PENDING_MARKER_PREFIX = "__aviary_pending__:";
 
-/** Every current versioned store is migrated before the first feature reads it. */
+/** Base stores seed migration; legacy-key enumeration also discovers every dynamic profile key. */
 export const DURABLE_STORAGE_KEYS = [
   "aviary.profiles.v1",
   "aviary.profile.active.v1",
@@ -170,7 +170,11 @@ export class DurableStorageGateway implements StorageGateway {
       const previous = await this.#backend.getMeta();
       const migratedKeys = new Set(previous?.migratedKeys ?? []);
       const entries: Array<readonly [string, unknown]> = [];
-      const scopedKeys = [...new Set(keys.map((key) => this.#scope(key)))];
+      const discoveredKeys = this.#legacy.keys ? await this.#legacy.keys() : [];
+      const scopedKeys = [...new Set([
+        ...keys.map((key) => this.#scope(key)),
+        ...discoveredKeys.filter((key) => this.#isDurable(key)).map((key) => this.#scope(key))
+      ])];
 
       for (const key of scopedKeys) {
         const existing = await this.#backend.get(key);

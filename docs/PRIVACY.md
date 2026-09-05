@@ -52,13 +52,17 @@ The logical keys below are stored in the active profile. The extension owns one 
 message API and cannot open that active database from X. On upgrade, the content script reads only
 the old X-origin database, sends each value with a SHA-256 receipt, checks the background readback,
 then deletes the old database. A failed or interrupted copy leaves the source intact for retry.
-The userscript uses `GM_getValue`, `GM_setValue`, and `GM_deleteValue` only, never X storage, and
-refuses a measured value above 16 MiB explicitly. Profile-scoped copies may be prefixed with
+If an old tab blocks deletion, Aviary seals that database, continues booting, and recopies any late
+writes before a later deletion. The userscript uses `GM_getValue`, `GM_setValue`, `GM_deleteValue`,
+and `GM_listValues` only, never X storage, and refuses a measured value above 16 MiB explicitly.
+Profile-scoped copies may be prefixed with
 `aviary.profile.<profileId>.`; Trust reports the active backend, schema, migration, usage, and quota
 status. During an extension storage outage, the latest pending value or removal for each key stays
 in one locked `chrome.storage.local` journal. Recovery stages that operation in the background and
 commits the value or removal with marker cleanup in one IndexedDB transaction. The journal is
 cleared only after every receipt matches, so interruption leaves a retry path instead of stale data.
+Lock registers live in extension or manager storage, so x.com, twitter.com, and pro.x.com share one
+restore and journal authority.
 
 | Key | Data | Purpose and user control |
 |---|---|---|
