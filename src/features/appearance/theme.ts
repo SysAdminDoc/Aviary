@@ -447,7 +447,7 @@ html[data-av-theme] [data-av-media-action]:hover:not(:disabled) {
   color: var(--av-on-accent, rgb(3, 20, 24));
 }
 
-/* A post detail route has one focal post, then a compact connected reply stream. The role markers
+/* A post detail route has one focal post, then a compact reply stream. The role markers
    are applied by syncConversationStructure so this stays independent of X's generated classes. */
 html[data-av-theme][data-av-surface="conversation"] [data-av-conversation-role="focal"]
   [data-testid="tweetText"] {
@@ -465,21 +465,6 @@ html[data-av-theme][data-av-surface="conversation"] [data-av-conversation-role="
   margin-block-start: 16px;
 }
 
-html[data-av-theme][data-av-surface="conversation"] [data-av-conversation-role="reply"] {
-  position: relative;
-}
-
-html[data-av-theme][data-av-surface="conversation"] [data-av-conversation-role="reply"]::before {
-  position: absolute;
-  z-index: 0;
-  inset-block: -1px;
-  inset-inline-start: 31px;
-  width: 2px;
-  background: color-mix(in srgb, var(--av-accent) 24%, var(--av-border));
-  content: "";
-  pointer-events: none;
-}
-
 html[data-av-theme][data-av-surface="conversation"]
   [data-testid="cellInnerDiv"][data-av-conversation-role="reply"] > div {
   padding-block: 14px !important;
@@ -490,12 +475,6 @@ html[data-av-theme][data-av-surface="conversation"] [data-av-conversation-role="
   max-inline-size: min(68ch, 100%);
   font-size: 15.5px;
   line-height: 1.52;
-}
-
-html[data-av-theme][data-av-surface="conversation"]
-  [data-testid="cellInnerDiv"][data-av-conversation-role="reply"] > div > * {
-  position: relative;
-  z-index: 1;
 }
 
 html[data-av-theme][data-av-surface="conversation"] [data-testid^="tweetTextarea_"] {

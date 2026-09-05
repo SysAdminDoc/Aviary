@@ -22,6 +22,11 @@
 - Media batches now wait for their durable queue checkpoint before reporting a browser transfer as
   running, so restart recovery retains the browser download ID.
 
+## 1.47.2 (2026-09-05)
+
+### Fixed
+- Conversation replies no longer have a decorative vertical connector beside their avatars.
+
 ## 1.47.1 (2026-09-05)
 
 ### Fixed

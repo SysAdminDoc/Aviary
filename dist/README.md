@@ -1,6 +1,6 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.47.1-2f81f7)
+![Version](https://img.shields.io/badge/version-1.47.2-2f81f7)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 ![Platform](https://img.shields.io/badge/platform-userscript%20%7C%20Chrome%20%7C%20Firefox-8b5cf6)
 
@@ -116,7 +116,7 @@ hook and restores the site's styling.
 Timeline width has two desktop tiers. Comfortable keeps X's discovery rail beside a 1000px reading
 column. Wide removes the rail and fills every available pixel beside navigation, so posts and media
 don't leave a dead strip. Text remains capped to a readable measure. On post pages, the focal post is
-larger and replies form a compact connected stream.
+larger and replies use a compact, line-free stream.
 
 ![Aviary Noir conversation view](docs/audit/2026-08-22-premium-final/x-status-wide-dark-1440x900.png)
 

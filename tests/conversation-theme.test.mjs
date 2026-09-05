@@ -9,7 +9,7 @@ import { chromium } from "playwright";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-test("conversation routes distinguish the focal post from compact connected replies", async () => {
+test("conversation routes distinguish the focal post without drawing reply connector lines", async () => {
   const temp = await mkdtemp(path.join(tmpdir(), "aviary-conversation-theme-"));
   const bundle = path.join(temp, "theme.js");
   await build({
@@ -80,7 +80,7 @@ test("conversation routes distinguish the focal post from compact connected repl
     assert.equal(themed.replyCount, 2);
     assert.ok(themed.focalFont > themed.replyFont);
     assert.equal(themed.replyPadding, "14px");
-    assert.equal(themed.replyLine, '""');
+    assert.equal(themed.replyLine, "none");
 
     const off = await page.evaluate(() => {
       AviaryTheme.applyTheme({
