@@ -11,6 +11,14 @@
   tab blocks cleanup, a version seal retains its later writes for one final verified copy rather
   than blocking Aviary startup or deleting them.
 
+### Fixed
+- The local library is no longer treated as disposable browser cache. Both extension packages
+  declare `unlimitedStorage`, and the background asks the browser once per session not to evict
+  Aviary's database. Trust now says whether the library is kept or best effort, beside the usage
+  and quota figures it already showed, and says plainly that best-effort storage can be cleared.
+  For the userscript, retention belongs to the manager, so Trust reports it as unknown rather than
+  implying a guarantee.
+
 ### Changed
 - The userscript now keeps durable records in its manager store and reports an explicit capacity
   error before a single stored value exceeds 16 MiB.

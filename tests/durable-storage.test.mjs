@@ -588,3 +588,225 @@ function modelStorage(values, fault = undefined) {
 function pendingLedger(...entries) {
   return { schemaVersion: 2, entries: structuredClone(entries) };
 }
+
+/**
+ * Eviction exemption, asked for once and re-read every time.
+ *
+ * `unlimitedStorage` in the manifest is the permission half. This is the runtime half, and the two
+ * are not interchangeable: without either, the browser treats the whole local library as
+ * best-effort and clears it under disk pressure without asking. The two halves of the contract
+ * that matter are that the *request* happens once (a user who declined must not be re-prompted on
+ * every status refresh) and that the *answer* is never cached (the browser can revoke it, and
+ * reporting a stale "persisted" is the exact false assurance this exists to remove).
+ */
+async function withFakeStorageManager(storage, run) {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: storage === null ? undefined : { storage }
+  });
+  try {
+    return await run();
+  } finally {
+    if (previous) Object.defineProperty(globalThis, "navigator", previous);
+    else delete globalThis.navigator;
+  }
+}
+
+/** Never settles: `estimate()` does not await the database, so opening one is not needed here. */
+const IDLE_IDB_FACTORY = { open: () => ({}) };
+
+test("the background asks for eviction exemption once and reports the live answer", async () => {
+  const { IndexedDbStorageBackend } = await importSourceModule("src/platform/durable-storage.ts");
+  let persisted = false;
+  let persistCalls = 0;
+  let persistedCalls = 0;
+  const manager = {
+    async estimate() {
+      return { usage: 512, quota: 4096 };
+    },
+    async persisted() {
+      persistedCalls += 1;
+      return persisted;
+    },
+    async persist() {
+      persistCalls += 1;
+      persisted = true;
+      return true;
+    }
+  };
+
+  await withFakeStorageManager(manager, async () => {
+    const backend = new IndexedDbStorageBackend(IDLE_IDB_FACTORY);
+
+    const first = await backend.estimate();
+    assert.equal(first.persisted, true, "a granted request must be reported as persisted");
+    assert.deepEqual(
+      { usage: first.usage, quota: first.quota },
+      { usage: 512, quota: 4096 },
+      "the measured figures must survive the persistence check"
+    );
+    assert.equal(persistCalls, 1);
+
+    await backend.estimate();
+    assert.equal(persistCalls, 1, "the request must not be repeated on every status refresh");
+    assert.equal(persistedCalls, 2, "but the answer must be re-read, not cached");
+
+    // The browser revokes it. Aviary must stop claiming the library is safe.
+    persisted = false;
+    const third = await backend.estimate();
+    assert.equal(third.persisted, false, "a revoked exemption must be reported as best effort");
+    assert.equal(persistCalls, 1, "and must still not re-prompt");
+  });
+});
+
+test("an already-persisted origin is never asked again, and a refusal is not fatal", async () => {
+  const { IndexedDbStorageBackend } = await importSourceModule("src/platform/durable-storage.ts");
+
+  let persistCalls = 0;
+  await withFakeStorageManager(
+    {
+      async estimate() {
+        return {};
+      },
+      async persisted() {
+        return true;
+      },
+      async persist() {
+        persistCalls += 1;
+        return true;
+      }
+    },
+    async () => {
+      const backend = new IndexedDbStorageBackend(IDLE_IDB_FACTORY);
+      assert.equal((await backend.estimate()).persisted, true);
+      assert.equal(persistCalls, 0, "an origin that is already exempt must not be asked");
+    }
+  );
+
+  // A browser that throws is "unknown", never "persisted", and must not take the caller down.
+  await withFakeStorageManager(
+    {
+      async estimate() {
+        return { usage: 1 };
+      },
+      async persisted() {
+        throw new Error("storage manager unavailable");
+      }
+    },
+    async () => {
+      const backend = new IndexedDbStorageBackend(IDLE_IDB_FACTORY);
+      const result = await backend.estimate();
+      assert.equal(result.persisted, undefined, "a thrown answer must read as unknown");
+      assert.equal(result.usage, 1, "and must not discard the measurement beside it");
+    }
+  );
+
+  // No storage manager at all is the userscript-shaped case: unknown, not a crash.
+  await withFakeStorageManager(null, async () => {
+    const backend = new IndexedDbStorageBackend(IDLE_IDB_FACTORY);
+    assert.deepEqual(await backend.estimate(), {}, "a browser without the API reports nothing");
+  });
+});
+
+test("the gateway turns the backend's persistence answer into a stated status", async () => {
+  const { createDurableStorageGateway } = await importSourceModule("src/platform/durable-storage.ts");
+  const cases = [
+    [true, "persisted"],
+    [false, "best-effort"],
+    [undefined, "unknown"]
+  ];
+
+  for (const [persisted, expected] of cases) {
+    const backend = new MemoryBackend();
+    backend.estimate = async () => (persisted === undefined ? { usage: 8 } : { usage: 8, persisted });
+    const storage = createDurableStorageGateway(memoryStorage({}), { backend });
+    await storage.initialize([]);
+    const status = await storage.refreshEstimate();
+    assert.equal(status.persistence, expected, `persisted=${persisted} must report ${expected}`);
+  }
+});
+
+/**
+ * The measured shape of a real MV3 service worker, on 2026-09-05.
+ *
+ * navigator.storage.persist does not exist in a worker; it is a Window-only API. And persisted()
+ * answers false even once Chrome has granted unlimitedStorage. The permission is the exemption
+ * Chrome documents, while the Storage Standard bit is a separate mechanism it does not set for
+ * extension origins. Reading persistence off persisted() alone would tell every extension user
+ * their library is one disk-pressure event from deletion when it is not.
+ */
+test("a granted unlimitedStorage permission counts as persisted where persist() does not exist", async () => {
+  const { IndexedDbStorageBackend } = await importSourceModule("src/platform/durable-storage.ts");
+  const workerShapedManager = {
+    async estimate() {
+      return { usage: 28788, quota: 620956549236 };
+    },
+    async persisted() {
+      return false;
+    }
+  };
+
+  const previousChrome = globalThis.chrome;
+  try {
+    globalThis.chrome = {
+      runtime: { id: "packaged-extension" },
+      permissions: {
+        async contains(request) {
+          return request.permissions?.includes("unlimitedStorage") === true;
+        }
+      }
+    };
+    await withFakeStorageManager(workerShapedManager, async () => {
+      const backend = new IndexedDbStorageBackend(IDLE_IDB_FACTORY);
+      const result = await backend.estimate();
+      assert.equal(result.persisted, true, "a granted exemption must not read as best effort");
+      assert.equal(result.quota, 620956549236, "and the real quota must survive the check");
+    });
+
+    // Without the permission there is no exemption to report, and no persist() to ask with.
+    globalThis.chrome = {
+      runtime: { id: "packaged-extension" },
+      permissions: {
+        async contains() {
+          return false;
+        }
+      }
+    };
+    await withFakeStorageManager(workerShapedManager, async () => {
+      const backend = new IndexedDbStorageBackend(IDLE_IDB_FACTORY);
+      assert.equal(
+        (await backend.estimate()).persisted,
+        false,
+        "an unexempt worker must report best effort rather than unknown"
+      );
+    });
+  } finally {
+    if (previousChrome) globalThis.chrome = previousChrome;
+    else delete globalThis.chrome;
+  }
+});
+
+/**
+ * The receiver bug: estimate has to be invoked on navigator.storage. Calling it with navigator
+ * throws "Illegal invocation" in every real browser, and refreshEstimate swallowed that, so Trust
+ * showed no usage or quota in the packaged extension at all.
+ */
+test("estimate is invoked on the storage manager, not on navigator", async () => {
+  const { IndexedDbStorageBackend } = await importSourceModule("src/platform/durable-storage.ts");
+  const manager = {
+    async estimate() {
+      if (this !== manager) throw new TypeError("Illegal invocation");
+      return { usage: 7, quota: 9 };
+    },
+    async persisted() {
+      return true;
+    }
+  };
+  await withFakeStorageManager(manager, async () => {
+    const backend = new IndexedDbStorageBackend(IDLE_IDB_FACTORY);
+    const result = await backend.estimate();
+    assert.equal(result.usage, 7, "usage was lost to an illegal invocation");
+    assert.equal(result.quota, 9, "quota was lost to an illegal invocation");
+  });
+});

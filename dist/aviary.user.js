@@ -8474,9 +8474,10 @@ ${body}
       const quota = status2.quotaBytes === null ? "quota unavailable" : `${formatBytes(status2.quotaBytes)} available`;
       const error = status2.lastError ? ` \xB7 ${status2.lastError}` : "";
       const pending = status2.pendingWrites > 0 ? ` \xB7 ${status2.pendingWrites} change${status2.pendingWrites === 1 ? "" : "s"} waiting for the next reload` : "";
+      const persistence = status2.persistence === "persisted" ? t("Kept: the browser will not clear this library to reclaim space.") : status2.persistence === "best-effort" ? t("Best effort: the browser may clear this library when disk space runs low. Keep a backup.") : t("The browser did not say whether it will keep this library. Keep a backup.");
       return dataRow(
         "Storage",
-        `${backend} \xB7 schema v${status2.schemaVersion} \xB7 ${usage} \xB7 ${quota} \xB7 ${status2.migratedKeys} stores migrated${pending}${error}`
+        `${backend} \xB7 schema v${status2.schemaVersion} \xB7 ${usage} \xB7 ${quota} \xB7 ${status2.migratedKeys} stores migrated${pending}${error} \xB7 ${persistence}`
       );
     };
     const beaconRows = () => {
@@ -29456,6 +29457,7 @@ ${COLOR_CSS}`;
           migratedKeys: 0,
           usageBytes: null,
           quotaBytes: null,
+          persistence: "unknown",
           pendingWrites: 0,
           lastError: null
         },
@@ -36086,6 +36088,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       migratedKeys: 0,
       usageBytes: null,
       quotaBytes: null,
+      persistence: "unknown",
       pendingWrites: 0,
       lastError: null
     };
@@ -36168,6 +36171,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         const estimate = await this.#backend.estimate();
         this.#status.usageBytes = finiteOrNull(estimate.usage);
         this.#status.quotaBytes = finiteOrNull(estimate.quota);
+        this.#status.persistence = estimate.persisted === void 0 ? "unknown" : estimate.persisted ? "persisted" : "best-effort";
       } catch (error) {
         reportStorageError("aviary.durable.estimate", error, "read");
       }
@@ -36631,6 +36635,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           migratedKeys: 0,
           usageBytes: null,
           quotaBytes: null,
+          persistence: "unknown",
           pendingWrites: 0,
           lastError: null
         };

@@ -32,6 +32,11 @@ Settings and library records stay in the userscript manager's value store. Aviar
 X's localStorage or IndexedDB for active userscript data. A single manager value is measured before
 writing and is refused with a visible capacity error above 16 MiB, instead of failing silently.
 
+How long those records survive is the manager's decision, not Aviary's. The extension can ask the
+browser not to evict its database and does; a userscript has no equivalent request to make, so
+Trust reports its persistence as unknown and the 16 MiB per-value ceiling is the only limit Aviary
+can enforce for you. Export a library backup periodically.
+
 No permission prompt is needed for the local prompt builder, snapshots, bookmarks, notes, archive
 import, Under the Hood JSON reader, or local export formats. Provider integrations remain disabled
 until configured in the Control Center.

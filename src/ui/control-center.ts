@@ -1666,9 +1666,18 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       status.pendingWrites > 0
         ? ` · ${status.pendingWrites} change${status.pendingWrites === 1 ? "" : "s"} waiting for the next reload`
         : "";
+    // Usage and quota alone answered "how much have I stored" while leaving out "and can the
+    // browser delete it". Best-effort is the default state, so the sentence has to be plain
+    // rather than a status word nobody outside the spec knows the consequence of.
+    const persistence =
+      status.persistence === "persisted"
+        ? t("Kept: the browser will not clear this library to reclaim space.")
+        : status.persistence === "best-effort"
+          ? t("Best effort: the browser may clear this library when disk space runs low. Keep a backup.")
+          : t("The browser did not say whether it will keep this library. Keep a backup.");
     return dataRow(
       "Storage",
-      `${backend} · schema v${status.schemaVersion} · ${usage} · ${quota} · ${status.migratedKeys} stores migrated${pending}${error}`
+      `${backend} · schema v${status.schemaVersion} · ${usage} · ${quota} · ${status.migratedKeys} stores migrated${pending}${error} · ${persistence}`
     );
   };
 

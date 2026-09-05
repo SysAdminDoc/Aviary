@@ -51,6 +51,25 @@ async function main() {
   const extensionContext = null;
   const messageClient = driver;
 
+  // The eviction exemption, on the other engine. Firefox applies the IndexedDB quota to extension
+  // storage and wants the same `unlimitedStorage` permission Chrome does, so the library is only
+  // durable if this is actually granted in the installed add-on rather than merely written into
+  // the manifest source.
+  const persistence = await extensionClient.evaluate(extensionContext, async () => ({
+    exempt: await chrome.permissions.contains({ permissions: ["unlimitedStorage"] }),
+    estimate: await chrome.runtime.sendMessage({
+      type: "AVIARY_DURABLE_STORAGE",
+      operation: "estimate"
+    })
+  }));
+  assert.equal(persistence.exempt, true, "the installed add-on lost its eviction exemption");
+  assert.equal(persistence.estimate?.ok, true, "the background could not measure its own storage");
+  assert.equal(
+    persistence.estimate?.result?.persisted,
+    true,
+    "an exempt add-on must not report its library as best effort"
+  );
+
   await waitFor(
     extensionClient,
     extensionContext,

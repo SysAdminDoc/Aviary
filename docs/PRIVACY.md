@@ -56,8 +56,16 @@ If an old tab blocks deletion, Aviary seals that database, continues booting, an
 writes before a later deletion. The userscript uses `GM_getValue`, `GM_setValue`, `GM_deleteValue`,
 and `GM_listValues` only, never X storage, and refuses a measured value above 16 MiB explicitly.
 Profile-scoped copies may be prefixed with
-`aviary.profile.<profileId>.`; Trust reports the active backend, schema, migration, usage, and quota
-status. During an extension storage outage, the latest pending value or removal for each key stays
+`aviary.profile.<profileId>.`; Trust reports the active backend, schema, migration, usage, quota,
+and whether the browser has agreed to keep the library.
+
+Browser storage is best effort unless something asks otherwise, which means a browser short on disk
+space can clear a local library without warning. The extension declares `unlimitedStorage` and asks
+once per session for eviction exemption, then reports the answer the browser actually gives rather
+than a cached one. For the userscript, durability belongs to the userscript manager: Aviary stores
+through `GM_setValue` and can neither request nor measure the manager's own retention, so Trust
+reports that state as unknown and the per-value ceiling above is the only limit Aviary enforces
+itself. Keep a library backup either way. During an extension storage outage, the latest pending value or removal for each key stays
 in one locked `chrome.storage.local` journal. Recovery stages that operation in the background and
 commits the value or removal with marker cleanup in one IndexedDB transaction. The journal is
 cleared only after every receipt matches, so interruption leaves a retry path instead of stale data.

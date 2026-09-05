@@ -204,8 +204,14 @@ test("MV3 manifests keep permissions narrow", async () => {
     assert.equal(manifest.manifest_version, 3);
     assert.deepEqual(manifest.icons, expectedIcons);
     assert.deepEqual(manifest.action.default_icon, expectedIcons);
+    // Exact, so both directions are contract: nothing may be added quietly, and nothing may be
+    // dropped quietly either. `unlimitedStorage` is in the narrow set deliberately -- without it
+    // the browser treats the whole local library as best-effort and may evict it under disk
+    // pressure, and `chrome.storage.local` caps at 10 MB with over-quota writes failing outright.
+    // It grants no access to anything outside Aviary's own origin.
     assert.deepEqual(manifest.permissions, [
       "storage",
+      "unlimitedStorage",
       "declarativeNetRequestWithHostAccess",
       "contextMenus"
     ]);

@@ -196,6 +196,7 @@ export const controlCenterFeature: FeatureModule = {
         migratedKeys: 0,
         usageBytes: null,
         quotaBytes: null,
+        persistence: "unknown",
         pendingWrites: 0,
         lastError: null
       },

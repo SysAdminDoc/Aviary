@@ -395,3 +395,33 @@ Re-entry condition: take it in the same operator capture session as F134 and F20
 booking a third. Scrub `tools/capture-decode.mjs` first, take the captures, then re-run every
 "measured: N hits" claim in this file against them and record the new date, including the claims
 that stay blocked. Do it before 2026-09-30, not at a release.
+
+## The Firefox packaged smoke lane cannot run on this machine
+
+`tests/smoke/dnr-firefox.smoke.mjs` is the only lane that proves the built Firefox add-on behaves
+in a real Firefox, and it does not complete here. F295's persistence assertion was added to it and
+is therefore unverified on that engine, while its Chromium twin passes.
+
+What was tried on 2026-09-05:
+
+1. Ran the lane: it exited immediately with "geckodriver is unavailable".
+2. Installed geckodriver 0.37.1 from Mozilla's official release
+   (`geckodriver-v0.37.1-win64.zip`, sha256 `DFED9315ABE8D2FBC1B6161A2EE8002452E79CF05EE92FDC653A4E26BC35EDD8`)
+   to `C:\tools\geckodriver\` and set `GECKODRIVER_BINARY`. `geckodriver --version` reports
+   `0.37.1 (300705c65d1b 2026-07-17)`.
+3. Re-ran twice. Both runs hung with **zero output** for over 300s and spawned no visible
+   geckodriver process, so the failure is before the lane prints anything.
+
+Three hypotheses, none yet tested:
+
+- The machine had 11 user Firefox processes running. geckodriver launches a fresh profile without
+  `-no-remote`, so it may be attaching to the running instance and waiting forever.
+- The lane installs a refusing loopback proxy, and this machine runs default-deny outbound
+  firewalling, which can turn a refused CONNECT into a silent stall rather than an error.
+- Other agents' test suites were saturating the CPU, so the WebDriver handshake may be exceeding an
+  internal wait that has no diagnostic.
+
+Re-entry condition: run it with the operator's Firefox closed, or point `AVIARY_FIREFOX_BINARY` at
+a dedicated Firefox install and pass `-no-remote`. If it still hangs, instrument
+`WebDriverClient.start` to log before the session request rather than guessing which of the three
+it is. Everything else in F295 is verified, including the packaged Chromium lane.

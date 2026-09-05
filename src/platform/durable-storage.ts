@@ -49,6 +49,12 @@ export const DURABLE_STORAGE_KEYS = [
 export interface DurableStorageEstimate {
   usage?: number;
   quota?: number;
+  /**
+   * Whether this origin's storage is exempt from eviction, or `undefined` where the browser does
+   * not answer. Best-effort storage is the default everywhere, and a browser under disk pressure
+   * clears it without asking, which for Aviary means the whole local library.
+   */
+  persisted?: boolean;
 }
 
 export interface DurableStorageMeta {
@@ -128,6 +134,7 @@ export class DurableStorageGateway implements StorageGateway {
     migratedKeys: 0,
     usageBytes: null,
     quotaBytes: null,
+    persistence: "unknown",
     pendingWrites: 0,
     lastError: null
   };
@@ -232,6 +239,8 @@ export class DurableStorageGateway implements StorageGateway {
       const estimate = await this.#backend.estimate();
       this.#status.usageBytes = finiteOrNull(estimate.usage);
       this.#status.quotaBytes = finiteOrNull(estimate.quota);
+      this.#status.persistence =
+        estimate.persisted === undefined ? "unknown" : estimate.persisted ? "persisted" : "best-effort";
     } catch (error) {
       reportStorageError("aviary.durable.estimate", error, "read");
     }
@@ -500,6 +509,8 @@ export function createIndexedDbStorageBackend(
 
 export class IndexedDbStorageBackend implements DurableStorageBackend {
   readonly #database: Promise<IDBDatabase>;
+  /** One eviction-exemption request per worker; see `#ensurePersisted`. */
+  #persistRequested = false;
 
   constructor(factory: IDBFactory) {
     this.#database = openDatabase(factory);
@@ -576,8 +587,51 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
   }
 
   async estimate(): Promise<DurableStorageEstimate> {
-    const estimate = globalThis.navigator?.storage?.estimate;
-    return estimate ? estimate.call(globalThis.navigator) : {};
+    // `estimate` must be invoked on `navigator.storage`, not on `navigator`. Calling it with the
+    // wrong receiver throws "Illegal invocation" in every real browser, which `refreshEstimate`
+    // then swallowed -- so the usage and quota figures in Trust were blank in the packaged
+    // extension for as long as this line has existed, while reading as merely unavailable.
+    const manager = globalThis.navigator?.storage;
+    const measured = typeof manager?.estimate === "function"
+      ? await manager.estimate()
+      : {};
+    const persisted = await this.#ensurePersisted(manager);
+    return persisted === undefined ? measured : { ...measured, persisted };
+  }
+
+  /**
+   * Ask for eviction exemption once, then report what the browser actually says.
+   *
+   * `unlimitedStorage` in the manifest is the permission half; this is the runtime half, and the
+   * two are not interchangeable. The request is made once per worker because a user who declined
+   * should not be asked again on every status refresh, but `persisted()` is re-read each time --
+   * the answer can change without Aviary doing anything, and reporting a cached "yes" after the
+   * browser revoked it would be exactly the false assurance this exists to remove.
+   */
+  async #ensurePersisted(manager: StorageManager | undefined): Promise<boolean | undefined> {
+    try {
+      if (typeof manager?.persisted === "function" && await manager.persisted()) {
+        return true;
+      }
+      // Measured in a packaged MV3 extension on 2026-09-05: Chrome grants `unlimitedStorage`
+      // (`permissions.contains` returns true) while `navigator.storage.persisted()` still answers
+      // false and `persist()` does not exist in a service worker at all -- it is a Window-only
+      // API. The permission is the exemption Chrome documents; the Storage Standard bit is a
+      // different mechanism that Chrome does not set for extension origins. Reporting best-effort
+      // off `persisted()` alone would therefore tell every extension user their library is at risk
+      // when it is not.
+      if (await holdsUnlimitedStorage()) return true;
+      if (typeof manager?.persist !== "function") {
+        return typeof manager?.persisted === "function" ? false : undefined;
+      }
+      if (this.#persistRequested) return false;
+      this.#persistRequested = true;
+      return await manager.persist();
+    } catch {
+      // A browser that refuses to answer is "unknown", never "persisted". Storage reporting must
+      // not be the thing that takes a boot down either.
+      return undefined;
+    }
   }
 }
 
@@ -644,6 +698,23 @@ export function isDurablePendingWrite(value: unknown): value is DurablePendingWr
     write.key.length <= 512 &&
     ((write.kind === "put" && "value" in write) || write.kind === "remove")
   );
+}
+
+/**
+ * Whether this build actually holds the eviction exemption, asked of the browser rather than
+ * assumed from the manifest. A userscript has no `chrome.permissions`, which is the correct answer
+ * there: its retention belongs to the manager and Aviary cannot measure it.
+ */
+async function holdsUnlimitedStorage(): Promise<boolean> {
+  const permissions = globalThis.chrome?.permissions;
+  if (!globalThis.chrome?.runtime?.id || typeof permissions?.contains !== "function") {
+    return false;
+  }
+  try {
+    return await permissions.contains({ permissions: ["unlimitedStorage"] });
+  } catch {
+    return false;
+  }
 }
 
 function finiteOrNull(value: number | undefined): number | null {

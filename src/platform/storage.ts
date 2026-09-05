@@ -14,6 +14,16 @@ export interface StorageStatus {
   migratedKeys: number;
   usageBytes: number | null;
   quotaBytes: number | null;
+  /**
+   * Whether the browser has exempted this storage from eviction.
+   *
+   * `best-effort` is the default state everywhere and means the browser may clear the whole local
+   * library under disk pressure without asking. `unknown` covers the userscript manager, whose
+   * durability is the manager's business and not something Aviary can measure. Reporting a
+   * measured usage figure without this said "here is how much you have stored" while leaving out
+   * "and the browser may delete it".
+   */
+  persistence: "persisted" | "best-effort" | "unknown";
   lastError: string | null;
   /**
    * Writes made while the durable backend was unavailable, still waiting to be folded back in on

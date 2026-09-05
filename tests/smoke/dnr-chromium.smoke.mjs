@@ -81,6 +81,42 @@ try {
     result: { found: true, value: "account-smoke" }
   });
 
+  // Eviction exemption and the storage figures, in a real packaged extension rather than against
+  // a stubbed manager. Both halves have failed silently here before: `estimate` was invoked with
+  // `navigator` instead of `navigator.storage`, which throws "Illegal invocation" and left Trust
+  // with no usage or quota at all, and persistence cannot be read from `persisted()` because
+  // Chrome leaves that false for extension origins while granting `unlimitedStorage`.
+  //
+  // Driven from the options page, not the worker: a service worker does not receive its own
+  // `runtime.sendMessage`, and `navigator.storage.persist` does not exist in a worker at all.
+  const persistence = await storagePage.evaluate(async () => {
+    const estimate = await chrome.runtime.sendMessage({
+      type: "AVIARY_DURABLE_STORAGE",
+      operation: "estimate"
+    });
+    return {
+      estimate,
+      exempt: await chrome.permissions.contains({ permissions: ["unlimitedStorage"] }),
+      standardBit: await navigator.storage.persisted()
+    };
+  });
+  assert.equal(persistence.exempt, true, "the packaged extension lost its eviction exemption");
+  assert.equal(persistence.estimate?.ok, true, "the background could not measure its own storage");
+  assert.equal(
+    persistence.estimate?.result?.persisted,
+    true,
+    "an exempt extension must not report its library as best effort"
+  );
+  assert.ok(
+    Number.isFinite(persistence.estimate?.result?.quota) && persistence.estimate.result.quota > 0,
+    `Trust would show no quota: ${JSON.stringify(persistence.estimate)}`
+  );
+  assert.equal(
+    persistence.standardBit,
+    false,
+    "Chrome now sets the Storage Standard persistence bit for extensions; simplify the fallback"
+  );
+
   try {
     await waitFor(async () => {
       const rules = await worker.evaluate(() => chrome.declarativeNetRequest.getDynamicRules());

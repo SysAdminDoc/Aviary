@@ -30,6 +30,7 @@
   },
   "permissions": [
     "storage",
+    "unlimitedStorage",
     "declarativeNetRequestWithHostAccess",
     "contextMenus"
   ],
