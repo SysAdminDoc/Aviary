@@ -117,9 +117,14 @@ async function measureCurrent(appearance) {
         diagnostics: { info() {}, error() {} }
       });
       const column = document.querySelector('[data-testid="primaryColumn"]');
+      const available = column.closest('main[role="main"]') ?? column.parentElement;
       return {
         width: Math.round(column.getBoundingClientRect().width),
-        flexBasis: getComputedStyle(column).flexBasis
+        parentWidth: Math.round(column.parentElement.getBoundingClientRect().width),
+        availableWidth: Math.round(available.getBoundingClientRect().width),
+        flexBasis: getComputedStyle(column).flexBasis,
+        viewportWidth: window.innerWidth,
+        scrollWidth: document.documentElement.scrollWidth
       };
     },
     settings(appearance)
@@ -142,7 +147,7 @@ test("timelineWidth actually widens the captured primary column", async () => {
     wide.width > comfortable.width,
     `wide (${wide.width}px) must exceed comfortable (${comfortable.width}px)`
   );
-  assert.equal(wide.width, 1384, "wide keeps a 16px viewport gutter below its declared cap");
+  assert.equal(wide.width, 1400, "wide fills the captured desktop viewport");
 });
 
 test("timelineWidth controls the current X flex item when the sidebar is hidden", async () => {
@@ -165,9 +170,25 @@ test("timelineWidth controls the current X flex item when the sidebar is hidden"
   assert.ok(wide.width >= 1040, `current X wide should use at least 1040px, saw ${wide.width}px`);
   assert.equal(
     wide.flexBasis,
-    "1384px",
-    `current X flex basis should resolve to the 16px-gutter width, saw ${wide.flexBasis}`
+    "1400px",
+    `current X flex basis should resolve to the viewport width, saw ${wide.flexBasis}`
   );
+});
+
+test("wide fills all space beside navigation", async () => {
+  await currentPage.setViewportSize({ width: 1920, height: 1080 });
+  const wide = await measureCurrent({ timelineWidth: "wide" });
+  await currentPage.setViewportSize({ width: 1400, height: 900 });
+
+  assert.ok(
+    wide.availableWidth > 1200,
+    `the fixture must expose spare desktop canvas, saw ${wide.availableWidth}px`
+  );
+  assert.ok(
+    Math.abs(wide.width - wide.availableWidth) <= 1,
+    `wide left unused canvas beside the feed: ${wide.width}px of ${wide.availableWidth}px`
+  );
+  assert.equal(wide.scrollWidth, wide.viewportWidth, "full width introduced horizontal scrolling");
 });
 
 test("timelineWidth never overflows a viewport narrower than the tier", async () => {
@@ -177,7 +198,7 @@ test("timelineWidth never overflows a viewport narrower than the tier", async ()
 
   assert.ok(
     narrow.width <= 700,
-    `a 1440px tier must clamp to the 700px viewport, measured ${narrow.width}px`
+    `full width must clamp to the 700px viewport, measured ${narrow.width}px`
   );
 });
 

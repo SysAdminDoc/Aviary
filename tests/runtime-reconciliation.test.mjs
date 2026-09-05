@@ -202,7 +202,7 @@ test("runtime features restore an already-rendered timeline when toggled off", a
       hiddenButtons: document.querySelectorAll("[data-av-hide-button]").length,
       cleanHref: shared.getAttribute("href"),
       expandedText: tco.textContent,
-      note: userName.querySelector("[data-av-note-badge]")?.getAttribute("title"),
+      noteLabel: userName.querySelector("[data-av-note-badge]")?.getAttribute("aria-label"),
       original: image.getAttribute("src"),
       hiddenClass: document.documentElement.classList.contains("av-hide-posts-enabled"),
       videoMarker: video.getAttribute("data-av-perf-video")
@@ -236,7 +236,9 @@ test("runtime features restore an already-rendered timeline when toggled off", a
 
     await AviaryRuntime.setUserNote("someone", "updated note");
     await AviaryRuntime.userNotesFeature.apply(context, document);
-    const updatedNote = userName.querySelector("[data-av-note-badge]")?.getAttribute("title");
+    const updatedNoteLabel = userName
+      .querySelector("[data-av-note-badge]")
+      ?.getAttribute("aria-label");
     await AviaryRuntime.setUserNote("someone", "");
     await AviaryRuntime.userNotesFeature.apply(context, document);
 
@@ -257,7 +259,7 @@ test("runtime features restore an already-rendered timeline when toggled off", a
       snippetAfter,
       paletteClosedAfterUpdate,
       collapsed,
-      updatedNote,
+      updatedNoteLabel,
       final: {
         ...offState(),
         restoredHref: shared.getAttribute("href"),
@@ -288,7 +290,7 @@ test("runtime features restore an already-rendered timeline when toggled off", a
   assert.equal(result.onState.hiddenButtons, 1);
   assert.equal(result.onState.cleanHref, "https://example.com/article?keep=1");
   assert.equal(result.onState.expandedText, "https://example.com/article");
-  assert.equal(result.onState.note, "first note");
+  assert.match(result.onState.noteLabel, /@someone: first note/);
   assert.match(result.onState.original, /name=orig/);
   assert.equal(result.onState.hiddenClass, true);
   assert.equal(result.onState.videoMarker, "1");
@@ -296,7 +298,7 @@ test("runtime features restore an already-rendered timeline when toggled off", a
   assert.equal(result.snippetAfter, "second snippet");
   assert.equal(result.paletteClosedAfterUpdate, true);
   assert.equal(result.collapsed, "1");
-  assert.equal(result.updatedNote, "updated note");
+  assert.match(result.updatedNoteLabel, /@someone: updated note/);
   assert.equal(result.final.ai, 0);
   assert.equal(result.final.snippets, 0);
   assert.equal(result.final.media, 0);

@@ -47,7 +47,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
           ctx.options.settings.appearance.timelineWidth = value as "default" | "comfortable" | "wide";
           await ctx.save("Timeline width updated.");
         },
-        "Comfortable keeps the discovery rail. Wide uses up to a 1440px media canvas and hides the rail."
+        "Comfortable keeps the discovery rail. Wide fills the remaining space and hides the rail."
       ),
       ctx.readonlyRow(
         "Custom CSS",

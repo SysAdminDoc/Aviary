@@ -180,7 +180,7 @@ function openPalette(trigger: HTMLElement, ctx: FeatureContext): void {
       option.textContent = snippet.length > 80 ? `${snippet.slice(0, 77)}…` : snippet;
       option.setAttribute("role", "menuitem");
       option.tabIndex = -1;
-      option.title = snippet;
+      option.setAttribute("aria-label", snippet);
       option.addEventListener("click", (event) => {
         event.stopPropagation();
         event.preventDefault();

@@ -222,6 +222,21 @@ test("every control the panel draws has an accessible name", async () => {
   assert.deepEqual(unnamed, [], "controls without an accessible name are unusable by screen reader");
 });
 
+test("the panel does not attach hover tooltips to its controls or labels", async () => {
+  await mount();
+
+  const titled = await page.evaluate(() => {
+    const root = document.getElementById("av-control-center").shadowRoot;
+    return [...root.querySelectorAll("[title]")].map((node) => ({
+      tag: node.tagName.toLowerCase(),
+      className: node.className,
+      title: node.getAttribute("title")
+    }));
+  });
+
+  assert.deepEqual(titled, []);
+});
+
 test("the launcher says what it controls, and the status line announces itself", async () => {
   await mount();
 

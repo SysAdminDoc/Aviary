@@ -120,7 +120,6 @@ function decorate(article: Element, ctx: FeatureContext): void {
   button.textContent = label;
   const host = ctx.settings.links.copyLinkHost;
   const accessible = `${ft(ctx, "Copy this post's link")} (${host === "" ? "x.com" : host})`;
-  button.title = accessible;
   button.setAttribute("aria-label", accessible);
   button.addEventListener("click", (event) => {
     event.preventDefault();

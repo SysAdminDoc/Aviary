@@ -377,6 +377,10 @@ test("link unshortening restores the title and class it replaced", async () => {
     result.during.some((entry) => entry.clean),
     "the feature marked nothing — the fixture no longer matches what it looks for"
   );
+  assert.ok(
+    result.during.filter((entry) => entry.clean).every((entry) => entry.title === null),
+    "an expanded link still opens a native title tooltip on hover"
+  );
   // Reversibility is the whole contract: the class goes, and a title the page set itself comes
   // back exactly, rather than being left as whatever the feature wrote over it.
   assert.deepEqual(
@@ -540,8 +544,8 @@ test("an account note shows on that account's posts only, and destroy takes it b
     const during = badges();
     const badge = document.querySelector("[data-av-note-badge]");
     const shown = {
-      // The visible text is a short label; the note itself rides the title and the accessible
-      // name, so the badge survives a screen reader and a monochrome display.
+      // The visible text is a short label; the note itself remains in the accessible name, so the
+      // badge survives a screen reader and a monochrome display without opening a hover bubble.
       label: badge?.textContent ?? "",
       title: badge?.getAttribute("title") ?? "",
       accessibleName: badge?.getAttribute("aria-label") ?? "",
@@ -567,7 +571,7 @@ test("an account note shows on that account's posts only, and destroy takes it b
   );
   assert.equal(result.shown.role, "note");
   assert.ok(result.shown.label.trim().length > 0, "the badge must be visible as more than colour");
-  assert.match(result.shown.title, /met at a conference/, "the note must be reachable on hover");
+  assert.equal(result.shown.title, "", "the note badge must not open a native hover tooltip");
   assert.match(
     result.shown.accessibleName,
     /@alice: met at a conference/,

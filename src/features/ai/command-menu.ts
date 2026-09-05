@@ -138,7 +138,6 @@ function decorate(ctx: FeatureContext, root: ParentNode | Element): void {
     trigger.setAttribute("aria-expanded", "false");
     trigger.setAttribute("aria-controls", menuId);
     trigger.setAttribute("aria-label", ft(ctx, "Open Aviary AI command menu"));
-    trigger.title = ft(ctx, "Aviary AI commands (offline prompt builder)");
     trigger.textContent = "AI";
     trigger.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -201,7 +200,7 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
     item.className = "av-ai-option";
     item.setAttribute("role", "menuitem");
     item.tabIndex = -1;
-    item.title = ft(ctx, command.hint);
+    item.setAttribute("aria-description", ft(ctx, command.hint));
     item.textContent = aiEnabled
       ? `${ft(ctx, command.label)} · ${ft(ctx, "Run with provider")}`
       : ft(ctx, command.label);

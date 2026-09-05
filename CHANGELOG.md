@@ -22,6 +22,14 @@
 - Media batches now wait for their durable queue checkpoint before reporting a browser transfer as
   running, so restart recovery retains the browser download ID.
 
+## 1.47.1 (2026-09-05)
+
+### Fixed
+- Wide now fills all space beside X's navigation after removing the discovery rail. It no longer
+  stops at a retained wrapper width or a 1440px cap on larger windows.
+- Aviary controls no longer attach native hover tooltips. Visible labels and accessible names still
+  report each action and changing download state without opening a bubble under the pointer.
+
 ## 1.47.0 (2026-08-22)
 
 ### Changed

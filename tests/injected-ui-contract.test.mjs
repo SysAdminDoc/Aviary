@@ -175,6 +175,10 @@ test("AI and snippet popovers expose controlled menus and restore focus", async 
       popover: aiMenu.getAttribute("popover"),
       focus: document.activeElement?.className
     };
+    const hoverTitles = {
+      aiTrigger: aiTrigger.getAttribute("title"),
+      aiOption: aiMenu.querySelector('[role="menuitem"]')?.getAttribute("title") ?? null
+    };
     aiMenu.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
     const aiMoved = document.activeElement?.className;
     aiMenu.hidePopover();
@@ -195,6 +199,9 @@ test("AI and snippet popovers expose controlled menus and restore focus", async 
       popover: snippetMenu.getAttribute("popover"),
       focus: document.activeElement?.className
     };
+    hoverTitles.snippetTrigger = snippetTrigger.getAttribute("title");
+    hoverTitles.snippetOption =
+      snippetMenu.querySelector('[role="menuitem"]')?.getAttribute("title") ?? null;
     snippetMenu.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
     const snippetMoved = document.activeElement?.className;
     snippetMenu.hidePopover();
@@ -207,7 +214,7 @@ test("AI and snippet popovers expose controlled menus and restore focus", async 
 
     Aviary.aiCommandMenuFeature.destroy(context);
     Aviary.composerSnippetsFeature.destroy(context);
-    return { aiOpen, aiMoved, aiClosed, snippetOpen, snippetMoved, snippetClosed };
+    return { aiOpen, aiMoved, aiClosed, snippetOpen, snippetMoved, snippetClosed, hoverTitles };
   });
 
   assert.deepEqual(state.aiOpen, {
@@ -228,6 +235,12 @@ test("AI and snippet popovers expose controlled menus and restore focus", async 
   });
   assert.equal(state.snippetMoved, "av-snippet-option");
   assert.deepEqual(state.snippetClosed, { menu: false, expanded: "false", focus: true });
+  assert.deepEqual(state.hoverTitles, {
+    aiTrigger: null,
+    aiOption: null,
+    snippetTrigger: null,
+    snippetOption: null
+  });
 });
 
 test("coarse-pointer page controls keep 44px hit targets and visible prompts", async () => {
@@ -350,6 +363,7 @@ test("injected toasts and hide spacing follow the document direction", async () 
       const hideButton = document.querySelector("[data-av-hide-button]");
       if (!hideButton) throw new Error("hide button did not render");
       const hideMargin = getComputedStyle(hideButton).marginInlineEnd;
+      const hideTitle = hideButton.getAttribute("title");
       hideButton.click();
       await new Promise((resolve) => setTimeout(resolve, 25));
 
@@ -373,7 +387,8 @@ test("injected toasts and hide spacing follow the document direction", async () 
           left: Math.round(hiddenCard.getBoundingClientRect().left),
           right: Math.round(window.innerWidth - hiddenCard.getBoundingClientRect().right)
         },
-        hideMargin
+        hideMargin,
+        hideTitle
       };
 
       await Aviary.hiddenPostsFeature.destroy(context);
@@ -404,6 +419,8 @@ test("injected toasts and hide spacing follow the document direction", async () 
   assert.equal(results.rtl.hidden.left, 16);
   assert.equal(results.rtl.feature.borderInlineStart, "3px");
   assert.equal(results.rtl.hideMargin, "4px");
+  assert.equal(results.ltr.hideTitle, null);
+  assert.equal(results.rtl.hideTitle, null);
 });
 
 test("media download buttons remain obvious without hover on every host container", async () => {

@@ -152,6 +152,8 @@ test("the copied link is the post's own address on the chosen host", async () =>
       buttons: window.buttons().length,
       copied: [...window.__clipboard],
       label: button.textContent,
+      title: button.getAttribute("title"),
+      ariaLabel: button.getAttribute("aria-label"),
       audit: ctx.auditLog.records
     };
     await AviaryCopyLink.copyPostLinkFeature.destroy(ctx);
@@ -162,6 +164,8 @@ test("the copied link is the post's own address on the chosen host", async () =>
   assert.equal(observed.buttons, 1);
   assert.deepEqual(observed.copied, ["https://fxtwitter.com/alice/status/1900000000000001"]);
   assert.match(observed.label, /Copied/);
+  assert.equal(observed.title, null);
+  assert.match(observed.ariaLabel, /fxtwitter\.com/);
   assert.deepEqual(observed.audit, [{ action: "link.copy", detail: { host: "fxtwitter.com" } }]);
 });
 

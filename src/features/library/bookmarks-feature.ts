@@ -240,7 +240,7 @@ function updateButton(button: HTMLButtonElement, saved: boolean, ctx: FeatureCon
   button.dataset.state = saved ? "saved" : "empty";
   button.textContent = ft(ctx, saved ? "Saved locally" : "Save locally");
   button.setAttribute("aria-label", ft(ctx, saved ? "Remove local bookmark" : "Save locally"));
-  button.title = button.getAttribute("aria-label") ?? "";
+  button.removeAttribute("title");
   button.classList.toggle("is-saved", saved);
   button.classList.remove("is-error");
 }

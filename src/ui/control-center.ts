@@ -586,7 +586,6 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   navLauncher.setAttribute("aria-expanded", "false");
   navLauncher.setAttribute("aria-haspopup", "dialog");
   navLauncher.setAttribute("aria-label", t("Aviary settings"));
-  navLauncher.title = t("Aviary settings");
   const navLauncherPill = el("span", "av-nav-launcher-pill");
   const navLauncherLabel = el("span", "av-nav-launcher-label", t("Aviary"));
   navLauncherPill.append(navLauncherIcon(), navLauncherLabel);
@@ -615,7 +614,6 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   panel.setAttribute("aria-labelledby", title.id);
   // Data, not copy: never routed through t(), and never counted against locale coverage.
   const version = el("span", "av-version", `v${AVIARY_VERSION}`);
-  version.title = "Aviary version";
   titleRow.append(title, version);
   const subtitle = el("p", "av-subtitle", t("Local controls for a quieter X."));
   titleWrap.append(titleRow, subtitle);
@@ -1104,7 +1102,6 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     launcher.textContent = t("Aviary");
     navLauncherLabel.textContent = t("Aviary");
     navLauncher.setAttribute("aria-label", t("Aviary settings"));
-    navLauncher.title = t("Aviary settings");
     navLauncherHost.dir = localeDirection(panelLocale);
     panel.setAttribute("aria-label", t("Aviary settings"));
     // Chrome outside `body` survives the re-render, which is the point — but that also means

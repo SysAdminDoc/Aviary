@@ -99,7 +99,12 @@ test("a rendered post saves, removes, and reloads a local bookmark", async () =>
     const article = addArticle();
     await AviaryBookmarks.bookmarksFeature.init(context);
     const button = () => article.querySelector("[data-av-local-bookmark]");
-    const before = { text: button()?.textContent, count: AviaryBookmarks.getBookmarks().length };
+    const before = {
+      text: button()?.textContent,
+      title: button()?.getAttribute("title"),
+      ariaLabel: button()?.getAttribute("aria-label"),
+      count: AviaryBookmarks.getBookmarks().length
+    };
     button().click();
     await new Promise((resolve) => setTimeout(resolve, 15));
     const saved = {
@@ -125,7 +130,12 @@ test("a rendered post saves, removes, and reloads a local bookmark", async () =>
     return { before, saved, removed, reloaded, style: document.getElementById("av-local-bookmarks") };
   });
 
-  assert.deepEqual(result.before, { text: "Save locally", count: 0 });
+  assert.deepEqual(result.before, {
+    text: "Save locally",
+    title: null,
+    ariaLabel: "Save locally",
+    count: 0
+  });
   assert.equal(result.saved.text, "Saved locally");
   assert.equal(result.saved.count, 1);
   assert.equal(result.saved.record.tweetId, "777777");

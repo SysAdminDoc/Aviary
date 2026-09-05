@@ -363,7 +363,6 @@ function ensureButton(article: Element, key: string, ctx: FeatureContext): void 
   button.className = "av-hide-button";
   button.setAttribute(BUTTON_ATTR, "1");
   button.textContent = ft(ctx, "Hide");
-  button.title = ft(ctx, "Hide this post. Aviary keeps it hidden on future visits.");
   button.setAttribute("aria-label", ft(ctx, "Hide this post"));
   button.addEventListener("click", (event) => {
     event.preventDefault();

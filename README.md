@@ -1,6 +1,6 @@
 # Aviary
 
-![Version](https://img.shields.io/badge/version-1.47.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.47.1-2f81f7)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 ![Platform](https://img.shields.io/badge/platform-userscript%20%7C%20Chrome%20%7C%20Firefox-8b5cf6)
 
@@ -13,7 +13,7 @@ Aviary is a local-first X/Twitter enhancer. It adds clear image and video downlo
 Fresh installs remove advertising and enable one clear Download action on every media post, plus
 per-asset Save, Thumb, and eligible Video/GIF controls.
 The permissions page puts download access first, then sends you straight back to X. On the Noir
-theme, Wide uses the available desktop canvas for media and connected replies while keeping text at
+theme, Wide fills the available desktop canvas for media and connected replies while keeping text at
 a readable measure.
 On phones, the post-level Download control uses a labeled full-width row beneath X's actions. The
 per-asset button stays in the media corner for quick individual saves.
@@ -113,10 +113,10 @@ semantic roles and stable X test ids rather than generated classes, avoids page-
 infinite timeline, and remains opt-in: choosing **Off (X's own theme)** removes every Aviary paint
 hook and restores the site's styling.
 
-Timeline width now has two useful desktop tiers. Comfortable keeps X's discovery rail beside a
-1000px reading column. Wide can use up to a 1440px media canvas and removes the rail, so photos, video,
-posts, and replies use the space instead of leaving a dead strip. Text remains capped to a readable
-measure. On post pages, the focal post is larger and replies form a compact connected stream.
+Timeline width has two desktop tiers. Comfortable keeps X's discovery rail beside a 1000px reading
+column. Wide removes the rail and fills every available pixel beside navigation, so posts and media
+don't leave a dead strip. Text remains capped to a readable measure. On post pages, the focal post is
+larger and replies form a compact connected stream.
 
 ![Aviary Noir conversation view](docs/audit/2026-08-22-premium-final/x-status-wide-dark-1440x900.png)
 
@@ -191,7 +191,7 @@ change, regenerate the committed baselines with `npm run test:visual:update`.
 `npm run capture:theme -- docs/audit/noir-thread.png 1440 900 noir wide status`. Theme ids are
 `dim`, `lightsOut`, `graphite`, `plum`, `midnight`, and `noir`.
 `npm run capture:settings -- <output-directory> <width> <height> <dark|light>` uses the same
-deterministic settings harness for ad-hoc captures.
+deterministic settings fixture runner for ad-hoc captures.
 
 ## Privacy Model
 
@@ -415,7 +415,9 @@ The Control Center "Library" section exposes:
   redirected, and nothing is requested. Off by default; the host list is closed, so a typo cannot
   produce a link somewhere you did not mean.
 - **Unshorten t.co links**, replaces visible `t.co` redirects in tweet body / quoted card text with the destination URL pulled from `aria-label` / `data-expanded-url` / `title` / textContent (no network calls). Reversed on destroy.
-- **Account notes**, one `handle: note` per line. Aviary stores notes per-handle and decorates the matching tweet's User-Name area with a small Note badge whose tooltip shows the note text.
+- **Account notes**, one `handle: note` per line. Aviary stores notes per-handle and decorates the
+  matching tweet's User-Name area with a small Note badge. It does not open a hover tooltip. The
+  badge's accessible name includes the note, and the full text remains editable in Library.
 - **Clear all account notes**, drops every persisted note.
 - **Local bookmarks**, use the Save locally control on a rendered post, then search the Library
   and edit tags, folders, reminders, or notes. When **Preserve raw payloads** is enabled, bookmark

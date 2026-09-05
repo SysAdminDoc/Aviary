@@ -166,7 +166,7 @@ function scan(root: ParentNode | Element): void {
       anchor.dataset[ORIGINAL_TITLE_PRESENT] = anchor.hasAttribute("title") ? "1" : "0";
     }
     anchor.classList.add("av-link-clean");
-    anchor.title = target;
+    anchor.removeAttribute("title");
     anchor.setAttribute(PROCESSED_ATTR, "1");
     if (anchor.textContent && /^https?:\/\/t\.co\//i.test(anchor.textContent.trim())) {
       anchor.textContent = target;

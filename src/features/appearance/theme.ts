@@ -700,12 +700,10 @@ html.av-theme-noir [data-testid="grokImgGen"] {
   box-shadow: none;
 }
 
-/* The primary column takes its width from its own box, not from a max-width -- measured on
-   _decoded/home.html at a 1400px viewport, the column and its first four ancestors all report
-   max-width:none and the same 677.77px. Current X also makes this box a flex item with a growing
-   auto basis; width alone then grows Comfortable and Wide to the same wrapper width. Pin the
-   basis and growth as well, and clamp against the viewport rather than 100% so the rule works
-   through both the old block layout and the current flex wrapper. */
+/* The primary column takes its width from its own box, not from a max-width. Current X also keeps
+   several flex wrappers around it at the old two-column width after the discovery rail is hidden.
+   Comfortable stays capped. Wide expands that wrapper chain, then lets the primary column shrink
+   from one viewport to exactly the space left beside navigation. */
 html[data-av-width="comfortable"] [data-testid="primaryColumn"] {
   flex: 0 1 min(1000px, calc(100vw - 16px)) !important;
   flex-basis: min(1000px, calc(100vw - 16px)) !important;
@@ -715,18 +713,26 @@ html[data-av-width="comfortable"] [data-testid="primaryColumn"] {
 }
 
 html[data-av-width="wide"] [data-testid="primaryColumn"] {
-  flex: 0 1 min(1440px, calc(100vw - 16px)) !important;
-  flex-basis: min(1440px, calc(100vw - 16px)) !important;
-  width: min(1440px, calc(100vw - 16px)) !important;
-  max-width: min(1440px, calc(100vw - 16px)) !important;
+  flex: 1 1 100vw !important;
+  flex-basis: 100vw !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
   min-width: 0 !important;
 }
 
-/* Wide is the media-first desktop canvas. The discovery rail cannot coexist with 1440px of post
-   content at common laptop widths, so Wide removes it and centers the reading column. Comfortable
-   retains the rail for people who still want trends and follow suggestions beside the feed. */
+/* Wide is the media-first desktop canvas. It removes the discovery rail, releases every retained
+   two-column wrapper, and uses the whole reading area. Comfortable retains the rail for people who
+   still want trends and follow suggestions beside the feed. */
 html[data-av-width="wide"] [data-testid="sidebarColumn"] {
   display: none !important;
+}
+
+html[data-av-width="wide"] [data-testid="timeline-shell"],
+html[data-av-width="wide"] main[role="main"] div:has([data-testid="primaryColumn"]) {
+  flex: 1 1 0% !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
 }
 
 html[data-av-width="wide"] [data-testid="timeline-shell"],

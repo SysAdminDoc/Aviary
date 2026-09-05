@@ -219,7 +219,7 @@ function updateBadge(
 ): void {
   const label = note ? ft(ctx, "Note") : ft(ctx, "Tag");
   badge.textContent = label;
-  badge.title = note ?? "";
+  badge.removeAttribute("title");
   // Colour is never the only carrier of meaning: the badge keeps its text and its label names the
   // colour, so the tag survives a screen reader and a monochrome display.
   const description = note ? `${label} @${handle}: ${note}` : `${label} @${handle}: ${color}`;

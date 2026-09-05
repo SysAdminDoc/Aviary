@@ -226,7 +226,8 @@ test("a transfer that never reports back stays Started rather than becoming Save
 
     const settled = {
       label: button.textContent,
-      title: button.title,
+      title: button.getAttribute("title"),
+      ariaLabel: button.getAttribute("aria-label"),
       queue: window.queueStatuses()
     };
     await AviaryDownloads.mediaButtonsFeature.destroy(ctx);
@@ -235,7 +236,8 @@ test("a transfer that never reports back stays Started rather than becoming Save
 
   assert.match(observed.label, /Started/);
   assert.doesNotMatch(observed.label, /Saved/);
-  assert.match(observed.title, /still transferring/);
+  assert.equal(observed.title, null);
+  assert.match(observed.ariaLabel, /still transferring/);
   assert.deepEqual(observed.queue, ["running"], "an unproven transfer must not read as completed");
 });
 

@@ -611,7 +611,6 @@ function buildPostAction(
   button.setAttribute("aria-label", accessibleLabel);
   button.setAttribute("aria-live", "polite");
   button.setAttribute("aria-busy", "false");
-  button.title = accessibleLabel;
 
   const icon = document.createElement("span");
   icon.className = "av-media-action-icon";
@@ -632,7 +631,10 @@ function buildPostAction(
 
   if (assets.length === 0) {
     button.dataset.pendingVideo = "true";
-    button.title = ft(ctx, "The direct video is still loading. Try again in a moment.");
+    button.setAttribute(
+      "aria-label",
+      ft(ctx, "The direct video is still loading. Try again in a moment.")
+    );
     button.addEventListener("click", (event) => {
       event.stopPropagation();
       event.preventDefault();
@@ -693,7 +695,10 @@ async function handlePendingPostDownload(
     icon: "↻",
     className: "is-error"
   });
-  button.title = ft(ctx, "The direct video is still loading. Try again in a moment.");
+  button.setAttribute(
+    "aria-label",
+    ft(ctx, "The direct video is still loading. Try again in a moment.")
+  );
 }
 
 /**
@@ -775,7 +780,6 @@ function buildButton(
   button.setAttribute("aria-label", accessibleLabel);
   button.setAttribute("aria-live", "polite");
   button.setAttribute("aria-busy", "false");
-  button.title = accessibleLabel;
   button.dataset.idleLabel = idleLabel;
   button.dataset.baseIdleAriaLabel = accessibleLabel;
   button.dataset.idleAriaLabel = accessibleLabel;
@@ -890,19 +894,25 @@ async function handleDownload(
             : "is-duplicate"
     });
     if (outcome.status === "started") {
-      button.title = ft(
-        ctx,
-        "The browser is still transferring this file. Check your downloads for the result."
+      button.setAttribute(
+        "aria-label",
+        ft(ctx, "The browser is still transferring this file. Check your downloads for the result.")
       );
     }
     if (outcome.matchKind) {
-      button.title = duplicateMatchTitle(outcome.matchKind, ctx);
+      button.setAttribute("aria-label", duplicateMatchTitle(outcome.matchKind, ctx));
     }
     if (outcome.status === "completed" || outcome.status === "history-duplicate") {
       setDownloadedMarker(button, true, ctx);
     }
     if (outcome.degraded) {
-      button.title = ft(ctx, "Your browser opened this file instead of saving it. Grant Aviary the download permission for a real save.");
+      button.setAttribute(
+        "aria-label",
+        ft(
+          ctx,
+          "Your browser opened this file instead of saving it. Grant Aviary the download permission for a real save."
+        )
+      );
     }
     scheduleButtonRestore(button);
   } catch (error) {
@@ -988,7 +998,13 @@ async function handlePostDownload(
     className: allDuplicate ? "is-duplicate" : "is-success"
   });
   if (degraded) {
-    button.title = ft(ctx, "Your browser opened this file instead of saving it. Grant Aviary the download permission for a real save.");
+    button.setAttribute(
+      "aria-label",
+      ft(
+        ctx,
+        "Your browser opened this file instead of saving it. Grant Aviary the download permission for a real save."
+      )
+    );
   }
   if (
     outcomes.length > 0 &&
@@ -1230,7 +1246,10 @@ function showDownloadError(
     className: "is-error"
   });
   if (needsPermission) {
-    button.title = ft(ctx, "Aviary needs the browser download permission. Opening its options page.");
+    button.setAttribute(
+      "aria-label",
+      ft(ctx, "Aviary needs the browser download permission. Opening its options page.")
+    );
     if (!permissionSurfaceOpened) {
       permissionSurfaceOpened = true;
       void requestDownloadPermissionSurface();
@@ -1262,7 +1281,7 @@ function setButtonFeedback(button: HTMLButtonElement, feedback: ButtonFeedback):
   if (icon) icon.textContent = `${feedback.icon} `;
   if (label) label.textContent = feedback.label;
   button.setAttribute("aria-label", feedback.label);
-  button.title = feedback.label;
+  button.removeAttribute("title");
 }
 
 function scheduleButtonRestore(button: HTMLButtonElement): void {
@@ -1299,7 +1318,7 @@ function restoreIdleButton(button: HTMLButtonElement): void {
   if (label) label.textContent = button.dataset.idleLabel ?? "";
   const accessibleLabel = button.dataset.idleAriaLabel ?? button.dataset.idleLabel ?? "";
   button.setAttribute("aria-label", accessibleLabel);
-  button.title = accessibleLabel;
+  button.removeAttribute("title");
 }
 
 function wasDownloaded(kind: ExtractedMedia["kind"], target: ResolvedTarget): boolean {
@@ -1325,7 +1344,7 @@ function setDownloadedMarker(
   button.dataset.idleAriaLabel = accessibleLabel;
   if (!button.dataset.state) {
     button.setAttribute("aria-label", accessibleLabel);
-    button.title = accessibleLabel;
+    button.removeAttribute("title");
   }
 }
 
