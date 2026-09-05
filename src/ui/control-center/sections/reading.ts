@@ -271,6 +271,15 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         await ctx.save("Grok preference saved.");
       }),
       ctx.toggleRow(
+        "Suppress hover previews",
+        "Stop X opening a profile card or tooltip when the pointer rests on a name, avatar or control, and remove native tooltip bubbles. Menus you click, labels, and screen-reader names are left alone.",
+        ctx.options.settings.layout.suppressHoverPreviews,
+        async (checked) => {
+          ctx.options.settings.layout.suppressHoverPreviews = checked;
+          await ctx.save("Hover preference saved.");
+        }
+      ),
+      ctx.toggleRow(
         "Focus mode",
         "Outside the hours below, cover the reading column with a calm local panel. Navigation stays usable and a five-minute override is one click away. Nothing is blocked and nothing leaves this device.",
         ctx.options.settings.layout.focusMode,

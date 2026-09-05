@@ -19,6 +19,9 @@
   For the userscript, retention belongs to the manager, so Trust reports it as unknown rather than
   implying a guarantee.
 
+### Added
+- **Suppress hover previews** in Reading, on by default in the Minimal preset. X stops opening a profile card or tooltip when the pointer rests on a name, avatar or control, and native tooltip bubbles are removed and given back exactly when the setting is turned off. Menus you click, visible labels, and screen-reader names are untouched, and nothing listens for the pointer, so a touch-only session costs nothing.
+
 ### Fixed
 - Conversation pages no longer show the vertical connector line down a reply's avatar column while an Aviary theme is active. The previous fix removed a line Aviary itself drew; the one readers were seeing is X's own element, found now by its shape and position rather than by a class name X regenerates.
 - A full library backup now covers the whole install rather than whichever profile happened to be

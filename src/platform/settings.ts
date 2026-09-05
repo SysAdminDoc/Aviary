@@ -272,6 +272,12 @@ export interface AviarySettings {
     hideHomeComposer: boolean;
     hideThreadRecommendations: boolean;
     hideGrok: boolean;
+    /**
+     * Suppress hover-only surfaces: X's profile cards, its visual tooltips, and any native
+     * `title` bubble on a control. Click-opened menus and every accessible name are untouched,
+     * because those are not hover-only and removing them would cost more than the noise does.
+     */
+    suppressHoverPreviews: boolean;
     writerMode: boolean;
     forceFollowing: boolean;
     /** Cover the reading column outside the window below. Local only; nothing is blocked. */
@@ -430,6 +436,7 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     hideHomeComposer: false,
     hideThreadRecommendations: false,
     hideGrok: false,
+    suppressHoverPreviews: false,
     writerMode: false,
     forceFollowing: false,
     focusMode: false,
@@ -735,6 +742,10 @@ export function normalizeSettings(input: unknown): AviarySettings {
         DEFAULT_SETTINGS.layout.hideThreadRecommendations
       ),
       hideGrok: booleanValue(layout.hideGrok, DEFAULT_SETTINGS.layout.hideGrok),
+      suppressHoverPreviews: booleanValue(
+        layout.suppressHoverPreviews,
+        DEFAULT_SETTINGS.layout.suppressHoverPreviews
+      ),
       writerMode: booleanValue(layout.writerMode, DEFAULT_SETTINGS.layout.writerMode),
       forceFollowing: booleanValue(layout.forceFollowing, DEFAULT_SETTINGS.layout.forceFollowing),
       focusMode: booleanValue(layout.focusMode, DEFAULT_SETTINGS.layout.focusMode),

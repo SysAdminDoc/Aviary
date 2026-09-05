@@ -336,16 +336,6 @@ Research date 2026-09-05, against `1.47.2` at `9a5970a` plus the shelved cross-o
 
 ### P0, Now
 
-- [ ] F317, P0: Suppress hover-only help and profile cards in Minimal mode
-  Why: Aviary no longer authors native `title` tooltips, but X still opens visual tooltips and profile cards when the pointer rests on controls, names, and avatars, which directly contradicts the user's minimal-UI request.
-  Evidence: no `hoverCardParent` or visual tooltip suppression exists in `src/` or `tests/`; `src/features/core/presets.ts` defines the Minimal preset; https://www.reddit.com/r/uBlockOrigin/comments/1hzxmcr/block_twitterx_profile_name_hover_over/ and https://github.com/Bl4Cc4t/GoodTwitter2/issues/575 report the same hover-card failure; https://www.w3.org/WAI/WCAG22/Understanding/content-on-hover-or-focus.html
-  Touches: `src/features/layout/declutter.ts`, `src/features/core/presets.ts`, `src/platform/settings.ts`, `src/ui/control-center/sections/reading.ts`, injected UI modules, lifecycle and accessibility tests, a sanitized hover-card fixture
-  Acceptance: an independent `Suppress hover previews` setting is enabled by the Minimal preset; with it enabled, resting the pointer for at least 1 second on every Aviary control and representative X navigation button, post action, avatar, and author name produces no browser title, visual `[role="tooltip"]`, or `[data-testid="hoverCardParent"]`; click-opened menus, dialogs, validation messages, focus outlines, visible labels, `aria-label`, and `aria-describedby` remain intact; disabling the setting restores every X `title` value Aviary removed and stops suppressing newly inserted hover portals; touch-only fixtures do not gain pointer listeners; a contract test covers all Aviary-injected controls and fails when a new native `title` is introduced.
-  Complexity: M
-  Depends: None.
-
-### P1, Next
-
 - [ ] F318, P1: Mark a post seen only after visible dwell
   Why: the current scan records every rendered article immediately, including virtualized posts below the viewport, so dimming and Catch-up can claim the viewer saw content that never reached the screen.
   Evidence: `src/features/filtering/seen-posts-feature.ts` (`scan()` calls `store.mark()` without `IntersectionObserver` or `document.visibilityState`); https://github.com/phuaky/xrai uses 1,000 ms active dwell or a direct status open before marking content seen

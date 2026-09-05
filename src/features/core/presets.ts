@@ -43,6 +43,7 @@ export const PRESETS: PresetDefinition[] = [
     description: "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.",
     highlights: [
       { label: "Hide right sidebar", value: "Enabled" },
+      { label: "Suppress hover previews", value: "Enabled" },
       { label: "Hide engagement counts", value: "Enabled" },
       { label: "Theme", value: "Dim" }
     ],
@@ -152,6 +153,7 @@ export const PRESETS: PresetDefinition[] = [
         hideFollowSuggestions: true,
         hideHomeComposer: true,
         hideGrok: true,
+        suppressHoverPreviews: true,
         hideNavItems: ["follow", "grok", "history", "studio", "premium"]
       },
       filter: { enabled: true, premiumRule: "hide" },

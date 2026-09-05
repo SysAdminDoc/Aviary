@@ -27,6 +27,7 @@ test("source avoids unsafe injection and shortcut patterns", async () => {
   const unsafe = [];
   const shortcuts = [];
   const blur = [];
+  const nativeTitles = [];
 
   for (const file of files) {
     const rel = path.relative(root, file);
@@ -41,11 +42,31 @@ test("source avoids unsafe injection and shortcut patterns", async () => {
     if (/backdrop-filter/.test(text)) {
       blur.push(rel);
     }
+    // A native `title` is a hover-only bubble the browser draws, so it is invisible to touch and
+    // to keyboard users and cannot be styled or suppressed by the page. Aviary carries a setting
+    // that strips X's, which would be incoherent if Aviary added its own. Accessible names belong
+    // in `aria-label`, descriptions in `aria-describedby`, and anything a reader must actually see
+    // in visible text. `title` on an SVG element is the accessible-name mechanism there and is not
+    // a tooltip, so only the attribute form is banned.
+    // `declutter.ts` is exempt for the same reason `trusted-types.ts` is exempt above: it is the
+    // module that implements the rule. Its only `setAttribute("title", ...)` puts back a value X
+    // wrote and Aviary parked, which is the reversal, not an authored tooltip.
+    if (
+      !rel.endsWith(path.join("layout", "declutter.ts")) &&
+      (/setAttribute\(\s*["']title["']/.test(text) || /\.title\s*=\s*["'`]/.test(text))
+    ) {
+      nativeTitles.push(rel);
+    }
   }
 
   assert.deepEqual(unsafe, [], "HTML injection must route through TrustedTypes helpers");
   assert.deepEqual(shortcuts, [], "Aviary does not register custom keyboard shortcuts");
   assert.deepEqual(blur, [], "content scripts must not use backdrop-filter");
+  assert.deepEqual(
+    nativeTitles,
+    [],
+    "Aviary controls must not carry a native title tooltip; use aria-label or visible text"
+  );
 });
 
 function isScopedKeyboardInteraction(relative, text) {

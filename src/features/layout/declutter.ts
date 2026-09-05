@@ -1,6 +1,8 @@
 import type { FeatureContext, FeatureModule } from "../registry.ts";
 
 const STYLE_ID = "av-layout-declutter";
+/** Where a removed native `title` is parked so teardown can put X's own text back. */
+const TITLE_STASH_ATTRIBUTE = "data-av-title";
 
 /**
  * Writer mode watches the composer through focus events only. Key events are banned by policy
@@ -29,13 +31,21 @@ export const layoutDeclutterFeature: FeatureModule = {
     ctx.diagnostics.info("Layout declutter initialized");
   },
 
-  apply(ctx) {
+  apply(ctx, root) {
     ensureLayoutStyle();
     applyLayoutClasses(ctx);
+    // Runs on every mutation batch, so a hover portal or a titled control X inserts later is
+    // covered without this feature holding a pointer listener of its own. Suppression is CSS plus
+    // an attribute swap; nothing here reacts to the pointer, which is also why a touch-only
+    // session gains no listeners.
+    if (ctx.settings.layout.suppressHoverPreviews) {
+      stripNativeTitles(root instanceof Element || root instanceof Document ? root : document);
+    }
   },
 
   destroy(ctx) {
     document.getElementById(STYLE_ID)?.remove();
+    restoreNativeTitles();
     unbindWriterListeners();
     document.documentElement.classList.remove(
       "av-hide-right-sidebar",
@@ -43,6 +53,7 @@ export const layoutDeclutterFeature: FeatureModule = {
       "av-hide-follow-suggestions",
       "av-hide-home-composer",
       "av-hide-grok",
+      "av-suppress-hover",
       "av-writer-mode",
       "av-writing"
     );
@@ -55,6 +66,38 @@ export const layoutDeclutterFeature: FeatureModule = {
   }
 };
 
+/**
+ * Removes native `title` bubbles, keeping the text so the removal is reversible.
+ *
+ * A `title` is the one hover surface CSS cannot reach: the bubble is drawn by the browser, not by
+ * the page. The value is parked on the element rather than dropped, because turning the setting
+ * off has to give X back exactly what it wrote. Nothing else about the control changes, so
+ * `aria-label`, `aria-describedby`, visible text and focus treatment are all untouched.
+ */
+function stripNativeTitles(scope: ParentNode): void {
+  const roots: Element[] = [];
+  if (scope instanceof Element && scope.hasAttribute("title")) roots.push(scope);
+  for (const node of Array.from(scope.querySelectorAll<HTMLElement>("[title]"))) {
+    roots.push(node);
+  }
+  for (const node of roots) {
+    const title = node.getAttribute("title");
+    if (title === null || node.hasAttribute(TITLE_STASH_ATTRIBUTE)) continue;
+    node.setAttribute(TITLE_STASH_ATTRIBUTE, title);
+    node.removeAttribute("title");
+  }
+}
+
+function restoreNativeTitles(): void {
+  for (const node of Array.from(
+    document.querySelectorAll<HTMLElement>(`[${TITLE_STASH_ATTRIBUTE}]`)
+  )) {
+    const title = node.getAttribute(TITLE_STASH_ATTRIBUTE);
+    if (title !== null) node.setAttribute("title", title);
+    node.removeAttribute(TITLE_STASH_ATTRIBUTE);
+  }
+}
+
 function applyLayoutClasses(ctx: FeatureContext): void {
   const root = document.documentElement;
   root.classList.toggle("av-hide-right-sidebar", ctx.settings.layout.hideRightSidebar);
@@ -65,6 +108,11 @@ function applyLayoutClasses(ctx: FeatureContext): void {
     ctx.settings.layout.hideHomeComposer === true && ctx.route?.surface === "home"
   );
   root.classList.toggle("av-hide-grok", ctx.settings.layout.hideGrok);
+
+  const suppressHover = ctx.settings.layout.suppressHoverPreviews === true;
+  root.classList.toggle("av-suppress-hover", suppressHover);
+  if (suppressHover) stripNativeTitles(document);
+  else restoreNativeTitles();
 
   root.classList.toggle("av-writer-mode", ctx.settings.layout.writerMode);
   if (ctx.settings.layout.writerMode) {
@@ -148,6 +196,15 @@ function ensureLayoutStyle(): void {
 }
 
 const LAYOUT_CSS = `
+/* Hover-only surfaces. X opens a profile card or a visual tooltip when the pointer rests on a
+   name, avatar or control; both are portals it inserts near the end of the body, so hiding them
+   by role and test id reaches every one without this feature listening for the pointer at all.
+   Click-opened menus and dialogs use different roles and are deliberately left alone. */
+html.av-suppress-hover [data-testid="hoverCardParent"],
+html.av-suppress-hover [role="tooltip"] {
+  display: none !important;
+}
+
 html.av-hide-right-sidebar [data-testid="sidebarColumn"] {
   display: none !important;
 }

@@ -151,6 +151,7 @@ var Aviary = (() => {
       hideHomeComposer: false,
       hideThreadRecommendations: false,
       hideGrok: false,
+      suppressHoverPreviews: false,
       writerMode: false,
       forceFollowing: false,
       focusMode: false,
@@ -411,6 +412,10 @@ var Aviary = (() => {
           DEFAULT_SETTINGS.layout.hideThreadRecommendations
         ),
         hideGrok: booleanValue(layout.hideGrok, DEFAULT_SETTINGS.layout.hideGrok),
+        suppressHoverPreviews: booleanValue(
+          layout.suppressHoverPreviews,
+          DEFAULT_SETTINGS.layout.suppressHoverPreviews
+        ),
         writerMode: booleanValue(layout.writerMode, DEFAULT_SETTINGS.layout.writerMode),
         forceFollowing: booleanValue(layout.forceFollowing, DEFAULT_SETTINGS.layout.forceFollowing),
         focusMode: booleanValue(layout.focusMode, DEFAULT_SETTINGS.layout.focusMode),
@@ -6782,6 +6787,15 @@ ${body}
         await ctx.save("Grok preference saved.");
       }),
       ctx.toggleRow(
+        "Suppress hover previews",
+        "Stop X opening a profile card or tooltip when the pointer rests on a name, avatar or control, and remove native tooltip bubbles. Menus you click, labels, and screen-reader names are left alone.",
+        ctx.options.settings.layout.suppressHoverPreviews,
+        async (checked) => {
+          ctx.options.settings.layout.suppressHoverPreviews = checked;
+          await ctx.save("Hover preference saved.");
+        }
+      ),
+      ctx.toggleRow(
         "Focus mode",
         "Outside the hours below, cover the reading column with a calm local panel. Navigation stays usable and a five-minute override is one click away. Nothing is blocked and nothing leaves this device.",
         ctx.options.settings.layout.focusMode,
@@ -11689,6 +11703,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       description: "Hide trends, row borders and engagement counts, dim premium posts, strip t.co, dense + dim theme.",
       highlights: [
         { label: "Hide right sidebar", value: "Enabled" },
+        { label: "Suppress hover previews", value: "Enabled" },
         { label: "Hide engagement counts", value: "Enabled" },
         { label: "Theme", value: "Dim" }
       ],
@@ -11798,6 +11813,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
           hideFollowSuggestions: true,
           hideHomeComposer: true,
           hideGrok: true,
+          suppressHoverPreviews: true,
           hideNavItems: ["follow", "grok", "history", "studio", "premium"]
         },
         filter: { enabled: true, premiumRule: "hide" },
@@ -31645,6 +31661,7 @@ html[data-av-motion="reduce"] .av-reading-mark-button { transition: none; }
 
   // src/features/layout/declutter.ts
   var STYLE_ID13 = "av-layout-declutter";
+  var TITLE_STASH_ATTRIBUTE = "data-av-title";
   var COMPOSER_SELECTOR = [
     '[data-testid^="tweetTextarea_"]',
     '[data-testid="toolBar"]',
@@ -31662,12 +31679,16 @@ html[data-av-motion="reduce"] .av-reading-mark-button { transition: none; }
       applyLayoutClasses(ctx);
       ctx.diagnostics.info("Layout declutter initialized");
     },
-    apply(ctx) {
+    apply(ctx, root) {
       ensureLayoutStyle();
       applyLayoutClasses(ctx);
+      if (ctx.settings.layout.suppressHoverPreviews) {
+        stripNativeTitles(root instanceof Element || root instanceof Document ? root : document);
+      }
     },
     destroy(ctx) {
       document.getElementById(STYLE_ID13)?.remove();
+      restoreNativeTitles();
       unbindWriterListeners();
       document.documentElement.classList.remove(
         "av-hide-right-sidebar",
@@ -31675,6 +31696,7 @@ html[data-av-motion="reduce"] .av-reading-mark-button { transition: none; }
         "av-hide-follow-suggestions",
         "av-hide-home-composer",
         "av-hide-grok",
+        "av-suppress-hover",
         "av-writer-mode",
         "av-writing"
       );
@@ -31686,6 +31708,28 @@ html[data-av-motion="reduce"] .av-reading-mark-button { transition: none; }
       ctx.diagnostics.info("Layout declutter destroyed");
     }
   };
+  function stripNativeTitles(scope) {
+    const roots = [];
+    if (scope instanceof Element && scope.hasAttribute("title")) roots.push(scope);
+    for (const node of Array.from(scope.querySelectorAll("[title]"))) {
+      roots.push(node);
+    }
+    for (const node of roots) {
+      const title = node.getAttribute("title");
+      if (title === null || node.hasAttribute(TITLE_STASH_ATTRIBUTE)) continue;
+      node.setAttribute(TITLE_STASH_ATTRIBUTE, title);
+      node.removeAttribute("title");
+    }
+  }
+  function restoreNativeTitles() {
+    for (const node of Array.from(
+      document.querySelectorAll(`[${TITLE_STASH_ATTRIBUTE}]`)
+    )) {
+      const title = node.getAttribute(TITLE_STASH_ATTRIBUTE);
+      if (title !== null) node.setAttribute("title", title);
+      node.removeAttribute(TITLE_STASH_ATTRIBUTE);
+    }
+  }
   function applyLayoutClasses(ctx) {
     const root = document.documentElement;
     root.classList.toggle("av-hide-right-sidebar", ctx.settings.layout.hideRightSidebar);
@@ -31696,6 +31740,10 @@ html[data-av-motion="reduce"] .av-reading-mark-button { transition: none; }
       ctx.settings.layout.hideHomeComposer === true && ctx.route?.surface === "home"
     );
     root.classList.toggle("av-hide-grok", ctx.settings.layout.hideGrok);
+    const suppressHover = ctx.settings.layout.suppressHoverPreviews === true;
+    root.classList.toggle("av-suppress-hover", suppressHover);
+    if (suppressHover) stripNativeTitles(document);
+    else restoreNativeTitles();
     root.classList.toggle("av-writer-mode", ctx.settings.layout.writerMode);
     if (ctx.settings.layout.writerMode) {
       bindWriterListeners();
@@ -31767,6 +31815,15 @@ html[data-av-motion="reduce"] .av-reading-mark-button { transition: none; }
     (document.head ?? document.documentElement).append(style);
   }
   var LAYOUT_CSS = `
+/* Hover-only surfaces. X opens a profile card or a visual tooltip when the pointer rests on a
+   name, avatar or control; both are portals it inserts near the end of the body, so hiding them
+   by role and test id reaches every one without this feature listening for the pointer at all.
+   Click-opened menus and dialogs use different roles and are deliberately left alone. */
+html.av-suppress-hover [data-testid="hoverCardParent"],
+html.av-suppress-hover [role="tooltip"] {
+  display: none !important;
+}
+
 html.av-hide-right-sidebar [data-testid="sidebarColumn"] {
   display: none !important;
 }
