@@ -19,6 +19,15 @@
   For the userscript, retention belongs to the manager, so Trust reports it as unknown rather than
   implying a guarantee.
 
+### Fixed
+- A full library backup now covers the whole install rather than whichever profile happened to be
+  open. It carries every profile's collections, the profile list, and the active-profile pointer,
+  so restoring on a new browser no longer silently loses every profile but one. Backups written by
+  earlier versions still restore, into the profile being restored into.
+- The WACZ signing identity can travel with a backup when credentials are included, and a restore
+  that would replace a different saved identity now reports both fingerprints and stops instead of
+  swapping it silently. Routine backups still withhold the private key.
+
 ### Changed
 - The userscript now keeps durable records in its manager store and reports an explicit capacity
   error before a single stored value exceeds 16 MiB.

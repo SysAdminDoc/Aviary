@@ -97,12 +97,38 @@ test("routine library backups cannot carry the WACZ private key", async () => {
   const storage = new MemoryStorage({
     [WACZ_SIGNING_KEY]: { privateKey: privateSentinel }
   });
-  const artifact = await createLibraryBackup(storage, { createdAt: "2026-08-21T12:00:00Z" });
-  const text = decoder.decode(artifact.data);
+  // `createLibraryBackup` resolves to `{ envelope, artifact }`. This test used to bind the whole
+  // result as `artifact` and read `.data` off it, which is undefined, so `decode()` returned "" and
+  // both "must not appear" assertions passed against an empty string no matter what was in the
+  // backup. The sentinel below is the point of the test, so it has to read the real bytes.
+  const routine = await createLibraryBackup(storage, { createdAt: "2026-08-21T12:00:00Z" });
+  const text = decoder.decode(routine.artifact.data);
+  assert.ok(text.length > 0, "the backup bytes must actually be read, or this test proves nothing");
 
-  assert.equal(LIBRARY_BACKUP_COLLECTIONS.some((entry) => entry.key === WACZ_SIGNING_KEY), false);
-  assert.doesNotMatch(text, /aviary\.waczSigning\.v1/);
+  // The identity is a backup-able collection now, so a user who opts in can carry it to a new
+  // browser instead of silently minting a new keypair. What must never happen is the key riding
+  // along in a routine backup, which is what this asserts.
+  assert.equal(
+    LIBRARY_BACKUP_COLLECTIONS.some((entry) => entry.key === WACZ_SIGNING_KEY),
+    true,
+    "the signing identity must be a known collection so it can be withheld deliberately"
+  );
+  const withheld = routine.envelope.collections.find((entry) => entry.key === WACZ_SIGNING_KEY);
+  assert.equal(withheld?.present, false, "a routine backup must withhold the signing identity");
+  assert.deepEqual(
+    withheld?.redactedPaths,
+    [WACZ_SIGNING_KEY],
+    "and must record that it was withheld rather than absent"
+  );
   assert.doesNotMatch(text, new RegExp(privateSentinel));
+
+  // The opt-in path must genuinely carry it, or "withheld by default" would be indistinguishable
+  // from "never carried" and the default would be untested.
+  const opted = await createLibraryBackup(storage, {
+    createdAt: "2026-08-21T12:00:00Z",
+    includeCredentials: true
+  });
+  assert.match(decoder.decode(opted.artifact.data), new RegExp(privateSentinel));
 });
 
 test("an invalid stored identity is reported and never silently replaced", async () => {

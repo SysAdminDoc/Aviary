@@ -28834,8 +28834,238 @@ ${COLOR_CSS}`;
     return `${entry.at}|${entry.action}|${entry.detail ? JSON.stringify(entry.detail) : ""}`;
   }
 
+  // src/platform/profile.ts
+  var PROFILE_REGISTRY_KEY = "aviary.profiles.v1";
+  var ACTIVE_PROFILE_KEY = "aviary.profile.active.v1";
+  var PROFILE_MIGRATION_KEYS = [
+    "aviary.settings.v1",
+    "aviary.integration.usage.v1",
+    "aviary.export.checkpoints.v1",
+    "aviary.queryIds.v1",
+    "aviary.media.history.v1",
+    "aviary.media.queue.v1",
+    "aviary.aria2.history.v1",
+    "aviary.hiddenPosts.v1",
+    "aviary.seenPosts.v1",
+    "aviary.readingMarkers.v1",
+    "aviary.catchUp.v1",
+    "aviary.media.last-download.v1",
+    "aviary.cleanupQueue.v1",
+    "aviary.userNotes.v1",
+    "aviary.audit.v1",
+    "aviary.firstRun.v1",
+    "aviary.diagnostics.v1",
+    "aviary.adObservations.v1",
+    "aviary.library.bookmarks.v1",
+    "aviary.snapshots.v1",
+    "aviary.library.underTheHood.v1",
+    "aviary.semanticIndex.v1",
+    "aviary.archive.imports.v1",
+    "aviary.archive.library.v1",
+    "aviary.waczSigning.v1",
+    "aviary.retention.maxJobs",
+    "aviary.retention.maxRecordsPerJob",
+    "aviary.retention.maxAgeDays"
+  ];
+  var DEFAULT_PROFILE_ID = "offline-default";
+  function randomId() {
+    const uuid = globalThis.crypto?.randomUUID?.();
+    if (uuid) {
+      return uuid;
+    }
+    const bytes = new Uint8Array(8);
+    globalThis.crypto?.getRandomValues?.(bytes);
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+  var EMPTY8 = { profiles: [] };
+  var ProfileManager = class {
+    #base;
+    #state = EMPTY8;
+    #activeId = DEFAULT_PROFILE_ID;
+    #legacyDataAvailable = false;
+    #legacySweep = Promise.resolve();
+    #loaded = false;
+    constructor(base) {
+      this.#base = base;
+    }
+    /**
+     * The unscoped gateway every profile is scoped from.
+     *
+     * A library backup has to read across profiles and carry the roster itself, and the roster keys
+     * live here rather than inside any one profile. Features get the scoped gateway; this is the
+     * install-wide one, and the profile manager is already its owner.
+     */
+    get baseStorage() {
+      return this.#base;
+    }
+    async load() {
+      if (this.#loaded) return;
+      this.#state = normalizeState4(await this.#base.get(PROFILE_REGISTRY_KEY, EMPTY8));
+      const active2 = await this.#base.get(ACTIVE_PROFILE_KEY, null);
+      if (typeof active2 === "string" && this.#state.profiles.some((profile) => profile.id === active2)) {
+        this.#activeId = active2;
+      }
+      if (!this.#state.profiles.some((profile) => profile.id === this.#activeId)) {
+        this.#state.profiles.unshift({
+          id: DEFAULT_PROFILE_ID,
+          label: "Offline library",
+          kind: "offline",
+          createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+          lastUsedAt: (/* @__PURE__ */ new Date()).toISOString()
+        });
+      }
+      this.#loaded = true;
+      this.#legacySweep = new Promise((resolve) => {
+        setTimeout(() => {
+          this.#refreshLegacyAvailability().then(resolve, resolve);
+        }, 0);
+      });
+    }
+    /**
+     * Whether a pre-profile install left data outside the active profile.
+     *
+     * Awaitable so a caller that genuinely needs the answer -- a test, or a panel that wants to be
+     * sure -- can wait for it rather than reading a value that has not been computed yet. Boot does
+     * not wait, because it does not need to.
+     */
+    async legacyDataSettled() {
+      await this.#legacySweep;
+      return this.#legacyDataAvailable;
+    }
+    async #refreshLegacyAvailability() {
+      this.#legacyDataAvailable = await this.hasLegacyData();
+    }
+    get activeId() {
+      return this.#activeId;
+    }
+    status() {
+      const active2 = this.#state.profiles.find((profile) => profile.id === this.#activeId);
+      return {
+        activeId: this.#activeId,
+        activeLabel: active2?.label ?? this.#activeId,
+        profiles: this.#state.profiles.map((profile) => ({ ...profile })),
+        legacyDataAvailable: this.#legacyDataAvailable
+      };
+    }
+    async create(label, kind = "offline") {
+      await this.load();
+      const cleanLabel = label.trim().slice(0, 80) || "Offline library";
+      const now2 = (/* @__PURE__ */ new Date()).toISOString();
+      const profile = {
+        // `Date.now()` plus a count is the collision pattern already fixed once in bookmarks:
+        // two profiles created in the same millisecond after a deletion can collide.
+        id: `${kind === "x-account" ? "account" : "offline"}-${randomId()}`,
+        label: cleanLabel,
+        kind,
+        createdAt: now2,
+        lastUsedAt: now2
+      };
+      this.#state.profiles.push(profile);
+      await this.#persist();
+      return { ...profile };
+    }
+    async switchTo(profileId) {
+      await this.load();
+      const profile = this.#state.profiles.find((entry) => entry.id === profileId);
+      if (!profile) return false;
+      this.#activeId = profile.id;
+      profile.lastUsedAt = (/* @__PURE__ */ new Date()).toISOString();
+      await this.#base.set(ACTIVE_PROFILE_KEY, this.#activeId);
+      await this.#persist();
+      return true;
+    }
+    async adoptLegacyIntoActive() {
+      await this.load();
+      const scoped = createProfileStorageGateway(this.#base, this.#activeId);
+      let moved = 0;
+      let skipped = 0;
+      for (const key of PROFILE_MIGRATION_KEYS) {
+        const legacy = await this.#base.get(key, void 0);
+        if (legacy === void 0) continue;
+        const existing = await scoped.get(key, void 0);
+        if (existing !== void 0) {
+          skipped += 1;
+          continue;
+        }
+        await scoped.set(key, legacy);
+        await this.#base.remove(key);
+        moved += 1;
+      }
+      this.#legacySweep = this.#refreshLegacyAvailability();
+      await this.#legacySweep;
+      return { moved, skipped };
+    }
+    /**
+     * One round of reads rather than 28 in series.
+     *
+     * The old loop returned on the first hit, which sounds cheaper and is the opposite on the path
+     * that matters: a fresh install has none of these keys, so it always ran all 28 to completion,
+     * one await at a time. Asking for them together lets the durable gateway overlap them, and the
+     * early-exit saving it gives up only ever applied to installs that had legacy data anyway.
+     */
+    async hasLegacyData() {
+      const found = await Promise.all(
+        PROFILE_MIGRATION_KEYS.map((key) => this.#base.get(key, void 0))
+      );
+      return found.some((value) => value !== void 0);
+    }
+    async #persist() {
+      await this.#base.set(PROFILE_REGISTRY_KEY, this.#state);
+    }
+  };
+  function createProfileStorageGateway(base, profileId) {
+    const safeId = profileId.replace(/[^A-Za-z0-9_-]/g, "-").slice(0, 80) || DEFAULT_PROFILE_ID;
+    const prefix = `aviary.profile.${safeId}`;
+    const scoped = (key) => key.startsWith("aviary.") ? `${prefix}.${key.slice("aviary.".length)}` : `${prefix}.${key}`;
+    return {
+      get(key, fallback) {
+        return base.get(scoped(key), fallback);
+      },
+      set(key, value) {
+        return base.set(scoped(key), value);
+      },
+      remove(key) {
+        return base.remove(scoped(key));
+      },
+      getStatus() {
+        return base.getStatus?.() ?? {
+          backend: "legacy",
+          schemaVersion: 0,
+          migratedKeys: 0,
+          usageBytes: null,
+          quotaBytes: null,
+          persistence: "unknown",
+          pendingWrites: 0,
+          lastError: null
+        };
+      }
+    };
+  }
+  function normalizeState4(value) {
+    if (!value || typeof value !== "object") return { profiles: [] };
+    const raw = value;
+    const profiles = Array.isArray(raw.profiles) ? raw.profiles.map(normalizeProfile).filter((profile) => profile !== null) : [];
+    const unique = new Map(profiles.map((profile) => [profile.id, profile]));
+    return { profiles: [...unique.values()] };
+  }
+  function normalizeProfile(value) {
+    if (!value || typeof value !== "object") return null;
+    const raw = value;
+    if (typeof raw.id !== "string" || raw.id.length === 0 || typeof raw.label !== "string") return null;
+    const kind = raw.kind === "x-account" ? "x-account" : "offline";
+    const createdAt = typeof raw.createdAt === "string" ? raw.createdAt : (/* @__PURE__ */ new Date(0)).toISOString();
+    return {
+      id: raw.id.replace(/[^A-Za-z0-9_-]/g, "-").slice(0, 80),
+      label: raw.label.trim().slice(0, 80) || "Offline library",
+      kind,
+      createdAt,
+      lastUsedAt: typeof raw.lastUsedAt === "string" ? raw.lastUsedAt : createdAt
+    };
+  }
+
   // src/features/core/library-backup.ts
-  var LIBRARY_BACKUP_SCHEMA_VERSION = 1;
+  var LIBRARY_BACKUP_SCHEMA_VERSION = 2;
+  var SUPPORTED_LIBRARY_BACKUP_SCHEMAS = [1, 2];
   var LIBRARY_BACKUP_COLLECTION_VERSION = 1;
   var MAX_LIBRARY_BACKUP_BYTES = 100 * 1024 * 1024;
   var REDACTED_SETTINGS_PATHS = [
@@ -28869,8 +29099,18 @@ ${COLOR_CSS}`;
     { key: ARCHIVE_LIBRARY_KEY, label: "Archive library", version: 1 },
     { key: RETENTION_KEYS.maxJobs, label: "Job retention", version: 1 },
     { key: RETENTION_KEYS.maxRecordsPerJob, label: "Record retention", version: 1 },
-    { key: RETENTION_KEYS.maxAgeDays, label: "Age retention", version: 1 }
+    { key: RETENTION_KEYS.maxAgeDays, label: "Age retention", version: 1 },
+    // The signing identity is a credential, so it travels only when the user opts in. Leaving it out
+    // of the set entirely was the older behaviour, and it meant a restored install silently minted a
+    // new keypair: every package signed before the restore stopped being attributable to the same
+    // fingerprint, with nothing said about it.
+    { key: WACZ_SIGNING_KEY, label: "WACZ signing identity", version: 1 }
   ];
+  var LIBRARY_BACKUP_GLOBAL_COLLECTIONS = [
+    { key: PROFILE_REGISTRY_KEY, label: "Profiles", version: 1 },
+    { key: ACTIVE_PROFILE_KEY, label: "Active profile", version: 1 }
+  ];
+  var CREDENTIAL_COLLECTIONS = /* @__PURE__ */ new Set([WACZ_SIGNING_KEY]);
   var LibraryBackupError = class extends Error {
     code;
     constructor(message, code = "invalid") {
@@ -28883,14 +29123,29 @@ ${COLOR_CSS}`;
     const includeCredentials = options.includeCredentials === true;
     const definitions = selectedDefinitions(options.selectedKeys);
     const collections = [];
-    for (const definition of definitions) {
-      const current = await storage.get(definition.key, void 0);
-      collections.push(makeCollection(definition.key, current, includeCredentials));
+    const profiles = [...options.profiles ?? []];
+    if (profiles.length > 0) {
+      for (const definition of selectedGlobalDefinitions(options.selectedKeys)) {
+        const current = await storage.get(definition.key, void 0);
+        collections.push(makeCollection(definition.key, current, includeCredentials, null));
+      }
+    }
+    const scopes = profiles.length > 0 ? profiles.map((profile) => ({
+      id: profile.id,
+      gateway: createProfileStorageGateway(storage, profile.id)
+    })) : [{ id: null, gateway: storage }];
+    for (const scope of scopes) {
+      for (const definition of definitions) {
+        const current = await scope.gateway.get(definition.key, void 0);
+        collections.push(makeCollection(definition.key, current, includeCredentials, scope.id));
+      }
     }
     const envelope = makeEnvelope(collections, {
       createdAt: options.createdAt ?? (/* @__PURE__ */ new Date()).toISOString(),
       includeCredentials,
-      profile: normalizeProfile(options.profile)
+      profile: normalizeProfile2(options.profile),
+      profiles: profiles.map((profile) => normalizeProfile2(profile)).filter((profile) => profile !== null),
+      activeProfileId: typeof options.activeProfileId === "string" ? options.activeProfileId : null
     });
     const text = JSON.stringify(envelope, null, 2);
     const data = new TextEncoder().encode(text);
@@ -28925,9 +29180,10 @@ ${COLOR_CSS}`;
     if (raw.generator !== "Aviary") {
       throw new LibraryBackupError("Backup generator is not Aviary.", "unsupported");
     }
-    if (raw.schemaVersion !== LIBRARY_BACKUP_SCHEMA_VERSION) {
+    const schemaVersion = SUPPORTED_LIBRARY_BACKUP_SCHEMAS.find((known) => known === raw.schemaVersion);
+    if (schemaVersion === void 0) {
       throw new LibraryBackupError(
-        `Backup schema ${String(raw.schemaVersion)} is not supported (expected ${LIBRARY_BACKUP_SCHEMA_VERSION}).`,
+        `Backup schema ${String(raw.schemaVersion)} is not supported (expected ${SUPPORTED_LIBRARY_BACKUP_SCHEMAS.join(" or ")}).`,
         "unsupported"
       );
     }
@@ -28951,10 +29207,14 @@ ${COLOR_CSS}`;
       if (!definition) {
         throw new LibraryBackupError(`Backup collection '${String(candidate.key)}' is not supported.`, "unsupported");
       }
-      if (seen.has(definition.key)) {
-        throw new LibraryBackupError(`Backup contains duplicate collection '${definition.key}'.`);
+      const profileId = candidate.profileId === void 0 || candidate.profileId === null ? null : nonEmptyString(candidate.profileId, `Collection '${definition.key}' profile`);
+      const identity = `${profileId ?? ""}::${definition.key}`;
+      if (seen.has(identity)) {
+        throw new LibraryBackupError(
+          `Backup contains duplicate collection '${definition.key}'${profileId ? ` for profile '${profileId}'` : ""}.`
+        );
       }
-      seen.add(definition.key);
+      seen.add(identity);
       if (candidate.version !== LIBRARY_BACKUP_COLLECTION_VERSION) {
         throw new LibraryBackupError(
           `Collection '${definition.key}' uses unsupported version ${String(candidate.version)}.`,
@@ -28990,6 +29250,7 @@ ${COLOR_CSS}`;
       }
       collections.push({
         key: definition.key,
+        profileId,
         version: 1,
         present,
         count,
@@ -29008,16 +29269,19 @@ ${COLOR_CSS}`;
       createdAt: raw.createdAt,
       includeCredentials: raw.includeCredentials,
       profile,
-      collections
+      collections,
+      schemaVersion
     });
     if (manifest.sha256 !== expectedManifestChecksum) {
       throw new LibraryBackupError("Backup manifest checksum does not match its collections.", "checksum");
     }
     return {
       generator: "Aviary",
-      schemaVersion: 1,
+      schemaVersion,
       createdAt: raw.createdAt,
       profile,
+      profiles: parseProfiles(raw.profiles),
+      activeProfileId: typeof raw.activeProfileId === "string" ? raw.activeProfileId : null,
       includeCredentials: raw.includeCredentials,
       collections,
       manifest
@@ -29026,13 +29290,30 @@ ${COLOR_CSS}`;
   async function previewLibraryRestore(storage, payload, options = {}) {
     const backup = parseLibraryBackup(payload);
     const collections = [];
+    const fallbackProfileId = backup.schemaVersion === 1 ? options.profileId ?? null : null;
+    const skipped = [];
     for (const collection of backup.collections) {
-      const current = await storage.get(collection.key, void 0);
-      const currentCollection = makeCollection(collection.key, current, backup.includeCredentials);
+      const scoped = collectionGateway(storage, collection, fallbackProfileId);
+      const current = await scoped.get(collection.key, void 0);
+      const currentCollection = makeCollection(
+        collection.key,
+        current,
+        backup.includeCredentials,
+        collection.profileId
+      );
+      if (!collection.present && collection.redactedPaths.includes(collection.key)) {
+        skipped.push({
+          key: collection.key,
+          profileId: collection.profileId,
+          reason: "Withheld from the backup as a credential; the value already saved is kept."
+        });
+        continue;
+      }
       const conflict = compareCollections(collection, currentCollection);
       const definition = definitionFor(collection.key);
       collections.push({
         key: collection.key,
+        profileId: collection.profileId,
         label: definition.label,
         version: collection.version,
         present: collection.present,
@@ -29051,6 +29332,18 @@ ${COLOR_CSS}`;
     if (!backup.includeCredentials && backup.collections.some((collection) => collection.redactedPaths.length > 0)) {
       warnings.push("Credentials are redacted; the values already saved in this profile will be kept.");
     }
+    for (const collection of backup.collections) {
+      if (collection.key !== WACZ_SIGNING_KEY || !collection.present) continue;
+      const scoped = collectionGateway(storage, collection, fallbackProfileId);
+      const current = await scoped.get(WACZ_SIGNING_KEY, void 0);
+      const incoming = signingFingerprint(collection.value);
+      const held = signingFingerprint(current);
+      if (held && incoming && held !== incoming) {
+        warnings.push(
+          `This backup carries a different WACZ signing identity (${incoming.slice(0, 12)}) than the one saved here (${held.slice(0, 12)}). Packages already signed with the saved identity will not verify against the restored one.`
+        );
+      }
+    }
     return {
       schemaVersion: backup.schemaVersion,
       createdAt: backup.createdAt,
@@ -29059,6 +29352,8 @@ ${COLOR_CSS}`;
       credentialsRedacted: backup.collections.some((collection) => collection.redactedPaths.length > 0),
       totalBytes: backup.manifest.totalBytes,
       collections,
+      profiles: backup.profiles,
+      skipped,
       conflictCount: collections.filter((collection) => collection.conflict !== "unchanged").length,
       warnings
     };
@@ -29076,15 +29371,44 @@ ${COLOR_CSS}`;
       options.profileId === void 0 ? {} : { profileId: options.profileId }
     );
     const selected = selectedKeys(backup.collections, options.selectedKeys);
-    const entries = backup.collections.filter((collection) => selected.has(collection.key));
+    const fallbackProfileId = backup.schemaVersion === 1 ? options.profileId ?? null : null;
+    const entries = backup.collections.filter(
+      (collection) => selected.has(collection.key) && // A credential the backup withheld carries no value to write. Restoring it as "absent" would
+      // delete the signing identity this install already holds.
+      !(!collection.present && collection.redactedPaths.includes(collection.key))
+    );
     const dryRun = options.dryRun === true;
+    if (!options.replaceSigningIdentity) {
+      for (const entry of entries) {
+        if (entry.key !== WACZ_SIGNING_KEY || !entry.present) continue;
+        const gateway = collectionGateway(storage, entry, fallbackProfileId);
+        const held = signingFingerprint(await gateway.get(WACZ_SIGNING_KEY, void 0));
+        const incoming = signingFingerprint(entry.value);
+        if (held && incoming && held !== incoming) {
+          return {
+            applied: false,
+            dryRun,
+            cancelled: false,
+            rolledBack: false,
+            restoredKeys: [],
+            warnings: [...preview.warnings],
+            errors: [
+              `This restore would replace the WACZ signing identity ${held.slice(0, 12)} with ${incoming.slice(0, 12)}. Choose to replace it explicitly, or deselect the signing identity to keep the one saved here.`
+            ],
+            rollbackErrors: [],
+            preview
+          };
+        }
+      }
+    }
     const snapshot = [];
     const warnings = [...preview.warnings];
     try {
       for (const entry of entries) {
         assertNotAborted(options.signal);
-        const current = await storage.get(entry.key, void 0);
-        snapshot.push({ key: entry.key, value: current });
+        const gateway = collectionGateway(storage, entry, fallbackProfileId);
+        const current = await gateway.get(entry.key, void 0);
+        snapshot.push({ key: entry.key, value: current, gateway });
         if (entry.key === SETTINGS_KEY && entry.present) {
           const report = parseSettingsImport(JSON.stringify(entry.value), normalizeSettings(current));
           warnings.push(...report.warnings);
@@ -29123,18 +29447,21 @@ ${COLOR_CSS}`;
     try {
       for (const entry of entries) {
         assertNotAborted(options.signal);
+        const gateway = collectionGateway(storage, entry, fallbackProfileId);
         if (!entry.present) {
-          await storage.remove(entry.key);
+          await gateway.remove(entry.key);
         } else if (entry.key === SETTINGS_KEY) {
-          const current = snapshot.find((item) => item.key === entry.key)?.value;
+          const current = snapshot.find(
+            (item) => item.key === entry.key && item.gateway === gateway
+          )?.value;
           const report = parseSettingsImport(JSON.stringify(entry.value), normalizeSettings(current));
           if (!report.applied) {
             throw new LibraryBackupError(`Settings collection could not be restored: ${report.errors.join("; ")}`);
           }
           warnings.push(...report.warnings);
-          await storage.set(entry.key, report.settings);
+          await gateway.set(entry.key, report.settings);
         } else {
-          await storage.set(entry.key, entry.value);
+          await gateway.set(entry.key, entry.value);
         }
         restoredKeys.push(entry.key);
       }
@@ -29153,8 +29480,8 @@ ${COLOR_CSS}`;
       const rollbackErrors = [];
       for (const item of [...snapshot].reverse()) {
         try {
-          if (item.value === void 0) await storage.remove(item.key);
-          else await storage.set(item.key, item.value);
+          if (item.value === void 0) await item.gateway.remove(item.key);
+          else await item.gateway.set(item.key, item.value);
         } catch (rollbackError) {
           rollbackErrors.push(`${item.key}: ${errorMessage(rollbackError)}`);
         }
@@ -29175,27 +29502,42 @@ ${COLOR_CSS}`;
   function makeEnvelope(collections, options) {
     return {
       generator: "Aviary",
-      schemaVersion: 1,
+      schemaVersion: LIBRARY_BACKUP_SCHEMA_VERSION,
       createdAt: options.createdAt,
       profile: options.profile,
+      profiles: options.profiles,
+      activeProfileId: options.activeProfileId,
       includeCredentials: options.includeCredentials,
       collections,
       manifest: {
-        schemaVersion: 1,
+        schemaVersion: LIBRARY_BACKUP_SCHEMA_VERSION,
         collectionCount: collections.length,
         totalBytes: collections.reduce((total, collection) => total + collection.byteLength, 0),
         sha256: manifestChecksum({ ...options, collections })
       }
     };
   }
-  function makeCollection(key, current, includeCredentials) {
+  function makeCollection(key, current, includeCredentials, profileId = null) {
     const definition = definitionFor(key);
     if (!definition) {
       throw new LibraryBackupError(`Collection '${key}' is not supported.`, "unsupported");
     }
+    if (current !== void 0 && !includeCredentials && CREDENTIAL_COLLECTIONS.has(key)) {
+      return {
+        key: definition.key,
+        profileId,
+        version: 1,
+        present: false,
+        count: 0,
+        byteLength: 0,
+        sha256: sha256Hex(new Uint8Array()),
+        redactedPaths: [key]
+      };
+    }
     if (current === void 0) {
       return {
         key: definition.key,
+        profileId,
         version: 1,
         present: false,
         count: 0,
@@ -29212,6 +29554,7 @@ ${COLOR_CSS}`;
     }
     return {
       key: definition.key,
+      profileId,
       version: 1,
       present: true,
       count: collectionCount(key, value),
@@ -29237,6 +29580,18 @@ ${COLOR_CSS}`;
     }
     return LIBRARY_BACKUP_COLLECTIONS.filter((definition) => requested.has(definition.key));
   }
+  function selectedGlobalDefinitions(selectedKeys2) {
+    if (selectedKeys2 === void 0) return [...LIBRARY_BACKUP_GLOBAL_COLLECTIONS];
+    const requested = new Set(selectedKeys2);
+    return LIBRARY_BACKUP_GLOBAL_COLLECTIONS.filter((definition) => requested.has(definition.key));
+  }
+  function collectionGateway(base, collection, fallbackProfileId) {
+    if (LIBRARY_BACKUP_GLOBAL_COLLECTIONS.some((entry) => entry.key === collection.key)) {
+      return base;
+    }
+    const profileId = collection.profileId ?? fallbackProfileId;
+    return profileId === null ? base : createProfileStorageGateway(base, profileId);
+  }
   function selectedKeys(collections, selectedKeysOption) {
     if (selectedKeysOption === void 0) return new Set(collections.map((collection) => collection.key));
     const requested = new Set(selectedKeysOption);
@@ -29248,6 +29603,8 @@ ${COLOR_CSS}`;
     return new Set(collections.map((collection) => collection.key).filter((key) => requested.has(key)));
   }
   function definitionFor(key) {
+    const global = LIBRARY_BACKUP_GLOBAL_COLLECTIONS.find((entry) => entry.key === key);
+    if (global) return global;
     return LIBRARY_BACKUP_COLLECTIONS.find((definition) => definition.key === key);
   }
   function compareCollections(backup, current) {
@@ -29293,10 +29650,15 @@ ${COLOR_CSS}`;
     return counts.length > 0 ? counts.reduce((total, count) => total + count, 0) : 1;
   }
   function manifestChecksum(input) {
-    const descriptors = input.collections.map(({ value: _value, ...descriptor }) => descriptor);
+    const schemaVersion = input.schemaVersion ?? LIBRARY_BACKUP_SCHEMA_VERSION;
+    const descriptors = input.collections.map(({ value: _value, ...descriptor }) => {
+      if (schemaVersion !== 1) return descriptor;
+      const { profileId: _profileId, ...legacy } = descriptor;
+      return legacy;
+    });
     const text = JSON.stringify({
       generator: "Aviary",
-      schemaVersion: LIBRARY_BACKUP_SCHEMA_VERSION,
+      schemaVersion,
       createdAt: input.createdAt,
       includeCredentials: input.includeCredentials,
       profile: input.profile,
@@ -29345,11 +29707,12 @@ ${COLOR_CSS}`;
     return bytes;
   }
   function parseManifest(value) {
-    if (!isRecord12(value) || value.schemaVersion !== 1) {
+    const schemaVersion = isRecord12(value) ? SUPPORTED_LIBRARY_BACKUP_SCHEMAS.find((known) => known === value.schemaVersion) : void 0;
+    if (!isRecord12(value) || schemaVersion === void 0) {
       throw new LibraryBackupError("Backup manifest is missing or unsupported.", "unsupported");
     }
     return {
-      schemaVersion: 1,
+      schemaVersion,
       collectionCount: nonNegativeInteger5(value.collectionCount, "Manifest collection count"),
       totalBytes: nonNegativeInteger5(value.totalBytes, "Manifest byte count"),
       sha256: validChecksum(value.sha256, "Manifest checksum")
@@ -29387,7 +29750,36 @@ ${COLOR_CSS}`;
     }
     return value.toLowerCase();
   }
-  function normalizeProfile(profile) {
+  function signingFingerprint(value) {
+    if (!isRecord12(value)) return null;
+    return typeof value.fingerprint === "string" && value.fingerprint.length > 0 ? value.fingerprint : null;
+  }
+  function parseProfiles(raw) {
+    if (raw === void 0 || raw === null) return [];
+    if (!Array.isArray(raw)) {
+      throw new LibraryBackupError("Backup profile list must be an array.");
+    }
+    return raw.map((entry) => {
+      if (!isRecord12(entry)) {
+        throw new LibraryBackupError("Backup profile list contains an invalid entry.");
+      }
+      const normalized = normalizeProfile2({
+        id: nonEmptyString(entry.id, "Backup profile id"),
+        label: typeof entry.label === "string" ? entry.label : ""
+      });
+      if (!normalized) {
+        throw new LibraryBackupError("Backup profile list contains an invalid entry.");
+      }
+      return normalized;
+    });
+  }
+  function nonEmptyString(value, what) {
+    if (typeof value !== "string" || value.length === 0) {
+      throw new LibraryBackupError(`${what} must be a non-empty string.`);
+    }
+    return value;
+  }
+  function normalizeProfile2(profile) {
     if (!profile) return null;
     return { id: profile.id.slice(0, 120), label: profile.label.slice(0, 120) };
   }
@@ -29676,9 +30068,16 @@ ${COLOR_CSS}`;
         },
         async exportLibraryBackup() {
           const profile = ctx.profile?.status();
-          const result = await createLibraryBackup(ctx.storage, {
-            profile: profile ? { id: profile.activeId, label: profile.activeLabel } : null
-          });
+          const result = await createLibraryBackup(
+            ctx.profile ? ctx.profile.baseStorage : ctx.storage,
+            {
+              profile: profile ? { id: profile.activeId, label: profile.activeLabel } : null,
+              ...profile ? {
+                profiles: profile.profiles.map((entry) => ({ id: entry.id, label: entry.label })),
+                activeProfileId: profile.activeId
+              } : {}
+            }
+          );
           downloadBlob(result.artifact.data, result.artifact.filename, result.artifact.contentType);
           void ctx.auditLog.record("library.backup.export", {
             collections: result.artifact.collections,
@@ -29693,17 +30092,21 @@ ${COLOR_CSS}`;
         },
         async previewLibraryRestore(payload) {
           return previewLibraryRestore(
-            ctx.storage,
+            ctx.profile ? ctx.profile.baseStorage : ctx.storage,
             payload,
             ctx.profile ? { profileId: ctx.profile.activeId } : {}
           );
         },
         async restoreLibraryBackup(payload, restoreOptions) {
-          const result = await restoreLibraryBackup(ctx.storage, payload, {
-            dryRun: restoreOptions.dryRun,
-            signal: restoreOptions.signal,
-            ...ctx.profile ? { profileId: ctx.profile.activeId } : {}
-          });
+          const result = await restoreLibraryBackup(
+            ctx.profile ? ctx.profile.baseStorage : ctx.storage,
+            payload,
+            {
+              dryRun: restoreOptions.dryRun,
+              signal: restoreOptions.signal,
+              ...ctx.profile ? { profileId: ctx.profile.activeId } : {}
+            }
+          );
           if (result.applied) {
             if (result.restoredKeys.includes(SETTINGS_KEY)) {
               const restoredSettings = await ctx.storage.get(SETTINGS_KEY, ctx.settings);
@@ -36443,225 +36846,6 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       return cryptoWithUuid.randomUUID();
     }
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-  }
-
-  // src/platform/profile.ts
-  var PROFILE_REGISTRY_KEY = "aviary.profiles.v1";
-  var ACTIVE_PROFILE_KEY = "aviary.profile.active.v1";
-  var PROFILE_MIGRATION_KEYS = [
-    "aviary.settings.v1",
-    "aviary.integration.usage.v1",
-    "aviary.export.checkpoints.v1",
-    "aviary.queryIds.v1",
-    "aviary.media.history.v1",
-    "aviary.media.queue.v1",
-    "aviary.aria2.history.v1",
-    "aviary.hiddenPosts.v1",
-    "aviary.seenPosts.v1",
-    "aviary.readingMarkers.v1",
-    "aviary.catchUp.v1",
-    "aviary.media.last-download.v1",
-    "aviary.cleanupQueue.v1",
-    "aviary.userNotes.v1",
-    "aviary.audit.v1",
-    "aviary.firstRun.v1",
-    "aviary.diagnostics.v1",
-    "aviary.adObservations.v1",
-    "aviary.library.bookmarks.v1",
-    "aviary.snapshots.v1",
-    "aviary.library.underTheHood.v1",
-    "aviary.semanticIndex.v1",
-    "aviary.archive.imports.v1",
-    "aviary.archive.library.v1",
-    "aviary.waczSigning.v1",
-    "aviary.retention.maxJobs",
-    "aviary.retention.maxRecordsPerJob",
-    "aviary.retention.maxAgeDays"
-  ];
-  var DEFAULT_PROFILE_ID = "offline-default";
-  function randomId() {
-    const uuid = globalThis.crypto?.randomUUID?.();
-    if (uuid) {
-      return uuid;
-    }
-    const bytes = new Uint8Array(8);
-    globalThis.crypto?.getRandomValues?.(bytes);
-    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
-  }
-  var EMPTY8 = { profiles: [] };
-  var ProfileManager = class {
-    #base;
-    #state = EMPTY8;
-    #activeId = DEFAULT_PROFILE_ID;
-    #legacyDataAvailable = false;
-    #legacySweep = Promise.resolve();
-    #loaded = false;
-    constructor(base) {
-      this.#base = base;
-    }
-    async load() {
-      if (this.#loaded) return;
-      this.#state = normalizeState4(await this.#base.get(PROFILE_REGISTRY_KEY, EMPTY8));
-      const active2 = await this.#base.get(ACTIVE_PROFILE_KEY, null);
-      if (typeof active2 === "string" && this.#state.profiles.some((profile) => profile.id === active2)) {
-        this.#activeId = active2;
-      }
-      if (!this.#state.profiles.some((profile) => profile.id === this.#activeId)) {
-        this.#state.profiles.unshift({
-          id: DEFAULT_PROFILE_ID,
-          label: "Offline library",
-          kind: "offline",
-          createdAt: (/* @__PURE__ */ new Date()).toISOString(),
-          lastUsedAt: (/* @__PURE__ */ new Date()).toISOString()
-        });
-      }
-      this.#loaded = true;
-      this.#legacySweep = new Promise((resolve) => {
-        setTimeout(() => {
-          this.#refreshLegacyAvailability().then(resolve, resolve);
-        }, 0);
-      });
-    }
-    /**
-     * Whether a pre-profile install left data outside the active profile.
-     *
-     * Awaitable so a caller that genuinely needs the answer -- a test, or a panel that wants to be
-     * sure -- can wait for it rather than reading a value that has not been computed yet. Boot does
-     * not wait, because it does not need to.
-     */
-    async legacyDataSettled() {
-      await this.#legacySweep;
-      return this.#legacyDataAvailable;
-    }
-    async #refreshLegacyAvailability() {
-      this.#legacyDataAvailable = await this.hasLegacyData();
-    }
-    get activeId() {
-      return this.#activeId;
-    }
-    status() {
-      const active2 = this.#state.profiles.find((profile) => profile.id === this.#activeId);
-      return {
-        activeId: this.#activeId,
-        activeLabel: active2?.label ?? this.#activeId,
-        profiles: this.#state.profiles.map((profile) => ({ ...profile })),
-        legacyDataAvailable: this.#legacyDataAvailable
-      };
-    }
-    async create(label, kind = "offline") {
-      await this.load();
-      const cleanLabel = label.trim().slice(0, 80) || "Offline library";
-      const now2 = (/* @__PURE__ */ new Date()).toISOString();
-      const profile = {
-        // `Date.now()` plus a count is the collision pattern already fixed once in bookmarks:
-        // two profiles created in the same millisecond after a deletion can collide.
-        id: `${kind === "x-account" ? "account" : "offline"}-${randomId()}`,
-        label: cleanLabel,
-        kind,
-        createdAt: now2,
-        lastUsedAt: now2
-      };
-      this.#state.profiles.push(profile);
-      await this.#persist();
-      return { ...profile };
-    }
-    async switchTo(profileId) {
-      await this.load();
-      const profile = this.#state.profiles.find((entry) => entry.id === profileId);
-      if (!profile) return false;
-      this.#activeId = profile.id;
-      profile.lastUsedAt = (/* @__PURE__ */ new Date()).toISOString();
-      await this.#base.set(ACTIVE_PROFILE_KEY, this.#activeId);
-      await this.#persist();
-      return true;
-    }
-    async adoptLegacyIntoActive() {
-      await this.load();
-      const scoped = createProfileStorageGateway(this.#base, this.#activeId);
-      let moved = 0;
-      let skipped = 0;
-      for (const key of PROFILE_MIGRATION_KEYS) {
-        const legacy = await this.#base.get(key, void 0);
-        if (legacy === void 0) continue;
-        const existing = await scoped.get(key, void 0);
-        if (existing !== void 0) {
-          skipped += 1;
-          continue;
-        }
-        await scoped.set(key, legacy);
-        await this.#base.remove(key);
-        moved += 1;
-      }
-      this.#legacySweep = this.#refreshLegacyAvailability();
-      await this.#legacySweep;
-      return { moved, skipped };
-    }
-    /**
-     * One round of reads rather than 28 in series.
-     *
-     * The old loop returned on the first hit, which sounds cheaper and is the opposite on the path
-     * that matters: a fresh install has none of these keys, so it always ran all 28 to completion,
-     * one await at a time. Asking for them together lets the durable gateway overlap them, and the
-     * early-exit saving it gives up only ever applied to installs that had legacy data anyway.
-     */
-    async hasLegacyData() {
-      const found = await Promise.all(
-        PROFILE_MIGRATION_KEYS.map((key) => this.#base.get(key, void 0))
-      );
-      return found.some((value) => value !== void 0);
-    }
-    async #persist() {
-      await this.#base.set(PROFILE_REGISTRY_KEY, this.#state);
-    }
-  };
-  function createProfileStorageGateway(base, profileId) {
-    const safeId = profileId.replace(/[^A-Za-z0-9_-]/g, "-").slice(0, 80) || DEFAULT_PROFILE_ID;
-    const prefix = `aviary.profile.${safeId}`;
-    const scoped = (key) => key.startsWith("aviary.") ? `${prefix}.${key.slice("aviary.".length)}` : `${prefix}.${key}`;
-    return {
-      get(key, fallback) {
-        return base.get(scoped(key), fallback);
-      },
-      set(key, value) {
-        return base.set(scoped(key), value);
-      },
-      remove(key) {
-        return base.remove(scoped(key));
-      },
-      getStatus() {
-        return base.getStatus?.() ?? {
-          backend: "legacy",
-          schemaVersion: 0,
-          migratedKeys: 0,
-          usageBytes: null,
-          quotaBytes: null,
-          persistence: "unknown",
-          pendingWrites: 0,
-          lastError: null
-        };
-      }
-    };
-  }
-  function normalizeState4(value) {
-    if (!value || typeof value !== "object") return { profiles: [] };
-    const raw = value;
-    const profiles = Array.isArray(raw.profiles) ? raw.profiles.map(normalizeProfile2).filter((profile) => profile !== null) : [];
-    const unique = new Map(profiles.map((profile) => [profile.id, profile]));
-    return { profiles: [...unique.values()] };
-  }
-  function normalizeProfile2(value) {
-    if (!value || typeof value !== "object") return null;
-    const raw = value;
-    if (typeof raw.id !== "string" || raw.id.length === 0 || typeof raw.label !== "string") return null;
-    const kind = raw.kind === "x-account" ? "x-account" : "offline";
-    const createdAt = typeof raw.createdAt === "string" ? raw.createdAt : (/* @__PURE__ */ new Date(0)).toISOString();
-    return {
-      id: raw.id.replace(/[^A-Za-z0-9_-]/g, "-").slice(0, 80),
-      label: raw.label.trim().slice(0, 80) || "Offline library",
-      kind,
-      createdAt,
-      lastUsedAt: typeof raw.lastUsedAt === "string" ? raw.lastUsedAt : createdAt
-    };
   }
 
   // src/platform/trusted-types.ts

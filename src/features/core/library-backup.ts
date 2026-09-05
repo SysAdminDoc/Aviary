@@ -23,10 +23,18 @@ import {
   parseSettingsImport
 } from "./settings-migration.ts";
 import { normalizeSettings, SETTINGS_KEY } from "../../platform/settings.ts";
+import {
+  ACTIVE_PROFILE_KEY,
+  createProfileStorageGateway,
+  PROFILE_REGISTRY_KEY
+} from "../../platform/profile.ts";
 import type { StorageGateway } from "../../platform/storage.ts";
+import { WACZ_SIGNING_KEY } from "../export/wacz-signing.ts";
 import { sha256Hex } from "../export/assets.ts";
 
-export const LIBRARY_BACKUP_SCHEMA_VERSION = 1;
+export const LIBRARY_BACKUP_SCHEMA_VERSION = 2;
+/** Schema 1 held a single profile's collections and no per-collection profile. Still restorable. */
+export const SUPPORTED_LIBRARY_BACKUP_SCHEMAS = [1, 2] as const;
 export const LIBRARY_BACKUP_COLLECTION_VERSION = 1;
 export const MAX_LIBRARY_BACKUP_BYTES = 100 * 1024 * 1024;
 
@@ -73,10 +81,31 @@ export const LIBRARY_BACKUP_COLLECTIONS = [
   { key: ARCHIVE_LIBRARY_KEY, label: "Archive library", version: 1 },
   { key: RETENTION_KEYS.maxJobs, label: "Job retention", version: 1 },
   { key: RETENTION_KEYS.maxRecordsPerJob, label: "Record retention", version: 1 },
-  { key: RETENTION_KEYS.maxAgeDays, label: "Age retention", version: 1 }
+  { key: RETENTION_KEYS.maxAgeDays, label: "Age retention", version: 1 },
+  // The signing identity is a credential, so it travels only when the user opts in. Leaving it out
+  // of the set entirely was the older behaviour, and it meant a restored install silently minted a
+  // new keypair: every package signed before the restore stopped being attributable to the same
+  // fingerprint, with nothing said about it.
+  { key: WACZ_SIGNING_KEY, label: "WACZ signing identity", version: 1 }
 ] as const satisfies ReadonlyArray<LibraryBackupCollectionDefinition>;
 
-export type LibraryBackupKey = (typeof LIBRARY_BACKUP_COLLECTIONS)[number]["key"];
+/**
+ * Stores that belong to the install rather than to any one profile.
+ *
+ * These are read through the unscoped base gateway. Without them a backup could carry three
+ * profiles' collections and still restore into an install that had never heard of two of them.
+ */
+export const LIBRARY_BACKUP_GLOBAL_COLLECTIONS = [
+  { key: PROFILE_REGISTRY_KEY, label: "Profiles", version: 1 },
+  { key: ACTIVE_PROFILE_KEY, label: "Active profile", version: 1 }
+] as const satisfies ReadonlyArray<LibraryBackupCollectionDefinition>;
+
+/** Collections whose entire value is a credential, not merely a field inside one. */
+const CREDENTIAL_COLLECTIONS = new Set<string>([WACZ_SIGNING_KEY]);
+
+export type LibraryBackupKey =
+  | (typeof LIBRARY_BACKUP_COLLECTIONS)[number]["key"]
+  | (typeof LIBRARY_BACKUP_GLOBAL_COLLECTIONS)[number]["key"];
 
 export interface LibraryBackupProfile {
   id: string;
@@ -85,6 +114,8 @@ export interface LibraryBackupProfile {
 
 export interface LibraryBackupCollection {
   key: LibraryBackupKey;
+  /** Which profile this value belongs to; `null` for install-wide stores. */
+  profileId: string | null;
   version: 1;
   present: boolean;
   count: number;
@@ -95,7 +126,7 @@ export interface LibraryBackupCollection {
 }
 
 export interface LibraryBackupManifest {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   collectionCount: number;
   totalBytes: number;
   sha256: string;
@@ -103,9 +134,12 @@ export interface LibraryBackupManifest {
 
 export interface LibraryBackupEnvelope {
   generator: "Aviary";
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   createdAt: string;
   profile: LibraryBackupProfile | null;
+  /** Every profile the backup carries. Empty on a schema 1 backup, which held only one. */
+  profiles: LibraryBackupProfile[];
+  activeProfileId: string | null;
   includeCredentials: boolean;
   collections: LibraryBackupCollection[];
   manifest: LibraryBackupManifest;
@@ -124,12 +158,19 @@ export interface LibraryBackupBuildOptions {
   includeCredentials?: boolean;
   selectedKeys?: readonly string[];
   createdAt?: string;
+  /**
+   * Every profile to back up. Omitted means "whatever gateway you handed me, as one profile",
+   * which is what a single-profile install and every existing caller-supplied gateway looks like.
+   */
+  profiles?: readonly LibraryBackupProfile[];
+  activeProfileId?: string | null;
 }
 
 export type LibraryBackupConflict = "add" | "replace" | "remove" | "unchanged";
 
 export interface LibraryBackupPreviewCollection {
   key: LibraryBackupKey;
+  profileId: string | null;
   label: string;
   version: 1;
   present: boolean;
@@ -142,13 +183,17 @@ export interface LibraryBackupPreviewCollection {
 }
 
 export interface LibraryBackupPreview {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   createdAt: string;
   profile: LibraryBackupProfile | null;
   includeCredentials: boolean;
   credentialsRedacted: boolean;
   totalBytes: number;
   collections: LibraryBackupPreviewCollection[];
+  /** Every profile the backup will write, so the preview can name them before it runs. */
+  profiles: LibraryBackupProfile[];
+  /** Collections present in the backup that this build will not write, and why. */
+  skipped: Array<{ key: string; profileId: string | null; reason: string }>;
   conflictCount: number;
   warnings: string[];
 }
@@ -158,6 +203,14 @@ export interface LibraryBackupRestoreOptions {
   selectedKeys?: readonly string[];
   signal?: AbortSignal;
   profileId?: string;
+  /**
+   * Permission to overwrite an existing WACZ signing identity with a different one.
+   *
+   * Replacing it silently would mean every package this install signed before the restore stops
+   * verifying against the fingerprint it now holds, with nothing said. The restore refuses instead
+   * and reports the two fingerprints, so the choice is made rather than discovered later.
+   */
+  replaceSigningIdentity?: boolean;
 }
 
 export interface LibraryBackupRestoreResult {
@@ -192,16 +245,40 @@ export async function createLibraryBackup(
   const includeCredentials = options.includeCredentials === true;
   const definitions = selectedDefinitions(options.selectedKeys);
   const collections: LibraryBackupCollection[] = [];
+  const profiles = [...(options.profiles ?? [])];
 
-  for (const definition of definitions) {
-    const current = await storage.get<unknown>(definition.key, undefined);
-    collections.push(makeCollection(definition.key, current, includeCredentials));
+  // Install-wide stores first, read through the gateway exactly as given. A profile roster that
+  // lived only in the active profile's scope would restore into an install that had never heard
+  // of the other profiles it carries.
+  if (profiles.length > 0) {
+    for (const definition of selectedGlobalDefinitions(options.selectedKeys)) {
+      const current = await storage.get<unknown>(definition.key, undefined);
+      collections.push(makeCollection(definition.key, current, includeCredentials, null));
+    }
+  }
+
+  // No profile list means the caller handed us the gateway it wants read, which is how every
+  // single-profile install and every existing test drives this.
+  const scopes: Array<{ id: string | null; gateway: StorageGateway }> = profiles.length > 0
+    ? profiles.map((profile) => ({
+      id: profile.id,
+      gateway: createProfileStorageGateway(storage, profile.id)
+    }))
+    : [{ id: null, gateway: storage }];
+
+  for (const scope of scopes) {
+    for (const definition of definitions) {
+      const current = await scope.gateway.get<unknown>(definition.key, undefined);
+      collections.push(makeCollection(definition.key, current, includeCredentials, scope.id));
+    }
   }
 
   const envelope = makeEnvelope(collections, {
     createdAt: options.createdAt ?? new Date().toISOString(),
     includeCredentials,
-    profile: normalizeProfile(options.profile)
+    profile: normalizeProfile(options.profile),
+    profiles: profiles.map((profile) => normalizeProfile(profile)).filter((profile) => profile !== null),
+    activeProfileId: typeof options.activeProfileId === "string" ? options.activeProfileId : null
   });
   const text = JSON.stringify(envelope, null, 2);
   const data = new TextEncoder().encode(text);
@@ -238,9 +315,10 @@ export function parseLibraryBackup(payload: string | Uint8Array): LibraryBackupE
   if (raw.generator !== "Aviary") {
     throw new LibraryBackupError("Backup generator is not Aviary.", "unsupported");
   }
-  if (raw.schemaVersion !== LIBRARY_BACKUP_SCHEMA_VERSION) {
+  const schemaVersion = SUPPORTED_LIBRARY_BACKUP_SCHEMAS.find((known) => known === raw.schemaVersion);
+  if (schemaVersion === undefined) {
     throw new LibraryBackupError(
-      `Backup schema ${String(raw.schemaVersion)} is not supported (expected ${LIBRARY_BACKUP_SCHEMA_VERSION}).`,
+      `Backup schema ${String(raw.schemaVersion)} is not supported (expected ${SUPPORTED_LIBRARY_BACKUP_SCHEMAS.join(" or ")}).`,
       "unsupported"
     );
   }
@@ -265,10 +343,18 @@ export function parseLibraryBackup(payload: string | Uint8Array): LibraryBackupE
     if (!definition) {
       throw new LibraryBackupError(`Backup collection '${String(candidate.key)}' is not supported.`, "unsupported");
     }
-    if (seen.has(definition.key)) {
-      throw new LibraryBackupError(`Backup contains duplicate collection '${definition.key}'.`);
+    const profileId = candidate.profileId === undefined || candidate.profileId === null
+      ? null
+      : nonEmptyString(candidate.profileId, `Collection '${definition.key}' profile`);
+    // A key repeated under two profiles is two collections, not a duplicate. Only the pair is
+    // unique, which is what a multi-profile backup means.
+    const identity = `${profileId ?? ""}::${definition.key}`;
+    if (seen.has(identity)) {
+      throw new LibraryBackupError(
+        `Backup contains duplicate collection '${definition.key}'${profileId ? ` for profile '${profileId}'` : ""}.`
+      );
     }
-    seen.add(definition.key);
+    seen.add(identity);
     if (candidate.version !== LIBRARY_BACKUP_COLLECTION_VERSION) {
       throw new LibraryBackupError(
         `Collection '${definition.key}' uses unsupported version ${String(candidate.version)}.`,
@@ -304,6 +390,7 @@ export function parseLibraryBackup(payload: string | Uint8Array): LibraryBackupE
     }
     collections.push({
       key: definition.key as LibraryBackupKey,
+      profileId,
       version: 1,
       present,
       count,
@@ -323,7 +410,8 @@ export function parseLibraryBackup(payload: string | Uint8Array): LibraryBackupE
     createdAt: raw.createdAt,
     includeCredentials: raw.includeCredentials,
     profile,
-    collections
+    collections,
+    schemaVersion
   });
   if (manifest.sha256 !== expectedManifestChecksum) {
     throw new LibraryBackupError("Backup manifest checksum does not match its collections.", "checksum");
@@ -331,9 +419,11 @@ export function parseLibraryBackup(payload: string | Uint8Array): LibraryBackupE
 
   return {
     generator: "Aviary",
-    schemaVersion: 1,
+    schemaVersion,
     createdAt: raw.createdAt,
     profile,
+    profiles: parseProfiles(raw.profiles),
+    activeProfileId: typeof raw.activeProfileId === "string" ? raw.activeProfileId : null,
     includeCredentials: raw.includeCredentials,
     collections,
     manifest
@@ -347,13 +437,31 @@ export async function previewLibraryRestore(
 ): Promise<LibraryBackupPreview> {
   const backup = parseLibraryBackup(payload);
   const collections: LibraryBackupPreviewCollection[] = [];
+  const fallbackProfileId = backup.schemaVersion === 1 ? options.profileId ?? null : null;
+  const skipped: LibraryBackupPreview["skipped"] = [];
   for (const collection of backup.collections) {
-    const current = await storage.get<unknown>(collection.key, undefined);
-    const currentCollection = makeCollection(collection.key, current, backup.includeCredentials);
+    const scoped = collectionGateway(storage, collection, fallbackProfileId);
+    const current = await scoped.get<unknown>(collection.key, undefined);
+    const currentCollection = makeCollection(
+      collection.key,
+      current,
+      backup.includeCredentials,
+      collection.profileId
+    );
+    if (!collection.present && collection.redactedPaths.includes(collection.key)) {
+      // Withheld, not absent. Writing "not present" over a live credential would delete it.
+      skipped.push({
+        key: collection.key,
+        profileId: collection.profileId,
+        reason: "Withheld from the backup as a credential; the value already saved is kept."
+      });
+      continue;
+    }
     const conflict = compareCollections(collection, currentCollection);
     const definition = definitionFor(collection.key)!;
     collections.push({
       key: collection.key,
+      profileId: collection.profileId,
       label: definition.label,
       version: collection.version,
       present: collection.present,
@@ -373,6 +481,18 @@ export async function previewLibraryRestore(
   if (!backup.includeCredentials && backup.collections.some((collection) => collection.redactedPaths.length > 0)) {
     warnings.push("Credentials are redacted; the values already saved in this profile will be kept.");
   }
+  for (const collection of backup.collections) {
+    if (collection.key !== WACZ_SIGNING_KEY || !collection.present) continue;
+    const scoped = collectionGateway(storage, collection, fallbackProfileId);
+    const current = await scoped.get<unknown>(WACZ_SIGNING_KEY, undefined);
+    const incoming = signingFingerprint(collection.value);
+    const held = signingFingerprint(current);
+    if (held && incoming && held !== incoming) {
+      warnings.push(
+        `This backup carries a different WACZ signing identity (${incoming.slice(0, 12)}) than the one saved here (${held.slice(0, 12)}). Packages already signed with the saved identity will not verify against the restored one.`
+      );
+    }
+  }
   return {
     schemaVersion: backup.schemaVersion,
     createdAt: backup.createdAt,
@@ -381,6 +501,8 @@ export async function previewLibraryRestore(
     credentialsRedacted: backup.collections.some((collection) => collection.redactedPaths.length > 0),
     totalBytes: backup.manifest.totalBytes,
     collections,
+    profiles: backup.profiles,
+    skipped,
     conflictCount: collections.filter((collection) => collection.conflict !== "unchanged").length,
     warnings
   };
@@ -419,16 +541,50 @@ async function restoreLibraryBackupLocked(
     options.profileId === undefined ? {} : { profileId: options.profileId }
   );
   const selected = selectedKeys(backup.collections, options.selectedKeys);
-  const entries = backup.collections.filter((collection) => selected.has(collection.key));
+  const fallbackProfileId = backup.schemaVersion === 1 ? options.profileId ?? null : null;
+  const entries = backup.collections.filter((collection) =>
+    selected.has(collection.key) &&
+    // A credential the backup withheld carries no value to write. Restoring it as "absent" would
+    // delete the signing identity this install already holds.
+    !(!collection.present && collection.redactedPaths.includes(collection.key))
+  );
   const dryRun = options.dryRun === true;
-  const snapshot: Array<{ key: LibraryBackupKey; value: unknown }> = [];
+  if (!options.replaceSigningIdentity) {
+    for (const entry of entries) {
+      if (entry.key !== WACZ_SIGNING_KEY || !entry.present) continue;
+      const gateway = collectionGateway(storage, entry, fallbackProfileId);
+      const held = signingFingerprint(await gateway.get<unknown>(WACZ_SIGNING_KEY, undefined));
+      const incoming = signingFingerprint(entry.value);
+      if (held && incoming && held !== incoming) {
+        return {
+          applied: false,
+          dryRun,
+          cancelled: false,
+          rolledBack: false,
+          restoredKeys: [],
+          warnings: [...preview.warnings],
+          errors: [
+            `This restore would replace the WACZ signing identity ${held.slice(0, 12)} with ${incoming.slice(0, 12)}. Choose to replace it explicitly, or deselect the signing identity to keep the one saved here.`
+          ],
+          rollbackErrors: [],
+          preview
+        };
+      }
+    }
+  }
+  const snapshot: Array<{
+    key: LibraryBackupKey;
+    value: unknown;
+    gateway: StorageGateway;
+  }> = [];
   const warnings = [...preview.warnings];
 
   try {
     for (const entry of entries) {
       assertNotAborted(options.signal);
-      const current = await storage.get<unknown>(entry.key, undefined);
-      snapshot.push({ key: entry.key, value: current });
+      const gateway = collectionGateway(storage, entry, fallbackProfileId);
+      const current = await gateway.get<unknown>(entry.key, undefined);
+      snapshot.push({ key: entry.key, value: current, gateway });
       if (entry.key === SETTINGS_KEY && entry.present) {
         const report = parseSettingsImport(JSON.stringify(entry.value), normalizeSettings(current));
         warnings.push(...report.warnings);
@@ -469,18 +625,21 @@ async function restoreLibraryBackupLocked(
   try {
     for (const entry of entries) {
       assertNotAborted(options.signal);
+      const gateway = collectionGateway(storage, entry, fallbackProfileId);
       if (!entry.present) {
-        await storage.remove(entry.key);
+        await gateway.remove(entry.key);
       } else if (entry.key === SETTINGS_KEY) {
-        const current = snapshot.find((item) => item.key === entry.key)?.value;
+        const current = snapshot.find(
+          (item) => item.key === entry.key && item.gateway === gateway
+        )?.value;
         const report = parseSettingsImport(JSON.stringify(entry.value), normalizeSettings(current));
         if (!report.applied) {
           throw new LibraryBackupError(`Settings collection could not be restored: ${report.errors.join("; ")}`);
         }
         warnings.push(...report.warnings);
-        await storage.set(entry.key, report.settings);
+        await gateway.set(entry.key, report.settings);
       } else {
-        await storage.set(entry.key, entry.value);
+        await gateway.set(entry.key, entry.value);
       }
       restoredKeys.push(entry.key);
     }
@@ -499,8 +658,8 @@ async function restoreLibraryBackupLocked(
     const rollbackErrors: string[] = [];
     for (const item of [...snapshot].reverse()) {
       try {
-        if (item.value === undefined) await storage.remove(item.key);
-        else await storage.set(item.key, item.value);
+        if (item.value === undefined) await item.gateway.remove(item.key);
+        else await item.gateway.set(item.key, item.value);
       } catch (rollbackError) {
         rollbackErrors.push(`${item.key}: ${errorMessage(rollbackError)}`);
       }
@@ -521,17 +680,25 @@ async function restoreLibraryBackupLocked(
 
 function makeEnvelope(
   collections: LibraryBackupCollection[],
-  options: { createdAt: string; includeCredentials: boolean; profile: LibraryBackupProfile | null }
+  options: {
+    createdAt: string;
+    includeCredentials: boolean;
+    profile: LibraryBackupProfile | null;
+    profiles: LibraryBackupProfile[];
+    activeProfileId: string | null;
+  }
 ): LibraryBackupEnvelope {
   return {
     generator: "Aviary",
-    schemaVersion: 1,
+    schemaVersion: LIBRARY_BACKUP_SCHEMA_VERSION,
     createdAt: options.createdAt,
     profile: options.profile,
+    profiles: options.profiles,
+    activeProfileId: options.activeProfileId,
     includeCredentials: options.includeCredentials,
     collections,
     manifest: {
-      schemaVersion: 1,
+      schemaVersion: LIBRARY_BACKUP_SCHEMA_VERSION,
       collectionCount: collections.length,
       totalBytes: collections.reduce((total, collection) => total + collection.byteLength, 0),
       sha256: manifestChecksum({ ...options, collections })
@@ -542,15 +709,32 @@ function makeEnvelope(
 function makeCollection(
   key: string,
   current: unknown,
-  includeCredentials: boolean
+  includeCredentials: boolean,
+  profileId: string | null = null
 ): LibraryBackupCollection {
   const definition = definitionFor(key);
   if (!definition) {
     throw new LibraryBackupError(`Collection '${key}' is not supported.`, "unsupported");
   }
+  // The signing identity is a private key end to end; there is no field to redact and leave a
+  // useful remainder. Withhold the whole value and say so, so a restore knows it was withheld
+  // rather than absent.
+  if (current !== undefined && !includeCredentials && CREDENTIAL_COLLECTIONS.has(key)) {
+    return {
+      key: definition.key as LibraryBackupKey,
+      profileId,
+      version: 1,
+      present: false,
+      count: 0,
+      byteLength: 0,
+      sha256: sha256Hex(new Uint8Array()),
+      redactedPaths: [key]
+    };
+  }
   if (current === undefined) {
     return {
       key: definition.key as LibraryBackupKey,
+      profileId,
       version: 1,
       present: false,
       count: 0,
@@ -567,6 +751,7 @@ function makeCollection(
   }
   return {
     key: definition.key as LibraryBackupKey,
+    profileId,
     version: 1,
     present: true,
     count: collectionCount(key, value),
@@ -595,6 +780,33 @@ function selectedDefinitions(selectedKeys: readonly string[] | undefined): Libra
   return LIBRARY_BACKUP_COLLECTIONS.filter((definition) => requested.has(definition.key));
 }
 
+function selectedGlobalDefinitions(
+  selectedKeys: readonly string[] | undefined
+): LibraryBackupCollectionDefinition[] {
+  if (selectedKeys === undefined) return [...LIBRARY_BACKUP_GLOBAL_COLLECTIONS];
+  const requested = new Set(selectedKeys);
+  return LIBRARY_BACKUP_GLOBAL_COLLECTIONS.filter((definition) => requested.has(definition.key));
+}
+
+/**
+ * Which storage the collection belongs in.
+ *
+ * Install-wide stores use the base gateway. A schema 2 collection names its own profile. A schema 1
+ * collection names none, so it falls back to the profile being restored into, which is what the
+ * caller-scoped gateway used to supply implicitly.
+ */
+function collectionGateway(
+  base: StorageGateway,
+  collection: Pick<LibraryBackupCollection, "key" | "profileId">,
+  fallbackProfileId: string | null
+): StorageGateway {
+  if (LIBRARY_BACKUP_GLOBAL_COLLECTIONS.some((entry) => entry.key === collection.key)) {
+    return base;
+  }
+  const profileId = collection.profileId ?? fallbackProfileId;
+  return profileId === null ? base : createProfileStorageGateway(base, profileId);
+}
+
 function selectedKeys(
   collections: readonly LibraryBackupCollection[],
   selectedKeysOption: readonly string[] | undefined
@@ -610,6 +822,8 @@ function selectedKeys(
 }
 
 function definitionFor(key: unknown): LibraryBackupCollectionDefinition | undefined {
+  const global = LIBRARY_BACKUP_GLOBAL_COLLECTIONS.find((entry) => entry.key === key);
+  if (global) return global;
   return LIBRARY_BACKUP_COLLECTIONS.find((definition) => definition.key === key);
 }
 
@@ -662,16 +876,30 @@ function collectionCount(key: string, value: unknown): number {
   return counts.length > 0 ? counts.reduce((total, count) => total + count, 0) : 1;
 }
 
+/**
+ * Version-aware by necessity.
+ *
+ * A schema 1 backup's checksum was computed over descriptors that had no `profileId` and over the
+ * literal version 1. Hashing those same bytes under the current shape produces a different digest,
+ * which would reject every backup a user already holds as corrupt. The version is therefore an
+ * input, not a constant.
+ */
 function manifestChecksum(input: {
   createdAt: string;
   includeCredentials: boolean;
   profile: LibraryBackupProfile | null;
   collections: readonly LibraryBackupCollection[];
+  schemaVersion?: 1 | 2;
 }): string {
-  const descriptors = input.collections.map(({ value: _value, ...descriptor }) => descriptor);
+  const schemaVersion = input.schemaVersion ?? LIBRARY_BACKUP_SCHEMA_VERSION;
+  const descriptors = input.collections.map(({ value: _value, ...descriptor }) => {
+    if (schemaVersion !== 1) return descriptor;
+    const { profileId: _profileId, ...legacy } = descriptor;
+    return legacy;
+  });
   const text = JSON.stringify({
     generator: "Aviary",
-    schemaVersion: LIBRARY_BACKUP_SCHEMA_VERSION,
+    schemaVersion,
     createdAt: input.createdAt,
     includeCredentials: input.includeCredentials,
     profile: input.profile,
@@ -725,11 +953,14 @@ function decodeBase64(value: string): Uint8Array {
 }
 
 function parseManifest(value: unknown): LibraryBackupManifest {
-  if (!isRecord(value) || value.schemaVersion !== 1) {
+  const schemaVersion = isRecord(value)
+    ? SUPPORTED_LIBRARY_BACKUP_SCHEMAS.find((known) => known === value.schemaVersion)
+    : undefined;
+  if (!isRecord(value) || schemaVersion === undefined) {
     throw new LibraryBackupError("Backup manifest is missing or unsupported.", "unsupported");
   }
   return {
-    schemaVersion: 1,
+    schemaVersion,
     collectionCount: nonNegativeInteger(value.collectionCount, "Manifest collection count"),
     totalBytes: nonNegativeInteger(value.totalBytes, "Manifest byte count"),
     sha256: validChecksum(value.sha256, "Manifest checksum")
@@ -771,6 +1002,41 @@ function validChecksum(value: unknown, label: string): string {
     throw new LibraryBackupError(`${label} is invalid.`, "checksum");
   }
   return value.toLowerCase();
+}
+
+/** The public half of a stored signing identity, or null when the value is not one. */
+function signingFingerprint(value: unknown): string | null {
+  if (!isRecord(value)) return null;
+  return typeof value.fingerprint === "string" && value.fingerprint.length > 0
+    ? value.fingerprint
+    : null;
+}
+
+function parseProfiles(raw: unknown): LibraryBackupProfile[] {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) {
+    throw new LibraryBackupError("Backup profile list must be an array.");
+  }
+  return raw.map((entry) => {
+    if (!isRecord(entry)) {
+      throw new LibraryBackupError("Backup profile list contains an invalid entry.");
+    }
+    const normalized = normalizeProfile({
+      id: nonEmptyString(entry.id, "Backup profile id"),
+      label: typeof entry.label === "string" ? entry.label : ""
+    });
+    if (!normalized) {
+      throw new LibraryBackupError("Backup profile list contains an invalid entry.");
+    }
+    return normalized;
+  });
+}
+
+function nonEmptyString(value: unknown, what: string): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new LibraryBackupError(`${what} must be a non-empty string.`);
+  }
+  return value;
 }
 
 function normalizeProfile(profile: LibraryBackupProfile | null | undefined): LibraryBackupProfile | null {

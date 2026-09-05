@@ -420,11 +420,20 @@ export const controlCenterFeature: FeatureModule = {
       },
       async exportLibraryBackup() {
         const profile = ctx.profile?.status();
-        const result = await createLibraryBackup(ctx.storage, {
-          profile: profile
-            ? { id: profile.activeId, label: profile.activeLabel }
-            : null
-        });
+        const result = await createLibraryBackup(
+          ctx.profile ? ctx.profile.baseStorage : ctx.storage,
+          {
+            profile: profile
+              ? { id: profile.activeId, label: profile.activeLabel }
+              : null,
+            ...(profile
+              ? {
+                profiles: profile.profiles.map((entry) => ({ id: entry.id, label: entry.label })),
+                activeProfileId: profile.activeId
+              }
+              : {})
+          }
+        );
         downloadBlob(result.artifact.data, result.artifact.filename, result.artifact.contentType);
         void ctx.auditLog.record("library.backup.export", {
           collections: result.artifact.collections,
@@ -439,7 +448,7 @@ export const controlCenterFeature: FeatureModule = {
       },
       async previewLibraryRestore(payload: string): Promise<LibraryBackupPreview> {
         return previewLibraryRestore(
-          ctx.storage,
+          ctx.profile ? ctx.profile.baseStorage : ctx.storage,
           payload,
           ctx.profile ? { profileId: ctx.profile.activeId } : {}
         );
@@ -448,11 +457,15 @@ export const controlCenterFeature: FeatureModule = {
         payload: string,
         restoreOptions: { dryRun: boolean; signal: AbortSignal }
       ): Promise<LibraryBackupRestoreResult> {
-        const result = await restoreLibraryBackup(ctx.storage, payload, {
-          dryRun: restoreOptions.dryRun,
-          signal: restoreOptions.signal,
-          ...(ctx.profile ? { profileId: ctx.profile.activeId } : {})
-        });
+        const result = await restoreLibraryBackup(
+          ctx.profile ? ctx.profile.baseStorage : ctx.storage,
+          payload,
+          {
+            dryRun: restoreOptions.dryRun,
+            signal: restoreOptions.signal,
+            ...(ctx.profile ? { profileId: ctx.profile.activeId } : {})
+          }
+        );
         if (result.applied) {
           if (result.restoredKeys.includes(SETTINGS_KEY)) {
             const restoredSettings = await ctx.storage.get(SETTINGS_KEY, ctx.settings);

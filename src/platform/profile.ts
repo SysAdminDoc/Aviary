@@ -82,6 +82,17 @@ export class ProfileManager {
     this.#base = base;
   }
 
+  /**
+   * The unscoped gateway every profile is scoped from.
+   *
+   * A library backup has to read across profiles and carry the roster itself, and the roster keys
+   * live here rather than inside any one profile. Features get the scoped gateway; this is the
+   * install-wide one, and the profile manager is already its owner.
+   */
+  get baseStorage(): StorageGateway {
+    return this.#base;
+  }
+
   async load(): Promise<void> {
     if (this.#loaded) return;
     this.#state = normalizeState(await this.#base.get<ProfileState>(PROFILE_REGISTRY_KEY, EMPTY));

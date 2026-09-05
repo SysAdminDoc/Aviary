@@ -175,17 +175,6 @@ Research date 2026-09-04, against `1.47.0` plus the uncommitted cross-origin loc
 
 ### P0, Now
 
-- [ ] F296, P0: Back up and restore the whole install, not one profile
-  Why: "full library backup" reads a profile-scoped gateway, so it captures the active profile only, and its collection list omits the profile roster and the WACZ signing identity outright. Restoring on a fresh browser silently loses every other profile and produces a new signing key, so packages exported before the restore can no longer be attributed to the same identity.
-  Evidence: `src/main.ts:200` (`createProfileStorageGateway(durableStorage, profileManager.activeId)`), `src/main.ts:313` (that gateway becomes `FeatureContext.storage`), `src/features/core/control-center.ts:422` (`createLibraryBackup(ctx.storage, ...)`), `src/platform/profile.ts:216-219` (key rewriting), `src/platform/profile.ts:88,168` (`aviary.profiles.v1` and `aviary.profile.active.v1` read through the unscoped base), `src/features/core/library-backup.ts:52-77` versus `src/platform/durable-storage.ts:19-46` (six durable keys absent: profiles, active profile, `aviary.waczSigning.v1`, `aviary.firstRun.v1`, `aviary.diagnostics.v1`, `aviary.adObservations.v1`)
-  Touches: `src/features/core/library-backup.ts`, `src/features/core/control-center.ts`, `src/platform/profile.ts`, backup preview and restore UI, `tests/library-backup.test.mjs`, `tests/library-backup-ui.test.mjs`, `tests/profile.test.mjs`, README and FAQ backup copy
-  Acceptance: a backup taken from an install with three profiles restores all three, their per-profile collections, the active-profile pointer, and the signing identity, with fingerprints matching before and after; the preview names every profile and collection it will write and every one it will skip; a signing identity is never silently replaced, and a restore that would change the fingerprint says so and requires an explicit choice; a single-profile backup restores unchanged; a backup whose collection set does not match this build is refused with a stated reason rather than partially applied; credentials stay redacted unless the user opted in, and the signing private key is treated as a credential.
-  Complexity: M
-  Depends: F275. Interacts with F276, which will change how these stores persist.
-  Research update 2026-09-05: `createLibraryBackup()` must enforce `MAX_LIBRARY_BACKUP_BYTES` before download because `parseLibraryBackup()` rejects anything above 100 MiB; a same-build backup must always be same-build restorable, and resumable archive-source payloads must be included or named as explicit omissions. Evidence: `src/features/core/library-backup.ts`, `src/features/library/archive-import-jobs.ts`
-
-### P1, Next
-
 - [ ] F297, P1: Raise the Firefox floor off the end-of-life 128 line
   Why: `browser-floors.ts` justifies the 128 floor with "128 is also an ESR line, and that is the deciding half of the choice". Firefox 128 reached end of life on 2025-09-16, so the floor now supports only an unpatched browser and excludes nobody who is on a supported ESR. Raising it also retires every platform detection branch the module tracks.
   Evidence: `src/extension/browser-floors.ts:20-26,44-53`, `src/extension/manifest.firefox.json` (`strict_min_version: "128.0"`); https://endoflife.date/firefox (ESR 128 ended 2025-09-16; ESR 140 security support ends 2026-09-29; ESR 153 released 2026-07-21); https://support.mozilla.org/en-US/kb/firefox-esr-release-cycle

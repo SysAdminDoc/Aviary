@@ -394,10 +394,13 @@ The Control Center "Backup & Audit" section exposes:
 
 - **Export settings**, downloads a versioned JSON envelope with every Aviary preference. API keys and passwords are replaced with a placeholder so the file is safe to share; importing it keeps the credentials already saved on this machine.
 - **Import settings**, paste an envelope and choose Import. Settings are normalized, unsupported keys are dropped, and version mismatches are reported as warnings (never silent overwrites).
-- **Export full library backup**, downloads one versioned JSON envelope for the active profile's
-  local settings, bookmarks, notes, snapshots, archive collections, export jobs/records, media
-  queues, indexes, usage counters, retention values, and other durable stores. Integration credentials are excluded
-  by default and remain local when a redacted backup is restored.
+- **Export full library backup**, downloads one versioned JSON envelope covering **every profile**,
+  not only the one you have open: each profile's local settings, bookmarks, notes, snapshots,
+  archive collections, export jobs/records, media queues, indexes, usage counters, retention values,
+  and other durable stores, plus the profile list and which profile was active. Integration
+  credentials are excluded by default and remain local when a redacted backup is restored. The WACZ
+  signing identity is treated as a credential: it travels only if you include credentials, and a
+  restore that would replace a different saved identity says so and stops rather than doing it.
 - **Restore a library backup**, choose a backup file to preview schema versions, collection counts,
   byte totals, conflicts, and checksums. Dry-run validates without mutation; an actual restore can
   be cancelled and rolls back earlier collection writes if a later local write fails. Saves from
