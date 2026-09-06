@@ -117,6 +117,22 @@ export class DownloadQueue {
     return entry;
   }
 
+  /** Refreshes a queued target after a late metadata observation improves its direct URL. */
+  updateTarget(
+    jobId: string,
+    target: Pick<DownloadJob, "url" | "fallbackUrls" | "mediaId">
+  ): boolean {
+    const job = this.#jobs.find((entry) => entry.id === jobId);
+    if (!job || (job.status !== "queued" && job.status !== "paused")) return false;
+    job.url = target.url;
+    if (target.fallbackUrls === undefined) delete job.fallbackUrls;
+    else job.fallbackUrls = [...target.fallbackUrls];
+    job.mediaId = target.mediaId;
+    this.#persist();
+    this.#notify();
+    return true;
+  }
+
   mark(jobId: string, status: JobStatus, error?: string): void {
     const job = this.#jobs.find((entry) => entry.id === jobId);
     if (!job) {

@@ -49,7 +49,8 @@ video, GIF, audio track and caption file belonging to that post. Quoted media an
 keep their own separate Save control, filed under the account that actually published them, because
 they belong to somebody else. History is stored as hashed media identities rather than source URLs,
 so it catches alternate X image sizes and exact byte matches without keeping a list of what you
-looked at.
+looked at. Batch downloads re-check queued video targets after pacing, so a higher-quality URL
+observed before handoff is the one persisted and requested.
 
 That's the whole default surface. Themes, layout cleanup, filters, offscreen video pausing and the
 broader analytics refusal all start off. Outside the download controls, the only thing Aviary adds
@@ -103,7 +104,8 @@ The full reference lives in [docs/FEATURES.md](docs/FEATURES.md). The short vers
 - **Library.** Local bookmarks with tags and folders, per-handle account notes, t.co unshortening
   with no network call, snapshots, X archive import, and one search that ranks across all of it.
 - **Backups.** One versioned envelope covering every profile, not just the one you have open.
-  Credentials are excluded unless you explicitly ask for them.
+  Credentials are excluded unless you explicitly ask for them, and schema 1 and 2 files remain
+  readable under their historical checksum rules.
 - **Integrations.** Aria2 handoff, Bluesky and Mastodon crossposting, semantic search. Every one is
   off by default and makes zero requests until you enable it and supply your own credentials.
 - **Local AI command menu (off by default).** Enable it in Integrations and each post's action row

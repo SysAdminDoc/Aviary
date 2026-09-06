@@ -83,6 +83,7 @@ interface MediaBatchTask {
   target: ResolvedTarget;
   identity: { handle: string | null; tweetId: string | null; text: string };
   permalink: string | null;
+  refreshTarget?: () => ResolvedTarget | null;
 }
 
 interface PreparedMediaBatchTask extends MediaBatchTask {
@@ -168,7 +169,14 @@ export async function runMediaBatch(
         total: tweet.media.length,
         target,
         identity,
-        permalink: postPermalink(identity)
+        permalink: postPermalink(identity),
+        refreshTarget: () => {
+          const refreshed = extractTweet(tweet.article, {
+            preferOriginalImages: ctx.settings.media.preferOriginalImages,
+            mediaMetadata: getCapturedMediaMetadata
+          }).media[index];
+          return refreshed ? resolveTarget(refreshed) : null;
+        }
       });
     });
     // Stop collecting once the cap is reached; the single exit below keeps the configured
@@ -284,6 +292,7 @@ async function runTasks(
         if (index >= prepared.length) return;
         const task = prepared[index]!;
         const { filename, job } = task;
+        refreshTaskTarget(task, job, queue);
 
         let fingerprint: MediaFingerprint = {
           identityHash: mediaIdentityHash(
@@ -353,6 +362,15 @@ async function runTasks(
         if (control.cancelled) {
           if (reservationToken && history) await history.release(reservationToken);
           return;
+        }
+
+        // A player can receive richer metadata while this task waits for pacing. Refresh only after
+        // that wait, while the queue job is still queued, so the durable target and the fingerprint
+        // agree with the best direct file observed before the handoff starts.
+        if (refreshTaskTarget(task, job, queue)) {
+          fingerprint = { identityHash: mediaIdentityHash(task.kind, task.target.url, task.target.mediaId) };
+          historyMatch = null;
+          reservationToken = null;
         }
 
         if (job) {
@@ -497,6 +515,32 @@ async function runTasks(
   } finally {
     finishBatch(control);
   }
+}
+
+function sameTarget(left: ResolvedTarget, right: ResolvedTarget): boolean {
+  return (
+    left.url === right.url &&
+    left.mediaId === right.mediaId &&
+    JSON.stringify(left.fallbackUrls ?? []) === JSON.stringify(right.fallbackUrls ?? [])
+  );
+}
+
+function refreshTaskTarget(
+  task: PreparedMediaBatchTask,
+  job: DownloadJob | undefined,
+  queue: ReturnType<typeof getMediaQueue>
+): boolean {
+  const refreshedTarget = task.refreshTarget?.();
+  if (!refreshedTarget || sameTarget(task.target, refreshedTarget)) return false;
+  task.target = refreshedTarget;
+  if (job) {
+    queue?.updateTarget(job.id, {
+      url: refreshedTarget.url,
+      ...(refreshedTarget.fallbackUrls ? { fallbackUrls: refreshedTarget.fallbackUrls } : {}),
+      mediaId: refreshedTarget.mediaId
+    });
+  }
+  return true;
 }
 
 /** Replays jobs left in the durable queue after a restart, only after an explicit user action. */

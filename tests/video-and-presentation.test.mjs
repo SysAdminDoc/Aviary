@@ -103,6 +103,27 @@ test("same URL merge is deterministic and never drops signed queries or known te
   assert.equal(rich.bitrate, 8000000);
 });
 
+test("extractVideo emits variants in a stable URL order", async () => {
+  const { extractVideo } = await importSourceModule("src/features/media/video-extract.ts");
+  const sources = [
+    {
+      src: "https://video.twimg.com/ext/second.mp4",
+      type: "video/mp4",
+      dataset: { bitrate: "500000", width: "640", height: "360" }
+    },
+    {
+      src: "https://video.twimg.com/ext/first.mp4",
+      type: "video/mp4",
+      dataset: { bitrate: "500000", width: "640", height: "360" }
+    }
+  ];
+  const forward = extractVideo(stubVideoContainer({ sources }));
+  const reverse = extractVideo(stubVideoContainer({ sources: [...sources].reverse() }));
+  assert.ok(forward && reverse);
+  assert.deepEqual(forward.variants, reverse.variants);
+  assert.equal(forward.preferred?.url, reverse.preferred?.url);
+});
+
 test("extractVideo flags loop+muted GIF-style player", async () => {
   const { extractVideo } = await importSourceModule(
     "src/features/media/video-extract.ts"

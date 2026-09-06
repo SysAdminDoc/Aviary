@@ -44,7 +44,7 @@ before(async () => {
     entry,
     [
       `export { resumePendingMediaJobs, runMediaBatch, runCapturedMediaBatch } from ${JSON.stringify(abs("src/features/media/batch-downloader.ts"))};`,
-      `export { mediaButtonsFeature, getMediaQueue } from ${JSON.stringify(abs("src/features/media/media-buttons.ts"))};`,
+      `export { mediaButtonsFeature, getMediaQueue, ingestMediaMetadata } from ${JSON.stringify(abs("src/features/media/media-buttons.ts"))};`,
       `export { DownloadPermissionError, createDownloader } from ${JSON.stringify(abs("src/features/media/downloader.ts"))};`,
       `export { TokenBucket } from ${JSON.stringify(abs("src/platform/rate-limit.ts"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};`
@@ -248,6 +248,117 @@ test("the original-image preference reaches the URL the batch actually asks for"
     asRendered.every((url) => !/name=orig/.test(url)),
     `turning it off still requested originals: ${asRendered[0]}`
   );
+});
+
+test("a late high-quality observation updates an unstarted queued batch target", async () => {
+  const observed = await page.evaluate(async () => {
+    const originalBody = document.body.innerHTML;
+    const poster = "https://pbs.twimg.com/media/late-quality?format=jpg&name=small";
+    const lowUrl = "https://video.twimg.com/ext_tw_video/late/pu/vid/640x360/low.mp4";
+    const highUrl = "https://video.twimg.com/ext_tw_video/late/pu/vid/1920x1080/high.mp4";
+    const payload = (variants) => JSON.stringify({
+      data: {
+        tweetResult: {
+          rest_id: "late-quality",
+          legacy: {
+            extended_entities: {
+              media: [{
+                type: "video",
+                media_key: "7_late-quality",
+                preview_image_url_https: poster,
+                video_info: { variants }
+              }]
+            }
+          }
+        }
+      }
+    });
+    document.body.innerHTML = `
+      <main data-testid="primaryColumn">
+        <article data-testid="tweet">
+          <a href="/alice/status/late-quality"><time datetime="2026-09-06T10:00:00.000Z">now</time></a>
+          <div data-testid="User-Name"><a href="/alice">@alice</a></div>
+          <div data-testid="videoPlayer"><video poster="${poster}" src="blob:https://x.com/late-quality"></video></div>
+        </article>
+      </main>`;
+    const settings = AviaryBatch.cloneSettings(AviaryBatch.DEFAULT_SETTINGS);
+    settings.media.buttons = true;
+    settings.media.downloadHistory = false;
+    const stored = new Map();
+    const storage = {
+      async get(key, fallback) {
+        return stored.has(key) ? structuredClone(stored.get(key)) : structuredClone(fallback);
+      },
+      async set(key, value) {
+        stored.set(key, structuredClone(value));
+      },
+      async remove(key) {
+        stored.delete(key);
+      }
+    };
+    const attempts = [];
+    globalThis.chrome = {
+      runtime: {
+        id: "aviary-test",
+        onMessage: { addListener() {}, removeListener() {} },
+        async sendMessage(message) {
+          if (message.url) attempts.push(message.url);
+          return { ok: true };
+        }
+      }
+    };
+    AviaryBatch.ingestMediaMetadata(payload([{
+      content_type: "video/mp4",
+      url: lowUrl,
+      width: 640,
+      height: 360,
+      bitrate: 500000
+    }]));
+    const ctx = {
+      settings,
+      route: { surface: "home", path: "/home" },
+      storage,
+      limiter: {
+        release: null,
+        async waitForToken() {
+          await new Promise((resolve) => { this.release = resolve; });
+        }
+      },
+      auditLog: { async record() {} },
+      diagnostics: { info() {}, warn() {}, error() {} }
+    };
+    try {
+      await AviaryBatch.mediaButtonsFeature.init(ctx);
+      const batch = AviaryBatch.runMediaBatch(ctx, { filterKind: "video" });
+      while (!ctx.limiter.release) await new Promise((resolve) => setTimeout(resolve, 0));
+      AviaryBatch.ingestMediaMetadata(payload([
+        {
+          content_type: "video/mp4",
+          url: lowUrl,
+          width: 640,
+          height: 360,
+          bitrate: 500000
+        },
+        {
+          content_type: "video/mp4",
+          url: highUrl,
+          width: 1920,
+          height: 1080,
+          bitrate: 8000000
+        }
+      ]));
+      ctx.limiter.release();
+      const result = await batch;
+      return { attempts, result, queued: stored.get("aviary.media.queue.v1") };
+    } finally {
+      await AviaryBatch.mediaButtonsFeature.destroy(ctx);
+      document.body.innerHTML = originalBody;
+    }
+  });
+
+  assert.equal(observed.result.downloaded, 1);
+  assert.deepEqual(observed.attempts, ["https://video.twimg.com/ext_tw_video/late/pu/vid/1920x1080/high.mp4"]);
+  assert.equal(observed.queued.jobs[0].url, observed.attempts[0]);
 });
 
 test("a captured-library batch checkpoints every task before media handoff and originates no GraphQL", async () => {

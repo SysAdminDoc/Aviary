@@ -137,10 +137,22 @@ export function extractVideo(
     return null;
   }
 
-  const preferred = variants.length > 0 ? pickPreferred(variants) : null;
+  // Keep the extracted shape stable even when equivalent DOM/source observations arrive in a
+  // different order. The preferred target is already deterministic, and the array now is too.
+  const stableVariants = mergeVideoVariants([], variants);
+  const stableAudioVariants = mergeVideoVariants([], audioVariants);
+  const preferred = stableVariants.length > 0 ? pickPreferred(stableVariants) : null;
   const isGif = metadata.isGif === true || looksLikeGif(container, video, variants);
 
-  return { container, poster, isGif, variants, preferred, audioVariants, subtitleTracks };
+  return {
+    container,
+    poster,
+    isGif,
+    variants: stableVariants,
+    preferred,
+    audioVariants: stableAudioVariants,
+    subtitleTracks
+  };
 }
 
 function readSubtitleTrack(track: HTMLTrackElement): SubtitleTrack | null {

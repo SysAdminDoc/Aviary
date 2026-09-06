@@ -491,6 +491,41 @@ test("DownloadQueue tracks status transitions and snapshots", async () => {
   assert.ok(snapshot.recent.some((job) => job.error === "network"));
 });
 
+test("DownloadQueue refreshes a queued media target before it starts", async () => {
+  const { DownloadQueue } = await importSourceModule("src/features/media/queue.ts");
+  const queue = new DownloadQueue();
+  const job = queue.enqueue({
+    url: "https://video.twimg.com/low.mp4",
+    fallbackUrls: ["https://video.twimg.com/fallback.mp4"],
+    filename: "video.mp4",
+    mediaId: "media-1"
+  });
+
+  assert.equal(
+    queue.updateTarget(job.id, {
+      url: "https://video.twimg.com/high.mp4",
+      fallbackUrls: ["https://video.twimg.com/low.mp4"],
+      mediaId: "media-1"
+    }),
+    true
+  );
+  assert.deepEqual(queue.pending()[0], {
+    ...job,
+    url: "https://video.twimg.com/high.mp4",
+    fallbackUrls: ["https://video.twimg.com/low.mp4"]
+  });
+
+  queue.mark(job.id, "running");
+  assert.equal(
+    queue.updateTarget(job.id, {
+      url: "https://video.twimg.com/ignored.mp4",
+      mediaId: "media-1"
+    }),
+    false,
+    "a target must not change after the transfer starts"
+  );
+});
+
 test("DownloadQueue persists interrupted work and supports recovery controls", async () => {
   const { DownloadQueue, MEDIA_QUEUE_KEY } = await importSourceModule("src/features/media/queue.ts");
   const store = new Map([

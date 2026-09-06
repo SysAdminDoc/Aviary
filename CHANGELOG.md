@@ -38,6 +38,8 @@
 - **Richer repeated media observations** now merge by exact signed URL. Dimensions, bitrate, codec,
   MIME, and provenance are retained before the best direct video is selected, so a later 1080p
   observation can upgrade an earlier sparse record.
+- Media batches now refresh queued video targets after pacing, so a late higher-quality direct URL is
+  persisted before its transfer starts. Extracted rendition arrays use stable URL ordering as well.
 - **Library backup creation** now counts the complete UTF-8 envelope, including profile metadata,
   checksums, punctuation, and multibyte text, before handing the file to the download layer. A
   multi-profile backup that would exceed the shared 100 MiB parser limit is refused with a clear
