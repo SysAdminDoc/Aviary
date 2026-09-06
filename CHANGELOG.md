@@ -42,6 +42,10 @@
   checksums, punctuation, and multibyte text, before handing the file to the download layer. A
   multi-profile backup that would exceed the shared 100 MiB parser limit is refused with a clear
   size error.
+- **Profile-aware library backups** now use schema 3 for a checksum that covers the profile roster
+  and active-profile pointer. Schema 1 and 2 files keep their historical checksum formulas, while
+  redacted multi-profile restores preserve destination credentials and profile selection through a
+  failed write.
 
 ### Fixed
 - Conversation pages no longer show the vertical connector line down a reply's avatar column while an Aviary theme is active. The previous fix removed a line Aviary itself drew; the one readers were seeing is X's own element, found now by its shape and position rather than by a class name X regenerates.
@@ -52,6 +56,9 @@
 - The WACZ signing identity can travel with a backup when credentials are included, and a restore
   that would replace a different saved identity now reports both fingerprints and stops instead of
   swapping it silently. Routine backups still withhold the private key.
+- A separate credentialed backup action now makes the sensitive export choice explicit. It states
+  that API keys and the WACZ signing identity are included, and the audit record distinguishes that
+  export from a redacted backup.
 
 ### Changed
 - The userscript now keeps durable records in its manager store and reports an explicit capacity
@@ -2196,7 +2203,7 @@ release shipped.
 
 Version: `1.16.0`
 Research date: 2026-05-19
-Target repo: `C:\Users\--\repos\Twitter_Userscript`
+Target repo: `<repo root>`
 Target sites: `x.com`, `twitter.com`, `mobile.twitter.com`, `pro.x.com`, `tweetdeck.twitter.com`
 Implementation status: **v1.16.0 is implemented.** The current release includes the redesigned 13-page Control Center, current-X MV3 compatibility coverage, route-aware selector health, live-toggle reconciliation, local bookmarks, scoped original-quality image rewriting, and side-effect-free externally gated-action coverage. F032/F033 remain blocked behind authenticated fixtures. Earlier baseline summary:
 
@@ -2280,7 +2287,7 @@ Roadmap progress:
 Original capture tree from research baseline:
 
 ```text
-C:\Users\--\repos\Twitter_Userscript
+<repo root>
 |-- Home _ X.mhtml
 |-- ROADMAP.md
 |-- Status _ X.mhtml
@@ -2957,9 +2964,9 @@ Local sources:
 
 | ID | URL/path | Use |
 |---|---|---|
-| L01 | `C:\Users\--\repos\Twitter_Userscript\Home _ X.mhtml` | Home DOM, CSS, route, selectors. |
-| L02 | `C:\Users\--\repos\Twitter_Userscript\Status _ X.mhtml` | Status/conversation DOM, CSS, media, selectors. |
-| L03 | `C:\Users\--\repos\Twitter_Userscript\_decoded\home.html`, `status.html`, CSS files | Decoded ground-truth HTML/CSS fixtures. |
+| L01 | `<repo root>\Home _ X.mhtml` | Home DOM, CSS, route, selectors. |
+| L02 | `<repo root>\Status _ X.mhtml` | Status/conversation DOM, CSS, media, selectors. |
+| L03 | `<repo root>\_decoded\home.html`, `status.html`, CSS files | Decoded ground-truth HTML/CSS fixtures. |
 | L04 | Prior `ROADMAP.md` in this repo before v0.0.2 rewrite | Preserved project philosophy and initial selector/API findings. |
 
 Direct OSS competitors and lists:
@@ -3130,7 +3137,7 @@ Mandatory Phase 5 checks:
 | Thin categories consciously handled | Multi-user/collab is intentionally limited to export/share targets and not live collaboration because local-first privacy is the core philosophy. Plugin ecosystem is expressed as feature registry/presets, not third-party arbitrary code for v1. |
 | Duplicate items removed | Passed. Feature IDs are unique; rejects are not repeated in Now/Next/Later. |
 | Hostile-review concerns addressed | Passed. The roadmap calls out missing fixtures, API volatility, store review, account risk, dependency supply chain, and destructive-operation safety. |
-| Disk write confirmed | This file is `C:\Users\--\repos\Twitter_Userscript\ROADMAP.md`. |
+| Disk write confirmed | This file is `<repo root>\ROADMAP.md`. |
 
 ## Competitor Gaps, 2026-08-07 research pass
 
