@@ -410,6 +410,9 @@ The Control Center "Backup & Audit" section exposes:
   credentials are excluded by default and remain local when a redacted backup is restored. The WACZ
   signing identity is treated as a credential: it travels only if you include credentials, and a
   restore that would replace a different saved identity says so and stops rather than doing it.
+  Backups use schema 3 for the profile-aware checksum. Schema 1 and 2 files remain readable with
+  their historical checksum rules. A separate **Export backup including credentials** action calls
+  out that API keys and the WACZ signing identity will be inside the downloaded file.
 - **Restore a library backup**, choose a backup file to preview schema versions, collection counts,
   byte totals, conflicts, and checksums. Dry-run validates without mutation; an actual restore can
   be cancelled and rolls back earlier collection writes if a later local write fails. Saves from

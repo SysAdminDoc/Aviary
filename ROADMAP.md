@@ -424,14 +424,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F334, P1: Version backup checksum changes and preserve profile credentials on restore
-  Why: the changed parser rejects an envelope using the existing schema-2 checksum formula, while redacted restore must not replace each destination profile's credentials or signing identity.
-  Evidence: `src/features/core/library-backup.ts` and `tests/library-backup.test.mjs`; the committed encoder generated a schema-2 bookmark backup accepted by its own parser and rejected by the changed parser, which now includes profile roster/active ID without changing the version
-  Touches: backup schema and versioned checksum dispatch, profile identity mapping, restore/rollback, signing-key policy, explicit credential-export action and tests
-  Acceptance: retain fixtures produced by schema 1 and the existing schema-2 implementation; introduce an explicit new schema version for the expanded checksum envelope and dispatch its checksum formula strictly by declared version; old fixtures import with historical semantics, while altered profile IDs/roster/active ID with an unchanged checksum fail new-version integrity verification; do not accept alternate checksum formulas for one declared version or describe an unkeyed checksum as authentication; redacted multi-profile restore preserves destination credentials by stable profile ID, and missing signing material never silently clears or replaces the destination identity; explicit sensitive export accurately states what it includes; injected partial-restore failures restore original credentials and profile selection, with existing signing-conflict policy exercised.
-  Complexity: M
-  Depends: F328 for exclusive restore and F333 for complete-envelope limits.
-
 - [ ] F335, P1: Test installed Tampermonkey and Violentmonkey storage instead of substitutes
   Why: manager-named browser lanes use a shared Node Map and cannot prove real GM persistence, value-change delivery, or cross-origin coordination.
   Evidence: `tests/storage-authority-browser.test.mjs:216`; https://www.tampermonkey.net/documentation.php; https://violentmonkey.github.io/api/gm/
