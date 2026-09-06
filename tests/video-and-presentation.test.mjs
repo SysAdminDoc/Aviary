@@ -33,6 +33,76 @@ test("extractVideo prefers highest-bitrate source and detects GIF heuristics", a
   assert.equal(extracted.isGif, false);
 });
 
+test("repeated DOM URLs merge richer rendition metadata before ranking", async () => {
+  const { extractVideo } = await importSourceModule(
+    "src/features/media/video-extract.ts"
+  );
+  const url = "https://video.twimg.com/ext/shared/asset.mp4?token=signed";
+  const container = stubVideoContainer({
+    sources: [
+      { src: url, type: "video/mp4", dataset: {} },
+      {
+        src: url,
+        type: "video/mp4",
+        dataset: { bitrate: "8000000", width: "1920", height: "1080" }
+      },
+      {
+        src: "https://video.twimg.com/ext/low.mp4",
+        type: "video/mp4",
+        dataset: { bitrate: "500000", width: "640", height: "360" }
+      }
+    ]
+  });
+
+  const extracted = extractVideo(container);
+  assert.ok(extracted);
+  assert.equal(extracted.variants.length, 2);
+  assert.deepEqual(extracted.variants.find((variant) => variant.url === url), {
+    url,
+    type: "video/mp4",
+    width: 1920,
+    height: 1080,
+    bitrate: 8000000
+  });
+  assert.equal(extracted.preferred?.url, url);
+});
+
+test("same URL merge is deterministic and never drops signed queries or known text", async () => {
+  const { mergeVideoVariant, mergeVideoVariants } = await importSourceModule(
+    "src/features/media/video-extract.ts"
+  );
+  const url = "https://video.twimg.com/ext/shared/asset?token=abc&expires=9";
+  const sparse = {
+    url,
+    type: "application/octet-stream",
+    width: null,
+    height: null,
+    bitrate: null,
+    codec: "h264",
+    provenance: "graphql"
+  };
+  const rich = {
+    url,
+    type: "video/mp4",
+    width: 1920,
+    height: 1080,
+    bitrate: 8000000,
+    provenance: "dom"
+  };
+  const forward = mergeVideoVariant(sparse, rich);
+  const reverse = mergeVideoVariant(rich, sparse);
+  assert.deepEqual(forward, reverse);
+  assert.equal(forward.url, url);
+  assert.equal(forward.type, "video/mp4");
+  assert.equal(forward.codec, "h264");
+  assert.equal(forward.provenance, "dom|graphql");
+  assert.deepEqual(mergeVideoVariants([rich], [sparse]), [forward]);
+  assert.deepEqual(mergeVideoVariants([sparse], [rich]), [forward]);
+  assert.notStrictEqual(forward, sparse);
+  assert.equal(sparse.width, null);
+  assert.equal(rich.bitrate, 8000000);
+});
+
 test("extractVideo flags loop+muted GIF-style player", async () => {
   const { extractVideo } = await importSourceModule(
     "src/features/media/video-extract.ts"

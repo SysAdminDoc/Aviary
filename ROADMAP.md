@@ -424,14 +424,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F332, P1: Enrich repeated media URLs before choosing the best video
-  Why: the current source is added without bitrate or dimensions and blocks richer same-URL metadata, causing an observed 1080p file to lose to 360p.
-  Evidence: `src/features/media/video-extract.ts:80-85,183-185`, `src/features/media/media-metadata.ts:375-389`; deterministic 1080p/8 Mbps plus 360p/0.5 Mbps fixture selected 360p
-  Touches: validated variant merge, observed metadata cache, candidate ranking, post and quoted-media ownership, queue snapshot refresh, video-selection tests
-  Acceptance: merge evidence by the same validated normalized URL without dropping signed query parameters or combining different resources; retain dimensions, bitrate, MIME, codec, and provenance, never replacing a known field with missing data; define deterministic precedence for conflicting sources without mutating caller input; insertion order does not change the result; later enrichment invalidates cached choice and updates an unstarted queue candidate; currentSrc 1080p plus its richer metadata and separate 360p selects 1080p across Home, Status, quoted-post, and replayed-metadata fixtures; unknown metadata remains explicitly unknown.
-  Complexity: M
-  Depends: None. Keep F310's broader quality/compatibility policy separate.
-
 - [ ] F333, P1: Bound the complete backup envelope to the production parser limit
   Why: individually valid collections can produce a backup larger than the 100 MiB limit enforced by restore.
   Evidence: `src/features/core/library-backup.ts:283-299,753`; creation has collection limits but no aggregate encoded-envelope limit

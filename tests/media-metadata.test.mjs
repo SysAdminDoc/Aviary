@@ -128,6 +128,87 @@ test("GraphQL media metadata is bounded, keyed, and rejects ambiguous matches", 
   assert.equal(result.wrongMedia, null);
 });
 
+test("repeated GraphQL URLs merge richer dimensions and bitrate before a blob player ranks them", async () => {
+  const body = JSON.stringify({
+    data: {
+      tweetResult: {
+        rest_id: "333333333",
+        legacy: {
+          extended_entities: {
+            media: [{
+              type: "video",
+              media_key: "7_333333",
+              preview_image_url_https: "https://pbs.twimg.com/media/333333?format=jpg&name=small",
+              video_info: {
+                variants: [
+                  {
+                    content_type: "video/mp4",
+                    url: "https://video.twimg.com/ext_tw_video/333/shared.mp4?token=signed"
+                  },
+                  {
+                    content_type: "video/mp4",
+                    url: "https://video.twimg.com/ext_tw_video/333/pu/vid/640x360/low.mp4",
+                    width: 640,
+                    height: 360,
+                    bitrate: 500000
+                  },
+                  {
+                    content_type: "video/mp4",
+                    url: "https://video.twimg.com/ext_tw_video/333/shared.mp4?token=signed",
+                    width: 1920,
+                    height: 1080,
+                    bitrate: 8000000,
+                    codec: "h264"
+                  }
+                ]
+              }
+            }]
+          }
+        }
+      }
+    }
+  });
+
+  const result = await page.evaluate((body) => {
+    const cache = new AviaryMedia.MediaMetadataCache();
+    cache.ingest({ body });
+    const found = cache.find("333333333", "333333");
+    const article = document.createElement("article");
+    article.setAttribute("data-testid", "tweet");
+    const status = document.createElement("a");
+    status.href = "/owner/status/333333333";
+    article.append(status);
+    const player = document.createElement("div");
+    player.setAttribute("data-testid", "videoComponent");
+    const video = document.createElement("video");
+    video.poster = "https://pbs.twimg.com/media/333333?format=jpg&name=small";
+    video.src = "blob:https://x.com/enriched-player";
+    player.append(video);
+    article.append(player);
+    const tweet = AviaryMedia.extractTweet(article, {
+      mediaMetadata: ({ tweetId, mediaId, poster }) => cache.find(tweetId, mediaId, poster)
+    });
+    const videoMedia = tweet.media.find((entry) => entry.kind === "video");
+    return {
+      variants: found?.variants ?? [],
+      preferred: videoMedia?.video?.preferred ?? null
+    };
+  }, body);
+
+  assert.deepEqual(result.variants.find((variant) => variant.url.includes("shared.mp4")), {
+    url: "https://video.twimg.com/ext_tw_video/333/shared.mp4?token=signed",
+    type: "video/mp4",
+    width: 1920,
+    height: 1080,
+    bitrate: 8000000,
+    codec: "h264"
+  });
+  assert.equal(result.preferred?.url, "https://video.twimg.com/ext_tw_video/333/shared.mp4?token=signed");
+  assert.equal(result.preferred?.width, 1920);
+  assert.equal(result.preferred?.height, 1080);
+  assert.equal(result.preferred?.bitrate, 8000000);
+});
+
 test("captured media metadata keeps direct audio and caption tracks with the player", async () => {
   const body = JSON.stringify({
     data: {

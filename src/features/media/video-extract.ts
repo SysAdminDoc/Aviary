@@ -4,6 +4,10 @@ export interface VideoVariant {
   width: number | null;
   height: number | null;
   bitrate: number | null;
+  /** Optional rendition evidence carried by X when it is available. */
+  codec?: string | null;
+  /** Sources may be combined when the same signed URL is observed more than once. */
+  provenance?: string | null;
 }
 
 export interface SubtitleTrack {
@@ -167,7 +171,9 @@ function pushVariantObject(
     variant.type,
     variant.width === null ? undefined : String(variant.width),
     variant.height === null ? undefined : String(variant.height),
-    variant.bitrate === null ? undefined : String(variant.bitrate)
+    variant.bitrate === null ? undefined : String(variant.bitrate),
+    variant.codec ?? undefined,
+    variant.provenance ?? undefined
   );
 }
 
@@ -178,19 +184,72 @@ function pushVariant(
   type: string,
   width?: string,
   height?: string,
-  bitrate?: string
+  bitrate?: string,
+  codec?: string,
+  provenance?: string
 ): void {
-  if (!src || seen.has(src)) {
+  if (!src) {
     return;
   }
-  seen.add(src);
-  variants.push({
+  const candidate: VideoVariant = {
     url: src,
     type,
     width: parsePositiveInt(width),
     height: parsePositiveInt(height),
     bitrate: parsePositiveInt(bitrate)
-  });
+  };
+  if (codec?.trim()) candidate.codec = codec.trim();
+  if (provenance?.trim()) candidate.provenance = provenance.trim();
+
+  const existingIndex = variants.findIndex((variant) => variant.url === src);
+  if (existingIndex >= 0) {
+    variants[existingIndex] = mergeVideoVariant(variants[existingIndex]!, candidate);
+    seen.add(src);
+    return;
+  }
+  seen.add(src);
+  variants.push(candidate);
+}
+
+/**
+ * Combines two observations of one exact, validated resource without mutating either caller.
+ * Numeric evidence keeps the richest known value. Text evidence uses a deterministic precedence so
+ * arrival order cannot change the selected rendition, while provenance retains every source label.
+ */
+export function mergeVideoVariant(left: VideoVariant, right: VideoVariant): VideoVariant {
+  if (left.url !== right.url) {
+    return { ...left };
+  }
+  const merged: VideoVariant = {
+    url: left.url,
+    type: chooseVariantType(left.url, left.type, right.type),
+    width: maxKnown(left.width, right.width),
+    height: maxKnown(left.height, right.height),
+    bitrate: maxKnown(left.bitrate, right.bitrate)
+  };
+  if ("codec" in left || "codec" in right) {
+    merged.codec = chooseKnownText(left.codec, right.codec);
+  }
+  if ("provenance" in left || "provenance" in right) {
+    merged.provenance = mergeProvenance(left.provenance, right.provenance);
+  }
+  return merged;
+}
+
+/** Merges variants by exact URL, retaining signed query parameters and a stable order. */
+export function mergeVideoVariants(
+  existing: readonly VideoVariant[],
+  incoming: readonly VideoVariant[]
+): VideoVariant[] {
+  const merged = new Map<string, VideoVariant>();
+  for (const variant of [...existing, ...incoming]) {
+    const previous = merged.get(variant.url);
+    merged.set(
+      variant.url,
+      previous ? mergeVideoVariant(previous, variant) : { ...variant }
+    );
+  }
+  return [...merged.values()].sort((left, right) => compareStable(left.url, right.url));
 }
 
 /**
@@ -208,7 +267,7 @@ export function isSaveableVariantUrl(url: string, type = ""): boolean {
   return !/(?:mpegurl|dash\+xml)/i.test(type);
 }
 
-function pickPreferred(variants: VideoVariant[]): VideoVariant {
+export function pickPreferred(variants: VideoVariant[]): VideoVariant {
   const sorted = [...variants].sort((a, b) => {
     const saveableDiff =
       Number(isSaveableVariantUrl(b.url, b.type)) -
@@ -226,9 +285,63 @@ function pickPreferred(variants: VideoVariant[]): VideoVariant {
     }
     const aPixels = (a.width ?? 0) * (a.height ?? 0);
     const bPixels = (b.width ?? 0) * (b.height ?? 0);
-    return bPixels - aPixels;
+    const pixelDiff = bPixels - aPixels;
+    return pixelDiff !== 0 ? pixelDiff : compareStable(a.url, b.url);
   });
   return sorted[0] ?? variants[0]!;
+}
+
+function maxKnown(left: number | null, right: number | null): number | null {
+  if (left === null && right === null) return null;
+  return Math.max(left ?? 0, right ?? 0) || null;
+}
+
+function chooseKnownText(left: string | null | undefined, right: string | null | undefined): string | null {
+  const values = [left, right]
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .map((value) => value.trim());
+  return [...new Set(values)].sort(compareStable)[0] ?? null;
+}
+
+function mergeProvenance(
+  left: string | null | undefined,
+  right: string | null | undefined
+): string | null {
+  const values = [left, right]
+    .flatMap((value) => typeof value === "string" ? value.split("|") : [])
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return [...new Set(values)].sort(compareStable).join("|") || null;
+}
+
+function chooseVariantType(url: string, left: string, right: string): string {
+  const types = [...new Set([left, right].map((value) => value.trim()).filter(Boolean))];
+  if (types.length === 0) return "video/mp4";
+  return types.sort((a, b) => {
+    const scoreDiff = variantTypeScore(url, b) - variantTypeScore(url, a);
+    return scoreDiff !== 0 ? scoreDiff : compareStable(a, b);
+  })[0]!;
+}
+
+function variantTypeScore(url: string, type: string): number {
+  const lowerType = type.toLowerCase();
+  const lowerUrl = url.toLowerCase();
+  let score = 0;
+  if (lowerType === "video/mp4") score += 40;
+  else if (lowerType.startsWith("video/")) score += 30;
+  else if (lowerType === "audio/mp4") score += 35;
+  else if (lowerType.startsWith("audio/")) score += 25;
+  if (/(?:mpegurl|dash\+xml)/i.test(lowerType)) score -= 100;
+  for (const extension of ["mp4", "webm", "mov", "m4a", "mp3", "ogg", "opus", "wav"]) {
+    if (new RegExp(`\\.${extension}(?:[?#]|$)`, "i").test(lowerUrl) && lowerType.includes(extension)) {
+      score += 50;
+    }
+  }
+  return score;
+}
+
+function compareStable(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
 }
 
 function isProgressiveMp4(variant: VideoVariant): boolean {

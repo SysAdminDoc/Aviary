@@ -1,4 +1,9 @@
-import type { SubtitleTrack, VideoVariant } from "./video-extract.ts";
+import {
+  mergeVideoVariant,
+  mergeVideoVariants,
+  type SubtitleTrack,
+  type VideoVariant
+} from "./video-extract.ts";
 
 export interface CapturedMediaMetadata {
   tweetId: string | null;
@@ -291,25 +296,35 @@ function readVariants(value: unknown): VideoVariant[] {
     return [];
   }
   const variants: VideoVariant[] = [];
-  const seen = new Set<string>();
   for (const entry of value) {
     if (!isRecord(entry)) {
       continue;
     }
     const url = httpUrl(entry.url);
-    if (!url || seen.has(url)) {
+    if (!url) {
       continue;
     }
-    seen.add(url);
-    variants.push({
+    const candidate: VideoVariant = {
       url,
       type: typeof entry.content_type === "string" ? entry.content_type : "video/mp4",
       width: positiveNumber(entry.width) ?? dimensionsFromUrl(url)?.width ?? null,
       height: positiveNumber(entry.height) ?? dimensionsFromUrl(url)?.height ?? null,
       bitrate: positiveNumber(entry.bitrate) ?? positiveNumber(entry.bit_rate) ?? null
-    });
+    };
+    if (typeof entry.codec === "string" && entry.codec.trim()) {
+      candidate.codec = entry.codec.trim();
+    }
+    if (typeof entry.provenance === "string" && entry.provenance.trim()) {
+      candidate.provenance = entry.provenance.trim();
+    }
+    const existingIndex = variants.findIndex((variant) => variant.url === url);
+    if (existingIndex < 0) {
+      variants.push(candidate);
+    } else {
+      variants[existingIndex] = mergeVideoVariant(variants[existingIndex]!, candidate);
+    }
   }
-  return variants;
+  return mergeVideoVariants([], variants);
 }
 
 function isAudioVariant(variant: VideoVariant): boolean {
@@ -406,22 +421,8 @@ function mergeMetadata(
   existing: CapturedMediaMetadata,
   incoming: CapturedMediaMetadata
 ): CapturedMediaMetadata {
-  const variants = [...existing.variants];
-  const seen = new Set(variants.map((variant) => variant.url));
-  for (const variant of incoming.variants) {
-    if (!seen.has(variant.url)) {
-      variants.push(variant);
-      seen.add(variant.url);
-    }
-  }
-  const audioVariants = [...existing.audioVariants];
-  const seenAudio = new Set(audioVariants.map((variant) => variant.url));
-  for (const variant of incoming.audioVariants) {
-    if (!seenAudio.has(variant.url)) {
-      audioVariants.push(variant);
-      seenAudio.add(variant.url);
-    }
-  }
+  const variants = mergeVideoVariants(existing.variants, incoming.variants);
+  const audioVariants = mergeVideoVariants(existing.audioVariants, incoming.audioVariants);
   const subtitleTracks = [...existing.subtitleTracks];
   const seenTracks = new Set(subtitleTracks.map((track) => track.url));
   for (const track of incoming.subtitleTracks) {
@@ -451,20 +452,14 @@ function metadataEqual(a: CapturedMediaMetadata, b: CapturedMediaMetadata): bool
     a.variants.every((variant, index) => {
       const other = b.variants[index];
       return (
-        variant.url === other?.url &&
-        variant.type === other.type &&
-        variant.width === other.width &&
-        variant.height === other.height &&
-        variant.bitrate === other.bitrate
+        other !== undefined && videoVariantEqual(variant, other)
       );
     }) &&
     a.audioVariants.length === b.audioVariants.length &&
     a.audioVariants.every((variant, index) => {
       const other = b.audioVariants[index];
       return (
-        variant.url === other?.url &&
-        variant.type === other.type &&
-        variant.bitrate === other.bitrate
+        other !== undefined && videoVariantEqual(variant, other)
       );
     }) &&
     a.subtitleTracks.length === b.subtitleTracks.length &&
@@ -477,6 +472,18 @@ function metadataEqual(a: CapturedMediaMetadata, b: CapturedMediaMetadata): bool
         track.label === other.label
       );
     })
+  );
+}
+
+function videoVariantEqual(left: VideoVariant, right: VideoVariant): boolean {
+  return (
+    left.url === right.url &&
+    left.type === right.type &&
+    left.width === right.width &&
+    left.height === right.height &&
+    left.bitrate === right.bitrate &&
+    left.codec === right.codec &&
+    left.provenance === right.provenance
   );
 }
 

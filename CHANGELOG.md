@@ -35,6 +35,9 @@
 - **Early media replay** keeps a bounded, metadata-only set of direct image and video candidates seen
   while Aviary is opening. The media controls consume it once after storage is ready, so a blob-backed
   X player can still download the already-observed best file without another timeline request.
+- **Richer repeated media observations** now merge by exact signed URL. Dimensions, bitrate, codec,
+  MIME, and provenance are retained before the best direct video is selected, so a later 1080p
+  observation can upgrade an earlier sparse record.
 
 ### Fixed
 - Conversation pages no longer show the vertical connector line down a reply's avatar column while an Aviary theme is active. The previous fix removed a line Aviary itself drew; the one readers were seeing is X's own element, found now by its shape and position rather than by a class name X regenerates.
