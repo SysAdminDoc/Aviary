@@ -13596,9 +13596,19 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     if (variants.length === 0 && !poster) {
       return null;
     }
-    const preferred = variants.length > 0 ? pickPreferred(variants) : null;
+    const stableVariants = mergeVideoVariants([], variants);
+    const stableAudioVariants = mergeVideoVariants([], audioVariants);
+    const preferred = stableVariants.length > 0 ? pickPreferred(stableVariants) : null;
     const isGif = metadata.isGif === true || looksLikeGif(container, video, variants);
-    return { container, poster, isGif, variants, preferred, audioVariants, subtitleTracks };
+    return {
+      container,
+      poster,
+      isGif,
+      variants: stableVariants,
+      preferred,
+      audioVariants: stableAudioVariants,
+      subtitleTracks
+    };
   }
   function readSubtitleTrack(track) {
     if (typeof track.getAttribute !== "function" && typeof track.kind !== "string") {
@@ -16043,6 +16053,19 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       this.#trim();
       this.#notify();
       return entry;
+    }
+    /** Refreshes a queued target after a late metadata observation improves its direct URL. */
+    updateTarget(jobId, target) {
+      const job = this.#jobs.find((entry) => entry.id === jobId);
+      if (!job || job.status !== "queued" && job.status !== "paused") return false;
+      job.url = target.url;
+      if (target.fallbackUrls === void 0) delete job.fallbackUrls;
+      else job.fallbackUrls = [...target.fallbackUrls];
+      if (target.mediaId === void 0) delete job.mediaId;
+      else job.mediaId = target.mediaId;
+      this.#persist();
+      this.#notify();
+      return true;
     }
     mark(jobId, status, error) {
       const job = this.#jobs.find((entry) => entry.id === jobId);
@@ -26166,7 +26189,14 @@ a.av-link-clean {
           total: tweet.media.length,
           target,
           identity,
-          permalink: postPermalink(identity)
+          permalink: postPermalink(identity),
+          refreshTarget: () => {
+            const refreshed = extractTweet(tweet.article, {
+              preferOriginalImages: ctx.settings.media.preferOriginalImages,
+              mediaMetadata: getCapturedMediaMetadata
+            }).media[index];
+            return refreshed ? resolveTarget2(refreshed) : null;
+          }
         });
       });
       if (tasks.length >= max) {
@@ -26257,6 +26287,7 @@ a.av-link-clean {
           if (index >= prepared.length) return;
           const task = prepared[index];
           const { filename, job } = task;
+          refreshTaskTarget(task, job, queue2);
           let fingerprint2 = {
             identityHash: mediaIdentityHash(
               task.kind,
@@ -26315,6 +26346,11 @@ a.av-link-clean {
           if (control.cancelled) {
             if (reservationToken2 && history2) await history2.release(reservationToken2);
             return;
+          }
+          if (refreshTaskTarget(task, job, queue2)) {
+            fingerprint2 = { identityHash: mediaIdentityHash(task.kind, task.target.url, task.target.mediaId) };
+            historyMatch = null;
+            reservationToken2 = null;
           }
           if (job) {
             queue2?.mark(job.id, "running");
@@ -26448,6 +26484,22 @@ a.av-link-clean {
     } finally {
       finishBatch(control);
     }
+  }
+  function sameTarget(left, right) {
+    return left.url === right.url && left.mediaId === right.mediaId && JSON.stringify(left.fallbackUrls ?? []) === JSON.stringify(right.fallbackUrls ?? []);
+  }
+  function refreshTaskTarget(task, job, queue2) {
+    const refreshedTarget = task.refreshTarget?.();
+    if (!refreshedTarget || sameTarget(task.target, refreshedTarget)) return false;
+    task.target = refreshedTarget;
+    if (job) {
+      queue2?.updateTarget(job.id, {
+        url: refreshedTarget.url,
+        ...refreshedTarget.fallbackUrls ? { fallbackUrls: refreshedTarget.fallbackUrls } : {},
+        mediaId: refreshedTarget.mediaId
+      });
+    }
+    return true;
   }
   async function resumePendingMediaJobs(ctx) {
     const queue2 = getMediaQueue();
