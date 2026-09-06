@@ -127,7 +127,8 @@ export class DownloadQueue {
     job.url = target.url;
     if (target.fallbackUrls === undefined) delete job.fallbackUrls;
     else job.fallbackUrls = [...target.fallbackUrls];
-    job.mediaId = target.mediaId;
+    if (target.mediaId === undefined) delete job.mediaId;
+    else job.mediaId = target.mediaId;
     this.#persist();
     this.#notify();
     return true;
