@@ -533,6 +533,121 @@ test("a pending video download stays actionable and uses the best variant when m
   assert.equal(result.finalText, "✓ Saved");
 });
 
+test("a queued page-bridge observation makes a blob-backed video downloadable after boot", async () => {
+  const result = await page.evaluate(async () => {
+    document.body.replaceChildren();
+    const transfers = [];
+    globalThis.GM_download = ({ url, name, onload }) => {
+      transfers.push({ url, name });
+      queueMicrotask(() => onload?.());
+    };
+
+    const article = document.createElement("article");
+    article.setAttribute("data-testid", "tweet");
+    const userName = document.createElement("div");
+    userName.setAttribute("data-testid", "User-Name");
+    const profile = document.createElement("a");
+    profile.href = "/early_owner";
+    userName.append(profile);
+    const status = document.createElement("a");
+    status.href = "/early-owner/status/123456789";
+    const actions = document.createElement("div");
+    actions.setAttribute("role", "group");
+    const reply = document.createElement("button");
+    reply.setAttribute("data-testid", "reply");
+    actions.append(reply);
+    const player = document.createElement("div");
+    player.setAttribute("data-testid", "videoComponent");
+    const video = document.createElement("video");
+    video.poster = "https://pbs.twimg.com/media/EarlyMedia1?format=jpg&name=small";
+    video.src = "blob:https://x.com/early-player";
+    player.append(video);
+    article.append(userName, status, actions, player);
+    document.body.append(article);
+
+    const queued = {
+      tweetId: "123456789",
+      mediaId: "EarlyMedia1",
+      poster: "https://pbs.twimg.com/media/EarlyMedia1?format=jpg&name=small",
+      variants: [{
+        url: "https://video.twimg.com/ext_tw_video/early/pu/vid/1280x720/direct.mp4",
+        type: "video/mp4",
+        width: 1280,
+        height: 720,
+        bitrate: 2176000
+      }],
+      audioVariants: [],
+      subtitleTracks: [],
+      isGif: false
+    };
+    const queuedItems = [queued];
+    const handlers = new Set();
+    let subscribeCount = 0;
+    const bridge = {
+      onMediaMetadata(handler) {
+        subscribeCount += 1;
+        handlers.add(handler);
+        for (const item of queuedItems.splice(0)) handler(item);
+      },
+      offMediaMetadata(handler) {
+        handlers.delete(handler);
+      },
+      on() {},
+      off() {}
+    };
+    const settings = structuredClone(AviaryMedia.DEFAULT_SETTINGS);
+    settings.media.downloadHistory = false;
+    const storage = {
+      async get(_key, fallback) {
+        return fallback;
+      },
+      async set() {}
+    };
+    const ctx = {
+      settings,
+      storage,
+      route: { surface: "home", path: "/home", href: "https://x.com/home" },
+      diagnostics: { info() {}, warn() {}, error() {} },
+      auditLog: { record() {} },
+      pageBridge: bridge,
+      requestApply() {}
+    };
+
+    try {
+      await AviaryMedia.mediaButtonsFeature.init(ctx);
+      const action = article.querySelector("[data-av-media-action]");
+      const initial = { text: action?.textContent, disabled: action?.disabled };
+      action?.click();
+      const deadline = performance.now() + 2_000;
+      while (transfers.length === 0 && performance.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      return {
+        initial,
+        transfers,
+        subscribeCount,
+        remainingQueued: queuedItems.length,
+        handlerCount: handlers.size,
+        finalText: action?.textContent
+      };
+    } finally {
+      await AviaryMedia.mediaButtonsFeature.destroy(ctx);
+      delete globalThis.GM_download;
+    }
+  });
+
+  assert.deepEqual(result.initial, { text: "↓ Download", disabled: false });
+  assert.deepEqual(result.transfers, [{
+    url: "https://video.twimg.com/ext_tw_video/early/pu/vid/1280x720/direct.mp4",
+    name: "early_owner_123456789_01.mp4"
+  }]);
+  assert.equal(result.subscribeCount, 1);
+  assert.equal(result.remainingQueued, 0, "startup metadata must be consumed exactly once");
+  assert.equal(result.handlerCount, 1);
+  assert.equal(result.finalText, "✓ Saved");
+});
+
 test("media buttons reattach when X recycles a processed post's media subtree", async () => {
   const result = await page.evaluate(async () => {
     document.body.replaceChildren();

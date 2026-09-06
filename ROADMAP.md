@@ -424,14 +424,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F331, P1: Retain bounded media metadata observed before feature startup
-  Why: capture is enabled before awaited storage initialization, but responses delivered before the media consumer subscribes are discarded.
-  Evidence: `src/main.ts:139-150`, `src/platform/page-bridge.ts:219-222`, `src/features/media/media-buttons.ts:93-94,257-270`; connected-bridge reproduction delivered zero early events and one post-subscription event
-  Touches: boot sequencing, page-bridge media subscription, bounded metadata store, media feature lifecycle, startup integration tests
-  Acceptance: with storage initialization paused, deliver the first valid fetch and XHR media responses, then finish boot and render a blob-backed post; Download can select the already-observed direct MP4 without another X request or another response; install the consumer before enabling capture or replay a bounded extracted-metadata queue exactly once; explicit record/byte limits and a value-free overflow code prevent unbounded retention; no raw response, cookie, or credential is buffered; duplicates, late subscribers, disabled settings, teardown, and reinitialization have deterministic cleanup and no cross-post leakage.
-  Complexity: M
-  Depends: None. F332 ensures retained candidates keep their richest metadata.
-
 - [ ] F332, P1: Enrich repeated media URLs before choosing the best video
   Why: the current source is added without bitrate or dimensions and blocks richer same-URL metadata, causing an observed 1080p file to lose to 360p.
   Evidence: `src/features/media/video-extract.ts:80-85,183-185`, `src/features/media/media-metadata.ts:375-389`; deterministic 1080p/8 Mbps plus 360p/0.5 Mbps fixture selected 360p

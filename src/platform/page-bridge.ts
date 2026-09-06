@@ -8,6 +8,12 @@ import {
   type PageAgentKind,
   type PageAgentTarget
 } from "../page/page-agent.ts";
+import {
+  extractMediaMetadata,
+  mediaMetadataIdentity,
+  mergeMediaMetadata,
+  type CapturedMediaMetadata
+} from "../features/media/media-metadata.ts";
 import type { Diagnostics } from "./diagnostics.ts";
 
 /**
@@ -44,6 +50,17 @@ export type PageScopeReason =
   | "torn-down";
 
 export type PageEventHandler = (payload: unknown) => void;
+export type PageMediaMetadataHandler = (payload: CapturedMediaMetadata) => void;
+
+/**
+ * The early page agent can observe a response before feature initialization finishes. Keep only
+ * extracted media fields, never a response body, and make the limits visible for diagnostics and
+ * tests. A normal first paint uses a handful of records; the larger cap absorbs a burst without
+ * becoming a session-sized cache.
+ */
+export const MEDIA_METADATA_REPLAY_RECORD_LIMIT = 64;
+export const MEDIA_METADATA_REPLAY_BYTE_LIMIT = 256_000;
+export const MEDIA_METADATA_REPLAY_OVERFLOW_CODE = "media-metadata-replay-overflow";
 
 export interface PageBridge {
   status(): PageScopeStatus;
@@ -58,6 +75,9 @@ export interface PageBridge {
    * page event was processed once per accumulated handler.
    */
   off(kind: PageAgentKind, handler: PageEventHandler): void;
+  /** Subscribe to media-only observations and replay the bounded startup queue once. */
+  onMediaMetadata(handler: PageMediaMetadataHandler): void;
+  offMediaMetadata(handler: PageMediaMetadataHandler): void;
   destroy(): void;
 }
 
@@ -149,6 +169,10 @@ export function createPageBridge(options: {
   diagnostics: Diagnostics;
 }): PageBridge {
   const handlers = new Map<PageAgentKind, Set<PageEventHandler>>();
+  const mediaMetadataHandlers = new Set<PageMediaMetadataHandler>();
+  const mediaMetadataReplay = new Map<string, { metadata: CapturedMediaMetadata; bytes: number }>();
+  let mediaMetadataReplayBytes = 0;
+  let mediaMetadataReplayOverflowReported = false;
   const sessionNonce = createSessionNonce();
   let status: PageScopeStatus = "connecting";
   let reason: PageScopeReason = "";
@@ -158,6 +182,91 @@ export function createPageBridge(options: {
   let windowListener: ((event: MessageEvent) => void) | undefined;
   let handshakeTimer: ReturnType<typeof setTimeout> | undefined;
   let lastRejectedAt = 0;
+  let mediaMetadataCaptureEnabled = true;
+
+  function clearMediaMetadataReplay(): void {
+    mediaMetadataReplay.clear();
+    mediaMetadataReplayBytes = 0;
+    mediaMetadataReplayOverflowReported = false;
+  }
+
+  function reportMediaMetadataReplayOverflow(): void {
+    if (mediaMetadataReplayOverflowReported) {
+      return;
+    }
+    mediaMetadataReplayOverflowReported = true;
+    // Deliberately value-free. The warning must not echo URLs, tweet text, or response content.
+    options.diagnostics.warn("Media metadata replay buffer reached its limit", {
+      code: MEDIA_METADATA_REPLAY_OVERFLOW_CODE
+    });
+  }
+
+  function metadataBytes(metadata: CapturedMediaMetadata): number {
+    try {
+      return new TextEncoder().encode(JSON.stringify(metadata)).byteLength;
+    } catch {
+      return Number.MAX_SAFE_INTEGER;
+    }
+  }
+
+  function deliverMediaMetadata(metadata: CapturedMediaMetadata): void {
+    for (const handler of mediaMetadataHandlers) {
+      try {
+        handler(metadata);
+      } catch (error) {
+        options.diagnostics.error("Page bridge media metadata handler failed", {
+          message: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+  }
+
+  function retainMediaMetadata(metadata: CapturedMediaMetadata): void {
+    const key = mediaMetadataIdentity(metadata);
+    const current = mediaMetadataReplay.get(key);
+    if (current) {
+      const merged = mergeMediaMetadata(current.metadata, metadata);
+      const bytes = metadataBytes(merged);
+      if (bytes > MEDIA_METADATA_REPLAY_BYTE_LIMIT) {
+        reportMediaMetadataReplayOverflow();
+        return;
+      }
+      mediaMetadataReplayBytes += bytes - current.bytes;
+      mediaMetadataReplay.set(key, { metadata: merged, bytes });
+      return;
+    }
+
+    const bytes = metadataBytes(metadata);
+    if (
+      bytes > MEDIA_METADATA_REPLAY_BYTE_LIMIT ||
+      mediaMetadataReplay.size >= MEDIA_METADATA_REPLAY_RECORD_LIMIT ||
+      mediaMetadataReplayBytes + bytes > MEDIA_METADATA_REPLAY_BYTE_LIMIT
+    ) {
+      reportMediaMetadataReplayOverflow();
+      return;
+    }
+    mediaMetadataReplay.set(key, { metadata, bytes });
+    mediaMetadataReplayBytes += bytes;
+  }
+
+  function dispatchMediaMetadata(payload: unknown): void {
+    if (!mediaMetadataCaptureEnabled) {
+      return;
+    }
+    const found = extractMediaMetadata(payload);
+    if (found.length === 0) {
+      return;
+    }
+    if (mediaMetadataHandlers.size > 0) {
+      for (const metadata of found) {
+        deliverMediaMetadata(metadata);
+      }
+      return;
+    }
+    for (const metadata of found) {
+      retainMediaMetadata(metadata);
+    }
+  }
 
   function rejectMessage(reason: string): void {
     const now = Date.now();
@@ -215,6 +324,7 @@ export function createPageBridge(options: {
         return;
       }
       payload = sanitized;
+      dispatchMediaMetadata(payload);
     }
     const set = handlers.get(envelope.kind);
     if (!set) {
@@ -303,6 +413,10 @@ export function createPageBridge(options: {
     reason: () => reason,
     configure(config) {
       lastConfig = config;
+      mediaMetadataCaptureEnabled = config.captureMediaMetadata;
+      if (!mediaMetadataCaptureEnabled) {
+        clearMediaMetadataReplay();
+      }
       if (status === "unavailable") {
         return;
       }
@@ -318,6 +432,25 @@ export function createPageBridge(options: {
       if (!set) return;
       set.delete(handler);
       if (set.size === 0) handlers.delete(kind);
+    },
+    onMediaMetadata(handler) {
+      mediaMetadataHandlers.add(handler);
+      if (mediaMetadataReplay.size === 0) {
+        return;
+      }
+      const replay = [...mediaMetadataReplay.values()].map(({ metadata }) => metadata);
+      // Clear before invoking user code. A handler may synchronously trigger another response, and
+      // that response must be delivered live rather than duplicated into the same replay batch.
+      clearMediaMetadataReplay();
+      for (const metadata of replay) {
+        deliverMediaMetadata(metadata);
+      }
+    },
+    offMediaMetadata(handler) {
+      mediaMetadataHandlers.delete(handler);
+      if (mediaMetadataHandlers.size === 0) {
+        clearMediaMetadataReplay();
+      }
     },
     destroy() {
       if (handshakeTimer) {
@@ -336,6 +469,8 @@ export function createPageBridge(options: {
       controlChannel?.close();
       controlChannel = undefined;
       handlers.clear();
+      mediaMetadataHandlers.clear();
+      clearMediaMetadataReplay();
       status = "unavailable";
       reason = "torn-down";
     }

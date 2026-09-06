@@ -11,7 +11,9 @@
   blocked or failed seal leaves the source available for retry.
 - Fallback writes now carry durable operation receipts and per-key ordering. A retry after a value
   commit, cleanup failure, or restart consumes its marker without replaying an older set or remove
-  over a newer value, and removals retain a tombstone for the same proof.
+  over a newer value, and removals retain a tombstone for the same proof. Tombstones are visible to
+  reads, legacy journal entries cannot outrank a real receipt, and direct backend writes always carry
+  a receipt.
 - Extension settings, queues, notes, archives, and signing identity now live in one
   background-owned IndexedDB database. X pages can no longer enumerate Aviary's active database,
   and the options page reads the same active profile as the feed.
@@ -30,6 +32,9 @@
 
 ### Added
 - **Suppress hover previews** in Reading, on by default in the Minimal preset. X stops opening a profile card or tooltip when the pointer rests on a name, avatar or control, and native tooltip bubbles are removed and given back exactly when the setting is turned off. Menus you click, visible labels, and screen-reader names are untouched, and nothing listens for the pointer, so a touch-only session costs nothing.
+- **Early media replay** keeps a bounded, metadata-only set of direct image and video candidates seen
+  while Aviary is opening. The media controls consume it once after storage is ready, so a blob-backed
+  X player can still download the already-observed best file without another timeline request.
 
 ### Fixed
 - Conversation pages no longer show the vertical connector line down a reply's avatar column while an Aviary theme is active. The previous fix removed a line Aviary itself drew; the one readers were seeing is X's own element, found now by its shape and position rather than by a class name X regenerates.

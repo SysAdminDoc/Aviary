@@ -21,6 +21,9 @@ Download history stores hashed media identities instead of source URLs. It catch
 image sizes and exact byte matches, with optional visual matching for re-encoded images.
 If storage briefly drops out, fallback changes carry durable receipts so recovery cannot replay an
 older value over a newer save or removal.
+Media metadata seen while Aviary is opening is retained briefly as direct, bounded candidates. That
+lets the first blob-backed video download use the best observed file as soon as the feed controls
+appear, without buffering response bodies or asking X for the post again.
 Saved media gets a quiet marker on the post. You can also write a text or JSON companion beside a
 completed download, or use the current Library search to download media from captured records.
 That Library batch uses only URLs already stored locally and does not request another X timeline.

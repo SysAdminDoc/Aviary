@@ -10,6 +10,30 @@ export interface CapturedMediaMetadata {
   isGif: boolean;
 }
 
+/**
+ * Extracted media-only observations. The response body is parsed and discarded by this function;
+ * callers receive only the direct media URLs and the small amount of rendition metadata needed by
+ * the download controls.
+ */
+export function extractMediaMetadata(payload: unknown): CapturedMediaMetadata[] {
+  const body = readBody(payload);
+  if (!body || body.length === 0 || body.length > MAX_BODY_CHARS) {
+    return [];
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    return [];
+  }
+
+  const found: CapturedMediaMetadata[] = [];
+  const state = { nodes: 0 };
+  collectMetadata(parsed, null, 0, state, found);
+  return found.map(cloneMetadata);
+}
+
 interface MetadataPayload {
   body?: unknown;
 }
@@ -41,22 +65,10 @@ export class MediaMetadataCache {
   }
 
   ingest(payload: unknown): number {
-    const body = readBody(payload);
-    if (!body || body.length === 0 || body.length > MAX_BODY_CHARS) {
-      return 0;
-    }
+    return this.ingestMetadata(extractMediaMetadata(payload));
+  }
 
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(body);
-    } catch {
-      return 0;
-    }
-
-    const found: CapturedMediaMetadata[] = [];
-    const state = { nodes: 0 };
-    collectMetadata(parsed, null, 0, state, found);
-
+  ingestMetadata(found: readonly CapturedMediaMetadata[]): number {
     let changed = 0;
     for (const metadata of found) {
       if (upsert(this.#entries, metadata)) {
@@ -131,6 +143,28 @@ export class MediaMetadataCache {
     this.#entries.clear();
     this.#version += 1;
   }
+}
+
+/** Stable identity used by bounded replay and cache merging. */
+export function mediaMetadataIdentity(metadata: CapturedMediaMetadata): string {
+  const identity = [
+    metadata.tweetId,
+    metadata.mediaId,
+    mediaIdFromUrl(metadata.poster),
+    metadata.poster
+  ].filter(Boolean);
+  if (identity.length === 0) {
+    identity.push(metadata.variants[0]?.url ?? metadata.audioVariants[0]?.url ?? "unknown");
+  }
+  return JSON.stringify(identity);
+}
+
+/** Merges repeated observations without retaining the response that carried them. */
+export function mergeMediaMetadata(
+  existing: CapturedMediaMetadata,
+  incoming: CapturedMediaMetadata
+): CapturedMediaMetadata {
+  return mergeMetadata(existing, incoming);
 }
 
 export function mediaIdFromUrl(url: string | null | undefined): string | null {

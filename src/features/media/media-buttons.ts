@@ -17,7 +17,7 @@ import {
 } from "./downloader.ts";
 import { mediaIdentityHash, type MediaFingerprint } from "../export/assets.ts";
 import { extractTweet, mediaIdentity, type ExtractedMedia, type ExtractedTweet } from "./extract.ts";
-import { MediaMetadataCache } from "./media-metadata.ts";
+import { MediaMetadataCache, type CapturedMediaMetadata } from "./media-metadata.ts";
 import { sharedDownloadWatcher } from "./download-watch.ts";
 import { isSaveableVariantUrl, VIDEO_CONTAINER_SELECTOR } from "./video-extract.ts";
 import { MediaHistory, type MediaMatchKind } from "./history.ts";
@@ -91,7 +91,9 @@ export const mediaButtonsFeature: FeatureModule = {
   category: "media",
 
   async init(ctx) {
-    subscribeToMediaMetadata(ctx);
+    if (ctx.settings.media.buttons) {
+      subscribeToMediaMetadata(ctx);
+    }
     downloadWatcher.start();
     // Only when the feature is on. This used to run unconditionally, so a user with media
     // buttons disabled still got `position: relative` forced onto every tweetPhoto -- which
@@ -143,12 +145,15 @@ export const mediaButtonsFeature: FeatureModule = {
   apply(ctx, root, addedNodes) {
     applyToggleClass(ctx);
     if (!ctx.settings.media.buttons) {
+      unsubscribeFromMediaMetadata();
+      mediaMetadataCache.clear();
       clearDecorations();
       pendingContextTarget = undefined;
       appliedPreferOriginalImages = undefined;
       appliedMetadataVersion = undefined;
       return;
     }
+    subscribeToMediaMetadata(ctx);
     if (
       appliedPreferOriginalImages !== undefined &&
       appliedPreferOriginalImages !== ctx.settings.media.preferOriginalImages
@@ -253,6 +258,7 @@ export function getCapturedMediaMetadata(args: {
 
 /** Held so `destroy` can unsubscribe the exact closure this registered. */
 let graphqlHandler: ((payload: unknown) => void) | undefined;
+let mediaMetadataHandler: ((payload: unknown) => void) | undefined;
 
 function subscribeToMediaMetadata(ctx: FeatureContext): void {
   const bridge = ctx.pageBridge;
@@ -261,13 +267,23 @@ function subscribeToMediaMetadata(ctx: FeatureContext): void {
   }
   unsubscribeFromMediaMetadata();
   subscribedBridge = bridge;
-  graphqlHandler = (payload) => {
-    const changed = mediaMetadataCache.ingest(payload as CapturedGraphqlPayload);
+  const onMediaMetadata = (bridge as Partial<PageBridge>).onMediaMetadata;
+  const ingest = (payload: unknown): void => {
+    const changed = onMediaMetadata
+      ? mediaMetadataCache.ingestMetadata([payload as CapturedMediaMetadata])
+      : mediaMetadataCache.ingest(payload as CapturedGraphqlPayload);
     if (changed > 0 && ctx.settings.media.buttons) {
       ctx.requestApply();
     }
   };
-  bridge.on("graphql", graphqlHandler);
+  if (typeof onMediaMetadata === "function") {
+    mediaMetadataHandler = ingest;
+    onMediaMetadata.call(bridge, mediaMetadataHandler);
+  } else {
+    // Compatibility with the small bridge doubles used by older consumers and tests.
+    graphqlHandler = ingest;
+    bridge.on("graphql", graphqlHandler);
+  }
 }
 
 /**
@@ -276,7 +292,9 @@ function subscribeToMediaMetadata(ctx: FeatureContext): void {
  */
 function unsubscribeFromMediaMetadata(): void {
   if (graphqlHandler) subscribedBridge?.off("graphql", graphqlHandler);
+  if (mediaMetadataHandler) subscribedBridge?.offMediaMetadata(mediaMetadataHandler);
   graphqlHandler = undefined;
+  mediaMetadataHandler = undefined;
 }
 
 function applyToggleClass(ctx: FeatureContext): void {
