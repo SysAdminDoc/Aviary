@@ -13,6 +13,12 @@ import {
   type DurableStorageMeta
 } from "../platform/durable-storage.ts";
 import { hashStorageValue } from "../platform/storage-value-hash.ts";
+import {
+  isStorageLockFence,
+  StorageFenceLostError,
+  type StorageFenceMutationAuthority,
+  type StorageLockFence
+} from "../platform/storage-fence.ts";
 
 export const DURABLE_STORAGE_MESSAGE = "AVIARY_DURABLE_STORAGE";
 const MIGRATION_BATCH_LIMIT = 16;
@@ -21,8 +27,19 @@ const LEGACY_MIGRATION_SEAL_STORE = "__aviary_migration_seal__";
 
 type DurableStorageRequest =
   | { type: typeof DURABLE_STORAGE_MESSAGE; operation: "get"; key: string }
-  | { type: typeof DURABLE_STORAGE_MESSAGE; operation: "put"; key: string; value: unknown }
-  | { type: typeof DURABLE_STORAGE_MESSAGE; operation: "remove"; key: string }
+  | {
+      type: typeof DURABLE_STORAGE_MESSAGE;
+      operation: "put";
+      key: string;
+      value: unknown;
+      fence?: StorageLockFence;
+    }
+  | {
+      type: typeof DURABLE_STORAGE_MESSAGE;
+      operation: "remove";
+      key: string;
+      fence?: StorageLockFence;
+    }
   | { type: typeof DURABLE_STORAGE_MESSAGE; operation: "get-meta" }
   | {
       type: typeof DURABLE_STORAGE_MESSAGE;
@@ -35,11 +52,13 @@ type DurableStorageRequest =
       type: typeof DURABLE_STORAGE_MESSAGE;
       operation: "stage-pending";
       write: DurablePendingWrite;
+      fence?: StorageLockFence;
     }
   | {
       type: typeof DURABLE_STORAGE_MESSAGE;
       operation: "commit-pending";
       write: DurablePendingWrite;
+      fence?: StorageLockFence;
     }
   | {
       type: typeof DURABLE_STORAGE_MESSAGE;
@@ -51,6 +70,7 @@ interface DurableStorageResponse {
   ok: boolean;
   result?: unknown;
   error?: string;
+  code?: string;
 }
 
 interface RuntimeMessageApi {
@@ -87,12 +107,23 @@ export class ExtensionDurableStorageBackend implements DurableStorageBackend {
     return result.found === true ? result.value : undefined;
   }
 
-  async put(key: string, value: unknown): Promise<void> {
-    await this.#call({ type: DURABLE_STORAGE_MESSAGE, operation: "put", key, value });
+  async put(key: string, value: unknown, fence?: StorageLockFence): Promise<void> {
+    await this.#call({
+      type: DURABLE_STORAGE_MESSAGE,
+      operation: "put",
+      key,
+      value,
+      ...(fence ? { fence } : {})
+    });
   }
 
-  async remove(key: string): Promise<void> {
-    await this.#call({ type: DURABLE_STORAGE_MESSAGE, operation: "remove", key });
+  async remove(key: string, fence?: StorageLockFence): Promise<void> {
+    await this.#call({
+      type: DURABLE_STORAGE_MESSAGE,
+      operation: "remove",
+      key,
+      ...(fence ? { fence } : {})
+    });
   }
 
   async getMeta(): Promise<DurableStorageMeta | undefined> {
@@ -117,19 +148,24 @@ export class ExtensionDurableStorageBackend implements DurableStorageBackend {
     });
   }
 
-  async stagePendingWrite(write: DurablePendingWrite): Promise<void> {
+  async stagePendingWrite(write: DurablePendingWrite, fence?: StorageLockFence): Promise<void> {
     await this.#call({
       type: DURABLE_STORAGE_MESSAGE,
       operation: "stage-pending",
-      write
+      write,
+      ...(fence ? { fence } : {})
     });
   }
 
-  async commitPendingWrite(write: DurablePendingWrite): Promise<DurablePendingWriteReceipt> {
+  async commitPendingWrite(
+    write: DurablePendingWrite,
+    fence?: StorageLockFence
+  ): Promise<DurablePendingWriteReceipt> {
     const result = asRecord(await this.#call({
       type: DURABLE_STORAGE_MESSAGE,
       operation: "commit-pending",
-      write
+      write,
+      ...(fence ? { fence } : {})
     }));
     if (
       typeof result.id !== "string" ||
@@ -182,6 +218,9 @@ export class ExtensionDurableStorageBackend implements DurableStorageBackend {
     }
     const candidate = response as DurableStorageResponse;
     if (candidate.ok !== true) {
+      if (candidate.code === "storage-fence-lost") {
+        throw new StorageFenceLostError(candidate.error);
+      }
       throw new Error(candidate.error ?? "The extension storage request failed");
     }
     return candidate.result;
@@ -205,13 +244,18 @@ export function isDurableStorageRequest(message: unknown): message is DurableSto
   }
   if (request.operation === "get-meta" || request.operation === "estimate") return true;
   if (request.operation === "get" || request.operation === "put" || request.operation === "remove") {
-    return validKey(request.key) && (request.operation !== "put" || "value" in request);
+    return (
+      validKey(request.key) &&
+      (request.operation !== "put" || "value" in request) &&
+      (request.fence === undefined || isStorageLockFence(request.fence))
+    );
   }
   if (request.operation === "put-many") {
     return validEntries(request.entries) && isDurableStorageMeta(request.meta);
   }
   if (request.operation === "stage-pending" || request.operation === "commit-pending") {
-    return isDurablePendingWrite(request.write);
+    return isDurablePendingWrite(request.write) &&
+      (request.fence === undefined || isStorageLockFence(request.fence));
   }
   if (request.operation === "migrate-host") {
     return (
@@ -226,7 +270,8 @@ export function isDurableStorageRequest(message: unknown): message is DurableSto
 /** The background calls this after the message shape has been validated. */
 export async function handleDurableStorageRequest(
   request: DurableStorageRequest,
-  backend: DurableStorageBackend
+  backend: DurableStorageBackend,
+  authority?: StorageFenceMutationAuthority
 ): Promise<DurableStorageResponse> {
   try {
     switch (request.operation) {
@@ -235,10 +280,10 @@ export async function handleDurableStorageRequest(
         return { ok: true, result: value === undefined ? { found: false } : { found: true, value } };
       }
       case "put":
-        await backend.put(request.key, request.value);
+        await runFencedMutation(authority, request.fence, () => backend.put(request.key, request.value, request.fence));
         return { ok: true, result: null };
       case "remove":
-        await backend.remove(request.key);
+        await runFencedMutation(authority, request.fence, () => backend.remove(request.key, request.fence));
         return { ok: true, result: null };
       case "get-meta": {
         const value = await backend.getMeta();
@@ -250,16 +295,37 @@ export async function handleDurableStorageRequest(
       case "estimate":
         return { ok: true, result: await backend.estimate() };
       case "stage-pending":
-        await backend.stagePendingWrite(request.write);
+        await runFencedMutation(authority, request.fence, () => backend.stagePendingWrite(request.write, request.fence));
         return { ok: true, result: null };
       case "commit-pending":
-        return { ok: true, result: await backend.commitPendingWrite(request.write) };
+        return {
+          ok: true,
+          result: await runFencedMutation(
+            authority,
+            request.fence,
+            () => backend.commitPendingWrite(request.write, request.fence)
+          )
+        };
       case "migrate-host":
         return { ok: true, result: { hashes: await importHostEntries(backend, request.entries) } };
     }
   } catch (error) {
-    return { ok: false, error: errorMessage(error) };
+    return {
+      ok: false,
+      error: errorMessage(error),
+      ...(error instanceof StorageFenceLostError ? { code: error.code } : {})
+    };
   }
+}
+
+async function runFencedMutation<T>(
+  authority: StorageFenceMutationAuthority | undefined,
+  fence: StorageLockFence | undefined,
+  action: () => Promise<T>
+): Promise<T> {
+  if (!fence) return action();
+  if (!authority) throw new StorageFenceLostError("The extension storage authority is unavailable.");
+  return authority.mutate(fence, action);
 }
 
 /**

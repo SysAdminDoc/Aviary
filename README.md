@@ -206,7 +206,7 @@ Aviary keeps booting from the verified background copy and seals the source. Aft
 closes, the next pass recopies any late writes before deletion. The userscript never opens an
 X-origin database. It uses the manager's own value store and reports a clear storage-capacity error
 before a single value exceeds 16 MiB. Extension and manager lock registers are shared across x.com,
-twitter.com, and pro.x.com. If extension storage is briefly unavailable, pending values and removals
+twitter.com, and pro.x.com, and each accepted write carries a stale-owner fence. If extension storage is briefly unavailable, pending values and removals
 share one journal. The background applies each operation and removes its marker in one transaction,
 so a closed tab or restarted worker can retry without reviving old data.
 

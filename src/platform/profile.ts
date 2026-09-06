@@ -1,4 +1,5 @@
 import type { StorageGateway } from "./storage.ts";
+import type { StorageLockFence } from "./storage-fence.ts";
 
 export const PROFILE_REGISTRY_KEY = "aviary.profiles.v1";
 export const ACTIVE_PROFILE_KEY = "aviary.profile.active.v1";
@@ -232,11 +233,11 @@ export function createProfileStorageGateway(base: StorageGateway, profileId: str
     get<T>(key: string, fallback: T): Promise<T> {
       return base.get(scoped(key), fallback);
     },
-    set<T>(key: string, value: T): Promise<void> {
-      return base.set(scoped(key), value);
+    set<T>(key: string, value: T, fence?: StorageLockFence): Promise<void> {
+      return base.set(scoped(key), value, fence);
     },
-    remove(key: string): Promise<void> {
-      return base.remove(scoped(key));
+    remove(key: string, fence?: StorageLockFence): Promise<void> {
+      return base.remove(scoped(key), fence);
     },
     getStatus(): ReturnType<NonNullable<StorageGateway["getStatus"]>> {
       return base.getStatus?.() ?? {

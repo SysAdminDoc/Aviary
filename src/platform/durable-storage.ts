@@ -1,6 +1,13 @@
 import { reportStorageError, type StorageGateway, type StorageStatus } from "./storage.ts";
 import { withStorageLock } from "./storage-lock.ts";
 import { hashStorageValue } from "./storage-value-hash.ts";
+import {
+  inferStorageFence,
+  isStorageFenceError,
+  isStorageLockFence,
+  StorageFenceLostError,
+  type StorageLockFence
+} from "./storage-fence.ts";
 
 export const DURABLE_STORAGE_SCHEMA_VERSION = 1;
 
@@ -80,12 +87,12 @@ export interface DurablePendingWriteReceipt {
 /** Small interface keeps migration logic testable without shipping an IndexedDB dependency. */
 export interface DurableStorageBackend {
   get(key: string): Promise<unknown | undefined>;
-  put(key: string, value: unknown): Promise<void>;
-  remove(key: string): Promise<void>;
+  put(key: string, value: unknown, fence?: StorageLockFence): Promise<void>;
+  remove(key: string, fence?: StorageLockFence): Promise<void>;
   getMeta(): Promise<DurableStorageMeta | undefined>;
   putMany(entries: ReadonlyArray<readonly [string, unknown]>, meta: DurableStorageMeta): Promise<void>;
-  stagePendingWrite(write: DurablePendingWrite): Promise<void>;
-  commitPendingWrite(write: DurablePendingWrite): Promise<DurablePendingWriteReceipt>;
+  stagePendingWrite(write: DurablePendingWrite, fence?: StorageLockFence): Promise<void>;
+  commitPendingWrite(write: DurablePendingWrite, fence?: StorageLockFence): Promise<DurablePendingWriteReceipt>;
   estimate(): Promise<DurableStorageEstimate>;
 }
 
@@ -103,6 +110,10 @@ export interface DurableIndexedValue {
   key: string;
   value: unknown;
   updatedAt: string;
+  /** Fence metadata makes a late IndexedDB transaction reject rather than overwrite a newer owner. */
+  fence?: StorageLockFence;
+  /** Tombstones retain a fenced remove's ordering without exposing a value on read. */
+  removed?: boolean;
 }
 
 interface PendingWriteLedger {
@@ -114,6 +125,7 @@ interface DurablePendingMarker {
   schemaVersion: 1;
   write: DurablePendingWrite;
   valueHash: string | null;
+  fence?: StorageLockFence;
 }
 
 /**
@@ -282,59 +294,64 @@ export class DurableStorageGateway implements StorageGateway {
     }
   }
 
-  async set<T>(key: string, value: T): Promise<void> {
+  async set<T>(key: string, value: T, fence?: StorageLockFence): Promise<void> {
+    const effectiveFence = fence ?? inferStorageFence(this.#scope(key));
     if (!this.#isDurable(key)) {
-      await this.#legacy.set(key, value);
+      await this.#legacy.set(key, value, effectiveFence);
       return;
     }
     await this.#ensureInitialized();
     if (!this.#backend || !this.#usable) {
       if (this.#backend) {
-        await this.#markPending(key, "put", value);
+        await this.#markPending(key, "put", value, effectiveFence);
       } else {
-        await this.#legacy.set(key, value);
+        await this.#legacy.set(key, value, effectiveFence);
       }
       return;
     }
 
     const scopedKey = this.#scope(key);
     try {
-      await this.#backend.put(scopedKey, value);
+      await this.#backend.put(scopedKey, value, effectiveFence);
       try {
-        await this.#legacy.remove(key);
+        await this.#legacy.remove(key, effectiveFence);
       } catch (error) {
+        if (effectiveFence && isStorageFenceError(error)) throw error;
         reportStorageError(scopedKey, error, "write");
       }
       await this.refreshEstimate();
     } catch (error) {
+      if (effectiveFence && isStorageFenceError(error)) throw error;
       this.#fallback(error);
-      await this.#markPending(key, "put", value);
+      await this.#markPending(key, "put", value, effectiveFence);
     }
   }
 
-  async remove(key: string): Promise<void> {
+  async remove(key: string, fence?: StorageLockFence): Promise<void> {
+    const effectiveFence = fence ?? inferStorageFence(this.#scope(key));
     if (!this.#isDurable(key)) {
-      await this.#legacy.remove(key);
+      await this.#legacy.remove(key, effectiveFence);
       return;
     }
     await this.#ensureInitialized();
     if (!this.#backend || !this.#usable) {
       if (this.#backend) {
-        await this.#markPending(key, "remove");
+        await this.#markPending(key, "remove", undefined, effectiveFence);
       } else {
-        await this.#legacy.remove(key);
+        await this.#legacy.remove(key, effectiveFence);
       }
       return;
     }
 
     const scopedKey = this.#scope(key);
     try {
-      await this.#backend.remove(scopedKey);
-      await this.#legacy.remove(key);
+      await this.#backend.remove(scopedKey, effectiveFence);
+      await this.#legacy.remove(key, effectiveFence);
       await this.refreshEstimate();
     } catch (error) {
+      if (effectiveFence && isStorageFenceError(error)) throw error;
       this.#fallback(error);
-      await this.#markPending(key, "remove");
+      await this.#markPending(key, "remove", undefined, effectiveFence);
     }
   }
 
@@ -368,9 +385,14 @@ export class DurableStorageGateway implements StorageGateway {
    * the next healthy boot knows legacy holds the newer value. Kept in the legacy store on purpose:
    * the backend is the thing that just failed.
    */
-  async #markPending(key: string, kind: "put" | "remove", value?: unknown): Promise<void> {
+  async #markPending(
+    key: string,
+    kind: "put" | "remove",
+    value?: unknown,
+    _fence?: StorageLockFence
+  ): Promise<void> {
     try {
-      this.#status.pendingWrites = await withStorageLock(PENDING_WRITES_LOCK, async () => {
+      this.#status.pendingWrites = await withStorageLock(PENDING_WRITES_LOCK, async (fence) => {
         const pending = await this.#readPendingWrites();
         pending.set(key, {
           id: createPendingWriteId(),
@@ -378,7 +400,7 @@ export class DurableStorageGateway implements StorageGateway {
           kind,
           ...(kind === "put" ? { value } : {})
         });
-        await this.#writePendingWrites(pending);
+        await this.#writePendingWrites(pending, fence);
         return pending.size;
       }, { restoreGate: false });
     } catch (error) {
@@ -395,7 +417,7 @@ export class DurableStorageGateway implements StorageGateway {
     if (!this.#backend) {
       return;
     }
-    await withStorageLock(PENDING_WRITES_LOCK, async () => {
+    await withStorageLock(PENDING_WRITES_LOCK, async (fence) => {
       const pending = await this.#readPendingWrites();
       this.#status.pendingWrites = pending.size;
       if (pending.size === 0) return;
@@ -403,8 +425,8 @@ export class DurableStorageGateway implements StorageGateway {
       for (const write of pending.values()) {
         const scopedWrite = { ...write, key: this.#scope(write.key) };
         try {
-          await this.#backend!.stagePendingWrite(scopedWrite);
-          const receipt = await this.#backend!.commitPendingWrite(scopedWrite);
+          await this.#backend!.stagePendingWrite(scopedWrite, fence);
+          const receipt = await this.#backend!.commitPendingWrite(scopedWrite, fence);
           await verifyPendingWriteReceipt(scopedWrite, receipt);
         } catch (error) {
           reportStorageError(write.key, error, "write");
@@ -416,7 +438,7 @@ export class DurableStorageGateway implements StorageGateway {
       // journal until every stale copy is gone, or a later backend outage could expose old data.
       for (const write of pending.values()) {
         try {
-          await this.#legacy.remove(write.key);
+          await this.#legacy.remove(write.key, fence);
         } catch (error) {
           reportStorageError(write.key, error, "write");
           throw error;
@@ -424,7 +446,7 @@ export class DurableStorageGateway implements StorageGateway {
       }
 
       try {
-        await this.#writePendingWrites(new Map());
+        await this.#writePendingWrites(new Map(), fence);
       } catch (error) {
         reportStorageError(PENDING_WRITES_KEY, error, "write");
         throw error;
@@ -470,15 +492,18 @@ export class DurableStorageGateway implements StorageGateway {
     return pending;
   }
 
-  async #writePendingWrites(pending: Map<string, DurablePendingWrite>): Promise<void> {
+  async #writePendingWrites(
+    pending: Map<string, DurablePendingWrite>,
+    fence?: StorageLockFence
+  ): Promise<void> {
     if (pending.size === 0) {
-      await this.#legacy.remove(PENDING_WRITES_KEY);
+      await this.#legacy.remove(PENDING_WRITES_KEY, fence);
       return;
     }
     await this.#legacy.set(PENDING_WRITES_KEY, {
       schemaVersion: PENDING_WRITES_SCHEMA_VERSION,
       entries: [...pending.values()]
-    } satisfies PendingWriteLedger);
+    } satisfies PendingWriteLedger, fence);
   }
 }
 
@@ -524,18 +549,41 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
         .objectStore(DURABLE_OBJECT_STORE)
         .get(key)
     );
-    return record?.value;
+    return record?.removed ? undefined : record?.value;
   }
 
-  async put(key: string, value: unknown): Promise<void> {
+  async put(key: string, value: unknown, fence?: StorageLockFence): Promise<void> {
     const database = await this.#database;
+    if (fence) {
+      await fencedIndexedDbMutation(database, key, fence, (store) => {
+        store.put({
+          key,
+          value,
+          updatedAt: new Date().toISOString(),
+          fence
+        } satisfies DurableIndexedValue);
+      });
+      return;
+    }
     await idbTransaction(database, "readwrite", (store) => {
       store.put({ key, value, updatedAt: new Date().toISOString() } satisfies DurableIndexedValue);
     });
   }
 
-  async remove(key: string): Promise<void> {
+  async remove(key: string, fence?: StorageLockFence): Promise<void> {
     const database = await this.#database;
+    if (fence) {
+      await fencedIndexedDbMutation(database, key, fence, (store) => {
+        store.put({
+          key,
+          value: null,
+          updatedAt: new Date().toISOString(),
+          fence,
+          removed: true
+        } satisfies DurableIndexedValue);
+      });
+      return;
+    }
     await idbTransaction(database, "readwrite", (store) => {
       store.delete(key);
     });
@@ -560,7 +608,7 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
     });
   }
 
-  async stagePendingWrite(write: DurablePendingWrite): Promise<void> {
+  async stagePendingWrite(write: DurablePendingWrite, fence?: StorageLockFence): Promise<void> {
     if (!isDurablePendingWrite(write)) {
       throw new Error("Invalid durable pending write");
     }
@@ -568,7 +616,8 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
     const marker: DurablePendingMarker = {
       schemaVersion: 1,
       write,
-      valueHash: write.kind === "put" ? await hashStorageValue(write.value) : null
+      valueHash: write.kind === "put" ? await hashStorageValue(write.value) : null,
+      ...(fence ? { fence } : {})
     };
     await idbTransaction(database, "readwrite", (store) => {
       store.put({
@@ -579,11 +628,14 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
     });
   }
 
-  async commitPendingWrite(write: DurablePendingWrite): Promise<DurablePendingWriteReceipt> {
+  async commitPendingWrite(
+    write: DurablePendingWrite,
+    fence?: StorageLockFence
+  ): Promise<DurablePendingWriteReceipt> {
     if (!isDurablePendingWrite(write)) {
       throw new Error("Invalid durable pending write");
     }
-    return commitPendingWriteTransaction(await this.#database, write);
+    return commitPendingWriteTransaction(await this.#database, write, fence);
   }
 
   async estimate(): Promise<DurableStorageEstimate> {
@@ -654,6 +706,46 @@ function idbRequest<T>(request: IDBRequest<T>): Promise<T> {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error("IndexedDB request failed"));
   });
+}
+
+function fencedIndexedDbMutation(
+  database: IDBDatabase,
+  key: string,
+  fence: StorageLockFence,
+  write: (store: IDBObjectStore) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(DURABLE_OBJECT_STORE, "readwrite");
+    const store = transaction.objectStore(DURABLE_OBJECT_STORE);
+    const request = store.get(key);
+    let failure: Error | undefined;
+    request.onsuccess = () => {
+      const current = request.result as DurableIndexedValue | undefined;
+      if (current?.fence && compareStoredFences(current.fence, fence) > 0) {
+        failure = new StorageFenceLostError("A newer storage owner already committed this key.");
+        transaction.abort();
+        return;
+      }
+      try {
+        write(store);
+      } catch (error) {
+        failure = error instanceof Error ? error : new Error(String(error));
+        transaction.abort();
+      }
+    };
+    request.onerror = () => {
+      failure = request.error ?? new Error("Fenced IndexedDB read failed");
+      transaction.abort();
+    };
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(failure ?? transaction.error ?? new Error("Fenced IndexedDB write failed"));
+    transaction.onabort = () => reject(failure ?? transaction.error ?? new Error("Fenced IndexedDB write aborted"));
+  });
+}
+
+function compareStoredFences(left: StorageLockFence, right: StorageLockFence): number {
+  if (left.name !== right.name) return 0;
+  return left.generation - right.generation || left.owner.localeCompare(right.owner);
 }
 
 function idbTransaction(
@@ -792,13 +884,15 @@ function isDurablePendingMarker(value: unknown): value is DurablePendingMarker {
     marker.schemaVersion === 1 &&
     isDurablePendingWrite(marker.write) &&
     (marker.valueHash === null ||
-      (typeof marker.valueHash === "string" && /^[0-9a-f]{64}$/.test(marker.valueHash)))
+      (typeof marker.valueHash === "string" && /^[0-9a-f]{64}$/.test(marker.valueHash))) &&
+    (marker.fence === undefined || isStorageLockFence(marker.fence))
   );
 }
 
 function commitPendingWriteTransaction(
   database: IDBDatabase,
-  expected: DurablePendingWrite
+  expected: DurablePendingWrite,
+  fence?: StorageLockFence
 ): Promise<DurablePendingWriteReceipt> {
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(DURABLE_OBJECT_STORE, "readwrite");
@@ -814,27 +908,50 @@ function commitPendingWriteTransaction(
         !isDurablePendingMarker(marker) ||
         marker.write.id !== expected.id ||
         marker.write.key !== expected.key ||
-        marker.write.kind !== expected.kind
+        marker.write.kind !== expected.kind ||
+        (fence && (!marker.fence || compareStoredFences(marker.fence, fence) !== 0))
       ) {
         failure = new Error(`Durable reconciliation marker mismatch for ${expected.key}`);
         transaction.abort();
         return;
       }
-      if (marker.write.kind === "put") {
-        store.put({
+      const current = store.get(marker.write.key);
+      current.onsuccess = () => {
+        const currentRecord = current.result as DurableIndexedValue | undefined;
+        if (fence && currentRecord?.fence && compareStoredFences(currentRecord.fence, fence) > 0) {
+          failure = new StorageFenceLostError("A newer storage owner already committed this key.");
+          transaction.abort();
+          return;
+        }
+        if (marker.write.kind === "put") {
+          store.put({
+            key: marker.write.key,
+            value: marker.write.value,
+            updatedAt: new Date().toISOString(),
+            ...(fence ? { fence } : {})
+          } satisfies DurableIndexedValue);
+        } else if (fence) {
+          store.put({
+            key: marker.write.key,
+            value: null,
+            updatedAt: new Date().toISOString(),
+            fence,
+            removed: true
+          } satisfies DurableIndexedValue);
+        } else {
+          store.delete(marker.write.key);
+        }
+        store.delete(pendingMarkerKey(marker.write.key));
+        receipt = {
+          id: marker.write.id,
           key: marker.write.key,
-          value: marker.write.value,
-          updatedAt: new Date().toISOString()
-        } satisfies DurableIndexedValue);
-      } else {
-        store.delete(marker.write.key);
-      }
-      store.delete(pendingMarkerKey(marker.write.key));
-      receipt = {
-        id: marker.write.id,
-        key: marker.write.key,
-        kind: marker.write.kind,
-        valueHash: marker.valueHash
+          kind: marker.write.kind,
+          valueHash: marker.valueHash
+        };
+      };
+      current.onerror = () => {
+        failure = current.error ?? new Error("Durable reconciliation value read failed");
+        transaction.abort();
       };
     };
     transaction.oncomplete = () => {

@@ -1,4 +1,10 @@
 import type { StorageGateway } from "./storage.ts";
+import {
+  hasExtensionFenceTransport,
+  sendStorageFenceControl,
+  withStorageFenceContext,
+  type StorageLockFence
+} from "./storage-fence.ts";
 
 /**
  * Coordination for the stores two X tabs share.
@@ -28,12 +34,13 @@ type StorageGateMode = "shared" | "exclusive";
 
 interface StorageGateRequest {
   mode: StorageGateMode;
-  run: () => Promise<unknown>;
+  run: (fence?: StorageLockFence) => Promise<unknown>;
   resolve: (value: unknown) => void;
   reject: (error: unknown) => void;
 }
 
 interface SharedLockRegisterStore {
+  kind: "extension" | "userscript";
   entries(prefix: string): Promise<Array<[string, unknown]>>;
   write(key: string, value: SharedLockContender): Promise<void>;
   remove(key: string): Promise<void>;
@@ -94,7 +101,7 @@ function lockManager(): LockManagerLike | undefined {
  */
 export async function withStorageLock<T>(
   name: string,
-  run: () => Promise<T>,
+  run: (fence?: StorageLockFence) => Promise<T>,
   options: { restoreGate?: boolean } = {}
 ): Promise<T> {
   if (options.restoreGate === false) return withNamedStorageLock(name, run);
@@ -102,11 +109,16 @@ export async function withStorageLock<T>(
 }
 
 /** Holds the restore gate exclusively across preflight snapshot, restore, and rollback. */
-export async function withExclusiveStorageGate<T>(run: () => Promise<T>): Promise<T> {
+export async function withExclusiveStorageGate<T>(
+  run: (fence?: StorageLockFence) => Promise<T>
+): Promise<T> {
   return withStorageRestoreGate("exclusive", run);
 }
 
-async function withNamedStorageLock<T>(name: string, run: () => Promise<T>): Promise<T> {
+async function withNamedStorageLock<T>(
+  name: string,
+  run: (fence?: StorageLockFence) => Promise<T>
+): Promise<T> {
   const previous = chains.get(name) ?? Promise.resolve();
   const attempt = previous.then(
     () => runUnderBrowserLock(name, run),
@@ -128,7 +140,10 @@ async function withNamedStorageLock<T>(name: string, run: () => Promise<T>): Pro
   return attempt;
 }
 
-function withStorageRestoreGate<T>(mode: StorageGateMode, run: () => Promise<T>): Promise<T> {
+function withStorageRestoreGate<T>(
+  mode: StorageGateMode,
+  run: (fence?: StorageLockFence) => Promise<T>
+): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     storageGateQueue.push({
       mode,
@@ -159,7 +174,13 @@ function drainStorageGate(): void {
 }
 
 function runStorageGateRequest(request: StorageGateRequest): void {
-  void runUnderSharedStorageLock("aviary.library.restore", request.mode, request.run).then(
+  void runUnderSharedStorageLock(
+    "aviary.library.restore",
+    request.mode,
+    request.run,
+    "aviary.library.restore",
+    request.mode === "exclusive"
+  ).then(
     request.resolve,
     request.reject
   ).finally(() => {
@@ -169,29 +190,39 @@ function runStorageGateRequest(request: StorageGateRequest): void {
   });
 }
 
-async function runUnderBrowserLock<T>(name: string, run: () => Promise<T>): Promise<T> {
-  return runUnderSharedStorageLock(`aviary.${name}`, "exclusive", run);
+async function runUnderBrowserLock<T>(
+  name: string,
+  run: (fence?: StorageLockFence) => Promise<T>
+): Promise<T> {
+  return runUnderSharedStorageLock(`aviary.${name}`, "exclusive", run, name, false);
 }
 
 async function runUnderSharedStorageLock<T>(
   name: string,
   mode: StorageGateMode,
-  run: () => Promise<T>
+  run: (fence?: StorageLockFence) => Promise<T>,
+  contextKey = name,
+  exclusiveContext = false
 ): Promise<T> {
   const registerStore = sharedLockRegisterStore();
   if (registerStore) {
-    return runUnderRegisterLock(registerStore, name, mode, run);
+    return runUnderRegisterLock(
+      registerStore,
+      name,
+      mode,
+      (fence) => withStorageFenceContext(fence, contextKey, exclusiveContext, () => run(fence))
+    );
   }
   const locks = lockManager();
   if (!locks) {
-    return run();
+    return run(undefined);
   }
   let result!: T;
   let failure: unknown;
   let failed = false;
   const callback = async () => {
     try {
-      result = await run();
+      result = await run(undefined);
     } catch (error) {
       failed = true;
       failure = error;
@@ -209,7 +240,7 @@ async function runUnderRegisterLock<T>(
   store: SharedLockRegisterStore,
   name: string,
   mode: StorageGateMode,
-  run: () => Promise<T>
+  run: (fence?: StorageLockFence) => Promise<T>
 ): Promise<T> {
   const encodedName = encodeURIComponent(name);
   if (encodedName.length > 320) throw new Error("The storage lock name is too long");
@@ -241,12 +272,36 @@ async function runUnderRegisterLock<T>(
       contender = await renewLockContender(store, key, contender);
     }
 
+    const localFence: StorageLockFence = {
+      version: 1,
+      name,
+      owner,
+      generation: contender.ticket,
+      expiresAt: contender.expiresAt
+    };
+    const remoteFence = await sendStorageFenceControl("acquire", localFence);
+    let fence = remoteFence ?? (store.kind === "userscript" ? localFence : undefined);
+    if (!fence && hasExtensionFenceTransport()) {
+      throw new Error("The extension background did not return a storage fence");
+    }
+
     let renewal = Promise.resolve();
     let renewalFailure: unknown;
     const renew = () => {
       renewal = renewal.then(async () => {
         try {
           contender = await renewLockContender(store, key, contender);
+          if (fence) {
+            const renewed = {
+              ...fence,
+              expiresAt: contender.expiresAt
+            } satisfies StorageLockFence;
+            const remoteRenewed = await sendStorageFenceControl("renew", renewed);
+            fence = remoteRenewed ?? (store.kind === "userscript" ? renewed : undefined);
+            if (!fence && hasExtensionFenceTransport()) {
+              throw new Error("The extension background did not renew the storage fence");
+            }
+          }
         } catch (error) {
           renewalFailure = error;
         }
@@ -254,13 +309,19 @@ async function runUnderRegisterLock<T>(
     };
     const timer = globalThis.setInterval(renew, SHARED_LOCK_RENEW_MS);
     try {
-      const result = await run();
+      const result = await run(fence);
       await renewal;
       if (renewalFailure) throw renewalFailure;
       return result;
     } finally {
       globalThis.clearInterval(timer);
       await renewal;
+      try {
+        if (fence) await sendStorageFenceControl("release", fence);
+      } catch {
+        // The register entry is still removed below. A background that disappeared during release
+        // will forget this authority on expiry, and a fresh owner can safely acquire a generation.
+      }
     }
   } finally {
     await store.remove(key);
@@ -353,6 +414,7 @@ function sharedLockRegisterStore(): SharedLockRegisterStore | undefined {
     typeof extensionStorage.remove === "function"
   ) {
     return {
+      kind: "extension",
       async entries(prefix) {
         const values = await extensionStorage.get(null);
         return Object.entries(values).filter(([key]) => key.startsWith(prefix));
@@ -373,6 +435,7 @@ function sharedLockRegisterStore(): SharedLockRegisterStore | undefined {
     typeof globalThis.GM_deleteValue === "function"
   ) {
     return {
+      kind: "userscript",
       async entries(prefix) {
         const keys = (await globalThis.GM_listValues!()).filter((key) => key.startsWith(prefix));
         return Promise.all(keys.map(async (key) => [
@@ -404,10 +467,10 @@ export async function mutateStored<T>(
   fallback: T,
   mutate: (stored: T) => T | Promise<T>
 ): Promise<T> {
-  return withStorageLock(key, async () => {
+  return withStorageLock(key, async (fence) => {
     const stored = await storage.get<T>(key, fallback);
     const next = await mutate(stored);
-    await storage.set(key, next);
+    await storage.set(key, next, fence);
     return next;
   });
 }
@@ -424,8 +487,8 @@ export async function replaceStored<T>(
   key: string,
   value: T
 ): Promise<void> {
-  await withStorageLock(key, async () => {
-    await storage.set(key, value);
+  await withStorageLock(key, async (fence) => {
+    await storage.set(key, value, fence);
   });
 }
 

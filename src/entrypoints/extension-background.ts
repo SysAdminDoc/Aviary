@@ -17,6 +17,10 @@ import {
   isDurableStorageRequest
 } from "../extension/durable-storage-api.ts";
 import { createIndexedDbStorageBackend } from "../platform/durable-storage.ts";
+import {
+  ExtensionStorageFenceAuthority,
+  isExtensionStorageFenceRequest
+} from "../extension/storage-fence.ts";
 
 const runtime = globalThis.chrome?.runtime;
 const extensionApi = globalThis.chrome as unknown as ExtensionAdRuleApi | undefined;
@@ -24,6 +28,7 @@ const contextMenus = globalThis.chrome?.contextMenus;
 // The only IndexedDB constructor in the extension build. Content and options use the typed runtime
 // protocol above, so their host/extension documents never open a second storage authority.
 const durableStorageBackend = createIndexedDbStorageBackend();
+const storageFenceAuthority = new ExtensionStorageFenceAuthority();
 const DOWNLOAD_TRACKING_KEY = "aviary.downloadTracking.v2";
 /** Bounded: every entry is one explicit user download, and each is cleared at its terminal state. */
 const DOWNLOAD_TRACKING_LIMIT = 64;
@@ -119,12 +124,20 @@ globalThis.chrome?.downloads?.onChanged?.addListener((delta) => {
 });
 
 runtime?.onMessage?.addListener((message, sender, sendResponse) => {
+  if (isExtensionStorageFenceRequest(message)) {
+    storageFenceAuthority.handle(message).then(
+      (response) => sendResponse(response),
+      (error: unknown) =>
+        sendResponse({ ok: false, error: errorMessage(error), code: "storage-fence-lost" })
+    );
+    return true;
+  }
   if (isDurableStorageRequest(message)) {
     if (!durableStorageBackend) {
       sendResponse({ ok: false, error: "Extension durable storage is unavailable" });
       return false;
     }
-    handleDurableStorageRequest(message, durableStorageBackend).then(
+    handleDurableStorageRequest(message, durableStorageBackend, storageFenceAuthority).then(
       (response) => sendResponse(response),
       (error: unknown) => sendResponse({ ok: false, error: errorMessage(error) })
     );

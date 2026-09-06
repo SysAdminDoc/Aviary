@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Security
+- Storage locks now carry a commit fence. The extension background rejects stale owner generations
+  at the mutation boundary, and userscript managers retain immutable fenced operations so a paused
+  callback cannot overwrite a newer accepted value after expiry or restart.
 - Extension settings, queues, notes, archives, and signing identity now live in one
   background-owned IndexedDB database. X pages can no longer enumerate Aviary's active database,
   and the options page reads the same active profile as the feed.

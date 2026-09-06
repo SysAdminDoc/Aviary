@@ -424,14 +424,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P0, Now
 
-- [ ] F328, P0: Reject expired owners where storage mutations commit
-  Why: a holder paused beyond its lease can resume after a replacement commits and overwrite the replacement's accepted data.
-  Evidence: `src/platform/storage-lock.ts:239-309`; a two-realm model with stopped renewal and a 31-second clock advance changed B's committed value to A's stale snapshot; https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html; https://developer.chrome.com/docs/web-platform/page-lifecycle-api
-  Touches: storage-lock authority and callback contract, extension background mutation gateway, userscript storage adapter, every lock-protected writer and restore path, adversarial concurrency tests
-  Acceptance: the extension authority validates a monotonic owner generation atomically with each accepted mutation; a queued or paused old-owner write cannot commit after takeover, including after background restart, clock jumps, restore, or rollback; userscript storage uses stale-safe immutable operations/materialization or another proven authority, and fails closed for an operation whose exclusivity cannot be guaranteed by manager APIs; neither longer timers nor check-then-write ownership tests count as fencing; deterministic interleavings preserve a newer accepted set/remove/clear; installed-runtime conformance is separately required by F327/F335 before claiming platform proof; uncertainty reports a recoverable state without claiming a successful write.
-  Complexity: L
-  Depends: None. Coordinate with F276's merge-on-write work; F326 optimizes only after the authority contract is correct.
-
 - [ ] F329, P0: Reconcile a final sealed migration snapshot before source deletion
   Why: a legacy tab can commit between the initial snapshot and successful sealing, then close, allowing migration to delete data it never copied.
   Evidence: `src/extension/durable-storage-api.ts:289-329`; a real Chromium IndexedDB experiment returned databaseDeleted true while the destination retained the old note and the newer source note disappeared
