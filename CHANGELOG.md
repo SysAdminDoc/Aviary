@@ -9,6 +9,9 @@
 - Legacy database migration now takes a final snapshot after sealing and verifies that snapshot in
   the background before deleting the source database. A late write is copied on the same pass, and a
   blocked or failed seal leaves the source available for retry.
+- Fallback writes now carry durable operation receipts and per-key ordering. A retry after a value
+  commit, cleanup failure, or restart consumes its marker without replaying an older set or remove
+  over a newer value, and removals retain a tombstone for the same proof.
 - Extension settings, queues, notes, archives, and signing identity now live in one
   background-owned IndexedDB database. X pages can no longer enumerate Aviary's active database,
   and the options page reads the same active profile as the feed.

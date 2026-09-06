@@ -3,9 +3,11 @@ import {
   DURABLE_META_KEY,
   DURABLE_OBJECT_STORE,
   DURABLE_STORAGE_SCHEMA_VERSION,
+  isDurableOperation,
   isDurablePendingWrite,
   isDurableStorageMeta,
   type DurableIndexedValue,
+  type DurableOperation,
   type DurablePendingWrite,
   type DurablePendingWriteReceipt,
   type DurableStorageBackend,
@@ -33,12 +35,14 @@ type DurableStorageRequest =
       key: string;
       value: unknown;
       fence?: StorageLockFence;
+      durableOperation?: DurableOperation;
     }
   | {
       type: typeof DURABLE_STORAGE_MESSAGE;
       operation: "remove";
       key: string;
       fence?: StorageLockFence;
+      durableOperation?: DurableOperation;
     }
   | { type: typeof DURABLE_STORAGE_MESSAGE; operation: "get-meta" }
   | {
@@ -113,22 +117,33 @@ export class ExtensionDurableStorageBackend implements DurableStorageBackend {
     return result.found === true ? result.value : undefined;
   }
 
-  async put(key: string, value: unknown, fence?: StorageLockFence): Promise<void> {
+  async put(
+    key: string,
+    value: unknown,
+    fence?: StorageLockFence,
+    operation?: DurableOperation
+  ): Promise<void> {
     await this.#call({
       type: DURABLE_STORAGE_MESSAGE,
       operation: "put",
       key,
       value,
-      ...(fence ? { fence } : {})
+      ...(fence ? { fence } : {}),
+      ...(operation ? { durableOperation: operation } : {})
     });
   }
 
-  async remove(key: string, fence?: StorageLockFence): Promise<void> {
+  async remove(
+    key: string,
+    fence?: StorageLockFence,
+    operation?: DurableOperation
+  ): Promise<void> {
     await this.#call({
       type: DURABLE_STORAGE_MESSAGE,
       operation: "remove",
       key,
-      ...(fence ? { fence } : {})
+      ...(fence ? { fence } : {}),
+      ...(operation ? { durableOperation: operation } : {})
     });
   }
 
@@ -253,7 +268,8 @@ export function isDurableStorageRequest(message: unknown): message is DurableSto
     return (
       validKey(request.key) &&
       (request.operation !== "put" || "value" in request) &&
-      (request.fence === undefined || isStorageLockFence(request.fence))
+      (request.fence === undefined || isStorageLockFence(request.fence)) &&
+      (request.durableOperation === undefined || isDurableOperation(request.durableOperation))
     );
   }
   if (request.operation === "put-many") {
@@ -286,10 +302,14 @@ export async function handleDurableStorageRequest(
         return { ok: true, result: value === undefined ? { found: false } : { found: true, value } };
       }
       case "put":
-        await runFencedMutation(authority, request.fence, () => backend.put(request.key, request.value, request.fence));
+        await runFencedMutation(authority, request.fence, () =>
+          backend.put(request.key, request.value, request.fence, request.durableOperation)
+        );
         return { ok: true, result: null };
       case "remove":
-        await runFencedMutation(authority, request.fence, () => backend.remove(request.key, request.fence));
+        await runFencedMutation(authority, request.fence, () =>
+          backend.remove(request.key, request.fence, request.durableOperation)
+        );
         return { ok: true, result: null };
       case "get-meta": {
         const value = await backend.getMeta();

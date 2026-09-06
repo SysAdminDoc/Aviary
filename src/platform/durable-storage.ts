@@ -75,6 +75,15 @@ export interface DurablePendingWrite {
   key: string;
   kind: "put" | "remove";
   value?: unknown;
+  /** Stable receipt identity carried into the durable value or tombstone. */
+  operationId?: string;
+  /** Monotonic wall-clock order with the ID as a deterministic tie-breaker. */
+  operationOrder?: number;
+}
+
+export interface DurableOperation {
+  operationId: string;
+  operationOrder: number;
 }
 
 export interface DurablePendingWriteReceipt {
@@ -87,8 +96,13 @@ export interface DurablePendingWriteReceipt {
 /** Small interface keeps migration logic testable without shipping an IndexedDB dependency. */
 export interface DurableStorageBackend {
   get(key: string): Promise<unknown | undefined>;
-  put(key: string, value: unknown, fence?: StorageLockFence): Promise<void>;
-  remove(key: string, fence?: StorageLockFence): Promise<void>;
+  put(
+    key: string,
+    value: unknown,
+    fence?: StorageLockFence,
+    operation?: DurableOperation
+  ): Promise<void>;
+  remove(key: string, fence?: StorageLockFence, operation?: DurableOperation): Promise<void>;
   getMeta(): Promise<DurableStorageMeta | undefined>;
   putMany(entries: ReadonlyArray<readonly [string, unknown]>, meta: DurableStorageMeta): Promise<void>;
   stagePendingWrite(write: DurablePendingWrite, fence?: StorageLockFence): Promise<void>;
@@ -112,8 +126,11 @@ export interface DurableIndexedValue {
   updatedAt: string;
   /** Fence metadata makes a late IndexedDB transaction reject rather than overwrite a newer owner. */
   fence?: StorageLockFence;
-  /** Tombstones retain a fenced remove's ordering without exposing a value on read. */
+  /** Tombstones retain a remove's ordering without exposing a value on read. */
   removed?: boolean;
+  /** Applied-operation receipt committed with the value or tombstone. */
+  operationId?: string;
+  operationOrder?: number;
 }
 
 interface PendingWriteLedger {
@@ -278,7 +295,7 @@ export class DurableStorageGateway implements StorageGateway {
       }
       const legacy = await this.#legacy.get<T | undefined>(key, undefined);
       if (legacy !== undefined) {
-        await this.#backend.put(scopedKey, legacy);
+        await this.#backend.put(scopedKey, legacy, undefined, createDurableOperation());
         await verifyBackendValue(this.#backend, scopedKey, legacy);
         try {
           await this.#legacy.remove(key);
@@ -301,9 +318,10 @@ export class DurableStorageGateway implements StorageGateway {
       return;
     }
     await this.#ensureInitialized();
+    const operation = createDurableOperation();
     if (!this.#backend || !this.#usable) {
       if (this.#backend) {
-        await this.#markPending(key, "put", value, effectiveFence);
+        await this.#markPending(key, "put", value, effectiveFence, operation);
       } else {
         await this.#legacy.set(key, value, effectiveFence);
       }
@@ -312,18 +330,19 @@ export class DurableStorageGateway implements StorageGateway {
 
     const scopedKey = this.#scope(key);
     try {
-      await this.#backend.put(scopedKey, value, effectiveFence);
+      await this.#backend.put(scopedKey, value, effectiveFence, operation);
       try {
         await this.#legacy.remove(key, effectiveFence);
       } catch (error) {
         if (effectiveFence && isStorageFenceError(error)) throw error;
         reportStorageError(scopedKey, error, "write");
+        await this.#markPending(key, "put", value, effectiveFence, operation);
       }
       await this.refreshEstimate();
     } catch (error) {
       if (effectiveFence && isStorageFenceError(error)) throw error;
       this.#fallback(error);
-      await this.#markPending(key, "put", value, effectiveFence);
+      await this.#markPending(key, "put", value, effectiveFence, operation);
     }
   }
 
@@ -334,9 +353,10 @@ export class DurableStorageGateway implements StorageGateway {
       return;
     }
     await this.#ensureInitialized();
+    const operation = createDurableOperation();
     if (!this.#backend || !this.#usable) {
       if (this.#backend) {
-        await this.#markPending(key, "remove", undefined, effectiveFence);
+        await this.#markPending(key, "remove", undefined, effectiveFence, operation);
       } else {
         await this.#legacy.remove(key, effectiveFence);
       }
@@ -345,13 +365,19 @@ export class DurableStorageGateway implements StorageGateway {
 
     const scopedKey = this.#scope(key);
     try {
-      await this.#backend.remove(scopedKey, effectiveFence);
-      await this.#legacy.remove(key, effectiveFence);
+      await this.#backend.remove(scopedKey, effectiveFence, operation);
+      try {
+        await this.#legacy.remove(key, effectiveFence);
+      } catch (error) {
+        if (effectiveFence && isStorageFenceError(error)) throw error;
+        reportStorageError(scopedKey, error, "write");
+        await this.#markPending(key, "remove", undefined, effectiveFence, operation);
+      }
       await this.refreshEstimate();
     } catch (error) {
       if (effectiveFence && isStorageFenceError(error)) throw error;
       this.#fallback(error);
-      await this.#markPending(key, "remove", undefined, effectiveFence);
+      await this.#markPending(key, "remove", undefined, effectiveFence, operation);
     }
   }
 
@@ -389,16 +415,21 @@ export class DurableStorageGateway implements StorageGateway {
     key: string,
     kind: "put" | "remove",
     value?: unknown,
-    _fence?: StorageLockFence
+    _fence?: StorageLockFence,
+    operation?: DurableOperation
   ): Promise<void> {
     try {
       this.#status.pendingWrites = await withStorageLock(PENDING_WRITES_LOCK, async (fence) => {
         const pending = await this.#readPendingWrites();
-        pending.set(key, {
+        const requestedOperation = operation
+          ? nextPendingOperation(pending.get(key), operation)
+          : undefined;
+        addPendingWrite(pending, {
           id: createPendingWriteId(),
           key,
           kind,
-          ...(kind === "put" ? { value } : {})
+          ...(kind === "put" ? { value } : {}),
+          ...(requestedOperation ?? {})
         });
         await this.#writePendingWrites(pending, fence);
         return pending.size;
@@ -476,18 +507,19 @@ export class DurableStorageGateway implements StorageGateway {
         const value = await this.#legacy.get<unknown | undefined>(key, undefined);
         const kind = value === undefined ? "remove" : "put";
         const fingerprint = await hashStorageValue({ key, kind, value });
-        pending.set(key, {
+        addPendingWrite(pending, {
           id: `legacy-${fingerprint}`,
           key,
           kind,
-          ...(kind === "put" ? { value } : {})
+          ...(kind === "put" ? { value } : {}),
+          ...createLegacyOperation(`legacy-${fingerprint}`)
         });
       }
       return pending;
     }
     if (!isPendingWriteLedger(stored)) return pending;
     for (const write of stored.entries) {
-      if (this.#isDurable(write.key)) pending.set(write.key, write);
+      if (this.#isDurable(write.key)) addPendingWrite(pending, write);
     }
     return pending;
   }
@@ -500,9 +532,14 @@ export class DurableStorageGateway implements StorageGateway {
       await this.#legacy.remove(PENDING_WRITES_KEY, fence);
       return;
     }
+    // The journal keeps one newest operation per key. This is the safe compaction boundary: an
+    // older receipt can never be needed once a newer operation for that key is retained, while a
+    // value is never dropped merely because it is old or because the journal grew.
+    const compacted = new Map<string, DurablePendingWrite>();
+    for (const write of pending.values()) addPendingWrite(compacted, write);
     await this.#legacy.set(PENDING_WRITES_KEY, {
       schemaVersion: PENDING_WRITES_SCHEMA_VERSION,
-      entries: [...pending.values()]
+      entries: [...compacted.values()]
     } satisfies PendingWriteLedger, fence);
   }
 }
@@ -552,15 +589,21 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
     return record?.removed ? undefined : record?.value;
   }
 
-  async put(key: string, value: unknown, fence?: StorageLockFence): Promise<void> {
+  async put(
+    key: string,
+    value: unknown,
+    fence?: StorageLockFence,
+    operation?: DurableOperation
+  ): Promise<void> {
     const database = await this.#database;
-    if (fence) {
-      await fencedIndexedDbMutation(database, key, fence, (store) => {
+    if (fence || operation) {
+      await fencedIndexedDbMutation(database, key, fence, operation, (store, appliedOperation) => {
         store.put({
           key,
           value,
           updatedAt: new Date().toISOString(),
-          fence
+          ...(fence ? { fence } : {}),
+          ...(appliedOperation ?? {})
         } satisfies DurableIndexedValue);
       });
       return;
@@ -570,15 +613,20 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
     });
   }
 
-  async remove(key: string, fence?: StorageLockFence): Promise<void> {
+  async remove(
+    key: string,
+    fence?: StorageLockFence,
+    operation?: DurableOperation
+  ): Promise<void> {
     const database = await this.#database;
-    if (fence) {
-      await fencedIndexedDbMutation(database, key, fence, (store) => {
+    if (fence || operation) {
+      await fencedIndexedDbMutation(database, key, fence, operation, (store, appliedOperation) => {
         store.put({
           key,
           value: null,
           updatedAt: new Date().toISOString(),
-          fence,
+          ...(fence ? { fence } : {}),
+          ...(appliedOperation ?? {}),
           removed: true
         } satisfies DurableIndexedValue);
       });
@@ -612,16 +660,17 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
     if (!isDurablePendingWrite(write)) {
       throw new Error("Invalid durable pending write");
     }
+    const durableWrite = normalizePendingWrite(write);
     const database = await this.#database;
     const marker: DurablePendingMarker = {
       schemaVersion: 1,
-      write,
-      valueHash: write.kind === "put" ? await hashStorageValue(write.value) : null,
+      write: durableWrite,
+      valueHash: durableWrite.kind === "put" ? await hashStorageValue(durableWrite.value) : null,
       ...(fence ? { fence } : {})
     };
     await idbTransaction(database, "readwrite", (store) => {
       store.put({
-        key: pendingMarkerKey(write.key),
+        key: pendingMarkerKey(durableWrite.key),
         value: marker,
         updatedAt: new Date().toISOString()
       } satisfies DurableIndexedValue);
@@ -635,7 +684,8 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
     if (!isDurablePendingWrite(write)) {
       throw new Error("Invalid durable pending write");
     }
-    return commitPendingWriteTransaction(await this.#database, write, fence);
+    const valueHash = write.kind === "put" ? await hashStorageValue(write.value) : null;
+    return commitPendingWriteTransaction(await this.#database, write, fence, valueHash);
   }
 
   async estimate(): Promise<DurableStorageEstimate> {
@@ -711,8 +761,9 @@ function idbRequest<T>(request: IDBRequest<T>): Promise<T> {
 function fencedIndexedDbMutation(
   database: IDBDatabase,
   key: string,
-  fence: StorageLockFence,
-  write: (store: IDBObjectStore) => void
+  fence: StorageLockFence | undefined,
+  operation: DurableOperation | undefined,
+  write: (store: IDBObjectStore, operation?: DurableOperation) => void
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(DURABLE_OBJECT_STORE, "readwrite");
@@ -721,13 +772,13 @@ function fencedIndexedDbMutation(
     let failure: Error | undefined;
     request.onsuccess = () => {
       const current = request.result as DurableIndexedValue | undefined;
-      if (current?.fence && compareStoredFences(current.fence, fence) > 0) {
+      if (fence && current?.fence && compareStoredFences(current.fence, fence) > 0) {
         failure = new StorageFenceLostError("A newer storage owner already committed this key.");
         transaction.abort();
         return;
       }
       try {
-        write(store);
+        write(store, operation ? nextDurableOperation(current, operation) : undefined);
       } catch (error) {
         failure = error instanceof Error ? error : new Error(String(error));
         transaction.abort();
@@ -788,8 +839,16 @@ export function isDurablePendingWrite(value: unknown): value is DurablePendingWr
     typeof write.key === "string" &&
     write.key.length > 0 &&
     write.key.length <= 512 &&
-    ((write.kind === "put" && "value" in write) || write.kind === "remove")
+    ((write.kind === "put" && "value" in write) || write.kind === "remove") &&
+    (write.operationId === undefined || validPendingWriteId(write.operationId)) &&
+    (write.operationOrder === undefined || validOperationOrder(write.operationOrder))
   );
+}
+
+export function isDurableOperation(value: unknown): value is DurableOperation {
+  if (!value || typeof value !== "object") return false;
+  const operation = value as Partial<DurableOperation>;
+  return validPendingWriteId(operation.operationId) && validOperationOrder(operation.operationOrder);
 }
 
 /**
@@ -865,12 +924,130 @@ function validPendingWriteId(value: unknown): value is string {
   );
 }
 
+function validOperationOrder(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
 function createPendingWriteId(): string {
   const cryptoWithUuid = globalThis.crypto as Crypto & { randomUUID?: () => string };
   if (typeof cryptoWithUuid?.randomUUID === "function") {
     return cryptoWithUuid.randomUUID();
   }
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+let durableOperationSequence = 0;
+let lastDurableOperationOrder = 0;
+
+function createDurableOperation(): DurableOperation {
+  const now = Math.max(0, Math.floor(Date.now()));
+  // Milliseconds provide a stable cross-restart clock. The in-process floor keeps two writes made
+  // in one millisecond ordered even when the host clock does not advance. IndexedDB still bumps a
+  // requested order above the current per-key receipt inside its write transaction.
+  const requestedOrder = now * 1000;
+  const operationOrder = Math.min(
+    Number.MAX_SAFE_INTEGER,
+    Math.max(requestedOrder, lastDurableOperationOrder + 1)
+  );
+  lastDurableOperationOrder = operationOrder;
+  return {
+    operationId: `${now.toString(36)}-${(++durableOperationSequence).toString(36)}-${
+      Math.random().toString(36).slice(2)
+    }`,
+    operationOrder
+  };
+}
+
+function createLegacyOperation(id: string): DurableOperation {
+  return { operationId: id, operationOrder: 0 };
+}
+
+function normalizePendingWrite(write: DurablePendingWrite): DurablePendingWrite {
+  return {
+    ...write,
+    ...(
+      isDurableOperation({ operationId: write.operationId ?? write.id, operationOrder: write.operationOrder ?? 0 })
+        ? {
+            operationId: write.operationId ?? write.id,
+            operationOrder: write.operationOrder ?? 0
+          }
+        : createLegacyOperation(write.id)
+    )
+  };
+}
+
+function addPendingWrite(
+  pending: Map<string, DurablePendingWrite>,
+  candidate: DurablePendingWrite
+): void {
+  const normalized = normalizePendingWrite(candidate);
+  const existing = pending.get(normalized.key);
+  if (!existing || comparePendingWrites(existing, normalized) <= 0) {
+    pending.set(normalized.key, normalized);
+  }
+}
+
+function comparePendingWrites(left: DurablePendingWrite, right: DurablePendingWrite): number {
+  const leftOperation = operationFromWrite(left);
+  const rightOperation = operationFromWrite(right);
+  if (!leftOperation && !rightOperation) return left.id.localeCompare(right.id);
+  if (!leftOperation) return -1;
+  if (!rightOperation) return 1;
+  return compareDurableOperations(leftOperation, rightOperation);
+}
+
+function nextPendingOperation(
+  existing: DurablePendingWrite | undefined,
+  requested: DurableOperation
+): DurableOperation {
+  const previous = existing ? operationFromWrite(normalizePendingWrite(existing)) : undefined;
+  if (!previous || compareDurableOperations(previous, requested) < 0) return requested;
+  return {
+    ...requested,
+    operationOrder: Math.min(Number.MAX_SAFE_INTEGER, previous.operationOrder + 1)
+  };
+}
+
+function operationFromRecord(record: DurableIndexedValue | undefined): DurableOperation | undefined {
+  if (!record || !isDurableOperation(record)) return undefined;
+  return { operationId: record.operationId, operationOrder: record.operationOrder };
+}
+
+function operationFromWrite(write: DurablePendingWrite): DurableOperation | undefined {
+  if (!isDurableOperation({ operationId: write.operationId, operationOrder: write.operationOrder })) {
+    return undefined;
+  }
+  return { operationId: write.operationId!, operationOrder: write.operationOrder! };
+}
+
+function compareDurableOperations(left: DurableOperation, right: DurableOperation): number {
+  return left.operationOrder - right.operationOrder || left.operationId.localeCompare(right.operationId);
+}
+
+function nextDurableOperation(
+  current: DurableIndexedValue | undefined,
+  requested: DurableOperation
+): DurableOperation {
+  const applied = operationFromRecord(current);
+  if (!applied || applied.operationId === requested.operationId) return requested;
+  if (compareDurableOperations(applied, requested) < 0) return requested;
+  return {
+    ...requested,
+    operationOrder: Math.min(Number.MAX_SAFE_INTEGER, applied.operationOrder + 1)
+  };
+}
+
+function currentReceiptDominates(
+  current: DurableIndexedValue | undefined,
+  pending: DurablePendingWrite
+): boolean {
+  const applied = operationFromRecord(current);
+  if (!applied) return false;
+  const requested = operationFromWrite(pending);
+  // A legacy operation has no ordering proof. Any durable receipt is therefore newer than it and
+  // is the only safe basis for dropping a replay.
+  if (!requested) return true;
+  return compareDurableOperations(applied, requested) >= 0;
 }
 
 function pendingMarkerKey(key: string): string {
@@ -892,7 +1069,8 @@ function isDurablePendingMarker(value: unknown): value is DurablePendingMarker {
 function commitPendingWriteTransaction(
   database: IDBDatabase,
   expected: DurablePendingWrite,
-  fence?: StorageLockFence
+  fence?: StorageLockFence,
+  expectedValueHash: string | null = null
 ): Promise<DurablePendingWriteReceipt> {
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(DURABLE_OBJECT_STORE, "readwrite");
@@ -904,18 +1082,25 @@ function commitPendingWriteTransaction(
     request.onsuccess = () => {
       const record = request.result as DurableIndexedValue | undefined;
       const marker = record?.value;
+      const validMarker = isDurablePendingMarker(marker) ? marker : undefined;
+      const pending = validMarker?.write;
+      if (record && !validMarker) {
+        failure = new Error(`Durable reconciliation marker is corrupt for ${expected.key}`);
+        transaction.abort();
+        return;
+      }
       if (
-        !isDurablePendingMarker(marker) ||
-        marker.write.id !== expected.id ||
-        marker.write.key !== expected.key ||
-        marker.write.kind !== expected.kind ||
-        (fence && (!marker.fence || compareStoredFences(marker.fence, fence) !== 0))
+        pending &&
+        (pending.id !== expected.id ||
+          pending.key !== expected.key ||
+          pending.kind !== expected.kind ||
+          (fence && (!validMarker?.fence || compareStoredFences(validMarker.fence, fence) !== 0)))
       ) {
         failure = new Error(`Durable reconciliation marker mismatch for ${expected.key}`);
         transaction.abort();
         return;
       }
-      const current = store.get(marker.write.key);
+      const current = store.get(expected.key);
       current.onsuccess = () => {
         const currentRecord = current.result as DurableIndexedValue | undefined;
         if (fence && currentRecord?.fence && compareStoredFences(currentRecord.fence, fence) > 0) {
@@ -923,31 +1108,51 @@ function commitPendingWriteTransaction(
           transaction.abort();
           return;
         }
-        if (marker.write.kind === "put") {
+
+        const replay = pending ?? expected;
+        if (!pending && !currentReceiptDominates(currentRecord, replay)) {
+          failure = new Error(`Durable reconciliation marker missing for ${expected.key}`);
+          transaction.abort();
+          return;
+        }
+
+        if (currentReceiptDominates(currentRecord, replay)) {
+          // The operation was already applied, or a newer operation won. Keep the durable receipt
+          // and consume only this marker. Replaying the legacy value would erase that ordering.
+          if (pending) store.delete(pendingMarkerKey(replay.key));
+          receipt = createPendingWriteReceipt(replay, validMarker?.valueHash ?? expectedValueHash);
+          return;
+        }
+
+        const appliedOperation = operationFromWrite(replay);
+        if (replay.kind === "put") {
           store.put({
-            key: marker.write.key,
-            value: marker.write.value,
+            key: replay.key,
+            value: replay.value,
             updatedAt: new Date().toISOString(),
-            ...(fence ? { fence } : {})
+            ...(fence ? { fence } : {}),
+            ...(appliedOperation ?? {})
           } satisfies DurableIndexedValue);
         } else if (fence) {
           store.put({
-            key: marker.write.key,
+            key: replay.key,
             value: null,
             updatedAt: new Date().toISOString(),
             fence,
+            ...(appliedOperation ?? {}),
             removed: true
           } satisfies DurableIndexedValue);
         } else {
-          store.delete(marker.write.key);
+          store.put({
+            key: replay.key,
+            value: null,
+            updatedAt: new Date().toISOString(),
+            ...(appliedOperation ?? {}),
+            removed: true
+          } satisfies DurableIndexedValue);
         }
-        store.delete(pendingMarkerKey(marker.write.key));
-        receipt = {
-          id: marker.write.id,
-          key: marker.write.key,
-          kind: marker.write.kind,
-          valueHash: marker.valueHash
-        };
+        store.delete(pendingMarkerKey(replay.key));
+        receipt = createPendingWriteReceipt(replay, validMarker?.valueHash ?? expectedValueHash);
       };
       current.onerror = () => {
         failure = current.error ?? new Error("Durable reconciliation value read failed");
@@ -963,4 +1168,16 @@ function commitPendingWriteTransaction(
     transaction.onabort = () =>
       reject(failure ?? transaction.error ?? new Error("IndexedDB reconciliation aborted"));
   });
+}
+
+function createPendingWriteReceipt(
+  write: DurablePendingWrite,
+  valueHash: string | null
+): DurablePendingWriteReceipt {
+  return {
+    id: write.id,
+    key: write.key,
+    kind: write.kind,
+    valueHash
+  };
 }

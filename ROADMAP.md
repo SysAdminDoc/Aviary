@@ -422,16 +422,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ## Research-Driven Additions (2026-09-06)
 
-### P0, Now
-
-- [ ] F330, P0: Persist applied-operation receipts so fallback replay cannot roll back newer data
-  Why: a committed fallback operation whose legacy cleanup failed is re-staged on restart and can overwrite a newer healthy write.
-  Evidence: `src/platform/durable-storage.ts:403-407,573-579`; a real IndexedDB experiment changed new healthy write back to old fallback after replay
-  Touches: fallback journal schema, durable commit transaction, per-key ordering and tombstones, initialization reconciliation, recovery tests
-  Acceptance: operation IDs and per-key ordering are committed atomically with values or removals; an acknowledged operation replay is a no-op after any newer healthy set/remove/clear; failures before staging, after value commit, during marker cleanup, and across restart never repeat its effect; receipt garbage collection occurs only when the operation cannot replay, not on an age timeout; bounded compaction preserves the ordering proof; schema migration keeps existing journal entries recoverable and exposes conflicts instead of choosing an older value.
-  Complexity: M
-  Depends: F328 for authoritative mutation ordering.
-
 ### P1, Next
 
 - [ ] F331, P1: Retain bounded media metadata observed before feature startup

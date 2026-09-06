@@ -258,6 +258,85 @@ class FlakyBackend extends MemoryBackend {
   }
 }
 
+/** Models the receipt fields the IndexedDB backend commits with each value or tombstone. */
+class ReceiptBackend {
+  values = new Map();
+  pending = new Map();
+  meta = undefined;
+
+  async get(key) {
+    const record = this.values.get(key);
+    return record?.removed ? undefined : record?.value;
+  }
+
+  async put(key, value, _fence, operation) {
+    this.values.set(key, {
+      key,
+      value: structuredClone(value),
+      ...(operation ?? {}),
+      removed: false
+    });
+  }
+
+  async remove(key, _fence, operation) {
+    this.values.set(key, {
+      key,
+      value: null,
+      ...(operation ?? {}),
+      removed: true
+    });
+  }
+
+  async getMeta() {
+    return this.meta;
+  }
+
+  async putMany(entries, meta) {
+    for (const [key, value] of entries) {
+      this.values.set(key, { key, value: structuredClone(value), removed: false });
+    }
+    this.meta = structuredClone(meta);
+  }
+
+  async stagePendingWrite(write) {
+    this.pending.set(write.key, structuredClone(write));
+  }
+
+  async commitPendingWrite(expected) {
+    const write = this.pending.get(expected.key);
+    if (!write || write.id !== expected.id) throw new Error("pending marker mismatch");
+    const current = this.values.get(write.key);
+    const currentOrder = typeof current?.operationOrder === "number"
+      ? current.operationOrder
+      : -1;
+    const pendingOrder = typeof write.operationOrder === "number" ? write.operationOrder : 0;
+    const currentDominates = current && current.operationOrder !== undefined && (
+      currentOrder > pendingOrder ||
+      (currentOrder === pendingOrder && current.operationId >= write.operationId)
+    );
+    if (!currentDominates) {
+      this.values.set(write.key, {
+        key: write.key,
+        value: write.kind === "put" ? structuredClone(write.value) : null,
+        ...(write.operationId ? { operationId: write.operationId } : {}),
+        ...(write.operationOrder !== undefined ? { operationOrder: write.operationOrder } : {}),
+        removed: write.kind === "remove"
+      });
+    }
+    this.pending.delete(write.key);
+    return {
+      id: write.id,
+      key: write.key,
+      kind: write.kind,
+      valueHash: write.kind === "put" ? await storageValueHash(write.value) : null
+    };
+  }
+
+  async estimate() {
+    return {};
+  }
+}
+
 async function storageValueHash(value) {
   const { hashStorageValue } = await importSourceModule("src/platform/storage-value-hash.ts");
   return hashStorageValue(value);
@@ -326,6 +405,108 @@ test("a removal made during a backend failure is not resurrected", async () => {
     "absent",
     "a delete during the outage must travel too, or the stale copy comes back"
   );
+});
+
+test("a committed fallback receipt cannot replay over a newer set or tombstone", async () => {
+  const { createDurableStorageGateway, PENDING_WRITES_KEY } = await importSourceModule(
+    "src/platform/durable-storage.ts"
+  );
+  const cases = [
+    {
+      name: "newer set",
+      kind: "put",
+      seed: { version: "before" },
+      newer: { kind: "put", value: { version: "healthy" } },
+      expected: { version: "healthy" }
+    },
+    {
+      name: "newer remove",
+      kind: "remove",
+      seed: { version: "before" },
+      newer: { kind: "remove" },
+      expected: "absent"
+    }
+  ];
+
+  for (const scenario of cases) {
+    const key = "aviary.userNotes.v1";
+    const backend = new ReceiptBackend();
+    const legacy = memoryStorage();
+    const originalRemove = legacy.remove;
+    let failValueCleanup = false;
+    legacy.remove = async (candidate) => {
+      if (candidate === key && failValueCleanup) {
+        failValueCleanup = false;
+        throw new Error("simulated legacy cleanup failure");
+      }
+      return originalRemove(candidate);
+    };
+
+    const first = createDurableStorageGateway(legacy, { backend });
+    await first.initialize([key]);
+    await first.set(key, scenario.seed);
+    failValueCleanup = true;
+    if (scenario.kind === "put") {
+      // The backend commit is acknowledged, but the failed legacy cleanup leaves a replay entry.
+      await first.set(key, { version: "fallback" });
+    } else {
+      await first.remove(key);
+    }
+    const pending = await legacy.get(PENDING_WRITES_KEY, null);
+    assert.equal(pending.entries.length, 1, scenario.name);
+    assert.equal(typeof pending.entries[0].operationId, "string", scenario.name);
+    assert.equal(Number.isSafeInteger(pending.entries[0].operationOrder), true, scenario.name);
+
+    if (scenario.newer.kind === "put") {
+      await backend.put(
+        key,
+        scenario.newer.value,
+        undefined,
+        { operationId: "healthy-newer", operationOrder: Number.MAX_SAFE_INTEGER - 1 }
+      );
+    } else {
+      await backend.remove(
+        key,
+        undefined,
+        { operationId: "healthy-newer-remove", operationOrder: Number.MAX_SAFE_INTEGER }
+      );
+    }
+
+    const restarted = createDurableStorageGateway(legacy, { backend });
+    await restarted.initialize([key]);
+    if (scenario.kind === "put") {
+      assert.deepEqual(await restarted.get(key, null), scenario.expected, scenario.name);
+    } else {
+      assert.equal(await restarted.get(key, "absent"), scenario.expected, scenario.name);
+    }
+    assert.equal(await legacy.get(PENDING_WRITES_KEY, "gone"), "gone", scenario.name);
+    assert.equal(backend.pending.size, 0, scenario.name);
+  }
+});
+
+test("schema-v2 fallback entries remain recoverable without outranking a durable receipt", async () => {
+  const { createDurableStorageGateway, PENDING_WRITES_KEY } = await importSourceModule(
+    "src/platform/durable-storage.ts"
+  );
+  const key = "aviary.userNotes.v1";
+  const legacy = memoryStorage({
+    [PENDING_WRITES_KEY]: {
+      schemaVersion: 2,
+      entries: [{ id: "legacy-entry", key, kind: "put", value: { version: "old" } }]
+    }
+  });
+  const backend = new ReceiptBackend();
+  await backend.put(
+    key,
+    { version: "new" },
+    undefined,
+    { operationId: "newer-receipt", operationOrder: 10 }
+  );
+
+  const storage = createDurableStorageGateway(legacy, { backend });
+  await storage.initialize([key]);
+  assert.deepEqual(await storage.get(key, null), { version: "new" });
+  assert.equal(await legacy.get(PENDING_WRITES_KEY, "gone"), "gone");
 });
 
 /**
