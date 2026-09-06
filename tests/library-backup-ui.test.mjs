@@ -39,7 +39,7 @@ test("Control Center previews, dry-runs, and restores a selected library backup"
     await page.addScriptTag({ path: bundle });
     const calls = await page.evaluateHandle(() => {
       const settings = AviaryBackupUi.cloneSettings(AviaryBackupUi.DEFAULT_SETTINGS);
-      const state = { calls: [] };
+      const state = { calls: [], exportCalls: [] };
       const preview = {
         schemaVersion: 1,
         createdAt: "2026-08-12T12:00:00.000Z",
@@ -67,7 +67,10 @@ test("Control Center previews, dry-runs, and restores a selected library backup"
         diagnostics: () => [],
         onChange: async () => {},
         onError: () => {},
-        exportLibraryBackup: async () => ({ filename: "backup.json", collections: 19, bytes: 2048 }),
+        exportLibraryBackup: async (options) => {
+          state.exportCalls.push(options ?? null);
+          return { filename: "backup.json", collections: 19, bytes: 2048 };
+        },
         previewLibraryRestore: async () => preview,
         restoreLibraryBackup: async (_payload, options) => {
           state.calls.push(options.dryRun);
@@ -95,6 +98,12 @@ test("Control Center previews, dry-runs, and restores a selected library backup"
       }
       if (!backup.querySelector('input[type="file"]')) throw new Error("backup file input missing");
     });
+    await page.locator("#av-control-center").evaluate((host) => {
+      [...host.shadowRoot.querySelectorAll("button")]
+        .find((button) => button.textContent === "Export backup including credentials")
+        .click();
+    });
+    await page.waitForFunction(() => document.querySelector("#av-control-center").shadowRoot.querySelector(".av-status").textContent.includes("Backup with credentials downloaded"));
 
     const file = page.locator("#av-control-center").locator("input[type=file]");
     await file.setInputFiles({ name: "backup.json", mimeType: "application/json", buffer: Buffer.from("{}") });
@@ -110,6 +119,8 @@ test("Control Center previews, dry-runs, and restores a selected library backup"
 
     const recorded = await page.evaluate((handle) => handle.state.calls, await calls);
     assert.deepEqual(recorded, [true, false]);
+    const exportCalls = await page.evaluate((handle) => handle.state.exportCalls, await calls);
+    assert.deepEqual(exportCalls, [{ includeCredentials: true }]);
     await page.evaluate((handle) => handle.handle.destroy(), await calls);
   } finally {
     await browser.close();

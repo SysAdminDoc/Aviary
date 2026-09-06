@@ -465,12 +465,20 @@ test("a schema 1 backup still restores into the active profile", async () => {
   );
 });
 
-/** The schema 1 checksum rule: version 1, and descriptors without a profile. */
+/** Schema 1 omitted profile descriptors and schema 2 left the roster outside its checksum. */
 async function legacyManifestChecksum(envelope) {
-  const descriptors = envelope.collections.map(({ value: _value, ...descriptor }) => descriptor);
+  return historicalManifestChecksum(envelope, 1);
+}
+
+async function historicalManifestChecksum(envelope, schemaVersion) {
+  const descriptors = envelope.collections.map(({ value: _value, ...descriptor }) => {
+    if (schemaVersion !== 1) return descriptor;
+    const { profileId: _profileId, ...legacy } = descriptor;
+    return legacy;
+  });
   const text = JSON.stringify({
     generator: "Aviary",
-    schemaVersion: 1,
+    schemaVersion,
     createdAt: envelope.createdAt,
     includeCredentials: envelope.includeCredentials,
     profile: envelope.profile,
@@ -479,3 +487,234 @@ async function legacyManifestChecksum(envelope) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
+
+test("a schema 2 backup keeps its historical roster and checksum semantics", async () => {
+  const { createLibraryBackup, parseLibraryBackup } =
+    await importSourceModule("src/features/core/library-backup.ts");
+  const BOOKMARKS_KEY = "aviary.library.bookmarks.v1";
+  const profiles = [{ id: "work", label: "Work" }, { id: "personal", label: "Personal" }];
+  const current = await createLibraryBackup(
+    storageFrom(new Map([
+      ["aviary.profile.work.library.bookmarks.v1", { entries: [{ id: "w1" }] }],
+      ["aviary.profile.personal.library.bookmarks.v1", { entries: [{ id: "p1" }] }]
+    ])),
+    {
+      profiles,
+      activeProfileId: "personal",
+      selectedKeys: [BOOKMARKS_KEY],
+      createdAt: "2026-09-05T00:00:00.000Z"
+    }
+  );
+  const envelope = JSON.parse(new TextDecoder().decode(current.artifact.data));
+  envelope.schemaVersion = 2;
+  envelope.manifest.schemaVersion = 2;
+  envelope.manifest.sha256 = await historicalManifestChecksum(envelope, 2);
+
+  const parsed = parseLibraryBackup(JSON.stringify(envelope));
+  assert.equal(parsed.schemaVersion, 2);
+  assert.deepEqual(parsed.profiles, profiles, "schema 2 roster fields must remain readable");
+  assert.equal(parsed.activeProfileId, "personal");
+  assert.deepEqual(
+    parsed.collections
+      .filter((entry) => entry.key === BOOKMARKS_KEY)
+      .map((entry) => entry.profileId),
+    ["work", "personal"]
+  );
+
+  // The old formula did not cover the roster. Keep that historical behavior for old files while
+  // schema 3 covers the same fields.
+  envelope.profiles = [{ id: "renamed", label: "Historical roster edit" }];
+  envelope.activeProfileId = "renamed";
+  assert.doesNotThrow(() => parseLibraryBackup(JSON.stringify(envelope)));
+});
+
+/**
+ * A multi-profile restore must not wipe the credentials it promised to keep.
+ *
+ * The settings restore looks up its own pre-restore value in the snapshot so `parseSettingsImport`
+ * can put back the API keys a redacted backup deliberately left out. That lookup matched on the
+ * gateway *object*, and `createProfileStorageGateway` returns a fresh object on every call, so for
+ * any profile-scoped collection the lookup missed, the merge ran against defaults, and every
+ * stored key was replaced with "". Schema 1 hid it: an unscoped collection resolves to the base
+ * gateway, which is the same object both times.
+ */
+test("restoring a redacted multi-profile backup keeps each profile's stored credentials", async () => {
+  const { createLibraryBackup, restoreLibraryBackup } =
+    await importSourceModule("src/features/core/library-backup.ts");
+  const { normalizeSettings } = await importSourceModule("src/platform/settings.ts");
+  const SETTINGS_KEY = "aviary.settings.v1";
+
+  const profiles = [{ id: "p1", label: "One" }, { id: "p2", label: "Two" }];
+  const settingsFor = (key) =>
+    normalizeSettings({ integrations: { ai: { apiKey: key, enabled: true } } });
+  const store = new Map([
+    ["aviary.profile.p1.settings.v1", settingsFor("SECRET-ONE")],
+    ["aviary.profile.p2.settings.v1", settingsFor("SECRET-TWO")]
+  ]);
+  const storage = storageFrom(store);
+
+  const { artifact } = await createLibraryBackup(storage, {
+    profiles,
+    activeProfileId: "p1",
+    selectedKeys: [SETTINGS_KEY],
+    createdAt: "2026-09-05T00:00:00.000Z"
+  });
+  const text = new TextDecoder().decode(artifact.data);
+  assert.equal(text.includes("SECRET-ONE"), false, "a redacted backup must not carry the key");
+
+  const result = await restoreLibraryBackup(storage, text, { profileId: "p1" });
+  assert.equal(result.applied, true, result.errors.join("; "));
+  assert.equal(
+    store.get("aviary.profile.p1.settings.v1").integrations.ai.apiKey,
+    "SECRET-ONE",
+    "the active profile's stored API key was wiped by its own backup"
+  );
+  assert.equal(
+    store.get("aviary.profile.p2.settings.v1").integrations.ai.apiKey,
+    "SECRET-TWO",
+    "another profile's stored API key was wiped by a restore"
+  );
+});
+
+test("a partial multi-profile restore rolls back credentials and active profile selection", async () => {
+  const { createLibraryBackup, restoreLibraryBackup } =
+    await importSourceModule("src/features/core/library-backup.ts");
+  const { ACTIVE_PROFILE_KEY, PROFILE_REGISTRY_KEY } =
+    await importSourceModule("src/platform/profile.ts");
+  const { normalizeSettings } = await importSourceModule("src/platform/settings.ts");
+  const SETTINGS_KEY = "aviary.settings.v1";
+  const profiles = [{ id: "p1", label: "One" }, { id: "p2", label: "Two" }];
+  const setting = (label, secret) => normalizeSettings({
+    appearance: { theme: label },
+    integrations: { ai: { apiKey: secret, enabled: true } }
+  });
+  const source = storageFrom(new Map([
+    [PROFILE_REGISTRY_KEY, { profiles: profiles.map((entry) => ({ ...entry, kind: "offline" })) }],
+    [ACTIVE_PROFILE_KEY, "p2"],
+    ["aviary.profile.p1.settings.v1", setting("source-one", "SOURCE-ONE")],
+    ["aviary.profile.p2.settings.v1", setting("source-two", "SOURCE-TWO")]
+  ]));
+  const { artifact } = await createLibraryBackup(source, {
+    profiles,
+    activeProfileId: "p2",
+    selectedKeys: [PROFILE_REGISTRY_KEY, ACTIVE_PROFILE_KEY, SETTINGS_KEY],
+    createdAt: "2026-09-05T00:00:00.000Z"
+  });
+  const text = new TextDecoder().decode(artifact.data);
+  assert.equal(text.includes("SOURCE-ONE"), false);
+  assert.equal(text.includes("SOURCE-TWO"), false);
+
+  const targetStore = new Map([
+    [PROFILE_REGISTRY_KEY, { profiles: [{ id: "old", label: "Old", kind: "offline" }] }],
+    [ACTIVE_PROFILE_KEY, "old"],
+    ["aviary.profile.p1.settings.v1", setting("target-one", "TARGET-ONE")],
+    ["aviary.profile.p2.settings.v1", setting("target-two", "TARGET-TWO")]
+  ]);
+  let failOnce = true;
+  const target = storageFrom(targetStore, {
+    async set(key, value) {
+      if (key === "aviary.profile.p2.settings.v1" && failOnce) {
+        failOnce = false;
+        throw new Error("simulated profile write failure");
+      }
+      this.store.set(key, structuredClone(value));
+    }
+  });
+
+  const result = await restoreLibraryBackup(target, text, { profileId: "old" });
+  assert.equal(result.applied, false);
+  assert.equal(result.rolledBack, true, result.rollbackErrors.join("; "));
+  assert.match(result.errors.join(" "), /simulated profile write failure/);
+  assert.equal(targetStore.get(ACTIVE_PROFILE_KEY), "old");
+  assert.deepEqual(targetStore.get(PROFILE_REGISTRY_KEY).profiles.map((entry) => entry.id), ["old"]);
+  assert.equal(
+    targetStore.get("aviary.profile.p1.settings.v1").integrations.ai.apiKey,
+    "TARGET-ONE"
+  );
+  assert.equal(
+    targetStore.get("aviary.profile.p2.settings.v1").integrations.ai.apiKey,
+    "TARGET-TWO"
+  );
+});
+
+/**
+ * An install that never signed anything must not delete the identity of the install it restores
+ * into. That collection is absent rather than withheld, so the withheld filter did not catch it
+ * and the apply loop reached `remove()`. The preview called it "unchanged" because it built the
+ * current collection with credentials withheld, which reported the live identity as absent too.
+ */
+test("a backup with no signing identity does not delete the one already saved", async () => {
+  const { createLibraryBackup, previewLibraryRestore, restoreLibraryBackup } =
+    await importSourceModule("src/features/core/library-backup.ts");
+  const { WACZ_SIGNING_KEY } = await importSourceModule("src/features/export/wacz-signing.ts");
+
+  const { artifact } = await createLibraryBackup(storageFrom(new Map()), {
+    selectedKeys: [WACZ_SIGNING_KEY],
+    createdAt: "2026-09-05T00:00:00.000Z"
+  });
+  const text = new TextDecoder().decode(artifact.data);
+
+  const target = new Map([[WACZ_SIGNING_KEY, {
+    schemaVersion: 1,
+    algorithm: "ECDSA-P384-SHA256",
+    createdAt: "2026-09-01T00:00:00.000Z",
+    fingerprint: "c".repeat(64),
+    publicKey: "cHVi",
+    privateKey: "cHJpdmF0ZQ=="
+  }]]);
+  const targetStorage = storageFrom(target);
+
+  const preview = await previewLibraryRestore(targetStorage, text, {});
+  assert.ok(
+    preview.skipped.some((entry) => entry.key === WACZ_SIGNING_KEY),
+    "the preview must say the signing identity will be skipped, not call it unchanged"
+  );
+
+  const result = await restoreLibraryBackup(targetStorage, text, {});
+  assert.equal(result.applied, true, result.errors.join("; "));
+  assert.equal(
+    target.get(WACZ_SIGNING_KEY)?.fingerprint,
+    "c".repeat(64),
+    "a backup that carried no identity deleted the one this install holds"
+  );
+});
+
+/** The roster the preview names has to be covered by the checksum that proves the file intact. */
+test("tampering with the profile list invalidates the backup checksum", async () => {
+  const { createLibraryBackup, parseLibraryBackup } =
+    await importSourceModule("src/features/core/library-backup.ts");
+  const BOOKMARKS_KEY = "aviary.library.bookmarks.v1";
+
+  const { artifact } = await createLibraryBackup(
+    storageFrom(new Map([["aviary.profile.p1.library.bookmarks.v1", { entries: [] }]])),
+    {
+      profiles: [{ id: "p1", label: "One" }],
+      activeProfileId: "p1",
+      selectedKeys: [BOOKMARKS_KEY],
+      createdAt: "2026-09-05T00:00:00.000Z"
+    }
+  );
+  const envelope = JSON.parse(new TextDecoder().decode(artifact.data));
+  envelope.profiles = [{ id: "attacker", label: "Totally Real Profile" }];
+  assert.throws(
+    () => parseLibraryBackup(JSON.stringify(envelope)),
+    /checksum/i,
+    "the preview would name a profile the file never actually carried"
+  );
+
+  const activeTampered = JSON.parse(new TextDecoder().decode(artifact.data));
+  activeTampered.activeProfileId = "attacker";
+  assert.throws(
+    () => parseLibraryBackup(JSON.stringify(activeTampered)),
+    /checksum/i,
+    "the active profile pointer must be covered by the schema 3 checksum"
+  );
+
+  const versionMismatched = JSON.parse(new TextDecoder().decode(artifact.data));
+  versionMismatched.schemaVersion = 2;
+  assert.throws(
+    () => parseLibraryBackup(JSON.stringify(versionMismatched)),
+    /schema versions|checksum/i,
+    "checksum dispatch must not accept an envelope and manifest with different versions"
+  );
+});

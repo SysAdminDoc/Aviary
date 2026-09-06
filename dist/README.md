@@ -19,6 +19,15 @@ On phones, the post-level Download control uses a labeled full-width row beneath
 per-asset button stays in the media corner for quick individual saves.
 Download history stores hashed media identities instead of source URLs. It catches alternate X
 image sizes and exact byte matches, with optional visual matching for re-encoded images.
+If storage briefly drops out, fallback changes carry durable receipts so recovery cannot replay an
+older value over a newer save or removal.
+Media metadata seen while Aviary is opening is retained briefly as direct, bounded candidates. That
+lets the first blob-backed video download use the best observed file as soon as the feed controls
+appear, without buffering response bodies or asking X for the post again.
+Repeated observations of a signed media URL are merged without dropping its query parameters. The
+download control keeps the richest known dimensions and bitrate, then chooses the best direct file.
+Library backups are checked against the complete 100 MiB UTF-8 envelope limit before download, so
+profile metadata and multibyte notes cannot create an artifact the restore parser will reject.
 Saved media gets a quiet marker on the post. You can also write a text or JSON companion beside a
 completed download, or use the current Library search to download media from captured records.
 That Library batch uses only URLs already stored locally and does not request another X timeline.
@@ -206,7 +215,7 @@ Aviary keeps booting from the verified background copy and seals the source. Aft
 closes, the next pass recopies any late writes before deletion. The userscript never opens an
 X-origin database. It uses the manager's own value store and reports a clear storage-capacity error
 before a single value exceeds 16 MiB. Extension and manager lock registers are shared across x.com,
-twitter.com, and pro.x.com. If extension storage is briefly unavailable, pending values and removals
+twitter.com, and pro.x.com, and each accepted write carries a stale-owner fence. If extension storage is briefly unavailable, pending values and removals
 share one journal. The background applies each operation and removes its marker in one transaction,
 so a closed tab or restarted worker can retry without reviving old data.
 

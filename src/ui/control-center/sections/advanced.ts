@@ -1102,6 +1102,31 @@ export function buildBackupRows(ctx: PanelContext): HTMLElement[] {
     );
   }
 
+  if (ctx.options.exportLibraryBackup) {
+    rows.push(
+      ctx.actionRow(
+        "Export backup including credentials",
+        "The same backup, plus the API keys and the WACZ signing identity saved in this browser. Anyone who opens the file can use them, so keep it somewhere you would keep a password.",
+        async () => {
+          try {
+            const result = await ctx.options.exportLibraryBackup!({ includeCredentials: true });
+            ctx.setStatusCopy(
+              "Backup with credentials downloaded: {filename} ({collections} collections, {bytes}).",
+              {
+                filename: result.filename,
+                collections: result.collections,
+                bytes: ctx.formatBytes(result.bytes)
+              }
+            );
+          } catch (error) {
+            ctx.options.onError("Could not export full library backup", error);
+            ctx.setStatus("Could not export full library backup.");
+          }
+        }
+      )
+    );
+  }
+
   if (ctx.options.previewLibraryRestore && ctx.options.restoreLibraryBackup) {
     const fileRow = ctx.el("div", "av-row av-row-stack");
     const fileCopy = ctx.el("span", "av-row-copy");

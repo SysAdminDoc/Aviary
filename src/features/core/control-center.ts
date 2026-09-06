@@ -418,11 +418,13 @@ export const controlCenterFeature: FeatureModule = {
         }
         return report;
       },
-      async exportLibraryBackup() {
+      async exportLibraryBackup(exportOptions: { includeCredentials?: boolean } = {}) {
         const profile = ctx.profile?.status();
+        const includeCredentials = exportOptions.includeCredentials === true;
         const result = await createLibraryBackup(
           ctx.profile ? ctx.profile.baseStorage : ctx.storage,
           {
+            includeCredentials,
             profile: profile
               ? { id: profile.activeId, label: profile.activeLabel }
               : null,
@@ -438,7 +440,7 @@ export const controlCenterFeature: FeatureModule = {
         void ctx.auditLog.record("library.backup.export", {
           collections: result.artifact.collections,
           bytes: result.artifact.bytes,
-          credentialsRedacted: true
+          credentialsRedacted: !includeCredentials
         });
         return {
           filename: result.artifact.filename,
@@ -455,7 +457,7 @@ export const controlCenterFeature: FeatureModule = {
       },
       async restoreLibraryBackup(
         payload: string,
-        restoreOptions: { dryRun: boolean; signal: AbortSignal }
+        restoreOptions: { dryRun: boolean; signal: AbortSignal; replaceSigningIdentity?: boolean }
       ): Promise<LibraryBackupRestoreResult> {
         const result = await restoreLibraryBackup(
           ctx.profile ? ctx.profile.baseStorage : ctx.storage,
@@ -463,6 +465,9 @@ export const controlCenterFeature: FeatureModule = {
           {
             dryRun: restoreOptions.dryRun,
             signal: restoreOptions.signal,
+            ...(restoreOptions.replaceSigningIdentity === undefined
+              ? {}
+              : { replaceSigningIdentity: restoreOptions.replaceSigningIdentity }),
             ...(ctx.profile ? { profileId: ctx.profile.activeId } : {})
           }
         );

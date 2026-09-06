@@ -183,11 +183,13 @@ export interface ControlCenterOptions {
   rebuildThreads?: () => Promise<CapturedThreadResultSummary>;
   copyDiagnostics?: () => Promise<void>;
   exportSettings?: () => Promise<void>;
-  exportLibraryBackup?: () => Promise<{ filename: string; collections: number; bytes: number }>;
+  exportLibraryBackup?: (
+    options?: { includeCredentials?: boolean }
+  ) => Promise<{ filename: string; collections: number; bytes: number }>;
   previewLibraryRestore?: (payload: string) => Promise<LibraryBackupPreview>;
   restoreLibraryBackup?: (
     payload: string,
-    options: { dryRun: boolean; signal: AbortSignal }
+    options: { dryRun: boolean; signal: AbortSignal; replaceSigningIdentity?: boolean }
   ) => Promise<LibraryBackupRestoreResult>;
   /** Restores Aviary's defaults without touching saved local collections. */
   resetSettings?: () => Promise<void>;

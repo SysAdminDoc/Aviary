@@ -4574,6 +4574,30 @@ ${body}
         )
       );
     }
+    if (ctx.options.exportLibraryBackup) {
+      rows.push(
+        ctx.actionRow(
+          "Export backup including credentials",
+          "The same backup, plus the API keys and the WACZ signing identity saved in this browser. Anyone who opens the file can use them, so keep it somewhere you would keep a password.",
+          async () => {
+            try {
+              const result = await ctx.options.exportLibraryBackup({ includeCredentials: true });
+              ctx.setStatusCopy(
+                "Backup with credentials downloaded: {filename} ({collections} collections, {bytes}).",
+                {
+                  filename: result.filename,
+                  collections: result.collections,
+                  bytes: ctx.formatBytes(result.bytes)
+                }
+              );
+            } catch (error) {
+              ctx.options.onError("Could not export full library backup", error);
+              ctx.setStatus("Could not export full library backup.");
+            }
+          }
+        )
+      );
+    }
     if (ctx.options.previewLibraryRestore && ctx.options.restoreLibraryBackup) {
       const fileRow = ctx.el("div", "av-row av-row-stack");
       const fileCopy = ctx.el("span", "av-row-copy");
@@ -12075,6 +12099,103 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
   }
 
+  // src/platform/storage-fence.ts
+  var STORAGE_FENCE_MESSAGE = "AVIARY_STORAGE_FENCE";
+  var STORAGE_FENCE_VERSION = 1;
+  var STORAGE_FENCE_OPERATION_PREFIX = "aviary.fence.v1.op.";
+  var STORAGE_FENCE_RECEIPT_SUFFIX = ".receipt";
+  var StorageFenceLostError = class extends Error {
+    code = "storage-fence-lost";
+    constructor(message = "The storage lease expired before the write could commit.") {
+      super(message);
+      this.name = "StorageFenceLostError";
+    }
+  };
+  var StorageFenceUnavailableError = class extends Error {
+    code = "storage-fence-unavailable";
+    constructor(message = "The storage backend cannot prove this write still owns its lease.") {
+      super(message);
+      this.name = "StorageFenceUnavailableError";
+    }
+  };
+  function isStorageFenceError(error) {
+    return error instanceof StorageFenceLostError || error instanceof StorageFenceUnavailableError || isRecord3(error) && (error.code === "storage-fence-lost" || error.code === "storage-fence-unavailable");
+  }
+  function isStorageLockFence(value) {
+    if (!isRecord3(value)) return false;
+    return value.version === STORAGE_FENCE_VERSION && typeof value.name === "string" && value.name.length > 0 && value.name.length <= 512 && typeof value.owner === "string" && value.owner.length > 0 && value.owner.length <= 256 && typeof value.generation === "number" && Number.isSafeInteger(value.generation) && value.generation >= 0 && typeof value.expiresAt === "number" && Number.isFinite(value.expiresAt);
+  }
+  var activeStorageFences = [];
+  async function withStorageFenceContext(fence, lockKey, exclusive, run) {
+    if (!fence) return run();
+    const active2 = { fence, lockKey, exclusive };
+    activeStorageFences.push(active2);
+    try {
+      return await run();
+    } finally {
+      const index = activeStorageFences.lastIndexOf(active2);
+      if (index >= 0) activeStorageFences.splice(index, 1);
+    }
+  }
+  function inferStorageFence(key) {
+    for (let index = activeStorageFences.length - 1; index >= 0; index -= 1) {
+      const active2 = activeStorageFences[index];
+      if (active2.exclusive || key === active2.lockKey || key === `aviary.${active2.lockKey}` || key === active2.fence.name || key === active2.fence.name.replace(/^aviary\./, "")) {
+        return active2.fence;
+      }
+    }
+    return void 0;
+  }
+  function hasExtensionFenceTransport() {
+    return Boolean(
+      globalThis.chrome?.runtime?.id && typeof globalThis.chrome.runtime.sendMessage === "function"
+    );
+  }
+  async function sendStorageFenceControl(operation, fence) {
+    if (!hasExtensionFenceTransport()) return void 0;
+    const response = await globalThis.chrome.runtime.sendMessage({
+      type: STORAGE_FENCE_MESSAGE,
+      operation,
+      fence
+    });
+    return readFenceResponse(response, operation === "release");
+  }
+  async function sendStorageFenceMutation(operation, key, fence, value) {
+    if (!hasExtensionFenceTransport()) {
+      throw new StorageFenceUnavailableError(
+        "The extension background did not expose its fenced storage authority."
+      );
+    }
+    const response = await globalThis.chrome.runtime.sendMessage({
+      type: STORAGE_FENCE_MESSAGE,
+      operation,
+      key,
+      ...operation === "set" ? { value } : {},
+      fence
+    });
+    readFenceResponse(response, false);
+  }
+  function readFenceResponse(value, release) {
+    const response = isRecord3(value) ? value : {};
+    if (response.ok !== true) {
+      const message = typeof response.error === "string" ? response.error : void 0;
+      if (response.code === "storage-fence-unavailable") {
+        throw new StorageFenceUnavailableError(message);
+      }
+      throw new StorageFenceLostError(message);
+    }
+    if (release) return void 0;
+    if (!isStorageLockFence(response.result)) {
+      throw new StorageFenceUnavailableError(
+        "The extension background returned no valid storage fence."
+      );
+    }
+    return response.result;
+  }
+  function isRecord3(value) {
+    return Boolean(value && typeof value === "object" && !Array.isArray(value));
+  }
+
   // src/platform/storage-lock.ts
   var chains = /* @__PURE__ */ new Map();
   var storageGateQueue = [];
@@ -12142,7 +12263,13 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
   }
   function runStorageGateRequest(request) {
-    void runUnderSharedStorageLock("aviary.library.restore", request.mode, request.run).then(
+    void runUnderSharedStorageLock(
+      "aviary.library.restore",
+      request.mode,
+      request.run,
+      "aviary.library.restore",
+      request.mode === "exclusive"
+    ).then(
       request.resolve,
       request.reject
     ).finally(() => {
@@ -12152,23 +12279,28 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     });
   }
   async function runUnderBrowserLock(name, run) {
-    return runUnderSharedStorageLock(`aviary.${name}`, "exclusive", run);
+    return runUnderSharedStorageLock(`aviary.${name}`, "exclusive", run, name, false);
   }
-  async function runUnderSharedStorageLock(name, mode, run) {
+  async function runUnderSharedStorageLock(name, mode, run, contextKey = name, exclusiveContext = false) {
     const registerStore = sharedLockRegisterStore();
     if (registerStore) {
-      return runUnderRegisterLock(registerStore, name, mode, run);
+      return runUnderRegisterLock(
+        registerStore,
+        name,
+        mode,
+        (fence) => withStorageFenceContext(fence, contextKey, exclusiveContext, () => run(fence))
+      );
     }
     const locks = lockManager();
     if (!locks) {
-      return run();
+      return run(void 0);
     }
     let result;
     let failure;
     let failed = false;
     const callback = async () => {
       try {
-        result = await run();
+        result = await run(void 0);
       } catch (error) {
         failed = true;
         failure = error;
@@ -12209,12 +12341,35 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         await waitForLockPoll();
         contender = await renewLockContender(store6, key, contender);
       }
+      const localFence = {
+        version: 1,
+        name,
+        owner,
+        generation: contender.ticket,
+        expiresAt: contender.expiresAt
+      };
+      const remoteFence = await sendStorageFenceControl("acquire", localFence);
+      let fence = remoteFence ?? (store6.kind === "userscript" ? localFence : void 0);
+      if (!fence && hasExtensionFenceTransport()) {
+        throw new Error("The extension background did not return a storage fence");
+      }
       let renewal = Promise.resolve();
       let renewalFailure;
       const renew = () => {
         renewal = renewal.then(async () => {
           try {
             contender = await renewLockContender(store6, key, contender);
+            if (fence) {
+              const renewed = {
+                ...fence,
+                expiresAt: contender.expiresAt
+              };
+              const remoteRenewed = await sendStorageFenceControl("renew", renewed);
+              fence = remoteRenewed ?? (store6.kind === "userscript" ? renewed : void 0);
+              if (!fence && hasExtensionFenceTransport()) {
+                throw new Error("The extension background did not renew the storage fence");
+              }
+            }
           } catch (error) {
             renewalFailure = error;
           }
@@ -12222,13 +12377,17 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       };
       const timer2 = globalThis.setInterval(renew, SHARED_LOCK_RENEW_MS);
       try {
-        const result = await run();
+        const result = await run(fence);
         await renewal;
         if (renewalFailure) throw renewalFailure;
         return result;
       } finally {
         globalThis.clearInterval(timer2);
         await renewal;
+        try {
+          if (fence) await sendStorageFenceControl("release", fence);
+        } catch {
+        }
       }
     } finally {
       await store6.remove(key);
@@ -12282,6 +12441,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     const extensionStorage = globalThis.chrome?.runtime?.id ? globalThis.chrome.storage?.local : void 0;
     if (extensionStorage && typeof extensionStorage.get === "function" && typeof extensionStorage.set === "function" && typeof extensionStorage.remove === "function") {
       return {
+        kind: "extension",
         async entries(prefix) {
           const values = await extensionStorage.get(null);
           return Object.entries(values).filter(([key]) => key.startsWith(prefix));
@@ -12296,6 +12456,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
     if (typeof globalThis.GM_listValues === "function" && typeof globalThis.GM_getValue === "function" && typeof globalThis.GM_setValue === "function" && typeof globalThis.GM_deleteValue === "function") {
       return {
+        kind: "userscript",
         async entries(prefix) {
           const keys = (await globalThis.GM_listValues()).filter((key) => key.startsWith(prefix));
           return Promise.all(keys.map(async (key) => [
@@ -12314,16 +12475,16 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     return void 0;
   }
   async function mutateStored(storage, key, fallback, mutate) {
-    return withStorageLock(key, async () => {
+    return withStorageLock(key, async (fence) => {
       const stored = await storage.get(key, fallback);
       const next = await mutate(stored);
-      await storage.set(key, next);
+      await storage.set(key, next, fence);
       return next;
     });
   }
   async function replaceStored(storage, key, value) {
-    await withStorageLock(key, async () => {
-      await storage.set(key, value);
+    await withStorageLock(key, async (fence) => {
+      await storage.set(key, value, fence);
     });
   }
   function mergeKeyed(stored, added, removed = []) {
@@ -12637,18 +12798,18 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     return { day, ai: { requests: 0, bytes: 0 }, embedding: { requests: 0, records: 0, bytes: 0 } };
   }
   function normalizeState(value) {
-    if (!isRecord3(value) || value.schemaVersion !== INTEGRATION_USAGE_SCHEMA_VERSION || !Array.isArray(value.days)) {
+    if (!isRecord4(value) || value.schemaVersion !== INTEGRATION_USAGE_SCHEMA_VERSION || !Array.isArray(value.days)) {
       return { schemaVersion: 1, days: [] };
     }
     const days = value.days.map(normalizeDay).filter((day) => day !== null).sort((a, b) => a.day.localeCompare(b.day));
     return { schemaVersion: 1, days: days.slice(-USAGE_HISTORY_DAYS) };
   }
   function normalizeDay(value) {
-    if (!isRecord3(value) || typeof value.day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value.day)) {
+    if (!isRecord4(value) || typeof value.day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value.day)) {
       return null;
     }
-    const ai = isRecord3(value.ai) ? value.ai : {};
-    const embedding = isRecord3(value.embedding) ? value.embedding : {};
+    const ai = isRecord4(value.ai) ? value.ai : {};
+    const embedding = isRecord4(value.embedding) ? value.embedding : {};
     return {
       day: value.day,
       ai: {
@@ -12675,7 +12836,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       }))
     };
   }
-  function isRecord3(value) {
+  function isRecord4(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
   function mergeHighest(local, stored) {
@@ -13462,21 +13623,62 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       variant.type,
       variant.width === null ? void 0 : String(variant.width),
       variant.height === null ? void 0 : String(variant.height),
-      variant.bitrate === null ? void 0 : String(variant.bitrate)
+      variant.bitrate === null ? void 0 : String(variant.bitrate),
+      variant.codec ?? void 0,
+      variant.provenance ?? void 0
     );
   }
-  function pushVariant(variants, seen, src, type, width, height, bitrate) {
-    if (!src || seen.has(src)) {
+  function pushVariant(variants, seen, src, type, width, height, bitrate, codec, provenance) {
+    if (!src) {
       return;
     }
-    seen.add(src);
-    variants.push({
+    const candidate = {
       url: src,
       type,
       width: parsePositiveInt(width),
       height: parsePositiveInt(height),
       bitrate: parsePositiveInt(bitrate)
-    });
+    };
+    if (codec?.trim()) candidate.codec = codec.trim();
+    if (provenance?.trim()) candidate.provenance = provenance.trim();
+    const existingIndex = variants.findIndex((variant) => variant.url === src);
+    if (existingIndex >= 0) {
+      variants[existingIndex] = mergeVideoVariant(variants[existingIndex], candidate);
+      seen.add(src);
+      return;
+    }
+    seen.add(src);
+    variants.push(candidate);
+  }
+  function mergeVideoVariant(left, right) {
+    if (left.url !== right.url) {
+      return { ...left };
+    }
+    const merged = {
+      url: left.url,
+      type: chooseVariantType(left.url, left.type, right.type),
+      width: maxKnown(left.width, right.width),
+      height: maxKnown(left.height, right.height),
+      bitrate: maxKnown(left.bitrate, right.bitrate)
+    };
+    if ("codec" in left || "codec" in right) {
+      merged.codec = chooseKnownText(left.codec, right.codec);
+    }
+    if ("provenance" in left || "provenance" in right) {
+      merged.provenance = mergeProvenance(left.provenance, right.provenance);
+    }
+    return merged;
+  }
+  function mergeVideoVariants(existing, incoming) {
+    const merged = /* @__PURE__ */ new Map();
+    for (const variant of [...existing, ...incoming]) {
+      const previous = merged.get(variant.url);
+      merged.set(
+        variant.url,
+        previous ? mergeVideoVariant(previous, variant) : { ...variant }
+      );
+    }
+    return [...merged.values()].sort((left, right) => compareStable(left.url, right.url));
   }
   function isSaveableVariantUrl(url, type = "") {
     if (!/^https?:\/\//i.test(url)) {
@@ -13503,9 +13705,49 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       }
       const aPixels = (a.width ?? 0) * (a.height ?? 0);
       const bPixels = (b.width ?? 0) * (b.height ?? 0);
-      return bPixels - aPixels;
+      const pixelDiff = bPixels - aPixels;
+      return pixelDiff !== 0 ? pixelDiff : compareStable(a.url, b.url);
     });
     return sorted[0] ?? variants[0];
+  }
+  function maxKnown(left, right) {
+    if (left === null && right === null) return null;
+    return Math.max(left ?? 0, right ?? 0) || null;
+  }
+  function chooseKnownText(left, right) {
+    const values = [left, right].filter((value) => typeof value === "string" && value.trim().length > 0).map((value) => value.trim());
+    return [...new Set(values)].sort(compareStable)[0] ?? null;
+  }
+  function mergeProvenance(left, right) {
+    const values = [left, right].flatMap((value) => typeof value === "string" ? value.split("|") : []).map((value) => value.trim()).filter(Boolean);
+    return [...new Set(values)].sort(compareStable).join("|") || null;
+  }
+  function chooseVariantType(url, left, right) {
+    const types = [...new Set([left, right].map((value) => value.trim()).filter(Boolean))];
+    if (types.length === 0) return "video/mp4";
+    return types.sort((a, b) => {
+      const scoreDiff = variantTypeScore(url, b) - variantTypeScore(url, a);
+      return scoreDiff !== 0 ? scoreDiff : compareStable(a, b);
+    })[0];
+  }
+  function variantTypeScore(url, type) {
+    const lowerType = type.toLowerCase();
+    const lowerUrl = url.toLowerCase();
+    let score = 0;
+    if (lowerType === "video/mp4") score += 40;
+    else if (lowerType.startsWith("video/")) score += 30;
+    else if (lowerType === "audio/mp4") score += 35;
+    else if (lowerType.startsWith("audio/")) score += 25;
+    if (/(?:mpegurl|dash\+xml)/i.test(lowerType)) score -= 100;
+    for (const extension of ["mp4", "webm", "mov", "m4a", "mp3", "ogg", "opus", "wav"]) {
+      if (new RegExp(`\\.${extension}(?:[?#]|$)`, "i").test(lowerUrl) && lowerType.includes(extension)) {
+        score += 50;
+      }
+    }
+    return score;
+  }
+  function compareStable(left, right) {
+    return left < right ? -1 : left > right ? 1 : 0;
   }
   function isProgressiveMp4(variant) {
     return /video\/mp4/i.test(variant.type) || /\.mp4(?:[?#]|$)/i.test(variant.url);
@@ -14613,6 +14855,22 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   }
 
   // src/features/media/media-metadata.ts
+  function extractMediaMetadata(payload) {
+    const body = readBody(payload);
+    if (!body || body.length === 0 || body.length > MAX_BODY_CHARS) {
+      return [];
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      return [];
+    }
+    const found = [];
+    const state2 = { nodes: 0 };
+    collectMetadata(parsed, null, 0, state2, found);
+    return found.map(cloneMetadata);
+  }
   var MAX_BODY_CHARS = 15e5;
   var MAX_ENTRIES = 256;
   var MAX_NODES = 5e4;
@@ -14628,19 +14886,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       return this.#entries.size;
     }
     ingest(payload) {
-      const body = readBody(payload);
-      if (!body || body.length === 0 || body.length > MAX_BODY_CHARS) {
-        return 0;
-      }
-      let parsed;
-      try {
-        parsed = JSON.parse(body);
-      } catch {
-        return 0;
-      }
-      const found = [];
-      const state2 = { nodes: 0 };
-      collectMetadata(parsed, null, 0, state2, found);
+      return this.ingestMetadata(extractMediaMetadata(payload));
+    }
+    ingestMetadata(found) {
       let changed = 0;
       for (const metadata of found) {
         if (upsert(this.#entries, metadata)) {
@@ -14703,6 +14951,21 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       this.#version += 1;
     }
   };
+  function mediaMetadataIdentity(metadata) {
+    const identity = [
+      metadata.tweetId,
+      metadata.mediaId,
+      mediaIdFromUrl2(metadata.poster),
+      metadata.poster
+    ].filter(Boolean);
+    if (identity.length === 0) {
+      identity.push(metadata.variants[0]?.url ?? metadata.audioVariants[0]?.url ?? "unknown");
+    }
+    return JSON.stringify(identity);
+  }
+  function mergeMediaMetadata(existing, incoming) {
+    return mergeMetadata(existing, incoming);
+  }
   function mediaIdFromUrl2(url) {
     if (!url) {
       return null;
@@ -14761,10 +15024,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   }
   function isMediaRecord(record) {
     const type = typeof record.type === "string" ? record.type.toLowerCase() : "";
-    return type === "video" || type === "animated_gif" || isRecord4(record.video_info) || Boolean(record.preview_image_url || record.preview_image_url_https) && (type.includes("video") || type.includes("gif"));
+    return type === "video" || type === "animated_gif" || isRecord5(record.video_info) || Boolean(record.preview_image_url || record.preview_image_url_https) && (type.includes("video") || type.includes("gif"));
   }
   function readMediaMetadata(record, tweetId) {
-    const videoInfo = isRecord4(record.video_info) ? record.video_info : {};
+    const videoInfo = isRecord5(record.video_info) ? record.video_info : {};
     const allVariants = readVariants(videoInfo.variants);
     const audioVariants = allVariants.filter(isAudioVariant);
     const variants = allVariants.filter((variant) => !isAudioVariant(variant));
@@ -14787,25 +15050,35 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       return [];
     }
     const variants = [];
-    const seen = /* @__PURE__ */ new Set();
     for (const entry of value) {
-      if (!isRecord4(entry)) {
+      if (!isRecord5(entry)) {
         continue;
       }
       const url = httpUrl(entry.url);
-      if (!url || seen.has(url)) {
+      if (!url) {
         continue;
       }
-      seen.add(url);
-      variants.push({
+      const candidate = {
         url,
         type: typeof entry.content_type === "string" ? entry.content_type : "video/mp4",
         width: positiveNumber(entry.width) ?? dimensionsFromUrl(url)?.width ?? null,
         height: positiveNumber(entry.height) ?? dimensionsFromUrl(url)?.height ?? null,
         bitrate: positiveNumber(entry.bitrate) ?? positiveNumber(entry.bit_rate) ?? null
-      });
+      };
+      if (typeof entry.codec === "string" && entry.codec.trim()) {
+        candidate.codec = entry.codec.trim();
+      }
+      if (typeof entry.provenance === "string" && entry.provenance.trim()) {
+        candidate.provenance = entry.provenance.trim();
+      }
+      const existingIndex = variants.findIndex((variant) => variant.url === url);
+      if (existingIndex < 0) {
+        variants.push(candidate);
+      } else {
+        variants[existingIndex] = mergeVideoVariant(variants[existingIndex], candidate);
+      }
     }
-    return variants;
+    return mergeVideoVariants([], variants);
   }
   function isAudioVariant(variant) {
     return /^audio\//i.test(variant.type) || /\.(?:aac|m4a|mp3|ogg|opus|wav)(?:[?#]|$)/i.test(variant.url);
@@ -14880,22 +15153,8 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     return null;
   }
   function mergeMetadata(existing, incoming) {
-    const variants = [...existing.variants];
-    const seen = new Set(variants.map((variant) => variant.url));
-    for (const variant of incoming.variants) {
-      if (!seen.has(variant.url)) {
-        variants.push(variant);
-        seen.add(variant.url);
-      }
-    }
-    const audioVariants = [...existing.audioVariants];
-    const seenAudio = new Set(audioVariants.map((variant) => variant.url));
-    for (const variant of incoming.audioVariants) {
-      if (!seenAudio.has(variant.url)) {
-        audioVariants.push(variant);
-        seenAudio.add(variant.url);
-      }
-    }
+    const variants = mergeVideoVariants(existing.variants, incoming.variants);
+    const audioVariants = mergeVideoVariants(existing.audioVariants, incoming.audioVariants);
     const subtitleTracks = [...existing.subtitleTracks];
     const seenTracks = new Set(subtitleTracks.map((track) => track.url));
     for (const track of incoming.subtitleTracks) {
@@ -14917,14 +15176,17 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   function metadataEqual(a, b) {
     return a.tweetId === b.tweetId && a.mediaId === b.mediaId && a.poster === b.poster && a.isGif === b.isGif && a.variants.length === b.variants.length && a.variants.every((variant, index) => {
       const other = b.variants[index];
-      return variant.url === other?.url && variant.type === other.type && variant.width === other.width && variant.height === other.height && variant.bitrate === other.bitrate;
+      return other !== void 0 && videoVariantEqual(variant, other);
     }) && a.audioVariants.length === b.audioVariants.length && a.audioVariants.every((variant, index) => {
       const other = b.audioVariants[index];
-      return variant.url === other?.url && variant.type === other.type && variant.bitrate === other.bitrate;
+      return other !== void 0 && videoVariantEqual(variant, other);
     }) && a.subtitleTracks.length === b.subtitleTracks.length && a.subtitleTracks.every((track, index) => {
       const other = b.subtitleTracks[index];
       return track.url === other?.url && track.type === other.type && track.language === other.language && track.label === other.label;
     });
+  }
+  function videoVariantEqual(left, right) {
+    return left.url === right.url && left.type === right.type && left.width === right.width && left.height === right.height && left.bitrate === right.bitrate && left.codec === right.codec && left.provenance === right.provenance;
   }
   function metadataKey(metadata) {
     return [
@@ -14979,7 +15241,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
     return { width: Number(match[1]), height: Number(match[2]) };
   }
-  function isRecord4(value) {
+  function isRecord5(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -16040,7 +16302,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     title: "One-click media",
     category: "media",
     async init(ctx) {
-      subscribeToMediaMetadata(ctx);
+      if (ctx.settings.media.buttons) {
+        subscribeToMediaMetadata(ctx);
+      }
       downloadWatcher.start();
       if (ctx.settings.media.buttons) {
         ensureMediaStyle();
@@ -16084,12 +16348,15 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     apply(ctx, root, addedNodes) {
       applyToggleClass(ctx);
       if (!ctx.settings.media.buttons) {
+        unsubscribeFromMediaMetadata();
+        mediaMetadataCache.clear();
         clearDecorations();
         pendingContextTarget = void 0;
         appliedPreferOriginalImages = void 0;
         appliedMetadataVersion = void 0;
         return;
       }
+      subscribeToMediaMetadata(ctx);
       if (appliedPreferOriginalImages !== void 0 && appliedPreferOriginalImages !== ctx.settings.media.preferOriginalImages) {
         clearDecorations();
       }
@@ -16157,6 +16424,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     return mediaMetadataCache.find(args.tweetId, args.mediaId, args.poster);
   }
   var graphqlHandler;
+  var mediaMetadataHandler;
   function subscribeToMediaMetadata(ctx) {
     const bridge = ctx.pageBridge;
     if (!bridge || subscribedBridge2 === bridge) {
@@ -16164,17 +16432,26 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
     unsubscribeFromMediaMetadata();
     subscribedBridge2 = bridge;
-    graphqlHandler = (payload) => {
-      const changed = mediaMetadataCache.ingest(payload);
+    const onMediaMetadata = bridge.onMediaMetadata;
+    const ingest = (payload) => {
+      const changed = onMediaMetadata ? mediaMetadataCache.ingestMetadata([payload]) : mediaMetadataCache.ingest(payload);
       if (changed > 0 && ctx.settings.media.buttons) {
         ctx.requestApply();
       }
     };
-    bridge.on("graphql", graphqlHandler);
+    if (typeof onMediaMetadata === "function") {
+      mediaMetadataHandler = ingest;
+      onMediaMetadata.call(bridge, mediaMetadataHandler);
+    } else {
+      graphqlHandler = ingest;
+      bridge.on("graphql", graphqlHandler);
+    }
   }
   function unsubscribeFromMediaMetadata() {
     if (graphqlHandler) subscribedBridge2?.off("graphql", graphqlHandler);
+    if (mediaMetadataHandler) subscribedBridge2?.offMediaMetadata(mediaMetadataHandler);
     graphqlHandler = void 0;
+    mediaMetadataHandler = void 0;
   }
   function applyToggleClass(ctx) {
     document.documentElement.classList.toggle(
@@ -19785,7 +20062,7 @@ ${record.text}${mediaList}`;
     return match?.[1] ? normalizeHandle(match[1]) : null;
   }
   function normalizeHiddenPosts(input, maxEntries) {
-    const record = isRecord5(input) ? input : {};
+    const record = isRecord6(input) ? input : {};
     const rawEntries = Array.isArray(record.entries) ? record.entries : [];
     const byKey = /* @__PURE__ */ new Map();
     for (const raw of rawEntries) {
@@ -20006,7 +20283,7 @@ ${record.text}${mediaList}`;
     return ordered.slice(ordered.length - limit);
   }
   function normalizeEntry(input) {
-    if (!isRecord5(input)) {
+    if (!isRecord6(input)) {
       return null;
     }
     const key = typeof input.key === "string" ? input.key.trim() : "";
@@ -20042,7 +20319,7 @@ ${record.text}${mediaList}`;
     const cleaned = value.trim();
     return /^\d{1,25}$/.test(cleaned) ? cleaned : null;
   }
-  function isRecord5(value) {
+  function isRecord6(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -23950,7 +24227,7 @@ ${entry.ts}`;
       throw new Error(`Bluesky media upload HTTP ${response.status}`);
     }
     const payload = await response.json();
-    if (!isRecord6(payload.blob)) {
+    if (!isRecord7(payload.blob)) {
       throw new Error("Bluesky media response was malformed");
     }
     return payload.blob;
@@ -24052,7 +24329,7 @@ ${entry.ts}`;
     const cleaned = value.replace(/[\\/\u0000-\u001f]/g, "_").trim();
     return cleaned.slice(0, 160) || "aviary-media";
   }
-  function isRecord6(value) {
+  function isRecord7(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
   async function callBluesky(service, nsid, input, bearer) {
@@ -24653,7 +24930,7 @@ a.av-link-clean {
         "accountId",
         "account_id"
       );
-      const legacy = isRecord7(record.legacy) ? record.legacy : null;
+      const legacy = isRecord8(record.legacy) ? record.legacy : null;
       const handle = normalizeHandle4(
         firstString2(record, "screen_name", "screenName", "username", "handle", "userLink") ?? (legacy ? firstString2(legacy, "screen_name", "screenName", "username", "handle") : null)
       );
@@ -24689,7 +24966,7 @@ a.av-link-clean {
     }
     return null;
   }
-  function isRecord7(value) {
+  function isRecord8(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -24907,7 +25184,7 @@ a.av-link-clean {
   }
   function arrayEntries(value) {
     if (Array.isArray(value)) return value;
-    if (isRecord8(value)) {
+    if (isRecord9(value)) {
       for (const candidate of Object.values(value)) {
         if (Array.isArray(candidate)) return candidate;
       }
@@ -24916,9 +25193,9 @@ a.av-link-clean {
     return [];
   }
   function unwrapRecord(value, keys) {
-    if (!isRecord8(value)) return {};
+    if (!isRecord9(value)) return {};
     for (const key of keys) {
-      if (isRecord8(value[key])) return value[key];
+      if (isRecord9(value[key])) return value[key];
     }
     return value;
   }
@@ -24928,7 +25205,7 @@ a.av-link-clean {
       if (!Array.isArray(value)) continue;
       return value.flatMap((entry) => {
         if (typeof entry === "string") return [entry];
-        if (isRecord8(entry)) return [stringField(entry, "id", "id_str", "url") ?? ""];
+        if (isRecord9(entry)) return [stringField(entry, "id", "id_str", "url") ?? ""];
         return [];
       }).filter((entry) => entry.length > 0).slice(0, 1e3);
     }
@@ -24959,8 +25236,8 @@ a.av-link-clean {
     const now2 = (/* @__PURE__ */ new Date()).toISOString();
     const out = [];
     for (const entry of parsed) {
-      const tweet = isRecord8(entry) && isRecord8(entry.tweet) ? entry.tweet : entry;
-      if (!isRecord8(tweet)) continue;
+      const tweet = isRecord9(entry) && isRecord9(entry.tweet) ? entry.tweet : entry;
+      if (!isRecord9(tweet)) continue;
       const id = stringField(tweet, "id_str", "id");
       const text = stringField(tweet, "full_text", "text") ?? "";
       const createdAt = stringField(tweet, "created_at") ?? now2;
@@ -24999,8 +25276,8 @@ a.av-link-clean {
     if (!Array.isArray(parsed)) return [];
     const out = [];
     for (const entry of parsed) {
-      const like = isRecord8(entry) && isRecord8(entry.like) ? entry.like : entry;
-      if (!isRecord8(like)) continue;
+      const like = isRecord9(entry) && isRecord9(entry.like) ? entry.like : entry;
+      if (!isRecord9(like)) continue;
       const id = stringField(like, "tweetId", "id");
       const text = stringField(like, "fullText", "text") ?? "";
       const record = {
@@ -25030,7 +25307,7 @@ a.av-link-clean {
   }
   function stringFromAuthor(tweet) {
     const user = tweet.user;
-    if (isRecord8(user)) {
+    if (isRecord9(user)) {
       const author = stringField(user, "screen_name", "username", "handle");
       if (author) {
         return author;
@@ -25039,11 +25316,11 @@ a.av-link-clean {
     return null;
   }
   function mentionParticipants(tweet) {
-    const entities = isRecord8(tweet.entities) ? tweet.entities : null;
+    const entities = isRecord9(tweet.entities) ? tweet.entities : null;
     const mentions = Array.isArray(entities?.user_mentions) ? entities.user_mentions : [];
     const participants = /* @__PURE__ */ new Map();
     for (const candidate of mentions) {
-      if (!isRecord8(candidate)) continue;
+      if (!isRecord9(candidate)) continue;
       const id = stringField(candidate, "id_str", "id", "user_id", "userId");
       if (!id) continue;
       participants.set(
@@ -25056,7 +25333,7 @@ a.av-link-clean {
     }
     return [...participants.values()];
   }
-  function isRecord8(value) {
+  function isRecord9(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -25457,7 +25734,7 @@ a.av-link-clean {
     const raw = value;
     return {
       version: 1,
-      profile: isRecord9(raw.profile) ? {
+      profile: isRecord10(raw.profile) ? {
         handle: stringOrNull(raw.profile.handle),
         displayName: stringOrNull(raw.profile.displayName),
         bio: stringOrNull(raw.profile.bio),
@@ -25465,7 +25742,7 @@ a.av-link-clean {
         website: stringOrNull(raw.profile.website),
         joinedAt: stringOrNull(raw.profile.joinedAt)
       } : null,
-      account: isRecord9(raw.account) ? {
+      account: isRecord10(raw.account) ? {
         id: stringOrNull(raw.account.id),
         handle: stringOrNull(raw.account.handle),
         displayName: stringOrNull(raw.account.displayName),
@@ -25523,11 +25800,11 @@ a.av-link-clean {
   function stringOrNull(value) {
     return typeof value === "string" ? value : null;
   }
-  function isRecord9(value) {
+  function isRecord10(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
   function isDirectMessage(value) {
-    return isRecord9(value) && typeof value.text === "string" && Array.isArray(value.recipientIds) && Array.isArray(value.mediaUrls);
+    return isRecord10(value) && typeof value.text === "string" && Array.isArray(value.recipientIds) && Array.isArray(value.mediaUrls);
   }
   function normalizeDirectMessage(message) {
     const sender = normalizeParticipant(message.sender) ?? participantFromId(message.senderId);
@@ -25552,7 +25829,7 @@ a.av-link-clean {
     };
   }
   function normalizeParticipant(value) {
-    if (!isRecord9(value) || typeof value.id !== "string") return null;
+    if (!isRecord10(value) || typeof value.id !== "string") return null;
     return {
       id: value.id,
       handle: stringOrNull(value.handle),
@@ -25560,7 +25837,7 @@ a.av-link-clean {
     };
   }
   function normalizeExpandedUrl(value) {
-    if (!isRecord9(value) || typeof value.shortUrl !== "string" || typeof value.destination !== "string" || !isHttpUrl3(value.destination) || value.source !== "archive" && value.source !== "local-corpus") {
+    if (!isRecord10(value) || typeof value.shortUrl !== "string" || typeof value.destination !== "string" || !isHttpUrl3(value.destination) || value.source !== "archive" && value.source !== "local-corpus") {
       return null;
     }
     return {
@@ -25578,7 +25855,7 @@ a.av-link-clean {
     }
   }
   function normalizeRepairSummary(value) {
-    const record = isRecord9(value) ? value : {};
+    const record = isRecord10(value) ? value : {};
     return {
       archiveLinksExpanded: nonNegativeInteger3(record.archiveLinksExpanded),
       corpusLinksExpanded: nonNegativeInteger3(record.corpusLinksExpanded),
@@ -25590,13 +25867,13 @@ a.av-link-clean {
     return typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.trunc(value) : 0;
   }
   function isMediaReference(value) {
-    return isRecord9(value) && typeof value.sourceFile === "string";
+    return isRecord10(value) && typeof value.sourceFile === "string";
   }
   function isAccountRef(value) {
-    return isRecord9(value) && typeof value.sourceFile === "string";
+    return isRecord10(value) && typeof value.sourceFile === "string";
   }
   function isList(value) {
-    return isRecord9(value) && Array.isArray(value.memberIds) && Array.isArray(value.subscriberIds);
+    return isRecord10(value) && Array.isArray(value.memberIds) && Array.isArray(value.subscriberIds);
   }
 
   // src/features/library/cleanup-preview.ts
@@ -28305,7 +28582,7 @@ ${COLOR_CSS}`;
       errors.push(`Invalid JSON: ${error.message}`);
       return { applied: false, errors, warnings, settings: normalizeSettings({}) };
     }
-    if (!isRecord10(parsed)) {
+    if (!isRecord11(parsed)) {
       errors.push("Top-level value must be an object.");
       return { applied: false, errors, warnings, settings: normalizeSettings({}) };
     }
@@ -28319,7 +28596,7 @@ ${COLOR_CSS}`;
         `Import version ${version} is newer than supported ${SETTINGS_EXPORT_VERSION}; unknown fields are dropped.`
       );
     }
-    const rawSettings = isRecord10(parsed.settings) ? parsed.settings : parsed;
+    const rawSettings = isRecord11(parsed.settings) ? parsed.settings : parsed;
     const envelope = readSettingsEnvelope(rawSettings);
     const normalized = envelope.settings;
     if (envelope.applied.length > 0) {
@@ -28346,7 +28623,7 @@ ${COLOR_CSS}`;
     }
     return { applied: true, errors, warnings, settings: normalized };
   }
-  function isRecord10(value) {
+  function isRecord11(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -28378,7 +28655,7 @@ ${COLOR_CSS}`;
       root = payload;
     }
     const source = unwrapReport(root);
-    if (!isRecord11(source)) {
+    if (!isRecord12(source)) {
       return { report: null, warnings, errors: ["The file does not contain an X Under the Hood report."] };
     }
     const period = parsePeriod(source, warnings);
@@ -28518,7 +28795,7 @@ ${COLOR_CSS}`;
     };
   }
   function unwrapReport(value) {
-    if (!isRecord11(value)) return value;
+    if (!isRecord12(value)) return value;
     if (typeof value.reportJson === "string") {
       try {
         return JSON.parse(value.reportJson);
@@ -28526,12 +28803,12 @@ ${COLOR_CSS}`;
         return null;
       }
     }
-    if (isRecord11(value.reportJson)) return value.reportJson;
-    if (isRecord11(value.report)) return value.report;
+    if (isRecord12(value.reportJson)) return value.reportJson;
+    if (isRecord12(value.report)) return value.report;
     return value;
   }
   function parsePeriod(value, warnings) {
-    const raw = isRecord11(value.period) ? value.period : null;
+    const raw = isRecord12(value.period) ? value.period : null;
     let start = raw?.startDate;
     let end = raw?.endDate;
     if (typeof start !== "string" || typeof end !== "string") {
@@ -28553,7 +28830,7 @@ ${COLOR_CSS}`;
   function parsePostLabels(value, warnings) {
     const result = [];
     for (const entry of value.slice(0, MAX_LABELS_PER_REPORT)) {
-      if (!isRecord11(entry)) {
+      if (!isRecord12(entry)) {
         warnings.push("A post label entry was ignored because it was not an object.");
         continue;
       }
@@ -28577,7 +28854,7 @@ ${COLOR_CSS}`;
   function parseAccountLabels(value, warnings) {
     const result = [];
     for (const entry of value.slice(0, MAX_LABELS_PER_REPORT)) {
-      if (!isRecord11(entry)) {
+      if (!isRecord12(entry)) {
         warnings.push("An account label entry was ignored because it was not an object.");
         continue;
       }
@@ -28668,7 +28945,7 @@ ${COLOR_CSS}`;
     return [...left].filter((value) => !right.has(value)).sort((a, b) => a.localeCompare(b));
   }
   function normalizeState3(value, limit) {
-    if (!isRecord11(value)) return cloneState3(EMPTY_STATE);
+    if (!isRecord12(value)) return cloneState3(EMPTY_STATE);
     const reports = Array.isArray(value.reports) ? value.reports.map((entry) => normalizeReport(entry)).filter((entry) => entry !== null) : [];
     const unique = new Map(reports.map((entry) => [entry.id, entry]));
     return {
@@ -28677,7 +28954,7 @@ ${COLOR_CSS}`;
     };
   }
   function normalizeReport(value) {
-    if (!isRecord11(value) || value.source !== "x-under-the-hood") return null;
+    if (!isRecord12(value) || value.source !== "x-under-the-hood") return null;
     const period = parsePeriod(value, []);
     if (!period) return null;
     const postLabels = parsePostLabels(firstArray(value, ["postLabels"]), []);
@@ -28784,7 +29061,7 @@ ${COLOR_CSS}`;
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
   }
-  function isRecord11(value) {
+  function isRecord12(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -29073,11 +29350,11 @@ ${COLOR_CSS}`;
       get(key, fallback) {
         return base.get(scoped(key), fallback);
       },
-      set(key, value) {
-        return base.set(scoped(key), value);
+      set(key, value, fence) {
+        return base.set(scoped(key), value, fence);
       },
-      remove(key) {
-        return base.remove(scoped(key));
+      remove(key, fence) {
+        return base.remove(scoped(key), fence);
       },
       getStatus() {
         return base.getStatus?.() ?? {
@@ -29116,8 +29393,8 @@ ${COLOR_CSS}`;
   }
 
   // src/features/core/library-backup.ts
-  var LIBRARY_BACKUP_SCHEMA_VERSION = 2;
-  var SUPPORTED_LIBRARY_BACKUP_SCHEMAS = [1, 2];
+  var LIBRARY_BACKUP_SCHEMA_VERSION = 3;
+  var SUPPORTED_LIBRARY_BACKUP_SCHEMAS = [1, 2, 3];
   var LIBRARY_BACKUP_COLLECTION_VERSION = 1;
   var MAX_LIBRARY_BACKUP_BYTES = 100 * 1024 * 1024;
   var REDACTED_SETTINGS_PATHS = [
@@ -29201,15 +29478,18 @@ ${COLOR_CSS}`;
     });
     const text = JSON.stringify(envelope, null, 2);
     const data = new TextEncoder().encode(text);
+    assertBackupEnvelopeSize(data.byteLength);
+    const artifact = {
+      filename: backupFilename(envelope.createdAt),
+      contentType: "application/json",
+      data,
+      collections: collections.length,
+      bytes: data.byteLength
+    };
+    assertBackupEnvelopeSize(artifact.data.byteLength);
     return {
       envelope,
-      artifact: {
-        filename: backupFilename(envelope.createdAt),
-        contentType: "application/json",
-        data,
-        collections: collections.length,
-        bytes: data.byteLength
-      }
+      artifact
     };
   }
   function parseLibraryBackup(payload) {
@@ -29226,7 +29506,7 @@ ${COLOR_CSS}`;
     } catch (error) {
       throw new LibraryBackupError(`Invalid backup JSON: ${errorMessage(error)}`);
     }
-    if (!isRecord12(raw)) {
+    if (!isRecord13(raw)) {
       throw new LibraryBackupError("Backup top-level value must be an object.");
     }
     if (raw.generator !== "Aviary") {
@@ -29252,7 +29532,7 @@ ${COLOR_CSS}`;
     const seen = /* @__PURE__ */ new Set();
     const collections = [];
     for (const candidate of raw.collections) {
-      if (!isRecord12(candidate)) {
+      if (!isRecord13(candidate)) {
         throw new LibraryBackupError("Backup contains an invalid collection entry.");
       }
       const definition = definitionFor(candidate.key);
@@ -29313,16 +29593,26 @@ ${COLOR_CSS}`;
       });
     }
     const manifest = parseManifest(raw.manifest);
+    if (manifest.schemaVersion !== schemaVersion) {
+      throw new LibraryBackupError(
+        "Backup envelope and manifest schema versions do not match.",
+        "checksum"
+      );
+    }
     const expectedTotal = collections.reduce((total, collection) => total + collection.byteLength, 0);
     if (manifest.collectionCount !== collections.length || manifest.totalBytes !== expectedTotal) {
       throw new LibraryBackupError("Backup manifest totals do not match its collections.", "checksum");
     }
+    const profiles = schemaVersion >= 2 ? parseProfiles(raw.profiles) : [];
+    const activeProfileId = schemaVersion >= 2 && typeof raw.activeProfileId === "string" ? raw.activeProfileId : null;
     const expectedManifestChecksum = manifestChecksum({
       createdAt: raw.createdAt,
       includeCredentials: raw.includeCredentials,
       profile,
       collections,
-      schemaVersion
+      schemaVersion,
+      profiles,
+      activeProfileId
     });
     if (manifest.sha256 !== expectedManifestChecksum) {
       throw new LibraryBackupError("Backup manifest checksum does not match its collections.", "checksum");
@@ -29332,8 +29622,8 @@ ${COLOR_CSS}`;
       schemaVersion,
       createdAt: raw.createdAt,
       profile,
-      profiles: parseProfiles(raw.profiles),
-      activeProfileId: typeof raw.activeProfileId === "string" ? raw.activeProfileId : null,
+      profiles,
+      activeProfileId,
       includeCredentials: raw.includeCredentials,
       collections,
       manifest
@@ -29347,17 +29637,12 @@ ${COLOR_CSS}`;
     for (const collection of backup.collections) {
       const scoped = collectionGateway(storage, collection, fallbackProfileId);
       const current = await scoped.get(collection.key, void 0);
-      const currentCollection = makeCollection(
-        collection.key,
-        current,
-        backup.includeCredentials,
-        collection.profileId
-      );
-      if (!collection.present && collection.redactedPaths.includes(collection.key)) {
+      const currentCollection = makeCollection(collection.key, current, true, collection.profileId);
+      if (!collection.present && CREDENTIAL_COLLECTIONS.has(collection.key)) {
         skipped.push({
           key: collection.key,
           profileId: collection.profileId,
-          reason: "Withheld from the backup as a credential; the value already saved is kept."
+          reason: collection.redactedPaths.includes(collection.key) ? "Withheld from the backup as a credential; the value already saved is kept." : "The backup carries no value for this credential; the value already saved is kept."
         });
         continue;
       }
@@ -29425,9 +29710,9 @@ ${COLOR_CSS}`;
     const selected = selectedKeys(backup.collections, options.selectedKeys);
     const fallbackProfileId = backup.schemaVersion === 1 ? options.profileId ?? null : null;
     const entries = backup.collections.filter(
-      (collection) => selected.has(collection.key) && // A credential the backup withheld carries no value to write. Restoring it as "absent" would
-      // delete the signing identity this install already holds.
-      !(!collection.present && collection.redactedPaths.includes(collection.key))
+      (collection) => selected.has(collection.key) && // A credential the backup does not carry is never an instruction to delete one. That covers
+      // both a value withheld by redaction and one the source install simply never had.
+      !(!collection.present && CREDENTIAL_COLLECTIONS.has(collection.key))
     );
     const dryRun = options.dryRun === true;
     if (!options.replaceSigningIdentity) {
@@ -29460,7 +29745,7 @@ ${COLOR_CSS}`;
         assertNotAborted(options.signal);
         const gateway = collectionGateway(storage, entry, fallbackProfileId);
         const current = await gateway.get(entry.key, void 0);
-        snapshot.push({ key: entry.key, value: current, gateway });
+        snapshot.push({ key: entry.key, value: current, scopeId: collectionScope(entry, fallbackProfileId), gateway });
         if (entry.key === SETTINGS_KEY && entry.present) {
           const report = parseSettingsImport(JSON.stringify(entry.value), normalizeSettings(current));
           warnings.push(...report.warnings);
@@ -29503,8 +29788,9 @@ ${COLOR_CSS}`;
         if (!entry.present) {
           await gateway.remove(entry.key);
         } else if (entry.key === SETTINGS_KEY) {
+          const scopeId = collectionScope(entry, fallbackProfileId);
           const current = snapshot.find(
-            (item) => item.key === entry.key && item.gateway === gateway
+            (item) => item.key === entry.key && item.scopeId === scopeId
           )?.value;
           const report = parseSettingsImport(JSON.stringify(entry.value), normalizeSettings(current));
           if (!report.applied) {
@@ -29637,6 +29923,10 @@ ${COLOR_CSS}`;
     const requested = new Set(selectedKeys2);
     return LIBRARY_BACKUP_GLOBAL_COLLECTIONS.filter((definition) => requested.has(definition.key));
   }
+  function collectionScope(collection, fallbackProfileId) {
+    if (LIBRARY_BACKUP_GLOBAL_COLLECTIONS.some((entry) => entry.key === collection.key)) return null;
+    return collection.profileId ?? fallbackProfileId;
+  }
   function collectionGateway(base, collection, fallbackProfileId) {
     if (LIBRARY_BACKUP_GLOBAL_COLLECTIONS.some((entry) => entry.key === collection.key)) {
       return base;
@@ -29667,15 +29957,15 @@ ${COLOR_CSS}`;
   }
   function collectionCount(key, value) {
     if (key === SETTINGS_KEY || key === LAST_DOWNLOAD_KEY) return 1;
-    if (key === CHECKPOINT_KEY && isRecord12(value)) {
-      const records = isRecord12(value.records) ? value.records : {};
+    if (key === CHECKPOINT_KEY && isRecord13(value)) {
+      const records = isRecord13(value.records) ? value.records : {};
       return Object.values(records).reduce(
         (total, entries) => total + (Array.isArray(entries) ? entries.length : 0),
         0
       );
     }
     if (Array.isArray(value)) return value.length;
-    if (!isRecord12(value)) return 1;
+    if (!isRecord13(value)) return 1;
     const arrayKeys = [
       "entries",
       "items",
@@ -29693,8 +29983,8 @@ ${COLOR_CSS}`;
     const counts = arrayKeys.flatMap((name) => {
       const candidate = value[name];
       if (Array.isArray(candidate)) return [candidate.length];
-      if (name === "jobs" && isRecord12(candidate)) return [Object.keys(candidate).length];
-      if (name === "records" && isRecord12(candidate)) {
+      if (name === "jobs" && isRecord13(candidate)) return [Object.keys(candidate).length];
+      if (name === "records" && isRecord13(candidate)) {
         return [Object.values(candidate).reduce((total, entries) => total + (Array.isArray(entries) ? entries.length : 0), 0)];
       }
       return [];
@@ -29714,6 +30004,7 @@ ${COLOR_CSS}`;
       createdAt: input.createdAt,
       includeCredentials: input.includeCredentials,
       profile: input.profile,
+      ...schemaVersion >= 3 ? { profiles: input.profiles ?? [], activeProfileId: input.activeProfileId ?? null } : {},
       collections: descriptors
     });
     return sha256Hex(new TextEncoder().encode(text));
@@ -29730,9 +30021,16 @@ ${COLOR_CSS}`;
     }
     return text;
   }
+  function assertBackupEnvelopeSize(byteLength) {
+    if (byteLength <= MAX_LIBRARY_BACKUP_BYTES) return;
+    throw new LibraryBackupError(
+      "Backup exceeds the " + Math.round(MAX_LIBRARY_BACKUP_BYTES / (1024 * 1024)) + " MiB limit.",
+      "too-large"
+    );
+  }
   function deserializeBackupValue(text) {
     return JSON.parse(text, (_key, current) => {
-      if (!isRecord12(current) || current.__aviaryType !== "Uint8Array") return current;
+      if (!isRecord13(current) || current.__aviaryType !== "Uint8Array") return current;
       if (typeof current.base64 !== "string") {
         throw new Error("Uint8Array value is missing base64 data");
       }
@@ -29759,8 +30057,8 @@ ${COLOR_CSS}`;
     return bytes;
   }
   function parseManifest(value) {
-    const schemaVersion = isRecord12(value) ? SUPPORTED_LIBRARY_BACKUP_SCHEMAS.find((known) => known === value.schemaVersion) : void 0;
-    if (!isRecord12(value) || schemaVersion === void 0) {
+    const schemaVersion = isRecord13(value) ? SUPPORTED_LIBRARY_BACKUP_SCHEMAS.find((known) => known === value.schemaVersion) : void 0;
+    if (!isRecord13(value) || schemaVersion === void 0) {
       throw new LibraryBackupError("Backup manifest is missing or unsupported.", "unsupported");
     }
     return {
@@ -29772,7 +30070,7 @@ ${COLOR_CSS}`;
   }
   function parseProfile(value) {
     if (value === null) return null;
-    if (!isRecord12(value) || typeof value.id !== "string" || typeof value.label !== "string") {
+    if (!isRecord13(value) || typeof value.id !== "string" || typeof value.label !== "string") {
       throw new LibraryBackupError("Backup profile metadata is invalid.");
     }
     return { id: value.id.slice(0, 120), label: value.label.slice(0, 120) };
@@ -29803,7 +30101,7 @@ ${COLOR_CSS}`;
     return value.toLowerCase();
   }
   function signingFingerprint(value) {
-    if (!isRecord12(value)) return null;
+    if (!isRecord13(value)) return null;
     return typeof value.fingerprint === "string" && value.fingerprint.length > 0 ? value.fingerprint : null;
   }
   function parseProfiles(raw) {
@@ -29812,7 +30110,7 @@ ${COLOR_CSS}`;
       throw new LibraryBackupError("Backup profile list must be an array.");
     }
     return raw.map((entry) => {
-      if (!isRecord12(entry)) {
+      if (!isRecord13(entry)) {
         throw new LibraryBackupError("Backup profile list contains an invalid entry.");
       }
       const normalized = normalizeProfile2({
@@ -29850,7 +30148,7 @@ ${COLOR_CSS}`;
   function errorMessage(error) {
     return error instanceof Error ? error.message : String(error);
   }
-  function isRecord12(value) {
+  function isRecord13(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -30118,11 +30416,13 @@ ${COLOR_CSS}`;
           }
           return report;
         },
-        async exportLibraryBackup() {
+        async exportLibraryBackup(exportOptions = {}) {
           const profile = ctx.profile?.status();
+          const includeCredentials = exportOptions.includeCredentials === true;
           const result = await createLibraryBackup(
             ctx.profile ? ctx.profile.baseStorage : ctx.storage,
             {
+              includeCredentials,
               profile: profile ? { id: profile.activeId, label: profile.activeLabel } : null,
               ...profile ? {
                 profiles: profile.profiles.map((entry) => ({ id: entry.id, label: entry.label })),
@@ -30134,7 +30434,7 @@ ${COLOR_CSS}`;
           void ctx.auditLog.record("library.backup.export", {
             collections: result.artifact.collections,
             bytes: result.artifact.bytes,
-            credentialsRedacted: true
+            credentialsRedacted: !includeCredentials
           });
           return {
             filename: result.artifact.filename,
@@ -30156,6 +30456,7 @@ ${COLOR_CSS}`;
             {
               dryRun: restoreOptions.dryRun,
               signal: restoreOptions.signal,
+              ...restoreOptions.replaceSigningIdentity === void 0 ? {} : { replaceSigningIdentity: restoreOptions.replaceSigningIdentity },
               ...ctx.profile ? { profileId: ctx.profile.activeId } : {}
             }
           );
@@ -33365,7 +33666,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   ]);
   var GRAPHQL_PATH_PATTERN = /^\/i\/api\/graphql\/([A-Za-z0-9_-]{1,200})\/([A-Za-z0-9_-]{1,100})$/;
   function isPageAgentEnvelope(value) {
-    if (!isRecord13(value) || value.channel !== PAGE_CHANNEL || typeof value.kind !== "string") {
+    if (!isRecord14(value) || value.channel !== PAGE_CHANNEL || typeof value.kind !== "string") {
       return false;
     }
     if (!PAGE_AGENT_KINDS.has(value.kind)) {
@@ -33374,7 +33675,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     return value.nonce === void 0 || typeof value.nonce === "string" && value.nonce.length >= 16 && value.nonce.length <= MAX_NONCE_LENGTH;
   }
   function sanitizeCapturedGraphqlPayload(value, expectedOrigin) {
-    if (!isRecord13(value)) {
+    if (!isRecord14(value)) {
       return null;
     }
     const url = typeof value.url === "string" ? value.url : "";
@@ -33943,7 +34244,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   function now() {
     return (/* @__PURE__ */ new Date()).toISOString();
   }
-  function isRecord13(value) {
+  function isRecord14(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -35876,6 +36177,9 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   }
 
   // src/platform/page-bridge.ts
+  var MEDIA_METADATA_REPLAY_RECORD_LIMIT = 64;
+  var MEDIA_METADATA_REPLAY_BYTE_LIMIT = 256e3;
+  var MEDIA_METADATA_REPLAY_OVERFLOW_CODE = "media-metadata-replay-overflow";
   var HANDSHAKE_TIMEOUT_MS = 3e3;
   function pageWindowFromSandbox() {
     try {
@@ -35928,6 +36232,10 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   }
   function createPageBridge(options) {
     const handlers = /* @__PURE__ */ new Map();
+    const mediaMetadataHandlers = /* @__PURE__ */ new Set();
+    const mediaMetadataReplay = /* @__PURE__ */ new Map();
+    let mediaMetadataReplayBytes = 0;
+    let mediaMetadataReplayOverflowReported = false;
     const sessionNonce = createSessionNonce();
     let status = "connecting";
     let reason = "";
@@ -35937,6 +36245,79 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     let windowListener;
     let handshakeTimer;
     let lastRejectedAt = 0;
+    let mediaMetadataCaptureEnabled = true;
+    function clearMediaMetadataReplay() {
+      mediaMetadataReplay.clear();
+      mediaMetadataReplayBytes = 0;
+      mediaMetadataReplayOverflowReported = false;
+    }
+    function reportMediaMetadataReplayOverflow() {
+      if (mediaMetadataReplayOverflowReported) {
+        return;
+      }
+      mediaMetadataReplayOverflowReported = true;
+      options.diagnostics.warn("Media metadata replay buffer reached its limit", {
+        code: MEDIA_METADATA_REPLAY_OVERFLOW_CODE
+      });
+    }
+    function metadataBytes(metadata) {
+      try {
+        return new TextEncoder().encode(JSON.stringify(metadata)).byteLength;
+      } catch {
+        return Number.MAX_SAFE_INTEGER;
+      }
+    }
+    function deliverMediaMetadata(metadata) {
+      for (const handler of mediaMetadataHandlers) {
+        try {
+          handler(metadata);
+        } catch (error) {
+          options.diagnostics.error("Page bridge media metadata handler failed", {
+            message: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+    }
+    function retainMediaMetadata(metadata) {
+      const key = mediaMetadataIdentity(metadata);
+      const current = mediaMetadataReplay.get(key);
+      if (current) {
+        const merged = mergeMediaMetadata(current.metadata, metadata);
+        const bytes2 = metadataBytes(merged);
+        if (bytes2 > MEDIA_METADATA_REPLAY_BYTE_LIMIT) {
+          reportMediaMetadataReplayOverflow();
+          return;
+        }
+        mediaMetadataReplayBytes += bytes2 - current.bytes;
+        mediaMetadataReplay.set(key, { metadata: merged, bytes: bytes2 });
+        return;
+      }
+      const bytes = metadataBytes(metadata);
+      if (bytes > MEDIA_METADATA_REPLAY_BYTE_LIMIT || mediaMetadataReplay.size >= MEDIA_METADATA_REPLAY_RECORD_LIMIT || mediaMetadataReplayBytes + bytes > MEDIA_METADATA_REPLAY_BYTE_LIMIT) {
+        reportMediaMetadataReplayOverflow();
+        return;
+      }
+      mediaMetadataReplay.set(key, { metadata, bytes });
+      mediaMetadataReplayBytes += bytes;
+    }
+    function dispatchMediaMetadata(payload) {
+      if (!mediaMetadataCaptureEnabled) {
+        return;
+      }
+      const found = extractMediaMetadata(payload);
+      if (found.length === 0) {
+        return;
+      }
+      if (mediaMetadataHandlers.size > 0) {
+        for (const metadata of found) {
+          deliverMediaMetadata(metadata);
+        }
+        return;
+      }
+      for (const metadata of found) {
+        retainMediaMetadata(metadata);
+      }
+    }
     function rejectMessage(reason2) {
       const now2 = Date.now();
       if (now2 - lastRejectedAt < 1e3) {
@@ -35985,6 +36366,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           return;
         }
         payload = sanitized;
+        dispatchMediaMetadata(payload);
       }
       const set = handlers.get(envelope.kind);
       if (!set) {
@@ -36066,6 +36448,10 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       reason: () => reason,
       configure(config) {
         lastConfig = config;
+        mediaMetadataCaptureEnabled = config.captureMediaMetadata;
+        if (!mediaMetadataCaptureEnabled) {
+          clearMediaMetadataReplay();
+        }
         if (status === "unavailable") {
           return;
         }
@@ -36081,6 +36467,23 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         if (!set) return;
         set.delete(handler);
         if (set.size === 0) handlers.delete(kind);
+      },
+      onMediaMetadata(handler) {
+        mediaMetadataHandlers.add(handler);
+        if (mediaMetadataReplay.size === 0) {
+          return;
+        }
+        const replay = [...mediaMetadataReplay.values()].map(({ metadata }) => metadata);
+        clearMediaMetadataReplay();
+        for (const metadata of replay) {
+          deliverMediaMetadata(metadata);
+        }
+      },
+      offMediaMetadata(handler) {
+        mediaMetadataHandlers.delete(handler);
+        if (mediaMetadataHandlers.size === 0) {
+          clearMediaMetadataReplay();
+        }
       },
       destroy() {
         if (handshakeTimer) {
@@ -36099,6 +36502,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         controlChannel?.close();
         controlChannel = void 0;
         handlers.clear();
+        mediaMetadataHandlers.clear();
+        clearMediaMetadataReplay();
         status = "unavailable";
         reason = "torn-down";
       }
@@ -36409,6 +36814,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
 
   // src/platform/storage.ts
   var USERSCRIPT_MANAGER_VALUE_LIMIT_BYTES = 16 * 1024 * 1024;
+  var userscriptFenceOperationSequence = 0;
   var UserscriptStorageCapacityError = class extends Error {
     code = "userscript-storage-capacity";
     key;
@@ -36455,10 +36861,17 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         const storageKey = scoped(key);
         try {
           if (mode !== "extension" && typeof globals.GM_getValue === "function") {
+            if (typeof globals.GM_listValues === "function") {
+              const committed = await readCommittedUserscriptOperation(globals, storageKey, fallback);
+              if (committed.found) return committed.value;
+            }
             return await globals.GM_getValue(storageKey, fallback);
           }
           if (mode !== "userscript" && globalThis.chrome?.storage?.local) {
-            const result = await globalThis.chrome.storage.local.get(storageKey);
+            const extensionStorage = globalThis.chrome.storage.local;
+            const committed = await readCommittedExtensionOperation(extensionStorage, storageKey, fallback);
+            if (committed.found) return committed.value;
+            const result = await extensionStorage.get(storageKey);
             return result[storageKey] === void 0 ? fallback : result[storageKey];
           }
           const raw = mode === "auto" ? globalThis.localStorage?.getItem(storageKey) : null;
@@ -36468,9 +36881,21 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           return fallback;
         }
       },
-      async set(key, value) {
+      async set(key, value, fence) {
         const storageKey = scoped(key);
+        const effectiveFence = fence ?? inferStorageFence(storageKey);
         try {
+          if (effectiveFence && typeof globals.GM_setValue === "function") {
+            await writeUserscriptFenceOperation(globals, storageKey, value, effectiveFence, managerLimit);
+            return;
+          }
+          if (effectiveFence && hasExtensionFenceTransport()) {
+            await sendStorageFenceMutation("set", storageKey, effectiveFence, value);
+            return;
+          }
+          if (effectiveFence) {
+            throw new StorageFenceUnavailableError();
+          }
           if (mode !== "extension" && typeof globals.GM_setValue === "function") {
             const measuredBytes = storageValueBytes(value);
             if (measuredBytes > managerLimit) {
@@ -36493,9 +36918,21 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           throw error;
         }
       },
-      async remove(key) {
+      async remove(key, fence) {
         const storageKey = scoped(key);
+        const effectiveFence = fence ?? inferStorageFence(storageKey);
         try {
+          if (effectiveFence && typeof globals.GM_deleteValue === "function") {
+            await writeUserscriptFenceOperation(globals, storageKey, void 0, effectiveFence, managerLimit, "remove");
+            return;
+          }
+          if (effectiveFence && hasExtensionFenceTransport()) {
+            await sendStorageFenceMutation("remove", storageKey, effectiveFence);
+            return;
+          }
+          if (effectiveFence) {
+            throw new StorageFenceUnavailableError();
+          }
           if (mode !== "extension" && typeof globals.GM_deleteValue === "function") {
             await globals.GM_deleteValue(storageKey);
             return;
@@ -36517,10 +36954,12 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       async keys() {
         const prefix = namespace.length > 0 ? `${namespace}.` : "";
         if (mode !== "extension" && typeof globals.GM_listValues === "function") {
-          return (await globals.GM_listValues()).filter((key) => key.startsWith(prefix));
+          return (await globals.GM_listValues()).filter(
+            (key) => key.startsWith(prefix) && !key.startsWith(STORAGE_FENCE_OPERATION_PREFIX)
+          );
         }
         if (mode !== "userscript" && globalThis.chrome?.storage?.local) {
-          return Object.keys(await globalThis.chrome.storage.local.get(null)).filter((key) => key.startsWith(prefix));
+          return Object.keys(await globalThis.chrome.storage.local.get(null)).filter((key) => key.startsWith(prefix) && !key.startsWith(STORAGE_FENCE_OPERATION_PREFIX));
         }
         if (mode === "auto" && globalThis.localStorage) {
           const keys = [];
@@ -36533,6 +36972,142 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         return [];
       }
     };
+  }
+  async function writeUserscriptFenceOperation(globals, storageKey, value, fence, managerLimit, kind = "set") {
+    if (!isStorageLockFence(fence)) {
+      throw new StorageFenceUnavailableError("The storage fence was malformed before the write.");
+    }
+    const operationId = `${Date.now().toString(36)}-${(++userscriptFenceOperationSequence).toString(36)}-${Math.random().toString(36).slice(2)}`;
+    const operationKey = `${STORAGE_FENCE_OPERATION_PREFIX}${encodeURIComponent(storageKey)}.${encodeURIComponent(operationId)}`;
+    const operation = {
+      version: 1,
+      operationId,
+      storageKey,
+      kind,
+      ...kind === "set" ? { value } : {},
+      fence
+    };
+    const measuredBytes = storageValueBytes(operation);
+    if (measuredBytes > managerLimit) {
+      throw new UserscriptStorageCapacityError(storageKey, measuredBytes, managerLimit);
+    }
+    await globals.GM_setValue(operationKey, operation);
+    const receipt = {
+      version: 1,
+      operationId,
+      committedAt: Date.now()
+    };
+    await globals.GM_setValue(`${operationKey}${STORAGE_FENCE_RECEIPT_SUFFIX}`, receipt);
+    try {
+      if (kind === "set") await globals.GM_setValue(storageKey, value);
+      else await globals.GM_deleteValue(storageKey);
+    } catch (error) {
+      reportStorageError(storageKey, error, "write");
+      throw error;
+    }
+  }
+  async function readCommittedUserscriptOperation(globals, storageKey, fallback) {
+    const keys = await globals.GM_listValues();
+    const prefix = `${STORAGE_FENCE_OPERATION_PREFIX}${encodeURIComponent(storageKey)}.`;
+    const rawPresent = keys.includes(storageKey);
+    const rawValue = rawPresent ? await globals.GM_getValue(storageKey, void 0) : void 0;
+    let best;
+    const allOperations = [];
+    for (const operationKey of keys.filter(
+      (key) => key.startsWith(prefix) && !key.endsWith(STORAGE_FENCE_RECEIPT_SUFFIX) && !key.endsWith(".materialized")
+    )) {
+      const operation = await globals.GM_getValue(operationKey, void 0);
+      const receipt = await globals.GM_getValue(
+        `${operationKey}${STORAGE_FENCE_RECEIPT_SUFFIX}`,
+        void 0
+      );
+      if (!isUserscriptFenceOperation(operation, storageKey) || !isUserscriptFenceReceipt(receipt)) {
+        continue;
+      }
+      const candidate = { operationKey, operation, receipt };
+      allOperations.push(candidate);
+      if (receipt.operationId !== operation.operationId || receipt.committedAt > operation.fence.expiresAt) {
+        continue;
+      }
+      if (!best || compareUserscriptOperations(best, candidate) < 0) best = candidate;
+    }
+    if (!best) return { found: false, value: fallback };
+    if (rawPresent && !allOperations.some(
+      (candidate) => candidate.operation.kind === "set" && storageValuesEqual(rawValue, candidate.operation.value)
+    )) {
+      return { found: true, value: rawValue };
+    }
+    return {
+      found: true,
+      value: best.operation.kind === "remove" ? fallback : best.operation.value
+    };
+  }
+  async function readCommittedExtensionOperation(storage, storageKey, fallback) {
+    const values = await storage.get(null);
+    const keys = Object.keys(values);
+    const prefix = `${STORAGE_FENCE_OPERATION_PREFIX}${encodeURIComponent(storageKey)}.`;
+    const rawPresent = Object.prototype.hasOwnProperty.call(values, storageKey);
+    const rawValue = rawPresent ? values[storageKey] : void 0;
+    let best;
+    const allOperations = [];
+    for (const operationKey of keys.filter(
+      (key) => key.startsWith(prefix) && !key.endsWith(STORAGE_FENCE_RECEIPT_SUFFIX) && !key.endsWith(".materialized")
+    )) {
+      const operation = values[operationKey];
+      const receipt = values[`${operationKey}${STORAGE_FENCE_RECEIPT_SUFFIX}`];
+      if (!isUserscriptFenceOperation(operation, storageKey) || !isUserscriptFenceReceipt(receipt)) {
+        continue;
+      }
+      const candidate = { operationKey, operation, receipt };
+      allOperations.push(candidate);
+      if (receipt.operationId !== operation.operationId || receipt.committedAt > operation.fence.expiresAt) {
+        continue;
+      }
+      if (!best || compareUserscriptOperations(best, candidate) < 0) best = candidate;
+    }
+    if (!best) return { found: false, value: fallback };
+    if (rawPresent && !allOperations.some(
+      (candidate) => candidate.operation.kind === "set" && storageValuesEqual(rawValue, candidate.operation.value)
+    )) {
+      return { found: true, value: rawValue };
+    }
+    return {
+      found: true,
+      value: best.operation.kind === "remove" ? fallback : best.operation.value
+    };
+  }
+  function isUserscriptFenceOperation(value, storageKey) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    const operation = value;
+    return operation.version === 1 && typeof operation.operationId === "string" && operation.operationId.length > 0 && operation.storageKey === storageKey && (operation.kind === "set" || operation.kind === "remove") && isStorageLockFence(operation.fence);
+  }
+  function isUserscriptFenceReceipt(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    const receipt = value;
+    return receipt.version === 1 && typeof receipt.operationId === "string" && receipt.operationId.length > 0 && typeof receipt.committedAt === "number" && Number.isFinite(receipt.committedAt);
+  }
+  function storageValuesEqual(left, right) {
+    if (Object.is(left, right)) return true;
+    if (Array.isArray(left) || Array.isArray(right)) {
+      return Array.isArray(left) && Array.isArray(right) && left.length === right.length && left.every((value, index) => storageValuesEqual(value, right[index]));
+    }
+    if (left && right && typeof left === "object" && typeof right === "object" && !Array.isArray(left) && !Array.isArray(right)) {
+      const leftRecord = left;
+      const rightRecord = right;
+      const leftKeys = Object.keys(leftRecord).sort();
+      const rightKeys = Object.keys(rightRecord).sort();
+      return leftKeys.length === rightKeys.length && leftKeys.every(
+        (key, index) => key === rightKeys[index] && storageValuesEqual(leftRecord[key], rightRecord[key])
+      );
+    }
+    return false;
+  }
+  function compareUserscriptOperations(left, right) {
+    if (left.operation.fence.name === right.operation.fence.name) {
+      const generation2 = left.operation.fence.generation - right.operation.fence.generation;
+      if (generation2 !== 0) return generation2;
+    }
+    return left.receipt.committedAt - right.receipt.committedAt || left.operation.fence.owner.localeCompare(right.operation.fence.owner) || left.operationKey.localeCompare(right.operationKey);
   }
 
   // src/platform/durable-storage.ts
@@ -36621,8 +37196,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           ...discoveredKeys.filter((key) => this.#isDurable(key)).map((key) => this.#scope(key))
         ])];
         for (const key of scopedKeys) {
-          const existing = await this.#backend.get(key);
-          if (existing !== void 0) {
+          const existing = await readDurableBackend(this.#backend, key);
+          if (existing.found) {
             migratedKeys.add(key);
             continue;
           }
@@ -36683,13 +37258,13 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       }
       const scopedKey = this.#scope(key);
       try {
-        const stored = await this.#backend.get(scopedKey);
-        if (stored !== void 0) {
-          return stored;
+        const stored = await readDurableBackend(this.#backend, scopedKey);
+        if (stored.found) {
+          return stored.removed ? fallback : stored.value;
         }
         const legacy = await this.#legacy.get(key, void 0);
         if (legacy !== void 0) {
-          await this.#backend.put(scopedKey, legacy);
+          await this.#backend.put(scopedKey, legacy, void 0, createDurableOperation());
           await verifyBackendValue(this.#backend, scopedKey, legacy);
           try {
             await this.#legacy.remove(key);
@@ -36704,56 +37279,70 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         return this.#getFallbackValue(key, fallback);
       }
     }
-    async set(key, value) {
+    async set(key, value, fence) {
+      const effectiveFence = fence ?? inferStorageFence(this.#scope(key));
       if (!this.#isDurable(key)) {
-        await this.#legacy.set(key, value);
+        await this.#legacy.set(key, value, effectiveFence);
         return;
       }
       await this.#ensureInitialized();
+      const operation = createDurableOperation();
       if (!this.#backend || !this.#usable) {
         if (this.#backend) {
-          await this.#markPending(key, "put", value);
+          await this.#markPending(key, "put", value, effectiveFence, operation);
         } else {
-          await this.#legacy.set(key, value);
+          await this.#legacy.set(key, value, effectiveFence);
         }
         return;
       }
       const scopedKey = this.#scope(key);
       try {
-        await this.#backend.put(scopedKey, value);
+        await this.#backend.put(scopedKey, value, effectiveFence, operation);
         try {
-          await this.#legacy.remove(key);
+          await this.#legacy.remove(key, effectiveFence);
         } catch (error) {
+          if (effectiveFence && isStorageFenceError(error)) throw error;
           reportStorageError(scopedKey, error, "write");
+          await this.#markPending(key, "put", value, effectiveFence, operation);
         }
         await this.refreshEstimate();
       } catch (error) {
+        if (effectiveFence && isStorageFenceError(error)) throw error;
         this.#fallback(error);
-        await this.#markPending(key, "put", value);
+        await this.#markPending(key, "put", value, effectiveFence, operation);
       }
     }
-    async remove(key) {
+    async remove(key, fence) {
+      const effectiveFence = fence ?? inferStorageFence(this.#scope(key));
       if (!this.#isDurable(key)) {
-        await this.#legacy.remove(key);
+        await this.#legacy.remove(key, effectiveFence);
         return;
       }
       await this.#ensureInitialized();
+      const operation = createDurableOperation();
       if (!this.#backend || !this.#usable) {
         if (this.#backend) {
-          await this.#markPending(key, "remove");
+          await this.#markPending(key, "remove", void 0, effectiveFence, operation);
         } else {
-          await this.#legacy.remove(key);
+          await this.#legacy.remove(key, effectiveFence);
         }
         return;
       }
       const scopedKey = this.#scope(key);
       try {
-        await this.#backend.remove(scopedKey);
-        await this.#legacy.remove(key);
+        await this.#backend.remove(scopedKey, effectiveFence, operation);
+        try {
+          await this.#legacy.remove(key, effectiveFence);
+        } catch (error) {
+          if (effectiveFence && isStorageFenceError(error)) throw error;
+          reportStorageError(scopedKey, error, "write");
+          await this.#markPending(key, "remove", void 0, effectiveFence, operation);
+        }
         await this.refreshEstimate();
       } catch (error) {
+        if (effectiveFence && isStorageFenceError(error)) throw error;
         this.#fallback(error);
-        await this.#markPending(key, "remove");
+        await this.#markPending(key, "remove", void 0, effectiveFence, operation);
       }
     }
     async #ensureInitialized() {
@@ -36782,17 +37371,18 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
      * the next healthy boot knows legacy holds the newer value. Kept in the legacy store on purpose:
      * the backend is the thing that just failed.
      */
-    async #markPending(key, kind, value) {
+    async #markPending(key, kind, value, _fence, operation) {
       try {
-        this.#status.pendingWrites = await withStorageLock(PENDING_WRITES_LOCK, async () => {
+        this.#status.pendingWrites = await withStorageLock(PENDING_WRITES_LOCK, async (fence) => {
           const pending = await this.#readPendingWrites();
-          pending.set(key, {
+          addPendingWrite(pending, {
             id: createPendingWriteId(),
             key,
             kind,
-            ...kind === "put" ? { value } : {}
+            ...kind === "put" ? { value } : {},
+            ...operation ?? {}
           });
-          await this.#writePendingWrites(pending);
+          await this.#writePendingWrites(pending, fence);
           return pending.size;
         }, { restoreGate: false });
       } catch (error) {
@@ -36808,15 +37398,15 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       if (!this.#backend) {
         return;
       }
-      await withStorageLock(PENDING_WRITES_LOCK, async () => {
+      await withStorageLock(PENDING_WRITES_LOCK, async (fence) => {
         const pending = await this.#readPendingWrites();
         this.#status.pendingWrites = pending.size;
         if (pending.size === 0) return;
         for (const write of pending.values()) {
           const scopedWrite = { ...write, key: this.#scope(write.key) };
           try {
-            await this.#backend.stagePendingWrite(scopedWrite);
-            const receipt = await this.#backend.commitPendingWrite(scopedWrite);
+            await this.#backend.stagePendingWrite(scopedWrite, fence);
+            const receipt = await this.#backend.commitPendingWrite(scopedWrite, fence);
             await verifyPendingWriteReceipt(scopedWrite, receipt);
           } catch (error) {
             reportStorageError(write.key, error, "write");
@@ -36825,14 +37415,14 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         }
         for (const write of pending.values()) {
           try {
-            await this.#legacy.remove(write.key);
+            await this.#legacy.remove(write.key, fence);
           } catch (error) {
             reportStorageError(write.key, error, "write");
             throw error;
           }
         }
         try {
-          await this.#writePendingWrites(/* @__PURE__ */ new Map());
+          await this.#writePendingWrites(/* @__PURE__ */ new Map(), fence);
         } catch (error) {
           reportStorageError(PENDING_WRITES_KEY, error, "write");
           throw error;
@@ -36858,7 +37448,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           const value = await this.#legacy.get(key, void 0);
           const kind = value === void 0 ? "remove" : "put";
           const fingerprint2 = await hashStorageValue({ key, kind, value });
-          pending.set(key, {
+          addPendingWrite(pending, {
             id: `legacy-${fingerprint2}`,
             key,
             kind,
@@ -36869,19 +37459,21 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       }
       if (!isPendingWriteLedger(stored)) return pending;
       for (const write of stored.entries) {
-        if (this.#isDurable(write.key)) pending.set(write.key, write);
+        if (this.#isDurable(write.key)) addPendingWrite(pending, write);
       }
       return pending;
     }
-    async #writePendingWrites(pending) {
+    async #writePendingWrites(pending, fence) {
       if (pending.size === 0) {
-        await this.#legacy.remove(PENDING_WRITES_KEY);
+        await this.#legacy.remove(PENDING_WRITES_KEY, fence);
         return;
       }
+      const compacted = /* @__PURE__ */ new Map();
+      for (const write of pending.values()) addPendingWrite(compacted, write);
       await this.#legacy.set(PENDING_WRITES_KEY, {
         schemaVersion: PENDING_WRITES_SCHEMA_VERSION,
-        entries: [...pending.values()]
-      });
+        entries: [...compacted.values()]
+      }, fence);
     }
   };
   function createDurableStorageGateway(legacy, options = {}) {
@@ -36901,10 +37493,22 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   function isDurablePendingWrite(value) {
     if (!value || typeof value !== "object") return false;
     const write = value;
-    return validPendingWriteId(write.id) && typeof write.key === "string" && write.key.length > 0 && write.key.length <= 512 && (write.kind === "put" && "value" in write || write.kind === "remove");
+    return validPendingWriteId(write.id) && typeof write.key === "string" && write.key.length > 0 && write.key.length <= 512 && (write.kind === "put" && "value" in write || write.kind === "remove") && (write.operationId === void 0 || validPendingWriteId(write.operationId)) && (write.operationOrder === void 0 || validOperationOrder(write.operationOrder));
+  }
+  function isDurableOperation(value) {
+    if (!value || typeof value !== "object") return false;
+    const operation = value;
+    return validPendingWriteId(operation.operationId) && validOperationOrder(operation.operationOrder);
   }
   function finiteOrNull(value) {
     return typeof value === "number" && Number.isFinite(value) ? value : null;
+  }
+  async function readDurableBackend(backend, key) {
+    if (typeof backend.read === "function") {
+      return backend.read(key);
+    }
+    const value = await backend.get(key);
+    return value === void 0 ? { found: false, removed: false } : { found: true, removed: false, value };
   }
   async function verifyBackendValue(backend, key, expectedValue) {
     const actualValue = await backend.get(key);
@@ -36933,12 +37537,57 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   function validPendingWriteId(value) {
     return typeof value === "string" && value.length > 0 && value.length <= 128 && /^[A-Za-z0-9._:-]+$/.test(value);
   }
+  function validOperationOrder(value) {
+    return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+  }
   function createPendingWriteId() {
     const cryptoWithUuid = globalThis.crypto;
     if (typeof cryptoWithUuid?.randomUUID === "function") {
       return cryptoWithUuid.randomUUID();
     }
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  }
+  var durableOperationSequence = 0;
+  var lastDurableOperationOrder = 0;
+  function createDurableOperation() {
+    const now2 = Math.max(0, Math.floor(Date.now()));
+    const requestedOrder = now2 * 1e3;
+    const operationOrder = Math.min(
+      Number.MAX_SAFE_INTEGER,
+      Math.max(requestedOrder, lastDurableOperationOrder + 1)
+    );
+    lastDurableOperationOrder = operationOrder;
+    return {
+      operationId: `${now2.toString(36)}-${(++durableOperationSequence).toString(36)}-${Math.random().toString(36).slice(2)}`,
+      operationOrder
+    };
+  }
+  function normalizePendingWrite(write) {
+    return { ...write };
+  }
+  function addPendingWrite(pending, candidate) {
+    const normalized = normalizePendingWrite(candidate);
+    const existing = pending.get(normalized.key);
+    if (!existing || comparePendingWrites(existing, normalized) <= 0) {
+      pending.set(normalized.key, normalized);
+    }
+  }
+  function comparePendingWrites(left, right) {
+    const leftOperation = operationFromWrite(left);
+    const rightOperation = operationFromWrite(right);
+    if (!leftOperation && !rightOperation) return left.id.localeCompare(right.id);
+    if (!leftOperation) return -1;
+    if (!rightOperation) return 1;
+    return compareDurableOperations(leftOperation, rightOperation);
+  }
+  function operationFromWrite(write) {
+    if (!isDurableOperation({ operationId: write.operationId, operationOrder: write.operationOrder })) {
+      return void 0;
+    }
+    return { operationId: write.operationId, operationOrder: write.operationOrder };
+  }
+  function compareDurableOperations(left, right) {
+    return left.operationOrder - right.operationOrder || left.operationId.localeCompare(right.operationId);
   }
 
   // src/platform/trusted-types.ts
@@ -37012,18 +37661,38 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       this.#sendMessage = sendMessage;
     }
     async get(key) {
+      const result = await this.read(key);
+      return result.found && !result.removed ? result.value : void 0;
+    }
+    async read(key) {
       const result = asRecord4(await this.#call({
         type: DURABLE_STORAGE_MESSAGE,
-        operation: "get",
+        operation: "read",
         key
       }));
-      return result.found === true ? result.value : void 0;
+      if (result.found !== true) {
+        return { found: false, removed: false };
+      }
+      return result.removed === true ? { found: true, removed: true } : { found: true, removed: false, value: result.value };
     }
-    async put(key, value) {
-      await this.#call({ type: DURABLE_STORAGE_MESSAGE, operation: "put", key, value });
+    async put(key, value, fence, operation) {
+      await this.#call({
+        type: DURABLE_STORAGE_MESSAGE,
+        operation: "put",
+        key,
+        value,
+        ...fence ? { fence } : {},
+        ...operation ? { durableOperation: operation } : {}
+      });
     }
-    async remove(key) {
-      await this.#call({ type: DURABLE_STORAGE_MESSAGE, operation: "remove", key });
+    async remove(key, fence, operation) {
+      await this.#call({
+        type: DURABLE_STORAGE_MESSAGE,
+        operation: "remove",
+        key,
+        ...fence ? { fence } : {},
+        ...operation ? { durableOperation: operation } : {}
+      });
     }
     async getMeta() {
       const result = asRecord4(await this.#call({
@@ -37040,18 +37709,20 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         meta
       });
     }
-    async stagePendingWrite(write) {
+    async stagePendingWrite(write, fence) {
       await this.#call({
         type: DURABLE_STORAGE_MESSAGE,
         operation: "stage-pending",
-        write
+        write,
+        ...fence ? { fence } : {}
       });
     }
-    async commitPendingWrite(write) {
+    async commitPendingWrite(write, fence) {
       const result = asRecord4(await this.#call({
         type: DURABLE_STORAGE_MESSAGE,
         operation: "commit-pending",
-        write
+        write,
+        ...fence ? { fence } : {}
       }));
       if (typeof result.id !== "string" || typeof result.key !== "string" || result.kind !== "put" && result.kind !== "remove" || result.valueHash !== null && typeof result.valueHash !== "string") {
         throw new Error("The extension storage background returned an invalid reconciliation receipt");
@@ -37096,6 +37767,9 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       }
       const candidate = response;
       if (candidate.ok !== true) {
+        if (candidate.code === "storage-fence-lost") {
+          throw new StorageFenceLostError(candidate.error);
+        }
         throw new Error(candidate.error ?? "The extension storage request failed");
       }
       return candidate.result;
@@ -37115,19 +37789,60 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     if (!database) {
       return { databaseFound: false, recordsCopied: 0, databaseDeleted: false };
     }
-    let records;
-    const legacyVersion = database.version;
-    const migrationSealed = database.objectStoreNames.contains(LEGACY_MIGRATION_SEAL_STORE);
+    const initial = await readLegacyDatabaseSnapshot(database);
+    const initialEntries = await migrationEntries(initial.records);
+    await copyMigrationEntries(backend, initialEntries);
+    const readyToDelete = initial.sealed || await sealLegacyDatabase(factory, initial.version);
+    if (!readyToDelete) {
+      return {
+        databaseFound: true,
+        recordsCopied: initialEntries.length,
+        databaseDeleted: false
+      };
+    }
+    const finalDatabase = await openLegacyDatabase(factory);
+    if (!finalDatabase) {
+      return {
+        databaseFound: true,
+        recordsCopied: initialEntries.length,
+        databaseDeleted: false
+      };
+    }
+    const finalSnapshot = await readLegacyDatabaseSnapshot(finalDatabase);
+    const finalEntries = await migrationEntries(finalSnapshot.records);
+    await copyMigrationEntries(backend, finalEntries);
+    const databaseDeleted = await deleteDatabase(factory);
+    if (databaseDeleted) {
+      const remaining = await databaseNames(factory);
+      if (remaining?.includes(DURABLE_DATABASE_NAME)) {
+        throw new Error("The legacy durable database remained after verified migration");
+      }
+    }
+    return {
+      databaseFound: true,
+      recordsCopied: finalEntries.length,
+      databaseDeleted
+    };
+  }
+  async function readLegacyDatabaseSnapshot(database) {
+    const version = database.version;
+    const sealed = database.objectStoreNames.contains(LEGACY_MIGRATION_SEAL_STORE);
     try {
       if (!database.objectStoreNames.contains(DURABLE_OBJECT_STORE)) {
         throw new Error("The legacy durable database has no values store");
       }
-      records = await idbRequest(
-        database.transaction(DURABLE_OBJECT_STORE, "readonly").objectStore(DURABLE_OBJECT_STORE).getAll()
-      );
+      return {
+        records: await idbRequest(
+          database.transaction(DURABLE_OBJECT_STORE, "readonly").objectStore(DURABLE_OBJECT_STORE).getAll()
+        ),
+        version,
+        sealed
+      };
     } finally {
       database.close();
     }
+  }
+  async function migrationEntries(records) {
     const entries = [];
     for (const record of records) {
       if (!record || !validKey(record.key)) {
@@ -37139,6 +37854,9 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         hash: await hashStorageValue(record.value)
       });
     }
+    return entries;
+  }
+  async function copyMigrationEntries(backend, entries) {
     for (let offset = 0; offset < entries.length; offset += MIGRATION_BATCH_LIMIT) {
       const batch = entries.slice(offset, offset + MIGRATION_BATCH_LIMIT);
       const receipts = await backend.migrateHostEntries(batch);
@@ -37148,26 +37866,6 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         }
       }
     }
-    const readyToDelete = migrationSealed || await sealLegacyDatabase(factory, legacyVersion);
-    if (!readyToDelete) {
-      return {
-        databaseFound: true,
-        recordsCopied: entries.length,
-        databaseDeleted: false
-      };
-    }
-    const databaseDeleted = await deleteDatabase(factory);
-    if (databaseDeleted) {
-      const remaining = await databaseNames(factory);
-      if (remaining?.includes(DURABLE_DATABASE_NAME)) {
-        throw new Error("The legacy durable database remained after verified migration");
-      }
-    }
-    return {
-      databaseFound: true,
-      recordsCopied: entries.length,
-      databaseDeleted
-    };
   }
   async function openLegacyDatabase(factory) {
     const names = await databaseNames(factory);

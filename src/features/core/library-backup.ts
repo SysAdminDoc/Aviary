@@ -32,9 +32,9 @@ import type { StorageGateway } from "../../platform/storage.ts";
 import { WACZ_SIGNING_KEY } from "../export/wacz-signing.ts";
 import { sha256Hex } from "../export/assets.ts";
 
-export const LIBRARY_BACKUP_SCHEMA_VERSION = 2;
-/** Schema 1 held a single profile's collections and no per-collection profile. Still restorable. */
-export const SUPPORTED_LIBRARY_BACKUP_SCHEMAS = [1, 2] as const;
+/** Schema 1 and 2 remain readable; schema 3 covers the expanded profile roster envelope. */
+export const LIBRARY_BACKUP_SCHEMA_VERSION = 3;
+export const SUPPORTED_LIBRARY_BACKUP_SCHEMAS = [1, 2, 3] as const;
 export const LIBRARY_BACKUP_COLLECTION_VERSION = 1;
 export const MAX_LIBRARY_BACKUP_BYTES = 100 * 1024 * 1024;
 
@@ -126,7 +126,7 @@ export interface LibraryBackupCollection {
 }
 
 export interface LibraryBackupManifest {
-  schemaVersion: 1 | 2;
+  schemaVersion: 1 | 2 | 3;
   collectionCount: number;
   totalBytes: number;
   sha256: string;
@@ -134,7 +134,7 @@ export interface LibraryBackupManifest {
 
 export interface LibraryBackupEnvelope {
   generator: "Aviary";
-  schemaVersion: 1 | 2;
+  schemaVersion: 1 | 2 | 3;
   createdAt: string;
   profile: LibraryBackupProfile | null;
   /** Every profile the backup carries. Empty on a schema 1 backup, which held only one. */
@@ -183,7 +183,7 @@ export interface LibraryBackupPreviewCollection {
 }
 
 export interface LibraryBackupPreview {
-  schemaVersion: 1 | 2;
+  schemaVersion: 1 | 2 | 3;
   createdAt: string;
   profile: LibraryBackupProfile | null;
   includeCredentials: boolean;
@@ -282,7 +282,7 @@ export async function createLibraryBackup(
   });
   const text = JSON.stringify(envelope, null, 2);
   const data = new TextEncoder().encode(text);
-  // The parser limit applies to the complete UTF-8 envelope, not only to collection payloads.
+  // The parser's limit applies to the complete UTF-8 envelope, not only to collection payloads.
   // Count the already encoded final artifact so multibyte values, profile metadata, checksums, and
   // JSON punctuation all contribute without allocating a second copy of the backup.
   assertBackupEnvelopeSize(data.byteLength);
@@ -409,16 +409,31 @@ export function parseLibraryBackup(payload: string | Uint8Array): LibraryBackupE
   }
 
   const manifest = parseManifest(raw.manifest);
+  if (manifest.schemaVersion !== schemaVersion) {
+    throw new LibraryBackupError(
+      "Backup envelope and manifest schema versions do not match.",
+      "checksum"
+    );
+  }
   const expectedTotal = collections.reduce((total, collection) => total + collection.byteLength, 0);
   if (manifest.collectionCount !== collections.length || manifest.totalBytes !== expectedTotal) {
     throw new LibraryBackupError("Backup manifest totals do not match its collections.", "checksum");
   }
+  // Schema 2 already carried the profile roster, but its historical checksum did not cover it.
+  // Schema 3 keeps that shape and covers the roster and active pointer in the new formula. Schema 1
+  // predates the roster entirely, so fields with those names are ignored for its legacy semantics.
+  const profiles = schemaVersion >= 2 ? parseProfiles(raw.profiles) : [];
+  const activeProfileId = schemaVersion >= 2 && typeof raw.activeProfileId === "string"
+    ? raw.activeProfileId
+    : null;
   const expectedManifestChecksum = manifestChecksum({
     createdAt: raw.createdAt,
     includeCredentials: raw.includeCredentials,
     profile,
     collections,
-    schemaVersion
+    schemaVersion,
+    profiles,
+    activeProfileId
   });
   if (manifest.sha256 !== expectedManifestChecksum) {
     throw new LibraryBackupError("Backup manifest checksum does not match its collections.", "checksum");
@@ -429,8 +444,8 @@ export function parseLibraryBackup(payload: string | Uint8Array): LibraryBackupE
     schemaVersion,
     createdAt: raw.createdAt,
     profile,
-    profiles: parseProfiles(raw.profiles),
-    activeProfileId: typeof raw.activeProfileId === "string" ? raw.activeProfileId : null,
+    profiles,
+    activeProfileId,
     includeCredentials: raw.includeCredentials,
     collections,
     manifest
@@ -449,18 +464,16 @@ export async function previewLibraryRestore(
   for (const collection of backup.collections) {
     const scoped = collectionGateway(storage, collection, fallbackProfileId);
     const current = await scoped.get<unknown>(collection.key, undefined);
-    const currentCollection = makeCollection(
-      collection.key,
-      current,
-      backup.includeCredentials,
-      collection.profileId
-    );
-    if (!collection.present && collection.redactedPaths.includes(collection.key)) {
-      // Withheld, not absent. Writing "not present" over a live credential would delete it.
+    const currentCollection = makeCollection(collection.key, current, true, collection.profileId);
+    if (!collection.present && CREDENTIAL_COLLECTIONS.has(collection.key)) {
+      // Withheld or never held. Either way, writing "not present" over a live credential would
+      // delete it, so this is reported as skipped rather than compared as a conflict.
       skipped.push({
         key: collection.key,
         profileId: collection.profileId,
-        reason: "Withheld from the backup as a credential; the value already saved is kept."
+        reason: collection.redactedPaths.includes(collection.key)
+          ? "Withheld from the backup as a credential; the value already saved is kept."
+          : "The backup carries no value for this credential; the value already saved is kept."
       });
       continue;
     }
@@ -551,9 +564,9 @@ async function restoreLibraryBackupLocked(
   const fallbackProfileId = backup.schemaVersion === 1 ? options.profileId ?? null : null;
   const entries = backup.collections.filter((collection) =>
     selected.has(collection.key) &&
-    // A credential the backup withheld carries no value to write. Restoring it as "absent" would
-    // delete the signing identity this install already holds.
-    !(!collection.present && collection.redactedPaths.includes(collection.key))
+    // A credential the backup does not carry is never an instruction to delete one. That covers
+    // both a value withheld by redaction and one the source install simply never had.
+    !(!collection.present && CREDENTIAL_COLLECTIONS.has(collection.key))
   );
   const dryRun = options.dryRun === true;
   if (!options.replaceSigningIdentity) {
@@ -582,6 +595,7 @@ async function restoreLibraryBackupLocked(
   const snapshot: Array<{
     key: LibraryBackupKey;
     value: unknown;
+    scopeId: string | null;
     gateway: StorageGateway;
   }> = [];
   const warnings = [...preview.warnings];
@@ -591,7 +605,7 @@ async function restoreLibraryBackupLocked(
       assertNotAborted(options.signal);
       const gateway = collectionGateway(storage, entry, fallbackProfileId);
       const current = await gateway.get<unknown>(entry.key, undefined);
-      snapshot.push({ key: entry.key, value: current, gateway });
+      snapshot.push({ key: entry.key, value: current, scopeId: collectionScope(entry, fallbackProfileId), gateway });
       if (entry.key === SETTINGS_KEY && entry.present) {
         const report = parseSettingsImport(JSON.stringify(entry.value), normalizeSettings(current));
         warnings.push(...report.warnings);
@@ -636,8 +650,9 @@ async function restoreLibraryBackupLocked(
       if (!entry.present) {
         await gateway.remove(entry.key);
       } else if (entry.key === SETTINGS_KEY) {
+        const scopeId = collectionScope(entry, fallbackProfileId);
         const current = snapshot.find(
-          (item) => item.key === entry.key && item.gateway === gateway
+          (item) => item.key === entry.key && item.scopeId === scopeId
         )?.value;
         const report = parseSettingsImport(JSON.stringify(entry.value), normalizeSettings(current));
         if (!report.applied) {
@@ -795,13 +810,15 @@ function selectedGlobalDefinitions(
   return LIBRARY_BACKUP_GLOBAL_COLLECTIONS.filter((definition) => requested.has(definition.key));
 }
 
-/**
- * Which storage the collection belongs in.
- *
- * Install-wide stores use the base gateway. A schema 2 collection names its own profile. A schema 1
- * collection names none, so it falls back to the profile being restored into, which is what the
- * caller-scoped gateway used to supply implicitly.
- */
+/** The profile a collection resolves to, used to match a snapshot entry without object identity. */
+function collectionScope(
+  collection: Pick<LibraryBackupCollection, "key" | "profileId">,
+  fallbackProfileId: string | null
+): string | null {
+  if (LIBRARY_BACKUP_GLOBAL_COLLECTIONS.some((entry) => entry.key === collection.key)) return null;
+  return collection.profileId ?? fallbackProfileId;
+}
+
 function collectionGateway(
   base: StorageGateway,
   collection: Pick<LibraryBackupCollection, "key" | "profileId">,
@@ -886,17 +903,18 @@ function collectionCount(key: string, value: unknown): number {
 /**
  * Version-aware by necessity.
  *
- * A schema 1 backup's checksum was computed over descriptors that had no `profileId` and over the
- * literal version 1. Hashing those same bytes under the current shape produces a different digest,
- * which would reject every backup a user already holds as corrupt. The version is therefore an
- * input, not a constant.
+ * Schema 1 omitted `profileId` from collection descriptors. Schema 2 added it and the profile
+ * roster fields, but the roster stayed outside the checksum. Schema 3 covers that roster and the
+ * active pointer. The version is an input, not a constant, so old files keep their exact formula.
  */
 function manifestChecksum(input: {
   createdAt: string;
   includeCredentials: boolean;
   profile: LibraryBackupProfile | null;
   collections: readonly LibraryBackupCollection[];
-  schemaVersion?: 1 | 2;
+  schemaVersion?: 1 | 2 | 3;
+  profiles?: readonly LibraryBackupProfile[];
+  activeProfileId?: string | null;
 }): string {
   const schemaVersion = input.schemaVersion ?? LIBRARY_BACKUP_SCHEMA_VERSION;
   const descriptors = input.collections.map(({ value: _value, ...descriptor }) => {
@@ -910,6 +928,9 @@ function manifestChecksum(input: {
     createdAt: input.createdAt,
     includeCredentials: input.includeCredentials,
     profile: input.profile,
+    ...(schemaVersion >= 3
+      ? { profiles: input.profiles ?? [], activeProfileId: input.activeProfileId ?? null }
+      : {}),
     collections: descriptors
   });
   return sha256Hex(new TextEncoder().encode(text));

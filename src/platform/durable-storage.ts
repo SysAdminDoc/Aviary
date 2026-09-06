@@ -722,24 +722,28 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
    * browser revoked it would be exactly the false assurance this exists to remove.
    */
   async #ensurePersisted(manager: StorageManager | undefined): Promise<boolean | undefined> {
-    try {
-      if (typeof manager?.persisted === "function" && await manager.persisted()) {
-        return true;
-      }
-      // Measured in a packaged MV3 extension on 2026-09-05: Chrome grants `unlimitedStorage`
-      // (`permissions.contains` returns true) while `navigator.storage.persisted()` still answers
-      // false and `persist()` does not exist in a service worker at all -- it is a Window-only
-      // API. The permission is the exemption Chrome documents; the Storage Standard bit is a
-      // different mechanism that Chrome does not set for extension origins. Reporting best-effort
-      // off `persisted()` alone would therefore tell every extension user their library is at risk
-      // when it is not.
-      if (await holdsUnlimitedStorage()) return true;
-      if (typeof manager?.persist !== "function") {
-        return typeof manager?.persisted === "function" ? false : undefined;
-      }
-      if (this.#persistRequested) return false;
-      this.#persistRequested = true;
-      return await manager.persist();
+      try {
+        if (typeof manager?.persisted === "function" && await manager.persisted()) {
+          return true;
+        }
+        // Ask, where asking is possible. `persist()` is a Window-only API, so a service worker does
+        // not have it, but the same backend runs in contexts that do and the request has to happen
+        // there rather than being skipped because a later fallback would have answered anyway.
+        // Once per instance: a user who declined must not be re-prompted on every status refresh.
+        if (typeof manager?.persist === "function" && !this.#persistRequested) {
+          this.#persistRequested = true;
+          if (await manager.persist()) return true;
+        }
+        // Measured in a packaged MV3 extension on 2026-09-05: Chrome grants `unlimitedStorage`
+        // (`permissions.contains` returns true) while `navigator.storage.persisted()` still answers
+        // false and `persist()` does not exist in a service worker at all. The permission is the
+        // exemption Chrome documents; the Storage Standard bit is a different mechanism it does not
+        // set for extension origins. Reporting best-effort off `persisted()` alone would tell every
+        // extension user their library is at risk when it is not.
+        if (await holdsUnlimitedStorage()) return true;
+        return typeof manager?.persisted === "function" || typeof manager?.persist === "function"
+          ? false
+          : undefined;
     } catch {
       // A browser that refuses to answer is "unknown", never "persisted". Storage reporting must
       // not be the thing that takes a boot down either.
