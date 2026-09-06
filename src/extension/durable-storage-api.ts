@@ -10,6 +10,7 @@ import {
   type DurableOperation,
   type DurablePendingWrite,
   type DurablePendingWriteReceipt,
+  type DurableStorageRead,
   type DurableStorageBackend,
   type DurableStorageEstimate,
   type DurableStorageMeta
@@ -29,6 +30,7 @@ const LEGACY_MIGRATION_SEAL_STORE = "__aviary_migration_seal__";
 
 type DurableStorageRequest =
   | { type: typeof DURABLE_STORAGE_MESSAGE; operation: "get"; key: string }
+  | { type: typeof DURABLE_STORAGE_MESSAGE; operation: "read"; key: string }
   | {
       type: typeof DURABLE_STORAGE_MESSAGE;
       operation: "put";
@@ -109,12 +111,22 @@ export class ExtensionDurableStorageBackend implements DurableStorageBackend {
   }
 
   async get(key: string): Promise<unknown | undefined> {
+    const result = await this.read(key);
+    return result.found && !result.removed ? result.value : undefined;
+  }
+
+  async read(key: string): Promise<DurableStorageRead> {
     const result = asRecord(await this.#call({
       type: DURABLE_STORAGE_MESSAGE,
-      operation: "get",
+      operation: "read",
       key
     }));
-    return result.found === true ? result.value : undefined;
+    if (result.found !== true) {
+      return { found: false, removed: false };
+    }
+    return result.removed === true
+      ? { found: true, removed: true }
+      : { found: true, removed: false, value: result.value };
   }
 
   async put(
@@ -264,7 +276,12 @@ export function isDurableStorageRequest(message: unknown): message is DurableSto
     return false;
   }
   if (request.operation === "get-meta" || request.operation === "estimate") return true;
-  if (request.operation === "get" || request.operation === "put" || request.operation === "remove") {
+  if (
+    request.operation === "get" ||
+    request.operation === "read" ||
+    request.operation === "put" ||
+    request.operation === "remove"
+  ) {
     return (
       validKey(request.key) &&
       (request.operation !== "put" || "value" in request) &&
@@ -300,6 +317,16 @@ export async function handleDurableStorageRequest(
       case "get": {
         const value = await backend.get(request.key);
         return { ok: true, result: value === undefined ? { found: false } : { found: true, value } };
+      }
+      case "read": {
+        const result = typeof backend.read === "function"
+          ? await backend.read(request.key)
+          : await backend.get(request.key).then((value) =>
+              value === undefined
+                ? { found: false, removed: false }
+                : { found: true, removed: false, value }
+            );
+        return { ok: true, result };
       }
       case "put":
         await runFencedMutation(authority, request.fence, () =>

@@ -258,6 +258,20 @@ class FlakyBackend extends MemoryBackend {
   }
 }
 
+class OrderedFailureBackend extends MemoryBackend {
+  failing = false;
+
+  async put(key, value) {
+    if (this.failing) {
+      if (value?.version === "A") {
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      }
+      throw new Error("simulated ordered transaction failure");
+    }
+    return super.put(key, value);
+  }
+}
+
 /** Models the receipt fields the IndexedDB backend commits with each value or tombstone. */
 class ReceiptBackend {
   values = new Map();
@@ -267,6 +281,14 @@ class ReceiptBackend {
   async get(key) {
     const record = this.values.get(key);
     return record?.removed ? undefined : record?.value;
+  }
+
+  async read(key) {
+    const record = this.values.get(key);
+    if (!record) return { found: false, removed: false };
+    return record.removed
+      ? { found: true, removed: true }
+      : { found: true, removed: false, value: record.value };
   }
 
   async put(key, value, _fence, operation) {
@@ -311,6 +333,7 @@ class ReceiptBackend {
       : -1;
     const pendingOrder = typeof write.operationOrder === "number" ? write.operationOrder : 0;
     const currentDominates = current && current.operationOrder !== undefined && (
+      write.operationOrder === undefined ||
       currentOrder > pendingOrder ||
       (currentOrder === pendingOrder && current.operationId >= write.operationId)
     );
@@ -385,6 +408,31 @@ test("writes made during a backend failure survive the next healthy boot", async
   );
 });
 
+test("an older fallback failure cannot replace a newer fallback operation", async () => {
+  const { createDurableStorageGateway, PENDING_WRITES_KEY } =
+    await importSourceModule("src/platform/durable-storage.ts");
+  const key = "aviary.userNotes.v1";
+  const legacy = memoryStorage();
+  const backend = new OrderedFailureBackend();
+  const first = createDurableStorageGateway(legacy, { backend });
+  await first.initialize([key]);
+
+  backend.failing = true;
+  await Promise.all([
+    first.set(key, { version: "A" }),
+    first.set(key, { version: "B" })
+  ]);
+
+  const ledger = await legacy.get(PENDING_WRITES_KEY, null);
+  assert.equal(ledger.entries.length, 1);
+  assert.deepEqual(ledger.entries[0].value, { version: "B" });
+
+  backend.failing = false;
+  const restarted = createDurableStorageGateway(legacy, { backend });
+  await restarted.initialize([key]);
+  assert.deepEqual(await restarted.get(key, null), { version: "B" });
+});
+
 test("a removal made during a backend failure is not resurrected", async () => {
   const { createDurableStorageGateway } = await importSourceModule("src/platform/durable-storage.ts");
   const legacy = memoryStorage();
@@ -452,6 +500,13 @@ test("a committed fallback receipt cannot replay over a newer set or tombstone",
     } else {
       await first.remove(key);
     }
+    if (scenario.kind === "remove") {
+      assert.equal(
+        await first.get(key, "absent"),
+        "absent",
+        "a committed tombstone must not fall back to the stale legacy value"
+      );
+    }
     const pending = await legacy.get(PENDING_WRITES_KEY, null);
     assert.equal(pending.entries.length, 1, scenario.name);
     assert.equal(typeof pending.entries[0].operationId, "string", scenario.name);
@@ -500,7 +555,7 @@ test("schema-v2 fallback entries remain recoverable without outranking a durable
     key,
     { version: "new" },
     undefined,
-    { operationId: "newer-receipt", operationOrder: 10 }
+    { operationId: "aaa", operationOrder: 0 }
   );
 
   const storage = createDurableStorageGateway(legacy, { backend });

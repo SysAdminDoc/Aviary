@@ -93,9 +93,18 @@ export interface DurablePendingWriteReceipt {
   valueHash: string | null;
 }
 
+/** Distinguishes an absent record from a committed tombstone without exposing removed values. */
+export interface DurableStorageRead {
+  found: boolean;
+  removed: boolean;
+  value?: unknown;
+}
+
 /** Small interface keeps migration logic testable without shipping an IndexedDB dependency. */
 export interface DurableStorageBackend {
   get(key: string): Promise<unknown | undefined>;
+  /** Optional state-aware read used to keep tombstones from falling back to stale legacy values. */
+  read?(key: string): Promise<DurableStorageRead>;
   put(
     key: string,
     value: unknown,
@@ -213,8 +222,8 @@ export class DurableStorageGateway implements StorageGateway {
       ])];
 
       for (const key of scopedKeys) {
-        const existing = await this.#backend.get(key);
-        if (existing !== undefined) {
+        const existing = await readDurableBackend(this.#backend, key);
+        if (existing.found) {
           migratedKeys.add(key);
           continue;
         }
@@ -289,9 +298,9 @@ export class DurableStorageGateway implements StorageGateway {
 
     const scopedKey = this.#scope(key);
     try {
-      const stored = await this.#backend.get(scopedKey);
-      if (stored !== undefined) {
-        return stored as T;
+      const stored = await readDurableBackend(this.#backend, scopedKey);
+      if (stored.found) {
+        return stored.removed ? fallback : stored.value as T;
       }
       const legacy = await this.#legacy.get<T | undefined>(key, undefined);
       if (legacy !== undefined) {
@@ -421,15 +430,12 @@ export class DurableStorageGateway implements StorageGateway {
     try {
       this.#status.pendingWrites = await withStorageLock(PENDING_WRITES_LOCK, async (fence) => {
         const pending = await this.#readPendingWrites();
-        const requestedOperation = operation
-          ? nextPendingOperation(pending.get(key), operation)
-          : undefined;
         addPendingWrite(pending, {
           id: createPendingWriteId(),
           key,
           kind,
           ...(kind === "put" ? { value } : {}),
-          ...(requestedOperation ?? {})
+          ...(operation ?? {})
         });
         await this.#writePendingWrites(pending, fence);
         return pending.size;
@@ -511,8 +517,7 @@ export class DurableStorageGateway implements StorageGateway {
           id: `legacy-${fingerprint}`,
           key,
           kind,
-          ...(kind === "put" ? { value } : {}),
-          ...createLegacyOperation(`legacy-${fingerprint}`)
+          ...(kind === "put" ? { value } : {})
         });
       }
       return pending;
@@ -579,6 +584,11 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
   }
 
   async get(key: string): Promise<unknown | undefined> {
+    const record = await this.read(key);
+    return record.found && !record.removed ? record.value : undefined;
+  }
+
+  async read(key: string): Promise<DurableStorageRead> {
     const database = await this.#database;
     const record = await idbRequest<DurableIndexedValue | undefined>(
       database
@@ -586,7 +596,12 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
         .objectStore(DURABLE_OBJECT_STORE)
         .get(key)
     );
-    return record?.removed ? undefined : record?.value;
+    if (!record) {
+      return { found: false, removed: false };
+    }
+    return record.removed
+      ? { found: true, removed: true }
+      : { found: true, removed: false, value: record.value };
   }
 
   async put(
@@ -596,20 +611,15 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
     operation?: DurableOperation
   ): Promise<void> {
     const database = await this.#database;
-    if (fence || operation) {
-      await fencedIndexedDbMutation(database, key, fence, operation, (store, appliedOperation) => {
-        store.put({
-          key,
-          value,
-          updatedAt: new Date().toISOString(),
-          ...(fence ? { fence } : {}),
-          ...(appliedOperation ?? {})
-        } satisfies DurableIndexedValue);
-      });
-      return;
-    }
-    await idbTransaction(database, "readwrite", (store) => {
-      store.put({ key, value, updatedAt: new Date().toISOString() } satisfies DurableIndexedValue);
+    const requestedOperation = operation ?? createDurableOperation();
+    await fencedIndexedDbMutation(database, key, fence, requestedOperation, (store, appliedOperation) => {
+      store.put({
+        key,
+        value,
+        updatedAt: new Date().toISOString(),
+        ...(fence ? { fence } : {}),
+        ...(appliedOperation ?? {})
+      } satisfies DurableIndexedValue);
     });
   }
 
@@ -619,21 +629,16 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
     operation?: DurableOperation
   ): Promise<void> {
     const database = await this.#database;
-    if (fence || operation) {
-      await fencedIndexedDbMutation(database, key, fence, operation, (store, appliedOperation) => {
-        store.put({
-          key,
-          value: null,
-          updatedAt: new Date().toISOString(),
-          ...(fence ? { fence } : {}),
-          ...(appliedOperation ?? {}),
-          removed: true
-        } satisfies DurableIndexedValue);
-      });
-      return;
-    }
-    await idbTransaction(database, "readwrite", (store) => {
-      store.delete(key);
+    const requestedOperation = operation ?? createDurableOperation();
+    await fencedIndexedDbMutation(database, key, fence, requestedOperation, (store, appliedOperation) => {
+      store.put({
+        key,
+        value: null,
+        updatedAt: new Date().toISOString(),
+        ...(fence ? { fence } : {}),
+        ...(appliedOperation ?? {}),
+        removed: true
+      } satisfies DurableIndexedValue);
     });
   }
 
@@ -646,12 +651,18 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
     const database = await this.#database;
     await idbTransaction(database, "readwrite", (store) => {
       for (const [key, value] of entries) {
-        store.put({ key, value, updatedAt: new Date().toISOString() } satisfies DurableIndexedValue);
+        store.put({
+          key,
+          value,
+          updatedAt: new Date().toISOString(),
+          ...createDurableOperation()
+        } satisfies DurableIndexedValue);
       }
       store.put({
         key: DURABLE_META_KEY,
         value: meta,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        ...createDurableOperation()
       } satisfies DurableIndexedValue);
     });
   }
@@ -872,6 +883,19 @@ function finiteOrNull(value: number | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+async function readDurableBackend(
+  backend: DurableStorageBackend,
+  key: string
+): Promise<DurableStorageRead> {
+  if (typeof backend.read === "function") {
+    return backend.read(key);
+  }
+  const value = await backend.get(key);
+  return value === undefined
+    ? { found: false, removed: false }
+    : { found: true, removed: false, value };
+}
+
 async function verifyBackendValue(
   backend: DurableStorageBackend,
   key: string,
@@ -963,17 +987,9 @@ function createLegacyOperation(id: string): DurableOperation {
 }
 
 function normalizePendingWrite(write: DurablePendingWrite): DurablePendingWrite {
-  return {
-    ...write,
-    ...(
-      isDurableOperation({ operationId: write.operationId ?? write.id, operationOrder: write.operationOrder ?? 0 })
-        ? {
-            operationId: write.operationId ?? write.id,
-            operationOrder: write.operationOrder ?? 0
-          }
-        : createLegacyOperation(write.id)
-    )
-  };
+  // Entries from schema-v1/v2 may have no receipt metadata. Keep that absence visible: assigning
+  // them an order-0 ID would make a legacy journal appear newer than a real order-0 receipt.
+  return { ...write };
 }
 
 function addPendingWrite(
@@ -994,18 +1010,6 @@ function comparePendingWrites(left: DurablePendingWrite, right: DurablePendingWr
   if (!leftOperation) return -1;
   if (!rightOperation) return 1;
   return compareDurableOperations(leftOperation, rightOperation);
-}
-
-function nextPendingOperation(
-  existing: DurablePendingWrite | undefined,
-  requested: DurableOperation
-): DurableOperation {
-  const previous = existing ? operationFromWrite(normalizePendingWrite(existing)) : undefined;
-  if (!previous || compareDurableOperations(previous, requested) < 0) return requested;
-  return {
-    ...requested,
-    operationOrder: Math.min(Number.MAX_SAFE_INTEGER, previous.operationOrder + 1)
-  };
 }
 
 function operationFromRecord(record: DurableIndexedValue | undefined): DurableOperation | undefined {
@@ -1124,7 +1128,10 @@ function commitPendingWriteTransaction(
           return;
         }
 
-        const appliedOperation = operationFromWrite(replay);
+        // Legacy journal entries have no ordering proof. They may still receive a receipt when
+        // applied, but that generated order must not be used to make the old entry outrank a real
+        // receipt during the pre-write dominance check above.
+        const appliedOperation = operationFromWrite(replay) ?? createLegacyOperation(replay.id);
         if (replay.kind === "put") {
           store.put({
             key: replay.key,
