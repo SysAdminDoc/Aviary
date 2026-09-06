@@ -26,6 +26,8 @@ lets the first blob-backed video download use the best observed file as soon as 
 appear, without buffering response bodies or asking X for the post again.
 Repeated observations of a signed media URL are merged without dropping its query parameters. The
 download control keeps the richest known dimensions and bitrate, then chooses the best direct file.
+Library backups are checked against the complete 100 MiB UTF-8 envelope limit before download, so
+profile metadata and multibyte notes cannot create an artifact the restore parser will reject.
 Saved media gets a quiet marker on the post. You can also write a text or JSON companion beside a
 completed download, or use the current Library search to download media from captured records.
 That Library batch uses only URLs already stored locally and does not request another X timeline.

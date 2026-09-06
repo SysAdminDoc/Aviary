@@ -282,15 +282,22 @@ export async function createLibraryBackup(
   });
   const text = JSON.stringify(envelope, null, 2);
   const data = new TextEncoder().encode(text);
+  // The parser limit applies to the complete UTF-8 envelope, not only to collection payloads.
+  // Count the already encoded final artifact so multibyte values, profile metadata, checksums, and
+  // JSON punctuation all contribute without allocating a second copy of the backup.
+  assertBackupEnvelopeSize(data.byteLength);
+  const artifact = {
+    filename: backupFilename(envelope.createdAt),
+    contentType: "application/json" as const,
+    data,
+    collections: collections.length,
+    bytes: data.byteLength
+  };
+  // Recheck the exact bytes handed to the download layer after the artifact shape is complete.
+  assertBackupEnvelopeSize(artifact.data.byteLength);
   return {
     envelope,
-    artifact: {
-      filename: backupFilename(envelope.createdAt),
-      contentType: "application/json",
-      data,
-      collections: collections.length,
-      bytes: data.byteLength
-    }
+    artifact
   };
 }
 
@@ -919,6 +926,14 @@ function serializeBackupValue(value: unknown): string {
     throw new LibraryBackupError("A collection contains an unsupported undefined value.");
   }
   return text;
+}
+
+function assertBackupEnvelopeSize(byteLength: number): void {
+  if (byteLength <= MAX_LIBRARY_BACKUP_BYTES) return;
+  throw new LibraryBackupError(
+    "Backup exceeds the " + Math.round(MAX_LIBRARY_BACKUP_BYTES / (1024 * 1024)) + " MiB limit.",
+    "too-large"
+  );
 }
 
 function deserializeBackupValue(text: string): unknown {

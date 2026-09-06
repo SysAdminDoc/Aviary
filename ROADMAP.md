@@ -424,14 +424,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F333, P1: Bound the complete backup envelope to the production parser limit
-  Why: individually valid collections can produce a backup larger than the 100 MiB limit enforced by restore.
-  Evidence: `src/features/core/library-backup.ts:283-299,753`; creation has collection limits but no aggregate encoded-envelope limit
-  Touches: backup sizing/serialization, export action feedback, production parser, multi-profile size tests
-  Acceptance: count the final UTF-8 envelope including profile metadata, checksums, punctuation, and multibyte values against the parser's shared limit; reject oversized output before download handoff and without an unbounded extra allocation; the exact final count is rechecked before emission; every emitted artifact passes the production parser; tests cover limit minus one, exact limit, limit plus one, multibyte strings, and multiple individually valid collections; refusal identifies the limit and leaves the library unchanged; raising the ceiling alone is not a fix.
-  Complexity: M
-  Depends: None. Use F334's final schema envelope when both changes are integrated.
-
 - [ ] F334, P1: Version backup checksum changes and preserve profile credentials on restore
   Why: the changed parser rejects an envelope using the existing schema-2 checksum formula, while redacted restore must not replace each destination profile's credentials or signing identity.
   Evidence: `src/features/core/library-backup.ts` and `tests/library-backup.test.mjs`; the committed encoder generated a schema-2 bookmark backup accepted by its own parser and rejected by the changed parser, which now includes profile roster/active ID without changing the version

@@ -38,6 +38,10 @@
 - **Richer repeated media observations** now merge by exact signed URL. Dimensions, bitrate, codec,
   MIME, and provenance are retained before the best direct video is selected, so a later 1080p
   observation can upgrade an earlier sparse record.
+- **Library backup creation** now counts the complete UTF-8 envelope, including profile metadata,
+  checksums, punctuation, and multibyte text, before handing the file to the download layer. A
+  multi-profile backup that would exceed the shared 100 MiB parser limit is refused with a clear
+  size error.
 
 ### Fixed
 - Conversation pages no longer show the vertical connector line down a reply's avatar column while an Aviary theme is active. The previous fix removed a line Aviary itself drew; the one readers were seeing is X's own element, found now by its shape and position rather than by a class name X regenerates.
