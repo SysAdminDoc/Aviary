@@ -84,6 +84,12 @@ interface LegacyMigrationEntry {
   hash: string;
 }
 
+interface LegacyDatabaseSnapshot {
+  records: DurableIndexedValue[];
+  version: number;
+  sealed: boolean;
+}
+
 export interface HostMigrationResult {
   databaseFound: boolean;
   recordsCopied: number;
@@ -345,23 +351,71 @@ export async function migrateLegacyHostDurableStorage(
     return { databaseFound: false, recordsCopied: 0, databaseDeleted: false };
   }
 
-  let records: DurableIndexedValue[];
-  const legacyVersion = database.version;
-  const migrationSealed = database.objectStoreNames.contains(LEGACY_MIGRATION_SEAL_STORE);
+  const initial = await readLegacyDatabaseSnapshot(database);
+  const initialEntries = await migrationEntries(initial.records);
+  await copyMigrationEntries(backend, initialEntries);
+
+  const readyToDelete = initial.sealed || await sealLegacyDatabase(factory, initial.version);
+  if (!readyToDelete) {
+    return {
+      databaseFound: true,
+      recordsCopied: initialEntries.length,
+      databaseDeleted: false
+    };
+  }
+
+  // The seal waits for every old connection to close, but a writer can still commit between the
+  // initial read and that upgrade. Re-read the sealed source and verify the destination against this
+  // final snapshot before asking IndexedDB to delete the only remaining copy.
+  const finalDatabase = await openLegacyDatabase(factory);
+  if (!finalDatabase) {
+    return {
+      databaseFound: true,
+      recordsCopied: initialEntries.length,
+      databaseDeleted: false
+    };
+  }
+  const finalSnapshot = await readLegacyDatabaseSnapshot(finalDatabase);
+  const finalEntries = await migrationEntries(finalSnapshot.records);
+  await copyMigrationEntries(backend, finalEntries);
+
+  const databaseDeleted = await deleteDatabase(factory);
+  if (databaseDeleted) {
+    const remaining = await databaseNames(factory);
+    if (remaining?.includes(DURABLE_DATABASE_NAME)) {
+      throw new Error("The legacy durable database remained after verified migration");
+    }
+  }
+  return {
+    databaseFound: true,
+    recordsCopied: finalEntries.length,
+    databaseDeleted
+  };
+}
+
+async function readLegacyDatabaseSnapshot(database: IDBDatabase): Promise<LegacyDatabaseSnapshot> {
+  const version = database.version;
+  const sealed = database.objectStoreNames.contains(LEGACY_MIGRATION_SEAL_STORE);
   try {
     if (!database.objectStoreNames.contains(DURABLE_OBJECT_STORE)) {
       throw new Error("The legacy durable database has no values store");
     }
-    records = await idbRequest<DurableIndexedValue[]>(
-      database
-        .transaction(DURABLE_OBJECT_STORE, "readonly")
-        .objectStore(DURABLE_OBJECT_STORE)
-        .getAll()
-    );
+    return {
+      records: await idbRequest<DurableIndexedValue[]>(
+        database
+          .transaction(DURABLE_OBJECT_STORE, "readonly")
+          .objectStore(DURABLE_OBJECT_STORE)
+          .getAll()
+      ),
+      version,
+      sealed
+    };
   } finally {
     database.close();
   }
+}
 
+async function migrationEntries(records: DurableIndexedValue[]): Promise<LegacyMigrationEntry[]> {
   const entries: LegacyMigrationEntry[] = [];
   for (const record of records) {
     if (!record || !validKey(record.key)) {
@@ -373,7 +427,13 @@ export async function migrateLegacyHostDurableStorage(
       hash: await hashStorageValue(record.value)
     });
   }
+  return entries;
+}
 
+async function copyMigrationEntries(
+  backend: ExtensionDurableStorageBackend,
+  entries: LegacyMigrationEntry[]
+): Promise<void> {
   for (let offset = 0; offset < entries.length; offset += MIGRATION_BATCH_LIMIT) {
     const batch = entries.slice(offset, offset + MIGRATION_BATCH_LIMIT);
     const receipts = await backend.migrateHostEntries(batch);
@@ -383,27 +443,6 @@ export async function migrateLegacyHostDurableStorage(
       }
     }
   }
-
-  const readyToDelete = migrationSealed || await sealLegacyDatabase(factory, legacyVersion);
-  if (!readyToDelete) {
-    return {
-      databaseFound: true,
-      recordsCopied: entries.length,
-      databaseDeleted: false
-    };
-  }
-  const databaseDeleted = await deleteDatabase(factory);
-  if (databaseDeleted) {
-    const remaining = await databaseNames(factory);
-    if (remaining?.includes(DURABLE_DATABASE_NAME)) {
-      throw new Error("The legacy durable database remained after verified migration");
-    }
-  }
-  return {
-    databaseFound: true,
-    recordsCopied: entries.length,
-    databaseDeleted
-  };
 }
 
 async function importHostEntries(

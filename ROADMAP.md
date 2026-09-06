@@ -424,14 +424,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P0, Now
 
-- [ ] F329, P0: Reconcile a final sealed migration snapshot before source deletion
-  Why: a legacy tab can commit between the initial snapshot and successful sealing, then close, allowing migration to delete data it never copied.
-  Evidence: `src/extension/durable-storage-api.ts:289-329`; a real Chromium IndexedDB experiment returned databaseDeleted true while the destination retained the old note and the newer source note disappeared
-  Touches: extension durable-storage migration and sealing, destination receipts, initialization/recovery status, real IndexedDB migration tests
-  Acceptance: quiesce the source before the final read or re-read after sealing; compare every final key/value or tombstone and verify the destination receipt before deletion; a late writer that closes before sealing, an actually blocked writer, concurrent migrations, and conflicting destination changes retain all accepted data or leave a recoverable conflict with the source intact; inject failures before/after seal, final copy, receipt, and deletion; a successful migration's destination matches the sealed final state, not the initial snapshot; retries converge without blocking startup indefinitely.
-  Complexity: M
-  Depends: F328 for destination write authority. F278 remains the separate profile-adoption cleanup task.
-
 - [ ] F330, P0: Persist applied-operation receipts so fallback replay cannot roll back newer data
   Why: a committed fallback operation whose legacy cleanup failed is re-staged on restart and can overwrite a newer healthy write.
   Evidence: `src/platform/durable-storage.ts:403-407,573-579`; a real IndexedDB experiment changed new healthy write back to old fallback after replay

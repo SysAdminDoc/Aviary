@@ -213,6 +213,95 @@ test("a verified host migration keeps booting while an old tab blocks deletion",
   }
 });
 
+test("host migration copies a late write committed before the seal", { timeout: 30_000 }, async () => {
+  const context = await chromiumBrowser.newContext();
+  let copyStartedResolve;
+  let releaseCopy;
+  const copyStarted = new Promise((resolve) => { copyStartedResolve = resolve; });
+  const copyGate = new Promise((resolve) => { releaseCopy = resolve; });
+  await context.exposeBinding("__migrationCopyBarrier", () => {
+    releaseCopy = releaseCopy ?? (() => {});
+    copyStartedResolve();
+    return copyGate;
+  });
+  await context.route("**/*", (route) => route.fulfill({
+    status: 200,
+    contentType: "text/html; charset=utf-8",
+    body: "<!doctype html><meta charset=utf-8><title>storage migration final snapshot</title>"
+  }));
+  const oldTab = await context.newPage();
+  const newTab = await context.newPage();
+  try {
+    await Promise.all([oldTab.goto("https://x.com/home"), newTab.goto("https://x.com/home")]);
+    await newTab.addScriptTag({ path: bundle });
+    await oldTab.evaluate(async () => {
+      const request = indexedDB.open("aviary.durable.v1", 1);
+      request.onupgradeneeded = () => request.result.createObjectStore("values", { keyPath: "key" });
+      const database = await new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      const transaction = database.transaction("values", "readwrite");
+      transaction.objectStore("values").put({
+        key: "aviary.profile.inactive.userNotes.v1",
+        value: { alice: "initial" },
+        updatedAt: new Date().toISOString()
+      });
+      await new Promise((resolve, reject) => {
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+      });
+      window.__legacyDatabase = database;
+    });
+
+    const migrating = newTab.evaluate(async () => {
+      const copied = [];
+      let paused = false;
+      const backend = {
+        async migrateHostEntries(entries) {
+          if (!paused) {
+            paused = true;
+            await window.__migrationCopyBarrier();
+          }
+          copied.push(...entries.map((entry) => ({ key: entry.key, value: structuredClone(entry.value) })));
+          const hashes = {};
+          for (const entry of entries) hashes[entry.key] = await AviaryStorageAuthority.hashStorageValue(entry.value);
+          return hashes;
+        }
+      };
+      const migration = await AviaryStorageAuthority.migrateLegacyHostDurableStorage(backend);
+      return { migration, copied };
+    });
+    await copyStarted;
+    await oldTab.evaluate(async () => {
+      const transaction = window.__legacyDatabase.transaction("values", "readwrite");
+      transaction.objectStore("values").put({
+        key: "aviary.profile.inactive.userNotes.v1",
+        value: { alice: "late" },
+        updatedAt: new Date().toISOString()
+      });
+      await new Promise((resolve, reject) => {
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+      });
+      window.__legacyDatabase.close();
+    });
+    releaseCopy();
+    const result = await migrating;
+    assert.deepEqual(result.migration, {
+      databaseFound: true,
+      recordsCopied: 1,
+      databaseDeleted: true
+    });
+    assert.deepEqual(result.copied.at(-1), {
+      key: "aviary.profile.inactive.userNotes.v1",
+      value: { alice: "late" }
+    });
+  } finally {
+    await context.close();
+  }
+});
+
 async function createLaneSession(lane) {
   const browser = lane.engine === "chromium" ? chromiumBrowser : firefoxBrowser;
   const context = await browser.newContext();

@@ -6,6 +6,9 @@
 - Storage locks now carry a commit fence. The extension background rejects stale owner generations
   at the mutation boundary, and userscript managers retain immutable fenced operations so a paused
   callback cannot overwrite a newer accepted value after expiry or restart.
+- Legacy database migration now takes a final snapshot after sealing and verifies that snapshot in
+  the background before deleting the source database. A late write is copied on the same pass, and a
+  blocked or failed seal leaves the source available for retry.
 - Extension settings, queues, notes, archives, and signing identity now live in one
   background-owned IndexedDB database. X pages can no longer enumerate Aviary's active database,
   and the options page reads the same active profile as the feed.
