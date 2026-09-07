@@ -35,6 +35,9 @@
   than blocking Aviary startup or deleting them.
 
 ### Fixed
+- Refreshed the reviewed desktop visual baselines for the current media and material-state
+  renders. The publication gate now measures the same seven screenshots produced by the shipped
+  renderer instead of rejecting a stale capture set.
 - Native media context-menu messages now carry and validate the X document URL, exact message
   fields, and the extension sender before the page starts a download. The background refuses to
   forward a non-X page, and Trusted Types policy and fallback behavior are covered explicitly.
