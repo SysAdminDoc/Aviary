@@ -1,64 +1,117 @@
-// Isolated Chromium proof for the extension's private-window policy.
-//
-// Playwright's isolated non-persistent context models a private window. With
-// incognito: not_allowed, Chrome leaves the extension unavailable in that window, so the page
-// must not receive Aviary's document-start marker or create any Aviary storage keys.
-
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { tmpdir } from "node:os";
 import { chromium } from "playwright";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const extensionDir = path.join(root, "dist", "extension-chrome");
-const fixturePath = path.join(root, "tests", "smoke", "current-x-home.html");
 
 if (!existsSync(extensionDir)) {
   console.error("Build the extension first: `npm run build`.");
   process.exit(2);
 }
 
-const fixtureHtml = await readFile(fixturePath, "utf8");
-const browserArgs = [
-  `--disable-extensions-except=${extensionDir}`,
-  `--load-extension=${extensionDir}`,
-  "--no-sandbox"
-];
-let browser;
-let context;
+let commandId = 0;
 
+/** Send one CDP command to a target created in an isolated private browser context. */
+async function sendToTarget(cdp, sessionId, method, params = {}) {
+  const id = ++commandId;
+  const result = new Promise((resolve, reject) => {
+    const onEvent = (event) => {
+      if (
+        event.method !== "Target.receivedMessageFromTarget" ||
+        event.params.sessionId !== sessionId
+      ) {
+        return;
+      }
+      const message = JSON.parse(event.params.message);
+      if (message.id !== id) return;
+      cdp.off("event", onEvent);
+      if (message.error) reject(new Error(message.error.message));
+      else resolve(message.result);
+    };
+    cdp.on("event", onEvent);
+  });
+  await cdp.send("Target.sendMessageToTarget", {
+    sessionId,
+    message: JSON.stringify({ id, method, params })
+  });
+  return result;
+}
+
+async function probe(extensionPath) {
+  const userData = await mkdtemp(path.join(tmpdir(), "aviary-incognito-smoke-"));
+  const context = await chromium.launchPersistentContext(userData, {
+    headless: false,
+    args: [
+      "--headless=new",
+      "--no-sandbox",
+      `--disable-extensions-except=${extensionPath}`,
+      `--load-extension=${extensionPath}`
+    ]
+  });
+  try {
+    const cdp = await context.browser().newBrowserCDPSession();
+    // Ask Chrome to make the unpacked package available in private contexts. A manifest with
+    // incognito: not_allowed must still be refused by Chrome, while the control package below
+    // proves the harness can run the same content script when that policy is absent.
+    const extension = await cdp.send("Extensions.loadUnpacked", {
+      path: extensionPath,
+      enableInIncognito: true
+    });
+    // Wake the extension in its regular profile first. This also gives Chrome time to register the
+    // unpacked content script before the isolated target is created.
+    const regular = await context.newPage();
+    await regular.goto("https://x.com/incognito-smoke-regular");
+    await regular.waitForTimeout(700);
+    const created = await cdp.send("Target.createBrowserContext", {});
+    const target = await cdp.send("Target.createTarget", {
+      url: "https://x.com/incognito-smoke",
+      browserContextId: created.browserContextId
+    });
+    const attached = await cdp.send("Target.attachToTarget", {
+      targetId: target.targetId,
+      flatten: false
+    });
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const state = await sendToTarget(cdp, attached.sessionId, "Runtime.evaluate", {
+      expression: `(async () => ({
+        ready: document.documentElement.dataset.avReady ?? null,
+        local: Object.keys(localStorage).filter((key) => key.startsWith("aviary.")),
+        session: Object.keys(sessionStorage).filter((key) => key.startsWith("aviary.")),
+        databases: (await indexedDB.databases())
+          .map((database) => database.name ?? "")
+          .filter((name) => name.startsWith("aviary."))
+      }))()`,
+      awaitPromise: true,
+      returnByValue: true
+    });
+    return { id: extension.id, state: state.result?.value };
+  } finally {
+    await context.close();
+    await rm(userData, { recursive: true, force: true });
+  }
+}
+
+const controlExtension = await mkdtemp(path.join(tmpdir(), "aviary-incognito-control-"));
 try {
-  browser = await chromium.launch({ headless: false, args: ["--headless=new", ...browserArgs] });
-  // Playwright's non-persistent context is an isolated private browser context. Chromium does not
-  // attach extensions to it, which is the runtime shape required by incognito: not_allowed.
-  context = await browser.newContext();
-  await context.route("https://x.com/incognito-smoke**", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "text/html",
-      body: fixtureHtml
-    })
-  );
-  const page = await context.newPage();
-  await page.goto("https://x.com/incognito-smoke");
-  await page.waitForTimeout(750);
-  const state = await page.evaluate(async () => ({
-    ready: document.documentElement.dataset.avReady ?? null,
-    local: Object.keys(localStorage).filter((key) => key.startsWith("aviary.")),
-    session: Object.keys(sessionStorage).filter((key) => key.startsWith("aviary.")),
-    databases: (await indexedDB.databases())
-      .map((database) => database.name ?? "")
-      .filter((name) => name.startsWith("aviary."))
-  }));
-  assert.notEqual(state.ready, "true", "Aviary booted in a private window");
-  assert.deepEqual(context.serviceWorkers(), [], "the extension started a private-window worker");
-  assert.deepEqual(state.local, [], "private-window localStorage contains Aviary keys");
-  assert.deepEqual(state.session, [], "private-window sessionStorage contains Aviary keys");
-  assert.deepEqual(state.databases, [], "private-window IndexedDB contains Aviary databases");
-  console.log("[incognito-smoke] extension unavailable and no Aviary page storage changed.");
+  await cp(extensionDir, controlExtension, { recursive: true });
+  const manifestPath = path.join(controlExtension, "manifest.json");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  delete manifest.incognito;
+  await writeFile(manifestPath, JSON.stringify(manifest), "utf8");
+
+  const declared = await probe(extensionDir);
+  const control = await probe(controlExtension);
+  assert.notEqual(declared.state?.ready, "true", "Aviary booted in a private window");
+  assert.deepEqual(declared.state?.local, [], "private-window localStorage contains Aviary keys");
+  assert.deepEqual(declared.state?.session, [], "private-window sessionStorage contains Aviary keys");
+  assert.deepEqual(declared.state?.databases, [], "private-window IndexedDB contains Aviary databases");
+  assert.equal(control.state?.ready, "true", "the control extension did not run in a private window");
+  console.log("[incognito-smoke] manifest policy blocked Aviary; control extension verified the private target.");
 } finally {
-  await context?.close();
-  await browser?.close();
+  await rm(controlExtension, { recursive: true, force: true });
 }

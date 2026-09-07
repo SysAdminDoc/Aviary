@@ -62,7 +62,8 @@ Profile-scoped copies may be prefixed with
 and whether the browser has agreed to keep the library. When you explicitly adopt data from an
 older unprofiled install, Aviary stores only per-key SHA-256 receipts in the unscoped migration
 journal. Receipts contain the source hash, destination profile, phase, and bounded error text, not
-the copied values.
+the copied values. Adoption serializes source claims across profiles and rechecks both values while
+the per-key lock is held; a concurrent change remains available as a reported conflict.
 
 Browser storage is best effort unless something asks otherwise, which means a browser short on disk
 space can clear a local library without warning. The extension declares `unlimitedStorage` and asks
@@ -108,11 +109,13 @@ restore and journal authority.
 | `aviary.archive.imports.v1` | Official X archive import jobs and checkpoints | Pause/resume/retry imports and preserve progress. |
 | `aviary.archive.library.v1` | Imported archive collections, including typed account/media/list data | Keep archive data separate from public-post search. |
 
-The extension background also uses `aviary.downloadFallbacks.v1` as short-lived runtime state. It
+The extension background uses `aviary.downloadTracking.v2` as short-lived runtime state. It
 contains only the browser download id, requested filename, and remaining X media candidate URLs
-for an active original-image download. The entry is removed when the download completes, when an
-interruption advances to the next candidate, or when no candidate remains; it is not included in
-profiles or library backups.
+for an active media download. The entry is removed when the download completes, when an
+interruption advances to the next candidate, or when no candidate remains. A bounded
+`aviary.downloadTerminal.v1` receipt keeps only the original report id, terminal state, optional
+error, and timestamp for a fallback that finishes under a different browser id. Neither key is
+included in profiles or library backups.
 
 Selector health and other transient DOM diagnostics are in memory unless an action is explicitly
 written to the audit log. Imported media bytes are not retained after a completed archive import;

@@ -438,6 +438,37 @@ test("an interrupted retained id keeps waiting on the original report id while f
   });
 });
 
+test("an immediately completed fallback is replayable for the original id", async () => {
+  const stored = {};
+  const first = await loadBackground({ stored });
+  await first.send(
+    {
+      type: "AVIARY_DOWNLOAD",
+      url: "https://pbs.twimg.com/media/retry-fast?name=orig",
+      fallbackUrls: ["https://pbs.twimg.com/media/retry-fast?name=4096x4096"],
+      filename: "retry-fast.jpg"
+    },
+    { tab: { id: 94 } }
+  );
+
+  const restarted = await loadBackground({
+    stored,
+    downloadStates: { 1: { id: 1, state: "interrupted", error: "NETWORK_FAILED" } },
+    nextId: 2,
+    onCreateState: "complete"
+  });
+  const response = await restarted.send({ type: "AVIARY_DOWNLOAD_QUERY", id: 1 });
+  await restarted.settled();
+
+  assert.deepEqual(response, { ok: true, id: 1, state: "complete" });
+  assert.equal(restarted.downloads.length, 1, "the original URL was retried after its fallback completed");
+  assert.deepEqual(restarted.tabMessages, [
+    { tabId: 94, message: { type: "AVIARY_DOWNLOAD_STATE", id: 1, state: "complete" } }
+  ]);
+  assert.equal(stored["aviary.downloadTracking.v2"]["2"], undefined);
+  assert.equal(stored["aviary.downloadTerminal.v1"]["1"].state, "complete");
+});
+
 test("a transfer with no candidates left is reported interrupted, not left waiting", async () => {
   const stored = {};
   const background = await loadBackground({ stored });

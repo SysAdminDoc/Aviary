@@ -412,7 +412,9 @@ test("smoke spec scaffold ships with explicit setup instructions", async () => {
     "utf8"
   );
   assert.match(incognito, /not_allowed/);
-  assert.match(incognito, /newContext/);
+  assert.match(incognito, /createBrowserContext/);
+  assert.match(incognito, /Extensions\.loadUnpacked/);
+  assert.match(incognito, /enableInIncognito/);
   assert.match(incognito, /indexedDB\.databases/);
   const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
   assert.equal(

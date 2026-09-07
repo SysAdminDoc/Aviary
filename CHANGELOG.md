@@ -65,7 +65,9 @@
 ### Changed
 - Browser download handoffs now retain terminal results for every waiting consumer. Fast completions
   are reconciled before the response returns, and Resume checks the browser's retained download id
-  before retrying, so an in-progress or completed file is never downloaded twice.
+  before retrying, so an in-progress or completed file is never downloaded twice. A quality fallback
+  also keeps a bounded terminal receipt under the original report id, even when it finishes before
+  the worker answers the query.
 - Settings, profiles, media queue, export checkpoints and diagnostics now persist the change made
   inside the storage transaction. Two open X tabs keep non-conflicting additions and updates, and
   a clear cannot be undone by a stale snapshot.
@@ -82,10 +84,11 @@
   origin.
 - Media batches now wait for their durable queue checkpoint before reporting a browser transfer as
   running, so restart recovery retains the browser download ID.
-- Legacy profile adoption now keeps a per-store hash journal. If a source delete is interrupted,
-  the next attempt verifies the matching destination and finishes the delete; different values are
-  reported as conflicts and are never overwritten. The Control Center separates moved,
-  retry-completed, skipped, conflicted, and failed stores.
+- Legacy profile adoption now keeps a per-store hash journal under an install-wide migration lock.
+  The destination and source are rechecked while the per-key lock is held before deletion; if a
+  source delete is interrupted, the next attempt verifies the matching destination and finishes it.
+  Different values are reported as conflicts and are never overwritten. The Control Center
+  separates moved, retry-completed, skipped, conflicted, and failed stores.
 - Both extension packages now declare `incognito: not_allowed`, so private windows do not receive
   Aviary's content scripts or write its local records. Userscript private-mode persistence still
   follows the manager because browsers expose no standard userscript signal for that mode.

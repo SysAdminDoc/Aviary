@@ -147,6 +147,99 @@ test("legacy profile adoption records conflicts without overwriting the destinat
   assert.equal(typeof entry.destinationHash, "string");
 });
 
+test("concurrent adopters claim a legacy source for only one profile", async () => {
+  const { ProfileManager, DEFAULT_PROFILE_ID, createProfileStorageGateway } = await importSourceModule(
+    "src/platform/profile.ts"
+  );
+  const store = new Map([["aviary.settings.v1", { legacy: true }]]);
+  const base = {
+    async get(key, fallback) {
+      await new Promise((resolve) => setTimeout(resolve, 2));
+      return store.has(key) ? structuredClone(store.get(key)) : fallback;
+    },
+    async set(key, value) {
+      await new Promise((resolve) => setTimeout(resolve, 2));
+      store.set(key, structuredClone(value));
+    },
+    async remove(key) {
+      await new Promise((resolve) => setTimeout(resolve, 2));
+      store.delete(key);
+    }
+  };
+
+  const bootstrap = new ProfileManager(base);
+  await bootstrap.load();
+  const secondProfile = await bootstrap.create("Second account", "x-account");
+  const first = new ProfileManager(base);
+  const second = new ProfileManager(base);
+  await first.load();
+  await second.load();
+  await first.switchTo(DEFAULT_PROFILE_ID);
+  await second.switchTo(secondProfile.id);
+
+  const [firstResult, secondResult] = await Promise.all([
+    first.adoptLegacyIntoActive(),
+    second.adoptLegacyIntoActive()
+  ]);
+  const moved = [firstResult, secondResult].filter((result) => result.moved === 1);
+  assert.equal(moved.length, 1, "both profiles claimed the same source");
+  assert.equal(
+    firstResult.moved + secondResult.moved,
+    1,
+    "concurrent adoption copied the source more than once"
+  );
+  const firstScoped = createProfileStorageGateway(base, first.activeId);
+  const secondScoped = createProfileStorageGateway(base, second.activeId);
+  const destinations = await Promise.all([
+    firstScoped.get("aviary.settings.v1", undefined),
+    secondScoped.get("aviary.settings.v1", undefined)
+  ]);
+  assert.equal(destinations.filter((value) => value !== undefined).length, 1);
+  assert.equal(store.has("aviary.settings.v1"), false);
+});
+
+test("a destination race keeps the legacy source and records a conflict", async () => {
+  const { ProfileManager, PROFILE_MIGRATION_JOURNAL_KEY, createProfileStorageGateway } =
+    await importSourceModule("src/platform/profile.ts");
+  const store = new Map([["aviary.settings.v1", { legacy: true }]]);
+  let injected = false;
+  const base = {
+    async get(key, fallback) {
+      return store.has(key) ? structuredClone(store.get(key)) : fallback;
+    },
+    async set(key, value) {
+      store.set(key, structuredClone(value));
+    },
+    async remove(key) {
+      if (key === "aviary.settings.v1" && !injected) {
+        injected = true;
+        store.set("aviary.profile.offline-default.settings.v1", { newer: true });
+      }
+      store.delete(key);
+    }
+  };
+  const manager = new ProfileManager(base);
+  await manager.load();
+
+  const result = await manager.adoptLegacyIntoActive();
+  assert.deepEqual(result, {
+    moved: 0,
+    skipped: 0,
+    completedAfterRetry: 0,
+    conflicted: 1,
+    failed: 0
+  });
+  assert.deepEqual(store.get("aviary.settings.v1"), { legacy: true });
+  assert.deepEqual(
+    await createProfileStorageGateway(base, manager.activeId).get("aviary.settings.v1", null),
+    { newer: true }
+  );
+  assert.equal(
+    store.get(PROFILE_MIGRATION_JOURNAL_KEY).entries["aviary.settings.v1"].phase,
+    "conflicted"
+  );
+});
+
 /**
  * Boot does not wait for a question only the panel asks.
  *

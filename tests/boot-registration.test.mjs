@@ -232,6 +232,22 @@ test("the one path that persists settings normalizes them on the way through", a
   assert.ok(!/"concurrentDownloads":-/.test(stored.written), "a negative concurrency reached storage");
 });
 
+test("a cleared settings store starts from defaults instead of a stale snapshot", async () => {
+  const stored = await page.evaluate(async () => {
+    const context = window.__boot.app.context;
+    context.settings.filter.rules = ["text contains stale"];
+    await context.saveSettings();
+    await context.storage.remove(AviaryBoot.SETTINGS_KEY);
+
+    context.settings.layout.hideRightSidebar = true;
+    await context.saveSettings();
+    return context.storage.get(AviaryBoot.SETTINGS_KEY, undefined);
+  });
+
+  assert.deepEqual(stored.filter.rules, [], "a cleared settings store resurrected stale rules");
+  assert.equal(stored.layout.hideRightSidebar, true, "the current change was not applied after clear");
+});
+
 test("destroy puts the page back and leaves nothing registered as active", async () => {
   const after = await page.evaluate(async () => {
     await window.__boot.app.destroy();

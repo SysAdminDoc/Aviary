@@ -1,6 +1,6 @@
 import type { StorageGateway } from "./storage.ts";
 import type { StorageLockFence } from "./storage-fence.ts";
-import { mutateStored } from "./storage-lock.ts";
+import { mutateStored, withStorageLock } from "./storage-lock.ts";
 import { hashStorageValue } from "./storage-value-hash.ts";
 
 export const PROFILE_REGISTRY_KEY = "aviary.profiles.v1";
@@ -233,6 +233,17 @@ export class ProfileManager {
 
   async adoptLegacyIntoActive(): Promise<LegacyAdoptionResult> {
     await this.load();
+    // Adoption spans a source key, a profile destination, and the journal. One install-wide lock
+    // makes the source claim exclusive across tabs and profiles; per-key locks below still guard
+    // ordinary writers while each value is copied and retired.
+    // The per-key copy below enters the shared restore gate itself. Keep this coordinator on the
+    // named lock only, otherwise Web Locks would deadlock on a re-entrant restore-gate request.
+    return withStorageLock("profile.migration", () => this.#adoptLegacyIntoActive(), {
+      restoreGate: false
+    });
+  }
+
+  async #adoptLegacyIntoActive(): Promise<LegacyAdoptionResult> {
     const scoped = createProfileStorageGateway(this.#base, this.#activeId);
     const journal = await this.#readMigrationJournal();
     const result: LegacyAdoptionResult = {
@@ -341,37 +352,6 @@ export class ProfileManager {
           result.conflicted += 1;
           continue;
         }
-        // Re-read immediately before retiring the source. The atomic ensure above prevents this
-        // tab from overwriting a concurrent destination, and this final check avoids deleting a
-        // source if another writer changed that matching value while the receipt was being saved.
-        const latestDestination = await scoped.get<unknown>(key, undefined);
-        if (latestDestination === undefined) {
-          conflictDetected = true;
-          await save({
-            sourceHash,
-            destinationProfileId: this.#activeId,
-            phase: "conflicted",
-            destinationHash,
-            updatedAt: new Date().toISOString(),
-            error: "The destination disappeared before the source could be retired."
-          });
-          result.conflicted += 1;
-          continue;
-        }
-        destinationHash = await hashStorageValue(latestDestination);
-        if (destinationHash !== sourceHash) {
-          conflictDetected = true;
-          await save({
-            sourceHash,
-            destinationProfileId: this.#activeId,
-            phase: "conflicted",
-            destinationHash,
-            updatedAt: new Date().toISOString(),
-            error: "The destination changed before the source could be retired."
-          });
-          result.conflicted += 1;
-          continue;
-        }
         await save({
           sourceHash,
           destinationProfileId: this.#activeId,
@@ -379,8 +359,60 @@ export class ProfileManager {
           destinationHash,
           updatedAt: new Date().toISOString()
         });
-        await this.#base.remove(key);
-        sourceRemoved = true;
+        // Keep the destination lock while the source is re-checked and retired. Normal profile
+        // writers also use this per-key lock, so they cannot slip between the last verification and
+        // the source delete. The source lock closes the other half of the transaction for a late
+        // unscoped write, and a post-delete read restores the legacy value if a non-cooperating
+        // backend changed the destination in that narrow window.
+        await withStorageLock(key, async (fence) => {
+          // `mutateStored` uses the raw key for its lock even when the gateway maps the value to a
+          // profile-specific destination. Holding that same lock here blocks ordinary destination
+          // writers and unscoped legacy writers for the whole verify-and-retire transaction.
+          const latestDestination = await scoped.get<unknown>(key, undefined);
+          if (latestDestination === undefined) {
+            conflictDetected = true;
+            throw new Error("The destination disappeared before the source could be retired.");
+          }
+          destinationHash = await hashStorageValue(latestDestination);
+          if (destinationHash !== sourceHash) {
+            conflictDetected = true;
+            throw new Error("The destination changed before the source could be retired.");
+          }
+          const latestSource = await this.#base.get<unknown>(key, undefined);
+          if (latestSource === undefined) {
+            conflictDetected = true;
+            throw new Error("The source disappeared before it could be retired.");
+          }
+          const latestSourceHash = await hashStorageValue(latestSource);
+          if (latestSourceHash !== sourceHash) {
+            conflictDetected = true;
+            throw new Error("The source changed before it could be retired.");
+          }
+          await this.#base.remove(key, fence);
+          sourceRemoved = true;
+          const afterRemoval = await scoped.get<unknown>(key, undefined);
+          if (afterRemoval === undefined) {
+            conflictDetected = true;
+            const sourceAfterRemoval = await this.#base.get<unknown>(key, undefined);
+            if (sourceAfterRemoval === undefined) {
+              await this.#base.set(key, legacy, fence);
+            }
+            sourceRemoved = false;
+            throw new Error("The destination disappeared while the source was being retired.");
+          }
+          destinationHash = await hashStorageValue(afterRemoval);
+          if (destinationHash !== sourceHash) {
+            conflictDetected = true;
+            // Do not lose the only legacy copy when a backend ignores the destination lock. A
+            // newer source value wins; otherwise restore the exact value we were retiring.
+            const sourceAfterRemoval = await this.#base.get<unknown>(key, undefined);
+            if (sourceAfterRemoval === undefined) {
+              await this.#base.set(key, legacy, fence);
+            }
+            sourceRemoved = false;
+            throw new Error("The destination changed while the source was being retired.");
+          }
+        });
         if (retry) result.completedAfterRetry += 1;
         else if (destinationWasPresent) result.skipped += 1;
         else result.moved += 1;
@@ -396,7 +428,10 @@ export class ProfileManager {
         // generic failed phase. That receipt is what makes the next run converge without copying
         // again. If the source was already removed, the data move succeeded even if the final
         // journal write was interrupted, so do not report a false failed count.
-        if (!sourceRemoved) result.failed += 1;
+        if (!sourceRemoved) {
+          if (conflictDetected) result.conflicted += 1;
+          else result.failed += 1;
+        }
         if (sourceHash && !sourceRemoved) {
           try {
             await save({

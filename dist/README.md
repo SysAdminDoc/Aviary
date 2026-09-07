@@ -52,7 +52,8 @@ so it catches alternate X image sizes and exact byte matches without keeping a l
 looked at. Batch downloads re-check queued video targets after pacing, so a higher-quality URL
 observed before handoff is the one persisted and requested. If a tab or service worker restarts,
 Resume checks the browser's retained transfer before retrying, so an active or completed file is
-not duplicated.
+not duplicated. Quality fallbacks keep a bounded terminal receipt under the original post id, so a
+fast fallback cannot be mistaken for a failed primary and downloaded again.
 
 That's the whole default surface. Themes, layout cleanup, filters, offscreen video pausing and the
 broader analytics refusal all start off. Outside the download controls, the only thing Aviary adds
@@ -108,8 +109,9 @@ The full reference lives in [docs/FEATURES.md](docs/FEATURES.md). The short vers
 - **Backups.** One versioned envelope covering every profile, not just the one you have open.
   Credentials are excluded unless you explicitly ask for them, and schema 1 and 2 files remain
   readable under their historical checksum rules.
-- **Profile adoption.** Pre-profile stores move only when you choose the active profile. A durable
-  receipt makes an interrupted move safe to retry and leaves different destination values untouched.
+- **Profile adoption.** Pre-profile stores move only when you choose the active profile. An
+  install-wide lock and durable receipt make an interrupted move safe to retry, while a concurrent
+  destination change leaves both values available for review.
 - **Integrations.** Aria2 handoff, Bluesky and Mastodon crossposting, semantic search. Every one is
   off by default and makes zero requests until you enable it and supply your own credentials.
 - **Local AI command menu (off by default).** Enable it in Integrations and each post's action row

@@ -126,7 +126,8 @@ Library search has a **Download media** action. With an empty search it uses eve
 with a query it uses only those local matches, including `account:`, `source:`, date, and
 `has:media` filters. The queue is written before the first file handoff, survives a restart, and
 keeps the browser download id when the extension owns the transfer. A file is counted as saved only
-after the browser reports completion, and it never starts a GraphQL request. It can only save media
+after the browser reports completion, and a quality fallback keeps its terminal result under the
+original post id. It never starts a GraphQL request. It can only save media
 references Aviary has already captured. The Media page can separately download captured audio or
 caption tracks and export JSON or CSV download history for a chosen date range. History exports keep
 hashes and timestamps but omit source media URLs.

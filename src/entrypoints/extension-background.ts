@@ -34,8 +34,11 @@ const contextMenus = globalThis.chrome?.contextMenus;
 const durableStorageBackend = createIndexedDbStorageBackend();
 const storageFenceAuthority = new ExtensionStorageFenceAuthority();
 const DOWNLOAD_TRACKING_KEY = "aviary.downloadTracking.v2";
+const DOWNLOAD_TERMINAL_KEY = "aviary.downloadTerminal.v1";
 /** Bounded: every entry is one explicit user download, and each is cleared at its terminal state. */
 const DOWNLOAD_TRACKING_LIMIT = 64;
+/** Terminal receipts are retained so a fallback can answer for its original report id. */
+const DOWNLOAD_TERMINAL_LIMIT = 64;
 
 /**
  * A download the browser accepted but has not finished.
@@ -55,7 +58,15 @@ interface TrackedDownload {
   fallbackUrls: string[];
 }
 
+interface TerminalDownloadReceipt {
+  reportId: number;
+  state: "complete" | "interrupted";
+  error?: string;
+  updatedAt: number;
+}
+
 const trackedDownloads = new Map<number, TrackedDownload>();
+const terminalReceipts = new Map<number, TerminalDownloadReceipt>();
 /** Terminal events can beat the async tracking write by one event-loop turn. */
 const terminalBeforeTracking = new Map<number, { state: "complete" | "interrupted"; error?: string }>();
 /** Prevent duplicate onChanged/search reports after a worker has already finalized an id. */
@@ -338,7 +349,12 @@ async function handleDownload(
       });
       // A very fast transfer can reach a terminal state before the handoff response leaves this
       // worker. Reconcile after the durable tracking record exists so that event is not lost.
-      await queryDownload(id);
+      try {
+        await queryDownload(id);
+      } catch {
+        // The handoff is still tracked. A later onChanged event or query can settle it; a transient
+        // search failure must not make this path launch another copy from the next candidate.
+      }
       // `pending` is the whole point: the browser has taken the request, and nothing yet knows
       // whether the bytes arrive. The tab waits for AVIARY_DOWNLOAD_STATE before saying Saved.
       return { ok: true, id, pending: true };
@@ -380,12 +396,22 @@ async function retryDownloadFallback(downloadId: number, error?: string): Promis
           fallbackUrls: pending.fallbackUrls.slice(index + 1),
           filename: pending.filename
         });
+        // The fallback can finish before the original query returns. Reconcile its retained
+        // browser record now so the original report id gets a terminal receipt before Resume can
+        // mistake the interrupted primary for a fresh download.
+        try {
+          await queryDownload(id);
+        } catch {
+          // Keep the tracked fallback alive. A transient search failure must not advance to a
+          // second fallback while this browser request may still be in progress.
+        }
         return;
       } catch {
         // Try the next bounded candidate. The original candidate order is quality order.
       }
     }
   }
+  await recordTerminalReceipt(downloadId, pending, "interrupted", error);
   await reportDownloadState(pending, "interrupted", error);
 }
 
@@ -396,6 +422,7 @@ async function finishDownload(downloadId: number, state: "complete"): Promise<vo
     rememberTerminalBeforeTracking(downloadId, state);
     return;
   }
+  await recordTerminalReceipt(downloadId, tracked, state);
   await clearTrackedDownload(downloadId);
   await reportDownloadState(tracked, state);
 }
@@ -449,6 +476,15 @@ function rememberTerminalBeforeTracking(
 
 /** Reads Chrome/Firefox's retained record without relying on the worker's memory. */
 async function queryDownload(downloadId: number): Promise<DownloadQueryResponse> {
+  const retainedReceipt = await readTerminalReceipt(downloadId);
+  if (retainedReceipt) {
+    return {
+      ok: true,
+      id: downloadId,
+      state: retainedReceipt.state,
+      ...(retainedReceipt.error ? { error: retainedReceipt.error } : {})
+    };
+  }
   const downloads = globalThis.chrome?.downloads;
   if (!downloads?.search) {
     // Both Chrome and Firefox expose downloads.search. A lightweight test double or an older
@@ -468,6 +504,15 @@ async function queryDownload(downloadId: number): Promise<DownloadQueryResponse>
   }
   if (record.state === "interrupted") {
     await reconcileDownload(downloadId, "interrupted", record.error);
+    const terminal = await readTerminalReceipt(downloadId);
+    if (terminal) {
+      return {
+        ok: true,
+        id: downloadId,
+        state: terminal.state,
+        ...(terminal.error ? { error: terminal.error } : {})
+      };
+    }
     // The background fallback keeps reporting the original id. Once it has started, the retained
     // queue entry must keep waiting on that id instead of launching a duplicate primary request.
     if (await hasTrackedReport(downloadId)) {
@@ -525,6 +570,112 @@ async function reportDownloadState(
   } catch {
     // No receiver in that tab any more.
   }
+}
+
+/**
+ * Keeps the logical report id replayable when a fallback browser id finishes and is then cleared.
+ * The browser retains each physical record, but the queue only knows the original id it handed to
+ * the page. A bounded receipt bridges that identity across worker suspension and fallback hops.
+ */
+async function recordTerminalReceipt(
+  downloadId: number,
+  tracked: TrackedDownload,
+  state: "complete" | "interrupted",
+  error?: string
+): Promise<void> {
+  // A direct download's browser record is already queryable by its own id. Receipts are for the
+  // logical report id that survives a fallback hop; retaining direct ids would turn a later
+  // missing browser record into a false terminal result.
+  if (downloadId === tracked.reportId) return;
+  const receipt: TerminalDownloadReceipt = {
+    reportId: tracked.reportId,
+    state,
+    updatedAt: Date.now(),
+    ...(error ? { error: error.slice(0, 240) } : {})
+  };
+  terminalReceipts.set(tracked.reportId, receipt);
+  trimTerminalReceipts();
+  const storage = globalThis.chrome?.storage?.local;
+  if (!storage) return;
+  await enqueueTrackingMutation(async () => {
+    try {
+      const stored = await readStoredTerminalReceipts();
+      stored[String(receipt.reportId)] = receipt;
+      await storage.set({ [DOWNLOAD_TERMINAL_KEY]: capTerminalReceipts(stored) });
+    } catch {
+      // The in-memory receipt still covers this worker lifetime. The browser record remains the
+      // fallback authority if this write fails before suspension.
+    }
+  });
+}
+
+function trimTerminalReceipts(): void {
+  while (terminalReceipts.size > DOWNLOAD_TERMINAL_LIMIT) {
+    const oldest = terminalReceipts.keys().next().value;
+    if (oldest === undefined) break;
+    terminalReceipts.delete(oldest);
+  }
+}
+
+async function readTerminalReceipt(reportId: number): Promise<TerminalDownloadReceipt | undefined> {
+  const local = terminalReceipts.get(reportId);
+  if (local) return local;
+  const storage = globalThis.chrome?.storage?.local;
+  if (!storage) return undefined;
+  try {
+    const stored = await readStoredTerminalReceipts();
+    const receipt = stored[String(reportId)];
+    if (receipt) {
+      terminalReceipts.set(reportId, receipt);
+      trimTerminalReceipts();
+    }
+    return receipt;
+  } catch {
+    return undefined;
+  }
+}
+
+async function readStoredTerminalReceipts(): Promise<Record<string, TerminalDownloadReceipt>> {
+  const stored = await globalThis.chrome?.storage?.local?.get(DOWNLOAD_TERMINAL_KEY);
+  const raw = stored?.[DOWNLOAD_TERMINAL_KEY];
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return {};
+  const valid: Record<string, TerminalDownloadReceipt> = {};
+  for (const [id, value] of Object.entries(raw)) {
+    const candidate = value as Partial<TerminalDownloadReceipt>;
+    if (
+      /^\d+$/.test(id) &&
+      typeof candidate.reportId === "number" &&
+      Number.isSafeInteger(candidate.reportId) &&
+      candidate.reportId >= 0 &&
+      (candidate.state === "complete" || candidate.state === "interrupted") &&
+      typeof candidate.updatedAt === "number" &&
+      Number.isFinite(candidate.updatedAt)
+    ) {
+      valid[id] = {
+        reportId: candidate.reportId,
+        state: candidate.state,
+        updatedAt: candidate.updatedAt,
+        ...(typeof candidate.error === "string" && candidate.error.length > 0
+          ? { error: candidate.error.slice(0, 240) }
+          : {})
+      };
+    }
+  }
+  return capTerminalReceipts(valid);
+}
+
+function capTerminalReceipts(
+  stored: Record<string, TerminalDownloadReceipt>
+): Record<string, TerminalDownloadReceipt> {
+  const ids = Object.keys(stored).sort((left, right) => {
+    return stored[left]!.updatedAt - stored[right]!.updatedAt || Number(left) - Number(right);
+  });
+  if (ids.length <= DOWNLOAD_TERMINAL_LIMIT) return stored;
+  const kept: Record<string, TerminalDownloadReceipt> = {};
+  for (const id of ids.slice(ids.length - DOWNLOAD_TERMINAL_LIMIT)) {
+    kept[id] = stored[id]!;
+  }
+  return kept;
 }
 
 function tabIdOf(sender: unknown): number | null {

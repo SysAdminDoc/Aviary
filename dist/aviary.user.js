@@ -29897,6 +29897,11 @@ ${COLOR_CSS}`;
     }
     async adoptLegacyIntoActive() {
       await this.load();
+      return withStorageLock("profile.migration", () => this.#adoptLegacyIntoActive(), {
+        restoreGate: false
+      });
+    }
+    async #adoptLegacyIntoActive() {
       const scoped = createProfileStorageGateway(this.#base, this.#activeId);
       const journal = await this.#readMigrationJournal();
       const result = {
@@ -29994,34 +29999,6 @@ ${COLOR_CSS}`;
             result.conflicted += 1;
             continue;
           }
-          const latestDestination = await scoped.get(key, void 0);
-          if (latestDestination === void 0) {
-            conflictDetected = true;
-            await save({
-              sourceHash,
-              destinationProfileId: this.#activeId,
-              phase: "conflicted",
-              destinationHash,
-              updatedAt: (/* @__PURE__ */ new Date()).toISOString(),
-              error: "The destination disappeared before the source could be retired."
-            });
-            result.conflicted += 1;
-            continue;
-          }
-          destinationHash = await hashStorageValue(latestDestination);
-          if (destinationHash !== sourceHash) {
-            conflictDetected = true;
-            await save({
-              sourceHash,
-              destinationProfileId: this.#activeId,
-              phase: "conflicted",
-              destinationHash,
-              updatedAt: (/* @__PURE__ */ new Date()).toISOString(),
-              error: "The destination changed before the source could be retired."
-            });
-            result.conflicted += 1;
-            continue;
-          }
           await save({
             sourceHash,
             destinationProfileId: this.#activeId,
@@ -30029,8 +30006,50 @@ ${COLOR_CSS}`;
             destinationHash,
             updatedAt: (/* @__PURE__ */ new Date()).toISOString()
           });
-          await this.#base.remove(key);
-          sourceRemoved = true;
+          await withStorageLock(key, async (fence) => {
+            const latestDestination = await scoped.get(key, void 0);
+            if (latestDestination === void 0) {
+              conflictDetected = true;
+              throw new Error("The destination disappeared before the source could be retired.");
+            }
+            destinationHash = await hashStorageValue(latestDestination);
+            if (destinationHash !== sourceHash) {
+              conflictDetected = true;
+              throw new Error("The destination changed before the source could be retired.");
+            }
+            const latestSource = await this.#base.get(key, void 0);
+            if (latestSource === void 0) {
+              conflictDetected = true;
+              throw new Error("The source disappeared before it could be retired.");
+            }
+            const latestSourceHash = await hashStorageValue(latestSource);
+            if (latestSourceHash !== sourceHash) {
+              conflictDetected = true;
+              throw new Error("The source changed before it could be retired.");
+            }
+            await this.#base.remove(key, fence);
+            sourceRemoved = true;
+            const afterRemoval = await scoped.get(key, void 0);
+            if (afterRemoval === void 0) {
+              conflictDetected = true;
+              const sourceAfterRemoval = await this.#base.get(key, void 0);
+              if (sourceAfterRemoval === void 0) {
+                await this.#base.set(key, legacy, fence);
+              }
+              sourceRemoved = false;
+              throw new Error("The destination disappeared while the source was being retired.");
+            }
+            destinationHash = await hashStorageValue(afterRemoval);
+            if (destinationHash !== sourceHash) {
+              conflictDetected = true;
+              const sourceAfterRemoval = await this.#base.get(key, void 0);
+              if (sourceAfterRemoval === void 0) {
+                await this.#base.set(key, legacy, fence);
+              }
+              sourceRemoved = false;
+              throw new Error("The destination changed while the source was being retired.");
+            }
+          });
           if (retry) result.completedAfterRetry += 1;
           else if (destinationWasPresent) result.skipped += 1;
           else result.moved += 1;
@@ -30042,7 +30061,10 @@ ${COLOR_CSS}`;
             updatedAt: (/* @__PURE__ */ new Date()).toISOString()
           });
         } catch (error) {
-          if (!sourceRemoved) result.failed += 1;
+          if (!sourceRemoved) {
+            if (conflictDetected) result.conflicted += 1;
+            else result.failed += 1;
+          }
           if (sourceHash && !sourceRemoved) {
             try {
               await save({

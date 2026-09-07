@@ -69,14 +69,16 @@ because there is no standard userscript signal for a private window.
 
 When an older install still has unassigned stores, the Control Center offers an explicit adoption
 action. Each store gets a durable SHA-256 receipt with its source hash, destination profile, and
-phase. A restart can finish a source deletion only after verifying the same destination value;
-different values remain in place and are reported as conflicts. The action reports moved,
-retry-completed, skipped, conflicted, and failed counts separately.
+phase. An install-wide migration lock and a per-key verify-and-retire lock keep two profiles from
+claiming the same source. A restart can finish a source deletion only after verifying the same
+destination value; different values remain in place and are reported as conflicts. The action
+reports moved, retry-completed, skipped, conflicted, and failed counts separately.
 
 Browser media handoffs keep their terminal state replayable to the post control and queue. A fast
 completion is reconciled before the handoff response returns, and queue Resume asks the extension
 background about retained browser ids before retrying, so active or completed files are not
-duplicated after a reload.
+duplicated after a reload. A quality fallback also retains a bounded terminal receipt under the
+original report id, so a fast fallback completion cannot trigger a duplicate primary download.
 
 AI and embedding calls are opt-in and show the destination, fields, estimated size, retention
 notice, network status, and budget before provider work begins. Per-request and daily UTF-8 byte
