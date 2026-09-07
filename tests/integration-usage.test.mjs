@@ -111,6 +111,73 @@ test("AI provider stops before fetch when a configured budget is exceeded", asyn
   }
 });
 
+test("OpenAI-compatible providers negotiate the completion limit and remember it per endpoint", async () => {
+  const { IntegrationUsageLedger } = await importSourceModule("src/features/integrations/usage.ts");
+  const { runAiPrompt } = await importSourceModule("src/features/integrations/ai-provider.ts");
+  const store = new Map();
+  const ledger = new IntegrationUsageLedger(storageFrom(store));
+  const originalFetch = globalThis.fetch;
+  const bodies = [];
+  let calls = 0;
+  globalThis.fetch = async (_url, init) => {
+    calls += 1;
+    bodies.push(JSON.parse(init.body));
+    if (calls === 1) {
+      return new Response(JSON.stringify({ error: { message: "unsupported parameter: max_completion_tokens" } }), { status: 400 });
+    }
+    return new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] }), { status: 200 });
+  };
+  try {
+    const config = {
+      enabled: true,
+      provider: "openai-compatible",
+      endpoint: "https://negotiation.test/v1/chat/completions",
+      apiKey: "secret",
+      model: "reasoning-model",
+      maxRequestBytes: 1000,
+      dailyRequestBytes: 1000
+    };
+    const first = await runAiPrompt(config, { prompt: "short" }, { usage: ledger });
+    assert.equal(first.ok, true);
+    assert.equal(calls, 2);
+    assert.equal("max_completion_tokens" in bodies[0], true);
+    assert.equal("max_tokens" in bodies[0], false);
+    assert.equal(bodies[1].max_tokens, 1024);
+    assert.equal(ledger.snapshot().ai.requests, 1);
+
+    const remembered = await runAiPrompt(config, { prompt: "again" });
+    assert.equal(remembered.ok, true);
+    assert.equal(calls, 3);
+    assert.equal("max_tokens" in bodies[2], true);
+    assert.equal("max_completion_tokens" in bodies[2], false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("an unsupported completion-limit pair reports the provider reason", async () => {
+  const { runAiPrompt } = await importSourceModule("src/features/integrations/ai-provider.ts");
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    const parameter = calls === 1 ? "max_completion_tokens" : "max_tokens";
+    return new Response(JSON.stringify({ error: { message: `unsupported parameter: ${parameter}` } }), { status: 400 });
+  };
+  try {
+    const result = await runAiPrompt(
+      { enabled: true, provider: "openai-compatible", endpoint: "https://neither.test/v1/chat/completions", apiKey: "secret", model: "local" },
+      { prompt: "short" }
+    );
+    assert.equal(result.ok, false);
+    assert.match(result.error, /neither max_completion_tokens nor max_tokens is supported/);
+    assert.match(result.error, /unsupported parameter: max_tokens/);
+    assert.equal(calls, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("semantic auto-index stops at the record budget and does not send later records", async () => {
   const { IntegrationUsageLedger } = await importSourceModule("src/features/integrations/usage.ts");
   const { SemanticIndex } = await importSourceModule("src/features/integrations/semantic-search.ts");

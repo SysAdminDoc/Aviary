@@ -35,6 +35,9 @@
   than blocking Aviary startup or deleting them.
 
 ### Fixed
+- OpenAI-compatible AI requests now negotiate `max_completion_tokens` and `max_tokens` once per
+  endpoint, retry a supported parameter without double-charging the local usage budget, and show
+  a bounded provider reason when neither parameter is accepted.
 - Historical local releases now use the strongest verification script available at the target commit
   instead of assuming newer `verify:release` exists. Their phase state is read before rebuilding, so a
   network retry reuses verified artifacts and resumes tagging or upload without repacking.

@@ -62,14 +62,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P2, Later
 
-- [ ] F304, P2: Send the completion-limit parameter current OpenAI models accept
-  Why: the OpenAI-compatible path always sends `max_tokens`, which reasoning models reject with `unsupported_parameter`. The user sees `Provider HTTP 400` with no explanation, on a correctly configured account.
-  Evidence: `src/features/integrations/ai-provider.ts:114-120`, `:133-135` (the bare HTTP status message); https://developers.openai.com/api/reference/python/resources/chat/subresources/completions/methods/create; https://github.com/simonw/llm/issues/724
-  Touches: `src/features/integrations/ai-provider.ts`, `src/features/integrations/usage.ts` (request-size estimate), `src/ui/control-center/sections/advanced.ts` provider copy, `tests/integration-usage.test.mjs`, a new provider-compatibility test
-  Acceptance: a 400 naming an unsupported completion-limit parameter is retried once with the other parameter name and the working choice is remembered per configured endpoint, or the request sends `max_completion_tokens` first and falls back, whichever the fixture matrix shows costs fewer round trips; a provider error body that names a parameter or a model is surfaced to the user as a stated reason instead of a bare status, without persisting the provider text under the redacted diagnostic schema; the usage ledger charges one reservation for a retried pair, not two; fixtures cover a legacy chat model, a reasoning model, and a self-hosted OpenAI-compatible endpoint that accepts neither name.
-  Complexity: S
-  Depends: None. Uses the shipped redacted diagnostic schema for provider failures.
-
 - [ ] F305, P2: Fail preflight on a source export nothing references
   Why: the repository exports deliberately for testability, so an exported declaration does not prove that production, tests, or tools use it; a reference gate can detect abandoned entry points without relying on compiler visibility.
   Evidence: dead across `src/`, `tests/`, and `tools/`: `crossTabLocksAvailable` (`src/platform/storage-lock.ts:77`), `extractVideos` (`src/features/media/video-extract.ts`), `collectProfileAbout` (`src/features/export/collector.ts`), `buildEmbeddingDisclosure` (`src/features/integrations/usage.ts`), `extensionFor` (`src/features/media/urls.ts`), `defaultSnapshotForPreset` (`src/features/core/presets.ts`), `videoPlaybackBound` (`src/features/performance/video-playback.ts`), `AVIARY_FAVICON_URL` (`src/features/appearance/favicon.ts`), `TITLE_BADGE_PATTERN` (`src/features/appearance/title-badge.ts`)

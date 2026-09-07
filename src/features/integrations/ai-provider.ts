@@ -24,6 +24,37 @@ export interface AiProviderOptions {
   usage?: IntegrationUsageLedger;
 }
 
+type CompletionLimitParameter = "max_completion_tokens" | "max_tokens";
+
+// Keep the negotiated choice in memory only. The endpoint is user configuration, and persisting
+// provider capability responses would make the redacted diagnostics boundary much harder to audit.
+const completionLimitByEndpoint = new Map<string, CompletionLimitParameter>();
+
+function completionEndpointKey(endpoint: string): string {
+  return endpoint.trim().replace(/\/$/, "").toLowerCase();
+}
+
+function providerErrorMessage(body: string): string | undefined {
+  const trimmed = body.trim().slice(0, 4096);
+  if (!trimmed) return undefined;
+  try {
+    const parsed = JSON.parse(trimmed) as { error?: { message?: unknown } | string; message?: unknown };
+    const value = typeof parsed.error === "string"
+      ? parsed.error
+      : parsed.error && typeof parsed.error === "object"
+        ? parsed.error.message
+        : parsed.message;
+    return typeof value === "string" && value.trim() ? value.trim() : undefined;
+  } catch {
+    return trimmed.replace(/\s+/g, " ");
+  }
+}
+
+function namesUnsupportedCompletionLimit(message: string | undefined): boolean {
+  if (!message) return false;
+  return /(?:unsupported|unknown|unrecognized|invalid|not\s+permitted)[^\n]{0,100}(?:max_completion_tokens|max_tokens)|(?:max_completion_tokens|max_tokens)[^\n]{0,100}(?:unsupported|unknown|unrecognized|invalid|not\s+permitted)/i.test(message);
+}
+
 export async function runAiPrompt(
   config: IntegrationSettings["ai"],
   request: AiProviderRequest,
@@ -108,31 +139,53 @@ async function callOpenAiCompatible(
     "content-type": "application/json",
     authorization: `Bearer ${config.apiKey}`
   };
-  const result = await withNetworkTimeout(async (signal) => {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        model: config.model,
-        max_tokens: request.maxTokens ?? 1024,
-        messages: [
-          ...(request.systemPrompt ? [{ role: "system", content: request.systemPrompt }] : []),
-          { role: "user", content: request.prompt }
-        ]
-      }),
-      signal
-    });
-    if (!response.ok) return { status: response.status } as const;
-    return {
-      payload: (await response.json()) as {
-        choices?: Array<{ message?: { content?: string } }>;
-        error?: { message?: string };
+  const key = completionEndpointKey(endpoint);
+  const remembered = completionLimitByEndpoint.get(key);
+  const first: CompletionLimitParameter = remembered ?? "max_completion_tokens";
+  const second: CompletionLimitParameter = first === "max_completion_tokens" ? "max_tokens" : "max_completion_tokens";
+
+  async function send(limitParameter: CompletionLimitParameter) {
+    return withNetworkTimeout(async (signal) => {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: config.model,
+          [limitParameter]: request.maxTokens ?? 1024,
+          messages: [
+            ...(request.systemPrompt ? [{ role: "system", content: request.systemPrompt }] : []),
+            { role: "user", content: request.prompt }
+          ]
+        }),
+        signal
+      });
+      if (!response.ok) {
+        return { status: response.status, message: providerErrorMessage(await response.text()) } as const;
       }
-    } as const;
-  }, NETWORK_TIMEOUTS.ai);
-  if ("status" in result) {
-    return { ok: false, error: `Provider HTTP ${result.status}` };
+      return {
+        payload: (await response.json()) as {
+          choices?: Array<{ message?: { content?: string } }>;
+          error?: { message?: string };
+        },
+        limitParameter
+      } as const;
+    }, NETWORK_TIMEOUTS.ai);
   }
+
+  let result = await send(first);
+  if ("status" in result && result.status === 400 && namesUnsupportedCompletionLimit(result.message)) {
+    result = await send(second);
+    if ("status" in result && result.status === 400 && namesUnsupportedCompletionLimit(result.message)) {
+      return {
+        ok: false,
+        error: `Provider HTTP 400: neither ${first} nor ${second} is supported${result.message ? ` (${result.message})` : ""}`
+      };
+    }
+  }
+  if ("status" in result) {
+    return { ok: false, error: `Provider HTTP ${result.status}${result.message ? `: ${result.message}` : ""}` };
+  }
+  completionLimitByEndpoint.set(key, result.limitParameter);
   const payload = result.payload;
   if (payload?.error) return { ok: false, error: payload.error.message ?? "Provider error" };
   const text = payload?.choices?.[0]?.message?.content ?? "";
