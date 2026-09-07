@@ -19,11 +19,15 @@ import { mediaIdentityHash, type MediaFingerprint } from "../export/assets.ts";
 import { extractTweet, mediaIdentity, type ExtractedMedia, type ExtractedTweet } from "./extract.ts";
 import { MediaMetadataCache, type CapturedMediaMetadata } from "./media-metadata.ts";
 import { sharedDownloadWatcher } from "./download-watch.ts";
-import { isSaveableVariantUrl, VIDEO_CONTAINER_SELECTOR } from "./video-extract.ts";
+import {
+  compareVariantQuality,
+  isSaveableVariantUrl,
+  VIDEO_CONTAINER_SELECTOR,
+  type VideoVariant
+} from "./video-extract.ts";
 import {
   bestObservedAdaptive,
   buildYtDlpCommand,
-  compareVariantQuality,
   handoffToYtDlp,
   readYtDlpJob,
   shouldOfferAdaptiveHelper,
@@ -38,6 +42,7 @@ import { renderFilename } from "./template.ts";
 import { mediaSidecarRequest, saveMediaSidecar } from "./sidecar.ts";
 import {
   normalizeDownloadQuality,
+  type DownloadQualityLabel,
   type DownloadQualityReceipt
 } from "../../extension/download-state.ts";
 
@@ -1653,9 +1658,12 @@ function resolveTarget(media: ExtractedMedia): ResolvedTarget | null {
       .sort((left, right) => compareVariantQuality(right, left))[0] ?? null;
     const adaptive = bestObservedAdaptive(media.video.variants);
     if (!direct && adaptive) {
+      // Not "best-direct": there is no direct file here, and what the optional helper produces is
+      // a container this machine wrote from the adaptive streams. Labelling it as a direct save
+      // would put a remux into history under the same name as the file X served.
       return {
         url: adaptive.manifestUrl,
-        quality: qualityForVariant(adaptive.variant, "best-direct"),
+        quality: qualityForVariant(adaptive.variant, "adaptive-remux"),
         mediaId: mediaIdFromVideo(adaptive.manifestUrl),
         ext: "mp4",
         helperOnly: true,
@@ -1708,21 +1716,26 @@ function resolveTarget(media: ExtractedMedia): ResolvedTarget | null {
 }
 
 function qualityForVariant(
-  variant: { width: number | null; height: number | null; bitrate: number | null; type: string },
-  label: "best-direct" | "fallback" | "original" | "quality-unknown"
+  variant: Pick<VideoVariant, "width" | "height" | "bitrate" | "codec" | "codecSource" | "playbackObserved"> & {
+    type: string;
+  },
+  label: DownloadQualityLabel
 ): DownloadQualityReceipt {
   return normalizeDownloadQuality({
     label,
     width: variant.width,
     height: variant.height,
     bitrate: variant.bitrate,
-    mime: variant.type
+    mime: variant.type,
+    codec: variant.codec ?? null,
+    codecSource: variant.codecSource ?? null,
+    playbackProven: variant.playbackObserved === true
   });
 }
 
 function qualityForMime(
   mime: string,
-  label: "best-direct" | "fallback" | "original" | "quality-unknown"
+  label: DownloadQualityLabel
 ): DownloadQualityReceipt {
   return normalizeDownloadQuality({ label, mime });
 }

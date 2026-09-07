@@ -202,6 +202,12 @@
   export from a redacted backup.
 
 ### Changed
+- Video quality, codec evidence and proven playback are now three separate records. The rendition
+  ranking reads resolution first and treats a missing bitrate as missing rather than zero, so a
+  1080p file no longer loses to a 480p one that happened to declare a bitrate. A codec name is
+  stored with the source that declared it and never influences which file is chosen, and the
+  optional yt-dlp handoff is recorded as `adaptive-remux` rather than as the file X served, which
+  stays available. Media history entries written before this carry no codec claim.
 - Selector evidence is now a recorded schema instead of two saved pages. `_decoded/dom-schema.json`
   holds the test ids, roles, aria attributes, nesting, counts and column geometry Aviary depends on,
   with the date they were observed, and the Home and conversation fixtures are generated from it on

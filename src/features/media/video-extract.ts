@@ -1,3 +1,14 @@
+/**
+ * Where a codec string came from, kept beside the codec itself.
+ *
+ * A codec name is evidence about a stream, not a measurement of quality and not proof that the
+ * file plays. X has shipped a declared AVC stream inside a container the browser then refused, and
+ * it omits the field entirely on plenty of renditions that play fine. Recording the source keeps
+ * "X told us" apart from "we read it off a source element", so neither can be mistaken for the
+ * other or for playback.
+ */
+export type CodecEvidenceSource = "graphql-variant" | "source-element";
+
 export interface VideoVariant {
   url: string;
   type: string;
@@ -6,6 +17,13 @@ export interface VideoVariant {
   bitrate: number | null;
   /** Optional rendition evidence carried by X when it is available. */
   codec?: string | null;
+  /** Where `codec` was read. Absent whenever `codec` is absent. */
+  codecSource?: CodecEvidenceSource | null;
+  /**
+   * The browser rendered frames from this exact URL on this page. Separate from any codec claim:
+   * a stream can be named and unplayable, or unnamed and playing right now.
+   */
+  playbackObserved?: boolean;
   /** Sources may be combined when the same signed URL is observed more than once. */
   provenance?: string | null;
 }
@@ -72,6 +90,12 @@ export function extractVideo(
 
   if (video.currentSrc) {
     pushVariant(variants, seen, video.currentSrc, video.dataset.contentType ?? "video/mp4");
+    // `HAVE_CURRENT_DATA` means the element decoded a frame from this exact URL. It is the only
+    // playback fact available without downloading anything, and it belongs nowhere near the codec
+    // fields: it says the browser managed it, not what the stream claims to be.
+    if (typeof video.readyState === "number" && video.readyState >= 2) {
+      markPlaybackObserved(variants, video.currentSrc);
+    }
   }
   if (video.src) {
     pushVariant(variants, seen, video.src, "video/mp4");
@@ -84,7 +108,10 @@ export function extractVideo(
       source.type || "video/mp4",
       source.dataset.width,
       source.dataset.height,
-      source.dataset.bitrate
+      source.dataset.bitrate,
+      source.dataset.codec,
+      undefined,
+      source.dataset.codec ? "source-element" : undefined
     );
   }
 
@@ -174,8 +201,15 @@ function pushVariantObject(
     variant.height === null ? undefined : String(variant.height),
     variant.bitrate === null ? undefined : String(variant.bitrate),
     variant.codec ?? undefined,
-    variant.provenance ?? undefined
+    variant.provenance ?? undefined,
+    variant.codecSource ?? (variant.codec ? "graphql-variant" : undefined)
   );
+}
+
+/** Records that one exact URL was seen decoding, without touching any other variant. */
+function markPlaybackObserved(variants: VideoVariant[], url: string): void {
+  const index = variants.findIndex((variant) => variant.url === url);
+  if (index >= 0) variants[index] = { ...variants[index]!, playbackObserved: true };
 }
 
 function pushVariant(
@@ -187,7 +221,8 @@ function pushVariant(
   height?: string,
   bitrate?: string,
   codec?: string,
-  provenance?: string
+  provenance?: string,
+  codecSource?: CodecEvidenceSource
 ): void {
   if (!src) {
     return;
@@ -199,7 +234,12 @@ function pushVariant(
     height: parsePositiveInt(height),
     bitrate: parsePositiveInt(bitrate)
   };
-  if (codec?.trim()) candidate.codec = codec.trim();
+  if (codec?.trim()) {
+    candidate.codec = codec.trim();
+    // The name and where it came from travel together, so a later reader cannot treat an
+    // unattributed string as an observation.
+    if (codecSource) candidate.codecSource = codecSource;
+  }
   if (provenance?.trim()) candidate.provenance = provenance.trim();
 
   const existingIndex = variants.findIndex((variant) => variant.url === src);
@@ -230,6 +270,11 @@ export function mergeVideoVariant(left: VideoVariant, right: VideoVariant): Vide
   };
   if ("codec" in left || "codec" in right) {
     merged.codec = chooseKnownText(left.codec, right.codec);
+    const source = merged.codec === left.codec ? left.codecSource : right.codecSource;
+    merged.codecSource = merged.codec ? source ?? null : null;
+  }
+  if (left.playbackObserved || right.playbackObserved) {
+    merged.playbackObserved = true;
   }
   if ("provenance" in left || "provenance" in right) {
     merged.provenance = mergeProvenance(left.provenance, right.provenance);
@@ -268,6 +313,41 @@ export function isSaveableVariantUrl(url: string, type = ""): boolean {
   return !/(?:mpegurl|dash\+xml)/i.test(type);
 }
 
+/**
+ * Positive means `left` is the richer rendition.
+ *
+ * Resolution decides first, and a missing number is missing rather than zero. The old order asked
+ * for bitrate first and read an absent bitrate as `0`, so a 1080p rendition that happened to carry
+ * no bitrate lost to a 480p one that did -- a smaller picture chosen because of an absence. X's
+ * reported bitrate has also been wrong often enough that it is a tie-break between two renditions
+ * that both declared one, never a reason to take fewer pixels.
+ *
+ * Codec is deliberately absent from this comparison. A name is evidence about a stream, not a
+ * measure of it, and demoting an unnamed higher-resolution rendition for a named smaller one is
+ * the same mistake in a different field.
+ */
+export function compareVariantQuality(
+  left: Pick<VideoVariant, "width" | "height" | "bitrate">,
+  right: Pick<VideoVariant, "width" | "height" | "bitrate">
+): number {
+  const height = compareKnown(left.height, right.height);
+  if (height !== 0) return height;
+  const width = compareKnown(left.width, right.width);
+  if (width !== 0) return width;
+  if (left.bitrate !== null && right.bitrate !== null) {
+    return left.bitrate - right.bitrate;
+  }
+  return 0;
+}
+
+/** Known beats unknown; two known values compare normally; two unknowns are a tie. */
+function compareKnown(left: number | null, right: number | null): number {
+  if (left === right) return 0;
+  if (left === null) return -1;
+  if (right === null) return 1;
+  return left - right;
+}
+
 export function pickPreferred(variants: VideoVariant[]): VideoVariant {
   const sorted = [...variants].sort((a, b) => {
     const saveableDiff =
@@ -280,14 +360,11 @@ export function pickPreferred(variants: VideoVariant[]): VideoVariant {
     if (mp4Diff !== 0) {
       return mp4Diff;
     }
-    const bitrateDiff = (b.bitrate ?? 0) - (a.bitrate ?? 0);
-    if (bitrateDiff !== 0) {
-      return bitrateDiff;
+    const qualityDiff = compareVariantQuality(b, a);
+    if (qualityDiff !== 0) {
+      return qualityDiff;
     }
-    const aPixels = (a.width ?? 0) * (a.height ?? 0);
-    const bPixels = (b.width ?? 0) * (b.height ?? 0);
-    const pixelDiff = bPixels - aPixels;
-    return pixelDiff !== 0 ? pixelDiff : compareStable(a.url, b.url);
+    return compareStable(a.url, b.url);
   });
   return sorted[0] ?? variants[0]!;
 }

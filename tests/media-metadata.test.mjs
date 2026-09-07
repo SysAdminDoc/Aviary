@@ -198,6 +198,8 @@ test("repeated GraphQL URLs merge richer dimensions and bitrate before a blob pl
   assert.deepEqual(result.variants.find((variant) => variant.url.includes("shared.mp4")), {
     url: "https://video.twimg.com/ext_tw_video/333/shared.mp4?token=signed",
     type: "video/mp4",
+    // The codec X declared, and the fact that X is what declared it.
+    codecSource: "graphql-variant",
     width: 1920,
     height: 1080,
     bitrate: 8000000,

@@ -313,6 +313,9 @@ function readVariants(value: unknown): VideoVariant[] {
     };
     if (typeof entry.codec === "string" && entry.codec.trim()) {
       candidate.codec = entry.codec.trim();
+      // X declared it, which is a different thing from having read it off a source element and a
+      // very different thing from having played it.
+      candidate.codecSource = "graphql-variant";
     }
     if (typeof entry.provenance === "string" && entry.provenance.trim()) {
       candidate.provenance = entry.provenance.trim();
@@ -483,6 +486,7 @@ function videoVariantEqual(left: VideoVariant, right: VideoVariant): boolean {
     left.height === right.height &&
     left.bitrate === right.bitrate &&
     left.codec === right.codec &&
+    left.codecSource === right.codecSource &&
     left.provenance === right.provenance
   );
 }

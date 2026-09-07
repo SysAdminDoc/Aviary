@@ -160,7 +160,7 @@ test("MediaHistory matches exact bytes, X identities, and opt-in visual similari
   assert.deepEqual(snapshot.matches, { identity: 1, exact: 1, perceptual: 1 });
   assert.equal(snapshot.lastMatch.kind, "perceptual");
   const stored = store.get(MEDIA_HISTORY_KEY);
-  assert.equal(stored.schemaVersion, 4);
+  assert.equal(stored.schemaVersion, 5);
   assert.deepEqual(stored.reservations, []);
   assert.ok(stored.entries.every((entry) => !Object.hasOwn(entry, "key")));
   assert.ok(stored.entries.every((entry) => !JSON.stringify(entry).includes("twimg.com")));
@@ -200,9 +200,13 @@ test("MediaHistory records quality receipts, upgrades fallback saves, and migrat
     width: null,
     height: null,
     bitrate: null,
-    mime: null
+    mime: null,
+    // A record written before codec evidence existed carries none, and claims no playback.
+    codec: null,
+    codecSource: null,
+    playbackProven: false
   });
-  assert.equal(store.get(MEDIA_HISTORY_KEY).schemaVersion, 4);
+  assert.equal(store.get(MEDIA_HISTORY_KEY).schemaVersion, 5);
 
   assert.equal(await history.record({ identityHash }, {
     label: "fallback",
@@ -223,7 +227,10 @@ test("MediaHistory records quality receipts, upgrades fallback saves, and migrat
     width: 12_000,
     height: 8_000,
     bitrate: null,
-    mime: "image/png"
+    mime: "image/png",
+    codec: null,
+    codecSource: null,
+    playbackProven: false
   });
   assert.doesNotMatch(JSON.stringify(store.get(MEDIA_HISTORY_KEY)), /pbs\.twimg|https?:/i);
 });
@@ -355,7 +362,7 @@ test("MediaHistory repairs malformed entries and reservations in a current-versi
 
   assert.equal(history.size(), 0);
   assert.deepEqual(store.get(MEDIA_HISTORY_KEY), {
-    schemaVersion: 4,
+    schemaVersion: 5,
     entries: [],
     reservations: [],
     matches: { identity: 0, exact: 0, perceptual: 0 },
@@ -390,7 +397,7 @@ test("media history export filters inclusive date ranges without exposing source
   assert.ok(payload.entries.every((entry) => entry.quality.label === "quality-unknown"));
   assert.doesNotMatch(JSON.stringify(payload), /pbs\.twimg|https?:/i);
   const csv = new TextDecoder().decode(artifacts[1].data);
-  assert.match(csv, /quality,width,height,bitrate,mime,downloaded_at/);
+  assert.match(csv, /quality,width,height,bitrate,mime,codec,codec_source,playback_proven,downloaded_at/);
   assert.doesNotMatch(csv, /2026-02-01/);
   assert.throws(
     () => buildMediaHistoryExportArtifacts(snapshot, { from: "2026-02-31" }),

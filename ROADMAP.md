@@ -68,14 +68,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P2, Later
 
-- [ ] F310, P2: Separate video quality, codec evidence, and compatibility output
-  Why: a recognized codec does not prove a playable container, and choosing a lower-resolution file just because its codec is known violates best-quality downloading.
-  Evidence: `src/features/media/video-extract.ts`, `src/features/media/history.ts`; https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/extractor/twitter.py; https://github.com/yt-dlp/yt-dlp/pull/8826; https://github.com/yt-dlp/yt-dlp/issues/8117; https://github.com/yt-dlp/yt-dlp/issues/8750; https://github.com/imputnet/cobalt/blob/main/api/src/processing/services/twitter.js
-  Touches: variant types and ranking, metadata enrichment, quality receipts, Media history, optional helper policy, selection and playback fixtures
-  Acceptance: quality rank prioritizes known resolution, then uses provenance-qualified bitrate and deterministic tie rules without inventing missing values; an unknown codec alone never demotes a higher-quality candidate; record codec evidence and its source separately from observed quality and proven playback; fixtures include higher-resolution unknown-codec media, inaccurate bitrate, and a named AVC stream in a defective container; history written before the change remains codec unknown; any compatibility action is explicit and keeps the original available; lossless remux preserves streams where possible and a required transcode is labeled with its quality cost, never offered as an original.
-  Complexity: M
-  Depends: F284 for receipts and F332 for same-URL metadata merging. F283 provides the optional helper boundary.
-
 - [ ] F311, P2: Import old-vintage and Grailbird X archives, not only current ones
   Why: X's export has changed shape by accretion. Archives from roughly 2020 and earlier carry `data/tweet.js` rather than `tweets.js` and lack the four direct-message files; pre-2018 exports use the Grailbird layout entirely. Three separate third-party tools had this exact bug open or closed by 2026-09-05, and none of them was built to handle more than one vintage. Aviary's import path can win here cheaply.
   Evidence: https://github.com/JonathanSeriesX/twixodus/issues/1 (2026-08-28, maintainer: "They must have changed the data structure at some point between 2020 and 2024"), https://github.com/marcomaroni-github/twitter-to-bluesky/issues/93, https://github.com/tweetback/tweetback/issues/95, https://github.com/lhl/tweetxvault/blob/main/docs/GRAILBIRD.md, https://github.com/dogsheep/twitter-to-sqlite/issues/63 (the per-feature files X appended over time); `src/features/library/archive-import.ts`, `src/features/library/archive-import-jobs.ts`

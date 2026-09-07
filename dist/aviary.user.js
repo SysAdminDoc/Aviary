@@ -14394,6 +14394,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     const seen = /* @__PURE__ */ new Set();
     if (video.currentSrc) {
       pushVariant(variants, seen, video.currentSrc, video.dataset.contentType ?? "video/mp4");
+      if (typeof video.readyState === "number" && video.readyState >= 2) {
+        markPlaybackObserved(variants, video.currentSrc);
+      }
     }
     if (video.src) {
       pushVariant(variants, seen, video.src, "video/mp4");
@@ -14406,7 +14409,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         source.type || "video/mp4",
         source.dataset.width,
         source.dataset.height,
-        source.dataset.bitrate
+        source.dataset.bitrate,
+        source.dataset.codec,
+        void 0,
+        source.dataset.codec ? "source-element" : void 0
       );
     }
     for (const variant of metadata.variants ?? []) {
@@ -14477,10 +14483,15 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       variant.height === null ? void 0 : String(variant.height),
       variant.bitrate === null ? void 0 : String(variant.bitrate),
       variant.codec ?? void 0,
-      variant.provenance ?? void 0
+      variant.provenance ?? void 0,
+      variant.codecSource ?? (variant.codec ? "graphql-variant" : void 0)
     );
   }
-  function pushVariant(variants, seen, src, type, width, height, bitrate, codec, provenance) {
+  function markPlaybackObserved(variants, url) {
+    const index = variants.findIndex((variant) => variant.url === url);
+    if (index >= 0) variants[index] = { ...variants[index], playbackObserved: true };
+  }
+  function pushVariant(variants, seen, src, type, width, height, bitrate, codec, provenance, codecSource) {
     if (!src) {
       return;
     }
@@ -14491,7 +14502,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       height: parsePositiveInt(height),
       bitrate: parsePositiveInt(bitrate)
     };
-    if (codec?.trim()) candidate.codec = codec.trim();
+    if (codec?.trim()) {
+      candidate.codec = codec.trim();
+      if (codecSource) candidate.codecSource = codecSource;
+    }
     if (provenance?.trim()) candidate.provenance = provenance.trim();
     const existingIndex = variants.findIndex((variant) => variant.url === src);
     if (existingIndex >= 0) {
@@ -14515,6 +14529,11 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     };
     if ("codec" in left || "codec" in right) {
       merged.codec = chooseKnownText(left.codec, right.codec);
+      const source = merged.codec === left.codec ? left.codecSource : right.codecSource;
+      merged.codecSource = merged.codec ? source ?? null : null;
+    }
+    if (left.playbackObserved || right.playbackObserved) {
+      merged.playbackObserved = true;
     }
     if ("provenance" in left || "provenance" in right) {
       merged.provenance = mergeProvenance(left.provenance, right.provenance);
@@ -14541,6 +14560,22 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
     return !/(?:mpegurl|dash\+xml)/i.test(type);
   }
+  function compareVariantQuality(left, right) {
+    const height = compareKnown(left.height, right.height);
+    if (height !== 0) return height;
+    const width = compareKnown(left.width, right.width);
+    if (width !== 0) return width;
+    if (left.bitrate !== null && right.bitrate !== null) {
+      return left.bitrate - right.bitrate;
+    }
+    return 0;
+  }
+  function compareKnown(left, right) {
+    if (left === right) return 0;
+    if (left === null) return -1;
+    if (right === null) return 1;
+    return left - right;
+  }
   function pickPreferred(variants) {
     const sorted = [...variants].sort((a, b) => {
       const saveableDiff = Number(isSaveableVariantUrl(b.url, b.type)) - Number(isSaveableVariantUrl(a.url, a.type));
@@ -14551,14 +14586,11 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       if (mp4Diff !== 0) {
         return mp4Diff;
       }
-      const bitrateDiff = (b.bitrate ?? 0) - (a.bitrate ?? 0);
-      if (bitrateDiff !== 0) {
-        return bitrateDiff;
+      const qualityDiff = compareVariantQuality(b, a);
+      if (qualityDiff !== 0) {
+        return qualityDiff;
       }
-      const aPixels = (a.width ?? 0) * (a.height ?? 0);
-      const bPixels = (b.width ?? 0) * (b.height ?? 0);
-      const pixelDiff = bPixels - aPixels;
-      return pixelDiff !== 0 ? pixelDiff : compareStable(a.url, b.url);
+      return compareStable(a.url, b.url);
     });
     return sorted[0] ?? variants[0];
   }
@@ -15279,21 +15311,44 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   var DOWNLOAD_STATE_MESSAGE = "AVIARY_DOWNLOAD_STATE";
   var DOWNLOAD_QUERY_MESSAGE = "AVIARY_DOWNLOAD_QUERY";
   function unknownDownloadQuality() {
-    return { label: "quality-unknown", width: null, height: null, bitrate: null, mime: null };
+    return {
+      label: "quality-unknown",
+      width: null,
+      height: null,
+      bitrate: null,
+      mime: null,
+      codec: null,
+      codecSource: null,
+      playbackProven: false
+    };
   }
   function normalizeDownloadQuality(value) {
     if (!value || typeof value !== "object") {
       return unknownDownloadQuality();
     }
     const candidate = value;
-    const label = candidate.label === "original" || candidate.label === "fallback" || candidate.label === "best-direct" || candidate.label === "quality-unknown" ? candidate.label : "quality-unknown";
+    const label = candidate.label === "original" || candidate.label === "fallback" || candidate.label === "best-direct" || candidate.label === "adaptive-remux" || candidate.label === "quality-unknown" ? candidate.label : "quality-unknown";
+    const codecSource = candidate.codecSource === "graphql-variant" || candidate.codecSource === "source-element" ? candidate.codecSource : null;
+    const codec = codecSource !== null && typeof candidate.codec === "string" && /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(candidate.codec.trim()) ? candidate.codec.trim().toLowerCase() : null;
     return {
       label,
       width: boundedPositive(candidate.width, 2e4),
       height: boundedPositive(candidate.height, 2e4),
       bitrate: boundedPositive(candidate.bitrate, 1e9),
-      mime: typeof candidate.mime === "string" && /^[a-z][a-z0-9!#$&^_.+-]*\/[a-z0-9!#$&^_.+-]+$/i.test(candidate.mime) ? candidate.mime.slice(0, 120).toLowerCase() : null
+      mime: typeof candidate.mime === "string" && /^[a-z][a-z0-9!#$&^_.+-]*\/[a-z0-9!#$&^_.+-]+$/i.test(candidate.mime) ? candidate.mime.slice(0, 120).toLowerCase() : null,
+      codec: codec === null ? null : codec,
+      codecSource: codec === null ? null : codecSource,
+      playbackProven: candidate.playbackProven === true
     };
+  }
+  function isDownloadQualityReceipt(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    const normalized = normalizeDownloadQuality(value);
+    for (const [key, provided] of Object.entries(value)) {
+      if (!(key in normalized)) return false;
+      if (provided !== normalized[key]) return false;
+    }
+    return true;
   }
   function boundedPositive(value, max) {
     const number = typeof value === "number" ? value : Number(value);
@@ -15305,10 +15360,6 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
     const candidate = value;
     return candidate.type === DOWNLOAD_STATE_MESSAGE && typeof candidate.id === "number" && (candidate.state === "complete" || candidate.state === "interrupted") && (candidate.error === void 0 || typeof candidate.error === "string") && (candidate.quality === void 0 || isDownloadQualityReceipt(candidate.quality));
-  }
-  function isDownloadQualityReceipt(value) {
-    const normalized = normalizeDownloadQuality(value);
-    return Boolean(value && typeof value === "object" && JSON.stringify(normalized) === JSON.stringify(value));
   }
 
   // src/features/media/downloader.ts
@@ -15903,6 +15954,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       };
       if (typeof entry.codec === "string" && entry.codec.trim()) {
         candidate.codec = entry.codec.trim();
+        candidate.codecSource = "graphql-variant";
       }
       if (typeof entry.provenance === "string" && entry.provenance.trim()) {
         candidate.provenance = entry.provenance.trim();
@@ -16022,7 +16074,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     });
   }
   function videoVariantEqual(left, right) {
-    return left.url === right.url && left.type === right.type && left.width === right.width && left.height === right.height && left.bitrate === right.bitrate && left.codec === right.codec && left.provenance === right.provenance;
+    return left.url === right.url && left.type === right.type && left.width === right.width && left.height === right.height && left.bitrate === right.bitrate && left.codec === right.codec && left.codecSource === right.codecSource && left.provenance === right.provenance;
   }
   function metadataKey(metadata) {
     return [
@@ -16218,17 +16270,6 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   function bestObservedAdaptive(variants) {
     return observedAdaptiveCandidates(variants)[0] ?? null;
   }
-  function compareVariantQuality(left, right) {
-    for (const [leftValue, rightValue] of [
-      [left.height, right.height],
-      [left.width, right.width],
-      [left.bitrate, right.bitrate]
-    ]) {
-      const delta = (leftValue ?? 0) - (rightValue ?? 0);
-      if (delta !== 0) return delta;
-    }
-    return 0;
-  }
   function shouldOfferAdaptiveHelper(direct, variants) {
     const adaptive = bestObservedAdaptive(variants);
     return adaptive !== null && (direct === null || compareVariantQuality(adaptive.variant, direct) > 0);
@@ -16356,7 +16397,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   var MEDIA_HISTORY_LIMIT = 1500;
   var MEDIA_HISTORY_RESERVATION_TTL_MS = 10 * 60 * 1e3;
   var MEDIA_HISTORY_RESERVATION_LIMIT = 128;
-  var MEDIA_HISTORY_SCHEMA_VERSION = 4;
+  var MEDIA_HISTORY_SCHEMA_VERSION = 5;
   function buildMediaHistoryExportArtifacts(snapshot, options = {}) {
     const range = normalizeHistoryRange(options);
     const entries = snapshot.entries.filter((entry) => {
@@ -16377,7 +16418,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       }))
     };
     const csv = [
-      "identity_hash,exact_hash,perceptual_hash,quality,width,height,bitrate,mime,downloaded_at",
+      "identity_hash,exact_hash,perceptual_hash,quality,width,height,bitrate,mime,codec,codec_source,playback_proven,downloaded_at",
       ...entries.map((entry) => {
         const quality = entry.quality ?? unknownDownloadQuality();
         return [
@@ -16389,6 +16430,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
           quality.height === null ? "" : String(quality.height),
           quality.bitrate === null ? "" : String(quality.bitrate),
           quality.mime ?? "",
+          quality.codec ?? "",
+          quality.codecSource ?? "",
+          quality.playbackProven ? "yes" : "no",
           entry.at
         ].map(csvCell).join(",");
       })
@@ -16824,7 +16868,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   function isCurrentSnapshot(stored) {
     const now4 = Date.now();
     return stored.schemaVersion === MEDIA_HISTORY_SCHEMA_VERSION && Array.isArray(stored.entries) && Array.isArray(stored.reservations) && stored.entries.every(
-      (entry) => typeof entry === "object" && entry !== null && "identityHash" in entry && validHash(entry.identityHash) && !("key" in entry) && "quality" in entry && isQualityReceipt(entry.quality)
+      (entry) => typeof entry === "object" && entry !== null && "identityHash" in entry && validHash(entry.identityHash) && !("key" in entry) && "quality" in entry && isDownloadQualityReceipt(entry.quality)
     ) && stored.reservations.every((entry) => isActiveStoredReservation(entry, now4));
   }
   function findEntry(entries, fingerprint2, allowPerceptual) {
@@ -16840,7 +16884,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     return null;
   }
   function qualityRank(value) {
-    return value.label === "original" ? 4 : value.label === "best-direct" ? 3 : value.label === "fallback" ? 2 : 1;
+    return value.label === "original" ? 5 : value.label === "adaptive-remux" ? 4 : value.label === "best-direct" ? 3 : value.label === "fallback" ? 2 : 1;
   }
   function mergeQuality(existing, incoming) {
     const existingRank = qualityRank(existing);
@@ -16852,13 +16896,12 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       width: incoming.width ?? existing.width,
       height: incoming.height ?? existing.height,
       bitrate: incoming.bitrate ?? existing.bitrate,
-      mime: incoming.mime ?? existing.mime
+      mime: incoming.mime ?? existing.mime,
+      // Codec evidence only ever arrives with its source, so the pair moves together or not at all.
+      ...incoming.codec !== null ? { codec: incoming.codec, codecSource: incoming.codecSource } : {},
+      // Playback is one-way: a later observation that did not play does not unprove an earlier one.
+      playbackProven: existing.playbackProven || incoming.playbackProven
     };
-  }
-  function isQualityReceipt(value) {
-    if (!value || typeof value !== "object") return false;
-    const normalized = normalizeDownloadQuality(value);
-    return JSON.stringify(normalized) === JSON.stringify(value);
   }
   function isActiveStoredReservation(value, now4) {
     if (!value || typeof value !== "object") return false;
@@ -18746,7 +18789,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       if (!direct && adaptive) {
         return {
           url: adaptive.manifestUrl,
-          quality: qualityForVariant(adaptive.variant, "best-direct"),
+          quality: qualityForVariant(adaptive.variant, "adaptive-remux"),
           mediaId: mediaIdFromVideo(adaptive.manifestUrl),
           ext: "mp4",
           helperOnly: true,
@@ -18803,7 +18846,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       width: variant.width,
       height: variant.height,
       bitrate: variant.bitrate,
-      mime: variant.type
+      mime: variant.type,
+      codec: variant.codec ?? null,
+      codecSource: variant.codecSource ?? null,
+      playbackProven: variant.playbackObserved === true
     });
   }
   function qualityForMime(mime, label) {
@@ -29044,7 +29090,10 @@ a.av-link-clean {
           width: variant.width,
           height: variant.height,
           bitrate: variant.bitrate,
-          mime: variant.type
+          mime: variant.type,
+          codec: variant.codec ?? null,
+          codecSource: variant.codecSource ?? null,
+          playbackProven: variant.playbackObserved === true
         }),
         mediaId: mediaIdFromVideo2(url),
         ext: extensionForVideo2(variant.type, url)
@@ -29060,7 +29109,10 @@ a.av-link-clean {
           width: variant.width,
           height: variant.height,
           bitrate: variant.bitrate,
-          mime: variant.type
+          mime: variant.type,
+          codec: variant.codec ?? null,
+          codecSource: variant.codecSource ?? null,
+          playbackProven: variant.playbackObserved === true
         }),
         mediaId: mediaIdFromVideo2(variant.url),
         ext: extensionForAudio2(variant.type, variant.url)

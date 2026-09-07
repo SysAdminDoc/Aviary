@@ -9,6 +9,7 @@ import {
   type MediaFingerprintKind
 } from "../export/assets.ts";
 import {
+  isDownloadQualityReceipt,
   normalizeDownloadQuality,
   unknownDownloadQuality,
   type DownloadQualityReceipt
@@ -18,7 +19,7 @@ export const MEDIA_HISTORY_KEY = "aviary.media.history.v1";
 export const MEDIA_HISTORY_LIMIT = 1500;
 export const MEDIA_HISTORY_RESERVATION_TTL_MS = 10 * 60 * 1000;
 const MEDIA_HISTORY_RESERVATION_LIMIT = 128;
-export const MEDIA_HISTORY_SCHEMA_VERSION = 4;
+export const MEDIA_HISTORY_SCHEMA_VERSION = 5;
 
 export interface MediaHistoryEntry {
   identityHash: string;
@@ -100,7 +101,7 @@ export function buildMediaHistoryExportArtifacts(
     }))
   };
   const csv = [
-    "identity_hash,exact_hash,perceptual_hash,quality,width,height,bitrate,mime,downloaded_at",
+    "identity_hash,exact_hash,perceptual_hash,quality,width,height,bitrate,mime,codec,codec_source,playback_proven,downloaded_at",
     ...entries.map((entry) => {
       const quality = entry.quality ?? unknownDownloadQuality();
       return [
@@ -112,6 +113,9 @@ export function buildMediaHistoryExportArtifacts(
         quality.height === null ? "" : String(quality.height),
         quality.bitrate === null ? "" : String(quality.bitrate),
         quality.mime ?? "",
+        quality.codec ?? "",
+        quality.codecSource ?? "",
+        quality.playbackProven ? "yes" : "no",
         entry.at
       ].map(csvCell).join(",");
     })
@@ -681,7 +685,7 @@ function isCurrentSnapshot(stored: MediaHistorySnapshot | LegacyMediaHistorySnap
     stored.entries.every((entry) =>
       typeof entry === "object" && entry !== null &&
       "identityHash" in entry && validHash(entry.identityHash) && !("key" in entry)
-      && "quality" in entry && isQualityReceipt(entry.quality)
+      && "quality" in entry && isDownloadQualityReceipt(entry.quality)
     ) &&
     stored.reservations.every((entry) => isActiveStoredReservation(entry, now));
 }
@@ -705,9 +709,16 @@ function findEntry(
   return null;
 }
 
+/**
+ * How much of a claim each label makes about the file on disk.
+ *
+ * `adaptive-remux` sits above a direct rendition because it carries the streams the adaptive
+ * manifest offered, and below `original` because it is not the file X served -- it is a container
+ * this machine wrote. Nothing here re-encodes, so the ordering is about provenance, not loss.
+ */
 function qualityRank(value: DownloadQualityReceipt): number {
-  return value.label === "original" ? 4 : value.label === "best-direct" ? 3 :
-    value.label === "fallback" ? 2 : 1;
+  return value.label === "original" ? 5 : value.label === "adaptive-remux" ? 4 :
+    value.label === "best-direct" ? 3 : value.label === "fallback" ? 2 : 1;
 }
 
 function mergeQuality(
@@ -723,14 +734,14 @@ function mergeQuality(
     width: incoming.width ?? existing.width,
     height: incoming.height ?? existing.height,
     bitrate: incoming.bitrate ?? existing.bitrate,
-    mime: incoming.mime ?? existing.mime
+    mime: incoming.mime ?? existing.mime,
+    // Codec evidence only ever arrives with its source, so the pair moves together or not at all.
+    ...(incoming.codec !== null
+      ? { codec: incoming.codec, codecSource: incoming.codecSource }
+      : {}),
+    // Playback is one-way: a later observation that did not play does not unprove an earlier one.
+    playbackProven: existing.playbackProven || incoming.playbackProven
   };
-}
-
-function isQualityReceipt(value: unknown): value is DownloadQualityReceipt {
-  if (!value || typeof value !== "object") return false;
-  const normalized = normalizeDownloadQuality(value);
-  return JSON.stringify(normalized) === JSON.stringify(value);
 }
 
 function isActiveStoredReservation(value: unknown, now: number): boolean {

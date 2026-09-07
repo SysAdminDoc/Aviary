@@ -400,7 +400,10 @@ test("completed browser MIME updates the quality receipt without retaining the s
           width: 4000,
           height: 3000,
           bitrate: null,
-          mime: "image/png"
+          mime: "image/png",
+          codec: null,
+          codecSource: null,
+          playbackProven: false
         }
       }
     }

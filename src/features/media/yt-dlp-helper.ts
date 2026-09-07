@@ -1,11 +1,34 @@
 import type { IntegrationSettings } from "../../platform/settings.ts";
 import { assertOutboundAllowed } from "../integrations/network-policy.ts";
-import type { VideoVariant } from "./video-extract.ts";
+import { compareVariantQuality, type VideoVariant } from "./video-extract.ts";
 
 /** The format selector yt-dlp documents for best video plus best audio, with a single-file fallback. */
 export const YTDLP_FORMAT_POLICY = "bv*+ba/b";
-/** Let yt-dlp choose MP4 when the streams are compatible and MKV when they are not. */
+/**
+ * Let yt-dlp choose MP4 when the streams are compatible and MKV when they are not.
+ *
+ * Both are container writes, not re-encodes: `--merge-output-format` muxes the streams yt-dlp
+ * already downloaded. MKV is the honest answer when the streams will not fit MP4, and taking it
+ * costs nothing in picture quality -- which is why this policy never asks for a transcode. The
+ * result is a remux of an adaptive rendition, and `ADAPTIVE_HANDOFF_OUTPUT` is what callers label
+ * it: never "original", because the original progressive file X served is a different file and
+ * stays available.
+ */
 export const YTDLP_MERGE_POLICY = "mp4/mkv";
+
+/**
+ * What the optional helper produces, stated so no surface can present it as the file X served.
+ *
+ * `losslessRemux` is true because `bv*+ba/b` selects streams and muxes them; nothing is
+ * re-encoded, so there is no quality cost to declare. If a future policy ever required a
+ * transcode, this is where its cost would be named, and the label would stop saying remux.
+ */
+export const ADAPTIVE_HANDOFF_OUTPUT = {
+  label: "adaptive-remux",
+  losslessRemux: true,
+  transcoded: false,
+  qualityCost: null
+} as const;
 export const YTDLP_DEFAULT_ENDPOINT = "http://127.0.0.1:8787";
 
 export interface ObservedAdaptiveCandidate {
@@ -62,22 +85,6 @@ export function bestObservedAdaptive(
   variants: readonly VideoVariant[]
 ): ObservedAdaptiveCandidate | null {
   return observedAdaptiveCandidates(variants)[0] ?? null;
-}
-
-/** Positive means left is richer. Unknown dimensions never demote a known higher resolution. */
-export function compareVariantQuality(
-  left: Pick<VideoVariant, "width" | "height" | "bitrate">,
-  right: Pick<VideoVariant, "width" | "height" | "bitrate">
-): number {
-  for (const [leftValue, rightValue] of [
-    [left.height, right.height],
-    [left.width, right.width],
-    [left.bitrate, right.bitrate]
-  ] as Array<[number | null, number | null]>) {
-    const delta = (leftValue ?? 0) - (rightValue ?? 0);
-    if (delta !== 0) return delta;
-  }
-  return 0;
 }
 
 /** A helper action is useful only when the observed adaptive path can beat or replace direct media. */

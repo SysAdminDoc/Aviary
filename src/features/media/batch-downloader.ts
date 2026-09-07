@@ -1042,7 +1042,10 @@ export function resolveTarget(media: ExtractedMedia): ResolvedTarget | null {
         width: variant.width,
         height: variant.height,
         bitrate: variant.bitrate,
-        mime: variant.type
+        mime: variant.type,
+        codec: variant.codec ?? null,
+        codecSource: variant.codecSource ?? null,
+        playbackProven: variant.playbackObserved === true
       }),
       mediaId: mediaIdFromVideo(url),
       ext: extensionForVideo(variant.type, url)
@@ -1058,7 +1061,10 @@ export function resolveTarget(media: ExtractedMedia): ResolvedTarget | null {
         width: variant.width,
         height: variant.height,
         bitrate: variant.bitrate,
-        mime: variant.type
+        mime: variant.type,
+        codec: variant.codec ?? null,
+        codecSource: variant.codecSource ?? null,
+        playbackProven: variant.playbackObserved === true
       }),
       mediaId: mediaIdFromVideo(variant.url),
       ext: extensionForAudio(variant.type, variant.url)

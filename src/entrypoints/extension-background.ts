@@ -13,6 +13,7 @@ import {
 } from "../extension/background-diagnostics.ts";
 import {
   DOWNLOAD_STATE_MESSAGE,
+  isDownloadQualityReceipt,
   isDownloadQueryMessage,
   normalizeDownloadQuality,
   unknownDownloadQuality,
@@ -445,11 +446,11 @@ function isDownload(message: unknown): message is {
       (Array.isArray(candidate.fallbackUrls) &&
         candidate.fallbackUrls.length <= 3 &&
         candidate.fallbackUrls.every((url) => typeof url === "string"))) &&
-    (candidate.quality === undefined || isQualityReceipt(candidate.quality)) &&
+    (candidate.quality === undefined || isDownloadQualityReceipt(candidate.quality)) &&
     (candidate.fallbackQualities === undefined ||
       (Array.isArray(candidate.fallbackQualities) &&
         candidate.fallbackQualities.length <= 3 &&
-        candidate.fallbackQualities.every(isQualityReceipt))) &&
+        candidate.fallbackQualities.every(isDownloadQualityReceipt))) &&
     typeof candidate.filename === "string"
   );
 }
@@ -906,7 +907,7 @@ async function readStoredTerminalReceipts(): Promise<Record<string, TerminalDown
         reportId: candidate.reportId,
         state: candidate.state,
         updatedAt: candidate.updatedAt,
-        ...(candidate.quality && isQualityReceipt(candidate.quality)
+        ...(candidate.quality && isDownloadQualityReceipt(candidate.quality)
           ? { quality: candidate.quality }
           : {}),
         ...(typeof candidate.error === "string" && candidate.error.length > 0
@@ -1074,10 +1075,10 @@ async function readStoredDownloadTracking(): Promise<Record<string, TrackedDownl
         tabId: candidate.tabId ?? null,
         filename: candidate.filename,
         url: typeof candidate.url === "string" ? candidate.url : "",
-        quality: isQualityReceipt(candidate.quality) ? candidate.quality : unknownDownloadQuality(),
+        quality: isDownloadQualityReceipt(candidate.quality) ? candidate.quality : unknownDownloadQuality(),
         fallbackUrls: candidate.fallbackUrls,
         fallbackQualities: Array.isArray(candidate.fallbackQualities)
-          ? candidate.fallbackQualities.filter(isQualityReceipt)
+          ? candidate.fallbackQualities.filter(isDownloadQualityReceipt)
           : candidate.fallbackUrls.map(() => unknownDownloadQuality()),
         retryCount: typeof candidate.retryCount === "number" && Number.isSafeInteger(candidate.retryCount) && candidate.retryCount >= 0
           ? Math.min(candidate.retryCount, MAX_TRANSIENT_RETRIES)
@@ -1086,12 +1087,6 @@ async function readStoredDownloadTracking(): Promise<Record<string, TrackedDownl
     }
   }
   return valid;
-}
-
-function isQualityReceipt(value: unknown): value is DownloadQualityReceipt {
-  if (!value || typeof value !== "object") return false;
-  const normalized = normalizeDownloadQuality(value);
-  return JSON.stringify(normalized) === JSON.stringify(value);
 }
 
 function hasKnownQuality(value: DownloadQualityReceipt | undefined): value is DownloadQualityReceipt {

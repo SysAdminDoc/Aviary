@@ -214,7 +214,7 @@ test("two tabs saving media keep both dedup keys", async () => {
   await Promise.all([a.record("alice:photo1"), b.record("bob:photo2")]);
 
   const stored = mod.readShared(mod.MEDIA_HISTORY_KEY);
-  assert.equal(stored.schemaVersion, 4);
+  assert.equal(stored.schemaVersion, 5);
   assert.equal(stored.entries.length, 2);
   assert.ok(stored.entries.every((entry) => /^[0-9a-f]{64}$/.test(entry.identityHash)));
   assert.ok(stored.entries.every((entry) => !Object.hasOwn(entry, "key")));
