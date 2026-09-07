@@ -105,10 +105,18 @@ export async function captureMediaBytes(
     if (bytes.byteLength > maxBytes) {
       throw new RangeError(`Media response exceeds the ${maxBytes}-byte capture limit.`);
     }
-    const sha256 = await sha256HexAsync(bytes);
+    // A deadline cannot interrupt the hash, and it never even got the chance to try. `fetch` and
+    // `arrayBuffer` resolve through microtasks, which drain before any timer runs, so a one
+    // millisecond budget against a 48 MB response copied and digested the whole payload and only
+    // then reported that the budget had run out. Yielding once lets an expired timer actually
+    // fire, and the check then happens before anything is paid for.
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0);
+    });
     if (signal.aborted) {
       throw signal.reason;
     }
+    const sha256 = await sha256HexAsync(bytes);
     return {
       bytes,
       contentType: response.headers.get("content-type")?.split(";", 1)[0]?.trim() || "application/octet-stream",
